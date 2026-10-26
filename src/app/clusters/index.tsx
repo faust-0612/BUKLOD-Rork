@@ -33,6 +33,7 @@ import {
 import { clusterScopeManageRoute } from '@/lib/buklodCluster';
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import { supabase } from '@/lib/supabase';
 
 function messageOf(error: unknown) {
   if (
@@ -160,6 +161,13 @@ function ClusterCard({
   );
 }
 
+// Session-memory cache: never persist private membership across app restarts.
+// A successful mutation invalidates it before any follow-up read.
+const CLUSTER_CACHE_TTL_MS = 60_000;
+let clusterMemory: { mine: ClusterSummary[] | null; found: ClusterSummary[] | null; query: string; at: number } = {
+  mine: null, found: null, query: '', at: 0,
+};
+
 export default function ClustersScreen() {
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
@@ -169,6 +177,18 @@ export default function ClustersScreen() {
     });
     return () => listener.remove();
   }, []));
+  // Never expose a previous account's in-memory Cluster memberships.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        clusterMemory = { mine: null, found: null, query: '', at: 0 };
+        setMyClusters([]);
+        setDiscover([]);
+        firstLoad.current = true;
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
   const { selectScope } = useBuklodScope();
   const openCluster = useCallback((id: string) => {
     void enterScopedWorkspace(selectScope, id, { section: 'home', navigation: 'replace' }).catch((error) => {
@@ -176,15 +196,15 @@ export default function ClustersScreen() {
     });
   }, [selectScope]);
   const [myClusters, setMyClusters] =
-    useState<ClusterSummary[]>([]);
+    useState<ClusterSummary[]>(clusterMemory.mine ?? []);
 
   const [discover, setDiscover] =
-    useState<ClusterSummary[]>([]);
+    useState<ClusterSummary[]>(clusterMemory.query === '' ? clusterMemory.found ?? [] : []);
 
   const [query, setQuery] = useState('');
 
   const [loading, setLoading] =
-    useState(true);
+    useState(clusterMemory.mine === null && clusterMemory.found === null);
 
   const [refreshing, setRefreshing] =
     useState(false);
@@ -195,7 +215,7 @@ export default function ClustersScreen() {
   const [searching, setSearching] =
     useState(false);
 
-  const firstLoad = useRef(true);
+  const firstLoad = useRef(clusterMemory.mine === null && clusterMemory.found === null);
   const searchRequest = useRef(0);
 
   const load = useCallback(
@@ -215,18 +235,38 @@ export default function ClustersScreen() {
       }
 
       try {
-        const [mine, found] =
-          await Promise.all([
-            getMyClusters(),
-            discoverClusters(searchValue),
-          ]);
+        // A slow discovery request must not hide the user's own clusters.
+        // Preserve the last successful results for either independent read.
+        const [mine, found] = await Promise.allSettled([
+          getMyClusters(),
+          discoverClusters(searchValue),
+        ]);
 
         if (requestId !== searchRequest.current) {
           return;
         }
 
-        setMyClusters(mine);
-        setDiscover(found);
+        if (mine.status === 'fulfilled') {
+          setMyClusters(mine.value);
+          clusterMemory.mine = mine.value;
+        }
+        if (found.status === 'fulfilled') {
+          setDiscover(found.value);
+          if (!searchValue.trim()) {
+            clusterMemory.found = found.value;
+            clusterMemory.query = '';
+          }
+        }
+        if (mine.status === 'fulfilled' && found.status === 'fulfilled' && !searchValue.trim()) {
+          clusterMemory.at = Date.now();
+        }
+        if (mine.status === 'rejected' || found.status === 'rejected') {
+          const failed = mine.status === 'rejected' ? mine.reason : found.status === 'rejected' ? found.reason : null;
+          Alert.alert(
+            'Clusters',
+            'Some Cluster information could not load. Previous results are retained. Pull down to retry. ' + messageOf(failed)
+          );
+        }
       } catch (error) {
         if (requestId !== searchRequest.current) {
           return;
@@ -251,6 +291,7 @@ export default function ClustersScreen() {
   useEffect(() => {
     const delay = query.trim() ? 180 : 0;
     const timer = setTimeout(() => {
+      if (!query.trim() && clusterMemory.at && Date.now() - clusterMemory.at < CLUSTER_CACHE_TTL_MS) return;
       void load(query);
     }, delay);
 
@@ -300,6 +341,7 @@ export default function ClustersScreen() {
         item.scope_id,
         accept
       );
+      clusterMemory.at = 0;
 
       await load(query, true);
     } catch (error) {
@@ -320,6 +362,7 @@ export default function ClustersScreen() {
     try {
       const status =
         await joinCluster(item.scope_id);
+      clusterMemory.at = 0;
 
       if (status === 'PENDING') {
         Alert.alert(
