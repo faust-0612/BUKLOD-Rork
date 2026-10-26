@@ -22,6 +22,7 @@ import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import KlAudioControls from '@/components/kabihasnang-ligaw/KlAudioControls';
 import KlCoverImage from '@/components/kabihasnang-ligaw/KlCoverImage';
 import KlAdminMediaUpload, { klDatabaseId } from '@/components/kabihasnang-ligaw/KlAdminMediaUpload';
+import { KlSceneEffect, type SceneEffect } from '@/components/kabihasnang-ligaw/KlSceneEffect';
 import KlLiveDiscussion from '@/components/kabihasnang-ligaw/KlLiveDiscussion';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
 import {
@@ -91,6 +92,7 @@ export default function KlReaderScreen() {
   const [serverText, setServerText] = useState<string | null>(null);
   const [releasedIds, setReleasedIds] = useState<string[]>([]);
   const [mediaUrls, setMediaUrls] = useState<Record<number, string>>({});
+  const [sceneEffects, setSceneEffects] = useState<Record<number, { effect: SceneEffect; intensity: number }>>({});
   const [viewStart, setViewStart] = useState<number | null>(null);
   const [viewEnd, setViewEnd] = useState<number | null>(null);
   const paragraphY = useRef<Record<number, number>>({});
@@ -277,6 +279,7 @@ export default function KlReaderScreen() {
     setServerState('unread');
     setServerText(null);
     setMediaUrls({});
+    setSceneEffects({});
     setSelectedId(episodeId);
     setGlossaryOpen(false);
     let nextCache = rememberScroll(cache, episodeId, 0, readable);
@@ -294,12 +297,15 @@ export default function KlReaderScreen() {
           const { data: media } = await supabase.rpc('kl_episode_media_v1', { p_episode_id: dbId });
           if (Array.isArray(media)) {
             const urls: Record<number, string> = {};
-            for (const item of media as { kind: string; placement: number; path: string }[]) {
+            const effects: Record<number, { effect: SceneEffect; intensity: number }> = {};
+            for (const item of media as { kind: string; placement: number; path: string; effect?: SceneEffect; intensity?: number }[]) {
               if (item.kind !== 'illustration') continue;
+              effects[item.placement] = { effect: item.effect ?? 'none', intensity: item.intensity ?? 30 };
               const signed = await supabase.storage.from('kl-publishing').createSignedUrl(item.path, 3600);
               if (!signed.error && signed.data?.signedUrl) urls[item.placement] = signed.data.signedUrl;
             }
             setMediaUrls(urls);
+            setSceneEffects(effects);
           }
           nextCache = rememberReleasedReading(nextCache, episodeId, text, true);
         } else {
@@ -442,6 +448,7 @@ export default function KlReaderScreen() {
               const scene = sceneRows.find((row) => row.paragraphRange?.start === paragraph.index);
               const still = scene?.sceneId ? KL_SCENE_STILLS[scene.sceneId] : undefined;
               const dynamicScene = paragraph.index === 0 ? mediaUrls[1] : paragraph.index === Math.floor(paragraphs.length / 3) ? mediaUrls[2] : paragraph.index === Math.floor(2 * paragraphs.length / 3) ? mediaUrls[3] : undefined;
+              const dynamicPlacement = paragraph.index === 0 ? 1 : paragraph.index === Math.floor(paragraphs.length / 3) ? 2 : paragraph.index === Math.floor(2 * paragraphs.length / 3) ? 3 : 0;
               const holdSpoiler = Boolean(
                 scene?.spoiler
                 && (scene.paragraphRange == null || viewEnd == null || viewEnd < scene.paragraphRange.start),
@@ -456,13 +463,16 @@ export default function KlReaderScreen() {
                   style={styles.paragraph}
                 >
                   {(dynamicScene || still) && !holdSpoiler ? (
-                    <Image
-                      source={dynamicScene ? { uri: dynamicScene } : still}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      accessibilityLabel="Larawan ng eksena"
-                      style={styles.scene}
-                    />
+                    <View style={styles.scene}>
+                      <Image source={dynamicScene ? { uri: dynamicScene } : still}
+                        contentFit="cover" cachePolicy="memory-disk" accessibilityLabel="Larawan ng eksena"
+                        style={{ width: '100%', height: '100%' }} />
+                      {dynamicScene && sceneEffects[dynamicPlacement] ? <KlSceneEffect
+                        effect={sceneEffects[dynamicPlacement].effect}
+                        intensity={sceneEffects[dynamicPlacement].intensity}
+                        active={viewEnd != null && paragraph.index <= viewEnd && (viewStart == null || paragraph.index >= viewStart)}
+                      /> : null}
+                    </View>
                   ) : null}
                   <Text
                     style={[
