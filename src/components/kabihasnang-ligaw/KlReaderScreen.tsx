@@ -21,7 +21,8 @@ import { Stack } from 'expo-router';
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import KlAudioControls from '@/components/kabihasnang-ligaw/KlAudioControls';
 import KlCoverImage from '@/components/kabihasnang-ligaw/KlCoverImage';
-import KlAdminMediaUpload, { klDatabaseId } from '@/components/kabihasnang-ligaw/KlAdminMediaUpload';
+import { klDatabaseId } from '@/components/kabihasnang-ligaw/KlAdminMediaUpload';
+import KlAdminPreview from '@/components/kabihasnang-ligaw/KlAdminPreview';
 import { KlSceneEffect, type SceneEffect } from '@/components/kabihasnang-ligaw/KlSceneEffect';
 import KlLiveDiscussion from '@/components/kabihasnang-ligaw/KlLiveDiscussion';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
@@ -75,6 +76,7 @@ export default function KlReaderScreen() {
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
   const [releaseTarget, setReleaseTarget] = useState<string | null>(null);
+  const [previewTarget,setPreviewTarget]=useState<string|null>(null);
   const [cache, setCache] = useState<ReaderCache>(DEFAULT_READER_CACHE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
@@ -592,7 +594,7 @@ export default function KlReaderScreen() {
               <Text style={{ color: '#fff' }}>Mark Chapter Complete</Text>
             </Pressable>
             {rewardFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{rewardFeedback}</Text> : null}
-            {isSystemAdmin ? <KlAdminMediaUpload episodeNumber={selected.episodeNumber} /> : null}
+
             <KlLiveDiscussion episodeId={selected.id} live={liveReleased} />
           </View>
         ) : (
@@ -648,7 +650,10 @@ export default function KlReaderScreen() {
                   {showLock ? <Text style={styles.body}>{klCopy.lockedDetail}</Text> : null}
                   {isSystemAdmin ? (
                     <View style={{ marginTop: 10, gap: 8 }}>
-                      <KlAdminMediaUpload episodeNumber={episode.episodeNumber} />
+                      <Pressable accessibilityRole="button" onPress={(event)=>{event.stopPropagation();setPreviewTarget(previewTarget===episode.id?null:episode.id);}}>
+                        <Text style={{color:'#f1d39b'}}>Open prepared Admin Preview</Text>
+                      </Pressable>
+                      {previewTarget===episode.id?<KlAdminPreview episodeId={klDatabaseId(episode.episodeNumber)}/>:null}
                       <View style={{ flexDirection: 'row', gap: 12 }}>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
