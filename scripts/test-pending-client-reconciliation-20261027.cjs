@@ -38,6 +38,9 @@ assert.match(directory, /if \(requestId === searchRequest.current && clusterMemo
 assert.match(directory, /Promise.allSettled\(/);
 assert.doesNotMatch(directory, /supabase\.auth\.onAuthStateChange/);
 assert.match(directory, /padding: 11,/);
+assert.match(directory, /const \[loadError, setLoadError\] = useState\(''\)/);
+assert.match(directory, /title="RETRY" onPress=\{\(\) => void load\(query, true\)\}/);
+assert.doesNotMatch(directory, /Tap the cluster to open Home/);
 assert.match(faith, /flexBasis: '30%'/);
 assert.match(faith, /minHeight: compact \? 96 : 72/);
 assert.match(lesson, /backgroundColor: '#5845C5'/);
