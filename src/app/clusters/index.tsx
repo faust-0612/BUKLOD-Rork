@@ -215,18 +215,26 @@ export default function ClustersScreen() {
       }
 
       try {
-        const [mine, found] =
-          await Promise.all([
-            getMyClusters(),
-            discoverClusters(searchValue),
-          ]);
+        // A slow discovery request must not hide the user's own clusters.
+        // Preserve the last successful results for either independent read.
+        const [mine, found] = await Promise.allSettled([
+          getMyClusters(),
+          discoverClusters(searchValue),
+        ]);
 
         if (requestId !== searchRequest.current) {
           return;
         }
 
-        setMyClusters(mine);
-        setDiscover(found);
+        if (mine.status === 'fulfilled') setMyClusters(mine.value);
+        if (found.status === 'fulfilled') setDiscover(found.value);
+        if (mine.status === 'rejected' || found.status === 'rejected') {
+          const failed = mine.status === 'rejected' ? mine.reason : found.status === 'rejected' ? found.reason : null;
+          Alert.alert(
+            'Clusters',
+            'Some Cluster information could not load. Previous results are retained. Pull down to retry. ' + messageOf(failed)
+          );
+        }
       } catch (error) {
         if (requestId !== searchRequest.current) {
           return;
