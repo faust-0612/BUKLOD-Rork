@@ -1,6 +1,6 @@
 # KABIHASNANG LIGAW
 ## Unang Serye — Ang Lupang Hindi Namamatay
-### KABANATA 3 — ANG DAANG NAGBABAGO
+### KABANATA 3 — ANG IKAAPAT NA GUHIT
 **DRAFT PARA SA PAG-APRUBA — HINDI PA LIVE**
 
 Apat na guhit.
