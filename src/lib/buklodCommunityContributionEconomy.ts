@@ -96,8 +96,12 @@ export async function loadMyCommunityContribution() {
     return await rpc<CommunityContributionDashboard>(
       'get_my_buklod_community_contribution_v2',
     );
-  } catch {
-    // Backward-compatible during staged rollout.
+  } catch (error) {
+    // Only fall back when v2 is missing during a staged database rollout.
+    // Retrying with v1 after a timeout or connection-pool failure amplifies
+    // database pressure and hides the original infrastructure error.
+    const code = String((error as { code?: unknown } | null)?.code ?? '');
+    if (code !== '42883' && code !== 'PGRST202') throw error;
     return rpc<CommunityContributionDashboard>(
       'get_my_buklod_community_contribution_v1',
     );
