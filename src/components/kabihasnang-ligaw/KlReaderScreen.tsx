@@ -23,6 +23,7 @@ import KlAudioControls from '@/components/kabihasnang-ligaw/KlAudioControls';
 import KlCoverImage from '@/components/kabihasnang-ligaw/KlCoverImage';
 import { klDatabaseId } from '@/components/kabihasnang-ligaw/KlAdminMediaUpload';
 import KlAdminPreview from '@/components/kabihasnang-ligaw/KlAdminPreview';
+import KlDynamicLibrary from '@/components/kabihasnang-ligaw/KlDynamicLibrary';
 import { KlSceneEffect, type SceneEffect } from '@/components/kabihasnang-ligaw/KlSceneEffect';
 import KlLiveDiscussion from '@/components/kabihasnang-ligaw/KlLiveDiscussion';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
@@ -607,6 +608,7 @@ export default function KlReaderScreen() {
             <Text style={styles.by}>{KL_AUTHOR}</Text>
             <Text style={styles.lede}>{klCopy.librarySubtitle}</Text>
             <Text style={styles.meta}>{klCopy.libraryHint}</Text>
+            <KlDynamicLibrary />
             <View style={styles.panel}>
               <Text style={styles.panelTitle}>{klCopy.journey}</Text>
               <Text style={styles.body}>{klCopy.journeyEmpty}</Text>
