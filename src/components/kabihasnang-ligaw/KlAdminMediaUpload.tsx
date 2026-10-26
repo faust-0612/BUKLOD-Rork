@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
@@ -9,16 +9,18 @@ const DB_EPISODE_PREFIX = 'aa000001-0000-4000-8000-';
 export const klDatabaseId = (episodeNumber: number) =>
   DB_EPISODE_PREFIX + String(episodeNumber + 1).padStart(12, '0');
 
-export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
+export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideId, onUploaded }: {
   episodeNumber: number;
+  episodeId?: string;
   onUploaded?: () => void;
 }) {
+  const episodeId = overrideId ?? episodeId;
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [kind, setKind] = useState<Kind>('illustration');
   const [items, setItems] = useState<{kind: Kind; placement: number; approved: boolean}[]>([]);
   const load = async () => {
-    const { data } = await supabase.rpc('kl_admin_media_list_v1', { p_episode_id: klDatabaseId(episodeNumber) });
+    const { data } = await supabase.rpc('kl_admin_media_list_v1', { p_episode_id: episodeId });
     if (Array.isArray(data)) setItems(data.filter((item) => item.kind === 'cover' || item.kind === 'illustration'));
   };
   useEffect(() => { void load(); }, [episodeNumber]);
@@ -26,7 +28,7 @@ export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
     if (busy) return;
     setBusy(true);
     const { error } = await supabase.rpc('kl_admin_media_approve_v1', {
-      p_episode_id: klDatabaseId(episodeNumber), p_kind: mediaKind, p_placement: mediaPlacement,
+      p_episode_id: episodeId, p_kind: mediaKind, p_placement: mediaPlacement,
     });
     setFeedback(error ? error.message : 'Media approved on server.');
     await load();
@@ -34,11 +36,22 @@ export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
   };
   const [placement, setPlacement] = useState(1);
   const [effect, setEffect] = useState('none');
+  const [anchor, setAnchor] = useState('');
+  const [side, setSide] = useState<'before'|'after'>('after');
   const [intensity, setIntensity] = useState(30);
+  const saveAnchor = async () => {
+    setBusy(true);
+    const { error } = await supabase.rpc('kl_admin_place_media_v1', {
+      p_episode_id: episodeId, p_kind: 'illustration', p_placement: placement,
+      p_anchor: anchor.trim(), p_side: side,
+    });
+    setFeedback(error ? error.message : 'Placement saved.');
+    setBusy(false);
+  };
   const saveEffect = async () => {
     setBusy(true);
     const { error } = await supabase.rpc('kl_admin_scene_effect_v1', {
-      p_episode_id: klDatabaseId(episodeNumber), p_placement: placement,
+      p_episode_id: episodeId, p_placement: placement,
       p_effect: effect, p_intensity: intensity,
     });
     setFeedback(error ? error.message : 'Scene effect saved.');
@@ -55,14 +68,14 @@ export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
       if (picked.canceled || !picked.assets[0]) { setFeedback('Kinansela.'); return; }
       const asset = picked.assets[0];
       if (!asset.base64) throw new Error('Hindi nabasa ang image data.');
-      const episodeId = klDatabaseId(episodeNumber);
-      const filePath = `episodes/${episodeId}/${kind}-${kind === 'cover' ? 0 : placement}-${Date.now()}.jpg`;
+      const selectedEpisodeId = episodeId;
+      const filePath = `episodes/${selectedEpisodeId}/${kind}-${kind === 'cover' ? 0 : placement}-${Date.now()}.jpg`;
       setFeedback('Nag-u-upload…');
       const { error: uploadError } = await supabase.storage.from('kl-publishing')
         .upload(filePath, decode(asset.base64), { contentType: 'image/jpeg', upsert: false });
       if (uploadError) throw uploadError;
       const { error: saveError } = await supabase.rpc('kl_admin_media_save_v1', {
-        p_episode_id: episodeId, p_kind: kind,
+        p_episode_id: selectedEpisodeId, p_kind: kind,
         p_placement: kind === 'cover' ? 0 : placement,
         p_path: filePath, p_approved: false,
       });
@@ -84,6 +97,10 @@ export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
     <Pressable accessibilityRole="button" disabled={busy} onPress={() => void upload()}>
       <Text style={{ color: '#f1d39b' }}>{busy ? 'Uploading…' : 'Upload Image'}</Text>
     </Pressable>
+    <Text style={{ color: '#fff' }}>Exact paragraph anchor (paste a unique sentence from the chapter)</Text>
+    <TextInput value={anchor} onChangeText={setAnchor} multiline placeholder="Sentence from manuscript" placeholderTextColor="#999" style={{ color: '#fff', borderWidth: 1, borderColor: '#888', padding: 8 }} />
+    <Pressable onPress={() => setSide(side === 'before' ? 'after' : 'before')}><Text style={{ color: '#fff' }}>Image position: {side} selected paragraph</Text></Pressable>
+    <Pressable disabled={busy || anchor.trim().length < 12} onPress={() => void saveAnchor()}><Text style={{ color: '#f1d39b' }}>Save exact placement</Text></Pressable>
     <Text style={{ color: '#fff' }}>Scene {placement} atmosphere (built-in, no animation upload)</Text>
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
       {['none','rain','fog','fireflies','embers','lightning'].map((option) =>
@@ -99,9 +116,7 @@ export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
     </Pressable>
     {items.map((item) => <View key={item.kind + item.placement} style={{ flexDirection: 'row', gap: 12 }}>
       <Text style={{ color: '#fff' }}>{item.kind} {item.placement}: {item.approved ? 'Approved' : 'Pending'}</Text>
-      {!item.approved && <Pressable disabled={busy} onPress={() => void approve(item.kind, item.placement)}>
-        <Text style={{ color: '#f1d39b' }}>Approve Media</Text>
-      </Pressable>}
+
     </View>)}
     {feedback ? <Text accessibilityRole="alert" style={{ color: '#fff' }}>{feedback}</Text> : null}
   </View>;
