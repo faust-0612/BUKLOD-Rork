@@ -92,6 +92,10 @@ const rpcTtlMs: Record<string, number> = {
   // Connect inbox summaries are realtime-first and already have a bounded
   // fallback refresh. A 10s shield only collapses remount/burst duplicates;
   // Authorization remains part of the request key and no writes are cached.
+  // PERF R1: Collapse concurrent unread badge refreshes caused by focus,
+  // Realtime INSERT and dashboard remount. Keep this much shorter than the
+  // thread summaries because an unread badge is user-visible live state.
+  buklod_connect_unread_count: 2_500,
   buklod_connect_personal_threads: 10_000,
   buklod_connect_community_rooms: 10_000,
   // Suggested contacts is a read-only, user-scoped Connect discovery query.
