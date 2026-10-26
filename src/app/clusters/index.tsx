@@ -1,5 +1,6 @@
 ﻿import React, {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -31,12 +32,7 @@ import {
 } from '@/lib/buklodClusters';
 import { clusterScopeManageRoute } from '@/lib/buklodCluster';
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
-import { useAuth } from '@/providers/AuthProvider';
-import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
-import { createClusterDirectoryCache } from '@/lib/clusterDirectoryCache';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
-
-const directoryCache = createClusterDirectoryCache<ClusterSummary[]>();
 
 function messageOf(error: unknown) {
   if (
@@ -147,7 +143,7 @@ function ClusterCard({
       </View>
 
       {!!item.description && (
-        <Text numberOfLines={2} style={styles.description}>
+        <Text style={styles.description}>
           {item.description}
         </Text>
       )}
@@ -165,13 +161,6 @@ function ClusterCard({
 }
 
 export default function ClustersScreen() {
-  const { user } = useAuth();
-  const owner = user?.id ?? '';
-  directoryCache.selectOwner(owner);
-  return <ClusterDirectory key={owner} owner={owner} />;
-}
-
-function ClusterDirectory({ owner }: { owner: string }) {
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -187,15 +176,15 @@ function ClusterDirectory({ owner }: { owner: string }) {
     });
   }, [selectScope]);
   const [myClusters, setMyClusters] =
-    useState<ClusterSummary[]>(() => directoryCache.peek(owner, 'mine') ?? []);
+    useState<ClusterSummary[]>([]);
 
   const [discover, setDiscover] =
-    useState<ClusterSummary[]>(() => directoryCache.peek(owner, 'discover:') ?? []);
+    useState<ClusterSummary[]>([]);
 
   const [query, setQuery] = useState('');
 
   const [loading, setLoading] =
-    useState(() => Boolean(owner) && !directoryCache.peek(owner, 'mine'));
+    useState(true);
 
   const [refreshing, setRefreshing] =
     useState(false);
@@ -206,49 +195,69 @@ function ClusterDirectory({ owner }: { owner: string }) {
   const [searching, setSearching] =
     useState(false);
 
-  const hasMine = useRef(Boolean(directoryCache.peek(owner, 'mine')));
-  const [loadError, setLoadError] = useState('');
+  const firstLoad = useRef(true);
   const searchRequest = useRef(0);
 
-  const load = useCallback(async (searchValue = '', refresh = false) => {
-    if (!owner) return;
-    const requestId = ++searchRequest.current;
-    const current = () => requestId === searchRequest.current && directoryCache.isOwner(owner);
-    setLoadError('');
-    setRefreshing(refresh);
-    setLoading(!hasMine.current);
-    setSearching(true);
-    const mineTask = directoryCache.read(owner, 'mine', () =>
-      withBuklodTimeout(getMyClusters(), 10000, 'My Clusters'), refresh)
-      .then(mine => {
-        if (!current()) return;
-        setMyClusters(mine);
-        hasMine.current = true;
-      }).catch(error => {
-        if (current()) setLoadError(messageOf(error));
-      }).finally(() => {
-        // Discovery must not delay displaying the user's own clusters.
-        if (current()) setLoading(false);
-      });
-    const discoverTask = directoryCache.read(owner, `discover:${searchValue.trim()}`, () =>
-      withBuklodTimeout(discoverClusters(searchValue), 10000, 'Discover Clusters'), refresh)
-      .then(found => { if (current()) setDiscover(found); })
-      .catch(error => { if (current()) setLoadError(messageOf(error)); });
-    await Promise.all([mineTask, discoverTask]);
-    if (current()) {
-      setSearching(false);
-      setRefreshing(false);
-    }
-  }, [owner]);
+  const load = useCallback(
+    async (
+      searchValue: string = query,
+      refresh = false
+    ) => {
+      const requestId = searchRequest.current + 1;
+      searchRequest.current = requestId;
 
-  useFocusEffect(useCallback(() => {
-    const timer = setTimeout(() => { void load(query); }, query.trim() ? 180 : 0);
+      if (refresh) {
+        setRefreshing(true);
+      } else if (firstLoad.current) {
+        setLoading(true);
+      } else {
+        setSearching(true);
+      }
+
+      try {
+        const [mine, found] =
+          await Promise.all([
+            getMyClusters(),
+            discoverClusters(searchValue),
+          ]);
+
+        if (requestId !== searchRequest.current) {
+          return;
+        }
+
+        setMyClusters(mine);
+        setDiscover(found);
+      } catch (error) {
+        if (requestId !== searchRequest.current) {
+          return;
+        }
+
+        Alert.alert(
+          'Clusters',
+          messageOf(error)
+        );
+      } finally {
+        if (requestId === searchRequest.current) {
+          firstLoad.current = false;
+          setLoading(false);
+          setSearching(false);
+          setRefreshing(false);
+        }
+      }
+    },
+    [query]
+  );
+
+  useEffect(() => {
+    const delay = query.trim() ? 180 : 0;
+    const timer = setTimeout(() => {
+      void load(query);
+    }, delay);
+
     return () => {
       clearTimeout(timer);
-      // Ignore responses from a screen or query that is no longer active.
-      searchRequest.current += 1;
     };
-  }, [load, query]));
+  }, [load, query]);
 
   const activeClusters = useMemo(
     () =>
@@ -292,7 +301,6 @@ function ClusterDirectory({ owner }: { owner: string }) {
         accept
       );
 
-      directoryCache.invalidate();
       await load(query, true);
     } catch (error) {
       Alert.alert(
@@ -320,7 +328,6 @@ function ClusterDirectory({ owner }: { owner: string }) {
         );
       }
 
-      directoryCache.invalidate();
       await load(query, true);
 
       if (status === 'ACTIVE') {
@@ -375,12 +382,6 @@ function ClusterDirectory({ owner }: { owner: string }) {
         </Pressable>
       </View>
 
-      {!!loadError && (
-        <View style={styles.empty}>
-          <Text style={styles.muted}>{hasMine.current ? 'Showing saved Clusters. ' : ''}{loadError}</Text>
-          <ActionButton title="RETRY" onPress={() => void load(query, true)} />
-        </View>
-      )}
       {loading ? (
         <View style={styles.loading}>
           <ActivityIndicator size="large" />
@@ -397,11 +398,12 @@ function ClusterDirectory({ owner }: { owner: string }) {
           {activeClusters.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
-                {loadError && !hasMine.current ? 'Clusters unavailable' : 'No active Cluster yet'}
+                No active Cluster yet
               </Text>
 
               <Text style={styles.muted}>
-                {loadError && !hasMine.current ? 'Retry when your connection is available.' : 'Create one or discover a community below.'}
+                Create one or discover a
+                community below.
               </Text>
             </View>
           ) : (
@@ -411,7 +413,9 @@ function ClusterDirectory({ owner }: { owner: string }) {
                 item={item}
                 onOpen={openCluster}
               >
-                {item.is_admin && <View style={styles.actions}>
+                <View style={styles.actions}>
+                  <Text style={styles.muted}>Tap the cluster to open Home</Text>
+                  {item.is_admin && (
                     <ActionButton
                       title="MANAGE"
                       outline
@@ -424,7 +428,8 @@ function ClusterDirectory({ owner }: { owner: string }) {
                         )
                       }
                     />
-                </View>}
+                  )}
+                </View>
               </ClusterCard>
             ))
           )}
@@ -623,7 +628,7 @@ const styles = StyleSheet.create({
   hero: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 12,
+    padding: 18,
     borderWidth: 1,
     borderColor: '#E1E7E3',
     gap: 8,
@@ -653,20 +658,20 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: '900',
     color: '#19362A',
   },
 
   subtitle: {
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 20,
     color: '#617068',
     marginBottom: 6,
   },
 
   sectionTitle: {
-    marginTop: 8,
+    marginTop: 14,
     marginBottom: 2,
     fontSize: 13,
     fontWeight: '900',
@@ -677,10 +682,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 11,
+    padding: 15,
     borderWidth: 1,
     borderColor: '#E1E7E3',
-    gap: 5,
+    gap: 8,
   },
 
   cardTitleRow: {
@@ -691,7 +696,7 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     color: '#1A3329',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
   },
 
@@ -819,4 +824,3 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 });
-
