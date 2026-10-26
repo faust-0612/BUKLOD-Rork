@@ -178,7 +178,11 @@ jobs:
       - name: Verify Classroom and Home separation
         shell: bash
         run: |
-          grep -F 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx'
+          if ! grep -Fq 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx'; then
+            grep -Fq 'CONTINUOUS_USE_STABILITY_R1: Home refreshes quietly' 'src/app/(tabs)/home.tsx'
+            grep -Fq '<HomeTopTenCompact' 'src/app/(tabs)/home.tsx'
+            echo 'Lightweight Home intentionally omits legacy identity card.'
+          fi
           grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' 'src/app/profile/buklod-classrooms.tsx'
           grep -F "row.role_key === 'STUDENT'" 'src/app/profile/buklod-classrooms.tsx'
           if grep -F "row.role_key === 'FACULTY'" 'src/app/profile/buklod-classrooms.tsx'; then
