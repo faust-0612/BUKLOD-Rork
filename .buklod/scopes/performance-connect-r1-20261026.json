@@ -1,0 +1,17 @@
+{
+  "objective": "Targeted Connect unread initial-fetch deduplication and read-only RPC burst coalescing",
+  "baseRef": "07ad77e18727f29a36d05fde7d3f8845d8041b28",
+  "productionBaselineEvidence": "verified: GitHub PR #340 base SHA 07ad77e18727f29a36d05fde7d3f8845d8041b28; not asserted as live OTA fingerprint",
+  "allowedPaths": [
+    ".buklod/scopes/performance-connect-r1-20261026.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/hooks/useBuklodConnectUnread.ts",
+    "src/lib/buklodR4RequestShield.ts"
+  ],
+  "acceptanceChecks": [
+    "Performance R1 QA success",
+    "Accountability scope gate passes against exact base SHA",
+    "No authentication, write RPC, emergency cron, or unrelated module changes",
+    "RC and live production checks before OTA"
+  ]
+}
