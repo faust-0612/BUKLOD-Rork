@@ -223,6 +223,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
 
   const [searching, setSearching] =
     useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const firstLoad = useRef(clusterMemory.mine === null && clusterMemory.found === null);
   const searchRequest = useRef(0);
@@ -243,6 +244,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
         return;
       }
 
+      setLoadError('');
       if (refresh) {
         setRefreshing(true);
       } else if (firstLoad.current) {
@@ -278,21 +280,15 @@ function ClusterDirectory({ owner }: { owner: string }) {
           clusterMemory.at = Date.now();
         }
         if (mine.status === 'rejected' || found.status === 'rejected') {
-          const failed = mine.status === 'rejected' ? mine.reason : found.status === 'rejected' ? found.reason : null;
-          Alert.alert(
-            'Clusters',
-            'Some Cluster information could not load. Previous results are retained. Pull down to retry. ' + messageOf(failed)
-          );
+          const failed = mine.status === 'rejected' ? mine.reason : found.reason;
+          setLoadError('Some Cluster information could not load. Previous results are retained. ' + messageOf(failed));
         }
       } catch (error) {
         if (requestId !== searchRequest.current || clusterMemory.owner !== owner) {
           return;
         }
 
-        Alert.alert(
-          'Clusters',
-          messageOf(error)
-        );
+        setLoadError(messageOf(error));
       } finally {
         if (requestId === searchRequest.current && clusterMemory.owner === owner) {
           firstLoad.current = false;
@@ -443,6 +439,13 @@ function ClusterDirectory({ owner }: { owner: string }) {
         </Pressable>
       </View>
 
+      {!!loadError && (
+        <View style={styles.empty}>
+          <Text style={styles.muted}>{loadError}</Text>
+          <ActionButton title="RETRY" onPress={() => void load(query, true)} />
+        </View>
+      )}
+
       {loading ? (
         <View style={styles.loading}>
           <ActivityIndicator size="large" />
@@ -474,9 +477,8 @@ function ClusterDirectory({ owner }: { owner: string }) {
                 item={item}
                 onOpen={openCluster}
               >
-                <View style={styles.actions}>
-                  <Text style={styles.muted}>Tap the cluster to open Home</Text>
-                  {item.is_admin && (
+                {item.is_admin && (
+                  <View style={styles.actions}>
                     <ActionButton
                       title="MANAGE"
                       outline
@@ -489,8 +491,8 @@ function ClusterDirectory({ owner }: { owner: string }) {
                         )
                       }
                     />
-                  )}
-                </View>
+                  </View>
+                )}
               </ClusterCard>
             ))
           )}
