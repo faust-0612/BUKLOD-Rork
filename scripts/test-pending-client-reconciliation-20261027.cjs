@@ -21,3 +21,27 @@ const gate = file('src/components/BuklodTrustedDeviceGate.native.tsx');
 assert.match(gate, /markBuklodStartupChromeReady/);
 assert.doesNotMatch(gate, /authenticateAsync|writeTrustedDevice/);
 console.log('PASS: targeted source checks; Android runtime QA remains necessary');
+
+const scope = file('src/app/scope/index.tsx');
+const route = file('src/lib/buklodScopeRoute.ts');
+const directory = file('src/app/clusters/index.tsx');
+const faith = file('src/components/BuklodHomeFaithPanel.tsx');
+const lesson = file('src/components/BuklodScopeBuklodLessonPanel.tsx');
+const shield = file('src/lib/buklodR4RequestShield.ts');
+
+assert.match(scope, /await exitScopedWorkspace\(selectScope, scopes, '\/clusters'\)/);
+assert.match(scope, /useFocusEffect\(useCallback\(\(\) =>/);
+assert.match(route, /\| '\/clusters'/);
+assert.match(directory, /<ClusterDirectory key=\{owner \|\| 'signed-out'\} owner=\{owner\}/);
+assert.match(directory, /if \(clusterMemory.owner !== owner\)/);
+assert.match(directory, /if \(requestId === searchRequest.current && clusterMemory.owner === owner\)/);
+assert.match(directory, /Promise.allSettled\(/);
+assert.doesNotMatch(directory, /supabase\.auth\.onAuthStateChange/);
+assert.match(directory, /padding: 11,/);
+assert.match(faith, /flexBasis: '30%'/);
+assert.match(faith, /minHeight: compact \? 96 : 72/);
+assert.match(lesson, /backgroundColor: '#5845C5'/);
+assert.match(lesson, /backgroundColor: '#E39B17'/);
+assert.match(shield, /buklod_connect_unread_count: 2_500/);
+assert.match(shield, /buklod_my_clusters: 10_000/);
+console.log('PASS: rollback UI recovery, account-cache isolation, and PR346 compatibility contracts');
