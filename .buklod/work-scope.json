@@ -6,7 +6,8 @@
     ".buklod/work-scope.json",
     "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
     "src/lib/kabihasnang-ligaw/rpc.ts",
-    "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx"
+    "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx",
+    "src/components/kabihasnang-ligaw/KlSceneEffect.tsx"
   ],
   "acceptanceChecks": [
     "Media uploads restricted to system_admin",
