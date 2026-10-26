@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            perf/r1-hot-rpc-burst-collapse-20261026)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/performance-connect-r1-20261026.json" >> "$GITHUB_ENV";;
             fix/cluster-directory-home-20261026)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/cluster-directory-home-20261026.json" >> "$GITHUB_ENV";;
             consolidate/convo-connect-avatar-map-home-20261026)
