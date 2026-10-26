@@ -1,0 +1,18 @@
+{
+  "objective": "Reconcile Cluster and Connect backend request pressure fixes without unrelated changes",
+  "baseRef": "0f1fe6f5ae3f45ae11fbc6b7416903bc6306dbad",
+  "productionBaselineEvidence": "verified: GitHub main base SHA 0f1fe6f5ae3f45ae11fbc6b7416903bc6306dbad; Android live OTA fingerprint must be independently verified before release",
+  "allowedPaths": [
+    "src/app/clusters/index.tsx",
+    "src/lib/buklodR4RequestShield.ts",
+    "src/hooks/useBuklodConnectUnread.ts",
+    ".buklod/scopes/backend-performance-consolidation-20261026.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "BUKLOD Performance R1 QA",
+    "Engineering Accountability",
+    "Verify live production OTA baseline before RC",
+    "Check Cluster membership freshness and Connect unread after writes"
+  ]
+}

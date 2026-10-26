@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -84,6 +84,26 @@ export function useBuklodConnectUnread() {
     setCommunityUnread,
   ] = useState(0);
 
+  // Share the initial thread/room bootstrap between refresh and subscription setup.
+  const bootstrapRef = useRef<{
+    profileId: string;
+    promise: Promise<[any, any]>;
+  } | null>(null);
+
+  const fetchThreadRooms = useCallback(() => {
+    if (!profileId) return Promise.resolve([{ data: [], error: null }, { data: [], error: null }] as [any, any]);
+    if (bootstrapRef.current?.profileId === profileId) return bootstrapRef.current.promise;
+    const promise = Promise.all([
+      (supabase as any).rpc('buklod_connect_personal_threads'),
+      (supabase as any).rpc('buklod_connect_community_rooms'),
+    ]) as Promise<[any, any]>;
+    bootstrapRef.current = { profileId, promise };
+    void promise.finally(() => {
+      if (bootstrapRef.current?.promise === promise) bootstrapRef.current = null;
+    }).catch(() => {});
+    return promise;
+  }, [profileId]);
+
   const refresh = useCallback(
     async () => {
       if (!profileId) {
@@ -93,21 +113,10 @@ export function useBuklodConnectUnread() {
         return;
       }
 
-      const [
-        countResult,
-        personalResult,
-        roomResult,
-      ] =
+      const [countResult, [personalResult, roomResult]] =
         await Promise.all([
-          (supabase as any).rpc(
-            'buklod_connect_unread_count'
-          ),
-          (supabase as any).rpc(
-            'buklod_connect_personal_threads'
-          ),
-          (supabase as any).rpc(
-            'buklod_connect_community_rooms'
-          ),
+          (supabase as any).rpc('buklod_connect_unread_count'),
+          fetchThreadRooms(),
         ]);
 
       if (!countResult.error) {
@@ -147,6 +156,7 @@ export function useBuklodConnectUnread() {
     },
     [
       profileId,
+      fetchThreadRooms,
     ]
   );
 
@@ -168,18 +178,7 @@ export function useBuklodConnectUnread() {
 
       const setup =
         async () => {
-          const [
-            personalResult,
-            roomResult,
-          ] =
-            await Promise.all([
-              (supabase as any).rpc(
-                'buklod_connect_personal_threads'
-              ),
-              (supabase as any).rpc(
-                'buklod_connect_community_rooms'
-              ),
-            ]);
+          const [personalResult, roomResult] = await fetchThreadRooms();
 
           if (!active) {
             return;
@@ -319,6 +318,7 @@ export function useBuklodConnectUnread() {
     [
       profileId,
       refresh,
+      fetchThreadRooms,
     ]
   );
 

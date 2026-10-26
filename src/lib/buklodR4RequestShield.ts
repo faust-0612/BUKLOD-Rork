@@ -69,6 +69,11 @@ const tableTtlMs: Record<string, number> = {
  */
 const rpcTtlMs: Record<string, number> = {
   buklod_my_scopes: 30_000,
+  // Cluster reads: collapse remount bursts without caching membership mutations.
+  buklod_my_clusters: 10_000,
+  // Burst-only coalescing for read-only Connect unread badge RPC.
+  buklod_connect_unread_count: 2_500,
+  buklod_discover_clusters: 10_000,
   get_member_circle_ranks_v1: 60_000,
   get_automatic_bible_today: 60_000,
   get_buklod_points_leaderboard: 30_000,
@@ -288,6 +293,14 @@ function invalidateAfterMutation(rawUrl: string, method: string) {
   if (method === 'GET' || method === 'HEAD') return;
   const table = tableFromUrl(rawUrl);
   if (table && invalidatedTables.has(table)) invalidateTable(table);
+  // Cluster mutations are POST RPCs; never cache them. After a confirmed
+  // mutation, invalidate user-scoped list/discovery reads across the shield.
+  const rpc = rpcFromUrl(rawUrl);
+  if (rpc && /^buklod_(create_cluster|join_cluster|respond_cluster_invite|leave_cluster|invite_cluster_member|update_cluster|remove_cluster_member|transfer_cluster_admin|archive_cluster|restore_cluster|review_cluster_request)/.test(rpc)) {
+    for (const key of shield.cache.keys()) {
+      if (key.includes('/rpc/buklod_my_clusters') || key.includes('/rpc/buklod_discover_clusters')) shield.cache.delete(key);
+    }
+  }
 }
 
 export function createBuklodR4RequestShield(baseFetch: typeof fetch): typeof fetch {
