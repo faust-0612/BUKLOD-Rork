@@ -288,7 +288,7 @@ async function ensureCharacterSession(userId: string): Promise<void> {
   if (error || !data.session || data.session.user.id !== userId || !data.session.access_token) {
     throw new Error('Character session unavailable. Please sign in again.');
   }
-  if (!data.session.expires_at || data.session.expires_at * 1000 <= Date.now() + 60_000) {
+  if (data.session.expires_at && data.session.expires_at * 1000 <= Date.now() + 60_000) {
     const refreshed = await supabase.auth.refreshSession();
     if (refreshed.error || !refreshed.data.session ||
         refreshed.data.session.user.id !== userId || !refreshed.data.session.access_token) {
@@ -305,6 +305,10 @@ export async function getMyBuklodCharacterSelectionV2(
     throw new Error('Authentication required');
   }
 
+  // Validate before any cached or in-flight result can be returned across
+  // account boundaries; a healthy persisted session requires no network I/O.
+  await ensureCharacterSession(userId);
+
   // A forced refresh bypasses cache, but joins an already running refresh.
   const pending = inflight.get(userId);
   if (pending) return pending;
@@ -314,7 +318,6 @@ export async function getMyBuklodCharacterSelectionV2(
   }
 
   const request = (async () => {
-    await ensureCharacterSession(userId);
     const { data, error } = await (supabase as any).rpc(
       'get_my_buklod_character_selection_v2',
     );
