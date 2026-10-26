@@ -1,3 +1,4 @@
+import KlChapterAudio from './KlChapterAudio';
 import React,{useEffect,useState} from 'react';
 import { Image } from 'expo-image';
 import { Pressable,Text,View } from 'react-native';
