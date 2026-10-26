@@ -1,16 +1,21 @@
 {
-  "objective": "KL manual Release Now for approved chapters, system_admin only, existing Community Wall reader",
-  "baseRef": "9bc9cce2ac6a7dbf3f4c3bf786905dba57e3cf77",
-  "productionBaselineEvidence": "Backend action deployed separately; verify current Android production OTA and cumulative source before publishing.",
+  "objective": "KL isolated dynamic publishing integration and chapter authoring",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: main is the scoped PR comparison ref only; independent live OTA baseline verification still required before publish",
   "allowedPaths": [
     ".buklod/work-scope.json",
+    "src/app/admin/kabihasnang-ligaw.tsx",
     "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
-    "src/lib/kabihasnang-ligaw/rpc.ts"
+    "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx",
+    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx",
+    "src/components/kabihasnang-ligaw/KlChapterAudio.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlSceneEffect.tsx"
   ],
   "acceptanceChecks": [
-    "Server-side system_admin gate",
-    "Manual release only after manuscript approval",
-    "Explicit confirmation, no automatic release",
-    "Focused QA then immutable RC and Android production OTA runtime 1.3.2"
+    "TypeScript and performance QA pass",
+    "Chapter 2 remains blank unreleased",
+    "Release requires separate RC and live baseline evidence"
   ]
 }
