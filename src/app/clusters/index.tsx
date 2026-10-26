@@ -294,7 +294,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
           messageOf(error)
         );
       } finally {
-        if (requestId === searchRequest.current) {
+        if (requestId === searchRequest.current && clusterMemory.owner === owner) {
           firstLoad.current = false;
           setLoading(false);
           setSearching(false);
