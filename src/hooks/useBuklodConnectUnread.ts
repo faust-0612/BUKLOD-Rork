@@ -152,9 +152,10 @@ export function useBuklodConnectUnread() {
 
   useEffect(
     () => {
-      void refresh();
-
       if (!profileId) {
+        setUnreadCount(0);
+        setPersonalUnread(0);
+        setCommunityUnread(0);
         return;
       }
 
@@ -169,10 +170,14 @@ export function useBuklodConnectUnread() {
       const setup =
         async () => {
           const [
+            countResult,
             personalResult,
             roomResult,
           ] =
             await Promise.all([
+              (supabase as any).rpc(
+                'buklod_connect_unread_count'
+              ),
               (supabase as any).rpc(
                 'buklod_connect_personal_threads'
               ),
@@ -184,6 +189,19 @@ export function useBuklodConnectUnread() {
           if (!active) {
             return;
           }
+
+          // Reuse bootstrap RPC results for initial badges. Previously the
+          // mount called refresh() and setup() in parallel, doubling thread
+          // and room RPC traffic for every Connect badge subscriber.
+          if (!countResult.error) {
+            const data = countResult.data;
+            const raw = Array.isArray(data) ? data[0] ?? 0 : data ?? 0;
+            const numeric = Number(typeof raw === 'object'
+              ? raw?.unread_count ?? raw?.count ?? 0 : raw);
+            setUnreadCount(Number.isFinite(numeric) ? Math.max(0, numeric) : 0);
+          }
+          if (!personalResult.error) setPersonalUnread(sumUnread(personalResult.data));
+          if (!roomResult.error) setCommunityUnread(sumUnread(roomResult.data));
 
           const personalRows =
             personalResult.error
