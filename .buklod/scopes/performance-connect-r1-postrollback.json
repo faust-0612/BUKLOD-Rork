@@ -1,0 +1,17 @@
+{
+  "objective": "Connect unread bootstrap request deduplication and 2.5-second read-only RPC coalescing",
+  "baseRef": "0f1fe6f5ae3f45ae11fbc6b7416903bc6306dbad",
+  "productionBaselineEvidence": "verified: GitHub post-Cluster-rollback main commit 0f1fe6f5ae3f45ae11fbc6b7416903bc6306dbad; production OTA fingerprint requires independent verification",
+  "allowedPaths": [
+    ".buklod/scopes/performance-connect-r1-postrollback.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/hooks/useBuklodConnectUnread.ts",
+    "src/lib/buklodR4RequestShield.ts"
+  ],
+  "acceptanceChecks": [
+    "Performance R1 QA passes",
+    "Engineering accountability gate passes against exact post-rollback SHA",
+    "No unrelated source modifications",
+    "RC and OTA live release evidence required"
+  ]
+}
