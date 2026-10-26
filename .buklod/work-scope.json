@@ -1,5 +1,5 @@
 {
-  "objective": "Targeted pending client recovery for posting, attendance, Character, Cluster and startup sessions",
+  "objective": "Reconcile pending client recovery and restore verified rollback UI features without superseding newer Cluster and Connect protections",
   "baseRef": "55327c6e5c13acda00524f31034d3e9bc7ebb776",
   "productionBaselineEvidence": "GitHub main cumulative source 55327c6e inspected and verified; live Android OTA and immutable RC still require independent fingerprint verification",
   "allowedPaths": [
@@ -9,7 +9,12 @@
     "src/lib/buklodAttendanceEvents.ts",
     "src/lib/buklodCharacterSelectionV2.ts",
     "src/components/BuklodExclusiveScopeCommunity.tsx",
-    "src/app/clusters/[id].tsx"
+    "src/app/clusters/[id].tsx",
+    "src/app/clusters/index.tsx",
+    "src/app/scope/index.tsx",
+    "src/lib/buklodScopeRoute.ts",
+    "src/components/BuklodHomeFaithPanel.tsx",
+    "src/components/BuklodScopeBuklodLessonPanel.tsx"
   ],
   "acceptanceChecks": [
     "No delete/retry of possibly committed posts after upload or follow-up errors",
@@ -17,6 +22,10 @@
     "Character RPC checks user account and token health",
     "Cluster loading bounded with stale-request guards and retry",
     "Persisted normal session resumes without forced biometric gate",
-    "Targeted tests and TypeScript regression verification before immutable DEV-RC-production OTA"
+    "Targeted tests and TypeScript regression verification before immutable DEV-RC-production OTA",
+    "Cluster/Organization Home Back resets active scope then opens Cluster directory; Android back listeners are focus-scoped",
+    "Cluster directory cache keeps same-user results, isolates account switches and ignores stale request completion",
+    "Compact Cluster directory, two-row scoped Show Faith and colorful Lesson layout restored",
+    "Previously merged PR346 request coalescing and post-rollback production source preserved"
   ]
 }
