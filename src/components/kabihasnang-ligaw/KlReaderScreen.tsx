@@ -93,6 +93,7 @@ export default function KlReaderScreen() {
   const [releasedIds, setReleasedIds] = useState<string[]>([]);
   const [mediaUrls, setMediaUrls] = useState<Record<number, string>>({});
   const [sceneEffects, setSceneEffects] = useState<Record<number, { effect: SceneEffect; intensity: number }>>({});
+  const [rewardFeedback, setRewardFeedback] = useState('');
   const [viewStart, setViewStart] = useState<number | null>(null);
   const [viewEnd, setViewEnd] = useState<number | null>(null);
   const paragraphY = useRef<Record<number, number>>({});
@@ -248,6 +249,26 @@ export default function KlReaderScreen() {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    if (!selected || serverState !== 'readable' || !appActive || !online) return;
+    const episodeId = klDatabaseId(selected.episodeNumber);
+    const timer = setInterval(() => {
+      void supabase.rpc('kl_reading_progress_v1', { p_episode_id: episodeId, p_action: 'ping' });
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [selected?.episodeNumber, serverState, appActive, online]);
+
+  const finishChapter = async () => {
+    if (!selected) return;
+    const { data, error } = await supabase.rpc('kl_reading_progress_v1', {
+      p_episode_id: klDatabaseId(selected.episodeNumber), p_action: 'complete',
+    });
+    if (error) { setRewardFeedback(error.message); return; }
+    const result = data as { new_completion?: boolean; points_awarded?: number; completed?: boolean };
+    setRewardFeedback(result?.completed === false ? 'Kailangan muna ng sapat na oras ng pagbabasa.' :
+      result?.new_completion ? 'Chapter completed · +7 BUKLOD Points' : 'Naitala na ang completion ng kabanatang ito.');
+  };
+
   const syncViewport = (scrollY: number) => {
     const entries = Object.entries(paragraphY.current)
       .map(([index, y]) => ({ index: Number(index), y: y + readerTop.current }))
@@ -280,6 +301,7 @@ export default function KlReaderScreen() {
     setServerText(null);
     setMediaUrls({});
     setSceneEffects({});
+    setRewardFeedback('');
     setSelectedId(episodeId);
     setGlossaryOpen(false);
     let nextCache = rememberScroll(cache, episodeId, 0, readable);
@@ -294,6 +316,7 @@ export default function KlReaderScreen() {
           const text = payload.content.map((paragraph) => paragraph.text ?? '').filter(Boolean).join('\n\n');
           setServerText(text);
           setServerState('readable');
+          void supabase.rpc('kl_reading_progress_v1', { p_episode_id: dbId, p_action: 'start' });
           const { data: media } = await supabase.rpc('kl_episode_media_v1', { p_episode_id: dbId });
           if (Array.isArray(media)) {
             const urls: Record<number, string> = {};
@@ -565,6 +588,10 @@ export default function KlReaderScreen() {
                 <IconButton icon="refresh" label={klCopy.tryAgain} disabled={busy} onPress={() => void refresh()} />
               </View>
             ) : null}
+            <Pressable accessibilityRole="button" onPress={() => void finishChapter()} style={{ padding: 12, borderRadius: 8, backgroundColor: '#28583f' }}>
+              <Text style={{ color: '#fff' }}>Mark Chapter Complete</Text>
+            </Pressable>
+            {rewardFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{rewardFeedback}</Text> : null}
             {isSystemAdmin ? <KlAdminMediaUpload episodeNumber={selected.episodeNumber} /> : null}
             <KlLiveDiscussion episodeId={selected.id} live={liveReleased} />
           </View>
