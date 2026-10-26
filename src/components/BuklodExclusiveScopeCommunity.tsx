@@ -1588,6 +1588,8 @@ export default function BuklodExclusiveScopeCommunity({
         string |
         null =
           null;
+      let createAttempted = false;
+      let postConfirmed = false;
       let extraMedia:
         Array<{
           media_path: string;
@@ -1819,6 +1821,8 @@ export default function BuklodExclusiveScopeCommunity({
             ? 'Shared photos.'
             : snapshot.cleanBody;
 
+        // The server may commit even if its acknowledgement is lost.
+        createAttempted = true;
         const {
           data: created,
           error:
@@ -1866,6 +1870,7 @@ export default function BuklodExclusiveScopeCommunity({
         ) {
           throw createError;
         }
+        postConfirmed = true;
 
         const createdId =
           extractCreatedRecordId(created);
@@ -1900,32 +1905,39 @@ export default function BuklodExclusiveScopeCommunity({
       catch (
         error: any
       ) {
+        // After creation was attempted, an RPC timeout can hide a successful
+        // commit. Do not delete a post or its media, and do not auto-repost it.
         if (
-          uploadedPath ||
-          extraMedia.length ||
-          createdPostId
+          !createAttempted &&
+          (uploadedPath || extraMedia.length)
         ) {
           await discardIncompleteCommunityPost({
-            postId: createdPostId,
+            postId: null,
             scopeId: snapshot.scopeId,
             mediaPaths: [
               ...(uploadedPath ? [uploadedPath] : []),
               ...extraMedia.map(item => item.media_path),
             ],
-          });
+          }).catch(() => undefined);
         }
 
-        setBody(snapshot.cleanBody);
-        setMentions(snapshot.mentions);
-        setPhotos(snapshot.photos);
-        setWallVideo(snapshot.wallVideo);
-        setReel(snapshot.reel);
-        setCommunityGif(snapshot.communityGif);
+        const saved = postConfirmed || Boolean(createdPostId);
+        if (!saved) {
+          setBody(snapshot.cleanBody);
+          setMentions(snapshot.mentions);
+          setPhotos(snapshot.photos);
+          setWallVideo(snapshot.wallVideo);
+          setReel(snapshot.reel);
+          setCommunityGif(snapshot.communityGif);
+        }
 
         Alert.alert(
-          'Could Not Post',
-          error?.message ??
-            'Posting failed.'
+          saved ? 'Post Saved' : createAttempted ? 'Check Posting Status' : 'Could Not Post',
+          saved
+            ? 'Your post was saved, but a follow-up operation failed. Refresh the feed; do not submit it again.'
+            : createAttempted
+              ? 'We could not confirm whether the server saved the post. Check the feed before trying again to avoid a duplicate.'
+              : (error?.message ?? 'Posting failed.')
         );
       }
       finally {
