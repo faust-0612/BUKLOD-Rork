@@ -13,6 +13,7 @@ import { useAudioPlayer } from 'expo-audio';
 
 import { AdminGate } from '@/components/AdminGate';
 import KlAudioControls from '@/components/kabihasnang-ligaw/KlAudioControls';
+import KlPublishingStudio from '@/components/kabihasnang-ligaw/KlPublishingStudio';
 import KlLivingFixture from '@/components/kabihasnang-ligaw/KlLivingFixture';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
@@ -400,6 +401,7 @@ export default function KabihasnangLigawAdminScreen() {
   return (
     <AdminGate>
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+        <KlPublishingStudio />
         <Text style={styles.kicker}>BUKLOD ADMIN</Text>
         <Text style={styles.title}>Kabihasnang Ligaw — Story Management</Text>
         <Text style={styles.body}>
