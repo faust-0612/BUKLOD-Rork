@@ -198,7 +198,9 @@ export default function KlReaderScreen() {
     setAdminBusyId(episodeId);
     setAdminFeedback('Pinoproseso ang desisyon…');
     try {
-      const { error } = await supabase.rpc(KL_RPC.adminAction, adminActionArgs({ action, episodeId, notes }));
+      const targetEpisode = EPISODES.find((item) => item.id === episodeId);
+      if (!targetEpisode) throw new Error('Chapter not found');
+      const { error } = await supabase.rpc(KL_RPC.adminAction, adminActionArgs({ action, episodeId: klDatabaseId(targetEpisode.episodeNumber), notes }));
       if (error) throw error;
       if (action === 'release') {
         setReleasedIds((ids) => [...new Set([...ids, klDatabaseId(EPISODES.find((item) => item.id === episodeId)?.episodeNumber ?? -1)])]);
