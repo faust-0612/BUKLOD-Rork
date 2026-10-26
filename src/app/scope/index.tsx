@@ -41,6 +41,7 @@ import {
 import {
   router,
   useLocalSearchParams,
+  useFocusEffect,
 } from 'expo-router';
 
 import {
@@ -75,7 +76,6 @@ import BuklodScopeHomeDashboard from '@/components/BuklodScopeHomeDashboard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import BuklodScopeRouteState from '@/components/BuklodScopeRouteState';
 import {
-  exitScopedWorkspace,
   readRouteScopeId,
 } from '@/lib/buklodScopeRoute';
 import {
@@ -271,32 +271,16 @@ ScopeWorkspaceScreen() {
   const exitWorkspace =
     useCallback(
       async () => {
-        if (router.canGoBack()) {
-          router.back();
+        // Explicit directory destination: the workspace was entered with replace,
+        // so history can point at another scope or back into the current workspace.
+        if (workspaceScope?.scope_type === 'CLUSTER' || workspaceScope?.scope_type === 'ORGANIZATION') {
+          router.replace('/clusters' as any);
           return;
         }
-
-        if (
-          workspaceScope?.scope_type ===
-            'CLUSTER' ||
-          workspaceScope?.scope_type ===
-            'ORGANIZATION'
-        ) {
-          await exitScopedWorkspace(
-            selectScope,
-            scopes,
-            '/home'
-          );
-          return;
-        }
-
-        router.back();
+        if (router.canGoBack()) router.back();
+        else router.replace('/(tabs)/buklod' as any);
       },
-      [
-        workspaceScope?.scope_type,
-        scopes,
-        selectScope,
-      ]
+      [workspaceScope?.scope_type]
     );
 
   const handleWorkspaceBack =
@@ -313,7 +297,7 @@ ScopeWorkspaceScreen() {
       exitWorkspace,
     ]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') {
       return;
     }
@@ -349,7 +333,7 @@ ScopeWorkspaceScreen() {
     openSection,
     resolution.access,
     workspaceScope,
-  ]);
+  ]));
 
 if (
     !workspaceScope &&
@@ -1565,4 +1549,5 @@ const styles =
       fontWeight: '900',
     },
   });
+
 
