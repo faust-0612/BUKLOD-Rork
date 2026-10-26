@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -84,6 +84,16 @@ export function useBuklodConnectUnread() {
     setCommunityUnread,
   ] = useState(0);
 
+  const inFlight = useRef(false);
+  const pending = useRef(false);
+  const mounted = useRef(true);
+  const generation = useRef(0);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; generation.current += 1; };
+  }, []);
+
   const refresh = useCallback(
     async () => {
       if (!profileId) {
@@ -93,6 +103,10 @@ export function useBuklodConnectUnread() {
         return;
       }
 
+      if (inFlight.current) { pending.current = true; return; }
+      inFlight.current = true;
+      const requestGeneration = generation.current;
+      try {
       const [
         countResult,
         personalResult,
@@ -110,6 +124,7 @@ export function useBuklodConnectUnread() {
           ),
         ]);
 
+      if (!mounted.current || requestGeneration !== generation.current) return;
       if (!countResult.error) {
         const data = countResult.data;
         const raw =
@@ -144,6 +159,13 @@ export function useBuklodConnectUnread() {
           sumUnread(roomResult.data)
         );
       }
+      } finally {
+        inFlight.current = false;
+        if (pending.current && mounted.current) {
+          pending.current = false;
+          // A future realtime event or scheduled poll will refresh; no retry storm.
+        }
+      }
     },
     [
       profileId,
@@ -159,6 +181,7 @@ export function useBuklodConnectUnread() {
       }
 
       let active = true;
+      let lastRealtimeRefresh = 0;
       let releaseRealtime:
         (() => void)
         | null = null;
@@ -222,6 +245,9 @@ export function useBuklodConnectUnread() {
               acquireSharedRealtimeSubscription(
                 registryKey,
                 () => {
+                  const now = Date.now();
+                  if (now - lastRealtimeRefresh < 2000) return;
+                  lastRealtimeRefresh = now;
                   void refresh();
                 },
                 emit => {
@@ -294,7 +320,7 @@ export function useBuklodConnectUnread() {
           pollTimer =
             setInterval(
               () => {
-                void refresh();
+                if (active) void refresh();
               },
               UNREAD_FALLBACK_POLL_MS
             );
