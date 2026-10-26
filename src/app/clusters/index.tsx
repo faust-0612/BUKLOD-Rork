@@ -280,7 +280,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
           clusterMemory.at = Date.now();
         }
         if (mine.status === 'rejected' || found.status === 'rejected') {
-          const failed = mine.status === 'rejected' ? mine.reason : found.reason;
+          const failed = mine.status === 'rejected' ? mine.reason : found.status === 'rejected' ? found.reason : null;
           setLoadError('Some Cluster information could not load. Previous results are retained. ' + messageOf(failed));
         }
       } catch (error) {
