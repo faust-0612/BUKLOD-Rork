@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
@@ -16,6 +16,22 @@ export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [kind, setKind] = useState<Kind>('illustration');
+  const [items, setItems] = useState<{kind: Kind; placement: number; approved: boolean}[]>([]);
+  const load = async () => {
+    const { data } = await supabase.rpc('kl_admin_media_list_v1', { p_episode_id: klDatabaseId(episodeNumber) });
+    if (Array.isArray(data)) setItems(data.filter((item) => item.kind === 'cover' || item.kind === 'illustration'));
+  };
+  useEffect(() => { void load(); }, [episodeNumber]);
+  const approve = async (mediaKind: Kind, mediaPlacement: number) => {
+    if (busy) return;
+    setBusy(true);
+    const { error } = await supabase.rpc('kl_admin_media_approve_v1', {
+      p_episode_id: klDatabaseId(episodeNumber), p_kind: mediaKind, p_placement: mediaPlacement,
+    });
+    setFeedback(error ? error.message : 'Media approved on server.');
+    await load();
+    setBusy(false);
+  };
   const [placement, setPlacement] = useState(1);
   const upload = async () => {
     if (busy) return;
@@ -41,6 +57,7 @@ export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
       });
       if (saveError) throw saveError;
       setFeedback('Na-upload. Pending media approval; hindi pa public.');
+      await load();
       onUploaded?.();
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Hindi na-upload ang larawan.');
@@ -56,6 +73,12 @@ export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
     <Pressable accessibilityRole="button" disabled={busy} onPress={() => void upload()}>
       <Text style={{ color: '#f1d39b' }}>{busy ? 'Uploading…' : 'Upload Image'}</Text>
     </Pressable>
+    {items.map((item) => <View key={item.kind + item.placement} style={{ flexDirection: 'row', gap: 12 }}>
+      <Text style={{ color: '#fff' }}>{item.kind} {item.placement}: {item.approved ? 'Approved' : 'Pending'}</Text>
+      {!item.approved && <Pressable disabled={busy} onPress={() => void approve(item.kind, item.placement)}>
+        <Text style={{ color: '#f1d39b' }}>Approve Media</Text>
+      </Pressable>}
+    </View>)}
     {feedback ? <Text accessibilityRole="alert" style={{ color: '#fff' }}>{feedback}</Text> : null}
   </View>;
 }
