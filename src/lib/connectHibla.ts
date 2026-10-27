@@ -31,3 +31,24 @@ export function isHiblaQuickReaction(value: string): boolean {
 export function hiblaReactionPreferenceKey(accountId: string): string {
   return `buklod:connect:quick-reaction:v1:${accountId}`;
 }
+
+/** Calendar-day grouping uses device-local dates, matching message timestamps. */
+export function hiblaCalendarDay(timestamp: string): string | null {
+  const date = new Date(timestamp);
+  if (!Number.isFinite(date.getTime())) return null;
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+
+export function hiblaDayHeading(timestamp: string, now = new Date()): string | null {
+  const date = new Date(timestamp);
+  if (!Number.isFinite(date.getTime())) return null;
+  const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][date.getMonth()];
+  const calendarLabel = `${month} ${date.getDate()}`;
+  const today = hiblaCalendarDay(now.toISOString());
+  if (hiblaCalendarDay(timestamp) === today) return `NGAYON · ${calendarLabel}`;
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  if (hiblaCalendarDay(timestamp) === hiblaCalendarDay(yesterday.toISOString())) {
+    return `KAHAPON · ${calendarLabel}`;
+  }
+  return `${calendarLabel} · ${date.getFullYear()}`;
+}

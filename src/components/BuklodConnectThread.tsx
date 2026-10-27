@@ -84,6 +84,7 @@ import { ConnectPressable } from '@/components/connect/ConnectPressable';
 import { ConnectThreadBackground } from '@/components/connect/ConnectThreadBackground';
 import { ConnectThemeSelectorButton } from '@/components/connect/ConnectThemeSelector';
 import { ConnectThreadHeader } from '@/components/connect/ConnectThreadHeader';
+import { HIBLA, hiblaCalendarDay, hiblaDayHeading } from '@/lib/connectHibla';
 import {
   type ConnectPickedFile,
   encodeConnectAlbumBody,
@@ -4407,6 +4408,11 @@ const [
 
           const previous = visibleMessages[index - 1];
           const next = visibleMessages[index + 1];
+          const dayHeading =
+            hiblaCalendarDay(item.created_at) !==
+            (previous ? hiblaCalendarDay(previous.created_at) : null)
+              ? hiblaDayHeading(item.created_at)
+              : null;
           const grouping = connectBubbleGrouping({
             senderId: item.sender_id,
             createdAt: item.created_at,
@@ -4612,6 +4618,15 @@ const [
 
           return (
             <View>
+            {!!dayHeading && (
+              <View style={styles.hiblaDayRow} accessibilityRole="header">
+                <View style={styles.hiblaDayRule} />
+                <View style={styles.hiblaDayPill}>
+                  <Text style={styles.hiblaDayText}>{dayHeading}</Text>
+                </View>
+                <View style={styles.hiblaDayRule} />
+              </View>
+            )}
             <ConnectMessageBubble
               own={own}
               deleted={messageDeleted}
@@ -5532,6 +5547,32 @@ function createThreadStyles(theme: ConnectThemeRoles) {
       flexGrow: 1,
       justifyContent:
         'flex-end',
+    },
+
+    hiblaDayRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+      marginTop: 10,
+      marginBottom: 25,
+    },
+    hiblaDayRule: {
+      flex: 1,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: HIBLA.gold,
+      opacity: 0.7,
+    },
+    hiblaDayPill: {
+      backgroundColor: '#FBE8BB',
+      paddingHorizontal: 17,
+      paddingVertical: 10,
+      borderRadius: 22,
+    },
+    hiblaDayText: {
+      fontSize: 12,
+      color: '#714B12',
+      fontWeight: '800',
+      letterSpacing: 0.5,
     },
 
     empty: {
