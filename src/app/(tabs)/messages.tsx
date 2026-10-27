@@ -78,6 +78,7 @@ import {
 import {
   enrichConnectSuggestedContactsWithNotes,
   loadConnectSuggestedContacts,
+  readCachedConnectSuggestedContacts,
   type ConnectSuggestedContact,
 } from '@/lib/buklodConnectSuggestedContacts';
 import {
@@ -471,6 +472,16 @@ function ConnectScreenInner({
   /* BUKLOD_OFFLINE_R2_CONNECT_HUB */
   const connectHubOfflineCacheKey =
     `connect-hub:${forcedScopeId ?? 'public'}`;
+  const connectContext = `${profileId ?? ''}:${forcedScopeId ?? 'public'}`;
+  const connectContextRef = useRef(connectContext);
+  connectContextRef.current = connectContext;
+
+  useEffect(() => {
+    // Do not show the previous account or previous scoped room after a switch.
+    setPersonal([]);
+    setRooms([]);
+    setSuggestedContacts([]);
+  }, [connectContext]);
 
   useEffect(() => {
     if (!profileId) {
@@ -508,6 +519,17 @@ function ConnectScreenInner({
               ? current
               : cached.data.rooms
           );
+        }
+      })
+      .catch(() => undefined);
+
+    // Suggestions and avatars have their own persistent user-scoped snapshot.
+    // Render it without waiting for RPCs on every Connect <-> Wall navigation.
+    void readCachedConnectSuggestedContacts(profileId, 40)
+      .then(rows => {
+        if (active && rows.length && connectContextRef.current ===
+          `${profileId}:${forcedScopeId ?? 'public'}`) {
+          setSuggestedContacts(current => current.length ? current : rows);
         }
       })
       .catch(() => undefined);
@@ -574,6 +596,7 @@ function ConnectScreenInner({
       return;
     }
 
+    const requestedContext = connectContext;
     const [p, r, suggested] = await Promise.all([
       withBuklodTimeout<any>(
         (supabase as any).rpc(
@@ -595,6 +618,8 @@ function ConnectScreenInner({
         'Connect people'
       ).catch(() => [] as ConnectSuggestedContact[]),
     ]);
+
+    if (connectContextRef.current !== requestedContext) return;
 
     let nextSuggested = suggested;
 
@@ -626,6 +651,8 @@ function ConnectScreenInner({
       }
     }
 
+    if (connectContextRef.current !== requestedContext) return;
+
     if (!p.error) {
       setPersonal(
         (p.data ?? []).map((x: any) => ({
@@ -645,9 +672,11 @@ function ConnectScreenInner({
     }
 
     // Retain previously loaded suggestions on transient empty responses.
-    setSuggestedContacts(current => nextSuggested.length ? nextSuggested : current);
+    if (connectContextRef.current === requestedContext) {
+      setSuggestedContacts(current => nextSuggested.length ? nextSuggested : current);
+    }
 
-  }, [profileId, connectOnline]);
+  }, [profileId, connectOnline, connectContext]);
 
   const loadRef = useRef(load);
 

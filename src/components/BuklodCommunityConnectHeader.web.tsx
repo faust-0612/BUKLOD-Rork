@@ -1,6 +1,6 @@
 /* BUKLOD_WEB_COMMUNITY_CONNECT_SCROLL_HEADER_R2_NOTES_24H */
 import { router } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -15,6 +15,7 @@ import { ConnectTappableAvatar } from '@/components/connect/ConnectTappableAvata
 import {
   enrichConnectSuggestedContactsWithNotes,
   loadConnectSuggestedContacts,
+  readCachedConnectSuggestedContacts,
   type ConnectSuggestedContact,
 } from '@/lib/buklodConnectSuggestedContacts';
 import { markConnectStatusNoteSeen } from '@/lib/buklodConnectStatusNoteSeen';
@@ -220,36 +221,59 @@ function BuklodCommunityConnectRail() {
         : null,
     };
   }, [profile, user]);
+  const viewerId = currentUser?.user_id ?? '';
+  const viewerRef = useRef(viewerId);
+  viewerRef.current = viewerId;
 
   const refreshRail = useCallback(async () => {
+    if (!viewerId) return;
     const [contactsResult, selfNoteResult] = await Promise.allSettled([
       loadConnectSuggestedContacts(MAX_BUBBLES),
       loadMessagesStatusNote(),
     ]);
 
+    if (viewerRef.current !== viewerId) return;
     if (contactsResult.status === 'fulfilled') {
       const clean = await pruneExpiredContactNotes(
         contactsResult.value.slice(0, MAX_BUBBLES),
       );
-      setContacts(clean);
+      if (viewerRef.current === viewerId) {
+        // Preserve the painted list when an intermittent read comes back empty.
+        setContacts(previous => clean.length ? clean : previous);
+      }
     }
 
-    if (selfNoteResult.status === 'fulfilled') {
+    if (selfNoteResult.status === 'fulfilled' && viewerRef.current === viewerId) {
       setSelfNote(selfNoteResult.value);
     }
 
-    setNow(Date.now());
-  }, []);
+    if (viewerRef.current === viewerId) setNow(Date.now());
+  }, [viewerId]);
 
   useEffect(() => {
+    let active = true;
+    setContacts([]);
+    if (!viewerId) {
+      setSelfNote(null);
+      return () => { active = false; };
+    }
+    void readCachedConnectSuggestedContacts(viewerId, MAX_BUBBLES)
+      .then(rows => {
+        if (active && viewerRef.current === viewerId && rows.length) {
+          setContacts(previous => previous.length ? previous : rows);
+        }
+      }).catch(() => undefined);
     void refreshRail();
 
     const interval = setInterval(() => {
       void refreshRail();
     }, NOTE_REFRESH_MS);
 
-    return () => clearInterval(interval);
-  }, [refreshRail]);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [refreshRail, viewerId]);
 
   useEffect(() => {
     if (selfNote && isExpired(selfNote.expires_at, now)) {

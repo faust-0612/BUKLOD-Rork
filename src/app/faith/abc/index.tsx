@@ -1,6 +1,7 @@
 /* PATCH_192A_R2_SHOW_FAITH_ABC_HYMNS_POINTS_ALL_ACCESS */
 import React, {
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -24,6 +25,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   supabase,
 } from '@/lib/supabase';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
 
 import {
   router,
@@ -53,6 +57,10 @@ const ABC_POINTS_PER_LESSON =
 
 export default function
 BuklodAbcLessonsScreen() {
+  const { user } = useAuth();
+  const { online } = useNetwork();
+  const accountId = user?.id ?? '';
+  const accountCompletionKey = accountId ? `${COMPLETION_KEY}.${accountId}` : null;
   const [
     query,
     setQuery,
@@ -78,137 +86,82 @@ BuklodAbcLessonsScreen() {
       >
     >({});
 
-  const loadProgress =
-    useCallback(
-      () => {
-        let alive =
-          true;
+  useEffect(() => {
+    // Completion snapshots belong to the signed-in account, never the device.
+    setCompleted({});
+    setPointProgress({});
+  }, [accountId]);
 
-        void AsyncStorage
-          .getItem(
-            COMPLETION_KEY
-          )
-          .then(raw => {
-            if (
-              !alive ||
-              !raw
-            ) {
-              return;
-            }
+  const loadProgress = useCallback(() => {
+    let alive = true;
+    let freshApplied = false;
+    if (!accountId || !accountCompletionKey) {
+      return () => { alive = false; };
+    }
 
-            try {
-              const parsed =
-                JSON.parse(raw);
-
-              if (
-                parsed &&
-                typeof parsed ===
-                  'object'
-              ) {
-                setCompleted(
-                  parsed
-                );
-              }
-            }
-            catch {
-              // Ignore malformed local progress.
-            }
-          });
-
-        void (async () => {
-          const {
-            data,
-            error,
-          } =
-            await (
-              supabase as any
-            ).rpc(
-              'get_my_abc_growth_progress_v1'
-            );
-
-          if (
-            !alive ||
-            error
-          ) {
-            return;
-          }
-
-          const rows =
-            Array.isArray(data)
-              ? data
-              : [];
-
-          const next:
-            Record<
-              string,
-              AbcPointProgress
-            > = {};
-
-          const completedPatch:
-            Record<
-              string,
-              boolean
-            > = {};
-
-          for (
-            const row of rows
-          ) {
-            const id =
-              String(
-                row?.lesson_id ??
-                  ''
-              );
-
-            if (!id) {
-              continue;
-            }
-
-            next[id] = {
-              lesson_id:
-                id,
-              completed_at:
-                row?.completed_at ??
-                null,
-              points:
-                Number(
-                  row?.points ??
-                    ABC_POINTS_PER_LESSON
-                ),
-              claim_state:
-                row?.claim_state ??
-                null,
-              point_ledger_id:
-                row?.point_ledger_id ??
-                null,
-            };
-
-            completedPatch[id] =
-              true;
-          }
-
-          if (!alive) {
-            return;
-          }
-
-          setPointProgress(
-            next
-          );
-
-          setCompleted(
-            current => ({
-              ...current,
-              ...completedPatch,
-            })
-          );
-        })();
-
-        return () => {
-          alive =
-            false;
+    const applyRows = (rows: any[]) => {
+      if (!alive) return;
+      const next: Record<string, AbcPointProgress> = {};
+      const completedPatch: Record<string, boolean> = {};
+      for (const row of rows) {
+        const id = String(row?.lesson_id ?? '');
+        if (!id) continue;
+        next[id] = {
+          lesson_id: id,
+          completed_at: row?.completed_at ?? null,
+          points: Number(row?.points ?? ABC_POINTS_PER_LESSON),
+          claim_state: row?.claim_state ?? null,
+          point_ledger_id: row?.point_ledger_id ?? null,
         };
-      },
-      []
-    );
+        completedPatch[id] = true;
+      }
+      setPointProgress(next);
+      setCompleted(current => ({ ...current, ...completedPatch }));
+    };
+
+    // Bundled lessons work offline; hydrate completed states first, then sync.
+    void Promise.all([
+      AsyncStorage.getItem(accountCompletionKey),
+      getOfflineCache<AbcPointProgress[]>('faith-abc-progress:v1', {
+        userId: accountId,
+        allowStale: true,
+      }),
+    ]).then(([raw, cached]) => {
+      if (!alive || freshApplied) return;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            setCompleted(current => ({ ...current, ...parsed }));
+          }
+        } catch {
+          // Damaged device cache is not a server failure.
+        }
+      }
+      if (Array.isArray(cached?.data)) applyRows(cached.data);
+    }).catch(() => undefined);
+
+    if (online) {
+      void (async () => {
+        try {
+          const { data, error } = await (supabase as any).rpc(
+            'get_my_abc_growth_progress_v1'
+          );
+          if (!alive || error || !Array.isArray(data)) return;
+          freshApplied = true;
+          applyRows(data);
+          await setOfflineCache('faith-abc-progress:v1', data, {
+            userId: accountId,
+            ttlMs: 30 * 60 * 1000,
+          });
+        } catch {
+          // Previously downloaded progress stays visible while offline.
+        }
+      })();
+    }
+
+    return () => { alive = false; };
+  }, [accountId, accountCompletionKey, online]);
 
   useFocusEffect(
     loadProgress
