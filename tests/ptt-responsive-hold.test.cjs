@@ -121,3 +121,12 @@ test('PTT hold reuses an in-flight auto-join instead of failing busy', () => {
   assert.match(source, /if \(connectPromiseRef\.current\) return connectPromiseRef\.current/);
   assert.match(source, /const ok = await onNeedConnect\(\)/);
 });
+
+test('PTT duty actions have a single navigation owner', () => {
+  const duty = read('src/ptt/buklodPttDutyNotification.ts');
+  const provider = read('src/providers/NotificationProvider.tsx');
+  assert.doesNotMatch(duty, /router\.push\(/);
+  assert.ok(provider.includes("if(String(d.kind||'')==='ptt_duty')"));
+  assert.ok(provider.includes("actionId!=='PTT_STOP'"));
+  assert.ok(provider.includes("route:'/personal-home/ptt'"));
+});

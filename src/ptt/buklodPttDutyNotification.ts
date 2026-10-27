@@ -1,6 +1,5 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { router } from 'expo-router';
 
 import { StreamVideoRN } from '@/lib/streamVideoSdk';
 
@@ -212,11 +211,7 @@ export function handleBuklodPttDutyResponse(response: {
     return true;
   }
 
-  // Android notification buttons are taps, not press-and-hold gestures.
-  // Never latch an open microphone from a background notification action.
-  try {
-    router.push('/personal-home/ptt' as any);
-  } catch {}
-
+  // NotificationProvider owns navigation after auth and root mount. This
+  // handler only owns PTT transport actions to avoid duplicate/wrong routes.
   return true;
 }

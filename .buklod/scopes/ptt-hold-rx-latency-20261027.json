@@ -9,7 +9,8 @@
     "supabase/functions/push/index.ts",
     "tests/ptt-responsive-hold.test.cjs",
     ".buklod/scopes/ptt-hold-rx-latency-20261027.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "src/providers/NotificationProvider.tsx"
   ],
   "acceptanceChecks": [
     "PTT press immediately shows request state; release immediately clears transmitting UI",
@@ -23,6 +24,7 @@
     "Focused runtime tests, TypeScript, Engineering Accountability, Performance and Integration QA pass",
     "Live floor-claim database fanout is a known unresolved latency bottleneck requiring separate async design and testing",
     "Closed-app audible reception is verified on physical Android with background active service; force-stop is not claimed",
-    "Use current production lineage, immutable RC and independently verified production OTA before release"
+    "Use current production lineage, immutable RC and independently verified production OTA before release",
+    "PTT duty notification opens exact PTT route once; STOP does not trigger generic Notifications"
   ]
 }

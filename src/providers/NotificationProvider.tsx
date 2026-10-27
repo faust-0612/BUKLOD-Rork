@@ -161,6 +161,16 @@ export function NotificationProvider({children}:{children:ReactNode}){
    const d:any=
     r.notification.request.content.data||{};
 
+   // The PTT bootstrap exclusively handles STOP. The authenticated provider
+   // owns navigation, avoiding a second route from the early headless module.
+   if(String(d.kind||'')==='ptt_duty'){
+    if(actionId!=='PTT_STOP'){
+     void openNotification('ptt_duty',{...d,route:'/personal-home/ptt'})
+      .catch(()=>undefined);
+    }
+    return;
+   }
+
    if(actionId===BUKLOD_MESSAGE_REPLY_ACTION){
     const text=String(r.userText??'').trim();
     if(!text){
