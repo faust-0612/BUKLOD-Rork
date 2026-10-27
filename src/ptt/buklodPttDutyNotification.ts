@@ -1,12 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { router } from 'expo-router';
 
 import { StreamVideoRN } from '@/lib/streamVideoSdk';
 
 import {
   getBuklodPttRuntimeState,
-  pttDown,
   pttUp,
   subscribeBuklodPttRuntime,
   type BuklodPttRuntimeState,
@@ -15,7 +13,7 @@ import type { BuklodPttKind } from './buklodPttCore';
 
 const CHANNEL_ID = 'buklod-ptt-duty-v1';
 const CATEGORY_ID = 'buklod_ptt_duty';
-const TALK_ACTION = 'PTT_TALK';
+const OPEN_ACTION = 'PTT_OPEN';
 const STOP_ACTION = 'PTT_STOP';
 
 let armedKind: BuklodPttKind = 'NORMAL';
@@ -81,10 +79,10 @@ async function ensureDutyNotification() {
 
   await Notifications.setNotificationCategoryAsync(CATEGORY_ID, [
     {
-      identifier: TALK_ACTION,
-      buttonTitle: 'Talk',
+      identifier: OPEN_ACTION,
+      buttonTitle: 'Open PTT',
       options: {
-        opensAppToForeground: false,
+        opensAppToForeground: true,
         isAuthenticationRequired: false,
         isDestructive: false,
       },
@@ -118,7 +116,7 @@ async function syncDutyNotification(state: BuklodPttRuntimeState) {
 
   const connection = state.connection;
   const nextSignature = connection
-    ? `${connection.callId}|${connection.channel}|${state.transmitting ? 'tx' : 'rx'}`
+    ? `${connection.callId}|${connection.channel}`
     : '';
 
   if (nextSignature === signature && (connection ? shownId : !shownId)) {
@@ -164,9 +162,7 @@ async function syncDutyNotification(state: BuklodPttRuntimeState) {
     shownId = await Notifications.scheduleNotificationAsync({
       content: {
         title: `BUKLOD PTT · ${label}`,
-        body: state.transmitting
-          ? 'Nagsasalita. Pindutin ang Stop para makinig.'
-          : 'Nakikinig. Pindutin ang Talk para magsalita.',
+        body: 'PTT is active. Open to hold and talk, or keep listening.',
         sticky: true,
         autoDismiss: false,
         sound: false,
@@ -210,19 +206,12 @@ export function handleBuklodPttDutyResponse(response: {
 
   const action = String(response?.actionIdentifier || '');
 
-  if (action === TALK_ACTION) {
-    void pttDown(armedKind).catch(() => undefined);
-    return true;
-  }
-
   if (action === STOP_ACTION) {
     void pttUp().catch(() => undefined);
     return true;
   }
 
-  try {
-    router.push('/personal-home/ptt' as any);
-  } catch {}
-
+  // NotificationProvider owns navigation after auth and root mount. This
+  // handler only owns PTT transport actions to avoid duplicate/wrong routes.
   return true;
 }
