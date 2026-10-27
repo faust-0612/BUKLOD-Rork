@@ -128,6 +128,7 @@ on:
       - 'src/lib/buklodAwsWallVideo.ts'
       - 'src/lib/uploadCommunityVideoFile.ts'
       - 'src/lib/buklodCommunityPostMedia.ts'
+      - 'src/lib/buklodR4RequestShield.ts'
       - 'src/lib/buklodMediaUrl.ts'
       - 'supabase/migrations/*community_external_video_storage_aws*.sql'
       - 'supabase/migrations/*buklod_call_lifecycle*.sql'

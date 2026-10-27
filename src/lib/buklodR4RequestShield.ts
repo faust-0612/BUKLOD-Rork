@@ -92,6 +92,9 @@ const rpcTtlMs: Record<string, number> = {
   // The Wall actually uses v2. Its per-photo reactions are mutable, so keep
   // this a burst-only window, isolated by bearer token and exact post IDs.
   get_buklod_post_media_v2: 2_500,
+  // Scrolling/remounting posts caused >56k share-count reads in query stats.
+  // Counts are presentation-only. Mutations invalidate before returning.
+  buklod_internal_share_count_v2: 20_000,
   get_buklod_post_comment_previews_v1: 3_000,
   buklod_scope_entitlements_v1: 30_000,
   buklod_scope_home_summary_v1: 20_000,
@@ -310,6 +313,9 @@ function invalidateAfterMutation(rawUrl: string, method: string) {
   // Cluster mutations are POST RPCs; never cache them. After a confirmed
   // mutation, invalidate user-scoped list/discovery reads across the shield.
   const rpc = rpcFromUrl(rawUrl);
+  if (rpc === 'buklod_internal_share_post_v2') {
+    invalidateMatching('/rpc/buklod_internal_share_count_v2');
+  }
   if (rpc && /^set_buklod_post_media_v[1-5]$/.test(rpc)) {
     invalidateMatching('/rpc/get_buklod_post_media_v2');
   }
