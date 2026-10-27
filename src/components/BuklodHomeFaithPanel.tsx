@@ -15,6 +15,8 @@ import React, {
 
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 import {
@@ -278,6 +280,11 @@ export default function BuklodHomeFaithPanel({
 } = {}) {
   const { colors } = useBuklodPresentation();
   const reduceMotion = useBuklodReduceMotion();
+  const { user } = useAuth();
+  const { online } = useNetwork();
+  const readingCacheUser = user?.id ?? 'guest';
+  const readingAccountRef = useRef(readingCacheUser);
+  const [readingFromCache, setReadingFromCache] = useState(false);
   const [reading,setReading] =
     useState<TodayReading | null>(
       null
@@ -336,7 +343,6 @@ export default function BuklodHomeFaithPanel({
     }, [opacity, reduceMotion, translateY])
   );
 
-  const { user } = useAuth();
   const accessContext = `${user?.id ?? ''}:${scopeId ?? ''}`;
   const accessContextRef = useRef(accessContext);
   accessContextRef.current = accessContext;
@@ -373,68 +379,61 @@ export default function BuklodHomeFaithPanel({
     return () => { active = false; };
   }, [accessContext, scopeId]));
 
-  useEffect(
-    () => {
-      let active =
-        true;
+  useEffect(() => {
+    let active = true;
+    let fetched = false;
+    if (readingAccountRef.current !== readingCacheUser) {
+      setReading(null);
+      setLoading(true);
+      setReadingFromCache(false);
+    }
+    readingAccountRef.current = readingCacheUser;
 
-      const load =
-        async () => {
-          try {
-            const {
-              data,
-            } =
-              await withBuklodTimeout<{ data: any }>((supabase as any).rpc('get_automatic_bible_today'), 10000, 'Daily reading');
+    // Reading is a read-only presentation snapshot. Scope entitlements are
+    // always checked separately above and are never persisted as authority.
+    void getOfflineCache<TodayReading>('show-faith-today:v1', {
+      userId: readingCacheUser,
+      allowStale: true,
+    }).then(cached => {
+      if (!active || fetched || !cached?.data?.bible_reference) return;
+      setReading(cached.data);
+      setReadingFromCache(true);
+      setLoading(false);
+    }).catch(() => undefined);
 
-            if (!active) {
-              return;
-            }
+    if (online) {
+      void (async () => {
+        try {
+          const { data, error } = await withBuklodTimeout<{
+            data: any; error?: { message?: string } | null;
+          }>((supabase as any).rpc('get_automatic_bible_today'), 10000, 'Daily reading');
+          if (!active || error) return;
+          const raw = Array.isArray(data) ? data[0] ?? null : data ?? null;
+          if (!raw) return;
+          const next = {
+            bible_reference: String(raw.bible_reference ?? ''),
+            chapters_today: Number(raw.chapters_today ?? 1),
+          };
+          if (!next.bible_reference) return;
+          fetched = true;
+          setReading(next);
+          setReadingFromCache(false);
+          void setOfflineCache('show-faith-today:v1', next, {
+            userId: readingCacheUser,
+            ttlMs: 24 * 60 * 60 * 1000,
+          }).catch(() => undefined);
+        } catch (error: any) {
+          console.warn('SHOW FAITH daily reading:', error?.message ?? error);
+        } finally {
+          if (active) setLoading(false);
+        }
+      })();
+    } else {
+      setLoading(false);
+    }
 
-            const raw =
-              Array.isArray(data)
-                ? data[0] ?? null
-                : data ?? null;
-
-            if (raw) {
-              setReading({
-                bible_reference:
-                  String(
-                    raw.bible_reference ??
-                    ''
-                  ),
-
-                chapters_today:
-                  Number(
-                    raw.chapters_today ??
-                    1
-                  ),
-              });
-            }
-          }
-          catch (error: any) {
-            console.warn(
-              'SHOW FAITH daily reading:',
-              error?.message ??
-              error
-            );
-          }
-          finally {
-            if (active) {
-              setLoading(false);
-            }
-          }
-        };
-
-      void load();
-
-
-      return () => {
-        active =
-          false;
-      };
-    },
-    []
-  );
+    return () => { active = false; };
+  }, [readingCacheUser, online]);
 
 
   const dailyReadingLocked =
@@ -536,7 +535,7 @@ export default function BuklodHomeFaithPanel({
                   1
                     ? 'chapter'
                     : 'chapters'
-                } today`
+                } ${readingFromCache ? '· last saved' : 'today'}`
               : 'Open your guided reading'
           }
           icon="calendar-text-outline"

@@ -1,0 +1,32 @@
+{
+  "objective": "Persistent account-scoped Connect/Community suggestions and avatars; offline Show Faith reading, ABAKA progress and idempotent pending completion sync; Daily Reading offline-week and text draft retention with submission-safe photo cleanup",
+  "baseRef": "f8a2f4ea259d89a11604ceded3a2c6a7bde4bef1",
+  "productionBaselineEvidence": "Latest read-only GitHub main baseline: f8a2f4ea259d89a11604ceded3a2c6a7bde4bef1. Exact live Android runtime 1.3.2 source/RC/served-bundle verification remains a release gate; DEV patch is not a production-verified OTA.",
+  "allowedPaths": [
+    "src/lib/buklodConnectSuggestedContacts.ts",
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodCommunityConnectHeader.web.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/app/faith/abc/index.tsx",
+    "src/app/faith/abc/[lessonId].tsx",
+    "src/lib/offlineSyncQueue.ts",
+    "src/components/BuklodSyncCoordinator.tsx",
+    "src/components/BuklodHomeFaithPanel.tsx",
+    "src/app/bible/index.tsx",
+    "tests/offline-connect-faith.test.cjs",
+    "tests/daily-reading-offline.test.cjs",
+    ".buklod/scopes/offline-connect-faith-20261027.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "node --test tests/offline-connect-faith.test.cjs tests/daily-reading-offline.test.cjs",
+    "Full TypeScript, existing test, and Engineering Accountability gates",
+    "Account switch and logout must never show cached peers from another account",
+    "Offline ABAKA completion stays Pending Sync until server-confirmed; duplicate retries never grant extra points",
+    "Connect and Community Wall paint cached avatars on revisit; Show Faith downloaded content is available offline",
+    "Immutable Android runtime 1.3.2 RC, production baseline/source and served-bundle verification before OTA",
+    "Daily Reading server refresh never blanks cached submissions and draft text is per-user/per-assignment",
+    "After a confirmed Daily Reading RPC, failed refresh/cleanup cannot delete committed evidence or report submission failure"
+  ]
+}
