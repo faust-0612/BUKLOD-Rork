@@ -1,0 +1,22 @@
+{
+  "objective": "Community Wall comment composer UX, keyboard visibility, reliable send and draft recovery",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main fd60878406972d07c6eab7f7b4d6b6037f58c29d is the exact DEV comparison baseline; live production OTA fingerprint and verified RC still require independent release evidence.",
+  "allowedPaths": [
+    ".buklod/scopes/community-wall-comment-composer-20261027.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodMentionField.tsx"
+  ],
+  "acceptanceChecks": [
+    "Android public and scoped comment sheets keep the input and Send control visible with keyboard open, without double keyboard padding",
+    "Multiline composer remains usable on narrow screens with photo, GIF and emoji controls, bounded input and above-keyboard mentions",
+    "Load/empty/failure/retry and send progress/success/failure are distinct and accessible",
+    "Double taps do not duplicate an in-flight post; failed posts retain the user draft and attachments",
+    "Post and account changes reject stale comment responses and preserve separate in-memory drafts",
+    "Confirmed comment sends do not reload the entire feed, and existing auth, RLS, media and scoped membership contracts are preserved",
+    "TypeScript and focused CI checks pass before verified RC and production OTA; real Android keyboard QA is a required release check"
+  ]
+}
