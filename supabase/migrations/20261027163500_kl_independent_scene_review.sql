@@ -15,7 +15,7 @@ BEGIN
       'effect', effect, 'intensity', effect_intensity
     ) ORDER BY media_kind, placement), '[]'::jsonb)
     FROM public.kl_episode_media WHERE episode_id = p_episode_id);
-END
+END;
 $function$;
 
 -- Repeated Save Manuscript must not invalidate a prepared preview. If the text
@@ -50,7 +50,7 @@ BEGIN
         (length(p_manuscript) - length(replace(p_manuscript, paragraph_anchor, '')))
         <> length(paragraph_anchor));
   RETURN jsonb_build_object('ok', true, 'changed', true);
-END
+END;
 $function$;
 
 CREATE OR REPLACE FUNCTION public.kl_admin_place_media_v1(
@@ -88,7 +88,7 @@ BEGIN
   UPDATE public.kl_episodes SET preview_prepared_at = NULL,
       approved_at = NULL, approved_by = NULL, status = 'draft' WHERE id = p_episode_id;
   RETURN jsonb_build_object('ok', true, 'changed', true, 'approved', false);
-END
+END;
 $function$;
 
 CREATE OR REPLACE FUNCTION public.kl_admin_scene_effect_v1(
@@ -119,7 +119,7 @@ BEGIN
   UPDATE public.kl_episodes SET preview_prepared_at = NULL,
       approved_at = NULL, approved_by = NULL, status = 'draft' WHERE id = p_episode_id;
   RETURN jsonb_build_object('ok', true, 'changed', true, 'approved', false);
-END
+END;
 $function$;
 
 CREATE OR REPLACE FUNCTION public.kl_admin_media_approve_v1(
@@ -156,7 +156,7 @@ BEGIN
   END IF;
   UPDATE public.kl_episode_media SET approved = true WHERE id = v_current.id;
   RETURN jsonb_build_object('ok', true, 'changed', true, 'approved', true);
-END
+END;
 $function$;
 
 CREATE OR REPLACE FUNCTION public.kl_admin_preview_bundle_v1(p_episode_id uuid)
@@ -179,5 +179,5 @@ BEGIN
   RETURN jsonb_build_object('title', v.title, 'manuscript', v.manuscript,
       'version', v.preview_version, 'media', v_media, 'status', v.status,
       'prepared', v.preview_prepared_at IS NOT NULL);
-END
+END;
 $function$;
