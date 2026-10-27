@@ -69,7 +69,7 @@ export default function BuklodCommunityContributionCard() {
   const weightPct = Math.max(0, Number(data.share_weight || 0)) * 100;
   const estimate = data.estimated_share_minor === null
     ? 'No safe estimate yet'
-    : formatMinorPhp(data.estimated_share_minor);
+    : data.estimate_below_cent ? 'Below ₱0.01' : formatMinorPhp(data.estimated_share_minor);
   const breakdown = data.engagement_breakdown;
   const trendPctPoints = Number(data.share_weight_delta || 0) * 100;
   const trendLabel =
