@@ -1,6 +1,5 @@
 import React, {
   useMemo,
-  useState,
 } from 'react';
 import {
   StyleSheet,
@@ -24,10 +23,11 @@ import {
 import { HIBLA } from '@/lib/connectHibla';
 import type { CommunityFilterKey } from '@/lib/connectTheme';
 
-type Tab = 'personal' | 'community';
+type Tab = 'personal' | 'community' | 'requests';
 
 type Props = {
   tab: Tab;
+  requestCount: number;
   communityFilter: CommunityFilterKey;
   onTabChange: (tab: Tab) => void;
   onCommunityFilterChange: (filter: CommunityFilterKey) => void;
@@ -75,18 +75,12 @@ function createStyles(theme: ConnectThemeRoles) {
       borderRadius: 3,
       backgroundColor: '#D89B24',
     },
-    requestsInfo: {
-      paddingHorizontal: 20,
-      paddingBottom: 8,
-      color: HIBLA.muted,
-      fontSize: 11,
-      lineHeight: 16,
-    },
   });
 }
 
 export function ConnectInboxTabs({
   tab,
+  requestCount,
   communityFilter,
   onTabChange,
   onCommunityFilterChange,
@@ -96,9 +90,7 @@ export function ConnectInboxTabs({
     () => createStyles(theme),
     [theme]
   );
-  const [requestsInfo, setRequestsInfo] = useState(false);
   const selectCommunity = (filter: CommunityFilterKey) => {
-    setRequestsInfo(false);
     onCommunityFilterChange(filter);
     onTabChange('community');
   };
@@ -116,7 +108,7 @@ export function ConnectInboxTabs({
         }}
         instant
         nested={false}
-        onPress={() => { setRequestsInfo(false); onTabChange('personal'); }}
+        onPress={() => onTabChange('personal')}
         style={[
           styles.tab,
           tab === 'personal' && styles.tabActive,
@@ -191,19 +183,19 @@ export function ConnectInboxTabs({
 
       <ConnectPressable
         accessibilityRole="button"
-        accessibilityLabel="Message requests information"
-        onPress={() => setRequestsInfo(current => !current)}
-        style={styles.tab}
+        accessibilityLabel={`Message requests, ${requestCount} pending`}
+        accessibilityState={{ selected: tab === 'requests' }}
+        instant
+        nested={false}
+        onPress={() => onTabChange('requests')}
+        style={[styles.tab, tab === 'requests' && styles.tabActive]}
       >
-        <Text style={styles.label}>Requests</Text>
-        <View style={styles.requestsDot} />
+        <Text style={[styles.label, tab === 'requests' && styles.labelActive]}>
+          Requests
+        </Text>
+        {requestCount > 0 && <View style={styles.requestsDot} />}
       </ConnectPressable>
     </View>
-    {requestsInfo && (
-      <Text style={styles.requestsInfo}>
-        Hindi pa available ang hiwalay na Requests inbox. Nasa aktuwal na Personal at group conversations ang mga mensahe mo.
-      </Text>
-    )}
     </>
   );
 }

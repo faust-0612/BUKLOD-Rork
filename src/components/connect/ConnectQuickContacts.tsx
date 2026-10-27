@@ -209,7 +209,7 @@ function createStyles(theme: ConnectThemeRoles) {
       width: 12,
       height: 12,
       borderRadius: 6,
-      backgroundColor: theme.unreadBadge,
+      backgroundColor: '#D89B24',
       borderWidth: 2,
       borderColor: theme.canvas,
     },
@@ -519,7 +519,7 @@ function ContactColumn({
           size={AVATAR_SIZE}
           shape="rounded"
           enableLongPressSheet={!isSelf}
-          onPress={isSelf ? null : undefined}
+          onPress={isSelf ? null : () => onOpenContact?.(contact)}
         />
 
         {!isSelf && unread > 0 && (

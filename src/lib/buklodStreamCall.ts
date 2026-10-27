@@ -89,6 +89,14 @@ export function formatBuklodCallStartError(
   }
 
   if (
+    lower.includes('user token is not set') ||
+    lower.includes('client.connectuser') ||
+    lower.includes('client.disconnect')
+  ) {
+    return 'Hindi pa handa ang calling connection. Subukan muli makalipas ang ilang sandali.';
+  }
+
+  if (
     lower.includes('unable to obtain a call token') ||
     lower.includes('obtain a call token') ||
     lower.includes('call token') ||

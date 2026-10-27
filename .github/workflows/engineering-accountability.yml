@@ -42,6 +42,8 @@ jobs:
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/attendance-canonical-rpc-20261027.json" >> "$GITHUB_ENV";;
             codex/connect-responsive-call-push-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/connect-responsive-call-push-20261027.json" >> "$GITHUB_ENV";;
+            fix/connect-requests-avatar-call-token-20261028)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/connect-requests-avatar-call-token-20261028.json" >> "$GITHUB_ENV";;
             fix/cluster-connect-media-seen-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/cluster-connect-media-seen-20261027.json" >> "$GITHUB_ENV";;
             feat/hibla-connect-design-20261027)

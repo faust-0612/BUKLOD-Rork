@@ -212,7 +212,8 @@ function readCachedTokenPayload(): {
   if (
     !cachedStreamToken ||
     Date.now() - cachedStreamToken.at >
-      STREAM_TOKEN_TTL_MS
+      STREAM_TOKEN_TTL_MS ||
+    isJwtExpired(cachedStreamToken.token)
   ) {
     return null;
   }
@@ -454,9 +455,13 @@ async function createClientForUser(
     name,
   };
 
+  // Supply an initial token before first-tap calls can use the client.
+  const initialToken = (await fetchStreamTokenPayload()).token;
+
   return StreamVideoClient
     .getOrCreateInstance({
       apiKey,
+      token: initialToken,
 
       user:
         streamUser,

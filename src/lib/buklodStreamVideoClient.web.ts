@@ -163,6 +163,7 @@ async function createClient(
   return StreamVideoClient.getOrCreateInstance({
     apiKey: credentials.apiKey,
     user: streamUser,
+    token: credentials.token,
     tokenProvider: async () => {
       try {
         return (await fetchCredentials(false)).token;
