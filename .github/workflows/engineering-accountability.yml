@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            feat/community-fair-video-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-fair-video-20261027.json" >> "$GITHUB_ENV";;
             fix/marites-video-blank-recovery-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/marites-video-blank-recovery-20261027.json" >> "$GITHUB_ENV";;
             fix/scoped-comments-ux-20261027)
@@ -67,6 +69,9 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify fair discovery and independent video candidate selection
+        if: github.head_ref == 'feat/community-fair-video-20261027'
+        run: node --test tests/fairDiscovery.test.cjs tests/videoDiscovery.test.cjs
       - name: Verify approved pending client and rollback recovery
         if: github.head_ref == 'fix/pending-client-reconciliation-20261027-r1'
         run: node scripts/test-pending-client-reconciliation-20261027.cjs
@@ -111,3 +116,4 @@ jobs:
       - name: Verify referral lookup race and error handling
         if: github.head_ref == 'fix/referral-lookup-race-20261027'
         run: node --test tests/referral-lookup.test.cjs
+

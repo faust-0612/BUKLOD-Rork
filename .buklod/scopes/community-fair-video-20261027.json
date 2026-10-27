@@ -1,0 +1,22 @@
+{
+  "objective": "Independent Community video browsing and fair exposure opportunities in For You",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main f8a2f4ea259d89a11604ceded3a2c6a7bde4bef1 is the DEV comparison ref on 2026-10-27; the production OTA source/RC manifest has not been independently verified, so this PR is not production approval.",
+  "allowedPaths": [
+    ".buklod/scopes/community-fair-video-20261027.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/app/(tabs)/buklod.tsx",
+    "src/lib/buklodFairDiscovery.ts",
+    "src/lib/buklodVideoDiscovery.ts",
+    "tests/fairDiscovery.test.cjs",
+    "tests/videoDiscovery.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "Video viewer loads additional 40-record latest metadata pages independently of the Wall and stops at 50 video entries",
+    "Mixed gallery videos are included without eager playback or downloading offscreen video files",
+    "Stale video page results are ignored after close, reopen, or account change; failures retain the current playlist with retry",
+    "For You reserves opportunities for followed, underexposed and discovery posts with creator diversity; Latest and Following remain unchanged",
+    "No feed-impression writes, Points side effects, media renderer modifications or unrelated modules",
+    "Run focused tests, full TypeScript and Android playback/weak-network checks; freeze verified RC before production OTA"
+  ]
+}
