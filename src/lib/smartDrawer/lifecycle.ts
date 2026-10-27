@@ -34,6 +34,20 @@ export async function runSmartDrawerLifecycleCleanup(
   let removed = 0;
   let autoDone = 0;
   let autoArchived = 0;
+  let autoExpired = 0;
+
+  // Explicit time-limited content moves to recoverable trash first.
+  // Pinned and important items, or content without a clear end date,
+  // are never expired automatically.
+  while (true) {
+    const expired = await querySmartDrawerItems(userId, { view: 'expired-items', limit: 100 });
+    if (!expired.length) break;
+    for (const item of expired) {
+      await transitionSmartDrawerItem(userId, item.id, 'RECENTLY_REMOVED');
+      autoExpired += 1;
+    }
+    if (expired.length < 100) break;
+  }
 
   const activeLists =
     await querySmartDrawerItems(userId, {
@@ -104,6 +118,10 @@ export async function runSmartDrawerLifecycleCleanup(
         continue;
       }
 
+      if (item.protectedFromExpiry || item.keepOnTop) {
+        continue;
+      }
+
       const removedAt = Date.parse(
         item.deletedAt ?? item.updatedAt,
       );
@@ -115,18 +133,13 @@ export async function runSmartDrawerLifecycleCleanup(
         continue;
       }
 
-      await Promise.all(
-        item.assets.map(asset =>
-          deleteSmartDrawerAsset(asset),
-        ),
-      );
-
       if (
         await permanentlyDeleteSmartDrawerItem(
           userId,
           item.id,
         )
       ) {
+        await Promise.all(item.assets.map(asset => deleteSmartDrawerAsset(asset)));
         removed += 1;
         pageRemoved += 1;
       }
@@ -147,5 +160,6 @@ export async function runSmartDrawerLifecycleCleanup(
     removed,
     autoDone,
     autoArchived,
+    autoExpired,
   };
 }

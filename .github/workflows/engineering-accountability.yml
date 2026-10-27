@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            codex/smart-drawer-workplace-r2-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/smart-drawer-workplace-20261027.json" >> "$GITHUB_ENV";;
             release/home-map-ota-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/home-map-ota-20261027.json" >> "$GITHUB_ENV";;
             fix/home-map-google-search-20261027)

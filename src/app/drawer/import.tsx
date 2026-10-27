@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +20,7 @@ import {
   ensureImagePickerLibraryAccess,
 } from '@/lib/buklodImagePickerAccess';
 import {
+  deleteSmartDrawerAsset,
   persistSmartDrawerAsset,
 } from '@/lib/smartDrawer/assets';
 import {
@@ -32,6 +34,7 @@ type Picked = {
   mimeType?: string | null;
   width?: number | null;
   height?: number | null;
+  kind?: 'IMPORT' | 'FILE';
 };
 
 export default function SmartDrawerImport() {
@@ -65,15 +68,37 @@ export default function SmartDrawerImport() {
 
     if (result.canceled) return;
 
-    setItems(
-      result.assets.map(asset => ({
+    setItems(previous => [
+      ...previous,
+      ...result.assets.map(asset => ({
         uri: asset.uri,
         fileName: asset.fileName,
         mimeType: asset.mimeType,
         width: asset.width,
         height: asset.height,
+        kind: 'IMPORT' as const,
       })),
-    );
+    ]);
+  };
+
+  const chooseFiles = async () => {
+    setNotice('');
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      setItems(previous => [...previous, ...result.assets.map(file => ({
+        uri: file.uri,
+        fileName: file.name,
+        mimeType: file.mimeType,
+        kind: 'FILE' as const,
+      }))]);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not select files.');
+    }
   };
 
   const save = async () => {
@@ -88,32 +113,29 @@ export default function SmartDrawerImport() {
         const asset = await persistSmartDrawerAsset({
           userId: user.id,
           uri: picked.uri,
-          kind: 'IMPORT',
+          kind: picked.kind ?? 'IMPORT',
           mimeType: picked.mimeType,
           width: picked.width,
           height: picked.height,
           originalName: picked.fileName,
         });
 
-        await commitSmartDrawerItem(
-          user.id,
-          {
-            title:
-              picked.fileName?.replace(/\.[^.]+$/, '') ||
-              'Imported Image',
-            body: '',
-            extractedText: '',
-            type: 'DOCUMENT',
-            assets: [asset],
-            status: 'ACTIVE',
-            syncState: 'LOCAL_ONLY',
-          },
-        );
+        try {
+          await commitSmartDrawerItem(user.id, {
+            title: picked.fileName?.replace(/\.[^.]+$/, '') || 'Imported File',
+            body: '', extractedText: '', type: 'DOCUMENT', assets: [asset],
+            status: 'ACTIVE', syncState: 'LOCAL_ONLY',
+          });
+        } catch (error) {
+          // Roll back only the fresh local copy, never the source file.
+          await deleteSmartDrawerAsset(asset);
+          throw error;
+        }
         saved += 1;
       }
 
       setNotice(
-        `${saved} item${saved === 1 ? '' : 's'} saved. OCR or AI is never required to preserve the original image.`,
+        `${saved} item${saved === 1 ? '' : 's'} saved in Documents. The original files stay on this device.`,
       );
 
       setTimeout(() => {
@@ -121,7 +143,7 @@ export default function SmartDrawerImport() {
       }, 900);
     } catch (error) {
       setNotice(
-        `Import stopped after ${saved} saved item${saved === 1 ? '' : 's'}. ${error instanceof Error ? error.message : 'The remaining image could not be saved.'}`,
+        `Import stopped after ${saved} saved item${saved === 1 ? '' : 's'}. ${error instanceof Error ? error.message : 'The remaining file could not be saved.'}`,
       );
     } finally {
       setBusy(false);
@@ -152,10 +174,10 @@ export default function SmartDrawerImport() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>
-            Import from Gallery
+            Import Photos & Files
           </Text>
           <Text style={styles.subtitle}>
-            Select one or multiple images.
+            Add photos, PDFs, documents or text files.
           </Text>
         </View>
       </View>
@@ -177,6 +199,11 @@ export default function SmartDrawerImport() {
           </Text>
         </Pressable>
 
+        <Pressable onPress={() => void chooseFiles()} style={styles.pickButton}>
+          <MaterialCommunityIcons name="file-document-outline" size={22} color="#0A6EBD" />
+          <Text style={styles.pickText}>Choose Files (PDF, DOCX, TXT…)</Text>
+        </Pressable>
+
         {items.length ? (
           <View style={styles.grid}>
             {items.map((item, index) => (
@@ -184,10 +211,14 @@ export default function SmartDrawerImport() {
                 key={`${item.uri}:${index}`}
                 style={styles.thumbWrap}
               >
-                <Image
-                  source={{ uri: item.uri }}
-                  style={styles.thumb}
-                />
+                {item.kind === 'FILE' ? (
+                  <View style={[styles.thumb, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#E7EFF9' }]}>
+                    <MaterialCommunityIcons name="file-document-outline" size={30} color="#245F91" />
+                    <Text numberOfLines={2} style={{ fontSize: 10, textAlign: 'center' }}>{item.fileName}</Text>
+                  </View>
+                ) : (
+                  <Image source={{ uri: item.uri }} style={styles.thumb} />
+                )}
                 <View style={styles.selected}>
                   <MaterialCommunityIcons
                     name="check"

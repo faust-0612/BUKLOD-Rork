@@ -4,6 +4,7 @@ import {
 } from './reminders';
 import {
   getSmartDrawerItem,
+  querySmartDrawerItems,
   saveSmartDrawerItem,
   setSmartDrawerReminderIds,
   setSmartDrawerStatus,
@@ -25,36 +26,40 @@ export async function commitSmartDrawerItem(
     ? await getSmartDrawerItem(userId, draft.id)
     : null;
 
-  if (previous?.reminderIds?.length) {
-    await cancelSmartDrawerReminders(previous.reminderIds);
-  }
-
+  // Persist the item before touching its old alarms. A failed local write
+  // must never silently erase an already scheduled reminder.
+  const oldIds = previous?.reminderIds ?? [];
   let item = await saveSmartDrawerItem(userId, {
     ...draft,
-    reminderIds: [],
+    reminderIds: oldIds,
   });
 
   let reminderWarning: string | null = null;
+  let newIds: string[] = [];
 
   try {
-    const reminderIds =
-      await scheduleSmartDrawerReminders(item);
+    newIds = await scheduleSmartDrawerReminders(item);
 
-    if (reminderIds.length) {
-      item =
-        (await setSmartDrawerReminderIds(
-          userId,
-          item.id,
-          reminderIds,
-        )) ?? item;
+    const saved = await setSmartDrawerReminderIds(
+      userId,
+      item.id,
+      newIds,
+    );
+    if (!saved) {
+      throw new Error('Drawer item changed before reminders could be saved.');
     }
+    item = saved;
+    await cancelSmartDrawerReminders(oldIds);
 
     return {
       item,
-      reminderScheduled: reminderIds.length > 0,
+      reminderScheduled: newIds.length > 0,
       reminderWarning,
     };
   } catch (error) {
+    // If the schedule succeeded but the local ID write failed, roll back
+    // only the new notifications. The old schedule stays recoverable.
+    await cancelSmartDrawerReminders(newIds);
     reminderWarning =
       error instanceof Error
         ? error.message
@@ -66,6 +71,32 @@ export async function commitSmartDrawerItem(
       reminderWarning,
     };
   }
+}
+
+/**
+ * Reconcile the nearest due items after a reminder-style change. Work is
+ * deliberately bounded so a large local Drawer cannot stall settings/UI
+ * or exhaust the platform's pending local-notification slots in one pass.
+ */
+export async function refreshUpcomingSmartDrawerReminders(
+  userId: string,
+  maxItems = 20,
+) {
+  const rows = await querySmartDrawerItems(userId, {
+    view: 'future-reminders',
+    limit: Math.min(100, maxItems + 1),
+  });
+  let updated = 0;
+  let failed = 0;
+  for (const item of rows.slice(0, maxItems)) {
+    const result = await commitSmartDrawerItem(userId, {
+      ...item,
+      id: item.id,
+    });
+    if (result.reminderWarning) failed += 1;
+    else updated += 1;
+  }
+  return { updated, failed, more: rows.length > maxItems };
 }
 
 export async function transitionSmartDrawerItem(
@@ -80,15 +111,6 @@ export async function transitionSmartDrawerItem(
     throw new Error('Drawer item not found.');
   }
 
-  if (
-    status !== 'ACTIVE' &&
-    current.reminderIds.length
-  ) {
-    await cancelSmartDrawerReminders(
-      current.reminderIds,
-    );
-  }
-
   if (status === 'ACTIVE') {
     return (
       await commitSmartDrawerItem(
@@ -98,7 +120,6 @@ export async function transitionSmartDrawerItem(
           id: current.id,
           status: 'ACTIVE',
           deletedAt: null,
-          reminderIds: [],
           syncState: 'LOCAL_ONLY',
         },
       )
@@ -113,13 +134,15 @@ export async function transitionSmartDrawerItem(
     );
 
   if (next.reminderIds.length) {
-    return (
-      (await setSmartDrawerReminderIds(
+    const cleared = await setSmartDrawerReminderIds(
         userId,
         itemId,
         [],
-      )) ?? next
-    );
+      );
+    if (cleared) {
+      await cancelSmartDrawerReminders(next.reminderIds);
+      return cleared;
+    }
   }
 
   return next;

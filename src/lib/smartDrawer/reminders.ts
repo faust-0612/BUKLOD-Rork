@@ -16,6 +16,32 @@ export async function cancelSmartDrawerReminders(ids: string[]) {
   );
 }
 
+/** Cancel only Drawer alarms belonging to the previous signed-in account. */
+export async function cancelSmartDrawerRemindersForUser(userId: string) {
+  if (Platform.OS === 'web' || !userId) return 0;
+  const Notifications = await import('expo-notifications');
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const owned = scheduled.filter(request => {
+    const data = request.content.data;
+    return data?.source === 'smart-drawer' && data?.userId === userId;
+  });
+  await cancelSmartDrawerReminders(owned.map(request => request.identifier));
+  return owned.length;
+}
+
+/** Remove another account's (or legacy unscoped) private alarms on sign-in. */
+export async function cancelSmartDrawerRemindersForOtherUsers(userId: string) {
+  if (Platform.OS === 'web' || !userId) return 0;
+  const Notifications = await import('expo-notifications');
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const stale = scheduled.filter(request => {
+    const data = request.content.data;
+    return data?.source === 'smart-drawer' && data?.userId !== userId;
+  });
+  await cancelSmartDrawerReminders(stale.map(request => request.identifier));
+  return stale.length;
+}
+
 export async function scheduleSmartDrawerReminders(
   item: SmartDrawerItem,
 ): Promise<string[]> {
@@ -76,26 +102,34 @@ export async function scheduleSmartDrawerReminders(
   targets.push({ at: dueMs, label: 'Due now' });
 
   const ids: string[] = [];
-
-  for (const target of targets) {
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: target.label,
-        body: item.title || 'BUKLOD Smart Drawer reminder',
-        sound: true,
-        data: {
-          route: `/drawer/item/${item.id}`,
-          source: 'smart-drawer',
-          itemId: item.id,
+  try {
+    for (const target of targets) {
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: target.label,
+          body: item.title || 'BUKLOD Smart Drawer reminder',
+          sound: true,
+          data: {
+            kind: 'smart_drawer_reminder',
+            route: `/drawer/item/${encodeURIComponent(item.id)}`,
+            source: 'smart-drawer',
+            userId: item.userId,
+            itemId: item.id,
+          },
         },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: new Date(target.at),
-        channelId: Platform.OS === 'android' ? CHANNEL_ID : undefined,
-      },
-    });
-    ids.push(id);
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: new Date(target.at),
+          channelId: Platform.OS === 'android' ? CHANNEL_ID : undefined,
+        },
+      });
+      ids.push(id);
+    }
+  } catch (error) {
+    // A failed second or third schedule must not leave orphaned alarms that
+    // are impossible to cancel on the next edit.
+    await cancelSmartDrawerReminders(ids);
+    throw error;
   }
 
   return ids;

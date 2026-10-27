@@ -1,4 +1,5 @@
 import React, {
+  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -17,7 +18,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   classifySmartDrawerText,
+  detectSmartDrawerExpiry,
 } from '@/lib/smartDrawer/classify';
+import { createSmartDrawerFolder, listSmartDrawerFolders } from '@/lib/smartDrawer/localStore';
+import type { SmartDrawerFolder } from '@/lib/smartDrawer/types';
 import {
   commitSmartDrawerItem,
 } from '@/lib/smartDrawer/service';
@@ -29,11 +33,36 @@ export default function SmartDrawerQuickNote() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [folders, setFolders] = useState<SmartDrawerFolder[]>([]);
+  const [folderId, setFolderId] = useState<string | null>(null);
+  const [newFolder, setNewFolder] = useState('');
+  const [important, setImportant] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void listSmartDrawerFolders(user.id).then(setFolders).catch(error => setNotice(String(error)));
+  }, [user?.id]);
 
   const classification = useMemo(
-    () => classifySmartDrawerText(text),
+    // Keep typing responsive even for book-length notes. Saving examines
+    // the entire body; only the live preview is bounded.
+    () => classifySmartDrawerText(text.slice(0, 4000)),
     [text],
   );
+  const expiresAt = useMemo(() => detectSmartDrawerExpiry(text.slice(0, 4000)), [text]);
+
+  const addFolder = async () => {
+    if (!user?.id || !newFolder.trim()) return;
+    try {
+      const folder = await createSmartDrawerFolder(user.id, newFolder);
+      setFolders(await listSmartDrawerFolders(user.id));
+      setFolderId(folder.id);
+      setNewFolder('');
+      setNotice(`Created “${folder.name}”. This note will go there.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not create folder.');
+    }
+  };
 
   const save = async () => {
     if (!user?.id || !text.trim() || busy) return;
@@ -42,15 +71,20 @@ export default function SmartDrawerQuickNote() {
     setNotice('');
 
     try {
+      const fullClassification = classifySmartDrawerText(text);
+      const fullExpiry = detectSmartDrawerExpiry(text);
       const result = await commitSmartDrawerItem(
         user.id,
         {
-          type: classification.type,
-          title: classification.title,
+          type: fullClassification.type,
+          title: fullClassification.title,
           body: text.trim(),
-          dueAt: classification.dueAt,
-          eventAt: classification.eventAt,
-          listItems: classification.listItems,
+          dueAt: fullClassification.dueAt,
+          eventAt: fullClassification.eventAt,
+          listItems: fullClassification.listItems,
+          folderId,
+          expiresAt: fullExpiry,
+          protectedFromExpiry: important || ['DOCUMENT','RECEIPT','WRITING','POEM'].includes(fullClassification.type),
           status: 'ACTIVE',
           syncState: 'LOCAL_ONLY',
         },
@@ -58,19 +92,19 @@ export default function SmartDrawerQuickNote() {
 
       if (result.reminderWarning) {
         setNotice(
-          `Saved to Drawer. ${result.reminderWarning}`,
+          `Saved in ${folders.find(folder => folder.id === folderId)?.name ?? fullClassification.type.replaceAll('_',' ')}. ${result.reminderWarning}`,
         );
       } else {
         setNotice(
           result.reminderScheduled
-            ? 'Saved to Drawer. Reminder scheduled.'
-            : 'Saved to Drawer.',
+            ? 'Saved. Reminder scheduled.'
+            : `Saved in ${folders.find(folder => folder.id === folderId)?.name ?? fullClassification.type.replaceAll('_',' ')}.`,
         );
       }
 
       setTimeout(() => {
-        router.replace('/drawer' as any);
-      }, 650);
+        router.replace(`/drawer/item/${result.item.id}` as any);
+      }, 800);
     } catch (error) {
       setNotice(
         error instanceof Error
@@ -121,14 +155,13 @@ export default function SmartDrawerQuickNote() {
           multiline
           value={text}
           onChangeText={setText}
-          maxLength={5000}
           placeholder="Type a note, list, task, idea, program…"
           placeholderTextColor="#8899A8"
           style={styles.input}
         />
 
         <Text style={styles.counter}>
-          {text.length}/5000
+          {text.length.toLocaleString()} characters · No character limit
         </Text>
 
         {!!text.trim() && (
@@ -154,6 +187,10 @@ export default function SmartDrawerQuickNote() {
               </Text>
             )}
 
+            {!!expiresAt && (
+              <Text style={styles.detectedText}>Expires: {new Date(expiresAt).toLocaleString()} · Recoverable in Recently Removed</Text>
+            )}
+
             {!!classification.listItems.length && (
               <View style={styles.listPreview}>
                 {classification.listItems
@@ -174,6 +211,27 @@ export default function SmartDrawerQuickNote() {
             </Text>
           </View>
         )}
+
+        <Text style={styles.detectedTitle}>Save to folder (optional)</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {[{ id: '', name: 'Auto-organize' }, ...folders].map(folder => (
+            <Pressable key={folder.id} onPress={() => setFolderId(folder.id || null)}
+              style={{ padding: 10, borderRadius: 10, backgroundColor: (folderId ?? '') === folder.id ? '#D4EAFB' : '#E9EDF2', marginRight: 8 }}>
+              <Text>{folder.name}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TextInput value={newFolder} onChangeText={setNewFolder} placeholder="New folder name"
+            style={[styles.input, { minHeight: 42, flex: 1 }]} />
+          <Pressable onPress={() => void addFolder()} style={{ padding: 12, backgroundColor: '#D4EAFB', borderRadius: 10 }}>
+            <Text>Create</Text>
+          </Pressable>
+        </View>
+        <Pressable onPress={() => setImportant(value => !value)} style={{ padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <MaterialCommunityIcons name={important ? 'shield-check' : 'shield-outline'} size={22} color="#145F94" />
+          <Text>{important ? 'Important · Never auto-delete' : 'Mark important · Protect from auto-delete'}</Text>
+        </Pressable>
 
         {!!notice && (
           <View style={styles.notice}>

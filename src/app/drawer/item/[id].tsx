@@ -7,14 +7,18 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Modal,
+  Platform,
   Pressable,
+  Share,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import * as Sharing from 'expo-sharing';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   router,
@@ -25,12 +29,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   detectSmartDrawerDate,
+  detectSmartDrawerExpiry,
 } from '@/lib/smartDrawer/classify';
+import { makeGoogleCalendarEventUrl } from '@/lib/smartDrawer/calendar';
 import {
   deleteSmartDrawerAsset,
 } from '@/lib/smartDrawer/assets';
 import {
   getSmartDrawerItem,
+  createSmartDrawerFolder,
+  listSmartDrawerFolders,
+  moveSmartDrawerItemToFolder,
+  saveSmartDrawerItem,
   setSmartDrawerKeepOnTop,
   toggleSmartDrawerListEntry,
 } from '@/lib/smartDrawer/localStore';
@@ -44,6 +54,7 @@ import {
 import type {
   SmartDrawerItem,
   SmartDrawerItemType,
+  SmartDrawerFolder,
 } from '@/lib/smartDrawer/types';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -97,6 +108,8 @@ export default function SmartDrawerItemScreen() {
     useState(false);
   const [editing, setEditing] =
     useState(false);
+  const [folders, setFolders] = useState<SmartDrawerFolder[]>([]);
+  const [folderName, setFolderName] = useState('');
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -123,6 +136,8 @@ export default function SmartDrawerItemScreen() {
 
   const load = useCallback(async () => {
     if (!user?.id || !itemId) {
+      setItem(null);
+      setRelated([]);
       setLoading(false);
       return;
     }
@@ -140,6 +155,7 @@ export default function SmartDrawerItemScreen() {
       }
 
       syncFields(next);
+      setFolders(await listSmartDrawerFolders(user.id));
       setRelated(
         await findRelatedSmartDrawerItems(
           user.id,
@@ -181,9 +197,11 @@ export default function SmartDrawerItemScreen() {
     try {
       const dueAt =
         dateText.trim()
-          ? detectSmartDrawerDate(dateText) ??
-            item.dueAt
-          : null;
+          ? detectSmartDrawerDate(dateText)
+          : detectSmartDrawerDate(body);
+      if (dateText.trim() && !dueAt) {
+        throw new Error('Please enter a valid date or time, such as 2026-11-05 14:00.');
+      }
 
       const result =
         await commitSmartDrawerItem(
@@ -197,6 +215,7 @@ export default function SmartDrawerItemScreen() {
               item.extractedText || body,
             location: location.trim(),
             dueAt,
+            expiresAt: detectSmartDrawerExpiry(`${title}\n${body}`),
             eventAt:
               ['EVENT', 'APPOINTMENT', 'PROGRAM'].includes(type)
                 ? dueAt
@@ -225,6 +244,70 @@ export default function SmartDrawerItemScreen() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const moveFolder = async (folderId: string | null) => {
+    if (!user?.id || !item || busy) return;
+    setBusy(true);
+    try {
+      syncFields(await moveSmartDrawerItemToFolder(user.id, item.id, folderId));
+      setNotice(`Filed in ${folders.find(folder => folder.id === folderId)?.name ?? prettyType(item.type)}.`);
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Move failed.'); }
+    finally { setBusy(false); }
+  };
+
+  const addFolder = async () => {
+    if (!user?.id || !folderName.trim()) return;
+    setBusy(true);
+    try {
+      const folder = await createSmartDrawerFolder(user.id, folderName);
+      setFolders(await listSmartDrawerFolders(user.id));
+      setFolderName('');
+      syncFields(await moveSmartDrawerItemToFolder(user.id, item!.id, folder.id));
+      setNotice(`Created “${folder.name}” and moved note into it.`);
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not create folder.'); }
+    finally { setBusy(false); }
+  };
+
+  const toggleImportant = async () => {
+    if (!user?.id || !item || busy) return;
+    setBusy(true);
+    try {
+      const next = await saveSmartDrawerItem(user.id, { ...item, protectedFromExpiry: !item.protectedFromExpiry });
+      syncFields(next);
+      setNotice(next.protectedFromExpiry ? 'Important. Automatic cleanup will not delete this note.' : 'Important protection removed. Only explicitly dated content can auto-expire.');
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not update protection.'); }
+    finally { setBusy(false); }
+  };
+
+  const openAsset = async (asset: SmartDrawerItem['assets'][number]) => {
+    try {
+      if (Platform.OS === 'web') await Linking.openURL(asset.uri);
+      else if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(asset.uri, { mimeType: asset.mimeType ?? undefined });
+      else setNotice('No compatible file app is installed. Original remains safe in the Drawer.');
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not open file.'); }
+  };
+
+  const addCalendarEvent = async () => {
+    if (!item?.dueAt) return;
+    try {
+      // Never send a private unlimited-length note body to a third-party
+      // Calendar URL just because the user wants a dated reminder there.
+      await Linking.openURL(makeGoogleCalendarEventUrl(item.title, item.dueAt, 'Added from BUKLOD Smart Drawer'));
+      setNotice('Review and save in Google Calendar. This is a manual export, not automatic sync.');
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not open Calendar.'); }
+  };
+
+  const exportNote = async () => {
+    if (!item) return;
+    try {
+      await Share.share({
+        title: item.title,
+        message: [item.title, item.body, item.dueAt ? `Due: ${item.dueAt}` : '',
+          ...item.listItems.map(row => `${row.done ? '[x]' : '[ ]'} ${row.text}`)]
+          .filter(Boolean).join('\n\n'),
+      });
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not export note.'); }
   };
 
   const runStatus = async (
@@ -330,43 +413,30 @@ export default function SmartDrawerItemScreen() {
 
     Alert.alert(
       'Remove Original Image?',
-      'BUKLOD will keep the saved details, but the local original image cannot be restored after it is removed.',
+      'BUKLOD will keep the note, but its original local files cannot be restored after removal.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'REMOVE IMAGE',
+          text: 'REMOVE FILES',
           style: 'destructive',
           onPress: () => {
             setBusy(true);
             setActionsOpen(false);
             void (async () => {
               try {
-                await Promise.all(
-                  item.assets.map(asset =>
-                    deleteSmartDrawerAsset(asset),
-                  ),
-                );
-
-                const result =
-                  await commitSmartDrawerItem(
-                    user.id,
-                    {
-                      ...item,
-                      id: item.id,
-                      assets: [],
-                      syncState: 'LOCAL_ONLY',
-                    },
-                  );
-
-                syncFields(result.item);
+                const updated = await saveSmartDrawerItem(user.id, {
+                  ...item, assets: [], syncState: 'LOCAL_ONLY',
+                });
+                syncFields(updated);
+                await Promise.all(item.assets.map(asset => deleteSmartDrawerAsset(asset)));
                 setNotice(
-                  'Original image removed. Saved details remain in your Drawer.',
+                  'Original files removed. The saved note remains in your Drawer.',
                 );
               } catch (error) {
                 setNotice(
                   error instanceof Error
                     ? error.message
-                    : 'Could not remove the original image.',
+                    : 'Could not remove the original file.',
                 );
               } finally {
                 setBusy(false);
@@ -618,12 +688,14 @@ export default function SmartDrawerItemScreen() {
                 contentContainerStyle={styles.assets}
               >
                 {item.assets.map(asset => (
-                  <Image
-                    key={asset.id}
-                    source={{ uri: asset.uri }}
-                    style={styles.asset}
-                    resizeMode="cover"
-                  />
+                  <Pressable key={asset.id} onPress={() => void openAsset(asset)}>
+                    {asset.kind === 'FILE' || (asset.mimeType && !asset.mimeType.startsWith('image/')) ? (
+                      <View style={[styles.asset, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#DFECF7' }]}>
+                        <MaterialCommunityIcons name="file-document-outline" size={30} color="#125A91" />
+                        <Text numberOfLines={2} style={{ maxWidth: 110, fontSize: 11, textAlign: 'center' }}>{asset.originalName ?? 'Open file'}</Text>
+                      </View>
+                    ) : <Image source={{ uri: asset.uri }} style={styles.asset} resizeMode="cover" />}
+                  </Pressable>
                 ))}
               </ScrollView>
             )}
@@ -651,12 +723,36 @@ export default function SmartDrawerItemScreen() {
               )}
             </View>
 
+            <View style={{ gap: 8, paddingVertical: 12 }}>
+              <Text style={styles.label}>Saved in: {folders.find(folder => folder.id === item.folderId)?.name ?? prettyType(item.type)}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {[{ id: '', name: 'Auto-organize' }, ...folders].map(folder => (
+                  <Pressable key={folder.id} disabled={busy} onPress={() => void moveFolder(folder.id || null)}
+                    style={{ backgroundColor: (item.folderId ?? '') === folder.id ? '#D1EBFA' : '#ECF1F5', padding: 9, borderRadius: 9, marginRight: 8 }}>
+                    <Text>{folder.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TextInput value={folderName} onChangeText={setFolderName} placeholder="Create folder & move here" style={[styles.input, { flex: 1 }]} />
+                <Pressable disabled={busy} onPress={() => void addFolder()} style={{ alignSelf: 'center', padding: 9, borderRadius: 8, backgroundColor: '#D1EBFA' }}><Text>Create</Text></Pressable>
+              </View>
+              <Pressable onPress={() => void toggleImportant()} disabled={busy} style={{ flexDirection: 'row', gap: 8, alignItems: 'center', paddingVertical: 8 }}>
+                <MaterialCommunityIcons name={item.protectedFromExpiry ? 'shield-check' : 'shield-outline'} size={20} color="#178267" />
+                <Text>{item.protectedFromExpiry ? 'Important · Protected from auto-delete' : 'Protect this note from auto-delete'}</Text>
+              </Pressable>
+              {!!item.expiresAt && <Text style={styles.label}>Expires: {new Date(item.expiresAt).toLocaleString()} · Recoverable after expiry</Text>}
+            </View>
+
             {!!dueLabel && (
               <InfoRow
                 icon="calendar-clock-outline"
                 label={dueLabel}
               />
             )}
+            {!!item.dueAt && <Pressable onPress={() => void addCalendarEvent()} style={{ padding: 10 }}>
+              <Text style={{ color: '#166EAC' }}>Add to Google Calendar (optional)</Text>
+            </Pressable>}
             {!!item.location && (
               <InfoRow
                 icon="map-marker-outline"
@@ -820,6 +916,21 @@ export default function SmartDrawerItemScreen() {
                 setEditing(true);
               }}
             />
+            {item.status !== 'RECENTLY_REMOVED' && (
+              <SheetAction
+                icon="account-group-outline"
+                label="Share / Collaborate"
+                onPress={() => {
+                  setActionsOpen(false);
+                  router.push(`/drawer/share?itemId=${encodeURIComponent(item.id)}` as any);
+                }}
+              />
+            )}
+
+            <SheetAction icon="export-variant" label="Export / Back up Note" onPress={() => {
+              setActionsOpen(false);
+              void exportNote();
+            }} />
 
             {item.status === 'ACTIVE' && (
               <SheetAction
@@ -851,7 +962,7 @@ export default function SmartDrawerItemScreen() {
             {!!item.assets.length && (
               <SheetAction
                 icon="image-remove-outline"
-                label="Manage Original Image"
+                label="Manage Original File"
                 onPress={removeOriginalImages}
               />
             )}
