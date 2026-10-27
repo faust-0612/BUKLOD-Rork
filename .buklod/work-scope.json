@@ -1,25 +1,21 @@
 {
-  "objective": "Android notification precision: exact post/chat routing, on-device quick reply, readable previews and coalesced chat/post alerts",
-  "baseRef": "b7be8206dfad656e1138be00f22443eda0506679",
-  "productionBaselineEvidence": "GitHub main b7be8206dfad656e1138be00f22443eda0506679 verified 2026-10-27; live Supabase BUKLOD Connect migration 20261027023151 and push Edge Function v25 verified separately. Android runtime 1.3.2 production OTA fingerprint, physical Android tap/reply and frozen RC must be independently verified before client OTA.",
+  "objective": "KL isolated dynamic publishing integration and chapter authoring",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: main is the scoped PR comparison ref only; independent live OTA baseline verification still required before publish",
   "allowedPaths": [
     ".buklod/work-scope.json",
-    "src/lib/buklodNotificationNavigation.ts",
-    "src/providers/NotificationProvider.tsx",
-    "src/lib/buklodNotificationQuickReply.ts",
-    "__tests__/buklodNotificationNavigation.test.ts",
-    "__tests__/buklodNotificationQuickReply.test.ts",
-    "supabase/functions/push/index.ts",
-    "supabase/migrations/20261027023151_notification_post_preview_and_actor_group_v1.sql"
+    "src/app/admin/kabihasnang-ligaw.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx",
+    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx",
+    "src/components/kabihasnang-ligaw/KlChapterAudio.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlSceneEffect.tsx"
   ],
   "acceptanceChecks": [
-    "Scoped post/community comment tap resolves to exact /post/:id; missing id falls back to Community, not Connect",
-    "DM and room notifications route to their matching Connect conversations",
-    "Notification reply actions use existing Expo native capability, authenticated RLS and deterministic message ids; no new native dependency",
-    "Cold-start notification is retained until an authenticated user can handle it",
-    "Message and post previews are bounded; remote notifications coalesce per conversation or post author/scope while each DB notification is retained",
-    "Live Supabase migration and push function are reconciled into source exactly, with no secrets or unrelated PTT/SOS changes",
-    "Jest and TypeScript plus physical foreground/background/killed Android notification proof before DEV→RC→Production OTA",
-    "Production client OTA stays gated on exact baseline and runtime 1.3.2 evidence; no APK metadata edits"
+    "TypeScript and performance QA pass",
+    "Chapter 2 remains blank unreleased",
+    "Release requires separate RC and live baseline evidence"
   ]
 }
