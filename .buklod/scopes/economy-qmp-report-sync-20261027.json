@@ -1,7 +1,7 @@
 {
   "objective": "Align Share/Invite, Bayanihan Guide and Points Economy reporting to the authoritative Community QMP ledger without changing financial settlement eligibility or peso balances; reconcile the stale R38 QA markers to currently deployed PF V2/V3 without disabling safeguards",
-  "baseRef": "2ec52cd42cd1707c982a0ed0567fa7de49b0f539",
-  "productionBaselineEvidence": "Reconciled against latest canonical DEV main 2ec52cd42cd1707c982a0ed0567fa7de49b0f539 and read-only Supabase production QMP/Finance functions and account aggregates on 2026-10-27. Exact served Android production OTA source/RC fingerprint remains a separate mandatory verification; this PR is DEV only.",
+  "baseRef": "71c1b0c3a81a6030c273bbd3a2351ac8e8b149cf",
+  "productionBaselineEvidence": "Reconciled against latest canonical DEV main 2ec52cd42cd1707c982a0ed0567fa7de49b0f539 and read-only Supabase production QMP/Finance functions and account aggregates on 2026-10-27. Exact served Android production OTA source/RC fingerprint remains a separate mandatory verification; this PR is DEV only. PR exact-scope diff reanchored to confirmed DEV main 71c1b0c3a81a6030c273bbd3a2351ac8e8b149cf after merging concurrent scoped changes; this main SHA is a DEV comparison anchor, not a claim of a verified production OTA.",
   "allowedPaths": [
     "src/lib/buklodEconomyQmp.ts",
     "src/lib/buklodEconomyLedger.ts",
