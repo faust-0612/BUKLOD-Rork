@@ -41,7 +41,11 @@ assert.match(chat, /roomCursorCoversMessage\(selected\.created_at, reader\.lastR
 assert.match(chat, /onSeenBy=/);
 assert.match(actions, /label: 'Seen by'/);
 
-const sql = fs.readFileSync(path.join(root, 'supabase/review-only/20261027_connect_fast_history_seen.sql'), 'utf8');
+const sql = [
+  'supabase/migrations/20261027130045_connect_scope_readers_member_gated_v1.sql',
+  'supabase/migrations/20261027130103_connect_scope_messages_page_keyset_v2.sql',
+  'supabase/migrations/20261027130113_connect_direct_messages_page_keyset_v2.sql'
+].map(file => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 assert.match(sql, /buklod_connect_can_use_scope_room\(_scope_id\)/);
 assert.match(sql, /r\.scope_id = _scope_id/);
 assert.match(sql, /auth\.uid\(\) is null/);
