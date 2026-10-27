@@ -1,0 +1,21 @@
+{
+  "objective": "Enable the existing production Android OTA release lane for the merged Home map Google Maps handoff and enlarged destination search, using the unchanged exact-source RC and runtime gates",
+  "baseRef": "6a71330418b3730fccf5fb5b76e660304dcf7642",
+  "productionBaselineEvidence": "Production Android OTA run 40529044962 on source 8693668142f933df5b1e324b1b3922cc7591cf29 passed its frozen RC, publish, and served-bundle verification stages. Current production source is not assumed to equal main; scripts/android-ota-rc.cjs independently validates the active manifest and runtime 1.3.2 at release start and after publication. Owner skips manual/live device verification only.",
+  "allowedPaths": [
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/home-map-ota-20261027.json"
+  ],
+  "acceptanceChecks": [
+    "Merged Home map fix PR #380 remains intact in the Android production release source",
+    "Android production push triggers include exactly the Home/map modules and their dependency-free regression test",
+    "The existing Android OTA release workflow runs the Home map regression after TypeScript",
+    "No native dependency, runtime, package, database or production credential change",
+    "Engineering Accountability, Performance, and Integration QA pass on the release configuration PR",
+    "After merge to latest main the production workflow captures live update baseline and confirms native compatibility",
+    "Freeze the exported Android RC and check hash before publish; abort if production changes during preparation",
+    "Publish one Android production-channel update and verify the served update ID, runtime and bundle fingerprint",
+    "Manual/live device testing is explicitly skipped by the owner; never confuse this with served-artifact verification"
+  ]
+}
