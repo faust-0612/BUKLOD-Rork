@@ -1,5 +1,5 @@
 {
-  "objective": "Align Share/Invite, Bayanihan Guide and Points Economy reporting to the authoritative Community QMP ledger without changing financial settlement eligibility or peso balances",
+  "objective": "Align Share/Invite, Bayanihan Guide and Points Economy reporting to the authoritative Community QMP ledger without changing financial settlement eligibility or peso balances; reconcile the stale R38 QA markers to currently deployed PF V2/V3 without disabling safeguards",
   "baseRef": "2ec52cd42cd1707c982a0ed0567fa7de49b0f539",
   "productionBaselineEvidence": "Reconciled against latest canonical DEV main 2ec52cd42cd1707c982a0ed0567fa7de49b0f539 and read-only Supabase production QMP/Finance functions and account aggregates on 2026-10-27. Exact served Android production OTA source/RC fingerprint remains a separate mandatory verification; this PR is DEV only.",
   "allowedPaths": [
@@ -10,7 +10,8 @@
     "src/components/points/BuklodEconomyDashboard.tsx",
     "__tests__/buklodEconomyQmp.test.ts",
     ".buklod/scopes/economy-qmp-report-sync-20261027.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "scripts/r38-economy-release-contract.mjs"
   ],
   "acceptanceChecks": [
     "Engineering Accountability exact allowed-file scope passes for this branch",
@@ -19,6 +20,7 @@
     "Missing QMP backend response shows unavailable rather than zero; manual retry and bounded focus refresh work",
     "Logout and account switching invalidate previous profile QMP responses",
     "No earnings, payout, settlement, referral, Point awards or ad logic is changed",
-    "Freeze an immutable RC and verify Android runtime 1.3.2 served production update fingerprint before any OTA publication"
+    "Freeze an immutable RC and verify Android runtime 1.3.2 served production update fingerprint before any OTA publication",
+    "R38 legacy migrations and cash-safety restrictions remain enforced while current Profit-First V2/V3 and localized QMP/Finance UI contracts pass"
   ]
 }
