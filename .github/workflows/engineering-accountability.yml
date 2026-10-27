@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/recovery-action-feedback-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/recovery-action-feedback-20261027.json" >> "$GITHUB_ENV";;
             fix/offline-connect-faith-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/offline-connect-faith-20261027.json" >> "$GITHUB_ENV";;
             fix/marites-video-blank-recovery-20261027)
@@ -69,6 +71,10 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify recovery button feedback contracts
+        if: github.head_ref == 'fix/recovery-action-feedback-20261027'
+        run: node --test tests/recovery-action-feedback.test.cjs
+
       - name: Verify approved pending client and rollback recovery
         if: github.head_ref == 'fix/pending-client-reconciliation-20261027-r1'
         run: node scripts/test-pending-client-reconciliation-20261027.cjs
