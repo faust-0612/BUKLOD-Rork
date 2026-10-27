@@ -102,37 +102,41 @@ export async function rememberStreamPushUser(
 
 async function createTokenProvider():
   Promise<string> {
-  const {
-    data: sessionData,
-  } =
-    await supabase.auth
-      .getSession();
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession();
 
-  let session =
-    sessionData.session;
-
-  try {
-    const refreshed =
-      await supabase.auth.refreshSession();
-
-    if (refreshed.data.session) {
-      session =
-        refreshed.data.session;
-    }
-  } catch {
-    // Keep the existing session when refresh is unavailable.
+  if (sessionError) {
+    throw sessionError;
   }
 
-  // A refresh may return an error rather than throw. The previous session
-  // can still be valid, but an expired access token must never be sent.
-  if (session?.expires_at && session.expires_at * 1000 <= Date.now() + 30000) {
-    throw new Error('BUKLOD session expired for incoming call push.');
+  let session = sessionData.session;
+
+  // FCM can wake a killed app with a still-valid session. A forced refresh on
+  // every incoming ring adds network latency and can fail under weak signal.
+  // Only refresh if the token is missing or about to expire.
+  if (
+    !session?.access_token ||
+    (session.expires_at != null &&
+      session.expires_at * 1000 <= Date.now() + 45000)
+  ) {
+    const refreshed = await supabase.auth.refreshSession();
+    if (refreshed.error || !refreshed.data.session?.access_token) {
+      throw refreshed.error ?? new Error(
+        'BUKLOD session unavailable for incoming call push.'
+      );
+    }
+    session = refreshed.data.session;
   }
 
   if (!session?.access_token) {
-    throw new Error(
-      'No active BUKLOD session for Stream push.'
-    );
+    throw new Error('No active BUKLOD session for Stream push.');
+  }
+
+  if (
+    session.expires_at != null &&
+    session.expires_at * 1000 <= Date.now() + 30000
+  ) {
+    throw new Error('BUKLOD session expired for incoming call push.');
   }
 
   const {
