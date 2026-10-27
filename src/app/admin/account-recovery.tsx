@@ -299,39 +299,7 @@ export default function AdminAccountRecoveryScreen() {
                 </View>
               )}
 
-              <Pressable
-                onPress={() => setConfirmation({ action: 'verify', requestId: row.id })}
-                disabled={busyId !== null || !canVerify}
-                hitSlop={10}
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.primary,
-                  pressed && busyId === null && canVerify && styles.pressed,
-                  (busyId !== null || !canVerify) && styles.disabled,
-                ]}
-              >
-                {busyId === row.id ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="account-check-outline" size={19} color="#FFFFFF" />
-                    <Text style={styles.primaryText}>{buttonLabel}</Text>
-                  </>
-                )}
-              </Pressable>
-
-              <Pressable
-                onPress={() => setConfirmation({ action: 'reject', requestId: row.id })}
-                disabled={busyId !== null}
-                hitSlop={8}
-                accessibilityRole="button"
-                style={[styles.reject, busyId !== null && styles.disabled]}
-              >
-                <MaterialCommunityIcons name="close-circle-outline" size={18} color="#A62828" />
-                <Text style={styles.rejectText}>REJECT / CANNOT VERIFY</Text>
-              </Pressable>
-
-              {confirmation?.requestId === row.id && (
+              {confirmation?.requestId === row.id ? (
                 <View style={styles.confirmCard}>
                   <Text style={styles.confirmTitle}>
                     {confirmation.action === 'verify' ? 'Confirm verified identity' : 'Confirm rejection'}
@@ -360,6 +328,40 @@ export default function AdminAccountRecoveryScreen() {
                     </Pressable>
                   </View>
                 </View>
+              ) : (
+                <>
+                  <Pressable
+                    onPress={() => setConfirmation({ action: 'verify', requestId: row.id })}
+                    disabled={busyId !== null || !canVerify}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                      styles.primary,
+                      pressed && busyId === null && canVerify && styles.pressed,
+                      (busyId !== null || !canVerify) && styles.disabled,
+                    ]}
+                  >
+                    {busyId === row.id ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="account-check-outline" size={19} color="#FFFFFF" />
+                        <Text style={styles.primaryText}>{buttonLabel}</Text>
+                      </>
+                    )}
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => setConfirmation({ action: 'reject', requestId: row.id })}
+                    disabled={busyId !== null}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    style={[styles.reject, busyId !== null && styles.disabled]}
+                  >
+                    <MaterialCommunityIcons name="close-circle-outline" size={18} color="#A62828" />
+                    <Text style={styles.rejectText}>REJECT / CANNOT VERIFY</Text>
+                  </Pressable>
+                </>
               )}
             </View>
           );
