@@ -16,7 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import KlAudioControls from '@/components/kabihasnang-ligaw/KlAudioControls';
@@ -44,6 +44,7 @@ import { dictionaryByName, KL_DICTIONARY, splitDictionaryTerms } from '@/lib/kab
 import { KL_SCENE_STILLS } from '@/lib/kabihasnang-ligaw/sceneStills';
 import { paragraphDisplayText, splitCanonicalParagraphs } from '@/lib/kabihasnang-ligaw/manuscript';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
+import { verifiedChapterReward } from '@/lib/kabihasnang-ligaw/releaseBadge';
 import { journeySummary } from '@/lib/kabihasnang-ligaw/journey';
 import {
   DEFAULT_READER_CACHE,
@@ -74,6 +75,9 @@ function cacheKey(userId: string | null): string {
 }
 
 export default function KlReaderScreen() {
+  const route = useLocalSearchParams<{ episodeId?: string }>();
+  const requestedEpisode = typeof route.episodeId === 'string'
+    && /^[a-f0-9-]{36}$/i.test(route.episodeId) ? route.episodeId : undefined;
   const { width, height } = useWindowDimensions();
   const reduceMotion = useBuklodReduceMotion();
   const { online } = useNetwork();
@@ -180,7 +184,7 @@ export default function KlReaderScreen() {
         const restoredReadable = restored
           ? memberReadable(restored, restoredAssets, new Date(), STORYBOARD).readable
           : false;
-        setSelectedId(restoredReadable ? parsed.lastEpisodeId : null);
+        setSelectedId(!requestedEpisode && restoredReadable ? parsed.lastEpisodeId : null);
       } catch {
         setNotice(klCopy.couldNotOpen);
       }
@@ -188,7 +192,13 @@ export default function KlReaderScreen() {
     return () => {
       active = false;
     };
-  }, [user?.id]);
+  }, [user?.id, requestedEpisode]);
+
+  useEffect(() => {
+    if (!requestedEpisode) return;
+    openSequence.current += 1;
+    setSelectedId(null); // Deep link from KL release notification opens the server chapter library.
+  }, [requestedEpisode]);
 
   useEffect(() => {
     const appSub = AppState.addEventListener('change', (state) => {
@@ -278,7 +288,8 @@ export default function KlReaderScreen() {
     if (error) { setRewardFeedback(error.message); return; }
     const result = data as { new_completion?: boolean; points_awarded?: number; completed?: boolean };
     setRewardFeedback(result?.completed === false ? 'Kailangan muna ng sapat na oras ng pagbabasa.' :
-      result?.new_completion ? 'Chapter completed · +7 BUKLOD Points' : 'Naitala na ang completion ng kabanatang ito.');
+      result?.new_completion ? 'Verified chapter completed · +' + verifiedChapterReward(result) + ' BUKLOD Points' :
+        'Naitala na ang completion. Isang +7 Points reward lamang kada kabanata.');
   };
 
   const syncViewport = (scrollY: number) => {
@@ -636,8 +647,9 @@ export default function KlReaderScreen() {
               </View>
             ) : null}
             <Pressable accessibilityRole="button" onPress={() => void finishChapter()} style={{ padding: 12, borderRadius: 8, backgroundColor: '#28583f' }}>
-              <Text style={{ color: '#fff' }}>Mark Chapter Complete</Text>
+              <Text style={{ color: '#fff' }}>Mark Chapter Complete · +7 Points kapag verified</Text>
             </Pressable>
+            <Text style={styles.meta}>+7 para sa unang verified completion; +10 bonus matapos ang lahat ng 30 kabanata sa serye. Hindi nagkaka-points sa simpleng pagbukas.</Text>
             {rewardFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{rewardFeedback}</Text> : null}
 
             <KlLiveDiscussion episodeId={selected.id} live={liveReleased} />
@@ -652,7 +664,7 @@ export default function KlReaderScreen() {
             <Text style={styles.by}>{KL_AUTHOR}</Text>
             <Text style={styles.lede}>{klCopy.librarySubtitle}</Text>
             <Text style={styles.meta}>{klCopy.libraryHint}</Text>
-            <KlDynamicLibrary />
+            <KlDynamicLibrary initialEpisodeId={requestedEpisode} />
             <View style={styles.panel}>
               <Text style={styles.panelTitle}>{klCopy.journey}</Text>
               <Text style={styles.body}>{klCopy.journeyEmpty}</Text>
