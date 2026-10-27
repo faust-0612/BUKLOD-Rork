@@ -130,8 +130,15 @@ export function BuklodLiveSatelliteMap({
    */
   useEffect(() => {
     const handleMessage = (event: any) => {
+      if (
+        event?.source !== previewIframeRef.current?.contentWindow &&
+        event?.source !== fullIframeRef.current?.contentWindow
+      ) return;
       if (event?.data?.type === 'BUKLOD_MAP_OPEN_URL' && event.data.url) {
-        window.open(String(event.data.url), '_blank', 'noopener,noreferrer');
+        const url = String(event.data.url);
+        if (/^https:\/\/(?:www\.)?google\.com\/maps\/(?:dir|search)\//i.test(url)) {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
         return;
       }
 
@@ -191,7 +198,7 @@ export function BuklodLiveSatelliteMap({
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const srcDoc = useMemo(() => {
+  const mapDocuments = useMemo(() => {
     const payload = points.map((point) => ({
       id: point.id,
       kind: point.kind,
@@ -204,13 +211,20 @@ export function BuklodLiveSatelliteMap({
       isMe: Boolean(point.isMe),
     }));
 
-    return buildBuklodLiveSatelliteMapDocument({
+    const input = {
       points: payload,
       center: {
         latitude: Number(mapCenter.latitude),
         longitude: Number(mapCenter.longitude),
       },
-    });
+    };
+    return {
+      preview: buildBuklodLiveSatelliteMapDocument(input),
+      full: buildBuklodLiveSatelliteMapDocument({
+        ...input,
+        searchInitiallyVisible: true,
+      }),
+    };
   }, [
     mapCenter.latitude,
     mapCenter.longitude,
@@ -226,7 +240,7 @@ export function BuklodLiveSatelliteMap({
       title: interactive
         ? 'BUKLOD live satellite interactive community map'
         : 'BUKLOD live satellite community map preview',
-      srcDoc,
+      srcDoc: interactive ? mapDocuments.full : mapDocuments.preview,
       style: {
         border: 0,
         width: '100%',

@@ -79,10 +79,18 @@ export default function BuklodLightHome() {
           </Suspense>
         </ToolBoundary>
       ) : null}
+      {/* Preserve the map while Android permission dialogs or Google Maps
+          temporarily put this app in the background. */}
+      {focused ? (
+        <ToolBoundary onClose={() => {}}>
+          <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading Home map" color={theme.accent} />}>
+            <Map />
+          </Suspense>
+        </ToolBoundary>
+      ) : null}
       {focused && foreground ? (
         <ToolBoundary onClose={() => {}}>
-          <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading Home map and SOS" color={theme.accent} />}>
-            <Map />
+          <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading Home SOS" color={theme.accent} />}>
             <Help />
           </Suspense>
         </ToolBoundary>

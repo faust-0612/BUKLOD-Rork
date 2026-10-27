@@ -39,6 +39,7 @@ export default function BuklodCommunityMapDom({
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
       const data = event?.data as
         | {
             type?: string;
