@@ -18,7 +18,8 @@
     ".github/workflows/engineering-accountability.yml",
     ".github/workflows/production_android_ota.yml",
     ".github/workflows/character_recovery_pr_qa.yml",
-    "scripts/test-character-live-parity-ota173.cjs"
+    "scripts/test-character-live-parity-ota173.cjs",
+    "scripts/release-gate.mjs"
   ],
   "acceptanceChecks": [
     "No delete/retry of possibly committed posts after upload or follow-up errors",
@@ -33,6 +34,7 @@
     "Previously merged PR346 request coalescing and post-rollback production source preserved",
     "Android production workflow must validate persisted-session startup without obsolete forced biometric checks",
     "Engineering Accountability runs client reconciliation regression tests before RC",
-    "Changed Character presentation requires full R31/R40 contract, while this nonvisual client PR must preserve exact 4-file shipped Android OTA #173 Character baseline"
+    "Changed Character presentation requires full R31/R40 contract, while this nonvisual client PR must preserve exact 4-file shipped Android OTA #173 Character baseline",
+    "Base release gate accepts the already-visible canonical Level-1 explanation while retaining mandatory V2 atomic reset validation"
   ]
 }

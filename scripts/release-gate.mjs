@@ -94,7 +94,13 @@ if (!progressiveCharacter.includes('setMyBuklodCharacterActiveV2')) {
 if (/levelForPoints\s*\(\s*lifetimePoints\s*\)/.test(progressiveSelector)) {
   failures.push('Legacy transferable lifetime-points Character leveling returned in R31 selector.');
 }
-if (!progressiveSelector.includes('starts at Level 1')) {
+// Canonical visual copy uses either phrasing; both visibly tell users that
+// switching Characters starts the selected Character at Level 1. The V2
+// server-level atomic reset contract above remains mandatory and unchanged.
+if (
+  !progressiveSelector.includes('starts at Level 1') &&
+  !progressiveSelector.includes('They start at Level 1.')
+) {
   failures.push('R31 selector is missing the visible Level-1 reset rule.');
 }
 if (!specialSeries.includes('setMyBuklodCharacterActiveV2')) {
