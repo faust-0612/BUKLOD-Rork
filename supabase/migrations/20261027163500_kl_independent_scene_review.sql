@@ -159,6 +159,37 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.kl_admin_prepare_preview_v1(p_episode_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
+AS $function$
+DECLARE v public.kl_episodes%rowtype; v_count integer;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role::text = 'system_admin' AND is_active = true) THEN
+    RAISE EXCEPTION 'Admin only';
+  END IF;
+  SELECT * INTO v FROM public.kl_episodes WHERE id = p_episode_id AND release_at IS NULL FOR UPDATE;
+  IF NOT FOUND OR v.manuscript IS NULL OR length(btrim(v.manuscript)) < 30 THEN
+    RAISE EXCEPTION 'Complete and save an editable manuscript first';
+  END IF;
+  SELECT count(*) INTO v_count FROM public.kl_episode_media
+    WHERE episode_id = p_episode_id AND media_kind = 'illustration'
+      AND paragraph_anchor IS NOT NULL
+      AND (length(v.manuscript) - length(replace(v.manuscript, paragraph_anchor, ''))) = length(paragraph_anchor);
+  IF v_count < 2 OR v_count > 3 THEN
+    RAISE EXCEPTION 'Place 2 or 3 illustrations at valid, unique manuscript passages first';
+  END IF;
+  IF v.preview_prepared_at IS NOT NULL THEN
+    RETURN jsonb_build_object('ready', true, 'changed', false,
+      'preview_version', v.preview_version, 'location', 'Community Wall KL Admin card');
+  END IF;
+  UPDATE public.kl_episodes SET preview_version = preview_version + 1,
+      preview_prepared_at = now() WHERE id = p_episode_id;
+  RETURN jsonb_build_object('ready', true, 'changed', true,
+      'preview_version', v.preview_version + 1, 'location', 'Community Wall KL Admin card');
+END;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.kl_admin_preview_bundle_v1(p_episode_id uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
 AS $function$

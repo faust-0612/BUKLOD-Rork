@@ -191,8 +191,11 @@ export default function KlPublishingStudio() {
     void perform('Inihahanda ang private preview', async () => {
       const { data, error } = await supabase.rpc('kl_admin_prepare_preview_v1', { p_episode_id: id });
       if (error) throw error;
-      if (!(data as { ready?: boolean } | null)?.ready) throw new Error('Hindi nakumpirma ng server ang preview.');
-      setFeedback({ tone: 'success', text: 'Private preview ready sa Community Wall → KL → Admin. Hindi pa published.' });
+      const result = data as { ready?: boolean; changed?: boolean } | null;
+      if (!result?.ready) throw new Error('Hindi nakumpirma ng server ang preview.');
+      setFeedback({ tone: 'success', text: result.changed === false
+        ? 'Private preview already prepared. Same version preserved; walang nabago sa server.'
+        : 'Private preview ready sa Community Wall → KL → Admin. Hindi pa published.' });
       await refresh().catch(() => undefined);
     });
   };
