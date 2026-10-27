@@ -17,6 +17,6 @@
     "Double taps do not duplicate an in-flight post; failed posts retain the user draft and attachments",
     "Post and account changes reject stale comment responses and preserve separate in-memory drafts",
     "Confirmed comment sends do not reload the entire feed, and existing auth, RLS, media and scoped membership contracts are preserved",
-    "TypeScript and focused CI checks pass before verified RC and production OTA; real Android keyboard QA is a required release check"
+    "Owner expressly waived physical Android keyboard QA on 2026-10-27; automated QA, verified RC fingerprint and production publication verification remain mandatory"
   ]
 }
