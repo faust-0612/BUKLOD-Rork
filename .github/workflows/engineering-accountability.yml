@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/referral-lookup-race-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/referral-lookup-race-20261027.json" >> "$GITHUB_ENV";;
             fix/backend-performance-consolidation-20261026)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/backend-performance-consolidation-20261026.json" >> "$GITHUB_ENV";;
             consolidate/convo-connect-avatar-map-home-20261026)
@@ -96,3 +98,7 @@ jobs:
         run: |
           node scripts/test-media-signed-cache.cjs
           node scripts/test-media-sign-fallback.cjs
+
+      - name: Verify referral lookup race and error handling
+        if: github.head_ref == 'fix/referral-lookup-race-20261027'
+        run: node --test tests/referral-lookup.test.cjs
