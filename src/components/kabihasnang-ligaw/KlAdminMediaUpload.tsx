@@ -6,6 +6,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
+import KlChapterAudio from './KlChapterAudio';
+import { KlSceneEffect, type SceneEffect } from './KlSceneEffect';
 
 type Kind = 'cover' | 'illustration' | 'music' | 'ambient';
 type MediaItem = { kind: Kind; placement: number; approved: boolean; path: string };
@@ -38,18 +40,19 @@ function Choice({ label, selected, disabled, onPress }: {
   );
 }
 
-export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideId, onUploaded, manuscript = '', manuscriptSaved = false }: {
+export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideId, onUploaded, manuscript = '', manuscriptSaved = false, initialKind = 'illustration' }: {
   episodeNumber: number;
   episodeId?: string;
   onUploaded?: () => void;
   manuscript?: string;
   manuscriptSaved?: boolean;
+  initialKind?: Kind;
 }) {
   const episodeId = overrideId ?? klDatabaseId(episodeNumber);
   const [busyAction, setBusyAction] = useState('');
   const lock = useRef(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [kind, setKind] = useState<Kind>('illustration');
+  const [kind, setKind] = useState<Kind>(initialKind);
   const [placement, setPlacement] = useState(1);
   const [items, setItems] = useState<MediaItem[]>([]);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -57,6 +60,10 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
   const [anchor, setAnchor] = useState('');
   const [side, setSide] = useState<'before' | 'after'>('after');
   const [intensity, setIntensity] = useState(30);
+  const [motionPlaying, setMotionPlaying] = useState(true);
+  const [audioUrl, setAudioUrl] = useState('');
+
+  useEffect(() => setKind(initialKind), [initialKind]);
 
   const selectedPlacement = kind === 'illustration' ? placement : 0;
   const selected = items.find((item) => item.kind === kind && item.placement === selectedPlacement);
@@ -89,6 +96,19 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
         if (!active) return;
         if (error) setFeedback({ tone: 'error', text: 'Media saved, pero hindi ma-load ang private preview: ' + error.message });
         else if (data?.signedUrl) setPreviewUrl(data.signedUrl);
+      });
+    }
+    return () => { active = false; };
+  }, [episodeId, imageSelected, selected?.path]);
+
+  useEffect(() => {
+    let active = true;
+    setAudioUrl('');
+    if (!imageSelected && selected?.path) {
+      void supabase.storage.from('kl-publishing').createSignedUrl(selected.path, 600).then(({ data, error }) => {
+        if (!active) return;
+        if (error) setFeedback({ tone: 'error', text: 'Audio saved, pero hindi ma-play ang private preview: ' + error.message });
+        else if (data?.signedUrl) setAudioUrl(data.signedUrl);
       });
     }
     return () => { active = false; };
@@ -238,7 +258,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
 
   return (
     <View style={{ gap: 10, paddingVertical: 12 }}>
-      <Text style={{ color: '#ffe0a8', fontWeight: '700', fontSize: 17 }}>Chapter media · System Admin</Text>
+      <Text style={{ color: '#ffe0a8', fontWeight: '700', fontSize: 17 }}>Illustrations · Music · Ambience · Animation</Text>
       <Text style={{ color: '#c8d2da' }}>Select a type. Every upload stays private until media approval and chapter release.</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {kindLabels.map((option) => (
@@ -269,12 +289,20 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       </Text>
       {imageSelected && previewUrl ? (
         <View style={{ gap: 5 }}>
-          <Image source={{ uri: previewUrl }} contentFit="contain"
-            style={{ width: '100%', height: 220, backgroundColor: '#243748', borderRadius: 9 }}
-            accessibilityLabel="Private preview of selected chapter image" />
+          <View style={{ overflow: 'hidden', borderRadius: 9, backgroundColor: '#243748' }}>
+            <Image source={{ uri: previewUrl }} contentFit="contain"
+              style={{ width: '100%', aspectRatio: 16 / 9 }}
+              onError={() => setFeedback({ tone: 'error', text: 'Hindi ma-render ang napiling larawan. I-check ang private media at i-refresh ang chapter.' })}
+              accessibilityLabel="Private preview of selected chapter image" />
+            {kind === 'illustration' ? (
+              <KlSceneEffect effect={effect as SceneEffect} intensity={intensity} active={motionPlaying} />
+            ) : null}
+          </View>
           <Text style={{ color: '#c8d2da' }}>Private image preview · {selected?.approved ? 'Approved' : 'Not yet public'}</Text>
         </View>
       ) : null}
+      {!imageSelected ? <KlChapterAudio music={kind === 'music' ? audioUrl : undefined}
+        ambient={kind === 'ambient' ? audioUrl : undefined} showWhenEmpty /> : null}
       {kind === 'illustration' ? (
         <>
           <Text style={{ color: '#fff' }}>Exact paragraph anchor (unique sentence from saved manuscript)</Text>
@@ -286,6 +314,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
           <Choice label={busyAction === 'Sine-save ang image placement' ? 'Saving placement…' : 'Save exact placement'}
             disabled={isBusy} onPress={saveAnchor} />
           <Text style={{ color: '#fff' }}>Scene {placement} atmosphere (built-in, no animation upload)</Text>
+          <Text style={{ color: '#c8d2da' }}>Live demo: pumili ng effect sa ibaba. Makikita agad ang galaw sa larawan sa itaas; Save Scene Effect para maitala sa server.</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {['none', 'rain', 'fog', 'fireflies', 'embers', 'lightning'].map((option) => (
               <Choice key={option} label={option} selected={effect === option} disabled={isBusy}
@@ -294,13 +323,21 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
           </View>
           <Choice label={'Intensity ' + intensity + '% (tap to adjust)'} disabled={isBusy}
             onPress={() => setIntensity((value) => value >= 80 ? 20 : value + 20)} />
+          <Choice label={motionPlaying ? 'Pause animation preview' : 'Play animation preview'}
+            disabled={isBusy} onPress={() => setMotionPlaying((playing) => !playing)} />
           <Choice label={busyAction === 'Sine-save ang scene effect' ? 'Saving scene effect…' : 'Save Scene Effect'}
             disabled={isBusy} onPress={saveEffect} />
         </>
       ) : null}
       <Text style={{ color: '#c8d2da' }}>
-        Uploaded media: {items.length}. Review and approve in Community Wall KL Admin after preparing the private preview.
+        Uploaded media: {items.length}. Visual artwork approval is separate from server media approval.
+        Review and approve in Community Wall KL Admin after preparing the private preview.
       </Text>
+      <Choice label="Refresh media & approvals from server" disabled={isBusy}
+        onPress={() => void perform('Nire-refresh ang media', async () => {
+          await refreshMedia();
+          setFeedback({ tone: 'success', text: 'Updated media approval status from server.' });
+        })} />
       {items.map((item) => (
         <Text key={item.kind + ':' + item.placement} style={{ color: '#fff' }}>
           {item.kind} {item.placement}: {item.approved ? 'Approved' : 'Pending approval'}
