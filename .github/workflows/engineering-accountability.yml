@@ -22,8 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
-            codex/fix-economy-qmp-report-sync-20261027)
-              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/economy-qmp-report-sync-20261027.json" >> "$GITHUB_ENV";;
+            fix/ota-gate-canonical-attendance-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/ota-gate-canonical-attendance-20261027.json" >> "$GITHUB_ENV";;
             fix/attendance-canonical-rpc-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/attendance-canonical-rpc-20261027.json" >> "$GITHUB_ENV";;
             codex/connect-responsive-call-push-20261027)
@@ -76,6 +76,8 @@ jobs:
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/scope-gate-isolation.json" >> "$GITHUB_ENV";;
             fix/staging-production-isolation-20261024)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/staging-production-isolation.json" >> "$GITHUB_ENV";;
+            codex/fix-economy-qmp-report-sync-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/economy-qmp-report-sync-20261027.json" >> "$GITHUB_ENV";;
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
