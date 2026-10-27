@@ -114,6 +114,13 @@ export function resolveBuklodNotificationTarget(
     };
   }
 
+  // Always open the exact record. A scoped workspace is only a fallback when
+  // the producer did not provide a post id; the post detail RPC enforces access.
+  const postId = clean(payload.post_id);
+  if (postId && COMMUNITY_POST_KINDS.has(normalizedKind)) {
+    return { path: `/post/${encodeURIComponent(postId)}` };
+  }
+
   // Producers may provide a canonical internal route (for example Reports).
   const explicitPath = safeInternalPath(
     payload.route ?? payload.href ?? payload.deep_link,
@@ -157,6 +164,16 @@ export function resolveBuklodNotificationTarget(
     };
   }
 
+  // If an older notification lacks a record id, stay in Community instead of
+  // incorrectly opening the Connect chat room.
+  const communityScopeId = clean(payload.scope_id);
+  if (COMMUNITY_POST_KINDS.has(normalizedKind) && communityScopeId) {
+    return {
+      path: `/scope?section=community&scopeId=${encodeURIComponent(communityScopeId)}`,
+      scopeId: communityScopeId,
+    };
+  }
+
   const baseTarget = buklodNotificationTarget(
     normalizedKind,
     {
@@ -177,13 +194,6 @@ export function resolveBuklodNotificationTarget(
 
   if (baseTarget) {
     return baseTarget;
-  }
-
-  const postId = clean(payload.post_id);
-  if (postId && COMMUNITY_POST_KINDS.has(normalizedKind)) {
-    return {
-      path: `/post/${encodeURIComponent(postId)}`,
-    };
   }
 
   const devotionalId = clean(payload.devotional_id);

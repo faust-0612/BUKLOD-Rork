@@ -1,5 +1,5 @@
 import {createContext,ReactNode,useCallback,useContext,useEffect,useMemo,useState} from 'react';
-import {AppState,InteractionManager,Platform} from 'react-native';
+import {Alert,AppState,InteractionManager,Platform} from 'react-native';
 import * as Notifications from 'expo-notifications';
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
@@ -13,7 +13,11 @@ import {
   CLUSTER_JOIN_APPROVE_ACTION,
   CLUSTER_JOIN_DECLINE_ACTION,
 } from '@/lib/clusterJoinNotification';
-import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
+import {
+  BUKLOD_MESSAGE_REPLY_ACTION,
+  BUKLOD_MESSAGE_REPLY_CATEGORY,
+  sendBuklodNotificationQuickReply,
+} from '@/lib/buklodNotificationQuickReply';
 
 type Ctx={unreadCount:number;refreshUnread:()=>Promise<void>;markAllRead:()=>Promise<void>};
 const Context=createContext<Ctx|undefined>(undefined);
@@ -44,8 +48,7 @@ export function NotificationProvider({children}:{children:ReactNode}){
    return;
   }
 
-  const mzbCanonicalScopeId=await resolveMzbOrganizationScopeId().catch(()=>null);
-  const target=resolveBuklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
+  const target=resolveBuklodNotificationTarget(kind,data,{scopes});
 
   if(!target?.path){
    router.push('/notifications' as any);
@@ -81,6 +84,14 @@ export function NotificationProvider({children}:{children:ReactNode}){
       await Notifications.setNotificationCategoryAsync('buklod_cluster_invite',[
        {identifier:CLUSTER_JOIN_APPROVE_ACTION,buttonTitle:'Accept',options:{opensAppToForeground:true}},
        {identifier:CLUSTER_JOIN_DECLINE_ACTION,buttonTitle:'Decline',options:{opensAppToForeground:true,isDestructive:true}},
+      ]);
+      await Notifications.setNotificationCategoryAsync(BUKLOD_MESSAGE_REPLY_CATEGORY, [
+       {
+        identifier: BUKLOD_MESSAGE_REPLY_ACTION,
+        buttonTitle: 'Reply',
+        options: { opensAppToForeground: true },
+        textInput: { placeholder: 'Write your reply', submitButtonTitle: 'Send' },
+       },
       ]);
      }
      const p=await Notifications.getPermissionsAsync();
@@ -126,6 +137,7 @@ export function NotificationProvider({children}:{children:ReactNode}){
 
  /* PATCH_171B_COLD_START_NOTIFICATION_RESPONSE */
  useEffect(()=>{
+  if(!user?.id)return;
   let active=true;
   const handled=new Set<string>();
 
@@ -149,6 +161,30 @@ export function NotificationProvider({children}:{children:ReactNode}){
    const d:any=
     r.notification.request.content.data||{};
 
+   if(actionId===BUKLOD_MESSAGE_REPLY_ACTION){
+    const text=String(r.userText??'').trim();
+    if(!text){
+     void openNotification(String(d.kind||'general'),d).catch(()=>undefined);
+     return;
+    }
+    void sendBuklodNotificationQuickReply({
+     userId:user.id,
+     kind:String(d.kind||''),
+     data:d,
+     notificationId:String(d.notification_id||requestId),
+     text,
+    }).then(()=>{
+     void Notifications.dismissNotificationAsync(requestId).catch(()=>undefined);
+    }).catch((error:any)=>{
+     Alert.alert(
+      'Reply not confirmed',
+      `${error?.message||'Please check the conversation before retrying.'} Open the conversation to verify before sending again.`,
+     );
+     void openNotification(String(d.kind||'general'),d).catch(()=>undefined);
+    });
+    return;
+   }
+
    if(
     actionId===CLUSTER_JOIN_APPROVE_ACTION||
     actionId===CLUSTER_JOIN_DECLINE_ACTION
@@ -166,7 +202,10 @@ export function NotificationProvider({children}:{children:ReactNode}){
    void openNotification(
      String(d.kind||'general'),
      d
-   );
+   ).catch((error)=>{
+    console.warn('Notification route:',error);
+    router.push('/notifications' as any);
+   });
   };
 
   const initial=
@@ -189,7 +228,7 @@ export function NotificationProvider({children}:{children:ReactNode}){
    active=false;
    sub.remove();
   };
- },[openNotification]);
+ },[openNotification,user?.id]);
  const value=useMemo(()=>({unreadCount,refreshUnread,markAllRead}),[unreadCount,refreshUnread,markAllRead]);
  return <Context.Provider value={value}>{children}</Context.Provider>
 }
