@@ -32,7 +32,7 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
  */
 
 type Route =
-  | '/home'
+  | '/hub'
   | '/messages'
   | '/buklod'
   | '/prayer'
@@ -54,8 +54,8 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 function isActiveRoute(pathname: string, route: Route) {
-  if (route === '/home') {
-    return pathname === '/home' || pathname.startsWith('/home/');
+  if (route === '/hub') {
+    return pathname === '/hub' || pathname.startsWith('/hub/');
   }
   if (route === '/messages') {
     return (
@@ -107,8 +107,8 @@ function sponsorPlacement(pathname: string): SponsorPlacement {
 
 function isFeedRoute(pathname: string) {
   return (
-    pathname === '/home' ||
-    pathname.startsWith('/home/') ||
+    pathname === '/hub' ||
+    pathname.startsWith('/hub/') ||
     pathname === '/buklod' ||
     pathname.startsWith('/buklod/') ||
     pathname.startsWith('/post/') ||

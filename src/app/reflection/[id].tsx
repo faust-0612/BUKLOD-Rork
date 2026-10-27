@@ -64,7 +64,7 @@ export default function ReflectionScreen() {
           ? 'Your devotional is complete and already approved.'
           : 'Your reflection, application, completion, and validation submission were saved together. BUKLOD is checking it automatically; there is no separate manual submission step.'
       );
-      router.replace('/(tabs)/home');
+      router.replace('/(tabs)/hub');
     } catch (error: any) {
       Alert.alert(
         'Could not complete devotional',

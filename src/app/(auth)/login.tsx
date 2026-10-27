@@ -1303,22 +1303,22 @@ const chooseSuggestedLogin =
     /*
      * PATCH_171K_R3_BUBBLE_HOME_REOPEN_CONNECT
      *
-     * A successful authentication action ALWAYS opens Public Home:
+     * A successful authentication action opens the Public Community Wall:
      * - manual Log In
      * - remembered Suggested Login bubble
      *
      * Existing-session app reopen is handled by src/app/index.tsx
-     * and remains global/personal Connect.
+     * and remains the Public Community Wall.
      */
     router.replace(
-      '/(tabs)/home'
+      '/(tabs)/buklod'
     );
 
 
     /*
      * PATCH_171K_SUGGESTED_CONNECT_MANUAL_HOME
      *
-     * Manual Log In -> Public/global Home.
+     * Manual Log In -> Public Community Wall.
      * Remembered Suggested Profile -> global/personal Connect.
      * No intermediate route and no artificial delay.
      */
