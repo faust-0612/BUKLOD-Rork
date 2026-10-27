@@ -16,7 +16,9 @@
     "src/components/BuklodHomeFaithPanel.tsx",
     "src/components/BuklodScopeBuklodLessonPanel.tsx",
     ".github/workflows/engineering-accountability.yml",
-    ".github/workflows/production_android_ota.yml"
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/character_recovery_pr_qa.yml",
+    "scripts/test-character-live-parity-ota173.cjs"
   ],
   "acceptanceChecks": [
     "No delete/retry of possibly committed posts after upload or follow-up errors",
@@ -30,6 +32,7 @@
     "Compact Cluster directory, two-row scoped Show Faith and colorful Lesson layout restored",
     "Previously merged PR346 request coalescing and post-rollback production source preserved",
     "Android production workflow must validate persisted-session startup without obsolete forced biometric checks",
-    "Engineering Accountability runs client reconciliation regression tests before RC"
+    "Engineering Accountability runs client reconciliation regression tests before RC",
+    "Changed Character presentation requires full R31/R40 contract, while this nonvisual client PR must preserve exact 4-file shipped Android OTA #173 Character baseline"
   ]
 }
