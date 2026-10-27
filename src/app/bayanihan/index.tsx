@@ -334,7 +334,7 @@ export default function BayanihanScreen() {
                   <Text style={styles.metricValue}>
                     {contribution?.estimated_share_minor == null
                       ? 'No verified provisional revenue yet'
-                      : formatPhp(Number(contribution.estimated_share_minor) / 100)}
+                      : contribution.estimate_below_cent ? 'Below ₱0.01' : formatPhp(Number(contribution.estimated_share_minor) / 100)}
                   </Text>
                   <Text style={styles.guardText}>
                     {contribution?.estimate_label || 'Estimate only. Not final or withdrawable.'}
