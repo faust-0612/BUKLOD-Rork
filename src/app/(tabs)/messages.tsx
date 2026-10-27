@@ -84,13 +84,14 @@ import {
 import {
   ConnectThemeSelectorButton,
 } from '@/components/connect/ConnectThemeSelector';
+import { ConnectPressable } from '@/components/connect/ConnectPressable';
 import {
   ConnectThreadBackground,
 } from '@/components/connect/ConnectThreadBackground';
 import {
-  BuklodFocusFadeUp,
   BuklodFocusVisibleRow,
 } from '@/components/HomeMotion';
+import { HIBLA } from '@/lib/connectHibla';
 
 type PersonalThread = {
   thread_id: string;
@@ -370,19 +371,10 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       backgroundColor: theme.canvas,
     },
     listContent: {
-      paddingBottom: connectSpacing.sectionGap + 8,
+      paddingBottom: connectSpacing.sectionGap + 12,
     },
     communityListContent: {
       paddingBottom: connectSpacing.sectionGap + 8,
-    },
-    inboxFooter: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      zIndex: 20,
-      flexShrink: 0,
-      alignItems: 'center',
-      backgroundColor: 'transparent',
     },
     inboxHeader: {
       flexDirection: 'row',
@@ -391,6 +383,106 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       paddingHorizontal: connectSpacing.screenHorizontal,
       paddingTop: 4,
       paddingBottom: 6,
+    },
+    hero: {
+      marginBottom: 0,
+      minHeight: 154,
+      paddingTop: 18,
+      paddingBottom: 28,
+      paddingHorizontal: 20,
+      backgroundColor: HIBLA.pine,
+      borderBottomLeftRadius: 25,
+      borderBottomRightRadius: 25,
+      overflow: 'hidden',
+    },
+    heroArc: {
+      position: 'absolute',
+      width: 170,
+      height: 170,
+      top: -48,
+      right: -48,
+      borderRadius: 85,
+      borderWidth: 1,
+      borderColor: 'rgba(237,201,120,0.55)',
+    },
+    heroEyebrow: {
+      color: HIBLA.gold,
+      fontSize: 10,
+      letterSpacing: 2.1,
+      fontWeight: '900',
+    },
+    heroTitle: {
+      marginTop: 6,
+      color: '#FFFFFF',
+      fontSize: 29,
+      fontWeight: '900',
+      lineHeight: 36,
+      fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
+    },
+    heroSubtitle: {
+      color: '#DBF3E4',
+      fontSize: 13,
+      marginTop: 3,
+    },
+    heroCount: {
+      alignSelf: 'flex-start',
+      marginTop: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      backgroundColor: '#E8F7ED',
+      borderRadius: 14,
+    },
+    heroCountText: {
+      color: HIBLA.pineDeep,
+      fontSize: 11,
+      fontWeight: '800',
+    },
+    searchDock: {
+      marginTop: -19,
+      marginHorizontal: 12,
+      paddingTop: 4,
+      paddingBottom: 8,
+      borderRadius: 22,
+      backgroundColor: '#FFFFFF',
+    },
+    contactsTitle: {
+      color: HIBLA.pineDeep,
+      fontSize: 17,
+      fontWeight: '800',
+      paddingHorizontal: 18,
+      paddingTop: 13,
+      paddingBottom: 8,
+    },
+    sectionTitle: {
+      color: HIBLA.pineDeep,
+      fontSize: 18,
+      fontWeight: '900',
+      paddingHorizontal: 18,
+      paddingTop: 12,
+      paddingBottom: 8,
+    },
+    priorityCard: {
+      marginHorizontal: 14,
+      marginBottom: 8,
+      padding: 14,
+      borderRadius: 20,
+      backgroundColor: '#FFF2CD',
+    },
+    priorityLabel: {
+      color: '#705015',
+      fontWeight: '900',
+      fontSize: 12,
+      marginBottom: 6,
+    },
+    priorityName: {
+      color: HIBLA.ink,
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    priorityPreview: {
+      color: HIBLA.muted,
+      fontSize: 13,
+      marginTop: 3,
     },
     sectionLabel: {
       ...connectTypography.sectionLabel,
@@ -424,19 +516,13 @@ function ConnectScreenInner({
   forcedScopeId,
 }: ConnectScreenProps = {}) {
   const { theme } = useConnectTheme();
-  const inboxTabsReserved =
-    connectSpacing.bottomNavHeight + 10;
   const scrollBottomInset =
     useBuklodScrollBottomInset({
-      extra: 8,
-    }) + inboxTabsReserved;
+      extra: 12,
+    });
   const styles = useMemo(
     () => ({
       ...createInboxStyles(theme),
-      inboxFooter: {
-        ...createInboxStyles(theme).inboxFooter,
-        bottom: 0,
-      },
       listContent: {
         ...createInboxStyles(theme).listContent,
         paddingBottom: scrollBottomInset,
@@ -454,7 +540,7 @@ function ConnectScreenInner({
     isConnected && isInternetReachable !== false;
   const profileId = (profile as any)?.id as string | undefined;
   const [tab, setTab] =
-    useState<'personal' | 'community'>('personal');
+    useState<'personal' | 'community'>(forcedScopeId ? 'community' : 'personal');
   const [personal, setPersonal] =
     useState<PersonalThread[]>([]);
   const [rooms, setRooms] =
@@ -1058,12 +1144,93 @@ function ConnectScreenInner({
   );
 
   const isSearching = query.trim().length >= 2;
+  const priorityThread = !isSearching
+    ? personal.find(item => n(item.unread_count) > 0) ?? null
+    : null;
   const personalListData = (
-    isSearching ? people : personal
+    isSearching
+      ? people
+      : personal.filter(item => item.thread_id !== priorityThread?.thread_id)
   ) as any[];
 
   const sectionLabel =
     communitySectionLabel(communityFilter);
+  const unreadTotal = tab === 'personal'
+    ? personal.reduce((total, item) => total + n(item.unread_count), 0)
+    : visibleRooms.reduce((total, item) => total + n(item.unread_count), 0);
+
+  const renderHiblaHeader = (community: boolean) => (
+    <>
+      <View style={styles.hero}>
+        <View pointerEvents="none" style={styles.heroArc} />
+        <Text style={styles.heroEyebrow}>BUKLOD • CONNECT</Text>
+        <Text style={styles.heroTitle}>Mga Ugnayan</Text>
+        <Text style={styles.heroSubtitle}>Mas malapit ang bawat isa.</Text>
+        <View style={styles.heroCount}>
+          <Text style={styles.heroCountText}>
+            {unreadTotal > 0
+              ? `${unreadTotal > 99 ? '99+' : unreadTotal} bagong mensahe`
+              : 'Walang bagong mensahe'}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.searchDock}>
+        <View style={styles.inboxHeader}>
+          <ConnectInboxSearch
+            inline
+            inputRef={searchInputRef}
+            value={query}
+            onChangeText={setQuery}
+            placeholder={isSearching ? 'Hanapin ang miyembro…' : 'Hanapin ang usapan'}
+          />
+          <ConnectThemeSelectorButton />
+        </View>
+      </View>
+      {!community && !isSearching && (
+        <>
+          <Text style={styles.contactsTitle}>Mga kasama</Text>
+          <ConnectSuggestedContacts
+            currentUser={profileId ? {
+              user_id: profileId,
+              full_name: String((profile as any)?.full_name ?? 'You'),
+              avatar_url: (profile as any)?.avatar_url ?? null,
+            } : null}
+            contacts={suggestedContacts}
+            onOpenContact={openSuggestedContact}
+            onStatusNoteSaved={() => void loadRef.current()}
+          />
+        </>
+      )}
+      <ConnectInboxTabs
+        tab={tab}
+        communityFilter={communityFilter}
+        onTabChange={setTab}
+        onCommunityFilterChange={setCommunityFilter}
+      />
+      {community && !forcedScopeId && (
+        <ConnectCommunityFilters active={communityFilter} onChange={setCommunityFilter} />
+      )}
+      {community && !!sectionLabel && (
+        <Text style={styles.sectionLabel}>{sectionLabel}</Text>
+      )}
+      {!community && priorityThread && (
+        <ConnectPressable
+          accessibilityLabel={`Open priority conversation with ${priorityThread.other_user_name}`}
+          onPress={() => openPersonalThread(priorityThread.thread_id, priorityThread)}
+          style={styles.priorityCard}
+        >
+          <Text style={styles.priorityLabel}>⚑ Unahin</Text>
+          <Text numberOfLines={1} style={styles.priorityName}>{priorityThread.other_user_name}</Text>
+          <Text numberOfLines={1} style={styles.priorityPreview}>
+            {connectMessagePreview(priorityThread.last_message)}
+          </Text>
+        </ConnectPressable>
+      )}
+      <Text style={styles.sectionTitle}>
+        {community ? 'Mga grupong usapan' : isSearching ? 'Mga resulta' : 'Mga usapan'}
+      </Text>
+    </>
+  );
 
   return (
     <ConnectThreadBackground style={styles.screen}>
@@ -1073,53 +1240,7 @@ function ConnectScreenInner({
 
 
             <FlatList
-              ListHeaderComponent={
-                <>
-          <BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}>
-            <View style={styles.inboxHeader}>
-              <ConnectInboxSearch
-                inline
-                inputRef={searchInputRef}
-                value={query}
-                onChangeText={setQuery}
-                placeholder={
-                  isSearching
-                    ? 'Search BUKLOD users...'
-                    : 'Search messages'
-                }
-              />
-              <ConnectThemeSelectorButton />
-            </View>
-          </BuklodFocusFadeUp>
-    
-    
-                {!isSearching && (
-                  <BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}>
-                    <ConnectSuggestedContacts
-                      currentUser={
-                        profileId
-                          ? {
-                              user_id: profileId,
-                              full_name: String(
-                                (profile as any)?.full_name ??
-                                  'You'
-                              ),
-                              avatar_url:
-                                (profile as any)?.avatar_url ??
-                                null,
-                            }
-                          : null
-                      }
-                      contacts={suggestedContacts}
-                      onOpenContact={openSuggestedContact}
-                      onStatusNoteSaved={() => {
-                        void loadRef.current();
-                      }}
-                    />
-                  </BuklodFocusFadeUp>
-                )}
-                </>
-              }
+              ListHeaderComponent={renderHiblaHeader(false)}
               data={personalListData}
               keyExtractor={(item: any) =>
                 item.thread_id ?? item.user_id
@@ -1149,7 +1270,7 @@ function ConnectScreenInner({
               }
               keyboardShouldPersistTaps="always"
               ListEmptyComponent={
-                <View style={styles.empty}>
+                priorityThread && !isSearching ? null : <View style={styles.empty}>
                   <Text style={styles.emptyTitle}>
                     {isSearching
                       ? 'No user found'
@@ -1225,32 +1346,7 @@ function ConnectScreenInner({
           </>
         ) : (
           <FlatList
-            ListHeaderComponent={
-              <>
-        <BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}>
-          <View style={styles.inboxHeader}>
-            <ConnectInboxSearch
-              inline
-              inputRef={searchInputRef}
-              value={query}
-              onChangeText={setQuery}
-              placeholder={
-                isSearching
-                  ? 'Search BUKLOD users...'
-                  : 'Search messages'
-              }
-            />
-            <ConnectThemeSelectorButton />
-          </View>
-        </BuklodFocusFadeUp>
-  
-  
-                {!forcedScopeId && (
-                  <ConnectCommunityFilters active={communityFilter} onChange={setCommunityFilter} />
-                )}
-                {!!sectionLabel && <Text style={styles.sectionLabel}>{sectionLabel}</Text>}
-              </>
-            }
+            ListHeaderComponent={renderHiblaHeader(true)}
             data={filteredRooms}
             keyExtractor={item => item.scope_id}
             initialNumToRender={
@@ -1311,9 +1407,7 @@ function ConnectScreenInner({
         )}
       </View>
 
-      <View style={styles.inboxFooter} pointerEvents="box-none">
-        <ConnectInboxTabs tab={tab} onTabChange={setTab} />
-      </View>
     </ConnectThreadBackground>
   );
 }
+

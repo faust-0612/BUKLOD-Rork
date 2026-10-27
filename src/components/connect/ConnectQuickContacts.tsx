@@ -50,6 +50,7 @@ import {
 import {
   ConnectTappableAvatar,
 } from '@/components/connect/ConnectTappableAvatar';
+import { HIBLA } from '@/lib/connectHibla';
 
 const MAX_NOTE_CHARS = 80;
 const NOTE_LINE_HEIGHT = 12;
@@ -59,7 +60,7 @@ const NOTE_ZONE_HEIGHT =
 const NOTE_ZONE_EDIT_HEIGHT =
   NOTE_ZONE_HEIGHT + 34;
 const AVATAR_SIZE = 56;
-const COLUMN_WIDTH = 78;
+const COLUMN_WIDTH = 94;
 
 type CurrentUser = {
   user_id: string;
@@ -79,8 +80,8 @@ type Props = {
 function createStyles(theme: ConnectThemeRoles) {
   return StyleSheet.create({
     wrap: {
-      marginBottom: 2,
-      paddingTop: 4,
+      marginBottom: 4,
+      paddingTop: 2,
     },
     scroll: {
       flexDirection: 'row',
@@ -90,8 +91,12 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     column: {
       width: COLUMN_WIDTH,
-      marginRight: 10,
+      marginRight: 8,
       alignItems: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 4,
+      borderRadius: 18,
+      backgroundColor: HIBLA.mint,
     },
     noteZone: {
       width: COLUMN_WIDTH,
@@ -512,6 +517,7 @@ function ContactColumn({
           name={contact.full_name}
           uri={contact.avatar_url}
           size={AVATAR_SIZE}
+          shape="rounded"
           enableLongPressSheet={!isSelf}
           onPress={isSelf ? null : undefined}
         />
@@ -721,3 +727,4 @@ export function ConnectQuickContacts({
 }
 
 export type { ConnectSuggestedContact as QuickContact };
+

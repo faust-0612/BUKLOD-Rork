@@ -1,0 +1,32 @@
+{
+  "objective": "HIBLA Connect visual system and account-scoped quick reactions across Public, Cluster and Organization messaging",
+  "baseRef": "4fc432c173eb44e7a8f92495adb98b0fb0c3eafa",
+  "productionBaselineEvidence": "The authoritative main source 4fc432c173eb44e7a8f92495adb98b0fb0c3eafa merges Connect reliability PR #370, including its additive reader/history RPCs. This is a new isolated DEV UI feature based on that verified main source, not a production publication. Earlier Android runtime 1.3.2 and prior OTA evidence cannot establish current live deployment; recheck the production release artifact and runtime ancestry before RC or OTA.",
+  "allowedPaths": [
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodNavSafeShell.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/components/connect/ConnectCommunityRow.tsx",
+    "src/components/connect/ConnectComposer.tsx",
+    "src/components/connect/ConnectInboxRow.tsx",
+    "src/components/connect/ConnectInboxTabs.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/connect/ConnectTappableAvatar.tsx",
+    "src/components/connect/ConnectThreadHeader.tsx",
+    "src/lib/connectHibla.ts",
+    "__tests__/connectHibla.test.ts",
+    ".buklod/scopes/hibla-connect-design-20261027.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "TypeScript, configured unit tests, web export and Android JS export pass at the exact RC head",
+    "Public inbox uses actual unread counts, no synthetic online presence; Cluster/Org filters use existing authorized rooms and preserve scoped membership",
+    "Quick reactions work for both direct and scoped messages, persist separately by account, do not leak data, and do not bypass offline or backend RLS checks",
+    "Composer remains docked to keyboard; single call icon, reader receipts and media/caching/retry functionality are preserved",
+    "Requests has explanatory feedback only until an authorized, verified backend requests model exists; do not fabricate data",
+    "Existing ads, Points, finance, auth, notifications and native runtime are unaffected",
+    "Verify physical Public, Cluster, Org chat and calls, freeze the exact release artifact, and complete DEV to RC to production OTA gates before claiming live"
+  ]
+}

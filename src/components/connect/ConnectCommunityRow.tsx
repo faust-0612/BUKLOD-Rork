@@ -21,6 +21,7 @@ import {
 import {
   ConnectPressable,
 } from '@/components/connect/ConnectPressable';
+import { HIBLA } from '@/lib/connectHibla';
 
 type Props = {
   scopeName: string;
@@ -61,27 +62,42 @@ function createStyles(theme: ConnectThemeRoles) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: connectSpacing.rowGap,
-      paddingHorizontal: connectSpacing.screenHorizontal,
-      paddingVertical: connectSpacing.rowVertical,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderSubtle,
+      marginHorizontal: 14,
+      marginBottom: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      minHeight: 82,
+      borderRadius: 18,
+      backgroundColor: HIBLA.paper,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: HIBLA.outline,
+    },
+    unreadRow: {
+      backgroundColor: HIBLA.mint,
+    },
+    threadNode: {
+      position: 'absolute',
+      left: -10,
+      top: '50%',
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: HIBLA.jade,
     },
     avatar: {
       width: AVATAR_SIZE,
       height: AVATAR_SIZE,
-      borderRadius: AVATAR_SIZE / 2,
+      borderRadius: 14,
       alignItems: 'center',
       justifyContent: 'center',
     },
     avatarOrg: {
-      backgroundColor: theme.accentSoft,
-      borderWidth: 1,
-      borderColor: theme.accent,
+      backgroundColor: '#E6F3E9',
+      borderWidth: 0,
     },
     avatarScope: {
-      backgroundColor: theme.surface,
-      borderWidth: 1,
-      borderColor: theme.border,
+      backgroundColor: '#FFF0CF',
+      borderWidth: 0,
     },
     initials: {
       color: theme.textPrimary,
@@ -95,7 +111,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     title: {
       ...connectTypography.rowTitle,
-      color: theme.textPrimary,
+      color: HIBLA.ink,
     },
     meta: {
       alignItems: 'flex-end',
@@ -105,12 +121,12 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     time: {
       ...connectTypography.rowTime,
-      color: theme.textMuted,
+      color: HIBLA.muted,
     },
     preview: {
       marginTop: 3,
       ...connectTypography.rowPreview,
-      color: theme.textMuted,
+      color: HIBLA.muted,
     },
     badge: {
       minWidth: 22,
@@ -119,7 +135,7 @@ function createStyles(theme: ConnectThemeRoles) {
       borderRadius: 11,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.unreadBadge,
+      backgroundColor: HIBLA.pine,
     },
     badgeText: {
       color: theme.unreadBadgeText,
@@ -157,8 +173,9 @@ export function ConnectCommunityRow({
   return (
     <ConnectPressable
       onPress={onPressRow}
-      style={styles.row}
+      style={[styles.row, unread > 0 && styles.unreadRow]}
     >
+      <View pointerEvents="none" style={styles.threadNode} />
       <View
         style={[
           styles.avatar,
@@ -214,3 +231,4 @@ export function ConnectCommunityRow({
     </ConnectPressable>
   );
 }
+
