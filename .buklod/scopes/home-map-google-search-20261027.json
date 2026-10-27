@@ -1,0 +1,26 @@
+{
+  "objective": "Restore Home map continuity across Android location dialogs and external Google Maps, expose enlarged destination search, and keep navigation accessible without location permission",
+  "baseRef": "8693668142f933df5b1e324b1b3922cc7591cf29",
+  "productionBaselineEvidence": "The prior map improvement PR #336 merged as 7504e933c1f26f629e9be5ca7f20d1453c581706. GitHub main was independently read at 8693668142f933df5b1e324b1b3922cc7591cf29 for this DEV change. Current production OTA source and runtime were not verified; an immutable RC and independently verified OTA publication are still required before declaring it live.",
+  "allowedPaths": [
+    "src/app/(tabs)/hub.tsx",
+    "src/lib/buklodLiveSatelliteMapDocument.ts",
+    "src/components/BuklodLiveSatelliteMap.native.tsx",
+    "src/components/BuklodLiveSatelliteMap.web.tsx",
+    "src/components/BuklodCommunityMapDom.tsx",
+    "scripts/buklod-home-map-regression.cjs",
+    ".buklod/scopes/home-map-google-search-20261027.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Home map remains mounted while Android location permission and external Google Maps temporarily background the app",
+    "Full-screen native and web maps expose a destination search immediately with larger touch targets and accessible 16px input text",
+    "Search results expose Google Maps without waiting for current location or an OSRM route",
+    "Search failure or zero results offers an external Google Maps search; privacy-protected person pins remain non-navigable",
+    "External Google Maps opens through the native Linking bridge and direct web user action with failure feedback",
+    "OSRM routing retains canonical lon,lat;lon,lat formatting and stale route responses cannot overwrite cleared routes",
+    "Generated map JavaScript parses and dedicated dependency-free behavioral smoke passes",
+    "No new native package, dependency, Expo runtime, database, or auth change",
+    "TypeScript, Engineering Accountability, Integration and Performance QA pass before RC, then exact production lineage and OTA verification separately"
+  ]
+}

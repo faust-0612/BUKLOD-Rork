@@ -31,6 +31,8 @@ export function buildBuklodLiveSatelliteMapDocument(input: {
   leafletCss?: string;
   leafletJs?: string;
   bottomInset?: number;
+  searchInitiallyVisible?: boolean;
+  delegateExternalLinks?: boolean;
 }) {
   const pointsJson = safeJson(input.points);
   const colorsJson = safeJson(CATEGORY_COLORS);
@@ -41,6 +43,8 @@ export function buildBuklodLiveSatelliteMapDocument(input: {
   const leafletCss = input.leafletCss ?? BUKLOD_MAP_LEAFLET_CSS;
   const leafletJs = input.leafletJs ?? BUKLOD_MAP_LEAFLET_JS;
   const bottomInset = Math.max(0, Math.round(input.bottomInset ?? 0));
+  const searchInitiallyVisible = Boolean(input.searchInitiallyVisible);
+  const delegateExternalLinks = Boolean(input.delegateExternalLinks);
 
   return `<!doctype html>
 <html>
@@ -80,26 +84,27 @@ html,body,#map,.leaflet-container{position:fixed;inset:0;width:100%;height:100%;
 .buklod-route-meta{margin-top:3px;font-size:10px;line-height:14px;font-weight:800;color:#405d6d}
 .buklod-route-note{margin-top:4px;font-size:8px;line-height:11px;color:#728693}
 .buklod-route-actions{display:flex;gap:6px;margin-top:8px}
-.buklod-route-actions a,.buklod-route-actions button{appearance:none;border:0;border-radius:9px;padding:7px 9px;font:800 9px/12px Inter,system-ui,sans-serif;text-decoration:none;cursor:pointer}
-.buklod-route-actions a{background:#177552;color:#fff}
+.buklod-route-actions a,.buklod-route-actions button{appearance:none;border:0;border-radius:9px;padding:9px 11px;font:800 11px/14px Inter,system-ui,sans-serif;text-decoration:none;cursor:pointer}
+.buklod-route-actions a,.buklod-route-actions button:first-child{background:#177552;color:#fff}
 .buklod-route-actions button{background:#edf6f2;color:#246653}
 .buklod-user-dot{width:18px;height:18px;border-radius:50%;background:#1677ff;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.34)}
-.buklod-destination-search{width:min(460px,calc(100vw - 32px));padding:9px;border:1px solid #cfe0d7;border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 7px 22px rgba(0,0,0,.24);color:#1f3c4e}
-.buklod-destination-search-row{display:flex;gap:6px;align-items:center}
-.buklod-destination-search input{min-width:0;flex:1;min-height:46px;border:1px solid #c6d8cf;border-radius:10px;padding:12px 13px;background:#fff;color:#183047;font:700 15px/20px Inter,system-ui,sans-serif;outline:none}
+.buklod-destination-search{width:min(540px,calc(100vw - 24px));box-sizing:border-box;padding:11px;border:1px solid #cfe0d7;border-radius:16px;background:rgba(255,255,255,.98);box-shadow:0 7px 22px rgba(0,0,0,.24);color:#1f3c4e}
+.buklod-destination-search-row{display:flex;gap:8px;align-items:center}
+.buklod-destination-search input{min-width:0;flex:1;min-height:56px;border:1px solid #c6d8cf;border-radius:12px;padding:14px;background:#fff;color:#183047;font:700 16px/22px Inter,system-ui,sans-serif;outline:none}
 .buklod-destination-search input:focus{border-color:#177552;box-shadow:0 0 0 2px rgba(23,117,82,.12)}
-.buklod-destination-search button{appearance:none;border:0;border-radius:10px;min-height:46px;padding:10px 12px;background:#177552;color:#fff;font:900 9px/12px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
-.buklod-destination-results{display:none;margin-top:7px;max-height:190px;overflow:auto;border-top:1px solid #e1ebe6;padding-top:5px}
+.buklod-destination-search button{appearance:none;border:0;border-radius:11px;min-height:54px;padding:11px 14px;background:#177552;color:#fff;font:900 11px/14px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.buklod-destination-results{display:none;margin-top:8px;max-height:min(35vh,240px);overflow:auto;border-top:1px solid #e1ebe6;padding-top:6px}
 .buklod-destination-result{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #edf2ef;background:#fff;color:#284655;padding:7px 5px;cursor:pointer}
 .buklod-destination-result strong{display:block;font:900 10px/13px Inter,system-ui,sans-serif;color:#1f4f3d}
 .buklod-destination-result span{display:block;margin-top:2px;font:600 8px/11px Inter,system-ui,sans-serif;color:#71828d;white-space:normal}
 .buklod-destination-selected{padding:7px 5px}
 .buklod-destination-selected strong{display:block;font-size:10px;line-height:13px;color:#177552}
 .buklod-destination-selected span{display:block;margin:2px 0 7px;font-size:8px;line-height:11px;color:#71828d}
-.buklod-destination-selected-actions{display:flex;gap:6px}
+.buklod-destination-selected-actions{display:flex;gap:6px;flex-wrap:wrap}
 .buklod-destination-selected-actions button{flex:1}
+.buklod-destination-selected-actions button:nth-child(2){background:#2169b4}
 .buklod-destination-note{padding:6px 5px;color:#71828d;font:700 8px/11px Inter,system-ui,sans-serif}
-@media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}.buklod-destination-search{width:calc(100vw - 32px);padding:10px}.buklod-home-marker{width:150px}.buklod-home-address{max-width:144px;font-size:8px;line-height:11px}.buklod-live-status{max-width:165px;font-size:8px}}
+@media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}.buklod-destination-search{width:calc(100vw - 20px);padding:10px}.buklod-destination-search input{min-height:56px;padding:12px;font-size:16px}.buklod-destination-search button{padding:10px;min-height:54px}.buklod-home-marker{width:150px}.buklod-home-address{max-width:144px;font-size:8px;line-height:11px}.buklod-live-status{max-width:165px;font-size:8px}}
 </style>
 </head>
 <body>
@@ -118,7 +123,9 @@ if(!window.L){
 const points=${pointsJson};
 const colors=${colorsJson};
 const center=${centerJson};
+const delegateGoogleMapsToParent=${delegateExternalLinks};
 document.addEventListener('click',function(event){
+ if(!delegateGoogleMapsToParent) return;
  var node=event.target;
  while(node&&node.tagName!=='A') node=node.parentElement;
  if(!node||!node.getAttribute) return;
@@ -292,7 +299,7 @@ const DestinationSearchControl=L.Control.extend({
  onAdd(){
   const panel=L.DomUtil.create('div','buklod-destination-search');
   panel.id='buklod-destination-search';
-  panel.style.display='none';
+  panel.style.display=${searchInitiallyVisible ? "'block'" : "'none'"};
   panel.innerHTML=
    '<div class="buklod-destination-search-row">'+
     '<input id="buklod-destination-input" type="search" inputmode="search" autocomplete="off" aria-label="Search destination" placeholder="Search destination…" />'+
@@ -373,6 +380,31 @@ function destinationTitle(item){
  if(named) return named;
  return String(item&&item.display_name||'Destination').split(',')[0].trim()||'Destination';
 }
+function openGoogleMaps(p){
+ if(!p||!isNavigablePoint(p)) return;
+ const url=navigationUrl(p);
+ if(delegateGoogleMapsToParent){
+  try{window.parent.postMessage({type:'BUKLOD_MAP_OPEN_URL',url:url},'*');return;}catch(e){}
+ }
+ window.open(url,'_blank','noopener,noreferrer');
+}
+window.__buklodOpenGoogleMaps=()=>openGoogleMaps(selectedDestination);
+function showGoogleMapsSearch(query,message){
+ const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
+ const results=setDestinationResultsHtml(
+  '<div class="buklod-destination-note">'+escapeHtml(message)+'</div>'+
+  '<button type="button" id="buklod-search-google">SEARCH IN GOOGLE MAPS</button>'
+ );
+ const button=results&&results.querySelector('#buklod-search-google');
+ if(button) L.DomEvent.on(button,'click',(event)=>{
+  L.DomEvent.preventDefault(event);
+  if(delegateGoogleMapsToParent){
+   window.parent.postMessage({type:'BUKLOD_MAP_OPEN_URL',url:url},'*');
+  }else{
+   window.open(url,'_blank','noopener,noreferrer');
+  }
+ });
+}
 async function searchDestinationQuery(rawQuery){
  const sequence=++destinationSearchSequence;
  const query=String(rawQuery||'').trim();
@@ -410,7 +442,7 @@ async function searchDestinationQuery(rawQuery){
    .filter((item)=>Number.isFinite(item.latitude)&&Number.isFinite(item.longitude));
 
   if(!destinationSearchResults.length){
-   setDestinationResultsHtml('<div class="buklod-destination-note">No matching destination found. Try a more specific place name or tap a map pin.</div>');
+    showGoogleMapsSearch(query,'No BUKLOD map result. You can search this place in Google Maps.');
    return;
   }
 
@@ -432,13 +464,12 @@ async function searchDestinationQuery(rawQuery){
      const p=destinationSearchResults[index];
      if(!p) return;
      selectNavigationDestination(p);
-     renderSelectedSearchDestination(p);
     });
    });
   }
  }catch{
   if(sequence!==destinationSearchSequence) return;
-  setDestinationResultsHtml('<div class="buklod-destination-note">Destination search is temporarily unavailable. You can still tap any place pin on the map.</div>');
+   showGoogleMapsSearch(query,'Destination search is temporarily unavailable. Google Maps is still an option.');
  }
 }
 function renderSelectedSearchDestination(p){
@@ -449,6 +480,7 @@ function renderSelectedSearchDestination(p){
    '<span>'+escapeHtml(p.subtitle||'Tap START to build your route.')+'</span>'+
    '<div class="buklod-destination-selected-actions">'+
     '<button id="buklod-destination-start" type="button">START</button>'+
+     '<button id="buklod-destination-google" type="button">GOOGLE MAPS</button>'+
     '<button id="buklod-destination-change" type="button">CHANGE</button>'+
    '</div>'+
   '</div>'
@@ -457,6 +489,7 @@ function renderSelectedSearchDestination(p){
 
  const start=results.querySelector('#buklod-destination-start');
  const change=results.querySelector('#buklod-destination-change');
+  const google=results.querySelector('#buklod-destination-google');
 
  if(start){
   L.DomEvent.on(start,'click',(event)=>{
@@ -472,6 +505,10 @@ function renderSelectedSearchDestination(p){
    if(input&&input.focus) input.focus();
   });
  }
+ if(google) L.DomEvent.on(google,'click',(event)=>{
+  L.DomEvent.preventDefault(event);
+  openGoogleMaps(p);
+ });
  map.setView([p.latitude,p.longitude],16);
  setLiveStatus('Destination selected • tap START');
 }
@@ -497,6 +534,8 @@ function hideRoutePanel(){
  if(panel) panel.style.display='none';
 }
 function clearBuklodRoute(){
+ routeRequestSequence++;
+ pendingNavigationDestination=null;
  routeLayer.clearLayers();
  activeRoute=null;
  if(userLocationMarker){
@@ -525,7 +564,7 @@ function showRouteFallback(p,message){
   '<div class="buklod-route-meta">'+escapeHtml(message)+'</div>'+
   '<div class="buklod-route-note">You can still continue with external driving directions.</div>'+
   '<div class="buklod-route-actions">'+
-   '<a href="'+navigationUrl(p)+'" target="_blank" rel="noopener noreferrer">Open Google Maps</a>'+
+   '<button type="button" onclick="window.__buklodOpenGoogleMaps()">Open Google Maps</button>'+
    '<button type="button" onclick="window.__buklodClearRoute()">Clear</button>'+
   '</div>';
 }
@@ -572,7 +611,7 @@ function renderDrivingRoute(origin,p,route){
    '</div>'+
    '<div class="buklod-route-note">Driving route shown inside BUKLOD. Keep the map open while travelling. Use Google Maps only if you want external turn-by-turn voice guidance.</div>'+
    '<div class="buklod-route-actions">'+
-    '<a href="'+navigationUrl(p)+'" target="_blank" rel="noopener noreferrer">Voice guidance</a>'+
+    '<button type="button" onclick="window.__buklodOpenGoogleMaps()">Google Maps voice</button>'+
     '<button type="button" onclick="window.__buklodClearRoute()">Clear route</button>'+
    '</div>';
  }
@@ -590,7 +629,7 @@ async function requestDrivingRoute(origin,p){
  const timeout=setTimeout(()=>controller.abort(),12000);
  const url=
   'https://router.project-osrm.org/route/v1/driving/'+
-  encodeURIComponent(origin.longitude+','+origin.latitude+';'+p.longitude+','+p.latitude)+
+  origin.longitude+','+origin.latitude+';'+p.longitude+','+p.latitude+
   '?overview=full&geometries=geojson&steps=true&alternatives=false';
 
  let response,data;
@@ -622,8 +661,9 @@ async function startBuklodNavigation(p){
   if(link){
    link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Building route…</span>';
   }
+  const requestId=routeRequestSequence+1;
   void requestDrivingRoute(lastKnownOrigin,p).catch(()=>{
-   showRouteFallback(p,'Could not build the in-app driving route.');
+   if(requestId===routeRequestSequence) showRouteFallback(p,'Could not build the in-app driving route.');
   });
   return;
  }
@@ -706,8 +746,9 @@ window.addEventListener('message',(event)=>{
  }
 
  pendingNavigationDestination=null;
+ const requestId=routeRequestSequence+1;
  void requestDrivingRoute(origin,p).catch(()=>{
-  showRouteFallback(p,'Could not build the in-app driving route.');
+  if(requestId===routeRequestSequence) showRouteFallback(p,'Could not build the in-app driving route.');
  });
 });
 
@@ -749,7 +790,7 @@ points.forEach((p)=>{
  const safeTitle=escapeHtml(p.title);
  const safeSub=escapeHtml(p.subtitle);
  const popupNote=isNavigablePoint(p)
-   ? '<div class="buklod-popup-note">Selected. Tap BUKLOD Navigation at the top of the map.</div>'
+   ? '<div class="buklod-popup-note">Selected. Use BUKLOD Navigation or Google Maps.</div><button class="buklod-popup-nav" type="button" onclick="window.__buklodOpenGoogleMaps()">Open Google Maps</button>'
    : '<div class="buklod-popup-note">People-presence pins are intentionally not navigation destinations.</div>';
  marker.bindPopup('<div class="buklod-popup-title">'+safeTitle+'</div><div class="buklod-popup-sub">'+safeSub+'</div>'+(p.verified?'<div class="buklod-verified">Verified BUKLOD place</div>':'')+popupNote);
  marker.on('click',()=>selectNavigationDestination(p));
@@ -826,7 +867,8 @@ function addNearbyPlace(element){
    '<div class="poi-type">'+escapeHtml(meta.type)+'</div>'+
    (address?'<div class="buklod-popup-sub" style="margin-top:6px">'+escapeHtml(address)+'</div>':'')+
    '<div class="buklod-popup-note">Selected place. Zoom in to reveal more nearby establishments.</div>'+
-   '<button class="buklod-popup-nav" type="button" onclick="window.__buklodNavigateSelected()">Navigate</button>';
+   '<button class="buklod-popup-nav" type="button" onclick="window.__buklodNavigateSelected()">Navigate</button>'+
+   '<button class="buklod-popup-nav" type="button" onclick="window.__buklodOpenGoogleMaps()">Google Maps</button>';
  marker.bindTooltip(escapeHtml(name),{direction:'top'});
  marker.bindPopup(popup);
  marker.on('click',()=>selectNavigationDestination({

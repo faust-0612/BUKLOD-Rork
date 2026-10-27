@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
+  Alert,
   Dimensions,
   Linking,
   Modal,
@@ -139,6 +140,7 @@ export function BuklodLiveSatelliteMap({
         },
         leafletCss: BUKLOD_MAP_LEAFLET_CSS_CDN,
         leafletJs: BUKLOD_MAP_LEAFLET_JS_CDN,
+        delegateExternalLinks: true,
       }),
     [mapCenter.latitude, mapCenter.longitude, mapPayload],
   );
@@ -154,6 +156,8 @@ export function BuklodLiveSatelliteMap({
         leafletCss: BUKLOD_MAP_LEAFLET_CSS_CDN,
         leafletJs: BUKLOD_MAP_LEAFLET_JS_CDN,
         bottomInset,
+        searchInitiallyVisible: true,
+        delegateExternalLinks: true,
       }),
     [
       bottomInset,
@@ -222,8 +226,14 @@ export function BuklodLiveSatelliteMap({
 
   const onOpenUrl = useCallback((url: string) => {
     const target = String(url ?? '').trim();
-    if (!target) return;
-    void Linking.openURL(target).catch(() => undefined);
+    // The embedded map may request only Google Maps directions or search.
+    if (!/^https:\/\/(?:www\.)?google\.com\/maps\/(?:dir|search)\//i.test(target)) return;
+    void Linking.openURL(target).catch(() => {
+      Alert.alert(
+        'Google Maps unavailable',
+        'Hindi mabuksan ang Google Maps. Pakisuri ang browser o Maps app at subukang muli.',
+      );
+    });
   }, []);
 
   const frame = (interactive: boolean, frameHeight: number) => (

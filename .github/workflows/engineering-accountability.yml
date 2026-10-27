@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/home-map-google-search-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/home-map-google-search-20261027.json" >> "$GITHUB_ENV";;
             fix/community-media-weak-signal-r1-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-media-weak-signal-20261027.json" >> "$GITHUB_ENV";;
             fix/ptt-hold-rx-latency-20261027)
@@ -97,6 +99,9 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify Home map rendering, destination search and Google Maps handoff
+        if: github.head_ref == 'fix/home-map-google-search-20261027'
+        run: node scripts/buklod-home-map-regression.cjs
       - name: Verify BUKLOD sound pack and ringing contracts
         if: github.head_ref == 'feat/buklod-sound-identity-20261027'
         run: node tests/buklod-sounds.test.cjs
