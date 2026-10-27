@@ -1,0 +1,16 @@
+{
+  "objective": "Use canonical production attendance event listing RPC without probing nonexistent endpoints",
+  "baseRef": "2ec52cd42cd1707c982a0ed0567fa7de49b0f539",
+  "productionBaselineEvidence": "Production RPC public.buklod_list_attendance_events_v1(p_scope_id uuid) verified via read-only database catalog on 2026-10-27; live Android OTA fingerprint not yet independently verified.",
+  "allowedPaths": [
+    "src/lib/buklodAttendanceEvents.ts",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/attendance-canonical-rpc-20261027.json"
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability exact scope",
+    "BUKLOD Performance QA",
+    "Static RPC contract review",
+    "Skip physical device acceptance per owner; RC and served bundle verification required before OTA"
+  ]
+}
