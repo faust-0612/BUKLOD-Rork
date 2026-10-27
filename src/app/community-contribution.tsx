@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { useAuth } from '@/providers/AuthProvider';
 
 import {
   formatMinorPhp, formatQuotaBytes, loadMyCommunityContribution, requestCommunityContributionReview,
@@ -12,13 +14,30 @@ import {
 
 export default function CommunityContributionScreen() {
   const params = useLocalSearchParams<{ guide?: string }>();
-  const [data,setData]=useState<CommunityContributionDashboard|null>(null);
+  const { session } = useAuth();
+  const userId = session?.user.id ?? null;
+  const [report,setReport]=useState<{owner:string;value:CommunityContributionDashboard}|null>(null);
+  const data = report?.owner === userId ? report.value : null;
+  const requestId = useRef(0);
   const [busy,setBusy]=useState(true); const [refreshing,setRefreshing]=useState(false);
-  const load=useCallback(async(silent=false)=>{try{setData(await loadMyCommunityContribution());}catch(e:any){if(!silent)Alert.alert('Community Contribution',e?.message||'Could not load your contribution report.');}finally{setBusy(false);}},[]);
+  const load=useCallback(async(silent=false)=>{
+    if(!userId){setBusy(false);return;}
+    const request=++requestId.current;
+    try {
+      const next=await loadMyCommunityContribution();
+      if(request===requestId.current)setReport({owner:userId,value:next});
+    } catch(e:any) {
+      if(!silent&&request===requestId.current)Alert.alert('Community Contribution',e?.message||'Could not load your contribution report.');
+    } finally {
+      if(request===requestId.current)setBusy(false);
+    }
+  },[userId]);
   useFocusEffect(useCallback(()=>{
+    setBusy(true);
+    ++requestId.current;
     void load();
     const timer=setInterval(()=>{if(AppState.currentState==='active')void load(true);},240_000+Math.floor(Math.random()*90_000));
-    return()=>clearInterval(timer);
+    return()=>{clearInterval(timer);++requestId.current;};
   },[load]));
   const refresh=useCallback(async()=>{setRefreshing(true);await load();setRefreshing(false);},[load]);
   if(busy&&!data)return <View style={s.center}><ActivityIndicator color="#1E6B45"/><Text style={s.muted}>Loading your private contribution report…</Text></View>;
