@@ -41,6 +41,7 @@ import {
 import {
   connectCollageTiles,
   connectSinglePhotoFrame,
+  connectMediaOnlyMessage,
   visibleReaderAvatars,
 } from '@/lib/connectChatWindow';
 
@@ -178,6 +179,17 @@ function createStyles(theme: ConnectThemeRoles) {
       overflow: 'visible',
       elevation: 0,
       shadowOpacity: 0,
+    },
+    mediaOnlyBubble: {
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      borderWidth: 0,
+      backgroundColor: 'transparent',
+      elevation: 0,
+      shadowOpacity: 0,
+    },
+    mediaOnlyMeta: {
+      paddingHorizontal: 4,
     },
     sender: {
       marginBottom: 4,
@@ -481,6 +493,16 @@ export function ConnectMessageBubble({
     frame.width
   );
   const seen = visibleReaderAvatars(seenReaders ?? []);
+  // A standalone photo, GIF, album, or attachment owns its frame. Do not
+  // surround it with an extra white/green bordered message card.
+  const mediaOnly = connectMediaOnlyMessage({
+    deleted,
+    bodyText,
+    hasReply: Boolean(replyQuote),
+    hasSharedPost: Boolean(sharedPostSlot),
+    hasReaction: Boolean(standaloneEmoji || avatarReaction),
+    hasMedia: slots.length > 0 || Boolean(fileName),
+  });
 
   const bubbleRef =
     useRef<View>(null);
@@ -614,6 +636,7 @@ export function ConnectMessageBubble({
               styles.bubble,
               own ? styles.bubbleOwn : styles.bubbleOther,
               standaloneReaction && styles.standaloneBubble,
+               mediaOnly && styles.mediaOnlyBubble,
             ]}
             onLongPress={handleLongPress}
             delayLongPress={BUKLOD_LONG_PRESS_MS}
@@ -725,6 +748,7 @@ export function ConnectMessageBubble({
             delayLongPress={BUKLOD_LONG_PRESS_MS}
             style={[
               styles.inlineMediaPress,
+              mediaOnly && { marginTop: 0 },
               { width: frame.width, height: frame.height },
             ]}
           >
@@ -756,7 +780,7 @@ export function ConnectMessageBubble({
         )}
 
         {slots.length > 1 && (
-          <View style={[styles.collage, { width: frame.width }]}>
+          <View style={[styles.collage, mediaOnly && { marginTop: 0 }, { width: frame.width }]}>
             {slots.slice(0, 4).map((slot, index) => {
               const tile = collageTiles[index] ?? collageTiles[0];
               return renderSlot(slot, index, tile.width, tile.height);
@@ -811,13 +835,13 @@ export function ConnectMessageBubble({
         )}
 
         {(showTime || !!deliveryLabel) && (
-        <View style={styles.timeRow}>
+        <View style={[styles.timeRow, mediaOnly && styles.mediaOnlyMeta]}>
           {showTime && (
           <Text
             style={[
               styles.time,
               own &&
-                !standaloneReaction &&
+                !standaloneReaction && !mediaOnly &&
                 styles.timeOwn,
             ]}
           >
@@ -828,7 +852,7 @@ export function ConnectMessageBubble({
             <Text
               style={[
                 styles.delivery,
-                standaloneReaction && styles.deliveryStandalone,
+                (standaloneReaction || mediaOnly) && styles.deliveryStandalone,
                 deliveryNotSent && styles.deliveryNotSent,
               ]}
             >
@@ -888,3 +912,4 @@ export function ConnectMessageBubble({
     </View>
   );
 }
+

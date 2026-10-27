@@ -1,0 +1,26 @@
+{
+  "objective": "Cluster/Organization Connect first paint, reader reports, unified group call, keyboard docking and full-bleed media; additive review-only server RPCs",
+  "baseRef": "fd60878406972d07c6eab7f7b4d6b6037f58c29d",
+  "productionBaselineEvidence": "Previously confirmed Android runtime 1.3.2, OTA group 01a17bc3-3212-7ad6-8552-370fd7a1fe80 from source 2fc15e095494539d688c942693eb0e7809b4f1eb. Recheck exact current production manifest before RC or OTA. This DEV patch is not live.",
+  "allowedPaths": [
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodScopeCallLauncher.tsx",
+    "src/components/BuklodScopeCallLauncher.web.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/lib/useConnectComposerKeyboardInset.ts",
+    "src/lib/connectChatWindow.ts",
+    "__tests__/connectClusterPolish.test.ts",
+    "supabase/review-only/20261027_connect_fast_history_seen.sql",
+    ".buklod/scopes/cluster-connect-media-seen-20261027.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "TypeScript, existing chat window suites, new keyboard and media full-bleed tests all pass",
+    "Account/scope cache isolation, latest-first paging, weak network retry and no blind read receipts",
+    "Scope reader and page-v2 SQL is separately security-reviewed, tested and deployed before claiming seen reports/live fast paging",
+    "Scope call roster reauthorized immediately before ringing, one header call icon and access to voice and video, fresh call ID",
+    "Actual two-device group audio/video tests for ringing, background/killed push, camera and reconnection, or explicit owner waiver",
+    "No change to ads, Points, attendance, account auth, unrelated UI or native dependencies",
+    "Freeze exact cumulative RC, confirm installed Android runtime and production source, then publish production OTA through release gate"
+  ]
+}

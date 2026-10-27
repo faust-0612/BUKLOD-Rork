@@ -133,6 +133,7 @@ import {
   connectScrollAction,
   connectSignedUrlNeedsRefresh,
   connectThreadSessionKey,
+  connectComposerDockBottom,
   mergeConnectServerMessages,
   readersForMessageWindow,
   shouldAdvanceConnectReadCursor,
@@ -621,6 +622,7 @@ function BuklodConnectThreadInner({
     useRef<View | null>(null);
   const {
     composerBottom,
+    keyboardVisible,
     clearComposerInset,
     resyncComposerInset,
   } = useConnectComposerKeyboardInset(threadBodyRef);
@@ -637,9 +639,13 @@ function BuklodConnectThreadInner({
   const phoneNavClearance = shellReservesPersistentNav
     ? 0
     : Math.max(insets.bottom, 8) + 12;
-  const composerDockBottom = Math.max(
+  // The IME replaces the phone-navigation clearance, it does not add to it.
+  // In particular an embedded Cluster/Org thread can already be resized by
+  // Android and must not float a second safe-area gap above the keyboard.
+  const composerDockBottom = connectComposerDockBottom(
+    keyboardVisible,
     composerBottom,
-    phoneNavClearance,
+    phoneNavClearance
   );
 
   const { theme } = useConnectTheme();
@@ -1024,6 +1030,8 @@ const [
     listAnchored,
     setListAnchored,
   ] = useState(false);
+  const [historyLoadError, setHistoryLoadError] =
+    useState<string | null>(null);
 
   const [
     awayFromLatest,
@@ -1394,9 +1402,11 @@ const [
     threadSession,
     setThreadSession,
   ] = useState(threadSessionKeyValue);
+  const [offlineHydrated, setOfflineHydrated] = useState(false);
 
   if (threadSession !== threadSessionKeyValue) {
     setThreadSession(threadSessionKeyValue);
+    setOfflineHydrated(false);
     setMessages([]);
     setReactions({});
     setAttachmentUrls({});
@@ -1406,6 +1416,7 @@ const [
     setHasOlder(false);
     setLoadingOlder(false);
     setListAnchored(false);
+    setHistoryLoadError(null);
     listAnchoredRef.current = false;
     pendingVisibleReadRef.current = null;
     setAwayFromLatest(false);
@@ -1442,6 +1453,7 @@ const [
     }
 
     let active = true;
+    let anchorTimer: ReturnType<typeof setTimeout> | null = null;
 
     void getOfflineCache<{
       messages: Message[];
@@ -1475,6 +1487,19 @@ const [
               ? current
               : value.messages
           );
+          // Render locally saved messages immediately while the network
+          // refresh and secondary user/reaction lookups continue.
+          if (!initialLoadSettledRef.current) {
+            initialLoadSettledRef.current = true;
+            anchorTimer = setTimeout(() => {
+              if (!active || !pinLatestOnOpenRef.current) return;
+              listRef.current?.scrollToEnd({ animated: false });
+              pinLatestOnOpenRef.current = false;
+              nearBottomRef.current = true;
+              listAnchoredRef.current = true;
+              setListAnchored(true);
+            }, 64);
+          }
         }
 
         if (
@@ -1518,10 +1543,14 @@ const [
         }
 
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setOfflineHydrated(true);
+      });
 
     return () => {
       active = false;
+      if (anchorTimer) clearTimeout(anchorTimer);
     };
   }, [
     connectThreadOfflineCacheKey,
@@ -1532,7 +1561,8 @@ const [
   useEffect(() => {
     if (
       !profileId ||
-      !effectiveContainerId
+      !effectiveContainerId ||
+      !offlineHydrated
     ) {
       return;
     }
@@ -1562,6 +1592,7 @@ const [
   }, [
     connectThreadOfflineCacheKey,
     effectiveContainerId,
+    offlineHydrated,
     draft,
     messages,
     otherUserId,
@@ -1916,6 +1947,7 @@ const [
         }
         loadSessionRef.current = requestSession;
         loadInFlightRef.current = true;
+        setHistoryLoadError(null);
 
         try {
         const newestBeforeLoad =
@@ -2082,14 +2114,11 @@ const [
           'Connect history load:',
           error?.message ?? error
         );
+        setHistoryLoadError('Messages could not be refreshed. Check your connection and retry.');
 
         initialLoadSettledRef.current = true;
         scheduleInitialAnchor(false);
 
-        Alert.alert(
-          'Connect',
-          'Could not load message history. Pull to reopen this chat or try again.',
-        );
       } finally {
         if (currentLoadSessionRef.current === requestSession) {
           loadInFlightRef.current = false;
@@ -4284,6 +4313,18 @@ const [
                   </Text>
                 </Pressable>
               </>
+            ) : historyLoadError ? (
+              <>
+                <Text style={styles.emptyTitle}>{historyLoadError}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry loading messages"
+                  onPress={() => void load()}
+                  style={styles.restoreButton}
+                >
+                  <Text style={styles.restoreButtonText}>Retry messages</Text>
+                </Pressable>
+              </>
             ) : (
               <Text
                 style={
@@ -4778,7 +4819,12 @@ const [
             justifyContent: 'center',
           }}
         >
-          <ActivityIndicator color={theme.accent} />
+          <View style={{ alignItems: 'center', gap: 10, paddingHorizontal: 24 }}>
+            <ActivityIndicator color={theme.accent} />
+            <Text style={{ color: theme.textMuted, fontSize: 13, textAlign: 'center' }}>
+              Opening latest messages...
+            </Text>
+          </View>
         </View>
       )}
 
@@ -6395,3 +6441,4 @@ export default function BuklodConnectThread(props: Props) {
     </ConnectThemeProvider>
   );
 }
+

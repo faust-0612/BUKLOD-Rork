@@ -18,6 +18,32 @@ export const CONNECT_SIGNED_URL_TTL_SECONDS = 3600;
 export const CONNECT_SIGNED_URL_REFRESH_LEAD_MS = 5 * 60 * 1000;
 export const CONNECT_SEEN_AVATAR_LIMIT = 3;
 
+/** The keyboard replaces phone nav space; never stack their clearances. */
+export function connectComposerDockBottom(
+  keyboardVisible: boolean,
+  keyboardOverlap: number,
+  phoneNavClearance: number
+) {
+  return Math.max(0, keyboardVisible ? keyboardOverlap : phoneNavClearance);
+}
+
+/** Full-bleed media only; ordinary text and replies keep their chat bubble. */
+export function connectMediaOnlyMessage(args: {
+  deleted: boolean;
+  bodyText?: string | null;
+  hasReply: boolean;
+  hasSharedPost: boolean;
+  hasReaction: boolean;
+  hasMedia: boolean;
+}) {
+  return !args.deleted &&
+    !args.bodyText &&
+    !args.hasReply &&
+    !args.hasSharedPost &&
+    !args.hasReaction &&
+    args.hasMedia;
+}
+
 const HISTORY_PAGE_PROBE = 1;
 
 export function compareConnectHistory(
@@ -556,3 +582,4 @@ export function connectPhotoSlots(args: {
     };
   });
 }
+
