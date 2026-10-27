@@ -50,6 +50,15 @@ import {
   resolveCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { arrangeCommunityForFairDiscovery } from '@/lib/buklodFairDiscovery';
+import {
+ COMMUNITY_VIDEO_DISCOVERY_PAGE_SIZE,
+ COMMUNITY_VIDEO_DISCOVERY_LIMIT,
+ COMMUNITY_VIDEO_MAX_SCANS_PER_REQUEST,
+ lastCommunityVideoCursor,
+ appendUniqueCommunityVideos,
+ type CommunityVideoCursor,
+} from '@/lib/buklodVideoDiscovery';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
@@ -1046,7 +1055,7 @@ function LegacyPublicBuklodScreen(){
   setVideoViewerResolvingPostId
  ]=useState<string|null>(null);
 
- const videoViewerPosts=
+ const wallVideoPosts=
   useMemo(
    ()=>
     posts.filter(
@@ -1062,6 +1071,19 @@ function LegacyPublicBuklodScreen(){
    [posts]
   );
 
+ // The fullscreen playlist is independent of the Wall's rendered page.
+ // Only small metadata pages are read; actual video URLs are resolved when
+ // entering the viewer / approaching playback. No offscreen downloads.
+ const [videoViewerPosts,setVideoViewerPosts]=useState<any[]>([]);
+ const [videoViewerSession,setVideoViewerSession]=useState(0);
+ const [videoViewerLoadingMore,setVideoViewerLoadingMore]=useState(false);
+ const [videoViewerHasMore,setVideoViewerHasMore]=useState(true);
+ const [videoViewerLoadError,setVideoViewerLoadError]=useState(false);
+ const videoViewerCursorRef=useRef<CommunityVideoCursor|null>(null);
+ const videoViewerScanBusyRef=useRef(false);
+ const videoViewerScanSeqRef=useRef(0);
+ const videoViewerHasMoreRef=useRef(true);
+
  const closeVideoViewer=
   useCallback(()=>{
    if(Platform.OS==='web'){
@@ -1076,7 +1098,10 @@ function LegacyPublicBuklodScreen(){
     }
    }
 
-   setVideoViewerOpen(false);
+    videoViewerScanSeqRef.current+=1;
+    videoViewerScanBusyRef.current=false;
+    setVideoViewerLoadingMore(false);
+    setVideoViewerOpen(false);
   },[]);
 
  useEffect(()=>{
@@ -1111,6 +1136,9 @@ function LegacyPublicBuklodScreen(){
   }
 
   const onPopState=()=>{
+   videoViewerScanSeqRef.current+=1;
+   videoViewerScanBusyRef.current=false;
+   setVideoViewerLoadingMore(false);
    setVideoViewerOpen(false);
   };
 
@@ -1142,6 +1170,18 @@ const [
   publicLocationScopeId,
   setPublicLocationScopeId,
 ] = useState<string | null>(null);
+
+useEffect(()=>{
+  // Keep account and location contexts isolated even during slow requests.
+  videoViewerScanSeqRef.current+=1;
+  videoViewerHasMoreRef.current=true;
+  videoViewerCursorRef.current=null;
+  videoViewerScanBusyRef.current=false;
+  setVideoViewerPosts([]);
+  setVideoViewerLoadingMore(false);
+  setVideoViewerLoadError(false);
+  setVideoViewerOpen(false);
+},[user?.id,publicLocationScopeId]);
 
 /*
  * BUKLOD_COMMUNITY_FEED_MODES_ALL_R2
@@ -1507,8 +1547,16 @@ const load=useCallback(async(options?:{
     }
   }
 
-  const next=
-    feedRows.map(
+   // Keep Latest chronological and Following untouched. The For You page
+   // reserves opportunities for underexposed posts and diverse authors,
+   // without an impression write or any extra backend request.
+   const presentedFeedRows=
+     communityFeedMode==='for_you'
+       ? arrangeCommunityForFairDiscovery(feedRows)
+       : feedRows;
+
+   const next=
+     presentedFeedRows.map(
       (p:any)=>{
         return{
           ...p,
@@ -4004,10 +4052,133 @@ const load=useCallback(async(options?:{
 
  /* BUKLOD_WALL_VIDEO_PLAYABLE_REFRESH_R6 */
 
+  const loadMoreVideoViewer=
+   useCallback(async()=>{
+    if(
+     !user?.id||
+     videoViewerScanBusyRef.current||
+     !videoViewerHasMoreRef.current
+    ) return;
+
+    const requestSeq=videoViewerScanSeqRef.current;
+    videoViewerScanBusyRef.current=true;
+    setVideoViewerLoadingMore(true);
+    setVideoViewerLoadError(false);
+
+    try{
+     // Video-only keyset pages avoid the public Wall RPC's 100-row candidate
+     // cap and large OFFSET scans. Only the next small page is hydrated.
+     for(let scan=0;scan<COMMUNITY_VIDEO_MAX_SCANS_PER_REQUEST;scan+=1){
+      const pageSize=COMMUNITY_VIDEO_DISCOVERY_PAGE_SIZE;
+      const cursor=videoViewerCursorRef.current;
+      const {data,error}=await withBuklodTimeout<any>(
+       (supabase as any).rpc(
+        'get_buklod_public_community_video_page_v1',
+        {
+         p_location_scope_id:publicLocationScopeId??null,
+         p_cursor_created_at:cursor?.created_at??null,
+         p_cursor_id:cursor?.id??null,
+         p_limit:pageSize,
+        }
+       ),
+       8000,
+       'Community video discovery'
+      );
+
+      if(requestSeq!==videoViewerScanSeqRef.current)return;
+      if(error)throw error;
+      const rows=Array.isArray(data)?data:[];
+      if(rows.length===0){
+       videoViewerHasMoreRef.current=false;
+       setVideoViewerHasMore(false);
+       break;
+      }
+
+      const videoRows=rows;
+      const videoIds=videoRows.map((post:any)=>String(post.id));
+      const [mediaByPost,myReactions]=await Promise.all([
+       videoIds.length
+        ? loadCommunityPostMediaByPostIds(videoIds)
+        : Promise.resolve({} as Record<string,any[]>),
+       videoIds.length
+        ? withBuklodTimeout<any>(
+           supabase.from('reactions')
+            .select('post_id,reaction')
+            .eq('user_id',user.id)
+            .in('post_id',videoIds),
+           5000,
+           'Community video reactions'
+          ).catch(()=>({data:[]}))
+        : Promise.resolve({data:[]}),
+      ]);
+      if(requestSeq!==videoViewerScanSeqRef.current)return;
+
+      const reactionById=new Map<string,string>(
+       (myReactions?.data??[]).map((row:any)=>[
+        String(row.post_id),String(row.reaction),
+       ])
+      );
+      const prepared=(await Promise.all(videoRows.map(async(post:any)=>{
+       const mediaItems=(mediaByPost[String(post.id)]??[])
+        .filter((item:any)=>Boolean(item?.media_path||item?.media_url));
+       const primaryPath=String(post.media_path??'').trim();
+       const primaryVideo=String(post.media_mime_type??'')
+        .toLowerCase().startsWith('video/');
+       const primaryUrl=primaryVideo
+        ? (peekCommunityMediaUrl(primaryPath,null)??
+           (primaryPath
+            ? await resolveCommunityMediaUrl(primaryPath,null)
+            : null))
+        : null;
+       const candidate={
+        ...post,
+        media_url:primaryUrl,
+        media_items:mediaItems,
+        my_reaction:reactionById.get(String(post.id))??null,
+       };
+       return communityWallVideoDescriptor(candidate)?candidate:null;
+      }))).filter(Boolean);
+      if(requestSeq!==videoViewerScanSeqRef.current)return;
+
+      // Advance only after hydration succeeds; a transient signing or network
+      // failure retries this exact keyset page without losing entries.
+      videoViewerCursorRef.current=lastCommunityVideoCursor(rows);
+      if(rows.length<pageSize){
+       videoViewerHasMoreRef.current=false;
+       setVideoViewerHasMore(false);
+      }
+      if(prepared.length){
+       setVideoViewerPosts(current=>{
+        return appendUniqueCommunityVideos(current,prepared);
+       });
+       break;
+      }
+      if(rows.length<pageSize)break;
+     }
+    }
+    catch{
+     if(requestSeq===videoViewerScanSeqRef.current){
+      setVideoViewerLoadError(true);
+     }
+    }
+    finally{
+     if(requestSeq===videoViewerScanSeqRef.current){
+      videoViewerScanBusyRef.current=false;
+      setVideoViewerLoadingMore(false);
+     }
+    }
+   },[publicLocationScopeId,user?.id]);
+
+  useEffect(()=>{
+   if(videoViewerOpen){
+    void loadMoreVideoViewer();
+   }
+  },[videoViewerOpen,loadMoreVideoViewer]);
+
  const openVideoViewer=
   (postId:string)=>{
    const index=
-    videoViewerPosts.findIndex(
+     wallVideoPosts.findIndex(
      (post:any)=>
       String(post?.id)===
       String(postId)
@@ -4018,9 +4189,18 @@ const load=useCallback(async(options?:{
    }
 
    const target=
-    videoViewerPosts[index];
+     wallVideoPosts[index];
 
-   setVideoViewerIndex(index);
+    videoViewerScanSeqRef.current+=1;
+    videoViewerScanBusyRef.current=false;
+    videoViewerCursorRef.current=null;
+    videoViewerHasMoreRef.current=true;
+    setVideoViewerHasMore(true);
+    setVideoViewerLoadingMore(false);
+    setVideoViewerLoadError(false);
+    setVideoViewerPosts([target]);
+    setVideoViewerIndex(0);
+    setVideoViewerSession(current=>current+1);
    setVideoViewerOpen(true);
    enableCommunityVideoSound();
 
@@ -5196,9 +5376,7 @@ const communityFeedRows =
     <GestureFlatList
      key={
       'video-viewer-'+
-      videoViewerIndex+
-      '-'+
-      videoViewerPosts.length
+       videoViewerSession
      }
      style={{
       flex:1,
@@ -5261,7 +5439,17 @@ const communityFeedRows =
         nextPost
        );
       }
+       if(nextIndex>=videoViewerPosts.length-3 &&
+          videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT){
+        void loadMoreVideoViewer();
+       }
      }}
+      onEndReached={()=>{
+       if(videoViewerOpen && videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT){
+        void loadMoreVideoViewer();
+       }
+      }}
+      onEndReachedThreshold={0.8}
      renderItem={({item,index})=>{
       const descriptor=
        communityWallVideoDescriptor(
@@ -5546,6 +5734,29 @@ const communityFeedRows =
      >
       Swipe vertically for next video
      </Text>
+    )}
+
+    {videoViewerIndex>=videoViewerPosts.length-2 &&
+     videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT &&
+     (videoViewerHasMore||videoViewerLoadingMore||videoViewerLoadError)&&(
+     <Pressable
+      accessibilityRole="button"
+      disabled={videoViewerLoadingMore}
+      onPress={()=>void loadMoreVideoViewer()}
+      style={{
+       position:'absolute',top:100,alignSelf:'center',
+       paddingHorizontal:14,paddingVertical:8,
+       backgroundColor:'rgba(0,0,0,.62)',borderRadius:16,
+      }}
+     >
+      <Text style={{color:'#FFFFFF',fontSize:12,fontWeight:'700'}}>
+       {videoViewerLoadingMore
+        ? 'Finding recent videos...'
+        : videoViewerLoadError
+         ? 'Could not load more — tap to retry'
+         : 'Load more recent videos'}
+      </Text>
+     </Pressable>
     )}
    </View>
   </GestureHandlerRootView>
@@ -5864,7 +6075,6 @@ const communityFeedRows =
       </View>
      )}
 
-
      <BuklodCommunityCommentComposer
       value={commentText}
       onChangeText={setCommentText}
@@ -6004,4 +6214,5 @@ const communityFeedRows =
      {reportSheet}
 </>;
 }
+
 

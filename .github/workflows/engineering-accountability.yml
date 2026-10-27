@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            feat/community-fair-video-ready-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-fair-video-20261027.json" >> "$GITHUB_ENV";;
             fix/canonical-home-hub-merge-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/canonical-home-hub-merge-20261027.json" >> "$GITHUB_ENV";;
             fix/recovery-action-feedback-20261027)
@@ -73,6 +75,10 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify fair discovery and independent video candidate selection
+        if: github.head_ref == 'feat/community-fair-video-ready-20261027'
+        run: node --test tests/fairDiscovery.test.cjs tests/videoDiscovery.test.cjs tests/videoFeedRpcContract.test.cjs
+
       - name: Verify recovery button feedback contracts
         if: github.head_ref == 'fix/recovery-action-feedback-20261027'
         run: node --test tests/recovery-action-feedback.test.cjs
