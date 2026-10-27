@@ -231,6 +231,7 @@ export default function BuklodPttScreen() {
   const [setup, setSetup] = useState<BuklodPttSetupSnapshot | null>(null);
   const [runtime, setRuntime] = useState(getBuklodPttRuntimeState());
   const connectLock = useRef(false);
+  const connectPromiseRef = useRef<Promise<boolean> | null>(null);
 
   const refreshSetup = useCallback(async () => {
     const next = await refreshBuklodPttSetup();
@@ -427,37 +428,54 @@ export default function BuklodPttScreen() {
     }
   };
 
-  const connectInternet = useCallback(async () => {
-    if (!scope || connectLock.current) return false;
-    const latest = setup ?? (await refreshSetup());
-    if (!latest.microphone) {
-      Alert.alert('Microphone needed', 'Allow microphone access first.');
-      return false;
-    }
-    if (!latest.internet && !network.online) {
-      Alert.alert(
-        'No internet connection',
-        'Turn on mobile data or Wi-Fi internet, then try again.',
-      );
-      return false;
-    }
+  const connectInternet = useCallback((): Promise<boolean> => {
+    // Auto-join can already be running when the member presses PTT.
+    // Reuse that promise so a held button starts talking once join succeeds.
+    if (connectPromiseRef.current) return connectPromiseRef.current;
+    if (!scope) return Promise.resolve(false);
 
-    connectLock.current = true;
-    setBusy(true);
-    try {
-      await connectBuklodPttRuntime(scope, channel);
-      return true;
-    } catch (error: any) {
-      Alert.alert(
-        'Could not connect',
-        error?.message ||
-          'Check your internet connection and try again. Stay on Auto or Internet mode.',
-      );
-      return false;
-    } finally {
-      setBusy(false);
-      connectLock.current = false;
-    }
+    const attempt = (async () => {
+      try {
+        const latest = setup ?? (await refreshSetup());
+        if (!latest.microphone) {
+          Alert.alert('Microphone needed', 'Allow microphone access first.');
+          return false;
+        }
+        if (!latest.internet && !network.online) {
+          Alert.alert(
+            'No internet connection',
+            'Turn on mobile data or Wi-Fi internet, then try again.',
+          );
+          return false;
+        }
+
+        connectLock.current = true;
+        setBusy(true);
+        await connectBuklodPttRuntime(scope, channel);
+        return true;
+      } catch (error: any) {
+        Alert.alert(
+          'Could not connect',
+          error?.message ||
+            'Check your internet connection and try again. Stay on Auto or Internet mode.',
+        );
+        return false;
+      } finally {
+        connectLock.current = false;
+        setBusy(false);
+      }
+    })();
+
+    connectPromiseRef.current = attempt;
+    void attempt.then(
+      () => {
+        if (connectPromiseRef.current === attempt) connectPromiseRef.current = null;
+      },
+      () => {
+        if (connectPromiseRef.current === attempt) connectPromiseRef.current = null;
+      },
+    );
+    return attempt;
   }, [scope, channel, setup, refreshSetup, network.online]);
 
   // Auto-join Internet when ready so the user only holds to talk.

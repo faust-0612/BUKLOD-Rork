@@ -13,6 +13,7 @@
   ],
   "acceptanceChecks": [
     "PTT press immediately shows request state; release immediately clears transmitting UI",
+    "Held PTT reuses in-flight auto-join instead of dropping the press with a busy result",
     "Late floor grants are dropped, never disable a subsequent hold; rapid repeat presses serialize",
     "Lost floor lease disables microphone instead of continuing to transmit",
     "No one-tap notification action can latch the microphone",

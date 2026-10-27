@@ -115,3 +115,9 @@ test('closed-app PTT alerts expire promptly and headless push uses Expo field', 
   assert.match(source, /contentAvailable: true/);
   assert.match(source, /androidPttSosReady/);
 });
+
+test('PTT hold reuses an in-flight auto-join instead of failing busy', () => {
+  const source = read('src/app/personal-home/ptt.tsx');
+  assert.match(source, /if \(connectPromiseRef\.current\) return connectPromiseRef\.current/);
+  assert.match(source, /const ok = await onNeedConnect\(\)/);
+});
