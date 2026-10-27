@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/colorful-cards-buttons-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/ui-color-variety-20261027.json" >> "$GITHUB_ENV";;
             fix/community-wall-comment-composer-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-wall-comment-composer-20261027.json" >> "$GITHUB_ENV";;
             fix/ota-gate-canonical-attendance-20261027)

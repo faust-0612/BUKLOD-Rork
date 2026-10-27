@@ -240,7 +240,7 @@ export function BuklodSystemAnnouncementBoard({
 export function BuklodSystemAnnouncementBoardLoader() {
   return (
     <View style={{ paddingVertical: 8, alignItems: 'center' }}>
-      <ActivityIndicator color={editTone.ink} />
+      <ActivityIndicator color={colors.greenDark} />
     </View>
   );
 }
