@@ -1,0 +1,16 @@
+{
+  "objective": "Reconcile production OTA contract with canonical attendance RPC without changing attendance runtime",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: read-only production RPC signature for buklod_list_attendance_events_v1(p_scope_id uuid), latest main cumulative source and failed OTA gate run 40458933045; live OTA publication not yet verified",
+  "allowedPaths": [
+    ".buklod/scopes/ota-gate-canonical-attendance-20261027.json",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/production_android_ota.yml",
+    "scripts/test-pending-client-reconciliation-20261027.cjs"
+  ],
+  "acceptanceChecks": [
+    "Canonical attendance list RPC and offline-only cache source assertions pass",
+    "Engineering scope/accountability and TypeScript/Performance QA pass",
+    "Production RC export and frozen-source publication must succeed; no gate skipped"
+  ]
+}

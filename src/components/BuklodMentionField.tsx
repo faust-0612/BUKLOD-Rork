@@ -35,6 +35,8 @@ type Props = {
   placeholder?: string;
   style?: StyleProp<TextStyle>;
   maxLength?: number;
+  disabled?: boolean;
+  suggestionsAbove?: boolean;
   placeholderTextColor?: string;
   focusRef?: { current: TextInput | null };
 };
@@ -50,6 +52,8 @@ export default function BuklodMentionField({
   placeholder,
   style,
   maxLength,
+  disabled = false,
+  suggestionsAbove = false,
   placeholderTextColor = colors.muted,
   focusRef,
 }: Props) {
@@ -116,14 +120,14 @@ export default function BuklodMentionField({
             const id = String(row?.user_id ?? '');
             return id && id !== excludeUserId && !taken.has(id);
           })
-          .slice(0, 6);
+          .slice(0, suggestionsAbove ? 4 : 6);
 
         setRows(next);
       })();
     }, 180);
 
     return () => clearTimeout(timer);
-  }, [audience, dismissed, excludeUserId, groupId, mentions, query]);
+  }, [audience, dismissed, excludeUserId, groupId, mentions, query, suggestionsAbove]);
 
   const syncQuery = (text: string, cursor: number) => {
     const active = activeMentionQuery(text, cursor);
@@ -167,7 +171,7 @@ export default function BuklodMentionField({
   };
 
   return (
-    <View>
+    <View style={suggestionsAbove ? styles.aboveWrap : undefined}>
       <View style={styles.field}>
         {!!value && (
           <View pointerEvents="none" style={styles.mirror}>
@@ -188,6 +192,7 @@ export default function BuklodMentionField({
           multiline
           value={value}
           maxLength={maxLength}
+          editable={!disabled}
           placeholder={value ? '' : placeholder}
           placeholderTextColor={placeholderTextColor}
           selection={selection}
@@ -207,7 +212,7 @@ export default function BuklodMentionField({
       </View>
 
       {suggestionsOpen && (
-        <View style={styles.list}>
+        <View style={[styles.list, suggestionsAbove && styles.listAbove]}>
           {rows.map(row => (
             <Pressable
               key={row.user_id}
@@ -248,6 +253,10 @@ const styles = StyleSheet.create({
   typing: {
     color: 'transparent',
   },
+  aboveWrap: {
+    zIndex: 20,
+    elevation: 8,
+  },
   list: {
     marginTop: 6,
     borderWidth: 1,
@@ -255,6 +264,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.white,
     overflow: 'hidden',
+  },
+  listAbove: {
+    position: 'absolute',
+    bottom: '100%',
+    left: 0,
+    right: 0,
+    maxHeight: 240,
+    marginTop: 0,
+    marginBottom: 6,
+    zIndex: 20,
+    elevation: 8,
   },
   row: {
     paddingHorizontal: 12,

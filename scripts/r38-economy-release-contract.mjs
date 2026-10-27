@@ -64,16 +64,28 @@ requireText(adminEconomyPath, adminEconomy, [
   'admin_set_buklod_r38_period_status_v1',
   'admin_finalize_buklod_r38_economic_period_v1',
   'admin_reconcile_buklod_r38_referrals_v1',
-  'admin_list_buklod_r38_referral_withdrawals_v1',
-  'admin_review_buklod_r38_referral_withdrawal_v1',
-  'admin_get_buklod_r38_withdrawal_payout_details_v1',
-  'admin_mark_buklod_r38_referral_withdrawal_paid_v1',
+  // Withdrawal RPCs moved to Profit-First V2; require active APIs, not retired R38 V1.
+  'admin_list_buklod_pf_withdrawals_v2',
+  'admin_review_buklod_pf_withdrawal_v2',
+  'admin_get_buklod_pf_withdrawal_payout_details_v2',
+  'admin_mark_buklod_pf_withdrawal_paid_v2',
+  // Current funded settlement; cash never inferred from Points/QMP.
+  'admin_get_buklod_pf_finance_console_v3',
+  'admin_record_buklod_pf_financial_entry_v3',
+  'admin_finalize_buklod_pf_month_v3',
+  'p_idempotency_key',
 ]);
 
 requireText(bayanihanPath, bayanihan, [
-  'Points are not money',
-  'Real platform revenue first',
-  'Finalized cash can move to payout',
+  // Copy is localized; validate the invariant and separate authoritative API bindings.
+  "t('economy.pointsNotMoney')",
+  "t('economy.pointsNotMoneyBody')",
+  "t('economy.earningsNote')",
+  'loadMyBuklodFinancialSummaryV3',
+  'loadMyCommunityContribution',
+  'communityQmpMetrics(contribution)',
+  'earnings.latest_finalized_user_share_php',
+  'earnings.withdrawable_php',
 ]);
 requireText(referralPath, referral, [
   'VIEW MY ECONOMY REPORT',
@@ -82,7 +94,8 @@ requireText(referralPath, referral, [
 ]);
 requireText(redeemPath, redeem, [
   'Points stay progression-only',
-  'OPEN ECONOMY & BAYANIHAN REPORT',
+  'OPEN ECONOMY & BAYANIHAN',
+  "router.push('/points/economy'",
 ]);
 requireText(legacyAdminPath, legacyAdmin, [
   'point-to-value workflow has been retired',
@@ -93,8 +106,12 @@ requireText(adminReportPath, adminReport, [
   'OPEN ECONOMY OPERATIONS',
 ]);
 requireText(adminOpsPath, adminOps, [
-  'This console contains no activation switches',
-  'FINALIZE FUNDED PERIOD',
+  // Finalization is gated and routed through the authoritative server workflow.
+  'controls?.economics_enabled === true',
+  'controls?.settlement_enabled === true',
+  "currentStatus !== 'FINALIZED'",
+  'Finalize Canonical Finance Month?',
+  'adminFinalizeBuklodPfMonthV3',
   'ACCESS PAYOUT DESTINATION',
   'MARK PAID AFTER EXTERNAL TRANSFER',
 ]);
@@ -130,8 +147,8 @@ for (const [path, content] of clientSources) {
     'payout_destination_full_snapshot',
     'payout_account_name_snapshot',
   ]);
-  if (/\.from\(\s*['\"](?:private\.)?buklod_r38_/m.test(content)) {
-    failures.push(`${path} directly accesses an R38 table; client R38 financial access must remain RPC-mediated.`);
+  if (/\.from\(\s*['\"](?:private\.)?(?:buklod_r38_|buklod_pf_)/m.test(content)) {
+    failures.push(`${path} directly accesses a finance table; R38/PF financial access must remain RPC-mediated.`);
   }
 }
 

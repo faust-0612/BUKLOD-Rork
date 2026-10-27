@@ -12,6 +12,7 @@ on:
       - 'src/lib/buklodMaritesBoard.ts'
       - 'src/lib/buklodMaritesPlayback.ts'
       - 'scripts/test-marites-release.cjs'
+      - 'scripts/test-pending-client-reconciliation-20261027.cjs'
       - 'scripts/android-ota-rc.cjs'
       - '.github/workflows/production_android_ota.yml'
       - 'src/app/index.web.tsx'

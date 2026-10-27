@@ -5,9 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Keyboard,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -76,7 +74,6 @@ export default function BuklodCommunityCommentComposer({
 }: Props) {
   const insets = useSafeAreaInsets();
   const drawerBottomInset = useBuklodDrawerBottomInset();
-  const [keyboardPad, setKeyboardPad] = useState(0);
   const [reactionOpen, setReactionOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
   const [pickingPhoto, setPickingPhoto] = useState(false);
@@ -85,29 +82,6 @@ export default function BuklodCommunityCommentComposer({
   useEffect(() => {
     if (focusRequestKey) inputFocusRef.current?.focus();
   }, [focusRequestKey]);
-
-  useEffect(() => {
-    const showEvent =
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent =
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSub = Keyboard.addListener(showEvent, event => {
-      const lift = Math.max(
-        0,
-        Number(event.endCoordinates?.height ?? 0) - Math.max(insets.bottom, 0),
-      );
-      setKeyboardPad(Platform.OS === 'android' ? lift : 0);
-    });
-    const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardPad(0);
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, [insets.bottom]);
 
   const canSend = buklodCommentHasSendableContent(value, media) && !busy;
   const previewUri =
@@ -155,9 +129,9 @@ export default function BuklodCommunityCommentComposer({
     setReactionOpen(false);
   };
 
-  const bottomPad =
-    drawerBottomInset +
-    (Platform.OS === 'android' ? keyboardPad : 0);
+  // The parent sheet owns keyboard avoidance; padding the composer by the
+  // keyboard height a second time moves its controls behind the IME.
+  const bottomPad = drawerBottomInset;
 
   const gifItems = useMemo(
     () => CONNECT_GIF_CATALOG.slice(0, 48),
@@ -223,13 +197,17 @@ export default function BuklodCommunityCommentComposer({
       placeholder={placeholder}
       style={styles.input}
       focusRef={inputFocusRef}
-      maxLength={layout === 'stacked' ? 2000 : undefined}
+      maxLength={2000}
+      disabled={busy}
+      suggestionsAbove
     />
   );
 
   const sendButton = (
         <Pressable
-          accessibilityLabel="Send comment"
+          accessibilityRole="button"
+          accessibilityLabel={busy ? 'Posting comment' : 'Send comment'}
+          accessibilityState={{ disabled: !canSend, busy }}
           disabled={!canSend}
           onPress={onSend}
           style={[styles.send, !canSend && styles.sendDisabled]}
@@ -258,6 +236,7 @@ export default function BuklodCommunityCommentComposer({
           />
           <Pressable
             accessibilityLabel="Remove attachment"
+            disabled={busy}
             onPress={() => onMediaChange(null, null)}
             style={styles.previewRemove}
           >
@@ -295,7 +274,7 @@ export default function BuklodCommunityCommentComposer({
       ) : (
         <View style={styles.row}>
           {mediaButtons}
-          {commentField}
+          <View style={styles.fieldWrap}>{commentField}</View>
           {sendButton}
         </View>
       )}
