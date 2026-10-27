@@ -326,6 +326,25 @@ export default function BayanihanScreen() {
           </Section>
 
           <Section icon="cash-multiple" title={t('economy.earningsTitle')}>
+            {qmp && qmp.monthlyQmp > 0 ? (
+              <View style={styles.guard}>
+                <MaterialCommunityIcons name="chart-line" size={23} color="#275D45" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.guardTitle}>Community QMP · possible monthly share</Text>
+                  <Text style={styles.metricValue}>
+                    {contribution?.estimated_share_minor == null
+                      ? 'No verified provisional revenue yet'
+                      : formatPhp(Number(contribution.estimated_share_minor) / 100)}
+                  </Text>
+                  <Text style={styles.guardText}>
+                    {contribution?.estimate_label || 'Estimate only. Not final or withdrawable.'}
+                    {contribution?.estimate_updated_at
+                      ? ` · Source updated ${new Date(contribution.estimate_updated_at).toLocaleString()}`
+                      : ''}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
             <View style={styles.statusPill}>
               <Text style={styles.statusPillText}>
                 {earnings.user_pool_eligibility_active
