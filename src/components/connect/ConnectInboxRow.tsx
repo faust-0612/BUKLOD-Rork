@@ -115,10 +115,10 @@ function createStyles(theme: ConnectThemeRoles) {
       borderRadius: 11,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: HIBLA.pine,
+      backgroundColor: '#D89B24',
     },
     badgeText: {
-      color: theme.unreadBadgeText,
+      color: '#173C2E',
       fontSize: 11,
       fontWeight: '900',
       lineHeight: 13,
