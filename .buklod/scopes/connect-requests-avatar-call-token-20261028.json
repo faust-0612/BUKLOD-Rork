@@ -1,7 +1,7 @@
 {
   "objective": "BUKLOD Connect first-contact message requests, truthful unread markers, one-tap chat avatars and first-tap Stream audio call token readiness",
   "baseRef": "809f4822198e6bf8e525e024db63f44e237742e8",
-  "productionBaselineEvidence": "The authoritative working source baseline is main 809f4822198e6bf8e525e024db63f44e237742e8 (2026-10-27T16:12:16Z). Last production runtime/version evidence must be independently reconciled before RC or OTA; this manifest makes no live client publication claim. Additive authenticated-only request classification RPC was applied to BUKLOD Connect Supabase as 20261027163948 and its permissions were checked.",
+  "productionBaselineEvidence": "The authoritative working source baseline is main 809f4822198e6bf8e525e024db63f44e237742e8 (2026-10-27T16:12:16Z). Last production runtime/version evidence must be independently reconciled before RC or OTA; this manifest makes no live client publication claim. Additive authenticated-only request classification RPC was applied to BUKLOD Connect Supabase as 20261027163948 and its permissions were checked. Follow-up migration 20261027164410 switches the RPC to SECURITY INVOKER so existing direct-message RLS remains enforced; Supabase security advisor has no finding for this function.",
   "allowedPaths": [
     ".buklod/scopes/connect-requests-avatar-call-token-20261028.json",
     ".github/workflows/engineering-accountability.yml",
@@ -18,7 +18,8 @@
     "src/lib/buklodStreamVideoClient.ts",
     "src/lib/buklodStreamVideoClient.web.ts",
     "src/lib/connectInboxClassification.ts",
-    "supabase/migrations/20261027163948_connect_first_message_requests_v1.sql"
+    "supabase/migrations/20261027163948_connect_first_message_requests_v1.sql",
+    "supabase/migrations/20261027164410_connect_requests_invoker_hardening_v1.sql"
   ],
   "acceptanceChecks": [
     "All changes remain within named Connect inbox/avatar/call paths, isolated new tests, exact Supabase migration and this QA scope mapping.",
