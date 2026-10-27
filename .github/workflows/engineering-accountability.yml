@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/ptt-hold-rx-latency-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/ptt-hold-rx-latency-20261027.json" >> "$GITHUB_ENV";;
             fix/colorful-cards-buttons-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/ui-color-variety-20261027.json" >> "$GITHUB_ENV";;
             fix/community-wall-comment-composer-20261027)
@@ -89,6 +91,10 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify PTT responsive hold and closed-app alert contracts
+        if: github.head_ref == 'fix/ptt-hold-rx-latency-20261027'
+        run: node --test tests/ptt-responsive-hold.test.cjs tests/buklod-ptt-call-isolation.test.cjs
+
       - name: Verify fair discovery and independent video candidate selection
         if: github.head_ref == 'feat/community-fair-video-ready-20261027'
         run: node --test tests/fairDiscovery.test.cjs tests/videoDiscovery.test.cjs tests/videoFeedRpcContract.test.cjs

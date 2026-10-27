@@ -11,7 +11,9 @@
     "src/components/kabihasnang-ligaw/KlChapterAudio.tsx",
     "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
     "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
-    "src/components/kabihasnang-ligaw/KlSceneEffect.tsx"
+    "src/components/kabihasnang-ligaw/KlSceneEffect.tsx",
+    "src/lib/kabihasnang-ligaw/mediaPlacement.ts",
+    "__tests__/klMediaPlacement.test.ts"
   ],
   "acceptanceChecks": [
     "TypeScript and performance QA pass",

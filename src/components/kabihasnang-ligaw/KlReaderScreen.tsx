@@ -23,6 +23,7 @@ import KlAudioControls from '@/components/kabihasnang-ligaw/KlAudioControls';
 import KlCoverImage from '@/components/kabihasnang-ligaw/KlCoverImage';
 import { klDatabaseId } from '@/components/kabihasnang-ligaw/KlAdminMediaUpload';
 import KlAdminPreview from '@/components/kabihasnang-ligaw/KlAdminPreview';
+import KlChapterAudio from '@/components/kabihasnang-ligaw/KlChapterAudio';
 import KlDynamicLibrary from '@/components/kabihasnang-ligaw/KlDynamicLibrary';
 import { KlSceneEffect, type SceneEffect } from '@/components/kabihasnang-ligaw/KlSceneEffect';
 import KlLiveDiscussion from '@/components/kabihasnang-ligaw/KlLiveDiscussion';
@@ -42,6 +43,7 @@ import { isLowBandwidth, resolveLivingMotion, visibleLivingLayers } from '@/lib/
 import { dictionaryByName, KL_DICTIONARY, splitDictionaryTerms } from '@/lib/kabihasnang-ligaw/dictionary';
 import { KL_SCENE_STILLS } from '@/lib/kabihasnang-ligaw/sceneStills';
 import { paragraphDisplayText, splitCanonicalParagraphs } from '@/lib/kabihasnang-ligaw/manuscript';
+import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
 import { journeySummary } from '@/lib/kabihasnang-ligaw/journey';
 import {
   DEFAULT_READER_CACHE,
@@ -61,6 +63,11 @@ import { useNetwork } from '@/providers/NetworkProvider';
 const EPISODES = buildCatalogEpisodes();
 const ASSETS = buildAssetGate();
 const STORYBOARD = buildStoryboard();
+type DynamicMedia = {
+  kind: string; placement: number; path: string;
+  anchor?: string | null; side?: string | null;
+  effect?: SceneEffect | null; intensity?: number | null;
+};
 
 function cacheKey(userId: string | null): string {
   return `kl.reader.v1.${userId ?? 'device'}`;
@@ -94,13 +101,15 @@ export default function KlReaderScreen() {
   const [serverState, setServerState] = useState<'unread' | 'readable' | 'hidden' | 'unknown'>('unread');
   const [serverText, setServerText] = useState<string | null>(null);
   const [releasedIds, setReleasedIds] = useState<string[]>([]);
-  const [mediaUrls, setMediaUrls] = useState<Record<number, string>>({});
-  const [sceneEffects, setSceneEffects] = useState<Record<number, { effect: SceneEffect; intensity: number }>>({});
+  const [dynamicMedia, setDynamicMedia] = useState<DynamicMedia[]>([]);
+  const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
+  const [mediaErrors, setMediaErrors] = useState<Record<string, string>>({});
   const [rewardFeedback, setRewardFeedback] = useState('');
   const [viewStart, setViewStart] = useState<number | null>(null);
   const [viewEnd, setViewEnd] = useState<number | null>(null);
   const paragraphY = useRef<Record<number, number>>({});
   const readerTop = useRef(0);
+  const openSequence = useRef(0);
 
   const compact = width < 420;
   const bodySize = Math.round(19 * cache.textScale);
@@ -293,6 +302,7 @@ export default function KlReaderScreen() {
   };
 
   const openEpisode = async (episodeId: string) => {
+    const sequence = ++openSequence.current;
     const episode = EPISODES.find((item) => item.id === episodeId);
     if (!episode) return;
     const episodeAssets = ASSETS.filter((asset) => asset.episodeId === episodeId);
@@ -302,8 +312,9 @@ export default function KlReaderScreen() {
     setViewEnd(null);
     setServerState('unread');
     setServerText(null);
+    setDynamicMedia([]);
     setMediaUrls({});
-    setSceneEffects({});
+    setMediaErrors({});
     setRewardFeedback('');
     setSelectedId(episodeId);
     setGlossaryOpen(false);
@@ -311,6 +322,7 @@ export default function KlReaderScreen() {
     try {
       const dbId = klDatabaseId(episode.episodeNumber);
       const { data, error } = await supabase.rpc(KL_RPC.readEpisode, { p_episode_id: dbId });
+      if (sequence !== openSequence.current) return;
       if (error || !data || typeof data !== 'object') {
         setServerState('unknown');
       } else {
@@ -321,17 +333,28 @@ export default function KlReaderScreen() {
           setServerState('readable');
           void supabase.rpc('kl_reading_progress_v1', { p_episode_id: dbId, p_action: 'start' });
           const { data: media } = await supabase.rpc('kl_episode_media_v1', { p_episode_id: dbId });
+          if (sequence !== openSequence.current) return;
           if (Array.isArray(media)) {
-            const urls: Record<number, string> = {};
-            const effects: Record<number, { effect: SceneEffect; intensity: number }> = {};
-            for (const item of media as { kind: string; placement: number; path: string; effect?: SceneEffect; intensity?: number }[]) {
-              if (item.kind !== 'illustration') continue;
-              effects[item.placement] = { effect: item.effect ?? 'none', intensity: item.intensity ?? 30 };
-              const signed = await supabase.storage.from('kl-publishing').createSignedUrl(item.path, 3600);
-              if (!signed.error && signed.data?.signedUrl) urls[item.placement] = signed.data.signedUrl;
-            }
+            const items = media as DynamicMedia[];
+            const signed = await Promise.all(items.map(async (item) => {
+              const key = item.kind + ':' + item.placement;
+              try {
+                const result = await supabase.storage.from('kl-publishing').createSignedUrl(item.path, 3600);
+                return { key, url: result.data?.signedUrl, error: result.error?.message };
+              } catch (cause) {
+                return { key, error: cause instanceof Error ? cause.message : 'Media URL unavailable' };
+              }
+            }));
+            if (sequence !== openSequence.current) return;
+            const urls: Record<string, string> = {};
+            const failures: Record<string, string> = {};
+            signed.forEach((item) => {
+              if (item.url) urls[item.key] = item.url;
+              else failures[item.key] = item.error ?? 'Media signing failed';
+            });
+            setDynamicMedia(items);
             setMediaUrls(urls);
-            setSceneEffects(effects);
+            setMediaErrors(failures);
           }
           nextCache = rememberReleasedReading(nextCache, episodeId, text, true);
         } else {
@@ -344,7 +367,7 @@ export default function KlReaderScreen() {
       setServerState('unknown');
       setNotice(online ? klCopy.couldNotOpen : klCopy.weakNetwork);
     }
-    await persist(nextCache);
+    if (sequence === openSequence.current) await persist(nextCache);
   };
   const episodeReadable = (episodeId: string) => {
     const fromCatalog = EPISODES.find((item) => item.id === episodeId);
@@ -360,6 +383,7 @@ export default function KlReaderScreen() {
   };
 
   const closeReader = () => {
+    openSequence.current += 1;
     setSelectedId(null);
     setOpenTerm(null);
     setGlossaryOpen(false);
@@ -455,7 +479,9 @@ export default function KlReaderScreen() {
               {selected.kind === 'panimula' ? 'PANIMULA' : `KABANATA ${String(selected.episodeNumber).padStart(2, '0')}`}
             </Text>
             <Text style={[styles.chapter, compact && styles.titleCompact]}>{selected.title}</Text>
-            <KlAudioControls
+            {mediaUrls['music:0'] || mediaUrls['ambient:0'] ? (
+              <KlChapterAudio music={mediaUrls['music:0']} ambient={mediaUrls['ambient:0']} />
+            ) : <KlAudioControls
               musicStatus={music?.classification ?? 'MISSING'}
               ambientStatus={ambient?.classification ?? 'MISSING'}
               otherAudioPlaying={externalAudio}
@@ -469,12 +495,33 @@ export default function KlReaderScreen() {
                 ? { ...cache, musicMuted: !cache.musicMuted }
                 : { ...cache, ambientMuted: !cache.ambientMuted })}
               onCycleVolume={cycleVolume}
-            />
+            />}
             {paragraphs.map((paragraph) => {
               const scene = sceneRows.find((row) => row.paragraphRange?.start === paragraph.index);
               const still = scene?.sceneId ? KL_SCENE_STILLS[scene.sceneId] : undefined;
-              const dynamicScene = paragraph.index === 0 ? mediaUrls[1] : paragraph.index === Math.floor(paragraphs.length / 3) ? mediaUrls[2] : paragraph.index === Math.floor(2 * paragraphs.length / 3) ? mediaUrls[3] : undefined;
-              const dynamicPlacement = paragraph.index === 0 ? 1 : paragraph.index === Math.floor(paragraphs.length / 3) ? 2 : paragraph.index === Math.floor(2 * paragraphs.length / 3) ? 3 : 0;
+              // The server records the exact manuscript sentence, not a fractional chapter position.
+              const beforeImages = illustrationsAtParagraph(dynamicMedia, paragraph.text, 'before');
+              const afterImages = illustrationsAtParagraph(dynamicMedia, paragraph.text, 'after');
+              const hasAnchoredImage = beforeImages.length + afterImages.length > 0;
+              const renderIllustration = (item: DynamicMedia) => {
+                const key = item.kind + ':' + item.placement;
+                const uri = mediaUrls[key];
+                return !uri || mediaErrors[key] ? (
+                  <View key={key} style={{ padding: 12, backgroundColor: '#463139', borderRadius: 9 }}>
+                    <Text style={{ color: '#fff' }}>Scene {item.placement}: hindi ma-load ang illustration. Subukang buksan muli ang chapter.</Text>
+                  </View>
+                ) : (
+                  <View key={key} style={styles.scene}>
+                    <Image source={{ uri }} contentFit="contain" cachePolicy="memory-disk"
+                      accessibilityLabel={'Larawan ng eksena ' + item.placement}
+                      onError={() => setMediaErrors((previous) => ({ ...previous, [key]: 'Image decode failed' }))}
+                      style={{ width: '100%', height: '100%' }} />
+                    <KlSceneEffect effect={item.effect ?? 'none'} intensity={item.intensity ?? 30}
+                      active={cache.motionEnabled && appActive && !reduceMotion && viewEnd != null
+                        && paragraph.index <= viewEnd && (viewStart == null || paragraph.index >= viewStart)} />
+                  </View>
+                );
+              };
               const holdSpoiler = Boolean(
                 scene?.spoiler
                 && (scene.paragraphRange == null || viewEnd == null || viewEnd < scene.paragraphRange.start),
@@ -488,16 +535,12 @@ export default function KlReaderScreen() {
                   }}
                   style={styles.paragraph}
                 >
-                  {(dynamicScene || still) && !holdSpoiler ? (
+                  {!holdSpoiler ? beforeImages.map(renderIllustration) : null}
+                  {!hasAnchoredImage && still && !holdSpoiler ? (
                     <View style={styles.scene}>
-                      <Image source={dynamicScene ? { uri: dynamicScene } : still}
+                      <Image source={still}
                         contentFit="cover" cachePolicy="memory-disk" accessibilityLabel="Larawan ng eksena"
                         style={{ width: '100%', height: '100%' }} />
-                      {dynamicScene && sceneEffects[dynamicPlacement] ? <KlSceneEffect
-                        effect={sceneEffects[dynamicPlacement].effect}
-                        intensity={sceneEffects[dynamicPlacement].intensity}
-                        active={viewEnd != null && paragraph.index <= viewEnd && (viewStart == null || paragraph.index >= viewStart)}
-                      /> : null}
                     </View>
                   ) : null}
                   <Text
@@ -522,6 +565,7 @@ export default function KlReaderScreen() {
                       )
                     ))}
                   </Text>
+                  {!holdSpoiler ? afterImages.map(renderIllustration) : null}
                 </View>
               );
             })}
