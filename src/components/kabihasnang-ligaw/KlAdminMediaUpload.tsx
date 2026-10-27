@@ -62,6 +62,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
   const [intensity, setIntensity] = useState(30);
   const [motionPlaying, setMotionPlaying] = useState(true);
   const [audioUrl, setAudioUrl] = useState('');
+  const [mediaRefreshToken, setMediaRefreshToken] = useState(0);
 
   useEffect(() => setKind(initialKind), [initialKind]);
 
@@ -99,7 +100,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       });
     }
     return () => { active = false; };
-  }, [episodeId, imageSelected, selected?.path]);
+  }, [episodeId, imageSelected, selected?.path, mediaRefreshToken]);
 
   useEffect(() => {
     let active = true;
@@ -112,7 +113,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       });
     }
     return () => { active = false; };
-  }, [episodeId, imageSelected, selected?.path]);
+  }, [episodeId, imageSelected, selected?.path, mediaRefreshToken]);
 
   const perform = async (label: string, task: () => Promise<void>) => {
     if (lock.current) return;
@@ -336,6 +337,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       <Choice label="Refresh media & approvals from server" disabled={isBusy}
         onPress={() => void perform('Nire-refresh ang media', async () => {
           await refreshMedia();
+          setMediaRefreshToken((token) => token + 1);
           setFeedback({ tone: 'success', text: 'Updated media approval status from server.' });
         })} />
       {items.map((item) => (
