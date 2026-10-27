@@ -64,6 +64,9 @@ begin
   if v_mode not in ('ADMIN_ADMOB_REPORT','OFFICIAL_ADMOB_API') then
     raise exception 'Unsupported preliminary estimate source';
   end if;
+  if v_mode='OFFICIAL_ADMOB_API' and v_role<>'service_role' then
+    raise exception 'Official AdMob API source may only be written by the trusted server';
+  end if;
   if p_observed_at is null or p_observed_at>now()+interval '1 hour'
      or p_observed_at<now()-interval '30 days' then
     raise exception 'Estimate observation time outside permitted window';
@@ -143,7 +146,6 @@ grant execute on function public.admin_get_buklod_community_admob_estimate_v1(te
 create or replace function public.get_my_buklod_community_contribution_live_v1()
 returns jsonb
 language plpgsql
-stable
 security definer
 set search_path to ''
 as $function$
@@ -206,7 +208,7 @@ begin
     'estimated_share_minor',case when v_total>0 then v_share else null end,
     'estimate_status','PROVISIONAL_ADMOB',
     'estimate_updated_at',v_snapshot.observed_at,
-    'estimate_label','AD MOB PRELIMINARY REPORT · ESTIMATE ONLY · NOT FINAL · NOT FUNDED OR WITHDRAWABLE · SUBJECT TO ADJUSTMENT AND QUALIFICATION REVIEW'
+    'estimate_label','ADMOB PRELIMINARY REPORT · ESTIMATE ONLY · NOT FINAL · NOT FUNDED OR WITHDRAWABLE · SUBJECT TO ADJUSTMENT AND QUALIFICATION REVIEW'
   );
 end;
 $function$;
