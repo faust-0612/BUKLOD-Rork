@@ -25,6 +25,13 @@ import {
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import {
+  enqueueOfflineAction,
+  subscribeOfflineQueue,
+  type OfflineQueueSnapshot,
+} from '@/lib/offlineSyncQueue';
 
 import {
   supabase,
@@ -81,6 +88,7 @@ function displayPrompt(
 export default function
 BuklodAbcLessonDetailScreen() {
   const { user } = useAuth();
+  const { online } = useNetwork();
   const accountId = user?.id;
   const accountCompletionKey = accountId ? `${COMPLETION_KEY}.${accountId}` : null;
   const params =
@@ -145,12 +153,46 @@ BuklodAbcLessonDetailScreen() {
     setRewardBusy,
   ] =
     useState(false);
+  const [pendingSync, setPendingSync] = useState(false);
 
   const [
     fontSize,
     setFontSize,
   ] =
     useState(16);
+
+  useEffect(() => {
+    if (!accountId || !lessonId) {
+      setPendingSync(false);
+      return;
+    }
+    let active = true;
+    let hadPending = false;
+    const update = (snapshot: OfflineQueueSnapshot) => {
+      if (!active) return;
+      const isPending = snapshot.items.some(item =>
+        item.kind === 'faith_abc_completion_v1' &&
+        item.userId === accountId &&
+        (item.payload as { lessonId?: unknown } | null)?.lessonId === lessonId
+      );
+      setPendingSync(isPending);
+      if (hadPending && !isPending) {
+        // Queue removal follows the server-confirmed idempotent RPC.
+        void AsyncStorage.getItem(`${COMPLETION_KEY}.${accountId}`)
+          .then(raw => {
+            if (!active || !raw) return;
+            const saved = JSON.parse(raw);
+            if (saved?.[lessonId]) {
+              setCompleted(true);
+              setRewardState('legacy');
+            }
+          }).catch(() => undefined);
+      }
+      hadPending = isPending;
+    };
+    const unsubscribe = subscribeOfflineQueue(update);
+    return () => { active = false; unsubscribe(); };
+  }, [accountId, lessonId]);
 
   useEffect(
     () => {
@@ -445,6 +487,24 @@ BuklodAbcLessonDetailScreen() {
       );
     };
 
+  const queueLessonCompletion = async () => {
+    if (!accountId || !lesson) {
+      throw new Error('Sign in before saving a completion.');
+    }
+    await enqueueOfflineAction({
+      kind: 'faith_abc_completion_v1',
+      userId: accountId,
+      dedupeKey: lesson.id,
+      payload: { lessonId: lesson.id },
+      maxAttempts: 100,
+    });
+    setPendingSync(true);
+    Alert.alert(
+      'Saved Offline · Pending Sync',
+      'Naka-save sa device ang completion. Ise-send ito kapag may internet. Ang +5 points ay magiging available lamang pagkatapos makumpirma ng server.'
+    );
+  };
+
   const completeRewardableLesson =
     async () => {
       if (
@@ -452,6 +512,7 @@ BuklodAbcLessonDetailScreen() {
         lesson.id ===
           'intro' ||
         completed ||
+        pendingSync ||
         rewardBusy
       ) {
         return;
@@ -484,19 +545,20 @@ BuklodAbcLessonDetailScreen() {
       setRewardBusy(true);
 
       try {
+        if (!online) {
+          await queueLessonCompletion();
+          return;
+        }
         const {
           data,
           error,
-        } =
-          await (
-            supabase as any
-          ).rpc(
-            'complete_my_abc_growth_lesson_v1',
-            {
-              p_lesson_id:
-                lesson.id,
-            }
-          );
+        } = await withBuklodTimeout<any>(
+          (supabase as any).rpc('complete_my_abc_growth_lesson_v1', {
+            p_lesson_id: lesson.id,
+          }),
+          8500,
+          'ABC lesson completion'
+        );
 
         if (error) {
           throw error;
@@ -553,12 +615,19 @@ BuklodAbcLessonDetailScreen() {
       catch (
         error: any
       ) {
+        const message = String(error?.message ?? error ?? '');
+        if (!pendingSync && /network|fetch|offline|timed?\s*out|timeout|connection/i.test(message)) {
+          try {
+            await queueLessonCompletion();
+            return;
+          } catch (queueError) {
+            Alert.alert('Hindi na-save sa device', String(queueError));
+            return;
+          }
+        }
         Alert.alert(
           'Hindi ma-complete ang lesson',
-          String(
-            error?.message ??
-              'Please check your internet connection and try again.'
-          )
+          message || 'Please check your internet connection and try again.'
         );
       }
       finally {
@@ -1203,10 +1272,13 @@ BuklodAbcLessonDetailScreen() {
                   : 'Mark introduction read'
                 : completed
                   ? 'ABAKA lesson completed'
-                  : 'Complete this ABAKA lesson and earn five BUKLOD Points'
+                  : pendingSync
+                    ? 'Saved offline; awaiting server confirmation'
+                    : 'Complete this ABAKA lesson and earn five BUKLOD Points'
             }
             disabled={
               rewardBusy ||
+              pendingSync ||
               (lesson.id !==
                 'intro' &&
                 completed)
@@ -1258,6 +1330,8 @@ BuklodAbcLessonDetailScreen() {
             >
               {rewardBusy
                 ? 'Recording completion...'
+                : pendingSync
+                  ? 'Saved Offline · Pending Sync'
                 : lesson.id ===
                     'intro'
                   ? completed

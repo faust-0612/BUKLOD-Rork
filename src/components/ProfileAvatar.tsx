@@ -14,6 +14,7 @@ import {
 } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
 
 
@@ -27,6 +28,57 @@ const avatarCache =
     string,
     AvatarCacheRow
   >();
+
+// Navigation should not issue one status RPC per mounted avatar. The result
+// is presentation-only, scoped to the viewer, bounded, and refreshed quietly.
+const STATUS_NOTE_TTL_MS = 60_000;
+const STATUS_NOTE_MAX = 320;
+const quickNoteCache = new Map<string, { note: string; at: number }>();
+const quickNoteRequests = new Map<string, Promise<string>>();
+
+function cachedQuickNote(viewerId: string, targetId: string): string {
+  return quickNoteCache.get(`${viewerId}:${targetId}`)?.note ?? '';
+}
+
+async function readQuickNote(viewerId: string, targetId: string): Promise<string> {
+  const key = `${viewerId}:${targetId}`;
+  const warm = quickNoteCache.get(key);
+  if (warm && Date.now() - warm.at < STATUS_NOTE_TTL_MS) {
+    return warm.note;
+  }
+
+  const pending = quickNoteRequests.get(key);
+  if (pending) return pending;
+
+  const task = (async () => {
+    const { data, error } = await (supabase as any)
+      .from('buklod_profile_status')
+      .select('quick_note')
+      .eq('user_id', targetId)
+      .maybeSingle();
+
+    if (error) {
+      // Weak signal is not proof that the note was removed.
+      return warm?.note ?? '';
+    }
+
+    const note = String(data?.quick_note ?? '').trim();
+    quickNoteCache.delete(key);
+    quickNoteCache.set(key, { note, at: Date.now() });
+    if (quickNoteCache.size > STATUS_NOTE_MAX) {
+      const oldest = quickNoteCache.keys().next().value;
+      if (oldest) quickNoteCache.delete(oldest);
+    }
+    return note;
+  })();
+
+  quickNoteRequests.set(key, task);
+  try {
+    return await task;
+  } finally {
+    if (quickNoteRequests.get(key) === task) quickNoteRequests.delete(key);
+  }
+}
 
 
 type ProfileAvatarProps = {
@@ -71,92 +123,22 @@ export function ProfileAvatarStatusIndicator({
     useState('');
 
 
+  const { user } = useAuth();
+  const viewerId = user?.id ?? '';
+  const targetId = userId || viewerId;
+
   useEffect(() => {
     let active = true;
-
-    void (
-      async () => {
-        let targetUserId =
-          userId ??
-          null;
-
-        if (!targetUserId) {
-          const {
-            data: authData,
-            error: authError,
-          } =
-            await supabase.auth.getUser();
-
-          if (
-            !active ||
-            authError
-          ) {
-            return;
-          }
-
-          targetUserId =
-            authData.user?.id ??
-            null;
-        }
-
-        if (!targetUserId) {
-          if (active) {
-            setQuickNote('');
-          }
-
-          return;
-        }
-
-        const {
-          data,
-          error,
-        } =
-          await (
-            supabase as any
-          )
-            .from(
-              'buklod_profile_status'
-            )
-            .select(
-              'quick_note'
-            )
-            .eq(
-              'user_id',
-              targetUserId
-            )
-            .maybeSingle();
-
-        if (!active) {
-          return;
-        }
-
-        if (error) {
-          console.warn(
-            'Profile Note:',
-            error.message
-          );
-
-          setQuickNote('');
-          return;
-        }
-
-        setQuickNote(
-          String(
-            data?.quick_note ??
-            ''
-          ).trim()
-        );
-      }
-    )();
-
-    return () => {
-      active = false;
-    };
-  }, [
-    userId,
-    pathname,
-  ]);
-
+    if (!viewerId || !targetId) {
+      setQuickNote('');
+      return () => { active = false; };
+    }
+    setQuickNote(cachedQuickNote(viewerId, targetId));
+    void readQuickNote(viewerId, targetId)
+      .then(note => { if (active) setQuickNote(note); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [viewerId, targetId, pathname]);
 
   if (!quickNote) {
     return null;

@@ -42,6 +42,15 @@ export class OfflineQueuePermanentError extends Error {
   }
 }
 
+// A queued action for a different signed-in account must wait, not fail,
+// consume attempts, or be replayed under the wrong user's credentials.
+export class OfflineQueueDeferredError extends Error {
+  constructor(message = 'Waiting for the original account to sign in.') {
+    super(message);
+    this.name = 'OfflineQueueDeferredError';
+  }
+}
+
 const handlers = new Map<string, OfflineQueueHandler>();
 const listeners = new Set<(snapshot: OfflineQueueSnapshot) => void>();
 
@@ -204,6 +213,7 @@ async function processOne(item: OfflineQueueItem): Promise<void> {
     await handler(item);
     await removeOfflineQueueItem(item.id);
   } catch (error) {
+    if (error instanceof OfflineQueueDeferredError) return;
     await queueMutation(async () => {
       const items = await readQueue();
       const index = items.findIndex((row) => row.id === item.id);

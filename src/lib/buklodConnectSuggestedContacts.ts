@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import {
   repairMojibakeText,
 } from '@/lib/repairMojibakeText';
@@ -16,6 +17,45 @@ export type ConnectSuggestedContact = {
 
 const DEFAULT_CIRCLE_RANK =
   'Circle Starter V';
+
+// Shared between Connect and the Community rail, and retained across app restarts.
+// Never use an unscoped cache key: suggested peers can differ by signed-in user.
+const CONTACT_CACHE_KEY = 'connect-suggested-contacts:v2';
+const CONTACT_CACHE_TTL_MS = 15 * 60 * 1000;
+const MAX_STALE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_COALESCE_MS = 15 * 1000;
+const contactMemory = new Map<string, { at: number; requestedLimit: number; rows: ConnectSuggestedContact[] }>();
+const contactInFlight = new Map<string, Promise<ConnectSuggestedContact[]>>();
+
+function limitedContactRows(rows: ConnectSuggestedContact[], limit: number) {
+  return rows.filter(row => !!row?.user_id).slice(0, Math.max(1, Math.min(80, limit)));
+}
+
+export async function readCachedConnectSuggestedContacts(
+  viewerId: string,
+  limit = 40,
+): Promise<ConnectSuggestedContact[]> {
+  const userId = String(viewerId ?? '').trim();
+  if (!userId) return [];
+
+  const warm = contactMemory.get(userId);
+  if (warm && Date.now() - warm.at <= MAX_STALE_AGE_MS) {
+    return limitedContactRows(warm.rows, limit);
+  }
+
+  const cached = await getOfflineCache<ConnectSuggestedContact[]>(
+    CONTACT_CACHE_KEY,
+    { userId, allowStale: true },
+  );
+  if (!cached || Date.now() - cached.storedAt > MAX_STALE_AGE_MS ||
+      !Array.isArray(cached.data)) {
+    return [];
+  }
+
+  const rows = limitedContactRows(cached.data, 80);
+  contactMemory.set(userId, { at: cached.storedAt, requestedLimit: rows.length, rows });
+  return limitedContactRows(rows, limit);
+}
 
 function isMissingRpcError(message: string) {
   return /could not find the function|function.*does not exist|schema cache/i.test(
@@ -91,11 +131,10 @@ async function loadSuggestedFromPersonalThreads(): Promise<
 async function loadSuggestedFromScopeMembers(
   limit: number
 ): Promise<ConnectSuggestedContact[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const viewerId = user?.id;
+  // getSession is used only as a local identity hint. Supabase RLS and
+  // authenticated RPCs still enforce actual server-side authorization.
+  const { data: { session } } = await supabase.auth.getSession();
+  const viewerId = session?.user?.id;
 
   if (!viewerId) {
     return [];
@@ -334,10 +373,7 @@ export async function enrichConnectSuggestedContactsWithNotes(
 async function loadSuggestedContactsFallback(
   limit: number
 ): Promise<ConnectSuggestedContact[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { session } } = await supabase.auth.getSession();
   const [threads, scopeMembers] = await Promise.all([
     loadSuggestedFromPersonalThreads(),
     loadSuggestedFromScopeMembers(limit),
@@ -345,7 +381,7 @@ async function loadSuggestedContactsFallback(
 
   const merged = dedupeContacts(
     [...scopeMembers, ...threads],
-    user?.id
+    session?.user?.id
   ).slice(0, limit);
 
   return attachCircleRanks(
@@ -356,16 +392,27 @@ async function loadSuggestedContactsFallback(
 export async function loadConnectSuggestedContacts(
   limit = 40
 ): Promise<ConnectSuggestedContact[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const safeLimit = Math.max(1, Math.min(80, Number(limit) || 40));
+  const { data: { session } } = await supabase.auth.getSession();
+  const viewerId = session?.user?.id;
+  if (!viewerId) return [];
 
+  const warm = contactMemory.get(viewerId);
+  if (warm && warm.requestedLimit >= safeLimit &&
+      Date.now() - warm.at < REFRESH_COALESCE_MS) {
+    return limitedContactRows(warm.rows, safeLimit);
+  }
+  const inFlightKey = `${viewerId}:${safeLimit}`;
+  const running = contactInFlight.get(inFlightKey);
+  if (running) return running;
+
+  const task = (async (): Promise<ConnectSuggestedContact[]> => {
   let rows: ConnectSuggestedContact[] = [];
 
   try {
     const { data, error } = await supabase.rpc(
       'buklod_connect_suggested_contacts_v1',
-      { p_limit: limit }
+      { p_limit: safeLimit }
     );
 
     if (!error) {
@@ -386,12 +433,33 @@ export async function loadConnectSuggestedContacts(
   }
 
   if (!rows.length) {
-    rows = await loadSuggestedContactsFallback(limit);
+    rows = await loadSuggestedContactsFallback(safeLimit);
   } else {
-    rows = dedupeContacts(rows, user?.id);
+    rows = dedupeContacts(rows, viewerId);
     rows = await attachQuickNotes(rows);
     rows = await attachCircleRanks(rows);
   }
 
-  return rows.slice(0, limit);
+  const result = limitedContactRows(rows, safeLimit);
+  // Do not replace good offline data with a transient failed/empty response.
+  // A late result from a previous signed-in account must not be persisted.
+  const { data: { session: currentSession } } = await supabase.auth.getSession();
+  if (result.length && currentSession?.user?.id === viewerId) {
+    contactMemory.set(viewerId, { at: Date.now(), requestedLimit: safeLimit, rows: result });
+    void setOfflineCache(CONTACT_CACHE_KEY, result, {
+      userId: viewerId,
+      ttlMs: CONTACT_CACHE_TTL_MS,
+    }).catch(() => undefined);
+  }
+  return result;
+  })();
+
+  contactInFlight.set(inFlightKey, task);
+  try {
+    return await task;
+  } finally {
+    if (contactInFlight.get(inFlightKey) === task) {
+      contactInFlight.delete(inFlightKey);
+    }
+  }
 }
