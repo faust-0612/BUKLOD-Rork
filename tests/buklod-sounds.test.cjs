@@ -35,6 +35,8 @@ test('Stream native ringing is configured without a duplicate incoming JS player
   const ringScreen = read('src/components/RingingCalls.tsx');
   assert.match(nativeConfig, /androidRingtone:.*buklod_incoming_call\.wav/);
   assert.match(nativeConfig, /iosRingtone:.*buklod_incoming_call\.wav/);
+  assert.match(nativeConfig, /versionCode: isStaging \? undefined : \(isClassroom \? 28 : 29\)/);
+  assert.match(nativeConfig, /runtimeVersion: isClassroom \? '1\.3\.0' : '1\.3\.3'/);
   assert.match(pushConfig, /buklod_incoming_calls_v3/);
   assert.match(ringScreen, /call\?\.isCreatedByMe/);
   assert.match(ringScreen, /CallingState\.RINGING/);

@@ -26,7 +26,7 @@
     "Submissions and approvals give explicit feedback without additional database round-trips",
     "Foreground push tones are deduplicated and active message threads are muted",
     "Outgoing ringback occurs only in Stream RINGING state and stops on accept, reject or exit",
-    "Incoming native Android and iOS ringtone is configured without double JS playback",
+    "Incoming native Android and iOS ringtone is configured without double JS playback; V29/runtime 1.3.3 isolates old V28 native resources",
     "Preferences persist locally and respect quiet hours, active calls and OS controls",
     "Run TypeScript, focused tests, native build checks, two-device call validation, RC and production gates before release"
   ]

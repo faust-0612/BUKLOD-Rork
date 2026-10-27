@@ -79,7 +79,8 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : 28,
+      // New native sound resources must ship in V29 before matching OTAs.
+      versionCode: isStaging ? undefined : (isClassroom ? 28 : 29),
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
@@ -399,9 +400,10 @@ module.exports = ({ config }) => {
         : undefined,
 
 
-    // Main BUKLOD 1.3.4 is native v28. Classroom stays on its own runtime.
-    // Installed V28 APK reports expo-updates runtime 1.3.2. Production OTAs must use that runtime.
-    runtimeVersion: isClassroom ? '1.3.0' : '1.3.2',
+    // Isolate the V29 native ringtone resources from installed V28 (1.3.2)
+    // clients. An OTA must never ask an old binary to resolve absent raw audio.
+    // Classroom retains its independent runtime and version code.
+    runtimeVersion: isClassroom ? '1.3.0' : '1.3.3',
   };
 };
 
