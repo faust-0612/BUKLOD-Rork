@@ -12,6 +12,7 @@ import {
 
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { colors } from '@/lib/theme';
+import { getBuklodCardTone, type BuklodCardToneName } from '@/lib/buklodCardTones';
 
 type LocalScope = {
   scope_id: string;
@@ -24,6 +25,16 @@ type Props = {
   selectedScopeId:string|null;
   onChange:(scopeId:string|null)=>void;
 };
+
+function localTone(level: LocalScope['geo_level']): BuklodCardToneName {
+  switch (level) {
+    case 'BARANGAY': return 'sky';
+    case 'MUNICIPALITY_CITY': return 'lavender';
+    case 'PROVINCE': return 'amber';
+    case 'COUNTRY': return 'teal';
+    default: return 'peach';
+  }
+}
 
 function weight(scope:LocalScope){
   switch(scope.geo_level){
@@ -63,14 +74,20 @@ export default function BuklodPublicLocationChips({selectedScopeId,onChange}:Pro
 
       {localScopes.map(scope=>{
         const on=selectedScopeId===scope.scope_id;
+        const tone = getBuklodCardTone(localTone(scope.geo_level));
         return <Pressable
           key={scope.scope_id}
           accessibilityRole="button"
           accessibilityLabel={`Filter Community to ${scope.name}`}
           onPress={()=>onChange(scope.scope_id)}
-          style={({pressed})=>[styles.chip,on&&styles.chipOn,pressed&&{opacity:.74}]}
+          style={({pressed})=>[
+            styles.chip,
+            {backgroundColor:tone.surface,borderColor:tone.border},
+            on&&{backgroundColor:tone.action,borderColor:tone.action},
+            pressed&&{opacity:.74},
+          ]}
         >
-          <Text numberOfLines={1} style={[styles.text,on&&styles.textOn]}>
+          <Text numberOfLines={1} style={[styles.text,{color:tone.ink},on&&styles.textOn]}>
             {String(scope.name).toUpperCase()}
           </Text>
         </Pressable>;

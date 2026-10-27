@@ -9,8 +9,15 @@ import {
   recordCommunityEconomyAnalytics,
   type CommunityContributionDashboard,
 } from '@/lib/buklodCommunityContributionEconomy';
+import { getBuklodCardTone } from '@/lib/buklodCardTones';
 
 /* BUKLOD_COMMUNITY_CONTRIBUTION_CARD_R1 */
+const contributionTone = getBuklodCardTone('teal');
+const monthTone = getBuklodCardTone('sky');
+const shareTone = getBuklodCardTone('lavender');
+const contentTone = getBuklodCardTone('peach');
+const impactTone = getBuklodCardTone('amber');
+const revenueTone = getBuklodCardTone('mint');
 
 export default function BuklodCommunityContributionCard() {
   const [data, setData] = useState<CommunityContributionDashboard | null>(null);
@@ -66,12 +73,12 @@ export default function BuklodCommunityContributionCard() {
           <Text style={s.metricValue}>{data.this_month_qmp}</Text>
           <Text style={s.metricLabel}>THIS MONTH QMP</Text>
         </View>
-        <View style={s.metric}>
-          <Text style={s.metricValue}>{weightPct.toFixed(weightPct < 0.01 ? 4 : 2)}%</Text>
+        <View style={[s.metric, { backgroundColor: shareTone.surface }]}>
+          <Text style={[s.metricValue, { color: shareTone.ink }]}>{weightPct.toFixed(weightPct < 0.01 ? 4 : 2)}%</Text>
           <Text style={s.metricLabel}>SHARE WEIGHT</Text>
         </View>
-        <View style={s.metric}>
-          <Text style={s.metricValue}>{data.qualified_posts + data.qualified_videos}</Text>
+        <View style={[s.metric, { backgroundColor: contentTone.surface }]}>
+          <Text style={[s.metricValue, { color: contentTone.ink }]}>{data.qualified_posts + data.qualified_videos}</Text>
           <Text style={s.metricLabel}>QUALIFIED CONTENT</Text>
         </View>
       </View>
@@ -93,11 +100,13 @@ export default function BuklodCommunityContributionCard() {
       </View>
 
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="How to increase my community share"
         onPress={() => {
           void recordCommunityEconomyAnalytics('increase_share_opened', { period_key: data.period?.key });
           router.push('/community-contribution?guide=1' as any);
         }}
-        style={s.secondary}
+        style={({ pressed }) => [s.secondary, pressed && { opacity: 0.82 }]}
       >
         <Text style={s.secondaryText}>HOW CAN I INCREASE MY SHARE?</Text>
       </Pressable>
@@ -106,19 +115,19 @@ export default function BuklodCommunityContributionCard() {
 }
 
 const s = StyleSheet.create({
-  shell:{marginTop:10,marginBottom:12,borderWidth:1,borderColor:'#D7E5DD',borderRadius:16,backgroundColor:'#FFF',padding:12,gap:9},
+  shell:{marginTop:10,marginBottom:12,borderWidth:1,borderColor:contributionTone.border,borderRadius:16,backgroundColor:contributionTone.surface,padding:12,gap:9},
   head:{flexDirection:'row',alignItems:'center',gap:9},
-  icon:{width:36,height:36,borderRadius:18,backgroundColor:'#EAF4EE',alignItems:'center',justifyContent:'center'},
+  icon:{width:36,height:36,borderRadius:18,backgroundColor:contributionTone.soft,alignItems:'center',justifyContent:'center'},
   eyebrow:{fontSize:11,fontWeight:'900',color:'#173C2C',letterSpacing:.4},
   sub:{marginTop:2,fontSize:9.5,lineHeight:13,color:'#6E7C74'},
   level:{fontSize:8,fontWeight:'900',color:'#1E6B45',backgroundColor:'#EAF4EE',borderRadius:99,paddingHorizontal:7,paddingVertical:5,overflow:'hidden'},
   metrics:{flexDirection:'row',gap:6},
-  metric:{flex:1,minHeight:56,borderRadius:12,backgroundColor:'#F7FAF8',padding:8,justifyContent:'center'},
-  metricValue:{fontSize:15,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:7,fontWeight:'900',color:'#7A887F'},
-  impact:{borderRadius:12,borderWidth:1,borderColor:'#E2EBE6',backgroundColor:'#FBFDFC',padding:9},
-  impactTitle:{fontSize:8,fontWeight:'900',color:'#4C6859'},
+  metric:{flex:1,minHeight:56,borderRadius:12,backgroundColor:monthTone.surface,padding:8,justifyContent:'center'},
+  metricValue:{fontSize:15,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:7,fontWeight:'900',color:'#4B5B56'},
+  impact:{borderRadius:12,borderWidth:1,borderColor:impactTone.border,backgroundColor:impactTone.surface,padding:9},
+  impactTitle:{fontSize:8,fontWeight:'900',color:impactTone.ink},
   impactText:{marginTop:3,fontSize:8.5,lineHeight:12,color:'#5F7066'},
-  estimate:{borderRadius:12,backgroundColor:'#F1F7F3',padding:10}, estimateLabel:{fontSize:8,fontWeight:'900',color:'#4C6859'},
-  estimateValue:{marginTop:2,fontSize:17,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:7,lineHeight:10,fontWeight:'900',color:'#7A6A32'},
-  secondary:{minHeight:34,borderRadius:10,borderWidth:1,borderColor:'#CFE0D6',alignItems:'center',justifyContent:'center',paddingHorizontal:8}, secondaryText:{color:'#1E6B45',fontSize:8.5,fontWeight:'900'},
+  estimate:{borderRadius:12,backgroundColor:revenueTone.surface,padding:10}, estimateLabel:{fontSize:8,fontWeight:'900',color:revenueTone.ink},
+  estimateValue:{marginTop:2,fontSize:17,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:7,lineHeight:10,fontWeight:'900',color:'#66501D'},
+  secondary:{minHeight:34,borderRadius:10,borderWidth:1,borderColor:shareTone.border,backgroundColor:shareTone.soft,alignItems:'center',justifyContent:'center',paddingHorizontal:8}, secondaryText:{color:shareTone.ink,fontSize:8.5,fontWeight:'900'},
 });

@@ -96,6 +96,7 @@ import {
 import {
   withAlpha,
 } from '@/lib/buklodContrast';
+import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
 
 type Props = {
   lifetimePoints?: number;
@@ -114,7 +115,11 @@ export default function BuklodProfileCharacterCard({
   lifetimePoints = 0,
   rankName = null,
 }: Props) {
-  const { theme } = useBuklodPresentation();
+  const { theme, paletteId } = useBuklodPresentation();
+  const darkCards = isBuklodDarkPaletteId(paletteId);
+  const characterTone = getBuklodCardTone('sky', darkCards);
+  const customizeTone = getBuklodCardTone('lavender', darkCards);
+  const pointsTone = getBuklodCardTone('amber', darkCards);
   const { session } = useAuth();
   const [focused, setFocused] = useState(false);
   const characterEvents = useBuklodCharacterEventsOptional();
@@ -283,8 +288,8 @@ export default function BuklodProfileCharacterCard({
       paddingBottom: 13,
       borderRadius: 18,
       borderWidth: 1,
-      borderColor: theme.border,
-      backgroundColor: withAlpha(theme.cardSurface, 0.88),
+      borderColor: characterTone.border,
+      backgroundColor: characterTone.surface,
     },
     eyebrow: {
       fontSize: 9,
@@ -340,14 +345,14 @@ export default function BuklodProfileCharacterCard({
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
-      backgroundColor: theme.accentSoft,
+      backgroundColor: customizeTone.soft,
       borderWidth: 1,
-      borderColor: withAlpha(theme.accent, 0.25),
+      borderColor: customizeTone.border,
     },
     customizeText: {
       fontSize: 11,
       fontWeight: '900',
-      color: theme.accent,
+      color: customizeTone.ink,
     },
     pointsSection: {
       marginTop: 10,
@@ -371,7 +376,7 @@ export default function BuklodProfileCharacterCard({
     fullRankingText: {
       fontSize: 10,
       fontWeight: '900',
-      color: theme.accent,
+      color: characterTone.ink,
     },
     summaryRow: {
       flexDirection: 'row',
@@ -569,7 +574,7 @@ export default function BuklodProfileCharacterCard({
                   <MaterialCommunityIcons
                     name="palette-outline"
                     size={16}
-                    color={theme.accent}
+                    color={customizeTone.ink}
                   />
                   <Text style={styles.customizeText}>
                     Customize
@@ -596,7 +601,7 @@ export default function BuklodProfileCharacterCard({
               </View>
 
               <View style={styles.summaryRow}>
-                <View style={styles.summaryChip}>
+                <View style={[styles.summaryChip, { backgroundColor: customizeTone.surface, borderColor: customizeTone.border }]}>
                   <View style={styles.rankSummaryHeader}>
                     <Text style={styles.summaryLabel}>
                       CURRENT RANK
@@ -625,7 +630,7 @@ export default function BuklodProfileCharacterCard({
                   </Text>
                 </View>
 
-                <View style={styles.summaryChip}>
+                <View style={[styles.summaryChip, { backgroundColor: pointsTone.surface, borderColor: pointsTone.border }]}>
                   <Text style={styles.summaryLabel}>
                     LIFETIME POINTS
                   </Text>

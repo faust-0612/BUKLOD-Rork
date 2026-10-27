@@ -34,6 +34,7 @@ import { clusterScopeManageRoute } from '@/lib/buklodCluster';
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useAuth } from '@/providers/AuthProvider';
+import { getBuklodCardTone, getStableBuklodCardTone, type BuklodCardToneName } from '@/lib/buklodCardTones';
 
 function messageOf(error: unknown) {
   if (
@@ -56,9 +57,10 @@ function StatusBadge({
 }: {
   text: string;
 }) {
+  const badgeTone = getBuklodCardTone(text.toUpperCase() === 'PRIVATE' ? 'lavender' : 'mint');
   return (
-    <View style={styles.badge}>
-      <Text style={styles.badgeText}>
+    <View style={[styles.badge, { backgroundColor: badgeTone.soft }]}>
+      <Text style={[styles.badgeText, { color: badgeTone.ink }]}>
         {text}
       </Text>
     </View>
@@ -71,21 +73,28 @@ function ActionButton({
   disabled,
   danger,
   outline,
+  tone,
 }: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
   danger?: boolean;
   outline?: boolean;
+  tone?: BuklodCardToneName;
 }) {
+  const accent = tone ? getBuklodCardTone(tone) : null;
   return (
     <Pressable
+      accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.actionButton,
         outline && styles.actionButtonOutline,
+        outline && accent && { backgroundColor: accent.soft, borderColor: accent.action },
+        !outline && accent && { backgroundColor: accent.action },
         danger && styles.actionButtonDanger,
+        pressed && { opacity: 0.8 },
         disabled && styles.disabled,
       ]}
     >
@@ -93,6 +102,7 @@ function ActionButton({
         style={[
           styles.actionText,
           outline && styles.actionTextOutline,
+          outline && accent && { color: accent.ink },
         ]}
       >
         {title}
@@ -110,6 +120,7 @@ function ClusterCard({
   onOpen?: (id: string) => void;
   children?: React.ReactNode;
 }) {
+  const accent = getBuklodCardTone(getStableBuklodCardTone(item.scope_id));
   return (
     <Pressable
       onPress={() =>
@@ -117,7 +128,7 @@ function ClusterCard({
           ? onOpen?.(item.scope_id)
           : undefined
       }
-      style={styles.card}
+      style={[styles.card, { backgroundColor: accent.surface, borderColor: accent.border }]}
     >
       <View style={styles.cardTitleRow}>
         <View style={{ flex: 1 }}>
@@ -482,6 +493,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
                     <ActionButton
                       title="MANAGE"
                       outline
+                      tone={getStableBuklodCardTone(item.scope_id)}
                       onPress={() =>
                         router.push(
                           clusterScopeManageRoute(

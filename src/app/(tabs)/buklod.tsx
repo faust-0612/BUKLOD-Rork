@@ -73,6 +73,7 @@ import { useBuklodCommunityAdViewability } from '@/hooks/useBuklodCommunityAdVie
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
 import BuklodCommunityContributionCard from '@/components/BuklodCommunityContributionCard';
+import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
 import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import BuklodLifeWallCard from '@/components/BuklodLifeWallCard';
 import KabihasnangLigawWallCard from '@/components/KabihasnangLigawWallCard';
@@ -461,6 +462,8 @@ function LegacyPublicBuklodScreen(){
   shared,
   paletteId,
  }=useBuklodPresentation();
+ const wallComposerTone = getBuklodCardTone('peach', isBuklodDarkPaletteId(paletteId));
+ const wallGalleryTone = getBuklodCardTone('sky', isBuklodDarkPaletteId(paletteId));
  const { showFeedback }=useBuklodFeedback();
  const {
   unreadCount: connectUnread,
@@ -4789,7 +4792,7 @@ const communityFeedRows =
           setPublicLocationScopeId
         }
       />
-   <SectionTitle>SHARE SOMETHING</SectionTitle><Card>
+   <SectionTitle>SHARE SOMETHING</SectionTitle><Card style={{ backgroundColor: wallComposerTone.surface, borderColor: wallComposerTone.border }}>
 <BuklodMentionField
  focusRef={composerInputRef}
  value={body}
@@ -4820,12 +4823,13 @@ const communityFeedRows =
       ]}
     >
      <Pressable
-      style={s.tool}
+      style={({ pressed }) => [s.tool, { backgroundColor: wallGalleryTone.soft, borderColor: wallGalleryTone.border }, pressed && { opacity: 0.8 }]}
+      accessibilityRole="button"
       disabled={busy || videoBusy186O}
       onPress={()=>void pickWallGallery186O()}
      >
-      <MaterialCommunityIcons name="image-multiple-outline" size={17} color={colors.green}/>
-      <Text style={s.toolText}>
+      <MaterialCommunityIcons name="image-multiple-outline" size={17} color={wallGalleryTone.ink}/>
+      <Text style={[s.toolText, { color: wallGalleryTone.ink }]}>
        {videoBusy186O
         ? 'Preparing...'
         : 'Gallery'}

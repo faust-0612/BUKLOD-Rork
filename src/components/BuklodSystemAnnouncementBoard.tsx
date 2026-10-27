@@ -20,6 +20,7 @@ import {
   type SystemAnnouncementSlot,
 } from '@/lib/buklodSystemAnnouncementBoard';
 import { colors } from '@/lib/theme';
+import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
@@ -33,7 +34,9 @@ export function BuklodSystemAnnouncementBoard({
   slot,
   style,
 }: Props) {
-  const { theme } = useBuklodTheme();
+  const { theme, paletteId } = useBuklodTheme();
+  const announcementTone = getBuklodCardTone('amber', isBuklodDarkPaletteId(paletteId));
+  const editTone = getBuklodCardTone('sky', isBuklodDarkPaletteId(paletteId));
   const { hasRole } = useAuth();
   const { activeScope } = useBuklodScope();
   const canEdit = hasRole('system_admin');
@@ -84,11 +87,11 @@ export function BuklodSystemAnnouncementBoard({
           borderColor:
             slot === 'public_home'
               ? colors.greenDark
-              : theme.border,
+              : announcementTone.border,
           backgroundColor:
             slot === 'public_home'
               ? '#F4FBF7'
-              : theme.cardSurface,
+              : announcementTone.surface,
           paddingHorizontal: slot === 'public_home' ? 18 : 14,
           paddingVertical: slot === 'public_home' ? 16 : 12,
         },
@@ -99,7 +102,7 @@ export function BuklodSystemAnnouncementBoard({
           color:
             slot === 'public_home'
               ? colors.greenDark
-              : theme.textMuted,
+              : announcementTone.ink,
           marginBottom: slot === 'public_home' ? 8 : 6,
         },
         message: {
@@ -117,11 +120,18 @@ export function BuklodSystemAnnouncementBoard({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 6,
+          minHeight: 36,
+          alignSelf: 'center',
+          paddingHorizontal: 12,
+          borderRadius: 10,
+          backgroundColor: editTone.soft,
+          borderWidth: 1,
+          borderColor: editTone.border,
         },
         editText: {
           fontSize: 11,
           fontWeight: '900',
-          color: colors.greenDark,
+          color: editTone.ink,
         },
         adminSetup: {
           marginHorizontal: slot === 'public_home' ? 12 : 0,
@@ -129,11 +139,11 @@ export function BuklodSystemAnnouncementBoard({
           marginBottom: slot === 'public_home' ? 2 : 10,
           borderRadius: 14,
           borderWidth: 1,
-          borderColor: withAlpha(colors.greenDark, 0.25),
+          borderColor: announcementTone.border,
           borderStyle: 'dashed',
           paddingHorizontal: 14,
           paddingVertical: 12,
-          backgroundColor: withAlpha(colors.greenDark, 0.04),
+          backgroundColor: announcementTone.surface,
         },
         adminSetupText: {
           fontSize: 12,
@@ -147,7 +157,7 @@ export function BuklodSystemAnnouncementBoard({
           marginTop: 4,
         },
       }),
-    [slot, theme]
+    [slot, theme, announcementTone, editTone]
   );
 
   const publicQuizDoor = showPublicQuizDoor ? (
@@ -183,7 +193,7 @@ export function BuklodSystemAnnouncementBoard({
             <MaterialCommunityIcons
               name="bullhorn-outline"
               size={14}
-              color={colors.greenDark}
+              color={editTone.ink}
             />
           </View>
         </Pressable>
@@ -216,7 +226,7 @@ export function BuklodSystemAnnouncementBoard({
               <MaterialCommunityIcons
                 name="pencil-outline"
                 size={14}
-                color={colors.greenDark}
+                color={editTone.ink}
               />
             </Pressable>
           )}
@@ -225,20 +235,6 @@ export function BuklodSystemAnnouncementBoard({
       {publicQuizDoor}
     </>
   );
-}
-
-function withAlpha(hex: string, alpha: number) {
-  const normalized = hex.replace('#', '');
-
-  if (normalized.length !== 6) {
-    return hex;
-  }
-
-  const r = parseInt(normalized.slice(0, 2), 16);
-  const g = parseInt(normalized.slice(2, 4), 16);
-  const b = parseInt(normalized.slice(4, 6), 16);
-
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 export function BuklodSystemAnnouncementBoardLoader() {
