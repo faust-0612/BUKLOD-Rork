@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 
 import BuklodPersonVisitSheet from '@/components/BuklodPersonVisitSheet';
 import { ConnectPressable } from '@/components/connect/ConnectPressable';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
-import { visitMemberProfile } from '@/lib/buklodMemberProfile';
 import {
   BUKLOD_HIT_SLOP_AVATAR,
   BUKLOD_LONG_PRESS_MS,
@@ -17,6 +17,7 @@ type Props = {
   uri?: string | null;
   name?: string | null;
   size?: number;
+  shape?: 'circle' | 'rounded';
   fallbackSource?: number | { uri: string } | null;
   onPress?: (() => void) | null;
   enableLongPressSheet?: boolean;
@@ -37,6 +38,7 @@ export function ConnectTappableAvatar({
   uri,
   name,
   size = 48,
+  shape = 'circle',
   fallbackSource,
   onPress,
   enableLongPressSheet,
@@ -51,16 +53,22 @@ export function ConnectTappableAvatar({
         void Haptics.selectionAsync().catch(() => undefined);
         setSheetOpen(true);
       }
-    : resolvedUserId
-      ? () => {
-          void Haptics.selectionAsync().catch(() => undefined);
-          visitMemberProfile(resolvedUserId, name);
-        }
-      : undefined;
+    : undefined;
+
+  const openConversation = resolvedUserId
+    ? () => router.push({
+        pathname: '/connect/personal/[threadId]' as any,
+        params: {
+          threadId: 'new',
+          targetUserId: resolvedUserId,
+          otherUserName: name ?? '',
+        },
+      } as any)
+    : undefined;
 
   const tapHandler = onPress === null
     ? undefined
-    : (onPress ?? openProfileSheet);
+    : (onPress ?? openConversation);
 
   const interactive = !!tapHandler || !!openProfileSheet;
 
@@ -70,6 +78,7 @@ export function ConnectTappableAvatar({
       uri={uri}
       name={name}
       size={size}
+      shape={shape}
       fallbackSource={fallbackSource}
     />
   );
@@ -91,8 +100,8 @@ export function ConnectTappableAvatar({
         accessibilityRole="button"
         accessibilityLabel={
           name
-            ? `${name} avatar. Tap to open conversation.`
-            : 'Member avatar. Tap to open conversation.'
+            ? `${name} avatar. Tap to message. Long press for profile.`
+            : 'Member avatar. Tap to message. Long press for profile.'
         }
         enableScale={false}
         instant={false}
@@ -104,7 +113,7 @@ export function ConnectTappableAvatar({
         style={{
           width: size,
           height: size,
-          borderRadius: size / 2,
+          borderRadius: shape === 'rounded' ? Math.round(size * 0.2) : size / 2,
           overflow: 'hidden',
         }}
       >

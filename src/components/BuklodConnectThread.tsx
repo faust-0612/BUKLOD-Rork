@@ -833,9 +833,7 @@ function BuklodConnectThreadInner({
 
         try {
           /* PATCH_175A_R2_DIRECT_CALL_CLIENT_READY */
-          const callClient =
-            directVideoClient ??
-            await ensureBuklodStreamVideoClient();
+          const callClient = await ensureBuklodStreamVideoClient();
 
           /*
            * If any normal BUKLOD call is already live,

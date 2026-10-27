@@ -64,7 +64,8 @@ function createStyles(theme: ConnectThemeRoles) {
       width: 10,
       height: 10,
       borderRadius: 5,
-      backgroundColor: HIBLA.jade,
+      // An unread marker, never an unverified online-presence badge.
+      backgroundColor: '#D89B24',
       borderWidth: 1,
       borderColor: HIBLA.paper,
     },
@@ -146,13 +147,14 @@ export function ConnectInboxRow({
 
   return (
     <View style={[styles.row, unread > 0 && styles.unreadRow]}>
-      <View pointerEvents="none" style={styles.threadNode} />
+      {unread > 0 && <View pointerEvents="none" style={styles.threadNode} />}
       <ConnectTappableAvatar
         userId={userId}
         uri={avatarUri}
         name={name}
         size={52}
         shape="rounded"
+        onPress={onPressRow}
       />
 
       <ConnectPressable

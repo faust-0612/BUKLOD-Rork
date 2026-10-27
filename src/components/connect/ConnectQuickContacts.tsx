@@ -519,7 +519,7 @@ function ContactColumn({
           size={AVATAR_SIZE}
           shape="rounded"
           enableLongPressSheet={!isSelf}
-          onPress={isSelf ? null : undefined}
+          onPress={isSelf ? null : () => onOpenContact?.(contact)}
         />
 
         {!isSelf && unread > 0 && (

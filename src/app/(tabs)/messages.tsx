@@ -16,9 +16,6 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import {
-  useStreamVideoClient,
-} from '@/lib/streamVideoSdk';
 import { ensureBuklodStreamVideoClient } from '@/lib/buklodStreamVideoClient';
 import {
   buildBuklodPersonalCallId,
@@ -92,6 +89,7 @@ import {
   BuklodFocusVisibleRow,
 } from '@/components/HomeMotion';
 import { HIBLA } from '@/lib/connectHibla';
+import { partitionConnectInboxThreads } from '@/lib/connectInboxClassification';
 
 type PersonalThread = {
   thread_id: string;
@@ -540,9 +538,10 @@ function ConnectScreenInner({
     isConnected && isInternetReachable !== false;
   const profileId = (profile as any)?.id as string | undefined;
   const [tab, setTab] =
-    useState<'personal' | 'community'>(forcedScopeId ? 'community' : 'personal');
+    useState<'personal' | 'community' | 'requests'>(forcedScopeId ? 'community' : 'personal');
   const [personal, setPersonal] =
     useState<PersonalThread[]>([]);
+  const [requestThreadIds, setRequestThreadIds] = useState<string[]>([]);
   const [rooms, setRooms] =
     useState<CommunityRoom[]>([]);
   const [query, setQuery] = useState('');
@@ -565,6 +564,7 @@ function ConnectScreenInner({
   useEffect(() => {
     // Do not show the previous account or previous scoped room after a switch.
     setPersonal([]);
+    setRequestThreadIds([]);
     setRooms([]);
     setSuggestedContacts([]);
   }, [connectContext]);
@@ -578,6 +578,7 @@ function ConnectScreenInner({
 
     void getOfflineCache<{
       personal: PersonalThread[];
+      requestThreadIds?: string[];
       rooms: CommunityRoom[];
     }>(
       connectHubOfflineCacheKey,
@@ -597,6 +598,10 @@ function ConnectScreenInner({
               ? current
               : cached.data.personal
           );
+        }
+
+        if (cached.data.requestThreadIds?.length) {
+          setRequestThreadIds(cached.data.requestThreadIds);
         }
 
         if (cached.data.rooms?.length) {
@@ -645,6 +650,7 @@ function ConnectScreenInner({
           connectHubOfflineCacheKey,
           {
             personal,
+            requestThreadIds,
             rooms,
           },
           {
@@ -662,6 +668,7 @@ function ConnectScreenInner({
     connectHubOfflineCacheKey,
     personal,
     profileId,
+    requestThreadIds,
     rooms,
   ]);
   const searchInputRef =
@@ -683,7 +690,7 @@ function ConnectScreenInner({
     }
 
     const requestedContext = connectContext;
-    const [p, r, suggested] = await Promise.all([
+    const [p, r, suggested, requests] = await Promise.all([
       withBuklodTimeout<any>(
         (supabase as any).rpc(
           'buklod_connect_personal_threads'
@@ -703,6 +710,11 @@ function ConnectScreenInner({
         6000,
         'Connect people'
       ).catch(() => [] as ConnectSuggestedContact[]),
+      withBuklodTimeout<any>(
+        (supabase as any).rpc('buklod_connect_message_requests_v1'),
+        6000,
+        'Connect message requests'
+      ).catch(() => ({ data: null, error: { message: 'offline' } })),
     ]);
 
     if (connectContextRef.current !== requestedContext) return;
@@ -746,6 +758,12 @@ function ConnectScreenInner({
           unread_count: n(x.unread_count),
         }))
       );
+    }
+
+    if (!requests.error && Array.isArray(requests.data)) {
+      setRequestThreadIds(requests.data
+        .map((row: any) => String(row.thread_id ?? '').trim())
+        .filter(Boolean));
     }
 
     if (!r.error) {
@@ -957,7 +975,6 @@ function ConnectScreenInner({
     setRefreshing(false);
   };
 
-  const videoClient = useStreamVideoClient();
   const [callingUserId, setCallingUserId] =
     useState<string | null>(null);
 
@@ -972,9 +989,7 @@ function ConnectScreenInner({
     setCallingUserId(userId);
 
     try {
-      const callClient =
-        videoClient ??
-        (await ensureBuklodStreamVideoClient());
+      const callClient = await ensureBuklodStreamVideoClient();
 
       if (
         restoreActiveNonPttCallIfAny(
@@ -1144,20 +1159,26 @@ function ConnectScreenInner({
   );
 
   const isSearching = query.trim().length >= 2;
-  const priorityThread = !isSearching
-    ? personal.find(item => n(item.unread_count) > 0) ?? null
+  const { requests: requestThreads, personal: regularThreads } =
+    partitionConnectInboxThreads(personal, requestThreadIds);
+  const priorityThread = tab === 'personal' && !isSearching
+    ? regularThreads.find(item => n(item.unread_count) > 0) ?? null
     : null;
   const personalListData = (
     isSearching
       ? people
-      : personal.filter(item => item.thread_id !== priorityThread?.thread_id)
+      : tab === 'requests'
+        ? requestThreads
+        : regularThreads.filter(item => item.thread_id !== priorityThread?.thread_id)
   ) as any[];
 
   const sectionLabel =
     communitySectionLabel(communityFilter);
-  const unreadTotal = tab === 'personal'
-    ? personal.reduce((total, item) => total + n(item.unread_count), 0)
-    : visibleRooms.reduce((total, item) => total + n(item.unread_count), 0);
+  const unreadTotal = tab === 'requests'
+    ? requestThreads.reduce((total, item) => total + n(item.unread_count), 0)
+    : tab === 'personal'
+      ? regularThreads.reduce((total, item) => total + n(item.unread_count), 0)
+      : visibleRooms.reduce((total, item) => total + n(item.unread_count), 0);
 
   const renderHiblaHeader = (community: boolean) => (
     <>
@@ -1186,7 +1207,7 @@ function ConnectScreenInner({
           <ConnectThemeSelectorButton />
         </View>
       </View>
-      {!community && !isSearching && (
+      {tab === 'personal' && !community && !isSearching && (
         <>
           <Text style={styles.contactsTitle}>Mga kasama</Text>
           <ConnectSuggestedContacts
@@ -1203,6 +1224,7 @@ function ConnectScreenInner({
       )}
       <ConnectInboxTabs
         tab={tab}
+        requestCount={requestThreads.length}
         communityFilter={communityFilter}
         onTabChange={setTab}
         onCommunityFilterChange={setCommunityFilter}
@@ -1212,6 +1234,11 @@ function ConnectScreenInner({
       )}
       {community && !!sectionLabel && (
         <Text style={styles.sectionLabel}>{sectionLabel}</Text>
+      )}
+      {tab === 'requests' && !isSearching && (
+        <Text style={styles.sectionLabel}>
+          Mga unang mensahe mula sa hindi mo pa nakakausap. Kapag sumagot ka, lilipat sa Personal.
+        </Text>
       )}
       {!community && priorityThread && (
         <ConnectPressable
@@ -1227,7 +1254,7 @@ function ConnectScreenInner({
         </ConnectPressable>
       )}
       <Text style={styles.sectionTitle}>
-        {community ? 'Mga grupong usapan' : isSearching ? 'Mga resulta' : 'Mga usapan'}
+        {community ? 'Mga grupong usapan' : isSearching ? 'Mga resulta' : tab === 'requests' ? 'Message Requests' : 'Mga usapan'}
       </Text>
     </>
   );
@@ -1235,7 +1262,7 @@ function ConnectScreenInner({
   return (
     <ConnectThreadBackground style={styles.screen}>
       <View style={styles.body}>
-        {tab === 'personal' ? (
+        {tab !== 'community' ? (
           <>
 
 
@@ -1274,11 +1301,14 @@ function ConnectScreenInner({
                   <Text style={styles.emptyTitle}>
                     {isSearching
                       ? 'No user found'
-                      : 'No personal conversations yet'}
+                      : tab === 'requests'
+                        ? 'Walang message requests'
+                        : 'No personal conversations yet'}
                   </Text>
                   <Text style={styles.emptyText}>
-                    Search a BUKLOD user to start a
-                    personal conversation.
+                    {tab === 'requests'
+                      ? 'Dito lang lalabas ang unang mensahe ng taong wala ka pang dating usapan.'
+                      : 'Search a BUKLOD user to start a personal conversation.'}
                   </Text>
                 </View>
               }
