@@ -71,7 +71,9 @@ async function functionErrorMessage(error: any, fallback: string) {
 
 export default function AdminAccountRecoveryScreen() {
   const { hasRole } = useAuth();
-  const verifyInFlight = useRef(false);
+  const actionInFlight = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const [confirmation, setConfirmation] = useState<{ action: 'verify' | 'reject'; requestId: string } | null>(null);
   const [rows, setRows] = useState<RecoveryRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,6 +91,7 @@ export default function AdminAccountRecoveryScreen() {
       }
       if (!data?.ok) throw new Error(data?.message ?? 'Could not load recovery requests.');
       setRows(Array.isArray(data.requests) ? data.requests : []);
+      setConfirmation(null);
       if (refresh) setStatusText('Recovery requests refreshed.');
     } catch (error: any) {
       const message = String(error?.message ?? error ?? 'Could not load requests.');
@@ -105,8 +108,12 @@ export default function AdminAccountRecoveryScreen() {
     else setLoading(false);
   }, [hasRole, load]);
 
+  useEffect(() => {
+    if (statusText) scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }, [statusText]);
+
   const verifyAccount = async (row: RecoveryRequest) => {
-    if (verifyInFlight.current || busyId) return;
+    if (actionInFlight.current || busyId) return;
 
     if (row.needs_match || !row.user_id) {
       const message = row.birth_date
@@ -125,7 +132,7 @@ export default function AdminAccountRecoveryScreen() {
     }
 
     const run = async () => {
-      verifyInFlight.current = true;
+      actionInFlight.current = true;
       setBusyId(row.id);
       setStatusText(`Verifying ${row.full_name || 'this member'} and preparing automatic code delivery…`);
 
@@ -154,30 +161,20 @@ export default function AdminAccountRecoveryScreen() {
         setStatusText(`ERROR: ${message}`);
         if (Platform.OS !== 'web') Alert.alert('Account Recovery', message);
       } finally {
-        verifyInFlight.current = false;
+        actionInFlight.current = false;
         setBusyId(null);
       }
     };
 
-    if (Platform.OS === 'web') {
-      void run();
-      return;
-    }
-
-    Alert.alert(
-      'Verify This Account Owner?',
-      'Continue only after you have verified that this person owns the matched BUKLOD account. BUKLOD will automatically generate and deliver the recovery code to the member’s waiting recovery screen.',
-      [
-        { text: 'CANCEL', style: 'cancel' },
-        { text: 'VERIFY', onPress: () => void run() },
-      ]
-    );
+    void run();
   };
 
   const rejectRequest = (row: RecoveryRequest) => {
     const run = async () => {
-      if (busyId) return;
+      if (actionInFlight.current || busyId) return;
+      actionInFlight.current = true;
       setBusyId(row.id);
+      setStatusText('Rejecting this recovery request…');
       try {
         const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
           body: { action: 'admin_reject_request', requestId: row.id },
@@ -193,23 +190,12 @@ export default function AdminAccountRecoveryScreen() {
         setStatusText(`ERROR: ${message}`);
         if (Platform.OS !== 'web') Alert.alert('Account Recovery', message);
       } finally {
+        actionInFlight.current = false;
         setBusyId(null);
       }
     };
 
-    if (Platform.OS === 'web') {
-      void run();
-      return;
-    }
-
-    Alert.alert(
-      'Reject Recovery Request?',
-      'Reject only when identity cannot be verified or the request appears suspicious.',
-      [
-        { text: 'CANCEL', style: 'cancel' },
-        { text: 'REJECT', style: 'destructive', onPress: () => void run() },
-      ]
-    );
+    void run();
   };
 
   if (!hasRole('system_admin')) {
@@ -223,6 +209,7 @@ export default function AdminAccountRecoveryScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />}
@@ -312,37 +299,70 @@ export default function AdminAccountRecoveryScreen() {
                 </View>
               )}
 
-              <Pressable
-                onPress={() => void verifyAccount(row)}
-                disabled={busyId !== null || !canVerify}
-                hitSlop={10}
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.primary,
-                  pressed && busyId === null && canVerify && styles.pressed,
-                  (busyId !== null || !canVerify) && styles.disabled,
-                ]}
-              >
-                {busyId === row.id ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="account-check-outline" size={19} color="#FFFFFF" />
-                    <Text style={styles.primaryText}>{buttonLabel}</Text>
-                  </>
-                )}
-              </Pressable>
+              {confirmation?.requestId === row.id ? (
+                <View style={styles.confirmCard}>
+                  <Text style={styles.confirmTitle}>
+                    {confirmation.action === 'verify' ? 'Confirm verified identity' : 'Confirm rejection'}
+                  </Text>
+                  <Text style={styles.confirmText}>
+                    {confirmation.action === 'verify'
+                      ? 'Proceed only after confirming this person owns the matched account. A one-time code will be securely delivered to the member’s waiting recovery screen.'
+                      : 'Reject only if ownership cannot be verified or the request appears suspicious. The member will see the outcome.'}
+                  </Text>
+                  <View style={styles.confirmActions}>
+                    <Pressable accessibilityRole="button" onPress={() => setConfirmation(null)} style={styles.confirmCancel}>
+                      <Text style={styles.confirmCancelText}>CANCEL</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={busyId !== null}
+                      onPress={() => {
+                        const action = confirmation.action;
+                        setConfirmation(null);
+                        if (action === 'verify') void verifyAccount(row);
+                        else rejectRequest(row);
+                      }}
+                      style={[styles.confirmProceed, busyId !== null && styles.disabled]}
+                    >
+                      <Text style={styles.primaryText}>{confirmation.action === 'verify' ? 'CONFIRM VERIFY' : 'CONFIRM REJECT'}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  <Pressable
+                    onPress={() => setConfirmation({ action: 'verify', requestId: row.id })}
+                    disabled={busyId !== null || !canVerify}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                      styles.primary,
+                      pressed && busyId === null && canVerify && styles.pressed,
+                      (busyId !== null || !canVerify) && styles.disabled,
+                    ]}
+                  >
+                    {busyId === row.id ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="account-check-outline" size={19} color="#FFFFFF" />
+                        <Text style={styles.primaryText}>{buttonLabel}</Text>
+                      </>
+                    )}
+                  </Pressable>
 
-              <Pressable
-                onPress={() => rejectRequest(row)}
-                disabled={busyId !== null}
-                hitSlop={8}
-                accessibilityRole="button"
-                style={[styles.reject, busyId !== null && styles.disabled]}
-              >
-                <MaterialCommunityIcons name="close-circle-outline" size={18} color="#A62828" />
-                <Text style={styles.rejectText}>REJECT / CANNOT VERIFY</Text>
-              </Pressable>
+                  <Pressable
+                    onPress={() => setConfirmation({ action: 'reject', requestId: row.id })}
+                    disabled={busyId !== null}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    style={[styles.reject, busyId !== null && styles.disabled]}
+                  >
+                    <MaterialCommunityIcons name="close-circle-outline" size={18} color="#A62828" />
+                    <Text style={styles.rejectText}>REJECT / CANNOT VERIFY</Text>
+                  </Pressable>
+                </>
+              )}
             </View>
           );
         })
@@ -400,6 +420,13 @@ const styles = StyleSheet.create({
   warningCardText: { flex: 1, color: '#6F4B00', fontSize: 11.5, lineHeight: 17, fontWeight: '700' },
   primary: { marginTop: 13, minHeight: 50, borderRadius: 11, backgroundColor: colors.green, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
   primaryText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900', textAlign: 'center' },
+  confirmCard: { marginTop: 12, padding: 12, borderRadius: 11, borderWidth: 1, borderColor: '#C6D8C9', backgroundColor: '#F6FAF7' },
+  confirmTitle: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  confirmText: { marginTop: 6, color: '#526153', fontSize: 12, lineHeight: 18 },
+  confirmActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  confirmCancel: { flex: 1, padding: 11, borderRadius: 9, alignItems: 'center', backgroundColor: '#E8ECE9' },
+  confirmCancelText: { color: colors.text, fontWeight: '800', fontSize: 11 },
+  confirmProceed: { flex: 1, padding: 11, borderRadius: 9, alignItems: 'center', backgroundColor: colors.green },
   reject: { marginTop: 8, minHeight: 43, borderRadius: 10, borderWidth: 1, borderColor: '#E5BABA', backgroundColor: '#FFF8F8', flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center' },
   rejectText: { color: '#A62828', fontSize: 10.5, fontWeight: '900' },
   disabled: { opacity: 0.5 },

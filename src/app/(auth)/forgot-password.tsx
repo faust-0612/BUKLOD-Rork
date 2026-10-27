@@ -109,6 +109,9 @@ export default function ForgotPasswordScreen() {
   const [pinPassword, setPinPassword] = useState('');
   const [pinConfirm, setPinConfirm] = useState('');
   const [pinBusy, setPinBusy] = useState(false);
+  const [pinStatus, setPinStatus] = useState('');
+  const [codeStatus, setCodeStatus] = useState('');
+  const [completedPath, setCompletedPath] = useState<RecoveryPath | null>(null);
 
   const [forgotLogin, setForgotLogin] = useState(false);
   const [adminIdentifier, setAdminIdentifier] = useState('');
@@ -133,11 +136,51 @@ export default function ForgotPasswordScreen() {
   const requestInFlight = useRef(false);
   const codeInFlight = useRef(false);
   const pollInFlight = useRef(false);
+  const recoveryScroll = useRef<ScrollView>(null);
+  const codeCardY = useRef(0);
+  const completionY = useRef(0);
 
   const selectPath = (next: RecoveryPath) => {
-    if (emailBusy || pinBusy || requestBusy || codeBusy) return;
+    if (emailBusy || pinBusy || requestBusy || codeBusy || completedPath) return;
     setPath(next);
   };
+
+  // Always show action feedback inline: React Native Alert is not a web notification.
+  const reportRecoveryProblem = (
+    flow: RecoveryPath | 'code',
+    title: string,
+    message: string,
+  ) => {
+    const detail = `ERROR: ${message}`;
+    if (flow === 'email') setEmailStatus(detail);
+    if (flow === 'pin') setPinStatus(detail);
+    if (flow === 'admin') setRecoveryStateText(detail);
+    if (flow === 'code') setCodeStatus(detail);
+    if (Platform.OS !== 'web') Alert.alert(title, message);
+  };
+
+  useEffect(() => {
+    if (!receivedCode || path !== 'admin') return;
+    // Approval advances to the password form, never straight to Login.
+    const timer = setTimeout(() => {
+      recoveryScroll.current?.scrollTo({
+        y: Math.max(0, codeCardY.current - 20),
+        animated: true,
+      });
+    }, 240);
+    return () => clearTimeout(timer);
+  }, [receivedCode, path]);
+
+  useEffect(() => {
+    if (!completedPath) return;
+    const timer = setTimeout(() => {
+      recoveryScroll.current?.scrollTo({
+        y: Math.max(0, completionY.current - 20),
+        animated: true,
+      });
+    }, 240);
+    return () => clearTimeout(timer);
+  }, [completedPath]);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,7 +239,7 @@ export default function ForgotPasswordScreen() {
           setReceivedCode(nextCode);
           setCode(nextCode);
           setReceivedCodeExpiresAt(data?.codeExpiresAt ? String(data.codeExpiresAt) : null);
-          setRecoveryStateText('ACCOUNT VERIFIED — your one-time recovery code is ready below.');
+          setRecoveryStateText('ACCOUNT VERIFIED — your one-time code is ready. Continue below to create your new password.');
           setRecoverySession(null);
           if (Platform.OS !== 'web') {
             Alert.alert(
@@ -207,20 +250,20 @@ export default function ForgotPasswordScreen() {
           return;
         }
         if (state === 'rejected') {
-          setRecoveryStateText(data?.message ?? 'This request could not be verified.');
+          setRecoveryStateText(`ERROR: ${data?.message ?? 'This request could not be verified. Start a new request or use another recovery method.'}`);
+          setRequestSent(false);
           setRecoverySession(null);
           return;
         }
         if (state === 'session_expired' || state === 'code_expired' || state === 'completed') {
-          setRecoveryStateText(
-            data?.message ?? 'This recovery session is no longer active. Submit a new request if needed.'
-          );
+          setRecoveryStateText(`ERROR: ${data?.message ?? 'This recovery session is no longer active. Start a new request or sign in if your password was already changed.'}`);
+          setRequestSent(false);
           setRecoverySession(null);
         }
       } catch (error: any) {
         if (!cancelled) {
           setRecoveryStateText(
-            `Status check: ${String(error?.message ?? error ?? 'temporarily unavailable')}`
+            `Status check temporarily unavailable: ${String(error?.message ?? error ?? 'check your connection')}. BUKLOD will check again while this screen stays open.`
           );
         }
       } finally {
@@ -239,24 +282,24 @@ export default function ForgotPasswordScreen() {
   const requestEmailOtp = async () => {
     const clean = email.trim();
     if (!autoForgotLogin && clean.length < 3) {
-      return Alert.alert(
+      return reportRecoveryProblem('email',
         'Automatic Recovery',
         'Enter your registered email, mobile number, or username.'
       );
     }
     if (autoForgotLogin) {
       if (firstName.trim().length < 2 || surname.trim().length < 2) {
-        return Alert.alert('Automatic Recovery', 'Enter your first name and surname.');
+        return reportRecoveryProblem('email','Automatic Recovery', 'Enter your first name and surname.');
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate.trim())) {
-        return Alert.alert(
+        return reportRecoveryProblem('email',
           'Automatic Recovery',
           'Enter birthday as YYYY-MM-DD, for example 1990-05-23.'
         );
       }
     }
     if (emailReady === false) {
-      return Alert.alert(
+      return reportRecoveryProblem('email',
         'Automatic Recovery',
         'Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.'
       );
@@ -317,8 +360,7 @@ export default function ForgotPasswordScreen() {
         )
       );
     } catch (error: any) {
-      setEmailStatus('');
-      Alert.alert(
+      reportRecoveryProblem('email',
         'Automatic Recovery',
         String(error?.message ?? error ?? 'Automatic recovery could not be started.')
       );
@@ -331,10 +373,10 @@ export default function ForgotPasswordScreen() {
   const verifyEmailOtp = async () => {
     const cleanOtp = cleanEmailOtp(emailOtp);
     if (!emailChallengeId || !emailOtpSent) {
-      return Alert.alert('Automatic Recovery', 'Request a recovery code first.');
+      return reportRecoveryProblem('email','Automatic Recovery', 'Request a recovery code first.');
     }
     if (!/^\d{6}$/.test(cleanOtp)) {
-      return Alert.alert('Automatic Recovery', 'Enter the 6-digit recovery code that was sent.');
+      return reportRecoveryProblem('email','Automatic Recovery', 'Enter the 6-digit recovery code that was sent.');
     }
     if (emailInFlight.current) return;
 
@@ -373,8 +415,7 @@ export default function ForgotPasswordScreen() {
       setEmailOtpVerified(true);
       setEmailStatus('CODE VERIFIED — create your new password below.');
     } catch (error: any) {
-      setEmailStatus('');
-      Alert.alert(
+      reportRecoveryProblem('email',
         'Recovery Verification',
         String(error?.message ?? error ?? 'The recovery code could not be verified.')
       );
@@ -386,13 +427,13 @@ export default function ForgotPasswordScreen() {
 
   const resetEmailPassword = async () => {
     if (!emailOtpVerified || !emailRecoveryToken || !emailChallengeId || !emailAccountId) {
-      return Alert.alert('Automatic Recovery', 'Verify the 6-digit recovery code first.');
+      return reportRecoveryProblem('email','Automatic Recovery', 'Verify the 6-digit recovery code first.');
     }
     if (emailPassword.length < 8) {
-      return Alert.alert('New Password', 'Use at least 8 characters.');
+      return reportRecoveryProblem('email','New Password', 'Use at least 8 characters.');
     }
     if (emailPassword !== emailConfirm) {
-      return Alert.alert('New Password', 'The passwords do not match.');
+      return reportRecoveryProblem('email','New Password', 'The passwords do not match.');
     }
     if (emailInFlight.current) return;
 
@@ -436,15 +477,11 @@ export default function ForgotPasswordScreen() {
           ? 'Password changed. The old saved one-tap password on this device was cleared.'
           : 'Password changed. Use the new password. If one-tap login still shows an old password, remove that saved profile and sign in manually.'
       );
-      Alert.alert(
-        'Password Changed',
-        localCleanupOk
-          ? 'Your password was changed successfully. BUKLOD cleared the old saved password on this device. Sign in with your new password once, then you may enable Remember password again.'
-          : 'Your password was changed successfully. Sign in with the new password. If a saved one-tap profile still uses the old password, remove that saved profile and sign in manually once.',
-        [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
-      );
+      setCompletedPath('email');
+      setEmailPassword('');
+      setEmailConfirm('');
     } catch (error: any) {
-      Alert.alert(
+      reportRecoveryProblem('email',
         'Automatic Recovery',
         String(error?.message ?? error ?? 'Password reset could not be completed.')
       );
@@ -457,20 +494,21 @@ export default function ForgotPasswordScreen() {
   const recoverWithPin = async () => {
     const cleanIdentifier = identifier.trim();
     if (cleanIdentifier.length < 3) {
-      return Alert.alert('Recovery PIN', 'Enter your BUKLOD username, mobile number, or email.');
+      return reportRecoveryProblem('pin','Recovery PIN', 'Enter your BUKLOD username, mobile number, or email.');
     }
     if (!/^\d{6}$/.test(pin)) {
-      return Alert.alert('Recovery PIN', 'Enter your 6-digit Recovery PIN.');
+      return reportRecoveryProblem('pin','Recovery PIN', 'Enter your 6-digit Recovery PIN.');
     }
     if (pinPassword.length < 8) {
-      return Alert.alert('New Password', 'Use at least 8 characters.');
+      return reportRecoveryProblem('pin','New Password', 'Use at least 8 characters.');
     }
     if (pinPassword !== pinConfirm) {
-      return Alert.alert('New Password', 'The passwords do not match.');
+      return reportRecoveryProblem('pin','New Password', 'The passwords do not match.');
     }
     if (pinInFlight.current) return;
     pinInFlight.current = true;
     setPinBusy(true);
+    setPinStatus('Verifying your Recovery PIN and updating your password…');
 
     try {
       const { data, error } = await supabase.functions.invoke('account-recovery-v3', {
@@ -505,15 +543,16 @@ export default function ForgotPasswordScreen() {
             return false;
           });
 
-      Alert.alert(
-        'Password Changed',
+      setPinStatus(
         localCleanupOk
-          ? `Your BUKLOD password is ready. ${formatLoginMethod(data?.loginMethod)}: ${recoveredLoginIdentifier}\n\nThe old saved password on this device was cleared. Sign in with the new password once, then you may enable Remember password again.`
-          : `Your BUKLOD password is ready. ${formatLoginMethod(data?.loginMethod)}: ${recoveredLoginIdentifier}\n\nSign in with the new password. If a saved one-tap profile still uses the old password, remove that saved profile and sign in manually once.`,
-        [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
+          ? `Password updated successfully. ${formatLoginMethod(data?.loginMethod)}: ${recoveredLoginIdentifier}. The old saved password was cleared on this device.`
+          : `Password updated successfully. ${formatLoginMethod(data?.loginMethod)}: ${recoveredLoginIdentifier}. Sign in manually with your new password; remove any older saved one-tap password if needed.`
       );
+      setCompletedPath('pin');
+      setPinPassword('');
+      setPinConfirm('');
     } catch (error: any) {
-      Alert.alert('Recovery PIN', String(error?.message ?? error ?? 'Recovery failed.'));
+      reportRecoveryProblem('pin','Recovery PIN', String(error?.message ?? error ?? 'Recovery failed.'));
     } finally {
       pinInFlight.current = false;
       setPinBusy(false);
@@ -523,7 +562,7 @@ export default function ForgotPasswordScreen() {
   const requestAdminHelp = async () => {
     const cleanIdentifier = adminIdentifier.trim();
     if (!forgotLogin && cleanIdentifier.length < 3) {
-      return Alert.alert(
+      return reportRecoveryProblem('admin',
         'Admin Assistance',
         'Enter the username, mobile number, or email you remember. If you do not remember any login, choose “I forgot my login too.”'
       );
@@ -531,10 +570,10 @@ export default function ForgotPasswordScreen() {
 
     if (forgotLogin) {
       if (firstName.trim().length < 2 || surname.trim().length < 2) {
-        return Alert.alert('Admin Assistance', 'Enter your first name and surname.');
+        return reportRecoveryProblem('admin','Admin Assistance', 'Enter your first name and surname.');
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate.trim())) {
-        return Alert.alert(
+        return reportRecoveryProblem('admin',
           'Admin Assistance',
           'Enter birthday as YYYY-MM-DD, for example 1990-05-23.'
         );
@@ -569,7 +608,6 @@ export default function ForgotPasswordScreen() {
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.message ?? 'Could not submit the recovery request.');
 
-      setRequestSent(true);
       if (data?.rateLimited) {
         setRecoveryStateText('Too many recent recovery requests. Please wait before trying again.');
         return;
@@ -583,22 +621,17 @@ export default function ForgotPasswordScreen() {
         );
       }
 
-      setRecoveryStateText('Waiting for System Admin verification… Keep this recovery screen open.');
+      setRequestSent(true);
+      setRecoveryStateText('Request received. Waiting for System Admin verification… Keep this screen open; the next step will open automatically after approval.');
       setRecoverySession({
         requestId,
         requestToken: requestToken.toLowerCase(),
         sessionExpiresAt: data?.sessionExpiresAt ? String(data.sessionExpiresAt) : null,
       });
 
-      if (Platform.OS !== 'web') {
-        Alert.alert(
-          'Recovery Request Received',
-          'Your request is waiting for System Admin verification. Keep this screen open. Once verified, the one-time recovery code will appear here automatically.'
-        );
-      }
+
     } catch (error: any) {
-      setRecoveryStateText('');
-      Alert.alert(
+      reportRecoveryProblem('admin',
         'Admin Assistance',
         String(error?.message ?? error ?? 'Could not submit the request.')
       );
@@ -611,20 +644,21 @@ export default function ForgotPasswordScreen() {
   const recoverWithCode = async () => {
     const clean = cleanAdminCode(code);
     if (!/^[A-Z2-9]{10}$/.test(clean)) {
-      return Alert.alert(
+      return reportRecoveryProblem('code',
         'One-Time Code',
         'Enter the 10-character one-time code shown after admin verification.'
       );
     }
     if (codePassword.length < 8) {
-      return Alert.alert('New Password', 'Use at least 8 characters.');
+      return reportRecoveryProblem('code','New Password', 'Use at least 8 characters.');
     }
     if (codePassword !== codeConfirm) {
-      return Alert.alert('New Password', 'The passwords do not match.');
+      return reportRecoveryProblem('code','New Password', 'The passwords do not match.');
     }
     if (codeInFlight.current) return;
     codeInFlight.current = true;
     setCodeBusy(true);
+    setCodeStatus('Verifying the one-time code and updating your password…');
 
     try {
       const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
@@ -653,27 +687,16 @@ export default function ForgotPasswordScreen() {
             return false;
           });
 
-      Alert.alert(
-        'Account Recovered',
+      setCodeStatus(
         login
-          ? (
-              localCleanupOk
-                ? `Password changed successfully. Your BUKLOD sign-in is:\n\n${formatLoginMethod(
-                    data?.loginMethod
-                  )}: ${login}\n\nThe old saved password on this device was cleared. Sign in with the new password once, then you may enable Remember password again.`
-                : `Password changed successfully. Your BUKLOD sign-in is:\n\n${formatLoginMethod(
-                    data?.loginMethod
-                  )}: ${login}\n\nSign in with the new password. If a saved one-tap profile still uses the old password, remove that saved profile and sign in manually once.`
-            )
-          : (
-              localCleanupOk
-                ? 'Password changed successfully. The old saved password on this device was cleared. Return to Sign In and use the new password once.'
-                : 'Password changed successfully. Return to Sign In and use the new password. If a saved one-tap profile still uses the old password, remove that saved profile first.'
-            ),
-        [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
+          ? `Password updated successfully. ${formatLoginMethod(data?.loginMethod)}: ${login}. ${localCleanupOk ? 'The old saved password on this device was cleared.' : 'Remove an old one-tap password if it is still saved on this device.'}`
+          : `Password updated successfully. ${localCleanupOk ? 'The old saved password on this device was cleared.' : 'Remove an old one-tap password if it is still saved on this device.'}`
       );
+      setCompletedPath('admin');
+      setCodePassword('');
+      setCodeConfirm('');
     } catch (error: any) {
-      Alert.alert('One-Time Code', String(error?.message ?? error ?? 'Recovery failed.'));
+      reportRecoveryProblem('code','One-Time Code', String(error?.message ?? error ?? 'Recovery failed.'));
     } finally {
       codeInFlight.current = false;
       setCodeBusy(false);
@@ -685,7 +708,7 @@ export default function ForgotPasswordScreen() {
       style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={recoveryScroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Pressable onPress={() => router.back()} style={styles.back}>
           <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
           <Text style={styles.backText}>Back</Text>
@@ -853,7 +876,7 @@ export default function ForgotPasswordScreen() {
               <>
                 <PrimaryButton
                   busy={emailBusy && !emailOtpSent}
-                  disabled={emailReady !== true}
+                  disabled={emailReady !== true || emailBusy || completedPath === 'email'}
                   label={emailOtpSent ? 'SEND NEW CODE' : 'MATCH ACCOUNT & SEND CODE'}
                   onPress={requestEmailOtp}
                 />
@@ -905,7 +928,8 @@ export default function ForgotPasswordScreen() {
                 />
                 <PrimaryButton
                   busy={emailBusy}
-                  label="RESET PASSWORD"
+                  disabled={completedPath === 'email'}
+                  label={completedPath === 'email' ? 'PASSWORD UPDATED' : 'RESET PASSWORD'}
                   onPress={resetEmailPassword}
                 />
               </>
@@ -914,11 +938,11 @@ export default function ForgotPasswordScreen() {
             {!!emailStatus && (
               <View style={styles.inlineStatus}>
                 <MaterialCommunityIcons
-                  name={emailOtpVerified ? 'check-circle-outline' : 'information-outline'}
+                  name={emailStatus.startsWith('ERROR:') ? 'alert-circle-outline' : emailOtpVerified ? 'check-circle-outline' : 'information-outline'}
                   size={20}
-                  color={colors.green}
+                  color={emailStatus.startsWith('ERROR:') ? '#A62828' : colors.green}
                 />
-                <Text style={styles.statusText}>{emailStatus}</Text>
+                <Text style={[styles.statusText, emailStatus.startsWith('ERROR:') && styles.errorText]}>{emailStatus}</Text>
               </View>
             )}
 
@@ -972,7 +996,8 @@ export default function ForgotPasswordScreen() {
               placeholder="Re-enter new password"
               style={styles.input}
             />
-            <PrimaryButton busy={pinBusy} label="RESET PASSWORD" onPress={recoverWithPin} />
+            <PrimaryButton busy={pinBusy} disabled={completedPath === 'pin'} label={completedPath === 'pin' ? 'PASSWORD UPDATED' : 'RESET PASSWORD'} onPress={recoverWithPin} />
+            {!!pinStatus && <Text style={[styles.actionStatus, pinStatus.startsWith('ERROR:') && styles.errorText]}>{pinStatus}</Text>}
           </View>
         )}
 
@@ -1065,12 +1090,13 @@ export default function ForgotPasswordScreen() {
 
               <PrimaryButton
                 busy={requestBusy}
-                label={requestSent ? 'SUBMIT NEW REQUEST' : 'REQUEST ADMIN ASSISTANCE'}
+                disabled={!!recoverySession || !!receivedCode || completedPath === 'admin'}
+                label={requestSent ? 'REQUEST RECEIVED' : 'REQUEST ADMIN ASSISTANCE'}
                 onPress={requestAdminHelp}
               />
 
               {!!recoveryStateText && (
-                <View style={[styles.waitingCard, !!receivedCode && styles.verifiedCard]}>
+                <View style={[styles.waitingCard, !!receivedCode && styles.verifiedCard, recoveryStateText.startsWith('ERROR:') && styles.waitingError]}>
                   {receivedCode ? (
                     <MaterialCommunityIcons name="check-decagram" size={26} color="#176B39" />
                   ) : recoverySession ? (
@@ -1104,7 +1130,10 @@ export default function ForgotPasswordScreen() {
               )}
             </View>
 
-            <View style={styles.card}>
+            <View
+              style={styles.card}
+              onLayout={(event) => { codeCardY.current = event.nativeEvent.layout.y; }}
+            >
               <Text style={styles.cardTitle}>
                 {receivedCode ? 'Create your new password' : 'Already received an admin code?'}
               </Text>
@@ -1134,9 +1163,21 @@ export default function ForgotPasswordScreen() {
                 placeholder="Re-enter new password"
                 style={styles.input}
               />
-              <PrimaryButton busy={codeBusy} label="RECOVER ACCOUNT" onPress={recoverWithCode} />
+              <PrimaryButton busy={codeBusy} disabled={completedPath === 'admin'} label={completedPath === 'admin' ? 'ACCOUNT RECOVERED' : 'RECOVER ACCOUNT'} onPress={recoverWithCode} />
+              {!!codeStatus && <Text style={[styles.actionStatus, codeStatus.startsWith('ERROR:') && styles.errorText]}>{codeStatus}</Text>}
             </View>
           </>
+        )}
+
+        {completedPath === path && (
+          <View style={styles.completionCard} onLayout={(event) => { completionY.current = event.nativeEvent.layout.y; }}>
+            <MaterialCommunityIcons name="check-decagram" size={30} color="#176B39" />
+            <Text style={styles.completionTitle}>Password updated successfully</Text>
+            <Text style={styles.verifiedText}>You can now sign in using your new password.</Text>
+            <Pressable accessibilityRole="button" onPress={() => router.replace('/(auth)/login' as any)} style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>GO TO LOGIN</Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -1188,11 +1229,8 @@ function PrimaryButton({
       onPress={onPress}
       style={[styles.primaryButton, isDisabled && styles.primaryButtonDisabled]}
     >
-      {busy ? (
-        <ActivityIndicator color="#FFFFFF" />
-      ) : (
-        <Text style={styles.primaryButtonText}>{label}</Text>
-      )}
+      {busy ? <ActivityIndicator color="#FFFFFF" /> : null}
+      <Text style={styles.primaryButtonText}>{busy ? 'PROCESSING…' : label}</Text>
     </Pressable>
   );
 }
@@ -1282,6 +1320,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E6E1',
   },
+  waitingError: { backgroundColor: '#FFF4F4', borderColor: '#E2B8B8' },
+  completionCard: { marginTop: 16, borderRadius: 16, padding: 18, backgroundColor: '#E9F8EF', borderWidth: 1, borderColor: '#91C6A0', gap: 8 },
+  completionTitle: { color: '#176B39', fontSize: 18, fontWeight: '800' },
+  actionStatus: { marginTop: 12, color: '#176B39', fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  errorText: { color: '#A62828' },
   cardTitle: {
     color: colors.text,
     fontSize: 18,
@@ -1318,6 +1361,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   primaryButton: {
+    flexDirection: 'row',
+    gap: 9,
     minHeight: 50,
     marginTop: 16,
     borderRadius: 13,

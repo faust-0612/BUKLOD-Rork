@@ -4075,6 +4075,7 @@ const load=useCallback(async(options?:{
        (supabase as any).rpc(
         'get_buklod_public_community_video_page_v1',
         {
+         p_location_scope_id:publicLocationScopeId??null,
          p_cursor_created_at:cursor?.created_at??null,
          p_cursor_id:cursor?.id??null,
          p_limit:pageSize,

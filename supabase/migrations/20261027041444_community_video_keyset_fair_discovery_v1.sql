@@ -5,6 +5,7 @@
 -- Marites Story media through this endpoint.
 
 create or replace function public.get_buklod_public_community_video_page_v1(
+  p_location_scope_id uuid default null,
   p_cursor_created_at timestamptz default null,
   p_cursor_id uuid default null,
   p_limit integer default 15
@@ -47,6 +48,28 @@ as $sql$
     join public.profiles viewer
       on viewer.id = (select auth.uid())
      and viewer.is_active = true
+     and (
+       p_location_scope_id is null
+       or exists (
+         select 1 from public.buklod_scopes s
+         join public.buklod_scope_memberships vm
+           on vm.scope_id = s.id
+          and vm.user_id = viewer.id
+          and vm.membership_status = 'ACTIVE'
+         where s.id = p_location_scope_id
+           and s.scope_type = 'LOCAL'
+           and s.status in ('ACTIVE', 'RESTRICTED')
+       )
+       or (
+         public.buklod_is_system_admin()
+         and exists (
+           select 1 from public.buklod_scopes s
+           where s.id = p_location_scope_id
+             and s.scope_type = 'LOCAL'
+             and s.status in ('ACTIVE', 'RESTRICTED')
+         )
+       )
+     )
     left join public.buklod_community_post_meta meta
       on meta.post_id = cp.id
     where cp.audience = 'public'
@@ -56,6 +79,35 @@ as $sql$
       and coalesce(cp.author_only, false) = false
       and coalesce(cp.is_reel, false) = false
       and coalesce(meta.moderation_state, 'approved') <> 'blocked'
+      and (
+        coalesce(meta.privacy, 'public') <> 'anonymous'
+        or exists (
+          select 1 from public.buklod_community_root_owners owner
+          where owner.post_id = cp.id
+        )
+      )
+      and (
+        p_location_scope_id is null
+        or (
+          coalesce(meta.privacy, 'public') = 'anonymous'
+          and exists (
+            select 1 from public.buklod_community_root_owners owner
+            where owner.post_id = cp.id
+              and public.buklod_scope_user_is_member_v1(
+                p_location_scope_id, owner.owner_id
+              )
+          )
+        )
+        or (
+          coalesce(meta.privacy, 'public') <> 'anonymous'
+          and exists (
+            select 1 from public.buklod_scope_memberships lm
+            where lm.scope_id = p_location_scope_id
+              and lm.user_id = cp.user_id
+              and lm.membership_status = 'ACTIVE'
+          )
+        )
+      )
       and position(U&'\200B\200C\200D\2060' in coalesce(cp.body, '')) = 0
       and coalesce(cp.media_path, '') not ilike '%marites-%'
       and not exists (
@@ -125,8 +177,8 @@ as $sql$
 $sql$;
 
 revoke all on function public.get_buklod_public_community_video_page_v1(
-  timestamptz, uuid, integer
+  uuid, timestamptz, uuid, integer
 ) from public, anon;
 grant execute on function public.get_buklod_public_community_video_page_v1(
-  timestamptz, uuid, integer
+  uuid, timestamptz, uuid, integer
 ) to authenticated;
