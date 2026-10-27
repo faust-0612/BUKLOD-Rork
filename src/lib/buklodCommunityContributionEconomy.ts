@@ -93,23 +93,31 @@ async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise
   return data as T;
 }
 
+function rpcMissing(error: unknown) {
+  const e = error as { code?: string; message?: string };
+  return e?.code === 'PGRST202'
+    || (e?.code === '42883' && /function|does not exist/i.test(e?.message || ''));
+}
+
 export async function loadMyCommunityContribution() {
   try {
     return await rpc<CommunityContributionDashboard>(
       'get_my_buklod_community_contribution_live_v1',
     );
-  } catch {
-    try {
-      return await rpc<CommunityContributionDashboard>(
-        'get_my_buklod_community_contribution_v2',
-      );
-    } catch {
-      // Backward-compatible with servers still awaiting the additive migration.
-      return rpc<CommunityContributionDashboard>(
-        'get_my_buklod_community_contribution_v1',
-      );
-    }
+  } catch (error) {
+    if (!rpcMissing(error)) throw error;
   }
+  try {
+    return await rpc<CommunityContributionDashboard>(
+      'get_my_buklod_community_contribution_v2',
+    );
+  } catch (error) {
+    if (!rpcMissing(error)) throw error;
+  }
+  // Backward-compatible only when the additive RPCs are genuinely missing.
+  return rpc<CommunityContributionDashboard>(
+    'get_my_buklod_community_contribution_v1',
+  );
 }
 
 export async function loadMyCommunityVideoQuota() {
