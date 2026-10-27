@@ -1,0 +1,39 @@
+name: BUKLOD provisional AdMob revenue sync
+
+on:
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  admob-report-preview:
+    # Opt-in only after official AdMob OAuth, function deployment, and
+    # secret verification. Skipped jobs consume no GitHub Actions runner.
+    if: vars.BUKLOD_ADMOB_SYNC_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      BUKLOD_ADMOB_SYNC_SERVICE_ROLE_KEY: ${{ secrets.BUKLOD_ADMOB_SYNC_SERVICE_ROLE_KEY }}
+      BUKLOD_ADMOB_SYNC_URL: ${{ vars.BUKLOD_ADMOB_SYNC_URL }}
+    steps:
+      - name: Validate private sync configuration
+        run: |
+          test -n "$BUKLOD_ADMOB_SYNC_SERVICE_ROLE_KEY" || { echo 'Missing scheduler service key'; exit 1; }
+          case "$BUKLOD_ADMOB_SYNC_URL" in
+            https://*.supabase.co/functions/v1/buklod-admob-revenue-preview-sync) ;;
+            *) echo 'Unexpected sync endpoint'; exit 1 ;;
+          esac
+      - name: Sync official estimate without finalizing any user funds
+        run: |
+          curl --fail --silent --show-error \
+            --connect-timeout 8 --max-time 60 \
+            --retry 2 --retry-delay 3 \
+            --request POST \
+            --header "Authorization: Bearer $BUKLOD_ADMOB_SYNC_SERVICE_ROLE_KEY" \
+            --header 'Content-Type: application/json' \
+            --data '{}' \
+            "$BUKLOD_ADMOB_SYNC_URL" \
+            --output /dev/null
