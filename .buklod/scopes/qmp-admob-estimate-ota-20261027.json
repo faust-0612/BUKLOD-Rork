@@ -1,0 +1,18 @@
+{
+  "objective": "Release the QA-approved, source-backed noncash Community QMP AdMob preview through the existing verified Android production OTA pipeline without a new native build or financial cash activation.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: PR #378 four GitHub QA checks successful against main 8693668142f933df5b1e324b1b3922cc7591cf29, squash merged as 6a71330418b3730fccf5fb5b76e660304dcf7642. Supabase preview RPC/auth grants read-only checked and official Edge Function version 1 ACTIVE. No AdMob amount has been invented or synced. The production OTA exact runtime, fingerprint, and update ID must be generated and checked by scripts/android-ota-rc.cjs before publication; no staging exists, actual user-device verification waived.",
+  "allowedPaths": [
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/qmp-admob-estimate-ota-20261027.json"
+  ],
+  "acceptanceChecks": [
+    "Production workflow trigger only adds QMP AdMob source and UI files",
+    "Existing Android RC baseline, export, freeze, immutable verification and EAS publication steps remain unchanged",
+    "No native APK build or runtime version bump",
+    "AdMob income source remains verified-report-only; missing source shows not available",
+    "No changes to cash, referral qualification, finalization, withdrawal gates",
+    "Production OTA successful only if workflow provides exact update ID, RC fingerprint and target production environment"
+  ]
+}
