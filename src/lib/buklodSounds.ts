@@ -140,12 +140,15 @@ export async function playBuklodCue(cue: BuklodSoundCue) {
   lastPlayed.set(cue, now);
   try {
     let player = players.get(cue);
+    const fresh = !player;
     if (!player) {
       player = createAudioPlayer(sounds[cue], { updateInterval: 1000 });
       player.volume = cue === 'alert' ? 0.45 : 0.28;
       players.set(cue, player);
     }
-    await player.seekTo(0);
+    // A newly constructed player may still be loading; seeking before it
+    // becomes ready can reject and swallow the very first feedback sound.
+    if (!fresh) await player.seekTo(0);
     player.play();
   } catch (error) {
     // A failed tone must never block a real send, submission or navigation.
