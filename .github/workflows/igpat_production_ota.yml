@@ -1,17 +1,9 @@
 name: BUKLOD IGPAT Production Android OTA
 
+# Retired 2026-10-27: IGPAT was removed from the BUKLOD release plan.
+# No push or automatic production OTA from Community/Wall changes.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/igpat_production_ota.yml'
-      - 'src/app/igpat/**'
-      - 'src/app/reels/index.tsx'
-      - 'src/app/(tabs)/buklod.tsx'
-      - 'src/components/BuklodExclusiveScopeCommunity.tsx'
-      - 'src/lib/buklodCommunityWallMedia.ts'
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -24,8 +16,8 @@ permissions:
 
 jobs:
   qa-and-publish:
-    # Shared Wall source can be released web-only without publishing Android OTA.
-    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[web-only]') }}
+    # Hard hold: even manual dispatch must not publish obsolete IGPAT.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

@@ -1,40 +1,15 @@
 {
-  "objective": "Reconcile pending client recovery and restore verified rollback UI features without superseding newer Cluster and Connect protections",
-  "baseRef": "cae2019ecccb41750185fe177984a0aa6545ef8a",
-  "productionBaselineEvidence": "Refreshed and verified cumulative main cae2019ecccb41750185fe177984a0aa6545ef8a including merged referral PR #350; independently verify deployed Android OTA fingerprint and immutable RC before release",
+  "objective": "Retire obsolete IGPAT production OTA trigger and hard-disable its publication job; preserve current BUKLOD production release",
+  "baseRef": "b7be8206dfad656e1138be00f22443eda0506679",
+  "productionBaselineEvidence": "Verified live Android group 01a17b02-a8ee-7b4e-be95-483bd7825d71 runtime 1.3.2 source b7be8206dfad656e1138be00f22443eda0506679 via Android production OTA run 40433463200. This is workflow-only; do not run Android OTA for the retirement.",
   "allowedPaths": [
     ".buklod/work-scope.json",
-    "scripts/test-pending-client-reconciliation-20261027.cjs",
-    "src/components/BuklodTrustedDeviceGate.native.tsx",
-    "src/lib/buklodAttendanceEvents.ts",
-    "src/lib/buklodCharacterSelectionV2.ts",
-    "src/components/BuklodExclusiveScopeCommunity.tsx",
-    "src/app/clusters/[id].tsx",
-    "src/app/clusters/index.tsx",
-    "src/app/scope/index.tsx",
-    "src/lib/buklodScopeRoute.ts",
-    "src/components/BuklodHomeFaithPanel.tsx",
-    "src/components/BuklodScopeBuklodLessonPanel.tsx",
-    ".github/workflows/engineering-accountability.yml",
-    ".github/workflows/production_android_ota.yml",
-    ".github/workflows/character_recovery_pr_qa.yml",
-    "scripts/test-character-live-parity-ota173.cjs",
-    "scripts/release-gate.mjs"
+    ".github/workflows/igpat_production_ota.yml"
   ],
   "acceptanceChecks": [
-    "No delete/retry of possibly committed posts after upload or follow-up errors",
-    "Attendance skips redundant table calls on canonical nonempty RPC result",
-    "Character RPC checks user account and token health",
-    "Cluster loading bounded with stale-request guards and retry",
-    "Persisted normal session resumes without forced biometric gate",
-    "Targeted tests and TypeScript regression verification before immutable DEV-RC-production OTA",
-    "Cluster/Organization Home Back resets active scope then opens Cluster directory; Android back listeners are focus-scoped",
-    "Cluster directory cache keeps same-user results, isolates account switches and ignores stale request completion",
-    "Compact Cluster directory, two-row scoped Show Faith and colorful Lesson layout restored",
-    "Previously merged PR346 request coalescing and post-rollback production source preserved",
-    "Android production workflow must validate persisted-session startup without obsolete forced biometric checks",
-    "Engineering Accountability runs client reconciliation regression tests before RC",
-    "Changed Character presentation requires full R31/R40 contract, while this nonvisual client PR must preserve exact 4-file shipped Android OTA #173 Character baseline",
-    "Base release gate accepts the already-visible canonical Level-1 explanation while retaining mandatory V2 atomic reset validation"
+    "No push trigger or watched Community/Wall files remain in legacy IGPAT workflow",
+    "IGPAT qa-and-publish condition is unconditionally false, including manual dispatch",
+    "Canonical Android Production OTA workflow and package/runtime untouched",
+    "No IGPAT update can overwrite the current Android production channel"
   ]
 }
