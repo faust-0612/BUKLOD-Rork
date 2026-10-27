@@ -4,8 +4,10 @@ import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
+  handleNotification: async notification => ({
+    shouldPlaySound: ['community_emergency', 'ptt_sos', 'ptt_priority', 'ptt_incoming'].includes(
+      String(notification.request.content.data?.kind ?? '')
+    ),
     shouldSetBadge: true,
     shouldShowBanner: true,
     shouldShowList: true,

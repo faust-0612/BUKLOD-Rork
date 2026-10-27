@@ -47,6 +47,7 @@ import {
 
 import {
   router,
+  useFocusEffect,
   usePathname,
 } from 'expo-router';
 
@@ -58,6 +59,7 @@ import {
   useStreamVideoClient,
 } from '@/lib/streamVideoSdk';
 import { supabase } from '@/lib/supabase';
+import { playBuklodCue, setBuklodActiveMessageThread } from '@/lib/buklodSounds';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -672,6 +674,12 @@ function BuklodConnectThreadInner({
 
   const effectiveContainerId =
     resolvedContainerId || containerId;
+
+  useFocusEffect(useCallback(() => {
+    if (!effectiveContainerId) return;
+    setBuklodActiveMessageThread(effectiveContainerId);
+    return () => setBuklodActiveMessageThread(null);
+  }, [effectiveContainerId]));
 
   /* BUKLOD_OFFLINE_R2_CONNECT_THREAD */
   const { online } =
@@ -2991,6 +2999,7 @@ const [
                 : item
           )
       );
+      void playBuklodCue('message_sent');
     };
 
   const markLocalMessageFailed =
@@ -3009,6 +3018,7 @@ const [
                 : item
           )
       );
+      void playBuklodCue('error');
     };
 
   const appendNotSent =
@@ -3605,6 +3615,7 @@ const [
                     : item
               )
           );
+          void playBuklodCue('message_sent');
         }
         catch {
           markLocalMessageFailed(
@@ -3893,6 +3904,7 @@ const [
                       : item
                 )
             );
+            void playBuklodCue('message_sent');
           }
           catch (e: any) {
             markLocalMessageFailed(

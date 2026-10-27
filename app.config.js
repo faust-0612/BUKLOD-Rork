@@ -170,6 +170,8 @@ module.exports = ({ config }) => {
         
 
           ringing: true,
+          androidRingtone: './assets/sounds/buklod_incoming_call.wav',
+          iosRingtone: './assets/sounds/buklod_incoming_call.wav',
 
           androidMessagingServiceBaseClass: 'io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService',
 },
@@ -189,6 +191,14 @@ module.exports = ({ config }) => {
         'expo-notifications',
         {
           enableBackgroundRemoteNotifications: true,
+          sounds: [
+            './assets/sounds/buklod_message.wav',
+            './assets/sounds/buklod_submission.wav',
+            './assets/sounds/buklod_approval.wav',
+            './assets/sounds/buklod_community.wav',
+            './assets/sounds/buklod_achievement.wav',
+            './assets/sounds/buklod_alert.wav',
+          ],
         },
       ],
 

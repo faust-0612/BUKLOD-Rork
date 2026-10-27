@@ -1,0 +1,33 @@
+{
+  "objective": "BUKLOD Soft Modern auditory feedback, reliable caller ringback and custom native incoming ringtone",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main 47fd152fc586fe2cb782d84cf08287e6a6f4a17f inspected on 2026-10-27 as the DEV baseline; production OTA source and installed binary compatibility remain unverified. Native ringtone assets require an EAS native build and are not OTA-only.",
+  "allowedPaths": [
+    ".buklod/scopes/buklod-sound-identity-20261027.json",
+    ".github/workflows/engineering-accountability.yml",
+    "app.config.js",
+    "assets/sounds/",
+    "scripts/generate-buklod-sounds.cjs",
+    "tests/buklod-sounds.test.cjs",
+    "src/lib/buklodSounds.ts",
+    "src/app/settings/sounds.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/components/UI.tsx",
+    "src/components/RingingCalls.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/app/profile/buklod-classroom-work.tsx",
+    "src/providers/NotificationProvider.tsx",
+    "src/lib/pushNotifications.ts",
+    "src/utils/setPushConfig.ts"
+  ],
+  "acceptanceChecks": [
+    "Original WAV cues parse and stay under 30 seconds with bounded output gain",
+    "Messages play only on confirmed send, failures never falsely play success",
+    "Submissions and approvals give explicit feedback without additional database round-trips",
+    "Foreground push tones are deduplicated and active message threads are muted",
+    "Outgoing ringback occurs only in Stream RINGING state and stops on accept, reject or exit",
+    "Incoming native Android and iOS ringtone is configured without double JS playback",
+    "Preferences persist locally and respect quiet hours, active calls and OS controls",
+    "Run TypeScript, focused tests, native build checks, two-device call validation, RC and production gates before release"
+  ]
+}
