@@ -9,7 +9,13 @@ assert.match(post, /postId: null,/);
 assert.doesNotMatch(post, /postId: createdPostId,\s*scopeId: snapshot.scopeId/);
 assert.match(post, /Check the feed before trying again to avoid a duplicate/);
 const attendance = file('src/lib/buklodAttendanceEvents.ts');
-assert.match(attendance, /const fromTable = fromRpc.length \? \[\] : await listEventsFromTable\(id\)/);
+// Canonical production contract supersedes the redundant table fallback.
+// A valid empty server list must clear the cache; only RPC failure uses it.
+assert.match(attendance, /supabase\.rpc\('buklod_list_attendance_events_v1', \{/);
+assert.match(attendance, /const result = await listEventsFromRpc\(id\)/);
+assert.match(attendance, /if \(result\.error\) \{[\s\S]*?return readCachedEvents\(id\)/);
+assert.match(attendance, /const rows = mergeEventRows\(result\.rows\);[\s\S]*?void writeCachedEvents\(id, rows\)/);
+assert.doesNotMatch(attendance, /listEventsFromRpcs|listEventsFromTable|const fromTable =/);
 const character = file('src/lib/buklodCharacterSelectionV2.ts');
 assert.match(character, /async function ensureCharacterSession/);
 assert.equal((character.match(/await ensureCharacterSession\(userId\)/g) || []).length, 2);
