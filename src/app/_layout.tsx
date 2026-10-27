@@ -21,6 +21,7 @@ import { RuntimeConfigProvider } from '@/providers/RuntimeConfigProvider';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import BuklodPublishBanner from '@/components/BuklodPublishBanner';
 import BuklodOtaFreshnessHost from '@/components/BuklodOtaFreshnessHost';
+import BuklodClientVersionReporter from '@/components/BuklodClientVersionReporter';
 import BuklodEntitlementRouteGuard from '@/components/BuklodEntitlementRouteGuard';
 import BuklodFocusAppRouteGuard from '@/components/BuklodFocusAppRouteGuard';
 import BuklodCanonicalNavigationGuard from '@/components/BuklodCanonicalNavigationGuard';
@@ -244,6 +245,7 @@ function RootLayout() {
               <OfflineBanner/>
               <BuklodPublishBanner />
               <BuklodOtaFreshnessHost />
+              <BuklodClientVersionReporter />
               <BuklodEntitlementRouteGuard />
               <BuklodFocusAppRouteGuard />
               <BuklodCanonicalNavigationGuard />

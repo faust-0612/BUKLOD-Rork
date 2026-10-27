@@ -1,0 +1,24 @@
+{
+  "objective": "Instrument OTA adoption without new native packages, database DDL, or per-render network calls",
+  "baseRef": "aa1c244536daf4a91de863854c3c3487574b662c",
+  "productionBaselineEvidence": "Main source aa1c244536daf4a91de863854c3c3487574b662c and successful 2026-10-27 Android deployment workflows. Private Supabase buklod_client_version_registry_r1 exists but recorded installations=0 as inspected 2026-10-27 18:13 UTC; these live checks are snapshots, not release verification. Frozen RC and exact served update required.",
+  "allowedPaths": [
+    "src/app/_layout.tsx",
+    "src/components/BuklodClientVersionReporter.native.tsx",
+    "src/components/BuklodClientVersionReporter.tsx",
+    "src/lib/buklodClientVersionTelemetry.native.ts",
+    "src/lib/buklodClientVersionPolicy.ts",
+    "__tests__/buklodClientVersionPolicy.test.ts",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/buklod-client-version-telemetry-20261028.json"
+  ],
+  "acceptanceChecks": [
+    "Native-only version reporter after authenticated session and network availability",
+    "Stable per-user random installation ID, no hardware identifier or new native package",
+    "Report running OTA update ID/runtime/channel, never infer it from downloaded update",
+    "6h successful-report TTL and 30m error backoff with duplicate in-flight requests collapsed",
+    "No blocking startup/login/Connect/PTT and no forced legacy client lockout",
+    "TypeScript, Jest, Integration, Performance and Accountability QA",
+    "Controlled Android runtime 1.3.2 RC/OTA and server-side adoption verification before declaring live"
+  ]
+}
