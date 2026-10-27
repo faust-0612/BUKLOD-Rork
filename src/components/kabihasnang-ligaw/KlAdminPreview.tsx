@@ -65,9 +65,14 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
   }catch(cause){setError(cause instanceof Error?cause.message:'Approval failed.');}
   finally{setBusy(false);}
  };
- if(!bundle)return <View style={{padding:12}}><Pressable onPress={()=>void load()}><Text style={{color:'#f1d39b'}}>Open prepared preview</Text></Pressable>{error?<Text style={{color:'#fff'}}>{error}</Text>:null}</View>;
+ if(!bundle)return <View style={{padding:12}}>
+  <Pressable accessibilityRole="button" disabled={loading} onPress={event=>{event.stopPropagation();void load();}}>
+   <Text style={{color:'#f1d39b'}}>{loading?'Loading private preview…':'Retry prepared preview'}</Text>
+  </Pressable>
+  {error?<Text accessibilityRole="alert" style={{color:'#fff'}}>{error}</Text>:null}
+ </View>;
  const paragraphs=bundle.manuscript.split(/\n\s*\n/).filter(Boolean);
- const image=(m:Media)=>{
+ const image=(m:Media, gallery=false)=>{
  const key=m.kind+':'+m.placement;
  const uri=urls[key];
  if(!uri||imageErrors[key])return <View key={key} style={{padding:12,backgroundColor:'#4c3038',borderRadius:8}}>
@@ -76,7 +81,8 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
  return <View key={key} style={{overflow:'hidden',borderRadius:8,backgroundColor:'#243748'}}>
   <Image source={{uri}} style={{width:'100%',aspectRatio:16/9}} contentFit="contain" cachePolicy="memory-disk"
    onError={()=>setImageErrors(previous=>({...previous,[key]:'Image download or decode failed'}))}/>
-  {m.kind==='illustration'?<KlSceneEffect effect={m.effect??'none'} intensity={m.intensity??30} active={motionPlaying}/>:null}
+  {m.kind==='illustration'?<KlSceneEffect effect={m.effect??'none'} intensity={m.intensity??30}
+    active={motionPlaying&&(gallery||!showSceneGallery)}/>:null}
  </View>;
  };
  return <View style={{padding:12,gap:12,backgroundColor:'#192b39'}}>
@@ -101,15 +107,15 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
  {showSceneGallery?bundle.media.filter(m=>m.kind==='illustration').map(m=>(
   <View key={'gallery-'+m.placement} style={{gap:5}}>
    <Text style={{color:'#f1d39b'}}>Scene {m.placement} · {approvals[m.kind+':'+m.placement]?'Server approved':'Awaiting server approval'} · {m.effect??'none'} {m.intensity??30}%</Text>
-   {image(m)}
+   {image(m,true)}
   </View>
  )):null}
  <Text style={{color:'#c9d9e2'}}>Story layout begins below. The same scenes also appear at their saved manuscript anchors.</Text>
- {bundle.media.filter(m=>m.kind==='cover').map(image)}
+ {bundle.media.filter(m=>m.kind==='cover').map(m=>image(m))}
  {paragraphs.map((p,i)=><View key={i} style={{gap:8}}>
- {illustrationsAtParagraph(bundle.media,p,'before').map(image)}
+ {illustrationsAtParagraph(bundle.media,p,'before').map(m=>image(m))}
  <Text style={{color:'#fff',fontSize:17,lineHeight:27}}>{p}</Text>
- {illustrationsAtParagraph(bundle.media,p,'after').map(image)}
+ {illustrationsAtParagraph(bundle.media,p,'after').map(m=>image(m))}
  </View>)}
  <Text style={{color:'#fff'}}>Review uploaded media before approval:</Text>
  {bundle.media.map(m=><Pressable accessibilityRole="button" disabled={busy||approvals[m.kind+':'+m.placement]} key={m.kind+':'+m.placement}
