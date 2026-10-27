@@ -54,6 +54,8 @@ export default function KlPublishingStudio() {
   const [busyAction, setBusyAction] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [lastSaved, setLastSaved] = useState<{ id: string; title: string; manuscript: string } | null>(null);
+  const [panel, setPanel] = useState<'manuscript' | 'media'>('manuscript');
+  const [mediaKind, setMediaKind] = useState<'illustration' | 'cover' | 'music' | 'ambient'>('illustration');
   const lock = useRef(false);
 
   const refresh = async () => {
@@ -111,6 +113,7 @@ export default function KlPublishingStudio() {
       setSeason(String(episode.season_number));
       setChapter(String(episode.episode_number));
       setLastSaved({ id: episode.id, title: nextTitle, manuscript: nextText });
+      setPanel('manuscript');
       setFeedback({ tone: 'success', text: 'Chapter loaded from server. ' + (nextText ? 'Maaari nang mag-edit.' : 'Wala pang manuscript.') });
     });
   };
@@ -147,6 +150,7 @@ export default function KlPublishingStudio() {
       setTitle(nextTitle);
       setManuscript(nextText);
       setLastSaved({ id: newId, title: nextTitle, manuscript: nextText });
+      setPanel('manuscript');
       await refresh();
       setFeedback({ tone: 'success', text: nextText ? 'Existing chapter opened; manuscript preserved.' : 'Chapter created on server. Add its manuscript.' });
     });
@@ -213,6 +217,23 @@ export default function KlPublishingStudio() {
       <Action label={busyAction === 'Ginagawa ang chapter' ? 'Opening…' : 'Create / Open Chapter'} disabled={!!busyAction} onPress={create} />
       {id ? (
         <>
+          <Text style={{ color: '#f1d39b', fontWeight: '700' }}>Chapter workspace · S{season} Ch{chapter}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Action label="Manuscript" disabled={!!busyAction}
+              onPress={() => setPanel('manuscript')} />
+            <Action label="Illustrations & Animation" disabled={!!busyAction}
+              onPress={() => { setMediaKind('illustration'); setPanel('media'); }} />
+            <Action label="Music ♫" disabled={!!busyAction}
+              onPress={() => { setMediaKind('music'); setPanel('media'); }} />
+            <Action label="Ambience" disabled={!!busyAction}
+              onPress={() => { setMediaKind('ambient'); setPanel('media'); }} />
+          </View>
+          <Text style={{ color: '#b7c8cd' }}>
+            {panel === 'media' ? 'Audio, illustrations and animated effects are private until separately approved and released.' :
+              'I-save muna ang manuscript bago magtakda ng eksaktong illustration placement.'}
+          </Text>
+          {panel === 'manuscript' ? (
+          <>
           <Text style={{ color: '#fff', fontWeight: '700' }}>Full manuscript · S{season} Ch{chapter}</Text>
           <TextInput
             style={[field, { minHeight: 240, textAlignVertical: 'top' }]}
@@ -232,8 +253,11 @@ export default function KlPublishingStudio() {
               {feedback.text}
             </Text>
           ) : null}
+          </>
+          ) : (
+          <>
           <KlAdminMediaUpload key={id} episodeId={id} episodeNumber={Number(chapter)}
-            manuscript={manuscript} manuscriptSaved={saved} />
+            manuscript={manuscript} manuscriptSaved={saved} initialKind={mediaKind} />
           <Text style={{ color: '#b7c8cd' }}>Preview requires 2–3 illustrations with exact saved paragraph placements.</Text>
           <Action label={busyAction === 'Inihahanda ang private preview' ? 'Preparing…' : 'Prepare Preview for Community Wall KL Admin'}
             disabled={!!busyAction} onPress={prepare} />
@@ -242,6 +266,8 @@ export default function KlPublishingStudio() {
               {feedback.text}
             </Text>
           ) : null}
+          </>
+          )}
         </>
       ) : null}
     </View>
