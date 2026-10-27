@@ -1,7 +1,7 @@
 {
   "objective": "Cluster/Organization Connect first paint, reader reports, unified group call, keyboard docking and full-bleed media; additive review-only server RPCs",
-  "baseRef": "fd60878406972d07c6eab7f7b4d6b6037f58c29d",
-  "productionBaselineEvidence": "Previously confirmed Android runtime 1.3.2, OTA group 01a17bc3-3212-7ad6-8552-370fd7a1fe80 from source 2fc15e095494539d688c942693eb0e7809b4f1eb. Recheck exact current production manifest before RC or OTA. This DEV patch is not live.",
+  "baseRef": "85b9899eed245fa2c6d76b3699bc42a2c70c98dd",
+  "productionBaselineEvidence": "Previously confirmed Android runtime 1.3.2, OTA group 01a17bc3-3212-7ad6-8552-370fd7a1fe80 from source 2fc15e095494539d688c942693eb0e7809b4f1eb. Recheck exact current production manifest before RC or OTA. This DEV patch is not live. Reconciled DEV with Community Wall PR #369 main 85b9899eed24; production OTA provenance remains separately gated.",
   "allowedPaths": [
     "src/components/BuklodConnectThread.tsx",
     "src/components/BuklodScopeCallLauncher.tsx",

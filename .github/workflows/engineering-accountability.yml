@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/community-wall-comment-composer-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-wall-comment-composer-20261027.json" >> "$GITHUB_ENV";;
             fix/ota-gate-canonical-attendance-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/ota-gate-canonical-attendance-20261027.json" >> "$GITHUB_ENV";;
             fix/attendance-canonical-rpc-20261027)
@@ -138,4 +140,3 @@ jobs:
       - name: Verify referral lookup race and error handling
         if: github.head_ref == 'fix/referral-lookup-race-20261027'
         run: node --test tests/referral-lookup.test.cjs
-
