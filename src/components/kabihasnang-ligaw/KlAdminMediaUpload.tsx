@@ -6,12 +6,16 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
+import { emptyScene, reconcileSceneDrafts, type SceneDraft } from '@/lib/kabihasnang-ligaw/sceneDraftState';
 import KlChapterAudio from './KlChapterAudio';
 import { KlSceneEffect, type SceneEffect } from './KlSceneEffect';
 
 type Kind = 'cover' | 'illustration' | 'music' | 'ambient';
-type MediaItem = { kind: Kind; placement: number; approved: boolean; path: string };
+type MediaItem = { kind: Kind; placement: number; approved: boolean; path: string;
+  anchor?: string | null; side?: 'before' | 'after' | null;
+  effect?: SceneEffect | null; intensity?: number | null };
 type Feedback = { tone: 'success' | 'error' | 'info'; text: string };
+type PendingAudio = { uri: string; name: string; mime: string; ext: string; kind: 'music' | 'ambient' };
 
 const DB_EPISODE_PREFIX = 'aa000001-0000-4000-8000-';
 const MAX_BYTES = 15 * 1024 * 1024;
@@ -56,12 +60,12 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
   const [placement, setPlacement] = useState(1);
   const [items, setItems] = useState<MediaItem[]>([]);
   const [previewUrl, setPreviewUrl] = useState('');
-  const [effect, setEffect] = useState('none');
-  const [anchor, setAnchor] = useState('');
-  const [side, setSide] = useState<'before' | 'after'>('after');
-  const [intensity, setIntensity] = useState(30);
+  const [sceneDrafts, setSceneDrafts] = useState<Record<number, SceneDraft>>({});
+  const sceneDirty = useRef<Record<number, { anchor?: boolean; effect?: boolean }>>({});
   const [motionPlaying, setMotionPlaying] = useState(true);
   const [audioUrl, setAudioUrl] = useState('');
+  const [pendingAudio, setPendingAudio] = useState<PendingAudio | null>(null);
+  const [audioSource, setAudioSource] = useState<'selected' | 'uploaded'>('uploaded');
   const [mediaRefreshToken, setMediaRefreshToken] = useState(0);
 
   useEffect(() => setKind(initialKind), [initialKind]);
@@ -70,12 +74,30 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
   const selected = items.find((item) => item.kind === kind && item.placement === selectedPlacement);
   const imageSelected = kind === 'cover' || kind === 'illustration';
   const isBusy = !!busyAction;
+  const scene = sceneDrafts[placement] ?? emptyScene();
+  const pendingForKind = pendingAudio?.kind === kind ? pendingAudio : null;
+  const selectedAudioUrl = audioSource === 'selected' && pendingForKind ? pendingForKind.uri : audioUrl;
+
+  const changeScene = (change: Partial<SceneDraft>, field: 'anchor' | 'effect') => {
+    sceneDirty.current[placement] = { ...sceneDirty.current[placement], [field]: true };
+    setSceneDrafts((previous) => ({ ...previous,
+      [placement]: { ...emptyScene(), ...previous[placement], ...change },
+    }));
+    setFeedback({ tone: 'info', text: 'Scene ' + placement + ': may binago sa ' +
+      (field === 'anchor' ? 'paragraph placement' : 'animation') + '. Pindutin ang Save para maitala sa server.' });
+  };
+
+  const acceptMedia = (data: MediaItem[]) => {
+    const list = data.filter((item) => kindLabels.some((option) => option.value === item.kind));
+    setItems(list);
+    setSceneDrafts((previous) => reconcileSceneDrafts(previous, list, sceneDirty.current));
+  };
 
   const refreshMedia = async () => {
     const { data, error } = await supabase.rpc('kl_admin_media_list_v1', { p_episode_id: episodeId });
     if (error) throw error;
     if (!Array.isArray(data)) throw new Error('Hindi nabasa ang media list ng chapter.');
-    setItems((data as MediaItem[]).filter((item) => kindLabels.some((option) => option.value === item.kind)));
+    acceptMedia(data as MediaItem[]);
   };
 
   useEffect(() => {
@@ -83,7 +105,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
     void supabase.rpc('kl_admin_media_list_v1', { p_episode_id: episodeId }).then(({ data, error }) => {
       if (!active) return;
       if (error) setFeedback({ tone: 'error', text: 'Hindi na-load ang media: ' + error.message });
-      else if (Array.isArray(data)) setItems((data as MediaItem[]).filter((item) => kindLabels.some((option) => option.value === item.kind)));
+      else if (Array.isArray(data)) acceptMedia(data as MediaItem[]);
       else setFeedback({ tone: 'error', text: 'Hindi nabasa ang media list.' });
     });
     return () => { active = false; };
@@ -165,6 +187,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
         throw new Error('Naka-upload ang file pero hindi nakumpirma ang media record. ' +
           (saveError?.message ?? 'Huwag munang mag-upload muli; i-check ang media list.'));
       }
+      if (kind === 'illustration') sceneDirty.current[selectedPlacement] = {};
       setItems((previous) => [...previous.filter((item) => !(item.kind === kind && item.placement === selectedPlacement)),
         { kind, placement: selectedPlacement, approved: false, path }]);
       await refreshMedia().catch(() => undefined);
@@ -173,7 +196,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
     });
   };
 
-  const uploadAudio = () => {
+  const chooseAudio = () => {
     void perform('Pumipili ng audio', async () => {
       const picked = await DocumentPicker.getDocumentAsync({ type: 'audio/*', copyToCacheDirectory: true });
       if (picked.canceled || !picked.assets[0]) {
@@ -189,26 +212,42 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       else if (name.endsWith('.ogg')) { mime = 'audio/ogg'; ext = 'ogg'; }
       else throw new Error('MP3, M4A o OGG lamang ang supported audio. Hindi supported ang WAV sa private bucket.');
       if (asset.size && asset.size > MAX_BYTES) throw new Error('Audio limit: 15 MB.');
-      const bytes = await new File(asset.uri).bytes();
+      setPendingAudio({ uri: asset.uri, name: asset.name, mime, ext, kind: kind as 'music' | 'ambient' });
+      setAudioSource('selected');
+      setFeedback({ tone: 'success', text: 'Audio selected: ' + asset.name + '. Pakinggan muna sa player, saka pindutin ang Upload selected audio.' });
+    });
+  };
+
+  const uploadAudio = () => {
+    if (!pendingForKind) {
+      setFeedback({ tone: 'error', text: 'Pumili muna ng audio file at i-test sa player.' });
+      return;
+    }
+    const candidate = pendingForKind;
+    void perform('Inihahanda ang audio upload', async () => {
+      const bytes = await new File(candidate.uri).bytes();
       if (bytes.byteLength > MAX_BYTES) throw new Error('Audio limit: 15 MB.');
-      const path = 'episodes/' + episodeId + '/' + kind + '-0-' + Date.now() + '.' + ext;
+      const path = 'episodes/' + episodeId + '/' + candidate.kind + '-0-' + Date.now() + '.' + candidate.ext;
       setBusyAction('Nag-u-upload ng audio');
       setFeedback({ tone: 'info', text: 'Nag-u-upload ang audio…' });
       const { error: uploadError } = await supabase.storage.from('kl-publishing')
-        .upload(path, bytes, { contentType: mime, upsert: false });
+        .upload(path, bytes, { contentType: candidate.mime, upsert: false });
       if (uploadError) throw uploadError;
       setBusyAction('Inirerehistro sa server');
       const { data, error: saveError } = await supabase.rpc('kl_admin_media_save_v1', {
-        p_episode_id: episodeId, p_kind: kind, p_placement: 0, p_path: path, p_approved: false,
+        p_episode_id: episodeId, p_kind: candidate.kind, p_placement: 0, p_path: path, p_approved: false,
       });
       if (saveError || !(data as { ok?: boolean } | null)?.ok) {
         throw new Error('Naka-upload ang audio pero hindi nakumpirma ang media record. ' +
           (saveError?.message ?? 'I-check muna ang media list.'));
       }
-      setItems((previous) => [...previous.filter((item) => item.kind !== kind),
-        { kind, placement: 0, approved: false, path }]);
+      setItems((previous) => [...previous.filter((item) => item.kind !== candidate.kind),
+        { kind: candidate.kind, placement: 0, approved: false, path }]);
+      setPendingAudio(null);
+      setAudioSource('uploaded');
+      setMediaRefreshToken((token) => token + 1);
       await refreshMedia().catch(() => undefined);
-      setFeedback({ tone: 'success', text: 'Audio uploaded and registered. Pending approval; hindi pa public.' });
+      setFeedback({ tone: 'success', text: 'Audio saved on server. Maaari mo itong pakinggan muli sa uploaded player. Pending approval; private pa.' });
       onUploaded?.();
     });
   };
@@ -222,7 +261,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       setFeedback({ tone: 'error', text: 'I-save muna ang manuscript bago piliin ang exact placement.' });
       return;
     }
-    const exact = anchor.trim();
+    const exact = scene.anchor.trim();
     if (exact.length < 12 || !manuscript.includes(exact) || manuscript.split(exact).length !== 2) {
       setFeedback({ tone: 'error', text: 'Mag-paste ng unique sentence (12+ characters) na eksaktong isang beses lang makikita sa saved manuscript.' });
       return;
@@ -230,13 +269,16 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
     void perform('Sine-save ang image placement', async () => {
       const { data, error } = await supabase.rpc('kl_admin_place_media_v1', {
         p_episode_id: episodeId, p_kind: 'illustration', p_placement: placement,
-        p_anchor: exact, p_side: side,
+        p_anchor: exact, p_side: scene.side,
       });
       if (error) throw error;
-      if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Hindi nakumpirma ng server ang placement.');
-      setItems((previous) => previous.map((item) =>
-        item.kind === 'illustration' && item.placement === placement ? { ...item, approved: false } : item));
-      setFeedback({ tone: 'success', text: 'Exact paragraph placement saved. Kailangan ulit mag-prepare ng preview.' });
+      const result = data as { ok?: boolean; changed?: boolean } | null;
+      if (!result?.ok) throw new Error('Hindi nakumpirma ng server ang placement.');
+      sceneDirty.current[placement] = { ...sceneDirty.current[placement], anchor: false };
+      await refreshMedia();
+      setFeedback({ tone: 'success', text: result.changed === false
+        ? 'Scene ' + placement + ': saved placement is unchanged. Existing approval preserved.'
+        : 'Scene ' + placement + ': paragraph placement saved. Ibang scenes at approvals hindi naapektuhan.' });
     });
   };
 
@@ -247,13 +289,37 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
     }
     void perform('Sine-save ang scene effect', async () => {
       const { data, error } = await supabase.rpc('kl_admin_scene_effect_v1', {
-        p_episode_id: episodeId, p_placement: placement, p_effect: effect, p_intensity: intensity,
+        p_episode_id: episodeId, p_placement: placement, p_effect: scene.effect, p_intensity: scene.intensity,
       });
       if (error) throw error;
-      if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Hindi nakumpirma ng server ang scene effect.');
-      setItems((previous) => previous.map((item) =>
-        item.kind === 'illustration' && item.placement === placement ? { ...item, approved: false } : item));
-      setFeedback({ tone: 'success', text: 'Scene effect saved. Preview approval will be required again.' });
+      const result = data as { ok?: boolean; changed?: boolean } | null;
+      if (!result?.ok) throw new Error('Hindi nakumpirma ng server ang scene effect.');
+      sceneDirty.current[placement] = { ...sceneDirty.current[placement], effect: false };
+      await refreshMedia();
+      setFeedback({ tone: 'success', text: result.changed === false
+        ? 'Scene ' + placement + ': effect already saved. Approval preserved.'
+        : 'Scene ' + placement + ': animation effect saved; scene-specific approval needed. Ibang scenes hindi naapektuhan.' });
+    });
+  };
+
+  const approveMedia = () => {
+    if (!selected) return;
+    if (kind === 'illustration' && (sceneDirty.current[placement]?.anchor || sceneDirty.current[placement]?.effect)) {
+      setFeedback({ tone: 'error', text: 'I-save muna ang binagong placement at animation para sa Scene ' + placement + ' bago i-approve.' });
+      return;
+    }
+    const item = selected;
+    void perform('Ina-approve ang ' + item.kind + ' ' + item.placement, async () => {
+      const { data, error } = await supabase.rpc('kl_admin_media_approve_v1', {
+        p_episode_id: episodeId, p_kind: item.kind, p_placement: item.placement,
+      });
+      if (error) throw error;
+      const result = data as { ok?: boolean; changed?: boolean } | null;
+      if (!result?.ok) throw new Error('Hindi nakumpirma ng server ang approval.');
+      await refreshMedia();
+      setFeedback({ tone: 'success', text: result.changed === false
+        ? 'Already approved: ' + item.kind + ' ' + item.placement + '.'
+        : 'Approved on server: ' + item.kind + ' ' + item.placement + '. Ibang scenes unchanged; hindi pa public ang chapter.' });
     });
   };
 
@@ -264,19 +330,37 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {kindLabels.map((option) => (
           <Choice key={option.value} label={option.label} selected={kind === option.value}
-            disabled={isBusy} onPress={() => setKind(option.value)} />
+            disabled={isBusy} onPress={() => { setKind(option.value);
+              setFeedback({ tone: 'info', text: option.label + ' tab selected. Ang media at approvals ay hiwalay bawat uri.' }); }} />
         ))}
       </View>
       {kind === 'illustration' ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {[1, 2, 3].map((scene) => (
             <Choice key={scene} label={'Scene ' + scene} selected={placement === scene}
-              disabled={isBusy} onPress={() => setPlacement(scene)} />
+              disabled={isBusy} onPress={() => { setPlacement(scene);
+                setFeedback({ tone: 'info', text: 'Scene ' + scene + ' selected. Ipinapakita ang sariling saved anchor at effect nito.' }); }} />
           ))}
         </View>
       ) : null}
-      <Choice label={isBusy ? busyAction + '…' : imageSelected ? 'Upload Image' : 'Upload Audio'}
-        disabled={isBusy} onPress={() => imageSelected ? uploadImage() : uploadAudio()} />
+      <Choice label={isBusy ? busyAction + '…' : imageSelected ? 'Upload Image' : 'Choose audio to listen before upload'}
+        disabled={isBusy} onPress={() => imageSelected ? uploadImage() : chooseAudio()} />
+      {pendingForKind ? (
+        <View style={{ gap: 8, padding: 10, backgroundColor: '#254439', borderRadius: 8 }}>
+          <Text style={{ color: '#fff' }}>Selected for {kind}: {pendingForKind.name} · Not uploaded yet.</Text>
+          <Choice label="Listen to selected audio" selected={audioSource === 'selected'} disabled={isBusy}
+            onPress={() => { setAudioSource('selected'); setFeedback({ tone: 'info', text: 'Pindutin ang Play sa ibabang player para i-test ang napiling file.' }); }} />
+          <Choice label="Upload selected audio" disabled={isBusy} onPress={uploadAudio} />
+          <Choice label="Cancel selected audio" disabled={isBusy} onPress={() => {
+            setPendingAudio(null); setAudioSource('uploaded');
+            setFeedback({ tone: 'info', text: 'Audio selection cancelled. Walang na-upload.' });
+          }} />
+        </View>
+      ) : null}
+      {!imageSelected && selected?.path ? (
+        <Choice label="Listen to uploaded audio" selected={audioSource === 'uploaded'} disabled={isBusy}
+          onPress={() => { setAudioSource('uploaded'); setFeedback({ tone: 'info', text: 'Pindutin ang Play sa player para i-test ang naka-save na private audio.' }); }} />
+      ) : null}
       {feedback ? (
         <Text accessibilityRole="alert" style={{
           padding: 10, borderRadius: 8, color: '#fff',
@@ -285,9 +369,11 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       ) : null}
       <Text style={{ color: '#fff' }}>
         {selected
-          ? (kind + ' · ' + selectedPlacement + ' · ' + (selected.approved ? 'Approved' : 'Pending approval'))
+          ? (kind + ' · ' + selectedPlacement + ' · ' + (selected.approved ? 'Approved ✓' : 'Pending approval'))
           : 'Wala pang uploaded ' + kind + ' para sa selection na ito.'}
       </Text>
+      {selected ? <Choice label={selected.approved ? 'Approved on server ✓' : 'Approve this ' + (kind === 'illustration' ? 'scene' : kind) + ' only'}
+        disabled={isBusy || selected.approved} onPress={approveMedia} /> : null}
       {imageSelected && previewUrl ? (
         <View style={{ gap: 5 }}>
           <View style={{ overflow: 'hidden', borderRadius: 9, backgroundColor: '#243748' }}>
@@ -296,43 +382,53 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
               onError={() => setFeedback({ tone: 'error', text: 'Hindi ma-render ang napiling larawan. I-check ang private media at i-refresh ang chapter.' })}
               accessibilityLabel="Private preview of selected chapter image" />
             {kind === 'illustration' ? (
-              <KlSceneEffect effect={effect as SceneEffect} intensity={intensity} active={motionPlaying} />
+              <KlSceneEffect effect={scene.effect} intensity={scene.intensity} active={motionPlaying} />
             ) : null}
           </View>
           <Text style={{ color: '#c8d2da' }}>Private image preview · {selected?.approved ? 'Approved' : 'Not yet public'}</Text>
         </View>
       ) : null}
-      {!imageSelected ? <KlChapterAudio music={kind === 'music' ? audioUrl : undefined}
-        ambient={kind === 'ambient' ? audioUrl : undefined} showWhenEmpty /> : null}
+      {!imageSelected ? (
+        <View style={{ gap: 5 }}>
+          <Text style={{ color: '#ffe0a8' }}>
+            {audioSource === 'selected' && pendingForKind ? 'Local audio test · not uploaded' : 'Uploaded audio test · private file'}
+          </Text>
+          <KlChapterAudio music={kind === 'music' ? selectedAudioUrl : undefined}
+            ambient={kind === 'ambient' ? selectedAudioUrl : undefined} showWhenEmpty />
+        </View>
+      ) : null}
       {kind === 'illustration' ? (
         <>
-          <Text style={{ color: '#fff' }}>Exact paragraph anchor (unique sentence from saved manuscript)</Text>
-          <TextInput value={anchor} onChangeText={setAnchor} multiline
+          <Text style={{ color: '#c8d2da' }}>Scene {placement} · {selected?.anchor ? 'Saved anchor loaded' : 'No saved anchor yet'} · {sceneDirty.current[placement]?.anchor ? 'Unsaved placement edits' : 'Placement synced'}</Text>
+          <Text style={{ color: '#fff' }}>Exact paragraph anchor for Scene {placement} (unique sentence from saved manuscript)</Text>
+          <TextInput value={scene.anchor} onChangeText={(value) => changeScene({ anchor: value }, 'anchor')} multiline
             placeholder="Sentence from manuscript" placeholderTextColor="#aeb4bb"
             style={{ color: '#fff', borderWidth: 1, borderColor: '#718096', padding: 12, borderRadius: 8 }} />
-          <Choice label={'Image position: ' + side + ' selected paragraph'} disabled={isBusy}
-            onPress={() => setSide(side === 'before' ? 'after' : 'before')} />
+          <Choice label={'Image position: ' + scene.side + ' selected paragraph'} disabled={isBusy}
+            onPress={() => changeScene({ side: scene.side === 'before' ? 'after' : 'before' }, 'anchor')} />
           <Choice label={busyAction === 'Sine-save ang image placement' ? 'Saving placement…' : 'Save exact placement'}
             disabled={isBusy} onPress={saveAnchor} />
           <Text style={{ color: '#fff' }}>Scene {placement} atmosphere (built-in, no animation upload)</Text>
           <Text style={{ color: '#c8d2da' }}>Live demo: pumili ng effect sa ibaba. Makikita agad ang galaw sa larawan sa itaas; Save Scene Effect para maitala sa server.</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {['none', 'rain', 'fog', 'fireflies', 'embers', 'lightning'].map((option) => (
-              <Choice key={option} label={option} selected={effect === option} disabled={isBusy}
-                onPress={() => setEffect(option)} />
+              <Choice key={option} label={option} selected={scene.effect === option} disabled={isBusy}
+                onPress={() => changeScene({ effect: option as SceneEffect }, 'effect')} />
             ))}
           </View>
-          <Choice label={'Intensity ' + intensity + '% (tap to adjust)'} disabled={isBusy}
-            onPress={() => setIntensity((value) => value >= 80 ? 20 : value + 20)} />
+          <Choice label={'Intensity ' + scene.intensity + '% (tap to adjust)'} disabled={isBusy}
+            onPress={() => changeScene({ intensity: scene.intensity >= 80 ? 20 : scene.intensity + 20 }, 'effect')} />
           <Choice label={motionPlaying ? 'Pause animation preview' : 'Play animation preview'}
-            disabled={isBusy} onPress={() => setMotionPlaying((playing) => !playing)} />
+            disabled={isBusy} onPress={() => { setMotionPlaying((playing) => !playing);
+              setFeedback({ tone: 'info', text: motionPlaying ? 'Animation preview paused.' : 'Animation preview playing on image above.' }); }} />
           <Choice label={busyAction === 'Sine-save ang scene effect' ? 'Saving scene effect…' : 'Save Scene Effect'}
             disabled={isBusy} onPress={saveEffect} />
+          <Text style={{ color: '#c8d2da' }}>{sceneDirty.current[placement]?.effect ? 'Unsaved scene effect changes' : 'Scene effect synced with server'}</Text>
         </>
       ) : null}
       <Text style={{ color: '#c8d2da' }}>
         Uploaded media: {items.length}. Visual artwork approval is separate from server media approval.
-        Review and approve in Community Wall KL Admin after preparing the private preview.
+        Approve each scene here or directly beside its illustration in the private story preview.
       </Text>
       <Choice label="Refresh media & approvals from server" disabled={isBusy}
         onPress={() => void perform('Nire-refresh ang media', async () => {

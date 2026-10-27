@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import KlAdminMediaUpload from './KlAdminMediaUpload';
+import KlAdminPreview from './KlAdminPreview';
 
 type Episode = {
   id: string;
@@ -56,6 +57,7 @@ export default function KlPublishingStudio() {
   const [lastSaved, setLastSaved] = useState<{ id: string; title: string; manuscript: string } | null>(null);
   const [panel, setPanel] = useState<'manuscript' | 'media'>('manuscript');
   const [mediaKind, setMediaKind] = useState<'illustration' | 'cover' | 'music' | 'ambient'>('illustration');
+  const [inlinePreview, setInlinePreview] = useState(false);
   const lock = useRef(false);
 
   const refresh = async () => {
@@ -114,6 +116,7 @@ export default function KlPublishingStudio() {
       setChapter(String(episode.episode_number));
       setLastSaved({ id: episode.id, title: nextTitle, manuscript: nextText });
       setPanel('manuscript');
+      setInlinePreview(false);
       setFeedback({ tone: 'success', text: 'Chapter loaded from server. ' + (nextText ? 'Maaari nang mag-edit.' : 'Wala pang manuscript.') });
     });
   };
@@ -151,6 +154,7 @@ export default function KlPublishingStudio() {
       setManuscript(nextText);
       setLastSaved({ id: newId, title: nextTitle, manuscript: nextText });
       setPanel('manuscript');
+      setInlinePreview(false);
       await refresh();
       setFeedback({ tone: 'success', text: nextText ? 'Existing chapter opened; manuscript preserved.' : 'Chapter created on server. Add its manuscript.' });
     });
@@ -168,9 +172,12 @@ export default function KlPublishingStudio() {
         p_episode_id: snapshot.id, p_title: snapshot.title, p_manuscript: snapshot.manuscript,
       });
       if (error) throw error;
-      if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Hindi nakumpirma ng server ang save.');
+      const result = data as { ok?: boolean; changed?: boolean } | null;
+      if (!result?.ok) throw new Error('Hindi nakumpirma ng server ang save.');
       setLastSaved(snapshot);
-      setFeedback({ tone: 'success', text: 'Manuscript saved on server. Draft pa ito; hindi pa public.' });
+      setFeedback({ tone: 'success', text: result.changed === false
+        ? 'Manuscript unchanged; already saved on server. Existing scene approvals and preview preserved.'
+        : 'Manuscript saved on server. Draft pa ito; hindi pa public. Scene anchors are preserved if still valid.' });
       await refresh().catch(() => undefined); // A failed list refresh must not undo a confirmed save.
     });
   };
@@ -256,6 +263,13 @@ export default function KlPublishingStudio() {
           </>
           ) : (
           <>
+          <Action label={inlinePreview ? 'Hide story draft & inline approvals' : 'View story draft & approve scenes inline'}
+            disabled={!!busyAction} onPress={() => {
+              if (!saved) { setFeedback({ tone: 'error', text: 'I-save muna ang manuscript bago buksan ang server draft preview.' }); return; }
+              setInlinePreview((value) => !value);
+              setFeedback({ tone: 'info', text: inlinePreview ? 'Private story preview closed.' : 'Private draft opened below. Approve each artwork beside its scene; hindi pa public.' });
+            }} />
+          {inlinePreview && saved ? <KlAdminPreview episodeId={id} /> : null}
           <KlAdminMediaUpload key={id} episodeId={id} episodeNumber={Number(chapter)}
             manuscript={manuscript} manuscriptSaved={saved} initialKind={mediaKind} />
           <Text style={{ color: '#b7c8cd' }}>Preview requires 2–3 illustrations with exact saved paragraph placements.</Text>
