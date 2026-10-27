@@ -45,6 +45,10 @@ jobs:
           grep -F "buklod_connect_community_rooms: 10_000" src/lib/buklodR4RequestShield.ts
           grep -F "buklod_connect_suggested_contacts_v1: 10_000" src/lib/buklodR4RequestShield.ts
 
+      - name: Verify Marites video URL and offline fallback regression
+        if: github.head_ref == 'fix/marites-video-blank-recovery-20261027'
+        run: node scripts/test-marites-release.cjs
+
       - name: Unit tests when configured
         shell: bash
         run: |
