@@ -15,6 +15,12 @@ import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
 import BuklodCommunityEconomyAdminCard from '@/components/BuklodCommunityEconomyAdminCard';
+import {
+  adminGetCommunityAdmobEstimate,
+  adminSetCommunityAdmobEstimate,
+  formatMinorPhp,
+  type AdminCommunityAdmobEstimate,
+} from '@/lib/buklodCommunityContributionEconomy';
 import { shared } from '@/components/UI';
 import {
   adminFailBuklodPfWithdrawal,
@@ -99,6 +105,9 @@ export default function AdminEconomyOperationsScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [periodKey, setPeriodKey] = useState(month.key);
+  const [admobPreview, setAdmobPreview] = useState<AdminCommunityAdmobEstimate | null>(null);
+  const [admobEstimatePhp, setAdmobEstimatePhp] = useState('');
+  const [admobSourceRef, setAdmobSourceRef] = useState('');
 
   const [entryKind, setEntryKind] =
     useState<(typeof ENTRY_KINDS)[number]>(
@@ -122,13 +131,16 @@ export default function AdminEconomyOperationsScreen() {
     try {
       setError(null);
 
-      const [nextReport, nextQueue] = await Promise.all([
+      const [nextReport, nextQueue, nextAdmob] = await Promise.all([
         adminGetBuklodPfFinanceConsoleV3(periodKey),
         adminListBuklodR38Withdrawals(),
+        // The additive preview migration may be pending on older environments.
+        adminGetCommunityAdmobEstimate(periodKey).catch(() => null),
       ]);
 
       setReport(nextReport);
       setQueue(nextQueue);
+      setAdmobPreview(nextAdmob);
     } catch (nextError: unknown) {
       setError(
         nextError instanceof Error
@@ -234,6 +246,29 @@ export default function AdminEconomyOperationsScreen() {
       setExternalReference('');
       setEntryNotes('');
     });
+  };
+
+  const publishAdmobPreview = () => {
+    const php = Number(admobEstimatePhp.trim());
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periodKey.trim())
+        || !admobEstimatePhp.trim() || !Number.isFinite(php) || php <= 0
+        || admobSourceRef.trim().length < 3) {
+      Alert.alert('AdMob preliminary estimate',
+        'Choose a valid YYYY-MM period, positive PHP equivalent and an identifiable AdMob report reference.');
+      return;
+    }
+    Alert.alert('Publish preliminary estimate?',
+      'Qualified users may see a changing possible QMP share. This does not finalize revenue, fund balances, or unlock withdrawal.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Publish estimate', onPress: () => void run(
+          'admob-preview',
+          () => adminSetCommunityAdmobEstimate({
+            periodKey, amountPhp: php, sourceReference: admobSourceRef,
+          }),
+          'AdMob preview saved. User estimates recalculate from the Community QMP weights; cash remains locked.',
+        ).then(() => { setAdmobEstimatePhp(''); setAdmobSourceRef(''); }) },
+      ]);
   };
 
   const finalize = () => {
@@ -428,6 +463,35 @@ export default function AdminEconomyOperationsScreen() {
                     Finalization is locked by the canonical backend. Economics and Settlement must both be ON before a month can be finalized.
                   </Text>
                 )}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>AdMob estimate · user QMP preview</Text>
+              <Text style={styles.muted}>
+                Enter the PHP equivalent from your current AdMob estimated-earnings report and its reference. This is an independent preview source, not a finalized Finance V3 entry. It never credits cash or activates payouts.
+              </Text>
+              {admobPreview ? (
+                <Text style={styles.muted}>
+                  Current preliminary report: {formatMinorPhp(admobPreview.amount_minor)} · observed {new Date(admobPreview.observed_at).toLocaleString()} · {admobPreview.source_reference}
+                </Text>
+              ) : (
+                <Text style={styles.warningText}>No preliminary AdMob report recorded for this month.</Text>
+              )}
+              <TextInput
+                value={admobEstimatePhp}
+                onChangeText={setAdmobEstimatePhp}
+                keyboardType="decimal-pad"
+                placeholder="Estimated AdMob revenue in PHP"
+                style={styles.input}
+              />
+              <TextInput
+                value={admobSourceRef}
+                onChangeText={setAdmobSourceRef}
+                placeholder="Official AdMob report reference"
+                style={styles.input}
+              />
+              <ActionButton title={busy === 'admob-preview' ? 'SAVING...' : 'PUBLISH NON-CASH ESTIMATE'}
+                icon="chart-line" onPress={publishAdmobPreview} disabled={!!busy} />
             </View>
 
             <View style={styles.section}>
