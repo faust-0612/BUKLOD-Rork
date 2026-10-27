@@ -269,6 +269,17 @@ type ScopeComment = {
   my_reaction?: string | null;
 };
 
+type ScopedRpcResponse<T> = {
+  data: T | null;
+  error: { message: string } | null;
+};
+
+type ScopedCommentReactionRow = {
+  comment_id: string;
+  reaction_counts?: Record<string, number> | null;
+  my_reaction?: string | null;
+};
+
 const RX = BUKLOD_SCOPE_COMMUNITY_REACTIONS;
 
 /* PATCH_173F_R2_PUBLIC_REELS_PARITY
@@ -2093,7 +2104,7 @@ export default function BuklodExclusiveScopeCommunity({
 
     try {
       const [commentsResult, reactionsResult] = await Promise.all([
-        withBuklodTimeout(
+        withBuklodTimeout<ScopedRpcResponse<ScopeComment[]>>(
           (supabase as any).rpc('buklod_scope_social_comments_v1', {
             p_scope_id: scope.scope_id,
             p_post_id: postId,
@@ -2101,7 +2112,7 @@ export default function BuklodExclusiveScopeCommunity({
           9000,
           'Scoped comments',
         ),
-        withBuklodTimeout(
+        withBuklodTimeout<ScopedRpcResponse<ScopedCommentReactionRow[]>>(
           (supabase as any).rpc('get_buklod_comment_reactions_v1', {
             p_post_id: postId,
           }),
@@ -2271,7 +2282,7 @@ export default function BuklodExclusiveScopeCommunity({
       }
 
       finalBody = encodeBuklodCommentMediaBody(mediaForBody, finalBody);
-      const { error } = await withBuklodTimeout(
+      const { error } = await withBuklodTimeout<ScopedRpcResponse<string>>(
         (supabase as any).rpc('buklod_scope_social_add_comment_v1', {
           p_scope_id: scope.scope_id,
           p_post_id: postId,
