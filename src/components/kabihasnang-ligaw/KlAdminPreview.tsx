@@ -5,12 +5,13 @@ import { Pressable,Text,View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { KlSceneEffect,type SceneEffect } from './KlSceneEffect';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
-type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
-type Bundle={title:string;manuscript:string;version:number;media:Media[]};
+type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number;approved?:boolean};
+type Bundle={title:string;manuscript:string;version:number;media:Media[];prepared?:boolean};
 export default function KlAdminPreview({episodeId}:{episodeId:string}) {
  const [bundle,setBundle]=useState<Bundle|null>(null);
  const [urls,setUrls]=useState<Record<string,string>>({});
  const [error,setError]=useState('');
+ const [notice,setNotice]=useState('');
  const [imageErrors,setImageErrors]=useState<Record<string,string>>({});
  const [approvals,setApprovals]=useState<Record<string,boolean>>({});
  const [loading,setLoading]=useState(false);
@@ -61,39 +62,52 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
    if(e)throw e;
    if(!(data as {ok?:boolean}|null)?.ok)throw new Error('Server did not confirm approval.');
    await load();
-   setError('Media approved on server. Chapter is still private until release.');
-  }catch(cause){setError(cause instanceof Error?cause.message:'Approval failed.');}
+   setNotice(m.kind+' '+m.placement+' approved on server. Other scenes unchanged; chapter is still private.');
+  }catch(cause){setError(cause instanceof Error?cause.message:'Approval failed.');setNotice('');}
   finally{setBusy(false);}
  };
  if(!bundle)return <View style={{padding:12}}>
   <Pressable accessibilityRole="button" disabled={loading} onPress={event=>{event.stopPropagation();void load();}}>
-   <Text style={{color:'#f1d39b'}}>{loading?'Loading private preview…':'Retry prepared preview'}</Text>
+  <Text style={{color:'#f1d39b'}}>{loading?'Loading private draft…':'Retry private story preview'}</Text>
   </Pressable>
   {error?<Text accessibilityRole="alert" style={{color:'#fff'}}>{error}</Text>:null}
  </View>;
  const paragraphs=bundle.manuscript.split(/\n\s*\n/).filter(Boolean);
+ const approvalButton=(m:Media)=>{
+  const key=m.kind+':'+m.placement;
+  const approved=approvals[key]===true;
+  return <Pressable accessibilityRole="button" accessibilityState={{disabled:busy||approved}}
+   disabled={busy||approved} onPress={event=>{event.stopPropagation();void approve(m);}}
+   style={{padding:12,minHeight:44,backgroundColor:approved?'#285343':'#3c5260',borderRadius:8}}>
+   <Text style={{color:'#f1d39b'}}>{approved?'Approved ✓':'Approve'} {m.kind==='illustration'?'Scene '+m.placement:m.kind} {m.kind==='illustration'?'· '+(m.effect??'none')+' '+(m.intensity??30)+'%':''}</Text>
+  </Pressable>;
+ };
  const image=(m:Media, gallery=false)=>{
  const key=m.kind+':'+m.placement;
  const uri=urls[key];
  if(!uri||imageErrors[key])return <View key={key} style={{padding:12,backgroundColor:'#4c3038',borderRadius:8}}>
   <Text style={{color:'#fff'}}>Hindi maipakita ang {m.kind} {m.placement}: {imageErrors[key]??'Private link unavailable'}. Tap Refresh media.</Text>
  </View>;
- return <View key={key} style={{overflow:'hidden',borderRadius:8,backgroundColor:'#243748'}}>
-  <Image source={{uri}} style={{width:'100%',aspectRatio:16/9}} contentFit="contain" cachePolicy="memory-disk"
-   onError={()=>setImageErrors(previous=>({...previous,[key]:'Image download or decode failed'}))}/>
-  {m.kind==='illustration'?<KlSceneEffect effect={m.effect??'none'} intensity={m.intensity??30}
-    active={motionPlaying&&(gallery||!showSceneGallery)}/>:null}
+ return <View key={key} style={{gap:5}}>
+  <View style={{overflow:'hidden',borderRadius:8,backgroundColor:'#243748'}}>
+   <Image source={{uri}} style={{width:'100%',aspectRatio:16/9}} contentFit="contain" cachePolicy="memory-disk"
+    onError={()=>setImageErrors(previous=>({...previous,[key]:'Image download or decode failed'}))}/>
+   {m.kind==='illustration'?<KlSceneEffect effect={m.effect??'none'} intensity={m.intensity??30}
+     active={motionPlaying&&(gallery||!showSceneGallery)}/>:null}
+  </View>
+  {approvalButton(m)}
  </View>;
  };
  return <View style={{padding:12,gap:12,backgroundColor:'#192b39'}}>
  <Text style={{color:'#f1d39b',fontSize:20}}>{bundle.title} · Preview v{bundle.version}</Text>
- <Text style={{color:'#fff'}}>Private admin preview — not released. Artwork approval is separate from chapter approval.</Text>
+ <Text style={{color:'#fff'}}>{bundle.prepared?'Prepared private preview':'Live private draft preview — prepare the final preview after scene edits'} · not released. Each scene may be approved independently.</Text>
  <Pressable accessibilityRole="button" disabled={loading||busy} onPress={event=>{event.stopPropagation();void load();}}
   style={{padding:12,backgroundColor:'#36594f',borderRadius:8}}>
   <Text style={{color:'#fff'}}>{loading?'Loading media…':'Refresh media & approval status'}</Text>
  </Pressable>
  <Text style={{color:'#f1d39b',fontWeight:'700'}}>Music & ambience · top of preview</Text>
  <KlChapterAudio music={urls['music:0']} ambient={urls['ambient:0']} showWhenEmpty/>
+ {bundle.media.filter(m=>m.kind==='music'||m.kind==='ambient').map(m=><View key={m.kind+':'+m.placement}>{approvalButton(m)}</View>)}
  <Text style={{color:'#f1d39b'}}>Scene animation · built-in atmosphere over the illustration</Text>
  <Pressable accessibilityRole="button" onPress={event=>{event.stopPropagation();setMotionPlaying(!motionPlaying);}}
   style={{padding:12,backgroundColor:'#344e5b',borderRadius:8}}>
@@ -117,10 +131,7 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
  <Text style={{color:'#fff',fontSize:17,lineHeight:27}}>{p}</Text>
  {illustrationsAtParagraph(bundle.media,p,'after').map(m=>image(m))}
  </View>)}
- <Text style={{color:'#fff'}}>Review uploaded media before approval:</Text>
- {bundle.media.map(m=><Pressable accessibilityRole="button" disabled={busy||approvals[m.kind+':'+m.placement]} key={m.kind+':'+m.placement}
-  onPress={event=>{event.stopPropagation();void approve(m);}} style={{padding:12,minHeight:44,backgroundColor:approvals[m.kind+':'+m.placement]?'#285343':'#3c5260',borderRadius:8}}>
-  <Text style={{color:'#f1d39b'}}>{approvals[m.kind+':'+m.placement]?'Approved ✓':'Approve'} {m.kind} {m.placement}{m.kind==='illustration'?' · '+(m.effect??'none')+' '+(m.intensity??30)+'%':''}</Text></Pressable>)}
+ {notice?<Text accessibilityRole="alert" style={{color:'#c7f4d8',padding:10,backgroundColor:'#284d43',borderRadius:8}}>{notice}</Text>:null}
  {error?<Text accessibilityRole="alert" style={{color:'#fff'}}>{error}</Text>:null}
  </View>;
 }
