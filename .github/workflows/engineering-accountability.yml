@@ -86,6 +86,8 @@ jobs:
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/scope-gate-isolation.json" >> "$GITHUB_ENV";;
             fix/staging-production-isolation-20261024)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/staging-production-isolation.json" >> "$GITHUB_ENV";;
+            codex/qmp-live-earnings-estimate-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/qmp-live-admob-estimate-20261027.json" >> "$GITHUB_ENV";;
             codex/fix-economy-qmp-report-sync-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/economy-qmp-report-sync-20261027.json" >> "$GITHUB_ENV";;
             feat/community-fair-video-ready-20261027)
@@ -139,6 +141,10 @@ jobs:
       - name: Verify media signed URL cache
         if: github.head_ref == 'fix/video-stale-signed-url-20261024'
         run: node scripts/test-media-signed-cache.cjs
+
+      - name: Verify noncash AdMob QMP preview invariants
+        if: github.head_ref == 'codex/qmp-live-earnings-estimate-20261027'
+        run: node --test tests/community-admob-preview-contract.test.cjs
 
       - name: Verify bottom navigation concurrency
         run: node scripts/test-bottom-nav-concurrency.cjs
