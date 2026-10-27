@@ -938,7 +938,7 @@ export default function ForgotPasswordScreen() {
             {!!emailStatus && (
               <View style={styles.inlineStatus}>
                 <MaterialCommunityIcons
-                  name={emailOtpVerified ? 'check-circle-outline' : 'information-outline'}
+                  name={emailStatus.startsWith('ERROR:') ? 'alert-circle-outline' : emailOtpVerified ? 'check-circle-outline' : 'information-outline'}
                   size={20}
                   color={emailStatus.startsWith('ERROR:') ? '#A62828' : colors.green}
                 />

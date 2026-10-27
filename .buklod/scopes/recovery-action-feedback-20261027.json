@@ -1,0 +1,21 @@
+{
+  "objective": "Cross-platform BUKLOD account recovery action feedback and approval-to-password navigation; preserve security verification and require acknowledged server success before login CTA",
+  "baseRef": "5662a885fecb2f6767c471ac9d5b157f3ce775f1",
+  "productionBaselineEvidence": "Current inspected DEV main commit 5662a885fecb2f6767c471ac9d5b157f3ce775f1, GitHub files verified unchanged before patch. Exact live Android runtime 1.3.2 source/RC and served-bundle release evidence must be verified independently before production OTA; DEV is not live.",
+  "allowedPaths": [
+    "src/app/(auth)/forgot-password.tsx",
+    "src/app/admin/account-recovery.tsx",
+    "tests/recovery-action-feedback.test.cjs",
+    ".buklod/scopes/recovery-action-feedback-20261027.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "node --test tests/recovery-action-feedback.test.cjs",
+    "Full TypeScript, Engineering Accountability, Performance and Integration QA",
+    "All automatic OTP, PIN and admin-code failures show inline feedback on web and native",
+    "Approved admin request automatically brings user to new-password form, never skips credential update",
+    "Only server-confirmed password change shows Go to Login; double submissions blocked",
+    "System Admin verify/reject requires visible cross-platform confirmation and matching security checks",
+    "Native Android test after immutable DEV to RC freeze, exact published bundle fingerprint before release"
+  ]
+}
