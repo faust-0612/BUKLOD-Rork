@@ -3,6 +3,11 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useAudioPlayer } from 'expo-audio';
+import {
+  getBuklodSoundSettings,
+  setBuklodCallSoundSuppressed,
+} from '@/lib/buklodSounds';
 
 import BuklodAcceptedCallContent from '@/components/BuklodAcceptedCallContent';
 import {
@@ -15,18 +20,60 @@ import {
   subscribeBuklodCallSurface,
 } from '@/lib/buklodActiveNonPttCall';
 import {
+  CallingState,
   RingingCallContent,
   StreamCall,
+  useCall,
+  useCallStateHooks,
   useCalls,
 } from '@/lib/streamVideoSdk';
 
 import {
+  AppState,
   BackHandler,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+/**
+ * Native Stream/Telecom/CallKit already owns the callee's ringtone.
+ * Only the caller plays this ringback, preventing duplicate incoming rings.
+ * Cleanup is tied to Stream's RINGING state, not an arbitrary timeout.
+ */
+function BuklodOutgoingRingback() {
+  const call = useCall();
+  const { useCallCallingState } = useCallStateHooks();
+  const callingState = useCallCallingState();
+  const player = useAudioPlayer(require('../../assets/sounds/buklod_ringback.wav'));
+
+  useEffect(() => {
+    if (!call?.isCreatedByMe || callingState !== CallingState.RINGING) return;
+    let disposed = false;
+    let enabled = false;
+    player.loop = true;
+    player.volume = 0.24;
+    const sync = (state: string) => {
+      if (disposed || !enabled) return;
+      if (state === 'active') player.play();
+      else player.pause();
+    };
+    const subscription = AppState.addEventListener('change', sync);
+    void getBuklodSoundSettings().then(settings => {
+      if (disposed || !settings.calls) return;
+      enabled = true;
+      sync(AppState.currentState);
+    });
+    return () => {
+      disposed = true;
+      subscription.remove();
+      player.pause();
+      void player.seekTo(0).catch(() => undefined);
+    };
+  }, [call?.isCreatedByMe, callingState, player]);
+  return null;
+}
 
 import {
   GestureHandlerRootView,
@@ -125,6 +172,11 @@ export function RingingCalls() {
           activeCall
         )
       : null;
+
+  useEffect(() => {
+    setBuklodCallSoundSuppressed(Boolean(activeCall));
+    return () => setBuklodCallSoundSuppressed(false);
+  }, [activeCallKey]);
 
   /*
    * A newly observed live call must always open its full surface.
@@ -277,6 +329,7 @@ export function RingingCalls() {
               activeCall
             }
           >
+            <BuklodOutgoingRingback />
             <RingingCallContent
               CallContent={
                 BuklodAcceptedCallContent

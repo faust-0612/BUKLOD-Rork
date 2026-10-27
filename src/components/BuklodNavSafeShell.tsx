@@ -54,6 +54,13 @@ function isImmersiveIgpatPath(pathname: string): boolean {
   );
 }
 
+function isHiblaConversationPath(pathname: string): boolean {
+  const normalized = normalizeBuklodPathname(pathname);
+  return normalized.startsWith('/connect/personal/') ||
+    normalized.startsWith('/connect/community/') ||
+    normalized.startsWith('/mzb/connect/');
+}
+
 /**
  * Root shell: shrinks routed content above the global bottom nav so door
  * screens and dashboard pushes never sit underneath the phone nav pane.
@@ -74,7 +81,8 @@ export default function BuklodNavSafeShell({
     useBuklodPersistentNavOccupiedHeight();
   const publicMinimal =
     !isBuklodScopedWorkspacePath(pathname);
-  const navOccupied = rawNavOccupied;
+  const immersiveConversation = isHiblaConversationPath(pathname);
+  const navOccupied = immersiveConversation ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
@@ -133,7 +141,7 @@ export default function BuklodNavSafeShell({
         ? Math.max(insets.top, 0)
         : 0;
   const contentBottomInset =
-    immersiveIgpat
+    immersiveIgpat || immersiveConversation
       ? 0
       : keyboardVisible
         ? 0
@@ -160,7 +168,7 @@ export default function BuklodNavSafeShell({
         {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!immersiveIgpat && rawNavOccupied > 0 ? (
+      {!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}
@@ -224,3 +232,4 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.22)',
   },
 });
+

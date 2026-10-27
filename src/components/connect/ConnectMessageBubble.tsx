@@ -32,6 +32,7 @@ import {
   ConnectReactionPicker,
   type ConnectReactionOption,
 } from '@/components/connect/ConnectReactionPicker';
+import { HIBLA } from '@/lib/connectHibla';
 import {
   type ConnectMessageActionAnchor,
 } from '@/components/connect/ConnectMessageActionSheet';
@@ -133,9 +134,9 @@ function createStyles(theme: ConnectThemeRoles) {
       right: 0,
     },
     bubble: {
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: connectRadii.bubble,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 22,
       overflow: 'visible',
     },
     bubbleColumn: {
@@ -154,14 +155,13 @@ function createStyles(theme: ConnectThemeRoles) {
       overflow: 'visible',
     },
     bubbleOwn: {
-      backgroundColor: theme.bubbleSent,
-      borderBottomRightRadius: connectRadii.bubbleTail,
+      backgroundColor: HIBLA.pine,
+      borderBottomRightRadius: 9,
     },
     bubbleOther: {
-      backgroundColor: theme.bubbleReceived,
-      borderBottomLeftRadius: connectRadii.bubbleTail,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
+      backgroundColor: HIBLA.cream,
+      borderBottomLeftRadius: 9,
+      borderWidth: 0,
     },
     bubbleWithAvatar: {
       marginLeft: 40,
@@ -199,10 +199,10 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     body: {
       ...connectTypography.bubbleBody,
-      color: theme.textPrimary,
+      color: HIBLA.ink,
     },
     bodyOwn: {
-      color: theme.textOnSentBubble,
+      color: '#FFFFFF',
     },
     timeRow: {
       marginTop: 6,
@@ -212,10 +212,10 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     time: {
       ...connectTypography.bubbleMeta,
-      color: theme.textMuted,
+      color: HIBLA.muted,
     },
     timeOwn: {
-      color: 'rgba(255,255,255,0.72)',
+      color: 'rgba(255,255,255,0.78)',
     },
     delivery: {
       color: 'rgba(255,255,255,0.76)',
@@ -613,6 +613,7 @@ export function ConnectMessageBubble({
             userId={senderUserId}
             name={senderName}
             size={32}
+            shape="rounded"
           />
         </View>
       )}
@@ -912,4 +913,5 @@ export function ConnectMessageBubble({
     </View>
   );
 }
+
 

@@ -24,6 +24,7 @@ import {
 import {
   ConnectTappableAvatar,
 } from '@/components/connect/ConnectTappableAvatar';
+import { HIBLA } from '@/lib/connectHibla';
 
 type Props = {
   userId: string;
@@ -43,10 +44,29 @@ function createStyles(theme: ConnectThemeRoles) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: connectSpacing.rowGap,
-      paddingHorizontal: connectSpacing.screenHorizontal,
-      paddingVertical: connectSpacing.rowVertical,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderSubtle,
+      marginHorizontal: 14,
+      marginBottom: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      minHeight: 82,
+      borderRadius: 18,
+      backgroundColor: HIBLA.paper,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: HIBLA.outline,
+    },
+    unreadRow: {
+      backgroundColor: HIBLA.mint,
+    },
+    threadNode: {
+      position: 'absolute',
+      left: -10,
+      top: '50%',
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: HIBLA.jade,
+      borderWidth: 1,
+      borderColor: HIBLA.paper,
     },
     copyHit: {
       flex: 1,
@@ -61,7 +81,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     title: {
       ...connectTypography.rowTitle,
-      color: theme.textPrimary,
+      color: HIBLA.ink,
     },
     meta: {
       alignItems: 'flex-end',
@@ -71,7 +91,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     time: {
       ...connectTypography.rowTime,
-      color: theme.textMuted,
+      color: HIBLA.muted,
     },
     previewRow: {
       marginTop: 3,
@@ -84,7 +104,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     preview: {
       ...connectTypography.rowPreview,
-      color: theme.textMuted,
+      color: HIBLA.muted,
       flex: 1,
     },
     badge: {
@@ -94,7 +114,7 @@ function createStyles(theme: ConnectThemeRoles) {
       borderRadius: 11,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.unreadBadge,
+      backgroundColor: HIBLA.pine,
     },
     badgeText: {
       color: theme.unreadBadgeText,
@@ -125,12 +145,14 @@ export function ConnectInboxRow({
     Math.max(0, unreadCount);
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, unread > 0 && styles.unreadRow]}>
+      <View pointerEvents="none" style={styles.threadNode} />
       <ConnectTappableAvatar
         userId={userId}
         uri={avatarUri}
         name={name}
         size={52}
+        shape="rounded"
       />
 
       <ConnectPressable
@@ -185,3 +207,4 @@ export function ConnectInboxRow({
     </View>
   );
 }
+

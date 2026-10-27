@@ -24,6 +24,8 @@ jobs:
           case "$PR_HEAD" in
             fix/ptt-hold-rx-latency-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/ptt-hold-rx-latency-20261027.json" >> "$GITHUB_ENV";;
+            feat/buklod-sound-identity-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/buklod-sound-identity-20261027.json" >> "$GITHUB_ENV";;
             fix/colorful-cards-buttons-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/ui-color-variety-20261027.json" >> "$GITHUB_ENV";;
             fix/community-wall-comment-composer-20261027)
@@ -36,6 +38,8 @@ jobs:
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/connect-responsive-call-push-20261027.json" >> "$GITHUB_ENV";;
             fix/cluster-connect-media-seen-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/cluster-connect-media-seen-20261027.json" >> "$GITHUB_ENV";;
+            feat/hibla-connect-design-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/hibla-connect-design-20261027.json" >> "$GITHUB_ENV";;
             fix/canonical-home-hub-merge-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/canonical-home-hub-merge-20261027.json" >> "$GITHUB_ENV";;
             fix/recovery-action-feedback-20261027)
@@ -91,6 +95,9 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify BUKLOD sound pack and ringing contracts
+        if: github.head_ref == 'feat/buklod-sound-identity-20261027'
+        run: node tests/buklod-sounds.test.cjs
       - name: Verify PTT responsive hold and closed-app alert contracts
         if: github.head_ref == 'fix/ptt-hold-rx-latency-20261027'
         run: node --test tests/ptt-responsive-hold.test.cjs tests/buklod-ptt-call-isolation.test.cjs
@@ -154,3 +161,4 @@ jobs:
       - name: Verify referral lookup race and error handling
         if: github.head_ref == 'fix/referral-lookup-race-20261027'
         run: node --test tests/referral-lookup.test.cjs
+

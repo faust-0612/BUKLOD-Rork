@@ -30,6 +30,7 @@ type Props = {
   uri?: string | null;
   name?: string | null;
   size?: number;
+  shape?: 'circle' | 'rounded';
   fallbackSource?:
     | number
     | { uri: string }
@@ -49,6 +50,7 @@ export function ConnectTappableAvatar({
   uri,
   name,
   size = 48,
+  shape = 'circle',
   fallbackSource,
   onPress,
   enableLongPressSheet,
@@ -99,6 +101,7 @@ export function ConnectTappableAvatar({
       uri={uri}
       name={name}
       size={size}
+      shape={shape}
       fallbackSource={fallbackSource}
     />
   );
@@ -134,7 +137,7 @@ export function ConnectTappableAvatar({
         onPress={
           tapHandler
             ? (event) => {
-                if (!isAvatarCircleHit(event, size / 2)) {
+                if (shape === 'circle' && !isAvatarCircleHit(event, size / 2)) {
                   return;
                 }
                 tapHandler();
@@ -144,7 +147,7 @@ export function ConnectTappableAvatar({
         onLongPress={
           openProfileSheet
             ? (event) => {
-                if (!isAvatarCircleHit(event, size / 2)) {
+                if (shape === 'circle' && !isAvatarCircleHit(event, size / 2)) {
                   return;
                 }
                 openProfileSheet();
@@ -154,7 +157,7 @@ export function ConnectTappableAvatar({
         style={{
           width: size,
           height: size,
-          borderRadius: size / 2,
+          borderRadius: shape === 'rounded' ? Math.round(size * 0.2) : size / 2,
           overflow: 'hidden',
         }}
       >
@@ -171,3 +174,4 @@ export function ConnectTappableAvatar({
     </>
   );
 }
+

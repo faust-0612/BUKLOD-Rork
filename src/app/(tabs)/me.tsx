@@ -1457,6 +1457,15 @@ export default function MeScreen() {
           />
 
           <MenuRow
+            icon="volume-high"
+            title="Sounds & Notifications"
+            subtitle="Messages, calls, submissions and quiet hours"
+            onPress={() =>
+              router.push('/settings/sounds' as any)
+            }
+          />
+
+          <MenuRow
             icon="shield-lock-outline"
             title="Recovery PIN"
             onPress={() =>
