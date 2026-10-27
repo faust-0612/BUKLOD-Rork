@@ -346,7 +346,10 @@ export function createBuklodR4RequestShield(baseFetch: typeof fetch): typeof fet
     const pending = shield.inFlight.get(key);
     if (pending) return responseFrom(await pending);
 
-    const task = (async () => {
+    // Assigned before any awaited fetch resolves; declared separately so
+    // TypeScript can type-check the identity guard on the in-flight promise.
+    let task: Promise<Snapshot> | null = null;
+    task = (async () => {
       const response = await baseFetch(input, init);
       const snapshot = await snapshotOf(response);
       if (response.ok && shield.inFlight.get(key) === task) {
