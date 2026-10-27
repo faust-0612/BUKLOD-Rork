@@ -106,7 +106,9 @@ export default function AdminEconomyOperationsScreen() {
 
   const [periodKey, setPeriodKey] = useState(month.key);
   const [admobPreview, setAdmobPreview] = useState<AdminCommunityAdmobEstimate | null>(null);
-  const [admobEstimatePhp, setAdmobEstimatePhp] = useState('');
+  const [admobReportAmount, setAdmobReportAmount] = useState('');
+  const [admobReportCurrency, setAdmobReportCurrency] = useState<'USD' | 'PHP'>('USD');
+  const [admobUsdPhpRate, setAdmobUsdPhpRate] = useState('');
   const [admobSourceRef, setAdmobSourceRef] = useState('');
 
   const [entryKind, setEntryKind] =
@@ -249,25 +251,34 @@ export default function AdminEconomyOperationsScreen() {
   };
 
   const publishAdmobPreview = () => {
-    const php = Number(admobEstimatePhp.trim());
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periodKey.trim())
-        || !admobEstimatePhp.trim() || !Number.isFinite(php) || php <= 0
-        || admobSourceRef.trim().length < 3) {
+    const amount = Number(admobReportAmount.trim());
+    const rate = admobReportCurrency === 'USD' ? Number(admobUsdPhpRate.trim()) : 1;
+    const php = Math.round(amount * rate * 100) / 100;
+    const reference = [
+      admobSourceRef.trim(),
+      `AdMob ${admobReportCurrency} ${amount.toFixed(6)}`,
+      admobReportCurrency === 'USD' ? `FX PHP ${rate.toFixed(4)}/USD` : 'PHP report',
+    ].join(' | ');
+    if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(periodKey.trim())
+        || !admobReportAmount.trim() || !Number.isFinite(amount) || amount <= 0
+        || !Number.isFinite(rate) || rate <= 0
+        || !Number.isFinite(php) || php <= 0 || php > 1000000000
+        || admobSourceRef.trim().length < 3 || reference.length > 240) {
       Alert.alert('AdMob preliminary estimate',
-        'Choose a valid YYYY-MM period, positive PHP equivalent and an identifiable AdMob report reference.');
+        'Enter a valid month, the AdMob estimated earnings, an exchange rate if in USD, and its report reference. The PHP equivalent must be at least ₱0.01.');
       return;
     }
     Alert.alert('Publish preliminary estimate?',
-      'Qualified users may see a changing possible QMP share. This does not finalize revenue, fund balances, or unlock withdrawal.',
+      `Source ${admobReportCurrency} ${amount.toFixed(4)} → PHP ${php.toFixed(2)}. Qualified users may see a changing possible QMP share. This does not finalize revenue, fund balances, or unlock withdrawals.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Publish estimate', onPress: () => void run(
           'admob-preview',
           () => adminSetCommunityAdmobEstimate({
-            periodKey, amountPhp: php, sourceReference: admobSourceRef,
+            periodKey, amountPhp: php, sourceReference: reference,
           }),
           'AdMob preview saved. User estimates recalculate from the Community QMP weights; cash remains locked.',
-        ).then(() => { setAdmobEstimatePhp(''); setAdmobSourceRef(''); }) },
+        ) },
       ]);
   };
 
@@ -468,7 +479,7 @@ export default function AdminEconomyOperationsScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>AdMob estimate · user QMP preview</Text>
               <Text style={styles.muted}>
-                Enter the PHP equivalent from your current AdMob estimated-earnings report and its reference. This is an independent preview source, not a finalized Finance V3 entry. It never credits cash or activates payouts.
+                Enter the AdMob report amount and source. For a USD report, enter the documented PHP per USD exchange rate; BUKLOD converts the amount to PHP and recalculates qualified users' previews. It never credits cash or activates payouts.
               </Text>
               {admobPreview ? (
                 <Text style={styles.muted}>
@@ -477,13 +488,35 @@ export default function AdminEconomyOperationsScreen() {
               ) : (
                 <Text style={styles.warningText}>No preliminary AdMob report recorded for this month.</Text>
               )}
+              <View style={styles.actionWrap}>
+                <Pressable onPress={() => setAdmobReportCurrency('USD')} style={[styles.input, { paddingVertical: 9, backgroundColor: admobReportCurrency === 'USD' ? '#E9F6EE' : '#FFFFFF' }]}>
+                  <Text>USD ($)</Text>
+                </Pressable>
+                <Pressable onPress={() => setAdmobReportCurrency('PHP')} style={[styles.input, { paddingVertical: 9, backgroundColor: admobReportCurrency === 'PHP' ? '#E9F6EE' : '#FFFFFF' }]}>
+                  <Text>PHP (₱)</Text>
+                </Pressable>
+              </View>
               <TextInput
-                value={admobEstimatePhp}
-                onChangeText={setAdmobEstimatePhp}
+                value={admobReportAmount}
+                onChangeText={setAdmobReportAmount}
                 keyboardType="decimal-pad"
-                placeholder="Estimated AdMob revenue in PHP"
+                placeholder={admobReportCurrency === 'USD' ? 'AdMob estimated earnings in USD' : 'AdMob estimated earnings in PHP'}
                 style={styles.input}
               />
+              {admobReportCurrency === 'USD' ? (
+                <TextInput
+                  value={admobUsdPhpRate}
+                  onChangeText={setAdmobUsdPhpRate}
+                  keyboardType="decimal-pad"
+                  placeholder="PHP per USD exchange rate (documented)"
+                  style={styles.input}
+                />
+              ) : null}
+              {Number(admobReportAmount) > 0 && (admobReportCurrency === 'PHP' || Number(admobUsdPhpRate) > 0) ? (
+                <Text style={styles.muted}>
+                  Provisional revenue equivalent: {formatMinorPhp(Math.round(Number(admobReportAmount) * (admobReportCurrency === 'USD' ? Number(admobUsdPhpRate) : 1) * 100))}
+                </Text>
+              ) : null}
               <TextInput
                 value={admobSourceRef}
                 onChangeText={setAdmobSourceRef}
