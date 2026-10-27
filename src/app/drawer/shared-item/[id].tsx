@@ -130,7 +130,7 @@ export default function SharedDrawerItemScreen() {
   const exportCalendar = async () => {
     if (!item?.due_at) return;
     try {
-      await Linking.openURL(makeGoogleCalendarEventUrl(item.title, item.due_at, item.body));
+      await Linking.openURL(makeGoogleCalendarEventUrl(item.title, item.due_at, 'Added from BUKLOD Shared Drawer'));
       setNotice('Google Calendar opened. Confirm Save there to add the event. This is not an automatic two-way sync.');
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not open Google Calendar.'); }
   };

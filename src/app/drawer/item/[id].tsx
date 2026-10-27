@@ -291,7 +291,9 @@ export default function SmartDrawerItemScreen() {
   const addCalendarEvent = async () => {
     if (!item?.dueAt) return;
     try {
-      await Linking.openURL(makeGoogleCalendarEventUrl(item.title, item.dueAt, item.body));
+      // Never send a private unlimited-length note body to a third-party
+      // Calendar URL just because the user wants a dated reminder there.
+      await Linking.openURL(makeGoogleCalendarEventUrl(item.title, item.dueAt, 'Added from BUKLOD Smart Drawer'));
       setNotice('Review and save in Google Calendar. This is a manual export, not automatic sync.');
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not open Calendar.'); }
   };
