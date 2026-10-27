@@ -59,6 +59,8 @@ type Props = {
   onReply: () => void;
   onCopy: () => void;
   onForward: () => void;
+  /** Scoped outgoing messages expose the room-cursor Seen By report. */
+  onSeenBy?: () => void;
   onDeleteForMe: () => void;
   onDeleteForEveryone?: () => void;
 };
@@ -307,6 +309,7 @@ export function ConnectMessageActionSheet({
   onReply,
   onCopy,
   onForward,
+  onSeenBy,
   onDeleteForMe,
   onDeleteForEveryone,
 }: Props) {
@@ -345,6 +348,15 @@ export function ConnectMessageActionSheet({
       onPress: onDeleteForMe,
     },
   ];
+
+  if (own && onSeenBy) {
+    items.splice(3, 0, {
+      key: 'seen-by',
+      label: 'Seen by',
+      icon: 'eye-outline',
+      onPress: onSeenBy,
+    });
+  }
 
   if (own && onDeleteForEveryone) {
     items.push({
@@ -478,3 +490,4 @@ export function ConnectMessageActionSheet({
     </Modal>
   );
 }
+

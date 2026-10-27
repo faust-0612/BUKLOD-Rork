@@ -83,6 +83,9 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify Connect Cluster composer, media and call contracts
+        if: github.head_ref == 'fix/cluster-connect-media-seen-20261027'
+        run: node scripts/test-connect-cluster-polish.cjs
       - name: Verify recovery button feedback contracts
         if: github.head_ref == 'fix/recovery-action-feedback-20261027'
         run: node --test tests/recovery-action-feedback.test.cjs

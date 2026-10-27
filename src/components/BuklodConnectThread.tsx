@@ -136,6 +136,7 @@ import {
   connectComposerDockBottom,
   mergeConnectServerMessages,
   readersForMessageWindow,
+  roomCursorCoversMessage,
   shouldAdvanceConnectReadCursor,
   type ConnectReadCursorReason,
   type ConnectScopeReader,
@@ -1010,11 +1011,12 @@ const [
     scopeReaders,
     setScopeReaders,
   ] = useState<ConnectScopeReader[]>([]);
+  const [scopeReadersAvailable, setScopeReadersAvailable] = useState(false);
 
   const [
     seenDetail,
     setSeenDetail,
-  ] = useState<ConnectScopeReader[] | null>(null);
+  ] = useState<{ messageId: string; readers: ConnectScopeReader[]; available: boolean } | null>(null);
 
   const [
     hasOlder,
@@ -1412,6 +1414,7 @@ const [
     setAttachmentUrls({});
     setDirectPeerReadAt(null);
     setScopeReaders([]);
+    setScopeReadersAvailable(false);
     setSeenDetail(null);
     setHasOlder(false);
     setLoadingOlder(false);
@@ -1805,6 +1808,7 @@ const [
         );
         if (readers) {
           setScopeReaders(readers);
+          setScopeReadersAvailable(true);
         }
         return;
       }
@@ -2065,6 +2069,7 @@ const [
             ).then(readers => {
               if (currentLoadSessionRef.current === requestSession) {
                 setScopeReaders(readers ?? []);
+                setScopeReadersAvailable(readers !== null);
               }
             }).catch(() => undefined);
           }
@@ -2312,6 +2317,7 @@ const [
       ).then(readers => {
         if (active && readers) {
           setScopeReaders(readers);
+          setScopeReadersAvailable(true);
         }
       });
     };
@@ -4415,7 +4421,7 @@ const [
               : null,
           });
           const seenReaders =
-            mode === 'scope'
+            mode === 'scope' && own
               ? readersForMessageWindow({
                   messageCreatedAt: item.created_at,
                   nextMessageCreatedAt: next?.created_at ?? null,
@@ -4682,7 +4688,11 @@ const [
               seenReaders={seenReaders}
               onPressSeenReaders={() => {
                 if (seenReaders.length) {
-                  setSeenDetail(seenReaders);
+                  setSeenDetail({
+                    messageId: item.id,
+                    readers: seenReaders,
+                    available: scopeReadersAvailable,
+                  });
                 }
               }}
               isGif={
@@ -4882,7 +4892,7 @@ const [
       )}
 
       <Modal
-        visible={!!seenDetail?.length}
+        visible={seenDetail !== null}
         transparent
         animationType="fade"
         onRequestClose={() => setSeenDetail(null)}
@@ -4929,7 +4939,16 @@ const [
             >
               When they last viewed the latest messages. This is not a separate receipt for every message.
             </Text>
-            {(seenDetail ?? []).map(reader => (
+            {!seenDetail?.available ? (
+              <Text style={{ color: theme.textMuted, marginBottom: 16 }}>
+                Seen report is temporarily unavailable. Try again after reconnecting.
+              </Text>
+            ) : seenDetail.readers.length === 0 ? (
+              <Text style={{ color: theme.textMuted, marginBottom: 16 }}>
+                Not seen by other members yet.
+              </Text>
+            ) : null}
+            {(seenDetail?.readers ?? []).map(reader => (
               <View
                 key={reader.userId}
                 style={{
@@ -5145,6 +5164,44 @@ const [
         onReply={handleMessageReply}
         onCopy={() => void handleMessageCopy()}
         onForward={() => void handleMessageForward()}
+        onSeenBy={
+          mode === 'scope' &&
+          actionTargetMessage?.sender_id === profileId
+            ? () => {
+                const selected = actionTargetMessage;
+                if (!selected || !effectiveContainerId) return;
+                const requestSession = threadSessionKeyValue;
+                const seenFor = (readers: ConnectScopeReader[]) =>
+                  readers.filter(reader =>
+                    reader.userId !== profileId &&
+                    roomCursorCoversMessage(selected.created_at, reader.lastReadAt)
+                  );
+
+                setSeenDetail({
+                  messageId: selected.id,
+                  readers: seenFor(scopeReaders),
+                  available: scopeReadersAvailable,
+                });
+                // An explicit Info request refreshes readers once, but never
+                // writes a cursor or refetches all chat history.
+                void fetchScopeConnectReaders(effectiveContainerId)
+                  .then(readers => {
+                    if (
+                      !readers ||
+                      currentLoadSessionRef.current !== requestSession
+                    ) return;
+                    setScopeReaders(readers);
+                    setScopeReadersAvailable(true);
+                    setSeenDetail(current =>
+                      current?.messageId === selected.id
+                        ? { messageId: selected.id, readers: seenFor(readers), available: true }
+                        : current
+                    );
+                  })
+                  .catch(() => undefined);
+              }
+            : undefined
+        }
         onDeleteForMe={() =>
           void handleDeleteForMe()
         }
