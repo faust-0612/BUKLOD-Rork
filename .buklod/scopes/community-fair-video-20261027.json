@@ -9,10 +9,12 @@
     "src/lib/buklodFairDiscovery.ts",
     "src/lib/buklodVideoDiscovery.ts",
     "tests/fairDiscovery.test.cjs",
-    "tests/videoDiscovery.test.cjs"
+    "tests/videoDiscovery.test.cjs",
+    "tests/videoFeedRpcContract.test.cjs",
+    "supabase/migrations/20261027041444_community_video_keyset_fair_discovery_v1.sql"
   ],
   "acceptanceChecks": [
-    "Video viewer loads additional 40-record latest metadata pages independently of the Wall and stops at 50 video entries",
+    "Video viewer reads a new video-only keyset RPC in 15-record metadata pages and stops at 50 entries without the Wall RPC's candidate cap",
     "Mixed gallery videos are included without eager playback or downloading offscreen video files",
     "Stale video page results are ignored after close, reopen, or account change; failures retain the current playlist with retry",
     "For You reserves opportunities for followed, underexposed and discovery posts with creator diversity; Latest and Following remain unchanged",

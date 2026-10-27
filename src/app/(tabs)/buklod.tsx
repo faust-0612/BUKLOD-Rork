@@ -55,7 +55,9 @@ import {
  COMMUNITY_VIDEO_DISCOVERY_PAGE_SIZE,
  COMMUNITY_VIDEO_DISCOVERY_LIMIT,
  COMMUNITY_VIDEO_MAX_SCANS_PER_REQUEST,
- selectCommunityVideoRows,
+ lastCommunityVideoCursor,
+ appendUniqueCommunityVideos,
+ type CommunityVideoCursor,
 } from '@/lib/buklodVideoDiscovery';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
@@ -1077,7 +1079,7 @@ function LegacyPublicBuklodScreen(){
  const [videoViewerLoadingMore,setVideoViewerLoadingMore]=useState(false);
  const [videoViewerHasMore,setVideoViewerHasMore]=useState(true);
  const [videoViewerLoadError,setVideoViewerLoadError]=useState(false);
- const videoViewerScanOffsetRef=useRef(0);
+ const videoViewerCursorRef=useRef<CommunityVideoCursor|null>(null);
  const videoViewerScanBusyRef=useRef(false);
  const videoViewerScanSeqRef=useRef(0);
  const videoViewerHasMoreRef=useRef(true);
@@ -1173,7 +1175,7 @@ useEffect(()=>{
   // Keep account and location contexts isolated even during slow requests.
   videoViewerScanSeqRef.current+=1;
   videoViewerHasMoreRef.current=true;
-  videoViewerScanOffsetRef.current=0;
+  videoViewerCursorRef.current=null;
   videoViewerScanBusyRef.current=false;
   setVideoViewerPosts([]);
   setVideoViewerLoadingMore(false);
@@ -4064,19 +4066,18 @@ const load=useCallback(async(options?:{
     setVideoViewerLoadError(false);
 
     try{
-     // A bounded scan prevents opening one video from requesting the entire
-     // Community feed. Continued swipes fetch subsequent metadata pages.
+     // Video-only keyset pages avoid the public Wall RPC's 100-row candidate
+     // cap and large OFFSET scans. Only the next small page is hydrated.
      for(let scan=0;scan<COMMUNITY_VIDEO_MAX_SCANS_PER_REQUEST;scan+=1){
       const pageSize=COMMUNITY_VIDEO_DISCOVERY_PAGE_SIZE;
-      const offset=videoViewerScanOffsetRef.current;
+      const cursor=videoViewerCursorRef.current;
       const {data,error}=await withBuklodTimeout<any>(
        (supabase as any).rpc(
-        'get_buklod_public_community_feed_v7_page',
+        'get_buklod_public_community_video_page_v1',
         {
-         p_location_scope_id:publicLocationScopeId,
-         p_mode:'latest',
+         p_cursor_created_at:cursor?.created_at??null,
+         p_cursor_id:cursor?.id??null,
          p_limit:pageSize,
-         p_offset:offset,
         }
        ),
        8000,
@@ -4092,32 +4093,7 @@ const load=useCallback(async(options?:{
        break;
       }
 
-      // Mixed photo/video posts can carry their video in the media table,
-      // not the primary post columns. Query IDs only before signing URLs.
-      const nonPrimaryIds=rows
-       .filter((post:any)=>
-        !String(post?.media_mime_type??'')
-         .toLowerCase().startsWith('video/')
-       )
-       .map((post:any)=>post.id)
-       .filter(Boolean);
-      const attached=nonPrimaryIds.length
-       ? await withBuklodTimeout<any>(
-          supabase.from('community_post_media')
-           .select('post_id')
-           .in('post_id',nonPrimaryIds)
-           .like('media_mime_type','video/%'),
-          5000,
-          'Community video index'
-         )
-       : {data:[],error:null};
-      if(requestSeq!==videoViewerScanSeqRef.current)return;
-      if(attached.error)throw attached.error;
-
-      const videoRows=selectCommunityVideoRows(
-       rows,
-       (attached.data??[]).map((row:any)=>String(row.post_id)),
-      );
+      const videoRows=rows;
       const videoIds=videoRows.map((post:any)=>String(post.id));
       const [mediaByPost,myReactions]=await Promise.all([
        videoIds.length
@@ -4163,20 +4139,16 @@ const load=useCallback(async(options?:{
       }))).filter(Boolean);
       if(requestSeq!==videoViewerScanSeqRef.current)return;
 
-      // Advance only after hydration succeeds; transient failures can retry
-      // this same page without silently losing eligible videos.
-      videoViewerScanOffsetRef.current=offset+rows.length;
+      // Advance only after hydration succeeds; a transient signing or network
+      // failure retries this exact keyset page without losing entries.
+      videoViewerCursorRef.current=lastCommunityVideoCursor(rows);
       if(rows.length<pageSize){
        videoViewerHasMoreRef.current=false;
        setVideoViewerHasMore(false);
       }
       if(prepared.length){
        setVideoViewerPosts(current=>{
-        const seen=new Set(current.map((post:any)=>String(post.id)));
-        return [
-         ...current,
-         ...prepared.filter((post:any)=>!seen.has(String(post.id)))
-        ].slice(0,COMMUNITY_VIDEO_DISCOVERY_LIMIT);
+        return appendUniqueCommunityVideos(current,prepared);
        });
        break;
       }
@@ -4220,7 +4192,7 @@ const load=useCallback(async(options?:{
 
     videoViewerScanSeqRef.current+=1;
     videoViewerScanBusyRef.current=false;
-    videoViewerScanOffsetRef.current=0;
+    videoViewerCursorRef.current=null;
     videoViewerHasMoreRef.current=true;
     setVideoViewerHasMore(true);
     setVideoViewerLoadingMore(false);

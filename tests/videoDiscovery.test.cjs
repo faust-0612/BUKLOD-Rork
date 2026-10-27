@@ -1,29 +1,33 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  selectCommunityVideoRows,
+  lastCommunityVideoCursor,
+  appendUniqueCommunityVideos,
   COMMUNITY_VIDEO_DISCOVERY_PAGE_SIZE,
   COMMUNITY_VIDEO_DISCOVERY_LIMIT,
   COMMUNITY_VIDEO_MAX_SCANS_PER_REQUEST,
 } = require('../src/lib/buklodVideoDiscovery.ts');
 
-test('finds primary videos and videos in mixed gallery attachments', () => {
+test('keyset cursor uses the final chronologically ordered video row', () => {
   const rows = [
-    {id:'1',media_mime_type:'image/jpeg'},
-    {id:'2',media_mime_type:'video/mp4'},
-    {id:'3',media_mime_type:null},
-    {id:'4',media_mime_type:'image/png'},
+    {id:'a',created_at:'2026-10-27T11:00:00Z'},
+    {id:'b',created_at:'2026-10-26T11:00:00Z'},
   ];
-  assert.deepEqual(
-    selectCommunityVideoRows(rows,['3']).map(row=>row.id),
-    ['2','3'],
+  assert.deepEqual(lastCommunityVideoCursor(rows),rows[1]);
+  assert.equal(lastCommunityVideoCursor([]),null);
+});
+
+test('appends new video entries without duplicate post IDs', () => {
+  const result=appendUniqueCommunityVideos(
+    [{id:'a'}],
+    [{id:'b'},{id:'a'},{id:'c'},{id:'b'}],
   );
-  assert.deepEqual(rows.map(row=>row.id),['1','2','3','4']);
+  assert.deepEqual(result.map(x=>x.id),['a','b','c']);
 });
 
 test('metadata pagination bounds requests and playback list size', () => {
-  assert.ok(COMMUNITY_VIDEO_DISCOVERY_PAGE_SIZE <= 40);
+  assert.equal(COMMUNITY_VIDEO_DISCOVERY_PAGE_SIZE,15);
   assert.equal(COMMUNITY_VIDEO_DISCOVERY_LIMIT,50);
   assert.ok(COMMUNITY_VIDEO_MAX_SCANS_PER_REQUEST <= 3);
-  assert.deepEqual(selectCommunityVideoRows([],[]),[]);
+  assert.equal(appendUniqueCommunityVideos([],Array.from({length:70},(_,i)=>({id:String(i)}))).length,50);
 });

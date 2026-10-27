@@ -71,7 +71,7 @@ jobs:
         run: node scripts/engineering-accountability-gate.mjs
       - name: Verify fair discovery and independent video candidate selection
         if: github.head_ref == 'feat/community-fair-video-20261027'
-        run: node --test tests/fairDiscovery.test.cjs tests/videoDiscovery.test.cjs
+        run: node --test tests/fairDiscovery.test.cjs tests/videoDiscovery.test.cjs tests/videoFeedRpcContract.test.cjs
       - name: Verify approved pending client and rollback recovery
         if: github.head_ref == 'fix/pending-client-reconciliation-20261027-r1'
         run: node scripts/test-pending-client-reconciliation-20261027.cjs
