@@ -326,7 +326,7 @@ export default function BayanihanScreen() {
           </Section>
 
           <Section icon="cash-multiple" title={t('economy.earningsTitle')}>
-            {qmp && qmp.monthlyQmp > 0 ? (
+            {contribution && Number(contribution.this_month_qmp || 0) > 0 ? (
               <View style={styles.guard}>
                 <MaterialCommunityIcons name="chart-line" size={23} color="#275D45" />
                 <View style={{ flex: 1 }}>
