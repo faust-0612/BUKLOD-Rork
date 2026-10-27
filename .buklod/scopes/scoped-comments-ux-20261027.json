@@ -1,0 +1,19 @@
+{
+  "objective": "Cluster/Org comment sheet UX, exact-scope media and safe comment submission",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main 6d9d914c8b049731c935be7b9b784e28227d32d4 is the isolated code comparison baseline; the live production OTA fingerprint and frozen RC require independent verification before release.",
+  "allowedPaths": [
+    ".buklod/scopes/scoped-comments-ux-20261027.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx"
+  ],
+  "acceptanceChecks": [
+    "Scoped comments preserve membership checks, exact post and reply ownership, and private scope media paths",
+    "Existing public Community comments layout and APIs remain unaffected",
+    "Cluster/Org composer supports photo, GIF, emoji, mentions and correctly focused reply",
+    "Comment list has distinct loading, empty and retry states under weak network",
+    "Stale comment loads and pending sends cannot erase a later draft or cross-post comments",
+    "TypeScript and focused CI tests pass, plus Android keyboard and interaction QA before DEV to RC to production OTA"
+  ]
+}

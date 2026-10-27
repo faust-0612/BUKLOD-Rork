@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/scoped-comments-ux-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/scoped-comments-ux-20261027.json" >> "$GITHUB_ENV";;
             fix/cluster-notification-home-sys500-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/cluster-notification-home-20261027.json" >> "$GITHUB_ENV";;
             fix/referral-lookup-race-20261027)

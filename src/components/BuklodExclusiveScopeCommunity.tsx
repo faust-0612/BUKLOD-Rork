@@ -48,6 +48,7 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -120,6 +121,12 @@ import {
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
 import BuklodCommunityCommentThread from '@/components/BuklodCommunityCommentThread';
+import BuklodCommunityCommentComposer from '@/components/BuklodCommunityCommentComposer';
+import {
+  type BuklodCommentMedia,
+  buklodCommentHasSendableContent,
+  encodeBuklodCommentMediaBody,
+} from '@/lib/buklodCommentMediaBody';
 import {
   type BuklodCommunityReactionKey,
   type CommunityReactionDetailsTarget,
@@ -258,6 +265,17 @@ type ScopeComment = {
   commenter_name: string | null;
   is_owner: boolean;
   can_manage: boolean;
+  reaction_counts?: Record<string, number> | null;
+  my_reaction?: string | null;
+};
+
+type ScopedRpcResponse<T> = {
+  data: T | null;
+  error: { message: string } | null;
+};
+
+type ScopedCommentReactionRow = {
+  comment_id: string;
   reaction_counts?: Record<string, number> | null;
   my_reaction?: string | null;
 };
@@ -595,6 +613,13 @@ export default function BuklodExclusiveScopeCommunity({
     setCommentMentions,
   ] =
     useState<BuklodMention[]>([]);
+  const [commentMedia, setCommentMedia] = useState<BuklodCommentMedia | null>(null);
+  const [commentMediaPreview, setCommentMediaPreview] = useState<string | null>(null);
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [commentLoadError, setCommentLoadError] = useState<string | null>(null);
+  const commentLoadSeqRef = useRef(0);
+  const commentActivePostRef = useRef<string | null>(null);
+  const commentSubmitRef = useRef(false);
 
   const [
     composerVideoOpen,
@@ -2071,136 +2096,96 @@ export default function BuklodExclusiveScopeCommunity({
 
       postReactBusyRef.current = false;
     };
-  const loadComments =
-    useCallback(
-      async (
-        postId:
-          string
-      ) => {
-        const [
-          commentsResult,
-          reactionsResult,
-        ] =
-          await Promise.all([
-            (
-              supabase as any
-            ).rpc(
-              'buklod_scope_social_comments_v1',
-              {
-                p_scope_id:
-                  scope.scope_id,
-                p_post_id:
-                  postId,
-              }
-            ),
-            (
-              supabase as any
-            ).rpc(
-              'get_buklod_comment_reactions_v1',
-              {
-                p_post_id:
-                  postId,
-              }
-            ),
-          ]);
+  const loadComments = useCallback(async (postId: string) => {
+    if (commentActivePostRef.current !== postId) return;
+    const requestId = ++commentLoadSeqRef.current;
+    setCommentLoading(true);
+    setCommentLoadError(null);
 
-        if (
-          commentsResult.error
-        ) {
-          Alert.alert(
-            'Comments',
-            commentsResult.error.message
-          );
+    try {
+      const [commentsResult, reactionsResult] = await Promise.all([
+        withBuklodTimeout<ScopedRpcResponse<ScopeComment[]>>(
+          (supabase as any).rpc('buklod_scope_social_comments_v1', {
+            p_scope_id: scope.scope_id,
+            p_post_id: postId,
+          }),
+          9000,
+          'Scoped comments',
+        ),
+        withBuklodTimeout<ScopedRpcResponse<ScopedCommentReactionRow[]>>(
+          (supabase as any).rpc('get_buklod_comment_reactions_v1', {
+            p_post_id: postId,
+          }),
+          7000,
+          'Scoped comment reactions',
+        ).catch(() => ({ data: [] })),
+      ]);
+      if (requestId !== commentLoadSeqRef.current) return;
+      if (commentsResult.error) throw commentsResult.error;
 
-          return;
-        }
+      const reactionMap = new Map<string, any>();
+      for (const row of reactionsResult.data ?? []) {
+        reactionMap.set(String(row.comment_id), row);
+      }
+      const rows = (commentsResult.data ?? []) as ScopeComment[];
+      setComments(rows.map(row => {
+        const reaction = reactionMap.get(String(row.id));
+        return {
+          ...row,
+          reaction_counts: reaction?.reaction_counts ?? {},
+          my_reaction: reaction?.my_reaction ?? null,
+        };
+      }));
+      setCommentLoading(false);
 
-        const reactionMap =
-          new Map<string, any>();
-
-        for (
-          const row of (
-            reactionsResult.data ??
-            []
-          )
-        ) {
-          reactionMap.set(
-            String(
-              row.comment_id
-            ),
-            row
-          );
-        }
-
-        const rows =
-          (
-            commentsResult.data ??
-            []
-          ) as ScopeComment[];
-
-        const hydratedRows =
-          await hydratePersonNamesOnRows(
-            rows,
-            'user_id',
-            'commenter_name',
-          );
-
-        setComments(
-          hydratedRows.map(
-            row => {
-              const reaction =
-                reactionMap.get(
-                  String(
-                    row.id
-                  )
-                );
-
-              return {
-                ...row,
-                reaction_counts:
-                  reaction?.reaction_counts ??
-                  {},
-                my_reaction:
-                  reaction?.my_reaction ??
-                  null,
-              };
-            }
-          )
+      // Names are a convenience lookup, not a dependency for displaying comments.
+      void withBuklodTimeout(
+        hydratePersonNamesOnRows(rows, 'user_id', 'commenter_name'),
+        4000,
+        'Scoped comment names',
+      ).then(hydrated => {
+        if (requestId !== commentLoadSeqRef.current) return;
+        const names = new Map(
+          hydrated.map(row => [String(row.id), row.commenter_name]),
         );
-      },
-      [
-        scope.scope_id,
-      ]
-    );
+        setComments(current => current.map(row => ({
+          ...row,
+          commenter_name: names.get(String(row.id)) ?? row.commenter_name,
+        })));
+      }).catch(() => undefined);
+    } catch (error: any) {
+      if (requestId === commentLoadSeqRef.current) {
+        setCommentLoadError(
+          error?.message ?? 'Comments could not be loaded. Please retry.',
+        );
+      }
+    } finally {
+      if (requestId === commentLoadSeqRef.current) setCommentLoading(false);
+    }
+  }, [scope.scope_id]);
 
-  const openComments =
-    async (
-      post:
-        SocialPost
-    ) => {
-      setCommentPost(
-        post
-      );
+  const closeComments = () => {
+    commentLoadSeqRef.current += 1;
+    setCommentLoading(false);
+    setCommentLoadError(null);
+    setCommentOpen(false);
+    // Keep the draft when closing this post, including attachments and reply.
+  };
 
-      setComments(
-        []
-      );
-
+  const openComments = (post: SocialPost) => {
+    commentActivePostRef.current = post.id;
+    if (commentPost?.id !== post.id) {
+      setComments([]);
       setCommentText('');
       setCommentMentions([]);
-
-      setReplyTo(
-        null
-      );
-
-      setCommentOpen(
-        true
-      );
-
-      await loadComments(
-        post.id
-      );
-    };
+      setCommentMedia(null);
+      setCommentMediaPreview(null);
+      setReplyTo(null);
+    }
+    setCommentPost(post);
+    setCommentOpen(true);
+    void loadComments(post.id);
+  };
 
   useEffect(
   () => {
@@ -2243,116 +2228,117 @@ export default function BuklodExclusiveScopeCommunity({
   [commentOpen, commentPost?.id, loadComments]
 );
 
-  const addComment =
-    async () => {
-      if (
-        !commentPost?.id ||
-        !commentText
-          .trim() ||
-        commentBusy
-      ) {
-        return;
+  const addComment = async () => {
+    const postId = commentPost?.id;
+    const originalText = commentText;
+    const originalMentions = commentMentions;
+    const originalMedia = commentMedia;
+    const originalMediaPreview = commentMediaPreview;
+    const originalReply = replyTo;
+    if (
+      !postId ||
+      !buklodCommentHasSendableContent(originalText, originalMedia) ||
+      commentSubmitRef.current
+    ) return;
+
+    commentSubmitRef.current = true;
+    setCommentBusy(true);
+    const mentionIds = mentionsStillInText(
+      originalText,
+      commentMentions,
+    ).map(mention => mention.user_id);
+
+    try {
+      let finalBody = originalText.trim();
+      if (originalReply) {
+        const replyName = String(resolvePersonDisplayName(
+          originalReply.commenter_name,
+          originalReply.user_id,
+        ));
+        const mention = `@${replyName}`;
+        if (!finalBody.toLowerCase().startsWith(mention.toLowerCase())) {
+          finalBody = `${mention} ${finalBody}`.trim();
+        }
+        if (
+          originalReply.user_id &&
+          !mentionIds.includes(String(originalReply.user_id))
+        ) mentionIds.push(String(originalReply.user_id));
       }
 
-      setCommentBusy(
-        true
+      let mediaForBody = originalMedia;
+      if (
+        originalMedia?.kind === 'image' &&
+        originalMedia.ref &&
+        !/^https?:\/\//i.test(originalMedia.ref)
+      ) {
+        if (!user?.id) throw new Error('Please sign in to add a photo.');
+        // Exact-scope storage paths are protected by membership-based RLS.
+        const path = `scope/${scope.scope_id}/${user.id}/comment-photo-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+        await uploadCommunityPhotoFile({
+          path,
+          uri: originalMedia.ref,
+        });
+        mediaForBody = { kind: 'image', ref: path };
+      }
+
+      finalBody = encodeBuklodCommentMediaBody(mediaForBody, finalBody);
+      const { error } = await withBuklodTimeout<ScopedRpcResponse<string>>(
+        (supabase as any).rpc('buklod_scope_social_add_comment_v1', {
+          p_scope_id: scope.scope_id,
+          p_post_id: postId,
+          p_body: finalBody,
+          p_parent_id: originalReply
+            ? (originalReply.parent_id ?? originalReply.id)
+            : null,
+        }),
+        12000,
+        'Post scoped comment',
+      );
+      if (error) throw error;
+
+      // A late response must never clear a draft on another post.
+      if (commentActivePostRef.current === postId) {
+        setCommentText(current => current === originalText ? '' : current);
+        setCommentMentions(current =>
+          current === originalMentions ? [] : current,
+        );
+        setCommentMedia(current => current === originalMedia ? null : current);
+        setCommentMediaPreview(current =>
+          current === originalMediaPreview ? null : current,
+        );
+        setReplyTo(current =>
+          current?.id === originalReply?.id ? null : current,
+        );
+      }
+      setPosts(current => current.map(post =>
+        post.id === postId
+          ? { ...post, comment_count: Number(post.comment_count ?? 0) + 1 }
+          : post,
+      ));
+      setCommentPost(current => current?.id === postId
+        ? { ...current, comment_count: Number(current.comment_count ?? 0) + 1 }
+        : current,
       );
 
-      try {
-        let finalBody =
-          commentText.trim();
-        const mentionIds = mentionsStillInText(
-          finalBody,
-          commentMentions
-        ).map(mention => mention.user_id);
-
-        if (replyTo) {
-          const replyName = String(
-            resolvePersonDisplayName(
-              replyTo.commenter_name,
-              replyTo.user_id,
-            )
-          );
-          const mention = '@' + replyName;
-
-          if (
-            !finalBody
-              .toLowerCase()
-              .startsWith(mention.toLowerCase())
-          ) {
-            finalBody = `${mention} ${finalBody}`;
-          }
-
-          if (
-            replyTo.user_id &&
-            !mentionIds.includes(String(replyTo.user_id))
-          ) {
-            mentionIds.push(String(replyTo.user_id));
-          }
-        }
-
-        const {
-          error,
-        } =
-          await (
-            supabase as any
-          ).rpc(
-            'buklod_scope_social_add_comment_v1',
-            {
-              p_scope_id:
-                scope.scope_id,
-              p_post_id:
-                commentPost.id,
-              p_body:
-                finalBody,
-              // FB-style: nest under root comment (one level).
-              p_parent_id:
-                replyTo
-                  ? (replyTo.parent_id ?? replyTo.id)
-                  : null,
-            }
-          );
-
-        if (
-          error
-        ) {
-          throw error;
-        }
-
-        setCommentText('');
-        setCommentMentions([]);
-        setReplyTo(null);
-
-        void notifyBuklodCommunityMentions({
-          postId: String(commentPost.id),
-          mentionedUserIds: mentionIds,
-          context: 'comment',
-        });
-
-        await Promise.all(
-          [
-            loadComments(
-              commentPost.id
-            ),
-            load(),
-          ]
-        );
-      }
-      catch (
-        error: any
-      ) {
-        Alert.alert(
-          'Comment',
-          error?.message ??
-            'Could not add comment.'
-        );
-      }
-      finally {
-        setCommentBusy(
-          false
-        );
-      }
-    };
+      void notifyBuklodCommunityMentions({
+        postId: String(postId),
+        mentionedUserIds: mentionIds,
+        context: 'comment',
+      });
+      // Refresh only this thread. Reloading the entire wall after every comment
+      // creates unnecessary requests and lag for all users.
+      if (commentActivePostRef.current === postId) void loadComments(postId);
+    } catch (error: any) {
+      Alert.alert(
+        'Comment not confirmed',
+        error?.message ??
+          'Please check the comments before sending again.',
+      );
+    } finally {
+      commentSubmitRef.current = false;
+      setCommentBusy(false);
+    }
+  };
 
   const openOwnPostActions =
     (
@@ -4280,256 +4266,212 @@ return (
       />
 
       <Modal
-        visible={
-          commentOpen
-        }
-        animationType="slide"
+        visible={commentOpen}
         transparent
-        onRequestClose={() =>
-          setCommentOpen(
-            false
-          )
-        }
+        animationType="slide"
+        onRequestClose={closeComments}
       >
-        <View
-          style={
-            styles.modalBackdrop
-          }
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View
-            style={
-              styles.commentSheet
-            }
-          >
-            <View
-              style={
-                styles.commentSheetHeader
-              }
-            >
-              <View>
-                <Text
-                  style={
-                    styles.commentSheetTitle
-                  }
-                >
-                  Comments
-                </Text>
-
-                <Text
-                  style={
-                    styles.commentSheetSub
-                  }
-                >
-                  🔒 {scope.name} only
+          <Pressable
+            style={styles.commentBackdropTap}
+            onPress={closeComments}
+            accessibilityLabel="Close comments"
+          />
+          <View style={styles.commentSheet}>
+            <View style={styles.commentHandle} />
+            <View style={styles.commentSheetHeader}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={styles.commentHeadingRow}>
+                  <Text style={styles.commentSheetTitle}>Comments</Text>
+                  <View style={styles.commentCountBadge}>
+                    <Text style={styles.commentCountText}>
+                      {commentLoading && !comments.length
+                        ? '…'
+                        : comments.length}
+                    </Text>
+                  </View>
+                </View>
+                <Text numberOfLines={1} style={styles.commentSheetSub}>
+                  🔒 {scope.name} · Members only
                 </Text>
               </View>
-
               <Pressable
-                onPress={() =>
-                  setCommentOpen(
-                    false
-                  )
-                }
+                onPress={closeComments}
                 hitSlop={BUKLOD_HIT_SLOP}
+                style={styles.commentCloseButton}
+                accessibilityLabel="Close comments"
               >
                 <MaterialCommunityIcons
                   name="close"
-                  size={25}
-                  color={
-                    colors.text
-                  }
+                  size={23}
+                  color={colors.text}
                 />
               </Pressable>
             </View>
 
             <ScrollView
-              style={
-                styles.commentsScroll
-              }
-              contentContainerStyle={
-                styles.commentsContent
-              }
+              style={styles.commentsScroll}
+              contentContainerStyle={styles.commentsContent}
               keyboardShouldPersistTaps="handled"
             >
-              <BuklodCommunityCommentThread
-                comments={comments.map(comment => ({
-                  ...comment,
-                  body: repairMojibakeText(comment.body),
-                }))}
-                currentUserId={user?.id}
-                reactionOptions={
-                  BUKLOD_SCOPE_COMMUNITY_REACTIONS
-                }
-                emptyText="No comments yet."
-                formatTime={formatTime}
-                onReply={(target) => {
-                  const replyName = String(
-                    resolvePersonDisplayName(
+              {!!commentLoadError && (
+                <View style={styles.commentError}>
+                  <MaterialCommunityIcons
+                    name="wifi-alert"
+                    size={18}
+                    color="#9D4B15"
+                  />
+                  <Text style={styles.commentErrorText}>
+                    Comments could not be refreshed. {commentLoadError}
+                  </Text>
+                  <Pressable
+                    onPress={() => commentPost?.id && void loadComments(commentPost.id)}
+                    style={styles.commentRetry}
+                  >
+                    <Text style={styles.commentRetryText}>Retry</Text>
+                  </Pressable>
+                </View>
+              )}
+
+              {commentLoading && !comments.length ? (
+                <View style={styles.commentEmptyState}>
+                  <ActivityIndicator size="small" color={colors.green} />
+                  <Text style={styles.commentEmptyDescription}>
+                    Loading comments…
+                  </Text>
+                </View>
+              ) : comments.length ? (
+                <BuklodCommunityCommentThread
+                  comments={comments.map(comment => ({
+                    ...comment,
+                    body: repairMojibakeText(comment.body),
+                  }))}
+                  currentUserId={user?.id}
+                  reactionOptions={BUKLOD_SCOPE_COMMUNITY_REACTIONS}
+                  formatTime={formatTime}
+                  onReply={(target) => {
+                    const replyName = String(resolvePersonDisplayName(
                       target.commenter_name,
                       target.user_id,
-                    )
-                  );
-                  setReplyTo(target as any);
-                  setCommentText(`@${replyName} `);
-                  setCommentMentions([{
-                    user_id: String(target.user_id),
-                    full_name: replyName,
-                  }]);
-                }}
-                onReact={(comment, key) =>
-                  void reactToComment(
-                    comment as any,
-                    key as Reaction
-                  )
-                }
-                onReactionSummaryPress={(comment, key) =>
-                  openCommentReactionDetails(
-                    comment as any,
-                    key
-                  )
-                }
-                onEdit={(commentId, body) =>
-                  updateScopedComment(
-                    commentId,
-                    body
-                  )
-                }
-                onDelete={async (commentId) => {
-                  const target = comments.find(
-                    item => String(item.id) === commentId
-                  );
-                  if (!target) return;
-                  await removeScopedComment(target);
-                }}
-                onReport={(commentId) =>
-                  openReport(
-                    'comment',
-                    commentId
-                  )
-                }
-              />
+                    ));
+                    setReplyTo(target as ScopeComment);
+                    if (!commentText.trim()) {
+                      setCommentText(`@${replyName} `);
+                      setCommentMentions([{
+                        user_id: String(target.user_id),
+                        full_name: replyName,
+                      }]);
+                    }
+                  }}
+                  onReact={(comment, key) =>
+                    void reactToComment(comment as ScopeComment, key as Reaction)
+                  }
+                  onReactionSummaryPress={(comment, key) =>
+                    openCommentReactionDetails(comment as ScopeComment, key)
+                  }
+                  onEdit={(commentId, body) =>
+                    updateScopedComment(commentId, body)
+                  }
+                  onDelete={async commentId => {
+                    const target = comments.find(item =>
+                      String(item.id) === commentId
+                    );
+                    if (target) await removeScopedComment(target);
+                  }}
+                  onReport={commentId => openReport('comment', commentId)}
+                />
+              ) : !commentLoadError ? (
+                <View style={styles.commentEmptyState}>
+                  <View style={styles.commentEmptyIcon}>
+                    <MaterialCommunityIcons
+                      name="comment-text-multiple-outline"
+                      size={30}
+                      color={colors.green}
+                    />
+                  </View>
+                  <Text style={styles.commentEmptyTitle}>
+                    Start the conversation
+                  </Text>
+                  <Text style={styles.commentEmptyDescription}>
+                    Be the first to comment in this community.
+                  </Text>
+                </View>
+              ) : null}
             </ScrollView>
 
             {!!replyTo && (
-              <View
-                style={
-                  styles.replyingTo
-                }
-              >
+              <View style={styles.replyingTo}>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.replyingText}>
-                    Replying to{' '}
-                    {resolvePersonDisplayName(
+                    Replying to {resolvePersonDisplayName(
                       replyTo.commenter_name,
                       replyTo.user_id,
                     )}
                   </Text>
-                  <Text
-                    numberOfLines={2}
-                    style={{
-                      marginTop: 2,
-                      fontSize: 11,
-                      color: colors.muted,
-                    }}
-                  >
-                    {repairMojibakeText(
-                      String(replyTo.body || '')
-                    )}
+                  <Text numberOfLines={1} style={styles.replySnippet}>
+                    {repairMojibakeText(String(replyTo.body || ''))}
                   </Text>
                 </View>
-
                 <Pressable
+                  accessibilityLabel="Cancel reply"
+                  hitSlop={BUKLOD_HIT_SLOP}
                   onPress={() => {
+                    const replyName = String(resolvePersonDisplayName(
+                      replyTo.commenter_name,
+                      replyTo.user_id,
+                    ));
+                    const prefix = `@${replyName} `;
+                    setCommentText(current =>
+                      current.startsWith(prefix)
+                        ? current.slice(prefix.length)
+                        : current
+                    );
+                    setCommentMentions(current => current.filter(
+                      mention => mention.user_id !== String(replyTo.user_id),
+                    ));
                     setReplyTo(null);
-                    if (commentText.trim().startsWith('@')) {
-                      setCommentText('');
-                      setCommentMentions([]);
-                    }
                   }}
                 >
                   <MaterialCommunityIcons
-                    name="close"
-                    size={17}
-                    color={
-                      colors.muted
-                    }
+                    name="close-circle"
+                    size={20}
+                    color={colors.green}
                   />
                 </Pressable>
               </View>
             )}
 
-            <View
-              style={[
-                styles.commentComposer,
-                {
-                  paddingBottom:
-                    drawerBottomInset,
-                },
-              ]}
-            >
-              <BuklodMentionField
-                value={commentText}
-                onChangeText={setCommentText}
-                mentions={commentMentions}
-                onMentionsChange={setCommentMentions}
-                audience={
-                  scope.scope_type === 'LOCAL' ||
-                  scope.scope_type === 'CHURCH'
-                    ? 'local'
-                    : 'public'
-                }
-                excludeUserId={user?.id}
-                placeholder={
-                  replyTo
-                    ? 'Write a reply...'
-                    : 'Write a comment...'
-                }
-                placeholderTextColor={colors.muted}
-                maxLength={2000}
-                style={styles.commentInput}
-              />
-
-              <Pressable
-                disabled={
-                  commentBusy ||
-                  !commentText
-                    .trim()
-                }
-                onPress={() =>
-                  void addComment()
-                }
-                style={[
-                  styles.commentSend,
-                  (
-                    commentBusy ||
-                    !commentText
-                      .trim()
-                  ) &&
-                    styles.commentSendDisabled,
-                ]}
-              >
-                {commentBusy ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={
-                      colors.white
-                    }
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="send"
-                    size={18}
-                    color={
-                      colors.white
-                    }
-                  />
-                )}
-              </Pressable>
-            </View>
+            <BuklodCommunityCommentComposer
+              value={commentText}
+              onChangeText={setCommentText}
+              mentions={commentMentions}
+              onMentionsChange={setCommentMentions}
+              audience={
+                scope.scope_type === 'LOCAL' ||
+                scope.scope_type === 'CHURCH'
+                  ? 'local'
+                  : 'public'
+              }
+              excludeUserId={user?.id}
+              placeholder={replyTo ? 'Write a reply…' : 'Write a comment…'}
+              busy={commentBusy}
+              layout="stacked"
+              focusRequestKey={replyTo?.id ?? null}
+              media={commentMedia}
+              mediaPreviewUri={commentMediaPreview}
+              onMediaChange={(next, preview) => {
+                setCommentMedia(next);
+                setCommentMediaPreview(preview ?? null);
+              }}
+              onSend={() => void addComment()}
+            />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
-    
+
       {/* PATCH_186B_PHOTO_EDITOR_SCOPE_MODAL */}
       {/* PATCH_186B_R3_MAIN_ROOT_INSERTION */}
       <BuklodPhotoEditor
@@ -5326,62 +5268,136 @@ const styles =
       },
 
       modalBackdrop: {
-        flex:
-          1,
-        justifyContent:
-          'flex-end',
-        backgroundColor:
-          'rgba(0,0,0,0.45)',
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(5,20,35,0.5)',
+      },
+      commentBackdropTap: {
+        ...StyleSheet.absoluteFillObject,
+      },
+      commentHandle: {
+        alignSelf: 'center',
+        width: 42,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: '#CCD6DB',
+        marginTop: 10,
+      },
+      commentHeadingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+      },
+      commentCountBadge: {
+        minWidth: 24,
+        paddingHorizontal: 6,
+        height: 22,
+        borderRadius: 11,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#E6F4EB',
+      },
+      commentCountText: {
+        color: '#176534',
+        fontSize: 11,
+        fontWeight: '800',
+      },
+      commentCloseButton: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: colors.background,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+      commentError: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 8,
+        padding: 10,
+        borderRadius: 12,
+        backgroundColor: '#FFF3E8',
+        marginBottom: 12,
+      },
+      commentErrorText: {
+        flex: 1,
+        minWidth: 180,
+        fontSize: 12,
+        color: '#86400F',
+      },
+      commentRetry: {
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        borderRadius: 10,
+        backgroundColor: '#FFFFFF',
+      },
+      commentRetryText: {
+        fontSize: 12,
+        color: '#86400F',
+        fontWeight: '800',
+      },
+      commentEmptyState: {
+        minHeight: 230,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        paddingHorizontal: 20,
+      },
+      commentEmptyIcon: {
+        height: 58,
+        width: 58,
+        borderRadius: 29,
+        backgroundColor: '#EAF6EF',
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      commentEmptyTitle: {
+        color: colors.text,
+        fontSize: 16,
+        fontWeight: '800',
+      },
+      commentEmptyDescription: {
+        color: colors.muted,
+        fontSize: 13,
+        textAlign: 'center',
+      },
+      replySnippet: {
+        marginTop: 3,
+        color: colors.muted,
+        fontSize: 11,
       },
 
       commentSheet: {
-        height:
-          '84%',
-        borderTopLeftRadius:
-          22,
-        borderTopRightRadius:
-          22,
-        backgroundColor:
-          colors.white,
-        overflow:
-          'hidden',
+        height: '90%',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        backgroundColor: colors.white,
+        overflow: 'hidden',
       },
 
       commentSheetHeader: {
-        minHeight:
-          65,
-        paddingHorizontal:
-          15,
-        borderBottomWidth:
-          1,
-        borderBottomColor:
-          colors.line,
-        flexDirection:
-          'row',
-        alignItems:
-          'center',
-        justifyContent:
-          'space-between',
+        minHeight: 76,
+        paddingHorizontal: 18,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.line,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
       },
 
       commentSheetTitle: {
-        color:
-          colors.text,
-        fontSize:
-          15,
-        fontWeight:
-          '900',
+        color: colors.text,
+        fontSize: 19,
+        fontWeight: '900',
       },
 
       commentSheetSub: {
-        color:
-          '#0A63D8',
-        marginTop:
-          2,
-        fontSize:
-          8.5,
-        fontWeight:
-          '800',
+        color: '#236D4B',
+        marginTop: 4,
+        fontSize: 11,
+        fontWeight: '700',
       },
 
       commentsScroll: {
@@ -5390,10 +5406,9 @@ const styles =
       },
 
       commentsContent: {
-        padding:
-          12,
-        paddingBottom:
-          24,
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        paddingBottom: 24,
       },
 
       emptyComments: {

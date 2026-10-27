@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,6 +11,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,6 +49,8 @@ type Props = {
   excludeUserId?: string | null;
   placeholder?: string;
   busy?: boolean;
+  layout?: 'inline' | 'stacked';
+  focusRequestKey?: string | null;
   media: BuklodCommentMedia | null;
   mediaPreviewUri?: string | null;
   onMediaChange: (media: BuklodCommentMedia | null, previewUri?: string | null) => void;
@@ -64,6 +67,8 @@ export default function BuklodCommunityCommentComposer({
   excludeUserId,
   placeholder = 'Write a comment...',
   busy = false,
+  layout = 'inline',
+  focusRequestKey,
   media,
   mediaPreviewUri,
   onMediaChange,
@@ -75,6 +80,11 @@ export default function BuklodCommunityCommentComposer({
   const [reactionOpen, setReactionOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
   const [pickingPhoto, setPickingPhoto] = useState(false);
+  const inputFocusRef = useRef<TextInput | null>(null);
+
+  useEffect(() => {
+    if (focusRequestKey) inputFocusRef.current?.focus();
+  }, [focusRequestKey]);
 
   useEffect(() => {
     const showEvent =
@@ -105,11 +115,14 @@ export default function BuklodCommunityCommentComposer({
     (media?.kind === 'gif' ? media.ref : null);
 
   const insertReaction = (emoji: string) => {
-    const next = value.trim()
-      ? `${value.trim()} ${emoji}`
-      : emoji;
-    onChangeText(next);
-    setReactionOpen(false);
+    if (layout === 'inline') {
+      onChangeText(value.trim() ? `${value.trim()} ${emoji}` : emoji);
+      setReactionOpen(false);
+      return;
+    }
+    const spacer = value && !/\s$/.test(value) ? ' ' : '';
+    onChangeText(`${value}${spacer}${emoji}`);
+    inputFocusRef.current?.focus();
   };
 
   const pickPhoto = async () => {
@@ -151,46 +164,8 @@ export default function BuklodCommunityCommentComposer({
     [],
   );
 
-  return (
-    <View
-      style={[
-        styles.shell,
-        { paddingBottom: bottomPad },
-      ]}
-    >
-      {!!previewUri && (
-        <View style={styles.previewRow}>
-          <ExpoImage
-            source={{ uri: previewUri }}
-            style={styles.previewImage}
-            contentFit="cover"
-          />
-          <Pressable
-            accessibilityLabel="Remove attachment"
-            onPress={() => onMediaChange(null, null)}
-            style={styles.previewRemove}
-          >
-            <MaterialCommunityIcons name="close" size={16} color="#FFFFFF" />
-          </Pressable>
-        </View>
-      )}
-
-      {reactionOpen ? (
-        <View style={styles.reactionStrip}>
-          {BUKLOD_PUBLIC_COMMUNITY_REACTIONS.map(option => (
-            <Pressable
-              key={option.key}
-              accessibilityLabel={option.label}
-              onPress={() => insertReaction(option.emoji)}
-              style={styles.reactionChip}
-            >
-              <Text style={styles.reactionEmoji}>{option.emoji}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-
-      <View style={styles.row}>
+  const mediaButtons = (
+    <>
         <Pressable
           accessibilityLabel="Add photo"
           disabled={busy || pickingPhoto}
@@ -233,19 +208,26 @@ export default function BuklodCommunityCommentComposer({
             color={colors.green}
           />
         </Pressable>
+    </>
+  );
 
-        <BuklodMentionField
-          value={value}
-          onChangeText={onChangeText}
-          mentions={mentions}
-          onMentionsChange={onMentionsChange}
-          audience={audience}
-          groupId={groupId}
-          excludeUserId={excludeUserId}
-          placeholder={placeholder}
-          style={styles.input}
-        />
+  const commentField = (
+    <BuklodMentionField
+      value={value}
+      onChangeText={onChangeText}
+      mentions={mentions}
+      onMentionsChange={onMentionsChange}
+      audience={audience}
+      groupId={groupId}
+      excludeUserId={excludeUserId}
+      placeholder={placeholder}
+      style={styles.input}
+      focusRef={inputFocusRef}
+      maxLength={layout === 'stacked' ? 2000 : undefined}
+    />
+  );
 
+  const sendButton = (
         <Pressable
           accessibilityLabel="Send comment"
           disabled={!canSend}
@@ -258,7 +240,65 @@ export default function BuklodCommunityCommentComposer({
             <MaterialCommunityIcons name="send" size={18} color="#FFFFFF" />
           )}
         </Pressable>
-      </View>
+  );
+
+  return (
+    <View
+      style={[
+        styles.shell,
+        { paddingBottom: bottomPad },
+      ]}
+    >
+      {!!previewUri && (
+        <View style={styles.previewRow}>
+          <ExpoImage
+            source={{ uri: previewUri }}
+            style={styles.previewImage}
+            contentFit="cover"
+          />
+          <Pressable
+            accessibilityLabel="Remove attachment"
+            onPress={() => onMediaChange(null, null)}
+            style={styles.previewRemove}
+          >
+            <MaterialCommunityIcons name="close" size={16} color="#FFFFFF" />
+          </Pressable>
+        </View>
+      )}
+
+      {reactionOpen ? (
+        <View style={styles.reactionStrip}>
+          {BUKLOD_PUBLIC_COMMUNITY_REACTIONS.map(option => (
+            <Pressable
+              key={option.key}
+              accessibilityLabel={option.label}
+              onPress={() => insertReaction(option.emoji)}
+              style={styles.reactionChip}
+            >
+              <Text style={styles.reactionEmoji}>{option.emoji}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      {layout === 'stacked' ? (
+        <View style={styles.stacked}>
+          <View style={styles.expandedInputRow}>
+            <View style={styles.fieldWrap}>{commentField}</View>
+            {sendButton}
+          </View>
+          <View style={styles.expandedToolsRow}>
+            {mediaButtons}
+            <Text style={styles.toolsHint}>Photo · GIF · Emoji</Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.row}>
+          {mediaButtons}
+          {commentField}
+          {sendButton}
+        </View>
+      )}
 
       <Modal
         visible={gifOpen}
@@ -362,6 +402,29 @@ const styles = StyleSheet.create({
   reactionEmoji: {
     fontSize: 18,
     lineHeight: 22,
+  },
+  fieldWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  stacked: {
+    gap: 5,
+  },
+  expandedInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  expandedToolsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingTop: 2,
+  },
+  toolsHint: {
+    color: colors.muted,
+    fontSize: 11,
+    marginLeft: 'auto',
   },
   row: {
     minHeight: 48,
