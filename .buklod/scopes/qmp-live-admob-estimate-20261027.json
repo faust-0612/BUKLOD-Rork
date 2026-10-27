@@ -1,0 +1,28 @@
+{
+  "objective": "Show authenticated, QMP-qualified BUKLOD Community members a source-backed noncash AdMob estimated share, with audited admin and optional official server sync, preserving all real money gates.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub DEV main 8693668142f933df5b1e324b1b3922cc7591cf29 (read-only branch baseline, not an OTA fingerprint); read-only Supabase production Community QMP month 2026-10 observed 5820 qualified QMP and zero configured AdMob provisional source or reconciled designated revenue on 2026-10-27. Exact served production Android OTA/RC artifact unverified; release remains gated.",
+  "allowedPaths": [
+    ".buklod/scopes/qmp-live-admob-estimate-20261027.json",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/buklod_admob_provisional_sync.yml",
+    "src/app/admin/economy-operations.tsx",
+    "src/app/bayanihan/index.tsx",
+    "src/app/community-contribution.tsx",
+    "src/components/BuklodCommunityContributionCard.tsx",
+    "src/lib/buklodCommunityContributionEconomy.ts",
+    "supabase/functions/buklod-admob-revenue-preview-sync/index.ts",
+    "supabase/migrations/20261027161000_buklod_community_admob_provisional_estimates_v1.sql",
+    "tests/community-admob-preview-contract.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "All modified paths belong to this explicitly scoped QMP/AdMob preview workstream",
+    "QMP-weighted estimate uses period snapshot and source-backed PHP value; small qualified previews are shown as below-cent when appropriate",
+    "Only system admin or server service-role may update snapshots; official API mode requires service-role",
+    "Neither estimate RPC nor AdMob importer touches withdrawable cash, settlements, referral bonus, or finalization gates",
+    "Missing/stale report does not fabricate a peso amount; qualified user private estimates cannot leak across sessions",
+    "Official AdMob importer filters to BUKLOD app and PHP currency, fails closed on missing OAuth, report or auth",
+    "Automation remains opt-in until secrets deployed; QA and release fingerprint required before production OTA",
+    "No native v29 build required; actual device verification was explicitly waived by user"
+  ]
+}
