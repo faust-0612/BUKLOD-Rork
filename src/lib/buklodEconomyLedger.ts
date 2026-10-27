@@ -3,6 +3,7 @@
  * No invented balances. Partial loads are honest nulls/zeros from real APIs only.
  */
 import { supabase } from '@/lib/supabase';
+import { communityQmpMetrics } from '@/lib/buklodEconomyQmp';
 import {
   loadBuklodClaimGroups,
   loadBuklodPointsDashboard,
@@ -307,16 +308,12 @@ export function economyFinalizedBayanihanPhp(snapshot: BuklodEconomyLedgerSnapsh
 }
 
 export function economyPoolSharePct(snapshot: BuklodEconomyLedgerSnapshot) {
-  const v3 = snapshot.financial?.earnings?.estimated_pool_share_pct;
-  if (v3 != null && Number.isFinite(Number(v3))) return Number(v3);
-  return null;
+  // This is participation percentage, NOT an activated cash entitlement.
+  return communityQmpMetrics(snapshot.community)?.participationPct ?? null;
 }
 
 export function economyQmpWeight(snapshot: BuklodEconomyLedgerSnapshot) {
-  if (snapshot.community?.share_weight != null) return num(snapshot.community.share_weight);
-  if (snapshot.community?.this_month_qmp != null) return num(snapshot.community.this_month_qmp);
-  if (snapshot.financial?.progress?.qualified_monthly_points != null) {
-    return num(snapshot.financial.progress.qualified_monthly_points);
-  }
-  return null;
+  // share_weight is a 0..1 fraction, never a QMP count.
+  // Do not silently fall back to Profit-First's activation-gated zeros.
+  return communityQmpMetrics(snapshot.community)?.monthlyQmp ?? null;
 }

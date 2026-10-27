@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,12 +8,19 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import {
   loadMyBuklodFinancialSummaryV3,
   type BuklodFinancialSummaryV3,
 } from '@/lib/buklodEconomyV3';
+import {
+  loadMyCommunityContribution,
+  type CommunityContributionDashboard,
+} from '@/lib/buklodCommunityContributionEconomy';
+import { communityQmpMetrics } from '@/lib/buklodEconomyQmp';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
 
 type SectionKey =
@@ -59,6 +66,8 @@ function StatusChip({ label }: { label: string }) {
 }
 
 export default function BuklodEconomyGuideScreen() {
+  const { session, loading: authLoading } = useAuth();
+  const userId = session?.user.id ?? null;
   const {
     t,
     languageName,
@@ -71,27 +80,72 @@ export default function BuklodEconomyGuideScreen() {
   );
   const [summary, setSummary] =
     useState<BuklodFinancialSummaryV3 | null>(null);
+  const [contribution, setContribution] = useState<CommunityContributionDashboard | null>(null);
+  const [qmpError, setQmpError] = useState('');
   const [liveError, setLiveError] = useState('');
   const [loading, setLoading] = useState(true);
+  const requestRef = useRef(0);
+  const ownerRef = useRef<string | null>(null);
+  const lastSyncedRef = useRef(0);
 
-  const loadLive = useCallback(async () => {
+  const loadLive = useCallback(async (force = false) => {
+    if (authLoading) return;
+    if (!userId) {
+      setSummary(null);
+      setContribution(null);
+      setLiveError('Sign in to see your Economy details.');
+      setLoading(false);
+      return;
+    }
+    if (!force && lastSyncedRef.current > 0
+      && Date.now() - lastSyncedRef.current < 30_000) return;
+    const request = ++requestRef.current;
     try {
       setLiveError('');
-      setSummary(await loadMyBuklodFinancialSummaryV3());
-    } catch (error) {
-      setLiveError(
-        error instanceof Error
-          ? error.message
-          : t('economy.guide.liveUnavailable'),
-      );
+      setQmpError('');
+      const [financialResult, communityResult] = await Promise.allSettled([
+        loadMyBuklodFinancialSummaryV3(),
+        withBuklodTimeout(loadMyCommunityContribution(), 8000, 'Community QMP'),
+      ]);
+      if (request !== requestRef.current) return;
+      const financialReady = financialResult.status === 'fulfilled'
+        && financialResult.value.identity_ready === true;
+      if (financialReady && financialResult.status === 'fulfilled') {
+        setSummary(financialResult.value);
+      } else {
+        setSummary(null);
+        setLiveError(financialResult.status === 'rejected'
+          ? (financialResult.reason instanceof Error
+            ? financialResult.reason.message : t('economy.guide.liveUnavailable'))
+          : 'Economy identity not ready. Please retry.');
+      }
+      const communityReady = communityResult.status === 'fulfilled'
+        && communityQmpMetrics(communityResult.value) !== null;
+      if (communityReady && communityResult.status === 'fulfilled') {
+        setContribution(communityResult.value);
+      } else {
+        setContribution(null);
+        setQmpError('Community QMP is unavailable. No zero balance is assumed.');
+      }
+      lastSyncedRef.current = financialReady && communityReady ? Date.now() : 0;
     } finally {
-      setLoading(false);
+      if (request === requestRef.current) setLoading(false);
     }
-  }, [t]);
+  }, [t, userId, authLoading]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
+    if (ownerRef.current !== userId) {
+      ownerRef.current = userId;
+      ++requestRef.current;
+      lastSyncedRef.current = 0;
+      setSummary(null);
+      setContribution(null);
+      setQmpError('');
+      setLoading(true);
+    }
     void loadLive();
-  }, [loadLive]);
+    return () => { ++requestRef.current; };
+  }, [loadLive, userId]));
 
   const toggle = (key: SectionKey) => {
     setOpen(current => {
@@ -127,6 +181,7 @@ export default function BuklodEconomyGuideScreen() {
     (sum, row) => sum + Number(row.pending_reward_php ?? 0),
     0,
   );
+  const qmp = communityQmpMetrics(contribution);
 
   const bodyFor = (key: SectionKey) => {
     switch (key) {
@@ -292,16 +347,17 @@ export default function BuklodEconomyGuideScreen() {
               <View style={styles.estimatorGrid}>
                 <GuideCard title={t('economy.guide.estimatorQualifiedPoints')}>
                   <Text style={styles.bigValue}>
-                    {formatNumber(Number(summary.progress?.qualified_monthly_points ?? 0))}
+                    {qmp ? formatNumber(qmp.monthlyQmp) : '—'}
                   </Text>
+                  <Text style={styles.statusText}>{qmp?.periodKey ?? 'Community QMP unavailable'}</Text>
                 </GuideCard>
-                <GuideCard title={t('economy.guide.estimatorPoolShare')}>
+                <GuideCard title="QMP Participation Weight">
                   <Text style={styles.bigValue}>
-                    {Number(summary.earnings?.estimated_pool_share_pct ?? 0).toLocaleString(
-                      undefined,
-                      { maximumFractionDigits: 4 },
-                    )}%
+                    {qmp ? `${qmp.participationPct.toLocaleString(undefined, {
+                      maximumFractionDigits: 4,
+                    })}%` : '—'}
                   </Text>
+                  <Text style={styles.statusText}>QMP participation only; not cash entitlement.</Text>
                 </GuideCard>
                 <GuideCard title={t('economy.guide.estimatorPersonal')}>
                   <Text style={styles.bigValue}>
@@ -347,8 +403,16 @@ export default function BuklodEconomyGuideScreen() {
               <View style={styles.notice}>
                 <Text style={styles.noticeText}>{t('economy.guide.liveUnavailable')}</Text>
                 {liveError ? <Text style={styles.errorText}>{liveError}</Text> : null}
+                <Pressable onPress={() => void loadLive(true)}>
+                  <Text style={styles.errorText}>Try Again</Text>
+                </Pressable>
               </View>
             )}
+            {qmpError ? (
+              <Pressable onPress={() => void loadLive(true)} style={styles.notice}>
+                <Text style={styles.errorText}>{qmpError} · Retry</Text>
+              </Pressable>
+            ) : null}
             <GuideCard title={t('economy.guide.planningOnly')}>
               <Paragraph>{t('economy.guide.baselineBody')}</Paragraph>
               <Paragraph>{t('economy.guide.referralEstimate')}</Paragraph>

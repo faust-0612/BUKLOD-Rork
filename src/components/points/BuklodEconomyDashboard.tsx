@@ -347,9 +347,9 @@ export default function BuklodEconomyDashboard() {
               <Metric label="Points Used / Spent" value={formatEconomyPts(spent)} />
               <Metric label="Pending / Claimable" value={formatEconomyPts(claimable)} />
               <Metric
-                label="Pool Share"
+                label="QMP Participation Share"
                 value={poolPct == null ? '—' : `${poolPct.toLocaleString(undefined, { maximumFractionDigits: 4 })}%`}
-                note="Estimated pool participation"
+                note="Qualified participation only, not cash entitlement"
               />
               <Metric
                 label="QMP Weight"
