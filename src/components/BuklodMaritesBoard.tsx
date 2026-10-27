@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 
 import {
+  ActivityIndicator,
   Alert,
   AppState,
   Image,
@@ -136,13 +137,47 @@ function MaritesQuickVideo({ uri, autoPlay = false, muted = false }: { uri: stri
     instance.loop = autoPlay;
     instance.muted = muted;
   });
+  const [status, setStatus] = useState<string>(() => player.status);
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    setStatus(player.status);
+    const subscription = player.addListener('statusChange', event => {
+      setStatus(event.status);
+    });
+    return () => subscription.remove();
+  }, [player]);
   useEffect(() => {
     player.muted = muted;
     if (autoPlay && active) player.play();
     else player.pause();
   }, [player, autoPlay, muted, active]);
-  // useVideoPlayer releases the native player on unmount.
-  return <VideoView player={player} nativeControls={!autoPlay && active} contentFit="contain" style={{ width: '100%', height: '100%', backgroundColor: '#000' }} />;
+  useEffect(() => {
+    setSlow(false);
+    if (status === 'readyToPlay' || status === 'error' || !active) return;
+    const timer = setTimeout(() => setSlow(true), 10_000);
+    return () => clearTimeout(timer);
+  }, [status, uri, active]);
+  // A failed/expired URL used to look exactly like an empty black story.
+  // Keep the video mounted only while visible, but always surface its state.
+  return (
+    <View style={{ flex: 1, backgroundColor: '#151515' }}>
+      <VideoView player={player} nativeControls={!autoPlay && active} contentFit="contain" style={{ width: '100%', height: '100%' }} />
+      {(status === 'error' || (active && status !== 'readyToPlay')) && (
+        <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', padding: 12, backgroundColor: 'rgba(0,0,0,0.35)' }}>
+          {status === 'error' ? (
+            <MaterialCommunityIcons name="alert-circle-outline" size={27} color="#FFFFFF" />
+          ) : !slow ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <MaterialCommunityIcons name="wifi-alert" size={27} color="#FFFFFF" />
+          )}
+          <Text style={{ color: '#FFFFFF', marginTop: 8, textAlign: 'center', fontSize: 12, fontWeight: '700' }}>
+            {status === 'error' ? 'Video unavailable' : slow ? 'Video is taking longer to load' : 'Loading video…'}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
 type MaritesComposerPhoto = {

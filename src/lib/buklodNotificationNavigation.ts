@@ -84,16 +84,36 @@ export function resolveBuklodNotificationTarget(
   if (
     normalizedKind === 'cluster_join_request' ||
     normalizedKind === 'cluster_invite' ||
-    normalizedKind === 'cluster_join_result'
+    normalizedKind === 'cluster_join_result' ||
+    normalizedKind === 'cluster_home'
   ) {
     const clusterScopeId = clean(payload.scope_id);
 
     if (clusterScopeId) {
+      const id = encodeURIComponent(clusterScopeId);
+      const approved = ['approved', 'accepted', 'active'].includes(
+        clean(payload.resolved).toLowerCase(),
+      );
+
+      // An approved member's notification goes to this exact Cluster Home.
+      // /scope still checks active membership; this is never an auth bypass.
+      if (
+        normalizedKind === 'cluster_home' ||
+        (normalizedKind === 'cluster_join_result' && approved)
+      ) {
+        return {
+          path: `/scope?section=home&scopeId=${id}`,
+          scopeId: clusterScopeId,
+        };
+      }
+
       return {
         path:
           normalizedKind === 'cluster_join_request'
-            ? `/clusters/join-requests?cluster=${encodeURIComponent(clusterScopeId)}`
-            : `/clusters/${encodeURIComponent(clusterScopeId)}`,
+            ? `/clusters/join-requests?cluster=${id}`
+            : normalizedKind === 'cluster_invite'
+              ? `/clusters/${id}?fromInvite=1`
+              : `/clusters/${id}`,
         scopeId: clusterScopeId,
       };
     }
@@ -112,6 +132,13 @@ export function resolveBuklodNotificationTarget(
     return {
       path: `/prayer/${encodeURIComponent(prayerRequestId)}`,
     };
+  }
+
+  // Always open the exact record. A scoped workspace is only a fallback when
+  // the producer did not provide a post id; the post detail RPC enforces access.
+  const postId = clean(payload.post_id);
+  if (postId && COMMUNITY_POST_KINDS.has(normalizedKind)) {
+    return { path: `/post/${encodeURIComponent(postId)}` };
   }
 
   // Producers may provide a canonical internal route (for example Reports).
@@ -157,6 +184,16 @@ export function resolveBuklodNotificationTarget(
     };
   }
 
+  // If an older notification lacks a record id, stay in Community instead of
+  // incorrectly opening the Connect chat room.
+  const communityScopeId = clean(payload.scope_id);
+  if (COMMUNITY_POST_KINDS.has(normalizedKind) && communityScopeId) {
+    return {
+      path: `/scope?section=community&scopeId=${encodeURIComponent(communityScopeId)}`,
+      scopeId: communityScopeId,
+    };
+  }
+
   const baseTarget = buklodNotificationTarget(
     normalizedKind,
     {
@@ -177,13 +214,6 @@ export function resolveBuklodNotificationTarget(
 
   if (baseTarget) {
     return baseTarget;
-  }
-
-  const postId = clean(payload.post_id);
-  if (postId && COMMUNITY_POST_KINDS.has(normalizedKind)) {
-    return {
-      path: `/post/${encodeURIComponent(postId)}`,
-    };
   }
 
   const devotionalId = clean(payload.devotional_id);

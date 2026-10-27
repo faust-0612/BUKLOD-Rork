@@ -24,6 +24,12 @@ jobs:
           case "$PR_HEAD" in
             fix/offline-connect-faith-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/offline-connect-faith-20261027.json" >> "$GITHUB_ENV";;
+            fix/marites-video-blank-recovery-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/marites-video-blank-recovery-20261027.json" >> "$GITHUB_ENV";;
+            fix/scoped-comments-ux-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/scoped-comments-ux-20261027.json" >> "$GITHUB_ENV";;
+            fix/cluster-notification-home-sys500-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/cluster-notification-home-20261027.json" >> "$GITHUB_ENV";;
             fix/referral-lookup-race-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/referral-lookup-race-20261027.json" >> "$GITHUB_ENV";;
             fix/backend-performance-consolidation-20261026)
@@ -63,6 +69,9 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify approved pending client and rollback recovery
+        if: github.head_ref == 'fix/pending-client-reconciliation-20261027-r1'
+        run: node scripts/test-pending-client-reconciliation-20261027.cjs
       - name: Verify cumulative Show Faith migration contract
         if: github.head_ref == 'dev/scoped-community-ota-consolidation-20261025'
         run: |
@@ -101,10 +110,10 @@ jobs:
           node scripts/test-media-signed-cache.cjs
           node scripts/test-media-sign-fallback.cjs
 
+      - name: Verify offline Connect and Faith cache contract
+        if: github.head_ref == 'fix/offline-connect-faith-20261027'
+        run: node --test tests/offline-connect-faith.test.cjs tests/daily-reading-offline.test.cjs
+
       - name: Verify referral lookup race and error handling
         if: github.head_ref == 'fix/referral-lookup-race-20261027'
         run: node --test tests/referral-lookup.test.cjs
-
-      - name: Verify offline Connect and Faith cache contract
-        if: github.head_ref == 'fix/offline-connect-faith-20261027'
-        run: node --test tests/offline-connect-faith.test.cjs

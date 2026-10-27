@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
 
 import {
   hydratePersonNamesOnRows,
@@ -7,6 +9,8 @@ import {
   repairMojibakeText,
 } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
+import { resolveCommunityMediaUrl } from '@/lib/buklodMediaUrl';
+import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
 import { attachCommunityPostMedia, discardIncompleteCommunityPost, loadCommunityPostMediaByPostIds } from '@/lib/buklodCommunityPostMedia';
 import {
   collectMaritesFeedPages,
@@ -321,9 +325,63 @@ export function isActiveMaritesStory(story: Pick<MaritesStory, 'created_at'>, no
   return Number.isFinite(created) && created <= now && now - created < MARITES_VALIDITY_MS;
 }
 
+const MARITES_OFFLINE_VIDEO_DIR = 'buklod-marites-offline/';
+
+async function persistLocalMaritesVideo(
+  story: MaritesStory,
+  mimeType?: string,
+): Promise<MaritesStory> {
+  if (!story.video_uri) return story;
+  if (Platform.OS === 'web' || !FileSystem.documentDirectory) {
+    throw new Error('Video could not be shared. Reconnect and try again.');
+  }
+
+  const directory = `${FileSystem.documentDirectory}${MARITES_OFFLINE_VIDEO_DIR}`;
+  const extension = /quicktime/i.test(mimeType ?? '') ? 'mov'
+    : /webm/i.test(mimeType ?? '') ? 'webm' : 'mp4';
+  const target = `${directory}${story.id}.${extension}`;
+  await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
+  await FileSystem.copyAsync({ from: story.video_uri, to: target });
+  const info = await FileSystem.getInfoAsync(target);
+  if (!info.exists || (typeof info.size === 'number' && info.size <= 0)) {
+    await FileSystem.deleteAsync(target, { idempotent: true }).catch(() => undefined);
+    throw new Error('Could not save the offline video. Please select it again.');
+  }
+  return { ...story, video_uri: target };
+}
+
+async function discardSavedMaritesVideo(story: MaritesStory): Promise<void> {
+  const directory = FileSystem.documentDirectory
+    ? `${FileSystem.documentDirectory}${MARITES_OFFLINE_VIDEO_DIR}` : '';
+  const uri = String(story.video_uri ?? '');
+  if (!directory || !uri.startsWith(directory)) return;
+  await FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
+}
+
+async function appendOfflineMaritesStory(
+  story: MaritesStory,
+  mimeType?: string,
+): Promise<MaritesStory> {
+  const safeStory = await persistLocalMaritesVideo(story, mimeType);
+  try {
+    await appendMaritesStory(safeStory);
+    return safeStory;
+  } catch (error) {
+    await discardSavedMaritesVideo(safeStory);
+    throw error;
+  }
+}
+
 export async function loadMaritesStories(): Promise<MaritesStory[]> {
   const raw = await AsyncStorage.getItem(MARITES_STORAGE_KEY);
   const rows = parseStories(raw);
+
+  // Story URLs from ImagePicker's temporary cache may disappear after restart.
+  // Remove only our own expired offline video copies; never touch other files.
+  void Promise.all(
+    rows.filter((story) => !isActiveMaritesStory(story))
+      .map(discardSavedMaritesVideo),
+  ).catch(() => undefined);
 
   return rows
     .filter((story) => isActiveMaritesStory(story))
@@ -804,8 +862,11 @@ export async function loadCommunityMaritesStories(
         for (const [postId, rows] of Object.entries(loaded)) {
           mediaMap[postId] = await Promise.all(rows.map(async row => ({
             ...row,
-            media_url: row.media_path && String(row.media_mime_type ?? '').toLowerCase().startsWith('video/')
-              ? (await signCommunityMediaPath(String(row.media_path)) || row.media_url || null)
+            // The shared loader has already resolved videos by provider.
+            // Never re-sign an AWS S3 path as a Supabase Storage object:
+            // that replaces a playable S3 URL with a black-screen URL.
+            media_url: String(row.media_mime_type ?? '').toLowerCase().startsWith('video/')
+              ? (row.media_url || null)
               : (row.media_url || (row.media_path
                 ? await signCommunityMediaPath(String(row.media_path)) : null)),
           })));
@@ -846,7 +907,13 @@ export async function loadCommunityMaritesStories(
                   ''
               ).toLowerCase();
 
-            if (mime.startsWith('video/') || mime.startsWith('image/')) {
+            if (mime.startsWith('video/')) {
+              const path = String(row.media_path);
+              const mediaUrl = path.startsWith('aws:')
+                ? await getAwsWallVideoViewUrl(postId, path.slice(4)).catch(() => null)
+                : await resolveCommunityMediaUrl(path, String(row.media_url ?? ''));
+              if (mediaUrl) row.media_url = mediaUrl;
+            } else if (mime.startsWith('image/')) {
               const mediaUrl = await signCommunityMediaPath(String(row.media_path));
               if (mediaUrl) row.media_url = mediaUrl;
             }
@@ -1174,18 +1241,25 @@ export async function publishMaritesStory(input: {
       p_group_id: null,
       p_category: 'reflection',
       p_body: sharedBody,
-      p_media_path: first?.media_path ?? null,
-      p_media_mime_type: first?.media_mime_type ?? null,
-      p_media_size_bytes: first?.media_size_bytes ?? null,
-      p_media_duration_seconds: input.video?.durationSeconds ?? null,
+      // The public post RPC intentionally rejects video uploads on the
+      // regular Wall. Create the marked Marites post without primary media,
+      // then attach the already-uploaded Quick Video through the existing
+      // author-verified set_buklod_post_media_v5 RPC.
+      p_media_path: input.video ? null : (first?.media_path ?? null),
+      p_media_mime_type: input.video ? null : (first?.media_mime_type ?? null),
+      p_media_size_bytes: input.video ? null : (first?.media_size_bytes ?? null),
+      p_media_duration_seconds: null,
       p_is_reel: false,
       p_mentioned_user_ids: [],
     });
 
     if (createError) {
       if (isMissingRpcError(String(createError.message ?? ''))) {
-        await appendMaritesStory(localStory);
-        return { story: localStory, shared: false };
+        if (uploaded.length) {
+          await discardIncompleteCommunityPost({ postId: null, mediaPaths: uploaded.map(item => item.media_path) });
+        }
+        const saved = await appendOfflineMaritesStory(localStory, input.video?.mimeType);
+        return { story: saved, shared: false };
       }
 
       throw createError;
@@ -1213,14 +1287,25 @@ export async function publishMaritesStory(input: {
       );
     }
 
-    const signedPhotos = await Promise.all(
+    const signedPhotos = input.video ? [] : await Promise.all(
       uploaded.map(async (item) => {
-        const url = await signCommunityMediaPath(
-          item.media_path
-        );
+        const url = await signCommunityMediaPath(item.media_path);
         return url || '';
       })
     );
+    // Immediately use the same provider-aware source as feed refreshes.
+    // A newly uploaded AWS video has no object in Supabase to sign.
+    let publishedVideoUrl: string | null = null;
+    if (input.video) {
+      try {
+        const rows = await loadCommunityPostMediaByPostIds([createdPostId]);
+        publishedVideoUrl = rows[createdPostId]?.find(
+          (row) => String(row.media_mime_type ?? '').startsWith('video/'),
+        )?.media_url ?? null;
+      } catch {
+        // Publication already committed; next feed refresh can recover URL.
+      }
+    }
 
     const sharedStory: MaritesStory = {
       id: `${COMMUNITY_MARITES_ID_PREFIX}${createdPostId}`,
@@ -1231,7 +1316,7 @@ export async function publishMaritesStory(input: {
       photo_uris: input.video ? [] : signedPhotos.filter(Boolean),
       photo_uri: input.video ? null : (signedPhotos.find(Boolean) ?? null),
       photo_paths: input.video ? [] : uploaded.map((item) => item.media_path),
-      video_uri: input.video ? (signedPhotos[0] || input.video.uri) : null,
+      video_uri: input.video ? (publishedVideoUrl || input.video.uri) : null,
       mentions: [],
       author_only: false,
       source: 'community',
@@ -1270,14 +1355,14 @@ export async function publishMaritesStory(input: {
     );
 
     if (isMissingRpcError(message)) {
-      await appendMaritesStory(localStory);
-      return { story: localStory, shared: false };
+      const saved = await appendOfflineMaritesStory(localStory, input.video?.mimeType);
+      return { story: saved, shared: false };
     }
 
     // Offline / unexpected failure — still keep a local copy.
-    await appendMaritesStory(localStory);
+    const saved = await appendOfflineMaritesStory(localStory, input.video?.mimeType);
     console.warn('Marites shared publish failed:', message);
-    return { story: localStory, shared: false };
+    return { story: saved, shared: false };
   }
 }
 
@@ -1287,6 +1372,8 @@ export function filterMaritesStoriesForViewer(
 ) {
   return stories.filter((story) => {
     if (!isActiveMaritesStory(story)) return false;
+    // Device-only fallback stories are not shared with a different login.
+    if (story.source !== 'community' && story.user_id !== viewerId) return false;
     if (!story.author_only) {
       return true;
     }
@@ -1336,6 +1423,8 @@ export async function deleteMaritesStory(
   const next = existing.filter((story) => story.id !== storyId);
 
   await saveMaritesStories(next);
+  const removed = existing.find((story) => story.id === storyId);
+  if (removed) await discardSavedMaritesVideo(removed);
 
   return next;
 }

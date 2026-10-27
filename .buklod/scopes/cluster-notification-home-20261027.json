@@ -1,0 +1,19 @@
+{
+  "objective": "Cluster notification destination and safe screen-crash diagnostics",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: main is the PR comparison baseline only; Android runtime 1.3.2 live OTA source and RC require separate fingerprint verification before release",
+  "allowedPaths": [
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/cluster-notification-home-20261027.json",
+    "__tests__/buklodNotificationNavigation.test.ts",
+    "src/lib/buklodNotificationNavigation.ts",
+    "src/app/_layout.tsx"
+  ],
+  "acceptanceChecks": [
+    "Approved Cluster join notification routes to its exact scoped Home with membership authorization",
+    "Declined results, invites and admin join requests retain their safe destinations",
+    "SYS-500 route exceptions are fingerprinted without raw messages; screen has a safe exit",
+    "TypeScript and focused notification regression tests",
+    "DEV to verified RC to production OTA requires separate live baseline verification"
+  ]
+}

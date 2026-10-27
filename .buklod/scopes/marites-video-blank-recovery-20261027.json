@@ -1,0 +1,20 @@
+{
+  "objective": "Restore Marites Story Quick Video: provider-aware playable URLs, durable device-only fallback, visible player failure and viewer isolation",
+  "baseRef": "50b43577a35e712adb889fc87aa2daba4fa73cdf",
+  "productionBaselineEvidence": "Main SHA 50b43577a35e712adb889fc87aa2daba4fa73cdf inspected; live Android OTA fingerprint not yet verified. DEV scope only; production release requires exact RC and device playback acceptance.",
+  "allowedPaths": [
+    "src/lib/buklodMaritesBoard.ts",
+    "src/components/BuklodMaritesBoard.tsx",
+    "scripts/test-marites-release.cjs",
+    ".buklod/scopes/marites-video-blank-recovery-20261027.json",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/performance_r1_qa.yml"
+  ],
+  "acceptanceChecks": [
+    "Provider-specific media URL preserved without Supabase signing AWS paths",
+    "Local-only Quick Video stored outside ephemeral picker cache and hidden across accounts",
+    "Player shows loading/error rather than blank black video",
+    "TypeScript and focused Marites regression tests pass",
+    "Verified exact RC and Android playback before production OTA"
+  ]
+}

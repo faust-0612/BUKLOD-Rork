@@ -33,7 +33,7 @@ import {
 import { clusterScopeManageRoute } from '@/lib/buklodCluster';
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 
 function messageOf(error: unknown) {
   if (
@@ -144,7 +144,7 @@ function ClusterCard({
       </View>
 
       {!!item.description && (
-        <Text style={styles.description}>
+        <Text numberOfLines={2} style={styles.description}>
           {item.description}
         </Text>
       )}
@@ -164,11 +164,32 @@ function ClusterCard({
 // Session-memory cache: never persist private membership across app restarts.
 // A successful mutation invalidates it before any follow-up read.
 const CLUSTER_CACHE_TTL_MS = 60_000;
-let clusterMemory: { mine: ClusterSummary[] | null; found: ClusterSummary[] | null; query: string; at: number } = {
-  mine: null, found: null, query: '', at: 0,
+type ClusterMemory = {
+  owner: string;
+  mine: ClusterSummary[] | null;
+  found: ClusterSummary[] | null;
+  query: string;
+  at: number;
 };
 
+function emptyClusterMemory(owner: string): ClusterMemory {
+  return { owner, mine: null, found: null, query: '', at: 0 };
+}
+
+let clusterMemory = emptyClusterMemory('');
+
 export default function ClustersScreen() {
+  const { user } = useAuth();
+  const owner = user?.id ?? '';
+  // Do not reset same-user data on token refresh or repeated SIGNED_IN.
+  // Account change remounts screen and immediately discards prior-user cache.
+  if (clusterMemory.owner !== owner) {
+    clusterMemory = emptyClusterMemory(owner);
+  }
+  return <ClusterDirectory key={owner || 'signed-out'} owner={owner} />;
+}
+
+function ClusterDirectory({ owner }: { owner: string }) {
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -177,18 +198,6 @@ export default function ClustersScreen() {
     });
     return () => listener.remove();
   }, []));
-  // Never expose a previous account's in-memory Cluster memberships.
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        clusterMemory = { mine: null, found: null, query: '', at: 0 };
-        setMyClusters([]);
-        setDiscover([]);
-        firstLoad.current = true;
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
   const { selectScope } = useBuklodScope();
   const openCluster = useCallback((id: string) => {
     void enterScopedWorkspace(selectScope, id, { section: 'home', navigation: 'replace' }).catch((error) => {
@@ -214,6 +223,7 @@ export default function ClustersScreen() {
 
   const [searching, setSearching] =
     useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const firstLoad = useRef(clusterMemory.mine === null && clusterMemory.found === null);
   const searchRequest = useRef(0);
@@ -225,7 +235,16 @@ export default function ClustersScreen() {
     ) => {
       const requestId = searchRequest.current + 1;
       searchRequest.current = requestId;
+      if (!owner || clusterMemory.owner !== owner) {
+        setMyClusters([]);
+        setDiscover([]);
+        setLoading(false);
+        setRefreshing(false);
+        setSearching(false);
+        return;
+      }
 
+      setLoadError('');
       if (refresh) {
         setRefreshing(true);
       } else if (firstLoad.current) {
@@ -242,7 +261,7 @@ export default function ClustersScreen() {
           discoverClusters(searchValue),
         ]);
 
-        if (requestId !== searchRequest.current) {
+        if (requestId !== searchRequest.current || clusterMemory.owner !== owner) {
           return;
         }
 
@@ -262,22 +281,16 @@ export default function ClustersScreen() {
         }
         if (mine.status === 'rejected' || found.status === 'rejected') {
           const failed = mine.status === 'rejected' ? mine.reason : found.status === 'rejected' ? found.reason : null;
-          Alert.alert(
-            'Clusters',
-            'Some Cluster information could not load. Previous results are retained. Pull down to retry. ' + messageOf(failed)
-          );
+          setLoadError('Some Cluster information could not load. Previous results are retained. ' + messageOf(failed));
         }
       } catch (error) {
-        if (requestId !== searchRequest.current) {
+        if (requestId !== searchRequest.current || clusterMemory.owner !== owner) {
           return;
         }
 
-        Alert.alert(
-          'Clusters',
-          messageOf(error)
-        );
+        setLoadError(messageOf(error));
       } finally {
-        if (requestId === searchRequest.current) {
+        if (requestId === searchRequest.current && clusterMemory.owner === owner) {
           firstLoad.current = false;
           setLoading(false);
           setSearching(false);
@@ -285,12 +298,13 @@ export default function ClustersScreen() {
         }
       }
     },
-    [query]
+    [query, owner]
   );
 
   useEffect(() => {
     const delay = query.trim() ? 180 : 0;
     const timer = setTimeout(() => {
+      if (!owner || clusterMemory.owner !== owner) return;
       if (!query.trim() && clusterMemory.at && Date.now() - clusterMemory.at < CLUSTER_CACHE_TTL_MS) return;
       void load(query);
     }, delay);
@@ -298,7 +312,7 @@ export default function ClustersScreen() {
     return () => {
       clearTimeout(timer);
     };
-  }, [load, query]);
+  }, [load, query, owner]);
 
   const activeClusters = useMemo(
     () =>
@@ -425,6 +439,13 @@ export default function ClustersScreen() {
         </Pressable>
       </View>
 
+      {!!loadError && (
+        <View style={styles.empty}>
+          <Text style={styles.muted}>{loadError}</Text>
+          <ActionButton title="RETRY" onPress={() => void load(query, true)} />
+        </View>
+      )}
+
       {loading ? (
         <View style={styles.loading}>
           <ActivityIndicator size="large" />
@@ -456,9 +477,8 @@ export default function ClustersScreen() {
                 item={item}
                 onOpen={openCluster}
               >
-                <View style={styles.actions}>
-                  <Text style={styles.muted}>Tap the cluster to open Home</Text>
-                  {item.is_admin && (
+                {item.is_admin && (
+                  <View style={styles.actions}>
                     <ActionButton
                       title="MANAGE"
                       outline
@@ -471,8 +491,8 @@ export default function ClustersScreen() {
                         )
                       }
                     />
-                  )}
-                </View>
+                  </View>
+                )}
               </ClusterCard>
             ))
           )}
@@ -671,7 +691,7 @@ const styles = StyleSheet.create({
   hero: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 18,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#E1E7E3',
     gap: 8,
@@ -701,20 +721,20 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 30,
+    fontSize: 24,
     fontWeight: '900',
     color: '#19362A',
   },
 
   subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 17,
     color: '#617068',
     marginBottom: 6,
   },
 
   sectionTitle: {
-    marginTop: 14,
+    marginTop: 8,
     marginBottom: 2,
     fontSize: 13,
     fontWeight: '900',
@@ -725,10 +745,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 15,
+    padding: 11,
     borderWidth: 1,
     borderColor: '#E1E7E3',
-    gap: 8,
+    gap: 5,
   },
 
   cardTitleRow: {
@@ -739,7 +759,7 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     color: '#1A3329',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
   },
 

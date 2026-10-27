@@ -1,9 +1,10 @@
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Image,
   Pressable,
   RefreshControl,
@@ -15,6 +16,8 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
+import { getOfflineCache, removeOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { BuklodBibleNarrationBar } from '@/components/BuklodBibleNarrationBar';
 import {
   mapBibleChapterRows,
@@ -55,6 +58,23 @@ type PhotoDraft = {
   base64: string;
   sizeBytes: number;
 };
+
+type DailyReadingSnapshot = {
+  weekStart: string;
+  assignments: Assignment[];
+  submissions: Submission[];
+  points: number;
+};
+
+type DailyReadingDraft = {
+  answer: string;
+  questionAnswers: string[];
+  language: 'fil' | 'en';
+};
+
+const DAILY_READING_WEEK_CACHE = 'daily-bible-week:v2';
+const DAILY_READING_DRAFT_CACHE = 'daily-bible-draft:v1';
+const DAILY_READING_CACHE_TTL_MS = 8 * 24 * 60 * 60 * 1000;
 
 const EVIDENCE_BUCKET = 'daily-bible-evidence';
 
@@ -995,6 +1015,13 @@ function DailyReadingAudioPreview({
 
 export default function DailyBibleScreen() {
 
+  const { user } = useAuth();
+  const accountId = user?.id ?? '';
+  const activeAccountRef = useRef(accountId);
+  activeAccountRef.current = accountId;
+  const loadSequenceRef = useRef(0);
+  const completeBusyRef = useRef(false);
+
   /* PATCH_153H_4C_RETURN_DATE */
   const params =
     useLocalSearchParams<{
@@ -1046,6 +1073,10 @@ export default function DailyBibleScreen() {
   const [loading,setLoading] = useState(true);
   const [refreshing,setRefreshing] = useState(false);
   const [busy,setBusy] = useState(false);
+  const [dataOwner,setDataOwner] = useState<string | null>(null);
+  const [loadError,setLoadError] = useState<string | null>(null);
+  const [draftOwner,setDraftOwner] = useState<string | null>(null);
+  const [completionAcknowledgedKey,setCompletionAcknowledgedKey] = useState<string | null>(null);
 
   /* PATCH_153H_4C_SYNC_DATE */
   useEffect(() => {
@@ -1063,6 +1094,8 @@ export default function DailyBibleScreen() {
   ]);
 
   const load = useCallback(async () => {
+    if (!accountId) return;
+    const requestId = ++loadSequenceRef.current;
 
     /*
      * AUTOMATIC DAILY BIBLE IS THE SOURCE OF TRUTH.
@@ -1092,6 +1125,12 @@ export default function DailyBibleScreen() {
       Array.isArray(automaticData)
         ? automaticData
         : [];
+
+    // An unexpectedly empty automatic week should not wipe the last usable
+    // offline plan during a transient backend or network recovery.
+    if (!automaticRows.length) {
+      throw new Error('Automatic reading plan is temporarily unavailable.');
+    }
 
     const automaticIds =
       automaticRows
@@ -1220,14 +1259,15 @@ export default function DailyBibleScreen() {
         }
       );
 
-    setAssignments(aa);
+    let nextSubmissions: Submission[] = [];
 
     if(aa.length){
-      setSubmissions([]);
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError) throw authError;
       const authenticatedUserId = authData.user?.id;
-      if (!authenticatedUserId) throw new Error('Sign in is required to load your Daily Reading answers.');
+      if (!authenticatedUserId || authenticatedUserId !== accountId) {
+        throw new Error('Account changed while loading Daily Reading.');
+      }
       const {
         data:s,
         error:se
@@ -1244,11 +1284,7 @@ export default function DailyBibleScreen() {
 
       if(se) throw se;
 
-      setSubmissions(
-        (s ?? []) as Submission[]
-      );
-    }else{
-      setSubmissions([]);
+      nextSubmissions = (s ?? []) as Submission[];
     }
 
     const {data:r} =
@@ -1265,19 +1301,65 @@ export default function DailyBibleScreen() {
         )
         .maybeSingle();
 
-    if(r?.base_points != null){
-      setPoints(
-        Number(r.base_points)
-      );
+    const nextPoints = r?.base_points != null ? Number(r.base_points) : 10;
+    if (requestId !== loadSequenceRef.current || activeAccountRef.current !== accountId) return;
+
+    setAssignments(aa);
+    setSubmissions(nextSubmissions);
+    setPoints(nextPoints);
+    setDataOwner(accountId);
+    setLoadError(null);
+    void setOfflineCache<DailyReadingSnapshot>(
+      `${DAILY_READING_WEEK_CACHE}:${days[0]}`,
+      { weekStart: days[0], assignments: aa, submissions: nextSubmissions, points: nextPoints },
+      { userId: accountId, ttlMs: DAILY_READING_CACHE_TTL_MS },
+    ).catch(() => undefined);
+  }, [days, accountId]);
+
+  useEffect(() => {
+    let active = true;
+    const initialSequence = ++loadSequenceRef.current;
+    setAssignments([]);
+    setSubmissions([]);
+    setDataOwner(null);
+    setLoadError(null);
+    setLoading(true);
+    if (!accountId) {
+      setDataOwner('');
+      setLoading(false);
+      return () => { active = false; };
     }
 
-  }, [days]);
-
-  useEffect(()=>{
-    load()
-      .catch((e:any)=>Alert.alert('Daily Bible Reading',e?.message ?? 'Unable to load.'))
-      .finally(()=>setLoading(false));
-  },[load]);
+    const initialize = async () => {
+      let hadCache = false;
+      const cache = await getOfflineCache<DailyReadingSnapshot>(
+        `${DAILY_READING_WEEK_CACHE}:${days[0]}`,
+        { userId: accountId, allowStale: true },
+      );
+      if (!active || activeAccountRef.current !== accountId ||
+          initialSequence !== loadSequenceRef.current) return;
+      if (cache?.data?.weekStart === days[0] &&
+          Array.isArray(cache.data.assignments) && Array.isArray(cache.data.submissions)) {
+        hadCache = true;
+        setAssignments(cache.data.assignments);
+        setSubmissions(cache.data.submissions);
+        setPoints(Number(cache.data.points) || 10);
+        setDataOwner(accountId);
+        setLoading(false);
+      }
+      try {
+        await load();
+      } catch (error: any) {
+        if (!active || activeAccountRef.current !== accountId) return;
+        setLoadError(error?.message ?? 'Could not refresh Daily Reading.');
+        if (!hadCache) setDataOwner(accountId);
+      } finally {
+        if (active && activeAccountRef.current === accountId) setLoading(false);
+      }
+    };
+    void initialize();
+    return () => { active = false; loadSequenceRef.current += 1; };
+  }, [accountId, days, load]);
 
   const byDate = useMemo(
     ()=>Object.fromEntries(assignments.map(x=>[x.reading_date,x])) as Record<string,Assignment>,
@@ -1290,6 +1372,9 @@ export default function DailyBibleScreen() {
 
   const selected = byDate[selectedDate];
   const submission = selected ? subByAssignment[selected.id] : undefined;
+  const draftKey = selected && accountId
+    ? `${DAILY_READING_DRAFT_CACHE}:${selected.id}`
+    : null;
 
   /* PATCH_153H_4A_OPEN_READER */
   const openAssignedReading = () => {
@@ -1623,6 +1708,8 @@ export default function DailyBibleScreen() {
     };
 
   useEffect(()=>{
+    let active = true;
+    setDraftOwner(null);
     setBibleText(submission?.bible_text ?? '');
     setAnswer(submission?.answer_text ?? '');
     setQuestionAnswers(
@@ -1640,11 +1727,55 @@ export default function DailyBibleScreen() {
     setReflectionPhotoPath(submission?.reflection_photo_path ?? null);
     setBibleDraft(null);
     setReflectionDraft(null);
-  },[selectedDate,submission?.id,submission?.status]);
+    if (!draftKey || submission?.status === 'approved' || submission?.status === 'pending_admin') {
+      return () => { active = false; };
+    }
+
+    void getOfflineCache<DailyReadingDraft>(draftKey, {
+      userId: accountId,
+      allowStale: true,
+    }).then(cached => {
+      if (!active || activeAccountRef.current !== accountId) return;
+      if (cached?.data) {
+        setAnswer(String(cached.data.answer ?? ''));
+        setQuestionAnswers(Array.from({ length: 4 }, (_, index) =>
+          String(cached.data.questionAnswers?.[index] ?? '')));
+        setLanguage(cached.data.language === 'en' ? 'en' : 'fil');
+      }
+    }).finally(() => {
+      if (active && activeAccountRef.current === accountId) setDraftOwner(draftKey);
+    });
+    return () => { active = false; };
+  },[accountId, draftKey, submission?.id, submission?.status]);
 
   const approved = submissions.filter(x=>x.status==='approved').length;
   const pending = submissions.filter(x=>x.status==='pending_admin').length;
-  const locked = submission?.status==='approved' || submission?.status==='pending_admin';
+  const locked = submission?.status==='approved' || submission?.status==='pending_admin' ||
+    completionAcknowledgedKey === draftKey;
+
+  const persistCurrentDraft = useCallback(() => {
+    if (!draftKey || draftOwner !== draftKey || locked || !accountId) return;
+    void setOfflineCache<DailyReadingDraft>(draftKey, {
+      answer,
+      questionAnswers: questionAnswers.slice(0, 4),
+      language,
+    }, { userId: accountId, ttlMs: 30 * 24 * 60 * 60 * 1000 })
+      .catch(() => undefined);
+  }, [draftKey, draftOwner, locked, accountId, answer, questionAnswers, language]);
+
+  useEffect(() => {
+    const timer = setTimeout(persistCurrentDraft, 400);
+    return () => clearTimeout(timer);
+  }, [persistCurrentDraft]);
+
+  const persistDraftRef = useRef(persistCurrentDraft);
+  persistDraftRef.current = persistCurrentDraft;
+  useEffect(() => {
+    const listener = AppState.addEventListener('change', state => {
+      if (state === 'inactive' || state === 'background') persistDraftRef.current();
+    });
+    return () => listener.remove();
+  }, []);
   /* PATCH_154V_FOUR_QUESTIONS */
 
   const chapterQuestions =
@@ -1707,7 +1838,7 @@ export default function DailyBibleScreen() {
   };
 
   const complete = async () => {
-    if (!selected) return;
+    if (!selected || !accountId || completeBusyRef.current || locked) return;
 
 
     if (!chapterAnswersOkay) {
@@ -1726,8 +1857,10 @@ export default function DailyBibleScreen() {
       return;
     }
 
+    completeBusyRef.current = true;
     setBusy(true);
     const newlyUploaded:string[] = [];
+    let rpcAttempted = false;
 
     try {
       const {data:{user},error:userError} = await supabase.auth.getUser();
@@ -1787,6 +1920,7 @@ export default function DailyBibleScreen() {
         newlyUploaded.push(finalReflectionPath);
       }
 
+      rpcAttempted = true;
       const {data,error} = await (supabase as any).rpc('complete_my_daily_bible_reading_v3',{
         p_assignment_id:selected.id,
         p_bible_text:finalBibleText,
@@ -1800,11 +1934,22 @@ export default function DailyBibleScreen() {
       });
       if (error) throw error;
 
+      // The server has committed. Never interpret a later cleanup/refresh failure
+      // as a failed submission or delete evidence now referenced by the server.
+      setCompletionAcknowledgedKey(draftKey);
+      setDraftOwner(null);
+      if (draftKey) {
+        void removeOfflineCache(draftKey, user.id).catch(() => undefined);
+      }
+
       const oldPaths = [submission?.bible_photo_path,submission?.reflection_photo_path]
         .filter((x):x is string=>!!x)
         .filter(x=>x!==finalBiblePath && x!==finalReflectionPath);
 
-      if(oldPaths.length) await removeUploaded(oldPaths);
+      if(oldPaths.length) {
+        void removeUploaded(oldPaths).catch(error =>
+          console.warn('Daily Reading old photo cleanup deferred:', error));
+      }
 
       Alert.alert(
         data?.status === 'approved' ? 'Daily Reading completed' : 'Daily Reading completed',
@@ -1812,12 +1957,21 @@ export default function DailyBibleScreen() {
           ? 'Your Daily Bible Reading is complete and already approved.'
           : 'Your answers, reflection, completion, and validation submission were saved together. BUKLOD is checking them automatically; no Pastor or Admin approval is required.'
       );
-      await load();
+      try {
+        await load();
+      } catch (refreshError: any) {
+        setLoadError(refreshError?.message ?? 'Saved; refresh will resume when online.');
+      }
     } catch(e:any) {
-      if(newlyUploaded.length) await removeUploaded(newlyUploaded);
-      Alert.alert('Daily Reading',e?.message ?? 'Unable to complete this Daily Bible Reading.');
+      if (!rpcAttempted && newlyUploaded.length) {
+        void removeUploaded(newlyUploaded).catch(() => undefined);
+      }
+      Alert.alert('Daily Reading', rpcAttempted
+        ? 'The server did not confirm this request. Your answers are saved locally; refresh before trying again to avoid a duplicate.'
+        : e?.message ?? 'Unable to complete this Daily Bible Reading.');
     } finally {
       setBusy(false);
+      completeBusyRef.current = false;
     }
   };
 
@@ -1828,7 +1982,7 @@ export default function DailyBibleScreen() {
     chapterAnswersOkay &&
     reflectionEvidenceOkay;
 
-  if (loading) {
+  if (loading || dataOwner !== accountId) {
     return <View style={[shared.screen,styles.center]}><ActivityIndicator size="large"/></View>;
   }
 
@@ -1842,18 +1996,25 @@ export default function DailyBibleScreen() {
           refreshing={refreshing}
           onRefresh={async()=>{
             setRefreshing(true);
-            try { await load(); } finally { setRefreshing(false); }
+            try { await load(); }
+            catch (error: any) { setLoadError(error?.message ?? 'Unable to refresh. Saved content remains available.'); }
+            finally { setRefreshing(false); }
           }}
         />
       }
     >
       <BuklodOccasionalAd placement="bible" />
+      {!!loadError && (
+        <Text style={styles.warning}>
+          Saved Daily Reading remains available. Refresh will resume when your connection returns. {loadError}
+        </Text>
+      )}
       <View style={styles.header}>
         <View style={{flex:1}}>
           <Text style={shared.h1}>Daily Bible Reading</Text>
           <Text style={shared.muted}>Read Scripture | Reflect | Complete | Automatic Checking</Text>
         </View>
-        <Pressable onPress={()=>router.back()} style={styles.outline}>
+        <Pressable onPress={()=>{ persistCurrentDraft(); router.back(); }} style={styles.outline}>
           <Text style={styles.outlineText}>BACK</Text>
         </Pressable>
       </View>
@@ -1885,7 +2046,7 @@ export default function DailyBibleScreen() {
           return (
             <Pressable
               key={date}
-              onPress={()=>setSelectedDate(date)}
+              onPress={()=>{ persistCurrentDraft(); setSelectedDate(date); }}
               style={[styles.day,active&&styles.dayActive]}
             >
               <Text style={[styles.dayName,active&&styles.white]}>
