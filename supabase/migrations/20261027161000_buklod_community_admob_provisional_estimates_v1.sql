@@ -206,6 +206,7 @@ begin
   return v_base || jsonb_build_object(
     'estimated_pool_minor',v_pool,
     'estimated_share_minor',case when v_total>0 then v_share else null end,
+    'estimate_below_cent',v_total>0 and v_qmp>0 and v_snapshot.amount_minor>0 and v_bps>0 and v_share=0,
     'estimate_status','PROVISIONAL_ADMOB',
     'estimate_updated_at',v_snapshot.observed_at,
     'estimate_label','ADMOB PRELIMINARY REPORT · ESTIMATE ONLY · NOT FINAL · NOT FUNDED OR WITHDRAWABLE · SUBJECT TO ADJUSTMENT AND QUALIFICATION REVIEW'
