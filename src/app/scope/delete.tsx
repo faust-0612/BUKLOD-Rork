@@ -250,7 +250,7 @@ export default function DeleteManagedScopeScreen() {
         }
 
         router.replace(
-          '/(tabs)/home' as any
+          '/(tabs)/buklod' as any
         );
 
         void refresh();

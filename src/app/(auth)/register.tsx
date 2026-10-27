@@ -824,11 +824,11 @@ useEffect(() => {
 
         Alert.alert(
           'Account created - local setup pending',
-          'Your BUKLOD account and private onboarding were saved, but Local assignment could not finish. You may continue to Public Home and retry your address setup later.'
+          'Your BUKLOD account and private onboarding were saved, but Local assignment could not finish. You may continue to the Public Community Wall and retry your address setup later.'
         );
 
         router.replace(
-          '/(tabs)/home'
+          '/(tabs)/buklod'
         );
 
         return;
@@ -898,7 +898,7 @@ useEffect(() => {
       );
 
       /* PATCH_156A_V2_COMMUNITY_SUCCESS */
-      router.replace('/(tabs)/home');
+      router.replace('/(tabs)/buklod');
     };
 
   const loginMethodLabel =

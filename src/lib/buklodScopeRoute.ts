@@ -289,6 +289,7 @@ export function isBuklodPersonalGlobalRoute(
   }
 
   const roots = [
+    '/hub',
     '/home',
     '/buklod',
     '/connect',
@@ -313,7 +314,7 @@ export function scopedWorkspacePathForGlobalRoute(
   const normalized =
     normalizeBuklodPathname(pathname);
 
-  if (normalized === '/home' || normalized.startsWith('/home/')) {
+  if (normalized === '/hub' || normalized.startsWith('/hub/') || normalized === '/home' || normalized.startsWith('/home/')) {
     return buildScopedWorkspacePath('home', scopeId);
   }
 
@@ -425,9 +426,10 @@ export async function exitScopedWorkspace(
   selectScope: (scopeId: string) => Promise<void>,
   scopes: BuklodScope[],
   destination:
+    | '/hub'
     | '/home'
     | '/clusters'
-    | '/(tabs)/me' = '/home'
+    | '/(tabs)/me' = '/hub'
 ) {
   const publicScope = scopes.find(
     (scope) =>

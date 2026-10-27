@@ -62,7 +62,7 @@ export default function BuklodIncomingShareHandoff() {
         style={styles.cancel}
         onPress={() => {
           incoming.clearSharedPayloads();
-          router.replace('/(tabs)/home' as any);
+          router.replace('/(tabs)/buklod' as any);
         }}
       >
         <Text style={styles.cancelText}>Cancel</Text>

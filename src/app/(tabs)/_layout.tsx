@@ -27,6 +27,7 @@ import { useNotifications } from '@/providers/NotificationProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { isBuklodScopedWorkspacePath } from '@/lib/buklodSafeArea';
+import { buildScopedWorkspacePath, isManagedCommunityScope } from '@/lib/buklodScopeRoute';
 
 /*
  * BUKLOD_PUBLIC_CANONICAL_LANDING_R23
@@ -73,7 +74,8 @@ function SwipeDashboardHeader() {
 
   if (
     pathname === '/home' ||
-    pathname.startsWith('/home/')
+    pathname.startsWith('/home/') ||
+    pathname === '/hub'
   ) {
     title = 'Buklod';
     placement = 'home';
@@ -292,6 +294,18 @@ export default function TabsLayout() {
   }
 
   /*
+   * The old /home screen must never render again. Keep this alias so legacy
+   * buttons, saved navigation state and OTA history reach one canonical Home.
+   * Managed workspaces keep their scope-isolated Home destination.
+   */
+  if (pathname === '/home') {
+    const destination = activeScope && isManagedCommunityScope(activeScope)
+      ? buildScopedWorkspacePath('home', activeScope.scope_id)
+      : '/(tabs)/hub';
+    return <Redirect href={destination as any} />;
+  }
+
+  /*
    * Retired PUBLIC routes are compatibility aliases only. If an older OTA,
    * saved navigation state, or deep link restores Public Home/Prayer, send
    * the user to the canonical Community Wall. Do not apply this redirect to
@@ -324,8 +338,7 @@ export default function TabsLayout() {
     Platform.OS === 'web' &&
     width >= 1200 &&
     (
-      pathname === '/home' ||
-      pathname.startsWith('/home/') ||
+      pathname === '/hub' ||
       pathname === '/buklod' ||
       pathname.startsWith('/buklod/')
     );

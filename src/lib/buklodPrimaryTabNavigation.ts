@@ -12,7 +12,7 @@ const TAB_ROUTES: Record<
   BuklodPrimaryTabName,
   string
 > = {
-  home: '/home',
+  home: '/hub',
   messages: '/messages',
   buklod: '/buklod',
   prayer: '/prayer',
@@ -26,6 +26,7 @@ export function primaryTabHref(
 
 export function primaryTabFromBottomRoute(
   route:
+    | '/hub'
     | '/home'
     | '/messages'
     | '/buklod'
@@ -33,6 +34,7 @@ export function primaryTabFromBottomRoute(
     | '/notifications'
 ): BuklodPrimaryTabName | null {
   switch (route) {
+    case '/hub':
     case '/home':
       return 'home';
     case '/messages':

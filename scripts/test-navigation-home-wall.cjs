@@ -3,6 +3,9 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const nav = fs.readFileSync('src/components/BuklodPersistentBottomNav.tsx', 'utf8');
 const home = fs.readFileSync('src/app/(tabs)/hub.tsx', 'utf8');
+const merged = fs.readFileSync('src/components/home/BuklodHomeMergedUpdates.tsx', 'utf8');
+const primary = fs.readFileSync('src/lib/buklodPrimaryTabNavigation.ts', 'utf8');
+const nativeGuard = fs.readFileSync('src/components/BuklodCanonicalNavigationGuard.tsx', 'utf8');
 const root = fs.readFileSync('src/app/_layout.tsx', 'utf8');
 const profile = fs.readFileSync('src/app/(tabs)/me.tsx', 'utf8');
 const entry = fs.readFileSync('src/app/index.tsx', 'utf8');
@@ -15,6 +18,8 @@ function handler({ type = 'CLUSTER', publicAvailable = true, fail = false, wait 
   const events = [];
   const context = {
     navigationInFlight: { current: false },
+    lastRequestedRoute: { current: null },
+    Platform: { OS: 'android' },
     activeScope: { scope_type: type },
     scopes: publicAvailable ? [{ scope_type: 'PUBLIC', scope_id: 'public' }] : [],
     normalizedPath: '/me',
@@ -45,8 +50,15 @@ function handler({ type = 'CLUSTER', publicAvailable = true, fail = false, wait 
   h = handler(); await h.open('/me');
   assert(h.events.some(x => x[0] === 'scope'), 'same route still exits managed scope');
   assert.deepEqual([...nav.matchAll(/label: '(Home|Cluster|Wall|Connect|Profile)'/g)].map(x => x[1]), ['Home','Cluster','Wall','Connect','Profile']);
-  assert(home.includes("route: '/personal-home/ptt'"));
-  assert(home.includes('focused && foreground && tool'), 'tools must unmount offscreen and in background');
+  assert(home.includes("const PttCard = lazy("), 'real PTT card remains on canonical Home');
+  assert(home.includes("const Updates = lazy("), 'legacy content must be demand-loaded');
+  assert(home.includes('focused && foreground && updatesOpen'), 'expanded Updates must unmount offscreen and in background');
+  assert(merged.includes('<BuklodSystemAnnouncementBoard slot="public_home" />'), 'announcement and Quiz are merged');
+  assert(merged.includes('<BuklodHomeScopeBulletins />'), 'bulletins are merged');
+  assert(primary.includes("home: '/hub'"), 'primary Home must target canonical hub');
+  assert(nativeGuard.includes("return '/hub'"), 'scope guard must not reopen legacy Home');
+  assert(layout.includes("if (pathname === '/home')"), 'saved legacy Home route must redirect');
+  assert(layout.includes("buildScopedWorkspacePath('home', activeScope.scope_id)"), 'managed Home must stay scoped');
   assert(home.includes("const Today = lazy(") && home.includes("const Help = lazy(") && home.includes("const Map = lazy("));
   assert(!home.includes('not available'));
   assert(!root.includes('BuklodGuideAvatarDeferred'));

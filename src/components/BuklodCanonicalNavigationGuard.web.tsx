@@ -66,7 +66,7 @@ function publicRouteFor(
     return '/connect';
   }
 
-  return '/home';
+  return '/hub';
 }
 
 export default function

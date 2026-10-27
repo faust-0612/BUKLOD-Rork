@@ -5,6 +5,7 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
+const Updates = lazy(() => import('@/components/home/BuklodHomeMergedUpdates'));
 const DrawerCard = lazy(() => import('@/components/SmartDrawerWallCard'));
 const PttCard = lazy(() => import('@/components/BuklodPttEntryButton'));
 const Help = lazy(() => import('@/components/BuklodCommunityHelp'));
@@ -28,6 +29,7 @@ class ToolBoundary extends React.Component<{ children: React.ReactNode; onClose:
 export default function BuklodLightHome() {
   const { theme } = useBuklodTheme();
   const [focused, setFocused] = useState(false);
+  const [updatesOpen, setUpdatesOpen] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => setForeground(state === 'active'));
@@ -50,6 +52,30 @@ export default function BuklodLightHome() {
             <Today onRespond={draft => {
               router.push({ pathname: '/buklod', params: { homeTodayDraft: draft ?? '', homeTodayIntent: String(Date.now()) } });
             }} />
+          </Suspense>
+        </ToolBoundary>
+      ) : null}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Announcements, BUKLOD Quiz and Bulletins"
+        accessibilityState={{ expanded: updatesOpen }}
+        onPress={() => setUpdatesOpen(value => !value)}
+        style={{
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: theme.navBorder,
+          padding: 14,
+          backgroundColor: theme.navBackground,
+        }}
+      >
+        <Text style={{ color: theme.textPrimary, fontWeight: '800', fontSize: 16 }}>
+          {updatesOpen ? 'Hide Updates, Quiz & Bulletins' : 'Open Updates, Quiz & Bulletins'}
+        </Text>
+      </Pressable>
+      {focused && foreground && updatesOpen ? (
+        <ToolBoundary onClose={() => setUpdatesOpen(false)}>
+          <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading announcements, Quiz and bulletins" color={theme.accent} />}>
+            <Updates />
           </Suspense>
         </ToolBoundary>
       ) : null}

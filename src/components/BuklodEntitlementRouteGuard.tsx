@@ -91,7 +91,7 @@ export default function BuklodEntitlementRouteGuard() {
     checkingRef.current = key;
 
     if (!hasEntitlement(rule.entitlement)) {
-      router.replace('/home' as any);
+      router.replace('/hub' as any);
       return;
     }
 
@@ -99,7 +99,7 @@ export default function BuklodEntitlementRouteGuard() {
       rule.entitlement
     ).then((allowed) => {
       if (!allowed) {
-        router.replace('/home' as any);
+        router.replace('/hub' as any);
       }
     });
   }, [
