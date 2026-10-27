@@ -1,4 +1,4 @@
-name: BUKLOD Main Auth Storm R21 + Concurrency R32 Deploy
+name: BUKLOD Main Auth Storm R21 + Concurrency R32 QA
 
 on:
   workflow_dispatch:
@@ -14,18 +14,14 @@ on:
 permissions:
   contents: read
 
-env:
-  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  EXPO_PUBLIC_APP_ENV: production
-
 jobs:
-  qa-web-android:
+  verify-concurrency:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -52,52 +48,7 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
-      - name: Expo credential preflight
-        id: expo
-        shell: bash
-        run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "R32 QA passed, but deploy is pending because EXPO_TOKEN is unavailable."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          npx eas-cli@latest whoami --non-interactive
-          echo "ready=true" >> "$GITHUB_OUTPUT"
 
-      - name: Export production web
-        if: steps.expo.outputs.ready == 'true'
-        shell: bash
-        env:
-          NODE_ENV: production
-          EXPO_PUBLIC_APP_ENV: production
-        run: npx expo export --platform web --output-dir dist
-
-      - name: Deploy production web
-        if: steps.expo.outputs.ready == 'true'
-        shell: bash
-        env:
-          NODE_ENV: production
-          EXPO_PUBLIC_APP_ENV: production
-        run: npx eas-cli@latest deploy --prod --non-interactive
-
-      - name: Publish production Android OTA
-        if: steps.expo.outputs.ready == 'true'
-        shell: bash
-        run: |
-          npx eas-cli@latest update \
-            --channel production \
-            --platform android \
-            --environment production \
-            --message "BUKLOD Main Concurrency R32" \
-            --non-interactive
-
-      - name: Deployment status
-        shell: bash
-        env:
-          EXPO_READY: ${{ steps.expo.outputs.ready }}
-        run: |
-          if [ "$EXPO_READY" = "true" ]; then
-            echo "BUKLOD Main R32 production web + Android OTA completed."
-          else
-            echo "BUKLOD Main R32 source QA passed; deployment is pending only because EXPO_TOKEN is unavailable."
-          fi
+      # Canonical Android production publisher is production_android_ota.yml.
+      # This independent auth/concurrency contract never publishes a second OTA
+      # or deploys a duplicate web bundle from the same main push.
