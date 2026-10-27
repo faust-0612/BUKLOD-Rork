@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, AppState, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   formatMinorPhp, formatQuotaBytes, loadMyCommunityContribution, requestCommunityContributionReview,
@@ -14,8 +14,12 @@ export default function CommunityContributionScreen() {
   const params = useLocalSearchParams<{ guide?: string }>();
   const [data,setData]=useState<CommunityContributionDashboard|null>(null);
   const [busy,setBusy]=useState(true); const [refreshing,setRefreshing]=useState(false);
-  const load=useCallback(async()=>{try{setData(await loadMyCommunityContribution());}catch(e:any){Alert.alert('Community Contribution',e?.message||'Could not load your contribution report.');}finally{setBusy(false);}},[]);
-  useEffect(()=>{void load();},[load]);
+  const load=useCallback(async(silent=false)=>{try{setData(await loadMyCommunityContribution());}catch(e:any){if(!silent)Alert.alert('Community Contribution',e?.message||'Could not load your contribution report.');}finally{setBusy(false);}},[]);
+  useFocusEffect(useCallback(()=>{
+    void load();
+    const timer=setInterval(()=>{if(AppState.currentState==='active')void load(true);},240_000+Math.floor(Math.random()*90_000));
+    return()=>clearInterval(timer);
+  },[load]));
   const refresh=useCallback(async()=>{setRefreshing(true);await load();setRefreshing(false);},[load]);
   if(busy&&!data)return <View style={s.center}><ActivityIndicator color="#1E6B45"/><Text style={s.muted}>Loading your private contribution report…</Text></View>;
   if(!data)return null;
@@ -36,7 +40,7 @@ export default function CommunityContributionScreen() {
       <Row label="Share-weight trend" value={`${Number(data.share_weight_delta||0)>=0?'+':''}${(Number(data.share_weight_delta||0)*100).toFixed(Math.abs(Number(data.share_weight_delta||0)*100)<.01?4:2)} pp`}/>
       <Text style={s.note}>Only qualified, unique, legitimate engagement counts. Self-engagement, duplicate/loop activity, bots, spam, and ad interactions do not raise your share weight.</Text>
     </Card>
-    <Card title="USER REVENUE SHARE"><Row label="Estimated share" value={data.estimated_share_minor===null?'Not available':formatMinorPhp(data.estimated_share_minor)}/><Text style={s.warn}>{data.estimate_label}</Text><Row label="Finalized share" value={data.finalized_share?`${formatMinorPhp(data.finalized_share.amount_minor)} · ${data.finalized_share.status}`:'Not finalized'}/><Text style={s.note}>Referral rewards and Community Fund remain separate programs and are never merged into this QMP pool.</Text></Card>
+    <Card title="USER REVENUE SHARE"><Row label="Estimated share" value={data.estimated_share_minor===null?'Not available':formatMinorPhp(data.estimated_share_minor)}/><Text style={s.warn}>{data.estimate_label}</Text>{data.estimate_updated_at?<Row label="Estimate source updated" value={new Date(data.estimate_updated_at).toLocaleString()}/>:null}<Row label="Finalized share" value={data.finalized_share?`${formatMinorPhp(data.finalized_share.amount_minor)} · ${data.finalized_share.status}`:'Not finalized'}/><Text style={s.note}>Referral rewards and Community Fund remain separate programs and are never merged into this QMP pool.</Text></Card>
     <View style={[s.card,guide&&s.guide]}><Text style={s.cardTitle}>HOW CAN I INCREASE MY SHARE?</Text>{['Create useful original Community posts.','Upload legitimate original Wall videos within your quota.','Give meaningful replies that help other people.','Join useful discussions across multiple days.','Improve content quality instead of repeating low-value activity.'].map(x=><View key={x} style={s.bulletRow}><MaterialCommunityIcons name="check-circle-outline" size={16} color="#1E6B45"/><Text style={s.bullet}>{x}</Text></View>)}<Text style={s.warn}>Never watch/click ads, refresh, loop videos, spam comments, create fake accounts, or manipulate engagement to earn QMP. Those actions do not create cash entitlement.</Text></View>
     <Card title="MONTHLY VIDEO ALLOWANCE"><Row label="Used" value={formatQuotaBytes(q.used_bytes)}/><Row label="Remaining" value={formatQuotaBytes(q.remaining_bytes)}/><Row label="Allowance" value={formatQuotaBytes(q.allowance_bytes)}/><Row label="Reset" value={new Date(q.reset_at).toLocaleDateString()}/><Text style={s.note}>Per video: maximum 1 GB and 30 minutes.</Text></Card>
     {!!data.review_items?.length&&<Card title="QUALIFICATION REVIEW">{data.review_items.map(item=><View key={item.event_id} style={s.reviewRow}><View style={{flex:1}}><Text style={s.reviewType}>{item.type.replace(/_/g,' ')}</Text><Text style={s.note}>{item.status} · {item.reason_category.replace(/_/g,' ')}</Text></View>{item.review_eligible?<Pressable onPress={()=>void requestCommunityContributionReview(item.event_id).then(()=>Alert.alert('Review Requested','Your contribution was submitted for review.')).catch((e:any)=>Alert.alert('Review',e?.message||'Could not request review.'))} style={s.reviewButton}><Text style={s.reviewButtonText}>REQUEST REVIEW</Text></Pressable>:null}</View>)}</Card>}
