@@ -1,5 +1,6 @@
 import React, {
   useMemo,
+  useState,
 } from 'react';
 import {
   StyleSheet,
@@ -20,63 +21,93 @@ import {
 import {
   ConnectPressable,
 } from '@/components/connect/ConnectPressable';
+import { HIBLA } from '@/lib/connectHibla';
+import type { CommunityFilterKey } from '@/lib/connectTheme';
 
 type Tab = 'personal' | 'community';
 
 type Props = {
   tab: Tab;
+  communityFilter: CommunityFilterKey;
   onTabChange: (tab: Tab) => void;
+  onCommunityFilterChange: (filter: CommunityFilterKey) => void;
 };
 
 function createStyles(theme: ConnectThemeRoles) {
   return StyleSheet.create({
     wrap: {
-      alignSelf: 'center',
+      alignSelf: 'stretch',
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      gap: 4,
-      padding: 3,
-      marginBottom: 8,
-      borderRadius: 20,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: theme.borderSubtle,
-      backgroundColor: theme.surfaceElevated,
+      justifyContent: 'space-between',
+      gap: 5,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      marginBottom: 6,
+      backgroundColor: 'transparent',
     },
     tab: {
+      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 5,
-      minHeight: 34,
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 16,
+      gap: 3,
+      minHeight: 44,
+      paddingVertical: 8,
+      paddingHorizontal: 5,
+      borderRadius: 24,
+      backgroundColor: '#ECF5EE',
     },
     tabActive: {
-      backgroundColor: theme.tabActive,
+      backgroundColor: HIBLA.pine,
     },
     label: {
       ...connectTypography.tabLabel,
-      color: theme.textMuted,
+      color: HIBLA.muted,
+      fontSize: 12,
     },
     labelActive: {
-      color: theme.accent,
+      color: '#FFFFFF',
+    },
+    requestsDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: '#D89B24',
+    },
+    requestsInfo: {
+      paddingHorizontal: 20,
+      paddingBottom: 8,
+      color: HIBLA.muted,
+      fontSize: 11,
+      lineHeight: 16,
     },
   });
 }
 
 export function ConnectInboxTabs({
   tab,
+  communityFilter,
   onTabChange,
+  onCommunityFilterChange,
 }: Props) {
   const { theme } = useConnectTheme();
   const styles = useMemo(
     () => createStyles(theme),
     [theme]
   );
+  const [requestsInfo, setRequestsInfo] = useState(false);
+  const selectCommunity = (filter: CommunityFilterKey) => {
+    setRequestsInfo(false);
+    onCommunityFilterChange(filter);
+    onTabChange('community');
+  };
+
+  const clusterSelected = tab === 'community' && communityFilter === 'cluster';
+  const orgSelected = tab === 'community' && communityFilter === 'organization';
 
   return (
+    <>
     <View style={styles.wrap}>
       <ConnectPressable
         accessibilityRole="button"
@@ -85,7 +116,7 @@ export function ConnectInboxTabs({
         }}
         instant
         nested={false}
-        onPress={() => onTabChange('personal')}
+        onPress={() => { setRequestsInfo(false); onTabChange('personal'); }}
         style={[
           styles.tab,
           tab === 'personal' && styles.tabActive,
@@ -93,11 +124,11 @@ export function ConnectInboxTabs({
       >
         <MaterialCommunityIcons
           name="message-text-outline"
-          size={16}
+          size={15}
           color={
             tab === 'personal'
-              ? theme.accent
-              : theme.textMuted
+              ? '#FFFFFF'
+              : HIBLA.muted
           }
         />
         <Text
@@ -113,34 +144,67 @@ export function ConnectInboxTabs({
       <ConnectPressable
         accessibilityRole="button"
         accessibilityState={{
-          selected: tab === 'community',
+          selected: clusterSelected,
         }}
         instant
         nested={false}
-        onPress={() => onTabChange('community')}
+        onPress={() => selectCommunity('cluster')}
         style={[
           styles.tab,
-          tab === 'community' && styles.tabActive,
+          clusterSelected && styles.tabActive,
         ]}
       >
         <MaterialCommunityIcons
           name="account-group-outline"
-          size={16}
+          size={15}
           color={
-            tab === 'community'
-              ? theme.accent
-              : theme.textMuted
+            clusterSelected
+              ? '#FFFFFF'
+              : HIBLA.muted
           }
         />
         <Text
           style={[
             styles.label,
-            tab === 'community' && styles.labelActive,
+            clusterSelected && styles.labelActive,
           ]}
         >
-          Community
+          Cluster
         </Text>
       </ConnectPressable>
+
+      <ConnectPressable
+        accessibilityRole="button"
+        accessibilityState={{ selected: orgSelected }}
+        instant
+        nested={false}
+        onPress={() => selectCommunity('organization')}
+        style={[styles.tab, orgSelected && styles.tabActive]}
+      >
+        <MaterialCommunityIcons
+          name="account-multiple-outline"
+          size={15}
+          color={orgSelected ? '#FFFFFF' : HIBLA.muted}
+        />
+        <Text style={[styles.label, orgSelected && styles.labelActive]}>Org</Text>
+      </ConnectPressable>
+
+      <ConnectPressable
+        accessibilityRole="button"
+        accessibilityLabel="Message requests information"
+        onPress={() => setRequestsInfo(current => !current)}
+        style={styles.tab}
+      >
+        <Text style={styles.label}>Requests</Text>
+        <View style={styles.requestsDot} />
+      </ConnectPressable>
     </View>
+    {requestsInfo && (
+      <Text style={styles.requestsInfo}>
+        Hindi pa available ang hiwalay na Requests inbox. Nasa aktuwal na Personal at group conversations ang mga mensahe mo.
+      </Text>
+    )}
+    </>
   );
 }
+

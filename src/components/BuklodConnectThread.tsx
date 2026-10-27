@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useConnectComposerKeyboardInset, CONNECT_COMPOSER_RESERVED_HEIGHT } from '@/lib/useConnectComposerKeyboardInset';
 import {
   isBuklodScopedWorkspacePath,
+  normalizeBuklodPathname,
   useBuklodPersistentNavOccupiedHeight,
 } from '@/lib/buklodSafeArea';
 import BuklodScopeCallLauncher from '@/components/BuklodScopeCallLauncher';
@@ -635,7 +636,9 @@ function BuklodConnectThreadInner({
   // Public navigation is outside the thread viewport; avoid duplicate safe-area clearance.
   const shellReservesPersistentNav =
     navOccupied > 0 &&
-    !isBuklodScopedWorkspacePath(pathname);
+    !isBuklodScopedWorkspacePath(pathname) &&
+    !normalizeBuklodPathname(pathname).startsWith('/connect/personal/') &&
+    !normalizeBuklodPathname(pathname).startsWith('/connect/community/');
   // Standalone/scoped threads without public navigation retain phone clearance.
   const phoneNavClearance = shellReservesPersistentNav
     ? 0
@@ -4613,7 +4616,7 @@ const [
               own={own}
               deleted={messageDeleted}
               replyQuote={replyQuote}
-              showSenderAvatar={mode === 'direct'}
+              showSenderAvatar={mode === 'direct' && !own && grouping.startsGroup}
               senderUserId={item.sender_id}
               senderName={
                 own
@@ -4994,6 +4997,7 @@ const [
       >
       <ConnectComposer
         mode={mode}
+        accountId={profileId ?? ''}
         draft={draft}
         selectedFile={
           file
@@ -5032,6 +5036,15 @@ const [
           setDraft(value);
         }}
         onSend={send}
+        onQuickReaction={emoji => {
+          if (!online) {
+            Alert.alert('Offline', 'Reconnect to send your quick reaction.');
+            return;
+          }
+          if (!profileId || !effectiveContainerId) return;
+          // Shared send path retains scope membership/RLS, optimistic UI and retry feedback.
+          sendCapturedText(emoji);
+        }}
         onAttachPress={handleAttachPress}
         onChoosePhoto={() => void choosePhoto()}
         onClearFile={() => {
@@ -6498,4 +6511,5 @@ export default function BuklodConnectThread(props: Props) {
     </ConnectThemeProvider>
   );
 }
+
 

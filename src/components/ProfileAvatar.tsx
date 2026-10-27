@@ -95,6 +95,7 @@ type ProfileAvatarProps = {
     | null;
 
   size?: number;
+  shape?: 'circle' | 'rounded';
 
   fallbackSource?:
     | number
@@ -244,6 +245,7 @@ export function ProfileAvatar({
   uri,
   name,
   size = 38,
+  shape = 'circle',
   fallbackSource,
 }: ProfileAvatarProps) {
   const [remoteUrl, setRemoteUrl] = useState<string | null>(
@@ -301,7 +303,7 @@ export function ProfileAvatar({
   const circleStyle = {
     width: size,
     height: size,
-    borderRadius: size / 2,
+    borderRadius: shape === 'rounded' ? Math.round(size * 0.2) : size / 2,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.greenSoft,

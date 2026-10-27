@@ -1,7 +1,10 @@
 import React, {
+  useEffect,
   useMemo,
+  useState,
 } from 'react';
 import {
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Image as ExpoImage,
 } from 'expo-image';
@@ -22,7 +26,6 @@ import {
 } from '@/lib/buklodTouch';
 
 import {
-  connectRadii,
   connectTypography,
   type ConnectThemeRoles,
 } from '@/lib/connectTheme';
@@ -32,6 +35,13 @@ import {
 import {
   ConnectPressable,
 } from '@/components/connect/ConnectPressable';
+import {
+  DEFAULT_HIBLA_REACTION,
+  HIBLA,
+  HIBLA_QUICK_REACTIONS,
+  hiblaReactionPreferenceKey,
+  isHiblaQuickReaction,
+} from '@/lib/connectHibla';
 
 type SelectedFile = {
   name: string;
@@ -46,6 +56,7 @@ type SelectedPhoto = {
 
 type Props = {
   mode: 'direct' | 'scope';
+  accountId: string;
   draft: string;
   selectedFile: SelectedFile;
   selectedPhotos: SelectedPhoto[];
@@ -55,6 +66,7 @@ type Props = {
   onClearReply?: () => void;
   onChangeDraft: (value: string) => void;
   onSend: () => void;
+  onQuickReaction: (emoji: string) => void;
   onAttachPress: () => void;
   onChoosePhoto: () => void;
   onClearFile: () => void;
@@ -65,7 +77,7 @@ type Props = {
   onOpenComposerPicker: () => void;
 };
 
-const ICON_SIZE = 34;
+const ICON_SIZE = 40;
 
 function createStyles(theme: ConnectThemeRoles) {
   return StyleSheet.create({
@@ -145,15 +157,15 @@ function createStyles(theme: ConnectThemeRoles) {
       fontSize: 12,
     },
     composer: {
-      minHeight: 52,
+      minHeight: 56,
       flexDirection: 'row',
-      alignItems: 'flex-end',
-      gap: 4,
+      alignItems: 'center',
+      gap: 6,
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.borderSubtle,
-      backgroundColor: theme.composerSurface,
-      paddingVertical: 6,
-      paddingHorizontal: 8,
+      borderTopColor: HIBLA.outline,
+      backgroundColor: HIBLA.paper,
+      paddingVertical: 7,
+      paddingHorizontal: 12,
     },
     iconHit: {
       width: ICON_SIZE,
@@ -167,13 +179,19 @@ function createStyles(theme: ConnectThemeRoles) {
       borderRadius: ICON_SIZE / 2,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.accentMuted,
+      backgroundColor: '#E6F3E9',
     },
-    emojiWrap: {
-      width: ICON_SIZE,
-      height: ICON_SIZE,
+    inputWrap: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 44,
+      maxHeight: 112,
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: HIBLA.outline,
+      borderRadius: 24,
+      backgroundColor: '#FFFFFF',
     },
     emojiGlyph: {
       fontSize: 20,
@@ -182,14 +200,13 @@ function createStyles(theme: ConnectThemeRoles) {
     input: {
       flex: 1,
       minWidth: 0,
-      minHeight: 40,
-      maxHeight: 108,
+      minHeight: 42,
+      maxHeight: 110,
       paddingHorizontal: 12,
       paddingVertical: 8,
-      borderWidth: 1,
-      borderColor: theme.borderSubtle,
-      borderRadius: connectRadii.composer,
-      backgroundColor: theme.inputSurface,
+      borderWidth: 0,
+      borderRadius: 24,
+      backgroundColor: 'transparent',
       color: theme.textPrimary,
       ...connectTypography.composerInput,
       textAlignVertical: 'center',
@@ -200,7 +217,63 @@ function createStyles(theme: ConnectThemeRoles) {
       borderRadius: ICON_SIZE / 2,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.fabBg,
+      backgroundColor: HIBLA.pine,
+    },
+    reactionText: {
+      fontSize: 23,
+      lineHeight: 29,
+      textAlign: 'center',
+    },
+    chooserScrim: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(5,30,19,0.38)',
+    },
+    chooserCard: {
+      backgroundColor: HIBLA.paper,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: 20,
+      paddingTop: 22,
+      paddingBottom: 28,
+    },
+    chooserTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: HIBLA.ink,
+    },
+    chooserHint: {
+      marginTop: 5,
+      fontSize: 12,
+      color: HIBLA.muted,
+    },
+    chooserRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      marginTop: 20,
+      gap: 8,
+    },
+    chooserOption: {
+      width: 68,
+      minHeight: 78,
+      borderRadius: 16,
+      backgroundColor: HIBLA.mint,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+    },
+    chooserOptionSelected: {
+      borderWidth: 2,
+      borderColor: HIBLA.jade,
+    },
+    chooserEmoji: {
+      fontSize: 28,
+    },
+    chooserLabel: {
+      color: HIBLA.ink,
+      fontSize: 11,
+      fontWeight: '700',
     },
     replyBanner: {
       marginHorizontal: 8,
@@ -238,6 +311,7 @@ function createStyles(theme: ConnectThemeRoles) {
 
 export function ConnectComposer({
   mode,
+  accountId,
   draft,
   selectedFile,
   selectedPhotos,
@@ -247,6 +321,7 @@ export function ConnectComposer({
   onClearReply,
   onChangeDraft,
   onSend,
+  onQuickReaction,
   onAttachPress,
   onChoosePhoto,
   onClearFile,
@@ -261,6 +336,34 @@ export function ConnectComposer({
     () => createStyles(theme),
     [theme]
   );
+  const [quickReaction, setQuickReaction] = useState(DEFAULT_HIBLA_REACTION);
+  const [choosingReaction, setChoosingReaction] = useState(false);
+  const hasMessagePayload = !!draft.trim() || !!selectedFile || selectedPhotos.length > 0;
+
+  useEffect(() => {
+    let active = true;
+    setQuickReaction(DEFAULT_HIBLA_REACTION);
+    if (accountId) {
+      void AsyncStorage.getItem(hiblaReactionPreferenceKey(accountId))
+        .then(saved => {
+          if (active && saved && isHiblaQuickReaction(saved)) {
+            setQuickReaction(saved);
+          }
+        })
+        .catch(() => undefined);
+    }
+    return () => { active = false; };
+  }, [accountId]);
+
+  const selectQuickReaction = (emoji: string) => {
+    if (!isHiblaQuickReaction(emoji)) return;
+    setQuickReaction(emoji);
+    setChoosingReaction(false);
+    if (accountId) {
+      void AsyncStorage.setItem(hiblaReactionPreferenceKey(accountId), emoji)
+        .catch(() => undefined);
+    }
+  };
 
   return (
     <>
@@ -435,7 +538,17 @@ export function ConnectComposer({
           </View>
         </ConnectPressable>
 
-        <View style={styles.emojiWrap}>
+        <View style={styles.inputWrap}>
+          <TextInput
+            ref={inputRef}
+            value={draft}
+            onChangeText={onChangeDraft}
+            placeholder={mode === 'direct' ? 'Mag-type ng mensahe…' : 'Mensahe sa grupo…'}
+            placeholderTextColor={theme.textMuted}
+            multiline
+            blurOnSubmit={false}
+            style={styles.input}
+          />
           <ConnectPressable
             accessibilityRole="button"
             accessibilityLabel="Emoji, GIF, and avatar"
@@ -447,38 +560,52 @@ export function ConnectComposer({
           </ConnectPressable>
         </View>
 
-        <TextInput
-          ref={inputRef}
-          value={draft}
-          onChangeText={onChangeDraft}
-          placeholder={
-            mode === 'direct'
-              ? 'Message...'
-              : 'Message community...'
-          }
-          placeholderTextColor={theme.textMuted}
-          multiline
-          blurOnSubmit={false}
-          style={styles.input}
-        />
-
-        <ConnectPressable
+        <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Send message"
-          instant
-          nested={false}
-          onPress={onSend}
+          accessibilityLabel={hasMessagePayload ? 'Send message' : `Send ${quickReaction} quick reaction`}
+          accessibilityHint={hasMessagePayload ? undefined : 'Long press to choose a different reaction'}
+          onPress={hasMessagePayload ? onSend : () => onQuickReaction(quickReaction)}
+          onLongPress={hasMessagePayload ? undefined : () => setChoosingReaction(true)}
           style={styles.iconHit}
         >
           <View style={styles.send} pointerEvents="none">
-            <MaterialCommunityIcons
-              name="send"
-              size={17}
-              color={theme.fabText}
-            />
+            {hasMessagePayload ? (
+              <MaterialCommunityIcons name="send" size={20} color="#FFFFFF" />
+            ) : (
+              <Text style={styles.reactionText}>{quickReaction}</Text>
+            )}
           </View>
-        </ConnectPressable>
+        </Pressable>
       </View>
+      <Modal
+        visible={choosingReaction}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setChoosingReaction(false)}
+      >
+        <Pressable style={styles.chooserScrim} onPress={() => setChoosingReaction(false)}>
+          <Pressable style={styles.chooserCard} onPress={event => event.stopPropagation()}>
+            <Text style={styles.chooserTitle}>Piliin ang mabilis na reaksyon</Text>
+            <Text style={styles.chooserHint}>Ito ang lalabas kapag walang tina-type na mensahe.</Text>
+            <View style={styles.chooserRow}>
+              {HIBLA_QUICK_REACTIONS.map(option => (
+                <Pressable
+                  key={option.emoji}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use ${option.label} as quick reaction`}
+                  accessibilityState={{ selected: quickReaction === option.emoji }}
+                  onPress={() => selectQuickReaction(option.emoji)}
+                  style={[styles.chooserOption, quickReaction === option.emoji && styles.chooserOptionSelected]}
+                >
+                  <Text style={styles.chooserEmoji}>{option.emoji}</Text>
+                  <Text style={styles.chooserLabel}>{option.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </>
   );
 }
+

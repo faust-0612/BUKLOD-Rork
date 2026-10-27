@@ -1,5 +1,6 @@
 import React, {
   useMemo,
+  useState,
 } from 'react';
 import {
   ActivityIndicator,
@@ -12,7 +13,6 @@ import {
 } from '@expo/vector-icons';
 
 import {
-  connectRadii,
   connectTypography,
   type ConnectThemeRoles,
 } from '@/lib/connectTheme';
@@ -25,6 +25,7 @@ import {
 import {
   ConnectTappableAvatar,
 } from '@/components/connect/ConnectTappableAvatar';
+import { HIBLA } from '@/lib/connectHibla';
 
 type Props = {
   title: string;
@@ -44,34 +45,35 @@ type Props = {
   appearanceSlot?: React.ReactNode;
 };
 
-function createStyles(theme: ConnectThemeRoles) {
+function createStyles(_theme: ConnectThemeRoles) {
   return StyleSheet.create({
     header: {
-      paddingHorizontal: 10,
-      paddingBottom: 8,
+      paddingHorizontal: 12,
+      paddingBottom: 15,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderSubtle,
-      backgroundColor: theme.headerSurface,
+      gap: 10,
+      borderBottomLeftRadius: 24,
+      borderBottomRightRadius: 24,
+      backgroundColor: HIBLA.pine,
       overflow: 'visible',
+      zIndex: 40,
     },
     headerButton: {
-      width: 42,
+      width: 38,
       height: 42,
-      borderRadius: connectRadii.headerButton,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.accentMuted,
+      backgroundColor: 'transparent',
     },
     callButton: {
-      width: 44,
-      height: 44,
-      borderRadius: connectRadii.headerButton,
+      width: 40,
+      height: 42,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.accentMuted,
+      backgroundColor: 'transparent',
       zIndex: 20,
       elevation: 20,
     },
@@ -81,12 +83,17 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     title: {
       ...connectTypography.headerTitle,
-      color: theme.textPrimary,
+      color: '#FFFFFF',
+      fontSize: 17,
+      lineHeight: 21,
+      fontFamily: 'serif',
     },
     sub: {
-      marginTop: 1,
+      marginTop: 5,
       ...connectTypography.headerSub,
-      color: theme.accent,
+      color: '#CEEFDD',
+      fontSize: 11,
+      letterSpacing: 0.7,
     },
     actions: {
       flexDirection: 'row',
@@ -104,6 +111,42 @@ function createStyles(theme: ConnectThemeRoles) {
       justifyContent: 'flex-end',
       paddingHorizontal: 12,
       minHeight: 44,
+      borderRadius: 0,
+      backgroundColor: HIBLA.pine,
+    },
+    arc: {
+      position: 'absolute',
+      width: 180,
+      height: 150,
+      top: -58,
+      right: -60,
+      borderRadius: 90,
+      borderWidth: 1,
+      borderColor: 'rgba(157,231,192,0.26)',
+    },
+    arcGold: {
+      right: -72,
+      top: -40,
+      borderColor: 'rgba(242,197,101,0.62)',
+    },
+    menuPopover: {
+      position: 'absolute',
+      right: 12,
+      top: '100%',
+      padding: 12,
+      minWidth: 150,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: HIBLA.outline,
+      backgroundColor: '#FFFFFF',
+      elevation: 16,
+      zIndex: 90,
+    },
+    menuLabel: {
+      color: HIBLA.ink,
+      fontSize: 12,
+      fontWeight: '800',
+      marginBottom: 7,
     },
   });
 }
@@ -128,6 +171,7 @@ export function ConnectThreadHeader({
     () => createStyles(theme),
     [theme]
   );
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const callBusy = callStarting !== null;
 
@@ -157,10 +201,12 @@ export function ConnectThreadHeader({
         styles.header,
         {
           paddingTop,
-          minHeight: 58 + paddingTop,
+          minHeight: 68 + paddingTop,
         },
       ]}
     >
+      <View pointerEvents="none" style={styles.arc} />
+      <View pointerEvents="none" style={[styles.arc, styles.arcGold]} />
       <ConnectPressable
         accessibilityLabel="Back"
         onPress={onBack}
@@ -169,7 +215,7 @@ export function ConnectThreadHeader({
         <MaterialCommunityIcons
           name="arrow-left"
           size={23}
-          color={theme.accent}
+          color="#FFFFFF"
         />
       </ConnectPressable>
 
@@ -177,12 +223,13 @@ export function ConnectThreadHeader({
         <ConnectTappableAvatar
           userId={otherUserId}
           name={title}
-          size={36}
+          size={46}
+          shape="rounded"
         />
       )}
 
       <View style={styles.copy}>
-        <Text numberOfLines={1} style={styles.title}>
+        <Text numberOfLines={2} style={styles.title}>
           {title}
         </Text>
         {showSubtitle && !!subtitle && (
@@ -194,8 +241,6 @@ export function ConnectThreadHeader({
 
       {showDirectCalls ? (
         <View style={styles.actions}>
-          {appearanceSlot}
-
           <ConnectPressable
             accessibilityRole="button"
             accessibilityLabel="Start voice call"
@@ -213,13 +258,13 @@ export function ConnectThreadHeader({
             {callStarting === 'audio' ? (
               <ActivityIndicator
                 size="small"
-                color={theme.accent}
+                color="#FFFFFF"
               />
             ) : (
               <MaterialCommunityIcons
                 name="phone"
                 size={22}
-                color={theme.accent}
+                color="#FFFFFF"
               />
             )}
           </ConnectPressable>
@@ -227,22 +272,25 @@ export function ConnectThreadHeader({
         </View>
       ) : rightSlot ? (
         <View style={styles.actions}>
-          {appearanceSlot}
           {rightSlot}
         </View>
-      ) : appearanceSlot ? (
-        <View style={styles.actions}>
+      ) : null}
+
+      <ConnectPressable
+        accessibilityRole="button"
+        accessibilityLabel="Conversation options and appearance"
+        onPress={() => setMenuOpen(current => !current)}
+        style={styles.headerButton}
+      >
+        <MaterialCommunityIcons name="dots-vertical" size={25} color="#FFFFFF" />
+      </ConnectPressable>
+      {menuOpen && !!appearanceSlot && (
+        <View style={styles.menuPopover}>
+          <Text style={styles.menuLabel}>Chat appearance</Text>
           {appearanceSlot}
-        </View>
-      ) : (
-        <View style={styles.headerButton}>
-          <MaterialCommunityIcons
-            name="link-variant"
-            size={21}
-            color={theme.accent}
-          />
         </View>
       )}
     </View>
   );
 }
+
