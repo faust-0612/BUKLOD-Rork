@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { shared } from '@/components/UI';
@@ -16,6 +16,13 @@ import {
   loadMyBuklodFinancialSummaryV3,
   type BuklodFinancialSummaryV3,
 } from '@/lib/buklodEconomyV3';
+import {
+  loadMyCommunityContribution,
+  type CommunityContributionDashboard,
+} from '@/lib/buklodCommunityContributionEconomy';
+import { communityQmpMetrics } from '@/lib/buklodEconomyQmp';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
 import {
   buildBuklodUserFeedback,
@@ -67,6 +74,8 @@ function Section({
 }
 
 export default function BayanihanScreen() {
+  const { session, loading: authLoading } = useAuth();
+  const userId = session?.user.id ?? null;
   const {
     t,
     formatNumber,
@@ -76,58 +85,114 @@ export default function BayanihanScreen() {
 
   const [summary, setSummary] =
     useState<BuklodFinancialSummaryV3 | null>(null);
+  const [contribution, setContribution] = useState<CommunityContributionDashboard | null>(null);
+  const [qmpError, setQmpError] = useState('');
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
+  const ownerRef = useRef<string | null>(null);
+  const requestRef = useRef(0);
+  const lastSyncedRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [supportCode, setSupportCode] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
+    if (authLoading) return;
+    if (!userId) {
+      setSummary(null);
+      setContribution(null);
+      setError('Sign in to view your personal Economy summary.');
+      setLoading(false);
+      return;
+    }
+    if (!force && lastSyncedRef.current > 0
+      && Date.now() - lastSyncedRef.current < 30_000) return;
+    const request = ++requestRef.current;
     try {
       setError('');
+      setQmpError('');
       setSupportCode(null);
-      const next = await loadMyBuklodFinancialSummaryV3();
-      setSummary(next);
-    } catch (nextError) {
-      const feedback = buildBuklodUserFeedback(
-        nextError,
-        {
+      const [financialResult, communityResult] = await Promise.allSettled([
+        loadMyBuklodFinancialSummaryV3(),
+        withBuklodTimeout(loadMyCommunityContribution(), 8000, 'Community QMP'),
+      ]);
+      if (request !== requestRef.current) return;
+
+      const financialReady = financialResult.status === 'fulfilled'
+        && financialResult.value.identity_ready === true;
+      if (financialReady && financialResult.status === 'fulfilled') {
+        setSummary(financialResult.value);
+      } else {
+        setSummary(null);
+        const reason = financialResult.status === 'rejected'
+          ? financialResult.reason
+          : new Error('Economy identity is not ready. Please retry.');
+        const feedback = buildBuklodUserFeedback(reason, {
           context: 'general',
           fallbackTitle: t('economy.unavailable'),
-          fallbackMessage:
-            'Your BUKLOD Economy summary could not be loaded right now.',
-        },
-      );
-      setError(
-        'Your BUKLOD Economy summary could not be loaded right now. Pull down or tap Try Again.',
-      );
-      setSupportCode(feedback.supportCode ?? 'SYS-500');
-      void trackBuklodFeedbackEvent({
-        event: 'error_shown',
-        category: feedback.category,
-        supportCode: feedback.supportCode ?? 'SYS-500',
-        route: '/bayanihan',
-        feature: 'Economy / Bayanihan',
-        outcome: 'summary_load_failed',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+          fallbackMessage: 'Your BUKLOD Economy summary could not be loaded right now.',
+        });
+        setError('Your BUKLOD Economy summary could not be loaded right now. Pull down or tap Try Again.');
+        setSupportCode(feedback.supportCode ?? 'SYS-500');
+        void trackBuklodFeedbackEvent({
+          event: 'error_shown',
+          category: feedback.category,
+          supportCode: feedback.supportCode ?? 'SYS-500',
+          route: '/bayanihan',
+          feature: 'Economy / Bayanihan',
+          outcome: 'summary_load_failed',
+        });
+      }
 
-  useEffect(() => {
+      const communityReady = communityResult.status === 'fulfilled'
+        && communityQmpMetrics(communityResult.value) !== null;
+      if (communityReady && communityResult.status === 'fulfilled') {
+        setContribution(communityResult.value);
+      } else {
+        setContribution(null);
+        setQmpError('Community QMP could not be verified. Pull down or tap Retry; missing data is not zero.');
+      }
+      if (financialReady && communityReady) {
+        lastSyncedRef.current = Date.now();
+        setLastUpdatedAt(lastSyncedRef.current);
+      } else {
+        lastSyncedRef.current = 0;
+        setLastUpdatedAt(null);
+      }
+    } finally {
+      if (request === requestRef.current) setLoading(false);
+    }
+  }, [t, userId, authLoading]);
+
+  useFocusEffect(useCallback(() => {
+    if (ownerRef.current !== userId) {
+      ownerRef.current = userId;
+      ++requestRef.current;
+      lastSyncedRef.current = 0;
+      setSummary(null);
+      setContribution(null);
+      setQmpError('');
+      setLastUpdatedAt(null);
+      setLoading(true);
+    }
     void load();
-  }, [load]);
+    return () => { ++requestRef.current; };
+  }, [load, userId]));
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    await load();
-    setRefreshing(false);
+    try {
+      await load(true);
+    } finally {
+      setRefreshing(false);
+    }
   }, [load]);
 
   const progress = summary?.progress ?? {};
   const earnings = summary?.earnings ?? {};
   const referral = summary?.referral ?? {};
   const community = summary?.community ?? {};
+  const qmp = communityQmpMetrics(contribution);
   const poolSharePct = Number(earnings.estimated_pool_share_pct ?? 0);
   const referralItems = Array.isArray(referral.items)
     ? referral.items
@@ -226,6 +291,10 @@ export default function BayanihanScreen() {
           </View>
 
           <Section icon="star-circle-outline" title={t('economy.progressTitle')}>
+            <Text style={styles.explainer}>
+              {qmp ? `Community QMP · ${qmp.periodKey}` : 'Community QMP · not available'}
+              {lastUpdatedAt ? ` · Updated ${new Date(lastUpdatedAt).toLocaleTimeString()}` : ''}
+            </Text>
             <View style={styles.grid}>
               <Metric
                 label={t('economy.lifetimePoints')}
@@ -234,13 +303,25 @@ export default function BayanihanScreen() {
               />
               <Metric
                 label={t('economy.qualifiedMonthlyPoints')}
-                value={formatNumber(Number(progress.qualified_monthly_points ?? 0))}
+                value={qmp ? formatNumber(qmp.monthlyQmp) : '—'}
               />
               <Metric
                 label={t('economy.totalQualifiedMonthlyPoints')}
-                value={formatNumber(Number(progress.total_qualified_monthly_points ?? 0))}
+                value={qmp ? formatNumber(qmp.totalQmp) : '—'}
+              />
+              <Metric
+                label="QMP Participation Weight"
+                value={qmp ? `${qmp.participationPct.toLocaleString(undefined, {
+                  maximumFractionDigits: 4,
+                })}%` : '—'}
+                note="Participation only; no cash entitlement."
               />
             </View>
+            {qmpError ? (
+              <Pressable onPress={() => void load(true)} style={styles.stateCard}>
+                <Text style={styles.stateText}>{qmpError} · Retry</Text>
+              </Pressable>
+            ) : null}
             <Text style={styles.explainer}>{t('economy.progressNote')}</Text>
           </Section>
 
@@ -259,7 +340,9 @@ export default function BayanihanScreen() {
                 value={poolSharePct.toLocaleString(undefined, {
                   maximumFractionDigits: 4,
                 }) + '%'}
-                note={t('economy.estimate')}
+                note={earnings.user_pool_eligibility_active
+                  ? t('economy.estimate')
+                  : 'Financial pool eligibility not activated.'}
               />
               <Metric
                 label={t('economy.estimatedUserPool')}
