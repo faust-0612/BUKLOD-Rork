@@ -936,8 +936,38 @@ function LegacyPublicBuklodScreen(){
  const [commentMediaPreview,setCommentMediaPreview]=
   useState<string|null>(null);
 
- const [commentBusy,setCommentBusy]=
-  useState(false);
+ const [commentBusy,setCommentBusy]=useState(false);
+ const [commentLoading,setCommentLoading]=useState(false);
+ const [commentLoadError,setCommentLoadError]=useState<string|null>(null);
+ const [commentNotice,setCommentNotice]=useState<string|null>(null);
+ const activeCommentPostIdRef=useRef<string|null>(null);
+ const commentAccountIdRef=useRef(String(user?.id??''));
+ commentAccountIdRef.current=String(user?.id??'');
+ const commentLoadSeqRef=useRef(0);
+ const commentSendInFlightRef=useRef(false);
+ // In-memory, account-scoped drafts survive accidental sheet dismissal.
+ const commentDraftsRef=useRef(new Map<string,{
+  text:string; mentions:Mention[];
+  media:BuklodCommentMedia|null; preview:string|null;
+  reply:any|null;
+ }>());
+ useEffect(()=>{
+  // Account changes invalidate pending results and private local drafts.
+  activeCommentPostIdRef.current=null;
+  ++commentLoadSeqRef.current;
+  commentDraftsRef.current.clear();
+  setCommentOpen(false);
+  setCommentPost(null);
+  setComments([]);
+  setCommentText('');
+  setCommentMentions([]);
+  setCommentMedia(null);
+  setCommentMediaPreview(null);
+  setReplyTo(null);
+  setCommentLoadError(null);
+  setCommentNotice(null);
+  setCommentLoading(false);
+ },[user?.id]);
 
  const [
   reactionDetailsPost,
@@ -2946,140 +2976,118 @@ const load=useCallback(async(options?:{
 
  const loadComments=
   useCallback(
-   async(
-    postId:string
-   )=>{
-    const [
-     commentsResult,
-     reactionsResult
-    ]=
-     await Promise.all([
-      communityReadRpc('get_buklod_post_comments_v4',
-       {
-        p_post_id:
-         postId
-       }
-      ),
-
-      communityReadRpc('get_buklod_comment_reactions_v1',
-       {
-        p_post_id:
-         postId
-       }
-      )
-     ]);
-
+   async(postId:string)=>{
+    const targetId=String(postId);
+    const requestAccountId=String(user?.id??'');
     if(
-     commentsResult.error
-    ){
+     !targetId ||
+     activeCommentPostIdRef.current!==targetId ||
+     commentAccountIdRef.current!==requestAccountId
+    )return;
+    const requestId=++commentLoadSeqRef.current;
+    const isCurrent=()=>(
+     requestId===commentLoadSeqRef.current &&
+     activeCommentPostIdRef.current===targetId &&
+     commentAccountIdRef.current===requestAccountId
+    );
+    setCommentLoading(true);
+    setCommentLoadError(null);
+    try{
+     const [commentsResult,reactionsResult]=await Promise.all([
+      communityReadRpc('get_buklod_post_comments_v4',{p_post_id:targetId}),
+      communityReadRpc('get_buklod_comment_reactions_v1',{p_post_id:targetId}),
+     ]);
+     if(!isCurrent())return;
+     if(commentsResult.error)throw commentsResult.error;
+     const rows=(commentsResult.data??[]) as any[];
+     // Independent enrichments run together, with bounded fallbacks.
+     const [hydratedRows,clusterMap]=await Promise.all([
+      withBuklodTimeout(
+       hydratePersonNamesOnRows(rows,'user_id','commenter_name'),
+       5000,'Community comment names'
+      ).catch(()=>rows),
+      withBuklodTimeout(
+       getClusterLabels(rows.map((row:any)=>row.user_id)),
+       5000,'Community comment clusters'
+      ).catch(()=>({} as Record<string,string>)),
+     ]);
+     if(!isCurrent())return;
+     const reactionMap=new Map<string,any>();
+     for(const row of (reactionsResult.data??[])){
+      reactionMap.set(String(row.comment_id),row);
+     }
+     setComments(hydratedRows.map((row:any)=>{
+      const reaction=reactionMap.get(String(row.id));
+      return {
+       ...row,
+       cluster_name:clusterMap[row.user_id]??null,
+       is_owner:row.user_id===user?.id,
+       reaction_counts:reaction?.reaction_counts??{},
+       my_reaction:reaction?.my_reaction??null,
+      };
+     }));
+    }catch(error:any){
+     if(!isCurrent())return;
+     setCommentLoadError(
+      "Comments couldn't load. Check your connection and tap Retry."
+     );
      reportCommunityFailure(
-      commentsResult.error,
+      error,
       'Comments unavailable',
       "BUKLOD couldn't load comments right now.",
       'comments_load_failed',
      );
-     return;
+    }finally{
+     if(isCurrent())setCommentLoading(false);
     }
-
-    const rows=
-     (
-      commentsResult.data??
-      []
-     ) as any[];
-
-    const hydratedRows=
-      await withBuklodTimeout(
-        hydratePersonNamesOnRows(
-          rows,
-          'user_id',
-          'commenter_name',
-        ),
-        5000,
-        'Community comment names'
-      ).catch(()=>rows);
-
-    const clusterMap=
-     await withBuklodTimeout(
-       getClusterLabels(
-        hydratedRows.map(
-         (row:any)=>
-          row.user_id
-        )
-       ),
-       5000,
-       'Community comment clusters'
-     ).catch(()=>({} as Record<string,string>));
-
-    const reactionMap=
-     new Map<string,any>();
-
-    for(
-     const row
-     of (
-      reactionsResult.data??
-      []
-     )
-    ){
-     reactionMap.set(
-      String(
-       row.comment_id
-      ),
-      row
-     );
-    }
-
-    setComments(
-     hydratedRows.map(
-      (row:any)=>{
-       const reaction=
-        reactionMap.get(
-         String(row.id)
-        );
-
-       return {
-        ...row,
-        cluster_name:
-         clusterMap[
-          row.user_id
-         ]??null,
-        is_owner:
-         row.user_id===user?.id,
-        reaction_counts:
-         reaction?.reaction_counts??
-         {},
-        my_reaction:
-         reaction?.my_reaction??
-         null
-       };
-      }
-     )
-    );
    },
    [user?.id]
   );
 
-
  const openComments=
-  async(
-   post:any
-  )=>{
+  async(post:any)=>{
+   const postId=String(post.id);
+   const saved=commentDraftsRef.current.get(String(user?.id??'')+':'+postId);
+   activeCommentPostIdRef.current=postId;
+   ++commentLoadSeqRef.current;
    setCommentPost(post);
    setComments([]);
-   setCommentText('');
-   setCommentMentions([]);
-   setCommentMedia(null);
-   setCommentMediaPreview(null);
-   setReplyTo(null);
+   setCommentText(saved?.text??'');
+   setCommentMentions(saved?.mentions??[]);
+   setCommentMedia(saved?.media??null);
+   setCommentMediaPreview(saved?.preview??null);
+   setReplyTo(saved?.reply??null);
+   setCommentLoadError(null);
+   setCommentNotice(null);
    setCommentOpen(true);
-
-   await loadComments(
-    post.id
-   );
+   await loadComments(String(post.id));
   };
-
 
  const closeComments=
   ()=>{
+   const postId=activeCommentPostIdRef.current;
+   if(postId){
+    const key=String(user?.id??'')+':'+postId;
+    if(buklodCommentHasSendableContent(commentText,commentMedia)){
+     const drafts=commentDraftsRef.current;
+     drafts.delete(key);
+     drafts.set(key,{
+      text:commentText,
+      mentions:commentMentions,
+      media:commentMedia,
+      preview:commentMediaPreview,
+      reply:replyTo,
+     });
+     if(drafts.size>8)drafts.delete(drafts.keys().next().value!);
+    }else{
+     commentDraftsRef.current.delete(key);
+    }
+   }
+   activeCommentPostIdRef.current=null;
+   ++commentLoadSeqRef.current;
+   setCommentLoading(false);
+   setCommentLoadError(null);
+   setCommentNotice(null);
    setCommentOpen(false);
    setReplyTo(null);
    setCommentText('');
@@ -3088,160 +3096,111 @@ const load=useCallback(async(options?:{
    setCommentMediaPreview(null);
   };
 
-
  const submitCommunityComment=
   async()=>{
    if(
     !commentPost?.id ||
-    !buklodCommentHasSendableContent(
-     commentText,
-     commentMedia
-    ) ||
-    commentBusy
-   ){
-    return;
-   }
+    !buklodCommentHasSendableContent(commentText,commentMedia) ||
+    commentSendInFlightRef.current
+   )return;
 
-   let finalBody=
-    commentText.trim();
-   const mentionIds=
-    mentionsStillInText(
-     finalBody,
-     commentMentions
-    ).map(mention=>mention.user_id);
+   const postId=String(commentPost.id);
+   const authorId=String(user?.id??'');
+   const initialMedia=commentMedia;
+   const replyTarget=replyTo;
+   let finalBody=commentText.trim();
+   const mentionIds=mentionsStillInText(
+    finalBody,commentMentions
+   ).map(mention=>mention.user_id);
+   const replyRootId=replyTarget
+    ? String(replyTarget.parent_id??replyTarget.id)
+    : null;
 
-   // FB-style: replies nest under the root comment (one level).
-   const replyRootId=
-    replyTo
-     ? String(
-        replyTo.parent_id??
-        replyTo.id
-       )
-     : null;
-
-   if(replyTo){
-    const replyName=
-     String(
-      resolvePersonDisplayName(
-        replyTo.commenter_name,
-        replyTo.user_id,
-      )
-     );
-    const mention=
-     '@'+
-     replyName;
-
+   if(replyTarget){
+    const replyName=String(resolvePersonDisplayName(
+     replyTarget.commenter_name,replyTarget.user_id
+    ));
+    const mention='@'+replyName;
     if(
      finalBody &&
-     !finalBody
-      .toLowerCase()
-      .startsWith(
-       mention.toLowerCase()
-      )
+     !finalBody.toLowerCase().startsWith(mention.toLowerCase())
     ){
-     finalBody=
-      mention+
-      ' '+
-      finalBody;
+     finalBody=mention+' '+finalBody;
     }
-
-    if(
-     replyTo.user_id &&
-     !mentionIds.includes(
-      String(replyTo.user_id)
-     )
-    ){
-     mentionIds.push(
-      String(replyTo.user_id)
-     );
+    if(replyTarget.user_id && !mentionIds.includes(String(replyTarget.user_id))){
+     mentionIds.push(String(replyTarget.user_id));
     }
    }
 
+   // A ref closes the double-tap gap before React commits busy state.
+   commentSendInFlightRef.current=true;
    setCommentBusy(true);
-
-   let mediaForBody=
-    commentMedia;
-
+   setCommentNotice(null);
    try{
+    let mediaForBody=initialMedia;
     if(
-     commentMedia?.kind==='image' &&
-     commentMedia.ref &&
-     !commentMedia.ref.startsWith('http') &&
+     initialMedia?.kind==='image' &&
+     initialMedia.ref &&
+     !initialMedia.ref.startsWith('http') &&
      user?.id
     ){
      const path=
-      `${user.id}/comment-photo-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-     await uploadCommunityPhotoFile({
-      path,
-      uri:commentMedia.ref,
-     });
-     mediaForBody={
-      kind:'image',
-      ref:path,
-     };
+      user.id+'/comment-photo-'+Date.now()+'-'+
+      Math.random().toString(36).slice(2)+'.jpg';
+     await uploadCommunityPhotoFile({path,uri:initialMedia.ref});
+     mediaForBody={kind:'image',ref:path};
     }
+    const body=encodeBuklodCommentMediaBody(mediaForBody,finalBody);
+    const {error}=await communityRpc('add_buklod_post_comment_v4',{
+     p_post_id:postId,
+     p_body:body,
+     p_parent_id:replyRootId,
+    });
+    if(error)throw error;
 
-    finalBody=
-     encodeBuklodCommentMediaBody(
-      mediaForBody,
-      finalBody,
-     );
-
-    const {error}=
-     await communityRpc('add_buklod_post_comment_v4',
-      {
-       p_post_id:
-        commentPost.id,
-       p_body:
-        finalBody,
-       p_parent_id:
-        replyRootId
-      }
-     );
-
-    if(error){
-     reportCommunityFailure(
-      error,
-      'Comment not posted',
-      "BUKLOD couldn't post your comment right now.",
-      'comment_post_failed',
-     );
-     return;
+    // One confirmed mutation: update just this post, not the whole feed.
+    if(commentAccountIdRef.current===authorId){
+     setPosts(current=>current.map(post=>
+      String(post.id)===postId
+       ? {...post,comment_count:Number(post.comment_count??0)+1}
+       : post
+     ));
     }
-
-    setCommentText('');
-    setCommentMentions([]);
-    setCommentMedia(null);
-    setCommentMediaPreview(null);
-    setReplyTo(null);
-
+    commentDraftsRef.current.delete(authorId+':'+postId);
+    if(
+     activeCommentPostIdRef.current===postId &&
+     commentAccountIdRef.current===authorId
+    ){
+     setCommentText('');
+     setCommentMentions([]);
+     setCommentMedia(null);
+     setCommentMediaPreview(null);
+     setReplyTo(null);
+     setCommentNotice('Comment posted.');
+    }
     void notifyBuklodCommunityMentions({
-     postId:String(commentPost.id),
+     postId,
      mentionedUserIds:mentionIds,
      context:'comment',
     });
-
-    await Promise.all([
-     loadComments(
-      commentPost.id
-     ),
-     load()
-    ]);
-   }
-   catch(error:any){
-    reportCommunityFailure(
-     error,
-     'Comment not posted',
-     error?.message??
-      "BUKLOD couldn't post your comment right now.",
-     'comment_post_failed',
-    );
-   }
-   finally{
+    void loadComments(postId);
+   }catch(error:any){
+    if(commentAccountIdRef.current===authorId){
+     if(activeCommentPostIdRef.current===postId){
+      setCommentNotice('Comment not posted. Your draft is saved here; try again.');
+     }
+     reportCommunityFailure(
+      error,
+      'Comment not posted',
+      error?.message??"BUKLOD couldn't post your comment right now.",
+      'comment_post_failed',
+     );
+    }
+   }finally{
+    commentSendInFlightRef.current=false;
     setCommentBusy(false);
    }
   };
-
 
  const reactToComment=
   async(
@@ -5699,7 +5658,7 @@ const communityFeedRows =
    behavior={
     Platform.OS==='ios'
      ? 'padding'
-     : undefined
+     : 'height'
    }
    keyboardVerticalOffset={0}
   >
@@ -5730,7 +5689,7 @@ const communityFeedRows =
           commentPost.user_id,
          )}
          {' · '}
-         {comments.length}
+         {commentLoading&&!comments.length?'…':comments.length}
          {' '}
          {comments.length===1
           ? 'comment'
@@ -5755,10 +5714,32 @@ const communityFeedRows =
      <ScrollView
       style={{flex:1}}
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={
-       s.communityCommentList
-      }
+      contentContainerStyle={s.communityCommentList}
      >
+      {!!commentLoadError&&(
+       <View style={{
+        padding:12,borderRadius:12,backgroundColor:'#FFF1E5',
+        flexDirection:'row',alignItems:'center',gap:10,
+       }}>
+        <Text style={{flex:1,color:'#8E4A1E',fontSize:12}}>
+         {commentLoadError}
+        </Text>
+        <Pressable
+         accessibilityRole="button"
+         accessibilityLabel="Retry loading comments"
+         onPress={()=>commentPost?.id&&void loadComments(String(commentPost.id))}
+         style={{paddingHorizontal:12,paddingVertical:8,borderRadius:10,backgroundColor:'#FFFFFF'}}
+        >
+         <Text style={{fontWeight:'800',color:'#8E4A1E'}}>Retry</Text>
+        </Pressable>
+       </View>
+      )}
+      {commentLoading&&!comments.length?(
+       <View style={{paddingVertical:36,alignItems:'center',gap:12}}>
+        <ActivityIndicator size="small" color={colors.green}/>
+        <Text style={{color:colors.muted}}>Loading comments…</Text>
+       </View>
+      ):comments.length?(
       <BuklodCommunityCommentThread
        comments={comments}
        currentUserId={user?.id}
@@ -5774,15 +5755,14 @@ const communityFeedRows =
        }}
        onReply={(target)=>{
         const replyName=resolvePersonDisplayName(
-         target.commenter_name,
-         target.user_id,
+         target.commenter_name,target.user_id
         );
         setReplyTo(target);
-        setCommentText(`@${replyName} `);
-        setCommentMentions([{
-         user_id:String(target.user_id),
-         full_name:String(replyName),
-        }]);
+        // A reply banner provides context; don't prefill a sendable @name-only draft.
+        setCommentMentions(current=>[
+         ...current.filter(item=>item.user_id!==String(target.user_id)),
+         {user_id:String(target.user_id),full_name:String(replyName)},
+        ]);
        }}
        onReact={(c,key)=>
         void reactToComment(
@@ -5814,6 +5794,15 @@ const communityFeedRows =
         )
        }
       />
+
+      ):!commentLoadError?(
+       <View style={{paddingVertical:48,alignItems:'center',gap:10}}>
+        <MaterialCommunityIcons name="comment-outline" size={34} color={colors.green}/>
+        <Text style={{color:colors.muted,textAlign:'center',fontSize:13}}>
+         No comments yet. Be the first to respond.
+        </Text>
+       </View>
+      ):null}
      </ScrollView>
 
 
@@ -5845,14 +5834,13 @@ const communityFeedRows =
        </View>
 
        <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Cancel reply"
         onPress={()=>{
+         setCommentMentions(current=>current.filter(
+          mention=>mention.user_id!==String(replyTo.user_id)
+         ));
          setReplyTo(null);
-         if(
-          commentText.trim().startsWith('@')
-         ){
-          setCommentText('');
-          setCommentMentions([]);
-         }
         }}
        >
         <MaterialCommunityIcons
@@ -5865,9 +5853,31 @@ const communityFeedRows =
      )}
 
 
+     {!!commentNotice&&(
+      <View
+       accessible
+       accessibilityLiveRegion="polite"
+       style={{
+        paddingHorizontal:14,paddingVertical:7,
+        backgroundColor:commentNotice.startsWith('Comment not posted')
+         ? '#FFF1E5' : '#E8F5EE',
+       }}
+      >
+       <Text style={{
+        fontSize:12,fontWeight:'700',
+        color:commentNotice.startsWith('Comment not posted')
+         ? '#8E4A1E' : colors.greenDark,
+       }}>
+        {commentNotice}
+       </Text>
+      </View>
+     )}
      <BuklodCommunityCommentComposer
       value={commentText}
-      onChangeText={setCommentText}
+      onChangeText={next=>{
+       setCommentText(next);
+       if(commentNotice)setCommentNotice(null);
+      }}
       mentions={commentMentions}
       onMentionsChange={setCommentMentions}
       audience={audience}
@@ -5879,9 +5889,12 @@ const communityFeedRows =
         : 'Write a comment...'
       }
       busy={commentBusy}
+      layout="stacked"
+      focusRequestKey={replyTo?.id??null}
       media={commentMedia}
       mediaPreviewUri={commentMediaPreview}
       onMediaChange={(next,preview)=>{
+       setCommentNotice(null);
        setCommentMedia(next);
        setCommentMediaPreview(preview??null);
       }}
