@@ -20,6 +20,7 @@ import {
   ensureImagePickerLibraryAccess,
 } from '@/lib/buklodImagePickerAccess';
 import {
+  deleteSmartDrawerAsset,
   persistSmartDrawerAsset,
 } from '@/lib/smartDrawer/assets';
 import {
@@ -119,20 +120,17 @@ export default function SmartDrawerImport() {
           originalName: picked.fileName,
         });
 
-        await commitSmartDrawerItem(
-          user.id,
-          {
-            title:
-              picked.fileName?.replace(/\.[^.]+$/, '') ||
-              'Imported File',
-            body: '',
-            extractedText: '',
-            type: 'DOCUMENT',
-            assets: [asset],
-            status: 'ACTIVE',
-            syncState: 'LOCAL_ONLY',
-          },
-        );
+        try {
+          await commitSmartDrawerItem(user.id, {
+            title: picked.fileName?.replace(/\.[^.]+$/, '') || 'Imported File',
+            body: '', extractedText: '', type: 'DOCUMENT', assets: [asset],
+            status: 'ACTIVE', syncState: 'LOCAL_ONLY',
+          });
+        } catch (error) {
+          // Roll back only the fresh local copy, never the source file.
+          await deleteSmartDrawerAsset(asset);
+          throw error;
+        }
         saved += 1;
       }
 

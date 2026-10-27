@@ -29,6 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   detectSmartDrawerDate,
+  detectSmartDrawerExpiry,
 } from '@/lib/smartDrawer/classify';
 import { makeGoogleCalendarEventUrl } from '@/lib/smartDrawer/calendar';
 import {
@@ -196,9 +197,11 @@ export default function SmartDrawerItemScreen() {
     try {
       const dueAt =
         dateText.trim()
-          ? detectSmartDrawerDate(dateText) ??
-            item.dueAt
-          : null;
+          ? detectSmartDrawerDate(dateText)
+          : detectSmartDrawerDate(body);
+      if (dateText.trim() && !dueAt) {
+        throw new Error('Please enter a valid date or time, such as 2026-11-05 14:00.');
+      }
 
       const result =
         await commitSmartDrawerItem(
@@ -212,6 +215,7 @@ export default function SmartDrawerItemScreen() {
               item.extractedText || body,
             location: location.trim(),
             dueAt,
+            expiresAt: detectSmartDrawerExpiry(`${title}\n${body}`),
             eventAt:
               ['EVENT', 'APPOINTMENT', 'PROGRAM'].includes(type)
                 ? dueAt
