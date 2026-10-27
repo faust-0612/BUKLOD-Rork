@@ -65,6 +65,28 @@ describe('Exact notification destinations', () => {
     })?.path).toBe('/post/post-456');
   });
 
+  it('opens approved membership notifications at the exact Cluster Home', () => {
+    expect(resolveBuklodNotificationTarget('cluster_join_result', {
+      scope_id: 'cluster-123', resolved: 'APPROVED',
+      route: '/clusters/cluster-123',
+    })).toEqual({
+      path: '/scope?section=home&scopeId=cluster-123',
+      scopeId: 'cluster-123',
+    });
+  });
+
+  it('keeps declined memberships on the Cluster detail and invitations on acceptance', () => {
+    expect(resolveBuklodNotificationTarget('cluster_join_result', {
+      scope_id: 'cluster-123', resolved: 'DECLINED',
+    })?.path).toBe('/clusters/cluster-123');
+    expect(resolveBuklodNotificationTarget('cluster_invite', {
+      scope_id: 'cluster-123',
+    })?.path).toBe('/clusters/cluster-123?fromInvite=1');
+    expect(resolveBuklodNotificationTarget('cluster_join_request', {
+      scope_id: 'cluster-123',
+    })?.path).toBe('/clusters/join-requests?cluster=cluster-123');
+  });
+
   it('keeps personal messages routed to the exact thread', () => {
     expect(resolveBuklodNotificationTarget('direct_message', {
       conversation_id: 'thread-789',
