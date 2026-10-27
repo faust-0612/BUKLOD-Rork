@@ -941,6 +941,8 @@ function LegacyPublicBuklodScreen(){
  const [commentLoadError,setCommentLoadError]=useState<string|null>(null);
  const [commentNotice,setCommentNotice]=useState<string|null>(null);
  const activeCommentPostIdRef=useRef<string|null>(null);
+ const commentAccountIdRef=useRef(String(user?.id??''));
+ commentAccountIdRef.current=String(user?.id??'');
  const commentLoadSeqRef=useRef(0);
  const commentSendInFlightRef=useRef(false);
  // In-memory, account-scoped drafts survive accidental sheet dismissal.
@@ -949,6 +951,23 @@ function LegacyPublicBuklodScreen(){
   media:BuklodCommentMedia|null; preview:string|null;
   reply:any|null;
  }>());
+ useEffect(()=>{
+  // Account changes invalidate pending results and private local drafts.
+  activeCommentPostIdRef.current=null;
+  ++commentLoadSeqRef.current;
+  commentDraftsRef.current.clear();
+  setCommentOpen(false);
+  setCommentPost(null);
+  setComments([]);
+  setCommentText('');
+  setCommentMentions([]);
+  setCommentMedia(null);
+  setCommentMediaPreview(null);
+  setReplyTo(null);
+  setCommentLoadError(null);
+  setCommentNotice(null);
+  setCommentLoading(false);
+ },[user?.id]);
 
  const [
   reactionDetailsPost,
@@ -2959,11 +2978,17 @@ const load=useCallback(async(options?:{
   useCallback(
    async(postId:string)=>{
     const targetId=String(postId);
-    if(!targetId || activeCommentPostIdRef.current!==targetId)return;
+    const requestAccountId=String(user?.id??'');
+    if(
+     !targetId ||
+     activeCommentPostIdRef.current!==targetId ||
+     commentAccountIdRef.current!==requestAccountId
+    )return;
     const requestId=++commentLoadSeqRef.current;
     const isCurrent=()=>(
      requestId===commentLoadSeqRef.current &&
-     activeCommentPostIdRef.current===targetId
+     activeCommentPostIdRef.current===targetId &&
+     commentAccountIdRef.current===requestAccountId
     );
     setCommentLoading(true);
     setCommentLoadError(null);
@@ -3022,7 +3047,7 @@ const load=useCallback(async(options?:{
  const openComments=
   async(post:any)=>{
    const postId=String(post.id);
-   const saved=commentDraftsRef.current.get(String(user?.id)+':'+postId);
+   const saved=commentDraftsRef.current.get(String(user?.id??'')+':'+postId);
    activeCommentPostIdRef.current=postId;
    ++commentLoadSeqRef.current;
    setCommentPost(post);
@@ -3042,7 +3067,7 @@ const load=useCallback(async(options?:{
   ()=>{
    const postId=activeCommentPostIdRef.current;
    if(postId){
-    const key=String(user?.id)+':'+postId;
+    const key=String(user?.id??'')+':'+postId;
     if(buklodCommentHasSendableContent(commentText,commentMedia)){
      const drafts=commentDraftsRef.current;
      drafts.delete(key);
@@ -3080,6 +3105,7 @@ const load=useCallback(async(options?:{
    )return;
 
    const postId=String(commentPost.id);
+   const authorId=String(user?.id??'');
    const initialMedia=commentMedia;
    const replyTarget=replyTo;
    let finalBody=commentText.trim();
@@ -3133,13 +3159,18 @@ const load=useCallback(async(options?:{
     if(error)throw error;
 
     // One confirmed mutation: update just this post, not the whole feed.
-    setPosts(current=>current.map(post=>
-     String(post.id)===postId
-      ? {...post,comment_count:Number(post.comment_count??0)+1}
-      : post
-    ));
-    commentDraftsRef.current.delete(String(user?.id)+':'+postId);
-    if(activeCommentPostIdRef.current===postId){
+    if(commentAccountIdRef.current===authorId){
+     setPosts(current=>current.map(post=>
+      String(post.id)===postId
+       ? {...post,comment_count:Number(post.comment_count??0)+1}
+       : post
+     ));
+    }
+    commentDraftsRef.current.delete(authorId+':'+postId);
+    if(
+     activeCommentPostIdRef.current===postId &&
+     commentAccountIdRef.current===authorId
+    ){
      setCommentText('');
      setCommentMentions([]);
      setCommentMedia(null);
@@ -3154,15 +3185,17 @@ const load=useCallback(async(options?:{
     });
     void loadComments(postId);
    }catch(error:any){
-    if(activeCommentPostIdRef.current===postId){
-     setCommentNotice('Comment not posted. Your draft is saved here; try again.');
+    if(commentAccountIdRef.current===authorId){
+     if(activeCommentPostIdRef.current===postId){
+      setCommentNotice('Comment not posted. Your draft is saved here; try again.');
+     }
+     reportCommunityFailure(
+      error,
+      'Comment not posted',
+      error?.message??"BUKLOD couldn't post your comment right now.",
+      'comment_post_failed',
+     );
     }
-    reportCommunityFailure(
-     error,
-     'Comment not posted',
-     error?.message??"BUKLOD couldn't post your comment right now.",
-     'comment_post_failed',
-    );
    }finally{
     commentSendInFlightRef.current=false;
     setCommentBusy(false);
