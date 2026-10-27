@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Crypto from 'expo-crypto';
 import * as Updates from 'expo-updates';
+import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { shouldReportClientVersion, type LastVersionReport } from '@/lib/buklodClientVersionPolicy';
@@ -72,7 +73,7 @@ async function reportOnce(userId: string) {
 }
 
 export async function reportBuklodClientVersion(userId: string): Promise<void> {
-  if (__DEV__ || !Updates.isEnabled || !userId) return;
+  if (__DEV__ || Platform.OS !== 'android' || !Updates.isEnabled || !userId) return;
   const now = Date.now();
   if (now < (retryAfter.get(userId) ?? 0)) return;
   const existing = inFlight.get(userId);
