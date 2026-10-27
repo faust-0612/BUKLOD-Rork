@@ -89,6 +89,9 @@ const rpcTtlMs: Record<string, number> = {
   get_my_buklod_points_dashboard: 30_000,
   get_buklod_public_community_feed_v7_page: 5_000,
   get_buklod_post_media_v1: 3_000,
+  // The Wall actually uses v2. Its per-photo reactions are mutable, so keep
+  // this a burst-only window, isolated by bearer token and exact post IDs.
+  get_buklod_post_media_v2: 2_500,
   get_buklod_post_comment_previews_v1: 3_000,
   buklod_scope_entitlements_v1: 30_000,
   buklod_scope_home_summary_v1: 20_000,
@@ -282,24 +285,37 @@ function prune(now: number) {
   for (const [key] of oldest) shield.cache.delete(key);
 }
 
-function invalidateTable(table: string) {
-  const needle = `/rest/v1/${table}`;
+function invalidateMatching(needle: string) {
   for (const key of shield.cache.keys()) {
     if (key.includes(needle)) shield.cache.delete(key);
   }
+  // A read started before a successful mutation must not repopulate the
+  // cache with an outdated snapshot when it eventually resolves.
+  for (const key of shield.inFlight.keys()) {
+    if (key.includes(needle)) shield.inFlight.delete(key);
+  }
+}
+
+function invalidateTable(table: string) {
+  invalidateMatching(`/rest/v1/${table}`);
 }
 
 function invalidateAfterMutation(rawUrl: string, method: string) {
   if (method === 'GET' || method === 'HEAD') return;
   const table = tableFromUrl(rawUrl);
   if (table && invalidatedTables.has(table)) invalidateTable(table);
+  if (table === 'community_photo_reactions' || table === 'community_post_media') {
+    invalidateMatching('/rpc/get_buklod_post_media_v2');
+  }
   // Cluster mutations are POST RPCs; never cache them. After a confirmed
   // mutation, invalidate user-scoped list/discovery reads across the shield.
   const rpc = rpcFromUrl(rawUrl);
+  if (rpc && /^set_buklod_post_media_v[1-5]$/.test(rpc)) {
+    invalidateMatching('/rpc/get_buklod_post_media_v2');
+  }
   if (rpc && /^buklod_(create_cluster|join_cluster|respond_cluster_invite|leave_cluster|invite_cluster_member|update_cluster|remove_cluster_member|transfer_cluster_admin|archive_cluster|restore_cluster|review_cluster_request)/.test(rpc)) {
-    for (const key of shield.cache.keys()) {
-      if (key.includes('/rpc/buklod_my_clusters') || key.includes('/rpc/buklod_discover_clusters')) shield.cache.delete(key);
-    }
+    invalidateMatching('/rpc/buklod_my_clusters');
+    invalidateMatching('/rpc/buklod_discover_clusters');
   }
 }
 
@@ -330,10 +346,13 @@ export function createBuklodR4RequestShield(baseFetch: typeof fetch): typeof fet
     const pending = shield.inFlight.get(key);
     if (pending) return responseFrom(await pending);
 
-    const task = (async () => {
+    // Assigned before any awaited fetch resolves; declared separately so
+    // TypeScript can type-check the identity guard on the in-flight promise.
+    let task: Promise<Snapshot> | null = null;
+    task = (async () => {
       const response = await baseFetch(input, init);
       const snapshot = await snapshotOf(response);
-      if (response.ok) {
+      if (response.ok && shield.inFlight.get(key) === task) {
         shield.cache.set(key, {
           expiresAt: Date.now() + ttlMs,
           snapshot,
@@ -346,7 +365,7 @@ export function createBuklodR4RequestShield(baseFetch: typeof fetch): typeof fet
     try {
       return responseFrom(await task);
     } finally {
-      shield.inFlight.delete(key);
+      if (shield.inFlight.get(key) === task) shield.inFlight.delete(key);
     }
   };
 

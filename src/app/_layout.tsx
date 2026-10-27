@@ -20,6 +20,7 @@ import { ComplianceProvider } from '@/providers/ComplianceProvider';
 import { RuntimeConfigProvider } from '@/providers/RuntimeConfigProvider';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import BuklodPublishBanner from '@/components/BuklodPublishBanner';
+import BuklodOtaFreshnessHost from '@/components/BuklodOtaFreshnessHost';
 import BuklodEntitlementRouteGuard from '@/components/BuklodEntitlementRouteGuard';
 import BuklodFocusAppRouteGuard from '@/components/BuklodFocusAppRouteGuard';
 import BuklodCanonicalNavigationGuard from '@/components/BuklodCanonicalNavigationGuard';
@@ -242,6 +243,7 @@ function RootLayout() {
             <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
               <OfflineBanner/>
               <BuklodPublishBanner />
+              <BuklodOtaFreshnessHost />
               <BuklodEntitlementRouteGuard />
               <BuklodFocusAppRouteGuard />
               <BuklodCanonicalNavigationGuard />
