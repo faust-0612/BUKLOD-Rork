@@ -61,6 +61,9 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify approved pending client and rollback recovery
+        if: github.head_ref == 'fix/pending-client-reconciliation-20261027-r1'
+        run: node scripts/test-pending-client-reconciliation-20261027.cjs
       - name: Verify cumulative Show Faith migration contract
         if: github.head_ref == 'dev/scoped-community-ota-consolidation-20261025'
         run: |

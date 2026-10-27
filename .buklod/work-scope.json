@@ -14,7 +14,9 @@
     "src/app/scope/index.tsx",
     "src/lib/buklodScopeRoute.ts",
     "src/components/BuklodHomeFaithPanel.tsx",
-    "src/components/BuklodScopeBuklodLessonPanel.tsx"
+    "src/components/BuklodScopeBuklodLessonPanel.tsx",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/production_android_ota.yml"
   ],
   "acceptanceChecks": [
     "No delete/retry of possibly committed posts after upload or follow-up errors",
@@ -26,6 +28,8 @@
     "Cluster/Organization Home Back resets active scope then opens Cluster directory; Android back listeners are focus-scoped",
     "Cluster directory cache keeps same-user results, isolates account switches and ignores stale request completion",
     "Compact Cluster directory, two-row scoped Show Faith and colorful Lesson layout restored",
-    "Previously merged PR346 request coalescing and post-rollback production source preserved"
+    "Previously merged PR346 request coalescing and post-rollback production source preserved",
+    "Android production workflow must validate persisted-session startup without obsolete forced biometric checks",
+    "Engineering Accountability runs client reconciliation regression tests before RC"
   ]
 }

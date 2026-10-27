@@ -48,3 +48,12 @@ assert.match(lesson, /backgroundColor: '#E39B17'/);
 assert.match(shield, /buklod_connect_unread_count: 2_500/);
 assert.match(shield, /buklod_my_clusters: 10_000/);
 console.log('PASS: rollback UI recovery, account-cache isolation, and PR346 compatibility contracts');
+
+const production = file('.github/workflows/production_android_ota.yml');
+assert.match(production, /node scripts\/test-pending-client-reconciliation-20261027\.cjs/);
+assert.match(production, /grep -F 'persistSession: true'/);
+assert.match(production, /if grep -Eq 'LocalAuthentication\.authenticateAsync\|SecureStore\.setItemAsync\|writeTrustedDevice'/);
+assert.doesNotMatch(production, /grep -F 'LocalAuthentication\.authenticateAsync'/);
+const accountability = file('.github/workflows/engineering-accountability.yml');
+assert.match(accountability, /name: Verify approved pending client and rollback recovery/);
+console.log('PASS: production security anchors and PR validation are aligned');
