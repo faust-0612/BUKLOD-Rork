@@ -186,9 +186,14 @@ jobs:
           grep -F "authRuntimeState.passwordSignInInFlight" 'src/lib/buklodAuthResilience.ts'
           test "$(grep -cF '.signInWithPassword(credentials)' 'src/lib/buklodAuthResilience.ts')" -eq 1
           grep -F 'persistSession: true' 'src/lib/supabase.ts'
-          grep -F 'BUKLOD_AUTH_EMAIL_LOCAL_DEVICE_R1' 'src/components/BuklodTrustedDeviceGate.native.tsx'
-          grep -F 'LocalAuthentication.authenticateAsync' 'src/components/BuklodTrustedDeviceGate.native.tsx'
-          grep -F 'SecureStore.setItemAsync' 'src/components/BuklodTrustedDeviceGate.native.tsx'
+          # Login persistence remains required. Do not reintroduce an
+          # unrequested biometric startup lock that auto-enrolls users.
+          grep -F 'markBuklodStartupChromeReady' 'src/components/BuklodTrustedDeviceGate.native.tsx'
+          if grep -Eq 'LocalAuthentication.authenticateAsync|SecureStore.setItemAsync|writeTrustedDevice' 'src/components/BuklodTrustedDeviceGate.native.tsx'; then
+            echo 'Unrequested biometric startup enrollment was restored.'
+            exit 1
+          fi
+          node scripts/test-pending-client-reconciliation-20261027.cjs
           grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/index.tsx'
           grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/onboarding/index.tsx'
           if grep -F 'WAITING FOR ADMIN VERIFICATION' 'src/app/onboarding/index.tsx'; then

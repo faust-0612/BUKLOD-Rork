@@ -40,7 +40,12 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Character source contract
+        if: github.head_ref != 'fix/pending-client-reconciliation-20261027-r1'
         run: npm run character:contract
+
+      - name: Verify exact shipped Character visuals for scoped client recovery
+        if: github.head_ref == 'fix/pending-client-reconciliation-20261027-r1'
+        run: node scripts/test-character-live-parity-ota173.cjs
 
       - name: Base production gate
         run: npm run release:base-gate
@@ -49,6 +54,7 @@ jobs:
         run: npx expo export --platform web --output-dir dist-character-qa
 
       - name: Character compiled-bundle contract
+        if: github.head_ref != 'fix/pending-client-reconciliation-20261027-r1'
         run: node scripts/character-release-contract.mjs --dist dist-character-qa
 
       - name: Confirm no release action

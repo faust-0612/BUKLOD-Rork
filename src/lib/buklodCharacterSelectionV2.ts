@@ -282,6 +282,21 @@ export function getCachedBuklodCharacterSelectionV2(
   return cache.get(userId) ?? null;
 }
 
+// Check the active account locally; refresh its token only if near expiry.
+async function ensureCharacterSession(userId: string): Promise<void> {
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session || data.session.user.id !== userId || !data.session.access_token) {
+    throw new Error('Character session unavailable. Please sign in again.');
+  }
+  if (data.session.expires_at && data.session.expires_at * 1000 <= Date.now() + 60_000) {
+    const refreshed = await supabase.auth.refreshSession();
+    if (refreshed.error || !refreshed.data.session ||
+        refreshed.data.session.user.id !== userId || !refreshed.data.session.access_token) {
+      throw new Error('Unable to refresh Character session. Check your connection and retry.');
+    }
+  }
+}
+
 export async function getMyBuklodCharacterSelectionV2(
   userId?: string | null,
   force = false,
@@ -289,6 +304,10 @@ export async function getMyBuklodCharacterSelectionV2(
   if (!userId) {
     throw new Error('Authentication required');
   }
+
+  // Validate before any cached or in-flight result can be returned across
+  // account boundaries; a healthy persisted session requires no network I/O.
+  await ensureCharacterSession(userId);
 
   // A forced refresh bypasses cache, but joins an already running refresh.
   const pending = inflight.get(userId);
@@ -330,6 +349,7 @@ export async function setMyBuklodCharacterActiveV2(
     throw new Error('Authentication required');
   }
 
+  await ensureCharacterSession(userId);
   const { data, error } = await (supabase as any).rpc(
     'set_my_buklod_character_active_v2',
     { p_character_id: characterId },

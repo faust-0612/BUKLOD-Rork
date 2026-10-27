@@ -41,6 +41,7 @@ import {
 import {
   router,
   useLocalSearchParams,
+  useFocusEffect,
 } from 'expo-router';
 
 import {
@@ -271,32 +272,21 @@ ScopeWorkspaceScreen() {
   const exitWorkspace =
     useCallback(
       async () => {
-        if (router.canGoBack()) {
-          router.back();
-          return;
-        }
-
+        // A scoped workspace was entered with replace. Router history may
+        // still point to a different scope; always exit through the canonical
+        // scope-reset flow before opening the Cluster directory.
         if (
-          workspaceScope?.scope_type ===
-            'CLUSTER' ||
-          workspaceScope?.scope_type ===
-            'ORGANIZATION'
+          workspaceScope?.scope_type === 'CLUSTER' ||
+          workspaceScope?.scope_type === 'ORGANIZATION'
         ) {
-          await exitScopedWorkspace(
-            selectScope,
-            scopes,
-            '/home'
-          );
+          await exitScopedWorkspace(selectScope, scopes, '/clusters');
           return;
         }
 
-        router.back();
+        if (router.canGoBack()) router.back();
+        else router.replace('/(tabs)/buklod' as any);
       },
-      [
-        workspaceScope?.scope_type,
-        scopes,
-        selectScope,
-      ]
+      [workspaceScope?.scope_type, scopes, selectScope]
     );
 
   const handleWorkspaceBack =
@@ -313,7 +303,7 @@ ScopeWorkspaceScreen() {
       exitWorkspace,
     ]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') {
       return;
     }
@@ -349,7 +339,7 @@ ScopeWorkspaceScreen() {
     openSection,
     resolution.access,
     workspaceScope,
-  ]);
+  ]));
 
 if (
     !workspaceScope &&
