@@ -48,7 +48,7 @@ async function reportOnce(userId: string) {
 
   try {
     const installationId = await accountInstallationId(userId);
-    const { error } = await withBuklodTimeout(
+    const result = await withBuklodTimeout(
       (supabase as any).rpc('buklod_register_client_version_r1', {
         p_installation_id: installationId,
         p_platform: 'android',
@@ -63,6 +63,7 @@ async function reportOnce(userId: string) {
       REPORT_TIMEOUT_MS,
       'BUKLOD version reporting',
     );
+    const error = (result as { error?: unknown } | null)?.error;
     if (error) throw error;
     await AsyncStorage.setItem(lastKey, JSON.stringify({ fingerprint, at: Date.now() }));
     retryAfter.delete(userId);
