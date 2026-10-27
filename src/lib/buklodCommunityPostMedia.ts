@@ -207,7 +207,7 @@ export async function loadCommunityPostMediaByPostIds(
         .map(id => String(id ?? '').trim())
         .filter(Boolean),
     ),
-  ];
+  ].sort(); // Stable RPC body: remounts with the same posts share one request.
   const mediaMap: Record<string, CommunityPostMediaRow[]> = {};
 
   if (!ids.length) return mediaMap;
