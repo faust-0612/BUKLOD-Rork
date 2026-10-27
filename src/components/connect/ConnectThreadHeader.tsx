@@ -119,7 +119,7 @@ export function ConnectThreadHeader({
   callStarting = null,
   onBack,
   onAudioCall,
-  onVideoCall,
+  onVideoCall: _onVideoCall,
   rightSlot,
   appearanceSlot,
 }: Props) {
@@ -224,33 +224,6 @@ export function ConnectThreadHeader({
             )}
           </ConnectPressable>
 
-          <ConnectPressable
-            accessibilityRole="button"
-            accessibilityLabel="Start video call"
-            testID="buklod-direct-video-call"
-            instant
-            nested={false}
-            hitSlop={8}
-            disabled={callBusy || !onVideoCall}
-            onPress={onVideoCall}
-            style={[
-              styles.callButton,
-              (callBusy || !onVideoCall) && styles.disabled,
-            ]}
-          >
-            {callStarting === 'video' ? (
-              <ActivityIndicator
-                size="small"
-                color={theme.accent}
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name="video"
-                size={22}
-                color={theme.accent}
-              />
-            )}
-          </ConnectPressable>
         </View>
       ) : rightSlot ? (
         <View style={styles.actions}>

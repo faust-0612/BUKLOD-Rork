@@ -23,12 +23,6 @@ const EVENT_COLUMNS =
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const LIST_RPC_NAMES = [
-  'buklod_list_attendance_events_v1',
-  'get_buklod_attendance_events',
-  'list_buklod_attendance_events',
-];
-
 const EVENT_CACHE_PREFIX = '@buklod/attendance-events/v1:';
 
 function asBoolean(value: unknown, fallback = true) {
@@ -204,69 +198,20 @@ async function writeCachedEvents(
   }
 }
 
-async function listEventsFromRpcs(
+// Production exposes one scoped attendance listing contract. Do not probe
+// nonexistent legacy RPCs or incompatible attendance_events table columns.
+async function listEventsFromRpc(
   scopeId: string
-): Promise<BuklodAttendanceEventRow[]> {
-  for (const name of LIST_RPC_NAMES) {
-    const result = await rpcWithArgFallback(name, [
-      { p_scope_id: scopeId },
-      { _scope_id: scopeId },
-      { scope_id: scopeId },
-    ]);
+): Promise<{ rows: BuklodAttendanceEventRow[]; error: boolean }> {
+  const { data, error } = await supabase.rpc('buklod_list_attendance_events_v1', {
+    p_scope_id: scopeId,
+  });
 
-    if (result.error) {
-      continue;
-    }
-
-    const normalized = asEventRows(result.data, scopeId);
-
-    if (normalized.length) {
-      return normalized;
-    }
+  if (error) {
+    return { rows: [], error: true };
   }
 
-  return [];
-}
-
-async function listEventsFromTable(
-  scopeId: string
-): Promise<BuklodAttendanceEventRow[]> {
-  const queries = [
-    supabase
-      .from('attendance_events')
-      .select(EVENT_COLUMNS)
-      .eq('scope_id', scopeId)
-      .order('starts_at', { ascending: false })
-      .limit(50),
-    supabase
-      .from('attendance_events')
-      .select(EVENT_COLUMNS)
-      .eq('organization_id', scopeId)
-      .order('starts_at', { ascending: false })
-      .limit(50),
-    supabase
-      .from('attendance_events')
-      .select(EVENT_COLUMNS)
-      .eq('cluster_id', scopeId)
-      .order('starts_at', { ascending: false })
-      .limit(50),
-  ];
-
-  for (const query of queries) {
-    const result = await query;
-
-    if (result.error) {
-      continue;
-    }
-
-    const rows = asEventRows(result.data, scopeId);
-
-    if (rows.length) {
-      return rows;
-    }
-  }
-
-  return [];
+  return { rows: asEventRows(data, scopeId), error: false };
 }
 
 export async function fetchAttendanceEventById(
@@ -301,18 +246,15 @@ export async function listBuklodAttendanceEvents(
     return [];
   }
 
-  const fromRpc = await listEventsFromRpcs(id);
-  // Avoid duplicate table reads when the canonical RPC returned rows.
-  // Retain the legacy fallback if the RPC returned no valid events.
-  const fromTable = fromRpc.length ? [] : await listEventsFromTable(id);
-  const merged = mergeEventRows([...fromRpc, ...fromTable]);
-
-  if (merged.length) {
-    void writeCachedEvents(id, merged);
-    return merged;
+  const result = await listEventsFromRpc(id);
+  if (result.error) {
+    // Offline fallback only: never mask a valid empty server response with stale events.
+    return readCachedEvents(id);
   }
 
-  return readCachedEvents(id);
+  const rows = mergeEventRows(result.rows);
+  void writeCachedEvents(id, rows);
+  return rows;
 }
 
 export async function createBuklodAttendanceEvent(input: {

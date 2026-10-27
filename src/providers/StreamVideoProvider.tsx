@@ -2,7 +2,6 @@ import {
   disconnectBuklodStreamVideoClient,
   ensureBuklodStreamVideoClient,
   getCachedBuklodStreamVideoClient,
-  prewarmBuklodStreamVideoClient,
   subscribeBuklodStreamVideoClient,
 } from '@/lib/buklodStreamVideoClient';
 import { installBuklodCallLifecycle } from '@/lib/buklodCallLifecycle';
@@ -55,32 +54,6 @@ export function StreamVideoProvider({
   useEffect(
     () => {
       if (!user?.id) {
-        return;
-      }
-
-      /*
-       * PERF_STARTUP_R1: defer call-client prewarm until after first paint.
-       * Incoming call push still uses setPushConfig from index.js.
-       */
-      const task =
-        InteractionManager.runAfterInteractions(
-          () => {
-            prewarmBuklodStreamVideoClient();
-          }
-        );
-
-      return () => {
-        task.cancel();
-      };
-    },
-    [
-      user?.id,
-    ]
-  );
-
-  useEffect(
-    () => {
-      if (!user?.id) {
         setClient(undefined);
         void disconnectBuklodStreamVideoClient();
         return;
@@ -115,43 +88,69 @@ export function StreamVideoProvider({
           }
         );
 
-      const task =
-        InteractionManager.runAfterInteractions(
-          () => {
-            void ensureBuklodStreamVideoClient()
-              .catch(error => {
-                console.warn(
-                  'BUKLOD call client:',
-                  error
-                );
-              });
-          }
-        );
+      // Stream registers FCM for ringing calls after the user connects.
+      // Run this once after first paint, with bounded recovery if the initial
+      // login/network window failed. Do not retry indefinitely under weak signal.
+      let stopped = false;
+      let connecting = false;
+      let retryCount = 0;
+      let retryTimer: ReturnType<typeof setTimeout> | null = null;
+      const retryDelaysMs = [2500, 8000, 20000];
 
-      const onAppState =
-        AppState.addEventListener(
-          'change',
-          state => {
-            if (state !== 'active') {
-              return;
+      const connectForIncomingCalls = () => {
+        if (
+          stopped ||
+          connecting ||
+          AppState.currentState === 'background' ||
+          getCachedBuklodStreamVideoClient()
+        ) {
+          return;
+        }
+
+        connecting = true;
+        void ensureBuklodStreamVideoClient()
+          .then(() => {
+            retryCount = 0;
+          })
+          .catch(error => {
+            console.warn('BUKLOD call client:', error);
+            if (!stopped && retryCount < retryDelaysMs.length) {
+              retryTimer = setTimeout(
+                connectForIncomingCalls,
+                retryDelaysMs[retryCount++]
+              );
             }
+          })
+          .finally(() => {
+            connecting = false;
+          });
+      };
 
-            if (getCachedBuklodStreamVideoClient()) {
-              return;
-            }
+      const task = InteractionManager.runAfterInteractions(
+        connectForIncomingCalls
+      );
 
-            void ensureBuklodStreamVideoClient()
-              .catch(error => {
-                console.warn(
-                  'BUKLOD call client retry:',
-                  error
-                );
-              });
+      const onAppState = AppState.addEventListener(
+        'change',
+        state => {
+          if (state !== 'active') {
+            return;
           }
-        );
+          if (retryTimer) {
+            clearTimeout(retryTimer);
+            retryTimer = null;
+          }
+          retryCount = 0;
+          connectForIncomingCalls();
+        }
+      );
 
       return () => {
+        stopped = true;
         task.cancel();
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+        }
         onAppState.remove();
         unsubscribe();
       };
