@@ -1,0 +1,24 @@
+{
+  "objective": "Align Share/Invite, Bayanihan Guide and Points Economy reporting to the authoritative Community QMP ledger without changing financial settlement eligibility or peso balances",
+  "baseRef": "2ec52cd42cd1707c982a0ed0567fa7de49b0f539",
+  "productionBaselineEvidence": "Reconciled against latest canonical DEV main 2ec52cd42cd1707c982a0ed0567fa7de49b0f539 and read-only Supabase production QMP/Finance functions and account aggregates on 2026-10-27. Exact served Android production OTA source/RC fingerprint remains a separate mandatory verification; this PR is DEV only.",
+  "allowedPaths": [
+    "src/lib/buklodEconomyQmp.ts",
+    "src/lib/buklodEconomyLedger.ts",
+    "src/app/bayanihan/index.tsx",
+    "src/app/bayanihan/guide.tsx",
+    "src/components/points/BuklodEconomyDashboard.tsx",
+    "__tests__/buklodEconomyQmp.test.ts",
+    ".buklod/scopes/economy-qmp-report-sync-20261027.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability exact allowed-file scope passes for this branch",
+    "TypeScript, focused QMP regressions, economy QA and required navigation/financial regressions green",
+    "Share/Invite and Guide show Community QMP period totals and qualified participation weight without confusing financial pool activation",
+    "Missing QMP backend response shows unavailable rather than zero; manual retry and bounded focus refresh work",
+    "Logout and account switching invalidate previous profile QMP responses",
+    "No earnings, payout, settlement, referral, Point awards or ad logic is changed",
+    "Freeze an immutable RC and verify Android runtime 1.3.2 served production update fingerprint before any OTA publication"
+  ]
+}
