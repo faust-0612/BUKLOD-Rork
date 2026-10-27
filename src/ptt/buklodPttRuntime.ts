@@ -17,6 +17,7 @@ import {
 export type BuklodPttRuntimeState = {
   connection: BuklodPttConnection | null;
   transmitting: boolean;
+  requestingFloor: boolean;
   txKind: BuklodPttKind | null;
   transmissionId: string | null;
   priorityReceiving: boolean;
@@ -56,6 +57,7 @@ const signalChannels = new Map<string, RealtimeChannel>();
 let state: BuklodPttRuntimeState = {
   connection: null,
   transmitting: false,
+  requestingFloor: false,
   txKind: null,
   transmissionId: null,
   priorityReceiving: false,
@@ -69,6 +71,10 @@ let priorityGuardTimer: ReturnType<typeof setInterval> | null = null;
 let previousTarget: { scope: BuklodPttScope; channel: number } | null = null;
 let bootPromise: Promise<void> | null = null;
 let holdToken = 0;
+// Serialize overlapping holds/releases so a late floor grant cannot revoke a
+// subsequent transmission on the same channel.
+let floorRequestPromise: Promise<void> | null = null;
+let floorReleasePromise: Promise<void> | null = null;
 
 function emit() {
   const copy = { ...state };
@@ -154,6 +160,7 @@ async function disconnectCurrent(options?: { disableMonitor?: boolean }) {
     ...state,
     connection: null,
     transmitting: false,
+    requestingFloor: false,
     txKind: null,
     transmissionId: null,
   };
@@ -194,6 +201,7 @@ async function connectTarget(
     ...state,
     connection: next,
     transmitting: false,
+    requestingFloor: false,
     txKind: null,
     transmissionId: null,
   };
@@ -263,91 +271,127 @@ export async function pttDown(kind: BuklodPttKind = 'NORMAL') {
   if (!current) {
     throw new Error('Connect to a BUKLOD PTT channel first.');
   }
-  if (state.transmitting) return;
+  if (state.transmitting || state.requestingFloor) return;
 
   const token = ++holdToken;
-  const stillHeld = () => token === holdToken;
+  const stillHeld = () => token === holdToken && state.connection === current;
+  const previousRequest = floorRequestPromise;
+  const previousRelease = floorReleasePromise;
 
-  const floor = await claimBuklodPttFloor(
-    current.scope.id,
-    current.channel,
-    kind,
-    current.callId,
-  );
-
-  if (!stillHeld()) {
-    await dropFloor(floor.transmission_id);
-    return;
-  }
-
-  if (!floor.granted || !floor.transmission_id) {
-    if (floor.reason === 'BUSY') {
-      throw new Error('CHANNEL BUSY — another member is transmitting.');
-    }
-    throw new Error(floor.reason || 'PTT floor was not granted.');
-  }
-
-  try {
-    await current.call.microphone.enable();
-  } catch (error) {
-    await dropFloor(floor.transmission_id);
-    throw error;
-  }
-
-  if (!stillHeld()) {
-    try {
-      await current.call.microphone.disable();
-    } catch {}
-    await dropFloor(floor.transmission_id);
-    return;
-  }
-
-  state = {
-    ...state,
-    transmitting: true,
-    txKind: kind,
-    transmissionId: floor.transmission_id,
-  };
+  state = { ...state, requestingFloor: true };
   emit();
 
-  await stopHeartbeat();
-  if (!stillHeld()) {
-    await pttUp();
-    return;
-  }
+  const acquisition = (async () => {
+    // Old short taps can finish their RPC after the finger was released.
+    // Clean those grants up before claiming again to avoid same-holder reuse.
+    await previousRequest?.catch(() => undefined);
+    await previousRelease?.catch(() => undefined);
+    if (!stillHeld()) return;
 
-  heartbeatTimer = setInterval(() => {
-    const tx = state.transmissionId;
-    if (!tx) return;
-    void refreshBuklodPttFloor(tx).catch(() => undefined);
-  }, 5000);
+    const floor = await claimBuklodPttFloor(
+      current.scope.id,
+      current.channel,
+      kind,
+      current.callId,
+    );
+
+    if (!stillHeld()) {
+      await dropFloor(floor.transmission_id);
+      return;
+    }
+    if (!floor.granted || !floor.transmission_id) {
+      if (floor.reason === 'BUSY') {
+        throw new Error('CHANNEL BUSY — another member is transmitting.');
+      }
+      throw new Error(floor.reason || 'PTT floor was not granted.');
+    }
+
+    try {
+      await current.call.microphone.enable();
+    } catch (error) {
+      await dropFloor(floor.transmission_id);
+      throw error;
+    }
+
+    if (!stillHeld()) {
+      try {
+        await current.call.microphone.disable();
+      } catch {}
+      await dropFloor(floor.transmission_id);
+      return;
+    }
+
+    state = {
+      ...state,
+      requestingFloor: false,
+      transmitting: true,
+      txKind: kind,
+      transmissionId: floor.transmission_id,
+    };
+    emit();
+
+    await stopHeartbeat();
+    heartbeatTimer = setInterval(() => {
+      const tx = state.transmissionId;
+      if (!tx) return;
+      void refreshBuklodPttFloor(tx)
+        .then((refreshed) => {
+          // A preempted or expired lease must never leave the mic transmitting.
+          if (!refreshed && state.transmissionId === tx) {
+            void pttUp().catch(() => undefined);
+          }
+        })
+        .catch(() => undefined);
+    }, 5000);
+  })();
+
+  floorRequestPromise = acquisition;
+  try {
+    await acquisition;
+  } finally {
+    if (floorRequestPromise === acquisition) floorRequestPromise = null;
+    if (token === holdToken && state.requestingFloor) {
+      state = { ...state, requestingFloor: false };
+      emit();
+    }
+  }
 }
 
 export async function pttUp() {
   holdToken += 1;
   const current = state.connection;
   const tx = state.transmissionId;
+  const previousRelease = floorReleasePromise;
 
   await stopHeartbeat();
 
-  if (current) {
-    try {
-      await current.call.microphone.disable();
-    } catch {}
-  }
-
-  if (tx) {
-    await dropFloor(tx);
-  }
-
-  if (state.transmitting || state.transmissionId) {
+  // React immediately to the finger lifting; transport cleanup follows.
+  if (state.transmitting || state.requestingFloor || state.transmissionId) {
     state = {
       ...state,
+      requestingFloor: false,
       transmitting: false,
       txKind: null,
       transmissionId: null,
     };
     emit();
+  }
+
+  const release = (async () => {
+    await previousRelease?.catch(() => undefined);
+    if (current) {
+      try {
+        await current.call.microphone.disable();
+      } catch {}
+    }
+    if (tx) await dropFloor(tx);
+  })();
+
+  floorReleasePromise = release;
+  try {
+    await release;
+  } finally {
+    if (floorReleasePromise === release) floorReleasePromise = null;
   }
 }
 

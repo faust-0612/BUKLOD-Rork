@@ -24,6 +24,8 @@ jobs:
           case "$PR_HEAD" in
             fix/community-media-weak-signal-r1-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-media-weak-signal-20261027.json" >> "$GITHUB_ENV";;
+            fix/ptt-hold-rx-latency-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/ptt-hold-rx-latency-20261027.json" >> "$GITHUB_ENV";;
             feat/buklod-sound-identity-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/buklod-sound-identity-20261027.json" >> "$GITHUB_ENV";;
             fix/colorful-cards-buttons-20261027)
@@ -98,6 +100,10 @@ jobs:
       - name: Verify BUKLOD sound pack and ringing contracts
         if: github.head_ref == 'feat/buklod-sound-identity-20261027'
         run: node tests/buklod-sounds.test.cjs
+      - name: Verify PTT responsive hold and closed-app alert contracts
+        if: github.head_ref == 'fix/ptt-hold-rx-latency-20261027'
+        run: node --test tests/ptt-responsive-hold.test.cjs tests/buklod-ptt-call-isolation.test.cjs
+
       - name: Verify fair discovery and independent video candidate selection
         if: github.head_ref == 'feat/community-fair-video-ready-20261027'
         run: node --test tests/fairDiscovery.test.cjs tests/videoDiscovery.test.cjs tests/videoFeedRpcContract.test.cjs
@@ -142,12 +148,12 @@ jobs:
         if: github.head_ref == 'fix/video-stale-signed-url-20261024'
         run: node scripts/test-media-signed-cache.cjs
 
-      - name: Verify bottom navigation concurrency
-        run: node scripts/test-bottom-nav-concurrency.cjs
-
       - name: Verify weak-signal Community media upload and rendering contracts
         if: github.head_ref == 'fix/community-media-weak-signal-r1-20261027'
         run: node --test tests/community-media-weak-signal.test.cjs
+
+      - name: Verify bottom navigation concurrency
+        run: node scripts/test-bottom-nav-concurrency.cjs
 
       - name: Verify Community media cache and fallback limits
         run: |
