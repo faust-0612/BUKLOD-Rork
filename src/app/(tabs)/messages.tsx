@@ -540,7 +540,7 @@ function ConnectScreenInner({
     isConnected && isInternetReachable !== false;
   const profileId = (profile as any)?.id as string | undefined;
   const [tab, setTab] =
-    useState<'personal' | 'community'>('personal');
+    useState<'personal' | 'community'>(forcedScopeId ? 'community' : 'personal');
   const [personal, setPersonal] =
     useState<PersonalThread[]>([]);
   const [rooms, setRooms] =

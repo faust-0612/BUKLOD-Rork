@@ -165,7 +165,7 @@ export default function BuklodNavSafeShell({
         <View style={styles.routedContent}>
           {children}
         </View>
-        {!immersiveIgpat && !immersiveConversation ? <BuklodFocusAppAdStrip /> : null}
+        {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
       {!immersiveIgpat && !immersiveConversation && rawNavOccupied > 0 ? (
