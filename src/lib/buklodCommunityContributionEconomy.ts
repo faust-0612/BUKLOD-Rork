@@ -52,6 +52,7 @@ export type CommunityContributionDashboard = {
   estimate_label: string;
   estimate_status?: 'PROVISIONAL_ADMOB' | 'RECONCILED_OR_FINALIZED' | 'SOURCE_NOT_CONNECTED' | 'STALE';
   estimate_updated_at?: string | null;
+  estimate_below_cent?: boolean;
   finalized_share: { amount_minor: number; status: string; finalized_at: string } | null;
   video_quota: CommunityVideoQuota;
   review_items: CommunityReviewItem[];
