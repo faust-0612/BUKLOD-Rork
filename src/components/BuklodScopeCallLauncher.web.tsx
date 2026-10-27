@@ -65,6 +65,7 @@ export default function BuklodScopeCallLauncher({
   const [roster, setRoster] = useState<RosterRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState<CallMode | null>(null);
+  const [callMenuOpen, setCallMenuOpen] = useState(false);
 
   const label = useMemo(() => {
     if (scopeType === 'CLUSTER') {
@@ -108,6 +109,13 @@ export default function BuklodScopeCallLauncher({
         return;
       }
 
+      // Compact headers only need membership validation here. The live roster
+      // is fetched immediately before ringing, not for each chat opening.
+      if (compact) {
+        setRoster([]);
+        return;
+      }
+
       const members = await (supabase as any).rpc(
         'buklod_connect_scope_call_members',
         { _scope_id: scopeId }
@@ -132,7 +140,7 @@ export default function BuklodScopeCallLauncher({
     } finally {
       setLoading(false);
     }
-  }, [scopeId]);
+  }, [compact, scopeId]);
 
   useEffect(() => {
     void load();
@@ -238,23 +246,41 @@ export default function BuklodScopeCallLauncher({
 
   if (compact) {
     return (
-      <View style={styles.compactActions}>
+      <View style={[styles.compactActions, { zIndex: 30 }]}>
         <CallIconButton
           icon="phone-outline"
-          label="Start scope audio call"
-          loading={starting === 'audio'}
+          label="Choose group voice or video call"
+          loading={Boolean(starting)}
           disabled={Boolean(starting)}
           accent={theme.accent}
-          onPress={() => void startCall('audio')}
+          onPress={() => setCallMenuOpen(open => !open)}
         />
-        <CallIconButton
-          icon="video-outline"
-          label="Start scope video call"
-          loading={starting === 'video'}
-          disabled={Boolean(starting)}
-          accent={theme.accent}
-          onPress={() => void startCall('video')}
-        />
+        {callMenuOpen && (
+          <View style={[styles.callMenu, { backgroundColor: theme.surface }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Start group voice call"
+              onPress={() => {
+                setCallMenuOpen(false);
+                void startCall('audio');
+              }}
+              style={styles.callMenuItem}
+            >
+              <Text style={[styles.callMenuText, { color: theme.textPrimary }]}>Voice call</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Start group video call"
+              onPress={() => {
+                setCallMenuOpen(false);
+                void startCall('video');
+              }}
+              style={styles.callMenuItem}
+            >
+              <Text style={[styles.callMenuText, { color: theme.textPrimary }]}>Video call</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
     );
   }
@@ -369,6 +395,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    position: 'relative',
+    overflow: 'visible',
+  },
+  callMenu: {
+    position: 'absolute',
+    top: 46,
+    right: 0,
+    minWidth: 152,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(100,130,115,0.2)',
+    elevation: 12,
+    zIndex: 50,
+  },
+  callMenuItem: {
+    paddingHorizontal: 14,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  callMenuText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   compactButton: {
     width: 42,
@@ -435,3 +484,4 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
+

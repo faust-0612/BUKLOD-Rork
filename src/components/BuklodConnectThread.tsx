@@ -133,8 +133,10 @@ import {
   connectScrollAction,
   connectSignedUrlNeedsRefresh,
   connectThreadSessionKey,
+  connectComposerDockBottom,
   mergeConnectServerMessages,
   readersForMessageWindow,
+  roomCursorCoversMessage,
   shouldAdvanceConnectReadCursor,
   type ConnectReadCursorReason,
   type ConnectScopeReader,
@@ -621,6 +623,7 @@ function BuklodConnectThreadInner({
     useRef<View | null>(null);
   const {
     composerBottom,
+    keyboardVisible,
     clearComposerInset,
     resyncComposerInset,
   } = useConnectComposerKeyboardInset(threadBodyRef);
@@ -637,9 +640,13 @@ function BuklodConnectThreadInner({
   const phoneNavClearance = shellReservesPersistentNav
     ? 0
     : Math.max(insets.bottom, 8) + 12;
-  const composerDockBottom = Math.max(
+  // The IME replaces the phone-navigation clearance, it does not add to it.
+  // In particular an embedded Cluster/Org thread can already be resized by
+  // Android and must not float a second safe-area gap above the keyboard.
+  const composerDockBottom = connectComposerDockBottom(
+    keyboardVisible,
     composerBottom,
-    phoneNavClearance,
+    phoneNavClearance
   );
 
   const { theme } = useConnectTheme();
@@ -1004,11 +1011,12 @@ const [
     scopeReaders,
     setScopeReaders,
   ] = useState<ConnectScopeReader[]>([]);
+  const [scopeReadersAvailable, setScopeReadersAvailable] = useState(false);
 
   const [
     seenDetail,
     setSeenDetail,
-  ] = useState<ConnectScopeReader[] | null>(null);
+  ] = useState<{ messageId: string; readers: ConnectScopeReader[]; available: boolean } | null>(null);
 
   const [
     hasOlder,
@@ -1024,6 +1032,8 @@ const [
     listAnchored,
     setListAnchored,
   ] = useState(false);
+  const [historyLoadError, setHistoryLoadError] =
+    useState<string | null>(null);
 
   const [
     awayFromLatest,
@@ -1394,18 +1404,22 @@ const [
     threadSession,
     setThreadSession,
   ] = useState(threadSessionKeyValue);
+  const [offlineHydrated, setOfflineHydrated] = useState(false);
 
   if (threadSession !== threadSessionKeyValue) {
     setThreadSession(threadSessionKeyValue);
+    setOfflineHydrated(false);
     setMessages([]);
     setReactions({});
     setAttachmentUrls({});
     setDirectPeerReadAt(null);
     setScopeReaders([]);
+    setScopeReadersAvailable(false);
     setSeenDetail(null);
     setHasOlder(false);
     setLoadingOlder(false);
     setListAnchored(false);
+    setHistoryLoadError(null);
     listAnchoredRef.current = false;
     pendingVisibleReadRef.current = null;
     setAwayFromLatest(false);
@@ -1442,6 +1456,7 @@ const [
     }
 
     let active = true;
+    let anchorTimer: ReturnType<typeof setTimeout> | null = null;
 
     void getOfflineCache<{
       messages: Message[];
@@ -1475,6 +1490,19 @@ const [
               ? current
               : value.messages
           );
+          // Render locally saved messages immediately while the network
+          // refresh and secondary user/reaction lookups continue.
+          if (!initialLoadSettledRef.current) {
+            initialLoadSettledRef.current = true;
+            anchorTimer = setTimeout(() => {
+              if (!active || !pinLatestOnOpenRef.current) return;
+              listRef.current?.scrollToEnd({ animated: false });
+              pinLatestOnOpenRef.current = false;
+              nearBottomRef.current = true;
+              listAnchoredRef.current = true;
+              setListAnchored(true);
+            }, 64);
+          }
         }
 
         if (
@@ -1518,10 +1546,14 @@ const [
         }
 
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setOfflineHydrated(true);
+      });
 
     return () => {
       active = false;
+      if (anchorTimer) clearTimeout(anchorTimer);
     };
   }, [
     connectThreadOfflineCacheKey,
@@ -1532,7 +1564,8 @@ const [
   useEffect(() => {
     if (
       !profileId ||
-      !effectiveContainerId
+      !effectiveContainerId ||
+      !offlineHydrated
     ) {
       return;
     }
@@ -1562,6 +1595,7 @@ const [
   }, [
     connectThreadOfflineCacheKey,
     effectiveContainerId,
+    offlineHydrated,
     draft,
     messages,
     otherUserId,
@@ -1774,6 +1808,7 @@ const [
         );
         if (readers) {
           setScopeReaders(readers);
+          setScopeReadersAvailable(true);
         }
         return;
       }
@@ -1916,6 +1951,7 @@ const [
         }
         loadSessionRef.current = requestSession;
         loadInFlightRef.current = true;
+        setHistoryLoadError(null);
 
         try {
         const newestBeforeLoad =
@@ -2033,6 +2069,7 @@ const [
             ).then(readers => {
               if (currentLoadSessionRef.current === requestSession) {
                 setScopeReaders(readers ?? []);
+                setScopeReadersAvailable(readers !== null);
               }
             }).catch(() => undefined);
           }
@@ -2082,14 +2119,11 @@ const [
           'Connect history load:',
           error?.message ?? error
         );
+        setHistoryLoadError('Messages could not be refreshed. Check your connection and retry.');
 
         initialLoadSettledRef.current = true;
         scheduleInitialAnchor(false);
 
-        Alert.alert(
-          'Connect',
-          'Could not load message history. Pull to reopen this chat or try again.',
-        );
       } finally {
         if (currentLoadSessionRef.current === requestSession) {
           loadInFlightRef.current = false;
@@ -2283,6 +2317,7 @@ const [
       ).then(readers => {
         if (active && readers) {
           setScopeReaders(readers);
+          setScopeReadersAvailable(true);
         }
       });
     };
@@ -4284,6 +4319,18 @@ const [
                   </Text>
                 </Pressable>
               </>
+            ) : historyLoadError ? (
+              <>
+                <Text style={styles.emptyTitle}>{historyLoadError}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry loading messages"
+                  onPress={() => void load()}
+                  style={styles.restoreButton}
+                >
+                  <Text style={styles.restoreButtonText}>Retry messages</Text>
+                </Pressable>
+              </>
             ) : (
               <Text
                 style={
@@ -4374,7 +4421,7 @@ const [
               : null,
           });
           const seenReaders =
-            mode === 'scope'
+            mode === 'scope' && own
               ? readersForMessageWindow({
                   messageCreatedAt: item.created_at,
                   nextMessageCreatedAt: next?.created_at ?? null,
@@ -4641,7 +4688,11 @@ const [
               seenReaders={seenReaders}
               onPressSeenReaders={() => {
                 if (seenReaders.length) {
-                  setSeenDetail(seenReaders);
+                  setSeenDetail({
+                    messageId: item.id,
+                    readers: seenReaders,
+                    available: scopeReadersAvailable,
+                  });
                 }
               }}
               isGif={
@@ -4778,7 +4829,12 @@ const [
             justifyContent: 'center',
           }}
         >
-          <ActivityIndicator color={theme.accent} />
+          <View style={{ alignItems: 'center', gap: 10, paddingHorizontal: 24 }}>
+            <ActivityIndicator color={theme.accent} />
+            <Text style={{ color: theme.textMuted, fontSize: 13, textAlign: 'center' }}>
+              Opening latest messages...
+            </Text>
+          </View>
         </View>
       )}
 
@@ -4836,7 +4892,7 @@ const [
       )}
 
       <Modal
-        visible={!!seenDetail?.length}
+        visible={seenDetail !== null}
         transparent
         animationType="fade"
         onRequestClose={() => setSeenDetail(null)}
@@ -4883,7 +4939,16 @@ const [
             >
               When they last viewed the latest messages. This is not a separate receipt for every message.
             </Text>
-            {(seenDetail ?? []).map(reader => (
+            {!seenDetail?.available ? (
+              <Text style={{ color: theme.textMuted, marginBottom: 16 }}>
+                Seen report is temporarily unavailable. Try again after reconnecting.
+              </Text>
+            ) : seenDetail.readers.length === 0 ? (
+              <Text style={{ color: theme.textMuted, marginBottom: 16 }}>
+                Not seen by other members yet.
+              </Text>
+            ) : null}
+            {(seenDetail?.readers ?? []).map(reader => (
               <View
                 key={reader.userId}
                 style={{
@@ -5099,6 +5164,44 @@ const [
         onReply={handleMessageReply}
         onCopy={() => void handleMessageCopy()}
         onForward={() => void handleMessageForward()}
+        onSeenBy={
+          mode === 'scope' &&
+          actionTargetMessage?.sender_id === profileId
+            ? () => {
+                const selected = actionTargetMessage;
+                if (!selected || !effectiveContainerId) return;
+                const requestSession = threadSessionKeyValue;
+                const seenFor = (readers: ConnectScopeReader[]) =>
+                  readers.filter(reader =>
+                    reader.userId !== profileId &&
+                    roomCursorCoversMessage(selected.created_at, reader.lastReadAt)
+                  );
+
+                setSeenDetail({
+                  messageId: selected.id,
+                  readers: seenFor(scopeReaders),
+                  available: scopeReadersAvailable,
+                });
+                // An explicit Info request refreshes readers once, but never
+                // writes a cursor or refetches all chat history.
+                void fetchScopeConnectReaders(effectiveContainerId)
+                  .then(readers => {
+                    if (
+                      !readers ||
+                      currentLoadSessionRef.current !== requestSession
+                    ) return;
+                    setScopeReaders(readers);
+                    setScopeReadersAvailable(true);
+                    setSeenDetail(current =>
+                      current?.messageId === selected.id
+                        ? { messageId: selected.id, readers: seenFor(readers), available: true }
+                        : current
+                    );
+                  })
+                  .catch(() => undefined);
+              }
+            : undefined
+        }
         onDeleteForMe={() =>
           void handleDeleteForMe()
         }
@@ -6395,3 +6498,4 @@ export default function BuklodConnectThread(props: Props) {
     </ConnectThemeProvider>
   );
 }
+

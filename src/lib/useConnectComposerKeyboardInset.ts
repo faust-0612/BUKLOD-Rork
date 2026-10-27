@@ -60,12 +60,17 @@ export function useConnectComposerKeyboardInset(
 ) {
   const [composerBottom, setComposerBottom] =
     useState(0);
+  // Android adjustResize can leave zero overlap even while the IME is open.
+  // Keep visibility separate from the amount of lift.
+  const [keyboardVisible, setKeyboardVisible] =
+    useState(false);
   const rafRef = useRef<number | null>(null);
   const activeEventRef =
     useRef<KeyboardEvent | null>(null);
 
   const clearInset = useCallback(() => {
     activeEventRef.current = null;
+    setKeyboardVisible(false);
 
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
@@ -83,6 +88,8 @@ export function useConnectComposerKeyboardInset(
         clearInset();
         return;
       }
+
+      setKeyboardVisible(true);
 
       if (rafRef.current != null) {
         cancelAnimationFrame(rafRef.current);
@@ -161,7 +168,7 @@ export function useConnectComposerKeyboardInset(
 
   return {
     composerBottom,
-    keyboardVisible: composerBottom > 0,
+    keyboardVisible,
     clearComposerInset: clearInset,
     resyncComposerInset: () => {
       const active = activeEventRef.current;
@@ -175,3 +182,4 @@ export function useConnectComposerKeyboardInset(
     },
   };
 }
+

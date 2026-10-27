@@ -1,0 +1,30 @@
+{
+  "objective": "Cluster/Organization Connect cached history, live reader reports, unified group call, keyboard docking, full-bleed media and versioned additive backend RPCs",
+  "baseRef": "8f01f79a9382451582887b1ad92aafae6b1a126f",
+  "productionBaselineEvidence": "Previously confirmed Android runtime 1.3.2, OTA group 01a17bc3-3212-7ad6-8552-370fd7a1fe80 from source 2fc15e095494539d688c942693eb0e7809b4f1eb. Recheck exact current production manifest before RC or OTA. This DEV patch is not live. Reconciled DEV with Community Wall PR #369 main 85b9899eed24; production OTA provenance remains separately gated. Latest main 47fd152fc586fe2cb782d84cf08287e6a6f4a17f includes Community fair discovery/video. Three RPC migrations applied versions 20261027130045, 20261027130103, 20261027130113, SQL member/nonmember checks passed; Connect Android OTA unverified. UI-color-variety main 8f01f79a9382451582887b1ad92aafae6b1a126f reconciled; related UI changes preserved.",
+  "allowedPaths": [
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodScopeCallLauncher.tsx",
+    "src/components/BuklodScopeCallLauncher.web.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/components/connect/ConnectMessageActionSheet.tsx",
+    "src/lib/useConnectComposerKeyboardInset.ts",
+    "src/lib/connectChatWindow.ts",
+    "__tests__/connectClusterPolish.test.ts",
+    "scripts/test-connect-cluster-polish.cjs",
+    ".buklod/scopes/cluster-connect-media-seen-20261027.json",
+    ".github/workflows/engineering-accountability.yml",
+    "supabase/migrations/20261027130045_connect_scope_readers_member_gated_v1.sql",
+    "supabase/migrations/20261027130103_connect_scope_messages_page_keyset_v2.sql",
+    "supabase/migrations/20261027130113_connect_direct_messages_page_keyset_v2.sql"
+  ],
+  "acceptanceChecks": [
+    "TypeScript and standalone no-install Node keyboard/media/call tests pass; execute Jest separately when runner is available",
+    "Account/scope cache isolation, latest-first paging, weak network retry and no blind read receipts",
+    "Per-message Seen By opens from outgoing message actions with no synthetic receipts; scope reader and page-v2 SQL deployed as three versioned, role-tested migrations; client still requires production OTA",
+    "Scope call roster reauthorized immediately before ringing, one header call icon and access to voice and video, fresh call ID",
+    "Actual two-device group audio/video tests for ringing, background/killed push, camera and reconnection, or explicit owner waiver",
+    "No change to ads, Points, attendance, account auth, unrelated UI or native dependencies",
+    "Freeze exact cumulative RC, confirm installed Android runtime and production source, then publish production OTA through release gate"
+  ]
+}

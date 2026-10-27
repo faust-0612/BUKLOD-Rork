@@ -170,6 +170,14 @@ BuklodScopeCallLauncher({
             return;
           }
 
+          // The compact Cluster/Org header never renders member counts.
+          // Ringing already re-fetches the authoritative roster on tap,
+          // so avoid one expensive read on every conversation open.
+          if (compact) {
+            setRoster([]);
+            return;
+          }
+
           const members =
             await (
               supabase as any
@@ -245,6 +253,7 @@ BuklodScopeCallLauncher({
         }
       },
       [
+        compact,
         scopeId,
       ]
     );
@@ -391,10 +400,9 @@ BuklodScopeCallLauncher({
             return;
           }
 
+          // The shared helper already generates a fresh ID per ring attempt.
           const callId =
-            safeCallId(
-              scopeId
-            );
+            safeCallId(scopeId);
 
           const call =
             callClient.call(
@@ -533,15 +541,19 @@ BuklodScopeCallLauncher({
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Start scope audio call"
+          accessibilityLabel="Choose group voice or video call"
           disabled={
             starting !== null
           }
-          onPress={() =>
-            void startCall(
-              'audio'
-            )
-          }
+          onPress={() => Alert.alert(
+            'Group call',
+            'Choose how you want to call the active members.',
+            [
+              { text: 'Voice call', onPress: () => void startCall('audio') },
+              { text: 'Video call', onPress: () => void startCall('video') },
+              { text: 'Cancel', style: 'cancel' },
+            ]
+          )}
           style={({
             pressed,
           }) => [
@@ -553,8 +565,7 @@ BuklodScopeCallLauncher({
               styles.disabled,
           ]}
         >
-          {starting ===
-          'audio' ? (
+          {starting !== null ? (
             <ActivityIndicator
               size="small"
               color={
@@ -572,46 +583,6 @@ BuklodScopeCallLauncher({
           )}
         </Pressable>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Start scope video call"
-          disabled={
-            starting !== null
-          }
-          onPress={() =>
-            void startCall(
-              'video'
-            )
-          }
-          style={({
-            pressed,
-          }) => [
-            styles.compactButton,
-            pressed &&
-              styles.pressed,
-            starting !==
-              null &&
-              styles.disabled,
-          ]}
-        >
-          {starting ===
-          'video' ? (
-            <ActivityIndicator
-              size="small"
-              color={
-                theme.accent
-              }
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name="video-outline"
-              size={22}
-              color={
-                theme.accent
-              }
-            />
-          )}
-        </Pressable>
       </View>
     );
   }
@@ -912,4 +883,5 @@ function createCallStyles(theme: ConnectThemeRoles) {
     },
   });
 }
+
 
