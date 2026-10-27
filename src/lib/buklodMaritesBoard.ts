@@ -342,8 +342,9 @@ async function persistLocalMaritesVideo(
   const target = `${directory}${story.id}.${extension}`;
   await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
   await FileSystem.copyAsync({ from: story.video_uri, to: target });
-  const info = await FileSystem.getInfoAsync(target, { size: true });
-  if (!info.exists || !Number(info.size)) {
+  const info = await FileSystem.getInfoAsync(target);
+  if (!info.exists || (typeof info.size === 'number' && info.size <= 0)) {
+    await FileSystem.deleteAsync(target, { idempotent: true }).catch(() => undefined);
     throw new Error('Could not save the offline video. Please select it again.');
   }
   return { ...story, video_uri: target };
@@ -1240,16 +1241,23 @@ export async function publishMaritesStory(input: {
       p_group_id: null,
       p_category: 'reflection',
       p_body: sharedBody,
-      p_media_path: first?.media_path ?? null,
-      p_media_mime_type: first?.media_mime_type ?? null,
-      p_media_size_bytes: first?.media_size_bytes ?? null,
-      p_media_duration_seconds: input.video?.durationSeconds ?? null,
+      // The public post RPC intentionally rejects video uploads on the
+      // regular Wall. Create the marked Marites post without primary media,
+      // then attach the already-uploaded Quick Video through the existing
+      // author-verified set_buklod_post_media_v5 RPC.
+      p_media_path: input.video ? null : (first?.media_path ?? null),
+      p_media_mime_type: input.video ? null : (first?.media_mime_type ?? null),
+      p_media_size_bytes: input.video ? null : (first?.media_size_bytes ?? null),
+      p_media_duration_seconds: null,
       p_is_reel: false,
       p_mentioned_user_ids: [],
     });
 
     if (createError) {
       if (isMissingRpcError(String(createError.message ?? ''))) {
+        if (uploaded.length) {
+          await discardIncompleteCommunityPost({ postId: null, mediaPaths: uploaded.map(item => item.media_path) });
+        }
         const saved = await appendOfflineMaritesStory(localStory, input.video?.mimeType);
         return { story: saved, shared: false };
       }

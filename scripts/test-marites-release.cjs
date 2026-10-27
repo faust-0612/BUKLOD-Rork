@@ -86,6 +86,7 @@ assert.equal(model.mergeMaritesStories([story], [story]).length, 1);
     },
     '@/lib/repairMojibakeText': {repairMojibakeText: value => value},
     '@/lib/uploadCommunityVideoFile': {uploadCommunityVideoFile: async () => {}},
+    '@/lib/buklodCommunityPostMedia': {discardIncompleteCommunityPost: async () => {}},
     '@/lib/supabase': {supabase: {rpc: async () => ({data: null,
       error: {message: 'Could not find the function create_buklod_community_post_v3'}})}},
   });
@@ -95,5 +96,38 @@ assert.equal(model.mergeMaritesStories([story], [story]).length, 1);
   assert.ok(offline.story.video_uri.startsWith('file:///app/documents/buklod-marites-offline/'));
   assert.equal(fileOps.filter(([operation]) => operation === 'copy').length, 1);
 
-  console.log('PASS: Marites video AWS URL preservation, durable offline copy, account isolation and existing release contracts');
+  // The live Community RPC disallows video MIME on the initial post.
+  // Marites must create its marked text post first, then attach media through
+  // the owner-checked media RPC without weakening regular Wall rules.
+  let createArgs = null;
+  let attachedMedia = null;
+  const publishedUrl = 'https://storage.example.test/video?token=valid';
+  const publishedModel = compile('src/lib/buklodMaritesBoard.ts', {
+    '@react-native-async-storage/async-storage': storage,
+    'react-native': {Platform: {OS: 'android'}},
+    '@/lib/repairMojibakeText': {repairMojibakeText: value => value},
+    '@/lib/uploadCommunityVideoFile': {uploadCommunityVideoFile: async () => {}},
+    '@/lib/buklodCommunityPostMedia': {
+      attachCommunityPostMedia: async (id, media) => {attachedMedia = {id, media};},
+      loadCommunityPostMediaByPostIds: async () => ({
+        'published-1': [{media_mime_type: 'video/mp4', media_url: publishedUrl}],
+      }),
+    },
+    '@/lib/supabase': {supabase: {rpc: async (_, args) => {
+      createArgs = args;
+      return {data: 'published-1', error: null};
+    }}},
+  });
+  const published = await publishedModel.publishMaritesStory({userId: 'owner', authorName: 'Owner',
+    body: '', photoUris: [], video: {uri: 'file:///picker/temporary.mp4', durationSeconds: 10, mimeType: 'video/mp4'}});
+  assert.equal(published.shared, true);
+  assert.equal(createArgs.p_media_path, null);
+  assert.equal(createArgs.p_media_mime_type, null);
+  assert.equal(createArgs.p_media_size_bytes, null);
+  assert.equal(attachedMedia.id, 'published-1');
+  assert.equal(attachedMedia.media.length, 1);
+  assert.equal(attachedMedia.media[0].media_mime_type, 'video/mp4');
+  assert.equal(published.story.video_uri, publishedUrl);
+
+  console.log('PASS: Marites text-first video publishing, AWS URL preservation, offline copy, isolation and release contracts');
 })().catch(error => {console.error(error); process.exitCode = 1;});
