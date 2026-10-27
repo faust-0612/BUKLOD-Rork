@@ -1,0 +1,25 @@
+{
+  "objective": "Complete Smart Drawer R2 note reliability and consent-based cluster/individual mini-workspaces with protected auto-expiry, local folders, file import, explicit reminders and project permissions, without new native dependencies.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: read-only GitHub DEV main 809f4822198e6bf8e525e024db63f44e237742e8 was reconciled on 2026-10-27, with no changed Drawer paths since initial source 8693668142f933df5b1e324b1b3922cc7591cf29. Read-only Supabase production BUKLOD Connect yhanxndaqbmuzbdqlblu schema, indexes, pg_cron and notification triggers inspected 2026-10-27. Exact Android production runtime and RC OTA fingerprint have NOT been verified; DEV is not production evidence.",
+  "allowedPaths": [
+    ".buklod/scopes/smart-drawer-workplace-20261027.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/app/drawer/",
+    "src/lib/smartDrawer/",
+    "src/providers/NotificationProvider.tsx",
+    "supabase/migrations/20261027234000_buklod_drawer_shared_collaboration_r1.sql"
+  ],
+  "acceptanceChecks": [
+    "All modified files belong to the explicitly authorized Smart Drawer R2 workstream and do not replace previous features",
+    "Natural-language due and expiry dates do not invent reminders or misfile plain prose as checklists",
+    "Unlimited-length note bodies remain intact; imported documents retain their original local files and are not shared implicitly",
+    "Existing local SQLite notes migrate without loss; user-scoped folders can be created, renamed, browsed, removed and notes safely unfiled",
+    "Only explicitly expiring unprotected content is automatically moved to recoverable trash; important and pinned content is never auto-purged",
+    "Shared project RLS limits reading to owner, invited individuals or active scope members and limits editing to owner or explicitly invited editors",
+    "Only owners can grant/revoke or delete shared copies, alter expiration protection or create project folders; revision conflicts are rejected",
+    "Shared reminders use bounded due batches with unique idempotency claims and the existing notification dispatch trigger, without cluster-wide fan-out",
+    "Google Calendar export is an optional one-way user-confirmed link; private local originals have no claimed automatic cloud backup",
+    "No new native modules or v29 APK; migration must be verified before RC, and production OTA needs immutable runtime and artifact gates"
+  ]
+}
