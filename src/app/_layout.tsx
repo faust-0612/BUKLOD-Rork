@@ -42,7 +42,42 @@ import BuklodCenteredBrandMark, {
 } from '@/components/BuklodCenteredBrandMark';
 import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 
-export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+function renderErrorSignature(error: Error): string {
+  // Keep diagnostic payloads free of private error messages and stack traces.
+  const detail = `${error?.name ?? 'Error'}:${error?.message ?? ''}`;
+  let hash = 2166136261;
+  for (let index = 0; index < detail.length; index += 1) {
+    hash = Math.imul(hash ^ detail.charCodeAt(index), 16777619);
+  }
+  return `RENDER_${(hash >>> 0).toString(16).toUpperCase()}`;
+}
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    void reportBuklodMainHealthIssue({
+      category: 'ROUTE',
+      severity: 'ERROR',
+      safeErrorCode: 'SYS-500',
+      errorSignature: renderErrorSignature(error),
+      correlationKey: 'BUKLOD_SCREEN_RENDER_EXCEPTION',
+      routeModule: String(pathname ?? '')
+        .replace(/^[/]+/, '')
+        .replace(/[^A-Za-z0-9_./:-]/g, '')
+        .slice(0, 160) || 'unknown',
+      networkState: 'UNKNOWN',
+      authState: 'UNKNOWN',
+      syncState: 'UNKNOWN',
+      localStorageState: 'UNKNOWN',
+      pendingWorkCount: 0,
+      lastSuccessfulAction: 'ROUTE_OPEN',
+      localSelfHealAttempted: false,
+      localSelfHealResult: 'NOT_ATTEMPTED',
+      privacyClassification: 'OPERATIONAL',
+    }).catch(() => undefined);
+  }, [error, pathname]);
+
   return (
     <View style={styles.error}>
       <Text style={styles.errorTitle}>BUKLOD could not open this screen</Text>
@@ -53,6 +88,16 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
       <View style={styles.errorActions}>
         <Pressable onPress={retry} style={styles.retry}>
           <Text style={styles.retryText}>TRY AGAIN</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.replace(
+            (pathname.startsWith('/clusters') || pathname.startsWith('/scope')
+              ? '/clusters'
+              : '/buklod') as any,
+          )}
+          style={styles.helpButton}
+        >
+          <Text style={styles.helpButtonText}>GO BACK</Text>
         </Pressable>
         <Pressable
           onPress={() =>

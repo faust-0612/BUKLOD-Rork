@@ -84,16 +84,36 @@ export function resolveBuklodNotificationTarget(
   if (
     normalizedKind === 'cluster_join_request' ||
     normalizedKind === 'cluster_invite' ||
-    normalizedKind === 'cluster_join_result'
+    normalizedKind === 'cluster_join_result' ||
+    normalizedKind === 'cluster_home'
   ) {
     const clusterScopeId = clean(payload.scope_id);
 
     if (clusterScopeId) {
+      const id = encodeURIComponent(clusterScopeId);
+      const approved = ['approved', 'accepted', 'active'].includes(
+        clean(payload.resolved).toLowerCase(),
+      );
+
+      // An approved member's notification goes to this exact Cluster Home.
+      // /scope still checks active membership; this is never an auth bypass.
+      if (
+        normalizedKind === 'cluster_home' ||
+        (normalizedKind === 'cluster_join_result' && approved)
+      ) {
+        return {
+          path: `/scope?section=home&scopeId=${id}`,
+          scopeId: clusterScopeId,
+        };
+      }
+
       return {
         path:
           normalizedKind === 'cluster_join_request'
-            ? `/clusters/join-requests?cluster=${encodeURIComponent(clusterScopeId)}`
-            : `/clusters/${encodeURIComponent(clusterScopeId)}`,
+            ? `/clusters/join-requests?cluster=${id}`
+            : normalizedKind === 'cluster_invite'
+              ? `/clusters/${id}?fromInvite=1`
+              : `/clusters/${id}`,
         scopeId: clusterScopeId,
       };
     }
