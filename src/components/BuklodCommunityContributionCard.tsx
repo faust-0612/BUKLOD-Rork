@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   formatMinorPhp,
@@ -10,6 +10,7 @@ import {
   type CommunityContributionDashboard,
 } from '@/lib/buklodCommunityContributionEconomy';
 import { getBuklodCardTone } from '@/lib/buklodCardTones';
+import { useAuth } from '@/providers/AuthProvider';
 
 /* BUKLOD_COMMUNITY_CONTRIBUTION_CARD_R1 */
 const contributionTone = getBuklodCardTone('teal');
@@ -20,32 +21,55 @@ const impactTone = getBuklodCardTone('amber');
 const revenueTone = getBuklodCardTone('mint');
 
 export default function BuklodCommunityContributionCard() {
+  const { session } = useAuth();
+  const userId = session?.user.id ?? null;
   const [data, setData] = useState<CommunityContributionDashboard | null>(null);
 
   useEffect(() => {
     let alive = true;
-    void (async () => {
+    let lastLoaded = 0;
+    let loading = false;
+    let analyticsSent = false;
+    setData(null); // Never reuse another account's financial preview.
+    if (!userId) return () => { alive = false; };
+    const refresh = async () => {
+      if (!alive || loading) return;
+      loading = true;
       try {
         const next = await loadMyCommunityContribution();
         if (!alive) return;
         setData(next);
-        void recordCommunityEconomyAnalytics('contribution_card_viewed', {
-          period_key: next.period?.key,
-          level: next.contribution_level,
-        });
+        lastLoaded = Date.now();
+        if (!analyticsSent) {
+          analyticsSent = true;
+          void recordCommunityEconomyAnalytics('contribution_card_viewed', {
+            period_key: next.period?.key,
+            level: next.contribution_level,
+          });
+        }
       } catch {
-        // Signed-out or backend not yet migrated: Wall remains unchanged/usable.
+        // Keep the most recent genuine snapshot; never invent a peso amount.
+      } finally {
+        loading = false;
       }
-    })();
-    return () => { alive = false; };
-  }, []);
+    };
+    void refresh();
+    // Bounded foreground refresh, jittered so many clients don't stampede SQL.
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active') void refresh();
+    }, 240_000 + Math.floor(Math.random() * 90_000));
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && Date.now() - lastLoaded > 120_000) void refresh();
+    });
+    return () => { alive = false; clearInterval(timer); subscription.remove(); };
+  }, [userId]);
 
   if (!data) return null;
 
   const weightPct = Math.max(0, Number(data.share_weight || 0)) * 100;
   const estimate = data.estimated_share_minor === null
     ? 'No safe estimate yet'
-    : formatMinorPhp(data.estimated_share_minor);
+    : data.estimate_below_cent ? 'Below ₱0.01' : formatMinorPhp(data.estimated_share_minor);
   const breakdown = data.engagement_breakdown;
   const trendPctPoints = Number(data.share_weight_delta || 0) * 100;
   const trendLabel =
@@ -96,7 +120,14 @@ export default function BuklodCommunityContributionCard() {
       <View style={s.estimate}>
         <Text style={s.estimateLabel}>ESTIMATED REVENUE SHARE</Text>
         <Text style={s.estimateValue}>{estimate}</Text>
-        <Text style={s.estimateGuard}>ESTIMATE · NOT FINAL · SUBJECT TO PERIOD CLOSE</Text>
+        <Text style={s.estimateGuard}>
+          {data.estimate_status === 'PROVISIONAL_ADMOB'
+            ? 'ADMOB PRELIMINARY · CHANGES WITH COMMUNITY QMP · NOT WITHDRAWABLE'
+            : 'ESTIMATE · NOT FINAL · NOT WITHDRAWABLE'}
+        </Text>
+        {data.estimate_updated_at ? (
+          <Text style={s.estimateGuard}>Report updated {new Date(data.estimate_updated_at).toLocaleString()}</Text>
+        ) : null}
       </View>
 
       <Pressable

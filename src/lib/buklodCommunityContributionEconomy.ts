@@ -50,6 +50,9 @@ export type CommunityContributionDashboard = {
   estimated_share_minor: number | null;
   estimated_pool_minor: number;
   estimate_label: string;
+  estimate_status?: 'PROVISIONAL_ADMOB' | 'RECONCILED_OR_FINALIZED' | 'SOURCE_NOT_CONNECTED' | 'STALE';
+  estimate_updated_at?: string | null;
+  estimate_below_cent?: boolean;
   finalized_share: { amount_minor: number; status: string; finalized_at: string } | null;
   video_quota: CommunityVideoQuota;
   review_items: CommunityReviewItem[];
@@ -91,17 +94,31 @@ async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise
   return data as T;
 }
 
+function rpcMissing(error: unknown) {
+  const e = error as { code?: string; message?: string };
+  return e?.code === 'PGRST202'
+    || (e?.code === '42883' && /function|does not exist/i.test(e?.message || ''));
+}
+
 export async function loadMyCommunityContribution() {
+  try {
+    return await rpc<CommunityContributionDashboard>(
+      'get_my_buklod_community_contribution_live_v1',
+    );
+  } catch (error) {
+    if (!rpcMissing(error)) throw error;
+  }
   try {
     return await rpc<CommunityContributionDashboard>(
       'get_my_buklod_community_contribution_v2',
     );
-  } catch {
-    // Backward-compatible during staged rollout.
-    return rpc<CommunityContributionDashboard>(
-      'get_my_buklod_community_contribution_v1',
-    );
+  } catch (error) {
+    if (!rpcMissing(error)) throw error;
   }
+  // Backward-compatible only when the additive RPCs are genuinely missing.
+  return rpc<CommunityContributionDashboard>(
+    'get_my_buklod_community_contribution_v1',
+  );
 }
 
 export async function loadMyCommunityVideoQuota() {
@@ -181,6 +198,40 @@ export async function adminRecordCommunityWallFinancialEntry(input: {
     p_user_pool_designated: input.direction === 'revenue' ? input.userPoolDesignated : false,
     p_idempotency_key: null,
   });
+}
+
+export type AdminCommunityAdmobEstimate = {
+  period_key: string;
+  amount_minor: number;
+  source_mode: 'ADMIN_ADMOB_REPORT' | 'OFFICIAL_ADMOB_API';
+  source_reference: string;
+  observed_at: string;
+  updated_at: string;
+};
+
+export async function adminGetCommunityAdmobEstimate(periodKey: string) {
+  return rpc<AdminCommunityAdmobEstimate | null>(
+    'admin_get_buklod_community_admob_estimate_v1',
+    { p_period_key: periodKey.trim() },
+  );
+}
+
+/** A provisional report only. Never calls cash-finalization or payout RPCs. */
+export async function adminSetCommunityAdmobEstimate(input: {
+  periodKey: string;
+  amountPhp: number;
+  sourceReference: string;
+}) {
+  return rpc<Record<string, unknown>>(
+    'admin_set_buklod_community_admob_estimate_v1',
+    {
+      p_period_key: input.periodKey.trim(),
+      p_amount_php: input.amountPhp,
+      p_source_reference: input.sourceReference.trim(),
+      p_source_mode: 'ADMIN_ADMOB_REPORT',
+      p_observed_at: new Date().toISOString(),
+    },
+  );
 }
 
 export async function adminFinalizeCommunityUserPool(periodKey: string, reason?: string) {

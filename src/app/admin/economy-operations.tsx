@@ -15,6 +15,12 @@ import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
 import BuklodCommunityEconomyAdminCard from '@/components/BuklodCommunityEconomyAdminCard';
+import {
+  adminGetCommunityAdmobEstimate,
+  adminSetCommunityAdmobEstimate,
+  formatMinorPhp,
+  type AdminCommunityAdmobEstimate,
+} from '@/lib/buklodCommunityContributionEconomy';
 import { shared } from '@/components/UI';
 import {
   adminFailBuklodPfWithdrawal,
@@ -99,6 +105,11 @@ export default function AdminEconomyOperationsScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [periodKey, setPeriodKey] = useState(month.key);
+  const [admobPreview, setAdmobPreview] = useState<AdminCommunityAdmobEstimate | null>(null);
+  const [admobReportAmount, setAdmobReportAmount] = useState('');
+  const [admobReportCurrency, setAdmobReportCurrency] = useState<'USD' | 'PHP'>('USD');
+  const [admobUsdPhpRate, setAdmobUsdPhpRate] = useState('');
+  const [admobSourceRef, setAdmobSourceRef] = useState('');
 
   const [entryKind, setEntryKind] =
     useState<(typeof ENTRY_KINDS)[number]>(
@@ -122,13 +133,16 @@ export default function AdminEconomyOperationsScreen() {
     try {
       setError(null);
 
-      const [nextReport, nextQueue] = await Promise.all([
+      const [nextReport, nextQueue, nextAdmob] = await Promise.all([
         adminGetBuklodPfFinanceConsoleV3(periodKey),
         adminListBuklodR38Withdrawals(),
+        // The additive preview migration may be pending on older environments.
+        adminGetCommunityAdmobEstimate(periodKey).catch(() => null),
       ]);
 
       setReport(nextReport);
       setQueue(nextQueue);
+      setAdmobPreview(nextAdmob);
     } catch (nextError: unknown) {
       setError(
         nextError instanceof Error
@@ -234,6 +248,38 @@ export default function AdminEconomyOperationsScreen() {
       setExternalReference('');
       setEntryNotes('');
     });
+  };
+
+  const publishAdmobPreview = () => {
+    const amount = Number(admobReportAmount.trim());
+    const rate = admobReportCurrency === 'USD' ? Number(admobUsdPhpRate.trim()) : 1;
+    const php = Math.round(amount * rate * 100) / 100;
+    const reference = [
+      admobSourceRef.trim(),
+      `AdMob ${admobReportCurrency} ${amount.toFixed(6)}`,
+      admobReportCurrency === 'USD' ? `FX PHP ${rate.toFixed(4)}/USD` : 'PHP report',
+    ].join(' | ');
+    if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(periodKey.trim())
+        || !admobReportAmount.trim() || !Number.isFinite(amount) || amount <= 0
+        || !Number.isFinite(rate) || rate <= 0
+        || !Number.isFinite(php) || php <= 0 || php > 1000000000
+        || admobSourceRef.trim().length < 3 || reference.length > 240) {
+      Alert.alert('AdMob preliminary estimate',
+        'Enter a valid month, the AdMob estimated earnings, an exchange rate if in USD, and its report reference. The PHP equivalent must be at least ₱0.01.');
+      return;
+    }
+    Alert.alert('Publish preliminary estimate?',
+      `Source ${admobReportCurrency} ${amount.toFixed(4)} → PHP ${php.toFixed(2)}. Qualified users may see a changing possible QMP share. This does not finalize revenue, fund balances, or unlock withdrawals.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Publish estimate', onPress: () => void run(
+          'admob-preview',
+          () => adminSetCommunityAdmobEstimate({
+            periodKey, amountPhp: php, sourceReference: reference,
+          }),
+          'AdMob preview saved. User estimates recalculate from the Community QMP weights; cash remains locked.',
+        ) },
+      ]);
   };
 
   const finalize = () => {
@@ -428,6 +474,57 @@ export default function AdminEconomyOperationsScreen() {
                     Finalization is locked by the canonical backend. Economics and Settlement must both be ON before a month can be finalized.
                   </Text>
                 )}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>AdMob estimate · user QMP preview</Text>
+              <Text style={styles.muted}>
+                Enter the AdMob report amount and source. For a USD report, enter the documented PHP per USD exchange rate; BUKLOD converts the amount to PHP and recalculates qualified users' previews. It never credits cash or activates payouts.
+              </Text>
+              {admobPreview ? (
+                <Text style={styles.muted}>
+                  Current preliminary report: {formatMinorPhp(admobPreview.amount_minor)} · observed {new Date(admobPreview.observed_at).toLocaleString()} · {admobPreview.source_reference}
+                </Text>
+              ) : (
+                <Text style={styles.warningText}>No preliminary AdMob report recorded for this month.</Text>
+              )}
+              <View style={styles.actionWrap}>
+                <Pressable onPress={() => setAdmobReportCurrency('USD')} style={[styles.input, { paddingVertical: 9, backgroundColor: admobReportCurrency === 'USD' ? '#E9F6EE' : '#FFFFFF' }]}>
+                  <Text>USD ($)</Text>
+                </Pressable>
+                <Pressable onPress={() => setAdmobReportCurrency('PHP')} style={[styles.input, { paddingVertical: 9, backgroundColor: admobReportCurrency === 'PHP' ? '#E9F6EE' : '#FFFFFF' }]}>
+                  <Text>PHP (₱)</Text>
+                </Pressable>
+              </View>
+              <TextInput
+                value={admobReportAmount}
+                onChangeText={setAdmobReportAmount}
+                keyboardType="decimal-pad"
+                placeholder={admobReportCurrency === 'USD' ? 'AdMob estimated earnings in USD' : 'AdMob estimated earnings in PHP'}
+                style={styles.input}
+              />
+              {admobReportCurrency === 'USD' ? (
+                <TextInput
+                  value={admobUsdPhpRate}
+                  onChangeText={setAdmobUsdPhpRate}
+                  keyboardType="decimal-pad"
+                  placeholder="PHP per USD exchange rate (documented)"
+                  style={styles.input}
+                />
+              ) : null}
+              {Number(admobReportAmount) > 0 && (admobReportCurrency === 'PHP' || Number(admobUsdPhpRate) > 0) ? (
+                <Text style={styles.muted}>
+                  Provisional revenue equivalent: {formatMinorPhp(Math.round(Number(admobReportAmount) * (admobReportCurrency === 'USD' ? Number(admobUsdPhpRate) : 1) * 100))}
+                </Text>
+              ) : null}
+              <TextInput
+                value={admobSourceRef}
+                onChangeText={setAdmobSourceRef}
+                placeholder="Official AdMob report reference"
+                style={styles.input}
+              />
+              <ActionButton title={busy === 'admob-preview' ? 'SAVING...' : 'PUBLISH NON-CASH ESTIMATE'}
+                icon="chart-line" onPress={publishAdmobPreview} disabled={!!busy} />
             </View>
 
             <View style={styles.section}>
