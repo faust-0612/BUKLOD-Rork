@@ -1,0 +1,16 @@
+{
+  "objective": "Make legacy auth/concurrency lane QA-only so a single canonical frozen-RC workflow publishes Android OTA",
+  "baseRef": "d4789add1ade549ea11792ae500b09243f46bb91",
+  "productionBaselineEvidence": "Verified three PR #385 QA checks and merged main at d4789add1ade549ea11792ae500b09243f46bb91. Prior production OTA publication requires independent latest served-update verification; no live update is assumed from merge.",
+  "allowedPaths": [
+    ".github/workflows/main_auth_storm_r21_deploy.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/single-authoritative-ota-publisher-20261028.json"
+  ],
+  "acceptanceChecks": [
+    "Legacy lane retains source markers and TypeScript checks",
+    "Legacy lane cannot publish EAS Update or deploy a second web release",
+    "Canonical production_android_ota.yml remains unchanged with exact SHA and frozen RC verification",
+    "Engineering Accountability and targeted CI pass"
+  ]
+}
