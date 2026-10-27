@@ -16,6 +16,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import { uploadClassroomObject } from '@/lib/education/classroomTransfer';
 import { supabase } from '@/lib/supabase';
+import { playBuklodCue } from '@/lib/buklodSounds';
 
 const CLASSROOM_BUCKET = 'buklod-classroom';
 const MAX_UPLOAD_BYTES = 1024 * 1024 * 1024;
@@ -293,6 +294,7 @@ export default function BuklodClassroomWorkScreen() {
       setFiles(prev => ({ ...prev, [assignment.id]: null }));
       setUploadProgress(prev => ({ ...prev, [assignment.id]: 0 }));
       await load();
+      void playBuklodCue('submission');
       Alert.alert('Submitted', 'Your activity was submitted to the classroom.');
     } catch (error) {
       if (uploadedPath) {
@@ -301,6 +303,7 @@ export default function BuklodClassroomWorkScreen() {
       if (submissionId) {
         try { await supabase.from('buklod_education_classroom_submissions').delete().eq('id', submissionId); } catch { /* best-effort rollback */ }
       }
+      void playBuklodCue('error');
       Alert.alert('Submit Activity', error instanceof Error ? error.message : 'Submission failed. Retry the same attachment to safely resume when applicable.');
     } finally {
       setBusy(false);
@@ -320,6 +323,7 @@ export default function BuklodClassroomWorkScreen() {
     });
     if (error) return Alert.alert('Grade Submission', error.message);
     await load();
+    void playBuklodCue(release ? 'approval' : 'submission');
     Alert.alert('Grade Saved', release ? 'Grade was saved and released to the student.' : 'Grade was saved as faculty draft.');
   };
 

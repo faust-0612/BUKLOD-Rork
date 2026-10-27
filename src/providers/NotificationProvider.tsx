@@ -6,6 +6,7 @@ import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {registerPushToken} from '@/lib/pushNotifications';
+import { classifyBuklodNotificationSound, isBuklodMessageThreadOpen, playBuklodCue } from '@/lib/buklodSounds';
 import { syncScopeSelection } from '@/lib/buklodScopeRoute';
 import { resolveBuklodNotificationTarget } from '@/lib/buklodNotificationNavigation';
 import { runClusterJoinNotificationAction } from '@/lib/clusterJoinNotificationAction';
@@ -22,7 +23,14 @@ import {
 type Ctx={unreadCount:number;refreshUnread:()=>Promise<void>;markAllRead:()=>Promise<void>};
 const Context=createContext<Ctx|undefined>(undefined);
 /* PATCH_171C_PUSH_CHANNEL_V2 */
-Notifications.setNotificationHandler({handleNotification:async()=>({shouldShowBanner:true,shouldShowList:true,shouldPlaySound:true,shouldSetBadge:true} as any)});
+Notifications.setNotificationHandler({handleNotification:async n=>({
+ shouldShowBanner:true,
+ shouldShowList:true,
+ // Expo owns background notifications. In the foreground BUKLOD plays one
+ // rate-limited event cue instead of a second system sound.
+ shouldPlaySound:['community_emergency','ptt_sos','ptt_priority','ptt_incoming'].includes(String(n.request.content.data?.kind||'')),
+ shouldSetBadge:true,
+} as any)});
 
 export function NotificationProvider({children}:{children:ReactNode}){
  const {user}=useAuth();
@@ -121,12 +129,20 @@ export function NotificationProvider({children}:{children:ReactNode}){
    if(state==='active')void refreshUnread();
   });
 
-  const receivedSub=Notifications.addNotificationReceivedListener(()=>{
+  const receivedSub=Notifications.addNotificationReceivedListener(notification=>{
    setUnreadCount(current=>{
     const next=current+1;
     void badge(next);
     return next;
    });
+   const data:any=notification.request.content.data||{};
+   const kind=String(data.kind||'');
+   if(['community_emergency','ptt_sos','ptt_priority','ptt_incoming'].includes(kind)) return;
+   const cue=classifyBuklodNotificationSound(kind);
+   const threadId=String(data.conversation_id||data.thread_id||data.scope_id||'');
+   if(cue && !(cue==='message' && isBuklodMessageThreadOpen(threadId))) {
+    void playBuklodCue(cue);
+   }
   });
 
   return()=>{

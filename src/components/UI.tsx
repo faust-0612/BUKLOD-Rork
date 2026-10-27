@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import BuklodPressable from '@/components/BuklodPressable';
+import { playBuklodCue } from '@/lib/buklodSounds';
 import {
   createBuklodButtonStyles,
   createBuklodCardStyle,
@@ -59,7 +60,10 @@ export function Button({
   return (
     <BuklodPressable
       instant
-      onPress={onPress}
+      onPress={() => {
+        void playBuklodCue('button');
+        onPress();
+      }}
       style={[
         styles.button,
         outline && styles.outline,
