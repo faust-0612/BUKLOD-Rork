@@ -9,7 +9,6 @@ const soundNames = [
   'buklod_message_sent', 'buklod_message', 'buklod_submission',
   'buklod_approval', 'buklod_error', 'buklod_community',
   'buklod_achievement', 'buklod_alert', 'buklod_ringback',
-  'buklod_incoming_call',
 ];
 
 test('original BUKLOD sound pack includes valid, short, audible WAVs', () => {
@@ -29,15 +28,15 @@ test('original BUKLOD sound pack includes valid, short, audible WAVs', () => {
   }
 });
 
-test('Stream native ringing is configured without a duplicate incoming JS player', () => {
+test('existing V28 native ringtone stays unchanged while JS ringback is OTA-safe', () => {
   const nativeConfig = read('app.config.js');
   const pushConfig = read('src/utils/setPushConfig.ts');
   const ringScreen = read('src/components/RingingCalls.tsx');
-  assert.match(nativeConfig, /androidRingtone:.*buklod_incoming_call\.wav/);
-  assert.match(nativeConfig, /iosRingtone:.*buklod_incoming_call\.wav/);
-  assert.match(nativeConfig, /versionCode: isStaging \? undefined : \(isClassroom \? 28 : 29\)/);
-  assert.match(nativeConfig, /runtimeVersion: isClassroom \? '1\.3\.0' : '1\.3\.3'/);
-  assert.match(pushConfig, /buklod_incoming_calls_v3/);
+  assert.doesNotMatch(nativeConfig, /androidRingtone:|iosRingtone:|sounds:\s*\[/);
+  assert.match(nativeConfig, /versionCode: isStaging \? undefined : 28/);
+  assert.match(nativeConfig, /runtimeVersion: isClassroom \? '1\.3\.0' : '1\.3\.2'/);
+  assert.match(pushConfig, /buklod_incoming_calls_v2/);
+  assert.doesNotMatch(pushConfig, /buklod_incoming_calls_v3|sound:\s*'buklod_incoming_call'/);
   assert.match(ringScreen, /call\?\.isCreatedByMe/);
   assert.match(ringScreen, /CallingState\.RINGING/);
   assert.match(ringScreen, /player\.pause\(\)/);

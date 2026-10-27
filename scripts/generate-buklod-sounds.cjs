@@ -53,8 +53,3 @@ makeWav('buklod_alert', .85, [n(0, 470, .3), n(.42, 470, .3)]);
 // Familiar telephone cadence: short double ring, with a silent pause. The
 // caller's player loops it until Stream leaves RINGING.
 makeWav('buklod_ringback', 4, [n(0, 440, .45), n(0, 480, .45, .25), n(.66, 440, .45), n(.66, 480, .45, .25)], .17);
-// Distinct soft BUKLOD ringtone for the native incoming call channel.
-makeWav('buklod_incoming_call', 4.5, [
-  n(0, 590, .35), n(.27, 740, .35), n(.54, 880, .48),
-  n(1.35, 590, .35), n(1.62, 740, .35), n(1.89, 880, .48),
-], .23);

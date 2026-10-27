@@ -332,17 +332,16 @@ export function setPushConfig() {
 
             incomingChannel: {
               /*
-               * A new channel is required when changing a sound, since the
-               * user/OS owns the settings of an existing Android channel.
+               * v2 intentionally creates a fresh Android channel so devices
+               * that cached an older silent channel get the SDK's current
+               * ringing behavior again. Users can still control it in system
+               * notification settings.
                */
               id:
-                'buklod_incoming_calls_v3',
+                'buklod_incoming_calls_v2',
 
               name:
                 'Incoming BUKLOD Calls',
-
-              sound:
-                'buklod_incoming_call',
 
               vibration:
                 true,
@@ -373,9 +372,6 @@ export function setPushConfig() {
           ios: {
             pushProviderName:
               iosPushProviderName,
-
-            sound:
-              'buklod_incoming_call',
 
             callsHistory:
               true,

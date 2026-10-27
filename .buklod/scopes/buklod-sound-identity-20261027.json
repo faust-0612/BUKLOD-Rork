@@ -1,7 +1,7 @@
 {
-  "objective": "BUKLOD Soft Modern auditory feedback, reliable caller ringback and custom native incoming ringtone",
+  "objective": "BUKLOD Soft Modern OTA-compatible auditory feedback and caller ringback on existing V28",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub main 47fd152fc586fe2cb782d84cf08287e6a6f4a17f inspected on 2026-10-27 as the DEV baseline; production OTA source and installed binary compatibility remain unverified. Native ringtone assets require an EAS native build and are not OTA-only.",
+  "productionBaselineEvidence": "verified: GitHub main 563566b9493777dd28d4abaa9f721d46163aef6d inspected on 2026-10-27 as latest DEV baseline; existing V28/runtime 1.3.2 preserved, no native rebuild requested. Production OTA publication and installed device delivery remain to be verified.",
   "allowedPaths": [
     ".buklod/scopes/buklod-sound-identity-20261027.json",
     ".github/workflows/engineering-accountability.yml",
@@ -26,8 +26,8 @@
     "Submissions and approvals give explicit feedback without additional database round-trips",
     "Foreground push tones are deduplicated and active message threads are muted",
     "Outgoing ringback occurs only in Stream RINGING state and stops on accept, reject or exit",
-    "Incoming native Android and iOS ringtone is configured without double JS playback; V29/runtime 1.3.3 isolates old V28 native resources",
+    "Existing Stream Android/iOS incoming ringtone channels and resources remain unchanged; no V29, native plugin sound assets or runtime bump",
     "Preferences persist locally and respect quiet hours, active calls and OS controls",
-    "Run TypeScript, focused tests, native build checks, two-device call validation, RC and production gates before release"
+    "Run TypeScript, focused tests, OTA export/RC gates and production runtime 1.3.2 verification before release"
   ]
 }
