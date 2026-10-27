@@ -4598,7 +4598,7 @@ const [
                 ? item.pending_album && item.pending_album.length > 1
                   ? `\u2022 Sending ${uploadedAlbumCount}/${item.pending_album.length}`
                   : '\u2022 Sending'
-                : own && mode === 'direct'
+                : own && mode === 'direct' && grouping.endsGroup
                   ? (
                       directPeerReadAt &&
                       new Date(directPeerReadAt).getTime() >=

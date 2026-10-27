@@ -276,14 +276,13 @@ function createStyles(theme: ConnectThemeRoles) {
       fontWeight: '700',
     },
     replyBanner: {
-      marginHorizontal: 8,
+      marginHorizontal: 12,
       marginBottom: 6,
       paddingHorizontal: 12,
       paddingVertical: 8,
-      borderLeftWidth: 3,
-      borderLeftColor: theme.accent,
-      borderRadius: 10,
-      backgroundColor: theme.accentMuted,
+      borderLeftWidth: 0,
+      borderRadius: 16,
+      backgroundColor: HIBLA.mint,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
@@ -476,7 +475,7 @@ export function ConnectComposer({
         <View style={styles.replyBanner}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.replyLabel}>
-              Replying to
+              Sumasagot kay
             </Text>
             <Text
               numberOfLines={1}
