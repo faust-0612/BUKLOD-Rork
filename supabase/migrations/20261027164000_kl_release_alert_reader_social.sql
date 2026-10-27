@@ -198,6 +198,10 @@ $function$;
 REVOKE ALL ON FUNCTION private.kl_release_alert_worker_v1(integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.kl_refresh_reader_totals_v1() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.kl_record_public_completion_v1() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.kl_reader_preferences_v1(boolean,boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.kl_reader_preferences_v1(boolean,boolean) TO authenticated;
+REVOKE ALL ON FUNCTION public.kl_latest_release_card_v1() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.kl_latest_release_card_v1() TO authenticated;
 
 SELECT cron.schedule('kl-release-alerts-bounded-v1','* * * * *',
   'select private.kl_release_alert_worker_v1(100)');
