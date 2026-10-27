@@ -1,0 +1,33 @@
+{
+  "objective": "BUKLOD Connect first-contact message requests, truthful unread markers, one-tap chat avatars and first-tap Stream audio call token readiness",
+  "baseRef": "809f4822198e6bf8e525e024db63f44e237742e8",
+  "productionBaselineEvidence": "The authoritative working source baseline is main 809f4822198e6bf8e525e024db63f44e237742e8 (2026-10-27T16:12:16Z). Last production runtime/version evidence must be independently reconciled before RC or OTA; this manifest makes no live client publication claim. Additive authenticated-only request classification RPC was applied to BUKLOD Connect Supabase as 20261027163948 and its permissions were checked.",
+  "allowedPaths": [
+    ".buklod/scopes/connect-requests-avatar-call-token-20261028.json",
+    ".github/workflows/engineering-accountability.yml",
+    "__tests__/buklodStreamCall.test.ts",
+    "__tests__/connectInboxClassification.test.ts",
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/connect/ConnectInboxRow.tsx",
+    "src/components/connect/ConnectInboxTabs.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/connect/ConnectTappableAvatar.tsx",
+    "src/components/connect/ConnectTappableAvatar.web.tsx",
+    "src/lib/buklodStreamCall.ts",
+    "src/lib/buklodStreamVideoClient.ts",
+    "src/lib/buklodStreamVideoClient.web.ts",
+    "src/lib/connectInboxClassification.ts",
+    "supabase/migrations/20261027163948_connect_first_message_requests_v1.sql"
+  ],
+  "acceptanceChecks": [
+    "All changes remain within named Connect inbox/avatar/call paths, isolated new tests, exact Supabase migration and this QA scope mapping.",
+    "Unverified online presence must never be shown as green; amber nodes only represent unread conversations.",
+    "Avatar tap enters personal messaging on native/web; long press alone exposes profile actions; self-avatar remains non-navigating.",
+    "First-contact inbound no prior response is classified in Requests; replies return conversation to Personal; existing threads are never diverted by unread status.",
+    "Authenticated-only request RPC returns only caller-owned thread IDs, anonymous execution denied; no message bodies exposed.",
+    "Stream client has an initial server-issued token before it is returned; each call awaits readiness; no new native dependency.",
+    "Full TypeScript and configured tests pass on exact head; physical Android call/background push remains a release acceptance check.",
+    "Reconcile exact RC and compatible Android Production OTA release identity; do not infer live from merge."
+  ]
+}
