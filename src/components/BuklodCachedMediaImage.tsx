@@ -6,9 +6,11 @@ import React, {
 } from 'react';
 
 import {
+  ActivityIndicator,
   Platform,
+  Pressable,
   StyleSheet,
-  View,
+  Text,
   type StyleProp,
   type ImageStyle,
 } from 'react-native';
@@ -45,6 +47,7 @@ function BuklodCachedMediaImageInner({
   const lockedPath = useRef(path);
   const resignAttemptRef = useRef(0);
   const resignNotBeforeRef = useRef(0);
+  const [failed, setFailed] = useState(false);
   const [displayUri, setDisplayUri] = useState<string | null>(() =>
     peekCommunityMediaUrl(path, preferredUri) ||
     preferredUri ||
@@ -54,6 +57,9 @@ function BuklodCachedMediaImageInner({
   useEffect(() => {
     if (path !== lockedPath.current) {
       lockedPath.current = path;
+      resignAttemptRef.current = 0;
+      resignNotBeforeRef.current = 0;
+      setFailed(false);
       setDisplayUri(
         peekCommunityMediaUrl(path, preferredUri) ||
           preferredUri ||
@@ -91,8 +97,35 @@ function BuklodCachedMediaImageInner({
     };
   }, [path, displayUri]);
 
-  if (!displayUri && !path) {
-    return <View style={[styles.placeholder, style]} />;
+  if (!displayUri || failed) {
+    return (
+      <Pressable
+        accessibilityRole={failed && path ? 'button' : undefined}
+        accessibilityLabel={failed ? 'Retry photo' : 'Loading photo'}
+        disabled={!failed || !path}
+        onPress={() => {
+          if (!path) return;
+          resignAttemptRef.current = 0;
+          resignNotBeforeRef.current = 0;
+          setFailed(false);
+          setDisplayUri(null);
+          void resignCommunityMediaUrl(path).then(next => {
+            if (next) setDisplayUri(next);
+            else setFailed(true);
+          }).catch(() => setFailed(true));
+        }}
+        style={[styles.placeholder, style as any]}
+      >
+        {failed ? (
+          <>
+            <Text style={styles.placeholderText}>Hindi ma-load ang larawan</Text>
+            {path ? <Text style={styles.retryText}>I-tap para subukan muli</Text> : null}
+          </>
+        ) : (
+          <ActivityIndicator color="#688A81" size="small" />
+        )}
+      </Pressable>
+    );
   }
 
   return (
@@ -116,33 +149,38 @@ function BuklodCachedMediaImageInner({
        */
       recyclingKey={Platform.OS === 'web' ? undefined : cacheKey}
       transition={0}
-      onLoad={onLoad}
+      onLoad={event => {
+        resignAttemptRef.current = 0;
+        setFailed(false);
+        onLoad?.(event);
+      }}
       onError={() => {
-        if (!path) {
+        if (!path || resignAttemptRef.current >= 2) {
+          setFailed(true);
           return;
         }
 
         void (async () => {
-          const reader = (
-            ExpoImage as {
-              getCachePathAsync?: (key: string) => Promise<string | null>;
-            }
-          ).getCachePathAsync;
-          if (cacheKey && reader) {
-            const cached = await reader(cacheKey).catch(() => null);
-            if (cached) return;
-          }
-
           const now = Date.now();
-          if (now < resignNotBeforeRef.current) return;
+          if (now < resignNotBeforeRef.current) {
+            setFailed(true);
+            return;
+          }
           resignNotBeforeRef.current =
             now +
             communityMediaResignDelayMs(resignAttemptRef.current);
           resignAttemptRef.current += 1;
 
-          const next = await resignCommunityMediaUrl(path);
-          if (next && next !== displayUri) {
-            setDisplayUri(next);
+          try {
+            const next = await resignCommunityMediaUrl(path);
+            if (next && next !== displayUri) {
+              setDisplayUri(next);
+            } else {
+              // Missing/revoked files must not trigger repeated sign requests.
+              setFailed(true);
+            }
+          } catch {
+            setFailed(true);
           }
         })();
       }}
@@ -173,5 +211,20 @@ export const BuklodCachedMediaImage = memo(
 const styles = StyleSheet.create({
   placeholder: {
     backgroundColor: '#EEF3F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+  },
+  placeholderText: {
+    color: '#566D65',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  retryText: {
+    color: '#24735D',
+    fontSize: 11,
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

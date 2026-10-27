@@ -2493,9 +2493,9 @@ const load=useCallback(async(options?:{
   snapshot.communityGif
    ? 'Uploading GIF in the backgroundâ€¦'
    : snapshot.wallVideo
-   ? 'Uploading video in the backgroundâ€¦'
+   ? 'Uploading video… Keep BUKLOD open'
    : snapshot.photos.length
-    ? 'Uploading photos in the backgroundâ€¦'
+    ? 'Uploading photos… Keep BUKLOD open'
     : 'Posting in the backgroundâ€¦';
  setPublishNotice(startNotice);
 
@@ -2635,10 +2635,10 @@ const load=useCallback(async(options?:{
 
     setVideoUploadPercent186O(0);
     setNotice(
-     'Uploading video in the backgroundâ€¦ 0%'
+     'Uploading video… Keep BUKLOD open 0%'
     );
     setPublishNotice(
-     'Uploading video in the backgroundâ€¦ 0%'
+     'Uploading video… Keep BUKLOD open 0%'
     );
 
     await uploadCommunityVideoFile({
@@ -2655,7 +2655,7 @@ const load=useCallback(async(options?:{
        progress.ratio
       );
       const notice=
-       `Uploading video in the backgroundâ€¦ ${percent}%`;
+       `Uploading video… Keep BUKLOD open ${percent}%`;
       setNotice(notice);
       setPublishNotice(notice);
      },
@@ -2672,10 +2672,10 @@ const load=useCallback(async(options?:{
 
    if(snapshot.photos.length){
     setNotice(
-     `Uploading photos in the backgroundâ€¦ 0/${snapshot.photos.length}`
+     `Uploading photos… Keep BUKLOD open 0/${snapshot.photos.length}`
     );
     setPublishNotice(
-     `Uploading photos in the backgroundâ€¦ 0/${snapshot.photos.length}`
+     `Uploading photos… Keep BUKLOD open 0/${snapshot.photos.length}`
     );
 
     let finished=0;
@@ -2696,7 +2696,7 @@ const load=useCallback(async(options?:{
 
        finished+=1;
        const notice=
-        `Uploading photos in the backgroundâ€¦ ${finished}/${snapshot.photos.length}`;
+        `Uploading photos… Keep BUKLOD open ${finished}/${snapshot.photos.length}`;
        setNotice(notice);
        setPublishNotice(notice);
 

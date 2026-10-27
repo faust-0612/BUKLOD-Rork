@@ -1,0 +1,24 @@
+{
+  "objective": "Community Wall weak-signal video/photo rendering, upload recovery, and honest progress (no native dependency or paid processing)",
+  "baseRef": "53a6a353d5c5e1d92da4f0c41d2064bc4d04704c",
+  "productionBaselineEvidence": "verified: prior Android production publication run 40149190953, update 01a17099-b27f-7037-9e9e-6f6d80f58054, runtime 1.3.2, source 58fcbc3daf65858781da5dad25c70135a25c3589. This historical evidence is not proof that the current main is live; independently verify the next RC and OTA.",
+  "allowedPaths": [
+    "src/lib/uploadCommunityResumableTus.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "src/components/CommunityVideo.tsx",
+    "src/components/CommunityVideo.web.tsx",
+    "src/components/BuklodCachedMediaImage.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/community-media-weak-signal.test.cjs",
+    ".buklod/scopes/community-media-weak-signal-20261027.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "No new native build/dependencies; no new paid media service",
+    "Node media regression contracts and TypeScript CI pass",
+    "Public and scoped feed render and photo upload paths remain available",
+    "Authenticated private media remains gated; no RLS/policy change",
+    "Release from latest main with exact artifact and OTA verification"
+  ]
+}

@@ -260,6 +260,50 @@ export async function uploadCommunityFileResumableTus({
 
   report(offset);
 
+  // A weak connection can time out after Storage accepted the chunk.
+  // Query the authoritative TUS offset before retrying: blind PATCH retries
+  // can otherwise create conflicts and make the user upload again.
+  const MAX_RECOVERY_ATTEMPTS = 3;
+  let recoveryAttempts = 0;
+  async function recoverOffset(cause: Error) {
+    if (recoveryAttempts >= MAX_RECOVERY_ATTEMPTS) throw cause;
+    const delayMs = Math.min(
+      5000,
+      650 * 2 ** recoveryAttempts + Math.floor(Math.random() * 250)
+    );
+    recoveryAttempts += 1;
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+
+    try {
+      const head = await tusFetch(uploadUrl, {
+        method: 'HEAD',
+        timeoutMs: 30000,
+        headers: {
+          'Tus-Resumable': '1.0.0',
+          authorization: `Bearer ${auth.accessToken}`,
+          apikey: auth.apiKey,
+        },
+      });
+      if (head.ok) {
+        const serverOffset = Number(
+          headerValue(head.headers, 'upload-offset')
+        );
+        if (
+          Number.isFinite(serverOffset) &&
+          serverOffset >= 0 &&
+          serverOffset <= totalSize
+        ) {
+          if (serverOffset > offset) recoveryAttempts = 0;
+          offset = serverOffset;
+          report(offset);
+        }
+      }
+    } catch {
+      // Retry is bounded even when HEAD is interrupted as well.
+      // Never assume the failed chunk was accepted.
+    }
+  }
+
   while (offset < totalSize) {
     const chunkLength = Math.min(
       BUKLOD_TUS_CHUNK_SIZE_BYTES,
@@ -272,41 +316,47 @@ export async function uploadCommunityFileResumableTus({
       webBlob
     );
 
-    const patchResponse = await tusFetch(uploadUrl, {
-      method: 'PATCH',
-      timeoutMs: 180000,
-      headers: {
-        'Tus-Resumable': '1.0.0',
-        'Upload-Offset': String(offset),
-        'Content-Type': 'application/offset+octet-stream',
-        authorization: `Bearer ${auth.accessToken}`,
-        apikey: auth.apiKey,
-        'x-upsert': 'false',
-      },
-      body: chunk,
-    });
-
-    if (patchResponse.status === 409 || patchResponse.status === 412) {
-      const headResponse = await tusFetch(uploadUrl, {
-        method: 'HEAD',
-        timeoutMs: 30000,
+    let patchResponse: Response;
+    try {
+      patchResponse = await tusFetch(uploadUrl, {
+        method: 'PATCH',
+        // 6 MiB over a degraded cellular uplink can take several minutes.
+        timeoutMs: 300000,
         headers: {
           'Tus-Resumable': '1.0.0',
+          'Upload-Offset': String(offset),
+          'Content-Type': 'application/offset+octet-stream',
           authorization: `Bearer ${auth.accessToken}`,
           apikey: auth.apiKey,
+          'x-upsert': 'false',
         },
+        body: chunk,
       });
-      offset = Math.max(
-        0,
-        Number(headerValue(headResponse.headers, 'upload-offset')) || 0
+    } catch (error: any) {
+      await recoverOffset(
+        error instanceof Error ? error : new Error(String(error))
       );
-      report(offset);
       continue;
     }
 
-    if (patchResponse.status < 200 || patchResponse.status >= 300) {
+    if (
+      patchResponse.status === 408 ||
+      patchResponse.status === 409 ||
+      patchResponse.status === 412 ||
+      patchResponse.status === 429 ||
+      patchResponse.status >= 500
+    ) {
+      await recoverOffset(
+        new Error(`TUS chunk interrupted (${patchResponse.status})`)
+      );
+      continue;
+    }
+
+    if (!patchResponse.ok) {
       const body = await patchResponse.text().catch(() => '');
-      const error = new Error(body || `TUS patch failed (${patchResponse.status})`);
+      const error = new Error(
+        body || `TUS patch failed (${patchResponse.status})`
+      );
       (error as any).status = patchResponse.status;
       (error as any).body = body;
       throw error;
@@ -316,9 +366,10 @@ export async function uploadCommunityFileResumableTus({
       headerValue(patchResponse.headers, 'upload-offset')
     );
     offset =
-      Number.isFinite(nextOffset) && nextOffset > offset
+      Number.isFinite(nextOffset) && nextOffset > offset && nextOffset <= totalSize
         ? nextOffset
         : offset + chunkLength;
+    recoveryAttempts = 0;
     report(offset);
   }
 }

@@ -2,6 +2,7 @@
 /* BUKLOD_AWS_WALL_VIDEO_ROUTE_R1 */
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
+import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
 
 import {
   BUKLOD_VIDEO_MAX_SIZE_BYTES,
@@ -157,8 +158,10 @@ export async function mapWithConcurrency<T, R>(
 
   const results: R[] = new Array(items.length);
   let nextIndex = 0;
+  // Avoid saturating a weak uplink with three concurrent photo PUTs.
+  const quality = classifyNetworkQuality();
   const workerCount = Math.min(
-    Math.max(1, concurrency),
+    quality === 'normal' ? Math.max(1, concurrency) : 1,
     items.length,
   );
 
@@ -179,12 +182,23 @@ export async function mapWithConcurrency<T, R>(
 export async function prepareCommunityJpegUri(
   uri: string,
 ): Promise<{ uri: string; sizeBytes: number }> {
+  // Picker/editor JPEGs are already encoded. Re-encoding every photo
+  // wastes CPU and can create visible generational JPEG artifacts.
+  const existingBytes = await readBinarySizeBytes(uri).catch(() => 0);
+  if (
+    /\.jpe?g(?:[?#]|$)/i.test(uri) &&
+    existingBytes > 0 &&
+    existingBytes <= 2 * 1024 * 1024
+  ) {
+    return { uri, sizeBytes: existingBytes };
+  }
+
   const M = await import('expo-image-manipulator');
   const context = M.ImageManipulator.manipulate(uri);
   const rendered = await context.renderAsync();
   const image = await rendered.saveAsync({
     format: M.SaveFormat.JPEG,
-    compress: 0.86,
+    compress: 0.88,
   });
   const fileUri = String(image.uri ?? uri).trim() || uri;
   const sizeBytes = await readBinarySizeBytes(fileUri);
