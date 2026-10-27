@@ -55,3 +55,7 @@ For release-affecting work:
 `EDIT → QA → WEB BUILD → DEPLOY/PREVIEW → VISIBLE LIVE VERIFICATION → NEXT PHASE`
 
 A commit/build/deploy command alone is not proof of completion.
+
+## Central engineering memory (read-before-work)
+
+The private documentation repository `faust-0612/BUKLOD-Engineering-Memory` is the shared engineering memory. When accessible, read its root `AGENTS.md`, production baseline, decisions, backlog and release gates **before** BUKLOD engineering work; verify all claims against this repository, CI, backend and live releases. After verified work, update memory with evidence and precise completed/pending/blocked status. Never assume the separate repository is automatically mounted or available; report access limitations. This reference does not authorize deployment, modify existing release gates, or make memory notes authoritative over source/production. Do not put secrets or user data in the memory repository. Avoid unnecessary Actions/pushes; memory-only commits must not trigger app releases.
