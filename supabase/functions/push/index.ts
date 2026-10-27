@@ -233,6 +233,7 @@ export default {
         const platform = String(row.platform ?? '').toLowerCase()
         const r2Ready = Number(row.emergency_alert_mode_version ?? 1) >= 2
         const androidEmergencyReady = isCommunityEmergency && platform === 'android' && r2Ready
+        const androidPttSosReady = notification.kind === 'ptt_sos' && platform === 'android' && r2Ready
         const categoryReady = isCommunityEmergency && r2Ready && (platform === 'android' || platform === 'ios')
 
         if (isCommunityEmergency) {
@@ -260,7 +261,7 @@ export default {
           const headlessCollapseId = `${pttCollapseId}-headless`
           const pttChannelId =
             notification.kind === 'ptt_sos'
-              ? (androidEmergencyReady ? 'buklod-emergency-v1' : 'buklod-activity-v2')
+              ? (androidPttSosReady ? 'buklod-emergency-v1' : 'buklod-activity-v2')
               : 'buklod-activity-v2'
 
           // VISIBLE PTT push — must remain distinct from headless collapse identity.
@@ -268,6 +269,7 @@ export default {
             to: expoPushToken,
             sound: 'default',
             priority: 'high',
+            ttl: 60, // A delayed PTT push must not advertise long-ended audio.
             channelId: pttChannelId,
             collapseId: visibleCollapseId,
             tag: visibleCollapseId,
@@ -289,9 +291,9 @@ export default {
             data: {
               ...sharedData,
               buklod_ptt_delivery: 'headless',
-              _contentAvailable: true,
+              contentAvailable: true,
             },
-            _contentAvailable: true,
+            contentAvailable: true,
           })
           messageTokenIndex.push(tokenIndex)
           return

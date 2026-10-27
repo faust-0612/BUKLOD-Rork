@@ -127,14 +127,14 @@ function LiveHoldButton({
 
   const label = !enabled
     ? 'SETUP NEEDED'
-    : blocked
-      ? 'CHANNEL BUSY'
-      : tx
-        ? 'TRANSMITTING...'
-        : remoteSpeaker
-          ? `RECEIVING — ${speakerName}`
-          : held
-            ? 'CONNECTING...'
+    : tx
+      ? 'TRANSMITTING...'
+      : held || runtime.requestingFloor
+        ? 'REQUESTING CHANNEL...'
+        : blocked
+          ? 'CHANNEL BUSY'
+          : remoteSpeaker
+            ? `RECEIVING — ${speakerName}`
             : 'HOLD TO TALK';
 
   const hint = !enabled
