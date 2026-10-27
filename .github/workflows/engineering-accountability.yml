@@ -22,7 +22,7 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
-            feat/community-fair-video-20261027)
+            feat/community-fair-video-current-main-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-fair-video-20261027.json" >> "$GITHUB_ENV";;
             fix/recovery-action-feedback-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/recovery-action-feedback-20261027.json" >> "$GITHUB_ENV";;
@@ -78,7 +78,7 @@ jobs:
         run: node --test tests/recovery-action-feedback.test.cjs
 
       - name: Verify fair discovery and independent video candidate selection
-        if: github.head_ref == 'feat/community-fair-video-20261027'
+        if: github.head_ref == 'feat/community-fair-video-current-main-20261027'
         run: node --test tests/fairDiscovery.test.cjs tests/videoDiscovery.test.cjs tests/videoFeedRpcContract.test.cjs
 
       - name: Verify approved pending client and rollback recovery
