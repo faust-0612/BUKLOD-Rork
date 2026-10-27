@@ -1,0 +1,20 @@
+{
+  "objective": "Reduce measured per-post internal share-count RPC amplification on Wall remounts with session-isolated cache and authoritative mutation invalidation",
+  "baseRef": "ebe166ccd5aa7d01cb7fefb928a5d19a18578a19",
+  "productionBaselineEvidence": "Main after verified PR #387 merge ebe166ccd5aa7d01cb7fefb928a5d19a18578a19. Live pg_stat_statements observed 56,511 buklod_internal_share_count_v2 calls (mean 4.78 ms); no capacity-upgrade evidence. Previous Android OTA for telemetry must finish frozen RC verification before merging this later patch.",
+  "allowedPaths": [
+    "src/lib/buklodR4RequestShield.ts",
+    "__tests__/buklodShareCountBurstShield.test.ts",
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/share-count-burst-20261028.json"
+  ],
+  "acceptanceChecks": [
+    "20-second account- and post-keyed presentation count cache",
+    "40 duplicate concurrent share-count reads coalesce to one upstream RPC",
+    "Failed share writes do not invalidate; successful share writes invalidate count",
+    "No cached writes, no new native dependency, no database schema, no payment",
+    "TypeScript, Jest, Performance, Integration and Accountability passed",
+    "Canonical production Android release workflow handles the R4 shield source after earlier OTA finishes with frozen RC and exact runtime/served fingerprint"
+  ]
+}
