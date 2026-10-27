@@ -1,3 +1,4 @@
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { supabase } from '@/lib/supabase';
 import { cachedQuery, invalidateCache } from '@/lib/performance';
 
@@ -457,16 +458,17 @@ export async function suggestReferralTargets(
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
-  const { data, error } = await (supabase as any).rpc(
+  const { data, error } = await withBuklodTimeout<{ data: any; error: any }>((supabase as any).rpc(
     'suggest_buklod_referral_targets_v1',
     {
       p_query: trimmed,
       p_limit: limit,
     },
-  );
+  ), 5000, 'Referral lookup');
 
-  if (error || !data || typeof data !== 'object') {
-    return [];
+  if (error) throw error;
+  if (!data || typeof data !== 'object' || !Array.isArray(data.items)) {
+    throw new Error('Could not check this referral right now. Try again.');
   }
 
   const items = Array.isArray((data as any).items)
@@ -500,16 +502,14 @@ export async function resolveReferralTarget(
     };
   }
 
-  const { data, error } = await (supabase as any).rpc(
+  const { data, error } = await withBuklodTimeout<{ data: any; error: any }>((supabase as any).rpc(
     'resolve_buklod_referral_target_v1',
     { p_query: trimmed },
-  );
+  ), 5000, 'Referral lookup');
 
-  if (error || !data || typeof data !== 'object') {
-    return {
-      found: false,
-      message: 'Could not check this referral right now. Try again.',
-    };
+  if (error) throw error;
+  if (!data || typeof data !== 'object' || typeof data.found !== 'boolean') {
+    throw new Error('Could not check this referral right now. Try again.');
   }
 
   const row = data as Record<string, unknown>;
