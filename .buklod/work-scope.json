@@ -1,7 +1,7 @@
 {
   "objective": "Reconcile pending client recovery and restore verified rollback UI features without superseding newer Cluster and Connect protections",
-  "baseRef": "55327c6e5c13acda00524f31034d3e9bc7ebb776",
-  "productionBaselineEvidence": "GitHub main cumulative source 55327c6e inspected and verified; live Android OTA and immutable RC still require independent fingerprint verification",
+  "baseRef": "cae2019ecccb41750185fe177984a0aa6545ef8a",
+  "productionBaselineEvidence": "Refreshed and verified cumulative main cae2019ecccb41750185fe177984a0aa6545ef8a including merged referral PR #350; independently verify deployed Android OTA fingerprint and immutable RC before release",
   "allowedPaths": [
     ".buklod/work-scope.json",
     "scripts/test-pending-client-reconciliation-20261027.cjs",

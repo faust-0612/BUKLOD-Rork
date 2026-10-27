@@ -1,0 +1,18 @@
+{
+  "objective": "Prevent false missing referrals from stale responses and temporary lookup failures",
+  "baseRef": "55327c6e5c13acda00524f31034d3e9bc7ebb776",
+  "productionBaselineEvidence": "Canonical main source 55327c6e5c13acda00524f31034d3e9bc7ebb776; latest successful Android production workflow 40346631590 from 6406ed3736879fa4d504ef4b9baab8b09c608bf9. Independent current manifest/native compatibility and frozen RC gates remain required before publication.",
+  "allowedPaths": [
+    "src/app/(auth)/register.tsx",
+    "src/lib/buklodRewards.ts",
+    "tests/referral-lookup.test.cjs",
+    ".buklod/scopes/referral-lookup-race-20261027.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "TypeScript and existing unit tests",
+    "node --test tests/referral-lookup.test.cjs",
+    "Engineering Accountability exact scope",
+    "Android baseline/native compatibility, export, freeze and exact served-bundle verification"
+  ]
+}

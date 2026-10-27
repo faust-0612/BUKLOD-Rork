@@ -210,12 +210,13 @@ export default function RegisterScreen() {
   const [referralSuggestions, setReferralSuggestions] =
     useState<ReferralSuggestItem[]>([]);
   const [referralStatus, setReferralStatus] = useState<
-    'idle' | 'checking' | 'matched' | 'missing'
+    'idle' | 'checking' | 'matched' | 'missing' | 'unavailable'
   >('idle');
   const [referralMatchLabel, setReferralMatchLabel] =
     useState('');
   const [selectedReferralCode, setSelectedReferralCode] =
     useState('');
+  const referralLookupVersion = useRef(0);
   const referralSuggestTimer = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
@@ -300,6 +301,8 @@ export default function RegisterScreen() {
   };
 
   const applyReferralSelection = (item: ReferralSuggestItem) => {
+    referralLookupVersion.current += 1;
+    if (referralSuggestTimer.current) clearTimeout(referralSuggestTimer.current);
     setReferralQuery(item.username || item.referral_code);
     setSelectedReferralCode(item.referral_code);
     setReferralMatchLabel(item.username || item.label);
@@ -308,10 +311,12 @@ export default function RegisterScreen() {
   };
 
   const onReferralQueryChange = (value: string) => {
+    const lookupVersion = ++referralLookupVersion.current;
     const next = value.replace(/^\s+/, '');
     setReferralQuery(next);
     setSelectedReferralCode('');
     setReferralMatchLabel('');
+    setReferralSuggestions([]);
 
     if (referralSuggestTimer.current) {
       clearTimeout(referralSuggestTimer.current);
@@ -328,7 +333,9 @@ export default function RegisterScreen() {
     setReferralStatus('checking');
     referralSuggestTimer.current = setTimeout(() => {
       void (async () => {
+        try {
         const items = await suggestReferralTargets(trimmed, 8);
+        if (lookupVersion !== referralLookupVersion.current) return;
         setReferralSuggestions(items);
 
         const exact = items.find(
@@ -348,6 +355,7 @@ export default function RegisterScreen() {
         }
 
         const resolved = await resolveReferralTarget(trimmed);
+        if (lookupVersion !== referralLookupVersion.current) return;
         if (resolved.found && resolved.referral_code) {
           setSelectedReferralCode(resolved.referral_code);
           setReferralMatchLabel(
@@ -360,6 +368,12 @@ export default function RegisterScreen() {
         setSelectedReferralCode('');
         setReferralMatchLabel('');
         setReferralStatus(items.length ? 'idle' : 'missing');
+        } catch {
+          if (lookupVersion !== referralLookupVersion.current) return;
+          setSelectedReferralCode('');
+          setReferralMatchLabel('');
+          setReferralStatus('unavailable');
+        }
       })();
     }, 280);
   };
@@ -374,6 +388,7 @@ export default function RegisterScreen() {
 
   useEffect(() => {
     return () => {
+      referralLookupVersion.current += 1;
       if (referralSuggestTimer.current) {
         clearTimeout(referralSuggestTimer.current);
       }
@@ -1286,6 +1301,12 @@ useEffect(() => {
         {referralStatus === 'matched' ? (
           <Text style={styles.referralMatched}>
             Matched: {referralMatchLabel}
+          </Text>
+        ) : null}
+
+        {referralStatus === 'unavailable' ? (
+          <Text style={styles.referralHint}>
+            Could not check your referral right now. Your code is still entered; this does not mean it is invalid.
           </Text>
         ) : null}
 
