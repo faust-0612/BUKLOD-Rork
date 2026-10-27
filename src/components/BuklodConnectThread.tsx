@@ -1883,6 +1883,15 @@ const [
     }
   };
 
+  // Bound message/reaction bursts to one history request plus one trailing refresh.
+  // Each thread session has its own generation so late results cannot replace
+  // another conversation after a fast navigation.
+  const loadInFlightRef = useRef(false);
+  const loadQueuedRef = useRef(false);
+  const loadSessionRef = useRef(threadSessionKeyValue);
+  const currentLoadSessionRef = useRef(threadSessionKeyValue);
+  currentLoadSessionRef.current = threadSessionKeyValue;
+
   const load =
     useCallback(
       async () => {
@@ -1893,6 +1902,21 @@ const [
           return;
         }
 
+        const requestSession = threadSessionKeyValue;
+        if (
+          loadInFlightRef.current &&
+          loadSessionRef.current === requestSession
+        ) {
+          loadQueuedRef.current = true;
+          return;
+        }
+
+        if (loadSessionRef.current !== requestSession) {
+          loadQueuedRef.current = false;
+        }
+        loadSessionRef.current = requestSession;
+        loadInFlightRef.current = true;
+
         try {
         const newestBeforeLoad =
           messagesRef.current[messagesRef.current.length - 1] ?? null;
@@ -1900,16 +1924,22 @@ const [
         if (
           mode === 'direct'
         ) {
-          const details =
-            await (
-              supabase as any
-            ).rpc(
-              'buklod_connect_direct_thread_details',
-              {
-                _thread_id:
-                  effectiveContainerId,
-              }
-            );
+          const [details, page] =
+            await Promise.all([
+              (supabase as any).rpc(
+                'buklod_connect_direct_thread_details',
+                {
+                  _thread_id: effectiveContainerId,
+                }
+              ),
+              fetchDirectConnectHistoryPage(
+                effectiveContainerId
+              ),
+            ]);
+          
+          if (currentLoadSessionRef.current !== requestSession) {
+            return;
+          }
 
           if (details.error) {
             Alert.alert(
@@ -1942,24 +1972,25 @@ const [
               null
           );
 
-          const page =
-            await fetchDirectConnectHistoryPage(
-              effectiveContainerId
-            );
-
           applyHistoryPage(page);
         }
         else {
-          const details =
-            await (
-              supabase as any
-            ).rpc(
-              'buklod_connect_room_details',
-              {
-                _scope_id:
-                  effectiveContainerId,
-              }
-            );
+          const [details, page] =
+            await Promise.all([
+              (supabase as any).rpc(
+                'buklod_connect_room_details',
+                {
+                  _scope_id: effectiveContainerId,
+                }
+              ),
+              fetchScopeConnectHistoryPage(
+                effectiveContainerId
+              ),
+            ]);
+
+          if (currentLoadSessionRef.current !== requestSession) {
+            return;
+          }
 
           if (details.error) {
             Alert.alert(
@@ -1993,22 +2024,25 @@ const [
                 } ${String.fromCodePoint(0x2022)} AUTOMATIC ROOM`
           );
 
-          const page =
-            await fetchScopeConnectHistoryPage(
-              effectiveContainerId
-            );
-
           applyHistoryPage(page);
 
-          const readers =
-            await fetchScopeConnectReaders(
+          // Reader avatars are secondary to displaying the conversation.
+          if (!initialLoadSettledRef.current) {
+            void fetchScopeConnectReaders(
               effectiveContainerId
-            );
-
-          setScopeReaders(readers ?? []);
+            ).then(readers => {
+              if (currentLoadSessionRef.current === requestSession) {
+                setScopeReaders(readers ?? []);
+              }
+            }).catch(() => undefined);
+          }
         }
 
-        await loadReactions();
+        // Reactions have their own realtime listener. Avoid refetching the
+        // full reaction table on every new message, and do not gate first paint.
+        if (!initialLoadSettledRef.current) {
+          void loadReactions();
+        }
 
         const newestAfterLoad =
           messagesRef.current[messagesRef.current.length - 1] ?? null;
@@ -2041,6 +2075,9 @@ const [
           markVisibleRoomRead('reconnect');
         }
       } catch (error: any) {
+        if (currentLoadSessionRef.current !== requestSession) {
+          return;
+        }
         console.warn(
           'Connect history load:',
           error?.message ?? error
@@ -2053,6 +2090,14 @@ const [
           'Connect',
           'Could not load message history. Pull to reopen this chat or try again.',
         );
+      } finally {
+        if (currentLoadSessionRef.current === requestSession) {
+          loadInFlightRef.current = false;
+          if (loadQueuedRef.current) {
+            loadQueuedRef.current = false;
+            void load();
+          }
+        }
       }
       },
       [
@@ -2060,6 +2105,7 @@ const [
         loadReactions,
         mode,
         profileId,
+        threadSessionKeyValue,
       ]
     );
 
