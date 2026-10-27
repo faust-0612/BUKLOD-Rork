@@ -92,6 +92,8 @@ jobs:
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/scope-gate-isolation.json" >> "$GITHUB_ENV";;
             fix/staging-production-isolation-20261024)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/staging-production-isolation.json" >> "$GITHUB_ENV";;
+            release/qmp-admob-estimate-ota-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/qmp-admob-estimate-ota-20261027.json" >> "$GITHUB_ENV";;
             codex/qmp-live-earnings-rc-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/qmp-live-admob-estimate-20261027.json" >> "$GITHUB_ENV";;
             codex/fix-economy-qmp-report-sync-20261027)
