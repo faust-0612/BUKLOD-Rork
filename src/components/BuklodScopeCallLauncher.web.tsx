@@ -109,6 +109,13 @@ export default function BuklodScopeCallLauncher({
         return;
       }
 
+      // Compact headers only need membership validation here. The live roster
+      // is fetched immediately before ringing, not for each chat opening.
+      if (compact) {
+        setRoster([]);
+        return;
+      }
+
       const members = await (supabase as any).rpc(
         'buklod_connect_scope_call_members',
         { _scope_id: scopeId }
@@ -133,7 +140,7 @@ export default function BuklodScopeCallLauncher({
     } finally {
       setLoading(false);
     }
-  }, [scopeId]);
+  }, [compact, scopeId]);
 
   useEffect(() => {
     void load();

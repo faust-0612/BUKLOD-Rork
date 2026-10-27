@@ -170,6 +170,14 @@ BuklodScopeCallLauncher({
             return;
           }
 
+          // The compact Cluster/Org header never renders member counts.
+          // Ringing already re-fetches the authoritative roster on tap,
+          // so avoid one expensive read on every conversation open.
+          if (compact) {
+            setRoster([]);
+            return;
+          }
+
           const members =
             await (
               supabase as any
@@ -245,6 +253,7 @@ BuklodScopeCallLauncher({
         }
       },
       [
+        compact,
         scopeId,
       ]
     );
