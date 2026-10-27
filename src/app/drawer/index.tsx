@@ -1,5 +1,6 @@
 import React, {
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -23,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   initializeSmartDrawerStore,
+  listSmartDrawerFolders,
   querySmartDrawerItems,
 } from '@/lib/smartDrawer/localStore';
 import {
@@ -30,6 +32,7 @@ import {
 } from '@/lib/smartDrawer/lifecycle';
 import type {
   SmartDrawerItem,
+  SmartDrawerFolder,
 } from '@/lib/smartDrawer/types';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -180,6 +183,7 @@ export default function SmartDrawerScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     q?: string | string[];
+    folderId?: string | string[];
   }>();
   const initialQuery = Array.isArray(params.q)
     ? params.q[0] ?? ''
@@ -188,10 +192,16 @@ export default function SmartDrawerScreen() {
   const [query, setQuery] = useState(initialQuery);
   const [view, setView] = useState('for-you');
   const [items, setItems] = useState<SmartDrawerItem[]>([]);
+  const [folders, setFolders] = useState<SmartDrawerFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const folderId = Array.isArray(params.folderId) ? params.folderId[0] : params.folderId;
+    if (folderId) setView(`folder:${folderId}`);
+  }, [params.folderId]);
 
   const load = useCallback(
     async (append = false, offset = 0) => {
@@ -245,6 +255,7 @@ export default function SmartDrawerScreen() {
 
       void (async () => {
         if (user?.id) {
+          void listSmartDrawerFolders(user.id).then(setFolders).catch(() => undefined);
           await runSmartDrawerLifecycleCleanup(
             user.id,
           ).catch(() => ({ removed: 0 }));
@@ -393,6 +404,29 @@ export default function SmartDrawerScreen() {
               ))}
             </View>
 
+            <Pressable
+              onPress={() => router.push('/drawer/shared' as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Open Shared Drawer collaboration"
+              style={styles.sharedEntry}
+            >
+              <MaterialCommunityIcons name="account-group-outline" size={21} color="#087A66" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sharedTitle}>Shared Drawer</Text>
+                <Text style={styles.sharedHint}>Cluster projects and individual collaboration</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#5A9B8A" />
+            </Pressable>
+
+            <Pressable onPress={() => router.push('/drawer/folders' as any)} style={styles.sharedEntry}>
+              <MaterialCommunityIcons name="folder-plus-outline" size={21} color="#286EA1" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sharedTitle}>My Folders</Text>
+                <Text style={styles.sharedHint}>Create, rename, browse or remove folders without losing notes</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#698DA9" />
+            </Pressable>
+
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -423,6 +457,12 @@ export default function SmartDrawerScreen() {
                   </Pressable>
                 );
               })}
+              {folders.map(folder => (
+                <Pressable key={folder.id} onPress={() => { setView(`folder:${folder.id}`); setItems([]); }}
+                  style={[styles.chip, view === `folder:${folder.id}` && styles.chipSelected]}>
+                  <Text style={[styles.chipText, view === `folder:${folder.id}` && styles.chipTextSelected]}>📁 {folder.name}</Text>
+                </Pressable>
+              ))}
             </ScrollView>
 
             {!!error && (
@@ -640,6 +680,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  sharedEntry: {
+    marginTop: 12,
+    backgroundColor: '#E9F8F1',
+    borderRadius: 14,
+    minHeight: 58,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sharedTitle: { color: '#176F5D', fontSize: 12.5, fontWeight: '900' },
+  sharedHint: { color: '#579282', fontSize: 10, marginTop: 3 },
   action: {
     flex: 1,
     alignItems: 'center',

@@ -32,7 +32,7 @@ export type SmartDrawerSyncState =
 export type SmartDrawerAsset = {
   id: string;
   uri: string;
-  kind: 'SCAN' | 'PHOTO' | 'IMPORT';
+  kind: 'SCAN' | 'PHOTO' | 'IMPORT' | 'FILE';
   mimeType?: string | null;
   width?: number | null;
   height?: number | null;
@@ -54,6 +54,9 @@ export type SmartDrawerItem = {
   body: string;
   extractedText: string;
   location: string;
+  folderId: string | null;
+  expiresAt: string | null;
+  protectedFromExpiry: boolean;
   dueAt: string | null;
   eventAt: string | null;
   status: SmartDrawerItemStatus;
@@ -67,6 +70,13 @@ export type SmartDrawerItem = {
   deletedAt: string | null;
   revision: number;
   syncState: SmartDrawerSyncState;
+};
+
+export type SmartDrawerFolder = {
+  id: string;
+  userId: string;
+  name: string;
+  createdAt: string;
 };
 
 export type SmartDrawerDraft = Partial<

@@ -10,6 +10,7 @@ import type {
   SmartDrawerItem,
   SmartDrawerItemStatus,
   SmartDrawerItemType,
+  SmartDrawerFolder,
   SmartDrawerQuery,
   SmartDrawerSummary,
   SmartDrawerSyncState,
@@ -23,6 +24,10 @@ let dbPromise: Promise<any> | null = null;
 
 function webKey(userId: string) {
   return `${WEB_PREFIX}${userId}`;
+}
+
+function folderKey(userId: string) {
+  return `${WEB_PREFIX}folders/${userId}`;
 }
 
 function cleanText(value: unknown) {
@@ -75,6 +80,9 @@ function rowToItem(row: any): SmartDrawerItem {
     body: String(row.body ?? ''),
     extractedText: String(row.extracted_text ?? ''),
     location: String(row.location ?? ''),
+    folderId: row.folder_id ?? null,
+    expiresAt: row.expires_at ?? null,
+    protectedFromExpiry: Number(row.protected_from_expiry ?? 0) === 1,
     dueAt: row.due_at ?? null,
     eventAt: row.event_at ?? null,
     status: row.status,
@@ -108,6 +116,12 @@ function normalizeItem(
       draft.extractedText ?? previous?.extractedText ?? '',
     ),
     location: cleanText(draft.location ?? previous?.location ?? ''),
+    folderId: draft.folderId !== undefined ? draft.folderId : previous?.folderId ?? null,
+    expiresAt: draft.expiresAt !== undefined ? draft.expiresAt : previous?.expiresAt ?? null,
+    protectedFromExpiry: Boolean(draft.protectedFromExpiry ?? previous?.protectedFromExpiry ??
+      ['DOCUMENT', 'RECEIPT', 'CONTACT_REFERENCE', 'WRITING', 'POEM'].includes(
+        draft.type ?? previous?.type ?? 'QUICK_NOTE',
+      )),
     dueAt: draft.dueAt !== undefined ? draft.dueAt : previous?.dueAt ?? null,
     eventAt:
       draft.eventAt !== undefined ? draft.eventAt : previous?.eventAt ?? null,
@@ -151,6 +165,9 @@ async function nativeDb() {
           body TEXT NOT NULL DEFAULT '',
           extracted_text TEXT NOT NULL DEFAULT '',
           location TEXT NOT NULL DEFAULT '',
+          folder_id TEXT,
+          expires_at TEXT,
+          protected_from_expiry INTEGER NOT NULL DEFAULT 0,
           due_at TEXT,
           event_at TEXT,
           status TEXT NOT NULL DEFAULT 'ACTIVE',
@@ -183,7 +200,26 @@ async function nativeDb() {
 
         CREATE INDEX IF NOT EXISTS drawer_search_token_idx
           ON drawer_search_tokens(user_id, token);
+
+        CREATE TABLE IF NOT EXISTS drawer_folders (
+          id TEXT PRIMARY KEY NOT NULL,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS drawer_folders_user_name_idx
+          ON drawer_folders(user_id, name);
       `);
+      // Existing installations predate folders and content-expiry columns.
+      const columns = await db.getAllAsync('PRAGMA table_info(drawer_items)');
+      const names = new Set(columns.map((column: any) => column.name));
+      if (!names.has('folder_id')) await db.execAsync('ALTER TABLE drawer_items ADD COLUMN folder_id TEXT');
+      if (!names.has('expires_at')) await db.execAsync('ALTER TABLE drawer_items ADD COLUMN expires_at TEXT');
+      if (!names.has('protected_from_expiry')) {
+        await db.execAsync('ALTER TABLE drawer_items ADD COLUMN protected_from_expiry INTEGER NOT NULL DEFAULT 0');
+        await db.execAsync("UPDATE drawer_items SET protected_from_expiry=1 WHERE type IN ('DOCUMENT','RECEIPT','CONTACT_REFERENCE','WRITING','POEM')");
+      }
+      await db.execAsync('CREATE INDEX IF NOT EXISTS drawer_items_user_expiry_idx ON drawer_items(user_id, status, expires_at)');
       return db;
     })();
   }
@@ -193,7 +229,13 @@ async function nativeDb() {
 async function readWeb(userId: string): Promise<SmartDrawerItem[]> {
   const raw = await AsyncStorage.getItem(webKey(userId));
   const rows = parseJson<SmartDrawerItem[]>(raw, []);
-  return rows.filter(row => row.userId === userId);
+  return rows.filter(row => row.userId === userId).map(row => ({
+    ...row,
+    folderId: row.folderId ?? null,
+    expiresAt: row.expiresAt ?? null,
+    protectedFromExpiry: row.protectedFromExpiry ??
+      ['DOCUMENT', 'RECEIPT', 'CONTACT_REFERENCE', 'WRITING', 'POEM'].includes(row.type),
+  }));
 }
 
 async function writeWeb(
@@ -206,6 +248,85 @@ async function writeWeb(
 export async function initializeSmartDrawerStore() {
   if (Platform.OS === 'web') return;
   await nativeDb();
+}
+
+export async function listSmartDrawerFolders(userId: string): Promise<SmartDrawerFolder[]> {
+  if (!userId) return [];
+  if (Platform.OS === 'web') {
+    const rows = parseJson<SmartDrawerFolder[]>(await AsyncStorage.getItem(folderKey(userId)), []);
+    return rows.filter(row => row.userId === userId).sort((a, b) => a.name.localeCompare(b.name));
+  }
+  const db = await nativeDb();
+  const rows = await db.getAllAsync(
+    'SELECT id, user_id, name, created_at FROM drawer_folders WHERE user_id=? ORDER BY name COLLATE NOCASE', userId,
+  );
+  return rows.map((row: any) => ({ id: row.id, userId: row.user_id, name: row.name, createdAt: row.created_at }));
+}
+
+export async function createSmartDrawerFolder(userId: string, rawName: string) {
+  if (!userId) throw new Error('Sign in to create a folder.');
+  const name = rawName.trim();
+  if (!name || name.length > 100) throw new Error('Enter a folder name (up to 100 characters).');
+  const existing = await listSmartDrawerFolders(userId);
+  if (existing.some(folder => folder.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+    throw new Error('A folder with this name already exists.');
+  }
+  const folder: SmartDrawerFolder = { id: Crypto.randomUUID(), userId, name, createdAt: new Date().toISOString() };
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem(folderKey(userId), JSON.stringify([...existing, folder]));
+  } else {
+    const db = await nativeDb();
+    await db.runAsync('INSERT INTO drawer_folders(id,user_id,name,created_at) VALUES(?,?,?,?)',
+      folder.id, userId, name, folder.createdAt);
+  }
+  return folder;
+}
+
+export async function renameSmartDrawerFolder(userId: string, folderId: string, rawName: string) {
+  const name = rawName.trim();
+  if (!name || name.length > 100) throw new Error('Enter a folder name (up to 100 characters).');
+  const rows = await listSmartDrawerFolders(userId);
+  const folder = rows.find(row => row.id === folderId);
+  if (!folder) throw new Error('Folder not found.');
+  if (rows.some(row => row.id !== folderId && row.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+    throw new Error('A folder with this name already exists.');
+  }
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem(folderKey(userId), JSON.stringify(rows.map(row =>
+      row.id === folderId ? { ...row, name } : row)));
+  } else {
+    const db = await nativeDb();
+    await db.runAsync('UPDATE drawer_folders SET name=? WHERE id=? AND user_id=?', name, folderId, userId);
+  }
+}
+
+/** Deleting a folder never deletes its notes; they become Unfiled. */
+export async function deleteSmartDrawerFolder(userId: string, folderId: string) {
+  const folder = (await listSmartDrawerFolders(userId)).find(row => row.id === folderId);
+  if (!folder) throw new Error('Folder not found.');
+  if (Platform.OS === 'web') {
+    const rows = await readWeb(userId);
+    await writeWeb(userId, rows.map(row => row.folderId === folderId
+      ? { ...row, folderId: null, updatedAt: new Date().toISOString() } : row));
+    await AsyncStorage.setItem(folderKey(userId), JSON.stringify(
+      (await listSmartDrawerFolders(userId)).filter(row => row.id !== folderId),
+    ));
+  } else {
+    const db = await nativeDb();
+    await db.withTransactionAsync(async () => {
+      await db.runAsync('UPDATE drawer_items SET folder_id=NULL WHERE user_id=? AND folder_id=?', userId, folderId);
+      await db.runAsync('DELETE FROM drawer_folders WHERE id=? AND user_id=?', folderId, userId);
+    });
+  }
+}
+
+export async function moveSmartDrawerItemToFolder(userId: string, itemId: string, folderId: string | null) {
+  if (folderId && !(await listSmartDrawerFolders(userId)).some(folder => folder.id === folderId)) {
+    throw new Error('Target folder no longer exists.');
+  }
+  const item = await getSmartDrawerItem(userId, itemId);
+  if (!item) throw new Error('Note not found.');
+  return saveSmartDrawerItem(userId, { ...item, folderId });
 }
 
 export async function getSmartDrawerItem(
@@ -249,7 +370,7 @@ export async function saveSmartDrawerItem(
     const index = rows.findIndex(row => row.id === item.id);
     if (index >= 0) rows[index] = item;
     else rows.unshift(item);
-    await writeWeb(userId, rows.slice(0, 10_000));
+    await writeWeb(userId, rows);
     return item;
   }
 
@@ -257,16 +378,19 @@ export async function saveSmartDrawerItem(
   await db.withTransactionAsync(async () => {
     await db.runAsync(
       `INSERT INTO drawer_items(
-        id,user_id,type,title,body,extracted_text,location,due_at,event_at,
+        id,user_id,type,title,body,extracted_text,location,folder_id,expires_at,protected_from_expiry,due_at,event_at,
         status,keep_on_top,reminder_muted,reminder_ids_json,list_items_json,
         assets_json,created_at,updated_at,deleted_at,revision,sync_state
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(id) DO UPDATE SET
         type=excluded.type,
         title=excluded.title,
         body=excluded.body,
         extracted_text=excluded.extracted_text,
         location=excluded.location,
+        folder_id=excluded.folder_id,
+        expires_at=excluded.expires_at,
+        protected_from_expiry=excluded.protected_from_expiry,
         due_at=excluded.due_at,
         event_at=excluded.event_at,
         status=excluded.status,
@@ -287,6 +411,9 @@ export async function saveSmartDrawerItem(
       item.body,
       item.extractedText,
       item.location,
+      item.folderId,
+      item.expiresAt,
+      item.protectedFromExpiry ? 1 : 0,
       item.dueAt,
       item.eventAt,
       item.status,
@@ -349,7 +476,13 @@ function itemMatchesView(item: SmartDrawerItem, view: string) {
   const due = item.dueAt ? Date.parse(item.dueAt) : NaN;
   const active = item.status === 'ACTIVE';
 
+  if (view.startsWith('folder:')) return active && item.folderId === view.slice(7);
   switch (view.toLowerCase()) {
+    case 'expired-items':
+      return active && !item.protectedFromExpiry && !item.keepOnTop &&
+        !!item.expiresAt && Date.parse(item.expiresAt) <= now;
+    case 'future-reminders':
+      return active && Number.isFinite(due) && due > now && !item.reminderMuted;
     case 'due-soon':
       return (
         active &&
@@ -399,7 +532,18 @@ function nativeViewWhere(view: string) {
     Date.now() + 7 * 24 * 60 * 60 * 1000,
   ).toISOString();
 
+  if (normalized.startsWith('folder:')) return {
+    sql: "i.status='ACTIVE' AND i.folder_id=?",
+    params: [view.slice(7)],
+  };
   switch (normalized) {
+    case 'expired-items':
+      return { sql: "i.status='ACTIVE' AND i.protected_from_expiry=0 AND i.keep_on_top=0 AND i.expires_at IS NOT NULL AND i.expires_at<=?", params: [nowIso] };
+    case 'future-reminders':
+      return {
+        sql: "i.status='ACTIVE' AND i.reminder_muted=0 AND i.due_at IS NOT NULL AND i.due_at>?",
+        params: [nowIso],
+      };
     case 'due-soon':
       return {
         sql: "i.status='ACTIVE' AND i.due_at IS NOT NULL AND i.due_at>=? AND i.due_at<=?",
@@ -474,6 +618,9 @@ function nativeViewWhere(view: string) {
 }
 
 function nativeOrderBy(view: string) {
+  if (view.toLowerCase() === 'future-reminders') {
+    return { sql: 'ORDER BY i.due_at ASC, i.id ASC', params: [] };
+  }
   if (view.toLowerCase() === 'for-you') {
     const now = Date.now();
     return {
@@ -558,7 +705,12 @@ export async function querySmartDrawerItems(
       .filter(item => itemMatchesView(item, view))
       .filter(item => !search || itemMatchesSearch(item, search));
 
-    if (view === 'for-you') {
+    if (view === 'future-reminders') {
+      filtered.sort((a, b) =>
+        Date.parse(a.dueAt ?? '') - Date.parse(b.dueAt ?? '') ||
+        a.id.localeCompare(b.id),
+      );
+    } else if (view === 'for-you') {
       filtered.sort((a, b) => relevanceScore(b) - relevanceScore(a));
     } else {
       filtered.sort(

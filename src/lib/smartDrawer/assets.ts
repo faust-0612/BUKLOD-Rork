@@ -4,10 +4,18 @@ import { Platform } from 'react-native';
 
 import type { SmartDrawerAsset } from './types';
 
-function extensionFromUri(uri: string) {
-  const clean = uri.split('?')[0] ?? uri;
+function extensionFromUri(uri: string, originalName?: string | null, mimeType?: string | null) {
+  const clean = (originalName || uri).split('?')[0] ?? uri;
   const match = clean.match(/\.([a-zA-Z0-9]{2,5})$/);
-  return match ? `.${match[1].toLowerCase()}` : '.jpg';
+  if (match) return `.${match[1].toLowerCase()}`;
+  const fromMime: Record<string, string> = {
+    'application/pdf': '.pdf',
+    'text/plain': '.txt',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+  };
+  return fromMime[mimeType ?? ''] ?? '.bin';
 }
 
 function safeUserId(userId: string) {
@@ -42,7 +50,7 @@ export async function persistSmartDrawerAsset(input: {
     `${FileSystem.documentDirectory}smart-drawer/${safeUserId(input.userId)}/`;
   await FileSystem.makeDirectoryAsync(root, { intermediates: true });
 
-  const extension = extensionFromUri(input.uri);
+  const extension = extensionFromUri(input.uri, input.originalName, input.mimeType);
   const destination = `${root}${id}${extension}`;
 
   if (input.uri !== destination) {

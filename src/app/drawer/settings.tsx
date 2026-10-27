@@ -25,6 +25,7 @@ import {
   type SmartDrawerSettings,
 } from '@/lib/smartDrawer/settings';
 import { useAuth } from '@/providers/AuthProvider';
+import { refreshUpcomingSmartDrawerReminders } from '@/lib/smartDrawer/service';
 
 const STYLES: Array<{
   key: SmartDrawerReminderStyle;
@@ -99,7 +100,17 @@ export default function SmartDrawerSettingsScreen() {
           settings,
         );
       setSettings(next);
-      setNotice('Drawer settings saved on this account.');
+      setNotice('Settings saved. Updating upcoming reminders…');
+      try {
+        const result = await refreshUpcomingSmartDrawerReminders(user.id);
+        setNotice(
+          `Settings saved. ${result.updated} upcoming item(s) updated.` +
+          (result.failed ? ` ${result.failed} need another attempt.` : '') +
+          (result.more ? ' Other future reminders keep their existing schedule until refreshed.' : ''),
+        );
+      } catch {
+        setNotice('Settings saved. Reminder refresh needs another attempt.');
+      }
     } catch (error) {
       setNotice(
         error instanceof Error

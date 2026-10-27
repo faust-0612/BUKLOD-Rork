@@ -1,4 +1,4 @@
-import {createContext,ReactNode,useCallback,useContext,useEffect,useMemo,useState} from 'react';
+import {createContext,ReactNode,useCallback,useContext,useEffect,useMemo,useRef,useState} from 'react';
 import {Alert,AppState,InteractionManager,Platform} from 'react-native';
 import * as Notifications from 'expo-notifications';
 import {router} from 'expo-router';
@@ -6,6 +6,7 @@ import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {registerPushToken} from '@/lib/pushNotifications';
+import { cancelSmartDrawerRemindersForOtherUsers, cancelSmartDrawerRemindersForUser } from '@/lib/smartDrawer/reminders';
 import { classifyBuklodNotificationSound, isBuklodMessageThreadOpen, playBuklodCue } from '@/lib/buklodSounds';
 import { syncScopeSelection } from '@/lib/buklodScopeRoute';
 import { resolveBuklodNotificationTarget } from '@/lib/buklodNotificationNavigation';
@@ -28,7 +29,7 @@ Notifications.setNotificationHandler({handleNotification:async n=>({
  shouldShowList:true,
  // Expo owns background notifications. In the foreground BUKLOD plays one
  // rate-limited event cue instead of a second system sound.
- shouldPlaySound:['community_emergency','ptt_sos','ptt_priority','ptt_incoming'].includes(String(n.request.content.data?.kind||'')),
+ shouldPlaySound:['community_emergency','ptt_sos','ptt_priority','ptt_incoming','smart_drawer_reminder','smart_drawer_shared_reminder'].includes(String(n.request.content.data?.kind||'')),
  shouldSetBadge:true,
 } as any)});
 
@@ -36,6 +37,19 @@ export function NotificationProvider({children}:{children:ReactNode}){
  const {user}=useAuth();
  const {scopes,selectScope,activeScope}=useBuklodScope();
  const [unreadCount,setUnreadCount]=useState(0);
+ const previousDrawerAccount=useRef<string|null>(null);
+ useEffect(()=>{
+  const current=user?.id??null;
+  const previous=previousDrawerAccount.current;
+  previousDrawerAccount.current=current;
+  if(Platform.OS==='web')return;
+  if(previous&&previous!==current){
+   void cancelSmartDrawerRemindersForUser(previous).catch(e=>console.warn('Drawer account reminder cleanup',e));
+  }
+  if(current){
+   void cancelSmartDrawerRemindersForOtherUsers(current).catch(e=>console.warn('Drawer stale reminder cleanup',e));
+  }
+ },[user?.id]);
  useEffect(()=>{
   if(!user?.id)return;
   const task=InteractionManager.runAfterInteractions(()=>{
@@ -51,6 +65,11 @@ export function NotificationProvider({children}:{children:ReactNode}){
  const markAllRead=useCallback(async()=>{if(!user?.id)return;const {error}=await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('user_id',user.id).is('read_at',null);if(error)throw error;await refreshUnread()},[user?.id,refreshUnread]);
 
  const openNotification=useCallback(async(kind:string,data:any)=>{
+  // Never open a private Drawer item after the account on this device changed.
+  if(data?.source==='smart-drawer' && data?.userId!==user?.id){
+   router.push('/drawer' as any);
+   return;
+  }
   if(kind==='community_emergency'&&data?.help_request_id){
    router.push(`/buklod?help_request_id=${encodeURIComponent(String(data.help_request_id))}` as any);
    return;
@@ -68,7 +87,7 @@ export function NotificationProvider({children}:{children:ReactNode}){
   }
 
   router.push(target.path as any);
- },[scopes,selectScope,activeScope?.scope_id]);
+ },[scopes,selectScope,activeScope?.scope_id,user?.id]);
 
  /* PERF_STARTUP_R1: channel + permission work after first interactions */
  useEffect(()=>{
@@ -130,12 +149,15 @@ export function NotificationProvider({children}:{children:ReactNode}){
   });
 
   const receivedSub=Notifications.addNotificationReceivedListener(notification=>{
+   const data:any=notification.request.content.data||{};
+   // Local scheduled alarms do not create an unread database notification.
+   // Counting them here used to produce a phantom inbox badge.
+   if(data.source==='smart-drawer')return;
    setUnreadCount(current=>{
     const next=current+1;
     void badge(next);
     return next;
    });
-   const data:any=notification.request.content.data||{};
    const kind=String(data.kind||'');
    if(['community_emergency','ptt_sos','ptt_priority','ptt_incoming'].includes(kind)) return;
    const cue=classifyBuklodNotificationSound(kind);
