@@ -1,0 +1,24 @@
+{
+  "objective": "Coalesce repeated Community Wall media reads and make pending compatible OTA visible to long-running native clients",
+  "baseRef": "03ac303a436130fd031915b534440b712ffb610f",
+  "productionBaselineEvidence": "Main source at 03ac303a436130fd031915b534440b712ffb610f and repository-reported production Android runtime 1.3.2. Earlier successful OTA evidence includes workflow 40433463200 and source b7be8206dfad656e1138be00f22443eda0506679. These records are not a fresh live-device verification; release must still verify frozen RC and exact update.",
+  "allowedPaths": [
+    "__tests__/buklodMediaBurstShield.test.ts",
+    "src/app/_layout.tsx",
+    "src/components/BuklodOtaFreshnessHost.native.tsx",
+    "src/components/BuklodOtaFreshnessHost.tsx",
+    "src/lib/buklodCommunityPostMedia.ts",
+    "src/lib/buklodR4RequestShield.ts",
+    ".buklod/scopes/buklod-scale-media-ota-20261028.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "No paid service, native dependency, database schema change or broad client refactor",
+    "Concurrent and cross-user cache isolation regression tests",
+    "Mutation invalidates pending and completed media reads",
+    "Only safe media v2 reads get a 2.5 second TTL; Finance/QMP remains uncached",
+    "Native-only staggered six-hour foreground OTA check with user-confirmed restart",
+    "TypeScript, Jest, Performance QA and Engineering Accountability must pass",
+    "Exact runtime 1.3.2 compatibility, frozen RC and Android production OTA require separate release gates"
+  ]
+}
