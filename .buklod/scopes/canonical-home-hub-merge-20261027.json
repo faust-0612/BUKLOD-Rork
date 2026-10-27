@@ -1,0 +1,32 @@
+{
+  "objective": "Reconcile retired Public Home destinations with one canonical lightweight Home containing drawer PTT daily encouragement Quiz announcements and bulletins",
+  "baseRef": "03e744480bfc773f1003f4941e5de1e5be7f91f2",
+  "productionBaselineEvidence": "Inspected GitHub main at 03e744480bfc773f1003f4941e5de1e5be7f91f2. Last independently reported Android Production OTA 01a16b21-12af-77a0-814a-218a5f5c22ea runtime 1.3.2 source 14247804dad87dc23f0b3adeaba88c31e3b6697d, but current live release fingerprint and exact RC not verified in this PR; do not infer DEV is live.",
+  "allowedPaths": [
+    ".buklod/scopes/canonical-home-hub-merge-20261027.json",
+    ".github/workflows/engineering-accountability.yml",
+    "scripts/test-navigation-home-wall.cjs",
+    "src/app/(auth)/login.tsx",
+    "src/app/(auth)/register.tsx",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/handle-share.tsx",
+    "src/app/reflection/[id].tsx",
+    "src/app/scope/delete.tsx",
+    "src/components/BuklodCanonicalNavigationGuard.tsx",
+    "src/components/BuklodCanonicalNavigationGuard.web.tsx",
+    "src/components/BuklodDesktopWebShell.tsx",
+    "src/components/BuklodEntitlementRouteGuard.tsx",
+    "src/components/home/BuklodHomeMergedUpdates.tsx",
+    "src/lib/buklodPrimaryTabNavigation.ts",
+    "src/lib/buklodScopeRoute.ts"
+  ],
+  "acceptanceChecks": [
+    "Old /home is a non-rendering compatibility alias; PUBLIC to /hub and Organization/Cluster to their scoped Home",
+    "Home merges lazily available announcement, secure BUKLOD Quiz entry, and bulletins, while daily encouragement remains in the shared context bar",
+    "Login, signup, incoming share cancel and deleted-scope completion enter the Community Wall; reflection completion enters /hub",
+    "Drawer, native PTT, BUKLOD Today, Map and SOS remain on canonical Home; no duplicate heavy polling on inactive screens",
+    "node scripts/test-navigation-home-wall.cjs plus TypeScript Performance QA and Engineering Accountability must pass",
+    "Before any OTA, reconcile live source, freeze RC, verify Android runtime 1.3.2 and exact production publication"
+  ]
+}

@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/canonical-home-hub-merge-20261027)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/canonical-home-hub-merge-20261027.json" >> "$GITHUB_ENV";;
             fix/recovery-action-feedback-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/recovery-action-feedback-20261027.json" >> "$GITHUB_ENV";;
             fix/offline-connect-faith-20261027)
@@ -102,7 +104,7 @@ jobs:
           console.log('SHOW FAITH STATIC CONTRACT PASS (live role tests still required)');
           NODE
       - name: Verify navigation and scope transitions
-        if: github.head_ref == 'codex/nav-home-wall-isolation-20261024' || github.ref_name == 'codex/nav-home-wall-isolation-20261024'
+        if: github.head_ref == 'codex/nav-home-wall-isolation-20261024' || github.ref_name == 'codex/nav-home-wall-isolation-20261024' || github.head_ref == 'fix/canonical-home-hub-merge-20261027'
         run: node scripts/test-navigation-home-wall.cjs
       - name: Verify media signed URL cache
         if: github.head_ref == 'fix/video-stale-signed-url-20261024'
