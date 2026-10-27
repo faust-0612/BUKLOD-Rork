@@ -173,7 +173,19 @@ function InactiveCommunityVideo({
         { height },
       ]}
     >
-      <View style={styles.video} />
+      <View style={styles.inactiveVideo}>
+        <MaterialCommunityIcons
+          name="play-circle-outline"
+          size={58}
+          color="#B7E4D5"
+        />
+        <Text style={styles.inactiveLabel}>
+          Video · I-tap para i-play
+        </Text>
+        <Text style={styles.inactiveHint}>
+          Data saver sa mahinang signal
+        </Text>
+      </View>
 
       <Pressable
         accessibilityRole="button"
@@ -188,14 +200,6 @@ function InactiveCommunityVideo({
         }}
         style={styles.tapLayer}
       />
-
-      <View pointerEvents="none" style={styles.centerButton}>
-        <MaterialCommunityIcons
-          name="play"
-          size={34}
-          color="#FFFFFF"
-        />
-      </View>
 
       {knownDuration > 0 ? (
         <View
@@ -447,15 +451,12 @@ function ExpoCommunityVideo({
   >('idle');
   const replayAttemptsRef = useRef(0);
   const centerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const readyStartedAtRef = useRef(Date.now());
+  const readyReportedRef = useRef(false);
 
   useEffect(() => {
-    recordCommunityFeedMetric({
-      stage: 'video_player',
-      elapsedMs: 0,
-      status: 'ok',
-      player: 'expo-video',
-      cache: 'miss',
-    });
+    readyStartedAtRef.current = Date.now();
+    readyReportedRef.current = false;
   }, [uri]);
 
   const source = useMemo(
@@ -504,12 +505,30 @@ function ExpoCommunityVideo({
         }
 
         if (nextStatus === 'error') {
+          if (!readyReportedRef.current) {
+            readyReportedRef.current = true;
+            recordCommunityFeedMetric({
+              stage: 'video_player',
+              elapsedMs: Date.now() - readyStartedAtRef.current,
+              status: 'error',
+              player: 'expo-video',
+            });
+          }
           // Keep the same URI mounted. A transient fault must not
           // immediately rotate the signed URL and discard cached bytes.
           return;
         }
 
         if (nextStatus === 'readyToPlay') {
+          if (!readyReportedRef.current) {
+            readyReportedRef.current = true;
+            recordCommunityFeedMetric({
+              stage: 'video_player',
+              elapsedMs: Date.now() - readyStartedAtRef.current,
+              status: 'ok',
+              player: 'expo-video',
+            });
+          }
           const known = Number(player.duration || 0);
           if (known > 0) setDuration(known);
 
@@ -879,6 +898,28 @@ const styles =
     video: {
       width: '100%',
       height: '100%',
+    },
+
+    inactiveVideo: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#142D31',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 28,
+    },
+    inactiveLabel: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '700',
+      marginTop: 8,
+      textAlign: 'center',
+    },
+    inactiveHint: {
+      color: '#B7D0CD',
+      fontSize: 12,
+      marginTop: 4,
+      textAlign: 'center',
     },
 
     tapLayer: {

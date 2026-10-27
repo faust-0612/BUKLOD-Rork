@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 type Props = {
   uri: string;
@@ -42,6 +42,10 @@ export function CommunityVideo({
   onPlaybackError,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    setReady(false);
+  }, [uri, active]);
   const duration =
     Number(expectedDurationSeconds ?? 0) > 0
       ? formatDuration(Number(expectedDurationSeconds))
@@ -77,11 +81,15 @@ export function CommunityVideo({
     React.createElement('video', {
       ref: videoRef,
       key: uri,
-      src: uri,
+      // Do not download metadata for every offscreen Feed row.
+      src: active ? uri : undefined,
       controls: true,
-      preload: 'metadata',
+      preload: active ? 'metadata' : 'none',
       playsInline: true,
-      autoPlay,
+      autoPlay: autoPlay && active,
+      onLoadedData: () => setReady(true),
+      onPlaying: () => setReady(true),
+      onWaiting: () => setReady(false),
       muted: !fullscreen,
       loop: !fullscreen,
       onError: () => {
@@ -95,6 +103,25 @@ export function CommunityVideo({
         background: '#111',
       },
     }),
+    active && !ready
+      ? React.createElement(
+          'div',
+          {
+            style: {
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: '44%',
+              color: '#CDE7DD',
+              textAlign: 'center',
+              fontSize: 13,
+              fontWeight: 600,
+              pointerEvents: 'none',
+            },
+          },
+          'Ihahanda ang video…',
+        )
+      : null,
     onOpenFullscreen && !fullscreen
       ? React.createElement(
           'button',

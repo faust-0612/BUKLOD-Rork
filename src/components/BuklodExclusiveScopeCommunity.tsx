@@ -1598,9 +1598,9 @@ export default function BuklodExclusiveScopeCommunity({
         snapshot.communityGif
           ? 'Uploading GIF in the background…'
           : snapshot.publishingReel || snapshot.wallVideo
-          ? 'Uploading video in the background…'
+          ? 'Uploading video… Keep BUKLOD open'
           : snapshot.photos.length
-            ? 'Uploading photos in the background…'
+            ? 'Uploading photos… Keep BUKLOD open'
             : 'Posting in the background…'
       );
 
@@ -1751,7 +1751,7 @@ export default function BuklodExclusiveScopeCommunity({
                 progress.ratio
               );
               setPublishNotice(
-                `Uploading video in the background… ${Math.round(progress.ratio * 100)}%`
+                `Uploading video… Keep BUKLOD open ${Math.round(progress.ratio * 100)}%`
               );
             },
           });
@@ -1815,7 +1815,7 @@ export default function BuklodExclusiveScopeCommunity({
                 progress.ratio
               );
               setPublishNotice(
-                `Uploading video in the background… ${Math.round(progress.ratio * 100)}%`
+                `Uploading video… Keep BUKLOD open ${Math.round(progress.ratio * 100)}%`
               );
             },
           });
@@ -3228,7 +3228,7 @@ return (
                     media_mime_type: item.media_mime_type,
                   }
                 )}
-                height={330}
+                preserveSinglePhotoAspectRatio
                 onPressPhoto={(index, photos) =>
                   setPhotoViewer({
                     uris: photos.map(photo =>
