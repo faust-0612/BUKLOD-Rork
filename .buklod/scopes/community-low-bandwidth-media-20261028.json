@@ -1,0 +1,25 @@
+{
+  "objective": "Protect Community Wall and Marites media on very weak Wi-Fi/data without paid media services or native changes",
+  "baseRef": "852ddf8a0a7c2555b175973c4520dacbc34ee1dc",
+  "productionBaselineEvidence": "Engineering Memory (2026-10-28) reports Android production runtime 1.3.2 OTA 01a17eaa-7679-7202-9c6c-948a3b69ad04. This branch is a DEV draft from later main 852ddf8 and has NOT been installed, released or device-tested.",
+  "allowedPaths": [
+    ".buklod/scopes/community-low-bandwidth-media-20261028.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/lib/buklodNetworkQuality.ts",
+    "src/lib/communityMediaPrefetch.ts",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/lib/communityPhotoUploadPolicy.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "__tests__/communityPhotoUploadPolicy.test.ts",
+    "__tests__/communityWeakNetworkP0.test.ts"
+  ],
+  "acceptanceChecks": [
+    "No new paid CDN, transcoding provider, native dependency, backend schema, RLS or production data change",
+    "Degraded/offline quality does no speculative photo downloads; healthy prefetch caps at two shared in-flight loads",
+    "Marites quick video uses expo-video bounded persistent byte-range cache for HTTP(S)",
+    "New Community JPEG photo upload bounds longest image edge at 1600 px when dimensions are available, avoids needless upscaling and uses 0.78 quality",
+    "Maintain signing authorization, Google IMA ads, existing cache-key path, private media access and upload recovery behavior",
+    "Jest policy/weak-network tests, TypeScript, scope/Performance/Integration QA and real Android slow-link smoke before promotion",
+    "DEV -> verified immutable RC -> production OTA only after release gates; no auto release from this branch"
+  ]
+}

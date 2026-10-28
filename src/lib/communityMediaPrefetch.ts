@@ -24,8 +24,12 @@ type PrefetchDeps = {
   load: (item: CommunityMediaPrefetchItem) => Promise<void>;
 };
 
-const inFlight = new Map<string, Promise<'hit' | 'miss' | 'deduped'>>();
+type PrefetchResult = 'hit' | 'miss' | 'deduped' | 'skipped';
+
+const inFlight = new Map<string, Promise<PrefetchResult>>();
 let activeLoads = 0;
+// Different feed instances may prefetch concurrently; enforce one shared cap.
+const MAX_BACKGROUND_MEDIA_LOADS = 2;
 
 function itemKey(item: CommunityMediaPrefetchItem) {
   return item.cacheKey || item.uri;
@@ -72,18 +76,27 @@ export function planCommunityMediaPrefetch(
 async function prefetchOne(
   item: CommunityMediaPrefetchItem,
   deps: PrefetchDeps,
-): Promise<'hit' | 'miss' | 'deduped'> {
+): Promise<PrefetchResult> {
   const key = itemKey(item);
   const pending = inFlight.get(key);
   if (pending) {
-    await pending;
-    return 'deduped';
+    const result = await pending;
+    return result === 'skipped' ? 'skipped' : 'deduped';
   }
 
   const task = (async () => {
     if (item.cacheKey && deps.getCachePath) {
       const cached = await deps.getCachePath(item.cacheKey).catch(() => null);
       if (cached) return 'hit' as const;
+    }
+
+    // A new poor-network measurement may arrive after the batch was
+    // planned. Drop speculative work rather than blocking visible downloads.
+    if (
+      classifyNetworkQuality() !== 'normal' ||
+      activeLoads >= MAX_BACKGROUND_MEDIA_LOADS
+    ) {
+      return 'skipped' as const;
     }
 
     activeLoads += 1;
@@ -130,6 +143,7 @@ export async function runCommunityMediaPrefetch(
   let cursor = 0;
   let hits = 0;
   let misses = 0;
+  let skipped = 0;
   const started = Date.now();
 
   async function worker() {
@@ -138,6 +152,7 @@ export async function runCommunityMediaPrefetch(
       cursor += 1;
       const result = await prefetchOne(job, deps).catch(() => 'miss' as const);
       if (result === 'hit' || result === 'deduped') hits += 1;
+      else if (result === 'skipped') skipped += 1;
       else misses += 1;
     }
   }
@@ -154,14 +169,14 @@ export async function runCommunityMediaPrefetch(
     elapsedMs: Date.now() - started,
     status: 'ok',
     cache: misses ? 'miss' : 'hit',
-    prefetchCount: plan.jobs.length,
+    prefetchCount: hits + misses,
     prefetchInFlight: activeLoads,
     quality,
     offline: quality === 'offline',
     degraded: quality === 'degraded',
   });
 
-  return { ...plan, hits, misses };
+  return { ...plan, hits, misses, skipped };
 }
 
 function defaultPrefetchDeps(): PrefetchDeps {
@@ -182,7 +197,7 @@ function defaultPrefetchDeps(): PrefetchDeps {
         return;
       }
 
-      await ExpoImage.prefetch(item.uri, 'memory-disk');
+      await ExpoImage.prefetch(item.uri, 'disk');
     },
   };
 }

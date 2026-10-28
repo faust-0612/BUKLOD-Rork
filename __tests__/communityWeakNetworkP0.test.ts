@@ -207,8 +207,8 @@ describe('community weak-network feed', () => {
     expect(classifyNetworkQuality()).toBe('degraded');
     expect(communityFirstPageLimit('degraded')).toBe(8);
     expect(communityPhotoPrefetchBudget('degraded')).toEqual({
-      concurrency: 2,
-      burst: 8,
+      concurrency: 0,
+      burst: 0,
     });
 
     noteMeasuredRead(4000, false);
@@ -245,11 +245,11 @@ describe('community weak-network feed', () => {
       'normal',
     );
     expect(plan.jobs).toHaveLength(2);
-    expect(plan.concurrency).toBe(4);
+    expect(plan.concurrency).toBe(2);
 
     const loaded: string[] = [];
     await runCommunityMediaPrefetch(plan.jobs, {
-      quality: 'degraded',
+      quality: 'normal',
       deps: {
         getCachePath: async key =>
           key.endsWith('a.jpg') ? '/cache/a.jpg' : null,
@@ -260,6 +260,15 @@ describe('community weak-network feed', () => {
     });
 
     expect(loaded).toEqual(['community-media:photos/b.jpg']);
+    expect(planCommunityMediaPrefetch(plan.jobs, 'degraded')).toMatchObject({
+      jobs: [], concurrency: 0, burst: 0,
+    });
+    await runCommunityMediaPrefetch(plan.jobs, {
+      quality: 'degraded',
+      deps: {
+        load: async () => { throw new Error('must not prefetch on weak link'); },
+      },
+    });
     const imageTypes = path.join(
       process.cwd(),
       'node_modules/expo-image/build/Image.d.ts',
@@ -275,6 +284,33 @@ describe('community weak-network feed', () => {
     );
     expect(delays[1]).toBeGreaterThan(delays[0]);
     expect(delays[2]).toBeGreaterThan(delays[1]);
+  });
+
+  test('parallel feeds share a two-request media prefetch ceiling', async () => {
+    const release = deferred<void>();
+    const loaded: string[] = [];
+    const deps = {
+      load: async (item: { uri: string }) => {
+        loaded.push(item.uri);
+        await release.promise;
+      },
+    };
+
+    const first = runCommunityMediaPrefetch(
+      ['https://cdn.example/a.jpg', 'https://cdn.example/b.jpg'],
+      { quality: 'normal', deps },
+    );
+    const second = runCommunityMediaPrefetch(
+      ['https://cdn.example/c.jpg'],
+      { quality: 'normal', deps },
+    );
+
+    // The third speculative load is dropped while two other feeds are busy.
+    expect(loaded).toHaveLength(2);
+    release.resolve();
+    const [, result] = await Promise.all([first, second]);
+    expect(result.skipped).toBe(1);
+    expect(loaded).toHaveLength(2);
   });
 
   test('video cache policy model requests missing ranges and blocks IMA byte reuse', () => {
