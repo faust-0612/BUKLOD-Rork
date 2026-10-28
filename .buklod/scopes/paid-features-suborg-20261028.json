@@ -1,0 +1,35 @@
+{
+  "objective": "Pause all unapproved paid BUKLOD offerings and remove obsolete Focus App subscription gates while enabling actual active-parent-member Sub-organization creation",
+  "baseRef": "5eba69f7f300296637df5378c582fda1d872ce35",
+  "productionBaselineEvidence": "verified: GitHub main 5eba69f7f300296637df5378c582fda1d872ce35; Supabase production migrations 20261028135405_pause_paid_enable_suborg and 20261028135444_pause_unapproved_subscription_tiers, and payment RPC permissions checked on 2026-10-28. No web/Android OTA deployed by this change.",
+  "allowedPaths": [
+    ".buklod/scopes/paid-features-suborg-20261028.json",
+    ".github/workflows/engineering-accountability.yml",
+    "__tests__/buklodCommercialCatalog.test.ts",
+    "src/app/organizations/manage.tsx",
+    "src/app/organizations/scope-manage.tsx",
+    "src/app/organizations/suborganizations.tsx",
+    "src/app/organizations/subscription.tsx",
+    "src/app/premium/index.tsx",
+    "src/app/profile/focus-apps.tsx",
+    "src/app/system/paid-features.tsx",
+    "src/components/BuklodClusterPackagesCard.tsx",
+    "src/components/BuklodFaithPaymentModal.tsx",
+    "src/components/BuklodFocusAppGate.tsx",
+    "src/components/BuklodFoundationWorkspaceNav.tsx",
+    "src/components/BuklodOrganizationFocusSubscriptionCard.tsx",
+    "src/components/BuklodScopeLessonLicensesCard.tsx",
+    "src/lib/buklodCommercialCatalog.ts",
+    "src/lib/buklodFocusAppSubscription.ts",
+    "src/lib/buklodScopeFaithAccess.ts",
+    "src/lib/buklodScopeProductAccess.ts",
+    "supabase/migrations/20261028135405_pause_paid_enable_suborg.sql",
+    "supabase/migrations/20261028135444_pause_unapproved_subscription_tiers.sql"
+  ],
+  "acceptanceChecks": [
+    "Old ₱59/₱499 Focus App paywall and paid checkout UI removed; eligible scope/role users see Focus Apps without subscription",
+    "All paid checkout entry points paused, existing payment and entitlement records preserved, FREE tier unaffected",
+    "Root Organization active members can create and list exact-parent Sub-organizations; management remains admin-only",
+    "TypeScript and focused commercial catalog tests pass, canonical main release requires separate verification"
+  ]
+}
