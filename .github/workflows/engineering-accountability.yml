@@ -191,8 +191,9 @@ jobs:
         if: github.head_ref == 'fix/offline-connect-faith-20261027'
         run: node --test tests/offline-connect-faith.test.cjs tests/daily-reading-offline.test.cjs
 
-      - name: Verify offline queue capacity and simultaneous-save durability
-        run: node --test tests/offline-queue-capacity.test.cjs tests/offline-pending-race.test.cjs
+      - name: Verify offline queue durability, paced reconnect and request-savings counters
+        if: github.head_ref == 'fix/modernization-offline-durability-20261028'
+        run: node --test tests/offline-queue-capacity.test.cjs tests/offline-pending-race.test.cjs tests/offline-reconnect-pacing.test.cjs tests/request-shield-savings.test.cjs
 
       - name: Verify referral lookup race and error handling
         if: github.head_ref == 'fix/referral-lookup-race-20261027'

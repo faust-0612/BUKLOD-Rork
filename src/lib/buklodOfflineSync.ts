@@ -432,6 +432,8 @@ export async function removePendingAction(id: string) {
 
 export async function flushPendingActions(options?: {
   onlyType?: BuklodPendingActionType;
+  /** Limit automatic reconnect replay without dropping later saved actions. */
+  maxItems?: number;
 }): Promise<{
   processed: number;
   failed: number;
@@ -443,6 +445,11 @@ export async function flushPendingActions(options?: {
 
   let processed = 0;
   let failed = 0;
+  let attempted = 0;
+  const requestedLimit = Number(options?.maxItems);
+  const maxItems = options?.maxItems == null || !Number.isFinite(requestedLimit)
+    ? Number.POSITIVE_INFINITY
+    : Math.max(1, Math.min(50, Math.floor(requestedLimit)));
 
   flushInFlight = (async () => {
     const actions = await readPendingActions();
@@ -458,6 +465,9 @@ export async function flushPendingActions(options?: {
       ) {
         continue;
       }
+
+      if (attempted >= maxItems) break;
+      attempted += 1;
 
       if (
         action.retryCount >=

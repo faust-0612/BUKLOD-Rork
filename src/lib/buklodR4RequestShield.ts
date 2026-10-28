@@ -26,10 +26,21 @@ type CacheEntry = {
 type ShieldState = {
   cache: Map<string, CacheEntry>;
   inFlight: Map<string, Promise<Snapshot>>;
+  // Only operation names + aggregate counters. Never store URLs, users,
+  // tokens, query bodies, content, or per-request diagnostics.
+  stats?: Map<string, ShieldCounters>;
+};
+
+type ShieldCounters = {
+  eligible: number;
+  upstream: number;
+  cacheHits: number;
+  inFlightShares: number;
 };
 
 const GLOBAL_KEY = '__BUKLOD_R4_REQUEST_SHIELD__';
 const MAX_ENTRIES = 300;
+const MAX_METRIC_OPERATIONS = 80;
 
 const tableTtlMs: Record<string, number> = {
   /*
@@ -137,11 +148,15 @@ const invalidatedTables = new Set(Object.keys(tableTtlMs));
 function state(): ShieldState {
   const root = globalThis as any;
   const existing = root[GLOBAL_KEY] as ShieldState | undefined;
-  if (existing?.cache && existing?.inFlight) return existing;
+  if (existing?.cache && existing?.inFlight) {
+    existing.stats ??= new Map<string, ShieldCounters>();
+    return existing;
+  }
 
   const created: ShieldState = {
     cache: new Map<string, CacheEntry>(),
     inFlight: new Map<string, Promise<Snapshot>>(),
+    stats: new Map<string, ShieldCounters>(),
   };
   root[GLOBAL_KEY] = created;
   return created;
@@ -185,6 +200,55 @@ function rpcFromUrl(rawUrl: string): string | null {
   } catch {
     return match[1];
   }
+}
+
+function recordShieldMetric(
+  rawUrl: string,
+  field: keyof ShieldCounters,
+) {
+  const stats = shield.stats;
+  if (!stats) return;
+
+  // Only allowlisted operation names, not full URL/query/auth data.
+  const operation =
+    rpcFromUrl(rawUrl) ||
+    tableFromUrl(rawUrl) ||
+    (rawUrl.includes('/storage/v1/object/sign/') ? 'storage-sign' : 'other');
+  const key = stats.has(operation) || stats.size < MAX_METRIC_OPERATIONS
+    ? operation
+    : 'other';
+  const current = stats.get(key) ?? {
+    eligible: 0,
+    upstream: 0,
+    cacheHits: 0,
+    inFlightShares: 0,
+  };
+  current[field] += 1;
+  stats.set(key, current);
+}
+
+/** Passive, device-local request reduction accounting. No database writes. */
+export function getBuklodR4RequestShieldStats() {
+  const operations = [...(shield.stats ?? new Map<string, ShieldCounters>()).entries()]
+    .map(([operation, counters]) => ({ operation, ...counters }))
+    .sort((a, b) => b.eligible - a.eligible);
+  const totals = operations.reduce(
+    (sum, entry) => ({
+      eligible: sum.eligible + entry.eligible,
+      upstream: sum.upstream + entry.upstream,
+      cacheHits: sum.cacheHits + entry.cacheHits,
+      inFlightShares: sum.inFlightShares + entry.inFlightShares,
+    }),
+    { eligible: 0, upstream: 0, cacheHits: 0, inFlightShares: 0 },
+  );
+  return {
+    ...totals,
+    savedUpstreamRequests: totals.cacheHits + totals.inFlightShares,
+    savingsPercent: totals.eligible > 0
+      ? Math.round(1000 * (totals.cacheHits + totals.inFlightShares) / totals.eligible) / 10
+      : 0,
+    operations,
+  };
 }
 
 function isStorageSignedUrlRequest(rawUrl: string, method: string): boolean {
@@ -341,20 +405,26 @@ export function createBuklodR4RequestShield(baseFetch: typeof fetch): typeof fet
     }
 
     const key = await requestKey(rawUrl, method, input, init);
+    recordShieldMetric(rawUrl, 'eligible');
     const now = Date.now();
     prune(now);
 
     const cached = shield.cache.get(key);
     if (cached && cached.expiresAt > now) {
+      recordShieldMetric(rawUrl, 'cacheHits');
       return responseFrom(cached.snapshot);
     }
 
     const pending = shield.inFlight.get(key);
-    if (pending) return responseFrom(await pending);
+    if (pending) {
+      recordShieldMetric(rawUrl, 'inFlightShares');
+      return responseFrom(await pending);
+    }
 
     // Assigned before any awaited fetch resolves; declared separately so
     // TypeScript can type-check the identity guard on the in-flight promise.
     let task: Promise<Snapshot> | null = null;
+    recordShieldMetric(rawUrl, 'upstream');
     task = (async () => {
       const response = await baseFetch(input, init);
       const snapshot = await snapshotOf(response);
@@ -377,3 +447,4 @@ export function createBuklodR4RequestShield(baseFetch: typeof fetch): typeof fet
 
   return wrapped as typeof fetch;
 }
+

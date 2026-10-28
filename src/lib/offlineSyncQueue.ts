@@ -268,6 +268,10 @@ async function processOne(item: OfflineQueueItem): Promise<void> {
 
 export async function drainOfflineQueue(options?: {
   concurrency?: number;
+  /** Max eligible actions to replay in this wave; omitted preserves manual full drain. */
+  maxItems?: number;
+  /** Auto-replay must not starve behind actions owned by another account. */
+  userId?: string | null;
 }): Promise<OfflineQueueSnapshot> {
   if (draining) return draining;
 
@@ -278,8 +282,19 @@ export async function drainOfflineQueue(options?: {
       (item) =>
         item.nextAttemptAt <= now &&
         item.attempts < item.maxAttempts &&
+        (options?.userId === undefined || item.userId === null ||
+          item.userId === options.userId) &&
         handlers.has(item.kind),
     );
+
+    // Reconnects should not flush hundreds of queued writes at once. Never
+    // truncate the stored queue: unprocessed actions stay durable for later
+    // waves and retain their original order and retry deadline.
+    const requestedLimit = Number(options?.maxItems);
+    const maxItems = options?.maxItems == null || !Number.isFinite(requestedLimit)
+      ? eligible.length
+      : Math.max(1, Math.min(50, Math.floor(requestedLimit)));
+    const wave = eligible.slice(0, maxItems);
 
     const concurrency = Math.max(
       1,
@@ -288,10 +303,10 @@ export async function drainOfflineQueue(options?: {
 
     let cursor = 0;
     const workers = Array.from(
-      { length: Math.min(concurrency, eligible.length) },
+      { length: Math.min(concurrency, wave.length) },
       async () => {
-        while (cursor < eligible.length) {
-          const item = eligible[cursor];
+        while (cursor < wave.length) {
+          const item = wave[cursor];
           cursor += 1;
           if (item) {
             await processOne(item);
