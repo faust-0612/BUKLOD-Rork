@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            feature/faith-monitoring-member-drilldown-20261028)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/faith-monitoring-member-drilldown-20261028.json" >> "$GITHUB_ENV";;
             fix/pause-unapproved-paid-features-suborg)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/paid-features-suborg-20261028.json" >> "$GITHUB_ENV";;
             chore/reconcile-show-faith-migration-version-20261028)
