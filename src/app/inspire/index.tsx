@@ -131,33 +131,6 @@ export default function InspireScreen() {
   ]);
 
 
-  if (!activeScope) {
-
-    return (
-      <View
-        style={
-          styles.loading
-        }
-      >
-        <ActivityIndicator
-          color={
-            colors.greenDark
-          }
-        />
-      </View>
-    );
-  }
-
-
-  /*
-   * Today's Encouragement is the non-religious alternative in every
-   * scope (Public, Organization, Sub-org, Cluster), not only Public.
-   */
-  if (Boolean(activeScope.show_faith_content)) {
-    return <Redirect href={'/word' as any} />;
-  }
-
-
   const language =
     useMemo(
       () =>
@@ -192,6 +165,35 @@ export default function InspireScreen() {
         language,
       ]
     );
+
+
+  if (!activeScope) {
+
+    return (
+      <View
+        style={
+          styles.loading
+        }
+      >
+        <ActivityIndicator
+          color={
+            colors.greenDark
+          }
+        />
+      </View>
+    );
+  }
+
+
+  /*
+   * Today's Encouragement is the non-religious alternative in every
+   * scope (Public, Organization, Sub-org, Cluster), not only Public.
+   */
+  if (Boolean(activeScope.show_faith_content)) {
+    return <Redirect href={'/word' as any} />;
+  }
+
+
 
 
   if (loading) {
