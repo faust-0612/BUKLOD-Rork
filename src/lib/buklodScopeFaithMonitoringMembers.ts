@@ -82,7 +82,16 @@ export async function fetchFaithMonitoringMembers(scopeId: string): Promise<Fait
   const { data, error } = await supabase.rpc('buklod_scope_faith_monitoring_members_v1' as any, {
     p_scope_id: scopeId,
   } as any);
-  if (error) throw error;
+  if (error) {
+    const message = String(error.message ?? '');
+    if (error.code === '42501' || /not authorized|authentication required/i.test(message)) {
+      throw new Error('Only authorized workspace leaders can view member progress.');
+    }
+    if (/could not find the function|function .* does not exist|schema cache/i.test(message)) {
+      throw new Error('Member monitoring is being set up for this workspace. Please try again later.');
+    }
+    throw error;
+  }
   const result = record(data);
   if (String(result.scope_id ?? '') !== scopeId || !Array.isArray(result.members)) {
     throw new Error('Member monitoring data is unavailable. Please try again.');
