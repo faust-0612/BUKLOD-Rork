@@ -21,6 +21,7 @@ import {
 import type { BuklodCommercialProductCode } from '@/lib/buklodCommercialCatalog';
 import { submitScopeProductPayment } from '@/lib/buklodScopeProductAccess';
 import { colors } from '@/lib/theme';
+import { BUKLOD_PAID_FEATURES_ENABLED } from '@/lib/buklodCommercialCatalog';
 
 type Props = {
   visible: boolean;
@@ -63,6 +64,10 @@ export default function BuklodFaithPaymentModal({
   };
 
   const handleSubmit = async () => {
+    if (!BUKLOD_PAID_FEATURES_ENABLED) {
+      Alert.alert('Paid features paused', 'Payments are disabled pending final approval.');
+      return;
+    }
     const trimmed = reference.trim();
 
     if (trimmed.length < 6) {
@@ -108,6 +113,8 @@ export default function BuklodFaithPaymentModal({
       setSubmitting(false);
     }
   };
+
+  if (!BUKLOD_PAID_FEATURES_ENABLED) return null;
 
   return (
     <Modal

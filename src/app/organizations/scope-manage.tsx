@@ -185,9 +185,9 @@ export default function ExactOrganizationManageScreen() {
       onPress: () => open('/scope/manage/members'),
     },
     {
-      title: 'BUKLOD Focus Apps — ₱59/month or ₱499/year',
+      title: 'Organization Location & Focus Apps',
       subtitle:
-        'Organization-level Focus Apps subscription. Cluster Premium and lesson packages stay separate.',
+        'Manage optional Organization location and view role-based Focus App availability. No subscription required.',
       onPress: () => open('/organizations/subscription'),
     },
     {

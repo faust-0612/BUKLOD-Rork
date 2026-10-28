@@ -30,11 +30,6 @@ import {
   type BuklodFocusApp,
   type BuklodFocusAppAccess,
 } from '@/lib/buklodFoundation';
-import { isOrgSubscriptionGatedFocusApp } from '@/lib/buklodCommercialCatalog';
-import {
-  canUseOrganizationFocusApp,
-  resolveOrganizationIdFromScope,
-} from '@/lib/buklodOrganizationFocusApps';
 import { useBuklodFoundation } from '@/hooks/useBuklodFoundation';
 import { openAttendanceWorkspaceForAccount } from '@/lib/buklodScopeManage';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -90,13 +85,7 @@ export default function BuklodFoundationWorkspaceNav() {
   const { scopes, activeScope, selectScope } = useBuklodScope();
   const [open, setOpen] = useState(false);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
-  const [locked, setLocked] = useState<Record<string, boolean>>({});
   const quizEntryInFlight = useRef(false);
-
-  const organizationId =
-    resolveOrganizationIdFromScope(activeScope) ??
-    scopes.map((scope) => resolveOrganizationIdFromScope(scope)).find(Boolean) ??
-    null;
 
   const styles = useMemo(
     () =>
@@ -148,30 +137,11 @@ export default function BuklodFoundationWorkspaceNav() {
       return {
         app,
         access: existing ?? null,
-        gated: isOrgSubscriptionGatedFocusApp(app),
       };
     });
   }, [focusApps]);
 
-  const openDrawer = useCallback(async () => {
-    const nextOpen = !open;
-    setOpen(nextOpen);
-    if (!nextOpen || !organizationId) return;
-
-    const nextLocked: Record<string, boolean> = {};
-    await Promise.all(
-      catalogApps
-        .filter((row) => row.gated)
-        .map(async (row) => {
-          const allowed = await canUseOrganizationFocusApp(
-            organizationId,
-            row.app,
-          );
-          nextLocked[row.app] = !allowed;
-        }),
-    );
-    setLocked(nextLocked);
-  }, [catalogApps, open, organizationId]);
+  const openDrawer = useCallback(() => setOpen((current) => !current), []);
 
   const openAccessory = useCallback(
     async (app: AccessoryApp) => {
@@ -264,11 +234,6 @@ export default function BuklodFoundationWorkspaceNav() {
         return;
       }
 
-      if (locked[app]) {
-        router.push('/profile/focus-apps' as any);
-        return;
-      }
-
       const route =
         item?.workspace?.route ||
         BUKLOD_FOCUS_APP_CATALOG[app].routes[0];
@@ -299,7 +264,7 @@ export default function BuklodFoundationWorkspaceNav() {
         setOpeningKey(null);
       }
     },
-    [activeScope, locked, openingKey, scopes, selectScope],
+    [activeScope, openingKey, scopes, selectScope],
   );
 
   return (
@@ -381,9 +346,6 @@ export default function BuklodFoundationWorkspaceNav() {
         {open
           ? catalogApps.map((row) => {
               const opening = openingKey === row.app;
-              const isLocked = row.gated && locked[row.app] !== false && locked[row.app] !== undefined
-                ? locked[row.app]
-                : row.gated && !row.access?.canSee;
               const title = BUKLOD_FOCUS_APP_LABELS[row.app];
               return (
                 <View key={row.app} style={styles.rowBorder}>
@@ -397,9 +359,9 @@ export default function BuklodFoundationWorkspaceNav() {
                     subtitle={
                       row.app === 'organization'
                         ? 'Setup Organization, Sub-organization, Cluster and structure'
-                        : isLocked
-                          ? 'Locked · subscription required'
-                          : 'Open portal'
+                        : row.access?.canSee
+                          ? 'Open portal'
+                          : 'Workspace role required'
                     }
                     disabled={!!openingKey}
                     onPress={() => void openApp(row.app, row.access)}
@@ -408,7 +370,7 @@ export default function BuklodFoundationWorkspaceNav() {
                         <ActivityIndicator size="small" color={theme.accent} />
                       ) : (
                         <MaterialCommunityIcons
-                          name={row.app === 'organization' ? 'chevron-right' : isLocked ? 'lock-outline' : 'chevron-right'}
+                          name="chevron-right"
                           size={20}
                           color={theme.textMuted}
                         />
@@ -423,7 +385,7 @@ export default function BuklodFoundationWorkspaceNav() {
         {open ? (
           <Pressable onPress={() => router.push('/profile/focus-apps' as any)}>
             <Text style={styles.lockNote}>
-              Show plans, lock state, and Organization subscription options.
+              View role-based Focus App availability and Organization setup.
             </Text>
           </Pressable>
         ) : null}

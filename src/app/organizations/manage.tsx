@@ -567,7 +567,7 @@ export default function OrganizationsManageListScreen() {
                       </Text>
                     </View>
 
-                    {canManage ? (
+                    {(isMember || canManage) ? (
                       <Pressable
                         onPress={() =>
                           createSuborganization(

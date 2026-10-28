@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import {
   BUKLOD_COMMERCIAL_PRODUCTS,
+  BUKLOD_PAID_FEATURES_ENABLED,
   type BuklodCommercialProductCode,
 } from '@/lib/buklodCommercialCatalog';
 
@@ -229,6 +230,7 @@ export async function submitScopeProductPayment(input: {
   productCode: BuklodCommercialProductCode;
   gcashReference: string;
 }) {
+  if (!BUKLOD_PAID_FEATURES_ENABLED) throw new Error('Paid features are paused pending final approval.');
   const { data, error } = await (supabase as any).rpc(
     'buklod_submit_scope_product_payment_v1',
     {

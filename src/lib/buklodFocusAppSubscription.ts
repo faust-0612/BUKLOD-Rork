@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { BUKLOD_PAID_FEATURES_ENABLED } from '@/lib/buklodCommercialCatalog';
 import type { BuklodIntegrationAppId } from '@/lib/buklodFocusAppIntegration';
 import type { BuklodFocusApp } from '@/lib/buklodFoundation';
 
@@ -199,6 +200,7 @@ export async function submitFocusAppPayment(
   focusAppCode: FocusAppSubscriptionCode | BuklodIntegrationAppId | BuklodFocusApp,
   gcashReference: string
 ) {
+  if (!BUKLOD_PAID_FEATURES_ENABLED) throw new Error('Paid features are paused pending final approval.');
   const code = resolveFocusAppSubscriptionCode(focusAppCode);
 
   const { data, error } = await supabase.rpc(
