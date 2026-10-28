@@ -26,6 +26,7 @@
     "src/lib/uploadCommunityVideoFile.ts",
     "src/providers/BuklodOfflineSyncProvider.tsx",
     "src/providers/NetworkProvider.tsx",
+    "tests/community-media-weak-signal.test.cjs",
     "tests/community-wall-no-blank-photo.test.cjs",
     "tests/offline-pending-race.test.cjs",
     "tests/offline-queue-capacity.test.cjs",
@@ -41,6 +42,7 @@
     "One-worker weak-signal prefetch and Marites native video cache without paid transcoder",
     "Offline queue must not evict unsent writes; reconnect deduplicated and paced; avatar batch safe",
     "All integrated Node regression tests and TypeScript/Performance/Integration/Accountability CI pass on RC head",
-    "No production OTA, database, RLS, older APK cutoff or native rebuild without final release gates"
+    "No production OTA, database, RLS, older APK cutoff or native rebuild without final release gates",
+    "Legacy weak-signal test updated to assert the current stopPropagation and onDisplay safety behavior instead of a stale inline callback shape."
   ]
 }
