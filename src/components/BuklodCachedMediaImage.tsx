@@ -11,6 +11,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  View,
   type StyleProp,
   type ImageStyle,
 } from 'react-native';
@@ -24,6 +25,8 @@ import {
   resignCommunityMediaUrl,
   resolveCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
+
+const PHOTO_LOAD_TIMEOUT_MS = 20_000;
 
 type Props = {
   uri?: string | null;
@@ -44,58 +47,82 @@ function BuklodCachedMediaImageInner({
   const path = String(mediaPath ?? '').trim();
   const preferredUri = String(uri ?? '').trim();
   const cacheKey = communityMediaCacheKey(path, path ? path : preferredUri);
-  const lockedPath = useRef(path);
+  // Refresh no-path images when a recycled Wall tile receives a new URL.
+  const mediaIdentity = path || `url:${preferredUri}`;
+  const lockedMediaIdentityRef = useRef(mediaIdentity);
   const resignAttemptRef = useRef(0);
   const resignNotBeforeRef = useRef(0);
+  const resignInFlightRef = useRef(false);
+  const manualRetryInFlightRef = useRef(false);
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [displayUri, setDisplayUri] = useState<string | null>(() =>
+    // A feed-supplied signed URL may already be expired. Only the signing
+    // cache knows when a durable Storage-path URL was actually minted.
     peekCommunityMediaUrl(path, preferredUri) ||
-    preferredUri ||
-    null,
+    (!path ? preferredUri || null : null),
   );
 
   useEffect(() => {
-    if (path !== lockedPath.current) {
-      lockedPath.current = path;
+    if (mediaIdentity !== lockedMediaIdentityRef.current) {
+      lockedMediaIdentityRef.current = mediaIdentity;
       resignAttemptRef.current = 0;
       resignNotBeforeRef.current = 0;
+      resignInFlightRef.current = false;
+      manualRetryInFlightRef.current = false;
       setFailed(false);
+      setLoaded(false);
       setDisplayUri(
         peekCommunityMediaUrl(path, preferredUri) ||
-          preferredUri ||
-          null,
+          (!path ? preferredUri || null : null),
       );
       return;
     }
 
-    // Preserve the already painted image when a feed refresh rotates
-    // its signed URL. A new URL for the same storage path should not
-    // cause a redundant download or visible loading flash. The existing
-    // onError recovery still re-signs if the old credential expires.
-    if (preferredUri && !displayUri) {
-      const next = peekCommunityMediaUrl(path, preferredUri) || preferredUri;
+    // Keep an already painted image when a refresh rotates the signing
+    // credential for the *same* durable storage path. A missing credential
+    // is resolved through the bounded signing queue below.
+    if (preferredUri && !displayUri && !failed) {
+      const next =
+        peekCommunityMediaUrl(path, preferredUri) ||
+        (!path ? preferredUri : null);
       if (next) setDisplayUri(next);
     }
-  }, [path, preferredUri, displayUri]);
+  }, [mediaIdentity, path, preferredUri, displayUri, failed]);
 
   useEffect(() => {
-    if (!path || displayUri) {
-      return;
-    }
+    if (!path || displayUri || failed || manualRetryInFlightRef.current) return;
 
     let active = true;
-    void resolveCommunityMediaUrl(path, null).then(resolved => {
-      if (!active || !resolved) {
-        return;
-      }
-
-      setDisplayUri(current => current || resolved);
-    });
+    void resolveCommunityMediaUrl(path, null)
+      .then(resolved => {
+        if (!active) return;
+        if (resolved) {
+          setLoaded(false);
+          setDisplayUri(current => current || resolved);
+        } else {
+          // The sign request timed out, was denied or hit its bounded
+          // negative cache. Do not leave an endless "loading" tile.
+          setFailed(true);
+        }
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
 
     return () => {
       active = false;
     };
-  }, [path, displayUri]);
+  }, [path, displayUri, failed]);
+
+  useEffect(() => {
+    if (!displayUri || loaded || failed) return;
+
+    // ExpoImage may never report onError under a stalled connection.
+    // A visible recovery action bounds the time spent on an empty tile.
+    const timer = setTimeout(() => setFailed(true), PHOTO_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [displayUri, loaded, failed]);
 
   if (!displayUri || failed) {
     return (
@@ -103,16 +130,33 @@ function BuklodCachedMediaImageInner({
         accessibilityRole={failed && path ? 'button' : undefined}
         accessibilityLabel={failed ? 'Retry photo' : 'Loading photo'}
         disabled={!failed || !path}
-        onPress={() => {
+        onPress={event => {
+          // A failed tile sits inside the collage's own Pressable. Retry must
+          // not also open a blank fullscreen viewer on the same tap.
+          event.stopPropagation();
           if (!path) return;
           resignAttemptRef.current = 0;
           resignNotBeforeRef.current = 0;
+          manualRetryInFlightRef.current = true;
           setFailed(false);
+          setLoaded(false);
           setDisplayUri(null);
-          void resignCommunityMediaUrl(path).then(next => {
-            if (next) setDisplayUri(next);
-            else setFailed(true);
-          }).catch(() => setFailed(true));
+          void resignCommunityMediaUrl(path)
+            .then(next => {
+              if (lockedMediaIdentityRef.current !== mediaIdentity) return;
+              if (next) setDisplayUri(next);
+              else setFailed(true);
+            })
+            .catch(() => {
+              if (lockedMediaIdentityRef.current === mediaIdentity) {
+                setFailed(true);
+              }
+            })
+            .finally(() => {
+              if (lockedMediaIdentityRef.current === mediaIdentity) {
+                manualRetryInFlightRef.current = false;
+              }
+            });
         }}
         style={[styles.placeholder, style as any]}
       >
@@ -129,7 +173,8 @@ function BuklodCachedMediaImageInner({
   }
 
   return (
-    <ExpoImage
+    <View style={[styles.imageFrame, style as any]}>
+      <ExpoImage
       source={
         displayUri
           ? {
@@ -138,7 +183,7 @@ function BuklodCachedMediaImageInner({
             }
           : undefined
       }
-      style={style}
+      style={StyleSheet.absoluteFillObject}
       contentFit={contentFit}
       cachePolicy="memory-disk"
       priority="high"
@@ -149,23 +194,31 @@ function BuklodCachedMediaImageInner({
        */
       recyclingKey={Platform.OS === 'web' ? undefined : cacheKey}
       transition={0}
+      onLoadStart={() => setLoaded(false)}
       onLoad={event => {
         resignAttemptRef.current = 0;
         setFailed(false);
         onLoad?.(event);
       }}
+      // onLoad can precede the actual paint. Do not expose a blank view
+      // until ExpoImage confirms it is displayed on Android, iOS or web.
+      onDisplay={() => setLoaded(true)}
       onError={() => {
+        setLoaded(false);
+        if (resignInFlightRef.current) return;
         if (!path || resignAttemptRef.current >= 2) {
           setFailed(true);
           return;
         }
 
+        const now = Date.now();
+        if (now < resignNotBeforeRef.current) {
+          setFailed(true);
+          return;
+        }
+
+        resignInFlightRef.current = true;
         void (async () => {
-          const now = Date.now();
-          if (now < resignNotBeforeRef.current) {
-            setFailed(true);
-            return;
-          }
           resignNotBeforeRef.current =
             now +
             communityMediaResignDelayMs(resignAttemptRef.current);
@@ -173,18 +226,32 @@ function BuklodCachedMediaImageInner({
 
           try {
             const next = await resignCommunityMediaUrl(path);
+            if (lockedMediaIdentityRef.current !== mediaIdentity) return;
             if (next && next !== displayUri) {
+              setLoaded(false);
               setDisplayUri(next);
             } else {
               // Missing/revoked files must not trigger repeated sign requests.
               setFailed(true);
             }
           } catch {
-            setFailed(true);
+            if (lockedMediaIdentityRef.current === mediaIdentity) {
+              setFailed(true);
+            }
+          } finally {
+            if (lockedMediaIdentityRef.current === mediaIdentity) {
+              resignInFlightRef.current = false;
+            }
           }
         })();
       }}
     />
+      {!loaded ? (
+        <View pointerEvents="none" style={styles.loadingOverlay}>
+          <ActivityIndicator color="#688A81" size="small" />
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -209,6 +276,16 @@ export const BuklodCachedMediaImage = memo(
 );
 
 const styles = StyleSheet.create({
+  imageFrame: {
+    backgroundColor: '#EEF3F0',
+    overflow: 'hidden',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#EEF3F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   placeholder: {
     backgroundColor: '#EEF3F0',
     alignItems: 'center',
@@ -228,3 +305,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

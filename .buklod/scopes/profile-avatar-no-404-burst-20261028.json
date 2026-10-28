@@ -1,0 +1,22 @@
+{
+  "objective": "Stop missing profile avatar 404 storms while preserving verified avatar URLs and slow-network fallback",
+  "baseRef": "c0ca6ce7891e7c95b0d77aaafec7cbf02731d531",
+  "productionBaselineEvidence": "Read-only October 28 production evidence: last-90-minute Storage logs showed 470 profile-avatars info_public 400 responses versus 6 success; 536 profiles, 114 recorded avatar URLs, 118 canonical avatar.jpg objects, and zero active/verified canonical-avatar owners with a blank profile avatar_url. Signed Community Wall downloads still succeeded on Android and iPhone. Current live OTA baseline remains runtime 1.3.2; no new production OTA authorized by this PR.",
+  "allowedPaths": [
+    "src/lib/buklodAvatarBatch.ts",
+    "src/components/ProfileAvatar.tsx",
+    "tests/profile-avatar-batch.test.cjs",
+    ".buklod/scopes/profile-avatar-no-404-burst-20261028.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Check the real verified profile avatar URL in bounded 32-user batched RPCs before attempting any canonical Storage URL",
+    "Confirmed no-avatar users show a stable initial/fallback rather than a failed image and repeated 404s",
+    "Duplicate avatar tiles reuse the same in-flight promise and positive/negative TTL cache",
+    "Cache state isolated by signed-in viewer and bounded in size",
+    "An errored or timed-out RPC is not negatively cached; legacy URL fallback remains available",
+    "Existing explicit image URL, fallback artwork, status badge and other avatar consumers remain supported",
+    "No production database, Storage, authorization, media object or native SDK mutation",
+    "Local pure batch tests pass; TypeScript, full Integration/Performance and Android device render gates remain required"
+  ]
+}

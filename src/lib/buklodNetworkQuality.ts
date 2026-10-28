@@ -84,10 +84,10 @@ export function communityPhotoPrefetchBudget(quality: BuklodNetworkQuality) {
   }
 
   if (quality === 'degraded') {
-    return { concurrency: 2, burst: 8 };
+    return { concurrency: 1, burst: 2 };
   }
 
-  return { concurrency: 4, burst: 20 };
+  return { concurrency: 2, burst: 8 };
 }
 
 export function communityMediaResignDelayMs(

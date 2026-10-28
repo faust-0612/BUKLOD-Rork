@@ -130,7 +130,14 @@ function useMaritesPlaybackActive() {
 
 function MaritesQuickVideo({ uri, autoPlay = false, muted = false }: { uri: string; autoPlay?: boolean; muted?: boolean }) {
   const active = useMaritesPlaybackActive();
-  const player = useVideoPlayer(uri, instance => {
+  // Cache only remote video bytes; preserve local picker and browser playback.
+  const source = useMemo(
+    () => Platform.OS !== 'web' && /^https?:\/\//i.test(uri)
+      ? { uri, useCaching: true }
+      : uri,
+    [uri],
+  );
+  const player = useVideoPlayer(source, instance => {
     instance.audioMixingMode = 'mixWithOthers';
     instance.showNowPlayingNotification = false;
     instance.staysActiveInBackground = false;
@@ -1743,7 +1750,7 @@ export default function BuklodMaritesBoard({
     measureVisibility();
     // Also catch header animation/layout changes without rerendering the Wall.
     const timer = canPlayInline && activeStories.some(story => story.video_uri)
-      ? setInterval(measureVisibility, 250) : null;
+      ? setInterval(measureVisibility, 750) : null;
     return () => {
       ++visibilityGeneration.current;
       if (timer) clearInterval(timer);

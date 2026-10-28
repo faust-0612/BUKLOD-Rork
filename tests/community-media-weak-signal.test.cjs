@@ -26,7 +26,10 @@ test('missing photos show a manual retry instead of indefinite signed URL reques
   const source = read('src/components/BuklodCachedMediaImage.tsx');
   assert.match(source, /resignAttemptRef\.current >= 2/);
   assert.match(source, /Hindi ma-load ang larawan/);
-  assert.match(source, /onPress=\{\(\) => \{/);
+  // PR #390 uses the tap event so a retry does not also open a stale viewer.
+  assert.match(source, /onPress=\{event => \{/);
+  assert.match(source, /event\.stopPropagation\(\)/);
+  assert.match(source, /onDisplay=\{\(\) => setLoaded\(true\)\}/);
   assert.match(source, /cachePolicy="memory-disk"/);
 });
 
