@@ -2,13 +2,10 @@
 # Runs outside Supabase. Does not access private user data or deploy app code.
 name: BUKLOD External Uptime
 
+# Scheduled external uptime monitoring paused at the owner's request (2026-10-28).
+# Keep manual dispatch available; do not restart automated checks without approval.
 on:
-  schedule:
-    - cron: '19 */3 * * *' # Every 3 hours UTC; incident handling remains enabled.
   workflow_dispatch:
-  push:
-    paths:
-      - '.github/workflows/buklod-external-uptime.yml'
 
 permissions:
   contents: read
