@@ -24,7 +24,12 @@
     ".github/workflows/engineering-accountability.yml",
     "src/lib/buklodFaithNotificationPolicy.ts",
     "src/providers/NotificationProvider.tsx",
-    "src/app/notifications/index.tsx"
+    "src/app/notifications/index.tsx",
+    "src/components/BuklodNonFaithEncouragementDoor.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/app/scope/index.tsx",
+    "src/app/inspire/index.tsx"
   ],
   "acceptanceChecks": [
     "The live scope function must return the personal preference, without CHURCH/CLUSTER/admin/ORGANIZATION overrides",
@@ -33,6 +38,7 @@
     "Show Faith ON still opens the original routes under existing entitlement and cluster access rules",
     "Focused Jest regression and TypeScript/CI must pass",
     "Test ON/OFF with Organization, Sub-org, Cluster and admin accounts on a real Android runtime before OTA",
-    "Database suppresses new faith notifications before push dispatch, and the client hides legacy faith alerts from inbox/badges for Show Faith OFF"
+    "Database suppresses new faith notifications before push dispatch, and the client hides legacy faith alerts from inbox/badges for Show Faith OFF",
+    "Show Faith OFF has Today's Encouragement on Organization, Sub-org, Cluster and other scoped dashboards; Inspire no longer redirects non-Public OFF members to Word"
   ]
 }

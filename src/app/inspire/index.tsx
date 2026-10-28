@@ -150,24 +150,11 @@ export default function InspireScreen() {
 
 
   /*
-   * This screen exists ONLY for
-   * PUBLIC + Show Faith OFF.
+   * Today's Encouragement is the non-religious alternative in every
+   * scope (Public, Organization, Sub-org, Cluster), not only Public.
    */
-  if (
-    activeScope.scope_type !==
-      'PUBLIC' ||
-    Boolean(
-      activeScope
-        .show_faith_content
-    )
-  ) {
-    return (
-      <Redirect
-        href={
-          '/word' as any
-        }
-      />
-    );
+  if (Boolean(activeScope.show_faith_content)) {
+    return <Redirect href={'/word' as any} />;
   }
 
 

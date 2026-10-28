@@ -12,6 +12,7 @@ import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 // PATCH_170A_SCOPE_THEME
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
 import BuklodHomeFaithPanel from '@/components/BuklodHomeFaithPanel';
+import BuklodNonFaithEncouragementDoor from '@/components/BuklodNonFaithEncouragementDoor';
 import BuklodScopeBuklodLessonPanel from '@/components/BuklodScopeBuklodLessonPanel';
 import BuklodScopeFaithMonitoringSummary from '@/components/BuklodScopeFaithMonitoringSummary';
 import React, {
@@ -650,13 +651,13 @@ function LegacyScopeHome({
         </Text>
       </View>
 
-      {showFaithContent && (
+      {showFaithContent ? (
         <>
           <BuklodScopeFaithMonitoringSummary scope={scope} />
           <BuklodScopeBuklodLessonPanel scope={scope} />
           <BuklodHomeFaithPanel scopeId={scope.scope_id} />
         </>
-      )}
+      ) : <BuklodNonFaithEncouragementDoor />}
 
       <BuklodHomeScopeBulletins />
       {/* PATCH_177A_SCOPE_ATTENDANCE_CARD */}

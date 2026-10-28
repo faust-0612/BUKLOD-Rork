@@ -65,4 +65,15 @@ describe('personal Show Faith opt-out', () => {
     expect(provider).toContain("query=query.not('kind','ilike',pattern)");
     expect(inbox).toContain("query=query.not('kind','ilike',pattern)");
   });
+  test('scoped OFF users receive motivational content instead of a blank faith section', () => {
+    const home = source('src/components/BuklodScopeHomeDashboard.tsx');
+    const cluster = source('src/components/BuklodClusterHomeCommandCenterImpl.tsx');
+    const portal = source('src/app/scope/index.tsx');
+    const inspire = source('src/app/inspire/index.tsx');
+    expect(home).toContain(': <BuklodNonFaithEncouragementDoor />');
+    expect(cluster).toContain(': <BuklodNonFaithEncouragementDoor />');
+    expect(portal).toContain(': <BuklodNonFaithEncouragementDoor />');
+    expect(inspire).not.toContain("activeScope.scope_type !==");
+    expect(inspire).toContain("if (Boolean(activeScope.show_faith_content))");
+  });
 });
