@@ -27,9 +27,9 @@ test('missing photos show a manual retry instead of indefinite signed URL reques
   assert.match(source, /resignAttemptRef\.current >= 2/);
   assert.match(source, /Hindi ma-load ang larawan/);
   // PR #390 uses the tap event so a retry does not also open a stale viewer.
-  assert.match(source, /onPress=\\{event => \\{/);
-  assert.match(source, /event\\.stopPropagation\\(\\)/);
-  assert.match(source, /onDisplay=\\{\\(\\) => setLoaded\\(true\\)\\}/);
+  assert.match(source, /onPress=\{event => \{/);
+  assert.match(source, /event\.stopPropagation\(\)/);
+  assert.match(source, /onDisplay=\{\(\) => setLoaded\(true\)\}/);
   assert.match(source, /cachePolicy="memory-disk"/);
 });
 
