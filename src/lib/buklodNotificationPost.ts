@@ -15,6 +15,7 @@ import { fetchBuklodPostCommentPreviews } from '@/lib/buklodPostCommentPreviews'
 export async function loadBuklodNotificationPost(
   postId: string,
   userId?: string | null,
+  onInitial?: (post: any) => void,
 ): Promise<any | null> {
   const id = String(postId ?? '').trim();
   if (!id) return null;
@@ -27,6 +28,8 @@ export async function loadBuklodNotificationPost(
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   if (!row || String(row.id) !== id) return null;
+  // Show the post body immediately; media/rank enrichment can finish later.
+  onInitial?.(row);
 
   const [mediaMap, personRows, reactionResult, ranksResult, clusterMap, previewMap] =
     await Promise.all([
