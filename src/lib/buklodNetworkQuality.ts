@@ -83,11 +83,14 @@ export function communityPhotoPrefetchBudget(quality: BuklodNetworkQuality) {
     return { concurrency: 0, burst: 0 };
   }
 
+  // On a weak link, visible photos must win the connection. Cached photos
+  // still render through expo-image; only speculative requests are disabled.
   if (quality === 'degraded') {
-    return { concurrency: 2, burst: 8 };
+    return { concurrency: 0, burst: 0 };
   }
 
-  return { concurrency: 4, burst: 20 };
+  // Small, bounded warmup on healthy links avoids racing visible media.
+  return { concurrency: 2, burst: 8 };
 }
 
 export function communityMediaResignDelayMs(

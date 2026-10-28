@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import {
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -8,6 +7,8 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+
+import { BuklodCachedMediaImage } from '@/components/BuklodCachedMediaImage';
 
 import {
   MARITES_CARD_FOOTER_HEIGHT,
@@ -19,6 +20,8 @@ import {
 
 type Props = {
   uris: string[];
+  /** Durable private Storage paths, aligned with uris when available. */
+  paths?: string[];
   width?: number;
   height?: number;
   style?: StyleProp<ViewStyle>;
@@ -27,6 +30,7 @@ type Props = {
 
 export default function BuklodMaritesPhotoCollage({
   uris,
+  paths = [],
   width = MARITES_CARD_WIDTH,
   height = MARITES_CARD_HEIGHT - MARITES_CARD_FOOTER_HEIGHT,
   style,
@@ -43,10 +47,11 @@ export default function BuklodMaritesPhotoCollage({
 
   if (photos.length === 1) {
     const content = (
-      <Image
-        source={{ uri: photos[0] }}
+      <BuklodCachedMediaImage
+        uri={photos[0]}
+        mediaPath={paths[0] || null}
         style={styles.single}
-        resizeMode="cover"
+        contentFit="cover"
       />
     );
 
@@ -93,10 +98,11 @@ export default function BuklodMaritesPhotoCollage({
 
         const tileContent = (
           <>
-            <Image
-              source={{ uri }}
+            <BuklodCachedMediaImage
+              uri={uri}
+              mediaPath={paths[index] || null}
               style={styles.tileImage}
-              resizeMode="cover"
+              contentFit="cover"
             />
             {showMore ? (
               <View style={styles.moreOverlay} pointerEvents="none">

@@ -130,7 +130,13 @@ function useMaritesPlaybackActive() {
 
 function MaritesQuickVideo({ uri, autoPlay = false, muted = false }: { uri: string; autoPlay?: boolean; muted?: boolean }) {
   const active = useMaritesPlaybackActive();
-  const player = useVideoPlayer(uri, instance => {
+  // Cache only the byte ranges actually viewed. Replays of the same
+  // authorized signed URL can survive a temporary data interruption.
+  const source = useMemo(
+    () => /^https?:\/\//i.test(uri) ? { uri, useCaching: true } : uri,
+    [uri],
+  );
+  const player = useVideoPlayer(source, instance => {
     instance.audioMixingMode = 'mixWithOthers';
     instance.showNowPlayingNotification = false;
     instance.staysActiveInBackground = false;
@@ -793,6 +799,7 @@ function MaritesStoryCard({
       {hasPhoto && !hasVideo && (
         <BuklodMaritesPhotoCollage
           uris={photoUris}
+          paths={story.photo_paths?.length === photoUris.length ? story.photo_paths : []}
           width={MARITES_COMPACT_CARD_WIDTH}
           height={MARITES_COMPACT_CARD_HEIGHT - MARITES_COMPACT_FOOTER_HEIGHT}
           style={styles.storyPhotoFill}

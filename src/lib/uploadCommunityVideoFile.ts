@@ -1,8 +1,9 @@
 /* BUKLOD_COMMUNITY_WEB_UPLOAD_R2 */
 /* BUKLOD_AWS_WALL_VIDEO_ROUTE_R1 */
 import * as FileSystem from 'expo-file-system/legacy';
-import { Platform } from 'react-native';
+import { Image as ReactNativeImage, Platform } from 'react-native';
 import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
+import { planCommunityPhotoUpload } from '@/lib/communityPhotoUploadPolicy';
 
 import {
   BUKLOD_VIDEO_MAX_SIZE_BYTES,
@@ -179,32 +180,66 @@ export async function mapWithConcurrency<T, R>(
   return results;
 }
 
+function readLocalImageDimensions(
+  uri: string,
+): Promise<{ width: number; height: number } | null> {
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = (value: { width: number; height: number } | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    // Bad content URIs must not strand the entire upload indefinitely.
+    const timer = setTimeout(() => finish(null), 3000);
+    try {
+      ReactNativeImage.getSize(
+        uri,
+        (width, height) => finish({ width, height }),
+        () => finish(null),
+      );
+    } catch {
+      finish(null);
+    }
+  });
+}
+
 export async function prepareCommunityJpegUri(
   uri: string,
 ): Promise<{ uri: string; sizeBytes: number }> {
-  // Picker/editor JPEGs are already encoded. Re-encoding every photo
-  // wastes CPU and can create visible generational JPEG artifacts.
   const existingBytes = await readBinarySizeBytes(uri).catch(() => 0);
-  if (
-    /\.jpe?g(?:[?#]|$)/i.test(uri) &&
-    existingBytes > 0 &&
-    existingBytes <= 2 * 1024 * 1024
-  ) {
+  const dimensions = await readLocalImageDimensions(uri);
+  const plan = planCommunityPhotoUpload({
+    width: dimensions?.width,
+    height: dimensions?.height,
+    sizeBytes: existingBytes,
+    isJpeg: /\.jpe?g(?:[?#]|$)/i.test(uri),
+  });
+  if (plan.passthrough) {
     return { uri, sizeBytes: existingBytes };
   }
 
   const M = await import('expo-image-manipulator');
   const context = M.ImageManipulator.manipulate(uri);
+  if (plan.resize) context.resize(plan.resize);
   const rendered = await context.renderAsync();
   const image = await rendered.saveAsync({
     format: M.SaveFormat.JPEG,
-    compress: 0.88,
+    compress: plan.compress,
   });
   const fileUri = String(image.uri ?? uri).trim() || uri;
   const sizeBytes = await readBinarySizeBytes(fileUri);
 
   if (!sizeBytes) {
     throw new Error('Could not read the prepared photo size.');
+  }
+
+  // A simple re-encode should never make an existing JPEG more expensive
+  // to download. Resized photos retain their smaller display dimensions.
+  if (!plan.resize && existingBytes > 0 && sizeBytes >= existingBytes &&
+      /\.jpe?g(?:[?#]|$)/i.test(uri)) {
+    return { uri, sizeBytes: existingBytes };
   }
 
   return { uri: fileUri, sizeBytes };
