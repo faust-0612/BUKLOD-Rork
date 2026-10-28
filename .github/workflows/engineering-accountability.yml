@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/profile-avatar-no-404-burst-20261028)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/profile-avatar-no-404-burst-20261028.json" >> "$GITHUB_ENV";;
             perf/share-count-rpc-burst-shield-20261028)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/share-count-burst-20261028.json" >> "$GITHUB_ENV";;
             fix/buklod-client-version-telemetry-20261028)
@@ -184,6 +186,10 @@ jobs:
         run: |
           node scripts/test-media-signed-cache.cjs
           node scripts/test-media-sign-fallback.cjs
+
+      - name: Verify missing-avatar batching, viewer isolation and fallback
+        if: github.head_ref == 'fix/profile-avatar-no-404-burst-20261028'
+        run: node --test tests/profile-avatar-batch.test.cjs
 
       - name: Verify offline Connect and Faith cache contract
         if: github.head_ref == 'fix/offline-connect-faith-20261027'
