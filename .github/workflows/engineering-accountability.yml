@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/modernization-offline-durability-20261028)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/modernization-offline-durability-20261028.json" >> "$GITHUB_ENV";;
             perf/share-count-rpc-burst-shield-20261028)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/share-count-burst-20261028.json" >> "$GITHUB_ENV";;
             fix/buklod-client-version-telemetry-20261028)
@@ -189,7 +191,11 @@ jobs:
         if: github.head_ref == 'fix/offline-connect-faith-20261027'
         run: node --test tests/offline-connect-faith.test.cjs tests/daily-reading-offline.test.cjs
 
+      - name: Verify offline queue capacity and simultaneous-save durability
+        run: node --test tests/offline-queue-capacity.test.cjs tests/offline-pending-race.test.cjs
+
       - name: Verify referral lookup race and error handling
         if: github.head_ref == 'fix/referral-lookup-race-20261027'
         run: node --test tests/referral-lookup.test.cjs
+
 

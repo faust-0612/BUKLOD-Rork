@@ -68,6 +68,19 @@ const pendingHandlers = new Map<
 >();
 
 let flushInFlight: Promise<void> | null = null;
+let pendingMutationChain: Promise<unknown> = Promise.resolve();
+
+// AsyncStorage has no atomic read-modify-write operation. Without serializing
+// mutations, simultaneous offline saves or a save racing with flush can
+// overwrite another pending action before it ever reaches the backend.
+function queuePendingMutation<T>(mutation: () => Promise<T>): Promise<T> {
+  const task = pendingMutationChain.then(mutation, mutation);
+  pendingMutationChain = task.then(
+    () => undefined,
+    () => undefined,
+  );
+  return task;
+}
 
 const memoryCache = new Map<string, unknown>();
 
@@ -365,50 +378,56 @@ export async function enqueuePendingAction(input: {
   payload: Record<string, unknown>;
   status?: BuklodSyncStatus;
 }): Promise<BuklodPendingAction> {
-  const now = new Date().toISOString();
-  const action: BuklodPendingAction = {
-    id: createActionId(),
-    type: input.type,
-    scopeKey: input.scopeKey,
-    label: input.label,
-    payload: input.payload,
-    status: input.status ?? 'saved_offline',
-    createdAt: now,
-    updatedAt: now,
-    retryCount: 0,
-  };
+  return queuePendingMutation(async () => {
+    const now = new Date().toISOString();
+    const action: BuklodPendingAction = {
+      id: createActionId(),
+      type: input.type,
+      scopeKey: input.scopeKey,
+      label: input.label,
+      payload: input.payload,
+      status: input.status ?? 'saved_offline',
+      createdAt: now,
+      updatedAt: now,
+      retryCount: 0,
+    };
 
-  const actions = await readPendingActions();
-  actions.push(action);
-  await writePendingActions(actions);
-  return action;
+    const actions = await readPendingActions();
+    actions.push(action);
+    await writePendingActions(actions);
+    return action;
+  });
 }
 
 async function updatePendingAction(
   id: string,
   patch: Partial<BuklodPendingAction>,
 ) {
-  const actions = await readPendingActions();
-  const next = actions.map((item) => {
-    if (item.id !== id) {
-      return item;
-    }
+  await queuePendingMutation(async () => {
+    const actions = await readPendingActions();
+    const next = actions.map((item) => {
+      if (item.id !== id) {
+        return item;
+      }
 
-    return {
-      ...item,
-      ...patch,
-      updatedAt: new Date().toISOString(),
-    };
+      return {
+        ...item,
+        ...patch,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    await writePendingActions(next);
   });
-
-  await writePendingActions(next);
 }
 
 export async function removePendingAction(id: string) {
-  const actions = await readPendingActions();
-  await writePendingActions(
-    actions.filter((item) => item.id !== id),
-  );
+  await queuePendingMutation(async () => {
+    const actions = await readPendingActions();
+    await writePendingActions(
+      actions.filter((item) => item.id !== id),
+    );
+  });
 }
 
 export async function flushPendingActions(options?: {

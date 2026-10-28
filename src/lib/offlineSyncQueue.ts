@@ -42,6 +42,14 @@ export class OfflineQueuePermanentError extends Error {
   }
 }
 
+// Never silently evict an unsynced action when the device queue is full.
+export class OfflineQueueCapacityError extends Error {
+  constructor() {
+    super(`Offline queue is full (${MAX_QUEUE_ITEMS} pending actions). Sync or remove a pending item before saving another.`);
+    this.name = 'OfflineQueueCapacityError';
+  }
+}
+
 // A queued action for a different signed-in account must wait, not fail,
 // consume attempts, or be replayed under the wrong user's credentials.
 export class OfflineQueueDeferredError extends Error {
@@ -90,8 +98,10 @@ async function readQueue(): Promise<OfflineQueueItem[]> {
 async function writeQueue(items: OfflineQueueItem[]): Promise<void> {
   const safe = items
     .filter((item) => item && typeof item.id === 'string')
-    .sort((a, b) => a.createdAt - b.createdAt)
-    .slice(-MAX_QUEUE_ITEMS);
+    .sort((a, b) => a.createdAt - b.createdAt);
+  // Older versions silently kept only the newest 500 rows. Retain all
+  // previously persisted actions, including any oversized legacy queue;
+  // enforce the cap only when accepting a *new* action below.
 
   await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(safe));
   const snapshot = { pendingCount: safe.length, items: safe };
@@ -165,6 +175,10 @@ export async function enqueueOfflineAction(args: {
         await writeQueue(items);
         return updated;
       }
+    }
+
+    if (items.length >= MAX_QUEUE_ITEMS) {
+      throw new OfflineQueueCapacityError();
     }
 
     const row: OfflineQueueItem = {
