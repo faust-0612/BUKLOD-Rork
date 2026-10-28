@@ -1,3 +1,4 @@
+import { BuklodFaithRouteBoundary } from '@/components/BuklodFaithRouteBoundary';
 import React, {
   useCallback,
   useEffect,
@@ -114,7 +115,7 @@ ImpactMetric[] = [
 ];
 
 
-export default function BuklodLifeImpactScreen() {
+function BuklodLifeImpactScreenContent() {
 
   const insets =
     useSafeAreaInsets();
@@ -1918,3 +1919,7 @@ const styles =
     },
 
   });
+
+export default function BuklodLifeImpactScreen() {
+  return <BuklodFaithRouteBoundary><BuklodLifeImpactScreenContent /></BuklodFaithRouteBoundary>;
+}

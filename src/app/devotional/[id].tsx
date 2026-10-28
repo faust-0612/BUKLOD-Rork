@@ -1,3 +1,4 @@
+import { BuklodFaithRouteBoundary } from '@/components/BuklodFaithRouteBoundary';
 import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
@@ -7,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
 import { colors } from '@/lib/theme';
 
-export default function DevotionalScreen() {
+function DevotionalScreenContent() {
   const { id } = useLocalSearchParams<{id:string}>();
   const [item, setItem] = useState<any>(null);
 
@@ -58,4 +59,8 @@ export default function DevotionalScreen() {
       </SafeAreaView>
     </>
   );
+}
+
+export default function DevotionalScreen() {
+  return <BuklodFaithRouteBoundary><DevotionalScreenContent /></BuklodFaithRouteBoundary>;
 }

@@ -1,3 +1,4 @@
+import { BuklodFaithRouteBoundary } from '@/components/BuklodFaithRouteBoundary';
 import React from 'react';
 import {
   Pressable,
@@ -27,7 +28,7 @@ function readScopeId(
   return String(raw ?? '').trim();
 }
 
-export default function ScopeBuklodLessonPortalScreen() {
+function ScopeBuklodLessonPortalScreenContent() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     scopeId?: string | string[];
@@ -129,3 +130,7 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
   },
 });
+
+export default function ScopeBuklodLessonPortalScreen() {
+  return <BuklodFaithRouteBoundary><ScopeBuklodLessonPortalScreenContent /></BuklodFaithRouteBoundary>;
+}

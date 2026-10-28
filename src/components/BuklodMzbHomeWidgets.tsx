@@ -110,6 +110,7 @@ export default function BuklodMzbHomeWidgets({
         </View>
       ) : null}
 
+      {scope.show_faith_content ? (
       <View style={styles.card}>
         <Text style={styles.cardTitle}>FAITH & FORMATION</Text>
         <View style={styles.linkRow}>
@@ -138,6 +139,12 @@ export default function BuklodMzbHomeWidgets({
             label="Learn"
             onPress={() => router.push('/(tabs)/learn' as any)}
           />
+        </View>
+      </View>
+      ) : null}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>COMMUNITY SUPPORT</Text>
+        <View style={styles.linkRow}>
           <FaithLink
             icon="hand-heart"
             label="Bayanihan"

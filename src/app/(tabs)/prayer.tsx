@@ -1,3 +1,4 @@
+import { BuklodFaithRouteBoundary } from '@/components/BuklodFaithRouteBoundary';
 /* BUKLOD_5K_SCALE_R1_PRAYER_NO_CDC: refresh on focus; no permanent Postgres Changes channel */
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
 import { useCallback, useState } from 'react';
@@ -10,7 +11,7 @@ import { Button, Card, SectionTitle, shared } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
 
-export default function PrayerScreen() {
+function PrayerScreenContent() {
   const { user } = useAuth();
   const [items,setItems]=useState<any[]>([]);
   const [myAnswered,setMyAnswered]=useState(0);
@@ -129,3 +130,7 @@ const styles=StyleSheet.create({
   addText:{color:colors.white,fontSize:11,fontWeight:'900'},
   pray:{color:colors.green,fontWeight:'900'}
 });
+
+export default function PrayerScreen() {
+  return <BuklodFaithRouteBoundary><PrayerScreenContent /></BuklodFaithRouteBoundary>;
+}

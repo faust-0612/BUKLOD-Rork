@@ -1,3 +1,4 @@
+import { BuklodFaithRouteBoundary } from '@/components/BuklodFaithRouteBoundary';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -16,7 +17,7 @@ type DevotionalCompletionResult = {
   automatic?: boolean;
 };
 
-export default function ReflectionScreen() {
+function ReflectionScreenContent() {
   const { id } = useLocalSearchParams<{id:string}>();
   const { user } = useAuth();
   const [reflection, setReflection] = useState('');
@@ -104,3 +105,7 @@ const styles=StyleSheet.create({
   chip:{paddingVertical:8,paddingHorizontal:12,borderWidth:1,borderColor:colors.line,borderRadius:20,backgroundColor:colors.white},
   chipOn:{backgroundColor:colors.greenSoft,borderColor:colors.green},
 });
+
+export default function ReflectionScreen() {
+  return <BuklodFaithRouteBoundary><ReflectionScreenContent /></BuklodFaithRouteBoundary>;
+}
