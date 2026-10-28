@@ -6,6 +6,7 @@
     ".buklod/work-scope.json",
     "src/lib/buklodNotificationNavigation.ts",
     "src/lib/buklodNotificationPost.ts",
+    "src/providers/NotificationProvider.tsx",
     "src/app/(tabs)/buklod.tsx",
     "src/app/scope/index.tsx",
     "src/components/BuklodExclusiveScopeCommunity.tsx",
@@ -17,6 +18,7 @@
     "Post and comment notification targets point to the exact public or managed-scope Wall, not /post/:id",
     "Older posts load by ID using existing access-controlled RPC; deleted/unauthorized posts have a safe fallback",
     "Managed-scope and global route guards preserve notification focus, while message/SOS routes remain unchanged",
+    "Cold-start notification responses wait for authenticated scope hydration before choosing the post destination",
     "Jest navigation tests and TypeScript/CI checks pass; physical Android cold/warm tap validation before client OTA",
     "No backend schema, push infrastructure, APK metadata or production OTA publication in this PR"
   ]
