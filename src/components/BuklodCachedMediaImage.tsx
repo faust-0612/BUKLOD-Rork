@@ -95,7 +95,7 @@ function BuklodCachedMediaImageInner({
   }, [mediaIdentity, path, preferredUri, displayUri, failed]);
 
   useEffect(() => {
-    if (!path || displayUri || cachedImage || failed || manualRetryInFlightRef.current) return;
+    if (!path || displayUri || cachedImage || failed || manualRetryInFlightRef.current || resignInFlightRef.current) return;
 
     let active = true;
     void (async () => {
@@ -238,6 +238,9 @@ function BuklodCachedMediaImageInner({
         setSlow(false);
       }}
       onError={() => {
+        // If the on-device ImageRef itself cannot render, fall back to the
+        // authenticated network path rather than reusing a broken cache hit.
+        setCachedImage(null);
         setLoaded(false);
         setSlow(false);
         if (resignInFlightRef.current) return;
