@@ -6,6 +6,7 @@ import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCa
 /* PERF_EMERGENCY_R2_STALE_LOAD: existing PATCH_166H guard preserved */
 /* BUKLOD_SHARE_TARGET_187A */
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { loadBuklodNotificationPost } from '@/lib/buklodNotificationPost';
 import { useBuklodConnectUnread } from '@/hooks/useBuklodConnectUnread';
 import { BackHandler } from 'react-native';
 import {
@@ -403,6 +404,8 @@ const COMMUNITY_VIEWER_HEIGHT=
  Dimensions.get('window').height;
 
 export default function BuklodScreen(){
+ const { focusPostId } = useLocalSearchParams<{focusPostId?:string}>();
+ const openingPublicPost = typeof focusPostId==='string' && !!focusPostId.trim();
  const {
   activeScope,
   loading:scopeLoading,
@@ -444,7 +447,7 @@ export default function BuklodScreen(){
   * Compatibility bridge only:
   * no legacy Community DB/code is removed yet.
   */
- if(activeScope.scope_type!=='PUBLIC'){
+ if(activeScope.scope_type!=='PUBLIC' && !openingPublicPost){
   return(
    <Redirect
     href={'/scope?section=community' as any}
@@ -852,6 +855,16 @@ function LegacyPublicBuklodScreen(){
   ]);
 
  const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
+ const notificationParams = useLocalSearchParams<{
+  focusPostId?:string;
+  focusComments?:string;
+ }>();
+ const focusPostId = typeof notificationParams.focusPostId==='string'
+  ? notificationParams.focusPostId.trim() : '';
+ const focusComments = notificationParams.focusComments==='1';
+ const [focusedPost,setFocusedPost]=useState<any|null>(null);
+ const [focusLoading,setFocusLoading]=useState(false);
+ const [focusUnavailable,setFocusUnavailable]=useState(false);
  const [category,setCategory]=useState<
   'reflection'|'testimony'|'encouragement'|'discussion'
  >('reflection');
@@ -2890,7 +2903,7 @@ const load=useCallback(async(options?:{
   const current=
     posts.find(
       p=>p.id===postId
-    );
+    ) ?? (focusedPost?.id===postId ? focusedPost : null);
 
   const previous=
     (
@@ -2983,6 +2996,11 @@ const load=useCallback(async(options?:{
             : p
       )
   );
+  setFocusedPost((currentPost:any)=>
+    currentPost?.id===postId
+      ? changeReaction(currentPost,previous,nextReaction)
+      : currentPost
+  );
 
   const {error}=
     await communityRpc('set_buklod_post_reaction_v3',
@@ -3008,6 +3026,11 @@ const load=useCallback(async(options?:{
                 )
               : p
         )
+    );
+    setFocusedPost((currentPost:any)=>
+      currentPost?.id===postId
+        ? changeReaction(currentPost,nextReaction,previous)
+        : currentPost
     );
 
     reportCommunityFailure(
@@ -4382,6 +4405,62 @@ const load=useCallback(async(options?:{
 /* BUKLOD_COMMUNITY_BACK_ENDPOINT_R2 */
 const communityFeedRefBackR2 = useRef<any>(null);
 const communityScrollYRefBackR2 = useRef(0);
+
+// A notification brings an older post into the existing Wall feed, even when
+// it is absent from the paginated first page. Detail RPC still enforces access.
+useEffect(()=>{
+  if(!focusPostId || !user?.id){
+    setFocusedPost(null);
+    setFocusLoading(false);
+    setFocusUnavailable(false);
+    return;
+  }
+  let current=true;
+  setFocusedPost(null);
+  setFocusLoading(true);
+  setFocusUnavailable(false);
+  let openedComments=false;
+  void loadBuklodNotificationPost(focusPostId,user.id,post=>{
+      if(!current)return;
+      setFocusedPost(post);
+      setFocusLoading(false);
+      if(focusComments){
+        openedComments=true;
+        void openComments(post);
+      }
+    })
+    .then(post=>{
+      if(!current)return;
+      setFocusedPost(post);
+      setFocusUnavailable(!post);
+      if(post && focusComments && !openedComments)void openComments(post);
+    })
+    .catch(error=>{
+      if(!current)return;
+      console.warn('Notification Wall post:',error);
+      setFocusUnavailable(true);
+    })
+    .finally(()=>{
+      if(current)setFocusLoading(false);
+    });
+  return ()=>{current=false;};
+},[focusPostId,focusComments,user?.id]);
+
+useEffect(()=>{
+  if(!focusedPost || String(focusedPost.id)!==focusPostId)return;
+  const timer=setTimeout(()=>{
+    try{
+      communityFeedRefBackR2.current?.scrollToIndex?.({
+        index:0,animated:true,viewPosition:0,
+      });
+    }catch{
+      communityFeedRefBackR2.current?.scrollToOffset?.({
+        offset:0,animated:true,
+      });
+    }
+  },180);
+  return ()=>clearTimeout(timer);
+},[focusedPost?.id,focusPostId]);
 /* PATCH_186L_R3_PAGE_CONTROL */
 const communityPageBusyRef186L=
   useRef(false);
@@ -4575,11 +4654,15 @@ const communityFeedRows =
             !Boolean(post.is_reel),
         );
 
+      const selectedPosts = focusedPost
+        ? [focusedPost,...visiblePosts.filter(post=>String(post.id)!==String(focusedPost.id))]
+        : visiblePosts;
+
       return buildCommunityFeedWithInlineAds(
-        visiblePosts,
+         selectedPosts,
       );
     },
-    [posts],
+     [posts,focusedPost],
   );
 
  const {
@@ -4614,6 +4697,13 @@ const communityFeedRows =
     refreshing={busy}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
+  {focusPostId && (focusLoading || focusUnavailable) && (
+   <Text accessibilityRole="text" style={{color:focusUnavailable?'#9A3F22':colors.greenDark,fontWeight:'700',marginBottom:10}}>
+    {focusUnavailable
+      ? 'This post is unavailable, deleted, or outside your allowed audience.'
+      : 'Opening the selected post in Wall…'}
+   </Text>
+  )}
 {/* PATCH_161A_COMMUNITY_COMPACT */}
    <Text style={s.eyebrow}>
     BUKLOD
@@ -5056,7 +5146,7 @@ const communityFeedRows =
 
     return (
       <BuklodFocusVisibleRow index={index}>
-    <Card>
+    <Card style={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
    <View
      style={{
        flexDirection:
@@ -6231,5 +6321,6 @@ const communityFeedRows =
      {reportSheet}
 </>;
 }
+
 
 

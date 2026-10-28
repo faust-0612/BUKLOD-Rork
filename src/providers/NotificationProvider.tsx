@@ -34,7 +34,7 @@ Notifications.setNotificationHandler({handleNotification:async n=>({
 
 export function NotificationProvider({children}:{children:ReactNode}){
  const {user}=useAuth();
- const {scopes,selectScope,activeScope}=useBuklodScope();
+ const {scopes,selectScope,activeScope,loading:scopesLoading}=useBuklodScope();
  const [unreadCount,setUnreadCount]=useState(0);
  useEffect(()=>{
   if(!user?.id)return;
@@ -153,7 +153,9 @@ export function NotificationProvider({children}:{children:ReactNode}){
 
  /* PATCH_171B_COLD_START_NOTIFICATION_RESPONSE */
  useEffect(()=>{
-  if(!user?.id)return;
+  // Keep the cold-start response until scope membership/type is hydrated;
+  // otherwise a Cluster/Organization post can be mistaken for a public post.
+  if(!user?.id || scopesLoading)return;
   let active=true;
   const handled=new Set<string>();
 
@@ -254,8 +256,9 @@ export function NotificationProvider({children}:{children:ReactNode}){
    active=false;
    sub.remove();
   };
- },[openNotification,user?.id]);
+ },[openNotification,user?.id,scopesLoading]);
  const value=useMemo(()=>({unreadCount,refreshUnread,markAllRead}),[unreadCount,refreshUnread,markAllRead]);
  return <Context.Provider value={value}>{children}</Context.Provider>
 }
 export function useNotifications(){const v=useContext(Context);if(!v)throw new Error('useNotifications must be used inside NotificationProvider');return v}
+

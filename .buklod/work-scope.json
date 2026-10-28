@@ -1,23 +1,26 @@
 {
-  "objective": "KL isolated dynamic publishing integration and chapter authoring",
+  "objective": "Notification taps open the exact post inside its Community Wall, including scoped posts and comments, without a separate detail screen",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: main is the scoped PR comparison ref only; independent live OTA baseline verification still required before publish",
+  "productionBaselineEvidence": "verified: GitHub main 9a4f03320d39294f19cd30b45e6f221d233fbd4c inspected 2026-10-28 as PR comparison ref only; live Android OTA baseline and physical tap unverified, so no production publication is authorized.",
   "allowedPaths": [
     ".buklod/work-scope.json",
-    "src/app/admin/kabihasnang-ligaw.tsx",
-    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
-    "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx",
-    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx",
-    "src/components/kabihasnang-ligaw/KlChapterAudio.tsx",
-    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
-    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
-    "src/components/kabihasnang-ligaw/KlSceneEffect.tsx",
-    "src/lib/kabihasnang-ligaw/mediaPlacement.ts",
-    "__tests__/klMediaPlacement.test.ts"
+    "src/lib/buklodNotificationNavigation.ts",
+    "src/lib/buklodNotificationPost.ts",
+    "src/providers/NotificationProvider.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/scope/index.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodCanonicalNavigationGuard.tsx",
+    "src/components/BuklodCanonicalNavigationGuard.web.tsx",
+    "__tests__/buklodNotificationNavigation.test.ts"
   ],
   "acceptanceChecks": [
-    "TypeScript and performance QA pass",
-    "Chapter 2 remains blank unreleased",
-    "Release requires separate RC and live baseline evidence"
+    "Post and comment notification targets point to the exact public or managed-scope Wall, not /post/:id",
+    "Older posts load by ID using existing access-controlled RPC; deleted/unauthorized posts have a safe fallback",
+    "Managed-scope and global route guards preserve notification focus, while message/SOS routes remain unchanged",
+    "Cold-start notification responses wait for authenticated scope hydration before choosing the post destination",
+    "Jest navigation tests and TypeScript/CI checks pass; physical Android cold/warm tap validation before client OTA",
+    "No backend schema, push infrastructure, APK metadata or production OTA publication in this PR"
   ]
 }
+
