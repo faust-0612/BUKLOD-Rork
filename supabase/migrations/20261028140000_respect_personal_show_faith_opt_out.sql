@@ -138,3 +138,32 @@ begin
 end;
 $function$
 ;
+
+-- Suppress new faith alerts at the shared insert boundary before the existing
+-- AFTER INSERT push dispatch runs. No old notification rows are deleted.
+create or replace function private.buklod_faith_notification_opt_out_guard_v1()
+returns trigger
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+begin
+  if lower(new.kind) ~ '^(formation_|devotional_|prayer_|bible_|faith_|daily_bible_)'
+     and not exists (
+       select 1 from public.buklod_user_preferences p
+       where p.user_id = new.user_id and p.show_faith_content is true
+     )
+  then
+    return null;
+  end if;
+  return new;
+end;
+$function$;
+
+revoke all on function private.buklod_faith_notification_opt_out_guard_v1()
+  from public, anon, authenticated;
+
+create or replace trigger buklod_faith_notification_opt_out_guard_v1
+before insert on public.notifications
+for each row
+execute function private.buklod_faith_notification_opt_out_guard_v1();

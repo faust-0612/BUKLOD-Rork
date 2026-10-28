@@ -52,4 +52,17 @@ describe('personal Show Faith opt-out', () => {
     expect(settings).toContain('show_faith_content:');
     expect(settings).toContain('refreshScopes(),');
   });
+  test('faith notifications are suppressed in push, inbox and unread count', () => {
+    const sql = source('supabase/migrations/20261028140000_respect_personal_show_faith_opt_out.sql');
+    const policy = source('src/lib/buklodFaithNotificationPolicy.ts');
+    const provider = source('src/providers/NotificationProvider.tsx');
+    const inbox = source('src/app/notifications/index.tsx');
+    expect(sql).toContain('before insert on public.notifications');
+    expect(sql).toContain('p.show_faith_content is true');
+    expect(policy).toContain("'formation_%'");
+    expect(policy).toContain("'devotional_%'");
+    expect(provider).toContain('showFaithNotifications || !isFaithNotificationKind(kind)');
+    expect(provider).toContain("query=query.not('kind','ilike',pattern)");
+    expect(inbox).toContain("query=query.not('kind','ilike',pattern)");
+  });
 });

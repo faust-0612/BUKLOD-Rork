@@ -21,7 +21,10 @@
     "supabase/migrations/20261028140000_respect_personal_show_faith_opt_out.sql",
     "tests/show-faith-opt-out.test.js",
     ".buklod/scopes/non-show-faith-opt-out-20261028.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "src/lib/buklodFaithNotificationPolicy.ts",
+    "src/providers/NotificationProvider.tsx",
+    "src/app/notifications/index.tsx"
   ],
   "acceptanceChecks": [
     "The live scope function must return the personal preference, without CHURCH/CLUSTER/admin/ORGANIZATION overrides",
@@ -29,6 +32,7 @@
     "All canonical faith route families and ungrouped faith screens must refuse OFF accounts",
     "Show Faith ON still opens the original routes under existing entitlement and cluster access rules",
     "Focused Jest regression and TypeScript/CI must pass",
-    "Test ON/OFF with Organization, Sub-org, Cluster and admin accounts on a real Android runtime before OTA"
+    "Test ON/OFF with Organization, Sub-org, Cluster and admin accounts on a real Android runtime before OTA",
+    "Database suppresses new faith notifications before push dispatch, and the client hides legacy faith alerts from inbox/badges for Show Faith OFF"
   ]
 }
