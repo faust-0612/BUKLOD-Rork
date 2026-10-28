@@ -42,6 +42,14 @@ export class OfflineQueuePermanentError extends Error {
   }
 }
 
+// Never silently evict an unsynced action when the device queue is full.
+export class OfflineQueueCapacityError extends Error {
+  constructor() {
+    super(`Offline queue is full (${MAX_QUEUE_ITEMS} pending actions). Sync or remove a pending item before saving another.`);
+    this.name = 'OfflineQueueCapacityError';
+  }
+}
+
 // A queued action for a different signed-in account must wait, not fail,
 // consume attempts, or be replayed under the wrong user's credentials.
 export class OfflineQueueDeferredError extends Error {
@@ -90,8 +98,10 @@ async function readQueue(): Promise<OfflineQueueItem[]> {
 async function writeQueue(items: OfflineQueueItem[]): Promise<void> {
   const safe = items
     .filter((item) => item && typeof item.id === 'string')
-    .sort((a, b) => a.createdAt - b.createdAt)
-    .slice(-MAX_QUEUE_ITEMS);
+    .sort((a, b) => a.createdAt - b.createdAt);
+  // Older versions silently kept only the newest 500 rows. Retain all
+  // previously persisted actions, including any oversized legacy queue;
+  // enforce the cap only when accepting a *new* action below.
 
   await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(safe));
   const snapshot = { pendingCount: safe.length, items: safe };
@@ -165,6 +175,10 @@ export async function enqueueOfflineAction(args: {
         await writeQueue(items);
         return updated;
       }
+    }
+
+    if (items.length >= MAX_QUEUE_ITEMS) {
+      throw new OfflineQueueCapacityError();
     }
 
     const row: OfflineQueueItem = {
@@ -254,6 +268,10 @@ async function processOne(item: OfflineQueueItem): Promise<void> {
 
 export async function drainOfflineQueue(options?: {
   concurrency?: number;
+  /** Max eligible actions to replay in this wave; omitted preserves manual full drain. */
+  maxItems?: number;
+  /** Auto-replay must not starve behind actions owned by another account. */
+  userId?: string | null;
 }): Promise<OfflineQueueSnapshot> {
   if (draining) return draining;
 
@@ -264,8 +282,19 @@ export async function drainOfflineQueue(options?: {
       (item) =>
         item.nextAttemptAt <= now &&
         item.attempts < item.maxAttempts &&
+        (options?.userId === undefined || item.userId === null ||
+          item.userId === options.userId) &&
         handlers.has(item.kind),
     );
+
+    // Reconnects should not flush hundreds of queued writes at once. Never
+    // truncate the stored queue: unprocessed actions stay durable for later
+    // waves and retain their original order and retry deadline.
+    const requestedLimit = Number(options?.maxItems);
+    const maxItems = options?.maxItems == null || !Number.isFinite(requestedLimit)
+      ? eligible.length
+      : Math.max(1, Math.min(50, Math.floor(requestedLimit)));
+    const wave = eligible.slice(0, maxItems);
 
     const concurrency = Math.max(
       1,
@@ -274,10 +303,10 @@ export async function drainOfflineQueue(options?: {
 
     let cursor = 0;
     const workers = Array.from(
-      { length: Math.min(concurrency, eligible.length) },
+      { length: Math.min(concurrency, wave.length) },
       async () => {
-        while (cursor < eligible.length) {
-          const item = eligible[cursor];
+        while (cursor < wave.length) {
+          const item = wave[cursor];
           cursor += 1;
           if (item) {
             await processOne(item);

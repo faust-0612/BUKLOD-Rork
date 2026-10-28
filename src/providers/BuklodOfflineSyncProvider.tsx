@@ -24,7 +24,7 @@ type OfflineSyncValue = {
   syncing: boolean;
   pendingCount: number;
   pendingActions: BuklodPendingAction[];
-  flushNow: () => Promise<void>;
+  flushNow: (options?: { maxItems?: number }) => Promise<void>;
 };
 
 const BuklodOfflineSyncContext =
@@ -106,14 +106,14 @@ export function BuklodOfflineSyncProvider({
     setPendingCount(count);
   }, []);
 
-  const flushNow = useCallback(async () => {
+  const flushNow = useCallback(async (options?: { maxItems?: number }) => {
     if (!online) {
       return;
     }
 
     setSyncing(true);
     try {
-      await flushPendingActions();
+      await flushPendingActions({ maxItems: options?.maxItems });
       await reloadPending();
     } finally {
       setSyncing(false);
@@ -154,3 +154,4 @@ export function BuklodOfflineSyncProvider({
 export function useBuklodOfflineSync() {
   return useContext(BuklodOfflineSyncContext);
 }
+

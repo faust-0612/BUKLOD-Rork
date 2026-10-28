@@ -13,12 +13,15 @@ import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { removeOfflineCache } from '@/lib/offlineCache';
 import {
+  AUTO_SYNC_ACTIONS_PER_QUEUE,
+  buklodReconnectDelayMs,
+} from '@/lib/buklodReconnectPacing';
+import {
   OfflineQueueDeferredError,
   OfflineQueuePermanentError,
   registerOfflineQueueHandler,
 } from '@/lib/offlineSyncQueue';
 
-const RECONNECT_SETTLE_MS = 1_000;
 const MIN_SYNC_GAP_MS = 5_000;
 
 /*
@@ -43,6 +46,7 @@ export default function BuklodSyncCoordinator() {
   const onlineRef = useRef(online);
   const runningRef = useRef(false);
   const lastRunRef = useRef(0);
+  const scheduledSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   onlineRef.current = online;
 
@@ -99,7 +103,7 @@ export default function BuklodSyncCoordinator() {
   }, [user?.id]);
 
   const runSync = useCallback(async () => {
-    if (!onlineRef.current || runningRef.current) {
+    if (!onlineRef.current || !user?.id || runningRef.current) {
       return;
     }
 
@@ -112,29 +116,53 @@ export default function BuklodSyncCoordinator() {
     lastRunRef.current = now;
 
     try {
-      await syncNow().catch(() => undefined);
+      await syncNow({
+        maxItems: AUTO_SYNC_ACTIONS_PER_QUEUE,
+        userId: user.id,
+      })
+        .catch(() => undefined);
 
       if (!onlineRef.current) {
         return;
       }
 
-      await flushNow().catch(() => undefined);
+      await flushNow({ maxItems: AUTO_SYNC_ACTIONS_PER_QUEUE })
+        .catch(() => undefined);
     } finally {
       runningRef.current = false;
     }
-  }, [flushNow, syncNow]);
+  }, [flushNow, syncNow, user?.id]);
+
+  // One pending reconnect timer per device, shared by NetInfo and AppState.
+  // If both announce reconnection, reschedule instead of double-flushing.
+  const scheduleSync = useCallback(() => {
+    if (scheduledSyncTimerRef.current) {
+      clearTimeout(scheduledSyncTimerRef.current);
+    }
+    scheduledSyncTimerRef.current = setTimeout(() => {
+      scheduledSyncTimerRef.current = null;
+      void runSync();
+    }, buklodReconnectDelayMs());
+  }, [runSync]);
 
   useEffect(() => {
     if (!online) {
+      if (scheduledSyncTimerRef.current) {
+        clearTimeout(scheduledSyncTimerRef.current);
+        scheduledSyncTimerRef.current = null;
+      }
       return;
     }
 
-    const timer = setTimeout(() => {
-      void runSync();
-    }, RECONNECT_SETTLE_MS);
+    scheduleSync();
 
-    return () => clearTimeout(timer);
-  }, [online, runSync]);
+    return () => {
+      if (scheduledSyncTimerRef.current) {
+        clearTimeout(scheduledSyncTimerRef.current);
+        scheduledSyncTimerRef.current = null;
+      }
+    };
+  }, [online, scheduleSync]);
 
   useEffect(() => {
     if (!online) {
@@ -149,6 +177,7 @@ export default function BuklodSyncCoordinator() {
   }, [online, runSync]);
 
   useEffect(() => {
+    let active = true;
     const subscription = AppState.addEventListener(
       'change',
       (nextState) => {
@@ -159,15 +188,17 @@ export default function BuklodSyncCoordinator() {
         void refreshNetwork()
           .catch(() => undefined)
           .finally(() => {
-            setTimeout(() => {
-              void runSync();
-            }, RECONNECT_SETTLE_MS);
+            if (!active) return;
+            if (onlineRef.current) scheduleSync();
           });
       },
     );
 
-    return () => subscription.remove();
-  }, [refreshNetwork, runSync]);
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, [refreshNetwork, scheduleSync]);
 
   return null;
 }

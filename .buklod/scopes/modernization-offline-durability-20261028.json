@@ -1,0 +1,32 @@
+{
+  "objective": "Preserve offline actions, stagger mass reconnection and measure cached request reduction with no extra backend calls",
+  "baseRef": "c0ca6ce7891e7c95b0d77aaafec7cbf02731d531",
+  "productionBaselineEvidence": "Read-only evidence: Android Production OTA workflow 40561553412 successfully froze RC and published update 01a17eaa-7679-7202-9c6c-948a3b69ad04 on runtime 1.3.2 from c0ca6ce7891e7c95b0d77aaafec7cbf02731d531 at 2026-10-27 18:41 UTC. Physical-device behavior and scaled load remain unverified; this branch must not publish an OTA.",
+  "allowedPaths": [
+    "src/lib/offlineSyncQueue.ts",
+    "src/lib/buklodOfflineSync.ts",
+    "src/lib/buklodReconnectPacing.ts",
+    "src/lib/buklodR4RequestShield.ts",
+    "src/components/BuklodSyncCoordinator.tsx",
+    "src/providers/NetworkProvider.tsx",
+    "src/providers/BuklodOfflineSyncProvider.tsx",
+    "tests/offline-queue-capacity.test.cjs",
+    "tests/offline-pending-race.test.cjs",
+    "tests/offline-reconnect-pacing.test.cjs",
+    "tests/request-shield-savings.test.cjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/modernization-offline-durability-20261028.json"
+  ],
+  "acceptanceChecks": [
+    "A full 500-item queue must preserve existing unsynced actions and reject new distinct actions explicitly, while allowing idempotent updates",
+    "Simultaneous organization/community offline saves and remove/save races must not lose previously persisted actions",
+    "Storage failure must not permanently block subsequent queue mutations",
+    "Automatic reconnect is randomized across 1–7 seconds with one pending timer per device and no duplicate foreground/NetInfo schedule",
+    "Automatic sync replays at most eight stored actions from each queue per wave; additional actions remain durable and manual sync stays backwards compatible",
+    "Request shield exposes only bounded operation-level counters, with no user IDs, tokens, request bodies or added Supabase telemetry writes",
+    "Concurrent same-session requests collapse and are countable, while cross-account reads and successful share-write invalidation remain isolated",
+    "No changes to auth, RLS, schema, client runtime, points/reward computation, native packages or EAS release controls",
+    "Local Node regression tests, exact-source TypeScript, Engineering Accountability and relevant integration QA must pass before merge",
+    "Independent DEV-to-immutable-RC-to-Production-OTA and device checks remain required; no automatic rollout from this PR"
+  ]
+}

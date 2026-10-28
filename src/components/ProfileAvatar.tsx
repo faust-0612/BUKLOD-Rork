@@ -16,18 +16,22 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { createBuklodAvatarBatchLookup } from '@/lib/buklodAvatarBatch';
 
-
-type AvatarCacheRow = {
-  url: string | null;
-  at: number;
-};
-
-const avatarCache =
-  new Map<
-    string,
-    AvatarCacheRow
-  >();
+// A missing avatar is a normal state. Resolve real profile URLs in one
+// bounded batch instead of probing guessed /avatar.jpg paths on every tile.
+const avatarLookup = createBuklodAvatarBatchLookup(async (_viewerId, userIds) => {
+  const { data, error } = await withBuklodTimeout<any>(
+    (supabase as any).rpc('get_buklod_profile_avatars_v1', {
+      p_user_ids: userIds,
+    }),
+    6_000,
+    'Profile avatar batch',
+  );
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+});
 
 // Navigation should not issue one status RPC per mounted avatar. The result
 // is presentation-only, scoped to the viewer, bounded, and refreshed quietly.
@@ -248,6 +252,8 @@ export function ProfileAvatar({
   shape = 'circle',
   fallbackSource,
 }: ProfileAvatarProps) {
+  const { user } = useAuth();
+  const viewerId = user?.id ?? '';
   const [remoteUrl, setRemoteUrl] = useState<string | null>(
     normalizeAvatarUrl(uri)
   );
@@ -257,6 +263,7 @@ export function ProfileAvatar({
   useEffect(() => {
     let active = true;
     setImageFailed(false);
+    setImageReady(false);
 
     const directUri = normalizeAvatarUrl(uri);
     if (directUri) {
@@ -269,26 +276,22 @@ export function ProfileAvatar({
     }
 
     if (userId) {
-      const cached = avatarCache.get(userId);
-      if (cached?.url && active) {
-        setRemoteUrl(current =>
-          current === cached.url ? current : cached.url
-        );
-      }
-
-      const { data: canonicalData } = supabase.storage
-        .from('profile-avatars')
-        .getPublicUrl(`${userId}/avatar.jpg`);
-      const canonicalUrl = canonicalData?.publicUrl ?? null;
-      if (canonicalUrl && active) {
-        avatarCache.set(userId, {
-          url: canonicalUrl,
-          at: Date.now(),
-        });
-        setRemoteUrl(current =>
-          current === canonicalUrl ? current : canonicalUrl
-        );
-      }
+      const warm = avatarLookup.peek(viewerId, userId);
+      setRemoteUrl(warm.found ? normalizeAvatarUrl(warm.value) : null);
+      void avatarLookup.resolve(viewerId, userId).then(resolved => {
+        if (!active) return;
+        if (resolved === undefined) {
+          // Authentication or lookup may be temporarily unavailable. Keep
+          // legacy canonical lookup as a fallback, but do not probe it for
+          // users confirmed to have no stored avatar.
+          const { data: fallbackData } = supabase.storage
+            .from('profile-avatars')
+            .getPublicUrl(`${userId}/avatar.jpg`);
+          setRemoteUrl(fallbackData?.publicUrl ?? null);
+          return;
+        }
+        setRemoteUrl(normalizeAvatarUrl(resolved));
+      }).catch(() => undefined);
     } else if (active) {
       setRemoteUrl(null);
     }
@@ -296,7 +299,7 @@ export function ProfileAvatar({
     return () => {
       active = false;
     };
-  }, [userId, uri]);
+  }, [userId, uri, viewerId]);
 
   const initial = (name?.trim()?.[0] || 'B').toUpperCase();
 
