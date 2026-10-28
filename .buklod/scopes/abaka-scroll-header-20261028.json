@@ -1,0 +1,17 @@
+{
+  "objective": "Make the ABAKA screen title, source, progress, points and search scroll with the lesson list while preserving layout and backend behavior",
+  "baseRef": "c0ca6ce7891e7c95b0d77aaafec7cbf02731d531",
+  "productionBaselineEvidence": "Source baseline: read-only GitHub main c0ca6ce7891e7c95b0d77aaafec7cbf02731d531 (2026-10-28). Live Android or web runtime and served bundle not verified; do not treat this pull request as a production release.",
+  "allowedPaths": [
+    "src/app/faith/abc/index.tsx",
+    ".buklod/scopes/abaka-scroll-header-20261028.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "FlatList owns page title, ABAKA source, study progress, rewards info, search and lesson cards as one vertical scroll surface",
+    "Search and empty state still work, back button remains tappable and bottom navigation is unaffected",
+    "Original horizontal spacing of header cards and lessons is preserved",
+    "TypeScript check and existing CI tests pass before integration",
+    "Live-device visual and gesture verification required before production release"
+  ]
+}
