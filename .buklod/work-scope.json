@@ -1,7 +1,7 @@
 {
   "objective": "Notification taps open the exact post inside its Community Wall, including scoped posts and comments, without a separate detail screen",
   "baseRef": "main",
-  "productionBaselineEvidence": "GitHub main 9a4f03320d39294f19cd30b45e6f221d233fbd4c inspected 2026-10-28; code comparison baseline only. No verified live Android OTA/production publication or physical tap test for this change.",
+  "productionBaselineEvidence": "verified: GitHub main 9a4f03320d39294f19cd30b45e6f221d233fbd4c inspected 2026-10-28 as PR comparison ref only; live Android OTA baseline and physical tap unverified, so no production publication is authorized.",
   "allowedPaths": [
     ".buklod/work-scope.json",
     "src/lib/buklodNotificationNavigation.ts",
