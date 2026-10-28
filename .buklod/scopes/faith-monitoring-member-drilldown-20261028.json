@@ -1,0 +1,22 @@
+{
+  "objective": "Faith Monitoring cards, exact member drill-down, and protected formation participation status",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main 053f11d939192d7e1c1675c5056d7ae8e1b1a6ae is the isolated code comparison baseline; production OTA fingerprint and release candidate still require independent canonical verification.",
+  "allowedPaths": [
+    ".buklod/scopes/faith-monitoring-member-drilldown-20261028.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/components/BuklodScopeFaithMonitoringSummary.tsx",
+    "src/lib/buklodScopeFaithMonitoringMembers.ts",
+    "src/app/scope/faith-monitoring/members.tsx",
+    "__tests__/buklodScopeFaithMonitoringMembers.test.ts",
+    "supabase/migrations/20261028142543_faith_monitoring_member_drilldown.sql"
+  ],
+  "acceptanceChecks": [
+    "Every Faith Monitoring card, status metric, and lesson-stage tile opens scoped member detail",
+    "A protected RPC denies unauthorized roster access, never returns private reflection text, and requires existing leadership roles",
+    "Member Daily Reading and Devotion flags reconcile with the canonical summary",
+    "Started lesson activity and 101-107 stage totals reconcile with the live Faith Monitoring summary",
+    "Search, status filters, retry, refresh, empty state, and per-member details are usable on mobile",
+    "TypeScript/Jest, migration and rollback tests, visual Android and web QA pass before canonical release"
+  ]
+}
