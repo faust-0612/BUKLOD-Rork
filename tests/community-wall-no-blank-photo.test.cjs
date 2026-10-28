@@ -21,7 +21,8 @@ test('A new no-path photo resets recycled image identity, without flashing same-
 
 test('Unsuccessful and rejected sign requests always leave an actionable failure state', () => {
   assert.match(image, /resolveCommunityMediaUrl\(path, null\)/);
-  assert.match(image, /\.then\(resolved =>/);
+  assert.match(image, /let resolved = await resolveCommunityMediaUrl\(path, null\)\.catch\(\(\) => null\)/);
+  assert.match(image, /await resolveCommunityMediaUrl\(path, null\)\.catch\(\(\) => null\)/);
   assert.match(image, /if \(resolved\)/);
   assert.match(image, /setFailed\(true\)/);
   assert.match(image, /\.catch\(\(\) => \{/);
