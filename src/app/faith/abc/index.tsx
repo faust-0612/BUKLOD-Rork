@@ -264,198 +264,202 @@ BuklodAbcLessonsScreen() {
         styles.screen
       }
     >
-      <View
-        style={
-          styles.header
-        }
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          hitSlop={10}
-          onPress={() =>
-            router.back()
-          }
-          style={
-            styles.backButton
-          }
-        >
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={24}
-            color="#173A2B"
-          />
-        </Pressable>
-
-        <View
-          style={
-            styles.headerCopy
-          }
-        >
-          <Text
-            style={
-              styles.eyebrow
-            }
-          >
-            SHOW FAITH · ALL USERS
-          </Text>
-
-          <Text
-            style={
-              styles.title
-            }
-          >
-            {ABC_SOURCE.title}
-          </Text>
-
-          <Text
-            style={
-              styles.subtitle
-            }
-          >
-            Sunday school mula A hanggang Z. Bawat tanong ay may talata. Si Hesus ang sentro.
-          </Text>
-        </View>
-      </View>
-
-      <View
-        style={
-          styles.sourceCard
-        }
-      >
-        <Text
-          style={
-            styles.sourceTitle
-          }
-        >
-          {ABC_SOURCE.title}
-        </Text>
-
-        <Text
-          style={
-            styles.sourceBody
-          }
-        >
-          {ABC_SOURCE.englishTitle}
-        </Text>
-
-        <Text
-          style={
-            styles.sourceNote
-          }
-        >
-          {ABC_SOURCE.copyright} Sagutin ang bawat tanong mula sa talatang nakakabit. Ang huling sagot ay sarili mong hakbang.
-        </Text>
-      </View>
-
-      <View
-        style={
-          styles.progressCard
-        }
-      >
-        <View>
-          <Text
-            style={
-              styles.progressLabel
-            }
-          >
-            STUDY PROGRESS
-          </Text>
-
-          <Text
-            style={
-              styles.progressValue
-            }
-          >
-            {completedCount} / {studyLessons.length} completed · {claimedPoints} claimed · {pendingPoints} ready
-          </Text>
-        </View>
-
-        <MaterialCommunityIcons
-          name="book-check-outline"
-          size={28}
-          color="#2F7A4F"
-        />
-      </View>
-
-      <View
-        style={
-          styles.pointsInfoCard
-        }
-      >
-        <MaterialCommunityIcons
-          name="star-circle"
-          size={24}
-          color="#8B6C20"
-        />
-
-        <View
-          style={
-            styles.pointsInfoCopy
-          }
-        >
-          <Text
-            style={
-              styles.pointsInfoTitle
-            }
-          >
-            +5 BUKLOD Points bawat lesson
-          </Text>
-
-          <Text
-            style={
-              styles.pointsInfoBody
-            }
-          >
-            28 rewardable lessons · one reward per lesson · hanggang 140 points. Pag na-complete, lalabas muna bilang Ready to Claim sa BUKLOD Points.
-          </Text>
-        </View>
-      </View>
-
-      <View
-        style={
-          styles.searchBox
-        }
-      >
-        <MaterialCommunityIcons
-          name="magnify"
-          size={21}
-          color="#607268"
-        />
-
-        <TextInput
-          accessibilityLabel="Search ABAKA lessons"
-          value={query}
-          onChangeText={
-            setQuery
-          }
-          placeholder="Search lesson title..."
-          placeholderTextColor="#839187"
-          autoCorrect={false}
-          style={
-            styles.searchInput
-          }
-        />
-
-        {query ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Clear lesson search"
-            hitSlop={10}
-            onPress={() =>
-              setQuery('')
-            }
-          >
-            <MaterialCommunityIcons
-              name="close-circle"
-              size={20}
-              color="#7C8C83"
-            />
-          </Pressable>
-        ) : null}
-      </View>
-
       <FlatList
+        ListHeaderComponent={
+          <>
+            <View
+              style={
+                styles.header
+              }
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                hitSlop={10}
+                onPress={() =>
+                  router.back()
+                }
+                style={
+                  styles.backButton
+                }
+              >
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={24}
+                  color="#173A2B"
+                />
+              </Pressable>
+
+              <View
+                style={
+                  styles.headerCopy
+                }
+              >
+                <Text
+                  style={
+                    styles.eyebrow
+                  }
+                >
+                  SHOW FAITH · ALL USERS
+                </Text>
+
+                <Text
+                  style={
+                    styles.title
+                  }
+                >
+                  {ABC_SOURCE.title}
+                </Text>
+
+                <Text
+                  style={
+                    styles.subtitle
+                  }
+                >
+                  Sunday school mula A hanggang Z. Bawat tanong ay may talata. Si Hesus ang sentro.
+                </Text>
+              </View>
+            </View>
+
+            <View
+              style={
+                styles.sourceCard
+              }
+            >
+              <Text
+                style={
+                  styles.sourceTitle
+                }
+              >
+                {ABC_SOURCE.title}
+              </Text>
+
+              <Text
+                style={
+                  styles.sourceBody
+                }
+              >
+                {ABC_SOURCE.englishTitle}
+              </Text>
+
+              <Text
+                style={
+                  styles.sourceNote
+                }
+              >
+                {ABC_SOURCE.copyright} Sagutin ang bawat tanong mula sa talatang nakakabit. Ang huling sagot ay sarili mong hakbang.
+              </Text>
+            </View>
+
+            <View
+              style={
+                styles.progressCard
+              }
+            >
+              <View>
+                <Text
+                  style={
+                    styles.progressLabel
+                  }
+                >
+                  STUDY PROGRESS
+                </Text>
+
+                <Text
+                  style={
+                    styles.progressValue
+                  }
+                >
+                  {completedCount} / {studyLessons.length} completed · {claimedPoints} claimed · {pendingPoints} ready
+                </Text>
+              </View>
+
+              <MaterialCommunityIcons
+                name="book-check-outline"
+                size={28}
+                color="#2F7A4F"
+              />
+            </View>
+
+            <View
+              style={
+                styles.pointsInfoCard
+              }
+            >
+              <MaterialCommunityIcons
+                name="star-circle"
+                size={24}
+                color="#8B6C20"
+              />
+
+              <View
+                style={
+                  styles.pointsInfoCopy
+                }
+              >
+                <Text
+                  style={
+                    styles.pointsInfoTitle
+                  }
+                >
+                  +5 BUKLOD Points bawat lesson
+                </Text>
+
+                <Text
+                  style={
+                    styles.pointsInfoBody
+                  }
+                >
+                  28 rewardable lessons · one reward per lesson · hanggang 140 points. Pag na-complete, lalabas muna bilang Ready to Claim sa BUKLOD Points.
+                </Text>
+              </View>
+            </View>
+
+            <View
+              style={
+                styles.searchBox
+              }
+            >
+              <MaterialCommunityIcons
+                name="magnify"
+                size={21}
+                color="#607268"
+              />
+
+              <TextInput
+                accessibilityLabel="Search ABAKA lessons"
+                value={query}
+                onChangeText={
+                  setQuery
+                }
+                placeholder="Search lesson title..."
+                placeholderTextColor="#839187"
+                autoCorrect={false}
+                style={
+                  styles.searchInput
+                }
+              />
+
+              {query ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear lesson search"
+                  hitSlop={10}
+                  onPress={() =>
+                    setQuery('')
+                  }
+                >
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    size={20}
+                    color="#7C8C83"
+                  />
+                </Pressable>
+              ) : null}
+            </View>
+          </>
+        }
+        ListHeaderComponentStyle={{ paddingBottom: 10 }}
         data={
           filtered
         }
@@ -889,13 +893,12 @@ const styles =
     },
 
     listContent: {
-      padding: 16,
-      paddingTop: 10,
       paddingBottom: 36,
     },
 
     lessonCard: {
       minHeight: 94,
+      marginHorizontal: 16,
       marginBottom: 10,
       padding: 13,
       borderRadius: 19,
@@ -985,6 +988,7 @@ const styles =
     },
 
     emptyCard: {
+      marginHorizontal: 16,
       padding: 24,
       borderRadius: 18,
       alignItems:
