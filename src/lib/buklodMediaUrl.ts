@@ -6,9 +6,11 @@ import { runCommunityMediaPrefetch } from '@/lib/communityMediaPrefetch';
 import { supabase } from '@/lib/supabase';
 
 const SIGN_STORAGE_KEY = '@buklod/media-sign/v4';
-const SIGN_TIMEOUT_MS = 6000;
+// Allow a slow cellular link to finish signing; the request still has a bound.
+const SIGN_TIMEOUT_MS = 12000;
 const SIGN_CACHE_TTL_MS = 50 * 60 * 1000;
 const NEGATIVE_CACHE_TTL_MS = 45 * 1000;
+const TRANSIENT_NEGATIVE_CACHE_TTL_MS = 5 * 1000;
 const SIGN_BATCH_DELAY_MS = 20;
 const MAX_INDIVIDUAL_SIGNS = 3;
 let activeIndividualSigns = 0;
@@ -225,8 +227,12 @@ async function flushCommunityMediaSignBatch() {
           if (!url) throw new Error('Missing signed media URL');
           rememberSignedCommunityMediaUrl(path, url, true);
           resolvePath(path, url);
-        } catch {
-          negativeCache.set(path, Date.now() + NEGATIVE_CACHE_TTL_MS);
+        } catch (error) {
+          // A weak-signal timeout is not a missing file. Cool down briefly;
+          // preserve the longer negative cache for absent/forbidden objects.
+          const detail = String((error as any)?.code ?? '') + ' ' + String((error as any)?.message ?? error ?? '');
+          const permanent = /NoSuchKey|not found|404|401|403|forbidden|unauthorized|row.level.security/i.test(detail);
+          negativeCache.set(path, Date.now() + (permanent ? NEGATIVE_CACHE_TTL_MS : TRANSIENT_NEGATIVE_CACHE_TTL_MS));
           resolvePath(path, null);
         }
       }

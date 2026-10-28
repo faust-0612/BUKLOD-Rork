@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/community-photo-slow-signal-resilience-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-photo-slow-signal-20261029.json" >> "$GITHUB_ENV";;
             fix/pause-unapproved-paid-features-suborg)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/paid-features-suborg-20261028.json" >> "$GITHUB_ENV";;
             chore/reconcile-show-faith-migration-version-20261028)
@@ -127,6 +129,9 @@ jobs:
             feat/community-fair-video-ready-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-fair-video-20261027.json" >> "$GITHUB_ENV";;
           esac
+      - name: Verify slow-signal Community photo recovery contract
+        if: github.head_ref == 'fix/community-photo-slow-signal-resilience-20261029'
+        run: node --test tests/community-wall-no-blank-photo.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
       - name: Verify Home map rendering, destination search and Google Maps handoff

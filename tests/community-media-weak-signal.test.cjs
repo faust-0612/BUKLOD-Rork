@@ -29,7 +29,9 @@ test('missing photos show a manual retry instead of indefinite signed URL reques
   // PR #390 uses the tap event so a retry does not also open a stale viewer.
   assert.match(source, /onPress=\{event => \{/);
   assert.match(source, /event\.stopPropagation\(\)/);
-  assert.match(source, /onDisplay=\{\(\) => setLoaded\(true\)\}/);
+  assert.match(source, /onDisplay=\{\(\) => \{/);
+  assert.match(source, /readFromCacheAsync/);
+  assert.match(source, /cachedImage \|\| \(displayUri/);
   assert.match(source, /cachePolicy="memory-disk"/);
 });
 
