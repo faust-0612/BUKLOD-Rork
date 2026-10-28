@@ -2224,7 +2224,16 @@ export default function BuklodExclusiveScopeCommunity({
     setFocusedPost(null);
     setFocusLoading(true);
     setFocusUnavailable(false);
-    void loadBuklodNotificationPost(focusId, user.id)
+    let openedComments = false;
+    void loadBuklodNotificationPost(focusId, user.id, post => {
+        if (!current || String(post.scope_id) !== String(scope.scope_id)) return;
+        setFocusedPost(post as SocialPost);
+        setFocusLoading(false);
+        if (focusComments) {
+          openedComments = true;
+          openComments(post as SocialPost);
+        }
+      })
       .then(post => {
         if (!current) return;
         const sameScope = post && String(post.scope_id) === String(scope.scope_id);
@@ -2233,7 +2242,7 @@ export default function BuklodExclusiveScopeCommunity({
           return;
         }
         setFocusedPost(post as SocialPost);
-        if (focusComments) openComments(post as SocialPost);
+        if (focusComments && !openedComments) openComments(post as SocialPost);
       })
       .catch(error => {
         if (!current) return;
