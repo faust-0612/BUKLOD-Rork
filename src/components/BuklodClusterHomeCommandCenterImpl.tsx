@@ -15,6 +15,7 @@ import{useAuth}from'@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import BuklodHomeScopeBulletins from'@/components/BuklodHomeScopeBulletins';
 import BuklodHomeFaithPanel from'@/components/BuklodHomeFaithPanel';
+import BuklodNonFaithEncouragementDoor from '@/components/BuklodNonFaithEncouragementDoor';
 import BuklodScopeBuklodLessonPanel from'@/components/BuklodScopeBuklodLessonPanel';
 import BuklodScopeFaithMonitoringDoor from'@/components/BuklodScopeFaithMonitoringDoor';
 import BuklodScopeCallLauncher from'@/components/BuklodScopeCallLauncher';
@@ -234,7 +235,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
       <BuklodScopeBuklodLessonPanel scope={scope} />
       <BuklodHomeFaithPanel scopeId={scope.scope_id} compact />
     </>
-  ) : null}
+  ) : <BuklodNonFaithEncouragementDoor />}
   {/* 14 existing configurable widgets as buttons; selecting opens the original fully functional card below. */}
   <View style={s.featureGrid}>
     {WIDGETS.filter(([k])=>k!=='notice' && k!=='bulletin' && show(k) && (k!=='insights'||isAdmin)).map(([k,l])=>(

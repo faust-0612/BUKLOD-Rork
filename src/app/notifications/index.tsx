@@ -13,6 +13,7 @@ import { useBuklodScrollBottomInset } from '@/lib/buklodSafeArea';
 import {useAuth} from '@/providers/AuthProvider';
 import {useNotifications} from '@/providers/NotificationProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
+import { FAITH_NOTIFICATION_PATTERNS, isFaithNotificationKind } from '@/lib/buklodFaithNotificationPolicy';
 import { syncScopeSelection } from '@/lib/buklodScopeRoute';
 import { resolveBuklodNotificationTarget } from '@/lib/buklodNotificationNavigation';
 import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
@@ -24,10 +25,17 @@ export default function NotificationCenter(){
  const {scopes,selectScope,activeScope}=useBuklodScope();
  const {unreadCount,refreshUnread,markAllRead}=useNotifications();
  const [items,setItems]=useState<any[]>([]),[loading,setLoading]=useState(false),[busyId,setBusyId]=useState<string|null>(null);
- const load=useCallback(async()=>{if(!user?.id)return;setLoading(true);const {data,error}=await supabase.from('notifications').select('id,title,body,kind,data,read_at,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(150);setLoading(false);if(error)return Alert.alert('Notifications',error.message);setItems(data??[]);await refreshUnread()},[user?.id,refreshUnread]);
+ const faithEnabled=activeScope?.show_faith_content===true;
+ const load=useCallback(async()=>{if(!user?.id)return;setLoading(true);
+  let query=supabase.from('notifications').select('id,title,body,kind,data,read_at,created_at').eq('user_id',user.id);
+  if(!faithEnabled){for(const pattern of FAITH_NOTIFICATION_PATTERNS){query=query.not('kind','ilike',pattern)}}
+  const {data,error}=await query.order('created_at',{ascending:false}).limit(150);
+  setLoading(false);if(error)return Alert.alert('Notifications',error.message);setItems(data??[]);await refreshUnread()
+ },[user?.id,refreshUnread,faithEnabled]);
  useEffect(()=>{void load()},[load]);
  const open=async(x:any)=>{
   const kind=String(x?.kind??'');
+  if(!faithEnabled && isFaithNotificationKind(kind))return;
   const data=(x?.data??null) as Record<string,unknown>|null;
   const mzbCanonicalScopeId=await resolveMzbOrganizationScopeId().catch(()=>null);
   const target=resolveBuklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});

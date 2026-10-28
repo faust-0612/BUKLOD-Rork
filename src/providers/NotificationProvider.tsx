@@ -6,6 +6,7 @@ import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {registerPushToken} from '@/lib/pushNotifications';
+import { FAITH_NOTIFICATION_PATTERNS, isFaithNotificationKind } from '@/lib/buklodFaithNotificationPolicy';
 import { classifyBuklodNotificationSound, isBuklodMessageThreadOpen, playBuklodCue } from '@/lib/buklodSounds';
 import { syncScopeSelection } from '@/lib/buklodScopeRoute';
 import { resolveBuklodNotificationTarget } from '@/lib/buklodNotificationNavigation';
@@ -23,19 +24,25 @@ import {
 type Ctx={unreadCount:number;refreshUnread:()=>Promise<void>;markAllRead:()=>Promise<void>};
 const Context=createContext<Ctx|undefined>(undefined);
 /* PATCH_171C_PUSH_CHANNEL_V2 */
-Notifications.setNotificationHandler({handleNotification:async n=>({
- shouldShowBanner:true,
- shouldShowList:true,
- // Expo owns background notifications. In the foreground BUKLOD plays one
- // rate-limited event cue instead of a second system sound.
- shouldPlaySound:['community_emergency','ptt_sos','ptt_priority','ptt_incoming'].includes(String(n.request.content.data?.kind||'')),
- shouldSetBadge:true,
-} as any)});
+// Fail closed for faith pushes until this account's preference loads.
+let showFaithNotifications = false;
+Notifications.setNotificationHandler({handleNotification:async n=>{
+ const kind=String(n.request.content.data?.kind||'');
+ const visible=showFaithNotifications || !isFaithNotificationKind(kind);
+ return {
+  shouldShowBanner:visible,
+  shouldShowList:visible,
+  shouldPlaySound:visible && ['community_emergency','ptt_sos','ptt_priority','ptt_incoming'].includes(kind),
+  shouldSetBadge:visible,
+ } as any;
+}});
 
 export function NotificationProvider({children}:{children:ReactNode}){
  const {user}=useAuth();
  const {scopes,selectScope,activeScope,loading:scopesLoading}=useBuklodScope();
  const [unreadCount,setUnreadCount]=useState(0);
+ const faithEnabled=activeScope?.show_faith_content===true;
+ useEffect(()=>{showFaithNotifications=faithEnabled;return()=>{showFaithNotifications=false}},[faithEnabled]);
  useEffect(()=>{
   if(!user?.id)return;
   const task=InteractionManager.runAfterInteractions(()=>{
@@ -45,12 +52,15 @@ export function NotificationProvider({children}:{children:ReactNode}){
  },[user?.id]);
  const badge=useCallback(async(n:number)=>{try{await Notifications.setBadgeCountAsync(n)}catch(e){console.warn('Notification badge',e)}},[]);
  const refreshUnread=useCallback(async()=>{if(!user?.id){setUnreadCount(0);await badge(0);return}
-  const {count,error}=await supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',user.id).is('read_at',null);
+  let query=supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',user.id).is('read_at',null);
+  if(!faithEnabled){for(const pattern of FAITH_NOTIFICATION_PATTERNS){query=query.not('kind','ilike',pattern)}}
+  const {count,error}=await query;
   if(error){console.warn('Notification count',error.message);return}const n=count??0;setUnreadCount(n);await badge(n);
- },[user?.id,badge]);
+ },[user?.id,badge,faithEnabled]);
  const markAllRead=useCallback(async()=>{if(!user?.id)return;const {error}=await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('user_id',user.id).is('read_at',null);if(error)throw error;await refreshUnread()},[user?.id,refreshUnread]);
 
  const openNotification=useCallback(async(kind:string,data:any)=>{
+  if(!faithEnabled && isFaithNotificationKind(kind)){router.replace('/hub' as any);return;}
   if(kind==='community_emergency'&&data?.help_request_id){
    router.push(`/buklod?help_request_id=${encodeURIComponent(String(data.help_request_id))}` as any);
    return;
@@ -68,7 +78,7 @@ export function NotificationProvider({children}:{children:ReactNode}){
   }
 
   router.push(target.path as any);
- },[scopes,selectScope,activeScope?.scope_id]);
+ },[scopes,selectScope,activeScope?.scope_id,faithEnabled]);
 
  /* PERF_STARTUP_R1: channel + permission work after first interactions */
  useEffect(()=>{
@@ -130,13 +140,14 @@ export function NotificationProvider({children}:{children:ReactNode}){
   });
 
   const receivedSub=Notifications.addNotificationReceivedListener(notification=>{
+   const data:any=notification.request.content.data||{};
+   const kind=String(data.kind||'');
+   if(!faithEnabled && isFaithNotificationKind(kind))return;
    setUnreadCount(current=>{
     const next=current+1;
     void badge(next);
     return next;
    });
-   const data:any=notification.request.content.data||{};
-   const kind=String(data.kind||'');
    if(['community_emergency','ptt_sos','ptt_priority','ptt_incoming'].includes(kind)) return;
    const cue=classifyBuklodNotificationSound(kind);
    const threadId=String(data.conversation_id||data.thread_id||data.scope_id||'');
@@ -149,7 +160,7 @@ export function NotificationProvider({children}:{children:ReactNode}){
    appStateSub.remove();
    receivedSub.remove();
   };
- },[user?.id,refreshUnread,badge]);
+ },[user?.id,refreshUnread,badge,faithEnabled]);
 
  /* PATCH_171B_COLD_START_NOTIFICATION_RESPONSE */
  useEffect(()=>{

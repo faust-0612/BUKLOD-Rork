@@ -1,3 +1,4 @@
+import { BuklodFaithRouteBoundary } from '@/components/BuklodFaithRouteBoundary';
 import React, {
   useCallback,
   useEffect,
@@ -55,7 +56,7 @@ import {
 } from '@/providers/AuthProvider';
 
 
-export default function BuklodLifeShareScreen() {
+function BuklodLifeShareScreenContent() {
 
   const insets =
     useSafeAreaInsets();
@@ -1496,3 +1497,7 @@ const styles =
     },
 
   });
+
+export default function BuklodLifeShareScreen() {
+  return <BuklodFaithRouteBoundary><BuklodLifeShareScreenContent /></BuklodFaithRouteBoundary>;
+}

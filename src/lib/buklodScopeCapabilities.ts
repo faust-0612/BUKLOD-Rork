@@ -80,7 +80,7 @@ export function getScopeCapabilities(
       type === 'ORGANIZATION' &&
       canManage &&
       !input.scope.parent_scope_id,
-    faithPanel: Boolean(input.scope.show_faith_content) || isMzb,
+    faithPanel: Boolean(input.scope.show_faith_content),
     mzbWidgets: isMzb,
   };
 }

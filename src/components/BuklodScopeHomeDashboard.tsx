@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import BuklodHomeFaithPanel from '@/components/BuklodHomeFaithPanel';
+import BuklodNonFaithEncouragementDoor from '@/components/BuklodNonFaithEncouragementDoor';
 import BuklodScopeBuklodLessonPanel from '@/components/BuklodScopeBuklodLessonPanel';
 import BuklodScopeFaithMonitoringDoor from '@/components/BuklodScopeFaithMonitoringDoor';
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
@@ -306,7 +307,7 @@ export default function BuklodScopeHomeDashboard({
           </View>
           <BuklodHomeFaithPanel scopeId={scope.scope_id} compact />
         </>
-      ) : null}
+      ) : <BuklodNonFaithEncouragementDoor />}
 
       <BuklodHomeScopeBulletins />
       <BuklodScopeAttendanceCard
