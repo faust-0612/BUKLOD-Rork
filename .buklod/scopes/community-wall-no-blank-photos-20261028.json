@@ -1,0 +1,22 @@
+{
+  "objective": "Eliminate blank Community Wall image tiles and provide bounded, actionable media render recovery",
+  "baseRef": "c0ca6ce7891e7c95b0d77aaafec7cbf02731d531",
+  "productionBaselineEvidence": "verified: engineering memory identifies latest production Android OTA runtime 1.3.2, update 01a17eaa-7679-7202-9c6c-948a3b69ad04 (run 40561553412); current main is c0ca6ce7891e7c95b0d77aaafec7cbf02731d531 and is not automatically the live OTA. Read-only 2026-10-28 Supabase check: 881 recent posts, no completely empty posts, 805/805 recent SUPABASE media attachments have backing storage objects; screenshot's three JPEGs exist.",
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.tsx",
+    "tests/community-wall-no-blank-photo.test.cjs",
+    ".buklod/scopes/community-wall-no-blank-photos-20261028.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Unverified feed signed URLs never bypass fresh Storage URL cache",
+    "Visible image loading overlay until expo-image confirms actual render",
+    "20-second bounded failure plus manual retry; failed sign/rejection cannot spin forever",
+    "No unbounded retry storms or simultaneous re-sign requests",
+    "Stable media path maintains painted image across feed refresh; recycled pathless image resets correctly",
+    "Existing multi-photo collage geometry and photo tap actions unchanged",
+    "No SQL/RLS, native SDK dependency, ad policy or stored-content mutation",
+    "Local source regression tests pass; TypeScript, Performance/Integration, and current-head device/OTA release gates required before publication"
+  ]
+}
+

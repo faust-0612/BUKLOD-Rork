@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/community-wall-no-blank-photos-20261028)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-wall-no-blank-photos-20261028.json" >> "$GITHUB_ENV";;
             perf/share-count-rpc-burst-shield-20261028)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/share-count-burst-20261028.json" >> "$GITHUB_ENV";;
             fix/buklod-client-version-telemetry-20261028)
@@ -169,6 +171,9 @@ jobs:
         if: github.head_ref == 'fix/video-stale-signed-url-20261024'
         run: node scripts/test-media-signed-cache.cjs
 
+      - name: Verify Community Wall never leaves photo tiles blank
+        if: github.head_ref == 'fix/community-wall-no-blank-photos-20261028'
+        run: node --test tests/community-wall-no-blank-photo.test.cjs
       - name: Verify weak-signal Community media upload and rendering contracts
         if: github.head_ref == 'fix/community-media-weak-signal-r1-20261027'
         run: node --test tests/community-media-weak-signal.test.cjs
@@ -192,4 +197,5 @@ jobs:
       - name: Verify referral lookup race and error handling
         if: github.head_ref == 'fix/referral-lookup-race-20261027'
         run: node --test tests/referral-lookup.test.cjs
+
 
