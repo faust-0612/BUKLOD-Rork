@@ -1,0 +1,24 @@
+{
+  "objective": "Reduce weak-signal media traffic and improve Marites rendering with no native rebuild",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: inspected source main 852ddf8a0a7c2555b175973c4520dacbc34ee1dc; last documented production runtime 1.3.2 channel production OTA 01a17eaa-7679-7202-9c6c-948a3b69ad04 on source c0ca6ce7891e7c95b0d77aaafec7cbf02731d531. No live device verification or new OTA publication claimed.",
+  "allowedPaths": [
+    "src/lib/buklodNetworkQuality.ts",
+    "src/lib/communityMediaPrefetch.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "src/components/BuklodMaritesPhotoCollage.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "__tests__/communityWeakNetworkP0.test.ts",
+    ".github/workflows/engineering-accountability.yml",
+    "tests/weak-media-rendering.test.cjs",
+    ".buklod/scopes/weak-media-rendering-20261028.json"
+  ],
+  "acceptanceChecks": [
+    "Offline prefetch remains zero; degraded mode is one worker and two jobs; normal mode is two and eight",
+    "Marites photo tiles use expo-image disk caching and explicit error state without changing press targets",
+    "Marites remote native clips use expo-video cached source; browser and local drafts unchanged",
+    "Larger uploads are resized to <=1440px maximum dimension without upscaling; <=2MiB JPEG shortcut preserved",
+    "Focused Node, TypeScript, performance/integration and RC regression checks before any release",
+    "No database/auth/ads/native dependency/paid-service change"
+  ]
+}

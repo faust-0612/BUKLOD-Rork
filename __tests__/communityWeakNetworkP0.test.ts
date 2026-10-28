@@ -207,8 +207,8 @@ describe('community weak-network feed', () => {
     expect(classifyNetworkQuality()).toBe('degraded');
     expect(communityFirstPageLimit('degraded')).toBe(8);
     expect(communityPhotoPrefetchBudget('degraded')).toEqual({
-      concurrency: 2,
-      burst: 8,
+      concurrency: 1,
+      burst: 2,
     });
 
     noteMeasuredRead(4000, false);

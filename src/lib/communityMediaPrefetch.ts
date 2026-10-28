@@ -182,7 +182,7 @@ function defaultPrefetchDeps(): PrefetchDeps {
         return;
       }
 
-      await ExpoImage.prefetch(item.uri, 'memory-disk');
+      await ExpoImage.prefetch(item.uri, 'disk');
     },
   };
 }
