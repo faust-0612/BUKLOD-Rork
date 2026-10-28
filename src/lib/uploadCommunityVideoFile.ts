@@ -1,7 +1,7 @@
 /* BUKLOD_COMMUNITY_WEB_UPLOAD_R2 */
 /* BUKLOD_AWS_WALL_VIDEO_ROUTE_R1 */
 import * as FileSystem from 'expo-file-system/legacy';
-import { Platform } from 'react-native';
+import { Image as ReactNativeImage, Platform } from 'react-native';
 import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
 
 import {
@@ -179,6 +179,29 @@ export async function mapWithConcurrency<T, R>(
   return results;
 }
 
+// Determine dimensions only for photos requiring encoding. Never upscale.
+async function readCommunityPhotoDimensions(uri: string): Promise<{width: number; height: number} | null> {
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = (dimensions: {width: number; height: number} | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(dimensions);
+    };
+    const timer = setTimeout(() => finish(null), 3000);
+    try {
+      ReactNativeImage.getSize(
+        uri,
+        (width, height) => finish(width > 0 && height > 0 ? {width, height} : null),
+        () => finish(null),
+      );
+    } catch {
+      finish(null);
+    }
+  });
+}
+
 export async function prepareCommunityJpegUri(
   uri: string,
 ): Promise<{ uri: string; sizeBytes: number }> {
@@ -195,10 +218,17 @@ export async function prepareCommunityJpegUri(
 
   const M = await import('expo-image-manipulator');
   const context = M.ImageManipulator.manipulate(uri);
+  const dimensions = await readCommunityPhotoDimensions(uri);
+  if (dimensions && Math.max(dimensions.width, dimensions.height) > 1440) {
+    context.resize({
+      width: dimensions.width >= dimensions.height ? 1440 : null,
+      height: dimensions.height > dimensions.width ? 1440 : null,
+    });
+  }
   const rendered = await context.renderAsync();
   const image = await rendered.saveAsync({
     format: M.SaveFormat.JPEG,
-    compress: 0.88,
+    compress: 0.82,
   });
   const fileUri = String(image.uri ?? uri).trim() || uri;
   const sizeBytes = await readBinarySizeBytes(fileUri);
