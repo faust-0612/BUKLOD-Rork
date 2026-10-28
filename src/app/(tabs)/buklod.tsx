@@ -2996,7 +2996,7 @@ const load=useCallback(async(options?:{
             : p
       )
   );
-  setFocusedPost(currentPost=>
+  setFocusedPost((currentPost:any)=>
     currentPost?.id===postId
       ? changeReaction(currentPost,previous,nextReaction)
       : currentPost
@@ -3027,7 +3027,7 @@ const load=useCallback(async(options?:{
               : p
         )
     );
-    setFocusedPost(currentPost=>
+    setFocusedPost((currentPost:any)=>
       currentPost?.id===postId
         ? changeReaction(currentPost,nextReaction,previous)
         : currentPost
