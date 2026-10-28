@@ -404,6 +404,8 @@ const COMMUNITY_VIEWER_HEIGHT=
  Dimensions.get('window').height;
 
 export default function BuklodScreen(){
+ const { focusPostId } = useLocalSearchParams<{focusPostId?:string}>();
+ const openingPublicPost = typeof focusPostId==='string' && !!focusPostId.trim();
  const {
   activeScope,
   loading:scopeLoading,
@@ -445,7 +447,7 @@ export default function BuklodScreen(){
   * Compatibility bridge only:
   * no legacy Community DB/code is removed yet.
   */
- if(activeScope.scope_type!=='PUBLIC'){
+ if(activeScope.scope_type!=='PUBLIC' && !openingPublicPost){
   return(
    <Redirect
     href={'/scope?section=community' as any}
