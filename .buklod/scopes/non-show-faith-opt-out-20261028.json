@@ -1,0 +1,34 @@
+{
+  "objective": "Honor each BUKLOD user's personal Show Faith OFF setting across every organization, suborganization, cluster, admin role, and direct religious route",
+  "baseRef": "0d6349a7d5b13efd3b405a3b9feb4668dfcadb23",
+  "productionBaselineEvidence": "verified: read-only GitHub main 0d6349a7d5b13efd3b405a3b9feb4668dfcadb23 and live Supabase buklod_my_scopes_p0_v2 function were inspected on 2026-10-28. No Android production runtime or OTA equivalence verified.",
+  "allowedPaths": [
+    "src/lib/buklodScopeCapabilities.ts",
+    "src/components/BuklodMzbHomeWidgets.tsx",
+    "src/components/BuklodFaithRouteBoundary.tsx",
+    "src/app/faith/_layout.tsx",
+    "src/app/bible/_layout.tsx",
+    "src/app/word/_layout.tsx",
+    "src/app/prayer/_layout.tsx",
+    "src/app/scope/faith-monitoring/_layout.tsx",
+    "src/app/(tabs)/prayer.tsx",
+    "src/app/life/share.tsx",
+    "src/app/life/impact.tsx",
+    "src/app/scope/buklod-lesson/index.tsx",
+    "src/app/devotional/[id].tsx",
+    "src/app/reflection/[id].tsx",
+    "src/app/leader/bible.tsx",
+    "supabase/migrations/20261028140000_respect_personal_show_faith_opt_out.sql",
+    "tests/show-faith-opt-out.test.js",
+    ".buklod/scopes/non-show-faith-opt-out-20261028.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "The live scope function must return the personal preference, without CHURCH/CLUSTER/admin/ORGANIZATION overrides",
+    "Show Faith OFF hides all six Show Faith tiles and MZB Faith & Formation, while preserving non-faith Bayanihan",
+    "All canonical faith route families and ungrouped faith screens must refuse OFF accounts",
+    "Show Faith ON still opens the original routes under existing entitlement and cluster access rules",
+    "Focused Jest regression and TypeScript/CI must pass",
+    "Test ON/OFF with Organization, Sub-org, Cluster and admin accounts on a real Android runtime before OTA"
+  ]
+}
