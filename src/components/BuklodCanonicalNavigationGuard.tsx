@@ -89,6 +89,7 @@ BuklodCanonicalNavigationGuard() {
       scopeId?:
         | string
         | string[];
+      focusPostId?: string | string[];
     }>();
 
   const {
@@ -103,6 +104,13 @@ BuklodCanonicalNavigationGuard() {
   useEffect(() => {
     const normalized =
       normalizeBuklodPathname(pathname);
+
+    // Notification post links intentionally open the public Wall, even if
+    // the member last visited an Organization/Cluster workspace.
+    if (normalized === '/buklod' && firstRouteParam(params.focusPostId)) {
+      lastRedirectRef.current = '';
+      return;
+    }
 
     /*
      * PATCH_177B_R4_ATTENDANCE_ROUTE_EXEMPT
@@ -220,6 +228,7 @@ BuklodCanonicalNavigationGuard() {
     pathname,
     params.section,
     params.scopeId,
+    params.focusPostId,
     activeScope?.scope_id,
     activeScope?.scope_type,
     loading,
@@ -227,3 +236,4 @@ BuklodCanonicalNavigationGuard() {
 
   return null;
 }
+

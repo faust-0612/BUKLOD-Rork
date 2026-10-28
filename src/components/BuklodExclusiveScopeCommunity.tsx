@@ -42,6 +42,7 @@ import {
   useState,
 } from 'react';
 import { router } from 'expo-router';
+import { loadBuklodNotificationPost } from '@/lib/buklodNotificationPost';
 
 import {
   ActivityIndicator,
@@ -181,6 +182,8 @@ import { BuklodPhotoEditor } from '@/components/BuklodPhotoEditor';
 /* PATCH_186B_PHOTO_EDITOR_IMPORT */
 type Props = {
   scope: BuklodScope;
+  focusPostId?: string;
+  focusComments?: boolean;
 };
 
 type Reaction = BuklodCommunityReactionKey;
@@ -434,7 +437,10 @@ if (
 
 export default function BuklodExclusiveScopeCommunity({
   scope,
+  focusPostId,
+  focusComments = false,
 }: Props) {
+  const focusId = String(focusPostId ?? '').trim();
   const {
     user,
   } = useAuth();
@@ -480,6 +486,10 @@ export default function BuklodExclusiveScopeCommunity({
     );
   const postsRef = useRef(posts);
   postsRef.current = posts;
+  const feedRef = useRef<FlatList<any> | null>(null);
+  const [focusedPost, setFocusedPost] = useState<SocialPost | null>(null);
+  const [focusLoading, setFocusLoading] = useState(false);
+  const [focusUnavailable, setFocusUnavailable] = useState(false);
 
   const [
     loading,
@@ -1035,15 +1045,20 @@ export default function BuklodExclusiveScopeCommunity({
 
   const wallPosts =
     useMemo(
-      () =>
-        posts.filter(
+      () => {
+        const regular = posts.filter(
           post =>
             !isScopedReelPost(
               post
             )
-        ),
+        );
+        return focusedPost
+          ? [focusedPost, ...regular.filter(post => post.id !== focusedPost.id)]
+          : regular;
+      },
       [
         posts,
+        focusedPost,
       ]
     );
 
@@ -2050,6 +2065,11 @@ export default function BuklodExclusiveScopeCommunity({
                 : item
           )
       );
+      setFocusedPost(current =>
+        current?.id === post.id
+          ? { ...current, my_reaction: next, reaction_counts: counts }
+          : current
+      );
 
       try {
         const {
@@ -2085,6 +2105,9 @@ export default function BuklodExclusiveScopeCommunity({
                   ? before
                   : item
             )
+        );
+        setFocusedPost(current =>
+          current?.id === before.id ? before : current
         );
 
         Alert.alert(
@@ -2186,6 +2209,56 @@ export default function BuklodExclusiveScopeCommunity({
     setCommentOpen(true);
     void loadComments(post.id);
   };
+
+  // Scoped notifications land in this feed instead of a separate detail
+  // screen. Only the requested scope's access-controlled post can be pinned.
+  useEffect(() => {
+    if (!focusId || !user?.id) {
+      setFocusedPost(null);
+      setFocusLoading(false);
+      setFocusUnavailable(false);
+      return;
+    }
+    let current = true;
+    setMode('wall');
+    setFocusedPost(null);
+    setFocusLoading(true);
+    setFocusUnavailable(false);
+    void loadBuklodNotificationPost(focusId, user.id)
+      .then(post => {
+        if (!current) return;
+        const sameScope = post && String(post.scope_id) === String(scope.scope_id);
+        if (!sameScope) {
+          setFocusUnavailable(true);
+          return;
+        }
+        setFocusedPost(post as SocialPost);
+        if (focusComments) openComments(post as SocialPost);
+      })
+      .catch(error => {
+        if (!current) return;
+        console.warn('Scoped notification post:', error);
+        setFocusUnavailable(true);
+      })
+      .finally(() => {
+        if (current) setFocusLoading(false);
+      });
+    return () => { current = false; };
+  }, [focusId, focusComments, scope.scope_id, user?.id]);
+
+  useEffect(() => {
+    if (!focusedPost || focusedPost.id !== focusId || mode !== 'wall') return;
+    const timer = setTimeout(() => {
+      try {
+        feedRef.current?.scrollToIndex({
+          index: 0, animated: true, viewPosition: 0,
+        });
+      } catch {
+        feedRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [focusedPost?.id, focusId, mode]);
 
   useEffect(
   () => {
@@ -3147,9 +3220,9 @@ export default function BuklodExclusiveScopeCommunity({
 
 return (
         <View
-          style={
-            styles.postCard
-          }
+          style={[styles.postCard,
+            focusId === item.id && { borderColor: colors.green, borderWidth: 2 },
+          ]}
         >
           <View
             style={
@@ -3464,6 +3537,16 @@ return (
   const Header =
     (
       <View>
+        {!!focusId && (focusLoading || focusUnavailable) && (
+          <Text style={{
+            color: focusUnavailable ? '#9A3F22' : colors.greenDark,
+            fontWeight: '700', marginBottom: 10,
+          }}>
+            {focusUnavailable
+              ? 'This post is unavailable, deleted, or outside this community.'
+              : 'Opening the selected post in this Wall…'}
+          </Text>
+        )}
         {mode === 'wall' ? (
           <BuklodFirstViewAd
             placement={
@@ -4120,6 +4203,7 @@ return (
   return (
     <>
       <FlatList
+        ref={feedRef}
         data={
           listData
         }
@@ -5836,3 +5920,4 @@ commentSendDisabled: {
       },
     }
   );
+

@@ -56,13 +56,34 @@ describe('Exact notification destinations', () => {
   it('opens a scoped new post at its exact record, not the Connect workspace', () => {
     expect(resolveBuklodNotificationTarget('community_post', {
       post_id: 'post-123', scope_id: 'scope-123',
-    })?.path).toBe('/post/post-123');
+    })?.path).toBe('/buklod?focusPostId=post-123');
   });
 
   it('opens a comment notification at the actual post', () => {
     expect(resolveBuklodNotificationTarget('community_comment', {
       post_id: 'post-456', scope_id: 'scope-123',
-    })?.path).toBe('/post/post-456');
+    })?.path).toBe('/buklod?focusPostId=post-456&focusComments=1');
+  });
+
+  it('opens organization and cluster posts inside their own community Wall', () => {
+    expect(resolveBuklodNotificationTarget('community_post', {
+      post_id: 'post with spaces', scope_id: 'org-123', scope_type: 'ORGANIZATION',
+    })).toEqual({
+      path: '/scope?section=community&scopeId=org-123&focusPostId=post+with+spaces',
+      scopeId: 'org-123',
+    });
+    expect(resolveBuklodNotificationTarget('community_reply', {
+      post_id: 'post-8', scope_id: 'cluster-1',
+    }, { scopes: [{ scope_id: 'cluster-1', scope_type: 'CLUSTER' } as any] })).toEqual({
+      path: '/scope?section=community&scopeId=cluster-1&focusPostId=post-8&focusComments=1',
+      scopeId: 'cluster-1',
+    });
+  });
+
+  it('rewrites old notification post routes to the post in the Wall', () => {
+    expect(resolveBuklodNotificationTarget('general', {
+      route: '/post/post%2F7',
+    })?.path).toBe('/buklod?focusPostId=post%2F7');
   });
 
   it('opens approved membership notifications at the exact Cluster Home', () => {
@@ -99,3 +120,4 @@ describe('Exact notification destinations', () => {
     })?.path).toBe('/scope?section=community&scopeId=scope-123');
   });
 });
+

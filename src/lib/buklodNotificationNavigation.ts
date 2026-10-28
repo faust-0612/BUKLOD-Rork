@@ -1,5 +1,6 @@
 import type { BuklodScope } from '@/lib/buklodScope';
 import { buklodFormationNotificationTarget } from '@/lib/buklodFormationNotificationTarget';
+import { isManagedCommunityScopeType } from '@/lib/buklodScopeRoute';
 import {
   buklodNotificationPath,
   buklodNotificationTarget,
@@ -57,6 +58,30 @@ function safeInternalPath(value: unknown): string | null {
   }
 
   return path;
+}
+
+function postInItsCommunity(
+  postId: string,
+  payload: Record<string, unknown>,
+  options?: NotificationTargetOptions,
+  openComments = false,
+): BuklodNotificationTarget {
+  const scopeId = clean(payload.scope_id);
+  const scope = options?.scopes?.find(item => item.scope_id === scopeId);
+  const managed = isManagedCommunityScopeType(
+    scope?.scope_type ?? clean(payload.scope_type),
+  );
+  const query = new URLSearchParams();
+  if (managed && scopeId) {
+    query.set('section', 'community');
+    query.set('scopeId', scopeId);
+  }
+  query.set('focusPostId', postId);
+  if (openComments) query.set('focusComments', '1');
+
+  return managed && scopeId
+    ? { path: `/scope?${query.toString()}`, scopeId }
+    : { path: `/buklod?${query.toString()}` };
 }
 
 /**
@@ -134,11 +159,17 @@ export function resolveBuklodNotificationTarget(
     };
   }
 
-  // Always open the exact record. A scoped workspace is only a fallback when
-  // the producer did not provide a post id; the post detail RPC enforces access.
+  // Focus the exact record inside its own feed instead of opening the
+  // standalone post-detail screen. The feed fetches older posts by id through
+  // the existing access-controlled post detail RPC.
   const postId = clean(payload.post_id);
   if (postId && COMMUNITY_POST_KINDS.has(normalizedKind)) {
-    return { path: `/post/${encodeURIComponent(postId)}` };
+    return postInItsCommunity(
+      postId,
+      payload,
+      options,
+      ['community_comment', 'community_commented', 'community_reply'].includes(normalizedKind),
+    );
   }
 
   // Producers may provide a canonical internal route (for example Reports).
@@ -146,6 +177,18 @@ export function resolveBuklodNotificationTarget(
     payload.route ?? payload.href ?? payload.deep_link,
   );
   if (explicitPath) {
+    const oldPostLink = /^\/post\/([^/?#]+)\/?(?:\?.*)?$/.exec(explicitPath);
+    if (oldPostLink) {
+      try {
+        return postInItsCommunity(
+          decodeURIComponent(oldPostLink[1]),
+          payload,
+          options,
+        );
+      } catch {
+        // Malformed old links retain the existing safe internal route.
+      }
+    }
     return { path: explicitPath };
   }
 
@@ -266,3 +309,4 @@ export function resolveBuklodNotificationTarget(
 
   return null;
 }
+

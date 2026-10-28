@@ -137,6 +137,8 @@ ScopeWorkspaceScreen() {
       section?: string;
       scopeId?: string | string[];
       scope_id?: string | string[];
+      focusPostId?: string;
+      focusComments?: string;
     }>();
 
   const routeScopeId =
@@ -523,7 +525,11 @@ return (
       {section ===
         'community' && workspaceScope ? (
         <View style={{ flex: 1, minHeight: 0 }}>
-        <ScopeCommunity scope={workspaceScope} />
+        <ScopeCommunity
+          scope={workspaceScope}
+          focusPostId={params.focusPostId}
+          focusComments={params.focusComments === '1'}
+        />
         </View>
       ) : null}
 
@@ -676,8 +682,12 @@ function LegacyScopeHome({
  */
 function ScopeCommunity({
   scope,
+  focusPostId,
+  focusComments,
 }: {
   scope: BuklodScope;
+  focusPostId?: string;
+  focusComments?: boolean;
 }) {
   if (
     scope.scope_type === 'ORGANIZATION' ||
@@ -686,6 +696,8 @@ function ScopeCommunity({
     return (
       <BuklodExclusiveScopeCommunity
         scope={scope}
+        focusPostId={focusPostId}
+        focusComments={focusComments}
       />
     );
   }
@@ -1555,4 +1567,5 @@ const styles =
       fontWeight: '900',
     },
   });
+
 

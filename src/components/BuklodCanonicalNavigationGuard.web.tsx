@@ -79,6 +79,7 @@ BuklodCanonicalNavigationGuard() {
       section?: string | string[];
       returnScopeId?: string | string[];
       scopeId?: string | string[];
+      focusPostId?: string | string[];
     }>();
 
   const {
@@ -98,6 +99,11 @@ BuklodCanonicalNavigationGuard() {
   useEffect(() => {
     const normalized =
       normalizeBuklodPathname(pathname);
+
+    if (normalized === '/buklod' && firstRouteParam(params.focusPostId)) {
+      lastRedirectRef.current = '';
+      return;
+    }
 
     const exactScopeUtility =
       normalized === '/scope/attendance' ||
@@ -131,6 +137,7 @@ BuklodCanonicalNavigationGuard() {
 
       if (
         isBuklodScopedWorkspacePath(normalized) &&
+        !firstRouteParam(params.focusPostId) &&
         !exactScopeUtility
       ) {
         const publicScope =
@@ -261,6 +268,7 @@ BuklodCanonicalNavigationGuard() {
     pathname,
     params.section,
     params.scopeId,
+    params.focusPostId,
     activeScope?.scope_id,
     activeScope?.scope_type,
     scopes,
@@ -270,3 +278,4 @@ BuklodCanonicalNavigationGuard() {
 
   return null;
 }
+
