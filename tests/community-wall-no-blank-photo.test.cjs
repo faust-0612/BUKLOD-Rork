@@ -43,6 +43,10 @@ test('Slow decode and stalled network render visible feedback then bounded manua
   assert.match(image, /setLoaded\(true\);/);
   assert.match(image, /Mahina ang signal\. Patuloy na nilo-load ang larawan\./);
   assert.match(image, /cachePolicy="memory-disk"/);
+  assert.match(image, /readFromCacheAsync/);
+  assert.match(image, /if \(local\) \{/);
+  assert.match(image, /setCachedImage\(local\)/);
+  assert.match(image, /await new Promise\(resolve => setTimeout\(resolve, 5_500\)\)/);
 });
 
 test('One image error cannot create simultaneous URL re-signing floods', () => {

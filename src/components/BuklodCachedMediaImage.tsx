@@ -57,6 +57,7 @@ function BuklodCachedMediaImageInner({
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [slow, setSlow] = useState(false);
+  const [cachedImage, setCachedImage] = useState<any>(null);
   const [displayUri, setDisplayUri] = useState<string | null>(() =>
     // A feed-supplied signed URL may already be expired. Only the signing
     // cache knows when a durable Storage-path URL was actually minted.
@@ -74,6 +75,7 @@ function BuklodCachedMediaImageInner({
       setFailed(false);
       setLoaded(false);
       setSlow(false);
+      setCachedImage(null);
       setDisplayUri(
         peekCommunityMediaUrl(path, preferredUri) ||
           (!path ? preferredUri || null : null),
@@ -93,29 +95,53 @@ function BuklodCachedMediaImageInner({
   }, [mediaIdentity, path, preferredUri, displayUri, failed]);
 
   useEffect(() => {
-    if (!path || displayUri || failed || manualRetryInFlightRef.current) return;
+    if (!path || displayUri || cachedImage || failed || manualRetryInFlightRef.current) return;
 
     let active = true;
-    void resolveCommunityMediaUrl(path, null)
-      .then(resolved => {
-        if (!active) return;
-        if (resolved) {
-          setLoaded(false);
-          setDisplayUri(current => current || resolved);
-        } else {
-          // The sign request timed out, was denied or hit its bounded
-          // negative cache. Do not leave an endless "loading" tile.
-          setFailed(true);
+    void (async () => {
+      // Previously viewed private photos must be visible offline and on a
+      // very weak connection without waiting for a new Storage signature.
+      // Cache keys are durable object paths, never expiring signed tokens.
+      if (Platform.OS !== 'web' && cacheKey) {
+        try {
+          const reader = (ExpoImage as any).readFromCacheAsync as
+            | ((key: string) => Promise<unknown>)
+            | undefined;
+          const local = await reader?.(cacheKey);
+          if (!active) return;
+          if (local) {
+            setCachedImage(local);
+            setLoaded(true);
+            setSlow(false);
+            return;
+          }
+        } catch {
+          // An unavailable or evicted cache is not a missing photo.
         }
-      })
-      .catch(() => {
-        if (active) setFailed(true);
-      });
+      }
+
+      let resolved = await resolveCommunityMediaUrl(path, null).catch(() => null);
+      if (!active) return;
+      if (!resolved) {
+        // One bounded automatic retry for a transient signing timeout. A
+        // permanently missing/forbidden file remains negative-cached.
+        await new Promise(resolve => setTimeout(resolve, 5_500));
+        if (!active) return;
+        resolved = await resolveCommunityMediaUrl(path, null).catch(() => null);
+      }
+      if (!active) return;
+      if (resolved) {
+        setLoaded(false);
+        setDisplayUri(current => current || resolved);
+      } else {
+        setFailed(true);
+      }
+    })();
 
     return () => {
       active = false;
     };
-  }, [path, displayUri, failed]);
+  }, [path, displayUri, cachedImage, failed, cacheKey]);
 
   useEffect(() => {
     if (!displayUri || loaded || failed) return;
@@ -126,7 +152,7 @@ function BuklodCachedMediaImageInner({
     return () => clearTimeout(timer);
   }, [displayUri, loaded, failed]);
 
-  if (!displayUri || failed) {
+  if ((!displayUri && !cachedImage) || failed) {
     return (
       <Pressable
         accessibilityRole={failed && path ? 'button' : undefined}
@@ -179,12 +205,12 @@ function BuklodCachedMediaImageInner({
     <View style={[styles.imageFrame, style as any]}>
       <ExpoImage
       source={
-        displayUri
+        cachedImage || (displayUri
           ? {
               uri: displayUri,
               cacheKey,
             }
-          : undefined
+          : undefined)
       }
       style={StyleSheet.absoluteFillObject}
       contentFit={contentFit}

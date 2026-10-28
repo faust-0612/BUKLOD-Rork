@@ -8,7 +8,8 @@
     "tests/community-wall-no-blank-photo.test.cjs",
     "scripts/test-media-sign-fallback.cjs",
     ".github/workflows/engineering-accountability.yml",
-    ".buklod/scopes/community-photo-slow-signal-20261029.json"
+    ".buklod/scopes/community-photo-slow-signal-20261029.json",
+    "tests/community-media-weak-signal.test.cjs"
   ],
   "acceptanceChecks": [
     "Slow photo request cannot unmount image solely after 20 seconds",
@@ -16,6 +17,7 @@
     "Photo signing has bounded 12s timeout and short retry cooldown for transient errors",
     "Missing or unauthorized storage objects retain longer negative cache",
     "Existing signing dedupe, RLS and cache protections preserved",
-    "No native build, DB mutation or unrelated modules"
+    "No native build, DB mutation or unrelated modules",
+    "Already cached durable-path photos render without a new signed URL; uncached sign failures receive only one automatic retry"
   ]
 }
