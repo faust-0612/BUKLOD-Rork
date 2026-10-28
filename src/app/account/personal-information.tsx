@@ -1,5 +1,6 @@
 import React, {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -84,6 +85,12 @@ PersonalInformationScreen() {
   const [saving,setSaving] =
     useState(false);
 
+  // The roster/localization triggers are expensive. Only write a section
+  // when its actual form values differ from the last persisted values.
+  const profileSnapshot = useRef<string | null>(null);
+  const addressSnapshot = useRef<string | null>(null);
+  const faithSnapshot = useRef<boolean | null>(null);
+
   const [firstName,setFirstName] =
     useState('');
 
@@ -141,6 +148,7 @@ PersonalInformationScreen() {
         async () => {
           if (!profile?.id) {
             if (alive) {
+              faithSnapshot.current = null;
               setShowFaithContent(
                 null
               );
@@ -176,6 +184,7 @@ PersonalInformationScreen() {
               error.message
             );
 
+            faithSnapshot.current = null;
             setShowFaithContent(
               null
             );
@@ -183,11 +192,9 @@ PersonalInformationScreen() {
             return;
           }
 
-          setShowFaithContent(
-            Boolean(
-              data?.show_faith_content
-            )
-          );
+          const preference = Boolean(data?.show_faith_content);
+          faithSnapshot.current = preference;
+          setShowFaithContent(preference);
         };
 
       void loadFaithPreference();
@@ -262,6 +269,18 @@ PersonalInformationScreen() {
 
           const a =
             addressResult.data ?? {};
+
+          profileSnapshot.current = JSON.stringify([
+            p.first_name, p.middle_name, p.surname, p.suffix,
+            p.mobile, p.birth_date, p.sex,
+          ].map(value => String(value ?? '').trim()));
+
+          addressSnapshot.current = JSON.stringify([
+            a.address_line, a.barangay, a.city_municipality,
+            a.province, a.country ?? 'Philippines', a.postal_code,
+          ].map(value => String(value ?? '').trim()).concat(
+            String(a.address_completed === true)
+          ));
 
           setFirstName(
             String(
@@ -416,10 +435,30 @@ PersonalInformationScreen() {
         return;
       }
 
+      const profileValues = JSON.stringify([
+        first, middleName.trim(), last, suffix.trim(),
+        mobile.trim(), birthDate.trim(), sex.trim(),
+      ]);
+      const addressValues = JSON.stringify([
+        addressLine.trim(), brgy, city, prov, nation,
+        postalCode.trim(), 'true',
+      ]);
+      const profileChanged = profileValues !== profileSnapshot.current;
+      const addressChanged = addressValues !== addressSnapshot.current;
+      const faithChanged = showFaithContent !== null &&
+        showFaithContent !== faithSnapshot.current;
+
+      if (!profileChanged && !addressChanged && !faithChanged) {
+        Alert.alert('No Changes', 'Your information is already up to date.');
+        return;
+      }
+
       setSaving(true);
+      const savedSections: string[] = [];
 
       try {
-        const fullName =
+        if (profileChanged) {
+          const fullName =
           [
             first,
             middleName.trim(),
@@ -474,6 +513,11 @@ PersonalInformationScreen() {
           throw profileError;
         }
 
+          profileSnapshot.current = profileValues;
+          savedSections.push('personal information');
+        }
+
+        if (addressChanged) {
         const {
           error:
             addressError,
@@ -520,14 +564,15 @@ PersonalInformationScreen() {
           throw addressError;
         }
 
+          addressSnapshot.current = addressValues;
+          savedSections.push('localization address');
+        }
+
         /*
          * SHOW FAITH is an existing BUKLOD user preference.
          * Do not create a new profile column or migration.
          */
-        if (
-          showFaithContent !==
-          null
-        ) {
+        if (faithChanged) {
           const {
             data:
               currentPreference,
@@ -591,23 +636,39 @@ PersonalInformationScreen() {
           if (preferenceError) {
             throw preferenceError;
           }
+
+          faithSnapshot.current = showFaithContent;
+          savedSections.push('Show Faith preference');
         }
 
-        await Promise.all([
-          refreshProfile(),
-          refreshScopes(),
-        ]);
+        const refreshes: Promise<unknown>[] = [];
+        if (profileChanged) refreshes.push(Promise.resolve().then(refreshProfile));
+        if (addressChanged || faithChanged) {
+          refreshes.push(Promise.resolve().then(refreshScopes));
+        }
+        const refreshResults = await Promise.allSettled(refreshes);
+        const refreshFailed = refreshResults.some(result =>
+          result.status === 'rejected'
+        );
 
         Alert.alert(
           'Saved',
-          'Your personal information, localization address and Show Faith preference were updated.'
+          `Updated: ${savedSections.join(', ')}.` +
+          (refreshFailed ? ' Reopen this page if the latest settings are not visible yet.' : '')
         );
       }
       catch (error: any) {
+        console.warn('Personal information save failed:', error);
+        const timeout = error?.code === '57014' ||
+          /statement timeout|timed out/i.test(String(error?.message ?? ''));
+        const partial = savedSections.length > 0
+          ? `Saved: ${savedSections.join(', ')}. `
+          : '';
         Alert.alert(
           'Could Not Save',
-          error?.message ??
-            'Unable to save your information.'
+          partial + (timeout
+            ? 'The server took too long. Your remaining edits are still here; please try saving again.'
+            : 'Some changes could not be saved. Please try again. Your edits are still on this screen.')
         );
       }
       finally {
