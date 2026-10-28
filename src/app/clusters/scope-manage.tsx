@@ -147,9 +147,9 @@ export default function ClusterScopeManageScreen() {
         } as any),
     },
     {
-      title: 'Premium & Lesson Packages',
+      title: 'Paid Packages Paused',
       subtitle:
-        'Cluster Premium ₱49, CCP ₱49, Discipleship ₱59, Mentoring ₱69. Paid by Cluster Admin/Head only.',
+        'Cluster Premium and paid lesson packages are unavailable pending final approval. Existing learning progress is preserved.',
       onPress: () => open('/clusters/packages'),
     },
     {
