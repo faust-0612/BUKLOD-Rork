@@ -11,6 +11,7 @@ import { useFocusEffect } from 'expo-router';
 
 import BuklodFaithPaymentModal from '@/components/BuklodFaithPaymentModal';
 import {
+  BUKLOD_PAID_FEATURES_ENABLED,
   BUKLOD_CLUSTER_PACKAGE_CODES,
   BUKLOD_COMMERCIAL_PRODUCTS,
   formatPhp,
@@ -68,6 +69,18 @@ export default function BuklodClusterPackagesCard({
       ),
     [snapshot?.products],
   );
+
+  if (!BUKLOD_PAID_FEATURES_ENABLED) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>Paid Cluster packages paused</Text>
+        <Text style={styles.subtitle}>
+          Premium purchases and lesson package payments are unavailable
+          pending final approval. Existing learning progress is preserved.
+        </Text>
+      </View>
+    );
+  }
 
   if (!scopeId || loading) {
     return (

@@ -1,5 +1,6 @@
 import { resolveBuklodActiveClusterTruth } from '@/lib/buklodActiveClusterTruth';
 import { supabase } from '@/lib/supabase';
+import { BUKLOD_PAID_FEATURES_ENABLED } from '@/lib/buklodCommercialCatalog';
 
 export type FaithLessonStageAccess = {
   stage_code: number;
@@ -243,6 +244,7 @@ export async function submitFaithPayment(input: {
   gcashReference: string;
   stageCode?: number;
 }) {
+  if (!BUKLOD_PAID_FEATURES_ENABLED) throw new Error('Paid features are paused pending final approval.');
   const { data, error } = await supabase.rpc(
     'buklod_submit_faith_payment_v1',
     {

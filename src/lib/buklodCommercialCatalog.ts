@@ -3,6 +3,9 @@
  * Prices and codes are stable; display names are not used for authorization.
  */
 
+/** Payments and paid entitlements are not approved for sale yet. */
+export const BUKLOD_PAID_FEATURES_ENABLED = false;
+
 export const BUKLOD_PRODUCT_CLUSTER_PREMIUM = 'cluster_premium';
 export const BUKLOD_PRODUCT_LESSONS_CCP = 'cluster_lessons_ccp';
 export const BUKLOD_PRODUCT_LESSONS_DISCIPLESHIP =
@@ -188,9 +191,10 @@ export function productForLessonStage(
 }
 
 export function isOrgSubscriptionGatedFocusApp(app: string) {
-  return (BUKLOD_ORG_SUBSCRIPTION_GATED_FOCUS_APPS as readonly string[]).includes(
-    String(app ?? '').trim().toLowerCase(),
-  );
+  return BUKLOD_PAID_FEATURES_ENABLED &&
+    (BUKLOD_ORG_SUBSCRIPTION_GATED_FOCUS_APPS as readonly string[]).includes(
+      String(app ?? '').trim().toLowerCase(),
+    );
 }
 
 export function formatPhp(amount: number) {

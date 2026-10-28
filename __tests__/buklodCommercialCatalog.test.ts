@@ -1,5 +1,6 @@
 import {
   BUKLOD_COMMERCIAL_PRODUCTS,
+  BUKLOD_PAID_FEATURES_ENABLED,
   BUKLOD_ORGANIZATION_TYPE_CHURCH,
   isChurchOrganizationType,
   isOrgSubscriptionGatedFocusApp,
@@ -46,9 +47,10 @@ describe('BUKLOD commercial catalog', () => {
     ).toContain('59');
   });
 
-  it('gates Organization Focus App portals but not Attendance, Giving, or org admin', () => {
-    expect(isOrgSubscriptionGatedFocusApp('faculty')).toBe(true);
-    expect(isOrgSubscriptionGatedFocusApp('business')).toBe(true);
+  it('pauses subscription gates while preserving workspace permission checks', () => {
+    expect(BUKLOD_PAID_FEATURES_ENABLED).toBe(false);
+    expect(isOrgSubscriptionGatedFocusApp('faculty')).toBe(false);
+    expect(isOrgSubscriptionGatedFocusApp('business')).toBe(false);
     expect(isOrgSubscriptionGatedFocusApp('attendance')).toBe(false);
     expect(isOrgSubscriptionGatedFocusApp('giving')).toBe(false);
     expect(isOrgSubscriptionGatedFocusApp('organization')).toBe(false);

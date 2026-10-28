@@ -12,6 +12,7 @@ import { useFocusEffect } from 'expo-router';
 import BuklodClusterPackagesCard from '@/components/BuklodClusterPackagesCard';
 import BuklodMemberEntitlementNotice from '@/components/BuklodMemberEntitlementNotice';
 import {
+  BUKLOD_PAID_FEATURES_ENABLED,
   BUKLOD_CLUSTER_PACKAGE_CODES,
   BUKLOD_COMMERCIAL_PRODUCTS,
   productForLessonStage,
@@ -65,6 +66,18 @@ export default function BuklodScopeLessonLicensesCard({
   );
 
   if (!scopeId) return null;
+
+  if (!BUKLOD_PAID_FEATURES_ENABLED) {
+    return (
+      <View style={styles.licenseBox}>
+        <Text style={styles.licenseTitle}>PAID LESSON PACKAGES PAUSED</Text>
+        <Text style={styles.licenseMeta}>
+          No package payments are being accepted pending final approval.
+          Existing free learning and stage progression rules remain unchanged.
+        </Text>
+      </View>
+    );
+  }
 
   if (loading) {
     return (

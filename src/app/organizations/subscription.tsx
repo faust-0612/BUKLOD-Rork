@@ -61,7 +61,7 @@ export default function OrganizationSubscriptionScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Focus Apps Subscription' }} />
+      <Stack.Screen options={{ title: 'Organization Location & Focus Apps' }} />
       <BuklodPortalScrollView contentContainerStyle={styles.content}>
         <BuklodOrganizationFocusSubscriptionCard
           organizationId={scopeId}

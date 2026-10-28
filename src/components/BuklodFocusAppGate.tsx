@@ -63,16 +63,15 @@ export default function BuklodFocusAppGate({
 
         <Card>
           <Text style={shared.body}>
-            This BUKLOD Focus App portal requires an active Organization
-            Focus Apps subscription (₱59/month or ₱499/year) plus the assigned
-            Organization role. Ordinary accounts do not receive these controls.
-            Organization data is not deleted if the subscription expires.
+            This workspace is available to members with the appropriate
+            Organization or Sub-organization role. Check your membership
+            and assigned permissions with the workspace administrator.
           </Text>
         </Card>
 
         <Button
-          title="VIEW PLANS"
-          onPress={() => router.push('/profile/focus-apps' as any)}
+          title="ORGANIZATIONS"
+          onPress={() => router.push('/organizations' as any)}
         />
 
         <Button

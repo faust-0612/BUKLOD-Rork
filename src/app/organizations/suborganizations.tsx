@@ -157,13 +157,25 @@ export default function SuborganizationsScreen() {
     setLoading(true);
 
     try {
-      const [parentResult, manageableResult] = await Promise.all([
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      const actorId = authData.user?.id;
+      const [parentResult, manageableResult, membershipResult] = await Promise.all([
         (supabase as any)
           .from('buklod_scopes')
           .select('*')
           .eq('id', parentScopeId)
           .maybeSingle(),
         (supabase as any).rpc('buklod_my_manageable_organizations_v2'),
+        actorId
+          ? (supabase as any).from('buklod_scope_memberships')
+              .select('scope_id')
+              .eq('scope_id', parentScopeId)
+              .eq('user_id', actorId)
+              .eq('membership_status', 'ACTIVE')
+              .is('left_at', null)
+              .limit(1)
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (parentResult.error) {
@@ -189,7 +201,9 @@ export default function SuborganizationsScreen() {
             String(row.scope_id || row.id || '').trim() === parentScopeId
         );
 
-      setAllowed(canManage);
+      const isActiveMember = !membershipResult.error &&
+        (membershipResult.data ?? []).length > 0;
+      setAllowed(canManage || isActiveMember);
       setParent(parentRow);
       setOrganizationType(readParentOrganizationType(parentRow.metadata));
       setVisibility(upper(parentRow.visibility || 'PUBLIC'));
@@ -235,7 +249,7 @@ export default function SuborganizationsScreen() {
     if (!allowed) {
       Alert.alert(
         'Admin access required',
-        'Only an authorized admin of the parent Organization can create a Sub-organization.'
+        'Only an active member or authorized admin of the parent Organization can create a Sub-organization.'
       );
       return;
     }
@@ -469,8 +483,8 @@ export default function SuborganizationsScreen() {
               <View style={styles.warningCard}>
                 <Text style={styles.warningTitle}>ADMIN ACCESS REQUIRED</Text>
                 <Text style={styles.warningText}>
-                  Only an admin of this exact parent Organization can create a
-                  structural Sub-organization.
+                  Active members and authorized admins of this parent
+                  Organization can create a structural Sub-organization.
                 </Text>
                 <Pressable
                   onPress={requestSuborganization}
