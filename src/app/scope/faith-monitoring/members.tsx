@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet,
   Text, TextInput, View,
@@ -110,22 +110,39 @@ export default function ScopeFaithMonitoringMembersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const requestId = useRef(0);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; requestId.current += 1; };
+  }, []);
+  useEffect(() => {
+    setFilter(filterFromRoute(first(params.filter)));
+    setExpanded(null);
+  }, [params.area, params.filter, params.stage]);
 
   const load = useCallback(async (isActive: () => boolean) => {
+    const currentRequest = ++requestId.current;
+    const isCurrent = () => mounted.current && isActive() && requestId.current === currentRequest;
     if (!scopeId) {
-      if (isActive()) { setError('The workspace is missing. Open Faith Monitoring again.'); setLoading(false); }
+      if (isCurrent()) {
+        setError('The workspace is missing. Open Faith Monitoring again.');
+        setLoading(false);
+        setRefreshing(false);
+      }
       return;
     }
     try {
       const next = await fetchFaithMonitoringMembers(scopeId);
-      if (isActive()) { setResult(next); setError(null); }
+      if (isCurrent()) { setResult(next); setError(null); }
     } catch (err: unknown) {
-      if (isActive()) {
+      if (isCurrent()) {
         setError(String((err as Error)?.message ?? 'Could not load member activity.'));
         setResult(null);
       }
     } finally {
-      if (isActive()) { setLoading(false); setRefreshing(false); }
+      if (isCurrent()) { setLoading(false); setRefreshing(false); }
     }
   }, [scopeId]);
 
