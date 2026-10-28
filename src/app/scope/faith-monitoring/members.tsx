@@ -101,7 +101,9 @@ export default function ScopeFaithMonitoringMembersScreen() {
   const params = useLocalSearchParams();
   const scopeId = readScopeIdFromParams(params as Record<string, unknown>);
   const area = areaFromRoute(first(params.area));
-  const stageCode = area === 'lesson' ? Number(first(params.stage)) || undefined : undefined;
+  const requestedStage = Number(first(params.stage));
+  const stageCode = area === 'lesson' && Number.isInteger(requestedStage)
+    && requestedStage >= 101 && requestedStage <= 107 ? requestedStage : undefined;
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<FaithMonitoringMemberFilter>(filterFromRoute(first(params.filter)));
   const [search, setSearch] = useState('');
