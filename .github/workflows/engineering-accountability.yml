@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            release/abaka-scroll-android-ota-20261028)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/abaka-scroll-android-ota-20261028.json" >> "$GITHUB_ENV";;
             fix/abaka-scroll-header-20261028)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/abaka-scroll-header-20261028.json" >> "$GITHUB_ENV";;
             perf/share-count-rpc-burst-shield-20261028)

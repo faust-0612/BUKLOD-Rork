@@ -1,0 +1,17 @@
+{
+  "objective": "Connect the merged ABAKA lesson-index scroll fix to the sole canonical Android OTA workflow while retaining exact main, runtime, frozen RC and production bundle verification",
+  "baseRef": "9a4f03320d39294f19cd30b45e6f221d233fbd4c",
+  "productionBaselineEvidence": "Read-only source baseline is merged canonical main 9a4f03320d39294f19cd30b45e6f221d233fbd4c with three passing PR #394 workflows. Current served Android runtime or update has not been independently verified; canonical OTA baseline check must verify it before publication.",
+  "allowedPaths": [
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/abaka-scroll-android-ota-20261028.json"
+  ],
+  "acceptanceChecks": [
+    "ABAKA index path is an exact production Android OTA push trigger on main",
+    "Existing single canonical publisher, source identity, runtime 1.3.2 baseline, frozen RC, and served-bundle verification remain unchanged",
+    "No backend, native package, app config, or payout logic changes",
+    "Engineering Accountability and available QA pass before merge",
+    "Production OTA workflow must report published and verified update before claiming live delivery"
+  ]
+}
