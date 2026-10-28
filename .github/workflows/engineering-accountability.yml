@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            chore/reconcile-show-faith-migration-version-20261028)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/non-show-faith-opt-out-20261028.json" >> "$GITHUB_ENV";;
             fix/non-show-faith-preference-enforcement-20261028)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/non-show-faith-opt-out-20261028.json" >> "$GITHUB_ENV";;
             release/weak-signal-resilience-rc-20261028-r1)

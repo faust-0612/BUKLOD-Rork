@@ -5,7 +5,7 @@ const source = (name) => fs.readFileSync(path.join(__dirname, '..', name), 'utf8
 
 describe('personal Show Faith opt-out', () => {
   test('the scope resolver preserves the personal preference for all roles and scopes', () => {
-    const migration = source('supabase/migrations/20261028140000_respect_personal_show_faith_opt_out.sql');
+    const migration = source('supabase/migrations/20261028140243_respect_personal_show_faith_opt_out.sql');
     expect(migration).toContain('v_faith_pref as show_faith_content');
     expect(migration).not.toMatch(/when s\.scope_type = 'CHURCH' then true/);
     expect(migration).not.toMatch(/faith_content_mandatory.*then true/);
@@ -53,7 +53,7 @@ describe('personal Show Faith opt-out', () => {
     expect(settings).toContain('refreshScopes(),');
   });
   test('faith notifications are suppressed in push, inbox and unread count', () => {
-    const sql = source('supabase/migrations/20261028140000_respect_personal_show_faith_opt_out.sql');
+    const sql = source('supabase/migrations/20261028140243_respect_personal_show_faith_opt_out.sql');
     const policy = source('src/lib/buklodFaithNotificationPolicy.ts');
     const provider = source('src/providers/NotificationProvider.tsx');
     const inbox = source('src/app/notifications/index.tsx');
