@@ -4419,12 +4419,21 @@ useEffect(()=>{
   setFocusedPost(null);
   setFocusLoading(true);
   setFocusUnavailable(false);
-  void loadBuklodNotificationPost(focusPostId,user.id)
+  let openedComments=false;
+  void loadBuklodNotificationPost(focusPostId,user.id,post=>{
+      if(!current)return;
+      setFocusedPost(post);
+      setFocusLoading(false);
+      if(focusComments){
+        openedComments=true;
+        void openComments(post);
+      }
+    })
     .then(post=>{
       if(!current)return;
       setFocusedPost(post);
       setFocusUnavailable(!post);
-      if(post && focusComments)void openComments(post);
+      if(post && focusComments && !openedComments)void openComments(post);
     })
     .catch(error=>{
       if(!current)return;
