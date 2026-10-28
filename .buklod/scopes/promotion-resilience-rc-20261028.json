@@ -1,0 +1,37 @@
+{
+  "objective": "Integrate independently tested promotional concurrency safeguards and blank-media recovery into one immutable candidate without changing live release",
+  "baseRef": "c0ca6ce7891e7c95b0d77aaafec7cbf02731d531",
+  "productionBaselineEvidence": "Current verified Android production baseline is runtime 1.3.2, update 01a17eaa-7679-7202-9c6c-948a3b69ad04 from main c0ca6ce7891e7c95b0d77aaafec7cbf02731d531, with device adoption only partially measured. Prior independent scoped PRs #389, #390 and #392 passed exact-head TypeScript/Performance, Integration and Engineering Accountability on 2026-10-28 reruns. Production Storage read-only audit: 1072/1072 SUPABASE community attachments present and nonzero; 12 InvalidJWT exp signed GETs from one Android client. Database observed 44/60 connections, 2 active and no idle-in-transaction. No 1000-concurrent-user certification.",
+  "allowedPaths": [
+    ".buklod/scopes/modernization-offline-durability-20261028.json",
+    ".buklod/scopes/community-wall-no-blank-photos-20261028.json",
+    ".buklod/scopes/profile-avatar-no-404-burst-20261028.json",
+    ".buklod/scopes/promotion-resilience-rc-20261028.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/components/BuklodSyncCoordinator.tsx",
+    "src/lib/buklodOfflineSync.ts",
+    "src/lib/buklodR4RequestShield.ts",
+    "src/lib/buklodReconnectPacing.ts",
+    "src/lib/offlineSyncQueue.ts",
+    "src/providers/BuklodOfflineSyncProvider.tsx",
+    "src/providers/NetworkProvider.tsx",
+    "tests/offline-pending-race.test.cjs",
+    "tests/offline-queue-capacity.test.cjs",
+    "tests/offline-reconnect-pacing.test.cjs",
+    "tests/request-shield-savings.test.cjs",
+    "src/components/BuklodCachedMediaImage.tsx",
+    "tests/community-wall-no-blank-photo.test.cjs",
+    "src/components/ProfileAvatar.tsx",
+    "src/lib/buklodAvatarBatch.ts",
+    "tests/profile-avatar-batch.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "All three independently validated change sets included at exact blob SHAs; unrelated source files unchanged",
+    "Offline queues never silently discard pending work; automatic replay bounded and staggered while manual replay remains available",
+    "Fresh signed Wall media recovery on missing or expired credentials, visible loading and bounded actionable photo Retry",
+    "Avatar lookup uses verified profile URLs with batching, viewer isolation, and no guessing confirmed-missing paths",
+    "Combined source-contract suites and TypeScript, Performance, Integration, Scope Gate pass on the exact candidate",
+    "No database mutation, new paid service, protected RLS/points/ads changes, or production release triggered by this branch",
+    "Native device weak-network photo/reconnect smoke, in-flight write idempotency and immutable RC to production OTA gates remain mandatory before promotion"
+  ]
+}
