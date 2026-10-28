@@ -130,7 +130,10 @@ function BuklodCachedMediaImageInner({
         accessibilityRole={failed && path ? 'button' : undefined}
         accessibilityLabel={failed ? 'Retry photo' : 'Loading photo'}
         disabled={!failed || !path}
-        onPress={() => {
+        onPress={event => {
+          // A failed tile sits inside the collage's own Pressable. Retry must
+          // not also open a blank fullscreen viewer on the same tap.
+          event.stopPropagation();
           if (!path) return;
           resignAttemptRef.current = 0;
           resignNotBeforeRef.current = 0;

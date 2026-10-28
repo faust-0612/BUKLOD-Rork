@@ -26,6 +26,7 @@ test('Unsuccessful and rejected sign requests always leave an actionable failure
   assert.match(image, /setFailed\(true\)/);
   assert.match(image, /\.catch\(\(\) => \{/);
   assert.match(image, /I-tap para subukan muli/);
+  assert.match(image, /onPress=\{event => \{\s*\/\/[^\n]*\n[^\n]*\n\s*event\.stopPropagation\(\)/);
   assert.match(image, /resignCommunityMediaUrl\(path\)/);
   assert.match(signer, /const NEGATIVE_CACHE_TTL_MS = 45 \* 1000/);
 });
