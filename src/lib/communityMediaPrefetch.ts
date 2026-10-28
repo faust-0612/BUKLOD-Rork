@@ -136,7 +136,7 @@ export async function runCommunityMediaPrefetch(
       offline: quality === 'offline',
       degraded: quality === 'degraded',
     });
-    return plan;
+    return { ...plan, hits: 0, misses: 0, skipped: 0 };
   }
 
   const deps = options?.deps ?? defaultPrefetchDeps();
