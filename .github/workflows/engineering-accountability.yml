@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            release/weak-signal-resilience-rc-20261028-r1)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/weak-signal-resilience-rc-20261028.json" >> "$GITHUB_ENV";;
             fix/weak-media-rendering-ota-20261028-r1)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/weak-media-rendering-20261028.json" >> "$GITHUB_ENV";;
             release/abaka-scroll-android-ota-20261028)
@@ -174,6 +176,10 @@ jobs:
       - name: Verify media signed URL cache
         if: github.head_ref == 'fix/video-stale-signed-url-20261024'
         run: node scripts/test-media-signed-cache.cjs
+
+      - name: Verify integrated resilience, photo and weak-signal contracts
+        if: github.head_ref == 'release/weak-signal-resilience-rc-20261028-r1'
+        run: node --test tests/community-wall-no-blank-photo.test.cjs tests/offline-pending-race.test.cjs tests/offline-queue-capacity.test.cjs tests/offline-reconnect-pacing.test.cjs tests/profile-avatar-batch.test.cjs tests/request-shield-savings.test.cjs tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs
 
       - name: Verify low-bandwidth media rendering safeguards
         if: github.head_ref == 'fix/weak-media-rendering-ota-20261028-r1'
