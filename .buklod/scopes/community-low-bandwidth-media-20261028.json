@@ -11,7 +11,8 @@
     "src/lib/communityPhotoUploadPolicy.ts",
     "src/lib/uploadCommunityVideoFile.ts",
     "__tests__/communityPhotoUploadPolicy.test.ts",
-    "__tests__/communityWeakNetworkP0.test.ts"
+    "__tests__/communityWeakNetworkP0.test.ts",
+    "src/components/BuklodMaritesPhotoCollage.tsx"
   ],
   "acceptanceChecks": [
     "No new paid CDN, transcoding provider, native dependency, backend schema, RLS or production data change",
@@ -20,6 +21,7 @@
     "New Community JPEG photo upload bounds longest image edge at 1600 px when dimensions are available, avoids needless upscaling and uses 0.78 quality",
     "Maintain signing authorization, Google IMA ads, existing cache-key path, private media access and upload recovery behavior",
     "Jest policy/weak-network tests, TypeScript, scope/Performance/Integration QA and real Android slow-link smoke before promotion",
-    "DEV -> verified immutable RC -> production OTA only after release gates; no auto release from this branch"
+    "DEV -> verified immutable RC -> production OTA only after release gates; no auto release from this branch",
+    "Marites collage photos use the canonical cached image component and recover by durable storage path when present; preserve local-only images and touch targets"
   ]
 }

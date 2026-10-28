@@ -592,3 +592,19 @@ describe('community weak-network feed', () => {
     expect(source).not.toContain('communityLoadSeqRef');
   });
 });
+
+
+// Guard against a regression to uncached React Native Image in Marites.
+describe('Marites photo thumbnail integrity', () => {
+  test('passes private Storage paths to the canonical expo-image renderer', () => {
+    const collage = fs.readFileSync(path.join(process.cwd(),
+      'src/components/BuklodMaritesPhotoCollage.tsx'), 'utf8');
+    const board = fs.readFileSync(path.join(process.cwd(),
+      'src/components/BuklodMaritesBoard.tsx'), 'utf8');
+    expect(collage).toContain("import { BuklodCachedMediaImage }");
+    expect(collage).toContain("mediaPath={paths[0] || null}");
+    expect(collage).toContain("mediaPath={paths[index] || null}");
+    expect(collage).not.toMatch(/<Image\s/);
+    expect(board).toContain("paths={story.photo_paths?.length === photoUris.length ? story.photo_paths : []}");
+  });
+});
