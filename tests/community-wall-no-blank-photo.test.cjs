@@ -33,12 +33,15 @@ test('Unsuccessful and rejected sign requests always leave an actionable failure
 
 test('Slow decode and stalled network render visible feedback then bounded manual recovery', () => {
   assert.match(image, /const PHOTO_LOAD_TIMEOUT_MS = 20_000/);
-  assert.match(image, /setTimeout\(\(\) => setFailed\(true\), PHOTO_LOAD_TIMEOUT_MS\)/);
+  assert.match(image, /setTimeout\(\(\) => setSlow\(true\), PHOTO_LOAD_TIMEOUT_MS\)/);
+  assert.doesNotMatch(image, /setTimeout\(\(\) => setFailed\(true\), PHOTO_LOAD_TIMEOUT_MS\)/);
   assert.match(image, /!loaded \? \(/);
   assert.match(image, /pointerEvents="none" style=\{styles\.loadingOverlay\}/);
-  assert.match(image, /onLoadStart=\{\(\) => setLoaded\(false\)\}/);
+  assert.match(image, /onLoadStart=\{\(\) => setSlow\(false\)\}/);
   assert.match(image, /onLoad=\{event => \{/);
-  assert.match(image, /onDisplay=\{\(\) => setLoaded\(true\)\}/);
+  assert.match(image, /onDisplay=\{\(\) => \{/);
+  assert.match(image, /setLoaded\(true\);/);
+  assert.match(image, /Mahina ang signal\. Patuloy na nilo-load ang larawan\./);
   assert.match(image, /cachePolicy="memory-disk"/);
 });
 

@@ -1,0 +1,21 @@
+{
+  "objective": "Recover slow-network Community Wall photos without mistaking slow downloads for missing images",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: source baseline main a24f04823382121d4eb8ab6edd3e75f174fef3d0; last confirmed Android production runtime 1.3.2 OTA 01a182d6-5916-7b69-8e2a-ab8e1a6e1232 on f0e3fa9bacdb0e772c910001c141b158cd8bf08f. Device display unverified.",
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.tsx",
+    "src/lib/buklodMediaUrl.ts",
+    "tests/community-wall-no-blank-photo.test.cjs",
+    "scripts/test-media-sign-fallback.cjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/community-photo-slow-signal-20261029.json"
+  ],
+  "acceptanceChecks": [
+    "Slow photo request cannot unmount image solely after 20 seconds",
+    "Photo loader removes overlay on successful onLoad as well as onDisplay",
+    "Photo signing has bounded 12s timeout and short retry cooldown for transient errors",
+    "Missing or unauthorized storage objects retain longer negative cache",
+    "Existing signing dedupe, RLS and cache protections preserved",
+    "No native build, DB mutation or unrelated modules"
+  ]
+}

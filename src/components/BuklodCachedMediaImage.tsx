@@ -56,6 +56,7 @@ function BuklodCachedMediaImageInner({
   const manualRetryInFlightRef = useRef(false);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [slow, setSlow] = useState(false);
   const [displayUri, setDisplayUri] = useState<string | null>(() =>
     // A feed-supplied signed URL may already be expired. Only the signing
     // cache knows when a durable Storage-path URL was actually minted.
@@ -72,6 +73,7 @@ function BuklodCachedMediaImageInner({
       manualRetryInFlightRef.current = false;
       setFailed(false);
       setLoaded(false);
+      setSlow(false);
       setDisplayUri(
         peekCommunityMediaUrl(path, preferredUri) ||
           (!path ? preferredUri || null : null),
@@ -118,9 +120,9 @@ function BuklodCachedMediaImageInner({
   useEffect(() => {
     if (!displayUri || loaded || failed) return;
 
-    // ExpoImage may never report onError under a stalled connection.
-    // A visible recovery action bounds the time spent on an empty tile.
-    const timer = setTimeout(() => setFailed(true), PHOTO_LOAD_TIMEOUT_MS);
+    // Slow networks are not missing files. Keep ExpoImage mounted so a late
+    // successful response can still paint; only an actual error marks failure.
+    const timer = setTimeout(() => setSlow(true), PHOTO_LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [displayUri, loaded, failed]);
 
@@ -140,6 +142,7 @@ function BuklodCachedMediaImageInner({
           manualRetryInFlightRef.current = true;
           setFailed(false);
           setLoaded(false);
+          setSlow(false);
           setDisplayUri(null);
           void resignCommunityMediaUrl(path)
             .then(next => {
@@ -194,17 +197,23 @@ function BuklodCachedMediaImageInner({
        */
       recyclingKey={Platform.OS === 'web' ? undefined : cacheKey}
       transition={0}
-      onLoadStart={() => setLoaded(false)}
+      onLoadStart={() => setSlow(false)}
       onLoad={event => {
         resignAttemptRef.current = 0;
         setFailed(false);
+        setSlow(false);
+        // onLoad is the reliable successful-decode fallback if onDisplay is
+        // delayed/skipped by a recycled native view or web image element.
+        setLoaded(true);
         onLoad?.(event);
       }}
-      // onLoad can precede the actual paint. Do not expose a blank view
-      // until ExpoImage confirms it is displayed on Android, iOS or web.
-      onDisplay={() => setLoaded(true)}
+      onDisplay={() => {
+        setLoaded(true);
+        setSlow(false);
+      }}
       onError={() => {
         setLoaded(false);
+        setSlow(false);
         if (resignInFlightRef.current) return;
         if (!path || resignAttemptRef.current >= 2) {
           setFailed(true);
@@ -249,6 +258,9 @@ function BuklodCachedMediaImageInner({
       {!loaded ? (
         <View pointerEvents="none" style={styles.loadingOverlay}>
           <ActivityIndicator color="#688A81" size="small" />
+          {slow ? (
+            <Text style={styles.slowText}>Mahina ang signal. Patuloy na nilo-load ang larawan.</Text>
+          ) : null}
         </View>
       ) : null}
     </View>
@@ -285,6 +297,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF3F0',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  slowText: {
+    color: '#566D65',
+    fontSize: 11,
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 12,
   },
   placeholder: {
     backgroundColor: '#EEF3F0',

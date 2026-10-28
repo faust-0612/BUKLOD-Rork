@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { stripTypeScriptTypes } = require('node:module');
 const source = fs.readFileSync(__dirname + '/../src/lib/buklodMediaUrl.ts', 'utf8')
   .replace(/^import .*;\n/gm, '').replace(/export /g, '')
-  .replace('const SIGN_TIMEOUT_MS = 6000;', 'const SIGN_TIMEOUT_MS = 60;');
+  .replace(/const SIGN_TIMEOUT_MS = \d+;/, 'const SIGN_TIMEOUT_MS = 60;');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 function harness(batch, individual) {
   const stats = { active: 0, peak: 0, calls: [], batches: 0 };
