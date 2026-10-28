@@ -36,7 +36,7 @@ type NetworkContextValue = {
   lastOnlineAt: number | null;
   lastSyncAt: number | null;
   connectionType: string;
-  syncNow: () => Promise<void>;
+  syncNow: (options?: { maxItems?: number; userId?: string | null }) => Promise<void>;
   refreshNetwork: () => Promise<void>;
 };
 
@@ -118,12 +118,19 @@ export function NetworkProvider({
     }
   }, []);
 
-  const syncNow = useCallback(async () => {
+  const syncNow = useCallback(async (options?: {
+    maxItems?: number;
+    userId?: string | null;
+  }) => {
     if (!online) return;
 
     setSyncing(true);
     try {
-      const result = await drainOfflineQueue({ concurrency: 2 });
+      const result = await drainOfflineQueue({
+        concurrency: 2,
+        maxItems: options?.maxItems,
+        userId: options?.userId,
+      });
       if (mountedRef.current) {
         setPendingCount(result.pendingCount);
         setLastSyncAt(Date.now());
