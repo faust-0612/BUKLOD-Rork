@@ -46,6 +46,7 @@ type SourceState = {
   renderer: 'expo' | 'native';
   painted: boolean;
   fromDiskCache: boolean;
+  alternateAttempted: boolean;
 };
 
 // Check infrequently only while a photo is mounted and not yet painted.
@@ -56,9 +57,12 @@ function initialSource(identity: string, path: string, preferred: string): Sourc
     identity,
     url: peekCommunityMediaUrl(path, preferred) || (!path ? preferred || null : null),
     failed: false,
-    renderer: 'expo',
+    // Android Expo Image can report displayed while the tile is white.
+    // Prefer the independent native Fresco renderer on the first attempt.
+    renderer: 'native',
     painted: false,
     fromDiskCache: false,
+    alternateAttempted: false,
   };
 }
 
@@ -178,10 +182,10 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, conte
           : current);
         return;
       }
-      if (decision === 'fallback') {
+      if (decision === 'fallback' && !actual.alternateAttempted) {
         setSource(current => current.identity === identity && current.url === url &&
-          current.renderer === 'expo' && !current.painted
-          ? { ...current, renderer: 'native' }
+          current.renderer === actual.renderer && !current.painted && !current.alternateAttempted
+          ? { ...current, renderer: current.renderer === 'native' ? 'expo' : 'native', alternateAttempted: true }
           : current);
         return;
       }
@@ -206,7 +210,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, conte
       // Cached bytes may have been evicted. Recover via the protected signer
       // once, rather than trapping the viewer in a corrupt local file.
       const first = initialSource(identity, path, preferred);
-      // Fall back to the independent network loader if local bytes are bad.
+      // Fall back to the network loader if local bytes are bad.
       setSource({ ...first, failed: false, renderer: 'native' });
       if (!first.url && path) {
         resignInFlightRef.current = true;
@@ -233,7 +237,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, conte
         setSource(current => {
           if (current.identity !== identity || current.url !== failedUrl) return current;
           return next && next !== failedUrl
-            ? { ...current, url: next, failed: false, painted: false, renderer: 'expo', fromDiskCache: false }
+            ? { ...current, url: next, failed: false, painted: false, renderer: 'native', fromDiskCache: false, alternateAttempted: false }
             : { ...current, failed: true };
         });
       })
@@ -266,7 +270,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, conte
     if (!path || resignInFlightRef.current) return;
     signRetryRef.current = 0;
     resignInFlightRef.current = true;
-    setSource({ identity, url: null, failed: false, renderer: 'expo', painted: false, fromDiskCache: false });
+    setSource(initialSource(identity, path, preferred));
+    // A manual retry also resets the renderer attempt budget.
     void resignCommunityMediaUrl(path)
       .then(next => setSource(current => current.identity === identity
         ? { ...current, url: next, failed: !next }
@@ -301,21 +306,64 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, conte
   if (actual.renderer === 'native') {
     return (
       <NativeImage
+        key={`native:${identity}:${actual.url}`}
         source={{ uri: actual.url }}
         resizeMode={contentFit}
         style={style}
+        onProgress={event => {
+          // Preserve an active weak-network transfer: never switch renderers
+          // while real bytes are still arriving.
+          const loaded = Number(event.nativeEvent?.loaded ?? 0);
+          const progress = progressRef.current;
+          if (progress.uri === actual.url && loaded > progress.bytes) {
+            progress.bytes = loaded;
+            progress.lastProgressAt = Date.now();
+          }
+        }}
         onLoad={event => {
-          setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
-          // Keep single-photo aspect-ratio calculation identical for callers.
+          const dimensions = event.nativeEvent.source;
+          if (!(Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0)) {
+            // A completion event without decoded dimensions is not a photo.
+            // A corrupt disk hit must try the original signed URL; a network
+            // decode can try the alternate renderer on the SAME signed URL.
+            if (actual.fromDiskCache || actual.alternateAttempted) {
+              retryAfterError(actual.url!);
+            } else {
+              setSource(current => current.identity === identity &&
+                current.url === actual.url && current.renderer === 'native' &&
+                !current.painted && !current.alternateAttempted
+                ? { ...current, renderer: 'expo', alternateAttempted: true }
+                : current);
+            }
+            return;
+          }
+          setSource(current => current.identity === identity &&
+            current.url === actual.url && current.renderer === 'native' && !current.painted
+            ? { ...current, painted: true }
+            : current);
+          // Preserve the single-photo aspect-ratio calculation.
           onLoad?.({ source: event.nativeEvent.source });
         }}
-        onError={() => retryAfterError(actual.url!)}
+        onError={() => {
+          if (actual.renderer === 'native' && !actual.fromDiskCache && !actual.alternateAttempted) {
+            // Decode failure can be renderer-specific; reuse the SAME signed
+            // URL first, without generating a second signing request.
+            setSource(current => current.identity === identity &&
+              current.url === actual.url && current.renderer === 'native' &&
+              !current.painted && !current.alternateAttempted
+              ? { ...current, renderer: 'expo', alternateAttempted: true }
+              : current);
+            return;
+          }
+          retryAfterError(actual.url!);
+        }}
       />
     );
   }
 
   return (
     <ExpoImage
+      key={`expo:${identity}:${actual.url}`}
       source={{ uri: actual.url, cacheKey }}
       style={style}
       contentFit={contentFit}
@@ -341,7 +389,12 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, conte
         onLoad?.(event);
       }}
       onDisplay={() => {
-        setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
+        // A callback from the previous signed URL or renderer must never mark
+        // a replacement image as painted (the observed blank-white race).
+        setSource(current => current.identity === identity &&
+          current.url === actual.url && current.renderer === 'expo' && !current.painted
+          ? { ...current, painted: true }
+          : current);
       }}
       onError={() => retryAfterError(actual.url!)}
     />

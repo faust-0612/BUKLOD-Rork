@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/android-wall-white-painted-native-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/android-wall-white-painted-20261029.json" >> "$GITHUB_ENV";;
             fix/wall-photo-hydration-state-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/wall-photo-hydration-state-20261029.json" >> "$GITHUB_ENV";;
             feat/wall-lightweight-preview-sidecars-20261029)
@@ -191,6 +193,11 @@ jobs:
       - name: Verify slow-signal Community photo recovery contract
         if: github.head_ref == 'fix/community-photo-slow-signal-resilience-20261029' || github.head_ref == 'fix/android-wall-photo-stall-recovery-20261029' || github.head_ref == 'fix/android-wall-cache-paint-regression-20261029' || github.head_ref == 'fix/android-wall-cross-renderer-20261029'
         run: node --test tests/community-wall-no-blank-photo.test.cjs
+      - name: Verify white-painted Android Wall photo recovery
+        if: github.head_ref == 'fix/android-wall-white-painted-native-20261029'
+        run: |
+          node --experimental-strip-types --test tests/android-photo-cache-first-progress.test.mjs
+          node --test tests/android-photo-oct28-rollback.test.cjs tests/community-wall-preview-sidecar.test.mjs
       - name: Verify exact Android photo renderer OTA routing
         if: github.head_ref == 'release/android-photo-renderer-ota-20261029'
         run: |
