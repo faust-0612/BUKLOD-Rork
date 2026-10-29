@@ -287,7 +287,7 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
       // The parent collage already keys each tile by its durable media path.
       transition={0}
       onProgress={event => {
-        const loaded = Number(event.nativeEvent?.loaded ?? 0);
+        const loaded = Number(event.loaded ?? 0);
         const p = progressRef.current;
         if (p.uri === actual.url && loaded > p.bytes) {
           p.bytes = loaded;
