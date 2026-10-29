@@ -12,7 +12,8 @@
     "src/components/BuklodCommunityPhotoCollage.tsx",
     "tests/community-wall-preview-sidecar.test.mjs",
     ".buklod/scopes/wall-lightweight-preview-sidecars-20261029.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "supabase/migrations/20261029130900_community_wall_preview_storage_authorization_v1.sql"
   ],
   "acceptanceChecks": [
     "Never replace or delete originals, old posts, or existing cached media",
@@ -23,6 +24,7 @@
     "Full photo viewer and photo editing use original, not sidecar",
     "No schema migration, paid transformation, public media URL, native dependency, APK, or web behavior change",
     "Engineering Accountability, TypeScript/Performance and Integration QA required before exact-source production Android OTA",
-    "Legacy photos remain safe and unchanged; separate controlled backfill requires authorized server-side processor with verified storage capacity"
+    "Legacy photos remain safe and unchanged; separate controlled backfill requires authorized server-side processor with verified storage capacity",
+    "Only authenticated viewers authorized for the original post may sign or read its private preview; RLS enforced with original canonical permission function"
   ]
 }
