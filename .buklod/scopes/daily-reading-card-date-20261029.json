@@ -1,0 +1,20 @@
+{
+  "objective": "Correct Show Faith Daily Reading card date-scoped content and prevent previous-day or cross-account references from appearing as today's Scripture",
+  "baseRef": "89aebc175ae8096e98eb491a1c6842da07909e9b",
+  "productionBaselineEvidence": "Verified GitHub main comparison base at PR creation: 89aebc175ae8096e98eb491a1c6842da07909e9b. Production Android runtime/source/OTA fingerprint not verified by this DEV PR and must pass independently before release.",
+  "allowedPaths": [
+    "src/components/BuklodHomeFaithPanel.tsx",
+    "tests/show-faith-daily-reading-card.test.cjs",
+    ".buklod/scopes/daily-reading-card-date-20261029.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "node --test tests/show-faith-daily-reading-card.test.cjs",
+    "TypeScript and existing unit gates",
+    "Cached Daily Reading reference must match the Manila calendar date AND current authenticated account",
+    "Live RPC wrong-date responses may not overwrite the card; offline fallback must not show yesterday as today",
+    "App foreground and navigation focus refresh date without background polling",
+    "Daily Reading route source and access controls must remain unchanged",
+    "Complete PR Engineering Accountability scope gate; separate verified RC and actual runtime 1.3.2 production OTA release gates"
+  ]
+}
