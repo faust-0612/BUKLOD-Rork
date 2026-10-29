@@ -7,7 +7,8 @@
     "src/lib/buklodAndroidPhotoRecovery.ts",
     "tests/android-photo-cache-first-progress.test.mjs",
     ".buklod/scopes/android-photo-cache-first-progress-20261029.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "tests/android-photo-oct28-rollback.test.cjs"
   ],
   "acceptanceChecks": [
     "Never replace a still-progressing low-bandwidth image after a fixed eight-second timer",
