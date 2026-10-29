@@ -178,7 +178,7 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
         resizeMode={contentFit}
         style={style}
         onLoad={event => {
-          setSource(current => current.identity === identity ? { ...current, painted: true } : current);
+          setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
           // Keep single-photo aspect-ratio calculation identical for callers.
           onLoad?.({ source: event.nativeEvent.source });
         }}
@@ -197,11 +197,12 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
       recyclingKey={cacheKey}
       transition={0}
       onLoad={event => {
-        setSource(current => current.identity === identity ? { ...current, painted: true } : current);
+        // Decode alone is not a paint: wait for onDisplay before suppressing
+        // the independent RN Image fallback on affected Android builds.
         onLoad?.(event);
       }}
       onDisplay={() => {
-        setSource(current => current.identity === identity ? { ...current, painted: true } : current);
+        setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
       }}
       onError={() => retryAfterError(actual.url!)}
     />
