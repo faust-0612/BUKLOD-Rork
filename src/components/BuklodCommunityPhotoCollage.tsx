@@ -18,6 +18,7 @@ export type CommunityPhotoCollageItem = {
   media_path?: string | null;
   media_url?: string | null;
   media_mime_type?: string | null;
+  preview_path?: string | null;
 };
 
 type Props = {
@@ -237,6 +238,7 @@ export function BuklodCommunityPhotoCollage({
           uri={photos[0].media_url}
           mediaPath={photos[0].media_path}
           useWallPreview
+          previewPath={photos[0].preview_path}
           style={[styles.image, imageStyle]}
           contentFit={
             preserveSinglePhotoAspectRatio
@@ -339,6 +341,7 @@ export function BuklodCommunityPhotoCollage({
               uri={photo.media_url}
               mediaPath={photo.media_path}
               useWallPreview
+              previewPath={photo.preview_path}
               style={[styles.image, imageStyle]}
               contentFit={contentFit}
             />
