@@ -110,6 +110,10 @@ import {
   writeOfflineCache,
 } from '@/lib/buklodOfflineSync';
 import {
+  applyCommunityWallMetadata,
+  applyCommunityWallMediaHydration,
+} from '@/lib/communityWallHydration';
+import {
   classifyNetworkQuality,
   communityFirstPageLimit,
 } from '@/lib/buklodNetworkQuality';
@@ -1686,7 +1690,7 @@ const load=useCallback(async(options?:{
      );
    }
    else if(
-    p.media_url &&
+    (p.media_path || p.media_url) &&
     !String(
      p.media_mime_type??
      ''
@@ -1787,44 +1791,7 @@ const load=useCallback(async(options?:{
           }
 
           setPosts(current=>{
-            const merged=
-              current.map((post:any)=>{
-                const postId=
-                  String(
-                    post?.id ??
-                    ''
-                  ).trim();
-
-                const loaded=
-                  postId
-                    ? mediaByPost[postId]
-                    : undefined;
-
-                if(
-                  !Array.isArray(loaded) ||
-                  !loaded.length
-                ){
-                  return post;
-                }
-
-                return {
-                  ...post,
-                  media_items:
-                    loaded
-                      .slice()
-                      .sort(
-                        (a:any,b:any)=>
-                          Number(
-                            a?.media_position ??
-                            0
-                          ) -
-                          Number(
-                            b?.media_position ??
-                            0
-                          )
-                      ),
-                };
-              });
+            const merged = applyCommunityWallMediaHydration(current, mediaByPost);
 
             if(communityCacheKey){
               const warmRows=
@@ -2034,11 +2001,9 @@ const load=useCallback(async(options?:{
   }
   else{
     setPosts(previous=>{
-      const merged=
-        keepStableCommunityMedia(
-          previous,
-          preparedPosts186L
-        );
+      // This is metadata only. Do not replace photo rows that arrived
+      // after the 650ms initial-media deadline.
+      const merged = applyCommunityWallMetadata(previous, preparedPosts186L);
 
       if(communityCacheKey){
         communityWarmFeedMemory.set(
@@ -2052,6 +2017,17 @@ const load=useCallback(async(options?:{
 
       return merged;
     });
+  }
+
+  // Older pages also need late media hydration when the metadata RPC is
+  // slower than the 650ms first-paint budget.
+  if (appendPage186L && (!Array.isArray(mediaResult?.data) || mediaResult.data.length === 0)) {
+    void communityMediaPromise
+      .then(mediaByPost => {
+        if (communityLoadSeq !== communityLoadSeqRef.current || !Object.keys(mediaByPost ?? {}).length) return;
+        setPosts(current => applyCommunityWallMediaHydration(current, mediaByPost));
+      })
+      .catch(error => console.warn('Community older-page media:', error?.message ?? error));
   }
 
   return preparedPosts186L.length;

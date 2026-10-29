@@ -1,0 +1,18 @@
+{
+  "objective": "Prevent Community Wall photos from being erased by late rank/comment enrichment and hydrate older-page media when the 650ms metadata budget expires",
+  "baseRef": "main",
+  "productionBaselineEvidence": "main at 6b88523: media initial deadline 650ms, late media hydration can be overwritten by second setPosts with stale media_items=[]; older-page media timeout has no background hydration; existing signed URL Android renderer remains unchanged",
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/lib/communityWallHydration.ts",
+    "tests/community-wall-media-hydration-state.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/wall-photo-hydration-state-20261029.json"
+  ],
+  "acceptanceChecks": [
+    "Late metadata enrichment never overwrites already hydrated media_items or reactions",
+    "Valid post.media_path shows a photo frame before signed URL arrives",
+    "Older page media RPC hydrates after 650ms budget",
+    "Photo path/auth, storage and renderer unchanged; no production publish until exact-head QA and approved RC"
+  ]
+}
