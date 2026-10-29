@@ -2006,8 +2006,8 @@ const load=useCallback(async(options?:{
   }
   else{
     setPosts(previous=>{
-      // This is metadata only. Do not replace photo rows that arrived
-      // after the 650ms initial-media deadline.
+      // Rank and comment enrichment must not replace media downloaded after
+      // the 650ms initial-media deadline.
       const merged = applyCommunityWallMetadata(previous, preparedPosts186L);
 
       if(communityCacheKey){
@@ -2024,8 +2024,7 @@ const load=useCallback(async(options?:{
     });
   }
 
-  // Older pages also need late media hydration when the metadata RPC is
-  // slower than the 650ms first-paint budget.
+  // Preserve the older-page media RPC after the fast first-paint budget.
   if (appendPage186L && (!Array.isArray(mediaResult?.data) || mediaResult.data.length === 0)) {
     void communityMediaPromise
       .then(mediaByPost => {
@@ -2689,6 +2688,7 @@ const load=useCallback(async(options?:{
         await uploadCommunityPhotoFile({
          path,
          uri:photo.uri,
+         wallPreview: true,
         });
 
        finished+=1;
@@ -2698,7 +2698,7 @@ const load=useCallback(async(options?:{
        setPublishNotice(notice);
 
        return {
-        media_path:path,
+        media_path:uploadedPhoto.path,
         media_mime_type:
          'image/jpeg',
         media_size_bytes:

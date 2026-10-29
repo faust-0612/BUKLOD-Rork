@@ -3,6 +3,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { Image as ReactNativeImage, Platform } from 'react-native';
 import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
+import { communityWallPreviewOriginalPath, communityWallPreviewPath } from '@/lib/communityWallPreviewPath';
 
 import {
   BUKLOD_VIDEO_MAX_SIZE_BYTES,
@@ -240,21 +241,87 @@ export async function prepareCommunityJpegUri(
   return { uri: fileUri, sizeBytes };
 }
 
+/**
+ * Optional preview generation is deliberately best-effort. Never sacrifice
+ * the original upload or a post to make a thumbnail.
+ */
+export async function prepareCommunityPreviewJpegUri(
+  uri: string,
+): Promise<{ uri: string; sizeBytes: number } | null> {
+  if (Platform.OS === 'web') return null; // Native only until browser path is validated.
+  const dims = await readCommunityPhotoDimensions(uri);
+  if (!dims?.width || !dims?.height) return null; // No unknown upscaling.
+  try {
+    const M = await import('expo-image-manipulator');
+    for (const side of [480, 320]) {
+      const context = M.ImageManipulator.manipulate(uri);
+      const longest = Math.max(dims.width, dims.height);
+      if (longest > side) {
+        context.resize(dims.width >= dims.height
+          ? { width: side }
+          : { height: side });
+      }
+      const rendered = await context.renderAsync();
+      const encoded = await rendered.saveAsync({
+        format: M.SaveFormat.JPEG,
+        compress: side === 480 ? 0.56 : 0.48,
+      });
+      const result = String(encoded.uri ?? '').trim();
+      const sizeBytes = result ? await readBinarySizeBytes(result).catch(() => 0) : 0;
+      // Preview has value only when genuinely small; never upload a huge
+      // second file in the name of weak-network performance.
+      if (result && sizeBytes > 0 && sizeBytes <= 125 * 1024) {
+        return { uri: result, sizeBytes };
+      }
+    }
+  } catch {
+    // Unsupported format/corrupt image: original upload remains authoritative.
+  }
+  return null;
+}
+
 export async function uploadCommunityPhotoFile({
   path,
   uri,
   onProgress,
+  wallPreview = false,
 }: {
   path: string;
   uri: string;
   onProgress?: (
     progress: CommunityVideoUploadProgress
   ) => void;
-}): Promise<{ sizeBytes: number }> {
+  wallPreview?: boolean;
+}): Promise<{ sizeBytes: number; path: string }> {
   const prepared = await prepareCommunityJpegUri(uri);
+  let actualPath = path;
+
+  // Upload preview first; only mark the original path with -p1 after Storage
+  // confirms a successful preview PUT. Failed previews remain optional and
+  // are never referenced by the Wall, preventing broken legacy tiles.
+  const taggedOriginal = wallPreview ? communityWallPreviewOriginalPath(path) : null;
+  const previewPath = taggedOriginal ? communityWallPreviewPath(taggedOriginal) : null;
+  if (previewPath && taggedOriginal) {
+    const preview = await prepareCommunityPreviewJpegUri(prepared.uri).catch(() => null);
+    if (preview) {
+      try {
+        await uploadCommunityBinaryFile({
+          path: previewPath,
+          uri: preview.uri,
+          contentType: 'image/jpeg',
+          sizeBytes: preview.sizeBytes,
+          failureLabel: 'Photo preview',
+          preferResumable: false,
+        });
+        actualPath = taggedOriginal;
+      } catch {
+        // Fall back to the unmarked original. The post remains publishable.
+      }
+    }
+  }
 
   await uploadCommunityBinaryFile({
-    path,
+    path: actualPath,
     uri: prepared.uri,
     contentType: 'image/jpeg',
     onProgress,
@@ -263,7 +330,7 @@ export async function uploadCommunityPhotoFile({
     preferResumable: false,
   });
 
-  return { sizeBytes: prepared.sizeBytes };
+  return { sizeBytes: prepared.sizeBytes, path: actualPath };
 }
 
 /* Legacy compatibility only. Community Wall no longer exposes GIF upload. */

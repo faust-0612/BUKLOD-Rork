@@ -28,10 +28,12 @@ import {
   resignCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
 import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
+import { communityWallPreviewPath } from '@/lib/communityWallPreviewPath';
 
 type Props = {
   uri?: string | null;
   mediaPath?: string | null;
+  useWallPreview?: boolean;
   style?: StyleProp<ImageStyle>;
   contentFit?: 'cover' | 'contain';
   onLoad?: (event: any) => void;
@@ -60,9 +62,15 @@ function initialSource(identity: string, path: string, preferred: string): Sourc
   };
 }
 
-function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad }: Props) {
-  const path = String(mediaPath ?? '').trim();
-  const preferred = String(uri ?? '').trim();
+function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, contentFit = 'cover', onLoad }: Props) {
+  const originalPath = String(mediaPath ?? '').trim();
+  const markedPreviewPath = useWallPreview ? communityWallPreviewPath(originalPath) : null;
+  const [failedPreviewFor, setFailedPreviewFor] = useState('');
+  const usingPreview = !!markedPreviewPath && failedPreviewFor !== originalPath;
+  const path = usingPreview ? markedPreviewPath! : originalPath;
+  // Never pass the original signed URL as a preference for the preview: it
+  // refers to the wrong bytes and would poison the stable preview cache key.
+  const preferred = usingPreview ? '' : String(uri ?? '').trim();
   const identity = path || `url:${preferred}`;
   const cacheKey = communityMediaCacheKey(path, path ? path : preferred);
   const signRetryRef = useRef(0);
@@ -188,6 +196,11 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
 
   const retryAfterError = (failedUrl: string) => {
     if (resignInFlightRef.current || actual.identity !== identity || actual.url !== failedUrl) return;
+    if (usingPreview) {
+      // An unavailable/corrupt sidecar must never hide a valid original post.
+      setFailedPreviewFor(originalPath);
+      return;
+    }
 
     if (actual.fromDiskCache) {
       // Cached bytes may have been evicted. Recover via the protected signer
@@ -231,6 +244,22 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
       })
       .finally(() => { resignInFlightRef.current = false; });
   };
+
+  useEffect(() => {
+    if (usingPreview && actual.identity === identity && actual.failed) {
+      setFailedPreviewFor(originalPath);
+    }
+  }, [usingPreview, actual.identity, identity, actual.failed, originalPath]);
+
+  // A sidecar is a fast hint, not a requirement to see the original. In the
+  // exceptional case of a hung preview view, bypass it after a bounded window.
+  useEffect(() => {
+    if (!usingPreview || actual.painted || actual.failed || actual.identity !== identity) return;
+    const timer = setTimeout(() => {
+      setFailedPreviewFor(current => current === originalPath ? current : originalPath);
+    }, 30_000);
+    return () => clearTimeout(timer);
+  }, [usingPreview, originalPath, actual.painted, actual.failed, actual.identity, identity]);
 
   const retryManually = (event: { stopPropagation: () => void }) => {
     event.stopPropagation();
@@ -322,7 +351,8 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
 export const BuklodCachedMediaImage = memo(AndroidWallPhoto, (prev, next) =>
   String(prev.mediaPath ?? '') === String(next.mediaPath ?? '') &&
   String(prev.uri ?? '') === String(next.uri ?? '') &&
-  prev.contentFit === next.contentFit
+  prev.contentFit === next.contentFit &&
+  prev.useWallPreview === next.useWallPreview
 );
 
 const styles = StyleSheet.create({
