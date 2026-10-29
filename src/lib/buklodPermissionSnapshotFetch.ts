@@ -40,6 +40,24 @@ type PermissionSnapshotState = {
   inFlight: Map<string, Promise<PermissionSnapshotRow[]>>;
 };
 
+class JwtFutureSnapshotError extends Error {
+  readonly responseBody: string;
+  readonly contentType: string;
+
+  constructor(responseBody: string, contentType: string) {
+    super('BUKLOD permission snapshot rejected by PostgREST clock validation.');
+    this.responseBody = responseBody;
+    this.contentType = contentType;
+  }
+
+  asResponse(): Response {
+    return new Response(this.responseBody, {
+      status: 401,
+      headers: { 'content-type': this.contentType },
+    });
+  }
+}
+
 /*
  * P0_BOOTSTRAP_AMPLIFICATION_R4
  * This cache only answers current-user presentation permission checks. Actual
@@ -302,6 +320,24 @@ async function fetchSnapshot(
       }
     );
 
+    if (response.status === 401) {
+      const body = await response.clone().text();
+      try {
+        const payload = JSON.parse(body);
+        if (
+          payload?.code === 'PGRST303' &&
+          /JWT issued at future/i.test(String(payload?.message ?? ''))
+        ) {
+          throw new JwtFutureSnapshotError(
+            body,
+            response.headers.get('content-type') ?? 'application/json'
+          );
+        }
+      } catch (error) {
+        if (error instanceof JwtFutureSnapshotError) throw error;
+      }
+    }
+
     if (!response.ok) {
       throw new Error(
         `BUKLOD permission snapshot failed (${response.status}).`
@@ -379,7 +415,15 @@ export function createBuklodPermissionSnapshotFetch(
       );
 
       return booleanRpcResponse(snapshotAllows(rows, request));
-    } catch {
+    } catch (error) {
+      if (error instanceof JwtFutureSnapshotError) {
+        /*
+         * This exact 401 would also reject every individual permission RPC.
+         * Preserve the server rejection without fanning out dozens of
+         * guaranteed-to-fail requests on a single app bootstrap.
+         */
+        return error.asResponse();
+      }
       /*
        * Fail open to the original authoritative RPC behavior, not to access.
        * If the optimization is unavailable, Supabase decides as before.
