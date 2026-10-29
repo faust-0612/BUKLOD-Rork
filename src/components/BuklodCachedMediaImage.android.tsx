@@ -342,7 +342,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, conte
             ? { ...current, painted: true }
             : current);
           // Preserve the single-photo aspect-ratio calculation.
-          onLoad?.({ source: dimensions });
+          onLoad?.({ source: event.nativeEvent.source });
         }}
         onError={() => {
           if (actual.renderer === 'native' && !actual.fromDiskCache && !actual.alternateAttempted) {
