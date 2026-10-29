@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            codex/quiz-class-alias-archive-guard-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/quiz-class-alias-20261029.json" >> "$GITHUB_ENV";;
             codex/quiz-dynamic-count-snapshot-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/quiz-k-of-n-20261029.json" >> "$GITHUB_ENV";;
             fix/screen-crash-route-diagnostics-20261029)
