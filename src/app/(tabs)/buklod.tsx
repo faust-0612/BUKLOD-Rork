@@ -2708,6 +2708,7 @@ const load=useCallback(async(options?:{
         await uploadCommunityPhotoFile({
          path,
          uri:photo.uri,
+         wallPreview: true,
         });
 
        finished+=1;
@@ -2717,7 +2718,7 @@ const load=useCallback(async(options?:{
        setPublishNotice(notice);
 
        return {
-        media_path:path,
+        media_path:uploadedPhoto.path,
         media_mime_type:
          'image/jpeg',
         media_size_bytes:

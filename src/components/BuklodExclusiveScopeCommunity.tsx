@@ -1706,10 +1706,11 @@ export default function BuklodExclusiveScopeCommunity({
                   await uploadCommunityPhotoFile({
                     path,
                     uri: item.uri,
+                    wallPreview: true,
                   });
 
                 return {
-                  media_path: path,
+                  media_path: uploadedPhoto.path,
                   media_mime_type: 'image/jpeg',
                   media_size_bytes:
                     uploadedPhoto.sizeBytes ||

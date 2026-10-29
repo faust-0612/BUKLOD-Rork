@@ -236,6 +236,7 @@ export function BuklodCommunityPhotoCollage({
         <BuklodCachedMediaImage
           uri={photos[0].media_url}
           mediaPath={photos[0].media_path}
+          useWallPreview
           style={[styles.image, imageStyle]}
           contentFit={
             preserveSinglePhotoAspectRatio
@@ -337,6 +338,7 @@ export function BuklodCommunityPhotoCollage({
             <BuklodCachedMediaImage
               uri={photo.media_url}
               mediaPath={photo.media_path}
+              useWallPreview
               style={[styles.image, imageStyle]}
               contentFit={contentFit}
             />
