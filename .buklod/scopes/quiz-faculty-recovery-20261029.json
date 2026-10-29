@@ -1,7 +1,7 @@
 {
-  "objective": "Reconcile already-deployed dedicated Quiz faculty cross-room zero-answer recovery and K-of-N force-submit expected count",
+  "objective": "Reconcile confirmed faculty button incident and concurrent, safer production REOPEN recovery without reverting another deployed fix",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: dedicated Quiz production migration quiz_faculty_ended_room_zero_answer_recovery_r2_20261029 applied and passed production-runtime rollback-only E2E against 100 assigned questions. GitHub main is the verified source comparison baseline; not a claim of independent app production OTA.",
+  "productionBaselineEvidence": "verified: dedicated Quiz production pg_get_functiondef and migration history confirm safe REOPEN reconciliation; rollback-only production E2E preserved same attempt ID and 100 assigned items; R2 RESET migration was superseded, and must not be replayed.",
   "allowedPaths": [
     "supabase/pending/BUKLOD_QUIZ_FACULTY_CROSS_ROOM_RECOVERY_R2.sql",
     "docs/BUKLOD_QUIZ_FACULTY_RECOVERY_20261029.md",
@@ -9,10 +9,11 @@
     ".github/workflows/engineering-accountability.yml"
   ],
   "acceptanceChecks": [
-    "Faculty-authenticated explicit reset only, no automatic mass reset",
-    "Only old ended-room zero-answer attempt with recovery evidence can cross-room reset",
-    "Pending offline leases, real running attempts and other non-VOID official attempts block unsafe recovery",
-    "Tested rollback-only production recovery generated exactly assigned 100 questions and protected zero-answer force-submit",
-    "Do not replay already-deployed SQL migration or publish any Android OTA/standalone Quiz web deployment"
+    "Do not overwrite concurrent safe REOPEN with superseded R2 RESET function",
+    "Current LIVE room, ADMITTED student and same exam/section/snapshot required for REOPEN recovery",
+    "Original attempt ID, question assignments and historical answers must be preserved; no duplicate attempts",
+    "Zero-answer force-submit remains blocked and audit expected count matches assigned K",
+    "All tests rollback only, no actual student data mutated; no frontend APK/OTA/deployment claim",
+    "Standalone live-faculty UI is unavailable for actual click tests; source reconciliation only"
   ]
 }
