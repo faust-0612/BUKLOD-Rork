@@ -1,0 +1,19 @@
+{
+  "objective": "Reconcile confirmed faculty button incident and concurrent, safer production REOPEN recovery without reverting another deployed fix",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: dedicated Quiz production pg_get_functiondef and migration history confirm safe REOPEN reconciliation; rollback-only production E2E preserved same attempt ID and 100 assigned items; R2 RESET migration was superseded, and must not be replayed.",
+  "allowedPaths": [
+    "supabase/pending/BUKLOD_QUIZ_FACULTY_CROSS_ROOM_RECOVERY_R2.sql",
+    "docs/BUKLOD_QUIZ_FACULTY_RECOVERY_20261029.md",
+    ".buklod/scopes/quiz-faculty-recovery-20261029.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Do not overwrite concurrent safe REOPEN with superseded R2 RESET function",
+    "Current LIVE room, ADMITTED student and same exam/section/snapshot required for REOPEN recovery",
+    "Original attempt ID, question assignments and historical answers must be preserved; no duplicate attempts",
+    "Zero-answer force-submit remains blocked and audit expected count matches assigned K",
+    "All tests rollback only, no actual student data mutated; no frontend APK/OTA/deployment claim",
+    "Standalone live-faculty UI is unavailable for actual click tests; source reconciliation only"
+  ]
+}
