@@ -41,6 +41,10 @@ test('only Android Wall tiles use indexed preview, fullscreen retains original m
  assert.match(native,/const preferred = usingPreview \? '' : String\(uri \?\? ''\)\.trim\(\)/);
  assert.match(native,/if \(usingPreview\) \{/);
  assert.match(native,/setFailedPreviewFor\(originalPath\)/);
+ assert.match(native,/const paintedOriginalPathRef = useRef\(''\)/);
+ assert.match(native,/paintedOriginalPathRef\.current !== originalPath/);
+ assert.match(native,/if \(!usingPreview\) paintedOriginalPathRef\.current = originalPath/);
+
  assert.match(generic,/previewPath\?: string \| null/);
  assert.doesNotMatch(generic,/verifiedLegacyWallPreviewPath/);
 });
