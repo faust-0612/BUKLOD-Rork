@@ -362,7 +362,7 @@ function validateQuestions(raw:any[],args:{types:string[],sourceName:string,sour
       question_type:t,prompt,options,correct_answer:answer,
       points:Math.max(.1,Number(q?.points??1)||1),
       source_pages:`${args.sourceName} - ${loc}`.slice(0,240),
-      explanation:explanation.slice(0,3000),
+      explanation:`${explanation}\n\nLecture evidence: “${evidence}”\nCognitive level: ${level}`.slice(0,3000),
       source_document_id:args.sourceDocumentId,
       cognitive_level:level,
     });
@@ -492,6 +492,13 @@ Deno.serve(async(req:Request)=>{
     if(selected.length<requested) throw new Error(`Only ${selected.length} unique valid ${types.join('/')} questions were produced out of ${requested} requested from ${docs.length} source file(s). Nothing was saved; retry is safe.`);
     const prepared=selected.slice(0,requested);
     validateCognitiveMix(prepared,difficulty);
+
+    // Recheck at write time: generation can take long enough for a live class to start.
+    const {data:liveNow,error:liveNowError}=await admin.from('buklod_quiz_attempts').select('id').eq('exam_id',examId).eq('status','STARTED').limit(1);
+    if(liveNowError) throw liveNowError;
+    const {data:roomNow,error:roomNowError}=await admin.from('buklod_quiz_live_sessions').select('id').eq('exam_id',examId).in('status',['LIVE','PAUSED']).limit(1);
+    if(roomNowError) throw roomNowError;
+    if(liveNow?.length||roomNow?.length) throw new Error('A live exam started during question generation. No questions were saved.');
 
     const {data:maxRows,error:maxErr}=await admin.from('buklod_quiz_questions').select('sort_order').eq('exam_id',examId).order('sort_order',{ascending:false}).limit(1);
     if(maxErr) throw maxErr; let sort=Number(maxRows?.[0]?.sort_order??0);
