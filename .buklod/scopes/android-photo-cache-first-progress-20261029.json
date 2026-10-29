@@ -1,0 +1,23 @@
+{
+  "objective": "Make Android Wall photos display quickly from existing disk cache on weak signal while keeping ongoing network transfers intact, with bounded fallback and manual Retry",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: October 29 source main b83c7c9477b627d1f7ff7b944ccefdf047b46b99 restored native direct-rendering after Oct 28 regression. Live Supabase community_post_media read-only size audit 1,125 images median 500,946 bytes and 90th percentile 2,067,747 bytes, with 108 over 2 MiB. Infinix X6852 successful signed 200 downloads coexist with blank/slow UI. Native handset OTA fingerprint is not independently verified.",
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/buklodAndroidPhotoRecovery.ts",
+    "tests/android-photo-cache-first-progress.test.mjs",
+    ".buklod/scopes/android-photo-cache-first-progress-20261029.json",
+    ".github/workflows/engineering-accountability.yml",
+    "tests/android-photo-oct28-rollback.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "Never replace a still-progressing low-bandwidth image after a fixed eight-second timer",
+    "Prefer validated native disk cache under the same path cache key when feed returns authorized media path",
+    "A corrupted local file falls back to authenticated signed network URL once",
+    "No opaque loading layer and no recyclingKey that blanks native image",
+    "Only a true no-progress/decode-without-display condition triggers independent renderer fallback",
+    "Every unfinished load transitions to visible retry state after 90 seconds, not infinite loading",
+    "No new RPC polling, paid services, database mutation, app rebuild, web/iOS behavior or generic media changes",
+    "Focused behavioral tests plus Engineering Accountability, TypeScript/Performance and Integration QA pass before exact-source RC and production OTA"
+  ]
+}
