@@ -13,7 +13,8 @@
     "src/components/BuklodCommunityPhotoCollage.tsx",
     "tests/community-wall-legacy-preview-backfill.test.mjs",
     ".buklod/scopes/wall-legacy-preview-backfill-20261029.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "supabase/migrations/20261029220500_wall_legacy_all_photo_paths_r1.sql"
   ],
   "acceptanceChecks": [
     "Original image Storage files and their post paths are never modified or deleted",
@@ -25,6 +26,7 @@
     "Only service-role Edge worker can claim work and token is generated privately in PostgreSQL",
     "Background backfill stops automatically by queue completion, token expiry or 48MB preview cap",
     "Focused tests and all 3 required CI checks pass before Android Production OTA from frozen RC",
-    "Published OTA ID does not imply real device speed test; source/runtime and DB counts independently verified"
+    "Published OTA ID does not imply real device speed test; source/runtime and DB counts independently verified",
+    "Non-post-prefixed legacy JPEG paths are eligible only when verified to exist in private Storage and referenced by a visible community post; no guessed asset requests"
   ]
 }
