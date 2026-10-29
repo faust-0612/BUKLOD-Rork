@@ -22,9 +22,13 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/screen-crash-route-diagnostics-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/screen-crash-route-diagnostics-20261029.json" >> "$GITHUB_ENV";;
             fix/postgrest-jwt-future-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/postgrest-jwt-future-20261029.json" >> "$GITHUB_ENV";;
             fix/community-photo-slow-signal-resilience-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-photo-slow-signal-20261029.json" >> "$GITHUB_ENV";;
+            fix/android-wall-photo-stall-recovery-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-photo-slow-signal-20261029.json" >> "$GITHUB_ENV";;
             fix/pause-unapproved-paid-features-suborg)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/paid-features-suborg-20261028.json" >> "$GITHUB_ENV";;
@@ -131,11 +135,14 @@ jobs:
             feat/community-fair-video-ready-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-fair-video-20261027.json" >> "$GITHUB_ENV";;
           esac
+      - name: Verify safe route crash diagnostics
+        if: github.head_ref == 'fix/screen-crash-route-diagnostics-20261029'
+        run: node --experimental-strip-types tests/buklod-route-diagnostics.test.mjs
       - name: Verify isolated JWT timing recovery contracts
         if: github.head_ref == 'fix/postgrest-jwt-future-20261029'
         run: node tests/postgrest-jwt-future-resilience.test.cjs
       - name: Verify slow-signal Community photo recovery contract
-        if: github.head_ref == 'fix/community-photo-slow-signal-resilience-20261029'
+        if: github.head_ref == 'fix/community-photo-slow-signal-resilience-20261029' || github.head_ref == 'fix/android-wall-photo-stall-recovery-20261029'
         run: node --test tests/community-wall-no-blank-photo.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
