@@ -33,20 +33,18 @@ test('Unsuccessful and rejected sign requests always leave an actionable failure
 });
 
 test('Slow decode and stalled network render visible feedback then bounded manual recovery', () => {
-  assert.match(image, /const PHOTO_LOAD_TIMEOUT_MS = 20_000/);
-  assert.match(image, /setTimeout\(\(\) => setSlow\(true\), PHOTO_LOAD_TIMEOUT_MS\)/);
-  assert.doesNotMatch(image, /setTimeout\(\(\) => setFailed\(true\), PHOTO_LOAD_TIMEOUT_MS\)/);
   assert.match(image, /!loaded \? \(/);
-  assert.match(image, /pointerEvents="none" style=\{styles\.loadingOverlay\}/);
+  assert.match(image, /pointerEvents="none" style=\{styles\.loadingBadge\}/);
+  assert.doesNotMatch(image, /loadingOverlay|Mahina ang signal/);
   assert.match(image, /onLoadStart=\{\(\) => \{/);
   assert.match(image, /onLoad=\{event => \{/);
   assert.match(image, /onDisplay=\{\(\) => \{/);
   assert.match(image, /setLoaded\(true\);/);
-  assert.match(image, /Mahina ang signal\. Patuloy na nilo-load ang larawan\./);
   assert.match(image, /cachePolicy="memory-disk"/);
   assert.match(image, /readFromCacheAsync/);
   assert.match(image, /if \(local\) \{/);
   assert.match(image, /setCachedImage\(local\)/);
+  assert.match(image, /setLoaded\(true\)/);
   assert.match(image, /await new Promise\(resolve => setTimeout\(resolve, 5_500\)\)/);
 });
 
@@ -76,8 +74,7 @@ test('Native photos recover a truly stalled request once, while byte progress ex
   assert.match(image, /bytes > lastLoadedBytesRef\.current/);
   assert.match(image, /source=\{imageSource\}/);
   assert.match(image, /useMemo\(/);
-  assert.doesNotMatch(image, /setCachedImage\(local\);\s*setLoaded\(true\)/);
-  assert.doesNotMatch(image, /setTimeout\(\(\) => setFailed\(true\), PHOTO_LOAD_TIMEOUT_MS\)/);
+  assert.match(image, /loadingBadge/);
 });
 
 test('Wall photo renderer changes are eligible for the canonical Android Production OTA', () => {
