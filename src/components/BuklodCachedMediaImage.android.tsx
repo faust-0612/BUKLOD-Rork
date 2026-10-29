@@ -324,12 +324,17 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, conte
           const dimensions = event.nativeEvent.source;
           if (!(Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0)) {
             // A completion event without decoded dimensions is not a photo.
-            // Give the other decoder one chance, never mask it as painted.
-            setSource(current => current.identity === identity &&
-              current.url === actual.url && current.renderer === 'native' &&
-              !current.painted && !current.alternateAttempted && !current.fromDiskCache
-              ? { ...current, renderer: 'expo', alternateAttempted: true }
-              : current);
+            // A corrupt disk hit must try the original signed URL; a network
+            // decode can try the alternate renderer on the SAME signed URL.
+            if (actual.fromDiskCache || actual.alternateAttempted) {
+              retryAfterError(actual.url!);
+            } else {
+              setSource(current => current.identity === identity &&
+                current.url === actual.url && current.renderer === 'native' &&
+                !current.painted && !current.alternateAttempted
+                ? { ...current, renderer: 'expo', alternateAttempted: true }
+                : current);
+            }
             return;
           }
           setSource(current => current.identity === identity &&
