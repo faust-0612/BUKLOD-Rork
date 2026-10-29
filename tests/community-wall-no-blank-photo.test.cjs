@@ -35,7 +35,9 @@ test('Unsuccessful and rejected sign requests always leave an actionable failure
 test('Slow decode and stalled network render visible feedback then bounded manual recovery', () => {
   assert.match(image, /!loaded \? \(/);
   assert.match(image, /pointerEvents="none" style=\{styles\.loadingBadge\}/);
-  assert.doesNotMatch(image, /loadingOverlay|Mahina ang signal/);
+  assert.match(image, /Platform.OS === 'android' \? \(/);
+  assert.match(image, /loadingOverlay/);
+  assert.match(image, /Mahina ang signal/);
   assert.match(image, /onLoadStart=\{\(\) => \{/);
   assert.match(image, /onLoad=\{event => \{/);
   assert.match(image, /onDisplay=\{\(\) => \{/);
@@ -44,6 +46,7 @@ test('Slow decode and stalled network render visible feedback then bounded manua
   assert.match(image, /readFromCacheAsync/);
   assert.match(image, /if \(local\) \{/);
   assert.match(image, /setCachedImage\(local\)/);
+  assert.match(image, /A cached ImageRef is already decoded/);
   assert.match(image, /setLoaded\(true\)/);
   assert.match(image, /await new Promise\(resolve => setTimeout\(resolve, 5_500\)\)/);
 });
