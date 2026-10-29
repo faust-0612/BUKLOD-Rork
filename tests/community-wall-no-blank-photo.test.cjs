@@ -46,7 +46,7 @@ test('Slow decode and stalled network render visible feedback then bounded manua
   assert.match(image, /readFromCacheAsync/);
   assert.match(image, /if \(local\) \{/);
   assert.match(image, /setCachedImage\(local\)/);
-  assert.match(image, /A cached ImageRef is already decoded/);
+  assert.match(image, /A cache hit does not establish successful native paint/);
   assert.match(image, /setLoaded\(true\)/);
   assert.match(image, /await new Promise\(resolve => setTimeout\(resolve, 5_500\)\)/);
 });
@@ -78,6 +78,15 @@ test('Native photos recover a truly stalled request once, while byte progress ex
   assert.match(image, /source=\{imageSource\}/);
   assert.match(image, /useMemo\(/);
   assert.match(image, /loadingBadge/);
+  assert.match(image, /ANDROID_IMAGE_FALLBACK_MS = 8_000/);
+  assert.match(image, /setUseNativeFallback\(true\)/);
+  assert.match(image, /Image as NativeImage/);
+  assert.match(image, /<NativeImage/);
+  assert.match(image, /onLoad=\{event => \{/);
+  assert.match(image, /recyclingKey=\{Platform.OS === 'web' \|\| Platform.OS === 'android' \? undefined : cacheKey\}/);
+  assert.match(image, /key=\{Platform.OS === 'android' \? mediaIdentity : undefined\}/);
+  assert.match(image, /else if \(!cachedImage\)/);
+  assert.match(image, /\[path, displayUri, cachedImage, failed, cacheKey, useNativeFallback\]/);
 });
 
 test('Wall photo renderer changes are eligible for the canonical Android Production OTA', () => {
