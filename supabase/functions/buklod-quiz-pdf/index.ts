@@ -413,6 +413,9 @@ Deno.serve(async(req:Request)=>{
     const {data:activeRooms,error:activeRoomError}=await admin.from('buklod_quiz_live_sessions').select('id').eq('exam_id',examId).in('status',['LIVE','PAUSED']).limit(1);
     if(activeRoomError) throw activeRoomError;
     if(activeRooms?.length) throw new Error('This exam has an active live class. Finish the class before generating or changing questions.');
+    const {data:existingAttempts,error:existingAttemptError}=await admin.from('buklod_quiz_attempts').select('id').eq('exam_id',examId).neq('status','VOID').limit(1);
+    if(existingAttemptError) throw existingAttemptError;
+    if(existingAttempts?.length) throw new Error('This exam already has student attempts. Duplicate the exam to build a new question bank without changing previous students’ results.');
 
     const examLanguage=normalizeExamLanguage(
       body?.exam_language??body?.examLanguage??exam.exam_language??'ENGLISH'
@@ -494,11 +497,11 @@ Deno.serve(async(req:Request)=>{
     validateCognitiveMix(prepared,difficulty);
 
     // Recheck at write time: generation can take long enough for a live class to start.
-    const {data:liveNow,error:liveNowError}=await admin.from('buklod_quiz_attempts').select('id').eq('exam_id',examId).eq('status','STARTED').limit(1);
+    const {data:liveNow,error:liveNowError}=await admin.from('buklod_quiz_attempts').select('id').eq('exam_id',examId).neq('status','VOID').limit(1);
     if(liveNowError) throw liveNowError;
     const {data:roomNow,error:roomNowError}=await admin.from('buklod_quiz_live_sessions').select('id').eq('exam_id',examId).in('status',['LIVE','PAUSED']).limit(1);
     if(roomNowError) throw roomNowError;
-    if(liveNow?.length||roomNow?.length) throw new Error('A live exam started during question generation. No questions were saved.');
+    if(liveNow?.length||roomNow?.length) throw new Error('An exam attempt or live room exists. No questions were saved; duplicate the exam instead.');
 
     const {data:maxRows,error:maxErr}=await admin.from('buklod_quiz_questions').select('sort_order').eq('exam_id',examId).order('sort_order',{ascending:false}).limit(1);
     if(maxErr) throw maxErr; let sort=Number(maxRows?.[0]?.sort_order??0);
