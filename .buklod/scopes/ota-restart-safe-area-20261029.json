@@ -1,7 +1,7 @@
 {
   "objective": "Keep the downloaded Android OTA restart and postpone controls fully visible and tappable beneath the system status bar, including Infinix edge-to-edge/cutout screens",
   "baseRef": "main",
-  "productionBaselineEvidence": "Screenshot 2026-10-29: app downloaded OTA, top notification banner overlaps Android status bar and blocks Restart and Later. Do not claim handset adoption from code/manifest alone.",
+  "productionBaselineEvidence": "verified: screenshot on 2026-10-29 17:07 PHT clearly shows the downloaded OTA restart banner physically overlapping Android system status indicators. Previous confirmed production Android update 01a185c5-4e58-709d-8df7-c1e8d4aa72e6 used runtime 1.3.2; it is not proof this device has adopted any subsequent release. Current main is a source comparison only, and live production ID/frozen RC need independent verification before OTA.",
   "allowedPaths": [
     "src/components/BuklodOtaFreshnessHost.native.tsx",
     "tests/ota-restart-safe-area.test.cjs",
