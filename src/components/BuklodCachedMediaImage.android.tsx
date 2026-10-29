@@ -42,9 +42,15 @@ type SourceState = {
   failed: boolean;
   renderer: 'expo' | 'native';
   painted: boolean;
+  fromDiskCache: boolean;
 };
 
-const NATIVE_FALLBACK_MS = 8_000;
+// Avoid retrying a slow but progressing download with a second HTTP request.
+const NO_PROGRESS_FALLBACK_MS = 18_000;
+const DECODE_WITHOUT_DISPLAY_MS = 8_000;
+// A visibly failed state with Retry is better than an endless spinner.
+const MAX_PHOTO_REQUEST_MS = 90_000;
+const WATCHDOG_INTERVAL_MS = 3_000;
 
 function initialSource(identity: string, path: string, preferred: string): SourceState {
   return {
@@ -53,6 +59,7 @@ function initialSource(identity: string, path: string, preferred: string): Sourc
     failed: false,
     renderer: 'expo',
     painted: false,
+    fromDiskCache: false,
   };
 }
 
@@ -63,6 +70,7 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
   const cacheKey = communityMediaCacheKey(path, path ? path : preferred);
   const signRetryRef = useRef(0);
   const resignInFlightRef = useRef(false);
+  const progressRef = useRef({ uri: '', startedAt: Date.now(), lastProgressAt: 0, bytes: 0, decodedAt: 0 });
   const [source, setSource] = useState<SourceState>(() => initialSource(identity, path, preferred));
   const actual = source.identity === identity ? source : initialSource(identity, path, preferred);
 
@@ -73,42 +81,124 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
     const first = initialSource(identity, path, preferred);
     setSource(first);
 
-    if (!first.url && path) {
-      void (async () => {
-        let resolved = await resolveCommunityMediaUrl(path, null).catch(() => null);
-        if (!active) return;
-        if (!resolved) {
-          // A transient negative sign result has a five-second cooldown.
-          await new Promise<void>(resolve => setTimeout(resolve, 5_500));
+    void (async () => {
+      // An already-downloaded disk photo is safe to show immediately for a
+      // media path obtained from the authorized Wall feed. Avoid re-signing
+      // or downloading the same bytes after reopening or scrolling.
+      if (path && cacheKey) {
+        try {
+          const cached = await ExpoImage.getCachePathAsync(cacheKey);
           if (!active) return;
-          resolved = await resolveCommunityMediaUrl(path, null).catch(() => null);
+          if (cached) {
+            const fileUri = /^(file|content):\/\//i.test(cached)
+              ? cached
+              : `file://${cached}`;
+            setSource(current => current.identity === identity && !current.painted
+              ? { ...current, url: fileUri, renderer: 'native', fromDiskCache: true }
+              : current);
+            return;
+          }
+        } catch {
+          // Disk cache is an optimization, not a requirement to load photos.
         }
+      }
+
+      if (!active || first.url || !path) return;
+      let resolved = await resolveCommunityMediaUrl(path, null).catch(() => null);
+      if (!active) return;
+      if (!resolved) {
+        // One bounded re-check on transient signing errors.
+        await new Promise<void>(resolve => setTimeout(resolve, 5_500));
         if (!active) return;
-        setSource(current => current.identity === identity
-          ? { ...current, url: resolved, failed: !resolved }
-          : current);
-      })();
-    } else if (!first.url) {
+        resolved = await resolveCommunityMediaUrl(path, null).catch(() => null);
+      }
+      if (!active) return;
+      setSource(current => current.identity === identity && !current.url
+        ? { ...current, url: resolved, failed: !resolved }
+        : current);
+    })();
+
+    if (!first.url && !path) {
       setSource(current => current.identity === identity ? { ...current, failed: true } : current);
     }
 
     return () => { active = false; };
-  }, [identity]);
+  }, [identity, cacheKey, path]);
 
   useEffect(() => {
-    if (actual.failed || actual.painted || !actual.url || actual.renderer !== 'expo') return;
-    // A successful HTTP download can still leave older Android native views
-    // waiting indefinitely. Switch to Fresco without re-signing the URL.
-    const timer = setTimeout(() => {
-      setSource(current => current.identity === identity && current.renderer === 'expo' && !current.painted
-        ? { ...current, renderer: 'native' }
-        : current);
-    }, NATIVE_FALLBACK_MS);
-    return () => clearTimeout(timer);
-  }, [identity, actual.url, actual.renderer, actual.painted, actual.failed]);
+    if (actual.failed || actual.painted || !actual.url) return;
+
+    const url = actual.url;
+    const now = Date.now();
+    if (progressRef.current.uri !== url) {
+      progressRef.current = {
+        uri: url,
+        startedAt: now,
+        lastProgressAt: 0,
+        bytes: 0,
+        decodedAt: 0,
+      };
+    }
+
+    // One lightweight watchdog per mounted, unfinished photo. Unlike the
+    // previous unconditional 8-second switch, an active slow download is
+    // allowed to finish rather than starting another network request.
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const check = () => {
+      if (!active) return;
+      const p = progressRef.current;
+      if (p.uri !== url) return;
+      const at = Date.now();
+      if (at - p.startedAt >= MAX_PHOTO_REQUEST_MS) {
+        setSource(current => current.identity === identity && current.url === url && !current.painted
+          ? { ...current, failed: true }
+          : current);
+        return;
+      }
+
+      if (actual.renderer === 'expo' && !actual.fromDiskCache) {
+        const stalledDecode = p.decodedAt > 0 && at - p.decodedAt >= DECODE_WITHOUT_DISPLAY_MS;
+        const stoppedNetwork = p.decodedAt === 0 &&
+          at - (p.lastProgressAt || p.startedAt) >= NO_PROGRESS_FALLBACK_MS;
+        if (stalledDecode || stoppedNetwork) {
+          setSource(current => current.identity === identity && current.url === url &&
+            current.renderer === 'expo' && !current.painted
+            ? { ...current, renderer: 'native' }
+            : current);
+          return;
+        }
+      }
+      timer = setTimeout(check, WATCHDOG_INTERVAL_MS);
+    };
+    timer = setTimeout(check, WATCHDOG_INTERVAL_MS);
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [identity, actual.url, actual.renderer, actual.failed, actual.painted, actual.fromDiskCache]);
 
   const retryAfterError = (failedUrl: string) => {
     if (resignInFlightRef.current || actual.identity !== identity || actual.url !== failedUrl) return;
+
+    if (actual.fromDiskCache) {
+      // Cached bytes may have been evicted. Recover via the protected signer
+      // once, rather than trapping the viewer in a corrupt local file.
+      const first = initialSource(identity, path, preferred);
+      setSource({ ...first, failed: false });
+      if (!first.url && path) {
+        resignInFlightRef.current = true;
+        void resolveCommunityMediaUrl(path, null)
+          .then(next => setSource(current => current.identity === identity && !current.url
+            ? { ...current, url: next, failed: !next }
+            : current))
+          .catch(() => setSource(current => current.identity === identity
+            ? { ...current, failed: true }
+            : current))
+          .finally(() => { resignInFlightRef.current = false; });
+      }
+      return;
+    }
     if (!path || signRetryRef.current >= 1) {
       setSource(current => current.identity === identity ? { ...current, failed: true } : current);
       return;
@@ -121,7 +211,7 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
         setSource(current => {
           if (current.identity !== identity || current.url !== failedUrl) return current;
           return next && next !== failedUrl
-            ? { ...current, url: next, failed: false, painted: false, renderer: 'expo' }
+            ? { ...current, url: next, failed: false, painted: false, renderer: 'expo', fromDiskCache: false }
             : { ...current, failed: true };
         });
       })
@@ -138,7 +228,7 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
     if (!path || resignInFlightRef.current) return;
     signRetryRef.current = 0;
     resignInFlightRef.current = true;
-    setSource({ identity, url: null, failed: false, renderer: 'expo', painted: false });
+    setSource({ identity, url: null, failed: false, renderer: 'expo', painted: false, fromDiskCache: false });
     void resignCommunityMediaUrl(path)
       .then(next => setSource(current => current.identity === identity
         ? { ...current, url: next, failed: !next }
@@ -196,7 +286,18 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
       // Android recycled image views were implicated in the Oct 28 regression.
       // The parent collage already keys each tile by its durable media path.
       transition={0}
+      onProgress={event => {
+        const loaded = Number(event.nativeEvent?.loaded ?? 0);
+        const p = progressRef.current;
+        if (p.uri === actual.url && loaded > p.bytes) {
+          p.bytes = loaded;
+          p.lastProgressAt = Date.now();
+        }
+      }}
       onLoad={event => {
+        if (progressRef.current.uri === actual.url) {
+          progressRef.current.decodedAt = Date.now();
+        }
         // Decode alone is not a paint: wait for onDisplay before suppressing
         // the independent RN Image fallback on affected Android builds.
         onLoad?.(event);
