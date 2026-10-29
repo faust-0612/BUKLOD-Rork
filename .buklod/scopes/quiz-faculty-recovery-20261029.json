@@ -1,7 +1,7 @@
 {
   "objective": "Reconcile already-deployed dedicated Quiz faculty cross-room zero-answer recovery and K-of-N force-submit expected count",
   "baseRef": "main",
-  "productionBaselineEvidence": "Verified: dedicated Quiz production migration quiz_faculty_ended_room_zero_answer_recovery_r2_20261029 was applied; rollback-only production-runtime 100-item recovery test passed, and no real student record changed.",
+  "productionBaselineEvidence": "verified: dedicated Quiz production migration quiz_faculty_ended_room_zero_answer_recovery_r2_20261029 applied and passed production-runtime rollback-only E2E against 100 assigned questions. GitHub main is the verified source comparison baseline; not a claim of independent app production OTA.",
   "allowedPaths": [
     "supabase/pending/BUKLOD_QUIZ_FACULTY_CROSS_ROOM_RECOVERY_R2.sql",
     "docs/BUKLOD_QUIZ_FACULTY_RECOVERY_20261029.md",
