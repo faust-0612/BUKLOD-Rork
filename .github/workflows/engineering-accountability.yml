@@ -28,6 +28,8 @@ jobs:
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/postgrest-jwt-future-20261029.json" >> "$GITHUB_ENV";;
             fix/community-photo-slow-signal-resilience-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-photo-slow-signal-20261029.json" >> "$GITHUB_ENV";;
+            fix/android-wall-photo-stall-recovery-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-photo-slow-signal-20261029.json" >> "$GITHUB_ENV";;
             fix/pause-unapproved-paid-features-suborg)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/paid-features-suborg-20261028.json" >> "$GITHUB_ENV";;
             chore/reconcile-show-faith-migration-version-20261028)
@@ -140,7 +142,7 @@ jobs:
         if: github.head_ref == 'fix/postgrest-jwt-future-20261029'
         run: node tests/postgrest-jwt-future-resilience.test.cjs
       - name: Verify slow-signal Community photo recovery contract
-        if: github.head_ref == 'fix/community-photo-slow-signal-resilience-20261029'
+        if: github.head_ref == 'fix/community-photo-slow-signal-resilience-20261029' || github.head_ref == 'fix/android-wall-photo-stall-recovery-20261029'
         run: node --test tests/community-wall-no-blank-photo.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
