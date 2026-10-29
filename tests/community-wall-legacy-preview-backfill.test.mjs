@@ -49,7 +49,7 @@ test('preview Storage and metadata RLS require existing original permissions', (
  assert.match(sql,/public\.buklod_storage_object_select_allowed_v1\('community-media',i\.original_path\)/);
  assert.doesNotMatch(sql,/to anon|using\s*\(true\)/i);
  assert.match(sql,/get_buklod_post_media_v3/);
- assert.match(sql,/get_buklod_post_media_v2/); // companion client retains fallback
+ assert.match(source,/get_buklod_post_media_v2/); // compatibility remains in client
 });
 
 test('backfill only uses service-role internally and never deletes originals', () => {
