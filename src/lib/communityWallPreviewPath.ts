@@ -11,7 +11,7 @@
  */
 export function communityWallPreviewOriginalPath(path: string): string | null {
   const value = String(path ?? '').trim();
-  if (!/\/post-[^/]+\.jpg$/i.test(value) || /-preview\.jpg$/i.test(value)) return null;
+  if (!/\/post-[^/]+\.jpg$/i.test(value) || /-p1(?:-preview)?\.jpg$/i.test(value)) return null;
   return value.replace(/\.jpg$/i, '-p1.jpg');
 }
 
