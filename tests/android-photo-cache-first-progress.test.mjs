@@ -47,9 +47,11 @@ const image = fs.readFileSync('src/components/BuklodCachedMediaImage.android.tsx
 const generic = fs.readFileSync('src/components/BuklodCachedMediaImage.tsx', 'utf8');
 
 test('Android cache-first resolves local bytes before any signed URL request', () => {
-  assert.match(image, /await ExpoImage\.getCachePathAsync\(cacheKey\)/);
+  assert.match(image, /ExpoImage\.getCachePathAsync\(cacheKey\)/);
+  assert.match(image, /Promise\.race\(\[/);
+  assert.match(image, /setTimeout\(\(\) => resolve\(null\), 800\)/);
   assert.match(image, /fromDiskCache: true/);
-  const cacheAt = image.indexOf('await ExpoImage.getCachePathAsync(cacheKey)');
+  const cacheAt = image.indexOf('ExpoImage.getCachePathAsync(cacheKey)');
   const signAt = image.indexOf('let resolved = await resolveCommunityMediaUrl(path, null)');
   assert.ok(cacheAt >= 0 && signAt > cacheAt);
   assert.match(image, /if \(cached\) \{[\s\S]*?return;[\s\S]*?if \(!active \|\| first\.url \|\| !path\) return/);
