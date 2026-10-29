@@ -4,7 +4,7 @@ import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoid
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
 import '@/lib/performanceBoot';
-import { Stack, router, usePathname, type ErrorBoundaryProps } from 'expo-router';
+import { Stack, router, usePathname, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useEffect, useState } from 'react';
@@ -43,6 +43,7 @@ import BuklodCenteredBrandMark, {
   BUKLOD_BRAND_LOGO_WEB,
 } from '@/components/BuklodCenteredBrandMark';
 import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
+import { resolveBuklodCrashRoute } from '@/lib/buklodRouteDiagnostics';
 
 function renderErrorSignature(error: Error): string {
   // Keep diagnostic payloads free of private error messages and stack traces.
@@ -56,18 +57,18 @@ function renderErrorSignature(error: Error): string {
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   const pathname = usePathname();
+  const segments = useSegments();
+  const routeModule = resolveBuklodCrashRoute(pathname, segments);
+  const errorSignature = renderErrorSignature(error);
 
   useEffect(() => {
     void reportBuklodMainHealthIssue({
       category: 'ROUTE',
       severity: 'ERROR',
       safeErrorCode: 'SYS-500',
-      errorSignature: renderErrorSignature(error),
+      errorSignature,
       correlationKey: 'BUKLOD_SCREEN_RENDER_EXCEPTION',
-      routeModule: String(pathname ?? '')
-        .replace(/^[/]+/, '')
-        .replace(/[^A-Za-z0-9_./:-]/g, '')
-        .slice(0, 160) || 'unknown',
+      routeModule,
       networkState: 'UNKNOWN',
       authState: 'UNKNOWN',
       syncState: 'UNKNOWN',
@@ -78,7 +79,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       localSelfHealResult: 'NOT_ATTEMPTED',
       privacyClassification: 'OPERATIONAL',
     }).catch(() => undefined);
-  }, [error, pathname]);
+  }, [error, errorSignature, routeModule]);
 
   return (
     <View style={styles.error}>
@@ -86,7 +87,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       <Text style={styles.errorText}>
         We couldn't complete this action. Please try again.
       </Text>
-      <Text style={styles.errorCode}>Support code: SYS-500</Text>
+      <Text style={styles.errorCode}>Support code: SYS-500 · {errorSignature}</Text>
       <View style={styles.errorActions}>
         <Pressable onPress={retry} style={styles.retry}>
           <Text style={styles.retryText}>TRY AGAIN</Text>
@@ -108,6 +109,8 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
               params: {
                 category: 'TECHNICAL',
                 errorCode: 'SYS-500',
+                errorSignature,
+                sourceRoute: routeModule,
                 message: "BUKLOD couldn't open the requested screen.",
               },
             })

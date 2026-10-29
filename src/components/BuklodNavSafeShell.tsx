@@ -16,6 +16,7 @@ import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
+import { rememberBuklodRoute } from '@/lib/buklodRouteDiagnostics';
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
 import {
   isBuklodScopedWorkspacePath,
@@ -77,6 +78,10 @@ export default function BuklodNavSafeShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+
+  useEffect(() => {
+    rememberBuklodRoute(pathname);
+  }, [pathname]);
   const rawNavOccupied =
     useBuklodPersistentNavOccupiedHeight();
   const publicMinimal =

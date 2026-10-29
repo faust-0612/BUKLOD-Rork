@@ -21,6 +21,7 @@ import BuklodPressable from '@/components/BuklodPressable';
 import {
   buklodInstantReplace,
 } from '@/lib/buklodInstantNavigation';
+import { rememberBuklodRoute } from '@/lib/buklodRouteDiagnostics';
 
 import {
   useSafeAreaInsets,
@@ -251,11 +252,11 @@ BuklodPersistentBottomNav() {
                 setPendingRoute(null);
               }
             }}
-            onPress={() =>
-              openGlobalDestination(
-                item.route
-              )
-            }
+            onPress={() => {
+              // Capture the attempted route before React can render the destination.
+              rememberBuklodRoute(item.route);
+              void openGlobalDestination(item.route);
+            }}
             style={({ pressed }) => [
               styles.item,
               pressed &&
