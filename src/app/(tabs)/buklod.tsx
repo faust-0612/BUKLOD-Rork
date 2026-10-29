@@ -50,6 +50,7 @@ import {
   prefetchCommunityMedia,
   resolveCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
+import { allowBackgroundCommunityPhotoPrefetch } from '@/lib/communityMediaPrefetchPolicy';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { arrangeCommunityForFairDiscovery } from '@/lib/buklodFairDiscovery';
 import {
@@ -1859,6 +1860,7 @@ const load=useCallback(async(options?:{
      * Pre-sign and prefetch only the first visible burst. Signing is already
      * batched by buklodMediaUrl, so this does not create one request per photo.
      */
+    if (allowBackgroundCommunityPhotoPrefetch(Platform.OS, classifyNetworkQuality())) {
     const firstVisibleMedia=
       next
         .slice(0,20)
@@ -1923,6 +1925,7 @@ const load=useCallback(async(options?:{
         prefetchCommunityMedia(urls);
       })
       .catch(()=>undefined);
+    }
   }
 
 // COMMUNITY_AUTHOR_CIRCLE_RANK
