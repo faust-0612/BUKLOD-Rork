@@ -15,9 +15,9 @@ begin
       on storage.objects for select to authenticated
       using (
         bucket_id = 'community-media'
-        and name ~ '(^|/)post-[^/]+-p1-preview\\.jpg$'
+        and name ~ '(^|/)post-[^/]+-p1-preview\.jpg$'
         and public.can_view_buklod_community_media_path_v1(
-          regexp_replace(name, '-p1-preview\\.jpg$', '-p1.jpg')
+          regexp_replace(name, '-p1-preview\.jpg$', '-p1.jpg')
         )
       );
   end if;
