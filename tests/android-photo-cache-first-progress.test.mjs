@@ -86,20 +86,23 @@ test('No regression to secure signed media, manual retry, or web', () => {
 });
 
 test('Native Fresco is the first renderer and a fresh URL gets a unique view', () => {
-  assert.match(image, /renderer: 'native',\\n    painted: false/);
-  assert.match(image, /key=\\{\\`native:/);
-  assert.match(image, /key=\\{\\`expo:/);
-  assert.match(image, /const dimensions = event\\.nativeEvent\\.source/);
-  assert.match(image, /Number\\(dimensions\\?\\.width\\) > 0/);
-  assert.match(image, /Number\\(dimensions\\?\\.height\\) > 0/);
+  assert.ok(image.includes("renderer: 'native',\n    painted: false"));
+  assert.ok(image.includes('key={`native:'));
+  assert.ok(image.includes('key={`expo:'));
+  assert.ok(image.includes('const dimensions = event.nativeEvent.source'));
+  assert.ok(image.includes('Number(dimensions?.width) > 0'));
+  assert.ok(image.includes('Number(dimensions?.height) > 0'));
 });
 
-test('Old renderer callbacks cannot declare new signed URL or new renderer painted', () => {
-  const nativeBlock = image.split('if (actual.renderer === \'native\') {')[1].split('  return (\\n    <ExpoImage')[0];
-  const expoBlock = image.split('  return (\\n    <ExpoImage')[1];
-  assert.match(nativeBlock, /current\\.url === actual\\.url && current\\.renderer === 'native' && !current\\.painted/);
-  assert.match(expoBlock, /current\\.url === actual\\.url && current\\.renderer === 'expo' && !current\\.painted/);
-  assert.match(image, /alternateAttempted: true/);
-  assert.match(image, /lastProgressAt = Date\\.now\\(\\)/);
-  assert.doesNotMatch(image, /getPublicUrl|\\/object\\/public\\//);
+test('Old renderer callbacks cannot mark a replacement signed URL painted', () => {
+  const nativeBlock = image.slice(
+    image.indexOf("if (actual.renderer === 'native') {"),
+    image.indexOf('    <ExpoImage'),
+  );
+  const expoBlock = image.slice(image.indexOf('    <ExpoImage'));
+  assert.ok(nativeBlock.includes("current.url === actual.url && current.renderer === 'native' && !current.painted"));
+  assert.ok(expoBlock.includes("current.url === actual.url && current.renderer === 'expo' && !current.painted"));
+  assert.ok(image.includes('alternateAttempted: true'));
+  assert.ok(image.includes('lastProgressAt = Date.now()'));
+  assert.doesNotMatch(image, /getPublicUrl|\/object\/public\//);
 });
