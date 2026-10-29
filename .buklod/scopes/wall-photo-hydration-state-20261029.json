@@ -1,7 +1,7 @@
 {
   "objective": "Prevent Community Wall photos from being erased by late rank/comment enrichment and hydrate older-page media when the 650ms metadata budget expires",
   "baseRef": "main",
-  "productionBaselineEvidence": "main at 6b88523: media initial deadline 650ms, late media hydration can be overwritten by second setPosts with stale media_items=[]; older-page media timeout has no background hydration; existing signed URL Android renderer remains unchanged",
+  "productionBaselineEvidence": "verified: current main ref inspected at 6b88523e9002d3f7a9469226324c8628050dda4b and Oct 29 documented Android OTA source e3b6e39a6bf20ea536cddac4a572ebb6dc515306, runtime 1.3.2, from .buklod/scopes/android-visible-photo-priority-20261029.json. Source inspection confirms 650ms initial media timeout, stale media_items=[] overwrite in a second setPosts, and missing older-page late hydration. Current handset OTA adoption remains unverified; main must not be treated as the live binary or published OTA without fingerprint.",
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
     "src/lib/communityWallHydration.ts",
