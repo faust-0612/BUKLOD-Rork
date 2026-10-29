@@ -1,5 +1,10 @@
--- Faculty-only cross-room recovery for stranded zero-answer attempts.
--- No automatic action. Existing live attempts, answered attempts, offline leases, and completed scores remain protected.
+-- READ-ONLY PROVENANCE / CURRENT SNAPSHOT OF A CONCURRENTLY RECONCILED QUIZ FUNCTION.
+-- R2 RESET patch was applied, then superseded by a subsequent independently deployed
+-- guard migration. Do NOT replay this file; production migration history is authoritative.
+-- CURRENT LIVE BEHAVIOR: REOPEN transfers the SAME zero-answer attempt from an ENDED room
+-- into an approved LIVE room, preserving attempt ID, K selected questions and audit.
+-- RESET_ATTEMPT still requires an existing attempt in the selected current room.
+-- Captured from current production pg_get_functiondef after rollback-only E2E.
 CREATE OR REPLACE FUNCTION public.buklod_quiz_live_student_action_v2(p_session_id uuid, p_student_user_id uuid, p_action text, p_minutes integer DEFAULT NULL::integer)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -27,6 +32,10 @@ begin
   from public.buklod_quiz_live_sessions x
   where x.id=p_session_id and x.faculty_user_id=(select auth.uid());
   if s.id is null then raise exception 'Live session not found or unauthorized.'; end if;
+  IF s.status='ENDED' AND v_action IN ('READMIT','REMOVE','RESET_ATTEMPT','ALLOW_NEW_ATTEMPT','REOPEN','SET_TIME','RESET_TIMER','ADD_TIME') THEN
+    RAISE EXCEPTION 'Live class has ended. Use a new session to readmit, reset, or adjust a timer.';
+  END IF;
+
 
   if not exists(
     select 1 from public.buklod_quiz_live_members m
@@ -63,47 +72,7 @@ begin
     where r.exam_id=s.exam_id and r.section_id=s.section_id and r.student_user_id=p_student_user_id;
 
   elsif v_action='RESET_ATTEMPT' then
-    -- R2: faculty-initiated recovery for a zero-answer STARTED attempt
-    -- stranded in a genuinely ENDED earlier room. Never silently reset a
-    -- running attempt or destroy buffered/offline work.
-    if s.status <> 'LIVE' then
-      raise exception 'Reset requires a LIVE class room. Start the new class first.';
-    end if;
-    if not exists(select 1 from public.buklod_quiz_live_members m
-      where m.session_id=s.id and m.student_user_id=p_student_user_id and m.status='ADMITTED') then
-      raise exception 'Readmit the student before resetting the attempt.';
-    end if;
-    if a.id is null then
-      select prior.* into a
-      from public.buklod_quiz_attempts prior
-      join public.buklod_quiz_live_sessions old on old.id=prior.live_session_id
-      where prior.exam_id=s.exam_id and prior.section_id=s.section_id
-        and prior.student_user_id=p_student_user_id
-        and prior.live_session_id<>s.id and prior.status='STARTED'
-        and old.status='ENDED'
-        and exists(select 1 from public.buklod_quiz_events ev
-          where ev.attempt_id=prior.id
-          and ev.event_type='LIVE_CLASS_ENDED_ZERO_ANSWER_RECOVERY_REQUIRED')
-        and not exists(select 1 from public.buklod_quiz_responses response
-          where response.attempt_id=prior.id and response.answer is not null)
-        and not exists(select 1 from public.buklod_quiz_offline_leases lease
-          where lease.attempt_id=prior.id and lease.used_at is null and lease.sync_grace_expires_at>now())
-      order by prior.attempt_no desc
-      limit 1 for update of prior;
-      if a.id is null then
-        raise exception 'No safe recoverable attempt. Review prior exam answers and offline state before resetting.';
-      end if;
-      if exists(select 1 from public.buklod_quiz_attempts x
-        where x.exam_id=s.exam_id and x.student_user_id=p_student_user_id
-        and x.id<>a.id and x.status<>'VOID') then
-        raise exception 'Another official attempt exists; faculty review is required.';
-      end if;
-      insert into public.buklod_quiz_events(attempt_id,student_user_id,event_type,event_data)
-      values(a.id,p_student_user_id,'FACULTY_CROSS_ROOM_ZERO_ANSWER_RECOVERY',
-        jsonb_build_object('previous_live_session_id',a.live_session_id,
-          'new_live_session_id',s.id,'faculty_user_id',(select auth.uid()),
-          'reason','Faculty expressly reset stranded zero-answer attempt from ENDED room'));
-    end if;
+    if a.id is null then raise exception 'There is no current attempt to reset.'; end if;
     v_minutes:=coalesce(p_minutes,s.duration_minutes,e.duration_minutes,30);
     if v_minutes<1 or v_minutes>1440 then raise exception 'Reset minutes must be 1 to 1440.'; end if;
 
@@ -169,16 +138,73 @@ begin
     where r.exam_id=s.exam_id and r.section_id=s.section_id and r.student_user_id=p_student_user_id;
 
   elsif v_action='REOPEN' then
-    if a.id is null then raise exception 'No completed attempt to reopen.'; end if;
-    if a.status='STARTED' then raise exception 'Attempt is already active.'; end if;
     v_minutes:=coalesce(p_minutes,s.duration_minutes,e.duration_minutes,30);
     if v_minutes<1 or v_minutes>1440 then raise exception 'Reopen minutes must be 1 to 1440.'; end if;
     v_expires_at:=now()+make_interval(mins=>v_minutes);
-    update public.buklod_quiz_attempts x
-      set status='STARTED',released_at=null,submitted_at=null,expires_at=v_expires_at,updated_at=now()
-    where x.id=a.id;
-    v_new_attempt_id:=a.id;
-    v_attempt_no:=a.attempt_no;
+    if a.id is null then
+      -- Recover an orphaned, zero-answer STARTED attempt from an ENDED room.
+      -- Explicit faculty REOPEN only: never silently VOID, erase, or duplicate it.
+      if s.status<>'LIVE' then
+        raise exception 'Recovery requires an active LIVE room. No records changed.';
+      end if;
+      if not exists(
+        select 1 from public.buklod_quiz_live_members m
+        where m.session_id=s.id and m.student_user_id=p_student_user_id and m.status='ADMITTED'
+      ) then raise exception 'Student must be admitted to the current room before recovery.'; end if;
+
+      select ax.* into a
+      from public.buklod_quiz_attempts ax
+      join public.buklod_quiz_live_sessions old_ls on old_ls.id=ax.live_session_id
+      where ax.exam_id=s.exam_id and ax.section_id=s.section_id
+        and ax.student_user_id=p_student_user_id and ax.status='STARTED'
+        and ax.live_session_id<>s.id and old_ls.status='ENDED'
+        and old_ls.exam_id=s.exam_id and old_ls.section_id=s.section_id
+        and old_ls.question_count=s.question_count
+        and coalesce(old_ls.settings_snapshot->>'question_selection_mode','')
+            =coalesce(s.settings_snapshot->>'question_selection_mode','')
+      order by ax.attempt_no desc,ax.created_at desc
+      limit 1
+      for update of ax;
+
+      if a.id is null then raise exception 'No safe unfinished attempt to recover. Use Troubleshoot to review prior attempts.'; end if;
+      if exists(
+        select 1 from public.buklod_quiz_responses rr where rr.attempt_id=a.id
+      ) then
+        raise exception 'This earlier attempt has saved responses. Automatic transfer blocked: review it before reopening.';
+      end if;
+      if private.buklod_quiz_attempt_question_count_r1(a.id)<>s.question_count
+         or coalesce(a.max_score,0)<>coalesce(s.total_score_target,0) then
+        raise exception 'Question count or maximum score differs between rooms. Recovery blocked.';
+      end if;
+      if exists(
+        select 1 from public.buklod_quiz_attempts other
+        where other.exam_id=s.exam_id and other.student_user_id=p_student_user_id
+          and other.status='STARTED' and other.id<>a.id
+      ) then
+        raise exception 'Another unfinished attempt needs separate review; no records changed.';
+      end if;
+      update public.buklod_quiz_attempts x
+        set live_session_id=s.id,expires_at=v_expires_at,updated_at=now()
+      where x.id=a.id and x.status='STARTED' and x.live_session_id<>s.id;
+      if not found then raise exception 'The attempt changed before recovery; refresh and retry.'; end if;
+      insert into public.buklod_quiz_events(attempt_id,student_user_id,event_type,event_data)
+      values(
+        a.id,p_student_user_id,'FACULTY_REOPEN_ORPHANED_ZERO_ANSWER_ATTEMPT',
+        jsonb_build_object('faculty_user_id',(select auth.uid()),'old_live_session_id',a.live_session_id,
+           'new_live_session_id',s.id,'exam_id',s.exam_id,'section_id',s.section_id,
+           'attempt_no',a.attempt_no,'duration_minutes',v_minutes,
+           'saved_answer_count',0,'source','REOPEN_EXISTING_ATTEMPT')
+      );
+      v_new_attempt_id:=a.id;
+      v_attempt_no:=a.attempt_no;
+    else
+      if a.status='STARTED' then raise exception 'Attempt is already active.'; end if;
+      update public.buklod_quiz_attempts x
+        set status='STARTED',released_at=null,submitted_at=null,expires_at=v_expires_at,updated_at=now()
+      where x.id=a.id;
+      v_new_attempt_id:=a.id;
+      v_attempt_no:=a.attempt_no;
+    end if;
 
   elsif v_action in ('SET_TIME','RESET_TIMER') then
     if a.id is null or a.status<>'STARTED' then raise exception 'No active attempt for timer update.'; end if;
@@ -203,8 +229,7 @@ begin
   elsif v_action='FORCE_SUBMIT' then
     if a.id is null or a.status<>'STARTED' then raise exception 'No active attempt to submit.'; end if;
 
-    select private.buklod_quiz_attempt_question_count_r1(a.id)
-    into v_expected_count;
+    select private.buklod_quiz_attempt_question_count_r1(a.id) into v_expected_count;
 
     select
       count(distinct r.question_id)::integer,
