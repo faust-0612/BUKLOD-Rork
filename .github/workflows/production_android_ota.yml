@@ -131,6 +131,7 @@ on:
       - 'src/lib/buklodCommunityPostMedia.ts'
       - 'src/lib/buklodR4RequestShield.ts'
       - 'src/lib/buklodMediaUrl.ts'
+      - 'src/components/BuklodCachedMediaImage.tsx'
       - 'supabase/migrations/*community_external_video_storage_aws*.sql'
       - 'supabase/migrations/*buklod_call_lifecycle*.sql'
       - 'supabase/migrations/*buklod_5k_scale_hardening*.sql'
