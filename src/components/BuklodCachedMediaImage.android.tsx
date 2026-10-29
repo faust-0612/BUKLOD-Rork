@@ -69,7 +69,12 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     ? communityWallPreviewPath(originalPath) || verifiedLegacyWallPreviewPath(originalPath, previewPath)
     : null;
   const [failedPreviewFor, setFailedPreviewFor] = useState('');
-  const usingPreview = !!markedPreviewPath && failedPreviewFor !== originalPath;
+  // Never replace pixels already painted from an original with a late-arriving
+  // thumbnail index. That would recreate the October 28 blank-tile regression.
+  const paintedOriginalPathRef = useRef('');
+  const usingPreview = !!markedPreviewPath &&
+    failedPreviewFor !== originalPath &&
+    paintedOriginalPathRef.current !== originalPath;
   const path = usingPreview ? markedPreviewPath! : originalPath;
   // Never pass the original signed URL as a preference for the preview: it
   // refers to the wrong bytes and would poison the stable preview cache key.
@@ -308,6 +313,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         resizeMode={contentFit}
         style={style}
         onLoad={event => {
+          if (!usingPreview) paintedOriginalPathRef.current = originalPath;
           setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
           // Keep single-photo aspect-ratio calculation identical for callers.
           onLoad?.({ source: event.nativeEvent.source });
@@ -344,6 +350,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         onLoad?.(event);
       }}
       onDisplay={() => {
+        if (!usingPreview) paintedOriginalPathRef.current = originalPath;
         setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
       }}
       onError={() => retryAfterError(actual.url!)}
