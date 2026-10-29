@@ -27,9 +27,9 @@ import {
   resolveCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
 
-const PHOTO_LOAD_TIMEOUT_MS = 20_000;
 // Only recover a genuinely stalled native request; active byte progress extends the window.
 const PHOTO_STALL_NO_PROGRESS_MS = 40_000;
+const PHOTO_LOAD_TIMEOUT_MS = 20_000;
 
 type Props = {
   uri?: string | null;
@@ -121,8 +121,8 @@ function BuklodCachedMediaImageInner({
           if (!active) return;
           if (local) {
             setCachedImage(local);
-            // A cache hit is not a paint. Wait for ExpoImage onLoad/onDisplay.
-            setSlow(false);
+            // A cached ImageRef is already decoded and may skip a new onLoad.
+            setLoaded(true);
             return;
           }
         } catch {
@@ -154,9 +154,8 @@ function BuklodCachedMediaImageInner({
   }, [path, displayUri, cachedImage, failed, cacheKey]);
 
   useEffect(() => {
-    if ((!displayUri && !cachedImage) || loaded || failed) return;
-
-    // Slow progress is not failure. Show status while keeping the image mounted.
+    // Web behavior stays unchanged. Only Android removes the opaque mask.
+    if (Platform.OS !== 'web' || (!displayUri && !cachedImage) || loaded || failed) return;
     const timer = setTimeout(() => setSlow(true), PHOTO_LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [displayUri, cachedImage, loaded, failed]);
@@ -351,12 +350,19 @@ function BuklodCachedMediaImageInner({
       }}
     />
       {!loaded ? (
-        <View pointerEvents="none" style={styles.loadingOverlay}>
-          <ActivityIndicator color="#688A81" size="small" />
-          {slow ? (
-            <Text style={styles.slowText}>Mahina ang signal. Patuloy na nilo-load ang larawan.</Text>
-          ) : null}
-        </View>
+        Platform.OS === 'android' ? (
+          // Never cover Android image pixels with a full-area loading mask.
+          <View pointerEvents="none" style={styles.loadingBadge}>
+            <ActivityIndicator color="#688A81" size="small" />
+          </View>
+        ) : (
+          <View pointerEvents="none" style={styles.loadingOverlay}>
+            <ActivityIndicator color="#688A81" size="small" />
+            {slow ? (
+              <Text style={styles.slowText}>Mahina ang signal. Patuloy na nilo-load ang larawan.</Text>
+            ) : null}
+          </View>
+        )
       ) : null}
     </View>
   );
@@ -399,6 +405,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     paddingHorizontal: 12,
+  },
+  loadingBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(238, 243, 240, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   placeholder: {
     backgroundColor: '#EEF3F0',
