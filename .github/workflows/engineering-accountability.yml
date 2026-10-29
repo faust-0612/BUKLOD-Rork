@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            feat/wall-lightweight-preview-sidecars-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/wall-lightweight-preview-sidecars-20261029.json" >> "$GITHUB_ENV";;
             fix/android-visible-photo-priority-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/android-visible-photo-priority-20261029.json" >> "$GITHUB_ENV";;
             fix/android-photo-cache-first-progress-20261029)
@@ -160,6 +162,9 @@ jobs:
       - name: Verify interrupted account registration contracts
         if: github.head_ref == 'fix/registration-network-recovery-20261029-r2'
         run: node --test tests/registration-network-recovery.test.cjs
+      - name: Verify private lightweight Wall preview sidecars and original fallback
+        if: github.head_ref == 'feat/wall-lightweight-preview-sidecars-20261029'
+        run: node --experimental-strip-types --test tests/community-wall-preview-sidecar.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs
       - name: Verify Android visible photo priority and no speculative sign burst
         if: github.head_ref == 'fix/android-visible-photo-priority-20261029'
         run: node --experimental-strip-types --test tests/android-visible-photo-priority.test.mjs
