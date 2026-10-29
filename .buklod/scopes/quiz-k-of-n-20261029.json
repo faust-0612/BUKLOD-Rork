@@ -1,0 +1,28 @@
+{
+  "objective": "Reconcile the verified deployed BUKLOD Quiz configurable K-of-N question assignment with exact source and accountability evidence",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main d6324ce48c65185631c35025f9ec3f530574d2ae is the PR comparison baseline; dedicated Quiz database migration 20261029045800 was confirmed applied and passed post-deployment rollback-only 37/400 question assignment and grading tests. No Main APK/OTA release claimed.",
+  "allowedPaths": [
+    "docs/BUKLOD_QUIZ_K_OF_N_RELEASE_20261029.md",
+    ".buklod/scopes/quiz-k-of-n-20261029.json",
+    ".github/workflows/engineering-accountability.yml",
+    "supabase/pending/quiz_k_of_n/00_assignment.sql",
+    "supabase/pending/quiz_k_of_n/01_prepare.sql",
+    "supabase/pending/quiz_k_of_n/02_student_answers.sql",
+    "supabase/pending/quiz_k_of_n/03_submit.sql",
+    "supabase/pending/quiz_k_of_n/04_score.sql",
+    "supabase/pending/quiz_k_of_n/05_live_controls.sql",
+    "supabase/pending/quiz_k_of_n/06_result_review.sql",
+    "supabase/pending/quiz_k_of_n/07_faculty_analysis.sql",
+    "supabase/pending/quiz_k_of_n/08_response_guard.sql"
+  ],
+  "acceptanceChecks": [
+    "Exactly these source and accountability files; no Android code or production workflow changed",
+    "K-of-N is derived from faculty preflight question_count and varies by configuration",
+    "Assignment and resume are per-attempt stable, unassigned responses are rejected",
+    "Normal and recovery submissions, score denominator, faculty and released review use selected K",
+    "Old attempts are unchanged and production migration is not replayed",
+    "Production backend runtime 37-of-400 E2E passed with temporary test rolled back",
+    "Standalone web UI sending of question_count still requires owner browser check"
+  ]
+}
