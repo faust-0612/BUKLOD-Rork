@@ -1,0 +1,20 @@
+{
+  "objective": "Prevent blank-white Android Wall photo tiles caused by early native completion events and unreliable default Expo paint",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Android production OTA 01a187da-74ba-760e-881c-98fbeba334f8, runtime 1.3.2, source be4808452711866dc57066844dfee111050c0318. On-device paint remains unverified by request; user provided fresh white-tile screenshots.",
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/buklodAndroidPhotoRecovery.ts",
+    "tests/android-photo-cache-first-progress.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/android-wall-white-painted-20261029.json"
+  ],
+  "acceptanceChecks": [
+    "Android starts with the independent native renderer and retains disk cache before URL signing",
+    "Only the current URL/current renderer can mark a tile painted; missing dimensions do not count as success",
+    "Native transfer with byte progress is never restarted; true 40s stalls can try Expo Image once",
+    "Preview sidecar, original viewer, manual retry and secure signed URLs remain intact",
+    "No HTML/web/iOS, database, storage authorization, authentication or native build changes",
+    "Static regression tests and TypeScript gate pass before any production release; OTA stays on runtime 1.3.2"
+  ]
+}
