@@ -1,0 +1,20 @@
+{
+  "objective": "Ensure interrupted Android account registration is recovered without duplicate signup or misleading failure feedback",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: main commit 49097ad8073910f8139793d513d4ebb87b054552 inspected on 2026-10-29, registration at src/app/(auth)/register.tsx. Exact live Android OTA fingerprint and client runtime have not been independently verified; no production release is authorized by this manifest.",
+  "allowedPaths": [
+    "src/app/(auth)/register.tsx",
+    "tests/registration-network-recovery.test.cjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/registration-network-recovery-20261029.json"
+  ],
+  "acceptanceChecks": [
+    "Network reset and thrown signup failures show account-status-unknown, never falsely claim account creation failed",
+    "No automatic signup retries; user must verify an existing account using password sign-in before retrying creation",
+    "Debounced single-flight registration and checked sign-in prevent concurrent auth requests and spinner deadlock",
+    "After a verified session, idempotent local assignment and referral linking are resumed without duplicating the account",
+    "Permanent credential errors do not masquerade as transient outages, with clear manual retry guidance",
+    "Run targeted Node contract tests and isolated accountability gate; no Android binary, database schema, or OTA changes",
+    "Release requires verified exact DEV to RC baseline and production-OTA fingerprint"
+  ]
+}
