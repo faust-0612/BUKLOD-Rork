@@ -1,0 +1,21 @@
+{
+  "objective": "Reconcile verified deployed dedicated Quiz persistent room history, RELIVE discovery and audited unfinished-attempt recovery",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: dedicated Quiz DB retained ENDED room and RELIVE count; migrations buklod_quiz_faculty_persistent_relive_history_atomic_recovery_r1_20261029 and buklod_quiz_faculty_recovery_membership_eligibility_r2_20261029 applied and passed rollback-only authenticated E2E; existing attempts and grades unchanged; main is source comparison, not assumed web deployment.",
+  "allowedPaths": [
+    ".buklod/scopes/quiz-relive-history-recovery-20261029.json",
+    ".github/workflows/engineering-accountability.yml",
+    "docs/QUIZ_PERSISTENT_RELIVE_HISTORY_AND_RECOVERY_20261029.md",
+    "supabase/pending/BUKLOD_QUIZ_FACULTY_RELIVE_HISTORY_RECOVERY_R1.sql",
+    "supabase/pending/BUKLOD_QUIZ_RECOVERY_ELIGIBILITY_MEMBERSHIP_R2.sql"
+  ],
+  "acceptanceChecks": [
+    "Faculty can retrieve ALL historical class rooms after exiting page, including ended RELIVE rooms",
+    "Exam ownership and examiner roles enforced on all new APIs",
+    "Recovery list shows previously removed students and old zero-answer started attempts without modifying grades",
+    "Actual faculty recovery remains opt-in, atomic, and audited; preserves attempt ID and selected questions",
+    "No existing attempts or live rooms changed by migration; post-deploy history and eligibility tests pass",
+    "Standalone quiz website code not in connected repositories, so frontend buttons remain a separately disclosed blocker",
+    "Already applied dedicated DB migrations must not be replayed in GitHub CI"
+  ]
+}
