@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            codex/quiz-faculty-cross-room-recovery-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/quiz-faculty-recovery-20261029.json" >> "$GITHUB_ENV";;
             fix/android-wall-rollback-oct28-renderer-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/android-photo-oct28-rollback-20261029.json" >> "$GITHUB_ENV";;
             fix/ota-restart-safe-area-20261029)
