@@ -83,6 +83,12 @@ export function classifyBuklodError(
 ): BuklodErrorCategory {
   const text = rawErrorText(error).toLowerCase();
 
+  // PGRST303 is a transient PostgREST clock-validation failure, not bad
+  // credentials, a permission denial, or an unknown application exception.
+  if (/jwt issued at future|pgrst303/.test(text)) {
+    return 'SERVICE_UNAVAILABLE';
+  }
+
   if (/too many|rate.?limit|429/.test(text)) {
     return 'RATE_LIMIT';
   }

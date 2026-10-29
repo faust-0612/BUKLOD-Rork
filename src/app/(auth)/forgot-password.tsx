@@ -262,8 +262,9 @@ export default function ForgotPasswordScreen() {
         }
       } catch (error: any) {
         if (!cancelled) {
+          const reason = await functionErrorMessage(error, 'Please check your connection and try again.');
           setRecoveryStateText(
-            `Status check temporarily unavailable: ${String(error?.message ?? error ?? 'check your connection')}. BUKLOD will check again while this screen stays open.`
+            `Status check temporarily unavailable: ${reason}. BUKLOD will check again while this screen stays open.`
           );
         }
       } finally {

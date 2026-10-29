@@ -1,0 +1,26 @@
+{
+  "objective": "Correct intermittent PostgREST PGRST303 JWT timing rejections in BUKLOD user flows",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub source main e78f8f6a31f17a63641c72cb341f2b6bd3692049; live Supabase account-recovery-v4 version 12 exactly matched canonical source before patch. Android runtime 1.3.2 production OTA status has not been independently reverified in this workstream.",
+  "allowedPaths": [
+    "src/lib/buklodPostgrestJwtRetryFetch.ts",
+    "src/lib/supabase.ts",
+    "src/lib/buklodUserFeedback.ts",
+    "src/app/clusters/index.tsx",
+    "src/app/prayer/new.tsx",
+    "src/app/(auth)/forgot-password.tsx",
+    "supabase/functions/account-recovery-v4/index.ts",
+    "tests/postgrest-jwt-future-resilience.test.cjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/postgrest-jwt-future-20261029.json"
+  ],
+  "acceptanceChecks": [
+    "Retry only exact HTTP 401 PGRST303 JWT issued at future on safe reads, never mutations or other authentication failures",
+    "Cap client retries at three per minute per runtime and Recovery retries at two per invocation",
+    "Preserve denied mutation semantics, user isolation, and recovery rate limits",
+    "Cluster, Prayer, Community, and Recovery show accurate retryable error feedback",
+    "No database migration, quiz/exam changes, or native build",
+    "Verify focused Node contract tests and parse Edge Function before release",
+    "Do not mark production ready until exact RC and runtime verification gates pass"
+  ]
+}

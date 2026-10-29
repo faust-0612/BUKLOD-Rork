@@ -37,6 +37,10 @@ import { useAuth } from '@/providers/AuthProvider';
 import { getBuklodCardTone, getStableBuklodCardTone, type BuklodCardToneName } from '@/lib/buklodCardTones';
 
 function messageOf(error: unknown) {
+  if (error && typeof error === 'object' && 'code' in error &&
+      (error as { code?: unknown }).code === 'PGRST303') {
+    return 'Temporary server authentication delay. Your Cluster information is safe. Please retry shortly.';
+  }
   if (
     error &&
     typeof error === 'object' &&

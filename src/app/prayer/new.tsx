@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -14,17 +14,30 @@ export default function NewPrayerRequest() {
   const [body,setBody]=useState('');
   const [privacy,setPrivacy]=useState<Privacy>('group');
   const [busy,setBusy]=useState(false);
+  const saveInFlight = useRef(false);
 
   const save=async()=>{
+    if (saveInFlight.current) return;
     if(!user||!body.trim())return Alert.alert('Prayer request','Please write your prayer request.');
+    saveInFlight.current = true;
     setBusy(true);
-    const {error}=await supabase.from('prayer_requests').insert({
-      user_id:user.id,title:title.trim()||null,request_text:body.trim(),privacy
-    });
-    setBusy(false);
-    if(error)return Alert.alert('Could not save',error.message);
-    Alert.alert('Prayer request saved','Your selected privacy setting has been applied.');
-    router.back();
+    try {
+      const {error}=await supabase.from('prayer_requests').insert({
+        user_id:user.id,title:title.trim()||null,request_text:body.trim(),privacy
+      });
+      if (error) {
+        return Alert.alert('Could not save', error.code === 'PGRST303'
+          ? 'A temporary server authentication delay prevented saving. Nothing was submitted. Please try again shortly.'
+          : error.message);
+      }
+      Alert.alert('Prayer request saved','Your selected privacy setting has been applied.');
+      router.back();
+    } catch (error: any) {
+      Alert.alert('Could not save', String(error?.message ?? 'Check your connection and retry.'));
+    } finally {
+      saveInFlight.current = false;
+      setBusy(false);
+    }
   };
 
   return(
