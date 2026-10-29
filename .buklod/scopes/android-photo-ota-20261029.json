@@ -5,12 +5,14 @@
   "allowedPaths": [
     ".github/workflows/production_android_ota.yml",
     ".github/workflows/engineering-accountability.yml",
-    ".buklod/scopes/android-photo-ota-20261029.json"
+    ".buklod/scopes/android-photo-ota-20261029.json",
+    "tests/community-wall-no-blank-photo.test.cjs"
   ],
   "acceptanceChecks": [
     "Canonical production Android OTA listens to src/components/BuklodCachedMediaImage.tsx on main without duplicate publisher",
     "No changes to Expo runtime, native APK dependencies, supabase, web release, or unrelated features",
     "Existing baseline -> frozen RC -> verify -> publish -> served hash gates are preserved",
-    "Must verify exact-head QA, exact production source and update ID; never claim device adoption from manifest alone"
+    "Must verify exact-head QA, exact production source and update ID; never claim device adoption from manifest alone",
+    "Permanent test asserts media renderer file is covered by canonical Android production OTA workflow path filter"
   ]
 }
