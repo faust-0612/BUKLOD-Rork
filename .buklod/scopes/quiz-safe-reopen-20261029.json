@@ -1,7 +1,7 @@
 {
   "objective": "Reconcile already-applied safe faculty REOPEN for zero-answer attempts stranded in ended rooms",
   "baseRef": "main",
-  "productionBaselineEvidence": "Quiz-only database migration deployed; post-production rollback-only recovery E2E passed; affected actual attempt remained unchanged; no Android or web deployment",
+  "productionBaselineEvidence": "verified: authoritative GitHub main source SHA b83c7c9477b627d1f7ff7b944ccefdf047b46b99 checked against completed PR #412; dedicated Quiz production migration quiz_faculty_safe_reopen_orphan_attempt_r1_20261029 applied and post-deploy rollback-only E2E passed. No OTA or standalone website deployment.",
   "allowedPaths": [
     "supabase/pending/BUKLOD_QUIZ_SAFE_REOPEN_ORPHAN_R1.sql",
     "docs/QUIZ_SAFE_REOPEN_20261029.md",
