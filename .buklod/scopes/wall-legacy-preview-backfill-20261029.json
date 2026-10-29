@@ -1,0 +1,30 @@
+{
+  "objective": "Non-destructive private old Wall JPEG preview backfill with a confirmed JPEG sample, bounded Supabase Edge worker, service-role-only claims, single-request v3 media response and original-photo fallback",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Android Production OTA runtime 1.3.2 source be4808452711866dc57066844dfee111050c0318; 1126 image/jpeg community_post_media entries. 866 eligible legacy JPEG original paths were queued in existing private community-media Storage, no original rename or deletion. Real Supabase pilot processed 4 photos with HTTP 200, index and Storage metadata sizes matching: 20587,22232,14626,3408 bytes. Live phone adoption and latency still require device-side validation.",
+  "allowedPaths": [
+    "supabase/migrations/20261029211000_wall_legacy_preview_backfill_r1.sql",
+    "supabase/migrations/20261029213000_wall_legacy_preview_runner_r1.sql",
+    "supabase/functions/buklod-wall-preview-backfill/index.ts",
+    "src/lib/communityWallPreviewPath.ts",
+    "src/lib/buklodCommunityPostMedia.ts",
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/components/BuklodCachedMediaImage.tsx",
+    "src/components/BuklodCommunityPhotoCollage.tsx",
+    "tests/community-wall-legacy-preview-backfill.test.mjs",
+    ".buklod/scopes/wall-legacy-preview-backfill-20261029.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Original image Storage files and their post paths are never modified or deleted",
+    "Only authorized viewers of original can read private preview and its metadata",
+    "Backfilled preview paths are deterministic, indexed only after verified upload and rejected if not exact",
+    "New get_buklod_post_media_v3 returns preview in same request, v2/v1 remain unchanged and fallback",
+    "Preview download failures immediately fall back to original via existing bounded recovery",
+    "Backfill uses no paid image provider, no APK build, no new permanent monitoring",
+    "Only service-role Edge worker can claim work and token is generated privately in PostgreSQL",
+    "Background backfill stops automatically by queue completion, token expiry or 48MB preview cap",
+    "Focused tests and all 3 required CI checks pass before Android Production OTA from frozen RC",
+    "Published OTA ID does not imply real device speed test; source/runtime and DB counts independently verified"
+  ]
+}
