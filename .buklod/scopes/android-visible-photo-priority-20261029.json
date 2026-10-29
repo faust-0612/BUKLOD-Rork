@@ -1,0 +1,20 @@
+{
+  "objective": "Stop unnecessary pre-signing and background downloads competing with visible Android Community Wall photos, without changing existing image rendering, signed URL authorization, or web behavior",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: current main Android OTA 01a187a6-deb7-78e2-8480-bbb7abe15c17 source e3b6e39a runtime 1.3.2 has cache-first renderer; initial Community Wall load still attempts up to 32 photo sign requests then prefetch uses URL-only strings, which do not share durable path cache keys with Android renderer. Supabase photo average 772 KiB and 108 of 1125 >2 MiB. Risk is redundant background transfer on weak signal, not missing files. Device adoption of next OTA not established.",
+  "allowedPaths": [
+    "src/lib/communityMediaPrefetchPolicy.ts",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/android-visible-photo-priority.test.mjs",
+    ".buklod/scopes/android-visible-photo-priority-20261029.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Android initial Wall skips speculative background sign/prefetch, allowing only visible photo tiles to fetch",
+    "Web and iOS prefetch unchanged when online",
+    "Offline prefetch disabled for all platforms",
+    "Media path signer, native renderer, persisted photos and upload unchanged",
+    "Focus tests, TypeScript/Performance and Integration QA pass before merge",
+    "Android production OTA via existing source path trigger only after exact-source RC gates; no new APK or web deployment"
+  ]
+}
