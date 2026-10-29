@@ -5,7 +5,8 @@
  */
 import * as Updates from 'expo-updates';
 import React, { useEffect, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const FAILURE_COOLDOWN_MS = 30 * 60 * 1000;
@@ -41,6 +42,12 @@ async function checkAndDownload(): Promise<boolean> {
 
 export default function BuklodOtaFreshnessHost() {
   const { isUpdatePending } = Updates.useUpdates();
+  const insets = useSafeAreaInsets();
+  // Edge-to-edge Android draws this root banner under the system status bar.
+  // Fallback to the platform status-bar height if safe-area metrics are zero.
+  const statusBarInset = Platform.OS === 'android'
+    ? Math.max(insets.top, StatusBar.currentHeight ?? 0)
+    : insets.top;
   const [downloaded, setDownloaded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [reloading, setReloading] = useState(false);
@@ -86,12 +93,16 @@ export default function BuklodOtaFreshnessHost() {
   }
 
   return (
-    <View style={styles.banner} accessibilityRole="alert">
+    <View
+      style={[styles.banner, { paddingTop: statusBarInset + 8 }]}
+      accessibilityRole="alert"
+    >
       <Text style={styles.message}>
         {reloadError
           ? 'Hindi ma-restart ngayon. Isara at buksan muli ang BUKLOD kapag maaari.'
           : 'May na-download na BUKLOD update. I-restart kapag walang tawag o PTT.'}
       </Text>
+      <View style={styles.actions}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Restart BUKLOD to apply update"
@@ -115,22 +126,26 @@ export default function BuklodOtaFreshnessHost() {
       >
         <Text style={styles.laterText}>Mamaya</Text>
       </Pressable>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // BUKLOD_OTA_RESTART_SAFE_AREA_R1:
+  // Two rows keep both buttons reachable on narrow phones and larger fonts.
   banner: {
     backgroundColor: '#E8F3EA',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 6,
   },
-  message: { flex: 1, color: '#17422A', fontSize: 11, fontWeight: '600' },
-  action: { backgroundColor: '#176A3F', borderRadius: 8, padding: 8 },
-  actionText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
-  later: { padding: 6 },
-  laterText: { color: '#345A42', fontSize: 11, fontWeight: '700' },
+  message: { color: '#17422A', fontSize: 12, fontWeight: '600', flexShrink: 1 },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 12 },
+  action: { backgroundColor: '#176A3F', borderRadius: 8, minWidth: 100, minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', alignItems: 'center' },
+  actionText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+  later: { minHeight: 44, minWidth: 70, paddingHorizontal: 8, justifyContent: 'center', alignItems: 'center' },
+  laterText: { color: '#345A42', fontSize: 12, fontWeight: '700' },
 });
