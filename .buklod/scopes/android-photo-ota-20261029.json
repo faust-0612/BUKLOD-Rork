@@ -1,0 +1,18 @@
+{
+  "objective": "Route the already merged Android Community photo stall recovery through exactly one canonical production OTA, with no native build or unrelated code change",
+  "baseRef": "eb38a6761dca1f43b31fe4968390198ba9c070c4",
+  "productionBaselineEvidence": "Read-only Expo production manifest verified before release: Android runtime 1.3.2 update 01a185b9-7ec6-7385-a984-d710af7075fa, created 2026-10-29T03:34:48.774Z, preceding fix merge eb38a676 at 03:35:24Z. Exact device adoption unverified.",
+  "allowedPaths": [
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/android-photo-ota-20261029.json",
+    "tests/community-wall-no-blank-photo.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "Canonical production Android OTA listens to src/components/BuklodCachedMediaImage.tsx on main without duplicate publisher",
+    "No changes to Expo runtime, native APK dependencies, supabase, web release, or unrelated features",
+    "Existing baseline -> frozen RC -> verify -> publish -> served hash gates are preserved",
+    "Must verify exact-head QA, exact production source and update ID; never claim device adoption from manifest alone",
+    "Permanent test asserts media renderer file is covered by canonical Android production OTA workflow path filter"
+  ]
+}
