@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/wall-photo-hydration-state-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/wall-photo-hydration-state-20261029.json" >> "$GITHUB_ENV";;
             feat/wall-lightweight-preview-sidecars-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/wall-lightweight-preview-sidecars-20261029.json" >> "$GITHUB_ENV";;
             fix/android-visible-photo-priority-20261029)
@@ -159,6 +161,9 @@ jobs:
             feat/community-fair-video-ready-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-fair-video-20261027.json" >> "$GITHUB_ENV";;
           esac
+      - name: Verify Community Wall hydration cannot erase photos
+        if: github.head_ref == 'fix/wall-photo-hydration-state-20261029'
+        run: node --experimental-strip-types --test tests/community-wall-media-hydration-state.test.mjs
       - name: Verify interrupted account registration contracts
         if: github.head_ref == 'fix/registration-network-recovery-20261029-r2'
         run: node --test tests/registration-network-recovery.test.cjs
