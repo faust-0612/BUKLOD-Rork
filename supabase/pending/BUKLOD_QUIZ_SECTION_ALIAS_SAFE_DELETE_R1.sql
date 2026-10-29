@@ -22,6 +22,7 @@ declare
   v_roster_section_name text;
   v_live_section_name text;
   v_same_label boolean:=false;
+  v_roster_archived boolean:=false;
   v_mismatch_override boolean:=false;
 begin
   if v_actor is null then raise exception 'Sign in first.'; end if;
@@ -75,7 +76,7 @@ begin
   limit 1;
 
   if v_roster.id is not null then
-    select s.name into v_roster_section_name
+    select s.name,(s.archived_at IS NOT NULL) into v_roster_section_name,v_roster_archived
     from public.buklod_quiz_sections s
     where s.id=v_roster.section_id;
 
@@ -103,12 +104,31 @@ begin
       raise exception 'You already have a started attempt in another currently active class for this exam. Ask faculty to resolve that active attempt first.';
     end if;
 
-    if v_same_label then
+    if v_same_label OR v_roster_archived then
+      -- A deleted/archived class cannot hold a student's active roster forever.
+      -- OPEN mode may admit by valid join code; APPROVAL must not inherit
+      -- ACTIVE status from the archived section.
       update public.buklod_quiz_roster r
       set section_id=v_session.section_id,
+          status=case when v_roster_archived then 'PENDING' else r.status end,
           updated_at=now()
       where r.id=v_roster.id;
       v_roster.section_id:=v_session.section_id;
+      if v_roster_archived then
+        v_roster.status:='PENDING';
+        insert into public.buklod_quiz_audit_log(
+          exam_id,section_id,live_session_id,attempt_id,actor_user_id,action,details
+        ) values(
+          v_session.exam_id,v_session.section_id,v_session.id,null,v_actor,
+          'QUIZ_ARCHIVED_CLASS_ROSTER_REASSIGNED',
+          jsonb_build_object(
+            'old_section_name',v_roster_section_name,
+            'new_section_name',v_live_section_name,
+            'roster_id',v_roster.id,
+            'admission_mode',v_session.admission_mode
+          )
+        );
+      end if;
     else
       select exists(
         select 1
