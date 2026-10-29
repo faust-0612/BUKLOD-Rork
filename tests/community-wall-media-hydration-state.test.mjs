@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {
   applyCommunityWallMediaHydration,
   applyCommunityWallMetadata,
+  preservePendingCommunityWallMedia,
 } from '../src/lib/communityWallHydration.ts';
 
 test('late author metadata never erases photos that arrived after initial timeout', () => {
@@ -35,4 +36,19 @@ test('first paint uses a durable photo path even without a fresh signed URL', ()
   assert.match(wall, /applyCommunityWallMetadata\(previous, preparedPosts186L\)/);
   assert.match(wall, /appendPage186L && \(!Array\.isArray\(mediaResult\?\.data\)/);
   assert.match(wall, /applyCommunityWallMediaHydration\(current, mediaByPost\)/);
+});
+
+test('refresh on weak network retains painted photos while metadata is pending', () => {
+  const previous = [{id:'post',media_path:'bucket/main.jpg',media_items:[{media_path:'bucket/main.jpg'},{media_path:'bucket/other.jpg'}]}];
+  const incoming = [{id:'post',media_path:'bucket/main.jpg',media_items:[]}];
+  const retained = preservePendingCommunityWallMedia(previous, incoming);
+  assert.deepEqual(retained[0].media_items, previous[0].media_items);
+  const replaced = preservePendingCommunityWallMedia(previous,[{id:'post',media_path:'bucket/new.jpg',media_items:[]}]);
+  assert.deepEqual(replaced[0].media_items,[]);
+  const removed = preservePendingCommunityWallMedia(previous,[{id:'post',media_path:null,media_items:[]}]);
+  assert.deepEqual(removed[0].media_items,[]);
+});
+test('Wall refresh preserves pending media only when no media RPC data was returned', () => {
+  const wall = fs.readFileSync('src/app/(tabs)/buklod.tsx','utf8');
+  assert.match(wall,/!Array\.isArray\(mediaResult\?\.data\) \|\| mediaResult\.data\.length === 0[\s\S]{0,90}preservePendingCommunityWallMedia\(previous, next\)/);
 });

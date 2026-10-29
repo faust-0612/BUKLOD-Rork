@@ -112,6 +112,7 @@ import {
 import {
   applyCommunityWallMetadata,
   applyCommunityWallMediaHydration,
+  preservePendingCommunityWallMedia,
 } from '@/lib/communityWallHydration';
 import {
   classifyNetworkQuality,
@@ -1736,10 +1737,14 @@ const load=useCallback(async(options?:{
       communityLoadSeqRef.current
   ){
     setPosts(previous=>{
-      const merged=
+      const merged =
         keepStableCommunityMedia(
           previous,
-          next
+          // A refresh with media metadata still pending must not momentarily
+          // remove previously visible photos on a slow connection.
+          !Array.isArray(mediaResult?.data) || mediaResult.data.length === 0
+            ? preservePendingCommunityWallMedia(previous, next)
+            : next
         );
 
       if(communityCacheKey){

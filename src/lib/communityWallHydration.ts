@@ -49,3 +49,23 @@ export function applyCommunityWallMetadata<T extends WallPost>(
     };
   });
 }
+
+/**
+ * Preserve already-visible photos only while the new metadata query is
+ * outstanding. Require the same durable primary path so a different post
+ * image or a genuine deletion cannot resurrect an unrelated old image.
+ */
+export function preservePendingCommunityWallMedia<
+  T extends WallPost & { media_path?: string | null }
+>(current: T[], incoming: T[]): T[] {
+  const oldById = new Map(current.filter(p => p.id != null).map(p => [String(p.id), p] as const));
+  return incoming.map(post => {
+    if (post.media_items?.length || !String(post.media_path ?? '').trim()) return post;
+    const old = oldById.get(String(post.id ?? ''));
+    if (
+      !old?.media_items?.length ||
+      String(old.media_path ?? '').trim() !== String(post.media_path ?? '').trim()
+    ) return post;
+    return { ...post, media_items: old.media_items };
+  });
+}
