@@ -112,6 +112,8 @@ jobs:
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/recovery-action-feedback-20261027.json" >> "$GITHUB_ENV";;
             fix/offline-connect-faith-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/offline-connect-faith-20261027.json" >> "$GITHUB_ENV";;
+            codex/daily-reading-card-date-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/daily-reading-card-date-20261029.json" >> "$GITHUB_ENV";;
             fix/marites-video-blank-recovery-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/marites-video-blank-recovery-20261027.json" >> "$GITHUB_ENV";;
             fix/scoped-comments-ux-20261027)
