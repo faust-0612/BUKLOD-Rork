@@ -84,3 +84,33 @@ test('Wall photo renderer changes are eligible for the canonical Android Product
   const workflow = fs.readFileSync('.github/workflows/production_android_ota.yml', 'utf8');
   assert.match(workflow, /^\s+- 'src\/components\/BuklodCachedMediaImage\.tsx'$/m);
 });
+
+const androidImage = fs.readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
+
+test('Android Wall uses a direct sized image component, not the masked web renderer', () => {
+  assert.match(androidImage, /function AndroidWallPhoto\(/);
+  assert.match(androidImage, /<ExpoImage[\s\S]*?style=\{style\}/);
+  assert.match(androidImage, /<NativeImage[\s\S]*?style=\{style\}/);
+  assert.doesNotMatch(androidImage, /loadingOverlay|StyleSheet\.absoluteFillObject|readFromCacheAsync/);
+  assert.match(androidImage, /cachePolicy="memory-disk"/);
+  assert.match(androidImage, /communityMediaCacheKey\(path, path \? path : preferred\)/);
+  assert.match(androidImage, /peekCommunityMediaUrl\(path, preferred\)/);
+  assert.match(androidImage, /resolveCommunityMediaUrl\(path, null\)/);
+  assert.match(androidImage, /resignCommunityMediaUrl\(path\)/);
+  assert.doesNotMatch(androidImage, /getPublicUrl|\/object\/public\//);
+});
+
+test('Android stalled native decoding falls back once to independent Fresco without re-signing', () => {
+  assert.match(androidImage, /const NATIVE_FALLBACK_MS = 8_000/);
+  assert.match(androidImage, /renderer: 'native'/);
+  assert.match(androidImage, /<NativeImage/);
+  assert.match(androidImage, /source=\{\{ uri: actual\.url \}\}/);
+  assert.match(androidImage, /onLoad\?\.\(\{ source: event\.nativeEvent\.source \}\)/);
+  assert.match(androidImage, /signRetryRef\.current >= 1/);
+  assert.match(androidImage, /current\.identity === identity/);
+});
+
+test('Android-specific renderer is included in canonical OTA source-path trigger', () => {
+  const release = fs.readFileSync('.github/workflows/production_android_ota.yml', 'utf8');
+  assert.match(release, /^\s+- 'src\/components\/BuklodCachedMediaImage\.android\.tsx'$/m);
+});
