@@ -8,6 +8,7 @@ import React, {
 
 import {
   ActivityIndicator,
+  Image as NativeImage,
   Platform,
   Pressable,
   StyleSheet,
@@ -30,6 +31,9 @@ import {
 // Only recover a genuinely stalled native request; active byte progress extends the window.
 const PHOTO_STALL_NO_PROGRESS_MS = 40_000;
 const PHOTO_LOAD_TIMEOUT_MS = 20_000;
+// A second Android rendering engine recovers files delivered successfully
+// by Storage but stuck inside the expo-image / Glide view lifecycle.
+const ANDROID_IMAGE_FALLBACK_MS = 8_000;
 
 type Props = {
   uri?: string | null;
@@ -63,6 +67,7 @@ function BuklodCachedMediaImageInner({
   const manualRetryInFlightRef = useRef(false);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [useNativeFallback, setUseNativeFallback] = useState(false);
   const [slow, setSlow] = useState(false);
   const [cachedImage, setCachedImage] = useState<any>(null);
   const [displayUri, setDisplayUri] = useState<string | null>(() =>
@@ -85,6 +90,7 @@ function BuklodCachedMediaImageInner({
       setFailed(false);
       setLoaded(false);
       setSlow(false);
+      setUseNativeFallback(false);
       setCachedImage(null);
       setDisplayUri(
         peekCommunityMediaUrl(path, preferredUri) ||
@@ -105,14 +111,14 @@ function BuklodCachedMediaImageInner({
   }, [mediaIdentity, path, preferredUri, displayUri, failed]);
 
   useEffect(() => {
-    if (!path || displayUri || cachedImage || failed || manualRetryInFlightRef.current || resignInFlightRef.current) return;
+    if (!path || displayUri || (cachedImage && !useNativeFallback) || failed || manualRetryInFlightRef.current || resignInFlightRef.current) return;
 
     let active = true;
     void (async () => {
       // Previously viewed private photos must be visible offline and on a
       // very weak connection without waiting for a new Storage signature.
       // Cache keys are durable object paths, never expiring signed tokens.
-      if (Platform.OS !== 'web' && cacheKey) {
+      if (Platform.OS !== 'web' && cacheKey && !useNativeFallback) {
         try {
           const reader = (ExpoImage as any).readFromCacheAsync as
             | ((key: string) => Promise<unknown>)
@@ -121,8 +127,9 @@ function BuklodCachedMediaImageInner({
           if (!active) return;
           if (local) {
             setCachedImage(local);
-            // A cached ImageRef is already decoded and may skip a new onLoad.
-            setLoaded(true);
+            // A cache hit does not establish successful native paint. Do not
+            // permanently suppress the alternate renderer without onLoad.
+            setLoaded(false);
             return;
           }
         } catch {
@@ -143,7 +150,9 @@ function BuklodCachedMediaImageInner({
       if (resolved) {
         setLoaded(false);
         setDisplayUri(current => current || resolved);
-      } else {
+      } else if (!cachedImage) {
+        // Offline: preserve an available cache ImageRef even when re-signing
+        // fails; do not replace its pixels with a failed placeholder.
         setFailed(true);
       }
     })();
@@ -151,7 +160,7 @@ function BuklodCachedMediaImageInner({
     return () => {
       active = false;
     };
-  }, [path, displayUri, cachedImage, failed, cacheKey]);
+  }, [path, displayUri, cachedImage, failed, cacheKey, useNativeFallback]);
 
   useEffect(() => {
     // Web behavior stays unchanged. Only Android removes the opaque mask.
@@ -161,9 +170,19 @@ function BuklodCachedMediaImageInner({
   }, [displayUri, cachedImage, loaded, failed]);
 
   useEffect(() => {
+    // Only mounted, unresolved Android tiles switch to Fresco. This requires
+    // no new APK/native module and uses the same authorized URL. Web and iOS
+    // remain unchanged; offline cached tiles are never discarded.
+    if (Platform.OS !== 'android' || (!displayUri && !cachedImage) ||
+        loaded || failed || useNativeFallback) return;
+    const timer = setTimeout(() => setUseNativeFallback(true), ANDROID_IMAGE_FALLBACK_MS);
+    return () => clearTimeout(timer);
+  }, [displayUri, cachedImage, loaded, failed, useNativeFallback]);
+
+  useEffect(() => {
     // Android Glide can stall without firing onError/onLoad. A timed recovery
     // must be based on absent byte progress, not total transfer duration.
-    if (Platform.OS !== 'android' || (!displayUri && !cachedImage) || loaded || failed) return;
+    if (Platform.OS !== 'android' || (!displayUri && !cachedImage) || loaded || failed || useNativeFallback) return;
     let active = true;
     let timer: ReturnType<typeof setTimeout>;
     const checkStall = () => {
@@ -194,7 +213,7 @@ function BuklodCachedMediaImageInner({
       active = false;
       clearTimeout(timer);
     };
-  }, [displayUri, cachedImage, loaded, failed]);
+  }, [displayUri, cachedImage, loaded, failed, useNativeFallback]);
 
   useEffect(() => {
     lastImageProgressAtRef.current = Date.now();
@@ -228,6 +247,8 @@ function BuklodCachedMediaImageInner({
           setFailed(false);
           setLoaded(false);
           setSlow(false);
+          setUseNativeFallback(false);
+          setCachedImage(null);
           setDisplayUri(null);
           void resignCommunityMediaUrl(path)
             .then(next => {
@@ -262,7 +283,26 @@ function BuklodCachedMediaImageInner({
 
   return (
     <View style={[styles.imageFrame, style as any]}>
+      {Platform.OS === 'android' && useNativeFallback && displayUri ? (
+        <NativeImage
+          key={`native-${mediaIdentity}-${displayUri}`}
+          source={{ uri: displayUri }}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode={contentFit}
+          onLoad={event => {
+            setLoaded(true);
+            setFailed(false);
+            onLoad?.(event.nativeEvent);
+          }}
+          onError={() => {
+            // Never spin or issue an unbounded signing loop; manual Retry
+            // can create a fresh authorized URL if the credential expired.
+            setFailed(true);
+          }}
+        />
+      ) : (
       <ExpoImage
+      key={Platform.OS === 'android' ? mediaIdentity : undefined}
       ref={imageViewRef}
       source={imageSource}
       style={StyleSheet.absoluteFillObject}
@@ -274,7 +314,9 @@ function BuklodCachedMediaImageInner({
        * FlashList reuses a row. Keep the browser cache key but do not clear the
        * painted image during fast scrolling/back-scroll.
        */
-      recyclingKey={Platform.OS === 'web' ? undefined : cacheKey}
+      // SDK 57 Glide recycled-view cleanup can strand an Android tile blank.
+      // Force a React key by path instead; keep iOS recycling isolation.
+      recyclingKey={Platform.OS === 'web' || Platform.OS === 'android' ? undefined : cacheKey}
       transition={0}
       onLoadStart={() => {
         lastImageProgressAtRef.current = Date.now();
@@ -349,6 +391,7 @@ function BuklodCachedMediaImageInner({
         })();
       }}
     />
+      )}
       {!loaded ? (
         Platform.OS === 'android' ? (
           // Never cover Android image pixels with a full-area loading mask.
