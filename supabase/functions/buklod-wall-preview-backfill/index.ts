@@ -4,10 +4,20 @@ import { ImageMagick, initializeImageMagick, MagickFormat } from "npm:@imagemagi
 
 // No user-supplied paths are accepted. Only the DB-controlled private queue
 // decides the next original file. Service role secrets never leave Edge.
-const wasmUrl = new URL("magick.wasm", import.meta.resolve("npm:@imagemagick/magick-wasm@0.0.45"));
+// Bundled functions do not preserve node_modules/*.wasm as local runtime
+// files. Fetch a VERSION-PINNED WASM asset once per worker instead.
+const wasmUrl = "https://cdn.jsdelivr.net/npm/@imagemagick/magick-wasm@0.0.45/dist/magick.wasm";
 let ready: Promise<void> | undefined;
 function initialize() {
-  if (!ready) ready = Deno.readFile(wasmUrl).then(bytes => initializeImageMagick(bytes));
+  if (!ready) ready = fetch(wasmUrl)
+    .then(async response => {
+      if (!response.ok) throw new Error("magick_wasm_unavailable");
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      if (bytes.length < 1000000 || bytes[0] !== 0 || bytes[1] !== 97 || bytes[2] !== 115 || bytes[3] !== 109)
+        throw new Error("magick_wasm_invalid");
+      await initializeImageMagick(bytes);
+    })
+    .catch(error => { ready = undefined; throw error; });
   return ready;
 }
 
