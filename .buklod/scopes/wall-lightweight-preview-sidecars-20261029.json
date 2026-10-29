@@ -1,0 +1,28 @@
+{
+  "objective": "Deliver lightweight private JPEG preview sidecars for new public/scope Wall photos on Android, keep originals for fullscreen, fallback for existing posts or absent preview, and never regress working media",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: latest production Android OTA 01a187b9-f75f-7bef-b993-16c8acefa3b8 source 6b88523e9002d3f7a9469226324c8628050dda4b runtime 1.3.2. Production Community photo median 500,946B, p90 2,067,747B, 108/1125 over 2MiB. Existing private Storage and get_buklod_post_media_v2 expose durable original paths; no thumbnail columns or preview files exist in old records. Live device performance remains unverified.",
+  "allowedPaths": [
+    "src/lib/communityWallPreviewPath.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/components/BuklodCachedMediaImage.tsx",
+    "src/components/BuklodCommunityPhotoCollage.tsx",
+    "tests/community-wall-preview-sidecar.test.mjs",
+    ".buklod/scopes/wall-lightweight-preview-sidecars-20261029.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Never replace or delete originals, old posts, or existing cached media",
+    "Generate a 480px or 320px JPEG <=125 KiB within owner Storage namespace before confirming tagged original upload",
+    "Only tagged originals use verified preview path; existing old paths do not create sidecar 404 requests",
+    "If preview generation or PUT fails, upload untagged original and publish normally",
+    "If preview lookup/download/display fails, Android falls back to original with bounded no-infinite-loading behavior",
+    "Full photo viewer and photo editing use original, not sidecar",
+    "No schema migration, paid transformation, public media URL, native dependency, APK, or web behavior change",
+    "Engineering Accountability, TypeScript/Performance and Integration QA required before exact-source production Android OTA",
+    "Legacy photos remain safe and unchanged; separate controlled backfill requires authorized server-side processor with verified storage capacity"
+  ]
+}
