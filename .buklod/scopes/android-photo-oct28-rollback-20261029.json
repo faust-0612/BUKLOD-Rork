@@ -1,0 +1,21 @@
+{
+  "objective": "Restore BUKLOD Android Community Wall image painting from the October 28 production OTA regression without rolling back unrelated features",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub ancestry establishes Oct 28 photo merge 0d6349a7 as ancestor of documented Android production source f0e3fa9b (update 01a182d6-5916-7b69-8e2a-ab8e1a6e1232, runtime 1.3.2). Database row for COPAR multi-photo post and 4 matching HTTP 200 JPEG downloads from Infinix X6852 prove data delivery, not native display. Exact current handset OTA adoption remains unverified.",
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "tests/android-photo-oct28-rollback.test.cjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/production_android_ota.yml",
+    ".buklod/scopes/android-photo-oct28-rollback-20261029.json"
+  ],
+  "acceptanceChecks": [
+    "Android Metro picks explicit .android.tsx renderer with direct image sizing; generic web/iOS renderer is untouched",
+    "Android decode callback cannot falsely mark image painted; onDisplay confirms paint or independent RN Image fallback activates after 8 seconds",
+    "No opaque covering overlay; no native recycleKey; native fallback must not require new JWT/signature and remains capped at once per media identity",
+    "Secure community-media signed URL path, cachePolicy memory-disk, single re-sign and manual retry preserved",
+    "Multi-photo collage geometry, tap targets, single image aspect ratio callbacks unchanged",
+    "No APK/native build, Supabase schema/storage/object changes, or paid services",
+    "Exact-head TS, Integration and Accountability gates before merge; frozen RC runtime 1.3.2 and actual production manifest verification before live claim"
+  ]
+}
