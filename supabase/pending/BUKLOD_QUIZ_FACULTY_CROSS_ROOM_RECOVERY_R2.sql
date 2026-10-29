@@ -203,9 +203,8 @@ begin
   elsif v_action='FORCE_SUBMIT' then
     if a.id is null or a.status<>'STARTED' then raise exception 'No active attempt to submit.'; end if;
 
-    select count(*)::integer into v_expected_count
-    from public.buklod_quiz_questions q
-    where q.exam_id=s.exam_id and q.is_active=true;
+    select private.buklod_quiz_attempt_question_count_r1(a.id)
+    into v_expected_count;
 
     select
       count(distinct r.question_id)::integer,
