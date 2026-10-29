@@ -1,0 +1,22 @@
+{
+  "objective": "Identify the route and safe exception fingerprint when BUKLOD renders a SYS-500 fallback",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main 9258aeecdbb8ce395948b5ad6059ebc2c7c721a3 inspected on 2026-10-29. Live Android OTA runtime and exact deployed source have not been independently verified; no release authorized by this manifest.",
+  "allowedPaths": [
+    "src/lib/buklodRouteDiagnostics.ts",
+    "src/app/_layout.tsx",
+    "src/components/BuklodNavSafeShell.tsx",
+    "src/components/BuklodPersistentBottomNav.tsx",
+    "tests/buklod-route-diagnostics.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/screen-crash-route-diagnostics-20261029.json"
+  ],
+  "acceptanceChecks": [
+    "Cluster, Connect, Show Faith, and Profile exceptions retain a sanitized route template when the root boundary reports only /",
+    "Never log usernames, dynamic IDs, query parameters, raw error messages, or stacks",
+    "Keep TRY AGAIN, GO BACK, and NEED HELP available with a safe error reference",
+    "Do not alter Supabase policies, app feature content, native runtime, or Android binary",
+    "Run focused route diagnostics regression tests and engineering scope gate",
+    "DEV to verified RC to production OTA requires separate live baseline and release gates"
+  ]
+}
