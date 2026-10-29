@@ -27,6 +27,7 @@ import {
   resolveCommunityMediaUrl,
   resignCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
+import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
 
 type Props = {
   uri?: string | null;
@@ -45,11 +46,7 @@ type SourceState = {
   fromDiskCache: boolean;
 };
 
-// Avoid retrying a slow but progressing download with a second HTTP request.
-const NO_PROGRESS_FALLBACK_MS = 18_000;
-const DECODE_WITHOUT_DISPLAY_MS = 8_000;
-// A visibly failed state with Retry is better than an endless spinner.
-const MAX_PHOTO_REQUEST_MS = 90_000;
+// Check infrequently only while a photo is mounted and not yet painted.
 const WATCHDOG_INTERVAL_MS = 3_000;
 
 function initialSource(identity: string, path: string, preferred: string): SourceState {
@@ -150,24 +147,26 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
       const p = progressRef.current;
       if (p.uri !== url) return;
       const at = Date.now();
-      if (at - p.startedAt >= MAX_PHOTO_REQUEST_MS) {
+      const decision = decideAndroidPhotoRecovery({
+        now: at,
+        startedAt: p.startedAt,
+        lastProgressAt: p.lastProgressAt,
+        decodedAt: p.decodedAt,
+        renderer: actual.renderer,
+        fromDiskCache: actual.fromDiskCache,
+      });
+      if (decision === 'fail') {
         setSource(current => current.identity === identity && current.url === url && !current.painted
           ? { ...current, failed: true }
           : current);
         return;
       }
-
-      if (actual.renderer === 'expo' && !actual.fromDiskCache) {
-        const stalledDecode = p.decodedAt > 0 && at - p.decodedAt >= DECODE_WITHOUT_DISPLAY_MS;
-        const stoppedNetwork = p.decodedAt === 0 &&
-          at - (p.lastProgressAt || p.startedAt) >= NO_PROGRESS_FALLBACK_MS;
-        if (stalledDecode || stoppedNetwork) {
-          setSource(current => current.identity === identity && current.url === url &&
-            current.renderer === 'expo' && !current.painted
-            ? { ...current, renderer: 'native' }
-            : current);
-          return;
-        }
+      if (decision === 'fallback') {
+        setSource(current => current.identity === identity && current.url === url &&
+          current.renderer === 'expo' && !current.painted
+          ? { ...current, renderer: 'native' }
+          : current);
+        return;
       }
       timer = setTimeout(check, WATCHDOG_INTERVAL_MS);
     };
