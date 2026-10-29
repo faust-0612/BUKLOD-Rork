@@ -1,7 +1,7 @@
 {
   "objective": "Reconcile deployed BUKLOD Quiz backend recovery safeguards for Col-long; early blank submit and ended-room faculty actions",
   "baseRef": "main",
-  "productionBaselineEvidence": "Dedicated Quiz backend migration versions R1 and R2 applied on Oct 29; rollback-only six negative control cases and 100-of-400 expiry submission passed, no existing grades or attempts changed",
+  "productionBaselineEvidence": "verified: dedicated Quiz backend production migrations R1 and R2 have been applied and independently validated with 6 rollback-only negative guard cases and 100-of-400 expiry regression; old attempt scores unchanged. Main aed09d91e6e58502db852c2eb5c231a06af27b23 is the source comparison baseline, not a claim of Quiz website production.",
   "allowedPaths": [
     ".buklod/scopes/quiz-col-long-button-guard-20261029.json",
     ".github/workflows/engineering-accountability.yml",
