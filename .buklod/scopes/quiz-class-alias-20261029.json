@@ -1,0 +1,18 @@
+{
+  "objective": "Reconcile verified dedicated Quiz class-alias join backend fix and its safe archive guard",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: source compared against main d6324ce48c65185631c35025f9ec3f530574d2ae; dedicated Quiz migration applied and rollback-only join E2E passed. No APK or OTA released.",
+  "allowedPaths": [
+    "supabase/pending/BUKLOD_QUIZ_SECTION_ALIAS_SAFE_DELETE_R1.sql",
+    "docs/QUIZ_CLASS_JOIN_20261029.md",
+    ".buklod/scopes/quiz-class-alias-20261029.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Class alias 3F equals 3-F within same exam; unrelated classes remain distinct",
+    "All pre-existing student attempts, grades and sessions remain unchanged",
+    "Database join RPC tested in rollback-only mode before and after deployment",
+    "Archive guarded during active examinations",
+    "Frontend UI follow-up explicitly identified, not claimed complete"
+  ]
+}
