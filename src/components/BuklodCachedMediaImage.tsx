@@ -38,6 +38,7 @@ const ANDROID_IMAGE_FALLBACK_MS = 8_000;
 type Props = {
   uri?: string | null;
   mediaPath?: string | null;
+  useWallPreview?: boolean; // Android-only collage optimization; web remains original.
   style?: StyleProp<ImageStyle>;
   contentFit?: 'cover' | 'contain';
   onLoad?: (event: any) => void;
