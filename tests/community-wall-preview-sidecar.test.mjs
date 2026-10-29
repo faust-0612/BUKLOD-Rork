@@ -86,3 +86,12 @@ test('previous no-masking/progress guards and private signed access are preserve
   assert.doesNotMatch(native,/loadingOverlay|recyclingKey=/);
   assert.doesNotMatch(native,/getPublicUrl|\/object\/public\//);
 });
+
+test('preview Storage policy remains private and delegates to canonical original visibility', () => {
+  const sql = readFileSync('supabase/migrations/20261029130900_community_wall_preview_storage_authorization_v1.sql','utf8');
+  assert.match(sql,/on storage\.objects for select to authenticated/);
+  assert.match(sql,/bucket_id = 'community-media'/);
+  assert.match(sql,/public\.can_view_buklod_community_media_path_v1\(/);
+  assert.match(sql,/regexp_replace\(name, '-p1-preview/);
+  assert.doesNotMatch(sql,/to anon|using \(true\)|public\.getPublicUrl/);
+});
