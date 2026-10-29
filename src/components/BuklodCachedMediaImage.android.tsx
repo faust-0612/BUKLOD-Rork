@@ -84,7 +84,16 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
       // or downloading the same bytes after reopening or scrolling.
       if (path && cacheKey) {
         try {
-          const cached = await ExpoImage.getCachePathAsync(cacheKey);
+          // A stalled cache lookup must never delay first-time URL signing.
+          let cacheTimer: ReturnType<typeof setTimeout> | null = null;
+          const cached = await Promise.race([
+            ExpoImage.getCachePathAsync(cacheKey).catch(() => null),
+            new Promise<null>(resolve => {
+              cacheTimer = setTimeout(() => resolve(null), 800);
+            }),
+          ]).finally(() => {
+            if (cacheTimer) clearTimeout(cacheTimer);
+          });
           if (!active) return;
           if (cached) {
             const fileUri = /^(file|content):\/\//i.test(cached)
@@ -184,12 +193,13 @@ function AndroidWallPhoto({ uri, mediaPath, style, contentFit = 'cover', onLoad 
       // Cached bytes may have been evicted. Recover via the protected signer
       // once, rather than trapping the viewer in a corrupt local file.
       const first = initialSource(identity, path, preferred);
-      setSource({ ...first, failed: false });
+      // Fall back to the independent network loader if local bytes are bad.
+      setSource({ ...first, failed: false, renderer: 'native' });
       if (!first.url && path) {
         resignInFlightRef.current = true;
         void resolveCommunityMediaUrl(path, null)
           .then(next => setSource(current => current.identity === identity && !current.url
-            ? { ...current, url: next, failed: !next }
+            ? { ...current, url: next, failed: !next, renderer: 'native' }
             : current))
           .catch(() => setSource(current => current.identity === identity
             ? { ...current, failed: true }
