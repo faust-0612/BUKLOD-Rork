@@ -28,12 +28,13 @@ import {
   resignCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
 import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
-import { communityWallPreviewPath } from '@/lib/communityWallPreviewPath';
+import { communityWallPreviewPath, verifiedLegacyWallPreviewPath } from '@/lib/communityWallPreviewPath';
 
 type Props = {
   uri?: string | null;
   mediaPath?: string | null;
   useWallPreview?: boolean;
+  previewPath?: string | null;
   style?: StyleProp<ImageStyle>;
   contentFit?: 'cover' | 'contain';
   onLoad?: (event: any) => void;
@@ -62,9 +63,11 @@ function initialSource(identity: string, path: string, preferred: string): Sourc
   };
 }
 
-function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, contentFit = 'cover', onLoad }: Props) {
+function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath, style, contentFit = 'cover', onLoad }: Props) {
   const originalPath = String(mediaPath ?? '').trim();
-  const markedPreviewPath = useWallPreview ? communityWallPreviewPath(originalPath) : null;
+  const markedPreviewPath = useWallPreview
+    ? communityWallPreviewPath(originalPath) || verifiedLegacyWallPreviewPath(originalPath, previewPath)
+    : null;
   const [failedPreviewFor, setFailedPreviewFor] = useState('');
   const usingPreview = !!markedPreviewPath && failedPreviewFor !== originalPath;
   const path = usingPreview ? markedPreviewPath! : originalPath;
@@ -352,7 +355,8 @@ export const BuklodCachedMediaImage = memo(AndroidWallPhoto, (prev, next) =>
   String(prev.mediaPath ?? '') === String(next.mediaPath ?? '') &&
   String(prev.uri ?? '') === String(next.uri ?? '') &&
   prev.contentFit === next.contentFit &&
-  prev.useWallPreview === next.useWallPreview
+  prev.useWallPreview === next.useWallPreview &&
+  String(prev.previewPath ?? '') === String(next.previewPath ?? '')
 );
 
 const styles = StyleSheet.create({
