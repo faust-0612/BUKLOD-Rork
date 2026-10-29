@@ -1,0 +1,19 @@
+{
+  "objective": "Reconcile deployed BUKLOD Quiz backend recovery safeguards for Col-long; early blank submit and ended-room faculty actions",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: dedicated Quiz backend production migrations R1 and R2 have been applied and independently validated with 6 rollback-only negative guard cases and 100-of-400 expiry regression; old attempt scores unchanged. Main aed09d91e6e58502db852c2eb5c231a06af27b23 is the source comparison baseline, not a claim of Quiz website production.",
+  "allowedPaths": [
+    ".buklod/scopes/quiz-col-long-button-guard-20261029.json",
+    ".github/workflows/engineering-accountability.yml",
+    "docs/BUKLOD_QUIZ_COL_LONG_FACULTY_BUTTON_AUDIT_20261029.md",
+    "supabase/pending/BUKLOD_QUIZ_FACULTY_EARLY_SUBMIT_ENDED_ROOM_GUARDS_R1.sql",
+    "supabase/pending/BUKLOD_QUIZ_EXPIRED_SUBMIT_K_OF_N_R2.sql"
+  ],
+  "acceptanceChecks": [
+    "Early 0-answer submission before authoritative server expiration is rejected without grading",
+    "Ended-room Reset/Readmit/Time modifications blocked; post-exam Review/Release remain available",
+    "Expired K-of-N submissions use only assigned question IDs",
+    "Existing Col-long #3 STARTED zero-answer recovery state preserved; no actual scores changed",
+    "No Expo APK, OTA, or independent Quiz frontend deployment claimed; do not replay already deployed SQL"
+  ]
+}

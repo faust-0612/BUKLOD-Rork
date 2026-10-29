@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            codex/quiz-faculty-zero-answer-control-guard-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/quiz-col-long-button-guard-20261029.json" >> "$GITHUB_ENV";;
             codex/quiz-faculty-reopen-orphan-attempt-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/quiz-safe-reopen-20261029.json" >> "$GITHUB_ENV";;
             fix/android-wall-rollback-oct28-renderer-20261029)
