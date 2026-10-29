@@ -79,3 +79,8 @@ test('Native photos recover a truly stalled request once, while byte progress ex
   assert.doesNotMatch(image, /setCachedImage\(local\);\s*setLoaded\(true\)/);
   assert.doesNotMatch(image, /setTimeout\(\(\) => setFailed\(true\), PHOTO_LOAD_TIMEOUT_MS\)/);
 });
+
+test('Wall photo renderer changes are eligible for the canonical Android Production OTA', () => {
+  const workflow = fs.readFileSync('.github/workflows/production_android_ota.yml', 'utf8');
+  assert.match(workflow, /^\s+- 'src\/components\/BuklodCachedMediaImage\.tsx'$/m);
+});
