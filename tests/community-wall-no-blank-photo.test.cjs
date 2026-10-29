@@ -66,3 +66,17 @@ test('Wall collage still preserves each photo, layout and tap handlers', () => {
   assert.match(collage, /preserveSinglePhotoAspectRatio/);
 });
 
+
+test('Native photos recover a truly stalled request once, while byte progress extends the window', () => {
+  assert.match(image, /PHOTO_STALL_NO_PROGRESS_MS = 40_000/);
+  assert.match(image, /Date\.now\(\) - lastImageProgressAtRef\.current/);
+  assert.match(image, /view\.reloadAsync\(\)/);
+  assert.match(image, /stalledReloadAttemptRef\.current >= 1/);
+  assert.match(image, /setFailed\(true\); \/\/ Actionable retry/);
+  assert.match(image, /onProgress=\{event => \{/);
+  assert.match(image, /bytes > lastLoadedBytesRef\.current/);
+  assert.match(image, /source=\{imageSource\}/);
+  assert.match(image, /useMemo\(/);
+  assert.doesNotMatch(image, /setCachedImage\(local\);\s*setLoaded\(true\)/);
+  assert.doesNotMatch(image, /setTimeout\(\(\) => setFailed\(true\), PHOTO_LOAD_TIMEOUT_MS\)/);
+});
