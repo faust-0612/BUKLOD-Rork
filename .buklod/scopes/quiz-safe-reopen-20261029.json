@@ -1,0 +1,17 @@
+{
+  "objective": "Reconcile already-applied safe faculty REOPEN for zero-answer attempts stranded in ended rooms",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Quiz-only database migration deployed; post-production rollback-only recovery E2E passed; affected actual attempt remained unchanged; no Android or web deployment",
+  "allowedPaths": [
+    "supabase/pending/BUKLOD_QUIZ_SAFE_REOPEN_ORPHAN_R1.sql",
+    "docs/QUIZ_SAFE_REOPEN_20261029.md",
+    ".buklod/scopes/quiz-safe-reopen-20261029.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "No changes to existing attempt data or grades during deployment",
+    "Explicit faculty action only, live and admission and same exam-section guards",
+    "Zero-answer only with stable attempt ID and original selected questions",
+    "All three GitHub source QA gates pass; no duplicate SQL deployment"
+  ]
+}
