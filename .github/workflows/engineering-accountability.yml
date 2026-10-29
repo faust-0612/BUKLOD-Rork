@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/registration-network-recovery-20261029)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/registration-network-recovery-20261029.json" >> "$GITHUB_ENV";;
             codex/quiz-faculty-zero-answer-control-guard-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/quiz-col-long-button-guard-20261029.json" >> "$GITHUB_ENV";;
             codex/quiz-faculty-reopen-orphan-attempt-20261029)
@@ -149,6 +151,9 @@ jobs:
             feat/community-fair-video-ready-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-fair-video-20261027.json" >> "$GITHUB_ENV";;
           esac
+      - name: Verify interrupted account registration contracts
+        if: github.head_ref == 'fix/registration-network-recovery-20261029'
+        run: node --test tests/registration-network-recovery.test.cjs
       - name: Verify Oct 28 Android Wall photo wrapper rollback
         if: github.head_ref == 'fix/android-wall-rollback-oct28-renderer-20261029'
         run: node --test tests/android-photo-oct28-rollback.test.cjs
