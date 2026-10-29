@@ -31,7 +31,7 @@ export function verifiedLegacyWallPreviewPath(
 ): string | null {
   const original = String(originalPath ?? '').trim();
   const indexed = String(indexedPreviewPath ?? '').trim();
-  if (!/\/post-[^/]+\.jpg$/i.test(original) || /-p1(?:-preview)?\.jpg$/i.test(original)) return null;
+  if (!/^[^?#]+\/[^/]+\.jpg$/i.test(original) || /-(?:p1|p1-preview|legacy-preview)\.jpg$/i.test(original)) return null;
   const expected = original.replace(/\.jpg$/i, '-legacy-preview.jpg');
   return indexed === expected ? indexed : null;
 }
