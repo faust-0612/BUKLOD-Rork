@@ -105,6 +105,29 @@ function loginHint(p: any) {
   return value ? maskUsername(value.toLowerCase()) : 'BUKLOD account';
 }
 
+// A known PostgREST PGRST303 timing defect rejects a request before SQL runs.
+// Retry only that exact 401 once; never bypass recovery limits or replay other errors.
+function createPostgrestTimingFetch(): typeof fetch {
+  let recoveryJwtRetriesRemaining = 2;
+  return async (input, init) => {
+    const response = await fetch(input, init);
+    const requestUrl = typeof input === 'string' ? input : String((input as Request).url ?? input);
+    if (response.status !== 401 || !/\/rest\/v1\//i.test(requestUrl)) return response;
+    try {
+      const error = await response.clone().json();
+      if (error?.code !== 'PGRST303' || error?.message !== 'JWT issued at future') return response;
+    } catch {
+      return response;
+    }
+    if (init?.signal?.aborted) return response;
+    if (recoveryJwtRetriesRemaining <= 0) return response;
+    recoveryJwtRetriesRemaining -= 1;
+    await new Promise<void>(resolve => setTimeout(resolve, 1_250));
+    if (init?.signal?.aborted) return response;
+    return fetch(input, init);
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ ok: false, message: 'Method not allowed.' }, 405);
@@ -114,7 +137,7 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!url || !anonKey || !serviceKey) return json({ ok: false, message: 'Recovery service is not configured.' }, 500);
 
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: createPostgrestTimingFetch() } });
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, message: 'Invalid request.' }, 400); }
   const action = text(body?.action);

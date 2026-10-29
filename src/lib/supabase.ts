@@ -4,6 +4,7 @@ import { AppState, Platform } from 'react-native';
 import { createBuklodPerformanceFetch } from './buklodPerformanceFetch';
 import { createBuklodPermissionSnapshotFetch } from './buklodPermissionSnapshotFetch';
 import { createBuklodR4RequestShield } from './buklodR4RequestShield';
+import { createBuklodPostgrestJwtRetryFetch } from './buklodPostgrestJwtRetryFetch';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
@@ -18,7 +19,7 @@ if (!supabaseUrl || !supabasePublishableKey) {
  * R3.4 auto-detected and preserves the existing base fetch transport.
  */
 const buklodRootPerformanceFetch =
-  createBuklodPerformanceFetch(fetch);
+  createBuklodPerformanceFetch(createBuklodPostgrestJwtRetryFetch(fetch));
 
 /* BUKLOD_ROOT_PERFORMANCE_R4
  * Add targeted coalescing/cache windows for the heaviest Home/Cluster reads.
