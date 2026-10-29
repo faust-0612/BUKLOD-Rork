@@ -17,7 +17,9 @@ test('Android-specific module bypasses October 28 full-screen photo masking wrap
 });
 
 test('Android decode cannot prematurely suppress fallback without onDisplay',()=>{
-  assert.match(native,/const NATIVE_FALLBACK_MS = 8_000/);
+  assert.match(native,/decideAndroidPhotoRecovery/);
+  const policy = fs.readFileSync('src/lib/buklodAndroidPhotoRecovery.ts','utf8');
+  assert.match(policy,/export const ANDROID_PHOTO_DECODE_STALL_MS = 8_000/);
   assert.match(native,/current\.renderer === 'expo' && !current\.painted/);
   assert.match(native,/renderer: 'native'/);
   const expo = native.slice(native.lastIndexOf('  return (\n    <ExpoImage'));
