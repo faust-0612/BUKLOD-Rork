@@ -14,7 +14,8 @@
     "tests/community-wall-legacy-preview-backfill.test.mjs",
     ".buklod/scopes/wall-legacy-preview-backfill-20261029.json",
     ".github/workflows/engineering-accountability.yml",
-    "supabase/migrations/20261029220500_wall_legacy_all_photo_paths_r1.sql"
+    "supabase/migrations/20261029220500_wall_legacy_all_photo_paths_r1.sql",
+    "tests/community-wall-preview-sidecar.test.mjs"
   ],
   "acceptanceChecks": [
     "Original image Storage files and their post paths are never modified or deleted",
