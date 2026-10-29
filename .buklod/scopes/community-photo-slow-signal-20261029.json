@@ -9,7 +9,9 @@
     "scripts/test-media-sign-fallback.cjs",
     ".github/workflows/engineering-accountability.yml",
     ".buklod/scopes/community-photo-slow-signal-20261029.json",
-    "tests/community-media-weak-signal.test.cjs"
+    "tests/community-media-weak-signal.test.cjs",
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    ".github/workflows/production_android_ota.yml"
   ],
   "acceptanceChecks": [
     "Slow photo request cannot unmount image solely after 20 seconds",
@@ -18,6 +20,9 @@
     "Missing or unauthorized storage objects retain longer negative cache",
     "Existing signing dedupe, RLS and cache protections preserved",
     "No native build, DB mutation or unrelated modules",
-    "Already cached durable-path photos render without a new signed URL; uncached sign failures receive only one automatic retry"
+    "Already cached durable-path photos render without a new signed URL; uncached sign failures receive only one automatic retry",
+    "Android Metro selects the dedicated direct-sized .android.tsx photo component while web keeps its existing .tsx renderer",
+    "If expo-image cannot complete after 8 seconds, use React Native Image with the same signed URL; never request public media or spin indefinitely",
+    "No opaque media mask; Android onLoad preserves collage sizing; one re-sign and manual retry are bounded"
   ]
 }
