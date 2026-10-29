@@ -17,10 +17,18 @@ test('Slow but active cellular download is never restarted after eight seconds',
   assert.equal(decide({ ...base, now: 179_000, lastProgressAt: 175_000 }), 'keep');
 });
 
-test('No-progress native image falls back once instead of spinning forever', () => {
+test('No-progress Expo photo changes renderer only after a true stall', () => {
   assert.equal(decide({ ...base, now: 117_999 }), 'keep');
   assert.equal(decide({ ...base, now: 118_000 }), 'fallback');
-  assert.equal(decide({ ...base, now: 150_000, renderer: 'native' }), 'keep');
+});
+
+test('Native-first photo preserves active cellular progress and switches only after a 40-second stall', () => {
+  const native = { ...base, renderer: 'native' };
+  assert.equal(decide({ ...native, now: 118_000 }), 'keep');
+  assert.equal(decide({ ...native, now: 139_999 }), 'keep');
+  assert.equal(decide({ ...native, now: 140_000 }), 'fallback');
+  assert.equal(decide({ ...native, now: 170_000, lastProgressAt: 160_000 }), 'keep');
+  assert.equal(decide({ ...native, now: 190_000, lastProgressAt: 179_000 }), 'fail');
 });
 
 test('Decoded but never displayed image triggers alternate renderer only after paint stall', () => {
@@ -75,4 +83,23 @@ test('No regression to secure signed media, manual retry, or web', () => {
   assert.doesNotMatch(image, /loadingOverlay|recyclingKey=/);
   assert.doesNotMatch(image, /getPublicUrl|\/object\/public\//);
   assert.match(generic, /loadingOverlay/);
+});
+
+test('Native Fresco is the first renderer and a fresh URL gets a unique view', () => {
+  assert.match(image, /renderer: 'native',\\n    painted: false/);
+  assert.match(image, /key=\\{\\`native:/);
+  assert.match(image, /key=\\{\\`expo:/);
+  assert.match(image, /const dimensions = event\\.nativeEvent\\.source/);
+  assert.match(image, /Number\\(dimensions\\?\\.width\\) > 0/);
+  assert.match(image, /Number\\(dimensions\\?\\.height\\) > 0/);
+});
+
+test('Old renderer callbacks cannot declare new signed URL or new renderer painted', () => {
+  const nativeBlock = image.split('if (actual.renderer === \'native\') {')[1].split('  return (\\n    <ExpoImage')[0];
+  const expoBlock = image.split('  return (\\n    <ExpoImage')[1];
+  assert.match(nativeBlock, /current\\.url === actual\\.url && current\\.renderer === 'native' && !current\\.painted/);
+  assert.match(expoBlock, /current\\.url === actual\\.url && current\\.renderer === 'expo' && !current\\.painted/);
+  assert.match(image, /alternateAttempted: true/);
+  assert.match(image, /lastProgressAt = Date\\.now\\(\\)/);
+  assert.doesNotMatch(image, /getPublicUrl|\\/object\\/public\\//);
 });
