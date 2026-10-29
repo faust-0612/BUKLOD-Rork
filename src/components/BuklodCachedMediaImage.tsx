@@ -1,6 +1,7 @@
 import React, {
   memo,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -27,6 +28,8 @@ import {
 } from '@/lib/buklodMediaUrl';
 
 const PHOTO_LOAD_TIMEOUT_MS = 20_000;
+// Only recover a genuinely stalled native request; active byte progress extends the window.
+const PHOTO_STALL_NO_PROGRESS_MS = 40_000;
 
 type Props = {
   uri?: string | null;
@@ -50,6 +53,10 @@ function BuklodCachedMediaImageInner({
   // Refresh no-path images when a recycled Wall tile receives a new URL.
   const mediaIdentity = path || `url:${preferredUri}`;
   const lockedMediaIdentityRef = useRef(mediaIdentity);
+  const imageViewRef = useRef<ExpoImage | null>(null);
+  const lastImageProgressAtRef = useRef(Date.now());
+  const lastLoadedBytesRef = useRef(0);
+  const stalledReloadAttemptRef = useRef(0);
   const resignAttemptRef = useRef(0);
   const resignNotBeforeRef = useRef(0);
   const resignInFlightRef = useRef(false);
@@ -69,6 +76,9 @@ function BuklodCachedMediaImageInner({
     if (mediaIdentity !== lockedMediaIdentityRef.current) {
       lockedMediaIdentityRef.current = mediaIdentity;
       resignAttemptRef.current = 0;
+      stalledReloadAttemptRef.current = 0;
+      lastImageProgressAtRef.current = Date.now();
+      lastLoadedBytesRef.current = 0;
       resignNotBeforeRef.current = 0;
       resignInFlightRef.current = false;
       manualRetryInFlightRef.current = false;
@@ -111,7 +121,7 @@ function BuklodCachedMediaImageInner({
           if (!active) return;
           if (local) {
             setCachedImage(local);
-            setLoaded(true);
+            // A cache hit is not a paint. Wait for ExpoImage onLoad/onDisplay.
             setSlow(false);
             return;
           }
@@ -144,13 +154,60 @@ function BuklodCachedMediaImageInner({
   }, [path, displayUri, cachedImage, failed, cacheKey]);
 
   useEffect(() => {
-    if (!displayUri || loaded || failed) return;
+    if ((!displayUri && !cachedImage) || loaded || failed) return;
 
-    // Slow networks are not missing files. Keep ExpoImage mounted so a late
-    // successful response can still paint; only an actual error marks failure.
+    // Slow progress is not failure. Show status while keeping the image mounted.
     const timer = setTimeout(() => setSlow(true), PHOTO_LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [displayUri, loaded, failed]);
+  }, [displayUri, cachedImage, loaded, failed]);
+
+  useEffect(() => {
+    // Android Glide can stall without firing onError/onLoad. A timed recovery
+    // must be based on absent byte progress, not total transfer duration.
+    if (Platform.OS !== 'android' || (!displayUri && !cachedImage) || loaded || failed) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const checkStall = () => {
+      if (!active) return;
+      const quietMs = Date.now() - lastImageProgressAtRef.current;
+      if (quietMs < PHOTO_STALL_NO_PROGRESS_MS) {
+        timer = setTimeout(checkStall, Math.max(1_000, PHOTO_STALL_NO_PROGRESS_MS - quietMs));
+        return;
+      }
+      if (stalledReloadAttemptRef.current >= 1) {
+        setFailed(true); // Actionable retry; never spin indefinitely on a dead request.
+        return;
+      }
+      stalledReloadAttemptRef.current += 1;
+      lastImageProgressAtRef.current = Date.now();
+      const view = imageViewRef.current;
+      if (!view || typeof view.reloadAsync !== 'function') {
+        setFailed(true);
+        return;
+      }
+      void view.reloadAsync().catch(() => {
+        if (active && !resignInFlightRef.current) setFailed(true);
+      });
+      timer = setTimeout(checkStall, PHOTO_STALL_NO_PROGRESS_MS);
+    };
+    timer = setTimeout(checkStall, PHOTO_STALL_NO_PROGRESS_MS);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [displayUri, cachedImage, loaded, failed]);
+
+  useEffect(() => {
+    lastImageProgressAtRef.current = Date.now();
+    stalledReloadAttemptRef.current = 0;
+    lastLoadedBytesRef.current = 0;
+  }, [displayUri, cachedImage, mediaIdentity]);
+
+  // Preserve source identity across slow-status renders and parent feed refreshes.
+  const imageSource = useMemo(
+    () => cachedImage || (displayUri ? { uri: displayUri, cacheKey } : undefined),
+    [cachedImage, displayUri, cacheKey],
+  );
 
   if ((!displayUri && !cachedImage) || failed) {
     return (
@@ -164,6 +221,9 @@ function BuklodCachedMediaImageInner({
           event.stopPropagation();
           if (!path) return;
           resignAttemptRef.current = 0;
+          stalledReloadAttemptRef.current = 0;
+          lastImageProgressAtRef.current = Date.now();
+          lastLoadedBytesRef.current = 0;
           resignNotBeforeRef.current = 0;
           manualRetryInFlightRef.current = true;
           setFailed(false);
@@ -204,14 +264,8 @@ function BuklodCachedMediaImageInner({
   return (
     <View style={[styles.imageFrame, style as any]}>
       <ExpoImage
-      source={
-        cachedImage || (displayUri
-          ? {
-              uri: displayUri,
-              cacheKey,
-            }
-          : undefined)
-      }
+      ref={imageViewRef}
+      source={imageSource}
       style={StyleSheet.absoluteFillObject}
       contentFit={contentFit}
       cachePolicy="memory-disk"
@@ -223,9 +277,21 @@ function BuklodCachedMediaImageInner({
        */
       recyclingKey={Platform.OS === 'web' ? undefined : cacheKey}
       transition={0}
-      onLoadStart={() => setSlow(false)}
+      onLoadStart={() => {
+        lastImageProgressAtRef.current = Date.now();
+        lastLoadedBytesRef.current = 0;
+        setSlow(false);
+      }}
+      onProgress={event => {
+        const bytes = Number(event?.loaded ?? 0);
+        if (Number.isFinite(bytes) && bytes > lastLoadedBytesRef.current) {
+          lastLoadedBytesRef.current = bytes;
+          lastImageProgressAtRef.current = Date.now();
+        }
+      }}
       onLoad={event => {
         resignAttemptRef.current = 0;
+        stalledReloadAttemptRef.current = 0;
         setFailed(false);
         setSlow(false);
         // onLoad is the reliable successful-decode fallback if onDisplay is
