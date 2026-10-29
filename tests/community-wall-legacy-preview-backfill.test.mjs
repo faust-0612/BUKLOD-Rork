@@ -19,6 +19,9 @@ test('legacy index accepts only deterministic preview matching the original', ()
  assert.equal(indexed(orig,'scope/scope-id/user-id/post-234-legacy-preview.jpg'),null);
  assert.equal(indexed('user/post-123-p1.jpg','user/post-123-p1-legacy-preview.jpg'),null);
  assert.equal(indexed('user/post-123.jpg',null),null);
+ assert.equal(indexed('user/photo-album-987.jpg','user/photo-album-987-legacy-preview.jpg'),
+ 'user/photo-album-987-legacy-preview.jpg');
+ assert.equal(indexed('user/photo-album-987.jpg','user/unrelated-legacy-preview.jpg'),null);
 });
 
 test('media RPC v3 preserves v2 fallback and attaches no new unsigned URLs', () => {
@@ -49,6 +52,10 @@ test('preview Storage and metadata RLS require existing original permissions', (
  assert.match(sql,/public\.buklod_storage_object_select_allowed_v1\('community-media',i\.original_path\)/);
  assert.doesNotMatch(sql,/to anon|using\s*\(true\)/i);
  assert.match(sql,/get_buklod_post_media_v3/);
+ const extended = readFileSync('supabase/migrations/20261029220500_wall_legacy_all_photo_paths_r1.sql','utf8');
+ assert.match(extended,/exists \(select 1 from storage\.objects o where o\.bucket_id='community-media' and o\.name=src\.path\)/);
+ assert.match(extended,/buklod_storage_object_select_allowed_v1\('community-media',i\.original_path\)/);
+
  assert.match(source,/get_buklod_post_media_v2/); // compatibility remains in client
 });
 
