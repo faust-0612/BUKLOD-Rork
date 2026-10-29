@@ -29,6 +29,7 @@ import {
 
 // Only recover a genuinely stalled native request; active byte progress extends the window.
 const PHOTO_STALL_NO_PROGRESS_MS = 40_000;
+const PHOTO_LOAD_TIMEOUT_MS = 20_000;
 
 type Props = {
   uri?: string | null;
@@ -62,6 +63,7 @@ function BuklodCachedMediaImageInner({
   const manualRetryInFlightRef = useRef(false);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [slow, setSlow] = useState(false);
   const [cachedImage, setCachedImage] = useState<any>(null);
   const [displayUri, setDisplayUri] = useState<string | null>(() =>
     // A feed-supplied signed URL may already be expired. Only the signing
@@ -82,6 +84,7 @@ function BuklodCachedMediaImageInner({
       manualRetryInFlightRef.current = false;
       setFailed(false);
       setLoaded(false);
+      setSlow(false);
       setCachedImage(null);
       setDisplayUri(
         peekCommunityMediaUrl(path, preferredUri) ||
@@ -151,6 +154,13 @@ function BuklodCachedMediaImageInner({
   }, [path, displayUri, cachedImage, failed, cacheKey]);
 
   useEffect(() => {
+    // Web behavior stays unchanged. Only Android removes the opaque mask.
+    if (Platform.OS !== 'web' || (!displayUri && !cachedImage) || loaded || failed) return;
+    const timer = setTimeout(() => setSlow(true), PHOTO_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [displayUri, cachedImage, loaded, failed]);
+
+  useEffect(() => {
     // Android Glide can stall without firing onError/onLoad. A timed recovery
     // must be based on absent byte progress, not total transfer duration.
     if (Platform.OS !== 'android' || (!displayUri && !cachedImage) || loaded || failed) return;
@@ -217,6 +227,7 @@ function BuklodCachedMediaImageInner({
           manualRetryInFlightRef.current = true;
           setFailed(false);
           setLoaded(false);
+          setSlow(false);
           setDisplayUri(null);
           void resignCommunityMediaUrl(path)
             .then(next => {
@@ -268,6 +279,7 @@ function BuklodCachedMediaImageInner({
       onLoadStart={() => {
         lastImageProgressAtRef.current = Date.now();
         lastLoadedBytesRef.current = 0;
+        setSlow(false);
       }}
       onProgress={event => {
         const bytes = Number(event?.loaded ?? 0);
@@ -280,6 +292,7 @@ function BuklodCachedMediaImageInner({
         resignAttemptRef.current = 0;
         stalledReloadAttemptRef.current = 0;
         setFailed(false);
+        setSlow(false);
         // onLoad is the reliable successful-decode fallback if onDisplay is
         // delayed/skipped by a recycled native view or web image element.
         setLoaded(true);
@@ -287,12 +300,14 @@ function BuklodCachedMediaImageInner({
       }}
       onDisplay={() => {
         setLoaded(true);
+        setSlow(false);
       }}
       onError={() => {
         // If the on-device ImageRef itself cannot render, fall back to the
         // authenticated network path rather than reusing a broken cache hit.
         setCachedImage(null);
         setLoaded(false);
+        setSlow(false);
         if (resignInFlightRef.current) return;
         if (!path || resignAttemptRef.current >= 2) {
           setFailed(true);
@@ -335,10 +350,19 @@ function BuklodCachedMediaImageInner({
       }}
     />
       {!loaded ? (
-        // Keep native pixels visible even if completion callbacks are delayed.
-        <View pointerEvents="none" style={styles.loadingBadge}>
-          <ActivityIndicator color="#688A81" size="small" />
-        </View>
+        Platform.OS === 'android' ? (
+          // Never cover Android image pixels with a full-area loading mask.
+          <View pointerEvents="none" style={styles.loadingBadge}>
+            <ActivityIndicator color="#688A81" size="small" />
+          </View>
+        ) : (
+          <View pointerEvents="none" style={styles.loadingOverlay}>
+            <ActivityIndicator color="#688A81" size="small" />
+            {slow ? (
+              <Text style={styles.slowText}>Mahina ang signal. Patuloy na nilo-load ang larawan.</Text>
+            ) : null}
+          </View>
+        )
       ) : null}
     </View>
   );
@@ -368,6 +392,19 @@ const styles = StyleSheet.create({
   imageFrame: {
     backgroundColor: '#EEF3F0',
     overflow: 'hidden',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#EEF3F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slowText: {
+    color: '#566D65',
+    fontSize: 11,
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 12,
   },
   loadingBadge: {
     position: 'absolute',
