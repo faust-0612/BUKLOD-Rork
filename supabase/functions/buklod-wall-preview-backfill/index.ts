@@ -55,7 +55,8 @@ Deno.serve(async req => {
   let previewBytes = 0;
 
   try {
-    if (!/(^|\/)post-[^/]+\.jpg$/i.test(path) || path.endsWith("-p1.jpg")) {
+    if (!/^[^?#]+\/[^/]+\.jpg$/i.test(path) || path.includes("..") ||
+        path.includes("://") || /-(?:p1|p1-preview|legacy-preview)\.jpg$/i.test(path)) {
       outcome = "skipped"; message = "not_a_legacy_jpeg";
     } else {
       const previewPath = path.replace(/\.jpg$/i, "-legacy-preview.jpg");
