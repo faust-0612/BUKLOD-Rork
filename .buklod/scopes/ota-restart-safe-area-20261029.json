@@ -1,0 +1,20 @@
+{
+  "objective": "Keep the downloaded Android OTA restart and postpone controls fully visible and tappable beneath the system status bar, including Infinix edge-to-edge/cutout screens",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: screenshot on 2026-10-29 17:07 PHT clearly shows the downloaded OTA restart banner physically overlapping Android system status indicators. Previous confirmed production Android update 01a185c5-4e58-709d-8df7-c1e8d4aa72e6 used runtime 1.3.2; it is not proof this device has adopted any subsequent release. Current main is a source comparison only, and live production ID/frozen RC need independent verification before OTA.",
+  "allowedPaths": [
+    "src/components/BuklodOtaFreshnessHost.native.tsx",
+    "tests/ota-restart-safe-area.test.cjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/production_android_ota.yml",
+    ".buklod/scopes/ota-restart-safe-area-20261029.json"
+  ],
+  "acceptanceChecks": [
+    "The banner is below actual top system inset (Android StatusBar.currentHeight fallback) and remains inside native SafeAreaProvider",
+    "Action buttons occupy a separate row and each has at least a 44dp tap height",
+    "Keep deferred user-initiated restart and 'Mamaya', no automatic restart during calls or PTT",
+    "Web remains unchanged, no native dependency or APK rebuild",
+    "Canonical Android-only RC production OTA includes this component as trigger",
+    "Engineering Accountability and TypeScript/performance gates pass before merge and release"
+  ]
+}
