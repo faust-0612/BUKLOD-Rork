@@ -21,3 +21,17 @@ export function communityWallPreviewPath(originalPath: string | null | undefined
   if (!/\/post-[^/]+-p1\.jpg$/i.test(path)) return null;
   return path.replace(/-p1\.jpg$/i, '-p1-preview.jpg');
 }
+
+/** Only accept a backfilled thumbnail when the server's indexed path
+ * matches this original exactly. Never probe thumbnails for unindexed posts.
+ */
+export function verifiedLegacyWallPreviewPath(
+  originalPath: string | null | undefined,
+  indexedPreviewPath: string | null | undefined,
+): string | null {
+  const original = String(originalPath ?? '').trim();
+  const indexed = String(indexedPreviewPath ?? '').trim();
+  if (!/^[^?#]+\/[^/]+\.jpg$/i.test(original) || /-(?:p1|p1-preview|legacy-preview)\.jpg$/i.test(original)) return null;
+  const expected = original.replace(/\.jpg$/i, '-legacy-preview.jpg');
+  return indexed === expected ? indexed : null;
+}

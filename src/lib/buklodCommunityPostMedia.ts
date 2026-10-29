@@ -24,6 +24,7 @@ export type CommunityPostMediaRow = CommunityPostMediaItem & {
   post_id: string;
   media_position: number;
   media_url?: string | null;
+  preview_path?: string | null;
 };
 
 function isMissingRpcError(message: string) {
@@ -171,6 +172,12 @@ export async function attachCommunityPostMedia(
 }
 
 async function loadMediaRpc(ids: string[]) {
+  // Preview metadata rides alongside media in one request. Existing clients
+  // still use v2; this client falls back safely during gradual rollout.
+  const v3 = await (supabase as any).rpc('get_buklod_post_media_v3', {p_post_ids: ids});
+  if (!v3?.error) return v3.data ?? [];
+  if (!isMissingRpcError(String(v3.error?.message ?? ''))) throw v3.error;
+
   const v2 = await (supabase as any).rpc('get_buklod_post_media_v2', {
     p_post_ids: ids,
   });

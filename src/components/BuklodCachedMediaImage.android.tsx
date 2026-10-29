@@ -28,12 +28,13 @@ import {
   resignCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
 import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
-import { communityWallPreviewPath } from '@/lib/communityWallPreviewPath';
+import { communityWallPreviewPath, verifiedLegacyWallPreviewPath } from '@/lib/communityWallPreviewPath';
 
 type Props = {
   uri?: string | null;
   mediaPath?: string | null;
   useWallPreview?: boolean;
+  previewPath?: string | null;
   style?: StyleProp<ImageStyle>;
   contentFit?: 'cover' | 'contain';
   onLoad?: (event: any) => void;
@@ -62,11 +63,18 @@ function initialSource(identity: string, path: string, preferred: string): Sourc
   };
 }
 
-function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, contentFit = 'cover', onLoad }: Props) {
+function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath, style, contentFit = 'cover', onLoad }: Props) {
   const originalPath = String(mediaPath ?? '').trim();
-  const markedPreviewPath = useWallPreview ? communityWallPreviewPath(originalPath) : null;
+  const markedPreviewPath = useWallPreview
+    ? communityWallPreviewPath(originalPath) || verifiedLegacyWallPreviewPath(originalPath, previewPath)
+    : null;
   const [failedPreviewFor, setFailedPreviewFor] = useState('');
-  const usingPreview = !!markedPreviewPath && failedPreviewFor !== originalPath;
+  // Never replace pixels already painted from an original with a late-arriving
+  // thumbnail index. That would recreate the October 28 blank-tile regression.
+  const paintedOriginalPathRef = useRef('');
+  const usingPreview = !!markedPreviewPath &&
+    failedPreviewFor !== originalPath &&
+    paintedOriginalPathRef.current !== originalPath;
   const path = usingPreview ? markedPreviewPath! : originalPath;
   // Never pass the original signed URL as a preference for the preview: it
   // refers to the wrong bytes and would poison the stable preview cache key.
@@ -305,6 +313,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, conte
         resizeMode={contentFit}
         style={style}
         onLoad={event => {
+          if (!usingPreview) paintedOriginalPathRef.current = originalPath;
           setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
           // Keep single-photo aspect-ratio calculation identical for callers.
           onLoad?.({ source: event.nativeEvent.source });
@@ -341,6 +350,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, style, conte
         onLoad?.(event);
       }}
       onDisplay={() => {
+        if (!usingPreview) paintedOriginalPathRef.current = originalPath;
         setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
       }}
       onError={() => retryAfterError(actual.url!)}
@@ -352,7 +362,8 @@ export const BuklodCachedMediaImage = memo(AndroidWallPhoto, (prev, next) =>
   String(prev.mediaPath ?? '') === String(next.mediaPath ?? '') &&
   String(prev.uri ?? '') === String(next.uri ?? '') &&
   prev.contentFit === next.contentFit &&
-  prev.useWallPreview === next.useWallPreview
+  prev.useWallPreview === next.useWallPreview &&
+  String(prev.previewPath ?? '') === String(next.previewPath ?? '')
 );
 
 const styles = StyleSheet.create({
