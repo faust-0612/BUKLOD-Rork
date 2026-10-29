@@ -22,6 +22,11 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import {
+  isBuklodInvalidCredentialsError,
+  isBuklodTransientAuthError,
+  signInWithPasswordResilient,
+} from '@/lib/buklodAuthResilience';
 import { enqueueBuklodMainHealthIssue, flushBuklodMainHealthQueue } from '@/lib/buklodMainHealth';
 import {
   recordReferral,
@@ -292,12 +297,169 @@ export default function RegisterScreen() {
 
   const [busy, setBusy] =
     useState(false);
+  // A reset connection is not proof that Auth failed to create the user.
+  const [registrationNeedsCheck, setRegistrationNeedsCheck] = useState(false);
   const createAccountInFlight =
     useRef(false);
 
   const finishCreateAccount = () => {
     createAccountInFlight.current = false;
     setBusy(false);
+  };
+
+  // This RPC is idempotent; network interruption can happen after the server
+  // commits. Retrying only this completion RPC is safe, never the Auth signup.
+  const completeRegistrationLocalSetup = async (): Promise<unknown | null> => {
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const result = await (supabase as any).rpc(
+          'buklod_complete_registration_v1',
+          {
+            p_barangay: barangay.trim(),
+            p_city_municipality: cityMunicipality.trim(),
+            p_province: province.trim(),
+            p_country: country.trim() || 'Philippines',
+            p_postal_code: postalCode.trim() || null,
+            p_faith_identity: faithIdentity,
+            p_show_faith_content: showFaithContent,
+            p_country_code: null,
+            p_province_code: null,
+            p_city_municipality_code: null,
+            p_barangay_code: null,
+          },
+        );
+        lastError = result.error;
+      } catch (error) {
+        lastError = error;
+      }
+      if (!lastError) return null;
+      if (attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 350));
+      }
+    }
+    return lastError;
+  };
+
+  const attachRegistrationReferral = async (authUserId?: string | null) => {
+    let referralLinked = false;
+    let referralLinkNote = '';
+    const referralValue =
+      selectedReferralCode.trim() ||
+      referralQuery.trim();
+
+    if (referralValue) {
+      try {
+        await recordReferral(referralValue, { alreadyResolved: Boolean(selectedReferralCode.trim()) });
+        referralLinked = true;
+      } catch (
+        referralError: unknown
+      ) {
+        const message =
+          referralError instanceof Error
+            ? referralError.message
+            : String(referralError ?? '');
+        console.warn(
+          'Referral record failed:',
+          message,
+        );
+        // Report a privacy-safe operational failure through the existing
+        // BUKLOD health queue. Never send names, codes, or passwords.
+        const healthUserId = authUserId;
+        if (healthUserId) {
+          const signature = /already recorded/i.test(message)
+            ? 'REFERRAL_ALREADY_RECORDED'
+            : /not authenticated|jwt|session/i.test(message)
+              ? 'REFERRAL_SESSION_NOT_READY'
+              : /invalid referral|not found|no matching/i.test(message)
+                ? 'REFERRAL_VALIDATION_REJECTED'
+                : 'REFERRAL_ATTACH_FAILED';
+          void enqueueBuklodMainHealthIssue(healthUserId, {
+            category: 'SUBMISSION',
+            severity: 'ERROR',
+            safeErrorCode: 'REFERRAL_ATTACH_FAILED',
+            errorSignature: signature,
+            correlationKey: 'REGISTER_REFERRAL_ATTACH',
+            routeModule: 'auth/register',
+            privacyClassification: 'OPERATIONAL',
+          }).then(() => flushBuklodMainHealthQueue(healthUserId))
+            .catch(() => undefined);
+        }
+        referralLinkNote =
+          /already recorded/i.test(message)
+            ? ' A referral is already recorded for this account.'
+            : /not authenticated|jwt|session/i.test(message)
+              ? ' Your account was created, but referral linking is pending because your login session was not ready.'
+              : /invalid referral|not found|no matching/i.test(message)
+                ? ' Your account was created, but the referral could not be validated during submission.'
+                : ' Your account was created, but referral linking could not finish. Please contact support rather than registering again.';
+      }
+    }
+
+
+    return { referralLinked, referralLinkNote };
+  };
+
+  const verifyInterruptedRegistration = async (
+    attemptedEmail: string,
+    attemptedPassword: string,
+  ) => {
+    if (createAccountInFlight.current) return;
+    createAccountInFlight.current = true;
+    setBusy(true);
+    try {
+      // This is a login check, NOT another signUp; avoid duplicate accounts.
+      const { data, error } = await signInWithPasswordResilient({
+        email: attemptedEmail,
+        password: attemptedPassword,
+      });
+      if (error || !data?.session || !data?.user) {
+        if (isBuklodInvalidCredentialsError(error)) {
+          setRegistrationNeedsCheck(false);
+          Alert.alert(
+            'Account not verified',
+            'These login details did not confirm an account. On a stable connection, you may retry Create Account. If you previously registered, try Log In or account recovery instead.',
+          );
+        } else {
+          Alert.alert(
+            'Connection still unavailable',
+            'The account status could not be checked. Keep your details and check again when connected. Do not create another account yet.',
+          );
+        }
+        return;
+      }
+
+      setRegistrationNeedsCheck(false);
+      const localSetupError = await completeRegistrationLocalSetup();
+      const { referralLinkNote } = await attachRegistrationReferral(data.user.id);
+      Alert.alert(
+        'Account verified',
+        localSetupError
+          ? `Your BUKLOD account exists and you are signed in. Your local setup is pending; you can continue in the Public Community.${referralLinkNote}`
+          : `Your BUKLOD account exists and you are signed in. You can continue in the Public Community.${referralLinkNote}`,
+      );
+      router.replace('/(tabs)/buklod');
+    } catch {
+      Alert.alert(
+        'Connection still unavailable',
+        'The account status could not be checked. Please reconnect and use Check Account Status again. Your form has been preserved.',
+      );
+    } finally {
+      finishCreateAccount();
+    }
+  };
+
+  const showInterruptedRegistration = (email: string, attemptedPassword: string) => {
+    setRegistrationNeedsCheck(true);
+    Alert.alert(
+      'Registration connection interrupted',
+      'The network connection was reset. BUKLOD cannot tell whether your account was created. Do not register again yet; check the account with your login details first.',
+      [
+        { text: 'Later', style: 'cancel' },
+        { text: 'Go to Log In', onPress: () => router.replace('/(auth)/login' as any) },
+        { text: 'Check Account', onPress: () => void verifyInterruptedRegistration(email, attemptedPassword) },
+      ],
+    );
   };
 
   const applyReferralSelection = (item: ReferralSuggestItem) => {
@@ -664,9 +826,16 @@ useEffect(() => {
         return;
       }
 
+      if (registrationNeedsCheck) {
+        await verifyInterruptedRegistration(authEmail, password);
+        return;
+      }
+
       createAccountInFlight.current = true;
       setBusy(true);
+      let authSessionConfirmed = false;
 
+      try {
       const { data, error } =
         await supabase.auth.signUp(
           {
@@ -739,6 +908,10 @@ useEffect(() => {
 
       if (error) {
         finishCreateAccount();
+        if (isBuklodTransientAuthError(error)) {
+          showInterruptedRegistration(authEmail, password);
+          return;
+        }
         const duplicate =
           /already registered|already been registered|duplicate/i.test(
             error.message
@@ -761,6 +934,9 @@ useEffect(() => {
       }
 
 
+      authSessionConfirmed = true;
+      setRegistrationNeedsCheck(false);
+
       /*
        * PATCH_193A_REGISTRATION_HARDENING
        *
@@ -768,56 +944,7 @@ useEffect(() => {
        * when the 193A marker is present. This RPC remains the one idempotent
        * completion path for local-scope synchronization.
        */
-      let localSetupError: any = null;
-
-      for (
-        let attempt = 0;
-        attempt < 2;
-        attempt += 1
-      ) {
-        const result = await (
-          supabase as any
-        ).rpc(
-          'buklod_complete_registration_v1',
-          {
-            p_barangay:
-              barangay.trim(),
-            p_city_municipality:
-              cityMunicipality.trim(),
-            p_province:
-              province.trim(),
-            p_country:
-              country.trim() ||
-              'Philippines',
-            p_postal_code:
-              postalCode.trim() ||
-              null,
-            p_faith_identity:
-              faithIdentity,
-            p_show_faith_content:
-              showFaithContent,
-            p_country_code: null,
-            p_province_code: null,
-            p_city_municipality_code:
-              null,
-            p_barangay_code: null,
-          }
-        );
-
-        localSetupError =
-          result.error;
-
-        if (!localSetupError) {
-          break;
-        }
-
-        if (attempt == 0) {
-          await new Promise(
-            (resolve) =>
-              setTimeout(resolve, 350)
-          );
-        }
-      }
+      const localSetupError = await completeRegistrationLocalSetup();
 
       if (localSetupError) {
         finishCreateAccount();
@@ -834,59 +961,7 @@ useEffect(() => {
         return;
       }
 
-      let referralLinked = false;
-      let referralLinkNote = '';
-      const referralValue =
-        selectedReferralCode.trim() ||
-        referralQuery.trim();
-
-      if (referralValue) {
-        try {
-          await recordReferral(referralValue, { alreadyResolved: Boolean(selectedReferralCode.trim()) });
-          referralLinked = true;
-        } catch (
-          referralError: unknown
-        ) {
-          const message =
-            referralError instanceof Error
-              ? referralError.message
-              : String(referralError ?? '');
-          console.warn(
-            'Referral record failed:',
-            message,
-          );
-          // Report a privacy-safe operational failure through the existing
-          // BUKLOD health queue. Never send names, codes, or passwords.
-          const healthUserId = data?.user?.id;
-          if (healthUserId) {
-            const signature = /already recorded/i.test(message)
-              ? 'REFERRAL_ALREADY_RECORDED'
-              : /not authenticated|jwt|session/i.test(message)
-                ? 'REFERRAL_SESSION_NOT_READY'
-                : /invalid referral|not found|no matching/i.test(message)
-                  ? 'REFERRAL_VALIDATION_REJECTED'
-                  : 'REFERRAL_ATTACH_FAILED';
-            void enqueueBuklodMainHealthIssue(healthUserId, {
-              category: 'SUBMISSION',
-              severity: 'ERROR',
-              safeErrorCode: 'REFERRAL_ATTACH_FAILED',
-              errorSignature: signature,
-              correlationKey: 'REGISTER_REFERRAL_ATTACH',
-              routeModule: 'auth/register',
-              privacyClassification: 'OPERATIONAL',
-            }).then(() => flushBuklodMainHealthQueue(healthUserId))
-              .catch(() => undefined);
-          }
-          referralLinkNote =
-            /already recorded/i.test(message)
-              ? ' A referral is already recorded for this account.'
-              : /not authenticated|jwt|session/i.test(message)
-                ? ' Your account was created, but referral linking is pending because your login session was not ready.'
-                : /invalid referral|not found|no matching/i.test(message)
-                  ? ' Your account was created, but the referral could not be validated during submission.'
-                  : ' Your account was created, but referral linking could not finish. Please contact support rather than registering again.';
-        }
-      }
+      const { referralLinked, referralLinkNote } = await attachRegistrationReferral(data?.user?.id);
 
       finishCreateAccount();
 
@@ -899,6 +974,26 @@ useEffect(() => {
 
       /* PATCH_156A_V2_COMMUNITY_SUCCESS */
       router.replace('/(tabs)/buklod');
+      } catch (error) {
+        finishCreateAccount();
+        if (authSessionConfirmed) {
+          // Auth already created the user: never report that creation failed.
+          Alert.alert(
+            'Account created - setup interrupted',
+            'Your account was created, but final setup was interrupted. Continue in the Public Community; do not register again.',
+          );
+          router.replace('/(tabs)/buklod');
+          return;
+        }
+        if (isBuklodTransientAuthError(error)) {
+          showInterruptedRegistration(authEmail, password);
+          return;
+        }
+        Alert.alert(
+          'Could not create account',
+          'Registration could not be completed. Please check your details and connection, then try again.',
+        );
+      }
     };
 
   const loginMethodLabel =
@@ -1488,7 +1583,12 @@ useEffect(() => {
           })}
         </View>
 
-<Pressable
+{registrationNeedsCheck && (
+          <Text style={styles.help}>
+            Your last registration was interrupted. Check whether the account exists before submitting another registration.
+          </Text>
+        )}
+        <Pressable
           style={styles.primary}
           onPress={createAccount}
           disabled={busy}
@@ -1499,8 +1599,8 @@ useEffect(() => {
             }
           >
             {busy
-              ? 'CREATING ACCOUNT...'
-              : 'CREATE ACCOUNT'}
+              ? registrationNeedsCheck ? 'CHECKING ACCOUNT...' : 'CREATING ACCOUNT...'
+              : registrationNeedsCheck ? 'CHECK ACCOUNT STATUS' : 'CREATE ACCOUNT'}
           </Text>
         </Pressable>
 
