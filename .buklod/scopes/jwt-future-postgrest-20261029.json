@@ -1,0 +1,22 @@
+{
+  "objective": "Mitigate PGRST303 JWT-future authentication failures and prevent permission-snapshot fallback request storms without changing authorization, exams or production infrastructure",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: canonical main e78f8f6a31f17a63641c72cb341f2b6bd3692049 inspected October 29, 2026; live BUKLOD Connect Supabase project yhanxndaqbmuzbdqlblu has elevated REST 401 with PGRST303. Android production bundle/OTA source not reverified; DEV only.",
+  "allowedPaths": [
+    "src/lib/buklodJwtFutureRecoveryFetch.ts",
+    "src/lib/buklodPermissionSnapshotFetch.ts",
+    "src/lib/supabase.ts",
+    "scripts/check-jwt-future-recovery.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/jwt-future-postgrest-20261029.json"
+  ],
+  "acceptanceChecks": [
+    "Only exact PostgREST PGRST303 JWT issued at future REST 401 is replayed, after a delay, once per client-wide cooldown",
+    "Writes retry only when PostgREST itself rejected JWT before execution; functions, Auth endpoints, uploads and unrelated 401s are never replayed",
+    "Permission snapshot JWT 401 is shared without fan-out to the individual permission RPCs",
+    "Ordinary permission 404 still delegates to authoritative RPC and no permission is granted on client failure",
+    "node --experimental-strip-types scripts/check-jwt-future-recovery.mjs",
+    "No exam/Quiz code, migration, service key, native runtime or production deployment altered",
+    "Provider-side clock mismatch remains a separate live incident and must be verified recovered before production release"
+  ]
+}
