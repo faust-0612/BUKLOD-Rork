@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "objective": "Single Android Wall photo flow with immediate cached sharp originals, independent preview->original promotion, and no conflicting 30-second duplicate download",
+  "baseRef": "72de1e7f16b9ccf704147c14cbd61c35d2dd94b2",
+  "productionBaselineEvidence": "Main SHA 72de1e7f16b9ccf704147c14cbd61c35d2dd94b2 merged PR #443. Verified historical Android Production OTA 01a18bdb-50ee-7c4f-928e-b16925cb8c14 (runtime 1.3.2, source 646617b5); newer client telemetry shows 01a18c39-4ca5-7d03-ba11-1dea511852c5 but exact source and device rendering not yet verified. Prior Supabase inspection: 814 indexed previews, 209 failed preview-generation jobs, all 209 originals exist. Physical device skipped by owner previously.",
+  "chosenApproach": "Android Wall preview stays first-paint hint; independently attempt authenticated original immediately even while preview pending, reuse stable-key disk original before queueing new original network download, limit new original downloads to 2 via existing gate, promote only after matching decoded+display events, keep bounded native renderer fallback, remove redundant unconditional 30-second switch to original.",
+  "alternativeApproaches": [
+    "Download originals for every Wall photo and abandon lightweight previews (rejected: weak-network delay, data costs, memory risk)",
+    "Wait until preview native onLoad fires before starting sharp original (rejected: white tile/stalled preview blocks sharp original)",
+    "Maintain separate 30-second automatic switch to direct original while original upgrade is already downloading (rejected: duplicate requests and flicker)",
+    "Change all platforms including generic web/iOS/Connect implementation (rejected: not the Android root cause and introduces unrelated regressions)"
+  ],
+  "selectionRationale": "Unifies priority and fallback at the Android Wall boundary while preserving full-screen and other platforms; data stays private and cache keys remain media-path based.",
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/communityWallPhotoDisplayGate.ts",
+    "tests/android-wall-auto-sharp.test.mjs",
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/community-wall-preview-sidecar.test.mjs",
+    ".buklod/scopes/android-wall-progressive-single-flow-20261030.json"
+  ],
+  "riskAreas": [
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/android-wall-auto-sharp.test.mjs",
+    "tests/community-wall-preview-sidecar.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "No changes to public/scoped Wall data pipeline, content permissions, private signed URL generation, RLS or Storage",
+    "No new native module or build; Android production runtime 1.3.2 retained",
+    "No changes to generic web/iOS photo pipeline or Connect and fullscreen zoom viewer",
+    "Existing preview files, original Storage objects, uploader and thumbnail indexing retained",
+    "Existing bounded retry and fallback do not restart progressing weak-network streams",
+    "Community card layout, taps, zoom and ad placement untouched"
+  ],
+  "acceptanceChecks": [
+    "An indexed sidecar in loading/white/pending state never gates original upgrade",
+    "An already disk-cached full original skips network slot and Storage signing, online or offline",
+    "A new original consumes one bounded network slot; release on display/failure/unmount",
+    "No unconditional timeout triggers duplicate original download alongside upgrade",
+    "Preview remains mounted/visible until decoded/displayed original can replace it",
+    "Unindexed photos use the original directly; missing previews fall back to secured original",
+    "Pass behavior tests, TypeScript, existing sidecar and weak-network regressions and release gates; RC/production requires exact OTA evidence"
+  ]
+}
