@@ -48,3 +48,22 @@ export function shouldKeepWallOriginalTransfer(input: {
       input.now - input.lastProgressAt < input.stallMs,
   );
 }
+
+/**
+ * Single Wall original selection contract.
+ * A previously cached original must NEVER queue behind fresh downloads,
+ * request another signed URL, or depend on a preview's paint callback.
+ */
+export type WallOriginalSourcePlan = 'cached' | 'network' | 'defer';
+
+export function planWallOriginalSource(cachedOriginal: boolean, canRequest: boolean): WallOriginalSourcePlan {
+  return cachedOriginal ? 'cached' : canRequest ? 'network' : 'defer';
+}
+
+export function shouldMountWallOriginalUpgrade(input: {
+  originalPath: string;
+  usingPreview: boolean;
+}): boolean {
+  // A failed or white preview MUST NOT unmount the original download.
+  return Boolean(input.originalPath && input.usingPreview);
+}

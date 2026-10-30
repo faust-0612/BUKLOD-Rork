@@ -7,12 +7,13 @@ const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx
 const collage = readFileSync('src/components/BuklodCommunityPhotoCollage.tsx', 'utf8');
 
 test('preview is kept visible until full ORIGINAL has valid decoded dimensions', () => {
-  assert.match(renderer, /actual\.painted \? <WallSharpOverlay mediaPath=\{originalPath\}/);
+  assert.match(renderer, /shouldMountWallOriginalUpgrade\(\{/);
+  assert.match(renderer, /<WallSharpOverlay mediaPath=\{originalPath\}/);
   assert.match(renderer, /opacity: current\.ready \? 1 : 0/);
   assert.match(renderer, /Number\(dimensions\?\.width\) > 0 && Number\(dimensions\?\.height\) > 0/);
   assert.match(renderer, /activeUpgradeRendererRef\.current === 'native'\) finish\(false\)/);
   assert.match(renderer, /if \(!current\.url\) return null/);
-  assert.match(renderer, /const renderWithUpgrade = \(preview: React\.ReactNode\) => usingPreview \? \(/);
+  assert.match(renderer, /const renderWithUpgrade = \(preview: React\.ReactNode\) => \(/);
   assert.match(renderer, /<>[\s\S]*?\{preview\}[\s\S]*?<WallSharpOverlay/);
   assert.doesNotMatch(renderer, /<View style=\{style as any\}|const photoStyle =/);
   assert.match(renderer, /style=\{style\}/);
@@ -21,7 +22,7 @@ test('preview is kept visible until full ORIGINAL has valid decoded dimensions',
 test('only Android Wall collage activates preview, fullscreen original stays original', () => {
   assert.match(collage, /useWallPreview/);
   assert.match(renderer, /const usingPreview = !!markedPreviewPath/);
-  assert.match(renderer, /const renderWithUpgrade = \(preview: React\.ReactNode\) => usingPreview \?/);
+  assert.match(renderer, /shouldMountWallOriginalUpgrade\(\{/);
   assert.match(renderer, /initialSource\(identity, path, preferred, usingPreview\)/);
   assert.match(renderer, /renderer: preferNative \? 'native' : 'expo'/);
   assert.match(renderer, /resolveCommunityMediaUrl\(mediaPath, null\)/);
@@ -88,4 +89,38 @@ test('unindexed legacy originals are rendered directly, not misclassified as nat
   assert.match(renderer, /initialSource\(identity, path, preferred, usingPreview\)/);
   assert.match(renderer, /renderer: usingPreview \? 'native' : 'expo'/);
   assert.match(renderer, /onDisplay=\{\(\) => \{/);
+});
+
+test('sharp originals do not wait for a preview onLoad/onDisplay', () => {
+  const start = renderer.indexOf('const renderWithUpgrade = (preview: React.ReactNode)');
+  const stop = renderer.indexOf('if (!actual.url || actual.failed)', start);
+  assert.ok(start > 0 && stop > start);
+  const flow = renderer.slice(start, stop);
+  assert.match(flow, /shouldMountWallOriginalUpgrade/);
+  assert.match(flow, /<WallSharpOverlay/);
+  assert.doesNotMatch(flow, /actual\.painted \? <WallSharpOverlay/);
+  assert.match(renderer, /return renderWithUpgrade\(\s*<Pressable/);
+});
+
+test('dynamic 3G gate admits only one original until it finishes', async () => {
+  let limit = 1;
+  const gate = createCommunityWallSharpGate(2, Infinity, () => limit);
+  const first = await gate.request().granted;
+  assert.ok(first);
+  const second = gate.request();
+  assert.deepEqual(gate.stats(), {active:1, queued:1});
+  limit = 2;
+  first();
+  const release = await second.granted;
+  assert.ok(release);
+  release();
+  assert.deepEqual(gate.stats(), {active:0, queued:0});
+});
+
+test('preview failure cannot cancel an already queued or downloading original', () => {
+  assert.doesNotMatch(renderer, /setFailedPreviewFor/);
+  assert.match(renderer, /const usingPreview = !!markedPreviewPath &&/);
+  assert.match(renderer, /shouldMountWallOriginalUpgrade\(\{/);
+  assert.match(renderer, /const renderWithUpgrade = \(preview: React.ReactNode\) => \(/);
+  assert.match(renderer, /if \(usingPreview\) \{[\s\S]*?failed: true/);
 });

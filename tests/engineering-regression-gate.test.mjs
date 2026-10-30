@@ -50,3 +50,19 @@ test('unsafe declared test paths are rejected', () => {
   const paths = ['.buklod/scopes/new.json', 'tests/community-wall-behavior.test.mjs'];
   assert.match(assessChanges(paths, { ...goodManifest, regressionTests: ['../tests/malicious.test.mjs'] }).failures.join(' '), /Invalid declared/);
 });
+
+test('photo Upgrade libraries are Wall media, not classroom Grade code', () => {
+  const paths = ['src/lib/communityWallSharpUpgrade.ts', 'tests/android-wall-auto-sharp.test.mjs'];
+  const result = assessChanges(paths);
+  assert.deepEqual(result.requiredAreas, ['wall-media']);
+  assert.deepEqual(result.failures, []);
+});
+
+test('real grades and attendance still require Classroom/Quiz coverage', () => {
+  const without = assessChanges(['src/lib/gradebook.ts', 'tests/wall-photo.test.mjs']);
+  assert.ok(without.requiredAreas.includes('classroom-quiz'));
+  assert.match(without.failures.join(' '), /classroom-quiz/);
+  const withCoverage = assessChanges(['src/lib/gradebook.ts', 'tests/student-grades.test.mjs']);
+  assert.deepEqual(withCoverage.requiredAreas, ['classroom-quiz']);
+  assert.deepEqual(withCoverage.failures, []);
+});

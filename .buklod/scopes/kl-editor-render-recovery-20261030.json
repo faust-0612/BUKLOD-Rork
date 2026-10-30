@@ -1,0 +1,46 @@
+{
+  "objective": "Contain KL Admin editor render crashes and protect unsaved local manuscript edits with account-isolated recovery, without unrelated feature modifications",
+  "baseRef": "72de1e7f16b9ccf704147c14cbd61c35d2dd94b2",
+  "productionBaselineEvidence": "Production bsoc_health_events confirmed RENDER_C567C6DA on Android 1.3.4 at 2026-10-30T09:42:49Z, repeat_count=2; source main 72de1e7f16b9ccf704147c14cbd61c35d2dd94b2; installed OTA fingerprint not verified. No release authorized.",
+  "chosenApproach": "KL-only React error boundary with anonymized component hint and explicit per-account local manuscript draft recovery. Preserve server-authoritative approval and media behavior.",
+  "alternativeApproaches": [
+    "Suppress the global error (rejected: hides genuine faults)",
+    "Rewrite shared navigation/media pipeline (rejected: risks unrelated modules)",
+    "Save draft directly to backend on every keystroke (rejected: publication semantics and load)"
+  ],
+  "riskAreas": [
+    "story"
+  ],
+  "preserveBehaviors": [
+    "No publishing or approval changes",
+    "Every server-confirmed scene placement and effect remains authoritative",
+    "No Wall, Connect, Quiz or shared routing changes",
+    "No plaintext manuscript in telemetry",
+    "No production OTA without RC preflight"
+  ],
+  "allowedPaths": [
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlEditorRenderBoundary.tsx",
+    "src/lib/kabihasnang-ligaw/editorDraftRecovery.ts",
+    "src/lib/kabihasnang-ligaw/editorDraftStorage.ts",
+    "src/lib/kabihasnang-ligaw/editorCrashDiagnostics.ts",
+    "src/app/admin/kabihasnang-ligaw.tsx",
+    "tests/kl-editor-crash-recovery.test.mjs",
+    ".buklod/scopes/kl-editor-render-recovery-20261030.json"
+  ],
+  "acceptanceChecks": [
+    "KL child render errors show local retry rather than global blank SYS-500 screen",
+    "Editor local recovery is scoped to user UUID and chapter UUID",
+    "No silent overwrite of server manuscript",
+    "Unsaved changes retain local recovery on component unmount",
+    "Server confirmed saves clear local copy without erasing newer concurrent edit",
+    "Render crash telemetry contains component allowlisted identifier, not raw manuscript or stack",
+    "Focused node tests and TypeScript validation pass",
+    "Android DEV then exact verified RC before release"
+  ],
+  "contractVersion": 2,
+  "selectionRationale": "React subtree containment plus locally recoverable, account/chapter-isolated draft is smaller and safer than global navigation changes, automatic publishing, or a KL schema migration. Existing preview/approval remain unchanged.",
+  "regressionTests": [
+    "tests/kl-editor-crash-recovery.test.mjs"
+  ]
+}

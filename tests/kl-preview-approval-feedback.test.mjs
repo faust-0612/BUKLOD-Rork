@@ -68,3 +68,13 @@ test('chapter-level approval reports server result beside the chapter that was t
   assert.match(reader, /Approve each illustration\/audio in the private preview/);
   assert.match(reader, /supabase.rpc\(KL_RPC.adminAction/);
 });
+
+test('rebased KL studio preserves independent account-scoped crash draft recovery', () => {
+  const studio = readFileSync('src/components/kabihasnang-ligaw/KlPublishingStudio.tsx', 'utf8');
+  assert.match(studio, /useAuth\(\)/);
+  assert.match(studio, /readKlEditorDraft\(user\?\.id, episodeId\)/);
+  assert.match(studio, /writeKlEditorDraft\(draft\)/);
+  assert.match(studio, /removeKlEditorDraft\(user\.id, snapshot\.id\)/);
+  assert.match(studio, /latestDraftRef\.current = null/);
+  assert.match(studio, /klPreviewReadyForEpisode\(episodes, id, confirmedPreviewId\)/);
+});

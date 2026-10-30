@@ -4,6 +4,13 @@ import { supabase } from '@/lib/supabase';
 import KlAdminMediaUpload from './KlAdminMediaUpload';
 import KlAdminPreview from './KlAdminPreview';
 import { klPreviewReadyForEpisode } from '@/lib/kabihasnang-ligaw/mediaApprovalState';
+import { useAuth } from '@/providers/AuthProvider';
+import {
+  type KlEditorDraft,
+  buildKlEditorDraft,
+  hasUnsavedKlDraft,
+} from '@/lib/kabihasnang-ligaw/editorDraftRecovery';
+import { readKlEditorDraft, writeKlEditorDraft, removeKlEditorDraft } from '@/lib/kabihasnang-ligaw/editorDraftStorage';
 
 type Episode = {
   id: string;
@@ -64,6 +71,18 @@ export default function KlPublishingStudio() {
   const [confirmedPreviewId, setConfirmedPreviewId] = useState('');
   const [approvalRefreshToken, setApprovalRefreshToken] = useState(0);
   const lock = useRef(false);
+  const { user } = useAuth();
+  const [recoveryDraft, setRecoveryDraft] = useState<KlEditorDraft | null>(null);
+  const [localBackupStatus, setLocalBackupStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const latestDraftRef = useRef<KlEditorDraft | null>(null);
+  const valuesRef = useRef({ id, title, manuscript });
+  valuesRef.current = { id, title, manuscript };
+  const localWrites = useRef<Promise<unknown>>(Promise.resolve());
+  const queueLocal = (operation: () => Promise<void>) => {
+    const next = localWrites.current.catch(() => undefined).then(operation);
+    localWrites.current = next.catch(() => undefined);
+    return next;
+  };
 
   const refresh = async () => {
     const { data, error } = await supabase.rpc('kl_admin_list_v1');
@@ -104,6 +123,37 @@ export default function KlPublishingStudio() {
   const saved = !!id && !!lastSaved && lastSaved.id === id && !dirty;
   const previewReady = klPreviewReadyForEpisode(episodes, id, confirmedPreviewId);
 
+  // Only the authenticated admin's current chapter can be recovered. Debounced
+  // writes avoid storage churn while typing; unmount queues the latest edit.
+  useEffect(() => {
+    const draft = dirty && lastSaved
+      ? buildKlEditorDraft(user?.id, id, title, manuscript, lastSaved.title, lastSaved.manuscript)
+      : null;
+    latestDraftRef.current = draft;
+    if (!draft) {
+      setLocalBackupStatus('idle');
+      return;
+    }
+    setLocalBackupStatus('saving');
+    let active = true;
+    const timer = setTimeout(() => {
+      void queueLocal(() => writeKlEditorDraft(draft))
+        .then(() => { if (active) setLocalBackupStatus('saved'); })
+        .catch(() => { if (active) setLocalBackupStatus('error'); });
+    }, 450);
+    return () => { active = false; clearTimeout(timer); };
+  }, [dirty, id, title, manuscript, lastSaved, user?.id]);
+
+  useEffect(() => () => {
+    const draft = latestDraftRef.current;
+    if (draft) void queueLocal(() => writeKlEditorDraft(draft)).catch(() => undefined);
+  }, []);
+
+  const findRecovery = async (episodeId: string, serverTitle: string, serverText: string) => {
+    const draft = await readKlEditorDraft(user?.id, episodeId).catch(() => null);
+    setRecoveryDraft(hasUnsavedKlDraft(draft, serverTitle, serverText) ? draft : null);
+  };
+
   const open = async (episode: Episode, force = false) => {
     if (!force && dirty && episode.id !== id) {
       setFeedback({ tone: 'error', text: 'May hindi pa na-save na pagbabago. I-save muna ang manuscript bago lumipat ng chapter.' });
@@ -125,6 +175,7 @@ export default function KlPublishingStudio() {
       setPanel('manuscript');
       setPreviewOpen(false);
       setConfirmedPreviewId('');
+      await findRecovery(episode.id, nextTitle, nextText);
       setFeedback({ tone: 'success', text: 'Chapter loaded from server. ' + (nextText ? 'Maaari nang mag-edit.' : 'Wala pang manuscript.') });
     });
   };
@@ -164,6 +215,7 @@ export default function KlPublishingStudio() {
       setPanel('manuscript');
       setPreviewOpen(false);
       setConfirmedPreviewId('');
+      await findRecovery(newId, nextTitle, nextText);
       await refresh();
       setFeedback({ tone: 'success', text: nextText ? 'Existing chapter opened; manuscript preserved.' : 'Chapter created on server. Add its manuscript.' });
     });
@@ -188,6 +240,14 @@ export default function KlPublishingStudio() {
         setEpisodes((previous) => previous.map((entry) => entry.id === snapshot.id ? { ...entry, preview_ready: false } : entry));
       }
       setLastSaved(snapshot);
+      // Do not remove a newer unsaved edit entered while the RPC was in flight.
+      const current = valuesRef.current;
+      if (current.id === snapshot.id && current.title === snapshot.title &&
+          current.manuscript === snapshot.manuscript && user?.id) {
+        latestDraftRef.current = null;
+        await queueLocal(() => removeKlEditorDraft(user.id, snapshot.id)).catch(() => undefined);
+        setRecoveryDraft(null);
+      }
       setFeedback({ tone: 'success', text: 'Manuscript saved on server. Draft pa ito; hindi pa public.' });
       await refresh().catch(() => undefined); // A failed list refresh must not undo a confirmed save.
     });
@@ -204,7 +264,7 @@ export default function KlPublishingStudio() {
       if (error) throw error;
       if (!(data as { ready?: boolean } | null)?.ready) throw new Error('Hindi nakumpirma ng server ang preview.');
       setConfirmedPreviewId(id);
-      // Do not mount every full-resolution scene while the user is still editing.
+      // Avoid mounting all full-resolution scene artwork during manuscript editing.
       setPreviewOpen(false);
       setFeedback({ tone: 'success', text: 'Private preview prepared on server. Tap Open Private Preview & Media Approvals below; hindi pa public.' });
       await refresh().catch(() => undefined);
@@ -241,7 +301,7 @@ export default function KlPublishingStudio() {
       <Text style={{ color: '#fff', fontWeight: '700' }}>Create / Open Chapter</Text>
       <TextInput style={field} keyboardType="numeric" value={season} onChangeText={setSeason} placeholder="Series 1–12" placeholderTextColor="#aeb4bb" />
       <TextInput style={field} keyboardType="numeric" value={chapter} onChangeText={setChapter} placeholder="Chapter 1–30" placeholderTextColor="#aeb4bb" />
-      <TextInput style={field} value={title} onChangeText={setTitle} placeholder="Chapter title" placeholderTextColor="#aeb4bb" />
+      <TextInput style={field} value={title} onChangeText={(text) => { setTitle(text); setRecoveryDraft(null); }} placeholder="Chapter title" placeholderTextColor="#aeb4bb" />
       <Action label={busyAction === 'Ginagawa ang chapter' ? 'Opening…' : 'Create / Open Chapter'} disabled={workspaceBusy} onPress={create} />
       {id ? (
         <>
@@ -263,17 +323,40 @@ export default function KlPublishingStudio() {
           {panel === 'manuscript' ? (
           <>
           <Text style={{ color: '#fff', fontWeight: '700' }}>Full manuscript · S{season} Ch{chapter}</Text>
+          {recoveryDraft ? (
+            <View style={{ backgroundColor: '#384a53', borderRadius: 8, padding: 12, gap: 8 }}>
+              <Text style={{ color: '#fff' }}>
+                May natagpuang local unsaved copy para sa chapter na ito.
+                {recoveryDraft.baseTitle !== lastSaved?.title || recoveryDraft.baseManuscript !== lastSaved?.manuscript
+                  ? ' Nagbago ang server copy; suriin muna bago mag-save.' : ''}
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <Action label="Restore local edits" disabled={workspaceBusy} onPress={() => {
+                  setTitle(recoveryDraft.title);
+                  setManuscript(recoveryDraft.manuscript);
+                  setRecoveryDraft(null);
+                  setFeedback({ tone: 'info', text: 'Local edits restored. Hindi pa saved sa server; pindutin ang Save Manuscript.' });
+                }} />
+                <Action label="Discard local copy" disabled={workspaceBusy} onPress={() => {
+                  if (user?.id) void queueLocal(() => removeKlEditorDraft(user.id, id)).catch(() => undefined);
+                  setRecoveryDraft(null);
+                  setFeedback({ tone: 'info', text: 'Local copy discarded. Hindi binago ang server manuscript.' });
+                }} />
+              </View>
+            </View>
+          ) : null}
           <TextInput
             style={[field, { minHeight: 240, textAlignVertical: 'top' }]}
             multiline
             value={manuscript}
-            onChangeText={setManuscript}
+            onChangeText={(text) => { setManuscript(text); setRecoveryDraft(null); }}
             placeholder="Paste complete manuscript here"
             placeholderTextColor="#aeb4bb"
           />
           <Text style={{ color: dirty ? '#ffe0a8' : '#b7c8cd' }}>
             {dirty ? 'Unsaved changes' : saved ? 'Loaded/saved on server' : 'New draft'}
             {' · '}{manuscript.trim().length} characters (minimum 30 to save)
+            {dirty ? ' · Local copy: ' + (localBackupStatus === 'saved' ? 'saved' : localBackupStatus === 'error' ? 'unavailable' : 'saving…') : ''}
           </Text>
           <Action label={busyAction === 'Sine-save ang manuscript' ? 'Saving manuscript…' : 'Save Manuscript'} disabled={workspaceBusy} onPress={save} />
           {feedback ? (

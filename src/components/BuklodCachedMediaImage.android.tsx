@@ -30,8 +30,9 @@ import {
 } from '@/lib/buklodMediaUrl';
 import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
 import { communityWallPreviewPath, verifiedLegacyWallPreviewPath } from '@/lib/communityWallPreviewPath';
-import { communityWallSharpGate } from '@/lib/communityWallSharpUpgrade';
-import { shouldKeepWallOriginalTransfer, shouldRevealWallOriginal } from '@/lib/communityWallPhotoDisplayGate';
+import { communityWallSharpGate, configureCommunityWallOriginalQuality } from '@/lib/communityWallSharpUpgrade';
+import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
+import { planWallOriginalSource, shouldKeepWallOriginalTransfer, shouldMountWallOriginalUpgrade, shouldRevealWallOriginal } from '@/lib/communityWallPhotoDisplayGate';
 
 type Props = {
   uri?: string | null;
@@ -72,8 +73,8 @@ function initialSource(identity: string, path: string, preferred: string, prefer
 /**
  * The 384px/quality-46 sidecar is a first-paint placeholder, never the final
  * Wall image. Only after it paints, resolve the private ORIGINAL and decode it
- * behind the sidecar. Reveal the original only after a valid native load; the
- * thumbnail stays visible on offline, signing, network or decode failure.
+ * independently of sidecar success. Only after Expo reports a valid decode
+ * and display do we reveal the original. Preserve thumbnail while loading.
  */
 function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; contentFit: 'cover' | 'contain' }) {
   const [sharp, setSharp] = useState({ identity: '', url: '', ready: false });
@@ -87,6 +88,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   const activeUpgradeRendererRef = useRef(upgradeRenderer);
   activeUpgradeRendererRef.current = upgradeRenderer;
   const upgradeProgressRef = useRef({ url: '', bytes: 0, lastProgressAt: 0 });
+  const activeSharpUrlRef = useRef('');
   const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
   const releaseRef = useRef<(() => void) | null>(null);
   const badOriginalCacheRef = useRef(new Set<string>());
@@ -94,6 +96,11 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   // Connectivity hints may flap on cellular. Do not unmount an in-flight image.
   const canRequestRef = useRef(canRequest);
   canRequestRef.current = canRequest;
+
+  useEffect(() => {
+    // Dynamic 3G budget; do not resubscribe or restart a mounted transfer.
+    configureCommunityWallOriginalQuality(classifyNetworkQuality() === 'degraded');
+  }, [isConnected, isInternetReachable, lastOnlineAt]);
 
   useEffect(() => {
     // A successfully decoded original must survive NetInfo changes untouched.
@@ -104,47 +111,66 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     decodedOriginalRef.current = { url: '', width: 0, height: 0 };
     displayedOriginalRef.current = { url: '', displayed: false };
     upgradeProgressRef.current = { url: '', bytes: 0, lastProgressAt: 0 };
+    activeSharpUrlRef.current = '';
     setSharp({ identity: mediaPath, url: '', ready: false });
-    const task = communityWallSharpGate.request();
-
-    void task.granted.then(async release => {
-      if (!release) {
-        if (active) setRetryPending(true);
-        return;
-      }
-      if (!active) { release(); return; }
-      releaseRef.current = release;
+    // Cached originals bypass the network gate: a photo already downloaded
+    // in the full-screen viewer must become sharp without joining downloads.
+    // Missing/corrupt sidecars are not a prerequisite for this independent
+    // original path.
+    let cancelQueued: (() => void) | null = null;
+    void (async () => {
       const key = communityMediaCacheKey(mediaPath, mediaPath);
       let url: string | null = null;
       try {
-        // Reuse full-size bytes previously downloaded by the zoom viewer.
-        // A slow cache lookup must not block progress on a weak connection.
-        let timer: ReturnType<typeof setTimeout> | null = null;
+        let cacheTimer: ReturnType<typeof setTimeout> | null = null;
         const cached = key && !badOriginalCacheRef.current.has(key) ? await Promise.race([
           ExpoImage.getCachePathAsync(key).catch(() => null),
           new Promise<null>(resolve => {
-            timer = setTimeout(() => resolve(null), 800);
+            cacheTimer = setTimeout(() => resolve(null), 1600);
           }),
-        ]).finally(() => { if (timer) clearTimeout(timer); }) : null;
+        ]).finally(() => { if (cacheTimer) clearTimeout(cacheTimer); }) : null;
         if (!active) return;
-        url = cached
-          ? (/^(file|content):\/\//i.test(cached) ? cached : 'file://' + cached)
-          : canRequestRef.current ? await resolveCommunityMediaUrl(mediaPath, null).catch(() => null) : null;
-      } catch {
-        // Original is an optional visual upgrade; do not break the preview.
-      } finally {
+        const sourcePlan = planWallOriginalSource(Boolean(cached), canRequestRef.current);
+        if (sourcePlan === 'cached' && cached) {
+          url = /^(file|content):\/\//i.test(cached) ? cached : 'file://' + cached;
+          activeSharpUrlRef.current = url;
+          setSharp({ identity: mediaPath, url, ready: false });
+          return;
+        }
+        if (sourcePlan === 'defer') {
+          setRetryPending(true);
+          return;
+        }
+        // Only actual new network originals consume scarce download slots.
+        const request = communityWallSharpGate.request();
+        cancelQueued = request.cancel;
+        const release = await request.granted;
+        if (!release) {
+          if (active) setRetryPending(true);
+          return;
+        }
+        if (!active) { release(); return; }
+        releaseRef.current = release;
+        url = await resolveCommunityMediaUrl(mediaPath, null).catch(() => null);
         if (!active || !url) {
           if (releaseRef.current === release) releaseRef.current = null;
           release();
         }
+        if (active && url) {
+          activeSharpUrlRef.current = url;
+          setSharp({ identity: mediaPath, url, ready: false });
+        } else if (active) setRetryPending(true);
+      } catch {
+        if (active) setRetryPending(true);
+        releaseRef.current?.();
+        releaseRef.current = null;
       }
-      if (active && url) setSharp({ identity: mediaPath, url, ready: false });
-      else if (active) setRetryPending(true);
-    });
+    })();
 
     return () => {
       active = false;
-      task.cancel();
+      activeSharpUrlRef.current = '';
+      cancelQueued?.();
       releaseRef.current?.();
       releaseRef.current = null;
     };
@@ -188,6 +214,8 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         setUpgradeRenderer('native');
         return;
       }
+      if (activeSharpUrlRef.current !== current.url) return;
+      activeSharpUrlRef.current = '';
       releaseRef.current?.();
       releaseRef.current = null;
       setSharp(state => state.identity === mediaPath && state.url === current.url
@@ -201,16 +229,28 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
 
   if (!current.url) return null;
   const finish = (ready: boolean) => {
-    if (!ready && /^(file|content):\/\//i.test(current.url)) {
+    // A callback from an old signed URL must not free the current URL's slot.
+    if (activeSharpUrlRef.current !== current.url) return;
+    const invalidCachedOriginal = !ready && /^(file|content):\/\//i.test(current.url);
+    if (invalidCachedOriginal) {
       const key = communityMediaCacheKey(mediaPath, mediaPath);
       if (key) badOriginalCacheRef.current.add(key);
     }
     releaseRef.current?.();
     releaseRef.current = null;
+    if (!ready) activeSharpUrlRef.current = '';
     setSharp(state => state.identity === mediaPath && state.url === current.url
       ? { ...state, url: ready ? state.url : '', ready }
       : state);
-    if (!ready) setRetryPending(true);
+    if (!ready) {
+      setRetryPending(true);
+      // A verified invalid disk image is different from a network failure.
+      // Resolve the protected original immediately once instead of showing
+      // a broken cache for the entire exponential retry window.
+      if (invalidCachedOriginal && canRequestRef.current) {
+        setRetryEpoch(epoch => epoch + 1);
+      }
+    }
   };
 
   // Use the same stable disk cache key as the fullscreen Expo image. Once
@@ -223,6 +263,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
       contentFit={contentFit}
       cachePolicy="memory-disk"
+      priority="low"
       transition={0}
       onProgress={event => {
         const loaded = Number(event.loaded ?? 0);
@@ -318,12 +359,12 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   const markedPreviewPath = useWallPreview
     ? communityWallPreviewPath(originalPath) || verifiedLegacyWallPreviewPath(originalPath, previewPath)
     : null;
-  const [failedPreviewFor, setFailedPreviewFor] = useState('');
   // Never replace pixels already painted from an original with a late-arriving
   // thumbnail index. That would recreate the October 28 blank-tile regression.
   const paintedOriginalPathRef = useRef('');
+  // Keep the preview identity stable even when the sidecar fails. Switching
+  // identities mid-flight used to cancel and re-download the same original.
   const usingPreview = !!markedPreviewPath &&
-    failedPreviewFor !== originalPath &&
     paintedOriginalPathRef.current !== originalPath;
   const path = usingPreview ? markedPreviewPath! : originalPath;
   // Never pass the original signed URL as a preference for the preview: it
@@ -360,6 +401,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       // or downloading the same bytes after reopening or scrolling.
       if (path && cacheKey && !badCacheKeys.current.has(cacheKey)) {
         try {
+          // Resolve the original locally before signing; Expo onDisplay is
+          // required before treating previously cached pixels as painted.
           // A stalled cache lookup must never delay first-time URL signing.
           let cacheTimer: ReturnType<typeof setTimeout> | null = null;
           const cached = await Promise.race([
@@ -376,7 +419,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
               ? cached
               : `file://${cached}`;
             setSource(current => current.identity === identity && !current.painted
-              ? { ...current, url: fileUri, renderer: 'native', fromDiskCache: true }
+              ? { ...current, url: fileUri, renderer: 'expo', fromDiskCache: true }
               : current);
             return;
           }
@@ -497,9 +540,11 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
 
   const retryAfterError = (failedUrl: string) => {
     if (resignInFlightRef.current || actual.identity !== identity || actual.url !== failedUrl) return;
+    // A failed sidecar is only a failed preview: the independent sharp layer
+    // continues downloading the original. Never replace its media identity.
     if (usingPreview) {
-      // An unavailable/corrupt sidecar must never hide a valid original post.
-      setFailedPreviewFor(originalPath);
+      setSource(current => current.identity === identity && current.url === failedUrl
+        ? { ...current, failed: true } : current);
       return;
     }
 
@@ -547,22 +592,6 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       .finally(() => { resignInFlightRef.current = false; });
   };
 
-  useEffect(() => {
-    if (usingPreview && actual.identity === identity && actual.failed) {
-      setFailedPreviewFor(originalPath);
-    }
-  }, [usingPreview, actual.identity, identity, actual.failed, originalPath]);
-
-  // A sidecar is a fast hint, not a requirement to see the original. In the
-  // exceptional case of a hung preview view, bypass it after a bounded window.
-  useEffect(() => {
-    if (!usingPreview || actual.painted || actual.failed || actual.identity !== identity) return;
-    const timer = setTimeout(() => {
-      setFailedPreviewFor(current => current === originalPath ? current : originalPath);
-    }, 30_000);
-    return () => clearTimeout(timer);
-  }, [usingPreview, originalPath, actual.painted, actual.failed, actual.identity, identity]);
-
   const retryManually = (event: { stopPropagation: () => void }) => {
     event.stopPropagation();
     if (!path || resignInFlightRef.current) return;
@@ -579,18 +608,23 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       .finally(() => { resignInFlightRef.current = false; });
   };
 
-  // The measured collage Pressable is already the parent. A nested View and
-  // absolute base image reintroduced the Android blank-tile regression.
-  // Keep the base renderer direct, and add the sharp overlay as a sibling.
-  const renderWithUpgrade = (preview: React.ReactNode) => usingPreview ? (
-    <>
-      {preview}
-      {actual.painted ? <WallSharpOverlay mediaPath={originalPath} contentFit={contentFit} /> : null}
-    </>
-  ) : preview;
+  // The measured collage Pressable remains the parent (no masking wrapper).
+  // Start original resolution independently of preview decode/display. A
+  // white or stalled thumbnail can never block its sharp replacement.
+  const renderWithUpgrade = (preview: React.ReactNode) => (
+    shouldMountWallOriginalUpgrade({
+      originalPath,
+      usingPreview,
+    }) ? (
+      <>
+        {preview}
+        <WallSharpOverlay mediaPath={originalPath} contentFit={contentFit} />
+      </>
+    ) : preview
+  );
 
   if (!actual.url || actual.failed) {
-    return (
+    return renderWithUpgrade(
       <Pressable
         style={[styles.placeholder, style as any]}
         disabled={!actual.failed || !path}

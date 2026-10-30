@@ -82,7 +82,8 @@ import {
   BuklodCommunityPhotoCollage,
   communityPhotoCollageItems,
 } from '@/components/BuklodCommunityPhotoCollage';
-import { peekCommunityMediaUrl } from '@/lib/buklodMediaUrl';
+import { peekCommunityMediaUrl, resignCommunityMediaUrl } from '@/lib/buklodMediaUrl';
+import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
 import { useNetwork } from '@/providers/NetworkProvider';
 
 import {
@@ -486,6 +487,34 @@ export default function BuklodExclusiveScopeCommunity({
     );
   const postsRef = useRef(posts);
   postsRef.current = posts;
+  const videoRefreshAttemptsRef = useRef(new Map<string, number>());
+  const videoRefreshInFlightRef = useRef(new Set<string>());
+
+  const recoverScopedWallVideo = async (post: SocialPost) => {
+    const postId = String(post.id ?? '').trim();
+    const failedUri = String(post.media_url ?? '').trim();
+    const mediaPath = String(post.media_path ?? '').trim();
+    if (!postId || !failedUri || !mediaPath) return;
+    // At most two signed-URL rotations per post for this mounted scope.
+    // Playback itself retries the same URI once before calling this handler.
+    const attempts = videoRefreshAttemptsRef.current.get(postId) ?? 0;
+    if (attempts >= 2 || videoRefreshInFlightRef.current.has(postId)) return;
+    videoRefreshAttemptsRef.current.set(postId, attempts + 1);
+    videoRefreshInFlightRef.current.add(postId);
+    try {
+      const next = mediaPath.startsWith('aws:')
+        ? await getAwsWallVideoViewUrl(postId, mediaPath.slice(4), true).catch(() => null)
+        : await resignCommunityMediaUrl(mediaPath).catch(() => null);
+      if (!next || next === failedUri) return;
+      setPosts(current => current.map(row =>
+        String(row.id) === postId && String(row.media_url ?? '') === failedUri
+          ? { ...row, media_url: next }
+          : row,
+      ));
+    } finally {
+      videoRefreshInFlightRef.current.delete(postId);
+    }
+  };
   const feedRef = useRef<FlatList<any> | null>(null);
   const [focusedPost, setFocusedPost] = useState<SocialPost | null>(null);
   const [focusLoading, setFocusLoading] = useState(false);
@@ -3347,6 +3376,9 @@ return (
                       visibleVideoPostId ===
                       String(item.id)
                     }
+                    onPlaybackError={() => {
+                      void recoverScopedWallVideo(item);
+                    }}
                   />
 
                   <View
