@@ -1,6 +1,6 @@
 {
   "contractVersion": 2,
-  "objective": "Prevent Android Wall originals being promoted before display and cache sharp originals without harming thumbnail first paint",
+  "objective": "Prevent premature Android Wall photo promotion and ensure unindexed legacy originals use display-aware path with disk cache",
   "baseRef": "227da4f38a375c6eeb5ca9482972044266201a0e",
   "productionBaselineEvidence": "Previous 2026-10-30 Android production source 646617b500215b27356c55519c548f140e554a21 runtime 1.3.2 update 01a18bdb-50ee-7c4f-928e-b16925cb8c14; screenshot confirms blurry Wall previews and failed tiles while originals open fullscreen. Exact installed update not verified. 209 legacy preview generation failures remain a separate backend issue.",
   "chosenApproach": "Render optional sharp originals using Expo Image with stable on-disk cache and onDisplay guarded by decoded dimensions and URL; keep preview underneath and fall back once to native renderer after a real stall",
@@ -17,7 +17,8 @@
     "Android fullscreen versus collage separation"
   ],
   "regressionTests": [
-    "tests/android-wall-sharp-paint-contract.test.mjs"
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/android-wall-auto-sharp.test.mjs"
   ],
   "preserveBehaviors": [
     "Existing signed URLs and per-account visibility",
@@ -33,12 +34,14 @@
     "Cache reuse uses original durable path instead of short-lived signed URL",
     "Native fallback is bounded, using same URL, with original preview kept visible",
     "Tests and TypeScript pass before merge",
-    "DEV to verified RC to production OTA is mandatory; physical device verification excluded by prior owner instruction"
+    "DEV to verified RC to production OTA is mandatory; physical device verification excluded by prior owner instruction",
+    "Legacy images with no verified preview index use original Expo display-aware path, not native preview mode"
   ],
   "allowedPaths": [
     "src/components/BuklodCachedMediaImage.android.tsx",
     "src/lib/communityWallPhotoDisplayGate.ts",
     "tests/android-wall-sharp-paint-contract.test.mjs",
-    ".buklod/scopes/android-wall-sharp-visible-20261030.json"
+    ".buklod/scopes/android-wall-sharp-visible-20261030.json",
+    "tests/android-wall-auto-sharp.test.mjs"
   ]
 }
