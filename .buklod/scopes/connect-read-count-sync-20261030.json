@@ -1,0 +1,22 @@
+{
+  "objective": "Fix Connect unread message count after a confirmed direct or scope read without unrelated changes",
+  "baseRef": "ef24b5a3d494ed23795283c296e88bfb2ff4f036",
+  "productionBaselineEvidence": "verified: GitHub main source SHA ef24b5a3d494ed23795283c296e88bfb2ff4f036 checked 2026-10-30. Production Android OTA live fingerprint NOT established here; no production rollout authorized by this scope.",
+  "allowedPaths": [
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/hooks/useBuklodConnectUnread.ts",
+    "src/lib/buklodR4RequestShield.ts",
+    "src/lib/connectReadSync.ts",
+    "__tests__/connectReadSync.test.ts",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/connect-read-count-sync-20261030.json"
+  ],
+  "acceptanceChecks": [
+    "TypeScript check and configured unit tests on exact DEV commit",
+    "Connect read-sync unit tests: successful direct/scope mark invalidates unread cache; failed marks preserve unread",
+    "Source gate: no cross-account unread update and stale in-flight snapshots cannot restore old badge",
+    "Existing Connect, navigation and performance contracts remain passing",
+    "Before RC/Production OTA: verify exact runtime 1.3.2 compatibility, smoke-test on Android, establish live release fingerprint and pass release gates"
+  ]
+}

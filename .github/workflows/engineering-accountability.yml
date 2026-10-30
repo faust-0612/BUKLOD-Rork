@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            dev/connect-read-count-sync-20261030)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/connect-read-count-sync-20261030.json" >> "$GITHUB_ENV";;
             dev/kl-scene-anchor-persistence-20261030)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/kl-scene-anchor-persistence-20261030.json" >> "$GITHUB_ENV";;
             feat/legacy-wall-preview-backfill-20261029)
