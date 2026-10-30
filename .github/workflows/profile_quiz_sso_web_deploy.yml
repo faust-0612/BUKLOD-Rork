@@ -1,134 +1,14 @@
-name: BUKLOD Profile Quiz SSO Web Deploy
-
+# BUKLOD archived legacy workflow: profile_quiz_sso_web_deploy.yml
+# Disabled by engineering audit #439 on 2026-10-30. Original logic remains in Git history.
+# Never restores old Android, Web, or main mutation paths without reviewed DEV changes.
+name: BUKLOD Retired Legacy - profile quiz sso web deploy
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/components/BuklodFoundationWorkspaceNav.tsx'
-      - 'src/components/classroom/BuklodQuizStudentEntry.tsx'
-      - 'src/app/profile/buklod-classroom.tsx'
-      - 'src/app/profile/buklod-faculty.tsx'
-      - 'src/app/profile/buklod-faculty-quiz-results.tsx'
-      - 'src/lib/buklodQuizEntry.ts'
-      - '.github/workflows/profile_quiz_sso_web_deploy.yml'
   workflow_dispatch:
-
 permissions:
   contents: read
-
-env:
-  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  EXPO_PUBLIC_APP_ENV: production
-
 jobs:
-  qa-export-deploy-web-only:
-    runs-on: macos-latest
+  retired:
+    if: ${{ false }}
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout current Profile Quiz SSO release
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Verify unified Quiz SSO source contract
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          grep -F 'BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21' 'src/lib/buklodQuizEntry.ts'
-          grep -F 'BUKLOD_QUIZ_MOBILE_DIRECT_ENTRY_R22' 'src/lib/buklodQuizEntry.ts'
-          grep -F "Platform.OS === 'web'" 'src/lib/buklodQuizEntry.ts'
-          grep -F 'webLocation.assign(launchUrl)' 'src/lib/buklodQuizEntry.ts'
-          grep -F 'QUIZ_ENTRY_BRIDGE' 'src/lib/buklodQuizEntry.ts'
-          grep -F 'supabase.auth.getUser(accessToken)' 'src/lib/buklodQuizEntry.ts'
-          grep -F 'supabase.auth.refreshSession()' 'src/lib/buklodQuizEntry.ts'
-          grep -F 'session_launch_ready === true' 'src/lib/buklodQuizEntry.ts'
-          grep -F 'signal: controller.signal' 'src/lib/buklodQuizEntry.ts'
-          grep -F 'await Linking.openURL(launchUrl)' 'src/lib/buklodQuizEntry.ts'
-
-          grep -F "source: 'buklod-main-profile'" 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F "app.key !== 'quiz'" 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F "source: 'buklod-main-classroom-student'" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
-          grep -F "source: 'buklod-main-classroom'" 'src/app/profile/buklod-classroom.tsx'
-          grep -F "source: 'buklod-main-faculty-examiner'" 'src/app/profile/buklod-faculty.tsx'
-          grep -F "source: 'buklod-main-faculty-results'" 'src/app/profile/buklod-faculty-quiz-results.tsx'
-
-          if grep -R -n -E "Linking\.openURL\(['\"]https://buklod-quiz\.expo\.app" src; then
-            echo 'ERROR: bare Quiz URL launcher detected. Use openBuklodQuizFromMain().' >&2
-            exit 1
-          fi
-
-          if grep -F 'buklod_handoff=1' 'src/app/profile/buklod-classroom.tsx'; then
-            echo 'ERROR: legacy Quiz token-in-URL handoff returned.' >&2
-            exit 1
-          fi
-
-      - name: TypeScript QA
-        run: npx tsc --noEmit
-
-      - name: Expo credential preflight
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "${EXPO_TOKEN:-}"
-          npx eas-cli@latest whoami --non-interactive >/dev/null
-          echo 'Expo authentication: READY'
-
-      - name: Pull protected production public environment
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f .env.local
-          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
-          test -s .env.local
-          set -a
-          . ./.env.local
-          set +a
-          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
-          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
-          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
-          while IFS='=' read -r name _; do
-            case "$name" in
-              EXPO_PUBLIC_*)
-                value="${!name-}"
-                {
-                  echo "${name}<<__BUKLOD_ENV__"
-                  printf '%s\n' "$value"
-                  echo '__BUKLOD_ENV__'
-                } >> "$GITHUB_ENV"
-                ;;
-            esac
-          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
-
-      - name: Web export smoke
-        shell: bash
-        env:
-          NODE_ENV: production
-          EXPO_PUBLIC_APP_ENV: production
-        run: |
-          set -euo pipefail
-          npx expo export --platform web --clear
-          test -s dist/index.html
-          grep -R -F 'buklod-quiz-main-entry-v1' dist >/dev/null
-          echo 'Web export contains Quiz SSO bridge contract.'
-
-      - name: Deploy production web only
-        shell: bash
-        env:
-          NODE_ENV: production
-          EXPO_PUBLIC_APP_ENV: production
-        run: |
-          set -euo pipefail
-          npx eas-cli@latest deploy --prod --non-interactive
-
-      - name: Confirm no native release step
-        run: echo 'WEB ONLY COMPLETE. No Android OTA, APK, AAB, or iOS release was invoked.'
+      - run: echo 'Retired. Use canonical manually verified production release workflows.'

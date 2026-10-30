@@ -1,60 +1,14 @@
-name: BUKLOD Web Restore R31 Exact
-
+# BUKLOD archived legacy workflow: web_restore_r31_exact.yml
+# Disabled by engineering audit #439 on 2026-10-30. Original logic remains in Git history.
+# Never restores old Android, Web, or main mutation paths without reviewed DEV changes.
+name: BUKLOD Retired Legacy - web restore r31 exact
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/web_restore_r31_exact.yml'
-
+  workflow_dispatch:
 permissions:
   contents: read
-
-env:
-  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
 jobs:
-  promote-exact-r31:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout current repository identity
-        uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install dependencies for Expo config resolution
-        run: npm ci --ignore-scripts
-
-      - name: Verify restore target
-        shell: bash
-        run: |
-          test "${{ github.repository }}" = "faust-0612/BUKLOD-Rork"
-          echo 'Restore target: exact R31 deployment pl674gipyn'
-          echo 'Expected immutable URL: https://buklod--pl674gipyn.expo.app'
-          echo 'Web alias only; no Android OTA, no DB migration, no source artifact rebuild.'
-
-      - name: Expo credential preflight
-        shell: bash
-        run: |
-          if [ -z "${EXPO_TOKEN:-}" ]; then
-            echo 'EXPO_TOKEN repository secret is missing.'
-            exit 1
-          fi
-
-      - name: Promote exact historical R31 deployment to production
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx eas-cli@latest deploy:alias --prod --id=pl674gipyn --non-interactive
-
-      - name: Restore status
-        shell: bash
-        run: |
-          echo 'Exact R31 deployment promoted to https://buklod.expo.app'
-          echo 'Immutable deployment: https://buklod--pl674gipyn.expo.app'
-
-# restore-trigger: 2026-09-09-r31-emergency-3
+      - run: echo 'Retired. Use canonical manually verified production release workflows.'

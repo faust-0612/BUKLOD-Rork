@@ -1,105 +1,14 @@
-name: BUKLOD Character R25C Containment Deploy
-
+# BUKLOD archived legacy workflow: character_r25c_containment_deploy.yml
+# Disabled by engineering audit #439 on 2026-10-30. Original logic remains in Git history.
+# Never restores old Android, Web, or main mutation paths without reviewed DEV changes.
+name: BUKLOD Retired Legacy - character r25c containment deploy
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/character_r25c_containment_deploy.yml'
-      - 'scripts/apply-character-r25c-containment.cjs'
-
 permissions:
-  contents: write
-
-env:
-  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  EXPO_PUBLIC_APP_ENV: production
-
+  contents: read
 jobs:
-  patch-qa-deploy:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout current main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Apply R25C containment
-        run: node scripts/apply-character-r25c-containment.cjs
-
-      - name: Verify containment
-        shell: bash
-        run: |
-          grep -F 'BUKLOD_CHARACTER_R25C_CONTAINMENT' 'src/components/points/BuklodCharacterLayeredArt.tsx'
-          grep -F 'BUKLOD_CHARACTER_R25C_CONTAINMENT' 'src/components/points/BuklodCharacterCustomizeSheet.tsx'
-          grep -A4 -F 'art: {' 'src/components/points/BuklodCharacterLayeredArt.tsx' | grep -F "overflow: 'hidden'"
-          grep -A8 -F 'heroArt: {' 'src/components/points/BuklodCharacterCustomizeSheet.tsx' | grep -F "overflow: 'hidden'"
-          grep -F 'height={154}' 'src/components/points/BuklodCharacterCustomizeSheet.tsx'
-
-      - name: TypeScript QA
-        run: npx tsc --noEmit
-
-      - name: Persist R25C source fix
-        shell: bash
-        run: |
-          if git diff --quiet; then
-            echo 'R25C source already committed.'
-            exit 0
-          fi
-          git config user.name 'BUKLOD Production Bot'
-          git config user.email 'actions@users.noreply.github.com'
-          git add 'src/components/points/BuklodCharacterLayeredArt.tsx' 'src/components/points/BuklodCharacterCustomizeSheet.tsx'
-          git commit -m 'Fix Character R25 preview containment'
-          git pull --rebase origin main
-          git push origin HEAD:main
-
-      - name: Expo credential preflight
-        id: expo
-        shell: bash
-        run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo 'ready=false' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          npx eas-cli@latest whoami --non-interactive
-          echo 'ready=true' >> "$GITHUB_OUTPUT"
-
-      - name: Publish Android production OTA
-        if: steps.expo.outputs.ready == 'true'
-        run: |
-          npx eas-cli@latest update \
-            --channel production \
-            --platform android \
-            --environment production \
-            --message 'BUKLOD Character R25C Preview Containment' \
-            --non-interactive
-
-      - name: Deploy production web
-        if: steps.expo.outputs.ready == 'true'
-        shell: bash
-        env:
-          NODE_ENV: production
-          EXPO_PUBLIC_APP_ENV: production
-        run: npx eas-cli@latest deploy --prod --non-interactive
-
-      - name: Final status
-        shell: bash
-        env:
-          EXPO_READY: ${{ steps.expo.outputs.ready }}
-        run: |
-          if [ "$EXPO_READY" = 'true' ]; then
-            echo 'BUKLOD Character R25C Web + Android OTA complete.'
-          else
-            echo 'R25C source + QA complete; deploy pending because EXPO_TOKEN is unavailable.'
-          fi
+      - run: echo 'Retired. Use canonical manually verified production release workflows.'

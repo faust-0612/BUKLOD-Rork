@@ -1,78 +1,14 @@
-name: BUKLOD Patch Production Web Env Pipeline
-
+# BUKLOD archived legacy workflow: patch_production_web_env_pipeline.yml
+# Disabled by engineering audit #439 on 2026-10-30. Original logic remains in Git history.
+# Never restores old Android, Web, or main mutation paths without reviewed DEV changes.
+name: BUKLOD Retired Legacy - patch production web env pipeline
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/patch_production_web_env_pipeline.yml'
-
 permissions:
-  contents: write
-
+  contents: read
 jobs:
-  patch:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Patch production web workflow
-        shell: bash
-        run: |
-          set -euo pipefail
-          file='.github/workflows/production_web_deploy.yml'
-
-          if ! grep -Fq 'Pull EAS production environment' "$file"; then
-            tmp="$(mktemp)"
-            awk '
-              /^      - name: Export production web$/ && !done {
-                print "      - name: Pull EAS production environment"
-                print "        if: steps.expo.outputs.ready == '\''true'\''"
-                print "        shell: bash"
-                print "        run: |"
-                print "          set -euo pipefail"
-                print "          rm -f .env.local"
-                print "          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive"
-                print "          test -s .env.local"
-                print "          set -a"
-                print "          . ./.env.local"
-                print "          set +a"
-                print "          test -n \"${EXPO_PUBLIC_SUPABASE_URL:-}\""
-                print "          test -n \"${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}\""
-                print "          case \"$EXPO_PUBLIC_SUPABASE_URL\" in"
-                print "            https://*.supabase.co) ;;"
-                print "            *) echo '\''Invalid production Supabase URL shape.'\''; exit 1 ;;"
-                print "          esac"
-                print "          echo '\''EAS production Supabase public config: READY'\''"
-                print ""
-                done=1
-              }
-              { print }
-            ' "$file" > "$tmp"
-            mv "$tmp" "$file"
-          fi
-
-          sed -i 's#npx eas-cli@latest deploy --prod --non-interactive#npx eas-cli@latest deploy --prod --environment production --non-interactive#' "$file"
-
-          grep -F 'Pull EAS production environment' "$file"
-          grep -F 'EXPO_PUBLIC_SUPABASE_URL' "$file"
-          grep -F 'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY' "$file"
-          grep -F 'deploy --prod --environment production --non-interactive' "$file"
-
-      - name: Commit permanent pipeline fix
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- .github/workflows/production_web_deploy.yml; then
-            echo 'Production web workflow already patched.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/workflows/production_web_deploy.yml
-          git commit -m 'Fix production web Supabase environment loading'
-          git push origin HEAD:main
+      - run: echo 'Retired. Use canonical manually verified production release workflows.'

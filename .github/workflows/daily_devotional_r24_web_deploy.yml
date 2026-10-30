@@ -1,79 +1,14 @@
-name: BUKLOD Daily Devotional R24 Web Deploy
-
+# BUKLOD archived legacy workflow: daily_devotional_r24_web_deploy.yml
+# Disabled by engineering audit #439 on 2026-10-30. Original logic remains in Git history.
+# Never restores old Android, Web, or main mutation paths without reviewed DEV changes.
+name: BUKLOD Retired Legacy - daily devotional r24 web deploy
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/daily_devotional_r24_web_deploy.yml'
   workflow_dispatch:
-
-env:
-  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  CI: '1'
-
 permissions:
   contents: read
-
 jobs:
-  qa-export-deploy:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout current main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Verify Daily Devotional R24 source
-        shell: bash
-        run: |
-          grep -F 'get_my_daily_devotional' 'src/app/(tabs)/home.tsx'
-          grep -F 'BUKLOD_DAILY_DEVOTIONAL_R24_DETAIL' 'src/app/devotional/[id].tsx'
-          grep -F 'STORY / ILLUSTRATION' 'src/app/devotional/[id].tsx'
-          grep -F 'QUOTATION' 'src/app/devotional/[id].tsx'
-          grep -F 'PRACTICAL TODAY' 'src/app/devotional/[id].tsx'
-          if grep -F 'OPEN WEEKLY DEVOTIONAL' 'src/app/(tabs)/home.tsx'; then
-            echo 'Old weekly devotional UI remains.'
-            exit 1
-          fi
-
-      - name: TypeScript QA
-        run: npx tsc --noEmit
-
-      - name: Expo credential preflight
-        run: |
-          test -n "$EXPO_TOKEN"
-          npx eas-cli@latest whoami --non-interactive
-
-      - name: Export web inside EAS production environment
-        shell: bash
-        run: |
-          npx eas-cli@latest env:exec --environment production \
-            'rm -rf dist && npx expo export --platform web --output-dir dist --clear && node scripts/inject-adsense-web-head.cjs dist' \
-            --non-interactive
-
-      - name: Verify production bundle anchors
-        shell: bash
-        run: |
-          test -f dist/index.html
-          grep -R -F 'yhanxndaqbmuzbdqlblu' dist/_expo/static/js/web >/dev/null
-          grep -R -F 'sb_publishable_' dist/_expo/static/js/web >/dev/null
-          grep -F 'google-adsense-account' dist/index.html
-
-      - name: Deploy production web
-        run: npx eas-cli@latest deploy --prod --non-interactive
-
-      - name: Final status
-        run: |
-          echo 'BUKLOD DAILY DEVOTIONAL R24 WEB DEPLOYED'
-          echo 'Production URL: https://buklod.expo.app'
-          echo 'Daily Manila-midnight rotation with richer biblical content.'
+      - run: echo 'Retired. Use canonical manually verified production release workflows.'

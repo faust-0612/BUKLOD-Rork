@@ -1,0 +1,75 @@
+{
+  "contractVersion": 2,
+  "objective": "Remove competing legacy BUKLOD production publishers and direct main patchers; keep only exact-SHA/manual/frozen RC production releases; remove legacy EAS-native deployment bypasses",
+  "baseRef": "360a88a5293fc96be7d3783c2076d7206cd415de",
+  "productionBaselineEvidence": "GitHub main da4af1442e57ae3a611fe20fa1ffb7ecb9d1c503 includes merged engineering V2 PR438. Android release evidence: run 41024091187 source 646617b, runtime 1.3.2, update 01a18bdb-50ee-7c4f-928e-b16925cb8c14. No device or new production verification authorized by this CI change. Rebased DEV to latest main 360a88a5293fc96be7d3783c2076d7206cd415de preserving merged public-profile-card security changes, which are NOT part of this release-control PR.",
+  "chosenApproach": "Retire old publisher/patch workflows as inert manually dispatchable markers, restrict canonical Android and web to explicit manual release with immutable RC and SHA checks, preserve native build as manual-only; add policy regression suite",
+  "alternativeApproaches": [
+    "Retain independent publishers and rely on naming/commit markers: unsafe OTA race",
+    "Delete legacy workflows: loses convenient Git traceability",
+    "Retire by inert workflow stubs, preserve old behavior in git history, and enforce two canonical publisher paths: selected"
+  ],
+  "selectionRationale": "No app runtime or Supabase impact; stops unwanted concurrent production publishers and direct main patch workflows without unnecessary CI builds.",
+  "preserveBehaviors": [
+    "No changes to Wall photos or scrolling, Connect, Show Faith, Quiz, Classroom, auth or database",
+    "Android runtime 1.3.2 and existing frozen RC method unchanged",
+    "Native build lane remains callable only by deliberate manual trigger",
+    "Restoration uses audited PR and canonical release lane; historical release scripts remain in git history",
+    "Legacy Expo/EAS YAML definitions are removed from the active .eas/workflows directory, recoverable from Git history only; standalone Classroom product source/config is not changed"
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/production-release-controls.test.mjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod_city_web_r1_deploy.yml",
+    ".github/workflows/character_r25c_containment_deploy.yml",
+    ".github/workflows/character_r25d_context_viewport_deploy.yml",
+    ".github/workflows/daily_bible_r23a_web_apk_deploy.yml",
+    ".github/workflows/daily_devotional_r24_android_deploy.yml",
+    ".github/workflows/daily_devotional_r24_autopatch.yml",
+    ".github/workflows/daily_devotional_r24_web_deploy.yml",
+    ".github/workflows/desktop_home_3col_web_deploy.yml",
+    ".github/workflows/emergency_web_restore_known_good.yml",
+    ".github/workflows/emergency_web_supabase_env_restore.yml",
+    ".github/workflows/formation_ai_play_apk_release.yml",
+    ".github/workflows/formation_r27_production_deploy.yml",
+    ".github/workflows/home_identity_r23_autopatch.yml",
+    ".github/workflows/igpat_production_ota.yml",
+    ".github/workflows/igpat_production_web_deploy.yml",
+    ".github/workflows/mzb_profile_home_door_r26_fix.yml",
+    ".github/workflows/org_directory_home_door_r25_fix.yml",
+    ".github/workflows/p0_r4_web_deploy.yml",
+    ".github/workflows/patch_production_web_env_pipeline.yml",
+    ".github/workflows/production_points_claim.yml",
+    ".github/workflows/production_web_r21_navigation_fix.yml",
+    ".github/workflows/profile_quiz_sso_web_deploy.yml",
+    ".github/workflows/quiz_mobile_r22_android_ota.yml",
+    ".github/workflows/recover_account_route_web_hotfix.yml",
+    ".github/workflows/web_live_atmosphere_r1_deploy.yml",
+    ".github/workflows/web_advance_r29_exact.yml",
+    ".github/workflows/web_advance_r31_exact.yml",
+    ".github/workflows/web_restore_r31_exact.yml",
+    ".github/workflows/web_rollback_r27a_exact.yml",
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/production_web_deploy.yml",
+    ".github/workflows/production_android_apk.yml",
+    "tests/production-release-controls.test.mjs",
+    ".buklod/scopes/release-isolation-20261030.json",
+    ".eas/workflows/build-pre-apk-v22-branch-once.yml",
+    ".eas/workflows/deploy-classroom-web-once.yml",
+    ".eas/workflows/deploy-community-feed-modes-once.yml",
+    ".eas/workflows/deploy-home-spatial-once.yml",
+    ".eas/workflows/deploy-web.yml"
+  ],
+  "acceptanceChecks": [
+    "Only canonical Android and web workflows can publish",
+    "No workflow pushes directly to main or auto-submits store AAB",
+    "Every release must be manually dispatched on current main and verify immutable RC SHA",
+    "Legacy workflows retain harmless manual stubs (no runners execute)",
+    "All QA passes before merge; no OTA, APK, production database update or web deployment from this PR",
+    "No active EAS-native type: deploy, prod: true, or legacy APK workflow remains as an unreviewed production bypass"
+  ]
+}
