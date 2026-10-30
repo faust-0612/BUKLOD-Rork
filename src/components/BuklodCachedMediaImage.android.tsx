@@ -332,12 +332,12 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   const markedPreviewPath = useWallPreview
     ? communityWallPreviewPath(originalPath) || verifiedLegacyWallPreviewPath(originalPath, previewPath)
     : null;
-  const [failedPreviewFor, setFailedPreviewFor] = useState('');
   // Never replace pixels already painted from an original with a late-arriving
   // thumbnail index. That would recreate the October 28 blank-tile regression.
   const paintedOriginalPathRef = useRef('');
+  // Keep the preview identity stable even when the sidecar fails. Switching
+  // identities mid-flight used to cancel and re-download the same original.
   const usingPreview = !!markedPreviewPath &&
-    failedPreviewFor !== originalPath &&
     paintedOriginalPathRef.current !== originalPath;
   const path = usingPreview ? markedPreviewPath! : originalPath;
   // Never pass the original signed URL as a preference for the preview: it
@@ -511,9 +511,11 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
 
   const retryAfterError = (failedUrl: string) => {
     if (resignInFlightRef.current || actual.identity !== identity || actual.url !== failedUrl) return;
+    // A failed sidecar is only a failed preview: the independent sharp layer
+    // continues downloading the original. Never replace its media identity.
     if (usingPreview) {
-      // An unavailable/corrupt sidecar must never hide a valid original post.
-      setFailedPreviewFor(originalPath);
+      setSource(current => current.identity === identity && current.url === failedUrl
+        ? { ...current, failed: true } : current);
       return;
     }
 
@@ -560,12 +562,6 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       })
       .finally(() => { resignInFlightRef.current = false; });
   };
-
-  useEffect(() => {
-    if (usingPreview && actual.identity === identity && actual.failed) {
-      setFailedPreviewFor(originalPath);
-    }
-  }, [usingPreview, actual.identity, identity, actual.failed, originalPath]);
 
   const retryManually = (event: { stopPropagation: () => void }) => {
     event.stopPropagation();
