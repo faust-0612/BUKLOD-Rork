@@ -1,0 +1,20 @@
+{
+  "objective": "Replace fully downloaded low-resolution Android Wall previews with original-resolution media without blanking images or saturating weak connections",
+  "baseRef": "e0de9106f49fcca420fee48ef84ffa4c423eed3b",
+  "productionBaselineEvidence": "Main code baseline is e0de9106; private 384px quality-46 preview sidecars are a first-paint optimization, while fullscreen photo uses the full original. Production OTA adoption and on-device results are not verified.",
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/communityWallSharpUpgrade.ts",
+    "tests/android-wall-auto-sharp.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/android-wall-auto-sharp-20261030.json"
+  ],
+  "acceptanceChecks": [
+    "Wall preview renders fast; after it paints original is loaded and revealed only after valid decode",
+    "No blank photo on original fetch/sign failure, offline or weak network",
+    "At most two full-resolution mounted upgrade loads; stale queued requests cancel on unmount",
+    "Stable original cache key and private signer reused; original photo viewer unchanged",
+    "No web/iOS, Supabase Storage/DB, native runtime, APK or production OTA change",
+    "Focused regressions, TypeScript and isolated scope gate before integration or release"
+  ]
+}

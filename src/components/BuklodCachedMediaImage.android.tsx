@@ -16,6 +16,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  View,
   type ImageStyle,
   type StyleProp,
 } from 'react-native';
@@ -29,6 +30,7 @@ import {
 } from '@/lib/buklodMediaUrl';
 import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
 import { communityWallPreviewPath, verifiedLegacyWallPreviewPath } from '@/lib/communityWallPreviewPath';
+import { communityWallSharpGate } from '@/lib/communityWallSharpUpgrade';
 
 type Props = {
   uri?: string | null;
@@ -61,6 +63,101 @@ function initialSource(identity: string, path: string, preferred: string): Sourc
     painted: false,
     fromDiskCache: false,
   };
+}
+
+
+/**
+ * The 384px/quality-46 sidecar is a first-paint placeholder, never the final
+ * Wall image. Only after it paints, resolve the private ORIGINAL and decode it
+ * behind the sidecar. Reveal the original only after a valid native load; the
+ * thumbnail stays visible on offline, signing, network or decode failure.
+ */
+function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; contentFit: 'cover' | 'contain' }) {
+  const [sharp, setSharp] = useState({ identity: '', url: '', ready: false });
+  const releaseRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setSharp({ identity: mediaPath, url: '', ready: false });
+    const task = communityWallSharpGate.request();
+
+    void task.granted.then(async release => {
+      if (!release) return;
+      if (!active) { release(); return; }
+      releaseRef.current = release;
+      const key = communityMediaCacheKey(mediaPath, mediaPath);
+      let url: string | null = null;
+      try {
+        // Reuse full-size bytes previously downloaded by the zoom viewer.
+        // A slow cache lookup must not block progress on a weak connection.
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const cached = key ? await Promise.race([
+          ExpoImage.getCachePathAsync(key).catch(() => null),
+          new Promise<null>(resolve => {
+            timer = setTimeout(() => resolve(null), 800);
+          }),
+        ]).finally(() => { if (timer) clearTimeout(timer); }) : null;
+        if (!active) return;
+        url = cached
+          ? (/^(file|content):\/\//i.test(cached) ? cached : 'file://' + cached)
+          : await resolveCommunityMediaUrl(mediaPath, null).catch(() => null);
+      } catch {
+        // Original is an optional visual upgrade; do not break the preview.
+      } finally {
+        if (!active || !url) {
+          if (releaseRef.current === release) releaseRef.current = null;
+          release();
+        }
+      }
+      if (active && url) setSharp({ identity: mediaPath, url, ready: false });
+    });
+
+    return () => {
+      active = false;
+      task.cancel();
+      releaseRef.current?.();
+      releaseRef.current = null;
+    };
+  }, [mediaPath]);
+
+  const current = sharp.identity === mediaPath ? sharp : { identity: mediaPath, url: '', ready: false };
+  useEffect(() => {
+    if (!current.url || current.ready) return;
+    // A genuinely stuck decoder must not monopolize a scarce upgrade slot.
+    const timeout = setTimeout(() => {
+      releaseRef.current?.();
+      releaseRef.current = null;
+      setSharp(state => state.identity === mediaPath && state.url === current.url
+        ? { ...state, url: '' }
+        : state);
+    }, 90_000);
+    return () => clearTimeout(timeout);
+  }, [mediaPath, current.url, current.ready]);
+
+  if (!current.url) return null;
+  const finish = (ready: boolean) => {
+    releaseRef.current?.();
+    releaseRef.current = null;
+    setSharp(state => state.identity === mediaPath && state.url === current.url
+      ? { ...state, url: ready ? state.url : '', ready }
+      : state);
+  };
+
+  return (
+    <NativeImage
+      key={'sharp:' + mediaPath + ':' + current.url}
+      source={{ uri: current.url }}
+      style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
+      pointerEvents="none"
+      resizeMode={contentFit}
+      fadeDuration={0}
+      onLoad={event => {
+        const dimensions = event.nativeEvent.source;
+        finish(Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0);
+      }}
+      onError={() => finish(false)}
+    />
+  );
 }
 
 function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath, style, contentFit = 'cover', onLoad }: Props) {
@@ -285,6 +382,16 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       .finally(() => { resignInFlightRef.current = false; });
   };
 
+  // Preserve all existing paint/fallback behavior. Only Wall previews get
+  // a separate original-resolution layer; fullscreen and web are unchanged.
+  const renderWithUpgrade = (preview: React.ReactNode) => usingPreview ? (
+    <View style={style as any} pointerEvents="none" collapsable={false}>
+      {preview}
+      {actual.painted ? <WallSharpOverlay mediaPath={originalPath} contentFit={contentFit} /> : null}
+    </View>
+  ) : preview;
+  const photoStyle = usingPreview ? StyleSheet.absoluteFillObject : style;
+
   if (!actual.url || actual.failed) {
     return (
       <Pressable
@@ -307,11 +414,11 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   }
 
   if (actual.renderer === 'native') {
-    return (
+    return renderWithUpgrade(
       <NativeImage
         source={{ uri: actual.url }}
         resizeMode={contentFit}
-        style={style}
+        style={photoStyle}
         onLoad={event => {
           if (!usingPreview) paintedOriginalPathRef.current = originalPath;
           setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
@@ -323,10 +430,10 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     );
   }
 
-  return (
+  return renderWithUpgrade(
     <ExpoImage
       source={{ uri: actual.url, cacheKey }}
-      style={style}
+      style={photoStyle}
       contentFit={contentFit}
       cachePolicy="memory-disk"
       priority="high"
