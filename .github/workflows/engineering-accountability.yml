@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            security/public-profile-cards-invoker-20261030)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/public-profile-cards-security-20261030.json" >> "$GITHUB_ENV";;
             fix/android-wall-visible-photo-continuity-20261030)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/android-wall-visible-photo-continuity-20261030.json" >> "$GITHUB_ENV";;
             fix/android-wall-white-preview-20261030)
@@ -240,6 +242,9 @@ jobs:
         env:
           BUKLOD_BASE_REF: main
         run: node scripts/engineering-regression-gate.mjs --run-focused-node-tests
+      - name: Verify profile card RLS migration security contract
+        if: github.head_ref == 'security/public-profile-cards-invoker-20261030'
+        run: node --test tests/public-profile-cards-security.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
       - name: Verify KL per-scene saved placement and draft isolation
