@@ -4,11 +4,8 @@ name: BUKLOD Production Android Native Build
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/production_android_apk.yml'
+
+# Native APK/AAB builds are explicitly requested, never triggered by commits.
 
 permissions:
   contents: read

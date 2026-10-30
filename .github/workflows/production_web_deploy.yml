@@ -6,91 +6,10 @@ name: BUKLOD Production Web Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/production_web_deploy.yml'
-      - 'metro.config.js'
-      - 'src/lib/expoSqliteWebStub.ts'
-      - 'src/lib/smartDrawer/localStore.ts'
-      - 'scripts/patch-web-community-post.cjs'
-      - 'scripts/patch-home-identity-action-row.cjs'
-      - 'scripts/inject-adsense-web-head.cjs'
-      - 'src/app/+html.tsx'
-      - 'src/app/index.tsx'
-      - 'src/app/index.web.tsx'
-      - 'src/providers/AuthProvider.tsx'
-      - 'src/app/onboarding/index.tsx'
-      - 'src/app/(tabs)/home.tsx'
-      - 'src/components/BuklodPublicWordShortcut.tsx'
-      - 'src/app/personal-home/**'
-      - 'src/components/home/**'
-      - 'src/lib/buklodBahay.ts'
-      - 'src/components/BuklodExclusiveScopeCommunity.tsx'
-      - 'src/components/BuklodCommunityPhotoCollage.tsx'
-      - 'src/app/(auth)/login.tsx'
-      - 'src/lib/buklodAuthResilience.ts'
-      - 'src/app/(auth)/forgot-password.tsx'
-      - 'src/app/account/recovery-pin.tsx'
-      - 'src/app/account/security.tsx'
-      - 'src/app/admin/account-recovery.tsx'
-      - 'src/app/scope/index.tsx'
-      - 'src/app/scope/bulletin-editor.tsx'
-      - 'src/components/BuklodClusterHomeCommandCenter.tsx'
-      - 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
-      - 'src/components/BuklodHomeFaithPanel.tsx'
-      - 'src/lib/buklodClusterFormationGate.ts'
-      - 'src/app/(tabs)/me.tsx'
-      - 'src/app/(tabs)/prayer.tsx'
-      - 'src/app/(tabs)/messages.tsx'
-      - 'src/app/notifications/index.tsx'
-      - 'src/app/post/[id].tsx'
-      - 'src/hooks/useBuklodConnectUnread.ts'
-      - 'src/providers/NotificationProvider.tsx'
-      - 'src/app/profile/buklod-faculty-class.tsx'
-      - 'src/app/profile/buklod-faculty.tsx'
-      - 'src/app/profile/buklod-faculty-quiz-results.tsx'
-      - 'src/app/profile/buklod-classroom*.tsx'
-      - 'src/components/classroom/**'
-      - 'src/components/BuklodNavSafeShell.web.tsx'
-      - 'src/components/BuklodMobileWebShell.tsx'
-      - 'src/components/BuklodDesktopWebShell.tsx'
-      - 'src/components/BuklodSponsorSlot.tsx'
-      - 'src/components/BuklodAdMobBanner.web.tsx'
-      - 'src/components/BuklodScreenBottomBanner.web.tsx'
-      - 'src/components/BuklodCommunityInlineAd.web.tsx'
-      - 'src/components/BuklodReelsInlineAd.web.tsx'
-      - 'src/components/BuklodWebAdSlot.web.tsx'
-      - 'src/components/BuklodFocusAppAdStrip.tsx'
-      - 'src/lib/buklodAdUnits.web.ts'
-      - 'src/components/BuklodReportDoorCard.tsx'
-      - 'src/components/BuklodOrgHomeClusterCard.tsx'
-      - 'src/components/BuklodMzbHomeWidgets.tsx'
-      - 'src/components/BuklodWeeklyReportForm.tsx'
-      - 'src/app/reports/**'
-      - 'src/lib/buklodReportRoutes.ts'
-      - 'src/lib/buklodReportDomain.ts'
-      - 'src/lib/buklodReportBranding.ts'
-      - 'src/components/connect/ConnectThreadHeader.tsx'
-      - 'src/components/connect/ConnectThreadHeader.web.tsx'
-      - 'src/components/connect/ConnectComposerPicker.tsx'
-      - 'src/lib/buklodConnectGifCatalog.ts'
-      - 'src/components/BuklodAcceptedCallContent.web.tsx'
-      - 'src/components/BuklodScopeCallLauncher.web.tsx'
-      - 'src/components/BuklodConnectThread.tsx'
-      - 'src/components/RingingCalls.web.tsx'
-      - 'src/lib/buklodStreamVideoClient.web.ts'
-      - 'src/lib/streamVideoSdk.web.ts'
-      - 'src/lib/buklodStreamCall.ts'
-      - 'src/lib/buklodCallLifecycle.ts'
-      - 'src/providers/StreamVideoProvider.web.tsx'
-      - 'src/lib/buklodAwsWallVideo.ts'
-      - 'src/lib/uploadCommunityVideoFile.ts'
-      - 'src/lib/buklodCommunityPostMedia.ts'
-      - 'src/lib/buklodMediaUrl.ts'
-      - 'supabase/migrations/*community_external_video_storage_aws*.sql'
-      - 'supabase/migrations/*buklod_5k_scale_hardening*.sql'
+
+concurrency:
+  group: buklod-production-web
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -101,13 +20,21 @@ env:
 jobs:
   qa-export-deploy:
     # Explicit Android-only releases must not publish Expo Hosting.
-    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[android-ota-only]')
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact production source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -189,6 +116,19 @@ jobs:
             echo 'Faculty rows are still rendered in student My Classroom.'
             exit 1
           fi
+
+      - name: Limit export-time web patches to known legacy sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r changed; do
+            test -n "$changed" || continue
+            case "$changed" in
+              'src/components/BuklodGuideAvatar.tsx'|'src/app/(tabs)/home.tsx') ;;
+              *) echo "STOP: unrelated release-time source mutation $changed"; exit 1 ;;
+            esac
+          done < <(git diff --name-only)
+          git diff --check
 
       - name: TypeScript QA
         run: npx tsc --noEmit
@@ -315,6 +255,14 @@ jobs:
           }
           echo 'Production Supabase runtime config embedded in web bundle: VERIFIED'
 
+      - name: Freeze exported web RC hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/index.html
+          find dist -type f -print0 | sort -z | xargs -0 sha256sum > web-rc-sha256.txt
+          test -s web-rc-sha256.txt
+
       - name: Deploy production web
         id: deploy
         shell: bash
@@ -325,14 +273,19 @@ jobs:
           set -euo pipefail
           test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
           test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
-          npx eas-cli@latest deploy --prod --environment production --non-interactive 2>&1 | tee deploy-output.txt
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA" || { echo 'STOP: main advanced after web RC'; exit 1; }
+          sha256sum -c web-rc-sha256.txt >/dev/null
+          npx eas-cli@latest deploy --prod --export-dir dist --environment production --non-interactive 2>&1 | tee deploy-output.txt
 
       - name: Preserve deploy result
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: buklod-web-deploy-output-${{ github.run_number }}
-          path: deploy-output.txt
+          path: |
+            deploy-output.txt
+            web-rc-sha256.txt
           if-no-files-found: ignore
 
       - name: Deployment status

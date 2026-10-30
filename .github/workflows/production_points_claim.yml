@@ -1,110 +1,14 @@
-# Release trigger: 2026-09-09 verified web + Android OTA
-name: BUKLOD Points One-Tap Claim Production
-
+# BUKLOD archived legacy workflow: production_points_claim.yml
+# Disabled by engineering audit #439 on 2026-10-30. Original logic remains in Git history.
+# Never restores old Android, Web, or main mutation paths without reviewed DEV changes.
+name: BUKLOD Retired Legacy - production points claim
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/production_points_claim.yml'
-      - 'src/app/points/**'
-      - 'src/components/points/**'
-      - 'src/lib/buklodPointsRedemption.ts'
-      - 'src/app/admin/points-redemptions.tsx'
-      - 'src/app/admin/bayanihan.tsx'
-      - 'supabase/migrations/*buklod_points_redemption*'
-      - 'assets/sounds/**'
-      - 'scripts/inject-adsense-web-head.cjs'
-
-env:
-  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  EXPO_PUBLIC_APP_ENV: production
-  EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
-
 permissions:
   contents: read
-
 jobs:
-  qa-web-ota:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout production source
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: TypeScript QA
-        run: npx tsc --noEmit
-
-      - name: Verify one-tap Points claim safety anchors
-        shell: bash
-        run: |
-          grep -F "CLAIM_SUCCESS_SOUND" 'src/components/points/BuklodClaimRewardCard.tsx'
-          grep -F "useAudioPlayer" 'src/components/points/BuklodClaimRewardCard.tsx'
-          grep -F "tapLockedRef.current = true" 'src/components/points/BuklodClaimRewardCard.tsx'
-          grep -F "setOptimisticClaimed(true)" 'src/components/points/BuklodClaimRewardCard.tsx'
-          grep -F "claimBuklodRewardEvent(eventId)" 'src/app/points/index.tsx'
-          grep -F "if (!rewardEvent || claimBusy)" 'src/app/points/index.tsx'
-          grep -F "get_my_buklod_redemption_center_v1" 'src/lib/buklodPointsRedemption.ts'
-          grep -F "convert_my_buklod_points_to_bayanihan_v1" 'src/lib/buklodPointsRedemption.ts'
-          grep -F "request_my_buklod_cash_reward_v1" 'src/lib/buklodPointsRedemption.ts'
-          grep -F "admin_mark_buklod_cash_reward_paid_v1" 'src/lib/buklodPointsRedemption.ts'
-          grep -F "Lifetime Points are permanent achievement history" 'src/components/points/BuklodRedeemCatalogSection.tsx'
-          grep -F "Points are deducted only at PAID" 'src/components/points/BuklodRedeemCatalogSection.tsx'
-          grep -F "Legacy reward catalog is retired" supabase/migrations/*buklod_points_redemption*.sql
-          grep -F "'--clear'" 'scripts/inject-adsense-web-head.cjs'
-          test -f 'src/app/admin/points-redemptions.tsx'
-          test -f 'assets/sounds/buklod-points-claim.wav'
-          if grep -F "CLAIMING…" 'src/components/points/BuklodClaimRewardCard.tsx'; then
-            echo 'Visible CLAIMING spinner/text must not return to BUKLOD Points claim.'
-            exit 1
-          fi
-
-      - name: Expo credential preflight
-        shell: bash
-        run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo 'EXPO_TOKEN is required for production publish.'
-            exit 1
-          fi
-          npx eas-cli@latest whoami --non-interactive
-
-      - name: Export production web
-        shell: bash
-        env:
-          NODE_ENV: production
-          EXPO_PUBLIC_APP_ENV: production
-        run: |
-          npx expo export --platform web --output-dir dist
-          node scripts/inject-adsense-web-head.cjs dist
-
-      - name: Deploy production web
-        shell: bash
-        env:
-          NODE_ENV: production
-          EXPO_PUBLIC_APP_ENV: production
-        run: npx eas-cli@latest deploy --prod --non-interactive
-
-      - name: Publish production Android OTA
-        shell: bash
-        run: |
-          npx eas-cli@latest update \
-            --channel production \
-            --platform android \
-            --environment production \
-            --message "BUKLOD Points Redemption End-to-End R1" \
-            --non-interactive
-
-      - name: Deployment status
-        run: |
-          echo 'BUKLOD Points redemption end-to-end is published to production web and Android OTA.'
+      - run: echo 'Retired. Use canonical manually verified production release workflows.'

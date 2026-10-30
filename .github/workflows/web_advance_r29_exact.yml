@@ -1,58 +1,14 @@
-name: BUKLOD Web Advance R29 Exact
-
+# BUKLOD archived legacy workflow: web_advance_r29_exact.yml
+# Disabled by engineering audit #439 on 2026-10-30. Original logic remains in Git history.
+# Never restores old Android, Web, or main mutation paths without reviewed DEV changes.
+name: BUKLOD Retired Legacy - web advance r29 exact
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/web_advance_r29_exact.yml'
-
+  workflow_dispatch:
 permissions:
   contents: read
-
-env:
-  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
 jobs:
-  promote-exact-r29:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout current repository identity
-        uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install dependencies for Expo config resolution
-        run: npm ci --ignore-scripts
-
-      - name: Verify advance target
-        shell: bash
-        run: |
-          test "${{ github.repository }}" = "faust-0612/BUKLOD-Rork"
-          echo 'Advance target: R29 Level Authority Sync + Pixel-Align Clarity'
-          echo 'Expected immutable URL: https://buklod--ds0dizmatu.expo.app'
-          echo 'Web alias only; no Android OTA, no DB migration, no source artifact rebuild.'
-
-      - name: Expo credential preflight
-        shell: bash
-        run: |
-          if [ -z "${EXPO_TOKEN:-}" ]; then
-            echo 'EXPO_TOKEN repository secret is missing.'
-            exit 1
-          fi
-
-      - name: Promote exact historical R29 deployment to production
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx eas-cli@latest deploy:alias --prod --id=ds0dizmatu --non-interactive
-
-      - name: Advance status
-        shell: bash
-        run: |
-          echo 'Exact R29 deployment promoted to https://buklod.expo.app'
-          echo 'Immutable deployment: https://buklod--ds0dizmatu.expo.app'
+      - run: echo 'Retired. Use canonical manually verified production release workflows.'
