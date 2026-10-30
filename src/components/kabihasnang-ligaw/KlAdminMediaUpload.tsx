@@ -45,10 +45,11 @@ function Choice({ label, selected, disabled, onPress }: {
   );
 }
 
-export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideId, onUploaded, manuscript = '', manuscriptSaved = false, initialKind = 'illustration' }: {
+export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideId, onUploaded, onBusyChange, manuscript = '', manuscriptSaved = false, initialKind = 'illustration' }: {
   episodeNumber: number;
   episodeId?: string;
   onUploaded?: () => void;
+  onBusyChange?: (busy: boolean) => void;
   manuscript?: string;
   manuscriptSaved?: boolean;
   initialKind?: Kind;
@@ -127,6 +128,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
   const perform = async (label: string, task: () => Promise<void>) => {
     if (lock.current) return;
     lock.current = true;
+    onBusyChange?.(true);
     setBusyAction(label);
     setFeedback({ tone: 'info', text: label + '…' });
     try {
@@ -135,6 +137,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'Hindi natuloy ang request.' });
     } finally {
       lock.current = false;
+      onBusyChange?.(false);
       setBusyAction('');
     }
   };
