@@ -76,7 +76,8 @@ test('native collage uses preview, viewer continues to open unmodified original'
   assert.match(native,/paintedOriginalPathRef\.current !== originalPath/);
   assert.match(native,/const preferred = usingPreview \? '' : String\(uri \?\? ''\)\.trim\(\)/);
   assert.match(native,/if \(usingPreview\) \{[\s\S]*?setFailedPreviewFor\(originalPath\)/);
-  assert.match(native,/30_000/);
+  assert.match(native,/shouldMountWallOriginalUpgrade/);
+  assert.doesNotMatch(native,/setFailedPreviewFor\(current => current === originalPath/);
   assert.match(generic,/useWallPreview\?: boolean/);
   assert.doesNotMatch(generic,/communityWallPreviewPath\(/);
 });
