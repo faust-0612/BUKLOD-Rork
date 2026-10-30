@@ -122,7 +122,7 @@ export default function ScopeFaithMonitoringMembersScreen() {
   useEffect(() => {
     setFilter(filterFromRoute(first(params.filter)));
     setExpanded(null);
-  }, [params.area, params.filter, params.stage]);
+  }, [scopeId, params.area, params.filter, params.stage]);
 
   const load = useCallback(async (isActive: () => boolean) => {
     const currentRequest = ++requestId.current;
@@ -155,14 +155,17 @@ export default function ScopeFaithMonitoringMembersScreen() {
     return () => { active = false; };
   }, [load]));
 
+  // A previously loaded scope must never render under a different workspace route.
+  const activeResult = result?.scope_id === scopeId ? result : null;
+
   const filters = area === 'lesson' && stageCode
     ? ([['all', 'All'], ['completed', 'Done'], ['in_progress', 'In progress'], ['missing', 'Not started']] as Array<[FaithMonitoringMemberFilter, string]>)
     : COMMON_FILTERS[area];
 
-  const members = useMemo(() => (result?.members ?? []).filter((member) =>
+  const members = useMemo(() => (activeResult?.members ?? []).filter((member) =>
     member.member_name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
     && matchesFaithMonitoringMember(member, area, filter, stageCode),
-  ), [result, search, area, filter, stageCode]);
+  ), [activeResult, search, area, filter, stageCode]);
 
   return (
     <View style={[styles.shell, { paddingTop: insets.top }]}>
@@ -173,7 +176,7 @@ export default function ScopeFaithMonitoringMembersScreen() {
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>{stageCode ? `BUKLOD ${stageCode}` : LABELS[area]}</Text>
-          <Text numberOfLines={1} style={styles.subtitle}>{result?.scope_name ?? 'Member Activity'}</Text>
+          <Text numberOfLines={1} style={styles.subtitle}>{activeResult?.scope_name ?? 'Member Activity'}</Text>
         </View>
       </View>
 
@@ -182,7 +185,7 @@ export default function ScopeFaithMonitoringMembersScreen() {
           setRefreshing(true);
           void load(() => true);
         }} />}>
-        <Text style={styles.intro}>Individual member progress · {result?.report_date || 'Today'} (Philippine time)</Text>
+        <Text style={styles.intro}>Individual member progress · {activeResult?.report_date || 'Today'} (Philippine time)</Text>
         <TextInput style={styles.search} placeholder="Search member name" value={search}
           onChangeText={setSearch} autoCapitalize="none" accessibilityLabel="Search member" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
@@ -194,7 +197,7 @@ export default function ScopeFaithMonitoringMembersScreen() {
           ))}
         </ScrollView>
 
-        {loading && !result ? <ActivityIndicator color={GREEN} style={styles.loader} /> : null}
+        {loading && !activeResult ? <ActivityIndicator color={GREEN} style={styles.loader} /> : null}
         {error ? (
           <View style={styles.notice}>
             <Text style={styles.error}>{error}</Text>
@@ -203,9 +206,9 @@ export default function ScopeFaithMonitoringMembersScreen() {
               void load(() => true);
             }}><Text style={styles.retry}>Try again</Text></Pressable>
           </View>
-        ) : result ? (
+        ) : activeResult ? (
           <>
-            <Text style={styles.count}>{members.length} of {result.members.length} active members</Text>
+            <Text style={styles.count}>{members.length} of {activeResult.members.length} active members</Text>
             {area === 'daily' ? <Text style={styles.hint}>Daily Reading submissions include catch-up readings submitted today.</Text> : null}
             {members.length === 0 ? <Text style={styles.empty}>No members match this filter.</Text> : null}
             {members.map((member) => {
