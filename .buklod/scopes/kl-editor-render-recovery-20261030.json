@@ -22,6 +22,7 @@
     "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
     "src/components/kabihasnang-ligaw/KlEditorRenderBoundary.tsx",
     "src/lib/kabihasnang-ligaw/editorDraftRecovery.ts",
+    "src/lib/kabihasnang-ligaw/editorDraftStorage.ts",
     "src/lib/kabihasnang-ligaw/editorCrashDiagnostics.ts",
     "src/app/admin/kabihasnang-ligaw.tsx",
     "tests/kl-editor-crash-recovery.test.mjs",
@@ -36,5 +37,10 @@
     "Render crash telemetry contains component allowlisted identifier, not raw manuscript or stack",
     "Focused node tests and TypeScript validation pass",
     "Android DEV then exact verified RC before release"
+  ],
+  "contractVersion": 2,
+  "selectionRationale": "React subtree containment plus locally recoverable, account/chapter-isolated draft is smaller and safer than global navigation changes, automatic publishing, or a KL schema migration. Existing preview/approval remain unchanged.",
+  "regressionTests": [
+    "tests/kl-editor-crash-recovery.test.mjs"
   ]
 }
