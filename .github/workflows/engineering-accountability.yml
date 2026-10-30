@@ -177,6 +177,160 @@ jobs:
             feat/community-fair-video-ready-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-fair-video-20261027.json" >> "$GITHUB_ENV";;
           esac
+          # Discover one new scoped change without adding branch-name-specific mappings.
+          if ! grep -q '^BUKLOD_SCOPE_MANIFEST=' "$GITHUB_ENV"; then
+            mapfile -t scopes < <(git diff --name-only main...HEAD -- .buklod/scopes/ | grep -E '^\.buklod/scopes/[^/]+\.json      - name: Verify Community Wall hydration cannot erase photos
+        if: github.head_ref == 'fix/wall-photo-hydration-state-20261029'
+        run: node --experimental-strip-types --test tests/community-wall-media-hydration-state.test.mjs
+      - name: Verify interrupted account registration contracts
+        if: github.head_ref == 'fix/registration-network-recovery-20261029-r2'
+        run: node --test tests/registration-network-recovery.test.cjs
+      - name: Verify legacy Wall private preview worker and existing media regressions
+        if: github.head_ref == 'feat/legacy-wall-preview-backfill-20261029'
+        run: node --experimental-strip-types --test tests/community-wall-legacy-preview-backfill.test.mjs tests/community-wall-preview-sidecar.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs
+      - name: Verify private lightweight Wall preview sidecars and original fallback
+        if: github.head_ref == 'feat/wall-lightweight-preview-sidecars-20261029'
+        run: node --experimental-strip-types --test tests/community-wall-preview-sidecar.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs
+      - name: Verify Android visible photo priority and no speculative sign burst
+        if: github.head_ref == 'fix/android-visible-photo-priority-20261029'
+        run: node --experimental-strip-types --test tests/android-visible-photo-priority.test.mjs
+      - name: Verify cache-first weak-network Android photo behavior
+        if: github.head_ref == 'fix/android-photo-cache-first-progress-20261029'
+        run: node --experimental-strip-types --test tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs
+      - name: Verify Oct 28 Android Wall photo wrapper rollback
+        if: github.head_ref == 'fix/android-wall-rollback-oct28-renderer-20261029'
+        run: node --test tests/android-photo-oct28-rollback.test.cjs
+      - name: Verify OTA native restart safe-area and touch contracts
+        if: github.head_ref == 'fix/ota-restart-safe-area-20261029'
+        run: node --test tests/ota-restart-safe-area.test.cjs
+      - name: Verify safe route crash diagnostics
+        if: github.head_ref == 'fix/screen-crash-route-diagnostics-20261029'
+        run: node --experimental-strip-types tests/buklod-route-diagnostics.test.mjs
+      - name: Verify isolated JWT timing recovery contracts
+        if: github.head_ref == 'fix/postgrest-jwt-future-20261029'
+        run: node tests/postgrest-jwt-future-resilience.test.cjs
+      - name: Verify slow-signal Community photo recovery contract
+        if: github.head_ref == 'fix/community-photo-slow-signal-resilience-20261029' || github.head_ref == 'fix/android-wall-photo-stall-recovery-20261029' || github.head_ref == 'fix/android-wall-cache-paint-regression-20261029' || github.head_ref == 'fix/android-wall-cross-renderer-20261029'
+        run: node --test tests/community-wall-no-blank-photo.test.cjs
+      - name: Verify exact Android photo renderer OTA routing
+        if: github.head_ref == 'release/android-photo-renderer-ota-20261029'
+        run: |
+          grep -Fq "'src/components/BuklodCachedMediaImage.tsx'" .github/workflows/production_android_ota.yml
+          node --test tests/community-wall-no-blank-photo.test.cjs
+      - name: Verify auto-sharp Wall photo upgrade without regressions
+        if: github.head_ref == 'dev/android-wall-auto-sharp-20261030'
+        run: |
+          node --experimental-strip-types --test tests/android-wall-auto-sharp.test.mjs tests/community-wall-legacy-preview-backfill.test.mjs tests/community-wall-preview-sidecar.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs
+      - name: Verify direct Android Wall paint, weak signal and sharp original
+        if: github.head_ref == 'fix/android-wall-white-preview-20261030'
+        run: |
+          node --experimental-strip-types --test tests/android-wall-auto-sharp.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs tests/community-wall-preview-sidecar.test.mjs tests/community-wall-legacy-preview-backfill.test.mjs
+      - name: Verify Android mounted photos continue through slow signal and recovery
+        if: github.head_ref == 'fix/android-wall-visible-photo-continuity-20261030'
+        run: |
+          node --experimental-strip-types --test tests/android-wall-auto-sharp.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs tests/community-wall-preview-sidecar.test.mjs tests/community-wall-legacy-preview-backfill.test.mjs
+      - name: Prove engineering regression gate fails closed
+        run: node --test tests/engineering-regression-gate.test.mjs
+      - name: Verify impacted features have runnable regression coverage
+        env:
+          BUKLOD_BASE_REF: main
+        run: node scripts/engineering-regression-gate.mjs --run-focused-node-tests
+      - name: Verify scope contract
+        run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify KL per-scene saved placement and draft isolation
+        if: github.head_ref == 'dev/kl-scene-anchor-persistence-20261030'
+        run: node --experimental-strip-types --test tests/kl-scene-drafts.test.mjs
+      - name: Verify Home map rendering, destination search and Google Maps handoff
+        if: github.head_ref == 'fix/home-map-google-search-20261027'
+        run: node scripts/buklod-home-map-regression.cjs
+      - name: Verify BUKLOD sound pack and ringing contracts
+        if: github.head_ref == 'feat/buklod-sound-identity-20261027'
+        run: node tests/buklod-sounds.test.cjs
+      - name: Verify PTT responsive hold and closed-app alert contracts
+        if: github.head_ref == 'fix/ptt-hold-rx-latency-20261027'
+        run: node --test tests/ptt-responsive-hold.test.cjs tests/buklod-ptt-call-isolation.test.cjs
+
+      - name: Verify fair discovery and independent video candidate selection
+        if: github.head_ref == 'feat/community-fair-video-ready-20261027'
+        run: node --test tests/fairDiscovery.test.cjs tests/videoDiscovery.test.cjs tests/videoFeedRpcContract.test.cjs
+
+      - name: Verify Connect Cluster composer, media and call contracts
+        if: github.head_ref == 'fix/cluster-connect-media-seen-20261027'
+        run: node scripts/test-connect-cluster-polish.cjs
+      - name: Verify recovery button feedback contracts
+        if: github.head_ref == 'fix/recovery-action-feedback-20261027'
+        run: node --test tests/recovery-action-feedback.test.cjs
+
+      - name: Verify approved pending client and rollback recovery
+        if: github.head_ref == 'fix/pending-client-reconciliation-20261027-r1'
+        run: node scripts/test-pending-client-reconciliation-20261027.cjs
+      - name: Verify cumulative Show Faith migration contract
+        if: github.head_ref == 'dev/scoped-community-ota-consolidation-20261025'
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const sql = fs.readFileSync('supabase/migrations/20261025190000_show_faith_legacy_report_leadership_guard.sql', 'utf8');
+          const required = [
+            'buklod_scope_faith_monitoring_summary_v1',
+            'buklod_scope_faith_monitoring_summary_v2',
+            'buklod_scope_faith_monitoring_summary_v3',
+            'buklod_is_exact_scope_admin_v1',
+            'buklod_user_has_functional_approver_role',
+            "errcode = ''42501''",
+            "auth.uid() is null",
+            "SECURITY DEFINER",
+          ];
+          const missing = required.filter(x => !sql.includes(x));
+          if (missing.length) { console.error('SHOW FAITH CONTRACT BLOCK:', missing.join(', ')); process.exit(1); }
+          if (/\\b(?:drop\\s+function|revoke\\s+execute|grant\\s+execute)\\b/i.test(sql)) {
+            console.error('SHOW FAITH CONTRACT BLOCK: unexpected legacy RPC privilege mutation'); process.exit(1);
+          }
+          console.log('SHOW FAITH STATIC CONTRACT PASS (live role tests still required)');
+          NODE
+      - name: Verify navigation and scope transitions
+        if: github.head_ref == 'codex/nav-home-wall-isolation-20261024' || github.ref_name == 'codex/nav-home-wall-isolation-20261024' || github.head_ref == 'fix/canonical-home-hub-merge-20261027'
+        run: node scripts/test-navigation-home-wall.cjs
+      - name: Verify media signed URL cache
+        if: github.head_ref == 'fix/video-stale-signed-url-20261024'
+        run: node scripts/test-media-signed-cache.cjs
+
+      - name: Verify integrated resilience, photo and weak-signal contracts
+        if: github.head_ref == 'release/weak-signal-resilience-rc-20261028-r1'
+        run: node --test tests/community-wall-no-blank-photo.test.cjs tests/offline-pending-race.test.cjs tests/offline-queue-capacity.test.cjs tests/offline-reconnect-pacing.test.cjs tests/profile-avatar-batch.test.cjs tests/request-shield-savings.test.cjs tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs
+
+      - name: Verify low-bandwidth media rendering safeguards
+        if: github.head_ref == 'fix/weak-media-rendering-ota-20261028-r1'
+        run: node --test tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs
+
+      - name: Verify weak-signal Community media upload and rendering contracts
+        if: github.head_ref == 'fix/community-media-weak-signal-r1-20261027'
+        run: node --test tests/community-media-weak-signal.test.cjs
+
+      - name: Verify noncash AdMob QMP preview invariants
+        if: github.head_ref == 'codex/qmp-live-earnings-rc-20261027'
+        run: node --test tests/community-admob-preview-contract.test.cjs
+
+      - name: Verify bottom navigation concurrency
+        run: node scripts/test-bottom-nav-concurrency.cjs
+
+      - name: Verify Community media cache and fallback limits
+        run: |
+          node scripts/test-media-signed-cache.cjs
+          node scripts/test-media-sign-fallback.cjs
+
+      - name: Verify offline Connect and Faith cache contract
+        if: github.head_ref == 'fix/offline-connect-faith-20261027'
+        run: node --test tests/offline-connect-faith.test.cjs tests/daily-reading-offline.test.cjs
+
+      - name: Verify referral lookup race and error handling
+        if: github.head_ref == 'fix/referral-lookup-race-20261027'
+        run: node --test tests/referral-lookup.test.cjs
+
+ || true)
+            if [ "${#scopes[@]}" -eq 1 ]; then
+              echo "BUKLOD_SCOPE_MANIFEST=${scopes[0]}" >> "$GITHUB_ENV"
+            fi
+          fi
       - name: Verify Community Wall hydration cannot erase photos
         if: github.head_ref == 'fix/wall-photo-hydration-state-20261029'
         run: node --experimental-strip-types --test tests/community-wall-media-hydration-state.test.mjs
