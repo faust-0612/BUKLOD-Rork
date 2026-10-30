@@ -7,6 +7,7 @@ import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import KlChapterAudio from './KlChapterAudio';
+import { klSceneEffectSaved, klServerApprovedCount } from '@/lib/kabihasnang-ligaw/mediaApprovalState';
 import { KlSceneEffect, type SceneEffect } from './KlSceneEffect';
 import { sceneEditorValues, updateSceneDraft, clearSceneDraft, type SceneDrafts, type SceneDraft } from '@/lib/kabihasnang-ligaw/sceneDrafts';
 
@@ -45,10 +46,12 @@ function Choice({ label, selected, disabled, onPress }: {
   );
 }
 
-export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideId, onUploaded, onBusyChange, manuscript = '', manuscriptSaved = false, initialKind = 'illustration' }: {
+export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideId, onUploaded, onPreviewInvalidated, approvalRefreshToken = 0, onBusyChange, manuscript = '', manuscriptSaved = false, initialKind = 'illustration' }: {
   episodeNumber: number;
   episodeId?: string;
   onUploaded?: () => void;
+  onPreviewInvalidated?: () => void;
+  approvalRefreshToken?: number;
   onBusyChange?: (busy: boolean) => void;
   manuscript?: string;
   manuscriptSaved?: boolean;
@@ -78,6 +81,8 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
     setSceneDrafts((previous) => updateSceneDraft(previous, placement, changes));
   const placementSaved = selected?.kind === 'illustration'
     && !!selected.anchor && selected.anchor === anchor.trim() && selected.side === side;
+  const effectSaved = klSceneEffectSaved(selected, effect, intensity);
+  const approvedCount = klServerApprovedCount(items);
   const imageSelected = kind === 'cover' || kind === 'illustration';
   const isBusy = !!busyAction;
 
@@ -87,6 +92,13 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
     if (!Array.isArray(data)) throw new Error('Hindi nabasa ang media list ng chapter.');
     setItems((data as MediaItem[]).filter((item) => kindLabels.some((option) => option.value === item.kind)));
   };
+
+  useEffect(() => {
+    if (approvalRefreshToken <= 0) return;
+    void refreshMedia()
+      .then(() => setFeedback({ tone: 'success', text: 'Media approval synced from server.' }))
+      .catch((cause) => setFeedback({ tone: 'error', text: 'Hindi ma-refresh ang approval: ' + (cause instanceof Error ? cause.message : 'Retry.') }));
+  }, [approvalRefreshToken]);
 
   useEffect(() => {
     let active = true;
@@ -258,6 +270,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       setFeedback({ tone: 'success', text: changed
         ? 'Scene ' + placement + ' placement saved on server. Kailangan ulit mag-prepare ng preview.'
         : 'Scene ' + placement + ' placement is already saved on server.' });
+      if (changed) onPreviewInvalidated?.();
     });
   };
 
@@ -280,6 +293,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       setFeedback({ tone: 'success', text: changed
         ? 'Scene ' + placement + ' effect saved. Preview approval will be required again.'
         : 'Scene ' + placement + ' effect is already saved on server.' });
+      if (changed) onPreviewInvalidated?.();
     });
   };
 
@@ -345,6 +359,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
             onPress={() => editScene({ side: side === 'before' ? 'after' : 'before' })} />
           <Choice label={busyAction === 'Sine-save ang image placement' ? 'Saving placement…' : 'Save exact placement'}
             disabled={isBusy} onPress={saveAnchor} />
+          {placementSaved ? <Text style={{ color: '#c7f4d8' }}>✓ Scene {placement} placement saved on server.</Text> : null}
           <Text style={{ color: '#fff' }}>Scene {placement} atmosphere (built-in, no animation upload)</Text>
           <Text style={{ color: '#c8d2da' }}>Live demo: pumili ng effect sa ibaba. Makikita agad ang galaw sa larawan sa itaas; Save Scene Effect para maitala sa server.</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -359,11 +374,15 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
             disabled={isBusy} onPress={() => setMotionPlaying((playing) => !playing)} />
           <Choice label={busyAction === 'Sine-save ang scene effect' ? 'Saving scene effect…' : 'Save Scene Effect'}
             disabled={isBusy} onPress={saveEffect} />
+          <Text style={{ color: effectSaved ? '#c7f4d8' : '#ffe0a8' }}>
+            {effectSaved ? '✓ Scene ' + placement + ' effect saved on server.' : 'Scene ' + placement + ' effect has unsaved changes.'}
+          </Text>
         </>
       ) : null}
       <Text style={{ color: '#c8d2da' }}>
-        Uploaded media: {items.length}. Visual artwork approval is separate from server media approval.
-        Review and approve in Community Wall KL Admin after preparing the private preview.
+        Uploaded media: {items.length}. Server-approved: {approvedCount}/{items.length}.
+        Visual artwork approval is separate from server media approval.
+        Prepare and open the private preview below to review and approve each media file.
       </Text>
       <Choice label="Refresh media & approvals from server" disabled={isBusy}
         onPress={() => void perform('Nire-refresh ang media', async () => {
@@ -371,6 +390,11 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
           setMediaRefreshToken((token) => token + 1);
           setFeedback({ tone: 'success', text: 'Updated media approval status from server.' });
         })} />
+      {feedback ? (
+        <Text accessibilityRole="alert" style={{ color: feedback.tone === 'error' ? '#ffb8b8' : feedback.tone === 'success' ? '#c7f4d8' : '#e3e8ef' }}>
+          {feedback.text}
+        </Text>
+      ) : null}
       {items.map((item) => (
         <Text key={item.kind + ':' + item.placement} style={{ color: '#fff' }}>
           {item.kind} {item.placement}: {item.approved ? 'Approved' : 'Pending approval'}

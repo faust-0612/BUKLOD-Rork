@@ -81,6 +81,7 @@ export default function KlReaderScreen() {
   const isSystemAdmin = hasRole('system_admin');
   const [adminBusyId, setAdminBusyId] = useState<string | null>(null);
   const [adminFeedback, setAdminFeedback] = useState('');
+  const [adminFeedbackEpisodeId, setAdminFeedbackEpisodeId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
   const [releaseTarget, setReleaseTarget] = useState<string | null>(null);
@@ -211,6 +212,7 @@ export default function KlReaderScreen() {
     if (!isSystemAdmin || adminBusyId) return;
     if (action === 'reject' && !notes.trim()) { setAdminFeedback('Maglagay ng dahilan ng rejection.'); return; }
     setAdminBusyId(episodeId);
+    setAdminFeedbackEpisodeId(episodeId);
     setAdminFeedback('Pinoproseso ang desisyon…');
     try {
       const targetEpisode = EPISODES.find((item) => item.id === episodeId);
@@ -700,6 +702,10 @@ export default function KlReaderScreen() {
                         <Text style={{color:'#f1d39b'}}>Open prepared Admin Preview</Text>
                       </Pressable>
                       {previewTarget===episode.id?<KlAdminPreview episodeId={klDatabaseId(episode.episodeNumber)}/>:null}
+                      {adminFeedbackEpisodeId === episode.id && adminFeedback ? (
+                        <Text accessibilityRole="alert" style={styles.meta}>{adminFeedback}</Text>
+                      ) : null}
+                      <Text style={styles.meta}>Approve each illustration/audio in the private preview before approving the chapter. Chapter approval does not publish it.</Text>
                       <View style={{ flexDirection: 'row', gap: 12 }}>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>

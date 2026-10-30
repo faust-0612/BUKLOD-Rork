@@ -7,10 +7,11 @@ import { KlSceneEffect,type SceneEffect } from './KlSceneEffect';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
 type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
 type Bundle={title:string;manuscript:string;version:number;media:Media[]};
-export default function KlAdminPreview({episodeId}:{episodeId:string}) {
+export default function KlAdminPreview({episodeId,onApproved}:{episodeId:string;onApproved?:()=>void}) {
  const [bundle,setBundle]=useState<Bundle|null>(null);
  const [urls,setUrls]=useState<Record<string,string>>({});
  const [error,setError]=useState('');
+ const [feedback,setFeedback]=useState('');
  const [imageErrors,setImageErrors]=useState<Record<string,string>>({});
  const [approvals,setApprovals]=useState<Record<string,boolean>>({});
  const [loading,setLoading]=useState(false);
@@ -18,7 +19,7 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
  const [showSceneGallery,setShowSceneGallery]=useState(true);
  const [busy,setBusy]=useState(false);
  const requestId=useRef(0);
- const load=async()=>{
+ const load=async(confirmRefresh=false)=>{
  const request=++requestId.current;
  setLoading(true);
  try {
@@ -49,6 +50,7 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
  }
  if(request!==requestId.current)return;
  setBundle(b);setUrls(u);setImageErrors(failures);setApprovals(status);setError('');
+ if(confirmRefresh)setFeedback('Media and approval status refreshed from server.');
  }catch(cause){if(request===requestId.current)setError(cause instanceof Error?cause.message:'Preview load failed.');}
  finally{if(request===requestId.current)setLoading(false);}
  };
@@ -56,20 +58,25 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
  const approve=async(m:Media)=>{
   if(busy)return;
   setBusy(true);
+  setFeedback('Approving '+m.kind+' '+m.placement+' on server…');
+  setError('');
   try{
    const {data,error:e}=await supabase.rpc('kl_admin_media_approve_v1',{p_episode_id:episodeId,p_kind:m.kind,p_placement:m.placement});
    if(e)throw e;
    if(!(data as {ok?:boolean}|null)?.ok)throw new Error('Server did not confirm approval.');
+   setApprovals((previous)=>({...previous,[m.kind+':'+m.placement]:true}));
+   onApproved?.();
    await load();
-   setError('Media approved on server. Chapter is still private until release.');
-  }catch(cause){setError(cause instanceof Error?cause.message:'Approval failed.');}
+   setFeedback(m.kind+' '+m.placement+' approved on server. Chapter is still private until release.');
+  }catch(cause){setFeedback('');setError(cause instanceof Error?cause.message:'Approval failed.');}
   finally{setBusy(false);}
  };
  if(!bundle)return <View style={{padding:12}}>
-  <Pressable accessibilityRole="button" disabled={loading} onPress={event=>{event.stopPropagation();void load();}}>
+  <Pressable accessibilityRole="button" disabled={loading} onPress={event=>{event.stopPropagation();void load(true);}}>
    <Text style={{color:'#f1d39b'}}>{loading?'Loading private preview…':'Retry prepared preview'}</Text>
   </Pressable>
-  {error?<Text accessibilityRole="alert" style={{color:'#fff'}}>{error}</Text>:null}
+  {error?<Text accessibilityRole="alert" style={{color:'#ffb8b8'}}>{error}</Text>:null}
+ {feedback?<Text accessibilityRole="alert" style={{color:'#c7f4d8'}}>{feedback}</Text>:null}
  </View>;
  const paragraphs=bundle.manuscript.split(/\n\s*\n/).filter(Boolean);
  const image=(m:Media, gallery=false)=>{
@@ -88,7 +95,7 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
  return <View style={{padding:12,gap:12,backgroundColor:'#192b39'}}>
  <Text style={{color:'#f1d39b',fontSize:20}}>{bundle.title} · Preview v{bundle.version}</Text>
  <Text style={{color:'#fff'}}>Private admin preview — not released. Artwork approval is separate from chapter approval.</Text>
- <Pressable accessibilityRole="button" disabled={loading||busy} onPress={event=>{event.stopPropagation();void load();}}
+ <Pressable accessibilityRole="button" disabled={loading||busy} onPress={event=>{event.stopPropagation();void load(true);}}
   style={{padding:12,backgroundColor:'#36594f',borderRadius:8}}>
   <Text style={{color:'#fff'}}>{loading?'Loading media…':'Refresh media & approval status'}</Text>
  </Pressable>
@@ -121,6 +128,7 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
  {bundle.media.map(m=><Pressable accessibilityRole="button" disabled={busy||approvals[m.kind+':'+m.placement]} key={m.kind+':'+m.placement}
   onPress={event=>{event.stopPropagation();void approve(m);}} style={{padding:12,minHeight:44,backgroundColor:approvals[m.kind+':'+m.placement]?'#285343':'#3c5260',borderRadius:8}}>
   <Text style={{color:'#f1d39b'}}>{approvals[m.kind+':'+m.placement]?'Approved ✓':'Approve'} {m.kind} {m.placement}{m.kind==='illustration'?' · '+(m.effect??'none')+' '+(m.intensity??30)+'%':''}</Text></Pressable>)}
- {error?<Text accessibilityRole="alert" style={{color:'#fff'}}>{error}</Text>:null}
+ {error?<Text accessibilityRole="alert" style={{color:'#ffb8b8'}}>{error}</Text>:null}
+ {feedback?<Text accessibilityRole="alert" style={{color:'#c7f4d8'}}>{feedback}</Text>:null}
  </View>;
 }
