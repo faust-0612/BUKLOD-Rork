@@ -86,7 +86,7 @@ function runCli() {
   if (process.argv.includes('--run-focused-node-tests')) {
     const runnable = result.modifiedTests.filter(nodeTest);
     if (runnable.length) {
-      const run = spawnSync(process.execPath, ['--test', ...runnable], { stdio: 'inherit' });
+      const run = spawnSync(process.execPath, ['--experimental-strip-types', '--test', ...runnable], { stdio: 'inherit' });
       if (run.status !== 0) { console.error('REGRESSION BLOCK: focused Node tests failed'); process.exitCode = 1; return; }
     }
   }
