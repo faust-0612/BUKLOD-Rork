@@ -88,6 +88,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   const activeUpgradeRendererRef = useRef(upgradeRenderer);
   activeUpgradeRendererRef.current = upgradeRenderer;
   const upgradeProgressRef = useRef({ url: '', bytes: 0, lastProgressAt: 0 });
+  const activeSharpUrlRef = useRef('');
   const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
   const releaseRef = useRef<(() => void) | null>(null);
   const badOriginalCacheRef = useRef(new Set<string>());
@@ -110,6 +111,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     decodedOriginalRef.current = { url: '', width: 0, height: 0 };
     displayedOriginalRef.current = { url: '', displayed: false };
     upgradeProgressRef.current = { url: '', bytes: 0, lastProgressAt: 0 };
+    activeSharpUrlRef.current = '';
     setSharp({ identity: mediaPath, url: '', ready: false });
     // Cached originals bypass the network gate: a photo already downloaded
     // in the full-screen viewer must become sharp without joining downloads.
@@ -131,6 +133,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         const sourcePlan = planWallOriginalSource(Boolean(cached), canRequestRef.current);
         if (sourcePlan === 'cached' && cached) {
           url = /^(file|content):\/\//i.test(cached) ? cached : 'file://' + cached;
+          activeSharpUrlRef.current = url;
           setSharp({ identity: mediaPath, url, ready: false });
           return;
         }
@@ -153,8 +156,10 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
           if (releaseRef.current === release) releaseRef.current = null;
           release();
         }
-        if (active && url) setSharp({ identity: mediaPath, url, ready: false });
-        else if (active) setRetryPending(true);
+        if (active && url) {
+          activeSharpUrlRef.current = url;
+          setSharp({ identity: mediaPath, url, ready: false });
+        } else if (active) setRetryPending(true);
       } catch {
         if (active) setRetryPending(true);
         releaseRef.current?.();
@@ -164,6 +169,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
 
     return () => {
       active = false;
+      activeSharpUrlRef.current = '';
       cancelQueued?.();
       releaseRef.current?.();
       releaseRef.current = null;
@@ -221,6 +227,8 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
 
   if (!current.url) return null;
   const finish = (ready: boolean) => {
+    // A callback from an old signed URL must not free the current URL's slot.
+    if (activeSharpUrlRef.current !== current.url) return;
     const invalidCachedOriginal = !ready && /^(file|content):\/\//i.test(current.url);
     if (invalidCachedOriginal) {
       const key = communityMediaCacheKey(mediaPath, mediaPath);
@@ -228,6 +236,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     }
     releaseRef.current?.();
     releaseRef.current = null;
+    if (!ready) activeSharpUrlRef.current = '';
     setSharp(state => state.identity === mediaPath && state.url === current.url
       ? { ...state, url: ready ? state.url : '', ready }
       : state);
