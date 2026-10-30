@@ -12,13 +12,18 @@ test('preview is kept visible until full ORIGINAL has valid decoded dimensions',
   assert.match(renderer, /Number\(dimensions\?\.width\) > 0 && Number\(dimensions\?\.height\) > 0/);
   assert.match(renderer, /onError=\{\(\) => finish\(false\)\}/);
   assert.match(renderer, /if \(!current\.url\) return null/);
-  assert.match(renderer, /const photoStyle = usingPreview \? StyleSheet\.absoluteFillObject : style/);
+  assert.match(renderer, /const renderWithUpgrade = \(preview: React\.ReactNode\) => usingPreview \? \(/);
+  assert.match(renderer, /<>[\s\S]*?\{preview\}[\s\S]*?<WallSharpOverlay/);
+  assert.doesNotMatch(renderer, /<View style=\{style as any\}|const photoStyle =/);
+  assert.match(renderer, /style=\{style\}/);
 });
 
 test('only Android Wall collage activates preview, fullscreen original stays original', () => {
   assert.match(collage, /useWallPreview/);
   assert.match(renderer, /const usingPreview = !!markedPreviewPath/);
   assert.match(renderer, /const renderWithUpgrade = \(preview: React\.ReactNode\) => usingPreview \?/);
+  assert.match(renderer, /initialSource\(identity, path, preferred, useWallPreview\)/);
+  assert.match(renderer, /renderer: preferNative \? 'native' : 'expo'/);
   assert.match(renderer, /resolveCommunityMediaUrl\(mediaPath, null\)/);
   assert.match(renderer, /ExpoImage\.getCachePathAsync\(key\)/);
   assert.doesNotMatch(renderer, /getPublicUrl|\/object\/public\//);

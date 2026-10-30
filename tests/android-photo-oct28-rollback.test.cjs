@@ -9,13 +9,12 @@ const release = fs.readFileSync('.github/workflows/production_android_ota.yml','
 
 test('Android-specific module bypasses October 28 full-screen photo masking wrapper',()=>{
   assert.match(native,/export const BuklodCachedMediaImage = memo\(AndroidWallPhoto/);
-  // New Android Wall-only progressive layer uses absolute fill inside a
-  // non-opaque preview wrapper; the fullscreen original is not wrapped.
+  // The progressive overlay is a sibling inside the existing measured
+  // Pressable; never recreate the white-screen nested wrapper.
   assert.match(native,/const renderWithUpgrade = \(preview: React\.ReactNode\) => usingPreview \?/);
-  assert.match(native,/<ExpoImage[\s\S]*?style=\{photoStyle\}/);
-  assert.match(native,/<NativeImage[\s\S]*?style=\{photoStyle\}/);
-  assert.match(native,/const photoStyle = usingPreview \? StyleSheet\.absoluteFillObject : style/);
-  assert.doesNotMatch(native,/loadingOverlay|loadingBadge|recyclingKey=\{cacheKey\}/);
+  assert.match(native,/<ExpoImage[\s\S]*?style=\{style\}/);
+  assert.match(native,/<NativeImage[\s\S]*?style=\{style\}/);
+  assert.doesNotMatch(native,/<View style=\{style as any\}|const photoStyle =|loadingOverlay|loadingBadge|recyclingKey=\{cacheKey\}/);
   // Web and iOS keep their existing generic implementation.
   assert.match(generic,/styles\.loadingOverlay/);
 });

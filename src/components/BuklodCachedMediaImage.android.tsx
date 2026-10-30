@@ -16,7 +16,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View,
   type ImageStyle,
   type StyleProp,
 } from 'react-native';
@@ -49,19 +48,21 @@ type SourceState = {
   renderer: 'expo' | 'native';
   painted: boolean;
   fromDiskCache: boolean;
+  alternateAttempted: boolean;
 };
 
 // Check infrequently only while a photo is mounted and not yet painted.
 const WATCHDOG_INTERVAL_MS = 3_000;
 
-function initialSource(identity: string, path: string, preferred: string): SourceState {
+function initialSource(identity: string, path: string, preferred: string, preferNative = false): SourceState {
   return {
     identity,
     url: peekCommunityMediaUrl(path, preferred) || (!path ? preferred || null : null),
     failed: false,
-    renderer: 'expo',
+    renderer: preferNative ? 'native' : 'expo',
     painted: false,
     fromDiskCache: false,
+    alternateAttempted: false,
   };
 }
 
@@ -180,14 +181,14 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   const signRetryRef = useRef(0);
   const resignInFlightRef = useRef(false);
   const progressRef = useRef({ uri: '', startedAt: Date.now(), lastProgressAt: 0, bytes: 0, decodedAt: 0 });
-  const [source, setSource] = useState<SourceState>(() => initialSource(identity, path, preferred));
-  const actual = source.identity === identity ? source : initialSource(identity, path, preferred);
+  const [source, setSource] = useState<SourceState>(() => initialSource(identity, path, preferred, useWallPreview));
+  const actual = source.identity === identity ? source : initialSource(identity, path, preferred, useWallPreview);
 
   useEffect(() => {
     let active = true;
     signRetryRef.current = 0;
     resignInFlightRef.current = false;
-    const first = initialSource(identity, path, preferred);
+    const first = initialSource(identity, path, preferred, useWallPreview);
     setSource(first);
 
     void (async () => {
@@ -241,7 +242,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     }
 
     return () => { active = false; };
-  }, [identity, cacheKey, path]);
+  }, [identity, cacheKey, path, useWallPreview]);
 
   useEffect(() => {
     if (actual.failed || actual.painted || !actual.url) return;
@@ -283,11 +284,19 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         return;
       }
       if (decision === 'fallback') {
-        setSource(current => current.identity === identity && current.url === url &&
-          current.renderer === 'expo' && !current.painted
-          ? { ...current, renderer: 'native' }
-          : current);
-        return;
+        if (actual.fromDiskCache) {
+          // An unusable cached file must not trap a Wall tile.
+          retryAfterError(url);
+          return;
+        }
+        if (!actual.alternateAttempted) {
+          setSource(current => current.identity === identity && current.url === url &&
+            current.renderer === actual.renderer && !current.painted && !current.alternateAttempted
+            ? { ...current, renderer: current.renderer === 'native' ? 'expo' : 'native', alternateAttempted: true }
+            : current);
+          return;
+        }
+        // Never switch repeatedly; wait for progress or the hard deadline.
       }
       timer = setTimeout(check, WATCHDOG_INTERVAL_MS);
     };
@@ -309,7 +318,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     if (actual.fromDiskCache) {
       // Cached bytes may have been evicted. Recover via the protected signer
       // once, rather than trapping the viewer in a corrupt local file.
-      const first = initialSource(identity, path, preferred);
+      const first = initialSource(identity, path, preferred, useWallPreview);
       // Fall back to the independent network loader if local bytes are bad.
       setSource({ ...first, failed: false, renderer: 'native' });
       if (!first.url && path) {
@@ -337,7 +346,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         setSource(current => {
           if (current.identity !== identity || current.url !== failedUrl) return current;
           return next && next !== failedUrl
-            ? { ...current, url: next, failed: false, painted: false, renderer: 'expo', fromDiskCache: false }
+            ? { ...current, url: next, failed: false, painted: false, renderer: useWallPreview ? 'native' : 'expo', fromDiskCache: false, alternateAttempted: false }
             : { ...current, failed: true };
         });
       })
@@ -370,7 +379,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     if (!path || resignInFlightRef.current) return;
     signRetryRef.current = 0;
     resignInFlightRef.current = true;
-    setSource({ identity, url: null, failed: false, renderer: 'expo', painted: false, fromDiskCache: false });
+    setSource({ identity, url: null, failed: false, renderer: useWallPreview ? 'native' : 'expo', painted: false, fromDiskCache: false, alternateAttempted: false });
     void resignCommunityMediaUrl(path)
       .then(next => setSource(current => current.identity === identity
         ? { ...current, url: next, failed: !next }
@@ -381,15 +390,15 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       .finally(() => { resignInFlightRef.current = false; });
   };
 
-  // Preserve all existing paint/fallback behavior. Only Wall previews get
-  // a separate original-resolution layer; fullscreen and web are unchanged.
+  // The measured collage Pressable is already the parent. A nested View and
+  // absolute base image reintroduced the Android blank-tile regression.
+  // Keep the base renderer direct, and add the sharp overlay as a sibling.
   const renderWithUpgrade = (preview: React.ReactNode) => usingPreview ? (
-    <View style={style as any} pointerEvents="none" collapsable={false}>
+    <>
       {preview}
       {actual.painted ? <WallSharpOverlay mediaPath={originalPath} contentFit={contentFit} /> : null}
-    </View>
+    </>
   ) : preview;
-  const photoStyle = usingPreview ? StyleSheet.absoluteFillObject : style;
 
   if (!actual.url || actual.failed) {
     return (
@@ -417,14 +426,36 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       <NativeImage
         source={{ uri: actual.url }}
         resizeMode={contentFit}
-        style={photoStyle}
+        style={style}
+        onProgress={event => {
+          const bytes = Number(event.nativeEvent?.loaded ?? 0);
+          const p = progressRef.current;
+          if (p.uri === actual.url && bytes > p.bytes) {
+            p.bytes = bytes;
+            p.lastProgressAt = Date.now();
+          }
+        }}
         onLoad={event => {
+          const dimensions = event.nativeEvent.source;
+          if (!(Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0)) {
+            retryAfterError(actual.url!);
+            return;
+          }
           if (!usingPreview) paintedOriginalPathRef.current = originalPath;
-          setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
+          setSource(current => current.identity === identity && current.url === actual.url &&
+            current.renderer === 'native' && !current.painted
+            ? { ...current, painted: true } : current);
           // Keep single-photo aspect-ratio calculation identical for callers.
           onLoad?.({ source: event.nativeEvent.source });
         }}
-        onError={() => retryAfterError(actual.url!)}
+        onError={() => {
+          // Native decode error does not prove missing private media.
+          if (!actual.fromDiskCache && !actual.alternateAttempted) {
+            setSource(current => current.identity === identity && current.url === actual.url &&
+              current.renderer === 'native' && !current.painted && !current.alternateAttempted
+              ? { ...current, renderer: 'expo', alternateAttempted: true } : current);
+          } else retryAfterError(actual.url!);
+        }}
       />
     );
   }
@@ -432,7 +463,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   return renderWithUpgrade(
     <ExpoImage
       source={{ uri: actual.url, cacheKey }}
-      style={photoStyle}
+      style={style}
       contentFit={contentFit}
       cachePolicy="memory-disk"
       priority="high"
@@ -457,7 +488,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       }}
       onDisplay={() => {
         if (!usingPreview) paintedOriginalPathRef.current = originalPath;
-        setSource(current => current.identity === identity && !current.painted ? { ...current, painted: true } : current);
+        setSource(current => current.identity === identity && current.url === actual.url &&
+          current.renderer === 'expo' && !current.painted ? { ...current, painted: true } : current);
       }}
       onError={() => retryAfterError(actual.url!)}
     />

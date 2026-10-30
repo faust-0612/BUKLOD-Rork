@@ -1,0 +1,23 @@
+{
+  "objective": "Eliminate blank white Android Wall photo cards when full-screen originals load successfully",
+  "baseRef": "88cc81e96e7282898647aee1f04c3b02f72c4e9f",
+  "productionBaselineEvidence": "Previous verified production Android OTA 01a18ab7-56d7-7078-9802-7c4a2018d131 runtime 1.3.2 source 88cc81e96e7282898647aee1f04c3b02f72c4e9f; screenshot shows white Wall and full-screen originals working. Existing nested image View reintroduced an Oct 28-identified regression. Live device validation outstanding.",
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/buklodAndroidPhotoRecovery.ts",
+    "tests/android-photo-cache-first-progress.test.mjs",
+    "tests/android-photo-oct28-rollback.test.cjs",
+    "tests/android-wall-auto-sharp.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/android-wall-white-preview-20261030.json"
+  ],
+  "acceptanceChecks": [
+    "No nested Android Wall image wrapper or absolute base preview; direct image layout preserved",
+    "Android Wall uses native first painter, with independent Expo alternate only on true failure/stall",
+    "Cached files failing decode recover; weak active byte progress never triggers a retry storm",
+    "Full-screen original, RLS-protected signed media, preview sidecar, manual retry and web remain unchanged",
+    "Only a rendered preview activates bounded original resolution upgrade; no opaque masks",
+    "All focused regressions, source scope, TypeScript and integration QA must pass",
+    "No APK/native change; DEV-> verified RC-> exact live production fingerprint"
+  ]
+}
