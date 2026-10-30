@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Remove the exposed SECURITY DEFINER public_profile_cards view's profiles-RLS bypass without disrupting photo rendering or the existing profile projection",
+  "baseRef": "da4af1442e57ae3a611fe20fa1ffb7ecb9d1c503",
+  "productionBaselineEvidence": "verified: 2026-10-30 production yhanxndaqbmuzbdqlblu view as anon returned 545 active cards, while direct profiles RLS returned 0; live migration 20261030085450 applied successfully; post-change security_invoker=true and anonymous SELECT/UPDATE denied, authenticated SELECT retained, UPDATE denied; security advisor no longer reports this view.",
+  "chosenApproach": "ALTER VIEW security_invoker=true and narrow view role grants to authenticated SELECT only; keep the original view definition and all base profiles policies intact.",
+  "selectionRationale": "Preserves the existing view's shape, protects private profile visibility via caller RLS, removes anonymous access and browser DML; no app change or Android OTA required.",
+  "alternativeApproaches": [
+    "Drop the view: rejected because it removes the schema contract and risks external consumers",
+    "Keep SECURITY DEFINER and add filtering inside the view: rejected because it duplicates profiles RLS and risks future privacy drift"
+  ],
+  "preserveBehaviors": [
+    "Profile data unchanged",
+    "Existing profile fields and active filter unchanged",
+    "Authorized authenticated reads still use profiles RLS",
+    "Community Wall media, avatars and secure signed image URLs untouched",
+    "No Android native/runtime or OTA change"
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "profile-security"
+  ],
+  "regressionTests": [
+    "tests/public-profile-cards-security.test.cjs",
+    "supabase/tests/public_profile_cards_security_invoker_20261030.sql"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261030085450_harden_public_profile_cards_security_invoker_20261030.sql",
+    "supabase/tests/public_profile_cards_security_invoker_20261030.sql",
+    "tests/public-profile-cards-security.test.cjs",
+    ".buklod/scopes/public-profile-cards-security-20261030.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Production anonymous view access removed",
+    "Existing authenticated role has SELECT only and caller RLS enforced",
+    "Original 5 columns, order, and is_active filter preserved",
+    "Live migration registered with version matching the repository filename",
+    "Production security advisor no longer reports security_definer_view on public_profile_cards",
+    "CI focused Node and SQL contract tests pass; no production Android OTA"
+  ]
+}
