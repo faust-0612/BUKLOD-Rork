@@ -2,6 +2,7 @@
 import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import { supabase } from '@/lib/supabase';
 import { subscribeConnectRead } from '@/lib/connectReadSync';
+import { invalidateBuklodConnectUnreadCaches } from '@/lib/buklodR4RequestShield';
 import { useAuth } from '@/providers/AuthProvider';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
 
@@ -233,6 +234,8 @@ export function useBuklodConnectUnread() {
               acquireSharedRealtimeSubscription(
                 registryKey,
                 () => {
+                  invalidateBuklodConnectUnreadCaches('both');
+                  bootstrapRef.current = null;
                   void refresh();
                 },
                 emit => {
