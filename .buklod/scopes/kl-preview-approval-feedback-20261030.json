@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "objective": "Expose server-prepared KL private preview and per-media approval inside Profile KL and make save actions show server-confirmed feedback without changing public release.",
-  "baseRef": "72de1e7f16b9ccf704147c14cbd61c35d2dd94b2",
+  "baseRef": "2e6df63353614afee01c06fb15de387bef27826a",
   "productionBaselineEvidence": "Main baseline 72de1e7. Production S1 chapter 2 has prepared private preview v2 and 4 private media assets with 0/4 server-approved; chapter is draft/unreleased. Installed Android OTA adoption not verified. Integrated main baseline 2e6df63353614afee01c06fb15de387bef27826a already contains KL crash draft recovery, retained in manual conflict reconciliation; new code must pass CI before PR merge.",
   "chosenApproach": "Reuse existing privileged KlAdminPreview server RPCs in the Profile KL studio, synchronize per-media approval status, derive UI indicators from server state, show feedback at action points.",
   "selectionRationale": "Small UI-only wiring reuses tested authorization and backend state; no silent mass approval, database writes, native code, duplicate publishing flow, or new backend API.",
