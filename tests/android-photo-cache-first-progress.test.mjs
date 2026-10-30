@@ -20,7 +20,9 @@ test('Slow but active cellular download is never restarted after eight seconds',
 test('No-progress native image falls back once instead of spinning forever', () => {
   assert.equal(decide({ ...base, now: 117_999 }), 'keep');
   assert.equal(decide({ ...base, now: 118_000 }), 'fallback');
-  assert.equal(decide({ ...base, now: 150_000, renderer: 'native' }), 'keep');
+  assert.equal(decide({ ...base, now: 139_999, renderer: 'native' }), 'keep');
+  assert.equal(decide({ ...base, now: 140_000, renderer: 'native' }), 'fallback');
+  assert.equal(decide({ ...base, now: 165_000, renderer: 'native', lastProgressAt: 150_000 }), 'keep');
 });
 
 test('Decoded but never displayed image triggers alternate renderer only after paint stall', () => {
@@ -34,7 +36,8 @@ test('Progress resets stall clock without restarting an incomplete image', () =>
 });
 
 test('Cached native bytes are never re-fetched by the expo fallback timer', () => {
-  assert.equal(decide({ ...base, now: 120_000, fromDiskCache: true }), 'keep');
+  assert.equal(decide({ ...base, now: 110_000, fromDiskCache: true }), 'keep');
+  assert.equal(decide({ ...base, now: 112_000, fromDiskCache: true }), 'fallback');
 });
 
 test('Any unfinished request exits loading state at hard deadline', () => {

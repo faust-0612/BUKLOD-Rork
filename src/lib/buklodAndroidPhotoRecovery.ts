@@ -15,21 +15,27 @@ export type AndroidPhotoRecoveryInput = {
 };
 
 export const ANDROID_PHOTO_STALL_MS = 18_000;
+export const ANDROID_PHOTO_NATIVE_STALL_MS = 40_000;
+export const ANDROID_PHOTO_DISK_PAINT_STALL_MS = 12_000;
 export const ANDROID_PHOTO_DECODE_STALL_MS = 8_000;
 export const ANDROID_PHOTO_DEADLINE_MS = 90_000;
 
 export function decideAndroidPhotoRecovery(input: AndroidPhotoRecoveryInput): AndroidPhotoRecoveryDecision {
   const elapsed = Math.max(0, input.now - input.startedAt);
   if (elapsed >= ANDROID_PHOTO_DEADLINE_MS) return 'fail';
-  if (input.renderer !== 'expo' || input.fromDiskCache) return 'keep';
-
+  if (input.fromDiskCache) {
+    return elapsed >= ANDROID_PHOTO_DISK_PAINT_STALL_MS ? 'fallback' : 'keep';
+  }
+  const lastActivity = input.lastProgressAt || input.startedAt;
+  if (input.renderer === 'native') {
+    return input.now - lastActivity >= ANDROID_PHOTO_NATIVE_STALL_MS ? 'fallback' : 'keep';
+  }
   if (input.decodedAt > 0) {
     return input.now - input.decodedAt >= ANDROID_PHOTO_DECODE_STALL_MS
       ? 'fallback'
       : 'keep';
   }
 
-  const lastActivity = input.lastProgressAt || input.startedAt;
   return input.now - lastActivity >= ANDROID_PHOTO_STALL_MS
     ? 'fallback'
     : 'keep';
