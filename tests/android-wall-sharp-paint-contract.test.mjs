@@ -59,3 +59,29 @@ test('sharp original streaming remains alive beyond hard deadlines when bytes co
   assert.equal(shouldKeepWallOriginalTransfer({ ...sample, lastProgressAt: 0 }), false);
   assert.equal(shouldKeepWallOriginalTransfer({ ...sample, now: 600_000, lastProgressAt: 590_000 }), true);
 });
+
+test('both Expo callback orders progressively reveal high quality once valid', () => {
+  const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
+  // A fast onDisplay can precede onLoad. Both paths must attempt promotion.
+  assert.match(renderer, /displayedOriginalRef\.current\.url === current\.url/);
+  assert.match(renderer, /displayedOriginalRef\.current = \{ url: current\.url, displayed: true \}/);
+  assert.match(renderer, /activeUpgradeRendererRef\.current === 'expo'/);
+  assert.match(renderer, /if \(activeUpgradeRendererRef\.current !== 'native'\) return/);
+});
+
+test('Network reachability fluctuations cannot cancel an active original or base photo', () => {
+  const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
+  assert.match(renderer, /const canRequestRef = useRef\(canRequest\)/);
+  assert.match(renderer, /\}, \[mediaPath, retryEpoch\]\)/);
+  assert.match(renderer, /\}, \[identity, cacheKey, path, usingPreview, retryEpoch\]\)/);
+  assert.match(renderer, /setSource\(current => current\.identity === identity && !current\.painted && !current\.url/);
+});
+
+test('existing original bytes, fallback, and incremental sharp upgrade stay separate from media authorisation', () => {
+  const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
+  assert.match(renderer, /communityWallSharpGate\.request\(\)/);
+  assert.match(renderer, /actual\.painted \? <WallSharpOverlay mediaPath=\{originalPath\}/);
+  assert.match(renderer, /\? await resolveCommunityMediaUrl\(mediaPath, null\)/);
+  assert.match(renderer, /if \(usingPreview\) \{[\s\S]*?setFailedPreviewFor\(originalPath\)/);
+  assert.match(renderer, /cachePolicy="memory-disk"/);
+});
