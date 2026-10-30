@@ -1,0 +1,20 @@
+{
+  "objective": "Preserve exact per-scene KL illustration anchors and atmosphere across editor navigation without touching unrelated features",
+  "baseRef": "89aebc175ae8096e98eb491a1c6842da07909e9b",
+  "productionBaselineEvidence": "DEV anchored to GitHub main 89aebc175ae8096e98eb491a1c6842da07909e9b; Android production OTA fingerprint not independently verified, no release authorized",
+  "allowedPaths": [
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/kl-scene-anchor-persistence-20261030.json",
+    "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx",
+    "src/lib/kabihasnang-ligaw/sceneDrafts.ts",
+    "__tests__/klSceneDrafts.test.ts"
+  ],
+  "acceptanceChecks": [
+    "Each illustration scene rehydrates the exact saved anchor and before/after position from the authorized admin media RPC",
+    "Scene-specific unsaved edits do not leak into other scene selections",
+    "Replacing one illustration resets only that illustration's old placement draft",
+    "Existing preview approval remains unchanged if the RPC reports changed false",
+    "TypeScript and focused unit regression suite pass before release",
+    "No database migration, native rebuild, or production OTA is performed in this workstream"
+  ]
+}
