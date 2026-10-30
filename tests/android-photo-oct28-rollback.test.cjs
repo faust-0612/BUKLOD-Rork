@@ -49,6 +49,11 @@ test('Photo-collage layout and per-photo taps remain on canonical shared compone
   assert.match(native,/onLoad\?\.\(\{ source: event\.nativeEvent\.source \}\)/);
 });
 
-test('Android-specific file is included in the canonical production OTA trigger',()=>{
-  assert.match(release,/^\s+- 'src\/components\/BuklodCachedMediaImage\.android\.tsx'$/m);
+test('Android photo fix ships only from exact-main manually verified Android OTA',()=>{
+  assert.match(release,/workflow_dispatch:/);
+  assert.match(release,/Only exact manual production RC promotions/);
+  assert.match(release,/git ls-remote origin refs\/heads\/main/);
+  assert.match(release,/node scripts\/android-ota-rc\.cjs verify/);
+  assert.match(release,/update --channel production --platform android/);
+  assert.doesNotMatch(release,/^\s+push:/m);
 });
