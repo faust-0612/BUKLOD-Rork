@@ -3,6 +3,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import KlAdminMediaUpload from './KlAdminMediaUpload';
 import KlAdminPreview from './KlAdminPreview';
+import { klPreviewReadyForEpisode } from '@/lib/kabihasnang-ligaw/mediaApprovalState';
 
 type Episode = {
   id: string;
@@ -101,7 +102,7 @@ export default function KlPublishingStudio() {
   const dirty = !!id && !!lastSaved && lastSaved.id === id
     && (lastSaved.title !== title || lastSaved.manuscript !== manuscript);
   const saved = !!id && !!lastSaved && lastSaved.id === id && !dirty;
-  const previewReady = !!id && (confirmedPreviewId === id || episodes.some((entry) => entry.id === id && entry.preview_ready));
+  const previewReady = klPreviewReadyForEpisode(episodes, id, confirmedPreviewId);
 
   const open = async (episode: Episode, force = false) => {
     if (!force && dirty && episode.id !== id) {
@@ -203,8 +204,9 @@ export default function KlPublishingStudio() {
       if (error) throw error;
       if (!(data as { ready?: boolean } | null)?.ready) throw new Error('Hindi nakumpirma ng server ang preview.');
       setConfirmedPreviewId(id);
-      setPreviewOpen(true);
-      setFeedback({ tone: 'success', text: 'Private preview prepared on server. Nasa ibaba ang preview at bawat media approval; hindi pa public.' });
+      // Do not mount every full-resolution scene while the user is still editing.
+      setPreviewOpen(false);
+      setFeedback({ tone: 'success', text: 'Private preview prepared on server. Tap Open Private Preview & Media Approvals below; hindi pa public.' });
       await refresh().catch(() => undefined);
     });
   };
@@ -219,7 +221,7 @@ export default function KlPublishingStudio() {
   return (
     <View style={{ gap: 12, padding: 16, backgroundColor: '#182537', borderRadius: 12 }}>
       <Text style={{ color: '#f1d39b', fontWeight: 'bold', fontSize: 18 }}>KL · Content Creation Studio</Text>
-      <Text style={{ color: '#e3e8ef' }}>Create, edit at private preview dito. Ang approval at release ay nasa Community Wall KL Admin.</Text>
+      <Text style={{ color: '#e3e8ef' }}>Create, edit and review private media here. Chapter approval and public release remain in Community Wall KL Admin.</Text>
       {feedback ? (
         <Text accessibilityRole="alert" style={{
           padding: 10, borderRadius: 8,

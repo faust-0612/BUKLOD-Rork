@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Expose server-prepared KL private preview and per-media approval inside Profile KL and make save actions show server-confirmed feedback without changing public release.",
+  "baseRef": "72de1e7f16b9ccf704147c14cbd61c35d2dd94b2",
+  "productionBaselineEvidence": "Main baseline 72de1e7. Production S1 chapter 2 has prepared private preview v2 and 4 private media assets with 0/4 server-approved; chapter is draft/unreleased. Installed Android OTA adoption not verified.",
+  "chosenApproach": "Reuse existing privileged KlAdminPreview server RPCs in the Profile KL studio, synchronize per-media approval status, derive UI indicators from server state, show feedback at action points.",
+  "selectionRationale": "Small UI-only wiring reuses tested authorization and backend state; no silent mass approval, database writes, native code, duplicate publishing flow, or new backend API.",
+  "alternativeApproaches": [
+    "Automatically mark uploaded media approved when chapter artwork was locally approved (rejected: bypasses per-file review and server security).",
+    "Replace current KL publishing UI and schema with a unified publication wizard (rejected: high regression risk and unnecessary redesign)."
+  ],
+  "riskAreas": [
+    "story"
+  ],
+  "preserveBehaviors": [
+    "No public chapter release or schedule change",
+    "Scene 1-3 anchors and effects remain independent",
+    "No-op saves retain previous preview and approval state",
+    "Only verified server RPC response can mark media approved",
+    "No Community Wall media rendering, navigation, or backend schema modifications"
+  ],
+  "acceptanceChecks": [
+    "S1 Ch2 existing prepared preview is reopenable without reuploading media",
+    "Individual media approval actions require privileged RPC and status refresh from server",
+    "Saved scene anchor/effect feedback is next to the action",
+    "No-op scene save does not invalidate prepared preview",
+    "Private preview is opened on demand to avoid editor image-memory spikes",
+    "Required focused tests, TS check and scope gate must pass before merge",
+    "Release separately only after exact runtime-compatible RC and OTA gates"
+  ],
+  "regressionTests": [
+    "tests/kl-preview-approval-feedback.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx",
+    "src/lib/kabihasnang-ligaw/mediaApprovalState.ts",
+    "tests/kl-preview-approval-feedback.test.mjs",
+    ".buklod/scopes/kl-preview-approval-feedback-20261030.json",
+    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx"
+  ]
+}

@@ -7,6 +7,7 @@ import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import KlChapterAudio from './KlChapterAudio';
+import { klSceneEffectSaved, klServerApprovedCount } from '@/lib/kabihasnang-ligaw/mediaApprovalState';
 import { KlSceneEffect, type SceneEffect } from './KlSceneEffect';
 import { sceneEditorValues, updateSceneDraft, clearSceneDraft, type SceneDrafts, type SceneDraft } from '@/lib/kabihasnang-ligaw/sceneDrafts';
 
@@ -80,8 +81,8 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
     setSceneDrafts((previous) => updateSceneDraft(previous, placement, changes));
   const placementSaved = selected?.kind === 'illustration'
     && !!selected.anchor && selected.anchor === anchor.trim() && selected.side === side;
-  const effectSaved = !!selected && (selected.effect ?? 'none') === effect && (selected.intensity ?? 30) === intensity;
-  const approvedCount = items.filter((item) => item.approved).length;
+  const effectSaved = klSceneEffectSaved(selected, effect, intensity);
+  const approvedCount = klServerApprovedCount(items);
   const imageSelected = kind === 'cover' || kind === 'illustration';
   const isBusy = !!busyAction;
 
@@ -381,7 +382,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       <Text style={{ color: '#c8d2da' }}>
         Uploaded media: {items.length}. Server-approved: {approvedCount}/{items.length}.
         Visual artwork approval is separate from server media approval.
-        Review and approve in Community Wall KL Admin after preparing the private preview.
+        Prepare and open the private preview below to review and approve each media file.
       </Text>
       <Choice label="Refresh media & approvals from server" disabled={isBusy}
         onPress={() => void perform('Nire-refresh ang media', async () => {
