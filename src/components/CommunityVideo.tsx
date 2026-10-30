@@ -450,6 +450,11 @@ function ExpoCommunityVideo({
     'idle' | 'loading' | 'readyToPlay' | 'error'
   >('idle');
   const replayAttemptsRef = useRef(0);
+  const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryNotBeforeRef = useRef(0);
+  const errorReportedRef = useRef(false);
+  const playbackErrorHandlerRef = useRef(onPlaybackError);
+  playbackErrorHandlerRef.current = onPlaybackError;
   const centerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readyStartedAtRef = useRef(Date.now());
   const readyReportedRef = useRef(false);
@@ -457,6 +462,19 @@ function ExpoCommunityVideo({
   useEffect(() => {
     readyStartedAtRef.current = Date.now();
     readyReportedRef.current = false;
+    replayAttemptsRef.current = 0;
+    retryNotBeforeRef.current = 0;
+    errorReportedRef.current = false;
+    if (replayTimerRef.current) {
+      clearTimeout(replayTimerRef.current);
+      replayTimerRef.current = null;
+    }
+    return () => {
+      if (replayTimerRef.current) {
+        clearTimeout(replayTimerRef.current);
+        replayTimerRef.current = null;
+      }
+    };
   }, [uri]);
 
   const source = useMemo(
@@ -514,12 +532,41 @@ function ExpoCommunityVideo({
               player: 'expo-video',
             });
           }
-          // Keep the same URI mounted. A transient fault must not
-          // immediately rotate the signed URL and discard cached bytes.
+          // Try the SAME URI once; it may be a transient decoder/buffer
+          // failure and its already-cached ranges must not be discarded.
+          if (!activeRef.current) return;
+          if (replayAttemptsRef.current === 0) {
+            replayAttemptsRef.current = 1;
+            retryNotBeforeRef.current = Date.now() + 2_500;
+            if (replayTimerRef.current) clearTimeout(replayTimerRef.current);
+            replayTimerRef.current = setTimeout(() => {
+              replayTimerRef.current = null;
+              if (!activeRef.current) return;
+              try {
+                player.replay();
+              } catch {
+                if (!errorReportedRef.current) {
+                  errorReportedRef.current = true;
+                  playbackErrorHandlerRef.current?.();
+                }
+              }
+            }, 900);
+            return;
+          }
+          // The recovery attempt itself may emit repeated error events.
+          // Refresh signed access only after the bounded local retry fails.
+          if (Date.now() >= retryNotBeforeRef.current && !errorReportedRef.current) {
+            errorReportedRef.current = true;
+            playbackErrorHandlerRef.current?.();
+          }
           return;
         }
 
         if (nextStatus === 'readyToPlay') {
+          if (replayTimerRef.current) {
+            clearTimeout(replayTimerRef.current);
+            replayTimerRef.current = null;
+          }
           if (!readyReportedRef.current) {
             readyReportedRef.current = true;
             recordCommunityFeedMetric({
@@ -581,8 +628,12 @@ function ExpoCommunityVideo({
       subscription.remove();
       playingSub.remove();
       timeSub.remove();
+      if (replayTimerRef.current) {
+        clearTimeout(replayTimerRef.current);
+        replayTimerRef.current = null;
+      }
     };
-  }, [onPlaybackError, player, uri]);
+  }, [player, uri]);
 
   useEffect(() => {
     if (!active) {
