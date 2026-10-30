@@ -39,6 +39,7 @@ import {
 import { recordCommunityFeedMetric } from '@/lib/communityFeedTelemetry';
 import {
   COMMUNITY_VIDEO_CACHE_BUDGET_BYTES,
+  decideCommunityVideoErrorRecovery,
   shouldMountCommunityVideoPlayer,
 } from '@/lib/communityVideoPlayback';
 
@@ -534,8 +535,14 @@ function ExpoCommunityVideo({
           }
           // Try the SAME URI once; it may be a transient decoder/buffer
           // failure and its already-cached ranges must not be discarded.
-          if (!activeRef.current) return;
-          if (replayAttemptsRef.current === 0) {
+          const action = decideCommunityVideoErrorRecovery({
+            active: activeRef.current,
+            replayAttempts: replayAttemptsRef.current,
+            retryNotBefore: retryNotBeforeRef.current,
+            now: Date.now(),
+            reported: errorReportedRef.current,
+          });
+          if (action === 'replay') {
             replayAttemptsRef.current = 1;
             retryNotBeforeRef.current = Date.now() + 2_500;
             if (replayTimerRef.current) clearTimeout(replayTimerRef.current);
@@ -555,7 +562,7 @@ function ExpoCommunityVideo({
           }
           // The recovery attempt itself may emit repeated error events.
           // Refresh signed access only after the bounded local retry fails.
-          if (Date.now() >= retryNotBeforeRef.current && !errorReportedRef.current) {
+          if (action === 'refresh') {
             errorReportedRef.current = true;
             playbackErrorHandlerRef.current?.();
           }
