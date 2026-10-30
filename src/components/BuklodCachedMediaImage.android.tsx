@@ -384,6 +384,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       // or downloading the same bytes after reopening or scrolling.
       if (path && cacheKey && !badCacheKeys.current.has(cacheKey)) {
         try {
+          // Resolve the original locally before signing; Expo onDisplay is
+          // required before treating previously cached pixels as painted.
           // A stalled cache lookup must never delay first-time URL signing.
           let cacheTimer: ReturnType<typeof setTimeout> | null = null;
           const cached = await Promise.race([
@@ -400,7 +402,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
               ? cached
               : `file://${cached}`;
             setSource(current => current.identity === identity && !current.painted
-              ? { ...current, url: fileUri, renderer: 'native', fromDiskCache: true }
+              ? { ...current, url: fileUri, renderer: 'expo', fromDiskCache: true }
               : current);
             return;
           }
