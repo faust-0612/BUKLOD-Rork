@@ -30,7 +30,8 @@ import {
 } from '@/lib/buklodMediaUrl';
 import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
 import { communityWallPreviewPath, verifiedLegacyWallPreviewPath } from '@/lib/communityWallPreviewPath';
-import { communityWallSharpGate } from '@/lib/communityWallSharpUpgrade';
+import { communityWallSharpGate, configureCommunityWallOriginalQuality } from '@/lib/communityWallSharpUpgrade';
+import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
 import { planWallOriginalSource, shouldKeepWallOriginalTransfer, shouldMountWallOriginalUpgrade, shouldRevealWallOriginal } from '@/lib/communityWallPhotoDisplayGate';
 
 type Props = {
@@ -94,6 +95,11 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   // Connectivity hints may flap on cellular. Do not unmount an in-flight image.
   const canRequestRef = useRef(canRequest);
   canRequestRef.current = canRequest;
+
+  useEffect(() => {
+    // Dynamic 3G budget; do not resubscribe or restart a mounted transfer.
+    configureCommunityWallOriginalQuality(classifyNetworkQuality() === 'degraded');
+  }, [isConnected, isInternetReachable, lastOnlineAt]);
 
   useEffect(() => {
     // A successfully decoded original must survive NetInfo changes untouched.
