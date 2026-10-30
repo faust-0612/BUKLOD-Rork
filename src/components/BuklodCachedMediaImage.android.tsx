@@ -234,7 +234,8 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       fadeDuration={0}
       onLoad={event => {
         const dimensions = event.nativeEvent.source;
-        finish(shouldRevealWallOriginal({
+        const hasDimensions = Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0;
+        finish(hasDimensions && shouldRevealWallOriginal({
           expectedUrl: current.url,
           decodedUrl: current.url,
           width: Number(dimensions?.width ?? 0),
