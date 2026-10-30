@@ -31,7 +31,7 @@ import {
 import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
 import { communityWallPreviewPath, verifiedLegacyWallPreviewPath } from '@/lib/communityWallPreviewPath';
 import { communityWallSharpGate } from '@/lib/communityWallSharpUpgrade';
-import { shouldRevealWallOriginal } from '@/lib/communityWallPhotoDisplayGate';
+import { shouldKeepWallOriginalTransfer, shouldRevealWallOriginal } from '@/lib/communityWallPhotoDisplayGate';
 
 type Props = {
   uri?: string | null;
@@ -83,6 +83,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   // only a bounded fallback, never a second simultaneous download.
   const [upgradeRenderer, setUpgradeRenderer] = useState<'expo' | 'native'>('expo');
   const decodedOriginalRef = useRef({ url: '', width: 0, height: 0 });
+  const upgradeProgressRef = useRef({ url: '', bytes: 0, lastProgressAt: 0 });
   const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
   const releaseRef = useRef<(() => void) | null>(null);
   const badOriginalCacheRef = useRef(new Set<string>());
@@ -95,6 +96,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     setRetryPending(false);
     setUpgradeRenderer('expo');
     decodedOriginalRef.current = { url: '', width: 0, height: 0 };
+    upgradeProgressRef.current = { url: '', bytes: 0, lastProgressAt: 0 };
     setSharp({ identity: mediaPath, url: '', ready: false });
     const task = communityWallSharpGate.request();
 
@@ -160,11 +162,22 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   useEffect(() => {
     if (!current.url || current.ready) return;
     // A genuinely stuck decoder must not monopolize a scarce upgrade slot.
-    const timeout = setTimeout(() => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const check = () => {
+      const progress = upgradeProgressRef.current;
+      if (shouldKeepWallOriginalTransfer({
+        expectedUrl: current.url,
+        progressUrl: progress.url,
+        lastProgressAt: progress.lastProgressAt,
+        now: Date.now(),
+        stallMs: upgradeRenderer === 'expo' ? 18_000 : 40_000,
+      })) {
+        // Never restart an actively downloading original, even beyond 90 s.
+        timeout = setTimeout(check, 12_000);
+        return;
+      }
       if (upgradeRenderer === 'expo') {
-        // Expo decoding or display may hang on certain Android devices. The
-        // original preview stays visible while the independent native image
-        // renderer gets one chance with the same URL.
+        // The decoder genuinely stalled: one native attempt with the SAME URL.
         setUpgradeRenderer('native');
         return;
       }
@@ -174,8 +187,9 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         ? { ...state, url: '' }
         : state);
       setRetryPending(true);
-    }, upgradeRenderer === 'expo' ? 18_000 : 90_000);
-    return () => clearTimeout(timeout);
+    };
+    timeout = setTimeout(check, upgradeRenderer === 'expo' ? 18_000 : 90_000);
+    return () => { if (timeout) clearTimeout(timeout); };
   }, [mediaPath, current.url, current.ready, upgradeRenderer]);
 
   if (!current.url) return null;
@@ -203,6 +217,19 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       contentFit={contentFit}
       cachePolicy="memory-disk"
       transition={0}
+      onProgress={event => {
+        const loaded = Number(event.loaded ?? 0);
+        const progress = upgradeProgressRef.current;
+        if (progress.url !== current.url) {
+          progress.url = current.url;
+          progress.bytes = 0;
+          progress.lastProgressAt = 0;
+        }
+        if (loaded > progress.bytes) {
+          progress.bytes = loaded;
+          progress.lastProgressAt = Date.now();
+        }
+      }}
       onLoad={event => {
         const dimensions = event.source;
         decodedOriginalRef.current = {
@@ -232,6 +259,19 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
       resizeMode={contentFit}
       fadeDuration={0}
+      onProgress={event => {
+        const loaded = Number(event.nativeEvent?.loaded ?? 0);
+        const progress = upgradeProgressRef.current;
+        if (progress.url !== current.url) {
+          progress.url = current.url;
+          progress.bytes = 0;
+          progress.lastProgressAt = 0;
+        }
+        if (loaded > progress.bytes) {
+          progress.bytes = loaded;
+          progress.lastProgressAt = Date.now();
+        }
+      }}
       onLoad={event => {
         const dimensions = event.nativeEvent.source;
         const hasDimensions = Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0;
