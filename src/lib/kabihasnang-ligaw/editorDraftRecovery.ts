@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 const PREFIX = '@buklod/kl-private-editor-draft-v1/';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LIMIT = 500_000;
@@ -50,21 +48,4 @@ export function parseKlEditorDraft(raw: string | null, userId?: string | null, e
 
 export function hasUnsavedKlDraft(draft: KlEditorDraft | null, serverTitle: string, serverText: string): draft is KlEditorDraft {
   return !!draft && (draft.title !== serverTitle || draft.manuscript !== serverText);
-}
-
-export async function readKlEditorDraft(userId?: string | null, episodeId?: string | null) {
-  const key = klEditorDraftKey(userId, episodeId);
-  if (!key) return null;
-  return parseKlEditorDraft(await AsyncStorage.getItem(key), userId, episodeId);
-}
-
-export async function writeKlEditorDraft(draft: KlEditorDraft): Promise<void> {
-  const key = klEditorDraftKey(draft.userId, draft.episodeId);
-  if (!key) return;
-  await AsyncStorage.setItem(key, JSON.stringify(draft));
-}
-
-export async function removeKlEditorDraft(userId?: string | null, episodeId?: string | null): Promise<void> {
-  const key = klEditorDraftKey(userId, episodeId);
-  if (key) await AsyncStorage.removeItem(key);
 }
