@@ -11,7 +11,7 @@ test('Android-specific module bypasses October 28 full-screen photo masking wrap
   assert.match(native,/export const BuklodCachedMediaImage = memo\(AndroidWallPhoto/);
   // The progressive overlay is a sibling inside the existing measured
   // Pressable; never recreate the white-screen nested wrapper.
-  assert.match(native,/const renderWithUpgrade = \(preview: React\.ReactNode\) => usingPreview \?/);
+  assert.match(native,/const renderWithUpgrade = \(preview: React\.ReactNode\) => \(/);
   assert.match(native,/<ExpoImage[\s\S]*?style=\{style\}/);
   assert.match(native,/<NativeImage[\s\S]*?style=\{style\}/);
   assert.doesNotMatch(native,/<View style=\{style as any\}|const photoStyle =|loadingOverlay|loadingBadge|recyclingKey=\{cacheKey\}/);
@@ -49,6 +49,11 @@ test('Photo-collage layout and per-photo taps remain on canonical shared compone
   assert.match(native,/onLoad\?\.\(\{ source: event\.nativeEvent\.source \}\)/);
 });
 
-test('Android-specific file is included in the canonical production OTA trigger',()=>{
-  assert.match(release,/^\s+- 'src\/components\/BuklodCachedMediaImage\.android\.tsx'$/m);
+test('Android photo fix ships only from exact-main manually verified Android OTA',()=>{
+  assert.match(release,/workflow_dispatch:/);
+  assert.match(release,/Only exact manual production RC promotions/);
+  assert.match(release,/git ls-remote origin refs\/heads\/main/);
+  assert.match(release,/node scripts\/android-ota-rc\.cjs verify/);
+  assert.match(release,/update --channel production --platform android/);
+  assert.doesNotMatch(release,/^\s+push:/m);
 });

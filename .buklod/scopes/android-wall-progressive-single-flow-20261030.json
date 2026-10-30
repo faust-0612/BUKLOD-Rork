@@ -1,0 +1,62 @@
+{
+  "contractVersion": 2,
+  "objective": "Unify Android public/scoped Wall photo delivery into cache-first independently loaded original with lightweight preview, resilient white/failed thumbnail recovery and 3G-limited network slots",
+  "baseRef": "72de1e7f16b9ccf704147c14cbd61c35d2dd94b2",
+  "productionBaselineEvidence": "Main SHA 72de1e7f16b9ccf704147c14cbd61c35d2dd94b2 merged PR #443. Verified historical Android Production OTA 01a18bdb-50ee-7c4f-928e-b16925cb8c14 (runtime 1.3.2, source 646617b5); newer client telemetry shows 01a18c39-4ca5-7d03-ba11-1dea511852c5 but exact source and device rendering not yet verified. Prior Supabase inspection: 814 indexed previews, 209 failed preview-generation jobs, all 209 originals exist. Physical device skipped by owner previously.",
+  "chosenApproach": "One Android Wall first-paint hint and secure original: cached original skips network gate, otherwise independent original uses 2 slots normal/1 degraded, cachePath reuse, original promotion only after display, preview failure leaves original alive without forced duplicate fetch, Expo-cached original paint confirmation and bounded native fallback. Existing public/scoped collagen and upload paths are shared. No backend mutation. Correct regression impact classifier false-positive for Upgrade versus grade; preserve real Classroom/Quiz coverage.",
+  "alternativeApproaches": [
+    "Download originals for every Wall photo and abandon lightweight previews (rejected: weak-network delay, data costs, memory risk)",
+    "Wait until preview native onLoad fires before starting sharp original (rejected: white tile/stalled preview blocks sharp original)",
+    "Maintain separate 30-second automatic switch to direct original while original upgrade is already downloading (rejected: duplicate requests and flicker)",
+    "Change all platforms including generic web/iOS/Connect implementation (rejected: not the Android root cause and introduces unrelated regressions)"
+  ],
+  "selectionRationale": "Unifies priority and fallback at the Android Wall boundary while preserving full-screen and other platforms; data stays private and cache keys remain media-path based.",
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/communityWallPhotoDisplayGate.ts",
+    "tests/android-wall-auto-sharp.test.mjs",
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/community-wall-preview-sidecar.test.mjs",
+    ".buklod/scopes/android-wall-progressive-single-flow-20261030.json",
+    "src/lib/communityWallSharpUpgrade.ts",
+    "tests/community-wall-legacy-preview-backfill.test.mjs",
+    "tests/android-photo-oct28-rollback.test.cjs",
+    "tests/android-photo-cache-first-progress.test.mjs",
+    "scripts/engineering-regression-gate.mjs",
+    "tests/engineering-regression-gate.test.mjs"
+  ],
+  "riskAreas": [
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/android-wall-auto-sharp.test.mjs",
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/community-wall-preview-sidecar.test.mjs",
+    "tests/community-wall-legacy-preview-backfill.test.mjs",
+    "tests/android-photo-oct28-rollback.test.cjs",
+    "tests/android-photo-cache-first-progress.test.mjs",
+    "tests/engineering-regression-gate.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "No changes to public/scoped Wall data pipeline, content permissions, private signed URL generation, RLS or Storage",
+    "No new native module or build; Android production runtime 1.3.2 retained",
+    "No changes to generic web/iOS photo pipeline or Connect and fullscreen zoom viewer",
+    "Existing preview files, original Storage objects, uploader and thumbnail indexing retained",
+    "Existing bounded retry and fallback do not restart progressing weak-network streams",
+    "Community card layout, taps, zoom and ad placement untouched"
+  ],
+  "acceptanceChecks": [
+    "An indexed sidecar in loading/white/pending state never gates original upgrade",
+    "An already disk-cached full original skips network slot and Storage signing, online or offline",
+    "A new original consumes one bounded network slot; release on display/failure/unmount",
+    "No unconditional timeout triggers duplicate original download alongside upgrade",
+    "Preview remains mounted/visible until decoded/displayed original can replace it",
+    "Unindexed photos use the original directly; missing previews fall back to secured original",
+    "Pass behavior tests, TypeScript, existing sidecar and weak-network regressions and release gates; RC/production requires exact OTA evidence",
+    "Preview error does not change media identity or cancel the original; original continues and overrides failed placeholder",
+    "Already-cached original starts with Expo onDisplay verification; corrupt cached file retries authorized network once promptly",
+    "Preview images have high loader priority while original download is low priority and limited to one on degraded 2G/3G",
+    "Same public and scoped Wall collage component is used; web, iOS and fullscreen remain unchanged",
+    "Regression gate preserves Classroom/Quiz classification for gradebook but excludes image Upgrade modules from false Classroom labels"
+  ]
+}
