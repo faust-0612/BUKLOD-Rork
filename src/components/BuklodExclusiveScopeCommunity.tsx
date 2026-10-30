@@ -83,7 +83,7 @@ import {
   communityPhotoCollageItems,
 } from '@/components/BuklodCommunityPhotoCollage';
 import { peekCommunityMediaUrl, resignCommunityMediaUrl } from '@/lib/buklodMediaUrl';
-import { applyCommunityWallMediaHydration } from '@/lib/communityWallHydration';
+import { applyCommunityWallMediaHydration, preservePendingCommunityWallMedia } from '@/lib/communityWallHydration';
 import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -874,24 +874,33 @@ export default function BuklodExclusiveScopeCommunity({
 
           // Paint the authorized scope posts immediately. Primary photos have
           // durable paths even when additional photo metadata is still coming.
+          // An empty media_items means "still pending", not "deleted".
+          // Retain previously painted multi-photos only if the same post ID
+          // still points at the same durable primary Storage object.
           const initialRows = rows.map(row => ({
             ...row,
-            media_items: row.media_path || row.media_url
-              ? [{
-                  post_id: row.id,
-                  media_position: 0,
-                  media_path: row.media_path,
-                  media_mime_type: row.media_mime_type,
-                  media_size_bytes: row.media_size_bytes,
-                  media_url: row.media_url,
-                }]
-              : [],
+            media_items: [] as SocialPost['media_items'],
           }));
-          setPosts(previous =>
-            scopeMediaLoadSeqRef.current === loadSeq
-              ? keepStableCommunityMedia(previous, initialRows)
-              : previous
-          );
+          setPosts(previous => {
+            if (scopeMediaLoadSeqRef.current !== loadSeq) return previous;
+            const retained = preservePendingCommunityWallMedia(previous, initialRows);
+            const displayRows = retained.map(row => ({
+              ...row,
+              media_items: row.media_items?.length
+                ? row.media_items
+                : row.media_path || row.media_url
+                  ? [{
+                      post_id: row.id,
+                      media_position: 0,
+                      media_path: row.media_path,
+                      media_mime_type: row.media_mime_type,
+                      media_size_bytes: row.media_size_bytes,
+                      media_url: row.media_url,
+                    }]
+                  : [],
+            }));
+            return keepStableCommunityMedia(previous, displayRows);
+          });
 
           // Start one media request and reuse its result even if it finishes
           // after names/comments. Never permanently discard late multi-photos.

@@ -12,7 +12,8 @@ test('scoped Community paints first before independent names, comments and media
   const media = scoped.indexOf('const mediaPromise =', at);
   const author = scoped.indexOf('const [namedRows, previewMap] = await Promise.all([', at);
   assert.ok(at > 0 && paint > at && paint < media && media < author);
-  assert.match(scoped, /media_items: row\.media_path \|\| row\.media_url/);
+  assert.match(scoped, /preservePendingCommunityWallMedia\(previous, initialRows\)/);
+  assert.match(scoped, /row\.media_path \|\| row\.media_url/);
   assert.match(scoped, /const scopeMediaLoadSeqRef = useRef\(0\)/);
   assert.match(scoped, /return \(\) => \{ scopeMediaLoadSeqRef\.current \+= 1; \}/);
 });
@@ -40,4 +41,13 @@ test('slow metadata never overwrites media and Android never shows an unmarked e
 
 test('offline and error caches are generation-guarded after asynchronous reads', () => {
   assert.match(scoped, /if \(scopeMediaLoadSeqRef\.current !== loadSeq\) return;\s*if \(cached\?\.data\?\.length\)/);
+});
+
+test('scoped refresh preserves already-painted multi-photos only on same primary path', async () => {
+  const { preservePendingCommunityWallMedia } = await import('../src/lib/communityWallHydration.ts');
+  const old = [{ id:'post',media_path:'cluster/photo1.jpg',media_items:[{media_path:'cluster/photo1.jpg'},{media_path:'cluster/photo2.jpg'}] }];
+  const same = preservePendingCommunityWallMedia(old,[{id:'post',media_path:'cluster/photo1.jpg',media_items:[]}]);
+  assert.equal(same[0].media_items.length,2);
+  const changed = preservePendingCommunityWallMedia(old,[{id:'post',media_path:'cluster/new.jpg',media_items:[]}]);
+  assert.equal(changed[0].media_items.length,0);
 });
