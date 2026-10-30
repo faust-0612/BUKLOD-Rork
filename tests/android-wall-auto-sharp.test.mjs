@@ -22,7 +22,7 @@ test('only Android Wall collage activates preview, fullscreen original stays ori
   assert.match(collage, /useWallPreview/);
   assert.match(renderer, /const usingPreview = !!markedPreviewPath/);
   assert.match(renderer, /const renderWithUpgrade = \(preview: React\.ReactNode\) => usingPreview \?/);
-  assert.match(renderer, /initialSource\(identity, path, preferred, useWallPreview\)/);
+  assert.match(renderer, /initialSource\(identity, path, preferred, usingPreview\)/);
   assert.match(renderer, /renderer: preferNative \? 'native' : 'expo'/);
   assert.match(renderer, /resolveCommunityMediaUrl\(mediaPath, null\)/);
   assert.match(renderer, /ExpoImage\.getCachePathAsync\(key\)/);
@@ -80,4 +80,12 @@ test('unmounted queued tile is cancelled before a network request starts', async
   assert.equal(await waiting.granted, null);
   first();
   assert.deepEqual(gate.stats(), { active: 0, queued: 0 });
+});
+
+test('unindexed legacy originals are rendered directly, not misclassified as native previews', () => {
+  assert.match(renderer, /const usingPreview = !!markedPreviewPath/);
+  assert.match(renderer, /const path = usingPreview \? markedPreviewPath! : originalPath/);
+  assert.match(renderer, /initialSource\(identity, path, preferred, usingPreview\)/);
+  assert.match(renderer, /renderer: usingPreview \? 'native' : 'expo'/);
+  assert.match(renderer, /onDisplay=\{\(\) => \{/);
 });
