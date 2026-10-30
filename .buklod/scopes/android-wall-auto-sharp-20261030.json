@@ -6,6 +6,7 @@
     "src/components/BuklodCachedMediaImage.android.tsx",
     "src/lib/communityWallSharpUpgrade.ts",
     "tests/android-wall-auto-sharp.test.mjs",
+    "tests/android-photo-oct28-rollback.test.cjs",
     ".github/workflows/engineering-accountability.yml",
     ".buklod/scopes/android-wall-auto-sharp-20261030.json"
   ],

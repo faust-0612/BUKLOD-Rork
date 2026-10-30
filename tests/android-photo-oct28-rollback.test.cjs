@@ -9,9 +9,13 @@ const release = fs.readFileSync('.github/workflows/production_android_ota.yml','
 
 test('Android-specific module bypasses October 28 full-screen photo masking wrapper',()=>{
   assert.match(native,/export const BuklodCachedMediaImage = memo\(AndroidWallPhoto/);
-  assert.match(native,/<ExpoImage[\s\S]*?style=\{style\}/);
-  assert.match(native,/<NativeImage[\s\S]*?style=\{style\}/);
-  assert.doesNotMatch(native,/StyleSheet\.absoluteFillObject|loadingOverlay|loadingBadge|recyclingKey=\{cacheKey\}/);
+  // New Android Wall-only progressive layer uses absolute fill inside a
+  // non-opaque preview wrapper; the fullscreen original is not wrapped.
+  assert.match(native,/const renderWithUpgrade = \(preview: React\.ReactNode\) => usingPreview \?/);
+  assert.match(native,/<ExpoImage[\s\S]*?style=\{photoStyle\}/);
+  assert.match(native,/<NativeImage[\s\S]*?style=\{photoStyle\}/);
+  assert.match(native,/const photoStyle = usingPreview \? StyleSheet\.absoluteFillObject : style/);
+  assert.doesNotMatch(native,/loadingOverlay|loadingBadge|recyclingKey=\{cacheKey\}/);
   // Web and iOS keep their existing generic implementation.
   assert.match(generic,/styles\.loadingOverlay/);
 });
@@ -22,7 +26,7 @@ test('Android decode cannot prematurely suppress fallback without onDisplay',()=
   assert.match(policy,/export const ANDROID_PHOTO_DECODE_STALL_MS = 8_000/);
   assert.match(native,/current\.renderer === 'expo' && !current\.painted/);
   assert.match(native,/renderer: 'native'/);
-  const expo = native.slice(native.lastIndexOf('  return (\n    <ExpoImage'));
+  const expo = native.slice(native.lastIndexOf('  return renderWithUpgrade(\n    <ExpoImage'));
   const onLoad = expo.split('onLoad={event => {')[1]?.split('onDisplay=')[0] ?? '';
   assert.doesNotMatch(onLoad,/painted: true/);
   assert.match(expo,/onDisplay=\{\(\) => \{[\s\S]*?painted: true/);

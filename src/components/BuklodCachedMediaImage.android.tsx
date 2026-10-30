@@ -148,7 +148,6 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       key={'sharp:' + mediaPath + ':' + current.url}
       source={{ uri: current.url }}
       style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
-      pointerEvents="none"
       resizeMode={contentFit}
       fadeDuration={0}
       onLoad={event => {
