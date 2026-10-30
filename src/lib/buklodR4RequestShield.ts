@@ -377,6 +377,16 @@ function invalidateAfterMutation(rawUrl: string, method: string) {
   // Cluster mutations are POST RPCs; never cache them. After a confirmed
   // mutation, invalidate user-scoped list/discovery reads across the shield.
   const rpc = rpcFromUrl(rawUrl);
+  if (rpc === 'buklod_connect_mark_direct_read') {
+    // A successful read cursor write makes any cached inbox totals obsolete.
+    invalidateMatching('/rpc/buklod_connect_personal_threads');
+    invalidateMatching('/rpc/buklod_connect_unread_count');
+    invalidateMatching('/rpc/buklod_connect_suggested_contacts_v1');
+  }
+  if (rpc === 'buklod_connect_mark_scope_read') {
+    invalidateMatching('/rpc/buklod_connect_community_rooms');
+    invalidateMatching('/rpc/buklod_connect_unread_count');
+  }
   if (rpc === 'buklod_internal_share_post_v2') {
     invalidateMatching('/rpc/buklod_internal_share_count_v2');
   }

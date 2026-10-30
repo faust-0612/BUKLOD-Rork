@@ -15,7 +15,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { ensureBuklodStreamVideoClient } from '@/lib/buklodStreamVideoClient';
 import {
   buildBuklodPersonalCallId,
@@ -680,6 +680,7 @@ function ConnectScreenInner({
   const communityThreadPath =
     '/connect/community/[scopeId]';
 
+  const loadSequenceRef = useRef(0);
   const load = useCallback(async () => {
     if (!profileId) {
       return;
@@ -689,6 +690,8 @@ function ConnectScreenInner({
       return;
     }
 
+    // A slower previous refresh must never restore an already-read badge.
+    const sequence = ++loadSequenceRef.current;
     const requestedContext = connectContext;
     const [p, r, suggested, requests] = await Promise.all([
       withBuklodTimeout<any>(
@@ -717,7 +720,7 @@ function ConnectScreenInner({
       ).catch(() => ({ data: null, error: { message: 'offline' } })),
     ]);
 
-    if (connectContextRef.current !== requestedContext) return;
+    if (connectContextRef.current !== requestedContext || sequence !== loadSequenceRef.current) return;
 
     let nextSuggested = suggested;
 
@@ -749,7 +752,7 @@ function ConnectScreenInner({
       }
     }
 
-    if (connectContextRef.current !== requestedContext) return;
+    if (connectContextRef.current !== requestedContext || sequence !== loadSequenceRef.current) return;
 
     if (!p.error) {
       setPersonal(
@@ -836,9 +839,13 @@ function ConnectScreenInner({
       .sort()
       .join(',');
 
-  useEffect(() => {
-    void load();
+  // Expo Router can retain the inbox mounted below a thread route. Refresh
+  // when it becomes visible again rather than waiting for the fallback poll.
+  useFocusEffect(useCallback(() => {
+    void loadRef.current();
+  }, [profileId, forcedScopeId, connectOnline]));
 
+  useEffect(() => {
     const pollTimer =
       setInterval(
         () => {

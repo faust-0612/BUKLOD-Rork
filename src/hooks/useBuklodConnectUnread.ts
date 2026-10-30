@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import { supabase } from '@/lib/supabase';
+import { subscribeConnectRead } from '@/lib/connectReadSync';
 import { useAuth } from '@/providers/AuthProvider';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
 
@@ -104,8 +105,10 @@ export function useBuklodConnectUnread() {
     return promise;
   }, [profileId]);
 
+  const refreshSequenceRef = useRef(0);
   const refresh = useCallback(
     async () => {
+      const sequence = ++refreshSequenceRef.current;
       if (!profileId) {
         setUnreadCount(0);
         setPersonalUnread(0);
@@ -118,6 +121,8 @@ export function useBuklodConnectUnread() {
           (supabase as any).rpc('buklod_connect_unread_count'),
           fetchThreadRooms(),
         ]);
+
+      if (sequence !== refreshSequenceRef.current) return;
 
       if (!countResult.error) {
         const data = countResult.data;
@@ -169,6 +174,13 @@ export function useBuklodConnectUnread() {
       }
 
       let active = true;
+      const unsubscribeRead = subscribeConnectRead(readerId => {
+        if (readerId !== profileId) return;
+        // A bootstrap started before the read can contain stale counts.
+        // Ignore it and request a fresh, post-write snapshot instead.
+        bootstrapRef.current = null;
+        void refresh();
+      });
       let releaseRealtime:
         (() => void)
         | null = null;
@@ -303,6 +315,7 @@ export function useBuklodConnectUnread() {
 
       return () => {
         active = false;
+        unsubscribeRead();
 
         if (pollTimer) {
           clearInterval(

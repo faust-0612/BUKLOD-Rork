@@ -60,6 +60,7 @@ import {
   useStreamVideoClient,
 } from '@/lib/streamVideoSdk';
 import { supabase } from '@/lib/supabase';
+import { notifyConnectRead } from '@/lib/connectReadSync';
 import { playBuklodCue, setBuklodActiveMessageThread } from '@/lib/buklodSounds';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { useNetwork } from '@/providers/NetworkProvider';
@@ -1811,6 +1812,9 @@ const [
         );
         return;
       }
+
+      // Only a confirmed database cursor update may clear unread UI.
+      notifyConnectRead(profileId);
 
       if (readMode === 'scope') {
         const readers = await fetchScopeConnectReaders(
