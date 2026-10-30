@@ -56,6 +56,7 @@ export default function KlPublishingStudio() {
   const [lastSaved, setLastSaved] = useState<{ id: string; title: string; manuscript: string } | null>(null);
   const [panel, setPanel] = useState<'manuscript' | 'media'>('manuscript');
   const [mediaKind, setMediaKind] = useState<'illustration' | 'cover' | 'music' | 'ambient'>('illustration');
+  const [mediaBusy, setMediaBusy] = useState(false);
   const lock = useRef(false);
 
   const refresh = async () => {
@@ -91,6 +92,7 @@ export default function KlPublishingStudio() {
     }
   };
 
+  const workspaceBusy = !!busyAction || mediaBusy;
   const dirty = !!id && !!lastSaved && lastSaved.id === id
     && (lastSaved.title !== title || lastSaved.manuscript !== manuscript);
   const saved = !!id && !!lastSaved && lastSaved.id === id && !dirty;
@@ -203,7 +205,7 @@ export default function KlPublishingStudio() {
       ) : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {episodes.map((episode) => (
-          <Pressable key={episode.id} accessibilityRole="button" disabled={!!busyAction}
+          <Pressable key={episode.id} accessibilityRole="button" disabled={workspaceBusy}
             onPress={() => void open(episode)}
             style={{ padding: 10, minHeight: 44, borderRadius: 8, backgroundColor: episode.id === id ? '#426b5c' : '#344a55' }}>
             <Text style={{ color: '#fff' }}>S{episode.season_number} Ch{episode.episode_number} · {episode.title}</Text>
@@ -214,18 +216,18 @@ export default function KlPublishingStudio() {
       <TextInput style={field} keyboardType="numeric" value={season} onChangeText={setSeason} placeholder="Series 1–12" placeholderTextColor="#aeb4bb" />
       <TextInput style={field} keyboardType="numeric" value={chapter} onChangeText={setChapter} placeholder="Chapter 1–30" placeholderTextColor="#aeb4bb" />
       <TextInput style={field} value={title} onChangeText={setTitle} placeholder="Chapter title" placeholderTextColor="#aeb4bb" />
-      <Action label={busyAction === 'Ginagawa ang chapter' ? 'Opening…' : 'Create / Open Chapter'} disabled={!!busyAction} onPress={create} />
+      <Action label={busyAction === 'Ginagawa ang chapter' ? 'Opening…' : 'Create / Open Chapter'} disabled={workspaceBusy} onPress={create} />
       {id ? (
         <>
           <Text style={{ color: '#f1d39b', fontWeight: '700' }}>Chapter workspace · S{season} Ch{chapter}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <Action label="Manuscript" disabled={!!busyAction}
+            <Action label="Manuscript" disabled={workspaceBusy}
               onPress={() => setPanel('manuscript')} />
-            <Action label="Illustrations & Animation" disabled={!!busyAction}
+            <Action label="Illustrations & Animation" disabled={workspaceBusy}
               onPress={() => { setMediaKind('illustration'); setPanel('media'); }} />
-            <Action label="Music ♫" disabled={!!busyAction}
+            <Action label="Music ♫" disabled={workspaceBusy}
               onPress={() => { setMediaKind('music'); setPanel('media'); }} />
-            <Action label="Ambience" disabled={!!busyAction}
+            <Action label="Ambience" disabled={workspaceBusy}
               onPress={() => { setMediaKind('ambient'); setPanel('media'); }} />
           </View>
           <Text style={{ color: '#b7c8cd' }}>
@@ -247,7 +249,7 @@ export default function KlPublishingStudio() {
             {dirty ? 'Unsaved changes' : saved ? 'Loaded/saved on server' : 'New draft'}
             {' · '}{manuscript.trim().length} characters (minimum 30 to save)
           </Text>
-          <Action label={busyAction === 'Sine-save ang manuscript' ? 'Saving manuscript…' : 'Save Manuscript'} disabled={!!busyAction} onPress={save} />
+          <Action label={busyAction === 'Sine-save ang manuscript' ? 'Saving manuscript…' : 'Save Manuscript'} disabled={workspaceBusy} onPress={save} />
           {feedback ? (
             <Text accessibilityRole="alert" style={{ color: feedback.tone === 'error' ? '#ffb8b8' : '#c7f4d8' }}>
               {feedback.text}
@@ -257,10 +259,11 @@ export default function KlPublishingStudio() {
           ) : (
           <>
           <KlAdminMediaUpload key={id} episodeId={id} episodeNumber={Number(chapter)}
-            manuscript={manuscript} manuscriptSaved={saved} initialKind={mediaKind} />
+            manuscript={manuscript} manuscriptSaved={saved} initialKind={mediaKind}
+            onBusyChange={setMediaBusy} />
           <Text style={{ color: '#b7c8cd' }}>Preview requires 2–3 illustrations with exact saved paragraph placements.</Text>
           <Action label={busyAction === 'Inihahanda ang private preview' ? 'Preparing…' : 'Prepare Preview for Community Wall KL Admin'}
-            disabled={!!busyAction} onPress={prepare} />
+            disabled={workspaceBusy} onPress={prepare} />
           {feedback ? (
             <Text accessibilityRole="alert" style={{ color: feedback.tone === 'error' ? '#ffb8b8' : '#c7f4d8' }}>
               {feedback.text}
