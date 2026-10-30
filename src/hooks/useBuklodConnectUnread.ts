@@ -175,7 +175,11 @@ export function useBuklodConnectUnread() {
 
       let active = true;
       const unsubscribeRead = subscribeConnectRead(readerId => {
-        if (readerId === profileId) void refresh();
+        if (readerId !== profileId) return;
+        // A bootstrap started before the read can contain stale counts.
+        // Ignore it and request a fresh, post-write snapshot instead.
+        bootstrapRef.current = null;
+        void refresh();
       });
       let releaseRealtime:
         (() => void)
