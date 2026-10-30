@@ -275,8 +275,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   const [retryEpoch, setRetryEpoch] = useState(0);
   const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
   const canRequest = isConnected && isInternetReachable !== false;
-  const [source, setSource] = useState<SourceState>(() => initialSource(identity, path, preferred, useWallPreview));
-  const actual = source.identity === identity ? source : initialSource(identity, path, preferred, useWallPreview);
+  const [source, setSource] = useState<SourceState>(() => initialSource(identity, path, preferred, usingPreview));
+  const actual = source.identity === identity ? source : initialSource(identity, path, preferred, usingPreview);
 
   useEffect(() => {
     let active = true;
@@ -285,8 +285,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     // Reconnection must not reset a previously painted tile.
     if (actual.identity === identity && actual.painted) return;
     const first = retryEpoch
-      ? { ...initialSource(identity, path, preferred, useWallPreview), url: null }
-      : initialSource(identity, path, preferred, useWallPreview);
+      ? { ...initialSource(identity, path, preferred, usingPreview), url: null }
+      : initialSource(identity, path, preferred, usingPreview);
     setSource(first);
 
     void (async () => {
@@ -435,7 +435,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       if (cacheKey) badCacheKeys.current.add(cacheKey);
       // Cached bytes may have been evicted. Recover via the protected signer
       // once, rather than trapping the viewer in a corrupt local file.
-      const first = initialSource(identity, path, preferred, useWallPreview);
+      const first = initialSource(identity, path, preferred, usingPreview);
       // Fall back to the independent network loader if local bytes are bad.
       setSource({ ...first, failed: false, renderer: 'native' });
       if (!first.url && path) {
@@ -463,7 +463,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         setSource(current => {
           if (current.identity !== identity || current.url !== failedUrl) return current;
           return next && next !== failedUrl
-            ? { ...current, url: next, failed: false, painted: false, renderer: useWallPreview ? 'native' : 'expo', fromDiskCache: false, alternateAttempted: false }
+            ? { ...current, url: next, failed: false, painted: false, renderer: usingPreview ? 'native' : 'expo', fromDiskCache: false, alternateAttempted: false }
             : { ...current, failed: true };
         });
       })
@@ -496,7 +496,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     if (!path || resignInFlightRef.current) return;
     signRetryRef.current = 0;
     resignInFlightRef.current = true;
-    setSource({ identity, url: null, failed: false, renderer: useWallPreview ? 'native' : 'expo', painted: false, fromDiskCache: false, alternateAttempted: false });
+    setSource({ identity, url: null, failed: false, renderer: usingPreview ? 'native' : 'expo', painted: false, fromDiskCache: false, alternateAttempted: false });
     void resignCommunityMediaUrl(path)
       .then(next => setSource(current => current.identity === identity
         ? { ...current, url: next, failed: !next }
