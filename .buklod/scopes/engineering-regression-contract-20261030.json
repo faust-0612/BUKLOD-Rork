@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "objective": "Enforce evidence-first root-cause improvements and limit cross-feature regressions in all new BUKLOD workstreams without changing product runtime",
+  "baseRef": "646617b500215b27356c55519c548f140e554a21",
+  "productionBaselineEvidence": "GitHub main SHA 646617b500215b27356c55519c548f140e554a21 inspected on 2026-10-30; installed phone and actual production OTA have not been reverified. This policy change must not trigger production publication.",
+  "chosenApproach": "Extend existing AGENTS.md and single Engineering Accountability PR workflow with a no-dependency impact gate and self-tests",
+  "alternativeApproaches": [
+    "Add a separate large CI workflow with full native builds on each PR (rejected: runner credits and regressions from redundant pipelines)",
+    "Rely on agent instructions and source text checks alone (rejected: cannot catch behavior omissions)",
+    "Extend existing lightweight PR workflow with scope/impact checks and targeted runnable tests (selected)"
+  ],
+  "selectionRationale": "Retains the existing PR gate and zero production runtime changes; introduces repeatable fail-closed coverage checks with low runner cost.",
+  "preserveBehaviors": [
+    "No changes to Wall, Connect, Cluster, Show Faith, Classroom, Quiz or Auth product code",
+    "No build/production Android OTA, new APK, Supabase migration, or user data mutation",
+    "Existing branch-specific quality tests and the canonical release workflow remain in place",
+    "Never confuse static assertions or test-file presence with proven runtime and on-device behavior"
+  ],
+  "riskAreas": [
+    "engineering-governance"
+  ],
+  "regressionTests": [
+    "tests/engineering-regression-gate.test.mjs"
+  ],
+  "allowedPaths": [
+    "AGENTS.md",
+    "scripts/engineering-regression-gate.mjs",
+    "tests/engineering-regression-gate.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/engineering-regression-contract-20261030.json"
+  ],
+  "acceptanceChecks": [
+    "New and changed scope manifests explicitly capture alternatives, chosen rationale, preserved behaviors, impact areas and tests",
+    "Every product change in a PR has a changed focused regression test; multiple impacted areas need corresponding tests",
+    "Supabase changes require SQL tests; production identity/release changes require focused Node release tests",
+    "The guard runs its own behavioral tests and runs changed Node tests on PRs; fails closed on unavailable baseline",
+    "Existing accountability gate passes for exact branch baseline and paths",
+    "No automatic Actions run unless a PR is opened; no production OTA is triggered by these changed paths"
+  ]
+}

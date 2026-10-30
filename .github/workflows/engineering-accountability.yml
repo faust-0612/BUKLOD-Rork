@@ -177,6 +177,13 @@ jobs:
             feat/community-fair-video-ready-20261027)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-fair-video-20261027.json" >> "$GITHUB_ENV";;
           esac
+          # Discover one new scoped change without branch-name mapping growth.
+          if ! grep -q '^BUKLOD_SCOPE_MANIFEST=' "$GITHUB_ENV"; then
+            mapfile -t scopes < <(git diff --name-only main...HEAD -- .buklod/scopes/ | grep -E '^\.buklod/scopes/[^/]+\.json$' || true)
+            if [ "${#scopes[@]}" -eq 1 ]; then
+              echo "BUKLOD_SCOPE_MANIFEST=${scopes[0]}" >> "$GITHUB_ENV"
+            fi
+          fi
       - name: Verify Community Wall hydration cannot erase photos
         if: github.head_ref == 'fix/wall-photo-hydration-state-20261029'
         run: node --experimental-strip-types --test tests/community-wall-media-hydration-state.test.mjs
@@ -227,6 +234,12 @@ jobs:
         if: github.head_ref == 'fix/android-wall-visible-photo-continuity-20261030'
         run: |
           node --experimental-strip-types --test tests/android-wall-auto-sharp.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs tests/community-wall-preview-sidecar.test.mjs tests/community-wall-legacy-preview-backfill.test.mjs
+      - name: Prove engineering regression gate fails closed
+        run: node --test tests/engineering-regression-gate.test.mjs
+      - name: Verify impacted features have runnable regression coverage
+        env:
+          BUKLOD_BASE_REF: main
+        run: node scripts/engineering-regression-gate.mjs --run-focused-node-tests
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
       - name: Verify KL per-scene saved placement and draft isolation
