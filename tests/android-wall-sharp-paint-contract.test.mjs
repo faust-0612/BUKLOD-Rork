@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { shouldKeepWallOriginalTransfer, shouldRevealWallOriginal } from '../src/lib/communityWallPhotoDisplayGate.ts';
+import { planWallOriginalSource, shouldKeepWallOriginalTransfer, shouldMountWallOriginalUpgrade, shouldRevealWallOriginal } from '../src/lib/communityWallPhotoDisplayGate.ts';
 
 const base = {
   expectedUrl: 'https://signed.example/original?token=2',
@@ -35,7 +35,7 @@ test('native fallback requires valid original dimensions, not a network start', 
 test('Android overlay keeps preview visible while validating Expo display and reuses original disk cache', () => {
   const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
   assert.match(renderer, /const renderWithUpgrade = \(preview: React.ReactNode\) => usingPreview \? \(/);
-  assert.match(renderer, /actual\.painted \? <WallSharpOverlay/);
+  assert.match(renderer, /shouldMountWallOriginalUpgrade\(\{/);
   assert.match(renderer, /source=\{\{ uri: current.url, cacheKey: originalCacheKey \}\}/);
   assert.match(renderer, /cachePolicy="memory-disk"/);
   assert.match(renderer, /onDisplay=\{\(\) => \{/);
@@ -80,8 +80,41 @@ test('Network reachability fluctuations cannot cancel an active original or base
 test('existing original bytes, fallback, and incremental sharp upgrade stay separate from media authorisation', () => {
   const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
   assert.match(renderer, /communityWallSharpGate\.request\(\)/);
-  assert.match(renderer, /actual\.painted \? <WallSharpOverlay mediaPath=\{originalPath\}/);
+  assert.match(renderer, /<WallSharpOverlay mediaPath=\{originalPath\}/);
   assert.match(renderer, /\? await resolveCommunityMediaUrl\(mediaPath, null\)/);
   assert.match(renderer, /if \(usingPreview\) \{[\s\S]*?setFailedPreviewFor\(originalPath\)/);
   assert.match(renderer, /cachePolicy="memory-disk"/);
+});
+
+test('cache-first originals bypass queue and signing, online and offline', () => {
+  assert.equal(planWallOriginalSource(true, true), 'cached');
+  assert.equal(planWallOriginalSource(true, false), 'cached');
+  assert.equal(planWallOriginalSource(false, true), 'network');
+  assert.equal(planWallOriginalSource(false, false), 'defer');
+});
+
+test('failed, blank or delayed thumbnails cannot gate original painting', () => {
+  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: 'u/post-x.jpg', usingPreview: true, previewFailed: false }), true);
+  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: 'u/post-x.jpg', usingPreview: true, previewFailed: true }), false);
+  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: 'u/post-x.jpg', usingPreview: false, previewFailed: false }), false);
+  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: '', usingPreview: true, previewFailed: false }), false);
+});
+
+test('cached originals are checked before an online download slot is consumed', () => {
+  const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
+  const effect = renderer.slice(renderer.indexOf('function WallSharpOverlay'), renderer.indexOf('function AndroidWallPhoto'));
+  const cache = effect.indexOf('ExpoImage.getCachePathAsync(key)');
+  const plan = effect.indexOf("sourcePlan === 'cached'");
+  const gate = effect.indexOf('communityWallSharpGate.request()');
+  const signer = effect.indexOf('resolveCommunityMediaUrl(mediaPath, null)');
+  assert.ok(cache >= 0 && cache < plan && plan < gate && gate < signer);
+  assert.match(effect, /if \(sourcePlan === 'cached' && cached\) \{/);
+  assert.match(effect, /return;\s*\}\s*if \(sourcePlan === 'defer'\)/);
+  assert.match(effect, /releaseRef\.current\?\.\(\)/);
+});
+
+test('no unconditional 30-second duplicate original request when thumbnail is slow', () => {
+  const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
+  assert.doesNotMatch(renderer, /setFailedPreviewFor\(current => current === originalPath/);
+  assert.match(renderer, /if \(usingPreview\) \{[\s\S]*?setFailedPreviewFor\(originalPath\)/);
 });
