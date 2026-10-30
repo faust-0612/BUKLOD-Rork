@@ -31,6 +31,7 @@ import {
 import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
 import { communityWallPreviewPath, verifiedLegacyWallPreviewPath } from '@/lib/communityWallPreviewPath';
 import { communityWallSharpGate } from '@/lib/communityWallSharpUpgrade';
+import { shouldKeepWallOriginalTransfer, shouldRevealWallOriginal } from '@/lib/communityWallPhotoDisplayGate';
 
 type Props = {
   uri?: string | null;
@@ -78,16 +79,31 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   const [sharp, setSharp] = useState({ identity: '', url: '', ready: false });
   const [retryEpoch, setRetryEpoch] = useState(0);
   const [retryPending, setRetryPending] = useState(false);
+  // Expo's onDisplay verifies the original reached its image view. Native is
+  // only a bounded fallback, never a second simultaneous download.
+  const [upgradeRenderer, setUpgradeRenderer] = useState<'expo' | 'native'>('expo');
+  const decodedOriginalRef = useRef({ url: '', width: 0, height: 0 });
+  const displayedOriginalRef = useRef({ url: '', displayed: false });
+  const activeUpgradeRendererRef = useRef(upgradeRenderer);
+  activeUpgradeRendererRef.current = upgradeRenderer;
+  const upgradeProgressRef = useRef({ url: '', bytes: 0, lastProgressAt: 0 });
   const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
   const releaseRef = useRef<(() => void) | null>(null);
   const badOriginalCacheRef = useRef(new Set<string>());
   const canRequest = isConnected && isInternetReachable !== false;
+  // Connectivity hints may flap on cellular. Do not unmount an in-flight image.
+  const canRequestRef = useRef(canRequest);
+  canRequestRef.current = canRequest;
 
   useEffect(() => {
     // A successfully decoded original must survive NetInfo changes untouched.
     if (sharp.identity === mediaPath && sharp.ready) return;
     let active = true;
     setRetryPending(false);
+    setUpgradeRenderer('expo');
+    decodedOriginalRef.current = { url: '', width: 0, height: 0 };
+    displayedOriginalRef.current = { url: '', displayed: false };
+    upgradeProgressRef.current = { url: '', bytes: 0, lastProgressAt: 0 };
     setSharp({ identity: mediaPath, url: '', ready: false });
     const task = communityWallSharpGate.request();
 
@@ -113,7 +129,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         if (!active) return;
         url = cached
           ? (/^(file|content):\/\//i.test(cached) ? cached : 'file://' + cached)
-          : canRequest ? await resolveCommunityMediaUrl(mediaPath, null).catch(() => null) : null;
+          : canRequestRef.current ? await resolveCommunityMediaUrl(mediaPath, null).catch(() => null) : null;
       } catch {
         // Original is an optional visual upgrade; do not break the preview.
       } finally {
@@ -132,7 +148,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       releaseRef.current?.();
       releaseRef.current = null;
     };
-  }, [mediaPath, retryEpoch, canRequest]);
+  }, [mediaPath, retryEpoch]);
 
   // A visible/mounted preview must not be stranded after a failed sign,
   // expired URL or native decode. Use slow bounded retries; a reconnection
@@ -153,16 +169,35 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   useEffect(() => {
     if (!current.url || current.ready) return;
     // A genuinely stuck decoder must not monopolize a scarce upgrade slot.
-    const timeout = setTimeout(() => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const check = () => {
+      const progress = upgradeProgressRef.current;
+      if (shouldKeepWallOriginalTransfer({
+        expectedUrl: current.url,
+        progressUrl: progress.url,
+        lastProgressAt: progress.lastProgressAt,
+        now: Date.now(),
+        stallMs: upgradeRenderer === 'expo' ? 18_000 : 40_000,
+      })) {
+        // Never restart an actively downloading original, even beyond 90 s.
+        timeout = setTimeout(check, 12_000);
+        return;
+      }
+      if (upgradeRenderer === 'expo') {
+        // The decoder genuinely stalled: one native attempt with the SAME URL.
+        setUpgradeRenderer('native');
+        return;
+      }
       releaseRef.current?.();
       releaseRef.current = null;
       setSharp(state => state.identity === mediaPath && state.url === current.url
         ? { ...state, url: '' }
         : state);
       setRetryPending(true);
-    }, 90_000);
-    return () => clearTimeout(timeout);
-  }, [mediaPath, current.url, current.ready]);
+    };
+    timeout = setTimeout(check, upgradeRenderer === 'expo' ? 18_000 : 90_000);
+    return () => { if (timeout) clearTimeout(timeout); };
+  }, [mediaPath, current.url, current.ready, upgradeRenderer]);
 
   if (!current.url) return null;
   const finish = (ready: boolean) => {
@@ -178,18 +213,102 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     if (!ready) setRetryPending(true);
   };
 
-  return (
+  // Use the same stable disk cache key as the fullscreen Expo image. Once
+  // this original is downloaded successfully, remounts can reuse its bytes.
+  const originalCacheKey = communityMediaCacheKey(mediaPath, mediaPath);
+  return upgradeRenderer === 'expo' ? (
+    <ExpoImage
+      key={'sharp-expo:' + mediaPath + ':' + current.url}
+      source={{ uri: current.url, cacheKey: originalCacheKey }}
+      style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
+      contentFit={contentFit}
+      cachePolicy="memory-disk"
+      transition={0}
+      onProgress={event => {
+        const loaded = Number(event.loaded ?? 0);
+        const progress = upgradeProgressRef.current;
+        if (progress.url !== current.url) {
+          progress.url = current.url;
+          progress.bytes = 0;
+          progress.lastProgressAt = 0;
+        }
+        if (loaded > progress.bytes) {
+          progress.bytes = loaded;
+          progress.lastProgressAt = Date.now();
+        }
+      }}
+      onLoad={event => {
+        const dimensions = event.source;
+        decodedOriginalRef.current = {
+          url: current.url,
+          width: Number(dimensions?.width ?? 0),
+          height: Number(dimensions?.height ?? 0),
+        };
+        const decoded = decodedOriginalRef.current;
+        if (activeUpgradeRendererRef.current === 'expo' &&
+            displayedOriginalRef.current.url === current.url &&
+            displayedOriginalRef.current.displayed &&
+            shouldRevealWallOriginal({
+              expectedUrl: current.url,
+              decodedUrl: decoded.url,
+              width: decoded.width,
+              height: decoded.height,
+              activeRenderer: activeUpgradeRendererRef.current,
+              renderedBy: 'expo',
+              displayed: true,
+            })) finish(true);
+      }}
+      onDisplay={() => {
+        if (activeUpgradeRendererRef.current !== 'expo') return;
+        displayedOriginalRef.current = { url: current.url, displayed: true };
+        const decoded = decodedOriginalRef.current;
+        if (shouldRevealWallOriginal({
+          expectedUrl: current.url,
+          decodedUrl: decoded.url,
+          width: decoded.width,
+          height: decoded.height,
+          activeRenderer: upgradeRenderer,
+          renderedBy: 'expo',
+          displayed: true,
+        })) finish(true);
+      }}
+      onError={() => { if (activeUpgradeRendererRef.current === 'expo') setUpgradeRenderer('native'); }}
+    />
+  ) : (
     <NativeImage
-      key={'sharp:' + mediaPath + ':' + current.url}
+      key={'sharp-native:' + mediaPath + ':' + current.url}
       source={{ uri: current.url }}
       style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
       resizeMode={contentFit}
       fadeDuration={0}
-      onLoad={event => {
-        const dimensions = event.nativeEvent.source;
-        finish(Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0);
+      onProgress={event => {
+        const loaded = Number(event.nativeEvent?.loaded ?? 0);
+        const progress = upgradeProgressRef.current;
+        if (progress.url !== current.url) {
+          progress.url = current.url;
+          progress.bytes = 0;
+          progress.lastProgressAt = 0;
+        }
+        if (loaded > progress.bytes) {
+          progress.bytes = loaded;
+          progress.lastProgressAt = Date.now();
+        }
       }}
-      onError={() => finish(false)}
+      onLoad={event => {
+        if (activeUpgradeRendererRef.current !== 'native') return;
+        const dimensions = event.nativeEvent.source;
+        const hasDimensions = Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0;
+        finish(hasDimensions && shouldRevealWallOriginal({
+          expectedUrl: current.url,
+          decodedUrl: current.url,
+          width: Number(dimensions?.width ?? 0),
+          height: Number(dimensions?.height ?? 0),
+          activeRenderer: upgradeRenderer,
+          renderedBy: 'native',
+          displayed: false,
+        }));
+      }}
+      onError={() => { if (activeUpgradeRendererRef.current === 'native') finish(false); }}
     />
   );
 }
@@ -219,8 +338,10 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   const [retryEpoch, setRetryEpoch] = useState(0);
   const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
   const canRequest = isConnected && isInternetReachable !== false;
-  const [source, setSource] = useState<SourceState>(() => initialSource(identity, path, preferred, useWallPreview));
-  const actual = source.identity === identity ? source : initialSource(identity, path, preferred, useWallPreview);
+  const canRequestRef = useRef(canRequest);
+  canRequestRef.current = canRequest;
+  const [source, setSource] = useState<SourceState>(() => initialSource(identity, path, preferred, usingPreview));
+  const actual = source.identity === identity ? source : initialSource(identity, path, preferred, usingPreview);
 
   useEffect(() => {
     let active = true;
@@ -229,8 +350,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     // Reconnection must not reset a previously painted tile.
     if (actual.identity === identity && actual.painted) return;
     const first = retryEpoch
-      ? { ...initialSource(identity, path, preferred, useWallPreview), url: null }
-      : initialSource(identity, path, preferred, useWallPreview);
+      ? { ...initialSource(identity, path, preferred, usingPreview), url: null }
+      : initialSource(identity, path, preferred, usingPreview);
     setSource(first);
 
     void (async () => {
@@ -264,7 +385,14 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         }
       }
 
-      if (!active || first.url || !path || !canRequest) return;
+      if (!active || first.url || !path) return;
+      if (!canRequestRef.current) {
+        // An offline missing tile is a recoverable failure, never a permanent
+        // blank spinner. Reconnect/backoff will retry without discarding cache.
+        setSource(current => current.identity === identity && !current.painted && !current.url
+          ? { ...current, failed: true } : current);
+        return;
+      }
       let resolved = await (retryEpoch
         ? resignCommunityMediaUrl(path)
         : resolveCommunityMediaUrl(path, null)).catch(() => null);
@@ -286,7 +414,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     }
 
     return () => { active = false; };
-  }, [identity, cacheKey, path, useWallPreview, retryEpoch, canRequest]);
+  }, [identity, cacheKey, path, usingPreview, retryEpoch]);
 
   // Per-mounted-photo autonomous recovery. This never loops a request while
   // offline, always exposes Retry, and tops out at one retry per 2 minutes.
@@ -379,7 +507,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       if (cacheKey) badCacheKeys.current.add(cacheKey);
       // Cached bytes may have been evicted. Recover via the protected signer
       // once, rather than trapping the viewer in a corrupt local file.
-      const first = initialSource(identity, path, preferred, useWallPreview);
+      const first = initialSource(identity, path, preferred, usingPreview);
       // Fall back to the independent network loader if local bytes are bad.
       setSource({ ...first, failed: false, renderer: 'native' });
       if (!first.url && path) {
@@ -407,7 +535,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         setSource(current => {
           if (current.identity !== identity || current.url !== failedUrl) return current;
           return next && next !== failedUrl
-            ? { ...current, url: next, failed: false, painted: false, renderer: useWallPreview ? 'native' : 'expo', fromDiskCache: false, alternateAttempted: false }
+            ? { ...current, url: next, failed: false, painted: false, renderer: usingPreview ? 'native' : 'expo', fromDiskCache: false, alternateAttempted: false }
             : { ...current, failed: true };
         });
       })
@@ -440,7 +568,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     if (!path || resignInFlightRef.current) return;
     signRetryRef.current = 0;
     resignInFlightRef.current = true;
-    setSource({ identity, url: null, failed: false, renderer: useWallPreview ? 'native' : 'expo', painted: false, fromDiskCache: false, alternateAttempted: false });
+    setSource({ identity, url: null, failed: false, renderer: usingPreview ? 'native' : 'expo', painted: false, fromDiskCache: false, alternateAttempted: false });
     void resignCommunityMediaUrl(path)
       .then(next => setSource(current => current.identity === identity
         ? { ...current, url: next, failed: !next }
