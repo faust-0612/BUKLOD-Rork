@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 
 import { AdminGate } from '@/components/AdminGate';
 import KlPublishingStudio from '@/components/kabihasnang-ligaw/KlPublishingStudio';
+import KlEditorRenderBoundary from '@/components/kabihasnang-ligaw/KlEditorRenderBoundary';
 import { colors } from '@/lib/theme';
 
 // The legacy light-background Story Management desk has been retired.
@@ -12,7 +13,7 @@ export default function KabihasnangLigawAdminScreen() {
   return (
     <AdminGate>
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-        <KlPublishingStudio />
+        <KlEditorRenderBoundary><KlPublishingStudio /></KlEditorRenderBoundary>
       </ScrollView>
     </AdminGate>
   );
