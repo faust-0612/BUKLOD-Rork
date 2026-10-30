@@ -1,0 +1,46 @@
+{
+  "contractVersion": 2,
+  "objective": "Prevent Android Wall originals being promoted before display and cache sharp originals without harming thumbnail first paint",
+  "baseRef": "227da4f38a375c6eeb5ca9482972044266201a0e",
+  "productionBaselineEvidence": "Previous 2026-10-30 Android production source 646617b500215b27356c55519c548f140e554a21 runtime 1.3.2 update 01a18bdb-50ee-7c4f-928e-b16925cb8c14; screenshot confirms blurry Wall previews and failed tiles while originals open fullscreen. Exact installed update not verified. 209 legacy preview generation failures remain a separate backend issue.",
+  "chosenApproach": "Render optional sharp originals using Expo Image with stable on-disk cache and onDisplay guarded by decoded dimensions and URL; keep preview underneath and fall back once to native renderer after a real stall",
+  "alternativeApproaches": [
+    "Remove all thumbnails and fetch large originals for every Wall tile (rejected due to weak-network data cost)",
+    "Treat native onLoad as confirmed on-screen display (rejected due to prior white-tile incidents)",
+    "Deploy new backend transformations without image and cost checks (rejected due to production risk)"
+  ],
+  "selectionRationale": "Smallest Android-only change that verifies display before replacing the preview, avoids rerendering unrelated feeds, and reuses the Expo disk cache across remounts",
+  "riskAreas": [
+    "wall-media",
+    "cache-integrity",
+    "weak-network",
+    "Android fullscreen versus collage separation"
+  ],
+  "regressionTests": [
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/android-wall-auto-sharp.test.mjs",
+    "tests/android-photo-cache-first-progress.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Existing signed URLs and per-account visibility",
+    "Tiny private preview remains first paint",
+    "Native fallback remains available",
+    "Web/iOS untouched",
+    "Original fullscreen viewer unchanged",
+    "No new APK or backend migration",
+    "Other app features remain unchanged"
+  ],
+  "acceptanceChecks": [
+    "Expo original requires decoded dimensions, matching signed URL and onDisplay before replacing preview",
+    "Cache reuse uses original durable path instead of short-lived signed URL",
+    "Native fallback is bounded, using same URL, with original preview kept visible",
+    "Tests and TypeScript pass before merge",
+    "DEV to verified RC to production OTA is mandatory; physical device verification excluded by prior owner instruction"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/communityWallPhotoDisplayGate.ts",
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    ".buklod/scopes/android-wall-sharp-visible-20261030.json"
+  ]
+}
