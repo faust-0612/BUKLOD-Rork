@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "objective": "Recover stalled/expired Community Wall video playback like Facebook while preserving one-visible-player, IMA ads, cache, web and photo behavior",
+  "baseRef": "89492344511e602ba060c4b69d47cf3d7450728f",
+  "productionBaselineEvidence": "Android photo OTA #231 verified update 01a18c87-79eb-7216-b8e6-9aac47cacf4b, source 89492344511e602ba060c4b69d47cf3d7450728f, runtime 1.3.2. This proposal is a separate unshipped video change. Public Wall refreshes expired video URLs on playback error, scoped Wall does not. expo-video statusChange error does not forward to parent. Current player unmount/offscreen, 256 MB bounded LRU, and IMA separate path already exist.",
+  "chosenApproach": "On Expo-video player error, attempt one same signed URL replay to preserve cached byte ranges; after that fails, invoke parent recovery at most once. Scoped Wall renews protected Supabase or AWS video URL with bounded in-flight dedupe and updates only matching post/media URI. Leave native IMA, web, and photo pipeline unchanged.",
+  "alternativeApproaches": [
+    "Rotate signed URL immediately on every buffering error (rejected: loses cache and creates signing storms)",
+    "Replace Expo player with native IMA for all videos (rejected: changes ad system and requires new APK)",
+    "Rebuild all Community and Connect video components in one release (rejected: unrelated regression risk)"
+  ],
+  "selectionRationale": "Small safe shared error path and scoped URL parity; retains native player caching and autoplay controls, bounded retries and access isolation.",
+  "allowedPaths": [
+    "src/components/CommunityVideo.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/lib/communityVideoPlayback.ts",
+    "tests/community-video-playback-recovery.test.mjs",
+    ".buklod/scopes/community-video-scoped-playback-recovery-20261030.json"
+  ],
+  "riskAreas": [
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/community-video-playback-recovery.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Existing Photo OTA #231 and production release unchanged",
+    "Google IMA ads and native monetization untouched",
+    "Web CommunityVideo.web.tsx untouched",
+    "All authored content, video Storage and Supabase RLS unchanged",
+    "Offscreen/unmounted players do not auto replay",
+    "One-visible-video autoplay and 256 MB video cache retained",
+    "Only same-post matching signed URL replaced in scoped feed"
+  ],
+  "acceptanceChecks": [
+    "An active failed Expo video makes only one replay before calling URL recovery",
+    "No repeated error callbacks after one signed URL renewal request",
+    "Public Wall existing URL rotation receives callback",
+    "Scoped Supabase and AWS Wall posts obtain signed URL renewal no more than twice per mounted scope",
+    "Web/Ios/IMA/photo regressions and TypeScript pass",
+    "DEV->verified RC->Production OTA only after all gates and exact release evidence"
+  ]
+}
