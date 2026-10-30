@@ -31,6 +31,7 @@ import {
 import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
 import { communityWallPreviewPath, verifiedLegacyWallPreviewPath } from '@/lib/communityWallPreviewPath';
 import { communityWallSharpGate } from '@/lib/communityWallSharpUpgrade';
+import { shouldRevealWallOriginal } from '@/lib/communityWallPhotoDisplayGate';
 
 type Props = {
   uri?: string | null;
@@ -78,6 +79,10 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   const [sharp, setSharp] = useState({ identity: '', url: '', ready: false });
   const [retryEpoch, setRetryEpoch] = useState(0);
   const [retryPending, setRetryPending] = useState(false);
+  // Expo's onDisplay verifies the original reached its image view. Native is
+  // only a bounded fallback, never a second simultaneous download.
+  const [upgradeRenderer, setUpgradeRenderer] = useState<'expo' | 'native'>('expo');
+  const decodedOriginalRef = useRef({ url: '', width: 0, height: 0 });
   const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
   const releaseRef = useRef<(() => void) | null>(null);
   const badOriginalCacheRef = useRef(new Set<string>());
@@ -88,6 +93,8 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     if (sharp.identity === mediaPath && sharp.ready) return;
     let active = true;
     setRetryPending(false);
+    setUpgradeRenderer('expo');
+    decodedOriginalRef.current = { url: '', width: 0, height: 0 };
     setSharp({ identity: mediaPath, url: '', ready: false });
     const task = communityWallSharpGate.request();
 
@@ -154,15 +161,22 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     if (!current.url || current.ready) return;
     // A genuinely stuck decoder must not monopolize a scarce upgrade slot.
     const timeout = setTimeout(() => {
+      if (upgradeRenderer === 'expo') {
+        // Expo decoding or display may hang on certain Android devices. The
+        // original preview stays visible while the independent native image
+        // renderer gets one chance with the same URL.
+        setUpgradeRenderer('native');
+        return;
+      }
       releaseRef.current?.();
       releaseRef.current = null;
       setSharp(state => state.identity === mediaPath && state.url === current.url
         ? { ...state, url: '' }
         : state);
       setRetryPending(true);
-    }, 90_000);
+    }, upgradeRenderer === 'expo' ? 18_000 : 90_000);
     return () => clearTimeout(timeout);
-  }, [mediaPath, current.url, current.ready]);
+  }, [mediaPath, current.url, current.ready, upgradeRenderer]);
 
   if (!current.url) return null;
   const finish = (ready: boolean) => {
@@ -178,16 +192,57 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     if (!ready) setRetryPending(true);
   };
 
-  return (
+  // Use the same stable disk cache key as the fullscreen Expo image. Once
+  // this original is downloaded successfully, remounts can reuse its bytes.
+  const originalCacheKey = communityMediaCacheKey(mediaPath, mediaPath);
+  return upgradeRenderer === 'expo' ? (
+    <ExpoImage
+      key={'sharp-expo:' + mediaPath + ':' + current.url}
+      source={{ uri: current.url, cacheKey: originalCacheKey }}
+      style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
+      contentFit={contentFit}
+      cachePolicy="memory-disk"
+      transition={0}
+      onLoad={event => {
+        const dimensions = event.source;
+        decodedOriginalRef.current = {
+          url: current.url,
+          width: Number(dimensions?.width ?? 0),
+          height: Number(dimensions?.height ?? 0),
+        };
+      }}
+      onDisplay={() => {
+        const decoded = decodedOriginalRef.current;
+        if (shouldRevealWallOriginal({
+          expectedUrl: current.url,
+          decodedUrl: decoded.url,
+          width: decoded.width,
+          height: decoded.height,
+          activeRenderer: upgradeRenderer,
+          renderedBy: 'expo',
+          displayed: true,
+        })) finish(true);
+      }}
+      onError={() => setUpgradeRenderer('native')}
+    />
+  ) : (
     <NativeImage
-      key={'sharp:' + mediaPath + ':' + current.url}
+      key={'sharp-native:' + mediaPath + ':' + current.url}
       source={{ uri: current.url }}
       style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
       resizeMode={contentFit}
       fadeDuration={0}
       onLoad={event => {
         const dimensions = event.nativeEvent.source;
-        finish(Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0);
+        finish(shouldRevealWallOriginal({
+          expectedUrl: current.url,
+          decodedUrl: current.url,
+          width: Number(dimensions?.width ?? 0),
+          height: Number(dimensions?.height ?? 0),
+          activeRenderer: upgradeRenderer,
+          renderedBy: 'native',
+          displayed: false,
+        }));
       }}
       onError={() => finish(false)}
     />
