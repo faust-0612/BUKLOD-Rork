@@ -8,9 +8,14 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import KlChapterAudio from './KlChapterAudio';
 import { KlSceneEffect, type SceneEffect } from './KlSceneEffect';
+import { sceneEditorValues, updateSceneDraft, clearSceneDraft, type SceneDrafts, type SceneDraft } from '@/lib/kabihasnang-ligaw/sceneDrafts';
 
 type Kind = 'cover' | 'illustration' | 'music' | 'ambient';
-type MediaItem = { kind: Kind; placement: number; approved: boolean; path: string };
+type MediaItem = {
+  kind: Kind; placement: number; approved: boolean; path: string;
+  anchor?: string | null; side?: string | null;
+  effect?: string | null; intensity?: number | null;
+};
 type Feedback = { tone: 'success' | 'error' | 'info'; text: string };
 
 const DB_EPISODE_PREFIX = 'aa000001-0000-4000-8000-';
@@ -56,10 +61,9 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
   const [placement, setPlacement] = useState(1);
   const [items, setItems] = useState<MediaItem[]>([]);
   const [previewUrl, setPreviewUrl] = useState('');
-  const [effect, setEffect] = useState('none');
-  const [anchor, setAnchor] = useState('');
-  const [side, setSide] = useState<'before' | 'after'>('after');
-  const [intensity, setIntensity] = useState(30);
+  // Unsaved edits are keyed by scene. Saved values always come from the server's
+  // media list, so switching scenes or reopening this panel restores each placement.
+  const [sceneDrafts, setSceneDrafts] = useState<SceneDrafts>({});
   const [motionPlaying, setMotionPlaying] = useState(true);
   const [audioUrl, setAudioUrl] = useState('');
   const [mediaRefreshToken, setMediaRefreshToken] = useState(0);
@@ -68,6 +72,11 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
 
   const selectedPlacement = kind === 'illustration' ? placement : 0;
   const selected = items.find((item) => item.kind === kind && item.placement === selectedPlacement);
+  const { anchor, side, effect, intensity } = sceneEditorValues(items, placement, sceneDrafts[placement]);
+  const editScene = (changes: SceneDraft) =>
+    setSceneDrafts((previous) => updateSceneDraft(previous, placement, changes));
+  const placementSaved = selected?.kind === 'illustration'
+    && !!selected.anchor && selected.anchor === anchor.trim() && selected.side === side;
   const imageSelected = kind === 'cover' || kind === 'illustration';
   const isBusy = !!busyAction;
 
@@ -167,6 +176,10 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       }
       setItems((previous) => [...previous.filter((item) => !(item.kind === kind && item.placement === selectedPlacement)),
         { kind, placement: selectedPlacement, approved: false, path }]);
+      if (kind === 'illustration') {
+        // New artwork invalidates the old placement and effect for this scene only.
+        setSceneDrafts((previous) => clearSceneDraft(previous, selectedPlacement));
+      }
       await refreshMedia().catch(() => undefined);
       setFeedback({ tone: 'success', text: 'Image uploaded and registered. Pending approval; private preview lang muna.' });
       onUploaded?.();
@@ -234,9 +247,14 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       });
       if (error) throw error;
       if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Hindi nakumpirma ng server ang placement.');
+      const changed = (data as { changed?: boolean }).changed !== false;
       setItems((previous) => previous.map((item) =>
-        item.kind === 'illustration' && item.placement === placement ? { ...item, approved: false } : item));
-      setFeedback({ tone: 'success', text: 'Exact paragraph placement saved. Kailangan ulit mag-prepare ng preview.' });
+        item.kind === 'illustration' && item.placement === placement
+          ? { ...item, anchor: exact, side, approved: changed ? false : item.approved }
+          : item));
+      setFeedback({ tone: 'success', text: changed
+        ? 'Scene ' + placement + ' placement saved on server. Kailangan ulit mag-prepare ng preview.'
+        : 'Scene ' + placement + ' placement is already saved on server.' });
     });
   };
 
@@ -251,9 +269,14 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       });
       if (error) throw error;
       if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Hindi nakumpirma ng server ang scene effect.');
+      const changed = (data as { changed?: boolean }).changed !== false;
       setItems((previous) => previous.map((item) =>
-        item.kind === 'illustration' && item.placement === placement ? { ...item, approved: false } : item));
-      setFeedback({ tone: 'success', text: 'Scene effect saved. Preview approval will be required again.' });
+        item.kind === 'illustration' && item.placement === placement
+          ? { ...item, effect, intensity, approved: changed ? false : item.approved }
+          : item));
+      setFeedback({ tone: 'success', text: changed
+        ? 'Scene ' + placement + ' effect saved. Preview approval will be required again.'
+        : 'Scene ' + placement + ' effect is already saved on server.' });
     });
   };
 
@@ -307,11 +330,16 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       {kind === 'illustration' ? (
         <>
           <Text style={{ color: '#fff' }}>Exact paragraph anchor (unique sentence from saved manuscript)</Text>
-          <TextInput value={anchor} onChangeText={setAnchor} multiline
+          <TextInput value={anchor} onChangeText={(value) => editScene({ anchor: value })} multiline
             placeholder="Sentence from manuscript" placeholderTextColor="#aeb4bb"
             style={{ color: '#fff', borderWidth: 1, borderColor: '#718096', padding: 12, borderRadius: 8 }} />
+          <Text style={{ color: placementSaved ? '#c7f4d8' : '#ffe0a8' }}>
+            {placementSaved ? 'Scene ' + placement + ': exact placement saved on server'
+              : selected?.anchor ? 'Scene ' + placement + ': unsaved placement changes'
+                : 'Scene ' + placement + ': no saved paragraph position yet'}
+          </Text>
           <Choice label={'Image position: ' + side + ' selected paragraph'} disabled={isBusy}
-            onPress={() => setSide(side === 'before' ? 'after' : 'before')} />
+            onPress={() => editScene({ side: side === 'before' ? 'after' : 'before' })} />
           <Choice label={busyAction === 'Sine-save ang image placement' ? 'Saving placement…' : 'Save exact placement'}
             disabled={isBusy} onPress={saveAnchor} />
           <Text style={{ color: '#fff' }}>Scene {placement} atmosphere (built-in, no animation upload)</Text>
@@ -319,11 +347,11 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {['none', 'rain', 'fog', 'fireflies', 'embers', 'lightning'].map((option) => (
               <Choice key={option} label={option} selected={effect === option} disabled={isBusy}
-                onPress={() => setEffect(option)} />
+                onPress={() => editScene({ effect: option })} />
             ))}
           </View>
           <Choice label={'Intensity ' + intensity + '% (tap to adjust)'} disabled={isBusy}
-            onPress={() => setIntensity((value) => value >= 80 ? 20 : value + 20)} />
+            onPress={() => editScene({ intensity: intensity >= 80 ? 20 : intensity + 20 })} />
           <Choice label={motionPlaying ? 'Pause animation preview' : 'Play animation preview'}
             disabled={isBusy} onPress={() => setMotionPlaying((playing) => !playing)} />
           <Choice label={busyAction === 'Sine-save ang scene effect' ? 'Saving scene effect…' : 'Save Scene Effect'}
