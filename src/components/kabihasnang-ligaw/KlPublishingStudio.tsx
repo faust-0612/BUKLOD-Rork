@@ -6,11 +6,9 @@ import { useAuth } from '@/providers/AuthProvider';
 import {
   type KlEditorDraft,
   buildKlEditorDraft,
-  readKlEditorDraft,
-  writeKlEditorDraft,
-  removeKlEditorDraft,
   hasUnsavedKlDraft,
 } from '@/lib/kabihasnang-ligaw/editorDraftRecovery';
+import { readKlEditorDraft, writeKlEditorDraft, removeKlEditorDraft } from '@/lib/kabihasnang-ligaw/editorDraftStorage';
 
 type Episode = {
   id: string;
