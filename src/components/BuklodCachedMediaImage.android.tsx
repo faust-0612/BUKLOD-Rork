@@ -215,7 +215,8 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
 
   if (!current.url) return null;
   const finish = (ready: boolean) => {
-    if (!ready && /^(file|content):\/\//i.test(current.url)) {
+    const invalidCachedOriginal = !ready && /^(file|content):\/\//i.test(current.url);
+    if (invalidCachedOriginal) {
       const key = communityMediaCacheKey(mediaPath, mediaPath);
       if (key) badOriginalCacheRef.current.add(key);
     }
@@ -224,7 +225,15 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     setSharp(state => state.identity === mediaPath && state.url === current.url
       ? { ...state, url: ready ? state.url : '', ready }
       : state);
-    if (!ready) setRetryPending(true);
+    if (!ready) {
+      setRetryPending(true);
+      // A verified invalid disk image is different from a network failure.
+      // Resolve the protected original immediately once instead of showing
+      // a broken cache for the entire exponential retry window.
+      if (invalidCachedOriginal && canRequestRef.current) {
+        setRetryEpoch(epoch => epoch + 1);
+      }
+    }
   };
 
   // Use the same stable disk cache key as the fullscreen Expo image. Once
@@ -237,6 +246,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
       contentFit={contentFit}
       cachePolicy="memory-disk"
+      priority="low"
       transition={0}
       onProgress={event => {
         const loaded = Number(event.loaded ?? 0);
@@ -586,7 +596,6 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     shouldMountWallOriginalUpgrade({
       originalPath,
       usingPreview,
-      previewFailed: actual.failed,
     }) ? (
       <>
         {preview}
