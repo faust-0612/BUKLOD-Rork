@@ -214,6 +214,8 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         setUpgradeRenderer('native');
         return;
       }
+      if (activeSharpUrlRef.current !== current.url) return;
+      activeSharpUrlRef.current = '';
       releaseRef.current?.();
       releaseRef.current = null;
       setSharp(state => state.identity === mediaPath && state.url === current.url
