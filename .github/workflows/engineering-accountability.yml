@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/android-wall-visible-photo-continuity-20261030)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/android-wall-visible-photo-continuity-20261030.json" >> "$GITHUB_ENV";;
             fix/android-wall-white-preview-20261030)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/android-wall-white-preview-20261030.json" >> "$GITHUB_ENV";;
             dev/android-wall-auto-sharp-20261030)
@@ -219,6 +221,10 @@ jobs:
           node --experimental-strip-types --test tests/android-wall-auto-sharp.test.mjs tests/community-wall-legacy-preview-backfill.test.mjs tests/community-wall-preview-sidecar.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs
       - name: Verify direct Android Wall paint, weak signal and sharp original
         if: github.head_ref == 'fix/android-wall-white-preview-20261030'
+        run: |
+          node --experimental-strip-types --test tests/android-wall-auto-sharp.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs tests/community-wall-preview-sidecar.test.mjs tests/community-wall-legacy-preview-backfill.test.mjs
+      - name: Verify Android mounted photos continue through slow signal and recovery
+        if: github.head_ref == 'fix/android-wall-visible-photo-continuity-20261030'
         run: |
           node --experimental-strip-types --test tests/android-wall-auto-sharp.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs tests/community-wall-preview-sidecar.test.mjs tests/community-wall-legacy-preview-backfill.test.mjs
       - name: Verify scope contract

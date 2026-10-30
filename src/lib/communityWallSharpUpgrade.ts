@@ -2,11 +2,13 @@
  * Limits full-resolution Wall upgrades after their tiny previews have painted.
  * A cancelled queued tile cannot hold a slot or start a stale network request.
  * Only mounted Wall images request slots; fullscreen originals are unaffected.
+ * Mounted photos are never discarded because earlier tiles filled the queue.
+ * FlashList unmount cancellation bounds the default waiting queue in practice.
  */
 export type SharpSlot = () => void;
 export type SharpRequest = { granted: Promise<SharpSlot | null>; cancel: () => void };
 
-export function createCommunityWallSharpGate(maxActive = 2, maxWaiting = 12) {
+export function createCommunityWallSharpGate(maxActive = 2, maxWaiting = Number.POSITIVE_INFINITY) {
   type Waiter = { resolve: (slot: SharpSlot | null) => void; cancelled: boolean };
   const queue: Waiter[] = [];
   let active = 0;

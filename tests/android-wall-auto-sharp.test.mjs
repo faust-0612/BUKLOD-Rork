@@ -26,6 +26,9 @@ test('only Android Wall collage activates preview, fullscreen original stays ori
   assert.match(renderer, /renderer: preferNative \? 'native' : 'expo'/);
   assert.match(renderer, /resolveCommunityMediaUrl\(mediaPath, null\)/);
   assert.match(renderer, /ExpoImage\.getCachePathAsync\(key\)/);
+  assert.match(renderer, /setRetryPending\(true\)/);
+  assert.match(renderer, /const pause = Math.min\(120_000/);
+  assert.match(renderer, /badCacheKeys\.current\.add\(cacheKey\)/);
   assert.doesNotMatch(renderer, /getPublicUrl|\/object\/public\//);
 });
 
@@ -48,6 +51,25 @@ test('sharp download gate caps active loads and gives waiting tiles slots', asyn
   second();
   first(); // idempotent release
   assert.deepEqual(gate.stats(), { active: 0, queued: 0 });
+});
+
+test('default queue preserves every mounted upgrade even beyond legacy twelve waiting slots', async () => {
+  const gate = createCommunityWallSharpGate();
+  const release1 = await gate.request().granted;
+  const release2 = await gate.request().granted;
+  const pending = Array.from({length: 20}, () => gate.request());
+  assert.deepEqual(gate.stats(), {active: 2, queued: 20});
+  const releases = [];
+  for (const request of pending) {
+    if (release1 && releases.length === 0) release1();
+    else if (release2 && releases.length === 1) release2();
+    else releases[releases.length - 2]?.();
+    const release = await request.granted;
+    assert.ok(release);
+    releases.push(release);
+  }
+  for (const release of releases) release();
+  assert.deepEqual(gate.stats(), {active: 0, queued: 0});
 });
 
 test('unmounted queued tile is cancelled before a network request starts', async () => {

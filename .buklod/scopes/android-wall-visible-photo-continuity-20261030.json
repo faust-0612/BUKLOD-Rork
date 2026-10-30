@@ -1,0 +1,23 @@
+{
+  "objective": "Ensure every mounted Android Wall photo continues recovering from weak-network, cache, and sharp-upgrade stalls without blanking or repeated download storms",
+  "baseRef": "8580b5ceb6f0679593a5b1b3d74e4726781e00b3",
+  "productionBaselineEvidence": "Verified current main 8580b5ceb6f0679593a5b1b3d74e4726781e00b3; installed Android 1.3.2 production user screenshot shows blurry Wall preview despite sharp fullscreen and some missing visible photos. Original media and auth policies must remain unchanged.",
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/communityWallSharpUpgrade.ts",
+    "src/lib/buklodAndroidPhotoRecovery.ts",
+    "tests/android-wall-auto-sharp.test.mjs",
+    "tests/android-photo-cache-first-progress.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/android-wall-visible-photo-continuity-20261030.json"
+  ],
+  "acceptanceChecks": [
+    "Active weak-signal download with byte progress is never failed solely by 90-second absolute timer",
+    "Every mounted sharp upgrade queues without legacy 12-waiter drop; exactly 2 concurrent with cancellation on unmount",
+    "Sharp original retries with bounded exponential backoff when signed URL/network/native decode fails, never masks preview",
+    "Failed mounted base images auto-retry after bounded backoff and upon reconnection; never tight-loop while offline",
+    "Corrupt Expo disk cache is bypassed after decode failure and protected signer is used",
+    "Direct Android Wall image layout, private signed URL authorization, 30-second preview escape, fullscreen original, web/iOS unchanged",
+    "Focus: targeted regression tests, TypeScript, integration CI, verified exact Android RC/OTA; skip actual device check per owner"
+  ]
+}

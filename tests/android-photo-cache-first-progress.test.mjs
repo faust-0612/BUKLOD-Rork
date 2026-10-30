@@ -40,10 +40,13 @@ test('Cached native bytes are never re-fetched by the expo fallback timer', () =
   assert.equal(decide({ ...base, now: 112_000, fromDiskCache: true }), 'fallback');
 });
 
-test('Any unfinished request exits loading state at hard deadline', () => {
+test('Hard deadline ends only genuinely stalled attempts', () => {
   assert.equal(decide({ ...base, now: 190_000 }), 'fail');
   assert.equal(decide({ ...base, now: 190_000, renderer: 'native' }), 'fail');
   assert.equal(decide({ ...base, now: 190_000, fromDiskCache: true }), 'fail');
+  assert.equal(decide({ ...base, now: 190_000, lastProgressAt: 185_000 }), 'keep');
+  assert.equal(decide({ ...base, now: 240_000, renderer: 'native', lastProgressAt: 232_000 }), 'keep');
+  assert.equal(decide({ ...base, now: 240_000, renderer: 'native', lastProgressAt: 212_000 }), 'fail');
 });
 
 const image = fs.readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
@@ -55,9 +58,9 @@ test('Android cache-first resolves local bytes before any signed URL request', (
   assert.match(image, /setTimeout\(\(\) => resolve\(null\), 800\)/);
   assert.match(image, /fromDiskCache: true/);
   const cacheAt = image.indexOf('ExpoImage.getCachePathAsync(cacheKey)');
-  const signAt = image.indexOf('let resolved = await resolveCommunityMediaUrl(path, null)');
+  const signAt = image.indexOf('let resolved = await (retryEpoch');
   assert.ok(cacheAt >= 0 && signAt > cacheAt);
-  assert.match(image, /if \(cached\) \{[\s\S]*?return;[\s\S]*?if \(!active \|\| first\.url \|\| !path\) return/);
+  assert.match(image, /if \(cached\) \{[\s\S]*?return;[\s\S]*?if \(!active \|\| first\.url \|\| !path \|\| !canRequest\) return/);
   assert.match(image, /file:\/\//);
 });
 
