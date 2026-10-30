@@ -58,9 +58,9 @@ test('Android cache-first resolves local bytes before any signed URL request', (
   assert.match(image, /setTimeout\(\(\) => resolve\(null\), 800\)/);
   assert.match(image, /fromDiskCache: true/);
   const cacheAt = image.indexOf('ExpoImage.getCachePathAsync(cacheKey)');
-  const signAt = image.indexOf('let resolved = await resolveCommunityMediaUrl(path, null)');
+  const signAt = image.indexOf('let resolved = await (retryEpoch');
   assert.ok(cacheAt >= 0 && signAt > cacheAt);
-  assert.match(image, /if \(cached\) \{[\s\S]*?return;[\s\S]*?if \(!active \|\| first\.url \|\| !path\) return/);
+  assert.match(image, /if \(cached\) \{[\s\S]*?return;[\s\S]*?if \(!active \|\| first\.url \|\| !path \|\| !canRequest\) return/);
   assert.match(image, /file:\/\//);
 });
 

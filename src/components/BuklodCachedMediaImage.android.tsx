@@ -80,10 +80,12 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   const [retryPending, setRetryPending] = useState(false);
   const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
   const releaseRef = useRef<(() => void) | null>(null);
+  const badOriginalCacheRef = useRef(new Set<string>());
   const canRequest = isConnected && isInternetReachable !== false;
 
   useEffect(() => {
-    if (!canRequest) return;
+    // A successfully decoded original must survive NetInfo changes untouched.
+    if (sharp.identity === mediaPath && sharp.ready) return;
     let active = true;
     setRetryPending(false);
     setSharp({ identity: mediaPath, url: '', ready: false });
@@ -102,7 +104,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         // Reuse full-size bytes previously downloaded by the zoom viewer.
         // A slow cache lookup must not block progress on a weak connection.
         let timer: ReturnType<typeof setTimeout> | null = null;
-        const cached = key ? await Promise.race([
+        const cached = key && !badOriginalCacheRef.current.has(key) ? await Promise.race([
           ExpoImage.getCachePathAsync(key).catch(() => null),
           new Promise<null>(resolve => {
             timer = setTimeout(() => resolve(null), 800);
@@ -111,7 +113,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         if (!active) return;
         url = cached
           ? (/^(file|content):\/\//i.test(cached) ? cached : 'file://' + cached)
-          : await resolveCommunityMediaUrl(mediaPath, null).catch(() => null);
+          : canRequest ? await resolveCommunityMediaUrl(mediaPath, null).catch(() => null) : null;
       } catch {
         // Original is an optional visual upgrade; do not break the preview.
       } finally {
@@ -164,6 +166,10 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
 
   if (!current.url) return null;
   const finish = (ready: boolean) => {
+    if (!ready && /^(file|content):\/\//i.test(current.url)) {
+      const key = communityMediaCacheKey(mediaPath, mediaPath);
+      if (key) badOriginalCacheRef.current.add(key);
+    }
     releaseRef.current?.();
     releaseRef.current = null;
     setSharp(state => state.identity === mediaPath && state.url === current.url
@@ -220,6 +226,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     let active = true;
     signRetryRef.current = 0;
     resignInFlightRef.current = false;
+    // Reconnection must not reset a previously painted tile.
+    if (actual.identity === identity && actual.painted) return;
     const first = retryEpoch
       ? { ...initialSource(identity, path, preferred, useWallPreview), url: null }
       : initialSource(identity, path, preferred, useWallPreview);
@@ -430,7 +438,6 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   const retryManually = (event: { stopPropagation: () => void }) => {
     event.stopPropagation();
     if (!path || resignInFlightRef.current) return;
-    setRetryEpoch(value => value + 1);
     signRetryRef.current = 0;
     resignInFlightRef.current = true;
     setSource({ identity, url: null, failed: false, renderer: useWallPreview ? 'native' : 'expo', painted: false, fromDiskCache: false, alternateAttempted: false });
