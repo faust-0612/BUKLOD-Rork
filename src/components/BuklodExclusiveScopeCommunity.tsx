@@ -836,6 +836,8 @@ export default function BuklodExclusiveScopeCommunity({
                   )
                 : null;
 
+            // Ignore cache read completing after a scope/user switch.
+            if (scopeMediaLoadSeqRef.current !== loadSeq) return;
             if (cached?.data?.length) {
               setPosts(cached.data);
             }
@@ -957,6 +959,7 @@ export default function BuklodExclusiveScopeCommunity({
                 )
               : null;
 
+          if (scopeMediaLoadSeqRef.current !== loadSeq) return;
           if (
             cached?.data?.length
           ) {

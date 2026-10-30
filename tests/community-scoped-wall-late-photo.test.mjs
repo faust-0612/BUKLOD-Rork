@@ -37,3 +37,7 @@ test('slow metadata never overwrites media and Android never shows an unmarked e
   assert.match(android, /shouldMountWallOriginalUpgrade/);
   assert.doesNotMatch(android, /getPublicUrl|\/object\/public\//);
 });
+
+test('offline and error caches are generation-guarded after asynchronous reads', () => {
+  assert.match(scoped, /if \(scopeMediaLoadSeqRef\.current !== loadSeq\) return;\s*if \(cached\?\.data\?\.length\)/);
+});
