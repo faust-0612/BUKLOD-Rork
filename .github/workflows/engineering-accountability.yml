@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            dev/android-wall-auto-sharp-20261030)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/android-wall-auto-sharp-20261030.json" >> "$GITHUB_ENV";;
             dev/faith-monitoring-drilldown-merged-20261030)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/faith-monitoring-member-drilldown-20261030.json" >> "$GITHUB_ENV";;
             dev/connect-read-count-sync-20261030)
@@ -209,6 +211,10 @@ jobs:
         run: |
           grep -Fq "'src/components/BuklodCachedMediaImage.tsx'" .github/workflows/production_android_ota.yml
           node --test tests/community-wall-no-blank-photo.test.cjs
+      - name: Verify auto-sharp Wall photo upgrade without regressions
+        if: github.head_ref == 'dev/android-wall-auto-sharp-20261030'
+        run: |
+          node --experimental-strip-types --test tests/android-wall-auto-sharp.test.mjs tests/community-wall-legacy-preview-backfill.test.mjs tests/community-wall-preview-sidecar.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
       - name: Verify KL per-scene saved placement and draft isolation
