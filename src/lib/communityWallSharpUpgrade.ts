@@ -5,8 +5,6 @@
  * Mounted photos are never discarded because earlier tiles filled the queue.
  * FlashList unmount cancellation bounds the default waiting queue in practice.
  */
-import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
-
 export type SharpSlot = () => void;
 export type SharpRequest = { granted: Promise<SharpSlot | null>; cancel: () => void };
 
@@ -67,13 +65,16 @@ export function createCommunityWallSharpGate(
     };
   };
 
-  return { request, stats: () => ({ active, queued: queue.length }) };
+  return { request, notifyCapacityChanged: drain, stats: () => ({ active, queued: queue.length }) };
 }
 
-// Two originals on healthy networks, one on degraded 2G/3G. Visible
-// thumbnails are not part of this gate and always receive image priority.
+// Two originals on healthy networks, one on degraded 2G/3G. The gate is
+// platform-independent and testable without React/Expo imports.
+let currentOriginalLimit = 2;
 export const communityWallSharpGate = createCommunityWallSharpGate(
-  2,
-  Number.POSITIVE_INFINITY,
-  () => classifyNetworkQuality() === 'degraded' ? 1 : 2,
+  2, Number.POSITIVE_INFINITY, () => currentOriginalLimit,
 );
+export function configureCommunityWallOriginalQuality(degraded: boolean) {
+  currentOriginalLimit = degraded ? 1 : 2;
+  communityWallSharpGate.notifyCapacityChanged();
+}
