@@ -17,7 +17,8 @@
     "Scene 1-3 anchors and effects remain independent",
     "No-op saves retain previous preview and approval state",
     "Only verified server RPC response can mark media approved",
-    "No Community Wall media rendering, navigation, or backend schema modifications"
+    "No Community Wall media rendering, navigation, or backend schema modifications",
+    "Existing Community Wall reader routing and member publication visibility remain unchanged."
   ],
   "acceptanceChecks": [
     "S1 Ch2 existing prepared preview is reopenable without reuploading media",
@@ -26,7 +27,8 @@
     "No-op scene save does not invalidate prepared preview",
     "Private preview is opened on demand to avoid editor image-memory spikes",
     "Required focused tests, TS check and scope gate must pass before merge",
-    "Release separately only after exact runtime-compatible RC and OTA gates"
+    "Release separately only after exact runtime-compatible RC and OTA gates",
+    "Chapter approval backend errors and confirmations appear next to the exact clicked chapter, not only above the list."
   ],
   "regressionTests": [
     "tests/kl-preview-approval-feedback.test.mjs"
@@ -37,6 +39,7 @@
     "src/lib/kabihasnang-ligaw/mediaApprovalState.ts",
     "tests/kl-preview-approval-feedback.test.mjs",
     ".buklod/scopes/kl-preview-approval-feedback-20261030.json",
-    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx"
+    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx"
   ]
 }

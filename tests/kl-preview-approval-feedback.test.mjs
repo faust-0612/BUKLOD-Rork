@@ -60,3 +60,11 @@ test('real saves preserve preview on no-op but invalidate it on changed scene da
   assert.match(media, /placementSaved \? <Text/);
   assert.match(media, /effectSaved \? '✓ Scene '/);
 });
+
+test('chapter-level approval reports server result beside the chapter that was tapped', () => {
+  const reader = readFileSync('src/components/kabihasnang-ligaw/KlReaderScreen.tsx', 'utf8');
+  assert.match(reader, /setAdminFeedbackEpisodeId\(episodeId\)/);
+  assert.match(reader, /adminFeedbackEpisodeId === episode.id && adminFeedback/);
+  assert.match(reader, /Approve each illustration\/audio in the private preview/);
+  assert.match(reader, /supabase.rpc\(KL_RPC.adminAction/);
+});
