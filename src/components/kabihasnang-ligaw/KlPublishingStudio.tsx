@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import KlAdminMediaUpload from './KlAdminMediaUpload';
+import KlAdminPreview from './KlAdminPreview';
 
 type Episode = {
   id: string;
@@ -9,6 +10,7 @@ type Episode = {
   season_number: number;
   episode_number: number;
   status: string;
+  preview_ready?: boolean;
 };
 type Feedback = { tone: 'success' | 'error' | 'info'; text: string };
 type Preview = { manuscript?: string | null; title?: string | null };
@@ -57,6 +59,9 @@ export default function KlPublishingStudio() {
   const [panel, setPanel] = useState<'manuscript' | 'media'>('manuscript');
   const [mediaKind, setMediaKind] = useState<'illustration' | 'cover' | 'music' | 'ambient'>('illustration');
   const [mediaBusy, setMediaBusy] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [confirmedPreviewId, setConfirmedPreviewId] = useState('');
+  const [approvalRefreshToken, setApprovalRefreshToken] = useState(0);
   const lock = useRef(false);
 
   const refresh = async () => {
@@ -96,6 +101,7 @@ export default function KlPublishingStudio() {
   const dirty = !!id && !!lastSaved && lastSaved.id === id
     && (lastSaved.title !== title || lastSaved.manuscript !== manuscript);
   const saved = !!id && !!lastSaved && lastSaved.id === id && !dirty;
+  const previewReady = !!id && (confirmedPreviewId === id || episodes.some((entry) => entry.id === id && entry.preview_ready));
 
   const open = async (episode: Episode, force = false) => {
     if (!force && dirty && episode.id !== id) {
@@ -116,6 +122,8 @@ export default function KlPublishingStudio() {
       setChapter(String(episode.episode_number));
       setLastSaved({ id: episode.id, title: nextTitle, manuscript: nextText });
       setPanel('manuscript');
+      setPreviewOpen(false);
+      setConfirmedPreviewId('');
       setFeedback({ tone: 'success', text: 'Chapter loaded from server. ' + (nextText ? 'Maaari nang mag-edit.' : 'Wala pang manuscript.') });
     });
   };
@@ -153,6 +161,8 @@ export default function KlPublishingStudio() {
       setManuscript(nextText);
       setLastSaved({ id: newId, title: nextTitle, manuscript: nextText });
       setPanel('manuscript');
+      setPreviewOpen(false);
+      setConfirmedPreviewId('');
       await refresh();
       setFeedback({ tone: 'success', text: nextText ? 'Existing chapter opened; manuscript preserved.' : 'Chapter created on server. Add its manuscript.' });
     });
@@ -171,6 +181,11 @@ export default function KlPublishingStudio() {
       });
       if (error) throw error;
       if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Hindi nakumpirma ng server ang save.');
+      if ((data as { changed?: boolean }).changed !== false) {
+        setPreviewOpen(false);
+        setConfirmedPreviewId('');
+        setEpisodes((previous) => previous.map((entry) => entry.id === snapshot.id ? { ...entry, preview_ready: false } : entry));
+      }
       setLastSaved(snapshot);
       setFeedback({ tone: 'success', text: 'Manuscript saved on server. Draft pa ito; hindi pa public.' });
       await refresh().catch(() => undefined); // A failed list refresh must not undo a confirmed save.
@@ -187,9 +202,18 @@ export default function KlPublishingStudio() {
       const { data, error } = await supabase.rpc('kl_admin_prepare_preview_v1', { p_episode_id: id });
       if (error) throw error;
       if (!(data as { ready?: boolean } | null)?.ready) throw new Error('Hindi nakumpirma ng server ang preview.');
-      setFeedback({ tone: 'success', text: 'Private preview ready sa Community Wall → KL → Admin. Hindi pa published.' });
+      setConfirmedPreviewId(id);
+      setPreviewOpen(true);
+      setFeedback({ tone: 'success', text: 'Private preview prepared on server. Nasa ibaba ang preview at bawat media approval; hindi pa public.' });
       await refresh().catch(() => undefined);
     });
+  };
+
+  const invalidatePreparedPreview = () => {
+    setPreviewOpen(false);
+    setConfirmedPreviewId('');
+    setEpisodes((previous) => previous.map((entry) => entry.id === id ? { ...entry, preview_ready: false } : entry));
+    void refresh().catch(() => undefined);
   };
 
   return (
@@ -260,10 +284,24 @@ export default function KlPublishingStudio() {
           <>
           <KlAdminMediaUpload key={id} episodeId={id} episodeNumber={Number(chapter)}
             manuscript={manuscript} manuscriptSaved={saved} initialKind={mediaKind}
-            onBusyChange={setMediaBusy} />
-          <Text style={{ color: '#b7c8cd' }}>Preview requires 2–3 illustrations with exact saved paragraph placements.</Text>
-          <Action label={busyAction === 'Inihahanda ang private preview' ? 'Preparing…' : 'Prepare Preview for Community Wall KL Admin'}
+            onBusyChange={setMediaBusy} onUploaded={invalidatePreparedPreview}
+            onPreviewInvalidated={invalidatePreparedPreview}
+            approvalRefreshToken={approvalRefreshToken} />
+          <Text style={{ color: '#b7c8cd' }}>Preview requires 2–3 illustrations with exact saved paragraph placements. Media approval is separate from chapter approval.</Text>
+          <Action label={busyAction === 'Inihahanda ang private preview' ? 'Preparing…' : 'Prepare Private Preview'}
             disabled={workspaceBusy} onPress={prepare} />
+          {previewReady ? (
+            <>
+              <Text style={{ color: '#c7f4d8' }}>Private preview prepared on server. You can inspect and approve each media file here; the chapter stays private.</Text>
+              <Action label={previewOpen ? 'Hide Private Preview & Media Approvals' : 'Open Private Preview & Media Approvals'}
+                disabled={workspaceBusy || !saved} onPress={() => setPreviewOpen((current) => !current)} />
+              {previewOpen && saved ? (
+                <KlAdminPreview episodeId={id} onApproved={() => setApprovalRefreshToken((value) => value + 1)} />
+              ) : null}
+            </>
+          ) : (
+            <Text style={{ color: '#ffe0a8' }}>No prepared preview yet. Prepare it first, then review and approve individual media.</Text>
+          )}
           {feedback ? (
             <Text accessibilityRole="alert" style={{ color: feedback.tone === 'error' ? '#ffb8b8' : '#c7f4d8' }}>
               {feedback.text}
