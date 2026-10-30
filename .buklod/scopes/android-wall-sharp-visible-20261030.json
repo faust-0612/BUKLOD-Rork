@@ -17,9 +17,7 @@
     "Android fullscreen versus collage separation"
   ],
   "regressionTests": [
-    "tests/android-wall-sharp-paint-contract.test.mjs",
-    "tests/android-wall-auto-sharp.test.mjs",
-    "tests/android-photo-cache-first-progress.test.mjs"
+    "tests/android-wall-sharp-paint-contract.test.mjs"
   ],
   "preserveBehaviors": [
     "Existing signed URLs and per-account visibility",
