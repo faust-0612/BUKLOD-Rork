@@ -137,3 +137,16 @@ export function replayDownloadedBytes(input: {
     ranges,
   };
 }
+
+/** One same-URL replay before refreshing signed access; never retry offscreen. */
+export function decideCommunityVideoErrorRecovery(input: {
+  active: boolean;
+  replayAttempts: number;
+  retryNotBefore: number;
+  now: number;
+  reported: boolean;
+}): 'ignore' | 'replay' | 'refresh' {
+  if (!input.active || input.reported) return 'ignore';
+  if (input.replayAttempts < 1) return 'replay';
+  return input.now >= input.retryNotBefore ? 'refresh' : 'ignore';
+}
