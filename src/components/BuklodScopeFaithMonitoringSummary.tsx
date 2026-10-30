@@ -69,18 +69,28 @@ function MetricRow({
   label,
   value,
   emphasize = false,
+  onPress,
 }: {
   label: string;
   value: string | number;
   emphasize?: boolean;
+  onPress?: () => void;
 }) {
   return (
-    <View style={styles.metricRow}>
+    <Pressable
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={onPress ? `View members: ${label}, ${value}` : undefined}
+      onPress={(event) => {
+        event.stopPropagation();
+        onPress?.();
+      }}
+      style={styles.metricRow}
+    >
       <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={[styles.metricValue, emphasize && styles.metricValueStrong]}>
-        {value}
-      </Text>
-    </View>
+      <Text style={[styles.metricValue, emphasize && styles.metricValueStrong]}>{value}</Text>
+      {onPress ? <MaterialCommunityIcons name="chevron-right" size={16} color={colors.greenDark} /> : null}
+    </Pressable>
   );
 }
 
@@ -89,14 +99,21 @@ function MonitorSection({
   subtitle,
   icon,
   children,
+  onPress,
 }: {
   title: string;
   subtitle?: string;
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   children: React.ReactNode;
+  onPress?: () => void;
 }) {
   return (
-    <View style={styles.section}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`View ${title} member progress`}
+      onPress={onPress}
+      style={styles.section}
+    >
       <View style={styles.sectionHead}>
         <View style={styles.sectionIcon}>
           <MaterialCommunityIcons
@@ -113,7 +130,7 @@ function MonitorSection({
         </View>
       </View>
       {children}
-    </View>
+    </Pressable>
   );
 }
 
@@ -213,6 +230,20 @@ export default function BuklodScopeFaithMonitoringSummary({
   const devotion = summary.devotion;
   const lesson = summary.buklod_lesson;
 
+  const openMembers = (
+    area: 'daily' | 'devotion' | 'lesson',
+    filter: string = 'all',
+    stage?: number,
+  ) => router.push({
+    pathname: '/scope/faith-monitoring/members' as any,
+    params: {
+      ...scopeRouteParams(scope.scope_id),
+      area,
+      filter,
+      ...(stage ? { stage: String(stage) } : {}),
+    },
+  } as any);
+
   return (
     <View style={styles.wrap}>
     <View style={styles.card}>
@@ -265,6 +296,7 @@ export default function BuklodScopeFaithMonitoringSummary({
             : 'Today’s reading plan'
         }
         icon="calendar-text-outline"
+        onPress={() => openMembers("daily")}
       >
         <ProgressBar
           value={daily.approved_today}
@@ -275,22 +307,28 @@ export default function BuklodScopeFaithMonitoringSummary({
           label="Approved today"
           value={`${daily.approved_today} / ${members} (${formatFaithMonitoringRate(daily.approved_today, members)})`}
           emphasize
+          onPress={() => openMembers("daily", "approved")}
         />
         <MetricRow
           label="Submitted today"
           value={`${daily.submitted_today} / ${members}`}
+          onPress={() => openMembers("daily", "submitted")}
         />
         <MetricRow
           label="Pending review"
           value={daily.pending_review}
+          onPress={() => openMembers("daily", "checking")}
         />
+        <MetricRow label="Needs revision" value={daily.needs_revision} onPress={() => openMembers("daily", "revision")} />
         <MetricRow
           label="Not yet submitted"
           value={daily.not_submitted_today}
+          onPress={() => openMembers("daily", "missing")}
         />
         <MetricRow
           label="Approved this week"
           value={`${daily.approved_this_week} / ${members}`}
+          onPress={() => openMembers("daily", "weekly")}
         />
       </MonitorSection>
 
@@ -298,6 +336,7 @@ export default function BuklodScopeFaithMonitoringSummary({
         title="Devotion"
         subtitle="Daily devotional (Word)"
         icon="book-open-page-variant-outline"
+        onPress={() => openMembers("devotion")}
       >
         <ProgressBar
           value={devotion.completed_today}
@@ -308,14 +347,32 @@ export default function BuklodScopeFaithMonitoringSummary({
           label="Completed today"
           value={`${devotion.completed_today} / ${members} (${formatFaithMonitoringRate(devotion.completed_today, members)})`}
           emphasize
+          onPress={() => openMembers("devotion", "completed")}
         />
         <MetricRow
           label="Not completed today"
           value={devotion.not_completed_today}
+          onPress={() => openMembers("devotion", "missing")}
+        />
+        <MetricRow
+          label="Submitted today"
+          value={`${devotion.submitted_today} / ${members}`}
+          onPress={() => openMembers("devotion", "submitted")}
+        />
+        <MetricRow
+          label="Automatic checking"
+          value={devotion.automatic_checking}
+          onPress={() => openMembers("devotion", "checking")}
+        />
+        <MetricRow
+          label="Needs revision"
+          value={devotion.needs_revision}
+          onPress={() => openMembers("devotion", "revision")}
         />
         <MetricRow
           label="Completed this week"
           value={`${devotion.completed_this_week} / ${members}`}
+          onPress={() => openMembers("devotion", "weekly")}
         />
       </MonitorSection>
 
@@ -323,21 +380,33 @@ export default function BuklodScopeFaithMonitoringSummary({
         title="Buklod Lesson"
         subtitle="BUKLOD learning progress by stage"
         icon="school-outline"
+        onPress={() => openMembers("lesson")}
       >
         <MetricRow
           label="Members with lesson activity"
           value={lesson.members_active}
           emphasize
+          onPress={() => openMembers("lesson", "active")}
         />
         <MetricRow
           label="Not yet started"
           value={lesson.members_not_started}
+          onPress={() => openMembers("lesson", "missing")}
         />
 
         {lesson.stages.length ? (
           <View style={styles.stageList}>
             {lesson.stages.map((stage) => (
-              <View key={stage.stage_code} style={styles.stageRow}>
+              <Pressable
+                key={stage.stage_code}
+                accessibilityRole="button"
+                accessibilityLabel={`View BUKLOD ${stage.stage_code} members`}
+                onPress={(event) => {
+                  event.stopPropagation();
+                  openMembers('lesson', 'all', stage.stage_code);
+                }}
+                style={styles.stageRow}
+              >
                 <View style={styles.stageHead}>
                   <Text style={styles.stageCode}>
                     BUKLOD {stage.stage_code}
@@ -354,7 +423,8 @@ export default function BuklodScopeFaithMonitoringSummary({
                     In progress: {stage.in_progress_count}
                   </Text>
                 </View>
-              </View>
+                <MaterialCommunityIcons name="chevron-right" size={18} color={colors.greenDark} style={styles.stageChevron} />
+              </Pressable>
             ))}
           </View>
         ) : (
@@ -507,6 +577,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   metricRow: {
+    minHeight: 30,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -532,6 +603,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   stageRow: {
+    position: 'relative',
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -542,6 +614,12 @@ const styles = StyleSheet.create({
   },
   stageHead: {
     gap: 2,
+    paddingRight: 22,
+  },
+  stageChevron: {
+    position: 'absolute',
+    right: 8,
+    top: 16,
   },
   stageCode: {
     color: colors.greenDark,
