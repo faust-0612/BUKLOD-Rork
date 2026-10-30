@@ -7,8 +7,8 @@
     ".buklod/scopes/kl-scene-anchor-persistence-20261030.json",
     "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx",
     "src/lib/kabihasnang-ligaw/sceneDrafts.ts",
-    "__tests__/klSceneDrafts.test.ts",
-    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx"
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "tests/kl-scene-drafts.test.mjs"
   ],
   "acceptanceChecks": [
     "Each illustration scene rehydrates the exact saved anchor and before/after position from the authorized admin media RPC",
@@ -17,6 +17,7 @@
     "Existing preview approval remains unchanged if the RPC reports changed false",
     "TypeScript and focused unit regression suite pass before release",
     "No database migration, native rebuild, or production OTA is performed in this workstream",
-    "Switching to Manuscript or another chapter is disabled while a scene media RPC write is in flight"
+    "Switching to Manuscript or another chapter is disabled while a scene media RPC write is in flight",
+    "Native Node runner executes scene-specific regression tests rather than a no-op missing Jest runner"
   ]
 }
