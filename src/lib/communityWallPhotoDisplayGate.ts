@@ -63,7 +63,7 @@ export function planWallOriginalSource(cachedOriginal: boolean, canRequest: bool
 export function shouldMountWallOriginalUpgrade(input: {
   originalPath: string;
   usingPreview: boolean;
-  previewFailed: boolean;
 }): boolean {
-  return Boolean(input.originalPath && input.usingPreview && !input.previewFailed);
+  // A failed or white preview MUST NOT unmount the original download.
+  return Boolean(input.originalPath && input.usingPreview);
 }
