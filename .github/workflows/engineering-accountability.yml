@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            dev/kl-scene-anchor-persistence-20261030)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/kl-scene-anchor-persistence-20261030.json" >> "$GITHUB_ENV";;
             feat/legacy-wall-preview-backfill-20261029)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/wall-legacy-preview-backfill-20261029.json" >> "$GITHUB_ENV";;
             fix/wall-photo-hydration-state-20261029)
@@ -203,6 +205,9 @@ jobs:
           node --test tests/community-wall-no-blank-photo.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify KL per-scene saved placement and draft isolation
+        if: github.head_ref == 'dev/kl-scene-anchor-persistence-20261030'
+        run: node --experimental-strip-types --test tests/kl-scene-drafts.test.mjs
       - name: Verify Home map rendering, destination search and Google Maps handoff
         if: github.head_ref == 'fix/home-map-google-search-20261027'
         run: node scripts/buklod-home-map-regression.cjs
