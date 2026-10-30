@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { shouldRevealWallOriginal } from '../src/lib/communityWallPhotoDisplayGate.ts';
+import { shouldKeepWallOriginalTransfer, shouldRevealWallOriginal } from '../src/lib/communityWallPhotoDisplayGate.ts';
 
 const base = {
   expectedUrl: 'https://signed.example/original?token=2',
@@ -43,4 +43,19 @@ test('Android overlay keeps preview visible while validating Expo display and re
   assert.match(renderer, /upgradeRenderer === 'expo' \? 18_000 : 90_000/);
   assert.match(renderer, /opacity: current.ready \? 1 : 0/);
   assert.doesNotMatch(renderer, /getPublicUrl|\/object\/public\//);
+});
+
+test('sharp original streaming remains alive beyond hard deadlines when bytes continue', () => {
+  const sample = {
+    expectedUrl: base.expectedUrl,
+    progressUrl: base.expectedUrl,
+    lastProgressAt: 225_000,
+    now: 235_000,
+    stallMs: 18_000,
+  };
+  assert.equal(shouldKeepWallOriginalTransfer(sample), true);
+  assert.equal(shouldKeepWallOriginalTransfer({ ...sample, now: 244_000 }), false);
+  assert.equal(shouldKeepWallOriginalTransfer({ ...sample, progressUrl: 'old-url' }), false);
+  assert.equal(shouldKeepWallOriginalTransfer({ ...sample, lastProgressAt: 0 }), false);
+  assert.equal(shouldKeepWallOriginalTransfer({ ...sample, now: 600_000, lastProgressAt: 590_000 }), true);
 });
