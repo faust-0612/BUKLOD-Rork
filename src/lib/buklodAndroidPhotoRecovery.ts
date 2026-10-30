@@ -22,7 +22,11 @@ export const ANDROID_PHOTO_DEADLINE_MS = 90_000;
 
 export function decideAndroidPhotoRecovery(input: AndroidPhotoRecoveryInput): AndroidPhotoRecoveryDecision {
   const elapsed = Math.max(0, input.now - input.startedAt);
-  if (elapsed >= ANDROID_PHOTO_DEADLINE_MS) return 'fail';
+  // Never kill a progressing slow cellular transfer at an absolute clock
+  // deadline. A real stall must be observed before ending the attempt.
+  const lastProgress = input.lastProgressAt || input.startedAt;
+  if (elapsed >= ANDROID_PHOTO_DEADLINE_MS &&
+      input.now - lastProgress >= ANDROID_PHOTO_STALL_MS) return 'fail';
   if (input.fromDiskCache) {
     return elapsed >= ANDROID_PHOTO_DISK_PAINT_STALL_MS ? 'fallback' : 'keep';
   }

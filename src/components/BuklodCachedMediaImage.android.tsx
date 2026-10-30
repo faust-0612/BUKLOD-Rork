@@ -20,6 +20,7 @@ import {
   type StyleProp,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
+import { useNetwork } from '@/providers/NetworkProvider';
 
 import {
   communityMediaCacheKey,
@@ -75,15 +76,24 @@ function initialSource(identity: string, path: string, preferred: string, prefer
  */
 function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; contentFit: 'cover' | 'contain' }) {
   const [sharp, setSharp] = useState({ identity: '', url: '', ready: false });
+  const [retryEpoch, setRetryEpoch] = useState(0);
+  const [retryPending, setRetryPending] = useState(false);
+  const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
   const releaseRef = useRef<(() => void) | null>(null);
+  const canRequest = isConnected && isInternetReachable !== false;
 
   useEffect(() => {
+    if (!canRequest) return;
     let active = true;
+    setRetryPending(false);
     setSharp({ identity: mediaPath, url: '', ready: false });
     const task = communityWallSharpGate.request();
 
     void task.granted.then(async release => {
-      if (!release) return;
+      if (!release) {
+        if (active) setRetryPending(true);
+        return;
+      }
       if (!active) { release(); return; }
       releaseRef.current = release;
       const key = communityMediaCacheKey(mediaPath, mediaPath);
@@ -111,6 +121,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         }
       }
       if (active && url) setSharp({ identity: mediaPath, url, ready: false });
+      else if (active) setRetryPending(true);
     });
 
     return () => {
@@ -119,7 +130,22 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       releaseRef.current?.();
       releaseRef.current = null;
     };
-  }, [mediaPath]);
+  }, [mediaPath, retryEpoch, canRequest]);
+
+  // A visible/mounted preview must not be stranded after a failed sign,
+  // expired URL or native decode. Use slow bounded retries; a reconnection
+  // starts the next attempt immediately without adding periodic polling.
+  useEffect(() => {
+    if (!retryPending || !canRequest) return;
+    const pause = Math.min(120_000, 12_000 * 2 ** Math.min(4, retryEpoch));
+    const timer = setTimeout(() => setRetryEpoch(value => value + 1), pause);
+    return () => clearTimeout(timer);
+  }, [retryPending, retryEpoch, canRequest]);
+  useEffect(() => {
+    if (retryPending && canRequest && lastOnlineAt) {
+      setRetryEpoch(value => value + 1);
+    }
+  }, [lastOnlineAt]);
 
   const current = sharp.identity === mediaPath ? sharp : { identity: mediaPath, url: '', ready: false };
   useEffect(() => {
@@ -131,6 +157,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       setSharp(state => state.identity === mediaPath && state.url === current.url
         ? { ...state, url: '' }
         : state);
+      setRetryPending(true);
     }, 90_000);
     return () => clearTimeout(timeout);
   }, [mediaPath, current.url, current.ready]);
@@ -142,6 +169,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     setSharp(state => state.identity === mediaPath && state.url === current.url
       ? { ...state, url: ready ? state.url : '', ready }
       : state);
+    if (!ready) setRetryPending(true);
   };
 
   return (
@@ -181,6 +209,10 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   const signRetryRef = useRef(0);
   const resignInFlightRef = useRef(false);
   const progressRef = useRef({ uri: '', startedAt: Date.now(), lastProgressAt: 0, bytes: 0, decodedAt: 0 });
+  const badCacheKeys = useRef(new Set<string>());
+  const [retryEpoch, setRetryEpoch] = useState(0);
+  const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
+  const canRequest = isConnected && isInternetReachable !== false;
   const [source, setSource] = useState<SourceState>(() => initialSource(identity, path, preferred, useWallPreview));
   const actual = source.identity === identity ? source : initialSource(identity, path, preferred, useWallPreview);
 
@@ -188,14 +220,16 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     let active = true;
     signRetryRef.current = 0;
     resignInFlightRef.current = false;
-    const first = initialSource(identity, path, preferred, useWallPreview);
+    const first = retryEpoch
+      ? { ...initialSource(identity, path, preferred, useWallPreview), url: null }
+      : initialSource(identity, path, preferred, useWallPreview);
     setSource(first);
 
     void (async () => {
       // An already-downloaded disk photo is safe to show immediately for a
       // media path obtained from the authorized Wall feed. Avoid re-signing
       // or downloading the same bytes after reopening or scrolling.
-      if (path && cacheKey) {
+      if (path && cacheKey && !badCacheKeys.current.has(cacheKey)) {
         try {
           // A stalled cache lookup must never delay first-time URL signing.
           let cacheTimer: ReturnType<typeof setTimeout> | null = null;
@@ -222,8 +256,10 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         }
       }
 
-      if (!active || first.url || !path) return;
-      let resolved = await resolveCommunityMediaUrl(path, null).catch(() => null);
+      if (!active || first.url || !path || !canRequest) return;
+      let resolved = await (retryEpoch
+        ? resignCommunityMediaUrl(path)
+        : resolveCommunityMediaUrl(path, null)).catch(() => null);
       if (!active) return;
       if (!resolved) {
         // One bounded re-check on transient signing errors.
@@ -242,7 +278,23 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     }
 
     return () => { active = false; };
-  }, [identity, cacheKey, path, useWallPreview]);
+  }, [identity, cacheKey, path, useWallPreview, retryEpoch, canRequest]);
+
+  // Per-mounted-photo autonomous recovery. This never loops a request while
+  // offline, always exposes Retry, and tops out at one retry per 2 minutes.
+  useEffect(() => {
+    if (actual.identity !== identity || !actual.failed || actual.painted ||
+        !path || !canRequest) return;
+    const delay = Math.min(120_000, 12_000 * 2 ** Math.min(4, retryEpoch));
+    const timer = setTimeout(() => setRetryEpoch(value => value + 1), delay);
+    return () => clearTimeout(timer);
+  }, [identity, path, actual.failed, actual.painted, canRequest, retryEpoch]);
+
+  useEffect(() => {
+    if (actual.failed && canRequest && lastOnlineAt) {
+      setRetryEpoch(value => value + 1);
+    }
+  }, [lastOnlineAt]);
 
   useEffect(() => {
     if (actual.failed || actual.painted || !actual.url) return;
@@ -316,6 +368,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     }
 
     if (actual.fromDiskCache) {
+      if (cacheKey) badCacheKeys.current.add(cacheKey);
       // Cached bytes may have been evicted. Recover via the protected signer
       // once, rather than trapping the viewer in a corrupt local file.
       const first = initialSource(identity, path, preferred, useWallPreview);
@@ -377,6 +430,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   const retryManually = (event: { stopPropagation: () => void }) => {
     event.stopPropagation();
     if (!path || resignInFlightRef.current) return;
+    setRetryEpoch(value => value + 1);
     signRetryRef.current = 0;
     resignInFlightRef.current = true;
     setSource({ identity, url: null, failed: false, renderer: useWallPreview ? 'native' : 'expo', painted: false, fromDiskCache: false, alternateAttempted: false });
