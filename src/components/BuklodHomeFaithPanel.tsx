@@ -21,6 +21,7 @@ import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 import {
   ActivityIndicator,
+  AppState,
   Animated as RNAnimated,
   Easing,
   Pressable,
@@ -58,9 +59,15 @@ import {
 const FOCUS_EASING = Easing.out(Easing.cubic);
 
 type TodayReading = {
+  reading_date: string;
   bible_reference: string;
   chapters_today: number;
 };
+
+// The automatic plan and assignments use the Philippine calendar day.
+function getManilaReadingDate(): string {
+  return new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
 
 type FaithTone =
   | 'reading'
@@ -284,11 +291,30 @@ export default function BuklodHomeFaithPanel({
   const { online } = useNetwork();
   const readingCacheUser = user?.id ?? 'guest';
   const readingAccountRef = useRef(readingCacheUser);
+  const [readingDate, setReadingDate] = useState(getManilaReadingDate);
+  const [readingOwner, setReadingOwner] = useState<string | null>(null);
   const [readingFromCache, setReadingFromCache] = useState(false);
   const [reading,setReading] =
     useState<TodayReading | null>(
       null
     );
+
+  const displayedReading =
+    readingOwner === readingCacheUser && reading?.reading_date === readingDate
+      ? reading
+      : null;
+
+  // Refresh the day without background polling; revisit/resume is enough.
+  useFocusEffect(useCallback(() => {
+    setReadingDate(getManilaReadingDate());
+  }, []));
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') setReadingDate(getManilaReadingDate());
+    });
+    return () => subscription.remove();
+  }, []);
 
   const [loading,setLoading] =
     useState(true);
@@ -382,21 +408,24 @@ export default function BuklodHomeFaithPanel({
   useEffect(() => {
     let active = true;
     let fetched = false;
-    if (readingAccountRef.current !== readingCacheUser) {
-      setReading(null);
-      setLoading(true);
-      setReadingFromCache(false);
-    }
+    // A cached reference from yesterday must never appear under today's date,
+    // including after an account switch or a foreground day rollover.
+    setReading(null);
+    setReadingOwner(null);
+    setReadingFromCache(false);
+    setLoading(true);
     readingAccountRef.current = readingCacheUser;
 
-    // Reading is a read-only presentation snapshot. Scope entitlements are
-    // always checked separately above and are never persisted as authority.
-    void getOfflineCache<TodayReading>('show-faith-today:v1', {
+    const cacheKey = `show-faith-today:v2:${readingDate}`;
+    // Scope entitlements are checked separately and are never cached as authority.
+    void getOfflineCache<TodayReading>(cacheKey, {
       userId: readingCacheUser,
       allowStale: true,
     }).then(cached => {
-      if (!active || fetched || !cached?.data?.bible_reference) return;
+      if (!active || fetched || cached?.data?.reading_date !== readingDate ||
+          !cached.data.bible_reference) return;
       setReading(cached.data);
+      setReadingOwner(readingCacheUser);
       setReadingFromCache(true);
       setLoading(false);
     }).catch(() => undefined);
@@ -407,18 +436,29 @@ export default function BuklodHomeFaithPanel({
           const { data, error } = await withBuklodTimeout<{
             data: any; error?: { message?: string } | null;
           }>((supabase as any).rpc('get_automatic_bible_today'), 10000, 'Daily reading');
-          if (!active || error) return;
+          if (!active) return;
+          if (error) {
+            console.warn('SHOW FAITH daily reading:', error.message);
+            return;
+          }
           const raw = Array.isArray(data) ? data[0] ?? null : data ?? null;
           if (!raw) return;
-          const next = {
+          const returnedDate = String(raw.reading_date ?? '').slice(0, 10);
+          if (returnedDate !== readingDate) {
+            console.warn('SHOW FAITH daily reading: response date mismatch');
+            return;
+          }
+          const next: TodayReading = {
+            reading_date: returnedDate,
             bible_reference: String(raw.bible_reference ?? ''),
             chapters_today: Number(raw.chapters_today ?? 1),
           };
           if (!next.bible_reference) return;
           fetched = true;
           setReading(next);
+          setReadingOwner(readingCacheUser);
           setReadingFromCache(false);
-          void setOfflineCache('show-faith-today:v1', next, {
+          void setOfflineCache(cacheKey, next, {
             userId: readingCacheUser,
             ttlMs: 24 * 60 * 60 * 1000,
           }).catch(() => undefined);
@@ -433,7 +473,7 @@ export default function BuklodHomeFaithPanel({
     }
 
     return () => { active = false; };
-  }, [readingCacheUser, online]);
+  }, [readingCacheUser, readingDate, online]);
 
 
   const dailyReadingLocked =
@@ -516,7 +556,7 @@ export default function BuklodHomeFaithPanel({
           compact={compact}
           label="Daily Reading"
           title={
-            reading
+            displayedReading
               ?.bible_reference ||
             "Today's reading"
           }
@@ -529,13 +569,13 @@ export default function BuklodHomeFaithPanel({
               ? access?.daily_reading.pending_request_id
                 ? 'Payment pending verification'
                 : 'This feature is available through your Cluster Premium.'
-              : reading
-              ? `${reading.chapters_today} ${
-                  reading.chapters_today ===
+              : displayedReading
+              ? `${displayedReading.chapters_today} ${
+                  displayedReading.chapters_today ===
                   1
                     ? 'chapter'
                     : 'chapters'
-                } ${readingFromCache ? '· last saved' : 'today'}`
+                } ${readingFromCache ? '· last saved today' : 'today'}`
               : 'Open your guided reading'
           }
           icon="calendar-text-outline"
@@ -558,9 +598,7 @@ export default function BuklodHomeFaithPanel({
   pathname: '/bible/read',
   params: {
     source: 'daily_plan',
-    assignedDate: new Date(
-      Date.now() + 8 * 60 * 60 * 1000
-    ).toISOString().slice(0, 10),
+    assignedDate: readingDate,
   },
 } as any);
           }}
