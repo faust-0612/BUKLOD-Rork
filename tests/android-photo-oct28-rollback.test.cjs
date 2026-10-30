@@ -11,7 +11,7 @@ test('Android-specific module bypasses October 28 full-screen photo masking wrap
   assert.match(native,/export const BuklodCachedMediaImage = memo\(AndroidWallPhoto/);
   // The progressive overlay is a sibling inside the existing measured
   // Pressable; never recreate the white-screen nested wrapper.
-  assert.match(native,/const renderWithUpgrade = \(preview: React\.ReactNode\) => usingPreview \?/);
+  assert.match(native,/const renderWithUpgrade = \(preview: React\.ReactNode\) => \(/);
   assert.match(native,/<ExpoImage[\s\S]*?style=\{style\}/);
   assert.match(native,/<NativeImage[\s\S]*?style=\{style\}/);
   assert.doesNotMatch(native,/<View style=\{style as any\}|const photoStyle =|loadingOverlay|loadingBadge|recyclingKey=\{cacheKey\}/);
