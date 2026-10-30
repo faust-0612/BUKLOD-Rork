@@ -611,6 +611,17 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   // The measured collage Pressable remains the parent (no masking wrapper).
   // Start original resolution independently of preview decode/display. A
   // white or stalled thumbnail can never block its sharp replacement.
+  // Keep a visible loading affordance while the decoder has not confirmed
+  // on-screen paint. A raw image view is otherwise a large white rectangle.
+  const pendingPaintIndicator = !actual.painted ? (
+    <ActivityIndicator
+      pointerEvents="none"
+      size="small"
+      color="#688A81"
+      style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -10, marginLeft: -10 }}
+    />
+  ) : null;
+
   const renderWithUpgrade = (preview: React.ReactNode) => (
     shouldMountWallOriginalUpgrade({
       originalPath,
@@ -646,10 +657,11 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
 
   if (actual.renderer === 'native') {
     return renderWithUpgrade(
+      <>
       <NativeImage
         source={{ uri: actual.url }}
         resizeMode={contentFit}
-        style={style}
+        style={[{ backgroundColor: '#EEF3F0' }, style]}
         onProgress={event => {
           const bytes = Number(event.nativeEvent?.loaded ?? 0);
           const p = progressRef.current;
@@ -680,13 +692,16 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
           } else retryAfterError(actual.url!);
         }}
       />
+      {pendingPaintIndicator}
+      </>
     );
   }
 
   return renderWithUpgrade(
+    <>
     <ExpoImage
       source={{ uri: actual.url, cacheKey }}
-      style={style}
+      style={[{ backgroundColor: '#EEF3F0' }, style]}
       contentFit={contentFit}
       cachePolicy="memory-disk"
       priority="high"
@@ -716,6 +731,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       }}
       onError={() => retryAfterError(actual.url!)}
     />
+    {pendingPaintIndicator}
+    </>
   );
 }
 
