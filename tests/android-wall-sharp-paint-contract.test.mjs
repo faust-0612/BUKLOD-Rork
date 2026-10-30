@@ -34,7 +34,7 @@ test('native fallback requires valid original dimensions, not a network start', 
 
 test('Android overlay keeps preview visible while validating Expo display and reuses original disk cache', () => {
   const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
-  assert.match(renderer, /const renderWithUpgrade = \(preview: React.ReactNode\) => usingPreview \? \(/);
+  assert.match(renderer, /const renderWithUpgrade = \(preview: React.ReactNode\) => \(/);
   assert.match(renderer, /shouldMountWallOriginalUpgrade\(\{/);
   assert.match(renderer, /source=\{\{ uri: current.url, cacheKey: originalCacheKey \}\}/);
   assert.match(renderer, /cachePolicy="memory-disk"/);
@@ -81,8 +81,8 @@ test('existing original bytes, fallback, and incremental sharp upgrade stay sepa
   const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
   assert.match(renderer, /communityWallSharpGate\.request\(\)/);
   assert.match(renderer, /<WallSharpOverlay mediaPath=\{originalPath\}/);
-  assert.match(renderer, /\? await resolveCommunityMediaUrl\(mediaPath, null\)/);
-  assert.match(renderer, /if \(usingPreview\) \{[\s\S]*?setFailedPreviewFor\(originalPath\)/);
+  assert.match(renderer, /url = await resolveCommunityMediaUrl\(mediaPath, null\)/);
+  assert.match(renderer, /if \(usingPreview\) \{[\s\S]*?failed: true/);
   assert.match(renderer, /cachePolicy="memory-disk"/);
 });
 
@@ -94,10 +94,10 @@ test('cache-first originals bypass queue and signing, online and offline', () =>
 });
 
 test('failed, blank or delayed thumbnails cannot gate original painting', () => {
-  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: 'u/post-x.jpg', usingPreview: true, previewFailed: false }), true);
-  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: 'u/post-x.jpg', usingPreview: true, previewFailed: true }), false);
-  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: 'u/post-x.jpg', usingPreview: false, previewFailed: false }), false);
-  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: '', usingPreview: true, previewFailed: false }), false);
+  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: 'u/post-x.jpg', usingPreview: true }), true);
+  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: 'u/post-x.jpg', usingPreview: true }), true);
+  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: 'u/post-x.jpg', usingPreview: false }), false);
+  assert.equal(shouldMountWallOriginalUpgrade({ originalPath: '', usingPreview: true }), false);
 });
 
 test('cached originals are checked before an online download slot is consumed', () => {
@@ -116,5 +116,5 @@ test('cached originals are checked before an online download slot is consumed', 
 test('no unconditional 30-second duplicate original request when thumbnail is slow', () => {
   const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
   assert.doesNotMatch(renderer, /setFailedPreviewFor\(current => current === originalPath/);
-  assert.match(renderer, /if \(usingPreview\) \{[\s\S]*?setFailedPreviewFor\(originalPath\)/);
+  assert.match(renderer, /if \(usingPreview\) \{[\s\S]*?failed: true/);
 });
