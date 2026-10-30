@@ -5,10 +5,17 @@
  * Mounted photos are never discarded because earlier tiles filled the queue.
  * FlashList unmount cancellation bounds the default waiting queue in practice.
  */
+import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
+
 export type SharpSlot = () => void;
 export type SharpRequest = { granted: Promise<SharpSlot | null>; cancel: () => void };
 
-export function createCommunityWallSharpGate(maxActive = 2, maxWaiting = Number.POSITIVE_INFINITY) {
+export function createCommunityWallSharpGate(
+  maxActive = 2,
+  maxWaiting = Number.POSITIVE_INFINITY,
+  currentLimit: () => number = () => maxActive,
+) {
+  const availableSlots = () => Math.max(1, Math.min(maxActive, Math.floor(currentLimit()) || 1));
   type Waiter = { resolve: (slot: SharpSlot | null) => void; cancelled: boolean };
   const queue: Waiter[] = [];
   let active = 0;
@@ -24,7 +31,7 @@ export function createCommunityWallSharpGate(maxActive = 2, maxWaiting = Number.
   };
 
   const drain = () => {
-    while (active < maxActive && queue.length) {
+    while (active < availableSlots() && queue.length) {
       const next = queue.shift()!;
       if (next.cancelled) continue;
       active += 1;
@@ -36,7 +43,7 @@ export function createCommunityWallSharpGate(maxActive = 2, maxWaiting = Number.
     let waiter!: Waiter;
     const granted = new Promise<SharpSlot | null>(resolve => {
       waiter = { resolve, cancelled: false };
-      if (active < maxActive && !queue.length) {
+      if (active < availableSlots() && !queue.length) {
         active += 1;
         resolve(makeRelease());
       } else if (queue.length < maxWaiting) {
@@ -63,4 +70,10 @@ export function createCommunityWallSharpGate(maxActive = 2, maxWaiting = Number.
   return { request, stats: () => ({ active, queued: queue.length }) };
 }
 
-export const communityWallSharpGate = createCommunityWallSharpGate();
+// Two originals on healthy networks, one on degraded 2G/3G. Visible
+// thumbnails are not part of this gate and always receive image priority.
+export const communityWallSharpGate = createCommunityWallSharpGate(
+  2,
+  Number.POSITIVE_INFINITY,
+  () => classifyNetworkQuality() === 'degraded' ? 1 : 2,
+);
