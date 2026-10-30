@@ -7,7 +7,8 @@ const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx
 const collage = readFileSync('src/components/BuklodCommunityPhotoCollage.tsx', 'utf8');
 
 test('preview is kept visible until full ORIGINAL has valid decoded dimensions', () => {
-  assert.match(renderer, /actual\.painted \? <WallSharpOverlay mediaPath=\{originalPath\}/);
+  assert.match(renderer, /shouldMountWallOriginalUpgrade\(\{/);
+  assert.match(renderer, /<WallSharpOverlay mediaPath=\{originalPath\}/);
   assert.match(renderer, /opacity: current\.ready \? 1 : 0/);
   assert.match(renderer, /Number\(dimensions\?\.width\) > 0 && Number\(dimensions\?\.height\) > 0/);
   assert.match(renderer, /activeUpgradeRendererRef\.current === 'native'\) finish\(false\)/);
@@ -88,4 +89,15 @@ test('unindexed legacy originals are rendered directly, not misclassified as nat
   assert.match(renderer, /initialSource\(identity, path, preferred, usingPreview\)/);
   assert.match(renderer, /renderer: usingPreview \? 'native' : 'expo'/);
   assert.match(renderer, /onDisplay=\{\(\) => \{/);
+});
+
+test('sharp originals do not wait for a preview onLoad/onDisplay', () => {
+  const start = renderer.indexOf('const renderWithUpgrade = (preview: React.ReactNode)');
+  const stop = renderer.indexOf('if (!actual.url || actual.failed)', start);
+  assert.ok(start > 0 && stop > start);
+  const flow = renderer.slice(start, stop);
+  assert.match(flow, /shouldMountWallOriginalUpgrade/);
+  assert.match(flow, /<WallSharpOverlay/);
+  assert.doesNotMatch(flow, /actual\.painted \? <WallSharpOverlay/);
+  assert.match(renderer, /return renderWithUpgrade\(\s*<Pressable/);
 });
