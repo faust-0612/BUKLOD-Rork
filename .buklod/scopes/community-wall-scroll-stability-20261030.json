@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "objective": "Stop unintended upward movement when scrolling down on Public Wall by turning off FlashList v2 default automatic content-position correction.",
+  "baseRef": "da4af1442e57ae3a611fe20fa1ffb7ecb9d1c503",
+  "productionBaselineEvidence": "Canonical GitHub main da4af1442e57ae3a611fe20fa1ffb7ecb9d1c503 inspected on 2026-10-30. Verified RC, served Android OTA source and live device state not independently checked. No production publication as part of this DEV patch.",
+  "chosenApproach": "Explicitly set maintainVisibleContentPosition.disabled=true on the Public Wall FlashList only.",
+  "alternativeApproaches": [
+    "Replace FlashList with FlatList (rejected: risks losing existing virtualization and fast scrolling)",
+    "Programmatically force a scroll offset after every data change (rejected: causes another interfering scroll controller)",
+    "Explicitly disable FlashList v2 default position correction (chosen; documented by Shopify as the fix for reordering-induced item movement)"
+  ],
+  "selectionRationale": "Shopify's FlashList v2 known-issues page says maintainVisibleContentPosition is on by default and can move items on reordering. Changing the one Public Wall prop isolates this documented behavior without touching photo, ad, chat, cache, pagination or the backend. Background refresh reordering remains a separate possible issue requiring runtime diagnosis if symptoms persist.",
+  "preserveBehaviors": [
+    "Photo loading, disk caches, captions, ratios, preview/original and weak-signal rendering untouched",
+    "Public feed ranking, manual refresh and infinite scroll pagination untouched",
+    "For You / Following / Latest tab behavior unchanged",
+    "Scoped Cluster/Organization Wall remains FlatList",
+    "Notification focus and Android Back intentional scroll commands remain enabled",
+    "No Supabase, AdMob, Connect, native build, release script or backend watch modifications"
+  ],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/community-wall-scroll-stability.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "tests/community-wall-scroll-stability.test.mjs",
+    ".buklod/scopes/community-wall-scroll-stability-20261030.json"
+  ],
+  "acceptanceChecks": [
+    "Public Wall disables FlashList v2 built-in scroll-position correction",
+    "Existing scroll, pagination and refresh bindings retained",
+    "Android Back and focused post navigation retained",
+    "No media, ads, backend or scoped Wall modifications",
+    "Focused Node test and existing regression/scope gates required",
+    "Treat runtime/device behavior as unverified until independently confirmed; production OTA gated"
+  ]
+}

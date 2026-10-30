@@ -4661,6 +4661,7 @@ const communityFeedRows =
  if(!featureEnabled('community_feed'))return <FeatureUnavailable title="Community"/>;
  return <>
  <FlashList
+    maintainVisibleContentPosition={{ disabled: true }}
     ref={communityFeedRefBackR2}
     onScroll={(event:any) => {
       communityScrollYRefBackR2.current =
