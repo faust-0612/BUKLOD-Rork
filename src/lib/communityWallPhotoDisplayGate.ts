@@ -27,3 +27,24 @@ export function shouldRevealWallOriginal(input: WallOriginalDisplayInput): boole
       (input.renderedBy === 'native' || input.displayed),
   );
 }
+
+/** Progress extends an active download without restarting it by wall-clock age. */
+export function shouldKeepWallOriginalTransfer(input: {
+  expectedUrl: string;
+  progressUrl: string;
+  lastProgressAt: number;
+  now: number;
+  stallMs: number;
+}): boolean {
+  return Boolean(
+    input.expectedUrl &&
+      input.expectedUrl === input.progressUrl &&
+      Number.isFinite(input.lastProgressAt) &&
+      input.lastProgressAt > 0 &&
+      Number.isFinite(input.now) &&
+      Number.isFinite(input.stallMs) &&
+      input.stallMs > 0 &&
+      input.now >= input.lastProgressAt &&
+      input.now - input.lastProgressAt < input.stallMs,
+  );
+}
