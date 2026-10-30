@@ -205,6 +205,9 @@ jobs:
           node --test tests/community-wall-no-blank-photo.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify KL per-scene saved placement and draft isolation
+        if: github.head_ref == 'dev/kl-scene-anchor-persistence-20261030'
+        run: node --experimental-strip-types --test tests/kl-scene-drafts.test.mjs
       - name: Verify Home map rendering, destination search and Google Maps handoff
         if: github.head_ref == 'fix/home-map-google-search-20261027'
         run: node scripts/buklod-home-map-regression.cjs
