@@ -93,7 +93,9 @@ export default function BuklodNavSafeShell({
     isImmersiveIgpatPath(pathname);
   const reserveMyBuklodSystemInsets =
     isMyBuklodDoorPath(pathname) ||
-    normalizeBuklodPathname(pathname) === '/bible/read';
+    normalizeBuklodPathname(pathname) === '/bible/read' ||
+    // Radio header must start below Android's translucent status bar.
+    normalizeBuklodPathname(pathname) === '/personal-home/radio';
   const [keyboardVisible, setKeyboardVisible] =
     useState(false);
 
