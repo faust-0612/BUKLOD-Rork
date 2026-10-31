@@ -37,3 +37,18 @@ test('AdMob init never waits on perpetually active interactions', () => {
  assert.match(s,/initializeBuklodAds\(\)/);
  assert.match(s,/clearTimeout\(task\)/);
 });
+
+test('Small banners keep the SDK surface visible during initial load and no-fill', () => {
+ const banner=read('src/components/BuklodAdMobBanner.tsx');
+ assert.match(banner, /<View style=\{\[styles.shell, compact && styles.compactShell\]\}>/);
+ assert.match(banner, /<Animated.View style=\{\[styles.labelRow, \{ opacity \}\]\}>/);
+ assert.doesNotMatch(banner, /opacity: compact \? opacity : 1/);
+});
+
+test('Large banner fallback waits for its request reservation and remains refresh-visible', () => {
+ const inline=read('src/components/BuklodCommunityInlineAd.android.tsx');
+ assert.match(inline, /const \[bannerRequestReady, setBannerRequestReady\] = useState\(false\)/);
+ assert.match(inline, /bannerRequestStarted.current = true;\s*setBannerRequestReady\(true\)/);
+ assert.match(inline, /!nativeFailed \|\| !bannerUnitId \|\| bannerFailed \|\| !bannerRequestReady/);
+ assert.doesNotMatch(inline, /pendingArea: \{[^}]*opacity:\s*0/);
+});

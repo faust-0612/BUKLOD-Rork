@@ -8,7 +8,7 @@ test('compact banner provides a measurable viewport probe on first render', () =
  const viewport = read('src/lib/buklodAdViewport.ts');
  assert.match(viewport, /height >= 8/);
  assert.match(component, /compact\) \{[\s\S]*?style=\{styles.pendingShell\}/);
- assert.match(component, /minHeight: 12/);
+ assert.match(component, /minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT/);
  const first = read('src/components/BuklodFirstViewAd.tsx');
  assert.match(first, /requireViewport\s+showLabel/);
  assert.doesNotMatch(first, /requireViewport=\{false\}/);
@@ -29,7 +29,8 @@ test('BannerAd cannot mount until an actual shared cooldown reservation is grant
 test('No-fill is not rapidly retried; a failed banner can recover after a quiet period', () => {
  const s = read('src/components/BuklodAdMobBanner.tsx');
  assert.match(s, /code.includes\('no-fill'\)/);
- assert.match(s, /if \(!online \|\| noFill \|\| attempt >= MAX_RETRIES\)/);
+ assert.match(s, /if \(noFill && online\) \{/);
+ assert.match(s, /if \(!online \|\| attempt >= MAX_RETRIES\)/);
  assert.match(s, /Date.now\(\) - failedAt.current < AD_SLOT_REMOUNT_COOLDOWN_MS/);
  assert.match(s, /useFocusEffect\(/);
  assert.match(s, /AppState.addEventListener\('change'/);
