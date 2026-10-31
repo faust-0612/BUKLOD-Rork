@@ -9,9 +9,11 @@ import { sampleLegacyRgbPreview } from "./legacyRgbSampler.ts";
 function compactJpeg(source: Uint8Array): Uint8Array {
   // Bounded fallback for JPEG originals without an embedded thumbnail.
   // RGB uses three bytes per pixel; the encoder receives only 384px RGBA.
+  // Only a small memory-accounting headroom increase for historical JPEGs.
+  // The 24 MP ceiling is unchanged to avoid expensive decode spikes.
   const rgb = jpeg.decode(source, {
     useTArray: true, formatAsRGBA: false,
-    maxResolutionInMP: 24, maxMemoryUsageInMB: 160,
+    maxResolutionInMP: 24, maxMemoryUsageInMB: 168,
   });
   const small = sampleLegacyRgbPreview(rgb);
   return new Uint8Array(jpeg.encode(small, 46).data);

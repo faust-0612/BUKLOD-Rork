@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Recover additional failed BUKLOD legacy Wall preview thumbnails with bounded decoder memory while keeping originals private and unchanged",
+  "baseRef": "7be922329afa5fd09745d52ec5db9099d385c17d",
+  "productionBaselineEvidence": "Production project yhanxndaqbmuzbdqlblu Edge Function v6: 900 completed, 123 failed legacy preview jobs; 88 near decoder memory ceiling, 35 exceed 24MP. All 123 originals exist; worker queue disabled and no new transformation billing enabled. Production Android OTA RC run 41229107375 rerunning after initial zero-step infrastructure failure.",
+  "chosenApproach": "Small decoder accounting headroom from 160 MB to 168 MB without increasing 24MP limit, replacing image library, changing Storage authorization, automatically restarting queue, or touching user originals. Gate with regression checks and separate deployment/requeue decisions.",
+  "selectionRationale": "Confirmed narrow memory failures motivate bounded adjustment, while 256 MB hosted worker cap and 2s CPU limit make full unbounded redecoding dangerous.",
+  "alternativeApproaches": [
+    "Use paid Storage image transformations for every remaining image (rejected: existing Pro quota overage and unapproved charges).",
+    "Raise maxResolutionInMP to 32+ and decoder limit over 200MB (rejected: risk of OOM, CPU timeout and Production incident)."
+  ],
+  "riskAreas": [
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/wall-legacy-rgb-sampler.test.mjs",
+    "supabase/tests/wall_preview_bounded_memory_recovery_20261101.sql"
+  ],
+  "allowedPaths": [
+    "supabase/functions/buklod-wall-preview-backfill/index.ts",
+    "tests/wall-legacy-rgb-sampler.test.mjs",
+    "supabase/tests/wall_preview_bounded_memory_recovery_20261101.sql",
+    ".buklod/scopes/wall-preview-bounded-memory-recovery-20261101.json"
+  ],
+  "preserveBehaviors": [
+    "All original JPEG objects remain intact and private",
+    "Previously indexed previews and signed URLs remain valid",
+    "Existing private authorization token and Edge function runtime unchanged",
+    "No automatic production backfill restart before validated release",
+    "35 oversized legacy originals continue through existing direct photo fallback",
+    "Other Community, Marites, Profile, Connect and Expo runtime code untouched"
+  ],
+  "acceptanceChecks": [
+    "Worker still rejects 24MP+ source images",
+    "Decoder memory ceiling remains at or under 168MB",
+    "EXIF fast preview path remains first",
+    "Security SQL regression guards private table and function access",
+    "CI tests and exact source verification before any Edge deployment",
+    "Backfill retry must be bounded to eligible memory failures; never rerun all failures blindly"
+  ]
+}
