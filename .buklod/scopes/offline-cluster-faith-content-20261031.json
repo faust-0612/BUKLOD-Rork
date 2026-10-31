@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "objective": "Offline parity for saved clusters and previously downloaded Daily Reading, Bible chapters, and published Word",
-  "baseRef": "23182683e9a902ca0bbc688e7d6470e8974e71bb",
+  "baseRef": "main",
   "allowedPaths": [
     "src/app/clusters/index.tsx",
     "src/components/BuklodClusterMembershipGate.tsx",
@@ -37,7 +37,7 @@
     "No wrong Bible chapter in uncached Daily Reading",
     "No cross-account cache leaks"
   ],
-  "productionBaselineEvidence": "Verified GitHub main SHA 23182683e9a902ca0bbc688e7d6470e8974e71bb on 2026-10-31 at branch cut. Existing Android 1.3.2 production OTA artifact/adoption and installed device remain unverified; DEV changes are not claimed live.",
+  "productionBaselineEvidence": "verified: GitHub main commit cc05788dbabc01226ecb4807bcb7549ebc65dc2f read as the authoritative code comparison baseline on 2026-10-31. PR remains restricted to its 10 explicit changed paths; any intervening main changes are excluded by the main-to-head diff. Production Android 1.3.2 installed fingerprint and served OTA not verified; this is code baseline evidence only.",
   "chosenApproach": "Reuse persisted BuklodScopeProvider per-account active membership for Cluster directory and offline formation reading gate. Cache exact published Word and Bible translation/date/book/chapter snapshots locally with user-bound isolation. Server remains authoritative for live membership changes, submitted completions and rewards.",
   "selectionRationale": "This resolves the confirmed Profile/Cluster mismatch without changing RLS or introducing a second independently populated membership store. Read-only account-scoped caches are stable under DNS failures and preserve previously fetched content; bounded online fetch updates data when connectivity resumes.",
   "alternativeApproaches": [
