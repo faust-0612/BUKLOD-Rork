@@ -17,11 +17,12 @@
     "points-ledger",
     "show-faith",
     "kabihasnang-ligaw",
-    "ota"
+    "ota",
+    "story"
   ],
   "regressionTests": [
     "tests/buklod-ad-opportunities.test.cjs",
-    "TypeScript QA and existing CI"
+    "tests/kl-ad-completion.test.cjs"
   ],
   "allowedPaths": [
     "src/components/points/BuklodPointsRewardsScreen.tsx",
@@ -30,7 +31,8 @@
     "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
     "src/lib/buklodAdOpportunities.ts",
     "tests/buklod-ad-opportunities.test.cjs",
-    ".buklod/scopes/ad-opportunities-safe-20261031.json"
+    ".buklod/scopes/ad-opportunities-safe-20261031.json",
+    "tests/kl-ad-completion.test.cjs"
   ],
   "acceptanceChecks": [
     "Successful RPC persists before optional natural-break ad",
@@ -38,5 +40,11 @@
     "Global controller retains cap/cooldown/route safety",
     "Android-only rollout, no native binary additions",
     "RC/Production OTA cannot be called live without exact artifact evidence"
+  ],
+  "selectionRationale": "Use existing production native SDK/ad units and shared safety limits; opportunistic post-save interstitial cannot block tasks or create cash-linked rewarded incentives. New subsystem or mandatory rewarded ads would add risk and violate policy.",
+  "alternativeApproaches": [
+    "Mandatory rewarded video before Points Claim or reflection submit: rejected because these are existing core functions and points are potentially cash-linked.",
+    "Add separate ad network and per-screen ad managers: rejected because it would require native binaries and duplicate concurrency controls.",
+    "Reuse central post-success optional interstitial and existing opt-in noncash Ad-Light offer: selected because it preserves safety and compatibility."
   ]
 }
