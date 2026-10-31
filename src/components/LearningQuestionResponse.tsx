@@ -13,6 +13,7 @@ import {
 import { pickGeneratedQuestions } from '@/lib/buklodQuestionEngine';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import type { AIAnswerValidationResult } from '@/types/buklodAiValidation';
 
 type Props = {
@@ -75,6 +76,10 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
   );
   const [reflectionValidation, setReflectionValidation] = useState<AIAnswerValidationResult | null>(null);
   const [previouslySubmitted, setPreviouslySubmitted] = useState(false);
+
+  useEffect(() => {
+    warmBuklodAdOpportunity('formation_lesson_success');
+  }, [lesson?.id]);
 
   useEffect(() => {
     let active = true;
@@ -216,6 +221,8 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       const result = (data ?? {}) as AutomaticLessonResult;
       const approved = result.status === 'approved' || result.auto_approved === true;
       setPreviouslySubmitted(true);
+      // The approved lesson is persisted first; ad failure cannot roll it back.
+      if (approved) await showBuklodAdOpportunity('formation_lesson_success');
 
       Alert.alert(
         approved ? 'Lesson completed' : 'Please improve this lesson',
@@ -317,6 +324,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
         </View>
       )}
 
+      <Text style={styles.helper}>After a saved, approved completion, an optional sponsored break may appear. Ads never prevent submission.</Text>
       <Button
         title={
           busy || validating
