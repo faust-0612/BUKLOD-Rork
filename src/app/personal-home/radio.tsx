@@ -3,8 +3,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Image,
   Linking,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -17,6 +19,7 @@ import {
   playDzasRadio,
 } from '@/lib/buklodDzasRadio';
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
+import { DZAS_LOGO_IMAGE, DZAS_PORTRAIT_IMAGE } from '@/assets/dzasImages';
 
 const DZAS_WEBSITE_URL =
   'https://listenonlineradio.com/ph/702-dzas-febc-radio';
@@ -92,7 +95,8 @@ export default function BuklodRadioScreen() {
       {/* BUKLOD_RADIO_ADMOB_R1 */}
       <View style={{ flex: 1 }}>
         <View style={styles.screen}>
-      <View style={styles.content}>
+      <ScrollView style={styles.radioScroll} contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
           <Pressable
             accessibilityRole="button"
@@ -191,7 +195,7 @@ export default function BuklodRadioScreen() {
                   {playing
                     ? 'LIVE STREAM ACTIVE'
                     : status?.isBuffering
-                      ? 'CONNECTING�'
+                      ? 'CONNECTING…'
                       : 'READY TO RECEIVE'}
                 </Text>
               </View>
@@ -254,17 +258,30 @@ export default function BuklodRadioScreen() {
             <View style={styles.listenCopy}>
               <Text style={styles.listenPrimary}>
                 {busy
-                  ? 'CONNECTING�'
+                  ? 'CONNECTING…'
                   : playing
                     ? 'PAUSE RADIO'
                     : 'LISTEN LIVE'}
               </Text>
 
               <Text style={styles.listenSecondary}>
-                702 DZAS � Live Internet Radio
+                702 DZAS · Live Internet Radio
               </Text>
             </View>
           </Pressable>
+        </View>
+
+        <View style={styles.visualGallery}>
+          <View style={styles.photoCard}>
+            <Image source={DZAS_LOGO_IMAGE} style={styles.stationPhoto} resizeMode="contain"
+              accessibilityLabel="DZAS 702 AM station logo" />
+            <Text style={styles.photoLabel}>702 DZAS AM</Text>
+          </View>
+          <View style={styles.photoCard}>
+            <Image source={DZAS_PORTRAIT_IMAGE} style={styles.stationPhoto} resizeMode="cover"
+              accessibilityLabel="Photo provided for DZAS radio view" />
+            <Text style={styles.photoLabel}>DZAS Community</Text>
+          </View>
         </View>
 
         <View style={styles.quickPanel}>
@@ -325,13 +342,15 @@ export default function BuklodRadioScreen() {
           </Pressable>
         </View>
 
-        <BuklodAdMobBanner
-          placement="content"
-          placementId="dzas_radio_banner"
-          format="adaptive"
-          requireViewport={false}
-          showLabel
-        />
+        <View style={styles.sponsoredArea}>
+          <BuklodAdMobBanner
+            placement="content"
+            placementId="dzas_radio_medium_rectangle"
+            format="mediumRectangle"
+            requireViewport
+            showLabel
+          />
+        </View>
 
         <View style={styles.bottomInfo}>
           <MaterialCommunityIcons
@@ -344,10 +363,10 @@ export default function BuklodRadioScreen() {
             style={styles.bottomText}
             numberOfLines={2}
           >
-            Direct DZAS live audio � BUKLOD does not record or restream the station.
+            Direct DZAS live audio · BUKLOD does not record or restream the station.
           </Text>
         </View>
-      </View>
+      </ScrollView>
     </View>
       </View>
     </View>
@@ -360,15 +379,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4F1E8',
   },
 
-  content: {
+  radioScroll: {
     flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     width: '100%',
     maxWidth: 760,
     alignSelf: 'center',
     paddingHorizontal: 14,
     paddingTop: 12,
-    paddingBottom: 12,
-    justifyContent: 'space-between',
+    paddingBottom: 35,
+    justifyContent: 'flex-start',
   },
 
   topBar: {
@@ -620,6 +642,45 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
+  visualGallery: {
+    flexDirection: 'row',
+    marginTop: 15,
+    gap: 12,
+    alignItems: 'stretch',
+  },
+  photoCard: {
+    flex: 1,
+    minWidth: 0,
+    padding: 8,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DFE6DB',
+    borderWidth: 1,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stationPhoto: {
+    width: '100%',
+    height: 124,
+    borderRadius: 13,
+    backgroundColor: '#F8F8F5',
+  },
+  photoLabel: {
+    marginTop: 7,
+    color: '#1F4932',
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  sponsoredArea: {
+    marginTop: 16,
+    minHeight: 289,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
   quickPanel: {
     minHeight: 58,
     marginTop: 9,

@@ -2,6 +2,8 @@ import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import MyBibleQuickNavigator from '@/components/bible/MyBibleQuickNavigator';
+import BuklodBibleScenicHeader from '@/components/bible/BuklodBibleScenicHeader';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import BuklodKjvStrongText from '@/components/bible/BuklodKjvStrongText';
 import { useBuklodBibleChapterStudy } from '@/lib/buklodBibleStudy';
 import { useBuklodScrollBottomInset } from '@/lib/buklodSafeArea';
@@ -34,6 +36,7 @@ import {
 import {
   ActivityIndicator,
   Alert,
+  Share,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -2949,6 +2952,23 @@ setMarking(true);
       ]}
     >
       {isMyBibleMode && (
+        <BuklodBibleScenicHeader
+          bookName={currentBook?.book_name ?? 'Bible'}
+          chapterNo={chapterNo}
+          translationLabel={translation}
+          onBack={() => router.back()}
+          onSearch={() => router.push('/bible/search')}
+          onBookmark={() => {
+            const verse = verses.find(row => Number(row.verse_no) === passageVerseNo) ?? verses[0];
+            if (verse) {
+              openBibleAnnotation(Number(verse.verse_no), String(repairMojibakeText(verse.verse_text)));
+            } else {
+              Alert.alert('Bookmark', 'Wala pang naka-load na talata.');
+            }
+          }}
+        />
+      )}
+      {isMyBibleMode && (
         <MyBibleQuickNavigator
           books={books}
           bookNo={bookNo}
@@ -3826,17 +3846,68 @@ setMarking(true);
 
 
         {isMyBibleMode && (
-          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
-            <Pressable accessibilityRole="button" onPress={() => setShowBibleAudio(value => !value)}
-              style={{ paddingVertical: 9, paddingHorizontal: 13, borderRadius: 12, backgroundColor: '#EDF5F0' }}>
-              <Text style={{ color: '#275D45', fontWeight: '800', fontSize: 12 }}>
-                {showBibleAudio ? 'Itago ang audio' : '▶ Pakinggan'}
-              </Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => setShowBibleTextSettings(value => !value)}
-              style={{ paddingVertical: 9, paddingHorizontal: 13, borderRadius: 12, backgroundColor: '#EDF5F0' }}>
-              <Text style={{ color: '#275D45', fontWeight: '800', fontSize: 12 }}>Aa  Laki ng teksto</Text>
-            </Pressable>
+          <View style={{ marginBottom: 14 }}>
+            <View style={{flexDirection:'row',alignItems:'center',gap:8,marginBottom:10}}>
+              <View style={{flex:1}}>
+                <Text style={{fontSize:10,fontWeight:'800',color:'#5B7566'}}>Progress sa Kabanata</Text>
+                <View style={{flexDirection:'row',alignItems:'center',gap:7,marginTop:4}}>
+                  <Text style={{fontSize:10,fontWeight:'900',color:'#275D45'}}>{completed ? '100%' : '0%'}</Text>
+                  <View style={{flex:1,height:7,backgroundColor:'#E2E8DD',borderRadius:12,overflow:'hidden'}}>
+                    <View style={{width:completed?'100%':'0%',height:'100%',backgroundColor:'#2D6B48'}} />
+                  </View>
+                </View>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel="Reading progress"
+                onPress={() => router.push('/bible/report')}
+                style={{width:42,height:42,borderRadius:16,backgroundColor:'#EAF4E9',alignItems:'center',justifyContent:'center'}}>
+                <MaterialCommunityIcons name="clipboard-check-outline" size={24} color="#245E40" />
+              </Pressable>
+            </View>
+            <View style={{flexDirection:'row',flexWrap:'wrap',justifyContent:'space-between',marginBottom:10}}>
+              {([
+                {key:'listen',icon:'volume-high',title:'Pakinggan',action:() => setShowBibleAudio(value => !value)},
+                {key:'henry',icon:'book-open-outline',title:'Komento',action:() => {
+                  const first = Object.keys(bibleStudy.commentary).map(Number).sort((a,b)=>a-b)[0];
+                  if (first) setHenryVerse(first);
+                  else Alert.alert('Matthew Henry', 'Walang available na commentary para sa kabanatang ito. Maaari kang magbasa habang kinukuha ang source.');
+                }},
+                {key:'strong',icon:'link-variant',title:"Strong’s",action:() => {
+                  if (translation !== 'KJV') changeTranslation('KJV');
+                  else if (!Object.keys(bibleStudy.kjvStrong).length) Alert.alert("Strong’s Concordance", 'Wala pang available na tagged Strong’s references para sa kabanatang ito.');
+                }},
+                {key:'font',icon:'format-size',title:'Ayos ng Teksto',action:() => setShowBibleTextSettings(value => !value)},
+              ] as const).map(item=>(
+                <Pressable key={item.key} accessibilityRole="button"
+                  accessibilityLabel={item.title} onPress={item.action}
+                  style={{width:'23%',minHeight:71,alignItems:'center',justifyContent:'center',paddingVertical:5,borderRadius:15,backgroundColor:'#F1F6EC'}}>
+                  <MaterialCommunityIcons name={item.icon} size={24} color="#24583C" />
+                  <Text style={{fontSize:10,fontWeight:'800',color:'#204B35',textAlign:'center',marginTop:6}}>
+                    {item.title}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={{flexDirection:'row',gap:9,marginBottom:8}}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Buod ng Kabanata"
+                onPress={() => {
+                  const first = Object.keys(bibleStudy.commentary).map(Number).sort((a,b)=>a-b)[0];
+                  if (first) setHenryVerse(first);
+                  else Alert.alert('Buod ng Kabanata', 'Walang na-verify na chapter commentary sa source. Hindi tayo magpapakita ng inimbentong buod.');
+                }}
+                style={{flex:1,minHeight:46,borderRadius:19,backgroundColor:'#EEF7DF',flexDirection:'row',alignItems:'center',justifyContent:'center',padding:7,gap:5}}>
+                <MaterialCommunityIcons name="play" size={17} color="#24583C" />
+                <Text style={{fontSize:11,fontWeight:'800',color:'#24583C'}}>Buod ng Kabanata</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="Mga Aral at Aplikasyon"
+                onPress={() => {
+                  const verse=verses[0];
+                  if (verse) openBibleAnnotation(Number(verse.verse_no),String(repairMojibakeText(verse.verse_text)));
+                }}
+                style={{flex:1,minHeight:46,borderRadius:19,backgroundColor:'#EFF5DE',flexDirection:'row',alignItems:'center',justifyContent:'center',padding:7,gap:5}}>
+                <MaterialCommunityIcons name="leaf" size={17} color="#24583C" />
+                <Text style={{fontSize:10.5,fontWeight:'800',color:'#24583C'}}>Mga Aral at Aplikasyon</Text>
+              </Pressable>
+            </View>
           </View>
         )}
         {(!isMyBibleMode || showBibleAudio || bibleNarration.status !== 'idle') && (
@@ -4201,6 +4272,25 @@ setMarking(true);
                     </View>
 
 
+                    {isMyBibleMode && (
+                      <View style={{flexDirection:'row',gap:7,justifyContent:'flex-end',alignItems:'center',marginTop:5}}>
+                        <Pressable accessibilityRole="button" accessibilityLabel={`Komento sa talata ${verse.verse_no}`}
+                          onPress={(event)=>{event.stopPropagation();openBibleAnnotation(Number(verse.verse_no),cleanText);}}
+                          style={{padding:5}}>
+                          <MaterialCommunityIcons name="comment-outline" size={19} color="#285C40" />
+                        </Pressable>
+                        <Pressable accessibilityRole="button" accessibilityLabel={`I-share ang talata ${verse.verse_no}`}
+                          onPress={(event)=>{event.stopPropagation();void Share.share({message:`${currentBook?.book_name ?? 'Bible'} ${chapterNo}:${verse.verse_no} (${translation})\n${cleanText}`}).catch(()=>undefined);}}
+                          style={{padding:5}}>
+                          <MaterialCommunityIcons name="share-variant-outline" size={19} color="#285C40" />
+                        </Pressable>
+                        <Pressable accessibilityRole="button" accessibilityLabel={`Bookmark talata ${verse.verse_no}`}
+                          onPress={(event)=>{event.stopPropagation();openBibleAnnotation(Number(verse.verse_no),cleanText);}}
+                          style={{padding:5}}>
+                          <MaterialCommunityIcons name="bookmark-outline" size={19} color="#285C40" />
+                        </Pressable>
+                      </View>
+                    )}
                     {isMyBibleMode && annotation?.note_text && (
 
                       <View
