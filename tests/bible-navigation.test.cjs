@@ -6,12 +6,11 @@ const bible = fs.readFileSync('src/app/bible/read.tsx', 'utf8');
 const nav = fs.readFileSync('src/components/BuklodPersistentBottomNav.tsx', 'utf8');
 const picker = fs.readFileSync('src/components/bible/MyBibleQuickNavigator.tsx', 'utf8');
 
-test('Bible occupies the fourth public nav slot without deleting Connect routes', () => {
-  assert.match(nav, /key: 'bible', route: '\/bible\/read\?source=my_bible', icon: 'book-open-variant', label: 'Bible'/);
+test('Connect occupies fourth global nav slot; Bible remains a reading route', () => {
+  assert.match(nav, /key: 'connect', route: '\/messages', icon: 'message-outline', label: 'Connect'/);
   assert.match(nav, /key: 'community', route: '\/buklod'/);
-  assert.match(nav, /route !== '\/bible\/read\?source=my_bible'/);
-  assert.match(nav, /pathname === '\/bible\/read'/);
-  assert.doesNotMatch(nav, /key: 'connect'.*label: 'Connect'/);
+  assert.doesNotMatch(nav, /key: 'bible', route: '\/bible\/read/);
+  assert.match(nav, /pathname === '\/messages'/);
   assert.match(bible, /router\.push\('\/bible\/search'\)/);
 });
 
