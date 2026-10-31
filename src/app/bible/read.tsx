@@ -3910,20 +3910,6 @@ setMarking(true);
             </View>
           </View>
         )}
-        {isMyBibleMode && false && (
-          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
-            <Pressable accessibilityRole="button" onPress={() => setShowBibleAudio(value => !value)}
-              style={{ paddingVertical: 9, paddingHorizontal: 13, borderRadius: 12, backgroundColor: '#EDF5F0' }}>
-              <Text style={{ color: '#275D45', fontWeight: '800', fontSize: 12 }}>
-                {showBibleAudio ? 'Itago ang audio' : '▶ Pakinggan'}
-              </Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => setShowBibleTextSettings(value => !value)}
-              style={{ paddingVertical: 9, paddingHorizontal: 13, borderRadius: 12, backgroundColor: '#EDF5F0' }}>
-              <Text style={{ color: '#275D45', fontWeight: '800', fontSize: 12 }}>Aa  Laki ng teksto</Text>
-            </Pressable>
-          </View>
-        )}
         {(!isMyBibleMode || showBibleAudio || bibleNarration.status !== 'idle') && (
         <View
           style={{
