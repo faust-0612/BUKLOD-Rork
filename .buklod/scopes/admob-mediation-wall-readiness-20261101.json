@@ -3,7 +3,7 @@
   "objective": "Prepare AdMob Mediation pilot and correct Android Wall sponsored NativeAd lifecycle on eligibility reentry, without increasing ad density or touching unrelated features.",
   "baseRef": "84d4ca8a22dbba5828443982ce858fa35e7359b6",
   "productionBaselineEvidence": "Reconciled against GitHub main 84d4ca8a22dbba5828443982ce858fa35e7359b6 at 2026-11-01 PH. AdMob PRs #464, #470, #471 merged. Existing production app-side sample showed 450 entry-banner requests, 45 impression callbacks, 114 no-fill failures; later nine-session sample 35 requests and 3 impression callbacks; not a live revenue uplift estimate. Exact Android OTA update ID/fingerprint not verified. No partner adapters/AdMob dashboard activation in this scope.",
-  "chosenApproach": "Keep already-merged Wall native media and placements unchanged. In the Android native sponsored component, clear the stale SDK handle and one-shot request/loaded refs when eligibility is lost so later online/foreground/consent recovery cannot render a destroyed ad; reuse shared reservation cooldown for any future request. Document a dashboard-first mediation pilot and require native rebuild when a partner adapter is necessary.",
+  "chosenApproach": "Keep already-merged Wall native media and placements unchanged. In the Android native sponsored component, clear the stale SDK handle and one-shot request/loaded refs when eligibility is lost so later online/foreground/consent recovery cannot render a destroyed ad; reuse shared reservation cooldown for any future request. Document a dashboard-first mediation pilot and require native rebuild when a partner adapter is necessary. Require a successful fallback-banner reservation before mounting BannerAd, preventing race-based SDK requests while cooldown denies recycled slots.",
   "selectionRationale": "Correct a specific root-cause lifecycle bug without new requests per tap/post, without duplicating merged #470 sponsored cards, and without adding unapproved or incompatible mediation adapters.",
   "alternativeApproaches": [
     "Increase Wall post density again: rejected; already delivered in #470 and not relevant to this lifecycle risk.",
@@ -42,6 +42,7 @@
     "No-fill and absent Native unit keep genuine banner fallback with shared cooldown.",
     "Mediation bidder approval, mapping and Android adapter compatibility independently verified in AdMob dashboard before activation.",
     "No production/RC/live claim without exact source, runtime, verified RC, OTA and device acceptance; adapters require new APK.",
-    "Existing unchanged Wall ad, density and request-gate regression suites are additional compatibility checks, not newly changed regressionTests."
+    "Existing unchanged Wall ad, density and request-gate regression suites are additional compatibility checks, not newly changed regressionTests.",
+    "Android fallback BannerAd is mounted only after accepted reservation, including the no-Native-unit path."
   ]
 }
