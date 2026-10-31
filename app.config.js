@@ -82,9 +82,12 @@ module.exports = ({ config }) => {
       versionCode: isStaging ? undefined : 28,
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
+      // The checked-in Firebase config already includes the separately
+      // registered org.mzbministry.buklod.staging Android app; Gradle
+      // selects the client matching android.package. No new project needed.
       googleServicesFile: isClassroom
         ? (classroomGoogleServicesFile || undefined)
-        : (isStaging ? './google-services.staging.json' : './google-services.production.json'),
+        : './google-services.production.json',
 
       permissions: [
         'android.permission.CAMERA',

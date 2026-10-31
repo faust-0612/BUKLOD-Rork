@@ -89,7 +89,7 @@
       },
       "distribution": "internal",
       "channel": "staging-user",
-      "environment": "preview",
+      "environment": "production",
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
