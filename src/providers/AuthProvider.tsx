@@ -657,6 +657,14 @@ export function AuthProvider({
     };
   }, []);
 
+  // Connectivity changes trigger a new recovery attempt, but do not cancel
+  // one already in progress when the signal briefly drops.
+  useEffect(() => {
+    if (online && offlineSnapshotPendingRef.current) {
+      setOfflineRecoveryVersion(version => version + 1);
+    }
+  }, [online]);
+
   /*
    * Offline cached identity can render offline, but MUST NOT be treated as
    * an online access token. On reconnection let Supabase restore/refresh its
@@ -704,7 +712,7 @@ export function AuthProvider({
       if (!disposed && (completedByThisRecovery || sessionUserIdRef.current === previousUserId)) setLoading(false);
     });
     return () => { disposed = true; };
-  }, [online, offlineRecoveryVersion]);
+  }, [offlineRecoveryVersion]);
 
   /*
    * One background identity refresh when usable internet returns.
