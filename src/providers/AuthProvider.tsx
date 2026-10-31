@@ -18,6 +18,7 @@ import {
 } from '@/lib/buklodAuthSnapshot';
 import { cachedQuery } from '@/lib/performance';
 import { useNetwork } from '@/providers/NetworkProvider';
+import { mayRestoreOfflineAuthSnapshot } from '@/lib/buklodPolicyAuthGuard';
 
 export type AppRole =
   | 'member'
@@ -114,9 +115,13 @@ export function AuthProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { online } = useNetwork();
+  const { online, status: networkStatus } = useNetwork();
   const onlineRef = useRef(online);
   onlineRef.current = online;
+  const networkStatusRef = useRef(networkStatus);
+  networkStatusRef.current = networkStatus;
+  // A cached offline session is navigation-only until the SDK restores it.
+  const offlineSnapshotPendingRef = useRef(false);
 
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -453,14 +458,20 @@ export function AuthProvider({
       AUTH_SESSION_TIMEOUT_MS,
       'BUKLOD auth session'
     )
-      .then(async ({ data }) => {
+      .then(async ({ data, error }) => {
+        if (error) throw error;
         if (disposed) {
           return;
         }
 
-        const nextSession =
-          data.session ??
-          (await readPersistedSupabaseSession());
+        // Never promote an expired persisted token to online authentication.
+        // Supabase getSession() is authoritative whenever internet is available.
+        const offlineSnapshot =
+          !data.session && mayRestoreOfflineAuthSnapshot(networkStatusRef.current)
+            ? await readPersistedSupabaseSession()
+            : null;
+        const nextSession = data.session ?? offlineSnapshot;
+        offlineSnapshotPendingRef.current = Boolean(offlineSnapshot);
 
         setSession(nextSession);
         sessionUserIdRef.current =
@@ -504,10 +515,12 @@ export function AuthProvider({
           )
         );
 
-        const persisted =
-          await readPersistedSupabaseSession();
+        const persisted = mayRestoreOfflineAuthSnapshot(networkStatusRef.current)
+          ? await readPersistedSupabaseSession()
+          : null;
 
         if (persisted?.user?.id) {
+          offlineSnapshotPendingRef.current = true;
           setSession(persisted);
           sessionUserIdRef.current =
             persisted.user.id;
@@ -535,6 +548,9 @@ export function AuthProvider({
 
           const nextUserId =
             nextSession?.user?.id ?? null;
+          if (_event === 'SIGNED_OUT' || nextSession) {
+            offlineSnapshotPendingRef.current = false;
+          }
 
           /*
            * R20: getSession owns initial hydration.
@@ -638,6 +654,49 @@ export function AuthProvider({
   }, []);
 
   /*
+   * Offline cached identity can render offline, but MUST NOT be treated as
+   * an online access token. On reconnection let Supabase restore/refresh its
+   * own session; never use the old persisted JWT for authenticated requests.
+   */
+  useEffect(() => {
+    if (!online || !offlineSnapshotPendingRef.current) return;
+    let disposed = false;
+    offlineSnapshotPendingRef.current = false;
+    const previousUserId = sessionUserIdRef.current;
+    setLoading(true);
+    setSession(null);
+    void withBuklodTimeout(
+      supabase.auth.getSession(),
+      AUTH_SESSION_TIMEOUT_MS,
+      'BUKLOD reconnect session'
+    ).then(async ({ data, error }) => {
+      if (error) throw error;
+      if (disposed) return;
+      const next = data.session ?? null;
+      sessionUserIdRef.current = next?.user?.id ?? null;
+      setSession(next);
+      if (!next) {
+        setProfile(null);
+        setRoles([]);
+        setMembershipState('none');
+      } else {
+        await loadProfile(next.user.id, false, true);
+      }
+    }).catch((error: any) => {
+      if (disposed) return;
+      console.warn('BUKLOD offline session recovery:', String(error?.message ?? error));
+      // Do not resurrect an unverified offline token on a connected device.
+      sessionUserIdRef.current = null;
+      setProfile(null);
+      setRoles([]);
+      setMembershipState('none');
+    }).finally(() => {
+      if (!disposed) setLoading(false);
+    });
+    return () => { disposed = true; };
+  }, [online]);
+
+  /*
    * One background identity refresh when usable internet returns.
    * Cached UI stays mounted; this never re-enters the global boot spinner.
    */
@@ -647,6 +706,8 @@ export function AuthProvider({
       return;
     }
 
+    // Reconnection validation owns this transition, not profile hydration.
+    if (offlineSnapshotPendingRef.current) return;
     const userId = session?.user?.id ?? null;
     if (!userId) {
       lastOnlineHydrationUserRef.current = null;
