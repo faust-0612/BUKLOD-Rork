@@ -1,6 +1,7 @@
 /* BUKLOD_QUIZ_BOARD_STYLE_SOURCE_GROUNDED_R1 — based on R8.7 production */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { unzipSync, strFromU8 } from 'npm:fflate@0.8.2';
+import { detectItemDependency } from './questionIndependence.mjs';
 
 const cors={
   'Access-Control-Allow-Origin':'*',
@@ -251,6 +252,7 @@ async function callModel(args:{apiKey:string,model:string,count:number,batchNo:n
     'SOURCE BOUNDARY: Use only expository lecture material, definitions, demonstrated principles, tables, and explanations explicitly taught in this document.',
     'EXCLUDE all Activities, Practice Exercises, Seatwork, Worksheets, Assignments, Pre/Post Tests, sample questions and their answer keys. They are NOT lecture facts. Never reuse or paraphrase their questions or instructions.',
     'Never write "Based on Activity 1 No. 2", "according to this document", "as stated on page 3", "in the lecture", or other source-meta questions. The exam must be self-contained.',
+    'STRICT STANDALONE RULE: Every question must be answerable alone in any selected order or page. Never refer to question/item numbers, previous/next/above/below questions, another answer, or cases/charts/passages on another question or page. Include the entire necessary scenario within this one stem or omit the item. Shared-stimulus question sets are unsupported.',
     'A case may involve a new situation, but all knowledge and standards needed to answer MUST be explicitly supported by the selected lecture. No external laws, protocols, statistics, diagnoses, or facts.',
     'Prefer professional board-style decision questions at APPLY, ANALYZE, and EVALUATE levels when supported: realistic scenarios, priorities, best-next-action, interpretation, clinical/community reasoning, and risk-benefit judgment appropriate to the topic.',
     'Avoid superficial difficulty such as convoluted wording, obscure trivia, double negatives, misleading traps, or artificially complex language.',
@@ -337,6 +339,8 @@ function validateQuestions(raw:any[],args:{types:string[],sourceName:string,sour
     const options=t==='MCQ'&&Array.isArray(q?.options)?q.options.map((x:any)=>String(x).trim()).filter(Boolean):null;
     if(t==='MCQ'&&(!options||options.length!==4||new Set(options.map(normalizeEvidence)).size!==4)) continue;
     if(ACTIVITY_REFERENCE.test(prompt)||SOURCE_META_REFERENCE.test(prompt)) continue;
+    // Never store AI items that depend on a different randomized or paginated item.
+    if(detectItemDependency(q)) continue;
     if(options&&(options.some(x=>ACTIVITY_REFERENCE.test(x)||SOURCE_META_REFERENCE.test(x)||BAD_OPTION_CUE.test(x)))) continue;
     if(t==='MCQ'&&options){
       const lengths=options.map(x=>x.length);
