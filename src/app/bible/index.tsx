@@ -17,6 +17,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
 import { getOfflineCache, removeOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { BuklodBibleNarrationBar } from '@/components/BuklodBibleNarrationBar';
 import {
@@ -1016,6 +1017,7 @@ function DailyReadingAudioPreview({
 export default function DailyBibleScreen() {
 
   const { user } = useAuth();
+  const { online } = useNetwork();
   const accountId = user?.id ?? '';
   const activeAccountRef = useRef(accountId);
   activeAccountRef.current = accountId;
@@ -1094,7 +1096,7 @@ export default function DailyBibleScreen() {
   ]);
 
   const load = useCallback(async () => {
-    if (!accountId) return;
+    if (!accountId || !online) return;
     const requestId = ++loadSequenceRef.current;
 
     /*
@@ -1314,7 +1316,7 @@ export default function DailyBibleScreen() {
       { weekStart: days[0], assignments: aa, submissions: nextSubmissions, points: nextPoints },
       { userId: accountId, ttlMs: DAILY_READING_CACHE_TTL_MS },
     ).catch(() => undefined);
-  }, [days, accountId]);
+  }, [days, accountId, online]);
 
   useEffect(() => {
     let active = true;
@@ -1347,6 +1349,12 @@ export default function DailyBibleScreen() {
         setDataOwner(accountId);
         setLoading(false);
       }
+      if (!online) {
+        if (!hadCache) setLoadError('No saved Daily Reading for this week. Connect once to download it.');
+        setDataOwner(accountId);
+        setLoading(false);
+        return;
+      }
       try {
         await load();
       } catch (error: any) {
@@ -1359,7 +1367,7 @@ export default function DailyBibleScreen() {
     };
     void initialize();
     return () => { active = false; loadSequenceRef.current += 1; };
-  }, [accountId, days, load]);
+  }, [accountId, days, load, online]);
 
   const byDate = useMemo(
     ()=>Object.fromEntries(assignments.map(x=>[x.reading_date,x])) as Record<string,Assignment>,

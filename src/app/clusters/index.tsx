@@ -34,6 +34,7 @@ import { clusterScopeManageRoute } from '@/lib/buklodCluster';
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
 import { getBuklodCardTone, getStableBuklodCardTone, type BuklodCardToneName } from '@/lib/buklodCardTones';
 
 function messageOf(error: unknown) {
@@ -213,12 +214,30 @@ function ClusterDirectory({ owner }: { owner: string }) {
     });
     return () => listener.remove();
   }, []));
-  const { selectScope } = useBuklodScope();
+  const { selectScope, scopes } = useBuklodScope();
+  const { online } = useNetwork();
   const openCluster = useCallback((id: string) => {
     void enterScopedWorkspace(selectScope, id, { section: 'home', navigation: 'replace' }).catch((error) => {
       Alert.alert('Cluster Home', messageOf(error));
     });
   }, [selectScope]);
+  // Profile and Cluster tab share this already account-isolated scope snapshot.
+  // It is a display-only fallback; server authorization still controls actions.
+  const savedScopeClusters = useMemo<ClusterSummary[]>(() => scopes
+    .filter(scope => scope.scope_type === 'CLUSTER' && scope.membership_status === 'ACTIVE')
+    .map(scope => ({
+      scope_id: scope.scope_id,
+      name: scope.name || 'Cluster',
+      description: null,
+      category: null,
+      visibility: scope.visibility === 'PRIVATE' || scope.visibility === 'INVITE_ONLY'
+        ? scope.visibility : 'PUBLIC',
+      scope_status: scope.scope_status || 'ACTIVE',
+      membership_status: 'ACTIVE',
+      is_admin: Boolean(scope.is_admin),
+      member_count: Number(scope.member_count ?? 0),
+    })), [scopes]);
+
   const [myClusters, setMyClusters] =
     useState<ClusterSummary[]>(clusterMemory.mine ?? []);
 
@@ -259,6 +278,12 @@ function ClusterDirectory({ owner }: { owner: string }) {
         return;
       }
 
+      if (!online) {
+        setLoading(false);
+        setRefreshing(false);
+        setSearching(false);
+        return;
+      }
       setLoadError('');
       if (refresh) {
         setRefreshing(true);
@@ -313,7 +338,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
         }
       }
     },
-    [query, owner]
+    [query, owner, online]
   );
 
   useEffect(() => {
@@ -329,34 +354,40 @@ function ClusterDirectory({ owner }: { owner: string }) {
     };
   }, [load, query, owner]);
 
+  const usingSavedClusters = !online || Boolean(loadError) || loading;
+  const visibleMyClusters = useMemo(() => usingSavedClusters
+    ? Array.from(new Map([...savedScopeClusters, ...myClusters]
+        .map(item => [item.scope_id, item] as const)).values())
+    : myClusters, [usingSavedClusters, savedScopeClusters, myClusters]);
+
   const activeClusters = useMemo(
     () =>
-      myClusters.filter(
+      visibleMyClusters.filter(
         (item) =>
           item.membership_status ===
           'ACTIVE'
       ),
-    [myClusters]
+    [visibleMyClusters]
   );
 
   const invitations = useMemo(
     () =>
-      myClusters.filter(
+      visibleMyClusters.filter(
         (item) =>
           item.membership_status ===
           'INVITED'
       ),
-    [myClusters]
+    [visibleMyClusters]
   );
 
   const pending = useMemo(
     () =>
-      myClusters.filter(
+      visibleMyClusters.filter(
         (item) =>
           item.membership_status ===
           'PENDING'
       ),
-    [myClusters]
+    [visibleMyClusters]
   );
 
   const respond = async (
@@ -454,14 +485,17 @@ function ClusterDirectory({ owner }: { owner: string }) {
         </Pressable>
       </View>
 
-      {!!loadError && (
+      {!online && <View style={styles.empty}>
+        <Text style={styles.muted}>Offline · showing saved memberships. Search, changes, and verification require internet.</Text>
+      </View>}
+      {!!loadError && online && (
         <View style={styles.empty}>
           <Text style={styles.muted}>{loadError}</Text>
           <ActionButton title="RETRY" onPress={() => void load(query, true)} />
         </View>
       )}
 
-      {loading ? (
+      {loading && visibleMyClusters.length === 0 && online ? (
         <View style={styles.loading}>
           <ActivityIndicator size="large" />
           <Text style={styles.muted}>
@@ -477,12 +511,11 @@ function ClusterDirectory({ owner }: { owner: string }) {
           {activeClusters.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
-                No active Cluster yet
+                {online && !loadError ? 'No active Cluster yet' : 'No saved Cluster membership on this device'}
               </Text>
 
               <Text style={styles.muted}>
-                Create one or discover a
-                community below.
+                {online && !loadError ? 'Create one or discover a community below.' : 'Connect once to download your Cluster list.'}
               </Text>
             </View>
           ) : (
@@ -619,7 +652,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
           {discover.filter((item) => item.membership_status !== 'ACTIVE' && item.membership_status !== 'PENDING' && item.membership_status !== 'INVITED').length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
-                No Cluster found
+                {online && !loadError ? 'No Cluster found' : 'Cluster discovery requires internet'}
               </Text>
             </View>
           ) : (

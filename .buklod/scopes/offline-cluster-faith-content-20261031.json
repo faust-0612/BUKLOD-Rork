@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Offline parity for saved clusters and previously downloaded Daily Reading, Bible chapters, and published Word",
+  "baseRef": "23182683e9a902ca0bbc688e7d6470e8974e71bb",
+  "allowedPaths": [
+    "src/app/clusters/index.tsx",
+    "src/components/BuklodClusterMembershipGate.tsx",
+    "src/app/word/index.tsx",
+    "src/app/devotional/[id].tsx",
+    "src/app/bible/read.tsx",
+    "src/components/BuklodHomeFaithPanel.tsx",
+    "src/app/bible/index.tsx",
+    "tests/offline-cluster-faith-content.test.mjs",
+    ".buklod/scopes/offline-cluster-faith-content-20261031.json"
+  ],
+  "preserveBehaviors": [
+    "No Supabase RLS or auth changes",
+    "No false offline points or submissions",
+    "No reading chapter fallback to unrelated recent content",
+    "No unrelated Wall/Connect/Marites changes",
+    "No production OTA without RC/runtime verification"
+  ],
+  "riskAreas": [
+    "offline membership UI",
+    "Cluster gate",
+    "Word cache",
+    "Bible reading content"
+  ],
+  "knownLimits": [
+    "Never-downloaded new daily schedules or Word cannot be available offline",
+    "No Android device evidence available in this session",
+    "Full TypeScript and integration tests remain release gates"
+  ],
+  "acceptanceChecks": [
+    "Profile and Cluster tab reflect saved memberships offline",
+    "Online refresh retains server truth",
+    "Offline show previously read Word and Bible chapter without hanging",
+    "No wrong Bible chapter in uncached Daily Reading",
+    "No cross-account cache leaks"
+  ]
+}

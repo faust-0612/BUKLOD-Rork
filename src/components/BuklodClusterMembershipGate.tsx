@@ -16,6 +16,7 @@ import {
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
 import { colors } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
 
 export default function BuklodClusterMembershipGate({
   children,
@@ -26,18 +27,24 @@ export default function BuklodClusterMembershipGate({
   organizationId?: string | null;
   title?: string;
 }) {
-  const { selectScope } = useBuklodScope();
+  const { selectScope, scopes } = useBuklodScope();
+  const { online } = useNetwork();
+  const offlineMember = scopes.some(scope => scope.scope_type === 'CLUSTER' && scope.membership_status === 'ACTIVE');
   const [loading, setLoading] = useState(true);
   const [context, setContext] = useState<FormationContext | null>(null);
 
   const load = useCallback(async () => {
+    if (!online) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     // Formation access follows the user's single personal Cluster membership.
     // Organization context must not create a false "Join a Cluster" result.
     const next = await fetchFormationContextResilient(null);
     setContext(next);
     setLoading(false);
-  }, [organizationId]);
+  }, [organizationId, online]);
 
   useFocusEffect(
     useCallback(() => {
@@ -45,7 +52,7 @@ export default function BuklodClusterMembershipGate({
     }, [load]),
   );
 
-  if (loading && !context) {
+  if (online && loading && !context) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={colors.green} />
@@ -53,8 +60,15 @@ export default function BuklodClusterMembershipGate({
     );
   }
 
-  if (context?.has_active_cluster) {
+  if (online ? context?.has_active_cluster : offlineMember) {
     return <>{children}</>;
+  }
+
+  if (!online) {
+    return <View style={styles.wrap}>
+      <Text style={styles.title}>Offline membership unavailable</Text>
+      <Text style={styles.body}>No saved active Cluster membership for this account. Reconnect to verify access; this does not mean you were removed.</Text>
+    </View>;
   }
 
   const pending = context?.pending_clusters[0] ?? null;
