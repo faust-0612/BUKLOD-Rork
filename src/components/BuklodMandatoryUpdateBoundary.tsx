@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import BuklodUpdateRequiredPanel from '@/components/BuklodUpdateRequiredPanel';
@@ -20,8 +20,25 @@ export default function BuklodMandatoryUpdateBoundary({
 }) {
   const { session } = useAuth();
   const { config } = useRuntimeConfig();
-  if (Platform.OS !== 'web' && session && config?.update_required) {
-    return <BuklodUpdateRequiredPanel />;
-  }
-  return <>{children}</>;
+  const blocked = Platform.OS !== 'web' && Boolean(session) && Boolean(config?.update_required);
+  // Expo Router must keep the root navigator mounted even when an update
+  // is mandatory. An overlay blocks all touches/deep-linked screens while
+  // preserving the navigation context for the Check Again action.
+  return (
+    <View style={{ flex: 1 }}>
+      <View
+        style={{ flex: 1 }}
+        pointerEvents={blocked ? 'none' : 'auto'}
+        accessibilityElementsHidden={blocked}
+        importantForAccessibility={blocked ? 'no-hide-descendants' : 'auto'}
+      >
+        {children}
+      </View>
+      {blocked ? (
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="auto">
+          <BuklodUpdateRequiredPanel />
+        </View>
+      ) : null}
+    </View>
+  );
 }
