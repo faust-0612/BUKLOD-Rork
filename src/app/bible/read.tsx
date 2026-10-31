@@ -1,5 +1,6 @@
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
+import MyBibleQuickNavigator from '@/components/bible/MyBibleQuickNavigator';
 /**
  * PATCH 153H-3A
  * FULL BIBLE READER
@@ -269,6 +270,8 @@ export default function BibleReaderScreen() {
     return () => { active = false; };
   }, [source, assignedDate, accountId, online]);
 
+  const [showBibleAudio, setShowBibleAudio] = useState(false);
+  const [showBibleTextSettings, setShowBibleTextSettings] = useState(false);
   const [showBooks, setShowBooks] =
     useState(false);
 const [showChapters, setShowChapters] =
@@ -2919,6 +2922,28 @@ setMarking(true);
         },
       ]}
     >
+      {isMyBibleMode && (
+        <MyBibleQuickNavigator
+          books={books}
+          bookNo={bookNo}
+          chapterNo={chapterNo}
+          currentBook={currentBook}
+          verseNumbers={verses.map(verse => Number(verse.verse_no))}
+          selectedVerse={passageVerseNo}
+          translation={translation}
+          translations={translations}
+          onSelectBook={book => { markUserBibleChapterChange(); selectBook(book); }}
+          onSelectChapter={selectChapter}
+          onSelectVerse={selectPassageVerse}
+          onClearVerse={() => setPassageVerseNo(null)}
+          onTranslation={changeTranslation}
+          onPrevious={() => moveChapter(-1)}
+          onNext={() => moveChapter(1)}
+          onSearch={() => router.push('/bible/search')}
+          onReport={() => router.push('/bible/report')}
+        />
+      )}
+      {!isMyBibleMode && (
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={shared.h1}>
@@ -2945,14 +2970,15 @@ setMarking(true);
           </Text>
         </Pressable>
       </View>
-
+      )}
 
       {/* =====================================================
           TRANSLATION
       ====================================================== */}
 
+      {!isMyBibleMode && (
       <Card>
-      {/* MY_BIBLE_MODE_HEADER_V1 */}
+      {/* MY_BIBLE_MODE_HEADER_V1 */}}
 
       <View
         style={{
@@ -3111,12 +3137,14 @@ setMarking(true);
           }
         </Text>
       </Card>
-
+      )}
 
       {/* =====================================================
           BOOK + CHAPTER
       ====================================================== */}
 
+      {!isMyBibleMode && (
+      <>
       {/* PATCH_153H_3C_REPORT_LINK */}
       {isMyBibleMode && (
         <>
@@ -3707,15 +3735,14 @@ setMarking(true);
         )}
 
 </Card>
-
+      </>
+      )}
 
       {/* =====================================================
           CHAPTER
       ====================================================== */}
 
-      <SectionTitle>
-        READING
-      </SectionTitle>
+      {!isMyBibleMode && <SectionTitle>READING</SectionTitle>}
 
 
       <Card>
@@ -3772,6 +3799,21 @@ setMarking(true);
         </View>
 
 
+        {isMyBibleMode && (
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
+            <Pressable accessibilityRole="button" onPress={() => setShowBibleAudio(value => !value)}
+              style={{ paddingVertical: 9, paddingHorizontal: 13, borderRadius: 12, backgroundColor: '#EDF5F0' }}>
+              <Text style={{ color: '#275D45', fontWeight: '800', fontSize: 12 }}>
+                {showBibleAudio ? 'Itago ang audio' : '▶ Pakinggan'}
+              </Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => setShowBibleTextSettings(value => !value)}
+              style={{ paddingVertical: 9, paddingHorizontal: 13, borderRadius: 12, backgroundColor: '#EDF5F0' }}>
+              <Text style={{ color: '#275D45', fontWeight: '800', fontSize: 12 }}>Aa  Laki ng teksto</Text>
+            </Pressable>
+          </View>
+        )}
+        {(!isMyBibleMode || showBibleAudio || bibleNarration.status !== 'idle') && (
         <View
           style={{
             marginBottom: 14,
@@ -3808,11 +3850,11 @@ setMarking(true);
             disabled={verses.length === 0}
           />
         </View>
-
+        )}
 
         {/* BIBLE RESPONSIVE VIEW CONTROLS */}
 
-        {!chapterLoading &&
+        {(!isMyBibleMode || showBibleTextSettings) && !chapterLoading &&
           verses.length > 0 && (
 
           <View
