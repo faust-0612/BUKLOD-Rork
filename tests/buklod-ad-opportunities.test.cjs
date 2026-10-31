@@ -14,6 +14,8 @@ test('ad opportunities are server-success breaks, never required to claim or sub
   assert.ok(points.indexOf('await claimBuklodRewardGroup(') < points.indexOf("await showBuklodAdOpportunity('points_claim_success')"));
   assert.ok(devotional.indexOf("'complete_my_devotional_v2'") < devotional.indexOf("await showBuklodAdOpportunity('devotional_reflection_success')"));
   assert.ok(learning.indexOf("'complete_my_formation_lesson_v2'") < learning.indexOf("await showBuklodAdOpportunity('formation_lesson_success')"));
+  assert.match(devotional, /BuklodSubmissionAdSlot placementId="devotional_reflection_before_submit"/);
+  assert.match(learning, /BuklodSubmissionAdSlot placementId="formation_lesson_before_submit"/);
   assert.ok(chapter.indexOf("p_action:'complete'") < chapter.indexOf("await showBuklodAdOpportunity('kl_chapter_success')"));
 });
 
