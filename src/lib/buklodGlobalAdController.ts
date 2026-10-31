@@ -148,6 +148,19 @@ export function isBuklodAdRouteSensitive(
   );
 }
 
+/** Read-only cooldown check so an eligible slot can defer rather than disappear. */
+export function getBuklodPassiveAdRequestWaitMs(
+  placementId: string,
+  requestKey = placementId,
+  cooldownMs = AD_SLOT_REMOUNT_COOLDOWN_MS,
+) {
+  const key = `${placementId}:${String(requestKey || placementId)}`;
+  const previous = passiveRequestTimes.get(key) ?? 0;
+  return previous > 0
+    ? Math.max(0, previous + Math.max(1_000, cooldownMs) - Date.now())
+    : 0;
+}
+
 export function reserveBuklodPassiveAdRequest(
   placementId: string,
   requestKey = placementId,
