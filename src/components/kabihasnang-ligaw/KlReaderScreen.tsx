@@ -662,7 +662,7 @@ export default function KlReaderScreen() {
             </Pressable>
             {rewardFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{rewardFeedback}</Text> : null}
 
-            <KlLiveDiscussion episodeId={selected.id} live={liveReleased} />
+            <KlLiveDiscussion episodeId={klDatabaseId(selected.episodeNumber)} live={liveReleased} />
           </View>
         ) : (
           <View style={styles.list}>
