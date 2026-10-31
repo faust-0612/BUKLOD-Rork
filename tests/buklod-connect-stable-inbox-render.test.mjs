@@ -5,14 +5,14 @@ const read = path => readFileSync(path, 'utf8');
 
 test('Personal, Cluster, Org and Requests share one mounted Connect FlatList', () => {
   const inbox = read('src/app/(tabs)/messages.tsx');
-  assert.equal((inbox.match(/<FlatList\\b/g) || []).length, 1);
-  assert.match(inbox, /ListHeaderComponent=\\{renderHiblaHeader\\(tab === 'community'\\)\\}/);
-  assert.match(inbox, /data=\\{tab === 'community' \\? filteredRooms : personalListData\\}/);
-  assert.match(inbox, /removeClippedSubviews=\\{false\\}/);
+  assert.equal((inbox.match(/<FlatList\b/g) || []).length, 1);
+  assert.match(inbox, /ListHeaderComponent=\{renderHiblaHeader\(tab === 'community'\)\}/);
+  assert.match(inbox, /data=\{tab === 'community' \? filteredRooms : personalListData\}/);
+  assert.match(inbox, /removeClippedSubviews=\{false\}/);
   assert.match(inbox, /<ConnectInboxTabs/);
-  assert.match(inbox, /onCommunityFilterChange=\\{setCommunityFilter\\}/);
+  assert.match(inbox, /onCommunityFilterChange=\{setCommunityFilter\}/);
   assert.match(inbox, /tab === 'requests'/);
-  assert.match(inbox, /matchesCommunityFilter\\(room, communityFilter\\)/);
+  assert.match(inbox, /matchesCommunityFilter\(room, communityFilter\)/);
 });
 
 test('Connect keeps both types of authentic ad opportunity without adding request loops', () => {
@@ -25,8 +25,8 @@ test('Connect keeps both types of authentic ad opportunity without adding reques
   assert.match(inbox, /connect-scope-native-media:/);
   const banners = read('src/components/BuklodAdMobBanner.tsx');
   assert.match(banners, /reserveBuklodPassiveAdRequest/);
-  assert.match(banners, /if \\(noFill && online\\)/);
-  assert.doesNotMatch(inbox, /setInterval\\(.*Ad|requestAd\\(/);
+  assert.match(banners, /if \(noFill && online\)/);
+  assert.doesNotMatch(inbox, /setInterval\(.*Ad|requestAd\(/);
 });
 
 test('Connect recoverable boundary covers inbox, personal and community; reports no chat text', () => {
