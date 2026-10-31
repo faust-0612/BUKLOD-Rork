@@ -28,7 +28,7 @@ test('reader-first mode preserves daily flow and opens search results at verse',
 });
 
 test('modal offers book search, OT/NT, chapter and exact verse controls', () => {
-  assert.match(picker, /type Book = \{ book_no: number; book_name: string; chapter_count: number \}/);
+  assert.match(picker, /type Book = \{ book_no: number; book_name: string; chapter_count: number; available_chapters: number \| string \}/);
   assert.match(picker, /'book' \| 'chapter' \| 'verse'/);
   assert.match(picker, /book\.book_no <= 39 : book\.book_no > 39/);
   assert.match(picker, /book\.book_name\.toLocaleLowerCase\(\)\.includes\(q\)/);

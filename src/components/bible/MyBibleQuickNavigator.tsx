@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-type Book = { book_no: number; book_name: string; chapter_count: number };
+type Book = { book_no: number; book_name: string; chapter_count: number; available_chapters: number | string };
 type Translation = { code: string; short_title: string };
 
 type Props = {
