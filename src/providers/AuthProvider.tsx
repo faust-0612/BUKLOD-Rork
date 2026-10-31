@@ -694,7 +694,7 @@ export function AuthProvider({
       if (!disposed) setLoading(false);
     });
     return () => { disposed = true; };
-  }, [online]);
+  }, [online, session?.user?.id]);
 
   /*
    * One background identity refresh when usable internet returns.

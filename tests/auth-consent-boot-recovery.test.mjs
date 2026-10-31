@@ -31,6 +31,8 @@ test('boot, privacy screen and writes preserve authentication boundaries', () =>
   const consent = fs.readFileSync('src/app/privacy/consent.tsx', 'utf8');
   assert.match(auth, /!data\.session && mayRestoreOfflineAuthSnapshot\(networkStatusRef\.current\)/);
   assert.match(auth, /if \(!online \|\| !offlineSnapshotPendingRef\.current\) return;/);
+  // A slow AsyncStorage restore can finish after connectivity changes.
+  assert.match(auth, /return \(\) => \{ disposed = true; \};\s*\}, \[online, session\?\.user\?\.id\]\);/);
   assert.match(compliance, /supabase\.auth\.getUser\(\)/);
   assert.match(compliance, /const verified = await readRequiredPolicies\(targetUserId\)/);
   assert.match(compliance, /if \(!allRequiredPoliciesAccepted\(verified\)\)/);
