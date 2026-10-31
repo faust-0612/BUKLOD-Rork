@@ -1,16 +1,17 @@
 {
   "contractVersion": 2,
-  "objective": "Enable non-blocking Android AdMob natural breaks after verified Points claim, successful reflection submission, approved formation lesson and verified KL chapter completion; provide a user-initiated noncash Ad-Light reward offer in Points without gating any cash-convertible points.",
+  "objective": "Enable non-blocking Android AdMob natural breaks after verified Points claim, successful reflection submission, approved formation lesson and verified KL chapter completion; provide a user-initiated noncash Ad-Light reward offer in Points without gating any cash-convertible points. Add two clearly labeled passive, keyboard-hidden pre-submit banner opportunities without gating core functions.",
   "baseRef": "a88965ac012c031a3a063244aa96aa6d7e0547c7",
   "productionBaselineEvidence": "GitHub main a88965ac012c031a3a063244aa96aa6d7e0547c7; live Expo OTA ID/runtime has not yet been verified in this session.",
-  "chosenApproach": "Reuse existing centralized interstitial controller and AdMob units with one typed opportunity bridge and pre-warming; issue ads only after successful RPC and before completion UI; never use rewarded ads to convert/watch for points.",
+  "chosenApproach": "Reuse existing centralized interstitial controller and AdMob units with one typed opportunity bridge and pre-warming; issue ads only after successful RPC and before completion UI; never use rewarded ads to convert/watch for points. Reuse the existing BuklodSubmissionAdSlot for non-intrusive pre-submit banner spaces that are hidden when the keyboard opens.",
   "preserveBehaviors": [
     "Existing Points claim RPC and money-value ledger remain authoritative and never depend on ads",
     "Reflection and formation responses must save before any advertising",
     "No ads on errors, failed validation, or repeat KL completions",
     "Android only; web no-op; remote per-placement kill switches remain usable",
     "Keep ad cooldown, 3-per-session maximum and ad-light pass",
-    "No changes to auth, calls, SOS, classrooms, quiz or production workflow"
+    "No changes to auth, calls, SOS, classrooms, quiz or production workflow",
+    "Banner slot is viewport-aware and hidden during editing, preserving tap targets and user drafts"
   ],
   "riskAreas": [
     "monetization",
