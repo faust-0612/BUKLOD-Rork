@@ -26,9 +26,11 @@ if (appEnv !== 'staging') {
 
 // Refuse a staging job that points to the known BUKLOD Connect production project.
 // This check is deliberately fail-closed even if a staging label is supplied.
-const productionRef = 'yhanxndaqbmuzbdqlblu';
-if (url.toLowerCase().includes(productionRef + '.supabase.co')) {
-  failures.push('Staging must never target the BUKLOD Connect production Supabase project.');
+// These are existing BUKLOD operational projects, never disposable staging DBs.
+const protectedRefs = ['yhanxndaqbmuzbdqlblu', 'cjtehbfspgimyhifnjon', 'oppswibwjrruxkrpiwej'];
+const urlProjectRef = /^https:\/\/([a-z0-9-]+)\.supabase\.co$/i.exec(url)?.[1]?.toLowerCase() || '';
+if (protectedRefs.includes(urlProjectRef)) {
+  failures.push('Staging must not target existing BUKLOD operational Supabase projects.');
 }
 if (process.env.CI && !process.env.BUKLOD_STAGING_PROJECT_REF) {
   failures.push('CI staging requires an explicitly configured BUKLOD_STAGING_PROJECT_REF.');
@@ -47,8 +49,17 @@ if (!easProjectId) {
 const migrationDir = new URL('../supabase/migrations/', import.meta.url);
 const migrations = fs.readdirSync(migrationDir).filter(x => x.endsWith('.sql')).sort();
 
-if (migrations.length !== 13) {
-  failures.push(`Expected 13 canonical schema migrations; found ${migrations.length}.`);
+// A historical hard-coded "13" count broke as production migrations grew.
+if (migrations.length === 0) {
+  failures.push('No staging schema migrations found.');
+}
+const malformed = migrations.filter(name => !/^\d{14}_[a-z0-9_-]+\.sql$/i.test(name));
+if (malformed.length) {
+  failures.push('Invalid timestamped SQL migration filenames: ' + malformed.join(', '));
+}
+const timestampIds = migrations.map(name => name.slice(0, 14));
+if (new Set(timestampIds).size !== timestampIds.length) {
+  failures.push('Duplicate migration timestamp identifiers found.');
 }
 
 const seed = fs.readFileSync(new URL('../supabase/seed.sql', import.meta.url), 'utf8');

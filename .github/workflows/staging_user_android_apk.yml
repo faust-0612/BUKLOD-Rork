@@ -1,0 +1,103 @@
+name: BUKLOD Staging User Android APK (Manual)
+
+on:
+  workflow_dispatch:
+
+# Intentionally no push/PR/production trigger. Isolated DEV staging build only.
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-staging-user-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      BUKLOD_STAGING_PROJECT_REF: ${{ vars.BUKLOD_STAGING_PROJECT_REF }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      CI: "1"
+    steps:
+      - name: Ensure credentials and isolated backend are configured
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'BLOCKED: EXPO_TOKEN missing'; exit 1; }
+          test -n "${BUKLOD_STAGING_PROJECT_REF:-}" || { echo 'BLOCKED: BUKLOD_STAGING_PROJECT_REF missing; do not build against production'; exit 1; }
+          case "$BUKLOD_STAGING_PROJECT_REF" in
+            yhanxndaqbmuzbdqlblu|cjtehbfspgimyhifnjon|oppswibwjrruxkrpiwej)
+              echo 'BLOCKED: operating database must not be used for staging'; exit 1;;
+          esac
+
+      - name: Checkout DEV commit (no main mutation)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Node 22 with npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Validate standalone staging Android config
+        shell: bash
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const eas = require('./eas.json').build['staging-user'];
+          const cfg = require('./app.config.js')({ config: {} });
+          assert.equal(eas.environment, 'preview');
+          assert.equal(eas.channel, 'staging-user');
+          assert.equal(eas.android.buildType, 'apk');
+          assert.equal(cfg.android.package, 'org.mzbministry.buklod.staging');
+          assert.equal(cfg.runtimeVersion, '1.3.2');
+          console.log('STAGING_APK_IDENTITY=PASS');
+          NODE
+          node --test tests/staging-fast-ota-contract.test.mjs tests/staging-build-preflight-contract.test.mjs
+
+      - name: Expo login and isolated Preview environment gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest whoami --non-interactive
+          npx eas-cli@latest env:exec preview 'node scripts/staging-gate.mjs' --non-interactive
+
+      - name: Build staging-user APK only
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest build --platform android --profile staging-user --non-interactive --wait --json > staging-user-build.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const b = JSON.parse(fs.readFileSync('staging-user-build.json', 'utf8'));
+          const entry = Array.isArray(b) ? b[0] : b;
+          const id = entry?.id || '';
+          const url = entry?.artifacts?.buildUrl || entry?.artifacts?.applicationArchiveUrl || '';
+          if (!id || !url) throw new Error('EAS APK build ID or artifact URL missing');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            '# BUKLOD Staging-user APK\n\n' +
+            '- Commit: ' + process.env.GITHUB_SHA + '\n' +
+            '- Build ID: ' + id + '\n' +
+            '- APK: ' + url + '\n' +
+            '- Environment: Preview / staging-user\n' +
+            '- Production OTA: NOT performed\n');
+          console.log('STAGING_USER_BUILD_ID=' + id);
+          console.log('STAGING_USER_APK=' + url);
+          NODE
+
+      - name: Preserve sanitized EAS build metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-staging-user-apk-metadata
+          path: staging-user-build.json
+          if-no-files-found: ignore
+          retention-days: 7
