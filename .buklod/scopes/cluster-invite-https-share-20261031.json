@@ -1,0 +1,57 @@
+{
+  "contractVersion": 2,
+  "objective": "Make existing Cluster invitation links tappable in BUKLOD Connect as well as new Share/Copy/QR invitations tappable in ordinary messaging apps, preserving membership permissions and old links",
+  "baseRef": "f773f44a0a5664f8c795b910f30bb31d848420f7",
+  "productionBaselineEvidence": "GitHub main SHA f773f44a0a5664f8c795b910f30bb31d848420f7 verified 2026-10-31 after offline Cluster/Faith merge #453; screenshot confirms inert old buklod:// link and source ConnectMessageBubble plain Text. No new Android APK, production OTA, or web route smoke test claimed.",
+  "chosenApproach": "Reuse the existing central Cluster invite helper but emit public HTTPS links to the existing Expo Router /clusters/[id] destination; retain strict parsers for old buklod:// and staging schemes, test QR round-trip and hostile URL inputs. Do not change native intent filters in an OTA-only share fix. Also linkify explicit http(s) and legacy Cluster scheme segments inside the shared Connect message bubble with an internal authorized Cluster screen route and bounded URL opening errors.",
+  "alternativeApproaches": [
+    "Keep buklod:// and assume messenger auto-detection (rejected: screenshot proves non-tappable text)",
+    "Add HTTPS App Links intent filter and digital asset association only (rejected as immediate fix: installed v28 has no HTTPS intent filter, and native binary/signing verification would be required)",
+    "Share a public HTTPS deep route and accept legacy schemes (selected: external apps linkify HTTPS and web fallback is usable without a new APK)",
+    "Only change the shared scheme to HTTPS (rejected as insufficient: already sent messages in BUKLOD Connect still render as plain, inert Text)."
+  ],
+  "selectionRationale": "A central builder is used by all three sharing surfaces, so one isolated change updates Share/Copy/QR without duplicating logic. The existing route protects cluster join approval and pending login intent. Nonproduction binaries preserve their existing schemes to prevent cross-environment routing. BUKLOD Connect currently renders entire bodyText as ordinary Text; a small reusable text segmenter and nested Text onPress fixes direct and scoped chat without changing message storage.",
+  "preserveBehaviors": [
+    "Staging/classroom variants retain their configured nonproduction schemes; they must not route invitation recipients into the production main site",
+    "Previously shared buklod:// and buklod-staging:// QR/messages still parse",
+    "Existing route /clusters/[id], cluster join roles, approval checks, and backend unchanged",
+    "Authentication, session, pending invitation, and membership permission checks unchanged",
+    "Wall, Connect, media, Show Faith, Quiz, release workflow, native build settings untouched",
+    "Do not claim HTTPS auto-opens installed Android app until native App Links, signing certificate and association are verified",
+    "Message body text, replies, reactions, media, timestamps, long-press menu and background presentation remain unchanged",
+    "Cluster invite tap routes internally through existing /clusters/[id] permission-enforcing screen; web URLs open only on explicit tap"
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "external-linking",
+    "authentication-handoff",
+    "website-availability",
+    "connect"
+  ],
+  "regressionTests": [
+    "tests/cluster-invite-link.test.mjs",
+    "__tests__/buklodClusterInviteQr.test.ts",
+    "tests/connect-chat-links.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodClusterInviteUrl.ts",
+    "src/lib/buklodClusterInvite.ts",
+    "tests/cluster-invite-link.test.mjs",
+    "__tests__/buklodClusterInviteQr.test.ts",
+    ".buklod/scopes/cluster-invite-https-share-20261031.json",
+    "src/lib/connectMessageLinks.ts",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "tests/connect-chat-links.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Production BUKLOD Share, Copy and QR share https://buklod.expo.app/clusters/{uuid}?fromInvite=1; staging and classroom keep their nonproduction schemes",
+    "Parsing of old custom schemes and path links remains supported",
+    "Reject non-BUKLOD HTTPS origins, malformed segments and unexpected URL paths",
+    "Focused Node and Jest tests pass; no unrelated code changed",
+    "Website live route and installed app opening require independent verification",
+    "Before production OTA reconcile exact live runtime 1.3.2 and latest main/RC; publish no unverified change",
+    "Already-sent buklod:// invite in BUKLOD Connect is rendered as a tappable link in the exact original message text",
+    "Direct/scoped Connect bubble supports HTTPS and legacy link taps, retains punctuation, emoji, replies and long-press actions",
+    "Unsupported custom schemes and malformed Cluster IDs are not clickable; other http(s) URLs open only on explicit tap"
+  ]
+}
