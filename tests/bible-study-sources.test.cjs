@@ -14,7 +14,7 @@ const standalone = stripTypeScriptTypes(
 const {
   studyBookCode, strongLexiconUrl, parseMatthewHenryChapter,
   parseTaggedKjvChapter, alignKjvStrongWords,
-} = vm.runInNewContext(standalone + '\\n({ studyBookCode, strongLexiconUrl, parseMatthewHenryChapter, parseTaggedKjvChapter, alignKjvStrongWords })', {
+} = vm.runInNewContext(standalone + '\n({ studyBookCode, strongLexiconUrl, parseMatthewHenryChapter, parseTaggedKjvChapter, alignKjvStrongWords })', {
   useEffect: () => {},
   useState: () => [],
   getOfflineCache: () => {},
