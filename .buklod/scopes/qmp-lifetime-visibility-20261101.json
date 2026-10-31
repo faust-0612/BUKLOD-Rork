@@ -1,0 +1,53 @@
+{
+  "contractVersion": 2,
+  "objective": "Add visible lifetime QMP and authenticated all-month history to existing Community Contribution screens without changing monthly QMP, payouts, revenue allocation or user privacy.",
+  "baseRef": "9dbbc41a46516d00dc9f576521f551e405279e2f",
+  "productionBaselineEvidence": "verified: GitHub main 28004aa80be4df4b6d1949e5abf78270cccc23bf inspected with read-only production DB on 2026-11-01 PH. September=146 qualified QMP, October=6579, November=6 across all users; monthly rollover is expected. User approved monthly calculation unchanged and wants lifetime and all period history visible. Existing indexed private QMP account ledger is authoritative; no live Android OTA fingerprint verified. Reconciled latest main 9dbbc41a46516d00dc9f576521f551e405279e2f, exclusively unrelated files; no QMP overlap.",
+  "chosenApproach": "Add a tightly scoped authenticated read-only aggregate RPC and pure data validator; show Lifetime QMP on Wall contribution card and all recorded months on private contribution details. Fetch historical data independently so existing monthly QMP paint and financial reporting do not wait for the additive endpoint. Do not silently show zero for unavailable data.",
+  "selectionRationale": "One lightweight indexed read per visibility refresh, no existing RPC or finance function changes, no new payout reset behavior, no retrofit of legacy settlement rows.",
+  "alternativeApproaches": [
+    "Reset QMP on payout: rejected; would conflate contribution weight and money and could double count.",
+    "Replace monthly share formula with lifetime total: rejected; changes approved settlement semantics and user pool allocations.",
+    "Add a read-only lifetime/history endpoint and leave monthly payouts unchanged: selected."
+  ],
+  "preserveBehaviors": [
+    "Current monthly QMP and share weight calculation unchanged",
+    "Retain previous month QMP records",
+    "Never reset lifetime QMP after payout",
+    "Do not mutate finalized allocations, revenue pools, or withdrawals",
+    "Account isolation: only auth.uid() history is returned",
+    "Existing Wall post/photo/video, ad rendering, chat, notifications, and navigation unchanged",
+    "Old app clients continue using existing QMP RPC; new history API optional and errors do not fake zero",
+    "No native dependency or Expo runtime change; no OTA from this conversation"
+  ],
+  "riskAreas": [
+    "economy",
+    "financial-privacy",
+    "community-wall-ui",
+    "backend-read"
+  ],
+  "regressionTests": [
+    "tests/buklod-qmp-lifetime-visibility.test.mjs",
+    "supabase/tests/buklod_qmp_lifetime_read_v1.sql"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodQmpHistory.ts",
+    "src/lib/buklodCommunityContributionEconomy.ts",
+    "src/components/BuklodCommunityContributionCard.tsx",
+    "src/app/community-contribution.tsx",
+    "tests/buklod-qmp-lifetime-visibility.test.mjs",
+    "supabase/migrations/20261101052000_buklod_qmp_lifetime_read_v1.sql",
+    "supabase/tests/buklod_qmp_lifetime_read_v1.sql",
+    ".buklod/scopes/qmp-lifetime-visibility-20261101.json"
+  ],
+  "acceptanceChecks": [
+    "Privacy and grant-limited SQL endpoint",
+    "Lifetime sum matches source QMP account records",
+    "All months visible, including months before current calendar month",
+    "No mutation of payout/settlement functions",
+    "Existing monthly card renders without waiting on lifetime query",
+    "Unavailable history displayed as unavailable, never 0",
+    "TypeScript, focused Node, integration QA and Engineering Accountability successful",
+    "No device validation and no production OTA from this conversation"
+  ]
+}
