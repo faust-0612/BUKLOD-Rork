@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "objective": "Prevent intermittent Android route-fatal KL audio errors during chapter/editor navigation while keeping reader, media approval, other audio, and native runtime unchanged.",
+  "baseRef": "e3f9cd3843717397f93c91537298c0d486680fca",
+  "productionBaselineEvidence": "Supabase production bsoc_health_events at 2026-10-31 14:49:31Z recorded RENDER_C567C6DA for KL_CHAPTER_AUDIO on Android 1.3.4, alongside generic global render errors. Root native exception cannot be proven from a hash alone. GitHub main e3f9cd3 inspected. Production OTA run 41211524083 failed on 'main advanced after RC'; no claim that this fix is live.",
+  "chosenApproach": "Use explicit createAudioPlayer ownership with pause-before-release cleanup, skip allocating native players in empty previews, isolate the KL audio subtree and contain native method failures. React SDK 57 auto-releasing hook cleanup previously called pause after native release.",
+  "selectionRationale": "Small KL-only surgical correction grounded in Expo SDK 57 audio lifecycle documentation and the KL_CHAPTER_AUDIO telemetry component hint; no shared router, database, or media rendering changes.",
+  "alternativeApproaches": [
+    "Suppress SYS-500 globally (rejected: hides other faults and will not repair invalid audio lifetime).",
+    "Replace Expo audio SDK across app (rejected: requires native build and risks calls, speech and media).",
+    "Manual KL audio lifecycle and isolated audio failure state (selected: OTA-compatible and minimal cross-feature impact)."
+  ],
+  "riskAreas": [
+    "story"
+  ],
+  "preserveBehaviors": [
+    "Existing signed music/ambience media URLs and user-selected playback remain unchanged.",
+    "No new audio begins automatically, and other-app audio takes precedence.",
+    "Manuscript, media approvals, reader, Wall, Connect, Quiz, ad policies and database remain unchanged.",
+    "No private URLs or user data in logs; no production publication without exact RC and OTA evidence."
+  ],
+  "regressionTests": [
+    "tests/kl-chapter-audio-lifecycle.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/kabihasnang-ligaw/KlChapterAudio.tsx",
+    "src/lib/kabihasnang-ligaw/audioPlayerLifecycle.ts",
+    "tests/kl-chapter-audio-lifecycle.test.mjs",
+    ".buklod/scopes/kl-audio-render-safety-20261031.json"
+  ],
+  "acceptanceChecks": [
+    "Native player pauses before release on unmount and survives erroring pause/release methods",
+    "Audio source change cancels prior playback and does not auto-play",
+    "Empty media previews do not create audio players",
+    "Audio render/native method errors do not replace unrelated screen content",
+    "Focused Node tests, TypeScript and Engineering Accountability CI pass",
+    "Android device verification then verified RC required before production release"
+  ]
+}
