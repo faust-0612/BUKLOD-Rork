@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import KlAudioControls from '@/components/kabihasnang-ligaw/KlAudioControls';
@@ -24,7 +25,6 @@ import KlCoverImage from '@/components/kabihasnang-ligaw/KlCoverImage';
 import { klDatabaseId } from '@/components/kabihasnang-ligaw/KlAdminMediaUpload';
 import KlAdminPreview from '@/components/kabihasnang-ligaw/KlAdminPreview';
 import KlChapterAudio from '@/components/kabihasnang-ligaw/KlChapterAudio';
-import KlDynamicLibrary from '@/components/kabihasnang-ligaw/KlDynamicLibrary';
 import { KlSceneEffect, type SceneEffect } from '@/components/kabihasnang-ligaw/KlSceneEffect';
 import KlLiveDiscussion from '@/components/kabihasnang-ligaw/KlLiveDiscussion';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
@@ -34,7 +34,6 @@ import {
   buildStoryboard,
   KL_AUTHOR,
   KL_CHAPTER_ONE_LIVING_SCOPE,
-  KL_RELEASED_THROUGH_EPISODE,
   KL_SEASON_ONE_TITLE,
 } from '@/lib/kabihasnang-ligaw/catalog';
 import { klCopy } from '@/lib/kabihasnang-ligaw/copy';
@@ -61,6 +60,16 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
 const EPISODES = buildCatalogEpisodes();
+type ReleasedChapter = { id: string; season_number: number; episode_number: number; title: string };
+
+function displayChapterTitle(episode: (typeof EPISODES)[number], released?: ReleasedChapter): string {
+  const source = (released?.title ?? episode.title).trim();
+  if (episode.kind === 'panimula') return `Panimula: ${source}`;
+  const name = source.replace(/^Kabanata\s+\d+\s*:\s*/i, '').trim();
+  if (/^Kabanata\s+\d+$/i.test(name)) return `Kabanata ${episode.episodeNumber}`;
+  return `Kabanata ${episode.episodeNumber}: ${name}`;
+}
+
 const ASSETS = buildAssetGate();
 const STORYBOARD = buildStoryboard();
 type DynamicMedia = {
@@ -75,6 +84,7 @@ function cacheKey(userId: string | null): string {
 
 export default function KlReaderScreen() {
   const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const reduceMotion = useBuklodReduceMotion();
   const { online } = useNetwork();
   const { user, hasRole } = useAuth();
@@ -101,7 +111,9 @@ export default function KlReaderScreen() {
   const [connectionType, setConnectionType] = useState('unknown');
   const [serverState, setServerState] = useState<'unread' | 'readable' | 'hidden' | 'unknown'>('unread');
   const [serverText, setServerText] = useState<string | null>(null);
-  const [releasedIds, setReleasedIds] = useState<string[]>([]);
+  const [releasedChapters, setReleasedChapters] = useState<ReleasedChapter[]>([]);
+  const [journeyResult, setJourneyResult] = useState<{ userId: string; completed: number } | null>(null);
+  const [journeyRefreshToken, setJourneyRefreshToken] = useState(0);
   const [dynamicMedia, setDynamicMedia] = useState<DynamicMedia[]>([]);
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [mediaErrors, setMediaErrors] = useState<Record<string, string>>({});
@@ -114,7 +126,10 @@ export default function KlReaderScreen() {
 
   const compact = width < 420;
   const bodySize = Math.round(19 * cache.textScale);
+  const releasedIds = releasedChapters.map((chapter) => chapter.id);
   const selected = EPISODES.find((episode) => episode.id === selectedId) ?? null;
+  const selectedTitle = selected ? displayChapterTitle(selected, releasedChapters.find((chapter) => chapter.season_number === 1 && chapter.episode_number === selected.episodeNumber)) : '';
+  const completedChapters = journeyResult?.userId === user?.id ? journeyResult.completed : null;
   const selectedAssets = ASSETS.filter((asset) => asset.episodeId === selected?.id);
   const decision = selected ? memberReadable(selected, selectedAssets, new Date(), STORYBOARD) : null;
   const lowBandwidth = isLowBandwidth({
@@ -156,7 +171,7 @@ export default function KlReaderScreen() {
     lowBandwidth,
     layers: living,
   });
-  const journey = journeySummary(0, 30);
+  const journey = journeySummary(completedChapters ?? 0, 30);
   const music = ASSETS.find((asset) => asset.id === 'asset-music');
   const ambient = ASSETS.find((asset) => asset.id === 'asset-ambient');
 
@@ -220,7 +235,8 @@ export default function KlReaderScreen() {
       const { error } = await supabase.rpc(KL_RPC.adminAction, adminActionArgs({ action, episodeId: klDatabaseId(targetEpisode.episodeNumber), notes }));
       if (error) throw error;
       if (action === 'release') {
-        setReleasedIds((ids) => [...new Set([...ids, klDatabaseId(EPISODES.find((item) => item.id === episodeId)?.episodeNumber ?? -1)])]);
+        const { data: libraryData, error: libraryError } = await supabase.rpc(KL_RPC.listLibrary);
+        if (!libraryError && Array.isArray(libraryData)) setReleasedChapters(libraryData as ReleasedChapter[]);
       }
       setAdminFeedback(action === 'approve' ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.' : action === 'release' ? 'Na-release na ang kabanata sa server.' : 'Ibinalik sa draft sa server.');
       setRejectTarget(null);
@@ -235,7 +251,8 @@ export default function KlReaderScreen() {
     setBusy(true);
     try {
       const { data: libraryData, error } = await supabase.rpc(KL_RPC.listLibrary);
-      if (!error && Array.isArray(libraryData)) setReleasedIds(libraryData.map((entry: { episode_number: number }) => klDatabaseId(entry.episode_number)));
+      setJourneyRefreshToken((token) => token + 1);
+      if (!error && Array.isArray(libraryData)) setReleasedChapters(libraryData as ReleasedChapter[]);
       if (error) {
         await persist(queueReaderIssue(cache, {
           kind: 'library',
@@ -257,11 +274,22 @@ export default function KlReaderScreen() {
     let active = true;
     void supabase.rpc(KL_RPC.listLibrary).then(({ data, error }) => {
       if (active && !error && Array.isArray(data)) {
-        setReleasedIds(data.map((entry: { episode_number: number }) => klDatabaseId(entry.episode_number)));
+        setReleasedChapters(data as ReleasedChapter[]);
       }
     });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (!user?.id) return () => { active = false; };
+    void supabase.rpc('kl_my_story_journey_v1').then(({ data, error }) => {
+      if (!active || error || !data || typeof data !== 'object') return;
+      const count = Number((data as { completed_chapters?: unknown }).completed_chapters);
+      if (Number.isFinite(count)) setJourneyResult({ userId: user.id, completed: Math.max(0, count) });
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [user?.id, journeyRefreshToken]);
 
   useEffect(() => {
     if (!selected || serverState !== 'readable' || !appActive || !online) return;
@@ -280,7 +308,8 @@ export default function KlReaderScreen() {
     if (error) { setRewardFeedback(error.message); return; }
     const result = data as { new_completion?: boolean; points_awarded?: number; completed?: boolean };
     setRewardFeedback(result?.completed === false ? 'Kailangan muna ng sapat na oras ng pagbabasa.' :
-      result?.new_completion ? 'Chapter completed · +7 BUKLOD Points' : 'Naitala na ang completion ng kabanatang ito.');
+      result?.new_completion ? 'Natapos ang kabanata · +7 BUKLOD Points' : 'Naitala na ang pagkumpleto sa kabanatang ito.');
+    if (result?.completed !== false) setJourneyRefreshToken((token) => token + 1);
   };
 
   const syncViewport = (scrollY: number) => {
@@ -411,16 +440,7 @@ export default function KlReaderScreen() {
     : null;
   const openTermEntry = openTerm ? dictionaryByName(openTerm) : null;
   const readingOpen = Boolean(selected && paragraphs.length > 0);
-  const liveReleased = Boolean(
-    selected
-    && (decision?.readable || releasedIds.includes(klDatabaseId(selected.episodeNumber)))
-    && (
-      selected.episodeNumber <= KL_RELEASED_THROUGH_EPISODE
-      || selected.status === 'live'
-      || selected.status === 'scheduled'
-      || selected.status === 'approved'
-    ),
-  );
+  const liveReleased = Boolean(selected && (decision?.readable || releasedIds.includes(klDatabaseId(selected.episodeNumber))));
 
   const cycleVolume = (channel: 'music' | 'ambient') => {
     const steps = [0.3, 0.6, 1];
@@ -438,11 +458,11 @@ export default function KlReaderScreen() {
       <ScrollView
         ref={scrollRef}
         style={styles.page}
-        contentContainerStyle={[styles.content, { paddingHorizontal: compact ? 16 : 24 }]}
+        contentContainerStyle={[styles.content, { paddingHorizontal: compact ? 16 : 24, paddingTop: 18 + insets.top }]}
         scrollEventThrottle={32}
         onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => syncViewport(event.nativeEvent.contentOffset.y)}
       >
-        <Stack.Screen options={{ title: selected?.title ?? 'Kabihasnang Ligaw' }} />
+        <Stack.Screen options={{ title: selected ? selectedTitle : 'Kabihasnang Ligaw' }} />
         {readingOpen && selected ? (
           <View
             style={styles.reader}
@@ -458,7 +478,7 @@ export default function KlReaderScreen() {
                 disabled={!previousEpisode || !episodeReadable(previousEpisode.id)}
                 onPress={() => previousEpisode && openReadable(previousEpisode.id)}
               />
-              <Text style={styles.navTitle} numberOfLines={1}>{selected.title}</Text>
+              <Text style={styles.navTitle} numberOfLines={1}>{selectedTitle}</Text>
               <IconButton
                 icon="chevron-right"
                 label="Susunod na kabanata"
@@ -480,9 +500,9 @@ export default function KlReaderScreen() {
             <Text style={styles.kicker}>
               {selected.kind === 'panimula' ? 'PANIMULA' : `KABANATA ${String(selected.episodeNumber).padStart(2, '0')}`}
             </Text>
-            <Text style={[styles.chapter, compact && styles.titleCompact]}>{selected.title}</Text>
+            <Text style={[styles.chapter, compact && styles.titleCompact]}>{selectedTitle}</Text>
             {mediaUrls['music:0'] || mediaUrls['ambient:0'] ? (
-              <KlChapterAudio music={mediaUrls['music:0']} ambient={mediaUrls['ambient:0']} />
+              <KlChapterAudio key={selected.id} music={mediaUrls['music:0']} ambient={mediaUrls['ambient:0']} autoPlay />
             ) : <KlAudioControls
               musicStatus={music?.classification ?? 'MISSING'}
               ambientStatus={ambient?.classification ?? 'MISSING'}
@@ -606,7 +626,7 @@ export default function KlReaderScreen() {
                 label={klCopy.bookmark}
                 active={Boolean(cache.bookmarkLabel)}
                 onPress={() => {
-                  const label = selected.episodeNumber === 1 ? 'Kabanata 01' : selected.title;
+                  const label = selectedTitle;
                   void persist({ ...cache, bookmarkLabel: label, lastEpisodeId: selected.id });
                   setNotice(klCopy.bookmarkSaved);
                 }}
@@ -654,11 +674,13 @@ export default function KlReaderScreen() {
             <Text style={styles.by}>{KL_AUTHOR}</Text>
             <Text style={styles.lede}>{klCopy.librarySubtitle}</Text>
             <Text style={styles.meta}>{klCopy.libraryHint}</Text>
-            <KlDynamicLibrary />
+            <Pressable accessibilityRole="button" onPress={() => void refresh()} disabled={busy}>
+              <Text style={styles.meta}>{busy ? 'Ina-update ang mga kabanata…' : 'I-refresh ang mga inilabas na kabanata'}</Text>
+            </Pressable>
             <View style={styles.panel}>
               <Text style={styles.panelTitle}>{klCopy.journey}</Text>
-              <Text style={styles.body}>{klCopy.journeyEmpty}</Text>
-              <Text style={styles.meta}>{journey.completed} / {journey.total}</Text>
+              <Text style={styles.body}>{completedChapters === null ? 'Kinukuha ang iyong progreso…' : journey.completed === 0 ? klCopy.journeyEmpty : `${journey.completed} kabanata ang natapos mo.`}</Text>
+              <Text style={styles.meta}>{completedChapters === null ? '—' : journey.completed} / {journey.total}</Text>
               <Text style={styles.meta}>{klCopy.journeyNote}</Text>
             </View>
             {cache.lastEpisodeId && episodeReadable(cache.lastEpisodeId) ? (
@@ -686,7 +708,7 @@ export default function KlReaderScreen() {
                   onPress={() => openReadable(episode.id)}
                   style={styles.episode}
                 >
-                  <Text style={styles.episodeTitle}>{episode.title}</Text>
+                  <Text style={styles.episodeTitle}>{displayChapterTitle(episode, releasedChapters.find((chapter) => chapter.season_number === 1 && chapter.episode_number === episode.episodeNumber))}</Text>
                   <View style={styles.statusRow}>
                     <MaterialCommunityIcons
                       name={readable ? 'book-open-variant' : 'lock'}

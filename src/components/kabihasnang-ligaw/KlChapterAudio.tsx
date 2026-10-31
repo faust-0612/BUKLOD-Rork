@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { AppState, Pressable, Text, View } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
 
 import { otherAudioPlaying } from '@/lib/kabihasnang-ligaw/externalAudioState';
@@ -7,7 +7,7 @@ import { closeKlAudioPlayer, runKlAudioCommand } from '@/lib/kabihasnang-ligaw/a
 import { klEditorRenderSignature } from '@/lib/kabihasnang-ligaw/editorCrashDiagnostics';
 import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 
-type Props = { music?: string; ambient?: string; showWhenEmpty?: boolean };
+type Props = { music?: string; ambient?: string; showWhenEmpty?: boolean; autoPlay?: boolean };
 type NativePlayer = ReturnType<typeof createAudioPlayer>;
 
 class ChapterAudioBoundary extends React.Component<{ children: React.ReactNode }, { failed: boolean }> {
@@ -37,9 +37,10 @@ class ChapterAudioBoundary extends React.Component<{ children: React.ReactNode }
   }
 }
 
-function ChapterAudioControls({ music, ambient }: Pick<Props, 'music' | 'ambient'>) {
+function ChapterAudioControls({ music, ambient, autoPlay = false }: Pick<Props, 'music' | 'ambient' | 'autoPlay'>) {
   const playerRef = useRef<NativePlayer | null>(null);
   const lastSourcesRef = useRef([music, ambient]);
+  const autoAttemptedRef = useRef(false);
   const [enabled, setEnabled] = useState(false);
   const [track, setTrack] = useState<'music' | 'ambient'>('music');
   const [muted, setMuted] = useState(false);
@@ -61,6 +62,36 @@ function ChapterAudioControls({ music, ambient }: Pick<Props, 'music' | 'ambient
       closeKlAudioPlayer(player);
     };
   }, []);
+
+  useEffect(() => {
+    const listener = AppState.addEventListener('change', (state) => {
+      if (state === 'active') return;
+      const player = playerRef.current;
+      if (player) runKlAudioCommand(() => player.pause());
+      setEnabled(false);
+    });
+    return () => listener.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!autoPlay || autoAttemptedRef.current || (!music && !ambient)) return;
+    const player = playerRef.current;
+    if (!player || AppState.currentState !== 'active') return;
+    autoAttemptedRef.current = true;
+    if (otherAudioPlaying()) {
+      setError('May ibang audio na tumutugtog. Pindutin ang Patugtugin kung gusto mong makinig dito.');
+      return;
+    }
+    const uri = music ?? ambient;
+    const started = runKlAudioCommand(() => {
+      player.replace({ uri: uri as string });
+      player.loop = true;
+      player.volume = muted ? 0 : 0.35;
+      player.play();
+    });
+    setEnabled(started);
+    setError(started ? '' : 'Hindi awtomatikong tumugtog. Pindutin ang Patugtugin upang subukan muli.');
+  }, [autoPlay, music, ambient]);
 
   useEffect(() => {
     const [oldMusic, oldAmbient] = lastSourcesRef.current;
@@ -87,6 +118,7 @@ function ChapterAudioControls({ music, ambient }: Pick<Props, 'music' | 'ambient
     if (!uri) return;
     if (!runKlAudioCommand(() => {
       player.replace({ uri });
+      player.loop = true;
       player.volume = muted ? 0 : 0.35;
       player.play();
     })) {
@@ -139,7 +171,7 @@ function ChapterAudioControls({ music, ambient }: Pick<Props, 'music' | 'ambient
   );
 }
 
-export default function KlChapterAudio({ music, ambient, showWhenEmpty = false }: Props) {
+export default function KlChapterAudio({ music, ambient, showWhenEmpty = false, autoPlay = false }: Props) {
   // Avoid allocating a native player for every empty chapter preview/editor widget.
   if (!music && !ambient) {
     return showWhenEmpty ? (
@@ -148,7 +180,7 @@ export default function KlChapterAudio({ music, ambient, showWhenEmpty = false }
   }
   return (
     <ChapterAudioBoundary>
-      <ChapterAudioControls music={music} ambient={ambient} />
+      <ChapterAudioControls music={music} ambient={ambient} autoPlay={autoPlay} />
     </ChapterAudioBoundary>
   );
 }
