@@ -1,0 +1,50 @@
+{
+  "contractVersion": 2,
+  "objective": "Strengthen BUKLOD mandatory native update enforcement across all routes with an actionable Filipino update screen, bounded foreground version policy refresh, and faster safe OTA adoption checks; preserve the release gate before enabling a mass outdated APK cutoff.",
+  "baseRef": "c8f55f91fb0d1e792385a7dc449a6ef1938ef42c",
+  "productionBaselineEvidence": "Supabase production app_runtime_config production minimum_supported_version=1.0.0, recommended_version=1.0.0, maintenance_mode=false. 132 active Android installation records in trailing 30 days all reported 1.3.4/runtime 1.3.2; registry reports native_build=NULL and cannot distinguish some older build 26 from v28. GitHub main c8f55f91fb0d1e792385a7dc449a6ef1938ef42c; production OTA release ID/new APK verification not available. Do not raise cutoff before verified compatible production update and recovery access.",
+  "chosenApproach": "Centralized version gate at root Stack for authenticated native traffic while retaining original route aliases, actionable Play Store/browser update and check-again, web version exempt from native APK cutoff, throttled foreground config refresh, 1-hour foreground Expo OTA check and manual restart to protect calls/PTT.",
+  "selectionRationale": "Keeps server as the only cutoff authority; avoids disabling users until verified release and update path is available; closes route/deeplink bypass; no native SDK change or Supabase migration.",
+  "alternativeApproaches": [
+    "Immediately raise production minimum version to 1.3.4 before verifying OTA and store availability: rejected due to lockout risk and shared version string across native build 26 and 28.",
+    "Install new native build remotely without user action: impossible with OTA; binary update needs Play Store or sideload.",
+    "Introduce native build-level cutoff via unverified constants: rejected, telemetry reports no reliable native build; requires later native release/verified build metadata.",
+    "Gate across root with helpful update path and keep minimum server cutoff unchanged until verified RC: selected."
+  ],
+  "preserveBehaviors": [
+    "Authenticated users can use app normally until server policy explicitly marks version obsolete",
+    "Admin bypass and existing runtime config SQL unaffected",
+    "Latest web application not accidentally blocked by native version threshold",
+    "Expo OTA compatible runtime 1.3.2 kept intact; no native build needed",
+    "No forced restart during in-progress call/PTT/upload; explicit user restart",
+    "Offline saved content and DB data unchanged",
+    "Other user versions/account isolation unaffected; no auth/RLS edits"
+  ],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/buklod-mandatory-update-navigation.test.mjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/_layout.tsx",
+    "src/app/system/update-required.tsx",
+    "src/providers/RuntimeConfigProvider.tsx",
+    "src/components/BuklodOtaFreshnessHost.native.tsx",
+    "src/app/index.web.tsx",
+    "src/components/BuklodMandatoryUpdateBoundary.tsx",
+    "src/components/BuklodUpdateRequiredPanel.tsx",
+    "tests/buklod-mandatory-update-navigation.test.mjs",
+    "tests/buklod-mandatory-update-runtime.test.mjs",
+    ".buklod/scopes/mandatory-android-update-20261101.json"
+  ],
+  "acceptanceChecks": [
+    "TypeScript, focused Node tests and integration QA must pass before merge",
+    "All authenticated Android routes/deep links blocked when server reports update_required",
+    "Play Store link attempted, web fallback and check again remain available",
+    "Web excluded from native version gate, OTA compatible runtime 1.3.2 unchanged",
+    "DO NOT raise production version cutoff until exact RC/OTA or approved APK and update path are verified",
+    "DO NOT claim remote APK install or revoke clients with same app version/native build if backend cannot distinguish them"
+  ]
+}
