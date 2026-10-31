@@ -22,6 +22,8 @@ import BuklodMzbHomeWidgets from '@/components/BuklodMzbHomeWidgets';
 import BuklodOrgHomeClusterCard from '@/components/BuklodOrgHomeClusterCard';
 import BuklodOrgHomeBayanihanCard from '@/components/BuklodOrgHomeBayanihanCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 import { useScreenFocused } from '@/hooks/useScreenFocused';
 import {
@@ -228,6 +230,11 @@ export default function BuklodScopeHomeDashboard({
       </View>
 
 
+      <BuklodFirstViewAd
+        placement={scope.scope_type === 'CLUSTER' ? 'cluster' : 'org'}
+        placementId={scope.scope_type === 'CLUSTER' ? 'cluster_scope_home_first_view' : 'organization_scope_home_first_view'}
+      />
+
       {loading && !homeCache ? (
         <View style={styles.card}>
           <ActivityIndicator color="#0874DE" />
@@ -310,6 +317,10 @@ export default function BuklodScopeHomeDashboard({
       ) : <BuklodNonFaithEncouragementDoor />}
 
       <BuklodHomeScopeBulletins />
+      <BuklodNativeSponsoredCard
+        surface="cluster_dashboard"
+        slotId={`scope-home-native-media:${scope.scope_id}`}
+      />
       <BuklodScopeAttendanceCard
         scopeId={scope.scope_id}
         scopeType={scope.scope_type}
