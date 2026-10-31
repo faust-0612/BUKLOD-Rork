@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import { useAudioPlayer } from 'expo-audio';
 
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
 import { BuklodAnswerValidationFeedback } from '@/components/education/BuklodAnswerValidationGate';
 import {
   buildGeneratedLessonQuestionContext,
@@ -324,6 +325,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
         </View>
       )}
 
+      <BuklodSubmissionAdSlot placementId="formation_lesson_before_submit" />
       <Text style={styles.helper}>After a saved, approved completion, an optional sponsored break may appear. Ads never prevent submission.</Text>
       <Button
         title={
