@@ -6,7 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { AppState, InteractionManager } from 'react-native';
+import { AppState } from 'react-native';
 
 import {
   initializeBuklodAds,
@@ -53,36 +53,22 @@ export function AdsProvider({
     () => {
       let mounted = true;
 
-      /* PERF_STARTUP_R1: AdMob init is not needed for first paint. */
-      const task =
-        InteractionManager.runAfterInteractions(
-          () => {
-            void initializeBuklodAds()
-              .then(result => {
-                if (!mounted) {
-                  return;
-                }
-
-                setReady(
-                  result.ready
-                );
-
-                setCanRequestAds(
-                  result.canRequestAds
-                );
-              })
-              .catch(error => {
-                console.warn(
-                  'BUKLOD Ads bootstrap:',
-                  error
-                );
-              });
-          }
-        );
+      // A continuous animation/feed interaction could keep
+      // runAfterInteractions pending indefinitely, leaving ads blank.
+      // Begin after first paint without blocking Wall or authentication.
+      const task = setTimeout(() => {
+        void initializeBuklodAds()
+          .then(result => {
+            if (!mounted) return;
+            setReady(result.ready);
+            setCanRequestAds(result.canRequestAds);
+          })
+          .catch(error => console.warn('BUKLOD Ads bootstrap:', error));
+      }, 600);
 
       return () => {
         mounted = false;
-        task.cancel();
+        clearTimeout(task);
       };
     },
     []
