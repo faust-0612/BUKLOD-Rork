@@ -263,7 +263,6 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       key={'sharp-expo:' + mediaPath + ':' + current.url}
       source={{ uri: current.url, cacheKey: originalCacheKey }}
       style={[StyleSheet.absoluteFillObject, { opacity: 1, zIndex: wallOriginalLayerZIndex(current.ready) }]}
-      pointerEvents="none"
       contentFit={contentFit}
       cachePolicy="memory-disk"
       priority="low"
@@ -323,7 +322,6 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       key={'sharp-native:' + mediaPath + ':' + current.url}
       source={{ uri: current.url }}
       style={[StyleSheet.absoluteFillObject, { opacity: 1, zIndex: wallOriginalLayerZIndex(current.ready) }]}
-      pointerEvents="none"
       resizeMode={contentFit}
       fadeDuration={0}
       onProgress={event => {
