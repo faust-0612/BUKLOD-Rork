@@ -14,8 +14,8 @@ test('My Bible scenic header and four functional study actions use existing read
  assert.ok(source.includes('changeTranslation(\'KJV\')'));
  assert.ok(source.includes('setShowBibleAudio(value => !value)'));
  assert.ok(source.includes('setShowBibleTextSettings(value => !value)'));
- assert.ok(source.includes('openBibleAnnotation(Number(verse.verse_no),cleanText)'));
- assert.ok(source.includes('Share.share({message:'));
+ assert.ok(source.includes('onLongPress={isMyBibleMode ? () => openBibleAnnotation(Number(verse.verse_no), cleanText)'));
+ assert.ok(source.includes('accessibilityLabel="I-share ang napiling talata"'));
  assert.ok(hero.includes('LinearGradient'));
  assert.ok(hero.includes('Svg'));
 });
@@ -31,19 +31,24 @@ test('The study redesign does not invent completed verse progress or modify dail
  assert.ok(!nav.includes("key: 'bible', route: '/bible/read"));
 });
 
-test('DZAS provides both user photos locally and a real 300x250 ad on a scroll-safe screen',()=>{
+test('DZAS retains supplied images, real ad, radio behavior, and native/web shared layout',()=>{
  const source=read('src/app/personal-home/radio.tsx');
+ const web=read('src/app/personal-home/radio.web.tsx');
+ const deck=read('src/components/dzas/DzasSignalDeck.tsx');
  const images=read('src/assets/dzasImages.ts');
  const shell=read('src/components/BuklodNavSafeShell.tsx');
  assert.ok(shell.includes("normalizeBuklodPathname(pathname) === '/personal-home/radio'"));
- assert.ok(source.includes('source={DZAS_LOGO_IMAGE}'));
- assert.ok(source.includes('source={DZAS_PORTRAIT_IMAGE}'));
+ assert.ok(source.includes('<DzasSignalDeck'));
+ assert.ok(web.includes('<DzasSignalDeck'));
+ assert.ok(deck.includes('source={DZAS_LOGO_IMAGE}'));
+ assert.ok(deck.includes('source={DZAS_PORTRAIT_IMAGE}'));
  assert.ok(source.includes('format="mediumRectangle"'));
- assert.ok(source.includes('minHeight: 289'));
- assert.ok(source.includes('<ScrollView'));
- assert.ok(source.includes('</ScrollView>'));
+ assert.ok(deck.includes('minHeight: 289'));
+ assert.ok(deck.includes('<ScrollView'));
+ assert.ok(deck.includes('</ScrollView>'));
  assert.ok(source.includes('playDzasRadio(forceReload)'));
  assert.ok(source.includes('pauseDzasRadio()'));
+ assert.ok(web.includes("audio.addEventListener('playing'"));
  const matches=[...images.matchAll(/base64,([A-Za-z0-9+/=]+)/g)];
  assert.equal(matches.length,2);
  assert.equal(matches[0][1].length,1728);

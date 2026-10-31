@@ -1,0 +1,52 @@
+{
+  "contractVersion": 2,
+  "objective": "Match owner DZAS Signal Deck reference closely as responsive real UI, with supplied logo/portrait, native and web streaming, program schedule, feed links, real AdMob ad and safe-area support.",
+  "baseRef": "6b63ada862d20c1961fd090124859dfa7c1b4b85",
+  "productionBaselineEvidence": "Android production OTA 01a19402-9e9d-7c68-89e0-02f1b0473c35 used SHA 6a1c6dc2 runtime 1.3.2; authoritative current DEV main was 6b63ada (merged Bible PR #480 pending next OTA). Existing native DZAS screen had gallery after hero, real 300x250 ad and persistent expo-audio; web screen used HTMLAudioElement. Supplied owner mockup plus original logo and portrait assets are available.",
+  "chosenApproach": "Build one reusable gradient-backed native/web Signal Deck with genuine radio play/pause/retry/favorites, owner-supplied images in hero, golden listen button, full-width quick controls and partnership inquiry. Preserve genuine viewport-gated AdMob 300x250 only on Android and label as genuine ad rather than fake paid partner. Show day-specific programs transcribed from official dzas.febc.ph/on-air-programs and link each to current official guide; email prayer request and partnership to the verified station contact; official feed links open at their sources. Keep existing native background player and web audio runtime, navigation and safe-area shell unchanged.",
+  "selectionRationale": "Shared presentational code gives close visual match while reducing platform drift. Avoid fabricated live schedule data, false on-air indicator, sponsored impression or nonfunctional feed; avoid native dependency or app runtime change.",
+  "alternativeApproaches": [
+    "Implement mockup as screenshot background: rejected because program/feed/player interactions would not be real.",
+    "Duplicate the entire view in Android/web: rejected because features/layout drift.",
+    "Ship invented schedule/feed and sponsored picture: rejected because unverified information and ad policy risk."
+  ],
+  "preserveBehaviors": [
+    "Native background audio and lock-screen transport controls",
+    "Browser user-gesture audio play and event cleanup",
+    "Favorite remains AsyncStorage backed",
+    "Retry uses existing player force reload",
+    "Genuine AdMob SDK 300x250 with viewport and shared cooldown gating",
+    "Android safe area and Home/Cluster/Wall/Connect/Profile navigation unchanged",
+    "No new permissions or Expo runtime change",
+    "Do not alter Bible reader, Quiz, Connect or database",
+    "Logo/portrait are owner supplied visual assets; portrait is not identified as broadcaster",
+    "Guide is explicitly informational, subject to station changes"
+  ],
+  "riskAreas": [
+    "radio",
+    "navigation-scroll",
+    "ads",
+    "layout",
+    "network-recovery"
+  ],
+  "regressionTests": [
+    "tests/bible-radio-visual.test.cjs",
+    "tests/dzas-signal-deck-implementation.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/dzas/DzasSignalDeck.tsx",
+    "src/app/personal-home/radio.tsx",
+    "src/app/personal-home/radio.web.tsx",
+    "tests/bible-radio-visual.test.cjs",
+    "tests/dzas-signal-deck-implementation.test.mjs",
+    ".buklod/scopes/dzas-signal-deck-reference-20261101.json"
+  ],
+  "acceptanceChecks": [
+    "3 CI gates green, including TypeScript and runnable modified node regression tests",
+    "Android and web maintain actual radio functions",
+    "Program and feed actions open verified official destinations; no invented live program",
+    "AdMob only real inventory and cooldown preserved",
+    "No horizontal overflow and safe scrolling above global nav",
+    "Freeze RC from exact source if/when OTA release is separately authorized"
+  ]
+}
