@@ -7,7 +7,7 @@ const read = (path) => readFileSync(path, 'utf8');
 test('Android interstitial opportunities cover actual terminal stages, not every tap', () => {
   const bridge = read('src/lib/buklodAdOpportunities.ts');
   for (const slot of ['bible_chapter_success', 'abc_lesson_success', 'learning_assignment_success', 'kl_chapter_success', 'formation_lesson_success']) {
-    assert.match(bridge, new RegExp('\b' + slot + ':\s*\{'));
+    assert.ok(bridge.includes(slot + ': {'), slot + ' must be registered');
   }
   assert.match(bridge, /if \(Platform\.OS !== 'android'\) return false/);
   assert.match(bridge, /return await maybeShowBuklodInterstitial/);
@@ -37,12 +37,17 @@ test('ABAKA leaves offline completion ad-free and rejects repeated completion ad
 
 test('Legacy formation completion and assignment submit ads follow success, not quiz', () => {
   const page = read('src/app/learn/lesson.tsx');
-  for (const [method, event] of [['completeLegacyLesson', 'formation_lesson_success'], ['submitAssignment','learning_assignment_success']]) {
-    const start=page.indexOf('const '+method+' = async');
-    const next=page.indexOf('  const ',start+7);
-    const chunk=page.slice(start,next);
-    const show=chunk.indexOf("await showBuklodAdOpportunity('"+event+"')");
-    assert.ok(show>0 && show>chunk.indexOf("if (error)"),method+' must be post-success');
+  for (const [method, nextMethod, event] of [
+    ['completeLegacyLesson', 'submitAssignment', 'formation_lesson_success'],
+    ['submitAssignment', 'submitQuiz', 'learning_assignment_success'],
+  ]) {
+    const start = page.indexOf('const ' + method + ' = async');
+    const end = page.indexOf('const ' + nextMethod + ' = async', start);
+    assert.ok(start >= 0 && end > start, method + ' section must exist');
+    const chunk = page.slice(start, end);
+    const errorGuard = chunk.lastIndexOf('if (error)');
+    const adShow = chunk.indexOf("await showBuklodAdOpportunity('" + event + "')");
+    assert.ok(errorGuard >= 0 && adShow > errorGuard, method + ' must be post-success');
   }
   const quiz=page.slice(page.indexOf('const submitQuiz = async'),page.indexOf('if (loadState',page.indexOf('const submitQuiz = async')));
   assert.doesNotMatch(quiz,/showBuklodAdOpportunity/);
