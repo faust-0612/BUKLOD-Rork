@@ -30,7 +30,7 @@ export default function BuklodFirstViewAd({
         placementId={placementId}
         compact={compact}
         format="adaptive"
-        requireViewport={false}
+        requireViewport
         showLabel
       />
     </View>
