@@ -2,6 +2,8 @@ import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
@@ -44,6 +46,7 @@ export default function BuklodLightHome() {
     <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ padding: 18, gap: 12 }}>
       <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
+      <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
       {focused && foreground ? (
         <ToolBoundary onClose={() => {}}>
           <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading Home cards" color={theme.accent} />}>
@@ -78,6 +81,12 @@ export default function BuklodLightHome() {
             <Updates />
           </Suspense>
         </ToolBoundary>
+      ) : null}
+      {focused && foreground ? (
+        <BuklodNativeSponsoredCard
+          surface="home"
+          slotId="new-home-native-media"
+        />
       ) : null}
       {/* Preserve the map while Android permission dialogs or Google Maps
           temporarily put this app in the background. */}
