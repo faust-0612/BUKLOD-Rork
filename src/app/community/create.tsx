@@ -1,4 +1,6 @@
-import React,{useMemo,useState}from'react';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
+import React,{useEffect,useMemo,useState}from'react';
 import{ActivityIndicator,Alert,Image,Pressable,ScrollView,StyleSheet,Text,TextInput,View}from'react-native';
 import{MaterialCommunityIcons}from'@expo/vector-icons';
 import*as DocumentPicker from'expo-document-picker';
@@ -27,6 +29,7 @@ export default function CommunityCreateScreen(){
  const[privacy,setPrivacy]=useState<BuklodCommunityPrivacy>('public');const[momentMode,setMomentMode]=useState<BuklodMomentMode>('add_yours');const[rewardPot,setRewardPot]=useState<Pot>(0);
  const[body,setBody]=useState('');const[title,setTitle]=useState('');const[topic,setTopic]=useState('');const[pollText,setPollText]=useState('Yes\nNo');
  const[photo,setPhoto]=useState<{uri:string}|null>(null);const[resource,setResource]=useState<ResourceDraft|null>(null);const[busy,setBusy]=useState(false);
+ useEffect(()=>{warmBuklodAdOpportunity('community_post_success');},[]);
  const prompt=useMemo(()=>({question:'What do you want to ask?',need_advice:'What are you going through?',challenge:'Describe the challenge simply…',poll:'Ask the community…',moment:'What is happening in this moment?',resource:'Why is this file useful?',encouragement:'Share something encouraging…',idea:'What is your idea?',share_a_win:'What went well?',story:'Tell your story…'}as Partial<Record<BuklodCommunityKind,string>>)[kind]??'What’s on your mind?',[kind]);
  const needsTitle=kind==='resource'||kind==='challenge';const canPot=supportsCommunityRewardPot(kind);const canHideIdentity=kind!=='resource';
 
@@ -44,7 +47,10 @@ export default function CommunityCreateScreen(){
    const created=await(supabase as any).rpc('create_buklod_community_living_post_v2',{p_kind:kind,p_privacy:privacy,p_body:text||title.trim()||'Shared with the Community.',p_title:title.trim()||null,p_topic:topic.trim()||null,p_quiet_mode:defaultQuietModeForKind(kind),p_poll_options:options.length?options:null,p_challenge_config:kind==='challenge'?{reward_mode:'existing_buklod_progression'}:null,p_context_config:{moment_mode:kind==='moment'?momentMode:null,reward_pot_points:canPot?rewardPot:0},p_media_path:uploadedMomentPath,p_media_mime_type:uploadedMomentPath?'image/jpeg':null,p_media_size_bytes:mediaSize});
    if(created.error)throw created.error;const postId=String(created.data??'').trim();if(!postId)throw new Error('Post ID was not returned.');
    if(resource){const hash=await sha256BuklodResource(resource.uri);const existing=await(supabase as any).rpc('find_buklod_community_resource_object_v1',{p_sha256:hash,p_visibility:'public'});let storagePath=String(existing.data?.storage_path??'').trim();if(!storagePath){storagePath=(await uploadBuklodResource({userId:user.id,uri:resource.uri,name:resource.name,mimeType:resource.mimeType,sha256:hash})).storagePath;}const registered=await(supabase as any).rpc('register_buklod_community_resource_v2',{p_post_id:postId,p_title:title.trim()||resource.name,p_description:text||null,p_topic:topic.trim()||null,p_original_name:resource.name,p_mime_type:resource.mimeType,p_size_bytes:resource.size,p_sha256:hash,p_storage_path:storagePath,p_visibility:'public'});if(registered.error)throw registered.error;}
-   queueBuklodCommunityModeration('root',postId);router.replace('/(tabs)/buklod'as any);
+   queueBuklodCommunityModeration('root',postId);
+   // The post and any resource are committed before a capped natural break.
+   await showBuklodAdOpportunity('community_post_success');
+   router.replace('/(tabs)/buklod'as any);
   }catch(error:any){if(uploadedMomentPath&&privacy!=='anonymous'){void supabase.storage.from('community-media').remove([uploadedMomentPath]).catch(()=>{});}Alert.alert('Could Not Post',String(error?.message??error??'Please try again.'));}finally{setBusy(false);}
  }
 
@@ -62,6 +68,7 @@ export default function CommunityCreateScreen(){
   {showSettings?<View style={[s.settingsPanel,{backgroundColor:theme.surfaceMuted}]}>{canHideIdentity?<><Text style={[s.label,{color:theme.textMuted}]}>IDENTITY</Text><View style={s.row}>{(['public','anonymous']as BuklodCommunityPrivacy[]).map(value=><Pressable key={value} onPress={()=>setPrivacy(value)} style={[s.choice,{borderColor:privacy===value?theme.accent:theme.border,backgroundColor:privacy===value?theme.accentSoft:theme.surface}]}><MaterialCommunityIcons name={value==='anonymous'?'incognito':'account-outline'} size={17} color={privacy===value?theme.accent:theme.textMuted}/><Text style={[s.choiceText,{color:privacy===value?theme.accent:theme.textMuted}]}>{BUKLOD_COMMUNITY_PRIVACY_LABELS[value]}</Text></Pressable>)}</View>{privacy==='anonymous'?<Text style={[s.note,{color:theme.textMuted}]}>Your name and media storage identity are hidden from the community. BUKLOD still keeps your account identity privately for safety.</Text>:null}</>:<Text style={[s.note,{color:theme.textMuted}]}>Resource posts show the sharer so people know who provided the file.</Text>}
   {kind==='moment'?<><Text style={[s.label,{color:theme.textMuted,marginTop:12}]}>MOMENT STYLE</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>{BUKLOD_MOMENT_MODES.map(value=><Pressable key={value} onPress={()=>setMomentMode(value)} style={[s.chip,{borderColor:momentMode===value?theme.accent:theme.border,backgroundColor:momentMode===value?theme.accentSoft:theme.surface}]}><Text style={[s.chipText,{color:momentMode===value?theme.accent:theme.textMuted}]}>{BUKLOD_MOMENT_MODE_LABELS[value]}</Text></Pressable>)}</ScrollView></>:null}
   {canPot?<><Text style={[s.label,{color:theme.textMuted,marginTop:12}]}>HELPFUL RESPONSE BONUS</Text><View style={s.row}>{([0,5,10]as Pot[]).map(value=><Pressable key={value} onPress={()=>setRewardPot(value)} style={[s.choice,{borderColor:rewardPot===value?theme.accent:theme.border,backgroundColor:rewardPot===value?theme.accentSoft:theme.surface}]}><Text style={[s.choiceText,{color:rewardPot===value?theme.accent:theme.textMuted}]}>{value?`${value} Points pool`:'Off'}</Text></Pressable>)}</View><Text style={[s.note,{color:theme.textMuted}]}>Uses existing BUKLOD Points only. Small bonuses are released for helpful Dugtongs with anti-farming limits.</Text></>:null}</View>:null}
+  <BuklodSubmissionAdSlot placementId="community_post_before_publish" />
  </ScrollView></View>;
 }
 

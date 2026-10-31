@@ -1,0 +1,52 @@
+{
+  "contractVersion": 2,
+  "objective": "Expand BUKLOD native Android advertisement opportunities to Cluster creation, Organization creation, Community post types, scoped Bulletin publication, and Prayer request banner without interrupting forms or introducing cash-linked reward incentives.",
+  "baseRef": "c474c1b043454b312fea71118d8a0ce3ccec2f5b",
+  "productionBaselineEvidence": "Verified GitHub main c474c1b043454b312fea71118d8a0ce3ccec2f5b; last PR #461 merged as e3f9cd3843717397f93c91537298c0d486680fca. No current Expo published OTA ID or runtime verification available. No production release claim.",
+  "chosenApproach": "Reuse existing keyboard-aware, viewport-aware labeled submission banner and central guarded interstitial bridge. Creation RPC confirms saved data first, and user-initiated navigation transition for Cluster/Organization is the interstitial opportunity. Community/Bulletin use server-verified post-publication break. Prayer retains passive-only placement.",
+  "selectionRationale": "One existing banner component handles privacy, visibility, failure and layout, while the global interstitial controller retains cooldown, placement flags, session caps and excluded routes. Reusing native units avoids APK rebuilds and backend schema changes.",
+  "alternativeApproaches": [
+    "Mandatory rewarded-video requirement before create/save or withdrawal: rejected because it gates app functions and exposes cash-linked points.",
+    "Add full-screen ads on every click or after opening a creation form: rejected due to placement policy and UX risk.",
+    "Post-success transition, keyboard-safe passive banners with capped existing SDK: selected for production compatibility."
+  ],
+  "preserveBehaviors": [
+    "No ad required to create a Cluster or Organization, post Community content, publish a bulletin or save a prayer.",
+    "Saved IDs, author permissions, scope selection, post privacy, upload and media attachment remain unchanged.",
+    "Existing public/private content visibility, moderation and security unchanged.",
+    "Prayer request has no interstitial and no rewarded ad.",
+    "No extra banner while keyboard is open. No new ad SDK or native binary.",
+    "Global controller kill switches, cooldown and session caps intact.",
+    "No changes to Quiz, calls, PTT, IGPAT, attendance or money ledger."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "monetization",
+    "ads",
+    "community-posting",
+    "scope-bulletin"
+  ],
+  "regressionTests": [
+    "tests/cluster-creation-ad-opportunities.test.mjs",
+    "tests/faith-scope-creation-ad-safety.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodAdOpportunities.ts",
+    "src/app/clusters/create.tsx",
+    "src/app/organizations/create.tsx",
+    "src/app/community/create.tsx",
+    "src/app/scope/bulletin-editor.tsx",
+    "src/app/prayer/new.tsx",
+    "tests/cluster-creation-ad-opportunities.test.mjs",
+    "tests/faith-scope-creation-ad-safety.test.mjs",
+    ".buklod/scopes/ad-creation-opportunities-20261101.json"
+  ],
+  "acceptanceChecks": [
+    "Cluster and Organization creation persist before ad transition and navigation always recovers.",
+    "Bulletin/community post only show ads after successful server response.",
+    "Prayer banner never blocks Save.",
+    "Keyboard hidden ad slots render without covering controls.",
+    "TypeScript, focused Node contract tests, GitHub regression gate and PR QA pass before merge.",
+    "Production Android OTA via immutable verified RC runtime 1.3.2 separately gated."
+  ]
+}

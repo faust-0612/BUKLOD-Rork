@@ -21,6 +21,8 @@ import { decode } from 'base64-arraybuffer';
 
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import BuklodBulletinVideo from '@/components/BuklodBulletinVideo';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 
@@ -102,6 +104,10 @@ export default function ScopeBulletinEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+
+  useEffect(() => {
+    warmBuklodAdOpportunity('bulletin_published_success');
+  }, []);
 
   const previewType = picked?.type ?? existingMediaKind;
   const previewUri = picked?.uri ?? existingMediaUrl;
@@ -314,6 +320,7 @@ export default function ScopeBulletinEditor() {
       }
 
       setFeedback({ kind: 'info', text: 'Bulletin published.' });
+      await showBuklodAdOpportunity('bulletin_published_success');
       router.back();
     } catch (error) {
       reportSaveError(String((error as any)?.message ?? error));
@@ -412,6 +419,7 @@ export default function ScopeBulletinEditor() {
         </View>
       )}
 
+      <BuklodSubmissionAdSlot placementId="scope_bulletin_before_publish" />
       <Pressable
         disabled={saving}
         onPress={save}

@@ -1,5 +1,5 @@
 /* PATCH_175A_COMPLETE_ORGANIZATION_CREATE */
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import {
   enterScopedWorkspace,
@@ -151,6 +153,36 @@ export default function CreateOrganizationScreen() {
   const [busy, setBusy] = useState(false);
   const createInFlight = useRef(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const openingCreated = useRef(false);
+
+  useEffect(() => {
+    warmBuklodAdOpportunity('organization_created_transition');
+  }, []);
+
+  const openCreatedOrganization = (scopeId: string, workspace: boolean) => {
+    if (openingCreated.current) return;
+    openingCreated.current = true;
+    void (async () => {
+      // Failure/no fill must not affect access to the committed organization.
+      try {
+        await showBuklodAdOpportunity('organization_created_transition');
+      } finally {
+        if (workspace) {
+          try {
+            await refresh();
+            await enterScopedWorkspace(selectScope, scopeId, { fromPortal: true });
+            return;
+          } catch (error) {
+            console.warn('Organization created; workspace navigation pending:', error);
+          }
+        }
+        router.replace({
+          pathname: '/organizations/manage',
+          params: { organization: scopeId },
+        } as any);
+      }
+    })();
+  };
 
   const selectedOption = useMemo(
     () => TYPES.find(item => item.key === selectedType) ?? null,
@@ -249,26 +281,11 @@ export default function CreateOrganizationScreen() {
         [
           {
             text: 'OPEN WORKSPACE',
-            onPress: () => void (async () => {
-              try {
-                await refresh();
-                await enterScopedWorkspace(selectScope, scopeId, { fromPortal: true });
-              } catch (navigationError) {
-                console.warn('Organization created; workspace navigation pending:', navigationError);
-                router.replace({
-                  pathname: '/organizations/manage',
-                  params: { organization: scopeId },
-                } as any);
-              }
-            })(),
+            onPress: () => openCreatedOrganization(scopeId, true),
           },
           {
             text: 'MANAGE',
-            onPress: () =>
-              router.replace({
-                pathname: '/organizations/manage',
-                params: { organization: scopeId },
-              } as any),
+            onPress: () => openCreatedOrganization(scopeId, false),
           },
         ],
       );
@@ -402,6 +419,7 @@ export default function CreateOrganizationScreen() {
             </View>
           </View>
 
+          <BuklodSubmissionAdSlot placementId="organization_create_before_submit" />
           <Pressable
             disabled={busy || Boolean(createdId)}
             onPress={() => void createOrganization()}
@@ -422,10 +440,7 @@ export default function CreateOrganizationScreen() {
           </Pressable>
           {createdId ? (
             <Pressable accessibilityRole="button"
-              onPress={() => router.replace({
-                pathname: '/organizations/manage',
-                params: { organization: createdId },
-              } as any)}
+              onPress={() => openCreatedOrganization(createdId, false)}
               style={{ padding: 12, backgroundColor: '#E6F8EF', borderRadius: 12 }}>
               <Text style={{ color: '#12683D', fontWeight: '900' }}>Created successfully. OPEN ORGANIZATION ›</Text>
             </Pressable>
