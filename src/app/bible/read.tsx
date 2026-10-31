@@ -382,8 +382,7 @@ const [showChapters, setShowChapters] =
 
 
   const isMyBibleMode =
-    bibleReaderSource ===
-    'my_bible';
+    bibleReaderSource === 'my_bible' || bibleReaderSource === 'search';
 
 
   const isDailyReadingMode =

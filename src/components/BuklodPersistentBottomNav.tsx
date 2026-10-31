@@ -168,7 +168,8 @@ BuklodPersistentBottomNav() {
     }
     if (Platform.OS === 'web') lastRequestedRoute.current = route;
     const needsScopeReset = activeScope?.scope_type === 'ORGANIZATION' || activeScope?.scope_type === 'CLUSTER';
-    if (isOnGlobalNavDestination(normalizedPath, route) && !needsScopeReset) return;
+    // The Bible tab must leave a Daily Reading or Search route even when the path is already /bible/read.
+    if (route !== '/bible/read?source=my_bible' && isOnGlobalNavDestination(normalizedPath, route) && !needsScopeReset) return;
     navigationInFlight.current = true;
     setPendingRoute(route);
     try {
