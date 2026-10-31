@@ -1,5 +1,6 @@
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import MyBibleQuickNavigator from '@/components/bible/MyBibleQuickNavigator';
 /**
  * PATCH 153H-3A
@@ -2004,6 +2005,10 @@ const [showChapters, setShowChapters] =
   // COMPLETE CHAPTER
   // ==========================================================
 
+  useEffect(() => {
+    if (sessionId && !completed) warmBuklodAdOpportunity('bible_chapter_success');
+  }, [sessionId, completed]);
+
   const markRead =
     async () => {
 
@@ -2140,7 +2145,8 @@ setMarking(true);
 
 
         setCompleted(true);
-
+        // Completion is stored first; no-fill or ad failure cannot undo reading.
+        await showBuklodAdOpportunity('bible_chapter_success');
 
         Alert.alert(
           'Chapter Completed',

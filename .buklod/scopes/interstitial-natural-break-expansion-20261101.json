@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Increase eligible Android full-screen ad opportunities at confirmed Bible, Kabihasnang Ligaw, ABAKA and legacy Formation natural completion breaks; tune shared cadence within AdMob/Play policies without gating essential actions.",
+  "baseRef": "efb5a180d5b6422daa077574be6ce1f0bd705248",
+  "productionBaselineEvidence": "Main efb5a180d5b6422daa077574be6ce1f0bd705248 includes merged KL unified reader/autoplay PR #468 and Bible read-first/nav PR #469. Rebased all changes preserving the 2026-11-01 merged audio, Journey, Bible navigation and new navigator. Sponsored-card PR #470 remains independent. Live Android OTA fingerprint/RC still unverified.",
+  "chosenApproach": "Reuse a single existing AdMob interstitial/prewarm controller. Extend guarded post-server-success calls, guard KL duplicate taps and ABAKA repeat/offline completions. Tune to 2 eligible event threshold, 8-minute cooldown, max 5 per session subject to EAS env overrides, Ad-Light and remote kill switch.",
+  "selectionRationale": "Maximize eligible contextual breaks but never every button, before loading/navigation or during sensitive tasks; no new ad SDK or rebuild. Existing ad unit can serve actual full-screen video/image depending on AdMob inventory. Independent PR #470 handles passive media cards, do not duplicate.",
+  "alternativeApproaches": [
+    "Every button full-screen ad: rejected due to AdMob/Play policies and task interruption.",
+    "New native rewarded-interstitial unit: rejected due to APK compatibility and opt-in economics.",
+    "Reuse current centralized capped standard interstitial with added completion opportunities: selected."
+  ],
+  "allowedPaths": [
+    "src/lib/buklodAdOpportunities.ts",
+    "src/lib/buklodAdMonetizationPolicy.shared.ts",
+    "src/app/bible/read.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/app/faith/abc/[lessonId].tsx",
+    "src/app/learn/lesson.tsx",
+    "tests/buklod-ad-natural-break-expansion.test.mjs",
+    ".buklod/scopes/interstitial-natural-break-expansion-20261101.json",
+    "tests/kl-reader-ad-safe-completion.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Core reading, lessons, points, quiz, classroom, messaging and prayer work with no fill or offline.",
+    "No ad is required to create, save, submit, claim or navigate.",
+    "Existing remote flags, Ad-Light Pass and route/interaction safety locks unchanged.",
+    "Actual video creative is provider-controlled; no self-fabricated video impressions.",
+    "No production database migrations, no SDK or native binary changes."
+  ],
+  "riskAreas": [
+    "ads",
+    "bible",
+    "kl-reader",
+    "abc-lessons",
+    "formation",
+    "weak-network",
+    "story"
+  ],
+  "regressionTests": [
+    "tests/buklod-ad-natural-break-expansion.test.mjs",
+    "tests/kl-reader-ad-safe-completion.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Source and focused regression tests pass plus TypeScript and Engineering Accountability gate.",
+    "No ad for failed/replayed/offline completions, ongoing editing, quiz or protected routes.",
+    "Exact frozen RC and Android runtime 1.3.2 OTA verification separately required before production release."
+  ]
+}

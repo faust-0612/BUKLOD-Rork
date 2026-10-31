@@ -56,6 +56,7 @@ import {
 import { KL_RPC, adminActionArgs } from '@/lib/kabihasnang-ligaw/rpc';
 import { otherAudioPlaying } from '@/lib/kabihasnang-ligaw/externalAudioState';
 import { supabase } from '@/lib/supabase';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -123,6 +124,7 @@ export default function KlReaderScreen() {
   const paragraphY = useRef<Record<number, number>>({});
   const readerTop = useRef(0);
   const openSequence = useRef(0);
+  const chapterCompletionInFlight = useRef(false);
 
   const compact = width < 420;
   const bodySize = Math.round(19 * cache.textScale);
@@ -304,16 +306,31 @@ export default function KlReaderScreen() {
     return () => clearInterval(timer);
   }, [selected?.episodeNumber, serverState, appActive, online]);
 
+  useEffect(() => {
+    if (selected && serverState === 'readable' && online) {
+      warmBuklodAdOpportunity('kl_chapter_success');
+    }
+  }, [selected?.id, serverState, online]);
+
   const finishChapter = async () => {
-    if (!selected) return;
-    const { data, error } = await supabase.rpc('kl_reading_progress_v1', {
-      p_episode_id: klDatabaseId(selected.episodeNumber), p_action: 'complete',
-    });
-    if (error) { setRewardFeedback(error.message); return; }
-    const result = data as { new_completion?: boolean; points_awarded?: number; completed?: boolean };
-    setRewardFeedback(result?.completed === false ? 'Kailangan muna ng sapat na oras ng pagbabasa.' :
-      result?.new_completion ? 'Natapos ang kabanata · +7 BUKLOD Points' : 'Naitala na ang pagkumpleto sa kabanatang ito.');
-    if (result?.completed !== false) setJourneyRefreshToken((token) => token + 1);
+    if (!selected || chapterCompletionInFlight.current) return;
+    chapterCompletionInFlight.current = true;
+    try {
+      const { data, error } = await supabase.rpc('kl_reading_progress_v1', {
+        p_episode_id: klDatabaseId(selected.episodeNumber), p_action: 'complete',
+      });
+      if (error) { setRewardFeedback(error.message); return; }
+      const result = data as { new_completion?: boolean; points_awarded?: number; completed?: boolean } | null;
+      setRewardFeedback(result?.completed === false ? 'Kailangan muna ng sapat na oras ng pagbabasa.' :
+        result?.new_completion ? 'Natapos ang kabanata · +7 BUKLOD Points' : 'Naitala na ang pagkumpleto sa kabanatang ito.');
+      if (result?.completed !== false) setJourneyRefreshToken((token) => token + 1);
+      // Completion and Journey refresh are confirmed before any optional ad.
+      if (result?.new_completion === true) await showBuklodAdOpportunity('kl_chapter_success');
+    } catch {
+      setRewardFeedback('Hindi makumpirma ang kabanata. Subukang muli.');
+    } finally {
+      chapterCompletionInFlight.current = false;
+    }
   };
 
   const syncViewport = (scrollY: number) => {

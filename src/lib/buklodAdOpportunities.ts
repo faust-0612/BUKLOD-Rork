@@ -18,6 +18,19 @@ import type { BuklodNaturalInterstitialReason } from '@/lib/buklodGlobalAdContro
  * existing interstitial unit to avoid extra native/build requirements.
  */
 const BREAKS = {
+  // Only successfully completed reading/learning stages are eligible.
+  bible_chapter_success: {
+    reason: 'reading_session_completed',
+    placement: 'interstitial_bible_chapter_completed',
+  },
+  abc_lesson_success: {
+    reason: 'lesson_completed',
+    placement: 'interstitial_abc_lesson_completed',
+  },
+  learning_assignment_success: {
+    reason: 'content_session_completed',
+    placement: 'interstitial_learning_assignment_submitted',
+  },
   points_claim_success: {
     reason: 'content_session_completed',
     placement: 'interstitial_points_claim_success',
