@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "objective": "Faith Monitoring name-specific overall weekly and monthly participation for exact Organization or Cluster leadership",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main f138b52cde9097a2e60de4183e0c428c2067b981 was inspected as the DEV source comparison baseline on 2026-11-01. Production and frozen RC fingerprints remain unverified; no production release is authorized by this PR.",
+  "chosenApproach": "Add one bounded, read-only, exact-scope RPC plus reusable weekly/monthly UI under existing Report page and member CSV, while leaving canonical daily RPCs untouched.",
+  "selectionRationale": "A server-side scope-gated aggregation prevents cross-scope member leakage and duplicate submissions and avoids unnecessary per-member mobile network requests.",
+  "alternativeApproaches": [
+    "Reuse only v1 daily member RPC and derive monthly client-side: rejected because historical dates and authoritative scope approvals are absent.",
+    "Rewrite canonical daily summary v3: rejected because it risks existing daily behavior and shared formation reports.",
+    "Selected: additive period RPC and isolated report component."
+  ],
+  "riskAreas": [
+    "faith-cluster"
+  ],
+  "preserveBehaviors": [
+    "Daily Reading, Devotion and BUKLOD Lesson daily summary continue unchanged",
+    "Member daily drill-down and feedback remain functional",
+    "Origin submission scope never follows a user to another cluster",
+    "Only leaders of exact scope can see member names and statuses",
+    "No private devotional reflections in reports",
+    "No production OTA or live database deployment in this change"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/faith-monitoring-named-period-20261101.json",
+    "src/lib/buklodScopeFaithPeriodReport.ts",
+    "src/components/BuklodFaithPeriodReport.tsx",
+    "src/app/scope/faith-monitoring/report.tsx",
+    "supabase/migrations/20261101044500_faith_monitoring_named_period_reports_v1.sql",
+    "__tests__/buklodScopeFaithPeriodReport.test.ts",
+    "tests/faith-monitoring-named-period.test.cjs",
+    "supabase/tests/faith_monitoring_named_period_security_20261101.sql"
+  ],
+  "regressionTests": [
+    "__tests__/buklodScopeFaithPeriodReport.test.ts",
+    "tests/faith-monitoring-named-period.test.cjs",
+    "supabase/tests/faith_monitoring_named_period_security_20261101.sql"
+  ],
+  "acceptanceChecks": [
+    "Weekly Monday-Sunday and calendar-month summaries use PH dates, with a 366-day maximum anchor age",
+    "Overall figures reconcile with unique per-day submission status and enrolled active roster",
+    "All member names and individualized reading/devotion/lesson counts export in CSV",
+    "Scope permissions, separation, and omission of personal reflection verified by DB contract",
+    "Current Daily report, feedback, navigation, and existing member drill-down preserved",
+    "DEV-focused tests and CI pass before verified RC; no OTA or production DB changes in this conversation"
+  ]
+}
