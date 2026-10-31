@@ -57,7 +57,11 @@ const invalid = [
   [
     "As shown in the uploaded document, which example is correct?",
     "DOCUMENT_META"
-  ]
+  ],
+  ["Which of the following items is listed under Section VII (Prepare the Materials) checklist?","SOURCE_LIST_LOOKUP"],
+  ["Which of the following questions is NOT listed among the questions to ask before finalizing your diagnosis?","SOURCE_LIST_LOOKUP"],
+  ["Which figures cited in the text defined public health?","SOURCE_TEXT_LOOKUP"],
+  ["Universal Health Care is supported by Republic Act No. 11223, as referenced in the lecture source document.","SOURCE_TEXT_LOOKUP"]
 ];
 const valid = [
   "Which of the following interventions is the best initial response to a client with fever and dehydration?",
@@ -66,7 +70,9 @@ const valid = [
   "Under Republic Act No. 11223, what is the coverage of universal health care?",
   "A student reviews Section VII of a checklist. Which supplies are needed?",
   "A clinical instructor describes a complete case within this question: The patient is unresponsive but breathing. What is the next step?",
-  "Alin sa mga sumusunod ang tamang hakbang para sa pasyenteng nahihilo?"
+  "Alin sa mga sumusunod ang tamang hakbang para sa pasyenteng nahihilo?",
+  "Under the Universal Health Care Act (Republic Act No. 11223), the Community Health Nurse role expanded.",
+  "Which of the following is a key recommendation for a client with dehydration?"
 ];
 for(const [s,expected] of invalid) test('blocks: '+s,()=>assert.equal(detectQuestionDependency(s),expected));
 for(const s of valid) test('allows: '+s,()=>assert.equal(detectQuestionDependency(s),null));
