@@ -79,23 +79,23 @@ export const REELS_AD_INTERVAL_MAX = Math.max(
 
 export const INTERSTITIAL_MIN_EVENT_COUNT = intEnv(
   process.env.EXPO_PUBLIC_ADS_INTERSTITIAL_MIN_EVENTS,
-  3,
-  1,
+  2,
+  2,
   20,
 );
 
 export const INTERSTITIAL_COOLDOWN_MS = intEnv(
   process.env.EXPO_PUBLIC_ADS_INTERSTITIAL_MIN_INTERVAL_MS,
-  12 * 60 * 1000,
+  8 * 60 * 1000,
   60 * 1000,
   24 * 60 * 60 * 1000,
 );
 
 export const INTERSTITIAL_SESSION_CAP = intEnv(
   process.env.EXPO_PUBLIC_ADS_SESSION_INTERSTITIAL_CAP,
-  3,
+  5,
   0,
-  3,
+  5,
 );
 
 export const BANNER_RETRY_DELAYS_MS = [

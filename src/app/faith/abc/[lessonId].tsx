@@ -26,6 +26,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import {
   enqueueOfflineAction,
@@ -154,6 +155,12 @@ BuklodAbcLessonDetailScreen() {
   ] =
     useState(false);
   const [pendingSync, setPendingSync] = useState(false);
+
+  useEffect(() => {
+    if (online && lesson && lesson.id !== 'intro' && !completed && !pendingSync) {
+      warmBuklodAdOpportunity('abc_lesson_success');
+    }
+  }, [online, lesson?.id, completed, pendingSync]);
 
   const [
     fontSize,
@@ -583,6 +590,11 @@ BuklodAbcLessonDetailScreen() {
         await persistCompletion(
           true
         );
+
+        // Never show an ad for an offline queue or a previously completed lesson.
+        if (data?.already_completed === false) {
+          await showBuklodAdOpportunity('abc_lesson_success');
+        }
 
         if (
           nextState ===

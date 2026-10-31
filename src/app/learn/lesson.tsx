@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
 import { VoiceReader } from '@/components/VoiceReader';
 import { colors } from '@/lib/theme';
@@ -63,6 +64,11 @@ export default function LessonDetail() {
     'loading' | 'ready' | 'unavailable'
   >('loading');
   const [loadMessage, setLoadMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Prepare during reading, not after the learner is waiting to continue.
+    if (lesson && !formationLesson) warmBuklodAdOpportunity('formation_lesson_success');
+  }, [lesson?.id, formationLesson]);
 
   const reflectionQuestionContext = useMemo(() => {
     if (!lesson?.id) {
@@ -441,6 +447,7 @@ export default function LessonDetail() {
       return;
     }
 
+    await showBuklodAdOpportunity('formation_lesson_success');
     Alert.alert('Lesson completed', 'Your progress has been saved.');
     router.back();
   };
@@ -463,6 +470,7 @@ export default function LessonDetail() {
       return;
     }
 
+    warmBuklodAdOpportunity('learning_assignment_success');
     setBusy(true);
 
     const { error } = await supabase.rpc(
@@ -481,6 +489,7 @@ export default function LessonDetail() {
       return;
     }
 
+    await showBuklodAdOpportunity('learning_assignment_success');
     Alert.alert('Submitted', 'Your assignment has been submitted.');
     router.back();
   };
