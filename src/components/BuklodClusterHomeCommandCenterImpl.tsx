@@ -23,6 +23,8 @@ import{BuklodTappableAvatar}from'@/components/BuklodTappableAvatar';
 import{CommunityVideo}from'@/components/CommunityVideo';
 import{BuklodQrMatrix}from'@/components/BuklodQrMatrix';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import{buildClusterInviteUrl}from'@/lib/buklodClusterInvite';
 import{fetchClusterHomeMembers}from'@/lib/buklodScopeMembers';
 import{scopeRouteParams}from'@/lib/buklodScopeManage';
@@ -227,6 +229,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
     </Pressable> : null}
   </View>
   {show('notice')&&<Card icon={notice?.priority==='EMERGENCY'?'alert-octagon-outline':'alert-circle-outline'} title={notice?.priority==='EMERGENCY'?'EMERGENCY NOTICE':'IMPORTANT NOTICE'} action={isAdmin?'EDIT':undefined} onAction={isAdmin?()=>edit('notice'):undefined} cardColor={cardColor}>{notice?<><Text style={[s.big,notice.priority==='EMERGENCY'&&{color:'#A82020'}]}>{notice.title}</Text>{notice.body?<Text style={s.body}>{notice.body}</Text>:null}</>:<Empty>No important notice right now.</Empty>}</Card>}
+  <BuklodFirstViewAd placement="cluster" placementId="cluster_command_first_view" />
   {/* CLUSTER BULLETIN uses the existing official bulletin card directly. */}
   {show('bulletin')&&<BuklodHomeScopeBulletins/>}
   {scope.show_faith_content ? (
@@ -236,6 +239,10 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
       <BuklodHomeFaithPanel scopeId={scope.scope_id} compact />
     </>
   ) : <BuklodNonFaithEncouragementDoor />}
+  <BuklodNativeSponsoredCard
+    surface="cluster_dashboard"
+    slotId={`cluster-command-native-media:${scope.scope_id}`}
+  />
   {/* 14 existing configurable widgets as buttons; selecting opens the original fully functional card below. */}
   <View style={s.featureGrid}>
     {WIDGETS.filter(([k])=>k!=='notice' && k!=='bulletin' && show(k) && (k!=='insights'||isAdmin)).map(([k,l])=>(
