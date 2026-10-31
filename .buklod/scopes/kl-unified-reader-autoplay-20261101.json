@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Unify Kabihasnang Ligaw chapter reading UI and approved media playback while preserving canonical manuscripts and release approval gates",
+  "baseRef": "54dae504382381173709e2be1883803b9a8abb3b",
+  "productionBaselineEvidence": "DEV based on the confirmed GitHub main source SHA 54dae504382381173709e2be1883803b9a8abb3b; deployed Android production OTA artifact fingerprint not independently verified; no production release authorized by this scope.",
+  "chosenApproach": "One authoritative catalog with server release/title metadata; server-verified member journey; opt-in component autoplay activated only by chapter reader for approved media",
+  "selectionRationale": "Removes contradictory lists and hardcoded progress without database or approval mutations, avoids audio state leaks and protects other audio users.",
+  "alternativeApproaches": [
+    "Keep two independent chapter lists and manually reconcile them (rejected as drift-prone)",
+    "Add another independent progress ledger (rejected as duplicate source of truth)",
+    "Autoplay globally including admin previews (rejected as intrusive)"
+  ],
+  "preserveBehaviors": [
+    "Keep Panimula/Chapter 1 canonical bundled manuscripts readable under existing local gates",
+    "Never publish unpublished chapters or change approval state",
+    "Preserve existing story scene imagery, anchors, progression ledger and points criteria",
+    "Maintain manual playback controls and do not interrupt external audio",
+    "Do not touch Wall, Connect, Quiz or other unrelated routes",
+    "Do not publish a production OTA until verified RC and device acceptance"
+  ],
+  "riskAreas": [
+    "story"
+  ],
+  "regressionTests": [
+    "tests/kl-unified-reader-audio.test.cjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kl-unified-reader-autoplay-20261101.json",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/kabihasnang-ligaw/KlChapterAudio.tsx",
+    "src/lib/kabihasnang-ligaw/copy.ts",
+    "tests/kl-unified-reader-audio.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "Single consistent chapter catalog with titles from approved server release metadata",
+    "Kabanata 2 and 3 appear readable only when published; unapproved chapters remain locked",
+    "Current user's journey comes from the authenticated server instead of hardcoded zero",
+    "Approved music autoplays once on reader entry with manual pause, respects other audio and app lifecycle",
+    "Top header no longer obscured by Android system status bar",
+    "Chapter discussion requests use the actual database episode ID",
+    "All focused regression tests, TypeScript, scope gate pass before RC",
+    "DEV work does not deploy Android production OTA"
+  ]
+}
