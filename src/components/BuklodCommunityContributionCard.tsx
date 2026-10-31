@@ -6,9 +6,11 @@ import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   formatMinorPhp,
   loadMyCommunityContribution,
+  loadMyCommunityQmpHistory,
   recordCommunityEconomyAnalytics,
   type CommunityContributionDashboard,
 } from '@/lib/buklodCommunityContributionEconomy';
+import type { CommunityQmpHistory } from '@/lib/buklodQmpHistory';
 import { getBuklodCardTone } from '@/lib/buklodCardTones';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -24,17 +26,29 @@ export default function BuklodCommunityContributionCard() {
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
   const [data, setData] = useState<CommunityContributionDashboard | null>(null);
+  const [history, setHistory] = useState<CommunityQmpHistory | null>(null);
 
   useEffect(() => {
     let alive = true;
     let lastLoaded = 0;
     let loading = false;
     let analyticsSent = false;
+    let historyRequestId = 0;
+    setHistory(null); // Account-scoped history must never leak on user switch.
     setData(null); // Never reuse another account's financial preview.
     if (!userId) return () => { alive = false; };
     const refresh = async () => {
       if (!alive || loading) return;
       loading = true;
+      // Separate read-only lifetime query: never delay the existing Wall QMP paint.
+      const historyRequest = ++historyRequestId;
+      void loadMyCommunityQmpHistory()
+        .then(next => {
+          if (alive && historyRequest === historyRequestId) setHistory(next);
+        })
+        .catch(() => {
+          // Keep the prior authentic snapshot; never replace a load error with 0 QMP.
+        });
       try {
         const next = await loadMyCommunityContribution();
         if (!alive) return;
@@ -106,6 +120,9 @@ export default function BuklodCommunityContributionCard() {
           <Text style={s.metricLabel}>QUALIFIED CONTENT</Text>
         </View>
       </View>
+      <Text style={s.historyLine}>
+        Lifetime QMP: {history ? history.lifetime_qmp.toLocaleString() : '—'} · Period: {data.period.key}
+      </Text>
 
       <View style={s.impact}>
         <Text style={s.impactTitle}>WHAT HELPED YOUR SHARE GROW?</Text>
@@ -155,6 +172,7 @@ const s = StyleSheet.create({
   metrics:{flexDirection:'row',gap:6},
   metric:{flex:1,minHeight:56,borderRadius:12,backgroundColor:monthTone.surface,padding:8,justifyContent:'center'},
   metricValue:{fontSize:15,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:7,fontWeight:'900',color:'#4B5B56'},
+  historyLine:{fontSize:10,fontWeight:'800',color:'#305C47',paddingHorizontal:2},
   impact:{borderRadius:12,borderWidth:1,borderColor:impactTone.border,backgroundColor:impactTone.surface,padding:9},
   impactTitle:{fontSize:8,fontWeight:'900',color:impactTone.ink},
   impactText:{marginTop:3,fontSize:8.5,lineHeight:12,color:'#5F7066'},

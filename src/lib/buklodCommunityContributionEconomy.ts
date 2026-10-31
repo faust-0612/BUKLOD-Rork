@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { parseCommunityQmpHistory, type CommunityQmpHistory } from '@/lib/buklodQmpHistory';
 
 /* BUKLOD_COMMUNITY_QMP_ECONOMY_R1 */
 
@@ -119,6 +120,14 @@ export async function loadMyCommunityContribution() {
   return rpc<CommunityContributionDashboard>(
     'get_my_buklod_community_contribution_v1',
   );
+}
+
+/** Read-only historical QMP, separate from the finalized revenue/payout ledger. */
+export async function loadMyCommunityQmpHistory(): Promise<CommunityQmpHistory> {
+  const raw = await rpc<unknown>('get_my_buklod_community_qmp_history_v1');
+  const parsed = parseCommunityQmpHistory(raw);
+  if (!parsed) throw new Error('QMP history is unavailable or malformed');
+  return parsed;
 }
 
 export async function loadMyCommunityVideoQuota() {

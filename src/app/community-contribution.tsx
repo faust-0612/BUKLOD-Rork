@@ -6,9 +6,10 @@ import { ActivityIndicator, Alert, AppState, Pressable, RefreshControl, ScrollVi
 import { useAuth } from '@/providers/AuthProvider';
 
 import {
-  formatMinorPhp, formatQuotaBytes, loadMyCommunityContribution, requestCommunityContributionReview,
+  formatMinorPhp, formatQuotaBytes, loadMyCommunityContribution, loadMyCommunityQmpHistory, requestCommunityContributionReview,
   type CommunityContributionDashboard,
 } from '@/lib/buklodCommunityContributionEconomy';
+import type { CommunityQmpHistory } from '@/lib/buklodQmpHistory';
 
 /* BUKLOD_COMMUNITY_CONTRIBUTION_PAGE_R1 */
 
@@ -18,11 +19,19 @@ export default function CommunityContributionScreen() {
   const userId = session?.user.id ?? null;
   const [report,setReport]=useState<{owner:string;value:CommunityContributionDashboard}|null>(null);
   const data = report?.owner === userId ? report.value : null;
+  const [historyReport,setHistoryReport]=useState<{owner:string;value:CommunityQmpHistory}|null>(null);
+  const history = historyReport?.owner === userId ? historyReport.value : null;
   const requestId = useRef(0);
   const [busy,setBusy]=useState(true); const [refreshing,setRefreshing]=useState(false);
   const load=useCallback(async(silent=false)=>{
     if(!userId){setBusy(false);return;}
     const request=++requestId.current;
+    // Independent, authenticated read-only request. Never block monthly QMP UI.
+    void loadMyCommunityQmpHistory()
+      .then(next => {
+        if(request===requestId.current)setHistoryReport({owner:userId,value:next});
+      })
+      .catch(()=>{ /* Unavailable history is not a legitimate zero. */ });
     try {
       const next=await loadMyCommunityContribution();
       if(request===requestId.current)setReport({owner:userId,value:next});
@@ -46,7 +55,21 @@ export default function CommunityContributionScreen() {
   return <ScrollView style={s.screen} contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh}/>}>
     <Pressable onPress={()=>router.back()} style={s.back}><MaterialCommunityIcons name="arrow-left" size={19} color="#1E6B45"/><Text style={s.backText}>BACK TO COMMUNITY</Text></Pressable>
     <View style={s.hero}><Text style={s.eyebrow}>PRIVATE · YOUR COMMUNITY CONTRIBUTION</Text><Text style={s.title}>Create value. Build community.</Text><Text style={s.heroBody}>Qualified Monthly Points (QMP) are monthly contribution weight — not pesos. Final share depends on the finalized designated User Revenue Pool and your proportion of total qualified QMP.</Text></View>
-    <View style={s.grid}><Metric label="THIS MONTH QMP" value={String(data.this_month_qmp)}/><Metric label="SHARE WEIGHT" value={`${weight.toFixed(weight<.01?4:2)}%`}/><Metric label="LEVEL" value={data.contribution_level}/><Metric label="PERIOD" value={data.period.key}/></View>
+    <View style={s.grid}><Metric label="THIS MONTH QMP" value={String(data.this_month_qmp)}/><Metric label="LIFETIME QMP" value={history ? history.lifetime_qmp.toLocaleString() : '—'}/><Metric label="SHARE WEIGHT" value={`${weight.toFixed(weight<.01?4:2)}%`}/><Metric label="LEVEL" value={data.contribution_level}/><Metric label="PERIOD" value={data.period.key}/></View>
+    <Card title="QMP HISTORY · ALL MONTHS">
+      <Text style={s.note}>Lifetime QMP is the total qualified contribution across recorded months. It does not reset on payout or create withdrawable money. Monthly share calculation remains unchanged.</Text>
+      {history ? (
+        history.periods.length > 0
+          ? history.periods.map(item => (
+              <Row
+                key={item.period_key}
+                label={`${item.period_key} · ${item.status}`}
+                value={`${item.qualified_qmp.toLocaleString()} QMP${item.held_qmp > 0 ? ` · ${item.held_qmp.toLocaleString()} held` : ''}`}
+              />
+            ))
+          : <Text style={s.note}>No qualified monthly QMP history yet.</Text>
+      ) : <Text style={s.note}>Historical QMP unavailable. Your current monthly data is unchanged.</Text>}
+    </Card>
     <Card title="QUALIFIED CONTRIBUTION"><Row label="Useful posts" value={String(data.qualified_posts)}/><Row label="Qualified videos" value={String(data.qualified_videos)}/><Row label="Meaningful replies" value={String(data.meaningful_replies)}/><Row label="Held for review" value={`${data.held_qmp} QMP`}/><Text style={s.note}>{data.next_level?`${data.next_level.remaining_qmp} QMP to ${data.next_level.label}.`:'Highest current contribution level.'}</Text></Card>
     <Card title="WHAT HELPED YOUR SHARE GROW?">
       <Row label="Useful posts QMP" value={String(data.engagement_breakdown?.useful_post_qmp ?? 0)}/>
