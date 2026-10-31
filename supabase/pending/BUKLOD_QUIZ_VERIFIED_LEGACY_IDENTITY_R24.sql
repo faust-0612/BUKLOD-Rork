@@ -91,7 +91,7 @@ exception
   when unique_violation then
     return jsonb_build_object('ok',false,'error','identity_conflict');
 end;
-$function$
+$function$;
 
 -- Keep auth provisioning restricted to the privileged Edge Function.
 REVOKE ALL ON FUNCTION public.buklod_quiz_ensure_main_shadow_user_v1(uuid,text,jsonb) FROM PUBLIC,anon,authenticated;
