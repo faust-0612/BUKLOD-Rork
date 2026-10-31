@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { planWallOriginalSource, shouldKeepWallOriginalTransfer, shouldMountWallOriginalUpgrade, shouldRevealWallOriginal } from '../src/lib/communityWallPhotoDisplayGate.ts';
+import { WALL_PREVIEW_LAYER_Z_INDEX, wallOriginalLayerZIndex, planWallOriginalSource, shouldKeepWallOriginalTransfer, shouldMountWallOriginalUpgrade, shouldRevealWallOriginal } from '../src/lib/communityWallPhotoDisplayGate.ts';
 
 const base = {
   expectedUrl: 'https://signed.example/original?token=2',
@@ -32,6 +32,20 @@ test('native fallback requires valid original dimensions, not a network start', 
   assert.equal(shouldRevealWallOriginal({ ...native, height: 0 }), false);
 });
 
+test('Original is drawable BEHIND preview until decoded and displayed; no zero-opacity deadlock', () => {
+  assert.equal(WALL_PREVIEW_LAYER_Z_INDEX, 1);
+  assert.equal(wallOriginalLayerZIndex(false), 0);
+  assert.equal(wallOriginalLayerZIndex(true), 2);
+  assert.equal(shouldRevealWallOriginal(base), false);
+  assert.equal(shouldRevealWallOriginal({ ...base, displayed:true }), true);
+  const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx','utf8');
+  assert.equal((renderer.match(/opacity: 1, zIndex: wallOriginalLayerZIndex\(current.ready\)/g)||[]).length,2);
+  assert.match(renderer,/usingPreview && \{ zIndex: WALL_PREVIEW_LAYER_Z_INDEX \}/);
+  assert.doesNotMatch(renderer,/opacity: current.ready \? 1 : 0/);
+  assert.match(renderer,/onDisplay=\{\(\) => \{/);
+  assert.match(renderer,/shouldRevealWallOriginal\(\{/);
+});
+
 test('Android overlay keeps preview visible while validating Expo display and reuses original disk cache', () => {
   const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
   assert.match(renderer, /const renderWithUpgrade = \(preview: React.ReactNode\) => \(/);
@@ -41,7 +55,7 @@ test('Android overlay keeps preview visible while validating Expo display and re
   assert.match(renderer, /onDisplay=\{\(\) => \{/);
   assert.match(renderer, /shouldRevealWallOriginal\(\{/);
   assert.match(renderer, /upgradeRenderer === 'expo' \? 18_000 : 90_000/);
-  assert.match(renderer, /opacity: current.ready \? 1 : 0/);
+  assert.match(renderer, /opacity: 1, zIndex: wallOriginalLayerZIndex\(current.ready\)/);
   assert.doesNotMatch(renderer, /getPublicUrl|\/object\/public\//);
 });
 

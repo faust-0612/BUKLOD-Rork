@@ -9,14 +9,16 @@ const collage = readFileSync('src/components/BuklodCommunityPhotoCollage.tsx', '
 test('preview is kept visible until full ORIGINAL has valid decoded dimensions', () => {
   assert.match(renderer, /shouldMountWallOriginalUpgrade\(\{/);
   assert.match(renderer, /<WallSharpOverlay mediaPath=\{originalPath\}/);
-  assert.match(renderer, /opacity: current\.ready \? 1 : 0/);
+  assert.match(renderer, /opacity: 1, zIndex: wallOriginalLayerZIndex\(current.ready\)/);
   assert.match(renderer, /Number\(dimensions\?\.width\) > 0 && Number\(dimensions\?\.height\) > 0/);
   assert.match(renderer, /activeUpgradeRendererRef\.current === 'native'\) finish\(false\)/);
   assert.match(renderer, /if \(!current\.url\) return null/);
   assert.match(renderer, /const renderWithUpgrade = \(preview: React\.ReactNode\) => \(/);
   assert.match(renderer, /<>[\s\S]*?\{preview\}[\s\S]*?<WallSharpOverlay/);
   assert.doesNotMatch(renderer, /<View style=\{style as any\}|const photoStyle =/);
-  assert.match(renderer, /style=\{style\}/);
+  assert.match(renderer, /style=\{\[\{ backgroundColor: '#EEF3F0' \}/);
+  assert.match(renderer, /usingPreview && \{ zIndex: WALL_PREVIEW_LAYER_Z_INDEX \}/);
+  assert.doesNotMatch(renderer, /<View style=\{style as any\}|const photoStyle =/);
 });
 
 test('only Android Wall collage activates preview, fullscreen original stays original', () => {
