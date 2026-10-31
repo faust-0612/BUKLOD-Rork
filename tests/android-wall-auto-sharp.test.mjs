@@ -16,7 +16,8 @@ test('preview is kept visible until full ORIGINAL has valid decoded dimensions',
   assert.match(renderer, /const renderWithUpgrade = \(preview: React\.ReactNode\) => \(/);
   assert.match(renderer, /<>[\s\S]*?\{preview\}[\s\S]*?<WallSharpOverlay/);
   assert.doesNotMatch(renderer, /<View style=\{style as any\}|const photoStyle =/);
-  assert.match(renderer, /style=\{style\}/);
+  assert.match(renderer, /style=\{\[\{ backgroundColor: '#EEF3F0' \}, style, usingPreview && \{ zIndex: WALL_PREVIEW_LAYER_Z_INDEX \} \]\}/);
+  assert.doesNotMatch(renderer, /<View style=\{style as any\}|const photoStyle =/);
 });
 
 test('only Android Wall collage activates preview, fullscreen original stays original', () => {
