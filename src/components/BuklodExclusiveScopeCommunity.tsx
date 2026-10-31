@@ -83,6 +83,7 @@ import {
   communityPhotoCollageItems,
 } from '@/components/BuklodCommunityPhotoCollage';
 import { peekCommunityMediaUrl, resignCommunityMediaUrl } from '@/lib/buklodMediaUrl';
+import { applyCommunityWallMediaHydration, preservePendingCommunityWallMedia } from '@/lib/communityWallHydration';
 import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -813,9 +814,11 @@ export default function BuklodExclusiveScopeCommunity({
     scopedCommunityOfflineCacheKey,
     user?.id,
   ]);
+  const scopeMediaLoadSeqRef = useRef(0);
   const load =
     useCallback(
       async () => {
+        const loadSeq = ++scopeMediaLoadSeqRef.current;
         if (!postsRef.current.length) {
           setLoading(true);
         }
@@ -833,6 +836,8 @@ export default function BuklodExclusiveScopeCommunity({
                   )
                 : null;
 
+            // Ignore cache read completing after a scope/user switch.
+            if (scopeMediaLoadSeqRef.current !== loadSeq) return;
             if (cached?.data?.length) {
               setPosts(cached.data);
             }
@@ -864,93 +869,94 @@ export default function BuklodExclusiveScopeCommunity({
             throw error;
           }
 
-          let rows =
-            (
-              data ??
-              []
-            ) as SocialPost[];
+          const rows = (data ?? []) as SocialPost[];
+          if (scopeMediaLoadSeqRef.current !== loadSeq) return;
 
-          rows =
-            await withBuklodTimeout(
-              hydratePersonNamesOnRows(
-                rows,
-                'user_id',
-                'author_name',
-              ),
-              4000,
-              'Scoped names'
-            ).catch(() => rows);
-
-          const mediaMap =
-            await withBuklodTimeout(
-              loadCommunityPostMediaByPostIds(
-                rows.map(row => row.id)
-              ),
-              5000,
-              'Scoped photos'
-            ).catch(() => ({} as Record<string, any[]>));
-
-          rows = rows.map(row => {
-            const loaded = mediaMap[row.id] ?? [];
-            const mediaItems = loaded.length
-              ? loaded
-                  .slice()
-                  .sort(
-                    (a: any, b: any) =>
-                      Number(a.media_position ?? 0) -
-                      Number(b.media_position ?? 0)
-                  )
-                  .map((item: any) => ({
-                    ...item,
-                    media_url:
-                      peekCommunityMediaUrl(
-                        item.media_path,
-                        item.media_url
-                      ) ?? item.media_url,
-                  }))
-              : row.media_path || row.media_url
-                ? [
-                    {
+          // Paint the authorized scope posts immediately. Primary photos have
+          // durable paths even when additional photo metadata is still coming.
+          // An empty media_items means "still pending", not "deleted".
+          // Retain previously painted multi-photos only if the same post ID
+          // still points at the same durable primary Storage object.
+          const initialRows = rows.map(row => ({
+            ...row,
+            media_items: [] as SocialPost['media_items'],
+          }));
+          setPosts(previous => {
+            if (scopeMediaLoadSeqRef.current !== loadSeq) return previous;
+            const retained = preservePendingCommunityWallMedia(previous, initialRows);
+            const displayRows = retained.map(row => ({
+              ...row,
+              media_items: row.media_items?.length
+                ? row.media_items
+                : row.media_path || row.media_url
+                  ? [{
                       post_id: row.id,
                       media_position: 0,
                       media_path: row.media_path,
                       media_mime_type: row.media_mime_type,
                       media_size_bytes: row.media_size_bytes,
                       media_url: row.media_url,
-                    },
-                  ]
-                : [];
-
-            return {
-              ...row,
-              media_items: mediaItems,
-            };
+                    }]
+                  : [],
+            }));
+            return keepStableCommunityMedia(previous, displayRows);
           });
 
-          const previewMap =
-            await withBuklodTimeout(
-              fetchBuklodPostCommentPreviews(
-                rows.map(row => row.id)
-              ),
+          // Start one media request and reuse its result even if it finishes
+          // after names/comments. Never permanently discard late multi-photos.
+          const mediaPromise = rows.length
+            ? loadCommunityPostMediaByPostIds(rows.map(row => row.id))
+            : Promise.resolve({} as Record<string, any[]>);
+          void mediaPromise.then(mediaMap => {
+            if (scopeMediaLoadSeqRef.current !== loadSeq) return;
+            const normalized: Record<string, any[]> = {};
+            for (const [postId, items] of Object.entries(mediaMap)) {
+              normalized[postId] = items.map((item: any) => ({
+                ...item,
+                media_url: peekCommunityMediaUrl(item.media_path, item.media_url)
+                  ?? item.media_url,
+              }));
+            }
+            setPosts(previous =>
+              scopeMediaLoadSeqRef.current === loadSeq
+                ? applyCommunityWallMediaHydration(previous, normalized)
+                : previous
+            );
+          }).catch(error => {
+            console.warn('Scoped community media:', error?.message ?? error);
+          });
+
+          // Enrichment updates metadata only. Never replace already painted
+          // photos with stale media_items from a slow author/comment request.
+          const [namedRows, previewMap] = await Promise.all([
+            withBuklodTimeout(
+              hydratePersonNamesOnRows(rows, 'user_id', 'author_name'),
+              4000,
+              'Scoped names'
+            ).catch(() => rows),
+            withBuklodTimeout(
+              fetchBuklodPostCommentPreviews(rows.map(row => row.id)),
               4000,
               'Scoped comments'
-            ).catch(() => ({} as Record<string, SocialPost['comment_preview']>));
-
-          setPosts(previous =>
-            keepStableCommunityMedia(
-              previous,
-              rows.map(row => ({
-                ...row,
-                comment_preview:
-                  previewMap[row.id] ??
-                  null,
-              })),
-            )
-          );
+            ).catch(() => ({} as Record<string, SocialPost['comment_preview']>)),
+          ]);
+          if (scopeMediaLoadSeqRef.current !== loadSeq) return;
+          const namesById = new Map(namedRows.map(row => [String(row.id), row]));
+          setPosts(previous => previous.map(post => {
+            if (scopeMediaLoadSeqRef.current !== loadSeq) return post;
+            const enriched = namesById.get(String(post.id));
+            if (!enriched) return post;
+            return {
+              ...post,
+              author_name: enriched.author_name ?? post.author_name,
+              comment_preview: previewMap[post.id] ?? post.comment_preview ?? null,
+            };
+          }));
         }
         catch (
           error: any
         ) {
+          if (scopeMediaLoadSeqRef.current !== loadSeq) return;
           const cached =
             user?.id
               ? await getOfflineCache<SocialPost[]>(
@@ -962,6 +968,7 @@ export default function BuklodExclusiveScopeCommunity({
                 )
               : null;
 
+          if (scopeMediaLoadSeqRef.current !== loadSeq) return;
           if (
             cached?.data?.length
           ) {
@@ -982,9 +989,7 @@ export default function BuklodExclusiveScopeCommunity({
           }
         }
         finally {
-          setLoading(
-            false
-          );
+          if (scopeMediaLoadSeqRef.current === loadSeq) setLoading(false);
         }
       },
       [
@@ -1000,11 +1005,9 @@ export default function BuklodExclusiveScopeCommunity({
   useEffect(
     () => {
       void loadRef.current();
+      return () => { scopeMediaLoadSeqRef.current += 1; };
     },
-    [
-      scope.scope_id,
-      user?.id,
-    ]
+    [scope.scope_id, user?.id]
   );
 
   useEffect(

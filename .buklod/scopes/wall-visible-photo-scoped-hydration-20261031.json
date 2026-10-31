@@ -1,0 +1,38 @@
+{
+  "contractVersion": 2,
+  "objective": "Make the first four BUKLOD Community Walls paint visible photo state reliably and hydrate scoped multi-photo media without dropping late results",
+  "baseRef": "6cc7ac0f594c1a852c8b8b27bf2d70c018a73bf8",
+  "productionBaselineEvidence": "GitHub main 6cc7ac0f594c1a852c8b8b27bf2d70c018a73bf8; Android runtime 1.3.2 exact phone OTA adoption not verified; read-only Supabase audit: 814 indexed legacy previews, 209 conversion failures and 209/209 original objects retained. Legacy queue remains disabled.",
+  "chosenApproach": "Early exact-scope feed paint with durable primary path, one independent late media RPC, metadata-only enrichment, request generation guarding, and small non-obscuring Android loading indicator until display confirmation.",
+  "selectionRationale": "Avoid unnecessary backend work, duplicate media requests and further native paint regression; preserve existing original/preview stream and stable cache keys.",
+  "alternativeApproaches": [
+    "Increase image decode timeouts or remove previews globally (rejected: longer stalls and weak-network bytes)",
+    "Restart failed background conversion or enable billable Storage transformations immediately (rejected: compute/cost and production integrity risk)"
+  ],
+  "riskAreas": [
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/community-scoped-wall-late-photo.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "tests/community-scoped-wall-late-photo.test.mjs",
+    ".buklod/scopes/wall-visible-photo-scoped-hydration-20261031.json"
+  ],
+  "preserveBehaviors": [
+    "Private signed media and RLS unchanged",
+    "Public Wall hydration, native sharp stream and existing cache unchanged",
+    "Only first four main Wall types; Marites/Profile/Connect unaffected",
+    "No OTA, APK, paid image transformations or backend mutation from DEV commit"
+  ],
+  "acceptanceChecks": [
+    "Scope posts paint as soon as core RPC returns",
+    "Late media RPC enriches multi-photo collage without duplicate request",
+    "Old async response never overwrites a new scope",
+    "Author/comments never erase already loaded photos",
+    "Android tiles visibly indicate load until painted",
+    "Focused Node tests, TypeScript and CI required before RC/Production"
+  ]
+}
