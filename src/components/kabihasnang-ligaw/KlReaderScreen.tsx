@@ -129,7 +129,7 @@ export default function KlReaderScreen() {
   const releasedIds = releasedChapters.map((chapter) => chapter.id);
   const selected = EPISODES.find((episode) => episode.id === selectedId) ?? null;
   const selectedTitle = selected ? displayChapterTitle(selected, releasedChapters.find((chapter) => chapter.season_number === 1 && chapter.episode_number === selected.episodeNumber)) : '';
-  const completedChapters = journeyResult?.userId === user?.id ? journeyResult.completed : null;
+  const completedChapters = journeyResult && journeyResult.userId === user?.id ? journeyResult.completed : null;
   const selectedAssets = ASSETS.filter((asset) => asset.episodeId === selected?.id);
   const decision = selected ? memberReadable(selected, selectedAssets, new Date(), STORYBOARD) : null;
   const lowBandwidth = isLowBandwidth({
@@ -282,12 +282,16 @@ export default function KlReaderScreen() {
 
   useEffect(() => {
     let active = true;
-    if (!user?.id) return () => { active = false; };
-    void supabase.rpc('kl_my_story_journey_v1').then(({ data, error }) => {
-      if (!active || error || !data || typeof data !== 'object') return;
-      const count = Number((data as { completed_chapters?: unknown }).completed_chapters);
-      if (Number.isFinite(count)) setJourneyResult({ userId: user.id, completed: Math.max(0, count) });
-    }).catch(() => undefined);
+    const userId = user?.id;
+    if (!userId) return () => { active = false; };
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc('kl_my_story_journey_v1');
+        if (!active || error || !data || typeof data !== 'object') return;
+        const count = Number((data as { completed_chapters?: unknown }).completed_chapters);
+        if (Number.isFinite(count)) setJourneyResult({ userId, completed: Math.max(0, count) });
+      } catch { /* Offline and network failures must not block reading. */ }
+    })();
     return () => { active = false; };
   }, [user?.id, journeyRefreshToken]);
 
