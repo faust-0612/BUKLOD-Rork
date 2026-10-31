@@ -18,6 +18,8 @@ import {
   createCluster,
 } from '@/lib/buklodClusters';
 import { supabase } from '@/lib/supabase';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
 function messageOf(error: unknown) {
   if (
@@ -78,6 +80,27 @@ export default function CreateClusterScreen() {
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const openingCreated = useRef(false);
+
+  useEffect(() => {
+    warmBuklodAdOpportunity('cluster_created_transition');
+  }, []);
+
+  // The Cluster is already committed before this optional natural transition.
+  const openCreatedCluster = (id: string) => {
+    if (openingCreated.current) return;
+    openingCreated.current = true;
+    void (async () => {
+      try {
+        await showBuklodAdOpportunity('cluster_created_transition');
+      } finally {
+        router.replace({
+          pathname: '/clusters/[id]' as any,
+          params: { id },
+        } as any);
+      }
+    })();
+  };
 
   useEffect(() => {
     let active = true;
@@ -153,10 +176,7 @@ export default function CreateClusterScreen() {
       // R3: success is confirmed by server RPC, not by the subsequent navigation.
       setCreatedId(id);
       Alert.alert('Cluster Created', 'Your Cluster is saved. Open its Home now.', [
-        { text: 'OPEN CLUSTER', onPress: () => router.replace({
-          pathname: '/clusters/[id]' as any,
-          params: { id },
-        } as any) },
+        { text: 'OPEN CLUSTER', onPress: () => openCreatedCluster(id) },
       ]);
     } catch (error) {
       Alert.alert('Could Not Create Cluster', messageOf(error));
@@ -285,6 +305,7 @@ export default function CreateClusterScreen() {
         );
       })}
 
+      <BuklodSubmissionAdSlot placementId="cluster_create_before_submit" />
       <Pressable
         disabled={busy || Boolean(createdId)}
         onPress={() => void submit()}
@@ -295,7 +316,7 @@ export default function CreateClusterScreen() {
         </Text>
       </Pressable>
       {createdId ? <Pressable accessibilityRole="button"
-        onPress={() => router.replace({ pathname: '/clusters/[id]' as any, params: { id: createdId } } as any)}
+        onPress={() => openCreatedCluster(createdId)}
         style={{ padding: 12, backgroundColor: '#E6F8EF', borderRadius: 12 }}>
         <Text style={{ color: '#12683D', fontWeight: '900' }}>Created successfully. OPEN CLUSTER ›</Text>
       </Pressable> : null}
