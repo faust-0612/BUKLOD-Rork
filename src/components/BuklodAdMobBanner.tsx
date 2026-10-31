@@ -23,6 +23,7 @@ import {
 import {
   BuklodAdPlacement,
   BUKLOD_DASHBOARD_BANNER_AD_HEIGHT,
+  BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT,
   diagnosticPlacementFor,
   getBuklodBannerUnitId,
 } from '@/lib/buklodAdUnits';
@@ -326,8 +327,13 @@ function BuklodAdMobBanner({
 
                 const code = String((error as { code?: string })?.code ?? '');
                 const noFill = code.includes('no-fill');
-                if (!online || noFill || attempt >= MAX_RETRIES) {
-                  // Do not hammer AdMob when inventory is unavailable.
+                if (noFill && online) {
+                  // Keep the visible SDK banner mounted. If Google-optimized
+                  // refresh is enabled in AdMob, the SDK can refresh it without
+                  // an application-level retry storm or layout collapse.
+                  return;
+                }
+                if (!online || attempt >= MAX_RETRIES) {
                   failedBecauseOffline.current = !online;
                   failedAt.current = Date.now();
                   setFailed(true);
@@ -351,11 +357,12 @@ const styles =
   StyleSheet.create({
     pendingShell: {
       width: '100%',
-      minHeight: 12,
+      minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT,
     },
 
     shell: {
       width: '100%',
+      minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT,
       backgroundColor: '#FFFFFF',
       borderBottomWidth: 1,
       borderBottomColor: '#E2E8E4',
@@ -364,6 +371,7 @@ const styles =
     },
 
     compactShell: {
+      minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT,
       borderWidth: 1,
       borderColor: '#E1E7E3',
       borderRadius: 14,
