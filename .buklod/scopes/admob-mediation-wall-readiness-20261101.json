@@ -27,10 +27,7 @@
     "network-recovery"
   ],
   "regressionTests": [
-    "tests/buklod-mediation-wall-lifecycle-readiness.test.mjs",
-    "tests/buklod-wall-ad-stability.test.mjs",
-    "tests/buklod-android-wall-ad-density.test.mjs",
-    "tests/buklod-ad-request-gate-recovery.test.mjs"
+    "tests/buklod-mediation-wall-lifecycle-readiness.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodCommunityInlineAd.android.tsx",
@@ -44,6 +41,7 @@
     "Background/foreground and offline/online recover without using destroyed NativeAd, duplicate requests or stale banner loaded state.",
     "No-fill and absent Native unit keep genuine banner fallback with shared cooldown.",
     "Mediation bidder approval, mapping and Android adapter compatibility independently verified in AdMob dashboard before activation.",
-    "No production/RC/live claim without exact source, runtime, verified RC, OTA and device acceptance; adapters require new APK."
+    "No production/RC/live claim without exact source, runtime, verified RC, OTA and device acceptance; adapters require new APK.",
+    "Existing unchanged Wall ad, density and request-gate regression suites are additional compatibility checks, not newly changed regressionTests."
   ]
 }
