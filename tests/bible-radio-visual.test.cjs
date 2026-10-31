@@ -34,6 +34,8 @@ test('The study redesign does not invent completed verse progress or modify dail
 test('DZAS provides both user photos locally and a real 300x250 ad on a scroll-safe screen',()=>{
  const source=read('src/app/personal-home/radio.tsx');
  const images=read('src/assets/dzasImages.ts');
+ const shell=read('src/components/BuklodNavSafeShell.tsx');
+ assert.ok(shell.includes("normalizeBuklodPathname(pathname) === '/personal-home/radio'"));
  assert.ok(source.includes('source={DZAS_LOGO_IMAGE}'));
  assert.ok(source.includes('source={DZAS_PORTRAIT_IMAGE}'));
  assert.ok(source.includes('format="mediumRectangle"'));
