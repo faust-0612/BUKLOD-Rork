@@ -5,6 +5,14 @@ const MAIN_URL = "https://yhanxndaqbmuzbdqlblu.supabase.co";
 const MAIN_PUBLISHABLE_KEY = "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS";
 const QUIZ_WEB_URL = "https://buklod-quiz.expo.app";
 
+const mainAuth = createClient(MAIN_URL, MAIN_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+});
+
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -27,20 +35,75 @@ async function getMainUser(req: Request) {
   if (!token) return null;
 
   try {
-    const response = await fetch(`${MAIN_URL}/auth/v1/user`, {
-      method: "GET",
-      headers: {
-        apikey: MAIN_PUBLISHABLE_KEY,
-        Authorization: `Bearer ${token}`,
-      },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!response.ok) return null;
-    const user = await response.json();
-    return user?.id ? user : null;
+    /*
+     * BUKLOD_MASS_LOGIN_MAIN_QUIZ_R22
+     * Verify the Main access token with Supabase getClaims(). With asymmetric
+     * signing this uses the project's JWKS (cached by supabase-js) instead of
+     * calling Main /auth/v1/user once for every Quiz launch. This removes an
+     * avoidable Auth-server request from the mass-login hot path while still
+     * cryptographically validating the token before trusting its claims.
+     */
+    const { data, error } = await mainAuth.auth.getClaims(token);
+    const claims = data?.claims as Record<string, unknown> | undefined;
+
+    if (error || !claims) return null;
+
+    const id = safeText(claims.sub, 80);
+    const email = safeText(claims.email, 320).toLowerCase();
+    const issuer = safeText(claims.iss, 320);
+    const rawAudience = claims.aud;
+    const audience = Array.isArray(rawAudience)
+      ? rawAudience.map((value) => safeText(value, 80))
+      : [safeText(rawAudience, 80)];
+
+    if (
+      !id ||
+      !email ||
+      issuer !== `${MAIN_URL}/auth/v1` ||
+      !audience.includes("authenticated")
+    ) {
+      return null;
+    }
+
+    const userMetadata: Record<string, unknown> =
+      claims.user_metadata &&
+      typeof claims.user_metadata === "object" &&
+      !Array.isArray(claims.user_metadata)
+        ? claims.user_metadata as Record<string, unknown>
+        : {};
+
+    return {
+      id,
+      email,
+      user_metadata: userMetadata,
+    };
   } catch {
     return null;
   }
+}
+
+/*
+ * BUKLOD_QUIZ_VERIFIED_LEGACY_IDENTITY_R24
+ * Do a live Auth user check only for existing Quiz users whose UUID differs
+ * from Main. Do not trust potentially stale Main JWT email on its own.
+ */
+async function hasFreshVerifiedMainEmail(req: Request, mainId: string, email: string) {
+  const token = (req.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  if (!token) return false;
+  try {
+    const response = await fetch(`${MAIN_URL}/auth/v1/user`, {
+      method: "GET",
+      headers: { apikey: MAIN_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) return false;
+    const verified = await response.json();
+    return (
+      safeText(verified?.id, 80) === mainId &&
+      safeText(verified?.email, 320).toLowerCase() === email &&
+      Boolean(verified?.email_confirmed_at)
+    );
+  } catch { return false; }
 }
 
 Deno.serve(async (req: Request) => {
@@ -145,8 +208,23 @@ Deno.serve(async (req: Request) => {
    * dedicated Quiz Auth email + user metadata before generating a magic link.
    * This fixes per-user handoff failures without touching exam/attempt data.
    */
+  const quizUserId = safeText(ensured?.user_id, 80);
+  const legacyIdentity = quizUserId !== mainUser.id;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(quizUserId)) {
+    return respond(503, { ok: false, error: "quiz_identity_invalid", message: "Quiz identity could not be verified." });
+  }
+  if (legacyIdentity && (
+    ensured?.legacy_existing !== true ||
+    !(await hasFreshVerifiedMainEmail(req, mainUser.id, email))
+  )) {
+    return respond(403, {
+      ok: false, error: "quiz_identity_verification_required",
+      message: "Quiz needs a fresh verified BUKLOD Main session before linking your existing records.",
+    });
+  }
+
   const { data: quizUserData, error: quizUserReadError } =
-    await admin.auth.admin.getUserById(mainUser.id);
+    await admin.auth.admin.getUserById(quizUserId);
 
   const quizUser = quizUserData?.user ?? null;
   if (quizUserReadError || !quizUser) {
@@ -161,11 +239,28 @@ Deno.serve(async (req: Request) => {
   }
 
   const quizEmail = safeText(quizUser.email, 320).toLowerCase();
+  const existingMainLink = safeText(quizUser.app_metadata?.buklod_main_user_id, 80);
+  if (legacyIdentity && (
+    quizEmail !== email ||
+    !quizUser.email_confirmed_at ||
+    quizUser.is_anonymous === true ||
+    quizUser.is_sso_user === true ||
+    (existingMainLink && existingMainLink !== mainUser.id)
+  )) {
+    return respond(409, {
+      ok: false, error: "quiz_identity_ownership_conflict",
+      message: "This Quiz account needs an identity ownership review before linking.",
+    });
+  }
   const quizMetadata =
     quizUser.user_metadata && typeof quizUser.user_metadata === "object"
       ? quizUser.user_metadata
       : {};
 
+  const effectiveUserMetadata = legacyIdentity
+    ? { ...userMetadata, role: safeText(quizMetadata.role, 80) || userMetadata.role }
+    : userMetadata;
+  const appMetadataOutOfSync = legacyIdentity && existingMainLink !== mainUser.id;
   const metadataOutOfSync =
     safeText(quizMetadata.username, 120) !== safeText(userMetadata.username, 120) ||
     safeText(quizMetadata.full_name, 220) !== safeText(userMetadata.full_name, 220) ||
@@ -174,19 +269,22 @@ Deno.serve(async (req: Request) => {
     safeText(quizMetadata.surname, 120) !== safeText(userMetadata.surname, 120) ||
     safeText(quizMetadata.suffix, 50) !== safeText(userMetadata.suffix, 50) ||
     safeText(quizMetadata.mobile, 50) !== safeText(userMetadata.mobile, 50) ||
-    safeText(quizMetadata.role, 80) !== safeText(userMetadata.role, 80) ||
+    safeText(quizMetadata.role, 80) !== safeText(effectiveUserMetadata.role, 80) ||
     safeText(quizMetadata.authority, 80) !== "buklod_main";
 
-  if (quizEmail !== email || metadataOutOfSync) {
+  if (quizEmail !== email || metadataOutOfSync || appMetadataOutOfSync) {
     const { error: quizUserSyncError } =
-      await admin.auth.admin.updateUserById(mainUser.id, {
+      await admin.auth.admin.updateUserById(quizUserId, {
         email,
         email_confirm: true,
         user_metadata: {
           ...quizMetadata,
-          ...userMetadata,
+          ...effectiveUserMetadata,
           authority: "buklod_main",
         },
+        ...(legacyIdentity ? {
+          app_metadata: { ...quizUser.app_metadata, buklod_main_user_id: mainUser.id },
+        } : {}),
       });
 
     if (quizUserSyncError) {
@@ -201,8 +299,12 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  const { data: legacyProfile } = legacyIdentity
+    ? await admin.from("profiles").select("role").eq("id", quizUserId).maybeSingle()
+    : { data: null };
+
   const profileRow = {
-    id: mainUser.id,
+    id: quizUserId,
     email,
     username: userMetadata.username,
     full_name: userMetadata.full_name,
@@ -211,7 +313,7 @@ Deno.serve(async (req: Request) => {
     surname: userMetadata.surname,
     suffix: userMetadata.suffix,
     mobile: userMetadata.mobile,
-    role: userMetadata.role,
+    role: legacyIdentity ? safeText(legacyProfile?.role, 80) || effectiveUserMetadata.role : userMetadata.role,
     is_active: true,
     updated_at: new Date().toISOString(),
   };
@@ -243,6 +345,8 @@ Deno.serve(async (req: Request) => {
 
   console.log("quiz_main_entry_success", {
     userId: String(mainUser.id),
+    quizUserId,
+    legacyIdentity,
     shadowCreated: ensured?.created === true,
   });
 
@@ -255,6 +359,8 @@ Deno.serve(async (req: Request) => {
     ok: true,
     authority: "buklod_main",
     user_id: mainUser.id,
+    quiz_user_id: quizUserId,
+    linked_existing: legacyIdentity,
     launch_url: actionLink,
     quiz_url: QUIZ_WEB_URL,
     one_time_code: properties?.email_otp ?? null,
