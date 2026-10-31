@@ -1,6 +1,6 @@
 import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
-import React,{useMemo,useState}from'react';
+import React,{useEffect,useMemo,useState}from'react';
 import{ActivityIndicator,Alert,Image,Pressable,ScrollView,StyleSheet,Text,TextInput,View}from'react-native';
 import{MaterialCommunityIcons}from'@expo/vector-icons';
 import*as DocumentPicker from'expo-document-picker';
