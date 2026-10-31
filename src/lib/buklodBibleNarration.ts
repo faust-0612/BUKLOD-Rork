@@ -269,7 +269,7 @@ export function displayVerseText(raw: string) {
 export function isFilipinoSpeechLanguage(language: string) {
   return String(language ?? '')
     .toLowerCase()
-    .startsWith('fil');
+    .match(/^(fil|tl)(-|$)/) !== null;
 }
 
 /**

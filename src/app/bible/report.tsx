@@ -15,7 +15,6 @@ import {
 
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +25,9 @@ import {
 import { router } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { bibleReportErrorMessage } from '@/lib/bibleReportErrors';
 
 import {
   Card,
@@ -158,6 +160,10 @@ const sourceLabel = (
 
 
 export default function BibleReadingReportScreen() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [cachedReport, setCachedReport] = useState(false);
   const [period, setPeriod] =
     useState<Period>('week');
 
@@ -180,8 +186,15 @@ export default function BibleReadingReportScreen() {
     async () => {
 
       setLoading(true);
+      setReportError(null);
+      setCachedReport(false);
+      // Never display the previous period's totals as current data.
+      setReport(null);
+      setRecent([]);
+      setActivity([]);
 
       try {
+        if (!userId) throw new Error('Sign in to read your private Bible progress.');
         const [
           reportResult,
           recentResult,
@@ -248,26 +261,35 @@ export default function BibleReadingReportScreen() {
         );
 
 
-        setActivity(
-          (
-            activityResult.data ??
-            []
-          ) as DailyActivity[]
-        );
-
+        const activityRows = (activityResult.data ?? []) as DailyActivity[];
+        setActivity(activityRows);
+        // A complete authenticated result is cached for this account and period only.
+        void setOfflineCache('my-bible-reading-report:' + period, {
+          report: (reportRow ?? null) as ReadingReport | null,
+          recent: (recentResult.data ?? []) as RecentReading[],
+          activity: activityRows,
+        }, { userId, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
       } catch (e: any) {
-        Alert.alert(
-          'Bible Reading Report',
-          e?.message ??
-            'Unable to load your Bible Reading Report.'
-        );
-
+        setReportError(bibleReportErrorMessage(e));
+        if (userId) {
+          const cached = await getOfflineCache<{
+            report: ReadingReport | null;
+            recent: RecentReading[];
+            activity: DailyActivity[];
+          }>('my-bible-reading-report:' + period, { userId, allowStale: true });
+          if (cached?.data?.report) {
+            setReport(cached.data.report);
+            setRecent(cached.data.recent ?? []);
+            setActivity(cached.data.activity ?? []);
+            setCachedReport(true);
+          }
+        }
       } finally {
         setLoading(false);
       }
 
     },
-    [period]
+    [period, userId]
   );
 
 
@@ -479,6 +501,25 @@ export default function BibleReadingReportScreen() {
       </View>
 
 
+      {!!reportError && !loading && (
+        <Card>
+          <Text style={{ fontSize: 15, fontWeight: '800', color: '#24543E' }}>
+            {cachedReport ? 'Saved Bible Report' : 'Hindi ma-load ang Bible Report'}
+          </Text>
+          <Text style={{ fontSize: 13, lineHeight: 19, color: '#53685C', marginTop: 6 }}>
+            {reportError}
+            {cachedReport ? ' Naka-save na datos ito, hindi live na bilang.' : ' Walang binagong reading records.'}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Subukan muli ang Bible Report"
+            onPress={() => void load()}
+            style={{ alignSelf: 'flex-start', marginTop: 12, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 12, backgroundColor: '#275D45' }}>
+            <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>Retry</Text>
+          </Pressable>
+        </Card>
+      )}
+
       {loading ? (
         <Card>
           <View style={styles.loading}>
@@ -497,7 +538,7 @@ export default function BibleReadingReportScreen() {
           </View>
         </Card>
 
-      ) : (
+      ) : (reportError && !report) ? null : (
         <>
           {/* =================================================
               SUMMARY

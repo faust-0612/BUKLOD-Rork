@@ -1,7 +1,8 @@
 import * as Speech from 'expo-speech';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { chooseBibleNarrationVoice } from '@/lib/buklodBibleVoiceLocale';
 import { bibleAmbienceController } from '@/lib/buklodBibleAmbience';
 import {
   DEFAULT_SFX_VOLUME,
@@ -108,6 +109,7 @@ class BuklodBibleNarrationEngine {
   private intent: 'play' | 'pause' | 'stop' = 'stop';
   private voiceId: string | undefined;
   private voiceLanguage = '';
+  private speechLanguage = '';
   private verses: BibleNarrationVerse[] = [];
   private books: BibleNarrationBook[] = [];
   private verseIndex = 0;
@@ -278,7 +280,14 @@ class BuklodBibleNarrationEngine {
       return;
     }
 
-    await this.resolveVoice(this.snapshot.language);
+    const voiceAvailable = await this.resolveVoice(this.snapshot.language);
+    if (!voiceAvailable) {
+      this.patchSnapshot({ status: 'idle' });
+      if (Platform.OS !== 'web') {
+        Alert.alert('Filipino voice unavailable', 'Walang available na Filipino/Tagalog voice sa Android Text-to-speech settings. I-install o i-enable muna ang Filipino voice. Hindi namin gagamitin ang English voice sa ASD.');
+      }
+      return;
+    }
     this.syncAmbienceSettings();
     this.intent = 'play';
     void this.runPlayback();
@@ -351,37 +360,28 @@ class BuklodBibleNarrationEngine {
     bibleAmbienceController.setUserVolume(this.snapshot.sfxVolume);
   }
 
-  private async resolveVoice(language: string) {
+  private async resolveVoice(language: string): Promise<boolean> {
     if (Platform.OS === 'web') {
       warmWebBibleVoices();
       this.voiceLanguage = language;
+      this.speechLanguage = language;
       this.voiceId = undefined;
-      return;
+      return true;
     }
-    if (this.voiceLanguage === language && this.voiceId) {
-      return;
-    }
+    if (this.voiceLanguage === language && this.voiceId) return true;
 
     try {
       const voices = await Speech.getAvailableVoicesAsync();
-      const wanted = String(language).toLowerCase();
-      const base = wanted.split('-')[0];
-      const matches = (voices ?? []).filter((voice) => {
-        const lang = String(voice.language ?? '').toLowerCase();
-        return (
-          lang === wanted ||
-          lang.startsWith(`${base}-`) ||
-          lang === base
-        );
-      });
-      const preferred = [...matches].sort(
-        (a, b) => maleVoiceScore(b) - maleVoiceScore(a)
-      )[0];
-      this.voiceId = preferred?.identifier;
-      this.voiceLanguage = language;
+      const selection = chooseBibleNarrationVoice(voices ?? [], language, maleVoiceScore);
+      this.voiceId = selection.voice?.identifier;
+      this.speechLanguage = selection.language;
+      this.voiceLanguage = selection.available ? language : '';
+      return selection.available;
     } catch {
       this.voiceId = undefined;
-      this.voiceLanguage = language;
+      this.speechLanguage = language;
+      this.voiceLanguage = '';
+      return !/^(fil|tl)(-|$)/i.test(language);
     }
   }
 
@@ -518,7 +518,7 @@ class BuklodBibleNarrationEngine {
       };
 
       Speech.speak(text, {
-        language: this.snapshot.language,
+        language: this.speechLanguage || this.snapshot.language,
         ...(this.voiceId
           ? { voice: this.voiceId }
           : {}),
