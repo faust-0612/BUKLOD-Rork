@@ -1,0 +1,50 @@
+{
+  "objective": "Fix verified BUKLOD AdMob request-before-reservation race, zero-height viewport deadlock, cooldown remount suppression, and out-of-order native ad resolution without increasing ad request spam.",
+  "baseRef": "1113bb52967f7528b6926cd9d39ff08052215692",
+  "productionBaselineEvidence": "GitHub main 1113bb52967f7528b6926cd9d39ff08052215692 (PR #463 merged) reconciled. Supabase production yhanxndaqbmuzbdqlblu ad operational aggregates Oct 30–31, 2026 PH: public_wall_entry 450 app-side ad_request, 111 ad_loaded, 45 ad_impression, 150 ad_failed; of failures 114 AdMob no-fill. Database is read-only for this patch; native production OTA ID not verified.",
+  "selectionRationale": "Fix direct deterministic client bugs while keeping native SDK, AdMob app/unit IDs, remote flags, request throttles and UI placements unchanged. Do not re-request no-fill inventory in tight loops.",
+  "alternativeApproaches": [
+    "Remove cooldown and immediately request again after failure: rejected due to request inflation and AdMob policy risk.",
+    "Increase inline ad density: rejected; not related to load/display bug and risks user experience.",
+    "Use a new native ad SDK/build: rejected; unnecessary and cannot be sent over OTA.",
+    "Gate native mount on reservation and use bounded eligible probe/remount recovery: selected."
+  ],
+  "preserveBehaviors": [
+    "AdMob ID configuration unchanged",
+    "First-view ads require actual viewport eligibility",
+    "No more than existing wall/reels ad cadence",
+    "Ads do not block creation, submission, points, reading, chat or offline access",
+    "Remote kill switches, sensitive route filtering and consent checks preserved",
+    "Network no-fill retries do not thrash",
+    "Avoid changing unrelated rendering/scroll/media/points logic",
+    "Production runtime 1.3.2 unchanged"
+  ],
+  "riskAreas": [
+    "ads",
+    "monetization",
+    "community-wall",
+    "network-recovery"
+  ],
+  "regressionTests": [
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/buklod-inline-ad-remount-regression.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodGlobalAdController.ts",
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodFirstViewAd.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/buklod-inline-ad-remount-regression.test.mjs",
+    ".buklod/scopes/admob-banner-recovery-20261101.json"
+  ],
+  "acceptanceChecks": [
+    "CI TypeScript and existing performance QA pass",
+    "Compact banner can become eligible with a measurable min-height probe",
+    "No SDK mount before slot reservation",
+    "Deferred cooldown does not permanently poison ad slot",
+    "No-fill stops fast retries; focus/app-resume can recover after cooldown",
+    "Native ad timeout late callback destroys ad instead of overwriting fallback",
+    "Immutable verified RC required before production OTA, production not claimed without ID"
+  ]
+}
