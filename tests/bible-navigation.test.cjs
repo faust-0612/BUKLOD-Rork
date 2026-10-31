@@ -23,6 +23,8 @@ test('reader-first mode preserves daily flow and opens search results at verse',
   assert.match(bible, /source === 'daily_plan'/);
   assert.match(bible, /selectedVerse=\{passageVerseNo\}/);
   assert.match(bible, /onClearVerse=\{\(\) => setPassageVerseNo\(null\)\}/);
+  assert.match(bible, /isMyBibleMode\s*\? passageVerseNo\s*: passageVerseNo \?\?/);
+  assert.match(bible, /isMyBibleMode \? passageVerseNo !== null : requestedVerse > 0/);
 });
 
 test('modal offers book search, OT/NT, chapter and exact verse controls', () => {

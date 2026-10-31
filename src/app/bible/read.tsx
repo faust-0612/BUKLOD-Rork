@@ -2977,7 +2977,7 @@ setMarking(true);
 
       {!isMyBibleMode && (
       <Card>
-      {/* MY_BIBLE_MODE_HEADER_V1 */}}
+      {/* MY_BIBLE_MODE_HEADER_V1 */}
 
       <View
         style={{
@@ -3779,7 +3779,7 @@ setMarking(true);
             </Text>
           </View>
 
-          {requestedVerse > 0 && (
+          {(isMyBibleMode ? passageVerseNo !== null : requestedVerse > 0) && (
             <View
               style={
                 styles.verseBadge
@@ -3791,7 +3791,7 @@ setMarking(true);
                 }
               >
                 VERSE{' '}
-                {requestedVerse}
+                {isMyBibleMode ? passageVerseNo : requestedVerse}
               </Text>
             </View>
           )}
@@ -4046,12 +4046,9 @@ setMarking(true);
               verse => {
 
                 const focusVerseNo =
-                  passageVerseNo ??
-                  (
-                    requestedVerse > 0
-                      ? requestedVerse
-                      : null
-                  );
+                  isMyBibleMode
+                    ? passageVerseNo
+                    : passageVerseNo ?? (requestedVerse > 0 ? requestedVerse : null);
 
 
                 const focused =
