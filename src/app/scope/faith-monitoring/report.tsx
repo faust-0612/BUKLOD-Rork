@@ -9,9 +9,10 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import BuklodScopeFaithMonitoringAdminFeedbackCard from '@/components/BuklodScopeFaithMonitoringAdminFeedbackCard';
+import BuklodFaithPeriodReport from '@/components/BuklodFaithPeriodReport';
 import BuklodScopedWorkspaceScrollView from '@/components/BuklodScopedWorkspaceScrollView';
 import { Card, SectionTitle, shared } from '@/components/UI';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
@@ -25,6 +26,7 @@ import {
   type ScopeFaithMonitoringSummary,
 } from '@/lib/buklodScopeFaithMonitoring';
 import { canViewClusterProgress } from '@/lib/buklodOrgGovernance';
+import { readScopeIdFromParams } from '@/lib/buklodScopeManage';
 import { shareCsv } from '@/lib/reports/export';
 import { colors } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -65,7 +67,12 @@ function PipelineCard({
 }
 
 export default function ScopeFaithMonitoringReportScreen() {
-  const { activeScope } = useBuklodScope();
+  const params = useLocalSearchParams();
+  const routeScopeId = readScopeIdFromParams(params as Record<string, unknown>);
+  const { activeScope, scopes } = useBuklodScope();
+  // The route's exact workspace is authoritative; never silently use a different active scope.
+  const scope = scopes.find((item) => item.scope_id === routeScopeId)
+    ?? (activeScope?.scope_id === routeScopeId ? activeScope : null);
   const { isExactScopeAdmin } = useBuklodAccess();
   const [summary, setSummary] = useState<ScopeFaithMonitoringSummary | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -74,10 +81,10 @@ export default function ScopeFaithMonitoringReportScreen() {
   const [exporting, setExporting] = useState(false);
   const [canLeadership, setCanLeadership] = useState(false);
 
-  const isAdmin = Boolean(activeScope?.is_admin) || isExactScopeAdmin || canLeadership;
+  const isAdmin = Boolean(scope?.is_admin) || isExactScopeAdmin || canLeadership;
 
   const load = useCallback(async () => {
-    if (!activeScope?.scope_id) {
+    if (!scope?.scope_id) {
       setSummary(null);
       setWarning(null);
       setCanLeadership(false);
@@ -86,15 +93,15 @@ export default function ScopeFaithMonitoringReportScreen() {
     }
 
     try {
-      if (activeScope.scope_type === 'CLUSTER') {
-        setCanLeadership(await canViewClusterProgress(activeScope.scope_id));
+      if (scope.scope_type === 'CLUSTER') {
+        setCanLeadership(await canViewClusterProgress(scope.scope_id));
       } else {
         setCanLeadership(false);
       }
 
       const result = await fetchScopeFaithMonitoringSummaryResilient({
-        scopeId: activeScope.scope_id,
-        scopeName: activeScope.name,
+        scopeId: scope.scope_id,
+        scopeName: scope.name,
       });
       setSummary(result.summary);
       setWarning(result.warning);
@@ -107,7 +114,7 @@ export default function ScopeFaithMonitoringReportScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeScope?.name, activeScope?.scope_id, activeScope?.scope_type]);
+  }, [scope?.name, scope?.scope_id, scope?.scope_type]);
 
   useFocusEffect(
     useCallback(() => {
@@ -119,20 +126,20 @@ export default function ScopeFaithMonitoringReportScreen() {
   const analysis = useMemo(() => (summary ? buildFaithMonitoringAnalysis(summary) : []), [summary]);
 
   const exportReport = useCallback(async () => {
-    if (!summary || !activeScope?.scope_id) return;
+    if (!summary || !scope?.scope_id) return;
     setExporting(true);
     try {
       const rows = faithMonitoringSummaryToCsvRows(summary);
-      const safeName = activeScope.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase();
+      const safeName = scope.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase();
       await shareCsv(`formation-submission-${safeName || 'scope'}-${summary.summary_date}.csv`, rows);
     } catch (error) {
       Alert.alert('Export', String((error as Error)?.message ?? 'Could not export report.'));
     } finally {
       setExporting(false);
     }
-  }, [activeScope?.name, activeScope?.scope_id, summary]);
+  }, [scope?.name, scope?.scope_id, summary]);
 
-  if (!activeScope?.scope_id) {
+  if (!scope?.scope_id) {
     return (
       <BuklodScopedWorkspaceScrollView style={shared.screen} contentContainerStyle={shared.content}>
         <Text style={shared.h2}>Report unavailable</Text>
@@ -170,13 +177,15 @@ export default function ScopeFaithMonitoringReportScreen() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={shared.h1}>Formation Submission Report</Text>
-          <Text style={shared.muted}>{activeScope.name}</Text>
+          <Text style={shared.muted}>{scope.name}</Text>
         </View>
         <Pressable style={styles.exportBtn} disabled={!summary || exporting} onPress={() => void exportReport()}>
           <MaterialCommunityIcons name="export-variant" size={18} color={colors.greenDark} />
-          <Text style={styles.exportText}>{exporting ? '…' : 'Export'}</Text>
+          <Text style={styles.exportText}>{exporting ? '…' : 'Daily CSV'}</Text>
         </Pressable>
       </View>
+
+      <BuklodFaithPeriodReport scopeId={scope.scope_id} scopeName={scope.name} />
 
       {warning ? (
         <Card>
@@ -197,7 +206,7 @@ export default function ScopeFaithMonitoringReportScreen() {
         </View>
       ) : summary ? (
         <>
-          <SectionTitle>AUTOMATIC PIPELINE</SectionTitle>
+          <SectionTitle>TODAY'S AUTOMATIC PIPELINE</SectionTitle>
           <Card>
             <Text style={styles.autoTitle}>AUTOMATIC SUBMISSION & CHECKING</Text>
             <Text style={shared.muted}>
@@ -252,7 +261,7 @@ export default function ScopeFaithMonitoringReportScreen() {
           </Card>
 
           <SectionTitle>MEMBER FEEDBACK</SectionTitle>
-          <BuklodScopeFaithMonitoringAdminFeedbackCard scopeId={activeScope.scope_id} scopeName={activeScope.name} />
+          <BuklodScopeFaithMonitoringAdminFeedbackCard scopeId={scope.scope_id} scopeName={scope.name} />
         </>
       ) : (
         <Text style={shared.muted}>No report data available right now.</Text>
