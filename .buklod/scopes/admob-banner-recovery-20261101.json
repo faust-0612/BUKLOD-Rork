@@ -47,5 +47,6 @@
     "Native ad timeout late callback destroys ad instead of overwriting fallback",
     "Immutable verified RC required before production OTA, production not claimed without ID"
   ],
-  "contractVersion": 2
+  "contractVersion": 2,
+  "chosenApproach": "Require shared ad-request cooldown reservation before mounting BannerAd; use a measurable viewport probe; defer remounted slots without force-failing; stop fast no-fill retries and allow bounded focus/app-resume recovery; discard timed-out native ads that return late."
 }
