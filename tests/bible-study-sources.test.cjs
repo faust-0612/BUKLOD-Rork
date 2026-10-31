@@ -2,31 +2,28 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const ts = require('typescript');
+const { stripTypeScriptTypes } = require('node:module');
 
 const source = fs.readFileSync('src/lib/buklodBibleStudy.ts', 'utf8');
-const transpiled = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  reportDiagnostics: true,
-}).outputText;
-const moduleValue = { exports: {} };
-vm.runInNewContext(transpiled, {
-  module: moduleValue,
-  exports: moduleValue.exports,
-  require: key => {
-    if (key === 'react') return { useEffect: () => {}, useState: () => [] };
-    if (key === '@/lib/offlineCache') return {};
-    throw new Error('Unexpected import: ' + key);
-  },
+// Node 22 strips types without requiring all Expo/React packages in the
+// low-cost engineering gate. Test the actual production parser functions.
+const standalone = stripTypeScriptTypes(
+  source.replace(/^import .*;$/gm, ''),
+  { mode: 'strip' },
+).replace(/^export /gm, '');
+const {
+  studyBookCode, strongLexiconUrl, parseMatthewHenryChapter,
+  parseTaggedKjvChapter, alignKjvStrongWords,
+} = vm.runInNewContext(standalone + '\\n({ studyBookCode, strongLexiconUrl, parseMatthewHenryChapter, parseTaggedKjvChapter, alignKjvStrongWords })', {
+  useEffect: () => {},
+  useState: () => [],
+  getOfflineCache: () => {},
+  setOfflineCache: () => {},
   setTimeout,
   clearTimeout,
   AbortController,
   fetch: () => { throw new Error('Parser test must never access network'); },
 }, { filename: 'buklodBibleStudy.js' });
-const {
-  studyBookCode, strongLexiconUrl, parseMatthewHenryChapter,
-  parseTaggedKjvChapter, alignKjvStrongWords,
-} = moduleValue.exports;
 
 test('canonical 66-book indices map to exact Matthew Henry and tagged KJV chapter endpoints', () => {
   assert.equal(studyBookCode(10), '2SA');
