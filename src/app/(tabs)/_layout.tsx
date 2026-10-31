@@ -248,7 +248,7 @@ export default function TabsLayout() {
    * has no usable local identity yet. Runtime/compliance refreshes continue
    * behind the cached shell instead of blocking the entire tab workspace.
    */
-  if (loading && !session && !profile) {
+  if (loading && !session) {
     return (
       <View
         style={{

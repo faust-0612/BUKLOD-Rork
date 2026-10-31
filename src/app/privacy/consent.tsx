@@ -92,9 +92,14 @@ export default function PrivacyConsentScreen() {
         if (result.error) {
           Alert.alert(
             'BUKLOD',
-            result.error
+            result.error,
+            result.needsLogin
+              ? [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Sign in', onPress: () => router.replace('/(auth)/login') },
+                ]
+              : [{ text: 'OK' }]
           );
-
           return;
         }
 

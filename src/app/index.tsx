@@ -138,7 +138,7 @@ export default function Index() {
     selectScope,
   ]);
 
-  if (loading && !session && !profile) {
+  if (loading && !session) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
         <ActivityIndicator color={colors.green} />

@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "objective": "Correct anonymous policy acknowledgement and stale-session restoration without affecting BUKLOD core features.",
+  "baseRef": "6cc7ac0f594c1a852c8b8b27bf2d70c018a73bf8",
+  "productionBaselineEvidence": "verified: inspected main commit 6cc7ac0f594c1a852c8b8b27bf2d70c018a73bf8; Supabase production at 2026-10-31 09:17 PH reported accept_required_policy HTTP 400 and auth.uid() null, bearer was publishable key. No verified device OTA adoption or exact current runtime fingerprint; this manifest does not authorize release.",
+  "chosenApproach": "Gate persisted-session fallback to explicit offline state; recover through Supabase SDK when connectivity returns; verify current SDK user and server policy state before persisting acceptance; hold boot spinner during reconnection instead of redirecting.",
+  "selectionRationale": "Source evidence identifies shadow identity and unchecked acknowledgement caching; use existing auth SDK and policy RPC without schema/permission changes, cross-app rewrites or retry storms.",
+  "alternativeApproaches": [
+    "Make policy RPC accept anonymous users (rejected: breaks identity and policy audit security).",
+    "Always clear cached sessions and force password login on every network drop (rejected: destroys offline access and harms weak-network reliability)."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Community Wall, Connect, Cluster, Show Faith and Quiz remain unmodified.",
+    "Offline accepted policy state may release read-only shell; offline cannot save acknowledgement.",
+    "Do not change server RLS, profile permission model, API keys or release runtime.",
+    "No automatic mutation retry, no authentication bypass or cross-account acceptance.",
+    "Keep new acknowledgement gated by server read-back."
+  ],
+  "acceptanceChecks": [
+    "Missing SDK session never calls accept_required_policy.",
+    "Anonymous project-key request no longer gets a cached logged-in online shell.",
+    "Correct SDK user and server accepted policy rows are required before success.",
+    "Network outage and session expiry produce actionable feedback without accepting locally.",
+    "Boot spinner guards prevent transient login redirect on offline-to-online restoration.",
+    "Run focused pure Node contract and source guard tests, TypeScript compile and scoped engineering checks before RC.",
+    "Do not publish Android OTA without verified exact RC runtime and artifact."
+  ],
+  "regressionTests": [
+    "tests/auth-consent-boot-recovery.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/index.tsx",
+    "src/app/index.web.tsx",
+    "src/app/(tabs)/_layout.tsx",
+    "tests/auth-consent-boot-recovery.test.mjs",
+    "src/providers/AuthProvider.tsx",
+    "src/providers/ComplianceProvider.tsx",
+    "src/app/privacy/consent.tsx",
+    "src/lib/buklodPolicyAuthGuard.ts",
+    "src/lib/__tests__/buklodPolicyAuthGuard.test.ts",
+    ".buklod/scopes/auth-consent-session-recovery-20261031.json"
+  ]
+}

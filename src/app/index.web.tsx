@@ -73,7 +73,7 @@ export default function IndexWeb() {
     if (!scopeLoading) setBootReady(true);
   }, [session?.user?.id, loading, profile, scopeLoading, activeScope?.scope_id, activeScope?.scope_type, scopes, selectScope]);
 
-  if ((loading && !session && !profile) || (complianceLoading && !session) || (runtimeLoading && !config)) {
+  if ((loading && !session) || (complianceLoading && !session) || (runtimeLoading && !config)) {
     return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}><ActivityIndicator color={colors.green} /></View>;
   }
 
