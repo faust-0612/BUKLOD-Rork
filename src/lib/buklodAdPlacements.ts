@@ -105,7 +105,10 @@ function buildFeedWithInlineAds<T extends { id?: string | null }>(
     sinceAd += 1;
     const itemNumber = index + 1;
 
-    if (itemNumber >= nextAt && sinceAd >= options.intervalMin) {
+    // First slot has its own leading threshold. Android can use five posts
+    // before the first ad without weakening the later six-plus post spacing.
+    const minSpacing = adSlot === 0 ? minLeading : options.intervalMin;
+    if (itemNumber >= nextAt && sinceAd >= minSpacing) {
       adSlot += 1;
       const slotId = `${options.idPrefix}${adSlot}_${String(item.id ?? itemNumber)}`;
       rows.push(options.mark(slotId) as CommunityFeedInlineAdRow);
