@@ -42,7 +42,7 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
     }
     const [presence, thread] = await Promise.all([
       listKlReaders(episodeId),
-      listKlComments(episodeId),
+      listKlComments(episodeId, user?.id),
     ]);
     let nextReaders = presence.readers;
     let nextCount = presence.count;
@@ -71,7 +71,7 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
     void refresh();
     const timer = setInterval(() => {
       void refresh();
-    }, 20000);
+    }, 45000);
     return () => clearInterval(timer);
   }, [live, refresh]);
 
@@ -84,12 +84,13 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
     }
     const text = draft.trim();
     if (!text || busy) return;
+    if (text.length < 12) { setNotice('Hindi bababa sa 12 characters ang komento.'); return; }
     setBusy(true);
     setNotice(null);
     const result = await addKlComment(episodeId, text);
     setBusy(false);
     if (!result.ok || !result.comment) {
-      setNotice(klCopy.commentFailed);
+      setNotice(result.error ? 'Hindi naipadala ang komento: ' + result.error : klCopy.commentFailed);
       return;
     }
     setDraft('');

@@ -34,7 +34,6 @@ import {
   buildStoryboard,
   KL_AUTHOR,
   KL_CHAPTER_ONE_LIVING_SCOPE,
-  KL_RELEASED_THROUGH_EPISODE,
   KL_SEASON_ONE_TITLE,
 } from '@/lib/kabihasnang-ligaw/catalog';
 import { klCopy } from '@/lib/kabihasnang-ligaw/copy';
@@ -68,6 +67,24 @@ type DynamicMedia = {
   anchor?: string | null; side?: string | null;
   effect?: SceneEffect | null; intensity?: number | null;
 };
+type AdminChapterState = {
+  id: string;
+  status: string;
+  approved_at?: string | null;
+  release_at?: string | null;
+  preview_ready?: boolean;
+};
+function chapterStatusText(row?: AdminChapterState): string {
+  if (!row) return 'Hindi pa nakumpirma ang estado ng kabanata. Refresh status.';
+  if (row.status === 'approved' && row.approved_at) {
+    if (row.release_at && new Date(row.release_at).getTime() <= Date.now()) return 'RELEASED — mababasa na';
+    if (row.release_at) return 'APPROVED — naka-schedule pa ang release';
+    return 'APPROVED — hindi pa released';
+  }
+  return row.preview_ready
+    ? 'DRAFT — prepared na ang preview; hindi pa approved ang kabanata'
+    : 'DRAFT — kailangan ang prepared preview at chapter approval';
+}
 
 function cacheKey(userId: string | null): string {
   return `kl.reader.v1.${userId ?? 'device'}`;
@@ -80,6 +97,7 @@ export default function KlReaderScreen() {
   const { user, hasRole } = useAuth();
   const isSystemAdmin = hasRole('system_admin');
   const [adminBusyId, setAdminBusyId] = useState<string | null>(null);
+  const [adminChapterStates, setAdminChapterStates] = useState<Record<string, AdminChapterState>>({});
   const [adminFeedback, setAdminFeedback] = useState('');
   const [adminFeedbackEpisodeId, setAdminFeedbackEpisodeId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
@@ -102,6 +120,9 @@ export default function KlReaderScreen() {
   const [serverState, setServerState] = useState<'unread' | 'readable' | 'hidden' | 'unknown'>('unread');
   const [serverText, setServerText] = useState<string | null>(null);
   const [releasedIds, setReleasedIds] = useState<string[]>([]);
+  const [releasedTitles, setReleasedTitles] = useState<Record<number, string>>({});
+  const [completedChapters, setCompletedChapters] = useState(0);
+  const [earnedKlPoints, setEarnedKlPoints] = useState<number | null>(null);
   const [dynamicMedia, setDynamicMedia] = useState<DynamicMedia[]>([]);
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [mediaErrors, setMediaErrors] = useState<Record<string, string>>({});
@@ -156,7 +177,12 @@ export default function KlReaderScreen() {
     lowBandwidth,
     layers: living,
   });
-  const journey = journeySummary(0, 30);
+  const journey = journeySummary(completedChapters, 30);
+  const chapterTitle = (episode: (typeof EPISODES)[number]) =>
+    episode.kind === 'panimula' ? episode.title
+      : releasedTitles[episode.episodeNumber]
+        ? 'Kabanata ' + episode.episodeNumber + ': ' + releasedTitles[episode.episodeNumber]
+        : episode.episodeNumber === 1 ? 'Kabanata 1: ' + episode.title : episode.title;
   const music = ASSETS.find((asset) => asset.id === 'asset-music');
   const ambient = ASSETS.find((asset) => asset.id === 'asset-ambient');
 
@@ -208,26 +234,69 @@ export default function KlReaderScreen() {
     };
   }, []);
 
+  const loadChapterApprovalStatus = async (): Promise<AdminChapterState[]> => {
+    const { data, error } = await supabase.rpc(KL_RPC.adminList);
+    if (error) throw error;
+    if (!Array.isArray(data)) throw new Error('Hindi ma-load ang tunay na estado ng chapter mula sa server.');
+    const rows = data as AdminChapterState[];
+    setAdminChapterStates(Object.fromEntries(rows.map((entry) => [entry.id, entry])));
+    return rows;
+  };
+
+  useEffect(() => {
+    if (!isSystemAdmin) {
+      setAdminChapterStates({});
+      return;
+    }
+    let active = true;
+    void supabase.rpc(KL_RPC.adminList).then(({ data }) => {
+      if (active && Array.isArray(data)) {
+        const rows = data as AdminChapterState[];
+        setAdminChapterStates(Object.fromEntries(rows.map((entry) => [entry.id, entry])));
+      }
+    });
+    return () => { active = false; };
+  }, [isSystemAdmin]);
+
   const decideEpisode = async (episodeId: string, action: 'approve' | 'reject' | 'release', notes = '') => {
     if (!isSystemAdmin || adminBusyId) return;
     if (action === 'reject' && !notes.trim()) { setAdminFeedback('Maglagay ng dahilan ng rejection.'); return; }
     setAdminBusyId(episodeId);
     setAdminFeedbackEpisodeId(episodeId);
     setAdminFeedback('Pinoproseso ang desisyon…');
+    let actionAccepted = false;
     try {
       const targetEpisode = EPISODES.find((item) => item.id === episodeId);
       if (!targetEpisode) throw new Error('Chapter not found');
-      const { error } = await supabase.rpc(KL_RPC.adminAction, adminActionArgs({ action, episodeId: klDatabaseId(targetEpisode.episodeNumber), notes }));
+      const dbId = klDatabaseId(targetEpisode.episodeNumber);
+      const { data, error } = await supabase.rpc(KL_RPC.adminAction, adminActionArgs({ action, episodeId: dbId, notes }));
       if (error) throw error;
+      if ((data as { ok?: boolean } | null)?.ok !== true) throw new Error('Hindi kinumpirma ng server ang action.');
+      actionAccepted = true;
+      const rows = await loadChapterApprovalStatus();
+      const chapter = rows.find((row) => row.id === dbId);
+      if (!chapter) throw new Error('Wala sa server chapter list ang napiling kabanata.');
+      const approved = chapter.status === 'approved' && Boolean(chapter.approved_at);
+      const released = approved && Boolean(chapter.release_at)
+        && new Date(chapter.release_at as string).getTime() <= Date.now();
+      if (action === 'approve' && !approved) throw new Error('Hindi pa approved sa server ang kabanata.');
+      if (action === 'release' && !released) throw new Error('Hindi pa public sa server ang kabanata.');
+      if (action === 'reject' && chapter.status !== 'draft') throw new Error('Hindi pa naibalik sa draft ang kabanata.');
       if (action === 'release') {
-        setReleasedIds((ids) => [...new Set([...ids, klDatabaseId(EPISODES.find((item) => item.id === episodeId)?.episodeNumber ?? -1)])]);
+        await refresh();
       }
-      setAdminFeedback(action === 'approve' ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.' : action === 'release' ? 'Na-release na ang kabanata sa server.' : 'Ibinalik sa draft sa server.');
+      setAdminFeedback(action === 'approve'
+        ? '✓ APPROVED ang kabanata sa server. Hindi pa public; pindutin ang Release Now kung handa nang ilabas.'
+        : action === 'release' ? '✓ RELEASED at server-verified na ang kabanata.'
+          : '✓ Ibinalik sa draft at kinumpirma ng server.');
       setRejectTarget(null);
       setReleaseTarget(null);
       setRejectNotes('');
     } catch (error) {
-      setAdminFeedback(error instanceof Error ? `Hindi na-save: ${error.message}` : 'Hindi na-save ang desisyon. Subukan muli.');
+      const detail = error instanceof Error ? error.message : 'Subukan muli.';
+      setAdminFeedback(actionAccepted
+        ? 'Naipadala ang action pero hindi ma-verify ang final status: ' + detail + ' Gamitin ang Refresh chapter status bago muling pindutin.'
+        : 'Hindi na-save ang desisyon: ' + detail);
     } finally { setAdminBusyId(null); }
   };
 
@@ -235,7 +304,12 @@ export default function KlReaderScreen() {
     setBusy(true);
     try {
       const { data: libraryData, error } = await supabase.rpc(KL_RPC.listLibrary);
-      if (!error && Array.isArray(libraryData)) setReleasedIds(libraryData.map((entry: { episode_number: number }) => klDatabaseId(entry.episode_number)));
+      if (!error && Array.isArray(libraryData)) {
+        const rows = libraryData as { episode_number: number; title: string }[];
+        setReleasedIds(rows.map((entry) => klDatabaseId(entry.episode_number)));
+        setReleasedTitles(Object.fromEntries(rows.filter((entry) => typeof entry.title === 'string' && entry.title.trim())
+          .map((entry) => [entry.episode_number, entry.title.trim()])));
+      }
       if (error) {
         await persist(queueReaderIssue(cache, {
           kind: 'library',
@@ -257,7 +331,10 @@ export default function KlReaderScreen() {
     let active = true;
     void supabase.rpc(KL_RPC.listLibrary).then(({ data, error }) => {
       if (active && !error && Array.isArray(data)) {
-        setReleasedIds(data.map((entry: { episode_number: number }) => klDatabaseId(entry.episode_number)));
+        const rows = data as { episode_number: number; title: string }[];
+        setReleasedIds(rows.map((entry) => klDatabaseId(entry.episode_number)));
+        setReleasedTitles(Object.fromEntries(rows.filter((entry) => typeof entry.title === 'string' && entry.title.trim())
+          .map((entry) => [entry.episode_number, entry.title.trim()])));
       }
     });
     return () => { active = false; };
@@ -272,6 +349,32 @@ export default function KlReaderScreen() {
     return () => clearInterval(timer);
   }, [selected?.episodeNumber, serverState, appActive, online]);
 
+  const refreshJourney = useCallback(async () => {
+    if (!user?.id) { setCompletedChapters(0); setEarnedKlPoints(null); return; }
+    // This figure is an actual ledger credit total for KL, not a guessed
+    // balance and not the cosmetic story journey counter.
+    const [journeyResult, ledgerResult] = await Promise.all([
+      supabase.rpc('kl_my_story_journey_v1'),
+      supabase.from('buklod_points_ledger').select('points,direction')
+        .eq('user_id', user.id)
+        .in('activity_type', ['kl_episode_completion', 'kl_season_completion'])
+        .limit(500),
+    ]);
+    if (!journeyResult.error && journeyResult.data && typeof journeyResult.data === 'object') {
+      const count = (journeyResult.data as { completed_chapters?: unknown }).completed_chapters;
+      if (typeof count === 'number' && Number.isFinite(count)) setCompletedChapters(Math.max(0, count));
+    }
+    if (ledgerResult.error || !Array.isArray(ledgerResult.data)) {
+      setEarnedKlPoints(null);
+    } else {
+      const credited = ledgerResult.data.reduce((sum, row) =>
+        sum + (row.direction === 'credit' && typeof row.points === 'number' ? row.points : 0), 0);
+      setEarnedKlPoints(credited);
+    }
+  }, [user?.id]);
+
+  useEffect(() => { void refreshJourney().catch(() => undefined); }, [refreshJourney]);
+
   const finishChapter = async () => {
     if (!selected) return;
     const { data, error } = await supabase.rpc('kl_reading_progress_v1', {
@@ -280,7 +383,8 @@ export default function KlReaderScreen() {
     if (error) { setRewardFeedback(error.message); return; }
     const result = data as { new_completion?: boolean; points_awarded?: number; completed?: boolean };
     setRewardFeedback(result?.completed === false ? 'Kailangan muna ng sapat na oras ng pagbabasa.' :
-      result?.new_completion ? 'Chapter completed · +7 BUKLOD Points' : 'Naitala na ang completion ng kabanatang ito.');
+      result?.new_completion ? 'Kabanata completed · +' + (result.points_awarded ?? 0) + ' BUKLOD Points' : 'Naitala na ang completion ng kabanatang ito.');
+    if (result?.new_completion) void refreshJourney().catch(() => undefined);
   };
 
   const syncViewport = (scrollY: number) => {
@@ -328,8 +432,12 @@ export default function KlReaderScreen() {
       if (error || !data || typeof data !== 'object') {
         setServerState('unknown');
       } else {
-        const payload = data as { readable?: boolean; content?: { text?: string }[] };
+        const payload = data as { readable?: boolean; title?: string; content?: { text?: string }[] };
         if (payload.readable === true && Array.isArray(payload.content)) {
+          if (typeof payload.title === 'string' && payload.title.trim()) {
+            setReleasedTitles((previous) => ({ ...previous, [episode.episodeNumber]: payload.title!.trim() }));
+          }
+          setReleasedIds((previous) => previous.includes(dbId) ? previous : [...previous, dbId]);
           const text = payload.content.map((paragraph) => paragraph.text ?? '').filter(Boolean).join('\n\n');
           setServerText(text);
           setServerState('readable');
@@ -411,16 +519,10 @@ export default function KlReaderScreen() {
     : null;
   const openTermEntry = openTerm ? dictionaryByName(openTerm) : null;
   const readingOpen = Boolean(selected && paragraphs.length > 0);
-  const liveReleased = Boolean(
-    selected
-    && (decision?.readable || releasedIds.includes(klDatabaseId(selected.episodeNumber)))
-    && (
-      selected.episodeNumber <= KL_RELEASED_THROUGH_EPISODE
-      || selected.status === 'live'
-      || selected.status === 'scheduled'
-      || selected.status === 'approved'
-    ),
-  );
+  // Discussion is server-authoritative. Bundled/provisional chapters are not a release.
+  const liveReleased = Boolean(selected && serverState === 'readable');
+  // kl_read_episode_v1 has already verified approval AND release on the server;
+  // do not hide discussion if the separate list-library refresh is delayed.
 
   const cycleVolume = (channel: 'music' | 'ambient') => {
     const steps = [0.3, 0.6, 1];
@@ -442,7 +544,7 @@ export default function KlReaderScreen() {
         scrollEventThrottle={32}
         onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => syncViewport(event.nativeEvent.contentOffset.y)}
       >
-        <Stack.Screen options={{ title: selected?.title ?? 'Kabihasnang Ligaw' }} />
+        <Stack.Screen options={{ title: selected ? chapterTitle(selected) : 'Kabihasnang Ligaw' }} />
         {readingOpen && selected ? (
           <View
             style={styles.reader}
@@ -458,7 +560,7 @@ export default function KlReaderScreen() {
                 disabled={!previousEpisode || !episodeReadable(previousEpisode.id)}
                 onPress={() => previousEpisode && openReadable(previousEpisode.id)}
               />
-              <Text style={styles.navTitle} numberOfLines={1}>{selected.title}</Text>
+              <Text style={styles.navTitle} numberOfLines={1}>{chapterTitle(selected)}</Text>
               <IconButton
                 icon="chevron-right"
                 label="Susunod na kabanata"
@@ -480,7 +582,7 @@ export default function KlReaderScreen() {
             <Text style={styles.kicker}>
               {selected.kind === 'panimula' ? 'PANIMULA' : `KABANATA ${String(selected.episodeNumber).padStart(2, '0')}`}
             </Text>
-            <Text style={[styles.chapter, compact && styles.titleCompact]}>{selected.title}</Text>
+            <Text style={[styles.chapter, compact && styles.titleCompact]}>{chapterTitle(selected)}</Text>
             {mediaUrls['music:0'] || mediaUrls['ambient:0'] ? (
               <KlChapterAudio music={mediaUrls['music:0']} ambient={mediaUrls['ambient:0']} />
             ) : <KlAudioControls
@@ -642,7 +744,10 @@ export default function KlReaderScreen() {
             </Pressable>
             {rewardFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{rewardFeedback}</Text> : null}
 
-            <KlLiveDiscussion episodeId={selected.id} live={liveReleased} />
+            {liveReleased ? (
+              <Text style={styles.meta}>Puntos: +7 sa unang verified completion ng kabanata · +10 kapag natapos ang buong serye.</Text>
+            ) : null}
+            <KlLiveDiscussion episodeId={klDatabaseId(selected.episodeNumber)} live={liveReleased} />
           </View>
         ) : (
           <View style={styles.list}>
@@ -654,12 +759,16 @@ export default function KlReaderScreen() {
             <Text style={styles.by}>{KL_AUTHOR}</Text>
             <Text style={styles.lede}>{klCopy.librarySubtitle}</Text>
             <Text style={styles.meta}>{klCopy.libraryHint}</Text>
-            <KlDynamicLibrary />
+            <KlDynamicLibrary additionalSeasonsOnly />
             <View style={styles.panel}>
               <Text style={styles.panelTitle}>{klCopy.journey}</Text>
-              <Text style={styles.body}>{klCopy.journeyEmpty}</Text>
+              <Text style={styles.body}>{journey.completed > 0
+                ? 'May ' + journey.completed + ' natapos na kabanata.' : klCopy.journeyEmpty}</Text>
+              <Text style={styles.meta}>Kabanata: +7 points sa unang verified completion · Buong serye: +10 points.</Text>
               <Text style={styles.meta}>{journey.completed} / {journey.total}</Text>
               <Text style={styles.meta}>{klCopy.journeyNote}</Text>
+              {earnedKlPoints != null ? <Text style={styles.meta}>KL points earned (ledger): {earnedKlPoints}</Text>
+                : <Text style={styles.meta}>KL points: hindi pa ma-verify sa ledger. Subukang mag-refresh.</Text>}
             </View>
             {cache.lastEpisodeId && episodeReadable(cache.lastEpisodeId) ? (
               <Pressable
@@ -674,7 +783,16 @@ export default function KlReaderScreen() {
                 </View>
               </Pressable>
             ) : null}
-            {isSystemAdmin ? <Text style={styles.meta}>System Admin · Manuscript approval (hindi awtomatikong release)</Text> : null}
+            {isSystemAdmin ? (
+              <View style={{ gap: 6 }}>
+                <Text style={styles.meta}>System Admin · Magkaiba ang media approval, chapter approval at public release.</Text>
+                <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
+                  onPress={() => void loadChapterApprovalStatus().then(() => setAdminFeedback('Na-refresh ang chapter status mula sa server.'))
+                    .catch((error) => setAdminFeedback('Hindi ma-refresh ang status: ' + (error instanceof Error ? error.message : 'Retry.')))}>
+                  <Text style={{ color: '#f1d39b', paddingVertical: 8 }}>Refresh chapter approval status</Text>
+                </Pressable>
+              </View>
+            ) : null}
             {isSystemAdmin && adminFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{adminFeedback}</Text> : null}
             {EPISODES.map((episode) => {
               const readable = episodeReadable(episode.id);
@@ -686,7 +804,7 @@ export default function KlReaderScreen() {
                   onPress={() => openReadable(episode.id)}
                   style={styles.episode}
                 >
-                  <Text style={styles.episodeTitle}>{episode.title}</Text>
+                  <Text style={styles.episodeTitle}>{chapterTitle(episode)}</Text>
                   <View style={styles.statusRow}>
                     <MaterialCommunityIcons
                       name={readable ? 'book-open-variant' : 'lock'}
@@ -705,11 +823,14 @@ export default function KlReaderScreen() {
                       {adminFeedbackEpisodeId === episode.id && adminFeedback ? (
                         <Text accessibilityRole="alert" style={styles.meta}>{adminFeedback}</Text>
                       ) : null}
-                      <Text style={styles.meta}>Approve each illustration/audio in the private preview before approving the chapter. Chapter approval does not publish it.</Text>
+                      <Text style={{ color: '#f1d39b', fontWeight: '700' }}>
+                        {chapterStatusText(adminChapterStates[klDatabaseId(episode.episodeNumber)])}
+                      </Text>
+                      <Text style={styles.meta}>Media approval ≠ Chapter approval ≠ Release. Approve each illustration/audio first, then Approve chapter, then Release Now (or schedule).</Text>
                       <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
+                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId) || adminChapterStates[klDatabaseId(episode.episodeNumber)]?.status === 'approved'} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
-                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setReleaseTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#36547b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Release Now</Text></Pressable>
+                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId) || !adminChapterStates[klDatabaseId(episode.episodeNumber)]?.approved_at || adminChapterStates[klDatabaseId(episode.episodeNumber)]?.status !== 'approved'} onPress={(event) => { event.stopPropagation(); setReleaseTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#36547b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Release Now</Text></Pressable>
                       </View>
                       {releaseTarget === episode.id ? (
                         <View style={{ gap: 8 }}>

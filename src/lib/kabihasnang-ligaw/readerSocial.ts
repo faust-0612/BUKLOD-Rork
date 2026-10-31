@@ -22,7 +22,7 @@ function asObject(value: unknown): Record<string, unknown> | null {
 
 export async function pingKlReading(episodeId: string): Promise<boolean> {
   try {
-    const { data, error } = await supabase.rpc(KL_RPC.pingReading, { p_episode_id: episodeId });
+    const { data, error } = await supabase.rpc('kl_reading_progress_v1', { p_episode_id: episodeId, p_action: 'ping' });
     if (error) return false;
     return asObject(data)?.ok === true;
   } catch {
@@ -57,12 +57,9 @@ export async function listKlReaders(episodeId: string): Promise<{
   }
 }
 
-export async function listKlComments(episodeId: string): Promise<KlEpisodeComment[]> {
+export async function listKlComments(episodeId: string, viewerId?: string): Promise<KlEpisodeComment[]> {
   try {
-    const { data, error } = await supabase.rpc(KL_RPC.listComments, {
-      p_episode_id: episodeId,
-      p_limit: 40,
-    });
+    const { data, error } = await supabase.rpc(KL_RPC.listComments, { p_episode_id: episodeId, p_limit: 40 });
     if (error) return [];
     const payload = asObject(data);
     if (!payload || payload.ok !== true) return [];
@@ -75,7 +72,7 @@ export async function listKlComments(episodeId: string): Promise<KlEpisodeCommen
         body: item.body.slice(0, 500),
         createdAt: typeof item.created_at === 'string' ? item.created_at : '',
         displayName: typeof item.display_name === 'string' ? item.display_name.slice(0, 80) : 'Miyembro',
-        isSelf: item.is_self === true,
+        isSelf: item.is_self === true || (typeof item.author_id === 'string' && item.author_id === viewerId),
       }];
     });
   } catch {
@@ -88,13 +85,14 @@ export async function addKlComment(
   body: string,
 ): Promise<{ ok: boolean; comment: KlEpisodeComment | null; error?: string }> {
   const trimmed = body.trim().slice(0, 500);
-  if (!trimmed) return { ok: false, comment: null, error: 'empty' };
+  if (trimmed.length < 12) return { ok: false, comment: null, error: '12 characters required' };
   try {
     const { data, error } = await supabase.rpc(KL_RPC.addComment, {
       p_episode_id: episodeId,
       p_body: trimmed,
+      p_parent_id: null,
     });
-    if (error) return { ok: false, comment: null, error: 'server' };
+    if (error) return { ok: false, comment: null, error: error.message };
     const payload = asObject(data);
     if (!payload || payload.ok !== true) {
       return { ok: false, comment: null, error: typeof payload?.error === 'string' ? payload.error : 'server' };

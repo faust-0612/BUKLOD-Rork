@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -7,6 +7,7 @@ import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import KlChapterAudio from './KlChapterAudio';
+import { sceneAnchorSuggestions, validateSceneAnchor } from '@/lib/kabihasnang-ligaw/sceneAnchorPicker';
 import { klSceneEffectSaved, klServerApprovedCount } from '@/lib/kabihasnang-ligaw/mediaApprovalState';
 import { KlSceneEffect, type SceneEffect } from './KlSceneEffect';
 import { sceneEditorValues, updateSceneDraft, clearSceneDraft, type SceneDrafts, type SceneDraft } from '@/lib/kabihasnang-ligaw/sceneDrafts';
@@ -71,6 +72,8 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
   const [motionPlaying, setMotionPlaying] = useState(true);
   const [audioUrl, setAudioUrl] = useState('');
   const [mediaRefreshToken, setMediaRefreshToken] = useState(0);
+  const [anchorPage, setAnchorPage] = useState(0);
+  const suggestions = useMemo(() => sceneAnchorSuggestions(manuscript), [manuscript]);
 
   useEffect(() => setKind(initialKind), [initialKind]);
 
@@ -251,8 +254,9 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       return;
     }
     const exact = anchor.trim();
-    if (exact.length < 12 || !manuscript.includes(exact) || manuscript.split(exact).length !== 2) {
-      setFeedback({ tone: 'error', text: 'Mag-paste ng unique sentence (12+ characters) na eksaktong isang beses lang makikita sa saved manuscript.' });
+    const validationError = validateSceneAnchor(manuscript, exact);
+    if (validationError) {
+      setFeedback({ tone: 'error', text: validationError + ' Maaari ring pumili sa mga talata mula sa saved manuscript sa ibaba.' });
       return;
     }
     void perform('Sine-save ang image placement', async () => {
@@ -263,10 +267,13 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       if (error) throw error;
       if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Hindi nakumpirma ng server ang placement.');
       const changed = (data as { changed?: boolean }).changed !== false;
-      setItems((previous) => previous.map((item) =>
-        item.kind === 'illustration' && item.placement === placement
-          ? { ...item, anchor: exact, side, approved: changed ? false : item.approved }
-          : item));
+      // A successful RPC is not enough: read back the exact scene from the server.
+      const { data: confirmed, error: verifyError } = await supabase.rpc('kl_admin_media_list_v1', { p_episode_id: episodeId });
+      if (verifyError || !Array.isArray(confirmed)) throw new Error('Hindi ma-verify ang saved placement. Refresh media bago muling mag-save.');
+      const current = (confirmed as MediaItem[]).find((item) => item.kind === 'illustration' && item.placement === placement);
+      if (current?.anchor !== exact || current.side !== side) throw new Error('Hindi tumugma ang placement sa server. Hindi minarkahang saved.');
+      setItems((confirmed as MediaItem[]).filter((item) => kindLabels.some((option) => option.value === item.kind)));
+      setSceneDrafts((previous) => clearSceneDraft(previous, placement));
       setFeedback({ tone: 'success', text: changed
         ? 'Scene ' + placement + ' placement saved on server. Kailangan ulit mag-prepare ng preview.'
         : 'Scene ' + placement + ' placement is already saved on server.' });
@@ -347,6 +354,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       {kind === 'illustration' ? (
         <>
           <Text style={{ color: '#fff' }}>Exact paragraph anchor (unique sentence from saved manuscript)</Text>
+          <Text style={{ color: '#c8d2da' }}>Ang placement ay dapat mula sa mismong server-saved manuscript. Hindi tatanggapin ang siping nasa lumang draft o ibang chapter.</Text>
           <TextInput value={anchor} onChangeText={(value) => editScene({ anchor: value })} multiline
             placeholder="Sentence from manuscript" placeholderTextColor="#aeb4bb"
             style={{ color: '#fff', borderWidth: 1, borderColor: '#718096', padding: 12, borderRadius: 8 }} />
@@ -355,6 +363,25 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
               : selected?.anchor ? 'Scene ' + placement + ': unsaved placement changes'
                 : 'Scene ' + placement + ': no saved paragraph position yet'}
           </Text>
+          {manuscriptSaved && suggestions.length > 0 ? (
+            <View style={{ gap: 6, padding: 8, backgroundColor: '#233748', borderRadius: 8 }}>
+              <Text style={{ color: '#ffe0a8', fontWeight: '700' }}>Pumili ng talata mula sa saved manuscript</Text>
+              <Text style={{ color: '#c8d2da' }}>Tap ang talata para awtomatikong ilagay ang eksaktong anchor para sa Scene {placement}.</Text>
+              {suggestions.slice(anchorPage * 3, anchorPage * 3 + 3).map((option) => (
+                <Choice key={option.paragraph} label={'Talata ' + option.paragraph + ' · ' + option.anchor.slice(0, 75)}
+                  disabled={isBusy} onPress={() => {
+                    editScene({ anchor: option.anchor });
+                    setFeedback({ tone: 'info', text: 'Talata ' + option.paragraph + ' ang napili para sa Scene ' + placement + '. Pindutin ang Save exact placement.' });
+                  }} />
+              ))}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Choice label="Nakaraan" disabled={isBusy || anchorPage === 0} onPress={() => setAnchorPage((page) => Math.max(0, page - 1))} />
+                <Choice label={'Susunod · ' + (anchorPage + 1) + '/' + Math.ceil(suggestions.length / 3)}
+                  disabled={isBusy || (anchorPage + 1) * 3 >= suggestions.length}
+                  onPress={() => setAnchorPage((page) => page + 1)} />
+              </View>
+            </View>
+          ) : null}
           <Choice label={'Image position: ' + side + ' selected paragraph'} disabled={isBusy}
             onPress={() => editScene({ side: side === 'before' ? 'after' : 'before' })} />
           <Choice label={busyAction === 'Sine-save ang image placement' ? 'Saving placement…' : 'Save exact placement'}

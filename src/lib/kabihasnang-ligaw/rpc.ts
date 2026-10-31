@@ -8,10 +8,9 @@ export const KL_RPC = {
   adminPreview: 'kl_admin_preview_v1',
   adminAction: 'kl_admin_action_v1',
   reportIssue: 'kl_report_reader_issue_v1',
-  pingReading: 'kl_ping_reading_v1',
   listReaders: 'kl_list_readers_v1',
-  listComments: 'kl_list_comments_v1',
-  addComment: 'kl_add_comment_v1',
+  listComments: 'kl_reader_comments_v2',
+  addComment: 'kl_post_comment_v1',
 } as const;
 
 export type AdminAction =

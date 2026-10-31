@@ -13,6 +13,9 @@ export function klEditorCrashComponent(stack: string | undefined): string {
   if (/KlSceneEffect/.test(s)) return 'KL_SCENE_EFFECT';
   if (/KlChapterAudio/.test(s)) return 'KL_CHAPTER_AUDIO';
   if (/KlAdminMediaUpload/.test(s)) return 'KL_MEDIA_EDITOR';
+  if (/KlLiveDiscussion/.test(s)) return 'KL_READER_DISCUSSION';
+  if (/KlAdminPreview/.test(s)) return 'KL_ADMIN_PREVIEW';
+  if (/KlReaderScreen/.test(s)) return 'KL_READER_SCREEN';
   if (/KlPublishingStudio/.test(s)) return 'KL_PUBLISHING_STUDIO';
   return 'KL_EDITOR_UNKNOWN';
 }

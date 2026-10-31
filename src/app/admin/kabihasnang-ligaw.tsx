@@ -13,11 +13,13 @@ import { useAuth } from '@/providers/AuthProvider';
 export default function KabihasnangLigawAdminScreen() {
   const { user } = useAuth();
   return (
-    <AdminGate>
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-        <KlEditorRenderBoundary key={user?.id ?? 'signed-out'}><KlPublishingStudio /></KlEditorRenderBoundary>
-      </ScrollView>
-    </AdminGate>
+    <KlEditorRenderBoundary key={user?.id ?? 'signed-out'} scope="admin">
+      <AdminGate>
+        <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+          <KlPublishingStudio />
+        </ScrollView>
+      </AdminGate>
+    </KlEditorRenderBoundary>
   );
 }
 
