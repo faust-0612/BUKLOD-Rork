@@ -105,6 +105,10 @@ export default function ScopeBulletinEditor() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
+  useEffect(() => {
+    warmBuklodAdOpportunity('bulletin_published_success');
+  }, []);
+
   const previewType = picked?.type ?? existingMediaKind;
   const previewUri = picked?.uri ?? existingMediaUrl;
 
