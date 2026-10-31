@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "objective": "Recover embedded EXIF thumbnails of previously failed legacy Wall JPEGs without whole-resolution decoding or paid transformations.",
+  "baseRef": "23182683e9a902ca0bbc688e7d6470e8974e71bb",
+  "productionBaselineEvidence": "Production read-only stats 814 done, 209 failed with originals intact; legacy worker disabled and its token expired. Latest main includes merged PR #450 and auth PR #451.",
+  "chosenApproach": "Strict byte-bounded APP1/EXIF JPEG IFD1 parser, small jpeg-js validation and existing bounded original decoder fallback. No automatic requeue.",
+  "selectionRationale": "A pre-existing small JPEG avoids resource-heavy high-resolution decode when available, preserving security and no provider charges.",
+  "alternativeApproaches": [
+    "Supabase paid Storage transformations (rejected: billed per unique image, quota not checked)",
+    "Increase Edge whole-image decode limit beyond 128MB (rejected: CPU/memory failures and unbounded resource demand)"
+  ],
+  "riskAreas": [
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/legacy-exif-thumbnail-recovery.test.mjs",
+    "supabase/tests/wall_preview_exif_boundary_20261031.sql"
+  ],
+  "allowedPaths": [
+    "supabase/functions/buklod-wall-preview-backfill/index.ts",
+    "supabase/functions/buklod-wall-preview-backfill/legacyThumbnail.ts",
+    "tests/legacy-exif-thumbnail-recovery.test.mjs",
+    "supabase/tests/wall_preview_exif_boundary_20261031.sql",
+    ".buklod/scopes/wall-exif-preview-recovery-20261031.json"
+  ],
+  "preserveBehaviors": [
+    "No original media mutation",
+    "Private signed access and service-role-only worker retained",
+    "Worker remains disabled pending controlled production pilot",
+    "No other Wall or ad/video behavior touched"
+  ],
+  "acceptanceChecks": [
+    "Malformed EXIF offsets fail safely",
+    "Small preview validated before upload",
+    "No paid transforms, no unconditional repeat failures",
+    "SQL auth contract and focused tests pass",
+    "No production worker restart before gates"
+  ]
+}
