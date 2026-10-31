@@ -24,6 +24,7 @@ import {
 } from '@/lib/buklodAdUnits';
 import { recordBuklodAdEvent } from '@/lib/buklodAdDiagnostics';
 import {
+  getBuklodPassiveAdRequestWaitMs,
   isBuklodPassiveAdAllowed,
   reserveBuklodPassiveAdRequest,
 } from '@/lib/buklodGlobalAdController';
@@ -60,6 +61,7 @@ export default function BuklodCommunityInlineAd({
   const [nativeFailed, setNativeFailed] = useState(false);
   const [bannerLoaded, setBannerLoaded] = useState(false);
   const [bannerFailed, setBannerFailed] = useState(false);
+  const [reservationTick, setReservationTick] = useState(0);
 
   const nativeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -136,9 +138,17 @@ export default function BuklodCommunityInlineAd({
     }
 
     if (!reserveBuklodPassiveAdRequest(placementId, requestKey)) {
-      setNativeFailed(true);
-      setBannerFailed(true);
-      return;
+      // Recycled feed rows may remount within the shared cooldown. Preserve
+      // the probe; never turn that normal rejection into a permanent failure.
+      const waitMs = Math.max(
+        1_000,
+        getBuklodPassiveAdRequestWaitMs(placementId, requestKey),
+      );
+      const timer = setTimeout(
+        () => setReservationTick(value => value + 1),
+        waitMs + 25,
+      );
+      return () => clearTimeout(timer);
     }
 
     nativeRequestStarted.current = true;
@@ -150,11 +160,13 @@ export default function BuklodCommunityInlineAd({
     );
 
     let cancelled = false;
+    let timedOut = false;
     let createdAd: NativeAd | null = null;
     let impressionSubscription: { remove: () => void } | null = null;
 
     nativeTimeoutRef.current = setTimeout(() => {
       if (!cancelled) {
+        timedOut = true;
         recordBuklodAdEvent(
           diagnosticPlacement,
           'ad_failed',
@@ -171,7 +183,8 @@ export default function BuklodCommunityInlineAd({
       .then(ad => {
         createdAd = ad;
 
-        if (cancelled) {
+        if (cancelled || timedOut) {
+          // The slot may already be rendering fallback inventory.
           ad.destroy();
           return;
         }
@@ -235,6 +248,7 @@ export default function BuklodCommunityInlineAd({
     pathname,
     placementId,
     requestKey,
+    reservationTick,
   ]);
 
   useEffect(() => {
