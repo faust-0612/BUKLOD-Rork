@@ -5,6 +5,7 @@ import {supabase} from '@/lib/supabase';
 import {KlSceneEffect,type SceneEffect} from './KlSceneEffect';
 import KlChapterAudio from './KlChapterAudio';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 type Chapter={id:string;season_number:number;episode_number:number;title:string};
 type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
 export default function KlDynamicLibrary(){
@@ -22,6 +23,7 @@ export default function KlDynamicLibrary(){
  const open=async(c:Chapter)=>{
  const sequence=++openSequence.current;
  setMessage('');setText('');setMedia([]);setUrls({});setMediaErrors({});setChapter(c);setStartTime(Date.now());
+ warmBuklodAdOpportunity('kl_chapter_success');
  const {data,error}=await supabase.rpc('kl_read_episode_v1',{p_episode_id:c.id});
  const payload=data as {readable?:boolean;content?:{text:string}[]}|null;
  if(sequence!==openSequence.current)return;
@@ -58,6 +60,7 @@ export default function KlDynamicLibrary(){
  if(!chapter||Date.now()-startTime<90000){setMessage('Ipagpatuloy muna ang pagbabasa.');return;}
  const {data,error}=await supabase.rpc('kl_reading_progress_v1',{p_episode_id:chapter.id,p_action:'complete'});
  const result=data as {new_completion?:boolean;completed?:boolean}|null;
+ if(!error && result?.new_completion) await showBuklodAdOpportunity('kl_chapter_success');
  setMessage(error?.message??(result?.new_completion?'Completed · +7 BUKLOD Points':result?.completed===false?'Reading not yet verified':'Completion recorded.'));
  };
  const image=(m:Media)=>{
