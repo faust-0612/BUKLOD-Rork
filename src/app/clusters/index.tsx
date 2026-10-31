@@ -22,6 +22,8 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 
 import {
   ClusterSummary,
@@ -485,6 +487,8 @@ function ClusterDirectory({ owner }: { owner: string }) {
         </Pressable>
       </View>
 
+      <BuklodFirstViewAd placement="cluster" placementId="cluster_directory_first_view" />
+
       {!online && <View style={styles.empty}>
         <Text style={styles.muted}>Offline · showing saved memberships. Search, changes, and verification require internet.</Text>
       </View>}
@@ -545,6 +549,11 @@ function ClusterDirectory({ owner }: { owner: string }) {
               </ClusterCard>
             ))
           )}
+
+          <BuklodNativeSponsoredCard
+            surface="cluster_dashboard"
+            slotId="cluster-directory-native-media"
+          />
 
           {invitations.length > 0 && (
             <>
