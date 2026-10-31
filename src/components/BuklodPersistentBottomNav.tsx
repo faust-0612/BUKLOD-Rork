@@ -46,18 +46,18 @@ import {
 
 /* PATCH_167I_R2_PROFILE_SLOT_TO_NOTIFICATIONS */
 
-type NavKey = 'home' | 'cluster' | 'community' | 'bible' | 'profile';
+type NavKey = 'home' | 'cluster' | 'community' | 'connect' | 'profile';
 type NavItem = {
   key: NavKey;
-  route: '/hub' | '/clusters' | '/buklod' | '/bible/read?source=my_bible' | '/me';
-  icon: 'home-variant-outline' | 'account-group-outline' | 'forum-outline' | 'book-open-variant' | 'account-outline';
+  route: '/hub' | '/clusters' | '/buklod' | '/messages' | '/me';
+  icon: 'home-variant-outline' | 'account-group-outline' | 'forum-outline' | 'message-outline' | 'account-outline';
   label: string;
 };
 const BASE_ITEMS: NavItem[] = [
   { key: 'home', route: '/hub', icon: 'home-variant-outline', label: 'Home' },
   { key: 'cluster', route: '/clusters', icon: 'account-group-outline', label: 'Cluster' },
   { key: 'community', route: '/buklod', icon: 'forum-outline', label: 'Wall' },
-  { key: 'bible', route: '/bible/read?source=my_bible', icon: 'book-open-variant', label: 'Bible' },
+  { key: 'connect', route: '/messages', icon: 'message-outline', label: 'Connect' },
   { key: 'profile', route: '/me', icon: 'account-outline', label: 'Profile' },
 ];
 
@@ -65,12 +65,12 @@ function routeKey(pathname: string): NavKey | null {
   if (pathname === '/hub') return 'home';
   if (pathname === '/clusters') return 'cluster';
   if (pathname === '/buklod' || pathname.startsWith('/post/')) return 'community';
-  if (pathname === '/bible/read' || pathname.startsWith('/bible/read?')) return 'bible';
+  if (pathname === '/messages' || pathname.startsWith('/messages/')) return 'connect';
   if (pathname === '/me') return 'profile';
   return null;
 }
 function isOnGlobalNavDestination(pathname: string, route: NavItem['route']) {
-  return pathname === route || (route === '/bible/read?source=my_bible' && pathname === '/bible/read');
+  return pathname === route;
 }
 
 export default function
@@ -168,8 +168,8 @@ BuklodPersistentBottomNav() {
     }
     if (Platform.OS === 'web') lastRequestedRoute.current = route;
     const needsScopeReset = activeScope?.scope_type === 'ORGANIZATION' || activeScope?.scope_type === 'CLUSTER';
-    // The Bible tab must leave a Daily Reading or Search route even when the path is already /bible/read.
-    if (route !== '/bible/read?source=my_bible' && isOnGlobalNavDestination(normalizedPath, route) && !needsScopeReset) return;
+    // A global destination cannot be skipped when a scope reset is still needed.
+    if (isOnGlobalNavDestination(normalizedPath, route) && !needsScopeReset) return;
     navigationInFlight.current = true;
     setPendingRoute(route);
     try {
