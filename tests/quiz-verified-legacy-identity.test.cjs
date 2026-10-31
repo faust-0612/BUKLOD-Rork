@@ -30,6 +30,7 @@ test('no disruption to fast normal login path or one-time handoff', () => {
 });
 test('DB legacy mapping preserves verified users and rejects unauthorized calls', () => {
   assert.match(migration, /legacy_existing',true/);
+  assert.match(migration, /end;\s*\$function\$;\s*-- Keep auth provisioning restricted/);
   assert.match(migration, /email_confirmed_at is not null/);
   assert.match(migration, /buklod_main_user_id/);
   assert.match(migration, /REVOKE ALL ON FUNCTION[\s\S]*FROM PUBLIC,anon,authenticated/);

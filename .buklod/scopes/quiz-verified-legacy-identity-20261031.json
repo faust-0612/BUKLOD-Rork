@@ -1,14 +1,13 @@
 {
   "contractVersion": 2,
-  "objective": "Resolve verified legacy BUKLOD Quiz email/UUID conflicts safely while preserving existing Quiz exams, attempts, roster and grades",
-  "baseRef": "f773f44a0a5664f8c795b910f30bb31d848420f7",
-  "productionBaselineEvidence": "verified: 2026-10-31 Quiz dedicated Supabase cjtehbfspgimyhifnjon ACTIVE_HEALTHY, Edge buklod-quiz-main-entry-v1 live version 10 source read, ensure-main-shadow-user SQL read, 2 distinct verified email UUID conflicts (one with attempt and roster), function_logs email_identity_conflict through 05:22 UTC; GitHub main f773f44a inspected. No production behavior acceptance yet.",
-  "chosenApproach": "Use a service-only RPC to resolve existing verified Quiz UUIDs by email, then recheck live Main email ownership in Edge Auth, bind Main ID in Quiz app_metadata, preserve Quiz profile role and issue existing one-time sign-in.",
-  "selectionRationale": "Smallest non-destructive bridge fix; unlike forcing Quiz UUID to Main UUID it does not migrate foreign keys or disturb attempts, session records, exams or grades. Validated Main email live only in the legacy collision path.",
+  "objective": "Make the already reviewed Quiz legacy identity migration SQL executable without changing the selected identity resolution design",
+  "baseRef": "e8e4ecd1df4e5300933ef1fa964d2090ba2e4b14",
+  "productionBaselineEvidence": "verified: 2026-10-31 Quiz dedicated Supabase project cjtehbfspgimyhifnjon ACTIVE_HEALTHY, current Edge version 10 and original ensure-main-shadow-user SQL still live. PR #457 merged but first migration attempt rejected atomically with PostgreSQL 42601 due missing statement terminator before REVOKE; SQL unchanged in production and no account/grade mutation.",
+  "chosenApproach": "Add missing PostgreSQL dollar-quoted CREATE FUNCTION statement semicolon before existing REVOKE/GRANT, and assert this exact boundary in focused Node regression test.",
+  "selectionRationale": "Smallest safe corrective edit after the failed SQL parse, retaining PR #457 verified auth guards and record preservation; no production modifications while CI is unverified.",
   "alternativeApproaches": [
-    "Change existing Quiz user UUID to Main UUID and cascade references: rejected as dangerous to exams and sessions",
-    "Create a second shadow Quiz user with synthetic email: rejected because existing attempts and roster would appear missing",
-    "Use full Quiz user listing on every bridge login: rejected as unscalable for 1M users"
+    "Skip grants and run truncated SQL: rejected because would diverge from frozen RC source and security contract",
+    "Apply ad-hoc patch directly to production: rejected because would bypass source review and DEV/RC release gates"
   ],
   "preserveBehaviors": [
     "Main UUID remains authoritative in Main",
@@ -23,23 +22,19 @@
     "classroom-quiz"
   ],
   "regressionTests": [
-    "tests/quiz-verified-legacy-identity.test.cjs",
-    "supabase/tests/quiz_verified_legacy_identity_20261031.sql"
+    "tests/quiz-verified-legacy-identity.test.cjs"
   ],
   "allowedPaths": [
-    "supabase/functions/buklod-quiz-main-entry-v1/index.ts",
     "supabase/pending/BUKLOD_QUIZ_VERIFIED_LEGACY_IDENTITY_R24.sql",
     "tests/quiz-verified-legacy-identity.test.cjs",
-    "supabase/tests/quiz_verified_legacy_identity_20261031.sql",
     ".buklod/scopes/quiz-verified-legacy-identity-20261031.json"
   ],
   "acceptanceChecks": [
-    "Scoped diff matches exactly five paths",
-    "Focused Node source contract and read-only SQL behavioral tests pass",
-    "Main and Quiz identity mismatch produces existing Quiz UUID only when both verified and not cross-linked",
-    "No Quiz record/user deletion and no Main DB change",
-    "Production migration goes first, then exact Edge source version",
-    "Unauthenticated bridge remains denied",
-    "Affected user's one-tap login requires device confirmation; do not claim success before observed"
+    "SQL CREATE FUNCTION is terminated before REVOKE/GRANT",
+    "Focused Node SQL packaging regression and engineering scope gate pass",
+    "No existing Quiz user, exam, attempt, grade or roster modifications",
+    "Exact corrected RC SQL applied before unchanged Edge source deployment",
+    "Live SQL database contract passes after migration",
+    "A real affected user must confirm successful Main-to-Quiz sign-in"
   ]
 }
