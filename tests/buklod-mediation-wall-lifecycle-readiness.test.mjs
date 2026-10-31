@@ -41,3 +41,14 @@ test('wall sponsored inventory, attribution, policy gates, and fallback remain u
   const appConfig = read('app.config.js');
   assert.match(appConfig, /'react-native-google-mobile-ads'/);
 });
+
+test('Wall banner fallback cannot mount before shared reservation is accepted', () => {
+  const fallbackReservation = inline.indexOf('if (!nativeRequestStarted.current &&');
+  const gate = inline.indexOf('reserveBuklodPassiveAdRequest(placementId, requestKey)', fallbackReservation);
+  const ready = inline.indexOf('setBannerReservationReady(true);', fallbackReservation);
+  const bannerRender = inline.indexOf('if (!nativeFailed || !bannerUnitId || bannerFailed || !bannerReservationReady)');
+  assert.ok(fallbackReservation >= 0 && gate > fallbackReservation);
+  assert.ok(ready > gate && bannerRender > ready);
+  assert.match(inline, /const \[bannerReservationReady, setBannerReservationReady\] = useState\(false\)/);
+  assert.match(inline, /setBannerReservationReady\(false\);/);
+});
