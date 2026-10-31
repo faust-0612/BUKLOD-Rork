@@ -34,6 +34,22 @@ const BREAKS = {
     reason: 'reading_session_completed',
     placement: 'interstitial_kl_chapter_completed',
   },
+  cluster_created_transition: {
+    reason: 'content_session_completed',
+    placement: 'interstitial_cluster_created',
+  },
+  organization_created_transition: {
+    reason: 'content_session_completed',
+    placement: 'interstitial_organization_created',
+  },
+  community_post_success: {
+    reason: 'content_session_completed',
+    placement: 'interstitial_community_post_published',
+  },
+  bulletin_published_success: {
+    reason: 'content_session_completed',
+    placement: 'interstitial_scope_bulletin_published',
+  },
 } as const satisfies Record<string, {
   reason: BuklodNaturalInterstitialReason;
   placement: string;
