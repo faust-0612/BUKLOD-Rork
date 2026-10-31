@@ -4,6 +4,8 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -33,6 +35,9 @@ import {
   type ConnectReactionOption,
 } from '@/components/connect/ConnectReactionPicker';
 import { HIBLA } from '@/lib/connectHibla';
+import { router } from 'expo-router';
+import { parseClusterInviteLink } from '@/lib/buklodClusterInviteUrl';
+import { splitConnectMessageLinks } from '@/lib/connectMessageLinks';
 import {
   type ConnectMessageActionAnchor,
 } from '@/components/connect/ConnectMessageActionSheet';
@@ -203,6 +208,14 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     bodyOwn: {
       color: '#FFFFFF',
+    },
+    bodyLink: {
+      color: '#08765F',
+      textDecorationLine: 'underline',
+      fontWeight: '700',
+    },
+    bodyLinkOwn: {
+      color: '#D7FCE5',
     },
     timeRow: {
       marginTop: 6,
@@ -507,6 +520,24 @@ export function ConnectMessageBubble({
   const bubbleRef =
     useRef<View>(null);
 
+  // The outer bubble only owns long-press actions. A tapped URL is handled
+  // independently so old BUKLOD invitation messages work without re-sending.
+  const openMessageLink = (href: string) => {
+    const clusterId = parseClusterInviteLink(href);
+    if (clusterId) {
+      router.push({
+        pathname: '/clusters/[id]',
+        params: { id: clusterId, fromInvite: '1' },
+      } as any);
+      return;
+    }
+    if (/^https?:\/\//i.test(href)) {
+      void Linking.openURL(href).catch(() => {
+        Alert.alert('Link unavailable', 'Could not open this link. Please try again.');
+      });
+    }
+  };
+
   const handleLongPress =
     () => {
       bubbleRef.current?.measureInWindow(
@@ -720,7 +751,20 @@ export function ConnectMessageBubble({
                 own && styles.bodyOwn,
               ]}
             >
-              {bodyText}
+              {splitConnectMessageLinks(bodyText).map((part, index) =>
+                part.href ? (
+                  <Text
+                    key={index}
+                    accessibilityRole="link"
+                    style={[styles.bodyLink, own && styles.bodyLinkOwn]}
+                    onPress={() => openMessageLink(part.href!)}
+                  >
+                    {part.text}
+                  </Text>
+                ) : (
+                  <Text key={index}>{part.text}</Text>
+                )
+              )}
             </Text>
           </>
         )}
