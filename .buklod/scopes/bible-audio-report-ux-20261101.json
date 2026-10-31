@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "objective": "Correct Android My Bible one-tap narrator, Filipino ASD language mismatch, clipped verse rows and secure Bible report failure recovery.",
+  "baseRef": "6a1c6dc2bc98cbf2bafef7c5278b5db6af21e7b3",
+  "productionBaselineEvidence": "Verified source 6a1c6dc and production OTA 01a19402-9e9d-7c68-89e0-02f1b0473c35 on runtime 1.3.2. User screenshots show full-size narrator card on tap, cut-off Scripture rows, and SSLHandshakeException Trust anchor for certification path not found on report. Certificate root cause is not confirmed; do not disable TLS verification.",
+  "chosenApproach": "Direct play/pause/resume within My Bible quick-action; optional advanced audio card via long press; require an actual fil/tl Android TTS voice for ASD; full-height verse text with annotation/share in long-press modal; account-scoped cached report and retry with SSL-specific error and no misleading zero totals.",
+  "selectionRationale": "Small, localized changes to existing Bible paths; no native dependencies, storage schema, app navigation or unrelated code.",
+  "alternativeApproaches": [
+    "Suppress TLS verification: rejected, insecure.",
+    "Force English voice when Tagalog unavailable: rejected, violates selected translation.",
+    "Full Bible rewrite: rejected, adds regression risk."
+  ],
+  "preserveBehaviors": [
+    "Daily Plan flow, submission and audio bar unchanged",
+    "My Bible commentary, Strong's exact links and bookmarks preserved",
+    "English KJV narration still supported",
+    "Report source RPC and private per-account data unchanged",
+    "App navigation, ads, Wall and other modules unchanged",
+    "Do not alter production without verified DEV and RC checks"
+  ],
+  "riskAreas": [
+    "bible",
+    "audio",
+    "network-recovery",
+    "layout",
+    "account-isolation"
+  ],
+  "regressionTests": [
+    "tests/bible-reader-audio-report-ux.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/bible/read.tsx",
+    "src/app/bible/report.tsx",
+    "src/lib/buklodBibleNarrationEngine.ts",
+    "src/lib/buklodBibleNarration.ts",
+    "src/lib/buklodBibleVoiceLocale.ts",
+    "src/lib/bibleReportErrors.ts",
+    "tests/bible-reader-audio-report-ux.test.mjs",
+    ".buklod/scopes/bible-audio-report-ux-20261101.json"
+  ],
+  "acceptanceChecks": [
+    "Focused tests validate voice language, direct play/pause/resume, full-height verse text and private offline report",
+    "Preserve SSL certificate verification",
+    "TypeScript and Main integration QA pass",
+    "User/device validation separately waived only if requested",
+    "DEV to verified RC to production OTA remains separate"
+  ]
+}
