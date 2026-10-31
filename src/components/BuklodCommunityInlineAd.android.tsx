@@ -73,6 +73,7 @@ export default function BuklodCommunityInlineAd({
   const [nativeFailed, setNativeFailed] = useState(false);
   const [bannerLoaded, setBannerLoaded] = useState(false);
   const [bannerFailed, setBannerFailed] = useState(false);
+  const [bannerReservationReady, setBannerReservationReady] = useState(false);
   const [reservationTick, setReservationTick] = useState(0);
 
   const nativeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -194,6 +195,7 @@ export default function BuklodCommunityInlineAd({
     setNativeAd(null);
     setBannerLoaded(false);
     setBannerFailed(false);
+    setBannerReservationReady(false);
   }, [canAttempt]);
 
   useEffect(() => {
@@ -357,7 +359,11 @@ export default function BuklodCommunityInlineAd({
       return () => clearTimeout(timer);
     }
 
+    // A BannerAd must not mount before reservation succeeds. This also
+    // prevents a recycled no-Native-unit fallback from issuing SDK requests
+    // while the slot's shared cooldown is still active.
     bannerRequestStarted.current = true;
+    setBannerReservationReady(true);
     recordBuklodAdEvent(
       diagnosticPlacement,
       'ad_request',
@@ -448,7 +454,7 @@ export default function BuklodCommunityInlineAd({
     );
   }
 
-  if (!nativeFailed || !bannerUnitId || bannerFailed) {
+  if (!nativeFailed || !bannerUnitId || bannerFailed || !bannerReservationReady) {
     // Keep the reserved frame stable for this visible row when no inventory
     // is available. Never synthesize an ad or a billable impression.
     return (
