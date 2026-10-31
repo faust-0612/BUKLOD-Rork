@@ -2,6 +2,9 @@ import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import MyBibleQuickNavigator from '@/components/bible/MyBibleQuickNavigator';
+import BuklodKjvStrongText from '@/components/bible/BuklodKjvStrongText';
+import { useBuklodBibleChapterStudy } from '@/lib/buklodBibleStudy';
+import { useBuklodScrollBottomInset } from '@/lib/buklodSafeArea';
 /**
  * PATCH 153H-3A
  * FULL BIBLE READER
@@ -384,6 +387,23 @@ const [showChapters, setShowChapters] =
 
   const isMyBibleMode =
     bibleReaderSource === 'my_bible' || bibleReaderSource === 'search';
+
+  // Separate, non-blocking public-domain study data. The source cannot
+  // affect daily assignment, narration, verses, notes or completion.
+  const bibleStudy = useBuklodBibleChapterStudy({
+    enabled: isMyBibleMode,
+    bookNo,
+    chapterNo,
+    translation,
+    accountId,
+    online,
+  });
+  const [henryVerse, setHenryVerse] = useState<number | null>(null);
+  const readerScrollBottom = useBuklodScrollBottomInset({ extra: 38 });
+
+  useEffect(() => {
+    setHenryVerse(null);
+  }, [bookNo, chapterNo]);
 
 
   const isDailyReadingMode =
@@ -2924,6 +2944,7 @@ setMarking(true);
             bibleLandscape
               ? 22
               : 16,
+          paddingBottom: readerScrollBottom,
         },
       ]}
     >
@@ -4139,32 +4160,45 @@ setMarking(true);
                       }
                     </Text>
 
-                    <Text
-                      style={[
-                        styles.verseText,
-                        {
-                          fontSize:
-                            17 *
-                            bibleZoom,
-
-                          lineHeight:
-                            28 *
-                            bibleZoom,
-
-                          /*
-                           * Explicit flex shrink
-                           * keeps text inside the
-                           * screen when rotated.
-                           */
-                          flexShrink:
-                            1,
-                        },
-                      ]}
-                    >
-                      {
-                        cleanText
-                      }
-                    </Text>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <BuklodKjvStrongText
+                        text={cleanText}
+                        tags={isMyBibleMode && translation === 'KJV'
+                          ? bibleStudy.kjvStrong[Number(verse.verse_no)] : undefined}
+                        textStyle={[
+                          styles.verseText,
+                          {
+                            fontSize: 17 * bibleZoom,
+                            lineHeight: 28 * bibleZoom,
+                            flexShrink: 1,
+                          },
+                        ]}
+                      />
+                      {isMyBibleMode && !!bibleStudy.commentary[Number(verse.verse_no)] && (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Buksan ang Matthew Henry commentary sa talata ${verse.verse_no}`}
+                          onPress={(event) => {
+                            event.stopPropagation();
+                            setHenryVerse(Number(verse.verse_no));
+                          }}
+                          style={{
+                            marginTop: 8,
+                            alignSelf: 'flex-start',
+                            paddingVertical: 7,
+                            paddingHorizontal: 10,
+                            borderRadius: 10,
+                            backgroundColor: '#EDF5EF',
+                            borderWidth: 1,
+                            borderColor: '#D4E7DB',
+                          }}
+                        >
+                          <Text style={{ color: '#275D45', fontSize: 11, fontWeight: '800' }}>
+                            Matthew Henry · Paliwanag sa talata {verse.verse_no} ›
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
 
 
                     {isMyBibleMode && annotation?.note_text && (
@@ -4220,6 +4254,56 @@ setMarking(true);
         )}
       </Card>
 
+
+      {isMyBibleMode && (
+        <Modal
+          visible={henryVerse !== null && !!bibleStudy.commentary[henryVerse ?? 0]}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setHenryVerse(null)}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.50)',
+            justifyContent: 'center',
+            padding: 18,
+          }}>
+            <View style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 18,
+              padding: 16,
+              maxHeight: '82%',
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#275D45', fontSize: 11, fontWeight: '800' }}>
+                    MATTHEW HENRY • COMMENTARY
+                  </Text>
+                  <Text style={{ color: '#20362B', fontSize: 18, fontWeight: '900' }}>
+                    {currentBook?.book_name ?? 'Bible'} {chapterNo}:{henryVerse}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setHenryVerse(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Isara ang Matthew Henry commentary"
+                  style={{ padding: 12 }}
+                >
+                  <Text style={{ fontSize: 16, color: '#275D45', fontWeight: '800' }}>✕</Text>
+                </Pressable>
+              </View>
+              <ScrollView contentContainerStyle={{ paddingBottom: 18 }}>
+                <Text style={{ color: '#33483C', fontSize: 15, lineHeight: 24 }}>
+                  {bibleStudy.commentary[henryVerse ?? 0] ?? ''}
+                </Text>
+                <Text style={{ color: '#718078', fontSize: 11, marginTop: 16 }}>
+                  Source: Matthew Henry Bible Commentary (public domain) via Free Use Bible API.
+                </Text>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* =====================================================
           MY_BIBLE_ANNOTATION_MODAL_V1
