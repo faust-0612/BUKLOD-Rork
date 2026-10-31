@@ -12,8 +12,10 @@ test('Android-specific module bypasses October 28 full-screen photo masking wrap
   // The progressive overlay is a sibling inside the existing measured
   // Pressable; never recreate the white-screen nested wrapper.
   assert.match(native,/const renderWithUpgrade = \(preview: React\.ReactNode\) => \(/);
-  assert.match(native,/<ExpoImage[\s\S]*?style=\{style\}/);
-  assert.match(native,/<NativeImage[\s\S]*?style=\{style\}/);
+  // Direct image layout is retained; the preview gains only a sibling
+  // compositing z-index, NOT a nested View or absolute base image.
+  assert.match(native,/<ExpoImage[\s\S]*?usingPreview && \{ zIndex: WALL_PREVIEW_LAYER_Z_INDEX \}/);
+  assert.match(native,/<NativeImage[\s\S]*?usingPreview && \{ zIndex: WALL_PREVIEW_LAYER_Z_INDEX \}/);
   assert.doesNotMatch(native,/<View style=\{style as any\}|const photoStyle =|loadingOverlay|loadingBadge|recyclingKey=\{cacheKey\}/);
   // Web and iOS keep their existing generic implementation.
   assert.match(generic,/styles\.loadingOverlay/);
@@ -25,7 +27,9 @@ test('Android decode cannot prematurely suppress fallback without onDisplay',()=
   assert.match(policy,/export const ANDROID_PHOTO_DECODE_STALL_MS = 8_000/);
   assert.match(native,/current\.renderer === 'expo' && !current\.painted/);
   assert.match(native,/renderer: 'native'/);
-  const expo = native.slice(native.lastIndexOf('  return renderWithUpgrade(\n    <ExpoImage'));
+  const baseExpo = native.lastIndexOf('  return renderWithUpgrade(\n    <>\n    <ExpoImage');
+  assert.ok(baseExpo >= 0, 'Direct Expo image renderer remains reachable');
+  const expo = native.slice(baseExpo);
   const onLoad = expo.split('onLoad={event => {')[1]?.split('onDisplay=')[0] ?? '';
   assert.doesNotMatch(onLoad,/painted: true/);
   assert.match(expo,/onDisplay=\{\(\) => \{[\s\S]*?painted: true/);

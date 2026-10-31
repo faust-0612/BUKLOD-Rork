@@ -18,7 +18,8 @@
   ],
   "regressionTests": [
     "tests/android-wall-sharp-paint-contract.test.mjs",
-    "tests/android-wall-auto-sharp.test.mjs"
+    "tests/android-wall-auto-sharp.test.mjs",
+    "tests/android-photo-oct28-rollback.test.cjs"
   ],
   "preserveBehaviors": [
     "Signed URLs and per-account storage access unchanged",
@@ -42,6 +43,7 @@
     "tests/android-wall-sharp-paint-contract.test.mjs",
     "tests/android-wall-auto-sharp.test.mjs",
     ".github/workflows/engineering-accountability.yml",
-    ".buklod/scopes/android-wall-sharp-compositing-20261031.json"
+    ".buklod/scopes/android-wall-sharp-compositing-20261031.json",
+    "tests/android-photo-oct28-rollback.test.cjs"
   ]
 }
