@@ -46,5 +46,6 @@
     "No-fill stops fast retries; focus/app-resume can recover after cooldown",
     "Native ad timeout late callback destroys ad instead of overwriting fallback",
     "Immutable verified RC required before production OTA, production not claimed without ID"
-  ]
+  ],
+  "contractVersion": 2
 }
