@@ -16,6 +16,7 @@ import React, {
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
@@ -289,6 +290,8 @@ export default function BuklodHomeFaithPanel({
   const reduceMotion = useBuklodReduceMotion();
   const { user } = useAuth();
   const { online } = useNetwork();
+  const { scopes } = useBuklodScope();
+  const savedActiveCluster = !online && scopes.some(scope => scope.scope_type === 'CLUSTER' && scope.membership_status === 'ACTIVE');
   const readingCacheUser = user?.id ?? 'guest';
   const readingAccountRef = useRef(readingCacheUser);
   const [readingDate, setReadingDate] = useState(getManilaReadingDate);
@@ -388,6 +391,10 @@ export default function BuklodHomeFaithPanel({
       setAccess(null);
       setAccessLoading(true);
     }
+    if (!online) {
+      setAccessLoading(false);
+      return;
+    }
     void withBuklodTimeout(fetchScopeFaithAccessStatus(scopeId), 10000, 'Faith access')
       .then(next => {
         if (!current()) return;
@@ -403,7 +410,7 @@ export default function BuklodHomeFaithPanel({
       })
       .finally(() => { if (current()) setAccessLoading(false); });
     return () => { active = false; };
-  }, [accessContext, scopeId]));
+  }, [accessContext, scopeId, online]));
 
   useEffect(() => {
     let active = true;
@@ -447,6 +454,14 @@ export default function BuklodHomeFaithPanel({
           if (returnedDate !== readingDate) {
             console.warn('SHOW FAITH daily reading: response date mismatch');
             return;
+          }
+          const startBook = Number(raw.start_book_no ?? 0);
+          const startChapter = Number(raw.start_chapter ?? 0);
+          if (startBook > 0 && startChapter > 0) {
+            void setOfflineCache('bible-daily-plan:' + readingDate,
+              { bookNo: startBook, chapterNo: startChapter },
+              { userId: readingCacheUser, ttlMs: 35 * 24 * 60 * 60 * 1000 })
+              .catch(() => undefined);
           }
           const next: TodayReading = {
             reading_date: returnedDate,
@@ -561,9 +576,9 @@ export default function BuklodHomeFaithPanel({
             "Today's reading"
           }
           meta={
-            Boolean(scopeId) && (accessLoading || !access)
+            Boolean(scopeId) && !savedActiveCluster && (accessLoading || !access)
               ? 'Checking Cluster access…'
-              : Boolean(scopeId) && !access?.has_active_cluster
+              : Boolean(scopeId) && !savedActiveCluster && !access?.has_active_cluster
               ? 'Join a Cluster first'
               : dailyReadingLocked
               ? access?.daily_reading.pending_request_id
@@ -583,10 +598,10 @@ export default function BuklodHomeFaithPanel({
           loading={loading || (Boolean(scopeId) && accessLoading)}
           locked={dailyReadingLocked}
           onPress={() => {
-            if (scopeId && (accessLoading || !access)) {
+            if (scopeId && !savedActiveCluster && (accessLoading || !access)) {
               return;
             }
-            if (scopeId && !access?.has_active_cluster) {
+            if (scopeId && !savedActiveCluster && !access?.has_active_cluster) {
               router.push('/clusters' as any);
               return;
             }
@@ -629,9 +644,9 @@ export default function BuklodHomeFaithPanel({
           label="Word"
           title="Daily devotional"
           meta={
-            Boolean(scopeId) && (accessLoading || !access)
+            Boolean(scopeId) && !savedActiveCluster && (accessLoading || !access)
               ? 'Checking Cluster access…'
-              : Boolean(scopeId) && !access?.has_active_cluster
+              : Boolean(scopeId) && !savedActiveCluster && !access?.has_active_cluster
               ? 'Join a Cluster first'
               : devotionLocked
               ? access?.devotion_word.pending_request_id
@@ -644,10 +659,10 @@ export default function BuklodHomeFaithPanel({
           loading={Boolean(scopeId) && accessLoading}
           locked={devotionLocked}
           onPress={() => {
-            if (scopeId && (accessLoading || !access)) {
+            if (scopeId && !savedActiveCluster && (accessLoading || !access)) {
               return;
             }
-            if (scopeId && !access?.has_active_cluster) {
+            if (scopeId && !savedActiveCluster && !access?.has_active_cluster) {
               router.push('/clusters' as any);
               return;
             }

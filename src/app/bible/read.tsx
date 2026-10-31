@@ -45,6 +45,9 @@ import {
   useLocalSearchParams,
 } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { colors } from '@/lib/theme';
 import {
   Card,
@@ -128,6 +131,10 @@ const paramString = (
 
 
 export default function BibleReaderScreen() {
+  const { user } = useAuth();
+  const accountId = user?.id ?? '';
+  const { online } = useNetwork();
+  const initGeneration = useRef(0);
   const params = useLocalSearchParams<{
     book?: string;
     chapter?: string;
@@ -223,100 +230,44 @@ export default function BibleReaderScreen() {
         : 1
     );
 
-  /*
-   * PATCH_176E_DAILY_PLAN_READER_SYNC
-   *
-   * Daily Reading must always open the canonical
-   * automatic assignment for assignedDate.
-   *
-   * Never fall back to the user's recent Bible chapter
-   * when entering through source=daily_plan.
-   */
+  // Exact, account-bound daily assignment only. Never substitute Genesis or
+  // the last personal chapter for an uncached offline daily-plan date.
   useEffect(() => {
-    if (
-      source !== 'daily_plan' ||
-      !assignedDate
-    ) {
-      return;
-    }
-
+    if (source !== 'daily_plan' || !assignedDate || !accountId) return;
     let active = true;
-
-    const syncDailyPlanChapter =
-      async () => {
-        try {
-          const { data, error } =
-            await (supabase as any).rpc(
-              'get_automatic_bible_reading',
-              {
-                p_reading_date:
-                  assignedDate,
-              }
-            );
-
-          if (
-            !active ||
-            error
-          ) {
-            if (error) {
-              console.warn(
-                'Daily Bible reader sync:',
-                error.message
-              );
-            }
-
-            return;
-          }
-
-          const raw =
-            Array.isArray(data)
-              ? data[0] ?? null
-              : data ?? null;
-
-          if (!raw) {
-            return;
-          }
-
-          const nextBook =
-            Number(
-              raw.start_book_no ?? 0
-            );
-
-          const nextChapter =
-            Number(
-              raw.start_chapter ?? 0
-            );
-
-          if (
-            nextBook > 0 &&
-            nextChapter > 0
-          ) {
-            setBookNo(nextBook);
-            setChapterNo(nextChapter);
-
-            setDailyPlanStep(1);
-          }
+    void (async () => {
+      const key = 'bible-daily-plan:' + assignedDate;
+      const saved = await getOfflineCache<{bookNo: number;chapterNo: number}>(key, {
+        userId: accountId, allowStale: true,
+      });
+      if (!active) return;
+      if (saved?.data && saved.data.bookNo > 0 && saved.data.chapterNo > 0) {
+        setBookNo(saved.data.bookNo);
+        setChapterNo(saved.data.chapterNo);
+        setDailyPlanStep(1);
+      }
+      if (!online) return;
+      try {
+        const { data, error } = await (supabase as any).rpc(
+          'get_automatic_bible_reading', { p_reading_date: assignedDate });
+        if (!active || error) return;
+        const raw = Array.isArray(data) ? data[0] ?? null : data ?? null;
+        const nextBook = Number(raw?.start_book_no ?? 0);
+        const nextChapter = Number(raw?.start_chapter ?? 0);
+        if (nextBook > 0 && nextChapter > 0) {
+          setBookNo(nextBook);
+          setChapterNo(nextChapter);
+          setDailyPlanStep(1);
+          void setOfflineCache(key, {bookNo: nextBook, chapterNo: nextChapter}, {
+            userId: accountId, ttlMs: 35 * 24 * 60 * 60 * 1000,
+          }).catch(() => undefined);
         }
-        catch (error) {
-          console.warn(
-            'Daily Bible reader sync:',
-            error
-          );
-        }
-      };
-
-    void syncDailyPlanChapter();
-
-    return () => {
-      active = false;
-    };
-  }, [
-    source,
-    assignedDate,
-  ]);
-
-
-
+      } catch (error) {
+        console.warn('Daily Bible reader sync:', error);
+      }
+    })();
+    return () => { active = false; };
+  }, [source, assignedDate, accountId, online]);
 
   const [showBooks, setShowBooks] =
     useState(false);
@@ -1365,260 +1316,139 @@ const [showChapters, setShowChapters] =
   // ==========================================================
 
   const initialize = useCallback(async () => {
+    const token = ++initGeneration.current;
+    const current = () => token === initGeneration.current;
     setInitializing(true);
     setReaderAvailable(true);
     setReaderError(null);
-
+    setTranslations([]);
+    setBooks([]);
+    setVerses([]);
+    let hasSaved = false;
     try {
-      const [
-        translationsResult,
-        preferredResult,
-        recentResult,
-      ] = await Promise.all([
-        (supabase as any).rpc(
-          'get_available_bible_translations'
-        ),
-
-        (supabase as any).rpc(
-          'get_my_preferred_bible_version'
-        ),
-
-        (supabase as any).rpc(
-          'get_my_recent_bible_reading',
-          {
-            p_limit: 1,
+      if (!accountId) throw new Error('Sign in to open your saved Bible.');
+      const cached = await getOfflineCache<{
+        translations: Translation[];
+        preferred: string;
+        recent: RecentReading | null;
+      }>('bible-bootstrap-v1', {userId: accountId, allowStale: true});
+      if (!current()) return;
+      hasSaved = Boolean(cached?.data?.translations?.length);
+      const apply = (available: Translation[], preferred: string, recent: RecentReading | null) => {
+        if (!current()) return;
+        setTranslations(available);
+        let resolved = requestedTranslation || recent?.translation_code || preferred || 'ASD';
+        if (!available.some(t => t.code === resolved)) resolved = available[0]?.code ?? 'ASD';
+        setTranslation(resolved);
+        if (requestedBook > 0) setBookNo(requestedBook);
+        else if (source !== 'daily_plan') setBookNo(recent?.book_no || 1);
+        if (requestedChapter > 0) setChapterNo(requestedChapter);
+        else if (source !== 'daily_plan') setChapterNo(recent?.chapter_no || 1);
+        setInitializing(false);
+      };
+      if (hasSaved && cached?.data) {
+        apply(cached.data.translations, cached.data.preferred, cached.data.recent);
+      }
+      if (!online) {
+        if (source === 'daily_plan' && assignedDate && !requestedBook) {
+          const plan = await getOfflineCache<{bookNo: number;chapterNo: number}>(
+            'bible-daily-plan:' + assignedDate, {userId: accountId, allowStale: true});
+          if (!current()) return;
+          if (!plan?.data?.bookNo || !plan?.data?.chapterNo) {
+            throw new Error('This date\'s Daily Reading has not been saved offline yet.');
           }
-        ),
+          setBookNo(plan.data.bookNo);
+          setChapterNo(plan.data.chapterNo);
+        }
+        if (!hasSaved) throw new Error('No Bible reader data saved on this device. Connect once to download it.');
+        return;
+      }
+      const [translationsResult, preferredResult, recentResult] = await Promise.all([
+        (supabase as any).rpc('get_available_bible_translations'),
+        (supabase as any).rpc('get_my_preferred_bible_version'),
+        (supabase as any).rpc('get_my_recent_bible_reading', { p_limit: 1 }),
       ]);
-
-
-      if (translationsResult.error) {
-        throw translationsResult.error;
+      if (!current()) return;
+      if (translationsResult.error) throw translationsResult.error;
+      const available = (translationsResult.data ?? []) as Translation[];
+      const preferred = String(preferredResult.data ?? 'ASD').toUpperCase();
+      const recent = ((recentResult.data ?? [])[0] ?? null) as RecentReading | null;
+      apply(available, preferred, recent);
+      void setOfflineCache('bible-bootstrap-v1',
+        {translations: available, preferred, recent},
+        {userId: accountId, ttlMs: 60 * 24 * 60 * 60 * 1000})
+        .catch(() => undefined);
+    } catch (error: any) {
+      if (!current()) return;
+      if (!hasSaved || (!online && source === 'daily_plan' && assignedDate && !requestedBook)) {
+        setReaderAvailable(false);
+        setReaderError(error?.message ?? 'Bible content is not downloaded for offline use.');
+      } else {
+        console.warn('Bible bootstrap using saved data:', error);
       }
-
-
-      const available =
-        (
-          translationsResult.data ??
-          []
-        ) as Translation[];
-
-      setTranslations(available);
-
-
-      const preferred =
-        String(
-          preferredResult.data ??
-          'ASD'
-        ).toUpperCase();
-
-
-      const recent =
-        (
-          recentResult.data ??
-          []
-        )[0] as
-          | RecentReading
-          | undefined;
-
-
-      // Explicit route parameters win.
-      // Otherwise continue last reading.
-      // Otherwise use preferred translation + Genesis 1.
-
-      let resolvedTranslation =
-        requestedTranslation ||
-        recent?.translation_code ||
-        preferred ||
-        'ASD';
-
-
-      if (
-        !available.some(
-          t =>
-            t.code ===
-            resolvedTranslation
-        )
-      ) {
-        resolvedTranslation =
-          available[0]?.code ??
-          'ASD';
-      }
-
-
-      setTranslation(
-        resolvedTranslation
-      );
-
-
-      
-if (requestedBook > 0) {
-        setBookNo(requestedBook);
-      }
-      /* PATCH_176F_NO_RECENT_DAILY_PLAN */
-      else if (source === 'daily_plan') {
-        /*
-         * Do nothing here.
-         * PATCH 176E owns the canonical Daily Plan chapter.
-         * Never restore the user's recent personal Bible chapter.
-         */
-      }
-      else if (recent?.book_no) {
-        setBookNo(
-          Number(recent.book_no)
-        );
-      }
-      else {
-        setBookNo(1);
-      }
-
-
-      
-if (requestedChapter > 0) {
-        setChapterNo(
-          requestedChapter
-        );
-      }
-      else if (source === 'daily_plan') {
-        /*
-         * Do nothing.
-         * Canonical Daily Plan sync decides the chapter.
-         */
-      }
-      else if (recent?.chapter_no) {
-        setChapterNo(
-          Number(recent.chapter_no)
-        );
-      }
-      else {
-        setChapterNo(1);
-      }
-
-    } catch (e: any) {
-      setReaderAvailable(false);
-
-      setReaderError(
-        e?.message ??
-        'Full Bible reader is not available yet.'
-      );
-
     } finally {
-      setInitializing(false);
+      if (current()) setInitializing(false);
     }
-
-  }, [
-    requestedBook,
-    requestedChapter,
-    requestedTranslation,
-  ]);
-
+  }, [requestedBook, requestedChapter, requestedTranslation,
+    source, accountId, online, assignedDate]);
 
   useEffect(() => {
-    initialize();
+    void initialize();
+    return () => { initGeneration.current += 1; };
   }, [initialize]);
 
 
   // ==========================================================
   // LOAD BOOKS FOR TRANSLATION
   // ==========================================================
-
   useEffect(() => {
-    if (
-      initializing ||
-      !readerAvailable ||
-      !translation
-    ) {
-      return;
-    }
-
-
+    if (initializing || !readerAvailable || !translation || !accountId) return;
     let cancelled = false;
-
-
-    const run = async () => {
-      try {
-        const { data, error } =
-          await (supabase as any).rpc(
-            'get_bible_books',
-            {
-              p_translation_code:
-                translation,
-            }
-          );
-
-
-        if (error) throw error;
-
-        if (cancelled) return;
-
-
-        const list =
-          (
-            data ??
-            []
-          ) as BibleBook[];
-
-
-        setBooks(list);
-
-
-        const selected =
-          list.find(
-            x =>
-              Number(x.book_no) ===
-              bookNo
-          );
-
-
-        if (!selected && list.length) {
-          setBookNo(
-            Number(
-              list[0].book_no
-            )
-          );
-
-          setChapterNo(1);
-          return;
+    void (async () => {
+      const key = 'bible-books-v1:' + translation;
+      const cached = await getOfflineCache<BibleBook[]>(key, {
+        userId: accountId, allowStale: true,
+      });
+      if (cancelled) return;
+      const saved = Array.isArray(cached?.data) ? cached.data : [];
+      if (saved.length) setBooks(saved);
+      if (!online) {
+        if (!saved.length) {
+          setReaderAvailable(false);
+          setReaderError('Books for this Bible translation have not been saved offline yet.');
         }
-
-
-        if (
-          selected &&
-          chapterNo >
-            Number(
-              selected.chapter_count
-            )
-        ) {
-          setChapterNo(1);
-        }
-
-      } catch (e: any) {
-        setReaderAvailable(false);
-
-        setReaderError(
-          e?.message ??
-          'Unable to load Bible books.'
-        );
+        return;
       }
-    };
+      try {
+        const {data, error} = await (supabase as any).rpc(
+          'get_bible_books', {p_translation_code: translation});
+        if (error) throw error;
+        if (cancelled) return;
+        const list = (data ?? []) as BibleBook[];
+        if (!list.length) throw new Error('No books for the selected translation.');
+        setBooks(list);
+        void setOfflineCache(key, list, {
+          userId: accountId, ttlMs: 60 * 24 * 60 * 60 * 1000,
+        }).catch(() => undefined);
+        const selected = list.find(x => Number(x.book_no) === bookNo);
+        if (!selected) {
+          setBookNo(Number(list[0].book_no));
+          setChapterNo(1);
+        } else if (chapterNo > Number(selected.chapter_count)) {
+          setChapterNo(1);
+        }
+      } catch (error: any) {
+        if (cancelled || saved.length) return;
+        setReaderAvailable(false);
+        setReaderError(error?.message ?? 'Unable to load Bible books.');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [initializing, readerAvailable, translation,
+      accountId, online, bookNo, chapterNo]);
 
 
-    run();
-
-
-    return () => {
-      cancelled = true;
-    };
-
-  }, [
-    initializing,
-    readerAvailable,
-    translation,
-    bookNo,
-    chapterNo,
-  ]);
-
-
+  // ==========================================================
   // LOAD CHAPTER + START READING SESSION
   // ==========================================================
 
@@ -1648,9 +1478,25 @@ if (requestedChapter > 0) {
       setChapterLoading(!keepVisible);
       setCompleted(false);
       setSessionId(null);
-
+      let hasCachedChapter = false;
 
       try {
+        const cacheKey = 'bible-chapter-v1:' + translation + ':' + bookNo + ':' + chapterNo;
+        const cached = await getOfflineCache<BibleVerse[]>(cacheKey, {
+          userId: accountId, allowStale: true,
+        });
+        if (cancelled) return;
+        hasCachedChapter = Boolean(cached?.data?.length);
+        if (hasCachedChapter) {
+          setVerses(cached!.data);
+          setChapterLoading(false);
+        }
+        // Reading offline never creates a server reading session or awards points.
+        if (!online) {
+          if (!hasCachedChapter) throw new Error('This Bible chapter is not saved on this device.');
+          return;
+        }
+
         const {
           data,
           error,
@@ -1683,6 +1529,11 @@ if (requestedChapter > 0) {
 
 
         setVerses(chapter);
+        if (chapter.length) {
+          void setOfflineCache(cacheKey, chapter, {
+            userId: accountId, ttlMs: 90 * 24 * 60 * 60 * 1000,
+          }).catch(() => undefined);
+        }
 
         if (cancelled) return;
 
@@ -1769,13 +1620,12 @@ if (requestedChapter > 0) {
       } catch (e: any) {
         if (cancelled) return;
 
-        setVerses([]);
-
-        Alert.alert(
-          'Bible Reader',
-          e?.message ??
-            'Unable to load this chapter.'
-        );
+        if (!hasCachedChapter) {
+          setVerses([]);
+          Alert.alert('Bible Reader', e?.message ?? 'Unable to load this chapter.');
+        } else {
+          console.warn('Bible Reader: using saved chapter after network failure');
+        }
 
       } finally {
         if (!cancelled) {
@@ -1796,6 +1646,8 @@ if (requestedChapter > 0) {
     initializing,
     readerAvailable,
     translation,
+    accountId,
+    online,
     bookNo,
     chapterNo,
     source,
