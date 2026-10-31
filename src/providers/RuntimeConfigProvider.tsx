@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useRef } from 'react';
+import { AppState, Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { appEnvironment } from '@/lib/environment';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
@@ -54,8 +55,13 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
   const {online}=useNetwork();
   const [loading,setLoading]=useState(true);
   const [config,setConfig]=useState<RuntimeConfig|null>(null);
+  const lastForegroundRefreshAt = useRef(0);
 
-  const version=Constants.expoConfig?.version ?? '0.0.0';
+  // Browser users already load the latest hosted code; a native APK cutoff
+  // must not accidentally lock out the public web fallback.
+  const version=Platform.OS === 'web'
+    ? '999.999.999'
+    : Constants.expoConfig?.version ?? '0.0.0';
   const cacheKey=user ? `buklod:runtime:${user.id}:${appEnvironment}` : null;
   const cacheFreshKey=cacheKey ? `${cacheKey}:fetched-at` : null;
 
@@ -166,6 +172,20 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
   };
 
   useEffect(()=>{void refresh(false)},[user?.id,online,appEnvironment]);
+
+  // A running old client must notice a newly enabled server cutoff on return
+  // to the app; do not spam the backend on each minor foreground transition.
+  useEffect(() => {
+    if (!user?.id || !online) return;
+    const subscription = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      const now = Date.now();
+      if (now - lastForegroundRefreshAt.current < RUNTIME_CONFIG_FRESH_MS) return;
+      lastForegroundRefreshAt.current = now;
+      void refresh(false);
+    });
+    return () => subscription.remove();
+  }, [user?.id, online]);
 
   const value=useMemo(()=>({
     loading,
