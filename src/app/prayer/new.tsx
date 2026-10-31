@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Button, Card, shared } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
 
 type Privacy='private'|'leader'|'group'|'church';
 
@@ -61,6 +62,7 @@ export default function NewPrayerRequest() {
         Private means only you. Leader shares with your assigned leader. Group shares with your BUKLOD. Church shares within your approved local church.
       </Text>
 
+      <BuklodSubmissionAdSlot placementId="prayer_request_before_save" />
       <Button title={busy?'SAVING...':'SAVE PRAYER REQUEST'} onPress={save}/>
       <Button title="CANCEL" outline onPress={()=>router.back()}/>
     </ScrollView>
