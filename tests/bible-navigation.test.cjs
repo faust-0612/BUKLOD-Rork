@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const bible = fs.readFileSync('src/app/bible/read.tsx', 'utf8');
 const nav = fs.readFileSync('src/components/BuklodPersistentBottomNav.tsx', 'utf8');
 const picker = fs.readFileSync('src/components/bible/MyBibleQuickNavigator.tsx', 'utf8');
+const wall = fs.readFileSync('src/app/(tabs)/buklod.tsx', 'utf8');
 
 test('Connect occupies fourth global nav slot; Bible remains a reading route', () => {
   assert.match(nav, /key: 'connect', route: '\/messages', icon: 'message-outline', label: 'Connect'/);
@@ -44,4 +45,12 @@ test('audio and font options are optional and keep narration on the existing pro
   assert.match(bible, /!isMyBibleMode \|\| showBibleAudio \|\| bibleNarration\.status !== 'idle'/);
   assert.match(bible, /<BuklodBibleNarrationBar/);
   assert.match(bible, /!isMyBibleMode \|\| showBibleTextSettings/);
+});
+
+test('Community Wall green shortcut launches My Bible; fourth persistent tab remains Connect', () => {
+  assert.match(wall, /accessibilityLabel="Open My Bible"/);
+  assert.match(wall, /router.push\('\/bible\/read\?source=my_bible' as any\)/);
+  assert.match(wall, /name="book-open-variant"/);
+  assert.doesNotMatch(wall, /accessibilityLabel="Open BUKLOD Connect"/);
+  assert.match(nav, /key: 'connect', route: '\/messages'/);
 });
