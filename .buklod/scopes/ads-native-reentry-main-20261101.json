@@ -22,9 +22,7 @@
     "network-recovery"
   ],
   "regressionTests": [
-    "tests/buklod-ads-native-reentry-main-contract.test.mjs",
-    "tests/buklod-ad-request-gate-recovery.test.mjs",
-    "tests/buklod-wall-ad-stability.test.mjs"
+    "tests/buklod-ads-native-reentry-main-contract.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodCommunityInlineAd.android.tsx",
@@ -35,6 +33,7 @@
     "TypeScript and automation checks pass",
     "No destroyed NativeAd on reentry",
     "No SDK banner before shared reservation",
-    "No change to production release gate"
+    "No change to production release gate",
+    "Existing ad-request gate and Wall stability suite are preserved regression checks, not falsely declared as changed files."
   ]
 }
