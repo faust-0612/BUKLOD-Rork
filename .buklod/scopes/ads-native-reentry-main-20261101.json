@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "objective": "Reconcile only Android sponsored NativeAd re-entry reset from #472 with latest merged bannerRequestReady gate; do not regress #474 or change ad density.",
+  "baseRef": "9fee5d3aa9ba7661a9998656690ab82529666500",
+  "productionBaselineEvidence": "Verified latest GitHub main 9fee5d3 and successful prior OTA on 84d4ca8; #472 diverged and its stale bannerReservationReady state conflicts with merged bannerRequestReady.",
+  "chosenApproach": "Patch only missing no-longer-eligible SDK stale-state reset on current main. Preserve current reservation gate and cooldown unchanged.",
+  "selectionRationale": "Avoid merging old code and contradictory request-ready states; minimal Android lifecycle patch.",
+  "alternativeApproaches": [
+    "Merge old #472: rejected due stale bannerReservationReady overriding current implementation.",
+    "Disable cooldown: rejected for request storms."
+  ],
+  "preserveBehaviors": [
+    "Native/Wall ad cadence and placements unchanged",
+    "Banner mount only after shared accepted reservation",
+    "No new SDK adapters or runtime changes",
+    "Wall photos/videos, Connect, QMP, Bible, KL and backend unchanged",
+    "No manual/device verification required by user; automated CI still required."
+  ],
+  "riskAreas": [
+    "ads",
+    "community-wall",
+    "network-recovery"
+  ],
+  "regressionTests": [
+    "tests/buklod-ads-native-reentry-main-contract.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "tests/buklod-ads-native-reentry-main-contract.test.mjs",
+    ".buklod/scopes/ads-native-reentry-main-20261101.json"
+  ],
+  "acceptanceChecks": [
+    "TypeScript and automation checks pass",
+    "No destroyed NativeAd on reentry",
+    "No SDK banner before shared reservation",
+    "No change to production release gate",
+    "Existing ad-request gate and Wall stability suite are preserved regression checks, not falsely declared as changed files."
+  ]
+}
