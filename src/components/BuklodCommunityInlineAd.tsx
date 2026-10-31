@@ -37,6 +37,8 @@ type Props = {
   slotId?: string;
   active?: boolean;
   inventory?: CommunityAdInventory;
+  /** Native-only sponsored cards reuse the same underlying media renderer. */
+  surface?: 'wall' | 'home' | 'profile' | 'connect' | 'cluster_dashboard';
 };
 
 const AD_LOAD_TIMEOUT_MS = 8_000;

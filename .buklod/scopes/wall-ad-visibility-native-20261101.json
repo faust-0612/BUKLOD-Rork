@@ -1,0 +1,81 @@
+{
+  "contractVersion": 2,
+  "objective": "Improve legitimate Android AdMob impressions in public, Organization and Cluster Walls plus new Home, Profile, Connect inbox and Cluster dashboards; use stable banner/native sponsored media frames without shifting the content layout or touching chat/call flows.",
+  "baseRef": "efb5a180d5b6422daa077574be6ce1f0bd705248",
+  "productionBaselineEvidence": "Reconciled against 2026-11-01 main efb5a180d5b6422daa077574be6ce1f0bd705248; Bible/KL merges have no overlapping files. 2026-11-01 PH production AdMob app-side diagnostics: 35 requests over 9 Android sessions and 3 impression callbacks; public_wall_entry had 16 request events and 10 no-fill errors. Main commit 54dae504382381173709e2be1883803b9a8abb3b. Native video creative requires configured AdMob Native unit with video enabled. No live uplift demonstrated.",
+  "chosenApproach": "Keep BannerAd SDK mounted when no-fill so configured auto refresh can work without manual loops. Reserve 68px first-view banner area and 352px native inline media frame. Replace potentially unbounded InteractionManager initialization delay with a first-paint 600ms bootstrap. Increase Android-only native row opportunity cadence to first 5 then 6-9 posts, while honoring production environment overrides. Add an inventory-aware native media sponsored card shared with non-chat Home, Profile, Connect inbox and scoped Cluster/Organization dashboards, plus independent viewport-first banners. Reuse existing banner and Native ad IDs and secure route/consent guards; scope-switch gets distinct stable slotId. Android-only wrapper makes non-Wall sponsored video/image cards a no-op on web; generic component has a compatible optional surface type. If no AdMob Native unit is configured, new non-Wall media slots request a genuine 300x250 medium-rectangle video-capable Banner creative through already-existing banner units; Wall fallback stays small.",
+  "selectionRationale": "Corrects visibility and layout stability faults without creating artificial impressions, changing other screens, or issuing aggressive requests that lower fill rate. Connect ads belong to list header/footer, never active thread, voice/video calls, or typing surfaces. Native ad creative is provider controlled, including video.",
+  "alternativeApproaches": [
+    "Ad request on every post or every tap: rejected because of policy, inventory and performance risks.",
+    "Manually replay user videos as fake sponsored creative: rejected; only authentic NativeAd creative and SDK media are allowed.",
+    "Reserve predictable ad dimensions and modestly increase legitimate visible native ad opportunities: selected."
+  ],
+  "preserveBehaviors": [
+    "No ad clicks or impressions fabricated",
+    "AdMob consent, route locks, cooldown and remote kill switches remain active",
+    "Public and managed Walls share same native post card",
+    "Native video asset controlled by AdMob SDK",
+    "Android-only density, web/iOS/Reels unchanged",
+    "No modification to Wall photo/video content or scrolling logic",
+    "No new native SDK, secrets or database migrations",
+    "Expo runtime 1.3.2 stays unchanged",
+    "Connect list ads do not appear inside personal chat threads, composers, call screens or while users search contacts",
+    "Keep Profile character, Cluster widgets, personalized Home tools and existing scoped navigation intact",
+    "Do not add advertisements to profile edits, Connect thread content/composers, or active calls; native sponsored cards exist in non-chat lists only",
+    "Medium-rectangle video creative must be returned by AdMob; never manufacture video assets or count banner loads as impressions"
+  ],
+  "riskAreas": [
+    "ads",
+    "monetization",
+    "community-wall",
+    "connect-inbox",
+    "profile",
+    "home",
+    "cluster",
+    "navigation-scroll",
+    "faith-cluster"
+  ],
+  "regressionTests": [
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-android-wall-ad-density.test.mjs",
+    "tests/buklod-profile-connect-home-ads.test.mjs",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "tests/buklod-cluster-faith-ad-scope.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodFirstViewAd.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/lib/buklodAdMonetizationPolicy.android.ts",
+    "src/providers/AdsProvider.tsx",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-android-wall-ad-density.test.mjs",
+    ".buklod/scopes/wall-ad-visibility-native-20261101.json",
+    "src/lib/buklodAdPlacements.ts",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/clusters/index.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "tests/buklod-profile-connect-home-ads.test.mjs",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "tests/buklod-cluster-faith-ad-scope.test.mjs",
+    "src/components/BuklodCommunityInlineAd.tsx",
+    "src/components/BuklodNativeSponsoredCard.android.tsx",
+    "src/components/BuklodNativeSponsoredCard.tsx"
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability, TypeScript and integration QA successful",
+    "Visible first banner occupies stable height on load and no-fill",
+    "Native media frame reserves stable card height before creative appears",
+    "No-fill banner stays mounted; no aggressive manual refresh",
+    "Android sponsored rows inserted after initial 5 posts and every 6-9 posts unless environment overrides",
+    "Only actual provider impressions counted",
+    "No revenue/live claim until production OTA and post-release metrics",
+    "Home, Profile, Connect inbox and both Cluster dashboards have fixed first-view sponsored banner and NativeMediaView card slots",
+    "All new slots use genuine AdMob Native creative, banner fallback and content viewability; never fabricate impression/revenue",
+    "Contact list and scope switches use independent stable placements without layout jumping",
+    "Non-Wall native media fallback uses existing Banner IDs in fixed 300x250 format with real SDK reporting; no new Native unit required for banner video inventory"
+  ]
+}

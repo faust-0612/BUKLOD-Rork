@@ -82,6 +82,8 @@ import {
   ConnectThemeSelectorButton,
 } from '@/components/connect/ConnectThemeSelector';
 import { ConnectPressable } from '@/components/connect/ConnectPressable';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import {
   ConnectThreadBackground,
 } from '@/components/connect/ConnectThreadBackground';
@@ -1229,6 +1231,12 @@ function ConnectScreenInner({
           />
         </>
       )}
+      {!isSearching ? (
+        <BuklodFirstViewAd
+          placement="messages"
+          placementId={community ? 'connect_community_first_view' : 'connect_personal_first_view'}
+        />
+      ) : null}
       <ConnectInboxTabs
         tab={tab}
         requestCount={requestThreads.length}
@@ -1275,6 +1283,12 @@ function ConnectScreenInner({
 
             <FlatList
               ListHeaderComponent={renderHiblaHeader(false)}
+              ListFooterComponent={!isSearching && tab === 'personal' ? (
+                <BuklodNativeSponsoredCard
+                  surface="connect"
+                  slotId="connect-personal-native-media"
+                />
+              ) : null}
               data={personalListData}
               keyExtractor={(item: any) =>
                 item.thread_id ?? item.user_id
@@ -1384,6 +1398,12 @@ function ConnectScreenInner({
         ) : (
           <FlatList
             ListHeaderComponent={renderHiblaHeader(true)}
+            ListFooterComponent={!isSearching ? (
+              <BuklodNativeSponsoredCard
+                surface="connect"
+                slotId={forcedScopeId ? `connect-scope-native-media:${forcedScopeId}` : 'connect-community-native-media'}
+              />
+            ) : null}
             data={filteredRooms}
             keyExtractor={item => item.scope_id}
             initialNumToRender={
