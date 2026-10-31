@@ -33,10 +33,7 @@
     ".buklod/scopes/bible-dzas-reference-layout-20261101.json"
   ],
   "regressionTests": [
-    "tests/bible-radio-visual.test.cjs",
-    "tests/bible-study-sources.test.cjs",
-    "tests/bible-reader-safearea-commentary.test.cjs",
-    "tests/bible-navigation.test.cjs"
+    "tests/bible-radio-visual.test.cjs"
   ],
   "acceptanceChecks": [
     "TypeScript and React Navigation QA pass",
@@ -45,5 +42,11 @@
     "300x250 mediumRectangle ad is reserved without forced refresh or fake impression",
     "DZAS scroll shows images, ad and source footer above bottom nav",
     "Release only verified frozen Android RC and production OTA runtime 1.3.2"
+  ],
+  "productionBaselineEvidence": "Production main commit f138b52cde9097a2e60de4183e0c428c2067b981; previous PR #473 merge f16f086751ce286c459fbf0b929783d291387365 contains Bible safe-area/Strong's/Matthew Henry and Connect fourth-tab corrections. User screenshots show desired scenic reading UI and DZAS gallery; existing radio still uses src/app/personal-home/radio.tsx 300? old adaptive banner and no photos. Current production OTA for this new PR is not verified.",
+  "existingCoverageOnly": [
+    "tests/bible-study-sources.test.cjs",
+    "tests/bible-reader-safearea-commentary.test.cjs",
+    "tests/bible-navigation.test.cjs"
   ]
 }
