@@ -4703,22 +4703,10 @@ const communityFeedRows =
    >
     <Pressable
      accessibilityRole="button"
-     accessibilityLabel={
-      connectUnread>0
-       ? `Open BUKLOD Connect, ${connectPersonalUnread} personal unread, ${connectCommunityUnread} community unread`
-       : 'Open BUKLOD Connect'
-     }
-     accessibilityHint="Opens your BUKLOD messages from inside Community Wall"
+     accessibilityLabel="Open My Bible"
+     accessibilityHint="Opens the complete Bible reader with book and chapter selection"
      onPress={()=>
-      router.push({
-       pathname:'/messages',
-       params:{
-        tab:
-         connectCommunityUnread>connectPersonalUnread
-          ? 'community'
-          : 'personal',
-       },
-      } as any)
+      router.push('/bible/read?source=my_bible' as any)
      }
      style={({pressed})=>({
       width:42,
@@ -4731,40 +4719,11 @@ const communityFeedRows =
      })}
     >
      <MaterialCommunityIcons
-      name="message-processing-outline"
-      size={20}
+      name="book-open-variant"
+      size={23}
       color="#FFFFFF"
      />
-     {connectUnread>0&&(
-      <View
-       pointerEvents="none"
-       style={{
-        position:'absolute',
-        top:-4,
-        right:-4,
-        minWidth:16,
-        height:16,
-        paddingHorizontal:3,
-        borderRadius:8,
-        borderWidth:2,
-        borderColor:'#FFFFFF',
-        backgroundColor:'#C9332D',
-        alignItems:'center',
-        justifyContent:'center',
-       }}
-      >
-       <Text
-        style={{
-         color:'#FFFFFF',
-         fontSize:8,
-         fontWeight:'900',
-         lineHeight:10,
-        }}
-       >
-        {connectUnread>99?'99+':connectUnread}
-       </Text>
-      </View>
-     )}
+
     </Pressable>
     <View
      style={{

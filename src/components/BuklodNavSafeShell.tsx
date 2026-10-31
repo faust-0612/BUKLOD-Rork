@@ -92,7 +92,8 @@ export default function BuklodNavSafeShell({
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
   const reserveMyBuklodSystemInsets =
-    isMyBuklodDoorPath(pathname);
+    isMyBuklodDoorPath(pathname) ||
+    normalizeBuklodPathname(pathname) === '/bible/read';
   const [keyboardVisible, setKeyboardVisible] =
     useState(false);
 
