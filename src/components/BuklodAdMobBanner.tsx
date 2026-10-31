@@ -1,5 +1,6 @@
 import React, {
   memo,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -7,11 +8,12 @@ import React, {
 
 import {
   Animated,
+  AppState,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { usePathname } from 'expo-router';
+import { useFocusEffect, usePathname } from 'expo-router';
 
 import {
   BannerAd,
@@ -42,10 +44,14 @@ import {
   useNetwork,
 } from '@/providers/NetworkProvider';
 import {
+  getBuklodPassiveAdRequestWaitMs,
   isBuklodPassiveAdAllowed,
   reserveBuklodPassiveAdRequest,
 } from '@/lib/buklodGlobalAdController';
-import { BANNER_RETRY_DELAYS_MS } from '@/lib/buklodAdMonetizationPolicy';
+import {
+  AD_SLOT_REMOUNT_COOLDOWN_MS,
+  BANNER_RETRY_DELAYS_MS,
+} from '@/lib/buklodAdMonetizationPolicy';
 
 const RETRY_DELAYS_MS = BANNER_RETRY_DELAYS_MS;
 const MAX_RETRIES = RETRY_DELAYS_MS.length;
@@ -100,19 +106,53 @@ function BuklodAdMobBanner({
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [reservationReady, setReservationReady] = useState(false);
+  const [reservationTick, setReservationTick] = useState(0);
   const [opacity] = useState(() => new Animated.Value(0));
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestedAttempt = useRef(-1);
   const renderedAttempt = useRef(-1);
-  const slotReserved = useRef(false);
+  const failedAt = useRef(0);
   const failedBecauseOffline = useRef(false);
 
   const unitId = getBuklodBannerUnitId(placement);
   const sdkReady = ready && canRequestAds;
   const shouldRequest =
     routeSafe && !!unitId && sdkReady && viewportReady && online && !failed;
+  // Never mount native BannerAd until the shared cooldown accepts this slot.
+  // Previous code mounted it *before* the reservation effect could reject it.
   const mountBanner =
-    routeSafe && (shouldRequest || loaded) && !!unitId && !failed;
+    routeSafe && reservationReady &&
+    (shouldRequest || loaded) && !!unitId && !failed;
+  const requestKey = `${pathname}:${stablePlacementId}`;
+
+  const recoverAfterQuietPeriod = useCallback(() => {
+    if (!failed || !online ||
+      Date.now() - failedAt.current < AD_SLOT_REMOUNT_COOLDOWN_MS ||
+      getBuklodPassiveAdRequestWaitMs(stablePlacementId, requestKey) > 0
+    ) return;
+    requestedAttempt.current = -1;
+    renderedAttempt.current = -1;
+    failedBecauseOffline.current = false;
+    opacity.setValue(0);
+    setReservationReady(false);
+    setAttempt(0);
+    setLoaded(false);
+    setFailed(false);
+  }, [failed, online, opacity, requestKey, stablePlacementId]);
+
+  // Failed/no-fill slots retry only on a later focus or foreground return,
+  // after the shared cooldown: never run a background no-fill request loop.
+  useFocusEffect(useCallback(() => {
+    recoverAfterQuietPeriod();
+  }, [recoverAfterQuietPeriod]));
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') recoverAfterQuietPeriod();
+    });
+    return () => sub.remove();
+  }, [recoverAfterQuietPeriod]);
 
   useEffect(() => {
     return () => {
@@ -138,25 +178,40 @@ function BuklodAdMobBanner({
     }
     failedBecauseOffline.current = false;
     requestedAttempt.current = -1;
+    setReservationReady(false);
+    setAttempt(0);
+    setLoaded(false);
     setFailed(false);
   }, [online, failed]);
 
   useEffect(() => {
-    if (!shouldRequest || requestedAttempt.current === attempt) {
+    if (!shouldRequest || reservationReady) return;
+    if (reserveBuklodPassiveAdRequest(stablePlacementId, requestKey)) {
+      setReservationReady(true);
       return;
     }
-    if (!slotReserved.current) {
-      const accepted = reserveBuklodPassiveAdRequest(
-        stablePlacementId,
-        `${pathname}:${stablePlacementId}`,
-      );
-      if (!accepted) {
-        setFailed(true);
-        return;
-      }
-      slotReserved.current = true;
-    }
+    // A quick remount is not a permanent ad failure. Keep a tiny viewport
+    // probe and retry eligibility once, only after this request cooldown.
+    const waitMs = Math.max(
+      1_000,
+      getBuklodPassiveAdRequestWaitMs(stablePlacementId, requestKey),
+    );
+    const timer = setTimeout(
+      () => setReservationTick(value => value + 1),
+      waitMs + 25,
+    );
+    return () => clearTimeout(timer);
+  }, [
+    shouldRequest,
+    reservationReady,
+    reservationTick,
+    requestKey,
+    stablePlacementId,
+  ]);
 
+  useEffect(() => {
+    if (!shouldRequest || !reservationReady ||
+        requestedAttempt.current === attempt) return;
     requestedAttempt.current = attempt;
     recordBuklodAdEvent(
       diagnostic,
@@ -167,6 +222,7 @@ function BuklodAdMobBanner({
   }, [
     attempt,
     shouldRequest,
+    reservationReady,
     diagnostic,
     pathname,
     stablePlacementId,
@@ -205,9 +261,11 @@ function BuklodAdMobBanner({
     return null;
   }
 
-  if (!sdkReady || !viewportReady || (!online && !loaded)) {
+  if (!sdkReady || !viewportReady || !reservationReady || (!online && !loaded)) {
     if (compact) {
-      return <View ref={ref} collapsable={false} />;
+      // Viewport measurement requires >=8px height; a zero-height compact
+      // placeholder can never become eligible, permanently starving the ad.
+      return <View ref={ref} collapsable={false} style={styles.pendingShell} />;
     }
 
     return (
@@ -266,13 +324,12 @@ function BuklodAdMobBanner({
                 recordBuklodAdEvent(diagnostic, 'ad_failed', error, { route: pathname, placementId: stablePlacementId });
                 setLoaded(false);
 
-                if (!online) {
-                  failedBecauseOffline.current = true;
-                  setFailed(true);
-                  return;
-                }
-
-                if (attempt >= MAX_RETRIES) {
+                const code = String((error as { code?: string })?.code ?? '');
+                const noFill = code.includes('no-fill');
+                if (!online || noFill || attempt >= MAX_RETRIES) {
+                  // Do not hammer AdMob when inventory is unavailable.
+                  failedBecauseOffline.current = !online;
+                  failedAt.current = Date.now();
                   setFailed(true);
                   return;
                 }
