@@ -8,7 +8,7 @@ import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 type Chapter={id:string;season_number:number;episode_number:number;title:string};
 type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
-export default function KlDynamicLibrary(){
+export default function KlDynamicLibrary({ additionalSeasonsOnly = false }: { additionalSeasonsOnly?: boolean }){
  const [chapters,setChapters]=useState<Chapter[]>([]);
  const [chapter,setChapter]=useState<Chapter|null>(null);
  const [text,setText]=useState('');
@@ -74,6 +74,8 @@ export default function KlDynamicLibrary(){
  <KlSceneEffect effect={m.effect??'none'} intensity={m.intensity??30}/></View>;
  };
  const paragraphs=text.split(/\n\s*\n/).filter(Boolean);
+ const visibleChapters=additionalSeasonsOnly ? chapters.filter(c=>c.season_number>1) : chapters;
+ if(additionalSeasonsOnly&&!chapter&&visibleChapters.length===0)return null;
  return <View style={{gap:12}}>
  <Pressable onPress={()=>void refresh()}><Text style={{color:'#f1d39b'}}>Refresh released chapters</Text></Pressable>
  {chapter?<View style={{gap:12}}>
@@ -87,7 +89,7 @@ export default function KlDynamicLibrary(){
  {illustrationsAtParagraph(media,p,'after').map(image)}
  </View>)}
  <Pressable onPress={()=>void complete()}><Text style={{color:'#f1d39b'}}>Mark Chapter Complete</Text></Pressable>
- </View>:chapters.map(c=><Pressable key={c.id} onPress={()=>void open(c)} style={{padding:10,backgroundColor:'#243849',borderRadius:8}}>
+ </View>:visibleChapters.map(c=><Pressable key={c.id} onPress={()=>void open(c)} style={{padding:10,backgroundColor:'#243849',borderRadius:8}}>
  <Text style={{color:'#fff'}}>S{c.season_number} · Kabanata {c.episode_number}: {c.title}</Text></Pressable>)}
  {message?<Text accessibilityRole="alert" style={{color:'#fff'}}>{message}</Text>:null}
  </View>;

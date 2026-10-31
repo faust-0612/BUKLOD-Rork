@@ -6,7 +6,7 @@ import { klEditorRenderSignature, klEditorCrashComponent } from '@/lib/kabihasna
 
 /** A failed KL widget must not replace the entire BUKLOD navigator. */
 export default class KlEditorRenderBoundary extends React.Component<
-  { children: React.ReactNode },
+  { children: React.ReactNode; scope?: 'admin' | 'reader' },
   { failed: boolean; signature: string }
 > {
   state = { failed: false, signature: '' };
@@ -21,8 +21,8 @@ export default class KlEditorRenderBoundary extends React.Component<
       severity: 'ERROR',
       safeErrorCode: 'SYS-500',
       errorSignature: klEditorRenderSignature(error),
-      correlationKey: 'BUKLOD_KL_EDITOR_RENDER_EXCEPTION',
-      routeModule: 'admin/kabihasnang-ligaw',
+      correlationKey: this.props.scope === 'reader' ? 'BUKLOD_KL_READER_RENDER_EXCEPTION' : 'BUKLOD_KL_EDITOR_RENDER_EXCEPTION',
+      routeModule: this.props.scope === 'reader' ? 'kabihasnang-ligaw' : 'admin/kabihasnang-ligaw',
       knownIncidentHint: klEditorCrashComponent(info.componentStack ?? undefined),
       localSelfHealAttempted: false,
       localSelfHealResult: 'NOT_ATTEMPTED',
@@ -34,15 +34,16 @@ export default class KlEditorRenderBoundary extends React.Component<
     if (!this.state.failed) return this.props.children;
     return (
       <View style={styles.container} accessibilityRole="alert">
-        <Text style={styles.heading}>KL Editor encountered an error</Text>
+        <Text style={styles.heading}>{this.props.scope === 'reader' ? 'KL Reader encountered an error' : 'KL Editor encountered an error'}</Text>
         <Text style={styles.body}>
-          Hindi naapektuhan ang mga na-save sa server. Kapag bumalik ang editor,
-          buksan ang chapter at gamitin ang Restore local edits kung may hindi pa na-save.
+          {this.props.scope === 'reader'
+            ? 'Hindi naapektuhan ang naka-save sa server. Buksan muli ang kabanata.'
+            : 'Hindi naapektuhan ang mga na-save sa server. Kapag bumalik ang editor, buksan ang chapter at gamitin ang Restore local edits kung may hindi pa na-save.'}
         </Text>
         <Text style={styles.code}>Support code: {this.state.signature}</Text>
         <Pressable accessibilityRole="button" style={styles.button}
           onPress={() => this.setState({ failed: false, signature: '' })}>
-          <Text style={styles.buttonText}>Reopen KL Editor</Text>
+          <Text style={styles.buttonText}>{this.props.scope === 'reader' ? 'Reopen KL Reader' : 'Reopen KL Editor'}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" style={styles.secondary}
           onPress={() => router.back()}>
