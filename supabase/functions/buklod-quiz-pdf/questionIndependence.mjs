@@ -17,6 +17,8 @@ const RULES = [
   ['FILIPINO_OTHER_ITEM', /\b(?:naunang|nakaraang|susunod|sumunod|nasa itaas|nasa ibaba)\s+(?:tanong|sagot|sitwasyon|kaso|talata|larawan|talahanayan)\b/i],
   ['FILIPINO_ANSWER_REFERENCE', /\b(?:sagot\s+(?:sa|ng)\s+tanong|batay\s+sa\s+(?:naunang|nakaraang|susunod)\s+(?:tanong|sagot))\b/i],
   ['DOCUMENT_META', /\b(?:as (?:shown|stated|mentioned) in|according to|based on)\s+(?:the\s+)?(?:uploaded (?:file|document)|source document|lecture notes|module|worksheet|activity)\b/i],
+  ['SOURCE_LIST_LOOKUP', /\b(?:is|are|was|were)\s+(?:not\s+)?(?:listed|included|mentioned|shown)\s+(?:among|under|in|on)\s+(?:the\s+)?(?:questions|checklist|list|section|chapter)\b/i],
+  ['SOURCE_TEXT_LOOKUP', /\b(?:cited|referenced|mentioned|listed|defined)\s+(?:in|by)\s+(?:(?:the|a)\s+)?(?:(?:provided|attached)\s+)?(?:lecture|source(?:\s+document)?|uploaded\s+file|document|text|module|handout)\b/i],
 ];
 export function detectQuestionDependency(value) {
   if (typeof value !== 'string' || !value.trim()) return null;
