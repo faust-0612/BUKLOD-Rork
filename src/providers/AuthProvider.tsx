@@ -122,6 +122,8 @@ export function AuthProvider({
   networkStatusRef.current = networkStatus;
   // A cached offline session is navigation-only until the SDK restores it.
   const offlineSnapshotPendingRef = useRef(false);
+  // State nonce also covers a slow offline restore completing after NetInfo flips.
+  const [offlineRecoveryVersion, setOfflineRecoveryVersion] = useState(0);
 
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -472,6 +474,7 @@ export function AuthProvider({
             : null;
         const nextSession = data.session ?? offlineSnapshot;
         offlineSnapshotPendingRef.current = Boolean(offlineSnapshot);
+        if (offlineSnapshot) setOfflineRecoveryVersion(version => version + 1);
 
         setSession(nextSession);
         sessionUserIdRef.current =
@@ -521,6 +524,7 @@ export function AuthProvider({
 
         if (persisted?.user?.id) {
           offlineSnapshotPendingRef.current = true;
+          setOfflineRecoveryVersion(version => version + 1);
           setSession(persisted);
           sessionUserIdRef.current =
             persisted.user.id;
@@ -694,7 +698,7 @@ export function AuthProvider({
       if (!disposed) setLoading(false);
     });
     return () => { disposed = true; };
-  }, [online, session?.user?.id]);
+  }, [online, offlineRecoveryVersion]);
 
   /*
    * One background identity refresh when usable internet returns.
