@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import jpeg from "npm:jpeg-js@0.4.4";
+import { findEmbeddedLegacyJpegPreview } from "./legacyThumbnail.ts";
 
 // Pure JS JPEG decode/encode is compatible with the Edge function bundler:
 // unlike native sharp or magick-wasm it needs no unbundled WASM binary.
@@ -66,7 +67,21 @@ Deno.serve(async req => {
       if (bytes.byteLength > 4_000_000 || bytes.byteLength < 1000) {
         outcome = "skipped"; message = "size_outside_safe_bounds";
       } else {
-        const thumbnail = compactJpeg(bytes);
+        // Decode a small embedded EXIF JPEG first when available. Never trust
+        // offsets or bytes without a second bounded JPEG decoder check.
+        const embedded = findEmbeddedLegacyJpegPreview(bytes);
+        let thumbnail: Uint8Array | null = null;
+        if (embedded) {
+          try {
+            const small = jpeg.decode(embedded, {
+              useTArray: true, formatAsRGBA: false,
+              maxResolutionInMP: 1, maxMemoryUsageInMB: 16,
+            });
+            if (small.width > 0 && small.height > 0 &&
+                small.width <= 1024 && small.height <= 1024) thumbnail = embedded;
+          } catch { /* Corrupt embedded preview: original bounded fallback. */ }
+        }
+        if (!thumbnail) thumbnail = compactJpeg(bytes);
         if (thumbnail.length < 1000 || thumbnail.length > 125000 ||
             thumbnail[0] !== 0xff || thumbnail[1] !== 0xd8) {
           outcome = "skipped"; message = "thumbnail_exceeds_cap_or_invalid";
