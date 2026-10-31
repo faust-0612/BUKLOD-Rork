@@ -79,7 +79,7 @@ export default function IndexWeb() {
 
   if (!session) return <Redirect href="/(auth)/login" />;
   if (config?.maintenance_mode) return <Redirect href="/system/maintenance" />;
-  if (config?.update_required) return <Redirect href="/system/update-required" />;
+  // Native version cutoffs do not block the latest public web deployment.
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
   if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
 
