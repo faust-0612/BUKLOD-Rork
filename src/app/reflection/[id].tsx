@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Button, shared } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
 type Privacy = 'private'|'leader'|'group'|'church';
@@ -104,6 +105,7 @@ function ReflectionScreenContent() {
       <Text style={shared.muted}>
         Completing this devotional saves it before any optional sponsored break. An unavailable ad will never prevent submission.
       </Text>
+      <BuklodSubmissionAdSlot placementId="devotional_reflection_before_submit" />
       <Button title={busy?'COMPLETING...':'✓ COMPLETE DEVOTIONAL'} onPress={complete} />
     </ScrollView>
   );
