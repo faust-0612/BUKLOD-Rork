@@ -11,7 +11,11 @@ function compactJpeg(source: Uint8Array): Uint8Array {
   // RGB uses three bytes per pixel; the encoder receives only 384px RGBA.
   const rgb = jpeg.decode(source, {
     useTArray: true, formatAsRGBA: false,
-    maxResolutionInMP: 24, maxMemoryUsageInMB: 160,
+    // Only a small, measured headroom increase for legacy RGB JPEGs that
+    // exceeded the earlier 160 MB decoder accounting limit by 1–6 MB.
+    // Retain the 24 MP ceiling: giant images keep their secure original
+    // fallback rather than risking Supabase's 256 MB hard worker limit.
+    maxResolutionInMP: 24, maxMemoryUsageInMB: 168,
   });
   const small = sampleLegacyRgbPreview(rgb);
   return new Uint8Array(jpeg.encode(small, 46).data);
