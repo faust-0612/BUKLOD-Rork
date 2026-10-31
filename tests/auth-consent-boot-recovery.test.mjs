@@ -34,6 +34,8 @@ test('boot, privacy screen and writes preserve authentication boundaries', () =>
   // A slow AsyncStorage restore can finish after connectivity changes.
   assert.match(auth, /return \(\) => \{ disposed = true; \};\s*\}, \[online, offlineRecoveryVersion\]\);/);
   assert.match(auth, /if \(offlineSnapshot\) setOfflineRecoveryVersion\(version => version \+ 1\)/);
+  assert.match(auth, /sessionUserIdRef\.current !== previousUserId/);
+  assert.match(auth, /next\.user\.id !== previousUserId/);
   assert.match(compliance, /supabase\.auth\.getUser\(\)/);
   assert.match(compliance, /const verified = await readRequiredPolicies\(targetUserId\)/);
   assert.match(compliance, /if \(!allRequiredPoliciesAccepted\(verified\)\)/);

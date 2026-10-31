@@ -665,6 +665,7 @@ export function AuthProvider({
   useEffect(() => {
     if (!online || !offlineSnapshotPendingRef.current) return;
     let disposed = false;
+    let completedByThisRecovery = false;
     offlineSnapshotPendingRef.current = false;
     const previousUserId = sessionUserIdRef.current;
     setLoading(true);
@@ -675,8 +676,12 @@ export function AuthProvider({
       'BUKLOD reconnect session'
     ).then(async ({ data, error }) => {
       if (error) throw error;
-      if (disposed) return;
+      // A user may sign out or switch accounts while the refresh is pending.
+      // Never install a stale recovery result into a different account.
+      if (disposed || sessionUserIdRef.current !== previousUserId) return;
       const next = data.session ?? null;
+      if (next && next.user.id !== previousUserId) return;
+      completedByThisRecovery = true;
       sessionUserIdRef.current = next?.user?.id ?? null;
       setSession(next);
       if (!next) {
@@ -687,15 +692,16 @@ export function AuthProvider({
         await loadProfile(next.user.id, false, true);
       }
     }).catch((error: any) => {
-      if (disposed) return;
+      if (disposed || sessionUserIdRef.current !== previousUserId) return;
       console.warn('BUKLOD offline session recovery:', String(error?.message ?? error));
       // Do not resurrect an unverified offline token on a connected device.
+      completedByThisRecovery = true;
       sessionUserIdRef.current = null;
       setProfile(null);
       setRoles([]);
       setMembershipState('none');
     }).finally(() => {
-      if (!disposed) setLoading(false);
+      if (!disposed && (completedByThisRecovery || sessionUserIdRef.current === previousUserId)) setLoading(false);
     });
     return () => { disposed = true; };
   }, [online, offlineRecoveryVersion]);
