@@ -1,54 +1,28 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { router } from 'expo-router';
 import Constants from 'expo-constants';
 
-import { router } from 'expo-router';
+import {
+  buildClusterInviteUrlForScheme,
+  parseClusterInviteLink,
+} from '@/lib/buklodClusterInviteUrl';
 
 export const PENDING_CLUSTER_INVITE_KEY =
   'buklod_pending_cluster_invite_v1';
 
-function inviteScheme(): string {
-  const scheme = Constants.expoConfig?.scheme;
-
-  if (typeof scheme === 'string' && scheme.trim()) {
-    return scheme.trim();
-  }
-
-  return 'buklod';
-}
-
-/** Canonical Cluster invite deep link — shared by QR, Share, and Manage. */
+/** Public HTTPS link shared by Cluster Share, Copy and QR. */
 export function buildClusterInviteUrl(scopeId: string): string {
-  const id = String(scopeId ?? '').trim();
-
-  return `${inviteScheme()}://clusters/${encodeURIComponent(id)}`;
+  const scheme = Constants.expoConfig?.scheme;
+  return buildClusterInviteUrlForScheme(
+    scopeId,
+    typeof scheme === 'string' ? scheme : 'buklod'
+  );
 }
 
-/** Parse invite URL back to scope id (supports production + staging schemes). */
+/** Preserve legacy custom-scheme links in previously shared messages. */
 export function parseClusterInviteUrl(url: string): string | null {
-  const trimmed = String(url ?? '').trim();
-
-  if (!trimmed) {
-    return null;
-  }
-
-  const schemeMatch = trimmed.match(
-    /^buklod(?:-staging)?:\/\/clusters\/([^/?#]+)/i
-  );
-
-  if (schemeMatch?.[1]) {
-    return decodeURIComponent(schemeMatch[1]);
-  }
-
-  const pathMatch = trimmed.match(
-    /(?:^|\/)clusters\/([^/?#]+)/i
-  );
-
-  if (pathMatch?.[1]) {
-    return decodeURIComponent(pathMatch[1]);
-  }
-
-  return null;
+  return parseClusterInviteLink(url);
 }
 
 /** Expo Router path for the same destination as the deep link. */
