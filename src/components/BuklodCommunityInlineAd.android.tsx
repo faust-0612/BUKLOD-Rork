@@ -180,6 +180,22 @@ export default function BuklodCommunityInlineAd({
   // Profile, Connect and Cluster placements when Native inventory is absent.
   const usePostRectangle = surface !== 'wall';
 
+  // Reset stale SDK handles when eligibility is revoked. The request effects
+  // destroy their native ad objects on cleanup; keeping their JS state or
+  // one-shot request flags would re-render a destroyed ad when the app returns
+  // online/foreground or a safety lock is released. The shared reservation
+  // cooldown still governs every new request on re-entry.
+  useEffect(() => {
+    if (canAttempt) return;
+    nativeRequestStarted.current = false;
+    bannerRequestStarted.current = false;
+    nativeRendered.current = false;
+    bannerRendered.current = false;
+    setNativeAd(null);
+    setBannerLoaded(false);
+    setBannerFailed(false);
+  }, [canAttempt]);
+
   useEffect(() => {
     if (!canAttempt || nativeRequestStarted.current || nativeFailed) return;
 
