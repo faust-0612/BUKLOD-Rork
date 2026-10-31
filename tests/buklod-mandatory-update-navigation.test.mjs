@@ -8,8 +8,10 @@ test('Native authenticated deep links are blocked at the root, not only in Tabs'
  const bound=read('src/components/BuklodMandatoryUpdateBoundary.tsx');
  assert.ok(root.indexOf('<BuklodMandatoryUpdateBoundary>') < root.indexOf('<Stack\n'));
  assert.ok(root.indexOf('</Stack>') < root.indexOf('</BuklodMandatoryUpdateBoundary>'));
- assert.match(bound,/Platform.OS !== 'web' && session && config\?\.update_required/);
+ assert.match(bound,/Platform.OS !== 'web' && Boolean\(session\) && Boolean\(config\?\.update_required\)/);
  assert.match(bound,/<BuklodUpdateRequiredPanel \/>/);
+ assert.match(bound,/StyleSheet.absoluteFillObject/);
+ assert.match(bound,/pointerEvents=\{blocked \? 'none' : 'auto'\}/);
 });
 
 test('Forced update screen contains actionable recovery rather than a check-only trap', () => {
