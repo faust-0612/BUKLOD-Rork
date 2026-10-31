@@ -1,6 +1,7 @@
 import React from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import BuklodConnectThread from '@/components/BuklodConnectThread';
+import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
 import BuklodScopeRouteState from '@/components/BuklodScopeRouteState';
 import { firstRouteParam } from '@/lib/buklodScopeRoute';
 
@@ -35,11 +36,13 @@ export default function CommunityConnectThreadRoute() {
     : undefined;
 
   return (
-    <BuklodConnectThread
+    <ConnectRenderBoundary surface="community_thread">
+      <BuklodConnectThread
       mode="scope"
       containerId={scopeId}
       initialTitle={scopeName || undefined}
       initialSubtitle={initialSubtitle}
-    />
+      />
+    </ConnectRenderBoundary>
   );
 }

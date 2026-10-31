@@ -1,0 +1,26 @@
+{
+  "contractVersion": 1,
+  "objective": "Stable Connect tab buttons, recoverable React render errors, unchanged genuine AdMob opportunities",
+  "baseRef": "2bed08b8b8e1b26c8653f727d7324ecace6a333e",
+  "evidence": "Android 2026-11-01 connect_personal_first_view: three ad requests, two Google no-fill; Profile native placement recorded successful impressions. White-screen screenshot alone cannot establish native-vs-React root cause.",
+  "allowedPaths": [
+    "src/app/(tabs)/messages.tsx",
+    "src/app/connect/personal/[threadId].tsx",
+    "src/app/connect/community/[scopeId].tsx",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "src/components/connect/ConnectRenderBoundary.tsx",
+    ".buklod/scopes/connect-ad-navigation-lock-20261101.json"
+  ],
+  "preserveBehaviors": [
+    "Personal/Cluster/Org/Requests filters and chat navigation",
+    "First-view Personal and Community banner and native sponsored footer",
+    "Existing AdMob IDs, visible SDK behavior, no-fill and cooldown guards",
+    "No forced ad requests or manufactured impressions",
+    "No runtime, auth, backend or production OTA change"
+  ],
+  "regressionTests": [
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "tests/buklod-ad-request-gate-recovery.test.mjs"
+  ],
+  "releaseGate": "CI and RC source checks required; native client acceptance not yet performed; no OTA"
+}
