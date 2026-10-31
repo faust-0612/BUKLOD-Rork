@@ -8,3 +8,6 @@ BEGIN
  THEN RAISE EXCEPTION 'Legacy preview recovery authorization regression'; END IF;
 END
 $wall_memory_guard$;
+
+-- 2026-11-01 one-image controlled pilot with 168 MB did not recover memory-limit
+-- preview; production worker rolled back and requeue disabled. No write needed.

@@ -20,7 +20,7 @@ test('invalid stride, dimensions and oversized allocations fail closed',()=>{
 });
 test('worker decodes RGB within capped memory and retains private preview auth',()=>{
  const worker=readFileSync('supabase/functions/buklod-wall-preview-backfill/index.ts','utf8');
- assert.match(worker,/formatAsRGBA: false,\s*maxResolutionInMP: 24, maxMemoryUsageInMB: 168/);
+ assert.match(worker,/formatAsRGBA: false,\s*maxResolutionInMP: 24, maxMemoryUsageInMB: 160/);
  assert.match(worker,/sampleLegacyRgbPreview\(rgb\)/);
  assert.match(worker,/if \(!thumbnail\) thumbnail = compactJpeg\(bytes\)/);
  assert.match(worker,/buklod_legacy_preview_worker_auth_v1/);
@@ -29,10 +29,17 @@ test('worker decodes RGB within capped memory and retains private preview auth',
 
 test('legacy fallback does not allow large-resolution decoding or public Storage bypass', () => {
  const worker=readFileSync('supabase/functions/buklod-wall-preview-backfill/index.ts','utf8');
- assert.match(worker,/maxResolutionInMP: 24, maxMemoryUsageInMB: 168/);
+ assert.match(worker,/maxResolutionInMP: 24, maxMemoryUsageInMB: 160/);
  assert.doesNotMatch(worker,/maxResolutionInMP: (?:3[0-9]|[4-9][0-9])/);
  assert.match(worker,/findEmbeddedLegacyJpegPreview\(bytes\)/);
  assert.match(worker,/buklod_legacy_preview_worker_auth_v1/);
  assert.match(worker,/thumbnail.length > 125000/);
  assert.doesNotMatch(worker,/getPublicUrl|\.remove\(/);
+});
+
+test('failed bounded memory pilot keeps stable 160 MB decoder and 24 MP guard', () => {
+  const worker=readFileSync('supabase/functions/buklod-wall-preview-backfill/index.ts','utf8');
+  assert.match(worker,/maxResolutionInMP: 24, maxMemoryUsageInMB: 160/);
+  assert.doesNotMatch(worker,/maxMemoryUsageInMB: (?:17[0-9]|18[0-9]|19[0-9]|[2-9][0-9]{2})/);
+  assert.match(worker,/buklod_legacy_preview_worker_auth_v1/);
 });

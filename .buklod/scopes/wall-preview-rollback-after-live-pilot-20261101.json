@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "objective": "Keep BUKLOD legacy thumbnail worker source aligned with the safe rollback after failed one-image 168MB production pilot",
+  "baseRef": "a97abcc86c55926924a18c1b145cb967f7b09a42",
+  "productionBaselineEvidence": "Production worker v7 168MB pilot request 4320 returned state retry, memory exceeded by 39MB; 900 previews done, 123 failed, originals intact. Worker auth disabled, rollback deployed as v8 SHA256 f3f61a7f80d68e52febfb5186e55c42012446f83f66e32b6641a82a2afdeee41; Oct 31 Android OTA 01a19351 succeeded separately.",
+  "chosenApproach": "Restore stable 160 MB decoder while retaining 24 MP guard, private token validation, existing EXIF fast path, original Storage fallback and disabled queue. No further blind mass retry.",
+  "selectionRationale": "Exact production pilot falsified the proposed 168 MB fix and showed high potential memory pressure; release safe rollback and align canonical main.",
+  "alternativeApproaches": [
+    "Keep 168 MB cap despite pilot failure (rejected: unverified benefit and possible memory pressure)",
+    "Expand to 256 MB or convert with native sharp in Edge (rejected: hosted hard limit and unsupported runtime)"
+  ],
+  "riskAreas": [
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/wall-legacy-rgb-sampler.test.mjs",
+    "supabase/tests/wall_preview_bounded_memory_recovery_20261101.sql"
+  ],
+  "allowedPaths": [
+    "supabase/functions/buklod-wall-preview-backfill/index.ts",
+    "tests/wall-legacy-rgb-sampler.test.mjs",
+    "supabase/tests/wall_preview_bounded_memory_recovery_20261101.sql",
+    ".buklod/scopes/wall-preview-rollback-after-live-pilot-20261101.json"
+  ],
+  "preserveBehaviors": [
+    "Private originals unchanged and available",
+    "No worker auto-requeue or new cron",
+    "No new Storage transformations or billing",
+    "No Android runtime, OTA, web, iOS or unrelated UI changes",
+    "Existing approved preview records stay intact"
+  ],
+  "acceptanceChecks": [
+    "Production worker restored to stable decoder version 8",
+    "Source and worker both use 160MB/24MP",
+    "Private auth and disabled queue unchanged",
+    "Focused tests, DB guard and CI pass before merge",
+    "No automatic Android OTA from this backend source-only change"
+  ]
+}
