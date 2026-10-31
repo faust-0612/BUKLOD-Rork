@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Make My Bible reader-first with a searchable book/chapter/verse picker and replace the public bottom Connect slot with a Bible shortcut while preserving chat routing.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main source commit 54dae504382381173709e2be1883803b9a8abb3b; no Android Production OTA fingerprint or device behavior verified for this change.",
+  "chosenApproach": "Re-use existing Bible reader data flow, offline caches, search, narration, and chapter selection; add a lightweight modal picker; route fourth nav slot to my_bible.",
+  "selectionRationale": "Avoids rewriting the 5K-line reader or Bible data contracts, and leaves daily_plan/Connect services untouched.",
+  "alternativeApproaches": [
+    "Full Bible reader rewrite (rejected: high regression risk)",
+    "New independent Bible reading route with duplicate state (rejected: breaks offline/narration continuity)"
+  ],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
+  "allowedPaths": [
+    "src/app/bible/read.tsx",
+    "src/components/BuklodPersistentBottomNav.tsx",
+    "src/components/bible/MyBibleQuickNavigator.tsx",
+    ".buklod/scopes/my-bible-reader-quicknav-20261101.json",
+    "tests/bible-navigation.test.cjs"
+  ],
+  "regressionTests": [
+    "tests/bible-navigation.test.cjs"
+  ],
+  "preserveBehaviors": [
+    "Daily assigned reading completion/points path and reflections",
+    "Bible Search results open exact verse",
+    "Account-bound offline cache and ASD/KJV selection",
+    "Narration provider continuous playback",
+    "Connect inbox, chat thread and notifications remain available at their existing routes",
+    "Wall remains the center/global default destination"
+  ],
+  "acceptanceChecks": [
+    "My Bible opens immediately at text with compact book/chapter/verse controls",
+    "Book modal filters by OT/NT and book name and chapter selection works",
+    "Verse can be selected or cleared to full chapter",
+    "Audio and text size controls remain reachable without occupying the default viewport",
+    "Bible in bottom nav opens my_bible even if currently in Daily Reading",
+    "Existing /messages Connect routes remain untouched",
+    "No OTA before verified RC"
+  ]
+}
