@@ -190,8 +190,8 @@ export default function WordScreen() {
       const weekly = next.filter(item => item.publish_date && item.publish_date >= weekKey)
         .slice().sort((x,y) => String(x.publish_date).localeCompare(String(y.publish_date)))[0] ?? next[0];
       if (weekly) {
-        void supabase.from('devotionals').select('*')
-          .eq('id', weekly.id).eq('is_published', true).single()
+        void Promise.resolve(supabase.from('devotionals').select('*')
+          .eq('id', weekly.id).eq('is_published', true).single())
           .then(({data: detail, error: detailError}) => {
             if (!detailError && detail && current()) {
               void setOfflineCache('word-full:' + weekly.id, detail, {
