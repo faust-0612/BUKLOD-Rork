@@ -9,7 +9,7 @@ const collage = readFileSync('src/components/BuklodCommunityPhotoCollage.tsx', '
 test('preview is kept visible until full ORIGINAL has valid decoded dimensions', () => {
   assert.match(renderer, /shouldMountWallOriginalUpgrade\(\{/);
   assert.match(renderer, /<WallSharpOverlay mediaPath=\{originalPath\}/);
-  assert.match(renderer, /opacity: current\.ready \? 1 : 0/);
+  assert.match(renderer, /opacity: 1, zIndex: wallOriginalLayerZIndex\(current.ready\)/);
   assert.match(renderer, /Number\(dimensions\?\.width\) > 0 && Number\(dimensions\?\.height\) > 0/);
   assert.match(renderer, /activeUpgradeRendererRef\.current === 'native'\) finish\(false\)/);
   assert.match(renderer, /if \(!current\.url\) return null/);

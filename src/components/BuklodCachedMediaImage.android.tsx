@@ -32,7 +32,7 @@ import { decideAndroidPhotoRecovery } from '@/lib/buklodAndroidPhotoRecovery';
 import { communityWallPreviewPath, verifiedLegacyWallPreviewPath } from '@/lib/communityWallPreviewPath';
 import { communityWallSharpGate, configureCommunityWallOriginalQuality } from '@/lib/communityWallSharpUpgrade';
 import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
-import { planWallOriginalSource, shouldKeepWallOriginalTransfer, shouldMountWallOriginalUpgrade, shouldRevealWallOriginal } from '@/lib/communityWallPhotoDisplayGate';
+import { WALL_PREVIEW_LAYER_Z_INDEX, wallOriginalLayerZIndex, planWallOriginalSource, shouldKeepWallOriginalTransfer, shouldMountWallOriginalUpgrade, shouldRevealWallOriginal } from '@/lib/communityWallPhotoDisplayGate';
 
 type Props = {
   uri?: string | null;
@@ -75,6 +75,8 @@ function initialSource(identity: string, path: string, preferred: string, prefer
  * Wall image. Only after it paints, resolve the private ORIGINAL and decode it
  * independently of sidecar success. Only after Expo reports a valid decode
  * and display do we reveal the original. Preserve thumbnail while loading.
+ * At alpha=1 behind preview, the hidden Android native view can draw and
+ * emit onDisplay; zero-alpha original can strand a blurred preview.
  */
 function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; contentFit: 'cover' | 'contain' }) {
   const [sharp, setSharp] = useState({ identity: '', url: '', ready: false });
@@ -260,7 +262,8 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     <ExpoImage
       key={'sharp-expo:' + mediaPath + ':' + current.url}
       source={{ uri: current.url, cacheKey: originalCacheKey }}
-      style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
+      style={[StyleSheet.absoluteFillObject, { opacity: 1, zIndex: wallOriginalLayerZIndex(current.ready) }]}
+      pointerEvents="none"
       contentFit={contentFit}
       cachePolicy="memory-disk"
       priority="low"
@@ -319,7 +322,8 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     <NativeImage
       key={'sharp-native:' + mediaPath + ':' + current.url}
       source={{ uri: current.url }}
-      style={[StyleSheet.absoluteFillObject, { opacity: current.ready ? 1 : 0 }]}
+      style={[StyleSheet.absoluteFillObject, { opacity: 1, zIndex: wallOriginalLayerZIndex(current.ready) }]}
+      pointerEvents="none"
       resizeMode={contentFit}
       fadeDuration={0}
       onProgress={event => {
@@ -637,7 +641,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   if (!actual.url || actual.failed) {
     return renderWithUpgrade(
       <Pressable
-        style={[styles.placeholder, style as any]}
+        style={[styles.placeholder, style as any, usingPreview && { zIndex: WALL_PREVIEW_LAYER_Z_INDEX }]}
         disabled={!actual.failed || !path}
         onPress={retryManually}
         accessibilityRole={actual.failed && path ? 'button' : undefined}
@@ -661,7 +665,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       <NativeImage
         source={{ uri: actual.url }}
         resizeMode={contentFit}
-        style={[{ backgroundColor: '#EEF3F0' }, style]}
+        style={[{ backgroundColor: '#EEF3F0' }, style, usingPreview && { zIndex: WALL_PREVIEW_LAYER_Z_INDEX }]}
         onProgress={event => {
           const bytes = Number(event.nativeEvent?.loaded ?? 0);
           const p = progressRef.current;
@@ -701,7 +705,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     <>
     <ExpoImage
       source={{ uri: actual.url, cacheKey }}
-      style={[{ backgroundColor: '#EEF3F0' }, style]}
+      style={[{ backgroundColor: '#EEF3F0' }, style, usingPreview && { zIndex: WALL_PREVIEW_LAYER_Z_INDEX }]}
       contentFit={contentFit}
       cachePolicy="memory-disk"
       priority="high"

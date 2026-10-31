@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "objective": "Allow full-resolution Android Wall photos to draw and promote after existing valid load plus onDisplay while keeping private low-res preview visible until ready",
+  "baseRef": "23182683e9a902ca0bbc688e7d6470e8974e71bb",
+  "productionBaselineEvidence": "2026-10-31 user screenshots at 11:16 PHT show blurred public Wall photo against clear fullscreen. Last verified OTA was source 7b0e8081a2c82021c27e8fbee26f318c7eb9f460, runtime 1.3.2; current main includes subsequent scoped Wall changes. Source currently holds Expo and native overlay at opacity 0 until onDisplay; installed device update unverified.",
+  "chosenApproach": "Place sharp original at alpha 1 under existing direct preview via zIndex 0 versus 1. Only raise original to zIndex 2 after verified signed URL, valid decoded dimensions, and matching Expo onDisplay (or native valid onLoad fallback).",
+  "selectionRationale": "Fixes possible Android transparency/display acknowledgement deadlock without removing verification or changing first-paint geometry; reuses original cache, protected signer, and existing retry architecture.",
+  "alternativeApproaches": [
+    "Expose original on decoder load alone: rejected due historical blank tiles",
+    "Remove low-res previews: rejected due costly and slow mobile data",
+    "Force reveal by timer: rejected because missing image could mask preview"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "cache-integrity",
+    "weak-network",
+    "Android original compositing"
+  ],
+  "regressionTests": [
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/android-wall-auto-sharp.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Signed URLs and per-account storage access unchanged",
+    "Direct preview first paint unchanged",
+    "Full-screen viewer and web/iOS unchanged",
+    "Decode+onDisplay URL/renderer gate and native fallback unchanged",
+    "Dynamic 1-2 full originals concurrent unchanged",
+    "No new APK or native runtime"
+  ],
+  "acceptanceChecks": [
+    "Unready original renders alpha 1 at zIndex 0 below preview zIndex 1",
+    "Ready original rises to zIndex 2 without remount",
+    "Both Expo and native original paths use same layering",
+    "No masked wrapper or early promotion of blank original",
+    "Focused tests, TypeScript and integration QA pass",
+    "DEV to verified RC to exact Production OTA; device-specific acceptance excluded by prior user request"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/communityWallPhotoDisplayGate.ts",
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/android-wall-auto-sharp.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/android-wall-sharp-compositing-20261031.json"
+  ]
+}

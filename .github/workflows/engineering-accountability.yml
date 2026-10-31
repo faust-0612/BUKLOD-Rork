@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/android-wall-sharp-compositing-20261031)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/android-wall-sharp-compositing-20261031.json" >> "$GITHUB_ENV";;
             security/public-profile-cards-invoker-20261030)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/public-profile-cards-security-20261030.json" >> "$GITHUB_ENV";;
             fix/android-wall-visible-photo-continuity-20261030)
@@ -245,6 +247,10 @@ jobs:
       - name: Verify profile card RLS migration security contract
         if: github.head_ref == 'security/public-profile-cards-invoker-20261030'
         run: node --test tests/public-profile-cards-security.test.cjs
+      - name: Verify Android Wall original compositing and sharp promotion
+        if: github.head_ref == 'fix/android-wall-sharp-compositing-20261031'
+        run: |
+          node --experimental-strip-types --test tests/android-wall-sharp-paint-contract.test.mjs tests/android-wall-auto-sharp.test.mjs tests/android-photo-oct28-rollback.test.cjs tests/android-photo-cache-first-progress.test.mjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
       - name: Verify KL per-scene saved placement and draft isolation
