@@ -18,7 +18,8 @@
     "src/app/faith/abc/[lessonId].tsx",
     "src/app/learn/lesson.tsx",
     "tests/buklod-ad-natural-break-expansion.test.mjs",
-    ".buklod/scopes/interstitial-natural-break-expansion-20261101.json"
+    ".buklod/scopes/interstitial-natural-break-expansion-20261101.json",
+    "tests/kl-reader-ad-safe-completion.test.mjs"
   ],
   "preserveBehaviors": [
     "Core reading, lessons, points, quiz, classroom, messaging and prayer work with no fill or offline.",
@@ -33,12 +34,12 @@
     "kl-reader",
     "abc-lessons",
     "formation",
-    "weak-network"
+    "weak-network",
+    "story"
   ],
   "regressionTests": [
     "tests/buklod-ad-natural-break-expansion.test.mjs",
-    "tests/buklod-ad-opportunities.test.cjs",
-    "tests/kl-ad-completion.test.cjs"
+    "tests/kl-reader-ad-safe-completion.test.mjs"
   ],
   "acceptanceChecks": [
     "Source and focused regression tests pass plus TypeScript and Engineering Accountability gate.",
