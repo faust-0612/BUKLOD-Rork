@@ -21,6 +21,7 @@ import { RuntimeConfigProvider } from '@/providers/RuntimeConfigProvider';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import BuklodPublishBanner from '@/components/BuklodPublishBanner';
 import BuklodOtaFreshnessHost from '@/components/BuklodOtaFreshnessHost';
+import BuklodMandatoryUpdateBoundary from '@/components/BuklodMandatoryUpdateBoundary';
 import BuklodClientVersionReporter from '@/components/BuklodClientVersionReporter';
 import BuklodEntitlementRouteGuard from '@/components/BuklodEntitlementRouteGuard';
 import BuklodFocusAppRouteGuard from '@/components/BuklodFocusAppRouteGuard';
@@ -256,6 +257,7 @@ function RootLayout() {
               <BuklodAttendanceDeepLinkHandler />
               <BuklodWebAdSenseProvider>
               <BuklodNavSafeShell>
+              <BuklodMandatoryUpdateBoundary>
               <Stack
                 screenOptions={{
                   headerShown: false,
@@ -417,6 +419,7 @@ function RootLayout() {
                 <Stack.Screen name="drawer/item/[id]" />
                 <Stack.Screen name="drawer/settings" />
               </Stack>
+              </BuklodMandatoryUpdateBoundary>
               </BuklodNavSafeShell>
               </BuklodWebAdSenseProvider>
             </BuklodRootKeyboardAvoidingView>

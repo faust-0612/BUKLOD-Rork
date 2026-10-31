@@ -8,7 +8,9 @@ import React, { useEffect, useState } from 'react';
 import { AppState, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+// Check on an hourly foreground return; launch checks still belong to Expo.
+// Do not immediately reload during a call, recording, upload, or PTT session.
+const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 const FAILURE_COOLDOWN_MS = 30 * 60 * 1000;
 
 // Shared across remounts. Suppress duplicate cold-launch checks (Expo already
