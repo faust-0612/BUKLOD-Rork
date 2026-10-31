@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
-import type { BuklodAdPlacement } from '@/lib/buklodAdUnits';
+import { BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT, type BuklodAdPlacement } from '@/lib/buklodAdUnits';
 
 type Props = {
   placement: BuklodAdPlacement;
@@ -42,5 +42,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'stretch',
     marginVertical: 8,
+    minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT,
   },
 });
