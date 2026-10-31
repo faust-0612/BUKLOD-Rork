@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "objective": "Safely reduce memory use for legacy Wall JPEG backfill by decoding RGB (3 bytes/pixel) then converting only <=384px downsample to RGBA before encoding.",
+  "baseRef": "a73449e7e42dde6897d36d2d12e36197ac7f116f",
+  "productionBaselineEvidence": "Source main a73449e7e42dde6897d36d2d12e36197ac7f116f; Supabase worker v5 pilot 3/3 retained prior memory-limit failures; 814 previews remain successful, 209 failed originals intact; worker disabled with zero cron jobs.",
+  "chosenApproach": "Bound JPEG decode to 24MP and 160 MiB approximate library allocation; RGB output instead of RGBA; validate exact buffer stride; 384px RGBA encoder-only buffer.",
+  "selectionRationale": "Reduce decoder pixel-buffer usage and avoid paid transformations; known official jpeg-js formatAsRGBA false outputs RGB; keep hard resource caps and existing authentication.",
+  "alternativeApproaches": [
+    "Raise memory bound to 256 or unlimited (rejected: hosting limit and OOM)",
+    "Enable Supabase Storage image transformations (rejected: metered and quota unknown)"
+  ],
+  "riskAreas": [
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/wall-legacy-rgb-sampler.test.mjs",
+    "supabase/tests/wall_preview_rgb_security_20261031.sql"
+  ],
+  "allowedPaths": [
+    "supabase/functions/buklod-wall-preview-backfill/index.ts",
+    "supabase/functions/buklod-wall-preview-backfill/legacyRgbSampler.ts",
+    "tests/wall-legacy-rgb-sampler.test.mjs",
+    "supabase/tests/wall_preview_rgb_security_20261031.sql",
+    ".buklod/scopes/wall-legacy-rgb-decoder-20261031.json"
+  ],
+  "preserveBehaviors": [
+    "Private original files never deleted or modified",
+    "No public RLS/Storage change",
+    "Existing verified EXIF reuse retained",
+    "Worker disabled except scoped one-off trial after verify",
+    "Main Public/Organization/Sub-organization/Cluster photo renderer unchanged"
+  ],
+  "acceptanceChecks": [
+    "RGB byte sampler tests pass",
+    "TypeScript and engineering checks green",
+    "Production Edge deployed exact source after merge only",
+    "Pilot limited and worker immediately disabled",
+    "No additional image transformation charges"
+  ]
+}

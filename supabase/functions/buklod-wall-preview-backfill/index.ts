@@ -2,33 +2,19 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import jpeg from "npm:jpeg-js@0.4.4";
 import { findEmbeddedLegacyJpegPreview } from "./legacyThumbnail.ts";
+import { sampleLegacyRgbPreview } from "./legacyRgbSampler.ts";
 
 // Pure JS JPEG decode/encode is compatible with the Edge function bundler:
 // unlike native sharp or magick-wasm it needs no unbundled WASM binary.
 function compactJpeg(source: Uint8Array): Uint8Array {
-  const img = jpeg.decode(source, {
-    useTArray: true, formatAsRGBA: true, maxResolutionInMP: 16, maxMemoryUsageInMB: 128
+  // Bounded fallback for JPEG originals without an embedded thumbnail.
+  // RGB uses three bytes per pixel; the encoder receives only 384px RGBA.
+  const rgb = jpeg.decode(source, {
+    useTArray: true, formatAsRGBA: false,
+    maxResolutionInMP: 24, maxMemoryUsageInMB: 160,
   });
-  if (!img?.width || !img?.height || img.width * img.height > 16000000)
-    throw new Error("invalid_photo_dimensions");
-  const ratio = Math.min(1, 384 / Math.max(img.width, img.height));
-  const w = Math.max(1, Math.round(img.width * ratio));
-  const h = Math.max(1, Math.round(img.height * ratio));
-  const pixels = new Uint8Array(w * h * 4);
-  const sourceStride = img.width * 4;
-  for (let y = 0; y < h; y++) {
-    const srcY = Math.min(img.height - 1, Math.floor(y * img.height / h));
-    for (let x = 0; x < w; x++) {
-      const srcX = Math.min(img.width - 1, Math.floor(x * img.width / w));
-      const read = srcY * sourceStride + srcX * 4;
-      const write = (y * w + x) * 4;
-      pixels[write] = img.data[read];
-      pixels[write + 1] = img.data[read + 1];
-      pixels[write + 2] = img.data[read + 2];
-      pixels[write + 3] = 255;
-    }
-  }
-  return new Uint8Array(jpeg.encode({ data: pixels, width: w, height: h }, 46).data);
+  const small = sampleLegacyRgbPreview(rgb);
+  return new Uint8Array(jpeg.encode(small, 46).data);
 }
 
 const json = (payload: Record<string, unknown>, status = 200) =>
