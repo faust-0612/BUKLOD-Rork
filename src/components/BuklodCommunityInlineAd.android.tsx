@@ -182,6 +182,22 @@ export default function BuklodCommunityInlineAd({
   // Profile, Connect and Cluster placements when Native inventory is absent.
   const usePostRectangle = surface !== 'wall';
 
+  // Eligibility transitions destroy the NativeAd instance in the request
+  // effect cleanup. Never render that destroyed instance on re-entry, and
+  // never reuse completed request flags/loaded state from a previous session.
+  // New requests still obey the existing shared passive-ad cooldown.
+  useEffect(() => {
+    if (canAttempt) return;
+    nativeRequestStarted.current = false;
+    bannerRequestStarted.current = false;
+    nativeRendered.current = false;
+    bannerRendered.current = false;
+    setNativeAd(null);
+    setBannerLoaded(false);
+    setBannerFailed(false);
+    setBannerRequestReady(false);
+  }, [canAttempt]);
+
   useEffect(() => {
     if (!canAttempt || nativeRequestStarted.current || nativeFailed) return;
 
