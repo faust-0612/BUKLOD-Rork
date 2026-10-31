@@ -24,7 +24,7 @@ test('KL chapter approval and release require server read-back before success fe
 });
 
 test('KL pending backend comment migration stays release-gated, no premature public access', () => {
-  const sql=fs.readFileSync('supabase/pending/KL_READER_COMMENTS_RELEASE_GATED_R1.sql','utf8');
+  const sql=fs.readFileSync('supabase/migrations/20261031144451_kl_reader_comments_release_gated_r1.sql','utf8');
   assert.match(sql,/e\.status = 'approved'/);
   assert.match(sql,/e\.release_at <= now\(\)/);
   assert.match(sql,/REVOKE ALL ON FUNCTION public\.kl_post_comment_v1/);

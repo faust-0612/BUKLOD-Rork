@@ -1,7 +1,7 @@
 -- KL comments/presence RC patch: reuse current production public tables, NOT the
 -- unapplied legacy 20261022120000 private.kl_* migration (would duplicate state).
 -- Keep RLS on public.kl_episode_comments; writes go through authenticated RPC.
--- Apply only after vetted RC is ready. Never release a client expecting v2 early.
+-- Production migration ID 20261031144451; applied after PR QA to protect staged client.
 
 CREATE OR REPLACE FUNCTION public.kl_post_comment_v1(
   p_episode_id uuid, p_body text, p_parent_id uuid DEFAULT NULL::uuid

@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Restore accurate server-verifiable KL chapter approval, release status, scene-anchor saving, chapter titles, story points, comments and contained reader recovery without bypassing owner publication decisions",
   "baseRef": "a88965ac012c031a3a063244aa96aa6d7e0547c7",
-  "productionBaselineEvidence": "Production chapter 3 S1 title Ang Ikaapat na Guhit remains draft, approved_at null, release_at null, with three illustrations and music approved, prepared preview and no chapter-level approve audit; Chapter 2 released. Existing Android OTA fingerprint not verified; no production publication authorized.",
+  "productionBaselineEvidence": "Production chapter 3 S1 title Ang Ikaapat na Guhit remains draft, approved_at null, release_at null, with three illustrations and music approved, prepared preview and no chapter-level approve audit; Chapter 2 released. Existing Android OTA fingerprint not verified; no production publication authorized. Production DB compatibility migration deployed as 20261031144451 after 3/3 PR QA.",
   "chosenApproach": "Keep chapter approval and release separate and server-authoritative. Verify action RPC result against reloaded admin list before reporting success; stage linked reader UI and release-gated comments API in DEV.",
   "selectionRationale": "Avoid direct production DB status updates, optimistic approval labels, or duplicate comments storage; keep owner publication action and existing permissions unchanged.",
   "alternativeApproaches": [
@@ -18,7 +18,7 @@
     "No direct changes to production data or unrelated Wall, Connect, Quiz screens",
     "Chapter release must be server-approved and independently verified",
     "No manuscript content or private media in telemetry",
-    "All SQL changes remain staged for RC safety review; no production OTA"
+    "Production comment backend is release-gated and deployed; do not trigger Android OTA before exact RC promotion"
   ],
   "allowedPaths": [
     ".buklod/scopes/kl-reader-release-status-20261031.json",
@@ -35,8 +35,9 @@
     "src/lib/kabihasnang-ligaw/readerSocial.ts",
     "src/lib/kabihasnang-ligaw/rpc.ts",
     "src/lib/kabihasnang-ligaw/sceneAnchorPicker.ts",
-    "supabase/pending/KL_READER_COMMENTS_RELEASE_GATED_R1.sql",
-    "tests/kl-reader-release-status.test.mjs"
+    "tests/kl-reader-release-status.test.mjs",
+    "supabase/migrations/20261031144451_kl_reader_comments_release_gated_r1.sql",
+    "supabase/tests/kl_reader_comments_release_gated.sql"
   ],
   "acceptanceChecks": [
     "Chapter 3 admin screen displays server status Draft until actual chapter-level approval is recorded",
@@ -44,10 +45,11 @@
     "Release Now remains disabled before approval and reports success only after server-confirmed release timestamp",
     "Saving scene anchor reports success only after server read-back of selected placement",
     "Released chapter cards use server title Kabanata N: pamagat and do not duplicate Chapter 2",
-    "Verified comment flow uses released reader gate; missing production RPC is staged, not falsely presented as live",
+    "Verified comment flow uses released reader gate and migrated Supabase RPCs",
     "Node-focused regression tests, TypeScript and CI must pass; RC before any OTA"
   ],
   "regressionTests": [
-    "tests/kl-reader-release-status.test.mjs"
+    "tests/kl-reader-release-status.test.mjs",
+    "supabase/tests/kl_reader_comments_release_gated.sql"
   ]
 }
