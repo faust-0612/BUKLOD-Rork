@@ -45,6 +45,8 @@ import {
   type BuklodPointsDashboard,
 } from '@/lib/buklodRewards';
 import { supabase } from '@/lib/supabase';
+import BuklodAdLightRewardCard from '@/components/BuklodAdLightRewardCard';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
 const CLAIM_SUCCESS_SOUND = require('../../../assets/sounds/buklod-points-claim.wav');
 const SOFT_TAP_SOUND = require('../../../assets/sounds/buklod-reaction.wav');
@@ -602,6 +604,10 @@ export default function BuklodPointsRewardsScreen() {
 
   const motionEnabled = animationsOn && !reduceMotion;
 
+  useEffect(() => {
+    warmBuklodAdOpportunity('points_claim_success');
+  }, []);
+
   const loadLeaderboard = useCallback(async (period: 'weekly' | 'monthly' | 'all_time') => {
     setLeaderboardBusy(true);
     const { data, error } = await (supabase as any).rpc('get_buklod_points_leaderboard', {
@@ -768,6 +774,9 @@ export default function BuklodPointsRewardsScreen() {
         if (soundOn) playAudio(claimSound);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
 
+        // Claim is already authoritative before a capped, skippable ad break.
+        // The ad never gates existing or withdrawable BUKLOD Points.
+        await showBuklodAdOpportunity('points_claim_success');
         setLastSuccess({ label: group.group_label, points: result.claimed_points });
         setCelebrationActive(motionEnabled);
 
@@ -1025,6 +1034,8 @@ export default function BuklodPointsRewardsScreen() {
             </View>
           </View>
         ) : null}
+
+        <BuklodAdLightRewardCard />
 
         {claimGroups.map((group) => {
           const rows = pendingRows.filter(

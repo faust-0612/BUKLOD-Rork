@@ -1,11 +1,13 @@
 import { BuklodFaithRouteBoundary } from '@/components/BuklodFaithRouteBoundary';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Button, shared } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
 type Privacy = 'private'|'leader'|'group'|'church';
 
@@ -24,6 +26,10 @@ function ReflectionScreenContent() {
   const [application, setApplication] = useState('');
   const [privacy, setPrivacy] = useState<Privacy>('private');
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    warmBuklodAdOpportunity('devotional_reflection_success');
+  }, []);
 
   const complete = async () => {
     if (!user || !id || busy) return;
@@ -59,6 +65,9 @@ function ReflectionScreenContent() {
         throw new Error('Completion was not confirmed by the server. Check your devotional status before trying again.');
       }
 
+      if (!result.already_completed) {
+        await showBuklodAdOpportunity('devotional_reflection_success');
+      }
       Alert.alert(
         result.already_completed ? 'Devotional already completed' : 'Devotional completed',
         result.status === 'approved'
@@ -94,8 +103,9 @@ function ReflectionScreenContent() {
       </View>
 
       <Text style={shared.muted}>
-        Completing this devotional automatically saves and submits it for BUKLOD checking.
+        Completing this devotional saves it before any optional sponsored break. An unavailable ad will never prevent submission.
       </Text>
+      <BuklodSubmissionAdSlot placementId="devotional_reflection_before_submit" />
       <Button title={busy?'COMPLETING...':'✓ COMPLETE DEVOTIONAL'} onPress={complete} />
     </ScrollView>
   );
