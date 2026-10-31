@@ -7,6 +7,7 @@ function fixture(size=1100, badOffset=false){
   const t=new Uint8Array(44+size);
   t.set([73,73,42,0,8,0,0,0,0,0,14,0,0,0,0,0,2,0],0);
   // IFD1 at offset 14: two LONG entries (offset, length).
+  t.set([2,0],14);
   t.set([1,2,4,0,1,0,0,0],16);
   const off=badOffset?0xffffff:44;
   t.set([off&255,(off>>>8)&255,(off>>>16)&255,(off>>>24)&255],24);
