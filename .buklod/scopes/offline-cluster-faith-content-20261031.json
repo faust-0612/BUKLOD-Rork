@@ -11,7 +11,8 @@
     "src/components/BuklodHomeFaithPanel.tsx",
     "src/app/bible/index.tsx",
     "tests/offline-cluster-faith-content.test.mjs",
-    ".buklod/scopes/offline-cluster-faith-content-20261031.json"
+    ".buklod/scopes/offline-cluster-faith-content-20261031.json",
+    "tests/offline-cluster-navigation.test.mjs"
   ],
   "preserveBehaviors": [
     "No Supabase RLS or auth changes",
@@ -21,10 +22,8 @@
     "No production OTA without RC/runtime verification"
   ],
   "riskAreas": [
-    "offline membership UI",
-    "Cluster gate",
-    "Word cache",
-    "Bible reading content"
+    "navigation-scroll",
+    "faith-cluster"
   ],
   "knownLimits": [
     "Never-downloaded new daily schedules or Word cannot be available offline",
@@ -37,5 +36,17 @@
     "Offline show previously read Word and Bible chapter without hanging",
     "No wrong Bible chapter in uncached Daily Reading",
     "No cross-account cache leaks"
+  ],
+  "productionBaselineEvidence": "Verified GitHub main SHA 23182683e9a902ca0bbc688e7d6470e8974e71bb on 2026-10-31 at branch cut. Existing Android 1.3.2 production OTA artifact/adoption and installed device remain unverified; DEV changes are not claimed live.",
+  "chosenApproach": "Reuse persisted BuklodScopeProvider per-account active membership for Cluster directory and offline formation reading gate. Cache exact published Word and Bible translation/date/book/chapter snapshots locally with user-bound isolation. Server remains authoritative for live membership changes, submitted completions and rewards.",
+  "selectionRationale": "This resolves the confirmed Profile/Cluster mismatch without changing RLS or introducing a second independently populated membership store. Read-only account-scoped caches are stable under DNS failures and preserve previously fetched content; bounded online fetch updates data when connectivity resumes.",
+  "alternativeApproaches": [
+    "Always query Supabase on each screen focus (rejected: impossible offline and causes false no-membership or endless spinner).",
+    "Build a new global database sync schema or blanket full Bible download (rejected: unnecessary migration, bandwidth/storage and rights/permission risk).",
+    "Cache only current React component state (rejected: unusable after process restart)."
+  ],
+  "regressionTests": [
+    "tests/offline-cluster-faith-content.test.mjs",
+    "tests/offline-cluster-navigation.test.mjs"
   ]
 }
