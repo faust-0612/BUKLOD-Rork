@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "objective": "Preserve visible, responsive small AdMob banners and correct large sponsored fallback request ordering for the next cumulative BUKLOD Android OTA without forcing artificial impressions.",
+  "baseRef": "f16f086751ce286c459fbf0b929783d291387365",
+  "productionBaselineEvidence": "verified source: Main SHA 84d4ca8a22dbba5828443982ce858fa35e7359b6 was inspected before the ad-only branch. The subsequent main SHA f16f086751ce286c459fbf0b929783d291387365 contains Bible/navigation change without overlapping files. Supabase production Android operational telemetry on 2026-11-01 PH: first-view ad units had no-fill while genuine large Native/rectangle units recorded impressions. No Android production OTA ID, client rollout, or live uplift is verified. User waived handset testing and prohibited OTA in this conversation. Rebased onto latest verified main f16f086751ce286c459fbf0b929783d291387365, whose changes are Bible/navigation-only and do not overlap the four ad files.",
+  "chosenApproach": "Keep small BannerAd native SDK visible during initial load/no-fill while limiting Animated opacity to the Sponsored label. Mount the large BannerAd fallback only after the existing shared passive-request reservation succeeds. Preserve reserved slot geometry and AdMob automatic refresh opportunity. Reconcile and extend source-level regression tests.",
+  "selectionRationale": "Minimally removes hidden-SDK and reservation-order risks; doesn't inflate ad requests, introduce native modules or alter user experience beyond ad rendering. Keeps the cumulative OTA separate from this PR.",
+  "alternativeApproaches": [
+    "Force small banners to retry until they win the race: rejected; would increase no-fill rate and request spam without guaranteed inventory.",
+    "Delay or block large native sponsored creatives until the small banner is served: rejected; would create artificial priority, lose valid impressions, and worsen perceived responsiveness.",
+    "Use native SDK-visible surfaces and enforce request reservation on both formats: selected."
+  ],
+  "preserveBehaviors": [
+    "Live and test AdMob IDs and SDK untouched",
+    "Shared ad request cooldown, network state, consent, remote feature switches, sensitive routes remain enforced",
+    "No fabricated impressions and no force-refresh loops",
+    "Keep Wall feed, Home, Profile, Connect, cluster and video placement density unchanged",
+    "Maintain the first-view 68dp reserved frame and native sponsored card's reserved size",
+    "Runtime 1.3.2, Android package identity and OTA workflow unchanged",
+    "No changes to unrelated navigation, photo/video rendering, auth, points, rewards or backend"
+  ],
+  "riskAreas": [
+    "ads",
+    "ad-rendering",
+    "request-sequencing",
+    "layout"
+  ],
+  "regressionTests": [
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/buklod-wall-ad-stability.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/ad-banner-visibility-recovery-20261101.json",
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/buklod-wall-ad-stability.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability passes with changed-file allowlist",
+    "Focused banner request/recovery and wall-ad rendering tests pass",
+    "No hidden BannerAd native SDK view during initialization",
+    "Large fallback mounts only with reservationReady",
+    "TypeScript/performance CI succeeds before merge",
+    "Merge to main but do not dispatch Android production OTA in this conversation",
+    "For next cumulative OTA operator, require exact verified RC to include merge SHA and release runtime 1.3.2, skip actual handset verification per owner direction"
+  ]
+}

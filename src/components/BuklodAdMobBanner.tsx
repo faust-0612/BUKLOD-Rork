@@ -280,17 +280,11 @@ function BuklodAdMobBanner({
 
   return (
     <View ref={ref} collapsable={false}>
-      <Animated.View
-        style={[
-          styles.shell,
-          compact && styles.compactShell,
-          { opacity: compact ? opacity : 1 },
-        ]}
-      >
+      <View style={[styles.shell, compact && styles.compactShell]}>
         {showLabel ? (
-          <View style={styles.labelRow}>
+          <Animated.View style={[styles.labelRow, { opacity }]}>
             <Text style={styles.label}>Sponsored</Text>
-          </View>
+          </Animated.View>
         ) : null}
 
         <View
@@ -348,7 +342,7 @@ function BuklodAdMobBanner({
             />
           ) : null}
         </View>
-      </Animated.View>
+      </View>
     </View>
   );
 }

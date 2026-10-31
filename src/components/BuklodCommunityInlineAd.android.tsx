@@ -73,6 +73,8 @@ export default function BuklodCommunityInlineAd({
   const [nativeFailed, setNativeFailed] = useState(false);
   const [bannerLoaded, setBannerLoaded] = useState(false);
   const [bannerFailed, setBannerFailed] = useState(false);
+  // Do not mount a fallback BannerAd until its shared request is accepted.
+  const [bannerRequestReady, setBannerRequestReady] = useState(false);
   const [reservationTick, setReservationTick] = useState(0);
 
   const nativeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -342,6 +344,7 @@ export default function BuklodCommunityInlineAd({
     }
 
     bannerRequestStarted.current = true;
+    setBannerRequestReady(true);
     recordBuklodAdEvent(
       diagnosticPlacement,
       'ad_request',
@@ -432,7 +435,7 @@ export default function BuklodCommunityInlineAd({
     );
   }
 
-  if (!nativeFailed || !bannerUnitId || bannerFailed) {
+  if (!nativeFailed || !bannerUnitId || bannerFailed || !bannerRequestReady) {
     // Keep the reserved frame stable for this visible row when no inventory
     // is available. Never synthesize an ad or a billable impression.
     return (
@@ -526,7 +529,7 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 50,
     overflow: 'hidden',
-    opacity: 0,
+    // Keep the SDK view visible so AdMob automatic refresh can recover no-fill.
   },
   nativeShell: {
     width: '100%',
