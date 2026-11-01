@@ -14,11 +14,13 @@
     "wall-media",
     "Android compositing",
     "photo geometry",
-    "photo viewer control layout"
+    "photo viewer control layout",
+    "navigation-scroll"
   ],
   "regressionTests": [
     "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
-    "tests/android-wall-sharp-paint-contract.test.mjs"
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/community-wall-scroll-stability.test.mjs"
   ],
   "preserveBehaviors": [
     "Private signed original and stable cache keys",
@@ -46,6 +48,7 @@
     "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
     ".buklod/scopes/wall-portrait-fullquality-layer-20261102.json",
     "src/app/(tabs)/buklod.tsx",
-    "src/app/(tabs)/buklodCommunityStyles.ts"
+    "src/app/(tabs)/buklodCommunityStyles.ts",
+    "tests/community-wall-scroll-stability.test.mjs"
   ]
 }

@@ -29,3 +29,11 @@ test('Scoped Wall continues to use its existing FlatList, unchanged', () => {
   assert.match(scopedWall, /<FlatList<any>/);
   assert.doesNotMatch(scopedWall, /maintainVisibleContentPosition=\{\{\s*disabled:\s*true/);
 });
+
+test('photo viewer compact dock stays inside modal without changing Public Wall feed scroll', () => {
+  const modal = publicWall.slice(publicWall.indexOf('visible={viewerOpen}'), publicWall.indexOf('visible={viewerOpen}') + 5000);
+  assert.match(modal, /<GestureFlatList/);
+  assert.match(modal, /\{!viewerZoomed&&renderViewerPhotoActions\(\)\}/);
+  assert.match(publicWall, /maintainVisibleContentPosition=\{\{\s*disabled:\s*true\s*\}\}/);
+  assert.match(publicWall, /onEndReached=\{\(\) => \{\s*void loadMoreCommunity186L\(\)/);
+});
