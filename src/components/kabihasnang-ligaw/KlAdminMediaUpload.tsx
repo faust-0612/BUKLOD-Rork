@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 import KlChapterAudio from './KlChapterAudio';
 import { klSceneEffectSaved, klServerApprovedCount } from '@/lib/kabihasnang-ligaw/mediaApprovalState';
 import { KlSceneEffect, type SceneEffect } from './KlSceneEffect';
-import { sceneEditorValues, updateSceneDraft, clearSceneDraft, type SceneDrafts, type SceneDraft } from '@/lib/kabihasnang-ligaw/sceneDrafts';
+import { sceneEditorValues, updateSceneDraft, clearSceneDraft, klSceneNumbers, nextKlSceneCount, KL_MAX_SCENE_COUNT, type SceneDrafts, type SceneDraft } from '@/lib/kabihasnang-ligaw/sceneDrafts';
 
 type Kind = 'cover' | 'illustration' | 'music' | 'ambient';
 type MediaItem = {
@@ -63,6 +63,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [kind, setKind] = useState<Kind>(initialKind);
   const [placement, setPlacement] = useState(1);
+  const [visibleSceneCount, setVisibleSceneCount] = useState(3);
   const [items, setItems] = useState<MediaItem[]>([]);
   const [previewUrl, setPreviewUrl] = useState('');
   // Unsaved edits are keyed by scene. Saved values always come from the server's
@@ -74,6 +75,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
 
   useEffect(() => setKind(initialKind), [initialKind]);
 
+  const sceneNumbers = klSceneNumbers(items, visibleSceneCount);
   const selectedPlacement = kind === 'illustration' ? placement : 0;
   const selected = items.find((item) => item.kind === kind && item.placement === selectedPlacement);
   const { anchor, side, effect, intensity } = sceneEditorValues(items, placement, sceneDrafts[placement]);
@@ -308,11 +310,26 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
         ))}
       </View>
       {kind === 'illustration' ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {[1, 2, 3].map((scene) => (
-            <Choice key={scene} label={'Scene ' + scene} selected={placement === scene}
-              disabled={isBusy} onPress={() => setPlacement(scene)} />
-          ))}
+        <View style={{ gap: 8 }}>
+          <Text style={{ color: '#c8d2da' }}>
+            Puwedeng magdagdag ng hanggang {KL_MAX_SCENE_COUNT} scenes. May sariling image, exact placement at effect ang bawat isa.
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {sceneNumbers.map((scene) => (
+              <Choice key={scene} label={'Scene ' + scene} selected={placement === scene}
+                disabled={isBusy} onPress={() => setPlacement(scene)} />
+            ))}
+            <Choice label="+ Add Scene" disabled={isBusy || sceneNumbers.length >= KL_MAX_SCENE_COUNT}
+              onPress={() => {
+                const next = nextKlSceneCount(items, visibleSceneCount);
+                setVisibleSceneCount(next);
+                setPlacement(next);
+                setFeedback({ tone: 'info', text: 'Scene ' + next + ' is ready. Mag-upload ng illustration para ma-save sa server.' });
+              }} />
+          </View>
+          {sceneNumbers.length >= KL_MAX_SCENE_COUNT
+            ? <Text style={{ color: '#ffe0a8' }}>Maximum na ang {KL_MAX_SCENE_COUNT} scenes sa kabanatang ito.</Text>
+            : null}
         </View>
       ) : null}
       <Choice label={isBusy ? busyAction + '…' : imageSelected ? 'Upload Image' : 'Upload Audio'}
