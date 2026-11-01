@@ -20,8 +20,22 @@ test('full-quality transparent originals can paint without occluded display call
   assert.equal(wallOriginalLayerZIndex(true), 2);
   assert.equal((renderer.match(/backgroundColor: 'transparent', opacity: 1, zIndex: wallOriginalLayerZIndex\(current.ready\)/g) || []).length, 2);
   assert.match(renderer, /<ExpoImage\s+pointerEvents="none"\s+key=\{'sharp-expo:/);
-  assert.match(renderer, /<NativeImage\s+pointerEvents="none"\s+key=\{'sharp-native:/);
+  assert.match(renderer, /<NativeImage[\s\S]*?key=\{'sharp-native:/);
   assert.match(renderer, /shouldRevealWallOriginal\(\{/);
   assert.match(renderer, /onDisplay=\{\(\) => \{/);
   assert.doesNotMatch(renderer, /opacity: current.ready \? 1 : 0/);
+});
+
+test('compact photo viewer retains reactions and Save without obscuring zoom', () => {
+  const wall=readFileSync('src/app/(tabs)/buklod.tsx','utf8');
+  const actions=wall.slice(wall.indexOf('const renderViewerPhotoActions='),wall.indexOf('const openPhotoViewer='));
+  assert.match(actions,/flexDirection:'row',alignItems:'center',gap:10/);
+  assert.match(actions,/compact\s+showSummary=\{false\}/);
+  assert.doesNotMatch(actions,/React to this photo/);
+  assert.match(actions,/accessibilityLabel="View all photo reactions"/);
+  assert.match(actions,/openReactionDetails\(photo\)/);
+  assert.match(actions,/saveCommunityPhoto\(photo\)/);
+  assert.match(wall,/\{!viewerZoomed&&renderViewerPhotoActions\(\)\}/);
+  const styles=readFileSync('src/app/(tabs)/buklodCommunityStyles.ts','utf8');
+  assert.match(styles,/communityViewerActions:\{[\s\S]*?paddingVertical:6/);
 });

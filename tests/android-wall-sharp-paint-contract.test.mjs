@@ -41,7 +41,7 @@ test('original draws transparently above the thumbnail to avoid occluded-display
   const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx','utf8');
   assert.equal((renderer.match(/backgroundColor: 'transparent', opacity: 1, zIndex: wallOriginalLayerZIndex\(current.ready\)/g)||[]).length,2);
   assert.match(renderer, /<ExpoImage\s+pointerEvents="none"\s+key=\{'sharp-expo:/);
-  assert.match(renderer, /<NativeImage\s+pointerEvents="none"\s+key=\{'sharp-native:/);
+  assert.match(renderer, /<NativeImage[\s\S]*?key=\{'sharp-native:/);
   assert.match(renderer,/usingPreview && \{ zIndex: WALL_PREVIEW_LAYER_Z_INDEX \}/);
   assert.doesNotMatch(renderer,/opacity: current.ready \? 1 : 0/);
   assert.match(renderer,/onDisplay=\{\(\) => \{/);

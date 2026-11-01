@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
-  "objective": "Fix narrow letterboxed portrait Wall photos and full-resolution originals permanently hidden behind low-resolution previews",
+  "objective": "Fix unreadable tall photos and original image occlusion on Wall, plus the oversized reaction/save panel that covers fullscreen photo text",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: GitHub Actions run 41291297116 for Android Production OTA completed successfully on 2026-11-01 from source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944. Current main source SHA 48117d16709976612355e6fe6d45d3be5015528e is DEV, NOT established as live. Installed client's OTA adoption and on-device photo pixels are unverified. Nov 2 user screenshots show a narrow single portrait image in Wall against a clearer fullscreen version; code confirms forced contain and an occluded original layer.",
-  "chosenApproach": "Respect caller-provided contentFit for bounded photo cards; place a transparent pointerEvents=none full-resolution original above low-resolution preview; keep verified signed URL onDisplay promotion and native fallback.",
+  "chosenApproach": "Respect caller-provided contentFit for bounded photo cards; place a transparent pointerEvents=none full-resolution original above low-resolution preview; keep verified signed URL onDisplay promotion and native fallback. Compact photo viewer controls into one horizontal row, keep accessible reaction details and Save and hide toolbar while zoomed.",
   "selectionRationale": "Changes only shared Wall photo geometry and Android original compositing without backend mutations, duplicate downloads, or blanket renderer rewrites.",
   "alternativeApproaches": [
     "Bigger natural image cards can destabilize scroll anchoring",
@@ -13,7 +13,8 @@
   "riskAreas": [
     "wall-media",
     "Android compositing",
-    "photo geometry"
+    "photo geometry",
+    "photo viewer control layout"
   ],
   "regressionTests": [
     "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
@@ -25,7 +26,8 @@
     "Full-screen photo contain unchanged",
     "Shared Public and Scoped Community Wall renderer",
     "One or two concurrent original downloads unchanged",
-    "No backend, ads, Connect, Marites or native APK changes"
+    "No backend, ads, Connect, Marites or native APK changes",
+    "Photo viewer Save and reaction detail sheet remain available"
   ],
   "acceptanceChecks": [
     "Bounded portrait card uses explicit cover rather than forced contain",
@@ -33,7 +35,8 @@
     "Original overlay pointerEvents none",
     "Signed URL/dimensions/display callbacks retained",
     "Focused regression tests and TypeScript pass in CI; physical device still unverified",
-    "Freeze verified RC before any separate OTA"
+    "Freeze verified RC before any separate OTA",
+    "Compact photo viewer actions still support reactions, counts, Save and unobstructed zoom"
   ],
   "allowedPaths": [
     "src/components/BuklodCommunityPhotoCollage.tsx",
@@ -41,6 +44,8 @@
     "src/lib/communityWallPhotoDisplayGate.ts",
     "tests/android-wall-sharp-paint-contract.test.mjs",
     "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
-    ".buklod/scopes/wall-portrait-fullquality-layer-20261102.json"
+    ".buklod/scopes/wall-portrait-fullquality-layer-20261102.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/buklodCommunityStyles.ts"
   ]
 }

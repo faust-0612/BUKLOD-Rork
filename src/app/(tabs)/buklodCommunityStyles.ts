@@ -553,10 +553,10 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
   left:8,
   right:8,
   bottom:0,
-  paddingHorizontal:8,
-  paddingVertical:8,
-  borderRadius:16,
-  backgroundColor:'rgba(0,0,0,.60)'
+  paddingHorizontal:12,
+  paddingVertical:6,
+  borderRadius:22,
+  backgroundColor:'rgba(0,0,0,.52)'
  },
 
  communityViewerActionTitle:{
@@ -621,10 +621,10 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
  },
 
  communityViewerReactionSummary:{
-  marginTop:5,
-  paddingLeft:3,
+  marginTop:0,
+  paddingLeft:0,
   color:'#E7EFEA',
-  fontSize:8.5
+  fontSize:11
  }
   });
 }

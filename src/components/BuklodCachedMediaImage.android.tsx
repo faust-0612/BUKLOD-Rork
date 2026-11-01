@@ -320,7 +320,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     />
   ) : (
     <NativeImage
-      pointerEvents="none"
+      // NativeImage has no press responder and does not support pointerEvents.
       key={'sharp-native:' + mediaPath + ':' + current.url}
       source={{ uri: current.url }}
       style={[StyleSheet.absoluteFillObject, { backgroundColor: 'transparent', opacity: 1, zIndex: wallOriginalLayerZIndex(current.ready) }]}
