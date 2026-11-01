@@ -79,7 +79,9 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : 28,
+      // Separate Android package has an explicit local versionCode.
+      // Preserve Classroom and Production version behavior.
+      versionCode: isStaging && !isClassroom ? 1 : (isStaging ? undefined : 28),
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       // The checked-in Firebase config already includes the separately

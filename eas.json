@@ -85,12 +85,12 @@
       "env": {
         "APP_VARIANT": "staging",
         "EXPO_PUBLIC_APP_ENV": "staging",
-        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging"
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging",
+        "EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS": "false"
       },
       "distribution": "internal",
       "channel": "staging-user",
       "environment": "production",
-      "autoIncrement": true,
       "android": {
         "buildType": "apk"
       }

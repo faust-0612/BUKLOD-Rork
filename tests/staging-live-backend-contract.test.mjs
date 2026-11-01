@@ -14,6 +14,9 @@ test('staging profile reads existing backend environment without native package 
   assert.equal(p.distribution,'internal');
   assert.equal(p.android.buildType,'apk');
   assert.equal(p.env.APP_VARIANT,'staging');
+  assert.equal(p.autoIncrement,undefined);
+  assert.equal(p.env.EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS,'false');
+  assert.match(config,/versionCode:\s*isStaging && !isClassroom \? 1/);
   assert.equal(p.env.EXPO_PUBLIC_APP_ENV,'staging');
   assert.equal(eas.build.production.channel,'production');
   assert.equal(eas.build.production.environment,'production');
