@@ -13,7 +13,7 @@ test('PostgREST plain object errors are visible rather than generic failures', (
 });
 
 test('KL creation uses the UUID-default schema migration without changing approval semantics', () => {
-  const sql = readFileSync('supabase/migrations/20261101232800_kl_episode_uuid_default_recovery.sql', 'utf8');
+  const sql = readFileSync('supabase/migrations/20261101233257_kl_episode_uuid_default_recovery_20261102.sql', 'utf8');
   assert.match(sql, /ALTER TABLE public\.kl_episodes\s+ALTER COLUMN id SET DEFAULT gen_random_uuid\(\)/i);
   assert.doesNotMatch(sql, /\bUPDATE\b|\bDELETE\b|\bDROP\b|\bREVOKE\b/i);
   const studio = readFileSync('src/components/kabihasnang-ligaw/KlPublishingStudio.tsx', 'utf8');

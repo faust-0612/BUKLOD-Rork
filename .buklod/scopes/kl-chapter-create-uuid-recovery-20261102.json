@@ -1,7 +1,7 @@
 {
   "objective": "Repair KL Admin chapter creation SQL 23502 at S1 Ch4 without touching manuscripts, approvals, releases or other features",
   "baseRef": "a35596d54dc121aca7242fd5452d8100326f14ab",
-  "productionBaselineEvidence": "Production Supabase logs at 2026-11-01T23:26Z show kl_admin_create_chapter_v1 SQLSTATE 23502 inserting null id for S1 Ch4; kl_episodes.id has no default; live Android client OTA fingerprint not verified and no client OTA authorized.",
+  "productionBaselineEvidence": "Production Supabase logs at 2026-11-01T23:26Z show kl_admin_create_chapter_v1 SQLSTATE 23502 inserting null id for S1 Ch4; production migration 20261101233257 applied safely and read-only verified gen_random_uuid() default, with existing four chapters unchanged. Live Android client OTA fingerprint and device create not verified; no client OTA authorized.",
   "chosenApproach": "Set missing UUID DEFAULT on kl_episodes.id, preserve RPC and permissions, expose structured PostgREST errors in KL-only editor; do not mask successfully created chapters on list refresh failure.",
   "alternativeApproaches": [
     "Modify only the client (rejected: cannot generate the missing DB primary key)",
@@ -22,7 +22,7 @@
     ".buklod/scopes/kl-chapter-create-uuid-recovery-20261102.json",
     "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
     "src/lib/kabihasnang-ligaw/publishingErrors.ts",
-    "supabase/migrations/20261101232800_kl_episode_uuid_default_recovery.sql",
+    "supabase/migrations/20261101233257_kl_episode_uuid_default_recovery_20261102.sql",
     "supabase/tests/kl_episode_uuid_default_recovery_20261102.sql",
     "tests/kl-chapter-creation-recovery.test.mjs"
   ],
