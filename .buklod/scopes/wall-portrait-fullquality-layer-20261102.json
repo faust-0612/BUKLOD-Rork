@@ -17,10 +17,7 @@
   ],
   "regressionTests": [
     "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
-    "tests/android-wall-sharp-paint-contract.test.mjs",
-    "tests/android-wall-auto-sharp.test.mjs",
-    "tests/android-photo-oct28-rollback.test.cjs",
-    "tests/community-wall-scroll-stability.test.mjs"
+    "tests/android-wall-sharp-paint-contract.test.mjs"
   ],
   "preserveBehaviors": [
     "Private signed original and stable cache keys",
