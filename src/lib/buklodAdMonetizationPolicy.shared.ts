@@ -77,26 +77,17 @@ export const REELS_AD_INTERVAL_MAX = Math.max(
   ),
 );
 
-export const INTERSTITIAL_MIN_EVENT_COUNT = intEnv(
-  process.env.EXPO_PUBLIC_ADS_INTERSTITIAL_MIN_EVENTS,
-  2,
-  2,
-  20,
-);
-
-export const INTERSTITIAL_COOLDOWN_MS = intEnv(
-  process.env.EXPO_PUBLIC_ADS_INTERSTITIAL_MIN_INTERVAL_MS,
-  8 * 60 * 1000,
-  60 * 1000,
-  24 * 60 * 60 * 1000,
-);
-
-export const INTERSTITIAL_SESSION_CAP = intEnv(
-  process.env.EXPO_PUBLIC_ADS_SESSION_INTERSTITIAL_CAP,
-  5,
-  0,
-  5,
-);
+/**
+ * BUKLOD_INTERSTITIAL_NATURAL_BREAK_R4
+ * Google AdMob prohibits interstitials after every user action. Two DISTINCT
+ * eligible successful actions are required between full-screen ad displays.
+ * Unused legacy time/session limit exports remain zero for compatibility:
+ * zero means no fixed time delay, and no app-session quota. Route, consent,
+ * interaction, loaded-ad, and consecutive-display guards still apply.
+ */
+export const INTERSTITIAL_MIN_EVENT_COUNT = 2;
+export const INTERSTITIAL_COOLDOWN_MS = 0;
+export const INTERSTITIAL_SESSION_CAP = 0;
 
 export const BANNER_RETRY_DELAYS_MS = [
   intEnv(process.env.EXPO_PUBLIC_ADS_RETRY_1_MS, 8_000, 3_000, 60_000),
