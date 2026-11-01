@@ -51,6 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node --check scripts/staging-user-live-backend-gate.cjs
           node --test tests/staging-fast-ota-contract.test.mjs tests/staging-live-backend-contract.test.mjs
           npx eas-cli@latest whoami --non-interactive
           npx eas-cli@latest env:exec production 'APP_VARIANT=staging node scripts/staging-user-live-backend-gate.cjs' --non-interactive

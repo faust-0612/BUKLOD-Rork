@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+const fs = require('node:fs');
 const errors = [];
 const appVariant = process.env.APP_VARIANT || '';
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
