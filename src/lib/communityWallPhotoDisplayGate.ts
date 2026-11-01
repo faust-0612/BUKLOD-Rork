@@ -60,11 +60,13 @@ export function planWallOriginalSource(cachedOriginal: boolean, canRequest: bool
   return cachedOriginal ? 'cached' : canRequest ? 'network' : 'defer';
 }
 
-// Draw the full original at alpha=1 behind its preview until display is
-// confirmed. A transparent native image may not emit onDisplay on Android.
+// Keep the full-resolution transparent image ABOVE the thumbnail. An opaque
+// preview over the original can suppress Android onDisplay indefinitely.
+// Transparent image views draw only decoded pixels, so previews stay visible
+// during loading; confirmation and bounded recovery still work independently.
 export const WALL_PREVIEW_LAYER_Z_INDEX = 1;
-export function wallOriginalLayerZIndex(ready: boolean): number {
-  return ready ? 2 : 0;
+export function wallOriginalLayerZIndex(_ready: boolean): number {
+  return 2;
 }
 
 export function shouldMountWallOriginalUpgrade(input: {

@@ -75,8 +75,8 @@ function initialSource(identity: string, path: string, preferred: string, prefer
  * Wall image. Only after it paints, resolve the private ORIGINAL and decode it
  * independently of sidecar success. Only after Expo reports a valid decode
  * and display do we reveal the original. Preserve thumbnail while loading.
- * At alpha=1 behind preview, the hidden Android native view can draw and
- * emit onDisplay; zero-alpha original can strand a blurred preview.
+ * Draw the decoded original ABOVE its preview, transparently and without
+ * intercepting taps; an opaque preview above it can suppress onDisplay.
  */
 function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; contentFit: 'cover' | 'contain' }) {
   const [sharp, setSharp] = useState({ identity: '', url: '', ready: false });
@@ -260,9 +260,10 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   const originalCacheKey = communityMediaCacheKey(mediaPath, mediaPath);
   return upgradeRenderer === 'expo' ? (
     <ExpoImage
+      pointerEvents="none"
       key={'sharp-expo:' + mediaPath + ':' + current.url}
       source={{ uri: current.url, cacheKey: originalCacheKey }}
-      style={[StyleSheet.absoluteFillObject, { opacity: 1, zIndex: wallOriginalLayerZIndex(current.ready) }]}
+      style={[StyleSheet.absoluteFillObject, { backgroundColor: 'transparent', opacity: 1, zIndex: wallOriginalLayerZIndex(current.ready) }]}
       contentFit={contentFit}
       cachePolicy="memory-disk"
       priority="low"
@@ -319,9 +320,10 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
     />
   ) : (
     <NativeImage
+      pointerEvents="none"
       key={'sharp-native:' + mediaPath + ':' + current.url}
       source={{ uri: current.url }}
-      style={[StyleSheet.absoluteFillObject, { opacity: 1, zIndex: wallOriginalLayerZIndex(current.ready) }]}
+      style={[StyleSheet.absoluteFillObject, { backgroundColor: 'transparent', opacity: 1, zIndex: wallOriginalLayerZIndex(current.ready) }]}
       resizeMode={contentFit}
       fadeDuration={0}
       onProgress={event => {

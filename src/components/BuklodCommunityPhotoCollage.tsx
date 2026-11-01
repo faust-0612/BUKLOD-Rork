@@ -240,11 +240,9 @@ export function BuklodCommunityPhotoCollage({
           useWallPreview
           previewPath={photos[0].preview_path}
           style={[styles.image, imageStyle]}
-          contentFit={
-            preserveSinglePhotoAspectRatio
-              ? 'contain'
-              : contentFit
-          }
+          // Do not shrink a tall photo into a narrow strip: a bounded Wall
+          // card uses the requested cover fit; tap still opens full original.
+          contentFit={contentFit}
           onLoad={(event: any) => {
             if (
               !preserveSinglePhotoAspectRatio ||

@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix narrow letterboxed portrait Wall photos and full-resolution originals permanently hidden behind low-resolution previews",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Main 48117d16709976612355e6fe6d45d3be5015528e; Android Production OTA run 41291297116 succeeded Nov 1 from source 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944; installed device adoption is unverified. Nov 2 screenshots show portrait artwork compressed into narrower strip and stronger detail fullscreen. Collage forces contain despite requested cover; overlay behind opaque preview relies on its onDisplay.",
+  "chosenApproach": "Respect caller-provided contentFit for bounded photo cards; place a transparent pointerEvents=none full-resolution original above low-resolution preview; keep verified signed URL onDisplay promotion and native fallback.",
+  "selectionRationale": "Changes only shared Wall photo geometry and Android original compositing without backend mutations, duplicate downloads, or blanket renderer rewrites.",
+  "alternativeApproaches": [
+    "Bigger natural image cards can destabilize scroll anchoring",
+    "Prematurely accept decode alone risks white photos",
+    "Backend compression reruns cannot fix forced letterboxing"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "Android compositing",
+    "photo geometry"
+  ],
+  "regressionTests": [
+    "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/android-wall-auto-sharp.test.mjs",
+    "tests/android-photo-oct28-rollback.test.cjs",
+    "tests/community-wall-scroll-stability.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Private signed original and stable cache keys",
+    "Preview visible until actual original pixels draw",
+    "Full-screen photo contain unchanged",
+    "Shared Public and Scoped Community Wall renderer",
+    "One or two concurrent original downloads unchanged",
+    "No backend, ads, Connect, Marites or native APK changes"
+  ],
+  "acceptanceChecks": [
+    "Bounded portrait card uses explicit cover rather than forced contain",
+    "Full-quality overlay zIndex above preview with transparent background",
+    "Original overlay pointerEvents none",
+    "Signed URL/dimensions/display callbacks retained",
+    "Focused regression tests and TypeScript pass in CI; physical device still unverified",
+    "Freeze verified RC before any separate OTA"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityPhotoCollage.tsx",
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/communityWallPhotoDisplayGate.ts",
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
+    ".buklod/scopes/wall-portrait-fullquality-layer-20261102.json"
+  ]
+}
