@@ -24,7 +24,7 @@ test('rewards are not transferable points and ad unavailability never blocks a c
   assert.match(bridge, /Platform.OS !== 'android'/);
   assert.match(bridge, /catch\s*\{\s*return false;/);
   assert.doesNotMatch(bridge, /claimBuklodReward|points_cash|awardPoints|insert\(/);
-  assert.match(source('src/lib/buklodGlobalAdController.ts'), /INTERSTITIAL_SESSION_CAP/);
-  assert.match(source('src/lib/buklodGlobalAdController.ts'), /INTERSTITIAL_COOLDOWN_MS/);
+  assert.match(source('src/lib/buklodGlobalAdController.ts'), /INTERSTITIAL_MIN_EVENT_COUNT/);
+  assert.match(source('src/lib/buklodGlobalAdController.ts'), /fullScreenCadencePersistenceFailed/);
   assert.match(source('src/components/points/BuklodPointsRewardsScreen.tsx'), /BuklodAdLightRewardCard/);
 });

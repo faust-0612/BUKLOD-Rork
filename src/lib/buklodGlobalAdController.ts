@@ -2,9 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 import {
-  INTERSTITIAL_COOLDOWN_MS,
   INTERSTITIAL_MIN_EVENT_COUNT,
-  INTERSTITIAL_SESSION_CAP,
   AD_SLOT_REMOUNT_COOLDOWN_MS,
 } from '@/lib/buklodAdMonetizationPolicy';
 import type { BuklodAdPlacement } from '@/lib/buklodAdUnits';
@@ -27,7 +25,6 @@ export type BuklodNaturalInterstitialReason =
   | 'content_session_completed'
   | 'game_session_completed';
 
-const LAST_KEY = '@buklod/ad/interstitial-last';
 const COUNT_KEY = '@buklod/ad/interstitial-count';
 
 const SENSITIVE_PREFIXES = [
@@ -67,8 +64,10 @@ const PASSIVE_AD_ROUTE_ALLOWANCES = [
 
 let pathname = '/';
 let foreground = true;
-let fullScreenShownThisSession = 0;
+let fullScreenShownThisSession = 0; // Diagnostics only. There is no session quota.
 let fullScreenReservation = false;
+let fullScreenCadenceCheckInFlight = false;
+let fullScreenCadencePersistenceFailed = false;
 let remoteFeatures: Record<string, boolean> = {};
 const passiveRequestTimes = new Map<string, number>();
 
@@ -230,22 +229,30 @@ export function canWarmBuklodFullScreenAd(
     placementEnabled(placementId) &&
     !isBuklodAdRouteSensitive(pathname) &&
     !hasInteractionLock() &&
-    fullScreenShownThisSession < INTERSTITIAL_SESSION_CAP
+    !fullScreenCadencePersistenceFailed
   );
 }
 
+/**
+ * Only authenticated, truly completed eligible events reach this method.
+ * The async storage guard prevents two concurrent completion callbacks from
+ * reading the same event count and producing duplicate full-screen ads.
+ */
 export async function reserveBuklodFullScreenAd(
   _reason: BuklodNaturalInterstitialReason,
   placementId: string,
 ): Promise<boolean> {
-  if (!canWarmBuklodFullScreenAd(placementId) || fullScreenReservation) {
+  if (
+    !canWarmBuklodFullScreenAd(placementId) ||
+    fullScreenReservation ||
+    fullScreenCadenceCheckInFlight
+  ) {
     return false;
   }
 
+  fullScreenCadenceCheckInFlight = true;
   try {
-    const pairs = await AsyncStorage.multiGet([COUNT_KEY, LAST_KEY]);
-    const previousCount = Number(pairs[0]?.[1] ?? '0');
-    const lastShown = Number(pairs[1]?.[1] ?? '0');
+    const previousCount = Number(await AsyncStorage.getItem(COUNT_KEY) ?? '0');
     const nextCount =
       Number.isFinite(previousCount) && previousCount >= 0
         ? previousCount + 1
@@ -253,39 +260,37 @@ export async function reserveBuklodFullScreenAd(
 
     await AsyncStorage.setItem(COUNT_KEY, String(nextCount));
 
-    if (nextCount < Math.max(1, INTERSTITIAL_MIN_EVENT_COUNT)) {
+    // Keep the Google-required action spacing. The removed 8-minute timer
+    // and 5-per-session cap are NOT replaced by hidden time/session limits.
+    if (nextCount < Math.max(2, INTERSTITIAL_MIN_EVENT_COUNT)) {
       return false;
     }
-
-    if (
-      Number.isFinite(lastShown) &&
-      lastShown > 0 &&
-      Date.now() - lastShown < Math.max(60_000, INTERSTITIAL_COOLDOWN_MS)
-    ) {
+    if (!canWarmBuklodFullScreenAd(placementId) || fullScreenReservation) {
       return false;
     }
-
     fullScreenReservation = true;
     return true;
   } catch {
+    // Missing/stale storage must not create back-to-back interstitials.
     return false;
+  } finally {
+    fullScreenCadenceCheckInFlight = false;
   }
 }
 
 export async function finishBuklodFullScreenAd(shown: boolean) {
-  const hadReservation = fullScreenReservation;
-  fullScreenReservation = false;
-  if (!hadReservation || !shown) return;
-
-  fullScreenShownThisSession += 1;
-
+  if (!fullScreenReservation) return;
   try {
-    await AsyncStorage.multiSet([
-      [LAST_KEY, String(Date.now())],
-      [COUNT_KEY, '0'],
-    ]);
+    if (!shown) return;
+    fullScreenShownThisSession += 1;
+    // The reservation stays locked until this reset is durable. Otherwise
+    // another completion could read the pre-ad count and show immediately.
+    await AsyncStorage.setItem(COUNT_KEY, '0');
   } catch {
-    fullScreenShownThisSession = INTERSTITIAL_SESSION_CAP;
+    // Fail closed on storage errors rather than risk consecutive ads.
+    fullScreenCadencePersistenceFailed = true;
+  } finally {
+    fullScreenReservation = false;
   }
 }
 
@@ -297,6 +302,8 @@ export function getBuklodGlobalAdSafetySnapshot() {
     interactionLocked: hasInteractionLock(),
     fullScreenShownThisSession,
     fullScreenReserved: fullScreenReservation,
+    fullScreenCadenceCheckInFlight,
+    fullScreenCadencePersistenceFailed,
     remoteFeatures: { ...remoteFeatures },
   };
 }
