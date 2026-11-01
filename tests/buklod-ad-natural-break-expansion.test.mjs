@@ -53,15 +53,18 @@ test('Legacy formation completion and assignment submit ads follow success, not 
   assert.doesNotMatch(quiz,/showBuklodAdOpportunity/);
 });
 
-test('High-engagement cadence keeps two-event guard, eight-minute interval and a finite cap', () => {
+test('Natural-break cadence keeps two-event AdMob safeguard but removes fixed timer/session quotas', () => {
   const policy=read('src/lib/buklodAdMonetizationPolicy.shared.ts');
-  assert.match(policy,/EXPO_PUBLIC_ADS_INTERSTITIAL_MIN_EVENTS,\s*2,\s*2,/);
-  assert.match(policy,/EXPO_PUBLIC_ADS_INTERSTITIAL_MIN_INTERVAL_MS,\s*8 \* 60 \* 1000,/);
-  assert.match(policy,/EXPO_PUBLIC_ADS_SESSION_INTERSTITIAL_CAP,\s*5,\s*0,\s*5,/);
+  assert.match(policy,/INTERSTITIAL_MIN_EVENT_COUNT = 2/);
+  assert.match(policy,/INTERSTITIAL_COOLDOWN_MS = 0/);
+  assert.match(policy,/INTERSTITIAL_SESSION_CAP = 0/);
   const control=read('src/lib/buklodGlobalAdController.ts');
   assert.match(control,/!hasInteractionLock\(\)/);
   assert.match(control,/fullScreenReservation/);
   assert.match(control,/isBuklodAdRouteSensitive/);
-  assert.match(control,/nextCount < Math\.max\(1, INTERSTITIAL_MIN_EVENT_COUNT\)/);
-  assert.match(control,/Date\.now\(\) - lastShown < Math\.max\(60_000, INTERSTITIAL_COOLDOWN_MS\)/);
+  assert.match(control,/nextCount < Math\.max\(2, INTERSTITIAL_MIN_EVENT_COUNT\)/);
+  assert.doesNotMatch(control,/Date\.now\(\) - lastShown/);
+  assert.doesNotMatch(control,/fullScreenShownThisSession\s*</);
+  assert.match(control,/fullScreenCadenceCheckInFlight/);
+  assert.match(control,/fullScreenCadencePersistenceFailed/);
 });
