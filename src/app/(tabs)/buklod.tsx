@@ -3724,128 +3724,68 @@ const load=useCallback(async(options?:{
 
 
  const renderViewerPhotoActions=
-  ()=>{
-
-   const photo=
-    viewerItems[
-     viewerIndex
-    ];
-
-
-   if(!photo){
-    return null;
-   }
-
-
-   const counts=
-    photo.reaction_counts??
-    {};
-
-
-   const saveKey=
-    String(
-     photo?.post_id??
-     ''
-    )+
-    ':'+
-    String(
-     photo?.media_position??
-     0
-    );
-
-
-   return (
-    <View
-     style={[
-      s.communityViewerActions,
-      {
-       bottom:
-        Math.max(
+   ()=>{
+    const photo=viewerItems[viewerIndex];
+    if(!photo) return null;
+    const counts=photo.reaction_counts??{};
+    const total=photoReactionTotal(photo);
+    const saveKey=String(photo?.post_id??'')+':'+String(photo?.media_position??0);
+    return (
+     <View
+      style={[
+       s.communityViewerActions,
+       {
+        bottom:Math.max(
          communityInsets.bottom+14,
-         Platform.OS==='android'
-          ? 68
-          : 26
-        )
-      }
-     ]}
-    >
-
-     <Text style={s.communityViewerActionTitle}>
-      React to this photo
-     </Text>
-
-
-     <BuklodReactionAction
-      options={BUKLOD_PUBLIC_COMMUNITY_REACTIONS}
-      counts={counts}
-      mine={photo.my_reaction}
-      onSummaryPress={key =>
-       openReactionDetails(
-        photo,
-        key
-       )
-      }
-      onSelect={key=>{
-       void reactToCommunityPhoto(
-        photo,
-        key as Reaction
-       );
-      }}
-     />
-
-
-      <Pressable
-       disabled={
-        savingPhotoKey===
-        saveKey
-       }
-
-       onPress={()=>
-        void saveCommunityPhoto(
-         photo
+         Platform.OS==='android'?68:26
         )
        }
-
-       style={s.communityViewerSaveButton}
-      >
-
-       <MaterialCommunityIcons
-        name={
-         savingPhotoKey===
-         saveKey
-          ? 'progress-download'
-          : 'download'
-        }
-        size={20}
-        color="#FFFFFF"
+      ]}
+     >
+      <View style={{flexDirection:'row',alignItems:'center',gap:10}}>
+       <BuklodReactionAction
+        options={BUKLOD_PUBLIC_COMMUNITY_REACTIONS}
+        compact
+        showSummary={false}
+        counts={counts}
+        mine={photo.my_reaction}
+        onSelect={key=>{void reactToCommunityPhoto(photo,key as Reaction);}}
        />
+       {total>0&&(
+        <Pressable
+         accessibilityRole="button"
+         accessibilityLabel="View all photo reactions"
+         onPress={()=>openReactionDetails(photo)}
+         style={{flex:1,minWidth:35,justifyContent:'center'}}
+        >
+         <Text style={s.communityViewerReactionSummary}>
+          {total} {total===1?'reaction':'reactions'}
+         </Text>
+        </Pressable>
+       )}
+       <View style={{flex:total>0?0:1}}/>
+       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Save photo"
+        disabled={savingPhotoKey===saveKey}
+        onPress={()=>void saveCommunityPhoto(photo)}
+        style={s.communityViewerSaveButton}
+       >
+        <MaterialCommunityIcons
+         name={savingPhotoKey===saveKey?'progress-download':'download'}
+         size={20}
+         color="#FFFFFF"
+        />
+        <Text style={s.communityViewerSaveText}>
+         {savingPhotoKey===saveKey?'Saving':'Save'}
+        </Text>
+       </Pressable>
+      </View>
+     </View>
+    );
+   };
 
-       <Text style={s.communityViewerSaveText}>
-        {savingPhotoKey===
-         saveKey
-          ? 'Saving'
-          : 'Save'}
-       </Text>
-
-      </Pressable>
-
-     {photoReactionTotal(photo)>0&&(
-      <Text style={s.communityViewerReactionSummary}>
-       {photoReactionTotal(photo)}
-       {' '}
-       {photoReactionTotal(photo)===1
-        ? 'reaction'
-        : 'reactions'}
-       {' on this photo'}
-      </Text>
-     )}
-
-    </View>
-   );
-  };
-
-
- const openPhotoViewer=
+  const openPhotoViewer=
   (
    media:any[],
    index:number
@@ -5869,7 +5809,7 @@ const communityFeedRows =
     </Pressable>
    </View>
 
-   {renderViewerPhotoActions()}
+   {!viewerZoomed&&renderViewerPhotoActions()}
 
    {viewerItems.length>1&&(
     <Text
