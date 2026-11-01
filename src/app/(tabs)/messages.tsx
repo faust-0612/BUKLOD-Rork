@@ -91,6 +91,7 @@ import {
   BuklodFocusVisibleRow,
 } from '@/components/HomeMotion';
 import { HIBLA } from '@/lib/connectHibla';
+import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
 import { partitionConnectInboxThreads } from '@/lib/connectInboxClassification';
 
 type PersonalThread = {
@@ -349,7 +350,9 @@ export default function ConnectScreen(
   return (
     <ConnectThemeProvider>
       <ChatBackgroundProvider>
-        <ConnectScreenInner {...props} />
+        <ConnectRenderBoundary surface="inbox">
+          <ConnectScreenInner {...props} />
+        </ConnectRenderBoundary>
       </ChatBackgroundProvider>
     </ConnectThemeProvider>
   );
@@ -1274,197 +1277,98 @@ function ConnectScreenInner({
     </>
   );
 
+
+  // Preserve the same VirtualizedList across tab taps. Its header contains
+  // the appearance modal and SDK ads; replacing the list destroys them mid-press.
   return (
     <ConnectThreadBackground style={styles.screen}>
       <View style={styles.body}>
-        {tab !== 'community' ? (
-          <>
-
-
-            <FlatList
-              ListHeaderComponent={renderHiblaHeader(false)}
-              ListFooterComponent={!isSearching && tab === 'personal' ? (
-                <BuklodNativeSponsoredCard
-                  surface="connect"
-                  slotId="connect-personal-native-media"
-                />
-              ) : null}
-              data={personalListData}
-              keyExtractor={(item: any) =>
-                item.thread_id ?? item.user_id
-              }
-              initialNumToRender={
-                FLATLIST_TUNING.inbox.initialNumToRender
-              }
-              maxToRenderPerBatch={
-                FLATLIST_TUNING.inbox.maxToRenderPerBatch
-              }
-              updateCellsBatchingPeriod={
-                FLATLIST_TUNING.inbox.updateCellsBatchingPeriod
-              }
-              windowSize={
-                FLATLIST_TUNING.inbox.windowSize
-              }
-              removeClippedSubviews={false}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={refresh}
-                  tintColor={theme.accent}
-                />
-              }
-              contentContainerStyle={
-                styles.listContent
-              }
-              keyboardShouldPersistTaps="always"
-              ListEmptyComponent={
-                priorityThread && !isSearching ? null : <View style={styles.empty}>
-                  <Text style={styles.emptyTitle}>
-                    {isSearching
-                      ? 'No user found'
-                      : tab === 'requests'
-                        ? 'Walang message requests'
-                        : 'No personal conversations yet'}
-                  </Text>
-                  <Text style={styles.emptyText}>
-                    {tab === 'requests'
-                      ? 'Dito lang lalabas ang unang mensahe ng taong wala ka pang dating usapan.'
-                      : 'Search a BUKLOD user to start a personal conversation.'}
-                  </Text>
-                </View>
-              }
-              renderItem={({ item, index }: any) => {
-                const isPerson =
-                  Boolean(item.user_id) &&
-                  !item.thread_id;
-                const unread = isPerson
-                  ? 0
-                  : n(item.unread_count);
-
-                return (
-                  <BuklodFocusVisibleRow index={index}>
-                    <ConnectInboxRow
-                    userId={
-                      isPerson
-                        ? item.user_id
-                        : item.other_user_id
-                    }
-                    name={
-                      isPerson
-                        ? item.full_name
-                        : item.other_user_name
-                    }
-                    avatarUri={
-                      isPerson ? item.avatar_url : null
-                    }
-                    preview={
-                      isPerson
-                        ? 'Start personal conversation'
-                        : connectMessagePreview(
-                            item.last_message
-                          )
-                    }
-                    timeLabel={
-                      !isPerson
-                        ? formatInboxTime(
-                            item.last_message_at
-                          )
-                        : undefined
-                    }
-                    unreadCount={unread}
-                    isSearchResult={isPerson}
-                    showSentIndicator={
-                      !isPerson &&
-                      unread === 0 &&
-                      !!item.last_message_at
-                    }
-                    onPressRow={() =>
-                      isPerson
-                        ? openPerson(
-                            item.user_id,
-                            item.full_name
-                          )
-                        : openPersonalThread(
-                            item.thread_id,
-                            item
-                          )
-                    }
-                    />
-                  </BuklodFocusVisibleRow>
-                );
-              }}
-            />
-          </>
-        ) : (
-          <FlatList
-            ListHeaderComponent={renderHiblaHeader(true)}
-            ListFooterComponent={!isSearching ? (
+        <FlatList
+          ListHeaderComponent={renderHiblaHeader(tab === 'community')}
+          ListFooterComponent={!isSearching ? (
+            tab === 'personal' ? (
+              <BuklodNativeSponsoredCard surface="connect" slotId="connect-personal-native-media" />
+            ) : tab === 'community' ? (
               <BuklodNativeSponsoredCard
                 surface="connect"
                 slotId={forcedScopeId ? `connect-scope-native-media:${forcedScopeId}` : 'connect-community-native-media'}
               />
-            ) : null}
-            data={filteredRooms}
-            keyExtractor={item => item.scope_id}
-            initialNumToRender={
-              FLATLIST_TUNING.inbox.initialNumToRender
-            }
-            maxToRenderPerBatch={
-              FLATLIST_TUNING.inbox.maxToRenderPerBatch
-            }
-            updateCellsBatchingPeriod={
-              FLATLIST_TUNING.inbox.updateCellsBatchingPeriod
-            }
-            windowSize={
-              FLATLIST_TUNING.inbox.windowSize
-            }
-            removeClippedSubviews={
-              Platform.OS === 'android'
-            }
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={refresh}
-                tintColor={theme.accent}
-              />
-            }
-            contentContainerStyle={
-              styles.communityListContent
-            }
-            ListEmptyComponent={
-              <View style={styles.empty}>
-                <Text style={styles.emptyTitle}>
-                  No community rooms yet
+            ) : null
+          ) : null}
+          data={tab === 'community' ? filteredRooms : personalListData}
+          keyExtractor={(item: any) =>
+            String(tab === 'community' ? item.scope_id : (item.thread_id ?? item.user_id))
+          }
+          initialNumToRender={FLATLIST_TUNING.inbox.initialNumToRender}
+          maxToRenderPerBatch={FLATLIST_TUNING.inbox.maxToRenderPerBatch}
+          updateCellsBatchingPeriod={FLATLIST_TUNING.inbox.updateCellsBatchingPeriod}
+          windowSize={FLATLIST_TUNING.inbox.windowSize}
+          removeClippedSubviews={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={refresh}
+              tintColor={theme.accent}
+            />
+          }
+          contentContainerStyle={tab === 'community' ? styles.communityListContent : styles.listContent}
+          keyboardShouldPersistTaps="always"
+          ListEmptyComponent={tab === 'personal' && priorityThread && !isSearching ? null : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>
+                {tab === 'community'
+                  ? 'No community rooms yet'
+                  : isSearching ? 'No user found'
+                    : tab === 'requests' ? 'Walang message requests'
+                      : 'No personal conversations yet'}
+              </Text>
+              {tab !== 'community' ? (
+                <Text style={styles.emptyText}>
+                  {tab === 'requests'
+                    ? 'Dito lang lalabas ang unang mensahe ng taong wala ka pang dating usapan.'
+                    : 'Search a BUKLOD user to start a personal conversation.'}
                 </Text>
-              </View>
+              ) : null}
+            </View>
+          )}
+          renderItem={({ item, index }: any) => {
+            if (tab === 'community') {
+              return (
+                <BuklodFocusVisibleRow index={index}>
+                  <ConnectCommunityRow
+                    scopeName={item.scope_name}
+                    scopeType={item.scope_type}
+                    preview={connectMessagePreview(item.last_message)}
+                    timeLabel={formatInboxTime(item.last_message_at)}
+                    unreadCount={item.unread_count}
+                    iconName={iconFor(item.scope_type)}
+                    onPressRow={() => openCommunityRoom(item.scope_id, item)}
+                  />
+                </BuklodFocusVisibleRow>
+              );
             }
-            renderItem={({ item, index }) => (
+            const isPerson = Boolean(item.user_id) && !item.thread_id;
+            const unread = isPerson ? 0 : n(item.unread_count);
+            return (
               <BuklodFocusVisibleRow index={index}>
-                <ConnectCommunityRow
-                  scopeName={item.scope_name}
-                  scopeType={item.scope_type}
-                  preview={connectMessagePreview(
-                    item.last_message
-                  )}
-                  timeLabel={formatInboxTime(
-                    item.last_message_at
-                  )}
-                  unreadCount={item.unread_count}
-                  iconName={iconFor(item.scope_type)}
-                  onPressRow={() =>
-                    openCommunityRoom(
-                      item.scope_id,
-                      item
-                    )
-                  }
+                <ConnectInboxRow
+                  userId={isPerson ? item.user_id : item.other_user_id}
+                  name={isPerson ? item.full_name : item.other_user_name}
+                  avatarUri={isPerson ? item.avatar_url : null}
+                  preview={isPerson ? 'Start personal conversation' : connectMessagePreview(item.last_message)}
+                  timeLabel={!isPerson ? formatInboxTime(item.last_message_at) : undefined}
+                  unreadCount={unread}
+                  isSearchResult={isPerson}
+                  showSentIndicator={!isPerson && unread === 0 && !!item.last_message_at}
+                  onPressRow={() => isPerson
+                    ? openPerson(item.user_id, item.full_name)
+                    : openPersonalThread(item.thread_id, item)}
                 />
               </BuklodFocusVisibleRow>
-            )}
-          />
-        )}
+            );
+          }}
+        />
       </View>
-
     </ConnectThreadBackground>
   );
 }
-

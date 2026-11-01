@@ -1,0 +1,46 @@
+{
+  "contractVersion": 2,
+  "objective": "Stop tab-switch Connect white screens by retaining its single mounted VirtualizedList, contain render exceptions with a recovery path, and retain genuine AdMob ad opportunities; distinguish provider no-fill.",
+  "baseRef": "2bed08b8b8e1b26c8653f727d7324ecace6a333e",
+  "productionBaselineEvidence": "Inspected exact Main source 2bed08b8b8e1b26c8653f727d7324ecace6a333e on 2026-11-01. Screenshot shows all-white Connect after button taps and a blank Personal ad placeholder. Supabase Android operational events during preceding 16h: connect_personal_first_view 3 requests/2 genuine AdMob no-fill; profile_native_sponsored 7 loaded/6 impressions; several Cluster placements show fills. Exact native crash mechanism and production OTA source not independently established.",
+  "chosenApproach": "Keep one FlatList mounted while data/filter tab changes, disable clipping during native view recycling, and introduce a scoped React render error boundary for Connect inbox and both thread routes; preserve Android ad SDK request architecture, banner and sponsored footer.",
+  "selectionRationale": "Small coordinated navigation change avoids destroying the NativeAd, SDK banner and appearance modal every time Personal/Cluster/Org/Requests changes. Catching React render exceptions provides actionable recovery/signature but does not claim to catch native crashes. Existing no-fill and request cooldowns are provider-safe and must not be removed.",
+  "alternativeApproaches": [
+    "Add aggressive AdMob retries on each tab/button tap: rejected; can create no-fill request storms and policy risks without increasing ad inventory.",
+    "Replace all chat and tabs with a new navigator: rejected; changes many non-target functions and risks unread, scopes and calls.",
+    "Keep one FlatList and a scoped render boundary while preserving native ad guards: selected."
+  ],
+  "riskAreas": [
+    "connect",
+    "navigation-scroll",
+    "ads"
+  ],
+  "preserveBehaviors": [
+    "Personal/Cluster/Org/Requests selection, search, unread count, and scoped room identity",
+    "Personal and Community first-view banner placements plus scoped native sponsored footer",
+    "AdMob unit IDs, consent, network gating, SDK auto refresh, no-fill and shared cooldown unchanged",
+    "Unrelated feeds, photos/videos, calls, chat content, authentication and session isolation untouched",
+    "No new native dependency or Android runtime change; no OTA or production server edits"
+  ],
+  "regressionTests": [
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "tests/buklod-connect-stable-inbox-render.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/connect-ad-navigation-lock-20261101.json",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/connect/personal/[threadId].tsx",
+    "src/app/connect/community/[scopeId].tsx",
+    "src/components/connect/ConnectRenderBoundary.tsx",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "tests/buklod-connect-stable-inbox-render.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability correctly identifies Connect risk and runs changed runnable Node tests",
+    "TypeScript, Main integration and performance CI pass for exact DEV source SHA",
+    "One mounted FlatList under tab switches with no blank Connect renderer on React exceptions",
+    "Personal and Cluster/Org banner ad opportunity preserved without synthetic impressions",
+    "Android device behavior, native crashes and no-fill rate require independent acceptance evidence",
+    "RC must be frozen from verified DEV and compatible production runtime 1.3.2 before an authorized cumulative OTA"
+  ]
+}

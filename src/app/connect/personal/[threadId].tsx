@@ -1,6 +1,7 @@
 import React from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import BuklodConnectThread from '@/components/BuklodConnectThread';
+import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
 import BuklodScopeRouteState from '@/components/BuklodScopeRouteState';
 import { firstRouteParam } from '@/lib/buklodScopeRoute';
 
@@ -34,7 +35,8 @@ export default function PersonalConnectThreadRoute() {
     threadId === 'new' && !!targetUserId;
 
   return (
-    <BuklodConnectThread
+    <ConnectRenderBoundary surface="personal_thread">
+      <BuklodConnectThread
       mode="direct"
       containerId={
         pendingNewThread
@@ -52,6 +54,7 @@ export default function PersonalConnectThreadRoute() {
       initialOtherUserId={
         otherUserId || targetUserId || undefined
       }
-    />
+      />
+    </ConnectRenderBoundary>
   );
 }
