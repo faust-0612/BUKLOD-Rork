@@ -23,13 +23,14 @@ test('Community creator supports all post types through a shared, keyboard-aware
  assert.ok(created>=0 && moderation>created && ad>moderation && navigate>ad);
 });
 
-test('Shared controller preserves existing caps, route protections, and non-redeemable rewards',()=>{
+test('Shared controller preserves spacing, route protections, and non-redeemable rewards',()=>{
  const ad=read('src/lib/buklodAdOpportunities.ts');
  const controller=read('src/lib/buklodGlobalAdController.ts');
  const slot=read('src/components/BuklodSubmissionAdSlot.tsx');
  for(const event of ['cluster_created_transition','organization_created_transition','community_post_success','bulletin_published_success']) assert.ok(ad.includes(event));
- assert.match(controller,/INTERSTITIAL_SESSION_CAP/);
- assert.match(controller,/INTERSTITIAL_COOLDOWN_MS/);
+ assert.match(controller,/INTERSTITIAL_MIN_EVENT_COUNT/);
+ assert.match(controller,/fullScreenCadenceCheckInFlight/);
+ assert.doesNotMatch(controller,/fullScreenShownThisSession\s*</);
  assert.match(controller,/isBuklodAdRouteSensitive/);
  assert.match(slot,/keyboardVisible/);
  assert.doesNotMatch(ad,/grant.*points|cash.*reward|points_cash/i);
