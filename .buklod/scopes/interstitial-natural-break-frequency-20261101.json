@@ -1,0 +1,50 @@
+{
+  "contractVersion": 2,
+  "objective": "Increase legitimate BUKLOD Android full-screen AdMob monetization opportunities by removing fixed eight-minute interstitial wait and five-ads-per-session quota while retaining Google-compliant at-least-two completed distinct actions between interstitials, remote controls and sensitive-route protections.",
+  "baseRef": "5d8214355a8a5ea12ecfd5c0c1e520fe4e263944",
+  "productionBaselineEvidence": "GitHub main 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944; current policy uses INTERSTITIAL_MIN_EVENT_COUNT default 2, INTERSTITIAL_COOLDOWN_MS 480000ms (min 60000ms), INTERSTITIAL_SESSION_CAP 5. AdMob official policy https://support.google.com/admob/answer/6201362 explicitly disallows showing full-screen interstitial after every single user action and more than one per two user actions or two back-to-back ads. No production OTA has been published for this isolated change.",
+  "chosenApproach": "Fix code to use two eligible completed actions, no fixed elapsed-time gating and no per-session quota; keep diagnostics counter but not as a limit. Serialize async reservation checks and hold interstitial lock until durable count reset; fail closed on missing storage persistence to prevent consecutive ads; keep SDK readiness, remote kill switches, interaction locks, and natural-break placements.",
+  "selectionRationale": "Google AdMob disallows exactly every action, so adopt the highest supported two-action cadence and remove artificial 8-minute/5-session restrictions. Preserve user task completion independence and avoid double shows from concurrent callback races.",
+  "alternativeApproaches": [
+    "Present interstitial after every eligible action and no safety checks: rejected, expressly prohibited by AdMob policy and can trigger invalid activity or ad serving restrictions.",
+    "Keep current 8-minute cooldown and five/session quota: rejected for being unnecessarily restrictive with already compliant two-event gating.",
+    "Remove fixed time/session quota but retain 2-event min plus atomic reservation and persist lock: selected."
+  ],
+  "riskAreas": [
+    "ads",
+    "monetization"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodAdMonetizationPolicy.shared.ts",
+    "src/lib/buklodGlobalAdController.ts",
+    "tests/buklod-ad-natural-break-expansion.test.mjs",
+    "tests/faith-scope-creation-ad-safety.test.mjs",
+    "tests/buklod-ad-opportunities.test.cjs",
+    "tests/buklod-interstitial-cadence-runtime.test.cjs",
+    ".buklod/scopes/interstitial-natural-break-frequency-20261101.json"
+  ],
+  "regressionTests": [
+    "tests/buklod-interstitial-cadence-runtime.test.cjs",
+    "tests/buklod-ad-natural-break-expansion.test.mjs",
+    "tests/faith-scope-creation-ad-safety.test.mjs",
+    "tests/buklod-ad-opportunities.test.cjs"
+  ],
+  "preserveBehaviors": [
+    "No fullscreen ad after every click, swipe, back, navigation or other single action; min two eligible successful actions per impression opportunity",
+    "Only server-committed natural-break stage completion triggers; no ads in active quiz, chat, PTT, call, account, form or high-risk screens",
+    "Remote feature flags, user consent and ad-light pass remain authoritative",
+    "Rewarded ads, banner/native placements, Wall ad cadence and all nonad functionality unchanged",
+    "No ad click/impression fabrication; missing inventory never blocks completion",
+    "Native Android runtime 1.3.2 and ad unit IDs unchanged",
+    "Failed persistent state reset prevents further consecutive interstitials, even without fixed cap"
+  ],
+  "acceptanceChecks": [
+    "Node 22 focused tests pass including nine possible shows in same timestamp at every two completions, not after every single action",
+    "Controller fails closed on duplicate concurrent completion attempts and failed durable reset",
+    "No reference to previous wall-clock lastShown or session cap enforcement remains in controller",
+    "AdMob preloading still used; actual full-screen ad must be loaded and eligible",
+    "Engineering Accountability, TypeScript, and web compatibility QA pass before merge",
+    "DEV/PR only until frozen RC and Android production OTA release ID verified",
+    "Revenue uplift not assumed without post-release AdMob report"
+  ]
+}
