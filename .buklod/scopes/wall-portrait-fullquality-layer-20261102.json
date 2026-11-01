@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Fix narrow letterboxed portrait Wall photos and full-resolution originals permanently hidden behind low-resolution previews",
   "baseRef": "main",
-  "productionBaselineEvidence": "Main 48117d16709976612355e6fe6d45d3be5015528e; Android Production OTA run 41291297116 succeeded Nov 1 from source 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944; installed device adoption is unverified. Nov 2 screenshots show portrait artwork compressed into narrower strip and stronger detail fullscreen. Collage forces contain despite requested cover; overlay behind opaque preview relies on its onDisplay.",
+  "productionBaselineEvidence": "verified: GitHub Actions run 41291297116 for Android Production OTA completed successfully on 2026-11-01 from source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944. Current main source SHA 48117d16709976612355e6fe6d45d3be5015528e is DEV, NOT established as live. Installed client's OTA adoption and on-device photo pixels are unverified. Nov 2 user screenshots show a narrow single portrait image in Wall against a clearer fullscreen version; code confirms forced contain and an occluded original layer.",
   "chosenApproach": "Respect caller-provided contentFit for bounded photo cards; place a transparent pointerEvents=none full-resolution original above low-resolution preview; keep verified signed URL onDisplay promotion and native fallback.",
   "selectionRationale": "Changes only shared Wall photo geometry and Android original compositing without backend mutations, duplicate downloads, or blanket renderer rewrites.",
   "alternativeApproaches": [
