@@ -123,9 +123,12 @@ export default function BuklodCommunityContributionCard() {
       <Text style={s.historyLine}>
         Lifetime QMP: {history ? history.lifetime_qmp.toLocaleString() : '—'} · Period: {data.period.key}
       </Text>
+      <Text style={s.periodNote}>
+        Monthly QMP starts fresh each month. Your lifetime QMP is preserved; previous months’ share weight does not carry into this period.
+      </Text>
 
       <View style={s.impact}>
-        <Text style={s.impactTitle}>WHAT HELPED YOUR SHARE GROW?</Text>
+        <Text style={s.impactTitle}>THIS MONTH’S QUALIFIED CONTRIBUTION</Text>
         <Text style={s.impactText}>
           Posts {breakdown?.useful_post_qmp ?? 0} QMP · Videos {breakdown?.qualified_video_qmp ?? 0} QMP · Replies {breakdown?.meaningful_reply_qmp ?? 0} QMP
         </Text>
@@ -173,6 +176,7 @@ const s = StyleSheet.create({
   metric:{flex:1,minHeight:56,borderRadius:12,backgroundColor:monthTone.surface,padding:8,justifyContent:'center'},
   metricValue:{fontSize:15,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:7,fontWeight:'900',color:'#4B5B56'},
   historyLine:{fontSize:10,fontWeight:'800',color:'#305C47',paddingHorizontal:2},
+  periodNote:{fontSize:8.5,lineHeight:12,color:'#52665C',paddingHorizontal:2},
   impact:{borderRadius:12,borderWidth:1,borderColor:impactTone.border,backgroundColor:impactTone.surface,padding:9},
   impactTitle:{fontSize:8,fontWeight:'900',color:impactTone.ink},
   impactText:{marginTop:3,fontSize:8.5,lineHeight:12,color:'#5F7066'},
