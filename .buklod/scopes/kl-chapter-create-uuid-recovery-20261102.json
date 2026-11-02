@@ -1,0 +1,42 @@
+{
+  "objective": "Repair KL Admin chapter creation SQL 23502 at S1 Ch4 without touching manuscripts, approvals, releases or other features",
+  "baseRef": "a35596d54dc121aca7242fd5452d8100326f14ab",
+  "productionBaselineEvidence": "Production Supabase logs at 2026-11-01T23:26Z show kl_admin_create_chapter_v1 SQLSTATE 23502 inserting null id for S1 Ch4; production migration 20261101233257 applied safely and read-only verified gen_random_uuid() default, with existing four chapters unchanged. Live Android client OTA fingerprint and device create not verified; no client OTA authorized.",
+  "chosenApproach": "Set missing UUID DEFAULT on kl_episodes.id, preserve RPC and permissions, expose structured PostgREST errors in KL-only editor; do not mask successfully created chapters on list refresh failure.",
+  "alternativeApproaches": [
+    "Modify only the client (rejected: cannot generate the missing DB primary key)",
+    "Rewrite the SECURITY DEFINER create RPC to supply explicit UUID (rejected: other insert callers would still lack a default)"
+  ],
+  "selectionRationale": "A table UUID default is additive, preserves existing rows and protects every supported create path with one small schema correction.",
+  "riskAreas": [
+    "story"
+  ],
+  "preserveBehaviors": [
+    "No editing of KL chapters 0–3 or unapproved chapter 4 content",
+    "Do not change publication, media approval, privacy, roles or release gating",
+    "No unrelated Wall/Connect/Quiz/mobile navigation changes",
+    "No client production OTA absent verified RC and device preflight"
+  ],
+  "allowedPaths": [
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/kl-chapter-create-uuid-recovery-20261102.json",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/lib/kabihasnang-ligaw/publishingErrors.ts",
+    "supabase/migrations/20261101233257_kl_episode_uuid_default_recovery_20261102.sql",
+    "supabase/tests/kl_episode_uuid_default_recovery_20261102.sql",
+    "tests/kl-chapter-creation-recovery.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Database schema exposes default gen_random_uuid() for kl_episodes.id",
+    "Existing KL titles, manuscripts and release approvals remain unchanged",
+    "PostgREST 23502 errors show meaningful message rather than generic retry",
+    "After confirmed create, a transient list refresh failure does not report create failure",
+    "KL-focused Node tests, SQL contract, TypeScript and CI pass before any OTA",
+    "No independent production Android release claim without verified RC/device evidence"
+  ],
+  "regressionTests": [
+    "supabase/tests/kl_episode_uuid_default_recovery_20261102.sql",
+    "tests/kl-chapter-creation-recovery.test.mjs"
+  ],
+  "contractVersion": 2
+}
