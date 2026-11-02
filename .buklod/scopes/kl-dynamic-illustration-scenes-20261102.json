@@ -16,7 +16,8 @@
     "Admin-only RPC gates and search_path remain unchanged",
     "Preview keeps minimum 2 valid anchored illustrations and approval remains separate",
     "No shared Wall/Connect/Quiz or chapter release automation changes",
-    "DEV → verified RC → Production OTA; no unconditional release without gates"
+    "DEV → verified RC → Production OTA; no unconditional release without gates",
+    "Each illustration remains attached to a distinct exact manuscript passage."
   ],
   "allowedPaths": [
     ".github/workflows/engineering-accountability.yml",
@@ -34,7 +35,8 @@
     "Uploads, anchor saves, effects, preview and approval cover 1–12",
     "No unauthorized role granted or release status changed",
     "Focused Node + SQL security contract and TypeScript gate pass",
-    "Production schema and phone not considered verified until independently tested"
+    "Production schema and phone not considered verified until independently tested",
+    "Saved and unsaved scene anchors cannot be reused by another scene; the server enforces this independently of the client."
   ],
   "regressionTests": [
     "supabase/tests/kl_dynamic_illustration_scenes.sql",
