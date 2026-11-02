@@ -11,6 +11,7 @@ import {
   hasUnsavedKlDraft,
 } from '@/lib/kabihasnang-ligaw/editorDraftRecovery';
 import { readKlEditorDraft, writeKlEditorDraft, removeKlEditorDraft } from '@/lib/kabihasnang-ligaw/editorDraftStorage';
+import { klPublishingErrorMessage } from '@/lib/kabihasnang-ligaw/publishingErrors';
 
 type Episode = {
   id: string;
@@ -110,7 +111,7 @@ export default function KlPublishingStudio() {
     try {
       await task();
     } catch (error) {
-      setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'Hindi natuloy ang request. Subukan muli.' });
+      setFeedback({ tone: 'error', text: klPublishingErrorMessage(error) });
     } finally {
       lock.current = false;
       setBusyAction('');
@@ -216,7 +217,8 @@ export default function KlPublishingStudio() {
       setPreviewOpen(false);
       setConfirmedPreviewId('');
       await findRecovery(newId, nextTitle, nextText);
-      await refresh();
+      // A temporary list refresh failure must not turn a confirmed create into a failure.
+      await refresh().catch(() => undefined);
       setFeedback({ tone: 'success', text: nextText ? 'Existing chapter opened; manuscript preserved.' : 'Chapter created on server. Add its manuscript.' });
     });
   };
