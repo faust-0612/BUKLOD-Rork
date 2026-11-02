@@ -257,6 +257,14 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
       setFeedback({ tone: 'error', text: 'Mag-paste ng unique sentence (12+ characters) na eksaktong isang beses lang makikita sa saved manuscript.' });
       return;
     }
+    const duplicateSavedScene = items.some((item) =>
+      item.kind === 'illustration' && item.placement !== placement && item.anchor?.trim() === exact);
+    const duplicateDraftScene = Object.entries(sceneDrafts).some(([scene, draft]) =>
+      Number(scene) !== placement && (draft.anchor ?? '').trim() === exact);
+    if (duplicateSavedScene || duplicateDraftScene) {
+      setFeedback({ tone: 'error', text: 'Gumamit ng ibang passage para sa bawat scene. May scene nang gumagamit ng pangungusap na ito.' });
+      return;
+    }
     void perform('Sine-save ang image placement', async () => {
       const { data, error } = await supabase.rpc('kl_admin_place_media_v1', {
         p_episode_id: episodeId, p_kind: 'illustration', p_placement: placement,
