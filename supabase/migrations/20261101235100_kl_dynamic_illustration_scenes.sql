@@ -83,7 +83,7 @@ CREATE OR REPLACE FUNCTION public.kl_admin_prepare_preview_v1(p_episode_id uuid)
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
-DECLARE v public.kl_episodes%rowtype; v_count integer;
+DECLARE v public.kl_episodes%rowtype; v_count integer; v_unique_count integer;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.profiles
       WHERE id = auth.uid() AND role::text = 'system_admin' AND is_active = true) THEN
@@ -93,12 +93,14 @@ BEGIN
   IF NOT FOUND OR v.manuscript IS NULL OR length(btrim(v.manuscript)) < 30 THEN
     RAISE EXCEPTION 'Complete and save an editable manuscript first';
   END IF;
-  SELECT count(*) INTO v_count FROM public.kl_episode_media
+  SELECT count(*), count(DISTINCT paragraph_anchor)
+    INTO v_count, v_unique_count
+    FROM public.kl_episode_media
     WHERE episode_id = p_episode_id AND media_kind = 'illustration'
       AND paragraph_anchor IS NOT NULL
       AND (length(v.manuscript) - length(replace(v.manuscript, paragraph_anchor, ''))) = length(paragraph_anchor);
-  IF v_count < 2 OR v_count > 12 THEN
-    RAISE EXCEPTION 'Place 2 to 12 illustrations at valid, unique manuscript passages first';
+  IF v_count < 2 OR v_count > 12 OR v_count <> v_unique_count THEN
+    RAISE EXCEPTION 'Place 2 to 12 illustrations at distinct valid manuscript passages first';
   END IF;
   IF v.preview_prepared_at IS NOT NULL THEN
     RETURN jsonb_build_object('ready', true, 'changed', false,
