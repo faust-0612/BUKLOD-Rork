@@ -1,7 +1,7 @@
 {
   "objective": "Extend KL illustration editor with user-controlled + Add Scene and server-authorized 1–12 placements while preserving chapter media, anchors and approvals.",
-  "baseRef": "523abcdf3c84bfd9ae94b4aaabf01fc84179a18b",
-  "productionBaselineEvidence": "verified: Android Production OTA workflow run 41291297116 completed successfully from source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944 on 2026-11-01. DEV main at 523abcdf3c84bfd9ae94b4aaabf01fc84179a18b includes the published-source successor commits and merged KL chapter UUID recovery (#485); this consolidated PR is based on that exact current DEV main. The additive 12-scene migration is not yet applied to production.",
+  "baseRef": "2c2b8d8eb1c708a574f6de645f9435c0c35609d4",
+  "productionBaselineEvidence": "verified: Android Production OTA workflow run 41291297116 completed successfully from source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944 on 2026-11-01. DEV main at 2c2b8d8eb1c708a574f6de645f9435c0c35609d4 includes the published-source successor commits, KL chapter UUID recovery (#485) and monthly QMP display clarification (#487); this PR is reconciled to that exact current DEV main. The additive 12-scene migration is not yet applied to production.",
   "chosenApproach": "Isolated scene-count helper, adaptive + Add Scene UI and minimal CREATE OR REPLACE edits of four existing admin-only KL RPCs; retain release gates and independent per-scene storage.",
   "alternativeApproaches": [
     "Only add UI buttons (rejected: backend rejects Scene 4 and preview >3)",
