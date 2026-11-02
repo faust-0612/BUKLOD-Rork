@@ -260,7 +260,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
     const duplicateSavedScene = items.some((item) =>
       item.kind === 'illustration' && item.placement !== placement && item.anchor?.trim() === exact);
     const duplicateDraftScene = Object.entries(sceneDrafts).some(([scene, draft]) =>
-      Number(scene) !== placement && (draft.anchor ?? '').trim() === exact);
+      Number(scene) !== placement && (draft?.anchor ?? '').trim() === exact);
     if (duplicateSavedScene || duplicateDraftScene) {
       setFeedback({ tone: 'error', text: 'Gumamit ng ibang passage para sa bawat scene. May scene nang gumagamit ng pangungusap na ito.' });
       return;
