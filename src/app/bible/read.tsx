@@ -2945,10 +2945,12 @@ setMarking(true);
           alignSelf:
             'center',
 
+          // Give Bible text and reader controls more usable width on phones.
+          // Keep a slightly wider gutter in landscape for comfortable scanning.
           paddingHorizontal:
             bibleLandscape
-              ? 22
-              : 16,
+              ? 14
+              : 6,
           paddingBottom: readerScrollBottom,
         },
       ]}
@@ -5479,9 +5481,9 @@ const styles =
 
     verseRow: {
       flexDirection: 'row',
-      gap: 9,
+      gap: 7,
       paddingVertical: 7,
-      paddingHorizontal: 5,
+      paddingHorizontal: 2,
       borderRadius: 10,
     },
 
