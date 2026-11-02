@@ -1,0 +1,46 @@
+{
+  "objective": "Extend KL illustration editor with user-controlled + Add Scene and server-authorized 1–12 placements while preserving chapter media, anchors and approvals.",
+  "baseRef": "54edbd573fb0f93dc374aae927e10d6c7506279b",
+  "productionBaselineEvidence": "verified: Android Production OTA workflow run 41291297116 completed successfully from source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944 on 2026-11-01. Current DEV main 54edbd573fb0f93dc374aae927e10d6c7506279b includes the published-source successor commits, KL chapter UUID recovery (#485), monthly QMP display clarification (#487), and Bible Reader spacing (#490); this PR is reconciled to that exact current DEV main. The additive 12-scene migration is not yet applied to production.",
+  "chosenApproach": "Isolated scene-count helper, adaptive + Add Scene UI and minimal CREATE OR REPLACE edits of four existing admin-only KL RPCs; retain release gates and independent per-scene storage.",
+  "alternativeApproaches": [
+    "Only add UI buttons (rejected: backend rejects Scene 4 and preview >3)",
+    "Unbounded uploads (rejected: heavy private preview and mobile data loading)"
+  ],
+  "selectionRationale": "12 slots cover complex chapter scenes without unlimited image/network pressure; existing three slots and server-confirmed anchors continue unchanged.",
+  "riskAreas": [
+    "story"
+  ],
+  "preserveBehaviors": [
+    "Existing episodes, manuscripts, paths and media approvals untouched",
+    "Admin-only RPC gates and search_path remain unchanged",
+    "Preview keeps minimum 2 valid anchored illustrations and approval remains separate",
+    "No shared Wall/Connect/Quiz or chapter release automation changes",
+    "DEV → verified RC → Production OTA; no unconditional release without gates",
+    "Each illustration remains attached to a distinct exact manuscript passage."
+  ],
+  "allowedPaths": [
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/kl-dynamic-illustration-scenes-20261102.json",
+    "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx",
+    "src/lib/kabihasnang-ligaw/sceneDrafts.ts",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "supabase/migrations/20261101235100_kl_dynamic_illustration_scenes.sql",
+    "supabase/tests/kl_dynamic_illustration_scenes.sql",
+    "tests/kl-dynamic-illustration-scenes.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "+ Add Scene reveals slots 4–12 without clobbering earlier scenes",
+    "Reopening persisted higher-numbered scene restores its exact anchor and effect",
+    "Uploads, anchor saves, effects, preview and approval cover 1–12",
+    "No unauthorized role granted or release status changed",
+    "Focused Node + SQL security contract and TypeScript gate pass",
+    "Production schema and phone not considered verified until independently tested",
+    "Saved and unsaved scene anchors cannot be reused by another scene; the server enforces this independently of the client."
+  ],
+  "regressionTests": [
+    "supabase/tests/kl_dynamic_illustration_scenes.sql",
+    "tests/kl-dynamic-illustration-scenes.test.mjs"
+  ],
+  "contractVersion": 2
+}

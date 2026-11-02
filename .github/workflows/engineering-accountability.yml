@@ -24,6 +24,8 @@ jobs:
           case "$PR_HEAD" in
             dev/kl-chapter-create-uuid-recovery-20261102)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/kl-chapter-create-uuid-recovery-20261102.json" >> "$GITHUB_ENV";;
+            release/kl-dynamic-scenes-consolidated-20261102)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/kl-dynamic-illustration-scenes-20261102.json" >> "$GITHUB_ENV";;
             fix/android-wall-sharp-compositing-20261031)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/android-wall-sharp-compositing-20261031.json" >> "$GITHUB_ENV";;
             security/public-profile-cards-invoker-20261030)
