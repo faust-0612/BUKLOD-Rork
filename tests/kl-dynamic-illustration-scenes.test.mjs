@@ -36,6 +36,7 @@ test('UI adds live + Add Scene and respects the bounded backend schema', () => {
   const ui=readFileSync('src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx','utf8');
   const studio=readFileSync('src/components/kabihasnang-ligaw/KlPublishingStudio.tsx','utf8');
   const sql=readFileSync('supabase/migrations/20261101235100_kl_dynamic_illustration_scenes.sql','utf8');
+  const sqlTest=readFileSync('supabase/tests/kl_dynamic_illustration_scenes.sql','utf8');
   assert.match(ui,/\+ Add Scene/);
   assert.match(ui,/sceneNumbers\.map/);
   assert.doesNotMatch(ui,/\[1, 2, 3\]\.map\(\(scene\)/);
@@ -46,6 +47,9 @@ test('UI adds live + Add Scene and respects the bounded backend schema', () => {
   assert.match(sql,/paragraph_anchor = v_anchor/);
   assert.match(ui,/duplicateSavedScene/);
   assert.match(ui,/duplicateDraftScene/);
+  assert.match(sqlTest,/system_admin/);
+  assert.match(sqlTest,/search_path TO/);
+  assert.match(sqlTest,/has_function_privilege\('anon'/);
   assert.match(sql,/v_count > 12/);
   assert.match(sql,/v_count < 2/);
   assert.match(sql,/SECURITY DEFINER/g);
