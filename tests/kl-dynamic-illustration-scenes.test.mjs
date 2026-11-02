@@ -45,6 +45,8 @@ test('UI adds live + Add Scene and respects the bounded backend schema', () => {
   assert.match(sql,/BETWEEN 1 AND 12/g);
   assert.match(sql,/placement <> p_placement/);
   assert.match(sql,/paragraph_anchor = v_anchor/);
+  assert.match(sql,/count\(DISTINCT paragraph_anchor\)/);
+  assert.match(sql,/v_count <> v_unique_count/);
   assert.match(ui,/duplicateSavedScene/);
   assert.match(ui,/duplicateDraftScene/);
   assert.match(sqlTest,/system_admin/);
