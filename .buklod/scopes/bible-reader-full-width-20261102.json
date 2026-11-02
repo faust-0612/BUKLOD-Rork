@@ -1,0 +1,45 @@
+{
+  "contractVersion": 2,
+  "objective": "Maximize usable horizontal space in the BUKLOD Bible reader on portrait Android screens while preserving comfortable landscape gutters and all reader behavior.",
+  "baseRef": "2c2b8d8eb1c708a574f6de645f9435c0c35609d4",
+  "productionBaselineEvidence": "verified: Android Production OTA workflow run 41291297116 completed successfully from source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944 on 2026-11-01. DEV main at 2c2b8d8eb1c708a574f6de645f9435c0c35609d4 includes the published-source successor commits, KL chapter recovery and monthly QMP clarity; this PR is based on that exact DEV main and changes only Bible Reader horizontal spacing. Physical Android rendering remains intentionally unverified.",
+  "chosenApproach": "Reduce portrait reader horizontal padding from 16dp to 6dp, landscape padding from 22dp to 14dp, and verse-row horizontal padding/gap from 5dp/9dp to 2dp/7dp. Preserve 100% content width, text font size and line height, bottom safe-area inset, narration, annotations and chapter navigation.",
+  "selectionRationale": "The screenshot shows excessive horizontal whitespace. The current reader already uses full width; its content gutters are the direct controllable cause. A small portrait gutter maximizes text width without changing font scale or scroll architecture.",
+  "alternativeApproaches": [
+    "Changing global shared screen padding would affect unrelated screens.",
+    "Reducing font size would not reclaim the wasted page margins and would harm readability.",
+    "Changing navigation or safe-area layout is unrelated and increases regression risk."
+  ],
+  "riskAreas": [
+    "Bible reader portrait layout",
+    "Bible reader landscape layout",
+    "Verse-number alignment",
+    "Bottom navigation and safe-area clearance"
+  ],
+  "regressionTests": [
+    "tests/bible-reader-full-width-20261102.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Bible translation, book and chapter selection",
+    "Verse text size and 26dp line height",
+    "Narration playback and controls",
+    "Strong's, commentary and text settings",
+    "Highlights, notes and annotations",
+    "Chapter navigation and completion",
+    "Scroll bottom safe-area inset",
+    "Other app screens and global shared styles"
+  ],
+  "acceptanceChecks": [
+    "Portrait gutter is 6dp and landscape gutter is 14dp",
+    "Reader content remains width 100%",
+    "Verse row horizontal padding is 2dp and gap is 7dp",
+    "Text font size and line height remain unchanged",
+    "Focused source-contract tests pass",
+    "No OTA or production deployment without separate release gates"
+  ],
+  "allowedPaths": [
+    "src/app/bible/read.tsx",
+    "tests/bible-reader-full-width-20261102.test.mjs",
+    ".buklod/scopes/bible-reader-full-width-20261102.json"
+  ]
+}
