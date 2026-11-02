@@ -10,6 +10,8 @@ BEGIN
     OR position('p_placement=0' IN media_fn) = 0
     OR position('BETWEEN 1 AND 12' IN place_fn) = 0
     OR position('BETWEEN 1 AND 12' IN effect_fn) = 0
+    OR position('placement <> p_placement' IN place_fn) = 0
+    OR position('paragraph_anchor = v_anchor' IN place_fn) = 0
     OR position('v_count > 12' IN preview_fn) = 0
     OR position('v_count < 2' IN preview_fn) = 0
     THEN RAISE EXCEPTION 'KL dynamic illustration range not applied consistently'; END IF;
