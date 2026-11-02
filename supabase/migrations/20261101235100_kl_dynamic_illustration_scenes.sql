@@ -53,6 +53,13 @@ BEGIN
       OR (length(v_manuscript) - length(replace(v_manuscript, v_anchor, ''))) <> length(v_anchor) THEN
     RAISE EXCEPTION 'Use one exact, unique passage from the saved manuscript for this scene';
   END IF;
+  IF EXISTS (
+      SELECT 1 FROM public.kl_episode_media
+      WHERE episode_id = p_episode_id AND media_kind = 'illustration'
+        AND placement <> p_placement AND paragraph_anchor = v_anchor
+  ) THEN
+    RAISE EXCEPTION 'Each illustration must use a different manuscript passage';
+  END IF;
   SELECT * INTO v_current FROM public.kl_episode_media
     WHERE episode_id = p_episode_id AND media_kind = 'illustration' AND placement = p_placement
     FOR UPDATE;
