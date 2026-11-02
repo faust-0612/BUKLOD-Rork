@@ -44,3 +44,26 @@ export function clearSceneDraft(drafts: SceneDrafts, placement: number): SceneDr
   delete updated[placement];
   return updated;
 }
+
+/** Bounded, dynamic scene slots. Existing uploaded scenes survive editor reopens. */
+export const KL_INITIAL_SCENE_COUNT = 3;
+export const KL_MAX_SCENE_COUNT = 12;
+
+export function klSceneNumbers(
+  media: readonly SceneRecord[],
+  visibleCount = KL_INITIAL_SCENE_COUNT,
+): number[] {
+  const savedMax = media.reduce((max, item) =>
+    item.kind === 'illustration' && Number.isInteger(item.placement)
+      && item.placement > 0 ? Math.max(max, item.placement) : max, 0);
+  const count = Math.min(KL_MAX_SCENE_COUNT,
+    Math.max(KL_INITIAL_SCENE_COUNT, visibleCount, savedMax));
+  return Array.from({ length: count }, (_, i) => i + 1);
+}
+
+export function nextKlSceneCount(
+  media: readonly SceneRecord[],
+  visibleCount: number,
+): number {
+  return Math.min(KL_MAX_SCENE_COUNT, klSceneNumbers(media, visibleCount).length + 1);
+}
