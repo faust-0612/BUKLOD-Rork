@@ -1,7 +1,7 @@
 {
   "objective": "Extend KL illustration editor with user-controlled + Add Scene and server-authorized 1–12 placements while preserving chapter media, anchors and approvals.",
-  "baseRef": "a35596d54dc121aca7242fd5452d8100326f14ab",
-  "productionBaselineEvidence": "2026-11-02 PH: Production Supabase RPCs kl_admin_media_save/place_media/scene_effect/prepare_preview enforce three scenes; branch starts at GitHub main a35596d54dc121aca7242fd5452d8100326f14ab. Exact installed Android OTA identity is unverified, and no production OTA is authorized.",
+  "baseRef": "523abcdf3c84bfd9ae94b4aaabf01fc84179a18b",
+  "productionBaselineEvidence": "verified: Android Production OTA workflow run 41291297116 completed successfully from source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944 on 2026-11-01. DEV main at 523abcdf3c84bfd9ae94b4aaabf01fc84179a18b includes the published-source successor commits and merged KL chapter UUID recovery (#485); this consolidated PR is based on that exact current DEV main. The additive 12-scene migration is not yet applied to production.",
   "chosenApproach": "Isolated scene-count helper, adaptive + Add Scene UI and minimal CREATE OR REPLACE edits of four existing admin-only KL RPCs; retain release gates and independent per-scene storage.",
   "alternativeApproaches": [
     "Only add UI buttons (rejected: backend rejects Scene 4 and preview >3)",
