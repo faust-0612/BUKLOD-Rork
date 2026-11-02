@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Maximize usable horizontal space in the BUKLOD Bible reader on portrait Android screens while preserving comfortable landscape gutters and all reader behavior.",
-  "baseRef": "main",
-  "productionBaselineEvidence": "Source-only DEV change based on current main. No OTA or production deployment is authorized or performed. Installed-device rendering remains unverified.",
+  "baseRef": "a35596d54dc121aca7242fd5452d8100326f14ab",
+  "productionBaselineEvidence": "verified: Android Production OTA workflow run 41291297116 completed successfully from source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944 on 2026-11-01. DEV main at a35596d54dc121aca7242fd5452d8100326f14ab is two commits ahead of that published source; this PR is based on that exact DEV main and changes only Bible Reader horizontal layout spacing. Physical Android rendering is intentionally not part of this source-contract gate and remains unverified.",
   "chosenApproach": "Reduce portrait reader horizontal padding from 16dp to 6dp, landscape padding from 22dp to 14dp, and verse-row horizontal padding/gap from 5dp/9dp to 2dp/7dp. Preserve 100% content width, text font size and line height, bottom safe-area inset, narration, annotations and chapter navigation.",
   "selectionRationale": "The screenshot shows excessive horizontal whitespace. The current reader already uses full width; its content gutters are the direct controllable cause. A small portrait gutter maximizes text width without changing font scale or scroll architecture.",
   "alternativeApproaches": [
