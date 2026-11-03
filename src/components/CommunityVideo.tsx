@@ -4,6 +4,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { Image as ExpoImage } from 'expo-image';
 import {
   Platform,
   Pressable,
@@ -39,6 +40,13 @@ import {
 import { recordCommunityFeedMetric } from '@/lib/communityFeedTelemetry';
 import { communityVideoFrameHeight } from '@/lib/communityMediaPresentation';
 import {
+  beginCommunityVideoPosterGeneration,
+  getCommunityVideoPoster,
+  publishCommunityVideoPoster,
+  releaseCommunityVideoPosterGeneration,
+  subscribeCommunityVideoPoster,
+} from '@/lib/communityVideoPosterCache';
+import {
   COMMUNITY_VIDEO_CACHE_BUDGET_BYTES,
   decideCommunityVideoErrorRecovery,
   shouldMountCommunityVideoPlayer,
@@ -57,6 +65,8 @@ type Props = {
   onPlaybackError?: () => void;
   onRequestPlay?: () => void;
   preserveAspectRatio?: boolean;
+  /** Optional server-generated poster; first-frame posters are cached in memory. */
+  posterUri?: string | null;
 };
 
 let communityVideoCacheConfigured = false;
@@ -105,6 +115,16 @@ function useCommunityNetworkDegraded() {
 export function CommunityVideo(props: Props) {
   const degraded = useCommunityNetworkDegraded();
   const [playIntent, setPlayIntent] = useState(false);
+  const [poster, setPoster] = useState<any>(() =>
+    props.posterUri ? { uri: props.posterUri } : getCommunityVideoPoster(props.uri),
+  );
+
+  useEffect(() => {
+    setPoster(props.posterUri ? { uri: props.posterUri } : getCommunityVideoPoster(props.uri));
+    return subscribeCommunityVideoPoster(props.uri, next => {
+      if (!props.posterUri) setPoster(next);
+    });
+  }, [props.uri, props.posterUri]);
 
   useEffect(() => {
     if (props.active === false) setPlayIntent(false);
@@ -126,6 +146,7 @@ export function CommunityVideo(props: Props) {
     return (
       <InactiveCommunityVideo
         {...props}
+        poster={poster}
         onRequestPlay={requestPlay}
       />
     );
@@ -157,13 +178,14 @@ export function CommunityVideo(props: Props) {
 
 function InactiveCommunityVideo({
   height = 380,
+  poster,
   expectedDurationSeconds,
   fullscreen = false,
   edgeToEdge = false,
   controlsBottomInset = 0,
   onOpenFullscreen,
   onRequestPlay,
-}: Props) {
+}: Props & { poster?: any }) {
   const knownDuration =
     Number(expectedDurationSeconds ?? 0) || 0;
 
@@ -177,6 +199,18 @@ function InactiveCommunityVideo({
       ]}
     >
       <View style={styles.inactiveVideo}>
+        {poster ? (
+          <>
+            <ExpoImage
+              source={poster}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={120}
+            />
+            <View style={styles.posterScrim} />
+          </>
+        ) : null}
         <MaterialCommunityIcons
           name="play-circle-outline"
           size={58}
@@ -593,6 +627,20 @@ function ExpoCommunityVideo({
             const ratio = Number(activeTrack.size.width) / Number(activeTrack.size.height);
             if (Number.isFinite(ratio) && ratio > 0) setVideoAspectRatio(ratio);
           }
+          // Generate a poster only from a player already mounted for visible
+          // playback. Never create hidden players or download offscreen videos.
+          if (!getCommunityVideoPoster(uri) && beginCommunityVideoPosterGeneration(uri)) {
+            void player.generateThumbnailsAsync(0.1, { maxWidth: 960, maxHeight: 960 })
+              .then(thumbnails => {
+                const first = thumbnails?.[0];
+                if (first) publishCommunityVideoPoster(uri, first);
+              })
+              .catch(() => {
+                // Poster generation is best-effort; playback remains primary.
+              })
+              .finally(() => releaseCommunityVideoPosterGeneration(uri));
+          }
+
           const known = Number(player.duration || 0);
           if (known > 0) setDuration(known);
 
@@ -993,6 +1041,10 @@ const styles =
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 28,
+    },
+    posterScrim: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.22)',
     },
     inactiveLabel: {
       color: '#FFFFFF',
