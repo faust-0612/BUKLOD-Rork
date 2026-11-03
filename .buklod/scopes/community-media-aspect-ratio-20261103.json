@@ -13,10 +13,8 @@
     "Android/web parity"
   ],
   "regressionTests": [
-    "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
     "tests/community-media-aspect-ratio-20261103.test.mjs",
-    "tests/android-wall-sharp-paint-contract.test.mjs",
-    "tests/android-wall-auto-sharp.test.mjs"
+    "tests/wall-portrait-fullquality-layer-20261102.test.mjs"
   ],
   "preserveBehaviors": [
     "Private signed originals and stable cache keys",
@@ -45,5 +43,10 @@
     "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
     ".buklod/scopes/community-media-aspect-ratio-20261103.json",
     ".github/workflows/engineering-accountability.yml"
+  ],
+  "alternativeApproaches": [
+    "Keep one fixed 300–520 dp video box and accept cropping (rejected: source orientation is unknown at layout time).",
+    "Force contain for every photo (rejected: it letterboxes ordinary portrait/landscape photos unnecessarily).",
+    "Replace the media engine or introduce a native module (rejected: unnecessary runtime and regression risk)."
   ]
 }
