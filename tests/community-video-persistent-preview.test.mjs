@@ -30,6 +30,8 @@ test('public and scoped Wall upload flows attach preview metadata through the sh
   assert.match(scopedWall, /persistCommunityVideoPoster/);
   assert.match(scopedWall, /item\.user_id \?\?/);
   assert.match(media, /set_buklod_post_media_v6/);
+  assert.match(media, /Poster metadata is optional/);
+  assert.match(media, /set_buklod_post_media_v5',[\s\S]*?fallbackItems/);
   assert.match(media, /get_buklod_post_media_v4/);
   assert.match(media, /const isVideo = String\(row\?\.media_mime_type/);
   assert.match(media, /resolveCommunityMediaUrl\(previewPath/);

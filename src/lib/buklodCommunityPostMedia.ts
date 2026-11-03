@@ -148,6 +148,30 @@ export async function attachCommunityPostMedia(
     const message = String(error?.message ?? '');
 
     if (!isMissingRpcError(message)) {
+      // Poster metadata is optional. If v6 rejects only the preview sidecar,
+      // retry the canonical v5 media write without preview fields so the
+      // original video post is not blocked by a poster failure.
+      if (name === 'set_buklod_post_media_v6' && items.some(item => item.preview_path)) {
+        const fallbackItems = items.map(item =>
+          Object.fromEntries(
+            Object.entries(item).filter(([key]) => key !== 'preview_path' && key !== 'preview_bytes'),
+          ) as CommunityPostMediaItem,
+        );
+        const { error: fallbackError } = await invokeSetMedia(
+          'set_buklod_post_media_v5',
+          id,
+          fallbackItems,
+        );
+        if (!fallbackError) {
+          for (const original of originalItems) {
+            clearPendingAwsWallVideo(original.media_path);
+          }
+          return;
+        }
+        if (!isMissingRpcError(String(fallbackError?.message ?? ''))) {
+          throw fallbackError;
+        }
+      }
       throw error;
     }
   }
