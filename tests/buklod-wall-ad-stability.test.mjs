@@ -13,7 +13,7 @@ test('Android first-view uses native inventory first and preserves the first-vie
  assert.match(first, /firstView/);
  assert.doesNotMatch(bannerFirst, /minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT/);
  assert.match(banner, /minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT/);
- assert.match(banner, /if \(noFill && online\) \{[\s\S]*?return;/);
+ assert.match(banner, /if \(noFill && adNetworkAvailable\) \{[\s\S]*?setFailed\(true\)/);
  assert.match(banner,/reserveBuklodPassiveAdRequest\(stablePlacementId, requestKey\)/);
 });
 
@@ -32,7 +32,7 @@ test('Native creative keeps its full frame but pending banner and viewport slots
  assert.match(s, /BannerAdSize.MEDIUM_RECTANGLE/);
  assert.match(s, /usePostRectangle/);
  assert.match(s, /height: 250/);
- assert.ok(s.includes("if (!errorCode.includes('no-fill'))"));
+ assert.match(s, /bannerFailedAt.current = Date.now\(\)/);
  assert.ok(s.includes('if (!bannerUnitId || bannerFailed) return null;'));
  assert.match(s, /NativeAdEventType.IMPRESSION/);
  assert.match(s, /getBuklodPassiveAdRequestWaitMs/);
@@ -41,9 +41,9 @@ test('Native creative keeps its full frame but pending banner and viewport slots
 test('AdMob init never waits on perpetually active interactions', () => {
  const s=read('src/providers/AdsProvider.tsx');
  assert.doesNotMatch(s,/InteractionManager.runAfterInteractions/);
- assert.match(s,/setTimeout\(\(\) => \{/);
+ assert.doesNotMatch(s,/setTimeout\(/);
  assert.match(s,/initializeBuklodAds\(\)/);
- assert.match(s,/clearTimeout\(task\)/);
+ assert.match(s,/consentRefreshPending/);
 });
 
 test('Small banners keep the SDK surface visible during initial load and no-fill', () => {

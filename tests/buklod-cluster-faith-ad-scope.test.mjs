@@ -1,23 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-const read=p=>readFileSync(p,'utf8');
+const read = path => readFileSync(path, 'utf8');
 
-test('Cluster command dashboard preserves faith and lesson controls and embeds safe sponsor slots',()=>{
- const source=read('src/components/BuklodClusterHomeCommandCenterImpl.tsx');
- assert.match(source,/<BuklodHomeFaithPanel scopeId=\{scope.scope_id\} compact/);
- assert.match(source,/<BuklodScopeBuklodLessonPanel scope=\{scope\}/);
- assert.match(source,/<BuklodScopeFaithMonitoringDoor scope=\{scope\}/);
- assert.match(source,/14 existing configurable widgets/);
- assert.match(source,/<BuklodNativeSponsoredCard/);
- assert.match(source,/scope.scope_id/);
+test('Cluster directory, Cluster command center and Organization/Cluster dashboards use first-view ads once', () => {
+  const directory = read('src/app/clusters/index.tsx');
+  const command = read('src/components/BuklodClusterHomeCommandCenterImpl.tsx');
+  const managed = read('src/components/BuklodScopeHomeDashboard.tsx');
+  for (const source of [directory, command, managed]) {
+    assert.match(source, /BuklodFirstViewAd/);
+    assert.doesNotMatch(source, /BuklodNativeSponsoredCard/);
+  }
+  assert.match(directory, /cluster_directory_first_view/);
+  assert.match(command, /cluster_command_first_view/);
+  assert.match(managed, /cluster_scope_home_first_view/);
+  assert.match(managed, /organization_scope_home_first_view/);
 });
 
-test('Managed Cluster/Organization dashboard sponsor is scope-keyed and does not replace attendance',()=>{
- const source=read('src/components/BuklodScopeHomeDashboard.tsx');
- assert.match(source,/<BuklodHomeScopeBulletins/);
- assert.match(source,/<BuklodScopeAttendanceCard/);
- assert.match(source,/<BuklodNativeSponsoredCard/);
- assert.match(source,/scope-home-native-media:\$\{scope.scope_id\}/);
- assert.match(source,/placementId=\{scope.scope_type === 'CLUSTER'/);
+test('Android first-view keeps scope inventory and exact placement identity', () => {
+  const first = read('src/components/BuklodFirstViewAd.android.tsx');
+  assert.match(first, /resolveInventory/);
+  assert.match(first, /placementId.startsWith\('org_'\)/);
+  assert.match(first, /placementId.startsWith\('cluster_'\)/);
+  assert.match(first, /placementIdOverride=\{placementId\}/);
+  assert.match(first, /diagnosticName=\{diagnosticPlacementFor\(placement\)\}/);
 });

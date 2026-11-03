@@ -91,7 +91,10 @@ function BuklodAdMobBanner({
   maxHeight,
 }: Props) {
   const { ready, canRequestAds } = useAds();
-  const { online } = useNetwork();
+  const { isConnected, isInternetReachable } = useNetwork();
+  // A connected transport with unknown reachability can still serve ads;
+  // captive/offline states remain blocked and the SDK handles request errors.
+  const adNetworkAvailable = isConnected && isInternetReachable !== false;
   const pathname = usePathname();
   const stablePlacementId = placementId ?? `${placement}_generic`;
   const routeSafe = isBuklodPassiveAdAllowed({
@@ -119,7 +122,7 @@ function BuklodAdMobBanner({
   const unitId = getBuklodBannerUnitId(placement);
   const sdkReady = ready && canRequestAds;
   const shouldRequest =
-    routeSafe && !!unitId && sdkReady && viewportReady && online && !failed;
+    routeSafe && !!unitId && sdkReady && viewportReady && adNetworkAvailable && !failed;
   // Never mount native BannerAd until the shared cooldown accepts this slot.
   // Previous code mounted it *before* the reservation effect could reject it.
   const mountBanner =
@@ -128,7 +131,7 @@ function BuklodAdMobBanner({
   const requestKey = `${pathname}:${stablePlacementId}`;
 
   const recoverAfterQuietPeriod = useCallback(() => {
-    if (!failed || !online ||
+    if (!failed || !adNetworkAvailable ||
       Date.now() - failedAt.current < AD_SLOT_REMOUNT_COOLDOWN_MS ||
       getBuklodPassiveAdRequestWaitMs(stablePlacementId, requestKey) > 0
     ) return;
@@ -140,13 +143,27 @@ function BuklodAdMobBanner({
     setAttempt(0);
     setLoaded(false);
     setFailed(false);
-  }, [failed, online, opacity, requestKey, stablePlacementId]);
+  }, [failed, adNetworkAvailable, opacity, requestKey, stablePlacementId]);
 
-  // Failed/no-fill slots retry only on a later focus or foreground return,
-  // after the shared cooldown: never run a background no-fill request loop.
+  // Failed slots retry only after the shared quiet period, on focus/resume
+  // or through the single bounded timer below; never in a fast no-fill loop.
   useFocusEffect(useCallback(() => {
     recoverAfterQuietPeriod();
   }, [recoverAfterQuietPeriod]));
+
+  // One bounded retry after the shared quiet period, even if the user stays
+  // on this screen. No-fill cannot leave a dead slot until manual navigation.
+  useEffect(() => {
+    if (!failed || !adNetworkAvailable) return;
+    const elapsed = Date.now() - failedAt.current;
+    const waitMs = Math.max(
+      Math.max(0, AD_SLOT_REMOUNT_COOLDOWN_MS - elapsed),
+      getBuklodPassiveAdRequestWaitMs(stablePlacementId, requestKey),
+    );
+    const timer = setTimeout(recoverAfterQuietPeriod, waitMs + 25);
+    return () => clearTimeout(timer);
+  }, [failed, adNetworkAvailable, requestKey, stablePlacementId, recoverAfterQuietPeriod]);
+
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => {
@@ -164,17 +181,17 @@ function BuklodAdMobBanner({
   }, []);
 
   useEffect(() => {
-    if (online && retryTimer.current == null) {
+    if (adNetworkAvailable && retryTimer.current == null) {
       return;
     }
-    if (!online && retryTimer.current) {
+    if (!adNetworkAvailable && retryTimer.current) {
       clearTimeout(retryTimer.current);
       retryTimer.current = null;
     }
-  }, [online]);
+  }, [adNetworkAvailable]);
 
   useEffect(() => {
-    if (!online || !failed || !failedBecauseOffline.current) {
+    if (!adNetworkAvailable || !failed || !failedBecauseOffline.current) {
       return;
     }
     failedBecauseOffline.current = false;
@@ -183,7 +200,7 @@ function BuklodAdMobBanner({
     setAttempt(0);
     setLoaded(false);
     setFailed(false);
-  }, [online, failed]);
+  }, [adNetworkAvailable, failed]);
 
   useEffect(() => {
     if (!shouldRequest || reservationReady) return;
@@ -262,7 +279,7 @@ function BuklodAdMobBanner({
     return null;
   }
 
-  if (!sdkReady || !viewportReady || !reservationReady || (!online && !loaded)) {
+  if (!sdkReady || !viewportReady || !reservationReady || (!adNetworkAvailable && !loaded)) {
     if (compact) {
       // Viewport measurement requires >=8px height; a zero-height compact
       // placeholder can never become eligible, permanently starving the ad.
@@ -321,14 +338,17 @@ function BuklodAdMobBanner({
 
                 const code = String((error as { code?: string })?.code ?? '');
                 const noFill = code.includes('no-fill');
-                if (noFill && online) {
-                  // Keep the visible SDK banner mounted. If Google-optimized
-                  // refresh is enabled in AdMob, the SDK can refresh it without
-                  // an application-level retry storm or layout collapse.
+                if (noFill && adNetworkAvailable) {
+                  // A no-fill is terminal for this mounted slot. Collapse the
+                  // empty creative and allow one quiet-period recovery instead
+                  // of leaving a permanent blank banner in the feed.
+                  failedBecauseOffline.current = false;
+                  failedAt.current = Date.now();
+                  setFailed(true);
                   return;
                 }
-                if (!online || attempt >= MAX_RETRIES) {
-                  failedBecauseOffline.current = !online;
+                if (!adNetworkAvailable || attempt >= MAX_RETRIES) {
+                  failedBecauseOffline.current = !adNetworkAvailable;
                   failedAt.current = Date.now();
                   setFailed(true);
                   return;
