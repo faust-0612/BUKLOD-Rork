@@ -67,6 +67,8 @@ type Props = {
   preserveAspectRatio?: boolean;
   /** Optional server-generated poster; first-frame posters are cached in memory. */
   posterUri?: string | null;
+  /** Best-effort persistence callback for a frame from an already-mounted player. */
+  onPosterGenerated?: (thumbnail: unknown) => void;
 };
 
 let communityVideoCacheConfigured = false;
