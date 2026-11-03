@@ -55,6 +55,7 @@ import {
 } from '@/lib/buklodAdMonetizationPolicy';
 
 const RETRY_DELAYS_MS = BANNER_RETRY_DELAYS_MS;
+const BANNER_LOAD_TIMEOUT_MS = 8_000;
 const MAX_RETRIES = RETRY_DELAYS_MS.length;
 
 type Props = {
@@ -114,6 +115,7 @@ function BuklodAdMobBanner({
   const [reservationTick, setReservationTick] = useState(0);
   const [opacity] = useState(() => new Animated.Value(0));
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestedAttempt = useRef(-1);
   const renderedAttempt = useRef(-1);
   const failedAt = useRef(0);
@@ -129,6 +131,29 @@ function BuklodAdMobBanner({
     routeSafe && reservationReady &&
     (shouldRequest || loaded) && !!unitId && !failed;
   const requestKey = `${pathname}:${stablePlacementId}`;
+
+  // A banner callback that never arrives must not leave a reserved blank slot.
+  // Bound each SDK attempt, then collapse and recover only after the cooldown.
+  useEffect(() => {
+    if (!mountBanner || loaded || failed) return;
+    loadTimer.current = setTimeout(() => {
+      loadTimer.current = null;
+      recordBuklodAdEvent(
+        diagnostic,
+        'ad_failed',
+        new Error('BANNER_AD_LOAD_TIMEOUT'),
+        { route: pathname, placementId: stablePlacementId },
+      );
+      failedBecauseOffline.current = false;
+      failedAt.current = Date.now();
+      setFailed(true);
+    }, BANNER_LOAD_TIMEOUT_MS);
+    return () => {
+      if (loadTimer.current) clearTimeout(loadTimer.current);
+      loadTimer.current = null;
+    };
+  }, [mountBanner, loaded, failed, attempt, diagnostic, pathname, stablePlacementId]);
+
 
   const recoverAfterQuietPeriod = useCallback(() => {
     if (!failed || !adNetworkAvailable ||
@@ -174,9 +199,8 @@ function BuklodAdMobBanner({
 
   useEffect(() => {
     return () => {
-      if (retryTimer.current) {
-        clearTimeout(retryTimer.current);
-      }
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+      if (loadTimer.current) clearTimeout(loadTimer.current);
     };
   }, []);
 
@@ -321,6 +345,10 @@ function BuklodAdMobBanner({
               size={bannerSize}
               {...(format === 'inline' && maxHeight ? { maxHeight } : {})}
               onAdLoaded={() => {
+                if (loadTimer.current) {
+                  clearTimeout(loadTimer.current);
+                  loadTimer.current = null;
+                }
                 setLoaded(true);
                 recordBuklodAdEvent(diagnostic, 'ad_loaded', undefined, { route: pathname, placementId: stablePlacementId });
               }}
@@ -333,6 +361,10 @@ function BuklodAdMobBanner({
                 },
               } as object)}
               onAdFailedToLoad={(error) => {
+                if (loadTimer.current) {
+                  clearTimeout(loadTimer.current);
+                  loadTimer.current = null;
+                }
                 recordBuklodAdEvent(diagnostic, 'ad_failed', error, { route: pathname, placementId: stablePlacementId });
                 setLoaded(false);
 
@@ -356,6 +388,7 @@ function BuklodAdMobBanner({
 
                 const delay = RETRY_DELAYS_MS[attempt] ?? 45000;
                 retryTimer.current = setTimeout(() => {
+                  retryTimer.current = null;
                   setAttempt((current) => current + 1);
                 }, delay);
               }}

@@ -14,6 +14,8 @@ test('Android first-view uses native inventory first and preserves the first-vie
  assert.doesNotMatch(bannerFirst, /minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT/);
  assert.match(banner, /minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT/);
  assert.match(banner, /if \(noFill && adNetworkAvailable\) \{[\s\S]*?setFailed\(true\)/);
+ assert.match(banner, /BANNER_LOAD_TIMEOUT_MS = 8_000/);
+ assert.match(banner, /BANNER_AD_LOAD_TIMEOUT/);
  assert.match(banner,/reserveBuklodPassiveAdRequest\(stablePlacementId, requestKey\)/);
 });
 

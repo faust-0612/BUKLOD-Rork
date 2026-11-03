@@ -7,6 +7,8 @@ test('No-fill collapses banner slots and retries only after the quiet period', (
   const banner = read('src/components/BuklodAdMobBanner.tsx');
   const first = read('src/components/BuklodFirstViewAd.tsx');
   assert.match(banner, /if \(noFill && adNetworkAvailable\) \{[\s\S]*?setFailed\(true\)/);
+  assert.match(banner, /BANNER_LOAD_TIMEOUT_MS = 8_000/);
+  assert.match(banner, /BANNER_AD_LOAD_TIMEOUT/);
   assert.match(banner, /AD_SLOT_REMOUNT_COOLDOWN_MS/);
   assert.match(banner, /One bounded retry after the shared quiet period/);
   assert.doesNotMatch(first, /minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT/);
