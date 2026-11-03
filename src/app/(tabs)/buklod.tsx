@@ -5456,6 +5456,17 @@ const communityFeedRows =
          uri={
           fullscreenUri
          }
+         posterUri={descriptor.media?.preview_url ?? null}
+         onPosterGenerated={thumbnail => {
+          if (!user?.id || String(descriptor.post?.user_id ?? '') !== String(user.id)) return;
+          void persistCommunityVideoPoster({
+           postId,
+           mediaPosition:Number(descriptor.media?.media_position ?? 0),
+           mediaPath:String(descriptor.media?.media_path ?? ''),
+           viewerUserId:String(user.id),
+           thumbnail,
+          });
+         }}
          height={COMMUNITY_VIEWER_HEIGHT}
          fullscreen
          active={
