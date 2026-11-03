@@ -249,7 +249,7 @@ begin
 
   return v_index;
 end
-$function$
+$function$;
 
 
 -- New attachment RPC: v5 remains the canonical media validator/writer. This
@@ -457,7 +457,7 @@ AS $function$
  and public.can_view_community_post_v2(cp.id)
  and not exists(select 1 from public.community_post_media m where m.post_id=cp.id)
  order by 1,2;
-$function$
+$function$;
 
 revoke all on function public.get_buklod_post_media_v4(uuid[]) from public, anon;
 grant execute on function public.get_buklod_post_media_v4(uuid[]) to authenticated, service_role;
