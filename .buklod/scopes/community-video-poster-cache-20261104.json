@@ -13,12 +13,14 @@
     "storage-rls",
     "database-rpc",
     "weak-network-behavior",
-    "thumbnail-memory"
+    "thumbnail-memory",
+    "navigation-scroll"
   ],
   "regressionTests": [
     "tests/community-video-poster-cache.test.mjs",
     "tests/community-video-persistent-preview.test.mjs",
-    "supabase/tests/community_wall_video_preview_security_20261104.sql"
+    "supabase/tests/community_wall_video_preview_security_20261104.sql",
+    "tests/community-video-navigation-scroll.test.mjs"
   ],
   "preserveBehaviors": [
     "No hidden/offscreen players or speculative downloads for feed cards",
@@ -61,7 +63,8 @@
     "supabase/tests/community_wall_video_preview_security_20261104.sql",
     "tests/community-video-poster-cache.test.mjs",
     "tests/community-video-persistent-preview.test.mjs",
-    ".buklod/scopes/community-video-poster-cache-20261104.json"
+    ".buklod/scopes/community-video-poster-cache-20261104.json",
+    "tests/community-video-navigation-scroll.test.mjs"
   ],
   "alternativeApproaches": [
     "Generate hidden players for every feed video (rejected: speculative downloads and decoder/memory pressure).",
