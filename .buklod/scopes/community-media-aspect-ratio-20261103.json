@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Improve Community photo and video feed rendering with identity-safe photo framing and decoded-video aspect ratios, without replacing media engines or touching backend/native config.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Source baseline main @ 11cf6bd096054dbf8ac204186b199fc835e740e3. Existing Android preview/original compositing and compact photo viewer are retained; physical device pixels remain unverified.",
+  "productionBaselineEvidence": "verified: Android Production OTA workflow run #41291297116 completed 2026-11-01 from production source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944. The PR base main @ 11cf6bd096054dbf8ac204186b199fc835e740e3 is the DEV integration base only and is NOT represented as the live production baseline. No production artifact or runtime is changed by this PR.",
   "chosenApproach": "Derive single-photo height/fit from decoded dimensions; prevent recycled photo state leakage; derive inline Expo Video frame height from the selected VideoTrack size and keep fullscreen layout unchanged.",
   "selectionRationale": "Avoid arbitrary cropping and stale recycled dimensions with bounded, source-grounded layout rather than a risky renderer rewrite.",
   "riskAreas": [
