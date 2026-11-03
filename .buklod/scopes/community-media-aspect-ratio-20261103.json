@@ -10,11 +10,13 @@
     "photo geometry",
     "video geometry",
     "feed scrolling/layout shift",
-    "Android/web parity"
+    "Android/web parity",
+    "faith-cluster"
   ],
   "regressionTests": [
     "tests/community-media-aspect-ratio-20261103.test.mjs",
-    "tests/wall-portrait-fullquality-layer-20261102.test.mjs"
+    "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
+    "tests/cluster-community-media-presentation.test.mjs"
   ],
   "preserveBehaviors": [
     "Private signed originals and stable cache keys",
@@ -47,7 +49,8 @@
     ".github/workflows/engineering-accountability.yml",
     "src/app/post/[id].tsx",
     "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
-    "src/app/member/[id].tsx"
+    "src/app/member/[id].tsx",
+    "tests/cluster-community-media-presentation.test.mjs"
   ],
   "alternativeApproaches": [
     "Keep one fixed 300–520 dp video box and accept cropping (rejected: source orientation is unknown at layout time).",
