@@ -216,13 +216,39 @@ export default function WordScreen() {
     }
   }, [accountId, online]);
 
-  // Refresh on screen revisit and app foreground return; no background polling.
+  // Refresh on revisit, app foreground return, and the local day boundary.
+  // This is one scheduled refresh per day, not a background polling loop.
   useFocusEffect(useCallback(() => {
+    let active = true;
+    let dailyRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleNextDayRefresh = () => {
+      const now = new Date();
+      const nextDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0,
+        0,
+        2,
+      );
+      dailyRefreshTimer = setTimeout(() => {
+        if (!active) return;
+        void load();
+        scheduleNextDayRefresh();
+      }, Math.max(1000, nextDay.getTime() - now.getTime()));
+    };
+
     void load();
+    scheduleNextDayRefresh();
+
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active') void load();
     });
+
     return () => {
+      active = false;
+      if (dailyRefreshTimer) clearTimeout(dailyRefreshTimer);
       subscription.remove();
       request.current += 1;
     };
