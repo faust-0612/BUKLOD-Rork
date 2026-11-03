@@ -293,7 +293,6 @@ export async function loadCommunityPostMediaByPostIds(
       }
 
       const previewPath = String(row?.preview_path ?? '').trim();
-      const isVideo = String(row?.media_mime_type ?? '').toLowerCase().startsWith('video/');
       const previewUrl = previewPath && isVideo
         ? await resolveCommunityMediaUrl(previewPath, row?.preview_url ?? null).catch(() => null)
         : null;
