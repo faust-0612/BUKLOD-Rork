@@ -53,22 +53,30 @@ export function AdsProvider({
     () => {
       let mounted = true;
 
-      // A continuous animation/feed interaction could keep
-      // runAfterInteractions pending indefinitely, leaving ads blank.
-      // Begin after first paint without blocking Wall or authentication.
-      const task = setTimeout(() => {
-        void initializeBuklodAds()
-          .then(result => {
-            if (!mounted) return;
-            setReady(result.ready);
-            setCanRequestAds(result.canRequestAds);
-          })
-          .catch(error => console.warn('BUKLOD Ads bootstrap:', error));
-      }, 600);
+      // Kick off the native SDK immediately after the provider commits.
+      // SDK initialization is asynchronous and never blocks the app shell.
+      void initializeBuklodAds()
+        .then(result => {
+          if (!mounted) return;
+          setReady(result.ready);
+          setCanRequestAds(result.canRequestAds);
+
+          // Returning users with valid previous consent need not wait for
+          // UMP's refresh round-trip before their first banner request.
+          if (result.consentRefreshPending) {
+            void refreshBuklodAdConsent()
+              .then(updated => {
+                if (!mounted) return;
+                setReady(updated.ready);
+                setCanRequestAds(updated.canRequestAds);
+              })
+              .catch(error => console.warn('BUKLOD Ads consent refresh:', error));
+          }
+        })
+        .catch(error => console.warn('BUKLOD Ads bootstrap:', error));
 
       return () => {
         mounted = false;
-        clearTimeout(task);
       };
     },
     []

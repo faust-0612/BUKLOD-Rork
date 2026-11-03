@@ -29,10 +29,11 @@ test('BannerAd cannot mount until an actual shared cooldown reservation is grant
 test('No-fill is not rapidly retried; a failed banner can recover after a quiet period', () => {
  const s = read('src/components/BuklodAdMobBanner.tsx');
  assert.match(s, /code.includes\('no-fill'\)/);
- assert.match(s, /if \(noFill && online\) \{/);
- assert.match(s, /if \(!online \|\| attempt >= MAX_RETRIES\)/);
+ assert.match(s, /if \(noFill && adNetworkAvailable\) \{[\s\S]*?setFailed\(true\)/);
+ assert.match(s, /if \(!adNetworkAvailable \|\| attempt >= MAX_RETRIES\)/);
  assert.match(s, /Date.now\(\) - failedAt.current < AD_SLOT_REMOUNT_COOLDOWN_MS/);
  assert.match(s, /useFocusEffect\(/);
  assert.match(s, /AppState.addEventListener\('change'/);
  assert.match(s, /setReservationReady\(false\)/);
+ assert.match(s, /One bounded retry after the shared quiet period/);
 });

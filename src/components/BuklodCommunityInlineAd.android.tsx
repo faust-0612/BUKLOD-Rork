@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
-import { usePathname } from 'expo-router';
+import { useFocusEffect, usePathname } from 'expo-router';
 import {
   BannerAd,
   BannerAdSize,
@@ -31,6 +32,7 @@ import {
 import { useBuklodAdViewportGate } from '@/lib/buklodAdViewport';
 import { useAds } from '@/providers/AdsProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
+import { AD_SLOT_REMOUNT_COOLDOWN_MS } from '@/lib/buklodAdMonetizationPolicy';
 
 type CommunityAdInventory = 'public' | 'org' | 'cluster';
 
@@ -50,7 +52,7 @@ type Props = {
 
 // Weak mobile networks need a larger native-media opportunity; never flood
 // retries to compensate for missing inventory.
-const AD_LOAD_TIMEOUT_MS = 15_000;
+const AD_LOAD_TIMEOUT_MS = 8_000;
 const FEED_AD_CARD_HEIGHT = 392;
 
 function clean(value: string | undefined) {
@@ -66,7 +68,8 @@ export default function BuklodCommunityInlineAd({
   const { width } = useWindowDimensions();
   const pathname = usePathname();
   const { ready, canRequestAds } = useAds();
-  const { online } = useNetwork();
+  const { isConnected, isInternetReachable } = useNetwork();
+  const adNetworkAvailable = isConnected && isInternetReachable !== false;
   const { ref, eligible } = useBuklodAdViewportGate();
 
   const [nativeAd, setNativeAd] = useState<NativeAd | null>(null);
@@ -83,6 +86,7 @@ export default function BuklodCommunityInlineAd({
   const bannerRequestStarted = useRef(false);
   const nativeRendered = useRef(false);
   const bannerRendered = useRef(false);
+  const bannerFailedAt = useRef(0);
 
   const diagnosticPlacement =
     surface === 'home'
@@ -173,7 +177,7 @@ export default function BuklodCommunityInlineAd({
     routeSafe &&
     eligible &&
     sdkReady &&
-    online;
+    adNetworkAvailable;
 
   const requestKey = slotId || 'community-wall-inline';
   const adWidth = Math.max(280, Math.floor(width - 32));
@@ -375,6 +379,7 @@ export default function BuklodCommunityInlineAd({
         new Error('BANNER_AD_LOAD_TIMEOUT'),
         { route: pathname, placementId },
       );
+      bannerFailedAt.current = Date.now();
       setBannerFailed(true);
     }, AD_LOAD_TIMEOUT_MS);
 
@@ -396,6 +401,48 @@ export default function BuklodCommunityInlineAd({
     reservationTick,
   ]);
 
+
+  const recoverFailedSlot = useCallback(() => {
+    if (!bannerFailed || !adNetworkAvailable) return;
+    if (
+      Date.now() - bannerFailedAt.current < AD_SLOT_REMOUNT_COOLDOWN_MS ||
+      getBuklodPassiveAdRequestWaitMs(placementId, requestKey) > 0
+    ) return;
+
+    nativeRequestStarted.current = false;
+    bannerRequestStarted.current = false;
+    nativeRendered.current = false;
+    bannerRendered.current = false;
+    setNativeAd(null);
+    setNativeFailed(false);
+    setBannerLoaded(false);
+    setBannerFailed(false);
+    setBannerRequestReady(false);
+    setReservationTick(value => value + 1);
+  }, [bannerFailed, adNetworkAvailable, placementId, requestKey]);
+
+  useFocusEffect(useCallback(() => {
+    recoverFailedSlot();
+  }, [recoverFailedSlot]));
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') recoverFailedSlot();
+    });
+    return () => sub.remove();
+  }, [recoverFailedSlot]);
+
+  useEffect(() => {
+    if (!bannerFailed || !adNetworkAvailable) return;
+    const elapsed = Date.now() - bannerFailedAt.current;
+    const waitMs = Math.max(
+      Math.max(0, AD_SLOT_REMOUNT_COOLDOWN_MS - elapsed),
+      getBuklodPassiveAdRequestWaitMs(placementId, requestKey),
+    );
+    const timer = setTimeout(recoverFailedSlot, waitMs + 25);
+    return () => clearTimeout(timer);
+  }, [bannerFailed, adNetworkAvailable, placementId, requestKey, recoverFailedSlot]);
+
   useEffect(() => {
     if (!bannerLoaded || bannerRendered.current) return;
     bannerRendered.current = true;
@@ -408,14 +455,15 @@ export default function BuklodCommunityInlineAd({
   }, [bannerLoaded, diagnosticPlacement, pathname, placementId]);
 
   if (!active || !routeSafe) return null;
+  if (nativeFailed && (!bannerUnitId || bannerFailed)) return null;
 
-  if (!eligible || !sdkReady || !online) {
+  if (!eligible || !sdkReady || !adNetworkAvailable) {
     return (
       <View
         ref={ref}
         collapsable={false}
         pointerEvents="none"
-        style={[styles.viewportProbe, !nativeUnitId && styles.bannerOnlyFrame]}
+        style={styles.viewportProbe}
       />
     );
   }
@@ -451,7 +499,7 @@ export default function BuklodCommunityInlineAd({
     );
   }
 
-  if (!nativeFailed || !bannerUnitId || bannerFailed || !bannerRequestReady) {
+  if (!nativeFailed || !bannerUnitId || !bannerRequestReady) {
     // Keep the reserved frame stable for this visible row when no inventory
     // is available. Never synthesize an ad or a billable impression.
     return (
@@ -459,7 +507,7 @@ export default function BuklodCommunityInlineAd({
         ref={ref}
         collapsable={false}
         pointerEvents="none"
-        style={[styles.viewportProbe, !nativeUnitId && styles.bannerOnlyFrame]}
+        style={styles.viewportProbe}
       />
     );
   }
@@ -468,7 +516,7 @@ export default function BuklodCommunityInlineAd({
     <View
       ref={ref}
       collapsable={false}
-      style={[styles.bannerShell, !nativeUnitId && styles.bannerOnlyFrame]}
+      style={styles.bannerShell}
       pointerEvents={bannerLoaded ? 'auto' : 'none'}
     >
       {bannerLoaded ? <Text style={styles.label}>Sponsored</Text> : null}
@@ -513,13 +561,11 @@ export default function BuklodCommunityInlineAd({
               error,
               { route: pathname, placementId },
             );
-            // On genuine AdMob no-fill, keep the BannerAd mounted. Google
-            // may refresh a visible banner when the ad unit's automatic
-            // refresh is configured, without a manual retry storm.
-            const errorCode = String((error as { code?: string })?.code ?? '');
-            if (!errorCode.includes('no-fill')) {
-              setBannerFailed(true);
-            }
+            // Collapse every terminal failure (including no-fill) rather
+            // than reserving a 250-392 dp blank card. A single retry is
+            // permitted only after the shared quiet period.
+            bannerFailedAt.current = Date.now();
+            setBannerFailed(true);
           }}
         />
       </View>
@@ -528,22 +574,16 @@ export default function BuklodCommunityInlineAd({
 }
 
 const styles = StyleSheet.create({
+  // A tiny measurable probe is enough to satisfy viewport gating. Expand
+  // only after an actual ad creative has loaded.
   viewportProbe: {
     width: '100%',
-    height: FEED_AD_CARD_HEIGHT,
-    marginTop: 10,
-    marginBottom: 14,
+    height: 8,
     opacity: 0,
-  },
-  // Without a Native unit, allow an existing Banner ad unit to fill a
-  // fixed 300x250 sponsored rich-media/video rectangle, never fake creative.
-  bannerOnlyFrame: {
-    height: 300,
-    minHeight: 300,
   },
   pendingArea: {
     width: '100%',
-    minHeight: 50,
+    minHeight: 8,
     overflow: 'hidden',
     // Keep the SDK view visible so AdMob automatic refresh can recover no-fill.
   },
@@ -618,7 +658,6 @@ const styles = StyleSheet.create({
   },
   bannerShell: {
     width: '100%',
-    height: FEED_AD_CARD_HEIGHT,
     marginTop: 10,
     marginBottom: 14,
     paddingTop: 7,

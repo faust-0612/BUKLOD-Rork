@@ -66,3 +66,13 @@ test('real grades and attendance still require Classroom/Quiz coverage', () => {
   assert.deepEqual(withCoverage.requiredAreas, ['classroom-quiz']);
   assert.deepEqual(withCoverage.failures, []);
 });
+
+
+test('Ad startup and empty-slot behavior require focused ads regression coverage', () => {
+  const source = 'src/components/BuklodAdMobBanner.tsx';
+  const without = assessChanges([source, 'tests/quiz-answers.test.mjs']);
+  assert.ok(without.requiredAreas.includes('ads-monetization'));
+  assert.match(without.failures.join(' '), /Missing focused regression test for ads-monetization/);
+  const withCoverage = assessChanges([source, 'tests/buklod-ad-empty-slot-collapse.test.mjs']);
+  assert.deepEqual(withCoverage.failures, []);
+});

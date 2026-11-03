@@ -13,6 +13,7 @@ const areas = [
   { id: 'auth-privacy', source: /^(?:src\/providers\/AuthProvider|src\/app\/\(auth\)\/|src\/lib\/(?:buklodAuth|legal|buklodAccess))/i, proof: /(?:auth|login|register|privacy|access|security|recovery)/i },
   { id: 'classroom-quiz', source: /^(?:src\/.*(?:classroom|quiz|faculty|student|(?<!up)grade|attendance))/i, proof: /(?:classroom|quiz|faculty|student|grade|attendance|roster)/i },
   { id: 'story', source: /^(?:src\/.*(?:kabihasnang|Kl[A-Z]|kl-))/, proof: /(?:kl-|kabihasnang|scene|story|media-placement)/i },
+  { id: 'ads-monetization', source: /^(?:src\/(?:components\/(?:BuklodAdMobBanner|BuklodCommunityInlineAd|BuklodFirstViewAd|BuklodAdSafetyRouteBridge)|providers\/AdsProvider|lib\/adMob))/i, proof: /(?:ad|ads|admob|monetization|banner|fill)/i },
   { id: 'release-identity', source: /^(?:app\.config\.[cm]?[jt]s|eas\.json|\.github\/workflows\/.*(?:production|deploy|ota)|scripts\/.*(?:production|deploy|release|ota))/i, proof: /(?:release|deploy|ota|production|identity|boundary)/i },
 ];
 const productPath = p => /^(?:src\/|supabase\/|app\.config\.|eas\.json$|\.github\/workflows\/.*(?:production|deploy|ota)|scripts\/.*(?:production|deploy|release|ota))/i.test(p);

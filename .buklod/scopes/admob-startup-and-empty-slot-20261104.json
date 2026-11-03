@@ -1,0 +1,60 @@
+{
+  "contractVersion": 2,
+  "objective": "Remove app-side ad startup latency and permanent empty ad reservations while preserving consent, policy, route safety and bounded request cadence.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: DEV main baseline 6da48e5da0335c26996469faf0cf3328e8dceaf8. Read-only production telemetry for Android runtime 1.3.2/build 28 on 2026-11-03 shows live ad requests but high no-fill on first-view placements (profile 56 requests/42 no-fill, Home 19/10, public Wall entry 57/24). Production OTA remains separate; this work does not publish an OTA.",
+  "chosenApproach": "Start AdMob immediately from previously valid UMP consent while refreshing consent asynchronously; keep first-run consent fail-closed; collapse terminal no-fill slots; use tiny measurable probes and one cooldown-bound retry.",
+  "selectionRationale": "Observed blank spaces are created by app-owned reserved shells and timeout frames, while startup waits on nonessential UMP refresh. Fix deterministic client behavior without changing native SDK, live unit IDs, content rating, or AdMob request volume.",
+  "alternativeApproaches": [
+    "Increase ad density or remove request cooldowns: rejected because it does not solve blank rendering and risks policy/request inflation.",
+    "Change PG content rating or replace ad units: rejected because inventory suitability and live unit IDs need separate AdMob account evidence.",
+    "Keep 68-392 dp placeholders while waiting: rejected because a failed or delayed ad leaves empty content space."
+  ],
+  "preserveBehaviors": [
+    "UMP consent remains mandatory before first-ever ad requests.",
+    "Previously valid consent may serve ads while UMP refreshes, with updated consent state applied when refresh completes.",
+    "PG maximum ad content rating is unchanged.",
+    "Existing live AdMob app IDs and unit IDs are unchanged.",
+    "Route safety, remote kill switches, foreground checks, interaction locks and shared request reservations remain.",
+    "No-fill retries remain bounded by the existing two-minute shared cooldown.",
+    "Ads never block navigation, posting, chat, reading, submissions or offline access.",
+    "Native SDK/package/runtime and production OTA are unchanged."
+  ],
+  "riskAreas": [
+    "ads-monetization"
+  ],
+  "regressionTests": [
+    "tests/buklod-ad-startup-fast-path.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "tests/engineering-regression-gate.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/adMob.ts",
+    "src/providers/AdsProvider.tsx",
+    "src/components/BuklodAdSafetyRouteBridge.tsx",
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodFirstViewAd.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "scripts/engineering-regression-gate.mjs",
+    "tests/engineering-regression-gate.test.mjs",
+    "tests/buklod-ad-startup-fast-path.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    ".buklod/scopes/admob-startup-and-empty-slot-20261104.json"
+  ],
+  "acceptanceChecks": [
+    "No artificial 600 ms AdMob bootstrap delay.",
+    "Returning users with canRequestAds=true initialize the SDK without waiting for UMP refresh; first-run consent remains fail-closed.",
+    "Concurrent startup calls share one bootstrap and one consent refresh.",
+    "First-view ad wrappers do not retain permanent empty min-height shells.",
+    "Native feed probes and pending banner frames are 8 dp; full-size frames appear only after an ad loads.",
+    "No-fill and terminal errors collapse the slot and allow only a cooldown-bound recovery.",
+    "Focused ad regression tests, TypeScript QA and engineering accountability gates pass.",
+    "No production OTA until the exact RC and runtime 1.3.2 release gates are independently verified."
+  ]
+}

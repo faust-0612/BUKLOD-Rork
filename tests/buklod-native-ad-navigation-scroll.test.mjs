@@ -44,6 +44,6 @@ test('Connect Personal first-view and scoped ad opportunity remain independent',
  assert.match(inbox,/connect-personal-native-media/);
  assert.match(inbox,/connect-community-native-media/);
  const banner=read('src/components/BuklodAdMobBanner.tsx');
- assert.match(banner,/if \(noFill && online\)/);
+ assert.match(banner,/if \(noFill && adNetworkAvailable\)/);
  assert.match(banner,/reserveBuklodPassiveAdRequest/);
 });
