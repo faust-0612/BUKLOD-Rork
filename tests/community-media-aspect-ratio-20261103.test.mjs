@@ -34,5 +34,5 @@ test('all single-photo collage surfaces preserve source ratio unless a surface e
  const postDetail=readFileSync('src/app/post/[id].tsx','utf8');
  assert.ok(photoSource.includes('preserveSinglePhotoAspectRatio = true'));
  const detail=postDetail.slice(postDetail.indexOf('<BuklodCommunityPhotoCollage'),postDetail.indexOf('/>',postDetail.indexOf('<BuklodCommunityPhotoCollage')));
- assert.doesNotMatch(detail,/height=\\{280\\}/);
+ assert.ok(!detail.includes('height={280}'));
 });
