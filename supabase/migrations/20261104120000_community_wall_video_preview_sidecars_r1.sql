@@ -15,6 +15,45 @@ create table if not exists public.community_wall_video_previews (
     on delete cascade
 );
 
+-- Preserve the nine legacy single-video Wall records as media rows so
+-- the same secure poster/read pipeline covers old public and scoped posts.
+insert into public.community_post_media (
+  post_id, media_position, media_path, media_mime_type, media_size_bytes,
+  storage_provider, external_object_key
+)
+select
+  cp.id,
+  0::smallint,
+  cp.media_path,
+  cp.media_mime_type,
+  cp.media_size_bytes,
+  case when cp.media_path like 'aws:%' then 'AWS' else 'SUPABASE' end,
+  case when cp.media_path like 'aws:%' then substring(cp.media_path from 5) else null end
+from public.community_posts cp
+where cp.deleted_at is null
+  and cp.media_path is not null
+  and cp.media_mime_type in ('video/mp4','video/quicktime','video/webm','video/x-m4v')
+  and cp.media_size_bytes between 1 and 1073741824
+  and (
+    (
+      cp.media_path like 'aws:wall/' || cp.user_id::text || '/%'
+      and length(substring(cp.media_path from 5)) > 0
+    )
+    or (
+      cp.media_path not like 'aws:%'
+      and exists (
+        select 1 from storage.objects o
+        where o.bucket_id = 'community-media' and o.name = cp.media_path
+      )
+    )
+  )
+  and not exists (
+    select 1 from public.community_post_media m
+    where m.post_id = cp.id
+      and (m.media_position = 0 or m.media_path = cp.media_path)
+  )
+on conflict (post_id, media_position) do nothing;
+
 alter table public.community_wall_video_previews enable row level security;
 revoke all on public.community_wall_video_previews from public, anon, authenticated;
 grant select on public.community_wall_video_previews to authenticated;

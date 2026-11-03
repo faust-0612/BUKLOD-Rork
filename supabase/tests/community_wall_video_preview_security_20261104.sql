@@ -5,6 +5,17 @@ DECLARE
   v_v5_definition text;
   v_register_definition text;
 BEGIN
+  IF EXISTS (
+    SELECT 1 FROM public.community_posts cp
+    WHERE cp.deleted_at IS NULL
+      AND cp.media_path IS NOT NULL
+      AND cp.media_mime_type LIKE 'video/%'
+      AND NOT EXISTS (
+        SELECT 1 FROM public.community_post_media m
+        WHERE m.post_id = cp.id AND m.media_path = cp.media_path
+      )
+  ) THEN RAISE EXCEPTION 'Legacy single-video posts must be represented in the shared media pipeline'; END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM pg_class c
     JOIN pg_namespace n ON n.oid=c.relnamespace

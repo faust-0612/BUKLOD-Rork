@@ -15,6 +15,8 @@ test('Wall uploads generate bounded durable posters only when explicitly request
   assert.match(preview, /COMMUNITY_VIDEO_PREVIEW_MAX_BYTES = 125_000/);
   assert.match(preview, /communityVideoUploadPreviewPath/);
   assert.match(preview, /communityVideoPostPreviewPath/);
+  assert.match(preview, /\[320, 0\.40\]/);
+  assert.match(preview, /generateThumbnailsAsync\(\[frameTime\]/);
 });
 
 test('public and scoped Wall upload flows attach preview metadata through the shared media pipeline', () => {

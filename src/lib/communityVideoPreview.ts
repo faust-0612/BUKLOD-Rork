@@ -140,23 +140,26 @@ async function generateWebVideoPreview(uri: string): Promise<CommunityVideoPrevi
       if (!(await waitForMediaEvent(video, 'seeked', 5_000))) return null;
     }
     const longest = Math.max(video.videoWidth, video.videoHeight);
-    const scale = Math.min(1, 480 / longest);
-    const canvas = doc.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
-    canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
-    const context = canvas.getContext('2d');
-    if (!context) return null;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const blob: Blob | null = await new Promise(resolve =>
-      canvas.toBlob((value: Blob | null) => resolve(value), 'image/jpeg', 0.56),
-    );
-    if (!blob || blob.size < 1 || blob.size > COMMUNITY_VIDEO_PREVIEW_MAX_BYTES) return null;
-    const objectUrl = URLApi.createObjectURL(blob);
-    return {
-      uri: objectUrl,
-      sizeBytes: blob.size,
-      cleanup: async () => URLApi.revokeObjectURL(objectUrl),
-    };
+    for (const [side, quality] of [[480, 0.56], [320, 0.40]] as const) {
+      const scale = Math.min(1, side / longest);
+      const canvas = doc.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+      canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+      const context = canvas.getContext('2d');
+      if (!context) return null;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob: Blob | null = await new Promise(resolve =>
+        canvas.toBlob((value: Blob | null) => resolve(value), 'image/jpeg', quality),
+      );
+      if (!blob || blob.size < 1 || blob.size > COMMUNITY_VIDEO_PREVIEW_MAX_BYTES) continue;
+      const objectUrl = URLApi.createObjectURL(blob);
+      return {
+        uri: objectUrl,
+        sizeBytes: blob.size,
+        cleanup: async () => URLApi.revokeObjectURL(objectUrl),
+      };
+    }
+    return null;
   } catch {
     return null;
   } finally {
@@ -192,10 +195,17 @@ async function generateNativeVideoPreview(uri: string): Promise<CommunityVideoPr
       else if (player.status === 'error') finish(false);
     });
     if (!ready) return null;
-    const thumbnails = await player.generateThumbnailsAsync(
-      [0.1],
-      { maxWidth: 480, maxHeight: 480 },
-    );
+    const duration = Number(player.duration ?? 0);
+    const frameTime = duration > 0 ? Math.min(0.1, duration / 2) : 0.1;
+    let thumbnailTimer: ReturnType<typeof setTimeout> | null = null;
+    const thumbnails = await Promise.race([
+      player.generateThumbnailsAsync([frameTime], { maxWidth: 480, maxHeight: 480 }),
+      new Promise<never>((_, reject) => {
+        thumbnailTimer = setTimeout(() => reject(new Error('Video poster generation timed out')), 10_000);
+      }),
+    ]).finally(() => {
+      if (thumbnailTimer) clearTimeout(thumbnailTimer);
+    });
     return await saveCommunityVideoThumbnail(thumbnails?.[0] ?? null);
   } catch {
     return null;
