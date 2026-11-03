@@ -33,7 +33,8 @@
     "Video is never stretched and contain is used when the bounded frame cannot match source ratio",
     "Fullscreen, IMA and weak-network behavior remain compatible",
     "Focused media tests, TypeScript and engineering gates pass",
-    "Physical-device visual verification remains an RC gate"
+    "Physical-device visual verification remains an RC gate",
+    "Post-detail single photos use the same source-aware framing; composer previews keep their intentionally fixed compact frame."
   ],
   "allowedPaths": [
     "src/lib/communityMediaPresentation.ts",
@@ -42,7 +43,8 @@
     "tests/community-media-aspect-ratio-20261103.test.mjs",
     "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
     ".buklod/scopes/community-media-aspect-ratio-20261103.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "src/app/post/[id].tsx"
   ],
   "alternativeApproaches": [
     "Keep one fixed 300–520 dp video box and accept cropping (rejected: source orientation is unknown at layout time).",
