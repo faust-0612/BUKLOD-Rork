@@ -159,7 +159,7 @@ export function BuklodCommunityPhotoCollage({
   style,
   imageStyle,
   contentFit = 'cover',
-  preserveSinglePhotoAspectRatio = false,
+  preserveSinglePhotoAspectRatio = true,
   onPressPhoto,
   onLongPressPhoto,
 }: Props) {
