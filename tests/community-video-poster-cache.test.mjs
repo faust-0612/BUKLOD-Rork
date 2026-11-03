@@ -46,3 +46,10 @@ test('CommunityVideo generates bounded posters only on native visible-player pat
   assert.match(source, /<ExpoImage[\s\S]*?source=\{poster\}/);
   assert.match(source, /posterScrim/);
 });
+
+test('rotating signed URL query tokens reuse the same durable media poster key', () => {
+  __resetCommunityVideoPosterCacheForTests();
+  const poster = { id: 'stable' };
+  publishCommunityVideoPoster('https://storage.example/community/clip.mp4?token=old', poster);
+  assert.equal(getCommunityVideoPoster('https://storage.example/community/clip.mp4?token=new'), poster);
+});

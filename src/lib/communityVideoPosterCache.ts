@@ -10,7 +10,7 @@ const generating = new Set<string>();
 const keyFor = (uri: string) => {
   const value = String(uri ?? '').trim();
   // Supabase signed URLs rotate query tokens while the durable object path stays stable.
-  return /^https?:\\/\\//i.test(value) ? value.replace(/[?#].*$/, '') : value;
+  return /^https?:\/\//i.test(value) ? value.replace(/[?#].*$/, '') : value;
 };
 
 export function getCommunityVideoPoster(uri: string): unknown | null {
