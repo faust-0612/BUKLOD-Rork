@@ -44,7 +44,7 @@ test('Connect first-view native ad stays in the inbox and never enters active ch
  assert.match(inbox,/connect_community_first_view/);
  assert.doesNotMatch(inbox,/connect-personal-native-media|connect-community-native-media/);
  assert.match(first,/placement === 'messages'/);
- assert.match(first,/surface === 'connect'/);
+ assert.match(first,/return 'connect'/);
  assert.doesNotMatch(read('src/app/connect/personal/[threadId].tsx'),/BuklodNativeSponsoredCard|BuklodCommunityInlineAd/);
 });
 
