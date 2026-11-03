@@ -255,7 +255,7 @@ $function$;
 -- New attachment RPC: v5 remains the canonical media validator/writer. This
 -- wrapper strips optional poster fields before calling v5, then validates and
 -- attaches the private poster in the same database transaction.
-create or replace function public.set_buklod_post_media_v6(p_post_id uuid, p_media jsonb)
+create or replace function public.set_buklod_post_media_v7(p_post_id uuid, p_media jsonb)
 returns integer
 language plpgsql
 security definer
@@ -351,8 +351,8 @@ begin
   return v_count;
 end;
 $function$;
-revoke all on function public.set_buklod_post_media_v6(uuid, jsonb) from public, anon;
-grant execute on function public.set_buklod_post_media_v6(uuid, jsonb) to authenticated, service_role;
+revoke all on function public.set_buklod_post_media_v7(uuid, jsonb) from public, anon;
+grant execute on function public.set_buklod_post_media_v7(uuid, jsonb) to authenticated, service_role;
 
 -- The post author may lazily backfill an older video poster after watching it.
 -- The RPC binds the upload to the author's visible video row and is idempotent.

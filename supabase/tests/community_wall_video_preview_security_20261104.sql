@@ -30,7 +30,7 @@ BEGIN
   THEN RAISE EXCEPTION 'Video preview table exposes unsafe direct access'; END IF;
 
   IF NOT has_table_privilege('authenticated','public.community_wall_video_previews','SELECT')
-     OR NOT has_function_privilege('authenticated','public.set_buklod_post_media_v6(uuid,jsonb)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.set_buklod_post_media_v7(uuid,jsonb)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.register_buklod_video_preview_v1(uuid,smallint,text,integer)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.get_buklod_post_media_v4(uuid[])','EXECUTE')
   THEN RAISE EXCEPTION 'Authenticated video preview read/attachment contract is missing'; END IF;
@@ -40,7 +40,7 @@ BEGIN
   IF position('Only the post author may backfill' in v_register_definition)=0
   THEN RAISE EXCEPTION 'Lazy preview backfill must be restricted to the post author'; END IF;
 
-  IF has_function_privilege('anon','public.set_buklod_post_media_v6(uuid,jsonb)','EXECUTE')
+  IF has_function_privilege('anon','public.set_buklod_post_media_v7(uuid,jsonb)','EXECUTE')
      OR has_function_privilege('anon','public.register_buklod_video_preview_v1(uuid,smallint,text,integer)','EXECUTE')
      OR has_function_privilege('anon','public.get_buklod_post_media_v4(uuid[])','EXECUTE')
   THEN RAISE EXCEPTION 'Anonymous video preview RPC access must remain denied'; END IF;

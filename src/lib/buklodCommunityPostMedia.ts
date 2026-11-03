@@ -120,8 +120,9 @@ export async function attachCommunityPostMedia(
   );
 
   const rpcNames = [
-    'set_buklod_post_media_v6',
+    'set_buklod_post_media_v7',
     'set_buklod_post_media_v5',
+    'set_buklod_post_media_v6',
     'set_buklod_post_media_v4',
     'set_buklod_post_media_v3',
     'set_buklod_post_media_v2',
@@ -131,7 +132,7 @@ export async function attachCommunityPostMedia(
   let lastError: { message?: string } | null = null;
 
   for (const name of rpcNames) {
-    if (hasExternal && !['set_buklod_post_media_v6', 'set_buklod_post_media_v5'].includes(name)) {
+    if (hasExternal && !['set_buklod_post_media_v7', 'set_buklod_post_media_v5', 'set_buklod_post_media_v6'].includes(name)) {
       break;
     }
 
@@ -151,7 +152,7 @@ export async function attachCommunityPostMedia(
       // Poster metadata is optional. If v6 rejects only the preview sidecar,
       // retry the canonical v5 media write without preview fields so the
       // original video post is not blocked by a poster failure.
-      if (name === 'set_buklod_post_media_v6' && items.some(item => item.preview_path)) {
+      if (name === 'set_buklod_post_media_v7' && items.some(item => item.preview_path)) {
         const fallbackItems = items.map(item =>
           Object.fromEntries(
             Object.entries(item).filter(([key]) => key !== 'preview_path' && key !== 'preview_bytes'),

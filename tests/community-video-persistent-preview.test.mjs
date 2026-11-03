@@ -29,7 +29,7 @@ test('public and scoped Wall upload flows attach preview metadata through the sh
   assert.match(scopedWall, /generateWallPreview: true/);
   assert.match(scopedWall, /persistCommunityVideoPoster/);
   assert.match(scopedWall, /item\.user_id \?\?/);
-  assert.match(media, /set_buklod_post_media_v6/);
+  assert.match(media, /set_buklod_post_media_v7/);
   assert.match(media, /Poster metadata is optional/);
   assert.match(media, /set_buklod_post_media_v5',[\s\S]*?fallbackItems/);
   assert.match(media, /get_buklod_post_media_v4/);
@@ -56,7 +56,8 @@ test('video preview migration enforces exact post visibility and keeps storage p
   assert.match(sql, /as restrictive[\s\S]*?for delete/);
   assert.match(sql, /register_buklod_video_preview_v1/);
   assert.match(sql, /125000/);
-  assert.match(sql, /set_buklod_post_media_v6/);
+  assert.match(sql, /set_buklod_post_media_v7/);
+  assert.doesNotMatch(sql, /create or replace function public\.set_buklod_post_media_v6/);
   assert.match(sql, /get_buklod_post_media_v4/);
   assert.doesNotMatch(sql, /to anon[\s\S]{0,120}grant select/i);
 });
