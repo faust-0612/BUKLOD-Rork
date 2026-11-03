@@ -22,7 +22,7 @@ import {
   getBuklodBannerUnitId,
   buklodAdsTestMode,
 } from '@/lib/buklodAdUnits';
-import { recordBuklodAdEvent } from '@/lib/buklodAdDiagnostics';
+import { recordBuklodAdEvent, type BuklodAdDiagnosticPlacement } from '@/lib/buklodAdDiagnostics';
 import {
   getBuklodPassiveAdRequestWaitMs,
   isBuklodPassiveAdAllowed,
@@ -46,12 +46,17 @@ type Props = {
   active?: boolean;
   inventory?: CommunityAdInventory;
   surface?: NativeSponsoredSurface;
+  placementIdOverride?: string;
+  diagnosticName?: BuklodAdDiagnosticPlacement;
+  firstView?: boolean;
 };
 
 // Weak mobile networks need a larger native-media opportunity; never flood
 // retries to compensate for missing inventory.
 const AD_LOAD_TIMEOUT_MS = 15_000;
+const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 8_000;
 const FEED_AD_CARD_HEIGHT = 392;
+const AD_PENDING_SLOT_HEIGHT = 68;
 
 function clean(value: string | undefined) {
   return String(value ?? '').trim();
@@ -62,6 +67,9 @@ export default function BuklodCommunityInlineAd({
   active = true,
   inventory = 'public',
   surface = 'wall',
+  placementIdOverride,
+  diagnosticName,
+  firstView = false,
 }: Props) {
   const { width } = useWindowDimensions();
   const pathname = usePathname();
@@ -84,7 +92,7 @@ export default function BuklodCommunityInlineAd({
   const nativeRendered = useRef(false);
   const bannerRendered = useRef(false);
 
-  const diagnosticPlacement =
+  const diagnosticPlacement = diagnosticName ?? (
     surface === 'home'
       ? 'content_inline'
       : surface === 'profile'
@@ -92,21 +100,23 @@ export default function BuklodCommunityInlineAd({
         : surface === 'connect'
           ? 'messages_banner'
           : surface === 'cluster_dashboard'
-            ? 'cluster_home_entry'
+            ? inventory === 'org' ? 'org_home_entry' : 'cluster_home_entry'
             : inventory === 'org'
               ? 'org_wall_feed'
               : inventory === 'cluster'
                 ? 'cluster_wall_feed'
-                : 'community_wall_feed';
+                : 'community_wall_feed'
+  );
 
-  const placementId =
+  const placementId = placementIdOverride ?? (
     surface === 'wall'
       ? inventory === 'org'
         ? 'org_wall_feed'
         : inventory === 'cluster'
           ? 'cluster_wall_feed'
           : 'public_wall_feed'
-      : `${surface}_native_sponsored`;
+      : `${surface}_native_sponsored`
+  );
 
   const bannerPlacement =
     surface === 'home'
@@ -116,7 +126,7 @@ export default function BuklodCommunityInlineAd({
         : surface === 'connect'
           ? 'messages'
           : surface === 'cluster_dashboard'
-            ? 'cluster'
+            ? (inventory === 'org' ? 'org' : 'cluster')
             : inventory === 'org'
               ? 'org_community'
               : inventory === 'cluster'
@@ -168,6 +178,7 @@ export default function BuklodCommunityInlineAd({
 
   const bannerUnitId = getBuklodBannerUnitId(bannerPlacement);
   const sdkReady = ready && canRequestAds;
+  const loadTimeoutMs = firstView ? FIRST_VIEW_AD_LOAD_TIMEOUT_MS : AD_LOAD_TIMEOUT_MS;
   const canAttempt =
     active &&
     routeSafe &&
@@ -245,7 +256,7 @@ export default function BuklodCommunityInlineAd({
         );
         setNativeFailed(true);
       }
-    }, AD_LOAD_TIMEOUT_MS);
+    }, loadTimeoutMs);
 
     void NativeAd.createForAdRequest(nativeUnitId, {
       requestNonPersonalizedAdsOnly: false,
@@ -376,7 +387,7 @@ export default function BuklodCommunityInlineAd({
         { route: pathname, placementId },
       );
       setBannerFailed(true);
-    }, AD_LOAD_TIMEOUT_MS);
+    }, loadTimeoutMs);
 
     return () => {
       if (bannerTimeoutRef.current) {
@@ -415,7 +426,7 @@ export default function BuklodCommunityInlineAd({
         ref={ref}
         collapsable={false}
         pointerEvents="none"
-        style={[styles.viewportProbe, !nativeUnitId && styles.bannerOnlyFrame]}
+        style={styles.viewportProbe}
       />
     );
   }
@@ -451,15 +462,28 @@ export default function BuklodCommunityInlineAd({
     );
   }
 
-  if (!nativeFailed || !bannerUnitId || bannerFailed || !bannerRequestReady) {
-    // Keep the reserved frame stable for this visible row when no inventory
-    // is available. Never synthesize an ad or a billable impression.
+  if (!nativeFailed) {
+    // Keep a compact measurable slot while the first NativeAd request is pending.
     return (
       <View
         ref={ref}
         collapsable={false}
         pointerEvents="none"
-        style={[styles.viewportProbe, !nativeUnitId && styles.bannerOnlyFrame]}
+        style={styles.viewportProbe}
+      />
+    );
+  }
+
+  if (!bannerUnitId || bannerFailed) return null;
+
+  if (!bannerRequestReady) {
+    // A shared cooldown may defer the sequential BannerAd fallback.
+    return (
+      <View
+        ref={ref}
+        collapsable={false}
+        pointerEvents="none"
+        style={styles.viewportProbe}
       />
     );
   }
@@ -468,7 +492,9 @@ export default function BuklodCommunityInlineAd({
     <View
       ref={ref}
       collapsable={false}
-      style={[styles.bannerShell, !nativeUnitId && styles.bannerOnlyFrame]}
+      style={bannerLoaded
+        ? [styles.bannerShell, usePostRectangle ? styles.rectangleBannerShell : styles.compactBannerShell]
+        : styles.pendingBannerShell}
       pointerEvents={bannerLoaded ? 'auto' : 'none'}
     >
       {bannerLoaded ? <Text style={styles.label}>Sponsored</Text> : null}
@@ -530,16 +556,16 @@ export default function BuklodCommunityInlineAd({
 const styles = StyleSheet.create({
   viewportProbe: {
     width: '100%',
-    height: FEED_AD_CARD_HEIGHT,
-    marginTop: 10,
-    marginBottom: 14,
+    minHeight: AD_PENDING_SLOT_HEIGHT,
+    marginVertical: 2,
     opacity: 0,
   },
-  // Without a Native unit, allow an existing Banner ad unit to fill a
-  // fixed 300x250 sponsored rich-media/video rectangle, never fake creative.
-  bannerOnlyFrame: {
-    height: 300,
-    minHeight: 300,
+  pendingBannerShell: {
+    width: '100%',
+    minHeight: AD_PENDING_SLOT_HEIGHT,
+    marginVertical: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pendingArea: {
     width: '100%',
@@ -618,7 +644,6 @@ const styles = StyleSheet.create({
   },
   bannerShell: {
     width: '100%',
-    height: FEED_AD_CARD_HEIGHT,
     marginTop: 10,
     marginBottom: 14,
     paddingTop: 7,
@@ -626,6 +651,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
+  },
+  compactBannerShell: {
+    minHeight: AD_PENDING_SLOT_HEIGHT,
+  },
+  rectangleBannerShell: {
+    minHeight: 300,
   },
   rectangleArea: {
     width: '100%',

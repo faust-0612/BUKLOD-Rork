@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read=p=>readFileSync(p,'utf8');
 
-test('Home, Profile and Connect keep existing scroll hierarchy and only add fixed ad slots',()=>{
+test('Home, Profile and Connect keep their existing scroll hierarchy with one first-view ad slot',()=>{
  const home=read('src/app/(tabs)/hub.tsx');
  const profile=read('src/app/(tabs)/me.tsx');
  const connect=read('src/app/(tabs)/messages.tsx');
@@ -11,12 +11,12 @@ test('Home, Profile and Connect keep existing scroll hierarchy and only add fixe
  assert.match(profile,/<ScrollView\s+ref=\{profileScrollRef\}/);
  assert.equal((connect.match(/<FlatList\b/g) || []).length, 1);
  assert.match(connect,/ListHeaderComponent=\{renderHiblaHeader\(tab === 'community'\)\}/);
- assert.match(connect,/ListFooterComponent=\{!isSearching \? \(/);
+ assert.doesNotMatch(connect,/BuklodNativeSponsoredCard/);
  assert.match(connect,/removeClippedSubviews=\{false\}/);
  assert.doesNotMatch(read('src/app/connect/personal/[threadId].tsx'),/<BuklodNativeSponsoredCard/);
 });
 
-test('New native ads are Android-only; browser receives a no-op without media SDK',()=>{
+test('Native ad components remain Android-only; browser receives a no-op without media SDK',()=>{
  const android=read('src/components/BuklodNativeSponsoredCard.android.tsx');
  const web=read('src/components/BuklodNativeSponsoredCard.tsx');
  assert.match(android,/<BuklodCommunityInlineAd/);
@@ -36,14 +36,15 @@ test('Connect tab tap, direct chat and scoped chat have recoverable render conta
  assert.match(boundary,/Subukan muli/);
  assert.match(boundary,/Bumalik sa Wall/);
 });
-test('Connect Personal first-view and scoped ad opportunity remain independent',()=>{
+
+test('Connect first-view native ad stays in the inbox and never enters active chat threads',()=>{
  const inbox=read('src/app/(tabs)/messages.tsx');
- assert.match(inbox,/placement="messages"/);
+ const first=read('src/components/BuklodFirstViewAd.android.tsx');
  assert.match(inbox,/connect_personal_first_view/);
  assert.match(inbox,/connect_community_first_view/);
- assert.match(inbox,/connect-personal-native-media/);
- assert.match(inbox,/connect-community-native-media/);
- const banner=read('src/components/BuklodAdMobBanner.tsx');
- assert.match(banner,/if \(noFill && online\)/);
- assert.match(banner,/reserveBuklodPassiveAdRequest/);
+ assert.doesNotMatch(inbox,/connect-personal-native-media|connect-community-native-media/);
+ assert.match(first,/placement === 'messages'/);
+ assert.match(first,/surface === 'connect'/);
+ assert.doesNotMatch(read('src/app/connect/personal/[threadId].tsx'),/BuklodNativeSponsoredCard|BuklodCommunityInlineAd/);
 });
+

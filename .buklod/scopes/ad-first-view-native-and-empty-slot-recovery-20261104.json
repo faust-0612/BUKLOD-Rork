@@ -1,0 +1,69 @@
+{
+  "contractVersion": 1,
+  "objective": "Improve Android first-view AdMob availability and eliminate oversized invisible sponsored placeholders without increasing request spam or weakening consent, route, placement, or scope controls.",
+  "baseRef": "6da48e5da0335c26996469faf0cf3328e8dceaf8",
+  "productionBaselineEvidence": "Production Supabase telemetry for 2026-11-03, Android app 1.3.4/build 28/runtime 1.3.2: 477 requests, 181 loaded, 94 impressions, 188 failures across 36 sessions. First-view banner placements had materially lower fill (public_wall_entry 57 requests/11 loaded/24 no-fill; profile_first_view 56/14/42; new_home_first_view 19/3/10) than existing NativeAd placements (public_wall_feed 41/23/13 impressions; cluster_dashboard_native_sponsored 77/32/21). This establishes both AdMob no-fill and app-side presentation/placement inefficiency; it does not guarantee future inventory.",
+  "chosenApproach": "On Android, replace banner-only first-view placements with the existing NativeAd-first renderer and the existing BannerAd as a sequential fallback. Preserve each first-view placementId as the remote kill-switch and telemetry identity. Reuse the already-configured surface NativeAd units and existing banner units; do not issue parallel requests. Move the single native opportunity to the first view on Home, Profile, Connect inbox, Cluster directory, and managed dashboards by removing the later duplicate native cards. Public and Organization/Cluster Walls use their existing scoped NativeAd units. Use an 8-second first-view NativeAd timeout before sequential banner fallback. Reduce pending native/banner placeholders to 68px; only a successfully loaded NativeAd expands to its 392px creative frame, while loaded banner fallback uses its actual 50px or 300x250 dimensions. Failed/unconfigured fallback collapses instead of leaving a full-height blank. Keep no-fill BannerAd mounted for AdMob-configured automatic refresh; no manual no-fill retry loop is added.",
+  "selectionRationale": "Production metrics show NativeAd placements load materially better than the banner-only first-view placements. The current Android component reserves 392px while NativeAd is pending and also uses a 392px parent for banner fallback, so no-fill or delayed requests can create large empty gaps. A NativeAd-first first view reuses inventory already proven to load, removes duplicate lower native placements, and avoids request inflation.",
+  "preserveBehaviors": [
+    "No fabricated ads, clicks, loads, impressions, or revenue.",
+    "AdMob UMP consent, SDK readiness, network, foreground, route safety locks, shared cooldown, remote placement kill switches, and actual provider callbacks remain authoritative.",
+    "First-view placement IDs remain stable for remote controls and telemetry.",
+    "NativeAd and BannerAd are sequential; no concurrent duplicate requests for the same first-view slot.",
+    "No-fill BannerAd remains mounted for configured AdMob automatic refresh; no aggressive manual no-fill retry loop.",
+    "Only actual NativeAd creative receives the full native media frame; banner fallback uses actual banner/rectangle dimensions.",
+    "Android-only first-view NativeAd behavior; iOS/web retain their existing banner implementation.",
+    "Connect ads remain in inbox surfaces only, never active personal/scoped chat threads, composers, calls, or search.",
+    "Organization/Cluster Wall inventory and active-scope membership rules remain unchanged.",
+    "No native package, Android versionCode, Expo runtime, AdMob app/unit IDs, Supabase schema, or production database changes.",
+    "No production OTA until CI and physical-device release gates pass."
+  ],
+  "riskAreas": [
+    "ads",
+    "monetization",
+    "first-view",
+    "community-wall",
+    "connect-inbox",
+    "profile",
+    "home",
+    "cluster",
+    "organization",
+    "navigation-scroll",
+    "AdMob-fill"
+  ],
+  "regressionTests": [
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-profile-connect-home-ads.test.mjs",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "tests/buklod-android-wall-ad-density.test.mjs",
+    "tests/buklod-cluster-faith-ad-scope.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/ad-first-view-native-and-empty-slot-recovery-20261104.json",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodCommunityInlineAd.tsx",
+    "src/components/BuklodFirstViewAd.android.tsx",
+    "src/components/BuklodFirstViewAd.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/app/clusters/index.tsx",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-profile-connect-home-ads.test.mjs",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "TypeScript, Engineering Accountability, objective-scope gate, and main integration QA pass.",
+    "Android first-view uses one NativeAd request with exact existing placementId and sequential BannerAd fallback.",
+    "No first-view screen duplicates its NativeAd lower in the same list.",
+    "Pending native and banner slots reserve no more than 68px.",
+    "Only successfully loaded NativeAd reserves the 392px media creative frame.",
+    "Loaded BannerAd fallback reserves only its actual 50px or 300x250 creative dimensions.",
+    "A non-fill/failure with no viable fallback collapses rather than leaving a full-height invisible slot.",
+    "No-fill remains eligible for configured SDK automatic refresh; no unbounded/manual request loop.",
+    "iOS/web, Connect threads, route safety, consent, scoped placement kill switches, and actual impression reporting remain unchanged.",
+    "No production release claim until a verified RC and physical-device checks demonstrate behavior."
+  ]
+}

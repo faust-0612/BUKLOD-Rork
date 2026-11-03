@@ -39,6 +39,9 @@ type Props = {
   inventory?: CommunityAdInventory;
   /** Native-only sponsored cards reuse the same underlying media renderer. */
   surface?: 'wall' | 'home' | 'profile' | 'connect' | 'cluster_dashboard';
+  placementIdOverride?: string;
+  diagnosticName?: string;
+  firstView?: boolean;
 };
 
 const AD_LOAD_TIMEOUT_MS = 8_000;
