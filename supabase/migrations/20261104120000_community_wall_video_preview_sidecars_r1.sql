@@ -326,11 +326,11 @@ begin
     where o.bucket_id = 'community-media' and o.name = v_preview_path;
     if not found
        or lower(coalesce(v_metadata->>'mimetype', '')) <> 'image/jpeg'
-       or case
+       or (case
             when coalesce(v_metadata->>'size', '') ~ '^[0-9]+$'
               then (v_metadata->>'size')::bigint
             else 0
-          end <> v_preview_bytes then
+          end) <> v_preview_bytes then
       raise exception 'Video poster object is missing or invalid';
     end if;
     if v_original_path is null then
@@ -404,11 +404,11 @@ begin
   where o.bucket_id = 'community-media' and o.name = p_preview_path;
   if not found
      or lower(coalesce(v_metadata->>'mimetype', '')) <> 'image/jpeg'
-     or case
+     or (case
           when coalesce(v_metadata->>'size', '') ~ '^[0-9]+$'
             then (v_metadata->>'size')::bigint
           else 0
-        end <> p_preview_bytes then
+        end) <> p_preview_bytes then
     raise exception 'Video poster object is missing or invalid';
   end if;
 
