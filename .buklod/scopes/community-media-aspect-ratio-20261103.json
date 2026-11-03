@@ -34,7 +34,8 @@
     "Fullscreen, IMA and weak-network behavior remain compatible",
     "Focused media tests, TypeScript and engineering gates pass",
     "Physical-device visual verification remains an RC gate",
-    "Post-detail single photos use the same source-aware framing; composer previews keep their intentionally fixed compact frame."
+    "Post-detail single photos use the same source-aware framing; composer previews keep their intentionally fixed compact frame.",
+    "Cluster Home and member-profile post previews use the shared photo renderer; inactive video previews do not eagerly mount players and open the full post on tap."
   ],
   "allowedPaths": [
     "src/lib/communityMediaPresentation.ts",
@@ -44,7 +45,9 @@
     "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
     ".buklod/scopes/community-media-aspect-ratio-20261103.json",
     ".github/workflows/engineering-accountability.yml",
-    "src/app/post/[id].tsx"
+    "src/app/post/[id].tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/app/member/[id].tsx"
   ],
   "alternativeApproaches": [
     "Keep one fixed 300–520 dp video box and accept cropping (rejected: source orientation is unknown at layout time).",
