@@ -212,16 +212,21 @@ function InactiveCommunityVideo({
           </>
         ) : null}
         <MaterialCommunityIcons
-          name="play-circle-outline"
-          size={58}
-          color="#B7E4D5"
+          name={poster ? 'play' : 'play-circle-outline'}
+          size={poster ? 32 : 58}
+          color="#FFFFFF"
+          style={poster ? styles.posterPlayBadge : undefined}
         />
-        <Text style={styles.inactiveLabel}>
-          Video · I-tap para i-play
-        </Text>
-        <Text style={styles.inactiveHint}>
-          Data saver sa mahinang signal
-        </Text>
+        {!poster ? (
+          <>
+            <Text style={styles.inactiveLabel}>
+              Video · I-tap para i-play
+            </Text>
+            <Text style={styles.inactiveHint}>
+              Data saver sa mahinang signal
+            </Text>
+          </>
+        ) : null}
       </View>
 
       <Pressable
@@ -1046,6 +1051,17 @@ const styles =
     posterScrim: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(0,0,0,0.22)',
+    },
+    posterPlayBadge: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      overflow: 'hidden',
+      backgroundColor: 'rgba(0,0,0,0.62)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.72)',
     },
     inactiveLabel: {
       color: '#FFFFFF',

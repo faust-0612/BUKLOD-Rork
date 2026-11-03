@@ -45,6 +45,7 @@ test('CommunityVideo generates bounded posters only on native visible-player pat
   assert.match(source, /generateThumbnailsAsync\(0\.1, \{ maxWidth: 720, maxHeight: 720 \}\)/);
   assert.match(source, /<ExpoImage[\s\S]*?source=\{poster\}/);
   assert.match(source, /posterScrim/);
+  assert.match(source, /!poster \? \([\\s\\S]*?inactiveLabel/);
 });
 
 test('rotating signed URL query tokens reuse the same durable media poster key', () => {
