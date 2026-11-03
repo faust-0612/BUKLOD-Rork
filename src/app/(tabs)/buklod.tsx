@@ -4168,7 +4168,7 @@ const load=useCallback(async(options?:{
                posterUri={wallVideo.media?.preview_url ?? null}
                onPosterGenerated={thumbnail => {
                  if (!user?.id || String(wallVideo.post?.user_id ?? '') !== String(user.id)) return;
-                 void persistCommunityVideoPoster({
+                 return persistCommunityVideoPoster({
                    postId,
                    mediaPosition:Number(wallVideo.media?.media_position ?? 0),
                    mediaPath:String(wallVideo.media?.media_path ?? ''),

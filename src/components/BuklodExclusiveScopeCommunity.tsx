@@ -3386,7 +3386,7 @@ return (
                         String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
                       );
                       if (!user?.id || String(item.user_id ?? '') !== String(user.id) || !videoMedia?.media_path) return;
-                      void persistCommunityVideoPoster({
+                      return persistCommunityVideoPoster({
                         postId:String(item.id),
                         mediaPosition:Number(videoMedia.media_position ?? 0),
                         mediaPath:String(videoMedia.media_path),

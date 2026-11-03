@@ -38,7 +38,7 @@ test('native and web feed players render durable posters and native playback can
   const native = read('src/components/CommunityVideo.tsx');
   const web = read('src/components/CommunityVideo.web.tsx');
   assert.match(native, /posterUri/);
-  assert.match(native, /onPosterGenerated\?: \(thumbnail: unknown\) => void/);
+  assert.match(native, /onPosterGenerated\?: \(thumbnail: unknown\) => void \| Promise<unknown>/);
   assert.match(native, /onPosterGenerated\?\.\(first\)/);
   assert.match(native, /<ExpoImage[\s\S]*?source=\{\{ uri: posterUri \}\}/);
   assert.match(web, /poster: posterUri \|\| undefined/);

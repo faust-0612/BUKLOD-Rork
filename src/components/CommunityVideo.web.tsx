@@ -11,7 +11,7 @@ type Props = {
   onOpenFullscreen?: () => void;
   onPlaybackError?: () => void;
   posterUri?: string | null;
-  onPosterGenerated?: (thumbnail: unknown) => void;
+  onPosterGenerated?: (thumbnail: unknown) => void | Promise<unknown>;
 };
 
 function formatDuration(seconds: number) {
@@ -118,7 +118,9 @@ export function CommunityVideo({
           canvas.toBlob((blob: Blob | null) => {
             if (!blob || blob.size < 1 || blob.size > 125_000) return;
             const objectUrl = URLApi.createObjectURL(blob);
-            onPosterGenerated(objectUrl);
+            void Promise.resolve(onPosterGenerated(objectUrl))
+              .catch(() => undefined)
+              .finally(() => URLApi.revokeObjectURL(objectUrl));
           }, 'image/jpeg', 0.56);
         } catch {
           // Cross-origin/tainted canvas or browser codec failures are optional.
