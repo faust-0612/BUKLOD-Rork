@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore reliable daily publication continuity in The Word while preserving the current BUKLOD devotional architecture and keeping production unchanged.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: DEV source baseline is main at 11cf6bd096054dbf8ac204186b199fc835e740e3. Production artifact and live fingerprint were not changed or claimed as verified because this work is DEV-only.",
+  "chosenApproach": "Correct the existing The Word query selection and lifecycle refresh, extract deterministic schedule/archive selection into a small pure helper, and add focused Node regression tests.",
+  "selectionRationale": "The existing screen sorts daily publications oldest-first inside the current week and falls back to a previous week. Reusing the existing route and devotionals table fixes the behavior without schema, RLS, auth, or module redesign.",
+  "acceptanceChecks": [
+    "The featured Word is the newest published date within the current Monday-start week and never falls back to an older week.",
+    "Earlier daily Words remain newest-first in the archive, with duplicate publication dates and future-dated cache entries excluded.",
+    "The screen refreshes on revisit, app foreground return, and local midnight without continuous background polling.",
+    "Existing membership gate, detail route, account-scoped offline cache, and Supabase security remain unchanged."
+  ],
+  "preserveBehaviors": [
+    "Existing devotionals table and is_published/publish_date publication controls.",
+    "Monday-start week convention and current devotional detail route.",
+    "Cluster membership gate and account-scoped offline cache.",
+    "No production OTA, schema, RLS, authentication, or unrelated module changes."
+  ],
+  "alternativeApproaches": [
+    "Create a new database view or RPC for daily Word selection; rejected because the issue is deterministic client-side selection and no schema change is needed.",
+    "Poll Supabase continuously in the background; rejected because it adds needless requests and battery/network cost.",
+    "Keep the current oldest-first weekly selection with a manual refresh; rejected because it leaves the stale featured Word defect unresolved."
+  ],
+  "riskAreas": [
+    "daily-word-schedule",
+    "archive-integrity",
+    "offline-cache-refresh",
+    "screen-lifecycle"
+  ],
+  "regressionTests": [
+    "tests/buklod-word-schedule.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/word/index.tsx",
+    "src/lib/buklodWordSchedule.ts",
+    "tests/buklod-word-schedule.test.mjs",
+    ".buklod/scopes/the-word-daily-continuity-20261103.json"
+  ]
+}
