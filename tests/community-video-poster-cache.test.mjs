@@ -53,3 +53,11 @@ test('rotating signed URL query tokens reuse the same durable media poster key',
   publishCommunityVideoPoster('https://storage.example/community/clip.mp4?token=old', poster);
   assert.equal(getCommunityVideoPoster('https://storage.example/community/clip.mp4?token=new'), poster);
 });
+
+test('signed URL rotation cannot start duplicate poster generation', () => {
+  __resetCommunityVideoPosterCacheForTests();
+  assert.equal(beginCommunityVideoPosterGeneration('https://storage.example/clip.mp4?token=old'), true);
+  assert.equal(beginCommunityVideoPosterGeneration('https://storage.example/clip.mp4?token=new'), false);
+  releaseCommunityVideoPosterGeneration('https://storage.example/clip.mp4?token=new');
+  assert.equal(beginCommunityVideoPosterGeneration('https://storage.example/clip.mp4?token=next'), true);
+});
