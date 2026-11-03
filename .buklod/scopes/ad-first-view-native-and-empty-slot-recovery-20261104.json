@@ -69,5 +69,10 @@
     "Returning users with valid previous UMP consent start SDK requests without waiting for consent refresh; first-run consent remains fail-closed.",
     "iOS/web, Connect threads, route safety, consent, scoped placement kill switches, PG content rating, and actual impression reporting remain unchanged.",
     "No production release claim until a verified RC and physical-device checks demonstrate behavior."
+  ],
+  "alternativeApproaches": [
+    "Keep the banner-only first-view slots and only shorten their retry timers: rejected because the observed banner placements have materially lower fill than existing NativeAd inventory.",
+    "Keep large invisible placeholders until AdMob responds: rejected because no-fill or slow network leaves a blank 68-392 dp region with no content value.",
+    "Increase ad density or remove shared cooldowns: rejected because it increases request pressure without guaranteeing fill and risks invalid traffic."
   ]
 }
