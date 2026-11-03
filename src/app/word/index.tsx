@@ -1,7 +1,6 @@
 /* PATCH_185C_WEEKLY_WORD — root stack route (reachable from scoped workspace) */
 import {
   useCallback,
-  useEffect,
   useMemo,
   useState,
   useRef,
