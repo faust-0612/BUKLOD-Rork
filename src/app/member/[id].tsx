@@ -6,7 +6,6 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -21,6 +20,8 @@ import {
 } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import { BuklodCommunityPhotoCollage } from '@/components/BuklodCommunityPhotoCollage';
+import { CommunityVideo } from '@/components/CommunityVideo';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { Button } from '@/components/UI';
@@ -230,12 +231,6 @@ export default function MemberPublicProfileScreen() {
           fontWeight: '700',
           color: theme.textMuted,
         },
-        postImage: {
-          width: '100%',
-          height: 180,
-          borderRadius: 12,
-          backgroundColor: theme.surfaceMuted,
-        },
         postEmpty: {
           fontSize: 13,
           lineHeight: 19,
@@ -281,12 +276,19 @@ export default function MemberPublicProfileScreen() {
               </Text>
             )}
             {!!post.media_url && !post.is_video && (
-              <Image
-                source={{ uri: post.media_url }}
-                style={styles.postImage}
-                resizeMode="cover"
+              <BuklodCommunityPhotoCollage
+                items={[{ media_url: post.media_url, media_mime_type: 'image/jpeg' }]}
+                onPressPhoto={() => router.push({ pathname: '/post/[id]', params: { id: post.id } } as never)}
               />
             )}
+            {post.is_video && post.media_url ? (
+              <CommunityVideo
+                uri={post.media_url}
+                height={240}
+                active={false}
+                onOpenFullscreen={() => router.push({ pathname: '/post/[id]', params: { id: post.id } } as never)}
+              />
+            ) : null}
             {post.is_video && !post.media_url && (
               <Text style={styles.postMeta}>Video post</Text>
             )}
