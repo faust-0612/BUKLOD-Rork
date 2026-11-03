@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   __resetCommunityVideoPosterCacheForTests,
   beginCommunityVideoPosterGeneration,
@@ -36,4 +37,12 @@ test('poster cache is bounded and returns null for unknown media', () => {
   assert.equal(getCommunityVideoPoster('video-0'), null);
   assert.deepEqual(getCommunityVideoPoster('video-29'), { id: 29 });
   assert.equal(getCommunityVideoPoster(''), null);
+});
+
+test('CommunityVideo generates bounded posters only on native visible-player path and paints inactive previews', () => {
+  const source = readFileSync('src/components/CommunityVideo.tsx', 'utf8');
+  assert.match(source, /Platform\.OS !== 'web'.*beginCommunityVideoPosterGeneration/);
+  assert.match(source, /generateThumbnailsAsync\(0\.1, \{ maxWidth: 720, maxHeight: 720 \}\)/);
+  assert.match(source, /<ExpoImage[\s\S]*?source=\{poster\}/);
+  assert.match(source, /posterScrim/);
 });

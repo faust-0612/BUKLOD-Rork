@@ -629,8 +629,8 @@ function ExpoCommunityVideo({
           }
           // Generate a poster only from a player already mounted for visible
           // playback. Never create hidden players or download offscreen videos.
-          if (!getCommunityVideoPoster(uri) && beginCommunityVideoPosterGeneration(uri)) {
-            void player.generateThumbnailsAsync(0.1, { maxWidth: 960, maxHeight: 960 })
+          if (Platform.OS !== 'web' && !getCommunityVideoPoster(uri) && beginCommunityVideoPosterGeneration(uri)) {
+            void player.generateThumbnailsAsync(0.1, { maxWidth: 720, maxHeight: 720 })
               .then(thumbnails => {
                 const first = thumbnails?.[0];
                 if (first) publishCommunityVideoPoster(uri, first);

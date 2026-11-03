@@ -2,12 +2,16 @@
  * Bounded in-memory cache for Community video first-frame posters.
  * Posters are generated only from a player already mounted for visible playback.
  */
-const COMMUNITY_VIDEO_POSTER_CACHE_LIMIT = 24;
+const COMMUNITY_VIDEO_POSTER_CACHE_LIMIT = 18;
 type PosterListener = (poster: unknown) => void;
 const posters = new Map<string, unknown>();
 const listeners = new Map<string, Set<PosterListener>>();
 const generating = new Set<string>();
-const keyFor = (uri: string) => String(uri ?? '').trim();
+const keyFor = (uri: string) => {
+  const value = String(uri ?? '').trim();
+  // Supabase signed URLs rotate query tokens while the durable object path stays stable.
+  return /^https?:\\/\\//i.test(value) ? value.replace(/[?#].*$/, '') : value;
+};
 
 export function getCommunityVideoPoster(uri: string): unknown | null {
   const key = keyFor(uri);
