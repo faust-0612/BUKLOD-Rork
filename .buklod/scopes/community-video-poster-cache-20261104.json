@@ -6,6 +6,7 @@
   "chosenApproach": "Generate one bounded first-frame thumbnail from an already-mounted native player after a video becomes visible; keep an 18-item LRU cache keyed by the durable URL path; show cached posters in inactive feed cards.",
   "selectionRationale": "Avoid hidden players and speculative downloads for every feed item while replacing blank inactive video tiles with a useful preview after first viewing.",
   "riskAreas": [
+    "wall-media",
     "video thumbnail generation",
     "native shared-image reference lifecycle",
     "signed URL rotation",
