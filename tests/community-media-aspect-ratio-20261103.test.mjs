@@ -36,3 +36,15 @@ test('all single-photo collage surfaces preserve source ratio unless a surface e
  const detail=postDetail.slice(postDetail.indexOf('<BuklodCommunityPhotoCollage'),postDetail.indexOf('/>',postDetail.indexOf('<BuklodCommunityPhotoCollage')));
  assert.ok(!detail.includes('height={280}'));
 });
+
+test('cluster and member social previews share the common photo and safe video presentation',()=>{
+ const cluster=readFileSync('src/components/BuklodClusterHomeCommandCenterImpl.tsx','utf8');
+ const member=readFileSync('src/app/member/[id].tsx','utf8');
+ assert.ok(cluster.includes('BuklodCommunityPhotoCollage'));
+ assert.ok(cluster.includes('active={false}'));
+ assert.ok(cluster.includes("pathname:'/post/[id]'"));
+ assert.ok(member.includes('BuklodCommunityPhotoCollage'));
+ assert.ok(member.includes('active={false}'));
+ assert.ok(member.includes('CommunityVideo'));
+ assert.ok(!member.includes('<Image'));
+});
