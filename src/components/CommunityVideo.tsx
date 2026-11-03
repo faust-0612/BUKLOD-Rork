@@ -37,6 +37,7 @@ import {
   subscribeNetworkQuality,
 } from '@/lib/buklodNetworkQuality';
 import { recordCommunityFeedMetric } from '@/lib/communityFeedTelemetry';
+import { communityVideoFrameHeight } from '@/lib/communityMediaPresentation';
 import {
   COMMUNITY_VIDEO_CACHE_BUDGET_BYTES,
   decideCommunityVideoErrorRecovery,
@@ -55,6 +56,7 @@ type Props = {
   onOpenFullscreen?: () => void;
   onPlaybackError?: () => void;
   onRequestPlay?: () => void;
+  preserveAspectRatio?: boolean;
 };
 
 let communityVideoCacheConfigured = false;
@@ -229,6 +231,7 @@ function ImaCommunityVideo({
   active = true,
   onOpenFullscreen,
   onPlaybackError,
+  preserveAspectRatio = true,
 }: Props) {
   const pathname = usePathname();
   const adTagUrl =
@@ -265,11 +268,7 @@ function ImaCommunityVideo({
         adTagUrl={adTagUrl}
         autoPlay={autoPlay}
         active={active}
-        contentFit={
-          fullscreen
-            ? 'contain'
-            : 'cover'
-        }
+        contentFit={fullscreen || preserveAspectRatio ? 'contain' : 'cover'}
         showCompanion
         style={styles.video}
         onPlaybackError={() => {
@@ -433,6 +432,7 @@ function ExpoCommunityVideo({
   controlsBottomInset = 0,
   onOpenFullscreen,
   onPlaybackError,
+  preserveAspectRatio = true,
 }: Props) {
   const soundOn = useSessionSound();
   const userPausedRef = useRef(false);
@@ -441,6 +441,8 @@ function ExpoCommunityVideo({
   activeRef.current = active;
   autoPlayRef.current = autoPlay;
   const barWidthRef = useRef(1);
+  const [videoAspectRatio, setVideoAspectRatio] = useState<number | null>(null);
+  const [measuredWidth, setMeasuredWidth] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(
@@ -463,6 +465,7 @@ function ExpoCommunityVideo({
   useEffect(() => {
     readyStartedAtRef.current = Date.now();
     readyReportedRef.current = false;
+    setVideoAspectRatio(null);
     replayAttemptsRef.current = 0;
     retryNotBeforeRef.current = 0;
     errorReportedRef.current = false;
@@ -583,6 +586,13 @@ function ExpoCommunityVideo({
               player: 'expo-video',
             });
           }
+          const activeTrack = (player.availableVideoTracks ?? []).find(track =>
+            Number(track?.size?.width) > 0 && Number(track?.size?.height) > 0
+          );
+          if (activeTrack) {
+            const ratio = Number(activeTrack.size.width) / Number(activeTrack.size.height);
+            if (Number.isFinite(ratio) && ratio > 0) setVideoAspectRatio(ratio);
+          }
           const known = Number(player.duration || 0);
           if (known > 0) setDuration(known);
 
@@ -613,6 +623,16 @@ function ExpoCommunityVideo({
       },
     );
 
+    const videoTrackSub = player.addListener(
+      'videoTrackChange',
+      (event: { videoTrack?: { size?: { width?: number; height?: number } } | null }) => {
+        const width = Number(event.videoTrack?.size?.width ?? 0);
+        const height = Number(event.videoTrack?.size?.height ?? 0);
+        const ratio = width > 0 && height > 0 ? width / height : 0;
+        if (Number.isFinite(ratio) && ratio > 0) setVideoAspectRatio(ratio);
+      },
+    );
+
     const playingSub = player.addListener(
       'playingChange',
       (event: { isPlaying?: boolean }) => {
@@ -633,6 +653,7 @@ function ExpoCommunityVideo({
 
     return () => {
       subscription.remove();
+      videoTrackSub.remove();
       playingSub.remove();
       timeSub.remove();
       if (replayTimerRef.current) {
@@ -744,6 +765,9 @@ function ExpoCommunityVideo({
       : 0;
   const centerVisible = !playing || showCenter;
   const chromeVisible = !fullscreen || !playing || showCenter;
+  const frameHeight = !fullscreen && preserveAspectRatio && videoAspectRatio && measuredWidth > 0
+    ? communityVideoFrameHeight(measuredWidth, videoAspectRatio, height)
+    : height;
   const clock = formatDuration(
     fullscreen
       ? currentTime
@@ -756,15 +780,19 @@ function ExpoCommunityVideo({
         styles.wrap,
         edgeToEdge && styles.edgeToEdgeWrap,
         fullscreen && styles.fullscreenWrap,
-        { height },
+        { height: frameHeight },
       ]}
+      onLayout={event => {
+        const nextWidth = Number(event.nativeEvent.layout.width ?? 0);
+        if (nextWidth > 0 && Math.abs(nextWidth - measuredWidth) > 0.5) setMeasuredWidth(nextWidth);
+      }}
     >
       <VideoView
         player={player}
         style={styles.video}
         nativeControls={false}
         surfaceType="textureView"
-        contentFit={fullscreen ? 'contain' : 'cover'}
+        contentFit={fullscreen || preserveAspectRatio ? 'contain' : 'cover'}
         allowsPictureInPicture={false}
       />
 
