@@ -20,7 +20,7 @@ test('poster generation is deduplicated and can recover after failure', () => {
 
 test('poster publication notifies only subscribers for the matching video', () => {
   __resetCommunityVideoPosterCacheForTests();
-  let received: unknown = null;
+  let received = null;
   const unsubscribe = subscribeCommunityVideoPoster('video-a', poster => { received = poster; });
   publishCommunityVideoPoster('video-b', { id: 'b' });
   assert.equal(received, null);
