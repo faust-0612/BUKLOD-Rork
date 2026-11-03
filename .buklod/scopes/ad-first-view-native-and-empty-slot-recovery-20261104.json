@@ -1,0 +1,79 @@
+{
+  "contractVersion": 2,
+  "objective": "Improve Android first-view AdMob availability and eliminate oversized invisible sponsored placeholders without increasing request spam or weakening consent, route, placement, or scope controls.",
+  "baseRef": "6da48e5da0335c26996469faf0cf3328e8dceaf8",
+  "productionBaselineEvidence": "Production Supabase telemetry for 2026-11-03, Android app 1.3.4/build 28/runtime 1.3.2: 477 requests, 181 loaded, 94 impressions, 188 failures across 36 sessions. First-view banner placements had materially lower fill (public_wall_entry 57 requests/11 loaded/24 no-fill; profile_first_view 56/14/42; new_home_first_view 19/3/10) than existing NativeAd placements (public_wall_feed 41/23/13 impressions; cluster_dashboard_native_sponsored 77/32/21). This establishes both AdMob no-fill and app-side presentation/placement inefficiency; it does not guarantee future inventory.",
+  "chosenApproach": "On Android, replace banner-only first-view placements with the existing NativeAd-first renderer and the existing BannerAd as a sequential fallback. Preserve exact first-view placement IDs for remote kill-switches and telemetry. Move existing lower NativeAd opportunities to first view without duplicating requests. Start AdMob immediately from previously valid UMP consent while refreshing consent asynchronously; first-run consent remains fail-closed. Collapse no-fill slots and use a cooldown-bound retry.",
+  "selectionRationale": "Production telemetry shows NativeAd placements load materially better than banner-only first-view placements. The client also delayed SDK readiness behind a 600 ms timer and UMP refresh, and reserved 68-392 dp empty frames after no-fill. Reuse proven native inventory, remove deterministic startup waits, and collapse failed slots without increasing request frequency.",
+  "preserveBehaviors": [
+    "No fabricated ads, clicks, loads, impressions, or revenue.",
+    "AdMob UMP consent, SDK readiness, network, foreground, route safety locks, shared cooldown, remote placement kill switches, and actual provider callbacks remain authoritative.",
+    "First-view placement IDs remain stable for remote controls and telemetry.",
+    "NativeAd and BannerAd are sequential; no concurrent duplicate requests for the same first-view slot.",
+    "No-fill BannerAd remains mounted for configured AdMob automatic refresh; no aggressive manual no-fill retry loop.",
+    "Only actual NativeAd creative receives the full native media frame; banner fallback uses actual banner/rectangle dimensions.",
+    "Android-only first-view NativeAd behavior; iOS/web retain their existing banner implementation.",
+    "Connect ads remain in inbox surfaces only, never active personal/scoped chat threads, composers, calls, or search.",
+    "Organization/Cluster Wall inventory and active-scope membership rules remain unchanged.",
+    "No native package, Android versionCode, Expo runtime, AdMob app/unit IDs, Supabase schema, or production database changes.",
+    "No production OTA until CI and physical-device release gates pass."
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "faith-cluster",
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-profile-connect-home-ads.test.mjs",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "tests/buklod-cluster-faith-ad-scope.test.mjs",
+    "tests/buklod-ad-startup-fast-path.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/engineering-regression-gate.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/ad-first-view-native-and-empty-slot-recovery-20261104.json",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodCommunityInlineAd.tsx",
+    "src/components/BuklodFirstViewAd.android.tsx",
+    "src/components/BuklodFirstViewAd.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/app/clusters/index.tsx",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-profile-connect-home-ads.test.mjs",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "src/lib/adMob.ts",
+    "src/providers/AdsProvider.tsx",
+    "src/components/BuklodAdSafetyRouteBridge.tsx",
+    "src/components/BuklodAdMobBanner.tsx",
+    "scripts/engineering-regression-gate.mjs",
+    "tests/engineering-regression-gate.test.mjs",
+    "tests/buklod-ad-startup-fast-path.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/buklod-cluster-faith-ad-scope.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "TypeScript, focused ad regression tests, Engineering Accountability, objective-scope gate, and Main integration QA pass.",
+    "Android first-view uses one NativeAd request with the exact existing placementId and sequential BannerAd fallback.",
+    "No first-view screen duplicates its NativeAd lower in the same list.",
+    "Only a loaded NativeAd reserves the 392px creative frame; viewport and pending native/banner probes are 8px.",
+    "Loaded BannerAd fallback reserves only its actual 50px or 300x250 creative dimensions.",
+    "No-fill and terminal errors collapse empty slots and allow only one cooldown-bound retry.",
+    "Returning users with valid previous UMP consent start SDK requests without waiting for consent refresh; first-run consent remains fail-closed.",
+    "iOS/web, Connect threads, route safety, consent, scoped placement kill switches, PG content rating, and actual impression reporting remain unchanged.",
+    "No production release claim until a verified RC and physical-device checks demonstrate behavior.",
+    "Banner-only slots have an 8-second per-attempt load timeout; a missing SDK callback cannot leave an empty reserved shell indefinitely."
+  ],
+  "alternativeApproaches": [
+    "Keep the banner-only first-view slots and only shorten their retry timers: rejected because the observed banner placements have materially lower fill than existing NativeAd inventory.",
+    "Keep large invisible placeholders until AdMob responds: rejected because no-fill or slow network leaves a blank 68-392 dp region with no content value.",
+    "Increase ad density or remove shared cooldowns: rejected because it increases request pressure without guaranteeing fill and risks invalid traffic."
+  ]
+}

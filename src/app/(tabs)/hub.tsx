@@ -3,7 +3,6 @@ import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, Text, Vie
 import { router, useFocusEffect } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
-import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
@@ -81,12 +80,6 @@ export default function BuklodLightHome() {
             <Updates />
           </Suspense>
         </ToolBoundary>
-      ) : null}
-      {focused && foreground ? (
-        <BuklodNativeSponsoredCard
-          surface="home"
-          slotId="new-home-native-media"
-        />
       ) : null}
       {/* Preserve the map while Android permission dialogs or Google Maps
           temporarily put this app in the background. */}

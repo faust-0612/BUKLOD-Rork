@@ -23,7 +23,6 @@ import BuklodOrgHomeClusterCard from '@/components/BuklodOrgHomeClusterCard';
 import BuklodOrgHomeBayanihanCard from '@/components/BuklodOrgHomeBayanihanCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
-import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 import { useScreenFocused } from '@/hooks/useScreenFocused';
 import {
@@ -317,10 +316,6 @@ export default function BuklodScopeHomeDashboard({
       ) : <BuklodNonFaithEncouragementDoor />}
 
       <BuklodHomeScopeBulletins />
-      <BuklodNativeSponsoredCard
-        surface="cluster_dashboard"
-        slotId={`scope-home-native-media:${scope.scope_id}`}
-      />
       <BuklodScopeAttendanceCard
         scopeId={scope.scope_id}
         scopeType={scope.scope_type}

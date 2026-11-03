@@ -83,7 +83,6 @@ import {
 } from '@/components/connect/ConnectThemeSelector';
 import { ConnectPressable } from '@/components/connect/ConnectPressable';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
-import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import {
   ConnectThreadBackground,
 } from '@/components/connect/ConnectThreadBackground';
@@ -1285,16 +1284,6 @@ function ConnectScreenInner({
       <View style={styles.body}>
         <FlatList
           ListHeaderComponent={renderHiblaHeader(tab === 'community')}
-          ListFooterComponent={!isSearching ? (
-            tab === 'personal' ? (
-              <BuklodNativeSponsoredCard surface="connect" slotId="connect-personal-native-media" />
-            ) : tab === 'community' ? (
-              <BuklodNativeSponsoredCard
-                surface="connect"
-                slotId={forcedScopeId ? `connect-scope-native-media:${forcedScopeId}` : 'connect-community-native-media'}
-              />
-            ) : null
-          ) : null}
           data={tab === 'community' ? filteredRooms : personalListData}
           keyExtractor={(item: any) =>
             String(tab === 'community' ? item.scope_id : (item.thread_id ?? item.user_id))

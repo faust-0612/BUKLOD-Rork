@@ -23,7 +23,6 @@ import { router, useFocusEffect } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
-import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 
 import {
   ClusterSummary,
@@ -549,11 +548,6 @@ function ClusterDirectory({ owner }: { owner: string }) {
               </ClusterCard>
             ))
           )}
-
-          <BuklodNativeSponsoredCard
-            surface="cluster_dashboard"
-            slotId="cluster-directory-native-media"
-          />
 
           {invitations.length > 0 && (
             <>

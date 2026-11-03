@@ -25,7 +25,13 @@ export default function BuklodAdSafetyRouteBridge() {
   }, [config?.features]);
 
   useEffect(() => {
-    setBuklodAdForeground(AppState.currentState === 'active');
+    // React Native may report null before its first native AppState sync.
+    // Treat unknown startup state as foreground; explicit background/inactive
+    // events still close the ad gate immediately.
+    setBuklodAdForeground(
+      AppState.currentState !== 'background' &&
+      AppState.currentState !== 'inactive',
+    );
     const sub = AppState.addEventListener('change', state => {
       const active = state === 'active';
       setBuklodAdForeground(active);
