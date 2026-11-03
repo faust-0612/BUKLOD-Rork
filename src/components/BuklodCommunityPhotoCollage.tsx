@@ -13,6 +13,7 @@ import {
 
 import { BuklodCachedMediaImage } from '@/components/BuklodCachedMediaImage';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
+import { communitySinglePhotoFrame } from '@/lib/communityMediaPresentation';
 
 export type CommunityPhotoCollageItem = {
   media_path?: string | null;
@@ -168,10 +169,9 @@ export function BuklodCommunityPhotoCollage({
     Math.max(1, Dimensions.get('window').width - 24)
   );
 
-  const [
-    singleAspectRatio,
-    setSingleAspectRatio,
-  ] = useState<number | null>(null);
+  const photoIdentity = String(photos[0]?.media_path || photos[0]?.media_url || '');
+  const [singleAspect, setSingleAspect] = useState<{ identity: string; ratio: number } | null>(null);
+  const singleAspectRatio = singleAspect?.identity === photoIdentity ? singleAspect.ratio : null;
 
   if (!count) {
     return null;
@@ -181,21 +181,11 @@ export function BuklodCommunityPhotoCollage({
     1,
     width ?? measuredWidth
   );
-  const singlePhotoHeight =
-    height ??
-    (
-      preserveSinglePhotoAspectRatio &&
-      singleAspectRatio &&
-      singleAspectRatio > 0
-        ? Math.max(
-            1,
-            Math.min(
-              520,
-              Math.max(220, Math.round(collageWidth / singleAspectRatio))
-            )
-          )
-        : 310
-    );
+  const singlePhotoFrame = preserveSinglePhotoAspectRatio && singleAspectRatio
+    ? communitySinglePhotoFrame(collageWidth, singleAspectRatio)
+    : null;
+  const singlePhotoHeight = height ?? singlePhotoFrame?.height ?? 310;
+  const singlePhotoFit = singlePhotoFrame?.contentFit ?? contentFit;
 
   const collageHeight =
     count === 1
@@ -240,9 +230,8 @@ export function BuklodCommunityPhotoCollage({
           useWallPreview
           previewPath={photos[0].preview_path}
           style={[styles.image, imageStyle]}
-          // Do not shrink a tall photo into a narrow strip: a bounded Wall
-          // card uses the requested cover fit; tap still opens full original.
-          contentFit={contentFit}
+          // Normal ratios remain edge-to-edge; extreme ratios show every pixel.
+          contentFit={singlePhotoFit}
           onLoad={(event: any) => {
             if (
               !preserveSinglePhotoAspectRatio ||
@@ -276,15 +265,10 @@ export function BuklodCommunityPhotoCollage({
                 imageWidth /
                 imageHeight;
 
-              setSingleAspectRatio(
-                current =>
-                  current &&
-                  Math.abs(
-                    current -
-                    nextRatio
-                  ) < 0.001
-                    ? current
-                    : nextRatio
+              setSingleAspect(current =>
+                current?.identity === photoIdentity && Math.abs(current.ratio - nextRatio) < 0.001
+                  ? current
+                  : { identity: photoIdentity, ratio: nextRatio }
               );
             }
           }}
