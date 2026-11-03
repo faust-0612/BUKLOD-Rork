@@ -10,6 +10,7 @@ test('No-fill collapses banner slots and retries only after the quiet period', (
   assert.match(banner, /BANNER_LOAD_TIMEOUT_MS = 8_000/);
   assert.match(banner, /BANNER_AD_LOAD_TIMEOUT/);
   assert.match(banner, /AD_SLOT_REMOUNT_COOLDOWN_MS/);
+  assert.match(banner, /isConnected && isInternetReachable !== false/);
   assert.match(banner, /One bounded retry after the shared quiet period/);
   assert.doesNotMatch(first, /minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT/);
 });
@@ -24,4 +25,5 @@ test('Native first-view and feed probes stay compact and terminal fallback failu
   assert.match(native, /bannerFailedAt.current = Date.now\(\)/);
   assert.match(native, /const AD_LOAD_TIMEOUT_MS = 8_000/);
   assert.match(native, /AD_SLOT_REMOUNT_COOLDOWN_MS/);
+  assert.match(native, /isConnected && isInternetReachable !== false/);
 });

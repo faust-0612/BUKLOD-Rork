@@ -6,6 +6,7 @@ const read = path => readFileSync(path, 'utf8');
 test('Returning users start the SDK from prior valid consent before UMP refresh completes', () => {
   const admob = read('src/lib/adMob.ts');
   const provider = read('src/providers/AdsProvider.tsx');
+  const bridge = read('src/components/BuklodAdSafetyRouteBridge.tsx');
   assert.match(admob, /if \(previousConsent\.canRequestAds\)/);
   assert.match(admob, /consentRefreshPending: true/);
   assert.match(admob, /await gatherConsentOnce\(\)/);
