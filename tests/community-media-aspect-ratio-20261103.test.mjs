@@ -29,3 +29,10 @@ test('video renderer reads the actual track and reacts to track changes',()=>{
  assert.match(videoSource,/communityVideoFrameHeight\(measuredWidth, videoAspectRatio, height\)/);
  assert.ok(videoSource.includes("fullscreen || preserveAspectRatio ? 'contain' : 'cover'"));
 });
+
+test('all single-photo collage surfaces preserve source ratio unless a surface explicitly sets a fixed frame',()=>{
+ const postDetail=readFileSync('src/app/post/[id].tsx','utf8');
+ assert.ok(photoSource.includes('preserveSinglePhotoAspectRatio = true'));
+ const detail=postDetail.slice(postDetail.indexOf('<BuklodCommunityPhotoCollage'),postDetail.indexOf('/>',postDetail.indexOf('<BuklodCommunityPhotoCollage')));
+ assert.doesNotMatch(detail,/height=\\{280\\}/);
+});
