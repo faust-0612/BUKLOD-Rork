@@ -23,8 +23,10 @@ test('public and scoped Wall upload flows attach preview metadata through the sh
   const media = read('src/lib/buklodCommunityPostMedia.ts');
   assert.match(publicWall, /generateWallPreview:true/);
   assert.match(publicWall, /persistCommunityVideoPoster/);
+  assert.match(publicWall, /wallVideo\.post\?\.user_id/);
   assert.match(scopedWall, /generateWallPreview: true/);
   assert.match(scopedWall, /persistCommunityVideoPoster/);
+  assert.match(scopedWall, /item\.user_id \?\?/);
   assert.match(media, /set_buklod_post_media_v6/);
   assert.match(media, /get_buklod_post_media_v4/);
   assert.match(media, /resolveCommunityMediaUrl\(previewPath/);

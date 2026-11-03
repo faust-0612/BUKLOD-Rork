@@ -3385,7 +3385,7 @@ return (
                       const videoMedia = item.media_items?.find((media:any) =>
                         String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
                       );
-                      if (!user?.id || !videoMedia?.media_path) return;
+                      if (!user?.id || String(item.user_id ?? '') !== String(user.id) || !videoMedia?.media_path) return;
                       void persistCommunityVideoPoster({
                         postId:String(item.id),
                         mediaPosition:Number(videoMedia.media_position ?? 0),

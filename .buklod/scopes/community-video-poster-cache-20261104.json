@@ -29,7 +29,8 @@
     "Original video object and 1 GB upload cap remain unchanged",
     "AWS external-video upload route and metadata shape",
     "Bounded 125 KB JPEG poster files and best-effort fallback if poster generation/upload fails",
-    "No new native dependencies, package identity, runtime version or production OTA"
+    "No new native dependencies, package identity, runtime version or production OTA",
+    "Legacy-video lazy poster backfill is limited to the post author; other viewers cannot write preview metadata"
   ],
   "acceptanceChecks": [
     "New public Wall videos generate and upload a private first-frame JPEG no larger than 125 KB",
@@ -44,7 +45,8 @@
     "Scope-prefixed Supabase video uploads remain membership-checked and are accepted for supported video MIME types",
     "Poster generation failure never blocks video upload or post publishing",
     "Focused poster tests, Supabase security SQL tests, TypeScript, media regression and engineering accountability gates pass",
-    "Physical-device visual, weak-network, memory and IMA playback verification remains an RC gate"
+    "Physical-device visual, weak-network, memory and IMA playback verification remains an RC gate",
+    "Legacy-video lazy backfill is authorized only for the post author and exact visible media position"
   ],
   "allowedPaths": [
     "src/components/CommunityVideo.tsx",

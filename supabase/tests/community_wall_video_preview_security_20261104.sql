@@ -3,6 +3,7 @@ DO $video_preview_guard$
 DECLARE
   v_bucket_public boolean;
   v_v5_definition text;
+  v_register_definition text;
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_class c
@@ -22,6 +23,11 @@ BEGIN
      OR NOT has_function_privilege('authenticated','public.register_buklod_video_preview_v1(uuid,smallint,text,integer)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.get_buklod_post_media_v4(uuid[])','EXECUTE')
   THEN RAISE EXCEPTION 'Authenticated video preview read/attachment contract is missing'; END IF;
+
+  SELECT pg_get_functiondef('public.register_buklod_video_preview_v1(uuid,smallint,text,integer)'::regprocedure)
+  INTO v_register_definition;
+  IF position('Only the post author may backfill' in v_register_definition)=0
+  THEN RAISE EXCEPTION 'Lazy preview backfill must be restricted to the post author'; END IF;
 
   IF has_function_privilege('anon','public.set_buklod_post_media_v6(uuid,jsonb)','EXECUTE')
      OR has_function_privilege('anon','public.register_buklod_video_preview_v1(uuid,smallint,text,integer)','EXECUTE')

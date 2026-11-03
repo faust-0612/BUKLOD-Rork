@@ -315,8 +315,8 @@ $function$;
 revoke all on function public.set_buklod_post_media_v6(uuid, jsonb) from public, anon;
 grant execute on function public.set_buklod_post_media_v6(uuid, jsonb) to authenticated, service_role;
 
--- A viewer may lazily backfill a poster for an older video after watching it.
--- The RPC binds the upload to an actually visible video row and is idempotent.
+-- The post author may lazily backfill an older video poster after watching it.
+-- The RPC binds the upload to the author's visible video row and is idempotent.
 create or replace function public.register_buklod_video_preview_v1(
   p_post_id uuid,
   p_media_position smallint,
@@ -333,15 +333,20 @@ declare
   v_existing text;
   v_metadata jsonb;
   v_mime text;
+  v_author uuid;
 begin
   if v_actor is null then raise exception 'Authentication required'; end if;
-  select m.media_mime_type into v_mime
+  select m.media_mime_type, cp.user_id into v_mime, v_author
   from public.community_post_media m
+  join public.community_posts cp on cp.id = m.post_id
   where m.post_id = p_post_id
     and m.media_position = p_media_position
     and m.media_mime_type like 'video/%'
     and public.can_view_community_post_v2(m.post_id);
   if not found then raise exception 'Video is unavailable'; end if;
+  if v_author is distinct from v_actor then
+    raise exception 'Only the post author may backfill a video poster';
+  end if;
 
   select vp.preview_path into v_existing
   from public.community_wall_video_previews vp
