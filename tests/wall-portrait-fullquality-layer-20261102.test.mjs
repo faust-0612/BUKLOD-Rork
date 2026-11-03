@@ -6,12 +6,12 @@ import { WALL_PREVIEW_LAYER_Z_INDEX, wallOriginalLayerZIndex } from '../src/lib/
 const collage = readFileSync('src/components/BuklodCommunityPhotoCollage.tsx', 'utf8');
 const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
 
-test('single portrait photos use Wall cover fit, not forced letterboxing', () => {
+test('single photo framing preserves normal edge-to-edge ratios and extreme originals', () => {
   const one = collage.slice(collage.indexOf('if (count === 1) {'), collage.indexOf('const visible = photos.slice(0, 4)'));
-  assert.match(one, /contentFit=\{contentFit\}/);
+  assert.match(one, /contentFit=\{singlePhotoFit\}/);
   assert.doesNotMatch(one, /preserveSinglePhotoAspectRatio\s*\?\s*'contain'/);
   assert.match(one, /onPress=\{\(\) => onPressPhoto\?\.\(0, photos\)\}/);
-  assert.match(collage, /Math\.min\(\s*520,/);
+  assert.match(collage, /communitySinglePhotoFrame\(collageWidth, singleAspectRatio\)/);
 });
 
 test('full-quality transparent originals can paint without occluded display callback', () => {

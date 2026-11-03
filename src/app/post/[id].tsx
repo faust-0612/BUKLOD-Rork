@@ -485,7 +485,6 @@ export default function PostDetail(){
      }
     )}
     width={undefined}
-    height={280}
     onPressPhoto={(index)=>{
      setPhotoViewerIndex(index);
      setPhotoViewerOpen(true);

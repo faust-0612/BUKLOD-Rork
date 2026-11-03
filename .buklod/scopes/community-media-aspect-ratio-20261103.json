@@ -1,0 +1,60 @@
+{
+  "contractVersion": 2,
+  "objective": "Improve Community photo and video feed rendering with identity-safe photo framing and decoded-video aspect ratios, without replacing media engines or touching backend/native config.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Android Production OTA workflow run #41291297116 completed 2026-11-01 from production source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944. The PR base main @ 11cf6bd096054dbf8ac204186b199fc835e740e3 is the DEV integration base only and is NOT represented as the live production baseline. No production artifact or runtime is changed by this PR.",
+  "chosenApproach": "Derive single-photo height/fit from decoded dimensions; prevent recycled photo state leakage; derive inline Expo Video frame height from the selected VideoTrack size and keep fullscreen layout unchanged.",
+  "selectionRationale": "Avoid arbitrary cropping and stale recycled dimensions with bounded, source-grounded layout rather than a risky renderer rewrite.",
+  "riskAreas": [
+    "wall-media",
+    "photo geometry",
+    "video geometry",
+    "feed scrolling/layout shift",
+    "Android/web parity",
+    "faith-cluster"
+  ],
+  "regressionTests": [
+    "tests/community-media-aspect-ratio-20261103.test.mjs",
+    "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
+    "tests/cluster-community-media-presentation.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Private signed originals and stable cache keys",
+    "Android preview visible until verified original paints",
+    "Existing collage geometry and photo viewer actions",
+    "Video cache, bounded retry, signed URL refresh and single-player lifecycle",
+    "Fullscreen video sizing and saved playback position",
+    "IMA ads, companion placements and ad events",
+    "No backend, RLS, storage, native dependency or package identity changes"
+  ],
+  "acceptanceChecks": [
+    "Normal photo ratios remain edge-to-edge",
+    "Extreme tall/panoramic photos do not crop meaningful pixels",
+    "Recycled photo tiles cannot reuse stale dimensions",
+    "Inline video frame follows selected decoded track dimensions within bounded height",
+    "Video is never stretched and contain is used when the bounded frame cannot match source ratio",
+    "Fullscreen, IMA and weak-network behavior remain compatible",
+    "Focused media tests, TypeScript and engineering gates pass",
+    "Physical-device visual verification remains an RC gate",
+    "Post-detail single photos use the same source-aware framing; composer previews keep their intentionally fixed compact frame.",
+    "Cluster Home and member-profile post previews use the shared photo renderer; inactive video previews do not eagerly mount players and open the full post on tap."
+  ],
+  "allowedPaths": [
+    "src/lib/communityMediaPresentation.ts",
+    "src/components/BuklodCommunityPhotoCollage.tsx",
+    "src/components/CommunityVideo.tsx",
+    "tests/community-media-aspect-ratio-20261103.test.mjs",
+    "tests/wall-portrait-fullquality-layer-20261102.test.mjs",
+    ".buklod/scopes/community-media-aspect-ratio-20261103.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/app/member/[id].tsx",
+    "tests/cluster-community-media-presentation.test.mjs"
+  ],
+  "alternativeApproaches": [
+    "Keep one fixed 300–520 dp video box and accept cropping (rejected: source orientation is unknown at layout time).",
+    "Force contain for every photo (rejected: it letterboxes ordinary portrait/landscape photos unnecessarily).",
+    "Replace the media engine or introduce a native module (rejected: unnecessary runtime and regression risk)."
+  ]
+}
