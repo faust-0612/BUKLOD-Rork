@@ -60,7 +60,7 @@
     "src/lib/buklodCommunityPostMedia.ts",
     "src/app/(tabs)/buklod.tsx",
     "src/components/BuklodExclusiveScopeCommunity.tsx",
-    "supabase/migrations/20261104120000_community_wall_video_preview_sidecars_r1.sql",
+    "supabase/migrations/20261103223601_community_wall_video_preview_sidecars_r1.sql",
     "supabase/tests/community_wall_video_preview_security_20261104.sql",
     "tests/community-video-poster-cache.test.mjs",
     "tests/community-video-persistent-preview.test.mjs",

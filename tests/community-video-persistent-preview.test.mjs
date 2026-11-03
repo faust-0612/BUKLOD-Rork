@@ -49,7 +49,7 @@ test('native and web feed players render durable posters and native playback can
 });
 
 test('video preview migration enforces exact post visibility and keeps storage private', () => {
-  const sql = read('supabase/migrations/20261104120000_community_wall_video_preview_sidecars_r1.sql');
+  const sql = read('supabase/migrations/20261103223601_community_wall_video_preview_sidecars_r1.sql');
   assert.match(sql, /enable row level security/);
   assert.match(sql, /can_view_community_post_v2\(post_id\)/);
   assert.match(sql, /buklod_wall_video_preview_object_read/);
@@ -63,7 +63,7 @@ test('video preview migration enforces exact post visibility and keeps storage p
 });
 
 test('scope video support retains the existing exact scope membership gate', () => {
-  const sql = read('supabase/migrations/20261104120000_community_wall_video_preview_sidecars_r1.sql');
+  const sql = read('supabase/migrations/20261103223601_community_wall_video_preview_sidecars_r1.sql');
   assert.match(sql, /split_part\(v_path, '\/', 1\) <> 'scope'/);
   assert.match(sql, /buklod_scope_social_can_access\(v_scope_id\)/);
   assert.match(sql, /'video\/mp4'.*'video\/quicktime'.*'video\/webm'/);
