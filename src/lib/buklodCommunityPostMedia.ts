@@ -18,6 +18,8 @@ export type CommunityPostMediaItem = {
   media_size_bytes: number;
   storage_provider?: 'SUPABASE' | 'AWS';
   external_object_key?: string | null;
+  preview_path?: string | null;
+  preview_bytes?: number | null;
 };
 
 export type CommunityPostMediaRow = CommunityPostMediaItem & {
@@ -25,6 +27,7 @@ export type CommunityPostMediaRow = CommunityPostMediaItem & {
   media_position: number;
   media_url?: string | null;
   preview_path?: string | null;
+  preview_url?: string | null;
 };
 
 function isMissingRpcError(message: string) {
@@ -117,6 +120,7 @@ export async function attachCommunityPostMedia(
   );
 
   const rpcNames = [
+    'set_buklod_post_media_v6',
     'set_buklod_post_media_v5',
     'set_buklod_post_media_v4',
     'set_buklod_post_media_v3',
@@ -127,7 +131,7 @@ export async function attachCommunityPostMedia(
   let lastError: { message?: string } | null = null;
 
   for (const name of rpcNames) {
-    if (hasExternal && name !== 'set_buklod_post_media_v5') {
+    if (hasExternal && !['set_buklod_post_media_v6', 'set_buklod_post_media_v5'].includes(name)) {
       break;
     }
 
@@ -174,6 +178,10 @@ export async function attachCommunityPostMedia(
 async function loadMediaRpc(ids: string[]) {
   // Preview metadata rides alongside media in one request. Existing clients
   // still use v2; this client falls back safely during gradual rollout.
+  const v4 = await (supabase as any).rpc('get_buklod_post_media_v4', {p_post_ids: ids});
+  if (!v4?.error) return v4.data ?? [];
+  if (!isMissingRpcError(String(v4.error?.message ?? ''))) throw v4.error;
+
   const v3 = await (supabase as any).rpc('get_buklod_post_media_v3', {p_post_ids: ids});
   if (!v3?.error) return v3.data ?? [];
   if (!isMissingRpcError(String(v3.error?.message ?? ''))) throw v3.error;
@@ -259,6 +267,11 @@ export async function loadCommunityPostMediaByPostIds(
         ).catch(() => mediaUrl ?? null);
       }
 
+      const previewPath = String(row?.preview_path ?? '').trim();
+      const previewUrl = previewPath
+        ? await resolveCommunityMediaUrl(previewPath, row?.preview_url ?? null).catch(() => null)
+        : null;
+
       const normalized: CommunityPostMediaRow = {
         ...row,
         post_id: postId,
@@ -266,6 +279,7 @@ export async function loadCommunityPostMediaByPostIds(
           provider === 'AWS' ? 'AWS' : 'SUPABASE',
         external_object_key: externalKey || null,
         media_url: mediaUrl,
+        preview_url: previewUrl,
       };
 
       if (!mediaMap[postId]) mediaMap[postId] = [];

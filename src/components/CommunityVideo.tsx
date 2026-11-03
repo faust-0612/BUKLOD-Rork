@@ -472,6 +472,8 @@ function ExpoCommunityVideo({
   onOpenFullscreen,
   onPlaybackError,
   preserveAspectRatio = true,
+  posterUri,
+  onPosterGenerated,
 }: Props) {
   const soundOn = useSessionSound();
   const userPausedRef = useRef(false);
@@ -483,6 +485,7 @@ function ExpoCommunityVideo({
   const [videoAspectRatio, setVideoAspectRatio] = useState<number | null>(null);
   const [measuredWidth, setMeasuredWidth] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(
     Number(expectedDurationSeconds ?? 0) || 0,
@@ -505,6 +508,7 @@ function ExpoCommunityVideo({
     readyStartedAtRef.current = Date.now();
     readyReportedRef.current = false;
     setVideoAspectRatio(null);
+    setHasStartedPlayback(false);
     replayAttemptsRef.current = 0;
     retryNotBeforeRef.current = 0;
     errorReportedRef.current = false;
@@ -634,12 +638,17 @@ function ExpoCommunityVideo({
           }
           // Generate a poster only from a player already mounted for visible
           // playback. Never create hidden players or download offscreen videos.
-          if (Platform.OS !== 'web' && !getCommunityVideoPoster(uri) && beginCommunityVideoPosterGeneration(uri)) {
+          if (Platform.OS !== 'web' && !posterUri && !getCommunityVideoPoster(uri) && beginCommunityVideoPosterGeneration(uri)) {
             void Promise.resolve()
               .then(() => player.generateThumbnailsAsync(0.1, { maxWidth: 720, maxHeight: 720 }))
               .then(thumbnails => {
                 const first = thumbnails?.[0];
-                if (first) publishCommunityVideoPoster(uri, first);
+                if (first) {
+                  publishCommunityVideoPoster(uri, first);
+                  void Promise.resolve()
+                    .then(() => onPosterGenerated?.(first))
+                    .catch(() => undefined);
+                }
               })
               .catch(() => {
                 // Poster generation is best-effort; playback remains primary.
@@ -690,7 +699,9 @@ function ExpoCommunityVideo({
     const playingSub = player.addListener(
       'playingChange',
       (event: { isPlaying?: boolean }) => {
-        setPlaying(Boolean(event?.isPlaying));
+        const isPlaying = Boolean(event?.isPlaying);
+        setPlaying(isPlaying);
+        if (isPlaying) setHasStartedPlayback(true);
       },
     );
 
@@ -849,6 +860,17 @@ function ExpoCommunityVideo({
         contentFit={fullscreen || preserveAspectRatio ? 'contain' : 'cover'}
         allowsPictureInPicture={false}
       />
+
+      {posterUri && !hasStartedPlayback ? (
+        <ExpoImage
+          source={{ uri: posterUri }}
+          style={StyleSheet.absoluteFillObject}
+          contentFit={fullscreen || preserveAspectRatio ? 'contain' : 'cover'}
+          cachePolicy="memory-disk"
+          transition={120}
+          pointerEvents="none"
+        />
+      ) : null}
 
       {playerStatus === 'loading' ? (
         <View pointerEvents="none" style={styles.bufferChip}>

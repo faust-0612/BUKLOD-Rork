@@ -1,52 +1,70 @@
 {
   "contractVersion": 2,
-  "objective": "Add low-cost first-frame Community video posters for previously viewed feed clips, without creating offscreen players or changing media storage, signed URL access, playback, ads, native dependencies, or package identity.",
+  "objective": "Implement durable private first-frame video posters for new and legacy Community Wall videos across public and exact-scope walls, preserving existing playback, AWS routing, upload limits, offline behavior and ad lifecycle.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: Android Production OTA run #248 published source SHA 11cf6bd096054dbf8ac204186b199fc835e740e3 on runtime 1.3.2. Current main @ 99cf163691a1cb1e24b3994c3bd44da3ee546a33 is the DEV baseline for this work and is NOT represented as the live production source. No production artifact or runtime is changed by this PR.",
-  "chosenApproach": "Generate one bounded first-frame thumbnail from an already-mounted native player after a video becomes visible; keep an 18-item LRU cache keyed by the durable URL path; show cached posters in inactive feed cards.",
+  "chosenApproach": "Generate one compact JPEG during Wall upload; attach it through an author-checked RPC into a private sidecar table. Older videos lazily backfill their poster from an already-visible native player through a visibility-checked RPC. Web upload uses a local video/canvas frame capture.",
   "selectionRationale": "Avoid hidden players and speculative downloads for every feed item while replacing blank inactive video tiles with a useful preview after first viewing.",
   "riskAreas": [
     "wall-media",
-    "video thumbnail generation",
-    "native shared-image reference lifecycle",
-    "signed URL rotation",
-    "feed memory pressure",
-    "weak-network behavior",
-    "IMA playback parity",
-    "Android/iOS/Web parity"
+    "video-player",
+    "video-upload",
+    "scope-media",
+    "storage-rls",
+    "database-rpc",
+    "weak-network-behavior",
+    "thumbnail-memory"
   ],
   "regressionTests": [
-    "tests/community-video-poster-cache.test.mjs"
+    "tests/community-video-poster-cache.test.mjs",
+    "tests/community-video-persistent-preview.test.mjs",
+    "supabase/tests/community_wall_video_preview_security_20261104.sql"
   ],
   "preserveBehaviors": [
-    "No offscreen video players or speculative video downloads",
-    "Existing single-player lifecycle and autoplay/viewability behavior",
+    "No hidden/offscreen players or speculative downloads for feed cards",
+    "Existing single-player lifecycle, autoplay/viewability and fullscreen sizing",
     "Signed URL refresh and bounded playback retry",
-    "Fullscreen video sizing and saved playback position",
     "Google IMA ads, companion placements and ad events",
-    "Video cache budget and weak-network fallback",
-    "No backend, RLS, storage, native dependency, package identity or production runtime changes"
+    "Private community-media bucket and exact post/scope visibility; no public bucket or public thumbnail URLs",
+    "Original video object and 1 GB upload cap remain unchanged",
+    "AWS external-video upload route and metadata shape",
+    "Bounded 125 KB JPEG poster files and best-effort fallback if poster generation/upload fails",
+    "No new native dependencies, package identity, runtime version or production OTA"
   ],
   "acceptanceChecks": [
-    "Poster generation is deduplicated per durable media URL",
-    "Signed URL query rotation reuses the same poster cache entry",
-    "Poster cache remains bounded to 18 entries",
-    "Only native players already mounted for visible playback generate thumbnails",
-    "Inactive cards display cached poster with readable play affordance",
-    "Poster failure never blocks or breaks video playback",
-    "Web never calls the native thumbnail API",
-    "Focused poster tests, existing media regression suite, TypeScript and engineering gates pass",
-    "Physical-device visual, memory and weak-network verification remains an RC gate"
+    "New public Wall videos generate and upload a private first-frame JPEG no larger than 125 KB",
+    "New Organization/Sub-org/Cluster Wall videos generate private posters using the uploader's owner namespace",
+    "Existing public and scoped videos lazily persist a poster only after an already-visible player produces a frame",
+    "Web uploads can create a first-frame poster without invoking native Expo Video thumbnail APIs",
+    "Media RPC v4 returns durable video poster metadata while preserving legacy photo sidecars",
+    "Media attachment v6 validates author, media row, JPEG metadata, owner path and 125 KB cap",
+    "Lazy registration RPC validates the caller can view the exact post and video position",
+    "Storage RLS permits poster reads only when the related post is visible; anon remains denied",
+    "Referenced preview objects cannot be deleted through ordinary owner-delete policies",
+    "Scope-prefixed Supabase video uploads remain membership-checked and are accepted for supported video MIME types",
+    "Poster generation failure never blocks video upload or post publishing",
+    "Focused poster tests, Supabase security SQL tests, TypeScript, media regression and engineering accountability gates pass",
+    "Physical-device visual, weak-network, memory and IMA playback verification remains an RC gate"
   ],
   "allowedPaths": [
     "src/components/CommunityVideo.tsx",
+    "src/components/CommunityVideo.web.tsx",
     "src/lib/communityVideoPosterCache.ts",
+    "src/lib/communityVideoPreview.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "src/lib/buklodCommunityPostMedia.ts",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "supabase/migrations/20261104120000_community_wall_video_preview_sidecars_r1.sql",
+    "supabase/tests/community_wall_video_preview_security_20261104.sql",
     "tests/community-video-poster-cache.test.mjs",
+    "tests/community-video-persistent-preview.test.mjs",
     ".buklod/scopes/community-video-poster-cache-20261104.json"
   ],
   "alternativeApproaches": [
-    "Mount hidden players for all feed videos (rejected: speculative downloads and native decoder/memory pressure).",
-    "Add a backend thumbnail pipeline now (rejected for this isolated client-side workstream; requires separately verified storage, migration, and upload lifecycle changes).",
-    "Replace expo-video or add a native module (rejected: unnecessary runtime and compatibility risk)."
+    "Generate hidden players for every feed video (rejected: speculative downloads and decoder/memory pressure).",
+    "Make thumbnail objects public (rejected: leaks private organization/cluster media).",
+    "Use the legacy photo sidecar table (rejected: its path-derived constraint only supports .jpg image naming).",
+    "Add a native module or replace expo-video (rejected: current SDK 57 shared-thumbnail and ImageManipulator APIs already support the required flow)."
   ]
 }

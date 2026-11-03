@@ -18,7 +18,7 @@ import {
   createVideoPlayer as createIncomingShareVideoPlayer187A,
 } from 'expo-video';
 import { useIncomingShare as useBuklodIncomingShare187A } from '@/lib/buklodIncomingShare';
-import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';
+import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency, persistCommunityVideoPoster } from '@/lib/uploadCommunityVideoFile';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
 import {
@@ -2503,7 +2503,9 @@ const load=useCallback(async(options?:{
     media_path:string;
     media_mime_type:string;
     media_size_bytes:number;
-   }>=[];
+    preview_path?:string;
+    preview_bytes?:number;
+   }> = [];
 
   let createdPostId:
    string|null=
@@ -2637,11 +2639,12 @@ const load=useCallback(async(options?:{
      'Uploading video… Keep BUKLOD open 0%'
     );
 
-    await uploadCommunityVideoFile({
+    const videoPreview = await uploadCommunityVideoFile({
      path:videoPath,
      uri:snapshot.wallVideo.uri,
      contentType:
       snapshot.wallVideo.mimeType,
+     generateWallPreview:true,
      onProgress:(progress)=>{
       const percent=
        Math.round(
@@ -2662,7 +2665,8 @@ const load=useCallback(async(options?:{
      media_mime_type:
       snapshot.wallVideo.mimeType,
      media_size_bytes:
-      snapshot.wallVideo.sizeBytes
+      snapshot.wallVideo.sizeBytes,
+     ...videoPreview
     });
    }
 
@@ -4161,6 +4165,17 @@ const load=useCallback(async(options?:{
                 wallUri
               }
               uri={wallUri}
+               posterUri={wallVideo.media?.preview_url ?? null}
+               onPosterGenerated={thumbnail => {
+                 if (!user?.id) return;
+                 void persistCommunityVideoPoster({
+                   postId,
+                   mediaPosition:Number(wallVideo.media?.media_position ?? 0),
+                   mediaPath:String(wallVideo.media?.media_path ?? ''),
+                   viewerUserId:String(user.id),
+                   thumbnail,
+                 });
+               }}
               height={Math.min(
                 520,
                 Math.max(
