@@ -20,12 +20,12 @@ test('video frame follows decoded track ratio within bounds',()=>{
  assert.equal(communityVideoFrameHeight(0,9/16,380),380);
 });
 test('recycled photo tile cannot inherit previous image dimensions',()=>{
- assert.match(photoSource,/singleAspect\\?\.identity === photoIdentity/);
+ assert.ok(photoSource.includes('singleAspect?.identity === photoIdentity'));
  assert.match(photoSource,/identity: photoIdentity, ratio: nextRatio/);
 });
 test('video renderer reads the actual track and reacts to track changes',()=>{
  assert.match(videoSource,/player\.availableVideoTracks/);
  assert.match(videoSource,/'videoTrackChange'/);
  assert.match(videoSource,/communityVideoFrameHeight\(measuredWidth, videoAspectRatio, height\)/);
- assert.match(videoSource,/fullscreen \\|\\| preserveAspectRatio \\? 'contain' : 'cover'/);
+ assert.ok(videoSource.includes("fullscreen || preserveAspectRatio ? 'contain' : 'cover'"));
 });
