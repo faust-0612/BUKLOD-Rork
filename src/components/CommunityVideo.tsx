@@ -4,6 +4,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { Image as ExpoImage } from 'expo-image';
 import {
   Platform,
   Pressable,
@@ -39,6 +40,13 @@ import {
 import { recordCommunityFeedMetric } from '@/lib/communityFeedTelemetry';
 import { communityVideoFrameHeight } from '@/lib/communityMediaPresentation';
 import {
+  beginCommunityVideoPosterGeneration,
+  getCommunityVideoPoster,
+  publishCommunityVideoPoster,
+  releaseCommunityVideoPosterGeneration,
+  subscribeCommunityVideoPoster,
+} from '@/lib/communityVideoPosterCache';
+import {
   COMMUNITY_VIDEO_CACHE_BUDGET_BYTES,
   decideCommunityVideoErrorRecovery,
   shouldMountCommunityVideoPlayer,
@@ -57,6 +65,10 @@ type Props = {
   onPlaybackError?: () => void;
   onRequestPlay?: () => void;
   preserveAspectRatio?: boolean;
+  /** Optional server-generated poster; first-frame posters are cached in memory. */
+  posterUri?: string | null;
+  /** Best-effort persistence callback for a frame from an already-mounted player. */
+  onPosterGenerated?: (thumbnail: unknown) => void | Promise<unknown>;
 };
 
 let communityVideoCacheConfigured = false;
@@ -105,6 +117,16 @@ function useCommunityNetworkDegraded() {
 export function CommunityVideo(props: Props) {
   const degraded = useCommunityNetworkDegraded();
   const [playIntent, setPlayIntent] = useState(false);
+  const [poster, setPoster] = useState<any>(() =>
+    props.posterUri ? { uri: props.posterUri } : getCommunityVideoPoster(props.uri),
+  );
+
+  useEffect(() => {
+    setPoster(props.posterUri ? { uri: props.posterUri } : getCommunityVideoPoster(props.uri));
+    return subscribeCommunityVideoPoster(props.uri, next => {
+      if (!props.posterUri) setPoster(next);
+    });
+  }, [props.uri, props.posterUri]);
 
   useEffect(() => {
     if (props.active === false) setPlayIntent(false);
@@ -126,6 +148,7 @@ export function CommunityVideo(props: Props) {
     return (
       <InactiveCommunityVideo
         {...props}
+        poster={poster}
         onRequestPlay={requestPlay}
       />
     );
@@ -157,13 +180,14 @@ export function CommunityVideo(props: Props) {
 
 function InactiveCommunityVideo({
   height = 380,
+  poster,
   expectedDurationSeconds,
   fullscreen = false,
   edgeToEdge = false,
   controlsBottomInset = 0,
   onOpenFullscreen,
   onRequestPlay,
-}: Props) {
+}: Props & { poster?: any }) {
   const knownDuration =
     Number(expectedDurationSeconds ?? 0) || 0;
 
@@ -177,17 +201,34 @@ function InactiveCommunityVideo({
       ]}
     >
       <View style={styles.inactiveVideo}>
+        {poster ? (
+          <>
+            <ExpoImage
+              source={poster}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={120}
+            />
+            <View style={styles.posterScrim} />
+          </>
+        ) : null}
         <MaterialCommunityIcons
-          name="play-circle-outline"
-          size={58}
-          color="#B7E4D5"
+          name={poster ? 'play' : 'play-circle-outline'}
+          size={poster ? 32 : 58}
+          color="#FFFFFF"
+          style={poster ? styles.posterPlayBadge : undefined}
         />
-        <Text style={styles.inactiveLabel}>
-          Video · I-tap para i-play
-        </Text>
-        <Text style={styles.inactiveHint}>
-          Data saver sa mahinang signal
-        </Text>
+        {!poster ? (
+          <>
+            <Text style={styles.inactiveLabel}>
+              Video · I-tap para i-play
+            </Text>
+            <Text style={styles.inactiveHint}>
+              Data saver sa mahinang signal
+            </Text>
+          </>
+        ) : null}
       </View>
 
       <Pressable
@@ -433,6 +474,8 @@ function ExpoCommunityVideo({
   onOpenFullscreen,
   onPlaybackError,
   preserveAspectRatio = true,
+  posterUri,
+  onPosterGenerated,
 }: Props) {
   const soundOn = useSessionSound();
   const userPausedRef = useRef(false);
@@ -444,6 +487,7 @@ function ExpoCommunityVideo({
   const [videoAspectRatio, setVideoAspectRatio] = useState<number | null>(null);
   const [measuredWidth, setMeasuredWidth] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(
     Number(expectedDurationSeconds ?? 0) || 0,
@@ -466,6 +510,7 @@ function ExpoCommunityVideo({
     readyStartedAtRef.current = Date.now();
     readyReportedRef.current = false;
     setVideoAspectRatio(null);
+    setHasStartedPlayback(false);
     replayAttemptsRef.current = 0;
     retryNotBeforeRef.current = 0;
     errorReportedRef.current = false;
@@ -593,6 +638,26 @@ function ExpoCommunityVideo({
             const ratio = Number(activeTrack.size.width) / Number(activeTrack.size.height);
             if (Number.isFinite(ratio) && ratio > 0) setVideoAspectRatio(ratio);
           }
+          // Generate a poster only from a player already mounted for visible
+          // playback. Never create hidden players or download offscreen videos.
+          if (Platform.OS !== 'web' && !posterUri && !getCommunityVideoPoster(uri) && beginCommunityVideoPosterGeneration(uri)) {
+            void Promise.resolve()
+              .then(() => player.generateThumbnailsAsync(0.1, { maxWidth: 720, maxHeight: 720 }))
+              .then(thumbnails => {
+                const first = thumbnails?.[0];
+                if (first) {
+                  publishCommunityVideoPoster(uri, first);
+                  void Promise.resolve()
+                    .then(() => onPosterGenerated?.(first))
+                    .catch(() => undefined);
+                }
+              })
+              .catch(() => {
+                // Poster generation is best-effort; playback remains primary.
+              })
+              .finally(() => releaseCommunityVideoPosterGeneration(uri));
+          }
+
           const known = Number(player.duration || 0);
           if (known > 0) setDuration(known);
 
@@ -636,7 +701,9 @@ function ExpoCommunityVideo({
     const playingSub = player.addListener(
       'playingChange',
       (event: { isPlaying?: boolean }) => {
-        setPlaying(Boolean(event?.isPlaying));
+        const isPlaying = Boolean(event?.isPlaying);
+        setPlaying(isPlaying);
+        if (isPlaying) setHasStartedPlayback(true);
       },
     );
 
@@ -795,6 +862,17 @@ function ExpoCommunityVideo({
         contentFit={fullscreen || preserveAspectRatio ? 'contain' : 'cover'}
         allowsPictureInPicture={false}
       />
+
+      {posterUri && !hasStartedPlayback ? (
+        <ExpoImage
+          source={{ uri: posterUri }}
+          style={StyleSheet.absoluteFillObject}
+          contentFit={fullscreen || preserveAspectRatio ? 'contain' : 'cover'}
+          cachePolicy="memory-disk"
+          transition={120}
+          pointerEvents="none"
+        />
+      ) : null}
 
       {playerStatus === 'loading' ? (
         <View pointerEvents="none" style={styles.bufferChip}>
@@ -993,6 +1071,21 @@ const styles =
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 28,
+    },
+    posterScrim: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.22)',
+    },
+    posterPlayBadge: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      overflow: 'hidden',
+      backgroundColor: 'rgba(0,0,0,0.62)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.72)',
     },
     inactiveLabel: {
       color: '#FFFFFF',
