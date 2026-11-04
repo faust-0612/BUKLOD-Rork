@@ -1,6 +1,6 @@
 {
   "contractVersion": 2,
-  "objective": "Remove obsolete 5 MiB photo caps across public/scoped Wall posts, anonymous Community posts, Marites stories, Dugtong, personal Connect photos and post edits; align all media surfaces at 25 MiB while improving source fidelity and weak-network upload reliability without weakening media authorization or replacing the media engine.",
+  "objective": "Remove obsolete 5 MiB photo caps across public/scoped Wall posts, anonymous Community posts, Marites stories, Dugtong, personal Connect photos and post edits; align every active and fallback media contract at 25 MiB while improving source fidelity and weak-network upload reliability without weakening media authorization or replacing the media engine.",
   "baseRef": "main",
   "chosenApproach": "Raise the canonical per-photo limit to 20 MiB consistently in app and live database RPC validation; preserve already-encoded JPEGs up to the new limit; use a 2048px long-edge and quality 0.86 JPEG conversion only when conversion is required; route photo originals >=6 MiB through the existing TUS resumable uploader.",
   "selectionRationale": "Production evidence showed set_buklod_post_media_v7 delegates validation to v5, whose live definition still rejected photos above 5 MiB. The bucket is private with a 1 GiB limit. Supabase recommends TUS for uploads above 6 MiB and unstable networks. This aligns client, RPC and transport without altering ownership/scope authorization.",
@@ -42,7 +42,10 @@
     "v7 wrapper continues to delegate original media validation to v5",
     "Focused tests, TypeScript, Performance QA, Engineering Accountability and integration QA pass",
     "Production database migration is applied and queried after PR merge",
-    "Physical-device verification is skipped per user instruction"
+    "Physical-device verification is skipped per user instruction",
+    "Community photo RPC fallbacks v1/v4/v5/v6 all accept 25 MiB; v1 supports the current 10-photo limit",
+    "Anonymous Community and Dugtong RPCs accept 25 MiB while preserving opaque path and owner checks",
+    "Personal direct-message RPC and private bucket both accept 25 MiB"
   ],
   "allowedPaths": [
     "src/lib/buklodCommunityMediaLimits.ts",
