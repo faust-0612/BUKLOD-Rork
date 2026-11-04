@@ -14,29 +14,25 @@
   ],
   "riskAreas": [
     "ads-monetization",
-    "production-release-gates"
+    "release-identity"
   ],
   "regressionTests": [
-    "tests/buklod-wall-ad-stability.test.mjs",
-    "tests/buklod-profile-connect-home-ads.test.mjs",
-    "tests/buklod-native-ad-navigation-scroll.test.mjs",
-    "tests/buklod-cluster-faith-ad-scope.test.mjs",
-    "tests/buklod-ad-startup-fast-path.test.mjs",
-    "tests/buklod-ad-empty-slot-collapse.test.mjs",
-    "tests/buklod-ad-request-gate-recovery.test.mjs",
-    "tests/buklod-ad-opportunities.test.cjs",
-    "tests/faith-scope-creation-ad-safety.test.mjs",
-    "tests/buklod-ad-natural-break-expansion.test.mjs",
-    "tests/buklod-android-wall-ad-density.test.mjs"
+    "tests/production-ota-ads-regression.test.mjs"
   ],
   "allowedPaths": [
     ".github/workflows/production_android_ota.yml",
-    ".buklod/scopes/ota-ads-regression-gate-20261104.json"
+    ".buklod/scopes/ota-ads-regression-gate-20261104.json",
+    "tests/production-ota-ads-regression.test.mjs"
   ],
   "acceptanceChecks": [
     "The production Android OTA workflow executes all 11 focused AdMob regression files after TypeScript QA and before Expo credential preflight, RC export, freeze and publication.",
     "The same regressionTests list is run by the Engineering Accountability focused-test gate for this isolated PR.",
     "Engineering Accountability, TypeScript/Performance R1 QA and Main integration QA pass on the exact PR head.",
     "No changes are made to application runtime behavior, native dependencies, AdMob configuration or production deployment."
+  ],
+  "alternativeApproaches": [
+    "Rely only on earlier PR checks; rejected because the exact production Main/RC path would not rerun the focused AdMob suite.",
+    "Copy eleven test paths directly into multiple workflows; rejected because the test inventory would drift and would not itself protect workflow ordering.",
+    "Use one release-focused Node regression test that verifies workflow placement and executes the canonical eleven-file suite; selected."
   ]
 }
