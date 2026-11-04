@@ -42,6 +42,9 @@ test('production v5 and anonymous living RPCs accept the same 20 MiB photo contr
   assert.match(migration, /v_size>20971520/);
   assert.match(migration, /Each photo must be 20 MB or smaller/);
   assert.match(migration, /refusing an unsafe automatic rewrite/);
+  assert.match(migration, /p_media_size_bytes>5242880/);
+  assert.match(migration, /p_media_size_bytes>20971520/);
+  assert.match(migration, /Anonymous photos are limited to 20 MB/);
   assert.match(migration, /create_buklod_community_living_post_v2/);
   assert.match(migration, /p_media_size_bytes>20971520/);
   assert.match(migration, /Anonymous photos are limited to 20 MB/);
