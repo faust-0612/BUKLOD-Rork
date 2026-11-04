@@ -6,22 +6,11 @@
   "chosenApproach": "Add the exact unified photo/video, cached poster, playback recovery, aspect-ratio, weak-network and no-blank-photo regression suites immediately after TypeScript QA and before later release preflights, export, RC freeze and publish.",
   "selectionRationale": "PR QA alone does not guarantee the same media contracts are rechecked on the exact Main commit selected for production OTA. Run focused deterministic tests on the exact release source before RC creation.",
   "riskAreas": [
-    "Android OTA gate duration",
-    "photo cache and stale callback recovery",
-    "private media signing",
-    "video poster/player transition",
-    "weak-network retry limits",
-    "aspect ratio and no-blank tile continuity"
+    "release-identity",
+    "wall-media"
   ],
   "regressionTests": [
-    "tests/production-ota-media-render-gate.test.cjs",
-    "tests/unified-social-media-rendering.test.mjs",
-    "tests/community-video-persistent-preview.test.mjs",
-    "tests/community-video-playback-recovery.test.mjs",
-    "tests/community-media-aspect-ratio-20261103.test.mjs",
-    "tests/weak-media-rendering.test.cjs",
-    "tests/community-media-weak-signal.test.cjs",
-    "tests/community-wall-no-blank-photo.test.cjs"
+    "tests/production-ota-media-render-gate.test.cjs"
   ],
   "preserveBehaviors": [
     "Existing TypeScript QA remains mandatory",
