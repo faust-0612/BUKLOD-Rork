@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(path, 'utf8');
 
-test('Community photo upload preserves high-quality JPEG sources up to 20 MiB', () => {
+test('Community photo upload preserves high-quality JPEG sources up to 25 MiB', () => {
   const limits = read('src/lib/buklodCommunityMediaLimits.ts');
   const upload = read('src/lib/uploadCommunityVideoFile.ts');
   assert.match(limits, /COMMUNITY_PHOTO_MAX_SIZE_BYTES = 20 \* 1024 \* 1024/);
@@ -27,7 +27,7 @@ test('Community photo originals use resumable TUS uploads while previews remain 
   assert.match(tus, /'x-signature': signedUploadToken/);
 });
 
-test('public, anonymous and edited Community photos share the 20 MiB contract', () => {
+test('public, anonymous and edited Community photos share the 25 MiB contract', () => {
   const anonymous = read('src/lib/buklodCommunityAnonymousMedia.ts');
   const marites = read('src/lib/buklodMaritesBoard.ts');
   const edit = read('src/lib/buklodCommunityPostOwnerActions.ts');
@@ -44,19 +44,25 @@ test('public, anonymous and edited Community photos share the 20 MiB contract', 
   assert.doesNotMatch(edit, /5 \* 1024 \* 1024|width: 1600|base64-arraybuffer/);
 });
 
-test('production v5 and anonymous living RPCs accept the same 20 MiB photo contract', () => {
+test('production v5 and anonymous living RPCs accept the same 25 MiB photo contract', () => {
   const migration = read('supabase/migrations/20261104130000_community_photo_quality_upload_r1.sql');
   assert.match(migration, /set_buklod_post_media_v5\(uuid,jsonb\)/);
   assert.match(migration, /v_size>5242880/);
-  assert.match(migration, /v_size>20971520/);
-  assert.match(migration, /Each photo must be 20 MB or smaller/);
+  assert.match(migration, /v_size>26214400/);
+  assert.match(migration, /Each photo must be 25 MB or smaller/);
   assert.match(migration, /refusing an unsafe automatic rewrite/);
   assert.match(migration, /p_media_size_bytes>5242880/);
-  assert.match(migration, /p_media_size_bytes>20971520/);
-  assert.match(migration, /Anonymous photos are limited to 20 MB/);
+  assert.match(migration, /p_media_size_bytes>26214400/);
+  assert.match(migration, /Anonymous photos are limited to 25 MB/);
   assert.match(migration, /create_buklod_community_living_post_v2/);
-  assert.match(migration, /p_media_size_bytes>20971520/);
-  assert.match(migration, /Anonymous photos are limited to 20 MB/);
+  assert.match(migration, /set_buklod_post_media_v1/);
+  assert.match(migration, /set_buklod_post_media_v4/);
+  assert.match(migration, /set_buklod_post_media_v6/);
+  assert.match(migration, /create_buklod_dugtong_v1/);
+  assert.match(migration, /send_direct_message_v3/);
+  assert.match(migration, /file_size_limit=26214400/);
+  assert.match(migration, /p_media_size_bytes>26214400/);
+  assert.match(migration, /Anonymous photos are limited to 25 MB/);
   const wrapper = read('supabase/migrations/20261103223601_community_wall_video_preview_sidecars_r1.sql');
   assert.match(wrapper, /public\.set_buklod_post_media_v5\(p_post_id, v_clean\)/);
 });
