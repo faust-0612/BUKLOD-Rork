@@ -113,7 +113,7 @@ function SwipeDashboardHeader() {
     <View
       style={{
         paddingTop: insets.top,
-        minHeight: 54 + insets.top,
+        minHeight: 44 + insets.top,
         backgroundColor: theme.headerSurface,
         flexDirection: 'row',
         alignItems: 'center',
@@ -126,7 +126,7 @@ function SwipeDashboardHeader() {
         style={{
           flex: 1,
           color: theme.accent,
-          fontSize: 26,
+          fontSize: 23,
           fontWeight: '900',
         }}
       >
