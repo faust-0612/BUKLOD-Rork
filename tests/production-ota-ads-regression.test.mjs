@@ -26,9 +26,7 @@ test('production OTA executes AdMob regressions after TypeScript and before RC f
   const publish = workflow.indexOf('      - name: Publish exact frozen Android RC');
   assert.ok(typecheck >= 0 && suite > typecheck, 'AdMob suite must run after TypeScript QA');
   assert.ok(expoPreflight > suite && freeze > suite && publish > suite, 'AdMob suite must run before Expo preflight, RC freeze and publication');
-  for (const path of focusedAdTests) {
-    assert.ok(workflow.includes(path), `Production OTA suite is missing ${path}`);
-  }
+  assert.ok(workflow.includes('node --test tests/production-ota-ads-regression.test.mjs'), 'Production OTA must execute this canonical regression harness');
 });
 
 test('all focused AdMob startup, scope, fallback, density and interstitial regressions pass', () => {
