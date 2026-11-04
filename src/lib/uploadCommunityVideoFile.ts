@@ -245,17 +245,21 @@ export async function prepareCommunityJpegUri(
   // Preserve already-encoded JPEG bytes whenever they fit the canonical
   // photo contract. Re-encoding a good source creates generational artifacts.
   const existingBytes = await readBinarySizeBytes(uri).catch(() => 0);
+  const dimensions = await readCommunityPhotoDimensions(uri);
+  const longestEdge = dimensions
+    ? Math.max(dimensions.width, dimensions.height)
+    : 0;
   if (
     /\.jpe?g(?:[?#]|$)/i.test(uri) &&
     existingBytes > 0 &&
-    existingBytes <= COMMUNITY_PHOTO_MAX_SIZE_BYTES
+    existingBytes <= COMMUNITY_PHOTO_MAX_SIZE_BYTES &&
+    (!longestEdge || longestEdge <= 2048)
   ) {
     return { uri, sizeBytes: existingBytes };
   }
 
   const M = await import('expo-image-manipulator');
   const context = M.ImageManipulator.manipulate(uri);
-  const dimensions = await readCommunityPhotoDimensions(uri);
   // 2048px long edge preserves modern mobile display density while bounding
   // memory and upload size. Never upscale an unknown or smaller source.
   if (dimensions && Math.max(dimensions.width, dimensions.height) > 2048) {
