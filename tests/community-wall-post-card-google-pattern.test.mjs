@@ -81,7 +81,8 @@ test('Shared card wrapper delegates children without duplicating feed data or au
   assert.match(source, /function BuklodCommunityWallPostCard\(props: Props\)/);
   assert.match(source, /if \(children !== undefined\)/);
   assert.match(source, /return <DefaultBuklodCommunityWallPostCard \{\.\.\.props\} post=\{post\} \/>/);
-  assert.match(source, /useThemeCard\s*\?\s*<Card style=\{containerStyle\}>\{children\}<\/Card>/);
+  assert.match(source, /const normalizedCardStyle = Array\.isArray\(containerStyle\)/);
+  assert.match(source, /<Card style=\{normalizedCardStyle\}>\{children\}<\/Card>/);
   assert.match(source, /<View style=\{containerStyle\}>\{children\}<\/View>/);
   const wrapper = source.slice(source.indexOf('function BuklodCommunityWallPostCard'), source.indexOf('function DefaultBuklodCommunityWallPostCard'));
   assert.doesNotMatch(wrapper, /useBuklodTheme|useMemo/);
