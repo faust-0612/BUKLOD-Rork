@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type StyleProp,
   type ViewStyle,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -46,7 +47,7 @@ type Props = {
   post?: BuklodCommunityWallPost;
   reactionOptions?: readonly BuklodReactionOption[];
   children?: ReactNode;
-  containerStyle?: ViewStyle | ViewStyle[];
+  containerStyle?: StyleProp<ViewStyle>;
   useThemeCard?: boolean;
   active?: boolean;
   onPressAuthor?: () => void;
