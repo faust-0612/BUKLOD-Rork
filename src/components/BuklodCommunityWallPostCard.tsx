@@ -67,12 +67,30 @@ type Props = {
  * It deliberately composes BUKLOD's canonical photo, video and reaction
  * components instead of introducing a second media or interaction engine.
  */
-function BuklodCommunityWallPostCard({
+function BuklodCommunityWallPostCard(props: Props) {
+  const {
+    children,
+    containerStyle,
+    useThemeCard = false,
+    post,
+  } = props;
+
+  // Keep the integrated feed wrapper lightweight. Existing Public/Scoped
+  // renderers own their rich children and media lifecycles.
+  if (children !== undefined) {
+    return useThemeCard
+      ? <Card style={containerStyle}>{children}</Card>
+      : <View style={containerStyle}>{children}</View>;
+  }
+
+  if (!post) return null;
+
+  return <DefaultBuklodCommunityWallPostCard {...props} post={post} />;
+}
+
+function DefaultBuklodCommunityWallPostCard({
   post,
   reactionOptions = [],
-  children,
-  containerStyle,
-  useThemeCard = false,
   active = true,
   onPressAuthor,
   onPressPhoto,
@@ -82,25 +100,13 @@ function BuklodCommunityWallPostCard({
   onOpenComments = () => undefined,
   onShare = () => undefined,
   onReactionSummaryPress,
-}: Props) {
+}: Props & { post: BuklodCommunityWallPost }) {
   const { theme } = useBuklodTheme();
 
   const media = useMemo(
-    () => (Array.isArray(post?.media) ? post.media.filter(item => item?.media_url || item?.media_path) : []),
-    [post?.media],
+    () => (Array.isArray(post.media) ? post.media.filter(item => item?.media_url || item?.media_path) : []),
+    [post.media],
   );
-
-  // Feed containers may supply their established rich post body as children.
-  // This lets Public and scoped feeds adopt the shared card boundary without
-  // losing owner menus, follow controls, comment previews, report actions,
-  // signed-URL resolution, or feed-specific moderation behavior.
-  if (children !== undefined) {
-    return useThemeCard
-      ? <Card style={containerStyle}>{children}</Card>
-      : <View style={containerStyle}>{children}</View>;
-  }
-
-  if (!post) return null;
 
   const video = media.find(item =>
     String(item.media_mime_type ?? '').toLowerCase().startsWith('video/'),
