@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Add a compact reusable BUKLOD Community Wall post presentation component by composing the existing canonical photo, video and engagement components without changing feed authorization, scope isolation, backend or runtime behavior.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "This is an additive DEV-only presentation component. No production OTA, deployed artifact, runtime, database, storage policy or native configuration is changed or represented as live.",
+  "chosenApproach": "Create a scope-agnostic presentation component with author/avatar, timestamp, privacy indicator, caption, existing dynamic photo collage, existing CommunityVideo renderer, Buklod React/comment controls and a share trigger. Keep data loading, pagination, authorization and mutations in the existing Public and Scoped feed containers.",
+  "selectionRationale": "Compose established BUKLOD renderers instead of duplicating photo/video engines or reaction behavior. This minimizes media regressions and preserves the existing feed data and security boundaries.",
+  "riskAreas": [
+    "wall-media",
+    "community-post-presentation",
+    "scope-isolation",
+    "feed-scroll-performance",
+    "React Native and web parity"
+  ],
+  "regressionTests": [
+    "tests/community-wall-post-card-google-pattern.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Existing dynamic one-to-four-photo collage geometry and source-aware single-photo framing",
+    "Existing private media URL resolution, cache and photo viewer behavior",
+    "Existing CommunityVideo poster, playback, network degradation and fullscreen behavior",
+    "Existing Buklod React reaction options, reaction counts and comment interactions",
+    "Exact Public, Organization, Sub-organization and Cluster feed authorization and isolation",
+    "Feed loading, pagination, realtime updates, inline ads and owner/moderation actions remain owned by existing containers",
+    "No Supabase, storage, RLS, native dependency, app config, runtime or OTA changes"
+  ],
+  "acceptanceChecks": [
+    "Compact header renders author avatar/name, timestamp and audience/privacy indicator",
+    "Photo posts use the existing adaptive collage component",
+    "Video posts use the existing CommunityVideo renderer and poster path",
+    "Reaction, comment and share controls are exposed through explicit callbacks",
+    "No data fetching, Supabase mutation or authorization logic is added to the presentation component",
+    "Focused component contract tests and repository TypeScript/CI checks pass",
+    "Integration into Public and Scoped feed renderers is a separate follow-up change requiring its own visual regression review"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityWallPostCard.tsx",
+    "tests/community-wall-post-card-google-pattern.test.mjs",
+    ".buklod/scopes/community-wall-post-card-google-pattern-20261104.json"
+  ]
+}
