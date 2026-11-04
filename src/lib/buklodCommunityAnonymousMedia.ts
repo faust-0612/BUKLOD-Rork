@@ -12,7 +12,7 @@ export async function uploadBuklodAnonymousCommunityPhoto(
 ): Promise<{ storagePath: string; sizeBytes: number }> {
   const prepared = await prepareCommunityJpegUri(uri);
   if (prepared.sizeBytes > COMMUNITY_PHOTO_MAX_SIZE_BYTES) {
-    throw new Error('Anonymous Community photos are limited to 20 MB.');
+    throw new Error('Anonymous Community photos are limited to 25 MB.');
   }
 
   const { data, error } = await withBuklodTimeout<any>(
