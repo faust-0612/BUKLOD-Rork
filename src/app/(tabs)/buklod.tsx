@@ -5046,7 +5046,7 @@ const communityFeedRows =
 
     return (
       <BuklodFocusVisibleRow index={index}>
-    <BuklodCommunityWallPostCard useThemeCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
+    <BuklodCommunityWallPostCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
    <View
      style={{
        flexDirection:
