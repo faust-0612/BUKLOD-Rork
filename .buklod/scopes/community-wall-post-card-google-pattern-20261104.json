@@ -36,7 +36,6 @@
     "Reaction, comment and share controls are exposed through explicit callbacks",
     "No data fetching, Supabase mutation or authorization logic is added to the presentation component",
     "Focused component contract tests and repository TypeScript/CI checks pass",
-    "Integration into Public and Scoped feed renderers is a separate follow-up change requiring its own visual regression review",
     "Public Community Wall card root uses the shared card boundary while retaining its theme Card styling and all existing child content.",
     "Organization, Sub-organization and Cluster Community Wall post root uses the shared card boundary while retaining its existing scoped postCard styling and all child content.",
     "Shared wrapper does not fetch data, mutate posts, change media URL resolution, or alter feed authorization and scope isolation."
