@@ -31,7 +31,7 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { ConnectThemeProvider } from '@/providers/ConnectThemeProvider';
 
 const MAX_BUBBLES = 14;
-const AVATAR_SIZE = 56;
+const AVATAR_SIZE = 50;
 const COLUMN_WIDTH = 78;
 const NOTE_MAX_LINES = 2;
 const NOTE_MAX_CHARS = 80;
@@ -562,12 +562,12 @@ export default function BuklodCommunityConnectHeaderWeb() {
 
 const styles = StyleSheet.create({
   shell: {
-    paddingTop: 4,
-    paddingBottom: 4,
+    paddingTop: 2,
+    paddingBottom: 2,
   },
   searchWrap: {
     paddingHorizontal: 12,
-    paddingBottom: 8,
+    paddingBottom: 5,
   },
   row: {
     paddingHorizontal: 12,

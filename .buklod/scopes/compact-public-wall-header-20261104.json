@@ -1,0 +1,51 @@
+{
+  "contractVersion": 2,
+  "objective": "Reduce above-the-fold vertical space on the public BUKLOD Wall while preserving notification access, search, profile status bubbles, Community entry actions and media feed continuity.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Android Production OTA run #249 published update 01a1a62f-f53e-7569-4aef-306df0e0082b on production channel, Android runtime 1.3.2, from source SHA 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. This PR contains DEV UI density changes only.",
+  "chosenApproach": "Reduce only redundant vertical padding, header/control dimensions and entry-card minimum height; preserve all existing actions, text accessibility labels, unread badge, scrolling, and media components.",
+  "selectionRationale": "A compact top region returns usable viewport height to the feed without removing features or changing navigation semantics.",
+  "riskAreas": [
+    "header hit targets",
+    "Wall list header geometry",
+    "profile bubble tap targets",
+    "Life card CTA readability",
+    "scroll and feed positioning",
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/navigation-scroll-compact-public-wall.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Notification button and unread badge remain visible and actionable",
+    "Bible, Community and DZAS controls remain present and tappable",
+    "Search remains available above profile bubbles",
+    "Profile note editing and contact navigation remain unchanged",
+    "Life card title, copy and CTA remain visible",
+    "No media renderer, cache, signed URL, playback, ad or backend behavior is changed"
+  ],
+  "acceptanceChecks": [
+    "Global header minimum height is reduced while top safe-area inset remains applied",
+    "Community entry controls reduce height but preserve accessible labels",
+    "Profile avatar rail and spacing are reduced without hiding search or labels",
+    "Life card uses a smaller minimum height and remains legible",
+    "Focused UI contract and engineering accountability gates pass",
+    "Physical-device visual verification is skipped as explicitly requested"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodCommunityWallProfileBubbles.tsx",
+    "src/components/BuklodLifeWallCard.tsx",
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    ".buklod/scopes/compact-public-wall-header-20261104.json",
+    ".github/workflows/engineering-accountability.yml",
+    "tests/navigation-scroll-compact-public-wall.test.mjs",
+    "src/components/BuklodPublicDailyMessageBar.tsx"
+  ],
+  "alternativeApproaches": [
+    "Remove profile stories, search or top actions (rejected: feature loss).",
+    "Use negative margins or absolute positioning (rejected: fragile across font scales and screen sizes)."
+  ]
+}
