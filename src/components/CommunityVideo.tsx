@@ -67,6 +67,8 @@ type Props = {
   preserveAspectRatio?: boolean;
   /** Optional server-generated poster; first-frame posters are cached in memory. */
   posterUri?: string | null;
+  /** Cached first-frame source for an immediate transition from poster to playback. */
+  posterSource?: any;
   /** Best-effort persistence callback for a frame from an already-mounted player. */
   onPosterGenerated?: (thumbnail: unknown) => void | Promise<unknown>;
 };
@@ -174,6 +176,7 @@ export function CommunityVideo(props: Props) {
   return (
     <ExpoCommunityVideo
       {...props}
+      posterSource={poster}
     />
   );
 }
@@ -475,6 +478,7 @@ function ExpoCommunityVideo({
   onPlaybackError,
   preserveAspectRatio = true,
   posterUri,
+  posterSource,
   onPosterGenerated,
 }: Props) {
   const soundOn = useSessionSound();
@@ -863,9 +867,9 @@ function ExpoCommunityVideo({
         allowsPictureInPicture={false}
       />
 
-      {posterUri && !hasStartedPlayback ? (
+      {(posterSource || posterUri) && !hasStartedPlayback ? (
         <ExpoImage
-          source={{ uri: posterUri }}
+          source={posterSource || { uri: posterUri! }}
           style={StyleSheet.absoluteFillObject}
           contentFit={fullscreen || preserveAspectRatio ? 'contain' : 'cover'}
           cachePolicy="memory-disk"

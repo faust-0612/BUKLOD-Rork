@@ -1,0 +1,61 @@
+{
+  "contractVersion": 2,
+  "objective": "Unify social photo/video presentation across Community and Marites: source-aware rendering, stale recycled-image callback isolation, shared resilient photo loading, and instant cached video poster continuity. Preserve private media authorization, feed geometry, playback/ad behavior, weak-network safeguards and existing runtime.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Android Production OTA run #249 published update 01a1a62f-f53e-7569-a4ef-306df0e0082b on production channel, Android runtime 1.3.2, from source SHA 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. Current main includes later non-OTA source changes; this branch is DEV-only until its own exact-head gates and a new RC/OTA.",
+  "chosenApproach": "Guard Android image callbacks against stale media identity, signed URL and renderer completions; reuse the shared private-media cache/recovery image component for Marites photo collages; keep the best cached/generated video poster visible over the active Expo Video surface until the first playback frame begins.",
+  "selectionRationale": "Fix cross-surface rendering inconsistencies at shared boundaries without replacing Expo Image/Video, changing native dependencies, weakening signed-media authorization, or eagerly mounting offscreen players.",
+  "riskAreas": [
+    "wall-media",
+    "Android image cell recycling",
+    "stale signed URLs",
+    "photo decode and display lifecycle",
+    "Marites collage layout and tap targets",
+    "video poster/player transition",
+    "weak-network retry and prefetch budgets",
+    "IMA/ad lifecycle"
+  ],
+  "regressionTests": [
+    "tests/unified-social-media-rendering.test.mjs",
+    "tests/weak-media-rendering.test.cjs",
+    "tests/community-video-persistent-preview.test.mjs",
+    "tests/community-wall-no-blank-photo.test.cjs"
+  ],
+  "preserveBehaviors": [
+    "Private signed media URLs and exact scope authorization",
+    "Stable media cache keys and bounded re-sign/retry",
+    "No stale image callbacks may overwrite a recycled tile",
+    "Original aspect ratios and collage geometry",
+    "One active player per visible video and no offscreen speculative video downloads",
+    "Persistent bounded video byte cache and poster cache",
+    "IMA ads, companion placements, sound and fullscreen behavior",
+    "Offline/degraded prefetch budgets",
+    "No DB/RLS/storage/native dependency or package identity changes"
+  ],
+  "acceptanceChecks": [
+    "Android stale load/display/error callbacks cannot mark a recycled tile as painted or update parent dimensions",
+    "Marites photo collage uses the shared cache-aware media renderer without changing press targets or collage geometry",
+    "Cached/generated video first-frame poster remains visible while the active player is starting and is removed after playback begins",
+    "Signed URL authorization and refresh logic remain intact",
+    "Video cache remains bounded and playback retries remain bounded",
+    "All focused media regression tests and TypeScript pass",
+    "Engineering accountability and integration/performance QA pass on the exact current-base PR head",
+    "Physical-device verification is explicitly skipped per user instruction; no device-render claim is made"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/components/BuklodMaritesPhotoCollage.tsx",
+    "src/components/CommunityVideo.tsx",
+    "tests/weak-media-rendering.test.cjs",
+    "tests/unified-social-media-rendering.test.mjs",
+    ".buklod/scopes/unified-social-media-rendering-20261104.json",
+    ".github/workflows/engineering-accountability.yml",
+    "tests/community-video-persistent-preview.test.mjs",
+    "tests/community-wall-no-blank-photo.test.cjs"
+  ],
+  "alternativeApproaches": [
+    "Bulk merge stale media PR branches without current-base reconciliation (rejected: they diverge substantially from Main and overlap source files).",
+    "Remove all image/video recovery and weak-network limits (rejected: would permit request storms and unsafe resource usage).",
+    "Replace media engines or add a native CDN/player module (rejected: unnecessary APK/runtime change)."
+  ]
+}

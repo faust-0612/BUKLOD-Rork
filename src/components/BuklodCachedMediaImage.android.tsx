@@ -387,6 +387,10 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   canRequestRef.current = canRequest;
   const [source, setSource] = useState<SourceState>(() => initialSource(identity, path, preferred, usingPreview));
   const actual = source.identity === identity ? source : initialSource(identity, path, preferred, usingPreview);
+  // Every callback is tied to the currently selected media identity, URL and renderer.
+  // Recycled FlashList cells can finish an old request after a new post occupies the tile.
+  const activeImageRef = useRef({ identity, url: actual.url, renderer: actual.renderer });
+  activeImageRef.current = { identity, url: actual.url, renderer: actual.renderer };
 
   useEffect(() => {
     let active = true;
@@ -675,6 +679,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
           }
         }}
         onLoad={event => {
+          const activeImage = activeImageRef.current;
+          if (activeImage.identity !== identity || activeImage.url !== actual.url || activeImage.renderer !== 'native') return;
           const dimensions = event.nativeEvent.source;
           if (!(Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0)) {
             retryAfterError(actual.url!);
@@ -688,6 +694,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
           onLoad?.({ source: event.nativeEvent.source });
         }}
         onError={() => {
+          const activeImage = activeImageRef.current;
+          if (activeImage.identity !== identity || activeImage.url !== actual.url || activeImage.renderer !== 'native') return;
           // Native decode error does not prove missing private media.
           if (!actual.fromDiskCache && !actual.alternateAttempted) {
             setSource(current => current.identity === identity && current.url === actual.url &&
@@ -721,6 +729,8 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         }
       }}
       onLoad={event => {
+        const activeImage = activeImageRef.current;
+        if (activeImage.identity !== identity || activeImage.url !== actual.url || activeImage.renderer !== 'expo') return;
         if (progressRef.current.uri === actual.url) {
           progressRef.current.decodedAt = Date.now();
         }
@@ -729,11 +739,17 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         onLoad?.(event);
       }}
       onDisplay={() => {
+        const activeImage = activeImageRef.current;
+        if (activeImage.identity !== identity || activeImage.url !== actual.url || activeImage.renderer !== 'expo') return;
         if (!usingPreview) paintedOriginalPathRef.current = originalPath;
         setSource(current => current.identity === identity && current.url === actual.url &&
           current.renderer === 'expo' && !current.painted ? { ...current, painted: true } : current);
       }}
-      onError={() => retryAfterError(actual.url!)}
+      onError={() => {
+        const activeImage = activeImageRef.current;
+        if (activeImage.identity !== identity || activeImage.url !== actual.url || activeImage.renderer !== 'expo') return;
+        retryAfterError(actual.url!);
+      }}
     />
     {pendingPaintIndicator}
     </>

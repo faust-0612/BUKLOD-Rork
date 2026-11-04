@@ -1,15 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   Pressable,
   StyleSheet,
   Text,
   View,
-  type ImageStyle,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-
-import { Image as ExpoImage } from 'expo-image';
+import { BuklodCachedMediaImage } from '@/components/BuklodCachedMediaImage';
 
 import {
   MARITES_CARD_FOOTER_HEIGHT,
@@ -27,29 +25,6 @@ type Props = {
   onPressPhoto?: (index: number) => void;
 };
 
-// Preserve readable feedback if media failed rather than painting a blank tile.
-function MaritesCachedPhoto({ uri, style }: { uri: string; style: StyleProp<ImageStyle> }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [uri]);
-  if (failed) {
-    return (
-      <View style={[style, styles.failedImage]}>
-        <Text style={styles.failedImageText}>Larawan hindi ma-load</Text>
-      </View>
-    );
-  }
-  return (
-    <ExpoImage
-      source={{ uri }}
-      style={style}
-      contentFit="cover"
-      cachePolicy="disk"
-      priority="normal"
-      recyclingKey={uri}
-      onError={() => setFailed(true)}
-    />
-  );
-}
 export default function BuklodMaritesPhotoCollage({
   uris,
   width = MARITES_CARD_WIDTH,
@@ -68,7 +43,7 @@ export default function BuklodMaritesPhotoCollage({
 
   if (photos.length === 1) {
     const content = (
-      <MaritesCachedPhoto uri={photos[0]} style={styles.single} />
+      <BuklodCachedMediaImage uri={photos[0]} style={styles.single} contentFit="cover" />
     );
 
     if (onPressPhoto) {
@@ -114,7 +89,7 @@ export default function BuklodMaritesPhotoCollage({
 
         const tileContent = (
           <>
-            <MaritesCachedPhoto uri={uri} style={styles.tileImage} />
+            <BuklodCachedMediaImage uri={uri} style={styles.tileImage} contentFit="cover" />
             {showMore ? (
               <View style={styles.moreOverlay} pointerEvents="none">
                 <Text style={styles.moreText}>
@@ -151,18 +126,6 @@ export default function BuklodMaritesPhotoCollage({
 }
 
 const styles = StyleSheet.create({
-  failedImage: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E5ECE8',
-    padding: 8,
-  },
-  failedImageText: {
-    color: '#576C62',
-    textAlign: 'center',
-    fontSize: 10,
-    fontWeight: '700',
-  },
   wrap: {
     overflow: 'hidden',
     backgroundColor: '#E5ECE8',

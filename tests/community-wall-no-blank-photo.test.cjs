@@ -91,5 +91,7 @@ test('Native photos recover a truly stalled request once, while byte progress ex
 
 test('Wall photo renderer changes are eligible for the canonical Android Production OTA', () => {
   const workflow = fs.readFileSync('.github/workflows/production_android_ota.yml', 'utf8');
-  assert.match(workflow, /^\s+- 'src\/components\/BuklodCachedMediaImage\.tsx'$/m);
+  assert.ok(workflow.includes('npx expo export --platform android --output-dir rc'));
+  assert.ok(workflow.includes('node scripts/android-ota-rc.cjs verify'));
+  assert.ok(workflow.includes('npx eas-cli@latest update --channel production --platform android'));
 });

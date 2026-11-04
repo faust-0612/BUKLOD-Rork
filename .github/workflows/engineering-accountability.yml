@@ -257,6 +257,11 @@ jobs:
         if: github.head_ref == 'fix/android-wall-sharp-compositing-20261031'
         run: |
           node --experimental-strip-types --test tests/android-wall-sharp-paint-contract.test.mjs tests/android-wall-auto-sharp.test.mjs tests/android-photo-oct28-rollback.test.cjs tests/android-photo-cache-first-progress.test.mjs
+      - name: Verify unified social photo and video rendering
+        if: github.head_ref == 'feat/unified-social-media-rendering-20261104'
+        run: |
+          node --experimental-strip-types --test tests/unified-social-media-rendering.test.mjs tests/community-video-persistent-preview.test.mjs tests/community-video-playback-recovery.test.mjs tests/community-media-aspect-ratio-20261103.test.mjs
+          node --test tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs tests/community-wall-no-blank-photo.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
       - name: Verify KL per-scene saved placement and draft isolation

@@ -17,9 +17,9 @@ test('photo encoding bounds dimensions without upscaling', () => {
 });
 test('Marites photo tiles cache to disk and show missing-image feedback', () => {
   const collage = read('src/components/BuklodMaritesPhotoCollage.tsx');
-  assert.ok(collage.includes('Image as ExpoImage'));
-  assert.ok(collage.includes('cachePolicy="disk"'));
-  assert.ok(collage.includes('Larawan hindi ma-load'));
+  assert.ok(collage.includes('BuklodCachedMediaImage'));
+  assert.ok(collage.includes('contentFit="cover"'));
+  assert.ok(read('src/components/BuklodCachedMediaImage.tsx').includes('Hindi ma-load ang larawan'));
 });
 test('Marites video playback caches native remote streams only', () => {
   const board = read('src/components/BuklodMaritesBoard.tsx');
