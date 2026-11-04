@@ -21,6 +21,7 @@ import {
 import {
   getBuklodBannerUnitId,
   buklodAdsTestMode,
+  type BuklodAdPlacement,
 } from '@/lib/buklodAdUnits';
 import { recordBuklodAdEvent } from '@/lib/buklodAdDiagnostics';
 import {
@@ -40,6 +41,7 @@ type Props = {
   /** Native-only sponsored cards reuse the same underlying media renderer. */
   surface?: 'wall' | 'home' | 'profile' | 'connect' | 'cluster_dashboard';
   placementIdOverride?: string;
+  bannerPlacementOverride?: BuklodAdPlacement;
   diagnosticName?: string;
   firstView?: boolean;
 };
@@ -87,12 +89,13 @@ export default function BuklodCommunityInlineAd({
         ? 'cluster_wall_feed'
         : 'public_wall_feed';
 
-  const bannerPlacement =
+  const bannerPlacement = bannerPlacementOverride ?? (
     inventory === 'org'
       ? 'org_community'
       : inventory === 'cluster'
         ? 'cluster_community'
-        : 'community';
+        : 'community'
+  );
 
   const routeSafe = isBuklodPassiveAdAllowed({
     placement: bannerPlacement,

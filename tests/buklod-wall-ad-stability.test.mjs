@@ -66,9 +66,11 @@ test('First-view native timeout is bounded and failed banner fallbacks collapse 
 test('Public Wall first-view uses its dedicated community-entry BannerAd fallback unit', () => {
   const first = read('src/components/BuklodFirstViewAd.android.tsx');
   const inline = read('src/components/BuklodCommunityInlineAd.android.tsx');
+  const shared = read('src/components/BuklodCommunityInlineAd.tsx');
   const units = read('src/lib/buklodAdUnits.ts');
   assert.match(first, /bannerPlacementOverride=\{placement === 'community_entry' \? 'community_entry' : undefined\}/);
   assert.match(inline, /bannerPlacementOverride\?: BuklodAdPlacement/);
+  assert.match(shared, /bannerPlacementOverride\?: BuklodAdPlacement/);
   assert.match(inline, /const bannerPlacement = bannerPlacementOverride \?\?/);
   assert.match(units, /case 'community_entry':[\s\S]*?EXPO_PUBLIC_ADMOB_COMMUNITY_ENTRY_BANNER_UNIT_ID/);
 });

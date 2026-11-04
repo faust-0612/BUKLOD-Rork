@@ -17,13 +17,18 @@
     "Organization and Cluster Wall banner units remain scope-specific.",
     "No changes to native package, runtime, AdMob app ID, database, or production OTA workflow."
   ],
-  "riskAreas": ["ads-monetization"],
-  "regressionTests": ["tests/buklod-wall-ad-stability.test.mjs"],
+  "riskAreas": [
+    "ads-monetization"
+  ],
+  "regressionTests": [
+    "tests/buklod-wall-ad-stability.test.mjs"
+  ],
   "allowedPaths": [
     ".buklod/scopes/ad-community-entry-unit-routing-20261104.json",
     "src/components/BuklodFirstViewAd.android.tsx",
     "src/components/BuklodCommunityInlineAd.android.tsx",
-    "tests/buklod-wall-ad-stability.test.mjs"
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "src/components/BuklodCommunityInlineAd.tsx"
   ],
   "acceptanceChecks": [
     "Public community_entry first-view passes community_entry to the BannerAd unit selector.",
