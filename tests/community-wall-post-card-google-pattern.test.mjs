@@ -56,7 +56,7 @@ test('Public and scoped Community Wall renderers use the shared post card bounda
   assert.match(scopedFeed, /import BuklodCommunityWallPostCard from ['"]@\/components\/BuklodCommunityWallPostCard['"]/);
   assert.match(scopedFeed, /<BuklodCommunityWallPostCard/);
   assert.match(scopedFeed, /containerStyle=\{focusId === item\.id \?/);
-  assert.doesNotMatch(scopedFeed, /<View\\s+style=\\{\\[styles\\.postCard/);
+  assert.doesNotMatch(scopedFeed, /<View\s+style=\{\[styles\.postCard/);
   assert.match(scopedFeed, /<\/BuklodCommunityWallPostCard>/);
 });
 
