@@ -97,7 +97,7 @@ Deno.serve(async (req: Request) => {
       const storagePath = `anonymous-media/${crypto.randomUUID()}.jpg`;
       const { data: signed, error: signedError } = await admin.storage.from('community-media').createSignedUploadUrl(storagePath, { upsert: false });
       if (signedError || !signed?.signedUrl) throw signedError ?? new Error('Could not prepare anonymous upload.');
-      return json({ storage_path: storagePath, signed_url: signed.signedUrl });
+      return json({ storage_path: storagePath, signed_url: signed.signedUrl, signed_token: signed.token });
     }
 
     const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
