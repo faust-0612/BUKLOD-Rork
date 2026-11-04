@@ -23,6 +23,7 @@ import {
   useBuklodContentReport,
 } from '@/components/BuklodContentReportSheet';
 import BuklodMentionText from '@/components/BuklodMentionText';
+import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
 import BuklodMentionField from '@/components/BuklodMentionField';
 import {
   mentionsStillInText,
@@ -3268,8 +3269,8 @@ export default function BuklodExclusiveScopeCommunity({
       }
 
 return (
-        <View
-          style={[styles.postCard,
+        <BuklodCommunityWallPostCard
+          containerStyle={[styles.postCard,
             focusId === item.id && { borderColor: colors.green, borderWidth: 2 },
           ]}
         >
@@ -3598,7 +3599,7 @@ return (
               item.id
             }
           />
-        </View>
+        </BuklodCommunityWallPostCard>
       );
     };
 
