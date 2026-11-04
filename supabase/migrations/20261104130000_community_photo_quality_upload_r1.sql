@@ -53,8 +53,8 @@ BEGIN
     'public.create_buklod_community_living_post_v2(text,text,text,text,text,boolean,jsonb,jsonb,jsonb,text,text,bigint)'::regprocedure
   ) INTO v_definition;
 
-  IF position('p_media_size_bytes>26214400' IN v_definition) = 0
-     OR position('Anonymous photos are limited to 25 MB' IN v_definition) = 0 THEN
+  IF position('p_media_size_bytes>5242880' IN v_definition) = 0
+     OR position('Anonymous photos are limited to 5 MB' IN v_definition) = 0 THEN
     RAISE EXCEPTION 'Unexpected anonymous Community RPC definition; refusing an unsafe automatic rewrite';
   END IF;
 
@@ -62,7 +62,7 @@ BEGIN
   v_definition := replace(
     v_definition,
     'Anonymous photos are limited to 5 MB',
-    'Anonymous photos are limited to 20 MB'
+    'Anonymous photos are limited to 25 MB'
   );
 
   EXECUTE v_definition;
