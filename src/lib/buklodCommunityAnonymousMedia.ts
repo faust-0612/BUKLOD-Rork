@@ -4,13 +4,14 @@ import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { prepareCommunityJpegUri } from '@/lib/uploadCommunityVideoFile';
+import { COMMUNITY_PHOTO_MAX_SIZE_BYTES } from '@/lib/buklodCommunityMediaLimits';
 
 export async function uploadBuklodAnonymousCommunityPhoto(
   uri: string,
 ): Promise<{ storagePath: string; sizeBytes: number }> {
   const prepared = await prepareCommunityJpegUri(uri);
-  if (prepared.sizeBytes > 5 * 1024 * 1024) {
-    throw new Error('Anonymous Community photos are limited to 5 MB.');
+  if (prepared.sizeBytes > COMMUNITY_PHOTO_MAX_SIZE_BYTES) {
+    throw new Error('Anonymous Community photos are limited to 20 MB.');
   }
 
   const { data, error } = await withBuklodTimeout<any>(
