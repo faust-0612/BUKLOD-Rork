@@ -82,7 +82,9 @@ function createStyles(theme: ConnectThemeRoles) {
       width: 10,
       height: 10,
       borderRadius: 5,
-      backgroundColor: HIBLA.jade,
+      backgroundColor: '#D93036',
+      borderWidth: 1,
+      borderColor: '#FFFFFF',
     },
     avatar: {
       width: AVATAR_SIZE,
@@ -135,10 +137,10 @@ function createStyles(theme: ConnectThemeRoles) {
       borderRadius: 11,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: HIBLA.pine,
+      backgroundColor: '#C62828',
     },
     badgeText: {
-      color: theme.unreadBadgeText,
+      color: '#FFFFFF',
       fontSize: 11,
       fontWeight: '900',
       lineHeight: 13,
@@ -175,7 +177,7 @@ export function ConnectCommunityRow({
       onPress={onPressRow}
       style={[styles.row, unread > 0 && styles.unreadRow]}
     >
-      <View pointerEvents="none" style={styles.threadNode} />
+      {unread > 0 && <View pointerEvents="none" style={styles.threadNode} />}
       <View
         style={[
           styles.avatar,

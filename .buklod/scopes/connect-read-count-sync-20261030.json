@@ -1,7 +1,7 @@
 {
-  "objective": "Fix Connect unread message count after a confirmed direct or scope read without unrelated changes",
-  "baseRef": "ef24b5a3d494ed23795283c296e88bfb2ff4f036",
-  "productionBaselineEvidence": "verified: GitHub main source SHA ef24b5a3d494ed23795283c296e88bfb2ff4f036 checked 2026-10-30. Production Android OTA live fingerprint NOT established here; no production rollout authorized by this scope.",
+  "objective": "Fix confirmed-read badge sync and show accurate red unread indicators for Personal, Cluster and Org without false room markers",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: latest GitHub main source e0de9106f49fcca420fee48ef84ffa4c423eed3b checked 2026-10-30 and unrelated Faith Monitoring changes retained. Live Android Production OTA fingerprint is NOT established by this change; RC and production publication require independent release verification.",
   "allowedPaths": [
     "src/app/(tabs)/messages.tsx",
     "src/components/BuklodConnectThread.tsx",
@@ -10,13 +10,19 @@
     "src/lib/connectReadSync.ts",
     "__tests__/connectReadSync.test.ts",
     ".github/workflows/engineering-accountability.yml",
-    ".buklod/scopes/connect-read-count-sync-20261030.json"
+    ".buklod/scopes/connect-read-count-sync-20261030.json",
+    "src/components/connect/ConnectCommunityRow.tsx",
+    "src/components/connect/ConnectInboxTabs.tsx",
+    "src/lib/connectInboxBadgeTotals.ts",
+    "__tests__/connectInboxBadgeTotals.test.ts"
   ],
   "acceptanceChecks": [
     "TypeScript check and configured unit tests on exact DEV commit",
     "Connect read-sync unit tests: successful direct/scope mark invalidates unread cache; failed marks preserve unread",
     "Source gate: no cross-account unread update and stale in-flight snapshots cannot restore old badge",
     "Existing Connect, navigation and performance contracts remain passing",
-    "Before RC/Production OTA: verify exact runtime 1.3.2 compatibility, smoke-test on Android, establish live release fingerprint and pass release gates"
+    "Before RC/Production OTA: verify exact runtime 1.3.2 compatibility, smoke-test on Android, establish live release fingerprint and pass release gates",
+    "Cluster/Org tabs show an accessible red unread badge only for positive counts; no unread room has a decorative dot",
+    "Incoming realtime messages invalidate the affected Connect inbox cache before refreshing, without raising polling load"
   ]
 }

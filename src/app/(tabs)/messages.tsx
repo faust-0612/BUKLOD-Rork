@@ -92,6 +92,8 @@ import {
 import { HIBLA } from '@/lib/connectHibla';
 import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
 import { partitionConnectInboxThreads } from '@/lib/connectInboxClassification';
+import { communityUnreadTabCounts } from '@/lib/connectInboxBadgeTotals';
+import { invalidateBuklodConnectUnreadCaches } from '@/lib/buklodR4RequestShield';
 
 type PersonalThread = {
   thread_id: string;
@@ -900,6 +902,8 @@ function ConnectScreenInner({
       const release = acquireSharedRealtimeSubscription(
         registryKey,
         () => {
+          // Realtime inserts must bypass the 10s inbox snapshot TTL.
+          invalidateBuklodConnectUnreadCaches(kind);
           void loadRef.current();
         },
         emit => {
@@ -1183,6 +1187,9 @@ function ConnectScreenInner({
         : regularThreads.filter(item => item.thread_id !== priorityThread?.thread_id)
   ) as any[];
 
+  const { cluster: clusterUnread, org: orgUnread } =
+    communityUnreadTabCounts(rooms);
+
   const sectionLabel =
     communitySectionLabel(communityFilter);
   const unreadTotal = tab === 'requests'
@@ -1242,6 +1249,9 @@ function ConnectScreenInner({
       <ConnectInboxTabs
         tab={tab}
         requestCount={requestThreads.length}
+        personalUnread={regularThreads.reduce((total, item) => total + n(item.unread_count), 0)}
+        clusterUnread={clusterUnread}
+        orgUnread={orgUnread}
         communityFilter={communityFilter}
         onTabChange={setTab}
         onCommunityFilterChange={setCommunityFilter}

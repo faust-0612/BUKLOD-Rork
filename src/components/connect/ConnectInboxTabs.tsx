@@ -28,6 +28,9 @@ type Tab = 'personal' | 'community' | 'requests';
 type Props = {
   tab: Tab;
   requestCount: number;
+  personalUnread: number;
+  clusterUnread: number;
+  orgUnread: number;
   communityFilter: CommunityFilterKey;
   onTabChange: (tab: Tab) => void;
   onCommunityFilterChange: (filter: CommunityFilterKey) => void;
@@ -69,11 +72,31 @@ function createStyles(theme: ConnectThemeRoles) {
     labelActive: {
       color: '#FFFFFF',
     },
+    unreadBadge: {
+      position: 'absolute',
+      top: -4,
+      right: -2,
+      minWidth: 18,
+      height: 18,
+      paddingHorizontal: 4,
+      borderRadius: 9,
+      borderWidth: 1,
+      borderColor: '#FFFFFF',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#C62828',
+    },
+    unreadBadgeText: {
+      color: '#FFFFFF',
+      fontSize: 10,
+      fontWeight: '900',
+      lineHeight: 12,
+    },
     requestsDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: '#D89B24',
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#C62828',
     },
   });
 }
@@ -81,6 +104,9 @@ function createStyles(theme: ConnectThemeRoles) {
 export function ConnectInboxTabs({
   tab,
   requestCount,
+  personalUnread,
+  clusterUnread,
+  orgUnread,
   communityFilter,
   onTabChange,
   onCommunityFilterChange,
@@ -97,6 +123,14 @@ export function ConnectInboxTabs({
 
   const clusterSelected = tab === 'community' && communityFilter === 'cluster';
   const orgSelected = tab === 'community' && communityFilter === 'organization';
+  const unreadBadge = (count: number) =>
+    count > 0 ? (
+      <View pointerEvents="none" style={styles.unreadBadge}>
+        <Text style={styles.unreadBadgeText}>
+          {count > 99 ? '99+' : count}
+        </Text>
+      </View>
+    ) : null;
 
   return (
     <>
@@ -106,6 +140,7 @@ export function ConnectInboxTabs({
         accessibilityState={{
           selected: tab === 'personal',
         }}
+        accessibilityLabel={`Personal, ${personalUnread} unread messages`}
         instant
         nested={false}
         onPress={() => onTabChange('personal')}
@@ -131,6 +166,7 @@ export function ConnectInboxTabs({
         >
           Personal
         </Text>
+        {unreadBadge(personalUnread)}
       </ConnectPressable>
 
       <ConnectPressable
@@ -138,6 +174,7 @@ export function ConnectInboxTabs({
         accessibilityState={{
           selected: clusterSelected,
         }}
+        accessibilityLabel={`Cluster, ${clusterUnread} unread messages`}
         instant
         nested={false}
         onPress={() => selectCommunity('cluster')}
@@ -163,11 +200,13 @@ export function ConnectInboxTabs({
         >
           Cluster
         </Text>
+        {unreadBadge(clusterUnread)}
       </ConnectPressable>
 
       <ConnectPressable
         accessibilityRole="button"
         accessibilityState={{ selected: orgSelected }}
+        accessibilityLabel={`Organization, ${orgUnread} unread messages`}
         instant
         nested={false}
         onPress={() => selectCommunity('organization')}
@@ -179,6 +218,7 @@ export function ConnectInboxTabs({
           color={orgSelected ? '#FFFFFF' : HIBLA.muted}
         />
         <Text style={[styles.label, orgSelected && styles.labelActive]}>Org</Text>
+        {unreadBadge(orgUnread)}
       </ConnectPressable>
 
       <ConnectPressable
