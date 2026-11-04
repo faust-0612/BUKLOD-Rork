@@ -1,6 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Crypto from 'expo-crypto';
+import { encode } from 'base64-arraybuffer';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Linking, Share } from 'react-native';
 import { supabase } from '@/lib/supabase';
@@ -111,30 +112,25 @@ export function autoOfficeFolderKey(name: string, mimeType: string) {
   return 'other';
 }
 
-function bytesToHex(buffer: ArrayBuffer) {
-  return Array.from(new Uint8Array(buffer))
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-async function checksum(bytes: Uint8Array) {
+export async function checksumOfficeBytes(bytes: Uint8Array) {
   /*
-   * PATCH_168D_R1_CRYPTO_ARRAYBUFFER
-   (bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer)
-   * Expo Crypto.digest expects BufferSource.
-   * TypeScript can infer incoming Uint8Array.buffer as
-   * ArrayBufferLike (ArrayBuffer | SharedArrayBuffer).
-   * Copy into a guaranteed ArrayBuffer before hashing.
+   * Android's Expo Crypto native bridge cannot reliably marshal an
+   * ArrayBuffer supplied to digest() in the current RN/Expo runtime.
+   * Hash the canonical base64 representation through digestStringAsync,
+   * whose native bridge input is a plain string. Base64 is injective, so
+   * identical file bytes always produce the same stable duplicate key.
+   *
+   * Copy only the visible Uint8Array range so sliced/offset views are
+   * fingerprinted correctly and unrelated backing-buffer bytes are excluded.
    */
   const input = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(input).set(bytes);
+  const canonicalBase64 = encode(input);
 
-  const digest = await Crypto.digest(
+  return Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
-    input
+    canonicalBase64
   );
-
-  return bytesToHex(digest);
 }
 
 async function optimizeImage(uri: string, originalName: string, mimeType: string) {
@@ -223,7 +219,7 @@ export async function pickOfficeFile(): Promise<OfficePickedFile | null> {
     mimeType,
     size: bytes.byteLength,
     bytes,
-    checksumSha256: await checksum(bytes),
+    checksumSha256: await checksumOfficeBytes(bytes),
     autoFolderKey: autoOfficeFolderKey(name, mimeType),
     optimized,
   };
