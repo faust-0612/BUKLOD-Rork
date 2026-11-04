@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "objective": "Require unified social photo/video rendering regression coverage in the production Android OTA pipeline before RC export and freeze.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Android Production OTA run #249 published update 01a1a62f-f53e-7569-4aef-306df0e0082b on production channel, Android runtime 1.3.2, source SHA 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. The current Main includes unified media rendering changes and compact Wall layout; this PR updates the production OTA automated release gate only.",
+  "chosenApproach": "Add the exact unified photo/video, cached poster, playback recovery, aspect-ratio, weak-network and no-blank-photo regression suites immediately after TypeScript QA and before later release preflights, export, RC freeze and publish.",
+  "selectionRationale": "PR QA alone does not guarantee the same media contracts are rechecked on the exact Main commit selected for production OTA. Run focused deterministic tests on the exact release source before RC creation.",
+  "riskAreas": [
+    "Android OTA gate duration",
+    "photo cache and stale callback recovery",
+    "private media signing",
+    "video poster/player transition",
+    "weak-network retry limits",
+    "aspect ratio and no-blank tile continuity"
+  ],
+  "regressionTests": [
+    "tests/production-ota-media-render-gate.test.cjs",
+    "tests/unified-social-media-rendering.test.mjs",
+    "tests/community-video-persistent-preview.test.mjs",
+    "tests/community-video-playback-recovery.test.mjs",
+    "tests/community-media-aspect-ratio-20261103.test.mjs",
+    "tests/weak-media-rendering.test.cjs",
+    "tests/community-media-weak-signal.test.cjs",
+    "tests/community-wall-no-blank-photo.test.cjs"
+  ],
+  "preserveBehaviors": [
+    "Existing TypeScript QA remains mandatory",
+    "All existing production release safety gates remain mandatory",
+    "Private signed URL authorization and retry bounds remain enforced",
+    "No native dependency or runtime version change",
+    "Physical device verification is skipped per user instruction; no device-render claim"
+  ],
+  "acceptanceChecks": [
+    "Production Android OTA workflow runs focused media regression suites after TypeScript QA",
+    "A media test failure blocks RC export and freeze",
+    "No existing OTA gates are removed or weakened",
+    "Scope accountability and current-base PR CI pass"
+  ],
+  "allowedPaths": [
+    ".github/workflows/production_android_ota.yml",
+    "tests/production-ota-media-render-gate.test.cjs",
+    ".buklod/scopes/production-ota-media-render-gate-20261104.json"
+  ],
+  "alternativeApproaches": [
+    "Rely only on PR CI and omit production-source media tests (rejected: release branch can drift)",
+    "Remove media gates to speed OTA (rejected: unsafe regression risk)"
+  ]
+}
