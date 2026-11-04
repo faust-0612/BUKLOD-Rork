@@ -24,6 +24,7 @@ test('public Wall controls are compact and retain their actions', () => {
   assert.match(header, /width:38/);
   assert.match(header, /minHeight:38/);
   assert.match(header, /height:38/);
+  assert.match(header, /minWidth:68,\s*height:38/);
   assert.match(source, /BuklodCommunityWallProfileBubbles/);
 });
 
