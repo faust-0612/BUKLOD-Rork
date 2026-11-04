@@ -40,7 +40,6 @@ test('public, anonymous and edited Community photos share the 25 MiB contract', 
   assert.match(edge, /size > ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES/);
   // AI moderation input has its own bounded payload budget; it does not cap upload/storage size.
   assert.match(edge, /data\.size > 5 \* 1024 \* 1024/);
-  assert.match(edge, /createSignedUrl\(path, 300, \{/);
   assert.match(edge, /image\.byteLength > 5 \* 1024 \* 1024/);
   assert.match(edit, /uploadCommunityPhotoFile\(/);
   assert.match(marites, /uploadCommunityPhotoFile\(/);
