@@ -56,6 +56,9 @@ BEGIN
     IF position('26214400' IN v_definition)=0 OR position('5242880' IN v_definition)>0 THEN
       RAISE EXCEPTION 'Legacy fallback % does not use the 25 MiB limit',v_name;
     END IF;
+    IF v_name='set_buklod_post_media_v1' AND position('Maximum of 10 photos per post' IN v_definition)=0 THEN
+      RAISE EXCEPTION 'Legacy v1 fallback still limits posts to five photos';
+    END IF;
   END LOOP;
 
   v_definition := pg_get_functiondef('public.create_buklod_dugtong_v1(uuid,uuid,text,text,text,text,text,bigint)'::regprocedure);
