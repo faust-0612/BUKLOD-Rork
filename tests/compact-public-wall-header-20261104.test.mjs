@@ -35,6 +35,14 @@ test('profile rail saves vertical space without removing search or profile bubbl
   assert.match(source, /Add note/);
 });
 
+test('daily encouragement strip uses less vertical space without truncating the verse reference', () => {
+  const source = read('src/components/BuklodPublicDailyMessageBar.tsx');
+  assert.match(source, /numberOfLines=\{2\}/);
+  assert.match(source, /paddingVertical: 6/);
+  assert.match(source, /width: 32,\s*height: 32/);
+  assert.match(source, /reference/);
+});
+
 test('Life card has a smaller footprint while retaining CTA and accessible action', () => {
   const source = read('src/components/BuklodLifeWallCard.tsx');
   assert.match(source, /minHeight:\s*100/);
