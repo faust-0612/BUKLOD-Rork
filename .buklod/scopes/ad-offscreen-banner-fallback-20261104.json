@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Prevent Android Community Wall feed fallback and cooldown recovery requests from starting while their ad row is off-screen, without blocking first-view or non-Wall sponsored surfaces.",
+  "baseRef": "3f78576e1802183328f674b3a83e83de4da33b2f",
+  "productionBaselineEvidence": "Current Main already tracks current visible Community feed ad-row IDs in useBuklodCommunityAdViewability and uses a sticky activation state to avoid repeated requests. The Android NativeAd renderer did not consume the current visibility hook for its delayed BannerAd fallback or recovery, so a NativeAd failure/no-fill arriving after a row was scrolled away could still start an off-screen fallback request. The current production renderer also has a separate viewport gate for first-view placements.",
+  "chosenApproach": "Wire useBuklodCommunityInlineVisibility(slotId) into the Android NativeAd renderer and gate only the sequential BannerAd fallback and cooldown recovery for ordinary Wall feed rows. Explicitly bypass the feed-row registry for firstView and non-Wall surfaces, which continue using their existing viewport/route/consent gates.",
+  "selectionRationale": "Reuse the already-maintained current-visible-row registry rather than adding another scroll listener or changing feed activation semantics. This prevents delayed off-screen fallback/retry requests while preserving sticky activation, shared cooldown, and first-view behavior.",
+  "preserveBehaviors": [
+    "NativeAd remains the primary request and BannerAd remains sequential fallback.",
+    "Only ordinary Android Wall feed rows use the live list-visibility gate.",
+    "Public Wall first-view, Home, Profile, Connect and Cluster dashboard ads bypass the feed registry and retain their existing viewport gate.",
+    "UMP consent, SDK readiness, network, foreground, route safety, remote placement kill switches, shared reservations and cooldowns remain authoritative.",
+    "No new ad requests, IDs, SDK packages, database changes, or native runtime changes are introduced."
+  ],
+  "riskAreas": [
+    "ads-monetization"
+  ],
+  "regressionTests": [
+    "tests/buklod-ad-offscreen-banner-fallback.test.mjs",
+    "tests/production-ota-ads-regression.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/ad-offscreen-banner-fallback-20261104.json",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "tests/buklod-ad-offscreen-banner-fallback.test.mjs",
+    "tests/production-ota-ads-regression.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Android Wall feed fallback waits until its slot ID is in the current visible-row registry.",
+    "Cooldown recovery does not restart a failed Wall feed ad while the row is off-screen.",
+    "First-view ads and non-Wall sponsored surfaces remain independent of the feed-row registry.",
+    "The production OTA AdMob regression harness executes the new visibility regression.",
+    "Engineering Accountability, focused Node tests, TypeScript/Performance R1 QA and Main integration QA pass.",
+    "No production OTA is triggered by this PR."
+  ],
+  "alternativeApproaches": [
+    "Gate all NativeAd and BannerAd surfaces on the feed-row registry; rejected because first-view, Home, Profile, Connect and Cluster surfaces do not publish feed-row IDs.",
+    "Add another independent scroll observer to every Android ad card; rejected because the existing list viewability registry already provides the authoritative current-visible state.",
+    "Gate only the first BannerAd fallback but allow cooldown recovery off-screen; rejected because a failed slot could still restart a new NativeAd request after being scrolled away."
+  ]
+}
