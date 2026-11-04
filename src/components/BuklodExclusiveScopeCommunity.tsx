@@ -5092,30 +5092,11 @@ const styles =
           '900',
       },
 
-      postCard: {
-        borderRadius:
-          19,
-        backgroundColor:
-          colors.white,
-        borderWidth:
-          1,
-        borderColor:
-          colors.line,
-        padding:
-          12,
-        marginBottom:
-          10,
-        overflow:
-          'hidden',
-      },
-
       postPhotos: {
         width:
           '100%',
         maxWidth:
           '100%',
-        marginTop:
-          10,
         overflow:
           'hidden',
       },
@@ -5194,8 +5175,6 @@ const styles =
       },
 
       body: {
-        marginTop:
-          11,
         color:
           colors.text,
         fontSize:
@@ -5223,8 +5202,6 @@ const styles =
       videoWrap: {
         position:
           'relative',
-        marginTop:
-          2,
       },
 
       reelBadge: {
@@ -5268,8 +5245,6 @@ const styles =
           'center',
         minHeight:
           34,
-        marginTop:
-          6,
         borderBottomWidth:
           1,
         borderBottomColor:
@@ -5359,8 +5334,6 @@ const styles =
       commentButton: {
         minHeight:
           42,
-        marginTop:
-          8,
         borderRadius:
           11,
         backgroundColor:
