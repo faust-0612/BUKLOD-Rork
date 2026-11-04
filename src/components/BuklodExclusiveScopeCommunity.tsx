@@ -3270,9 +3270,7 @@ export default function BuklodExclusiveScopeCommunity({
 
 return (
         <BuklodCommunityWallPostCard
-          containerStyle={[styles.postCard,
-            focusId === item.id && { borderColor: colors.green, borderWidth: 2 },
-          ]}
+          containerStyle={focusId === item.id ? { borderColor: colors.green, borderWidth: 2 } : undefined}
         >
           <View
             style={
