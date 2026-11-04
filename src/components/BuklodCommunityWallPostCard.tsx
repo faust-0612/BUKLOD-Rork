@@ -79,8 +79,14 @@ function BuklodCommunityWallPostCard(props: Props) {
   // Keep the integrated feed wrapper lightweight. Existing Public/Scoped
   // renderers own their rich children and media lifecycles.
   if (children !== undefined) {
+    // UI.Card accepts plain ViewStyle values/arrays, while React Native's
+    // StyleProp also permits conditional false/null entries. Normalize those
+    // entries before crossing the Card component's narrower prop contract.
+    const normalizedCardStyle = Array.isArray(containerStyle)
+      ? containerStyle.filter(Boolean) as ViewStyle[]
+      : containerStyle as ViewStyle | undefined;
     return useThemeCard
-      ? <Card style={containerStyle}>{children}</Card>
+      ? <Card style={normalizedCardStyle}>{children}</Card>
       : <View style={containerStyle}>{children}</View>;
   }
 
