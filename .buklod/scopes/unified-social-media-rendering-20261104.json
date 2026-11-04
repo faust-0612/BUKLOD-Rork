@@ -17,7 +17,8 @@
   ],
   "regressionTests": [
     "tests/unified-social-media-rendering.test.mjs",
-    "tests/weak-media-rendering.test.cjs"
+    "tests/weak-media-rendering.test.cjs",
+    "tests/community-video-persistent-preview.test.mjs"
   ],
   "preserveBehaviors": [
     "Private signed media URLs and exact scope authorization",
@@ -47,7 +48,8 @@
     "tests/weak-media-rendering.test.cjs",
     "tests/unified-social-media-rendering.test.mjs",
     ".buklod/scopes/unified-social-media-rendering-20261104.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "tests/community-video-persistent-preview.test.mjs"
   ],
   "alternativeApproaches": [
     "Bulk merge stale media PR branches without current-base reconciliation (rejected: they diverge substantially from Main and overlap source files).",
