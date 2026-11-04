@@ -36,7 +36,7 @@ test('public, anonymous and edited Community photos share the 25 MiB contract', 
   assert.match(anonymous, /shouldUseResumableUpload\(prepared.sizeBytes\)/);
   assert.match(anonymous, /signedUploadToken: signedToken/);
   assert.match(edge, /signed_token: signed.token/);
-  assert.match(edge, /ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES = 20 \* 1024 \* 1024/);
+  assert.match(edge, /ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES = 25 \* 1024 \* 1024/);
   assert.match(edge, /size > ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES/);
   assert.match(edit, /uploadCommunityPhotoFile\(/);
   assert.match(marites, /uploadCommunityPhotoFile\(/);
@@ -47,9 +47,10 @@ test('public, anonymous and edited Community photos share the 25 MiB contract', 
 test('production v5 and anonymous living RPCs accept the same 25 MiB photo contract', () => {
   const migration = read('supabase/migrations/20261104130000_community_photo_quality_upload_r1.sql');
   assert.match(migration, /set_buklod_post_media_v5\(uuid,jsonb\)/);
-  assert.match(migration, /v_size>5242880/);
-  assert.match(migration, /v_size>26214400/);
-  assert.match(migration, /Each photo must be 25 MB or smaller/);
+  assert.match(migration, /'5242880'/);
+  assert.match(migration, /'26214400'/);
+  assert.match(migration, /'5 MB or smaller'/);
+  assert.match(migration, /'25 MB or smaller'/);
   assert.match(migration, /refusing an unsafe automatic rewrite/);
   assert.match(migration, /p_media_size_bytes>5242880/);
   assert.match(migration, /p_media_size_bytes>26214400/);
