@@ -220,12 +220,12 @@ const styles =
 
     wrap: {
       marginBottom:
-        12,
+        8,
     },
 
     card: {
       minHeight:
-        126,
+        100,
 
       borderRadius:
         20,
@@ -240,7 +240,7 @@ const styles =
         'rgba(47,109,58,0.16)',
 
       padding:
-        16,
+        12,
 
       flexDirection:
         'row',
@@ -249,7 +249,7 @@ const styles =
         'center',
 
       gap:
-        12,
+        9,
     },
 
     glowA: {
@@ -300,10 +300,10 @@ const styles =
 
     icon: {
       width:
-        54,
+        44,
 
       height:
-        54,
+        44,
 
       borderRadius:
         18,
@@ -348,7 +348,7 @@ const styles =
 
     title: {
       fontSize:
-        22,
+        19,
 
       fontWeight:
         '900',
@@ -397,7 +397,7 @@ const styles =
         '#4B694F',
 
       marginBottom:
-        6,
+        4,
     },
 
     body: {
@@ -425,10 +425,10 @@ const styles =
         5,
 
       paddingHorizontal:
-        11,
+        9,
 
       paddingVertical:
-        8,
+        7,
 
       borderRadius:
         999,
