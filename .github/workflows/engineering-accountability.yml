@@ -257,6 +257,9 @@ jobs:
         if: github.head_ref == 'fix/android-wall-sharp-compositing-20261031'
         run: |
           node --experimental-strip-types --test tests/android-wall-sharp-paint-contract.test.mjs tests/android-wall-auto-sharp.test.mjs tests/android-photo-oct28-rollback.test.cjs tests/android-photo-cache-first-progress.test.mjs
+      - name: Verify compact mobile dashboard header
+        if: github.head_ref == 'feat/compact-wall-header-20261104'
+        run: node --test tests/compact-wall-header.test.cjs
       - name: Verify unified social photo and video rendering
         if: github.head_ref == 'feat/unified-social-media-rendering-20261104'
         run: |
