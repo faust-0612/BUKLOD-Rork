@@ -7,13 +7,13 @@ import { communityWallPreviewOriginalPath, communityWallPreviewPath } from '@/li
 
 import {
   BUKLOD_VIDEO_MAX_SIZE_BYTES,
-  COMMUNITY_PHOTO_MAX_SIZE_BYTES,
   classifyCommunityUploadFailure,
   communityUploadFailureMessage,
   communityVideoTooLargeMessage,
   readVideoSizeBytes,
   type CommunityUploadFailureReason,
 } from '@/lib/buklodCommunityWallMedia';
+import { COMMUNITY_PHOTO_MAX_SIZE_BYTES } from '@/lib/buklodCommunityMediaLimits';
 import { supabase } from '@/lib/supabase';
 import {
   communityVideoPostPreviewPath,
