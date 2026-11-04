@@ -23,6 +23,8 @@ test('Community photo originals use resumable TUS uploads while previews remain 
   const tus = read('src/lib/uploadCommunityResumableTus.ts');
   assert.match(tus, /BUKLOD_TUS_CHUNK_SIZE_BYTES = 6 \* 1024 \* 1024/);
   assert.match(tus, /recoverOffset/);
+  assert.match(tus, /signedUploadToken\?: string/);
+  assert.match(tus, /'x-signature': signedUploadToken/);
 });
 
 test('public, anonymous and edited Community photos share the 20 MiB contract', () => {
@@ -31,6 +33,9 @@ test('public, anonymous and edited Community photos share the 20 MiB contract', 
   const edit = read('src/lib/buklodCommunityPostOwnerActions.ts');
   const edge = read('supabase/functions/buklod-community-ai/index.ts');
   assert.match(anonymous, /prepared.sizeBytes > COMMUNITY_PHOTO_MAX_SIZE_BYTES/);
+  assert.match(anonymous, /shouldUseResumableUpload\(prepared.sizeBytes\)/);
+  assert.match(anonymous, /signedUploadToken: signedToken/);
+  assert.match(edge, /signed_token: signed.token/);
   assert.match(edge, /ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES = 20 \* 1024 \* 1024/);
   assert.match(edge, /size > ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES/);
   assert.match(edit, /uploadCommunityPhotoFile\(/);
