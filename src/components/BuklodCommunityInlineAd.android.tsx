@@ -31,6 +31,7 @@ import {
   reserveBuklodPassiveAdRequest,
 } from '@/lib/buklodGlobalAdController';
 import { useBuklodAdViewportGate } from '@/lib/buklodAdViewport';
+import { useBuklodCommunityInlineVisibility } from '@/hooks/useBuklodCommunityAdViewability';
 import { useAds } from '@/providers/AdsProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { AD_SLOT_REMOUNT_COOLDOWN_MS } from '@/lib/buklodAdMonetizationPolicy';
@@ -82,6 +83,12 @@ export default function BuklodCommunityInlineAd({
   const { isConnected, isInternetReachable } = useNetwork();
   const adNetworkAvailable = isConnected && isInternetReachable !== false;
   const { ref, eligible } = useBuklodAdViewportGate();
+  const currentListVisibility = useBuklodCommunityInlineVisibility(slotId);
+  // Feed rows use the list's live viewability state. First-view and other
+  // sponsored surfaces keep their own viewport gate and must not depend on
+  // the Community feed's visible-row registry.
+  const currentlyVisible =
+    surface !== 'wall' || firstView || !slotId || currentListVisibility;
 
   const [nativeAd, setNativeAd] = useState<NativeAd | null>(null);
   const [nativeFailed, setNativeFailed] = useState(false);
@@ -354,6 +361,7 @@ export default function BuklodCommunityInlineAd({
   useEffect(() => {
     if (
       !canAttempt ||
+      !currentlyVisible ||
       !nativeFailed ||
       !bannerUnitId ||
       bannerRequestStarted.current ||
@@ -408,6 +416,7 @@ export default function BuklodCommunityInlineAd({
     bannerFailed,
     bannerUnitId,
     canAttempt,
+    currentlyVisible,
     diagnosticPlacement,
     nativeFailed,
     pathname,
@@ -418,7 +427,7 @@ export default function BuklodCommunityInlineAd({
 
 
   const recoverFailedSlot = useCallback(() => {
-    if (!bannerFailed || !adNetworkAvailable) return;
+    if (!bannerFailed || !adNetworkAvailable || !currentlyVisible) return;
     if (
       Date.now() - bannerFailedAt.current < AD_SLOT_REMOUNT_COOLDOWN_MS ||
       getBuklodPassiveAdRequestWaitMs(placementId, requestKey) > 0
@@ -434,7 +443,7 @@ export default function BuklodCommunityInlineAd({
     setBannerFailed(false);
     setBannerRequestReady(false);
     setReservationTick(value => value + 1);
-  }, [bannerFailed, adNetworkAvailable, placementId, requestKey]);
+  }, [bannerFailed, adNetworkAvailable, currentlyVisible, placementId, requestKey]);
 
   useFocusEffect(useCallback(() => {
     recoverFailedSlot();
