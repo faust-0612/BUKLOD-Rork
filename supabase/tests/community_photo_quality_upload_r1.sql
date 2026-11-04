@@ -1,4 +1,4 @@
--- Focused production schema contract for the 20 MiB Community photo ceiling.
+-- Focused production schema contract for the 25 MiB Community photo ceiling.
 DO $community_photo_quality_test$
 DECLARE
   v_definition text;
@@ -7,10 +7,10 @@ BEGIN
     'public.set_buklod_post_media_v5(uuid,jsonb)'::regprocedure
   );
 
-  IF position('v_size>20971520' IN v_definition) = 0
+  IF position('v_size>26214400' IN v_definition) = 0
      OR position('v_size>5242880' IN v_definition) > 0
-     OR position('Each photo must be 20 MB or smaller' IN v_definition) = 0 THEN
-    RAISE EXCEPTION 'Community photo RPC does not expose the canonical 20 MiB limit';
+     OR position('Each photo must be 25 MB or smaller' IN v_definition) = 0 THEN
+    RAISE EXCEPTION 'Community photo RPC does not expose the canonical 25 MiB limit';
   END IF;
 
   -- Confirm the RPC's authorization checks remain present after the narrow rewrite.
@@ -31,10 +31,10 @@ BEGIN
     'public.create_buklod_community_living_post_v2(text,text,text,text,text,boolean,jsonb,jsonb,jsonb,text,text,bigint)'::regprocedure
   );
 
-  IF position('p_media_size_bytes>20971520' IN v_definition) = 0
+  IF position('p_media_size_bytes>26214400' IN v_definition) = 0
      OR position('p_media_size_bytes>5242880' IN v_definition) > 0
-     OR position('Anonymous photos are limited to 20 MB' IN v_definition) = 0 THEN
-    RAISE EXCEPTION 'Anonymous Community RPC does not expose the canonical 20 MiB limit';
+     OR position('Anonymous photos are limited to 25 MB' IN v_definition) = 0 THEN
+    RAISE EXCEPTION 'Anonymous Community RPC does not expose the canonical 25 MiB limit';
   END IF;
 
   IF position('Anonymous media must use an opaque BUKLOD path' IN v_definition) = 0
@@ -44,3 +44,32 @@ BEGIN
   END IF;
 END;
 $anonymous_community_photo_quality_test$;
+
+DO $legacy_surface_photo_quality_test$
+DECLARE
+  v_name text;
+  v_definition text;
+BEGIN
+  FOREACH v_name IN ARRAY ARRAY['set_buklod_post_media_v1','set_buklod_post_media_v4','set_buklod_post_media_v6']
+  LOOP
+    v_definition := pg_get_functiondef(to_regprocedure(format('public.%I(uuid,jsonb)',v_name)));
+    IF position('26214400' IN v_definition)=0 OR position('5242880' IN v_definition)>0 THEN
+      RAISE EXCEPTION 'Legacy fallback % does not use the 25 MiB limit',v_name;
+    END IF;
+  END LOOP;
+
+  v_definition := pg_get_functiondef('public.create_buklod_dugtong_v1(uuid,uuid,text,text,text,text,text,bigint)'::regprocedure);
+  IF position('p_media_size_bytes>26214400' IN v_definition)=0 OR position('5242880' IN v_definition)>0 THEN
+    RAISE EXCEPTION 'Dugtong does not use the 25 MiB photo limit';
+  END IF;
+
+  v_definition := pg_get_functiondef('public.send_direct_message_v3(uuid,text,text,text,bigint,uuid)'::regprocedure);
+  IF position('26214400' IN v_definition)=0 OR position('5242880' IN v_definition)>0 THEN
+    RAISE EXCEPTION 'Personal Connect photo RPC does not use the 25 MiB limit';
+  END IF;
+
+  IF NOT EXISTS(SELECT 1 FROM storage.buckets WHERE id='direct-message-media' AND file_size_limit=26214400 AND NOT public) THEN
+    RAISE EXCEPTION 'Private direct-message-media bucket does not allow 25 MiB uploads';
+  END IF;
+END;
+$legacy_surface_photo_quality_test$;
