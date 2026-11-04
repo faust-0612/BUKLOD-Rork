@@ -113,7 +113,7 @@ function SwipeDashboardHeader() {
     <View
       style={{
         paddingTop: insets.top,
-        minHeight: 54 + insets.top,
+        minHeight: 48 + insets.top,
         backgroundColor: theme.headerSurface,
         flexDirection: 'row',
         alignItems: 'center',
@@ -126,7 +126,7 @@ function SwipeDashboardHeader() {
         style={{
           flex: 1,
           color: theme.accent,
-          fontSize: 26,
+          fontSize: 24,
           fontWeight: '900',
         }}
       >
@@ -167,9 +167,9 @@ function SwipeDashboardHeader() {
               }
               style={({ pressed }) => ({
                 position: 'relative',
-                width: 38,
-                height: 38,
-                borderRadius: 19,
+                width: 34,
+                height: 34,
+                borderRadius: 17,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.surface,
