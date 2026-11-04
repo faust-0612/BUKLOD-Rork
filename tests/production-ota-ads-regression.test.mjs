@@ -30,11 +30,8 @@ test('production OTA executes AdMob regressions after TypeScript and before RC f
 });
 
 test('all focused AdMob startup, scope, fallback, density and interstitial regressions pass', () => {
-  const output = execFileSync(process.execPath, ['--test', ...focusedAdTests], {
-    encoding: 'utf8',
-    stdio: 'pipe',
+  assert.doesNotThrow(() => execFileSync(process.execPath, ['--test', ...focusedAdTests], {
+    stdio: 'ignore',
     timeout: 120_000,
-  });
-  assert.match(output, /# fail 0/);
-  assert.match(output, /# pass \d+/);
+  }));
 });
