@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Route the Android public Community Wall first-view BannerAd fallback through its dedicated community-entry unit instead of silently using the general Community feed banner unit.",
+  "baseRef": "56cbc9071846125fb3eca01837ba7f27068e1d89",
+  "productionBaselineEvidence": "Main includes the merged Android NativeAd-first first-view renderer. Production telemetry for build 28 shows public_wall_entry no-fill and other failures, but current installed OTA has not been verified to include the merged first-view implementation. The existing getBuklodBannerUnitId mapping already supports EXPO_PUBLIC_ADMOB_COMMUNITY_ENTRY_BANNER_UNIT_ID; the Android NativeAd-first wrapper currently derives 'community' for all public Wall surfaces and bypasses that dedicated mapping.",
+  "chosenApproach": "Pass an explicit banner placement override only for the public community_entry first-view. Keep the NativeAd primary request, stable placement ID, shared request reservation, route/consent checks, and all Organization/Cluster feed mappings unchanged. Fall back to the existing general Community banner when the dedicated entry unit is not configured.",
+  "selectionRationale": "Use the existing intended unit-selection mapping with no new IDs, SDK calls, or requests. This corrects a deterministic Android wrapper mismatch while preserving existing fallback compatibility.",
+  "alternativeApproaches": [
+    "Leave all public Wall entry fallbacks on the Community feed banner; rejected because it bypasses the already-supported dedicated community-entry unit.",
+    "Create a new AdMob unit or change remote placement flags; rejected because an existing unit configuration hook is already present and external inventory setup is not verified.",
+    "Use a placement override only for community_entry and preserve all other scope mappings; selected."
+  ],
+  "preserveBehaviors": [
+    "NativeAd remains the first request and BannerAd remains sequential fallback.",
+    "No concurrent duplicate ad requests or changes to shared cooldown.",
+    "UMP consent, SDK readiness, network, foreground, route safety, remote placement kill switches and PG content rating remain authoritative.",
+    "Organization and Cluster Wall banner units remain scope-specific.",
+    "No changes to native package, runtime, AdMob app ID, database, or production OTA workflow."
+  ],
+  "riskAreas": [
+    "ads-monetization"
+  ],
+  "regressionTests": [
+    "tests/buklod-wall-ad-stability.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/ad-community-entry-unit-routing-20261104.json",
+    "src/components/BuklodFirstViewAd.android.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "src/components/BuklodCommunityInlineAd.tsx"
+  ],
+  "acceptanceChecks": [
+    "Public community_entry first-view passes community_entry to the BannerAd unit selector.",
+    "If the dedicated community-entry banner unit is absent, the selector retains the existing Community banner fallback.",
+    "NativeAd-first request identity and stable public_wall_entry placement ID remain unchanged.",
+    "Organization and Cluster first-view banner mappings remain org_community and cluster_community.",
+    "Focused Wall/ad regression test, Engineering Accountability, Performance R1 QA and Main integration QA pass.",
+    "No production OTA is published by this change."
+  ]
+}
