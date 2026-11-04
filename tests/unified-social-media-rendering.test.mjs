@@ -35,3 +35,16 @@ test('secure media signing, bounded video cache and recovery remain intact', () 
   assert.match(video, /COMMUNITY_VIDEO_CACHE_BUDGET_BYTES = 256 \* 1024 \* 1024/);
   assert.match(video, /decideCommunityVideoErrorRecovery/);
 });
+
+
+test('Public Wall top chrome is compact without removing safe-area or readable context', () => {
+  const header = read('src/app/(tabs)/_layout.tsx');
+  const encouragement = read('src/components/BuklodPublicDailyMessageBar.tsx');
+  assert.match(header, /paddingTop:\\s*insets\\.top/);
+  assert.match(header, /minHeight:\\s*48 \\+ insets\\.top/);
+  assert.match(header, /fontSize:\\s*24/);
+  assert.match(encouragement, /paddingVertical:\\s*6/);
+  assert.match(encouragement, /width:\\s*32,[\\s\\S]*?height:\\s*32/);
+  assert.match(encouragement, /numberOfLines=\{3\}/);
+  assert.match(encouragement, /TODAY'S ENCOURAGEMENT/);
+});
