@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/community-media-photo-quality-pipeline-20261104)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-media-photo-quality-pipeline-20261104.json" >> "$GITHUB_ENV";;
             ui/compact-public-wall-header-20261104)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/compact-public-wall-header-20261104.json" >> "$GITHUB_ENV";;
             dev/community-media-aspect-ratio-20261103)
