@@ -109,8 +109,14 @@ test('Android and shared native/web ad renderers are covered by the ads risk cla
     'src/components/BuklodVideoCompanionAd.tsx',
   ];
   for (const source of sources) {
-    const result = assessChanges([source, 'tests/buklod-ad-empty-slot-collapse.test.mjs']);
+    const changed = source.includes('BuklodVideoCompanionAd')
+      ? [source, 'tests/buklod-ad-empty-slot-collapse.test.mjs', 'tests/buklod-wall-ad-stability.test.mjs']
+      : [source, 'tests/buklod-ad-empty-slot-collapse.test.mjs'];
+    const result = assessChanges(changed);
     assert.ok(result.requiredAreas.includes('ads-monetization'), source);
+    if (source.includes('BuklodVideoCompanionAd')) {
+      assert.ok(result.requiredAreas.includes('wall-media'), source);
+    }
     assert.deepEqual(result.failures, [], source);
   }
 });
