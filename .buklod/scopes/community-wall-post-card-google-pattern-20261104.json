@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Add a compact reusable BUKLOD Community Wall post presentation component by composing the existing canonical photo, video and engagement components without changing feed authorization, scope isolation, backend or runtime behavior.",
   "baseRef": "main",
-  "productionBaselineEvidence": "This is an additive DEV-only presentation component. No production OTA, deployed artifact, runtime, database, storage policy or native configuration is changed or represented as live.",
+  "productionBaselineEvidence": "verified: this is DEV-only work and does not change or claim to deploy the production artifact. Repository production evidence records Android Production OTA workflow run #41291297116 completed 2026-11-01 from production source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944. The PR base main SHA is the DEV integration baseline only; no new production fingerprint, RC, OTA or device adoption is asserted.",
   "chosenApproach": "Create a scope-agnostic presentation component with author/avatar, timestamp, privacy indicator, caption, existing dynamic photo collage, existing CommunityVideo renderer, Buklod React/comment controls and a share trigger. Keep data loading, pagination, authorization and mutations in the existing Public and Scoped feed containers.",
   "selectionRationale": "Compose established BUKLOD renderers instead of duplicating photo/video engines or reaction behavior. This minimizes media regressions and preserves the existing feed data and security boundaries.",
   "riskAreas": [
