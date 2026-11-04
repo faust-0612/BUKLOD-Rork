@@ -1,0 +1,33 @@
+{
+  "contractVersion": 2,
+  "objective": "Make the Engineering Regression Gate cover shared AdMob runtime gates and enforce isolated workstream changed-path allowlists.",
+  "baseRef": "0d2d05d565a397158b8f05118c151caef692a299",
+  "productionBaselineEvidence": "PR #494 merged at 0d2d05d565a397158b8f05118c151caef692a299 after Engineering Accountability, Performance R1 QA and Main integration QA passed. Production telemetry on 2026-11-04 PH records 91 requests, 28 loads, 9 impressions and 40 failures across 8 Android sessions. No OTA from this revision is asserted as live.",
+  "chosenApproach": "Classify all shared AdMob request-gate, viewport, unit, policy, telemetry, diagnostics, placement, opportunity, hook and renderer modules as ads-monetization risk. Enforce the scope manifest allowedPaths against every changed path except the manifest itself.",
+  "selectionRationale": "The previous source classifier omitted shared ad controller modules, so edits to the actual request gates could bypass mandatory ads-specific regression coverage. The allowlist was documented but not enforced.",
+  "alternativeApproaches": [
+    "Keep the narrow component-only source classifier and rely on developer memory; rejected because shared gate edits can bypass focused coverage.",
+    "Require every ads test for all source changes; rejected because it adds unrelated CI cost and coupling.",
+    "Explicitly classify ad runtime modules and validate each isolated scope allowlist; selected."
+  ],
+  "preserveBehaviors": [
+    "Do not change AdMob request behavior, UMP consent, SDK initialization, remote kill switches, route safety, shared cooldown or placements.",
+    "Do not alter native package identity, runtime version, app/unit IDs or production OTA workflow.",
+    "Preserve focused regression execution and fail-closed behavior."
+  ],
+  "riskAreas": ["ads-monetization"],
+  "regressionTests": ["tests/engineering-regression-gate.test.mjs"],
+  "allowedPaths": [
+    ".buklod/scopes/engineering-gate-ad-coverage-20261104.json",
+    "scripts/engineering-regression-gate.mjs",
+    "tests/engineering-regression-gate.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Shared ad controller, viewport, units, policy, telemetry, diagnostics and opportunity modules trigger ads-monetization coverage.",
+    "Android, shared and web ad renderers trigger ads-monetization coverage.",
+    "An unrelated test cannot satisfy ads-monetization coverage.",
+    "A changed file omitted from allowedPaths fails with a path-specific diagnostic.",
+    "Focused engineering regression tests and Engineering Accountability pass.",
+    "No production OTA or runtime behavior changes are made by this gate-only patch."
+  ]
+}
