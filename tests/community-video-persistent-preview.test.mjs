@@ -44,7 +44,7 @@ test('native and web feed players render durable posters and native playback can
   assert.match(native, /posterSource=\\{poster\\}/);
   assert.match(native, /onPosterGenerated\?: \(thumbnail: unknown\) => void \| Promise<unknown>/);
   assert.match(native, /onPosterGenerated\?\.\(first\)/);
-  assert.match(native, /<ExpoImage[\s\S]*?source=\{\{ uri: posterUri \}\}/);
+  assert.ok(native.includes('source={posterSource || { uri: posterUri! }}'));
   assert.match(web, /poster: posterUri \|\| undefined/);
   assert.match(web, /onPosterGenerated\(objectUrl\)/);
 });
