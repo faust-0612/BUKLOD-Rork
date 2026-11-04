@@ -13,7 +13,7 @@ const areas = [
   { id: 'auth-privacy', source: /^(?:src\/providers\/AuthProvider|src\/app\/\(auth\)\/|src\/lib\/(?:buklodAuth|legal|buklodAccess))/i, proof: /(?:auth|login|register|privacy|access|security|recovery)/i },
   { id: 'classroom-quiz', source: /^(?:src\/.*(?:classroom|quiz|faculty|student|(?<!up)grade|attendance))/i, proof: /(?:classroom|quiz|faculty|student|grade|attendance|roster)/i },
   { id: 'story', source: /^(?:src\/.*(?:kabihasnang|Kl[A-Z]|kl-))/, proof: /(?:kl-|kabihasnang|scene|story|media-placement)/i },
-  { id: 'ads-monetization', source: /^(?:src\/(?:components\/(?:BuklodAdMobBanner|BuklodCommunityInlineAd|BuklodFirstViewAd|BuklodAdSafetyRouteBridge)|providers\/AdsProvider|lib\/adMob))/i, proof: /(?:ad|ads|admob|monetization|banner|fill)/i },
+  { id: 'ads-monetization', source: /^(?:src\/(?:components\/(?:BuklodAdMobBanner|BuklodCommunityInlineAd|BuklodFirstViewAd|BuklodAdSafetyRouteBridge|BuklodScopedHeaderBanner|BuklodHeaderSponsor|BuklodReelsInlineAd|BuklodVideoCompanionAd|BuklodFocusAppAdStrip|BuklodNativeSponsoredCard|BuklodWebAdSlot)|providers\/AdsProvider|lib\/(?:adMob|buklodAd|buklodAds|buklodGlobalAdController|buklodAdViewport|buklodAdMonetizationPolicy|buklodAdOperationalTelemetry|buklodAdDiagnostics|buklodAdUnits|buklodAdPlacements|buklodAdOpportunities)|hooks\/useBuklodCommunityAdViewability))/i, proof: /(?:ad|ads|admob|monetization|banner|fill|placement|gate|viewport|telemetry)/i },
   { id: 'release-identity', source: /^(?:app\.config\.[cm]?[jt]s|eas\.json|\.github\/workflows\/.*(?:production|deploy|ota)|scripts\/.*(?:production|deploy|release|ota))/i, proof: /(?:release|deploy|ota|production|identity|boundary)/i },
 ];
 const productPath = p => /^(?:src\/|supabase\/|app\.config\.|eas\.json$|\.github\/workflows\/.*(?:production|deploy|ota)|scripts\/.*(?:production|deploy|release|ota))/i.test(p);
@@ -54,6 +54,13 @@ export function assessChanges(changedPaths, manifest = null) {
         if (!Array.isArray(manifest[key]) || !manifest[key].length) failures.push('Scope manifest requires nonempty ' + key + '.');
       }
       if (Array.isArray(manifest.alternativeApproaches) && manifest.alternativeApproaches.length < 2) failures.push('Compare at least two alternative approaches.');
+      if (Array.isArray(manifest.allowedPaths)) {
+        const allowed = new Set(manifest.allowedPaths.filter(safe));
+        for (const p of paths) {
+          if (p === scopeChanges[0]) continue;
+          if (!allowed.has(p)) failures.push('Changed path is outside the declared scope allowlist: ' + p);
+        }
+      }
       if (Array.isArray(manifest.regressionTests)) for (const p of manifest.regressionTests) {
         if (!safe(p) || !testPath(p)) failures.push('Invalid declared regression test: ' + String(p));
         else if (!paths.includes(p)) failures.push('Declared regression test was not changed: ' + p);

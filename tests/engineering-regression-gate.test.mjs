@@ -76,3 +76,65 @@ test('Ad startup and first-view native inventory require focused ads regression 
   const withCoverage = assessChanges([source, 'tests/buklod-ad-empty-slot-collapse.test.mjs']);
   assert.deepEqual(withCoverage.failures, []);
 });
+
+
+test('all runtime AdMob gate modules require ads-specific regression coverage', () => {
+  const sources = [
+    'src/lib/buklodGlobalAdController.ts',
+    'src/lib/buklodAdViewport.ts',
+    'src/lib/buklodAdUnits.ts',
+    'src/lib/buklodAdMonetizationPolicy.ts',
+    'src/lib/buklodAdOperationalTelemetry.ts',
+    'src/lib/buklodAdDiagnostics.ts',
+    'src/lib/buklodAds.ts',
+    'src/lib/buklodAdPlacements.ts',
+    'src/lib/buklodAdOpportunities.ts',
+    'src/hooks/useBuklodCommunityAdViewability.ts',
+  ];
+  for (const source of sources) {
+    const without = assessChanges([source, 'tests/quiz-answers.test.mjs']);
+    assert.ok(without.requiredAreas.includes('ads-monetization'), source);
+    assert.match(without.failures.join(' '), /Missing focused regression test for ads-monetization/, source);
+    const withCoverage = assessChanges([source, 'tests/buklod-ad-request-gate-recovery.test.mjs']);
+    assert.deepEqual(withCoverage.failures, [], source);
+  }
+});
+
+test('Android and shared native/web ad renderers are covered by the ads risk classifier', () => {
+  const sources = [
+    'src/components/BuklodCommunityInlineAd.android.tsx',
+    'src/components/BuklodCommunityInlineAd.tsx',
+    'src/components/BuklodFirstViewAd.android.tsx',
+    'src/components/BuklodScopedHeaderBanner.tsx',
+    'src/components/BuklodVideoCompanionAd.tsx',
+  ];
+  for (const source of sources) {
+    const result = assessChanges([source, 'tests/buklod-ad-empty-slot-collapse.test.mjs']);
+    assert.ok(result.requiredAreas.includes('ads-monetization'), source);
+    assert.deepEqual(result.failures, [], source);
+  }
+});
+
+test('scope allowlist rejects changed product or test paths omitted from the manifest', () => {
+  const paths = [
+    '.buklod/scopes/new.json',
+    'src/components/BuklodCachedMediaImage.tsx',
+    'tests/community-wall-behavior.test.mjs',
+    'src/lib/buklodGlobalAdController.ts',
+  ];
+  const manifest = {
+    ...goodManifest,
+    allowedPaths: [
+      'src/components/BuklodCachedMediaImage.tsx',
+      'tests/community-wall-behavior.test.mjs',
+    ],
+  };
+  assert.match(
+    assessChanges(paths, manifest).failures.join(' '),
+    /outside the declared scope allowlist: src\/lib\/buklodGlobalAdController\.ts/,
+  );
+  assert.deepEqual(
+    assessChanges(paths.slice(0, 3), manifest).failures,
+    [],
+  );
+});
