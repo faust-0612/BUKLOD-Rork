@@ -10,10 +10,12 @@
     "Wall list header geometry",
     "profile bubble tap targets",
     "Life card CTA readability",
-    "scroll and feed positioning"
+    "scroll and feed positioning",
+    "navigation-scroll"
   ],
   "regressionTests": [
-    "tests/compact-public-wall-header-20261104.test.mjs"
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/navigation-scroll-compact-public-wall.test.mjs"
   ],
   "preserveBehaviors": [
     "Notification button and unread badge remain visible and actionable",
@@ -38,7 +40,8 @@
     "src/components/BuklodLifeWallCard.tsx",
     "tests/compact-public-wall-header-20261104.test.mjs",
     ".buklod/scopes/compact-public-wall-header-20261104.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "tests/navigation-scroll-compact-public-wall.test.mjs"
   ],
   "alternativeApproaches": [
     "Remove profile stories, search or top actions (rejected: feature loss).",
