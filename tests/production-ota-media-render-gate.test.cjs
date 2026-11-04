@@ -20,3 +20,11 @@ test('production Android OTA runs social media regressions before RC export and 
     'tests/community-wall-no-blank-photo.test.cjs',
   ]) assert.ok(workflow.includes(path), 'missing OTA regression: ' + path);
 });
+
+test('production Android OTA covers the compact public Wall layout and scroll continuity', () => {
+  const workflow = fs.readFileSync('.github/workflows/production_android_ota.yml', 'utf8');
+  for (const path of [
+    'tests/compact-public-wall-header-20261104.test.mjs',
+    'tests/navigation-scroll-compact-public-wall.test.mjs',
+  ]) assert.ok(workflow.includes(path), 'missing OTA UI regression: ' + path);
+});
