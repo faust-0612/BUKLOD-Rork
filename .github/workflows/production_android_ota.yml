@@ -62,6 +62,11 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
+      - name: Social photo and video rendering regression suite
+        run: |
+          node --experimental-strip-types --test tests/unified-social-media-rendering.test.mjs tests/community-video-persistent-preview.test.mjs tests/community-video-playback-recovery.test.mjs tests/community-media-aspect-ratio-20261103.test.mjs
+          node --test tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs tests/community-wall-no-blank-photo.test.cjs
+
       - name: AdMob startup, scope, fallback and recovery regression suite
         run: node --test tests/production-ota-ads-regression.test.mjs
 
