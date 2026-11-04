@@ -55,7 +55,7 @@ test('Public and scoped Community Wall renderers use the shared post card bounda
 
   assert.match(scopedFeed, /import BuklodCommunityWallPostCard from ['"]@\/components\/BuklodCommunityWallPostCard['"]/);
   assert.match(scopedFeed, /<BuklodCommunityWallPostCard/);
-  assert.match(scopedFeed, /containerStyle=\{\[styles\.postCard/);
+  assert.match(scopedFeed, /containerStyle=\{focusId === item\.id \?/);
   assert.match(scopedFeed, /<\/BuklodCommunityWallPostCard>/);
 });
 
@@ -81,9 +81,10 @@ test('Shared card wrapper delegates children without duplicating feed data or au
   assert.match(source, /function BuklodCommunityWallPostCard\(props: Props\)/);
   assert.match(source, /if \(children !== undefined\)/);
   assert.match(source, /return <DefaultBuklodCommunityWallPostCard \{\.\.\.props\} post=\{post\} \/>/);
-  assert.match(source, /const normalizedCardStyle = Array\.isArray\(containerStyle\)/);
-  assert.match(source, /<Card style=\{normalizedCardStyle\}>\{children\}<\/Card>/);
-  assert.match(source, /<View style=\{containerStyle\}>\{children\}<\/View>/);
-  const wrapper = source.slice(source.indexOf('function BuklodCommunityWallPostCard'), source.indexOf('function DefaultBuklodCommunityWallPostCard'));
-  assert.doesNotMatch(wrapper, /useBuklodTheme|useMemo/);
+  assert.match(source, /const \{ theme \} = useBuklodTheme\(\)/);
+  assert.match(source, /styles\.feedCard/);
+  assert.match(source, /backgroundColor: theme\.surface, borderColor: theme\.border/);
+  assert.match(source, /borderRadius: 16/);
+  assert.match(source, /padding: 12/);
+  assert.match(source, /marginBottom: 10/);
 });
