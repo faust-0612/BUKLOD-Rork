@@ -134,7 +134,7 @@ export default function BuklodPublicDailyMessageBar({
               ? 'book-open-page-variant-outline'
               : 'lightbulb-on-outline'
           }
-          size={19}
+          size={17}
           color={colors.greenDark}
         />
       </View>
@@ -178,9 +178,9 @@ function createStyles(
   shell: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     backgroundColor: colors.white,
@@ -196,9 +196,9 @@ function createStyles(
   },
 
   icon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.greenSoft,
