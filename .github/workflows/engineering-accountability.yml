@@ -264,9 +264,12 @@ jobs:
         run: |
           node --experimental-strip-types --test tests/unified-social-media-rendering.test.mjs tests/community-video-persistent-preview.test.mjs tests/community-video-playback-recovery.test.mjs tests/community-media-aspect-ratio-20261103.test.mjs
           node --test tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs tests/community-wall-no-blank-photo.test.cjs
-      - name: Verify compact public Wall header layout
+      - name: Verify compact public Wall header and unified media rendering
         if: github.head_ref == 'ui/compact-public-wall-header-20261104'
-        run: node --test tests/compact-public-wall-header-20261104.test.mjs
+        run: |
+          node --test tests/compact-public-wall-header-20261104.test.mjs
+          node --experimental-strip-types --test tests/unified-social-media-rendering.test.mjs tests/community-video-persistent-preview.test.mjs tests/community-video-playback-recovery.test.mjs tests/community-media-aspect-ratio-20261103.test.mjs
+          node --test tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs tests/community-wall-no-blank-photo.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
       - name: Verify KL per-scene saved placement and draft isolation
