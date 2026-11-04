@@ -9,6 +9,7 @@ test('Community photo upload preserves high-quality JPEG sources up to 20 MiB', 
   const upload = read('src/lib/uploadCommunityVideoFile.ts');
   assert.match(limits, /COMMUNITY_PHOTO_MAX_SIZE_BYTES = 20 \* 1024 \* 1024/);
   assert.match(upload, /existingBytes <= COMMUNITY_PHOTO_MAX_SIZE_BYTES/);
+  assert.match(upload, /!longestEdge \|\| longestEdge <= 2048/);
   assert.match(upload, /Math\.max\(dimensions\.width, dimensions\.height\) > 2048/);
   assert.match(upload, /compress: 0\.86/);
   assert.match(upload, /sizeBytes > COMMUNITY_PHOTO_MAX_SIZE_BYTES/);
