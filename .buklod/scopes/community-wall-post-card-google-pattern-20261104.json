@@ -10,7 +10,8 @@
     "community-post-presentation",
     "scope-isolation",
     "feed-scroll-performance",
-    "React Native and web parity"
+    "React Native and web parity",
+    "Public and scoped feed integration"
   ],
   "regressionTests": [
     "tests/community-wall-post-card-google-pattern.test.mjs"
@@ -22,7 +23,9 @@
     "Existing Buklod React reaction options, reaction counts and comment interactions",
     "Exact Public, Organization, Sub-organization and Cluster feed authorization and isolation",
     "Feed loading, pagination, realtime updates, inline ads and owner/moderation actions remain owned by existing containers",
-    "No Supabase, storage, RLS, native dependency, app config, runtime or OTA changes"
+    "No Supabase, storage, RLS, native dependency, app config, runtime or OTA changes",
+    "Public Wall retains the existing author follow/menu controls, expandable caption and mention rendering, media URL hydration, video recovery, companion ads, comment previews, reaction details and internal sharing.",
+    "Organization, Sub-organization and Cluster Walls retain their scoped author metadata, owner actions, photo viewer, video recovery, report controls, comment/reaction behavior and internal sharing."
   ],
   "acceptanceChecks": [
     "Compact header renders author avatar/name, timestamp and audience/privacy indicator",
@@ -31,10 +34,15 @@
     "Reaction, comment and share controls are exposed through explicit callbacks",
     "No data fetching, Supabase mutation or authorization logic is added to the presentation component",
     "Focused component contract tests and repository TypeScript/CI checks pass",
-    "Integration into Public and Scoped feed renderers is a separate follow-up change requiring its own visual regression review"
+    "Integration into Public and Scoped feed renderers is a separate follow-up change requiring its own visual regression review",
+    "Public Community Wall card root uses the shared card boundary while retaining its theme Card styling and all existing child content.",
+    "Organization, Sub-organization and Cluster Community Wall post root uses the shared card boundary while retaining its existing scoped postCard styling and all child content.",
+    "Shared wrapper does not fetch data, mutate posts, change media URL resolution, or alter feed authorization and scope isolation."
   ],
   "allowedPaths": [
     "src/components/BuklodCommunityWallPostCard.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
     "tests/community-wall-post-card-google-pattern.test.mjs",
     ".buklod/scopes/community-wall-post-card-google-pattern-20261104.json"
   ],
