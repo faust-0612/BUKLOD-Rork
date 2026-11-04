@@ -62,6 +62,8 @@ test('production v5 and anonymous living RPCs accept the same 25 MiB photo contr
   assert.match(migration, /create_buklod_dugtong_v1/);
   assert.match(migration, /send_direct_message_v3/);
   assert.match(migration, /file_size_limit=26214400/);
+  assert.match(migration, /Photo exceeds 25 MB/);
+  assert.match(migration, /Maximum of 10 photos per post/);
   assert.match(migration, /p_media_size_bytes>26214400/);
   assert.match(migration, /Anonymous photos are limited to 25 MB/);
   const wrapper = read('supabase/migrations/20261103223601_community_wall_video_preview_sidecars_r1.sql');
