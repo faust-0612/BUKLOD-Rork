@@ -1,13 +1,13 @@
 /* PATCH_185C_WEEKLY_WORD — root stack route (reachable from scoped workspace) */
 import {
   useCallback,
-  useEffect,
   useMemo,
   useState,
   useRef,
 } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   Pressable,
   StyleSheet,
@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import {
   router,
+  useFocusEffect,
 } from 'expo-router';
 
 import {
@@ -33,12 +34,17 @@ import {
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import {
+  selectCurrentWeekWord,
+  selectPreviousWords,
+} from '@/lib/buklodWordSchedule';
 
 type WordItem = {
   id: string;
   title: string;
   bible_passage: string | null;
   publish_date: string | null;
+  sort_order?: number | null;
 };
 
 function toLocalDateKey(
@@ -173,10 +179,12 @@ export default function WordScreen() {
     try {
       const todayKey = toLocalDateKey(new Date());
       const { data, error } = await supabase.from('devotionals')
-        .select('id,title,bible_passage,publish_date')
+        .select('id,title,bible_passage,publish_date,sort_order')
         .eq('is_published', true).not('publish_date', 'is', null)
         .lte('publish_date', todayKey)
-        .order('publish_date', { ascending: false }).limit(40);
+        .order('publish_date', { ascending: false })
+        .order('sort_order', { ascending: true })
+        .order('id', { ascending: true }).limit(40);
       if (error) throw error;
       if (!current()) return;
       const next = (data ?? []) as WordItem[];
@@ -185,10 +193,9 @@ export default function WordScreen() {
       void setOfflineCache('word-published-v1', next, {
         userId: accountId, ttlMs: 14 * 24 * 60 * 60 * 1000,
       }).catch(() => undefined);
-      // Warm only the current published weekly Word, not the entire archive.
+      // Warm only the latest published daily Word in the current week.
       const weekKey = toLocalDateKey(startOfCurrentWeek());
-      const weekly = next.filter(item => item.publish_date && item.publish_date >= weekKey)
-        .slice().sort((x,y) => String(x.publish_date).localeCompare(String(y.publish_date)))[0] ?? next[0];
+      const weekly = selectCurrentWeekWord(next, weekKey, todayKey);
       if (weekly) {
         void Promise.resolve(supabase.from('devotionals').select('*')
           .eq('id', weekly.id).eq('is_published', true).single())
@@ -209,73 +216,56 @@ export default function WordScreen() {
     }
   }, [accountId, online]);
 
-  useEffect(() => {
+  // Refresh on revisit, app foreground return, and the local day boundary.
+  // This is one scheduled refresh per day, not a background polling loop.
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    let dailyRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleNextDayRefresh = () => {
+      const now = new Date();
+      const nextDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0,
+        0,
+        2,
+      );
+      dailyRefreshTimer = setTimeout(() => {
+        if (!active) return;
+        void load();
+        scheduleNextDayRefresh();
+      }, Math.max(1000, nextDay.getTime() - now.getTime()));
+    };
+
     void load();
-    return () => { request.current += 1; };
-  }, [load]);
+    scheduleNextDayRefresh();
 
-  const mondayKey =
-    useMemo(
-      () =>
-        toLocalDateKey(
-          startOfCurrentWeek(),
-        ),
-      [],
-    );
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void load();
+    });
 
-  const weeklyWord =
-    useMemo(
-      () => {
-        const thisWeek =
-          visibleItems
-            .filter(
-              item =>
-                !!item.publish_date &&
-                item.publish_date >=
-                  mondayKey,
-            )
-            .slice()
-            .sort(
-              (a, b) =>
-                String(
-                  a.publish_date,
-                ).localeCompare(
-                  String(
-                    b.publish_date,
-                  ),
-                ),
-            );
+    return () => {
+      active = false;
+      if (dailyRefreshTimer) clearTimeout(dailyRefreshTimer);
+      subscription.remove();
+      request.current += 1;
+    };
+  }, [load]));
 
-        return (
-          thisWeek[0] ??
-          items[0] ??
-          null
-        );
-      },
-      [
-        visibleItems,
-        mondayKey,
-      ],
-    );
+  const todayKey = toLocalDateKey(new Date());
+  const mondayKey = toLocalDateKey(startOfCurrentWeek());
 
-  const archive =
-    useMemo(
-      () =>
-        visibleItems
-          .filter(
-            item =>
-              item.id !==
-              weeklyWord?.id,
-          )
-          .slice(
-            0,
-            12,
-          ),
-      [
-        visibleItems,
-        weeklyWord?.id,
-      ],
-    );
+  const weeklyWord = useMemo(
+    () => selectCurrentWeekWord(visibleItems, mondayKey, todayKey),
+    [visibleItems, mondayKey, todayKey],
+  );
+
+  const archive = useMemo(
+    () => selectPreviousWords(visibleItems, weeklyWord, todayKey, 12),
+    [visibleItems, weeklyWord, todayKey],
+  );
 
   const openWord =
     (
@@ -363,7 +353,7 @@ export default function WordScreen() {
                   },
                 ]}
               >
-                Automatically follows the published Word schedule. A new weekly Word appears when its scheduled week begins.
+                Publishes a new Word each day according to the published schedule. The latest Word for the current week appears first; earlier days remain in Previous Words.
               </Text>
 
               {weeklyWord ? (
@@ -480,7 +470,7 @@ export default function WordScreen() {
               {archive.length >
                 0 && (
                 <SectionTitle>
-                  PREVIOUS WORD
+                  PREVIOUS WORDS
                 </SectionTitle>
               )}
             </View>
