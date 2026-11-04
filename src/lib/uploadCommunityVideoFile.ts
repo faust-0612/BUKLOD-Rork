@@ -280,7 +280,7 @@ export async function prepareCommunityJpegUri(
     throw new Error('Could not read the prepared photo size.');
   }
   if (sizeBytes > COMMUNITY_PHOTO_MAX_SIZE_BYTES) {
-    throw new Error('Prepared photo exceeds the 20 MB Community photo limit. Choose a smaller image.');
+    throw new Error('Prepared photo exceeds the 25 MB Community photo limit. Choose a smaller image.');
   }
 
   return { uri: fileUri, sizeBytes };
