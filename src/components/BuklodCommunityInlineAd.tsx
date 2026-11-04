@@ -56,6 +56,7 @@ export default function BuklodCommunityInlineAd({
   slotId,
   active = true,
   inventory = 'public',
+  bannerPlacementOverride,
 }: Props) {
   const { width } = useWindowDimensions();
   const pathname = usePathname();
