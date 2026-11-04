@@ -24,6 +24,8 @@ jobs:
           case "$PR_HEAD" in
             dev/community-media-aspect-ratio-20261103)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-media-aspect-ratio-20261103.json" >> "$GITHUB_ENV";;
+            feat/unified-social-media-rendering-20261104)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/unified-social-media-rendering-20261104.json" >> "$GITHUB_ENV";;
             dev/kl-chapter-create-uuid-recovery-20261102)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/kl-chapter-create-uuid-recovery-20261102.json" >> "$GITHUB_ENV";;
             release/kl-dynamic-scenes-consolidated-20261102)
