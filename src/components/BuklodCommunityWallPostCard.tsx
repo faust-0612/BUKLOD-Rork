@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type ImageSourcePropType,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -97,7 +96,7 @@ function BuklodCommunityWallPostCard({
     }));
 
   const privacy = post.privacy ?? 'public';
-  const privacyIcon =
+  const privacyIcon: React.ComponentProps<typeof MaterialCommunityIcons>['name'] =
     privacy === 'private'
       ? 'lock-outline'
       : privacy === 'scope'
@@ -149,7 +148,7 @@ function BuklodCommunityWallPostCard({
               <Text numberOfLines={1} style={[styles.timestamp, { color: theme.textMuted }]}>
                 {timestamp}
               </Text>
-              <MaterialCommunityIcons name={privacyIcon as any} size={12} color={theme.textMuted} />
+              <MaterialCommunityIcons name={privacyIcon} size={12} color={theme.textMuted} />
               <Text numberOfLines={1} style={[styles.privacy, { color: theme.textMuted }]}>
                 {post.privacyLabel ?? (privacy === 'public' ? 'Public' : privacy === 'scope' ? 'Members' : 'Only me')}
               </Text>
