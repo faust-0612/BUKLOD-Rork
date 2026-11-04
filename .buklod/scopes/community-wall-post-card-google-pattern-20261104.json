@@ -37,5 +37,10 @@
     "src/components/BuklodCommunityWallPostCard.tsx",
     "tests/community-wall-post-card-google-pattern.test.mjs",
     ".buklod/scopes/community-wall-post-card-google-pattern-20261104.json"
+  ],
+  "alternativeApproaches": [
+    "Duplicate the photo grid and video player inside a new card (rejected: would fork rendering, caching, and recovery behavior).",
+    "Move feed loading and Supabase mutations into the card (rejected: would couple presentation to authorization and scope isolation).",
+    "Replace Public and Scoped feed renderers immediately (rejected: broad integration risk beyond the requested reusable component)."
   ]
 }
