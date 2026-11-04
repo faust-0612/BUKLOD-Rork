@@ -29,7 +29,7 @@ test('Public Wall pagination and refresh remain connected after card integration
 
 test('Scoped Wall retains its existing FlatList and card sizing boundary', () => {
   assert.match(scopedWall, /<FlatList<any>/);
-  assert.match(scopedWall, /<BuklodCommunityWallPostCard[\\s\\S]*?containerStyle=\\{focusId === item\\.id \\?/);
+  assert.match(scopedWall, /<BuklodCommunityWallPostCard[\s\S]*?containerStyle=\{focusId === item\.id \?/);
   assert.doesNotMatch(scopedWall, /<View\s+style=\{\[styles\.postCard/);
   assert.doesNotMatch(scopedWall, /maintainVisibleContentPosition=\{\{\s*disabled:\s*true/);
 });
