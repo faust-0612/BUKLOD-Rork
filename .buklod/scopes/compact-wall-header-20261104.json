@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Reduce wasted vertical space in the shared public mobile dashboard header and Daily Encouragement strip while preserving safe-area handling, readable content, sponsor placement and notification access.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Android Production OTA run #249 published update 01a1a62f-f53e-7569-a4ef-306df0e0082b on production channel, Android runtime 1.3.2, from source SHA 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. Main has newer source changes; this scoped UI change remains DEV until exact-head QA and a new RC/OTA.",
+  "chosenApproach": "Reduce shared header min-height and title size, then tighten Daily Encouragement strip padding and icon dimensions. Keep the status-bar inset additive and preserve all existing actions.",
+  "selectionRationale": "The screenshot shows excess vertical consumption above the Wall. Shared shell and context bar are the direct sources; a small cross-route reduction improves usable viewport without hiding content.",
+  "riskAreas": [
+    "Android status-bar safe area",
+    "small-screen readability",
+    "notification tap target",
+    "sponsor placement",
+    "profile and scoped routes"
+  ],
+  "regressionTests": [
+    "tests/compact-wall-header.test.cjs"
+  ],
+  "preserveBehaviors": [
+    "Safe-area top inset remains fully respected",
+    "Notification action and unread badge remain visible and tappable",
+    "Sponsor placement and route-specific header behavior remain unchanged",
+    "Daily Encouragement verse, language label and reference remain present",
+    "No bottom-navigation or feed geometry changes"
+  ],
+  "acceptanceChecks": [
+    "Shared header minHeight is reduced without removing insets.top",
+    "Daily Encouragement shell uses reduced vertical padding and a proportionally smaller icon",
+    "Automated source contract test passes",
+    "Engineering accountability and current-base CI pass",
+    "Physical-device verification skipped per user instruction; no device-render claim"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/_layout.tsx",
+    "src/components/BuklodPublicDailyMessageBar.tsx",
+    "tests/compact-wall-header.test.cjs",
+    ".buklod/scopes/compact-wall-header-20261104.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "alternativeApproaches": [
+    "Hide Daily Encouragement or notifications (rejected: removes useful functionality)",
+    "Remove safe-area padding (rejected: risks status-bar overlap)",
+    "Reduce text size aggressively (rejected: harms readability)"
+  ]
+}
