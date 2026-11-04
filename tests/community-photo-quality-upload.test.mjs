@@ -38,6 +38,10 @@ test('public, anonymous and edited Community photos share the 25 MiB contract', 
   assert.match(edge, /signed_token: signed.token/);
   assert.match(edge, /ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES = 25 \* 1024 \* 1024/);
   assert.match(edge, /size > ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES/);
+  assert.match(edge, /createSignedUrl\(path, 300, \{/);
+  assert.match(edge, /width: 1024, height: 1024, resize: 'contain', quality: 80/);
+  assert.match(edge, /image\.byteLength > 5 \* 1024 \* 1024/);
+  assert.doesNotMatch(edge, /data\.size > 5 \* 1024 \* 1024/);
   assert.match(edit, /uploadCommunityPhotoFile\(/);
   assert.match(marites, /uploadCommunityPhotoFile\(/);
   assert.doesNotMatch(marites, /5 \* 1024 \* 1024|width: 1600|encodeMaritesPhotoBase64/);
