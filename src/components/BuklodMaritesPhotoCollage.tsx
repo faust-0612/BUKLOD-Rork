@@ -4,11 +4,9 @@ import {
   StyleSheet,
   Text,
   View,
-  type ImageStyle,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-
 import { BuklodCachedMediaImage } from '@/components/BuklodCachedMediaImage';
 
 import {
