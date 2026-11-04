@@ -72,7 +72,6 @@ function BuklodCommunityWallPostCard(props: Props) {
   const {
     children,
     containerStyle,
-    useThemeCard = false,
     post,
   } = props;
 
