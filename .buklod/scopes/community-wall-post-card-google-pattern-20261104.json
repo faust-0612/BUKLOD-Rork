@@ -16,7 +16,7 @@
   ],
   "regressionTests": [
     "tests/community-wall-post-card-google-pattern.test.mjs",
-    "tests/community-wall-scroll-stability.test.mjs"
+    "tests/community-wall-post-card-navigation-scroll.test.mjs"
   ],
   "preserveBehaviors": [
     "Existing dynamic one-to-four-photo collage geometry and source-aware single-photo framing",
@@ -46,7 +46,7 @@
     "src/components/BuklodExclusiveScopeCommunity.tsx",
     "tests/community-wall-post-card-google-pattern.test.mjs",
     ".buklod/scopes/community-wall-post-card-google-pattern-20261104.json",
-    "tests/community-wall-scroll-stability.test.mjs"
+    "tests/community-wall-post-card-navigation-scroll.test.mjs"
   ],
   "alternativeApproaches": [
     "Duplicate the photo grid and video player inside a new card (rejected: would fork rendering, caching, and recovery behavior).",
