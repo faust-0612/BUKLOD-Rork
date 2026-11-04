@@ -154,7 +154,7 @@ export default function BuklodPublicDailyMessageBar({
 
         <Text
           style={styles.message}
-          numberOfLines={3}
+          numberOfLines={2}
         >
           {showFaithContent
             ? verse.text
@@ -178,9 +178,9 @@ function createStyles(
   shell: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     backgroundColor: colors.white,
@@ -196,9 +196,9 @@ function createStyles(
   },
 
   icon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.greenSoft,
@@ -233,7 +233,7 @@ function createStyles(
   message: {
     marginTop: 2,
     fontSize: 12,
-    lineHeight: 16,
+    lineHeight: 15,
     fontWeight: '700',
     color: colors.text,
   },
