@@ -5,18 +5,16 @@
   "chosenApproach": "Raise the canonical per-photo limit to 20 MiB consistently in app and live database RPC validation; preserve already-encoded JPEGs up to the new limit; use a 2048px long-edge and quality 0.86 JPEG conversion only when conversion is required; route photo originals >=6 MiB through the existing TUS resumable uploader.",
   "selectionRationale": "Production evidence showed set_buklod_post_media_v7 delegates validation to v5, whose live definition still rejected photos above 5 MiB. The bucket is private with a 1 GiB limit. Supabase recommends TUS for uploads above 6 MiB and unstable networks. This aligns client, RPC and transport without altering ownership/scope authorization.",
   "riskAreas": [
-    "photo upload size mismatch",
-    "image generational compression",
-    "Android content:// file handling",
-    "TUS offset recovery",
-    "private media ownership and scope authorization",
-    "legacy v7-to-v5 RPC dependency"
+    "wall-media",
+    "photo upload validation",
+    "photo source fidelity",
+    "TUS weak-network recovery",
+    "Supabase RPC validation",
+    "release-identity"
   ],
   "regressionTests": [
     "tests/community-photo-quality-upload.test.mjs",
-    "tests/production-ota-media-render-gate.test.cjs",
-    "tests/unified-social-media-rendering.test.mjs",
-    "tests/community-media-weak-signal.test.cjs"
+    "supabase/tests/community_photo_quality_upload_r1.sql"
   ],
   "preserveBehaviors": [
     "Private community-media bucket",
@@ -46,12 +44,14 @@
     "tests/production-ota-media-render-gate.test.cjs",
     ".github/workflows/engineering-accountability.yml",
     ".github/workflows/production_android_ota.yml",
-    ".buklod/scopes/community-media-photo-quality-pipeline-20261104.json"
+    ".buklod/scopes/community-media-photo-quality-pipeline-20261104.json",
+    "supabase/tests/community_photo_quality_upload_r1.sql"
   ],
   "alternativeApproaches": [
     "Remove all photo size limits (rejected: creates unbounded memory, egress and abuse risk).",
     "Keep standard one-shot photo PUTs above 6 MiB (rejected: less reliable on weak mobile networks).",
     "Change only the client limit (rejected: live v5 RPC would still reject valid uploads).",
     "Replace image/video engines or expose public storage URLs (rejected: unnecessary and unsafe)."
-  ]
+  ],
+  "productionBaselineEvidence": "Production OTA baseline: Android runtime 1.3.2, update 01a1a62f-f53e-7569-a4ef-306df0e0082b from source 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. Current Main baseline at PR creation: fe747c2eac482b5772d346a2d6fa5c96ffc96311."
 }
