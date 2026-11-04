@@ -4653,7 +4653,7 @@ const communityFeedRows =
     style={{
      flexDirection:'row',
      gap:7,
-     marginBottom:10
+     marginBottom:6
     }}
    >
     <Pressable
@@ -4664,9 +4664,9 @@ const communityFeedRows =
       router.push('/bible/read?source=my_bible' as any)
      }
      style={({pressed})=>({
-      width:42,
-      height:42,
-      borderRadius:12,
+      width:38,
+      height:38,
+      borderRadius:11,
       alignItems:'center',
       justifyContent:'center',
       backgroundColor:'#3DDC4A',
@@ -4683,7 +4683,7 @@ const communityFeedRows =
     <View
      style={{
       flex:1,
-      minHeight:42,
+      minHeight:38,
       borderRadius:12,
       backgroundColor:colors.green,
       alignItems:'center',
