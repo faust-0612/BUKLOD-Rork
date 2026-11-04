@@ -78,7 +78,11 @@ test('Feed integration preserves each renderer-owned rich post content and actio
 });
 
 test('Shared card wrapper delegates children without duplicating feed data or authorization', () => {
+  assert.match(source, /function BuklodCommunityWallPostCard\(props: Props\)/);
   assert.match(source, /if \(children !== undefined\)/);
+  assert.match(source, /return <DefaultBuklodCommunityWallPostCard \{\.\.\.props\} post=\{post\} \/>/);
   assert.match(source, /useThemeCard\s*\?\s*<Card style=\{containerStyle\}>\{children\}<\/Card>/);
   assert.match(source, /<View style=\{containerStyle\}>\{children\}<\/View>/);
+  const wrapper = source.slice(source.indexOf('function BuklodCommunityWallPostCard'), source.indexOf('function DefaultBuklodCommunityWallPostCard'));
+  assert.doesNotMatch(wrapper, /useBuklodTheme|useMemo/);
 });
