@@ -44,7 +44,7 @@ test('public, anonymous and edited Community photos share the 25 MiB contract', 
   assert.doesNotMatch(edit, /5 \* 1024 \* 1024|width: 1600|base64-arraybuffer/);
 });
 
-test('production v5 and anonymous living RPCs accept the same 25 MiB photo contract', () => {
+test('all social photo RPCs accept the same 25 MiB photo contract', () => {
   const migration = read('supabase/migrations/20261104130000_community_photo_quality_upload_r1.sql');
   assert.match(migration, /set_buklod_post_media_v5\(uuid,jsonb\)/);
   assert.match(migration, /'5242880'/);
