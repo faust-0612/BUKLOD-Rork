@@ -9,7 +9,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Card } from '@/components/UI';
 
 import { BuklodCommunityPhotoCollage } from '@/components/BuklodCommunityPhotoCollage';
 import { CommunityVideo } from '@/components/CommunityVideo';
@@ -69,6 +68,7 @@ type Props = {
  * components instead of introducing a second media or interaction engine.
  */
 function BuklodCommunityWallPostCard(props: Props) {
+  const { theme } = useBuklodTheme();
   const {
     children,
     containerStyle,
@@ -79,15 +79,19 @@ function BuklodCommunityWallPostCard(props: Props) {
   // Keep the integrated feed wrapper lightweight. Existing Public/Scoped
   // renderers own their rich children and media lifecycles.
   if (children !== undefined) {
-    // UI.Card accepts plain ViewStyle values/arrays, while React Native's
-    // StyleProp also permits conditional false/null entries. Normalize those
-    // entries before crossing the Card component's narrower prop contract.
-    const normalizedCardStyle = Array.isArray(containerStyle)
-      ? containerStyle.filter(Boolean) as ViewStyle[]
-      : containerStyle as ViewStyle | undefined;
-    return useThemeCard
-      ? <Card style={normalizedCardStyle}>{children}</Card>
-      : <View style={containerStyle}>{children}</View>;
+    // Public and scoped feeds share one visual shell. Feed-owned children
+    // remain untouched so their media, actions and lifecycle stay canonical.
+    return (
+      <View
+        style={[
+          styles.feedCard,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+          containerStyle,
+        ]}
+      >
+        {children}
+      </View>
+    );
   }
 
   if (!post) return null;
@@ -233,6 +237,14 @@ function DefaultBuklodCommunityWallPostCard({
 export default memo(BuklodCommunityWallPostCard);
 
 const styles = StyleSheet.create({
+  feedCard: {
+    width: '100%',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
   card: {
     width: '100%',
     borderBottomWidth: StyleSheet.hairlineWidth,
