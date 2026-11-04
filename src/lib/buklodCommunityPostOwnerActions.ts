@@ -1,7 +1,7 @@
-import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import { attachCommunityPostMedia } from '@/lib/buklodCommunityPostMedia';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
+import { uploadCommunityPhotoFile } from '@/lib/uploadCommunityVideoFile';
 
 function isMissingRpcError(message: string) {
   return /could not find the function|function.*does not exist|schema cache/i.test(
@@ -91,34 +91,6 @@ export function communityPostEditPhotos(post: {
     .filter(item => item.uri || item.mediaPath);
 }
 
-async function encodeEditPhoto(uri: string) {
-  const M = await import('expo-image-manipulator');
-  const context = M.ImageManipulator.manipulate(uri);
-  context.resize({ width: 1600 });
-  const rendered = await context.renderAsync();
-  const image = await rendered.saveAsync({
-    format: M.SaveFormat.JPEG,
-    compress: 0.86,
-    base64: true,
-  });
-
-  if (!image.base64) {
-    throw new Error('Could not prepare this photo.');
-  }
-
-  const sizeBytes = Math.ceil(image.base64.length * 0.75);
-
-  if (sizeBytes > 5 * 1024 * 1024) {
-    throw new Error('Photo is too large.');
-  }
-
-  return {
-    uri: image.uri,
-    base64: image.base64,
-    sizeBytes,
-  };
-}
-
 async function signMediaPath(path: string | null | undefined) {
   const clean = String(path ?? '').trim();
   if (!clean) {
@@ -163,25 +135,17 @@ export async function saveCommunityPostEdit(input: {
       continue;
     }
 
-    const encoded = await encodeEditPhoto(photo.uri);
     const path = `${input.userId}/post-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('community-media')
-      .upload(path, decode(encoded.base64), {
-        contentType: 'image/jpeg',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
+    const prepared = await uploadCommunityPhotoFile({
+      path,
+      uri: photo.uri,
+    });
 
     uploaded.push({
-      media_path: path,
+      media_path: prepared.path,
       media_mime_type: 'image/jpeg',
-      media_size_bytes: encoded.sizeBytes,
-      media_url: encoded.uri,
+      media_size_bytes: prepared.sizeBytes,
+      media_url: null,
     });
   }
 
