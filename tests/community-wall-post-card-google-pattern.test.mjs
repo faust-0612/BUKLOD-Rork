@@ -38,3 +38,47 @@ test('Wall photo collage and video playback remain lazy/canonical component path
   assert.match(source, /active=\{active\}/);
   assert.match(source, /posterUri=\{video\.preview_url\}/);
 });
+
+test('Public and scoped Community Wall renderers use the shared post card boundary', () => {
+  const publicFeed = readFileSync(
+    new URL('../src/app/(tabs)/buklod.tsx', import.meta.url),
+    'utf8',
+  );
+  const scopedFeed = readFileSync(
+    new URL('../src/components/BuklodExclusiveScopeCommunity.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(publicFeed, /import BuklodCommunityWallPostCard from ['"]@\/components\/BuklodCommunityWallPostCard['"]/);
+  assert.match(publicFeed, /<BuklodCommunityWallPostCard useThemeCard/);
+  assert.match(publicFeed, /<\/BuklodCommunityWallPostCard>/);
+
+  assert.match(scopedFeed, /import BuklodCommunityWallPostCard from ['"]@\/components\/BuklodCommunityWallPostCard['"]/);
+  assert.match(scopedFeed, /<BuklodCommunityWallPostCard/);
+  assert.match(scopedFeed, /containerStyle=\{\[styles\.postCard/);
+  assert.match(scopedFeed, /<\/BuklodCommunityWallPostCard>/);
+});
+
+test('Feed integration preserves each renderer-owned rich post content and actions', () => {
+  const publicFeed = readFileSync(
+    new URL('../src/app/(tabs)/buklod.tsx', import.meta.url),
+    'utf8',
+  );
+  const scopedFeed = readFileSync(
+    new URL('../src/components/BuklodExclusiveScopeCommunity.tsx', import.meta.url),
+    'utf8',
+  );
+
+  for (const token of ['renderCommunityMedia(item)', 'BuklodExpandableWallCaption', 'BuklodPostInternalShare']) {
+    assert.ok(publicFeed.includes(token), `Public feed lost ${token}`);
+  }
+  for (const token of ['communityPhotoCollageItems(', 'recoverScopedWallVideo(item)', 'BuklodPostInternalShare']) {
+    assert.ok(scopedFeed.includes(token), `Scoped feed lost ${token}`);
+  }
+});
+
+test('Shared card wrapper delegates children without duplicating feed data or authorization', () => {
+  assert.match(source, /if \(children !== undefined\)/);
+  assert.match(source, /useThemeCard\s*\?\s*<Card style=\{containerStyle\}>\{children\}<\/Card>/);
+  assert.match(source, /<View style=\{containerStyle\}>\{children\}<\/View>/);
+});
