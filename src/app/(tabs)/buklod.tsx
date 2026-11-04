@@ -4712,8 +4712,8 @@ const communityFeedRows =
      }
      style={({pressed})=>({
       minWidth:68,
-      height:42,
-      borderRadius:12,
+       height:38,
+       borderRadius:11,
       paddingHorizontal:10,
       flexDirection:'row',
       alignItems:'center',
