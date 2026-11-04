@@ -41,7 +41,8 @@
     "tests/compact-public-wall-header-20261104.test.mjs",
     ".buklod/scopes/compact-public-wall-header-20261104.json",
     ".github/workflows/engineering-accountability.yml",
-    "tests/navigation-scroll-compact-public-wall.test.mjs"
+    "tests/navigation-scroll-compact-public-wall.test.mjs",
+    "src/components/BuklodPublicDailyMessageBar.tsx"
   ],
   "alternativeApproaches": [
     "Remove profile stories, search or top actions (rejected: feature loss).",
