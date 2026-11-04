@@ -62,22 +62,12 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
 }
 async function loadImage(admin: any, path: string | null, mime: string | null) {
   if (!path || !mime || !['image/jpeg','image/png','image/webp'].includes(mime)) return null;
-  // Moderate the uploaded original through a short-lived, private transformed
-  // URL. Large high-quality uploads are downsampled before base64/model input,
-  // rather than silently skipping image moderation at the old 5 MiB source cap.
-  const { data: signed, error } = await admin.storage
-    .from('community-media')
-    .createSignedUrl(path, 300, {
-      transform: { width: 1024, height: 1024, resize: 'contain', quality: 80 },
-    });
-  if (error || !signed?.signedUrl) return null;
-  const response = await fetch(signed.signedUrl);
-  if (!response.ok) return null;
-  const image = await response.arrayBuffer();
-  // Keep a bounded model payload even when an unusual source remains large
-  // after transformation. Upload limits and moderation payload limits differ.
-  if (image.byteLength > 5 * 1024 * 1024) return null;
-  return { mimeType: mime, data: arrayBufferToBase64(image) };
+  const { data, error } = await admin.storage.from('community-media').download(path);
+  // This is an AI model payload/memory budget, not an upload/storage limit.
+  // Large source images remain uploaded and rendered at full quality; moderation
+  // still uses the bounded source path and falls back to the existing review flow.
+  if (error || !data || data.size > 5 * 1024 * 1024) return null;
+  return { mimeType: mime, data: arrayBufferToBase64(await data.arrayBuffer()) };
 }
 async function rootOwner(admin: any, post: any): Promise<string> {
   if (post?.user_id) return String(post.user_id);
