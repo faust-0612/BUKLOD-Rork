@@ -112,7 +112,7 @@ export function autoOfficeFolderKey(name: string, mimeType: string) {
   return 'other';
 }
 
-async function checksum(bytes: Uint8Array) {
+export async function checksumOfficeBytes(bytes: Uint8Array) {
   /*
    * Android's Expo Crypto native bridge cannot reliably marshal an
    * ArrayBuffer supplied to digest() in the current RN/Expo runtime.
@@ -219,7 +219,7 @@ export async function pickOfficeFile(): Promise<OfficePickedFile | null> {
     mimeType,
     size: bytes.byteLength,
     bytes,
-    checksumSha256: await checksum(bytes),
+    checksumSha256: await checksumOfficeBytes(bytes),
     autoFolderKey: autoOfficeFolderKey(name, mimeType),
     optimized,
   };
