@@ -50,7 +50,7 @@ test('Public and scoped Community Wall renderers use the shared post card bounda
   );
 
   assert.match(publicFeed, /import BuklodCommunityWallPostCard from ['"]@\/components\/BuklodCommunityWallPostCard['"]/);
-  assert.match(publicFeed, /<BuklodCommunityWallPostCard useThemeCard/);
+  assert.match(publicFeed, /<BuklodCommunityWallPostCard containerStyle=/);
   assert.match(publicFeed, /<\/BuklodCommunityWallPostCard>/);
 
   assert.match(scopedFeed, /import BuklodCommunityWallPostCard from ['"]@\/components\/BuklodCommunityWallPostCard['"]/);
@@ -84,7 +84,8 @@ test('Shared card wrapper delegates children without duplicating feed data or au
   assert.match(source, /const \{ theme \} = useBuklodTheme\(\)/);
   assert.match(source, /styles\.feedCard/);
   assert.match(source, /backgroundColor: theme\.surface, borderColor: theme\.border/);
-  assert.match(source, /borderRadius: 16/);
-  assert.match(source, /padding: 12/);
-  assert.match(source, /marginBottom: 10/);
+  assert.match(source, /borderRadius: 18/);
+  assert.match(source, /padding: 14/);
+  assert.match(source, /marginBottom: 12/);
+  assert.match(source, /gap: 10/);
 });
