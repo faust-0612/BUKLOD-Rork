@@ -27,12 +27,15 @@ test('Community photo originals use resumable TUS uploads while previews remain 
 
 test('public, anonymous and edited Community photos share the 20 MiB contract', () => {
   const anonymous = read('src/lib/buklodCommunityAnonymousMedia.ts');
+  const marites = read('src/lib/buklodMaritesBoard.ts');
   const edit = read('src/lib/buklodCommunityPostOwnerActions.ts');
   const edge = read('supabase/functions/buklod-community-ai/index.ts');
   assert.match(anonymous, /prepared.sizeBytes > COMMUNITY_PHOTO_MAX_SIZE_BYTES/);
   assert.match(edge, /ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES = 20 \* 1024 \* 1024/);
   assert.match(edge, /size > ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES/);
   assert.match(edit, /uploadCommunityPhotoFile\(/);
+  assert.match(marites, /uploadCommunityPhotoFile\(/);
+  assert.doesNotMatch(marites, /5 \* 1024 \* 1024|width: 1600|encodeMaritesPhotoBase64/);
   assert.doesNotMatch(edit, /5 \* 1024 \* 1024|width: 1600|base64-arraybuffer/);
 });
 
