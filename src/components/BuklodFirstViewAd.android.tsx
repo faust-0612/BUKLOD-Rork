@@ -54,6 +54,7 @@ export default function BuklodFirstViewAd({
       inventory={inventory}
       slotId={placementId}
       placementIdOverride={placementId}
+      bannerPlacementOverride={placement === 'community_entry' ? 'community_entry' : undefined}
       diagnosticName={diagnosticPlacementFor(placement)}
       firstView
       active

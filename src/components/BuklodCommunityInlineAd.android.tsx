@@ -22,6 +22,7 @@ import {
 import {
   getBuklodBannerUnitId,
   buklodAdsTestMode,
+  type BuklodAdPlacement,
 } from '@/lib/buklodAdUnits';
 import { recordBuklodAdEvent, type BuklodAdDiagnosticPlacement } from '@/lib/buklodAdDiagnostics';
 import {
@@ -49,6 +50,7 @@ type Props = {
   inventory?: CommunityAdInventory;
   surface?: NativeSponsoredSurface;
   placementIdOverride?: string;
+  bannerPlacementOverride?: BuklodAdPlacement;
   diagnosticName?: BuklodAdDiagnosticPlacement;
   firstView?: boolean;
 };
@@ -70,6 +72,7 @@ export default function BuklodCommunityInlineAd({
   inventory = 'public',
   surface = 'wall',
   placementIdOverride,
+  bannerPlacementOverride,
   diagnosticName,
   firstView = false,
 }: Props) {
@@ -122,7 +125,7 @@ export default function BuklodCommunityInlineAd({
       : `${surface}_native_sponsored`
   );
 
-  const bannerPlacement =
+  const bannerPlacement = bannerPlacementOverride ?? (
     surface === 'home'
       ? 'home'
       : surface === 'profile'
@@ -135,7 +138,8 @@ export default function BuklodCommunityInlineAd({
               ? 'org_community'
               : inventory === 'cluster'
                 ? 'cluster_community'
-                : 'community';
+                : 'community'
+  );
 
   const routeSafe = isBuklodPassiveAdAllowed({
     placement: bannerPlacement,
