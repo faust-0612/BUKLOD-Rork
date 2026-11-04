@@ -1,6 +1,8 @@
 /* BUKLOD_COMMUNITY_MEDIA_CANONICAL_R3 */
 /** Community Wall canonical composer contract. */
 export const COMMUNITY_MAX_PHOTOS = 10;
+/** High-quality Community photos; upload uses TUS above the 6 MiB threshold. */
+export const COMMUNITY_PHOTO_MAX_SIZE_BYTES = 20 * 1024 * 1024;
 /** One video plus up to 10 photos on the same post. */
 export const COMMUNITY_MAX_WALL_MEDIA = COMMUNITY_MAX_PHOTOS + 1;
 
