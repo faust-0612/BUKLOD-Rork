@@ -1,4 +1,5 @@
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
+import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
 /* BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME: existing broadcast implementation preserved */
 /* PERF_EMERGENCY_R2_VISIBLE_POSTS: list-shape-drift-safely-skipped */
 /* PERF_EMERGENCY_R2_MULTI_MEDIA_CACHE: existing-community-media-url-cache-preserved */
@@ -5045,7 +5046,7 @@ const communityFeedRows =
 
     return (
       <BuklodFocusVisibleRow index={index}>
-    <Card style={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
+    <BuklodCommunityWallPostCard useThemeCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
    <View
      style={{
        flexDirection:
@@ -5304,7 +5305,7 @@ const communityFeedRows =
       />
      }
     />
-  </Card>
+  </BuklodCommunityWallPostCard>
       </BuklodFocusVisibleRow>
     );}}/>
 {/* BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_SWIPE_R4 */}
