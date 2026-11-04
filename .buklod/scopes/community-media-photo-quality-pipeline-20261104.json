@@ -53,5 +53,5 @@
     "Change only the client limit (rejected: live v5 RPC would still reject valid uploads).",
     "Replace image/video engines or expose public storage URLs (rejected: unnecessary and unsafe)."
   ],
-  "productionBaselineEvidence": "Production OTA baseline: Android runtime 1.3.2, update 01a1a62f-f53e-7569-a4ef-306df0e0082b from source 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. Current Main baseline at PR creation: fe747c2eac482b5772d346a2d6fa5c96ffc96311."
+  "productionBaselineEvidence": "verified: Production OTA baseline: Android runtime 1.3.2, update 01a1a62f-f53e-7569-a4ef-306df0e0082b from source 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. Current Main baseline at PR creation: fe747c2eac482b5772d346a2d6fa5c96ffc96311."
 }
