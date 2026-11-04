@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Make the verified cumulative AdMob regression suite a mandatory gate in every BUKLOD Android production OTA so merged ad fixes cannot silently regress between Main and the frozen RC.",
+  "baseRef": "c353099a67439f3fe666ee231003c5b6df0ca4f3",
+  "productionBaselineEvidence": "Main c353099a67439f3fe666ee231003c5b6df0ca4f3 contains the cumulative AdMob startup, UMP consent, NativeAd-first, sequential BannerAd fallback, request reservation, empty-slot collapse, Public/Organization/Cluster isolation, interstitial cadence, and dedicated Public Wall entry placement fixes. Existing PR checks passed; the production OTA workflow previously ran TypeScript and general release anchors but did not execute the focused AdMob suite before freezing/publishing the RC.",
+  "chosenApproach": "Add the existing focused Node regression tests for all current AdMob runtime gates to the manual Android production OTA workflow immediately after TypeScript QA. Keep the existing DEV PR gates, production baseline check, exact frozen RC hashing, native runtime restrictions, EAS publication and live bundle verification unchanged.",
+  "selectionRationale": "The test files already run under Node 22 and passed the relevant DEV CI suites. Running them again on the exact main commit before RC export closes the gap between PR validation and production promotion without adding SDK requests, native dependencies, build steps or production mutations.",
+  "preserveBehaviors": [
+    "Production OTA remains manual workflow_dispatch on Main only.",
+    "The existing production runtime 1.3.2 and native-baseline ancestry checks remain unchanged.",
+    "No AdMob IDs, EAS secrets, UMP consent, remote flags, cooldowns, or mediation dashboard settings are changed.",
+    "The exact Android export is still frozen, hashed, verified against the unchanged live production baseline, and checked after publication.",
+    "No production OTA is triggered by this PR."
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "production-release-gates"
+  ],
+  "regressionTests": [
+    "tests/buklod-wall-ad-stability.test.mjs",
+    "tests/buklod-profile-connect-home-ads.test.mjs",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "tests/buklod-cluster-faith-ad-scope.test.mjs",
+    "tests/buklod-ad-startup-fast-path.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/buklod-ad-opportunities.test.cjs",
+    "tests/faith-scope-creation-ad-safety.test.mjs",
+    "tests/buklod-ad-natural-break-expansion.test.mjs",
+    "tests/buklod-android-wall-ad-density.test.mjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/production_android_ota.yml",
+    ".buklod/scopes/ota-ads-regression-gate-20261104.json"
+  ],
+  "acceptanceChecks": [
+    "The production Android OTA workflow executes all 11 focused AdMob regression files after TypeScript QA and before Expo credential preflight, RC export, freeze and publication.",
+    "The same regressionTests list is run by the Engineering Accountability focused-test gate for this isolated PR.",
+    "Engineering Accountability, TypeScript/Performance R1 QA and Main integration QA pass on the exact PR head.",
+    "No changes are made to application runtime behavior, native dependencies, AdMob configuration or production deployment."
+  ]
+}
