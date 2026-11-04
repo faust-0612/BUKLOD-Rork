@@ -1,12 +1,14 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, type ReactNode } from 'react';
 import {
   Image,
   Pressable,
   StyleSheet,
   Text,
   View,
+  type ViewStyle,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Card } from '@/components/UI';
 
 import { BuklodCommunityPhotoCollage } from '@/components/BuklodCommunityPhotoCollage';
 import { CommunityVideo } from '@/components/CommunityVideo';
@@ -41,16 +43,19 @@ export type BuklodCommunityWallPost = {
 };
 
 type Props = {
-  post: BuklodCommunityWallPost;
-  reactionOptions: readonly BuklodReactionOption[];
+  post?: BuklodCommunityWallPost;
+  reactionOptions?: readonly BuklodReactionOption[];
+  children?: ReactNode;
+  containerStyle?: ViewStyle | ViewStyle[];
+  useThemeCard?: boolean;
   active?: boolean;
   onPressAuthor?: () => void;
   onPressPhoto?: (index: number, photos: BuklodCommunityWallMedia[]) => void;
   onLongPressPhoto?: (index: number, photos: BuklodCommunityWallMedia[]) => void;
   onOpenVideo?: () => void;
-  onReact: (key: string) => void;
-  onOpenComments: () => void;
-  onShare: () => void;
+  onReact?: (key: string) => void;
+  onOpenComments?: () => void;
+  onShare?: () => void;
   onReactionSummaryPress?: (key: string) => void;
 };
 
@@ -64,23 +69,38 @@ type Props = {
  */
 function BuklodCommunityWallPostCard({
   post,
-  reactionOptions,
+  reactionOptions = [],
+  children,
+  containerStyle,
+  useThemeCard = false,
   active = true,
   onPressAuthor,
   onPressPhoto,
   onLongPressPhoto,
   onOpenVideo,
-  onReact,
-  onOpenComments,
-  onShare,
+  onReact = () => undefined,
+  onOpenComments = () => undefined,
+  onShare = () => undefined,
   onReactionSummaryPress,
 }: Props) {
   const { theme } = useBuklodTheme();
 
   const media = useMemo(
-    () => (Array.isArray(post.media) ? post.media.filter(item => item?.media_url || item?.media_path) : []),
-    [post.media],
+    () => (Array.isArray(post?.media) ? post.media.filter(item => item?.media_url || item?.media_path) : []),
+    [post?.media],
   );
+
+  // Feed containers may supply their established rich post body as children.
+  // This lets Public and scoped feeds adopt the shared card boundary without
+  // losing owner menus, follow controls, comment previews, report actions,
+  // signed-URL resolution, or feed-specific moderation behavior.
+  if (children !== undefined) {
+    return useThemeCard
+      ? <Card style={containerStyle}>{children}</Card>
+      : <View style={containerStyle}>{children}</View>;
+  }
+
+  if (!post) return null;
 
   const video = media.find(item =>
     String(item.media_mime_type ?? '').toLowerCase().startsWith('video/'),
