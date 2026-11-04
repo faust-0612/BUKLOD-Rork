@@ -1106,37 +1106,6 @@ export async function appendMaritesStory(
   return next;
 }
 
-async function encodeMaritesPhotoBase64(uri: string) {
-  const M = await import('expo-image-manipulator');
-  const { decode } = await import('base64-arraybuffer');
-
-  const context = M.ImageManipulator.manipulate(uri);
-  context.resize({ width: 1600 });
-
-  const rendered = await context.renderAsync();
-  const image = await rendered.saveAsync({
-    format: M.SaveFormat.JPEG,
-    compress: 0.86,
-    base64: true,
-  });
-
-  if (!image.base64) {
-    throw new Error('Could not prepare this photo.');
-  }
-
-  const sizeBytes = Math.ceil(image.base64.length * 0.75);
-
-  if (sizeBytes > 5 * 1024 * 1024) {
-    throw new Error('Photo is too large.');
-  }
-
-  return {
-    base64: image.base64,
-    sizeBytes,
-    decode,
-  };
-}
-
 /**
  * Publish a Marites story to the shared community wall so other
  * accounts can see it. Falls back to device-local storage if the
@@ -1199,27 +1168,18 @@ export async function publishMaritesStory(input: {
       uploaded.push({ media_path: videoPath, media_mime_type: input.video.mimeType, media_size_bytes: 0 });
     }
     for (let index = 0; index < photoUris.length; index += 1) {
-      const encoded = await encodeMaritesPhotoBase64(
-        photoUris[index]
-      );
       const path =
         `${input.userId}/marites-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('community-media')
-        .upload(path, encoded.decode(encoded.base64), {
-          contentType: 'image/jpeg',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw uploadError;
-      }
+      const { uploadCommunityPhotoFile } = await import('@/lib/uploadCommunityVideoFile');
+      const prepared = await uploadCommunityPhotoFile({
+        path,
+        uri: photoUris[index],
+      });
 
       uploaded.push({
-        media_path: path,
+        media_path: prepared.path,
         media_mime_type: 'image/jpeg',
-        media_size_bytes: encoded.sizeBytes,
+        media_size_bytes: prepared.sizeBytes,
       });
     }
 
