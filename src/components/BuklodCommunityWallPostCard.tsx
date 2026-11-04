@@ -239,9 +239,10 @@ const styles = StyleSheet.create({
   feedCard: {
     width: '100%',
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
+    gap: 10,
     overflow: 'hidden',
   },
   card: {
