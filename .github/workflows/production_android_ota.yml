@@ -62,6 +62,21 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
+      - name: AdMob startup, scope, fallback and recovery regression suite
+        run: >-
+          node --test
+          tests/buklod-wall-ad-stability.test.mjs
+          tests/buklod-profile-connect-home-ads.test.mjs
+          tests/buklod-native-ad-navigation-scroll.test.mjs
+          tests/buklod-cluster-faith-ad-scope.test.mjs
+          tests/buklod-ad-startup-fast-path.test.mjs
+          tests/buklod-ad-empty-slot-collapse.test.mjs
+          tests/buklod-ad-request-gate-recovery.test.mjs
+          tests/buklod-ad-opportunities.test.cjs
+          tests/faith-scope-creation-ad-safety.test.mjs
+          tests/buklod-ad-natural-break-expansion.test.mjs
+          tests/buklod-android-wall-ad-density.test.mjs
+
       - name: Home map Google Maps handoff and enlarged search regression
         run: node scripts/buklod-home-map-regression.cjs
 
