@@ -6,6 +6,7 @@
   "chosenApproach": "Guard Android image callbacks against stale media identity, signed URL and renderer completions; reuse the shared private-media cache/recovery image component for Marites photo collages; keep the best cached/generated video poster visible over the active Expo Video surface until the first playback frame begins.",
   "selectionRationale": "Fix cross-surface rendering inconsistencies at shared boundaries without replacing Expo Image/Video, changing native dependencies, weakening signed-media authorization, or eagerly mounting offscreen players.",
   "riskAreas": [
+    "wall-media",
     "Android image cell recycling",
     "stale signed URLs",
     "photo decode and display lifecycle",
@@ -16,12 +17,7 @@
   ],
   "regressionTests": [
     "tests/unified-social-media-rendering.test.mjs",
-    "tests/weak-media-rendering.test.cjs",
-    "tests/community-media-weak-signal.test.cjs",
-    "tests/community-video-persistent-preview.test.mjs",
-    "tests/community-video-playback-recovery.test.mjs",
-    "tests/community-media-aspect-ratio-20261103.test.mjs",
-    "tests/community-wall-no-blank-photo.test.cjs"
+    "tests/weak-media-rendering.test.cjs"
   ],
   "preserveBehaviors": [
     "Private signed media URLs and exact scope authorization",
