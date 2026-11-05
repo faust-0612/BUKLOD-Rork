@@ -88,7 +88,7 @@ import {
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
 import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { CommunityVideo, enableCommunityVideoSound } from '@/components/CommunityVideo';
 import { useFocusEffect } from 'expo-router';
 import { selectVisibleMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
 import { useAuth } from '@/providers/AuthProvider';
@@ -128,62 +128,32 @@ function useMaritesPlaybackActive() {
   return focused && foreground;
 }
 
-function MaritesQuickVideo({ uri, autoPlay = false, muted = false }: { uri: string; autoPlay?: boolean; muted?: boolean }) {
+function MaritesQuickVideo({
+  uri,
+  autoPlay = false,
+  height = MARITES_COMPACT_CARD_HEIGHT - MARITES_COMPACT_FOOTER_HEIGHT,
+  fullscreen = false,
+}: {
+  uri: string;
+  autoPlay?: boolean;
+  height?: number;
+  fullscreen?: boolean;
+}) {
   const active = useMaritesPlaybackActive();
-  // Cache only remote video bytes; preserve local picker and browser playback.
-  const source = useMemo(
-    () => Platform.OS !== 'web' && /^https?:\/\//i.test(uri)
-      ? { uri, useCaching: true }
-      : uri,
-    [uri],
-  );
-  const player = useVideoPlayer(source, instance => {
-    instance.audioMixingMode = 'mixWithOthers';
-    instance.showNowPlayingNotification = false;
-    instance.staysActiveInBackground = false;
-    instance.loop = autoPlay;
-    instance.muted = muted;
-  });
-  const [status, setStatus] = useState<string>(() => player.status);
-  const [slow, setSlow] = useState(false);
-  useEffect(() => {
-    setStatus(player.status);
-    const subscription = player.addListener('statusChange', event => {
-      setStatus(event.status);
-    });
-    return () => subscription.remove();
-  }, [player]);
-  useEffect(() => {
-    player.muted = muted;
-    if (autoPlay && active) player.play();
-    else player.pause();
-  }, [player, autoPlay, muted, active]);
-  useEffect(() => {
-    setSlow(false);
-    if (status === 'readyToPlay' || status === 'error' || !active) return;
-    const timer = setTimeout(() => setSlow(true), 10_000);
-    return () => clearTimeout(timer);
-  }, [status, uri, active]);
-  // A failed/expired URL used to look exactly like an empty black story.
-  // Keep the video mounted only while visible, but always surface its state.
+
+  // Marites and Community Wall share the same resilient player, aspect-ratio
+  // handling, cached poster transition, playback recovery and sound controls.
+  // Sound is enabled from an explicit user play gesture, never by surprise.
   return (
-    <View style={{ flex: 1, backgroundColor: '#151515' }}>
-      <VideoView player={player} nativeControls={!autoPlay && active} contentFit="contain" style={{ width: '100%', height: '100%' }} />
-      {(status === 'error' || (active && status !== 'readyToPlay')) && (
-        <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', padding: 12, backgroundColor: 'rgba(0,0,0,0.35)' }}>
-          {status === 'error' ? (
-            <MaterialCommunityIcons name="alert-circle-outline" size={27} color="#FFFFFF" />
-          ) : !slow ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <MaterialCommunityIcons name="wifi-alert" size={27} color="#FFFFFF" />
-          )}
-          <Text style={{ color: '#FFFFFF', marginTop: 8, textAlign: 'center', fontSize: 12, fontWeight: '700' }}>
-            {status === 'error' ? 'Video unavailable' : slow ? 'Video is taking longer to load' : 'Loading video…'}
-          </Text>
-        </View>
-      )}
-    </View>
+    <CommunityVideo
+      uri={uri}
+      height={height}
+      fullscreen={fullscreen}
+      active={active}
+      autoPlay={autoPlay}
+      preserveAspectRatio
+      onRequestPlay={enableCommunityVideoSound}
+    />
   );
 }
 
@@ -796,7 +766,7 @@ function MaritesStoryCard({
       onPress={onPress}
       style={StyleSheet.absoluteFill}
     >
-      {hasVideo && <View style={styles.storyPhotoFill}>{autoPlayVideo ? <MaritesQuickVideo uri={story.video_uri!} autoPlay muted /> : <View style={{ flex: 1, backgroundColor: '#151515', alignItems: 'center', justifyContent: 'center' }}><MaterialCommunityIcons name="play-circle-outline" size={44} color="#fff" /></View>}</View>}
+      {hasVideo && <View style={styles.storyPhotoFill}>{autoPlayVideo ? <MaritesQuickVideo uri={story.video_uri!} autoPlay /> : <View style={{ flex: 1, backgroundColor: '#151515', alignItems: 'center', justifyContent: 'center' }}><MaterialCommunityIcons name="play-circle-outline" size={44} color="#fff" /></View>}</View>}
       {hasPhoto && !hasVideo && (
         <BuklodMaritesPhotoCollage
           uris={photoUris}
@@ -2025,7 +1995,7 @@ export default function BuklodMaritesBoard({
                   !photoUris.length &&
                   isMaritesEmojiOnlyBody(body);
 
-                if (viewStory.video_uri) return <MaritesQuickVideo uri={viewStory.video_uri} />;
+                if (viewStory.video_uri) return <MaritesQuickVideo uri={viewStory.video_uri} height={0} fullscreen />;
                 if (photoUris.length) {
                   if (photoUris.length === 1) {
                     return (
