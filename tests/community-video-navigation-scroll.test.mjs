@@ -35,10 +35,10 @@ test('Community Wall videos use the Marites full-frame presentation without chan
   const web = read('src/components/CommunityVideo.web.tsx');
   const marites = read('src/components/BuklodMaritesBoard.tsx');
   assert.match(marites, /contentFit="contain"/);
-  assert.match(publicWall, /edgeToEdge\\s+fitFrame\\s+autoPlay/);
-  assert.match(scopedWall, /height=\\{\\s*470\\s*\\}\\s*fitFrame\\s*autoPlay/);
+  assert.match(publicWall, /edgeToEdge\s+fitFrame\s+autoPlay/);
+  assert.match(scopedWall, /height=\{\s*470\s*\}\s*fitFrame\s*autoPlay/);
   assert.match(video, /!fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio/);
-  assert.match(video, /contentFit=\\{preserveAspectRatio \\? 'contain' : 'cover'\\}/);
+  assert.match(video, /contentFit=\{preserveAspectRatio \\? 'contain' : 'cover'\}/);
   assert.match(web, /objectFit: fullscreen \\|\\| fitFrame \\? 'contain' : 'cover'/);
   assert.match(web, /muted: fullscreen \\? false : !soundOn/);
 });
