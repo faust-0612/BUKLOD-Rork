@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Correct Community Wall photo collage duplication and full-screen photo paging while preserving each distinct original photo and its order.",
   "baseRef": "main",
-  "productionBaselineEvidence": "DEV-only follow-up based on the merged Marites-style Community Wall video implementation at 183c94591ab3e0451f4e1900cddd74a1bff121e1. No OTA or production release is included in this change.",
+  "productionBaselineEvidence": "verified: Android Production OTA run #249 published update 01a1a62f-f53e-7569-a4ef-306df0e0082b on production channel, Android runtime 1.3.2, from source SHA 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. Current main includes later non-OTA source changes; this branch is DEV-only until its own exact-head gates and a new RC/OTA.",
   "chosenApproach": "Deduplicate collage items by normalized original Storage object identity across media_path, signed media_url (ignoring expiring query tokens), and external object keys. Use preview sidecar identity only when no original identity exists, so a stale/shared preview can never hide distinct originals. Keep the public Wall vertical full-screen photo FlatList mounted for one viewer session and remount only when a new collage is opened.",
   "selectionRationale": "The supplied screenshots show duplicate-looking collage tiles and a two-photo full-screen sequence. The shared collage component and public Wall viewer are the common source of truth; correct identity normalization and viewer lifecycle without changing image quality, signed URL authorization, zoom, reactions, or save behavior.",
   "riskAreas": [
