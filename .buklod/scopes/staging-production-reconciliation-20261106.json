@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "objective": "Establish a fail-closed staging-to-canonical reconciliation audit that prevents stale or divergent staging candidates from being promoted and records exact staging configuration drift without changing production or backend credentials.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Android Production OTA run #249 published update 01a1a62f-f53e-7569-a4ef-306df0e0082b on production channel, Android runtime 1.3.2, from source SHA 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. Current main includes later non-OTA source changes; this audit does not assert current main is the live installed production artifact.",
+  "chosenApproach": "Add a read-only Git ancestry gate, a manually invoked exact-ref GitHub Actions audit, focused Node tests, and a reconciliation runbook. Keep the old staging branches untouched and create a clean source candidate from canonical main.",
+  "selectionRationale": "The staging candidates are independently confirmed to be behind and diverged from main. Whole-merging them risks rolling back current UI, branding, media and other product changes. A read-only gate plus clean baseline candidate blocks regression while preserving unique commits for individual review.",
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/staging-reconciliation-gate.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Production source, OTA channel, installed clients, Supabase data and credentials remain unchanged",
+    "Existing staging-only commits remain available for selective forward-port review",
+    "Staging must contain canonical main ancestry before promotion",
+    "A green ancestry gate never bypasses regression, runtime/channel compatibility, RC or visible verification"
+  ],
+  "acceptanceChecks": [
+    "A staging candidate behind main is blocked",
+    "A diverged staging candidate is blocked even when it contains unique commits",
+    "A candidate containing all canonical main history is reported as ancestry-ready but still requires release gates",
+    "Invalid commit counts and unprovable Git ancestry fail closed",
+    "The audit does not run merge, reset, rebase, build, OTA or production deployment commands"
+  ],
+  "allowedPaths": [
+    "scripts/staging-reconciliation-gate.mjs",
+    "tests/staging-reconciliation-gate.test.mjs",
+    "docs/STAGING_PRODUCTION_RECONCILIATION.md",
+    ".github/workflows/staging-reconciliation-audit.yml",
+    ".buklod/scopes/staging-production-reconciliation-20261106.json"
+  ],
+  "alternativeApproaches": [
+    "Whole-merge the old staging-user branch into main (rejected: it is diverged and behind, so it risks rolling back newer canonical changes)",
+    "Force-reset the existing staging branch to main (rejected: it destroys or obscures staging-only commit history and does not prove installed-client backend compatibility)",
+    "Publish current main immediately to the staging-user channel (rejected: the exact installed staging EAS environment, runtime and backend target have not been verified)"
+  ]
+}
