@@ -18,6 +18,7 @@ import {
   router,
   useFocusEffect,
 } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   Card,
@@ -139,6 +140,7 @@ function humanDate(
 }
 
 export default function WordScreen() {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const accountId = user?.id ?? '';
   const { online } = useNetwork();
@@ -279,9 +281,10 @@ export default function WordScreen() {
   return (
     <BuklodClusterMembershipGate title="Join a Cluster to use Daily Devotion">
     <View
-      style={
-        shared.screen
-      }
+      style={[
+        shared.screen,
+        { paddingTop: insets.top },
+      ]}
     >
       {!!loadError && <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
         <Text style={shared.muted}>{loadError}</Text>
@@ -450,7 +453,7 @@ export default function WordScreen() {
                       shared.h2
                     }
                   >
-                    No published Word yet
+                    No Word published this week yet
                   </Text>
 
                   <Text
@@ -462,7 +465,7 @@ export default function WordScreen() {
                       },
                     ]}
                   >
-                    The next Word will appear automatically after an admin publishes and schedules it.
+                    Previous published Words remain below. This section updates automatically when an admin publishes a Word scheduled for this week.
                   </Text>
                 </Card>
               )}
