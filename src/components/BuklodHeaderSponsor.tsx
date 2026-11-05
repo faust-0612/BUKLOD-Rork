@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {
-  Platform,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -59,21 +58,15 @@ BuklodHeaderSponsor({
     width,
   } = useWindowDimensions();
 
-  // Android/APK only: remove the title-bar sponsor and leave all other ads intact.
-  if (Platform.OS === 'android') {
-    return null;
-  }
-
   /*
    * IMPORTANT:
    * The old compact title-bar sponsor is about 188x42.
    * A normal AdMob phone banner needs substantially more width.
    *
    * Therefore:
-   * - normal phones keep the EXACT old compact sponsor footprint;
-   * - AdMob is allowed only when the screen is wide enough that
-   *   the title-bar side can hold a proper banner without forcing
-   *   the header wider.
+   * - normal phones keep the compact sponsor footprint;
+   * - wide layouts may use a standard AdMob banner without forcing
+   *   the title bar wider.
    *
    * This component does NOT modify the title-bar layout.
    */
