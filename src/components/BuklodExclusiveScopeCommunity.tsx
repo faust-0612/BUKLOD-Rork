@@ -3397,6 +3397,7 @@ return (
                     height={
                       470
                     }
+                    fitFrame
                     autoPlay
                     active={
                       visibleVideoPostId ===
