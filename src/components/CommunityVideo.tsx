@@ -65,6 +65,8 @@ type Props = {
   onPlaybackError?: () => void;
   onRequestPlay?: () => void;
   preserveAspectRatio?: boolean;
+  /** Keep a fixed Wall/story frame height while fitting the complete source inside it. */
+  fitFrame?: boolean;
   /** Optional server-generated poster; first-frame posters are cached in memory. */
   posterUri?: string | null;
   /** Cached first-frame source for an immediate transition from poster to playback. */
@@ -187,6 +189,7 @@ function InactiveCommunityVideo({
   expectedDurationSeconds,
   fullscreen = false,
   edgeToEdge = false,
+  preserveAspectRatio = true,
   controlsBottomInset = 0,
   onOpenFullscreen,
   onRequestPlay,
@@ -209,7 +212,7 @@ function InactiveCommunityVideo({
             <ExpoImage
               source={poster}
               style={StyleSheet.absoluteFill}
-              contentFit="cover"
+              contentFit={preserveAspectRatio ? 'contain' : 'cover'}
               cachePolicy="memory-disk"
               transition={120}
             />
@@ -477,6 +480,7 @@ function ExpoCommunityVideo({
   onOpenFullscreen,
   onPlaybackError,
   preserveAspectRatio = true,
+  fitFrame = false,
   posterUri,
   posterSource,
   onPosterGenerated,
@@ -836,7 +840,7 @@ function ExpoCommunityVideo({
       : 0;
   const centerVisible = !playing || showCenter;
   const chromeVisible = !fullscreen || !playing || showCenter;
-  const frameHeight = !fullscreen && preserveAspectRatio && videoAspectRatio && measuredWidth > 0
+  const frameHeight = !fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio && measuredWidth > 0
     ? communityVideoFrameHeight(measuredWidth, videoAspectRatio, height)
     : height;
   const clock = formatDuration(
@@ -1055,6 +1059,7 @@ const styles =
     },
 
     edgeToEdgeWrap: {
+      marginTop: 0,
       borderRadius: 0,
     },
 
@@ -1071,7 +1076,7 @@ const styles =
     inactiveVideo: {
       width: '100%',
       height: '100%',
-      backgroundColor: '#142D31',
+      backgroundColor: '#151515',
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 28,

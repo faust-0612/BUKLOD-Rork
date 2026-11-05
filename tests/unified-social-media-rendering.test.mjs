@@ -35,3 +35,24 @@ test('secure media signing, bounded video cache and recovery remain intact', () 
   assert.match(video, /COMMUNITY_VIDEO_CACHE_BUDGET_BYTES = 256 \* 1024 \* 1024/);
   assert.match(video, /decideCommunityVideoErrorRecovery/);
 });
+
+
+test('Community Wall video uses Marites-style full-frame contain rendering with user-controlled sound', () => {
+  const native = read('src/components/CommunityVideo.tsx');
+  const web = read('src/components/CommunityVideo.web.tsx');
+  const marites = read('src/components/BuklodMaritesBoard.tsx');
+  const publicWall = read('src/app/(tabs)/buklod.tsx');
+  const scopedWall = read('src/components/BuklodExclusiveScopeCommunity.tsx');
+  assert.match(marites, /contentFit="contain"/);
+  assert.match(native, /fitFrame\?: boolean/);
+  assert.match(native, /!fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio/);
+  assert.match(native, /contentFit=\{fullscreen \|\| preserveAspectRatio \? 'contain' : 'cover'\}/);
+  assert.match(native, /contentFit=\{preserveAspectRatio \? 'contain' : 'cover'\}/);
+  assert.match(web, /fitFrame\?: boolean/);
+  assert.match(web, /objectFit: fullscreen \|\| fitFrame \? 'contain' : 'cover'/);
+  assert.match(web, /muted: fullscreen \? false : !soundOn/);
+  assert.match(web, /Turn sound on/);
+  assert.match(publicWall, /edgeToEdge\s+fitFrame\s+autoPlay/);
+  assert.match(scopedWall, /height=\{\s*470\s*\}\s*fitFrame\s*autoPlay/);
+  assert.doesNotMatch(marites, /import \{ CommunityVideo, enableCommunityVideoSound \}/);
+});
