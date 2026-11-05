@@ -8,10 +8,12 @@
   "riskAreas": [
     "wall-media",
     "video-audio-playback",
-    "fullscreen-video"
+    "fullscreen-video",
+    "navigation-scroll"
   ],
   "regressionTests": [
-    "tests/unified-social-media-rendering.test.mjs"
+    "tests/unified-social-media-rendering.test.mjs",
+    "tests/community-video-navigation-scroll.test.mjs"
   ],
   "preserveBehaviors": [
     "Private signed media URLs and scope authorization remain unchanged",
