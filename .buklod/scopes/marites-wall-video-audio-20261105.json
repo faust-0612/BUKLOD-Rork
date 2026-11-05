@@ -1,5 +1,5 @@
 {
-  "contractVersion": 1,
+  "contractVersion": 2,
   "objective": "Unify Marites Story and Community Wall video playback so clips preserve their full aspect ratio, use the same resilient rendering engine, and expose working audio controls without weakening playback or private-media safeguards.",
   "baseRef": "main",
   "productionBaselineEvidence": "Current main contains the shared CommunityVideo renderer with bounded cache, poster continuity, signed-media recovery and sound controls. This branch changes Marites to consume that existing engine; branch remains DEV-only until exact-head gates and a new RC/OTA.",
