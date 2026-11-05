@@ -4187,6 +4187,7 @@ const load=useCallback(async(options?:{
                 )
               )}
               edgeToEdge
+              fitFrame
               autoPlay
               active={
                 visibleVideoPostId===postId &&
