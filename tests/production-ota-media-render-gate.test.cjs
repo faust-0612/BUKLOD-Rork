@@ -11,6 +11,7 @@ test('production Android OTA runs social media regressions before RC export and 
   assert.ok(typecheck >= 0 && media > typecheck, 'media suite must run after TypeScript QA');
   assert.ok(exportStep > media && freezeStep > media, 'media suite must gate export and RC freeze');
   for (const path of [
+    'tests/community-photo-quality-upload.test.mjs',
     'tests/unified-social-media-rendering.test.mjs',
     'tests/community-video-persistent-preview.test.mjs',
     'tests/community-video-playback-recovery.test.mjs',

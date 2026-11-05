@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES = 25 * 1024 * 1024;
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -62,6 +63,9 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
 async function loadImage(admin: any, path: string | null, mime: string | null) {
   if (!path || !mime || !['image/jpeg','image/png','image/webp'].includes(mime)) return null;
   const { data, error } = await admin.storage.from('community-media').download(path);
+  // This is an AI model payload/memory budget, not an upload/storage limit.
+  // Large source images remain uploaded and rendered at full quality; moderation
+  // still uses the bounded source path and falls back to the existing review flow.
   if (error || !data || data.size > 5 * 1024 * 1024) return null;
   return { mimeType: mime, data: arrayBufferToBase64(await data.arrayBuffer()) };
 }
@@ -92,11 +96,11 @@ Deno.serve(async (req: Request) => {
       const mime = String(body?.mime_type ?? '').toLowerCase();
       const size = Number(body?.size_bytes ?? 0);
       if (mime !== 'image/jpeg') return json({ error: 'Anonymous Community media must be JPEG.' }, 400);
-      if (!Number.isFinite(size) || size < 1 || size > 5 * 1024 * 1024) return json({ error: 'Anonymous Community photos are limited to 5 MB.' }, 400);
+      if (!Number.isFinite(size) || size < 1 || size > ANONYMOUS_COMMUNITY_PHOTO_MAX_BYTES) return json({ error: 'Anonymous Community photos are limited to 25 MB.' }, 400);
       const storagePath = `anonymous-media/${crypto.randomUUID()}.jpg`;
       const { data: signed, error: signedError } = await admin.storage.from('community-media').createSignedUploadUrl(storagePath, { upsert: false });
       if (signedError || !signed?.signedUrl) throw signedError ?? new Error('Could not prepare anonymous upload.');
-      return json({ storage_path: storagePath, signed_url: signed.signedUrl });
+      return json({ storage_path: storagePath, signed_url: signed.signedUrl, signed_token: signed.token });
     }
 
     const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';

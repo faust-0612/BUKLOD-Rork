@@ -13,6 +13,7 @@ import {
   readVideoSizeBytes,
   type CommunityUploadFailureReason,
 } from '@/lib/buklodCommunityWallMedia';
+import { COMMUNITY_PHOTO_MAX_SIZE_BYTES } from '@/lib/buklodCommunityMediaLimits';
 import { supabase } from '@/lib/supabase';
 import {
   communityVideoPostPreviewPath,
@@ -241,36 +242,45 @@ async function readCommunityPhotoDimensions(uri: string): Promise<{width: number
 export async function prepareCommunityJpegUri(
   uri: string,
 ): Promise<{ uri: string; sizeBytes: number }> {
-  // Picker/editor JPEGs are already encoded. Re-encoding every photo
-  // wastes CPU and can create visible generational JPEG artifacts.
+  // Preserve already-encoded JPEG bytes whenever they fit the canonical
+  // photo contract. Re-encoding a good source creates generational artifacts.
   const existingBytes = await readBinarySizeBytes(uri).catch(() => 0);
+  const dimensions = await readCommunityPhotoDimensions(uri);
+  const longestEdge = dimensions
+    ? Math.max(dimensions.width, dimensions.height)
+    : 0;
   if (
     /\.jpe?g(?:[?#]|$)/i.test(uri) &&
     existingBytes > 0 &&
-    existingBytes <= 2 * 1024 * 1024
+    existingBytes <= COMMUNITY_PHOTO_MAX_SIZE_BYTES &&
+    (!longestEdge || longestEdge <= 2048)
   ) {
     return { uri, sizeBytes: existingBytes };
   }
 
   const M = await import('expo-image-manipulator');
   const context = M.ImageManipulator.manipulate(uri);
-  const dimensions = await readCommunityPhotoDimensions(uri);
-  if (dimensions && Math.max(dimensions.width, dimensions.height) > 1440) {
+  // 2048px long edge preserves modern mobile display density while bounding
+  // memory and upload size. Never upscale an unknown or smaller source.
+  if (dimensions && Math.max(dimensions.width, dimensions.height) > 2048) {
     context.resize({
-      width: dimensions.width >= dimensions.height ? 1440 : null,
-      height: dimensions.height > dimensions.width ? 1440 : null,
+      width: dimensions.width >= dimensions.height ? 2048 : null,
+      height: dimensions.height > dimensions.width ? 2048 : null,
     });
   }
   const rendered = await context.renderAsync();
   const image = await rendered.saveAsync({
     format: M.SaveFormat.JPEG,
-    compress: 0.82,
+    compress: 0.86,
   });
   const fileUri = String(image.uri ?? uri).trim() || uri;
   const sizeBytes = await readBinarySizeBytes(fileUri);
 
   if (!sizeBytes) {
     throw new Error('Could not read the prepared photo size.');
+  }
+  if (sizeBytes > COMMUNITY_PHOTO_MAX_SIZE_BYTES) {
+    throw new Error('Prepared photo exceeds the 25 MB Community photo limit. Choose a smaller image.');
   }
 
   return { uri: fileUri, sizeBytes };
@@ -362,7 +372,8 @@ export async function uploadCommunityPhotoFile({
     onProgress,
     sizeBytes: prepared.sizeBytes,
     failureLabel: 'Photo',
-    preferResumable: false,
+    // TUS is the reliable path for photos above 6 MiB and resumes after weak-network interruptions.
+    preferResumable: true,
   });
 
   return { sizeBytes: prepared.sizeBytes, path: actualPath };

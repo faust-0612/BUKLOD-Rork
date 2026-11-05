@@ -173,11 +173,13 @@ export async function uploadCommunityFileResumableTus({
   contentType,
   sizeBytes,
   onProgress,
+  signedUploadToken,
 }: {
   path: string;
   uri: string;
   contentType: string;
   sizeBytes: number;
+  signedUploadToken?: string;
   onProgress?: (progress: {
     sentBytes: number;
     totalBytes: number;
@@ -224,6 +226,7 @@ export async function uploadCommunityFileResumableTus({
       authorization: `Bearer ${auth.accessToken}`,
       apikey: auth.apiKey,
       'x-upsert': 'false',
+      ...(signedUploadToken ? { 'x-signature': signedUploadToken } : {}),
     },
   });
 
@@ -282,6 +285,7 @@ export async function uploadCommunityFileResumableTus({
           'Tus-Resumable': '1.0.0',
           authorization: `Bearer ${auth.accessToken}`,
           apikey: auth.apiKey,
+          ...(signedUploadToken ? { 'x-signature': signedUploadToken } : {}),
         },
       });
       if (head.ok) {
@@ -328,6 +332,7 @@ export async function uploadCommunityFileResumableTus({
           'Content-Type': 'application/offset+octet-stream',
           authorization: `Bearer ${auth.accessToken}`,
           apikey: auth.apiKey,
+          ...(signedUploadToken ? { 'x-signature': signedUploadToken } : {}),
           'x-upsert': 'false',
         },
         body: chunk,

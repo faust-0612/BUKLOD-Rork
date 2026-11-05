@@ -4,13 +4,15 @@ import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { prepareCommunityJpegUri } from '@/lib/uploadCommunityVideoFile';
+import { shouldUseResumableUpload, uploadCommunityFileResumableTus } from '@/lib/uploadCommunityResumableTus';
+import { COMMUNITY_PHOTO_MAX_SIZE_BYTES } from '@/lib/buklodCommunityMediaLimits';
 
 export async function uploadBuklodAnonymousCommunityPhoto(
   uri: string,
 ): Promise<{ storagePath: string; sizeBytes: number }> {
   const prepared = await prepareCommunityJpegUri(uri);
-  if (prepared.sizeBytes > 5 * 1024 * 1024) {
-    throw new Error('Anonymous Community photos are limited to 5 MB.');
+  if (prepared.sizeBytes > COMMUNITY_PHOTO_MAX_SIZE_BYTES) {
+    throw new Error('Anonymous Community photos are limited to 25 MB.');
   }
 
   const { data, error } = await withBuklodTimeout<any>(
@@ -31,11 +33,21 @@ export async function uploadBuklodAnonymousCommunityPhoto(
 
   const signedUrl = String(data?.signed_url ?? '').trim();
   const storagePath = String(data?.storage_path ?? '').trim();
+  const signedToken = String(data?.signed_token ?? '').trim();
   if (!signedUrl || !storagePath) {
     throw new Error('Could not prepare the anonymous photo upload.');
   }
 
-  if (Platform.OS === 'web') {
+  if (shouldUseResumableUpload(prepared.sizeBytes)) {
+    if (!signedToken) throw new Error('Could not prepare a resumable anonymous photo upload.');
+    await uploadCommunityFileResumableTus({
+      path: storagePath,
+      uri: prepared.uri,
+      contentType: 'image/jpeg',
+      sizeBytes: prepared.sizeBytes,
+      signedUploadToken: signedToken,
+    });
+  } else if (Platform.OS === 'web') {
     const source = await fetch(prepared.uri);
     if (!source.ok) throw new Error('Could not read the prepared photo.');
     const blob = await source.blob();
