@@ -19,10 +19,18 @@ test('collage detects a duplicate when a row exposes a path and another exposes 
   assert.equal(dedupeCommunityPhotoItems(items).length, 1);
 });
 
-test('duplicate preview sidecars cannot render the same thumbnail in two collage tiles', () => {
+test('a shared stale preview sidecar never hides two distinct original photos', () => {
   const items = [
     { media_path: 'member-1/first.jpg', preview_path: 'previews/shared.jpg' },
     { media_path: 'member-1/second.jpg', preview_path: 'previews/shared.jpg' },
+  ];
+  assert.equal(dedupeCommunityPhotoItems(items).length, 2);
+});
+
+test('preview-only legacy rows still collapse when they point to the same sidecar', () => {
+  const items = [
+    { preview_path: 'previews/shared.jpg' },
+    { preview_path: 'previews/shared.jpg' },
   ];
   assert.equal(dedupeCommunityPhotoItems(items).length, 1);
 });
