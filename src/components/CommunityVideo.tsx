@@ -65,6 +65,8 @@ type Props = {
   onPlaybackError?: () => void;
   onRequestPlay?: () => void;
   preserveAspectRatio?: boolean;
+  /** Keep the supplied frame height while fitting the complete source inside it. */
+  fitFrame?: boolean;
   /** Optional server-generated poster; first-frame posters are cached in memory. */
   posterUri?: string | null;
   /** Cached first-frame source for an immediate transition from poster to playback. */
@@ -477,6 +479,7 @@ function ExpoCommunityVideo({
   onOpenFullscreen,
   onPlaybackError,
   preserveAspectRatio = true,
+  fitFrame = false,
   posterUri,
   posterSource,
   onPosterGenerated,
@@ -836,7 +839,7 @@ function ExpoCommunityVideo({
       : 0;
   const centerVisible = !playing || showCenter;
   const chromeVisible = !fullscreen || !playing || showCenter;
-  const frameHeight = !fullscreen && preserveAspectRatio && videoAspectRatio && measuredWidth > 0
+  const frameHeight = !fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio && measuredWidth > 0
     ? communityVideoFrameHeight(measuredWidth, videoAspectRatio, height)
     : height;
   const clock = formatDuration(
@@ -1055,6 +1058,7 @@ const styles =
     },
 
     edgeToEdgeWrap: {
+      marginTop: 0,
       borderRadius: 0,
     },
 
