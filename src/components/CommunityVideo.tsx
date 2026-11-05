@@ -65,7 +65,7 @@ type Props = {
   onPlaybackError?: () => void;
   onRequestPlay?: () => void;
   preserveAspectRatio?: boolean;
-  /** Keep the supplied frame height while fitting the complete source inside it. */
+  /** Keep a fixed Wall/story frame height while fitting the complete source inside it. */
   fitFrame?: boolean;
   /** Optional server-generated poster; first-frame posters are cached in memory. */
   posterUri?: string | null;
