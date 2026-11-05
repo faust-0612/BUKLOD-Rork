@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore the previously removed Android title-bar sponsor and managed Organization/Sub-organization/Cluster Home and Community header ad placements, while keeping existing native feed, Reels, rewarded, interstitial and video monetization systems intact.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Current main contains working NativeAd-first Wall/feed placements, Reels inline NativeAd placement, first-view Home/Profile/Connect placements, rewarded Ad-Light/Garden flows, natural-break interstitial opportunities and optional IMA video integration. However BuklodHeaderSponsor explicitly returns null on Android; SwipeDashboardHeader sets no placement for Messages, Prayer or Profile; and the Organization/Cluster scoped header banner was removed from the shared header and Android/web platform implementations are no-ops.",
+  "chosenApproach": "Restore Android title-bar sponsor fallback through the existing paid-campaign and AdMob banner components; map the existing Messages, Prayer and Profile title-bar routes to their already-defined placement keys; restore managed Organization/Sub-organization/Cluster Home and Community header placements using the shared guarded BuklodAdMobBanner API and existing paid local campaigns. Keep scoped Connect free of header ads to avoid showing ads inside chat/composer surfaces.",
+  "preserveBehaviors": [
+    "Existing NativeAd-first Wall and first-view placements remain unchanged.",
+    "Existing Reels NativeAd/inline fallback, rewarded, interstitial and IMA video integrations remain unchanged.",
+    "Ad consent, route safety, viewport visibility, network/foreground checks, remote placement kill switches and shared cooldown remain authoritative.",
+    "No new ad unit IDs, SDK packages, database schema, production secrets or native dependencies are introduced.",
+    "No ads are added inside active message threads, calls, quiz/exam, form submission or transaction flows."
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "navigation"
+  ],
+  "regressionTests": [
+    "tests/buklod-ad-placement-restoration.test.mjs",
+    "tests/production-ota-ads-regression.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/ad-placement-restoration-20261106.json",
+    "src/components/BuklodHeaderSponsor.tsx",
+    "src/app/(tabs)/_layout.tsx",
+    "src/components/BuklodScopedDashboardHeader.tsx",
+    "src/components/BuklodScopedHeaderBanner.android.tsx",
+    "src/components/BuklodScopedHeaderBanner.web.tsx",
+    "tests/buklod-ad-placement-restoration.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Android title-bar sponsor no longer returns null and still prefers approved paid local campaigns.",
+    "Home, Messages, Learn, Community, Prayer and Profile tab routes map to the existing title-bar sponsor placements.",
+    "Managed Organization/Sub-organization/Cluster Home and Community headers render the guarded shared ad component.",
+    "Scoped Connect headers do not render ads.",
+    "Focused source regression tests and TypeScript pass.",
+    "Production OTA is not triggered by this PR."
+  ],
+  "alternativeApproaches": [
+    "Restore direct BannerAd in scoped header; rejected because it bypasses shared consent, viewport, cooldown and remote kill-switch gates.",
+    "Add ads to scoped Connect; rejected because chat/composer interactions should remain uninterrupted."
+  ]
+}
