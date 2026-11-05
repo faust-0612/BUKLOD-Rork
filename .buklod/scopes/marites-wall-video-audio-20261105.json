@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Unify Marites Story and Community Wall video playback so clips preserve their full aspect ratio, use the same resilient rendering engine, and expose working audio controls without weakening playback or private-media safeguards.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Current main contains the shared CommunityVideo renderer with bounded cache, poster continuity, signed-media recovery and sound controls. This branch changes Marites to consume that existing engine; branch remains DEV-only until exact-head gates and a new RC/OTA.",
+  "productionBaselineEvidence": "verified: Android Production OTA run #249 published update 01a1a62f-f53e-7569-a4ef-306df0e0082b on production channel, Android runtime 1.3.2, from source SHA 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. Current main includes later non-OTA source changes; this branch is DEV-only until its own exact-head gates and a new RC/OTA.",
   "chosenApproach": "Replace the separate Marites expo-video player with a thin viewport-aware adapter over CommunityVideo. Keep visible-video selection, use shared aspect-ratio/poster/buffering logic, enable sound on explicit play gesture and reuse the shared fullscreen viewer.",
   "selectionRationale": "A single maintained video renderer prevents Marites and Wall playback from drifting. No media engine replacement, native dependency change, database/RLS change or public media access is needed.",
   "riskAreas": [
