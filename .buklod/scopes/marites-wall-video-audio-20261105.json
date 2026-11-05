@@ -1,0 +1,42 @@
+{
+  "contractVersion": 1,
+  "objective": "Unify Marites Story and Community Wall video playback so clips preserve their full aspect ratio, use the same resilient rendering engine, and expose working audio controls without weakening playback or private-media safeguards.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Current main contains the shared CommunityVideo renderer with bounded cache, poster continuity, signed-media recovery and sound controls. This branch changes Marites to consume that existing engine; branch remains DEV-only until exact-head gates and a new RC/OTA.",
+  "chosenApproach": "Replace the separate Marites expo-video player with a thin viewport-aware adapter over CommunityVideo. Keep visible-video selection, use shared aspect-ratio/poster/buffering logic, enable sound on explicit play gesture and reuse the shared fullscreen viewer.",
+  "selectionRationale": "A single maintained video renderer prevents Marites and Wall playback from drifting. No media engine replacement, native dependency change, database/RLS change or public media access is needed.",
+  "riskAreas": [
+    "wall-media",
+    "video-audio-playback",
+    "fullscreen-video"
+  ],
+  "regressionTests": [
+    "tests/unified-social-media-rendering.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Private signed media URLs and scope authorization remain unchanged",
+    "Only visible Marites videos mount active playback",
+    "Video cache remains bounded and poster generation remains player-backed",
+    "Sound is user-controllable and never forced muted in Marites",
+    "Wall playback, IMA ad lifecycle, fullscreen behavior and weak-network recovery remain unchanged",
+    "No database, RLS, storage policy, native dependency or package identity changes"
+  ],
+  "acceptanceChecks": [
+    "Marites inline video uses CommunityVideo rather than a separate expo-video player",
+    "Marites story videos retain full source aspect ratio without forced cropping",
+    "Sound can be enabled from an explicit play gesture and via shared sound control",
+    "Marites fullscreen story uses the shared renderer",
+    "Visible-video selection and offscreen playback protections remain intact",
+    "Focused media regression test and TypeScript check pass"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodMaritesBoard.tsx",
+    "tests/unified-social-media-rendering.test.mjs",
+    ".buklod/scopes/marites-wall-video-audio-20261105.json"
+  ],
+  "alternativeApproaches": [
+    "Keep the separate Marites player and duplicate Wall playback fixes (rejected: creates behavior drift)",
+    "Replace expo-video or add a native player module (rejected: unnecessary APK/runtime change)",
+    "Force autoplay audio for every feed item (rejected: intrusive and platform-policy-sensitive)"
+  ]
+}
