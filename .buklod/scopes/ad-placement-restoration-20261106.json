@@ -39,5 +39,6 @@
   "alternativeApproaches": [
     "Restore direct BannerAd in scoped header; rejected because it bypasses shared consent, viewport, cooldown and remote kill-switch gates.",
     "Add ads to scoped Connect; rejected because chat/composer interactions should remain uninterrupted."
-  ]
+  ],
+  "selectionRationale": "Restore placements at existing screen boundaries using already-configured provider components, without introducing a new ad network, SDK, unit ID or unguarded request path."
 }
