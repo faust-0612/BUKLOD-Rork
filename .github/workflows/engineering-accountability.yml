@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/the-word-safe-area-20261106)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/the-word-safe-area-20261106.json" >> "$GITHUB_ENV";;
             ui/compact-public-wall-header-20261104)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/compact-public-wall-header-20261104.json" >> "$GITHUB_ENV";;
             dev/community-media-aspect-ratio-20261103)
@@ -270,6 +272,9 @@ jobs:
           node --test tests/compact-public-wall-header-20261104.test.mjs tests/navigation-scroll-compact-public-wall.test.mjs
           node --experimental-strip-types --test tests/unified-social-media-rendering.test.mjs tests/community-video-persistent-preview.test.mjs tests/community-video-playback-recovery.test.mjs tests/community-media-aspect-ratio-20261103.test.mjs
           node --test tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs tests/community-wall-no-blank-photo.test.cjs
+      - name: Verify The Word safe-area and weekly empty state
+        if: github.head_ref == 'fix/the-word-safe-area-20261106'
+        run: node --test tests/the-word-safe-area-20261106.test.mjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
       - name: Verify KL per-scene saved placement and draft isolation
