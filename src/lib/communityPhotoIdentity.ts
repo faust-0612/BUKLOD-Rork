@@ -35,8 +35,11 @@ function identityKeys(item: CommunityPhotoIdentityItem): string[] {
   const externalKey = String(item.external_object_key ?? '').trim();
   if (path) keys.add(`asset:${path}`);
   if (urlPath) keys.add(`asset:${urlPath}`);
-  if (preview) keys.add(`preview:${preview}`);
   if (externalKey) keys.add(`external:${provider}:${externalKey}`);
+  // A sidecar is not the original photo identity. Use it only when the
+  // original reference is absent; never discard distinct originals because
+  // a stale preview index points them at one thumbnail.
+  if (!keys.size && preview) keys.add(`preview:${preview}`);
   return [...keys];
 }
 
