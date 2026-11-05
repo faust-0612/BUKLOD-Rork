@@ -1,0 +1,33 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix The Word Android status-bar overlap and accurately explain the empty state when no Word has been published for the current week.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "DEV-only source change based on main; no production artifact or live fingerprint changed.",
+  "chosenApproach": "Use the existing react-native-safe-area-context inset on the screen container, clarify the weekly empty-state copy, and add a focused source-contract regression test.",
+  "selectionRationale": "The screen is a root route whose shared.screen container does not reserve the top system inset. The live devotionals table currently has no published rows for Nov 2–6, 2026, so the current-week empty state is correct and must not be fabricated away.",
+  "acceptanceChecks": [
+    "The Word content starts below the Android status bar using the device top safe-area inset.",
+    "The empty state explicitly says no Word has been published this week while retaining Previous Words.",
+    "The existing current-week selection, daily archive, membership gate, detail route, offline cache, and Supabase security remain unchanged."
+  ],
+  "preserveBehaviors": [
+    "Existing devotionals table and admin publish_date/is_published controls.",
+    "Existing Monday-start week selection and newest-first archive.",
+    "Existing Cluster membership gate and account-scoped offline cache.",
+    "No database schema, RLS, authentication, or production OTA changes."
+  ],
+  "riskAreas": [
+    "android-safe-area",
+    "weekly-empty-state",
+    "daily-word-display"
+  ],
+  "regressionTests": [
+    "tests/the-word-safe-area-20261106.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/word/index.tsx",
+    "tests/the-word-safe-area-20261106.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/the-word-safe-area-20261106.json"
+  ]
+}
