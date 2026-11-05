@@ -189,6 +189,7 @@ function InactiveCommunityVideo({
   expectedDurationSeconds,
   fullscreen = false,
   edgeToEdge = false,
+  preserveAspectRatio = true,
   controlsBottomInset = 0,
   onOpenFullscreen,
   onRequestPlay,
@@ -211,7 +212,7 @@ function InactiveCommunityVideo({
             <ExpoImage
               source={poster}
               style={StyleSheet.absoluteFill}
-              contentFit="cover"
+              contentFit={preserveAspectRatio ? 'contain' : 'cover'}
               cachePolicy="memory-disk"
               transition={120}
             />
@@ -1075,7 +1076,7 @@ const styles =
     inactiveVideo: {
       width: '100%',
       height: '100%',
-      backgroundColor: '#142D31',
+      backgroundColor: '#151515',
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 28,
