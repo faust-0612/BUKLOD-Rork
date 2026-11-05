@@ -153,6 +153,8 @@ function MaritesQuickVideo({
       active={active}
       autoPlay={autoPlay}
       preserveAspectRatio
+      fitFrame={!fullscreen}
+      edgeToEdge
       onRequestPlay={enableCommunityVideoSound}
     />
   );
