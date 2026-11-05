@@ -35,3 +35,13 @@ test('secure media signing, bounded video cache and recovery remain intact', () 
   assert.match(video, /COMMUNITY_VIDEO_CACHE_BUDGET_BYTES = 256 \* 1024 \* 1024/);
   assert.match(video, /decideCommunityVideoErrorRecovery/);
 });
+
+
+test('Marites video cards and fullscreen viewer use the shared Wall video engine with sound controls', () => {
+  const marites = read('src/components/BuklodMaritesBoard.tsx');
+  assert.match(marites, /import \{ CommunityVideo, enableCommunityVideoSound \} from '@\/components\/CommunityVideo'/);
+  assert.match(marites, /<CommunityVideo[\s\S]*?active=\{active\}[\s\S]*?autoPlay=\{autoPlay\}[\s\S]*?preserveAspectRatio[\s\S]*?onRequestPlay=\{enableCommunityVideoSound\}/);
+  assert.match(marites, /autoPlayVideo \? <MaritesQuickVideo uri=\{story\.video_uri!\} autoPlay \/>/);
+  assert.doesNotMatch(marites, /autoPlay muted/);
+  assert.match(marites, /if \(viewStory\.video_uri\) return <MaritesQuickVideo uri=\{viewStory\.video_uri\} fullscreen \/>/);
+});
