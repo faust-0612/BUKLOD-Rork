@@ -7,6 +7,7 @@ type Props = {
   expectedDurationSeconds?: number;
   fullscreen?: boolean;
   edgeToEdge?: boolean;
+  fitFrame?: boolean;
   active?: boolean;
   onOpenFullscreen?: () => void;
   onPlaybackError?: () => void;
@@ -39,6 +40,7 @@ export function CommunityVideo({
   expectedDurationSeconds,
   fullscreen = false,
   edgeToEdge = false,
+  fitFrame = false,
   active = true,
   onOpenFullscreen,
   onPlaybackError,
@@ -47,6 +49,7 @@ export function CommunityVideo({
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [ready, setReady] = useState(false);
+  const [soundOn, setSoundOn] = useState(false);
   useEffect(() => {
     setReady(false);
   }, [uri, active]);
@@ -128,7 +131,7 @@ export function CommunityVideo({
       },
       onPlaying: () => setReady(true),
       onWaiting: () => setReady(false),
-      muted: !fullscreen,
+      muted: fullscreen ? false : !soundOn,
       loop: !fullscreen,
       onError: () => {
         onPlaybackError?.();
@@ -137,7 +140,7 @@ export function CommunityVideo({
         display: 'block',
         width: '100%',
         height: '100%',
-        objectFit: fullscreen ? 'contain' : 'cover',
+        objectFit: fullscreen || fitFrame ? 'contain' : 'cover',
         background: '#111',
       },
     }),
@@ -189,6 +192,35 @@ export function CommunityVideo({
             },
           },
           '⛶',
+        )
+      : null,
+    !fullscreen
+      ? React.createElement(
+          'button',
+          {
+            type: 'button',
+            'aria-label': soundOn ? 'Turn sound off' : 'Turn sound on',
+            'aria-pressed': soundOn,
+            onClick: (event: any) => {
+              event.stopPropagation();
+              setSoundOn(value => !value);
+            },
+            style: {
+              position: 'absolute',
+              right: 10,
+              bottom: 10,
+              width: 42,
+              height: 42,
+              border: 0,
+              borderRadius: 21,
+              background: 'rgba(0,0,0,.68)',
+              color: '#fff',
+              fontSize: 19,
+              cursor: 'pointer',
+              zIndex: 4,
+            },
+          },
+          soundOn ? '🔊' : '🔇',
         )
       : null,
     duration
