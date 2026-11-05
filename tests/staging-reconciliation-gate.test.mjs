@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { assessReconciliation } from '../scripts/staging-reconciliation-gate.mjs';
 
 test('blocks a staging candidate that is behind canonical main', () => {
@@ -29,4 +30,12 @@ test('reports exact sync when refs have identical history', () => {
 
 test('rejects invalid ancestry counts', () => {
   assert.throws(() => assessReconciliation({ baseOnly: -1, candidateOnly: 0 }), TypeError);
+});
+
+test('workflow executes the trusted gate from main before fetching an old staging branch', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/staging-reconciliation-audit.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /ref:\s*main/);
+  assert.match(workflow, /git check-ref-format --branch "\$CANDIDATE_REF"/);
+  assert.match(workflow, /refs\/heads\/\$CANDIDATE_REF:refs\/remotes\/origin\/staging-candidate/);
+  assert.match(workflow, /node scripts\/staging-reconciliation-gate\.mjs refs\/remotes\/origin\/main refs\/remotes\/origin\/staging-candidate/);
 });

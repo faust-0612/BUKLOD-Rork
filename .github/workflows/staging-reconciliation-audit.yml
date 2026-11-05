@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       candidate_ref:
-        description: Exact staging candidate branch or tag to compare with canonical main
+        description: Exact staging branch name to compare with canonical main
         required: true
         type: string
 
@@ -15,18 +15,23 @@ jobs:
   reconcile:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout exact staging candidate with full history
+      # Always run the trusted audit implementation from canonical main.
+      # The candidate may be old and must not be trusted to contain the gate.
+      - name: Checkout canonical audit implementation
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.candidate_ref }}
+          ref: main
           fetch-depth: 0
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify canonical main is an ancestor of staging candidate
+      - name: Fetch and validate exact staging branch
         env:
           CANDIDATE_REF: ${{ inputs.candidate_ref }}
+        shell: bash
         run: |
-          git fetch origin main:refs/remotes/origin/main
-          node scripts/staging-reconciliation-gate.mjs refs/remotes/origin/main "$CANDIDATE_REF"
+          set -euo pipefail
+          git check-ref-format --branch "$CANDIDATE_REF"
+          git fetch --no-tags origin "refs/heads/$CANDIDATE_REF:refs/remotes/origin/staging-candidate"
+          node scripts/staging-reconciliation-gate.mjs refs/remotes/origin/main refs/remotes/origin/staging-candidate
