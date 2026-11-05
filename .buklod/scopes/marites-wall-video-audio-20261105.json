@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Unify Marites Story and Community Wall video playback so clips preserve their full aspect ratio, use the same resilient rendering engine, and expose working audio controls without weakening playback or private-media safeguards.",
+  "objective": "Use the existing Marites video presentation as the visual reference for public and scoped Community Wall posts: fixed feed frame, full uncropped source fit, black letterboxing where needed, clear playback and user-accessible sound. Keep Marites implementation unchanged.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: Android Production OTA run #249 published update 01a1a62f-f53e-7569-a4ef-306df0e0082b on production channel, Android runtime 1.3.2, from source SHA 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. Current main includes later non-OTA source changes; this branch is DEV-only until its own exact-head gates and a new RC/OTA.",
-  "chosenApproach": "Replace the separate Marites expo-video player with a thin viewport-aware adapter over CommunityVideo. Keep visible-video selection, use shared aspect-ratio/poster/buffering logic, enable sound on explicit play gesture and reuse the shared fullscreen viewer.",
-  "selectionRationale": "A single maintained video renderer prevents Marites and Wall playback from drifting. No media engine replacement, native dependency change, database/RLS change or public media access is needed.",
+  "chosenApproach": "Keep Marites' existing VideoView contain presentation intact. Adapt CommunityVideo's native and web renderers to present Wall videos in a fixed-height black frame with full-source contain fit, while preserving existing poster cache, secure signed URLs, weak-network behavior, visible-row playback, fullscreen, IMA and recovery. Add an explicit web sound toggle equivalent to the native Wall sound control.",
+  "selectionRationale": "The user clarified Marites is the reference, and Community Posts must adopt that presentation. Preserve Marites as-is and update only Wall video renderers and Wall call sites; do not reverse the dependency or replace the existing media engine.",
   "riskAreas": [
     "wall-media",
     "video-audio-playback",
@@ -22,17 +22,18 @@
     "No database, RLS, storage policy, native dependency or package identity changes"
   ],
   "acceptanceChecks": [
-    "Marites inline video uses CommunityVideo rather than a separate expo-video player",
-    "Marites story videos retain full source aspect ratio without forced cropping",
-    "Sound can be enabled from an explicit play gesture and via shared sound control",
-    "Marites fullscreen story uses the shared renderer",
-    "Visible-video selection and offscreen playback protections remain intact",
-    "Focused media regression test and TypeScript check pass",
-    "Compact Marites story frame keeps a fixed card size while fitting the entire video source without cropping"
+    "Marites source component remains unchanged from main",
+    "Public and scoped Community Wall video posts use a fixed feed frame and contain-fit the complete video source without cropping",
+    "Letterboxing uses the same dark background style as Marites",
+    "Wall video playback exposes a working sound toggle on native and web",
+    "Autoplay remains muted until explicit user sound activation; fullscreen playback has sound",
+    "Secure signed media, cached posters, playback recovery, weak-network safeguards, visible-video selection, and IMA ads remain intact"
   ],
   "allowedPaths": [
-    "src/components/BuklodMaritesBoard.tsx",
     "src/components/CommunityVideo.tsx",
+    "src/components/CommunityVideo.web.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
     "tests/unified-social-media-rendering.test.mjs",
     ".buklod/scopes/marites-wall-video-audio-20261105.json"
   ],
