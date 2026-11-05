@@ -1,5 +1,6 @@
 name: BUKLOD Staging-user OTA (Live Backend)
 # Re-run guarded staging OTA after CommunityVideo API compatibility fix.
+# TypeScript QA must pass before the Android staging-user update step can execute.
 on:
   push:
     branches:
