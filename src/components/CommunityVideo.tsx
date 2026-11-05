@@ -55,6 +55,10 @@ type Props = {
   onOpenFullscreen?: () => void;
   onPlaybackError?: () => void;
   onRequestPlay?: () => void;
+  /** Optional server-generated poster shown before video playback. */
+  posterUri?: string | null;
+  /** Best-effort callback for persisting a generated video thumbnail. */
+  onPosterGenerated?: (thumbnail: unknown) => void | Promise<unknown>;
 };
 
 let communityVideoCacheConfigured = false;
