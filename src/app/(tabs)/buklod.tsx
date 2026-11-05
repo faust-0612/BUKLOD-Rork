@@ -1076,6 +1076,9 @@ function LegacyPublicBuklodScreen(){
  const [viewerIndex,setViewerIndex]=
   useState(0);
 
+ // Change only when a new collage opens; swipes must not remount the list.
+ const [viewerSession,setViewerSession]=useState(0);
+
  const [viewerZoomed,setViewerZoomed]=
   useState(false);
 
@@ -3799,6 +3802,7 @@ const load=useCallback(async(options?:{
    }
 
    setViewerItems(media);
+   setViewerSession(current=>current+1);
    setViewerIndex(index);
    setViewerZoomed(false);
    setViewerOpen(true);
@@ -5744,7 +5748,7 @@ const communityFeedRows =
    <GestureFlatList
     key={
      'viewer-'+
-     viewerIndex+
+     viewerSession+
      '-'+
      viewerItems.length
     }
