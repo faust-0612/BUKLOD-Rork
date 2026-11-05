@@ -8,6 +8,13 @@ const scoped = read('src/components/BuklodScopedDashboardHeader.tsx');
 const sharedBanner = read('src/components/BuklodScopedHeaderBanner.tsx');
 const androidBanner = read('src/components/BuklodScopedHeaderBanner.android.tsx');
 const webBanner = read('src/components/BuklodScopedHeaderBanner.web.tsx');
+const wallNative = read('src/components/BuklodCommunityInlineAd.android.tsx');
+const reelsNative = read('src/components/BuklodReelsInlineAd.tsx');
+const reelsFeed = read('src/app/igpat/index.tsx');
+const rewarded = read('src/lib/buklodRewardedAds.ts');
+const interstitial = read('src/lib/buklodAds.ts');
+const ima = read('src/components/BuklodImaVideo.android.tsx');
+const videoCompanion = read('src/components/BuklodVideoCompanionAd.tsx');
 
 assert.doesNotMatch(sponsor, /Platform\.OS === ['"]android['"]\s*\)\s*\{\s*return null/);
 assert.match(sponsor, /BuklodPaidHeaderAd/);
@@ -22,4 +29,13 @@ for (const source of [sharedBanner, androidBanner, webBanner]) {
   assert.match(source, /BuklodPaidHeaderAd/);
   assert.match(source, /requireViewport/);
 }
-console.log('BUKLOD ad placement restoration source tests passed.');
+assert.match(wallNative, /NativeAd\.createForAdRequest/);
+assert.match(wallNative, /NativeMediaView/);
+assert.match(reelsNative, /NativeAd\.createForAdRequest/);
+assert.match(reelsFeed, /buildReelsFeedWithInlineAds/);
+assert.match(reelsFeed, /BuklodReelsInlineAd/);
+assert.match(rewarded, /RewardedAd\.createForAdRequest/);
+assert.match(interstitial, /InterstitialAd\.createForAdRequest/);
+assert.match(ima, /requireNativeViewManager/);
+assert.match(videoCompanion, /placement="video_companion"/);
+console.log('BUKLOD ad placement and multi-format inventory restoration tests passed.');
