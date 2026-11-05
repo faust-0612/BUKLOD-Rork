@@ -35,7 +35,7 @@
     "TUS 6 MiB chunk size and bounded offset recovery"
   ],
   "acceptanceChecks": [
-    "Client photo limit is 20 MiB and matches production RPC validation",
+    "Client photo limit is 25 MiB and matches production RPC validation",
     "Existing JPEG bytes are preserved without unnecessary recompression",
     "Converted images use 2048px maximum long edge and quality 0.86",
     "Photo originals >=6 MiB use resumable TUS transport",
