@@ -37,20 +37,22 @@ test('secure media signing, bounded video cache and recovery remain intact', () 
 });
 
 
-test('Marites video cards and fullscreen viewer use the shared Wall video engine with sound controls', () => {
+test('Community Wall video uses Marites-style full-frame contain rendering with user-controlled sound', () => {
+  const native = read('src/components/CommunityVideo.tsx');
+  const web = read('src/components/CommunityVideo.web.tsx');
   const marites = read('src/components/BuklodMaritesBoard.tsx');
-  assert.match(marites, /import \{ CommunityVideo, enableCommunityVideoSound \} from '@\/components\/CommunityVideo'/);
-  assert.match(marites, /<CommunityVideo[\s\S]*?active=\{active\}[\s\S]*?autoPlay=\{autoPlay\}[\s\S]*?preserveAspectRatio[\s\S]*?onRequestPlay=\{enableCommunityVideoSound\}/);
-  assert.match(marites, /autoPlayVideo \? <MaritesQuickVideo uri=\{story\.video_uri!\} autoPlay \/>/);
-  assert.doesNotMatch(marites, /autoPlay muted/);
-  assert.match(marites, /if \(viewStory\.video_uri\) return <MaritesQuickVideo uri=\{viewStory\.video_uri\} fullscreen \/>/);
-});
-
-
-test('Marites compact video keeps the full source inside its fixed story frame', () => {
-  const source = read('src/components/CommunityVideo.tsx');
-  assert.match(source, /fitFrame\?: boolean/);
-  assert.match(source, /preserveAspectRatio = true,\s*fitFrame = false/);
-  assert.match(source, /!fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio/);
-  assert.match(source, /contentFit=\{fullscreen \|\| preserveAspectRatio \? 'contain' : 'cover'\}/);
+  const publicWall = read('src/app/(tabs)/buklod.tsx');
+  const scopedWall = read('src/components/BuklodExclusiveScopeCommunity.tsx');
+  assert.match(marites, /contentFit="contain"/);
+  assert.match(native, /fitFrame\?: boolean/);
+  assert.match(native, /!fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio/);
+  assert.match(native, /contentFit=\{fullscreen \|\| preserveAspectRatio \? 'contain' : 'cover'\}/);
+  assert.match(native, /contentFit=\{preserveAspectRatio \? 'contain' : 'cover'\}/);
+  assert.match(web, /fitFrame\?: boolean/);
+  assert.match(web, /objectFit: fullscreen \|\| fitFrame \? 'contain' : 'cover'/);
+  assert.match(web, /muted: fullscreen \? false : !soundOn/);
+  assert.match(web, /Turn sound on/);
+  assert.match(publicWall, /edgeToEdge\s+fitFrame\s+autoPlay/);
+  assert.match(scopedWall, /height=\{\s*470\s*\}\s*fitFrame\s*autoPlay/);
+  assert.doesNotMatch(marites, /import \{ CommunityVideo, enableCommunityVideoSound \}/);
 });
