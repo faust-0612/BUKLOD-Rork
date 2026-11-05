@@ -31,10 +31,19 @@ Repository: `faust-0612/BUKLOD-Rork`
 - `dev/staging-user-live-backend-apk-20261101` compared with `main`: **diverged**, 9 commits candidate-only and 23 commits canonical-only.
 - `dev/staging-user-apk-build-20261101` compared with `main`: **diverged**, 1 commit candidate-only and 25 commits canonical-only.
 
-These are Git branch comparisons, not proof of which artifact is currently installed in the staging workspace or live in Production. Exact deployed staging identity and visual branding still require artifact/device verification.
+### Staging configuration drift found
+
+- Canonical `main` defines the `staging-user` EAS build profile with EAS environment `preview`.
+- The older `dev/staging-user-live-backend-apk-20261101` branch changes that profile to EAS environment `production`; its staging OTA workflow also explicitly runs `eas env:exec production` and publishes using `--environment production`.
+- Its app variant/package remains a staging identity, but the environment selection is materially different. Do not publish a `main`-built update to the existing `staging-user` channel until the installed staging build's environment, channel branch, runtime, and backend target are confirmed. Matching channel names alone do not prove backend compatibility.
+- Do not silently switch a live-backend staging installation to preview credentials, or the reverse. This is an explicit compatibility decision requiring exact installed-artifact evidence.
+
+These are Git/configuration findings, not proof of which artifact is currently installed in the staging workspace or live in Production. Exact deployed staging identity and visual branding still require artifact/device verification.
 
 ## Release decision
 
 **BLOCK STAGING PROMOTION** for the three compared staging-user branches above. Their history is stale/diverged relative to canonical `main`. Preserve their unique commits for review, but do not merge or publish them as-is.
+
+A clean RC branch `release/staging-current-main-rc-20261106` has been created from canonical `main` at the audited baseline. It is a source candidate only: no build, OTA, or backend/environment change has been made.
 
 This gate checks Git ancestry only. A candidate that is not behind still requires full scope, regression, RC, runtime/channel compatibility, and visible verification before Production.
