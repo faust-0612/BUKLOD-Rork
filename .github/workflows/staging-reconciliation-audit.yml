@@ -1,0 +1,32 @@
+name: Staging Reconciliation Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_ref:
+        description: Exact staging candidate branch or tag to compare with canonical main
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact staging candidate with full history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.candidate_ref }}
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify canonical main is an ancestor of staging candidate
+        env:
+          CANDIDATE_REF: ${{ inputs.candidate_ref }}
+        run: |
+          git fetch origin main:refs/remotes/origin/main
+          node scripts/staging-reconciliation-gate.mjs refs/remotes/origin/main "$CANDIDATE_REF"
