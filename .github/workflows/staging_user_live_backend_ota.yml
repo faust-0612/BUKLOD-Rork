@@ -1,0 +1,55 @@
+name: BUKLOD Staging-user OTA (Live Backend)
+on:
+  push:
+    branches:
+      - dev/staging-user-live-backend-apk-20261101
+    paths:
+      - .github/workflows/staging_user_live_backend_ota.yml
+permissions:
+  contents: read
+concurrency:
+  group: buklod-staging-user-ota
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      CI: "1"
+    steps:
+      - name: Require Expo credentials
+        shell: bash
+        run: |
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo "BLOCKED: EXPO_TOKEN is missing; no OTA published"
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Verify staging identity and live backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/staging-user-live-backend-gate.cjs
+          node --test tests/staging-fast-ota-contract.test.mjs tests/staging-live-backend-contract.test.mjs tests/community-wall-post-card-google-pattern.test.mjs tests/community-wall-post-card-navigation-scroll.test.mjs
+          npx eas-cli@latest whoami --non-interactive
+          npx eas-cli@latest env:exec production 'APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging node scripts/staging-user-live-backend-gate.cjs' --non-interactive
+          npx eas-cli@latest channel:view staging-user
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+      - name: Publish Android OTA to staging-user only
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest update --channel staging-user --platform android --environment production --message "BUKLOD DEV Community Wall update (${GITHUB_SHA::7})" --non-interactive
