@@ -14,6 +14,7 @@ import {
 import { BuklodCachedMediaImage } from '@/components/BuklodCachedMediaImage';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { communitySinglePhotoFrame } from '@/lib/communityMediaPresentation';
+import { dedupeCommunityPhotoItems } from '@/lib/communityPhotoIdentity';
 
 export type CommunityPhotoCollageItem = {
   media_path?: string | null;
@@ -61,22 +62,7 @@ export function communityPhotoCollageItems(
         : []
   ).filter(isPhotoItem);
 
-  const seen = new Set<string>();
-
-  return raw
-    .filter(item => {
-      const key = String(
-        item.media_path || item.media_url || ''
-      ).trim();
-
-      if (!key || seen.has(key)) {
-        return false;
-      }
-
-      seen.add(key);
-      return true;
-    })
-    .slice(0, COMMUNITY_MAX_PHOTOS);
+  return dedupeCommunityPhotoItems(raw).slice(0, COMMUNITY_MAX_PHOTOS);
 }
 
 /**
