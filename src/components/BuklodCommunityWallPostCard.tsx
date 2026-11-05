@@ -204,9 +204,7 @@ function DefaultBuklodCommunityWallPostCard({
           uri={video.media_url}
           active={active}
           expectedDurationSeconds={Number(video.duration_seconds ?? 0) || undefined}
-          posterUri={video.preview_url}
           onOpenFullscreen={onOpenVideo}
-          preserveAspectRatio
         />
       ) : photos.length ? (
         <BuklodCommunityPhotoCollage

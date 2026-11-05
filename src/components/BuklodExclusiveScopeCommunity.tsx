@@ -171,7 +171,6 @@ import {
   uploadCommunityPhotoFile,
   uploadCommunityGifFile,
   mapWithConcurrency,
-  persistCommunityVideoPoster,
 } from '@/lib/uploadCommunityVideoFile';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
@@ -1793,14 +1792,13 @@ export default function BuklodExclusiveScopeCommunity({
 
           setVideoUploadPercent(0);
 
-          const videoPreview = await uploadCommunityVideoFile({
+          await uploadCommunityVideoFile({
             path:
               uploadedPath,
             uri:
               snapshot.wallVideo.uri,
             contentType:
               snapshot.wallVideo.mimeType,
-            generateWallPreview: true,
             onProgress: (progress) => {
               setVideoUploadPercent(
                 progress.ratio
@@ -1829,7 +1827,6 @@ export default function BuklodExclusiveScopeCommunity({
               media_path: uploadedPath,
               media_mime_type: snapshot.wallVideo.mimeType,
               media_size_bytes: snapshot.wallVideo.sizeBytes || 0,
-              ...videoPreview,
             },
             ...extraMedia.filter(
               item =>
@@ -3377,22 +3374,6 @@ return (
                     uri={
                       item.media_url
                     }
-                    posterUri={item.media_items?.find((media:any) =>
-                      String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
-                    )?.preview_url ?? null}
-                    onPosterGenerated={thumbnail => {
-                      const videoMedia = item.media_items?.find((media:any) =>
-                        String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
-                      );
-                      if (!user?.id || String(item.user_id ?? '') !== String(user.id) || !videoMedia?.media_path) return;
-                      return persistCommunityVideoPoster({
-                        postId:String(item.id),
-                        mediaPosition:Number(videoMedia.media_position ?? 0),
-                        mediaPath:String(videoMedia.media_path),
-                        viewerUserId:String(user.id),
-                        thumbnail,
-                      });
-                    }}
                     height={
                       470
                     }

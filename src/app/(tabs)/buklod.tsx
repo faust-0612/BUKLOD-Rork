@@ -19,7 +19,7 @@ import {
   createVideoPlayer as createIncomingShareVideoPlayer187A,
 } from 'expo-video';
 import { useIncomingShare as useBuklodIncomingShare187A } from '@/lib/buklodIncomingShare';
-import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency, persistCommunityVideoPoster } from '@/lib/uploadCommunityVideoFile';
+import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
 import {
@@ -2640,12 +2640,11 @@ const load=useCallback(async(options?:{
      'Uploading video… Keep BUKLOD open 0%'
     );
 
-    const videoPreview = await uploadCommunityVideoFile({
+    await uploadCommunityVideoFile({
      path:videoPath,
      uri:snapshot.wallVideo.uri,
      contentType:
       snapshot.wallVideo.mimeType,
-     generateWallPreview:true,
      onProgress:(progress)=>{
       const percent=
        Math.round(
@@ -2666,8 +2665,7 @@ const load=useCallback(async(options?:{
      media_mime_type:
       snapshot.wallVideo.mimeType,
      media_size_bytes:
-      snapshot.wallVideo.sizeBytes,
-     ...videoPreview
+      snapshot.wallVideo.sizeBytes
     });
    }
 
@@ -4166,17 +4164,6 @@ const load=useCallback(async(options?:{
                 wallUri
               }
               uri={wallUri}
-               posterUri={wallVideo.media?.preview_url ?? null}
-               onPosterGenerated={thumbnail => {
-                 if (!user?.id || String(wallVideo.post?.user_id ?? '') !== String(user.id)) return;
-                 return persistCommunityVideoPoster({
-                   postId,
-                   mediaPosition:Number(wallVideo.media?.media_position ?? 0),
-                   mediaPath:String(wallVideo.media?.media_path ?? ''),
-                   viewerUserId:String(user.id),
-                   thumbnail,
-                 });
-               }}
               height={Math.min(
                 520,
                 Math.max(
@@ -5457,17 +5444,6 @@ const communityFeedRows =
          uri={
           fullscreenUri
          }
-         posterUri={descriptor.media?.preview_url ?? null}
-         onPosterGenerated={thumbnail => {
-          if (!user?.id || String(descriptor.post?.user_id ?? '') !== String(user.id)) return;
-          void persistCommunityVideoPoster({
-           postId,
-           mediaPosition:Number(descriptor.media?.media_position ?? 0),
-           mediaPath:String(descriptor.media?.media_path ?? ''),
-           viewerUserId:String(user.id),
-           thumbnail,
-          });
-         }}
          height={COMMUNITY_VIEWER_HEIGHT}
          fullscreen
          active={
