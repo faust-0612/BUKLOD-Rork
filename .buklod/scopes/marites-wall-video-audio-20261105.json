@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Use the existing Marites video presentation as the visual reference for public and scoped Community Wall posts: fixed feed frame, full uncropped source fit, black letterboxing where needed, clear playback and user-accessible sound. Keep Marites implementation unchanged. Correct Community Wall photo collage asset identity and preserve full-screen viewer paging without remounting on each swipe.",
+  "objective": "Use the existing Marites video presentation as the visual reference for public and scoped Community Wall posts: fixed feed frame, full uncropped source fit, black letterboxing where needed, clear playback and user-accessible sound. Keep Marites implementation unchanged.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: Android Production OTA run #249 published update 01a1a62f-f53e-7569-a4ef-306df0e0082b on production channel, Android runtime 1.3.2, from source SHA 4ed0d427b54c9ced99dfc0615b19f8cfac8dabab. Current main includes later non-OTA source changes; this branch is DEV-only until its own exact-head gates and a new RC/OTA.",
-  "chosenApproach": "Keep Marites' existing VideoView contain presentation intact. Adapt CommunityVideo's native and web renderers to present Wall videos in a fixed-height black frame with full-source contain fit, while preserving existing poster cache, secure signed URLs, weak-network behavior, visible-row playback, fullscreen, IMA and recovery. Add an explicit web sound toggle equivalent to the native Wall sound control. Deduplicate photos by normalized Storage object identity across signed URL token rotations and external object keys, preserving source order. Preview sidecars are never used to deduplicate distinct originals. Keep the vertical full-screen photo list mounted for each swipe session; remount only when a new collage is opened.",
-  "selectionRationale": "The user clarified Marites is the reference, and Community Posts must adopt that presentation. Preserve Marites as-is and update only Wall video renderers and Wall call sites; do not reverse the dependency or replace the existing media engine. The uploaded screenshots show repeated collage tiles and a full-screen photo sequence; fix the shared collage collection and viewer session lifecycle without changing image quality, secure signing, or the existing viewer presentation.",
+  "chosenApproach": "Keep Marites' existing VideoView contain presentation intact. Adapt CommunityVideo's native and web renderers to present Wall videos in a fixed-height black frame with full-source contain fit, while preserving existing poster cache, secure signed URLs, weak-network behavior, visible-row playback, fullscreen, IMA and recovery. Add an explicit web sound toggle equivalent to the native Wall sound control.",
+  "selectionRationale": "The user clarified Marites is the reference, and Community Posts must adopt that presentation. Preserve Marites as-is and update only Wall video renderers and Wall call sites; do not reverse the dependency or replace the existing media engine.",
   "riskAreas": [
     "wall-media",
     "video-audio-playback",
@@ -13,8 +13,7 @@
   ],
   "regressionTests": [
     "tests/unified-social-media-rendering.test.mjs",
-    "tests/community-video-navigation-scroll.test.mjs",
-    "tests/community-photo-collage-identity.test.mjs"
+    "tests/community-video-navigation-scroll.test.mjs"
   ],
   "preserveBehaviors": [
     "Private signed media URLs and scope authorization remain unchanged",
@@ -22,10 +21,7 @@
     "Video cache remains bounded and poster generation remains player-backed",
     "Sound is user-controllable and never forced muted in Marites",
     "Wall playback, IMA ad lifecycle, fullscreen behavior and weak-network recovery remain unchanged",
-    "No database, RLS, storage policy, native dependency or package identity changes",
-    "Photo order and each distinct original photo remain intact in the collage and full-screen viewer",
-    "Vertical full-screen photo paging remains smooth; changing the active index does not remount the list",
-    "Private photo signing, Android preview/original upgrade and zoom/reaction/save actions remain unchanged"
+    "No database, RLS, storage policy, native dependency or package identity changes"
   ],
   "acceptanceChecks": [
     "Marites source component remains unchanged from main",
@@ -33,10 +29,7 @@
     "Letterboxing uses the same dark background style as Marites",
     "Wall video playback exposes a working sound toggle on native and web",
     "Autoplay remains muted until explicit user sound activation; fullscreen playback has sound",
-    "Secure signed media, cached posters, playback recovery, weak-network safeguards, visible-video selection, and IMA ads remain intact",
-    "Repeated assets render only once even when signed URL tokens or URL hosts differ",
-    "Distinct photo objects retain their original order and open as the same sequence in the full-screen viewer",
-    "Full-screen vertical photo paging list does not remount on every index change and starts at the selected tile for each newly opened collage"
+    "Secure signed media, cached posters, playback recovery, weak-network safeguards, visible-video selection, and IMA ads remain intact"
   ],
   "allowedPaths": [
     "src/components/CommunityVideo.tsx",
@@ -45,10 +38,7 @@
     "src/components/BuklodExclusiveScopeCommunity.tsx",
     "tests/unified-social-media-rendering.test.mjs",
     ".buklod/scopes/marites-wall-video-audio-20261105.json",
-    "tests/community-video-navigation-scroll.test.mjs",
-    "src/lib/communityPhotoIdentity.ts",
-    "src/components/BuklodCommunityPhotoCollage.tsx",
-    "tests/community-photo-collage-identity.test.mjs"
+    "tests/community-video-navigation-scroll.test.mjs"
   ],
   "alternativeApproaches": [
     "Keep the separate Marites player and duplicate Wall playback fixes (rejected: creates behavior drift)",
