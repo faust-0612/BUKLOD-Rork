@@ -27,10 +27,12 @@
     "Sound can be enabled from an explicit play gesture and via shared sound control",
     "Marites fullscreen story uses the shared renderer",
     "Visible-video selection and offscreen playback protections remain intact",
-    "Focused media regression test and TypeScript check pass"
+    "Focused media regression test and TypeScript check pass",
+    "Compact Marites story frame keeps a fixed card size while fitting the entire video source without cropping"
   ],
   "allowedPaths": [
     "src/components/BuklodMaritesBoard.tsx",
+    "src/components/CommunityVideo.tsx",
     "tests/unified-social-media-rendering.test.mjs",
     ".buklod/scopes/marites-wall-video-audio-20261105.json"
   ],
