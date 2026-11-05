@@ -29,5 +29,9 @@
     "tests/the-word-safe-area-20261106.test.mjs",
     ".github/workflows/engineering-accountability.yml",
     ".buklod/scopes/the-word-safe-area-20261106.json"
+  ],
+  "alternativeApproaches": [
+    "Apply a fixed pixel top padding; rejected because status-bar height varies by device, display cutout, and system configuration.",
+    "Wrap the route in a new nested SafeAreaView; rejected because the existing safe-area context already exposes the exact top inset and a local container adjustment is smaller."
   ]
 }
