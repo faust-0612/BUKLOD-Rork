@@ -1,4 +1,5 @@
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
+import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
 /* BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME: existing broadcast implementation preserved */
 /* PERF_EMERGENCY_R2_VISIBLE_POSTS: list-shape-drift-safely-skipped */
 /* PERF_EMERGENCY_R2_MULTI_MEDIA_CACHE: existing-community-media-url-cache-preserved */
@@ -18,7 +19,7 @@ import {
   createVideoPlayer as createIncomingShareVideoPlayer187A,
 } from 'expo-video';
 import { useIncomingShare as useBuklodIncomingShare187A } from '@/lib/buklodIncomingShare';
-import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';
+import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency, persistCommunityVideoPoster } from '@/lib/uploadCommunityVideoFile';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
 import {
@@ -2503,7 +2504,9 @@ const load=useCallback(async(options?:{
     media_path:string;
     media_mime_type:string;
     media_size_bytes:number;
-   }>=[];
+    preview_path?:string;
+    preview_bytes?:number;
+   }> = [];
 
   let createdPostId:
    string|null=
@@ -2637,11 +2640,12 @@ const load=useCallback(async(options?:{
      'Uploading video… Keep BUKLOD open 0%'
     );
 
-    await uploadCommunityVideoFile({
+    const videoPreview = await uploadCommunityVideoFile({
      path:videoPath,
      uri:snapshot.wallVideo.uri,
      contentType:
       snapshot.wallVideo.mimeType,
+     generateWallPreview:true,
      onProgress:(progress)=>{
       const percent=
        Math.round(
@@ -2662,7 +2666,8 @@ const load=useCallback(async(options?:{
      media_mime_type:
       snapshot.wallVideo.mimeType,
      media_size_bytes:
-      snapshot.wallVideo.sizeBytes
+      snapshot.wallVideo.sizeBytes,
+     ...videoPreview
     });
    }
 
@@ -3724,128 +3729,68 @@ const load=useCallback(async(options?:{
 
 
  const renderViewerPhotoActions=
-  ()=>{
-
-   const photo=
-    viewerItems[
-     viewerIndex
-    ];
-
-
-   if(!photo){
-    return null;
-   }
-
-
-   const counts=
-    photo.reaction_counts??
-    {};
-
-
-   const saveKey=
-    String(
-     photo?.post_id??
-     ''
-    )+
-    ':'+
-    String(
-     photo?.media_position??
-     0
-    );
-
-
-   return (
-    <View
-     style={[
-      s.communityViewerActions,
-      {
-       bottom:
-        Math.max(
+   ()=>{
+    const photo=viewerItems[viewerIndex];
+    if(!photo) return null;
+    const counts=photo.reaction_counts??{};
+    const total=photoReactionTotal(photo);
+    const saveKey=String(photo?.post_id??'')+':'+String(photo?.media_position??0);
+    return (
+     <View
+      style={[
+       s.communityViewerActions,
+       {
+        bottom:Math.max(
          communityInsets.bottom+14,
-         Platform.OS==='android'
-          ? 68
-          : 26
-        )
-      }
-     ]}
-    >
-
-     <Text style={s.communityViewerActionTitle}>
-      React to this photo
-     </Text>
-
-
-     <BuklodReactionAction
-      options={BUKLOD_PUBLIC_COMMUNITY_REACTIONS}
-      counts={counts}
-      mine={photo.my_reaction}
-      onSummaryPress={key =>
-       openReactionDetails(
-        photo,
-        key
-       )
-      }
-      onSelect={key=>{
-       void reactToCommunityPhoto(
-        photo,
-        key as Reaction
-       );
-      }}
-     />
-
-
-      <Pressable
-       disabled={
-        savingPhotoKey===
-        saveKey
-       }
-
-       onPress={()=>
-        void saveCommunityPhoto(
-         photo
+         Platform.OS==='android'?68:26
         )
        }
-
-       style={s.communityViewerSaveButton}
-      >
-
-       <MaterialCommunityIcons
-        name={
-         savingPhotoKey===
-         saveKey
-          ? 'progress-download'
-          : 'download'
-        }
-        size={20}
-        color="#FFFFFF"
+      ]}
+     >
+      <View style={{flexDirection:'row',alignItems:'center',gap:10}}>
+       <BuklodReactionAction
+        options={BUKLOD_PUBLIC_COMMUNITY_REACTIONS}
+        compact
+        showSummary={false}
+        counts={counts}
+        mine={photo.my_reaction}
+        onSelect={key=>{void reactToCommunityPhoto(photo,key as Reaction);}}
        />
+       {total>0&&(
+        <Pressable
+         accessibilityRole="button"
+         accessibilityLabel="View all photo reactions"
+         onPress={()=>openReactionDetails(photo)}
+         style={{flex:1,minWidth:35,justifyContent:'center'}}
+        >
+         <Text style={s.communityViewerReactionSummary}>
+          {total} {total===1?'reaction':'reactions'}
+         </Text>
+        </Pressable>
+       )}
+       <View style={{flex:total>0?0:1}}/>
+       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Save photo"
+        disabled={savingPhotoKey===saveKey}
+        onPress={()=>void saveCommunityPhoto(photo)}
+        style={s.communityViewerSaveButton}
+       >
+        <MaterialCommunityIcons
+         name={savingPhotoKey===saveKey?'progress-download':'download'}
+         size={20}
+         color="#FFFFFF"
+        />
+        <Text style={s.communityViewerSaveText}>
+         {savingPhotoKey===saveKey?'Saving':'Save'}
+        </Text>
+       </Pressable>
+      </View>
+     </View>
+    );
+   };
 
-       <Text style={s.communityViewerSaveText}>
-        {savingPhotoKey===
-         saveKey
-          ? 'Saving'
-          : 'Save'}
-       </Text>
-
-      </Pressable>
-
-     {photoReactionTotal(photo)>0&&(
-      <Text style={s.communityViewerReactionSummary}>
-       {photoReactionTotal(photo)}
-       {' '}
-       {photoReactionTotal(photo)===1
-        ? 'reaction'
-        : 'reactions'}
-       {' on this photo'}
-      </Text>
-     )}
-
-    </View>
-   );
-  };
-
-
- const openPhotoViewer=
+  const openPhotoViewer=
   (
    media:any[],
    index:number
@@ -4221,6 +4166,17 @@ const load=useCallback(async(options?:{
                 wallUri
               }
               uri={wallUri}
+               posterUri={wallVideo.media?.preview_url ?? null}
+               onPosterGenerated={thumbnail => {
+                 if (!user?.id || String(wallVideo.post?.user_id ?? '') !== String(user.id)) return;
+                 return persistCommunityVideoPoster({
+                   postId,
+                   mediaPosition:Number(wallVideo.media?.media_position ?? 0),
+                   mediaPath:String(wallVideo.media?.media_path ?? ''),
+                   viewerUserId:String(user.id),
+                   thumbnail,
+                 });
+               }}
               height={Math.min(
                 520,
                 Math.max(
@@ -4698,32 +4654,20 @@ const communityFeedRows =
     style={{
      flexDirection:'row',
      gap:7,
-     marginBottom:10
+     marginBottom:6
     }}
    >
     <Pressable
      accessibilityRole="button"
-     accessibilityLabel={
-      connectUnread>0
-       ? `Open BUKLOD Connect, ${connectPersonalUnread} personal unread, ${connectCommunityUnread} community unread`
-       : 'Open BUKLOD Connect'
-     }
-     accessibilityHint="Opens your BUKLOD messages from inside Community Wall"
+     accessibilityLabel="Open My Bible"
+     accessibilityHint="Opens the complete Bible reader with book and chapter selection"
      onPress={()=>
-      router.push({
-       pathname:'/messages',
-       params:{
-        tab:
-         connectCommunityUnread>connectPersonalUnread
-          ? 'community'
-          : 'personal',
-       },
-      } as any)
+      router.push('/bible/read?source=my_bible' as any)
      }
      style={({pressed})=>({
-      width:42,
-      height:42,
-      borderRadius:12,
+      width:38,
+      height:38,
+      borderRadius:11,
       alignItems:'center',
       justifyContent:'center',
       backgroundColor:'#3DDC4A',
@@ -4731,45 +4675,16 @@ const communityFeedRows =
      })}
     >
      <MaterialCommunityIcons
-      name="message-processing-outline"
-      size={20}
+      name="book-open-variant"
+      size={23}
       color="#FFFFFF"
      />
-     {connectUnread>0&&(
-      <View
-       pointerEvents="none"
-       style={{
-        position:'absolute',
-        top:-4,
-        right:-4,
-        minWidth:16,
-        height:16,
-        paddingHorizontal:3,
-        borderRadius:8,
-        borderWidth:2,
-        borderColor:'#FFFFFF',
-        backgroundColor:'#C9332D',
-        alignItems:'center',
-        justifyContent:'center',
-       }}
-      >
-       <Text
-        style={{
-         color:'#FFFFFF',
-         fontSize:8,
-         fontWeight:'900',
-         lineHeight:10,
-        }}
-       >
-        {connectUnread>99?'99+':connectUnread}
-       </Text>
-      </View>
-     )}
+
     </Pressable>
     <View
      style={{
       flex:1,
-      minHeight:42,
+      minHeight:38,
       borderRadius:12,
       backgroundColor:colors.green,
       alignItems:'center',
@@ -4798,8 +4713,8 @@ const communityFeedRows =
      }
      style={({pressed})=>({
       minWidth:68,
-      height:42,
-      borderRadius:12,
+       height:38,
+       borderRadius:11,
       paddingHorizontal:10,
       flexDirection:'row',
       alignItems:'center',
@@ -5131,7 +5046,7 @@ const communityFeedRows =
 
     return (
       <BuklodFocusVisibleRow index={index}>
-    <Card style={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
+    <BuklodCommunityWallPostCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
    <View
      style={{
        flexDirection:
@@ -5390,7 +5305,7 @@ const communityFeedRows =
       />
      }
     />
-  </Card>
+  </BuklodCommunityWallPostCard>
       </BuklodFocusVisibleRow>
     );}}/>
 {/* BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_SWIPE_R4 */}
@@ -5542,6 +5457,17 @@ const communityFeedRows =
          uri={
           fullscreenUri
          }
+         posterUri={descriptor.media?.preview_url ?? null}
+         onPosterGenerated={thumbnail => {
+          if (!user?.id || String(descriptor.post?.user_id ?? '') !== String(user.id)) return;
+          void persistCommunityVideoPoster({
+           postId,
+           mediaPosition:Number(descriptor.media?.media_position ?? 0),
+           mediaPath:String(descriptor.media?.media_path ?? ''),
+           viewerUserId:String(user.id),
+           thumbnail,
+          });
+         }}
          height={COMMUNITY_VIEWER_HEIGHT}
          fullscreen
          active={
@@ -5910,7 +5836,7 @@ const communityFeedRows =
     </Pressable>
    </View>
 
-   {renderViewerPhotoActions()}
+   {!viewerZoomed&&renderViewerPhotoActions()}
 
    {viewerItems.length>1&&(
     <Text

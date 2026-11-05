@@ -23,6 +23,7 @@ import {
   useBuklodContentReport,
 } from '@/components/BuklodContentReportSheet';
 import BuklodMentionText from '@/components/BuklodMentionText';
+import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
 import BuklodMentionField from '@/components/BuklodMentionField';
 import {
   mentionsStillInText,
@@ -170,6 +171,7 @@ import {
   uploadCommunityPhotoFile,
   uploadCommunityGifFile,
   mapWithConcurrency,
+  persistCommunityVideoPoster,
 } from '@/lib/uploadCommunityVideoFile';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
@@ -235,6 +237,8 @@ type SocialPost = {
     media_mime_type?: string | null;
     media_size_bytes?: number | null;
     media_url?: string | null;
+    preview_path?: string | null;
+    preview_url?: string | null;
   }>;
   comment_preview?: BuklodPostCommentPreview | null;
 };
@@ -1667,6 +1671,8 @@ export default function BuklodExclusiveScopeCommunity({
           media_path: string;
           media_mime_type: string;
           media_size_bytes: number;
+          preview_path?: string;
+          preview_bytes?: number;
         }> =
           [];
 
@@ -1787,13 +1793,14 @@ export default function BuklodExclusiveScopeCommunity({
 
           setVideoUploadPercent(0);
 
-          await uploadCommunityVideoFile({
+          const videoPreview = await uploadCommunityVideoFile({
             path:
               uploadedPath,
             uri:
               snapshot.wallVideo.uri,
             contentType:
               snapshot.wallVideo.mimeType,
+            generateWallPreview: true,
             onProgress: (progress) => {
               setVideoUploadPercent(
                 progress.ratio
@@ -1822,6 +1829,7 @@ export default function BuklodExclusiveScopeCommunity({
               media_path: uploadedPath,
               media_mime_type: snapshot.wallVideo.mimeType,
               media_size_bytes: snapshot.wallVideo.sizeBytes || 0,
+              ...videoPreview,
             },
             ...extraMedia.filter(
               item =>
@@ -3261,10 +3269,8 @@ export default function BuklodExclusiveScopeCommunity({
       }
 
 return (
-        <View
-          style={[styles.postCard,
-            focusId === item.id && { borderColor: colors.green, borderWidth: 2 },
-          ]}
+        <BuklodCommunityWallPostCard
+          containerStyle={focusId === item.id ? { borderColor: colors.green, borderWidth: 2 } : undefined}
         >
           <View
             style={
@@ -3371,6 +3377,22 @@ return (
                     uri={
                       item.media_url
                     }
+                    posterUri={item.media_items?.find((media:any) =>
+                      String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
+                    )?.preview_url ?? null}
+                    onPosterGenerated={thumbnail => {
+                      const videoMedia = item.media_items?.find((media:any) =>
+                        String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
+                      );
+                      if (!user?.id || String(item.user_id ?? '') !== String(user.id) || !videoMedia?.media_path) return;
+                      return persistCommunityVideoPoster({
+                        postId:String(item.id),
+                        mediaPosition:Number(videoMedia.media_position ?? 0),
+                        mediaPath:String(videoMedia.media_path),
+                        viewerUserId:String(user.id),
+                        thumbnail,
+                      });
+                    }}
                     height={
                       470
                     }
@@ -3575,7 +3597,7 @@ return (
               item.id
             }
           />
-        </View>
+        </BuklodCommunityWallPostCard>
       );
     };
 
@@ -5070,30 +5092,11 @@ const styles =
           '900',
       },
 
-      postCard: {
-        borderRadius:
-          19,
-        backgroundColor:
-          colors.white,
-        borderWidth:
-          1,
-        borderColor:
-          colors.line,
-        padding:
-          12,
-        marginBottom:
-          10,
-        overflow:
-          'hidden',
-      },
-
       postPhotos: {
         width:
           '100%',
         maxWidth:
           '100%',
-        marginTop:
-          10,
         overflow:
           'hidden',
       },
@@ -5172,8 +5175,6 @@ const styles =
       },
 
       body: {
-        marginTop:
-          11,
         color:
           colors.text,
         fontSize:
@@ -5201,8 +5202,6 @@ const styles =
       videoWrap: {
         position:
           'relative',
-        marginTop:
-          2,
       },
 
       reelBadge: {
@@ -5246,8 +5245,6 @@ const styles =
           'center',
         minHeight:
           34,
-        marginTop:
-          6,
         borderBottomWidth:
           1,
         borderBottomColor:
@@ -5337,8 +5334,6 @@ const styles =
       commentButton: {
         minHeight:
           42,
-        marginTop:
-          8,
         borderRadius:
           11,
         backgroundColor:
