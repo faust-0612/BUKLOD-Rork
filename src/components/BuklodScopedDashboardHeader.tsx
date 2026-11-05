@@ -1,4 +1,5 @@
 import React from 'react';
+import BuklodScopedHeaderBanner from '@/components/BuklodScopedHeaderBanner';
 
 import {
   Pressable,
@@ -117,6 +118,11 @@ BuklodScopedDashboardHeader({
             <BuklodDashboardCustomizer theme={theme} canCustomize={canCustomize} onSave={onThemeChange} />
           </View>
         </View>
+        {section !== 'connect' ? (
+          <BuklodScopedHeaderBanner
+            placement={section === 'community' ? 'community' : 'home'}
+          />
+        ) : null}
       </View>
     );
   }
