@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Correct Community Wall photo collage duplication and full-screen photo paging while preserving each distinct original photo and its order.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "DEV-only follow-up based on the merged Marites-style Community Wall video implementation at 183c94591ab3e0451f4e1900cddd74a1bff121e1. No OTA or production release is included in this change.",
+  "chosenApproach": "Deduplicate collage items by normalized original Storage object identity across media_path, signed media_url (ignoring expiring query tokens), and external object keys. Use preview sidecar identity only when no original identity exists, so a stale/shared preview can never hide distinct originals. Keep the public Wall vertical full-screen photo FlatList mounted for one viewer session and remount only when a new collage is opened.",
+  "selectionRationale": "The supplied screenshots show duplicate-looking collage tiles and a two-photo full-screen sequence. The shared collage component and public Wall viewer are the common source of truth; correct identity normalization and viewer lifecycle without changing image quality, signed URL authorization, zoom, reactions, or save behavior.",
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/community-wall-media-navigation-scroll.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Distinct original photos retain their original media order and remain available in the full-screen viewer",
+    "Duplicate media references with rotated signed URL tokens do not render twice",
+    "A stale or shared preview sidecar cannot hide two distinct original photos",
+    "Vertical full-screen photo paging remains stable and does not remount on each index change",
+    "Private photo signing, Android preview/original upgrade, zoom, reaction and Save actions remain unchanged",
+    "No database, RLS, storage policy, package identity or native dependency changes"
+  ],
+  "acceptanceChecks": [
+    "The same Storage object referenced by a path and a signed URL is rendered only once",
+    "Distinct originals remain distinct even when their preview_path values collide",
+    "Photo order remains stable from collage tile selection through the full-screen viewer",
+    "The photo viewer FlatList key changes for a new viewer session but not for each swipe",
+    "Focused regression tests cover duplicate identity, distinct originals, ordering and vertical viewer paging"
+  ],
+  "allowedPaths": [
+    "src/lib/communityPhotoIdentity.ts",
+    "src/components/BuklodCommunityPhotoCollage.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/community-wall-media-navigation-scroll.test.mjs",
+    ".buklod/scopes/community-photo-collage-viewer-20261106.json"
+  ],
+  "alternativeApproaches": [
+    "Deduplicate solely by preview_path (rejected: a stale preview mapping could hide a distinct original photo)",
+    "Deduplicate by the complete signed URL (rejected: query tokens rotate for the same Storage object)",
+    "Keep viewerIndex in the FlatList key (rejected: every swipe remounts and resets the vertical pager)"
+  ]
+}
