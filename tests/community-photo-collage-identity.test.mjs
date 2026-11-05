@@ -46,7 +46,7 @@ test('distinct images retain their original media order and identity', () => {
 
 test('public Wall photo viewer stays mounted while paging and resets only for a new viewer session', () => {
   const wall = readFileSync('src/app/(tabs)/buklod.tsx', 'utf8');
-  const listStart = wall.indexOf('<GestureFlatList', wall.indexOf('viewerOpen&&('));
+  const listStart = wall.indexOf('<GestureFlatList', wall.indexOf('visible={viewerOpen}'));
   const list = wall.slice(listStart, wall.indexOf('/>', listStart));
   assert.match(wall, /setViewerSession\(current=>current\+1\)/);
   assert.match(list, /'viewer-'\s*\+\s*viewerSession\s*\+\s*'-'\s*\+\s*viewerItems\.length/);
