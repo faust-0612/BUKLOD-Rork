@@ -37,7 +37,8 @@
     "src/app/(tabs)/buklod.tsx",
     "src/components/BuklodExclusiveScopeCommunity.tsx",
     "tests/unified-social-media-rendering.test.mjs",
-    ".buklod/scopes/marites-wall-video-audio-20261105.json"
+    ".buklod/scopes/marites-wall-video-audio-20261105.json",
+    "tests/community-video-navigation-scroll.test.mjs"
   ],
   "alternativeApproaches": [
     "Keep the separate Marites player and duplicate Wall playback fixes (rejected: creates behavior drift)",
