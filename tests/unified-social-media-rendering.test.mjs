@@ -45,3 +45,12 @@ test('Marites video cards and fullscreen viewer use the shared Wall video engine
   assert.doesNotMatch(marites, /autoPlay muted/);
   assert.match(marites, /if \(viewStory\.video_uri\) return <MaritesQuickVideo uri=\{viewStory\.video_uri\} fullscreen \/>/);
 });
+
+
+test('Marites compact video keeps the full source inside its fixed story frame', () => {
+  const source = read('src/components/CommunityVideo.tsx');
+  assert.match(source, /fitFrame\?: boolean/);
+  assert.match(source, /preserveAspectRatio = true,\s*fitFrame = false/);
+  assert.match(source, /!fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio/);
+  assert.match(source, /contentFit=\{fullscreen \|\| preserveAspectRatio \? 'contain' : 'cover'\}/);
+});
