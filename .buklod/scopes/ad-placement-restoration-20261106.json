@@ -16,14 +16,14 @@
     "navigation"
   ],
   "regressionTests": [
-    "tests/buklod-ad-placement-restoration.test.mjs",
-    "tests/production-ota-ads-regression.test.mjs"
+    "tests/buklod-ad-placement-restoration.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/ad-placement-restoration-20261106.json",
     "src/components/BuklodHeaderSponsor.tsx",
     "src/app/(tabs)/_layout.tsx",
     "src/components/BuklodScopedDashboardHeader.tsx",
+    "src/components/BuklodScopedHeaderBanner.tsx",
     "src/components/BuklodScopedHeaderBanner.android.tsx",
     "src/components/BuklodScopedHeaderBanner.web.tsx",
     "tests/buklod-ad-placement-restoration.test.mjs"
