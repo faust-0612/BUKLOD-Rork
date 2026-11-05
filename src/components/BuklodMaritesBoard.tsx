@@ -140,6 +140,7 @@ function MaritesQuickVideo({
   fullscreen?: boolean;
 }) {
   const active = useMaritesPlaybackActive();
+  const { height: windowHeight } = useWindowDimensions();
 
   // Marites and Community Wall share the same resilient player, aspect-ratio
   // handling, cached poster transition, playback recovery and sound controls.
@@ -147,7 +148,7 @@ function MaritesQuickVideo({
   return (
     <CommunityVideo
       uri={uri}
-      height={height}
+      height={fullscreen ? windowHeight : height}
       fullscreen={fullscreen}
       active={active}
       autoPlay={autoPlay}
@@ -1995,7 +1996,7 @@ export default function BuklodMaritesBoard({
                   !photoUris.length &&
                   isMaritesEmojiOnlyBody(body);
 
-                if (viewStory.video_uri) return <MaritesQuickVideo uri={viewStory.video_uri} height={0} fullscreen />;
+                if (viewStory.video_uri) return <MaritesQuickVideo uri={viewStory.video_uri} fullscreen />;
                 if (photoUris.length) {
                   if (photoUris.length === 1) {
                     return (
