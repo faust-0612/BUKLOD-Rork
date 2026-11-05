@@ -26,3 +26,19 @@ test('offscreen feed rows do not create thumbnail players or trigger poster uplo
   assert.match(upload, /if \(!generateWallPreview\) return \{\}/);
   assert.match(preview, /createVideoPlayer\(\{ uri \}\)/);
 });
+
+
+test('Community Wall videos use the Marites full-frame presentation without changing Marites', () => {
+  const publicWall = read('src/app/(tabs)/buklod.tsx');
+  const scopedWall = read('src/components/BuklodExclusiveScopeCommunity.tsx');
+  const video = read('src/components/CommunityVideo.tsx');
+  const web = read('src/components/CommunityVideo.web.tsx');
+  const marites = read('src/components/BuklodMaritesBoard.tsx');
+  assert.match(marites, /contentFit="contain"/);
+  assert.match(publicWall, /edgeToEdge\\s+fitFrame\\s+autoPlay/);
+  assert.match(scopedWall, /height=\\{\\s*470\\s*\\}\\s*fitFrame\\s*autoPlay/);
+  assert.match(video, /!fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio/);
+  assert.match(video, /contentFit=\\{preserveAspectRatio \\? 'contain' : 'cover'\\}/);
+  assert.match(web, /objectFit: fullscreen \\|\\| fitFrame \\? 'contain' : 'cover'/);
+  assert.match(web, /muted: fullscreen \\? false : !soundOn/);
+});
