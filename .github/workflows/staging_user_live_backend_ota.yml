@@ -1,4 +1,5 @@
 name: BUKLOD Staging-user OTA (Live Backend)
+# Re-run guarded staging OTA after CommunityVideo API compatibility fix.
 on:
   push:
     branches:

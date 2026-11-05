@@ -36,7 +36,7 @@ test('Wall card keeps feed authorization and mutations outside the presentation 
 test('Wall photo collage and video playback remain lazy/canonical component paths', () => {
   assert.match(source, /preserveSinglePhotoAspectRatio/);
   assert.match(source, /active=\{active\}/);
-  assert.match(source, /posterUri=\{video\.preview_url\}/);
+  assert.doesNotMatch(source, /posterUri=|onPosterGenerated=|preserveAspectRatio/);
 });
 
 test('Public and scoped Community Wall renderers use the shared post card boundary', () => {
