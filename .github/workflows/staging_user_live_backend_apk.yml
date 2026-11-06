@@ -1,93 +1,16 @@
-name: BUKLOD Staging-user Live Backend APK
-
-# One DEV-only, file-scoped push triggers this build once; no main/OTA releases.
+# RETIRED: 2026-11-07. Historical staging APK source is behind canonical main.
+# Never recreate an APK from this branch: it can install outdated native/UI assets.
+# Replace only through a binary-provenance-verified V28 production mirror workflow.
+name: BUKLOD Legacy Staging-user Live Backend APK — RETIRED
 on:
-  push:
-    branches:
-      - dev/staging-user-live-backend-apk-20261101
-    paths:
-      - .github/workflows/staging_user_live_backend_apk.yml
   workflow_dispatch:
-
 permissions:
   contents: read
-
-concurrency:
-  group: buklod-staging-live-backend-apk
-  cancel-in-progress: false
-
 jobs:
-  build:
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
-    env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      APP_VARIANT: staging
-      EXPO_PUBLIC_APP_ENV: staging
-      CI: "1"
     steps:
-      - name: Check Expo credential available
-        shell: bash
+      - name: Fail closed; legacy APK source is not authoritative
         run: |
-          if [ -z "${EXPO_TOKEN:-}" ]; then
-            echo "BLOCKED: EXPO_TOKEN is not configured; no paid build submitted"
-            exit 1
-          fi
-
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 1
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Verify staging isolation and live Supabase public configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const assert=require('node:assert/strict');
-          const e=require('./eas.json').build['staging-user'];
-          const app=require('./app.config.js')({config:{}});
-          assert.equal(e.autoIncrement,undefined,'EAS cannot auto-increment with dynamic config');
-          assert.equal(app.android.versionCode,1,'staging versionCode must be explicit');
-          assert.equal(e.env.EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS,'false');
-          console.log('STAGING_LOCAL_VERSION_AND_TEST_ADS=PASS');
-          NODE
-          node --check scripts/staging-user-live-backend-gate.cjs
-          node --test tests/staging-fast-ota-contract.test.mjs tests/staging-live-backend-contract.test.mjs
-          npx eas-cli@latest whoami --non-interactive
-          npx eas-cli@latest env:exec production 'APP_VARIANT=staging node scripts/staging-user-live-backend-gate.cjs' --non-interactive
-
-      - name: TypeScript QA before spending a build quota
-        run: npx tsc --noEmit
-
-      - name: Build staging-user APK, NOT production
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx eas-cli@latest build --platform android --profile staging-user --non-interactive --wait --json > staging-user-build.json
-          node <<'NODE'
-          const fs=require('node:fs');
-          const r=JSON.parse(fs.readFileSync('staging-user-build.json','utf8'));
-          const b=Array.isArray(r)?r[0]:r;
-          const url=b?.artifacts?.buildUrl || b?.artifacts?.applicationArchiveUrl;
-          if (b?.status !== 'FINISHED' || !url) throw new Error('No verified finished staging APK artifact');
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-            '# BUKLOD Staging-user (Live Backend)\n\n'+
-            '- Source SHA: '+process.env.GITHUB_SHA+'\n'+
-            '- EAS Build ID: '+b.id+'\n'+
-            '- APK: '+url+'\n'+
-            '- Package: org.mzbministry.buklod.staging\n'+
-            '- OTA channel: staging-user\n'+
-            '- Data: BUKLOD original live backend\n'+
-            '- Production app/OTA: unchanged\n');
-          console.log('STAGING_APK_ID='+b.id);
-          console.log('STAGING_APK_URL='+url);
-          NODE
+          echo "::error::RETIRED old staging APK builder. Require exact approved V28 AAB binary provenance."
+          exit 1
