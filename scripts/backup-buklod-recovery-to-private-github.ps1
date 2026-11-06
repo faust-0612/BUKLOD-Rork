@@ -16,6 +16,26 @@ function ToolPath([string]$name, [string]$package, [string[]]$paths) {
   throw "$name not found after install. Reopen PowerShell and rerun."
 }
 function MustSucceed([string]$stage) { if ($LASTEXITCODE -ne 0) { throw "$stage failed (exit $LASTEXITCODE)" } }
+# Windows PowerShell 5.1 can classify successful native stderr output as NativeCommandError
+# when ErrorActionPreference=Stop. Keep native exit codes authoritative.
+function NativeQuiet([string]$exe,[string[]]$arguments) {
+  $previous = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    & $exe @arguments 1>$null 2>$null
+    return ($LASTEXITCODE -eq 0)
+  } finally { $ErrorActionPreference = $previous }
+}
+function NativeRun([string]$exe,[string[]]$arguments,[string]$stage) {
+  $previous = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    & $exe @arguments
+    $code = $LASTEXITCODE
+  } finally { $ErrorActionPreference = $previous }
+  if ($code -ne 0) { throw "$stage failed (exit $code)" }
+}
+
 
 $seven = ToolPath '7z.exe' '7zip.7zip' @('C:\Program Files\7-Zip\7z.exe','C:\Program Files (x86)\7-Zip\7z.exe')
 $gh = ToolPath 'gh.exe' 'GitHub.cli' @('C:\Program Files\GitHub CLI\gh.exe',"$env:LOCALAPPDATA\Programs\GitHub CLI\gh.exe")
@@ -35,23 +55,20 @@ $checks = @(
 )
 foreach ($x in $checks) {
   if (-not (Test-Path -LiteralPath $x.p)) { throw "Source repository missing: $($x.p)" }
-  & $git -C $x.p bundle verify (Join-Path $source $x.n) 1>$null 2>$null
-  MustSucceed "Bundle check $($x.n)"
+  if (-not (NativeQuiet $git @('-C',$x.p,'bundle','verify',(Join-Path $source $x.n)))) {
+    throw "Bundle check failed: $($x.n)"
+  }
 }
-& $gh auth status --hostname github.com 1>$null 2>$null
-if ($LASTEXITCODE -ne 0) {
+if (-not (NativeQuiet $gh @('auth','status','--hostname','github.com'))) {
   Write-Host 'Log in using the browser; never paste a GitHub token into chat.'
-  & $gh auth login --hostname github.com --web --git-protocol https
-  MustSucceed 'GitHub login'
+  NativeRun $gh @('auth','login','--hostname','github.com','--web','--git-protocol','https') 'GitHub login'
 }
 $actor = ((& $gh api user --jq '.login') | Out-String).Trim()
 MustSucceed 'GitHub login identity check'
 if ($actor -ine 'faust-0612') { throw "Wrong GitHub user: $actor; expected faust-0612." }
 $repo = 'faust-0612/BUKLOD-Local-Recovery'
-& $gh repo view $repo --json isPrivate --jq '.isPrivate' 1>$null 2>$null
-if ($LASTEXITCODE -ne 0) {
-  & $gh repo create $repo --private --add-readme --description 'Encrypted BUKLOD local recovery archive; no deployments'
-  MustSucceed 'Private repository creation'
+if (-not (NativeQuiet $gh @('repo','view',$repo,'--json','isPrivate','--jq','.isPrivate'))) {
+  NativeRun $gh @('repo','create',$repo,'--private','--add-readme','--description','Encrypted BUKLOD local recovery archive; no deployments') 'Private repository creation'
 }
 $private = ((& $gh repo view $repo --json isPrivate --jq '.isPrivate') | Out-String).Trim()
 MustSucceed 'Repository privacy check'
@@ -68,22 +85,18 @@ Write-Host 'Do not enter your GitHub password or any existing API secret.'
 Push-Location $source
 try {
   # '-p' without a value prompts interactively, rather than exposing password in process arguments.
-  & $seven a '-t7z' '-mhe=on' '-mx=0' '-p' $archive @names
-  MustSucceed 'Encrypted package creation'
+  NativeRun $seven (@('a','-t7z','-mhe=on','-mx=0','-p',$archive) + $names) 'Encrypted package creation'
 } finally { Pop-Location }
 if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { throw 'Archive not created.' }
 
 Write-Host 'Re-enter the encryption passphrase to check the archive integrity.'
-& $seven t '-p' $archive | Select-Object -Last 5 | Out-Host
-MustSucceed 'Encrypted archive self-test'
+NativeRun $seven @('t','-p',$archive) 'Encrypted archive self-test'
 $sha = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
 $notes = "Encrypted historical rescue only; does NOT authorize local deletion. SHA256: $sha"
-& $gh release create $tag $archive --repo $repo --title "BUKLOD encrypted recovery $tag" --notes $notes --latest=false
-MustSucceed 'Private release upload'
+NativeRun $gh @('release','create',$tag,$archive,'--repo',$repo,'--title',"BUKLOD encrypted recovery $tag",'--notes',$notes,'--latest=false') 'Private release upload'
 $checkDir = Join-Path $out 'verify'
 New-Item -ItemType Directory -Path $checkDir -Force | Out-Null
-& $gh release download $tag --repo $repo --dir $checkDir --pattern $file
-MustSucceed 'Private release download'
+NativeRun $gh @('release','download',$tag,'--repo',$repo,'--dir',$checkDir,'--pattern',$file) 'Private release download'
 $copy = Join-Path $checkDir $file
 if (-not (Test-Path -LiteralPath $copy -PathType Leaf)) { throw 'Remote backup download missing.' }
 $remoteSHA = (Get-FileHash -LiteralPath $copy -Algorithm SHA256).Hash
