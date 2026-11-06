@@ -23,6 +23,7 @@ import {
   useBuklodContentReport,
 } from '@/components/BuklodContentReportSheet';
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
+import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
 import BuklodMentionField from '@/components/BuklodMentionField';
 import {
   mentionsStillInText,
@@ -3268,10 +3269,8 @@ export default function BuklodExclusiveScopeCommunity({
       }
 
 return (
-        <View
-          style={[styles.postCard,
-            focusId === item.id && { borderColor: colors.green, borderWidth: 2 },
-          ]}
+        <BuklodCommunityWallPostCard
+          containerStyle={focusId === item.id ? { borderColor: colors.green, borderWidth: 2 } : undefined}
         >
           <View
             style={
@@ -3605,7 +3604,7 @@ return (
               item.id
             }
           />
-        </View>
+        </BuklodCommunityWallPostCard>
       );
     };
 
@@ -5098,23 +5097,6 @@ const styles =
           10,
         fontWeight:
           '900',
-      },
-
-      postCard: {
-        borderRadius:
-          19,
-        backgroundColor:
-          colors.white,
-        borderWidth:
-          1,
-        borderColor:
-          colors.line,
-        padding:
-          12,
-        marginBottom:
-          10,
-        overflow:
-          'hidden',
       },
 
       postPhotos: {
