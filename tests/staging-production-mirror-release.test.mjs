@@ -94,3 +94,28 @@ test('APK receipt validation requires successful Android EAS artifact', () => in
   fs.writeFileSync(file, JSON.stringify({id:'c9b532b4-3907-47fb-9d7f-5234defe60b5', status:'FAILED', artifacts:{}}));
   assert.throws(() => mirror.verifyBuild(file));
 }));
+
+test('V28 AAB provenance gate rejects unverified baseline before any staging build', () => {
+  const unverified = JSON.parse(fs.readFileSync(path.join(root, 'release/approved-android-baseline.json'), 'utf8'));
+  assert.equal(unverified.approvedApkSha256, '');
+  assert.throws(() => mirror.assertApprovedV28Record(unverified), /approved|AAB|versionName|versionCode|Missing/);
+  assert.throws(() => mirror.assertApprovedV28BinaryBaseline(root), /approved|AAB|versionName|versionCode|Missing/);
+});
+
+test('V28 provenance record requires binary digest, build ID, source and native diff evidence', () => {
+  const complete = {
+    packageName: 'org.mzbministry.buklod',
+    runtimeVersion: '1.3.2',
+    versionName: '1.3.4',
+    versionCode: 28,
+    approvedAabBuildId: '00000000-0000-4000-8000-000000000001',
+    approvedAabSha256: 'a'.repeat(64),
+    approvedAabSourceSha: 'b'.repeat(40),
+    reconciliationEvidence: 'fixture only: not an approved production AAB',
+  };
+  assert.doesNotThrow(() => mirror.assertApprovedV28Record(complete));
+  assert.throws(() => mirror.assertApprovedV28Record({...complete, runtimeVersion:'1.3.4'}), /runtime/);
+  assert.throws(() => mirror.assertApprovedV28Record({...complete, approvedAabSha256:''}), /SHA-256/);
+  assert.throws(() => mirror.assertApprovedV28Record({...complete, approvedAabSourceSha:''}), /source commit/);
+  assert.throws(() => mirror.assertApprovedV28Record({...complete, reconciliationEvidence:''}), /parity evidence/);
+});
