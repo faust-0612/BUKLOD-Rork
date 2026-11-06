@@ -15,6 +15,23 @@ export type WallOriginalDisplayInput = {
   displayed: boolean;
 };
 
+/** Network capacity ends at decode; display acknowledgement is a separate gate. */
+export function releaseWallOriginalTransferOnDecode(
+  input: WallOriginalDisplayInput,
+  release: () => void,
+): boolean {
+  if (!shouldRevealWallOriginal({ ...input, displayed: true })) return false;
+  release();
+  return true;
+}
+
+export function isCurrentWallOriginalEvent(
+  expectedUrl: string, eventUrl: string,
+  activeRenderer: 'expo' | 'native', eventRenderer: 'expo' | 'native',
+): boolean {
+  return Boolean(expectedUrl && expectedUrl === eventUrl && activeRenderer === eventRenderer);
+}
+
 export function shouldRevealWallOriginal(input: WallOriginalDisplayInput): boolean {
   return Boolean(
     input.expectedUrl &&

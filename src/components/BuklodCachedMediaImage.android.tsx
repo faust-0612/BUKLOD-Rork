@@ -33,6 +33,8 @@ import { communityWallPreviewPath, verifiedLegacyWallPreviewPath } from '@/lib/c
 import { communityWallSharpGate, configureCommunityWallOriginalQuality } from '@/lib/communityWallSharpUpgrade';
 import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
 import { WALL_PREVIEW_LAYER_Z_INDEX, wallOriginalLayerZIndex, planWallOriginalSource, shouldKeepWallOriginalTransfer, shouldMountWallOriginalUpgrade, shouldRevealWallOriginal } from '@/lib/communityWallPhotoDisplayGate';
+import { isCurrentWallOriginalEvent, releaseWallOriginalTransferOnDecode } from '@/lib/communityWallPhotoDisplayGate';
+import { wallOriginalReady } from '@/lib/communityWallOriginalReady';
 
 type Props = {
   uri?: string | null;
@@ -94,6 +96,15 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   const { isConnected, isInternetReachable, lastOnlineAt } = useNetwork();
   const releaseRef = useRef<(() => void) | null>(null);
   const badOriginalCacheRef = useRef(new Set<string>());
+  const refreshOriginalUrlRef = useRef(false);
+  const availableOriginalRef = useRef<{ path: string; url: string } | null>(null);
+  const sharpReadyRef = useRef(false);
+  sharpReadyRef.current = sharp.identity === mediaPath && sharp.ready;
+  useEffect(() => wallOriginalReady.subscribe(mediaPath, url => {
+    if (sharpReadyRef.current) return;
+    availableOriginalRef.current = { path: mediaPath, url };
+    setRetryEpoch(epoch => epoch + 1);
+  }), [mediaPath]);
   const canRequest = isConnected && isInternetReachable !== false;
   // Connectivity hints may flap on cellular. Do not unmount an in-flight image.
   const canRequestRef = useRef(canRequest);
@@ -124,6 +135,14 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       const key = communityMediaCacheKey(mediaPath, mediaPath);
       let url: string | null = null;
       try {
+        // A fullscreen Expo view just displayed this exact original using the
+        // same cache key. Reuse its warm bytes even while this Wall is queued.
+        const available = availableOriginalRef.current;
+        if (available?.path === mediaPath) {
+          activeSharpUrlRef.current = available.url;
+          setSharp({ identity: mediaPath, url: available.url, ready: false });
+          return;
+        }
         let cacheTimer: ReturnType<typeof setTimeout> | null = null;
         const cached = key && !badOriginalCacheRef.current.has(key) ? await Promise.race([
           ExpoImage.getCachePathAsync(key).catch(() => null),
@@ -153,12 +172,15 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         }
         if (!active) { release(); return; }
         releaseRef.current = release;
-        url = await resolveCommunityMediaUrl(mediaPath, null).catch(() => null);
+        url = await (refreshOriginalUrlRef.current
+          ? resignCommunityMediaUrl(mediaPath)
+          : resolveCommunityMediaUrl(mediaPath, null)).catch(() => null);
         if (!active || !url) {
           if (releaseRef.current === release) releaseRef.current = null;
           release();
         }
         if (active && url) {
+          refreshOriginalUrlRef.current = false;
           activeSharpUrlRef.current = url;
           setSharp({ identity: mediaPath, url, ready: false });
         } else if (active) setRetryPending(true);
@@ -218,6 +240,8 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       }
       if (activeSharpUrlRef.current !== current.url) return;
       activeSharpUrlRef.current = '';
+      refreshOriginalUrlRef.current = true;
+      availableOriginalRef.current = null;
       releaseRef.current?.();
       releaseRef.current = null;
       setSharp(state => state.identity === mediaPath && state.url === current.url
@@ -245,6 +269,8 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       ? { ...state, url: ready ? state.url : '', ready }
       : state);
     if (!ready) {
+      availableOriginalRef.current = null;
+      if (!invalidCachedOriginal) refreshOriginalUrlRef.current = true;
       setRetryPending(true);
       // A verified invalid disk image is different from a network failure.
       // Resolve the protected original immediately once instead of showing
@@ -258,6 +284,15 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
   // Use the same stable disk cache key as the fullscreen Expo image. Once
   // this original is downloaded successfully, remounts can reuse its bytes.
   const originalCacheKey = communityMediaCacheKey(mediaPath, mediaPath);
+  const accepts = (renderer: 'expo' | 'native') => isCurrentWallOriginalEvent(
+    activeSharpUrlRef.current, current.url, activeUpgradeRendererRef.current, renderer,
+  );
+  const releaseDecodedTransfer = (width: number, height: number, renderedBy: 'expo' | 'native') => {
+    releaseWallOriginalTransferOnDecode({
+      expectedUrl: activeSharpUrlRef.current, decodedUrl: current.url, width, height,
+      activeRenderer: activeUpgradeRendererRef.current, renderedBy, displayed: false,
+    }, () => { releaseRef.current?.(); releaseRef.current = null; });
+  };
   return upgradeRenderer === 'expo' ? (
     <ExpoImage
       pointerEvents="none"
@@ -269,6 +304,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       priority="low"
       transition={0}
       onProgress={event => {
+        if (!accepts('expo')) return;
         const loaded = Number(event.loaded ?? 0);
         const progress = upgradeProgressRef.current;
         if (progress.url !== current.url) {
@@ -282,6 +318,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         }
       }}
       onLoad={event => {
+        if (!accepts('expo')) return;
         const dimensions = event.source;
         decodedOriginalRef.current = {
           url: current.url,
@@ -289,6 +326,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
           height: Number(dimensions?.height ?? 0),
         };
         const decoded = decodedOriginalRef.current;
+        releaseDecodedTransfer(decoded.width, decoded.height, 'expo');
         if (activeUpgradeRendererRef.current === 'expo' &&
             displayedOriginalRef.current.url === current.url &&
             displayedOriginalRef.current.displayed &&
@@ -303,7 +341,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
             })) finish(true);
       }}
       onDisplay={() => {
-        if (activeUpgradeRendererRef.current !== 'expo') return;
+        if (!accepts('expo')) return;
         displayedOriginalRef.current = { url: current.url, displayed: true };
         const decoded = decodedOriginalRef.current;
         if (shouldRevealWallOriginal({
@@ -316,7 +354,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
           displayed: true,
         })) finish(true);
       }}
-      onError={() => { if (activeUpgradeRendererRef.current === 'expo') setUpgradeRenderer('native'); }}
+      onError={() => { if (accepts('expo')) setUpgradeRenderer('native'); }}
     />
   ) : (
     <NativeImage
@@ -327,6 +365,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
       resizeMode={contentFit}
       fadeDuration={0}
       onProgress={event => {
+        if (!accepts('native')) return;
         const loaded = Number(event.nativeEvent?.loaded ?? 0);
         const progress = upgradeProgressRef.current;
         if (progress.url !== current.url) {
@@ -340,7 +379,7 @@ function WallSharpOverlay({ mediaPath, contentFit }: { mediaPath: string; conten
         }
       }}
       onLoad={event => {
-        if (activeUpgradeRendererRef.current !== 'native') return;
+        if (!accepts('native')) return;
         const dimensions = event.nativeEvent.source;
         const hasDimensions = Number(dimensions?.width) > 0 && Number(dimensions?.height) > 0;
         finish(hasDimensions && shouldRevealWallOriginal({
@@ -742,6 +781,9 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         const activeImage = activeImageRef.current;
         if (activeImage.identity !== identity || activeImage.url !== actual.url || activeImage.renderer !== 'expo') return;
         if (!usingPreview) paintedOriginalPathRef.current = originalPath;
+        if (!usingPreview && !actual.painted && originalPath && actual.url) {
+          wallOriginalReady.publish(originalPath, actual.url);
+        }
         setSource(current => current.identity === identity && current.url === actual.url &&
           current.renderer === 'expo' && !current.painted ? { ...current, painted: true } : current);
       }}

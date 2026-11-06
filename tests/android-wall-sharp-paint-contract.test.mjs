@@ -82,7 +82,7 @@ test('both Expo callback orders progressively reveal high quality once valid', (
   assert.match(renderer, /displayedOriginalRef\.current\.url === current\.url/);
   assert.match(renderer, /displayedOriginalRef\.current = \{ url: current\.url, displayed: true \}/);
   assert.match(renderer, /activeUpgradeRendererRef\.current === 'expo'/);
-  assert.match(renderer, /if \(activeUpgradeRendererRef\.current !== 'native'\) return/);
+  assert.match(renderer, /if \(!accepts\('native'\)\) return/);
 });
 
 test('Network reachability fluctuations cannot cancel an active original or base photo', () => {
@@ -97,7 +97,7 @@ test('existing original bytes, fallback, and incremental sharp upgrade stay sepa
   const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
   assert.match(renderer, /communityWallSharpGate\.request\(\)/);
   assert.match(renderer, /<WallSharpOverlay mediaPath=\{originalPath\}/);
-  assert.match(renderer, /url = await resolveCommunityMediaUrl\(mediaPath, null\)/);
+  assert.match(renderer, /resolveCommunityMediaUrl\(mediaPath, null\)/);
   assert.match(renderer, /if \(usingPreview\) \{[\s\S]*?failed: true/);
   assert.match(renderer, /cachePolicy="memory-disk"/);
 });
