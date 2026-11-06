@@ -69,6 +69,7 @@ function SwipeDashboardHeader() {
     | 'messages'
     | 'learn'
     | 'community'
+    | 'prayer'
     | 'me'
     | null = null;
 
@@ -84,7 +85,7 @@ function SwipeDashboardHeader() {
     pathname.startsWith('/messages/')
   ) {
     title = 'Buklod';
-    placement = null;
+    placement = 'messages';
   } else if (
     pathname === '/learn' ||
     pathname.startsWith('/learn/')
@@ -102,11 +103,13 @@ function SwipeDashboardHeader() {
     pathname.startsWith('/prayer/')
   ) {
     title = 'Buklod';
+    placement = 'prayer';
   } else if (
     pathname === '/me' ||
     pathname.startsWith('/me/')
   ) {
     title = 'Buklod';
+    placement = 'me';
   }
 
   return (
