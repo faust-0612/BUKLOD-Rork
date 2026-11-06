@@ -88,15 +88,17 @@ export function BuklodCommunityPostEngagement({
       ) : null}
       <View style={[styles.actionRow, socialActions && styles.socialActionRow]}>
         <View style={[styles.reactions, socialActions && styles.socialReactions]}>
-          <BuklodReactionAction
-            layout="wall"
-            showSummary={!socialActions}
-            options={reactionOptions}
-            counts={reactionCounts}
-            mine={myReaction}
-            onSelect={onReact}
-            onSummaryPress={onReactionSummaryPress}
-          />
+          <View style={socialActions ? styles.socialReactionIcon : styles.legacyReactionIcon}>
+            <BuklodReactionAction
+              layout="wall"
+              showSummary={!socialActions}
+              options={reactionOptions}
+              counts={reactionCounts}
+              mine={myReaction}
+              onSelect={onReact}
+              onSummaryPress={onReactionSummaryPress}
+            />
+          </View>
           {socialActions ? (
             <Text numberOfLines={1} style={[styles.socialLikeLabel, { color: selectedReaction ? theme.accent : theme.textMuted }]}>
               {selectedReaction?.label ?? 'Like'}
@@ -215,6 +217,8 @@ const styles = StyleSheet.create({
   },
   socialReactions: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   socialLikeLabel: { fontSize: 12, fontWeight: '700', flexShrink: 1 },
+  legacyReactionIcon: { flex: 1, minWidth: 0 },
+  socialReactionIcon: { width: 46, flexShrink: 0 },
   socialActionBtn: { flex: 1, minWidth: 0, minHeight: 40, gap: 6 },
   socialShare: { flex: 1, minWidth: 0 },
   actionRow: {

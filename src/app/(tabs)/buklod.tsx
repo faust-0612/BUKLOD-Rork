@@ -4620,6 +4620,13 @@ const communityFeedRows =
 
  const maritesVisibilityRefreshRef = useRef<(() => void) | null>(null);
  const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
+ const focusCommunityComposerRef = useRef(false);
+ useEffect(() => {
+  if (!communityComposerOpen || !focusCommunityComposerRef.current) return;
+  focusCommunityComposerRef.current = false;
+  const frame = requestAnimationFrame(() => composerInputRef.current?.focus?.());
+  return () => cancelAnimationFrame(frame);
+ }, [communityComposerOpen]);
  if(!featureEnabled('community_feed'))return <FeatureUnavailable title="Community"/>;
  return <>
  <FlashList
@@ -4795,8 +4802,8 @@ const communityFeedRows =
       accessibilityRole="button"
       accessibilityLabel="Write a Community post"
       onPress={() => {
+       focusCommunityComposerRef.current = true;
        setCommunityComposerOpen(true);
-       setTimeout(() => composerInputRef.current?.focus?.(), 0);
       }}
       style={({ pressed }) => ({
        flex: 1, minWidth: 0, minHeight: 44, flexDirection: 'row', gap: 9,

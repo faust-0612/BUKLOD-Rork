@@ -662,6 +662,14 @@ export default function BuklodExclusiveScopeCommunity({
   const [commentLoading, setCommentLoading] = useState(false);
   const [commentLoadError, setCommentLoadError] = useState<string | null>(null);
   const [wallComposerOpen, setWallComposerOpen] = useState(false);
+  const focusScopedComposerRef = useRef(false);
+  const scopedComposerInputRef = useRef<TextInput | null>(null);
+  useEffect(() => {
+    if (!wallComposerOpen || !focusScopedComposerRef.current) return;
+    focusScopedComposerRef.current = false;
+    const frame = requestAnimationFrame(() => scopedComposerInputRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [wallComposerOpen]);
   const commentLoadSeqRef = useRef(0);
   const commentActivePostRef = useRef<string | null>(null);
   const commentSubmitRef = useRef(false);
@@ -3661,7 +3669,10 @@ return (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Write a post to this community"
-                onPress={() => setWallComposerOpen(true)}
+                onPress={() => {
+                  focusScopedComposerRef.current = true;
+                  setWallComposerOpen(true);
+                }}
                 style={({ pressed }) => ({
                   flex: 1, minWidth: 0, minHeight: 44, flexDirection: 'row',
                   alignItems: 'center', gap: 9, paddingHorizontal: 11,
@@ -3719,6 +3730,7 @@ return (
           </View>
 
           <BuklodMentionField
+            focusRef={scopedComposerInputRef}
             value={body}
             onChangeText={setBody}
             mentions={mentions}

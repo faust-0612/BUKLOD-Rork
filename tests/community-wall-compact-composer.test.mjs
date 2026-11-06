@@ -10,6 +10,7 @@ test('Public empty composer is a compact one-tap bar with a real photo action',(
  assert.match(pub,/accessibilityLabel="Write a Community post"/);
  assert.match(pub,/setCommunityComposerOpen\(true\)/);
  assert.match(pub,/composerInputRef\.current\?\.focus/);
+ assert.match(pub,/focusCommunityComposerRef\.current = true/);
  assert.match(pub,/accessibilityLabel="Add photos or video to Community post"/);
  assert.match(pub,/void pickWallGallery186O\(\)/);
  assert.match(pub,/<BuklodMentionField/);
@@ -20,6 +21,8 @@ test('Scoped empty Wall uses the same quick bar; Reels and draft editor stay can
  assert.match(scoped,/mode === 'wall' && !wallComposerOpen && !body\.trim\(\)/);
  assert.match(scoped,/accessibilityLabel="Write a post to this community"/);
  assert.match(scoped,/setWallComposerOpen\(true\)/);
+ assert.match(scoped,/focusRef=\{scopedComposerInputRef\}/);
+ assert.match(scoped,/focusScopedComposerRef\.current = true/);
  assert.match(scoped,/accessibilityLabel="Add photos or video to scoped community post"/);
  assert.match(scoped,/void chooseGallery\(\)/);
  assert.match(scoped,/<BuklodMentionField/);

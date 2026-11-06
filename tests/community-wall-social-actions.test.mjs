@@ -11,6 +11,8 @@ test('Like Comment Share use one feed-specific row without forking reaction pick
  assert.match(e,/selectedReaction\?\.label \?\? 'Like'/);
  assert.match(e,/socialActions \? 'Comment' : totalComments/);
  assert.match(e,/styles\.socialShare/);
+ assert.match(e,/styles\.socialReactionIcon/);
+ assert.match(e,/width: 46/);
  assert.match(e,/BuklodReactionAction/);
  assert.match(e,/onSelect=\{onReact\}/);
 });
