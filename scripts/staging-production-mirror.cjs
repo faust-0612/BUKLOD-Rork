@@ -131,8 +131,43 @@ function prepare(dir) {
 function git(cwd, ...args) {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 }
+// Fail closed: SOURCE parity is not proof of the actual owner-approved V28 AAB.
+// A verified AAB receipt and its exact native source must be explicitly registered
+// before a production-mirror APK or staging OTA can be released again.
+function assertApprovedV28Record(record) {
+  assert.equal(record?.packageName, 'org.mzbministry.buklod', 'Approved artifact must be the production application');
+  assert.equal(record?.runtimeVersion, RUNTIME, 'Approved AAB runtime must match V28 OTA runtime');
+  assert.equal(record?.versionName, '1.3.4', 'Approved AAB versionName not verified');
+  assert.equal(record?.versionCode, 28, 'Approved AAB versionCode not verified');
+  assert.match(String(record?.approvedAabBuildId || ''), /^[0-9a-f-]{36}$/i,
+    'Missing approved production V28 AAB EAS build ID');
+  assert.match(String(record?.approvedAabSha256 || ''), /^[0-9a-f]{64}$/i,
+    'Missing independently verified production V28 AAB binary SHA-256');
+  assert.match(String(record?.approvedAabSourceSha || ''), /^[0-9a-f]{40}$/i,
+    'Missing exact V28 AAB source commit');
+  assert.ok(typeof record?.reconciliationEvidence === 'string' &&
+    record.reconciliationEvidence.trim().length >= 20,
+    'Missing documented AAB-to-staging native parity evidence');
+  return record;
+}
+function assertApprovedV28BinaryBaseline(prod) {
+  const file = path.join(prod, 'release/approved-android-baseline.json');
+  const record = assertApprovedV28Record(JSON.parse(fs.readFileSync(file, 'utf8')));
+  // Any native/source change after the actual V28 AAB requires a new explicit
+  // compatibility assessment, even if main has passed ordinary unit tests.
+  const nativePaths = [
+    'package.json', 'package-lock.json', 'app.config.js', 'eas.json',
+    'android', 'ios', 'plugins', 'assets/release', 'google-services.production.json',
+  ];
+  const changed = git(prod, 'diff', '--name-only',
+    record.approvedAabSourceSha, MAIN_SHA, '--', ...nativePaths);
+  assert.equal(changed, '',
+    'Canonical main changed native inputs since approved V28 AAB; binary parity NOT established: ' + changed);
+  console.log('STAGING_V28_BINARY_PROVENANCE_PASS: approved AAB identity, source ancestry and native input diff');
+}
 function parity(prodDir, rcDir) {
   const prod = path.resolve(prodDir);
+  assertApprovedV28BinaryBaseline(prod);
   const rc = path.resolve(rcDir);
   assert.equal(git(prod, 'rev-parse', 'HEAD'), MAIN_SHA, 'APK baseline must be exact production source');
   assert.equal(git(rc, 'rev-parse', 'HEAD'), WALL_RC_SHA, 'OTA must use exact tested Wall RC');
@@ -215,4 +250,4 @@ if (require.main === module) {
     process.exitCode = 1;
   }
 }
-module.exports = { MAIN_SHA, WALL_RC_SHA, mirrorConfiguration, verify, prepare, checkBackend, verifyChannel, verifyBuild };
+module.exports = { MAIN_SHA, WALL_RC_SHA, mirrorConfiguration, verify, prepare, checkBackend, verifyChannel, verifyBuild, assertApprovedV28Record, assertApprovedV28BinaryBaseline };
