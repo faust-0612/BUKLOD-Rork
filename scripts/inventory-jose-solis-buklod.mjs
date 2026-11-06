@@ -155,13 +155,17 @@ const repositories = [];
 for (const root of [...gitRoots].sort()) {
   const head = git(root, ['rev-parse', 'HEAD']);
   const branch = git(root, ['branch', '--show-current']);
-  const refText = git(root, ['for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads', 'refs/remotes', 'refs/tags']);
+  const refText = git(root, ['for-each-ref', '--format=%(refname) %(objectname)']);
   const status = git(root, ['status', '--porcelain=v1', '--untracked-files=normal']);
   const remotes = git(root, ['remote', '-v']);
+  const stashes = git(root, ['stash', 'list', '--format=%gd %H']);
+  const worktrees = git(root, ['worktree', 'list', '--porcelain']);
   repositories.push({
     root, head, branch,
     refs: refText ? refText.split('\n').filter(Boolean) : null,
     dirtyEntries: status === null ? null : status ? status.split('\n').length : 0,
+    stashes: stashes === null ? null : stashes ? stashes.split('\n') : [],
+    worktrees: worktrees === null ? null : worktrees,
     remotes: remotes === null ? null : remotes.replace(/(https?:\/\/)[^@\s/]+@/g, '$1[REDACTED]@'),
     gitBundleRequired: true
   });
