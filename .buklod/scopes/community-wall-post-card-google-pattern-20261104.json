@@ -1,0 +1,57 @@
+{
+  "contractVersion": 2,
+  "objective": "Add a compact reusable BUKLOD Community Wall post presentation component by composing the existing canonical photo, video and engagement components without changing feed authorization, scope isolation, backend or runtime behavior.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: this is DEV-only work and does not change or claim to deploy the production artifact. Repository production evidence records Android Production OTA workflow run #41291297116 completed 2026-11-01 from production source SHA 5d8214355a8a5ea12ecfd5c0c1e520fe4e263944. The PR base main SHA is the DEV integration baseline only; no new production fingerprint, RC, OTA or device adoption is asserted.",
+  "chosenApproach": "Create a scope-agnostic presentation boundary used by Public and shared Organization/Sub-organization/Cluster renderers. Normalize the outer feed card shell while preserving feed-owned rich child renderers and all canonical media/engagement behavior.",
+  "selectionRationale": "Compose established BUKLOD renderers instead of duplicating photo/video engines or reaction behavior. This minimizes media regressions and preserves the existing feed data and security boundaries.",
+  "riskAreas": [
+    "wall-media",
+    "community-post-presentation",
+    "scope-isolation",
+    "feed-scroll-performance",
+    "React Native and web parity",
+    "Public and scoped feed integration",
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/community-wall-post-card-google-pattern.test.mjs",
+    "tests/community-wall-post-card-navigation-scroll.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Existing dynamic one-to-four-photo collage geometry and source-aware single-photo framing",
+    "Existing private media URL resolution, cache and photo viewer behavior",
+    "Existing CommunityVideo poster, playback, network degradation and fullscreen behavior",
+    "Existing Buklod React reaction options, reaction counts and comment interactions",
+    "Exact Public, Organization, Sub-organization and Cluster feed authorization and isolation",
+    "Feed loading, pagination, realtime updates, inline ads and owner/moderation actions remain owned by existing containers",
+    "No Supabase, storage, RLS, native dependency, app config, runtime or OTA changes",
+    "Public Wall retains the existing author follow/menu controls, expandable caption and mention rendering, media URL hydration, video recovery, companion ads, comment previews, reaction details and internal sharing.",
+    "Organization, Sub-organization and Cluster Walls retain their scoped author metadata, owner actions, photo viewer, video recovery, report controls, comment/reaction behavior and internal sharing."
+  ],
+  "acceptanceChecks": [
+    "Compact header renders author avatar/name, timestamp and audience/privacy indicator",
+    "Photo posts use the existing adaptive collage component",
+    "Video posts use the existing CommunityVideo renderer and poster path",
+    "Reaction, comment and share controls are exposed through explicit callbacks",
+    "No data fetching, Supabase mutation or authorization logic is added to the presentation component",
+    "Focused component contract tests and repository TypeScript/CI checks pass",
+    "Public Community Wall card root uses the shared theme-aware shell while retaining all existing author, caption, media, engagement and action behavior.",
+    "Shared wrapper does not fetch data, mutate posts, change media URL resolution, or alter feed authorization and scope isolation.",
+    "Public and all scoped walls use the same outer card surface, border, radius, inset and spacing tokens.",
+    "Legacy scoped postCard outer styling is not nested or applied a second time."
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityWallPostCard.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "tests/community-wall-post-card-google-pattern.test.mjs",
+    ".buklod/scopes/community-wall-post-card-google-pattern-20261104.json",
+    "tests/community-wall-post-card-navigation-scroll.test.mjs"
+  ],
+  "alternativeApproaches": [
+    "Duplicate the photo grid and video player inside a new card (rejected: would fork rendering, caching, and recovery behavior).",
+    "Move feed loading and Supabase mutations into the card (rejected: would couple presentation to authorization and scope isolation).",
+    "Replace Public and Scoped feed renderers immediately (rejected: broad integration risk beyond the requested reusable component)."
+  ]
+}
