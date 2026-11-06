@@ -17,17 +17,17 @@ test('Hero and control layout are real, responsive, and accessible', () => {
   assert.match(deck, /accessibilityLabel="Retry live stream"/);
   assert.match(deck, /onPress=\{onFavorite\}/);
   assert.match(deck, /getPhilippineProgramDay/);
-  assert.match(deck, /timeZone: 'Asia\\/Manila'/);
+  assert.ok(deck.includes("timeZone: 'Asia/Manila'"));
   assert.match(deck, /<ScrollView horizontal/);
   assert.match(deck, /styles\.feedRow/);
   assert.match(deck, /styles\.sectionRule/);
 });
 
 test('Program guide matches verified official station and does not fake current live show', () => {
-  assert.match(deck, /https:\\/\\/dzas\\.febc\\.ph\\/on-air-programs\\//);
-  assert.match(deck, /https:\\/\\/dzas\\.febc\\.ph\\//);
-  assert.match(deck, /https:\\/\\/www\\.facebook\\.com\\/702DZAS\\//);
-  assert.match(deck, /info@dzas\\.febc\\.ph/);
+  assert.ok(deck.includes('https://dzas.febc.ph/on-air-programs/'));
+  assert.ok(deck.includes('https://dzas.febc.ph/'));
+  assert.ok(deck.includes('https://www.facebook.com/702DZAS/'));
+  assert.ok(deck.includes('info@dzas.febc.ph'));
   assert.match(deck, /'Oras Na Pilipinas'/);
   assert.match(deck, /'Karunungang Buhay'/);
   assert.match(deck, /'Hardin ng Panalangin'/);
