@@ -661,6 +661,7 @@ export default function BuklodExclusiveScopeCommunity({
   const [commentMediaPreview, setCommentMediaPreview] = useState<string | null>(null);
   const [commentLoading, setCommentLoading] = useState(false);
   const [commentLoadError, setCommentLoadError] = useState<string | null>(null);
+  const [wallComposerOpen, setWallComposerOpen] = useState(false);
   const commentLoadSeqRef = useRef(0);
   const commentActivePostRef = useRef<string | null>(null);
   const commentSubmitRef = useRef(false);
@@ -3655,6 +3656,43 @@ return (
             styles.composerCard
           }
         >
+          {mode === 'wall' && !wallComposerOpen && !body.trim() && !photos.length && !wallVideo && !communityGif ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Write a post to this community"
+                onPress={() => setWallComposerOpen(true)}
+                style={({ pressed }) => ({
+                  flex: 1, minWidth: 0, minHeight: 44, flexDirection: 'row',
+                  alignItems: 'center', gap: 9, paddingHorizontal: 11,
+                  borderRadius: 24, borderWidth: 1, borderColor: colors.line,
+                  backgroundColor: colors.white, opacity: pressed ? 0.78 : 1,
+                })}
+              >
+                <MaterialCommunityIcons name="account-circle-outline" size={25} color={colors.greenDark} />
+                <Text numberOfLines={1} style={{ flex: 1, color: colors.muted, fontSize: 12 }}>
+                  Share something with this community...
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add photos or video to scoped community post"
+                disabled={busy || wallVideoBusy}
+                onPress={() => {
+                  setWallComposerOpen(true);
+                  void chooseGallery();
+                }}
+                style={({ pressed }) => ({
+                  width: 42, height: 42, borderRadius: 13,
+                  alignItems: 'center', justifyContent: 'center',
+                  backgroundColor: colors.background, opacity: pressed ? 0.72 : 1,
+                })}
+              >
+                <MaterialCommunityIcons name="image-multiple-outline" size={22} color={colors.greenDark} />
+              </Pressable>
+            </View>
+          ) : (
+            <>
           <View
             style={
               styles.audienceLine
@@ -4196,6 +4234,8 @@ return (
               </>
             )}
           </Pressable>
+            </>
+          )}
         </View>
 
         <View
