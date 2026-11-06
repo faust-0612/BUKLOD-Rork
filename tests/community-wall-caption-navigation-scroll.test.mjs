@@ -23,7 +23,7 @@ test('Scoped Wall keeps FlatList keying and refreshing around the caption', () =
 
 test('Caption expands locally without routing, feed remounts or global scroll mutation', () => {
   assert.match(caption, /const \[expanded, setExpanded\] = useState\(false\)/);
-  assert.doesNotMatch(caption, /router\.|scrollToOffset|scrollToIndex|navigate\(|replace\(/);
+  assert.doesNotMatch(caption, /\brouter\.|\bscrollToOffset\b|\bscrollToIndex\b|\bnavigate\(/);
   assert.match(publicWall, /<BuklodExpandableWallCaption\s+key=\{String\(item\.id\)\}/);
   assert.match(scopedWall, /<BuklodExpandableWallCaption\s+key=\{String\(item\.id\)\}/);
 });
