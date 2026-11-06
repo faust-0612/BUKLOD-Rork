@@ -21,6 +21,8 @@ const state={phase:'consolidated editable GitHub recovery',started:new Date().to
   complete:false,safeToDeleteLocal:false,localProjectFilesDeleted:0};
 const seen=new Set();
 const exists=p=>{try{return fs.existsSync(p)}catch{return false}};
+const GH=exists('C:\\Program Files\\GitHub CLI\\gh.exe')?'C:\\Program Files\\GitHub CLI\\gh.exe':'gh';
+const SEVEN=exists('C:\\Program Files\\7-Zip\\7z.exe')?'C:\\Program Files\\7-Zip\\7z.exe':'7z';
 const sanitize=s=>s.replace(/[^A-Za-z0-9_-]/g,'_').slice(0,60);
 const sid=s=>crypto.createHash('sha256').update(s.toLowerCase()).digest('hex').slice(0,10);
 function group(p){const t=p.toLowerCase();for(const [n,re] of [
@@ -38,9 +40,9 @@ function exec(command,args,quiet=false,optional=false,cwd=undefined){
 }
 function save(){fs.mkdirSync(working,{recursive:true});state.updated=new Date().toISOString();fs.writeFileSync(statusPath,JSON.stringify(state,null,2))}
 function excluded(p,reason){if(state.excluded.length<10000)state.excluded.push({path:p,reason});else state.unlistedExclusions++}
-function privateRepo(repo){let check=exec('gh',['repo','view',repo,'--json','isPrivate','--jq','.isPrivate'],true,true);
- if(check===null){exec('gh',['repo','create',repo,'--private','--add-readme','--description','BUKLOD isolated cloud recovery; not a production deploy'])}
- check=exec('gh',['repo','view',repo,'--json','isPrivate','--jq','.isPrivate'],true);
+function privateRepo(repo){let check=exec(GH,['repo','view',repo,'--json','isPrivate','--jq','.isPrivate'],true,true);
+ if(check===null){exec(GH,['repo','create',repo,'--private','--add-readme','--description','BUKLOD isolated cloud recovery; not a production deploy'])}
+ check=exec(GH,['repo','view',repo,'--json','isPrivate','--jq','.isPrivate'],true);
  if(check!=='true')throw Error('Repository privacy check failed: '+repo)}
 function sha(file){const h=crypto.createHash('sha256'),fd=fs.openSync(file,'r'),b=Buffer.alloc(1024*1024);
  try {let n;while((n=fs.readSync(fd,b,0,b.length,null))>0)h.update(b.subarray(0,n))}
@@ -52,11 +54,11 @@ try{
  if(!exists(input))throw Error('Inventory missing: '+input);
  const inventory=JSON.parse(fs.readFileSync(input,'utf8'));
  if(!Array.isArray(inventory.results)||inventory.results.length<40)throw Error('Invalid local inventory');
- if(exec('gh',['auth','status','--hostname','github.com'],true,true)===null)
-   exec('gh',['auth','login','--hostname','github.com','--web','--git-protocol','https']);
- const actor=exec('gh',['api','user','--jq','.login'],true);
+ if(exec(GH,['auth','status','--hostname','github.com'],true,true)===null)
+   exec(GH,['auth','login','--hostname','github.com','--web','--git-protocol','https']);
+ const actor=exec(GH,['api','user','--jq','.login'],true);
  if(actor.toLowerCase()!=='faust-0612')throw Error('Wrong GitHub login: '+actor);
- exec('gh',['auth','setup-git']);
+ exec(GH,['auth','setup-git']);
  privateRepo(mainRepo);privateRepo(vaultRepo);
  fs.mkdirSync(working,{recursive:true});
  if(!exists(runPath))fs.writeFileSync(runPath,'recovery-'+new Date().toISOString().replace(/[^0-9]/g,'').slice(0,14));
@@ -79,7 +81,7 @@ try{
       if(/BUKLOD_Classroom_Standalone\.zip$/i.test(r)&&stat.size<450*1024*1024){
        const folder=path.join(extracted,'BUKLOD_Classroom_Standalone_'+sid(r));
        if(!exists(folder)){fs.mkdirSync(folder,{recursive:true});
-        const unzip=exec('7z',['x','-y',r,'-o'+folder],true,true);
+        const unzip=exec(SEVEN,['x','-y',r,'-o'+folder],true,true);
         if(unzip===null){excluded(r,'Classroom ZIP extraction failed');continue}}
        dirs.push(folder);
       }else excluded(r,'historical binary/archive; requires separate retention decision');
@@ -186,27 +188,27 @@ try{
   const archive=path.join(root,'BUKLOD_KEYS_'+runId+'.7z'),first=archive+'.001';
   if(!exists(first)){
    console.log('Set a NEW archive passphrase; save it in your password manager. NOT your GitHub password.');
-   exec('7z',['a','-t7z','-mhe=on','-mx=0','-v1400m','-p',archive,'.'],false,false,vault);
+   exec(SEVEN,['a','-t7z','-mhe=on','-mx=0','-v1400m','-p',archive,'.'],false,false,vault);
   }
   if(!exists(first))throw Error('Encrypted vault missing');
   console.log('Enter the SAME password to test the encrypted vault.');
-  exec('7z',['t',first]);
+  exec(SEVEN,['t',first]);
   const release='keys-'+runId;
-  if(exec('gh',['release','view',release,'--repo',vaultRepo],true,true)===null)
-   exec('gh',['release','create',release,'--repo',vaultRepo,'--title','BUKLOD encrypted secrets rescue','--notes','Do not publish or delete local credentials.']);
+  if(exec(GH,['release','view',release,'--repo',vaultRepo],true,true)===null)
+   exec(GH,['release','create',release,'--repo',vaultRepo,'--title','BUKLOD encrypted secrets rescue','--notes','Do not publish or delete local credentials.']);
   const parts=fs.readdirSync(root).filter(x=>x.startsWith(path.basename(archive)+'.')&&/\.7z\.\d{3}$/.test(x));
   for(const part of parts){
    const full=path.join(root,part);
-   let r=JSON.parse(exec('gh',['api','repos/'+vaultRepo+'/releases/tags/'+release],true));
-   if(!r.assets.some(a=>a.name===part))exec('gh',['release','upload',release,full,'--repo',vaultRepo]);
-   r=JSON.parse(exec('gh',['api','repos/'+vaultRepo+'/releases/tags/'+release],true));
+   let r=JSON.parse(exec(GH,['api','repos/'+vaultRepo+'/releases/tags/'+release],true));
+   if(!r.assets.some(a=>a.name===part))exec(GH,['release','upload',release,full,'--repo',vaultRepo]);
+   r=JSON.parse(exec(GH,['api','repos/'+vaultRepo+'/releases/tags/'+release],true));
    const a=r.assets.find(x=>x.name===part);
    if(!a)throw Error('Uploaded vault part missing: '+part);
    if(a.digest&&a.digest.startsWith('sha256:')){
     if(a.digest.slice(7).toLowerCase()!==sha(full))throw Error('Remote vault SHA mismatch: '+part);
    }else{
     const check=path.join(root,'verify-vault');fs.mkdirSync(check,{recursive:true});
-    exec('gh',['release','download',release,'--repo',vaultRepo,'--dir',check,'--pattern',part]);
+    exec(GH,['release','download',release,'--repo',vaultRepo,'--dir',check,'--pattern',part]);
     if(sha(path.join(check,part))!==sha(full))throw Error('Downloaded vault checksum mismatch');
    }
   }
