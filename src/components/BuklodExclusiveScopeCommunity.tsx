@@ -22,7 +22,7 @@ import {
 import {
   useBuklodContentReport,
 } from '@/components/BuklodContentReportSheet';
-import BuklodMentionText from '@/components/BuklodMentionText';
+import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodMentionField from '@/components/BuklodMentionField';
 import {
   mentionsStillInText,
@@ -3326,9 +3326,15 @@ return (
           </View>
 
           {!!item.body && (
-            <BuklodMentionText
+            <BuklodExpandableWallCaption
+              key={String(item.id)}
               text={repairMojibakeText(item.body)}
               style={styles.body}
+              hasMedia={Boolean(
+                item.media_path ||
+                item.media_url ||
+                (Array.isArray(item.media_items) && item.media_items.length > 0)
+              )}
             />
           )}
 

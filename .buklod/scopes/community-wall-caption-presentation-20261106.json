@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Unify Public and scoped BUKLOD Community Wall captions: single-line preview with inline See more, and enlarged typography for text-only posts up to 80 characters.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Main source SHA 8e1956e617a65b3350b3fba81597fc86604da4a1; latest verified production Android OTA identified in PR #515 as update 01a1afda-304b-72a7-a859-8799f25ac602, runtime 1.3.2. This DEV patch makes no production/RC/OTA claim.",
+  "chosenApproach": "Reuse the canonical mention renderer with a one-row collapsed caption and accessible inline toggle; make both Public and scoped feeds pass media presence. Large typography is limited to <=80-codepoint text-only posts.",
+  "selectionRationale": "One presentation component changes only visible captions. Existing photo/video renderer, reactions, composer, pagination and authorization remain owned by their original containers.",
+  "riskAreas": [
+    "community-post-presentation",
+    "wall-media",
+    "navigation-scroll",
+    "scope-isolation",
+    "React Native and web parity"
+  ],
+  "regressionTests": [
+    "tests/community-wall-caption-presentation.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Canonical mention parsing and highlighting",
+    "Public and scoped photo collages, videos, signed URLs and caches unchanged",
+    "All composer actions, reaction and comment controls unchanged",
+    "No feed pagination, scroll reset, ads, navigation or authorization modification",
+    "No backend, RLS, native dependency, runtime or production OTA modification"
+  ],
+  "acceptanceChecks": [
+    "Media posts show one compact caption line before expansion",
+    "Long captions expose accessible inline See more and See less",
+    "Text-only posts up to 80 Unicode code points render as enlarged type",
+    "Public and Organization/Sub-organization/Cluster use the same component",
+    "Regression coverage passes on the exact branch head"
+  ],
+  "alternativeApproaches": [
+    "Replace the full Wall feed card (rejected: risks media and scroll regressions)",
+    "Truncate captions at 280 characters (rejected: does not honor one-line preview)",
+    "Create separate Public and scoped caption renderers (rejected: causes drift)"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodExpandableWallCaption.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "tests/community-wall-caption-presentation.test.mjs",
+    ".buklod/scopes/community-wall-caption-presentation-20261106.json"
+  ]
+}

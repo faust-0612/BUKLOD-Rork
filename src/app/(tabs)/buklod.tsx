@@ -5254,6 +5254,11 @@ const communityFeedRows =
      ''
     )}
     style={s.body}
+    hasMedia={Boolean(
+     item.media_path ||
+     item.media_url ||
+     (Array.isArray(item.media_items) && item.media_items.length > 0)
+    )}
     knownNames={ms.map((mention:any)=>String(mention.full_name??''))}
    />
    {!!ms.filter((mention:any)=>!String(item.body??'').toLowerCase().includes(`@${String(mention.full_name??'').toLowerCase()}`)).length&&(
