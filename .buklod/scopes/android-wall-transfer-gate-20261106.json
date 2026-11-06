@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Android production APK: promote downloaded originals on mounted Wall tiles and prevent completed downloads blocking queued photos",
+  "baseRef": "8e1956e617a65b3350b3fba81597fc86604da4a1",
+  "productionBaselineEvidence": "GitHub production run 42183558084 job 127778492051 verified exact frozen RC source 8e1956e617a65b3350b3fba81597fc86604da4a1, Android runtime 1.3.2, update 01a1afda-304b-72a7-a859-8799f25ac602 at 2026-11-06T07:54:35Z. Installed phone adoption and current pixels unverified. Direct Expo manifest lookup from this environment returned HTTP 403.",
+  "chosenApproach": "Separate download admission from display acknowledgement; notify mounted Android tiles when a fullscreen original paints using the same Expo cache key; ignore stale callbacks and renew failed signed URLs.",
+  "selectionRationale": "Preserves existing post layout and private media pipeline. Current mounted overlays only inspect disk on initial attempt, so later fullscreen downloads cannot wake a queued tile. Current decode also retains download capacity until onDisplay.",
+  "alternativeApproaches": [
+    "Remove concurrency gate entirely: rejected because weak-network bandwidth and memory remain bounded requirements.",
+    "Rewrite shared post rendering: rejected because user confirms that rendering is correct outside production APK.",
+    "Periodic cache polling: rejected in favor of a transient path-specific completion event without retained media URLs."
+  ],
+  "riskAreas": [
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/android-wall-transfer-gate.test.mjs",
+    "tests/android-wall-sharp-paint-contract.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Public and scoped layouts, video, ads and navigation",
+    "Private signing, account authorization and original cache keys",
+    "Expo display verification and native recovery",
+    "Existing APK runtime and native dependency baseline"
+  ],
+  "acceptanceChecks": [
+    "Completed decode releases network slot without declaring display success",
+    "Fullscreen original wakes mounted same-path tile without waiting for network slots",
+    "Stale URL/renderer callbacks cannot mutate active transfer",
+    "No retained URL replay after unsubscribe",
+    "Focused regression and TypeScript pass; RC and physical Android verification remain mandatory"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "src/lib/communityWallPhotoDisplayGate.ts",
+    "src/lib/communityWallOriginalReady.ts",
+    "tests/android-wall-transfer-gate.test.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/android-wall-transfer-gate-20261106.json",
+    "tests/android-wall-sharp-paint-contract.test.mjs"
+  ]
+}
