@@ -93,6 +93,12 @@ jobs:
             tests/community-wall-post-card-navigation-scroll.test.mjs \
             tests/android-wall-sharp-paint-contract.test.mjs \
             tests/android-wall-transfer-gate.test.mjs
+      - name: Install exact production baseline dependencies for EAS config verification
+        shell: bash
+        working-directory: prod-source
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
       - name: Verify original production-connected backend and EAS staging channel
         shell: bash
         working-directory: prod-source
