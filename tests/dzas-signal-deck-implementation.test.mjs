@@ -17,17 +17,17 @@ test('Hero and control layout are real, responsive, and accessible', () => {
   assert.match(deck, /accessibilityLabel="Retry live stream"/);
   assert.match(deck, /onPress=\{onFavorite\}/);
   assert.match(deck, /getPhilippineProgramDay/);
-  assert.match(deck, /timeZone: 'Asia\/Manila'/);
+  assert.match(deck, /timeZone: 'Asia\\/Manila'/);
   assert.match(deck, /<ScrollView horizontal/);
   assert.match(deck, /styles\.feedRow/);
   assert.match(deck, /styles\.sectionRule/);
 });
 
 test('Program guide matches verified official station and does not fake current live show', () => {
-  assert.match(deck, /https:\/\/dzas\.febc\.ph\/on-air-programs\//);
-  assert.match(deck, /https:\/\/dzas\.febc\.ph\//);
-  assert.match(deck, /https:\/\/www\.facebook\.com\/702DZAS\//);
-  assert.match(deck, /info@dzas\.febc\.ph/);
+  assert.match(deck, /https:\\/\\/dzas\\.febc\\.ph\\/on-air-programs\\//);
+  assert.match(deck, /https:\\/\\/dzas\\.febc\\.ph\\//);
+  assert.match(deck, /https:\\/\\/www\\.facebook\\.com\\/702DZAS\\//);
+  assert.match(deck, /info@dzas\\.febc\\.ph/);
   assert.match(deck, /'Oras Na Pilipinas'/);
   assert.match(deck, /'Karunungang Buhay'/);
   assert.match(deck, /'Hardin ng Panalangin'/);
@@ -37,7 +37,7 @@ test('Program guide matches verified official station and does not fake current 
   assert.match(deck, /Updates open at the source/);
 });
 
-test('Native keeps background stream, retry, favorite, approved real ads and runtime', () => {
+test('Native waits for loaded source and confirmed playback before resolving first tap', () => {
   assert.match(native, /useAudioPlayerStatus\(player\)/);
   assert.match(native, /playDzasRadio\(forceReload\)/);
   assert.match(native, /onPlay=\{\(\) => void play\(false\)\}/);
@@ -49,6 +49,14 @@ test('Native keeps background stream, retry, favorite, approved real ads and run
   assert.match(native, /requireViewport/);
   assert.match(player, /shouldPlayInBackground: true/);
   assert.match(player, /setActiveForLockScreen/);
+  assert.match(player, /waitUntilLoaded/);
+  assert.match(player, /waitUntilPlaying/);
+  assert.match(player, /audio\.play\(\);\s*await waitUntilPlaying\(audio\)/);
+  assert.match(player, /LOAD_TIMEOUT_MS = 12000/);
+  assert.match(player, /PLAY_TIMEOUT_MS = 12000/);
+  assert.match(player, /await startAttempt\(audio, true\)/);
+  assert.match(player, /if \(playRequest\) return playRequest/);
+  assert.doesNotMatch(player, /while \(!audio\.isLoaded && Date\.now\(\) - startedAt < 7000\)[\s\S]*?\n}\n\nfunction activateMediaControls/);
   assert.doesNotMatch(deck, /BannerAd.*unitId/);
 });
 
