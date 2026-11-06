@@ -13,7 +13,7 @@ const statusPath=path.join(working,'STATUS.json'), runPath=path.join(working,'RU
 const ignores=new Set(['.git','node_modules','.expo','.next','.gradle','.cache','.turbo','Pods','DerivedData','__pycache__','dist','build','coverage','vendor','out','.venv','venv','target','.idea','.output']);
 const binary=/\.(apk|aab|zip|7z|rar|gz|tar|exe|msi|dll|dmg|ipa|pdf|docx?|pptx?|xlsx?|sqlite3?|db|bak|dump|o|so|jar|class|map|log|tmp)$/i;
 const sourceExt=/\.(tsx?|jsx?|mjs|cjs|json|jsonc|html?|css|scss|md|mdx|txt|yml|yaml|xml|sql|prisma|sh|ps1|cmd|bat|gradle|properties|kt|java|swift|m|mm|h|cpp|c|dart|py|rb|toml|ini|graphql|gql|svg|png|jpe?g|webp|gif|ico|ttf|woff2?|mp3|mp4|webm|ogg|wav|patch|diff|lock)$/i;
-const secretName=/(^\.env($|\.)|^\.npmrc$|^\.netrc$|gradle\.properties|firebase-adminsdk|service.account|service-account|credential|secret|private[-_.]?key|id_rsa|id_ed25519|\.(pem|p12|pfx|jks|keystore|key|asc|gpg)$|google-services\.json)/i;
+const secretName=/((^|[\\/])\.env($|\.)|(^|[\\/])\.npmrc$|(^|[\\/])\.netrc$|gradle\.properties|firebase-adminsdk|service.account|service-account|credential|secret|private[-_.]?key|id_rsa|id_ed25519|\.(pem|p12|pfx|jks|keystore|key|asc|gpg)$|google-services\.json)/i;
 const secretContent=/(-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----|ghp_[A-Za-z0-9]{25,}|github_pat_[A-Za-z0-9_]{30,}|AKIA[A-Z0-9]{16}|sk-[A-Za-z0-9_-]{24,}|"private_key"\s*:\s*"-----BEGIN)/;
 const state={phase:'consolidated editable GitHub recovery',started:new Date().toISOString(),unlistedExclusions:0,
   sourceRepo:mainRepo,sourceBranch:null,sourceFiles:0,sourceBytes:0,vaultFiles:0,
