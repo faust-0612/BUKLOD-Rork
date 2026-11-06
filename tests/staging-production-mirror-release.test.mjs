@@ -102,7 +102,7 @@ test('V28 AAB provenance gate rejects unverified baseline before any staging bui
   assert.throws(() => mirror.assertApprovedV28BinaryBaseline(root), /approved|AAB|versionName|versionCode|Missing/);
 });
 
-test('V28 provenance record requires binary digest, build ID, source and native diff evidence', () => {
+test('V28 local Gradle AAB evidence requires binary digest, source SHA and native comparison', () => {
   const complete = {
     packageName: 'org.mzbministry.buklod',
     runtimeVersion: '1.3.2',
@@ -118,6 +118,6 @@ test('V28 provenance record requires binary digest, build ID, source and native 
   assert.throws(() => mirror.assertApprovedV28Record({...complete, runtimeVersion:'1.3.4'}), /runtime/);
   assert.throws(() => mirror.assertApprovedV28Record({...complete, buildSystem:'eas'}), /local Gradle/);
   assert.throws(() => mirror.assertApprovedV28Record({...complete, approvedAabSha256:''}), /SHA-256/);
-  assert.throws(() => mirror.assertApprovedV28Record({...complete, approvedAabSourceSha:''}), /source commit/);
+  assert.throws(() => mirror.assertApprovedV28Record({...complete, approvedAabSourceSha:''}), /source SHA/);
   assert.throws(() => mirror.assertApprovedV28Record({...complete, reconciliationEvidence:''}), /parity evidence/);
 });
