@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
-  "objective": "Finish BUKLOD Community Wall display patches: shared post-card shell, one-line captions with large text-only posts, and Android original photo clarity.",
+  "objective": "Complete Community Wall patches: compact post cards, single-line/large captions, Android sharp-photo rendering and consistent social action buttons.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: independent production release evidence recorded in PR #515 identifies Android OTA 01a1afda-304b-72a7-a859-8799f25ac602 on runtime 1.3.2 and source 8e1956e617a65b3350b3fba81597fc86604da4a1. The main branch is a DEV integration baseline, not automatic proof of the installed APK; this PR has no production or staging OTA.",
-  "chosenApproach": "Selective integration of card presentation from PR #506 and native original-photo transfer from PR #515 over verified caption PR #516 without replacing current main collage and video engines.",
+  "chosenApproach": "Retain canonical Like picker and post share RPC; align existing controls in feed-only Like/Comment/Share row while preserving reaction summaries, comments, moderation and other surface behavior.",
   "selectionRationale": "Composes existing renderers in a shared shell and extends platform-specific image cache promotion. Avoids merging diverged branches or overwriting main video/photo paths.",
   "riskAreas": [
     "community-post-presentation",
@@ -19,7 +19,8 @@
     "tests/community-wall-post-card-google-pattern.test.mjs",
     "tests/community-wall-post-card-navigation-scroll.test.mjs",
     "tests/android-wall-sharp-paint-contract.test.mjs",
-    "tests/android-wall-transfer-gate.test.mjs"
+    "tests/android-wall-transfer-gate.test.mjs",
+    "tests/community-wall-social-actions.test.mjs"
   ],
   "preserveBehaviors": [
     "Canonical mention parsing and highlighting",
@@ -27,7 +28,8 @@
     "All composer actions, reaction and comment controls unchanged",
     "No feed pagination, scroll reset, ads, navigation or authorization modification",
     "No backend, RLS, native dependency, runtime or production OTA modification",
-    "Current main Community Wall collage and Marites video renderer, signed media, ads, auth, pagination, posting flow and backend stay unchanged"
+    "Current main Community Wall collage and Marites video renderer, signed media, ads, auth, pagination, posting flow and backend stay unchanged",
+    "Existing long-press reaction picker, share RPC, comments and all Reels controls unchanged"
   ],
   "acceptanceChecks": [
     "Media posts show one compact caption line before expansion",
@@ -39,7 +41,8 @@
     "Public and scoped Wall share one modern feed card without duplicated card padding",
     "Android original-ready signals wake mounted tiles, retaining private URL isolation",
     "Original transfer slot releases on valid decode without falsely marking onDisplay",
-    "Combined Android and Wall rendering regression tests pass before staging integration"
+    "Combined Android and Wall rendering regression tests pass before staging integration",
+    "Both post feeds expose Like/Comment/Share in one accessible action row without duplicate Comment/Share buttons"
   ],
   "alternativeApproaches": [
     "Replace the full Wall feed card (rejected: risks media and scroll regressions)",
@@ -60,6 +63,9 @@
     "tests/community-wall-post-card-google-pattern.test.mjs",
     "tests/community-wall-post-card-navigation-scroll.test.mjs",
     "tests/android-wall-sharp-paint-contract.test.mjs",
-    "tests/android-wall-transfer-gate.test.mjs"
+    "tests/android-wall-transfer-gate.test.mjs",
+    "src/components/BuklodCommunityPostEngagement.tsx",
+    "src/components/BuklodPostInternalShare.tsx",
+    "tests/community-wall-social-actions.test.mjs"
   ]
 }

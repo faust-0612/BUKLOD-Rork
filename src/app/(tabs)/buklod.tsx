@@ -5307,11 +5307,12 @@ const communityFeedRows =
       openComments(item)
      }
      showCommentAction
+     socialActions
      rightAction={
       <BuklodPostInternalShare
        postId={item.id}
        compact
-       iconOnly
+       social
       />
      }
     />

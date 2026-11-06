@@ -32,6 +32,7 @@ type Props = {
   ) => void;
   onOpenComments: () => void;
   showCommentAction?: boolean;
+  socialActions?: boolean;
   rightAction?: ReactNode;
   onReport?: () => void;
 };
@@ -46,24 +47,61 @@ export function BuklodCommunityPostEngagement({
   onReactionSummaryPress,
   onOpenComments,
   showCommentAction = false,
+  socialActions = false,
   rightAction = null,
   onReport,
 }: Props) {
   const { theme } = useBuklodTheme();
   const totalComments = Number(commentCount ?? 0);
+  const activeReactions = reactionOptions.filter(option => Number(reactionCounts?.[option.key] ?? 0) > 0);
+  const selectedReaction = reactionOptions.find(option => option.key === myReaction);
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.actionRow}>
-        <View style={styles.reactions}>
+      {socialActions && (activeReactions.length > 0 || !!onReport) ? (
+        <View style={styles.socialSummary}>
+          <View style={styles.socialCounts}>
+            {activeReactions.map(option => (
+              <BuklodPressable
+                key={option.key}
+                accessibilityRole="button"
+                accessibilityLabel={`View ${Number(reactionCounts?.[option.key] ?? 0)} ${option.label} reactions`}
+                nested compact
+                disabled={!onReactionSummaryPress}
+                onPress={() => onReactionSummaryPress?.(option.key)}
+                style={styles.socialCountChip}
+              >
+                <Text style={styles.socialCountEmoji}>{option.emoji}</Text>
+                <Text style={[styles.socialCountText, { color: theme.textMuted }]}>
+                  {Number(reactionCounts?.[option.key] ?? 0)}
+                </Text>
+              </BuklodPressable>
+            ))}
+          </View>
+          {onReport ? (
+            <BuklodPressable accessibilityRole="button" accessibilityLabel="Report this post"
+              nested compact onPress={onReport} style={styles.socialReport}>
+              <MaterialCommunityIcons name="flag-outline" size={16} color={theme.textMuted} />
+            </BuklodPressable>
+          ) : null}
+        </View>
+      ) : null}
+      <View style={[styles.actionRow, socialActions && styles.socialActionRow]}>
+        <View style={[styles.reactions, socialActions && styles.socialReactions]}>
           <BuklodReactionAction
             layout="wall"
+            showSummary={!socialActions}
             options={reactionOptions}
             counts={reactionCounts}
             mine={myReaction}
             onSelect={onReact}
             onSummaryPress={onReactionSummaryPress}
           />
+          {socialActions ? (
+            <Text numberOfLines={1} style={[styles.socialLikeLabel, { color: selectedReaction ? theme.accent : theme.textMuted }]}>
+              {selectedReaction?.label ?? 'Like'}
+            </Text>
+          ) : null}
         </View>
 
         {showCommentAction ? (
@@ -73,7 +111,7 @@ export function BuklodCommunityPostEngagement({
             nested
             compact
             onPress={onOpenComments}
-            style={styles.inlineActionBtn}
+            style={[styles.inlineActionBtn, socialActions && styles.socialActionBtn]}
           >
             <MaterialCommunityIcons
               name="comment-outline"
@@ -86,14 +124,14 @@ export function BuklodCommunityPostEngagement({
                 { color: theme.textMuted },
               ]}
             >
-              {totalComments}
+              {socialActions ? 'Comment' : totalComments}
             </Text>
           </BuklodPressable>
         ) : null}
 
-        {rightAction}
+        {socialActions && rightAction ? <View style={styles.socialShare}>{rightAction}</View> : rightAction}
 
-        {onReport ? (
+        {!socialActions && onReport ? (
           <BuklodPressable
             accessibilityRole="button"
             accessibilityLabel="Report this post"
@@ -163,6 +201,22 @@ const styles = StyleSheet.create({
   wrap: {
     width: '100%',
   },
+  socialSummary: { minHeight: 27, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  socialCounts: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7 },
+  socialCountChip: { flexDirection: 'row', alignItems: 'center', gap: 3, minHeight: 25 },
+  socialCountEmoji: { fontSize: 14 },
+  socialCountText: { fontSize: 11, fontWeight: '700' },
+  socialReport: { minHeight: 32, minWidth: 32, alignItems: 'center', justifyContent: 'center' },
+  socialActionRow: {
+    gap: 3,
+    paddingTop: 5,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(127,127,127,0.22)',
+  },
+  socialReactions: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  socialLikeLabel: { fontSize: 12, fontWeight: '700', flexShrink: 1 },
+  socialActionBtn: { flex: 1, minWidth: 0, minHeight: 40, gap: 6 },
+  socialShare: { flex: 1, minWidth: 0 },
   actionRow: {
     marginTop: 8,
     flexDirection: 'row',

@@ -3547,6 +3547,9 @@ return (
             onOpenComments={() =>
               void openComments(item)
             }
+            showCommentAction
+            socialActions
+            rightAction={<BuklodPostInternalShare postId={item.id} compact social />}
             onReport={
               user?.id &&
               item.user_id !== user.id
@@ -3559,51 +3562,6 @@ return (
             }
           />
 
-          {!!selected && (
-            <Text
-              style={
-                styles.myReaction
-              }
-            >
-              Your reaction:{' '}
-              {selected.emoji}{' '}
-              {selected.label}
-            </Text>
-          )}
-
-          <BuklodPressable
-            nested
-            compact
-            onPress={() =>
-              void openComments(
-                item
-              )
-            }
-            style={
-              styles.commentButton
-            }
-          >
-            <MaterialCommunityIcons
-              name="comment-outline"
-              size={18}
-              color={
-                '#0A63D8'
-              }
-            />
-
-            <Text
-              style={
-                styles.commentButtonText
-              }
-            >
-              Comment or Reply
-            </Text>
-          </BuklodPressable>
-          <BuklodPostInternalShare
-            postId={
-              item.id
-            }
-          />
         </BuklodCommunityWallPostCard>
       );
     };
