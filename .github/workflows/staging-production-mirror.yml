@@ -1,0 +1,168 @@
+name: BUKLOD Staging Production-Mirror APK and Wall OTA
+on:
+  push:
+    branches:
+      - dev/staging-production-mirror-20261106
+    paths:
+      - .github/workflows/staging-production-mirror.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: buklod-staging-production-mirror
+  cancel-in-progress: false
+jobs:
+  staging-mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      CI: "1"
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: production
+      BUKLOD_STAGING_LIVE_MIRROR: "1"
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS: "false"
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      PRODUCTION_BASE_SHA: 8e1956e617a65b3350b3fba81597fc86604da4a1
+      STAGING_RC_SHA: 804cb557177621593d0526f7484ae57013e021eb
+    steps:
+      - name: Checkout isolated staging release guards
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: ops
+      - name: Checkout exact current production baseline
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCTION_BASE_SHA }}
+          fetch-depth: 0
+          path: prod-source
+      - name: Checkout exact verified Community Wall RC
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.STAGING_RC_SHA }}
+          fetch-depth: 0
+          path: staging-rc
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Protect frozen source and current main ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C prod-source rev-parse HEAD)" = "$PRODUCTION_BASE_SHA"
+          test "$(git -C staging-rc rev-parse HEAD)" = "$STAGING_RC_SHA"
+          git -C prod-source fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          test "$(git -C prod-source rev-parse refs/remotes/origin/main)" = "$PRODUCTION_BASE_SHA"
+          git -C staging-rc merge-base --is-ancestor "$PRODUCTION_BASE_SHA" "$STAGING_RC_SHA"
+          test "$(git -C prod-source ls-remote origin refs/heads/release/staging-community-wall-rc-20261106 | cut -f1)" = "$STAGING_RC_SHA"
+          git -C ops branch -f main "$PRODUCTION_BASE_SHA"
+      - name: Engineering scope and low-cost mirror release regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test ops/tests/staging-production-mirror-release.test.mjs
+          cd ops
+          export BUKLOD_SCOPE_MANIFEST=.buklod/scopes/staging-production-mirror-20261106.json
+          export BUKLOD_BASE_REF=main
+          node scripts/engineering-regression-gate.mjs --run-focused-node-tests
+          node scripts/engineering-accountability-gate.mjs
+      - name: Prepare ephemeral staging package and verify production mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          node ops/scripts/staging-production-mirror.cjs prepare prod-source
+          node ops/scripts/staging-production-mirror.cjs prepare staging-rc
+          node ops/scripts/staging-production-mirror.cjs parity prod-source staging-rc
+      - name: Frozen RC TypeScript and Community Wall regression QA
+        shell: bash
+        working-directory: staging-rc
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          npx tsc --noEmit
+          node --experimental-strip-types --test \
+            tests/community-wall-caption-navigation-scroll.test.mjs \
+            tests/community-wall-caption-presentation.test.mjs \
+            tests/community-wall-compact-composer.test.mjs \
+            tests/community-wall-social-actions.test.mjs \
+            tests/community-wall-post-card-google-pattern.test.mjs \
+            tests/community-wall-post-card-navigation-scroll.test.mjs \
+            tests/android-wall-sharp-paint-contract.test.mjs \
+            tests/android-wall-transfer-gate.test.mjs
+      - name: Verify original production-connected backend and EAS staging channel
+        shell: bash
+        working-directory: prod-source
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN" || { echo 'STOP: Expo credential unavailable'; exit 1; }
+          npx eas-cli@latest whoami --non-interactive
+          npx eas-cli@latest env:exec production 'env APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=production BUKLOD_STAGING_LIVE_MIRROR=1 node ../ops/scripts/staging-production-mirror.cjs live-backend' --non-interactive
+          npx eas-cli@latest channel:view staging-user --non-interactive > ../stage-channel.txt
+          node ../ops/scripts/staging-production-mirror.cjs channel ../stage-channel.txt
+      - name: Build signed staging APK from exact production baseline
+        shell: bash
+        working-directory: prod-source
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest build --platform android --profile staging-user --non-interactive --wait --json > ../mirror-build.json
+          node ../ops/scripts/staging-production-mirror.cjs build ../mirror-build.json
+      - name: Revalidate current source before OTA publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C prod-source ls-remote origin refs/heads/main | cut -f1)" = "$PRODUCTION_BASE_SHA" || { echo 'STOP: main advanced during build'; exit 1; }
+          test "$(git -C staging-rc ls-remote origin refs/heads/release/staging-community-wall-rc-20261106 | cut -f1)" = "$STAGING_RC_SHA" || { echo 'STOP: RC moved during build'; exit 1; }
+          node ops/scripts/staging-production-mirror.cjs verify staging-rc
+      - name: Publish exact Community Wall RC Android OTA to staging-user ONLY
+        shell: bash
+        working-directory: staging-rc
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$STAGING_RC_SHA"
+          npx eas-cli@latest update --channel staging-user --platform android --environment production \
+            --message "BUKLOD STAGING MIRROR WALL RC 804cb557" --json --non-interactive > ../mirror-update.json
+          node ../ops/scripts/staging-production-mirror.cjs ota ../mirror-update.json
+          npx eas-cli@latest update:list --branch staging-user --platform android --runtime-version 1.3.2 --limit 1 --json --non-interactive > ../mirror-update-list.json
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const raw=fs.readFileSync('../mirror-update-list.json','utf8');
+          if (!raw.includes('BUKLOD STAGING MIRROR WALL RC 804cb557') || !raw.includes('1.3.2')) {
+            throw new Error('Last staging OTA does not match exact RC/runtime');
+          }
+          console.log('STAGING_MIRROR_PUBLISHED; channel=staging-user; Android runtime=1.3.2; RC=804cb557');
+          NODE
+      - name: Write artifact provenance summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '# BUKLOD Staging Mirror Release'
+            echo "- Production APK baseline source: $PRODUCTION_BASE_SHA"
+            echo "- Wall RC OTA source: $STAGING_RC_SHA"
+            echo '- Staging package: org.mzbministry.buklod.staging'
+            echo '- Staging-only OTA channel: staging-user; runtime: 1.3.2'
+            echo '- EAS environment: production (original live BUKLOD backend; NOT production OTA channel)'
+            echo '- Production APK/AAB/channel/OTA: untouched'
+            if [ -s mirror-build.json ]; then
+              node -e "const a=require('./mirror-build.json');const b=Array.isArray(a)?a[0]:a;console.log('- Build ID: '+(b.id||'unverified'));console.log('- APK URL: '+(b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl||'unverified'))"
+            fi
+            if [ -s mirror-update.json ]; then echo '- OTA CLI receipt: present (check verification step)';
+            else echo '- OTA: not published or not verified'; fi
+            echo '- Physical-device verification: waived; installation and pixel parity unverified'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve lightweight EAS release receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-staging-mirror-release-receipts
+          path: |
+            mirror-build.json
+            mirror-update.json
+            mirror-update-list.json
+            stage-channel.txt
+          if-no-files-found: ignore
+          retention-days: 15
