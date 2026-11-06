@@ -64,8 +64,8 @@ jobs:
 
       - name: Social photo and video rendering regression suite
         run: |
-          node --experimental-strip-types --test tests/unified-social-media-rendering.test.mjs tests/community-video-persistent-preview.test.mjs tests/community-video-playback-recovery.test.mjs tests/community-media-aspect-ratio-20261103.test.mjs
-          node --test tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs tests/community-wall-no-blank-photo.test.cjs tests/compact-public-wall-header-20261104.test.mjs tests/navigation-scroll-compact-public-wall.test.mjs tests/dzas-signal-deck-implementation.test.mjs
+          node --experimental-strip-types --test tests/unified-social-media-rendering.test.mjs tests/community-video-persistent-preview.test.mjs tests/community-video-playback-recovery.test.mjs tests/community-media-aspect-ratio-20261103.test.mjs tests/community-wall-media-navigation-scroll.test.mjs tests/buklod-word-schedule.test.mjs
+          node --test tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs tests/community-wall-no-blank-photo.test.cjs tests/compact-public-wall-header-20261104.test.mjs tests/navigation-scroll-compact-public-wall.test.mjs tests/community-video-navigation-scroll.test.mjs tests/the-word-safe-area-20261106.test.mjs tests/dzas-signal-deck-implementation.test.mjs
 
       - name: AdMob startup, scope, fallback and recovery regression suite
         run: node --test tests/production-ota-ads-regression.test.mjs
