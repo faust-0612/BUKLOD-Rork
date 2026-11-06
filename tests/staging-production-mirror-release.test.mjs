@@ -108,13 +108,15 @@ test('V28 provenance record requires binary digest, build ID, source and native 
     runtimeVersion: '1.3.2',
     versionName: '1.3.4',
     versionCode: 28,
-    approvedAabBuildId: '00000000-0000-4000-8000-000000000001',
-    approvedAabSha256: 'a'.repeat(64),
+    buildSystem: 'local-gradle',
+    approvedAabSha256: 'e735885e20f222b03cd91184f7d0fb5281523ec846667b9fb935d50e9ff7c5c2',
+    binaryInspectionEvidence: 'Test fixture: not verified from production AAB',
     approvedAabSourceSha: 'b'.repeat(40),
     reconciliationEvidence: 'fixture only: not an approved production AAB',
   };
   assert.doesNotThrow(() => mirror.assertApprovedV28Record(complete));
   assert.throws(() => mirror.assertApprovedV28Record({...complete, runtimeVersion:'1.3.4'}), /runtime/);
+  assert.throws(() => mirror.assertApprovedV28Record({...complete, buildSystem:'eas'}), /local Gradle/);
   assert.throws(() => mirror.assertApprovedV28Record({...complete, approvedAabSha256:''}), /SHA-256/);
   assert.throws(() => mirror.assertApprovedV28Record({...complete, approvedAabSourceSha:''}), /source commit/);
   assert.throws(() => mirror.assertApprovedV28Record({...complete, reconciliationEvidence:''}), /parity evidence/);

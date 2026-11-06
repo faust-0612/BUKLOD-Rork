@@ -134,25 +134,37 @@ function git(cwd, ...args) {
 // Fail closed: SOURCE parity is not proof of the actual owner-approved V28 AAB.
 // A verified AAB receipt and its exact native source must be explicitly registered
 // before a production-mirror APK or staging OTA can be released again.
+const LOCAL_V28_AAB_SHA256 = 'e735885e20f222b03cd91184f7d0fb5281523ec846667b9fb935d50e9ff7c5c2';
 function assertApprovedV28Record(record) {
+  assert.equal(record?.buildSystem, 'local-gradle', 'Approved V28 must be traced to the local Gradle AAB, not an EAS AAB');
   assert.equal(record?.packageName, 'org.mzbministry.buklod', 'Approved artifact must be the production application');
-  assert.equal(record?.runtimeVersion, RUNTIME, 'Approved AAB runtime must match V28 OTA runtime');
+  assert.equal(record?.runtimeVersion, RUNTIME, 'Actual V28 AAB runtime must match the staging OTA runtime (never infer from versionName)');
   assert.equal(record?.versionName, '1.3.4', 'Approved AAB versionName not verified');
   assert.equal(record?.versionCode, 28, 'Approved AAB versionCode not verified');
-  assert.match(String(record?.approvedAabBuildId || ''), /^[0-9a-f-]{36}$/i,
-    'Missing approved production V28 AAB EAS build ID');
-  assert.match(String(record?.approvedAabSha256 || ''), /^[0-9a-f]{64}$/i,
-    'Missing independently verified production V28 AAB binary SHA-256');
+  assert.equal(String(record?.approvedAabSha256 || '').toLowerCase(), LOCAL_V28_AAB_SHA256,
+    'Approved local V28 AAB SHA-256 missing or does not match the recorded production binary');
   assert.match(String(record?.approvedAabSourceSha || ''), /^[0-9a-f]{40}$/i,
-    'Missing exact V28 AAB source commit');
+    'Missing exact source SHA from the local V28 Gradle build');
+  assert.ok(typeof record?.binaryInspectionEvidence === 'string' &&
+    record.binaryInspectionEvidence.trim().length >= 20,
+    'Missing actual AAB manifest/runtime inspection evidence');
   assert.ok(typeof record?.reconciliationEvidence === 'string' &&
     record.reconciliationEvidence.trim().length >= 20,
     'Missing documented AAB-to-staging native parity evidence');
   return record;
 }
+function assertOriginalV28AabFile() {
+  const file = process.env.BUKLOD_APPROVED_V28_AAB_PATH || '';
+  assert.ok(file && fs.existsSync(file),
+    'Original V28 locally built AAB bytes are unavailable to CI; no binary parity or staging release');
+  const digest = execFileSync('sha256sum', [file], { encoding: 'utf8' }).trim().split(/\s+/)[0];
+  assert.equal(digest.toLowerCase(), LOCAL_V28_AAB_SHA256,
+    'Original V28 AAB artifact bytes disagree with the recorded SHA-256');
+}
 function assertApprovedV28BinaryBaseline(prod) {
   const file = path.join(prod, 'release/approved-android-baseline.json');
   const record = assertApprovedV28Record(JSON.parse(fs.readFileSync(file, 'utf8')));
+  assertOriginalV28AabFile();
   // Any native/source change after the actual V28 AAB requires a new explicit
   // compatibility assessment, even if main has passed ordinary unit tests.
   const nativePaths = [
