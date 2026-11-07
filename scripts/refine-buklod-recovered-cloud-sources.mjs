@@ -116,19 +116,41 @@ try{
   result.excludedBuckets.notRecordedInEarlierCappedLog=Number(prior.unlistedExclusions||0);
   result.before.excludedTotal=excluded.length+Number(prior.unlistedExclusions||0);
   result.criticalUnresolved=excluded.filter(x=>['unavailable_or_io_error','asset_or_source_review'].includes(classify(x.path,x.reason))).slice(0,60);
-  // Investigate suspicious contents before adding or pushing a refined commit.
-  const tokenPaths=[];
+  // Classification is non-disclosing: read-only local scanning, no token values in reports.
+  // Firebase client API keys (AIza...) are publicly distributable identifiers, not standalone secrets.
+  const credentialShapes=[
+    ['private_key_header',/-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/],
+    ['github_personal_token',/(?:ghp_[A-Za-z0-9]{25,}|github_pat_[A-Za-z0-9_]{30,})/],
+    ['aws_access_key_id',/AKIA[A-Z0-9]{16}/],
+    ['supabase_secret',/sb_secret_[A-Za-z0-9_-]{16,}/],
+    ['api_secret_shape',/sk-[A-Za-z0-9_-]{24,}/],
+    ['firebase_client_key',/AIza[0-9A-Za-z_-]{35}/]
+  ];
+  const highRiskPaths=new Map(),publicClientKeyPaths=[];
   for(const name of staged){
     if(sdkDir.test(name))continue;
     const full=path.join(source,name);
-    const stat=fs.statSync(full);
+    let stat;try{stat=fs.statSync(full)}catch(e){result.securityWarnings.push('Unreadable source file: '+name);continue}
     if(stat.size>1024*1024||!/\.(?:tsx?|jsx?|mjs|cjs|json|yaml|yml|env|properties|xml|sql|py|sh|ps1)$/i.test(name))continue;
-    if(tokenPattern.test(fs.readFileSync(full,'utf8')))tokenPaths.push(name);
-    if(tokenPaths.length>=30)break;
+    let content;try{content=fs.readFileSync(full,'utf8')}catch(e){result.securityWarnings.push('Unable to scan file: '+name);continue}
+    const types=credentialShapes.filter(([_,re])=>re.test(content)).map(([kind])=>kind);
+    const high=types.filter(t=>t!=='firebase_client_key');
+    if(high.length)highRiskPaths.set(name,high);
+    else if(types.length)publicClientKeyPaths.push(name);
   }
-  result.securityWarnings=tokenPaths.map(x=>'Possible hardcoded credential: '+x);
-  if(suspiciousMissing.length)result.securityWarnings.push(suspiciousMissing.length+' sensitive paths exist staged but are not tracked.');
-  if(tokenPaths.length)throw Error('Possible hardcoded tokens in staged source. Refusing new branch push; investigate private repo and rotate if needed.');
+  result.securityScan={
+    highRiskFileCount:highRiskPaths.size,
+    publicFirebaseClientKeyOnlyFileCount:publicClientKeyPaths.length,
+    highRiskTypes:[...new Set([...highRiskPaths.values()].flat())],
+    highRiskPaths:[...highRiskPaths].slice(0,60).map(([relativePath,types])=>({relativePath,types})),
+    publicClientKeyPathSamples:publicClientKeyPaths.slice(0,20),
+    scanningScope:'staged text source under 1 MiB per file, excluding bundled SDK',
+    historicalPrivateRecoveryBranchMayContainFlaggedFiles:highRiskPaths.size>0,
+    highRiskCredentialReviewRequired:highRiskPaths.size>0
+  };
+  if(suspiciousMissing.length)result.securityWarnings.push(suspiciousMissing.length+' sensitive paths exist staged but not tracked.');
+  if(highRiskPaths.size)console.log('SECURITY QUARANTINE:',highRiskPaths.size,'high-risk source files will be excluded from NEW refined branch only.');
+  if(publicClientKeyPaths.length)console.log('Firebase client API key shape:',publicClientKeyPaths.length,'files (informational).');
   // Prepare recovery-only cleanup branch. Every SDK removal is INDEX-ONLY, NOT file deletion.
   const cleaned='migration/refined-'+id;
   const onLocal=run('git',['-C',source,'branch','--list',cleaned]);
@@ -139,21 +161,32 @@ try{
   }else{
     checked(current===cleaned,'Refined branch exists; selected branch differs. Refusing to modify.');
   }
-  // Remove only bundled Android SDK directories from Git INDEX, not filesystem.
+  // Remove bundled SDK and high-risk token files from NEW recovery branch INDEX ONLY.
+  // No original local files or production branches are altered.
   for(const sdk of sdkRoots){
     run('git',['-C',source,'rm','-q','--cached','-r','--ignore-unmatch','--',sdk],{quiet:true});
     result.batchActions.push('untracked bundled SDK directory in Git index: '+sdk);
   }
-  if(sdkRoots.size){
+  for(const name of highRiskPaths.keys()){
+    if(tracked.has(name))run('git',['-C',source,'rm','-q','--cached','--ignore-unmatch','--',name],{quiet:true});
+  }
+  if(highRiskPaths.size)result.batchActions.push('quarantined '+highRiskPaths.size+' paths from NEW branch index only; inspect original private recovery history');
+  if(sdkRoots.size||highRiskPaths.size){
     const ignore=path.join(source,'.gitignore');
     let txt=fs.existsSync(ignore)?fs.readFileSync(ignore,'utf8'):'';
-    const rules=['# Android SDK bundles installed locally, never app source',...[...sdkRoots].map(x=>'/'+x+'/')];
+    const rules=[
+      '# Generated Android SDK, not application source',
+      ...[...sdkRoots].map(x=>'/'+x+'/'),
+      '# Potential credentials quarantined from the NEW recovery branch',
+      ...[...highRiskPaths.keys()].map(x=>'/'+x)
+    ];
     for(const rule of rules)if(!txt.split(/\r?\n/).includes(rule))txt+='\n'+rule;
     fs.writeFileSync(ignore,txt.replace(/^\n/,''));
     run('git',['-C',source,'add','--','.gitignore']);
   }
   const cleanRaw=run('git',['-C',source,'ls-files','-z']);
   const cleanPaths=cleanRaw.split('\0').filter(Boolean).map(md);
+  checked(!cleanPaths.some(p=>highRiskPaths.has(p)),'Quarantine verification failed: flagged file still tracked.');
   const bySystem={};
   for(const p of cleanPaths.filter(x=>x.startsWith('systems/'))){
     const g=group(p);if(!bySystem[g])bySystem[g]={files:0,buildConfigs:0,projects:new Set()};
@@ -171,6 +204,9 @@ try{
     sourceSystems:result.sourceSystems,originalSourceBranch:prior.sourceBranch,refinedBranch:cleaned,
     removedRegenerableSdkPathCount:tracked.size-cleanPaths.length,
     stagedButNotTrackedByType:missingTypes,
+    highRiskPathsQuarantinedFromRefinedBranch:highRiskPaths.size,
+    publicFirebaseClientKeyOnlyFiles:publicClientKeyPaths.length,
+    requiresHistoricalSecretReview:highRiskPaths.size>0,
     unresolvedExcludedTotal:result.before.excludedTotal,
     caution:'No build, runtime or asset restore verification yet. Do not delete local projects or promote outdated code.'};
   json(path.join(source,'RECOVERY_REFINEMENT.json'),committedReport);
@@ -201,6 +237,8 @@ try{
   console.log('Bundled SDK roots removed from Git INDEX:',sdkRoots.size);
   console.log('Missing staged-vs-tracked files:',missing.length,'possibly essential:',essentialMissing.length);
   console.log('Excluded unresolved:',result.before.excludedTotal);
+  console.log('High-risk files quarantined from refined branch:',highRiskPaths.size);
+  if(highRiskPaths.size)console.log('Historical PRIVATE recovery branch may already contain these file contents; credential review/rotation REQUIRED.');
   console.log('Recovered systems:',result.sourceSystems.map(x=>x.name+'='+x.files).join(', '));
   console.log('Report:',reportPath);
   console.log('LOCAL DELETION STILL NOT AUTHORIZED. All app builds/assets and 43k exclusions need final gate.');
