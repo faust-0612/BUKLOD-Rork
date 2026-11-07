@@ -18,7 +18,7 @@ const db = url && key ? createClient(url, key, {
 }) : null;
 
 const state = { user: null, classes: [], classId: '', context: null, overview: null,
-  tab: 'overview', data: [], additional: [], thread: null, busy: false, loading: true,
+  tab: 'overview', data: [], additional: [], gradeCategories: [], thread: null, busy: false, loading: true,
   error: '', recover: false, seq: 0 };
 const tabs = [
   ['overview', 'Overview'], ['discussions', 'Discussions'], ['chat', 'Class Messages'],
@@ -120,7 +120,7 @@ function renderClass() {
     e([c.subject_code,c.section_name,c.term].filter(Boolean).join(' · ') || 'ACTIVE CLASSROOM') +
     '</p><h2>' + e(c.name || 'Classroom') + '</h2><p>' + e(c.description || 'Your BUKLOD connected classroom') +
     '</p></div><div class="head-actions">' + pill(c.role || 'MEMBER') + btn('Refresh module', 'refresh-tab') + '</div></div>';
-  layout(summary + navClasses() + '<section id="module" class="module">' + moduleContent() + '</section>', c.name || 'Classroom');
+  layout(summary + navClasses() + '<section id="module" class="module">' + (state.error ? '<div class="feedback error" role="alert">' + e(state.error) + '</div>' : '') + moduleContent() + '</section>', c.name || 'Classroom');
 }
 function moduleContent() {
   if (state.busy && !state.data.length) return '<div class="splash inline"><span class="spinner"></span> Loading module…</div>';
@@ -187,6 +187,9 @@ function activities(rows) {
     '<details class="compose"><summary>+ Create an activity</summary><form data-form="assignment">' +
     field('Activity title', 'title', 'Title', true) +
     textarea('Instructions', 'instructions', 'What should students submit?') +
+    '<label class="field"><span>Grade category</span><select name="category" required><option value="">Choose a category</option>' +
+    state.gradeCategories.map(c=>'<option value="' + e(c.id) + '">' + e(c.name) + '</option>').join('') +
+    '</select></label>' +
     '<label class="field"><span>Points possible</span><input type="number" name="points" required min="1" max="1000" step=".1" value="10" /></label>' +
     '<button type="submit" class="primary">Publish activity</button></form></details>' : '';
   const list = rows.map(a=>{
@@ -346,7 +349,7 @@ async function openClass(id, tab = 'overview') {
 async function loadTab() {
   if (!state.classId) return;
   const id=state.classId, tab=state.tab, seq=++state.seq;
-  state.busy=true; state.data=[]; state.additional=[]; state.thread=null; render();
+  state.busy=true; state.data=[]; state.additional=[]; state.gradeCategories=[]; state.thread=null; state.error=''; render();
   try {
     let first=[], second=[];
     if (tab==='discussions') {
@@ -367,14 +370,18 @@ async function loadTab() {
         .is('deleted_at',null).order('created_at',{ascending:false}).limit(100)) : [];
       first.reverse();
     } else if (tab==='activities') {
-      [first,second] = await Promise.all([
+      let categories=[];
+      [first,second,categories] = await Promise.all([
         checked(db.from('buklod_education_classroom_assignments')
           .select('id,title,description,instructions,points_possible,due_at,closes_at,status,created_at')
           .eq('classroom_id',id).order('created_at',{ascending:false}).limit(80)),
         checked(db.from('buklod_education_classroom_submissions')
           .select('id,assignment_id,student_user_id,attempt_no,text_response,link_url,status,score,submitted_at')
-          .eq('classroom_id',id).order('submitted_at',{ascending:true}).limit(500))
+          .eq('classroom_id',id).order('submitted_at',{ascending:true}).limit(500)),
+        isFaculty() ? checked(db.from('buklod_education_grade_categories')
+          .select('id,name,weight_percent').eq('classroom_id',id).limit(100)) : Promise.resolve([])
       ]);
+      state.gradeCategories=categories||[];
       if (!isFaculty()) {first=first.filter(a=>a.status==='PUBLISHED');second=second.filter(s=>s.student_user_id===state.user.id);}
     } else if (tab==='materials') {
       first=await checked(db.from('buklod_education_materials')
@@ -414,7 +421,7 @@ async function loadTab() {
     }
     if (seq!==state.seq) return;
     state.data=Array.isArray(first)?first:[]; state.additional=Array.isArray(second)?second:[];
-  } catch(err) { if(seq===state.seq) {state.data=[];state.additional=[];notice(errorMessage(err),true);} }
+  } catch(err) { if(seq===state.seq) {state.data=[];state.additional=[];state.error=errorMessage(err);} }
   finally {if(seq===state.seq) {state.busy=false;render();}}
 }
 async function doAction(action,id) {
@@ -492,10 +499,11 @@ async function handleForm(form) {
       if(!isFaculty())throw new Error('Faculty access required.');
       const points=Number(val('points'));
       if(!val('title')||!Number.isFinite(points)||points<=0||points>1000)throw new Error('Invalid assignment.');
+      if(!state.gradeCategories.some(c=>c.id===val('category'))) throw new Error('Select an official grade category.');
       await checked(db.from('buklod_education_classroom_assignments').insert({
         classroom_id:id,title:clampText(val('title'),200),instructions:val('instructions')||null,
-        points_possible:points,submission_types:['TEXT','LINK'],
-        auto_grading_mode:'MANUAL',auto_grade_requires_review:true,status:'PUBLISHED',
+        points_possible:points,submission_types:['TEXT','LINK'],grade_category_id:val('category'),
+        auto_grading_mode:'NONE',auto_grade_requires_review:true,status:'PUBLISHED',
         created_by:uid
       }));
     } else if(kind==='submission') {
