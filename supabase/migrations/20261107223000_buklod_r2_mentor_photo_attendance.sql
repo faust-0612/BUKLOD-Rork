@@ -57,7 +57,7 @@ begin
  if row_rec.status in ('approved','rejected') then
    raise exception 'Reviewed mentoring session cannot be changed';
  end if;
- if p_photo_path is null or p_photo_path !~ ('^'||actor::text||'/'||p_session_id::text||'/[A-Za-z0-9_-]+\\.(jpg|jpeg|png|webp)$') then
+ if p_photo_path is null or p_photo_path !~ ('^'||actor::text||'/'||p_session_id::text||'/[A-Za-z0-9_-]+[.](jpg|jpeg|png|webp)$') then
    raise exception 'Invalid mentor evidence photo path';
  end if;
  if not exists(select 1 from storage.objects o
