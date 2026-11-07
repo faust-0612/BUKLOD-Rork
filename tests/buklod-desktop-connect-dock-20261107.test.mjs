@@ -60,3 +60,15 @@ test('dock does not expose locked profile avatar or retain previous-account deta
   assert.match(preview,/result\?\.viewerId === viewerId/);
   assert.match(preview,/loadMemberPublicProfile\(userId\)/);
 });
+
+
+test('docked Connect render errors close only the side panel and heavy engine loads lazily', () => {
+  const boundary=read('src/components/connect/ConnectRenderBoundary.tsx');
+  const shell=read('src/components/BuklodPublicDesktopDashboard.tsx');
+  assert.match(boundary,/onFallbackClose\?: \(\) => void/);
+  assert.match(boundary,/this\.props\.onFallbackClose\(\)/);
+  assert.match(shell,/onFallbackClose=\{\(\) => setDockRequest\(null\)\}/);
+  assert.match(shell,/React\.lazy\(\(\) => import\('@\/components\/BuklodConnectThread'\)\)/);
+  assert.match(shell,/React\.lazy\(\(\) => import\('@\/components\/BuklodDesktopMemberPreview'\)\)/);
+  assert.match(shell,/<Suspense fallback=\{<ActivityIndicator accessibilityLabel="Loading details"/);
+});

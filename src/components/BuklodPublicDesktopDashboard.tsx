@@ -13,8 +13,6 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
-import BuklodConnectThread from '@/components/BuklodConnectThread';
-import BuklodDesktopMemberPreview from '@/components/BuklodDesktopMemberPreview';
 import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
 import {
   registerBuklodDesktopDockOpener,
@@ -38,6 +36,8 @@ import { useNotifications } from '@/providers/NotificationProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 const Contribution = React.lazy(() => import('@/components/BuklodCommunityContributionCard'));
+const BuklodConnectThread = React.lazy(() => import('@/components/BuklodConnectThread'));
+const BuklodDesktopMemberPreview = React.lazy(() => import('@/components/BuklodDesktopMemberPreview'));
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 type RouteLink = { label: string; icon: IconName; path: string };
@@ -550,6 +550,7 @@ export default function BuklodPublicDesktopDashboard({
                 </Pressable>
               </View>
               <View style={styles.dockContent}>
+                <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading details" color={mainColor} />}>
                 {visibleDock.kind === 'profile' ? (
                   <BuklodDesktopMemberPreview
                     key={visibleDock.userId + ':' + userId}
@@ -576,6 +577,7 @@ export default function BuklodPublicDesktopDashboard({
                   <ConnectRenderBoundary
                     key={(visibleDock.kind === 'direct' ? visibleDock.threadId : visibleDock.scopeId) + ':' + userId}
                     surface={visibleDock.kind === 'direct' ? 'personal_thread' : 'community_thread'}
+                    onFallbackClose={() => setDockRequest(null)}
                   >
                     <BuklodConnectThread
                       key={(visibleDock.kind === 'direct' ? visibleDock.threadId : visibleDock.scopeId) + ':' + userId}
@@ -594,6 +596,7 @@ export default function BuklodPublicDesktopDashboard({
                     />
                   </ConnectRenderBoundary>
                 )}
+                </Suspense>
               </View>
             </View>
           ) : null}
