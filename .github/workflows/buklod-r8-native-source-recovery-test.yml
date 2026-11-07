@@ -1,0 +1,44 @@
+name: BUKLOD R8 native source rescue Windows safety test
+on:
+  push:
+    branches: [dev/quiz-consolidation-identity-audit-20261107]
+    paths:
+      - .github/workflows/buklod-r8-native-source-recovery-test.yml
+      - scripts/BUKLOD_R8_Native_Source_Cloud_Rescue.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-r8-native-source-safety
+  cancel-in-progress: true
+
+jobs:
+  windows-synthetic-native-source-backup:
+    runs-on: windows-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify R8 source grammar and checksums
+        shell: pwsh
+        run: |
+          node --check scripts/BUKLOD_R8_Native_Source_Cloud_Rescue.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'R8 source syntax failed' }
+      - name: Verify Android/iOS C/C++/Objective-C source filters and synthetic Git restore
+        shell: pwsh
+        run: |
+          node scripts/BUKLOD_R8_Native_Source_Cloud_Rescue.mjs --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'R8 native source retention or clean SHA-256 recovery test failed' }
+      - name: Verify incomplete audit cannot upload
+        shell: pwsh
+        run: |
+          $out = & node scripts/BUKLOD_R8_Native_Source_Cloud_Rescue.mjs --backup 2>&1
+          if ($LASTEXITCODE -eq 0) { throw 'R8 accepted a missing R4/R5/R6/R7 report' }
+          Write-Host 'R8 correctly refused to upload without complete R4-R7 audit evidence.'
+          exit 0
+      - name: Confirm external systems were not touched by the selftest
+        shell: pwsh
+        run: Write-Host 'CI used only local temporary Git repositories; no production or private BUKLOD files were read.'
