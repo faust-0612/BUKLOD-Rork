@@ -1,4 +1,5 @@
 name: BUKLOD R7 private-source recovery safety contract
+# Verify final source whitelist, sanitized extension summaries and no-upload safety gates.
 on:
   push:
     branches: [dev/quiz-consolidation-identity-audit-20261107]
