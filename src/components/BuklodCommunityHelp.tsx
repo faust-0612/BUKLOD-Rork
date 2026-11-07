@@ -17,6 +17,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { supabase } from '@/lib/supabase';
 import { acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
 import { registerPushToken } from '@/lib/pushNotifications';
+import { emitBuklodEmergencySignal, isBuklodEmergencyId } from '@/lib/buklodEmergencySignal';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 
