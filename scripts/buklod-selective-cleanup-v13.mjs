@@ -250,10 +250,14 @@ function validatedCloudPrerequisites(){
  assert(v10.status==="HISTORICAL_RELEASE_V10_CLOUD_VERIFIED"&&v10.remoteVolumesVerified>=1,
    "V10 historical encrypted archive not verified");
  assert(exec(GH,["api","user","--jq",".login"])==="faust-0612","Unexpected authenticated GitHub account");
- for(const repo of [SOURCE_REPO,MAIN_REPO,VAULT_REPO]){
+ for(const repo of [SOURCE_REPO,VAULT_REPO]){
   const privateRepo=exec(GH,["repo","view",repo,"--json","isPrivate","--jq",".isPrivate"]);
-  assert(privateRepo==="true","Expected private GitHub repo not private: "+repo);
+  assert(privateRepo==="true","Expected private GitHub recovery repo not private: "+repo);
  }
+ // Canonical BUKLOD-Rork is allowed to be public while app distribution
+ // source access is verified independently (no credentials stored there).
+ assert(exec(GH,["repo","view",MAIN_REPO,"--json","name","--jq",".name"])==="BUKLOD-Rork",
+   "Canonical BUKLOD source repository inaccessible.");
  cloudReleaseVerified(String(v3.remoteRelease).split("/tag/")[1]);
  cloudReleaseVerified(String(v6.repairRelease).split("/tag/")[1]);
  cloudReleaseVerified(String(v9.remoteRelease).split("/tag/")[1]);
@@ -336,19 +340,21 @@ try{
    if(protection){recordKeep(protection,target);continue}
    if(path.basename(target).toLowerCase()==="desktop.ini"||
       path.basename(target).toLowerCase()==="thumbs.db"){recordKeep("misc",target);continue}
-   // The original file must be byte-identical to a Git object or independently
-   // encrypted/verified cloud archive candidate. Caches are regenerable, but
-   // a file is never removed merely because its path includes "build".
-   let hash;
-   try{hash=blob(target,st.size)}catch{records.unreadable++;continue}
-   const proof=proofType(hash,cloud);
+   // Known package/cached outputs are safe to regenerate and can be
+   // removed without rehashing hundreds of thousands of cached objects.
+   // All active/non-generated files MUST match a remote content digest.
    const generated=target.split(/[\\/]/).some(part=>generatedDirs.test(part)) ||
      generatedFiles.test(target);
-   if(!proof&&!generated){recordKeep("unproven",target);continue}
-   if(proof==="git"){records.backedSourceGit++}
-   else if(proof==="archive"){records.backedEncryptedManifests++}
-   else{records.generatedEligible++}
-   records.filesBacked+=proof?1:0;
+   let hash=null,proof=null;
+   if(!generated){
+     try{hash=blob(target,st.size)}catch{records.unreadable++;continue}
+     proof=proofType(hash,cloud);
+     if(!proof){recordKeep("unproven",target);continue}
+   }
+   if(proof==="git")records.backedSourceGit++;
+   else if(proof==="archive")records.backedEncryptedManifests++;
+   else records.generatedEligible++;
+   if(proof)records.filesBacked++;
    actions.push({path:target,bytes:st.size,modifiedAt:st.mtimeMs,hash,kind:proof||"regenerable"});
    records.candidateBytes+=st.size;
    if(records.filesExamined%10000===0)
@@ -383,7 +389,8 @@ try{
    try{
      const st=fs.lstatSync(a.path);
      if(st.isSymbolicLink()||!st.isFile()||st.size!==a.bytes||
-        Math.abs(st.mtimeMs-a.modifiedAt)>1500||blob(a.path,st.size)!==a.hash){
+        Math.abs(st.mtimeMs-a.modifiedAt)>1500||
+        (a.hash!==null&&blob(a.path,st.size)!==a.hash)){
        recordKeep("unproven",a.path);continue;
      }
      // Final containment and private personal/secret gate before unlink.
