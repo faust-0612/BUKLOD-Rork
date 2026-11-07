@@ -13,8 +13,8 @@ test('Living community uses canonical BUKLOD followers and Organization/Cluster 
   assert.match(migration,/public\.buklod_scope_memberships/);
   assert.match(migration,/in \('CLUSTER','ORGANIZATION'\)/);
   // A comment documenting retirement may name church_id; query logic must not use it.
-  const sqlWithoutComments=migration.replace(/^\\s*--.*$/gm,'');
-  assert.doesNotMatch(sqlWithoutComments,/\\bchurch_id\\b/i);
+  const sqlWithoutComments=migration.replace(/^\s*--.*$/gm,'');
+  assert.doesNotMatch(sqlWithoutComments,/\bchurch_id\b/i);
   assert.match(migration,/new\.membership_status <> 'ACTIVE'/);
 });
 
