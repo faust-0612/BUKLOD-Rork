@@ -240,9 +240,9 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 18,
-    padding: 14,
-    marginBottom: 12,
-    gap: 10,
+    padding: 12,
+    marginBottom: 9,
+    gap: 6,
     overflow: 'visible', // Keep reaction picker outside the card clipping boundary.
   },
   card: {
