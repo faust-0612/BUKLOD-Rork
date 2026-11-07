@@ -36,8 +36,22 @@ begin
    raise exception 'Approved KL episode release trigger missing';
  end if;
  if not exists(select 1 from cron.job where jobname='buklod-living-greetings-daily-v1')
-    or not exists(select 1 from cron.job where jobname='buklod-living-greetings-dispatch-v1') then
-   raise exception 'Scheduled daily and bounded delivery jobs missing';
+    or not exists(select 1 from cron.job where jobname='buklod-living-greetings-dispatch-v1')
+    or not exists(select 1 from cron.job where jobname='buklod-living-greetings-kl-releases-v1') then
+   raise exception 'Scheduled daily, KL release, or bounded delivery job missing';
+ end if;
+ if not exists(select 1 from pg_trigger
+   where tgrelid='public.buklod_rank_history'::regclass
+     and tgname='buklod_living_rank_milestone_v1' and not tgisinternal)
+   or not exists(select 1 from pg_trigger
+   where tgrelid='public.buklod_character_collectible_state'::regclass
+     and tgname='buklod_living_character_reward_v1' and not tgisinternal) then
+   raise exception 'Verified achievement celebration triggers missing';
+ end if;
+ if has_function_privilege('authenticated','private.buklod_living_rank_milestone_v1()','EXECUTE')
+   or has_function_privilege('authenticated','private.buklod_living_character_reward_v1()','EXECUTE')
+   or has_function_privilege('authenticated','private.buklod_living_kl_releases_v1()','EXECUTE') then
+   raise exception 'Private celebration worker/trigger exposed to clients';
  end if;
 end;
 $assert$;
