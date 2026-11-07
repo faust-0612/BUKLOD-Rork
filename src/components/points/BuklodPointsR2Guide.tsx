@@ -25,15 +25,16 @@ const LABELS: Record<string,string> = {
  bible_quiz_easy: 'Daily Bible Quiz — 3/5 correct',
  bible_quiz_medium: 'Daily Bible Quiz — 4/5 correct',
  bible_quiz_hard: 'Daily Bible Quiz — 5/5 correct',
- verified_volunteer_service: 'Verified volunteer service (upcoming)',
+ verified_volunteer_service: 'Verified volunteer service (review required)',
  verified_mentoring_session: 'Mentoring milestone (upcoming)',
+ ministry_major_milestone: 'Major Ministry Milestone (review required)',
  consistency_30_day: '30-day consistency milestone (upcoming)',
  r2_verified_challenge: 'Difficulty challenge (upcoming)',
  achievement_bible_scholar: 'Bible Scholar (reviewed milestone)',
  achievement_community_builder: 'Community Builder (reviewed milestone)',
  achievement_faithful_mentor: 'Faithful Mentor (reviewed milestone)',
  achievement_kingdom_champion: 'Kingdom Champion (reviewed milestone)',
- game_tournament_champion: 'Tournament Champion (upcoming)',
+ game_tournament_champion: 'Tournament Champion (review required)',
 }
 const KEYS = Object.keys(LABELS);
 
@@ -88,8 +89,12 @@ export default function BuklodPointsR2Guide() {
      {expanded && (
        <View style={styles.body}>
          <Text style={styles.explainer}>
-           More difficult verified accomplishments can earn higher rewards.
-           Only backend-validated activities earn points. Some upcoming challenges still require verification.
+           Higher rewards require real accomplishments and evidence.
+           Daily Bible Quiz: Show Faith → Daily Bible Quiz → submit five server-scored answers.
+           Cluster Verified Attendance: open Cluster → Events & Attendance → authorized operator records present/late.
+           Mentor reward: BUKLOD Lesson → report registered mentees → attach teaching photo → Pastor and Admin approval.
+           Major milestones: nominate with evidence in the Live Reward Focus panel; Admin reviews before reward claim.
+           Only backend-validated activities earn points. Unsupported challenges remain disabled.
            Your existing lifetime and available balances are preserved.
          </Text>
          {loading && <ActivityIndicator color="#0A7436" />}
