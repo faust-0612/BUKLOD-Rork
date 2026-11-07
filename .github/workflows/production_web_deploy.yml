@@ -87,20 +87,21 @@ jobs:
 
           echo 'Protected BUKLOD Main production public environment: READY'
 
-      - name: Apply web Community Post hotfix
-        run: node scripts/patch-web-community-post.cjs
-
-      - name: Verify web Community background publish contract
+      - name: Verify web branding and retired release mutation safety
         shell: bash
         run: |
-          grep -F "const snapshot =" 'src/components/BuklodExclusiveScopeCommunity.tsx'
-          grep -F "setBusy(false);" 'src/components/BuklodExclusiveScopeCommunity.tsx'
-          grep -F "setPublishNotice(" 'src/components/BuklodExclusiveScopeCommunity.tsx'
-          grep -F "!body.trim()" 'src/components/BuklodExclusiveScopeCommunity.tsx'
-          grep -F "BUKLOD_WEB_COMMUNITY_BACKGROUND_PUBLISH_R5" 'scripts/patch-web-community-post.cjs'
+          set -euo pipefail
+          node --test tests/web-brand-retirement-release-20261107.test.mjs
+          git diff --exit-code
 
-      - name: Apply Home identity action row
-        run: node scripts/patch-home-identity-action-row.cjs
+      - name: Verify scoped Community background publish state
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'const snapshot =' 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F 'setBusy(false);' 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F 'setPublishNotice(' 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F '!body.trim()' 'src/components/BuklodExclusiveScopeCommunity.tsx'
 
       - name: Verify Classroom and Home separation
         shell: bash
@@ -117,17 +118,11 @@ jobs:
             exit 1
           fi
 
-      - name: Limit export-time web patches to known legacy sources
+      - name: Deny export-time tracked source mutations
         shell: bash
         run: |
           set -euo pipefail
-          while IFS= read -r changed; do
-            test -n "$changed" || continue
-            case "$changed" in
-              'src/components/BuklodGuideAvatar.tsx'|'src/app/(tabs)/home.tsx') ;;
-              *) echo "STOP: unrelated release-time source mutation $changed"; exit 1 ;;
-            esac
-          done < <(git diff --name-only)
+          git diff --exit-code
           git diff --check
 
       - name: TypeScript QA
