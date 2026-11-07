@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useState} from 'react';
-import {ActivityIndicator,Alert,FlatList,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
+import {ActivityIndicator,Alert,FlatList,Platform,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import {File} from 'expo-file-system';
@@ -112,8 +112,9 @@ export default function LiveSupport(){
       const evidenceId=Crypto.randomUUID();
       const objectPath=caseId+'/'+uid+'/'+evidenceId;
       // Native and Web use the same private Storage policy. File bytes are bounded.
-      const file=new File(asset.uri);
-      const content=await file.arrayBuffer();
+      const content=Platform.OS==='web' && asset.file
+        ? await asset.file.arrayBuffer()
+        : await new File(asset.uri).arrayBuffer();
       const {error:storageError}=await supabase.storage.from(BUCKET)
         .upload(objectPath,content,{contentType:mime,upsert:false});
       if(storageError)throw storageError;
