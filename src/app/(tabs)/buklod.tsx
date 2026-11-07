@@ -7,6 +7,7 @@ import { BUKLOD_POST_MOTION_PRESETS, loadBuklodPostCreatives, resolveBuklodPostM
   saveBuklodPostCreative, type BuklodPostCreative, type BuklodPostMotionPreset,
   type BuklodPostMusicTrack } from '@/lib/buklodPostCreatives';
 import { requestBuklodAudioFocus, subscribeBuklodAudioFocus } from '@/lib/buklodAudioFocus';
+import { peekDzasPlaying } from '@/lib/buklodDzasRadio';
 import { createAudioPlayer, setAudioModeAsync, setIsAudioActiveAsync, type AudioPlayer } from 'expo-audio';
 /* BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME: existing broadcast implementation preserved */
 /* PERF_EMERGENCY_R2_VISIBLE_POSTS: list-shape-drift-safely-skipped */
@@ -881,6 +882,7 @@ function LegacyPublicBuklodScreen(){
  const [visibleCreativePostIds,setVisibleCreativePostIds]=useState<string[]>([]);
  const visibleCreativeIdsRef=useRef<string[]>([]);
  const [wallScreenFocused,setWallScreenFocused]=useState(false);
+ const wallScreenFocusedRef=useRef(false);
  const [wallAudioSettledTick,setWallAudioSettledTick]=useState(0);
  const wallAutoMusicAttemptedRef=useRef(new Set<string>());
  const wallAutoMusicSuppressedRef=useRef(new Set<string>());
@@ -4870,8 +4872,10 @@ const communityFeedRows =
    }
  }).current;
  useFocusEffect(useCallback(()=>{
+   wallScreenFocusedRef.current=true;
    setWallScreenFocused(true);
    return ()=>{
+     wallScreenFocusedRef.current=false;
      setWallScreenFocused(false);
      wallAudioRequestEpochRef.current++;
      wallAudioPendingOwnerRef.current='';
@@ -4887,7 +4891,9 @@ const communityFeedRows =
  // player; no hidden-card downloads or repeated auto-retries on failures.
  useEffect(()=>{
    if(!wallScreenFocused||Platform.OS==='web'||!user?.id||
-     communityComposerOpen||visibleVideoPostId)return;
+     communityComposerOpen||visibleVideoPostId||peekDzasPlaying())return;
+   if(wallAudioOwnerRef.current&&
+      visibleCreativeIdsRef.current.includes(wallAudioOwnerRef.current))return;
    const candidate=visibleCreativePostIds.map(id=>({id,creative:postCreatives[id]}))
      .find(row=>row.creative?.music&&!wallAutoMusicSuppressedRef.current.has(row.id));
    if(!candidate?.creative?.music)return;
@@ -4898,8 +4904,12 @@ const communityFeedRows =
      wallAudioPendingOwnerRef.current===candidate.id||
      wallAudioOwnerRef.current==='composer'||wallAudioBusyRef.current)return;
    const timer=setTimeout(()=>{
-     if(!visibleCreativeIdsRef.current.includes(candidate.id)||
-       wallAudioOwnerRef.current==='composer'||wallAudioBusyRef.current)return;
+     if(!wallScreenFocusedRef.current||
+       !visibleCreativeIdsRef.current.includes(candidate.id)||
+       peekDzasPlaying()||wallAudioOwnerRef.current==='composer'||
+       (wallAudioOwnerRef.current&&
+        visibleCreativeIdsRef.current.includes(wallAudioOwnerRef.current))||
+       wallAudioBusyRef.current)return;
      wallAutoMusicAttemptedRef.current.add(key);
      void toggleWallMusic(track,candidate.id);
    },700);
