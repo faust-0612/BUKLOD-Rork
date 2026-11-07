@@ -19,7 +19,9 @@ test('Cluster/Organization Connect opens as compact 340px desktop panel, expanda
   assert.match(scope, /Collapse cluster conversation/);
   assert.match(scope, /Expand cluster conversation/);
   assert.match(scope, /Expanded within this dashboard/);
-  assert.doesNotMatch(scope, /function OrganizationCommunityConnect\([\s\S]*?router\.push\(/);
+  const component = scope.slice(scope.indexOf('function OrganizationCommunityConnect('),
+    scope.indexOf('function ScopeConnect('));
+  assert.doesNotMatch(component, /router\.push\(/);
 });
 
 test('compact and expanded Cluster Connect reuse one authorized scope chat, not duplicate messaging', () => {
@@ -63,6 +65,6 @@ test('no scope authorization bypass, no mobile UI regression, and click failures
     scope.indexOf('function ScopeConnect('));
   assert.match(component, /compactDesktop && !expanded/);
   assert.match(component, /compactDesktop && expanded/);
-  assert.match(component, /scopeConnectThread: \{ flex: 1/);
+  assert.match(scope, /scopeConnectThread: \{ flex: 1/);
   assert.doesNotMatch(component, /router\.replace/);
 });
