@@ -55,8 +55,34 @@ test('Prominent Wall banner is compact/expandable, preserves first-view ads and 
   assert.match(banner,/numberOfLines=\{expanded\?3:1\}/);
   assert.match(banner,/new_member_count/);
   assert.match(banner,/router\.push\('\/notifications'/);
-  assert.match(banner,/router\.push\('\/settings\/buklod-greetings'/);
+  assert.doesNotMatch(banner,/router\.push\('\/settings\/buklod-greetings'/);
   assert.match(wall,/BuklodLivingGreetingsBanner/);
   assert.ok(wall.indexOf('<BuklodFirstViewAd')<wall.indexOf('<BuklodLivingGreetingsBanner />'));
   assert.match(banner,/Legacy\/offline clients keep Wall usable|Legacy\/offline clients/);
+});
+
+test('Only verified rank and discovered character rewards create personal interaction events',()=>{
+  assert.match(migration,/buklod_living_rank_milestone_v1/);
+  assert.match(migration,/on public\.buklod_rank_history/);
+  assert.match(migration,/trigger_ledger_id is null/);
+  assert.match(migration,/buklod_living_character_reward_v1/);
+  assert.match(migration,/on public\.buklod_character_collectible_state/);
+  assert.match(migration,/new\.discovered_at is null/);
+  assert.match(migration,/s\.scope_type in \('CLUSTER','ORGANIZATION'\)/);
+  assert.match(banner,/my_recent_rank/);
+  assert.match(banner,/my_recent_reward/);
+});
+test('Exactly numbered KL release is announced only after publish time, including scheduled releases',()=>{
+  assert.match(migration,/Series %s: Kabanata %s available na!/);
+  assert.match(migration,/k\.season_number,k\.episode_number/);
+  assert.match(migration,/status='approved' and k\.release_at<=now\(\)/);
+  assert.match(migration,/buklod-living-greetings-kl-releases-v1/);
+  assert.match(migration,/\*\/5 \* \* \* \*/);
+});
+test('The interaction strip is automatic, rotates verified events and never asks for birthday approval',()=>{
+  assert.match(migration,/birthday:'\|\|v_user\.id|birthday:'\|\|v_user\.id/);
+  assert.match(banner,/useFocusEffect/);
+  assert.match(banner,/Next community update/);
+  assert.doesNotMatch(banner,/admin approval|Approve Birthday|Birthday approval/i);
+  assert.match(banner,/share_birthday/);
 });
