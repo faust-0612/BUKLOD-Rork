@@ -59,8 +59,10 @@ BuklodHeaderSponsor({
     width,
   } = useWindowDimensions();
 
-  // Android/APK only: remove the title-bar sponsor and leave all other ads intact.
-  if (Platform.OS === 'android') {
+  // Keep the narrow Android phone header uncluttered (the first-view
+  // sponsored card already owns its full-width inventory below it). On
+  // tablets/wide Android screens, the existing 320px sponsor fits safely.
+  if (Platform.OS === 'android' && width < 680) {
     return null;
   }
 
