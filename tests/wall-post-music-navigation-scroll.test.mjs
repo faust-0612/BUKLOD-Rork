@@ -19,7 +19,7 @@ test('Audio stops when post leaves the visible window without changing native fe
   assert.match(view,/wallAudioOwnerRef\.current\|\|wallAudioPendingOwnerRef\.current/);
   assert.match(view,/!event\.viewableItems\.some\(/);
   assert.match(view,/wallAudioRequestEpochRef\.current\+\+/);
-  assert.match(view,/wallAudioForVisibility\.current\.pause\(\)/);
+  assert.match(view,/wallAudioForVisibility\.current\(\)/);
   assert.match(view,/communityViewabilityListener\.current\(event\)/);
 });
 
@@ -27,6 +27,6 @@ test('Leaving Wall cancels loading and pauses music; existing navigation stays m
   const part=wall.slice(wall.indexOf('const onCommunityWallViewableItemsChanged=useRef'),wall.indexOf('const maritesVisibilityRefreshRef'));
   assert.match(part,/useFocusEffect\(useCallback\(\(\)=>\(\)=>\{/);
   assert.match(part,/wallAudioPendingOwnerRef\.current=''/);
-  assert.match(part,/wallAudioPlayer\.pause\(\)/);
+  assert.match(part,/pauseWallAudio\(\)/);
   assert.match(wall,/<FlashList/);
 });

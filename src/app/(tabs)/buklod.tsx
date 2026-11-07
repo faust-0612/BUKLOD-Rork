@@ -7,7 +7,7 @@ import { BUKLOD_POST_MOTION_PRESETS, loadBuklodPostCreatives, resolveBuklodPostM
   saveBuklodPostCreative, type BuklodPostCreative, type BuklodPostMotionPreset,
   type BuklodPostMusicTrack } from '@/lib/buklodPostCreatives';
 import { requestBuklodAudioFocus, subscribeBuklodAudioFocus } from '@/lib/buklodAudioFocus';
-import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer } from 'expo-audio';
+import { createAudioPlayer, setAudioModeAsync, setIsAudioActiveAsync, type AudioPlayer } from 'expo-audio';
 /* BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME: existing broadcast implementation preserved */
 /* PERF_EMERGENCY_R2_VISIBLE_POSTS: list-shape-drift-safely-skipped */
 /* PERF_EMERGENCY_R2_MULTI_MEDIA_CACHE: existing-community-media-url-cache-preserved */
@@ -890,39 +890,72 @@ function LegacyPublicBuklodScreen(){
    return()=>{cancelled=true;};
  },[creativeIdsKey,user?.id]);
  // One shared feed/composer player: no per-post players or audio downloads on load.
- const wallAudioPlayer=useAudioPlayer(null, { updateInterval: 1000 });
+ // An optional music feature must NEVER construct a native audio player while
+ // the public Wall mounts. Earlier Expo-audio render/teardown faults are fatal
+ // at route scope. Allocate only after the member intentionally presses Play.
+ const wallAudioPlayerRef=useRef<AudioPlayer|null>(null);
+ const wallAudioListenerRef=useRef<{remove:()=>void}|null>(null);
  const [wallAudioOwner,setWallAudioOwner]=useState('');
  const wallAudioOwnerRef=useRef('');
  useEffect(()=>{wallAudioOwnerRef.current=wallAudioOwner;},[wallAudioOwner]);
+ const [wallAudioPlaying,setWallAudioPlaying]=useState(false);
  const [wallLoadedTrackId,setWallLoadedTrackId]=useState('');
  const [wallAudioError,setWallAudioError]=useState('');
  const wallAudioBusyRef=useRef(false);
  const wallAudioRequestEpochRef=useRef(0);
  const wallAudioPendingOwnerRef=useRef('');
+ const pauseWallAudio=()=>{
+   try{wallAudioPlayerRef.current?.pause();}catch{
+     // A stale or disposed native handle must never replace the entire Wall.
+   }
+   setWallAudioPlaying(false);
+ };
+ const ensureWallAudioPlayer=():AudioPlayer=>{
+   if(wallAudioPlayerRef.current)return wallAudioPlayerRef.current;
+   const player=createAudioPlayer(null);
+   try{
+     wallAudioListenerRef.current=player.addListener('playbackStatusUpdate',status=>{
+       setWallAudioPlaying(value=>value===!!status.playing?value:!!status.playing);
+       if(status.didJustFinish){
+         wallAudioOwnerRef.current='';
+         setWallAudioOwner('');
+       }
+     });
+   }catch(error){
+     try{player.release();}catch{/* best-effort cleanup */}
+     throw error;
+   }
+   wallAudioPlayerRef.current=player;
+   return player;
+ };
  useEffect(()=>subscribeBuklodAudioFocus(owner=>{
    if(owner!=='wall-post'){
      wallAudioRequestEpochRef.current++;
      wallAudioPendingOwnerRef.current='';
-     wallAudioPlayer.pause();
+     pauseWallAudio();
      wallAudioOwnerRef.current='';
      setWallAudioOwner('');
    }
- }),[wallAudioPlayer]);
- useEffect(()=>{
-   const subscription=wallAudioPlayer.addListener('playbackStatusUpdate',status=>{
-     if(status.didJustFinish){
-       wallAudioOwnerRef.current='';
-       setWallAudioOwner('');
-     }
-   });
-   return()=>subscription.remove();
- },[wallAudioPlayer]);
+ }),[]);
+ useEffect(()=>()=> {
+   // Detach callbacks, then pause BEFORE native release (SDK 57 lifetime).
+   wallAudioRequestEpochRef.current++;
+   wallAudioPendingOwnerRef.current='';
+   const player=wallAudioPlayerRef.current;
+   wallAudioPlayerRef.current=null;
+   try{wallAudioListenerRef.current?.remove();}catch{/* native already closed */}
+   wallAudioListenerRef.current=null;
+   if(player){
+     try{player.pause();}catch{/* player already disposed */}
+     try{player.release();}catch{/* player already disposed */}
+   }
+ },[]);
  const toggleWallMusic=async(track:BuklodPostMusicTrack,ownerKey:string)=>{
    if(wallAudioBusyRef.current)return;
-   if(wallAudioOwner===ownerKey&&wallAudioPlayer.playing){
+   if(wallAudioOwner===ownerKey&&wallAudioPlaying){
      wallAudioRequestEpochRef.current++;
      wallAudioPendingOwnerRef.current='';
-     wallAudioPlayer.pause();
+     pauseWallAudio();
      wallAudioOwnerRef.current='';
      setWallAudioOwner('');
      return;
@@ -934,27 +967,29 @@ function LegacyPublicBuklodScreen(){
    try{
      await setIsAudioActiveAsync(true);
      await setAudioModeAsync({playsInSilentMode:true,shouldRouteThroughEarpiece:false});
-     if(wallLoadedTrackId!==track.id||!wallAudioPlayer.isLoaded){
-       wallAudioPlayer.pause();
+     const player=ensureWallAudioPlayer();
+     if(wallLoadedTrackId!==track.id||!player.isLoaded){
+       pauseWallAudio();
        const url=await resolveBuklodPostMusicUrl(track);
        if(wallAudioRequestEpochRef.current!==requestEpoch)return;
-       wallAudioPlayer.replace(url);
+       player.replace(url);
        const started=Date.now();
-       while(!wallAudioPlayer.isLoaded&&Date.now()-started<6500){
+       while(!player.isLoaded&&Date.now()-started<6500){
          await new Promise<void>(done=>setTimeout(done,100));
        }
-       if(!wallAudioPlayer.isLoaded)throw new Error('Music could not load. Please retry.');
+       if(!player.isLoaded)throw new Error('Music could not load. Please retry.');
        setWallLoadedTrackId(track.id);
      }
      if(wallAudioRequestEpochRef.current!==requestEpoch||
        wallAudioPendingOwnerRef.current!==ownerKey)return;
      requestBuklodAudioFocus('wall-post');
-     wallAudioPlayer.volume=1;
-     wallAudioPlayer.play();
+     player.volume=1;
+     player.play();
+     setWallAudioPlaying(true);
      wallAudioOwnerRef.current=ownerKey;
      setWallAudioOwner(ownerKey);
    }catch(error:any){
-     wallAudioPlayer.pause();
+     pauseWallAudio();
      setWallAudioError(String(error?.message??'Music playback failed.'));
    }finally{
      if(wallAudioRequestEpochRef.current===requestEpoch){
@@ -2626,7 +2661,7 @@ const load=useCallback(async(options?:{
  if(wallAudioOwnerRef.current==='composer' || wallAudioPendingOwnerRef.current==='composer'){
   wallAudioRequestEpochRef.current++;
   wallAudioPendingOwnerRef.current='';
-  wallAudioPlayer.pause();
+  pauseWallAudio();
   wallAudioOwnerRef.current='';
   setWallAudioOwner('');
  }
@@ -4806,8 +4841,8 @@ const communityFeedRows =
  // post as soon as its card is no longer visible (no off-screen music).
  const communityViewabilityListener=useRef(onCommunityAdViewableItemsChanged);
  communityViewabilityListener.current=onCommunityAdViewableItemsChanged;
- const wallAudioForVisibility=useRef(wallAudioPlayer);
- wallAudioForVisibility.current=wallAudioPlayer;
+ const wallAudioForVisibility=useRef(pauseWallAudio);
+ wallAudioForVisibility.current=pauseWallAudio;
  const onCommunityWallViewableItemsChanged=useRef((event:{
    viewableItems:Array<{item?:any}>;
  })=>{
@@ -4817,7 +4852,7 @@ const communityFeedRows =
      !event.viewableItems.some(row=>String(row.item?.id??'')===owner)){
      wallAudioRequestEpochRef.current++;
      wallAudioPendingOwnerRef.current='';
-     wallAudioForVisibility.current.pause();
+     wallAudioForVisibility.current();
      wallAudioOwnerRef.current='';
      setWallAudioOwner('');
    }
@@ -4825,10 +4860,10 @@ const communityFeedRows =
  useFocusEffect(useCallback(()=>()=>{
    wallAudioRequestEpochRef.current++;
    wallAudioPendingOwnerRef.current='';
-   wallAudioPlayer.pause();
+   pauseWallAudio();
    wallAudioOwnerRef.current='';
    setWallAudioOwner('');
- },[wallAudioPlayer]));
+ },[]));
 
  const maritesVisibilityRefreshRef = useRef<(() => void) | null>(null);
  const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
@@ -5111,13 +5146,13 @@ const communityFeedRows =
     <BuklodPostMusicPicker visible={composerMusicPickerOpen}
       selectedId={composerMusicTrack?.id}
       previewId={wallAudioOwner==='composer'?wallLoadedTrackId:null}
-      previewPlaying={wallAudioOwner==='composer'&&wallAudioPlayer.playing}
+      previewPlaying={wallAudioOwner==='composer'&&wallAudioPlaying}
       onSelect={track=>{wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
-        wallAudioPlayer.pause();setWallAudioOwner('');setComposerMusicTrack(track);}}
+        pauseWallAudio();setWallAudioOwner('');setComposerMusicTrack(track);}}
       onPreview={track=>{void toggleWallMusic(track,'composer');}}
       onClose={()=>{if(wallAudioOwner==='composer'||wallAudioPendingOwnerRef.current==='composer'){
         wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
-        wallAudioPlayer.pause();setWallAudioOwner('');
+        pauseWallAudio();setWallAudioOwner('');
       }setComposerMusicPickerOpen(false);}}
     />
     <View style={{gap:8,marginBottom:12}}>
@@ -5634,11 +5669,11 @@ const communityFeedRows =
    {!!postCreatives[String(item.id)]?.music&&(
      <View style={{backgroundColor:'#e7f4ef',borderRadius:12,padding:10,marginTop:7,marginBottom:5,gap:5}}>
        <Pressable accessibilityRole="button"
-        accessibilityLabel={wallAudioOwner===String(item.id)&&wallAudioPlayer.playing?'Pause post music':'Play post music'}
+        accessibilityLabel={wallAudioOwner===String(item.id)&&wallAudioPlaying?'Pause post music':'Play post music'}
         onPress={()=>{void toggleWallMusic(postCreatives[String(item.id)].music!,String(item.id));}}
         style={{minHeight:36,flexDirection:'row',gap:9,alignItems:'center'}}>
         <MaterialCommunityIcons
-         name={wallAudioOwner===String(item.id)&&wallAudioPlayer.playing?'pause-circle':'play-circle'}
+         name={wallAudioOwner===String(item.id)&&wallAudioPlaying?'pause-circle':'play-circle'}
          size={28} color="#195d47"/>
         <View style={{flex:1,minWidth:0}}>
           <Text numberOfLines={1} style={{fontSize:12,fontWeight:'800',color:'#164f3c'}}>
@@ -5649,8 +5684,8 @@ const communityFeedRows =
           </Text>
         </View>
        </Pressable>
-       {wallAudioOwner===String(item.id)&&(
-         <BuklodWallPostAudioMeter player={wallAudioPlayer}/>
+       {wallAudioOwner===String(item.id)&&wallAudioPlayerRef.current&&(
+         <BuklodWallPostAudioMeter player={wallAudioPlayerRef.current}/>
        )}
      </View>
    )}

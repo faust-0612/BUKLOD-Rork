@@ -32,7 +32,7 @@ test('Only the active post row subscribes to audio clock',()=>{
  const meter=read('src/components/BuklodWallPostAudioMeter.tsx');
  assert.doesNotMatch(wall,/useAudioPlayerStatus/);
  assert.match(meter,/useAudioPlayerStatus\(player\)/);
- assert.match(wall,/BuklodWallPostAudioMeter player=\{wallAudioPlayer\}/);
+ assert.match(wall,/BuklodWallPostAudioMeter player=\{wallAudioPlayerRef\.current\}/);
 });
 test('In-flight music loading is cancelled on navigation and scrolling',()=>{
  const wall=read('src/app/(tabs)/buklod.tsx');
@@ -60,4 +60,17 @@ test('Optional music failure does not delete already published post',()=>{
  assert.match(s,/optionalCreativeFailed=true/);
  assert.match(s,/Optional creative failure must never delete an already published post/);
  assert.match(s,/wallAudioPendingOwnerRef.current==='composer'/);
+});
+
+test('Native Wall audio is lazy and isolated from first-render failures',()=>{
+ const wall=read('src/app/(tabs)/buklod.tsx');
+ const playerFactory=wall.indexOf('const ensureWallAudioPlayer=');
+ const playHandler=wall.indexOf('const toggleWallMusic=');
+ assert.ok(playerFactory>0 && playHandler>playerFactory);
+ assert.doesNotMatch(wall,/useAudioPlayer\(null/);
+ assert.match(wall,/const player=createAudioPlayer\(null\)/);
+ assert.match(wall,/const player=ensureWallAudioPlayer\(\)/);
+ assert.match(wall,/try\{wallAudioPlayerRef\.current\?\.pause\(\);\}catch/);
+ assert.match(wall,/try\{player\.pause\(\);\}catch/);
+ assert.match(wall,/try\{player\.release\(\);\}catch/);
 });
