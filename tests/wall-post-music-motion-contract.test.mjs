@@ -26,3 +26,31 @@ test('Wall persists creative metadata on post publish',()=>{
  assert.match(s,/BuklodPostMotion/);
  assert.match(s,/BuklodPostMusicPicker/);
 });
+
+test('Only the active post row subscribes to audio clock',()=>{
+ const wall=read('src/app/(tabs)/buklod.tsx');
+ const meter=read('src/components/BuklodWallPostAudioMeter.tsx');
+ assert.doesNotMatch(wall,/useAudioPlayerStatus/);
+ assert.match(meter,/useAudioPlayerStatus\(player\)/);
+ assert.match(wall,/BuklodWallPostAudioMeter player=\{wallAudioPlayer\}/);
+});
+test('In-flight music loading is cancelled on navigation and scrolling',()=>{
+ const wall=read('src/app/(tabs)/buklod.tsx');
+ assert.match(wall,/wallAudioRequestEpochRef/);
+ assert.match(wall,/wallAudioPendingOwnerRef/);
+ assert.match(wall,/onCommunityWallViewableItemsChanged/);
+ assert.match(wall,/communityViewabilityListener\.current\(event\)/);
+ assert.match(wall,/useFocusEffect\(useCallback\(\(\)=>\(\)=>\{/);
+});
+test('Audio focus includes the premium music deck and DZAS',()=>{
+ const deck=read('src/components/BuklodPremiumMusicDeck.tsx');
+ const dzas=read('src/lib/buklodDzasRadio.ts');
+ assert.match(deck,/requestBuklodAudioFocus\('music-deck'\)/);
+ assert.match(dzas,/requestBuklodAudioFocus\('dzas'\)/);
+ assert.match(dzas,/peekDzasPlaying\(\)\) pauseDzasRadio\(\)/);
+});
+test('Music retirement never blocks deleting a track from admin library',()=>{
+ const migration=read('supabase/migrations/20261108004500_buklod_post_music_motion_v1.sql');
+ assert.match(migration,/on delete set null/);
+ assert.doesNotMatch(migration,/check \(music_track_id is not null or motion_preset/);
+});
