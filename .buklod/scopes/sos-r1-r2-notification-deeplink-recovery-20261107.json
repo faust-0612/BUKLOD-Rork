@@ -31,7 +31,9 @@
     "Android V28 package, runtime 1.3.2, OTA frozen exact RC workflow, Play/AAB and web routes unchanged except valid SOS fallback handoff"
   ],
   "regressionTests": [
-    "tests/sos-r1-r2-notification-deeplink-20261107.test.mjs"
+    "tests/sos-r1-r2-notification-deeplink-20261107.test.mjs",
+    "tests/sos-r1-r2-notification-navigation-20261107.test.mjs",
+    "tests/sos-r1-r2-production-ota-release-20261107.test.mjs"
   ],
   "acceptanceChecks": [
     "Unmodified scripts/community-help-sos-release-contract.mjs passes on latest main source, including required /buklod?help_request_id= anchor in NotificationProvider",
@@ -49,6 +51,8 @@
     "src/app/(tabs)/buklod.tsx",
     "tests/sos-r1-r2-notification-deeplink-20261107.test.mjs",
     ".github/workflows/production_android_ota.yml",
-    ".buklod/scopes/sos-r1-r2-notification-deeplink-recovery-20261107.json"
+    ".buklod/scopes/sos-r1-r2-notification-deeplink-recovery-20261107.json",
+    "tests/sos-r1-r2-notification-navigation-20261107.test.mjs",
+    "tests/sos-r1-r2-production-ota-release-20261107.test.mjs"
   ]
 }
