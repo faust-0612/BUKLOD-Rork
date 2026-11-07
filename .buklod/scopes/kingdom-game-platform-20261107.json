@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Continue the BUKLOD Kingdom premium games workstream: preserve all 13 map stations and original games while implementing Van Sudoku Master and Quin Code Breaker with independently tested deterministic rules and zero economy awards. R3 contains five pilot games total.",
-  "baseRef": "b745298b5270ffbdc4f040088dfb10eb143487d8",
-  "productionBaselineEvidence": "verified: R3 is based exactly on last passed R2 head b745298b5270ffbdc4f040088dfb10eb143487d8, whose Engineering Accountability and Main-side TypeScript+compatibility checks were successful. GitHub main separately advanced to 0fd0d0bd696b8900311c9c835c021f36f6c28f1e with unrelated KL/Word changes. Canonical Kingdom map blob SHA 88a4b1b4a70fc4acd59579419058b47f21be2554 is unchanged. No verified production fingerprint, RC release or OTA is claimed.",
-  "chosenApproach": "Add a reusable map-preserving KingdomInteriorCenter to the Van/Quin route interiors, retain City Dispatch and Discovery Expedition, and deliver purely local seeded Sudoku and Code Breaker state engines, bilingual accessible controls and preview-only records.",
-  "selectionRationale": "Pure tested puzzle logic with unique Sudoku solutions and legal Code Breaker feedback lowers regression and bandwidth risks; same existing Kingdom game stage and route IDs avoid native, ad, economy and map modifications.",
+  "objective": "Complete modular BUKLOD Kingdom game development through six playable DEV pilots: add ELESUR Domino Village (classic double-six draw-dominoes vs deterministic AI), while preserving the original Village Builder, map, character economy, AdMob protections and Android release.",
+  "baseRef": "b887176aa86ca20dac58326f4e1e50c9302b2d6a",
+  "productionBaselineEvidence": "verified: Exact prior R3 head b887176aa86ca20dac58326f4e1e50c9302b2d6a has successful Engineering Accountability and web compatibility/TypeScript checks; Kingdom map blob 88a4b1b4a70fc4acd59579419058b47f21be2554 remains identical to approved baseline. Authoritative Android production OTA/runtime and staging RC not checked here; no merge or release authorized. New source is chained on R3, not stale main.",
+  "chosenApproach": "Add a fully deterministic double-six domino rule engine, original themed gameplay UI, stock/boneyard, pass, blocked scoring and turn-based AI inside ELESUR existing route. Preserve Village Builder and reuse KingdomInteriorCenter for local game scores.",
+  "selectionRationale": "A board-game genre with complete draw-domino rules offers substantial game variety without adding native dependencies, remote assets, account backend changes or ad regressions.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
     "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
@@ -20,7 +20,8 @@
     "Keep Christian Leadership Council available at its existing route.",
     "Do not change Character V2, Circle Rank, payouts or existing ad sensitive-route protections.",
     "Do not touch native v28 runtime, BUKLOD Empire or production release.",
-    "Preserve all 13 original game implementations and Kingdom map; protect previous 3 pilots from route/controller regressions."
+    "Preserve all 13 original game implementations and Kingdom map; protect previous 3 pilots from route/controller regressions.",
+    "Preserve persistent Character V2 id ellusur and legacy Kingdom station key elesur, without migrating IDs or changing character art."
   ],
   "acceptanceChecks": [
     "13 center / 39-game uniqueness and status contracts, plus 15 bilingual question and reference contracts.",
@@ -33,12 +34,16 @@
     "Existing Christian Leadership Council and Mitch Restore the Mural must remain selectable in original station routes.",
     "Three Sudoku puzzles must each have exactly one solution, stable seeds and immutable legal entry; fixed cells cannot be overwritten, mistakes tracked.",
     "Three Code Breaker stages must have unique secrets, validate non-repeating digits, return correct exact/displaced clues and enforce bounded guesses.",
-    "Van City Dispatch and Quin Discovery Expedition retain their original game components and completion callback; no rewards RPC or ad interruptions."
+    "Van City Dispatch and Quin Discovery Expedition retain their original game components and completion callback; no rewards RPC or ad interruptions.",
+    "Domino rules must generate all 28 unique double-six tiles, deal 7 each and stock 14, start with highest held double, and guarantee contiguous chain/end matching.",
+    "AI and human moves must obey turn/stock/pass restrictions and bounded stock consumption; scored win/blocked draw must use correct remaining-pip totals.",
+    "ELESUR Village Builder stays selectable at the unchanged /games/elesur-village-builder route; new Domino Village local-only game cannot pay Character Points."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
     "tests/kingdom-games-r2.test.mjs",
-    "tests/kingdom-games-r3.test.mjs"
+    "tests/kingdom-games-r3.test.mjs",
+    "tests/kingdom-games-r4.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-game-platform-20261107.json",
@@ -64,6 +69,10 @@
     "src/features/games/quin/CodeBreakerGameV1.tsx",
     "src/app/games/van-living-city-dispatch.tsx",
     "src/app/games/quin-discovery-expedition.tsx",
-    "tests/kingdom-games-r3.test.mjs"
+    "tests/kingdom-games-r3.test.mjs",
+    "src/features/games/elesur/dominoRules.ts",
+    "src/features/games/elesur/DominoVillageGameV1.tsx",
+    "src/app/games/elesur-village-builder.tsx",
+    "tests/kingdom-games-r4.test.mjs"
   ]
 }
