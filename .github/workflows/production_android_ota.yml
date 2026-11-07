@@ -39,6 +39,9 @@ jobs:
       - name: Verify locked Community Help / Emergency SOS baseline
         run: node scripts/community-help-sos-release-contract.mjs
 
+      - name: Verify Community SOS R1-to-R2 notification and cold-start routing
+        run: node --test tests/sos-r1-r2-notification-deeplink-20261107.test.mjs
+
       - name: Verify Home cleanup and Classroom separation
         shell: bash
         run: |
