@@ -22,7 +22,7 @@ test('BSOC member chat is private, scoped to the authenticated member and disabl
 });
 
 test('DB access controls deny anonymous support reads and bind client writes to auth.uid', () => {
-  const migration = read('supabase/migrations/20261108010000_bsoc_direct_support_chat_evidence.sql');
+  const migration = read('supabase/migrations/20261107144824_bsoc_direct_support_chat_evidence.sql');
   assert.match(migration, /alter table public\.bsoc_case_messages enable row level security/i);
   assert.match(migration, /alter table public\.bsoc_case_attachments enable row level security/i);
   assert.match(migration, /sender_id=\(select auth\.uid\(\)\)/);

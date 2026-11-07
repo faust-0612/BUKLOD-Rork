@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "BUKLOD consolidated HOLD RC — Points R3, 39 Kingdom previews, Character compatibility, BSOC live support and Cluster editor keyboard safety + Public Wall Music & Photo Motion",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: production main afdeb8f4ad3034328235a77342720c04212106c2 is prior successful Android OTA and Expo web source; this unified RC is not live. Points 9d6eed8a275b67cef8e3f3bfc65734bc65fb4e72 BSOC 8af6ed3d005e2a2ac260a696afb2b5c7b2ba238a; only source compatibility established. No applied feature migrations or E2E reward claim proof.",
+  "productionBaselineEvidence": "verified: production main afdeb8f4ad3034328235a77342720c04212106c2 is prior successful Android OTA and Expo web source; this unified RC is not live. Points 9d6eed8a275b67cef8e3f3bfc65734bc65fb4e72 BSOC 8af6ed3d005e2a2ac260a696afb2b5c7b2ba238a; only source compatibility established. No applied feature migrations or E2E reward claim proof. Supabase read-only catalog confirms four BSOC migration IDs and existing tables/RLS; nonce default and support counts RPC are already present. Remaining new migration versions must not blindly re-run existing objects.",
   "chosenApproach": "Combine non-overlapping feature PRs on isolated main-based branch, retain all code/test coverage and guarded SQL, run whole integrated release gates, protect V28 pinned Android runtime/Character assets, and hold OTA/web until missing authoritative game credit and runtime approval evidence is resolved. Return review_note only through auth.uid-scoped personal milestone monitor; show correction guidance in the existing UI and retain audited admin approval. Reconcile BSOC and Cluster keyboard changes in separate non-production RC; preserve latest main and admin routes; assign distinct later migration IDs to all BSOC SQL files. Integrate approved BUKLOD music library picker and lightweight post motion presets as optional public Wall UI on the same isolated RC. DB migration 20261107171413 already applied under that exact version; never replay as a different ID.",
   "selectionRationale": "Original separate PRs independently passed source checks but combined PR triggered one-scope-manifest rule. One complete integration-specific risk and path manifest preserves accountability while avoiding blanket gate bypass or release of unverified client-only score rewards. Recovered one original-game callback that omitted account ID and silently discarded original progress; propagate authenticated account ID and retain local-only economy isolation. One overlapping Admin file merged to retain both Points monitor and BSOC Support Operations. Source SQL migration version conflicts resolved before testing. Keep unverified game reward proof disabled. Music motion branch is ahead of the same latest-main baseline, has no overlapping changed paths with prior consolidated candidate, and reuses already applied DB migration ID.",
   "alternativeApproaches": [
@@ -104,7 +104,8 @@
     "Shared audio focus avoids competing Wall music, Premium Deck and DZAS playback",
     "No music copyright rights implied by technical feature availability",
     "Public Wall Music must preserve FlashList scroll, pagination, ads viewability and pause off-screen audio without navigation mutation",
-    "Post share destination dialog renders as a centered compact max-460px card with scrollable results, outside-tap dismissal and unchanged authorized share RPC"
+    "Post share destination dialog renders as a centered compact max-460px card with scrollable results, outside-tap dismissal and unchanged authorized share RPC",
+    "Four BSOC migrations already applied in Supabase must use their canonical ledger version IDs 20261107144824, 20261107150723, 20261107151636, 20261107154005; do not reapply under new IDs"
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -297,6 +298,10 @@
     "src/lib/buklodDzasRadio.ts",
     "src/lib/buklodPostCreatives.ts",
     "supabase/functions/bsoc-gpt-debug-v1/index.ts",
+    "supabase/migrations/20261107144824_bsoc_direct_support_chat_evidence.sql",
+    "supabase/migrations/20261107150723_bsoc_support_notifications_v1.sql",
+    "supabase/migrations/20261107151636_bsoc_support_fk_indexes.sql",
+    "supabase/migrations/20261107154005_bsoc_personnel_invitation_codes_v1.sql",
     "supabase/migrations/20261107171413_buklod_post_music_motion_v1_20261108.sql",
     "supabase/migrations/20261107220000_buklod_points_r2_weighted_catalog.sql",
     "supabase/migrations/20261107221000_buklod_points_r2_verified_accomplishments.sql",
@@ -315,10 +320,6 @@
     "supabase/migrations/20261107235000_buklod_points_r3_achievement_objective_gates.sql",
     "supabase/migrations/20261107236000_buklod_points_r3_internal_credit_privilege_lock.sql",
     "supabase/migrations/20261107237000_buklod_points_r3_home_checkin_pipeline_metrics.sql",
-    "supabase/migrations/20261108010000_bsoc_direct_support_chat_evidence.sql",
-    "supabase/migrations/20261108011000_bsoc_support_notifications_v1.sql",
-    "supabase/migrations/20261108012000_bsoc_personnel_invitation_codes_v1.sql",
-    "supabase/migrations/20261108013000_bsoc_support_fk_indexes.sql",
     "supabase/migrations/20261108014000_bsoc_chat_nonce_default.sql",
     "supabase/migrations/20261108015000_bsoc_support_counts_v1.sql",
     "supabase/tests/bsoc_live_chat_authorization.sql",
