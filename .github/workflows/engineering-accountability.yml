@@ -302,7 +302,8 @@ jobs:
         run: node --test tests/recovery-action-feedback.test.cjs
 
       - name: Verify approved pending client and rollback recovery
-        if: github.head_ref == 'fix/pending-client-reconciliation-20261027-r1'
+        # Execute on EVERY PR: catch stale Cluster/security anchors before
+        # they block the manually triggered production Android OTA.
         run: node scripts/test-pending-client-reconciliation-20261027.cjs
       - name: Verify cumulative Show Faith migration contract
         if: github.head_ref == 'dev/scoped-community-ota-consolidation-20261025'
