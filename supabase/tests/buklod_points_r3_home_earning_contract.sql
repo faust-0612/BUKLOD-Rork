@@ -55,6 +55,16 @@ begin
  'public.submit_my_buklod_bible_quiz_r2(uuid,jsonb)','EXECUTE') then
   raise exception 'Legacy Bible Quiz score RPC bypass still public';
  end if;
+ if has_function_privilege('authenticated',
+  'public.submit_my_buklod_kingdom_result_v1(text,text,text,integer,integer)','EXECUTE')
+ or has_function_privilege('anon',
+  'public.submit_my_buklod_kingdom_result_v1(text,text,text,integer,integer)','EXECUTE')
+ or has_function_privilege('authenticated',
+  'public.submit_my_buklod_kingdom_result_v2(text,text,text,integer,integer,integer)','EXECUTE')
+ or has_function_privilege('anon',
+  'public.submit_my_buklod_kingdom_result_v2(text,text,text,integer,integer,integer)','EXECUTE') then
+  raise exception 'Client-declared game wins can still directly mint Kingdom XP or collectibles';
+ end if;
  raise notice 'Points R3 Home Quiz / Check-in / Mentoring / KL contracts: PASS';
 end;
 $contract$;
