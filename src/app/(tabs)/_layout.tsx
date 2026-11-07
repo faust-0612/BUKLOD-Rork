@@ -30,6 +30,7 @@ import { isBuklodScopedWorkspacePath, normalizeBuklodPathname } from '@/lib/bukl
 import {
   BUKLOD_DESKTOP_PUBLIC_FEED_MAX_WIDTH,
   shouldUseBuklodDesktopPublicFeed,
+  shouldUseBuklodPublicDesktopShell,
 } from '@/lib/buklodWebResponsivePolicy';
 import { buildScopedWorkspacePath, isManagedCommunityScope } from '@/lib/buklodScopeRoute';
 
@@ -340,6 +341,8 @@ export default function TabsLayout() {
 
   // Public Home/Wall use a centered feed, without faux empty desktop rails.
   // Only the browser can enter this mode; APK/native layout is unchanged.
+  const desktopWebShell = Platform.OS === 'web' &&
+    shouldUseBuklodPublicDesktopShell(normalizeBuklodPathname(pathname), width);
   const desktopHome =
     Platform.OS === 'web' &&
     shouldUseBuklodDesktopPublicFeed(
@@ -385,7 +388,7 @@ export default function TabsLayout() {
           backgroundColor: theme.canvas,
         }}
       >
-        <SwipeDashboardHeader />
+        {!desktopWebShell ? <SwipeDashboardHeader /> : null}
 
         <View
           style={

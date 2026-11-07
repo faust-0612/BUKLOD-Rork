@@ -10,6 +10,7 @@ import {
 import { usePathname } from 'expo-router';
 
 import BuklodDesktopWebShell from '@/components/BuklodDesktopWebShell';
+import BuklodPublicDesktopDashboard from '@/components/BuklodPublicDesktopDashboard';
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
 import BuklodMobileWebShell from '@/components/BuklodMobileWebShell';
 import {
@@ -27,6 +28,7 @@ import {
 } from '@/lib/buklodSafeArea';
 import {
   shouldUseBuklodDesktopScopedShell,
+  shouldUseBuklodPublicDesktopShell,
 } from '@/lib/buklodWebResponsivePolicy';
 import {
   supabase,
@@ -160,6 +162,14 @@ export default function BuklodNavSafeShell({
       <BuklodFocusAppAdStrip />
     </>
   );
+
+  if (shouldUseBuklodPublicDesktopShell(pathname, width)) {
+    return (
+      <BuklodPublicDesktopDashboard>
+        {content}
+      </BuklodPublicDesktopDashboard>
+    );
+  }
 
   if (!useDesktopScopedShell) {
     return (

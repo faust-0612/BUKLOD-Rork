@@ -35,3 +35,36 @@
 4. Release Expo Hosting only after an independent web RC and deployment verification. Do not treat a Vercel Classroom preview as BUKLOD Main web.
 
 The BUKLOD Classroom Vercel project is not the BUKLOD Main production web target.
+
+## Approved 2026-11-07 dashboard design — implementation
+
+At 1200px and wider, selected authenticated public dashboards mount
+`src/components/BuklodPublicDesktopDashboard.tsx` from
+`BuklodNavSafeShell.web.tsx`. This **replaces the mobile bottom navigation
+pane** with left-side actual route buttons. Outside the selected dashboards
+(login, policy, call, full-screen media, scoped screens), the original layout
+and permissions are preserved.
+
+Visual reference: user-supplied BUKLOD three-column mockup. The extraneous
+tall far-left external ad was explicitly removed from the approved scope.
+
+- Center: existing routed screen with max-width canvas; Home includes welcome,
+  Quick Actions, real Today, actual Wall composer handoff, expandable updates,
+  and on-demand tools. Wall retains its original paged feed/video engines.
+- Left: Home, Cluster, Wall, Connect, Profile, Bible, account-bound
+  `BuklodCommunityContributionCard`, and genuine sponsor inventory.
+- Right: account-bound recent personal threads and contacts, direct row
+  navigation, call-entry via the real Connect inbox, notifications, and
+  sponsor inventory. No fabricated chat, active-user, financial or ad metrics.
+- Header: BUKLOD branding, screen name, people/chat search routed to the
+  actual Connect search, notifications, account avatar.
+
+The right rail intentionally does not claim to show call history, presence or
+community impact counts unless a real permitted data source exists. All buttons
+either navigate to live underlying functionality or select a real view.
+The existing Android/phone web bottom navigation is unchanged.
+
+**Release boundary:** Source-only DEV changes. No Expo deploy, Vercel deploy,
+Android OTA, DB migration or backend RPC mutation is part of this change.
+Before publication, verify desktop widths 1200/1440/1920, phone web, Cluster
+routing, web auth, scoped account switching, and original Wall media.

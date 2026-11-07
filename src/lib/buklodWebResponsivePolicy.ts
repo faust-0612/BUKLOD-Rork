@@ -37,3 +37,26 @@ export function shouldUseBuklodDesktopPublicFeed(
       normalizedPathname.startsWith('/buklod/'))
   );
 }
+
+/** Desktop-wide unified dashboard chrome is only enabled for authenticated
+ * dashboard routes, never auth, call, immersive video, system or scoped views. */
+export const BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH = 1200;
+export function shouldUseBuklodPublicDesktopShell(
+  normalizedPathname: string,
+  width: number,
+): boolean {
+  if (!Number.isFinite(width) || width < BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH) return false;
+  return (
+    normalizedPathname === '/hub' ||
+    normalizedPathname === '/buklod' ||
+    normalizedPathname === '/messages' ||
+    normalizedPathname === '/me' ||
+    normalizedPathname === '/learn' ||
+    normalizedPathname === '/clusters' ||
+    normalizedPathname.startsWith('/clusters/') ||
+    normalizedPathname === '/bible' ||
+    normalizedPathname.startsWith('/bible/') ||
+    normalizedPathname === '/notifications' ||
+    normalizedPathname === '/community-contribution'
+  );
+}

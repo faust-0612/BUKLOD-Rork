@@ -15,7 +15,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { ensureBuklodStreamVideoClient } from '@/lib/buklodStreamVideoClient';
 import {
   buildBuklodPersonalCallId,
@@ -539,6 +539,7 @@ function ConnectScreenInner({
     [scrollBottomInset, theme]
   );
   const { profile } = useAuth();
+  const desktopSearchParams = useLocalSearchParams<{ desktopSearch?: string }>();
   const { isConnected, isInternetReachable } = useNetwork();
   const connectOnline =
     isConnected && isInternetReachable !== false;
@@ -551,6 +552,12 @@ function ConnectScreenInner({
   const [rooms, setRooms] =
     useState<CommunityRoom[]>([]);
   const [query, setQuery] = useState('');
+  useEffect(() => {
+    const incoming = desktopSearchParams.desktopSearch;
+    if (typeof incoming === 'string' && incoming.trim()) {
+      setQuery(incoming.trim().slice(0, 100));
+    }
+  }, [desktopSearchParams.desktopSearch]);
   const [people, setPeople] =
     useState<Person[]>([]);
   const [suggestedContacts, setSuggestedContacts] =

@@ -57,3 +57,43 @@ test('public desktop feed has one workspace and zero phantom sidebars', () => {
   assert.match(src, /<SwipeDashboardHeader \/>/);
   assert.match(src, /BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22/);
 });
+
+
+test('desktop public dashboard routes preserve phone and scoped shell boundaries', () => {
+  const p = policy.shouldUseBuklodPublicDesktopShell;
+  assert.equal(p('/hub', 1200), true);
+  assert.equal(p('/buklod', 1600), true);
+  assert.equal(p('/messages', 1600), true);
+  assert.equal(p('/me', 1600), true);
+  assert.equal(p('/clusters', 1600), true);
+  assert.equal(p('/bible/read', 1600), true);
+  assert.equal(p('/scope', 1600), false);
+  assert.equal(p('/login', 1600), false);
+  assert.equal(p('/connect/personal/new', 1600), false);
+  assert.equal(p('/hub', 1199), false);
+  const nav = read('src/components/BuklodNavSafeShell.web.tsx');
+  assert.match(nav, /BuklodPublicDesktopDashboard/);
+  assert.match(nav, /shouldUseBuklodPublicDesktopShell\(pathname, width\)/);
+});
+test('desktop dashboard uses real feature surfaces without fake financial or online data', () => {
+  const shell = read('src/components/BuklodPublicDesktopDashboard.tsx');
+  for (const token of [
+    "BuklodCommunityContributionCard", "BuklodSponsorSlot",
+    "buklod_connect_personal_threads", "loadConnectSuggestedContacts",
+    "readCachedConnectSuggestedContacts", "getOfflineCache", "userId",
+    "setContacts([])", "setThreads([])", "'/hub'", "'/buklod'",
+    "'/messages'", "'/me'", "'/clusters'", "'/bible/read'",
+  ]) assert.ok(shell.includes(token), token);
+  assert.doesNotMatch(shell, /Online Now \(12\)|Total Earnings|₱1,250|Youth for Christ/);
+  assert.doesNotMatch(shell, /fixedLongLeftBanner|BuklodPersistentBottomNav/);
+});
+test('desktop Home offers real actions and canonical Wall composer handoff', () => {
+  const home = read('src/app/(tabs)/hub.tsx');
+  const wall = read('src/app/(tabs)/buklod.tsx');
+  const messages = read('src/app/(tabs)/messages.tsx');
+  assert.match(home, /desktopDashboard/);
+  assert.match(home, /homeTodayIntent: String\(Date\.now\(\)\)/);
+  assert.match(home, /\/bible\/read\?source=daily_plan/);
+  assert.match(wall, /Desktop Home -> Create Post/);
+  assert.match(messages, /desktopSearchParams/);
+});

@@ -902,6 +902,10 @@ function LegacyPublicBuklodScreen(){
   if (draft) setBody(current => current.trim() ? current.trim() + '\n\n' + draft : draft);
   setComposerIntent('post');
   setCategory('reflection');
+  // Desktop Home -> Create Post: focus the existing Wall composer on web only.
+  if (Platform.OS === 'web') {
+    setTimeout(() => composerInputRef.current?.focus?.(), 0);
+  }
   router.setParams({ homeTodayDraft: undefined, homeTodayIntent: undefined });
  }, [homeTodayParams.homeTodayDraft, homeTodayParams.homeTodayIntent]);
 
