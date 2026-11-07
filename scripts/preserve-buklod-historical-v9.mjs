@@ -195,6 +195,24 @@ try {
  }finally{if(fs.existsSync(indexFile))fs.rmSync(indexFile,{force:true})}
 }
 
+function exactArchiveFiles(records,expected) {
+ const index=new Map(),ignore=[];
+ const allowedDirs=new Set(["payload","payload/data"]);
+ for(const file of records){
+   const key=archivePath(file.path).replace(/\/+$/,"");
+   if(allowedDirs.has(key)&&file.size===0&&file.crc==="00000000"){
+     assert(!ignore.includes(key),"Duplicate archive directory "+key);
+     ignore.push(key);
+     continue;
+   }
+   assert(expected.has(key),"Unexpected archive content; refusing upload.");
+   assert(!index.has(key),"Duplicate archive file; refusing upload.");
+   index.set(key,file);
+ }
+ assert(index.size===expected.size,
+   "Exact archived content mismatch: "+index.size+" files, expected "+expected.size);
+ return {index,ignoredDirectories:ignore};
+}
 function selectedCandidates(v7){
  const categories={
   sensitive_requires_encrypted_backup:0,
@@ -236,6 +254,17 @@ function selfTest(){
         (i===0?0:9)+"\nCRC = "+(i===0?"":"CBF43926")+"\nFolder = -\n\n").join("");
    const found=list7zText(proper,"V9 fixture");
    assert(found.length===12&&found[0].crc==="00000000","Encrypted listing zero-byte parsing");
+   const expected=new Set(Array.from({length:12},(_,i)=>
+       "payload/data/"+String(i+1).padStart(6,"0")+".dat"));
+   const extra=[{path:"payload",size:0,crc:"00000000"},
+     {path:"payload/data",size:0,crc:"00000000"}];
+   const indexed=exactArchiveFiles([...extra,...found],expected);
+   assert(indexed.index.size===12&&indexed.ignoredDirectories.length===2,
+     "V9 containing-folder and exact-file selector fixture failed");
+   let rejected=false;
+   try{exactArchiveFiles([...extra,...found,{path:"payload/evil.txt",size:12,crc:"AABBCCDD"}],expected)}
+   catch{rejected=true}
+   assert(rejected,"Unexpected encrypted archive file not rejected");
    const plan=selectedCandidates({uniqueFileRecords:[{originalPath:"C:\\BUKLOD\\src\\a.tsx",bytes:10},
      {originalPath:"D:\\BUKLOD\\backup.tar",bytes:500*MiB}]});
    assert(plan.selected.length===1&&plan.remaining.length===1,"Priority cap does not guard huge files");
@@ -319,21 +348,11 @@ try{
    assert(free>500*MiB,"Insufficient TEMP disk for even a small encrypted archive.");
  }
  const raw=createTestAndListEncrypted(archive,first,folder);
- const index=new Map();
- const allowDirs=new Set(["payload","payload/data"]);
  const expected=new Set(files.map(f=>f.staged.toLowerCase()));
  expected.add("payload/private_restore_map_v9.json");
- const ignored=[];
- for(const x of raw){
-   const k=archivePath(x.path).replace(/\/+$/,"");
-   if(allowDirs.has(k)&&x.size===0&&x.crc==="00000000"){
-     assert(!ignored.includes(k),"Duplicate containing folder entry");ignored.push(k);continue
-   }
-   assert(expected.has(k),"Unexpected archived entry "+k+"; no upload");
-   assert(!index.has(k),"Duplicate archived entry "+k);index.set(k,x);
- }
- assert(index.size===expected.size,"V9 archive file coverage mismatch: indexed "+
-   index.size+" files, expected "+expected.size);
+ const selectedArchive=exactArchiveFiles(raw,expected);
+ const index=selectedArchive.index;
+ state.ignoredArchiveDirectoryEntries=selectedArchive.ignoredDirectories;
  const mapEntry=index.get("payload/private_restore_map_v9.json");
  assert(mapEntry&&mapEntry.size===fs.statSync(mapping).size&&mapEntry.crc===crc32(mapping),
    "Encrypted restore map size/CRC invalid; no upload.");
