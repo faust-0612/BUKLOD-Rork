@@ -82,6 +82,25 @@ function ScopeBuklodLessonPortalScreenContent() {
           defaultExpanded
         />
 
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Assigned mentors: report taught BUKLOD lessons with photo evidence"
+          onPress={() => router.push('/faith/mentor-evidence' as any)}
+          style={{
+            backgroundColor:'#EDF7EF',borderRadius:14,padding:14,
+            borderWidth:1,borderColor:'#CFE4D2',flexDirection:'row',
+            alignItems:'center',gap:10,
+          }}
+        >
+          <MaterialCommunityIcons name="account-supervisor-circle-outline" size={27} color="#1E7544"/>
+          <View style={{flex:1}}>
+            <Text style={{fontWeight:'900',color:'#185D38',fontSize:13}}>Mentor Teaching & Photo Evidence</Text>
+            <Text style={{fontSize:11,color:'#5F7565',marginTop:3}}>
+              Assigned mentors: choose a real lesson and learners, upload a teaching photo, and track Pastor/Admin verification for +15 BP.
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#1E7544"/>
+        </Pressable>
         <BuklodLearningContent variant="embedded" />
       </BuklodPortalScrollView>
     </>

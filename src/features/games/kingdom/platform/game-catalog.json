@@ -1,0 +1,318 @@
+{
+  "schemaVersion": 1,
+  "immutableMap": true,
+  "characters": [
+    {
+      "characterId": "phan",
+      "stationId": "phan-enterprise-builder",
+      "games": [
+        {
+          "id": "phan-enterprise-builder",
+          "title": "Enterprise Builder",
+          "genre": "simulation",
+          "status": "existing"
+        },
+        {
+          "id": "phan-trade-master",
+          "title": "Trade Master",
+          "genre": "trading",
+          "status": "pilot"
+        },
+        {
+          "id": "phan-market-match",
+          "title": "Market Match",
+          "genre": "match3",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "quin",
+      "stationId": "quin-discovery-expedition",
+      "games": [
+        {
+          "id": "quin-discovery-expedition",
+          "title": "Discovery Expedition",
+          "genre": "exploration",
+          "status": "existing"
+        },
+        {
+          "id": "quin-guessing-quest",
+          "title": "Guessing Quest",
+          "genre": "quiz",
+          "status": "pilot"
+        },
+        {
+          "id": "quin-code-breaker",
+          "title": "Code Breaker",
+          "genre": "logic",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "van",
+      "stationId": "van-living-city-dispatch",
+      "games": [
+        {
+          "id": "van-living-city-dispatch",
+          "title": "City Dispatch",
+          "genre": "strategy",
+          "status": "existing"
+        },
+        {
+          "id": "van-sudoku-master",
+          "title": "Sudoku Master",
+          "genre": "numbers",
+          "status": "pilot"
+        },
+        {
+          "id": "van-mind-challenge",
+          "title": "Mind Challenge",
+          "genre": "logic",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "christian",
+      "stationId": "christian-civic-leadership",
+      "games": [
+        {
+          "id": "christian-civic-leadership",
+          "title": "Leadership Council",
+          "genre": "strategy",
+          "status": "existing"
+        },
+        {
+          "id": "christian-bible-crown",
+          "title": "Bible Crown",
+          "genre": "quiz",
+          "status": "pilot"
+        },
+        {
+          "id": "christian-scripture-word-search",
+          "title": "Scripture Word Search",
+          "genre": "words",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "lhen",
+      "stationId": "lhen-rhythm-journey",
+      "games": [
+        {
+          "id": "lhen-rhythm-journey",
+          "title": "Rhythm Journey",
+          "genre": "rhythm",
+          "status": "existing"
+        },
+        {
+          "id": "lhen-melody-memory",
+          "title": "Melody Memory",
+          "genre": "memory",
+          "status": "pilot"
+        },
+        {
+          "id": "lhen-beat-composer",
+          "title": "Beat Composer",
+          "genre": "rhythm",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "jawo",
+      "stationId": "jawo-forest-trail",
+      "games": [
+        {
+          "id": "jawo-forest-trail",
+          "title": "Forest Trail",
+          "genre": "action",
+          "status": "existing"
+        },
+        {
+          "id": "jawo-trail-maze",
+          "title": "Trail Maze",
+          "genre": "maze",
+          "status": "pilot"
+        },
+        {
+          "id": "jawo-nature-match",
+          "title": "Nature Match",
+          "genre": "match3",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "trudice",
+      "stationId": "trudice-playground-memory",
+      "games": [
+        {
+          "id": "trudice-playground-memory",
+          "title": "Wonder Path",
+          "genre": "memory",
+          "status": "existing"
+        },
+        {
+          "id": "trudice-picture-pairs",
+          "title": "Picture Pairs",
+          "genre": "memory",
+          "status": "pilot"
+        },
+        {
+          "id": "trudice-word-garden",
+          "title": "Word Garden",
+          "genre": "words",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "ace",
+      "stationId": "ace-rescue-grid",
+      "games": [
+        {
+          "id": "ace-rescue-grid",
+          "title": "Rescue Grid",
+          "genre": "strategy",
+          "status": "existing"
+        },
+        {
+          "id": "ace-chess-master",
+          "title": "Chess Master",
+          "genre": "chess",
+          "status": "pilot"
+        },
+        {
+          "id": "ace-tower-tactics",
+          "title": "Tower Tactics",
+          "genre": "strategy",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "mitch",
+      "stationId": "mitch-restore-mural",
+      "games": [
+        {
+          "id": "mitch-restore-mural",
+          "title": "Restore the Mural",
+          "genre": "art",
+          "status": "existing"
+        },
+        {
+          "id": "mitch-block-forge",
+          "title": "Block Forge",
+          "genre": "blocks",
+          "status": "pilot"
+        },
+        {
+          "id": "mitch-color-merge",
+          "title": "Color Merge",
+          "genre": "merge",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "niel",
+      "stationId": "niel-mission-trail",
+      "games": [
+        {
+          "id": "niel-mission-trail",
+          "title": "Mission Trail",
+          "genre": "simulation",
+          "status": "existing"
+        },
+        {
+          "id": "niel-expedition-puzzle",
+          "title": "Expedition Puzzle",
+          "genre": "strategy",
+          "status": "pilot"
+        },
+        {
+          "id": "niel-word-explorer",
+          "title": "Word Explorer",
+          "genre": "words",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "angel",
+      "stationId": "angel-kingdom-treasury",
+      "games": [
+        {
+          "id": "angel-kingdom-treasury",
+          "title": "Kingdom Treasury",
+          "genre": "simulation",
+          "status": "existing"
+        },
+        {
+          "id": "angel-number-vault",
+          "title": "Number Vault",
+          "genre": "numbers",
+          "status": "pilot"
+        },
+        {
+          "id": "angel-treasure-merge",
+          "title": "Treasure Merge",
+          "genre": "merge",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "vhen",
+      "stationId": "vhen-farm-to-market",
+      "games": [
+        {
+          "id": "vhen-farm-to-market",
+          "title": "Farm to Market",
+          "genre": "simulation",
+          "status": "existing"
+        },
+        {
+          "id": "vhen-harvest-match",
+          "title": "Harvest Match",
+          "genre": "match3",
+          "status": "pilot"
+        },
+        {
+          "id": "vhen-farm-merge",
+          "title": "Farm Merge",
+          "genre": "merge",
+          "status": "pilot"
+        }
+      ]
+    },
+    {
+      "characterId": "ellusur",
+      "stationId": "elesur-village-builder",
+      "games": [
+        {
+          "id": "elesur-village-builder",
+          "title": "Village Builder",
+          "genre": "simulation",
+          "status": "existing"
+        },
+        {
+          "id": "elesur-domino-village",
+          "title": "Domino Village",
+          "genre": "domino",
+          "status": "pilot"
+        },
+        {
+          "id": "elesur-bridge-puzzle",
+          "title": "Bridge Puzzle",
+          "genre": "logic",
+          "status": "pilot"
+        }
+      ]
+    }
+  ]
+}

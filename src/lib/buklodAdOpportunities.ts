@@ -31,6 +31,11 @@ const BREAKS = {
     reason: 'content_session_completed',
     placement: 'interstitial_learning_assignment_submitted',
   },
+  // Only after successful, authoritative server submissions; never as a gate to earning BP.
+  points_submission_success: {
+    reason: 'content_session_completed',
+    placement: 'interstitial_points_submission_success',
+  },
   points_claim_success: {
     reason: 'content_session_completed',
     placement: 'interstitial_points_claim_success',
