@@ -168,7 +168,10 @@ jobs:
           grep -F 'serverCanManage' 'src/components/BuklodClusterHomeCommandCenter.tsx'
           grep -F 'accessibilityLabel="Manage Cluster"' 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
           grep -F 'clusterScopeManageRoute(scope.scope_id,scope.name)' 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
-          grep -F 'paddingTop: insets.top' 'src/components/BuklodScopedDashboardHeader.tsx'
+          # Preserve BOTH policies: native/phone safe-area and no desktop double inset.
+          # A literal grep for the retired "paddingTop: insets.top" incorrectly
+          # rejects the current safe-area-aware header after Desktop R3.
+          node --test tests/scoped-header-safe-area-production-web-20261107.test.mjs
           grep -F "constrainContextToOrganization" 'src/lib/buklodClusterFormationGate.ts'
           grep -F "readMediaForUpload" 'src/app/scope/bulletin-editor.tsx'
           grep -F "Title and message are required before publishing." 'src/app/scope/bulletin-editor.tsx'

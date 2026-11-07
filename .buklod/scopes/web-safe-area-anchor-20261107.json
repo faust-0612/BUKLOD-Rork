@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix Production Web Deploy failing on a retired Cluster safe-area literal anchor without weakening any production gate, modifying app behavior or rolling back latest Main changes.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Inspected GitHub Actions run 42355545981, source SHA 1dc2213538bfa55ddf352ea7813b67fa0e9c2c73, failed safety step after TypeScript and before export. At investigation current main was eff3a21bcb0018506812a1171f22b42d5836876e; latest Main scoped header uses conditional scopedTopInset, and all 53 subsequent positive source anchors were read and verified. This is GitHub/source verification, NOT an attestation of Expo live production SHA.",
+  "chosenApproach": "Replace only obsolete header literal grep in manual production web workflow with focused executable test for desktop zero inset, native/phone inset, both header usages, and unmodified exact-SHA/RC-hash/deploy safeguards. Keep all other production safety checks.",
+  "selectionRationale": "The old grep demanded code that was intentionally retired to correct oversized desktop Cluster white space. Reintroducing it would regress UI; skipping the whole gate would weaken release assurance. A focused behavior contract is precise and resistant to text renames.",
+  "alternativeApproaches": [
+    "Revert scopedTopInset to satisfy old grep: rejected, regresses desktop Cluster and can break native safe areas.",
+    "Remove/skip Verify production safety anchors: rejected, unsafe.",
+    "Rerun old failed job: rejected, same SHA and code will fail unchanged."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Android and phone scoped headers still honor safe-area status bar inset",
+    "Wide desktop scoped headers receive zero duplicate status inset",
+    "No app source edits, migrations, OTA, PWA logos, ads, Classroom files or unmerged changes",
+    "The remaining 53 source anchors and account recovery security checks remain enforced",
+    "Production deploy still requires exact branch SHA, production Supabase host, frozen RC file hashes and manual workflow dispatch"
+  ],
+  "acceptanceChecks": [
+    "Focused source test passes and asserts desktop/Android safe-area behavior and active gate position",
+    "CI engineering accountability/scope, TypeScript and integration checks pass",
+    "Unchanged downstream 53 positive source anchors continue to match",
+    "Workflow retains production manual invocation, production env export, RC hash verification and live SHA check",
+    "Only verified latest Main source is eligible for web production release; no assumption that this PR itself published"
+  ],
+  "regressionTests": [
+    "tests/scoped-header-safe-area-production-web-20261107.test.mjs",
+    "tests/scoped-header-safe-area-production-ota-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/production_web_deploy.yml",
+    "tests/scoped-header-safe-area-production-web-20261107.test.mjs",
+    ".buklod/scopes/web-safe-area-anchor-20261107.json",
+    "docs/BUKLOD_WEB_SAFE_AREA_PRODUCTION_GATE_20261107.md"
+  ]
+}
