@@ -21,8 +21,12 @@ export type BuklodSoundCue =
   | 'achievement'
   | 'alert';
 
+export type BuklodSoundProfile='classic'|'gentle'|'celebration';
+export type BuklodSoundVolume='low'|'balanced'|'high';
 export type BuklodSoundSettings = Record<BuklodSoundCategory, boolean> & {
   quietHours: boolean;
+  soundProfile: BuklodSoundProfile;
+  volumeLevel: BuklodSoundVolume;
 };
 
 export const DEFAULT_BUKLOD_SOUND_SETTINGS: BuklodSoundSettings = {
@@ -33,6 +37,8 @@ export const DEFAULT_BUKLOD_SOUND_SETTINGS: BuklodSoundSettings = {
   achievements: false,
   buttons: false,
   quietHours: false,
+  soundProfile: 'classic',
+  volumeLevel: 'balanced',
 };
 
 const SETTINGS_KEY = '@buklod_sounds_v1';
@@ -60,6 +66,24 @@ const categories: Record<BuklodSoundCue, BuklodSoundCategory> = {
   alert: 'community',
 };
 
+const categoriesByPreference:Record<BuklodSoundCategory,true>={
+  messages:true,calls:true,submissions:true,community:true,achievements:true,buttons:true
+};
+const GENTLE_SOUNDS:Partial<Record<BuklodSoundCue,BuklodSoundCue>>={
+  message:'message_sent',community:'message_sent',achievement:'approval',
+  button:'message_sent',submission:'message_sent'
+};
+const CELEBRATION_SOUNDS:Partial<Record<BuklodSoundCue,BuklodSoundCue>>={
+  message_sent:'approval',community:'achievement',submission:'community',
+  approval:'achievement',button:'message_sent'
+};
+function getSoundVariant(cue:BuklodSoundCue):BuklodSoundCue{
+  if(settings.soundProfile==='gentle')return GENTLE_SOUNDS[cue]??cue;
+  if(settings.soundProfile==='celebration')return CELEBRATION_SOUNDS[cue]??cue;
+  return cue;
+}
+const VOLUME_LEVEL:Record<BuklodSoundVolume,number>={low:0.16,balanced:0.28,high:0.44};
+
 const cooldownMs: Record<BuklodSoundCue, number> = {
   button: 150,
   message_sent: 160,
@@ -85,9 +109,14 @@ export async function getBuklodSoundSettings(): Promise<BuklodSoundSettings> {
       .then(raw => {
         if (!raw) return;
         const persisted = JSON.parse(raw) as Partial<BuklodSoundSettings>;
-        for (const key of Object.keys(DEFAULT_BUKLOD_SOUND_SETTINGS) as (keyof BuklodSoundSettings)[]) {
-          if (typeof persisted[key] === 'boolean') settings[key] = persisted[key];
+        for (const key of Object.keys(categoriesByPreference) as BuklodSoundCategory[]) {
+          if (typeof persisted[key] === 'boolean') settings[key] = persisted[key]!;
         }
+        if (typeof persisted.quietHours==='boolean') settings.quietHours=persisted.quietHours;
+        if (['classic','gentle','celebration'].includes(String(persisted.soundProfile)))
+          settings.soundProfile=persisted.soundProfile as BuklodSoundProfile;
+        if (['low','balanced','high'].includes(String(persisted.volumeLevel)))
+          settings.volumeLevel=persisted.volumeLevel as BuklodSoundVolume;
       })
       .catch(error => {
         console.warn('BUKLOD sound settings load:', error);
@@ -100,11 +129,22 @@ export async function getBuklodSoundSettings(): Promise<BuklodSoundSettings> {
 export async function saveBuklodSoundSettings(next: BuklodSoundSettings) {
   await getBuklodSoundSettings();
   const normalized = { ...DEFAULT_BUKLOD_SOUND_SETTINGS };
-  for (const key of Object.keys(normalized) as (keyof BuklodSoundSettings)[]) {
+  for (const key of Object.keys(categoriesByPreference) as BuklodSoundCategory[])
     normalized[key] = Boolean(next[key]);
-  }
+  normalized.quietHours = Boolean(next.quietHours);
+  normalized.soundProfile = ['classic','gentle','celebration'].includes(next.soundProfile)
+    ? next.soundProfile : 'classic';
+  normalized.volumeLevel = ['low','balanced','high'].includes(next.volumeLevel)
+    ? next.volumeLevel : 'balanced';
   await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(normalized));
+  const soundChanged=settings.soundProfile!==normalized.soundProfile;
   settings = normalized;
+  if(soundChanged){
+    for (const player of players.values()){
+      try{player.pause();player.release();}catch{/* disposed */}
+    }
+    players.clear();
+  }
 }
 
 export function setBuklodCallSoundSuppressed(inCall: boolean) {
@@ -130,22 +170,23 @@ function isQuietHours() {
  * notifications remain the responsibility of Stream/Android/iOS, never this
  * player. No Supabase calls and no polling occur here.
  */
-export async function playBuklodCue(cue: BuklodSoundCue) {
+export async function playBuklodCue(cue: BuklodSoundCue, options?:{preview?:boolean}) {
   if (Platform.OS === 'web' || AppState.currentState !== 'active' || activeCall) return;
   const category = categories[cue];
   await getBuklodSoundSettings();
-  if (!settings[category] || (isQuietHours() && cue !== 'alert')) return;
+  if (!options?.preview && (!settings[category] || (isQuietHours() && cue !== 'alert'))) return;
   const now = Date.now();
-  if (now - (lastPlayed.get(cue) ?? 0) < cooldownMs[cue]) return;
+  if (!options?.preview && now - (lastPlayed.get(cue) ?? 0) < cooldownMs[cue]) return;
   lastPlayed.set(cue, now);
   try {
     let player = players.get(cue);
     const fresh = !player;
     if (!player) {
-      player = createAudioPlayer(sounds[cue], { updateInterval: 1000 });
-      player.volume = cue === 'alert' ? 0.45 : 0.28;
+      player = createAudioPlayer(sounds[getSoundVariant(cue)], { updateInterval: 1000 });
       players.set(cue, player);
     }
+    player.volume = cue==='alert'?Math.min(0.6,VOLUME_LEVEL[settings.volumeLevel]+0.14):
+      VOLUME_LEVEL[settings.volumeLevel];
     // A newly constructed player may still be loading; seeking before it
     // becomes ready can reject and swallow the very first feedback sound.
     if (!fresh) await player.seekTo(0);
