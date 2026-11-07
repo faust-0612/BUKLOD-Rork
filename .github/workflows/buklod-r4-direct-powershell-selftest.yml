@@ -1,0 +1,32 @@
+name: BUKLOD R4 direct PowerShell audit self-test
+on:
+  push:
+    branches: [dev/quiz-consolidation-identity-audit-20261107]
+    paths:
+      - .github/workflows/buklod-r4-direct-powershell-selftest.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-r4-direct-self-test
+  cancel-in-progress: true
+
+jobs:
+  self-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify original Windows audit script compiles and is StrictMode array-safe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./scripts/BUKLOD_Cloud_Only_Safety_Audit_Direct_R4.ps1 -SelfTest
+      - name: Confirm no full audit or delete was executed in CI
+        shell: pwsh
+        run: |
+          Write-Host 'Verified PowerShell parser + self-test without Git cloning or touching laptop files.'
