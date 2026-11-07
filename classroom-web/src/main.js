@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import './style.css';
-import { esc, safeLink, formatDate, clampText } from './utils.js';
+import { esc, safeLink, formatDate, clampText, canRequestClassDeletion, deletionNameMatches } from './utils.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -41,6 +41,7 @@ const textarea = (label, name, placeholder) => '<label class="field"><span>' + e
   '</span><textarea name="' + e(name) + '" rows="3" maxlength="10000" placeholder="' + e(placeholder) + '"></textarea></label>';
 const isFaculty = () => state.context?.role === 'FACULTY';
 const isStudent = () => state.classes.find(c => c.classroom_id === state.classId)?.can_student_view === true;
+const canDeleteClass = () => canRequestClassDeletion(state.context, state.user?.id);
 function notice(message, bad = false) {
   const target = document.querySelector('#feedback');
   if (target) { target.textContent = message; target.className = 'feedback' + (bad ? ' error' : ''); }
@@ -116,10 +117,14 @@ function navClasses() {
 }
 function renderClass() {
   const c = state.context || {};
-  const summary = '<div class="class-head"><div><p class="eyebrow">' +
+  const summary = '<div class="class-head"><div><div class="class-back">' +
+    btn('← Back to My Classes', 'classes', null, 'back-button') + '</div><p class="eyebrow">' +
     e([c.subject_code,c.section_name,c.term].filter(Boolean).join(' · ') || 'ACTIVE CLASSROOM') +
     '</p><h2>' + e(c.name || 'Classroom') + '</h2><p>' + e(c.description || 'Your BUKLOD connected classroom') +
-    '</p></div><div class="head-actions">' + pill(c.role || 'MEMBER') + btn('Refresh module', 'refresh-tab') + '</div></div>';
+    '</p></div><div class="head-actions">' + pill(c.role || 'MEMBER') +
+    btn('Refresh module', 'refresh-tab') +
+    (canDeleteClass() ? btn('Delete Class', 'delete-class', null, 'danger-outline') : '') +
+    '</div></div>';
   layout(summary + navClasses() + '<section id="module" class="module">' + (state.error ? '<div class="feedback error" role="alert">' + e(state.error) + '</div>' : '') + moduleContent() + '</section>', c.name || 'Classroom');
 }
 function moduleContent() {
@@ -141,7 +146,8 @@ function moduleContent() {
 function overviewModule() {
   const o = state.overview || {};
   const cards = [['Discussions','discussions',o.posts],['Activities','activities',o.assignments],
-    ['Materials','materials',o.materials],['Class Members','faculty',o.students],
+    ['Materials','materials',o.materials],
+    ...(isFaculty() ? [['Class Members','faculty',o.students]] : []),
     ['My Grades','grades',null],['Attendance','attendance',null]].map(x =>
     '<button class="feature-card" data-action="tab" data-id="' + x[1] + '"><strong>' + e(x[0]) +
     '</strong><span>' + (x[2] == null ? 'Open module' : e(x[2]) + ' total') + ' ›</span></button>').join('');
@@ -328,7 +334,7 @@ async function loadClasses() {
 async function openClass(id, tab = 'overview') {
   if (!state.classes.some(c => c.classroom_id===id)) { notice('You are not assigned to that classroom.', true); return; }
   const seq = ++state.seq;
-  state.classId = id; state.tab = tab; state.data=[]; state.additional=[]; state.busy=true;
+  state.classId = id; state.tab = tab; state.data=[]; state.additional=[]; state.error=''; state.busy=true;
   render(); history.replaceState({},'', '?class='+encodeURIComponent(id)+'&tab='+encodeURIComponent(tab));
   try {
     const [ctx,o] = await Promise.all([
@@ -415,19 +421,61 @@ async function loadTab() {
         .order('created_at',{ascending:false}).limit(100));
       if (!isFaculty()) first=first.filter(x=>x.user_id===state.user.id);
     } else if (tab==='faculty' && isFaculty()) {
-      first=await checked(db.from('buklod_education_roster_members')
-        .select('id,official_name,official_student_no,link_status,roster_status')
-        .eq('classroom_id',id).order('official_name',{ascending:true}).limit(500));
+      // The roster table is service-role only. Use its faculty-scoped RPC, never a direct SELECT or a broad GRANT.
+      first=await checked(db.rpc('buklod_classroom_roster_members_v2',{p_classroom_id:id}));
     }
     if (seq!==state.seq) return;
     state.data=Array.isArray(first)?first:[]; state.additional=Array.isArray(second)?second:[];
   } catch(err) { if(seq===state.seq) {state.data=[];state.additional=[];state.error=errorMessage(err);} }
   finally {if(seq===state.seq) {state.busy=false;render();}}
 }
+
+async function deleteCurrentClass() {
+  if (!canDeleteClass() || !state.classId || state.busy) {
+    notice('Only the assigned primary faculty may request permanent class deletion.', true);
+    return;
+  }
+  const classroomId = state.classId;
+  const classroomName = String(state.context?.name || '').trim();
+  if (!classroomName) { notice('Class name is missing; deletion canceled.', true); return; }
+  const entered = window.prompt(
+    'Permanently delete "' + classroomName + '"?\n\n' +
+    'This removes the empty class, its default setup and any class-only content. ' +
+    'Classes with academic records cannot be deleted: export and archive them instead.\n\n' +
+    'Type the EXACT class name to confirm:',
+    ''
+  );
+  if (entered === null) return;
+  if (!deletionNameMatches(entered, classroomName)) {
+    notice('Deletion canceled: class name did not match exactly.', true);
+    return;
+  }
+  state.busy = true;
+  notice('Checking class records before deletion…');
+  try {
+    // Enforce authorization and academic-history checks on the backend, not in browser state.
+    const result = await checked(db.rpc('buklod_classroom_delete_empty_v1', {p_classroom_id: classroomId}));
+    if (!result || result.deleted !== true || result.classroom_id !== classroomId) {
+      throw new Error('The server did not confirm deletion. Please refresh and check this class.');
+    }
+    ++state.seq;
+    state.classes = state.classes.filter(c => c.classroom_id !== classroomId);
+    state.classId = ''; state.context = null; state.overview = null;
+    state.data = []; state.additional = []; state.error = '';
+    history.replaceState({}, '', location.pathname);
+    render();
+    notice('Class "' + classroomName + '" was permanently deleted.');
+  } catch (err) {
+    notice('Class not deleted. ' + errorMessage(err) +
+      ' If this class has academic history, export its records and archive it in BUKLOD Faculty.', true);
+  } finally { state.busy = false; }
+}
+
 async function doAction(action,id) {
   if (state.busy) return;
   if (action==='classes') {
-    ++state.seq; state.classId=''; state.context=null; state.data=[]; history.replaceState({},'',location.pathname); render(); return;
+    ++state.seq; state.classId=''; state.context=null; state.overview=null; state.data=[];
+    state.additional=[]; state.error=''; history.replaceState({},'',location.pathname); render(); return;
   }
   if (action==='signout') {
     const {error}=await db.auth.signOut(); if(error){notice(error.message,true);return;}
@@ -435,11 +483,12 @@ async function doAction(action,id) {
     history.replaceState({},'',location.pathname); render(); return;
   }
   if (action==='refresh-classes'){await loadClasses();return;}
+  if (action==='delete-class'){await deleteCurrentClass();return;}
   if (action==='open-class'){await openClass(id);return;}
   if (action==='tab') {
     if (id==='faculty' && !isFaculty()) return;
     state.tab=id;history.replaceState({},'','?class='+encodeURIComponent(state.classId)+'&tab='+encodeURIComponent(id));
-    if (id==='overview'){state.data=[];render();}else await loadTab();return;
+    if (id==='overview'){state.error='';state.data=[];state.additional=[];render();}else await loadTab();return;
   }
   if (action==='refresh-tab') {if(state.tab==='overview') await openClass(state.classId);else await loadTab();return;}
   if (action==='material') {
