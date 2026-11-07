@@ -40,7 +40,7 @@ test('difficulty multipliers are whitelisted and bounded', () => {
 });
 test('Points UI shows server-reported activation state and does not mint credits', () => {
  assert.match(guide,/get_buklod_points_r2_catalog_v1/);
- assert.match(guide,/Coming soon — not claimable yet/);
+ assert.match(guide,/Upcoming · not claimable/);
  assert.match(points,/BuklodPointsR2Guide/);
  assert.doesNotMatch(guide,/\.insert\(|\.update\(|admin_award_buklod_points/);
  assert.match(verified,/grant execute on function public\.get_buklod_points_r2_catalog_v1/);
