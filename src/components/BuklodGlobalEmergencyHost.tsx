@@ -12,12 +12,14 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import {
   ActivityIndicator, Alert, AppState, Modal, Pressable,
   ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
+import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { supabase } from '@/lib/supabase';
 import { acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
 import {
@@ -86,6 +88,7 @@ function titleCase(category: string) {
 
 export default function BuklodGlobalEmergencyHost() {
   const { user } = useAuth();
+  const { config } = useRuntimeConfig();
   const owner = user?.id ?? null;
   const [shown, setShown] = useState<DisplayState | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -322,6 +325,39 @@ export default function BuklodGlobalEmergencyHost() {
     }
   }, [shown, owner, submitting, minimize, offer]);
 
+  // Foreground location is requested only after a deliberate, explicit
+  // response. Opting back into nearby safety alerts is never silent.
+  const refreshNearbyPermission = useCallback(() => {
+    if (!owner || !shown || shown.ownerId !== owner || submitting) return;
+    Alert.alert('Enable nearby safety alerts?', 'To verify and respond to a nearby SOS, BUKLOD needs your current foreground location. Your exact location remains private on the server.', [
+      { text: 'Not now', style: 'cancel' },
+      { text: 'Enable and verify', onPress: () => {
+        void (async () => {
+          setSubmitting(true);
+          try {
+            const permission = await Location.requestForegroundPermissionsAsync();
+            if (permission.status !== 'granted') throw new Error('Location permission was not granted.');
+            const position = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+            });
+            const { error } = await supabase.rpc('buklod_help_update_presence', {
+              p_latitude: position.coords.latitude,
+              p_longitude: position.coords.longitude,
+              p_enabled: true,
+            });
+            if (error) throw error;
+            void offer({ incidentId: shown.incidentId, origin: 'recipient' });
+          } catch (error: any) {
+            Alert.alert('Nearby safety alerts unavailable',
+              String(error?.message ?? 'Please try again from Home.'));
+          } finally {
+            setSubmitting(false);
+          }
+        })();
+      } },
+    ]);
+  }, [owner, shown, submitting, offer]);
+
   const resolve = useCallback(() => {
     if (!shown?.verified || shown.ownerId !== owner || shown.origin !== 'sender' || submitting) return;
     const id = shown.incidentId;
@@ -351,7 +387,9 @@ export default function BuklodGlobalEmergencyHost() {
   // but not even one frame may expose a previous account's emergency.
   const activeShown = shown?.ownerId === owner ? shown : null;
   const event = activeShown?.emergency;
-  if (!owner) return null;
+  // Mandatory-update/maintenance gates must remain authoritative; an
+  // emergency Modal cannot bypass a blocked client screen.
+  if (!owner || Boolean(config?.update_required) || Boolean(config?.maintenance_mode)) return null;
 
   return (
     <>
@@ -387,7 +425,11 @@ export default function BuklodGlobalEmergencyHost() {
                     {shown?.origin === 'sender' ? 'YOUR EMERGENCY SOS' : 'EMERGENCY NEAR YOU'}
                   </Text>
                   <Text style={styles.heading}>
-                    {shown?.origin === 'sender' ? 'Your SOS is active' : 'A BUKLOD member needs help'}
+                    {shown?.checking || !shown?.verified
+                      ? 'Verifying emergency alert'
+                      : shown?.origin === 'sender'
+                        ? 'Your SOS is active'
+                        : 'A BUKLOD member needs help'}
                   </Text>
                 </View>
                 <Pressable accessibilityRole="button" accessibilityLabel="Minimize SOS"
@@ -407,6 +449,15 @@ export default function BuklodGlobalEmergencyHost() {
                   <Text style={styles.statusText}>
                     {shown?.error ?? 'This SOS could not be verified.'}
                   </Text>
+                  {shown?.origin === 'recipient' ? (
+                    <Pressable accessibilityRole="button"
+                      accessibilityLabel="Enable and refresh nearby safety alerts"
+                      disabled={submitting}
+                      style={styles.outline}
+                      onPress={refreshNearbyPermission}>
+                      <Text style={styles.outlineText}>Enable nearby alerts to verify</Text>
+                    </Pressable>
+                  ) : null}
                   <Pressable accessibilityRole="button" style={styles.outline}
                     onPress={() => shown && void offer({ incidentId: shown.incidentId, origin: shown.origin })}>
                     <Text style={styles.outlineText}>Check again</Text>
