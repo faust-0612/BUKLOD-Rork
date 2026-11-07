@@ -501,6 +501,9 @@ function ExpoCommunityVideo({
     Number(expectedDurationSeconds ?? 0) || 0,
   );
   const [showCenter, setShowCenter] = useState(false);
+  // Keep portrait video fully visible by default; optionally fill the frame
+  // without restarting the native player or creating another video download.
+  const [fillFrame, setFillFrame] = useState(false);
   const [playerStatus, setPlayerStatus] = useState<
     'idle' | 'loading' | 'readyToPlay' | 'error'
   >('idle');
@@ -867,7 +870,7 @@ function ExpoCommunityVideo({
         style={styles.video}
         nativeControls={false}
         surfaceType="textureView"
-        contentFit={fullscreen || preserveAspectRatio ? 'contain' : 'cover'}
+        contentFit={fullscreen || (preserveAspectRatio && !fillFrame) ? 'contain' : 'cover'}
         allowsPictureInPicture={false}
       />
 
@@ -875,7 +878,7 @@ function ExpoCommunityVideo({
         <ExpoImage
           source={posterSource || { uri: posterUri! }}
           style={StyleSheet.absoluteFillObject}
-          contentFit={fullscreen || preserveAspectRatio ? 'contain' : 'cover'}
+          contentFit={fullscreen || (preserveAspectRatio && !fillFrame) ? 'contain' : 'cover'}
           cachePolicy="memory-disk"
           transition={120}
           pointerEvents="none"
@@ -907,6 +910,17 @@ function ExpoCommunityVideo({
         onPress={togglePlayback}
         style={styles.tapLayer}
       />
+
+      {!fullscreen && preserveAspectRatio ? (
+        <Pressable accessibilityRole="button"
+          accessibilityLabel={fillFrame ? 'Fit full video inside frame' : 'Fill video frame, cropping edges'}
+          onPress={() => setFillFrame(current => !current)}
+          style={styles.fitChoice}
+        >
+          <MaterialCommunityIcons name={fillFrame ? 'arrow-collapse' : 'arrow-expand'} size={15} color="#FFFFFF" />
+          <Text style={styles.fitChoiceText}>{fillFrame ? 'Fit' : 'Fill'}</Text>
+        </Pressable>
+      ) : null}
 
       {centerVisible ? (
         <View pointerEvents="none" style={styles.centerButton}>
@@ -1071,6 +1085,25 @@ const styles =
     video: {
       width: '100%',
       height: '100%',
+    },
+
+    fitChoice: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      minHeight: 34,
+      paddingHorizontal: 9,
+      flexDirection: 'row',
+      gap: 5,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0,0,0,0.60)',
+    },
+    fitChoiceText: {
+      color: '#FFFFFF',
+      fontWeight: '800',
+      fontSize: 11,
     },
 
     inactiveVideo: {

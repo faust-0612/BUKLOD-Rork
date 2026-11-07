@@ -45,6 +45,8 @@ import { CommunityVideo, enableCommunityVideoSound } from '@/components/Communit
 import {
   BuklodCommunityPhotoCollage,
   communityPhotoCollageItems,
+  rememberCommunityCollageLayout,
+  type CommunityPhotoCollageLayout,
 } from '@/components/BuklodCommunityPhotoCollage';
 import {
   peekCommunityMediaUrl,
@@ -907,6 +909,14 @@ function LegacyPublicBuklodScreen(){
  const [audience]=useState<Audience>('public');
  const [busy,setBusy]=useState(false),[photos,setPhotos]=useState<Photo[]>([]),[photoBusy,setPhotoBusy]=useState(false);
  const [publishNotice,setPublishNotice]=useState<string|null>(null);
+ const [postFeedback,setPostFeedback]=useState<string|null>(null);
+ const [collageLayout,setCollageLayout]=useState<CommunityPhotoCollageLayout>('grid');
+ const postingSubmissionRef=useRef(false);
+ useEffect(()=>{
+  if(!postFeedback)return;
+  const timeout=setTimeout(()=>setPostFeedback(null),4000);
+  return ()=>clearTimeout(timeout);
+ },[postFeedback]);
  const [communityGif,setCommunityGif]=useState<BuklodCommunityGifFile|null>(null);
  const [communityGifPickerOpen,setCommunityGifPickerOpen]=useState(false);
 
@@ -2404,7 +2414,7 @@ const load=useCallback(async(options?:{
 
 
  const publish=async()=>{
-  if(!user)return;
+  if(!user || postingSubmissionRef.current)return;
 
   if(communityGif){
    return Alert.alert(
@@ -2455,11 +2465,13 @@ const load=useCallback(async(options?:{
     );
    }
 
+ postingSubmissionRef.current=true;
  const snapshot={
    body:
     body.trim(),
    photos:
     [...photos],
+   collageLayout,
    wallVideo:
     wallVideo186O as {
      uri:string;
@@ -2484,6 +2496,9 @@ const load=useCallback(async(options?:{
 
  setBody('');
  setPhotos([]);
+ setCollageLayout('grid');
+ setCommunityComposerOpen(false); // Return to compact posting bar immediately.
+ setPostFeedback('Publishing your post…');
  setWallVideo186O(null);
  setCommunityGif(null);
  setMentions([]);
@@ -2719,6 +2734,9 @@ const load=useCallback(async(options?:{
     uploaded.push(
      ...photoUploads
     );
+    if(photoUploads[0]?.media_path){
+     rememberCommunityCollageLayout(photoUploads[0].media_path, snapshot.collageLayout);
+    }
    }
 
    await createPost(uploaded[0]??null);
@@ -2747,6 +2765,7 @@ const load=useCallback(async(options?:{
    }
 
    await load();
+   setPostFeedback('Posted to Community');
   }
   catch(e:any){
    await discardIncompleteCommunityPost({
@@ -2754,11 +2773,15 @@ const load=useCallback(async(options?:{
     mediaPaths:uploaded.map(x=>x.media_path),
    });
 
-   setBody(snapshot.body);
-   setPhotos(snapshot.photos);
-   setWallVideo186O(snapshot.wallVideo);
-   setCommunityGif(snapshot.communityGif);
-   setMentions(snapshot.mentions);
+   // Never overwrite a new draft started after the background submission.
+   setBody(current => current.trim() ? current : snapshot.body);
+   setPhotos(current => current.length ? current : snapshot.photos);
+   setWallVideo186O(current => current ?? snapshot.wallVideo);
+   setCommunityGif(current => current ?? snapshot.communityGif);
+   setMentions(current => current.length ? current : snapshot.mentions);
+   setCollageLayout(snapshot.collageLayout);
+   setCommunityComposerOpen(true);
+   setPostFeedback('Post failed — your draft was restored');
 
    reportCommunityFailure(
     e,
@@ -2771,6 +2794,7 @@ const load=useCallback(async(options?:{
    throw e;
   }
   finally{
+   postingSubmissionRef.current=false;
    setBusy(false);
    setVideoUploadPercent186O(null);
    setPublishNotice(null);
@@ -4223,6 +4247,7 @@ const load=useCallback(async(options?:{
           ).length>0&&(
             <View style={{marginHorizontal:-12,marginTop:8}}>
              <BuklodCommunityPhotoCollage
+              showLayoutPicker
               items={communityPhotoCollageItems(
                item?.media_items,
                null
@@ -4265,6 +4290,7 @@ const load=useCallback(async(options?:{
    return (
     <View style={{marginHorizontal:-12}}>
      <BuklodCommunityPhotoCollage
+      showLayoutPicker
       items={media}
       contentFit="cover"
       preserveSinglePhotoAspectRatio
@@ -4619,6 +4645,8 @@ const communityFeedRows =
 
  const maritesVisibilityRefreshRef = useRef<(() => void) | null>(null);
  const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
+ const largeComposerText = !photos.length && !wallVideo186O && !communityGif &&
+   Array.from(body.trim()).length > 0 && Array.from(body.trim()).length <= 80;
  const focusCommunityComposerRef = useRef(false);
  useEffect(() => {
   if (!communityComposerOpen || !focusCommunityComposerRef.current) return;
@@ -4850,8 +4878,13 @@ const communityFeedRows =
      ? 'Ano ang maitutulong o maibabahagi mo?'
      : 'Share with your Community...'
  }
- style={s.area}
-/>
+ style={[s.area, largeComposerText && { fontSize:25, lineHeight:33, fontWeight:'800', minHeight:96 }]}
+ />
+ {!!body.trim() && (
+  <Text style={[shared.muted,{fontSize:10,marginTop:4}]}>
+   {largeComposerText ? 'Large text · this post will appear in big letters' : 'Regular caption'}
+  </Text>
+ )}
     <View
       /* PATCH_154L_COMPOSER_SPACING */
       style={[
@@ -4965,12 +4998,28 @@ const communityFeedRows =
     )}
 {!!photos.length&&(
      <View style={{marginBottom:10}}>
+      {photos.length>1&&(
+       <View style={{flexDirection:'row',alignItems:'center',flexWrap:'wrap',gap:7,marginBottom:8}}>
+        <Text style={[shared.muted,{fontSize:11,fontWeight:'800'}]}>Collage layout</Text>
+        {(['grid','highlight','swipe'] as const).map(mode=>(
+         <Pressable key={mode} accessibilityRole="button" accessibilityLabel={`Choose ${mode} collage`}
+          onPress={()=>setCollageLayout(mode)}
+          style={{minHeight:34,borderRadius:16,paddingHorizontal:12,alignItems:'center',justifyContent:'center',
+           borderWidth:1,borderColor:collageLayout===mode?colors.green:colors.line,
+           backgroundColor:collageLayout===mode?colors.greenSoft:colors.white}}>
+          <Text style={{fontSize:11,fontWeight:'800',color:collageLayout===mode?colors.greenDark:colors.muted,textTransform:'capitalize'}}>{mode}</Text>
+         </Pressable>
+        ))}
+       </View>
+      )}
       <BuklodCommunityPhotoCollage
        items={photos.map(photo=>({
         media_url:photo.uri,
        }))}
        width={Dimensions.get('window').width-64}
        height={220}
+       layoutMode={collageLayout}
+       showLayoutPicker={false}
        contentFit="cover"
        preserveSinglePhotoAspectRatio
        onPressPhoto={(index, items)=>
@@ -4996,6 +5045,15 @@ const communityFeedRows =
     </>
    )}
    </Card>
+   {(publishNotice || postFeedback) && (
+    <View accessibilityRole="alert"
+      style={{marginHorizontal:10,marginTop:4,marginBottom:4,borderRadius:12,
+        paddingHorizontal:12,paddingVertical:9,backgroundColor:colors.greenSoft}}>
+     <Text style={{fontSize:12,fontWeight:'700',color:colors.greenDark}}>
+      {publishNotice || postFeedback}
+     </Text>
+    </View>
+   )}
 
    <View
     style={{

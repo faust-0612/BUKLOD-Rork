@@ -27,6 +27,8 @@ export default function BuklodCommunityContributionCard() {
   const userId = session?.user.id ?? null;
   const [data, setData] = useState<CommunityContributionDashboard | null>(null);
   const [history, setHistory] = useState<CommunityQmpHistory | null>(null);
+  const [status, setStatus] = useState<'loading' | 'failed' | 'ready'>('loading');
+  const [retryEpoch, setRetryEpoch] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -36,6 +38,7 @@ export default function BuklodCommunityContributionCard() {
     let historyRequestId = 0;
     setHistory(null); // Account-scoped history must never leak on user switch.
     setData(null); // Never reuse another account's financial preview.
+    setStatus('loading');
     if (!userId) return () => { alive = false; };
     const refresh = async () => {
       if (!alive || loading) return;
@@ -53,6 +56,7 @@ export default function BuklodCommunityContributionCard() {
         const next = await loadMyCommunityContribution();
         if (!alive) return;
         setData(next);
+        setStatus('ready');
         lastLoaded = Date.now();
         if (!analyticsSent) {
           analyticsSent = true;
@@ -63,6 +67,7 @@ export default function BuklodCommunityContributionCard() {
         }
       } catch {
         // Keep the most recent genuine snapshot; never invent a peso amount.
+        if (alive) setStatus(current => current === 'ready' ? current : 'failed');
       } finally {
         loading = false;
       }
@@ -76,9 +81,26 @@ export default function BuklodCommunityContributionCard() {
       if (state === 'active' && Date.now() - lastLoaded > 120_000) void refresh();
     });
     return () => { alive = false; clearInterval(timer); subscription.remove(); };
-  }, [userId]);
+  }, [userId, retryEpoch]);
 
-  if (!data) return null;
+  if (!data) {
+    if (!userId) return null;
+    // A failed/slow request must not make the entire Home feature disappear.
+    // Never display invented QMP/earnings or another account's stale snapshot.
+    return (
+      <Pressable accessibilityRole="button" accessibilityLabel="Community Contribution status, tap to retry"
+        onPress={() => setRetryEpoch(current => current + 1)}
+        style={s.emptyShell}>
+        <MaterialCommunityIcons name="account-heart-outline" size={22} color="#1E6B45" />
+        <View style={{ flex: 1 }}>
+          <Text style={s.eyebrow}>YOUR COMMUNITY CONTRIBUTION</Text>
+          <Text style={s.sub}>{status === 'failed'
+            ? 'Unable to load right now · tap to retry'
+            : 'Loading your private contribution summary…'}</Text>
+        </View>
+      </Pressable>
+    );
+  }
 
   const weightPct = Math.max(0, Number(data.share_weight || 0)) * 100;
   const estimate = data.estimated_share_minor === null
@@ -166,6 +188,9 @@ export default function BuklodCommunityContributionCard() {
 }
 
 const s = StyleSheet.create({
+  emptyShell:{marginTop:10,marginBottom:12,padding:14,borderRadius:16,
+    borderWidth:1,borderColor:contributionTone.border,backgroundColor:contributionTone.surface,
+    flexDirection:'row',alignItems:'center',gap:12,minHeight:72},
   shell:{marginTop:10,marginBottom:12,borderWidth:1,borderColor:contributionTone.border,borderRadius:16,backgroundColor:contributionTone.surface,padding:12,gap:9},
   head:{flexDirection:'row',alignItems:'center',gap:9},
   icon:{width:36,height:36,borderRadius:18,backgroundColor:contributionTone.soft,alignItems:'center',justifyContent:'center'},

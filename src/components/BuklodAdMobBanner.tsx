@@ -98,6 +98,9 @@ function BuklodAdMobBanner({
   const adNetworkAvailable = isConnected && isInternetReachable !== false;
   const pathname = usePathname();
   const stablePlacementId = placementId ?? `${placement}_generic`;
+  // Video companion inventory must not leave a blank post-sized panel while pending.
+  // Keep an 8px measurement probe so viewport eligibility still works.
+  const compactVideoCompanion = placement === 'video_companion' && compact;
   const routeSafe = isBuklodPassiveAdAllowed({
     placement,
     placementId: stablePlacementId,
@@ -307,7 +310,7 @@ function BuklodAdMobBanner({
     if (compact) {
       // Viewport measurement requires >=8px height; a zero-height compact
       // placeholder can never become eligible, permanently starving the ad.
-      return <View ref={ref} collapsable={false} style={styles.pendingShell} />;
+      return <View ref={ref} collapsable={false} style={[styles.pendingShell, compactVideoCompanion && styles.videoCompanionPending]} />;
     }
 
     return (
@@ -321,7 +324,7 @@ function BuklodAdMobBanner({
 
   return (
     <View ref={ref} collapsable={false}>
-      <View style={[styles.shell, compact && styles.compactShell]}>
+      <View style={[styles.shell, compact && styles.compactShell, compactVideoCompanion && !loaded && styles.videoCompanionPendingShell]}>
         {showLabel ? (
           <Animated.View style={[styles.labelRow, { opacity }]}>
             <Text style={styles.label}>Sponsored</Text>
@@ -331,8 +334,10 @@ function BuklodAdMobBanner({
         <View
           style={[
             styles.adArea,
-            format === 'mediumRectangle'
-              ? { minHeight: 250 }
+            compactVideoCompanion && !loaded
+              ? { minHeight: 8 }
+              : format === 'mediumRectangle'
+                ? { minHeight: 250 }
               : format === 'inline' && maxHeight
                 ? { minHeight: maxHeight }
                 : { minHeight: BUKLOD_DASHBOARD_BANNER_AD_HEIGHT },
@@ -405,6 +410,18 @@ const styles =
     pendingShell: {
       width: '100%',
       minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT,
+    },
+    videoCompanionPending: {
+      minHeight: 8,
+    },
+    videoCompanionPendingShell: {
+      minHeight: 8,
+      height: 8,
+      paddingTop: 0,
+      paddingBottom: 0,
+      marginVertical: 0,
+      borderWidth: 0,
+      overflow: 'hidden',
     },
 
     shell: {

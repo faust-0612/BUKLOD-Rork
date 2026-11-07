@@ -8,7 +8,7 @@ const read = path => readFileSync(path, 'utf8');
 test('Public and scoped Wall photo tiles request original bytes directly, never low-resolution sidecars', () => {
   const collage = read('src/components/BuklodCommunityPhotoCollage.tsx');
   const matches = collage.match(/useWallPreview=\{false\}/g) || [];
-  assert.equal(matches.length, 2, 'both single photo and collage must bypass preview-first rendering');
+  assert.ok(matches.length >= 3, 'single, collage and Swipe layout must bypass preview-first rendering');
   assert.doesNotMatch(collage, /^\s+useWallPreview\s*$/m);
 });
 
@@ -33,7 +33,7 @@ test('active native Wall video mounts even under degraded reachability, offscree
   const native = read('src/components/CommunityVideo.tsx');
   const web = read('src/components/CommunityVideo.web.tsx');
   assert.match(native, /useVideoPlayer\(/);
-  assert.match(native, /contentFit=\{fullscreen \|\| preserveAspectRatio \? 'contain' : 'cover'\}/);
+  assert.match(native, /contentFit=\{fullscreen \|\| \(preserveAspectRatio && !fillFrame\) \? 'contain' : 'cover'\}/);
   assert.match(web, /objectFit: fullscreen \|\| fitFrame \? 'contain' : 'cover'/);
 });
 

@@ -318,7 +318,7 @@ function createStyles(
       top: 0,
       left: 0,
       right: 0,
-      bottom: MARITES_COMPACT_FOOTER_HEIGHT,
+      bottom: 0,
       backgroundColor: colors.line,
     },
     mediaFill: {
@@ -382,7 +382,8 @@ function createStyles(
       borderTopColor: colors.line,
     },
     authorFooterOnPhoto: {
-      backgroundColor: 'rgba(8, 16, 12, 0.55)',
+      // Author metadata overlays the FULL media; no gray/opaque image truncation.
+      backgroundColor: 'rgba(8, 16, 12, 0.16)',
       borderTopWidth: 0,
     },
     authorName: {
@@ -393,6 +394,9 @@ function createStyles(
     },
     authorNameOnPhoto: {
       color: '#FFFFFF',
+      textShadowColor: 'rgba(0,0,0,0.9)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 3,
     },
     age: {
       fontSize: 7,
@@ -770,6 +774,7 @@ function MaritesStoryCard({
 
   const hasPhoto = getMaritesStoryPhotos(story).length > 0;
   const hasVideo = Boolean(story.video_uri);
+  const hasMedia = hasPhoto || hasVideo;
   const photoUris = getMaritesStoryPhotos(story);
   const body = story.body.trim();
   const emojiOnly =
@@ -801,7 +806,7 @@ function MaritesStoryCard({
         <BuklodMaritesPhotoCollage
           uris={photoUris}
           width={MARITES_COMPACT_CARD_WIDTH}
-          height={MARITES_COMPACT_CARD_HEIGHT - MARITES_COMPACT_FOOTER_HEIGHT}
+          height={MARITES_COMPACT_CARD_HEIGHT}
           style={styles.storyPhotoFill}
         />
       )}
@@ -844,7 +849,7 @@ function MaritesStoryCard({
       <View
         style={[
           styles.authorFooter,
-          hasPhoto && styles.authorFooterOnPhoto,
+          hasMedia && styles.authorFooterOnPhoto,
         ]}
         onStartShouldSetResponder={() => true}
       >
@@ -858,7 +863,7 @@ function MaritesStoryCard({
           numberOfLines={1}
           style={[
             styles.authorName,
-            hasPhoto && styles.authorNameOnPhoto,
+            hasMedia && styles.authorNameOnPhoto,
           ]}
         >
           {displayName}
@@ -866,7 +871,7 @@ function MaritesStoryCard({
         <Text
           style={[
             styles.age,
-            hasPhoto && styles.ageOnPhoto,
+            hasMedia && styles.ageOnPhoto,
           ]}
         >
           {story.author_only ? 'Ako lang · ' : ''}
@@ -876,7 +881,7 @@ function MaritesStoryCard({
           <Text
             style={[
               styles.reactionPill,
-              hasPhoto && styles.reactionPillOnPhoto,
+              hasMedia && styles.reactionPillOnPhoto,
             ]}
           >
             {topReactionEmoji} {reactionTotal}
