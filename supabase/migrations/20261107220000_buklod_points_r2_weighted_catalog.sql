@@ -13,7 +13,7 @@ values
 ('bible_quiz_hard', 'bible quiz hard', 12, 12, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('formation_assessment', 'formation assessment', 15, 15, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('formation_module', 'formation module', 30, 30, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
-('verified_church_attendance', 'verified church attendance', 10, 10, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
+('verified_cluster_attendance', 'verified church attendance', 10, 10, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('verified_volunteer_service', 'verified volunteer service', 20, 20, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('verified_mentoring_session', 'verified mentoring session', 25, 25, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('bible_weekly_streak', 'bible weekly streak', 15, 15, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
