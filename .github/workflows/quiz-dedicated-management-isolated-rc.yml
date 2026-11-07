@@ -1,0 +1,60 @@
+name: Quiz five-RPC isolated database contract
+on:
+  push:
+    branches:
+      - dev/quiz-consolidation-identity-audit-20261107
+    paths:
+      - .github/workflows/quiz-dedicated-management-isolated-rc.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quiz-dedicated-mgmt-rc-fixture
+  cancel-in-progress: true
+
+jobs:
+  synthetic-db-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: quiz_rc_fixture
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated_ci_password_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d quiz_rc_fixture"
+          --health-interval 5s
+          --health-timeout 4s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: quiz_rc_fixture
+      PGUSER: postgres
+      PGPASSWORD: isolated_ci_password_only
+      PGCONNECT_TIMEOUT: '8'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Ensure isolated PostgreSQL CLI
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Build synthetic Dedicated schema (NO production data)
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/quiz_dedicated_management_rc_fixture_20261107.sql
+      - name: Apply five pending function definitions to disposable CI PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/pending/quiz_consolidation/20261107_dedicated_exam_management_five_rpc_rc_only.sql
+      - name: Verify all positive/negative server-side data integrity contracts
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/quiz_dedicated_management_rc_assertions_20261107.sql
+      - name: Explicitly confirm synthetic DB only
+        run: |
+          echo 'Isolated local PostgreSQL contract done; no Supabase production/RC project was accessed.'
