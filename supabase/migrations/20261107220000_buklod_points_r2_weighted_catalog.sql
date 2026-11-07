@@ -42,6 +42,14 @@ set base_points=2, max_points_per_event=2,
     updated_at=now()
 where activity_type='community_comment';
 
+-- Approved Stage Completion is +75 BP, including its maximum per-event cap.
+-- This changes only future server-issued awards; never rewrite historic ledgers.
+update public.buklod_point_rules
+set base_points=75, max_points_per_event=75,
+ notes='Approved stage completion +75 BP per verified award, no retroactive adjustments',
+ updated_at=now()
+where activity_type='stage_completion';
+
 -- ABC already has validated, unique lesson completion source keys. New awards use R2 amount.
 -- Preserve historical ledger rows and the original source-key namespace.
 update public.buklod_point_rules set base_points=8,max_points_per_event=8,
