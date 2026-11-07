@@ -11,7 +11,8 @@ type FileRow={id:string;object_path:string;mime_type:string;created_at:string};
 const BUCKET='bsoc-support-evidence';
 
 export default function BsocInbox(){
- const {hasRole}=useAuth();
+ const [canRead,setCanRead]=useState<boolean|null>(null);
+ const [canManage,setCanManage]=useState(false);
  const [cases,setCases]=useState<Case[]>([]);
  const [caseId,setCaseId]=useState('');
  const [messages,setMessages]=useState<Msg[]>([]);
@@ -41,7 +42,21 @@ export default function BsocInbox(){
    }));
    setFiles(joined);
  },[caseId]);
- useEffect(()=>{if(!hasRole('system_admin'))return;void loadCases();void supabase.auth.getUser().then(({data})=>setUid(data.user?.id||null));},[hasRole,loadCases]);
+ useEffect(()=>{
+   let alive=true;
+   void Promise.all([
+     supabase.rpc('buklod_bsoc_can',{p_permission_key:'bsoc.support.read'}),
+     supabase.rpc('buklod_bsoc_can',{p_permission_key:'bsoc.support.manage'}),
+     supabase.auth.getUser(),
+   ]).then(([read,manage,auth])=>{
+     if(!alive)return;
+     setCanRead(!read.error&&read.data===true);
+     setCanManage(!manage.error&&manage.data===true);
+     setUid(auth.data.user?.id||null);
+   }).catch(()=>{if(alive)setCanRead(false);});
+   return ()=>{alive=false;};
+ },[]);
+ useEffect(()=>{if(canRead)void loadCases();},[canRead,loadCases]);
  useEffect(()=>{
    if(!caseId)return;
    void loadThread();
@@ -51,7 +66,7 @@ export default function BsocInbox(){
    return ()=>{void supabase.removeChannel(channel);};
  },[caseId,loadThread]);
  const send=async()=>{
-   if(!uid||!caseId||!draft.trim()||busy)return;
+   if(!canManage||!uid||!caseId||!draft.trim()||busy)return;
    setBusy(true);setError('');
    try{
      const {error:e}=await supabase.from('bsoc_case_messages').insert({
@@ -63,7 +78,8 @@ export default function BsocInbox(){
    }catch(e:any){setError(e?.message||'Could not send message');}
    finally{setBusy(false);}
  };
- if(!hasRole('system_admin'))return <View style={styles.page}><Text style={styles.h1}>System Admin only</Text></View>;
+ if(canRead===null)return <View style={styles.page}><ActivityIndicator color={colors.green}/></View>;
+ if(!canRead)return <View style={styles.page}><Text style={styles.h1}>BSOC support permission required</Text></View>;
  return <ScrollView style={styles.page} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
    <Pressable onPress={()=>router.back()}><Text style={styles.link}>‹ BSOC Operations</Text></Pressable>
    <Text style={styles.h1}>BSOC · Live Conversations</Text>
@@ -87,10 +103,10 @@ export default function BsocInbox(){
        <Text style={styles.link}>{f.mime_type.startsWith('image/')?'Photo':'Video'} evidence · View private attachment</Text>
        <Text style={styles.muted}>{new Date(f.created_at).toLocaleString()}</Text>
      </Pressable>)}
-     <TextInput style={styles.input} multiline placeholder="Reply as BSOC agent…" value={draft} onChangeText={setDraft}/>
-     <Pressable disabled={busy||!draft.trim()} style={styles.button} onPress={()=>void send()}>
+     {canManage?<TextInput style={styles.input} multiline placeholder="Reply as BSOC agent…" value={draft} onChangeText={setDraft}/>:<Text style={styles.muted}>Read-only support access: replies require BSOC support.manage.</Text>}
+     {canManage&&<Pressable disabled={busy||!draft.trim()} style={styles.button} onPress={()=>void send()}>
        <Text style={styles.buttonText}>{busy?'Sending…':'Send BSOC reply'}</Text>
-     </Pressable>
+     </Pressable>}
    </View>}
  </ScrollView>;
 }
