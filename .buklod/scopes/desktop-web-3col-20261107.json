@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Implement the owner-approved BUKLOD Main centered desktop web dashboard with left-side navigation and Contribution, center real Home/Wall, right account-scoped Connect and sponsor placements; remove desktop bottom-nav pane and no far-left tall external ad.",
-  "baseRef": "79f9040109ac4b87fbe6f1768c4904b9665f077c",
-  "productionBaselineEvidence": "Verified GitHub main source 79f9040109ac4b87fbe6f1768c4904b9665f077c at task start; source baseline only. Actual Expo Hosting live fingerprint and deployed source have not been independently verified. Android v28 production/runtime must not be inferred from these changes.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Source baseline verified: GitHub main at 3512c1be015d0ad9f70ea07990739b0a4d438147 during reconciliation; current CI main tracking branch is authoritative for changed-path comparison. This is source verification ONLY. The actually deployed BUKLOD Expo Hosting artifact/source fingerprint is NOT independently verified. Android v28/production OTA were not changed.",
   "chosenApproach": "Reuse existing route-owned real modules, with a new desktop-only web presentation shell selected at 1200px. Render left navigation, authentic Contribution, right cached/authenticated Connect previews and sponsor inventory. Preserve existing Expo Router screens and web phone/scoped shells. Desktop Home provides quick links to existing features rather than duplicate messaging, calling, post publishing, or financial engines.",
   "selectionRationale": "Current Public web always mounted MobileWebShell and bottom nav, while the tab-level desktop rail placeholders were empty. Implementing one public desktop shell avoids duplicated browser navigation, source coupling, and Android regressions. Account-scoped caching prevents another user's Connect records appearing after switching.",
   "alternativeApproaches": [
