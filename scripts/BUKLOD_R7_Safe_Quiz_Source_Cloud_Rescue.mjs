@@ -18,6 +18,17 @@ const ALLOWED=new Set(['source_code','media_or_fonts','config_or_documents']);
 const MAX_SINGLE_FILE=24*1024*1024;
 const MAX_TOTAL_BYTES=600*1024*1024;
 const MAX_FILES=26000;
+// Never send student gradebooks, unknown binary archives, or arbitrary documents
+// to a Git repository just because a previous classifier called them "config".
+const SOURCE_FORMAT=/\.(?:tsx?|jsx?|mjs|cjs|py|java|kt|swift|dart|rs|go|sql|sh|ps1|gradle|prisma|graphql|html|css|scss|sass|vue|svelte|cs|cpp|c|h|hpp|rb|php)$/i;
+const CONFIG_FORMAT=/\.(?:json|ya?ml|toml|xml|properties|config|lock)$/i;
+const MEDIA_FORMAT=/\.(?:png|jpe?g|webp|gif|svg|ico|bmp|avif|mp4|mov|webm|m4v|mp3|aac|ogg|wav|m4a|woff2?|ttf|otf|glb|gltf)$/i;
+function allowedTechnicalFile(rel,category){
+  if(category==='source_code')return SOURCE_FORMAT.test(rel)||/(^|\/)(Dockerfile|Makefile|Gemfile|Podfile)$/i.test(rel);
+  if(category==='config_or_documents')return CONFIG_FORMAT.test(rel);
+  if(category==='media_or_fonts')return MEDIA_FORMAT.test(rel);
+  return false;
+}
 
 function requireSafe(condition,reason){if(!condition)throw new Error(reason);}
 function git(args,options={}){
@@ -87,6 +98,9 @@ function looksSecretInBuffer(data,category){
   if(data.includes(0))return true; // source/config must be text, not arbitrary binary.
   const text=data.toString('utf8');
   if(text.includes('\uFFFD'))return true;
+  // A JSON file may be a student/customer record export rather than a configuration.
+  if(category==='config_or_documents' &&
+    /"(?:student_user_id|student_id|student_name|patient_id|medical_record|grades|gradebook|private_data|refresh_token|access_token)"\s*:/i.test(text))return true;
   return secretTokens.some(rule=>rule.test(text));
 }
 function checksum(file){return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');}
@@ -140,7 +154,7 @@ function stageAndCommit(repoDir){
 }
 function countByCategory(){
   return Object.fromEntries([...ALLOWED,'protected','unknown','generated','changed_since_audit',
-    'unreadable','potential_secret','oversize','symlink_or_escape'].map(k=>[k,0]));
+    'unreadable','potential_secret','oversize','symlink_or_escape','nontechnical_document'].map(k=>[k,0]));
 }
 function sanitizeName(name){
   return name==='R10' || name==='BUILD';
@@ -170,6 +184,12 @@ async function smokeTest(){
       requireSafe(looksProtectedName(sensitive),'Protected filename was accepted');
     requireSafe(generatedPath('node_modules/pkg/src/index.ts')&&
       generatedPath('android/build/resources/file.xml'),'Generated path not classified');
+    requireSafe(allowedTechnicalFile('src/screen.tsx','source_code')&&
+      allowedTechnicalFile('package.json','config_or_documents')&&
+      !allowedTechnicalFile('students.xlsx','config_or_documents')&&
+      !allowedTechnicalFile('archive.7z','source_code')&&
+      !allowedTechnicalFile('logs/2026.csv','config_or_documents'),
+      'Technical whitelist allowed personal documents or unknown binaries');
     requireSafe(looksSecretInBuffer(Buffer.from('ghp_abcdefghijklmnopqrst123456'),'source_code'),
       'A known secret example was accepted');
     requireSafe(!looksSecretInBuffer(Buffer.from("const x = process.env.SUPABASE_SERVICE_ROLE_KEY;\n"),'source_code'),
@@ -236,6 +256,7 @@ async function main(){
       if(looksProtectedName(rel)){counted.protected++;continue;}
       if(generatedPath(rel)){counted.generated++;continue;}
       if(!ALLOWED.has(row.category)){counted.unknown++;continue;}
+      if(!allowedTechnicalFile(rel,row.category)){counted.nontechnical_document++;continue;}
       const originalBytes=Number(row.bytes);
       if(!Number.isSafeInteger(originalBytes)||originalBytes<0){counted.unreadable++;continue;}
       if(originalBytes>MAX_SINGLE_FILE){counted.oversize++;continue;}
