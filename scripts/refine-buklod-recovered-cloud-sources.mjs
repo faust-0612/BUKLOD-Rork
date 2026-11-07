@@ -80,7 +80,8 @@ try{
     checked(run(GH,['repo','view',name,'--json','isPrivate','--jq','.isPrivate'])==='true','Not a verified private repository: '+name);
   const origin=run('git',['-C',source,'remote','get-url','origin']);
   checked(origin.replace(/\.git$/,'').endsWith('/'+repo),'Unexpected remote origin: '+origin);
-  const originalSha=run('git',['-C',source,'rev-parse','HEAD']);
+  // Resolve the immutable original recovery head, not the currently selected cleanup branch.
+  const originalSha=run('git',['-C',source,'rev-parse','refs/heads/'+prior.sourceBranch]);
   const onServer=run('git',['ls-remote','https://github.com/'+repo+'.git','refs/heads/'+prior.sourceBranch]).split(/\s+/)[0];
   checked(originalSha===onServer,'Recovery branch changed since verification; refusing modifications');
   checked(!run('git',['-C',source,'status','--porcelain','--untracked-files=no']),'Working tree has tracked local edits. Refusing automatic commit.');
@@ -131,9 +132,11 @@ try{
   // Prepare recovery-only cleanup branch. Every SDK removal is INDEX-ONLY, NOT file deletion.
   const cleaned='migration/refined-'+id;
   const onLocal=run('git',['-C',source,'branch','--list',cleaned]);
-  if(!onLocal){run('git',['-C',source,'switch','-c',cleaned],{quiet:false});}
-  else {
-    const current=run('git',['-C',source,'branch','--show-current']);
+  const current=run('git',['-C',source,'branch','--show-current']);
+  if(!onLocal){
+    checked(current===prior.sourceBranch,'Unexpected local branch; refusing branch creation.');
+    run('git',['-C',source,'switch','-c',cleaned],{quiet:false});
+  }else{
     checked(current===cleaned,'Refined branch exists; selected branch differs. Refusing to modify.');
   }
   // Remove only bundled Android SDK directories from Git INDEX, not filesystem.
