@@ -107,9 +107,6 @@ function ProfileQuickActionsStrip({
   styles: ReturnType<typeof createMeStyles>;
   theme: ReturnType<typeof useBuklodTheme>['theme'];
 }) {
-  const [horizontalDragging, setHorizontalDragging] =
-    useState(false);
-
   return (
     <ScrollView
       horizontal
@@ -121,14 +118,9 @@ function ProfileQuickActionsStrip({
       snapToInterval={QUICK_ACTION_SNAP_INTERVAL}
       snapToAlignment="start"
       scrollEventThrottle={16}
-      onScrollBeginDrag={() => setHorizontalDragging(true)}
-      onScrollEndDrag={(event) => {
-        const velocityX = event.nativeEvent.velocity?.x ?? 0;
-        if (Math.abs(velocityX) < 0.05) {
-          setHorizontalDragging(false);
-        }
-      }}
-      onMomentumScrollEnd={() => setHorizontalDragging(false)}
+      // The nested BuklodPressable already cancels drag gestures. Avoid
+      // disabling buttons from ScrollView momentum events: short drags may
+      // never fire onMomentumScrollEnd and formerly locked Advertise.
       contentContainerStyle={styles.quickRow}
     >
       {items.map((item, index) => (
@@ -140,7 +132,9 @@ function ProfileQuickActionsStrip({
           fromOpacity={0.78}
         >
           <ProfilePressable
-            disabled={horizontalDragging}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
+            testID={`profile-quick-${item.key}`}
             onPress={item.onPress}
             style={styles.quickAction}
           >
