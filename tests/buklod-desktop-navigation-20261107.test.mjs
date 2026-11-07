@@ -136,3 +136,15 @@ test('member profiles use contextual privacy-aware preview with optional Expand'
   assert.match(preview, /result\?\.viewerId === viewerId/);
   assert.match(dock, /kind: 'profile'/);
 });
+
+
+test('instant navigation treats only secondary destinations as contextual', () => {
+  const instant = read('src/lib/buklodInstantNavigation.ts');
+  assert.match(instant, /resolveBuklodContextualHref/);
+  assert.match(instant, /if \(detail && tryOpenBuklodDesktopDock\(detail\)\) return/);
+  assert.match(instant, /router\.replace\(href as any\)/);
+  assert.match(instant, /router\.push\(href as any\)/);
+  assert.match(instant, /pathname === '\/connect\/personal\/\[threadId\]'/);
+  assert.match(instant, /pathname === '\/member\/\[id\]'/);
+  assert.doesNotMatch(instant, /\/reels\/\[id\]|\/login\/\[id\]|\/scope\/\[id\]/);
+});
