@@ -22,7 +22,8 @@ jobs:
       (startsWith(github.event.head_commit.message, 'release(buklod): one-time prod OTA and web 2026-11-07') ||
        startsWith(github.event.head_commit.message, 'release(buklod): Android OTA recovery 2026-11-07') ||
        startsWith(github.event.head_commit.message, 'release(buklod): Advertise E2E production 2026-11-07') ||
-       startsWith(github.event.head_commit.message, 'release(buklod): Advertise submit-admin prod 2026-11-07'))
+       startsWith(github.event.head_commit.message, 'release(buklod): Advertise submit-admin prod 2026-11-07') ||
+       startsWith(github.event.head_commit.message, 'release(buklod): Advertise web file upload 2026-11-07'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -44,6 +45,8 @@ jobs:
               targets=("production_android_ota.yml|BUKLOD/Android production OTA" "production_web_deploy.yml|BUKLOD/Expo Hosting production web") ;;
             'release(buklod): Advertise submit-admin prod 2026-11-07')
               targets=("production_android_ota.yml|BUKLOD/Android production OTA" "production_web_deploy.yml|BUKLOD/Expo Hosting production web") ;;
+            'release(buklod): Advertise web file upload 2026-11-07')
+              targets=("production_web_deploy.yml|BUKLOD/Expo Hosting production web") ;;
             *)
               echo "STOP: no authorized release marker"; exit 1 ;;
           esac
@@ -86,7 +89,7 @@ jobs:
           if [ "$branch" != main ] || [ "$event" != workflow_dispatch ]; then exit 0; fi
           commit_title="$(curl -fsSL "${h[@]}" "$api/commits/$source_sha" | jq -r '.commit.message | split("\n")[0]')"
           case "$commit_title" in
-            'release(buklod): one-time prod OTA and web 2026-11-07'|'release(buklod): Android OTA recovery 2026-11-07'|'release(buklod): Advertise E2E production 2026-11-07'|'release(buklod): Advertise submit-admin prod 2026-11-07') ;;
+            'release(buklod): one-time prod OTA and web 2026-11-07'|'release(buklod): Android OTA recovery 2026-11-07'|'release(buklod): Advertise E2E production 2026-11-07'|'release(buklod): Advertise submit-admin prod 2026-11-07'|'release(buklod): Advertise web file upload 2026-11-07') ;;
             *) exit 0 ;;
           esac
           case "$name" in
