@@ -213,7 +213,9 @@ export function BuklodCommunityPhotoCollage({
         <BuklodCachedMediaImage
           uri={photos[0].media_url}
           mediaPath={photos[0].media_path}
-          useWallPreview
+          // Render the authorized original directly on Android: a tiny preview
+          // must not remain visible after the original has downloaded.
+          useWallPreview={false}
           previewPath={photos[0].preview_path}
           style={[styles.image, imageStyle]}
           // Normal ratios remain edge-to-edge; extreme ratios show every pixel.
@@ -308,7 +310,7 @@ export function BuklodCommunityPhotoCollage({
             <BuklodCachedMediaImage
               uri={photo.media_url}
               mediaPath={photo.media_path}
-              useWallPreview
+              useWallPreview={false}
               previewPath={photo.preview_path}
               style={[styles.image, imageStyle]}
               contentFit={contentFit}
