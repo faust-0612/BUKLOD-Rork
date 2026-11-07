@@ -1,3 +1,17 @@
+-- Explicitly activated only for evidence-reviewed, admin-approved accomplishments.
+-- User submissions NEVER mint points directly. One nomination per user/achievement.
+update public.buklod_point_rules
+set is_active=true,
+    daily_cap_points=base_points,
+    weekly_cap_points=base_points,
+    notes='R2 evidence nomination, reviewed by System Admin, one-time source key',
+    updated_at=now()
+where activity_type in (
+ 'achievement_bible_scholar','achievement_community_builder',
+ 'achievement_faithful_mentor','achievement_kingdom_champion',
+ 'verified_volunteer_service','ministry_major_milestone',
+ 'game_tournament_champion');
+
 -- R2 live monitoring and evidence-reviewed milestone nominations.
 -- Monitor uses canonical ledger credits, not claimed balance or assumed percentages.
 create table if not exists public.buklod_r2_achievement_nominations(
@@ -28,7 +42,9 @@ declare actor uuid:=(select auth.uid()); kind text:=lower(trim(coalesce(p_activi
 begin
  if actor is null then raise exception 'Authentication required'; end if;
  if kind not in ('achievement_bible_scholar','achievement_community_builder',
- 'achievement_faithful_mentor','achievement_kingdom_champion') then
+ 'achievement_faithful_mentor','achievement_kingdom_champion',
+ 'verified_volunteer_service','ministry_major_milestone',
+ 'game_tournament_champion') then
    raise exception 'Unknown milestone';
  end if;
  if length(proof)<60 or length(proof)>2000 then
@@ -66,7 +82,8 @@ begin
  end if;
  if p_approve then
    award:=public.admin_award_buklod_r2_accomplishment_v1(
-     row_rec.user_id,row_rec.activity_type,'lifetime',row_rec.evidence_note,'easy');
+     row_rec.user_id,row_rec.activity_type,
+     'lifetime',row_rec.evidence_note,'easy');
    update public.buklod_r2_achievement_nominations
    set status='approved',reviewed_by=actor,reviewed_at=now(),review_note=trim(p_note),
        ledger_id=(award->>'ledger_id')::uuid
