@@ -30,6 +30,7 @@ const audit={
  schema:'buklod-historical-parity/v7',started:new Date().toISOString(),
  status:'NOT_STARTED',scanComplete:true,filesExamined:0,historicalFolders:0,
  historicalFiles:0,historicalBytes:0,alreadyInGit:0,alreadyInV3V6:0,
+ previousExclusionsUnitemized:0,unknownStagedFilesFromEarlierWave:24,
  localContentDuplicates:0,uniqueFiles:0,uniqueBytes:0,
  uniqueByType:{},byTopRoot:{},unreadable:[],missingRoots:[],
  generatedFoldersExcluded:0,originalFilesDeleted:0,cloudUploadsMade:0,
@@ -69,6 +70,7 @@ try{
  const v3=JSON.parse(fs.readFileSync(path.join(base,'RESUMABLE_REMAINING_ASSETS_V3.json'),'utf8'));
  const v6=JSON.parse(fs.readFileSync(path.join(base,'ARCHIVE_COMPLETENESS_AND_REPAIR_V6.json'),'utf8'));
  must(prior.sourceVerified===true&&prior.secretVaultVerified===true,'Cloud source/vault not verified');
+ audit.previousExclusionsUnitemized=Number(prior.unlistedExclusions||0);
  must(v3.cloudVerified===true&&v3.volumesVerified>=2,'Previous V3 release not verified');
  must(v6.allAvailableV3CandidatesAccountedFor===true&&v6.v6RepairArchiveVerified===true&&v6.v6RemoteVolumesVerified>=1,
    'V6 file coverage and cloud checksum not verified');
@@ -161,6 +163,7 @@ try{
  console.log('Unique historical data (GiB):',(audit.uniqueBytes/1024**3).toFixed(2));
  console.log('Categories:',JSON.stringify(audit.uniqueByType));
  console.log('Unavailable roots:',audit.missingRoots.length,'unreadable:',audit.unreadable.length,'scan complete:',audit.scanComplete);
+ console.log('Previous exclusions without item-level accounting:',audit.previousExclusionsUnitemized);
  console.log('Report:',reportPath);
  console.log('LOCAL DELETION STILL NOT AUTHORIZED. Historical unique files not yet uploaded and app builds pending.');
 }catch(e){
