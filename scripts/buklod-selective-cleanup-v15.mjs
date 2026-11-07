@@ -287,6 +287,10 @@ function selfTest(){
     "Personal recovery photos must be retained");
   assert(riskProtect("D:\\\\BUKLOD\\\\state\\\\attendance.sqlite")==="unproven",
     "Local mutable databases require app-specific migration proof");
+  assert(candidateRoot("D:\\Projects\\Quiz",true),
+    "Frozen V3 standalone Quiz root must be recognized");
+  assert(!candidateRoot("D:\\Projects\\Unrelated",true),
+    "V3 inventory must not enable arbitrary folder cleanup");
   assert(generatedDirs.test("node_modules")&&generatedDirs.test("build"),
     "Cache classification invalid");
   const mockRoot=path.join(dir,"demo"),nested=path.join(mockRoot,"build");
@@ -310,7 +314,7 @@ function selfTest(){
 }
 if(process.argv.includes("--self-test")){selfTest();process.exit(0)}
 function validatedCloudPrerequisites(){
- const st=jread(path.join(BASE,"STATUS.json"));
+ // STATUS.json can be missing: original V3 map + remote SHA are authoritative.
  const v3=jread(path.join(BASE,"RESUMABLE_REMAINING_ASSETS_V3.json"));
  const v6=jread(path.join(BASE,"ARCHIVE_COMPLETENESS_AND_REPAIR_V6.json"));
  const v7=jread(path.join(BASE,"HISTORICAL_UNIQUE_FILES_V7.json"));
@@ -354,7 +358,7 @@ function inventoryRoots(v3Plan){
   if(typeof entry.path!=="string"||!path.isAbsolute(entry.path))continue;
   const abs=path.resolve(entry.path),name=norm(abs);
   if(!fs.existsSync(abs))continue;
-  if(!candidateRoot(abs,false)){
+  if(!candidateRoot(abs,true)){
     rejected.add(path.basename(abs));
     continue;
   }
