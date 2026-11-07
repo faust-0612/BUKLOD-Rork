@@ -36,7 +36,13 @@ export default function SupportCenter(){
           <Text style={shared.muted}>Quick answers about privacy, pilot testing, notifications, and common app workflows.</Text>
           <TextInput value={query} onChangeText={setQuery}
             placeholder="Search help..." style={styles.search}/>
-          <Button title="LIVE SUPPORT · CHAT / PHOTO / VIDEO" onPress={()=>router.push('/support/live' as any)}/>
+          <View style={{backgroundColor:'#e7f6ee',padding:13,borderRadius:12,marginVertical:9}}>
+            <Text style={{fontSize:16,fontWeight:'800',color:colors.green}}>Live Chat · Report a Problem</Text>
+            <Text style={{color:colors.text,marginTop:6,lineHeight:20}}>
+              Ilarawan ang problema at kung saang screen ito nangyari. Mag-attach ng screenshot, larawan, o maikling video kung kailangan para makita at maayos ang issue. Takpan ang private details; huwag mag-send ng password o OTP.
+            </Text>
+          </View>
+          <Button title="OPEN LIVE CHAT · SEND SCREENSHOT / VIDEO" onPress={()=>router.push('/support/live' as any)}/>
           <Button title="SEND FEEDBACK" onPress={()=>router.push('/feedback')}/>
         </View>}
         ListEmptyComponent={<Card><Text style={shared.muted}>No help article matches your search.</Text></Card>}
