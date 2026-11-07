@@ -1,0 +1,50 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix user-reported invisible/delayed caption typing on Android, tighten excessive empty space in Public and scoped Community Wall posts, and retain existing short-text big-letter behavior and approved Wall design.",
+  "baseRef": "e2441104e1640490a937735c15e002bdae518dce",
+  "productionBaselineEvidence": "User posted Android Production Wall screenshots on 2026-11-07 confirming approved Wall feed structure, but reported tall blank spaces and delayed/invisible text input. Prior confirmed main e2441104e1640490a937735c15e002bdae518dce includes Home contribution move; installed exact Android OTA runtime 1.3.2 update ID and this new patch publication are not yet independently verified. Source-only DEV release candidate.",
+  "chosenApproach": "Replace transparent TextInput and overlaid mirror in shared mention composer with immediately visible native TextInput; preserve @mention selection, candidates, account-scoped posting and text-only big letters. Shrink only existing feed-shell gap/margins, duplicated Public header margins, body margins and scoped photo separation; preserve approved Wall structure and media engines.",
+  "selectionRationale": "Transparent glyphs with asynchronous mirror paint can make typed captions appear delayed or invisible on Android. The same shared component is used by Public and scoped Walls. Header/body margin layering and shared card gap account for screenshot whitespace; adjust only those constants rather than redesign cards.",
+  "alternativeApproaches": [
+    "Only lighten or recolor the mirror overlay (rejected: native text remains transparent and still depends on mirror frame timing).",
+    "Replace the composer, post card and media engines (rejected: unnecessary risk to published Wall design and editing behaviors).",
+    "Enlarge every photo caption (rejected: approved large-text policy is for short text-only posts, media captions remain one-line)."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "community-post-presentation",
+    "caption-compose",
+    "scope-parity",
+    "Android text rendering"
+  ],
+  "preserveBehaviors": [
+    "Approved Wall header, Marites, location tabs, composer entry, Like/Comment/Share and bottom navigation stay unchanged",
+    "Public and Organization/Suborganization/Cluster Wall share same caption/memory and card shell",
+    "Existing big-text 25sp for 1–80 Unicode codepoints in text-only posts, one-line media caption See more/See less and mention links remain unchanged",
+    "Typed mentions and audience-scoped RPC suggestions remain functional; visible native typing supersedes temporary edit-time colored mention overlay only",
+    "Media dimensions, signed URLs, upload paths, fullscreen, photo collage, feed paging, scroll callbacks, permission checks, privacy and ad placements untouched",
+    "Previously merged Community Contribution Home-only placement remains unchanged",
+    "No backend, database, native module, package identity or Expo runtime changes; Android production OTA requires independent release gates"
+  ],
+  "regressionTests": [
+    "tests/community-wall-caption-immediate-compact-navigation-scroll-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Typed characters are rendered by native TextInput without waiting for overlay",
+    "Public, scoped and Reels composer continue to support selected mentions, cursor and tag suggestions",
+    "Original caption large-letter policy remains, media captions still one line with expansion",
+    "Visible blank spaces shrink between avatar metadata, caption, image and next post with no button target change",
+    "Existing Wall composition, scroll anchors, Marites, photo/video and card privacy preserved",
+    "TypeScript + regression CI must pass exact branch head before merging"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodMentionField.tsx",
+    "src/components/BuklodCommunityWallPostCard.tsx",
+    "src/app/(tabs)/buklodCommunityStyles.ts",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/community-wall-caption-immediate-compact-navigation-scroll-20261107.test.mjs",
+    ".buklod/scopes/community-wall-caption-immediate-compact-20261107.json"
+  ]
+}

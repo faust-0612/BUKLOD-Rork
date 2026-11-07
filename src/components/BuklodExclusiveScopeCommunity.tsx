@@ -5115,7 +5115,7 @@ const styles =
         maxWidth:
           '100%',
         marginTop:
-          10,
+          4,
         overflow:
           'hidden',
       },
@@ -5195,7 +5195,7 @@ const styles =
 
       body: {
         marginTop:
-          11,
+          4,
         color:
           colors.text,
         fontSize:

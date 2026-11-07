@@ -125,7 +125,7 @@ toolText:{
  color:c.greenDark
 },
 preview:{width:'100%',height:210,borderRadius:12,marginTop:10,marginBottom:8},filter:{gap:7,paddingBottom:4},rank:{flexDirection:'row',alignItems:'center',gap:8,paddingTop:9,marginTop:9,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:c.line},rankNo:{width:30,fontWeight:'900',color:c.greenDark},rankName:{flex:1,fontWeight:'900',color:c.text},rankPts:{fontSize:11,fontWeight:'900',color:c.greenDark},
-author:{fontSize:15,fontWeight:'900',color:c.text},meta:{marginTop:3,fontSize:9.5,color:c.muted},body:{marginTop:10,fontSize:16,lineHeight:23,color:c.text},postImage:{width:'100%',height:240,borderRadius:12,marginTop:10},
+author:{fontSize:15,fontWeight:'900',color:c.text},meta:{marginTop:3,fontSize:9.5,color:c.muted},body:{marginTop:4,fontSize:16,lineHeight:23,color:c.text},postImage:{width:'100%',height:240,borderRadius:12,marginTop:10},
 rx:{
  flexDirection:'row',
  alignItems:'center',
