@@ -172,6 +172,14 @@ jobs:
       - name: Verify V28 native Expo config compatibility guard
         run: node --test tests/native-expo-config-compat.test.cjs
 
+      - name: Validate complete BUKLOD Kingdom before production release
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/game-kingdom-release-contract.mjs
+          node --experimental-strip-types --test tests/kingdom-*.test.mjs
+          node scripts/test-kingdom-game-platform-r1.mjs
+
       - name: Expo credential preflight
         if: github.ref == 'refs/heads/main'
         id: expo

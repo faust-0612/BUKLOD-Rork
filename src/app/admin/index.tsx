@@ -391,6 +391,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="trophy-award"
+                title="R2 Points Live Monitor"
+                subtitle="Real issued credits, focus breakdown, mentor-photo reviews and milestone approvals"
+                path="/admin/points-r2-monitor"
+              />
+
+              <AdminRow
                 icon="finance"
                 title="Economy, Bayanihan & Shares"
                 subtitle="Funded pools, BCU/RCU weights, finalized user shares and cash ledger"

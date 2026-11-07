@@ -1,23 +1,41 @@
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-
+import { MergeGameV1 } from '@/features/games/kingdom/platform/MergeGameV1';
 import { KingdomTreasuryGameV1 } from '@/features/games/angel/KingdomTreasuryGameV1';
-import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
+import { NumberVaultGameV1 } from '@/features/games/angel/NumberVaultGameV1';
+import {
+  KingdomInteriorCenter, type KingdomInteriorOption,
+} from '@/features/games/kingdom/platform/KingdomInteriorCenter';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const GAME_ID = 'angel-kingdom-treasury';
+const OPTIONS: readonly KingdomInteriorOption[] = [
+  {
+    id: 'angel-treasure-merge', title: 'Treasure Merge',
+    descriptionEn: 'Merge valuable treasures into the kingdom collection',
+    descriptionTl: 'Pagsamahin ang mga kayamanan para sa koleksiyon',
+    kind: 'pilot', render: finish => <MergeGameV1 gameId="angel-treasure-merge" onFinish={finish} />,
+  },
+
+  {
+    id: 'angel-number-vault', title: 'Number Vault',
+    descriptionEn: 'Three mathematical treasure vaults',
+    descriptionTl: 'Tatlong vault na may mathematical puzzles',
+    kind: 'pilot', render: finish => <NumberVaultGameV1 onFinish={finish} />,
+  },
+  {
+    id: GAME_ID, title: 'Kingdom Treasury',
+    descriptionEn: 'Original kingdom finance simulation',
+    descriptionTl: 'Orihinal na laro sa yaman at badyet ng kaharian',
+    kind: 'existing', render: (_finish, originalFinish) =>
+      <KingdomTreasuryGameV1 onFinish={originalFinish} />,
+  },
+];
 
 export default function AngelKingdomTreasuryScreen() {
-  return (
-    <BuklodGameStage biome="treasury" gameId={GAME_ID}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.page}>
-        <KingdomTreasuryGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
-      </ScrollView>
-    </BuklodGameStage>
-  );
+  return <BuklodGameStage biome="treasury" gameId={GAME_ID}>
+    <KingdomInteriorCenter character="Angel"
+      subtitleEn="Balance the kingdom economy and unlock its number vaults."
+      subtitleTl="Ingatan ang kabang-yaman at buksan ang mga number vault."
+      options={OPTIONS} />
+  </BuklodGameStage>;
 }
-
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  page: { flexGrow: 1, paddingTop: 18, paddingBottom: 36 },
-});

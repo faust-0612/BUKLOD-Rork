@@ -52,6 +52,7 @@ import {
 } from '@/components/HomeMotion';
 
 import BuklodFindAChurchDoorway from '@/components/BuklodFindAChurchDoorway';
+import BuklodHomeCheckinToday from '@/components/BuklodHomeCheckinToday';
 import {
   fetchScopeFaithAccessStatus,
   type ScopeFaithAccessStatus,
@@ -566,6 +567,23 @@ export default function BuklodHomeFaithPanel({
         </View>
       </View>
 
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Play Daily Bible Quiz"
+        onPress={() => router.push('/faith/bible-quiz' as any)}
+        style={{marginHorizontal:12,marginBottom:10,padding:12,borderRadius:14,
+          backgroundColor:'#EAF5EA',borderWidth:1,borderColor:'#B8D8BD',
+          flexDirection:'row',alignItems:'center',gap:10}}
+      >
+        <MaterialCommunityIcons name="help-circle-outline" size={24} color="#236842" />
+        <View style={{flex:1}}>
+          <Text style={{fontSize:13,fontWeight:'900',color:'#195C37'}}>Daily Bible Quiz</Text>
+          <Text style={{fontSize:11,color:'#486B55'}}>Easy +3 · Medium +6 · Hard +12 BP · 5 auto questions daily</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={22} color="#236842"/>
+      </Pressable>
+      <BuklodHomeCheckinToday />
+
       <View style={styles.grid}>
         <FaithAction
           compact={compact}
@@ -697,7 +715,7 @@ export default function BuklodHomeFaithPanel({
           compact={compact}
           label="ABAKA"
           title="ABAKA ng Bagong Likha"
-          meta="Sunday school • A–Z • +5 points"
+          meta="Sunday school • A–Z • +8 BP per verified lesson"
           icon="school-outline"
           tone="bible"
           onPress={() =>

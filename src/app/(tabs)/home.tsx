@@ -1,3 +1,4 @@
+import BuklodHomeCheckinToday from '@/components/BuklodHomeCheckinToday';
 import BuklodPublicCommunityBulletin from '@/components/BuklodPublicCommunityBulletin';
 import BuklodPremiumMusicDeck from '@/components/BuklodPremiumMusicDeck';
 import BuklodPublicWordShortcut from '@/components/BuklodPublicWordShortcut';
@@ -588,6 +589,30 @@ export default function HomeScreen() {
     >
       {/* CONTINUOUS_USE_STABILITY_R1: Home refreshes quietly; no blocking spinner/layout jump. */}
       <EnvironmentBadge />
+      {/* BUKLOD R3 canonical public Home earning actions, independent of academic Quiz. */}
+      <View style={{ paddingHorizontal: 10, gap: 10 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open today's Bible Quiz, choose Easy Medium or Hard for BUKLOD Points"
+          onPress={() => router.push('/faith/bible-quiz' as any)}
+          style={{backgroundColor:'#103F37',padding:16,borderRadius:16,
+            flexDirection:'row',gap:11,alignItems:'center',borderColor:'#D5B25E',borderWidth:2}}
+        >
+          <MaterialCommunityIcons name="book-open-variant" size={29} color="#F5CC75"/>
+          <View style={{flex:1,gap:3}}>
+            <Text style={{fontSize:15,fontWeight:'900',color:'#FFF2CB'}}>TODAY'S BIBLE QUIZ</Text>
+            <Text style={{fontSize:11,color:'#E6F2E9'}}>
+              5 automatic daily questions · Select Easy (+3), Medium (+6), Hard (+12 BP)
+            </Text>
+            <Text style={{fontSize:10,color:'#C5DED3'}}>
+              Need 4 of 5 correct · One daily attempt · Points after verified score
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#F5CC75"/>
+        </Pressable>
+        <BuklodHomeCheckinToday />
+      </View>
+
 
       <HomeMotionSection delay={20}>
         <BuklodSystemAnnouncementBoard slot="public_home" />
