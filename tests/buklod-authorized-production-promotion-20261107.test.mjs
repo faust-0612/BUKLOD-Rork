@@ -12,7 +12,7 @@ const runtimeGate = read('scripts/android-ota-rc.cjs');
 test('one-shot promotion only runs from explicitly authorized main source update', () => {
   assert.match(trigger, /branches: \[main\]/);
   assert.match(trigger, /paths: \[\.github\/workflows\/buklod-authorized-production-20261107\.yml\]/);
-  assert.match(trigger, /github\.event\.head_commit\.message == 'release\(buklod\): one-time prod OTA and web 2026-11-07'/);
+  assert.match(trigger, /startsWith\(github\.event\.head_commit\.message, 'release\(buklod\): one-time prod OTA and web 2026-11-07'\)/);
   assert.match(trigger, /test "\$GITHUB_REF" = "refs\/heads\/main"/);
   assert.match(trigger, /test "\$head" = "\$GITHUB_SHA"/);
   assert.doesNotMatch(trigger, /npx eas-cli|npx eas update|npx eas deploy/,
