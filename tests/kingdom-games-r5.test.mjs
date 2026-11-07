@@ -46,3 +46,17 @@ test('Code Breaker UI routes selected slot intent into pure rule and does not se
   assert.ok(src.includes('reward: { xp: 0, kingdomXp: 0 }'));
   assert.ok(!src.includes('.rpc('));
 });
+
+
+test('Kingdom account switching remounts all five pilot game scenes, preventing old game sessions from crossing into a new profile', () => {
+  const read = file => fs.readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const shared = read('src/features/games/kingdom/platform/KingdomInteriorCenter.tsx');
+  const christian = read('src/app/games/christian-civic-leadership.tsx');
+  const mitch = read('src/app/games/mitch-restore-mural.tsx');
+  assert.ok(shared.includes("key={(user?.id ?? 'guest') + ':' + active.id}"));
+  assert.ok(christian.includes("<BibleCrownGameV1 key={user?.id ?? 'guest'}"));
+  assert.ok(christian.includes("<ScriptureWordSearchGameV1 key={user?.id ?? 'guest'}"));
+  assert.ok(mitch.includes("<BlockForgeGameV1 key={user?.id ?? 'guest'}"));
+  assert.ok(christian.includes("<CivicLeadershipGameV1 key={user?.id ?? 'guest'}"));
+  assert.ok(mitch.includes("<RestoreMuralGameV1 key={user?.id ?? 'guest'}"));
+});
