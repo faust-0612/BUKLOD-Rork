@@ -63,8 +63,10 @@ begin
   if not exists (
     select 1 from public.profiles p
     left join public.buklod_living_celebration_preferences cp on cp.user_id=p.id
+    left join public.buklod_user_preferences up on up.user_id=p.id
     where p.id=new.user_id and p.is_active is true
       and coalesce(cp.welcome_to_network,true) is true
+      and coalesce(up.profile_locked,false) is false
   ) then return new; end if;
 
   insert into public.buklod_living_network_events
@@ -113,7 +115,10 @@ language sql stable security definer set search_path='' as $$
   left join public.buklod_scopes s on s.id=e.scope_id and s.status='ACTIVE'
   left join public.buklod_living_celebration_preferences cp
     on cp.user_id=e.subject_user_id
+  left join public.buklod_user_preferences up
+    on up.user_id=e.subject_user_id
   where (select auth.uid()) is not null
+    and coalesce(up.profile_locked,false) is false
     and e.subject_user_id <> (select auth.uid())
     and e.occurred_at >= now()-interval '7 days'
     and e.occurred_at <= now()
@@ -159,7 +164,8 @@ begin
   from public.profiles p
   join public.buklod_living_celebration_preferences cp
     on cp.user_id=p.id and cp.birthday_to_network is true
-  where p.is_active is true
+  left join public.buklod_user_preferences up on up.user_id=p.id
+  where p.is_active is true and coalesce(up.profile_locked,false) is false
     and p.birth_date is not null
     and extract(month from p.birth_date)=extract(month from now() at time zone 'Asia/Manila')
     and extract(day from p.birth_date)=extract(day from now() at time zone 'Asia/Manila')
@@ -185,7 +191,9 @@ begin
     join public.profiles p on p.id=e.subject_user_id and p.is_active is true
     left join public.buklod_living_celebration_preferences cp
       on cp.user_id=e.subject_user_id
+    left join public.buklod_user_preferences up on up.user_id=e.subject_user_id
     where e.occurred_at between now()-interval '7 days' and now()
+      and coalesce(up.profile_locked,false) is false
       and case when e.event_kind='birthday'
         then coalesce(cp.birthday_to_network,false)
         else coalesce(cp.welcome_to_network,true) end
