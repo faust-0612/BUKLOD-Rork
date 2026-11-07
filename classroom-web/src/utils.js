@@ -16,3 +16,19 @@ export function formatDate(value) {
 export function clampText(value, limit) {
   return String(value || '').trim().slice(0,Math.max(0,limit));
 }
+
+/** UI guard only; the server independently revalidates faculty ownership. */
+export function canRequestClassDeletion(context, signedInUserId) {
+  return Boolean(
+    signedInUserId &&
+    context?.role === 'FACULTY' &&
+    context?.faculty_user_id === signedInUserId
+  );
+}
+/** Exact, case-sensitive classroom name avoids deleting the wrong class. */
+export function deletionNameMatches(typedName, canonicalName) {
+  return typeof typedName === 'string' &&
+    typeof canonicalName === 'string' &&
+    canonicalName.trim().length > 0 &&
+    typedName === canonicalName.trim();
+}
