@@ -20,7 +20,7 @@ Release blockers:
 3. Authenticated Points earn-claim-ledger-character and BSOC member-agent message, screenshot/video upload, notification and staff role readiness E2E must be demonstrated.
 4. Android installed V28 package org.mzbministry.buklod, runtime 1.3.2, EAS Main project 23dad7d0-389a-406e-8dec-08965dab85d8 and exact compiled update artifact must be frozen and verified. Owner waived physical device smoke only.
 5. Main Expo Hosting web must be built and verified from exactly the same audited RC; avoid confusing Classroom or QuickCheck Vercel projects with BUKLOD Main.
-6. Centered small share card, music/audio in posts, photo/post animation and proactive welcome/birthday/holiday/story-release notifications are not confirmed merged here; cannot be promised live without code and tests.
+6. Centered Share dialog and Public Wall music/photo motion source are integrated, but not live. Living-community welcome/birthday/holiday/story alerts are also integrated as source-only; backend cron, privacy/RLS, live delivery, and E2E acceptance are unverified and must pass before production. BUKLOD birthday sharing is private by default.
 7. Android Wall original transfer flow from PR #515 has ALREADY been integrated into the latest main through subsequent commits (confirmed source: renderer calls wallOriginalReady, releaseWallOriginalTransferOnDecode and isCurrentWallOriginalEvent; source tests exist). Do not overlay old PR #515 or revert the newer main renderer.
 8. No main merge, database migration, Android OTA, Expo web deploy, Vercel production promotion or app-binary build is authorized by this source integration.
 
@@ -39,3 +39,13 @@ The existing internal Share post destination modal is changed from a bottom-alig
 - Existing points ledger: 1,560 credit entries; 0 credits categorized game_first_qualified. No active game_first_qualified point rule found. This proves missing live game mastery award availability, NOT an absence of other Points activity.
 - The separate feature/kingdom-server-mastery-rewards-20261108 migration is NOT included: its private attempt record holds the answer while the client response omits it, but all seeded answers use index 0 with unshuffled choices, making the correct choice predictable; moreover, it verifies a separate general 3-question mastery quiz rather than a completed game, so it is not secure game-completion proof. Also its proposed 20261108010000 version would conflict with the prior preliminary BSOC migration ID if copied unreviewed. A genuine authenticated, replay-safe game completion/claim mechanism remains a mandatory release blocker.
 - PR #575 is a draft source RC. No backend migration was applied in this session, no Expo OTA/web was published, and main remains unchanged.
+
+## Living-community notifications and Wall greetings (source only)
+- Current-source migration: supabase/migrations/20261108025000_buklod_living_greetings_v1.sql. Not applied. Uses canonical Organization, Cluster, followers, Public Wall and authenticated profiles; no standalone church_id or church system.
+- New active Cluster/Organization member event queues only to other active members and followers. Introductory Public Wall banner shows *aggregate* newly verified member count, not private names.
+- Birthday greeting notifies its own member automatically; notification to followers and fellow Cluster members requires affirmative opt-in. Birth date itself is not sent in the notification or client banner.
+- Holiday catalog contains a starting selection of fixed holidays, expandable by authorized administration; it does not claim all annual movable holidays.
+- KL chapter event is queued only once after it becomes both approved and actually released. Future scheduled chapters are checked by daily worker; new approved releases trigger immediately.
+- Worker is transactionally serialized, 100 recipients maximum per run, user preferences respected through existing queue_notification, and (event,recipient) delivery is idempotent.
+- Wall has compact expandable greeting above sponsored post content while preserving the first-view ad. A birthday privacy settings route is reachable from its expanded panel.
+- This is an implementation candidate, not an assertion of live notifications: validate isolated SQL migration, cron grants, read/unread navigation, push on realistic accounts, opt-out/privacy and performance under scale before publishing.

@@ -92,6 +92,7 @@ import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
 import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
 import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
+import BuklodLivingGreetingsBanner from '@/components/BuklodLivingGreetingsBanner';
 import BuklodLifeWallCard from '@/components/BuklodLifeWallCard';
 import KabihasnangLigawWallCard from '@/components/KabihasnangLigawWallCard';
 import BuklodCommunityWallProfileBubbles from '@/components/BuklodCommunityWallProfileBubbles';
@@ -4978,6 +4979,9 @@ const communityFeedRows =
     placement="community_entry"
     placementId="public_wall_entry"
    />
+
+   {/* BUKLOD_LIVING_COMMUNITY_GREETING_R1: compact celebration banner, ads remain first. */}
+   <BuklodLivingGreetingsBanner />
 
    {/* Paid campaign stays in a stable top-of-Wall slot during its approved
        30-day period. Do not turn it into an unexpiring ordinary post. */}
