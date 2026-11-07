@@ -38,6 +38,11 @@ export default function BuklodPaidAdsReview(){
 
  useEffect(()=>{void load();},[load]);
 
+ async function previewVideo(item:PaidAd){
+   if(!item.video_url?.startsWith('https://')){setMessage('This video URL cannot be opened safely.');return;}
+   try{await Linking.openURL(item.video_url);}catch(e:any){setMessage('Video preview unavailable: '+(e?.message||'Try again.'));}
+ }
+
  async function viewProof(item:PaidAd){
    if(!item.payment_proof_path){setMessage('No payment screenshot was attached. Verify the reference against your payment provider independently.');return;}
    setBusy(item.id);
@@ -89,7 +94,7 @@ export default function BuklodPaidAdsReview(){
      {!!item.short_text&&<Text style={styles.small}>{item.short_text}</Text>}
      <Text style={styles.small}>{item.creative_type.toUpperCase()} · {item.coverage_level.toUpperCase()} · {item.province??item.city_municipality??item.barangay??'Public'}</Text>
      {item.creative_type==='photo'&&!!item.image_url&&<Image source={{uri:item.image_url}} resizeMode="contain" style={styles.image}/>}
-     {item.creative_type==='video'&&!!item.video_url&&<Pressable style={styles.actionNeutral} onPress={()=>void Linking.openURL(item.video_url!)}><Text style={styles.buttonDark}>Preview submitted video</Text></Pressable>}
+     {item.creative_type==='video'&&!!item.video_url&&<Pressable style={styles.actionNeutral} onPress={()=>void previewVideo(item)}><Text style={styles.buttonDark}>Preview submitted video</Text></Pressable>}
      <Text style={styles.small}>Submitted: {new Date(item.created_at).toLocaleString()}</Text>
      <Text style={styles.small}>Requested 30 days · Quoted {money(item.monthly_price)} · Recorded received {money(item.amount_paid)}</Text>
      <Text style={styles.small}>Payment: {item.payment_method??'Not specified'}</Text>
@@ -99,7 +104,7 @@ export default function BuklodPaidAdsReview(){
      </Pressable>}
      {item.status==='pending'&&<View style={styles.actions}>
        {item.payment_status==='pending'&&<Pressable onPress={()=>ask(item,'verify_payment')} style={styles.actionNeutral} disabled={busy===item.id}><Text style={styles.buttonDark}>Verify Payment</Text></Pressable>}
-       {item.payment_status==='paid'&&<Pressable onPress={()=>ask(item,'approve')} style={styles.actionGreen} disabled={busy===item.id}><Text style={styles.buttonWhite}>Approve Content</Text></Pressable>}
+       {(item.payment_status==='paid'||item.payment_status==='waived')&&<Pressable onPress={()=>ask(item,'approve')} style={styles.actionGreen} disabled={busy===item.id}><Text style={styles.buttonWhite}>Approve Content</Text></Pressable>}
        <Pressable onPress={()=>ask(item,'reject')} style={styles.actionRed} disabled={busy===item.id}><Text style={styles.buttonWhite}>Reject</Text></Pressable>
      </View>}
      {item.status==='approved'&&<Pressable onPress={()=>ask(item,'pause')} style={styles.actionNeutral}><Text style={styles.buttonDark}>Pause</Text></Pressable>}
