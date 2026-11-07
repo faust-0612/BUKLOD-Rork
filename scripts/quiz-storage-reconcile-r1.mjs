@@ -157,6 +157,7 @@ export async function reconcileBucket(sourceClient, mainClient, options = {}) {
 
   let contentVerified = 0;
   let bytesVerified = 0;
+  const originalDigests = new Map();
   // Verify all existing paths BEFORE the first upload: any collision stops
   // without modifying an existing file.
   for (const path of present) {
@@ -167,6 +168,7 @@ export async function reconcileBucket(sourceClient, mainClient, options = {}) {
       throw new MigrationStop('EXISTING_OBJECT_CONTENT_CONFLICT');
     }
     bytesVerified += src.bytes.length;
+    originalDigests.set(path, src.sha256);
     contentVerified++;
   }
   log({ step: 'existing_verified', count: contentVerified });
@@ -185,13 +187,13 @@ export async function reconcileBucket(sourceClient, mainClient, options = {}) {
   for (const path of missing) {
     const src = await download(source, path);
     const contentType = contentTypeFor(path);
-    const { error } = await main.upload(path, src.bytes, {
-      contentType,
-      upsert: false,
-      cacheControl: 'private, max-age=0',
-    });
-    if (error) {
-      // A concurrent copy may have won: accept ONLY if its bytes match.
+    try {
+      await storageCall(() => main.upload(path, src.bytes, {
+        contentType,
+        upsert: false,
+      }), 'UPLOAD_EMPTY');
+    } catch {
+      // Only accept an already-present object with identical bytes.
       const obj = await download(main, path).catch(() => null);
       if (!obj || obj.sha256 !== src.sha256) {
         throw new MigrationStop('UPLOAD_REJECTED_NO_OVERWRITE');
@@ -202,6 +204,7 @@ export async function reconcileBucket(sourceClient, mainClient, options = {}) {
       throw new MigrationStop('UPLOADED_OBJECT_SHA256_MISMATCH');
     }
     bytesVerified += src.bytes.length;
+    originalDigests.set(path, src.sha256);
     contentVerified++;
     copied++;
     if (copied % 10 === 0) {
@@ -210,6 +213,19 @@ export async function reconcileBucket(sourceClient, mainClient, options = {}) {
   }
   if (contentVerified !== originalNames.length) {
     throw new MigrationStop('INCOMPLETE_SHA256_VERIFICATION');
+  }
+  // Recheck source listing AND content against pre-copy digests so uploads
+  // cannot be declared complete if source changed mid-transfer.
+  const finalInventory = await listAllDocuments(source);
+  if (finalInventory.size !== originalNames.length ||
+      originalNames.some(p => !finalInventory.has(p))) {
+    throw new MigrationStop('SOURCE_INVENTORY_CHANGED_DURING_COPY');
+  }
+  for (const path of originalNames) {
+    const finalSource = await download(source, path);
+    if (finalSource.sha256 !== originalDigests.get(path)) {
+      throw new MigrationStop('SOURCE_BYTES_CHANGED_DURING_COPY');
+    }
   }
   return {
     status: 'CONTENT_PARITY_VERIFIED', sourceCount: originalNames.length,
