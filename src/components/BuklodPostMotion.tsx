@@ -36,7 +36,7 @@ export default function BuklodPostMotion({ preset, children, active = true }: {
     animation.start();
     return () => { animation.stop(); progress.stopAnimation(); };
   }, [active, preset, progress, reduceMotion]);
-  if (preset === 'none' || reduceMotion || !active) return <>{children}</>;
+  if (preset === 'none') return <>{children}</>;
   const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
   const x = progress.interpolate({ inputRange: [0, 1], outputRange: [-4, 4] });
   const y = progress.interpolate({ inputRange: [0, 1], outputRange: [-3, 3] });
@@ -44,5 +44,6 @@ export default function BuklodPostMotion({ preset, children, active = true }: {
   const style = preset === 'zoom' ? { transform: [{ scale }] } :
     preset === 'pan' ? { transform: [{ translateX: x }] } :
     preset === 'float' ? { transform: [{ translateY: y }] } : { opacity };
-  return <Animated.View style={style}><View>{children}</View></Animated.View>;
+  // Preserve media subtree while visibility changes; no off-screen loops.
+  return <View><Animated.View style={!active || reduceMotion ? {} : style}>{children}</Animated.View></View>;
 }
