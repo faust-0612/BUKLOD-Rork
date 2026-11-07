@@ -55,9 +55,13 @@ export default function BuklodDesktopMemberPreview({
       ) : (
         <>
           <View style={styles.hero}>
-            <ProfileAvatar userId={profile.user_id}
-              uri={profile.can_view_details ? profile.avatar_url : null}
-              name={profile.display_name} size={72} />
+            {profile.can_view_details ? (
+              <ProfileAvatar userId={profile.user_id}
+                uri={profile.avatar_url} name={profile.display_name} size={72} />
+            ) : (
+              <MaterialCommunityIcons name="account-circle-outline"
+                size={72} color={theme.textMuted} />
+            )}
             <Text style={[styles.name, { color: theme.textPrimary }]}>{profile.display_name}</Text>
             {profile.can_view_details && profile.username ? (
               <Text style={[styles.message, { color: theme.textMuted }]}>@{profile.username}</Text>
