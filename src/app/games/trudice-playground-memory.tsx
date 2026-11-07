@@ -1,26 +1,34 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-
-import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
-import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 import { PlaygroundPathGameV2 } from '@/features/games/trudice/PlaygroundPathGameV2';
+import { PicturePairsGameV1 } from '@/features/games/trudice/PicturePairsGameV1';
+import {
+  KingdomInteriorCenter, type KingdomInteriorOption,
+} from '@/features/games/kingdom/platform/KingdomInteriorCenter';
+import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const GAME_ID = 'trudice-playground-memory';
+const OPTIONS: readonly KingdomInteriorOption[] = [
+  {
+    id: 'trudice-picture-pairs', title: 'Picture Pairs',
+    descriptionEn: 'Find matching pictures across three gardens',
+    descriptionTl: 'Hanapin ang magkapares na larawan sa tatlong garden',
+    kind: 'pilot', render: finish => <PicturePairsGameV1 onFinish={finish} />,
+  },
+  {
+    id: GAME_ID, title: 'Wonder Path',
+    descriptionEn: 'Original pattern-and-sequence memory game',
+    descriptionTl: 'Orihinal na memory game sa patterns at sequence',
+    kind: 'existing', render: (_finish, originalFinish) => (
+      <PlaygroundPathGameV2 onFinish={originalFinish} />
+    ),
+  },
+];
 
 export default function TrudicePlaygroundMemoryScreen() {
-  return (
-    <View style={styles.page}>
-      <BuklodGameStage biome="playground" gameId={GAME_ID}>
-        <PlaygroundPathGameV2 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
-      </BuklodGameStage>
-    </View>
-  );
+  return <BuklodGameStage biome="playground" gameId={GAME_ID}>
+    <KingdomInteriorCenter character="Trudice"
+      subtitleEn="Follow the Wonder Path or reveal a garden full of matching picture cards."
+      subtitleTl="Sundan ang Wonder Path o maghanap ng magkapares na mga larawan."
+      options={OPTIONS} />
+  </BuklodGameStage>;
 }
-
-const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    minHeight: 680,
-    backgroundColor: '#2a1748',
-  },
-});
