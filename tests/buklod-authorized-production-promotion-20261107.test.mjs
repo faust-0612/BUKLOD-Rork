@@ -57,6 +57,14 @@ test('locked BUKLOD V28 native 1.3.2 and Main Expo Hosting targets cannot drift'
 });
 
 test('one-time production authorization YAML cannot be invalidated by colon in commit title', () => {
-  assert.match(trigger, /^\s+if: >-\s*\n\s+github\.event_name == 'push' &&\s*\n\s+startsWith\(github\.event\.head_commit\.message, 'release\(buklod\): one-time prod OTA and web 2026-11-07'\)/m);
+  assert.match(trigger, /^\s+if: >-\s*\n\s+github\.event_name == 'push' &&\s*\n\s+\(?startsWith\(github\.event\.head_commit\.message, 'release\(buklod\): one-time prod OTA and web 2026-11-07'\)/m);
   assert.doesNotMatch(trigger, /^\s+if: [^\n]*release\(buklod\): one-time prod OTA and web/m);
+});
+
+test('Android recovery only dispatches Android, never republishes already verified Expo Hosting web', () => {
+  assert.match(trigger, /startsWith\(github\.event\.head_commit\.message, 'release\(buklod\): Android OTA recovery 2026-11-07'\)/);
+  assert.match(trigger, /'release\(buklod\): Android OTA recovery 2026-11-07'\)\s*\n\s*targets=\("production_android_ota\.yml\|BUKLOD\/Android production OTA"\)/);
+  assert.match(trigger, /'release\(buklod\): one-time prod OTA and web 2026-11-07'\)\s*\n\s*targets=\("production_android_ota\.yml\|BUKLOD\/Android production OTA" "production_web_deploy\.yml\|BUKLOD\/Expo Hosting production web"\)/);
+  assert.match(trigger, /for entry in "\$\{targets\[@\]\}"; do/);
+  assert.match(trigger, /test "\$head" = "\$GITHUB_SHA"/);
 });
