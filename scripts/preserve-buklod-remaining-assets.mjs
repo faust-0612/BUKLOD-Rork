@@ -62,9 +62,10 @@ try{
  if(!/^[0-9a-f]{40}$/.test(remoteSha))throw Error('Missing latest essentials cloud source branch');
  // Read committed files from remote-ref. Source repo local checkout may include a newer documentation commit,
  // but source mappings are stable under the isolated essentials branch.
- run('git',['-C',src,'fetch','origin','refs/heads/'+sourceBranch],{optional:true});
- const ref='refs/heads/'+sourceBranch;
- if(run('git',['-C',src,'rev-parse',ref],{optional:true})!==remoteSha)throw Error('Cloud essentials branch cannot be verified from local ref; no backup upload');
+ // Fetch remote checkout independently, without changing the owner's local active branch.
+ run('git',['-C',src,'fetch','--quiet','origin','refs/heads/'+sourceBranch]);
+ const ref='FETCH_HEAD';
+ if(run('git',['-C',src,'rev-parse',ref])!==remoteSha)throw Error('Cloud essentials fetch checksum mismatched; refusing asset upload');
  const tracked=new Set(run('git',['-C',src,'ls-tree','-r','--name-only',ref]).split(/\r?\n/).filter(Boolean).map(normalized));
  const originMap=(old.recovered||[]).filter(x=>x.origin&&x.cloudPath).sort((a,b)=>b.origin.length-a.origin.length);
  const allRoots=[...new Set(inventory.results.map(x=>x.root).filter(Boolean).concat((old.recovered||[]).map(x=>x.origin)))];
