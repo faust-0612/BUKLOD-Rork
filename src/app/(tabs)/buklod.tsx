@@ -8,6 +8,10 @@ import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCar
 /* BUKLOD_SHARE_TARGET_187A */
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { loadBuklodNotificationPost } from '@/lib/buklodNotificationPost';
+import {
+  emitBuklodEmergencySignal,
+  isBuklodEmergencyId,
+} from '@/lib/buklodEmergencySignal';
 import { useBuklodConnectUnread } from '@/hooks/useBuklodConnectUnread';
 import { BackHandler } from 'react-native';
 import {
@@ -866,7 +870,20 @@ function LegacyPublicBuklodScreen(){
  const notificationParams = useLocalSearchParams<{
   focusPostId?:string;
   focusComments?:string;
+  help_request_id?:string;
  }>();
+ // R1 Community SOS deep-links remain functional for a cold-start push.
+ // Forward only a valid UUID to the R2 host; it performs canonical
+ // notification, active-emergency and nearby entitlement checks before
+ // disclosing any incident content or allowing a responder action.
+ const handedOffEmergency = useRef<string | null>(null);
+ useEffect(() => {
+  const requestId = notificationParams.help_request_id;
+  if (!isBuklodEmergencyId(requestId) ||
+      handedOffEmergency.current === requestId) return;
+  handedOffEmergency.current = requestId;
+  emitBuklodEmergencySignal({ incidentId: requestId, origin: 'recipient' });
+ }, [notificationParams.help_request_id]);
  const focusPostId = typeof notificationParams.focusPostId==='string'
   ? notificationParams.focusPostId.trim() : '';
  const focusComments = notificationParams.focusComments==='1';
