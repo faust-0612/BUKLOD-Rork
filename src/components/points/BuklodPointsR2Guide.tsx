@@ -1,0 +1,137 @@
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { supabase } from '@/lib/supabase';
+
+type Rule = {
+ activity_type: string;
+ label: string;
+ points: number;
+ active: boolean;
+ max_per_event: number | null;
+};
+
+const LABELS: Record<string,string> = {
+ abc_growth_lesson: 'ABC lesson',
+ daily_bible_reading: 'Daily Bible Reading',
+ daily_devotional_reflection: 'Daily reflection',
+ bible_quiz_easy: 'Bible Quiz — Easy',
+ bible_quiz_medium: 'Bible Quiz — Medium',
+ bible_quiz_hard: 'Bible Quiz — Hard',
+ formation_assessment: 'Formation assessment',
+ formation_module: 'Completed formation module',
+ verified_volunteer_service: 'Verified volunteer service',
+ verified_mentoring_session: 'Verified mentoring',
+ consistency_30_day: '30-day consistency milestone',
+ r2_verified_challenge: 'Verified difficulty challenge',
+ achievement_bible_scholar: 'Bible Scholar',
+ achievement_community_builder: 'Community Builder',
+ achievement_faithful_mentor: 'Faithful Mentor',
+ achievement_kingdom_champion: 'Kingdom Champion',
+ game_tournament_champion: 'Tournament champion',
+};
+const KEYS = Object.keys(LABELS);
+
+export default function BuklodPointsR2Guide() {
+ const [expanded,setExpanded] = useState(false);
+ const [loading,setLoading] = useState(false);
+ const [rules,setRules] = useState<Rule[] | null>(null);
+ const [error,setError] = useState(false);
+ useEffect(() => {
+   if (!expanded || rules !== null) return;
+   let mounted = true;
+   setLoading(true);
+   setError(false);
+   void (async () => {
+     try {
+       const {data,error:rpcError} = await (supabase as any).rpc('get_buklod_points_r2_catalog_v1');
+       if (rpcError) throw rpcError;
+       const filtered: Rule[] = Array.isArray(data)
+         ? data.filter((row: unknown): row is Rule => Boolean(
+             row && typeof row === 'object' &&
+             typeof (row as Rule).activity_type === 'string' &&
+             typeof (row as Rule).points === 'number' &&
+             typeof (row as Rule).active === 'boolean'
+           )).filter((row: Rule) => KEYS.includes(row.activity_type)) : [];
+       if (mounted) setRules(filtered);
+     } catch {
+       if (mounted) setError(true);
+     } finally {
+       if (mounted) setLoading(false);
+     }
+   })();
+   return () => { mounted = false; };
+ },[expanded,rules]);
+ return (
+   <View style={styles.wrap}>
+     <Pressable
+       accessibilityRole="button"
+       accessibilityLabel="Show BUKLOD Points R2 reward guide"
+       accessibilityState={{expanded}}
+       onPress={() => setExpanded(value => !value)}
+       style={styles.header}
+     >
+       <View style={styles.icon}>
+         <MaterialCommunityIcons name="trophy-award" size={22} color="#8A5A00" />
+       </View>
+       <View style={{flex:1}}>
+         <Text style={styles.title}>Points & Achievements</Text>
+         <Text style={styles.subtitle}>Check active rewards and future challenges</Text>
+       </View>
+       <MaterialCommunityIcons name={expanded ? 'chevron-up' : 'chevron-down'} size={23} color="#577165" />
+     </Pressable>
+     {expanded && (
+       <View style={styles.body}>
+         <Text style={styles.explainer}>
+           More difficult verified accomplishments can earn higher rewards.
+           Only active rules with a completed validation process earn points.
+           Your existing lifetime and available balances are preserved.
+         </Text>
+         {loading && <ActivityIndicator color="#0A7436" />}
+         {error && (
+           <Text style={styles.fallback}>
+             Current reward values are unavailable. Your existing points are unaffected.
+           </Text>
+         )}
+         {rules?.map(rule => (
+           <View style={styles.row} key={rule.activity_type}>
+             <View style={{flex:1}}>
+               <Text style={styles.rowTitle}>{LABELS[rule.activity_type]}</Text>
+               <Text style={styles.status}>{rule.active ? 'Configured reward' : 'Coming soon — not claimable yet'}</Text>
+             </View>
+             <Text style={[styles.points,!rule.active && styles.inactive]}>
+               {rule.active ? '+' : ''}{rule.points} BP
+             </Text>
+           </View>
+         ))}
+         {rules !== null && rules.length === 0 && (
+           <Text style={styles.fallback}>New achievement rewards are not configured yet.</Text>
+         )}
+         <Text style={styles.footnote}>
+           Achievement and challenge rewards require verified eligibility. Difficulty multipliers
+           apply to approved R2 challenges only. A listed reward is not an automatic claim.
+         </Text>
+       </View>
+     )}
+   </View>
+ );
+}
+const styles=StyleSheet.create({
+ wrap:{marginHorizontal:14,marginVertical:8,borderWidth:1,borderColor:'#DFE8DB',
+   borderRadius:17,backgroundColor:'#FFFCF5',overflow:'hidden'},
+ header:{flexDirection:'row',alignItems:'center',padding:12,gap:9},
+ icon:{width:38,height:38,alignItems:'center',justifyContent:'center',
+   borderRadius:12,backgroundColor:'#FFF0CA'},
+ title:{fontSize:13,fontWeight:'900',color:'#233B2C'},
+ subtitle:{fontSize:10,color:'#667B6E',marginTop:2},
+ body:{paddingHorizontal:12,paddingBottom:12,gap:9},
+ explainer:{fontSize:11,lineHeight:16,color:'#4C6254'},
+ row:{flexDirection:'row',alignItems:'center',paddingVertical:8,
+   borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:'#DFE8DB',gap:10},
+ rowTitle:{fontSize:11,fontWeight:'800',color:'#25432F'},
+ status:{fontSize:9,color:'#667B6E',marginTop:3},
+ points:{fontSize:13,fontWeight:'900',color:'#0A7436'},
+ inactive:{color:'#8C9589'},
+ fallback:{fontSize:11,color:'#7A6652'},
+ footnote:{fontSize:9.5,lineHeight:14,color:'#718074',marginTop:2},
+});
