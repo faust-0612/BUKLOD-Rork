@@ -111,6 +111,14 @@ export function buildBuklodLivingMoments(
       title: 'Maligayang Araw ng Kalayaan! 🇵🇭',
       message: 'Ipinagdiriwang natin ang malasakit, pagkakaisa at paglilingkod sa bayan.',
     },
+    '11-30': {
+      title: 'Araw ni Bonifacio! 🇵🇭',
+      message: 'Sama-sama nating alalahanin ang katapangan at paglilingkod sa bayan.',
+    },
+    '12-30': {
+      title: 'Araw ni Rizal! 🇵🇭',
+      message: 'Mula sa BUKLOD, alalahanin natin ang ating kasaysayan at pagkakaisa.',
+    },
     '12-25': {
       title: 'Maligayang Pasko mula sa BUKLOD! 🎄',
       message: 'Nawa ay mapuno ng pagmamahalan at pag-asa ang inyong tahanan.',
