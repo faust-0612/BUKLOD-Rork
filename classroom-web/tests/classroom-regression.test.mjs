@@ -33,3 +33,12 @@ test('canonical cyan grouped navigation retains real authenticated data flows', 
   assert.doesNotMatch(webSource,/data-bard-client-injected/);
   assert.match(webSource,/db\.auth\.signInWithPassword/);
 });
+
+test('faculty deep links are resolved only after authorized classroom context is loaded', () => {
+  assert.match(webSource,/if \(state\.tab==='faculty' && !isFaculty\(\)\)/);
+  assert.match(webSource,/state\.tab='grades'; state\.group='MORE'/);
+});
+test('overview navigation invalidates in-flight module loads', () => {
+  assert.match(webSource,/if\(tab==='overview'\)\{\+\+state\.seq/);
+  assert.match(webSource,/if \(id==='overview'\)\{\+\+state\.seq/);
+});

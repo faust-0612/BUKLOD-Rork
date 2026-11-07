@@ -37,8 +37,7 @@ const GROUP_LABELS = Object.freeze({CLASS:'Class',WORK:'Work',CONNECT:'Connect',
 const DEFAULT_TAB = Object.freeze({CLASS:'overview',WORK:'activities',CONNECT:'discussions',MORE:'grades'});
 const groupOf = tab => Object.entries(GROUP_TABS).find(([,list])=>list.some(([id])=>id===tab))?.[0]||'CLASS';
 const classLink = (id,tab) => '?class='+encodeURIComponent(id)+'&group='+encodeURIComponent(groupOf(tab))+'&tab='+encodeURIComponent(tab);
-const validTab = (tab,group) => tabs.some(([id])=>id===tab) && (tab!=='faculty'||isFaculty())
-  ? tab : DEFAULT_TAB[group]||'overview';
+const validTab = (tab,group) => tabs.some(([id])=>id===tab) ? tab : DEFAULT_TAB[group]||'overview';
 const e = esc;
 const norm = (v) => v == null ? '' : String(v);
 const el = (tag, cls, value) => '<' + tag + (cls ? ' class="' + cls + '"' : '') + '>' + e(norm(value)) + '</' + tag + '>';
@@ -363,6 +362,10 @@ async function openClass(id, tab = 'overview') {
     if (seq!==state.seq) return;
     state.context = Array.isArray(ctx) ? ctx[0] : ctx;
     state.overview = Array.isArray(o) ? o[0] : o;
+    if (state.tab==='faculty' && !isFaculty()) {
+      state.tab='grades'; state.group='MORE';
+      history.replaceState({},'',classLink(id,state.tab));
+    }
     state.busy=false; render();
     await loadTab();
   } catch (err) {
@@ -509,7 +512,7 @@ async function doAction(action,id) {
     const tab = validTab(DEFAULT_TAB[id],id);
     state.group=id; state.tab=tab;
     history.replaceState({},'',classLink(state.classId,tab));
-    if(tab==='overview'){state.error='';state.data=[];state.additional=[];render();}
+    if(tab==='overview'){++state.seq;state.busy=false;state.error='';state.data=[];state.additional=[];render();}
     else await loadTab();
     return;
   }
@@ -517,7 +520,7 @@ async function doAction(action,id) {
     if (!tabs.some(t=>t[0]===id) || (id==='faculty' && !isFaculty())) return;
     state.group=groupOf(id);
     state.tab=id;history.replaceState({},'',classLink(state.classId,id));
-    if (id==='overview'){state.error='';state.data=[];state.additional=[];render();}else await loadTab();return;
+    if (id==='overview'){++state.seq;state.busy=false;state.error='';state.data=[];state.additional=[];render();}else await loadTab();return;
   }
   if (action==='refresh-tab') {if(state.tab==='overview') await openClass(state.classId);else await loadTab();return;}
   if (action==='material') {
