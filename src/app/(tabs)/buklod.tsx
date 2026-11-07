@@ -75,7 +75,6 @@ import { useBuklodCommunityAdViewability } from '@/hooks/useBuklodCommunityAdVie
 /* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
-import BuklodCommunityContributionCard from '@/components/BuklodCommunityContributionCard';
 import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
 import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import BuklodLifeWallCard from '@/components/BuklodLifeWallCard';
@@ -4780,8 +4779,6 @@ const communityFeedRows =
      publicLocationScopeId
     }
    />
-
-   <BuklodCommunityContributionCard />
 
    <Text style={shared.muted}>
     Encourage, connect and grow together.
