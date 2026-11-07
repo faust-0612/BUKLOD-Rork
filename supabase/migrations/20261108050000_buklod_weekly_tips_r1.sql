@@ -85,7 +85,7 @@ begin
   'weekly_action',v_tip.weekly_action,
   'my_reaction',v_my.reaction,'my_dugtong',v_my.dugtong,
   'authenticated',v_user is not null,
-  'points_enabled',(select coalesce(bool_and(r.is_active),false) from public.buklod_point_rules r
+  'points_enabled',(select count(*)=2 and coalesce(bool_and(r.is_active),false) from public.buklod_point_rules r
     where r.activity_type in ('weekly_tip_reaction','weekly_tip_dugtong'))
  );
 end;
@@ -133,7 +133,7 @@ begin
  update public.buklod_weekly_tip_interactions_v1
    set reaction=coalesce(p_reaction,reaction),
        reacted_at=case when v_first_reaction then now() else reacted_at end,
-       dugtong=coalesce(pg_catalog.nullif(pg_catalog.btrim(p_dugtong),''),dugtong),
+       dugtong=coalesce(nullif(pg_catalog.btrim(p_dugtong),''),dugtong),
        dugtong_at=case when v_first_dugtong then now() else dugtong_at end,
        updated_at=now()
   where user_id=v_user and week_start=v_week;
