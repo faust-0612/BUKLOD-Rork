@@ -17,7 +17,8 @@
     "Milestone submissions cannot self-award; admin sees queue, evidence, and review results",
     "Member and admin 30-day focus actual totals reconcile against canonical credit ledger",
     "No existing balances, claim statuses, grades, Kingdom XP, or ads rewritten",
-    "Run both Node contracts and Supabase DB regression in isolated environment before RC/OTA"
+    "Run both Node contracts and Supabase DB regression in isolated environment before RC/OTA",
+    "Mentoring reports a real assigned mentee roster using atomic idempotent transaction before photo, pastor review and admin approval"
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -53,6 +54,7 @@
     "supabase/migrations/20261107224000_buklod_r2_live_rewards_monitor.sql",
     "supabase/migrations/20261107225000_buklod_r2_mentor_workflow_catalog.sql",
     "supabase/migrations/20261107226000_buklod_r2_cluster_attendance_integrity.sql",
+    "supabase/migrations/20261107227000_buklod_r2_mentor_atomic_roster.sql",
     "supabase/tests/buklod_points_r2_reward_integrity.sql",
     "tests/buklod-points-r2-classroom-quiz.test.mjs",
     "tests/buklod-points-r2-contract.test.mjs",
