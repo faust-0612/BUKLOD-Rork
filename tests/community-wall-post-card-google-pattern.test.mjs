@@ -86,7 +86,7 @@ test('Shared card wrapper delegates children without duplicating feed data or au
   assert.match(source, /styles\.feedCard/);
   assert.match(source, /backgroundColor: theme\.surface, borderColor: theme\.border/);
   assert.match(source, /borderRadius: 18/);
-  assert.match(source, /padding: 14/);
-  assert.match(source, /marginBottom: 12/);
-  assert.match(source, /gap: 10/);
+  assert.match(source, /padding: 12/);
+  assert.match(source, /marginBottom: 9/);
+  assert.match(source, /gap: 6/);
 });
