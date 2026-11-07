@@ -2621,6 +2621,14 @@ const load=useCallback(async(options?:{
  setCollageLayout('grid');
  setComposerMusicTrack(null);
  setComposerMotionPreset('none');
+ setComposerMusicPickerOpen(false);
+ if(wallAudioOwnerRef.current==='composer' || wallAudioPendingOwnerRef.current==='composer'){
+  wallAudioRequestEpochRef.current++;
+  wallAudioPendingOwnerRef.current='';
+  wallAudioPlayer.pause();
+  wallAudioOwnerRef.current='';
+  setWallAudioOwner('');
+ }
  setCommunityComposerOpen(false); // Return to compact posting bar immediately.
  setPostFeedback('Publishing your post…');
  setWallVideo186O(null);
@@ -2652,6 +2660,7 @@ const load=useCallback(async(options?:{
   let createdPostId:
    string|null=
    null;
+  let optionalCreativeFailed = false;
 
   const createPost=async(
    first:{
@@ -2875,20 +2884,26 @@ const load=useCallback(async(options?:{
    }
 
    if(createdPostId){
-    await saveBuklodPostCreative({
-      postId:createdPostId,userId:snapshot.userId,
-      musicTrackId:snapshot.musicTrack?.id??null,
-      motionPreset:snapshot.motionPreset,
-    });
-    setPostCreatives(previous=>({
-      ...previous,
-      [createdPostId!]:{
-        post_id:createdPostId!,
-        music_track_id:snapshot.musicTrack?.id??null,
-        motion_preset:snapshot.motionPreset,
-        music:snapshot.musicTrack,
-      },
-    }));
+    try{
+     await saveBuklodPostCreative({
+       postId:createdPostId,userId:snapshot.userId,
+       musicTrackId:snapshot.musicTrack?.id??null,
+       motionPreset:snapshot.motionPreset,
+     });
+     setPostCreatives(previous=>({
+       ...previous,
+       [createdPostId!]:{
+         post_id:createdPostId!,
+         music_track_id:snapshot.musicTrack?.id??null,
+         motion_preset:snapshot.motionPreset,
+         music:snapshot.musicTrack,
+       },
+     }));
+    }catch(creativeError:any){
+     // Optional creative failure must never delete an already published post.
+     optionalCreativeFailed=true;
+     console.warn('BUKLOD optional post music/motion save:',creativeError?.message??creativeError);
+    }
    }
 
    if(
@@ -2906,7 +2921,7 @@ const load=useCallback(async(options?:{
    }
 
    await load();
-   setPostFeedback('Posted to Community');
+   setPostFeedback(optionalCreativeFailed ? 'Posted, but optional music/motion was not saved.' : 'Posted to Community');
   }
   catch(e:any){
    await discardIncompleteCommunityPost({

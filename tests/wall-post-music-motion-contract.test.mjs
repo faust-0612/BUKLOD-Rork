@@ -15,7 +15,7 @@ test('Motion is lightweight and accessible',()=>{
  assert.doesNotMatch(s,/VideoView|ffmpeg/);
 });
 test('Post creative metadata is gated by post audience/owner',()=>{
- const s=read('supabase/migrations/20261108004500_buklod_post_music_motion_v1.sql');
+ const s=read('supabase/migrations/20261107171413_buklod_post_music_motion_v1_20261108.sql');
  assert.match(s,/can_view_community_post_v2\(post_id\)/);
  assert.match(s,/created_by=\(select auth\.uid\(\)\)/);
  assert.match(s,/on delete cascade/);
@@ -53,4 +53,11 @@ test('Music retirement never blocks deleting a track from admin library',()=>{
  const migration=read('supabase/migrations/20261108004500_buklod_post_music_motion_v1.sql');
  assert.match(migration,/on delete set null/);
  assert.doesNotMatch(migration,/check \(music_track_id is not null or motion_preset/);
+});
+
+test('Optional music failure does not delete already published post',()=>{
+ const s=read('src/app/(tabs)/buklod.tsx');
+ assert.match(s,/optionalCreativeFailed=true/);
+ assert.match(s,/Optional creative failure must never delete an already published post/);
+ assert.match(s,/wallAudioPendingOwnerRef.current==='composer'/);
 });
