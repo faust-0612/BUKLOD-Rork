@@ -83,6 +83,7 @@ export function BuklodContentOverflowMenu({
     () => createStyles(theme),
     [theme]
   );
+  const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editBody, setEditBody] = useState(body);
   const [editPhotos, setEditPhotos] =
@@ -135,61 +136,13 @@ export function BuklodContentOverflowMenu({
     );
   };
 
-  const openMenu = () => {
-    const actions: {
-      text: string;
-      onPress?: () => void;
-      style?: 'cancel' | 'destructive';
-    }[] = [];
-
-    if (onEdit) {
-      actions.push({
-        text: 'Edit',
-        onPress: openEdit,
-      });
-    }
-
-    if (onToggleAuthorOnly) {
-      actions.push({
-        text: authorOnly
-          ? 'Show to everyone'
-          : 'Ako lang (only me)',
-        onPress: () => {
-          void Promise.resolve(
-            onToggleAuthorOnly()
-          ).catch((error: any) => {
-            Alert.alert(
-              title,
-              error?.message ||
-                'Could not update visibility.'
-            );
-          });
-        },
-      });
-    }
-
-    if (onDelete) {
-      actions.push({
-        text: 'Delete',
-        style: 'destructive',
-        onPress: confirmDelete,
-      });
-    }
-
-    if (onReport) {
-      actions.push({
-        text: 'Report',
-        style: 'destructive',
-        onPress: onReport,
-      });
-    }
-
-    actions.push({
-      text: 'Cancel',
-      style: 'cancel',
-    });
-
-    Alert.alert(title, undefined, actions);
+  // Android Alert supports at most three visible buttons. The former
+  // four-action owner menu silently dropped Cancel; use a dismissible sheet.
+  const openMenu = () => setMenuOpen(true);
+  const closeMenu = () => setMenuOpen(false);
+  const runMenuAction = (action: () => void) => {
+    setMenuOpen(false);
+    action();
   };
 
   const addPhotos = async () => {
@@ -289,6 +242,68 @@ export function BuklodContentOverflowMenu({
           color={color}
         />
       </Pressable>
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeMenu}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss post options"
+          style={styles.menuBackdrop}
+          onPress={closeMenu}
+        >
+          <Pressable
+            accessibilityRole="menu"
+            accessibilityLabel={title}
+            style={styles.menuSheet}
+            onPress={event => event.stopPropagation()}
+          >
+            <Text style={styles.menuHeading}>{title}</Text>
+            {onEdit ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Edit post"
+                style={styles.menuRow} onPress={() => runMenuAction(openEdit)}>
+                <MaterialCommunityIcons name="pencil-outline" size={20} color={theme.textPrimary} />
+                <Text style={styles.menuRowText}>Edit</Text>
+              </Pressable>
+            ) : null}
+            {onToggleAuthorOnly ? (
+              <Pressable accessibilityRole="button"
+                accessibilityLabel={authorOnly ? 'Show to everyone' : 'Only me'}
+                style={styles.menuRow}
+                onPress={() => runMenuAction(() => {
+                  void Promise.resolve(onToggleAuthorOnly()).catch((error: any) =>
+                    Alert.alert(title, error?.message || 'Could not update visibility.'));
+                })}>
+                <MaterialCommunityIcons name={authorOnly ? 'earth' : 'lock-outline'} size={20} color={theme.textPrimary} />
+                <Text style={styles.menuRowText}>{authorOnly ? 'Show to everyone' : 'Ako lang (only me)'}</Text>
+              </Pressable>
+            ) : null}
+            {onDelete ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Delete post"
+                style={styles.menuRow}
+                onPress={() => runMenuAction(confirmDelete)}>
+                <MaterialCommunityIcons name="delete-outline" size={20} color="#B43D3D" />
+                <Text style={[styles.menuRowText, { color: '#B43D3D' }]}>Delete</Text>
+              </Pressable>
+            ) : null}
+            {onReport ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Report post"
+                style={styles.menuRow} onPress={() => runMenuAction(onReport)}>
+                <MaterialCommunityIcons name="flag-outline" size={20} color="#B43D3D" />
+                <Text style={[styles.menuRowText, { color: '#B43D3D' }]}>Report</Text>
+              </Pressable>
+            ) : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="Cancel post options"
+              style={[styles.menuRow, styles.menuCancel]} onPress={closeMenu}>
+              <MaterialCommunityIcons name="close" size={20} color={theme.textMuted} />
+              <Text style={[styles.menuRowText, { color: theme.textMuted }]}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={editOpen}
@@ -474,6 +489,49 @@ export function BuklodContentOverflowMenu({
 
 function createStyles(theme: BuklodThemeRoles) {
   return StyleSheet.create({
+    menuBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.40)',
+      justifyContent: 'flex-end',
+      paddingHorizontal: 12,
+      paddingBottom: 22,
+    },
+    menuSheet: {
+      backgroundColor: theme.surfaceElevated,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme.border,
+      paddingHorizontal: 12,
+      paddingTop: 14,
+      paddingBottom: 10,
+      gap: 2,
+    },
+    menuHeading: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: theme.textPrimary,
+      paddingHorizontal: 12,
+      paddingBottom: 10,
+    },
+    menuRow: {
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 12,
+      borderRadius: 11,
+    },
+    menuRowText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.textPrimary,
+    },
+    menuCancel: {
+      marginTop: 4,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.border,
+      borderRadius: 0,
+    },
     backdrop: {
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.42)',
