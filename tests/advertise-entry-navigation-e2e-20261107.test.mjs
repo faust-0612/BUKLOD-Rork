@@ -65,7 +65,7 @@ test('Advertise submission preserves review, payment verification and account is
   assert.match(form, /useAuth\(\)/);
   assert.match(form, /supabase\.from\('buklod_ad_self_service_rates'\)/);
   assert.match(form, /ensureImagePickerLibraryAccess/);
-  assert.match(form, /user\.id\/\$\{folder\}/);
+  assert.match(form, /\$\{user\.id\}\/\$\{folder\}/);
   assert.match(form, /if\(!user\?\.id\|\|busy\)return;/);
   assert.match(form, /if\(!reference\.trim\(\)\)/);
   assert.match(form, /media_duration_seconds:creative==='video'\?duration:null/);
