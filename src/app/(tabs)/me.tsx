@@ -1528,6 +1528,13 @@ export default function MeScreen() {
           />
 
           <MenuRow
+            icon="lifebuoy"
+            title="Live Chat & Report a Problem"
+            subtitle="Makipag-chat sa support; magsend ng screenshot o video ng problema kung kailangan"
+            onPress={() => router.push('/support/live' as any)}
+          />
+
+          <MenuRow
             icon="message-text-outline"
             title="Send Feedback"
             onPress={() => router.push('/feedback')}
