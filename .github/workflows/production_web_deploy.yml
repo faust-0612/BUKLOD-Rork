@@ -23,7 +23,7 @@ env:
 jobs:
   qa-export-deploy:
     # Explicit Android-only releases must not publish Expo Hosting.
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'BUKLOD_CONSOLIDATED_PROD_20261108'))
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (startsWith(github.event.head_commit.message, 'BUKLOD_CONSOLIDATED_PROD_20261108') || startsWith(github.event.head_commit.message, 'BUKLOD_WEB_NAV_ONLY_20261108')))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source
@@ -127,6 +127,9 @@ jobs:
           set -euo pipefail
           git diff --exit-code
           git diff --check
+
+      - name: Verify mobile-browser bottom navigation
+        run: node --test tests/web-bottom-nav-mobile-touch-20261108.test.mjs
 
       - name: TypeScript QA
         run: npx tsc --noEmit

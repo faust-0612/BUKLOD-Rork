@@ -1,0 +1,32 @@
+{
+  "contractVersion": 1,
+  "objective": "Resolve delayed or missed bottom-tab taps on BUKLOD mobile browsers; ship only to Expo Hosting web, never Android APK/OTA.",
+  "productionBaselineEvidence": "main 9a560caaec9befc0d54c70be36eaca619d587797; earlier web nav tap-feedback manifest was present but user still reports sluggish bottom tab navigation.",
+  "architecture": "A dedicated .web.tsx platform override uses the built-in Pressable instead of BuklodPressable's touch end coordinate recheck, preserves all five routes, permissions, public-scope reset and latest-tap-wins, and does not change the native component.",
+  "allowedPaths": [
+    "src/components/BuklodPersistentBottomNav.web.tsx",
+    "tests/web-bottom-nav-mobile-touch-20261108.test.mjs",
+    ".github/workflows/production_web_deploy.yml",
+    ".buklod/scopes/web-mobile-bottom-nav-20261108.json"
+  ],
+  "acceptanceChecks": [
+    "Five global tab destinations retain canonical paths and 44px minimum touch area",
+    "Web uses standard Pressable release-based tap instead of custom coordinate rejection",
+    "No network await on PUBLIC navigation",
+    "Managed scope exits PUBLIC before global navigation and honors the latest tapped tab",
+    "Protected and immersive route hiding remains unchanged",
+    "Native component and Android workflow unchanged",
+    "Web workflow runs isolated targeted test and existing production gates before deploy",
+    "Live Expo Hosting deployment must be verified separately; source commit alone is not proof"
+  ],
+  "regressionTests": [
+    "tests/web-bottom-nav-mobile-touch-20261108.test.mjs",
+    "scripts/test-bottom-nav-concurrency.cjs"
+  ],
+  "risks": [
+    "mobile-web-touch",
+    "scope-isolation",
+    "routing",
+    "production-web-only"
+  ]
+}
