@@ -67,3 +67,9 @@ test('approved rewards align with current guide without retroactive recredit', (
  assert.doesNotMatch(rules, /update public\.buklod_points_ledger/i);
  assert.doesNotMatch(rules, /delete\s+from public\.buklod_points_ledger/i);
 });
+
+test('approved stage-completion limit cannot exceed 75 BP on future award', () => {
+ assert.match(rules, /set base_points=75, max_points_per_event=75/);
+ assert.match(rules, /where activity_type='stage_completion'/);
+ assert.doesNotMatch(rules, /update public\.buklod_points_ledger/i);
+});
