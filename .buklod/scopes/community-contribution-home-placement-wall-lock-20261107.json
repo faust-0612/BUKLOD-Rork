@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Preserve the user-approved production Community Wall layout and move only the authenticated Community Contribution card from the Public Wall into Public Home.",
+  "baseRef": "0ee39862713665294803f4d329bcd522e0ceef0c",
+  "productionBaselineEvidence": "User reports prior production OTA completed and provided a screenshot approving the Wall layout on 2026-11-07. Exact installed Android OTA ID and bundle remain unverified by this source-only change; the preceding code baseline is merged main 0ee39862713665294803f4d329bcd522e0ceef0c. Do not claim another production OTA was published from this PR.",
+  "chosenApproach": "Keep the existing Contribution card unmodified and reuse it only in Home after bulletins, before Top 10. Remove the sole Public Wall mount and import. Update the legacy finance release placement assertion and add focused Wall layout lock tests; preserve all other Wall code.",
+  "selectionRationale": "The screenshot confirms Wall composition and controls are approved. Moving the independent, auth-scoped contribution component is lower-risk than duplicating its financial queries or redesigning the Wall.",
+  "alternativeApproaches": [
+    "Duplicate contribution card in Home and Wall (rejected: user requests relocation, duplicate query loads and visual clutter).",
+    "Recreate the card in Home (rejected: risks diverging finance/privacy behavior).",
+    "Replace or reorder the Wall UI (rejected: user explicitly locked the approved design)."
+  ],
+  "riskAreas": [
+    "home-first-paint",
+    "wall-layout-preservation",
+    "community-economy-display",
+    "navigation-scroll",
+    "account-scoped-financial-privacy"
+  ],
+  "preserveBehaviors": [
+    "User-approved Community Wall header, Marites, tabs, posting bar, photo/video rendering, social action row, post sizing, captions and feed remain unchanged",
+    "Contribution QMP, share-weight, revenue estimate, lifetime history, refresh, privacy, clickthrough and non-withdrawable protections remain unchanged",
+    "Home announcement, bulletin, Top 10 members, reminder and ad banner remain in original order",
+    "No backend, Supabase functions, pricing, native dependencies, Android runtime, staging channel or production OTA changes",
+    "Home card loads asynchronously and remains hidden when user is signed out"
+  ],
+  "regressionTests": [
+    "tests/community-contribution-home-placement-wall-lock-20261107.test.mjs",
+    "tests/qmp-monthly-reset-clarity-20261102.test.mjs",
+    "tests/buklod-qmp-lifetime-visibility.test.mjs",
+    "tests/community-wall-compact-composer.test.mjs",
+    "tests/android-wall-direct-original-video-parity-20261107.test.mjs",
+    "scripts/community-contribution-economy-release-contract.mjs"
+  ],
+  "acceptanceChecks": [
+    "Single Community Contribution card on Home, no contribution card on Wall",
+    "Home bulletin and announcement remain before QMP card; Top 10 and banner remain after",
+    "Wall composer, location chips, Marites and media anchors preserved",
+    "Original card renders the same private values, estimates and guidance without duplication",
+    "Production OTA not implied by source merge; follow DEV → RC → Android Production release gate"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/home.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "scripts/community-contribution-economy-release-contract.mjs",
+    "tests/community-contribution-home-placement-wall-lock-20261107.test.mjs",
+    ".buklod/scopes/community-contribution-home-placement-wall-lock-20261107.json"
+  ]
+}
