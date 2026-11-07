@@ -1,10 +1,12 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -338,6 +340,15 @@ export function ConnectComposer({
   const [quickReaction, setQuickReaction] = useState(DEFAULT_HIBLA_REACTION);
   const [choosingReaction, setChoosingReaction] = useState(false);
   const hasMessagePayload = !!draft.trim() || !!selectedFile || selectedPhotos.length > 0;
+  const lastKeyboardSendRef = useRef(0);
+  const sendFromDesktopKeyboard = () => {
+    if (Platform.OS !== 'web' || !hasMessagePayload) return;
+    const now = Date.now();
+    // RN Web may emit both key and submit for one physical Enter.
+    if (now - lastKeyboardSendRef.current < 250) return;
+    lastKeyboardSendRef.current = now;
+    onSend();
+  };
 
   useEffect(() => {
     let active = true;
@@ -546,6 +557,17 @@ export function ConnectComposer({
             placeholderTextColor={theme.textMuted}
             multiline
             blurOnSubmit={false}
+            returnKeyType={Platform.OS === 'web' ? 'send' : undefined}
+            onSubmitEditing={Platform.OS === 'web' ? sendFromDesktopKeyboard : undefined}
+            onKeyPress={Platform.OS === 'web' ? (event) => {
+              const e = event as any;
+              const key = e.nativeEvent?.key ?? e.key;
+              const shifted = Boolean(e.nativeEvent?.shiftKey ?? e.shiftKey);
+              const composing = Boolean(e.nativeEvent?.isComposing ?? e.isComposing);
+              if (key !== 'Enter' || shifted || composing || e.nativeEvent?.repeat) return;
+              e.preventDefault?.();
+              sendFromDesktopKeyboard();
+            } : undefined}
             style={styles.input}
           />
           <ConnectPressable

@@ -24,8 +24,8 @@ test('navigation isolates mobile, scoped, media and authentication routes', () =
   assert.equal(check('/hub', 1199), false);
   assert.equal(check('/hub', 1200), true);
   assert.equal(check('/messages', 1920), true);
-  assert.equal(check('/scope', 1920), false);
-  assert.equal(check('/scope/my-cluster', 1920), false);
+  assert.equal(check('/scope', 1920), true);
+  assert.equal(check('/scope/my-cluster', 1920), true);
   assert.equal(check('/login', 1920), false);
   assert.equal(check('/reels', 1920), false);
   assert.equal(check('/connect/personal/new', 1920), false);
@@ -66,10 +66,10 @@ test('desktop detail routes never mount the mobile bottom nav pane', () => {
 
 test('desktop rail widths prioritize the routed content at all supported sizes', () => {
   const rails = policy.resolveBuklodDesktopRailWidths;
-  assert.deepEqual(rails(1200), { left: 198, right: 270 });
-  assert.deepEqual(rails(1399), { left: 198, right: 270 });
-  assert.deepEqual(rails(1400), { left: 240, right: 318 });
-  assert.deepEqual(rails(1920), { left: 240, right: 318 });
+  assert.deepEqual(rails(1200), { left: 220, right: 270 });
+  assert.deepEqual(rails(1399), { left: 220, right: 270 });
+  assert.deepEqual(rails(1400), { left: 280, right: 318 });
+  assert.deepEqual(rails(1920), { left: 280, right: 318 });
   for (const width of [1200, 1280, 1400, 1590, 1920]) {
     const frame = Math.min(width, 1590);
     const { left, right } = rails(width);
@@ -147,4 +147,33 @@ test('instant navigation treats only secondary destinations as contextual', () =
   assert.match(instant, /pathname === '\/connect\/personal\/\[threadId\]'/);
   assert.match(instant, /pathname === '\/member\/\[id\]'/);
   assert.doesNotMatch(instant, /\/reels\/\[id\]|\/login\/\[id\]|\/scope\/\[id\]/);
+});
+
+test('new desktop dashboards remain within Main desktop chrome', () => {
+  const p = policy.shouldUseBuklodPublicDesktopShell;
+  for (const path of ['/scope', '/scope/cluster', '/points', '/profile/settings',
+    '/personal-home', '/word', '/member/example', '/connect/personal/example']) {
+    assert.equal(p(path, 1440), true, path);
+    assert.equal(p(path, 1199), false, 'mobile ' + path);
+  }
+  const left = policy.resolveBuklodDesktopRailWidths;
+  for (const width of [1200,1280,1400,1590,1920]) {
+    const frame = Math.min(width, 1590);
+    const { left: l, right } = left(width);
+    assert.ok(frame - 48 - l - right >= 635, String(width));
+  }
+});
+test('Cluster scoped header cannot reserve mobile top inset on wide desktop', () => {
+  const header = read('src/components/BuklodScopedDashboardHeader.tsx');
+  assert.match(header, /scopedTopInset = Platform\.OS === 'web' && viewportWidth >= 1200/);
+  assert.match(header, /paddingTop: scopedTopInset/);
+});
+test('Character Studio loading and render errors do not replace the entire Profile', () => {
+  const profile = read('src/components/points/BuklodProfileCharacterCard.tsx');
+  const editor = read('src/components/points/BuklodCharacterCustomizeSheet.tsx');
+  assert.match(profile, /class CharacterStudioBoundary/);
+  assert.match(profile, /React\.lazy/);
+  assert.match(profile, /\{customizeOpen \? \(/);
+  assert.match(editor, /desktopModal && styles\.desktopSheet/);
+  assert.match(editor, /desktopModal && styles\.desktopOverlay/);
 });

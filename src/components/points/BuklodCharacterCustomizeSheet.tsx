@@ -6,10 +6,12 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -54,6 +56,8 @@ export default function BuklodCharacterCustomizeSheet({
   onActiveChanged,
 }: Props) {
   const drawerBottomInset = useBuklodDrawerBottomInset();
+  const { width: viewportWidth } = useWindowDimensions();
+  const desktopModal = Platform.OS === 'web' && viewportWidth >= 1200;
   const [state, setState] = useState<BuklodCharacterSelectionV2State | null>(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<Mode>('five');
@@ -144,8 +148,10 @@ export default function BuklodCharacterCustomizeSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={closeSheet}>
-      <View style={styles.overlay}>
-        <View style={[styles.sheet, { backgroundColor: '#070B14', paddingBottom: drawerBottomInset }]}>
+      <View style={[styles.overlay, desktopModal && styles.desktopOverlay]}>
+        <View style={[styles.sheet, desktopModal && styles.desktopSheet,
+          { backgroundColor: '#070B14',
+            paddingBottom: desktopModal ? 10 : drawerBottomInset }]}>
           <View style={[styles.header, { borderBottomColor: 'rgba(232,197,107,0.25)' }]}>
             <View style={styles.headerCopy}>
               <Text style={[styles.title, { color: '#F4E7C3' }]}>CHARACTER PROGRESSION</Text>
@@ -295,6 +301,9 @@ export default function BuklodCharacterCustomizeSheet({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.72)' },
+  desktopOverlay: { justifyContent: 'center', alignItems: 'center', padding: 20 },
+  desktopSheet: { width: '100%', maxWidth: 880, height: '84%',
+    borderRadius: 20, alignSelf: 'center' },
   sheet: { height: '94%', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   header: {
     minHeight: 60,

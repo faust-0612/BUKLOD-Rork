@@ -29,7 +29,7 @@ test('public centered canvas: Home/Wall only at >=1200px', () => {
   assert.equal(p('/buklod/post', 1200), true);
   assert.equal(p('/hub', 1199), false);
   assert.equal(p('/messages', 1920), false);
-  assert.equal(p('/scope', 1920), false);
+  assert.equal(p('/scope', 1920), true);
   assert.equal(p('/me', 1920), false);
   assert.equal(p('/login', 1920), false);
   assert.equal(p('/buklod', Number.NaN), false);
@@ -67,7 +67,7 @@ test('desktop public dashboard routes preserve phone and scoped shell boundaries
   assert.equal(p('/me', 1600), true);
   assert.equal(p('/clusters', 1600), true);
   assert.equal(p('/bible/read', 1600), true);
-  assert.equal(p('/scope', 1600), false);
+  assert.equal(p('/scope', 1600), true);
   assert.equal(p('/login', 1600), false);
   assert.equal(p('/connect/personal/new', 1600), false);
   assert.equal(p('/hub', 1199), false);

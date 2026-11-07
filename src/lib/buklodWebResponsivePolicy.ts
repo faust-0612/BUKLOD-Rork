@@ -50,9 +50,9 @@ export function resolveBuklodDesktopRailWidths(width: number): {
   left: number; right: number;
 } {
   if (Number.isFinite(width) && width >= 1400) {
-    return { left: 240, right: 318 };
+    return { left: 280, right: 318 };
   }
-  return { left: 198, right: 270 };
+  return { left: 220, right: 270 };
 }
 
 export function shouldUseBuklodPublicDesktopShell(
@@ -71,6 +71,15 @@ export function shouldUseBuklodPublicDesktopShell(
     normalizedPathname === '/bible' ||
     normalizedPathname.startsWith('/bible/') ||
     normalizedPathname === '/notifications' ||
-    normalizedPathname === '/community-contribution'
+    normalizedPathname === '/community-contribution' ||
+    // Wide desktop: regular secondary dashboards remain within Main chrome.
+    normalizedPathname === '/scope' || normalizedPathname.startsWith('/scope/') ||
+    normalizedPathname === '/points' || normalizedPathname.startsWith('/points/') ||
+    normalizedPathname === '/personal-home' || normalizedPathname.startsWith('/personal-home/') ||
+    normalizedPathname === '/profile' || normalizedPathname.startsWith('/profile/') ||
+    normalizedPathname === '/word' || normalizedPathname.startsWith('/word/') ||
+    normalizedPathname === '/prayer' || normalizedPathname.startsWith('/prayer/') ||
+    normalizedPathname === '/member' || normalizedPathname.startsWith('/member/') ||
+    normalizedPathname === '/connect' || normalizedPathname.startsWith('/connect/')
   );
 }

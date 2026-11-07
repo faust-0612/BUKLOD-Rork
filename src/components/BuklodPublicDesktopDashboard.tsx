@@ -239,6 +239,11 @@ export default function BuklodPublicDesktopDashboard({
     : pathname === '/buklod' ? 'Community Wall'
     : pathname === '/messages' ? 'Connect'
     : pathname === '/me' ? 'My BUKLOD'
+    : pathname.startsWith('/scope') ? 'Cluster / Organization Workspace'
+    : pathname.startsWith('/points') ? 'BUKLOD Points'
+    : pathname.startsWith('/personal-home') ? 'Personal Dashboard'
+    : pathname.startsWith('/profile') ? 'Profile & Settings'
+    : pathname.startsWith('/connect') ? 'Connect'
     : pathname.startsWith('/clusters') ? 'Clusters'
     : pathname.startsWith('/bible') ? 'My Bible'
     : 'BUKLOD Dashboard';
@@ -317,7 +322,14 @@ export default function BuklodPublicDesktopDashboard({
             showsVerticalScrollIndicator={false}>
             <View style={styles.navGroup}>
               {LEFT_NAV.map(item => {
-                const selected = isCurrent(pathname, item.path);
+                const selected = isCurrent(pathname, item.path) ||
+                  (item.path === '/clusters' && pathname.startsWith('/scope')) ||
+                  (item.path === '/me' && (
+                    pathname.startsWith('/points') ||
+                    pathname.startsWith('/profile') ||
+                    pathname.startsWith('/personal-home')
+                  )) ||
+                  (item.path === '/messages' && pathname.startsWith('/connect/'));
                 return (
                   <Pressable key={item.path} accessibilityRole="button"
                     accessibilityLabel={item.label}
