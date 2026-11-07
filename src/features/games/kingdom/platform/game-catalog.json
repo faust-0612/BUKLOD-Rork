@@ -22,7 +22,7 @@
           "id": "phan-market-match",
           "title": "Market Match",
           "genre": "match3",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -142,7 +142,7 @@
           "id": "jawo-nature-match",
           "title": "Nature Match",
           "genre": "match3",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -280,7 +280,7 @@
           "id": "vhen-harvest-match",
           "title": "Harvest Match",
           "genre": "match3",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "vhen-farm-merge",

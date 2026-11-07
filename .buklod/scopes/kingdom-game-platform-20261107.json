@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Continue consolidated BUKLOD Kingdom implementation in the BUKLOD App: add three new playable, offline, account-scoped local preview games (Jawo Trail Maze, Trudice Picture Pairs and Angel Number Vault) while preserving 13 original games, 13 stations, approved map, ads/economy rules and newest main changes.",
+  "objective": "Implement a shared high-performance in-app match-three engine for Phan Market Match, Jawo Nature Match and Vhen Harvest Match, preserving original 13 stations/old games and all previous 9 pilots. Grow to 12 new pilots and keep zero client economy/AdMob modifications.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: GitHub source reconciliation only — Forward-reconciled into main df1e4652bac9858df58b40173483baa4d85ec73d from original main 0be759bd27d4771bac2b40b4939cb2a115ef7d3a and current Kingdom DEV c20c445d64cacf29ef95f5c04a772aa5791b82e8. Zero overlapping file paths; all KL/Word current-main files preserved via Git tree overlay. Scope compares main's current PR merge-base rather than pinning a stale main SHA. Device/staging artifact unverified; no OTA. This does NOT verify production runtime, actual installed staging APK, or visual acceptance.",
-  "chosenApproach": "Single cumulative DEV branch. Explicit two-parent merge commit constructed from latest-main tree plus exact changed Kingdom blobs; preserve newer KL and Word source without unrelated patches. Use main-relative workstream scope diff for independent CI changes.",
-  "selectionRationale": "Three different robust genres (maze, memory, arithmetic) expand gameplay variety without bloating native APK, and reusable result/center integration prevents authentication/economy regressions.",
+  "chosenApproach": "One deterministic 7×7 match-three rules engine with valid-move/combination validation, finite cascades/refills, reshuffle dead-end guard and three character-specific palettes/objective configurations. One lightweight responsive RN UI with bilingual instructions, goals, hints, retry, pause, scores and no economic grants.",
+  "selectionRationale": "Reuse mechanics and game shell for three genre-consistent character titles instead of shipping three separate heavy engines. No new native dependencies or media assets are required for the DEV pilot.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
     "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
@@ -56,7 +56,10 @@
     "Trail Maze: all 3 seeded levels are fully reachable with relics and exit, legal moves are immutable, and completion requires collecting all relics.",
     "Picture Pairs: 3 seeded decks contain exactly 2 of every symbol; two-card turns, mismatch delay/settle, pause/resume and match wins cannot double-award.",
     "Number Vault: 3 curated arithmetic puzzles are solvable using all tiles once; only bounded exact integer operations are permitted; undo, hints and retries work.",
-    "Catalog must retain 13 original games, 9 playable pilots and 17 planned, with canonical map blob and route names unchanged."
+    "Catalog must retain 13 original games, 9 playable pilots and 17 planned, with canonical map blob and route names unchanged.",
+    "All nine match-three levels generate initially match-free boards with guaranteed legal swaps; incorrect or nonadjacent swaps do not spend moves.",
+    "Match collection, gravity, cascades, refill, and deterministic no-move reshuffle finish in bounded steps; score and game results remain local-only.",
+    "Phan Enterprise Builder, Jawo Forest Trail and Vhen Farm to Market remain selectable at original station routes; 39 catalog entries = 13 existing + 12 pilot + 14 planned."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
@@ -65,7 +68,8 @@
     "tests/kingdom-games-r4.test.mjs",
     "tests/kingdom-games-r5.test.mjs",
     "tests/kingdom-premium-map-r6.test.mjs",
-    "tests/kingdom-games-r7.test.mjs"
+    "tests/kingdom-games-r7.test.mjs",
+    "tests/kingdom-games-r8.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-game-platform-20261107.json",
@@ -109,6 +113,11 @@
     "src/app/games/jawo-forest-trail.tsx",
     "src/app/games/trudice-playground-memory.tsx",
     "src/app/games/angel-kingdom-treasury.tsx",
-    "tests/kingdom-games-r7.test.mjs"
+    "tests/kingdom-games-r7.test.mjs",
+    "src/features/games/kingdom/platform/matchThreeRules.ts",
+    "src/features/games/kingdom/platform/MatchThreeGameV1.tsx",
+    "src/app/games/phan-enterprise-builder.tsx",
+    "src/app/games/vhen-farm-to-market.tsx",
+    "tests/kingdom-games-r8.test.mjs"
   ]
 }
