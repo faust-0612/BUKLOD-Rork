@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
+  FlatList,
   Pressable,
   StyleSheet,
   Text,
@@ -23,8 +24,18 @@ export type CommunityPhotoCollageItem = {
   preview_path?: string | null;
 };
 
+export type CommunityPhotoCollageLayout = 'grid' | 'highlight' | 'swipe';
+const layoutForOriginal = new Map<string, CommunityPhotoCollageLayout>();
+export function rememberCommunityCollageLayout(mediaIdentity: string, layout: CommunityPhotoCollageLayout) {
+  if (mediaIdentity) layoutForOriginal.set(mediaIdentity, layout);
+}
+const LAYOUTS: readonly CommunityPhotoCollageLayout[] = ['grid', 'highlight', 'swipe'];
+
 type Props = {
   items: CommunityPhotoCollageItem[];
+  /** Composer preview can supply its chosen layout; feed viewers may switch locally. */
+  layoutMode?: CommunityPhotoCollageLayout;
+  showLayoutPicker?: boolean;
   width?: number;
   height?: number;
   style?: StyleProp<ViewStyle>;
@@ -74,7 +85,8 @@ export function communityPhotoCollageTileLayout(
   index: number,
   width: number,
   height: number,
-  gap = 2
+  gap = 2,
+  mode: 'grid' | 'highlight' = 'grid',
 ): ViewStyle {
   const visibleCount = Math.max(1, Math.min(4, count));
   const safeIndex = Math.max(
@@ -84,6 +96,20 @@ export function communityPhotoCollageTileLayout(
 
   if (visibleCount === 1) {
     return { left: 0, top: 0, width, height };
+  }
+
+  if (mode === 'highlight') {
+    const heroWidth = Math.max(1, Math.round(width * 0.62));
+    const sideWidth = Math.max(1, width - heroWidth - gap);
+    if (safeIndex === 0) return { left: 0, top: 0, width: heroWidth, height };
+    const remaining = visibleCount - 1;
+    const sideHeight = Math.max(1, (height - gap * (remaining - 1)) / remaining);
+    return {
+      left: heroWidth + gap,
+      top: (safeIndex - 1) * (sideHeight + gap),
+      width: sideWidth,
+      height: sideHeight,
+    };
   }
 
   if (visibleCount === 2) {
@@ -142,6 +168,8 @@ export function BuklodCommunityPhotoCollage({
   items,
   width,
   height,
+  layoutMode,
+  showLayoutPicker = true,
   style,
   imageStyle,
   contentFit = 'cover',
@@ -156,6 +184,22 @@ export function BuklodCommunityPhotoCollage({
   );
 
   const photoIdentity = String(photos[0]?.media_path || photos[0]?.media_url || '');
+  const [chosenLayout, setChosenLayout] = useState<CommunityPhotoCollageLayout>(
+    () => layoutForOriginal.get(photoIdentity) ?? 'grid',
+  );
+  const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
+  const [slideIndex, setSlideIndex] = useState(0);
+  useEffect(() => {
+    setChosenLayout(layoutForOriginal.get(photoIdentity) ?? 'grid');
+    setLayoutMenuOpen(false);
+    setSlideIndex(0);
+  }, [photoIdentity]);
+  const effectiveLayout = layoutMode ?? chosenLayout;
+  const chooseLayout = (value: CommunityPhotoCollageLayout) => {
+    setChosenLayout(value);
+    rememberCommunityCollageLayout(photoIdentity, value);
+    setLayoutMenuOpen(false);
+  };
   const [singleAspect, setSingleAspect] = useState<{ identity: string; ratio: number } | null>(null);
   const singleAspectRatio = singleAspect?.identity === photoIdentity ? singleAspect.ratio : null;
 
@@ -267,6 +311,75 @@ export function BuklodCommunityPhotoCollage({
 
   const visible = photos.slice(0, 4);
   const extraCount = count - 4;
+  const layoutPicker = showLayoutPicker && count > 1 ? (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Choose photo collage layout. Current: ${effectiveLayout}`}
+        style={styles.layoutToggle}
+        onPress={() => setLayoutMenuOpen(open => !open)}
+      >
+        <Text style={styles.layoutToggleText}>Layout · {effectiveLayout}</Text>
+      </Pressable>
+      {layoutMenuOpen ? (
+        <View style={styles.layoutOptions}>
+          {LAYOUTS.map(value => (
+            <Pressable key={value} accessibilityRole="button"
+              accessibilityLabel={`Use ${value} collage layout`}
+              onPress={() => chooseLayout(value)}
+              style={[styles.layoutOption, value === effectiveLayout && styles.layoutSelected]}
+            >
+              <Text style={styles.layoutToggleText}>{value}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </>
+  ) : null;
+
+  if (effectiveLayout === 'swipe') {
+    return (
+      <View onLayout={handleLayout}
+        style={[styles.grid, { width: width ?? '100%', height: collageHeight }, style]}>
+        <FlatList
+          data={photos}
+          horizontal
+          pagingEnabled
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(photo, index) => String(photo.media_path || photo.media_url || index)}
+          initialNumToRender={1}
+          maxToRenderPerBatch={2}
+          windowSize={3}
+          getItemLayout={(_, index) => ({ length: collageWidth, offset: collageWidth * index, index })}
+          onMomentumScrollEnd={event => {
+            setSlideIndex(Math.min(photos.length - 1,
+              Math.max(0, Math.round(event.nativeEvent.contentOffset.x / collageWidth))));
+          }}
+          renderItem={({ item: photo, index }) => (
+            <Pressable
+              style={{ width: collageWidth, height: collageHeight }}
+              onPress={() => onPressPhoto?.(index, photos)}
+              onLongPress={() => onLongPressPhoto?.(index, photos)}
+            >
+              <BuklodCachedMediaImage
+                uri={photo.media_url}
+                mediaPath={photo.media_path}
+                useWallPreview={false}
+                previewPath={photo.preview_path}
+                style={[styles.image, imageStyle]}
+                contentFit="contain"
+              />
+            </Pressable>
+          )}
+        />
+        <View pointerEvents="none" style={styles.slideCounter}>
+          <Text style={styles.layoutToggleText}>{slideIndex + 1}/{count}</Text>
+        </View>
+        {layoutPicker}
+      </View>
+    );
+  }
 
   return (
     <View
@@ -286,7 +399,8 @@ export function BuklodCommunityPhotoCollage({
           index,
           collageWidth,
           collageHeight,
-          2
+          2,
+          effectiveLayout,
         );
         const showMore =
           extraCount > 0 &&
@@ -329,6 +443,7 @@ export function BuklodCommunityPhotoCollage({
           </Pressable>
         );
       })}
+      {layoutPicker}
     </View>
   );
 }
@@ -351,6 +466,53 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  layoutToggle: {
+    position: 'absolute',
+    zIndex: 12,
+    top: 8,
+    right: 8,
+    minHeight: 30,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+  },
+  layoutOptions: {
+    position: 'absolute',
+    zIndex: 13,
+    top: 42,
+    right: 8,
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4,
+    borderRadius: 13,
+    backgroundColor: 'rgba(0,0,0,0.83)',
+  },
+  layoutOption: {
+    minHeight: 34,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    borderRadius: 9,
+  },
+  layoutSelected: {
+    backgroundColor: '#236F4B',
+  },
+  layoutToggleText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textTransform: 'capitalize',
+  },
+  slideCounter: {
+    position: 'absolute',
+    zIndex: 8,
+    bottom: 9,
+    right: 9,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
   },
   more: {
     ...StyleSheet.absoluteFill,
