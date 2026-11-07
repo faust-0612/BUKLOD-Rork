@@ -4247,6 +4247,7 @@ const load=useCallback(async(options?:{
           ).length>0&&(
             <View style={{marginHorizontal:-12,marginTop:8}}>
              <BuklodCommunityPhotoCollage
+              showLayoutPicker
               items={communityPhotoCollageItems(
                item?.media_items,
                null
@@ -4289,6 +4290,7 @@ const load=useCallback(async(options?:{
    return (
     <View style={{marginHorizontal:-12}}>
      <BuklodCommunityPhotoCollage
+      showLayoutPicker
       items={media}
       contentFit="cover"
       preserveSinglePhotoAspectRatio
