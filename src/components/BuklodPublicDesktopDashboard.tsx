@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
   Text,
   TextInput,
   View,
@@ -21,6 +22,7 @@ import {
   type ConnectSuggestedContact,
 } from '@/lib/buklodConnectSuggestedContacts';
 import { normalizeBuklodPathname } from '@/lib/buklodSafeArea';
+import { resolveBuklodDesktopRailWidths } from '@/lib/buklodWebResponsivePolicy';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -95,6 +97,8 @@ export default function BuklodPublicDesktopDashboard({
   children,
 }: { children: React.ReactNode }) {
   const pathname = normalizeBuklodPathname(usePathname());
+  const { width: viewportWidth } = useWindowDimensions();
+  const railWidths = resolveBuklodDesktopRailWidths(viewportWidth);
   const { profile, session } = useAuth();
   const { activeScope, scopes, selectScope } = useBuklodScope();
   const { unreadCount: notificationsUnread } = useNotifications();
@@ -211,7 +215,8 @@ export default function BuklodPublicDesktopDashboard({
             style={styles.brand}>
             <Image source={require('../../assets/release/buklod-main-canonical.png')}
               resizeMode="contain" accessibilityLabel="BUKLOD canonical logo" style={styles.brandLogo} />
-            <Text style={[styles.brandText, { color: mainColor }]}>BUKLOD</Text>
+            {/* This approved PNG already contains the BUKLOD wordmark.
+                Do not append a second, separate BUKLOD title. */}
           </Pressable>
           <View style={styles.titleBlock}>
             <Text numberOfLines={1} style={[styles.pageTitle, { color: ink }]}>{title}</Text>
@@ -243,7 +248,11 @@ export default function BuklodPublicDesktopDashboard({
           </Pressable>
         </View>
         <View style={styles.columns}>
-          <ScrollView style={[styles.leftRail, { backgroundColor: bg }]} contentContainerStyle={styles.railContent}
+          <ScrollView style={[styles.leftRail, {
+              backgroundColor: bg,
+              width: railWidths.left, minWidth: railWidths.left,
+              maxWidth: railWidths.left, flexBasis: railWidths.left,
+            }]} contentContainerStyle={styles.railContent}
             showsVerticalScrollIndicator={false}>
             <View style={styles.navGroup}>
               {LEFT_NAV.map(item => {
@@ -292,7 +301,11 @@ export default function BuklodPublicDesktopDashboard({
             {children}
           </View>
 
-          <ScrollView style={[styles.rightRail, { backgroundColor: bg }]}
+          <ScrollView style={[styles.rightRail, {
+              backgroundColor: bg,
+              width: railWidths.right, minWidth: railWidths.right,
+              maxWidth: railWidths.right, flexBasis: railWidths.right,
+            }]}
             contentContainerStyle={styles.railContent} showsVerticalScrollIndicator={false}>
             <View style={[styles.sideCard, { backgroundColor: surface, borderColor: border }]}>
               <View style={styles.sectionTitleRow}>
@@ -434,11 +447,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, minWidth: 0, minHeight: 0 },
   contentOnly: { flex: 1, minWidth: 0, minHeight: 0 },
   layoutFrame: { flex: 1, width: '100%', maxWidth: 1590, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 8 },
-  header: { height: 66, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16,
+  header: { height: 80, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16,
     borderRadius: 20, borderWidth: 1, marginBottom: 10 },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 174 },
-  brandLogo: { width: 42, height: 42, borderRadius: 10 },
-  brandText: { fontSize: 24, fontWeight: '900' },
+  brand: { flexDirection: 'row', alignItems: 'center', minWidth: 86 },
+  brandLogo: { width: 66, height: 66, borderRadius: 12 },
   titleBlock: { flex: 1, minWidth: 100, maxWidth: 290 },
   pageTitle: { fontSize: 18, fontWeight: '900' },
   pageSub: { fontSize: 11, marginTop: 2 },
@@ -451,11 +463,12 @@ const styles = StyleSheet.create({
   bubbleText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
   profileButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 35, height: 35, borderRadius: 19 },
-  columns: { flex: 1, flexDirection: 'row', gap: 12, minHeight: 0 },
-  leftRail: { width: 246, flexShrink: 0, minHeight: 0, borderRadius: 18 },
-  rightRail: { width: 310, flexShrink: 0, minHeight: 0, borderRadius: 18 },
+  columns: { flex: 1, flexDirection: 'row', gap: 12, minWidth: 0, minHeight: 0, alignItems: 'stretch' },
+  // ScrollView defaults are flex-growing on the web. Explicitly freeze both rails.
+  leftRail: { flexGrow: 0, flexShrink: 0, minHeight: 0, borderRadius: 18 },
+  rightRail: { flexGrow: 0, flexShrink: 0, minHeight: 0, borderRadius: 18 },
   railContent: { gap: 10, paddingBottom: 20 },
-  center: { flex: 1, minWidth: 0, minHeight: 0, borderRadius: 18, overflow: 'hidden', borderWidth: 1 },
+  center: { flex: 1, flexGrow: 1, flexShrink: 1, minWidth: 0, minHeight: 0, borderRadius: 18, overflow: 'hidden', borderWidth: 1 },
   navGroup: { gap: 6 },
   navButton: { flexDirection: 'row', alignItems: 'center', gap: 11, minHeight: 47, paddingHorizontal: 14,
     borderRadius: 12, borderWidth: 1 },

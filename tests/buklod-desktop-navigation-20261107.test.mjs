@@ -62,3 +62,33 @@ test('desktop detail routes never mount the mobile bottom nav pane', () => {
   assert.match(mobileShell, /desktopDetail && styles\.desktopDetail/);
   assert.match(mobileShell, /maxWidth: 1190/);
 });
+
+
+test('desktop rail widths prioritize the routed content at all supported sizes', () => {
+  const rails = policy.resolveBuklodDesktopRailWidths;
+  assert.deepEqual(rails(1200), { left: 198, right: 270 });
+  assert.deepEqual(rails(1399), { left: 198, right: 270 });
+  assert.deepEqual(rails(1400), { left: 240, right: 318 });
+  assert.deepEqual(rails(1920), { left: 240, right: 318 });
+  for (const width of [1200, 1280, 1400, 1590, 1920]) {
+    const frame = Math.min(width, 1590);
+    const { left, right } = rails(width);
+    // 24px frame padding and 24px inter-column gaps.
+    assert.ok(frame - left - right - 48 >= 640, width + ' must keep a readable center');
+  }
+  const source = read('src/components/BuklodPublicDesktopDashboard.tsx');
+  assert.match(source, /flexGrow: 0, flexShrink: 0/);
+  assert.match(source, /width: railWidths.left, minWidth: railWidths.left/);
+  assert.match(source, /width: railWidths.right, minWidth: railWidths.right/);
+  assert.match(source, /flexGrow: 1, flexShrink: 1/);
+});
+
+test('top bar renders the approved BUKLOD image once without duplicate wordmark', () => {
+  const main = read('src/components/BuklodPublicDesktopDashboard.tsx');
+  const scoped = read('src/components/BuklodDesktopWebShell.tsx');
+  for (const source of [main, scoped]) {
+    assert.match(source, /source=\{require\('\.\.\/\.\.\/assets\/release\/buklod-main-canonical\.png'\)\}/);
+    assert.doesNotMatch(source, /<Text style=\{\[styles\.brandText/);
+  }
+  assert.match(main, /brandLogo: \{ width: 66, height: 66/);
+});

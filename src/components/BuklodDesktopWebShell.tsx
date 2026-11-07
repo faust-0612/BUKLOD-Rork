@@ -308,7 +308,7 @@ export default function BuklodDesktopWebShell({
           >
             <Image source={require('../../assets/release/buklod-main-canonical.png')}
               resizeMode="contain" accessibilityLabel="BUKLOD canonical logo" style={styles.brandLogo} />
-            <Text style={[styles.brandText, { color: theme.accent }]}>BUKLOD</Text>
+            {/* The image already contains the approved BUKLOD wordmark. */}
           </Pressable>
 
           {!compactLeft ? (
@@ -528,8 +528,7 @@ const styles = StyleSheet.create({
   },
   topLeft: { minWidth: 220, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  brandLogo: { width: 42, height: 42, borderRadius: 10 },
-  brandText: { fontSize: 20, fontWeight: '900', letterSpacing: 0.2 },
+  brandLogo: { width: 56, height: 56, borderRadius: 10 },
   searchPill: {
     height: 42,
     minWidth: 170,
