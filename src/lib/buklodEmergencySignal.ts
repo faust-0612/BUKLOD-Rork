@@ -19,9 +19,22 @@ export function subscribeBuklodEmergencySignal(handler: Handler) {
   listeners.add(handler);
   return () => { listeners.delete(handler); };
 }
-export function emitBuklodEmergencySignal(signal: BuklodEmergencySignal) {
-  if (!isBuklodEmergencyId(signal.incidentId)) return;
+/**
+ * Returns whether a mounted subscriber accepted the incident handoff.
+ * If no global host is ready (for example on a cold notification launch),
+ * the notification router can restore the locked R1 Community deep link.
+ * Neither path authorizes displaying data until host RLS/proximity checks.
+ */
+export function emitBuklodEmergencySignal(signal: BuklodEmergencySignal): boolean {
+  if (!isBuklodEmergencyId(signal.incidentId)) return false;
+  let delivered = false;
   for (const handler of listeners) {
-    try { handler(signal); } catch { /* a bad view must never abort SOS dispatch */ }
+    try {
+      handler(signal);
+      delivered = true;
+    } catch {
+      // A bad view must never abort SOS notification navigation.
+    }
   }
+  return delivered;
 }
