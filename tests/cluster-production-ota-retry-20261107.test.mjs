@@ -39,4 +39,8 @@ test('The old RETRY visual-control token is retired, not the retry behavior or p
   assert.match(workflow, /node scripts\/community-help-sos-release-contract\.mjs/);
   assert.match(workflow, /env:exec production 'node scripts\/verify-production-ads-env\.cjs'/);
   assert.match(workflow, /node scripts\/android-ota-rc\.cjs freeze/);
+  const prs = read('.github/workflows/engineering-accountability.yml');
+  // Production safety contract now runs on EVERY PR instead of being scoped
+  // to an old October branch name that no longer exists.
+  assert.match(prs, /- name: Verify approved pending client and rollback recovery\s+#[^\n]*\n\s+#[^\n]*\n\s+run: node scripts\/test-pending-client-reconciliation-20261027\.cjs/);
 });
