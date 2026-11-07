@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
-const migration=read('supabase/migrations/20261108025000_buklod_living_greetings_v1.sql');
+const baseMigration=read('supabase/migrations/20261108025000_buklod_living_greetings_v1.sql');
+const upgrade=read('supabase/migrations/20261108040000_buklod_living_interactions_r2.sql');
+const migration=baseMigration+'\n'+upgrade;
 const banner=read('src/components/BuklodLivingGreetingsBanner.tsx');
 const settings=read('src/app/settings/buklod-greetings.tsx');
 const wall=read('src/app/(tabs)/buklod.tsx');
@@ -85,4 +87,13 @@ test('The interaction strip is automatic, rotates verified events and never asks
   assert.match(banner,/Next community update/);
   assert.doesNotMatch(banner,/admin approval|Approve Birthday|Birthday approval/i);
   assert.match(banner,/share_birthday/);
+});
+
+test('Applied R1 stays immutable; R2 is a safe additive upgrade rather than a migration replay',()=>{
+  assert.match(upgrade,/Apply AFTER the already-applied 20261108025000 migration/);
+  assert.match(upgrade,/alter table private\.buklod_living_greeting_events_v1/);
+  assert.match(upgrade,/add constraint buklod_living_greeting_events_v1_kind_check/);
+  assert.doesNotMatch(upgrade,/create table if not exists public\.buklod_living_greeting_preferences_v1/);
+  assert.doesNotMatch(upgrade,/create table if not exists private\.buklod_living_greeting_delivery_v1/);
+  assert.doesNotMatch(upgrade,/buklod-living-greetings-daily-v1','5 16/);
 });
