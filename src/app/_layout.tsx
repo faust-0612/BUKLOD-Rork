@@ -297,6 +297,7 @@ function RootLayout() {
                 <Stack.Screen name="prayer/new" />
                 <Stack.Screen name="prayer/[id]" />
                 <Stack.Screen name="notifications/index" />
+                <Stack.Screen name="notifications/celebrations" />
                 <Stack.Screen name="leader/index" />
                 <Stack.Screen name="leader/follow-up/[id]" />
                 <Stack.Screen name="learn/[id]" />
