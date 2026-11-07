@@ -6,6 +6,9 @@ name: BUKLOD Production Web Deploy
 
 on:
   workflow_dispatch:
+  # One-time authorized consolidated Main push; other main changes skip all jobs.
+  push:
+    branches: [main]
 
 concurrency:
   group: buklod-production-web
@@ -20,7 +23,7 @@ env:
 jobs:
   qa-export-deploy:
     # Explicit Android-only releases must not publish Expo Hosting.
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'release(buklod): 20261108 consolidated'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source

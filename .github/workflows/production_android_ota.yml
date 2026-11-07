@@ -3,6 +3,9 @@ name: BUKLOD Production Android OTA
 
 on:
   workflow_dispatch:
+  # One-time authorized consolidated Main push; other main changes skip all jobs.
+  push:
+    branches: [main]
 
 # Only exact manual production RC promotions, never merge-triggered.
 concurrency:
@@ -19,6 +22,7 @@ permissions:
 
 jobs:
   qa-and-publish:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'release(buklod): 20261108 consolidated'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source
