@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * BUKLOD V10: encrypted large historical release preservation, after V9 verified tranche.
- * A bounded first tranche only: other V7 unique files remain pending.
+ * Second bounded tranche selected only from the verified V9 remaining list.
  * Original local C:/D: files are read-only, and no canonical repo/OTA is edited.
  */
 import fs from "node:fs";
@@ -10,13 +10,13 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 const base=path.join(process.env.TEMP||os.tmpdir(),"BUKLOD_CONSOLIDATED_CLOUD_MIGRATION");
-const stageRoot=path.resolve(process.env.BUKLOD_MIGRATION_STAGING||path.join(base,"historical-v10-priority"));
-const reportFile=path.join(base,"HISTORICAL_PRIORITY_PRESERVATION_V10.json");
+const stageRoot=path.resolve(process.env.BUKLOD_MIGRATION_STAGING||path.join(base,"historical-v10-releases"));
+const reportFile=path.join(base,"HISTORICAL_RELEASE_PRESERVATION_V10.json");
 const repo="faust-0612/BUKLOD-Local-Recovery";
 const gh=fs.existsSync("C:\\Program Files\\GitHub CLI\\gh.exe")?"C:\\Program Files\\GitHub CLI\\gh.exe":"gh";
 const zip=fs.existsSync("C:\\Program Files\\7-Zip\\7z.exe")?"C:\\Program Files\\7-Zip\\7z.exe":"7z";
 const MiB=1024**2, CAP=1900*MiB, MAX_FILE=200*MiB, MAX_V10_FILE=1900*MiB, MAX_PARTS=32;
-const state={schema:"buklod-historical-priority-preservation/v10",created:new Date().toISOString(),
+const state={schema:"buklod-historical-release-preservation/v10",created:new Date().toISOString(),
  status:"NOT_STARTED",v7UniqueFiles:0,v7UniqueBytes:0,selectedFiles:0,selectedBytes:0,
  remainingFiles:0,remainingBytes:0,previousUnitemizedExclusions:0,deferredUnrelatedMedia:0,deferredPhoneArchive:0,deferredIso:0,deferredOther:0,archiveEntriesVerified:0,remoteVolumesVerified:0,
  archivedOriginalFilesDeleted:0,safeToDeleteLocal:false,cloudOnlyBuildsCertified:false,
@@ -334,7 +334,7 @@ try{
  assert(state.selectedBytes+state.remainingBytes===prior.remaining.reduce((sum,x)=>sum+x.bytes,0),"V10 post-V9 byte accounting mismatch");
  const fingerprint=crypto.createHash("sha256").update(JSON.stringify(selected.map(f=>
    [f.originalPath,f.bytes,f.gitBlob,f.mtimeMs]))).digest("hex").slice(0,16);
- const release="historical-v10-priority-"+fingerprint;
+ const release="historical-v10-releases-"+fingerprint;
  state.remoteRelease="https://github.com/"+repo+"/releases/tag/"+release;
  state.planId=fingerprint;
  const folder=path.join(stageRoot,"priority-"+fingerprint),payload=path.join(folder,"payload");
@@ -386,12 +386,12 @@ try{
      "Historical file checksum changed during staging: ID "+(i+1));
    files.push({index:i+1,staged:"payload/data/"+short,originalPath:f.originalPath,bytes:f.bytes,
      gitBlob:f.gitBlob,classification:f.kind});
-   if((i+1)%1000===0)console.log("V10 priority staged",i+1,"of",selected.length);
+   if((i+1)%1000===0)console.log("V10 historical release staged",i+1,"of",selected.length);
  }
  assert(!blocked.length,"Historical input changed or unavailable for "+blocked.length+" files; no upload");
  assert(files.length===selected.length,"Priority staging file count mismatch");
  const mapping=path.join(payload,"PRIVATE_RESTORE_MAP_V10.json");
- const content=JSON.stringify({schema:"buklod-historical-v10-priority",
+ const content=JSON.stringify({schema:"buklod-historical-v10-releases",
    sourceV7Digest:fingerprint,release,selectedCount:files.length,
    rawBytes:plan.bytes,remainingHistoricalFiles:state.remainingFiles,
    originalLocalFilesDeleted:0,entries:files},null,2);
@@ -425,7 +425,7 @@ try{
  assert(parts.length>=1&&parts.length<=MAX_PARTS,"Unexpected encrypted volume count");
  if(run(gh,["release","view",release,"--repo",repo],{optional:true})===null)
    run(gh,["release","create",release,"--repo",repo,"--title",
-     "BUKLOD V10 encrypted historical priority recovery","--notes",
+     "BUKLOD V10 encrypted historical release recovery","--notes",
      "Private encrypted indexed source/unknown historical preservation; not approved production or a complete historical recovery."]);
  for(let i=0;i<parts.length;i++){
    const name=parts[i],local=path.join(folder,name);
@@ -451,10 +451,10 @@ try{
    }
    state.remoteVolumesVerified=i+1;save();
  }
- state.status="HISTORICAL_PRIORITY_V10_CLOUD_VERIFIED";
+ state.status="HISTORICAL_RELEASE_V10_CLOUD_VERIFIED";
  save();
- console.log("BUKLOD HISTORICAL V10 PRIORITY ENCRYPTED CLOUD VERIFIED");
- console.log("Priority originals preserved:",state.selectedFiles,"remote encrypted volumes:",state.remoteVolumesVerified);
+ console.log("BUKLOD HISTORICAL V10 RELEASE ENCRYPTED CLOUD VERIFIED");
+ console.log("Historical release originals preserved:",state.selectedFiles,"remote encrypted volumes:",state.remoteVolumesVerified);
  console.log("HISTORICAL FILES STILL PENDING:",state.remainingFiles,"bytes GiB:",(state.remainingBytes/1024**3).toFixed(2));
  console.log("PREVIOUS UNITEMIZED EXCLUSIONS STILL PENDING:",state.previousUnitemizedExclusions);
  console.log("Private release:",state.remoteRelease);
