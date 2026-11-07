@@ -1,0 +1,36 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix Android keyboard occlusion of Cluster Home Important Notice fields and Save while retaining all other Cluster functions.",
+  "baseRef": "0fd0d0bd696b8900311c9c835c021f36f6c28f1e",
+  "productionBaselineEvidence": "On 2026-11-07 GitHub main at 0fd0d0bd696b8900311c9c835c021f36f6c28f1e was inspected and compared to dev branch. This is a verified source baseline only, not a live production OTA fingerprint. DEV-only patch pending actual Android verification.",
+  "chosenApproach": "Keep a platform-aware KeyboardAvoidingView inside the native editor Modal; make input fields independently scrollable and Save a fixed footer above the system safe-area inset.",
+  "selectionRationale": "The global root keyboard wrapper cannot adjust a separate native Modal. Targeted React Native layout changes preserve backend logic, Android native runtime and every unrelated screen.",
+  "alternativeApproaches": [
+    "Global Android windowSoftInputMode and root-shell change: rejected due to risk of regressions on Connect and other native screens and possible new build.",
+    "Manually measure keyboard window height and absolutely reposition footer: rejected due to OEM keyboard variance and lifecycle race risk.",
+    "Local KeyboardAvoidingView plus scrollable form and safe-area pinned Save: selected as smallest isolated solution."
+  ],
+  "acceptanceChecks": [
+    "Infinix X6852: with keyboard visible, all fields can be reached by scrolling and focus stays readable.",
+    "With keyboard shown and hidden, Save stays tappable above Android phone navigation and is not overlaid.",
+    "All seven Cluster form kinds retain existing input semantics, admin guard and backend save logic.",
+    "TypeScript, focused regression and other CI checks pass before creating RC.",
+    "Staging-user device behavior must be verified before any production OTA."
+  ],
+  "preserveBehaviors": [
+    "Important Notice persistence, EMERGENCY priority and admin-only restrictions",
+    "Event, Task, Poll, Resource, Recognition and About save workflows",
+    "Cluster Home navigation, customization, ads and other widgets",
+    "Canonical Android v28 runtime 1.3.2 and production OTA isolation"
+  ],
+  "riskAreas": [
+    "faith-cluster"
+  ],
+  "regressionTests": [
+    "tests/cluster-editor-keyboard-safe.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "tests/cluster-editor-keyboard-safe.test.mjs"
+  ]
+}
