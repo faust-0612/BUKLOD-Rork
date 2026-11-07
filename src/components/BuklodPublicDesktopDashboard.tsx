@@ -119,10 +119,14 @@ export default function BuklodPublicDesktopDashboard({
   const [connectStatus, setConnectStatus] = useState<'loading' | 'ready' | 'offline'>('loading');
   const [connectOwnerId, setConnectOwnerId] = useState<string | null>(null);
   const [navigationError, setNavigationError] = useState('');
+  const [pendingSidebarNavigation, setPendingSidebarNavigation] = useState<{
+    path: string; params?: Record<string, string>; ownerId: string | null; sequence: number;
+  } | null>(null);
   const [dockRequest, setDockRequest] = useState<{
     userId: string; request: BuklodDesktopDockRequest;
   } | null>(null);
   const requestId = useRef(0);
+  const sidebarNavigationSequence = useRef(0);
 
   // User-bound, in-memory only; closing the dock preserves the center route.
   useEffect(() => {
@@ -174,27 +178,78 @@ export default function BuklodPublicDesktopDashboard({
     }
   };
 
-  const navigate = useCallback(async (path: string, params?: Record<string, string>) => {
-    setNavigationError('');
-    if (activeScope?.scope_type === 'CLUSTER' || activeScope?.scope_type === 'ORGANIZATION') {
-      const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
-      if (publicScope && publicScope.scope_id !== activeScope.scope_id) {
-        try {
-          await selectScope(publicScope.scope_id);
-        } catch {
-          setNavigationError('Unable to leave the current workspace. Try again.');
-          return;
-        }
-      }
-    }
+  // DESKTOP_SIDEBAR_SCOPE_EXIT_R1
+  // An active Cluster changes asynchronously. Routing immediately after
+  // selectScope() lets the canonical guard see the OLD managed scope and
+  // bounce global Home/Wall/Connect back to /scope. Only route after React
+  // confirms the Public scope, without ever bypassing scope authorization.
+  const commitSidebarNavigation = useCallback((
+    path: string,
+    params?: Record<string, string>,
+  ) => {
+    setDockRequest(null);
+    const leavingScopedPage = pathname === '/scope' || pathname.startsWith('/scope/');
     if (params) {
-      router.push({ pathname: path as any, params } as any);
-    } else if (path === '/hub' || path === '/buklod' || path === '/messages' || path === '/me') {
+      const href = { pathname: path as any, params } as any;
+      if (leavingScopedPage) router.replace(href);
+      else router.push(href);
+    } else if (
+      leavingScopedPage ||
+      path === '/hub' || path === '/buklod' ||
+      path === '/messages' || path === '/me'
+    ) {
       buklodInstantReplace(path as any);
     } else {
       router.push(path as any);
     }
-  }, [activeScope, scopes, selectScope]);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!pendingSidebarNavigation) return;
+    if (pendingSidebarNavigation.ownerId !== userId) {
+      setPendingSidebarNavigation(null);
+      return;
+    }
+    if (pendingSidebarNavigation.sequence !== sidebarNavigationSequence.current) return;
+    if (activeScope?.scope_type !== 'PUBLIC') return;
+
+    const target = pendingSidebarNavigation;
+    setPendingSidebarNavigation(null);
+    commitSidebarNavigation(target.path, target.params);
+  }, [pendingSidebarNavigation, activeScope?.scope_type,
+      activeScope?.scope_id, userId, commitSidebarNavigation]);
+
+  const navigate = useCallback(async (path: string, params?: Record<string, string>) => {
+    setNavigationError('');
+    const sequence = ++sidebarNavigationSequence.current;
+    const inManagedScope = activeScope?.scope_type === 'CLUSTER' ||
+      activeScope?.scope_type === 'ORGANIZATION';
+
+    if (!inManagedScope) {
+      setPendingSidebarNavigation(null);
+      commitSidebarNavigation(path, params);
+      return;
+    }
+
+    const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
+    if (!publicScope) {
+      setPendingSidebarNavigation(null);
+      setNavigationError('Public workspace is not ready. Retry the navigation.');
+      return;
+    }
+
+    // Queue the LATEST click; never render a global screen against Cluster data.
+    setPendingSidebarNavigation({ path, params, ownerId: userId, sequence });
+    try {
+      await selectScope(publicScope.scope_id);
+      // The effect above runs after activeScope PUBLIC is committed.
+    } catch (error) {
+      if (sidebarNavigationSequence.current === sequence) {
+        setPendingSidebarNavigation(null);
+        setNavigationError('Unable to leave Cluster. Retry the navigation.');
+      }
+    }
+  }, [activeScope?.scope_type, scopes, selectScope, commitSidebarNavigation, userId]);
 
   const refreshConnect = useCallback(async () => {
     const sequence = ++requestId.current;
@@ -640,7 +695,11 @@ const styles = StyleSheet.create({
   avatar: { width: 35, height: 35, borderRadius: 19 },
   columns: { flex: 1, flexDirection: 'row', gap: 12, minWidth: 0, minHeight: 0, alignItems: 'stretch' },
   // ScrollView defaults are flex-growing on the web. Explicitly freeze both rails.
-  leftRail: { flexGrow: 0, flexShrink: 0, minHeight: 0, borderRadius: 18 },
+  leftRail: {
+    flexGrow: 0, flexShrink: 0, minHeight: 0, borderRadius: 18,
+    // The routed chat cannot place an invisible hit target over navigation.
+    position: 'relative', zIndex: 1,
+  },
   rightRail: { flexGrow: 0, flexShrink: 0, minHeight: 0, borderRadius: 18 },
   railContent: { gap: 10, paddingBottom: 20 },
   center: { flex: 1, flexGrow: 1, flexShrink: 1, minWidth: 0, minHeight: 0, borderRadius: 18, overflow: 'hidden', borderWidth: 1 },
