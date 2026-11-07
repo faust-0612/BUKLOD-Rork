@@ -7,7 +7,7 @@ const attendance=read('supabase/migrations/20261107226000_buklod_r2_cluster_atte
 const quizUI=read('src/app/faith/bible-quiz.tsx');
 const hub=read('src/components/BuklodHomeFaithPanel.tsx');
 test('Bible Quiz cannot issue academic exams grades and answers are server-scored',()=>{
- assert.match(quizUI,/submit_my_buklod_bible_quiz_r2/);
+ assert.match(quizUI,/submit_my_buklod_bible_quiz_r3/);
  assert.match(hub,/Daily Bible Quiz/);
  assert.match(db,/correct_choice=upper\(p_answers->>q\.id\)/);
  assert.doesNotMatch(db,/insert into public\.buklod_quiz_attempts/i);
