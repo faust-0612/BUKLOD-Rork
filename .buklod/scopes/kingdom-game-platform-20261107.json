@@ -1,18 +1,21 @@
 {
   "contractVersion": 2,
-  "objective": "Fix BUKLOD Kingdom gameplay fairness and account isolation: Mentor lifeline stays question-specific; Code Breaker honors gem slot selection; all active pilot/original game sessions remount after account switch to prevent cross-account result attribution.",
-  "baseRef": "6b99cc3b0a1a1126aafb450dfe64252ffdf07e41",
-  "productionBaselineEvidence": "verified: R4 exact prior source commit 6b99cc3b0a1a1126aafb450dfe64252ffdf07e41 passed Engineering Accountability, TypeScript and web compatibility checks. Kingdom map canonical blob remains 88a4b1b4a70fc4acd59579419058b47f21be2554. R5 fixes are source-only; staging, Android runtime and production deployment are not verified or authorized.",
-  "chosenApproach": "Repair Bible Crown Mentor display and Code Breaker slot selection; use React keyed game-session remounts tied to authenticated user ID in shared/Christian/Mitch centers. Preserve map, points and ads policy.",
-  "selectionRationale": "Fix specific discovered gameplay correctness defects before new game proliferation; leave sound, map, backend and monetization untouched.",
+  "objective": "Redesign the BUKLOD Kingdom MAP as a premium illustrated, responsive, accessible feature INSIDE the existing BUKLOD App, preserving every one of the 13 canonical character stations, exact coordinates, routes, games, and Character V2/economy behavior.",
+  "baseRef": "6e0ff488001f3b4daa06d628ea1b179201a3d948",
+  "productionBaselineEvidence": "Verified: R5 head 6e0ff488001f3b4daa06d628ea1b179201a3d948 passed Engineering Accountability, TypeScript and Expo web compatibility. It is a DEV source baseline, not verified native production. Existing map Git blob 88a4b1b4a70fc4acd59579419058b47f21be2554 is preserved unchanged for instant code rollback. This R6 work changes only the in-app /games entry to a new illustrated rendering of identical original stations and path coordinates, not a separate APK or app. Production OTA and native runtime not yet verified.",
+  "chosenApproach": "Keep the original 35KB map and all its canonical data unchanged for rollback. Build new lightweight illustrated react-native-svg terrain, road, river, citadel and themed landscape, using the same 13 original station definitions and route segments; remove eight overlapping heavy thumbnail backdrops and 13 looping node animations; improve mobile fit/detail mode, initial focus, safe-area header and navigable station rail. Switch existing /games route to new in-app component.",
+  "selectionRationale": "A deterministic vector scene avoids network downloads, unknown image licensing, platform-specific graphics, huge APK assets and heavy per-station animation loops. Precise original geometry/links remain test-locked; the new look can be iterated without altering games, data or production app runtime.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
     "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
-    "Selected: shared Kingdom game platform with incremental playable interior games and strict no-economy pilot records."
+    "Selected: shared Kingdom game platform with incremental playable interior games and strict no-economy pilot records.",
+    "Use unreviewed AI-generated full screen background with incorrect invented character names, numbers and branding; rejected until a verified artwork-only, license-cleared terrain asset can be integrated without text errors.",
+    "Selected: high-detail in-app vector illustration with the existing stations and rollback-safe route switch."
   ],
   "riskAreas": [
-    "kingdom-gameplay",
-    "character-account-isolation",
+    "kingdom-map-rendering",
+    "mobile-navigation",
+    "game-station-routing",
     "release-compatibility"
   ],
   "preserveBehaviors": [
@@ -22,7 +25,10 @@
     "Do not touch native v28 runtime, BUKLOD Empire or production release.",
     "Preserve all 13 original game implementations and Kingdom map; protect previous 3 pilots from route/controller regressions.",
     "Preserve persistent Character V2 id ellusur and legacy Kingdom station key elesur, without migrating IDs or changing character art.",
-    "Game UI must not show or save a score from previous user after authentication switches."
+    "Game UI must not show or save a score from previous user after authentication switches.",
+    "All 13 station names, coordinate pairs, original game hrefs, and JOURNEY_PATH curves byte-exact identical to canonical R5 map.",
+    "BUKLOD Kingdom is /games INSIDE the original BUKLOD App, not BUKLOD Empire and not an independent app.",
+    "Keep old BuklodKingdomMap.tsx Git blob intact as rollback baseline; do not touch existing games or economy policies."
   ],
   "acceptanceChecks": [
     "13 center / 39-game uniqueness and status contracts, plus 15 bilingual question and reference contracts.",
@@ -41,14 +47,18 @@
     "ELESUR Village Builder stays selectable at the unchanged /games/elesur-village-builder route; new Domino Village local-only game cannot pay Character Points.",
     "Mentor clue is visible on exactly the consumed Bible Crown question and cannot leak into later questions.",
     "Code Breaker manual slot selection replaces that exact slot, auto-input fills first empty, and duplicate gems are rejected with no mutation.",
-    "Switching or signing out of BUKLOD account must remount the active pilot/original game scene before new profile result saving; local best records remain per account."
+    "Switching or signing out of BUKLOD account must remount the active pilot/original game scene before new profile result saving; local best records remain per account.",
+    "Premium map route retains instant station navigation, long-press focus, fit/detail camera mode, safe areas, focus rail and responsive landscape/portrait behavior.",
+    "Render terrain with one lightweight SVG instead of 8 BuklodGameBackdrop thumbnails + 13 perpetual Animated.loop instances.",
+    "Test station geometry and curves against legacy source byte-exact, map-only changes no BUKLOD Points or ads mutations."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
     "tests/kingdom-games-r2.test.mjs",
     "tests/kingdom-games-r3.test.mjs",
     "tests/kingdom-games-r4.test.mjs",
-    "tests/kingdom-games-r5.test.mjs"
+    "tests/kingdom-games-r5.test.mjs",
+    "tests/kingdom-premium-map-r6.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-game-platform-20261107.json",
@@ -79,6 +89,9 @@
     "src/features/games/elesur/DominoVillageGameV1.tsx",
     "src/app/games/elesur-village-builder.tsx",
     "tests/kingdom-games-r4.test.mjs",
-    "tests/kingdom-games-r5.test.mjs"
+    "tests/kingdom-games-r5.test.mjs",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "src/app/games/index.tsx",
+    "tests/kingdom-premium-map-r6.test.mjs"
   ]
 }
