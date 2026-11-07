@@ -21,6 +21,14 @@ const cleanCount=(value:unknown)=>Number.isFinite(Number(value))?
   Math.min(9999,Math.max(0,Math.trunc(Number(value)))):0;
 const cleanText=(value:unknown,max=150)=>
   typeof value==='string'?value.trim().slice(0,max):'';
+// Deterministic daily variation: copy can feel personal without unstable random
+// text that changes during scrolling, loading, or hydration.
+const variation=(seed:string,options:string[])=>{
+  const day=new Date().getUTCDate();
+  let hash=day;
+  for(const letter of seed)hash=(Math.imul(hash,31)+letter.charCodeAt(0))>>>0;
+  return options[hash%options.length];
+};
 
 /**
  * A living, contextual interaction strip. Text is based on verified server
@@ -57,29 +65,54 @@ export default function BuklodLivingGreetingsBanner(){
     if(!snapshot)return [];
     const cards:Greeting[]=[];
     if(snapshot.my_birthday)cards.push({
-      key:'birthday',title:'Happy birthday! May pagbati ang BUKLOD para sa iyo.',
+      key:'birthday',title:variation('birthday',[
+        'Happy birthday! BUKLOD celebrates with you today.',
+        'Maligayang kaarawan! May pagbati para sa iyo.',
+        'Happy birthday! May personal na pagbati ang BUKLOD.',
+        'Araw mo ngayon. Happy birthday mula sa BUKLOD!',
+      ]),
       detail:'Ngayong araw, ikaw naman ang ipinagdiriwang natin. Tingnan ang iyong pagbati.',
       action:'Tingnan ang pagbati',route:'/notifications',icon:'cake-variant-outline',
     });
     if(snapshot.my_recent_rank)cards.push({
-      key:'rank',title:'Rank up! Naabot mo ang '+snapshot.my_recent_rank+'.',
+      key:'rank',title:variation(snapshot.my_recent_rank,[
+        'Rank up! Naabot mo ang '+snapshot.my_recent_rank+'.',
+        'Milestone reached: '+snapshot.my_recent_rank+'.',
+        'New rank unlocked — '+snapshot.my_recent_rank+'.',
+        'Congrats! Umangat ka sa '+snapshot.my_recent_rank+'.',
+      ]),
       detail:'Bagong milestone sa iyong BUKLOD journey. Tuloy-tuloy ang progreso!',
       action:'Tingnan ang rank',route:'/(tabs)/me',icon:'trophy-outline',
     });
     if(snapshot.my_recent_reward)cards.push({
-      key:'reward',title:'Unlocked! May '+snapshot.my_recent_reward+' ka.',
+      key:'reward',title:variation(snapshot.my_recent_reward,[
+        'Unlocked! May '+snapshot.my_recent_reward+' ka.',
+        'Bagong achievement: '+snapshot.my_recent_reward+'.',
+        'Character update! Nakuha mo ang '+snapshot.my_recent_reward+'.',
+        'Nice progress! May '+snapshot.my_recent_reward+' ka na.',
+      ]),
       detail:'May bagong na-unlock sa iyong Character. Silipin ang achievement mo.',
       action:'Tingnan ang Character',route:'/(tabs)/me',icon:'star-circle-outline',
     });
     if(snapshot.latest_kl_title)cards.push({
       key:'kl',title:snapshot.latest_kl_title,
-      detail:'May bagong kabanatang maaari nang basahin. Ipagpatuloy ang kuwento.',
+      detail:variation(snapshot.latest_kl_title,[
+        'May bagong kabanatang maaari nang basahin. Ipagpatuloy ang kuwento.',
+        'Available na ang bagong release. Balikan ang mundo ng Kabihasnang Ligaw.',
+        'Nagpatuloy ang kuwento. Basahin ang bagong kabanata ngayon.',
+        'Bagong kabanata, bagong mga lihim. Available na sa BUKLOD.',
+      ]),
       action:'Basahin ngayon',route:'/kabihasnang-ligaw',icon:'book-open-page-variant-outline',
     });
     if(snapshot.new_member_count>0)cards.push({
       key:'welcome',title:snapshot.new_member_count===1
         ?'May bagong ka-BUKLOD!':'May '+snapshot.new_member_count+' bagong ka-BUKLOD!',
-      detail:'May mga bagong sumali sa komunidad. Kilalanin at i-welcome sila.',
+      detail:variation(String(snapshot.new_member_count),[
+        'May mga bagong sumali sa komunidad. Kilalanin at i-welcome sila.',
+        'Mas lumalawak ang BUKLOD. Batiin natin ang mga bagong kasama.',
+        'May mga bagong miyembro ngayon. Isang welcome ang magandang simula.',
+        'Bagong mga mukha sa BUKLOD. Huwag palampasin ang pagkakataong bumati.',
+      ]),
       action:'Tingnan ang updates',route:'/notifications',icon:'account-plus-outline',
     });
     if(snapshot.holiday_title)cards.push({
