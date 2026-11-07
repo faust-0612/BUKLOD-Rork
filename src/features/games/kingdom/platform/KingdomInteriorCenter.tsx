@@ -108,7 +108,9 @@ export function KingdomInteriorCenter({
           </>
         ) : null}
         <View key={(user?.id ?? 'guest') + ':' + active.id} style={styles.game}>{active.render(save, (result) => {
-          void recordBuklodKingdomPreviewResult(result);
+          // Original games must use the authenticated account, just like pilots.
+          // Never fall back to an unscoped local progress record.
+          if (user?.id) void recordBuklodKingdomPreviewResult(result, user.id).catch(() => undefined);
         })}</View>
       </View>
     </ScrollView>
