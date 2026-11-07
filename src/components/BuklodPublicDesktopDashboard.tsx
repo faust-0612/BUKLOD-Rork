@@ -13,6 +13,13 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import BuklodConnectThread from '@/components/BuklodConnectThread';
+import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
+import {
+  registerBuklodDesktopDockOpener,
+  tryOpenBuklodDesktopDock,
+  type BuklodDesktopDockRequest,
+} from '@/lib/buklodDesktopContextDock';
 import { buklodInstantReplace } from '@/lib/buklodInstantNavigation';
 import { getOfflineCache } from '@/lib/offlineCache';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
@@ -111,7 +118,52 @@ export default function BuklodPublicDesktopDashboard({
   const [connectStatus, setConnectStatus] = useState<'loading' | 'ready' | 'offline'>('loading');
   const [connectOwnerId, setConnectOwnerId] = useState<string | null>(null);
   const [navigationError, setNavigationError] = useState('');
+  const [dockRequest, setDockRequest] = useState<{
+    userId: string; request: BuklodDesktopDockRequest;
+  } | null>(null);
   const requestId = useRef(0);
+
+  // User-bound, in-memory only; closing the dock preserves the center route.
+  useEffect(() => {
+    if (!userId || !profile) return;
+    return registerBuklodDesktopDockOpener(request => {
+      setDockRequest({ userId, request });
+    });
+  }, [userId, Boolean(profile)]);
+
+  // Navigation itself is an explicit user choice; never keep stale detail
+  // controls mounted when the main workspace route changes.
+  useEffect(() => {
+    setDockRequest(null);
+  }, [pathname]);
+
+  const visibleDock = userId && dockRequest?.userId === userId
+    ? dockRequest.request : null;
+
+  const expandDock = () => {
+    if (!visibleDock) return;
+    setDockRequest(null);
+    if (visibleDock.kind === 'direct') {
+      router.push({
+        pathname: '/connect/personal/[threadId]',
+        params: {
+          threadId: visibleDock.threadId,
+          otherUserName: visibleDock.otherUserName ?? '',
+          otherUserId: visibleDock.otherUserId ?? '',
+          targetUserId: visibleDock.targetUserId ?? '',
+        },
+      } as any);
+    } else {
+      router.push({
+        pathname: '/connect/community/[scopeId]',
+        params: {
+          scopeId: visibleDock.scopeId,
+          scopeName: visibleDock.scopeName ?? '',
+          scopeType: visibleDock.scopeType ?? '',
+        },
+      } as any);
+    }
+  };
 
   const navigate = useCallback(async (path: string, params?: Record<string, string>) => {
     setNavigationError('');
@@ -343,7 +395,16 @@ export default function BuklodPublicDesktopDashboard({
                   {visibleThreads.slice(0, 5).map(thread => (
                     <Pressable key={thread.thread_id} accessibilityRole="button"
                       accessibilityLabel={'Open chat with ' + thread.other_user_name}
-                      onPress={() => void navigate('/connect/personal/' + encodeURIComponent(thread.thread_id))}
+                      onPress={() => {
+                        if (!tryOpenBuklodDesktopDock({
+                          kind: 'direct',
+                          threadId: thread.thread_id,
+                          otherUserId: thread.other_user_id,
+                          otherUserName: thread.other_user_name,
+                        })) {
+                          void navigate('/connect/personal/' + encodeURIComponent(thread.thread_id));
+                        }
+                      }}
                       style={[styles.chatRow, { borderBottomColor: border }]}>
                       <View style={[styles.memberMark, { backgroundColor: theme.accentSoft }]}>
                         <Text style={[styles.memberInitials, { color: mainColor }]}>{initials(thread.other_user_name)}</Text>
@@ -386,10 +447,19 @@ export default function BuklodPublicDesktopDashboard({
                   {visibleContacts.slice(0, 7).map(person => (
                     <Pressable key={person.user_id} accessibilityRole="button"
                       accessibilityLabel={'Message ' + person.full_name}
-                      onPress={() => void navigate('/connect/personal/new', {
-                        targetUserId: person.user_id,
-                        otherUserName: person.full_name,
-                      })}
+                      onPress={() => {
+                        if (!tryOpenBuklodDesktopDock({
+                          kind: 'direct',
+                          threadId: 'new',
+                          targetUserId: person.user_id,
+                          otherUserName: person.full_name,
+                        })) {
+                          void navigate('/connect/personal/new', {
+                            targetUserId: person.user_id,
+                            otherUserName: person.full_name,
+                          });
+                        }
+                      }}
                       style={[styles.chatRow, { borderBottomColor: border }]}>
                       {person.avatar_url ? <Image source={{ uri: person.avatar_url }} style={styles.smallAvatar} /> :
                         <View style={[styles.memberMark, { backgroundColor: theme.accentSoft }]}>
@@ -437,6 +507,59 @@ export default function BuklodPublicDesktopDashboard({
               <BuklodSponsorSlot placement="community" />
             </View>
           </ScrollView>
+
+          {/* Contextual desktop dock: non-routing view over the right rail.
+              Home/Wall and navigation remain mounted and interactive. */}
+          {visibleDock ? (
+            <View
+              accessibilityLabel="Connect conversation side panel"
+              style={[styles.contextDock, {
+                backgroundColor: surface,
+                borderColor: border,
+              }]}
+            >
+              <View style={[styles.dockToolbar, { borderBottomColor: border }]}>
+                <Text numberOfLines={1} style={[styles.dockTitle, { color: ink }]}>
+                  {visibleDock.kind === 'direct'
+                    ? (visibleDock.otherUserName || 'Personal Connect')
+                    : (visibleDock.scopeName || 'Community Connect')}
+                </Text>
+                <Pressable accessibilityRole="button"
+                  accessibilityLabel="Expand conversation to full screen"
+                  onPress={expandDock} style={styles.dockControl}>
+                  <MaterialCommunityIcons name="arrow-expand" size={20} color={mainColor} />
+                  <Text style={[styles.dockControlText, { color: mainColor }]}>Expand</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button"
+                  accessibilityLabel="Close conversation panel"
+                  onPress={() => setDockRequest(null)} style={styles.dockControl}>
+                  <MaterialCommunityIcons name="close" size={22} color={ink} />
+                </Pressable>
+              </View>
+              <View style={styles.dockContent}>
+                <ConnectRenderBoundary
+                  key={(visibleDock.kind === 'direct' ? visibleDock.threadId : visibleDock.scopeId) + ':' + userId}
+                  surface={visibleDock.kind === 'direct' ? 'personal_thread' : 'community_thread'}
+                >
+                  <BuklodConnectThread
+                    key={(visibleDock.kind === 'direct' ? visibleDock.threadId : visibleDock.scopeId) + ':' + userId}
+                    mode={visibleDock.kind === 'direct' ? 'direct' : 'scope'}
+                    containerId={visibleDock.kind === 'direct'
+                      ? (visibleDock.threadId === 'new' ? '' : visibleDock.threadId)
+                      : visibleDock.scopeId}
+                    pendingTargetUserId={visibleDock.kind === 'direct' && visibleDock.threadId === 'new'
+                      ? visibleDock.targetUserId : undefined}
+                    initialTitle={visibleDock.kind === 'direct'
+                      ? visibleDock.otherUserName : visibleDock.scopeName}
+                    initialSubtitle={visibleDock.kind === 'community' ? visibleDock.scopeType : undefined}
+                    initialOtherUserId={visibleDock.kind === 'direct'
+                      ? (visibleDock.otherUserId || visibleDock.targetUserId) : undefined}
+                    onBackOverride={() => setDockRequest(null)}
+                  />
+                </ConnectRenderBoundary>
+              </View>
+            </View>
+          ) : null}
         </View>
       </View>
     </View>
@@ -504,6 +627,23 @@ const styles = StyleSheet.create({
   quickButton: { flex: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', gap: 4 },
   quickText: { fontSize: 11, fontWeight: '800' },
   actionLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // Positioned relative to the columns; it never takes layout width from the Wall.
+  contextDock: {
+    position: 'absolute', top: 0, right: 0, bottom: 0,
+    width: 438, maxWidth: '100%', zIndex: 400,
+    borderWidth: 1, borderRadius: 16, overflow: 'hidden',
+    shadowColor: '#000000', shadowOffset: { width: -5, height: 4 },
+    shadowRadius: 22, shadowOpacity: 0.15, elevation: 15,
+  },
+  dockToolbar: {
+    minHeight: 50, flexShrink: 0, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 10, borderBottomWidth: 1, gap: 7,
+  },
+  dockTitle: { fontWeight: '900', fontSize: 13, flex: 1, minWidth: 0 },
+  dockControl: { minHeight: 40, minWidth: 40, paddingHorizontal: 5,
+    flexDirection: 'row', gap: 4, alignItems: 'center', justifyContent: 'center' },
+  dockControlText: { fontWeight: '800', fontSize: 11 },
+  dockContent: { flex: 1, minHeight: 0, minWidth: 0 },
   pressed: { opacity: 0.7 },
   errorRow: { padding: 8, backgroundColor: '#FFF0F0' },
   errorText: { color: '#932222', fontSize: 12 },

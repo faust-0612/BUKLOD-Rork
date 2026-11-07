@@ -92,3 +92,20 @@ test('top bar renders the approved BUKLOD image once without duplicate wordmark'
   }
   assert.match(main, /brandLogo: \{ width: 66, height: 66/);
 });
+
+
+test('desktop Connect side dock is contextual, not a forced route', () => {
+  const shell = read('src/components/BuklodPublicDesktopDashboard.tsx');
+  const inbox = read('src/app/(tabs)/messages.tsx');
+  const dock = read('src/lib/buklodDesktopContextDock.ts');
+  assert.match(shell, /registerBuklodDesktopDockOpener/);
+  assert.match(shell, /<BuklodConnectThread/);
+  assert.match(shell, /onBackOverride=\{\(\) => setDockRequest\(null\)\}/);
+  assert.match(shell, /position: 'absolute', top: 0, right: 0, bottom: 0/);
+  assert.match(shell, /Expand conversation to full screen/);
+  assert.match(shell, /Close conversation panel/);
+  assert.match(shell, /dockRequest\?\.userId === userId/);
+  assert.match(inbox, /if \(tryOpenBuklodDesktopDock\(\{/);
+  assert.match(dock, /return false/);
+  assert.match(dock, /activeDesktopOpener = null/);
+});

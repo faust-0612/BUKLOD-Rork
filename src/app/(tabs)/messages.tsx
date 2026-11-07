@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { tryOpenBuklodDesktopDock } from '@/lib/buklodDesktopContextDock';
 import { ensureBuklodStreamVideoClient } from '@/lib/buklodStreamVideoClient';
 import {
   buildBuklodPersonalCallId,
@@ -1116,6 +1117,11 @@ function ConnectScreenInner({
     setQuery('');
     setPeople([]);
 
+    if (tryOpenBuklodDesktopDock({
+      kind: 'direct', threadId: 'new',
+      targetUserId: userId, otherUserName: fullName ?? '',
+    })) return;
+
     router.push({
       pathname: personalThreadPath as any,
       params: {
@@ -1148,6 +1154,12 @@ function ConnectScreenInner({
     threadId: string,
     item?: PersonalThread
   ) => {
+    if (tryOpenBuklodDesktopDock({
+      kind: 'direct', threadId,
+      otherUserName: item?.other_user_name ?? '',
+      otherUserId: item?.other_user_id ?? '',
+    })) return;
+
     router.push({
       pathname: personalThreadPath as any,
       params: {
@@ -1162,6 +1174,12 @@ function ConnectScreenInner({
     scopeId: string,
     item?: CommunityRoom
   ) => {
+    if (tryOpenBuklodDesktopDock({
+      kind: 'community', scopeId,
+      scopeName: item?.scope_name ?? '',
+      scopeType: item?.scope_type ?? '',
+    })) return;
+
     router.push({
       pathname: communityThreadPath as any,
       params: {
