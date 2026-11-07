@@ -366,6 +366,8 @@ function RootLayout() {
                 <Stack.Screen name="admin/account-recovery" />
                 <Stack.Screen name="account/recovery-pin" />
                 <Stack.Screen name="(auth)/forgot-password" />
+                {/* Self-service advertiser destination is a first-class route. */}
+                <Stack.Screen name="advertise/index" />
                 {/* PATCH_162D_SPONSOR_ROUTE */}
                 <Stack.Screen name="admin/sponsors" />
                 <Stack.Screen name="admin/member-master" />
