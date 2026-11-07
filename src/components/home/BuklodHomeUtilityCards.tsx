@@ -13,7 +13,7 @@ export default function BuklodHomeUtilityCards(){
   const cards=[
     {id:'home',title:'My BUKLOD Home',description:'Family · chores · bills · notes · garden',
       action:'Open my home',icon:'home-heart' as const,path:'/personal-home'},
-    {id:'health',title:'Health Center',description:'Personal health tools and information',
+    {id:'health',title:'Health Center',description:'BUKLOD Health · secured integration portal',
       action:'Open Health Center',icon:'heart-pulse' as const,path:'/profile/buklod-health'},
   ];
   return <View style={s.grid} accessibilityLabel="BUKLOD Home dashboard apps">
