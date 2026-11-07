@@ -13,7 +13,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  ActivityIndicator, Alert, AppState, Linking, Modal, Pressable,
+  ActivityIndicator, Alert, AppState, Modal, Pressable,
   ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,7 +21,6 @@ import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
 import {
-  emitBuklodEmergencySignal,
   isBuklodEmergencyId,
   subscribeBuklodEmergencySignal,
   type BuklodEmergencySignal,
@@ -101,6 +100,7 @@ export default function BuklodGlobalEmergencyHost() {
     currentOwner.current = owner;
     const epoch = ++accountEpoch.current;
     dismissed.current = new Set();
+    candidateInFlight.current.clear();
     setShown(null);
     if (!owner) return;
     let cancelled = false;
