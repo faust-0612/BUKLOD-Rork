@@ -71,6 +71,7 @@ import {
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
 import {
   buildCommunityFeedWithInlineAds,
@@ -4814,6 +4815,10 @@ const communityFeedRows =
     placement="community_entry"
     placementId="public_wall_entry"
    />
+
+   {/* Paid campaign stays in a stable top-of-Wall slot during its approved
+       30-day period. Do not turn it into an unexpiring ordinary post. */}
+   <BuklodCommunitySponsoredAd audience="public" placement="community" />
 
    {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}
    <BuklodLifeWallCard />
