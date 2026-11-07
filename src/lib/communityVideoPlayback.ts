@@ -27,7 +27,9 @@ export function shouldMountCommunityVideoPlayer(input: {
 }) {
   if (!input.active) return false;
   if (input.fullscreen || input.playIntent) return true;
-  if (input.degraded) return false;
+  // Browser video loads for the visible row regardless of measured network
+  // quality. Android must not render a permanent black/placeholder-only row
+  // merely because reachability is degraded; offscreen players stay unmounted.
   return true;
 }
 
