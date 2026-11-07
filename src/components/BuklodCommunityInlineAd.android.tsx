@@ -58,8 +58,10 @@ type Props = {
 
 // Weak mobile networks need a larger native-media opportunity; never flood
 // retries to compensate for missing inventory.
-const AD_LOAD_TIMEOUT_MS = 8_000;
-const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 8_000;
+// Avoid treating a slow but valid 3G response as a terminal no-fill.
+// Requests remain single-flight and no-fill retries keep their shared cooldown.
+const AD_LOAD_TIMEOUT_MS = 12_000;
+const FIRST_VIEW_AD_LOAD_TIMEOUT_MS = 16_000;
 const FEED_AD_CARD_HEIGHT = 392;
 const AD_PENDING_SLOT_HEIGHT = 8;
 
@@ -194,12 +196,16 @@ export default function BuklodCommunityInlineAd({
   const bannerUnitId = getBuklodBannerUnitId(bannerPlacement);
   const sdkReady = ready && canRequestAds;
   const loadTimeoutMs = firstView ? FIRST_VIEW_AD_LOAD_TIMEOUT_MS : AD_LOAD_TIMEOUT_MS;
+  // Once the SDK has loaded a creative, a scroll past the viewport must not
+  // destroy it and impose the global remount cooldown on an already-filled slot.
+  // The initial request still requires an eligible viewport and live network.
+  const hasLoadedCreative = Boolean(nativeAd || bannerLoaded);
   const canAttempt =
     active &&
     routeSafe &&
-    eligible &&
+    (eligible || hasLoadedCreative) &&
     sdkReady &&
-    adNetworkAvailable;
+    (adNetworkAvailable || hasLoadedCreative);
 
   const requestKey = slotId || 'community-wall-inline';
   const adWidth = Math.max(280, Math.floor(width - 32));
@@ -208,10 +214,9 @@ export default function BuklodCommunityInlineAd({
   // Profile, Connect and Cluster placements when Native inventory is absent.
   const usePostRectangle = surface !== 'wall';
 
-  // Eligibility transitions destroy the NativeAd instance in the request
-  // effect cleanup. Never render that destroyed instance on re-entry, and
-  // never reuse completed request flags/loaded state from a previous session.
-  // New requests still obey the existing shared passive-ad cooldown.
+  // Only genuinely lost eligibility (route/policy/SDK/slot unmount) disposes
+  // the creative; off-screen visibility and transient network loss alone do
+  // not destroy a completed load. New requests still obey shared cooldown.
   useEffect(() => {
     if (canAttempt) return;
     nativeRequestStarted.current = false;
@@ -480,7 +485,8 @@ export default function BuklodCommunityInlineAd({
 
   if (!active || !routeSafe) return null;
 
-  if (!eligible || !sdkReady || !adNetworkAvailable) {
+  if ((!eligible && !hasLoadedCreative) ||
+      !sdkReady || (!adNetworkAvailable && !hasLoadedCreative)) {
     return (
       <View
         ref={ref}
