@@ -1,0 +1,58 @@
+{
+  "contractVersion": 2,
+  "objective": "Repair a real Android production OTA block in the locked Community Help/SOS R1 release contract without disabling it, and preserve SOS R2 authenticated global emergency overlay, safe cold-launch deep-link fallback and complete canonical privacy/proximity authorization.",
+  "baseRef": "d4c005213940f6f261e45089ca24b0ee1c8223e8",
+  "productionBaselineEvidence": "User screenshot 2026-11-07 shows manual production Android GitHub Actions qa-and-publish failed in the first step Verify locked Community Help / Emergency SOS baseline: src/providers/NotificationProvider.tsx missing locked anchor /buklod?help_request_id=. This matches source main after PR #526 SOS R2 conversion to emitBuklodEmergencySignal. GitHub main 156d2a59e5a0ddf0fb7ed6f02df1923974d9e99a includes PR #529 ad lock. Original R1 contract explicitly asserts the deep-link and current source no longer contains it. The screenshot does not identify a published OTA; workflow halted before export and publication. No OTA or production runtime state is assumed. Reconciled with current main d4c005213940f6f261e45089ca24b0ee1c8223e8 after concurrent desktop/web dock changes; no overlapping SOS files. The newer baseline retains all PR #529 Ads locks.",
+  "chosenApproach": "Preserve the unchanged R1 release contract, canonical recipient payload and original R1 BUKLOD Community URL as an actual fallback whenever no SOS R2 root overlay subscriber is mounted. A live mounted R2 host consumes the signal without navigation, preserving existing forms/drafts and content; if cold-start push arrives before host mounts, route to /buklod?help_request_id=UUID. The Public Community screen validates the UUID and forwards it to R2 overlay; signal emitter buffers at most four ID/origin events for two minutes to survive early subscriptions. R2 host still checks current account's canonical notification row, active nearby authorized RPC, owner isolation and expire/resolve rules. Invalid IDs go to notifications only. Add behavioral lock to production Android workflow immediately after the unchanged R1 contract.",
+  "selectionRationale": "Restoring a real operational fallback and bounded in-memory handoff preserves both locked R1 Community routing and R2 global overlay UX. Merely adding the anchor as a comment or removing/loosening the R1 script would mask broken cold-start routing. Updating unrelated AdMob, native runtime, notifications fan-out or database would risk a new regression, so no such changes are made.",
+  "alternativeApproaches": [
+    "Delete/disable the old SOS release contract (rejected: hides safety/compatibility regression)",
+    "Add the /buklod?help_request_id= string in a comment only (rejected: deceptive gate bypass)",
+    "Always navigate to Community on notification tap even when R2 host is ready (rejected: loses chat drafts and interrupts current app screen)",
+    "Create a second duplicate Expo push path or expose request details directly from URL (rejected: double fan-out/privacy vulnerability)",
+    "Force OS-level full-screen notification or background GPS (rejected: platform/device limits, violates R1 lock)"
+  ],
+  "riskAreas": [
+    "emergency-safety",
+    "navigation-scroll",
+    "notification-routing",
+    "account-isolation",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "R1 contract script unmodified, retains all 15 safety invariants including explicit opt-in, foreground-only location, max 5 km, RLS/RPC, canonical push, idempotence and official-services warning",
+    "Sender SOS creation still routes through locked secure creation and fans out canonical notifications only; no duplicate Expo pushes",
+    "R2 overlay stays in-place for foreground taps, does not navigate away from a draft when host is present",
+    "Cold-start R1 Community URI remains supported and validated; no untrusted strings are displayed as an incident",
+    "R2 host still checks logged-in owner's canonical notification entitlement, proximity and active status; sender access remains creator-scoped",
+    "Queue stores only UUID and origin, maximum four events and two-minute expiry; never coordinates or message content",
+    "Malformed payload fails closed to notification center; no new public request read API, native permissions or database changes",
+    "AdMob production preflight and all ad regression locks from PR #529 remain unchanged; call fix, SOS critical route locks and code are preserved",
+    "Android V28 package, runtime 1.3.2, OTA frozen exact RC workflow, Play/AAB and web routes unchanged except valid SOS fallback handoff"
+  ],
+  "regressionTests": [
+    "tests/sos-r1-r2-notification-deeplink-20261107.test.mjs",
+    "tests/sos-r1-r2-notification-navigation-20261107.test.mjs",
+    "tests/sos-r1-r2-production-ota-release-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Unmodified scripts/community-help-sos-release-contract.mjs passes on latest main source, including required /buklod?help_request_id= anchor in NotificationProvider",
+    "When SOS root host subscribed, a canonical valid notification emits to overlay and does not navigate away from current screen",
+    "When no host yet, valid notification navigates to /buklod?help_request_id=<encoded UUID> and Public Community forwards only a valid ID to R2 host",
+    "On cold start, unhandled ID is replayed once when root host subscribes; queue limited to four, expires after two minutes, invalid ID never queues",
+    "No recipient details/response without authenticated notification row and nearby active RPC in existing R2 host",
+    "Android production workflow executes R1 lock and new R2 routing tests before Expo env/RC freeze",
+    "Exact PR head Engineering Accountability, TypeScript/Performance and Main Integration/Web QA green before merging",
+    "Production OTA requires new manual workflow run on latest main, frozen source/runtime verification and actual device acceptance; do not claim old failed workflow rerun proves new source"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodEmergencySignal.ts",
+    "src/providers/NotificationProvider.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/sos-r1-r2-notification-deeplink-20261107.test.mjs",
+    ".github/workflows/production_android_ota.yml",
+    ".buklod/scopes/sos-r1-r2-notification-deeplink-recovery-20261107.json",
+    "tests/sos-r1-r2-notification-navigation-20261107.test.mjs",
+    "tests/sos-r1-r2-production-ota-release-20261107.test.mjs"
+  ]
+}
