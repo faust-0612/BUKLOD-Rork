@@ -28,13 +28,13 @@ export default function BuklodTodayCard({onRespond}:{onRespond?:(draft?:string)=
  const [draft,setDraft]=useState('');
  const [notice,setNotice]=useState('');
  const [error,setError]=useState('');
- const load=useCallback(async()=>{
+ const load=useCallback(async(preserveDraft=false)=>{
   try{
     const {data,error:rpcError}=await (supabase as any).rpc('get_buklod_weekly_tip_v1');
     if(rpcError)throw rpcError;
     if(!data?.title||!data?.week_start)throw Error('Weekly tips unavailable');
     setTip(data as Tip);
-    setDraft(typeof data.my_dugtong==='string'?data.my_dugtong:'');
+    if(!preserveDraft)setDraft(typeof data.my_dugtong==='string'?data.my_dugtong:'');
     setUnavailable(false);
   }catch{setUnavailable(true);}
   finally{setLoading(false);}
@@ -53,7 +53,7 @@ export default function BuklodTodayCard({onRespond}:{onRespond?:(draft?:string)=
     setNotice(credited>0
       ?'+'+credited+' BP recorded. Claim your pending reward in BUKLOD Points.'
       :'Saved. Each valid weekly action can earn points only once.');
-    await load();
+    await load(true);
   }catch(e:any){setError(String(e?.message||'Could not save your weekly interaction.'));}
   finally{setBusy(false);}
  };
