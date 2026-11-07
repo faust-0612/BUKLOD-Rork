@@ -891,18 +891,24 @@ function LegacyPublicBuklodScreen(){
  // One shared feed/composer player: no per-post players or audio downloads on load.
  const wallAudioPlayer=useAudioPlayer(null, { updateInterval: 1000 });
  const [wallAudioOwner,setWallAudioOwner]=useState('');
+ const wallAudioOwnerRef=useRef('');
+ useEffect(()=>{wallAudioOwnerRef.current=wallAudioOwner;},[wallAudioOwner]);
  const [wallLoadedTrackId,setWallLoadedTrackId]=useState('');
  const [wallAudioError,setWallAudioError]=useState('');
  const wallAudioBusyRef=useRef(false);
  useEffect(()=>subscribeBuklodAudioFocus(owner=>{
    if(owner!=='wall-post'){
      wallAudioPlayer.pause();
+     wallAudioOwnerRef.current='';
      setWallAudioOwner('');
    }
  }),[wallAudioPlayer]);
  useEffect(()=>{
    const subscription=wallAudioPlayer.addListener('playbackStatusUpdate',status=>{
-     if(status.didJustFinish)setWallAudioOwner('');
+     if(status.didJustFinish){
+       wallAudioOwnerRef.current='';
+       setWallAudioOwner('');
+     }
    });
    return()=>subscription.remove();
  },[wallAudioPlayer]);
@@ -910,6 +916,7 @@ function LegacyPublicBuklodScreen(){
    if(wallAudioBusyRef.current)return;
    if(wallAudioOwner===ownerKey&&wallAudioPlayer.playing){
      wallAudioPlayer.pause();
+     wallAudioOwnerRef.current='';
      setWallAudioOwner('');
      return;
    }
@@ -932,6 +939,7 @@ function LegacyPublicBuklodScreen(){
      requestBuklodAudioFocus('wall-post');
      wallAudioPlayer.volume=1;
      wallAudioPlayer.play();
+     wallAudioOwnerRef.current=ownerKey;
      setWallAudioOwner(ownerKey);
    }catch(error:any){
      wallAudioPlayer.pause();
@@ -4764,6 +4772,30 @@ const communityFeedRows =
   visibleVideoPostId,
  } = useBuklodCommunityAdViewability();
 
+ // Preserve the existing ad/video visibility engine; also pause an audio
+ // post as soon as its card is no longer visible (no off-screen music).
+ const communityViewabilityListener=useRef(onCommunityAdViewableItemsChanged);
+ communityViewabilityListener.current=onCommunityAdViewableItemsChanged;
+ const wallAudioForVisibility=useRef(wallAudioPlayer);
+ wallAudioForVisibility.current=wallAudioPlayer;
+ const onCommunityWallViewableItemsChanged=useRef((event:{
+   viewableItems:Array<{item?:any}>;
+ })=>{
+   communityViewabilityListener.current(event);
+   const owner=wallAudioOwnerRef.current;
+   if(owner&&owner!=='composer'&&
+     !event.viewableItems.some(row=>String(row.item?.id??'')===owner)){
+     wallAudioForVisibility.current.pause();
+     wallAudioOwnerRef.current='';
+     setWallAudioOwner('');
+   }
+ }).current;
+ useFocusEffect(useCallback(()=>()=>{
+   wallAudioPlayer.pause();
+   wallAudioOwnerRef.current='';
+   setWallAudioOwner('');
+ },[wallAudioPlayer]));
+
  const maritesVisibilityRefreshRef = useRef<(() => void) | null>(null);
  const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
  const largeComposerText = !photos.length && !wallVideo186O && !communityGif &&
@@ -4795,7 +4827,7 @@ const communityFeedRows =
   }}
       style={shared.screen} contentContainerStyle={s.content} data={
       communityFeedRows
-    } keyExtractor={(i: any)=>i.id} extraData={communityAdExtraData} onViewableItemsChanged={onCommunityAdViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
+    } keyExtractor={(i: any)=>i.id} extraData={communityAdExtraData} onViewableItemsChanged={onCommunityWallViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
     refreshing={busy}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
