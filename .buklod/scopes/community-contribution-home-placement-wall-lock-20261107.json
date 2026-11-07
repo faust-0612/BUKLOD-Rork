@@ -15,7 +15,8 @@
     "wall-layout-preservation",
     "community-economy-display",
     "navigation-scroll",
-    "account-scoped-financial-privacy"
+    "account-scoped-financial-privacy",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "User-approved Community Wall header, Marites, tabs, posting bar, photo/video rendering, social action row, post sizing, captions and feed remain unchanged",
@@ -26,24 +27,22 @@
   ],
   "regressionTests": [
     "tests/community-contribution-home-placement-wall-lock-20261107.test.mjs",
-    "tests/qmp-monthly-reset-clarity-20261102.test.mjs",
-    "tests/buklod-qmp-lifetime-visibility.test.mjs",
-    "tests/community-wall-compact-composer.test.mjs",
-    "tests/android-wall-direct-original-video-parity-20261107.test.mjs",
-    "scripts/community-contribution-economy-release-contract.mjs"
+    "tests/community-home-navigation-scroll-release-identity-20261107.test.mjs"
   ],
   "acceptanceChecks": [
     "Single Community Contribution card on Home, no contribution card on Wall",
     "Home bulletin and announcement remain before QMP card; Top 10 and banner remain after",
     "Wall composer, location chips, Marites and media anchors preserved",
     "Original card renders the same private values, estimates and guidance without duplication",
-    "Production OTA not implied by source merge; follow DEV → RC → Android Production release gate"
+    "Production OTA not implied by source merge; follow DEV → RC → Android Production release gate",
+    "Native package org.mzbministry.buklod, 1.3.2 OTA runtime and manual production workflow stay unchanged"
   ],
   "allowedPaths": [
     "src/app/(tabs)/home.tsx",
     "src/app/(tabs)/buklod.tsx",
     "scripts/community-contribution-economy-release-contract.mjs",
     "tests/community-contribution-home-placement-wall-lock-20261107.test.mjs",
-    ".buklod/scopes/community-contribution-home-placement-wall-lock-20261107.json"
+    ".buklod/scopes/community-contribution-home-placement-wall-lock-20261107.json",
+    "tests/community-home-navigation-scroll-release-identity-20261107.test.mjs"
   ]
 }
