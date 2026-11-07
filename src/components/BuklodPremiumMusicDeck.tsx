@@ -33,6 +33,7 @@ import {
 import {
   supabase,
 } from '@/lib/supabase';
+import { requestBuklodAudioFocus, subscribeBuklodAudioFocus } from '@/lib/buklodAudioFocus';
 
 
 type MusicTrack = {
@@ -105,6 +106,10 @@ export default function BuklodPremiumMusicDeck() {
     useAudioPlayerStatus(
       player
     );
+
+  useEffect(() => subscribeBuklodAudioFocus(owner => {
+    if (owner !== 'music-deck') player.pause();
+  }), [player]);
 
   const isPlaying =
     Boolean(
@@ -677,6 +682,7 @@ export default function BuklodPremiumMusicDeck() {
          * Manual user action only.
          * No effect in this component starts playback.
          */
+        requestBuklodAudioFocus('music-deck');
         player.play();
       }
       catch (
