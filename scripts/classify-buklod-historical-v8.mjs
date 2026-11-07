@@ -12,7 +12,7 @@ const src=path.join(ROOT,"HISTORICAL_UNIQUE_FILES_V7.json");
 const out=path.join(ROOT,"HISTORICAL_CLASSIFICATION_V8.json");
 const GiB=1024**3;
 const rxSource=/\.(?:tsx?|jsx?|mjs|cjs|py|pyi|java|kt|kts|swift|dart|rs|go|c|cc|cpp|cxx|h|hpp|cs|vb|rb|php|lua|sql|prisma|graphql|gql|proto|sh|zsh|fish|ps1|bat|cmd|xaml|sln|csproj|vcxproj|gradle|groovy|pbxproj|entitlements|xcconfig|storyboard|strings|plist)$/i;
-const rxMedia=/\.(?:png|jpe?g|webp|gif|svg|ico|bmp|heic|avif|psd|ai|eps|tif|tiff|woff2?|ttf|otf|mp3|m4a|mp4|mov|webm|ogg|wav|aac|flac|srt|vtt|lottie|json)$/i;
+const rxMedia=/\.(?:png|jpe?g|webp|gif|svg|ico|bmp|heic|avif|psd|ai|eps|tif|tiff|woff2?|ttf|otf|mp3|m4a|mp4|mov|webm|ogg|wav|aac|flac|srt|vtt|lottie)$/i;
 const rxData=/\.(?:pdf|docx?|xlsx?|xlsm|pptx?|csv|tsv|sqlite3?|db|db3|sqlitedb|bak|dump|jsonl|ndjson|parquet|arrow|feather|realm|dat|logdb)$/i;
 const rxArchive=/\.(?:zip|7z|rar|tar|gz|bz2|xz|zst|apk|aab|ipa|exe|msi|dmg|iso|jar|aar|war|nupkg|crx|appx|msix)$/i;
 const rxGenerated=/\.(?:class|dex|o|obj|pyc|pyo|dylib|dll|pdb|ilk|idb|exp|lib|a|gcda|gcno|pch|swiftmodule|swiftdoc|swiftinterface|xcactivitylog|pack|idx|rev|bitmap|midx)$/i;
@@ -48,7 +48,7 @@ const result={
  previousUnitemizedExclusions:0,
  expectedUniqueFiles:0,inspectedUniqueFiles:0,expectedBytes:0,
  classifications:{},extensions:{},rootFamilies:{},sizes:{},
-  topLargest:[],fileChangedOrMissing:[],contentBytesToReview:0,
+  topLargest:[],fileChangedOrMissing:[],changedOrMissingCount:0,contentBytesToReview:0,
   uniquePreservationCandidateCount:0,action:"CLASSIFICATION_ONLY_NO_ARCHIVING",
   errors:[]
 };
@@ -63,7 +63,7 @@ function selfTest(){
  ["D:\\BUKLOD\\android\\build\\classes.dex","likely_regenerable_but_not_yet_proven"],
  ["C:\\BUKLOD\\config\\.env.production","sensitive_requires_encrypted_backup"],
  ["D:\\BUKLOD\\importantblob","unknown_must_preserve_until_reviewed"],
- ["D:\\BUKLOD\\config.json","media_fonts_and_images"]
+ ["D:\\BUKLOD\\config.json","configuration_and_docs"]
  ];
  for(const [p,expected] of tests)ensure(classify(p)===expected,"Classification fixture failed for "+p);
  console.log("SELF TEST PASSED: historical type classification, sensitive filename gate, unknown retention.");
@@ -98,9 +98,11 @@ try{
    try{
      const st=fs.statSync(f.originalPath);
      if(!st.isFile()||st.size!==f.bytes||Math.abs(st.mtimeMs-f.mtimeMs)>1500){
+       result.changedOrMissingCount++;
        if(result.fileChangedOrMissing.length<50)result.fileChangedOrMissing.push({type:"changed-since-v7",extension:ext(f.originalPath),size:f.bytes});
      }
    }catch{
+     result.changedOrMissingCount++;
      if(result.fileChangedOrMissing.length<50)result.fileChangedOrMissing.push({type:"missing-or-unreadable",extension:ext(f.originalPath),size:f.bytes});
    }
    result.topLargest.push({category:kind,extension:ext(f.originalPath),bytes:f.bytes});
@@ -109,14 +111,14 @@ try{
  ensure(result.inspectedUniqueFiles===result.expectedUniqueFiles,"File count drift from V7");
  ensure(result.contentBytesToReview===result.expectedBytes,"Historical byte total drift from V7");
  result.topLargest.sort((a,b)=>b.bytes-a.bytes);result.topLargest=result.topLargest.slice(0,25);
- const bucketNames=Object.keys(result.classifications);
  const histogram={};
  for(const [name,d] of Object.entries(result.classifications)){
   const bin=name==="likely_regenerable_but_not_yet_proven"?"requires_regeneration_proof":"must_preserve_or_explicitly_review";
-  add(histogram,bin,d.bytes);
+  const entry=histogram[bin]||(histogram[bin]={files:0,bytes:0});
+  entry.files+=d.files;entry.bytes+=d.bytes;
  }
  result.candidateDisposition=histogram;
- result.status=result.fileChangedOrMissing.length?"CLASSIFIED_WITH_CHANGED_OR_MISSING_ORIGINALS":"CLASSIFICATION_COMPLETE_NO_UPLOAD";
+ result.status=result.changedOrMissingCount?"CLASSIFIED_WITH_CHANGED_OR_MISSING_ORIGINALS":"CLASSIFICATION_COMPLETE_NO_UPLOAD";
  save();
  console.log("BUKLOD V8 HISTORICAL CLASSIFICATION COMPLETE (READ-ONLY)");
  console.log("Unique original files:",result.expectedUniqueFiles,"bytes:",(result.expectedBytes/1024**3).toFixed(2),"GiB");
@@ -128,7 +130,7 @@ try{
  console.log("TOP ROOT FAMILIES BY BYTES:");
  for(const [name,d] of Object.entries(result.rootFamilies).sort((a,b)=>b[1].bytes-a[1].bytes).slice(0,8))
    console.log(" ",name,":",d.files,"files,",(d.bytes/1024**3).toFixed(2),"GiB");
- console.log("Changed or missing original candidates (sample count):",result.fileChangedOrMissing.length);
+ console.log("Changed or missing original candidates:",result.changedOrMissingCount);
  console.log("Previous unitemized exclusions STILL unresolved:",result.previousUnitemizedExclusions);
  console.log("Private local report:",out);
  console.log("NO UPLOAD, NO DELETION. Unique historical files still require a proven cloud recovery disposition.");
