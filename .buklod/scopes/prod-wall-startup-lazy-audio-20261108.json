@@ -1,0 +1,52 @@
+{
+  "contractVersion": 2,
+  "objective": "Contain Android startup SYS-500 Wall render fault by delaying optional Expo-audio native player construction until a user presses Play; preserve wall posts, ads, media, music and existing production runtime; escape the broken /buklod global error recovery loop by offering /home",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: 2026-11-08 production main ef6ccc241c8c0a8fffe314c2a8538d4d2132971a. Android OTA workflow run 42405482091 success; web workflow 42405482028 success. Supabase BSOC health at 2026-11-07T19:22:24Z shows Android production /buklod RENDER_C567C6DA (repeat_count 3). Same anonymized signature occurred on KL chapter audio in Oct; no raw runtime stack is transmitted. New Wall imports useAudioPlayer(null) and constructs native player during first render. Root cause is NOT definitively proven by hash alone. This patch isolates a concrete known native-player lifecycle risk and does not claim end-device success.",
+  "chosenApproach": "Replace eagerly mounted Wall useAudioPlayer hook with explicitly owned lazy createAudioPlayer(null) on explicit playback, a bounded guarded pause/release lifecycle, and narrow UI status listener. Preserve audio focus, feed visibility, existing optional music controls, no autoplay, signed URLs, Ads and media pipelines. Reconcile CI checks before production merge. Fix global ErrorBoundary Go Back only for the public Wall route to take users to /home rather than recursively retrying the exact failing /buklod screen.",
+  "selectionRationale": "The symptom occurs when opening the Wall; the new optional music player instantiates on Wall first render. Removing optional native initialization from initial render is a minimal backward-compatible route reliability fix. SDK 57 KL chapter audio already uses createAudioPlayer and pause-before-release for this class of problem.",
+  "alternativeApproaches": [
+    "Clear user app data or reinstall (rejected: risks local drafts and does not fix bug)",
+    "Disable all Wall audio or music (rejected: feature loss)",
+    "Rebuild Android APK for JS-only change (rejected: unnecessary)",
+    "Provide a generic TRY AGAIN fallback while keeping native player eager (rejected: no root risk mitigation)"
+  ],
+  "acceptanceChecks": [
+    "BUKLOD Wall initial render must not call useAudioPlayer, createAudioPlayer or any other native audio constructor",
+    "A real user Play action creates at most one player for that Wall lifetime",
+    "Audio commands are guarded against disposed handles; cleanup pauses before release and removes listener",
+    "Off-screen/route blur/audio focus stop remains; no auto audio",
+    "Production Android V28 runtime stays 1.3.2 and native dependencies, app config and ads untouched",
+    "Legacy Wall media/video/feed/scroll/ads automated regression gates remain intact",
+    "No claim of device smoke verification or guaranteed root cause without JS stack evidence",
+    "If the public Wall itself throws, the Go Back fallback goes to /home, not the same crashing /buklod route; scope still returns /clusters, all other fallback routes retain /buklod"
+  ],
+  "preserveBehaviors": [
+    "Wall photo/video playback, Marites, sponsored ads and banners",
+    "Premium music signed library and optional post music/motion",
+    "No change to Supabase database or auth permission",
+    "No native manifest changes or APK rebuild",
+    "Production rollout only after PR QA and exact source fingerprint verification"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "android-startup-render",
+    "optional-audio",
+    "navigation-scroll",
+    "ads-monetization",
+    "runtime-compatibility"
+  ],
+  "regressionTests": [
+    "tests/wall-post-music-motion-contract.test.mjs",
+    "tests/wall-post-music-navigation-scroll.test.mjs",
+    "tests/buklod-wall-crash-escape-20261108.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/prod-wall-startup-lazy-audio-20261108.json",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/wall-post-music-motion-contract.test.mjs",
+    "tests/wall-post-music-navigation-scroll.test.mjs",
+    "src/app/_layout.tsx",
+    "tests/buklod-wall-crash-escape-20261108.test.mjs"
+  ]
+}
