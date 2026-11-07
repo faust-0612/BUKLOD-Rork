@@ -63,7 +63,14 @@ export function NotificationProvider({children}:{children:ReactNode}){
  const openNotification=useCallback(async(kind:string,data:any)=>{
   if(!faithEnabled && isFaithNotificationKind(kind)){router.replace('/hub' as any);return;}
   if(kind==='community_emergency'&&data?.help_request_id){
-   router.push(`/buklod?help_request_id=${encodeURIComponent(String(data.help_request_id))}` as any);
+   const id = data.help_request_id;
+   if(isBuklodEmergencyId(id)){
+    emitBuklodEmergencySignal({ incidentId:id, origin:'recipient' });
+    // Leave the current draft/screen intact; the global SOS host is the
+    // canonical incident destination. A web/direct URL still uses Wall.
+    return;
+   }
+   router.push('/buklod' as any);
    return;
   }
 
