@@ -1,0 +1,40 @@
+name: BUKLOD R7 private-source recovery safety contract
+on:
+  push:
+    branches: [dev/quiz-consolidation-identity-audit-20261107]
+    paths:
+      - .github/workflows/buklod-r7-safe-source-recovery-ci.yml
+      - scripts/BUKLOD_R7_Safe_Quiz_Source_Cloud_Rescue.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-r7-safe-rescue-contract
+  cancel-in-progress: true
+
+jobs:
+  windows-git-restore-contract:
+    runs-on: windows-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Node script syntax
+        shell: pwsh
+        run: |
+          node --check scripts/BUKLOD_R7_Safe_Quiz_Source_Cloud_Rescue.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'R7 script syntax validation failed' }
+      - name: Synthetic private-source safety and recovery drill
+        shell: pwsh
+        run: |
+          node scripts/BUKLOD_R7_Safe_Quiz_Source_Cloud_Rescue.mjs --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'R7 source filter, Git push or clean restore failed' }
+      - name: Ensure script refuses backup without verified R4/R5/R6
+        shell: pwsh
+        run: |
+          $output = & node scripts/BUKLOD_R7_Safe_Quiz_Source_Cloud_Rescue.mjs --backup 2>&1
+          if ($LASTEXITCODE -eq 0) { throw 'No-R4 source recovery was unexpectedly allowed' }
+          Write-Host 'PASS: no original PC files or private GitHub repos were touched.'
