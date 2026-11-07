@@ -1,5 +1,5 @@
 import { usePathname } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import {
@@ -17,6 +17,7 @@ import { warmBuklodInterstitial } from '@/lib/buklodAds';
 export default function BuklodAdSafetyRouteBridge() {
   const pathname = usePathname();
   const { config } = useRuntimeConfig();
+  const remoteFeaturesReady = useRef(false);
 
   useEffect(() => {
     setBuklodAdRoute(pathname);
@@ -24,6 +25,7 @@ export default function BuklodAdSafetyRouteBridge() {
 
   useEffect(() => {
     setBuklodAdRemoteFeatures(config?.features);
+    remoteFeaturesReady.current = Boolean(config?.features);
   }, [config?.features]);
 
   // Warm one full-screen creative on a regular, content-safe Android route.
@@ -33,6 +35,8 @@ export default function BuklodAdSafetyRouteBridge() {
   // Wait for the remote feature map so an explicit ad kill-switch is honored.
   useEffect(() => {
     if (Platform.OS !== 'android' || !config?.features ||
+        AppState.currentState === 'background' ||
+        AppState.currentState === 'inactive' ||
         isBuklodAdRouteSensitive(pathname)) return;
     warmBuklodInterstitial('interstitial_generic');
   }, [pathname, config?.features]);
@@ -50,9 +54,9 @@ export default function BuklodAdSafetyRouteBridge() {
       setBuklodAdForeground(active);
       if (!active) {
         void flushBuklodAdOperationalTelemetry();
-      } else {
-        // A resumed app can recover a failed/cancelled preload. The controller
-        // still enforces route, remote feature flags and interaction locks.
+      } else if (remoteFeaturesReady.current) {
+        // A resumed app can recover a failed/cancelled preload only after
+        // remote flags were received; kill switches remain authoritative.
         warmBuklodInterstitial('interstitial_generic');
       }
     });
