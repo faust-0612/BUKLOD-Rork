@@ -3,6 +3,7 @@ import {ActivityIndicator,Alert,FlatList,Pressable,ScrollView,StyleSheet,Text,Te
 import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import {File} from 'expo-file-system';
+import * as Crypto from 'expo-crypto';
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 import {colors} from '@/lib/theme';
@@ -92,7 +93,7 @@ export default function LiveSupport(){
     try{
       const {error}=await supabase.from('bsoc_case_messages').insert({
         case_id:caseId,sender_id:uid,sender_kind:'member',
-        body:draft.trim().slice(0,8000),client_nonce:crypto.randomUUID()
+        body:draft.trim().slice(0,8000),client_nonce:Crypto.randomUUID()
       });
       if(error)throw error;
       setDraft('');await loadThread();
@@ -108,7 +109,7 @@ export default function LiveSupport(){
       const mime=asset.mimeType||'application/octet-stream';
       if(!ALLOWED.has(mime))throw Error('Only JPG, PNG, WebP, MP4, QuickTime or WebM evidence is supported.');
       if(!asset.size||asset.size>262144000)throw Error('Choose an evidence file under 250 MB.');
-      const evidenceId=crypto.randomUUID();
+      const evidenceId=Crypto.randomUUID();
       const objectPath=caseId+'/'+uid+'/'+evidenceId;
       // Native and Web use the same private Storage policy. File bytes are bounded.
       const file=new File(asset.uri);
