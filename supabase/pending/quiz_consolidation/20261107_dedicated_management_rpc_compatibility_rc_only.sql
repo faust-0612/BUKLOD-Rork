@@ -140,12 +140,19 @@ BEGIN
   SELECT * INTO e FROM public.buklod_quiz_exams
   WHERE id=p_exam_id AND owner_user_id=v_user FOR UPDATE;
   IF e.id IS NULL THEN RAISE EXCEPTION 'Exam not found or unauthorized'; END IF;
+  -- The Dedicated FK graph also cascades questions, sections and review jobs.
+  -- Permanent delete is permitted ONLY for an entirely empty, never-used exam.
+  -- Keep audit history intact; archive is the only safe action otherwise.
   IF EXISTS(SELECT 1 FROM public.buklod_quiz_attempts WHERE exam_id=p_exam_id)
      OR EXISTS(SELECT 1 FROM public.buklod_quiz_live_sessions WHERE exam_id=p_exam_id)
      OR EXISTS(SELECT 1 FROM public.buklod_quiz_roster WHERE exam_id=p_exam_id)
      OR EXISTS(SELECT 1 FROM public.buklod_quiz_documents WHERE exam_id=p_exam_id)
+     OR EXISTS(SELECT 1 FROM public.buklod_quiz_questions WHERE exam_id=p_exam_id)
+     OR EXISTS(SELECT 1 FROM public.buklod_quiz_sections WHERE exam_id=p_exam_id)
+     OR EXISTS(SELECT 1 FROM public.buklod_quiz_review_jobs WHERE exam_id=p_exam_id)
+     OR EXISTS(SELECT 1 FROM public.buklod_quiz_audit_log WHERE exam_id=p_exam_id)
   THEN
-    RAISE EXCEPTION 'Exam has historical attempts, roster, live rooms or documents. Archive it; permanent delete is protected.';
+    RAISE EXCEPTION 'Exam has dependent content or historical records. Archive it; permanent delete is protected.';
   END IF;
   DELETE FROM public.buklod_quiz_exams WHERE id=p_exam_id;
   INSERT INTO public.buklod_quiz_audit_log(exam_id,actor_user_id,action,details)
