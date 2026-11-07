@@ -17,6 +17,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { supabase } from '@/lib/supabase';
 import { acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
 import { registerPushToken } from '@/lib/pushNotifications';
+import { emitBuklodEmergencySignal, isBuklodEmergencyId } from '@/lib/buklodEmergencySignal';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 
@@ -204,7 +205,10 @@ export default function BuklodCommunityHelp(){
       const requestId=String(data??'');
       setOpen(false);setMessage('');
       await refresh();
-      if(kind==='EMERGENCY'&&requestId){
+      if(kind==='EMERGENCY'&&isBuklodEmergencyId(requestId)){
+        // The new global sender dashboard appears after the authoritative
+        // request exists, even if the separate notification fan-out fails.
+        emitBuklodEmergencySignal({ incidentId: requestId, origin: 'sender' });
         const result=await supabase.functions.invoke('buklod-help-alert',{body:{request_id:requestId}});
         Alert.alert(
           result.error?'SOS posted':'SOS sent',
