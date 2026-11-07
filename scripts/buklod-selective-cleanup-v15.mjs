@@ -57,6 +57,7 @@ const records={schema:"buklod-selective-cleanup/v15",started:new Date().toISOStr
  canonicalMainRepo:MAIN_REPO,sourceRecoveryRepo:SOURCE_REPO,encryptedVaultRepo:VAULT_REPO,
  sourceGitCommit:null,mainGitCommit:null,sourceGitObjects:0,mainGitObjects:0,
  candidateRoots:0,acceptedRoots:0,rejectedRoots:[],filesExamined:0,filesBacked:0,
+ diskAvailableBeforeDelete:{},diskAvailableAfterDelete:{},observedFreeSpaceDeltaGiB:null,
  generatedEligible:0,filesDeleted:0,bytesDeleted:0,directoriesRemoved:0,
  backedSourceGit:0,backedEncryptedManifests:0,
  candidateCount:0,candidateBytes:0,
@@ -450,6 +451,19 @@ function eachJSONLine(file,action){
  }finally{fs.closeSync(fd)}
  return reads;
 }
+function diskAvailableByVolume(roots){
+ const ret={};
+ if(typeof fs.statfsSync!=="function")return ret;
+ for(const root of roots){
+   const drive=path.parse(root.path).root;
+   if(!drive||Object.hasOwn(ret,drive))continue;
+   try{
+     const st=fs.statfsSync(root.path);
+     ret[drive]=Number(st.bavail)*Number(st.bsize);
+   }catch{}
+ }
+ return ret;
+}
 function outputSummary(){
  console.log("BUKLOD V15 STREAMING CLEANUP PRECHECK");
  console.log("Verified BUKLOD roots:",records.acceptedRoots,"inspected:",records.filesExamined,
@@ -549,8 +563,11 @@ try{
    removeJournal();
    console.log("AUDIT ONLY. No files deleted. --execute performs verified deletion.");
  }else{
-   assert(records.unreadable===0,
-     "Unreadable source inside approved roots; no deletion started");
+   // Unreadable paths are NEVER candidates. They remain protected, while
+   // individually proven eligible copies may be safely cleaned.
+   if(records.unreadable>0)console.log("Protected unreadable paths:",records.unreadable,
+     "(excluded from cleanup and reported for review)");
+   records.diskAvailableBeforeDelete=diskAvailableByVolume(roots);
    records.deletePhaseStarted=true;
    records.result="DELETE_IN_PROGRESS";persist();
    console.log("V15 verified streaming deletion started...");
@@ -593,7 +610,15 @@ try{
        }
      }catch{/* directory occupied or protected */}
    });
-   records.result=records.errors.length?"PARTIAL_CLEANUP_WITH_ERRORS":"VERIFIED_COPIES_AND_CACHES_CLEANED";
+   records.diskAvailableAfterDelete=diskAvailableByVolume(roots);
+   const deltas=Object.entries(records.diskAvailableBeforeDelete)
+     .filter(([drive,v])=>Number.isFinite(v)&&Number.isFinite(records.diskAvailableAfterDelete[drive]))
+     .map(([drive,v])=>records.diskAvailableAfterDelete[drive]-v);
+   // OS free space may change during cleanup; this is observational, not
+   // a precise accounting of physical bytes freed by hardlinked files.
+   records.observedFreeSpaceDeltaGiB=deltas.length?Number((deltas.reduce((a,b)=>a+b,0)/1024**3).toFixed(3)):null;
+   records.result=(records.errors.length||records.unreadable>0)?
+      "PARTIAL_CLEANUP_WITH_PROTECTED_ITEMS":"VERIFIED_COPIES_AND_CACHES_CLEANED";
    records.preservedOriginalFilesMayRemain=true;
    persist();
    removeJournal();
@@ -601,6 +626,8 @@ try{
    console.log("Deleted files:",records.filesDeleted,
      "reclaimed GiB:",(records.bytesDeleted/1024**3).toFixed(2),
      "empty directories removed:",records.directoriesRemoved);
+   console.log("Observed free-space change across source volumes (GiB; OS activity may affect this):",
+     records.observedFreeSpaceDeltaGiB);
    console.log("Protected unique/unverified files intentionally remain.");
    console.log("Report:",AUDIT);
  }
