@@ -109,3 +109,14 @@ test('desktop Connect side dock is contextual, not a forced route', () => {
   assert.match(dock, /return false/);
   assert.match(dock, /activeDesktopOpener = null/);
 });
+
+
+test('embedded Connect engine dismisses in place on all thread lookup failures', () => {
+  const thread = read('src/components/BuklodConnectThread.tsx');
+  assert.match(thread, /const leaveThread = useCallback/);
+  assert.match(thread, /dockBackRef.current\(\)/);
+  assert.match(thread, /onBack=\{leaveThread\}/);
+  assert.equal((thread.match(/leaveThread\(\);/g) ?? []).length, 4);
+  const avatar = read('src/components/connect/ConnectTappableAvatar.web.tsx');
+  assert.match(avatar, /tryOpenBuklodDesktopDock\(\{/);
+});

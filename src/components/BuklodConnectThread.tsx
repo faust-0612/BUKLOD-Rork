@@ -618,6 +618,15 @@ function BuklodConnectThreadInner({
   pendingTargetUserId,
   onBackOverride,
 }: Props) {
+  // Web dock closes in-place on navigation, lookup failure and Back.
+  // Keep the override in a ref so pending RPCs do not restart on re-renders.
+  const dockBackRef = useRef(onBackOverride);
+  dockBackRef.current = onBackOverride;
+  const leaveThread = useCallback(() => {
+    if (dockBackRef.current) dockBackRef.current();
+    else router.back();
+  }, []);
+
   /* PATCH_169G_CONNECT_SAFE_INSETS */
   const insets =
     useSafeAreaInsets();
@@ -1157,7 +1166,7 @@ const [
           'Connect',
           result.error.message
         );
-        router.back();
+        leaveThread();
         return;
       }
 
@@ -1174,7 +1183,7 @@ const [
           'Connect',
           'Could not open conversation.'
         );
-        router.back();
+        leaveThread();
         return;
       }
 
@@ -1997,7 +2006,7 @@ const [
               details.error.message
             );
 
-            router.back();
+            leaveThread();
             return;
           }
 
@@ -2048,7 +2057,7 @@ const [
               details.error.message
             );
 
-            router.back();
+            leaveThread();
             return;
           }
 
@@ -4021,14 +4030,7 @@ const [
         otherUserId={mode === 'direct' ? otherUserId : null}
         showDirectCalls={mode === 'direct' && !!otherUserId}
         callStarting={directCallStarting}
-        onBack={() => {
-          if (onBackOverride) {
-            onBackOverride();
-            return;
-          }
-
-          router.back();
-        }}
+        onBack={leaveThread}
         onAudioCall={() => void startDirectCall('audio')}
         onVideoCall={() => void startDirectCall('video')}
         appearanceSlot={

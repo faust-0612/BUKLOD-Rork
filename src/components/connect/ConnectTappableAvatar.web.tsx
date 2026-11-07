@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { tryOpenBuklodDesktopDock } from '@/lib/buklodDesktopContextDock';
 
 import BuklodPersonVisitSheet from '@/components/BuklodPersonVisitSheet';
 import { ConnectPressable } from '@/components/connect/ConnectPressable';
@@ -56,14 +57,20 @@ export function ConnectTappableAvatar({
     : undefined;
 
   const openConversation = resolvedUserId
-    ? () => router.push({
+    ? () => {
+        if (tryOpenBuklodDesktopDock({
+          kind: 'direct', threadId: 'new', targetUserId: resolvedUserId,
+          otherUserName: name ?? '',
+        })) return;
+        router.push({
         pathname: '/connect/personal/[threadId]' as any,
         params: {
           threadId: 'new',
           targetUserId: resolvedUserId,
           otherUserName: name ?? '',
         },
-      } as any)
+      } as any);
+      }
     : undefined;
 
   const tapHandler = onPress === null
