@@ -139,11 +139,23 @@ export default function LiveSupport(){
       <Text style={styles.muted}>Pagkatapos gumawa ng ticket, gamitin ang Attach photo or video sa loob ng conversation.</Text>
     </View>
     {!uid?<View style={styles.card}>
-      <Text style={styles.h2}>Sign in to use private live chat</Text>
-      <Text style={styles.muted}>If you cannot access your account, use Forgot Password → Admin Help. It is available before login.</Text>
+      <Text style={styles.h2}>Cannot log in? Get support before login</Text>
+      <Text style={styles.muted}>You can submit a concern even without signing in. Private two-way chat and evidence uploads require a signed-in account; never share credentials.</Text>
+      {!!error&&<Text style={styles.error}>{error}</Text>}
       <Pressable style={styles.button} onPress={()=>router.push('/(auth)/forgot-password' as any)}>
         <Text style={styles.buttonText}>Password Recovery / Admin Help</Text>
       </Pressable>
+      <Text style={styles.h2}>Other account problem</Text>
+      <TextInput style={styles.input} placeholder="Username, mobile or email (optional)" value={guestIdentifier} onChangeText={setGuestIdentifier}/>
+      <TextInput style={[styles.input,styles.area]} multiline placeholder="Describe the account problem (no password or OTP)" value={guestProblem} onChangeText={setGuestProblem}/>
+      <Pressable style={styles.button} onPress={()=>void requestGuestSupport()} disabled={guestBusy||guestProblem.trim().length<10}>
+        <Text style={styles.buttonText}>{guestBusy?'Submitting…':'Submit pre-login concern'}</Text>
+      </Pressable>
+      {!!guestCaseCode&&<View style={styles.evidence}>
+        <Text style={styles.bold}>Support reference: {guestCaseCode}</Text>
+        <Text style={styles.muted}>Keep this reference before leaving the screen. Status: {guestStatus}</Text>
+        <Pressable onPress={()=>void checkGuestStatus()}><Text style={styles.link}>Check concern status</Text></Pressable>
+      </View>}
     </View>:<>
       {!!error&&<Text style={styles.error} accessibilityRole="alert">{error}</Text>}
       {!!notice&&<Text style={styles.notice}>{notice}</Text>}
