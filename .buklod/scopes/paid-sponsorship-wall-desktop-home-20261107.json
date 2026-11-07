@@ -35,7 +35,8 @@
     "Focused TypeScript/Node tests, engineering accountability, performance QA and Expo web compatibility pass before RC promotion."
   ],
   "regressionTests": [
-    "tests/paid-sponsorship-wall-desktop-home-20261107.test.mjs"
+    "tests/paid-sponsorship-wall-desktop-home-20261107.test.mjs",
+    "tests/paid-sponsorship-wall-scroll-20261107.test.mjs"
   ],
   "allowedPaths": [
     "src/lib/advertise/paidSponsorshipDelivery.ts",
@@ -43,6 +44,7 @@
     "src/app/(tabs)/buklod.tsx",
     "src/app/(tabs)/hub.tsx",
     "tests/paid-sponsorship-wall-desktop-home-20261107.test.mjs",
-    ".buklod/scopes/paid-sponsorship-wall-desktop-home-20261107.json"
+    ".buklod/scopes/paid-sponsorship-wall-desktop-home-20261107.json",
+    "tests/paid-sponsorship-wall-scroll-20261107.test.mjs"
   ]
 }
