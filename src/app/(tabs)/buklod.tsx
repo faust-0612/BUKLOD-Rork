@@ -878,6 +878,12 @@ function LegacyPublicBuklodScreen(){
 
  const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
  const [postCreatives,setPostCreatives]=useState<Record<string,BuklodPostCreative>>({});
+ const [visibleCreativePostIds,setVisibleCreativePostIds]=useState<string[]>([]);
+ const visibleCreativeIdsRef=useRef<string[]>([]);
+ const [wallScreenFocused,setWallScreenFocused]=useState(false);
+ const [wallAudioSettledTick,setWallAudioSettledTick]=useState(0);
+ const wallAutoMusicAttemptedRef=useRef(new Set<string>());
+ const wallAutoMusicSuppressedRef=useRef(new Set<string>());
  const creativeIdsKey=useMemo(()=>posts.map(p=>String(p?.id??'')).filter(Boolean).join(','),[posts]);
  useEffect(()=>{
    if(!user?.id||!creativeIdsKey)return;
@@ -890,9 +896,8 @@ function LegacyPublicBuklodScreen(){
    return()=>{cancelled=true;};
  },[creativeIdsKey,user?.id]);
  // One shared feed/composer player: no per-post players or audio downloads on load.
- // An optional music feature must NEVER construct a native audio player while
- // the public Wall mounts. Earlier Expo-audio render/teardown faults are fatal
- // at route scope. Allocate only after the member intentionally presses Play.
+ // No native player on Wall render; native visibility starts one shared player.
+ // On browsers, audible autoplay remains opt-in due to platform restrictions.
  const wallAudioPlayerRef=useRef<AudioPlayer|null>(null);
  const wallAudioListenerRef=useRef<{remove:()=>void}|null>(null);
  const [wallAudioOwner,setWallAudioOwner]=useState('');
@@ -996,6 +1001,7 @@ function LegacyPublicBuklodScreen(){
        wallAudioPendingOwnerRef.current='';
      }
      wallAudioBusyRef.current=false;
+     setWallAudioSettledTick(t=>t+1);
    }
  };
  const notificationParams = useLocalSearchParams<{
@@ -4847,6 +4853,12 @@ const communityFeedRows =
    viewableItems:Array<{item?:any}>;
  })=>{
    communityViewabilityListener.current(event);
+   const nextIds=event.viewableItems.map(row=>String(row.item?.id??''))
+     .filter(Boolean).slice(0,6);
+   if(nextIds.join('|')!==visibleCreativeIdsRef.current.join('|')){
+     visibleCreativeIdsRef.current=nextIds;
+     setVisibleCreativePostIds(nextIds);
+   }
    const owner=wallAudioOwnerRef.current||wallAudioPendingOwnerRef.current;
    if(owner&&owner!=='composer'&&
      !event.viewableItems.some(row=>String(row.item?.id??'')===owner)){
@@ -4857,16 +4869,47 @@ const communityFeedRows =
      setWallAudioOwner('');
    }
  }).current;
- useFocusEffect(useCallback(()=>()=>{
-   wallAudioRequestEpochRef.current++;
-   wallAudioPendingOwnerRef.current='';
-   pauseWallAudio();
-   wallAudioOwnerRef.current='';
-   setWallAudioOwner('');
+ useFocusEffect(useCallback(()=>{
+   setWallScreenFocused(true);
+   return ()=>{
+     setWallScreenFocused(false);
+     wallAudioRequestEpochRef.current++;
+     wallAudioPendingOwnerRef.current='';
+     pauseWallAudio();
+     wallAudioOwnerRef.current='';
+     setWallAudioOwner('');
+   };
  },[]));
 
  const maritesVisibilityRefreshRef = useRef<(() => void) | null>(null);
  const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
+ // Attached music starts on native after the visible card settles. One shared
+ // player; no hidden-card downloads or repeated auto-retries on failures.
+ useEffect(()=>{
+   if(!wallScreenFocused||Platform.OS==='web'||!user?.id||
+     communityComposerOpen||visibleVideoPostId)return;
+   const candidate=visibleCreativePostIds.map(id=>({id,creative:postCreatives[id]}))
+     .find(row=>row.creative?.music&&!wallAutoMusicSuppressedRef.current.has(row.id));
+   if(!candidate?.creative?.music)return;
+   const track=candidate.creative.music;
+   const key=candidate.id+':'+track.id;
+   if(wallAutoMusicAttemptedRef.current.has(key)||
+     wallAudioOwnerRef.current===candidate.id||
+     wallAudioPendingOwnerRef.current===candidate.id||
+     wallAudioOwnerRef.current==='composer'||wallAudioBusyRef.current)return;
+   const timer=setTimeout(()=>{
+     if(!visibleCreativeIdsRef.current.includes(candidate.id)||
+       wallAudioOwnerRef.current==='composer'||wallAudioBusyRef.current)return;
+     wallAutoMusicAttemptedRef.current.add(key);
+     void toggleWallMusic(track,candidate.id);
+   },700);
+   return ()=>clearTimeout(timer);
+ },[wallScreenFocused,user?.id,communityComposerOpen,visibleVideoPostId,
+    visibleCreativePostIds,postCreatives,wallAudioSettledTick]);
+ const communityCreativeExtraData=useMemo(
+   ()=>[communityAdExtraData,visibleCreativePostIds],
+   [communityAdExtraData,visibleCreativePostIds]
+ );
  const largeComposerText = !photos.length && !wallVideo186O && !communityGif &&
    Array.from(body.trim()).length > 0 && Array.from(body.trim()).length <= 80;
  const focusCommunityComposerRef = useRef(false);
@@ -4896,7 +4939,7 @@ const communityFeedRows =
   }}
       style={shared.screen} contentContainerStyle={s.content} data={
       communityFeedRows
-    } keyExtractor={(i: any)=>i.id} extraData={communityAdExtraData} onViewableItemsChanged={onCommunityWallViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
+    } keyExtractor={(i: any)=>i.id} extraData={communityCreativeExtraData} onViewableItemsChanged={onCommunityWallViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
     refreshing={busy}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
@@ -5642,7 +5685,8 @@ const communityFeedRows =
     </View>
    </View>
    </View>
-   <BuklodPostMotion preset={postCreatives[String(item.id)]?.motion_preset??'none'}>
+   <BuklodPostMotion preset={postCreatives[String(item.id)]?.motion_preset??'none'}
+    active={wallScreenFocused&&visibleCreativePostIds.includes(String(item.id))}>
    <BuklodExpandableWallCaption
     key={String(item.id)}
     text={String(repairMojibakeText(item.body) ?? '').replace(
@@ -5670,7 +5714,17 @@ const communityFeedRows =
      <View style={{backgroundColor:'#e7f4ef',borderRadius:12,padding:10,marginTop:7,marginBottom:5,gap:5}}>
        <Pressable accessibilityRole="button"
         accessibilityLabel={wallAudioOwner===String(item.id)&&wallAudioPlaying?'Pause post music':'Play post music'}
-        onPress={()=>{void toggleWallMusic(postCreatives[String(item.id)].music!,String(item.id));}}
+        onPress={()=>{
+          const id=String(item.id);
+          const track=postCreatives[id].music!;
+          if(wallAudioOwnerRef.current===id&&wallAudioPlaying){
+            wallAutoMusicSuppressedRef.current.add(id);
+          }else{
+            wallAutoMusicSuppressedRef.current.delete(id);
+            wallAutoMusicAttemptedRef.current.delete(id+':'+track.id);
+          }
+          void toggleWallMusic(track,id);
+        }}
         style={{minHeight:36,flexDirection:'row',gap:9,alignItems:'center'}}>
         <MaterialCommunityIcons
          name={wallAudioOwner===String(item.id)&&wallAudioPlaying?'pause-circle':'play-circle'}
@@ -5680,7 +5734,7 @@ const communityFeedRows =
             {postCreatives[String(item.id)].music!.title}
           </Text>
           <Text numberOfLines={1} style={{fontSize:10,color:'#58786a'}}>
-            {postCreatives[String(item.id)].music!.artist||'BUKLOD Music'} · Tap to play
+            {postCreatives[String(item.id)].music!.artist||'BUKLOD Music'} · {Platform.OS==='web'?'Tap to listen':'Auto sound when visible'}
           </Text>
         </View>
        </Pressable>
