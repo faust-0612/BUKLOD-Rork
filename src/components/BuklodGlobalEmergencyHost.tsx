@@ -42,6 +42,7 @@ type Emergency = {
   my_response: string | null;
 };
 type DisplayState = {
+  ownerId: string;
   incidentId: string;
   origin: 'sender' | 'recipient';
   emergency: Emergency | null;
@@ -176,7 +177,7 @@ export default function BuklodGlobalEmergencyHost() {
     if (!quiet && !minimized) {
       setShown(current => current?.incidentId === id
         ? current
-        : { incidentId: id, origin: signal.origin, emergency: null,
+        : { ownerId: owner, incidentId: id, origin: signal.origin, emergency: null,
             verified: false, checking: true, minimized: false, error: null });
     }
     try {
@@ -197,7 +198,7 @@ export default function BuklodGlobalEmergencyHost() {
           return { ...current, emergency: incident, verified: true, checking: false,
             error: null, minimized: current.minimized || minimized };
         }
-        return { incidentId: id, origin: signal.origin, emergency: incident,
+        return { ownerId: owner, incidentId: id, origin: signal.origin, emergency: incident,
           verified: true, checking: false, error: null, minimized };
       });
     } catch {
@@ -279,7 +280,7 @@ export default function BuklodGlobalEmergencyHost() {
   }, [shown?.incidentId, shown?.minimized, foreground]);
 
   const minimize = useCallback(() => {
-    if (!owner || !shown) return;
+    if (!owner || !shown || shown.ownerId !== owner) return;
     const id = shown.incidentId;
     dismissed.current.add(id);
     void AsyncStorage.setItem(
@@ -290,7 +291,7 @@ export default function BuklodGlobalEmergencyHost() {
   }, [owner, shown]);
 
   const respond = useCallback(async (type: 'CAN_HELP'|'ON_MY_WAY'|'CANNOT_HELP'|'FALSE_ALERT') => {
-    if (!shown?.verified || shown.origin !== 'recipient' || submitting ||
+    if (!shown?.verified || shown.ownerId !== owner || shown.origin !== 'recipient' || submitting ||
         shown.emergency?.status !== 'ACTIVE') return;
     const id = shown.incidentId;
     if (type === 'FALSE_ALERT') {
@@ -319,10 +320,10 @@ export default function BuklodGlobalEmergencyHost() {
         setSubmitting(false);
       }
     }
-  }, [shown, submitting, minimize, offer]);
+  }, [shown, owner, submitting, minimize, offer]);
 
   const resolve = useCallback(() => {
-    if (!shown?.verified || shown.origin !== 'sender' || submitting) return;
+    if (!shown?.verified || shown.ownerId !== owner || shown.origin !== 'sender' || submitting) return;
     const id = shown.incidentId;
     Alert.alert('End this SOS?', 'Only resolve this emergency when you are safe or no longer need assistance.', [
       { text: 'Keep active', style: 'cancel' },
@@ -344,15 +345,18 @@ export default function BuklodGlobalEmergencyHost() {
         })();
       } },
     ]);
-  }, [shown, submitting]);
+  }, [shown, owner, submitting]);
 
-  const event = shown?.emergency;
+  // Render-time account guard: effects reset the old state after commit,
+  // but not even one frame may expose a previous account's emergency.
+  const activeShown = shown?.ownerId === owner ? shown : null;
+  const event = activeShown?.emergency;
   if (!owner) return null;
 
   return (
     <>
       <BuklodEmergencyPushBridge />
-      {shown?.minimized && shown.verified && event ? (
+      {activeShown?.minimized && activeShown.verified && event ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open active BUKLOD emergency"
@@ -364,7 +368,7 @@ export default function BuklodGlobalEmergencyHost() {
         </Pressable>
       ) : null}
       <Modal
-        visible={Boolean(shown && !shown.minimized && foreground)}
+        visible={Boolean(activeShown && !activeShown.minimized && foreground)}
         transparent
         animationType="fade"
         statusBarTranslucent
