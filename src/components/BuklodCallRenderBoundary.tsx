@@ -42,8 +42,8 @@ export default class BuklodCallRenderBoundary extends React.Component<Props, Sta
       errorSignature: safeSignature(error),
       correlationKey: 'BUKLOD_CALL_SURFACE_EXCEPTION',
       routeModule: 'connect/call-surface',
-      localSelfHealAttempted: true,
-      localSelfHealResult: 'AWAITING_USER',
+      localSelfHealAttempted: false,
+      localSelfHealResult: 'NOT_ATTEMPTED',
       privacyClassification: 'OPERATIONAL',
     }).catch(() => undefined);
   }
