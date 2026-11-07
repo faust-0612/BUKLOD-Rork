@@ -446,7 +446,9 @@ export default function MeScreen() {
   useEffect(()=>{
     if(!profile?.id){setBsocAuthorized(false);return;}
     let live=true;
-    void supabase.rpc('buklod_bsoc_can',{p_permission_key:'bsoc.support.read'})
+    // PostgREST query builders are PromiseLike, not native Promises.
+    // Assimilate the thenable before handling a rejected permission read.
+    void Promise.resolve(supabase.rpc('buklod_bsoc_can',{p_permission_key:'bsoc.support.read'}))
       .then(({data,error})=>{if(live)setBsocAuthorized(!error&&data===true);})
       .catch(()=>{if(live)setBsocAuthorized(false);});
     return ()=>{live=false;};
