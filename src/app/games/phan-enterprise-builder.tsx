@@ -1,4 +1,5 @@
 import React from 'react';
+import { TradeMasterGameV1 } from '@/features/games/phan/TradeMasterGameV1';
 import { EnterpriseBuilderGameV1 } from '@/features/games/phan/EnterpriseBuilderGameV1';
 import { MatchThreeGameV1 } from '@/features/games/kingdom/platform/MatchThreeGameV1';
 import {
@@ -8,6 +9,10 @@ import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const GAME_ID = 'phan-enterprise-builder';
 const OPTIONS: readonly KingdomInteriorOption[] = [
+  { id: 'phan-trade-master', title: 'Trade Master',
+    descriptionEn: 'Buy, sell and fulfill contracts across three market seasons',
+    descriptionTl: 'Bumili, magbenta at tumupad sa kontrata sa tatlong season',
+    kind: 'pilot', render: finish => <TradeMasterGameV1 onFinish={finish} /> },
   {
     id: 'phan-market-match', title: 'Market Match',
     descriptionEn: 'Fulfill customer orders in three match-three market days',

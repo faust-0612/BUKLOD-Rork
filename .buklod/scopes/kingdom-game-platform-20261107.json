@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Expand in-app BUKLOD Kingdom with seven original pilot games using three shared, deterministic gameplay engines: Quin Guessing Quest, Van Mind Challenge, Mitch Color Merge, Angel Treasure Merge, Vhen Farm Merge, Trudice Word Garden, Niel Word Explorer; preserve 13 original stations, existing games, premium map, economy and production native runtime.",
+  "objective": "Finish all 39 BUKLOD Kingdom in-app game source implementations (13 original and 26 new game pilots), preserving game-station routes, current main app, local account integrity and native runtime. Add seven complete unique R10 games: Phan Trade Master, Lhen Melody Memory and Beat Composer, Ace Chess Master and Tower Tactics, Niel Expedition Puzzle, ELESUR Bridge Puzzle. This is a DEV source milestone, NOT approval for staging/production OTA.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: reconciled GitHub source with latest main. R9 added game source without overwriting any main Word/KL/OTA workflow files; original Kingdom Map blob 88a4b1b4a70fc4acd59579419058b47f21be2554 preserved. This source proof is not proof of installed staging-user APK nor physical Android acceptance; no OTA is being published.",
-  "chosenApproach": "Add evidence-riddle, power-of-two merge, and word-connect pure engines each with themed bilingual RN interfaces and full start/pause/result/replay flows; reuse unchanged station routes and account-scoped local preview. Overlay source onto latest main with zero path collisions and no native/OTA changes.",
-  "selectionRationale": "Seven distinct character-themed titles implemented using three reusable, rule-verified engines rather than arbitrary placeholders; each has genuine puzzle input, deterministic outcome, score and offline play. Does not claim final premium original audio/asset packs or server reward grants.",
+  "productionBaselineEvidence": "verified: GitHub source-level R9 automated CI passed Engineering Accountability, Performance and Main Integration on 550b55ac8f166eddda727c342ba43e83212bd957. New R10 changes use verified main-source reconciliation and unchanged legacy Kingdom map blob 88a4b1b4a70fc4acd59579419058b47f21be2554. No claim that actual Android staging APK/runtime/channel was verified; physical device acceptance waived at owner's request, production untouched, staging OTA not published.",
+  "chosenApproach": "Implement deterministic offline engine and themed React Native game UI for the final seven games; vendor audited BSD-2-Clause chess.js 1.2.0 TS source and license unchanged for full legal chess moves without new native dependencies; wire new games into existing station routes, preserve all original games and map; enforce exact catalog and R10 test gates before release.",
+  "selectionRationale": "Complete all planned mechanical game implementations in one consolidated branch with shared graphics/rendering and no new native dependency; uphold proven chess legality, supply constraints and route solvability. Premium licensed original audio/visual packs, official Character V2 reward budget, game-specific ad policy and staging binary/channel reconciliation remain separate release gates.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
     "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
@@ -63,7 +63,14 @@
     "Quin/Van have nine deterministic bilingual challenges with single clear answer, bounded attempts, per-question hints, explanations, scoring and restart.",
     "Mitch/Angel/Vhen each have three deterministic 4×4 merge levels with valid directional slide, finite turns, score, retry and no global client economy grants.",
     "Trudice/Niel each have three guaranteed-solvable offline 4×4 word grids; path input must be adjacent, cannot repeat a cell, and requires all listed validated words.",
-    "Catalog = 13 original + 19 playable DEV pilots + 7 planned games; new pilots must never silently override the 13 original games."
+    "Catalog = 13 original + 19 playable DEV pilots + 7 planned games; new pilots must never silently override the 13 original games.",
+    "All 39 catalog entries must be backed by a selectable in-app route: 13 original + 26 new game pilots; zero planned.",
+    "Trade contracts and three market seasons must be finite, budget-bounded, non-duplicating and achievable.",
+    "Melody Memory and Beat Composer must have actual original finite note/timing patterns, on-screen playback, correct input-validation, pause/restart and bounded attempts without copyrighted songs.",
+    "Niel graph puzzles must be provably safely solvable with finite food/water/risk, requirements and exit reached in a bounded number of moves.",
+    "ELESUR bridge levels must have exact degree, connectivity and crossing/capacity validation, undo and hint, and provably valid authored solutions.",
+    "Ace Tower Tactics must enforce grid placement/upgrade economics and bounded enemy waves; Chess Master must enforce complete chess.js legal move rules including underpromotion, castling, en passant, checkmate and draws with proper BSD attribution.",
+    "Do not publish any staging-user OTA before original music and sprite polish, authoritative rewards/ad policy, complete automated QA and compatible installed staging-user binary/environment are reconciled. User waived physical testing, not runtime proof."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
@@ -74,7 +81,8 @@
     "tests/kingdom-premium-map-r6.test.mjs",
     "tests/kingdom-games-r7.test.mjs",
     "tests/kingdom-games-r8.test.mjs",
-    "tests/kingdom-games-r9.test.mjs"
+    "tests/kingdom-games-r9.test.mjs",
+    "tests/kingdom-games-r10.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-game-platform-20261107.json",
@@ -131,6 +139,23 @@
     "src/features/games/kingdom/platform/wordTrailRules.ts",
     "src/features/games/kingdom/platform/WordTrailGameV1.tsx",
     "src/app/games/niel-mission-trail.tsx",
-    "tests/kingdom-games-r9.test.mjs"
+    "tests/kingdom-games-r9.test.mjs",
+    "src/features/games/phan/tradeMasterRules.ts",
+    "src/features/games/phan/TradeMasterGameV1.tsx",
+    "src/features/games/lhen/musicCityRules.ts",
+    "src/features/games/lhen/MusicCityGameV1.tsx",
+    "src/features/games/niel/expeditionPuzzleRules.ts",
+    "src/features/games/niel/ExpeditionPuzzleGameV1.tsx",
+    "src/features/games/elesur/bridgePuzzleRules.ts",
+    "src/features/games/elesur/BridgePuzzleGameV1.tsx",
+    "src/features/games/ace/towerTacticsRules.ts",
+    "src/features/games/ace/TowerTacticsGameV1.tsx",
+    "src/features/games/ace/vendor/chess-js-1.2.0.ts",
+    "src/features/games/ace/vendor/LICENSE",
+    "src/features/games/ace/chessRules.ts",
+    "src/features/games/ace/ChessMasterGameV1.tsx",
+    "src/app/games/lhen-rhythm-journey.tsx",
+    "src/app/games/ace-rescue-grid.tsx",
+    "tests/kingdom-games-r10.test.mjs"
   ]
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { BridgePuzzleGameV1 } from '@/features/games/elesur/BridgePuzzleGameV1';
 import { VillageBuilderGameV1 } from '@/features/games/elesur/VillageBuilderGameV1';
 import { DominoVillageGameV1 } from '@/features/games/elesur/DominoVillageGameV1';
 import {
@@ -8,6 +9,10 @@ import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const GAME_ID = 'elesur-village-builder';
 const OPTIONS: readonly KingdomInteriorOption[] = [
+  { id: 'elesur-bridge-puzzle', title: 'Bridge Puzzle',
+    descriptionEn: 'Connect all island communities without crossing bridges',
+    descriptionTl: 'Ikonekta ang mga isla nang walang nagtatawid na tulay',
+    kind: 'pilot', render: finish => <BridgePuzzleGameV1 onFinish={finish} /> },
   {
     id: 'elesur-domino-village', title: 'Domino Village',
     descriptionEn: 'Complete three-round draw dominoes vs village AI',

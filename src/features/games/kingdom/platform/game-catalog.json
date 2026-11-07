@@ -16,7 +16,7 @@
           "id": "phan-trade-master",
           "title": "Trade Master",
           "genre": "trading",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "phan-market-match",
@@ -112,13 +112,13 @@
           "id": "lhen-melody-memory",
           "title": "Melody Memory",
           "genre": "memory",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "lhen-beat-composer",
           "title": "Beat Composer",
           "genre": "rhythm",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -184,13 +184,13 @@
           "id": "ace-chess-master",
           "title": "Chess Master",
           "genre": "chess",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "ace-tower-tactics",
           "title": "Tower Tactics",
           "genre": "strategy",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -232,7 +232,7 @@
           "id": "niel-expedition-puzzle",
           "title": "Expedition Puzzle",
           "genre": "strategy",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "niel-word-explorer",
@@ -310,7 +310,7 @@
           "id": "elesur-bridge-puzzle",
           "title": "Bridge Puzzle",
           "genre": "logic",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     }

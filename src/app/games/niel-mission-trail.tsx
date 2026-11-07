@@ -1,4 +1,5 @@
 import React from 'react';
+import { ExpeditionPuzzleGameV1 } from '@/features/games/niel/ExpeditionPuzzleGameV1';
 import { MissionTrailGameV1 } from '@/features/games/niel/MissionTrailGameV1';
 import { WordTrailGameV1 } from '@/features/games/kingdom/platform/WordTrailGameV1';
 import { KingdomInteriorCenter, type KingdomInteriorOption } from '@/features/games/kingdom/platform/KingdomInteriorCenter';
@@ -6,6 +7,10 @@ import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const GAME_ID='niel-mission-trail';
 const OPTIONS:readonly KingdomInteriorOption[]=[
+ { id:'niel-expedition-puzzle', title:'Expedition Puzzle',
+   descriptionEn:'Plan three supply-limited routes across the frontier',
+   descriptionTl:'Magplano ng tatlong misyon na limitado ang supplies',
+   kind:'pilot', render:finish=><ExpeditionPuzzleGameV1 onFinish={finish}/> },
  {id:'niel-word-explorer',title:'Word Explorer',
   descriptionEn:'Find expedition words hidden in letter trails',
   descriptionTl:'Hanapin ang mga salitang nakatago sa letter trails',
