@@ -55,3 +55,8 @@ test('locked BUKLOD V28 native 1.3.2 and Main Expo Hosting targets cannot drift'
   assert.match(web, /EXPECTED_MAIN_URL='https:\/\/yhanxndaqbmuzbdqlblu\.supabase\.co'/);
   assert.match(web, /test "\$\(git ls-remote origin refs\/heads\/main/);
 });
+
+test('one-time production authorization YAML cannot be invalidated by colon in commit title', () => {
+  assert.match(trigger, /^\s+if: >-\s*\n\s+github\.event_name == 'push' &&\s*\n\s+startsWith\(github\.event\.head_commit\.message, 'release\(buklod\): one-time prod OTA and web 2026-11-07'\)/m);
+  assert.doesNotMatch(trigger, /^\s+if: [^\n]*release\(buklod\): one-time prod OTA and web/m);
+});
