@@ -4,8 +4,10 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -90,6 +92,12 @@ function cacheKey(userId: string | null): string {
 export default function KlReaderScreen() {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  // A content-only top inset scrolls away, leaving the text underneath
+  // Android's translucent status bar. Keep the entire scroll viewport below
+  // the system bar without changing the bottom navigation or web/iOS layout.
+  const androidTopInset = Platform.OS === 'android'
+    ? Math.max(insets.top, StatusBar.currentHeight ?? 0)
+    : 0;
   const reduceMotion = useBuklodReduceMotion();
   const { online } = useNetwork();
   const { user, hasRole } = useAuth();
@@ -579,8 +587,8 @@ export default function KlReaderScreen() {
     <>
       <ScrollView
         ref={scrollRef}
-        style={styles.page}
-        contentContainerStyle={[styles.content, { paddingHorizontal: compact ? 16 : 24, paddingTop: 18 + insets.top }]}
+        style={[styles.page, androidTopInset > 0 && { marginTop: androidTopInset }]}
+        contentContainerStyle={[styles.content, { paddingHorizontal: compact ? 16 : 24, paddingTop: 18 + (Platform.OS === 'android' ? 0 : insets.top) }]}
         scrollEventThrottle={32}
         onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => syncViewport(event.nativeEvent.contentOffset.y)}
       >
@@ -647,6 +655,12 @@ export default function KlReaderScreen() {
               const beforeImages = illustrationsAtParagraph(dynamicMedia, paragraph.text, 'before');
               const afterImages = illustrationsAtParagraph(dynamicMedia, paragraph.text, 'after');
               const hasAnchoredImage = beforeImages.length + afterImages.length > 0;
+              const displayText = paragraphDisplayText(paragraph);
+              const dictionaryParts = splitDictionaryTerms(displayText);
+              // Android can clip complex nested Text spans containing newlines.
+              // Render ordinary prose as one direct Text child; only wrap inline
+              // Text nodes when the paragraph actually contains glossary links.
+              const hasDictionaryLinks = dictionaryParts.some(part => part.term !== null);
               const renderIllustration = (item: DynamicMedia) => {
                 const key = item.kind + ':' + item.placement;
                 const uri = mediaUrls[key];
@@ -693,7 +707,7 @@ export default function KlReaderScreen() {
                       paragraph.kind === 'body' && { fontSize: bodySize, lineHeight: Math.round(bodySize * 1.65) },
                     ]}
                   >
-                    {splitDictionaryTerms(paragraphDisplayText(paragraph)).map((part, index) => (
+                    {hasDictionaryLinks ? dictionaryParts.map((part, index) => (
                       part.term ? (
                         <Text
                           key={`${paragraph.id}-${index}`}
@@ -707,7 +721,7 @@ export default function KlReaderScreen() {
                       ) : (
                         <Text key={`${paragraph.id}-${index}`}>{part.text}</Text>
                       )
-                    ))}
+                    )) : displayText}
                   </Text>
                   {!holdSpoiler ? afterImages.map(renderIllustration) : null}
                 </View>
