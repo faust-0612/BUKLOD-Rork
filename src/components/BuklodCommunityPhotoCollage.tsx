@@ -169,7 +169,7 @@ export function BuklodCommunityPhotoCollage({
   width,
   height,
   layoutMode,
-  showLayoutPicker = true,
+  showLayoutPicker = false, // Only Wall feed callers opt in; post/profile/detail surfaces stay unchanged.
   style,
   imageStyle,
   contentFit = 'cover',
