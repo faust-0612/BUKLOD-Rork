@@ -1,5 +1,5 @@
 'use strict';
-// BUKLOD QUIZ: one-time canonical source recovery (read-only on original).
+// BUKLOD QUIZ: multi-candidate source archive recovery (read-only on originals).
 // Usage: node BUKLOD_QUIZ_CLOUD_RECOVERY_R1.cjs             (preflight only)
 //        node BUKLOD_QUIZ_CLOUD_RECOVERY_R1.cjs --push      (cloud upload)
 // Preconditions: Git and GitHub credential for the private recovery repo.
@@ -14,7 +14,7 @@ let sourceRoot = '';
 
 const remote = 'https://github.com/faust-0612/BUKLOD-Migrated-Sources.git';
 const branch = 'migration/quiz-canonical-source-20261107';
-const target = path.join('systems','quiz','BUKLOD_Quiz_Standalone_CANONICAL');
+const target = path.join('systems','quiz','BUKLOD_Quiz_Standalone_CANDIDATES');
 const required = ['package.json','app/exam.tsx','app/live-join.tsx'];
 const supabasePaths = ['lib/supabase.ts','src/lib/supabase.ts'];
 const supportingPaths = ['app/review.tsx','lib/quizSecureLocal.ts',
@@ -36,6 +36,8 @@ const secretPatterns = [
 ];
 const maxFileBytes = 50*1024*1024;
 const maxTotalBytes = 250*1024*1024;
+const maxCombinedBytes = 450*1024*1024;
+const maxCandidates = 8;
 
 function git(cwd, args, capture=false) {
   return execFileSync('git',args,{cwd,encoding:'utf8',stdio:capture?'pipe':'inherit',timeout:120000});
@@ -113,7 +115,7 @@ function discoverSource() {
     if(!c.complete) throw Error('Explicit BUKLOD_QUIZ_SOURCE_DIR is not a verified Quiz project: '+
       root+' (package/exam/live/supabase/Expo/Quiz RPC checks failed).');
     process.stdout.write('EXPLICIT CANONICAL SOURCE VERIFIED: '+root+'\n');
-    return root;
+    return [root];
   }
   const seen=new Set(),candidates=[];
   function consider(dir) {
@@ -157,8 +159,13 @@ function discoverSource() {
       ' | Quiz RPC='+c.quizScreenMarkers+
       ' | Expo manifest='+c.packageValid+'\n');
   }
-  if(complete.length===1)return complete[0].root;
-  if(complete.length>1)throw Error('Multiple verified Quiz sources found. Do not choose an outdated copy. Set BUKLOD_QUIZ_SOURCE_DIR to the authoritative root and rerun.');
+  if(complete.length===1)return [complete[0].root];
+  if(complete.length>1) {
+    if(complete.length>maxCandidates) throw Error('Too many complete candidates for automatic safe recovery: '+complete.length);
+    process.stdout.write('MULTIPLE VALID SOURCE VERSIONS: preserving ALL '+complete.length+
+      ' separately. This archive does not declare either one canonical.\n');
+    return complete.map(c=>c.root);
+  }
   throw Error('No verified standalone Quiz source in known folders. The Main app is not a substitute. Check moved source/backup folders; set BUKLOD_QUIZ_SOURCE_DIR to actual project root. No upload attempted.');
 }
 function scanFiles() {
@@ -197,52 +204,120 @@ function scanFiles() {
     throw Error('Quiz Supabase client source was excluded');
   return {files:result,total};
 }
-async function main() {
-  const push=process.argv.slice(2).includes('--push');
-  if(process.argv.slice(2).some(a=>a!=='--push')) throw Error('Unknown argument; only --push accepted');
-  sourceRoot=discoverSource();
-  const {files,total}=scanFiles();
-  process.stdout.write('CANONICAL QUIZ SOURCE CHECK PASSED; files='+files.length+
-    ' bytes='+total+'; source='+sourceRoot+'\n');
-  if(!push) {
-    process.stdout.write('PREVIEW ONLY. No files copied or pushed. Add --push for upload.\n');
-    return;
+function candidateLabel(root) {
+  return (path.basename(path.dirname(root))+'_'+path.basename(root))
+    .replace(/[^A-Za-z0-9_-]/g,'_').slice(0,80);
+}
+function fileFingerprint(files) {
+  return crypto.createHash('sha256').update(JSON.stringify(
+    files.map(x=>[x.rel,x.bytes,x.sha256])
+  )).digest('hex');
+}
+function preflightSources(roots) {
+  const snapshots=[],names=new Set();
+  let combined=0;
+  for(const root of roots) {
+    sourceRoot=root;
+    const {files,total}=scanFiles();
+    combined+=total;
+    if(combined>maxCombinedBytes) throw Error('Combined source archive exceeds 450 MiB; manual review required.');
+    const label=candidateLabel(root);
+    const pathId=crypto.createHash('sha256').update(path.resolve(root).toLowerCase()).digest('hex').slice(0,12);
+    const fingerprint=fileFingerprint(files);
+    const id=label+'_'+pathId+'_'+fingerprint.slice(0,12);
+    if(names.has(id))throw Error('Candidate snapshot name collision; no upload.');
+    names.add(id);
+    const manifest={
+      kind:'BUKLOD_QUIZ_SOURCE_CANDIDATE',
+      schema_version:2,
+      selection_status:'UNDETERMINED',
+      verified_for_release:false,
+      candidate_id:id,
+      source_directory_label:label,
+      source_path_hash:pathId,
+      file_manifest_sha256:fingerprint,
+      file_count:files.length,
+      total_bytes:total,
+      files,
+    };
+    snapshots.push({root,files,total,id,manifest});
+    process.stdout.write('SOURCE PRECHECK PASSED: '+id+' files='+files.length+
+      ' bytes='+total+' fingerprint='+fingerprint+'\n');
   }
+  return snapshots;
+}
+function archiveSources(snapshots) {
   const work=fs.mkdtempSync(path.join(os.tmpdir(),'buklod-quiz-cloud-'));
   try {
     git(process.cwd(),['clone','--single-branch','--depth','1','--branch',branch,remote,work]);
-    const dest=path.join(work,target);
-    fs.rmSync(dest,{recursive:true,force:true});
-    fs.mkdirSync(dest,{recursive:true});
-    for(const item of files) {
-      const to=path.join(dest,...item.rel.split('/'));
-      fs.mkdirSync(path.dirname(to),{recursive:true});
-      fs.copyFileSync(path.join(sourceRoot,...item.rel.split('/')),to);
-      const verify=crypto.createHash('sha256').update(fs.readFileSync(to)).digest('hex');
-      if(verify!==item.sha256) throw Error('Copy checksum mismatch: '+item.rel);
+    for(const snapshot of snapshots) {
+      const dest=path.join(work,target,snapshot.id);
+      const manifestFile=path.join(dest,'QUIZ_RECOVERY_MANIFEST.json');
+      if(fs.existsSync(dest)) {
+        if(!fs.existsSync(manifestFile)) throw Error('Existing candidate has no manifest: '+snapshot.id);
+        const actual=JSON.parse(fs.readFileSync(manifestFile,'utf8'));
+        if(actual.file_manifest_sha256!==snapshot.manifest.file_manifest_sha256 ||
+           actual.file_count!==snapshot.files.length || actual.total_bytes!==snapshot.total) {
+          throw Error('Existing cloud candidate conflicts with attempted archive; refusing overwrite: '+snapshot.id);
+        }
+        for(const item of snapshot.files) {
+          const copy=path.join(dest,...item.rel.split('/'));
+          if(!present(copy))throw Error('Existing candidate has missing source: '+snapshot.id+'/'+item.rel);
+          const digest=crypto.createHash('sha256').update(fs.readFileSync(copy)).digest('hex');
+          if(digest!==item.sha256)throw Error('Existing candidate contents differ: '+snapshot.id+'/'+item.rel);
+        }
+        process.stdout.write('ALREADY VERIFIED IN CLOUD BRANCH: '+snapshot.id+'\n');
+        continue;
+      }
+      fs.mkdirSync(dest,{recursive:true});
+      for(const item of snapshot.files) {
+        const to=path.join(dest,...item.rel.split('/'));
+        fs.mkdirSync(path.dirname(to),{recursive:true});
+        const original=path.join(snapshot.root,...item.rel.split('/'));
+        // Re-check source against preflight before copying to detect concurrent edits.
+        const sourceHash=crypto.createHash('sha256').update(fs.readFileSync(original)).digest('hex');
+        if(sourceHash!==item.sha256) throw Error('Source changed while staging; rerun: '+snapshot.id+'/'+item.rel);
+        fs.copyFileSync(original,to);
+        const verify=crypto.createHash('sha256').update(fs.readFileSync(to)).digest('hex');
+        if(verify!==item.sha256) throw Error('Copy checksum mismatch: '+snapshot.id+'/'+item.rel);
+      }
+      fs.writeFileSync(manifestFile,JSON.stringify(snapshot.manifest,null,2)+'\n');
+      process.stdout.write('ARCHIVED CANDIDATE: '+snapshot.id+'\n');
     }
-    const manifest={kind:'BUKLOD_QUIZ_CANONICAL_SOURCE',schema_version:1,
-      source_basename:path.basename(sourceRoot),file_count:files.length,total_bytes:total,
-      files:files,generated_at:new Date().toISOString()};
-    fs.writeFileSync(path.join(dest,'QUIZ_RECOVERY_MANIFEST.json'),JSON.stringify(manifest,null,2)+'\n');
     git(work,['add','--',target]);
     git(work,['diff','--cached','--check']);
     const staged=git(work,['diff','--cached','--name-only'],true).trim();
     if(!staged) {
       process.stdout.write('CLOUD ALREADY UP-TO-DATE; no new commit needed.\n');
     } else {
-      git(work,['commit','-m','archive(quiz): recover verified standalone exam source']);
+      git(work,['commit','-m','archive(quiz): preserve all verified standalone source candidates']);
       git(work,['push','origin','HEAD:refs/heads/'+branch]);
     }
     const local=git(work,['rev-parse','HEAD'],true).trim();
     const remoteSha=git(work,['ls-remote','origin','refs/heads/'+branch],true).trim().split(/\s+/)[0];
-    if(local!==remoteSha) throw Error('Remote SHA mismatch: do not delete local Quiz source');
-    process.stdout.write('CLOUD PUSH VERIFIED; commit='+local+' files='+files.length+
-      ' bytes='+total+'\n'+'https://github.com/faust-0612/BUKLOD-Migrated-Sources/tree/'+branch+
-      '/systems/quiz/BUKLOD_Quiz_Standalone_CANONICAL\n');
-    process.stdout.write('NOTE: This verifies source upload only. Do NOT delete local data until runtime, assets, config and deployment parity are audited.\n');
+    if(local!==remoteSha)throw Error('Remote SHA mismatch: do not delete local Quiz sources');
+    process.stdout.write('CLOUD PUSH VERIFIED; commit='+local+
+      ' candidate_snapshots='+snapshots.length+'\n');
+    for(const snapshot of snapshots) {
+      process.stdout.write('CLOUD CANDIDATE: '+snapshot.id+
+        ' https://github.com/faust-0612/BUKLOD-Migrated-Sources/tree/'+branch+
+        '/systems/quiz/BUKLOD_Quiz_Standalone_CANDIDATES/'+snapshot.id+'\n');
+    }
+    process.stdout.write('STATUS: SOURCE CANDIDATES ARCHIVED ONLY; NOT YET CANONICAL OR PRODUCTION-READY. Do not delete local Quiz sources.\n');
   } finally {
     fs.rmSync(work,{recursive:true,force:true,maxRetries:3,retryDelay:250});
   }
+}
+async function main() {
+  const push=process.argv.slice(2).includes('--push');
+  if(process.argv.slice(2).some(a=>a!=='--push')) throw Error('Unknown argument; only --push accepted');
+  const roots=discoverSource();
+  const snapshots=preflightSources(roots);
+  if(!push) {
+    process.stdout.write('PREVIEW ONLY; '+snapshots.length+
+      ' valid source candidate(s); no upload. Add --push to preserve all candidates.\n');
+    return;
+  }
+  archiveSources(snapshots);
 }
 main().catch(e=>{console.error('BLOCKER:',e.message);process.exitCode=1;});
