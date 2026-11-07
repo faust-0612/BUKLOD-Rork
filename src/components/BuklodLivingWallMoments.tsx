@@ -46,6 +46,7 @@ export default function BuklodLivingWallMoments() {
       setMoments([]);
       return () => { active = false; };
     }
+    setMoments([]); // Clear the previous signed-in user's moments before loading.
     const load = async () => {
       const choose = async (candidates: BuklodLivingMoment[]) => {
         try {
