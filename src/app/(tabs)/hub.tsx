@@ -6,6 +6,7 @@ import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
+const Contribution = lazy(() => import('@/components/BuklodCommunityContributionCard'));
 const Updates = lazy(() => import('@/components/home/BuklodHomeMergedUpdates'));
 const DrawerCard = lazy(() => import('@/components/SmartDrawerWallCard'));
 const PttCard = lazy(() => import('@/components/BuklodPttEntryButton'));
@@ -45,6 +46,20 @@ export default function BuklodLightHome() {
     <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ padding: 18, gap: 12 }}>
       <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
+      {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
+          Old /home redirects here; do not bury QMP in the retired screen. */}
+      {focused && foreground ? (
+        <ToolBoundary onClose={() => {}}>
+          <Suspense fallback={
+            <View style={{padding:12,borderRadius:14,backgroundColor:theme.surface}}>
+              <Text style={{color:theme.textPrimary,fontWeight:'800'}}>Your Community Contribution</Text>
+              <Text style={{color:theme.textMuted,fontSize:12}}>Loading contribution…</Text>
+            </View>
+          }>
+            <Contribution />
+          </Suspense>
+        </ToolBoundary>
+      ) : null}
       <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
       {focused && foreground ? (
         <ToolBoundary onClose={() => {}}>
