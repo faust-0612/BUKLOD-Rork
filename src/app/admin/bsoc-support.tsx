@@ -94,6 +94,10 @@ export default function BsocSupportOperations() {
       <Text style={styles.recoveryTitle}>Password Reset · Admin Assistance ›</Text>
       <Text style={styles.muted}>Identity verification and secure automatic one-time-code delivery. Support agents must never request passwords or recovery codes.</Text>
     </Pressable>
+    <Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/bsoc-conversations' as any)}>
+      <Text style={styles.recoveryTitle}>Open Live Support Inbox ›</Text>
+      <Text style={styles.muted}>Member conversations, photo and video evidence, and replies.</Text>
+    </Pressable>
     <Text style={styles.section}>Support cases</Text>
     <View style={styles.filters}>
       {['',...STATUSES].map(s=><Pressable key={s||'all'} onPress={()=>{setStatus(s);setSelected(null);setPreview(null);}}
