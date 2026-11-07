@@ -14,6 +14,7 @@ const controller = createKingdomProgressController(AsyncStorage);
  * BUKLOD account. Never migrate old globally shared Kingdom v1 records:
  * their author cannot be established safely on shared devices.
  * Unauthenticated game sessions remain playable but not saved.
+ * The persisted station view has canonical fields clears, bestScore, bestStars.
  */
 export function getCachedBuklodKingdomPreviewProgress(userId?: string | null) {
   return controller.getCached(userId);

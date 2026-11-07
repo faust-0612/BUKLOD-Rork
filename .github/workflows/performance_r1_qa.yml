@@ -36,6 +36,7 @@ jobs:
       - name: Validate full Kingdom gameplay and account-isolated save/replay flow
         if: github.head_ref == 'dev/kingdom-consolidated-20261107'
         run: |
+          node scripts/game-kingdom-release-contract.mjs
           node scripts/test-kingdom-game-platform-r1.mjs
           node --experimental-strip-types --test tests/kingdom-*.test.mjs
 

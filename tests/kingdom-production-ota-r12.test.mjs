@@ -1,15 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 const read = p => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const android = read('.github/workflows/production_android_ota.yml');
 const web = read('.github/workflows/production_web_deploy.yml');
-const pinned = '2f26645e50e8e079ebf09f3999aacfc506ae7651';
+// Exact committed file blobs from the verified installed V28 native baseline.
+// Git object hashes also work with shallow PR checkouts (no history download needed).
+const pinnedPackageBlob = '44a9a945bd21449d3d3e24ee0d5905dc022280e0';
+const pinnedLockBlob = '7a5e29f9a87861143422cd227940e53fb4beb46b';
+const blobSha = data => createHash('sha1').update('blob ' + Buffer.byteLength(data) + '\0').update(data).digest('hex');
 
 test('Kingdom R12 native V28 OTA package manifest remains byte-identical', () => {
-  const historical = execFileSync('git', ['show', pinned + ':package.json'], {encoding:'utf8'});
-  assert.equal(read('package.json'), historical, 'any package.json edit blocks pinned native V28 OTA');
+  assert.equal(blobSha(read('package.json')), pinnedPackageBlob,
+    'any package.json edit blocks pinned native V28 OTA');
+  assert.equal(blobSha(read('package-lock.json')), pinnedLockBlob,
+    'native V28 lockfile identity must also stay unchanged');
   const app = read('app.config.js');
   assert.match(app, /runtimeVersion: isClassroom \? '1\.3\.0' : '1\.3\.2'/);
   assert.match(app, /org\.mzbministry\.buklod/);
