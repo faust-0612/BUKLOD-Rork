@@ -31,7 +31,7 @@ const secretPatterns = [
   /\b(?:ghp_|gho_|ghu_|ghs_|github_pat_)[A-Za-z0-9_]{16,}/,
   /\bAKIA[0-9A-Z]{16}\b/,
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
-  /\beyJ[A-Za-z0-9_-]{50,}\.[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{12,}/,
+  /\beyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{12,}/,
   /\b(?:SUPABASE_SERVICE_ROLE_KEY|EXPO_TOKEN|EAS_ACCESS_TOKEN)\b\s*[:=]\s*['"][A-Za-z0-9._-]{25,}['"]/i,
 ];
 const maxFileBytes = 50*1024*1024;
