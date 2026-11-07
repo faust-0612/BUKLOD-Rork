@@ -5,22 +5,22 @@ insert into public.buklod_point_rules (activity_type,label,base_points,max_point
 values
 ('community_reaction', 'community reaction', 1, 1, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('community_comment', 'community comment', 2, 2, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
-('community_post', 'community post', 3, 3, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
-('daily_bible_reading', 'daily bible reading', 5, 5, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
-('daily_devotional_reflection', 'daily devotional reflection', 8, 8, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
+('community_post', 'community post', 5, 5, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
+('daily_bible_reading', 'daily bible reading', 10, 10, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
+('daily_devotional_reflection', 'daily devotional reflection', 12, 12, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('bible_quiz_easy', 'bible quiz easy', 3, 3, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('bible_quiz_medium', 'bible quiz medium', 6, 6, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('bible_quiz_hard', 'bible quiz hard', 12, 12, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
-('formation_assessment', 'formation assessment', 15, 15, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
-('formation_module', 'formation module', 30, 30, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
+('formation_assessment', 'formation assessment', 25, 25, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
+('formation_module', 'formation module', 75, 75, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('verified_cluster_attendance', 'verified church attendance', 10, 10, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('verified_volunteer_service', 'verified volunteer service', 20, 20, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
-('verified_mentoring_session', 'verified mentoring session', 25, 25, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
-('bible_weekly_streak', 'bible weekly streak', 15, 15, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
+('verified_mentoring_session', 'verified mentoring session', 15, 15, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
+('bible_weekly_streak', 'bible weekly streak', 20, 20, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('consistency_30_day', 'consistency 30 day', 50, 50, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('ministry_major_milestone', 'ministry major milestone', 100, 100, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
-('kl_episode', 'kl episode', 2, 2, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
-('kl_season', 'kl season', 10, 10, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
+('kl_episode', 'kl episode', 5, 5, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
+('kl_season', 'kl season', 30, 30, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('game_first_qualified', 'game first qualified', 2, 2, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('game_medium_win', 'game medium win', 5, 5, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('game_hard_win', 'game hard win', 10, 10, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
@@ -33,6 +33,14 @@ values
 ('achievement_faithful_mentor', 'achievement faithful mentor', 200, 200, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('achievement_kingdom_champion', 'achievement kingdom champion', 250, 250, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls')
 on conflict (activity_type) do nothing;
+
+-- Existing approved meaningful comments earn +2 BP on future verified actions.
+-- Do not rewrite historical credits, completed activities, or claim balances.
+update public.buklod_point_rules
+set base_points=2, max_points_per_event=2,
+    notes='Approved R2 meaningful comment +2 BP for future verified activity; historical credits preserved',
+    updated_at=now()
+where activity_type='community_comment';
 
 -- ABC already has validated, unique lesson completion source keys. New awards use R2 amount.
 -- Preserve historical ledger rows and the original source-key namespace.
