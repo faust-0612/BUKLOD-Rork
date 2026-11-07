@@ -102,7 +102,7 @@ export function KingdomInteriorCenter({
             {!!notice && <Text style={styles.notice}>{notice}</Text>}
           </>
         ) : null}
-        <View key={active.id} style={styles.game}>{active.render(save, (result) => {
+        <View key={(user?.id ?? 'guest') + ':' + active.id} style={styles.game}>{active.render(save, (result) => {
           void recordBuklodKingdomPreviewResult(result);
         })}</View>
       </View>
