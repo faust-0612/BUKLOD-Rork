@@ -3383,6 +3383,7 @@ return (
             ).length > 0 && (
               <View style={styles.postPhotos}>
               <BuklodCommunityPhotoCollage
+                showLayoutPicker
                 items={communityPhotoCollageItems(
                   item.media_items,
                   {
