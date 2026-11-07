@@ -1,0 +1,38 @@
+{
+  "contractVersion": 2,
+  "objective": "Publish the tested BUKLOD Main final Advertise submit and two-stage System Admin paid campaign review to production Android OTA (V28 runtime 1.3.2) and Expo Hosting web from exactly the merged source, without bypassing RC/QA or mutating payment records.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main 791896ec9536dbbc0190dcaba8a4c5abddf97d47 contains PR #562 (final submit with inline feedback + protected paid-ad review admin panel), all 3 PR CI workflows green; production Supabase project yhanxndaqbmuzbdqlblu migration buklod_paid_ad_admin_review_v1 successfully applied. Read-only SQL contract and rollback execution of genuine pending->payment verified->approval+30-day schedule passed, followed by count confirming both existing pending campaigns remain pending/unpaid, zero approved. Previous Android production update ID 01a1b657-5088-7323-8ad1-eead7142ffeb for runtime 1.3.2 and prior web Expo Hosting deployment wmxsz8136r succeeded on 2026-11-07. No physical device QA requested; latest new code has not been published yet.",
+  "chosenApproach": "Reuse the existing exact-main-SHA one-shot production dispatcher by allowlisting one additional explicit commit title, mapped to the existing manual Android OTA and Expo Hosting web workflows. Do not alter either existing publisher/guard or app runtime/dependencies. Required status reporting depends on actual publish steps.",
+  "selectionRationale": "Direct connector does not expose workflow_dispatch while protected main forbids unaudited pushes. The established previous release path has already safely produced verified OTA and web artifacts; add one marker and focused Node regression rather than redesigning deployment.",
+  "alternativeApproaches": [
+    "Rerun prior published OTA/web SHA: rejected, omits advertiser submit/admin UI.",
+    "Use Classroom/Vercel deploy: rejected, wrong application.",
+    "Change Expo runtime or disable V28 RC/native gate: rejected, breaks already installed APK and release safety."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "All original Android V28 native 1.3.2 compatibility, real AdMob configuration, frozen RC bundle hash and production manifest verification remain mandatory.",
+    "Existing Expo Web production environment, protected BUKLOD Main Supabase and immutable web bundle hash gate remain mandatory.",
+    "Legacy app_sponsors review and user account isolation preserved; no payment confirmation or content approval made by release.",
+    "Production DB migration already applied separately and verified, no duplicate schema mutation in OTA/web jobs.",
+    "Only authorized release title on protected main can dispatch exactly one Android and one Expo web release."
+  ],
+  "acceptanceChecks": [
+    "Release PR passes scope/Performance/Main web compatibility gates and exact source merges into main.",
+    "One-shot dispatcher starts both existing production workflows for the new main SHA.",
+    "Android production OTA publishes frozen RC, runtime 1.3.2, returns update ID and exact live bundle verification.",
+    "Expo Hosting publishes new immutable deployment ID and production URL including same app sources.",
+    "Production campaign total unchanged and payment verification remains manual."
+  ],
+  "regressionTests": [
+    "tests/advertise-submit-admin-production-release-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod-authorized-production-20261107.yml",
+    "tests/advertise-submit-admin-production-release-20261107.test.mjs",
+    ".buklod/scopes/advertise-submit-admin-production-20261107.json"
+  ]
+}
