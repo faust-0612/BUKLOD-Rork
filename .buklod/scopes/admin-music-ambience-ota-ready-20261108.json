@@ -1,0 +1,62 @@
+{
+  "contractVersion": 2,
+  "objective": "Prepare (do not publish) System Admin music upload/delete and auto-playing photo ambience post-creative enhancements in consolidated BUKLOD Main V28 runtime 1.3.2.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "2026-11-08 consolidated production 9a560caaec9befc0d54c70be36eaca619d587797 verified Android OTA 01a1b786-efd5-7076-a7c4-00c1498705b9 and web buklod.expo.app; crash hotfix is already in main.",
+  "chosenApproach": "Extend existing private buklod-music-library storage and active metadata table with System Admin-gated CRUD using server RLS; use no new native modules; extend post-creative CHECK/preset map with lightweight visible-only auto ambiance overlay and keep lazy native audio on Play.",
+  "selectionRationale": "Preserves 42 existing live songs and all existing post/media/ads. Avoids duplicating music storage, stale read cache, frontend-only authorization, eager native audio and heavy video effects.",
+  "alternativeApproaches": [
+    "Duplicate music folder (rejected; unnecessary)",
+    "Allow non-admin music uploads (rejected; RLS violation)",
+    "Generate animated MP4 for every photo (rejected; high CPU/storage)",
+    "Publish before migration and CI (rejected; user explicitly forbids)"
+  ],
+  "acceptanceChecks": [
+    "Authenticated System Admin alone can upload, list inactive and delete catalog/storage; ordinary users retain read-only active tracks",
+    "Upload content-type/size/extension validated with immutable UUID storage path, rollback on metadata failure",
+    "Music picker sees new song on next open without 2-minute HTTP caching",
+    "Delete uses confirmation and safe retire->storage cleanup->row deletion; no orphaned active rows after partial failures",
+    "Photo post can use 13 added ambience presets and 5 legacy motions; stored metadata remains valid",
+    "Ambient animation auto-starts on visible published post, pauses on scroll, route blur, background and accessibility reduced motion",
+    "Wall native audio remains lazily constructed on explicit Play; Ads/Marites/scroll/video unaffected",
+    "Android and web compile with exact V28 runtime 1.3.2, without OTA or web publish",
+    "New migration remains unapplied and DEV PR unmerged until user authorizes release"
+  ],
+  "preserveBehaviors": [
+    "All current Wall/Marites, media, ads, audio, points and production project isolation",
+    "No change to app.config.js or Expo native dependencies",
+    "No destructive change to legacy 42 music records",
+    "Production remains at 9a560caa until explicit release authorization"
+  ],
+  "riskAreas": [
+    "music-library-authorization",
+    "storage-rls",
+    "large-file-upload",
+    "post-motion-performance",
+    "android-startup",
+    "cache-invalidation",
+    "web-document-picker"
+  ],
+  "regressionTests": [
+    "tests/admin-music-ambience-contract-20261108.test.mjs",
+    "tests/wall-post-music-motion-contract.test.mjs",
+    "tests/wall-post-music-navigation-scroll.test.mjs",
+    "tests/buklod-wall-crash-escape-20261108.test.mjs",
+    "tests/production-ota-ads-regression.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/admin-music-ambience-ota-ready-20261108.json",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "src/lib/buklodPostCreatives.ts",
+    "src/lib/buklodMusicAdmin.ts",
+    "src/lib/buklodPerformanceFetch.ts",
+    "src/components/BuklodPostMotion.tsx",
+    "src/app/admin/index.tsx",
+    "src/app/admin/music-library.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "supabase/migrations/20261108043000_buklod_music_admin_and_ambience_v1.sql",
+    "tests/admin-music-ambience-contract-20261108.test.mjs",
+    "tests/wall-post-music-motion-contract.test.mjs",
+    "docs/release/buklod-music-admin-ambience-20261108.md"
+  ]
+}
