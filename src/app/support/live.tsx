@@ -185,7 +185,7 @@ export default function LiveSupport(){
           <Text style={styles.buttonText}>{uploadBusy?'Uploading…':'🎬 Upload video'}</Text>
         </Pressable>
       </View>
-    </View>
+    </View>}
     <View style={{backgroundColor:'#e8f7ef',borderRadius:12,padding:14,gap:6}}>
       <Text style={{fontSize:16,fontWeight:'800',color:colors.green}}>Paano mag-report ng problema</Text>
       <Text style={styles.body}>1. Sabihin kung ano ang hindi gumagana, saang screen ito nangyari, at ano ang inaasahan mong mangyari.</Text>
