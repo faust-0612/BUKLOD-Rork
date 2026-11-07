@@ -5,11 +5,11 @@
  */
 export type BuklodLivingMoment = {
   key: string;
-  kind: 'birthday' | 'welcome' | 'kl_release' | 'occasion' | 'suggestion';
+  kind: 'birthday' | 'welcome' | 'kl_release' | 'occasion' | 'activity' | 'suggestion';
   title: string;
   message: string;
   actionLabel: string;
-  route: '/me' | '/hub' | '/buklod' | '/messages' | '/clusters' | '/kabihasnang-ligaw';
+  route: '/me' | '/hub' | '/buklod' | '/messages' | '/clusters' | '/notifications' | '/kabihasnang-ligaw';
   priority: number;
 };
 
@@ -26,6 +26,7 @@ export type BuklodLivingMomentInput = {
     release_at: string;
   } | null;
   faithEnabled: boolean;
+  unreadCount?: number;
 };
 
 export function buklodManilaDay(now: Date): string {
@@ -126,6 +127,19 @@ export function buildBuklodLivingMoments(
       actionLabel: 'Buksan ang Home',
       route: '/hub',
       priority: 70,
+    });
+  }
+
+  const unread = Math.max(0, Math.min(999, Math.floor(Number(input.unreadCount ?? 0) || 0)));
+  if (unread > 0) {
+    result.push({
+      key: 'activity:' + today,
+      kind: 'activity',
+      title: 'May ' + unread + ' bagong update para sa iyo 🔔',
+      message: 'Silipin ang mga mensahe at mahahalagang pangyayari sa iyong BUKLOD notifications.',
+      actionLabel: 'Tingnan ang notifications',
+      route: '/notifications',
+      priority: 60,
     });
   }
 
