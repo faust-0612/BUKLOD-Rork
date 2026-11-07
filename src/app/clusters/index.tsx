@@ -13,6 +13,7 @@ import {
   Alert,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -20,6 +21,7 @@ import {
 } from 'react-native';
 
 import { router, useFocusEffect } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
@@ -117,6 +119,9 @@ function ActionButton({
   );
 }
 
+
+/** Compact navigation card: title opens an ACTIVE workspace; management is a
+ * separate action so tapping Manage cannot accidentally navigate twice. */
 function ClusterCard({
   item,
   children,
@@ -127,56 +132,94 @@ function ClusterCard({
   children?: React.ReactNode;
 }) {
   const accent = getBuklodCardTone(getStableBuklodCardTone(item.scope_id));
+  const canOpen = item.membership_status === 'ACTIVE' && Boolean(onOpen);
+  const role = item.is_admin ? 'Admin' : 'Member';
+  const status = item.membership_status === 'ACTIVE'
+    ? role
+    : item.membership_status === 'PENDING'
+      ? 'Awaiting approval'
+      : item.membership_status === 'INVITED'
+        ? 'Invitation received'
+        : null;
   return (
-    <Pressable
-      onPress={() =>
-        item.membership_status === 'ACTIVE'
-          ? onOpen?.(item.scope_id)
-          : undefined
-      }
-      style={[styles.card, { backgroundColor: accent.surface, borderColor: accent.border }]}
-    >
-      <View style={styles.cardTitleRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.cardTitle}>
-            {item.name}
-          </Text>
-
-          <Text style={styles.cardMeta}>
-            {item.category || 'Community Cluster'}
-            {'  |  '}
-            {Number(
-              item.member_count || 0
-            ).toLocaleString()}
-            {' members'}
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={canOpen ? 'Open cluster ' + item.name : 'Cluster ' + item.name}
+        accessibilityState={{ disabled: !canOpen }}
+        disabled={!canOpen}
+        onPress={() => onOpen?.(item.scope_id)}
+        style={({ pressed }) => [styles.cardHeadPress, pressed && { opacity: 0.75 }]}
+      >
+        <View style={[styles.clusterIcon, { backgroundColor: accent.soft }]}>
+          <MaterialCommunityIcons name="account-group-outline" size={23} color={accent.ink} />
+        </View>
+        <View style={styles.cardBody}>
+          <Text numberOfLines={2} style={styles.cardTitle}>{item.name}</Text>
+          <Text numberOfLines={1} style={styles.cardMeta}>
+            {item.category || 'Community Cluster'} · {Number(item.member_count || 0).toLocaleString()} members
           </Text>
         </View>
+        <View style={styles.cardRight}>
+          <StatusBadge text={item.visibility.replace('_', ' ')} />
+          {canOpen ? <MaterialCommunityIcons name="chevron-right" size={21} color="#61756B" /> : null}
+        </View>
+      </Pressable>
+      {item.description ? (
+        <Text numberOfLines={1} style={styles.description}>{item.description}</Text>
+      ) : null}
+      {(status || children) ? (
+        <View style={styles.cardBottom}>
+          {status ? (
+            <View style={styles.roleRow}>
+              <View style={[
+                styles.statusDot,
+                { backgroundColor: item.membership_status === 'ACTIVE' ? '#269766' : '#D29443' },
+              ]}/>
+              <Text style={styles.membership}>{status}</Text>
+            </View>
+          ) : <View style={styles.roleRow}/>}
+          {children ? <View style={styles.actions}>{children}</View> : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
-        <StatusBadge
-          text={item.visibility.replace(
-            '_',
-            ' '
-          )}
-        />
-      </View>
-
-      {!!item.description && (
-        <Text numberOfLines={2} style={styles.description}>
-          {item.description}
-        </Text>
-      )}
-
-      {!!item.membership_status && (
-        <Text style={styles.membership}>
-          Status: {item.membership_status}
-          {item.is_admin ? '  |  ADMIN' : ''}
-        </Text>
-      )}
-
-      {children}
+function DashboardMetric({
+  count,
+  title,
+  icon,
+  onPress,
+  selected,
+}: {
+  count: number;
+  title: string;
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  onPress: () => void;
+  selected?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title + ': ' + count + ', open section'}
+      accessibilityState={{ selected: Boolean(selected) }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.metricTile,
+        selected && styles.metricTileActive,
+        pressed && { opacity: 0.75 },
+      ]}
+    >
+      <MaterialCommunityIcons name={icon} size={18}
+        color={selected ? '#F0FFF6' : '#4A8169'} />
+      <Text style={[styles.metricCount, selected && styles.metricTextActive]}>{count}</Text>
+      <Text style={[styles.metricTitle, selected && styles.metricTextActive]}>{title}</Text>
     </Pressable>
   );
 }
+
+type ClusterDirectorySection = 'mine' | 'discover' | 'invitations' | 'pending';
 
 // Session-memory cache: never persist private membership across app restarts.
 // A successful mutation invalidates it before any follow-up read.
@@ -246,6 +289,10 @@ function ClusterDirectory({ owner }: { owner: string }) {
     useState<ClusterSummary[]>(clusterMemory.query === '' ? clusterMemory.found ?? [] : []);
 
   const [query, setQuery] = useState('');
+  const [section, setSection] = useState<ClusterDirectorySection>('mine');
+  const [myQuery, setMyQuery] = useState('');
+  const [showAllMyClusters, setShowAllMyClusters] = useState(false);
+  const [showAllSuggested, setShowAllSuggested] = useState(false);
 
   const [loading, setLoading] =
     useState(clusterMemory.mine === null && clusterMemory.found === null);
@@ -391,6 +438,36 @@ function ClusterDirectory({ owner }: { owner: string }) {
     [visibleMyClusters]
   );
 
+
+  const filteredMyClusters = useMemo(() => {
+    const search = myQuery.trim().toLocaleLowerCase();
+    if (!search) return activeClusters;
+    return activeClusters.filter(item =>
+      (item.name + ' ' + (item.category || '') + ' ' + (item.description || ''))
+        .toLocaleLowerCase().includes(search)
+    );
+  }, [activeClusters, myQuery]);
+
+  const discoverableClusters = useMemo(() =>
+    discover.filter(item =>
+      !['ACTIVE','PENDING','INVITED'].includes(String(item.membership_status ?? ''))
+    ), [discover]);
+  const visibleSuggested = showAllSuggested || query.trim()
+    ? discoverableClusters.slice(0, 20)
+    : discoverableClusters.slice(0, 6);
+
+  const sections: Array<{
+    key: ClusterDirectorySection;
+    label: string;
+    count?: number;
+    icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  }> = [
+    { key: 'mine', label: 'My Clusters', count: activeClusters.length, icon: 'view-grid-outline' },
+    { key: 'discover', label: 'Explore', icon: 'compass-outline' },
+    { key: 'invitations', label: 'Invites', count: invitations.length, icon: 'email-outline' },
+    { key: 'pending', label: 'Requests', count: pending.length, icon: 'clock-outline' },
+  ];
+
   const respond = async (
     item: ClusterSummary,
     accept: boolean
@@ -447,6 +524,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
     }
   };
 
+
   return (
     <BuklodPortalScrollView
       style={styles.screen}
@@ -455,487 +533,411 @@ function ClusterDirectory({ owner }: { owner: string }) {
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
-          onRefresh={() =>
-            void load(query, true)
-          }
+          onRefresh={() => void load(query, true)}
         />
       }
     >
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>
-          BUKLOD
-        </Text>
-
-        <Text style={styles.title}>
-          Clusters
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Create or join communities for
-          organizations, associations,
-          friends, ministries and other
-          groups.
-        </Text>
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/clusters/create' as any)}
-          style={styles.createClusterCompact}
-        >
-          <Text style={styles.createClusterCompactText}>+ Create Cluster</Text>
-        </Pressable>
+        <View style={styles.heroHeading}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.eyebrow}>BUKLOD · COMMUNITY</Text>
+            <Text style={styles.title}>Your Clusters</Text>
+            <Text style={styles.subtitle}>Your communities, together in one place.</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Create Cluster"
+            onPress={() => router.push('/clusters/create' as any)}
+            style={({ pressed }) => [styles.createClusterCompact, pressed && { opacity: 0.8 }]}
+          >
+            <MaterialCommunityIcons name="plus" size={19} color="#FFFFFF" />
+            <Text style={styles.createClusterCompactText}>Create</Text>
+          </Pressable>
+        </View>
+        <View style={styles.metricRow}>
+          <DashboardMetric count={activeClusters.length} title="Joined" icon="account-check-outline"
+            selected={section === 'mine'} onPress={() => setSection('mine')} />
+          <DashboardMetric count={invitations.length} title="Invites" icon="email-outline"
+            selected={section === 'invitations'} onPress={() => setSection('invitations')} />
+          <DashboardMetric count={pending.length} title="Pending" icon="clock-outline"
+            selected={section === 'pending'} onPress={() => setSection('pending')} />
+        </View>
       </View>
 
       <BuklodFirstViewAd placement="cluster" placementId="cluster_directory_first_view" />
 
-      {!online && <View style={styles.empty}>
-        <Text style={styles.muted}>Offline · showing saved memberships. Search, changes, and verification require internet.</Text>
-      </View>}
-      {!!loadError && online && (
-        <View style={styles.empty}>
-          <Text style={styles.muted}>{loadError}</Text>
-          <ActionButton title="RETRY" onPress={() => void load(query, true)} />
+      {!online ? (
+        <View style={styles.feedback}>
+          <MaterialCommunityIcons name="cloud-off-outline" size={18} color="#956B30" />
+          <Text style={styles.feedbackText}>Offline · saved memberships are available. Search and changes need internet.</Text>
         </View>
-      )}
+      ) : null}
+      {Boolean(loadError) && online ? (
+        <View style={styles.feedback}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={18} color="#956B30" />
+          <View style={{ flex: 1, gap: 5 }}>
+            <Text style={styles.feedbackText}>{loadError}</Text>
+            <Pressable accessibilityRole="button" onPress={() => void load(query, true)}>
+              <Text style={styles.retryLink}>Retry loading</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.sectionNavigation}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.sectionNavigationInner}>
+          {sections.map(tab => {
+            const selected = section === tab.key;
+            return (
+              <Pressable
+                key={tab.key}
+                accessibilityRole="tab"
+                accessibilityLabel={tab.label + (tab.count != null ? ' ' + tab.count : '')}
+                accessibilityState={{ selected }}
+                onPress={() => setSection(tab.key)}
+                style={({ pressed }) => [
+                  styles.tab,
+                  selected && styles.tabSelected,
+                  pressed && { opacity: 0.78 },
+                ]}
+              >
+                <MaterialCommunityIcons name={tab.icon} size={17}
+                  color={selected ? '#FFFFFF' : '#52695C'} />
+                <Text style={[styles.tabText, selected && styles.tabTextSelected]}>{tab.label}</Text>
+                {tab.count != null && tab.count > 0 ? (
+                  <View style={[styles.tabCountPill, selected && styles.tabCountPillSelected]}>
+                    <Text style={[styles.tabCountText, selected && styles.tabTextSelected]}>{tab.count}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {loading && visibleMyClusters.length === 0 && online ? (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.muted}>
-            Loading Clusters...
-          </Text>
+          <ActivityIndicator color="#1C6B48" />
+          <Text style={styles.muted}>Loading your communities…</Text>
         </View>
-      ) : (
-        <>
-          <Text style={styles.sectionTitle}>
-            MY CLUSTERS
-          </Text>
+      ) : null}
 
-          {activeClusters.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>
-                {online && !loadError ? 'No active Cluster yet' : 'No saved Cluster membership on this device'}
-              </Text>
-
-              <Text style={styles.muted}>
-                {online && !loadError ? 'Create one or discover a community below.' : 'Connect once to download your Cluster list.'}
-              </Text>
+      {section === 'mine' ? (
+        <View style={styles.directorySection}>
+          <View style={styles.sectionHeading}>
+            <View>
+              <Text style={styles.sectionTitle}>My Clusters</Text>
+              <Text style={styles.sectionNote}>Tap a card to enter its dashboard.</Text>
             </View>
-          ) : (
-            activeClusters.map((item) => (
-              <ClusterCard
-                key={item.scope_id}
-                item={item}
-                onOpen={openCluster}
-              >
-                {item.is_admin && (
-                  <View style={styles.actions}>
-                    <ActionButton
-                      title="MANAGE"
-                      outline
-                      tone={getStableBuklodCardTone(item.scope_id)}
-                      onPress={() =>
-                        router.push(
-                          clusterScopeManageRoute(
-                            item.scope_id,
-                            item.name
-                          ) as any
-                        )
-                      }
-                    />
-                  </View>
-                )}
-              </ClusterCard>
-            ))
-          )}
-
-          {invitations.length > 0 && (
-            <>
-              <Text
-                style={styles.sectionTitle}
-              >
-                INVITATIONS
-              </Text>
-
-              {invitations.map((item) => (
-                <ClusterCard
-                  key={item.scope_id}
-                  item={item}
-                  onOpen={openCluster}
-                >
-                  <View style={styles.actions}>
-                    <ActionButton
-                      title="ACCEPT"
-                      disabled={
-                        busyId ===
-                        item.scope_id
-                      }
-                      onPress={() =>
-                        void respond(
-                          item,
-                          true
-                        )
-                      }
-                    />
-
-                    <ActionButton
-                      title="DECLINE"
-                      outline
-                      disabled={
-                        busyId ===
-                        item.scope_id
-                      }
-                      onPress={() =>
-                        void respond(
-                          item,
-                          false
-                        )
-                      }
-                    />
-                  </View>
-                </ClusterCard>
-              ))}
-            </>
-          )}
-
-          {pending.length > 0 && (
-            <>
-              <Text
-                style={styles.sectionTitle}
-              >
-                PENDING REQUESTS
-              </Text>
-
-              {pending.map((item) => (
-                <ClusterCard
-                  key={item.scope_id}
-                  item={item}
-                />
-              ))}
-            </>
-          )}
-
-          <Text style={styles.sectionTitle}>
-            {query.trim() ? 'SEARCH RESULTS' : 'SUGGESTED CLUSTERS'}
-          </Text>
-          {searching ? (
-            <Text style={styles.muted}>
-              Searching Clusters...
-            </Text>
-          ) : null}
-
-          <View style={styles.searchRow}>
-            <TextInput
-              style={styles.search}
-              placeholder="Search Cluster or category..."
-              value={query}
-              onChangeText={setQuery}
-              returnKeyType="search"
-              onSubmitEditing={() =>
-                void load(query, true)
-              }
-            />
-
-            <Pressable
-              style={styles.searchButton}
-              onPress={() =>
-                void load(query, true)
-              }
-            >
-              <Text
-                style={
-                  styles.searchButtonText
-                }
-              >
-                SEARCH
-              </Text>
-            </Pressable>
+            <Text style={styles.sectionCount}>{activeClusters.length} joined</Text>
           </View>
 
-          {discover.filter((item) => item.membership_status !== 'ACTIVE' && item.membership_status !== 'PENDING' && item.membership_status !== 'INVITED').length === 0 ? (
+          {activeClusters.length > 0 ? (
+            <View style={styles.searchRow}>
+              <MaterialCommunityIcons name="magnify" size={20} color="#809088" />
+              <TextInput
+                style={styles.search}
+                placeholder="Find one of my clusters"
+                placeholderTextColor="#87958C"
+                accessibilityLabel="Search my clusters"
+                value={myQuery}
+                onChangeText={value => {
+                  setMyQuery(value);
+                  setShowAllMyClusters(false);
+                }}
+                returnKeyType="search"
+              />
+              {myQuery.length > 0 ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="Clear my cluster search"
+                  onPress={() => setMyQuery('')}>
+                  <MaterialCommunityIcons name="close-circle" size={20} color="#809088" />
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+
+          {filteredMyClusters.length === 0 ? (
             <View style={styles.empty}>
+              <MaterialCommunityIcons name="account-group-outline" size={26} color="#68927B" />
               <Text style={styles.emptyTitle}>
-                {online && !loadError ? 'No Cluster found' : 'Cluster discovery requires internet'}
+                {myQuery.trim() ? 'No matching cluster' :
+                  online && !loadError ? 'No active cluster yet' : 'No saved cluster membership'}
               </Text>
+              <Text style={styles.muted}>
+                {myQuery.trim() ? 'Try another name or category.' :
+                  online && !loadError ? 'Create a cluster or explore communities.' :
+                    'Connect once to retrieve your cluster list.'}
+              </Text>
+              {!myQuery.trim() && online ? (
+                <ActionButton title="Explore clusters" onPress={() => setSection('discover')} />
+              ) : null}
             </View>
           ) : (
-            discover.filter((item) => item.membership_status !== 'ACTIVE' && item.membership_status !== 'PENDING' && item.membership_status !== 'INVITED').slice(0, query.trim() ? 20 : 3).map((item) => {
-              const current =
-                item.membership_status;
-
-              return (
-                <ClusterCard
-                  key={item.scope_id}
-                  item={item}
-                  onOpen={openCluster}
-                >
-                  <View
-                    style={styles.actions}
-                  >
-                    {current === 'ACTIVE' ? (
-                      <ActionButton
-                        title="OPEN"
-                        onPress={() =>
-                          openCluster(
-                            item.scope_id
-                          )
-                        }
-                      />
-                    ) : current ===
-                      'PENDING' ? (
-                      <ActionButton
-                        title="REQUESTED"
-                        disabled
-                        onPress={() => {}}
-                      />
-                    ) : current ===
-                      'INVITED' ? (
-                      <ActionButton
-                        title="VIEW INVITATION"
-                        onPress={() =>
-                          void respond(
-                            item,
-                            true
-                          )
-                        }
-                      />
-                    ) : (
-                      <ActionButton
-                        title={
-                          item.visibility ===
-                          'PRIVATE'
-                            ? 'REQUEST TO JOIN'
-                            : 'JOIN CLUSTER'
-                        }
-                        disabled={
-                          busyId ===
-                          item.scope_id
-                        }
-                        onPress={() =>
-                          void join(item)
-                        }
-                      />
-                    )}
-                  </View>
+            <>
+              {(showAllMyClusters || myQuery.trim() ? filteredMyClusters : filteredMyClusters.slice(0, 8)).map(item => (
+                <ClusterCard key={item.scope_id} item={item} onOpen={openCluster}>
+                  <ActionButton title="Open"
+                    onPress={() => openCluster(item.scope_id)} />
+                  {item.is_admin ? (
+                    <ActionButton title="Manage" outline tone={getStableBuklodCardTone(item.scope_id)}
+                      onPress={() => router.push(clusterScopeManageRoute(item.scope_id, item.name) as any)} />
+                  ) : null}
                 </ClusterCard>
-              );
-            })
+              ))}
+              {!myQuery.trim() && filteredMyClusters.length > 8 ? (
+                <Pressable accessibilityRole="button"
+                  accessibilityLabel={showAllMyClusters ? 'Show fewer clusters' : 'Show all my clusters'}
+                  onPress={() => setShowAllMyClusters(current => !current)}
+                  style={styles.moreButton}>
+                  <Text style={styles.moreButtonText}>
+                    {showAllMyClusters ? 'Show fewer' : 'View all ' + filteredMyClusters.length + ' clusters'}
+                  </Text>
+                  <MaterialCommunityIcons name={showAllMyClusters ? 'chevron-up' : 'chevron-down'}
+                    size={21} color="#1C6B48" />
+                </Pressable>
+              ) : null}
+            </>
           )}
+        </View>
+      ) : null}
 
-          <View style={{ height: 40 }} />
-        </>
-      )}
+      {section === 'invitations' ? (
+        <View style={styles.directorySection}>
+          <View style={styles.sectionHeading}>
+            <View>
+              <Text style={styles.sectionTitle}>Invitations</Text>
+              <Text style={styles.sectionNote}>Choose which communities to join.</Text>
+            </View>
+            <Text style={styles.sectionCount}>{invitations.length} invites</Text>
+          </View>
+          {invitations.length === 0 ? (
+            <View style={styles.empty}>
+              <MaterialCommunityIcons name="email-check-outline" size={26} color="#68927B" />
+              <Text style={styles.emptyTitle}>No invitations right now</Text>
+              <Text style={styles.muted}>New cluster invitations will appear here.</Text>
+            </View>
+          ) : invitations.map(item => (
+            <ClusterCard key={item.scope_id} item={item}>
+              <ActionButton title="Accept" disabled={busyId === item.scope_id}
+                onPress={() => void respond(item, true)} />
+              <ActionButton title="Decline" outline disabled={busyId === item.scope_id}
+                onPress={() => void respond(item, false)} />
+            </ClusterCard>
+          ))}
+        </View>
+      ) : null}
+
+      {section === 'pending' ? (
+        <View style={styles.directorySection}>
+          <View style={styles.sectionHeading}>
+            <View>
+              <Text style={styles.sectionTitle}>Pending requests</Text>
+              <Text style={styles.sectionNote}>Waiting for an admin to approve membership.</Text>
+            </View>
+            <Text style={styles.sectionCount}>{pending.length} pending</Text>
+          </View>
+          {pending.length === 0 ? (
+            <View style={styles.empty}>
+              <MaterialCommunityIcons name="check-decagram-outline" size={26} color="#68927B" />
+              <Text style={styles.emptyTitle}>No pending requests</Text>
+              <Text style={styles.muted}>Membership requests awaiting approval appear here.</Text>
+            </View>
+          ) : pending.map(item => (
+            <ClusterCard key={item.scope_id} item={item} />
+          ))}
+        </View>
+      ) : null}
+
+      {section === 'discover' ? (
+        <View style={styles.directorySection}>
+          <View style={styles.sectionHeading}>
+            <View>
+              <Text style={styles.sectionTitle}>Explore clusters</Text>
+              <Text style={styles.sectionNote}>Discover new communities to connect with.</Text>
+            </View>
+          </View>
+
+          <View style={styles.searchRow}>
+            <MaterialCommunityIcons name="magnify" size={20} color="#809088" />
+            <TextInput
+              style={styles.search}
+              placeholder="Search cluster name or category"
+              placeholderTextColor="#87958C"
+              accessibilityLabel="Search discoverable clusters"
+              value={query}
+              onChangeText={value => {
+                setQuery(value);
+                setShowAllSuggested(false);
+              }}
+              returnKeyType="search"
+              onSubmitEditing={() => void load(query, true)}
+            />
+            {query.length > 0 ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Clear cluster discovery search"
+                onPress={() => setQuery('')}>
+                <MaterialCommunityIcons name="close-circle" size={20} color="#809088" />
+              </Pressable>
+            ) : null}
+          </View>
+          {searching ? (
+            <Text style={styles.searchHint}>Searching clusters…</Text>
+          ) : null}
+
+          {discoverableClusters.length === 0 ? (
+            <View style={styles.empty}>
+              <MaterialCommunityIcons name="compass-outline" size={26} color="#68927B" />
+              <Text style={styles.emptyTitle}>{online && !loadError ? 'No clusters found' : 'Discovery unavailable offline'}</Text>
+              <Text style={styles.muted}>Try a different search or return when connected.</Text>
+            </View>
+          ) : (
+            <>
+              {visibleSuggested.map(item => (
+                <ClusterCard key={item.scope_id} item={item}>
+                  <ActionButton title={item.visibility === 'PRIVATE' ? 'Request to join' : 'Join cluster'}
+                    disabled={!online || busyId === item.scope_id}
+                    onPress={() => void join(item)} />
+                </ClusterCard>
+              ))}
+              {!query.trim() && discoverableClusters.length > 6 ? (
+                <Pressable accessibilityRole="button"
+                  onPress={() => setShowAllSuggested(current => !current)}
+                  style={styles.moreButton}>
+                  <Text style={styles.moreButtonText}>
+                    {showAllSuggested ? 'Show fewer' : 'See more suggested clusters'}
+                  </Text>
+                  <MaterialCommunityIcons name={showAllSuggested ? 'chevron-up' : 'chevron-down'}
+                    size={21} color="#1C6B48" />
+                </Pressable>
+              ) : null}
+            </>
+          )}
+        </View>
+      ) : null}
+
+      <View style={{ height: 12 }} />
     </BuklodPortalScrollView>
   );
 }
 
+
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F5F7F6',
-  },
-
-  content: {
-    padding: 16,
-    gap: 10,
-  },
-
+  screen: { flex: 1, backgroundColor: '#F5F7F6' },
+  content: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 32, gap: 12 },
   hero: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E1E7E3',
-    gap: 8,
+    borderRadius: 22, borderWidth: 1, borderColor: '#DCE9E1',
+    backgroundColor: '#FFFFFF', padding: 16, gap: 16,
   },
-
+  heroHeading: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+  },
+  heroCopy: { flex: 1, minWidth: 0, gap: 4 },
+  eyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1.4, color: '#257A52' },
+  title: { fontSize: 25, fontWeight: '900', letterSpacing: -0.5, color: '#123A2B' },
+  subtitle: { fontSize: 12, lineHeight: 17, color: '#718078' },
   createClusterCompact: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#2D6A4F',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minHeight: 36,
-    justifyContent: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#145B3B', borderRadius: 13,
+    paddingHorizontal: 13, minHeight: 44, justifyContent: 'center',
   },
-
-  createClusterCompactText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
+  createClusterCompactText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  metricRow: { flexDirection: 'row', gap: 8 },
+  metricTile: {
+    flex: 1, minWidth: 0, paddingVertical: 11, paddingHorizontal: 6,
+    alignItems: 'center', justifyContent: 'center', gap: 3,
+    borderRadius: 14, backgroundColor: '#F2F7F3', borderWidth: 1,
+    borderColor: '#E7EFE9',
   },
-
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 2,
-    color: '#2D6A4F',
+  metricTileActive: { backgroundColor: '#19633F', borderColor: '#19633F' },
+  metricCount: { fontSize: 19, fontWeight: '900', color: '#1D4A33' },
+  metricTitle: { fontSize: 10, fontWeight: '800', color: '#61766A' },
+  metricTextActive: { color: '#FFFFFF' },
+  sectionNavigation: {
+    borderRadius: 16, borderWidth: 1, borderColor: '#E0E9E3',
+    backgroundColor: '#FFFFFF', overflow: 'hidden',
   },
-
-  title: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#19362A',
+  sectionNavigationInner: { paddingHorizontal: 7, paddingVertical: 7, gap: 5, alignItems: 'center' },
+  tab: {
+    minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, borderRadius: 12, justifyContent: 'center',
   },
-
-  subtitle: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: '#617068',
-    marginBottom: 6,
+  tabSelected: { backgroundColor: '#145B3B' },
+  tabText: { fontSize: 12, color: '#52695C', fontWeight: '800' },
+  tabTextSelected: { color: '#FFFFFF' },
+  tabCountPill: {
+    borderRadius: 9, minWidth: 20, paddingHorizontal: 5, paddingVertical: 2,
+    backgroundColor: '#E6F0E8', alignItems: 'center',
   },
-
-  sectionTitle: {
-    marginTop: 8,
-    marginBottom: 2,
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 1.2,
-    color: '#365347',
+  tabCountPillSelected: { backgroundColor: 'rgba(255,255,255,0.17)' },
+  tabCountText: { fontSize: 10, fontWeight: '900', color: '#236042' },
+  directorySection: { gap: 9 },
+  sectionHeading: {
+    paddingHorizontal: 2, paddingTop: 4, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'space-between', gap: 10,
   },
-
+  sectionTitle: { fontSize: 17, fontWeight: '900', color: '#193C2D' },
+  sectionNote: { fontSize: 11, lineHeight: 16, color: '#7C8B82', marginTop: 3 },
+  sectionCount: { fontSize: 11, fontWeight: '800', color: '#2D7751' },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 11,
-    borderWidth: 1,
-    borderColor: '#E1E7E3',
-    gap: 5,
+    backgroundColor: '#FFFFFF', borderRadius: 16,
+    borderWidth: 1, borderColor: '#E1E8E3',
+    paddingHorizontal: 12, paddingVertical: 11, gap: 6,
   },
-
-  cardTitleRow: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'flex-start',
+  cardHeadPress: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
+  clusterIcon: {
+    width: 44, height: 44, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
   },
-
-  cardTitle: {
-    color: '#1A3329',
-    fontSize: 16,
-    fontWeight: '900',
+  cardBody: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 3 },
+  cardRight: { alignItems: 'flex-end', justifyContent: 'center', gap: 3 },
+  cardTitle: { fontSize: 14, lineHeight: 19, fontWeight: '900', color: '#19392A' },
+  cardMeta: { fontSize: 11, lineHeight: 15, color: '#73867C' },
+  description: { color: '#61736A', fontSize: 11, paddingLeft: 54 },
+  cardBottom: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: 7, paddingLeft: 54,
   },
-
-  cardMeta: {
-    color: '#748079',
-    marginTop: 3,
-    fontSize: 12,
-  },
-
-  description: {
-    color: '#47574F',
-    lineHeight: 19,
-  },
-
-  membership: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#2D6A4F',
-  },
-
-  badge: {
-    borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    backgroundColor: '#EDF5F0',
-  },
-
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#2D6A4F',
-  },
-
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-
+  roleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 0 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  membership: { fontSize: 11, fontWeight: '800', color: '#3A7960' },
+  badge: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4 },
+  badgeText: { fontSize: 9, fontWeight: '900' },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'flex-end' },
   actionButton: {
-    minHeight: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#2D6A4F',
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    minHeight: 34, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#206447', paddingHorizontal: 12, borderRadius: 10,
   },
-
-  actionButtonOutline: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#2D6A4F',
-  },
-
-  actionButtonDanger: {
-    backgroundColor: '#9E2A2B',
-  },
-
-  actionText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 12,
-  },
-
-  actionTextOutline: {
-    color: '#2D6A4F',
-  },
-
-  disabled: {
-    opacity: 0.45,
-  },
-
+  actionButtonOutline: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#B4D3BF' },
+  actionButtonDanger: { backgroundColor: '#A84242' },
+  actionText: { color: '#FFFFFF', fontWeight: '900', fontSize: 11 },
+  actionTextOutline: { color: '#2D6A4F' },
+  disabled: { opacity: 0.5 },
   searchRow: {
-    flexDirection: 'row',
-    gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    minHeight: 46, borderWidth: 1, borderColor: '#E0E8E2',
+    borderRadius: 13, backgroundColor: '#FFFFFF', paddingHorizontal: 12,
   },
-
-  search: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D9E2DD',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    minHeight: 46,
-    color: '#1A3329',
+  search: { flex: 1, minHeight: 44, padding: 0, fontSize: 13, color: '#183E2D' },
+  searchHint: { fontSize: 11, color: '#6C8274', paddingHorizontal: 3 },
+  moreButton: {
+    minHeight: 44, flexDirection: 'row', gap: 6,
+    alignItems: 'center', justifyContent: 'center',
+    borderRadius: 13, borderWidth: 1, borderColor: '#CDE2D4', backgroundColor: '#F1F7F3',
   },
-
-  searchButton: {
-    minHeight: 46,
-    justifyContent: 'center',
-    paddingHorizontal: 13,
-    borderRadius: 12,
-    backgroundColor: '#244F3D',
+  moreButtonText: { color: '#1D6745', fontSize: 12, fontWeight: '900' },
+  feedback: {
+    borderRadius: 13, borderWidth: 1, borderColor: '#F0E3CC',
+    backgroundColor: '#FFF9ED', padding: 11,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
-
-  searchButtonText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '900',
-  },
-
+  feedbackText: { flex: 1, color: '#7A633E', fontSize: 12, lineHeight: 17 },
+  retryLink: { fontSize: 12, fontWeight: '900', color: '#155D3D' },
   empty: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E1E7E3',
-    borderRadius: 14,
-    padding: 16,
+    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E8E3',
+    borderRadius: 16, alignItems: 'center', paddingVertical: 22,
+    paddingHorizontal: 16, gap: 9,
   },
-
-  emptyTitle: {
-    fontWeight: '900',
-    color: '#2E4339',
-    marginBottom: 3,
-  },
-
-  muted: {
-    color: '#748079',
-  },
-
-  loading: {
-    padding: 40,
-    alignItems: 'center',
-    gap: 12,
-  },
+  emptyTitle: { fontSize: 14, fontWeight: '900', color: '#234A35', textAlign: 'center' },
+  muted: { color: '#798980', fontSize: 12, textAlign: 'center', lineHeight: 18 },
+  loading: { padding: 24, alignItems: 'center', gap: 10 },
 });

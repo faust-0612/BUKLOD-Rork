@@ -1,0 +1,51 @@
+{
+  "contractVersion": 2,
+  "objective": "Modernize the Android BUKLOD Clusters directory from oversized pastel cards and long-scrolling sections to a compact professional dashboard with accessible navigation, summary counters, local My Cluster search, expandable group list, and distinct Discover/Invites/Requests views without changing membership permissions.",
+  "baseRef": "79f9040109ac4b87fbe6f1768c4904b9665f077c",
+  "productionBaselineEvidence": "Owner-provided Android v28 screenshot on 2026-11-07 shows Cluster dashboard with large hero, vertically repeated Manage cards and pending/discover far below. Source inspection verified canonical /clusters route src/app/clusters/index.tsx, global bottom navigation uses /clusters and owner-scoped memory cache. Exact Production OTA/build and live device state are not verified. Changes isolated to GitHub DEV; no production publish implied.",
+  "chosenApproach": "Preserve existing account-keyed cluster cache, Supabase discovery and membership mutations. Replace only dashboard presentation: compact hero and Create button; three clickable joined/invitation/pending count tiles; accessible scrollable section tabs My Clusters, Explore, Invites, Requests; fast local search and first-eight expandable list; compact white cards with separate open-workspace and admin Manage buttons, visibility labels, role/status and members; dedicated server-backed discovery search, join/approval and offline notices. Keep global bottom nav untouched.",
+  "selectionRationale": "The screenshots show excessive repeated vertical height and unclear navigation across active, invited, pending and suggested groups. A section switch reduces fatigue without hiding management actions or changing privacy. Keep one canonical data source and unmodified RPCs to avoid membership regressions.",
+  "alternativeApproaches": [
+    "Replace data layer with a new paginated backend RPC (rejected: backend compatibility and ownership risks for a presentation-only task).",
+    "Render all groups as large accordion cards (rejected: worsens scroll and keeps invitations/discovery buried).",
+    "Change global tab navigation instead of local segmented sections (rejected: risks Home/Wall/Connect/Profile routing and device back behavior)."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "navigation-scroll",
+    "cluster-membership-auth",
+    "offline-cache",
+    "app-routing",
+    "cluster-joining",
+    "moderation"
+  ],
+  "preserveBehaviors": [
+    "Global bottom nav Home / Cluster / Wall / Connect / Profile, Android back to Wall, active scope workspace routing and admin manage route unchanged",
+    "Only ACTIVE membership can open workspace; Manage remains admin-only, membership status and counts remain server sourced",
+    "Existing private/public badge, invitations accept/decline, pending request review wait and discover join/request-to-join preserved",
+    "User-specific session cache remains isolated by owner and offline membership fallback never authorizes online mutations",
+    "Create Cluster remains same route and no new role bypass, Supabase schema, native dependencies, Expo runtime or OTA workflow changes",
+    "First-view cluster advertising remains displayed in the same directory and no fake ad is added",
+    "Search is accessible for My Clusters locally and Explore through the existing discovery RPC",
+    "Accessibility minimum interactive touch sizes, labels, counts and disabled states are included",
+    "Production requires verified RC and exact Android OTA; PR CI does not verify actual Android device appearance"
+  ],
+  "regressionTests": [
+    "tests/cluster-dashboard-modern-navigation-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Compact hero and Create Cluster affordance render above cluster summary counters",
+    "Joined/Invites/Pending tiles and local four-tab navigation switch the correct section",
+    "My Clusters lists active memberships, search local and show first eight with optional View all; cards still navigate and admins retain Manage",
+    "Explore searches server discovery without showing already joined/pending/invited clusters; Request to join and Join Cluster enforce online status",
+    "Invitations accept/decline via existing RPC, pending requests remain read-only",
+    "Offline and partial backend failures display saved memberships and retry, without account crossover",
+    "Global bottom navigation, first-view ad, Android back, existing cache and all other tab pages preserved",
+    "Run focused Node tests plus Engineering Accountability, TypeScript/Performance and Integration/Web compatibility on exact PR head before merging"
+  ],
+  "allowedPaths": [
+    "src/app/clusters/index.tsx",
+    "tests/cluster-dashboard-modern-navigation-20261107.test.mjs",
+    ".buklod/scopes/cluster-dashboard-modern-navigation-20261107.json"
+  ]
+}
