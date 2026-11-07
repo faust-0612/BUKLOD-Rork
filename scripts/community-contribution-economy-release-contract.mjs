@@ -12,7 +12,8 @@ req('src/components/BuklodCommunityContributionCard.tsx','YOUR COMMUNITY CONTRIB
 req('src/app/community-contribution.tsx','HOW CAN I INCREASE MY SHARE?','Contribution guidance');
 req('src/app/community-contribution.tsx','data.estimate_label','Estimate non-final label rendered from server');
 req('src/components/BuklodCommunityEconomyAdminCard.tsx','Video Wall P&L','FBC Video Wall P&L');
-req('src/app/(tabs)/buklod.tsx','<BuklodCommunityContributionCard />','Wall card mount');
+req('src/app/(tabs)/home.tsx','<BuklodCommunityContributionCard />','Home card mount');
+forbid('src/app/(tabs)/buklod.tsx','<BuklodCommunityContributionCard />','No duplicate Wall card mount');
 req('src/app/(tabs)/buklod.tsx','assertCommunityVideoQuotaAvailable','Public monthly quota precheck');
 req('src/components/BuklodExclusiveScopeCommunity.tsx','assertCommunityVideoQuotaAvailable','Scoped monthly quota precheck');
 forbid('src/app/community-contribution.tsx','â‚± per QMP','No fixed peso-per-QMP copy');
