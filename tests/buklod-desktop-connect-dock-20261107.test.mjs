@@ -74,14 +74,13 @@ test('docked Connect render errors close only the side panel and heavy engine lo
 });
 
 
-test('scoped desktop Connect uses small panel first with explicit Expand, mobile full thread preserved', () => {
+test('scoped desktop Connect uses one original center chat, not the context dock', () => {
   const scoped = read('src/app/scope/index.tsx');
-  assert.match(scoped, /compactDesktop = Platform\.OS === 'web' && width >= 1200/);
-  assert.match(scoped, /const \[expanded, setExpanded\] = useState\(false\)/);
-  assert.match(scoped, /scopeConnectCompact: \{[\s\S]*?height: 340/);
-  assert.match(scoped, /scopeConnectExpanded: \{[\s\S]*?flex: 1/);
-  const chat=scoped.slice(scoped.indexOf('function OrganizationCommunityConnect('),scoped.indexOf('function ScopeConnect('));
-  assert.equal((chat.match(/<BuklodConnectThread/g) ?? []).length,1);
+  const chat = scoped.slice(scoped.indexOf('function OrganizationCommunityConnect('),scoped.indexOf('function ScopeConnect('));
+  assert.equal((chat.match(/<BuklodConnectThread/g) ?? []).length, 1);
   assert.match(chat,/mode="scope"/);
-  assert.match(chat,/containerId=\{scope\.scope_id\}/);
+  assert.match(chat,/containerId=\\{scope\\.scope_id\\}/);
+  assert.match(chat,/onBackOverride=\\{onBack\\}/);
+  assert.doesNotMatch(chat,/setExpanded|compactDesktop|router\\.push/);
+  assert.doesNotMatch(scoped,/scopeConnectCompact:|scopeConnectExpanded:/);
 });
