@@ -29,7 +29,7 @@ const MAIN_REPO="faust-0612/BUKLOD-Rork";
 const VAULT_REPO="faust-0612/BUKLOD-Local-Recovery";
 const MiB=1024**2;
 const LIMIT=5000000;
-const MAX_DEPTH=60;
+const MAX_DEPTH=128;
 const JOURNAL_BATCH=5000;
 const MAX_ERRORS=50;
 const dirProduct=/(?:^|[\\/])(?:BUKLOD[^\\/]*|BUKLODQ[^\\/]*|BUKLODKINGDOM[^\\/]*|KABIHASNANG[_ -]?LIGAW[^\\/]*)(?:[\\/]|$)/i;
@@ -385,6 +385,15 @@ function* streamTree(target,depth=0){
  }finally{dir.closeSync()}
  yield {type:"dir",path:target};
 }
+function appendAll(fd,text){
+ const buffer=Buffer.from(text,"utf8");
+ let written=0;
+ while(written<buffer.length){
+   const n=fs.writeSync(fd,buffer,written,buffer.length-written);
+   assert(n>0,"Journal write failed before full plan was persisted; no deletion.");
+   written+=n;
+ }
+}
 function eachJSONLine(file,action){
  const fd=fs.openSync(file,"r"),buf=Buffer.alloc(4*MiB);
  const decoder=new StringDecoder("utf8");
@@ -434,10 +443,10 @@ try{
  const out=fs.openSync(JOURNAL,"w"),dirs=fs.openSync(DIR_JOURNAL,"w");
  let actionBuffer="",dirBuffer="";
  const writeAction=item=>{actionBuffer+=JSON.stringify(item)+"\n";
-   if(actionBuffer.length>=512*1024){fs.writeSync(out,actionBuffer);actionBuffer=""}
+   if(actionBuffer.length>=512*1024){appendAll(out,actionBuffer);actionBuffer=""}
  };
  const writeDirectory=item=>{dirBuffer+=JSON.stringify(item)+"\n";
-   if(dirBuffer.length>=512*1024){fs.writeSync(dirs,dirBuffer);dirBuffer=""}
+   if(dirBuffer.length>=512*1024){appendAll(dirs,dirBuffer);dirBuffer=""}
  };
  let doneScan=false;
  try{
@@ -488,8 +497,8 @@ try{
    }
    doneScan=true;
  }finally{
-   if(actionBuffer)fs.writeSync(out,actionBuffer);
-   if(dirBuffer)fs.writeSync(dirs,dirBuffer);
+   if(actionBuffer)appendAll(out,actionBuffer);
+   if(dirBuffer)appendAll(dirs,dirBuffer);
    fs.closeSync(out);
    fs.closeSync(dirs);
  }
