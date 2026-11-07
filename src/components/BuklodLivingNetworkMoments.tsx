@@ -37,6 +37,7 @@ export default function BuklodLivingNetworkMoments() {
       setItems([]);
       return () => { active = false; };
     }
+    setItems([]); // Never show another account's cached recipient list.
     if (!online) return () => { active = false; };
 
     void withBuklodTimeout(
