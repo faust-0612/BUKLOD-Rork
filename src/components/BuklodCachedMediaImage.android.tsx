@@ -688,7 +688,9 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   // white or stalled thumbnail can never block its sharp replacement.
   // Keep a visible loading affordance while the decoder has not confirmed
   // on-screen paint. A raw image view is otherwise a large white rectangle.
-  const pendingPaintIndicator = !actual.painted ? (
+  // Remounting an offline original needs only a local decode, not another
+  // download indicator. Keep the spinner for genuinely uncached transfers.
+  const pendingPaintIndicator = !actual.painted && !actual.fromDiskCache ? (
     <ActivityIndicator
       pointerEvents="none"
       size="small"
