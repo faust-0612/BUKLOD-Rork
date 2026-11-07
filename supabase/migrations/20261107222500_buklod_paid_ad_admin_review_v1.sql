@@ -55,7 +55,7 @@ BEGIN
   IF v_actor IS NULL OR NOT public.is_system_admin() THEN
     RAISE EXCEPTION 'Advertising admin access denied' USING ERRCODE='42501';
   END IF;
-  IF p_campaign_id IS NULL OR p_action NOT IN ('verify_payment','approve','reject','pause','resume') THEN
+  IF p_campaign_id IS NULL OR p_action IS NULL OR p_action NOT IN ('verify_payment','approve','reject','pause','resume') THEN
     RAISE EXCEPTION 'Invalid advertising action';
   END IF;
 
