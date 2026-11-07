@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Harden complete 39-game BUKLOD Kingdom DEV candidate with bounded cross-platform audio feedback, cleanup cap and fail-closed staging-user artifact preflight. Preserve original 13 games, new 26 pilots and current main advertising improvements.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub source reconciliation only. Prior shared base 269a70950f8eb50073b677bb5fa6bf0b63e0ecc4; latest main 03e048aa1675abe0141e67432ed51ce4de928144, current workstream 13ca4b2290d2e827d82003e5ace87fa8d8a0b1b3. 72 Kingdom-only source paths overlaid with zero collisions against 6 main-only files. Preserves advertising entry fixes on main. Explicit owner waiver of device test does NOT verify installed APK, runtime/channel, original premium audio or server points. No staging/production OTA published by this workflow.",
+  "productionBaselineEvidence": "verified: cumulative GitHub DEV source reconciliation only. Latest main bd0acf0b7f783fd0aa9d9bfc663e6dc35c127faf, prior shared base 03e048aa1675abe0141e67432ed51ce4de928144, current Kingdom DEV e1e5eb8e86a0d7650f08db000158772b734f6e21. 77 source workstream files had zero overlap with 3 new production Advertise workflow/config files. No EAS install metadata or Android physical QA was independently validated and no staging/production OTA was published.",
   "chosenApproach": "Pure shared feedback limiter and maximum six native fallback players, plus explicit source-only EAS staging profile validator and optional strict release-evidence metadata check. No native dependency, production ad controller, or OTA mutation.",
   "selectionRationale": "Protect lower-memory Android devices from high-frequency game taps and prevent mismatched staging binary/channel/runtime deployments.",
   "alternativeApproaches": [
@@ -74,7 +74,8 @@
     "Reconcile against latest main, preserving advertising entry source from Nov 7. Confirm no duplicate/lost main files in exact two-parent merge tree before staging.",
     "R11 game feedback limiter bounds rapid sounds but preserves terminal success/failure; native fallback audio player count <= six.",
     "R11 source-only staging validation checks channel staging-user, EAS preview env, runtime 1.3.2, staging Android package and 39-game manifest.",
-    "R11 release mode fails closed without EAS artifact evidence matching full RC commit and exact APK identity; it cannot claim a device installation passed."
+    "R11 release mode fails closed without EAS artifact evidence matching full RC commit and exact APK identity; it cannot claim a device installation passed.",
+    "R11 reconciles latest main Advertise deployment governance files unchanged; no production workflows, app config or native package overwritten."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
