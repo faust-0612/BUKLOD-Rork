@@ -1,6 +1,23 @@
 import { supabase } from '@/lib/supabase';
 
-export const BUKLOD_POST_MOTION_PRESETS = ['none', 'zoom', 'pan', 'float', 'fade'] as const;
+export const BUKLOD_POST_MOTION_PRESETS = [
+  'none', 'zoom', 'pan', 'float', 'fade',
+  'rain', 'storm', 'snow', 'mist', 'sparkles', 'fireflies', 'petals',
+  'sunrays', 'dust', 'bokeh', 'stars', 'autumn', 'underwater',
+] as const;
+export const BUKLOD_POST_MOTION_AMBIENCES = [
+  'rain', 'storm', 'snow', 'mist', 'sparkles', 'fireflies', 'petals',
+  'sunrays', 'dust', 'bokeh', 'stars', 'autumn', 'underwater',
+] as const;
+export const BUKLOD_POST_MOTION_LABELS: Record<typeof BUKLOD_POST_MOTION_PRESETS[number], string> = {
+  none: 'No effect', zoom: 'Slow zoom', pan: 'Cinematic pan',
+  float: 'Gentle float', fade: 'Soft fade', rain: 'Rainfall',
+  storm: 'Heavy rain', snow: 'Snowfall', mist: 'Morning mist',
+  sparkles: 'Sparkles', fireflies: 'Fireflies', petals: 'Flower petals',
+  sunrays: 'Sun rays', dust: 'Floating dust', bokeh: 'Bokeh lights',
+  stars: 'Twinkling stars', autumn: 'Autumn leaves',
+  underwater: 'Underwater glow',
+};
 export type BuklodPostMotionPreset = typeof BUKLOD_POST_MOTION_PRESETS[number];
 export type BuklodPostMusicTrack = {
   id: string; title: string; artist: string | null;
