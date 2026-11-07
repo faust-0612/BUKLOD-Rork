@@ -57,7 +57,7 @@ test('locked BUKLOD V28 native 1.3.2 and Main Expo Hosting targets cannot drift'
 });
 
 test('one-time production authorization YAML cannot be invalidated by colon in commit title', () => {
-  assert.match(trigger, /^\s+if: >-\s*\n\s+github\.event_name == 'push' &&\s*\n\s+startsWith\(github\.event\.head_commit\.message, 'release\(buklod\): one-time prod OTA and web 2026-11-07'\)/m);
+  assert.match(trigger, /^\s+if: >-\s*\n\s+github\.event_name == 'push' &&\s*\n\s+\(?startsWith\(github\.event\.head_commit\.message, 'release\(buklod\): one-time prod OTA and web 2026-11-07'\)/m);
   assert.doesNotMatch(trigger, /^\s+if: [^\n]*release\(buklod\): one-time prod OTA and web/m);
 });
 
