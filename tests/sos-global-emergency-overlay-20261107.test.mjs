@@ -21,6 +21,9 @@ test('SOS sends only after prior hold and local authentication; creator receives
   assert.ok(sender.indexOf("emitBuklodEmergencySignal({ incidentId: requestId, origin: 'sender' })") <
     sender.indexOf("supabase.functions.invoke('buklod-help-alert'"));
   assert.match(sender, /Contact official emergency services too/);
+  assert.match(sender, /Number\(\(result\.data as \{ recipients\?: number \} \| null\)\?\.recipients\) === 0/);
+  assert.match(sender, /SOS active · no nearby recipients/);
+  assert.match(sender, /No eligible nearby BUKLOD users were found/);
 });
 
 test('Recipient push and tap route to the same global alert, old account payloads cannot authorize data',()=>{
