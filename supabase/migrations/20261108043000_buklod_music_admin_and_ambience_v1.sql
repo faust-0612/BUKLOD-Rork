@@ -65,7 +65,7 @@ create policy "buklod_music_admin_storage_insert"
   on storage.objects for insert to authenticated
   with check (
     bucket_id='buklod-music-library'
-    and name ~ '^library/admin/[a-f0-9-]{36}\\.(mp3|m4a|mp4|aac|wav|ogg)$'
+    and name ~ '^library/admin/[a-f0-9-]{36}\.(mp3|m4a|mp4|aac|wav|ogg)$'
     and (select public.is_system_admin())
   );
 drop policy if exists "buklod_music_admin_storage_delete" on storage.objects;
