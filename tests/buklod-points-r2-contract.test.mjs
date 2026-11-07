@@ -45,3 +45,25 @@ test('Points UI shows server-reported activation state and does not mint credits
  assert.doesNotMatch(guide,/\.insert\(|\.update\(|admin_award_buklod_points/);
  assert.match(verified,/grant execute on function public\.get_buklod_points_r2_catalog_v1/);
 });
+
+test('approved rewards align with current guide without retroactive recredit', () => {
+ const approved = {
+  community_comment: 2,
+  community_post: 5,
+  daily_bible_reading: 10,
+  daily_devotional_reflection: 12,
+  formation_assessment: 25,
+  formation_module: 75,
+  verified_mentoring_session: 15,
+  bible_weekly_streak: 20,
+  kl_episode: 5,
+  kl_season: 30,
+ };
+ for (const [activity, points] of Object.entries(approved)) {
+  assert.ok(rules.includes(`'${activity}', '${activity.replaceAll('_',' ')}', ${points}, ${points}, false`), activity);
+ }
+ assert.match(rules, /where activity_type='community_comment'/);
+ assert.match(rules, /set base_points=2, max_points_per_event=2/);
+ assert.doesNotMatch(rules, /update public\.buklod_points_ledger/i);
+ assert.doesNotMatch(rules, /delete\s+from public\.buklod_points_ledger/i);
+});
