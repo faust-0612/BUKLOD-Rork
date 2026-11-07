@@ -3,7 +3,7 @@ import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCar
 import BuklodPostMotion from '@/components/BuklodPostMotion';
 import BuklodWallPostAudioMeter from '@/components/BuklodWallPostAudioMeter';
 import BuklodPostMusicPicker from '@/components/BuklodPostMusicPicker';
-import { BUKLOD_POST_MOTION_PRESETS, loadBuklodPostCreatives, resolveBuklodPostMusicUrl,
+import { BUKLOD_POST_MOTION_PRESETS, BUKLOD_POST_MOTION_LABELS, loadBuklodPostCreatives, resolveBuklodPostMusicUrl,
   saveBuklodPostCreative, type BuklodPostCreative, type BuklodPostMotionPreset,
   type BuklodPostMusicTrack } from '@/lib/buklodPostCreatives';
 import { requestBuklodAudioFocus, subscribeBuklodAudioFocus } from '@/lib/buklodAudioFocus';
@@ -4841,12 +4841,23 @@ const communityFeedRows =
  // post as soon as its card is no longer visible (no off-screen music).
  const communityViewabilityListener=useRef(onCommunityAdViewableItemsChanged);
  communityViewabilityListener.current=onCommunityAdViewableItemsChanged;
+ // Auto-animate only genuinely visible post rows. No off-screen overlay loops
+ // while scrolling a long feed; composer previews remain self-contained.
+ const [visibleMotionPostIds,setVisibleMotionPostIds]=useState<Set<string>>(()=>new Set());
+ const [wallMotionFocused,setWallMotionFocused]=useState(true);
+ const wallExtraData=useMemo(()=>({communityAdExtraData,visibleMotionPostIds}),[communityAdExtraData,visibleMotionPostIds]);
+ useFocusEffect(useCallback(()=>{
+   setWallMotionFocused(true);
+   return ()=>setWallMotionFocused(false);
+ },[]));
  const wallAudioForVisibility=useRef(pauseWallAudio);
  wallAudioForVisibility.current=pauseWallAudio;
  const onCommunityWallViewableItemsChanged=useRef((event:{
    viewableItems:Array<{item?:any}>;
  })=>{
    communityViewabilityListener.current(event);
+   const visible=new Set(event.viewableItems.map(row=>String(row.item?.id??'')).filter(Boolean));
+   setVisibleMotionPostIds(old=>old.size===visible.size&&[...old].every(id=>visible.has(id))?old:visible);
    const owner=wallAudioOwnerRef.current||wallAudioPendingOwnerRef.current;
    if(owner&&owner!=='composer'&&
      !event.viewableItems.some(row=>String(row.item?.id??'')===owner)){
@@ -4896,7 +4907,7 @@ const communityFeedRows =
   }}
       style={shared.screen} contentContainerStyle={s.content} data={
       communityFeedRows
-    } keyExtractor={(i: any)=>i.id} extraData={communityAdExtraData} onViewableItemsChanged={onCommunityWallViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
+    } keyExtractor={(i: any)=>i.id} extraData={wallExtraData} onViewableItemsChanged={onCommunityWallViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
     refreshing={busy}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
@@ -5168,7 +5179,7 @@ const communityFeedRows =
       </Pressable>
       {!wallVideo186O&&!communityGif&&(
         <>
-          <Text style={{fontWeight:'800',fontSize:11,color:colors.muted}}>Animate your photo or text post</Text>
+          <Text style={{fontWeight:'800',fontSize:11,color:colors.muted}}>Photo motion and ambiance • plays automatically after publishing</Text>
           <View style={{flexDirection:'row',flexWrap:'wrap',gap:7}}>
             {BUKLOD_POST_MOTION_PRESETS.map(preset=>(
               <Pressable key={preset} accessibilityRole="button"
@@ -5178,7 +5189,7 @@ const communityFeedRows =
                   borderColor:composerMotionPreset===preset?colors.green:colors.line,
                   backgroundColor:composerMotionPreset===preset?colors.greenSoft:colors.white}}>
                 <Text style={{color:composerMotionPreset===preset?colors.greenDark:colors.muted,
-                  textTransform:'capitalize',fontSize:11,fontWeight:'800'}}>{preset}</Text>
+                  textTransform:'capitalize',fontSize:11,fontWeight:'800'}}>{BUKLOD_POST_MOTION_LABELS[preset]}</Text>
               </Pressable>
             ))}
           </View>
@@ -5642,7 +5653,7 @@ const communityFeedRows =
     </View>
    </View>
    </View>
-   <BuklodPostMotion preset={postCreatives[String(item.id)]?.motion_preset??'none'}>
+   <BuklodPostMotion preset={postCreatives[String(item.id)]?.motion_preset??'none'} active={wallMotionFocused&&visibleMotionPostIds.has(String(item.id))}>
    <BuklodExpandableWallCaption
     key={String(item.id)}
     text={String(repairMojibakeText(item.body) ?? '').replace(
