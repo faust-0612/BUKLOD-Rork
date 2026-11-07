@@ -2,6 +2,7 @@ import React,{useCallback,useEffect,useState} from 'react';
 import {ActivityIndicator,Pressable,StyleSheet,Text,TextInput,View} from 'react-native';
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
+import {showBuklodAdOpportunity,warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
 
 type Mix={participation:number;learning:number;impact:number;other:number};
 type Nomination={type:string;status:string;submitted_at:string};
@@ -42,7 +43,7 @@ export default function BuklodR2FocusMonitor(){
    setProgress(milestoneResult.data as Milestones);
   }catch{setErr('Live reward monitoring is unavailable. Existing points are unchanged.');}
  },[]);
- useEffect(()=>{if(expanded)void load()},[expanded,load]);
+ useEffect(()=>{if(expanded){void load();warmBuklodAdOpportunity('points_submission_success')}},[expanded,load]);
  const send=async()=>{
   if(busy||evidence.trim().length<60)return;
   setBusy(true);setErr('');
@@ -51,6 +52,7 @@ export default function BuklodR2FocusMonitor(){
     p_activity_type:selected,p_evidence_note:evidence.trim()});
    if(error)throw error;
    setEvidence('');await load();
+   void showBuklodAdOpportunity('points_submission_success');
   }catch(e){setErr(e instanceof Error?e.message:'Could not submit milestone.');}
   finally{setBusy(false)}
  };
@@ -89,7 +91,7 @@ export default function BuklodR2FocusMonitor(){
       <Text style={s.choiceText}>{label}</Text><Text style={s.status}>{report.my_milestones.find(n=>n.type===key)?.status||'Not submitted'}</Text>
    </Pressable>)}
    {!own&&<>
-    <Text style={s.desc}>Describe the completed course, ministry project, mentoring cycle, volunteer service or tournament challenge. Include dates, scope and verifiable references. Submission does not automatically earn points.</Text>
+    <Text style={s.desc}>Describe the completed course, ministry project, mentoring cycle, volunteer service or tournament challenge. Include dates, scope and verifiable references. Submission does not automatically earn points. After successful submission, an optional ad may appear, but ads never control earning points.</Text>
     <TextInput multiline textAlignVertical="top" accessibilityLabel="Achievement supporting evidence"
        placeholder="Evidence details (60–2000 characters)" placeholderTextColor="#879A8A"
        style={s.input} value={evidence} onChangeText={setEvidence} maxLength={2000}/>
