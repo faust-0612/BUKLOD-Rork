@@ -1,0 +1,50 @@
+{
+  "contractVersion": 2,
+  "objective": "Make previously approved/paid BUKLOD self-service advertisements automatically appear as fixed Sponsored slots in the Public Community Wall and desktop-only Home for their entire paid campaign period; automatically stop on expiry, pause, rejection or payment loss without turning ads into permanent posts.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: source at main includes admin approval RPC buklod_admin_review_paid_ad_v1 which sets starts_at=approval time and ends_at=approval time+30 days, with payment verification and policy guards. Production Supabase yhanxndaqbmuzbdqlblu contains 2 approved/paid/nationwide/photo eligible campaigns and 2 pending/unpaid campaigns. Main Public Wall /buklod has an AdMob first-view and inline rows but no BuklodCommunitySponsoredAd; canonical desktop Home is /hub and likewise has no paid card. Existing Community Sponsored component only mounts in legacy local-scope feed and was artificially nationwide-only for public audience, with no focus re-fetch or expiry ticker. Existing ads RLS grants SELECT for approved/paid/waived/policy confirmed and current 30-day dates. Existing table buklod_paid_ad_events has identity primary key and authenticated owner insert policy; prior impression count zero when no paid ad surfaces mounted.",
+  "chosenApproach": "Use existing paid campaign data and admin approval dates, not a duplicated social post. Add one dedicated paid sponsor card to Public Wall FlashList header, and one to canonical /hub desktop Home only. Upgrade existing sponsored component with focus/foreground/60-second refresh, timestamp fail-closed eligibility, 12-second fair rotation among qualified sponsors, profile geo targeting for public audience, media type preview, and on-screen impression/click event recording. No approval, payment, DB schema, AdMob, native runtime or legacy sponsor changes.",
+  "selectionRationale": "Auto-live requires no write triggers: paid eligibility is already enforced by database RLS and the admin's 30-day schedule. A permanent UI slot with periodic conditional read automatically shows newly approved rows and hides revoked/expired ones, while avoiding unremovable ordinary posts or Wall data-model changes. Desktop uses canonical /hub branch to avoid showing extra sponsorship on phone Home or all sidebar routes.",
+  "alternativeApproaches": [
+    "Insert permanent Community posts on approval: rejected; duplicate content persists after expiry/pause and pollutes social feed.",
+    "Show active paid campaign only in legacy app_sponsors sidebar: rejected; two systems separate and user requests main Wall plus desktop Home.",
+    "Publish 2+ large sponsored cards simultaneously in all feeds: rejected for weak-network, video CPU and visual overload; rotate in one slot.",
+    "Ignore geo targeting or allow unpaid/pending campaign: rejected; ad buyers pay for specific audience and admin approval is mandatory."
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Existing admin approval and separate payment verification, user-scoped paid submissions, 30-day start_at/ends_at logic and approved status remain unchanged.",
+    "Existing Google AdMob/AdSense spots, legacy app_sponsors, public profile and Community Wall post render and scroll behavior stay intact.",
+    "Public Wall and desktop Home host one sponsored slot each, rotate qualified campaigns, and keep the original social post order unchanged.",
+    "Local geo campaigns display only where a viewer's profile province/city/barangay matches, worldwide Public only for nationwide or matched local campaigns.",
+    "Managed local scope preserves exact geographical scope matching; organization/cluster scope not broadened without authorization.",
+    "Never show pending, unpaid, rejected, paused, expired, invalid-date or missing-media advertisements.",
+    "Video only uses existing muted lazy player, with no explicit autoplay and offscreen rotation unmount; no runtime config or native dependency changes.",
+    "Only verified in-viewport impressions/clicks are counted and no personal fields exposed.",
+    "No unrelated production DB or campaign rows are modified in this source patch."
+  ],
+  "acceptanceChecks": [
+    "Already approved paid photo campaigns appear near top of Public Wall automatically after deployment, respecting authorized audience.",
+    "Newly approved ads appear within 60 seconds while focused or on re-entry/foreground; paused or expired ads are removed within same bounds and by client clock.",
+    "Desktop /hub Home has sponsored creative card; narrow Android/iOS Home remains unchanged.",
+    "Multiple ads share one visible slot with 12-second rotation and campaign period remains 30-day server-controlled.",
+    "Legacy sponsors, AdMob first-view ads, public post order, geo-targeting and payment approval remain intact.",
+    "Focused TypeScript/Node tests, engineering accountability, performance QA and Expo web compatibility pass before RC promotion."
+  ],
+  "regressionTests": [
+    "tests/paid-sponsorship-wall-desktop-home-20261107.test.mjs",
+    "tests/paid-sponsorship-wall-scroll-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/advertise/paidSponsorshipDelivery.ts",
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "tests/paid-sponsorship-wall-desktop-home-20261107.test.mjs",
+    ".buklod/scopes/paid-sponsorship-wall-desktop-home-20261107.json",
+    "tests/paid-sponsorship-wall-scroll-20261107.test.mjs"
+  ]
+}
