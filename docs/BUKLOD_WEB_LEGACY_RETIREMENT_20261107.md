@@ -6,7 +6,7 @@ Source baseline before this workstream: `362ea3a8946a15725c043ba17e36174e6eb853f
 - The single authoritative Main **web** brand image is `assets/release/buklod-main-canonical.png`, the green B/BUKLOD mark already used by startup.
 - `public/buklod-brand-r2-512.png` shares identical Git blob bytes with the 512×512 canonical mark; its new URL defeats stale favicon caches.
 - Manifest, favicon, Apple touch icon, desktop public/scoped header, web login fallback and web registration all use the canonical asset.
-- Obsolete ZION `public/buklod-192.png` and `public/buklod-512.png` have been removed. The manifest advertises the actual 512px icon, not a falsely labelled 192px file.
+- Obsolete ZION `public/buklod-192.png` and `public/buklod-512.png` have been removed. Their replacements are correctly sized canonical 192px and 512px icons, both verified as valid PNGs. The 192px icon was resampled from the canonical 512px asset; the 512px icon is byte-identical.
 
 ## Retired release mutation
 - Removed both old `patch-web-community-post.cjs` and `patch-home-identity-action-row.cjs`.
