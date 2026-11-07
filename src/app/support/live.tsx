@@ -131,6 +131,13 @@ export default function LiveSupport(){
     <Pressable onPress={()=>router.back()}><Text style={styles.link}>‹ Back</Text></Pressable>
     <Text style={styles.h1}>Live BUKLOD Support</Text>
     <Text style={styles.muted}>Private support conversation with BSOC. Never send passwords, OTPs or recovery codes here.</Text>
+    <View style={{backgroundColor:'#e8f7ef',borderRadius:12,padding:14,gap:6}}>
+      <Text style={{fontSize:16,fontWeight:'800',color:colors.green}}>Paano mag-report ng problema</Text>
+      <Text style={styles.body}>1. Sabihin kung ano ang hindi gumagana, saang screen ito nangyari, at ano ang inaasahan mong mangyari.</Text>
+      <Text style={styles.body}>2. Magpadala ng screenshot o larawan ng error. Kung galaw, video playback, o upload ang issue, mas makakatulong ang maikling screen recording.</Text>
+      <Text style={styles.body}>3. Takpan ang private details at huwag magpadala ng password, OTP, o recovery code. Optional ang evidence kung sapat na ang description.</Text>
+      <Text style={styles.muted}>Pagkatapos gumawa ng ticket, gamitin ang Attach photo or video sa loob ng conversation.</Text>
+    </View>
     {!uid?<View style={styles.card}>
       <Text style={styles.h2}>Sign in to use private live chat</Text>
       <Text style={styles.muted}>If you cannot access your account, use Forgot Password → Admin Help. It is available before login.</Text>
@@ -183,6 +190,7 @@ export default function LiveSupport(){
           <Pressable disabled={uploadBusy} style={styles.secondary} onPress={()=>void upload()}>
             <Text style={styles.link}>{uploadBusy?'Uploading evidence…':'Attach photo or video'}</Text>
           </Pressable>
+          <Text style={styles.muted}>Tip: screenshot ng error message ang pinakamainam para sa visual bug; maikling video para sa playback, scrolling o navigation bugs. Huwag isama ang mga password, OTP, personal messages o financial details.</Text>
           <Text style={styles.muted}>Private evidence, maximum 250 MB per file. Large recordings can consume device memory during upload.</Text>
         </View>
       </>}
