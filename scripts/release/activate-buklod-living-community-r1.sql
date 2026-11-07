@@ -8,7 +8,9 @@ begin;
 do $$
 begin
   if to_regprocedure('public.buklod_living_generate_birthdays()') is null
-    or to_regprocedure('public.buklod_living_dispatch_notifications(integer)') is null then
+    or to_regprocedure('public.buklod_living_dispatch_notifications(integer)') is null
+    or to_regprocedure('public.buklod_living_generate_global_events()') is null
+    or to_regprocedure('public.buklod_living_dispatch_global_notifications(integer)') is null then
     raise exception 'Living Community schema migration has not been applied';
   end if;
   if not exists (
@@ -22,11 +24,18 @@ begin
   perform cron.schedule('buklod-living-notifications-r1',
     '* * * * *',
     'select public.buklod_living_dispatch_notifications(80)');
+  perform cron.schedule('buklod-living-global-generator-r1',
+    '*/5 * * * *',
+    'select public.buklod_living_generate_global_events()');
+  perform cron.schedule('buklod-living-global-delivery-r1',
+    '* * * * *',
+    'select public.buklod_living_dispatch_global_notifications(100)');
 end $$;
 
 -- Today's opt-in birthdays are queued immediately; the limited delivery
 -- worker drains the queue asynchronously without blocking transactions.
 select public.buklod_living_generate_birthdays();
+select public.buklod_living_generate_global_events();
 
 commit;
 
