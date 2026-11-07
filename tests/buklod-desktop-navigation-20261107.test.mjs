@@ -174,6 +174,6 @@ test('Character Studio loading and render errors do not replace the entire Profi
   assert.match(profile, /class CharacterStudioBoundary/);
   assert.match(profile, /React\.lazy/);
   assert.match(profile, /\{customizeOpen \? \(/);
-  assert.match(editor, /desktopModal && styles\.desktopSheet/);
-  assert.match(editor, /desktopModal && styles\.desktopOverlay/);
+  // Protected canonical Character editor is not mutated by desktop routing.
+  assert.match(editor, /BUKLOD_CHARACTER_R31_R40_LAYOUT_HOST_LOCK_V3/);
 });

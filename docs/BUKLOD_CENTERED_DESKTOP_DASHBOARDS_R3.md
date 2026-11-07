@@ -6,7 +6,7 @@
 - /points and secondary /profile routes were excluded from the desktop public presentation policy, so Points opened in a different full-width shell and Back could return with a different layout.
 - Left rail was narrower than requested; fixed responsive widths are now 220px at 1200-1399 and 280px at >=1400, with right rail unchanged and center >=635px.
 - Connect composer is multiline, with no Enter-to-send web handler; it now uses the SAME onSend pathway as the button, guarding duplicate key + submit events and IME composition.
-- Character Customize's historical global SYS-500 error is a render exception whose precise underlying stack is not available from the screenshot. Heavy editor rendering is lazy; failures are contained with retry/close, leaving Profile usable. Its modal is desktop-centered with maximum width 880. The actual render failure needs a runtime reproduction/log before the root cause can be declared fixed.
+- Character Customize's historical global SYS-500 error is a render exception whose precise underlying stack is not available from the screenshot. Heavy editor rendering is lazy; failures are contained with retry/close, leaving Profile usable. The protected Character editor's modal and unlock rules remain unchanged, pending a separate verified Character restoration. The actual render failure needs a runtime reproduction/log before the root cause can be declared fixed.
 
 ## Policy
 
