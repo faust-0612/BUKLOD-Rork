@@ -18,6 +18,12 @@ to authenticated with check (
  bucket_id='buklod-mentoring-evidence'
  and (storage.foldername(name))[1]=(select auth.uid())::text
  and lower(storage.extension(name)) in ('jpg','jpeg','png','webp')
+ and exists (
+  select 1 from public.mentor_teaching_sessions s
+  where s.id::text=(storage.foldername(name))[2]
+    and s.mentor_id=(select auth.uid())
+    and s.status not in ('approved','rejected')
+ )
 );
 drop policy if exists "Mentor photo read own or admin R2" on storage.objects;
 create policy "Mentor photo read own or admin R2" on storage.objects for select
