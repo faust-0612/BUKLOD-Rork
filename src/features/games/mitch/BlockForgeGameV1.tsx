@@ -125,8 +125,8 @@ export function BlockForgeGameV1({ onFinish }: Props) {
                     <Pressable key={col} onPress={() => put(row, col)}
                       accessibilityRole="button"
                       accessibilityLabel={t('Row', 'Hanay') + ' ' + (row + 1) + ', ' + t('column', 'kolum') + ' ' + (col + 1) + (cell ? ', filled' : ', empty')}
-                      style={[s.cell, cell && s.cellFilled, canPlace && !cell && s.cellLegal]}>
-                      <View style={[s.cellCore, cell && s.cellCoreFilled]} />
+                      style={[s.cell, Boolean(cell) && s.cellFilled, canPlace && !cell && s.cellLegal]}>
+                      <View style={[s.cellCore, Boolean(cell) && s.cellCoreFilled]} />
                     </Pressable>
                   );
                 })}
