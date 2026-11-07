@@ -15,7 +15,8 @@ const TEMP=process.env.TEMP||os.tmpdir();
 const base=path.join(TEMP,'BUKLOD_CONSOLIDATED_CLOUD_MIGRATION');
 const inventoryFile=path.join(TEMP,'BUKLOD_PRIVATE_SCAN','SUMMARY.json');
 const statusFile=path.join(base,'STATUS.json');
-const out=path.resolve(process.env.BUKLOD_MIGRATION_STAGING||path.join(base,'remaining-assets-v3'));
+const stagingRoot=path.resolve(process.env.BUKLOD_MIGRATION_STAGING||path.join(base,'remaining-assets-v3'));
+let out=stagingRoot;
 const reportFile=path.join(base,'RESUMABLE_REMAINING_ASSETS_V3.json');
 const repo='faust-0612/BUKLOD-Local-Recovery';
 const sourceRepo='faust-0612/BUKLOD-Migrated-Sources';
@@ -147,6 +148,7 @@ try{
     const key=canon(full);
     if(seenPath.has(key))continue;seenPath.add(key);
     result.localFilesRead++;
+    if(result.localFilesRead%4000===0)console.log('Scanned',result.localFilesRead,'local files; Git content matches',result.sourceBlobMatches,'unique pending',files.length);
     if(result.localFilesRead>maxPaths)throw Error('More than '+maxPaths+' files scanned: cap exceeded; no deletion authorization');
     if(generatedFile.test(f.name)){result.excludedGeneratedFiles++;continue}
     if(historical.test(full)){result.excludedHistoricalDirectories++;continue}
@@ -178,7 +180,7 @@ try{
     else if(isSource(full))result.sourceFilesToPreserve++;
     else if(isAsset(full))result.assetsToPreserve++;
     else result.otherFilesToPreserve++;
-    if(result.localFilesRead%4000===0)console.log('Audited',result.localFilesRead,'files, unique remaining',files.length,'bytes',Math.round(result.representativeBytes/1024/1024)+' MiB');
+    // Progress emitted before all file classification exits.
    }
   }
  }
@@ -189,6 +191,9 @@ try{
  const planDigest=hashString(meta.join('\n')+'\n'+remoteSHA+'\n'+roots.join('\n'));
  const tag='remaining-v3-'+runId+'-'+planDigest.slice(0,12);
  result.planDigest=planDigest;result.remoteRelease='https://github.com/'+repo+'/releases/tag/'+tag;
+ // A distinct immutable folder for each exact content plan makes upload resumes safe.
+ out=path.join(stagingRoot,tag);
+ fs.mkdirSync(out,{recursive:true});
  const archive=path.join(out,'BUKLOD_REMAINING_'+tag+'.7z'),first=archive+'.001';
  const mapFile=path.join(out,'PRIVATE_RESTORE_MAP.json');
  const listFile=path.join(out,'PRIVATE_7Z_INPUTS.txt');
