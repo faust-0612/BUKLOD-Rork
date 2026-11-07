@@ -14,6 +14,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
+import { useNotifications } from '@/providers/NotificationProvider';
 
 const HIDE_PREFIX = 'buklod:living-moments:seen:v1:';
 const REMOTE_TIMEOUT_MS = 4500;
@@ -32,6 +33,7 @@ export default function BuklodLivingWallMoments() {
   const { activeScope } = useBuklodScope();
   const { theme } = useBuklodTheme();
   const { online } = useNetwork();
+  const { unreadCount } = useNotifications();
   const [moment, setMoment] = useState<BuklodLivingMoment | null>(null);
   const userId = user?.id ?? null;
   const firstName = profile?.first_name ?? profile?.full_name ?? null;
@@ -91,6 +93,7 @@ export default function BuklodLivingWallMoments() {
         birthDate,
         latestKl,
         faithEnabled,
+        unreadCount,
       });
       try {
         const seen = await AsyncStorage.multiGet(
@@ -106,7 +109,7 @@ export default function BuklodLivingWallMoments() {
     };
     void load();
     return () => { active = false; };
-  }, [userId, user?.created_at, firstName, faithEnabled, online]));
+  }, [userId, user?.created_at, firstName, faithEnabled, online, unreadCount]));
 
   const dismiss = useCallback(() => {
     if (!userId || !moment) return;
@@ -154,6 +157,25 @@ export default function BuklodLivingWallMoments() {
         <Text style={[styles.actionText, { color: theme.accent }]}>{moment.actionLabel}</Text>
         <MaterialCommunityIcons name="arrow-right" size={19} color={theme.accent} />
       </Pressable>
+      {moment.kind === 'welcome' ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Ipakilala ang sarili sa Community Wall"
+          style={styles.welcomeLink}
+          onPress={() => {
+            dismiss();
+            router.push({
+              pathname: '/buklod' as any,
+              params: {
+                homeTodayIntent: String(Date.now()),
+                homeTodayDraft: 'Kumusta! Bago ako sa BUKLOD. Masaya akong makilala kayo! 💚',
+              },
+            } as any);
+          }}
+        >
+          <Text style={[styles.welcomeLinkText, { color: theme.accent }]}>Ipakilala ako sa Wall (ikaw ang magpo-post)</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -178,4 +200,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', gap: 8, minHeight: 44,
   },
   actionText: { fontWeight: '800', fontSize: 13 },
+  welcomeLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', paddingVertical: 9 },
+  welcomeLinkText: { fontSize: 12, fontWeight: '700' },
 });
