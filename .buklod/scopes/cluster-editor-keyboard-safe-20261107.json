@@ -31,6 +31,7 @@
   ],
   "allowedPaths": [
     "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
-    "tests/cluster-editor-keyboard-safe.test.mjs"
+    "tests/cluster-editor-keyboard-safe.test.mjs",
+    ".buklod/scopes/cluster-editor-keyboard-safe-20261107.json"
   ]
 }
