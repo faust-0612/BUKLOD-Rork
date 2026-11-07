@@ -17,6 +17,7 @@ jobs:
   powershell-51-windows-line-endings:
     runs-on: windows-latest
     timeout-minutes: 8
+    # Windows PowerShell 5.1 and Windows Git checkout are the acceptance target.
     steps:
       - uses: actions/checkout@v4
         with:
