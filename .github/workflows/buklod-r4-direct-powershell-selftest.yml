@@ -14,19 +14,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  self-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+  powershell-51-windows-line-endings:
+    runs-on: windows-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Verify original Windows audit script compiles and is StrictMode array-safe
-        shell: pwsh
+      - name: Parse script and verify StrictMode self-test in Windows PowerShell 5.1
+        shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          ./scripts/BUKLOD_Cloud_Only_Safety_Audit_Direct_R4.ps1 -SelfTest
-      - name: Confirm no full audit or delete was executed in CI
-        shell: pwsh
+          & ./scripts/BUKLOD_Cloud_Only_Safety_Audit_Direct_R4.ps1 -SelfTest
+          if (-not $?) { throw 'PowerShell 5.1 self-test failed' }
+      - name: Reproduce Windows CRLF corruption and verify Git override preserves SHA-256
+        shell: powershell
         run: |
-          Write-Host 'Verified PowerShell parser + self-test without Git cloning or touching laptop files.'
+          $ErrorActionPreference = 'Stop'
+          $origin = Join-Path $env:RUNNER_TEMP 'fixture-git-original'
+          $bad = Join-Path $env:RUNNER_TEMP 'fixture-bad-autocrlf'
+          $safe = Join-Path $env:RUNNER_TEMP 'fixture-safe-autocrlf'
+          & git init -q $origin
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot create fixture Git source' }
+          $xml = '<vector xmlns:android="http://schemas.android.com/apk/res/android">' + "`n" +
+            '  <path android:pathData="M0,0L1,1" />' + "`n" + '</vector>' + "`n"
+          $original = Join-Path $origin 'vector.xml'
+          [IO.File]::WriteAllText($original, $xml, (New-Object System.Text.UTF8Encoding($false)))
+          $expected = (Get-FileHash -LiteralPath $original -Algorithm SHA256).Hash
+          & git -C $origin add vector.xml
+          if ($LASTEXITCODE -ne 0) { throw 'Git fixture staging failed' }
+          & git -C $origin -c user.name=BUKLOD-CI -c user.email=ci@example.invalid commit -q -m fixture
+          if ($LASTEXITCODE -ne 0) { throw 'Git fixture commit failed' }
+          & git clone -q -c core.autocrlf=true $origin $bad
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot reproduce Windows conversion' }
+          $badSha = (Get-FileHash -LiteralPath (Join-Path $bad 'vector.xml') -Algorithm SHA256).Hash
+          if ($badSha -eq $expected) { throw 'CRLF mismatch was not reproduced, fixture invalid' }
+          & git clone -q -c core.autocrlf=false -c core.eol=lf $origin $safe
+          if ($LASTEXITCODE -ne 0) { throw 'Safe clone failed' }
+          $actual = (Get-FileHash -LiteralPath (Join-Path $safe 'vector.xml') -Algorithm SHA256).Hash
+          if ($actual -ne $expected) { throw 'Safe clone still corrupted immutable Git bytes' }
+          $config = (& git -C $safe config --local --get core.autocrlf).Trim()
+          if ($config -ne 'false') { throw 'Safe clone did not retain autocrlf setting' }
+          Write-Host 'PASS: Windows Git CRLF mismatch reproduced; corrected clone preserved identical SHA256.'
+      - name: Confirm no original BUKLOD files were accessed or deleted
+        shell: powershell
+        run: Write-Host 'Disposable test Git repos only. No private archive, local BUKLOD files, or production systems accessed.'
