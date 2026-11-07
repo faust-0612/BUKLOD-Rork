@@ -36,6 +36,16 @@ const generatedSpecial=/\/(?:sdk|platforms\/android-\d+)\//i;
 const sourceExt=/\.(?:tsx?|jsx?|mjs|cjs|kt|java|swift|dart|py|rb|sql|prisma|graphql|gql)$/i;
 const assetExt=/\.(?:svg|png|jpe?g|webp|gif|ico|woff2?|ttf|mp3|mp4|m4a|wav|webm|ogg)$/i;
 const versionedOld=/BUKLOD_V2[5-7]|BUKLOD_D_(?:RESCUE|BACKUP)|BUKLODQ_R10_BUILD|(?:^|\/)RELEASES\//i;
+function exclusionCategory(p,reason) {
+  const name=norm(p||''),why=String(reason||'').toLowerCase();
+  if(/(?:^|\/)(?:sdk|platforms\/android-\d+|node_modules|\.gradle|\.expo|\.next|Pods|DerivedData|build|dist)(?:\/|$)/i.test(name))return 'regenerable_toolchain_or_build';
+  if(/unreadable|not found|unavailable|could not|failed|error/i.test(why))return 'unavailable_or_read_error';
+  if(versionedOld.test(name)||/old|historical|legacy/i.test(why))return 'historical_review';
+  if(/\.((?:apk|aab|ipa|exe|dll|zip|7z|rar|tar|gz|sqlite|db|bak|dump|pdf|docx?|xlsx?))$/i.test(name))return 'archive_database_or_artifact_review';
+  if(/sensitive|secret|credentials/i.test(why))return 'sensitive_vault_review';
+  if(/non-source|unknown|oversized|asset/i.test(why))return 'asset_or_noncode_review';
+  return 'other_or_unclassified';
+}
 function inspectFile(full,name) {
   if(noSource.test(name)||sdkPath.test(name)||generatedSpecial.test(name))return {status:'generated'};
   if(sensitiveName.test(name))return {status:'sensitive'};
@@ -109,6 +119,12 @@ try{
     if(c.status==='recover')recover.push({rel,kind:c.kind,size:c.size});
     if(c.status==='sensitive'||c.status==='sensitive_content'||c.status==='unreadable')quarantined.push({rel,reason:c.status});
   }
+  const excludedGroups={};
+  for(const e of (prior.excluded||[])) {
+    const k=exclusionCategory(e.path,e.reason);
+    excludedGroups[k]=(excludedGroups[k]||0)+1;
+  }
+  excludedGroups.not_itemized_in_original_report=Number(prior.unlistedExclusions||0);
   const perSystem={};
   for(const x of recover){const g=system(x.rel);const y=perSystem[g]||(perSystem[g]={files:0,code:0,assets:0,other:0,bytes:0});
     y.files++;y.bytes+=x.size;if(x.kind==='source_code')y.code++;else if(x.kind==='asset')y.assets++;else y.other++}
@@ -116,6 +132,7 @@ try{
     categories:cats,categorySamples:examples,recoveryBySystem:perSystem,
     quarantinedCount:quarantined.length,quarantinedSamples:quarantined.slice(0,30),
     sourceFilesInPreviousCommit:tracked.size,exclusionsRemaining:prior.excluded.length+Number(prior.unlistedExclusions||0),
+    exclusionsByCategory:excludedGroups,
     excludedEntriesWithoutItemization:Number(prior.unlistedExclusions||0),
     note:'Counts represent local staged source, NOT full proof of all available BUKLOD assets or operational builds'};
   save(output);
@@ -156,7 +173,8 @@ try{
     sourceRefinedBranch:refinedBranch,sourceEssentialsBranch:cleaned,
     priorTrackedFileCount:tracked.size,stagedButIgnored:missing.length,
     addedRecoverableIgnoredSourceFiles:recover.length,quarantinedFileCount:quarantined.length,
-    skippedByCategory:cats,recoveredBySystem:perSystem,
+    stagedMissingByCategory:cats,excludedFromEarlierWaveByCategory:excludedGroups,
+    recoveredBySystem:perSystem,
     packagesFound:output.projectsWithManifest,
     pending:'Canonical current DEV and RC reconciliation, app-specific cloud builds, unavailable/old/large asset review, credential vault and recovery validation',
     noLocalProjectDeletion:true,allAppsCertifiedRemotelyBuildable:false
@@ -172,7 +190,7 @@ try{
     'Previously untracked staged files: '+missing.length,
     'Recovered after safe classification: '+recover.length,
     'Quarantined for local/private review: '+quarantined.length,
-    'Unresolved previous exclusions: '+cloudReport.skippedByCategory.generated+' generated + other categories; see JSON.',
+    'Unresolved previous exclusions: '+output.report.exclusionsRemaining+' (not-itemized: '+excludedGroups.not_itemized_in_original_report+'); see JSON.',
     '',
     '## Important',
     'No build, runtime, signing, data-backup, or complete app cloud-edit certification has been performed.',
@@ -202,6 +220,8 @@ try{
   console.log('Remote branch:',output.remoteURL);
   console.log('Staged but missing:',missing.length,'safely recovered:',recover.length);
   console.log('Remaining quarantined:',quarantined.length);
+  console.log('Previous excluded items, not individually itemized:',excludedGroups.not_itemized_in_original_report);
+  console.log('Previous exclusions, categorized:',JSON.stringify(excludedGroups));
   console.log('Project candidates:',output.projects.length,'with package manifests:',output.projectsWithManifest);
   console.log('Git remote and fresh clone SHA: VERIFIED');
   console.log('Report:',resultPath);
