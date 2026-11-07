@@ -74,6 +74,18 @@ test('Only active proximity-authorized incidents can be displayed and responded 
   assert.match(locked, /Private raw coordinates/);
 });
 
+test('Stale location requires explicit foreground opt-in and does not bypass the active device version gate',()=>{
+  assert.match(host, /Alert\.alert\('Enable nearby safety alerts\?'/);
+  assert.match(host, /Location\.requestForegroundPermissionsAsync\(\)/);
+  assert.match(host, /Location\.getCurrentPositionAsync\(/);
+  assert.match(host, /supabase\.rpc\('buklod_help_update_presence'/);
+  assert.match(host, /p_enabled: true/);
+  assert.match(host, /Enable nearby alerts to verify/);
+  assert.match(host, /Boolean\(config\?\.update_required\)/);
+  assert.match(host, /Boolean\(config\?\.maintenance_mode\)/);
+  assert.match(host, /Verifying emergency alert/);
+});
+
 test('Push is primary; bounded foreground polling and dedupe recover missed pushes',()=>{
   assert.match(host, /FOREGROUND_INBOX_MS = 45_000/);
   assert.match(host, /ACTIVE_REFRESH_MS = 15_000/);
