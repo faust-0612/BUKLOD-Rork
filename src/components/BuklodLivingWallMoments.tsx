@@ -93,7 +93,7 @@ export default function BuklodLivingWallMoments() {
         birthDate,
         latestKl,
         faithEnabled,
-        unreadCount,
+        unreadCount: faithEnabled ? unreadCount : 0,
       });
       try {
         const seen = await AsyncStorage.multiGet(
