@@ -102,7 +102,8 @@
     "Post photo and text motion presets respect reduced-motion accessibility",
     "Optional music errors do not erase posted messages",
     "Shared audio focus avoids competing Wall music, Premium Deck and DZAS playback",
-    "No music copyright rights implied by technical feature availability"
+    "No music copyright rights implied by technical feature availability",
+    "Public Wall Music must preserve FlashList scroll, pagination, ads viewability and pause off-screen audio without navigation mutation"
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -146,7 +147,8 @@
     "kingdom-navigation-accessibility",
     "gameplay-save-concurrency",
     "auth-privacy",
-    "wall-media"
+    "wall-media",
+    "navigation-scroll"
   ],
   "regressionTests": [
     "supabase/tests/buklod_points_r2_reward_integrity.sql",
@@ -176,7 +178,8 @@
     "tests/bsoc-release-identity-20261108.test.mjs",
     "supabase/tests/bsoc_live_chat_authorization.sql",
     "tests/cluster-editor-keyboard-safe.test.mjs",
-    "tests/wall-post-music-motion-contract.test.mjs"
+    "tests/wall-post-music-motion-contract.test.mjs",
+    "tests/wall-post-music-navigation-scroll.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/points-r2-verified-live-rewards-20261107.json",
@@ -342,6 +345,7 @@
     "tests/kingdom-premium-map-r6.test.mjs",
     "tests/kingdom-production-ota-r12.test.mjs",
     "tests/kingdom-staging-performance-r11.test.mjs",
-    "tests/wall-post-music-motion-contract.test.mjs"
+    "tests/wall-post-music-motion-contract.test.mjs",
+    "tests/wall-post-music-navigation-scroll.test.mjs"
   ]
 }
