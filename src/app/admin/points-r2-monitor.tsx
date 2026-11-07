@@ -7,7 +7,7 @@ type Activity={type:string;label:string;configured_points:number|null;active:boo
 type Nom={id:string;user_id:string;type:string;status:string;evidence_note:string;submitted_at:string};
 type Pipeline={
  bible_quiz:{daily_attempts:number;completed:number;rewarded:number};
- attendance:{cluster_present_or_late_records:number;scope_points_credits:number};
+ attendance:{cluster_present_or_late_records:number;scope_points_credits:number;home_checkins:number;home_pending:number;home_approved:number;home_rejected:number;home_rewarded:number};
  mentoring:{reported:number;approved:number;pending_pastor:number;pending_admin:number};
 };
 type Report={as_of:string;activities:Activity[];nominations:{pending:number;approved:number;rejected:number};recent_nominations:Nom[];
@@ -106,6 +106,7 @@ export default function R2AdminMonitor(){
  {pipeline&&<View style={s.card}>
    <Text style={s.heading}>Live earning pipeline (30 days)</Text>
    <Text style={s.stat}>Bible Quiz: {pipeline.bible_quiz.daily_attempts} started, {pipeline.bible_quiz.completed} completed, {pipeline.bible_quiz.rewarded} rewarded</Text>
+   <Text style={s.stat}>Home Check In Today: {pipeline.attendance.home_checkins} submitted, {pipeline.attendance.home_pending} pending, {pipeline.attendance.home_approved} approved, {pipeline.attendance.home_rejected} rejected, {pipeline.attendance.home_rewarded} credited</Text>
    <Text style={s.stat}>Cluster attendance: {pipeline.attendance.cluster_present_or_late_records} recorded present/late, {pipeline.attendance.scope_points_credits} scope attendance credits</Text>
    <Text style={s.stat}>Mentoring: {pipeline.mentoring.reported} reported, {pipeline.mentoring.approved} approved, {pipeline.mentoring.pending_pastor} awaiting Pastor, {pipeline.mentoring.pending_admin} awaiting Admin</Text>
    <Text style={s.info}>Attendance record counts and rewarded counts are separate audit measures; late corrections and non-Cluster scope awards can differ.</Text>
