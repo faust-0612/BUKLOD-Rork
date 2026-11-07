@@ -147,6 +147,6 @@ test('R13: all 39 games retain in-app selection, account isolation and Map back 
 
 test('R13: interior callback persists original game only for authenticated account', () => {
  const ui=read('src/features/games/kingdom/platform/KingdomInteriorCenter.tsx');
- assert.match(ui,/if \(user\?\.id\) void recordBuklodKingdomPreviewResult\(result, user\.id\)\.catch/);
+ assert.match(ui,/const owner = user\?\.id;\s*if \(!owner\) return;\s*void recordBuklodKingdomPreviewResult\(result, owner\)/);
  assert.doesNotMatch(ui,/recordBuklodKingdomPreviewResult\(result\);/);
 });

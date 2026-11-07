@@ -18,7 +18,7 @@ test('reward gate is DB-owned, account-scoped, bounded and idempotent', () => {
   assert.match(sql, /auth\.uid\(\)/);
   assert.match(sql, /pg_advisory_xact_lock/);
   assert.match(sql, /if v_count>=3 then raise exception/);
-  assert.match(sql, /v_attempt\.user_id=v_uid/);
+  assert.match(sql, /where a\.id=p_challenge_id and a\.user_id=v_uid/);
   assert.match(sql, /on conflict\(user_id,source_key\) do nothing/);
   assert.match(sql, /v_q\.answer_index-v_rotation\+4/);
   assert.match(sql, /v_rotation := floor\(random\(\)\*4\)/);
