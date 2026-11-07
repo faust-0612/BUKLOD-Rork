@@ -14,7 +14,8 @@
   "riskAreas": [
     "navigation-scroll",
     "connect",
-    "auth-privacy"
+    "auth-privacy",
+    "faith-cluster"
   ],
   "preserveBehaviors": [
     "Current Main Wall, SOS, ads, Bible, Classroom, Quiz and Character untouched",
@@ -23,7 +24,8 @@
     "Mobile and Android scoped Connect layout remains the original full thread",
     "Sidebar pending navigation tied to signed-in owner and latest click, with failure feedback",
     "Other DEV branches and Android OTA untouched",
-    "Production manual Expo Web release and exact SHA gates unchanged"
+    "Production manual Expo Web release and exact SHA gates unchanged",
+    "Scope home faith/formation dashboard content remains untouched; preserve existing Cluster-only content and controls"
   ],
   "acceptanceChecks": [
     "Desktop Cluster/Org Connect starts bounded 340px high and <=740px wide",
