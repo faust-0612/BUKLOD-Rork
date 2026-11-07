@@ -115,4 +115,5 @@ BEGIN
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.buklod_admin_review_paid_ad_v1(uuid,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.buklod_admin_review_paid_ad_v1(uuid,text) FROM anon;
 GRANT EXECUTE ON FUNCTION public.buklod_admin_review_paid_ad_v1(uuid,text) TO authenticated;
