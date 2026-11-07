@@ -547,7 +547,7 @@ try{
      run(GH,["release","upload",release,loc,"--repo",REPO],{mode:"inherit",timeout:3*60*60*1000});
    }else console.log("Checking already uploaded V6 volume",k+1,"of",parts.length);
    assert(validateRemotePart(release,part,loc),"Cloud repair volume missing.");
-   state.v5RemoteVolumesVerified=k+1;checkpoint();
+   state.v6RemoteVolumesVerified=k+1;checkpoint();
  }
  state.status="V6_ALL_MISSING_ARCHIVE_FILES_RECOVERED_AND_CLOUD_VERIFIED";
  state.v6RepairArchiveVerified=true; // Previous V4 repair remained partial; V6 is independent.
