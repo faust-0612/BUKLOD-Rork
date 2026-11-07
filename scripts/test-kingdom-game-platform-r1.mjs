@@ -40,11 +40,11 @@ assert.equal(new Set(all.map((g) => g.id)).size, 39, 'duplicate game IDs');
 assert.equal(new Set(catalog.characters.map((c) => c.characterId)).size, 13, 'duplicate characters');
 assert.equal(new Set(catalog.characters.map((c) => c.stationId)).size, 13, 'duplicate stations');
 assert.equal(all.filter((g) => g.status === 'existing').length, 13);
-assert.equal(all.filter((g) => g.status === 'pilot').length, 6);
-assert.equal(all.filter((g) => g.status === 'planned').length, 20);
+assert.equal(all.filter((g) => g.status === 'pilot').length, 9);
+assert.equal(all.filter((g) => g.status === 'planned').length, 17);
 assert.deepEqual(
   all.filter((g) => g.status === 'pilot').map(g => g.id).sort(),
-  ['christian-bible-crown', 'christian-scripture-word-search', 'mitch-block-forge', 'van-sudoku-master', 'quin-code-breaker', 'elesur-domino-village'].sort(),
+  ['christian-bible-crown', 'christian-scripture-word-search', 'mitch-block-forge', 'van-sudoku-master', 'quin-code-breaker', 'elesur-domino-village', 'jawo-trail-maze', 'trudice-picture-pairs', 'angel-number-vault'].sort(),
 );
 
 for (const centerData of catalog.characters) {
@@ -92,4 +92,4 @@ assert.ok(!center.includes('maybeShowBuklodInterstitial('));
 assert.ok(blueprint.includes('BUKLOD Empire is an independent'));
 assert.ok(blueprint.includes('No economy grant from client code') || blueprint.includes('Do NOT silently reuse globally keyed'));
 
-console.log('KINGDOM GAME PLATFORM TEST PASSED: immutable map; 13 centers; 39 unique games; six pilots; 15 bilingual questions; original games and economy isolation.');
+console.log('KINGDOM GAME PLATFORM TEST PASSED: immutable map; 13 centers; 39 unique games; nine pilots; 15 bilingual questions; original games and economy isolation.');

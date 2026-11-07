@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Consolidated DEV implementation of BUKLOD Kingdom R1-R6 on current main, preserving new Word/KL app improvements. Continue remaining 20 games in one development branch and release once to staging-user only after completed implementation and automated gates.",
+  "objective": "Continue consolidated BUKLOD Kingdom implementation in the BUKLOD App: add three new playable, offline, account-scoped local preview games (Jawo Trail Maze, Trudice Picture Pairs and Angel Number Vault) while preserving 13 original games, 13 stations, approved map, ads/economy rules and newest main changes.",
   "baseRef": "0be759bd27d4771bac2b40b4939cb2a115ef7d3a",
   "productionBaselineEvidence": "Reconciled from main 0be759bd27d4771bac2b40b4939cb2a115ef7d3a with base tree ae598a20029d4d4b93472f249b663690eacfd45c. Verified 32 Kingdom changes had zero file-path overlap with main changes since common base 59fe3df64700465ae3f37726e73a31d07c748042. Copy exact R6 blob hashes; no broad stale merge. Live production OTA and installed staging-user binary/environment remain unverified. No OTA authorized.",
-  "chosenApproach": "Forward-port only 32 R6 Kingdom file blobs onto latest main tree as a single auditable DEV commit; keep main's unrelated changes exactly unchanged. Continue one consolidated candidate branch.",
-  "selectionRationale": "No changed-path collisions; exact git blob overlay preserves source while avoiding costly repeated cherry-picks and unrelated regression.",
+  "chosenApproach": "New pure deterministic rule engines and themed RN game scenes; reuse the existing in-app /games station routes and account-scoped KingdomInteriorCenter; no new native dependencies or direct rewards. Consolidated branch continues from current main.",
+  "selectionRationale": "Three different robust genres (maze, memory, arithmetic) expand gameplay variety without bloating native APK, and reusable result/center integration prevents authentication/economy regressions.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
     "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
@@ -52,7 +52,11 @@
     "Render terrain with one lightweight SVG instead of 8 BuklodGameBackdrop thumbnails + 13 perpetual Animated.loop instances.",
     "Test station geometry and curves against legacy source byte-exact, map-only changes no BUKLOD Points or ads mutations.",
     "Verify new consolidated commit parent is exact main 0be759bd27d4771bac2b40b4939cb2a115ef7d3a and file changes are restricted to 32 Kingdom paths; retain all current-main KL/Word file blobs unchanged.",
-    "Keep staging-only OTA gated until all 39 game content is implemented and main/staging runtime/environment align; skip physical device testing by explicit owner request, never mark it passed."
+    "Keep staging-only OTA gated until all 39 game content is implemented and main/staging runtime/environment align; skip physical device testing by explicit owner request, never mark it passed.",
+    "Trail Maze: all 3 seeded levels are fully reachable with relics and exit, legal moves are immutable, and completion requires collecting all relics.",
+    "Picture Pairs: 3 seeded decks contain exactly 2 of every symbol; two-card turns, mismatch delay/settle, pause/resume and match wins cannot double-award.",
+    "Number Vault: 3 curated arithmetic puzzles are solvable using all tiles once; only bounded exact integer operations are permitted; undo, hints and retries work.",
+    "Catalog must retain 13 original games, 9 playable pilots and 17 planned, with canonical map blob and route names unchanged."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
@@ -60,7 +64,8 @@
     "tests/kingdom-games-r3.test.mjs",
     "tests/kingdom-games-r4.test.mjs",
     "tests/kingdom-games-r5.test.mjs",
-    "tests/kingdom-premium-map-r6.test.mjs"
+    "tests/kingdom-premium-map-r6.test.mjs",
+    "tests/kingdom-games-r7.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-game-platform-20261107.json",
@@ -94,6 +99,16 @@
     "tests/kingdom-games-r5.test.mjs",
     "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
     "src/app/games/index.tsx",
-    "tests/kingdom-premium-map-r6.test.mjs"
+    "tests/kingdom-premium-map-r6.test.mjs",
+    "src/features/games/jawo/trailMazeRules.ts",
+    "src/features/games/jawo/TrailMazeGameV1.tsx",
+    "src/features/games/trudice/picturePairsRules.ts",
+    "src/features/games/trudice/PicturePairsGameV1.tsx",
+    "src/features/games/angel/numberVaultRules.ts",
+    "src/features/games/angel/NumberVaultGameV1.tsx",
+    "src/app/games/jawo-forest-trail.tsx",
+    "src/app/games/trudice-playground-memory.tsx",
+    "src/app/games/angel-kingdom-treasury.tsx",
+    "tests/kingdom-games-r7.test.mjs"
   ]
 }

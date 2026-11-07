@@ -136,7 +136,7 @@
           "id": "jawo-trail-maze",
           "title": "Trail Maze",
           "genre": "maze",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "jawo-nature-match",
@@ -160,7 +160,7 @@
           "id": "trudice-picture-pairs",
           "title": "Picture Pairs",
           "genre": "memory",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "trudice-word-garden",
@@ -256,7 +256,7 @@
           "id": "angel-number-vault",
           "title": "Number Vault",
           "genre": "numbers",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "angel-treasure-merge",
