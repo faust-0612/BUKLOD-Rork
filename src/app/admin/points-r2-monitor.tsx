@@ -4,24 +4,33 @@ import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 type Activity={type:string;label:string;configured_points:number|null;active:boolean|null;source?:string;earned_count:number;earned_points:number};
 type Nom={id:string;user_id:string;type:string;status:string;evidence_note:string;submitted_at:string};
+type Pipeline={
+ bible_quiz:{daily_attempts:number;completed:number;rewarded:number};
+ attendance:{cluster_present_or_late_records:number;scope_points_credits:number};
+ mentoring:{reported:number;approved:number;pending_pastor:number;pending_admin:number};
+};
 type Report={as_of:string;activities:Activity[];nominations:{pending:number;approved:number;rejected:number};recent_nominations:Nom[];
  mentor_photos:number;pending_mentoring_photos:number;focus:{total:number;participation:number;learning:number;impact:number;unclassified:number}};
 type Evidence={session_id:string;lesson:string;status:string;mentor_id:string;
  session_date:string;participant_count:number;photo_path:string|null};
 export default function R2AdminMonitor(){
- const[report,setReport]=useState<Report|null>(null);const[loading,setLoading]=useState(true);
+ const[report,setReport]=useState<Report|null>(null);const [pipeline,setPipeline]=useState<Pipeline|null>(null);
+ const[loading,setLoading]=useState(true);
  const[error,setError]=useState('');const[busy,setBusy]=useState<string|null>(null);
  const[notes,setNotes]=useState<Record<string,string>>({});
  const[photos,setPhotos]=useState<Evidence[]>([]);
  const[photoUrls,setPhotoUrls]=useState<Record<string,string>>({});
  const load=useCallback(async()=>{
   setLoading(true);setError('');
-  try{const [overview,evidence]=await Promise.all([
+  try{const [overview,evidence,pipelineResult]=await Promise.all([
     (supabase as any).rpc('admin_get_buklod_r2_rewards_monitor_v1'),
-    (supabase as any).rpc('admin_get_buklod_r2_mentor_evidence_v1')
+    (supabase as any).rpc('admin_get_buklod_r2_mentor_evidence_v1'),
+    (supabase as any).rpc('admin_get_buklod_r2_pipeline_monitor_v1')
    ]);
    if(overview.error)throw overview.error;
    if(evidence.error)throw evidence.error;
+   if(pipelineResult.error)throw pipelineResult.error;
+   setPipeline(pipelineResult.data as Pipeline);
    setReport(overview.data as Report);
    setPhotos(Array.isArray(evidence.data)?evidence.data:[]);
   }catch{setError('System Admin access or live monitor unavailable.');}
@@ -75,6 +84,13 @@ export default function R2AdminMonitor(){
  <Text style={s.stat}>New sessions still missing photo: {report.pending_mentoring_photos}</Text>
  </View>
 
+ {pipeline&&<View style={s.card}>
+   <Text style={s.heading}>Live earning pipeline (30 days)</Text>
+   <Text style={s.stat}>Bible Quiz: {pipeline.bible_quiz.daily_attempts} started, {pipeline.bible_quiz.completed} completed, {pipeline.bible_quiz.rewarded} rewarded</Text>
+   <Text style={s.stat}>Cluster attendance: {pipeline.attendance.cluster_present_or_late_records} recorded present/late, {pipeline.attendance.scope_points_credits} scope attendance credits</Text>
+   <Text style={s.stat}>Mentoring: {pipeline.mentoring.reported} reported, {pipeline.mentoring.approved} approved, {pipeline.mentoring.pending_pastor} awaiting Pastor, {pipeline.mentoring.pending_admin} awaiting Admin</Text>
+   <Text style={s.info}>Attendance record counts and rewarded counts are separate audit measures; late corrections and non-Cluster scope awards can differ.</Text>
+ </View>}
  <Text style={s.heading}>Mentoring Photo Evidence</Text>
  {photos.filter(p=>p.status==='pending_admin').length===0&&
    <Text style={s.info}>No mentor sessions awaiting final approval.</Text>}
