@@ -1,0 +1,110 @@
+{
+  "contractVersion": 2,
+  "objective": "BUKLOD Living Community: proactive, interactive, personalized and network-scoped greetings, notifications, birthday and welcome moments, KL release notices, and calendar-based celebrations without reviving retired standalone church features.",
+  "baseRef": "main",
+  "mainBaselineSha": "afdeb8f4ad3034328235a77342720c04212106c2",
+  "candidateBranch": "feature/living-wall-moments-20261107",
+  "state": "SOURCE_PREPARED_OTA_NOT_PUBLISHED",
+  "target": {
+    "androidApp": "org.mzbministry.buklod",
+    "productionExpoRuntime": "1.3.2",
+    "androidChannel": "production",
+    "web": "Expo Hosting",
+    "stagingChannel": "staging-user",
+    "productionPush": false,
+    "webDeploy": false
+  },
+  "backend": {
+    "project": "BUKLOD Connect",
+    "migrationPaths": [
+      "supabase/migrations/20261107225000_buklod_living_network_cluster_followers_r1.sql",
+      "supabase/migrations/20261107225500_buklod_living_global_events_r1.sql"
+    ],
+    "activationPath": "scripts/release/activate-buklod-living-community-r1.sql",
+    "state": "not applied; SQL integration dry-run under BEGIN/ROLLBACK only",
+    "activationGate": "Deploy verified client assets before manually activating scheduler: never activate while preparing an OTA."
+  },
+  "design": {
+    "privateMoments": [
+      "personal birthday",
+      "new account welcome",
+      "fresh Kabihasnang Ligaw episode",
+      "fixed Philippine holiday",
+      "unread notification awareness",
+      "daily actionable suggestion"
+    ],
+    "scopedEvents": [
+      "approved Cluster join",
+      "approved Organization join",
+      "consented follower network welcome",
+      "opt-in birthday celebration"
+    ],
+    "audience": "active Cluster and Organization peers, followers; public BUKLOD only for KL/holiday announcements",
+    "avoid": "obsolete standalone church_id or church directory",
+    "preferences": "Welcome can be disabled; birthday sharing requires explicit opt-in; locked profiles do not broadcast; faith-related celebration honors existing opt-out",
+    "safety": "no auto-posting in member's name; Batiin opens Connect; deduplicated, bounded notification delivery; no additional native dependency"
+  },
+  "preserveBehaviors": [
+    "Existing production sponsorship card slots on Wall and desktop Home",
+    "AdMob and web ad placements, payments, and admin approvals",
+    "Existing Community Wall media render, FlashList scroll, Reels and KL reader",
+    "Existing notification center and its direct message/Cluster request routes",
+    "Existing emergency SOS, PTT and security gates",
+    "Existing tab routing, user roles and current organization/cluster architecture"
+  ],
+  "riskAreas": [
+    "notifications",
+    "privacy",
+    "navigation",
+    "database-migrations",
+    "production-runtime"
+  ],
+  "acceptanceChecks": [
+    "Wall and Home display personal greeting immediately from authorized local data, then enrich if online",
+    "Followers and active Cluster/Organization members can see allowed greetings and open Connect",
+    "Birthday privacy default off, owner can update and revert",
+    "Approved KL release sends appropriate notice to all eligible users; draft/future KL never announced",
+    "Important fixed holidays generate one event per Manila day and respect faith preference",
+    "At most bounded notifications per worker cycle; concurrent runs cannot duplicate deliveries",
+    "Exact production runtime 1.3.2 preserved",
+    "Paid sponsorship unchanged on Wall and desktop Home",
+    "Backend migrations deploy only with release gate; activator runs after verified release",
+    "APK and web compile, focused tests and production verification before declaring OTA live"
+  ],
+  "verificationSoFar": [
+    "Main compared to candidate: candidate based on main afdeb8f4ad3034328235a77342720c04212106c2",
+    "Both migrations and activation SQL executed successfully within BEGIN/ROLLBACK transaction",
+    "Post-rollback query confirmed no living tables and zero scheduled jobs",
+    "Source inspection confirms main sponsorship components preserved",
+    "Expo app.config.js runtime 1.3.2 and release-script guard reconciled"
+  ],
+  "pendingReleaseGates": [
+    "Run new Jest/Node contract tests and selected existing regression suite on checked-out branch",
+    "Run TypeScript/Expo web compile and Android update bundle compile without publishing",
+    "Freeze exact candidate against latest main and establish installed production APK runtime 1.3.2 match",
+    "Apply reviewed DB schema migrations (not job activation) before or during coordinated client launch",
+    "Publish Android production OTA and Expo web together only when explicitly requested",
+    "Verify exact artifacts and live behavior before running manual birthday/notification activation script"
+  ],
+  "regressionTests": [
+    "__tests__/buklodLivingMoments.test.ts",
+    "tests/living-community-release-contract-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodLivingMoments.ts",
+    "src/components/BuklodLivingWallMoments.tsx",
+    "src/components/BuklodLivingNetworkMoments.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/notifications/celebrations.tsx",
+    "src/app/notifications/index.tsx",
+    "src/app/_layout.tsx",
+    "supabase/migrations/20261107225000_buklod_living_network_cluster_followers_r1.sql",
+    "supabase/migrations/20261107225500_buklod_living_global_events_r1.sql",
+    "scripts/release/activate-buklod-living-community-r1.sql",
+    "scripts/PUSH_MAIN_OTA.ps1",
+    "__tests__/buklodLivingMoments.test.ts",
+    "tests/living-community-release-contract-20261107.test.mjs",
+    ".buklod/scopes/living-community-ota-prepared-20261107.json"
+  ]
+}
