@@ -162,7 +162,8 @@ select jsonb_build_object(
   'impact',case when s.total>0 then round(s.impact*100.0/s.total,1) else 0 end,
   'other',case when s.total>0 then round(s.other*100.0/s.total,1) else 0 end),
  'my_milestones',(select coalesce(jsonb_agg(jsonb_build_object(
-   'type',activity_type,'status',status,'submitted_at',submitted_at,'reviewed_at',reviewed_at)
+   'type',activity_type,'status',status,'submitted_at',submitted_at,'reviewed_at',reviewed_at,
+   'review_note',review_note)
   order by submitted_at desc),'[]'::jsonb)
   from public.buklod_r2_achievement_nominations n
   where n.user_id=(select auth.uid()))
