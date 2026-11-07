@@ -29,6 +29,28 @@ const pinning = new Map<string, Promise<void>>();
 const trimming = new Map<string, Promise<void>>();
 const lastTrim = new Map<string, number>();
 
+// Copy a maximum of two already-downloaded files at once. A busy feed must
+// never unleash dozens of native disk writes or unbounded pending promises.
+const MAX_ACTIVE_COPIES = 2;
+const MAX_QUEUED_COPIES = 32;
+let activeCopies = 0;
+const waitingCopies: Array<() => void> = [];
+async function acquireCopySlot(): Promise<boolean> {
+  if (activeCopies < MAX_ACTIVE_COPIES) {
+    activeCopies += 1;
+    return true;
+  }
+  if (waitingCopies.length >= MAX_QUEUED_COPIES) return false;
+  await new Promise<void>(resolve => waitingCopies.push(resolve));
+  // Ownership transfers from the finishing slot; do not increment.
+  return true;
+}
+function releaseCopySlot() {
+  const next = waitingCopies.shift();
+  if (next) next();
+  else activeCopies = Math.max(0, activeCopies - 1);
+}
+
 const scopedKey = (owner: string, path: string) => `${owner}\n${path}`;
 const asFileUri = (path: string) => /^(file|content):\/\//i.test(path) ? path : `file://${path}`;
 const localFile = (path: string) => /^(file|content):\/\//i.test(path);
@@ -108,7 +130,8 @@ async function trimAccount(owner: string) {
   lastTrim.set(owner, now);
   const task = (async () => {
     const directory = ownerDirectory(owner);
-    const names = await FileSystem.readDirectoryAsync(directory).catch(() => []);
+    const names = (await FileSystem.readDirectoryAsync(directory).catch(() => []))
+      .filter(name => !name.endsWith('.part'));
     const files: { uri: string; size: number; age: number }[] = [];
     // Small, bounded batches avoid an I/O storm after restoring connectivity.
     for (let i = 0; i < names.length; i += 8) {
@@ -182,6 +205,8 @@ export async function pinLoadedCommunityWallPhoto(input: {
     if (!size || size > MAX_SINGLE_PHOTO_BYTES) return;
     const dir = ownerDirectory(owner);
     await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+    const granted = await acquireCopySlot();
+    if (!granted) return; // Expo disk cache remains available without an extra download.
     const temporary = `${destination}.${Crypto.randomUUID()}.part`;
     try {
       await FileSystem.copyAsync({ from: existing, to: temporary });
@@ -196,6 +221,7 @@ export async function pinLoadedCommunityWallPhoto(input: {
       }
     } finally {
       await FileSystem.deleteAsync(temporary, { idempotent: true }).catch(() => undefined);
+      releaseCopySlot();
     }
   })().catch(() => undefined).finally(() => pinning.delete(key));
   pinning.set(key, task);
