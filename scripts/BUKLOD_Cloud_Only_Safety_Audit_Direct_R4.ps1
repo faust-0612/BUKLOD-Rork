@@ -77,8 +77,17 @@ $work=Join-Path $env:TEMP ('BUKLOD_R4_DIRECT_'+(Get-Date -Format 'yyyyMMdd-HHmms
 $cloud=Join-Path $work 'source'
 New-Item -ItemType Directory -Force -Path $work|Out-Null
 Write-Host 'Downloading verified source from private GitHub into TEMP; original laptop files are read-only...'
-& git clone --quiet --filter=blob:none --sparse --depth 1 --single-branch --branch migration/quiz-canonical-source-20261107 https://github.com/faust-0612/BUKLOD-Migrated-Sources.git $cloud
+# Override global Windows Git core.autocrlf=true before checkout. Do not
+# normalize the archived content or weaken SHA-256 comparisons.
+& git clone -c core.autocrlf=false -c core.eol=lf --quiet --filter=blob:none --sparse --depth 1 --single-branch --branch migration/quiz-canonical-source-20261107 https://github.com/faust-0612/BUKLOD-Migrated-Sources.git $cloud
 if($LASTEXITCODE -ne 0){throw 'GitHub clone failed; verify Git credentials and private repository access.'}
+# Guard against Git/Windows core.autocrlf conversion before fetching blobs.
+$autocrlf = (& git -C $cloud config --local --get core.autocrlf).Trim().ToLowerInvariant()
+$lineEnding = (& git -C $cloud config --local --get core.eol).Trim().ToLowerInvariant()
+if ($autocrlf -ne 'false' -or $lineEnding -ne 'lf') {
+  throw 'Cloud checkout would change archived bytes; Git line-ending config is not safe.'
+}
+Write-Host 'Git checkout: core.autocrlf=false, core.eol=lf (byte-preserving verification).'
 & git -C $cloud sparse-checkout set "$prefix/BUKLODQ_R10_BUILD_project_3d5647803088_04e596c8cfeb" "$prefix/BUKLODQ_BUILD_project_8374b517b993_481385774640"
 if($LASTEXITCODE -ne 0){throw 'Cloud sparse checkout failed; originals unchanged.'}
 $head=(& git -C $cloud rev-parse HEAD).Trim()
@@ -98,8 +107,13 @@ foreach($c in $cases){
   if($expected.ContainsKey($rel)){throw "Duplicate cloud path: $rel"}
   $f=Join-Path $base (Rel $rel)
   if(-not (Test-Path -LiteralPath $f -PathType Leaf)){throw "Cloud file missing: $rel"}
-  if((Get-Item -LiteralPath $f).Length -ne [long]$it.bytes -or
-    (Sha $f) -ne ([string]$it.sha256).ToLowerInvariant()){throw "Cloud SHA-256 mismatch: $rel"}
+  # Compare exact bytes; never normalize hashes after the fact.
+  $actualSize=(Get-Item -LiteralPath $f).Length
+  $actualSha=Sha $f
+  if($actualSize -ne [long]$it.bytes -or
+     $actualSha -ne ([string]$it.sha256).ToLowerInvariant()){
+    throw "Cloud SHA-256 mismatch: $rel (expected size $($it.bytes), checked-out size $actualSize; audit stopped)."
+  }
   $expected[$rel]=$it;$verified++
  }
  $localResult=LocalCheck $c.local $expected
