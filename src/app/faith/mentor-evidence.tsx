@@ -120,7 +120,7 @@ export default function MentorTeachingPhotoEvidence(){
       current.filter(id=>id!==d.disciple_id):[...current,d.disciple_id])}>
    <Text style={s.lessonLabel}>{selectedDisciples.includes(d.disciple_id)?'☑':'☐'} {d.disciple_name}</Text>
   </Pressable>)}
-  {disciples.length===0&&<Text style={s.meta}>No assigned mentees. Ask the Pastor to assign learners before reporting a new session.</Text>
+  {disciples.length===0&&<Text style={s.meta}>No assigned mentees. Ask the Pastor to assign learners before reporting a new session.</Text>}
   <TextInput style={[s.field,{minHeight:88}]} multiline textAlignVertical="top"
     placeholder="Teaching summary and location (20+ characters)"
     placeholderTextColor="#859688" value={notes} onChangeText={setNotes} maxLength={2000}/>
