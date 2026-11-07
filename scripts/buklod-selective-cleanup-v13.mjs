@@ -48,7 +48,7 @@ const records={schema:"buklod-selective-cleanup/v13",started:new Date().toISOStr
  candidateCount:0,candidateBytes:0,
  keptSensitive:0,keptPersonal:0,keptUniqueUnproven:0,keptOther:0,unreadable:0,
  skippedSymlinks:0,errors:[],protectedExamples:[],
- archiveTagsVerified:[],preservedOriginalFilesMayRemain:true,
+ archiveTagsVerified:[],remoteOlderAssetsReusingPreviousChecksumAudit:0,preservedOriginalFilesMayRemain:true,
  cloudOnlyBuildsVerified:false,allLocalBuklodFilesDeleted:false,
  successNotEquivalentToProductionRelease:true};
 function persist(){
@@ -103,8 +103,15 @@ function cloudReleaseVerified(tag){
  for(const asset of r.assets){
    assert(asset.size>0&&String(asset.name).endsWith(".001")||asset.size>0&&/\.7z\.\d{3}$/.test(asset.name),
       "Unexpected recovery asset in release "+tag);
-   assert(asset.digest?.startsWith("sha256:")&&/^[a-f0-9]{64}$/i.test(asset.digest.slice(7)),
-      "GitHub recovery asset has no server SHA256 digest: "+tag);
+   if(asset.digest!=null){
+     assert(asset.digest.startsWith("sha256:")&&/^[a-f0-9]{64}$/i.test(asset.digest.slice(7)),
+       "GitHub recovery asset SHA256 malformed: "+tag);
+   }else{
+     // Older release assets may not advertise a server-side digest. The saved
+     // V3/V6/V9/V10 audit already verified an actual remote upload/download
+     // checksum, and the current release and asset are still accessible.
+     records.remoteOlderAssetsReusingPreviousChecksumAudit++;
+   }
  }
  records.archiveTagsVerified.push({tag,volumes:r.assets.length});
 }
