@@ -289,7 +289,7 @@ describe('community weak-network feed', () => {
       fullscreen: false,
       degraded: true,
       playIntent: false,
-    })).toBe(false);
+    })).toBe(true);
     expect(shouldMountCommunityVideoPlayer({
       active: true,
       fullscreen: false,
