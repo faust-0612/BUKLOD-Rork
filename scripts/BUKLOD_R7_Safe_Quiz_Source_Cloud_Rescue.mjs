@@ -243,7 +243,22 @@ async function main(){
   const temp=fs.mkdtempSync(path.join(os.tmpdir(),'buklod-r7-verified-upload-'));
   let completed=false;
   const counted=countByCategory();
-  const files=[],details={};
+  const files=[];
+  const withheldByExtension={};
+  function noteWithheld(row,reason){
+    const extension=path.extname(row.relative).toLowerCase();
+    const safeExtension=/^\.[a-z0-9]{1,12}$/.test(extension)?extension:'[none/other]';
+    const key=reason+':'+safeExtension;
+    const count=withheldByExtension[key]||(withheldByExtension[key]={files:0,bytes:0});
+    count.files++;
+    const bytes=Number(row.bytes);
+    if(Number.isSafeInteger(bytes)&&bytes>=0)count.bytes+=bytes;
+  }
+  const preExcludedInR5={
+    generated:Number(r5.candidates.reduce((n,c)=>n+Number(c.extrasByCategory.generated_or_dependency||0),0)),
+    protected:Number(r5.candidates.reduce((n,c)=>n+Number(c.extrasByCategory.protected_credentials_or_data||0),0)),
+    missingLocallyButArchived:Number(r5.candidates.reduce((n,c)=>n+Number(c.missingLocallyButCloudArchived||0),0))
+  };
   let stagedBytes=0, considered=0;
   try{
     const work=path.join(temp,'git');
@@ -255,11 +270,12 @@ async function main(){
       if(row.kind==='MISSING_LOCALLY_BUT_IN_CLOUD')continue;
       considered++;
       if(considered>MAX_FILES)throw new Error('Maximum R7 file scan bound exceeded');
+      if(considered%1500===0)console.log('R7 local safe scan: '+considered+' entries reviewed; '+files.length+' technical files staged.');
       const rel=safeRelative(row.relative);
       if(looksProtectedName(rel)){counted.protected++;continue;}
       if(generatedPath(rel)){counted.generated++;continue;}
-      if(!ALLOWED.has(row.category)){counted.unknown++;continue;}
-      if(!allowedTechnicalFile(rel,row.category)){counted.nontechnical_document++;continue;}
+      if(!ALLOWED.has(row.category)){counted.unknown++;noteWithheld(row,'unknown');continue;}
+      if(!allowedTechnicalFile(rel,row.category)){counted.nontechnical_document++;noteWithheld(row,'nontechnical');continue;}
       const originalBytes=Number(row.bytes);
       if(!Number.isSafeInteger(originalBytes)||originalBytes<0){counted.unreadable++;continue;}
       if(originalBytes>MAX_SINGLE_FILE){counted.oversize++;continue;}
@@ -322,7 +338,7 @@ async function main(){
     const expectedIndex=files.length+2;
     requireSafe(stageAndCommit(work)===expectedIndex,
                 'Git staged file count does not match verified R7 manifest');
-    git(['-C',work,'commit','-q','-m','recovery(quiz): preserve sanitized unmatched local source from R4/R5/R6']);
+    git(['-C',work,'commit','-q','-m','recovery(quiz): preserve sanitized local technical source [skip ci]']);
     const head=git(['-C',work,'rev-parse','HEAD']);
     console.log('R7: '+files.length+' non-protected files staged ('+stagedBytes+' bytes). Uploading one new PRIVATE recovery branch...');
     git(['-C',work,'push','--quiet','--set-upstream','origin','HEAD:refs/heads/'+branch],{timeout:300000});
@@ -352,6 +368,10 @@ async function main(){
       branch,commit:head,sourceCommit:R4_SHA,
       stagedFiles:files.length,stagedBytes,countsBySafetyCategory:counted,
       filesSkippedTotal:considered-files.length,
+      additionalFilesOmittedFromR5PrivateDetails:preExcludedInR5,
+      withheldTechnicalClassificationByExtension:Object.entries(withheldByExtension)
+        .sort((a,b)=>b[1].files-a[1].files).slice(0,48)
+        .map(([reasonAndExtension,totals])=>({reasonAndExtension,...totals})),
       freshIndependentCloudCloneVerified:true,
       allRestoredSha256Verified:true,
       rawProtectedFilesUploaded:false,
