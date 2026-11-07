@@ -63,8 +63,9 @@ test('Jawo Maze: actually collect every relic and exit using legal moves, never 
     let run = createMazeRun(index);
     let moves = 0;
     for (const destination of [...run.board.relics, run.board.exit]) {
+      if (run.status === 'won') break; // Valid finish may occur en route after earlier automatic relic pickups.
       const steps = route(run.board, run.position, destination);
-      for (let i = 1; i < steps.length; i++) {
+      for (let i = 1; i < steps.length && run.status === 'playing'; i++) {
         const prior = run;
         const from = steps[i - 1], to = steps[i];
         const dr = to.row - from.row, dc = to.col - from.col;

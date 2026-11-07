@@ -146,7 +146,7 @@ export function TrailMazeGameV1({ onFinish }: Props) {
                   !wall && memo && visited.includes(marker) && s.visited,
                   isExit && s.exit,
                 ]}>{isPlayer
-                  ? <MaterialCommunityIcons name="human-hiking" color="#fff9d9" size={run.board.size === 21 ? 12 : 15} />
+                  ? <MaterialCommunityIcons name="walk" color="#fff9d9" size={run.board.size === 21 ? 12 : 15} />
                   : isRelic ? <MaterialCommunityIcons name="star-four-points" color="#ffe0a1" size={run.board.size === 21 ? 10 : 13} />
                   : isExit ? <MaterialCommunityIcons name="door-open" color="#efdbc0" size={run.board.size === 21 ? 10 : 13}/>
                   : null}</View>;
