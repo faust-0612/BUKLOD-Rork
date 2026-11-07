@@ -212,6 +212,10 @@ if(process.argv.includes("--self-test")){
    assert(fs.existsSync(t),"Removing temp hardlink affected source file");
    const safe=norm("payload\\data\\000001.dat");
    assert(safe==="payload/data/000001.dat","Fixed indexed archive path invalid");
+   const synthetic="7-Zip test\\n\\n----------\\nPath = archive.7z\\nType = 7z\\n\\n----------\\n".replaceAll("\\n","\n")+
+     Array.from({length:2632},(_,i)=>"Path = "+(i===0?"payload/PRIVATE_V6_RESTORE_MAP.json":"payload/data/"+String(i).padStart(6,"0")+".dat")+
+       "\nSize = 9\nCRC = CBF43926\nFolder = -\n\n").join("");
+   assert(list7zText(synthetic,"fixture").length===2632,"Encrypted 2632-file listing parser test failed");
  }finally{fs.rmSync(testDir,{recursive:true,force:true})}
  console.log("SELF TEST PASSED: CRC32, deterministic paths, -spf2 drive isolation, and non-destructive staging hardlinks.");process.exit(0)
 }
