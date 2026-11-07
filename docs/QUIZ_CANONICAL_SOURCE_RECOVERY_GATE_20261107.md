@@ -26,3 +26,16 @@ Verified via connected GitHub reads: both source candidates have package name `b
 Current source/live vs Main staging: 61,959 saved responses / 952 attempts and 475 non-secret Auth/profile snapshots, 0 unexpired STARTED attempts when rechecked. Five identities remain review-required, 24 source-only and 62 differing RPC signatures need behavioral reconciliation. Source private Storage still has 98 objects, Main has 12 source-path matches, 86 source paths still missing. Prior secured transfer worker was retired after connector blocked the authorized transfer; both workers are inert HTTP 410 and no temporary transfer credential remains.
 
 **Completion contract:** NOT DONE. No source deletion or dedicated DB retirement until canonical source is cloud-verified, deployable standalone Quiz exam UI is rebuilt/verified, 86 files checksum-transferred, identity/RPC parity is secure, end-to-end student/faculty scenarios pass, and production cutover to BUKLOD Main is monitored and verified. 
+
+## 2026-11-07 user PC execution — root cause and fix
+
+Owner executed the original `scripts/BUKLOD_QUIZ_CLOUD_RECOVERY_R1.cjs --push` in Windows PowerShell and received `BLOCKER: NOT CANONICAL QUIZ: required file missing: package.json`. The script had resolved its *single default* root to `%USERPROFILE%\\Downloads\\BUKLOD_Quiz_Standalone` and stopped before any file transfer or cloning. **This does not prove source loss**; the intended canonical files may be inside a moved/nested project, e.g. `C:\\BUKLODQ_BUILD\\project`. The tool also over-required two particular `src/lib` helpers even though the older verified forensic locator only required `package.json`, `app/exam.tsx`, `app/live-join.tsx`, and either `lib/supabase.ts` or `src/lib/supabase.ts`.
+
+Committed script improvements on DEV (latest commit `44f00d4c952e2710548dc571cc01ea5e905c11a3`):
+- bounded, read-only discovery across historically documented C:/D:/Downloads/OneDrive roots, and one to three levels of nested source folders, prioritizing Quiz-related directory names even in crowded Downloads;
+- strict standalone Quiz fingerprint (Expo+Supabase package, both Quiz exam/join screens containing Quiz RPC references, and actual Supabase client file), not BUKLOD Main launcher/SSO copies;
+- a single strong source auto-selects; zero returns informative partial candidates without upload; multiple strong sources abort with an explicit `BUKLOD_QUIZ_SOURCE_DIR` instruction to prevent uploading an outdated build;
+- `BUKLOD_QUIZ_SOURCE_DIR` explicit override supported, while retaining all source/hash/secret checks; strengthens JWT scanning;
+- mock execution tests **5/5 passed**: known alternate root, nested folder root, no valid source, multiple ambiguous sources, and source containing a secret. JavaScript syntax compiles.
+
+**Next user-local operation**: redownload the latest GitHub script (the user's prior temp `$f` is stale), run `node --check $f`, then `node $f` for read-only source discovery and `node $f --push` for authorized archive to the private verified branch when a single correct source is found. This authorizes no production cutover, deletion, or migration of private Storage documents. No PC operation was performed by the ChatGPT connector.
