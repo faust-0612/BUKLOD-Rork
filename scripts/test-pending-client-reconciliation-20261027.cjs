@@ -45,7 +45,15 @@ assert.match(directory, /Promise.allSettled\(/);
 assert.doesNotMatch(directory, /supabase\.auth\.onAuthStateChange/);
 assert.match(directory, /padding: 11,/);
 assert.match(directory, /const \[loadError, setLoadError\] = useState\(''\)/);
-assert.match(directory, /title="RETRY" onPress=\{\(\) => void load\(query, true\)\}/);
+// R2 Cluster directory uses an accessible inline retry action, not the
+// retired R1 ActionButton title="RETRY". Verify the *actual* online error
+// recovery path instead of requiring old component markup.
+const retryFeedback = directory.match(
+  /\{Boolean\(loadError\) && online \? \([\s\S]*?\) : null\}/
+)?.[0] || '';
+assert.match(retryFeedback, /<Pressable accessibilityRole="button" onPress=\{\(\) => void load\(query, true\)\}>/);
+assert.match(retryFeedback, /<Text style=\{styles\.retryLink\}>Retry loading<\/Text>/);
+assert.match(directory, /<RefreshControl[\s\S]*?refreshing=\{refreshing\}[\s\S]*?onRefresh=\{\(\) => void load\(query, true\)\}/);
 assert.doesNotMatch(directory, /Tap the cluster to open Home/);
 assert.match(faith, /flexBasis: '30%'/);
 assert.match(faith, /minHeight: compact \? 96 : 72/);
