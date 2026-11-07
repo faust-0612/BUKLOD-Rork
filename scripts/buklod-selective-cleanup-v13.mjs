@@ -31,7 +31,7 @@ const dirProduct=/(?:^|[\\/])(?:BUKLOD[^\\/]*|BUKLODQ[^\\/]*|BUKLODKINGDOM[^\\/]
 const basenameProduct=/^(?:BUKLOD|BUKLODQ|BUKLODKINGDOM|KABIHASNANG[-_ ]?LIGAW)[-_. ]?/i;
 const generatedDirs=/^(?:node_modules|\.next|\.expo|\.gradle|\.cache|\.turbo|\.parcel-cache|dist|build|out|coverage|Pods|DerivedData|__pycache__|target|\.venv|venv|sdk|android-sdk|platforms|intermediates|\.pytest_cache)$/i;
 const generatedFiles=/\.(?:tmp|cache|pyc|o|obj|class|dex|dSYM|gcda|gcno|pch|log)$/i;
-const sensitive=/(?:^|[\\/])(?:\.env(?:\..*)?|\.npmrc|\.netrc|id_rsa|id_ed25519|[^\\/]*(?:credential|service[-_.]?account|firebase-adminsdk|secret|private[-_.]?key)[^\\/]*)$|\.(?:pem|key|jks|keystore|p12|pfx|gpg|asc)$/i;
+const sensitive=/(?:^|[\\/])(?:\.env(?:\..*)?|\.npmrc|\.netrc|gradle\.properties|google-services\.json|GoogleService-Info\.plist|id_rsa|id_ed25519|[^\\/]*(?:credential|service[-_.]?account|firebase-adminsdk|secret|private[-_.]?key)[^\\/]*)$|\.(?:pem|key|jks|keystore|p12|pfx|gpg|asc)$/i;
 const nonBUKLOD=/(?:^|[\\/])(?:_PHONE_RESTORE|PHONE_RECOVERY)(?:[\\/]|$)|(?:^|[\\/])(?:Kingdom\.Of\.The\.Planet\.Of\.The\.Apes|Godzilla\.X\.Kong)[^\\/]*\.(?:mp4|mkv|avi)$|\.(?:iso)$/i;
 const protectedFolders=/^(?:\.git|\.svn|\.hg)$/i;
 const forbiddenBase=/^(?:[a-z]:\\?|[a-z]:\\users\\[^\\]+|[a-z]:\\users\\[^\\]+\\(?:desktop|documents|downloads|pictures|videos|onedrive|appdata)|[a-z]:\\(?:program files(?: \(x86\))?|windows|users|programdata|recovery))\\?$/i;
@@ -234,6 +234,10 @@ function selfTest(){
     "Personal phone restore was not protected");
   assert(riskProtect("D:\\BUKLOD\\config\\.env.production")==="sensitive",
     "App secret not protected");
+  assert(riskProtect("D:\\BUKLOD\\android\\gradle.properties")==="sensitive",
+    "Gradle credentials must survive local cleanup");
+  assert(riskProtect("D:\\BUKLOD\\android\\app\\google-services.json")==="sensitive",
+    "Firebase credentials must survive local cleanup");
   assert(generatedDirs.test("node_modules")&&generatedDirs.test("build"),
     "Cache classification invalid");
  }finally{fs.rmSync(dir,{recursive:true,force:true})}
