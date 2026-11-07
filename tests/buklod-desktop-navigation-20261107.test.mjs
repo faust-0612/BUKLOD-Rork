@@ -41,3 +41,9 @@ test('navigation preserves scroll boundaries with a single routed center', () =>
   assert.equal((shell.match(/\{children\}/g) ?? []).length, 2); // authenticated and bootstrap shells
   assert.doesNotMatch(shell, /position: 'fixed'/);
 });
+
+test('Create Post from desktop Home opens the existing collapsed Wall composer', () => {
+  const wall = read('src/app/(tabs)/buklod.tsx');
+  assert.match(wall, /Desktop Home -> Create Post:[\s\S]*?setCommunityComposerOpen\(true\)/);
+  assert.match(wall, /focusCommunityComposerRef\.current = true/);
+});
