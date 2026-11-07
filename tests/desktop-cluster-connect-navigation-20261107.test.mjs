@@ -7,34 +7,27 @@ const scope = read('src/app/scope/index.tsx');
 const shell = read('src/components/BuklodPublicDesktopDashboard.tsx');
 const guard = read('src/components/BuklodCanonicalNavigationGuard.web.tsx');
 
-test('Cluster/Organization Connect opens as compact 340px desktop panel, expandable in-place', () => {
-  assert.match(scope, /function OrganizationCommunityConnect\(/);
-  assert.match(scope, /compactDesktop = Platform\.OS === 'web' && width >= 1200/);
-  assert.match(scope, /const \[expanded, setExpanded\] = useState\(false\)/);
-  assert.match(scope, /setExpanded\(false\), \[scope\.scope_id\]/);
-  assert.match(scope, /height: 340, maxWidth: 740/);
-  assert.match(scope, /compactDesktop && !expanded && styles\.scopeConnectCompact/);
-  assert.match(scope, /compactDesktop && expanded && styles\.scopeConnectExpanded/);
-  assert.match(scope, /onPress=\{\(\) => setExpanded\(current => !current\)\}/);
-  assert.match(scope, /Collapse cluster conversation/);
-  assert.match(scope, /Expand cluster conversation/);
-  assert.match(scope, /Expanded within this dashboard/);
+test('Cluster/Organization Connect restores the original single full-height center room', () => {
   const component = scope.slice(scope.indexOf('function OrganizationCommunityConnect('),
     scope.indexOf('function ScopeConnect('));
-  assert.doesNotMatch(component, /router\.push\(/);
+  assert.match(component, /styles\\.scopeConnectHost/);
+  assert.match(scope, /scopeConnectHost: \\{[\\s\\S]*?flex: 1,[\\s\\S]*?minHeight: 0/);
+  assert.doesNotMatch(component, /compactDesktop|setExpanded|Expand|Collapse/);
+  assert.doesNotMatch(scope, /scopeConnectCompact|scopeConnectExpanded|height: 340/);
+  assert.doesNotMatch(component, /router\\.push\\(/);
 });
 
-test('compact and expanded Cluster Connect reuse one authorized scope chat, not duplicate messaging', () => {
+test('restored Cluster/Org Connect uses the same authorized scope conversation', () => {
   const component = scope.slice(scope.indexOf('function OrganizationCommunityConnect('),
     scope.indexOf('function ScopeConnect('));
   assert.equal((component.match(/<BuklodConnectThread/g) ?? []).length, 1);
   assert.match(component, /mode="scope"/);
-  assert.match(component, /containerId=\{scope\.scope_id\}/);
-  assert.match(component, /onBackOverride=\{compactDesktop && expanded/);
-  assert.match(component, /scope\.scope_type !== 'ORGANIZATION'/);
-  assert.match(component, /scope\.scope_type !== 'CLUSTER'/);
-  assert.match(scope, /resolution\.access !== 'authorized'/);
-  assert.match(scope, /useResolvedScope\(\{/);
+  assert.match(component, /containerId=\\{scope\\.scope_id\\}/);
+  assert.match(component, /onBackOverride=\\{onBack\\}/);
+  assert.match(component, /scope\\.scope_type !== 'ORGANIZATION'/);
+  assert.match(component, /scope\\.scope_type !== 'CLUSTER'/);
+  assert.match(scope, /resolution\\.access !== 'authorized'/);
+  assert.match(scope, /useResolvedScope\\(\\{/);
   assert.match(scope, /requireMembership: true/);
 });
 
@@ -55,16 +48,15 @@ test('global desktop sidebar waits for Public scope before leaving a managed Clu
   assert.match(shell, /leftRail: \{[\s\S]*?position: 'relative', zIndex: 1/);
 });
 
-test('no scope authorization bypass, no mobile UI regression, and click failures surface', () => {
-  assert.match(guard, /scopedWorkspacePathForGlobalRoute\(/);
-  assert.match(guard, /isManagedCommunityScope\(activeScope\)/);
-  assert.match(shell, /Public workspace is not ready\. Retry the navigation\./);
-  assert.match(shell, /Unable to leave Cluster\. Retry the navigation\./);
-  assert.match(shell, /setDockRequest\(null\)/);
-  const component=scope.slice(scope.indexOf('function OrganizationCommunityConnect('),
-    scope.indexOf('function ScopeConnect('));
-  assert.match(component, /compactDesktop && !expanded/);
-  assert.match(component, /compactDesktop && expanded/);
-  assert.match(scope, /scopeConnectThread: \{ flex: 1/);
-  assert.doesNotMatch(component, /router\.replace/);
+test('scope authority and desktop composer spacing preserve mobile behavior', () => {
+  const engine = read('src/components/BuklodConnectThread.tsx');
+  assert.match(guard, /scopedWorkspacePathForGlobalRoute\\(/);
+  assert.match(guard, /isManagedCommunityScope\\(activeScope\\)/);
+  assert.match(shell, /Public workspace is not ready\\. Retry the navigation\\./);
+  assert.match(shell, /Unable to leave Cluster\\. Retry the navigation\\./);
+  assert.match(shell, /setDockRequest\\(null\\)/);
+  assert.match(engine, /Platform\\.OS === 'web'[\\s\\S]*?viewportWidth >= 1200[\\s\\S]*?mode === 'scope'/);
+  assert.match(engine, /isBuklodScopedWorkspacePath\\(pathname\\)/);
+  assert.match(engine, /\\? 8[\\s\\S]*?: Math\\.max\\(insets\\.bottom, 8\\) \\+ 12/);
+  assert.match(engine, /connectComposerDockBottom\\([\\s\\S]*?keyboardVisible/);
 });
