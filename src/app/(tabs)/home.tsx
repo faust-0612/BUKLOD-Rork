@@ -589,11 +589,6 @@ export default function HomeScreen() {
       {/* CONTINUOUS_USE_STABILITY_R1: Home refreshes quietly; no blocking spinner/layout jump. */}
       <EnvironmentBadge />
 
-      {/* BUKLOD_HOME_CONTRIBUTION_VISIBLE_R2: keep QMP visible near the top; do not bury it after scope bulletins. */}
-      <View style={{ paddingHorizontal: 10 }}>
-        <BuklodCommunityContributionCard />
-      </View>
-
       <HomeMotionSection delay={20}>
         <BuklodSystemAnnouncementBoard slot="public_home" />
       </HomeMotionSection>
@@ -606,6 +601,11 @@ export default function HomeScreen() {
       >
         <BuklodHomeScopeBulletins />
       </BuklodFocusScaleIn>
+
+      {/* BUKLOD_COMMUNITY_CONTRIBUTION_HOME_R1: move only; preserve original card and Wall layout. */}
+      <View style={{ paddingHorizontal: 10 }}>
+        <BuklodCommunityContributionCard />
+      </View>
 
       <HomeMotionSection delay={180}>
         <View style={{ paddingHorizontal: 12 }}>
