@@ -1,0 +1,61 @@
+{
+  "contractVersion": 2,
+  "objective": "Retire obsolete BUKLOD Main web branding and production export-time code mutations without affecting native clients or unfinished development.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main source 362ea3a8946a15725c043ba17e36174e6eb853f4 inspected, includes latest SOS/desktop/Wall; live Expo deployment fingerprint not available.",
+  "chosenApproach": "Use byte-identical canonical web mark, versioned public URL, shared web branded surfaces, move Guide web navigation into source, remove old mutation scripts, and reject tracked diffs during production export.",
+  "selectionRationale": "Browser favicon referenced outdated Android art, PWA icons were ZION, desktop chrome had substitute logos, and old release-time scripts could reintroduce obsolete source. Fix all active references and forbid release-time rewriting.",
+  "alternativeApproaches": [
+    "Only cache-bust favicon; rejected due inconsistent source.",
+    "Continue running historical patch scripts; rejected due unreviewed release changes.",
+    "Replace native Play app icon; rejected due v28 compatibility risk."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "auth-privacy"
+  ],
+  "preserveBehaviors": [
+    "Native Android app icon/versionCode/package unchanged",
+    "Classroom standalone identity untouched",
+    "Authentication and privacy permissions unchanged",
+    "Native Guide return-to-scope unchanged",
+    "Web Guide exits scoped view to public Profile",
+    "Desktop, Wall, Cluster, SOS and ads modules untouched",
+    "EAS production Supabase and immutable SHA gates retained",
+    "No unfinished branch merged"
+  ],
+  "acceptanceChecks": [
+    "Canonical PNG hash matches versioned 512px public PWA icon",
+    "No legacy ZION PWA active icon references",
+    "Both desktop headers and web auth screens use canonical mark",
+    "No export-time source rewriting scripts or tracked diffs",
+    "Focused brand/auth/release tests pass",
+    "TypeScript and web export pass before merge",
+    "Production promotion separately confirmed"
+  ],
+  "regressionTests": [
+    "tests/web-brand-retirement-release-20261107.test.mjs",
+    "tests/web-auth-brand-retirement-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "app.config.js",
+    "public/index.html",
+    "public/manifest.json",
+    "public/buklod-brand-r2-512.png",
+    "public/buklod-192.png",
+    "public/buklod-512.png",
+    "src/app/+html.tsx",
+    "src/components/BuklodPublicDesktopDashboard.tsx",
+    "src/components/BuklodDesktopWebShell.tsx",
+    "src/app/(auth)/login.tsx",
+    "src/app/(auth)/register.tsx",
+    "src/components/BuklodGuideAvatar.tsx",
+    ".github/workflows/production_web_deploy.yml",
+    "scripts/patch-web-community-post.cjs",
+    "scripts/patch-home-identity-action-row.cjs",
+    "tests/web-brand-retirement-release-20261107.test.mjs",
+    "tests/web-auth-brand-retirement-20261107.test.mjs",
+    "docs/BUKLOD_WEB_LEGACY_RETIREMENT_20261107.md",
+    ".buklod/scopes/web-brand-retirement-r2-20261107.json"
+  ]
+}
