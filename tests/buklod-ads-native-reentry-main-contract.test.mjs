@@ -38,10 +38,12 @@ test('fallback BannerAd requires the existing shared reservation', () => {
   assert.match(source, /const \[bannerRequestReady, setBannerRequestReady\] = useState\(false\)/);
 });
 
-test('existing privacy, creative and no-fill handling are unchanged', () => {
+test('existing privacy, creative and terminal no-fill collapse remain authoritative', () => {
   assert.match(source, /isBuklodPassiveAdAllowed\(/);
   assert.match(source, /NativeAdEventType\.IMPRESSION/);
   assert.match(source, /<NativeMediaView/);
   assert.match(source, /if \(!active \|\| !routeSafe\) return null/);
-  assert.match(source, /if \(!errorCode\.includes\('no-fill'\)\)/);
+  assert.match(source, /Collapse every terminal fallback failure, including no-fill/);
+  assert.match(source, /bannerFailedAt\.current = Date\.now\(\)/);
+  assert.match(source, /setBannerFailed\(true\)/);
 });
