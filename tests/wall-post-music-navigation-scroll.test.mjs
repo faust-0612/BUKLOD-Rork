@@ -30,3 +30,12 @@ test('Leaving Wall cancels loading and pauses music; existing navigation stays m
   assert.match(part,/pauseWallAudio\(\)/);
   assert.match(wall,/<FlashList/);
 });
+
+test('New ambient photo overlays follow the original FlashList visibility and route focus',()=>{
+  assert.match(wall,/setVisibleMotionPostIds\(old=>/);
+  assert.match(wall,/wallMotionFocused&&visibleMotionPostIds\.has\(String\(item\.id\)\)/);
+  assert.match(wall,/extraData=\{wallExtraData\}/);
+  assert.match(wall,/setWallMotionFocused\(false\)/);
+  assert.match(wall,/communityViewabilityListener\.current\(event\)/);
+  assert.match(wall,/maintainVisibleContentPosition=\{\{ disabled: true \}\}/);
+});
