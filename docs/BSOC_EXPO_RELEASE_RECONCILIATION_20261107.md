@@ -36,3 +36,17 @@ Status: **DEV implemented, production backend schema active, standalone Expo BSO
 - **Not verified:** typecheck and OTA compatibility; photo/video upload under weak network; authenticated two-way E2E; staff push delivery; OpenAI API key setup; original standalone BSOC source and Expo deployment.
 
 Release decision: **DO NOT MARK BSOC LIVE / APK-WEB OTA READY** until the above missing gates pass.
+
+
+## Personnel authorization update (Nov 7, 2026)
+- Existing production System Admin-only APIs confirmed: `buklod_bsoc_staff_candidate_lookup_v1`, `buklod_bsoc_assign_role_v1`, `buklod_bsoc_revoke_role_v1`, `buklod_bsoc_staff_list_v1`, `buklod_bsoc_role_catalog_v1`, `buklod_bsoc_set_operator_readiness_v1`.
+- New additive backend deployed: `buklod_bsoc_issue_personnel_code_v1`, `buklod_bsoc_redeem_personnel_code_v1`, `buklod_bsoc_revoke_personnel_code_v1`. Invitations are account-bound, 128-bit random, SHA-256 hashed at rest, single-use, expire after 24h, limited to 8 redemption attempts per 15-minute window, and audited. Role is not active until the selected account redeems a valid code. Training certification still gates production privilege.
+- New Expo UI in DEV: `/admin/bsoc-personnel` for System Admin member search → role selection → authorization code → copy → audited revocation; `/bsoc/access` for signed-in personnel to redeem and inspect their own access/training state.
+- Tested database object existence, RLS, lack of anonymous RPC EXECUTE; unauthenticated issuance and redemption rejected (safe SQL test; no active role changes made).
+- This UI still needs porting to the original standalone BSOC Expo source before production. **The user has not been asked to authorize any specific person; no personnel invitations were created**.
+
+## Original standalone BSOC source recovery
+- Current container does not mount the user's Windows local `C:`/`D:` drives. No direct local inspection or upload has occurred in this session.
+- GitHub private `BUKLOD-Migrated-Sources` branch `migration/refined-recovery-20261107023554` has `RECOVERY_REFINEMENT.json` indicating **179 BSOC files from local recovery inventory (3 project candidates, 2 build configs)**, but the branch's `systems` tree has **no `systems/bsoc` folder**. A manifest count is NOT proof of a source-file upload.
+- A non-destructive Windows tool has been committed to `scripts/BUKLOD_BSOC_LOCAL_INVENTORY_AND_SAFE_MIGRATE.ps1`. It inspects only known exact folders, chooses a verified Expo project, excludes credentials/build artifacts, scans for high-confidence secrets, and creates an isolated private Git branch under `systems/bsoc/BUKLOD_BSOC_Standalone`. NO DELETE CLEARANCE is given. Run with `-InventoryOnly` first if appropriate; actual migration requires GitHub authentication on the user's PC.
+- Do not declare standalone BSOC live or publish Main OTA until the original Expo source is available and reconciled.
