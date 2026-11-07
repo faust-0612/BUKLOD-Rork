@@ -18,7 +18,8 @@
     "Member and admin 30-day focus actual totals reconcile against canonical credit ledger",
     "No existing balances, claim statuses, grades, Kingdom XP, or ads rewritten",
     "Run both Node contracts and Supabase DB regression in isolated environment before RC/OTA",
-    "Mentoring reports a real assigned mentee roster using atomic idempotent transaction before photo, pastor review and admin approval"
+    "Mentoring reports a real assigned mentee roster using atomic idempotent transaction before photo, pastor review and admin approval",
+    "Monitor member milestone progress based on actual ABC, approved mentoring, recorded Kingdom and community records; admin monitors quiz attempts, Cluster attendance and mentor approval pipeline"
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -56,6 +57,7 @@
     "supabase/migrations/20261107225000_buklod_r2_mentor_workflow_catalog.sql",
     "supabase/migrations/20261107226000_buklod_r2_cluster_attendance_integrity.sql",
     "supabase/migrations/20261107227000_buklod_r2_mentor_atomic_roster.sql",
+    "supabase/migrations/20261107228000_buklod_r2_live_pipeline_milestone_progress.sql",
     "supabase/tests/buklod_points_r2_reward_integrity.sql",
     "tests/buklod-points-r2-classroom-quiz.test.mjs",
     "tests/buklod-points-r2-contract.test.mjs",
