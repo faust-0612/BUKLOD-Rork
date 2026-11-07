@@ -169,6 +169,9 @@ jobs:
             exit 1
           fi
 
+      - name: Verify V28 native Expo config compatibility guard
+        run: node --test tests/native-expo-config-compat.test.cjs
+
       - name: Expo credential preflight
         if: github.ref == 'refs/heads/main'
         id: expo

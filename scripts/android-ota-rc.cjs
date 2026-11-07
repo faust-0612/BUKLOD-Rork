@@ -3,6 +3,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 const {execFileSync} = require('node:child_process');
+const {resolveExpoConfigFromSource, assertNativeExpoConfigCompatible} = require('./native-expo-config-compat.cjs');
+const pinnedV28 = '2f26645e50e8e079ebf09f3999aacfc506ae7651';
 const project = '23dad7d0-389a-406e-8dec-08965dab85d8';
 const runtime = '1.3.2';
 const git = (...args) => execFileSync('git', args, {encoding:'utf8'}).trim();
@@ -52,8 +54,12 @@ async function run() {
     // The verify gate still aborts if production changes during RC preparation.
     assert.match(before.id || '', /^[0-9a-f-]{36}$/i, 'Invalid live production update ID');
     assert.ok(before.launchAsset?.hash, 'Missing live production bundle fingerprint');
-    git('merge-base', '--is-ancestor', '2f26645e50e8e079ebf09f3999aacfc506ae7651', sha);
-    assert.equal(git('diff', '--name-only', '2f26645e50e8e079ebf09f3999aacfc506ae7651', sha, '--', 'package.json', 'package-lock.json', 'app.config.js', 'android', 'plugins'), '', 'Native baseline changed');
+    git('merge-base', '--is-ancestor', pinnedV28, sha);
+    assert.equal(git('diff', '--name-only', pinnedV28, sha, '--', 'package.json', 'package-lock.json', 'android', 'plugins'), '', 'Native baseline changed');
+    // The changed web favicon is not compiled into V28; all native Expo
+    // configuration fields still have to match the pinned installed build.
+    const currentConfig = require('../app.config.js')({config:{}});
+    assertNativeExpoConfigCompatible(currentConfig, resolveExpoConfigFromSource(git('show', pinnedV28 + ':app.config.js')));
     write('ota-evidence/baseline.json', {id:before.id, runtime, source:sha, launchAssetHash:before.launchAsset.hash});
     console.log('PASS: production baseline, exact main source, unchanged native runtime');
   } else if (mode === 'freeze') {
