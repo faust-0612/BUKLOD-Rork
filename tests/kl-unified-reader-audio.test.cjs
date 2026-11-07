@@ -26,5 +26,7 @@ test('KL chapter titles and screen avoid system bar overlap', () => {
   assert.match(reader, /paddingTop: 18 \+ insets\.top/);
   assert.match(reader, /Kabanata \$\{episode\.episodeNumber\}: \$\{name\}/);
   assert.match(reader, /const liveReleased = Boolean\(selected &&/);
-  assert.match(reader, /<KlLiveDiscussion episodeId=\{klDatabaseId\(selected\.episodeNumber\)\}/);
+  assert.match(reader, /<KlLiveDiscussion episodeId=\{selectedDbId \?\? klDatabaseId\(selected\.episodeNumber\)\}/);
+  assert.match(reader, /const databaseIdForEpisode = \(episodeNumber: number\)/);
+  assert.match(reader, /releasedNumbers\.has\(selected\.episodeNumber\)/);
 });

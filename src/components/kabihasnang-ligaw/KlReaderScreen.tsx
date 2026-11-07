@@ -54,6 +54,10 @@ import {
   type ReaderCache,
 } from '@/lib/kabihasnang-ligaw/readerSession';
 import { KL_RPC, adminActionArgs } from '@/lib/kabihasnang-ligaw/rpc';
+import {
+  findKlAdminChapter, isKlChapterReleased, klReleaseBlockers,
+  parseKlAdminChapters, type KlAdminChapterRow,
+} from '@/lib/kabihasnang-ligaw/releasePreflight';
 import { otherAudioPlaying } from '@/lib/kabihasnang-ligaw/externalAudioState';
 import { supabase } from '@/lib/supabase';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
@@ -93,6 +97,11 @@ export default function KlReaderScreen() {
   const [adminBusyId, setAdminBusyId] = useState<string | null>(null);
   const [adminFeedback, setAdminFeedback] = useState('');
   const [adminFeedbackEpisodeId, setAdminFeedbackEpisodeId] = useState<string | null>(null);
+  const [adminRows, setAdminRows] = useState<KlAdminChapterRow[]>([]);
+  const [adminRowsOwner, setAdminRowsOwner] = useState<string | null>(null);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState('');
+  const adminActionLockRef = useRef(false);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
   const [releaseTarget, setReleaseTarget] = useState<string | null>(null);
@@ -128,8 +137,21 @@ export default function KlReaderScreen() {
 
   const compact = width < 420;
   const bodySize = Math.round(19 * cache.textScale);
-  const releasedIds = releasedChapters.map((chapter) => chapter.id);
+  // A new chapter can have a random UUID in the actual database.
+  // Reader/points/media must use the same authoritative ID after release.
+  const visibleAdminRows = isSystemAdmin && adminRowsOwner === user?.id
+    ? adminRows : [];
+  const releasedNumbers = new Set(
+    releasedChapters.filter(chapter => chapter.season_number === 1)
+      .map(chapter => chapter.episode_number),
+  );
+  const databaseIdForEpisode = (episodeNumber: number): string =>
+    releasedChapters.find(chapter =>
+      chapter.season_number === 1 && chapter.episode_number === episodeNumber)?.id ??
+    findKlAdminChapter(visibleAdminRows, 1, episodeNumber)?.id ??
+    klDatabaseId(episodeNumber);
   const selected = EPISODES.find((episode) => episode.id === selectedId) ?? null;
+  const selectedDbId = selected ? databaseIdForEpisode(selected.episodeNumber) : null;
   const selectedTitle = selected ? displayChapterTitle(selected, releasedChapters.find((chapter) => chapter.season_number === 1 && chapter.episode_number === selected.episodeNumber)) : '';
   const completedChapters = journeyResult && journeyResult.userId === user?.id ? journeyResult.completed : null;
   const selectedAssets = ASSETS.filter((asset) => asset.episodeId === selected?.id);
@@ -141,7 +163,7 @@ export default function KlReaderScreen() {
     userDataSaver: cache.dataSaver,
   });
   const reading = selectMemberReading({
-    locallyReadable: decision?.readable === true || Boolean(selected && releasedIds.includes(klDatabaseId(selected.episodeNumber))),
+    locallyReadable: decision?.readable === true || Boolean(selected && releasedNumbers.has(selected.episodeNumber)),
     serverState,
     serverText,
     bundledText: selected?.prose ?? null,
@@ -225,28 +247,107 @@ export default function KlReaderScreen() {
     };
   }, []);
 
+  // KL_WEB_ADMIN_RELEASE_EXACT_SERVER_ID_R1: admin decisions NEVER synthesize
+  // an episode UUID from its chapter number. The server is authoritative:
+  // newer chapters may have random UUIDs even when older rows match legacy IDs.
+  const refreshAdminRows = useCallback(async (): Promise<KlAdminChapterRow[]> => {
+    if (!isSystemAdmin || !user?.id) {
+      throw new Error('Story admin access is unavailable for this account.');
+    }
+    setAdminLoading(true);
+    setAdminError('');
+    try {
+      const { data, error } = await supabase.rpc(KL_RPC.adminList);
+      if (error) throw error;
+      if (!Array.isArray(data)) throw new Error('Chapter status response was not a list.');
+      const rows = parseKlAdminChapters(data);
+      setAdminRows(rows);
+      setAdminRowsOwner(user.id);
+      return rows;
+    } catch (cause) {
+      setAdminError(cause instanceof Error ? cause.message : 'Could not refresh chapter status.');
+      throw cause;
+    } finally {
+      setAdminLoading(false);
+    }
+  }, [isSystemAdmin, user?.id]);
+
+  useEffect(() => {
+    setAdminRows([]);
+    setAdminRowsOwner(null);
+    setAdminError('');
+    if (!isSystemAdmin || !user?.id) return;
+    void refreshAdminRows().catch(() => {
+      // Error is displayed on the admin chapter panel; no silent fallback ID.
+    });
+  }, [isSystemAdmin, user?.id, refreshAdminRows]);
+
   const decideEpisode = async (episodeId: string, action: 'approve' | 'reject' | 'release', notes = '') => {
-    if (!isSystemAdmin || adminBusyId) return;
-    if (action === 'reject' && !notes.trim()) { setAdminFeedback('Maglagay ng dahilan ng rejection.'); return; }
-    setAdminBusyId(episodeId);
     setAdminFeedbackEpisodeId(episodeId);
-    setAdminFeedback('Pinoproseso ang desisyon…');
+    if (!isSystemAdmin) {
+      setAdminFeedback('Kailangan ang aktibong System Admin permission.');
+      return;
+    }
+    if (adminActionLockRef.current || adminBusyId) {
+      setAdminFeedback('May kasalukuyang chapter action. Subukan muli pagkatapos nito.');
+      return;
+    }
+    if (action === 'reject' && !notes.trim()) {
+      setAdminFeedback('Maglagay ng dahilan ng rejection.');
+      return;
+    }
+
+    adminActionLockRef.current = true;
+    setAdminBusyId(episodeId);
+    setAdminFeedback('Sinusuri ang kasalukuyang server status…');
     try {
       const targetEpisode = EPISODES.find((item) => item.id === episodeId);
-      if (!targetEpisode) throw new Error('Chapter not found');
-      const { error } = await supabase.rpc(KL_RPC.adminAction, adminActionArgs({ action, episodeId: klDatabaseId(targetEpisode.episodeNumber), notes }));
-      if (error) throw error;
+      if (!targetEpisode) throw new Error('Chapter not found in the reader catalog.');
+      // Fresh read before EACH write avoids stale published/approved state.
+      const freshRows = await refreshAdminRows();
+      const serverChapter = findKlAdminChapter(freshRows, 1, targetEpisode.episodeNumber);
+      if (!serverChapter) throw new Error('Chapter not created on server. Open KL Studio first.');
       if (action === 'release') {
-        const { data: libraryData, error: libraryError } = await supabase.rpc(KL_RPC.listLibrary);
-        if (!libraryError && Array.isArray(libraryData)) setReleasedChapters(libraryData as ReleasedChapter[]);
+        const blockers = klReleaseBlockers(serverChapter);
+        if (blockers.length) throw new Error(blockers.join(' '));
       }
-      setAdminFeedback(action === 'approve' ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.' : action === 'release' ? 'Na-release na ang kabanata sa server.' : 'Ibinalik sa draft sa server.');
+
+      const { data: result, error } = await supabase.rpc(
+        KL_RPC.adminAction,
+        adminActionArgs({ action, episodeId: serverChapter.id, notes }),
+      );
+      if (error) throw error;
+      if (result?.ok !== true) throw new Error('Server did not confirm the chapter action.');
+
+      const updatedRows = await refreshAdminRows();
+      if (action === 'release') {
+        const updatedChapter = findKlAdminChapter(updatedRows, 1, targetEpisode.episodeNumber);
+        if (!isKlChapterReleased(updatedChapter)) {
+          throw new Error('Server accepted the action but release status could not be verified. Refresh status before trying again.');
+        }
+        const { data: libraryData, error: libraryError } = await supabase.rpc(KL_RPC.listLibrary);
+        if (libraryError || !Array.isArray(libraryData) ||
+            !libraryData.some((chapter: ReleasedChapter) => chapter.id === serverChapter.id)) {
+          throw new Error('Release is recorded but public library visibility is not confirmed. Refresh status before another attempt.');
+        }
+        setReleasedChapters(libraryData as ReleasedChapter[]);
+      }
+      setAdminFeedback(action === 'approve'
+        ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.'
+        : action === 'release'
+          ? 'Verified: inilabas ang kabanata at nasa public library na.'
+          : 'Ibinalik sa draft sa server.');
       setRejectTarget(null);
       setReleaseTarget(null);
       setRejectNotes('');
     } catch (error) {
-      setAdminFeedback(error instanceof Error ? `Hindi na-save: ${error.message}` : 'Hindi na-save ang desisyon. Subukan muli.');
-    } finally { setAdminBusyId(null); }
+      setAdminFeedback(error instanceof Error
+        ? `Hindi naisagawa: ${error.message}`
+        : 'Hindi naisagawa ang chapter action. I-refresh ang status.');
+    } finally {
+      adminActionLockRef.current = false;
+      setAdminBusyId(null);
+    }
   };
 
   const refresh = useCallback(async () => {
@@ -298,13 +399,13 @@ export default function KlReaderScreen() {
   }, [user?.id, journeyRefreshToken]);
 
   useEffect(() => {
-    if (!selected || serverState !== 'readable' || !appActive || !online) return;
-    const episodeId = klDatabaseId(selected.episodeNumber);
+    if (!selected || !selectedDbId || serverState !== 'readable' || !appActive || !online) return;
+    const episodeId = selectedDbId;
     const timer = setInterval(() => {
       void supabase.rpc('kl_reading_progress_v1', { p_episode_id: episodeId, p_action: 'ping' });
     }, 30000);
     return () => clearInterval(timer);
-  }, [selected?.episodeNumber, serverState, appActive, online]);
+  }, [selectedDbId, serverState, appActive, online]);
 
   useEffect(() => {
     if (selected && serverState === 'readable' && online) {
@@ -313,11 +414,11 @@ export default function KlReaderScreen() {
   }, [selected?.id, serverState, online]);
 
   const finishChapter = async () => {
-    if (!selected || chapterCompletionInFlight.current) return;
+    if (!selected || !selectedDbId || chapterCompletionInFlight.current) return;
     chapterCompletionInFlight.current = true;
     try {
       const { data, error } = await supabase.rpc('kl_reading_progress_v1', {
-        p_episode_id: klDatabaseId(selected.episodeNumber), p_action: 'complete',
+        p_episode_id: selectedDbId, p_action: 'complete',
       });
       if (error) { setRewardFeedback(error.message); return; }
       const result = data as { new_completion?: boolean; points_awarded?: number; completed?: boolean } | null;
@@ -372,7 +473,7 @@ export default function KlReaderScreen() {
     setGlossaryOpen(false);
     let nextCache = rememberScroll(cache, episodeId, 0, readable);
     try {
-      const dbId = klDatabaseId(episode.episodeNumber);
+      const dbId = databaseIdForEpisode(episode.episodeNumber);
       const { data, error } = await supabase.rpc(KL_RPC.readEpisode, { p_episode_id: dbId });
       if (sequence !== openSequence.current) return;
       if (error || !data || typeof data !== 'object') {
@@ -423,7 +524,7 @@ export default function KlReaderScreen() {
   };
   const episodeReadable = (episodeId: string) => {
     const fromCatalog = EPISODES.find((item) => item.id === episodeId);
-    if (fromCatalog && releasedIds.includes(klDatabaseId(fromCatalog.episodeNumber))) return true;
+    if (fromCatalog && releasedNumbers.has(fromCatalog.episodeNumber)) return true;
     const episode = EPISODES.find((item) => item.id === episodeId);
     if (!episode) return false;
     const episodeAssets = ASSETS.filter((asset) => asset.episodeId === episodeId);
@@ -461,7 +562,7 @@ export default function KlReaderScreen() {
     : null;
   const openTermEntry = openTerm ? dictionaryByName(openTerm) : null;
   const readingOpen = Boolean(selected && paragraphs.length > 0);
-  const liveReleased = Boolean(selected && (decision?.readable || releasedIds.includes(klDatabaseId(selected.episodeNumber))));
+  const liveReleased = Boolean(selected && (decision?.readable || releasedNumbers.has(selected.episodeNumber)));
 
   const cycleVolume = (channel: 'music' | 'ambient') => {
     const steps = [0.3, 0.6, 1];
@@ -683,7 +784,7 @@ export default function KlReaderScreen() {
             </Pressable>
             {rewardFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{rewardFeedback}</Text> : null}
 
-            <KlLiveDiscussion episodeId={klDatabaseId(selected.episodeNumber)} live={liveReleased} />
+            <KlLiveDiscussion episodeId={selectedDbId ?? klDatabaseId(selected.episodeNumber)} live={liveReleased} />
           </View>
         ) : (
           <View style={styles.list}>
@@ -722,13 +823,20 @@ export default function KlReaderScreen() {
             {EPISODES.map((episode) => {
               const readable = episodeReadable(episode.id);
               const showLock = lockedId === episode.id && !readable;
+              const serverChapter = findKlAdminChapter(visibleAdminRows, 1, episode.episodeNumber);
+              const releaseBlockers = klReleaseBlockers(serverChapter);
+              const releaseReady = !adminLoading && !adminError && releaseBlockers.length === 0;
               return (
-                <Pressable
+                <View
                   key={episode.id}
-                  accessibilityRole="button"
-                  onPress={() => openReadable(episode.id)}
                   style={styles.episode}
                 >
+                  {/* Chapter navigation and admin Release controls must be
+                      siblings. Nested Pressables are unreliable on desktop. */}
+                  <Pressable accessibilityRole="button"
+                    accessibilityLabel={`Read ${episode.title}`}
+                    onPress={() => openReadable(episode.id)}
+                    style={{ gap: 6, paddingVertical: 5 }}>
                   <Text style={styles.episodeTitle}>{displayChapterTitle(episode, releasedChapters.find((chapter) => chapter.season_number === 1 && chapter.episode_number === episode.episodeNumber))}</Text>
                   <View style={styles.statusRow}>
                     <MaterialCommunityIcons
@@ -739,26 +847,66 @@ export default function KlReaderScreen() {
                     <Text style={styles.meta}>{readable ? klCopy.readable : klCopy.locked}</Text>
                   </View>
                   {showLock ? <Text style={styles.body}>{klCopy.lockedDetail}</Text> : null}
+                  </Pressable>
                   {isSystemAdmin ? (
                     <View style={{ marginTop: 10, gap: 8 }}>
                       <Pressable accessibilityRole="button" onPress={(event)=>{event.stopPropagation();setPreviewTarget(previewTarget===episode.id?null:episode.id);}}>
                         <Text style={{color:'#f1d39b'}}>Open prepared Admin Preview</Text>
                       </Pressable>
-                      {previewTarget===episode.id?<KlAdminPreview episodeId={klDatabaseId(episode.episodeNumber)}/>:null}
+                      {previewTarget===episode.id && serverChapter
+                        ? <KlAdminPreview episodeId={serverChapter.id} />
+                        : previewTarget===episode.id
+                          ? <Text style={styles.meta}>Chapter not found on server. Create it in KL Studio first.</Text>
+                          : null}
                       {adminFeedbackEpisodeId === episode.id && adminFeedback ? (
                         <Text accessibilityRole="alert" style={styles.meta}>{adminFeedback}</Text>
                       ) : null}
+                      <Text style={styles.meta}>Server status: {adminLoading ? 'Checking…' :
+                        adminError ? 'Unavailable' :
+                        serverChapter ? serverChapter.status.toUpperCase() : 'Not created'}</Text>
                       <Text style={styles.meta}>Approve each illustration/audio in the private preview before approving the chapter. Chapter approval does not publish it.</Text>
                       <View style={{ flexDirection: 'row', gap: 12 }}>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
-                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setReleaseTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#36547b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Release Now</Text></Pressable>
+                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
+                          onPress={(event) => {
+                            event.stopPropagation();
+                            setRejectTarget(null);
+                            setReleaseTarget(episode.id);
+                            setAdminFeedbackEpisodeId(episode.id);
+                            setAdminFeedback('');
+                            void refreshAdminRows().catch(() => undefined);
+                          }}
+                          style={{ padding: 12, backgroundColor: '#36547b', borderRadius: 8 }}>
+                          <Text style={{ color: '#fff' }}>
+                            {isKlChapterReleased(serverChapter) ? 'Release Status' : 'Release Now'}
+                          </Text>
+                        </Pressable>
                       </View>
                       {releaseTarget === episode.id ? (
                         <View style={{ gap: 8 }}>
-                          <Text style={styles.meta}>Ilalabas agad ang kabanatang ito sa lahat ng mambabasa. Kailangan approved na ito.</Text>
-                          <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'release'); }}><Text style={{ color: '#f1d39b' }}>Confirm Release Now</Text></Pressable>
-                          <Pressable accessibilityRole="button" onPress={(event) => { event.stopPropagation(); setReleaseTarget(null); }}><Text style={{ color: '#fff' }}>Cancel</Text></Pressable>
+                          <Text accessibilityRole="alert" style={styles.meta}>
+                            {adminLoading ? 'Checking latest chapter status…'
+                              : adminError ? `Server status unavailable: ${adminError}`
+                              : releaseBlockers.length
+                                ? `Release blocked: ${releaseBlockers.join(' ')}`
+                                : 'Ready for immediate public release. This cannot be undone automatically.'}
+                          </Text>
+                          <Pressable accessibilityRole="button"
+                            disabled={Boolean(adminBusyId) || !releaseReady}
+                            onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'release'); }}
+                            style={{ minHeight: 43, padding: 11, borderRadius: 9,
+                              backgroundColor: releaseReady ? '#28583f' : '#42505c', alignSelf: 'flex-start' }}>
+                            <Text style={{ color: releaseReady ? '#ffffff' : '#cdd5d6', fontWeight: '800' }}>Confirm Release Now</Text>
+                          </Pressable>
+                          <Pressable accessibilityRole="button" disabled={adminLoading}
+                            onPress={(event) => { event.stopPropagation(); void refreshAdminRows().catch(() => undefined); }}
+                            style={{ minHeight: 36, padding: 7, alignSelf: 'flex-start' }}>
+                            <Text style={{ color: '#f1d39b' }}>Refresh status</Text>
+                          </Pressable>
+                          <Pressable accessibilityRole="button" onPress={(event) => { event.stopPropagation(); setReleaseTarget(null); }}>
+                            <Text style={{ color: '#fff' }}>Cancel</Text>
+                          </Pressable>
                         </View>
                       ) : null}
                       {rejectTarget === episode.id ? (
@@ -770,7 +918,7 @@ export default function KlReaderScreen() {
                       ) : null}
                     </View>
                   ) : null}
-                </Pressable>
+                </View>
               );
             })}
           </View>
