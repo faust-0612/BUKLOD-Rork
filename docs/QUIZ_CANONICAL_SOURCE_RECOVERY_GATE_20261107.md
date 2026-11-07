@@ -55,3 +55,17 @@ User reran the source discovery script pinned at `44f00d4c952e2710548dc571cc01ea
 **Next action:** Re-download newly pinned script commit `f7362bcb49daabf241ef25ce67b53284f35d62a7` (previous local cached temp file remains old), then `node --check`, `node ... --push`. Once live output says `CLOUD PUSH VERIFIED; candidate_snapshots=2`, verify both GitHub folder manifests and compare source versions/Exam client wiring before canonical selection.
 
 **Release status remains BLOCKED BEFORE RELEASE** until source upload and independent database/storage/identity/functional/cutover gates finish. Do not delete local Quiz files at this checkpoint.
+
+## 2026-11-07 actual Windows two-candidate archive attempt: whitespace-only Git pre-push blocker
+
+From owner-provided log (file: Pasted text 20261107-055446), both candidates passed the real Windows preflight:
+- R10 `C:\\BUKLODQ_R10_BUILD\\project`: 300 files, 65,058,267 bytes, `sha256` manifest fingerprint `04e596c8cfeb04bea54a618686d70ca1560628f06967a0bcc3510ad31b41a1f7`.
+- BUILD `C:\\BUKLODQ_BUILD\\project`: 336 files, 75,834,778 bytes, fingerprint `481385774640c64813eafbb7c2451390541bbff3d63b55c9159da74fc835faad`.
+
+Both local snapshots were copied to disposable Git checkout but the script aborted at `git diff --cached --check` on historical trailing whitespace at `...BUKLODQ_BUILD.../android/settings.gradle:9`. Git for Windows also warned about LF/CRLF normalization. No remote push occurred; the temporary clone is removed in `finally`. The owner's source files were never deleted.
+
+**Fix committed:** `a02e44819419b468539c46f5b402fd1a53405ffc` updates `scripts/BUKLOD_QUIZ_CLOUD_RECOVERY_R1.cjs`. For immutable historical source archives, whitespace lint was the wrong gate: formatting is source data. Set `core.autocrlf=false` and `core.safecrlf=true` in the disposable clone, force-add only the scoped candidate archive subtree (so nested historical `.gitignore` does not omit files), and verify every expected file *including both manifests* by comparing the Git index SHA-1 blob object ID against exact local bytes. Any normalized, missing, or altered blob aborts before push. Also verify staged changes remain inside the Quiz archive prefix, retaining Git SHA remote verification after push. No source rewrite or secret-scan weakening.
+
+**Verification:** JavaScript parses; mocked two-source success run verifies both manifests, Git staging, scoped push and unchanged original files. Actual local Git fixture containing trailing whitespace and nested ignored source with `core.autocrlf` initially true was archived with raw Git index parity PASSED; the removed whitespace lint reproduced failure on the same fixture, confirming root cause. Failure mocks for index corruption, unrelated staged files and secrets aborted before push (early asynchronous error formatting in those mocks was inconclusive, but exit/push guards were confirmed). The owner's actual machine has **not** run this new commit; no cloud claim or database cutover.
+
+**Next user's single rerun:** replace old temporary script with raw GitHub `a02e44819419b468539c46f5b402fd1a53405ffc`, check node syntax, run `node $f --push`. Then independently fetch and validate both remote source manifest files via the GitHub connector; choose canonical source only after file and deployed-version comparison.
