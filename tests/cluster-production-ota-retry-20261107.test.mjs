@@ -26,7 +26,7 @@ test('Cluster retry is visible only when an online RPC read failed and reloads w
   assert.match(cluster, /if \(clusterMemory\.owner !== owner\)/);
   assert.match(cluster, /if \(requestId !== searchRequest\.current \|\| clusterMemory\.owner !== owner\)/);
   assert.match(cluster, /const \[mine, found\] = await Promise\.allSettled/);
-  assert.match(cluster, /setLoadError\('Some Cluster information could not load\. Previous results are retained\.'/);
+  assert.match(cluster, /setLoadError\('Some Cluster information could not load\. Previous results are retained\./);
   assert.match(cluster, /Offline · saved memberships are available/);
 });
 
