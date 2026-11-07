@@ -1,4 +1,5 @@
 import BuklodPttGlobalHost from '@/components/BuklodPttGlobalHost';
+import BuklodGlobalEmergencyHost from '@/components/BuklodGlobalEmergencyHost';
 import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
@@ -419,6 +420,7 @@ function RootLayout() {
                 <Stack.Screen name="drawer/item/[id]" />
                 <Stack.Screen name="drawer/settings" />
               </Stack>
+              <BuklodGlobalEmergencyHost />
               </BuklodMandatoryUpdateBoundary>
               </BuklodNavSafeShell>
               </BuklodWebAdSenseProvider>
