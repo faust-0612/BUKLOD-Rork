@@ -1,0 +1,61 @@
+{
+  "contractVersion": 2,
+  "objective": "Make BUKLOD Points R2 rewards correspond to real earning workflows: Show Faith Bible Quiz, membership-verified Cluster attendance, photo-backed mentoring sessions, evidence-reviewed milestones, live ledger-based reward focus monitoring.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Read-only Supabase yhanxndaqbmuzbdqlblu verified 2026-11-07: legacy ABC +5, daily_bible +10, devotional +12, scope_attendance +10, mentor_session +15, 30-day actual points activity ledger. No R2 migration installed; staging DB not provisioned. GitHub production branch diverged during work; no production OTA issued.",
+  "chosenApproach": "Preserve existing ledger and claim RPCs; additive guarded migrations, validated new quiz path, photo-gated new mentoring approvals, authenticated-only dashboards and admin evidence review, deny direct attendance credit/debit execution.",
+  "selectionRationale": "Prevents fake rewards and client-only credit creation, preserves current balances and old approved sessions, limits economics and CI costs; avoids rewriting academic Quiz or existing Kingdom XP.",
+  "alternativeApproaches": [
+    "Turn on every R2 catalog activity and use client submitted completion events (rejected: spoofable and double awards).",
+    "Rebuild canonical points ledger and Kingdom/Quiz programs as one new service (rejected: invasive migration and production risk).",
+    "Incremental verified integrations with real ledger and approved validation workflows (chosen)."
+  ],
+  "acceptanceChecks": [
+    "Bible quiz server-owned answer key, one Manila-day attempt, grade 3/4/5 awards unique source",
+    "Cluster attendance requires persisted record and active membership; direct RPC execution revoked",
+    "New mentor lesson sessions require private teaching photo before admin approval; legacy sessions unaffected",
+    "Milestone submissions cannot self-award; admin sees queue, evidence, and review results",
+    "Member and admin 30-day focus actual totals reconcile against canonical credit ledger",
+    "No existing balances, claim statuses, grades, Kingdom XP, or ads rewritten",
+    "Run both Node contracts and Supabase DB regression in isolated environment before RC/OTA"
+  ],
+  "preserveBehaviors": [
+    "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
+    "Academic BUKLOD Quiz attempts, grades and security isolation",
+    "BUKLOD Kingdom XP, existing game levels, collectibles and build gates",
+    "All current daily Bible, devotional, formation, weekly consistency and community point values",
+    "Existing approved mentor sessions, legacy attendance history and historical reward balances",
+    "Existing ads, bottom navigation, SOS, Wall, Reels and publishing workflows",
+    "DEV->verified RC->staging-user OTA->Production OTA order; no release based on untested database migrations"
+  ],
+  "riskAreas": [
+    "classroom-quiz"
+  ],
+  "regressionTests": [
+    "tests/buklod-points-r2-contract.test.mjs",
+    "tests/buklod-points-r2-live-integration.test.mjs",
+    "tests/buklod-points-r2-classroom-quiz.test.mjs",
+    "supabase/tests/buklod_points_r2_reward_integrity.sql"
+  ],
+  "allowedPaths": [
+    "src/app/admin/index.tsx",
+    "src/app/admin/points-r2-monitor.tsx",
+    "src/app/faith/bible-quiz.tsx",
+    "src/app/faith/mentor-evidence.tsx",
+    "src/components/BuklodHomeFaithPanel.tsx",
+    "src/components/points/BuklodPointsR2Guide.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/components/points/BuklodR2FocusMonitor.tsx",
+    "supabase/migrations/20261107220000_buklod_points_r2_weighted_catalog.sql",
+    "supabase/migrations/20261107221000_buklod_points_r2_verified_accomplishments.sql",
+    "supabase/migrations/20261107222000_buklod_r2_live_bible_quiz.sql",
+    "supabase/migrations/20261107223000_buklod_r2_mentor_photo_attendance.sql",
+    "supabase/migrations/20261107224000_buklod_r2_live_rewards_monitor.sql",
+    "supabase/migrations/20261107225000_buklod_r2_mentor_workflow_catalog.sql",
+    "supabase/migrations/20261107226000_buklod_r2_cluster_attendance_integrity.sql",
+    "supabase/tests/buklod_points_r2_reward_integrity.sql",
+    "tests/buklod-points-r2-classroom-quiz.test.mjs",
+    "tests/buklod-points-r2-contract.test.mjs",
+    "tests/buklod-points-r2-live-integration.test.mjs"
+  ]
+}
