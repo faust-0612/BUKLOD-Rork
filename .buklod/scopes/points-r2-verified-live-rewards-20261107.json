@@ -29,7 +29,8 @@
     "Admin sees member full name, Cluster event venue/date and full mentoring participant names, lesson, teaching notes, venue and photo in authorized-only review",
     "Daily Bible Quiz and Check In Today appear on canonical public Home tab, not only scoped Show Faith or academic Quiz",
     "Major bonus approval enforces 28 ABC completions, four approved mentor sessions, 20 recorded Kingdom level clears plus independent evidence; rejected nominations can be edited and re-submitted without duplicate awards",
-    "Security critical: revoke direct client and anonymous execution of generic internal points credit RPC and R2 quiz bypass, while preserving trusted backend function-to-function calls and existing ledger"
+    "Security critical: revoke direct client and anonymous execution of generic internal points credit RPC and R2 quiz bypass, while preserving trusted backend function-to-function calls and existing ledger",
+    "Admin conversion monitor independently tracks live Home Check In Today submissions/pending/approved/rejected/credited and legacy scope attendance to prevent mixing"
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -88,6 +89,7 @@
     "supabase/migrations/20261107234000_buklod_points_r3_admin_evidence_details.sql",
     "supabase/migrations/20261107235000_buklod_points_r3_achievement_objective_gates.sql",
     "supabase/migrations/20261107236000_buklod_points_r3_internal_credit_privilege_lock.sql",
+    "supabase/migrations/20261107237000_buklod_points_r3_home_checkin_pipeline_metrics.sql",
     "supabase/tests/buklod_points_r2_reward_integrity.sql",
     "supabase/tests/buklod_points_r3_home_earning_contract.sql",
     "tests/buklod-ad-points-r3.test.mjs",
