@@ -116,7 +116,8 @@ try {
  }
  $tested = RunZip ('t ' + (Q $FirstPart)) 'Encrypted archive test'
  if (-not $tested.Contains('Everything is Ok')) { throw 'Encrypted archive test was not confirmed as successful.' }
- Write-Host 'Archive creation/test passed using the SAME hidden password.'
+ if (-not $tested.Contains('7zAES')) { throw 'Archive did not report AES encryption in the 7-Zip test output. No upload.' }
+ Write-Host 'AES-encrypted archive creation/test passed using the SAME hidden password.'
  $listing = RunZip ('l -slt ' + (Q $FirstPart)) 'Encrypted archive listing'
  [IO.File]::WriteAllText($ListingFile,$listing,[System.Text.UTF8Encoding]::new($false))
 } finally {
