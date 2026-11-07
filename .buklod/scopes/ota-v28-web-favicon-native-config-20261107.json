@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "objective": "Repair the Android V28 production OTA false native-baseline block caused solely by an updated web favicon while retaining exact runtime and frozen RC release gates.",
+  "baseRef": "4e3f8a04963efd762e5f94eacbf6ddde207a577a",
+  "productionBaselineEvidence": "Owner 2026-11-07 GitHub Actions screenshot: qa-and-publish failed at Verify production baseline and runtime on 'Native baseline changed', showing only + app.config.js. Connected GitHub compared pinned native build 2f26645e50e8e079ebf09f3999aacfc506ae7651 against main: native file inventory includes one app.config.js edit of 1 insertion/1 deletion. The actual source edit changes ONLY web.favicon from ./assets/release/app-icon.png to ./assets/release/buklod-main-canonical.png. app.config.js still selects main package org.mzbministry.buklod, Expo project 23dad7d0-389a-406e-8dec-08965dab85d8 and runtime 1.3.2. Expo credential preflight passed in screenshot; export, frozen RC and publish never executed.",
+  "chosenApproach": "Preserve pinned native Git ancestry and byte-level native package/android/plugin path comparisons. Resolve the pinned app.config.js inside a bounded isolated VM using the same process environment, and compare all resolved Expo config fields except the web-only subtree to current config. Keep main source, project, runtime, production AdMob unit, exact SHA, frozen RC hashes and published bundle gates unchanged. Add focused positive and negative regression tests and invoke them before production baseline verification.",
+  "selectionRationale": "Restoring the obsolete web favicon would regress approved branding; removing app.config.js entirely from checks would miss native changes. Semantic native projection differentiates web-only config from compiled V28 native identity while retaining fail-closed compatibility.",
+  "alternativeApproaches": [
+    "Restore previous favicon: rejected because it undoes approved canonical web branding without improving Android native compatibility.",
+    "Drop the app.config.js comparison entirely: rejected because it allows native plugins, package, update URL and runtime changes to evade the V28 guard.",
+    "Force manual OTA export despite failed gate: rejected because it bypasses release integrity and could ship an incompatible bundle."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "V28 Android installed runtime 1.3.2, package org.mzbministry.buklod and Expo project remain untouched",
+    "Native app config fields, package.json, package-lock.json, android and plugins remain protected against baseline drift",
+    "Expo token, production AdMob preflight, native source gate, RC freeze/hash checks, exact latest main SHA and served bundle match stay mandatory",
+    "No automatic merge-triggered OTA, no staging/production cross-publication, and no native APK rebuild",
+    "Web canonical logo/favicon is not reverted; SOS, Cluster, Wall, Quiz, Classroom, Supabase and ads features are not changed"
+  ],
+  "regressionTests": [
+    "tests/native-expo-config-compat.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "Web-only favicon edit passes native compatibility while genuine Android package, version, permission, plugin, project URL, scheme and runtime mutations fail closed",
+    "Pinned actual V28 app.config.js resolves and equals current config after removing only web subtree",
+    "Native file diff, exact Git commit, main branch and installed V28 Expo runtime checks still execute",
+    "Existing RC export, freeze, archive, exact-SHA publish and live bundle verification remain intact",
+    "Engineering regression scope gate and focused tests pass before merging; no production deployment claimed without actual manifest and update evidence"
+  ],
+  "allowedPaths": [
+    "scripts/native-expo-config-compat.cjs",
+    "tests/native-expo-config-compat.test.cjs",
+    "scripts/android-ota-rc.cjs",
+    ".github/workflows/production_android_ota.yml",
+    ".buklod/scopes/ota-v28-web-favicon-native-config-20261107.json"
+  ]
+}
