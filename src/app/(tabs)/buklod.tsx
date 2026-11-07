@@ -44,6 +44,7 @@ import {
   communityPhotoCollageItems,
 } from '@/components/BuklodCommunityPhotoCollage';
 import {
+  communityMediaCacheKey,
   peekCommunityMediaUrl,
   prefetchCommunityMedia,
   resolveCommunityMediaUrl,
@@ -94,10 +95,31 @@ import {
 } from '@/lib/buklodPostCommentPreviews';
 import {
   communityFeedCacheKey,
-  keepStableCommunityMedia,
   readOfflineCache,
   writeOfflineCache,
 } from '@/lib/buklodOfflineSync';
+import {
+  classifyNetworkQuality,
+  communityFirstPageLimit,
+  communityMediaResignDelayMs,
+} from '@/lib/buklodNetworkQuality';
+import {
+  type CommunityFeedPaintState,
+  type CommunityFeedToken,
+  applyAuthoritativeCommunityMedia,
+  communityFeedUserId,
+  createCommunityFeedSession,
+  dropWarmCommunityFeedForUser,
+  executeProgressiveCommunityFeed,
+  invalidateCommunityFeedSession,
+  isCommunityFeedTokenCurrent,
+  mergePaintedCommunityPosts,
+  versionedCommunityFeedCacheKey,
+  withCanonicalCommunityAuthor,
+  communityFeedStatusMessage,
+  communityRetryAllowed,
+} from '@/lib/communityFeedAvailability';
+import { shouldReportCommunityFeedFailure } from '@/lib/communityFeedTelemetry';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
 import {
   hydratePersonNamesOnRows,
@@ -1016,6 +1038,8 @@ function LegacyPublicBuklodScreen(){
 
  const wallVideoFailedUriRef=
   useRef<Record<string,string>>({});
+ const wallVideoResignNotBeforeRef=
+  useRef<Record<string,number>>({});
 
  const [
   videoViewerResolvingPostId,
@@ -1110,7 +1134,13 @@ function LegacyPublicBuklodScreen(){
  ]=useState<string|null>(null);
 
 /* PATCH_166H_STALE_LOAD_GUARD */
- const communityLoadSeqRef=useRef(0);
+ const communityFeedSessionRef=useRef(createCommunityFeedSession());
+ const communityFeedTokenRef=useRef<CommunityFeedToken|null>(null);
+ const communityReadAbortRef=useRef<AbortController|null>(null);
+ const communityRetryAtRef=useRef(0);
+ const communityLastPageLimitRef=useRef(40);
+ const reportCommunityFailureRef=useRef(reportCommunityFailure);
+ reportCommunityFailureRef.current=reportCommunityFailure;
  const postReactBusyRef=useRef(false);
  const commentReactBusyRef=useRef(false);
 /* PATCH_173H_R4_PUBLIC_LOCATION_STATE */
@@ -1130,770 +1160,354 @@ const [
   communityFeedMode,
   setCommunityFeedMode,
 ] = useState<CommunityFeedMode>('for_you');
+const [
+  communityPaintState,
+  setCommunityPaintState,
+] = useState<CommunityFeedPaintState>('LOADING');
+const [
+  communityHasMore186L,
+  setCommunityHasMore186L,
+]=useState(true);
 
 /* PATCH_186L_R3_TRUE_PAGED_STRICT_PUBLIC */
+/* BUKLOD_WEAK_NETWORK_TEXT_FIRST_R1
+ * Canonical post text paints as soon as the feed RPC returns.
+ * Names, reactions, photos, ranks and comments enrich afterwards.
+ * Append uses its own generation so it cannot drop a successful first page.
+ */
 const load=useCallback(async(options?:{
   append?:boolean;
   offset?:number;
   limit?:number;
 })=>{
-  if(!user)return -1;
-
-  const appendPage186L=
-    Boolean(
-      options?.append
-    );
-
-  const offset186L=
-    Math.max(
-      0,
-      Number(
-        options?.offset??0
-      )||0
-    );
-
-  const limit186L=
-    Math.max(
-      1,
-      Math.min(
-        Number(
-          options?.limit??40
-        )||40,
-        100
-      )
-    );
-  const communityLoadSeq=++communityLoadSeqRef.current;
-  const communityBaseCacheKey=
-    user
-      ? communityFeedCacheKey(
-          user.id,
-          publicLocationScopeId
-        )
-      : null;
-
-  const communityCacheKey=
-    communityBaseCacheKey
-      ? communityBaseCacheKey+
-        ':mode:'+
-        communityFeedMode
-      : null;
-
-  if(
-    !appendPage186L &&
-    communityCacheKey
-  ){
-    const warmPosts=
-      communityWarmFeedMemory.get(
-        communityCacheKey
-      );
-
-    if(
-      warmPosts?.length &&
-      communityLoadSeq===
-        communityLoadSeqRef.current
-    ){
-      setPosts(warmPosts);
-    }
-
-    const cachedPostsPromise=
-      readOfflineCache<any[]>(
-        communityCacheKey
-      );
-
-    /*
-     * Do not hold the feed RPC behind AsyncStorage. Paint disk cache when it
-     * arrives only if no warmer/newer rows are already on screen.
-     */
-    void cachedPostsPromise
-      .then(cachedPosts=>{
-        if(
-          !cachedPosts?.length ||
-          communityLoadSeq!==
-            communityLoadSeqRef.current
-        ){
-          return;
-        }
-
-        communityWarmFeedMemory.set(
-          communityCacheKey,
-          cachedPosts
-        );
-
-        setPosts(previous=>
-          previous.length
-            ? previous
-            : cachedPosts
-        );
-      })
-      .catch(()=>undefined);
-
-    if(!communityOnlineRef.current){
-      const cachedPosts=
-        warmPosts?.length
-          ? warmPosts
-          : await cachedPostsPromise
-              .catch(()=>null);
-
-      if(
-        cachedPosts?.length &&
-        communityLoadSeq===
-          communityLoadSeqRef.current
-      ){
-        setPosts(cachedPosts);
-      }
-
-      return cachedPosts?.length ?? 0;
-    }
-  } else if (!communityOnlineRef.current) {
-    return 0;
-  }
-
-  /*
-   * PERF_MAIN_COMMUNITY_R1
-   *
-   * Group context is UI enrichment only and does not affect the public
-   * feed RPC. Fetch both together so the feed no longer waits for an
-   * unrelated round-trip first.
-   */
-  const [
-    groupResult,
-    rpcResult,
-  ] = await Promise.all([
-    withBuklodTimeout<any>(
-      supabase
-        .from('group_members')
-        .select(
-          'group_id,buklod_groups:group_id(id,name,leader_id)'
-        )
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle(),
-      5000,
-      'Community group'
-    ).catch(() => ({
-      data: null,
-      error: null,
-    })),
-    withBuklodTimeout<{data:any,error:any}>(
-      (supabase as any).rpc(
-        'get_buklod_public_community_feed_v7_page',
-        {
-          p_location_scope_id:
-            publicLocationScopeId,
-          p_mode:
-            communityFeedMode,
-          p_limit: limit186L,
-          p_offset: offset186L,
-        }
-      ),
-      8000,
-      'Community feed'
-    ).catch((err:any)=>({
-      data:null,
-      error:{
-        message:String(
-          err?.message ??
-          err ??
-          'Community timed out.'
-        )
-      }
-    })),
-  ]);
-
-  if(
-    communityLoadSeq !==
-    communityLoadSeqRef.current
-  ){
+  if(!user){
+    setPosts([]);
+    setCommunityPaintState('LOADING');
     return -1;
   }
 
-  const m =
-    groupResult?.data;
-  const g:any =
-    m?.buklod_groups ?? null;
-  setGroup(g);
-
-  const data=rpcResult?.data;
-  const error=rpcResult?.error;
-  if(error){
-    if(communityCacheKey){
-      const cachedPosts=
-        await readOfflineCache<any[]>(
-          communityCacheKey
-        );
-
-      if(cachedPosts?.length){
-        setPosts(cachedPosts);
-        return cachedPosts.length;
-      }
-    }
-
-    reportCommunityFailure(
-      error,
-      'Community unavailable',
-      "BUKLOD couldn't refresh Community right now. If saved posts are available, they remain safe.",
-      'community_feed_failed',
-    );
-
-    return -1;
-  }
-  /* PATCH_154N_COMMUNITY_FEED_ROWS */
-  let feedRows=
-    (data??[]) as any[];
-
-  const postIds=
-    feedRows
-      .map((p:any)=>p.id)
-      .filter(Boolean);
-
-  /*
-   * PERF_MAIN_COMMUNITY_R1
-   *
-   * Community enrichment used to wait on each request one-by-one:
-   * names -> my reactions -> media -> ranks -> clusters -> comments.
-   * Keep the exact data contract, but execute independent work in two
-   * bounded batches so mobile/network latency is paid in parallel rather
-   * than multiplied across every round-trip.
-   */
-  /*
-   * BUKLOD_FB_LIKE_COMMUNITY_MEDIA_R1
-   *
-   * Feed rows must not wait several seconds for media enrichment.
-   * Reuse this same promise for the initial fast path and background hydration.
-   */
-  const communityMediaPromise: Promise<Record<string, any[]>> =
-    postIds.length
-      ? loadCommunityPostMediaByPostIds(postIds)
-      : Promise.resolve({});
-
-  const [
-    hydratedFeedRows,
-    myReactionResult,
-    mediaResult,
-  ] = await Promise.all([
-    hydratePersonNamesOnRows(
-      feedRows,
-      'user_id',
-      'author_name',
-    ),
-    postIds.length
-      ? withBuklodTimeout<any>(
-          supabase
-            .from('reactions')
-            .select('post_id,reaction')
-            .eq(
-              'user_id',
-              user.id
-            )
-            .in(
-              'post_id',
-              postIds
-            ),
-          5000,
-          'Community my reactions'
-        ).catch(() => ({
-          data: [] as any[],
-          error: null,
-        }))
-      : Promise.resolve({
-          data: [] as any[],
-          error: null,
-        }),
-    withBuklodTimeout<{data:any,error:any}>(
-      communityMediaPromise.then(mediaByPost=>({
-        data:Object.values(
-          mediaByPost
-        ).flat(),
-        error:null,
-      })),
-      650,
-      'Community media initial'
-    ).catch(()=>({
-      data: [] as any[],
-      error: null,
-    })),
-  ]);
-
-  if(
-    communityLoadSeq !==
-    communityLoadSeqRef.current
-  ){
-    return -1;
-  }
-
-  feedRows =
-    hydratedFeedRows;
-
-  const myReactionByPost:
-    Record<string,Reaction>={};
-
-  const myReactionRows =
-    myReactionResult?.data;
-  const myReactionError =
-    myReactionResult?.error;
-
-  if(!myReactionError){
-    for(
-      const row of
-        myReactionRows??[]
-    ){
-      myReactionByPost[
-        row.post_id
-      ]=
-        row.reaction as Reaction;
-    }
-  }
-
-  const next=
-    feedRows.map(
-      (p:any)=>{
-        return{
-          ...p,
-          my_reaction:
-            myReactionByPost[p.id]??null,
-          media_url:
-            peekCommunityMediaUrl(
-              String(p.media_path??'').trim(),
-              null
-            ) ?? p.media_url
-        };
-      }
-    );
-
-  // PATCH_161H_MEDIA_LOAD
-  const mediaMap:
-   Record<string,any[]> =
-   {};
-
-  const mediaRows=
-    mediaResult?.data;
-  const mediaError=
-    mediaResult?.error;
-
-  if(mediaError){
-    console.warn(
-     'Community photos:',
-     mediaError.message
-    );
-  }
-  else{
-    for(
-     const row
-     of mediaRows??[]
-    ){
-     if(!row?.post_id){
-      continue;
-     }
-
-     if(
-      !mediaMap[
-       row.post_id
-      ]
-     ){
-      mediaMap[
-       row.post_id
-      ]=[];
-     }
-
-     mediaMap[
-      row.post_id
-     ].push({
-      ...row,
-      media_url:
-        row.media_url ??
-        peekCommunityMediaUrl(
-          row.media_path,
-          null
-        ),
-     });
-    }
-  }
-
-  for(const p of next){
-   const loaded=
-    mediaMap[p.id]??[];
-
-   if(loaded.length){
-    p.media_items=
-     loaded.sort(
-      (a:any,b:any)=>
-       Number(
-        a.media_position??0
-       )-
-       Number(
-        b.media_position??0
-       )
-     );
-   }
-   else if(
-    p.media_url &&
-    !String(
-     p.media_mime_type??
-     ''
-    )
-     .toLowerCase()
-     .startsWith(
-      'video/'
-     )
-   ){
-    p.media_items=[
-     {
-      post_id:p.id,
-      media_position:0,
-      media_path:
-       p.media_path,
-      media_mime_type:
-       p.media_mime_type,
-      media_size_bytes:
-       p.media_size_bytes,
-      media_url:
-       p.media_url
-     }
-    ];
-   }
-   else{
-    p.media_items=[];
-   }
-  }
-
-  /*
-   * BUKLOD_COMMUNITY_PROGRESSIVE_MEDIA_R1
-   *
-   * The first page already has the canonical posts + media rows at this
-   * point. Paint them now instead of waiting for rank, cluster labels and
-   * comment previews. Those enrichments are non-layout metadata and can land
-   * on the same rows a moment later.
-   *
-   * IMPORTANT: no Community photo sizing/crop/aspect-ratio rule changes here.
-   */
-  if(
-    !appendPage186L &&
-    communityLoadSeq ===
-      communityLoadSeqRef.current
-  ){
-    setPosts(previous=>{
-      const merged=
-        keepStableCommunityMedia(
-          previous,
-          next
-        );
-
-      if(communityCacheKey){
-        const warmRows=
-          merged.slice(
-            0,
-            SCALE_LIMITS.offlineCommunityCachePosts
-          );
-
-        communityWarmFeedMemory.set(
-          communityCacheKey,
-          warmRows
-        );
-
-        void writeOfflineCache(
-          communityCacheKey,
-          warmRows,
-          'network'
-        );
-      }
-
-      return merged;
-    });
-
-    /*
-     * BUKLOD_FB_LIKE_COMMUNITY_MEDIA_R1_BACKGROUND
-     *
-     * Post rows stay visible while media finishes.
-     * The original request is reused; no second media fetch is started.
-     */
-    if(
-      !Array.isArray(mediaResult?.data) ||
-      mediaResult.data.length === 0
-    ){
-      void communityMediaPromise
-        .then(mediaByPost=>{
-          if(
-            communityLoadSeq !==
-              communityLoadSeqRef.current
-          ){
-            return;
-          }
-
-          if(
-            !mediaByPost ||
-            !Object.keys(mediaByPost).length
-          ){
-            return;
-          }
-
-          setPosts(current=>{
-            const merged=
-              current.map((post:any)=>{
-                const postId=
-                  String(
-                    post?.id ??
-                    ''
-                  ).trim();
-
-                const loaded=
-                  postId
-                    ? mediaByPost[postId]
-                    : undefined;
-
-                if(
-                  !Array.isArray(loaded) ||
-                  !loaded.length
-                ){
-                  return post;
-                }
-
-                return {
-                  ...post,
-                  media_items:
-                    loaded
-                      .slice()
-                      .sort(
-                        (a:any,b:any)=>
-                          Number(
-                            a?.media_position ??
-                            0
-                          ) -
-                          Number(
-                            b?.media_position ??
-                            0
-                          )
-                      ),
-                };
-              });
-
-            if(communityCacheKey){
-              const warmRows=
-                merged.slice(
-                  0,
-                  SCALE_LIMITS.offlineCommunityCachePosts
-                );
-
-              communityWarmFeedMemory.set(
-                communityCacheKey,
-                warmRows
-              );
-
-              void writeOfflineCache(
-                communityCacheKey,
-                warmRows,
-                'network'
-              );
-            }
-
-            return merged;
-          });
-        })
-        .catch(error=>{
-          console.warn(
-            'Community media background:',
-            error?.message ??
-              error
-          );
-        });
-    }
-    /*
-     * Pre-sign and prefetch only the first visible burst. Signing is already
-     * batched by buklodMediaUrl, so this does not create one request per photo.
-     */
-    const firstVisibleMedia=
-      next
-        .slice(0,20)
-        .flatMap((post:any)=>
-          Array.isArray(post.media_items)
-            ? post.media_items
-            : []
-        )
-        .filter((item:any)=>
-          !String(
-            item?.media_mime_type??
-            ''
-          )
-            .toLowerCase()
-            .startsWith('video/')
-        )
-        .slice(0,32);
-
-    void Promise
-      .all(
-        firstVisibleMedia.map(
-          async(item:any)=>{
-            const path=
-              String(
-                item?.media_path??
-                ''
-              ).trim();
-
-            const direct=
-              peekCommunityMediaUrl(
-                path,
-                item?.media_url
-              ) ??
-              String(
-                item?.media_url??
-                ''
-              ).trim();
-
-            if(direct){
-              return direct;
-            }
-
-            if(!path){
-              return null;
-            }
-
-            return resolveCommunityMediaUrl(
-              path,
-              null
-            );
-          }
-        )
-      )
-      .then(urls=>{
-        if(
-          communityLoadSeq !==
-            communityLoadSeqRef.current
-        ){
-          return;
-        }
-
-        prefetchCommunityMedia(urls);
-      })
-      .catch(()=>undefined);
-  }
-
-// COMMUNITY_AUTHOR_CIRCLE_RANK
-  const authorIds = Array.from(
-    new Set(
-      next
-        .map((p: any) => p.user_id)
-        .filter(Boolean)
-    )
+  const appendPage186L=Boolean(options?.append);
+  const offset186L=Math.max(0, Number(options?.offset??0)||0);
+  const pageLimit186L=communityFirstPageLimit(classifyNetworkQuality());
+  const limit186L=Math.max(
+    1,
+    Math.min(Number(options?.limit??pageLimit186L)||pageLimit186L, 100),
   );
+  communityLastPageLimitRef.current=limit186L;
 
-  const [
-    rankResult,
-    clusterMap,
-    commentPreviewMap,
-  ] = await Promise.all([
-    authorIds.length
-      ? withBuklodTimeout<{data:any}>(
-          (supabase as any).rpc(
-            'get_member_circle_ranks_v1',
-            {
-              p_user_ids: authorIds,
-            }
-          ),
-          4000,
-          'Community ranks'
-        ).catch(() => ({
-          data: null as any
-        }))
-      : Promise.resolve({
-          data: null as any
-        }),
-    withBuklodTimeout(
-      getClusterLabels(
-        authorIds as string[]
-      ),
-      4000,
-      'Community clusters'
-    ).catch(() => (
-      {} as Record<string, string>
-    )),
-    withBuklodTimeout(
-      fetchBuklodPostCommentPreviews(
-        postIds
-      ),
-      4000,
-      'Community comments'
-    ).catch(() => (
-      {} as Record<string, unknown>
-    )),
-  ]);
+  const legacyCacheKey=communityFeedCacheKey(
+    user.id,
+    publicLocationScopeId,
+  )+':mode:'+communityFeedMode;
+  const communityCacheKey=versionedCommunityFeedCacheKey(legacyCacheKey);
+  const identity=`${user.id}:${publicLocationScopeId??''}:${communityFeedMode}`;
 
-  if(
-    communityLoadSeq !==
-    communityLoadSeqRef.current
-  ){
-    return -1;
-  }
-
-  const rankMap =
-    new Map<string, string>();
-
-  for (const row of rankResult?.data ?? []) {
-    if (row?.user_id && row?.rank_name) {
-      rankMap.set(
-        row.user_id,
-        row.rank_name
-      );
-    }
-  }
-
-  const preparedPosts186L=
-    next.map((p:any)=>({
-      ...p,
-      cluster_name:
-        clusterMap[p.user_id] ??
-        null,
-      author_rank_name:
-        rankMap.get(p.user_id) ??
-        'Circle Starter V',
-      comment_preview:
-        commentPreviewMap[p.id] ??
-        null,
-    }));
-
-  if(appendPage186L){
-    setPosts(previous=>{
-      const seen=
-        new Set(
-          previous.map(
-            (row:any)=>
-              String(row.id)
-          )
-        );
-
-      return [
-        ...previous,
-        ...preparedPosts186L.filter(
-          (row:any)=>
-            !seen.has(
-              String(row.id)
-            )
-        )
-      ];
-    });
-  }
-  else{
-    setPosts(previous=>{
-      const merged=
-        keepStableCommunityMedia(
-          previous,
-          preparedPosts186L
-        );
-
-      if(communityCacheKey){
-        communityWarmFeedMemory.set(
-          communityCacheKey,
-          merged.slice(
-            0,
-            SCALE_LIMITS.offlineCommunityCachePosts
-          )
+  const count=await executeProgressiveCommunityFeed<any>({
+    session:communityFeedSessionRef.current,
+    append:appendPage186L,
+    identity,
+    online:communityOnlineRef.current,
+    onToken:token=>{
+      communityFeedTokenRef.current=token;
+    },
+    readMemory:()=>
+      communityWarmFeedMemory.get(communityCacheKey)??
+      communityWarmFeedMemory.get(legacyCacheKey)??
+      null,
+    readDisk:async()=>{
+      const versioned=await readOfflineCache<any[]>(communityCacheKey);
+      if(versioned?.length) return versioned;
+      return readOfflineCache<any[]>(legacyCacheKey);
+    },
+    persist:rows=>{
+      const warmRows=rows.slice(0, SCALE_LIMITS.offlineCommunityCachePosts);
+      communityWarmFeedMemory.set(communityCacheKey, warmRows);
+      void writeOfflineCache(communityCacheKey, warmRows, 'network');
+    },
+    onState:setCommunityPaintState,
+    onPageReady:rowCount=>{
+      if(!appendPage186L){
+        setCommunityHasMore186L(rowCount>=limit186L);
+      }
+    },
+    onIdentityChange:(previousIdentity, nextIdentity)=>{
+      const previousUser=communityFeedUserId(previousIdentity);
+      const nextUser=communityFeedUserId(nextIdentity);
+      if(previousUser && previousUser!==nextUser){
+        dropWarmCommunityFeedForUser(
+          communityWarmFeedMemory,
+          previousUser,
         );
       }
+    },
+    onFailure:(error, hadCache)=>{
+      if(hadCache) return;
+      if(!shouldReportCommunityFeedFailure('community_feed_failed')) return;
+      reportCommunityFailureRef.current(
+        error,
+        'Community unavailable',
+        "BUKLOD couldn't refresh Community right now. If saved posts are available, they remain safe.",
+        'community_feed_failed',
+      );
+    },
+    fetchFeed:async()=>{
+      communityReadAbortRef.current?.abort();
+      const controller=new AbortController();
+      communityReadAbortRef.current=controller;
 
-      return merged;
-    });
+      const [groupResult, rpcResult]=await Promise.all([
+        withBuklodTimeout<any>(
+          supabase
+            .from('group_members')
+            .select('group_id,buklod_groups:group_id(id,name,leader_id)')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .limit(1)
+            .maybeSingle(),
+          5000,
+          'Community group',
+        ).catch(()=>({ data:null, error:null })),
+        (async()=>{
+          let query:any=(supabase as any).rpc(
+            'get_buklod_public_community_feed_v7_page',
+            {
+              p_location_scope_id:publicLocationScopeId,
+              p_mode:communityFeedMode,
+              p_limit:limit186L,
+              p_offset:offset186L,
+            },
+          );
+          if(typeof query?.abortSignal==='function'){
+            query=query.abortSignal(controller.signal);
+          }
+          return withBuklodTimeout<{data:any,error:any}>(
+            query,
+            8000,
+            'Community feed',
+          );
+        })().catch((err:any)=>({
+          data:null,
+          error:{
+            message:String(err?.message??err??'Community timed out.'),
+          },
+        })),
+      ]);
+
+      setGroup(groupResult?.data?.buklod_groups??null);
+      if(rpcResult?.error){
+        return { ok:false as const, error:rpcResult.error };
+      }
+      return {
+        ok:true as const,
+        rows:(rpcResult?.data??[]) as any[],
+      };
+    },
+    toCanonical:rows=>rows.map((row:any)=>{
+      const canonical=withCanonicalCommunityAuthor(
+        row,
+        resolvePersonDisplayName,
+      );
+      const path=String(canonical.media_path??'').trim();
+      return {
+        ...canonical,
+        media_url:
+          peekCommunityMediaUrl(path, canonical.media_url)??
+          canonical.media_url,
+      };
+    }),
+    paint:(rows, meta)=>{
+      setPosts(previous=>mergePaintedCommunityPosts(previous, rows, {
+        append:meta.append,
+        preserveEmptyMedia:meta.preserveEmptyMedia,
+        replaceWithNext:meta.replaceWithNext,
+        keepUnmentioned:meta.keepUnmentioned,
+      }));
+    },
+    enrich:async feedRows=>{
+      const token=communityFeedTokenRef.current;
+      const feedIsCurrent=()=>isCommunityFeedTokenCurrent(
+        communityFeedSessionRef.current,
+        token,
+      );
+      const postIds=feedRows.map((p:any)=>p.id).filter(Boolean);
+      const mediaState:{lookup:'authoritative'|'failed'}={
+        lookup:'failed',
+      };
+      let mediaByPost:Record<string, any[]>={};
+      const communityMediaPromise:Promise<Record<string, any[]>>=
+        postIds.length
+          ? loadCommunityPostMediaByPostIds(postIds)
+          : Promise.resolve({});
+      const mediaTask=communityMediaPromise.then(result=>{
+        mediaByPost=result??{};
+        mediaState.lookup='authoritative';
+        if(!feedIsCurrent()) return;
+        setPosts(current=>{
+          const next=applyAuthoritativeCommunityMedia(
+            current,
+            postIds,
+            mediaByPost,
+          );
+          if(!appendPage186L && communityCacheKey){
+            const warmRows=next.slice(
+              0,
+              SCALE_LIMITS.offlineCommunityCachePosts,
+            );
+            communityWarmFeedMemory.set(communityCacheKey, warmRows);
+            void writeOfflineCache(communityCacheKey, warmRows, 'network');
+          }
+          return next;
+        });
+      }).catch(error=>{
+        mediaState.lookup='failed';
+        console.warn(
+          'Community media background:',
+          error?.message??error,
+        );
+      });
+      await Promise.race([
+        mediaTask,
+        new Promise(resolve=>setTimeout(resolve, 650)),
+      ]);
+
+      const [
+        hydratedFeedRows,
+        myReactionResult,
+      ]=await Promise.all([
+        hydratePersonNamesOnRows(feedRows, 'user_id', 'author_name'),
+        postIds.length
+          ? withBuklodTimeout<any>(
+              supabase
+                .from('reactions')
+                .select('post_id,reaction')
+                .eq('user_id', user.id)
+                .in('post_id', postIds),
+              5000,
+              'Community my reactions',
+            ).catch(()=>({ data:[] as any[], error:null }))
+          : Promise.resolve({ data:[] as any[], error:null }),
+      ]);
+
+      if(!feedIsCurrent()) return feedRows;
+
+      const myReactionByPost:Record<string,Reaction>={};
+      if(!myReactionResult?.error){
+        for(const row of myReactionResult?.data??[]){
+          myReactionByPost[row.post_id]=row.reaction as Reaction;
+        }
+      }
+
+      const next=hydratedFeedRows.map((p:any)=>{
+        const loaded=mediaState.lookup==='authoritative'
+          ? (mediaByPost[String(p.id??'')]??[])
+          : [];
+        if(mediaState.lookup==='authoritative' && loaded.length===0){
+          return {
+            ...p,
+            my_reaction:myReactionByPost[p.id]??null,
+            media_path:null,
+            media_url:null,
+            media_items:[],
+          };
+        }
+        if(loaded.length){
+          return {
+            ...p,
+            my_reaction:myReactionByPost[p.id]??null,
+            media_items:loaded.slice().sort(
+              (a:any,b:any)=>
+                Number(a?.media_position??0)-Number(b?.media_position??0),
+            ),
+          };
+        }
+        return {
+          ...p,
+          my_reaction:myReactionByPost[p.id]??null,
+          media_url:
+            peekCommunityMediaUrl(String(p.media_path??'').trim(), null)??
+            p.media_url,
+          media_items:[],
+        };
+      });
+
+      if(mediaState.lookup==='authoritative'){
+        const firstVisibleMedia=next
+          .slice(0, 12)
+          .flatMap((post:any)=>Array.isArray(post.media_items)?post.media_items:[])
+          .filter((item:any)=>
+            !String(item?.media_mime_type??'').toLowerCase().startsWith('video/'),
+          )
+          .slice(0, 20);
+        void Promise.all(firstVisibleMedia.map(async(item:any)=>{
+          const path=String(item?.media_path??'').trim();
+          const direct=
+            peekCommunityMediaUrl(path, item?.media_url)??
+            String(item?.media_url??'').trim();
+          const uri=direct || (path ? await resolveCommunityMediaUrl(path, null) : null);
+          if(!uri) return null;
+          return {
+            uri,
+            cacheKey:communityMediaCacheKey(path, uri),
+          };
+        })).then(urls=>{
+          if(!feedIsCurrent()) return;
+          prefetchCommunityMedia(urls);
+        }).catch(()=>undefined);
+      }
+
+      const authorIds=Array.from(new Set(
+        next.map((p:any)=>p.user_id).filter(Boolean),
+      ));
+      const [rankResult, clusterMap, commentPreviewMap]=await Promise.all([
+        authorIds.length
+          ? withBuklodTimeout<{data:any}>(
+              (supabase as any).rpc('get_member_circle_ranks_v1', {
+                p_user_ids:authorIds,
+              }),
+              4000,
+              'Community ranks',
+            ).catch(()=>({ data:null as any }))
+          : Promise.resolve({ data:null as any }),
+        withBuklodTimeout(
+          getClusterLabels(authorIds as string[]),
+          4000,
+          'Community clusters',
+        ).catch(()=>({} as Record<string, string>)),
+        withBuklodTimeout(
+          fetchBuklodPostCommentPreviews(postIds),
+          4000,
+          'Community comments',
+        ).catch(()=>({} as Record<string, unknown>)),
+      ]);
+
+      if(!feedIsCurrent()){
+        return { rows:next, mediaLookup:'failed' as const };
+      }
+
+      const rankMap=new Map<string, string>();
+      for(const row of rankResult?.data??[]){
+        if(row?.user_id && row?.rank_name){
+          rankMap.set(row.user_id, row.rank_name);
+        }
+      }
+
+      return {
+        mediaLookup:mediaState.lookup,
+        rows:next.map((p:any)=>({
+          ...p,
+          cluster_name:clusterMap[p.user_id]??null,
+          author_rank_name:rankMap.get(p.user_id)??'Circle Starter V',
+          comment_preview:commentPreviewMap[p.id]??null,
+        })),
+      };
+    },
+  });
+
+  if(!appendPage186L && count>=0){
+    setCommunityHasMore186L(count>=limit186L);
   }
 
-  return preparedPosts186L.length;
+  return count;
  },[
   user?.id,
   publicLocationScopeId,
@@ -1904,7 +1518,8 @@ const load=useCallback(async(options?:{
   void load();
 
   return()=>{
-   communityLoadSeqRef.current+=1;
+   invalidateCommunityFeedSession(communityFeedSessionRef.current);
+   communityReadAbortRef.current?.abort();
   };
  },[load]);
  /* PATCH_166H_SAFE_COMMUNITY_REALTIME */
@@ -3790,6 +3405,16 @@ const load=useCallback(async(options?:{
      return null;
     }
 
+    const now=Date.now();
+    if(
+     now <
+     (wallVideoResignNotBeforeRef.current[postId]??0)
+    ){
+     return null;
+    }
+    wallVideoResignNotBeforeRef.current[postId]=
+     now+communityMediaResignDelayMs(0);
+
     const failed=
      String(failedUri??'').trim();
 
@@ -4131,11 +3756,6 @@ const communityScrollYRefBackR2 = useRef(0);
 const communityPageBusyRef186L=
   useRef(false);
 
-const [
-  communityHasMore186L,
-  setCommunityHasMore186L
-]=useState(true);
-
 const selectCommunityFeedMode=
   useCallback(
     (nextMode:CommunityFeedMode)=>{
@@ -4149,7 +3769,10 @@ const selectCommunityFeedMode=
        * Invalidate an older in-flight mode request before painting another
        * mode. Warm memory is mode-specific so switching back is immediate.
        */
-      communityLoadSeqRef.current+=1;
+      invalidateCommunityFeedSession(
+        communityFeedSessionRef.current
+      );
+      communityReadAbortRef.current?.abort();
       communityPageBusyRef186L.current=false;
       setCommunityHasMore186L(true);
 
@@ -4161,19 +3784,30 @@ const selectCommunityFeedMode=
             )
           : null;
 
-      const modeKey=
+      const legacyKey=
         baseKey
           ? baseKey+
             ':mode:'+
             nextMode
           : null;
+      const modeKey=
+        legacyKey
+          ? versionedCommunityFeedCacheKey(legacyKey)
+          : null;
 
-      setPosts(
+      const warmPosts=
         modeKey
-          ? communityWarmFeedMemory.get(
-              modeKey
-            ) ?? []
-          : []
+          ? communityWarmFeedMemory.get(modeKey)??
+            (legacyKey
+              ? communityWarmFeedMemory.get(legacyKey)
+              : undefined)
+          : undefined;
+
+      setPosts(warmPosts??[]);
+      setCommunityPaintState(
+        warmPosts?.length
+          ? 'LOADED'
+          : 'LOADING'
       );
 
       setCommunityFeedMode(
@@ -4192,7 +3826,8 @@ const loadMoreCommunity186L=
     async()=>{
       if(
         communityPageBusyRef186L.current ||
-        !communityHasMore186L
+        !communityHasMore186L ||
+        !communityFeedSessionRef.current.pageOneReady
       ){
         return;
       }
@@ -4205,7 +3840,6 @@ const loadMoreCommunity186L=
           await load({
             append:true,
             offset:posts.length,
-            limit:40
           });
 
         if(
@@ -4215,7 +3849,7 @@ const loadMoreCommunity186L=
         }
 
         if(
-          Number(count)<40
+          Number(count)<communityLastPageLimitRef.current
         ){
           setCommunityHasMore186L(
             false
@@ -4251,14 +3885,13 @@ const refreshCommunity186L=
           await load({
             append:false,
             offset:0,
-            limit:40
           });
 
         if(
           Number(count)>=0
         ){
           setCommunityHasMore186L(
-            Number(count)>=40
+            Number(count)>=communityLastPageLimitRef.current
           );
         }
       }
@@ -4269,6 +3902,19 @@ const refreshCommunity186L=
     },
     [load]
   );
+
+const retryCommunityFeed=
+  useCallback(()=>{
+    const now=Date.now();
+    if(!communityRetryAllowed(
+      communityRetryAtRef.current,
+      now,
+    )){
+      return;
+    }
+    communityRetryAtRef.current=now;
+    void refreshCommunity186L();
+  },[refreshCommunity186L]);
 
  /* BUKLOD_COMMUNITY_BACK_ENDPOINT_R2_HANDLER */
 useFocusEffect(
@@ -4746,6 +4392,28 @@ const communityFeedRows =
     })}
    </View>
 
+   {(communityPaintState==='CACHED_OFFLINE' ||
+     communityPaintState==='RETRYABLE_ERROR') && (
+    <Card>
+     <Text style={shared.muted}>
+      {communityFeedStatusMessage(
+        communityPaintState,
+        communityFeedMode,
+      ).message}
+     </Text>
+     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Retry loading posts"
+      onPress={retryCommunityFeed}
+      style={{marginTop:10, alignSelf:'flex-start'}}
+     >
+      <Text style={{color:colors.green, fontWeight:'900'}}>
+       Retry
+      </Text>
+     </Pressable>
+    </Card>
+   )}
+
    <SectionTitle>
     {communityFeedMode==='following'
       ? 'FOLLOWING POSTS'
@@ -4757,10 +4425,26 @@ const communityFeedRows =
   ListEmptyComponent={
    <Card>
     <Text style={shared.muted}>
-     {communityFeedMode==='following'
-       ? 'No posts from people you follow yet.'
-       : 'No Public posts yet.'}
+     {communityFeedStatusMessage(
+       communityPaintState,
+       communityFeedMode,
+     ).message}
     </Text>
+    {communityFeedStatusMessage(
+      communityPaintState,
+      communityFeedMode,
+    ).showRetry ? (
+     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Retry loading posts"
+      onPress={retryCommunityFeed}
+      style={{marginTop:10, alignSelf:'flex-start'}}
+     >
+      <Text style={{color:colors.green, fontWeight:'900'}}>
+       Retry
+      </Text>
+     </Pressable>
+    ) : null}
    </Card>
   }
   renderItem={({item,index}:{item:any,index:number})=>{
