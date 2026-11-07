@@ -82,7 +82,9 @@ try {
   $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = $SevenZip
-  $psi.Arguments = 'l -slt -p "' + $Archive + '"'
+  # Encrypted 7z headers trigger the password request automatically for "l".
+  # Do not supply a bare -p (which can be interpreted as empty in noninteractive listing).
+  $psi.Arguments = 'l -slt "' + $Archive + '"'
   $psi.RedirectStandardInput = $true
   $psi.RedirectStandardOutput = $true
   $psi.RedirectStandardError = $true
