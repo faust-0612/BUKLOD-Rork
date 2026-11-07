@@ -77,3 +77,26 @@ export function applyCodeHint(round: CodeRound): CodeRound {
   if (round.status !== 'playing' || round.hintedIndex !== null) return round;
   return { ...round, hintedIndex: 0 };
 }
+
+
+/** Explicit slot selection must replace that slot, never fill a different gap. */
+export function insertCodeGem(
+  draft: readonly (number | null)[], selectedIndex: number,
+  digit: number, paletteSize: number, explicitSelection: boolean,
+): { digits: (number | null)[]; nextIndex: number } {
+  if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= draft.length ||
+      !Number.isInteger(digit) || digit < 1 || digit > paletteSize ||
+      draft.some(value => value !== null && (!Number.isInteger(value) || value < 1 || value > paletteSize))) {
+    throw new Error('Invalid code gem or slot');
+  }
+  const target = explicitSelection || draft[selectedIndex] === null || draft.every(value => value !== null)
+    ? selectedIndex
+    : draft.findIndex(value => value === null);
+  if (draft.some((value, index) => index !== target && value === digit)) {
+    throw new Error('Code gems must be unique');
+  }
+  const digits = [...draft];
+  digits[target] = digit;
+  const firstEmpty = digits.findIndex(value => value === null);
+  return { digits, nextIndex: firstEmpty >= 0 ? firstEmpty : target };
+}

@@ -25,6 +25,8 @@ export function BibleCrownGameV1({ onFinish }: Props) {
   const [rejected, setRejected] = useState<number[]>([]);
   const [halfUsed, setHalfUsed] = useState(false);
   const [mentorUsed, setMentorUsed] = useState(false);
+  // Lifetime one-use mentor must reveal ONLY the question on which it was used.
+  const [mentorQuestionIndex, setMentorQuestionIndex] = useState<number | null>(null);
   const [secondChanceUsed, setSecondChanceUsed] = useState(false);
   const [paused, setPaused] = useState(false);
   const [message, setMessage] = useState('');
@@ -48,6 +50,7 @@ export function BibleCrownGameV1({ onFinish }: Props) {
     setRejected([]);
     setHalfUsed(false);
     setMentorUsed(false);
+    setMentorQuestionIndex(null);
     setSecondChanceUsed(false);
     setPaused(false);
     setMessage('');
@@ -126,8 +129,9 @@ export function BibleCrownGameV1({ onFinish }: Props) {
   const useMentor = useCallback(() => {
     if (phase !== 'playing' || paused || mentorUsed) return;
     setMentorUsed(true);
+    setMentorQuestionIndex(index);
     void playBuklodGameFeedback('move');
-  }, [mentorUsed, paused, phase]);
+  }, [index, mentorUsed, paused, phase]);
 
   return (
     <View style={s.shell}>
@@ -199,7 +203,7 @@ export function BibleCrownGameV1({ onFinish }: Props) {
                   <View style={[s.aid, secondChanceUsed && s.aidUsed]}><Text style={s.aidText}>{t('SECOND CHANCE', 'IKALAWANG TSANSA')} {secondChanceUsed ? '✓' : '●'}</Text></View>
                 </View>
               ) : null}
-              {mentorUsed && <Text style={s.hint}>💡 {question.mentor[language]}</Text>}
+              {mentorUsed && mentorQuestionIndex === index && <Text style={s.hint}>💡 {question.mentor[language]}</Text>}
               {!!message && <Text style={s.message}>{message}</Text>}
               {phase === 'feedback' && (
                 <View style={s.explanation}>

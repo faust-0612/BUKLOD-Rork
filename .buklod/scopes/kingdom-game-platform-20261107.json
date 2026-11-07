@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Complete modular BUKLOD Kingdom game development through six playable DEV pilots: add ELESUR Domino Village (classic double-six draw-dominoes vs deterministic AI), while preserving the original Village Builder, map, character economy, AdMob protections and Android release.",
-  "baseRef": "b887176aa86ca20dac58326f4e1e50c9302b2d6a",
-  "productionBaselineEvidence": "verified: Exact prior R3 head b887176aa86ca20dac58326f4e1e50c9302b2d6a has successful Engineering Accountability and web compatibility/TypeScript checks; Kingdom map blob 88a4b1b4a70fc4acd59579419058b47f21be2554 remains identical to approved baseline. Authoritative Android production OTA/runtime and staging RC not checked here; no merge or release authorized. New source is chained on R3, not stale main.",
-  "chosenApproach": "Add a fully deterministic double-six domino rule engine, original themed gameplay UI, stock/boneyard, pass, blocked scoring and turn-based AI inside ELESUR existing route. Preserve Village Builder and reuse KingdomInteriorCenter for local game scores.",
-  "selectionRationale": "A board-game genre with complete draw-domino rules offers substantial game variety without adding native dependencies, remote assets, account backend changes or ad regressions.",
+  "objective": "Fix BUKLOD Kingdom gameplay fairness and account isolation: Mentor lifeline stays question-specific; Code Breaker honors gem slot selection; all active pilot/original game sessions remount after account switch to prevent cross-account result attribution.",
+  "baseRef": "6b99cc3b0a1a1126aafb450dfe64252ffdf07e41",
+  "productionBaselineEvidence": "verified: R4 exact prior source commit 6b99cc3b0a1a1126aafb450dfe64252ffdf07e41 passed Engineering Accountability, TypeScript and web compatibility checks. Kingdom map canonical blob remains 88a4b1b4a70fc4acd59579419058b47f21be2554. R5 fixes are source-only; staging, Android runtime and production deployment are not verified or authorized.",
+  "chosenApproach": "Repair Bible Crown Mentor display and Code Breaker slot selection; use React keyed game-session remounts tied to authenticated user ID in shared/Christian/Mitch centers. Preserve map, points and ads policy.",
+  "selectionRationale": "Fix specific discovered gameplay correctness defects before new game proliferation; leave sound, map, backend and monetization untouched.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
     "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
@@ -21,7 +21,8 @@
     "Do not change Character V2, Circle Rank, payouts or existing ad sensitive-route protections.",
     "Do not touch native v28 runtime, BUKLOD Empire or production release.",
     "Preserve all 13 original game implementations and Kingdom map; protect previous 3 pilots from route/controller regressions.",
-    "Preserve persistent Character V2 id ellusur and legacy Kingdom station key elesur, without migrating IDs or changing character art."
+    "Preserve persistent Character V2 id ellusur and legacy Kingdom station key elesur, without migrating IDs or changing character art.",
+    "Game UI must not show or save a score from previous user after authentication switches."
   ],
   "acceptanceChecks": [
     "13 center / 39-game uniqueness and status contracts, plus 15 bilingual question and reference contracts.",
@@ -37,13 +38,17 @@
     "Van City Dispatch and Quin Discovery Expedition retain their original game components and completion callback; no rewards RPC or ad interruptions.",
     "Domino rules must generate all 28 unique double-six tiles, deal 7 each and stock 14, start with highest held double, and guarantee contiguous chain/end matching.",
     "AI and human moves must obey turn/stock/pass restrictions and bounded stock consumption; scored win/blocked draw must use correct remaining-pip totals.",
-    "ELESUR Village Builder stays selectable at the unchanged /games/elesur-village-builder route; new Domino Village local-only game cannot pay Character Points."
+    "ELESUR Village Builder stays selectable at the unchanged /games/elesur-village-builder route; new Domino Village local-only game cannot pay Character Points.",
+    "Mentor clue is visible on exactly the consumed Bible Crown question and cannot leak into later questions.",
+    "Code Breaker manual slot selection replaces that exact slot, auto-input fills first empty, and duplicate gems are rejected with no mutation.",
+    "Switching or signing out of BUKLOD account must remount the active pilot/original game scene before new profile result saving; local best records remain per account."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
     "tests/kingdom-games-r2.test.mjs",
     "tests/kingdom-games-r3.test.mjs",
-    "tests/kingdom-games-r4.test.mjs"
+    "tests/kingdom-games-r4.test.mjs",
+    "tests/kingdom-games-r5.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-game-platform-20261107.json",
@@ -73,6 +78,7 @@
     "src/features/games/elesur/dominoRules.ts",
     "src/features/games/elesur/DominoVillageGameV1.tsx",
     "src/app/games/elesur-village-builder.tsx",
-    "tests/kingdom-games-r4.test.mjs"
+    "tests/kingdom-games-r4.test.mjs",
+    "tests/kingdom-games-r5.test.mjs"
   ]
 }

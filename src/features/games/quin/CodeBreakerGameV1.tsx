@@ -5,7 +5,7 @@ import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLangua
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import {
   CODE_LEVELS, applyCodeGuess, applyCodeHint,
-  codeGuessValid, createCodeRound, type CodeRound,
+  codeGuessValid, createCodeRound, insertCodeGem, type CodeRound,
 } from './codeBreakerRules';
 
 const GAME_ID = 'quin-code-breaker';
@@ -24,6 +24,7 @@ export function CodeBreakerGameV1({ onFinish }: Props) {
   const draftRef = useRef<(number | null)[]>([null, null, null]);
   const [activeSlot, setActiveSlot] = useState(0);
   const slotRef = useRef(0);
+  const explicitSlotRef = useRef(false);
   const [totalScore, setTotalScore] = useState(0);
   const scoreRef = useRef(0);
   const [errorCount, setErrorCount] = useState(0);
@@ -44,6 +45,7 @@ export function CodeBreakerGameV1({ onFinish }: Props) {
     draftRef.current = fresh;
     setDraft(fresh);
     slotRef.current = 0;
+    explicitSlotRef.current = false;
     setActiveSlot(0);
     setLevel(nextLevel);
     switchPhase('playing');
@@ -77,25 +79,19 @@ export function CodeBreakerGameV1({ onFinish }: Props) {
 
   function putGem(value: number) {
     if (phaseRef.current !== 'playing') return;
-    const current = draftRef.current;
-    if (current.includes(value)) {
-      setMessage(t('Each gem may appear only once in a code.', 'Isang beses lamang maaaring gamitin ang bawat hiyas.'));
+    try {
+      const result = insertCodeGem(draftRef.current, slotRef.current, value, spec.palette, explicitSlotRef.current);
+      // Commit both slot and code synchronously to avoid double-click state races.
+      explicitSlotRef.current = false;
+      draftRef.current = result.digits;
+      setDraft(result.digits);
+      slotRef.current = result.nextIndex;
+      setActiveSlot(result.nextIndex);
+      void playBuklodGameFeedback('move');
+    } catch (error) {
+      setMessage(t('Choose a valid, non-repeating gem for the selected slot.', 'Pumili ng wastong hiyas na hindi inuulit sa napiling puwesto.'));
       void playBuklodGameFeedback('impact');
-      return;
     }
-    const changed = [...current];
-    const at = changed[slotRef.current] === null ? slotRef.current : changed.findIndex(d => d === null);
-    if (at < 0) {
-      setMessage(t('Tap a code slot to replace a gem, or clear a slot first.', 'I-tap ang puwesto o burahin muna ang isang hiyas.'));
-      return;
-    }
-    changed[at] = value;
-    draftRef.current = changed;
-    setDraft(changed);
-    const next = changed.findIndex(d => d === null);
-    slotRef.current = next >= 0 ? next : at;
-    setActiveSlot(slotRef.current);
-    void playBuklodGameFeedback('move');
   }
 
   function clearSlot() {
@@ -122,6 +118,7 @@ export function CodeBreakerGameV1({ onFinish }: Props) {
     draftRef.current = Array<number | null>(spec.digits).fill(null);
     setDraft(draftRef.current);
     slotRef.current = 0;
+    explicitSlotRef.current = false;
     setActiveSlot(0);
     if (next.status === 'won') {
       scoreRef.current += next.score;
@@ -213,7 +210,7 @@ export function CodeBreakerGameV1({ onFinish }: Props) {
             {draft.map((value, i) => <Pressable key={i} accessibilityRole="button"
               accessibilityLabel={t('Slot', 'Puwesto') + ' ' + (i + 1)}
               style={[s.draftSlot, activeSlot === i && s.draftActive]}
-              onPress={() => { slotRef.current = i; setActiveSlot(i); }}>
+              onPress={() => { slotRef.current = i; explicitSlotRef.current = true; setActiveSlot(i); }}>
               {value === null
                 ? <Text style={s.slotNumber}>{i + 1}</Text>
                 : <View style={[s.draftGem, { backgroundColor: GEM_COLORS[value - 1] }]}>

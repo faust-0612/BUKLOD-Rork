@@ -102,7 +102,7 @@ function ChristianGameCenterContent() {
         </View>
         {selectedGame === 'council' ? (
           // Preserve original Leadership Council and its existing preview-map behavior.
-          <CivicLeadershipGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+          <CivicLeadershipGameV1 key={user?.id ?? 'guest'} onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
         ) : (
           <>
             <Text style={styles.record}>
@@ -111,8 +111,8 @@ function ChristianGameCenterContent() {
             </Text>
             {!!saveNotice && <Text style={styles.saveNotice}>{saveNotice}</Text>}
             {selectedGame === 'crown'
-              ? <BibleCrownGameV1 onFinish={saveMinigameResult} />
-              : <ScriptureWordSearchGameV1 onFinish={saveMinigameResult} />}
+              ? <BibleCrownGameV1 key={user?.id ?? 'guest'} onFinish={saveMinigameResult} />
+              : <ScriptureWordSearchGameV1 key={user?.id ?? 'guest'} onFinish={saveMinigameResult} />}
           </>
         )}
       </View>

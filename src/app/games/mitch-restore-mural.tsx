@@ -75,14 +75,14 @@ function MitchInterior() {
       </View>
       {selected === 'mural' ? (
         <View style={styles.originalGame}>
-          <RestoreMuralGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+          <RestoreMuralGameV1 key={user?.id ?? 'guest'} onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
         </View>
       ) : (
         <ScrollView style={styles.forgeScroll} contentContainerStyle={styles.forgeContent}>
           <Text style={styles.record}>{t('Local best', 'Pinakamataas na local score')}: {record?.bestScore.toLocaleString() ?? '—'}
             {'  •  '}{t('Clears', 'Panalo')}: {record?.clears ?? 0}</Text>
           {!!notice && <Text style={styles.notice}>{notice}</Text>}
-          <BlockForgeGameV1 onFinish={handleForgeFinish} />
+          <BlockForgeGameV1 key={user?.id ?? 'guest'} onFinish={handleForgeFinish} />
         </ScrollView>
       )}
     </View>
