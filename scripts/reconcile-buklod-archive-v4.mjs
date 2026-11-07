@@ -45,12 +45,12 @@ function archiveKeys(p){
  return [...new Set([stripped,full,noColon])];
 }
 function archivedKey(p){return norm(p)}
+const CRC_TABLE=new Uint32Array(256);
+for(let k=0;k<256;k++){let c=k;for(let i=0;i<8;i++)c=(c&1)?0xedb88320^(c>>>1):(c>>>1);CRC_TABLE[k]=c>>>0}
 function crc32(pathname){
- const table=new Uint32Array(256);
- for(let k=0;k<256;k++){let c=k;for(let i=0;i<8;i++)c=(c&1)?0xedb88320^(c>>>1):(c>>>1);table[k]=c>>>0}
  let crc=0xffffffff;const fd=fs.openSync(pathname,"r"),buf=Buffer.alloc(1024*1024);
  try{let n;while((n=fs.readSync(fd,buf,0,buf.length,null))>0)
-    for(let i=0;i<n;i++)crc=table[(crc^buf[i])&255]^(crc>>>8)}
+    for(let i=0;i<n;i++)crc=CRC_TABLE[(crc^buf[i])&255]^(crc>>>8)}
  finally{fs.closeSync(fd)}
  return ((crc^0xffffffff)>>>0).toString(16).padStart(8,"0").toUpperCase();
 }
@@ -176,12 +176,10 @@ try{
      let stat;try{stat=fs.statSync(f.source)}catch{unreadable++;missed.push({...f,reason:"unreadable"});continue}
      if(!stat.isFile()){unreadable++;missed.push({...f,reason:"not-regular-file"});continue}
      if(stat.size!==f.bytes||Math.abs(stat.mtimeMs-f.mtime)>1500){mutated++;missed.push({...f,reason:"modified-since-plan"});continue}
-     let at=-1;
-     if(ambiguous){
-       // CRC of a representative original is checked only for collision candidates.
-       let actual;try{actual=crc32(f.source)}catch{unreadable++;missed.push({...f,reason:"cannot-read-for-CRC"});continue}
-       at=remaining.findIndex(x=>x.size===f.bytes&&x.crc===actual);
-     }else at=remaining.findIndex(x=>x.size===f.bytes);
+     // Always match path AND original file size AND CRC32, including singleton paths.
+     // This detects silent path collision and modified content of the same size.
+     let actual;try{actual=crc32(f.source)}catch{unreadable++;missed.push({...f,reason:"cannot-read-for-CRC"});continue}
+     const at=remaining.findIndex(x=>x.size===f.bytes&&x.crc===actual);
      if(at>=0){matched.push(f);remaining.splice(at,1)}
      else missed.push({...f,reason:archived.length?"archive-collision-or-size-mismatch":"no-archive-path"});
    }
