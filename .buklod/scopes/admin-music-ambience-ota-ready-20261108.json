@@ -35,7 +35,8 @@
     "post-motion-performance",
     "android-startup",
     "cache-invalidation",
-    "web-document-picker"
+    "web-document-picker",
+    "navigation-scroll"
   ],
   "regressionTests": [
     "tests/admin-music-ambience-contract-20261108.test.mjs",
