@@ -120,3 +120,19 @@ test('embedded Connect engine dismisses in place on all thread lookup failures',
   const avatar = read('src/components/connect/ConnectTappableAvatar.web.tsx');
   assert.match(avatar, /tryOpenBuklodDesktopDock\(\{/);
 });
+
+
+test('member profiles use contextual privacy-aware preview with optional Expand', () => {
+  const shell = read('src/components/BuklodPublicDesktopDashboard.tsx');
+  const member = read('src/lib/buklodMemberProfile.ts');
+  const preview = read('src/components/BuklodDesktopMemberPreview.tsx');
+  const dock = read('src/lib/buklodDesktopContextDock.ts');
+  assert.match(shell, /visibleDock\.kind === 'profile'/);
+  assert.match(shell, /Expand member profile/);
+  assert.match(member, /kind: 'profile', userId: id/);
+  assert.match(member, /kind: 'direct', threadId: 'new'/);
+  assert.match(preview, /loadMemberPublicProfile\(userId\)/);
+  assert.match(preview, /profile\.can_view_details/);
+  assert.match(preview, /result\?\.viewerId === viewerId/);
+  assert.match(dock, /kind: 'profile'/);
+});

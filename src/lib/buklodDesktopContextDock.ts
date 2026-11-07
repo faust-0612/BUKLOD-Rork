@@ -21,6 +21,11 @@ export type BuklodDesktopDockRequest =
       scopeId: string;
       scopeName?: string;
       scopeType?: string;
+    }
+  | {
+      kind: 'profile';
+      userId: string;
+      displayName?: string;
     };
 
 type DockOpener = (request: BuklodDesktopDockRequest) => void;
@@ -39,6 +44,7 @@ export function tryOpenBuklodDesktopDock(request: BuklodDesktopDockRequest): boo
   if (!activeDesktopOpener) return false;
   if (request.kind === 'direct' && !request.threadId.trim()) return false;
   if (request.kind === 'community' && !request.scopeId.trim()) return false;
+  if (request.kind === 'profile' && !request.userId.trim()) return false;
   activeDesktopOpener(request);
   return true;
 }

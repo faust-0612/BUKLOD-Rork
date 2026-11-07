@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
 import BuklodConnectThread from '@/components/BuklodConnectThread';
+import BuklodDesktopMemberPreview from '@/components/BuklodDesktopMemberPreview';
 import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
 import {
   registerBuklodDesktopDockOpener,
@@ -143,7 +144,15 @@ export default function BuklodPublicDesktopDashboard({
   const expandDock = () => {
     if (!visibleDock) return;
     setDockRequest(null);
-    if (visibleDock.kind === 'direct') {
+    if (visibleDock.kind === 'profile') {
+      router.push({
+        pathname: '/member/[id]',
+        params: {
+          id: visibleDock.userId,
+          name: visibleDock.displayName ?? '',
+        },
+      } as any);
+    } else if (visibleDock.kind === 'direct') {
       router.push({
         pathname: '/connect/personal/[threadId]',
         params: {
@@ -522,41 +531,69 @@ export default function BuklodPublicDesktopDashboard({
                 <Text numberOfLines={1} style={[styles.dockTitle, { color: ink }]}>
                   {visibleDock.kind === 'direct'
                     ? (visibleDock.otherUserName || 'Personal Connect')
-                    : (visibleDock.scopeName || 'Community Connect')}
+                    : visibleDock.kind === 'community'
+                      ? (visibleDock.scopeName || 'Community Connect')
+                      : (visibleDock.displayName || 'Member Profile')}
                 </Text>
                 <Pressable accessibilityRole="button"
-                  accessibilityLabel="Expand conversation to full screen"
+                  accessibilityLabel={visibleDock.kind === 'profile'
+                    ? 'Expand member profile' : 'Expand conversation to full screen'}
                   onPress={expandDock} style={styles.dockControl}>
                   <MaterialCommunityIcons name="arrow-expand" size={20} color={mainColor} />
                   <Text style={[styles.dockControlText, { color: mainColor }]}>Expand</Text>
                 </Pressable>
                 <Pressable accessibilityRole="button"
-                  accessibilityLabel="Close conversation panel"
+                  accessibilityLabel={visibleDock.kind === 'profile'
+                    ? 'Close member profile panel' : 'Close conversation panel'}
                   onPress={() => setDockRequest(null)} style={styles.dockControl}>
                   <MaterialCommunityIcons name="close" size={22} color={ink} />
                 </Pressable>
               </View>
               <View style={styles.dockContent}>
-                <ConnectRenderBoundary
-                  key={(visibleDock.kind === 'direct' ? visibleDock.threadId : visibleDock.scopeId) + ':' + userId}
-                  surface={visibleDock.kind === 'direct' ? 'personal_thread' : 'community_thread'}
-                >
-                  <BuklodConnectThread
-                    key={(visibleDock.kind === 'direct' ? visibleDock.threadId : visibleDock.scopeId) + ':' + userId}
-                    mode={visibleDock.kind === 'direct' ? 'direct' : 'scope'}
-                    containerId={visibleDock.kind === 'direct'
-                      ? (visibleDock.threadId === 'new' ? '' : visibleDock.threadId)
-                      : visibleDock.scopeId}
-                    pendingTargetUserId={visibleDock.kind === 'direct' && visibleDock.threadId === 'new'
-                      ? visibleDock.targetUserId : undefined}
-                    initialTitle={visibleDock.kind === 'direct'
-                      ? visibleDock.otherUserName : visibleDock.scopeName}
-                    initialSubtitle={visibleDock.kind === 'community' ? visibleDock.scopeType : undefined}
-                    initialOtherUserId={visibleDock.kind === 'direct'
-                      ? (visibleDock.otherUserId || visibleDock.targetUserId) : undefined}
-                    onBackOverride={() => setDockRequest(null)}
+                {visibleDock.kind === 'profile' ? (
+                  <BuklodDesktopMemberPreview
+                    key={visibleDock.userId + ':' + userId}
+                    userId={visibleDock.userId}
+                    onMessage={() => {
+                      const opened = tryOpenBuklodDesktopDock({
+                        kind: 'direct', threadId: 'new',
+                        targetUserId: visibleDock.userId,
+                        otherUserName: visibleDock.displayName ?? '',
+                      });
+                      if (!opened) {
+                        router.push({
+                          pathname: '/connect/personal/[threadId]',
+                          params: {
+                            threadId: 'new',
+                            targetUserId: visibleDock.userId,
+                            otherUserName: visibleDock.displayName ?? '',
+                          },
+                        } as any);
+                      }
+                    }}
                   />
-                </ConnectRenderBoundary>
+                ) : (
+                  <ConnectRenderBoundary
+                    key={(visibleDock.kind === 'direct' ? visibleDock.threadId : visibleDock.scopeId) + ':' + userId}
+                    surface={visibleDock.kind === 'direct' ? 'personal_thread' : 'community_thread'}
+                  >
+                    <BuklodConnectThread
+                      key={(visibleDock.kind === 'direct' ? visibleDock.threadId : visibleDock.scopeId) + ':' + userId}
+                      mode={visibleDock.kind === 'direct' ? 'direct' : 'scope'}
+                      containerId={visibleDock.kind === 'direct'
+                        ? (visibleDock.threadId === 'new' ? '' : visibleDock.threadId)
+                        : visibleDock.scopeId}
+                      pendingTargetUserId={visibleDock.kind === 'direct' && visibleDock.threadId === 'new'
+                        ? visibleDock.targetUserId : undefined}
+                      initialTitle={visibleDock.kind === 'direct'
+                        ? visibleDock.otherUserName : visibleDock.scopeName}
+                      initialSubtitle={visibleDock.kind === 'community' ? visibleDock.scopeType : undefined}
+                      initialOtherUserId={visibleDock.kind === 'direct'
+                        ? (visibleDock.otherUserId || visibleDock.targetUserId) : undefined}
+                      onBackOverride={() => setDockRequest(null)}
+                    />
+                  </ConnectRenderBoundary>
+                )}
               </View>
             </View>
           ) : null}
