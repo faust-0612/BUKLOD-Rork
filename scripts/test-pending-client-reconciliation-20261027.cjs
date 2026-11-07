@@ -45,7 +45,12 @@ assert.match(directory, /Promise.allSettled\(/);
 assert.doesNotMatch(directory, /supabase\.auth\.onAuthStateChange/);
 assert.match(directory, /padding: 11,/);
 assert.match(directory, /const \[loadError, setLoadError\] = useState\(''\)/);
-assert.match(directory, /title="RETRY" onPress=\{\(\) => void load\(query, true\)\}/);
+// The locked recovery invariant is the *behavior*, not the retired
+// pre-dashboard ActionButton shape. The modern Cluster directory presents
+// the same explicit retry only when online and an RPC read has failed.
+assert.match(directory, /\{Boolean\(loadError\) && online \? \(/[\s\S]*?<Pressable accessibilityRole="button" onPress=\{\(\) => void load\(query, true\)\}>[\s\S]*?<Text style=\{styles\.retryLink\}>Retry loading<\/Text>/);
+assert.match(directory, /onRefresh=\{\(\) => void load\(query, true\)\}/);
+assert.match(directory, /if \(!online\) \{[\s\S]*?setSearching\(false\);[\s\S]*?return;/);
 assert.doesNotMatch(directory, /Tap the cluster to open Home/);
 assert.match(faith, /flexBasis: '30%'/);
 assert.match(faith, /minHeight: compact \? 96 : 72/);
