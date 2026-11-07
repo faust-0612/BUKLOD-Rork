@@ -17,7 +17,7 @@ BEGIN
      OR position('approve' in v_rpc)=0
      OR position('reject' in v_rpc)=0
      OR position('payment_status NOT IN' in v_rpc)=0
-     OR position('amount_paid <' in v_rpc)=0
+     OR v_rpc !~ 'amount_paid[[:space:]]*<'
      OR position('30 days' in v_rpc)=0
      OR position('approved_by' in v_rpc)=0 THEN
     RAISE EXCEPTION 'Paid ad admin review authorization, locking, payment or schedule guard missing';
