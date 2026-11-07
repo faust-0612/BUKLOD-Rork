@@ -39,3 +39,19 @@ Committed script improvements on DEV (latest commit `44f00d4c952e2710548dc571cc0
 - mock execution tests **5/5 passed**: known alternate root, nested folder root, no valid source, multiple ambiguous sources, and source containing a secret. JavaScript syntax compiles.
 
 **Next user-local operation**: redownload the latest GitHub script (the user's prior temp `$f` is stale), run `node --check $f`, then `node $f` for read-only source discovery and `node $f --push` for authorized archive to the private verified branch when a single correct source is found. This authorizes no production cutover, deletion, or migration of private Storage documents. No PC operation was performed by the ChatGPT connector.
+
+## 2026-11-07 follow-up — TWO verified local sources, preserve both first
+
+User reran the source discovery script pinned at `44f00d4c952e2710548dc571cc01ea5e905c11a3`. **Live Windows evidence**:
+- `C:\\BUKLODQ_R10_BUILD\\project`: verified Quiz standalone source fingerprint (`package.json`, `app/exam.tsx`, `app/live-join.tsx`, `src/lib/supabase.ts`, Quiz RPC references).
+- `C:\\BUKLODQ_BUILD\\project`: independently verified with the same core source fingerprint.
+- `C:\\BUKLODQ_BUILD_R126\\project` and recovered V25 Main AAB trees remain **partial/not canonical**.
+- Original run stopped correctly without uploading, because it detected **two valid candidates** and was programmed not to choose an unverified winner.
+
+**Improvement:** The same recovery script was upgraded at commit `f7362bcb49daabf241ef25ce67b53284f35d62a7` to archive **both source candidates** under immutable, fingerprint-named isolated subfolders of `systems/quiz/BUKLOD_Quiz_Standalone_CANDIDATES` on private branch `migration/quiz-canonical-source-20261107`. These are expressly tagged `selection_status: UNDETERMINED` and `verified_for_release:false`; no automatic assumption about which source is more recent. Immutable candidate snapshots preserve all source versions for cloud comparison and avoid replacing previously archived files. A digest manifest and Git remote commit SHA check verify upload. Source files are never deleted. Excludes generated dependencies including `node_modules_copied_*`; retains secret scanning.
+
+**Verification completed:** JavaScript compiles, mock dry-run emitted two separate preflight candidates, mock `--push` archived both and passed the simulated remote-commit check with original source preservation, and prior secret scan rejected a hardcoded credential. The simulation itself does **not** create GitHub snapshot files. GitHub branch verified to exist but candidate snapshot manifest fetch returned `404` before a user rerun.
+
+**Next action:** Re-download newly pinned script commit `f7362bcb49daabf241ef25ce67b53284f35d62a7` (previous local cached temp file remains old), then `node --check`, `node ... --push`. Once live output says `CLOUD PUSH VERIFIED; candidate_snapshots=2`, verify both GitHub folder manifests and compare source versions/Exam client wiring before canonical selection.
+
+**Release status remains BLOCKED BEFORE RELEASE** until source upload and independent database/storage/identity/functional/cutover gates finish. Do not delete local Quiz files at this checkpoint.
