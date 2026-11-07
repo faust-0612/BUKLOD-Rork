@@ -1,0 +1,29 @@
+name: BUKLOD R6 read-only cloud parity selftest
+on:
+  push:
+    branches: [dev/quiz-consolidation-identity-audit-20261107]
+    paths:
+      - .github/workflows/buklod-r6-cloud-content-parity-test.yml
+      - scripts/BUKLOD_Cloud_Content_Parity_R6.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: buklod-r6-parity-test
+  cancel-in-progress: true
+
+jobs:
+  synthetic-git-blob-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate JavaScript syntax
+        run: node --check scripts/BUKLOD_Cloud_Content_Parity_R6.mjs
+      - name: Validate Windows R5 CSV parsing, sensitive-file guard, exact Git blob hashing and CRLF rejection
+        run: node scripts/BUKLOD_Cloud_Content_Parity_R6.mjs --self-test
+      - name: Ensure no GitHub cloning, original-file reading or upload occurs in selftest
+        run: echo 'Only a disposable os.tmpdir synthetic file was hashed; full local audit remains user-run.'
