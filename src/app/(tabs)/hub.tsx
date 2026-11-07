@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
@@ -65,7 +66,7 @@ export default function BuklodLightHome() {
     return (
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.surface }}
-        contentContainerStyle={{ padding: 12, paddingBottom: 32, gap: 12 }}>
+        contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={{ minHeight: 112, borderRadius: 16, padding: 20, justifyContent: 'center' }}>
@@ -104,6 +105,7 @@ export default function BuklodLightHome() {
               </Suspense>
             </ToolBoundary>
           ) : null}
+          <BuklodHomeUtilityCards />
           <Pressable accessibilityRole="button" accessibilityLabel="Create a public Wall post"
             onPress={openPost} style={({ pressed }) => ({
               backgroundColor: theme.inputSurface, borderRadius: 15,
@@ -118,7 +120,7 @@ export default function BuklodLightHome() {
         <Pressable accessibilityRole="button" accessibilityLabel="Open announcements, Quiz and Bulletins"
           accessibilityState={{ expanded: updatesOpen }}
           onPress={() => setUpdatesOpen(value => !value)}
-          style={{ borderRadius: 14, padding: 14, backgroundColor: theme.accentSoft,
+          style={{ borderRadius: 4, padding: 14, backgroundColor: theme.accentSoft,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ color: theme.textPrimary, fontWeight: '900' }}>
             {updatesOpen ? 'Hide Announcements, Quiz & Bulletins' : 'Announcements, Quiz & Bulletins'}
@@ -135,7 +137,7 @@ export default function BuklodLightHome() {
         ) : null}
         <Pressable accessibilityRole="button" accessibilityLabel="Open the Community Wall"
           onPress={() => router.push('/buklod')}
-          style={{ padding: 16, backgroundColor: theme.surface, borderRadius: 14,
+          style={{ padding: 16, backgroundColor: theme.surface, borderRadius: 4,
             borderWidth: 1, borderColor: theme.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <MaterialCommunityIcons name="post-outline" size={26} color={theme.accent} />
           <View style={{ flex: 1 }}>
@@ -169,7 +171,7 @@ export default function BuklodLightHome() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ padding: 18, gap: 12 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, gap: 8 }}>
       <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
@@ -198,6 +200,7 @@ export default function BuklodLightHome() {
           </Suspense>
         </ToolBoundary>
       ) : null}
+      <BuklodHomeUtilityCards />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Announcements, BUKLOD Quiz and Bulletins"
