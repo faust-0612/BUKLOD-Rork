@@ -25,8 +25,15 @@ const MAX_FILES=26000;
 const R7_SOURCE_FORMAT=/\.(?:tsx?|jsx?|mjs|cjs|py|java|kt|swift|dart|rs|go|sql|sh|ps1|gradle|prisma|graphql|html|css|scss|sass|vue|svelte|cs|cpp|c|h|hpp|rb|php)$/i;
 const NATIVE_TECHNICAL=/\.(?:h|hpp|hh|c|cc|cpp|cxx|m|mm|s|asm|cts|kts|podspec|pbxproj|modulemap|xcprivacy|cmake|coffee|flow|strings|sln)$/i;
 function allowedTechnicalFile(rel,category){
-  if(!ALLOWED.has(category)||!NATIVE_TECHNICAL.test(rel))return false;
-  // Prevent R8 from re-uploading native code already preserved by R7.
+  if(!ALLOWED.has(category))return false;
+  // R5 classed Android resource XML as source, while R7 excluded XML in this category.
+  // Keep such resources only when they are under an Android source-set directory.
+  const androidResource=category==='source_code' &&
+    /(^|\/)android\/(?:app\/)?src\//i.test(rel) &&
+    /\.(?:xml|svg)$/i.test(rel);
+  if(androidResource)return true;
+  if(!NATIVE_TECHNICAL.test(rel))return false;
+  // Never duplicate code already recovered in R7's source-code category.
   if(category==='source_code' && R7_SOURCE_FORMAT.test(rel))return false;
   return true;
 }
@@ -187,6 +194,8 @@ async function smokeTest(){
       generatedPath('android/build/resources/file.xml'),'Generated path not classified');
     requireSafe(allowedTechnicalFile('native/Voice.mm','other_unclassified')&&
       allowedTechnicalFile('ios/Project.pbxproj','other_unclassified')&&
+      allowedTechnicalFile('android/app/src/main/AndroidManifest.xml','source_code')&&
+      !allowedTechnicalFile('android/build/AndroidManifest.xml','source_code')&&
       allowedTechnicalFile('src/react.flow','source_code')&&
       allowedTechnicalFile('ios/Types.h','other_unclassified')&&
       !allowedTechnicalFile('src/Duplicate.h','source_code')&&
