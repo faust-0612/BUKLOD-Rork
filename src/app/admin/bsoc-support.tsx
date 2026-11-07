@@ -119,6 +119,10 @@ export default function BsocSupportOperations() {
     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>void load()}/>}>
     <Pressable accessibilityRole="button" onPress={()=>router.back()}><Text style={styles.link}>‹ Back</Text></Pressable>
     <Text style={styles.header}>BSOC · Support Operations</Text>
+    {hasRole('system_admin')&&<Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/bsoc-personnel' as any)}>
+      <Text style={styles.recoveryTitle}>Authorize Personnel · Search Name & Access Code ›</Text>
+      <Text style={styles.muted}>Choose a BUKLOD member, approve their limited BSOC role, and issue a single-use access code. Includes audited revocation.</Text>
+    </Pressable>}
     <Text style={styles.muted}>Live case queue from BUKLOD support infrastructure. Changes require server authorization, preview, confirmation and audit.</Text>
     {hasRole('system_admin')&&<Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/account-recovery' as any)}>
       <Text style={styles.recoveryTitle}>Password Reset · Admin Assistance ›</Text>
