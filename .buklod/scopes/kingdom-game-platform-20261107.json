@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
-  "objective": "Fix Kingdom game-play integrity: Bible Crown Mentor lifeline must reveal only the consumed question; Quin Code Breaker must honor explicit gem-slot replacement and block repeated gems, while preserving all prior game, map, point and ad behavior.",
+  "objective": "Fix BUKLOD Kingdom gameplay fairness and account isolation: Mentor lifeline stays question-specific; Code Breaker honors gem slot selection; all active pilot/original game sessions remount after account switch to prevent cross-account result attribution.",
   "baseRef": "6b99cc3b0a1a1126aafb450dfe64252ffdf07e41",
   "productionBaselineEvidence": "verified: R4 exact prior source commit 6b99cc3b0a1a1126aafb450dfe64252ffdf07e41 passed Engineering Accountability, TypeScript and web compatibility checks. Kingdom map canonical blob remains 88a4b1b4a70fc4acd59579419058b47f21be2554. R5 fixes are source-only; staging, Android runtime and production deployment are not verified or authorized.",
-  "chosenApproach": "Patch only the existing quiz and code-breaker lifeline/input components, factor a pure testable gem-slot selection rule, preserve source ID and existing Character V2/economy APIs; add focused regression test.",
+  "chosenApproach": "Repair Bible Crown Mentor display and Code Breaker slot selection; use React keyed game-session remounts tied to authenticated user ID in shared/Christian/Mitch centers. Preserve map, points and ads policy.",
   "selectionRationale": "Fix specific discovered gameplay correctness defects before new game proliferation; leave sound, map, backend and monetization untouched.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
@@ -21,7 +21,8 @@
     "Do not change Character V2, Circle Rank, payouts or existing ad sensitive-route protections.",
     "Do not touch native v28 runtime, BUKLOD Empire or production release.",
     "Preserve all 13 original game implementations and Kingdom map; protect previous 3 pilots from route/controller regressions.",
-    "Preserve persistent Character V2 id ellusur and legacy Kingdom station key elesur, without migrating IDs or changing character art."
+    "Preserve persistent Character V2 id ellusur and legacy Kingdom station key elesur, without migrating IDs or changing character art.",
+    "Game UI must not show or save a score from previous user after authentication switches."
   ],
   "acceptanceChecks": [
     "13 center / 39-game uniqueness and status contracts, plus 15 bilingual question and reference contracts.",
@@ -39,7 +40,8 @@
     "AI and human moves must obey turn/stock/pass restrictions and bounded stock consumption; scored win/blocked draw must use correct remaining-pip totals.",
     "ELESUR Village Builder stays selectable at the unchanged /games/elesur-village-builder route; new Domino Village local-only game cannot pay Character Points.",
     "Mentor clue is visible on exactly the consumed Bible Crown question and cannot leak into later questions.",
-    "Code Breaker manual slot selection replaces that exact slot, auto-input fills first empty, and duplicate gems are rejected with no mutation."
+    "Code Breaker manual slot selection replaces that exact slot, auto-input fills first empty, and duplicate gems are rejected with no mutation.",
+    "Switching or signing out of BUKLOD account must remount the active pilot/original game scene before new profile result saving; local best records remain per account."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
