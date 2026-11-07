@@ -30,6 +30,7 @@
   ],
   "allowedPaths": [
     "src/components/BuklodFoundationWorkspaceNav.tsx",
-    "tests/quickcheck-web-handoff.test.mjs"
+    "tests/quickcheck-web-handoff.test.mjs",
+    ".buklod/scopes/quickcheck-web-handoff-20261107.json"
   ]
 }
