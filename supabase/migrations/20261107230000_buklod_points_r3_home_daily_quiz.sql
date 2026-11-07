@@ -105,7 +105,7 @@ create or replace function public.submit_my_buklod_bible_quiz_r3(p_attempt_id uu
 returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare actor uuid:=auth.uid(); rec record; received int; correct int; reward_type text;
-award int:=0; ledger_key text; ledger_id uuid;
+award int:=0; ledger_key text; v_ledger_id uuid;
 begin
  if actor is null then raise exception 'Authentication required';end if;
  if p_answers is null or jsonb_typeof(p_answers)<>'object' then
@@ -137,10 +137,10 @@ begin
   (user_id,direction,points,activity_type,source_key,description,awarded_by)
   values(actor,'credit',award,reward_type,ledger_key,
    'Home Daily Bible Quiz ('||rec.difficulty||') '||correct||'/5',actor)
-  on conflict(user_id,source_key) do nothing returning id into ledger_id;
+  on conflict(user_id,source_key) do nothing returning id into v_ledger_id;
  end if;
  update private.buklod_r2_bible_quiz_attempts
- set completed_at=now(),score=correct,points_awarded=award,ledger_id=ledger_id
+ set completed_at=now(),score=correct,points_awarded=award,ledger_id=v_ledger_id
  where id=rec.id;
  return jsonb_build_object('completed',true,'score',correct,'points',award,
   'difficulty',rec.difficulty,'already_submitted',false);
