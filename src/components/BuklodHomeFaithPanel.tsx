@@ -715,7 +715,7 @@ export default function BuklodHomeFaithPanel({
           compact={compact}
           label="ABAKA"
           title="ABAKA ng Bagong Likha"
-          meta="Sunday school • A–Z • +5 points"
+          meta="Sunday school • A–Z • +8 BP per verified lesson"
           icon="school-outline"
           tone="bible"
           onPress={() =>
