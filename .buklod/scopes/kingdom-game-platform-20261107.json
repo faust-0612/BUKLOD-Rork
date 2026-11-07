@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Harden complete 39-game BUKLOD Kingdom DEV candidate with bounded cross-platform audio feedback, cleanup cap and fail-closed staging-user artifact preflight. Preserve original 13 games, new 26 pilots and current main advertising improvements.",
+  "objective": "Prepare cumulative BUKLOD Kingdom (39/39 source games) for one production Android V28 runtime 1.3.2 OTA and BUKLOD Main Expo Hosting web deployment alongside already merged approved features, without breaking pinned native package manifest.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: cumulative GitHub DEV source reconciliation only. Latest main bd0acf0b7f783fd0aa9d9bfc663e6dc35c127faf, prior shared base 03e048aa1675abe0141e67432ed51ce4de928144, current Kingdom DEV e1e5eb8e86a0d7650f08db000158772b734f6e21. 77 source workstream files had zero overlap with 3 new production Advertise workflow/config files. No EAS install metadata or Android physical QA was independently validated and no staging/production OTA was published.",
-  "chosenApproach": "Pure shared feedback limiter and maximum six native fallback players, plus explicit source-only EAS staging profile validator and optional strict release-evidence metadata check. No native dependency, production ad controller, or OTA mutation.",
-  "selectionRationale": "Protect lower-memory Android devices from high-frequency game taps and prevent mismatched staging binary/channel/runtime deployments.",
+  "chosenApproach": "Restore package.json byte-exact to V28. Move the Kingdom focused regression suite into both existing production release workflows, prior to Expo credentials and native/web publication. Hold publish until exact main SHA RC freeze and actual Expo evidence. Explicitly exclude unmerged/failing Points R2 migrations.",
+  "selectionRationale": "Android OTA RC guard rejects any package.json deviation since 2f26645 V28; earlier Kingdom-only test script was an unintended OTA blocker. The production workflows already have mandatory source, credential, RC and output validation; adding Kingdom tests there is compatible without weakening gates.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
     "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
@@ -16,7 +16,10 @@
     "kingdom-map-rendering",
     "mobile-navigation",
     "game-station-routing",
-    "release-compatibility"
+    "release-compatibility",
+    "production-ota-runtime-pinned-package",
+    "expo-hosting-web-release",
+    "release-ci-guards"
   ],
   "preserveBehaviors": [
     "Keep canonical 13-station Kingdom Map and IDs, art, navigation, profiles and original character routes unchanged.",
@@ -28,7 +31,9 @@
     "Game UI must not show or save a score from previous user after authentication switches.",
     "All 13 station names, coordinate pairs, original game hrefs, and JOURNEY_PATH curves byte-exact identical to canonical R5 map.",
     "BUKLOD Kingdom is /games INSIDE the original BUKLOD App, not BUKLOD Empire and not an independent app.",
-    "Keep old BuklodKingdomMap.tsx Git blob intact as rollback baseline; do not touch existing games or economy policies."
+    "Keep old BuklodKingdomMap.tsx Git blob intact as rollback baseline; do not touch existing games or economy policies.",
+    "Never alter native deps/package.json/package-lock.json from pinned V28 Android baseline in production OTA.",
+    "Leave production workflows' existing exact-main/credentials/manifest/RC freeze/deployment status checks intact; do not edit or dispatch one-time release workflow without all mandatory gates."
   ],
   "acceptanceChecks": [
     "13 center / 39-game uniqueness and status contracts, plus 15 bilingual question and reference contracts.",
@@ -75,7 +80,9 @@
     "R11 game feedback limiter bounds rapid sounds but preserves terminal success/failure; native fallback audio player count <= six.",
     "R11 source-only staging validation checks channel staging-user, EAS preview env, runtime 1.3.2, staging Android package and 39-game manifest.",
     "R11 release mode fails closed without EAS artifact evidence matching full RC commit and exact APK identity; it cannot claim a device installation passed.",
-    "R11 reconciles latest main Advertise deployment governance files unchanged; no production workflows, app config or native package overwritten."
+    "R11 reconciles latest main Advertise deployment governance files unchanged; no production workflows, app config or native package overwritten.",
+    "Production V28 package.json blob matches the pinned V28 package byte-exact; Kingdom tests move into both Android and Main Expo Hosting release workflows before export/publish.",
+    "R12 production release guard refuses a source with unreconciled native manifest, missing game tests or wrong channel."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
@@ -88,7 +95,8 @@
     "tests/kingdom-games-r8.test.mjs",
     "tests/kingdom-games-r9.test.mjs",
     "tests/kingdom-games-r10.test.mjs",
-    "tests/kingdom-staging-performance-r11.test.mjs"
+    "tests/kingdom-staging-performance-r11.test.mjs",
+    "tests/kingdom-production-ota-r12.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-game-platform-20261107.json",
@@ -167,6 +175,9 @@
     "src/features/games/runtime/BuklodGameFeedback.native.ts",
     "src/features/games/runtime/BuklodGameFeedback.web.ts",
     "scripts/kingdom-staging-preflight.mjs",
-    "tests/kingdom-staging-performance-r11.test.mjs"
+    "tests/kingdom-staging-performance-r11.test.mjs",
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/production_web_deploy.yml",
+    "tests/kingdom-production-ota-r12.test.mjs"
   ]
 }
