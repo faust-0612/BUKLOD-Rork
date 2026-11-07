@@ -198,12 +198,20 @@ export function isBuklodPassiveAdAllowed({
 }) {
   // Preserve the retired legacy unit block while allowing the current Home placement.
   if (placementId === 'legacy_home_banner') return false;
+  const route = normalizePath(candidate ?? pathname);
+
+  // The Faculty Focus landing explicitly mounts a sponsor strip, but the
+  // generic sensitive-route prefix had silently disabled it. Permit only
+  // this passive ad on the public-facing landing; grade/exam/roster child
+  // screens and all interstitial/rewarded ads remain blocked.
+  const safeFacultyLanding =
+    placement === 'focus' && route === '/profile/buklod-faculty';
 
   return (
     foreground &&
     enabled('ads_passive') &&
     placementEnabled(placementId) &&
-    !isBuklodAdRouteSensitive(candidate ?? pathname) &&
+    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding) &&
     !hasInteractionLock()
   );
 }

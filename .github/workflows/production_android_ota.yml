@@ -176,6 +176,10 @@ jobs:
         if: github.ref == 'refs/heads/main' && steps.expo.outputs.ready == 'true'
         run: node scripts/android-ota-rc.cjs baseline
 
+      - name: Verify production AdMob live units before RC export
+        if: github.ref == 'refs/heads/main' && steps.expo.outputs.ready == 'true'
+        run: npx eas-cli@latest env:exec production 'node scripts/verify-production-ads-env.cjs'
+
       - name: Export Android RC once using production environment
         if: github.ref == 'refs/heads/main' && steps.expo.outputs.ready == 'true'
         run: npx eas-cli@latest env:exec production 'npx expo export --platform android --output-dir rc'

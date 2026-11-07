@@ -1,0 +1,70 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore and protect all presently approved BUKLOD Android AdMob placements across Home, Wall, Reels, Profile, Connect inbox, Organization/Cluster, video companion, submission and content screens: responsive native/large creatives, durable banner re-entry, safe early interstitial preload and controlled rewarded inventory. Lock exact production Android OTA configuration so ad UI cannot silently disappear in later updates.",
+  "baseRef": "aa479f4bb9572977aad1921ba615e488884def31",
+  "productionBaselineEvidence": "Production telemetry read-only, November 7 2026 last 24h: Android AdMob 165 requests / 81 loaded / 42 provider impression events / 33 failures; 4 interstitial requests, 4 loaded, 0 provider impression events (interstitial OPENED is recorded as ad_rendered, not as ad_impression, so zero impressions alone does not prove zero presentations). Last 48h 38 Google no-fill codes, 35 generic AD_ERROR category and smaller network/internal errors. Source currently has 8-second Native/first-view/banner timeouts; on viewport exit native renderer tears down loaded NativeAd and shared 120-second cooldown can delay return. Home/Profile/Cluster/Wall and other placements have observed impressions, so advertising is not globally disabled. Live Expo/EAS production variable values and native on-device fill not independently verified. All older focused ad suites are retained in production-ota-ads-regression.test.mjs but are not listed as newly changed tests in the objective-scope manifest, per Engineering Accountability contract.",
+  "chosenApproach": "Preserve already-loaded NativeAd/BannerAd state on mounted offscreen/re-entry and short network blips, keep initial viewport and consent eligibility and single SDK request reservation. Permit slightly longer bounded timeouts on weak links; keep 2-minute anti-no-fill cooldown and collapsed empty slots. Explicitly permit passive Focus sponsor on Faculty landing only, not related grade/exam screens or fullscreen. Preserve narrow Android header while allowing safe wide/tablet header sponsor. Early preload a single interstitial on an eligible Android content route after remote feature flags loaded and on app resume, but never show on app launch/route navigation; only existing server-confirmed natural break >= two actions may show. Recover stale SDK instance after failed show and fail-closed on unreadable Ad-Light Pass. Add a secret-safe EAS production environment check before Android RC export to require live mode and required banner, Native and interstitial unit inventory. Expand existing production OTA ad regression harness.",
+  "selectionRationale": "High ad request activity and 42 impressions disprove a total SDK outage. Native offscreen disposal and short 8-second timeouts can suppress loaded/slow ads while preserving user privacy and Google no-fill. Existing event-driven interstitials need prewarming, not unconditional popping that violates AdMob. Current production workflow tests runtime source but does not verify real production ad environment; this enables silent test-mode/missing-unit exports. No new native module/build is needed for the targeted fixes.",
+  "alternativeApproaches": [
+    "Force test unit or hardcode live publisher IDs into the app (rejected: invalid production traffic and credential management)",
+    "Show an interstitial on every user action, app startup, SOS, active calls or exam submission (rejected: prohibited disruptive/accidental-click placements and violates app safety)",
+    "Immediately auto-retry every AdMob no-fill (rejected: no new inventory, increased invalid request pressure)",
+    "Keep all loaded ads in an unbounded global cache after component unmount (rejected: native SDK object lifecycle/memory growth)",
+    "Replace current native/ad fallback components with a new monetization SDK (rejected: high regression risk and requires a new APK)"
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "android-native-ad-rendering",
+    "interstitial-natural-break",
+    "navigation-scroll",
+    "weak-network",
+    "faith-cluster",
+    "release-workflow",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Google UMP consent, sdk ready, remote ads_all/ads_placements/ads_platform_android/ads_placement_* kill switches, foreground and interaction safety locks remain authoritative",
+    "No ads are shown on SOS, active calls, login/recovery, examinations, grade/roster children, transactions or emergency overlays",
+    "Community/Org/Cluster scope ad identity and corresponding production unit fallback still use original placement IDs; no new duplicate request on same first-view slot",
+    "NativeAd then BannerAd sequential fallback, no fake video or invented fill/revenue/impressions",
+    "No forced interstitial on app open, back/exit, scrolling or typing; >=two eligible completed actions at natural breaks, no arbitrary session cap and Ad-Light Pass honored",
+    "Existing optional rewarded nontransferable in-app benefit paths only; rewarded remains opt-in and never changes cash or Community Points balances",
+    "No 0px placeholders for initial viewport: keep measurable 8px probes; no large empty sponsored panels if no fill",
+    "Main BUKLOD Wall, Connect, SOS, PTT and Android runtime 1.3.2 are untouched",
+    "No AdMob unit IDs, publisher IDs, secrets or user data written to action logs; missing production env fails before RC freeze",
+    "Android phone title/notification header remains uncluttered; wide >=680px header banner only; Web/iOS presentation unchanged",
+    "No database schema, AdMob native App ID, Play store AAB, Ads API or production release without verified RC"
+  ],
+  "regressionTests": [
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
+    "tests/buklod-ads-native-reentry-main-contract.test.mjs",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "tests/production-ota-ads-regression.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Loaded NativeAd is not disposed merely because a still-mounted row leaves the viewport or briefly loses network; unmounted slots and true route/policy changes cleanly destroy SDK resources",
+    "Initial native request still requires live SDK, consent, visible viewport, connection and shared cooldown",
+    "Active 3G first-view requests can complete in 16 seconds; normal native 12 seconds; banner 14 seconds; no-fill waits at least the existing shared cooldown",
+    "Home, Wall, Reels, Cluster, Profile, Connect inbox, video companion and rewarded opportunities remain source-wired with real ad unit selection/fallback",
+    "Focus faculty landing shows only passive sponsor while grade child route and all fullscreen on faculty remain blocked",
+    "Interstitial preloading occurs only after runtime feature gates and on eligible content route, not opened immediately or outside app; any failed SDK show clears stale ad",
+    "Android production OTA checks live flag plus real production AdMob units through EAS production environment before exporting RC; missing configs stop publication without echoing private unit IDs",
+    "Engineering Accountability, TypeScript/Performance, integration Web, and focused production OTA ad regression suite pass exact head before DEV merge",
+    "Actual Android Google SDK fill and visible placement testing and exact production OTA artifact still require independent release verification"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/lib/buklodGlobalAdController.ts",
+    "src/components/BuklodHeaderSponsor.tsx",
+    "src/components/BuklodAdSafetyRouteBridge.tsx",
+    "src/lib/buklodAds.ts",
+    "scripts/verify-production-ads-env.cjs",
+    ".github/workflows/production_android_ota.yml",
+    "tests/buklod-ad-empty-slot-collapse.test.mjs",
+    "tests/buklod-ads-native-reentry-main-contract.test.mjs",
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
+    "tests/production-ota-ads-regression.test.mjs",
+    ".buklod/scopes/ads-production-restoration-locked-20261107.json"
+  ]
+}

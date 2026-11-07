@@ -55,7 +55,9 @@ import {
 } from '@/lib/buklodAdMonetizationPolicy';
 
 const RETRY_DELAYS_MS = BANNER_RETRY_DELAYS_MS;
-const BANNER_LOAD_TIMEOUT_MS = 8_000;
+// Weak-network ads can complete after 8 seconds; do not collapse a valid
+// in-flight creative before the native SDK has a reasonable response window.
+const BANNER_LOAD_TIMEOUT_MS = 14_000;
 const MAX_RETRIES = RETRY_DELAYS_MS.length;
 
 type Props = {
@@ -107,12 +109,15 @@ function BuklodAdMobBanner({
     pathname,
   });
   const { ref, eligible } = useBuklodAdViewportGate();
-  const viewportReady = !requireViewport || eligible;
   const diagnostic =
     diagnosticName ?? diagnosticPlacementFor(placement);
 
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // Preserve a BannerAd already loaded while its still-mounted screen
+  // scrolls out of the viewport. Starting a NEW request still requires
+  // viewport eligibility; remounting a loaded native view caused flicker.
+  const viewportReady = !requireViewport || eligible || loaded;
   const [attempt, setAttempt] = useState(0);
   const [reservationReady, setReservationReady] = useState(false);
   const [reservationTick, setReservationTick] = useState(0);

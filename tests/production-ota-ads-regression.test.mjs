@@ -16,7 +16,9 @@ const focusedAdTests = [
   "tests/faith-scope-creation-ad-safety.test.mjs",
   "tests/buklod-ad-natural-break-expansion.test.mjs",
   "tests/buklod-android-wall-ad-density.test.mjs",
-  "tests/buklod-ad-offscreen-banner-fallback.test.mjs"
+  "tests/buklod-ad-offscreen-banner-fallback.test.mjs",
+  "tests/buklod-ads-native-reentry-main-contract.test.mjs",
+  "tests/buklod-ad-restoration-locked-20261107.test.mjs"
 ];
 
 test('production OTA executes AdMob regressions after TypeScript and before RC freeze/publish', () => {
