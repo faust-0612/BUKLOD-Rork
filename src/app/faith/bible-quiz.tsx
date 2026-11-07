@@ -69,7 +69,7 @@ export default function BuklodDailyBibleQuiz(){
   <Text style={s.score}>{(quiz.difficulty||'easy').toUpperCase()} · {quiz.score}/5 correct</Text>
   <Text style={s.score}>+{quiz.awarded_points} BUKLOD Points</Text>
   <Text style={s.intro}>Return tomorrow for a new set. Any earned points appear in your regular Points claim flow.</Text>
- </View>:quiz?.questions.map((q,i)=><View key={q.id} style={s.card}>
+ </View>:quiz?.questions?.map((q,i)=><View key={q.id} style={s.card}>
   <Text style={s.question}>{i+1}. {q.question}</Text>
   {letters.map(letter=><Pressable key={letter} accessibilityRole="button"
     accessibilityState={{selected:answers[q.id]===letter}}
