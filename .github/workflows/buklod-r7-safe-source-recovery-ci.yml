@@ -38,3 +38,4 @@ jobs:
           $output = & node scripts/BUKLOD_R7_Safe_Quiz_Source_Cloud_Rescue.mjs --backup 2>&1
           if ($LASTEXITCODE -eq 0) { throw 'No-R4 source recovery was unexpectedly allowed' }
           Write-Host 'PASS: no original PC files or private GitHub repos were touched.'
+          exit 0  # Expected child exit code was nonzero; the negative test itself passed.
