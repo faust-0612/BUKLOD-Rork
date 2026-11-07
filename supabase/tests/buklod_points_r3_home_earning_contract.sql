@@ -33,6 +33,16 @@ begin
  if position('v_user,5,' in v)=0 or position('v_user,30,' in v)=0
   or position('v_season_count=30 and v_finished=30' in v)=0 then
   raise exception 'KL +5 chapter and +30 series rules absent';end if;
+ select pg_get_functiondef('public.admin_review_buklod_r2_achievement_v1(uuid,boolean,text)'::regprocedure) into v;
+ if position('count(distinct p.lesson_id)' in v)=0
+   or position('status=''approved''' in v)=0
+   or position('first_cleared_at' in v)=0 then
+   raise exception 'Major milestones missing objective completed ABC, approved mentor or Kingdom progress thresholds';
+ end if;
+ select pg_get_functiondef('public.submit_my_buklod_r2_achievement_v1(text,text)'::regprocedure) into v;
+ if position('status=''rejected''' in v)=0 or position('on conflict' in lower(v))=0 then
+   raise exception 'Rejected achievement nomination cannot be revised safely';
+ end if;
  raise notice 'Points R3 Home Quiz / Check-in / Mentoring / KL contracts: PASS';
 end;
 $contract$;
