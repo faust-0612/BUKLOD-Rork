@@ -213,6 +213,8 @@ AS $body$
       )::integer AS display_order
     FROM a JOIN public.buklod_quiz_questions q
       ON q.exam_id=a.exam_id AND q.is_active=true
+    LEFT JOIN public.buklod_quiz_live_sessions ls
+      ON ls.id=a.live_session_id
     WHERE NOT EXISTS(
       SELECT 1 FROM public.buklod_quiz_attempt_questions aq
       WHERE aq.attempt_id=a.id
@@ -220,6 +222,27 @@ AS $body$
     AND NOT EXISTS(
       SELECT 1 FROM public.buklod_quiz_live_question_snapshots snap
       WHERE snap.session_id=a.live_session_id
+    )
+    -- Historical fallback must NOT show the entire 200-item bank when
+    -- a live session selected 100 items but has no newer snapshot rows.
+    AND (
+      a.live_session_id IS NULL
+      OR (
+        ls.id IS NOT NULL AND (
+          (
+            coalesce(array_length(ls.selected_question_ids,1),0)>0
+            AND q.id=ANY(ls.selected_question_ids)
+          )
+          OR (
+            coalesce(array_length(ls.selected_question_ids,1),0)=0
+            AND coalesce(ls.question_count,0)>=(
+              SELECT count(*)::integer
+              FROM public.buklod_quiz_questions bank
+              WHERE bank.exam_id=a.exam_id AND bank.is_active=true
+            )
+          )
+        )
+      )
     )
   )
   SELECT * FROM assigned
