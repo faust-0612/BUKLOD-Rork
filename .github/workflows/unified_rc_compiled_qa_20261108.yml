@@ -1,0 +1,74 @@
+name: BUKLOD Unified RC Android and Expo Web Compile QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/unified_rc_compiled_qa_20261108.yml'
+      - 'src/**'
+      - 'assets/**'
+      - 'app.config.js'
+      - 'package-lock.json'
+      - 'package.json'
+      - 'supabase/migrations/**'
+      - 'tests/**'
+      - '.buklod/scopes/**'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-unified-rc-compiled-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  verify-compiled-artifacts:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'integration/buklod-unified-hold-rc-20261108'
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
+    steps:
+      - name: Exact PR source checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Node 22 with npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Verify production EAS public build environment without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a; . ./.env.local; set +a
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = "https://yhanxndaqbmuzbdqlblu.supabase.co"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          node -e "const fs=require('node:fs'); const c=JSON.parse(require('node:child_process').execFileSync('npx',['expo','config','--json'],{encoding:'utf8'})); const assert=require('node:assert/strict'); assert.equal(c.android.package,'org.mzbministry.buklod'); assert.equal(c.android.versionCode,28); assert.equal(c.runtimeVersion,'1.3.2'); assert.equal(c.extra?.eas?.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8'); fs.writeFileSync('/tmp/buklod-rc-identity.json', JSON.stringify({sha:process.env.GITHUB_SHA,runtime:c.runtimeVersion,package:c.android.package,project:c.extra.eas.projectId}));"
+      - name: TypeScript and 39-game proof contracts
+        run: |
+          npx tsc --noEmit
+          node --test tests/kingdom-certified-mastery-39-20261108.test.mjs tests/kingdom-functionality-r13.test.mjs
+      - name: Compile V28-compatible Android OTA bundle (no publish)
+        run: npx expo export --platform android --output-dir /tmp/buklod-rc-android --clear
+      - name: Compile Main Expo Hosting web bundle (no publish)
+        run: npx expo export --platform web --output-dir /tmp/buklod-rc-web --clear
+      - name: Verify actual files and unchanged tracked source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$(find /tmp/buklod-rc-android -type f -print -quit)"
+          test -n "$(find /tmp/buklod-rc-web -type f -print -quit)"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          git diff --exit-code
+          printf 'RC_COMPILED_SHA=%s\n' "$(git rev-parse HEAD)"
+          printf 'ANDROID_FILES=%s\n' "$(find /tmp/buklod-rc-android -type f | wc -l)"
+          printf 'WEB_FILES=%s\n' "$(find /tmp/buklod-rc-web -type f | wc -l)"
+          cat /tmp/buklod-rc-identity.json
