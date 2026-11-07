@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Desktop Cluster/Organization Connect must start compact in center with explicit Expand/Collapse, while left Main navigation works immediately from any Cluster tab without requiring Back or bypassing scope membership.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Authenticated GitHub Main source at 3ead9e9a2ce707b10fa9c53aa17d39f3b1e5ebaf verified. User 2026-11-07 desktop screenshots show huge center Cluster Connect and side nav seeming unusable; this is visual evidence, not live runtime deploy SHA verification.",
+  "productionBaselineEvidence": "verified: Inspected authenticated GitHub Main SHA 3ead9e9a2ce707b10fa9c53aa17d39f3b1e5ebaf for current scoped Connect and the web canonical routing guard; the owner-supplied 2026-11-07 browser screenshots demonstrate oversized Connect and blocked sidebar, but do not verify the live Expo deployment SHA. This fix applies to source with independent production verification remaining required.",
   "chosenApproach": "Constrain only wide-desktop scoped Connect to 340px/740px card and expand the existing single shared chat component within routed center on explicit user click. Replace immediate scope-reset navigation with active-PUBLIC-confirmed pending destination, bound to account and latest click, retaining guard and errors.",
   "selectionRationale": "Existing Connect uses full flex height; global sidebar races with canonical managed-scope guard, causing navigation rebound. Fix one presentation and one state transition without rewriting messages or altering security scope resolution.",
   "alternativeApproaches": [
