@@ -429,9 +429,9 @@ export default function KlReaderScreen() {
         p_episode_id: selectedDbId, p_action: 'complete',
       });
       if (error) { setRewardFeedback(error.message); return; }
-      const result = data as { new_completion?: boolean; points_awarded?: number; completed?: boolean } | null;
+      const result = data as { new_completion?: boolean; points_awarded?: number; chapter_points?: number; series_points?: number; completed?: boolean } | null;
       setRewardFeedback(result?.completed === false ? 'Kailangan muna ng sapat na oras ng pagbabasa.' :
-        result?.new_completion ? 'Natapos ang kabanata · +7 BUKLOD Points' : 'Naitala na ang pagkumpleto sa kabanatang ito.');
+        result?.new_completion ? `Natapos ang kabanata · +${Number(result.chapter_points||5)} BP${Number(result.series_points||0)>0?` · Series completed +${Number(result.series_points)} BP`:''}` : 'Naitala na ang pagkumpleto sa kabanatang ito.');
       if (result?.completed !== false) setJourneyRefreshToken((token) => token + 1);
       // Completion and Journey refresh are confirmed before any optional ad.
       if (result?.new_completion === true) await showBuklodAdOpportunity('kl_chapter_success');
