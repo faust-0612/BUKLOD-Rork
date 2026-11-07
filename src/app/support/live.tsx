@@ -108,18 +108,42 @@ export default function LiveSupport(){
       setDraft('');await loadThread();
     }catch(e){setError(errorText(e));}finally{setBusy(false);}
   };
-  const upload=async()=>{
-    if(!caseId||!uid||uploadBusy)return;
-    setUploadBusy(true);setError('');
+  const upload=async(kind:'photo'|'video')=>{
+    if(!uid||uploadBusy||busy||Boolean(caseId&&cases.find(c=>c.id===caseId)?.status==='closed'))return;
+    setUploadBusy(true);setError('');setNotice('');
     try{
-      const result=await DocumentPicker.getDocumentAsync({type:['image/*','video/*'],multiple:false,copyToCacheDirectory:true});
+      const type=kind==='photo'?['image/jpeg','image/png','image/webp']:
+        ['video/mp4','video/quicktime','video/webm'];
+      const result=await DocumentPicker.getDocumentAsync({
+        type,multiple:false,copyToCacheDirectory:true,
+      });
       if(result.canceled)return;
       const asset=result.assets[0];
       const mime=asset.mimeType||'application/octet-stream';
       if(!ALLOWED.has(mime))throw Error('Only JPG, PNG, WebP, MP4, QuickTime or WebM evidence is supported.');
       if(!asset.size||asset.size>262144000)throw Error('Choose an evidence file under 250 MB.');
+      let targetCaseId=caseId;
+      if(!targetCaseId){
+        // One tap from the prominent attachment bar can open a private support
+        // case. Its true ID is used for both Storage and attachment RLS.
+        const {data,error:createError}=await supabase.rpc('submit_user_feedback',{
+          p_category:category,
+          p_title:(title.trim().length>=4?title.trim():kind==='photo'?'Photo evidence request':'Video evidence request').slice(0,140),
+          p_message:(description.trim().length>=8?description.trim():
+            'Visual evidence submitted for BUKLOD support. Please request any missing details.').slice(0,8000),
+          p_app_version:Constants.expoConfig?.version||'unknown',
+          p_app_environment:'BUKLOD_SUPPORT',
+          p_diagnostics:{platform:'app',source:'bsoc_visual_support'}
+        });
+        if(createError)throw createError;
+        if(!data)throw Error('Could not create support case for attachment.');
+        targetCaseId=String(data);
+        setCaseId(targetCaseId);
+        setTitle('');setDescription('');
+        await loadCases();
+      }
       const evidenceId=Crypto.randomUUID();
-      const objectPath=caseId+'/'+uid+'/'+evidenceId;
+      const objectPath=targetCaseId+'/'+uid+'/'+evidenceId;
       // Native and Web use the same private Storage policy. File bytes are bounded.
       const content=Platform.OS==='web' && asset.file
         ? await asset.file.arrayBuffer()
@@ -128,11 +152,16 @@ export default function LiveSupport(){
         .upload(objectPath,content,{contentType:mime,upsert:false});
       if(storageError)throw storageError;
       const {error:rowError}=await supabase.from('bsoc_case_attachments').insert({
-        id:evidenceId,case_id:caseId,uploader_id:uid,object_path:objectPath,
+        id:evidenceId,case_id:targetCaseId,uploader_id:uid,object_path:objectPath,
         byte_size:asset.size,mime_type:mime
       });
-      if(rowError)throw rowError;
-      setNotice('Evidence uploaded privately.');await loadThread();
+      if(rowError){
+        // Avoid leaving an orphaned private attachment when metadata fails.
+        await supabase.storage.from(BUCKET).remove([objectPath]).catch(()=>undefined);
+        throw rowError;
+      }
+      setNotice(kind==='photo'?'Photo attached to your private case.':'Video attached to your private case.');
+      if(targetCaseId===caseId)await loadThread();
     }catch(e){setError(errorText(e));}finally{setUploadBusy(false);}
   };
 
@@ -141,6 +170,22 @@ export default function LiveSupport(){
     <Pressable onPress={()=>router.back()}><Text style={styles.link}>‹ Back</Text></Pressable>
     <Text style={styles.h1}>Live BUKLOD Support</Text>
     <Text style={styles.muted}>Private support conversation with BSOC. Never send passwords, OTPs or recovery codes here.</Text>
+    {uid&&<View style={styles.uploadHero}>
+      <Text style={styles.h2}>Send a photo or video to BSOC</Text>
+      <Text style={styles.muted}>Tap either button first. BUKLOD will attach your file to the current case, or create a private case automatically.</Text>
+      <View style={styles.uploadActions}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Upload support photo"
+          disabled={busy||uploadBusy||cases.find(c=>c.id===caseId)?.status==='closed'}
+          style={styles.uploadButton} onPress={()=>void upload('photo')}>
+          <Text style={styles.buttonText}>{uploadBusy?'Uploading…':'📷 Upload photo'}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Upload support video"
+          disabled={busy||uploadBusy||cases.find(c=>c.id===caseId)?.status==='closed'}
+          style={styles.uploadButton} onPress={()=>void upload('video')}>
+          <Text style={styles.buttonText}>{uploadBusy?'Uploading…':'🎬 Upload video'}</Text>
+        </Pressable>
+      </View>
+    </View>
     <View style={{backgroundColor:'#e8f7ef',borderRadius:12,padding:14,gap:6}}>
       <Text style={{fontSize:16,fontWeight:'800',color:colors.green}}>Paano mag-report ng problema</Text>
       <Text style={styles.body}>1. Sabihin kung ano ang hindi gumagana, saang screen ito nangyari, at ano ang inaasahan mong mangyari.</Text>
@@ -163,14 +208,7 @@ export default function LiveSupport(){
     </View>:<>
       {!!error&&<Text style={styles.error} accessibilityRole="alert">{error}</Text>}
       {!!notice&&<Text style={styles.notice}>{notice}</Text>}
-      <Text style={styles.h2}>My support cases</Text>
-      <View style={styles.cases}>
-      {cases.map(item=><Pressable key={item.id} onPress={()=>setCaseId(item.id)}
-        style={[styles.case,caseId===item.id&&styles.active]}>
-        <Text style={styles.bold}>{item.title}</Text>
-        <Text style={styles.muted}>{item.status} · {item.id.slice(0,8).toUpperCase()}</Text>
-      </Pressable>)}
-      </View>
+
       {!caseId?<View style={styles.card}>
         <Text style={styles.h2}>Create a concern</Text>
         <View style={styles.cases}>
@@ -186,7 +224,22 @@ export default function LiveSupport(){
       </View>:<>
         <Pressable style={styles.linkButton} onPress={()=>setCaseId('')}><Text style={styles.link}>+ New concern</Text></Pressable>
         <View style={styles.card}>
-          <Text style={styles.h2}>Conversation</Text>
+          <Text style={styles.h2}>Chat with BSOC</Text>
+          <TextInput multiline style={[styles.input,styles.area]} placeholder="Message your support agent…" value={draft} onChangeText={setDraft}/>
+          <Pressable disabled={busy||!draft.trim()||cases.find(c=>c.id===caseId)?.status==='closed'} style={styles.button} onPress={()=>void send()}>
+            <Text style={styles.buttonText}>{busy?'Sending…':'Send message'}</Text>
+          </Pressable>
+          <View style={styles.uploadActions}>
+            <Pressable disabled={uploadBusy} style={styles.secondary} onPress={()=>void upload('photo')}>
+              <Text style={styles.link}>Attach photo</Text>
+            </Pressable>
+            <Pressable disabled={uploadBusy} style={styles.secondary} onPress={()=>void upload('video')}>
+              <Text style={styles.link}>Attach video</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.muted}>Tip: screenshot ng error message ang pinakamainam para sa visual bug; maikling video para sa playback, scrolling o navigation bugs. Huwag isama ang mga password, OTP, personal messages o financial details.</Text>
+          <Text style={styles.muted}>Private evidence, maximum 250 MB per file. Large recordings can consume device memory during upload.</Text>
+          <Text style={styles.h2}>Conversation & evidence log</Text>
           {messages.length===0&&<Text style={styles.muted}>Your case is open. Send a message to BSOC support.</Text>}
           {messages.map(m=><View key={m.id} style={[styles.bubble,m.sender_id===uid&&styles.mine]}>
             <Text style={styles.muted}>{m.sender_kind==='agent'?'BSOC Agent':'You'} · {new Date(m.created_at).toLocaleString()}</Text>
@@ -199,22 +252,27 @@ export default function LiveSupport(){
               <Text style={styles.link}>View private attachment</Text>
             </Pressable>}
           </View>)}
-          <TextInput multiline style={[styles.input,styles.area]} placeholder="Message your support agent…" value={draft} onChangeText={setDraft}/>
-          <Pressable disabled={busy||!draft.trim()||cases.find(c=>c.id===caseId)?.status==='closed'} style={styles.button} onPress={()=>void send()}>
-            <Text style={styles.buttonText}>{busy?'Sending…':'Send message'}</Text>
-          </Pressable>
-          <Pressable disabled={uploadBusy||cases.find(c=>c.id===caseId)?.status==='closed'} style={styles.secondary} onPress={()=>void upload()}>
-            <Text style={styles.link}>{uploadBusy?'Uploading evidence…':'Attach photo or video'}</Text>
-          </Pressable>
-          <Text style={styles.muted}>Tip: screenshot ng error message ang pinakamainam para sa visual bug; maikling video para sa playback, scrolling o navigation bugs. Huwag isama ang mga password, OTP, personal messages o financial details.</Text>
-          <Text style={styles.muted}>Private evidence, maximum 250 MB per file. Large recordings can consume device memory during upload.</Text>
+
+
         </View>
       </>}
+      <View style={styles.card}>
+        <Text style={styles.h2}>Previous support cases · Activity logs</Text>
+        {cases.length===0&&<Text style={styles.muted}>No previous cases yet.</Text>}
+        {cases.map(item=><Pressable key={item.id} onPress={()=>setCaseId(item.id)}
+          style={[styles.case,caseId===item.id&&styles.active]}>
+          <Text style={styles.bold}>{item.title}</Text>
+          <Text style={styles.muted}>{item.status} · {item.id.slice(0,8).toUpperCase()}</Text>
+        </Pressable>)}
+      </View>
     </>}
   </ScrollView>;
 }
 const styles=StyleSheet.create({
  screen:{flex:1,backgroundColor:colors.white},content:{padding:18,gap:13,paddingBottom:90},
+ uploadHero:{backgroundColor:'#E8F7EF',borderRadius:14,padding:15,gap:9},
+ uploadActions:{flexDirection:'row',flexWrap:'wrap',gap:9},
+ uploadButton:{flex:1,minWidth:130,padding:13,borderRadius:10,backgroundColor:colors.green,alignItems:'center'},
  h1:{fontSize:24,fontWeight:'800',color:colors.text},h2:{fontSize:17,fontWeight:'800',color:colors.text},
  bold:{fontWeight:'700',color:colors.text},muted:{fontSize:12,color:'#64748b',lineHeight:18},body:{fontSize:14,color:colors.text,lineHeight:21},
  card:{padding:16,gap:12,borderWidth:1,borderColor:'#e2e8f0',borderRadius:14},
