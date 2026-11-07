@@ -33,6 +33,12 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
 
+      - name: Validate full Kingdom gameplay and account-isolated save/replay flow
+        if: github.head_ref == 'dev/kingdom-consolidated-20261107'
+        run: |
+          node scripts/test-kingdom-game-platform-r1.mjs
+          node --experimental-strip-types --test tests/kingdom-*.test.mjs
+
       - name: Performance R1 contract checks
         shell: bash
         run: |

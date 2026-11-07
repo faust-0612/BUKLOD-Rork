@@ -286,3 +286,7 @@ These are proposed playable specifications, NOT a claim of implementation. All o
 - Added a clear accessible Back to Kingdom Map button to all shared game centers, Christian Academy, and Mitch's Art Center.
 - Added R13 focused behavioral tests for cross-account isolation, concurrent saves and replay, corrupted JSON, storage failures, all 39 route IDs, and mobile/web stage login scoping; production Android and Main web pre-export QA already execute `tests/kingdom-*.test.mjs`.
 - NO OTA; NO web deploy; NO main merge. User specifically waived actual device testing and requested a single future release alongside other completed changes. This is source/CI readiness only, not a claim that untested devices passed. Premium bespoke audio/art and server-authoritative Character Points remain separate release expectations; pilot results are not redeemable.
+ 
+### R13 pre-release verification extension
+- PR-only Performance workflow now executes every `tests/kingdom-*.test.mjs` plus the 39-game source contract for the consolidated Kingdom branch, instead of relying on TypeScript/source token checks as a proxy for actual gameplay logic.
+- No Expo CLI publish, production workflow dispatch, main branch merge or OTA command is invoked by this QA-only change. Physical device testing remains waived and never claimed passed.

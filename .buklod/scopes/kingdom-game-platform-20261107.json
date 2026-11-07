@@ -92,7 +92,8 @@
     "Same-account parallel original-game saves serialize; duplicate callbacks for the same game are ignored per game, not globally across unrelated game IDs.",
     "Guest/logout/re-login cannot load or change prior authenticated account progress, corrupt JSON is recoverable, failed AsyncStorage write does not claim success.",
     "Every character center includes a visible accessible return-to-map navigation; all original 13 + new 26 game entries remain selectable, replayable and in the existing BUKLOD App.",
-    "User expressly requests skip physical verification, release preparation only, no Android production OTA, no Expo Hosting web deployment, no merge to main."
+    "User expressly requests skip physical verification, release preparation only, no Android production OTA, no Expo Hosting web deployment, no merge to main.",
+    "PR Performance CI actually executes entire Kingdom Node/gameplay regression suite for the consolidated draft branch, beyond source-existence or TypeScript-only checks, before any future production release."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
@@ -194,6 +195,7 @@
     "src/features/games/kingdom/progress.ts",
     "src/features/games/runtime/BuklodGameStage.native.tsx",
     "src/features/games/runtime/BuklodGameStage.web.tsx",
-    "tests/kingdom-functionality-r13.test.mjs"
+    "tests/kingdom-functionality-r13.test.mjs",
+    ".github/workflows/performance_r1_qa.yml"
   ]
 }
