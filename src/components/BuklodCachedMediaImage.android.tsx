@@ -720,8 +720,18 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       >
         {actual.failed ? (
           <>
-            <Text style={styles.label}>Hindi ma-load ang larawan</Text>
-            {path ? <Text style={styles.retry}>I-tap para subukan muli</Text> : null}
+            <Text style={styles.label}>
+              {!canRequest && path
+                ? 'Wala pang naka-save na offline copy ng larawang ito'
+                : 'Hindi ma-load ang larawan'}
+            </Text>
+            {path ? (
+              <Text style={styles.retry}>
+                {!canRequest
+                  ? 'Mag-online para ma-download; maaari ring i-tap para suriin muli ang cache'
+                  : 'I-tap para subukan muli'}
+              </Text>
+            ) : null
           </>
         ) : (
           <ActivityIndicator color="#688A81" size="small" />
