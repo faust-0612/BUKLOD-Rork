@@ -23,3 +23,6 @@ Release blockers:
 8. No main merge, database migration, Android OTA, Expo web deploy, Vercel production promotion or app-binary build is authorized by this source integration.
 
 Current main Ads, Wall, SOS, KL, sponsor and desktop work is inherited from the published baseline without overwriting it.
+
+## Public Wall music and motion source reconciliation
+Music source branch: feature/wall-music-motion-20261108. Uses active library, explicit playback, optional post-creative metadata, scoped audio focus, reduced-motion support. Supabase ledger confirms the exact music migration 20261107171413 already applied live. Do not reapply it or imply new app frontend has been published.

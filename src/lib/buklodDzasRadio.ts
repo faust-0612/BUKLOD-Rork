@@ -4,6 +4,7 @@ import {
   setIsAudioActiveAsync,
   type AudioPlayer,
 } from 'expo-audio';
+import { requestBuklodAudioFocus, subscribeBuklodAudioFocus } from '@/lib/buklodAudioFocus';
 
 /*
  * BUKLOD_DZAS_STARTUP_R2
@@ -111,6 +112,7 @@ async function startDzasRadio(forceReload: boolean) {
     shouldRouteThroughEarpiece: false,
   });
 
+  requestBuklodAudioFocus('dzas');
   try {
     await startAttempt(
       audio,
@@ -164,3 +166,8 @@ export function peekDzasPlaying(): boolean {
     return false;
   }
 }
+
+// A voluntary music Play action releases DZAS before opening another track.
+subscribeBuklodAudioFocus(owner => {
+  if (owner !== 'dzas' && peekDzasPlaying()) pauseDzasRadio();
+});

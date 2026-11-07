@@ -1,5 +1,13 @@
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
+import BuklodPostMotion from '@/components/BuklodPostMotion';
+import BuklodWallPostAudioMeter from '@/components/BuklodWallPostAudioMeter';
+import BuklodPostMusicPicker from '@/components/BuklodPostMusicPicker';
+import { BUKLOD_POST_MOTION_PRESETS, loadBuklodPostCreatives, resolveBuklodPostMusicUrl,
+  saveBuklodPostCreative, type BuklodPostCreative, type BuklodPostMotionPreset,
+  type BuklodPostMusicTrack } from '@/lib/buklodPostCreatives';
+import { requestBuklodAudioFocus, subscribeBuklodAudioFocus } from '@/lib/buklodAudioFocus';
+import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer } from 'expo-audio';
 /* BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME: existing broadcast implementation preserved */
 /* PERF_EMERGENCY_R2_VISIBLE_POSTS: list-shape-drift-safely-skipped */
 /* PERF_EMERGENCY_R2_MULTI_MEDIA_CACHE: existing-community-media-url-cache-preserved */
@@ -868,6 +876,92 @@ function LegacyPublicBuklodScreen(){
   ]);
 
  const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
+ const [postCreatives,setPostCreatives]=useState<Record<string,BuklodPostCreative>>({});
+ const creativeIdsKey=useMemo(()=>posts.map(p=>String(p?.id??'')).filter(Boolean).join(','),[posts]);
+ useEffect(()=>{
+   if(!user?.id||!creativeIdsKey)return;
+   let cancelled=false;
+   void loadBuklodPostCreatives(creativeIdsKey.split(',')).then(result=>{
+     if(!cancelled)setPostCreatives(prev=>({...prev,...result}));
+   }).catch(error=>{
+     if(__DEV__)console.warn('BUKLOD post creative metadata:',error?.message??error);
+   });
+   return()=>{cancelled=true;};
+ },[creativeIdsKey,user?.id]);
+ // One shared feed/composer player: no per-post players or audio downloads on load.
+ const wallAudioPlayer=useAudioPlayer(null, { updateInterval: 1000 });
+ const [wallAudioOwner,setWallAudioOwner]=useState('');
+ const wallAudioOwnerRef=useRef('');
+ useEffect(()=>{wallAudioOwnerRef.current=wallAudioOwner;},[wallAudioOwner]);
+ const [wallLoadedTrackId,setWallLoadedTrackId]=useState('');
+ const [wallAudioError,setWallAudioError]=useState('');
+ const wallAudioBusyRef=useRef(false);
+ const wallAudioRequestEpochRef=useRef(0);
+ const wallAudioPendingOwnerRef=useRef('');
+ useEffect(()=>subscribeBuklodAudioFocus(owner=>{
+   if(owner!=='wall-post'){
+     wallAudioRequestEpochRef.current++;
+     wallAudioPendingOwnerRef.current='';
+     wallAudioPlayer.pause();
+     wallAudioOwnerRef.current='';
+     setWallAudioOwner('');
+   }
+ }),[wallAudioPlayer]);
+ useEffect(()=>{
+   const subscription=wallAudioPlayer.addListener('playbackStatusUpdate',status=>{
+     if(status.didJustFinish){
+       wallAudioOwnerRef.current='';
+       setWallAudioOwner('');
+     }
+   });
+   return()=>subscription.remove();
+ },[wallAudioPlayer]);
+ const toggleWallMusic=async(track:BuklodPostMusicTrack,ownerKey:string)=>{
+   if(wallAudioBusyRef.current)return;
+   if(wallAudioOwner===ownerKey&&wallAudioPlayer.playing){
+     wallAudioRequestEpochRef.current++;
+     wallAudioPendingOwnerRef.current='';
+     wallAudioPlayer.pause();
+     wallAudioOwnerRef.current='';
+     setWallAudioOwner('');
+     return;
+   }
+   wallAudioBusyRef.current=true;
+   const requestEpoch=++wallAudioRequestEpochRef.current;
+   wallAudioPendingOwnerRef.current=ownerKey;
+   setWallAudioError('');
+   try{
+     await setIsAudioActiveAsync(true);
+     await setAudioModeAsync({playsInSilentMode:true,shouldRouteThroughEarpiece:false});
+     if(wallLoadedTrackId!==track.id||!wallAudioPlayer.isLoaded){
+       wallAudioPlayer.pause();
+       const url=await resolveBuklodPostMusicUrl(track);
+       if(wallAudioRequestEpochRef.current!==requestEpoch)return;
+       wallAudioPlayer.replace(url);
+       const started=Date.now();
+       while(!wallAudioPlayer.isLoaded&&Date.now()-started<6500){
+         await new Promise<void>(done=>setTimeout(done,100));
+       }
+       if(!wallAudioPlayer.isLoaded)throw new Error('Music could not load. Please retry.');
+       setWallLoadedTrackId(track.id);
+     }
+     if(wallAudioRequestEpochRef.current!==requestEpoch||
+       wallAudioPendingOwnerRef.current!==ownerKey)return;
+     requestBuklodAudioFocus('wall-post');
+     wallAudioPlayer.volume=1;
+     wallAudioPlayer.play();
+     wallAudioOwnerRef.current=ownerKey;
+     setWallAudioOwner(ownerKey);
+   }catch(error:any){
+     wallAudioPlayer.pause();
+     setWallAudioError(String(error?.message??'Music playback failed.'));
+   }finally{
+     if(wallAudioRequestEpochRef.current===requestEpoch){
+       wallAudioPendingOwnerRef.current='';
+     }
+     wallAudioBusyRef.current=false;
+   }
+ };
  const notificationParams = useLocalSearchParams<{
   focusPostId?:string;
   focusComments?:string;
@@ -942,6 +1036,9 @@ function LegacyPublicBuklodScreen(){
  },[postFeedback]);
  const [communityGif,setCommunityGif]=useState<BuklodCommunityGifFile|null>(null);
  const [communityGifPickerOpen,setCommunityGifPickerOpen]=useState(false);
+ const [composerMusicPickerOpen,setComposerMusicPickerOpen]=useState(false);
+ const [composerMusicTrack,setComposerMusicTrack]=useState<BuklodPostMusicTrack|null>(null);
+ const [composerMotionPreset,setComposerMotionPreset]=useState<BuklodPostMotionPreset>('none');
 
  /* PATCH_186B_PHOTO_EDITOR_PUBLIC_STATE */
  const [
@@ -2495,6 +2592,8 @@ const load=useCallback(async(options?:{
    photos:
     [...photos],
    collageLayout,
+   musicTrack:composerMusicTrack,
+   motionPreset:wallVideo186O?'none' as BuklodPostMotionPreset:composerMotionPreset,
    wallVideo:
     wallVideo186O as {
      uri:string;
@@ -2520,6 +2619,16 @@ const load=useCallback(async(options?:{
  setBody('');
  setPhotos([]);
  setCollageLayout('grid');
+ setComposerMusicTrack(null);
+ setComposerMotionPreset('none');
+ setComposerMusicPickerOpen(false);
+ if(wallAudioOwnerRef.current==='composer' || wallAudioPendingOwnerRef.current==='composer'){
+  wallAudioRequestEpochRef.current++;
+  wallAudioPendingOwnerRef.current='';
+  wallAudioPlayer.pause();
+  wallAudioOwnerRef.current='';
+  setWallAudioOwner('');
+ }
  setCommunityComposerOpen(false); // Return to compact posting bar immediately.
  setPostFeedback('Publishing your post…');
  setWallVideo186O(null);
@@ -2551,6 +2660,7 @@ const load=useCallback(async(options?:{
   let createdPostId:
    string|null=
    null;
+  let optionalCreativeFailed = false;
 
   const createPost=async(
    first:{
@@ -2773,6 +2883,29 @@ const load=useCallback(async(options?:{
     );
    }
 
+   if(createdPostId){
+    try{
+     await saveBuklodPostCreative({
+       postId:createdPostId,userId:snapshot.userId,
+       musicTrackId:snapshot.musicTrack?.id??null,
+       motionPreset:snapshot.motionPreset,
+     });
+     setPostCreatives(previous=>({
+       ...previous,
+       [createdPostId!]:{
+         post_id:createdPostId!,
+         music_track_id:snapshot.musicTrack?.id??null,
+         motion_preset:snapshot.motionPreset,
+         music:snapshot.musicTrack,
+       },
+     }));
+    }catch(creativeError:any){
+     // Optional creative failure must never delete an already published post.
+     optionalCreativeFailed=true;
+     console.warn('BUKLOD optional post music/motion save:',creativeError?.message??creativeError);
+    }
+   }
+
    if(
     createdPostId &&
     snapshot.mentions.length
@@ -2788,7 +2921,7 @@ const load=useCallback(async(options?:{
    }
 
    await load();
-   setPostFeedback('Posted to Community');
+   setPostFeedback(optionalCreativeFailed ? 'Posted, but optional music/motion was not saved.' : 'Posted to Community');
   }
   catch(e:any){
    await discardIncompleteCommunityPost({
@@ -2803,6 +2936,8 @@ const load=useCallback(async(options?:{
    setCommunityGif(current => current ?? snapshot.communityGif);
    setMentions(current => current.length ? current : snapshot.mentions);
    setCollageLayout(snapshot.collageLayout);
+   setComposerMusicTrack(current=>current??snapshot.musicTrack);
+   setComposerMotionPreset(snapshot.motionPreset);
    setCommunityComposerOpen(true);
    setPostFeedback('Post failed — your draft was restored');
 
@@ -4666,6 +4801,34 @@ const communityFeedRows =
   visibleVideoPostId,
  } = useBuklodCommunityAdViewability();
 
+ // Preserve the existing ad/video visibility engine; also pause an audio
+ // post as soon as its card is no longer visible (no off-screen music).
+ const communityViewabilityListener=useRef(onCommunityAdViewableItemsChanged);
+ communityViewabilityListener.current=onCommunityAdViewableItemsChanged;
+ const wallAudioForVisibility=useRef(wallAudioPlayer);
+ wallAudioForVisibility.current=wallAudioPlayer;
+ const onCommunityWallViewableItemsChanged=useRef((event:{
+   viewableItems:Array<{item?:any}>;
+ })=>{
+   communityViewabilityListener.current(event);
+   const owner=wallAudioOwnerRef.current||wallAudioPendingOwnerRef.current;
+   if(owner&&owner!=='composer'&&
+     !event.viewableItems.some(row=>String(row.item?.id??'')===owner)){
+     wallAudioRequestEpochRef.current++;
+     wallAudioPendingOwnerRef.current='';
+     wallAudioForVisibility.current.pause();
+     wallAudioOwnerRef.current='';
+     setWallAudioOwner('');
+   }
+ }).current;
+ useFocusEffect(useCallback(()=>()=>{
+   wallAudioRequestEpochRef.current++;
+   wallAudioPendingOwnerRef.current='';
+   wallAudioPlayer.pause();
+   wallAudioOwnerRef.current='';
+   setWallAudioOwner('');
+ },[wallAudioPlayer]));
+
  const maritesVisibilityRefreshRef = useRef<(() => void) | null>(null);
  const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
  const largeComposerText = !photos.length && !wallVideo186O && !communityGif &&
@@ -4697,7 +4860,7 @@ const communityFeedRows =
   }}
       style={shared.screen} contentContainerStyle={s.content} data={
       communityFeedRows
-    } keyExtractor={(i: any)=>i.id} extraData={communityAdExtraData} onViewableItemsChanged={onCommunityAdViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
+    } keyExtractor={(i: any)=>i.id} extraData={communityAdExtraData} onViewableItemsChanged={onCommunityWallViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
     refreshing={busy}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
@@ -4884,6 +5047,12 @@ const communityFeedRows =
      >
       <MaterialCommunityIcons name="image-multiple-outline" size={22} color={wallGalleryTone.ink} />
      </Pressable>
+     <Pressable accessibilityRole="button" accessibilityLabel="Add music to Community post"
+       onPress={()=>{setCommunityComposerOpen(true);setComposerMusicPickerOpen(true);}}
+       style={{width:42,height:42,borderRadius:13,backgroundColor:'#e7f4ef',
+         alignItems:'center',justifyContent:'center'}}>
+       <MaterialCommunityIcons name="music-note-plus" size={21} color="#195d47"/>
+     </Pressable>
     </View>
    ) : (
     <>
@@ -4935,6 +5104,59 @@ const communityFeedRows =
       </Text>
      </Pressable>
 </View>
+    <BuklodPostMusicPicker visible={composerMusicPickerOpen}
+      selectedId={composerMusicTrack?.id}
+      previewId={wallAudioOwner==='composer'?wallLoadedTrackId:null}
+      previewPlaying={wallAudioOwner==='composer'&&wallAudioPlayer.playing}
+      onSelect={track=>{wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
+        wallAudioPlayer.pause();setWallAudioOwner('');setComposerMusicTrack(track);}}
+      onPreview={track=>{void toggleWallMusic(track,'composer');}}
+      onClose={()=>{if(wallAudioOwner==='composer'||wallAudioPendingOwnerRef.current==='composer'){
+        wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
+        wallAudioPlayer.pause();setWallAudioOwner('');
+      }setComposerMusicPickerOpen(false);}}
+    />
+    <View style={{gap:8,marginBottom:12}}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Choose music for post"
+        onPress={()=>setComposerMusicPickerOpen(true)}
+        style={{backgroundColor:'#e7f4ef',borderRadius:12,padding:11,
+          flexDirection:'row',alignItems:'center',gap:8}}>
+        <MaterialCommunityIcons name="music-note" size={19} color="#195d47"/>
+        <Text numberOfLines={1} style={{flex:1,fontWeight:'800',fontSize:12,color:'#195d47'}}>
+          {composerMusicTrack?.title??'Add music / audio (optional)'}
+        </Text>
+        <MaterialCommunityIcons name="chevron-right" size={19} color="#195d47"/>
+      </Pressable>
+      {!wallVideo186O&&!communityGif&&(
+        <>
+          <Text style={{fontWeight:'800',fontSize:11,color:colors.muted}}>Animate your photo or text post</Text>
+          <View style={{flexDirection:'row',flexWrap:'wrap',gap:7}}>
+            {BUKLOD_POST_MOTION_PRESETS.map(preset=>(
+              <Pressable key={preset} accessibilityRole="button"
+                accessibilityLabel={'Select '+preset+' motion'}
+                onPress={()=>setComposerMotionPreset(preset)}
+                style={{borderRadius:15,paddingHorizontal:11,paddingVertical:8,borderWidth:1,
+                  borderColor:composerMotionPreset===preset?colors.green:colors.line,
+                  backgroundColor:composerMotionPreset===preset?colors.greenSoft:colors.white}}>
+                <Text style={{color:composerMotionPreset===preset?colors.greenDark:colors.muted,
+                  textTransform:'capitalize',fontSize:11,fontWeight:'800'}}>{preset}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {composerMotionPreset!=='none'&&!photos.length&&(
+            <BuklodPostMotion preset={composerMotionPreset}>
+              <View style={{backgroundColor:colors.white,padding:14,borderRadius:12,
+                borderWidth:1,borderColor:colors.line}}>
+                <Text numberOfLines={3} style={{color:colors.text,fontSize:13}}>
+                  {body.trim()||'Preview your animated post'}
+                </Text>
+              </View>
+            </BuklodPostMotion>
+          )}
+        </>
+      )}
+      {!!wallAudioError&&<Text style={{fontSize:11,color:'#b43a2b'}}>{wallAudioError}</Text>}
+    </View>
     {!!communityGif&&(
      <BuklodCommunityGifPreview
       file={communityGif}
@@ -5039,6 +5261,7 @@ const communityFeedRows =
         ))}
        </View>
       )}
+      <BuklodPostMotion preset={composerMotionPreset}>
       <BuklodCommunityPhotoCollage
        items={photos.map(photo=>({
         media_url:photo.uri,
@@ -5059,6 +5282,7 @@ const communityFeedRows =
         }
        }}
       />
+      </BuklodPostMotion>
      </View>
     )}
     <Button
@@ -5379,6 +5603,7 @@ const communityFeedRows =
     </View>
    </View>
    </View>
+   <BuklodPostMotion preset={postCreatives[String(item.id)]?.motion_preset??'none'}>
    <BuklodExpandableWallCaption
     key={String(item.id)}
     text={String(repairMojibakeText(item.body) ?? '').replace(
@@ -5401,6 +5626,30 @@ const communityFeedRows =
    )}
 
     {renderCommunityMedia(item)}
+   </BuklodPostMotion>
+   {!!postCreatives[String(item.id)]?.music&&(
+     <View style={{backgroundColor:'#e7f4ef',borderRadius:12,padding:10,marginTop:7,marginBottom:5,gap:5}}>
+       <Pressable accessibilityRole="button"
+        accessibilityLabel={wallAudioOwner===String(item.id)&&wallAudioPlayer.playing?'Pause post music':'Play post music'}
+        onPress={()=>{void toggleWallMusic(postCreatives[String(item.id)].music!,String(item.id));}}
+        style={{minHeight:36,flexDirection:'row',gap:9,alignItems:'center'}}>
+        <MaterialCommunityIcons
+         name={wallAudioOwner===String(item.id)&&wallAudioPlayer.playing?'pause-circle':'play-circle'}
+         size={28} color="#195d47"/>
+        <View style={{flex:1,minWidth:0}}>
+          <Text numberOfLines={1} style={{fontSize:12,fontWeight:'800',color:'#164f3c'}}>
+            {postCreatives[String(item.id)].music!.title}
+          </Text>
+          <Text numberOfLines={1} style={{fontSize:10,color:'#58786a'}}>
+            {postCreatives[String(item.id)].music!.artist||'BUKLOD Music'} · Tap to play
+          </Text>
+        </View>
+       </Pressable>
+       {wallAudioOwner===String(item.id)&&(
+         <BuklodWallPostAudioMeter player={wallAudioPlayer}/>
+       )}
+     </View>
+   )}
 
     <BuklodCommunityPostEngagement
      reactionOptions={
