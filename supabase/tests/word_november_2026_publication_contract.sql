@@ -55,5 +55,11 @@ BEGIN
       OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.devotional_series'::regclass) THEN
     RAISE EXCEPTION 'Devotional table RLS is no longer enabled';
   END IF;
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_policies p
+    WHERE p.schemaname='public' AND p.tablename='devotionals'
+      AND p.policyname='Published devotionals are readable'
+      AND p.qual LIKE '%publish_date%' AND p.qual LIKE '%Asia/Manila%'
+  ) THEN RAISE EXCEPTION 'Future-dated devotional RLS disclosure remains'; END IF;
 END;
 $word_qa$;

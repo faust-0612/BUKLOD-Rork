@@ -42,3 +42,11 @@ test('daily route, reminders and monitor use exact Philippine day', () => {
   assert.match(migration,/REVOKE EXECUTE ON FUNCTION public\.queue_formation_reminders_v1\(\)/);
   assert.match(migration,/UPDATE public\.notifications n/);
 });
+
+test('future published Word stays hidden by Supabase date RLS', () => {
+  const policy = fs.readFileSync('supabase/migrations/20261107095500_word_future_date_rls_visibility.sql','utf8');
+  assert.match(policy,/ALTER POLICY "Published devotionals are readable"/);
+  assert.match(policy,/publish_date <=/);
+  assert.match(policy,/Asia\/Manila/);
+  assert.match(policy,/public\.is_system_admin\(\)/);
+});
