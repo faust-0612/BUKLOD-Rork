@@ -18,3 +18,12 @@ npm run build
 - Never attach unfinished BUKLOD Faculty navigation to the production Main app.
 
 Production-ready status requires observed auth/RLS tests using authorized test accounts, deployment proof, and smoke tests on the final URL.
+
+## Classroom navigation and permanent deletion (2026-11-07)
+- Classroom banner exposes **Back to My Classes**, independent of horizontally scrollable module tabs.
+- Faculty roster uses `buklod_classroom_roster_members_v2` (a scoped authenticated RPC) because `buklod_education_roster_members` is intentionally not directly selectable by browser users. Do not grant blanket roster table access.
+- Switching modules resets stale error banners. This prevents old permission failures from remaining visible in Overview.
+- Only the original assigned faculty owner sees the **Delete Class** control. Deletion asks for the exact classroom name.
+- The UI calls `buklod_classroom_delete_empty_guarded_v1`, introduced by canonical Supabase migration `20261107032407`. The backend independently checks authorization and all class-scoped records, including forum/chat/QuickCheck content, under a classroom row lock. It accepts one default General thread, one initial faculty assignment and default grading categories.
+- Existing classes with academic or communication history are NOT deleteable using this action; export and archive through the existing authorized Faculty workflow.
+- No class is deleted automatically during deployments or tests; manual signed-in user confirmation is required.
