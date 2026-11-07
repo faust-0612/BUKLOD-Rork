@@ -6,6 +6,7 @@ import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {registerPushToken} from '@/lib/pushNotifications';
+import { emitBuklodEmergencySignal, isBuklodEmergencyId } from '@/lib/buklodEmergencySignal';
 import { FAITH_NOTIFICATION_PATTERNS, isFaithNotificationKind } from '@/lib/buklodFaithNotificationPolicy';
 import { classifyBuklodNotificationSound, isBuklodMessageThreadOpen, playBuklodCue } from '@/lib/buklodSounds';
 import { syncScopeSelection } from '@/lib/buklodScopeRoute';
