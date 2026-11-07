@@ -86,6 +86,9 @@ test('Push is primary; bounded foreground polling and dedupe recover missed push
   assert.match(host, /AppState\.addEventListener\('change'/);
   assert.match(host, /acquireBuklodAdSafetyLock\('transaction'\)/);
   assert.match(host, /const epoch = \+\+accountEpoch\.current/);
+  assert.match(host, /ownerId: owner, incidentId: id/);
+  assert.match(host, /const activeShown = shown\?\.ownerId === owner \? shown : null/);
+  assert.match(host, /visible=\{Boolean\(activeShown && !activeShown\.minimized && foreground\)\}/);
   assert.match(host, /accountEpoch\.current !== epoch/);
   assert.doesNotMatch(host, /supabase\.channel\(/);
   assert.doesNotMatch(host, /downloadAsync\(/);
