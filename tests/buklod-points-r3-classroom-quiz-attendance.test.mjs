@@ -24,6 +24,7 @@ test('Home self-checkin requires real live Cluster event and human admin, once p
  assert.match(attendanceSql,/attendance_close_at/);
  assert.match(attendanceSql,/is_system_admin/);
  assert.match(attendanceSql,/status='pending'/);
+ assert.match(attendanceSql,/event venue must be recorded before attendance reward approval/i);
  assert.match(attendanceSql,/on conflict\(user_id,source_key\) do nothing/);
 });
 test('Mentor approvals use System Admin only with attendee, location and private evidence checks',()=>{
