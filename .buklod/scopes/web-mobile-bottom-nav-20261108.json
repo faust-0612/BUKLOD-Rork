@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix missed or delayed five-tab bottom-nav taps in BUKLOD mobile browsers and deploy only to Expo Hosting web",
+  "baseRef": "9a560caaec9befc0d54c70be36eaca619d587797",
+  "productionBaselineEvidence": "Production source main at 9a560caaec9befc0d54c70be36eaca619d587797 contains earlier web tap feedback but owner still reports unresponsive mobile-web bottom tabs. Live browser performance is not yet verified.",
+  "chosenApproach": "Add .web.tsx bottom nav override with native React Native Web Pressable, touchAction manipulation, optimistic active indication, fast Public tab routing and managed-scope last-tap-wins behavior; keep APK implementation unchanged.",
+  "selectionRationale": "Shared BuklodPressable rejects gesture if final touch coordinates move >10px; mobile-browser touch-release coordinates can vary. Web-only override avoids altering Android interactions and avoids unnecessary network waits.",
+  "alternativeApproaches": [
+    "Change shared BuklodPressable movement threshold for all platforms (rejected: risks Android scroll/press behavior)",
+    "Use browser page reloads for every tab (rejected: increases latency and loses app state)",
+    "Rewrite five separate dashboard screens (rejected: unnecessary blast radius without runtime evidence)"
+  ],
+  "preserveBehaviors": [
+    "Five canonical global tab routes",
+    "Organization/Cluster to Public scope isolation",
+    "Auth, privacy, scoped workspace, keyboard and immersive hiding rules",
+    "Safe area and ad placement",
+    "All Android APK/OTA and backend/database features"
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/web-bottom-nav-production-release-20261108.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodPersistentBottomNav.web.tsx",
+    "tests/web-bottom-nav-production-release-20261108.test.mjs",
+    ".github/workflows/production_web_deploy.yml",
+    ".buklod/scopes/web-mobile-bottom-nav-20261108.json"
+  ],
+  "acceptanceChecks": [
+    "All five routes remain accessible and have >=44px tap targets",
+    "Web uses Pressable with release-based tap rather than custom movement recheck",
+    "Immediate selected state with public route change and no server wait",
+    "Managed scope resets Public first and latest tab request wins",
+    "Native file, database and Android OTA workflow remain unchanged",
+    "Web-only production commit marker passes targeted Node, TypeScript and export checks",
+    "Production status depends on real Expo Hosting workflow and source SHA verification"
+  ]
+}
