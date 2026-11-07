@@ -75,7 +75,7 @@ begin
     (tg_op='UPDATE' and old.membership_status='ACTIVE') then return new; end if;
   select s.scope_type,s.name into v_scope_type,v_scope_name from public.buklod_scopes s
   where s.id=new.scope_id and s.status='ACTIVE';
-  if v_scope_type not in ('CLUSTER','ORGANIZATION') then return new; end if;
+  if v_scope_type is null or v_scope_type not in ('CLUSTER','ORGANIZATION') then return new; end if;
   select coalesce(nullif(pg_catalog.btrim(p.full_name),''),'bagong miyembro')
     into v_name from public.profiles p where p.id=new.user_id;
   insert into private.buklod_living_greeting_events_v1
@@ -157,6 +157,36 @@ end;
 $living$;
 revoke all on function private.buklod_living_daily_greetings_v1() from public,anon,authenticated;
 
+
+
+-- Scheduled future KL releases must appear promptly, not only at the next
+-- midnight greetings run. A five-minute scan is bounded to recent releases.
+create or replace function private.buklod_living_kl_releases_v1()
+returns integer language plpgsql security definer set search_path='' as $living$
+declare v_count integer:=0;
+declare v_added integer;
+declare v_story record;
+begin
+  for v_story in
+    select k.id,k.title,k.season_number,k.episode_number
+    from public.kl_episodes k
+    where k.status='approved' and k.release_at<=now()
+      and k.release_at>=now()-interval '48 hours'
+  loop
+    insert into private.buklod_living_greeting_events_v1
+      (event_key,kind,title,body,route,expires_at)
+    values ('kl_release:'||v_story.id::text,'kl_release',
+      left(pg_catalog.format('Kabihasnang Ligaw — Series %s: Kabanata %s available na!',
+        v_story.season_number,v_story.episode_number),140),
+      left('Bagong release: '||v_story.title||'. Basahin na!',450),
+      '/kabihasnang-ligaw',now()+interval '7 days')
+    on conflict(event_key) do nothing;
+    get diagnostics v_added = row_count; v_count := v_count+v_added;
+  end loop;
+  return v_count;
+end;
+$living$;
+revoke all on function private.buklod_living_kl_releases_v1() from public,anon,authenticated;
 
 -- Immediate event when an administrator actually releases an approved chapter.
 -- Daily job remains the fallback for previously scheduled release_at timestamps.
@@ -284,6 +314,14 @@ begin
                 and ms.membership_status='ACTIVE')
             or exists (select 1 from public.buklod_user_follows f
               where f.follower_id=p.id and f.followed_user_id=v_event.actor_id)
+            or (v_event.kind in ('rank_up','character_reward') and exists (
+              select 1 from public.buklod_scope_memberships own
+              join public.buklod_scope_memberships peer on peer.scope_id=own.scope_id
+              join public.buklod_scopes s on s.id=own.scope_id
+              where own.user_id=v_event.actor_id and own.membership_status='ACTIVE'
+                and peer.user_id=p.id and peer.membership_status='ACTIVE'
+                and s.status='ACTIVE' and s.scope_type in ('CLUSTER','ORGANIZATION')
+            ))
           )))
         )
         or (
@@ -406,6 +444,10 @@ grant execute on function public.buklod_set_my_birthday_sharing_v1(boolean) to a
 select cron.schedule(
   'buklod-living-greetings-daily-v1','5 16 * * *',
   'select private.buklod_living_daily_greetings_v1()'
+);
+select cron.schedule(
+  'buklod-living-greetings-kl-releases-v1','*/5 * * * *',
+  'select private.buklod_living_kl_releases_v1()'
 );
 select cron.schedule(
   'buklod-living-greetings-dispatch-v1','* * * * *',
