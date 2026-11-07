@@ -89,7 +89,7 @@ test('Network reachability fluctuations cannot cancel an active original or base
   const renderer = readFileSync('src/components/BuklodCachedMediaImage.android.tsx', 'utf8');
   assert.match(renderer, /const canRequestRef = useRef\(canRequest\)/);
   assert.match(renderer, /\}, \[mediaPath, retryEpoch\]\)/);
-  assert.match(renderer, /\}, \[identity, cacheKey, path, usingPreview, retryEpoch\]\)/);
+  assert.match(renderer, /\}, \[identity, cacheKey, path, usingPreview, retryEpoch, ownerId\]\)/);
   assert.match(renderer, /setSource\(current => current\.identity === identity && !current\.painted && !current\.url/);
 });
 
