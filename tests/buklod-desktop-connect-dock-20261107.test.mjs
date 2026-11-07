@@ -72,3 +72,16 @@ test('docked Connect render errors close only the side panel and heavy engine lo
   assert.match(shell,/React\.lazy\(\(\) => import\('@\/components\/BuklodDesktopMemberPreview'\)\)/);
   assert.match(shell,/<Suspense fallback=\{<ActivityIndicator accessibilityLabel="Loading details"/);
 });
+
+
+test('scoped desktop Connect uses small panel first with explicit Expand, mobile full thread preserved', () => {
+  const scoped = read('src/app/scope/index.tsx');
+  assert.match(scoped, /compactDesktop = Platform\.OS === 'web' && width >= 1200/);
+  assert.match(scoped, /const \[expanded, setExpanded\] = useState\(false\)/);
+  assert.match(scoped, /scopeConnectCompact: \{[\s\S]*?height: 340/);
+  assert.match(scoped, /scopeConnectExpanded: \{[\s\S]*?flex: 1/);
+  const chat=scoped.slice(scoped.indexOf('function OrganizationCommunityConnect('),scoped.indexOf('function ScopeConnect('));
+  assert.equal((chat.match(/<BuklodConnectThread/g) ?? []).length,1);
+  assert.match(chat,/mode="scope"/);
+  assert.match(chat,/containerId=\{scope\.scope_id\}/);
+});

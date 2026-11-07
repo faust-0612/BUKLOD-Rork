@@ -1,0 +1,51 @@
+{
+  "contractVersion": 2,
+  "objective": "Desktop Cluster/Organization Connect must start compact in center with explicit Expand/Collapse, while left Main navigation works immediately from any Cluster tab without requiring Back or bypassing scope membership.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Authenticated GitHub Main source at 3ead9e9a2ce707b10fa9c53aa17d39f3b1e5ebaf verified. User 2026-11-07 desktop screenshots show huge center Cluster Connect and side nav seeming unusable; this is visual evidence, not live runtime deploy SHA verification.",
+  "chosenApproach": "Constrain only wide-desktop scoped Connect to 340px/740px card and expand the existing single shared chat component within routed center on explicit user click. Replace immediate scope-reset navigation with active-PUBLIC-confirmed pending destination, bound to account and latest click, retaining guard and errors.",
+  "selectionRationale": "Existing Connect uses full flex height; global sidebar races with canonical managed-scope guard, causing navigation rebound. Fix one presentation and one state transition without rewriting messages or altering security scope resolution.",
+  "alternativeApproaches": [
+    "Create second chat/RPC or iframe: rejected, duplicate state and permission risks.",
+    "Make all scope Connect permanently full screen: rejected, user wants compact first.",
+    "Bypass canonical scoped permission guard to make sidebar clickable: rejected, security regression.",
+    "Rely on Back then tap a sidebar button: rejected, unnecessary navigation."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "connect",
+    "auth-privacy"
+  ],
+  "preserveBehaviors": [
+    "Current Main Wall, SOS, ads, Bible, Classroom, Quiz and Character untouched",
+    "Scoped membership and authorization checks remain intact",
+    "Actual scoped Connect engine, message sending, attachments and calls unchanged",
+    "Mobile and Android scoped Connect layout remains the original full thread",
+    "Sidebar pending navigation tied to signed-in owner and latest click, with failure feedback",
+    "Other DEV branches and Android OTA untouched",
+    "Production manual Expo Web release and exact SHA gates unchanged"
+  ],
+  "acceptanceChecks": [
+    "Desktop Cluster/Org Connect starts bounded 340px high and <=740px wide",
+    "Expand enlarges same chat in centered routed panel, Collapse restores compact",
+    "Home/Wall/Connect/Profile/Bible buttons can be clicked directly while Cluster is on any tab",
+    "No navigation to global feed while active scope is still Cluster; no hijack back to scope on normal switch",
+    "Profile/session change clears pending navigation and cannot show previous user",
+    "Mobile, authorization, send/calls and account isolation unchanged",
+    "CI focused tests TypeScript and web integration/export pass"
+  ],
+  "regressionTests": [
+    "tests/desktop-cluster-connect-navigation-20261107.test.mjs",
+    "tests/buklod-desktop-navigation-20261107.test.mjs",
+    "tests/buklod-desktop-connect-dock-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/scope/index.tsx",
+    "src/components/BuklodPublicDesktopDashboard.tsx",
+    "tests/desktop-cluster-connect-navigation-20261107.test.mjs",
+    "tests/buklod-desktop-navigation-20261107.test.mjs",
+    "tests/buklod-desktop-connect-dock-20261107.test.mjs",
+    "docs/BUKLOD_CLUSTER_CONNECT_COMPACT_R1_20261107.md",
+    ".buklod/scopes/cluster-connect-compact-desktop-20261107.json"
+  ]
+}

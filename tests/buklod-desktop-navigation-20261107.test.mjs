@@ -177,3 +177,13 @@ test('Character Studio loading and render errors do not replace the entire Profi
   // Protected canonical Character editor is not mutated by desktop routing.
   assert.match(editor, /BUKLOD_CHARACTER_R31_R40_LAYOUT_HOST_LOCK_V3/);
 });
+
+
+test('Cluster does not trap global desktop nav clicks behind scoped route guard', () => {
+  const guard = read('src/components/BuklodCanonicalNavigationGuard.web.tsx');
+  assert.match(shell, /setPendingSidebarNavigation/);
+  assert.match(shell, /activeScope\?\.scope_type !== 'PUBLIC'/);
+  assert.match(shell, /commitSidebarNavigation\(target\.path, target\.params\)/);
+  assert.match(shell, /if \(leavingScopedPage\) router\.replace\(href\)/);
+  assert.match(guard, /isManagedCommunityScope\(activeScope\)/);
+});
