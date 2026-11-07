@@ -238,3 +238,13 @@ These are proposed playable specifications, NOT a claim of implementation. All o
 - Three new local-game pilots → **13 original, 12 new pilots, 14 planned = 39**. No online points, collectible economy, gameplay-blocking ads or database migrations. Real premium composed audio and individualized animated sprite packs remain outstanding.
 - \`tests/kingdom-games-r8.test.mjs\` checks all nine boards, deterministic gameplay and cascade endings, no stuck state, original-game routing, local economy safety and original map hash.
 - Owner waived physical device verification; this DOES NOT certify visual quality, staging binary identity, runtime/EAS environment or RC. One staging-user OTA remains HOLD until entire implementation is completed and safe binary/channel reconciliation is confirmed.
+
+
+## 20. R9 seven new puzzle worlds — consolidated DEV only (November 7, 2026)
+- **Quin Guessing Quest**: nine bilingual evidence-based science/exploration mysteries with one defensible answer, a clue, two attempts, teaching explanations and 3-tier mastery scoring.
+- **Van Mind Challenge**: nine increasingly difficult logic, spatial reasoning, arithmetic sequence and deduction challenges using the same source-verified engine, but independently authored puzzles.
+- **Mitch Color Merge**, **Angel Treasure Merge**, **Vhen Farm Merge**: 3 character-themed 4×4 directional merge games each, with deterministic tile spawning, correct one-merge-per-pair behavior, bounded moves, pause/retry and own asset palettes. No cash or in-app economy awards.
+- **Trudice Word Garden** and **Niel Word Explorer**: 3 distinct seed-rotated 4×4 letter boards each, manually curated valid word banks, guaranteed adjacent solution paths, no repeated cell, touch backtrack/clear/submit, score, no timer or arbitrary dictionary.
+- Catalog advances to **13 original + 19 DEV pilots + 7 planned = 39**. Every old character game and unchanged Kingdom Map remain available, while the existing \`/games\` in-app route remains the Kingdom entrance.
+- R9 regression suite tests question quality and fair-answer behavior, deterministic merge/finite legal moves, solved word paths, route preservation and zero points/ads mutation.
+- 7 remaining feature games and complete commercial-level visual/audio asset/authoritative economy/ads/release checks still outstanding. Owner waived physical Android acceptance. No RC or staging/production OTA is published from R9.

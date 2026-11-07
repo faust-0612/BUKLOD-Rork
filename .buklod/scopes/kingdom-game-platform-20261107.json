@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Implement a shared high-performance in-app match-three engine for Phan Market Match, Jawo Nature Match and Vhen Harvest Match, preserving original 13 stations/old games and all previous 9 pilots. Grow to 12 new pilots and keep zero client economy/AdMob modifications.",
+  "objective": "Expand in-app BUKLOD Kingdom with seven original pilot games using three shared, deterministic gameplay engines: Quin Guessing Quest, Van Mind Challenge, Mitch Color Merge, Angel Treasure Merge, Vhen Farm Merge, Trudice Word Garden, Niel Word Explorer; preserve 13 original stations, existing games, premium map, economy and production native runtime.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub source reconciliation only — Forward-reconciled into main df1e4652bac9858df58b40173483baa4d85ec73d from original main 0be759bd27d4771bac2b40b4939cb2a115ef7d3a and current Kingdom DEV c20c445d64cacf29ef95f5c04a772aa5791b82e8. Zero overlapping file paths; all KL/Word current-main files preserved via Git tree overlay. Scope compares main's current PR merge-base rather than pinning a stale main SHA. Device/staging artifact unverified; no OTA. This does NOT verify production runtime, actual installed staging APK, or visual acceptance.",
-  "chosenApproach": "One deterministic 7×7 match-three rules engine with valid-move/combination validation, finite cascades/refills, reshuffle dead-end guard and three character-specific palettes/objective configurations. One lightweight responsive RN UI with bilingual instructions, goals, hints, retry, pause, scores and no economic grants.",
-  "selectionRationale": "Reuse mechanics and game shell for three genre-consistent character titles instead of shipping three separate heavy engines. No new native dependencies or media assets are required for the DEV pilot.",
+  "productionBaselineEvidence": "verified: reconciled GitHub source with latest main. R9 added game source without overwriting any main Word/KL/OTA workflow files; original Kingdom Map blob 88a4b1b4a70fc4acd59579419058b47f21be2554 preserved. This source proof is not proof of installed staging-user APK nor physical Android acceptance; no OTA is being published.",
+  "chosenApproach": "Add evidence-riddle, power-of-two merge, and word-connect pure engines each with themed bilingual RN interfaces and full start/pause/result/replay flows; reuse unchanged station routes and account-scoped local preview. Overlay source onto latest main with zero path collisions and no native/OTA changes.",
+  "selectionRationale": "Seven distinct character-themed titles implemented using three reusable, rule-verified engines rather than arbitrary placeholders; each has genuine puzzle input, deterministic outcome, score and offline play. Does not claim final premium original audio/asset packs or server reward grants.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
     "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
@@ -59,7 +59,11 @@
     "Catalog must retain 13 original games, 9 playable pilots and 17 planned, with canonical map blob and route names unchanged.",
     "All nine match-three levels generate initially match-free boards with guaranteed legal swaps; incorrect or nonadjacent swaps do not spend moves.",
     "Match collection, gravity, cascades, refill, and deterministic no-move reshuffle finish in bounded steps; score and game results remain local-only.",
-    "Phan Enterprise Builder, Jawo Forest Trail and Vhen Farm to Market remain selectable at original station routes; 39 catalog entries = 13 existing + 12 pilot + 14 planned."
+    "Phan Enterprise Builder, Jawo Forest Trail and Vhen Farm to Market remain selectable at original station routes; 39 catalog entries = 13 existing + 12 pilot + 14 planned.",
+    "Quin/Van have nine deterministic bilingual challenges with single clear answer, bounded attempts, per-question hints, explanations, scoring and restart.",
+    "Mitch/Angel/Vhen each have three deterministic 4×4 merge levels with valid directional slide, finite turns, score, retry and no global client economy grants.",
+    "Trudice/Niel each have three guaranteed-solvable offline 4×4 word grids; path input must be adjacent, cannot repeat a cell, and requires all listed validated words.",
+    "Catalog = 13 original + 19 playable DEV pilots + 7 planned games; new pilots must never silently override the 13 original games."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
@@ -69,7 +73,8 @@
     "tests/kingdom-games-r5.test.mjs",
     "tests/kingdom-premium-map-r6.test.mjs",
     "tests/kingdom-games-r7.test.mjs",
-    "tests/kingdom-games-r8.test.mjs"
+    "tests/kingdom-games-r8.test.mjs",
+    "tests/kingdom-games-r9.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-game-platform-20261107.json",
@@ -118,6 +123,14 @@
     "src/features/games/kingdom/platform/MatchThreeGameV1.tsx",
     "src/app/games/phan-enterprise-builder.tsx",
     "src/app/games/vhen-farm-to-market.tsx",
-    "tests/kingdom-games-r8.test.mjs"
+    "tests/kingdom-games-r8.test.mjs",
+    "src/features/games/kingdom/platform/evidenceRules.ts",
+    "src/features/games/kingdom/platform/EvidenceGameV1.tsx",
+    "src/features/games/kingdom/platform/mergeRules.ts",
+    "src/features/games/kingdom/platform/MergeGameV1.tsx",
+    "src/features/games/kingdom/platform/wordTrailRules.ts",
+    "src/features/games/kingdom/platform/WordTrailGameV1.tsx",
+    "src/app/games/niel-mission-trail.tsx",
+    "tests/kingdom-games-r9.test.mjs"
   ]
 }

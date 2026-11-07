@@ -40,7 +40,7 @@
           "id": "quin-guessing-quest",
           "title": "Guessing Quest",
           "genre": "quiz",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "quin-code-breaker",
@@ -70,7 +70,7 @@
           "id": "van-mind-challenge",
           "title": "Mind Challenge",
           "genre": "logic",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -166,7 +166,7 @@
           "id": "trudice-word-garden",
           "title": "Word Garden",
           "genre": "words",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -214,7 +214,7 @@
           "id": "mitch-color-merge",
           "title": "Color Merge",
           "genre": "merge",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -238,7 +238,7 @@
           "id": "niel-word-explorer",
           "title": "Word Explorer",
           "genre": "words",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -262,7 +262,7 @@
           "id": "angel-treasure-merge",
           "title": "Treasure Merge",
           "genre": "merge",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -286,7 +286,7 @@
           "id": "vhen-farm-merge",
           "title": "Farm Merge",
           "genre": "merge",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },

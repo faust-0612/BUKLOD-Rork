@@ -1,4 +1,5 @@
 import React from 'react';
+import { MergeGameV1 } from '@/features/games/kingdom/platform/MergeGameV1';
 import { FarmToMarketGameV1 } from '@/features/games/vhen/FarmToMarketGameV1';
 import { MatchThreeGameV1 } from '@/features/games/kingdom/platform/MatchThreeGameV1';
 import {
@@ -8,6 +9,13 @@ import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const GAME_ID = 'vhen-farm-to-market';
 const OPTIONS: readonly KingdomInteriorOption[] = [
+  {
+    id: 'vhen-farm-merge', title: 'Farm Merge',
+    descriptionEn: 'Grow advanced crops from simple seeds',
+    descriptionTl: 'Palaguin ang mga ani mula sa simpleng binhi',
+    kind: 'pilot', render: finish => <MergeGameV1 gameId="vhen-farm-merge" onFinish={finish} />,
+  },
+
   {
     id: 'vhen-harvest-match', title: 'Harvest Match',
     descriptionEn: 'Harvest crops and deliver market produce orders',

@@ -1,4 +1,5 @@
 import React from 'react';
+import { WordTrailGameV1 } from '@/features/games/kingdom/platform/WordTrailGameV1';
 import { PlaygroundPathGameV2 } from '@/features/games/trudice/PlaygroundPathGameV2';
 import { PicturePairsGameV1 } from '@/features/games/trudice/PicturePairsGameV1';
 import {
@@ -8,6 +9,12 @@ import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const GAME_ID = 'trudice-playground-memory';
 const OPTIONS: readonly KingdomInteriorOption[] = [
+  {
+    id: 'trudice-word-garden', title: 'Word Garden',
+    descriptionEn: 'Connect letters to bloom new word paths',
+    descriptionTl: 'Pagdugtungin ang mga letra para sa mga bagong salita',
+    kind: 'pilot', render: finish => <WordTrailGameV1 gameId="trudice-word-garden" onFinish={finish} />,
+  },
   {
     id: 'trudice-picture-pairs', title: 'Picture Pairs',
     descriptionEn: 'Find matching pictures across three gardens',

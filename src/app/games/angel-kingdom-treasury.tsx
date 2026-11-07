@@ -1,4 +1,5 @@
 import React from 'react';
+import { MergeGameV1 } from '@/features/games/kingdom/platform/MergeGameV1';
 import { KingdomTreasuryGameV1 } from '@/features/games/angel/KingdomTreasuryGameV1';
 import { NumberVaultGameV1 } from '@/features/games/angel/NumberVaultGameV1';
 import {
@@ -8,6 +9,13 @@ import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const GAME_ID = 'angel-kingdom-treasury';
 const OPTIONS: readonly KingdomInteriorOption[] = [
+  {
+    id: 'angel-treasure-merge', title: 'Treasure Merge',
+    descriptionEn: 'Merge valuable treasures into the kingdom collection',
+    descriptionTl: 'Pagsamahin ang mga kayamanan para sa koleksiyon',
+    kind: 'pilot', render: finish => <MergeGameV1 gameId="angel-treasure-merge" onFinish={finish} />,
+  },
+
   {
     id: 'angel-number-vault', title: 'Number Vault',
     descriptionEn: 'Three mathematical treasure vaults',

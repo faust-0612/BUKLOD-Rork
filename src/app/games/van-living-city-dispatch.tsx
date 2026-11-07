@@ -1,4 +1,5 @@
 import React from 'react';
+import { EvidenceGameV1 } from '@/features/games/kingdom/platform/EvidenceGameV1';
 import { SudokuMasterGameV1 } from '@/features/games/van/SudokuMasterGameV1';
 import { LivingCityDispatchGameV1 } from '@/features/games/van/LivingCityDispatchGameV1';
 import {
@@ -8,6 +9,13 @@ import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const GAME_ID = 'van-living-city-dispatch';
 const OPTIONS: readonly KingdomInteriorOption[] = [
+  {
+    id: 'van-mind-challenge', title: 'Mind Challenge',
+    descriptionEn: 'Nine logic, sequence and spatial challenges',
+    descriptionTl: 'Siyam na hamon sa logic, sequence at espasyo',
+    kind: 'pilot', render: finish => <EvidenceGameV1 gameId="van-mind-challenge" onFinish={finish} />,
+  },
+
   {
     id: 'van-sudoku-master', title: 'Sudoku Master',
     descriptionEn: 'Three uniquely solvable number puzzles',

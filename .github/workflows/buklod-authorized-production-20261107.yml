@@ -1,0 +1,108 @@
+# Explicitly authorized one-time production workflow dispatcher.
+# Existing production workflows keep ALL runtime, RC, QA and publish gates.
+name: BUKLOD Authorized Production Promotion 2026-11-07
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/buklod-authorized-production-20261107.yml]
+  workflow_run:
+    workflows: [BUKLOD Production Android OTA, BUKLOD Production Web Deploy]
+    types: [completed]
+permissions:
+  contents: read
+  actions: write
+  statuses: write
+concurrency:
+  group: buklod-one-time-20261107-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  initiate:
+    if: >-
+      github.event_name == 'push' &&
+      (startsWith(github.event.head_commit.message, 'release(buklod): one-time prod OTA and web 2026-11-07') ||
+       startsWith(github.event.head_commit.message, 'release(buklod): Android OTA recovery 2026-11-07'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch the original mandatory production release workflows
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "faust-0612/BUKLOD-Rork"
+          test "$GITHUB_REF" = "refs/heads/main"
+          commit_title="$(jq -r '.head_commit.message | split("\n")[0]' "$GITHUB_EVENT_PATH")"
+          case "$commit_title" in
+            'release(buklod): one-time prod OTA and web 2026-11-07')
+              targets=("production_android_ota.yml|BUKLOD/Android production OTA" "production_web_deploy.yml|BUKLOD/Expo Hosting production web") ;;
+            'release(buklod): Android OTA recovery 2026-11-07')
+              targets=("production_android_ota.yml|BUKLOD/Android production OTA") ;;
+            *)
+              echo "STOP: no authorized release marker"; exit 1 ;;
+          esac
+          api="https://api.github.com/repos/$GITHUB_REPOSITORY"
+          h=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
+          for entry in "${targets[@]}"; do
+            workflow="${entry%%|*}"; context="${entry#*|}"
+            head="$(curl -fsSL "${h[@]}" "$api/git/ref/heads/main" | jq -r '.object.sha')"
+            test "$head" = "$GITHUB_SHA" || { echo "STOP: main changed before $workflow"; exit 1; }
+            payload="$(jq -nc --arg c "$context" --arg url "https://github.com/$GITHUB_REPOSITORY/actions/workflows/$workflow" '{state:"pending",context:$c,description:"Release dispatched; mandatory validation pending",target_url:$url}')"
+            curl -fsS "${h[@]}" -X POST --data "$payload" "$api/statuses/$GITHUB_SHA" >/dev/null
+            code="$(curl -sS "${h[@]}" -o /tmp/dispatch-response -w '%{http_code}' -X POST --data '{"ref":"main"}' "$api/actions/workflows/$workflow/dispatches")"
+            if [ "$code" != 204 ]; then
+              cat /tmp/dispatch-response
+              echo "STOP: dispatch $workflow returned $code"
+              exit 1
+            fi
+            echo "Dispatch accepted $workflow for exact source $GITHUB_SHA"
+          done
+  record:
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require final real publication step before recording verified
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/$GITHUB_REPOSITORY"
+          h=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
+          source_sha="$(jq -r '.workflow_run.head_sha' "$GITHUB_EVENT_PATH")"
+          branch="$(jq -r '.workflow_run.head_branch' "$GITHUB_EVENT_PATH")"
+          event="$(jq -r '.workflow_run.event' "$GITHUB_EVENT_PATH")"
+          run_id="$(jq -r '.workflow_run.id' "$GITHUB_EVENT_PATH")"
+          name="$(jq -r '.workflow_run.name' "$GITHUB_EVENT_PATH")"
+          conclusion="$(jq -r '.workflow_run.conclusion' "$GITHUB_EVENT_PATH")"
+          url="$(jq -r '.workflow_run.html_url' "$GITHUB_EVENT_PATH")"
+          if [ "$branch" != main ] || [ "$event" != workflow_dispatch ]; then exit 0; fi
+          commit_title="$(curl -fsSL "${h[@]}" "$api/commits/$source_sha" | jq -r '.commit.message | split("\n")[0]')"
+          case "$commit_title" in
+            'release(buklod): one-time prod OTA and web 2026-11-07'|'release(buklod): Android OTA recovery 2026-11-07') ;;
+            *) exit 0 ;;
+          esac
+          case "$name" in
+            "BUKLOD Production Android OTA")
+              context="BUKLOD/Android production OTA"
+              final_step="Publish exact frozen Android RC" ;;
+            "BUKLOD Production Web Deploy")
+              context="BUKLOD/Expo Hosting production web"
+              final_step="Deployment status" ;;
+            *) exit 0 ;;
+          esac
+          final_result=not-run
+          if [ "$conclusion" = success ]; then
+            final_result="$(curl -fsSL "${h[@]}" "$api/actions/runs/$run_id/jobs?per_page=100" | jq -r --arg step "$final_step" '[.jobs[].steps[]? | select(.name==$step) | .conclusion] | last // "missing"')"
+          fi
+          if [ "$conclusion" = success ] && [ "$final_result" = success ]; then
+            state=success
+            description="Published: final mandatory release gate completed"
+          else
+            state=failure
+            description="NOT verified: workflow=$conclusion final_step=$final_result"
+          fi
+          payload="$(jq -nc --arg s "$state" --arg c "$context" --arg d "$description" --arg url "$url" '{state:$s,context:$c,description:$d,target_url:$url}')"
+          curl -fsS "${h[@]}" -X POST --data "$payload" "$api/statuses/$source_sha" >/dev/null
+          echo "$context $state source=$source_sha run=$url"

@@ -1,0 +1,37 @@
+{
+  "contractVersion": 2,
+  "objective": "User-authorized one-time production promotion of the already QA-passed BUKLOD Main Android runtime 1.3.2 OTA and Expo Hosting web, skipping physical device verification, using existing exact-SHA and runtime-gated manual release workflows unchanged.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: source-level inspection of GitHub Main df1e4652bac9858df58b40173483baa4d85ec73d, three successful QA workflows on prior KL reader fix, app.config.js production runtime 1.3.2 and EAS Main project 23dad7d0-389a-406e-8dec-08965dab85d8, package org.mzbministry.buklod, existing production RC guards. This does NOT assert the latest live artifact fingerprint; it must be independently fetched/checked by the unchanged Android OTA and Expo Web deployment workflows.",
+  "chosenApproach": "Temporary one-shot GitHub Actions orchestration workflow activated by an explicitly named merge source commit only. Uses GITHUB_TOKEN actions:write to invoke each existing workflow_dispatch endpoint exactly once; records per-target pending/success/failure SHA statuses via workflow_run completion events. It performs no custom OTA publication and bypasses no release gate. Keep main unchanged while deployments verify.",
+  "selectionRationale": "The connected GitHub API provides workflow file writes but no direct workflow_dispatch action. A tightly scoped one-time dispatcher with required Actions status recording is the lowest-risk way to execute authorized release through existing workflows without rewriting release logic.",
+  "alternativeApproaches": [
+    "Trigger stale successful run again: rejected because its SHA excludes latest fixes.",
+    "Publish via Vercel instead of Expo Hosting: rejected, wrong product/host.",
+    "Change production runtime to 1.3.4: rejected, installed V28 expects 1.3.2.",
+    "Disable device/native compatibility gates: rejected; only physical verification is skipped."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Do not modify either production release workflow or its guards",
+    "Do not affect staging-user, Classroom, database, user content, Android native dependencies, or package lock",
+    "Only dispatch on main with explicit one-shot commit message",
+    "Never claim a release live solely on workflow dispatch; require completion status and exact publish evidence"
+  ],
+  "acceptanceChecks": [
+    "Single dispatch to production_android_ota.yml and production_web_deploy.yml for exactly the matching main source",
+    "Android must pass pinned-V28 runtime and source-hash frozen RC checks, then live manifest update verification",
+    "Expo Hosting web must pass production environment and immutable SHA export/deploy checks",
+    "Both actions conclude successfully and per-target statuses reflect real results"
+  ],
+  "regressionTests": [
+    "tests/buklod-authorized-production-promotion-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/buklod-one-time-prod-ota-web-20261107.json",
+    ".github/workflows/buklod-authorized-production-20261107.yml",
+    "tests/buklod-authorized-production-promotion-20261107.test.mjs"
+  ]
+}

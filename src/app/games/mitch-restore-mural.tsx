@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
+import { MergeGameV1 } from '@/features/games/kingdom/platform/MergeGameV1';
 import { BlockForgeGameV1 } from '@/features/games/mitch/BlockForgeGameV1';
 import { RestoreMuralGameV1 } from '@/features/games/mitch/RestoreMuralGameV1';
 import {
@@ -14,11 +15,12 @@ import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLangua
 
 const GAME_ID = 'mitch-restore-mural';
 const FORGE_ID = 'mitch-block-forge';
+const MERGE_ID = 'mitch-color-merge';
 
 function MitchInterior() {
   const { user } = useAuth();
   const { t } = useBuklodGameLanguage();
-  const [selected, setSelected] = useState<'mural' | 'forge'>('forge');
+  const [selected, setSelected] = useState<'mural' | 'forge' | 'merge'>('forge');
   const [record, setRecord] = useState<KingdomPreviewRecord | null>(null);
   const [notice, setNotice] = useState('');
   const liveOwner = useRef(user?.id ?? null);
@@ -31,12 +33,12 @@ function MitchInterior() {
     setRecord(null);
     setNotice('');
     if (user?.id) {
-      void readKingdomPreviewRecord(user.id, FORGE_ID)
+      void readKingdomPreviewRecord(user.id, selected === 'merge' ? MERGE_ID : FORGE_ID)
         .then(r => { if (active) setRecord(r); })
         .catch(() => { if (active) setNotice(t('Preview save unavailable.', 'Hindi available ang pag-save ng preview.')); });
     }
     return () => { active = false; };
-  }, [user?.id, t]);
+  }, [selected, user?.id, t]);
 
   function handleForgeFinish(result: BuklodGameResult, sessionId: string) {
     const owner = user?.id;
@@ -47,12 +49,12 @@ function MitchInterior() {
     setNotice(t('Saving local result...', 'Sine-save ang local result...'));
     void recordKingdomPreviewResult(owner, sessionId, result)
       .then(r => {
-        if (liveOwner.current !== owner || liveSelected.current !== 'forge') return;
+        if (liveOwner.current !== owner || liveSelected.current !== (result.gameId === MERGE_ID ? 'merge' : 'forge')) return;
         setRecord(r);
         setNotice(t('Saved on this device. No Character Points were awarded.', 'Na-save sa device. Walang Character Points na naibigay.'));
       })
       .catch(() => {
-        if (liveOwner.current === owner && liveSelected.current === 'forge') setNotice(t('Could not save locally.', 'Hindi na-save sa device.'));
+        if (liveOwner.current === owner && liveSelected.current === (result.gameId === MERGE_ID ? 'merge' : 'forge')) setNotice(t('Could not save locally.', 'Hindi na-save sa device.'));
       });
   }
 
@@ -65,6 +67,11 @@ function MitchInterior() {
             style={[styles.option, selected === 'forge' && styles.active]} onPress={() => setSelected('forge')}>
             <Text style={styles.optionText}>Block Forge</Text>
             <Text style={styles.optionSub}>{t('Block puzzle', 'Block puzzle')}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityState={{ selected: selected === 'merge' }}
+            style={[styles.option, selected === 'merge' && styles.active]} onPress={() => setSelected('merge')}>
+            <Text style={styles.optionText}>Color Merge</Text>
+            <Text style={styles.optionSub}>{t('Blend paint tiles','Pagsamahin ang mga kulay')}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityState={{ selected: selected === 'mural' }}
             style={[styles.option, selected === 'mural' && styles.active]} onPress={() => setSelected('mural')}>
@@ -82,7 +89,11 @@ function MitchInterior() {
           <Text style={styles.record}>{t('Local best', 'Pinakamataas na local score')}: {record?.bestScore.toLocaleString() ?? '—'}
             {'  •  '}{t('Clears', 'Panalo')}: {record?.clears ?? 0}</Text>
           {!!notice && <Text style={styles.notice}>{notice}</Text>}
-          <BlockForgeGameV1 key={user?.id ?? 'guest'} onFinish={handleForgeFinish} />
+          {selected === 'merge' ? (
+            <MergeGameV1 key={user?.id ?? 'guest'} gameId={MERGE_ID} onFinish={handleForgeFinish} />
+          ) : (
+            <BlockForgeGameV1 key={user?.id ?? 'guest'} onFinish={handleForgeFinish} />
+          )}
         </ScrollView>
       )}
     </View>
