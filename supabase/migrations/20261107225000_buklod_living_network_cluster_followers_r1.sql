@@ -189,7 +189,7 @@ begin
       and case when e.event_kind='birthday'
         then coalesce(cp.birthday_to_network,false)
         else coalesce(cp.welcome_to_network,true) end
-    order by e.occurred_at desc limit 80
+    order by e.occurred_at asc limit 400
   ), recipients as (
     select e.id as event_id, f.follower_id as recipient_id
     from eligible_events e
@@ -229,8 +229,8 @@ begin
         then '🎉 BUKLOD: May birthday sa iyong community!'
         else '💚 BUKLOD: May bagong kasamang pwedeng batiin!' end,
       case when e.event_kind='birthday'
-        then left(p.full_name,80)||' ay may kaarawan ngayon. Batiin natin!'
-        else 'I-welcome natin si '||left(p.full_name,80)||' sa BUKLOD!' end,
+        then left(coalesce(nullif(trim(p.full_name),''),'BUKLOD member'),80)||' ay may kaarawan ngayon. Batiin natin!'
+        else 'I-welcome natin si '||left(coalesce(nullif(trim(p.full_name),''),'BUKLOD member'),80)||' sa BUKLOD!' end,
       'community_living_celebration',
       jsonb_build_object('route','/buklod','event_id',e.id,
         'event_kind',e.event_kind,'subject_user_id',e.subject_user_id)
