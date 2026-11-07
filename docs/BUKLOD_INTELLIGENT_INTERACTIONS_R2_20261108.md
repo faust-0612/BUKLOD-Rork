@@ -106,5 +106,6 @@ and published post records must remain unaffected.
 5. Source/CI and targeted device tests, version and runtime compatibility
    gate, then separately authorize any promotion.
 
-**Current authorization:** DEV-only source changes. No DB migration, web
-deployment, Android build or production/staging OTA has been issued.
+**Current authorization:** DEV-only source changes. No R2 database migration, web
+deployment, Android build or production/staging OTA has been issued. Existing R1
+birthday/holiday greetings backend and its jobs were already live before R2.
