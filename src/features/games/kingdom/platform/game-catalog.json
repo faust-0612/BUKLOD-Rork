@@ -46,7 +46,7 @@
           "id": "quin-code-breaker",
           "title": "Code Breaker",
           "genre": "logic",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -64,7 +64,7 @@
           "id": "van-sudoku-master",
           "title": "Sudoku Master",
           "genre": "numbers",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "van-mind-challenge",
