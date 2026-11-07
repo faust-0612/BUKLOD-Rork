@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Consolidated BUKLOD Points R3 + Kingdom R13 isolated OTA release candidate: preserve current main changes, complete verified reward flows, and protect Character, game progress, ads and production release gates without publishing.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub source baseline main commit afdeb8f4ad3034328235a77342720c04212106c2, independent Points PR #560 head 535e93e29495b69be7b7fd9e3cedabfe03b04005 and Kingdom PR #551 head 0d0ba3d7f547c6bd477e1ec6c82ab6a5f1f1ab78. Their changed path sets do not overlap current main; consolidated integration commit 5414aba263a5ee52ef83c06448bd3184b9f46011. GitHub main is NOT proof of the live Android/web release identity. 17 SQL migrations passed rollback-only SQL preflight; none of the new R2/R3 features were applied. Device acceptance waived, never passed.",
+  "productionBaselineEvidence": "verified: GitHub source baseline main commit afdeb8f4ad3034328235a77342720c04212106c2, independent Points PR #560 head 535e93e29495b69be7b7fd9e3cedabfe03b04005 and Kingdom PR #551 head 0d0ba3d7f547c6bd477e1ec6c82ab6a5f1f1ab78. Their changed path sets do not overlap current main; consolidated integration commit 5414aba263a5ee52ef83c06448bd3184b9f46011. GitHub main is NOT proof of the live Android/web release identity. 17 SQL migrations passed rollback-only SQL preflight; none of the new R2/R3 features were applied. Device acceptance waived, never passed. Reviewed 2026-11-08 current 4 Character file blobs against historical frozen copies; newer approved source contains 20-level items, higher-resolution art crop and masked next Special, old Character release contract expected stale file IDs/text. The exact modern source blobs have now been pinned and the gate itself is regression-tested.",
   "chosenApproach": "Combine non-overlapping feature PRs on isolated main-based branch, retain all code/test coverage and guarded SQL, run whole integrated release gates, protect V28 pinned Android runtime/Character assets, and hold OTA/web until missing authoritative game credit and runtime approval evidence is resolved.",
   "selectionRationale": "Original separate PRs independently passed source checks but combined PR triggered one-scope-manifest rule. One complete integration-specific risk and path manifest preserves accountability while avoiding blanket gate bypass or release of unverified client-only score rewards.",
   "alternativeApproaches": [
@@ -89,7 +89,8 @@
     "Every character center includes a visible accessible return-to-map navigation; all original 13 + new 26 game entries remain selectable, replayable and in the existing BUKLOD App.",
     "User expressly requests skip physical verification, release preparation only, no Android production OTA, no Expo Hosting web deployment, no merge to main.",
     "PR Performance CI actually executes entire Kingdom Node/gameplay regression suite for the consolidated draft branch, beyond source-existence or TypeScript-only checks, before any future production release.",
-    "Final held candidate includes all 15 latest-main Advertise source/migration/workflow files byte-identical, without running or dispatching any publication workflow."
+    "Final held candidate includes all 15 latest-main Advertise source/migration/workflow files byte-identical, without running or dispatching any publication workflow.",
+    "R31/R40 Character source release contract executes successfully against the exact rebaselined modern Character blobs, core SHA256 art and 168 Special JPGs, with locked Special identity masks and 20-level collectibles preserved"
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -110,7 +111,8 @@
     "BUKLOD Kingdom is /games INSIDE the original BUKLOD App, not BUKLOD Empire and not an independent app.",
     "Keep old BuklodKingdomMap.tsx Git blob intact as rollback baseline; do not touch existing games or economy policies.",
     "Never alter native deps/package.json/package-lock.json from pinned V28 Android baseline in production OTA.",
-    "Leave production workflows' existing exact-main/credentials/manifest/RC freeze/deployment status checks intact; do not edit or dispatch one-time release workflow without all mandatory gates."
+    "Leave production workflows' existing exact-main/credentials/manifest/RC freeze/deployment status checks intact; do not edit or dispatch one-time release workflow without all mandatory gates.",
+    "Character artwork assets remain byte-identical; server-authoritative Circle Rank, separate character-level milestones, badges and item loadouts cannot be granted by client Kingdom preview scores"
   ],
   "riskAreas": [
     "classroom-quiz",
@@ -152,7 +154,8 @@
     "tests/kingdom-games-r10.test.mjs",
     "tests/kingdom-staging-performance-r11.test.mjs",
     "tests/kingdom-production-ota-r12.test.mjs",
-    "tests/kingdom-functionality-r13.test.mjs"
+    "tests/kingdom-functionality-r13.test.mjs",
+    "tests/character-rc-modern-lock.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/points-r2-verified-live-rewards-20261107.json",
@@ -279,6 +282,8 @@
     "src/features/games/runtime/BuklodGameStage.native.tsx",
     "src/features/games/runtime/BuklodGameStage.web.tsx",
     "tests/kingdom-functionality-r13.test.mjs",
-    ".github/workflows/performance_r1_qa.yml"
+    ".github/workflows/performance_r1_qa.yml",
+    "scripts/character-release-contract.mjs",
+    "tests/character-rc-modern-lock.test.mjs"
   ]
 }

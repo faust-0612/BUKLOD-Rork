@@ -19,14 +19,14 @@ const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist
  * presentation for unlocked Special Characters while enforcing the canonical
  * rule that locked Special identities are not rendered before Circle Rank unlock.
  *
- * Git blob identity is checked instead of hashing working-tree text so Windows
+ * 2026-11-08 source review: modern R31/R40 full 20-level item controls, high-resolution sprite crop and masked next-Special preview intentionally supersede stale 2026-09-14 UI literals. Exact current blobs are frozen, rank/ownership authority unchanged.\n * Git blob identity is checked instead of hashing working-tree text so Windows
  * CRLF conversion cannot create false failures.
  */
 const LOCKED_VISUAL_BLOBS = {
-  'src/components/points/BuklodProgressiveCharacterSelector.tsx': 'f94af7e2f6d20246c9c9fe983b06240ae50599ba',
-  'src/components/points/BuklodSpecialCharacterSeries.tsx': 'f742ed7f3644f6b8b6dd0c477b6444f86b0c279f',
-  'src/components/points/BuklodCharacterCustomizeSheet.tsx': '8aa1a4dfdad33ba9aca7a07a32560765160fb176',
-  'src/components/points/BuklodProgressiveCharacterArt.tsx': '7b6eef608b9844e21e412df19348de87d0468bbe',
+  'src/components/points/BuklodProgressiveCharacterSelector.tsx': '1debd5659a96c97f83f32eeebb37c309a527d4ae',
+  'src/components/points/BuklodSpecialCharacterSeries.tsx': '4cf837d453c4c33c867e2b0ae714e6f81f1ffeb6',
+  'src/components/points/BuklodCharacterCustomizeSheet.tsx': '33fdfd5d1c599183f80eb4d7a4e99e7511c3bbc0',
+  'src/components/points/BuklodProgressiveCharacterArt.tsx': '3000d9e03b77fc48f345c093fd5bd2a88bfad26d',
 };
 
 const CORE_ASSETS = {
@@ -136,14 +136,16 @@ enforceExactVisualLock();
 
 const r31 = requireTokens('src/components/points/BuklodProgressiveCharacterSelector.tsx', [
   'BUKLOD_CHARACTER_R31_APPROVED_LAYOUT',
-  'Choose Your BUKLOD Character',
-  'LEVEL 1-20 PROGRESSION',
-  'COLLECTIBLES -',
-  'Browse all 20 levels',
   'Use This Character',
-  'nestedScrollEnabled',
   'state.character_level',
   'state.character_points_since_selection',
+  'Array.from({ length: 20 }',
+  'BuklodCharacterLevelGuide',
+  'isCollectibleLevelOpen',
+  'openMyCharacterCollectible',
+  'redeemMyCharacterCollectible',
+  'useMyCharacterCollectible',
+  'shownCollectiblePins',
 ]);
 if (/levelForPoints\s*\(\s*lifetimePoints\s*\)/.test(r31)) {
   failures.push('R31 legacy lifetime-points transferable Character leveling returned. V2/server Character level must remain authoritative.');
@@ -169,25 +171,24 @@ requireTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
   'BUKLOD_CHARACTER_R31_R40_LAYOUT_HOST_LOCK_V3',
   'BuklodProgressiveCharacterSelector',
   'BuklodSpecialCharacterSeries',
-  'nestedScrollEnabled',
+  'ScrollView',
   'getMyBuklodCharacterSelectionV2',
 ]);
 
 const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'BUKLOD_SPECIAL_BATCH1_R40_PREMIUM_UI',
-  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_HIDDEN',
   'SPECIAL_ORDER',
-  'visibleSpecialIds.map',
-  'Special Character Journey',
-  'Special Characters appear only when your Circle Rank unlocks them.',
+  'visibleSpecialRail',
+  'railIds.map',
+  'EIGHT SPECIAL CHARACTERS',
   'More than a character. A mission.',
   'LEVEL 1 - 20 JOURNEY',
-  'COLLECTIBLES & BADGES',
   'VIEW ALL LEVELS',
-  'VIEW ALL COLLECTIBLES',
+  'VIEW ALL BADGES',
   'LOCKED',
-  'nestedScrollEnabled',
+  'NEXT SPECIAL',
   'visible_special_character_ids',
+  'getBuklodSpecialLevelAsset',
   'setMyBuklodCharacterActiveV2',
   'get_my_buklod_special_collectibles_v2',
   'ACE',
@@ -203,8 +204,14 @@ if (r40.includes("rpc('set_my_buklod_special_character_active_v1'")) {
 if (r40.includes('SPECIAL_ORDER.map(')) {
   failures.push('Locked Special Character identities are being rendered. The Special rail must map visibleSpecialIds only.');
 }
-if (!r40.includes('visibleSpecialIds.map(')) {
-  failures.push('R40 no longer restricts the Special rail to unlocked/visible Special Character IDs.');
+if (!r40.includes('railIds.map(') || !r40.includes('visibleSpecialRail(')) {
+  failures.push('R40 no longer uses the server-visible Special rail.');
+}
+if (!r40.includes('unlocked ? (') || !r40.includes('characterImageHidden') || !r40.includes('NEXT SPECIAL')) {
+  failures.push('R40 must mask next locked Special artwork, name and profile identity.');
+}
+if (!r40.includes('visible.includes(id)') || !r40.includes('SPECIAL_REQUIRED_RANK_ORDER[id]')) {
+  failures.push('R40 Special unlock must remain bound to the visible server list or rank.');
 }
 if (r40.includes('NEXT TO UNLOCK')) {
   failures.push('Locked Special Character identity preview returned. Locked Specials must remain hidden until Circle Rank unlocks them.');
@@ -262,17 +269,13 @@ if (distDir) {
       .join('\n');
 
     for (const token of [
-      'Choose Your BUKLOD Character',
-      'LEVEL 1-20 PROGRESSION',
-      'COLLECTIBLES -',
       'Use This Character',
-      'Special Character Journey',
-      'Special Characters appear only when your Circle Rank unlocks them.',
+      'ITEMS FOR',
+      'EIGHT SPECIAL CHARACTERS',
       'More than a character. A mission.',
       'LEVEL 1 - 20 JOURNEY',
-      'COLLECTIBLES & BADGES',
       'VIEW ALL LEVELS',
-      'VIEW ALL COLLECTIBLES',
+      'VIEW ALL BADGES',
       'get_my_buklod_special_collectibles_v2',
     ]) {
       if (!compiled.includes(token)) failures.push(`Compiled bundle is missing canonical R31/R40 layout token: ${token}`);
