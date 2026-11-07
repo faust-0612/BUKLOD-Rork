@@ -31,6 +31,21 @@ export default function BsocSupportOperations() {
   const [preview,setPreview] = useState<any>(null);
   const [saving,setSaving] = useState(false);
   const [success,setSuccess] = useState('');
+  const [unreadCount,setUnreadCount] = useState(0);
+  useEffect(()=>{
+    if(!canRead)return;
+    let active=true;
+    const reload=async()=>{
+      const {count,error}=await supabase.from('notifications')
+        .select('id',{count:'exact',head:true}).eq('kind','bsoc_support').is('read_at',null);
+      if(active&&!error)setUnreadCount(count||0);
+    };
+    void reload();
+    const ch=supabase.channel('bsoc-inbox-notification-count')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications'},()=>void reload())
+      .subscribe();
+    return ()=>{active=false;void supabase.removeChannel(ch);};
+  },[canRead]);
 
   const load = useCallback(async () => {
     setRefreshing(true); setError('');
@@ -114,7 +129,7 @@ export default function BsocSupportOperations() {
       <Text style={styles.muted}>Member conversations, photo and video evidence, and replies.</Text>
     </Pressable>
     <Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/bsoc-notifications' as any)}>
-      <Text style={styles.recoveryTitle}>Notifications · New concerns & replies ›</Text>
+      <Text style={styles.recoveryTitle}>Notifications ({unreadCount} unread) · Concerns & replies ›</Text>
       <Text style={styles.muted}>Alerts for every authorized BSOC support personnel, not only administrators.</Text>
     </Pressable>
     <Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/bsoc-gpt-debug' as any)}>
