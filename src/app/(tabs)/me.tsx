@@ -1293,6 +1293,12 @@ export default function MeScreen() {
   const quickActionItems = useMemo<QuickActionItem[]>(
     () => [
       {
+        key: 'support',
+        icon: 'lifebuoy',
+        label: 'Live Support',
+        onPress: () => router.push('/support/live' as any),
+      },
+      {
         key: 'attendance-qr',
         icon: 'qrcode',
         label: 'Attendance QR',
