@@ -225,15 +225,26 @@ try {
 }
 function list7zText(raw,label){
  const records=[];
- let seenSeparator=false, block=[];
+ let seenSeparator=false, block=[],zeroByteWithoutCRC=0,nonemptyWithoutCRC=0;
  function finish(){
    const r={};
    for(const line of block){
       const m=line.match(/^([^=]+?) = (.*)$/);
       if(m)r[m[1].trim()]=m[2].trim();
    }
-   if(r.Path&&r.Size!==undefined&&/^[0-9a-f]{8}$/i.test(r.CRC||"")&&r.Folder!=="+"&&r.Folder!=="true"){
-      records.push({path:r.Path,size:Number(r.Size),crc:r.CRC.toUpperCase()});
+   // In 7-Zip -slt output, an empty regular file can have Size=0
+   // and a blank/omitted CRC field. Its CRC32 is mathematically 00000000.
+   // Reject, rather than silently dropping, any nonempty file without CRC.
+   if(r.Path&&r.Size!==undefined&&r.Folder!=="+"&&r.Folder!=="true"){
+     const size=Number(r.Size);
+     if(Number.isSafeInteger(size)&&size>=0){
+       const rawCRC=String(r.CRC||"").trim().toUpperCase();
+       let crc;
+       if(/^[0-9A-F]{8}$/.test(rawCRC))crc=rawCRC;
+       else if(size===0&&!rawCRC){crc="00000000";zeroByteWithoutCRC++}
+       else {nonemptyWithoutCRC++}
+       if(crc)records.push({path:r.Path,size,crc});
+     }else nonemptyWithoutCRC++;
    }
    block=[];
  }
@@ -245,8 +256,11 @@ function list7zText(raw,label){
    block.push(line);
  }
  finish();
+ console.log(label,"has",records.length,"encrypted file records; empty-without-CRC:",zeroByteWithoutCRC,
+   "unparseable/nonempty-without-CRC:",nonemptyWithoutCRC);
+ if(nonemptyWithoutCRC>0)throw Error("Archive index contains "+nonemptyWithoutCRC+
+   " nonempty/unparseable entries without valid CRC. No upload.");
  if(records.length<10)throw Error("Cannot parse encrypted listing. No upload: only "+records.length+" file records.");
- console.log(label,"has",records.length,"encrypted file records.");
  return records;
 }
 const stripDrive=s=>norm(s).replace(/^[a-z]:\/?/,"");
@@ -299,6 +313,11 @@ if(process.argv.includes("--self-test")){
      Array.from({length:2632},(_,i)=>"Path = "+(i===0?"payload/PRIVATE_V6_RESTORE_MAP.json":"payload/data/"+String(i).padStart(6,"0")+".dat")+
        "\nSize = 9\nCRC = CBF43926\nFolder = -\n\n").join("");
    assert(list7zText(synthetic,"fixture").length===2632,"Encrypted 2632-file listing parser test failed");
+   const zero="----------\\nPath = archive.7z\\nType = 7z\\n\\n----------\\nPath = payload/data/000001.dat\\nSize = 0\\nCRC = \\nFolder = -\\n\\n"
+     .replaceAll("\\n","\n");
+   const padded=zero+Array.from({length:10},(_,i)=>"Path = payload/data/"+String(i+2).padStart(6,"0")+".dat\nSize = 9\nCRC = CBF43926\nFolder = -\n\n").join("");
+   const emptyCase=list7zText(padded,"zero-byte CRC fixture");
+   assert(emptyCase.length===11&&emptyCase[0].crc==="00000000","Empty file CRC fallback test failed");
  }finally{fs.rmSync(testDir,{recursive:true,force:true})}
  console.log("SELF TEST PASSED: CRC32, deterministic paths, -spf2 drive isolation, and non-destructive staging hardlinks.");process.exit(0)
 }
