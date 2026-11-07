@@ -11,6 +11,7 @@ import {
 
 import BuklodAcceptedCallContent from '@/components/BuklodAcceptedCallContent';
 import BuklodCallRenderBoundary from '@/components/BuklodCallRenderBoundary';
+import { subscribeBuklodCallingStateChanges } from '@/lib/buklodCallStateSubscription';
 import {
   findActiveNonPttCall,
   getBuklodCallSurfaceMode,
@@ -358,33 +359,13 @@ export function RingingCalls() {
   const calls = useCalls();
   const [, setCallStateRevision] = useState(0);
 
-  useEffect(() => {
-    let listening = true;
-    const subscriptions: Array<{ unsubscribe: () => void }> = [];
-    for (const call of calls ?? []) {
-      const observable = call?.state?.callingState$;
-      if (!observable || typeof observable.subscribe !== 'function') continue;
-      try {
-        let initialSnapshot = true;
-        const subscription = observable.subscribe(() => {
-          if (initialSnapshot || !listening) return;
-          setCallStateRevision(value => value + 1);
-        });
-        initialSnapshot = false;
-        if (subscription && typeof subscription.unsubscribe === 'function') {
-          subscriptions.push(subscription);
-        }
-      } catch {
-        // The SDK may have disposed the call while the subscription attached.
-      }
-    }
-    return () => {
-      listening = false;
-      for (const subscription of subscriptions) {
-        try { subscription.unsubscribe(); } catch { /* already disposed */ }
-      }
-    };
-  }, [calls]);
+  useEffect(
+    () => subscribeBuklodCallingStateChanges(
+      calls,
+      () => setCallStateRevision(value => value + 1),
+    ),
+    [calls],
+  );
 
   const activeCall = findActiveNonPttCall(calls);
   const activeKey = activeCall ? callIdentity(activeCall) || 'active' : 'idle';
