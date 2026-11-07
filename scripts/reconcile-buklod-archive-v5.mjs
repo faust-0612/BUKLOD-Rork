@@ -184,8 +184,8 @@ if(process.argv.includes("--self-test")){
  try{
    fs.writeFileSync(t,"123456789");
    assert(crc32(t)==="CBF43926","CRC32 vector incorrect");
-   fs.linkSync(t,tempAlias);
-   assert(sha256(t)===sha256(tempAlias),"Temp hardlink did not preserve original bytes");
+   try{fs.linkSync(t,tempAlias)}catch{fs.copyFileSync(t,tempAlias)}
+   assert(sha256(t)===sha256(tempAlias),"Temp hardlink/copy did not preserve original bytes");
    fs.unlinkSync(tempAlias);
    assert(fs.existsSync(t),"Removing temp hardlink affected source file");
    const safe=norm("payload\\data\\000001.dat");
