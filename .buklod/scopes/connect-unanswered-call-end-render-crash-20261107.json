@@ -1,0 +1,56 @@
+{
+  "contractVersion": 2,
+  "objective": "Prevent Android SYS-500 RENDER_C567C6DA on end/cancel of an unanswered personal Connect audio call, while preserving legitimate ringing, call push, chat drafts, PTT and existing native runtime.",
+  "baseRef": "362ea3a8946a15725c043ba17e36174e6eb853f4",
+  "productionBaselineEvidence": "User Android production v1.3.4 screenshot SYS-500 RENDER_C567C6DA when ending unanswered personal call. Verified Supabase bsoc_health_events occurred_at 2026-11-07T06:39:45.701Z, route_module connect/personal/:id, production android, signature RENDER_C567C6DA. Exactly matching buklod_call_logs personal audio call status cancelled, ended_at 2026-11-07T06:39:45.187Z, duration_seconds 0, started_at null; callee response ringing, caller cancelled. The log does not establish whether FCM reached the recipient device or the precise JS exception message; signature is anonymous hash. Source baseline main 362ea3a... after SOS R2.",
+  "chosenApproach": "Repair the high-risk global Stream call teardown path: dispose/terminal-state rejection so stale ringing flags cannot reactivate cancelled calls; subscribe safely to SDK callingState$ by ignoring synchronous initial BehaviorSubject emission, tolerating deleted observables and suppressing late callbacks after unmount; catch native expo-audio player cleanup exceptions; isolate global ringing renderer under per-call keyed local ErrorBoundary with safe support signature and direct retry/leave fallback. Leave Stream push registration, native FCM channels, message screen routing, PTT, privileges and call lifecycle server logging untouched.",
+  "selectionRationale": "The client-level global RingingCalls is outside ConnectRenderBoundary, so exceptions thrown during Stream Call/observable teardown can reach the global app ErrorBoundary; the 514ms gap after cancelled DB event matches teardown. Existing subscription code assumed call.state.callingState$ was always valid and setState on every initial synchronous subscribe emission. Without capturing actual exception text, exact crashing instruction cannot be proven; the patch hardens each evident unsafe transition and adds a per-call containment boundary. Avoid speculative push changes when the only server evidence is a callee remaining ringing and no proof of device FCM delivery.",
+  "alternativeApproaches": [
+    "Rewrite native Stream calling or switch to another video SDK (rejected: unnecessary cost and risk to currently working calls, PTT, Android runtime and push delivery)",
+    "Only add root SYS-500 retry screen (rejected: hides teardown failure and still loses current navigation)",
+    "Force Stream outgoing call to auto-end quickly or disable calling (rejected: would alter UX and would not fix render lifecycle)",
+    "Modify Firebase Stream provider or FCM credentials without receipt evidence (rejected: could break killed/background calling and requires independent device/vendor checks)"
+  ],
+  "riskAreas": [
+    "connect",
+    "navigation-scroll",
+    "call-lifecycle",
+    "push-delivery",
+    "android-rendering",
+    "weak-network-recovery",
+    "production-baseline"
+  ],
+  "preserveBehaviors": [
+    "Normal caller/recipient video and audio calling continues through Stream SDK and same native FCM push provider firebase-video-production",
+    "Unique call IDs, 45s auto cancel, 30s incoming timeout, connection singleton and anti-double-call behavior remain unchanged",
+    "Outgoing ringback audio stops on leaving/cancelling without throwing during disposed player cleanup",
+    "Only normal non-PTT calls appear in global overlay; PTT floor/mic/notification behavior unaffected",
+    "Connect thread state, drafts, route and global Home/Wall/Cluster screens remain mounted through normal call and fallback",
+    "Accepted calls preserve controls, camera/speaker/screen share, accepted reconnecting and in-call minimization",
+    "No schema, Edge Function, native permission, package identity, Expo runtime, Ads, SOS or production OTA workflow modification",
+    "Error event signature is anonymized; no call ID, callee identity, token, or private message content in logs",
+    "Incoming device notification delivery is not declared verified without Android two-device observation and Stream Dashboard FCM receipts"
+  ],
+  "regressionTests": [
+    "tests/connect-call-end-recovery-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Unanswered PERSONAL audio call cancellation causes ringing to end, global call surface unmount, and no root SYS-500",
+    "Terminal states cancelled, rejected, missed, ended, left, disconnected and disposed state are never displayed even if stale ring flag is true",
+    "A valid RINGING / JOINING / JOINED / RECONNECTING normal call still renders; PTT is isolated",
+    "Stream synchronous observable snapshot does not trigger a repeat render, live change notifies once and unsubscribe suppresses late updates",
+    "Missing/throwing state observable or duplicate unsubscribe cannot replace app with a root render error",
+    "Ringing UI exceptions remain in per-call boundary; next call identity gets a fresh boundary without perpetual auto retries",
+    "Expo audio ringback cleanup tolerates player already released, avoids unhandled rejections",
+    "Unanswered callee device delivery requires separate foreground/background/killed-app real-phone tests; no unsupported claims",
+    "CI Engineering Accountability + TypeScript/Performance + Integration/Web pass exact PR head before merge; exact Android OTA and device acceptance remain separate"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCallRenderBoundary.tsx",
+    "src/components/RingingCalls.tsx",
+    "src/lib/buklodCallStateSubscription.ts",
+    "src/lib/buklodActiveNonPttCall.ts",
+    "tests/connect-call-end-recovery-20261107.test.mjs",
+    ".buklod/scopes/connect-unanswered-call-end-render-crash-20261107.json"
+  ]
+}

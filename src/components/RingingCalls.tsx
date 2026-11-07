@@ -10,6 +10,8 @@ import {
 } from '@/lib/buklodSounds';
 
 import BuklodAcceptedCallContent from '@/components/BuklodAcceptedCallContent';
+import BuklodCallRenderBoundary from '@/components/BuklodCallRenderBoundary';
+import { subscribeBuklodCallingStateChanges } from '@/lib/buklodCallStateSubscription';
 import {
   findActiveNonPttCall,
   getBuklodCallSurfaceMode,
@@ -56,20 +58,29 @@ function BuklodOutgoingRingback() {
     player.volume = 0.24;
     const sync = (state: string) => {
       if (disposed || !enabled) return;
-      if (state === 'active') player.play();
-      else player.pause();
+      try {
+        if (state === 'active') player.play();
+        else player.pause();
+      } catch {
+        // A disposed audio player can throw while a ringing call terminates.
+        // Audio cleanup must never crash the entire app.
+      }
     };
     const subscription = AppState.addEventListener('change', sync);
     void getBuklodSoundSettings().then(settings => {
       if (disposed || !settings.calls) return;
       enabled = true;
       sync(AppState.currentState);
-    });
+    }).catch(() => undefined);
     return () => {
       disposed = true;
       subscription.remove();
-      player.pause();
-      void player.seekTo(0).catch(() => undefined);
+      try {
+        player.pause();
+        void Promise.resolve(player.seekTo(0)).catch(() => undefined);
+      } catch {
+        // Native audio may already be released after cancel/no-answer.
+      }
     };
   }, [call?.isCreatedByMe, callingState, player]);
   return null;
@@ -96,7 +107,7 @@ function callIdentity(
 }
 
 
-export function RingingCalls() {
+function RingingCallsCore() {
   const calls =
     useCalls();
 
@@ -111,12 +122,6 @@ export function RingingCalls() {
       getBuklodCallSurfaceMode
     );
 
-  const [
-    stateTick,
-    setStateTick,
-  ] =
-    useState(0);
-
   const previousCallKey =
     useRef<string | null>(
       null
@@ -129,35 +134,6 @@ export function RingingCalls() {
         setSurfaceMode
       ),
     []
-  );
-
-
-  useEffect(
-    () => {
-      const subscriptions =
-        calls.map(
-          call =>
-            call.state.callingState$
-              .subscribe(
-                () => {
-                  setStateTick(
-                    value =>
-                      value + 1
-                  );
-                }
-              )
-        );
-
-      return () => {
-        subscriptions.forEach(
-          subscription =>
-            subscription.unsubscribe()
-        );
-      };
-    },
-    [
-      calls,
-    ]
   );
 
 
@@ -206,7 +182,6 @@ export function RingingCalls() {
     [
       activeCall,
       activeCallKey,
-      stateTick,
     ]
   );
 
@@ -249,7 +224,6 @@ export function RingingCalls() {
       accepted,
       activeCall,
       minimized,
-      stateTick,
     ]
   );
 
@@ -373,6 +347,52 @@ export function RingingCalls() {
   );
 }
 
+
+
+/**
+ * Keep reactive SDK observables OUTSIDE the call UI crash boundary.
+ * Their subscribe callbacks may fire synchronously for disposed calls.
+ * Skip the initial BehaviorSubject snapshot, guard absent/closed streams,
+ * and key the boundary to the active call so each new call gets a fresh UI.
+ */
+export function RingingCalls() {
+  const calls = useCalls();
+  const [, setCallStateRevision] = useState(0);
+
+  useEffect(
+    () => subscribeBuklodCallingStateChanges(
+      calls,
+      () => setCallStateRevision(value => value + 1),
+    ),
+    [calls],
+  );
+
+  const activeCall = findActiveNonPttCall(calls);
+  const activeKey = activeCall ? callIdentity(activeCall) || 'active' : 'idle';
+
+  const leaveCall = async () => {
+    if (!activeCall) return;
+    const accepted = isBuklodAcceptedNonPttCall(activeCall);
+    if (accepted) {
+      await activeCall.leave();
+    } else {
+      await activeCall.leave({
+        reject: true,
+        reason: activeCall.isCreatedByMe ? 'cancel' : 'decline',
+      });
+    }
+  };
+
+  return (
+    <BuklodCallRenderBoundary
+      key={activeKey}
+      callActive={Boolean(activeCall)}
+      onLeave={leaveCall}
+    >
+      <RingingCallsCore />
+    </BuklodCallRenderBoundary>
+  );
+}
 
 const s =
   StyleSheet.create({
