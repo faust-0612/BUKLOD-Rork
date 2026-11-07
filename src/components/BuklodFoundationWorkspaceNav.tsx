@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -181,6 +182,26 @@ export default function BuklodFoundationWorkspaceNav() {
             throw new Error(
               'Quick Check did not return a secure launch link. Please try again.',
             );
+          }
+          // Web: navigate the current tab after the async handoff request.
+          // Opening a new window at this point can be blocked by popup protection.
+          // Keep the one-time server-issued code and native launch unchanged.
+          if (Platform.OS === 'web') {
+            const destination = new URL(url);
+            if (
+              destination.protocol !== 'https:' ||
+              destination.hostname !== 'buklod-quickcheck-web.vercel.app' ||
+              destination.port ||
+              !destination.searchParams.get('handoff')
+            ) {
+              throw new Error('Quick Check returned an invalid secure launch link.');
+            }
+            const location = (globalThis as any).location;
+            if (typeof location?.assign !== 'function') {
+              throw new Error('Browser navigation is unavailable.');
+            }
+            location.assign(destination.href);
+            return;
           }
           const supported = await Linking.canOpenURL(url);
           if (!supported) {
