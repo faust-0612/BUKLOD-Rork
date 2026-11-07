@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import type { BuklodGameResult } from '@/features/games/types';
@@ -81,6 +82,10 @@ export function KingdomInteriorCenter({
   return (
     <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
       <View style={styles.shell}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Back to Kingdom map', 'Bumalik sa mapa ng Kingdom')}
+          onPress={() => router.replace('/games' as any)} style={styles.mapBack}>
+          <Text style={styles.mapBackText}>{t('← BACK TO KINGDOM MAP', '← BALIK SA MAPA NG KINGDOM')}</Text>
+        </Pressable>
         <Text style={styles.eyebrow}>{character.toUpperCase()} • KINGDOM GAME CENTER</Text>
         <Text style={styles.heading}>{t('Choose a game', 'Pumili ng laro')}</Text>
         <Text style={styles.help}>{t(subtitleEn, subtitleTl)}</Text>
@@ -113,6 +118,9 @@ export function KingdomInteriorCenter({
 const styles = StyleSheet.create({
   page: { flexGrow: 1, paddingTop: 18, paddingBottom: 36 },
   shell: { width: '100%', maxWidth: 940, alignSelf: 'center', paddingHorizontal: 12, gap: 9 },
+  mapBack: { alignSelf: 'flex-start', borderColor: '#c6b68f', borderWidth: 1,
+    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: '#233c55' },
+  mapBackText: { color: '#ffebbd', fontSize: 11, fontWeight: '900' },
   eyebrow: { color: '#efcf99', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   heading: { color: '#fff4dd', fontSize: 27, fontWeight: '900' },
   help: { color: '#cfdcf2', fontSize: 12, lineHeight: 19 },

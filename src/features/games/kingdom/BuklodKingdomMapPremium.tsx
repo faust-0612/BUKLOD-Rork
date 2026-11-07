@@ -8,6 +8,7 @@ import Svg, {
   Circle as SvgCircle, Defs, Ellipse, G,
   LinearGradient as SvgGradient, Path, Rect, Stop,
 } from 'react-native-svg';
+import { useAuth } from '@/providers/AuthProvider';
 import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
 import {
   loadBuklodKingdomPreviewProgress,
@@ -347,6 +348,8 @@ function KingdomStation({
 }
 
 export default function BuklodKingdomMapPremium() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
@@ -359,14 +362,16 @@ export default function BuklodKingdomMapPremium() {
 
   useEffect(() => {
     let mounted = true;
-    loadBuklodKingdomPreviewProgress()
-      .then(value => { if (mounted) setProgress(value); })
-      .catch(() => undefined);
-    const unsubscribe = subscribeBuklodKingdomPreviewProgress(value => {
+    // A shared device must never show the previous BUKLOD account's game clears.
+    setProgress(emptyProgress());
+    const unsubscribe = subscribeBuklodKingdomPreviewProgress(userId, value => {
       if (mounted) setProgress(value);
     });
+    loadBuklodKingdomPreviewProgress(userId)
+      .then(value => { if (mounted) setProgress(value); })
+      .catch(() => { if (mounted) setProgress(emptyProgress()); });
     return () => { mounted = false; unsubscribe(); };
-  }, []);
+  }, [userId]);
 
   const clearedCount = useMemo(
     () => STATIONS.filter(station => (progress.stations[station.id]?.clears ?? 0) > 0).length,

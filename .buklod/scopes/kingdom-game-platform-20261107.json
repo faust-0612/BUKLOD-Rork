@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Prepare cumulative BUKLOD Kingdom (39/39 source games) for one production Android V28 runtime 1.3.2 OTA and BUKLOD Main Expo Hosting web deployment alongside already merged approved features, without breaking pinned native package manifest.",
+  "objective": "Complete release-held BUKLOD Kingdom functional readiness for 13 original + 26 pilot in-app games: account-isolated progress, safe concurrent local completion writes, deterministic replay/score tests and accessible navigation back to the premium Kingdom map. NO OTA, NO production web publish, NO main merge; physical verification waived by owner.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub source only. Cumulative Kingdom release-preparation source 2ab175223ed2f6482bb2462cf41bb37b738a0d08 overlaid on latest BUKLOD Main b4af3b95f97a2cda83e0f1559ed6a8e30308fdbb with zero overlapping file paths against the 3 QuickCheck-web-handoff changes. Native V28 package.json exactly pinned; Expo OTA identity and LIVE production publication are not proven. Additional independent Points R2 PR #560 is still draft, missing classroom-quiz/SQL migration tests and database migrations; not part of this RC.",
-  "chosenApproach": "Restore package.json byte-exact to V28. Move the Kingdom focused regression suite into both existing production release workflows, prior to Expo credentials and native/web publication. Hold publish until exact main SHA RC freeze and actual Expo evidence. Explicitly exclude unmerged/failing Points R2 migrations.",
-  "selectionRationale": "Android OTA RC guard rejects any package.json deviation since 2f26645 V28; earlier Kingdom-only test script was an unintended OTA blocker. The production workflows already have mandatory source, credential, RC and output validation; adding Kingdom tests there is compatible without weakening gates.",
+  "productionBaselineEvidence": "Cumulative DEV branch release hold, no OTA/web publish, no main merge. V28 package manifest identical to pinned Android source. Source currently preparing against main aafc7b9fe3cab9b6caa783b01fede9b494ff1b0b (current on Nov 7). CI and native package/source contracts must pass; physical acceptance explicitly waived not passed. Only preview-local scores, not Character Points.",
+  "chosenApproach": "Introduce testable pure storage controller keyed by validated Supabase account ID for legacy original 13 game progress; never migrate global shared local v1 records, serialize writes per account, deduplicate each game, ignore corrupt JSON safely, and prevent guest persistence. Update premium map and platform-native/web stages, Christian/Mitch original game result callbacks, shared game center map-back, and focused tests. Preserve V28 native manifest and existing game engines.",
+  "selectionRationale": "Code inspection identified actual cross-account local-clears disclosure on shared devices, a global signature deduplication race across different games, and missing explicit return navigation in game centers. Narrow corrections address real gameplay continuity and privacy risks without touching the 39 engines or production release configuration.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
     "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
@@ -20,7 +20,11 @@
     "production-ota-runtime-pinned-package",
     "expo-hosting-web-release",
     "release-ci-guards",
-    "release-identity"
+    "release-identity",
+    "kingdom-account-isolation",
+    "kingdom-original-game-progress",
+    "kingdom-navigation-accessibility",
+    "gameplay-save-concurrency"
   ],
   "preserveBehaviors": [
     "Keep canonical 13-station Kingdom Map and IDs, art, navigation, profiles and original character routes unchanged.",
@@ -83,7 +87,12 @@
     "R11 release mode fails closed without EAS artifact evidence matching full RC commit and exact APK identity; it cannot claim a device installation passed.",
     "R11 reconciles latest main Advertise deployment governance files unchanged; no production workflows, app config or native package overwritten.",
     "Production V28 package.json blob matches the pinned V28 package byte-exact; Kingdom tests move into both Android and Main Expo Hosting release workflows before export/publish.",
-    "R12 production release guard refuses a source with unreconciled native manifest, missing game tests or wrong channel."
+    "R12 production release guard refuses a source with unreconciled native manifest, missing game tests or wrong channel.",
+    "Legacy Kingdom original 13 game progress must be per-account only; different users may complete identical rounds on the same device without data sharing.",
+    "Same-account parallel original-game saves serialize; duplicate callbacks for the same game are ignored per game, not globally across unrelated game IDs.",
+    "Guest/logout/re-login cannot load or change prior authenticated account progress, corrupt JSON is recoverable, failed AsyncStorage write does not claim success.",
+    "Every character center includes a visible accessible return-to-map navigation; all original 13 + new 26 game entries remain selectable, replayable and in the existing BUKLOD App.",
+    "User expressly requests skip physical verification, release preparation only, no Android production OTA, no Expo Hosting web deployment, no merge to main."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
@@ -97,7 +106,8 @@
     "tests/kingdom-games-r9.test.mjs",
     "tests/kingdom-games-r10.test.mjs",
     "tests/kingdom-staging-performance-r11.test.mjs",
-    "tests/kingdom-production-ota-r12.test.mjs"
+    "tests/kingdom-production-ota-r12.test.mjs",
+    "tests/kingdom-functionality-r13.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-game-platform-20261107.json",
@@ -179,6 +189,11 @@
     "tests/kingdom-staging-performance-r11.test.mjs",
     ".github/workflows/production_android_ota.yml",
     ".github/workflows/production_web_deploy.yml",
-    "tests/kingdom-production-ota-r12.test.mjs"
+    "tests/kingdom-production-ota-r12.test.mjs",
+    "src/features/games/kingdom/progressController.ts",
+    "src/features/games/kingdom/progress.ts",
+    "src/features/games/runtime/BuklodGameStage.native.tsx",
+    "src/features/games/runtime/BuklodGameStage.web.tsx",
+    "tests/kingdom-functionality-r13.test.mjs"
   ]
 }

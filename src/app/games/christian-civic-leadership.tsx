@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/providers/AuthProvider';
@@ -36,13 +37,13 @@ function ChristianGameCenterContent() {
     let active = true;
     setPreview(null);
     setSaveNotice('');
-    if (user?.id) {
+    if (user?.id && selectedGame !== 'council') {
       void readKingdomPreviewRecord(user.id, previewGameId)
         .then((record) => { if (active) setPreview(record); })
         .catch(() => { if (active) setSaveNotice('Local preview is unavailable.'); });
     }
     return () => { active = false; };
-  }, [user?.id, previewGameId]);
+  }, [user?.id, previewGameId, selectedGame]);
 
   const saveMinigameResult = (result: Parameters<typeof recordKingdomPreviewResult>[2], sessionId: string) => {
     const owner = user?.id;
@@ -65,6 +66,10 @@ function ChristianGameCenterContent() {
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.center}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Back to Kingdom map', 'Bumalik sa mapa ng Kingdom')}
+          onPress={() => router.replace('/games' as any)} style={styles.mapBack}>
+          <Text style={styles.mapBackText}>{t('← BACK TO KINGDOM MAP', '← BALIK SA MAPA NG KINGDOM')}</Text>
+        </Pressable>
         <Text style={styles.kicker}>CHRISTIAN • CHARACTER GAME CENTER</Text>
         <Text style={styles.heading}>{t('Choose a game', 'Pumili ng laro')}</Text>
         <Text style={styles.helper}>{t(
@@ -102,7 +107,7 @@ function ChristianGameCenterContent() {
         </View>
         {selectedGame === 'council' ? (
           // Preserve original Leadership Council and its existing preview-map behavior.
-          <CivicLeadershipGameV1 key={user?.id ?? 'guest'} onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+          <CivicLeadershipGameV1 key={user?.id ?? 'guest'} onFinish={(result) => { void recordBuklodKingdomPreviewResult(result, user?.id ?? null).catch(() => undefined); }} />
         ) : (
           <>
             <Text style={styles.record}>
@@ -131,6 +136,9 @@ export default function ChristianCivicLeadershipScreen() {
 const styles = StyleSheet.create({
   page: { flexGrow: 1, paddingTop: 18, paddingBottom: 32 },
   center: { width: '100%', maxWidth: 920, alignSelf: 'center', paddingHorizontal: 12, gap: 7 },
+  mapBack: { alignSelf: 'flex-start', borderRadius: 10, borderWidth: 1,
+    borderColor: '#c4b48d', paddingVertical: 9, paddingHorizontal: 12, backgroundColor: '#253957' },
+  mapBackText: { color: '#ffebbd', fontSize: 11, fontWeight: '900' },
   kicker: { color: '#d7b97a', fontSize: 10, fontWeight: '900', letterSpacing: .9 },
   heading: { color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 2 },
   helper: { color: '#c6d5e9', fontSize: 12, lineHeight: 19 },

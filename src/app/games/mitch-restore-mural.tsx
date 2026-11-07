@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { MergeGameV1 } from '@/features/games/kingdom/platform/MergeGameV1';
@@ -32,7 +33,7 @@ function MitchInterior() {
     let active = true;
     setRecord(null);
     setNotice('');
-    if (user?.id) {
+    if (user?.id && selected !== 'mural') {
       void readKingdomPreviewRecord(user.id, selected === 'merge' ? MERGE_ID : FORGE_ID)
         .then(r => { if (active) setRecord(r); })
         .catch(() => { if (active) setNotice(t('Preview save unavailable.', 'Hindi available ang pag-save ng preview.')); });
@@ -61,6 +62,10 @@ function MitchInterior() {
   return (
     <View style={styles.page}>
       <View style={styles.centerTop}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Back to Kingdom map', 'Bumalik sa mapa ng Kingdom')}
+          onPress={() => router.replace('/games' as any)} style={styles.mapBack}>
+          <Text style={styles.mapBackText}>{t('← BACK TO KINGDOM MAP', '← BALIK SA MAPA NG KINGDOM')}</Text>
+        </Pressable>
         <Text style={styles.kicker}>MITCH • CHARACTER GAME CENTER</Text>
         <View style={styles.chooser}>
           <Pressable accessibilityRole="button" accessibilityState={{ selected: selected === 'forge' }}
@@ -82,7 +87,7 @@ function MitchInterior() {
       </View>
       {selected === 'mural' ? (
         <View style={styles.originalGame}>
-          <RestoreMuralGameV1 key={user?.id ?? 'guest'} onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+          <RestoreMuralGameV1 key={user?.id ?? 'guest'} onFinish={(result) => { void recordBuklodKingdomPreviewResult(result, user?.id ?? null).catch(() => undefined); }} />
         </View>
       ) : (
         <ScrollView style={styles.forgeScroll} contentContainerStyle={styles.forgeContent}>
@@ -107,6 +112,9 @@ export default function MitchRestoreMuralScreen() {
 const styles = StyleSheet.create({
   page: { flex: 1, paddingTop: 12 },
   centerTop: { paddingHorizontal: 13, gap: 7 },
+  mapBack: { alignSelf: 'flex-start', backgroundColor: '#493440', borderRadius: 10,
+    borderColor: '#d4b997', borderWidth: 1, paddingVertical: 9, paddingHorizontal: 12 },
+  mapBackText: { color: '#ffead2', fontWeight: '900', fontSize: 11 },
   kicker: { color: '#f0d0a4', fontSize: 10, fontWeight: '900', letterSpacing: .7 },
   chooser: { flexDirection: 'row', gap: 9, paddingBottom: 8 },
   option: { flex: 1, backgroundColor: '#392d3b', borderWidth: 1, borderColor: '#765e6b', borderRadius: 12, padding: 10 },
