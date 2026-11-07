@@ -50,3 +50,13 @@ test('Admin sees full names, event venue/time, mentor attendees and teaching loc
  assert.match(admin,/member_name/);
  assert.match(admin,/attendees/);
 });
+
+test('live admin conversion counters include Home attendance awaiting and credited state',()=>{
+ const sql=read('supabase/migrations/20261107237000_buklod_points_r3_home_checkin_pipeline_metrics.sql');
+ const ui=read('src/app/admin/points-r2-monitor.tsx');
+ assert.match(sql,/home_checkins/);assert.match(sql,/home_pending/);
+ assert.match(sql,/home_approved/);assert.match(sql,/home_rejected/);
+ assert.match(sql,/home_rewarded/);
+ assert.match(ui,/pipeline\.attendance\.home_pending/);
+ assert.match(ui,/pipeline\.attendance\.home_rewarded/);
+});
