@@ -110,7 +110,6 @@ if ($LASTEXITCODE -ne 0 -or $head -ne $archiveSha) {
 }
 $results=New-Object System.Collections.Generic.List[object]
 $details=New-Object System.Collections.Generic.List[object]
-$errors=New-Object System.Collections.Generic.List[string]
 foreach ($c in $candidates) {
   $prior=@($r4.quizCandidates | Where-Object { $_.candidate -eq $c.name })
   if ($prior.Count -ne 1 -or $prior[0].archiveFilesVerified -ne $c.count) {
@@ -139,9 +138,10 @@ foreach ($c in $candidates) {
   $bytes=@{}
   foreach ($category in $categories) { $bytes[$category]=[long]0 }
   $scanned=0;$extras=0;$mismatches=0;$missing=0;$symlinkCount=0;$scanErrorCount=0
+  $scanErrors=@()
   $rootPath=[IO.Path]::GetFullPath($orig).TrimEnd('\')+'\'
   # R5 is streaming, not hashing all generated caches and not walking other disks.
-  Get-ChildItem -LiteralPath $orig -Force -File -Recurse -ErrorAction SilentlyContinue -ErrorVariable +errors |
+  Get-ChildItem -LiteralPath $orig -Force -File -Recurse -ErrorAction SilentlyContinue -ErrorVariable +scanErrors |
     ForEach-Object {
       $f=$_
       $scanned++
@@ -177,8 +177,8 @@ foreach ($c in $candidates) {
         }
       }
     }
-  $scanErrorCount += @($errors).Count
-  $errors.Clear()
+  $scanErrorCount += @($scanErrors).Count
+  $scanErrors=@()
   foreach ($rel in $expected.Keys) {
     if (-not $seen.ContainsKey($rel)) {
       $missing++
@@ -188,15 +188,20 @@ foreach ($c in $candidates) {
       }
     }
   }
-  $symlinkCount=@(Get-ChildItem -LiteralPath $orig -Force -Recurse -Attributes ReparsePoint -ErrorAction SilentlyContinue -ErrorVariable +errors).Count
-  $scanErrorCount += @($errors).Count
-  $errors.Clear()
+  $symlinkCount=@(Get-ChildItem -LiteralPath $orig -Force -Recurse -Attributes ReparsePoint -ErrorAction SilentlyContinue -ErrorVariable +scanErrors).Count
+  $scanErrorCount += @($scanErrors).Count
+  $scanErrors=@()
   $result=[pscustomobject]@{
     candidate=$c.name;localRoot=$orig;
     localFilesScanned=$scanned;localExtraFiles=$extras;
     changedArchivedFiles=$mismatches;missingLocallyButCloudArchived=$missing;
     reparsePoints=$symlinkCount;scanErrors=$scanErrorCount;
     extrasByCategory=$counts;extraBytesByCategory=$bytes;
+    matchesPriorR4Counts=(
+      $extras -eq [int]$prior[0].local.extras -and
+      $mismatches -eq [int]$prior[0].local.hashMismatch -and
+      $missing -eq [int]$prior[0].local.missingExpected
+    );
     parityVerified=$false;deleteClearance=$false
   }
   $results.Add($result) | Out-Null
@@ -221,7 +226,11 @@ $summary=[ordered]@{
 $summaryFile=Join-Path $base 'BUKLOD_R5_Sanitized_Summary.json'
 $detailFile=Join-Path $base 'BUKLOD_R5_LOCAL_PRIVATE_DETAILS.csv'
 $summary | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $summaryFile -Encoding UTF8
-$details | Export-Csv -LiteralPath $detailFile -NoTypeInformation -Encoding UTF8
+if ($details.Count -gt 0) {
+  $details | Export-Csv -LiteralPath $detailFile -NoTypeInformation -Encoding UTF8
+} else {
+  'candidate,kind,category,relative,bytes' | Set-Content -LiteralPath $detailFile -Encoding UTF8
+}
 Write-Host "SHARE THIS SUMMARY ONLY: $summaryFile"
 Write-Host "PRIVATE LAPTOP DETAILS (DO NOT UPLOAD): $detailFile"
 Write-Warning 'NO DELETE CLEARANCE. Original local files untouched.'
