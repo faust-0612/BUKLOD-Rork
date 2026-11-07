@@ -200,3 +200,10 @@ These are proposed playable specifications, NOT a claim of implementation. All o
 - Test suite \`tests/kingdom-games-r4.test.mjs\` covers fair deck inventory, no duplicate tiles, chain orientation/integrity, invalid-turn protection, stock/draw/pass restrictions, blocked scoring, full-hand victory, bounded AI and original-route/map invariants.
 - R4 catalog: 13 original games + 6 new locally playable DEV pilots + 20 PLANNED games = 39. Do not equate a successful source test with premium finished release.
 - Outstanding: native Infinix device proof, original full soundtrack pack, higher-grade animations and interactions, cloud-authoritative anti-cheat and Character V2 point rules, complete game-specific ad slots/consent and final RC/OTA verification. No BUKLOD Empire, map, backend migration or production release work is performed in R4.
+
+## 16. R5 gameplay quality corrections — DEV ONLY (November 7, 2026)
+- Bible Crown Mentor: the one-use clue appears only for the question where it was consumed; it is hidden on all later questions. Previously the global mentor-used flag unintentionally displayed every subsequent answer hint, undermining quiz difficulty. New question-specific index and reset guard close this issue.
+- Quin Code Breaker: explicitly selecting an occupied code slot and choosing a gem now replaces THAT slot, even if other slots are empty. Automatic sequential entry still fills the next empty slot. Duplicate gem values and out-of-palette values are rejected before mutation by pure engine helper \`insertCodeGem\`. The explicit-selection flag resets after entry and submission.
+- Added focused source and pure-rule regression coverage \`tests/kingdom-games-r5.test.mjs\`; existing original games, all prior pilot scores, Kingdom map, character points/economy and ad logic remain unchanged.
+- These are development source fixes; final Android game acceptance, audio asset polish, V28 compatibility, secure character rewards and production OTA are not implied.
+
