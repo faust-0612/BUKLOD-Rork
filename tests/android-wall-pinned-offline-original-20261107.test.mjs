@@ -30,7 +30,7 @@ test('A returning post can use the owner-scoped local original before signing or
   const networkRequest = image.indexOf('resolveCommunityMediaUrl(path, null)');
   assert.ok(lookup > 0 && networkRequest > lookup, 'local photo lookup must precede URL signer');
   assert.match(image, /if \(!canRequestRef\.current\) \{/);
-  assert.match(image, /url: local \|\| \(!path \?/);
+  assert.match(android, /url: local \|\| \(!path \?/);
   assert.match(cache, /const scopedKey = \(owner: string, path: string\) =>/);
   assert.match(cache, /Crypto\.CryptoDigestAlgorithm\.SHA256/);
   assert.match(cache, /ownerDirectory\(owner\)/);
