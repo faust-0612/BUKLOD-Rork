@@ -485,7 +485,7 @@ export default function BuklodDesktopWebShell({
 
 const styles = StyleSheet.create({
   root: { flex: 1, minWidth: 0, minHeight: 0 },
-  fullScreen: { flex: 1, minWidth: 0, minHeight: 0 },
+  fullScreen: { flex: 1, minWidth: 0, minHeight: 0, width: '100%', maxWidth: 1590, alignSelf: 'center' },
   focusRoot: {
     flex: 1,
     minWidth: 0,

@@ -10,6 +10,7 @@ import {
 import { usePathname } from 'expo-router';
 
 import BuklodDesktopWebShell from '@/components/BuklodDesktopWebShell';
+import BuklodPublicDesktopDashboard from '@/components/BuklodPublicDesktopDashboard';
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
 import BuklodMobileWebShell from '@/components/BuklodMobileWebShell';
 import {
@@ -23,8 +24,12 @@ import {
   withBuklodTimeout,
 } from '@/lib/buklodAsyncTimeout';
 import {
-  isBuklodScopedWorkspacePath,
+  normalizeBuklodPathname,
 } from '@/lib/buklodSafeArea';
+import {
+  shouldUseBuklodDesktopScopedShell,
+  shouldUseBuklodPublicDesktopShell,
+} from '@/lib/buklodWebResponsivePolicy';
 import {
   supabase,
 } from '@/lib/supabase';
@@ -141,9 +146,13 @@ export default function BuklodNavSafeShell({
   useBuklodWebSessionSelfHeal();
 
   const { width } = useWindowDimensions();
-  const pathname = usePathname();
-  const publicMinimal =
-    !isBuklodScopedWorkspacePath(pathname);
+  const pathname = normalizeBuklodPathname(usePathname());
+  // Scope desktop chrome is separate from the centered public feed layout.
+  const useDesktopScopedShell = shouldUseBuklodDesktopScopedShell(
+    pathname,
+    width,
+    BUKLOD_DESKTOP_WEB_MIN_WIDTH,
+  );
 
   const content = (
     <>
@@ -154,10 +163,15 @@ export default function BuklodNavSafeShell({
     </>
   );
 
-  if (
-    publicMinimal ||
-    width < BUKLOD_DESKTOP_WEB_MIN_WIDTH
-  ) {
+  if (shouldUseBuklodPublicDesktopShell(pathname, width)) {
+    return (
+      <BuklodPublicDesktopDashboard>
+        {content}
+      </BuklodPublicDesktopDashboard>
+    );
+  }
+
+  if (!useDesktopScopedShell) {
     return (
       <BuklodMobileWebShell>
         {content}

@@ -26,7 +26,12 @@ import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useNotifications } from '@/providers/NotificationProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
-import { isBuklodScopedWorkspacePath } from '@/lib/buklodSafeArea';
+import { isBuklodScopedWorkspacePath, normalizeBuklodPathname } from '@/lib/buklodSafeArea';
+import {
+  BUKLOD_DESKTOP_PUBLIC_FEED_MAX_WIDTH,
+  shouldUseBuklodDesktopPublicFeed,
+  shouldUseBuklodPublicDesktopShell,
+} from '@/lib/buklodWebResponsivePolicy';
 import { buildScopedWorkspacePath, isManagedCommunityScope } from '@/lib/buklodScopeRoute';
 
 /*
@@ -334,13 +339,15 @@ export default function TabsLayout() {
     overflow: 'hidden' as const,
   };
 
+  // Public Home/Wall use a centered feed, without faux empty desktop rails.
+  // Only the browser can enter this mode; APK/native layout is unchanged.
+  const desktopWebShell = Platform.OS === 'web' &&
+    shouldUseBuklodPublicDesktopShell(normalizeBuklodPathname(pathname), width);
   const desktopHome =
     Platform.OS === 'web' &&
-    width >= 1200 &&
-    (
-      pathname === '/hub' ||
-      pathname === '/buklod' ||
-      pathname.startsWith('/buklod/')
+    shouldUseBuklodDesktopPublicFeed(
+      normalizeBuklodPathname(pathname),
+      width,
     );
 
   const workspaceStack = (
@@ -365,11 +372,13 @@ export default function TabsLayout() {
   );
 
   /*
-   * BUKLOD_DESKTOP_HOME_3COL_R2
-   * Desktop Community/Home only: reserve narrow left/right rails and keep the
-   * existing dashboard intact in a wider center column. The workspace/navigation
-   * tree stays mounted while route changes occur, preventing tab-state resets.
-   * Mobile/tablet receives no desktop rail styling.
+   * BUKLOD_DESKTOP_PUBLIC_FEED_SOURCE_R1
+   * The public web shell deliberately owns the minimal global navigation;
+   * this route layer owns only the Home/Community feed content width.
+   *
+   * Legacy 3-column placeholders were empty Views, not functional sidebars,
+   * and could squeeze or duplicate desktop chrome. The workspace Stack stays
+   * mounted exactly once across routes and screen sizes.
    */
   return (
     <View style={{ flex: 1 }}>
@@ -379,7 +388,7 @@ export default function TabsLayout() {
           backgroundColor: theme.canvas,
         }}
       >
-        <SwipeDashboardHeader />
+        {!desktopWebShell ? <SwipeDashboardHeader /> : null}
 
         <View
           style={
@@ -387,54 +396,25 @@ export default function TabsLayout() {
               ? {
                   flex: 1,
                   width: '100%',
-                  maxWidth: 1680,
+                  maxWidth: BUKLOD_DESKTOP_PUBLIC_FEED_MAX_WIDTH,
                   alignSelf: 'center',
-                  flexDirection: 'row',
-                  alignItems: 'stretch',
                   paddingHorizontal: 18,
-                  gap: 18,
                 }
               : {
                   flex: 1,
                 }
           }
         >
-          {desktopHome ? (
-            <View
-              key="desktop-left-rail"
-              pointerEvents="none"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={{
-                flex: 1,
-                minWidth: 0,
-              }}
-            />
-          ) : null}
-
           <View
             key="workspace-center"
             style={{
-              flex: desktopHome ? 2.8 : 1,
+              flex: 1,
               minWidth: 0,
             }}
           >
             <BuklodDashboardContextBar />
             {workspaceStack}
           </View>
-
-          {desktopHome ? (
-            <View
-              key="desktop-right-rail"
-              pointerEvents="none"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={{
-                flex: 1,
-                minWidth: 0,
-              }}
-            />
-          ) : null}
         </View>
       </View>
     </View>

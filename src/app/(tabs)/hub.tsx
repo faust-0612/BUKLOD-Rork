@@ -1,5 +1,8 @@
 import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH } from '@/lib/buklodWebResponsivePolicy';
 import { router, useFocusEffect } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
@@ -32,6 +35,9 @@ export default function BuklodLightHome() {
   const { theme } = useBuklodTheme();
   const [focused, setFocused] = useState(false);
   const [updatesOpen, setUpdatesOpen] = useState(false);
+  const [desktopToolsOpen, setDesktopToolsOpen] = useState(false);
+  const { width } = useWindowDimensions();
+  const desktopDashboard = Platform.OS === 'web' && width >= BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH;
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => setForeground(state === 'active'));
@@ -41,6 +47,122 @@ export default function BuklodLightHome() {
     setFocused(true);
     return () => { setFocused(false); };
   }, []));
+
+  if (desktopDashboard) {
+    const openPost = () => router.push({
+      pathname: '/buklod' as any,
+      params: { homeTodayIntent: String(Date.now()), homeTodayDraft: '' },
+    } as any);
+    const openRoute = (path: string) => router.push(path as any);
+    const actions = [
+      { label: 'Create Post', icon: 'pencil-outline', path: '', action: openPost },
+      { label: 'Join Cluster', icon: 'account-group-outline', path: '/clusters', action: () => openRoute('/clusters') },
+      { label: 'Connect', icon: 'message-outline', path: '/messages', action: () => openRoute('/messages') },
+      { label: 'Contribute', icon: 'heart-outline', path: '/community-contribution', action: () => openRoute('/community-contribution') },
+      { label: 'Daily Reading', icon: 'book-open-variant', path: '/bible/read', action: () => router.push('/bible/read?source=daily_plan' as any) },
+    ] as const;
+    return (
+      <ScrollView
+        style={{ flex: 1, backgroundColor: theme.surface }}
+        contentContainerStyle={{ padding: 12, paddingBottom: 32, gap: 12 }}>
+        <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={{ minHeight: 112, borderRadius: 16, padding: 20, justifyContent: 'center' }}>
+          <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF' }}>Welcome to BUKLOD!</Text>
+          <Text style={{ fontSize: 12, marginTop: 4, color: '#FFFFFF' }}>
+            A community of faith, connection, and shared purpose.
+          </Text>
+        </LinearGradient>
+        <Text style={{ color: theme.textPrimary, fontWeight: '900', fontSize: 16 }}>Quick Actions</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {actions.map(item => (
+            <Pressable key={item.label} accessibilityRole="button"
+              accessibilityLabel={item.label} onPress={item.action}
+              style={({ pressed }) => ({
+                width: 112, minHeight: 72, borderRadius: 14, padding: 9,
+                alignItems: 'center', justifyContent: 'center', gap: 7,
+                backgroundColor: theme.accentSoft, opacity: pressed ? 0.75 : 1,
+              })}>
+              <MaterialCommunityIcons name={item.icon} color={theme.accent} size={23} />
+              <Text style={{ color: theme.textPrimary, fontWeight: '800', fontSize: 11, textAlign: 'center' }}>
+                {item.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <View style={{ gap: 10 }}>
+          {focused && foreground ? (
+            <ToolBoundary onClose={() => {}}>
+              <Suspense fallback={<ActivityIndicator color={theme.accent} accessibilityLabel="Loading Today's message" />}>
+                <Today onRespond={draft => {
+                  router.push({ pathname: '/buklod', params: { homeTodayDraft: draft ?? '', homeTodayIntent: String(Date.now()) } });
+                }} />
+              </Suspense>
+            </ToolBoundary>
+          ) : null}
+          <Pressable accessibilityRole="button" accessibilityLabel="Create a public Wall post"
+            onPress={openPost} style={({ pressed }) => ({
+              backgroundColor: theme.inputSurface, borderRadius: 15,
+              paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
+              opacity: pressed ? 0.75 : 1,
+            })}>
+            <MaterialCommunityIcons name="pencil-outline" color={theme.accent} size={24} />
+            <Text style={{ color: theme.textMuted, flex: 1 }}>Share something with the BUKLOD community...</Text>
+            <MaterialCommunityIcons name="arrow-right-circle-outline" color={theme.accent} size={24} />
+          </Pressable>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open announcements, Quiz and Bulletins"
+          accessibilityState={{ expanded: updatesOpen }}
+          onPress={() => setUpdatesOpen(value => !value)}
+          style={{ borderRadius: 14, padding: 14, backgroundColor: theme.accentSoft,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ color: theme.textPrimary, fontWeight: '900' }}>
+            {updatesOpen ? 'Hide Announcements, Quiz & Bulletins' : 'Announcements, Quiz & Bulletins'}
+          </Text>
+          <MaterialCommunityIcons name={updatesOpen ? 'chevron-up' : 'chevron-down'}
+            size={23} color={theme.accent} />
+        </Pressable>
+        {focused && foreground && updatesOpen ? (
+          <ToolBoundary onClose={() => setUpdatesOpen(false)}>
+            <Suspense fallback={<ActivityIndicator color={theme.accent} />}>
+              <Updates />
+            </Suspense>
+          </ToolBoundary>
+        ) : null}
+        <Pressable accessibilityRole="button" accessibilityLabel="Open the Community Wall"
+          onPress={() => router.push('/buklod')}
+          style={{ padding: 16, backgroundColor: theme.surface, borderRadius: 14,
+            borderWidth: 1, borderColor: theme.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <MaterialCommunityIcons name="post-outline" size={26} color={theme.accent} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '900', fontSize: 16, color: theme.textPrimary }}>Community Wall</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12 }}>Open the live feed, photos, videos and conversations.</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={25} color={theme.accent} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Show home tools"
+          accessibilityState={{ expanded: desktopToolsOpen }}
+          onPress={() => setDesktopToolsOpen(v => !v)}
+          style={{ backgroundColor: theme.accentSoft, borderRadius: 14, padding: 14,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ color: theme.textPrimary, fontWeight: '900' }}>
+            {desktopToolsOpen ? 'Hide Home Tools' : 'Open Home Tools: Drawer, PTT, Map & SOS'}
+          </Text>
+          <MaterialCommunityIcons name={desktopToolsOpen ? 'chevron-up' : 'chevron-down'} size={24} color={theme.accent} />
+        </Pressable>
+        {desktopToolsOpen && focused ? (
+          <ToolBoundary onClose={() => setDesktopToolsOpen(false)}>
+            <Suspense fallback={<ActivityIndicator color={theme.accent} />}>
+              {foreground ? <><DrawerCard /><PttCard /></> : null}
+              <Map />
+              {foreground ? <Help /> : null}
+            </Suspense>
+          </ToolBoundary>
+        ) : null}
+        <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ padding: 18, gap: 12 }}>

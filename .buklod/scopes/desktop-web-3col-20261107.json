@@ -1,0 +1,55 @@
+{
+  "contractVersion": 2,
+  "objective": "Implement the owner-approved BUKLOD Main centered desktop web dashboard with left-side navigation and Contribution, center real Home/Wall, right account-scoped Connect and sponsor placements; remove desktop bottom-nav pane and no far-left tall external ad.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Source baseline verified: GitHub main at 3512c1be015d0ad9f70ea07990739b0a4d438147 during reconciliation; current CI main tracking branch is authoritative for changed-path comparison. This is source verification ONLY. The actually deployed BUKLOD Expo Hosting artifact/source fingerprint is NOT independently verified. Android v28/production OTA were not changed.",
+  "chosenApproach": "Reuse existing route-owned real modules, with a new desktop-only web presentation shell selected at 1200px. Render left navigation, authentic Contribution, right cached/authenticated Connect previews and sponsor inventory. Preserve existing Expo Router screens and web phone/scoped shells. Desktop Home provides quick links to existing features rather than duplicate messaging, calling, post publishing, or financial engines.",
+  "selectionRationale": "Current Public web always mounted MobileWebShell and bottom nav, while the tab-level desktop rail placeholders were empty. Implementing one public desktop shell avoids duplicated browser navigation, source coupling, and Android regressions. Account-scoped caching prevents another user's Connect records appearing after switching.",
+  "alternativeApproaches": [
+    "Rebuild Home/Wall/Connect as new desktop feature engines (rejected: duplicates authorization, media, chat and calling logic).",
+    "Insert desktop UI into shared native Wall and Profile components (rejected: risks Android v28 and changes many unrelated screens).",
+    "Use mockup's hardcoded earnings/chats/online indicators (rejected: fabricated privacy-sensitive state)."
+  ],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Original Android layout and native bottom navigation unchanged",
+    "Phone-browser layout and Cluster/Organization scope isolation unchanged",
+    "Live Wall media/photo cache, video, composer, ad placements and offline handling preserved",
+    "Connect call initiation remains the vetted conversation-level flow",
+    "Real QMP-only Contribution and financial accounting untouched",
+    "No fake ad inventory, earning amounts, presence indicators or notifications",
+    "Authenticated account-scoped records cleared before new-user data fetch",
+    "Focus App boundaries and BUKLOD Main Expo Hosting target unchanged"
+  ],
+  "regressionTests": [
+    "tests/buklod-desktop-web-source-20261107.test.mjs",
+    "tests/buklod-desktop-navigation-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "At >=1200px public dashboard shows header, left nav and Contribution, centered workspace, right Connect and authentic sponsor areas",
+    "No bottom nav on desktop, no external far-left vertical banner",
+    "At 1199px mobile web retains prior navigation; scoped routes retain original owned shell",
+    "Home quick actions, Bible, Wall composer handoff, authentic chats and contact links open working underlying screens",
+    "A different user never sees stale Connect or Contribution records",
+    "No source/DB/Android OTA/production web release is made from this DEV PR",
+    "Desktop test, TypeScript and engineering accountability gates pass before merging",
+    "At >=1200px desktop conversation/post detail pages rendered by fallback MobileWebShell have no bottom navigation, use centered maximum-width content, and retain phone nav below 1200px"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodPublicDesktopDashboard.tsx",
+    "src/components/BuklodNavSafeShell.web.tsx",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/lib/buklodWebResponsivePolicy.ts",
+    "src/components/BuklodDesktopWebShell.tsx",
+    "tests/buklod-desktop-web-source-20261107.test.mjs",
+    "tests/buklod-desktop-navigation-20261107.test.mjs",
+    "docs/BUKLOD_DESKTOP_WEB_SOURCE.md",
+    ".buklod/scopes/desktop-web-3col-20261107.json",
+    "src/components/BuklodMobileWebShell.tsx"
+  ]
+}

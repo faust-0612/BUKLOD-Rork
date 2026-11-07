@@ -902,6 +902,11 @@ function LegacyPublicBuklodScreen(){
   if (draft) setBody(current => current.trim() ? current.trim() + '\n\n' + draft : draft);
   setComposerIntent('post');
   setCategory('reflection');
+  // Desktop Home -> Create Post: open the canonical composer, not a new editor.
+  if (Platform.OS === 'web') {
+    focusCommunityComposerRef.current = true;
+    setCommunityComposerOpen(true);
+  }
   router.setParams({ homeTodayDraft: undefined, homeTodayIntent: undefined });
  }, [homeTodayParams.homeTodayDraft, homeTodayParams.homeTodayIntent]);
 

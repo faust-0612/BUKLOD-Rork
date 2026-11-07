@@ -5,12 +5,14 @@ import React, {
 import {
   Keyboard,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
+import { BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH } from '@/lib/buklodWebResponsivePolicy';
 import {
   shouldShowBuklodPublicBottomNav,
   normalizeBuklodPathname,
@@ -52,8 +54,13 @@ export default function BuklodMobileWebShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { width } = useWindowDimensions();
   const rawNavOccupied = useBuklodPersistentNavOccupiedHeight();
-  const showGlobalNav = shouldShowBuklodPublicBottomNav(pathname);
+  // No bottom nav on wide browser detail routes even when this fallback
+  // mobile-compatible shell renders a conversation or post detail.
+  const eligibleForGlobalNav = shouldShowBuklodPublicBottomNav(pathname);
+  const desktopDetail = width >= BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH && eligibleForGlobalNav;
+  const showGlobalNav = eligibleForGlobalNav && !desktopDetail;
   const navOccupied = showGlobalNav ? rawNavOccupied : 0;
   const insets = useSafeAreaInsets();
   const reserveMyBuklodSystemInsets = isMyBuklodDoorPath(pathname);
@@ -90,6 +97,7 @@ export default function BuklodMobileWebShell({
       <View
         style={[
           styles.content,
+          desktopDetail && styles.desktopDetail,
           {
             paddingTop: contentTopInset,
             paddingBottom: contentBottomInset,
@@ -118,6 +126,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     minHeight: 0,
+  },
+  desktopDetail: {
+    width: '100%',
+    maxWidth: 1190,
+    alignSelf: 'center',
   },
   navOverlay: {
     position: 'absolute',
