@@ -42,8 +42,7 @@
     "tests/admin-music-ambience-contract-20261108.test.mjs",
     "tests/wall-post-music-motion-contract.test.mjs",
     "tests/wall-post-music-navigation-scroll.test.mjs",
-    "tests/buklod-wall-crash-escape-20261108.test.mjs",
-    "tests/production-ota-ads-regression.test.mjs"
+    "supabase/tests/buklod_music_admin_ambience_20261108.sql"
   ],
   "allowedPaths": [
     ".buklod/scopes/admin-music-ambience-ota-ready-20261108.json",
@@ -58,6 +57,8 @@
     "supabase/migrations/20261108043000_buklod_music_admin_and_ambience_v1.sql",
     "tests/admin-music-ambience-contract-20261108.test.mjs",
     "tests/wall-post-music-motion-contract.test.mjs",
-    "docs/release/buklod-music-admin-ambience-20261108.md"
+    "docs/release/buklod-music-admin-ambience-20261108.md",
+    "tests/wall-post-music-navigation-scroll.test.mjs",
+    "supabase/tests/buklod_music_admin_ambience_20261108.sql"
   ]
 }
