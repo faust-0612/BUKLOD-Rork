@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { BibleCrownGameV1 } from '@/features/games/christian/BibleCrownGameV1';
+import { ScriptureWordSearchGameV1 } from '@/features/games/christian/ScriptureWordSearchGameV1';
 import { CivicLeadershipGameV1 } from '@/features/games/christian/CivicLeadershipGameV1';
 import gameCatalog from '@/features/games/kingdom/platform/game-catalog.json';
 import {
@@ -16,12 +17,16 @@ import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLangua
 
 const GAME_ID = 'christian-civic-leadership';
 const CROWN_ID = 'christian-bible-crown';
+const WORD_ID = 'christian-scripture-word-search';
 const CHRISTIAN_CENTER = gameCatalog.characters.find((center) => center.characterId === 'christian');
 
 function ChristianGameCenterContent() {
   const { user } = useAuth();
   const { t } = useBuklodGameLanguage();
-  const [selectedGame, setSelectedGame] = useState<'crown' | 'council'>('crown');
+  const [selectedGame, setSelectedGame] = useState<'crown' | 'council' | 'word'>('crown');
+  const previewGameId = selectedGame === 'word' ? WORD_ID : CROWN_ID;
+  const liveGameId = useRef(previewGameId);
+  liveGameId.current = previewGameId;
   const [preview, setPreview] = useState<KingdomPreviewRecord | null>(null);
   const [saveNotice, setSaveNotice] = useState('');
   const liveUserId = useRef<string | null>(null);
@@ -32,14 +37,14 @@ function ChristianGameCenterContent() {
     setPreview(null);
     setSaveNotice('');
     if (user?.id) {
-      void readKingdomPreviewRecord(user.id, CROWN_ID)
+      void readKingdomPreviewRecord(user.id, previewGameId)
         .then((record) => { if (active) setPreview(record); })
         .catch(() => { if (active) setSaveNotice('Local preview is unavailable.'); });
     }
     return () => { active = false; };
-  }, [user?.id]);
+  }, [user?.id, previewGameId]);
 
-  const saveCrownResult = (result: Parameters<typeof recordKingdomPreviewResult>[2], sessionId: string) => {
+  const saveMinigameResult = (result: Parameters<typeof recordKingdomPreviewResult>[2], sessionId: string) => {
     const owner = user?.id;
     if (!owner) {
       setSaveNotice(t('Sign in to store this preview score.', 'Mag-sign in upang ma-save ang preview score.'));
@@ -47,11 +52,11 @@ function ChristianGameCenterContent() {
     }
     setSaveNotice(t('Saving game preview...', 'Sine-save ang game preview...'));
     void recordKingdomPreviewResult(owner, sessionId, result).then((record) => {
-      if (liveUserId.current !== owner) return;
+      if (liveUserId.current !== owner || liveGameId.current !== result.gameId) return;
       setPreview(record);
       setSaveNotice(t('Preview saved on this device. No Character Points were awarded.', 'Na-save ang preview sa device. Walang naibigay na Character Points.'));
     }).catch(() => {
-      if (liveUserId.current === owner) {
+      if (liveUserId.current === owner && liveGameId.current === result.gameId) {
         setSaveNotice(t('Could not save locally. Your game can still be replayed.', 'Hindi na-save sa device. Maaari pa ring ulitin ang laro.'));
       }
     });
@@ -63,8 +68,8 @@ function ChristianGameCenterContent() {
         <Text style={styles.kicker}>CHRISTIAN • CHARACTER GAME CENTER</Text>
         <Text style={styles.heading}>{t('Choose a game', 'Pumili ng laro')}</Text>
         <Text style={styles.helper}>{t(
-          'Original Kingdom map and route stay unchanged. Both games use Christian’s academy.',
-          'Walang pagbabago sa mapa at route. Parehong nasa akademya ni Christian ang mga laro.',
+          'Original Kingdom map and route stay unchanged. All three games belong to Christian’s academy.',
+          'Walang pagbabago sa mapa at route. Lahat ng tatlong laro ay nasa akademya ni Christian.',
         )}</Text>
         <View style={styles.chooser}>
           <Pressable
@@ -78,6 +83,15 @@ function ChristianGameCenterContent() {
           </Pressable>
           <Pressable
             accessibilityRole="button"
+            accessibilityState={{ selected: selectedGame === 'word' }}
+            style={[styles.option, selectedGame === 'word' && styles.selected]}
+            onPress={() => setSelectedGame('word')}
+          >
+            <Text style={styles.optionText}>Scripture Word Search</Text>
+            <Text style={styles.optionSub}>{t('Three Bible word puzzles', 'Tatlong Bible word puzzle')}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
             accessibilityState={{ selected: selectedGame === 'council' }}
             style={[styles.option, selectedGame === 'council' && styles.selected]}
             onPress={() => setSelectedGame('council')}
@@ -86,18 +100,20 @@ function ChristianGameCenterContent() {
             <Text style={styles.optionSub}>{t('Original strategy game', 'Orihinal na strategy game')}</Text>
           </Pressable>
         </View>
-        {selectedGame === 'crown' ? (
+        {selectedGame === 'council' ? (
+          // Preserve original Leadership Council and its existing preview-map behavior.
+          <CivicLeadershipGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+        ) : (
           <>
             <Text style={styles.record}>
               {t('Local best', 'Pinakamataas na local score')}: {preview?.bestScore.toLocaleString() ?? '—'}
               {'  •  '}{t('Clears', 'Panalo')}: {preview?.clears ?? 0}
             </Text>
             {!!saveNotice && <Text style={styles.saveNotice}>{saveNotice}</Text>}
-            <BibleCrownGameV1 onFinish={saveCrownResult} />
+            {selectedGame === 'crown'
+              ? <BibleCrownGameV1 onFinish={saveMinigameResult} />
+              : <ScriptureWordSearchGameV1 onFinish={saveMinigameResult} />}
           </>
-        ) : (
-          // Preserve original Leadership Council and its existing preview-map behavior.
-          <CivicLeadershipGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
         )}
       </View>
     </ScrollView>

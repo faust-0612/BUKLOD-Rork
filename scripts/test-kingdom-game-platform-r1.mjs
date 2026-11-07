@@ -40,9 +40,12 @@ assert.equal(new Set(all.map((g) => g.id)).size, 39, 'duplicate game IDs');
 assert.equal(new Set(catalog.characters.map((c) => c.characterId)).size, 13, 'duplicate characters');
 assert.equal(new Set(catalog.characters.map((c) => c.stationId)).size, 13, 'duplicate stations');
 assert.equal(all.filter((g) => g.status === 'existing').length, 13);
-assert.equal(all.filter((g) => g.status === 'pilot').length, 1);
-assert.equal(all.filter((g) => g.status === 'planned').length, 25);
-assert.equal(all.find((g) => g.status === 'pilot')?.id, 'christian-bible-crown');
+assert.equal(all.filter((g) => g.status === 'pilot').length, 3);
+assert.equal(all.filter((g) => g.status === 'planned').length, 23);
+assert.deepEqual(
+  all.filter((g) => g.status === 'pilot').map(g => g.id).sort(),
+  ['christian-bible-crown', 'christian-scripture-word-search', 'mitch-block-forge'].sort(),
+);
 
 for (const centerData of catalog.characters) {
   assert.equal(centerData.games.length, 3, 'exactly three games per character');
@@ -71,7 +74,7 @@ for (const q of questions) {
 }
 
 for (const token of [
-  'BibleCrownGameV1', 'CivicLeadershipGameV1', 'ChristianGameCenterContent',
+  'BibleCrownGameV1', 'ScriptureWordSearchGameV1', 'CivicLeadershipGameV1', 'ChristianGameCenterContent',
   'recordKingdomPreviewResult', 'recordBuklodKingdomPreviewResult',
 ]) assert.ok(center.includes(token), 'Christian route regressed: ' + token);
 
@@ -89,4 +92,4 @@ assert.ok(!center.includes('maybeShowBuklodInterstitial('));
 assert.ok(blueprint.includes('BUKLOD Empire is an independent'));
 assert.ok(blueprint.includes('No economy grant from client code') || blueprint.includes('Do NOT silently reuse globally keyed'));
 
-console.log('KINGDOM GAME PLATFORM R1 TEST PASSED: immutable map; 13 centers; 39 unique games; 15 bilingual questions; existing Christian game; no client economy or in-game ads.');
+console.log('KINGDOM GAME PLATFORM TEST PASSED: immutable map; 13 centers; 39 unique games; three pilots; 15 bilingual questions; original games and economy isolation.');
