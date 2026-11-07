@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Complete the BUKLOD Kingdom premium modular-game platform blueprint and begin isolated implementation of one multi-game Character Center without changing the map, existing character economy, BUKLOD Empire, or Android native release.",
-  "baseRef": "56cc89bf0e5d33ec8cb08462b70f7724f056dd86",
-  "productionBaselineEvidence": "verified: inspected GitHub main source at 56cc89bf (branch creation) and 59fe3df (independent Word publication); canonical Kingdom map blob 88a4b1b4a70fc4acd59579419058b47f21be2554 is unchanged in DEV. No verified live Android production fingerprint is available in this task, so OTA/release is explicitly prohibited.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main production-source comparator at 59fe3df64700465ae3f37726e73a31d07c748042 after November Word publication, and canonical Kingdom map blob 88a4b1b4a70fc4acd59579419058b47f21be2554 unchanged. Live Android production OTA fingerprint was NOT verified; this DEV change is not authorized for release. Compare against current main in CI to avoid falsely treating concurrently merged Word changes as part of this isolated Kingdom objective.",
   "chosenApproach": "A 39-game JSON catalog plus isolated Christian Bible Crown pilot, preserving the original route and game; per-user local score preview with zero payout, guarded by a pinned map source test.",
   "selectionRationale": "Lowest-risk real progress: retains all 13 existing routes, map pixels and character progression, isolates economy/ad changes, reduces native binary and Actions churn.",
   "alternativeApproaches": [
