@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Repair failed BUKLOD Android production OTA safety-anchor check without downgrading modern Clusters dashboard or weakening account-isolated retry and release safety; prevent recurrence with executable contract regression.",
+  "baseRef": "99df54a39b688e367cd64b22f8a64eb09085e019",
+  "productionBaselineEvidence": "Owner screenshot 2026-11-07 16:09 Philippine time: qa-and-publish failed at Verify production safety anchors, expected source regex title=\"RETRY\" onPress={() => void load(query,true)} from scripts/test-pending-client-reconciliation-20261027.cjs, but source now has inline accessible Pressable 'Retry loading' inside Boolean(loadError)&&online. Earlier PR #524 intentionally modernized Cluster dashboard with retained account-isolated cache, retries and RefreshControl. This run stopped before Android production OTA publication and cannot be treated as live deployment. Current main 99df54a39b688e367cd64b22f8a64eb09085e019.",
+  "chosenApproach": "Maintain existing modern Cluster dashboard and all 2026-10-27 recovery invariants. Update only obsolete literal retry button assertion in existing authoritative production safety script to inspect the *actual* online load-error feedback Pressable, accessible button and Retry loading label; additionally verify pull-to-refresh uses the same load(query,true) safe fetch. Keep the previous guards for cache owner isolation, request generation, Promise.allSettled, RLS and offline capability unchanged. Add executable test that runs entire rollback security contract and verifies both presentation and production workflow sequencing.",
+  "selectionRationale": "The production safety check is failing due to a stale source shape assertion: old ActionButton title='RETRY' no longer exists, while modern retry Pressable is present and active. Reintroducing retired button would regress approved compact layout. Removing release gate would remove valuable auth/retry safety protection. Functional semantic check is the narrowest coordinated fix.",
+  "alternativeApproaches": [
+    "Reintroduce outdated ActionButton just to match regex (rejected: UI regression and duplicate retry controls)",
+    "Comment in an anchor or bypass failing assertion (rejected: false gate green without verifying behavior)",
+    "Disable pending-client script in OTA workflow (rejected: loses other auth/privacy/rollback safeguards)",
+    "Rework Cluster cache and networking (rejected: already protected and no evidence of a runtime retry failure)"
+  ],
+  "riskAreas": [
+    "release-identity",
+    "navigation-scroll",
+    "cluster-membership-auth",
+    "offline-cache"
+  ],
+  "preserveBehaviors": [
+    "Cluster dashboard's compact cards, metrics, My/Explore/Invites/Requests tabs, Create/Manage routes and permissions unchanged",
+    "Visible online error feedback has accessible Retry loading with refresh true; pull-to-refresh uses same safe path",
+    "Offline cached memberships remain available, no account cross-talk and no unauthorized online mutations",
+    "Prior 2026-10-27 safety assertions including biometric login guard, auth, PTT, and formation unchanged",
+    "Production SOS R1/R2 compatibility tests, all Ads preflight/recovery locks and Android V28 runtime 1.3.2 intact",
+    "Never auto-publish production from QA only; exact frozen RC, production EAS environment and on-device confirmation remain required"
+  ],
+  "regressionTests": [
+    "tests/cluster-production-retry-release-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Entire existing scripts/test-pending-client-reconciliation-20261027.cjs succeeds with modern cluster dashboard",
+    "Modern Cluster retry Pressable only shown with loadError and online, calls load(query,true), and pull-to-refresh also preserved",
+    "Source test ensures no retired title=RETRY code or weak dummy anchor; includes cache generation and owner isolation",
+    "Android OTA workflow still executes real pending-client contract before production RC freeze, AdMob and SOS locks unchanged",
+    "Engineering Accountability, TypeScript/Performance and Main integration CI exact head green, DEV merge source match",
+    "Production OTA must run anew on merged main, verify exact RC update ID and runtime and on-device behavior; failed previous run never counts"
+  ],
+  "allowedPaths": [
+    "scripts/test-pending-client-reconciliation-20261027.cjs",
+    "tests/cluster-production-retry-release-20261107.test.mjs",
+    ".buklod/scopes/cluster-production-retry-release-20261107.json"
+  ]
+}
