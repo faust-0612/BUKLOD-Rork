@@ -89,8 +89,12 @@ and published post records must remain unaffected.
 
 ## Acceptance gates before any release
 
-1. Reconcile the source-only SQL migration against the real migration ledger
-   and existing installed objects. Test in isolated DB first.
+1. **Reconciled:** R1 `20261108025000_buklod_living_greetings_v1.sql`
+   is ALREADY APPLIED live, with existing greetings tables/RPC/daily and
+   per-minute dispatch cron. DO NOT reapply or edit R1. R2 is new additive
+   `20261108040000_buklod_living_interactions_r2.sql` and NOT applied.
+   Apply R2 only after isolated DB tests, schema verification and
+   explicit release authorization.
 2. SQL tests: active membership; cross-scope isolation; birthday self delivery
    without approval; birthday audience opt-out; real rank and collectible
    events; exact KL series/chapter and future schedule; idempotency.
