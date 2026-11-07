@@ -34,5 +34,5 @@ test('web tab change gives visual feedback and routes without waiting for a serv
 test('special production marker can deploy web without authorizing Android OTA', () => {
   assert.match(webWorkflow, /BUKLOD_WEB_NAV_ONLY_20261108/);
   assert.doesNotMatch(androidWorkflow, /BUKLOD_WEB_NAV_ONLY_20261108/);
-  assert.match(webWorkflow, /node --test tests\/web-bottom-nav-mobile-touch-20261108\.test\.mjs/);
+  assert.match(webWorkflow, /node --test tests\/web-bottom-nav-production-release-20261108\.test\.mjs/);
 });
