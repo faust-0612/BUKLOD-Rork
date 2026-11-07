@@ -34,7 +34,8 @@ export default function BuklodLivingWallMoments() {
   const { theme } = useBuklodTheme();
   const { online } = useNetwork();
   const { unreadCount } = useNotifications();
-  const [moment, setMoment] = useState<BuklodLivingMoment | null>(null);
+  const [moments, setMoments] = useState<BuklodLivingMoment[]>([]);
+  const moment = moments[0] ?? null;
   const userId = user?.id ?? null;
   const firstName = profile?.first_name ?? profile?.full_name ?? null;
   const faithEnabled = activeScope?.show_faith_content === true;
@@ -42,10 +43,27 @@ export default function BuklodLivingWallMoments() {
   useFocusEffect(useCallback(() => {
     let active = true;
     if (!userId) {
-      setMoment(null);
+      setMoments([]);
       return () => { active = false; };
     }
     const load = async () => {
+      const choose = async (candidates: BuklodLivingMoment[]) => {
+        try {
+          const seen = await AsyncStorage.multiGet(
+            candidates.map(item => seenKey(userId, item.key))
+          );
+          const hidden = new Set(seen.filter(([, value]) => value === '1').map(([key]) => key));
+          if (active) setMoments(candidates.filter(item => !hidden.has(seenKey(userId, item.key))));
+        } catch {
+          if (active) setMoments(candidates);
+        }
+      };
+      await choose(buildBuklodLivingMoments({
+        now: new Date(), userId, firstName,
+        joinedAt: user?.created_at ?? null,
+        faithEnabled, unreadCount: faithEnabled ? unreadCount : 0,
+      }));
+      if (!active) return;
       let joinedAt = user?.created_at ?? null;
       let birthDate: string | null = null;
       let latestKl: {
@@ -95,17 +113,7 @@ export default function BuklodLivingWallMoments() {
         faithEnabled,
         unreadCount: faithEnabled ? unreadCount : 0,
       });
-      try {
-        const seen = await AsyncStorage.multiGet(
-          candidates.map(item => seenKey(userId, item.key))
-        );
-        const hidden = new Set(seen.filter(([, value]) => value === '1').map(([key]) => key));
-        if (active) setMoment(
-          candidates.find(item => !hidden.has(seenKey(userId, item.key))) ?? null
-        );
-      } catch {
-        if (active) setMoment(candidates[0] ?? null);
-      }
+      await choose(candidates);
     };
     void load();
     return () => { active = false; };
@@ -114,7 +122,7 @@ export default function BuklodLivingWallMoments() {
   const dismiss = useCallback(() => {
     if (!userId || !moment) return;
     const key = seenKey(userId, moment.key);
-    setMoment(null);
+    setMoments(current => current.filter(item => item.key !== moment.key));
     void AsyncStorage.setItem(key, '1').catch(() => undefined);
   }, [userId, moment]);
 
