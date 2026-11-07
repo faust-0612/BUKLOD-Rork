@@ -5,6 +5,7 @@ import {
   PANIMULA_CANONICAL_TEXT,
 } from './canonicalManuscriptText';
 import type { ParagraphRange } from './types';
+import { splitKlManuscriptBlocks } from './paragraphBlocks';
 
 export type { ParagraphRange };
 
@@ -25,11 +26,7 @@ export type AnchorResolution =
 
 /** Blank-line blocks, in file order. Heading markers stay in `text` so the hash still matches the file. */
 export function splitCanonicalParagraphs(source: string, episodeNumber: number): CanonParagraph[] {
-  const normalized = source.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
-  const blocks = normalized
-    .split(/\n{2,}/)
-    .map((block) => block.trim())
-    .filter((block) => block.length > 0);
+  const blocks = splitKlManuscriptBlocks(source);
   const episode = String(episodeNumber).padStart(2, '0');
   return blocks.map((text, offset) => {
     const index = offset + 1;
