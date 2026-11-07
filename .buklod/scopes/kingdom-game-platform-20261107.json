@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Finish all 39 BUKLOD Kingdom in-app game source implementations (13 original and 26 new game pilots), preserving game-station routes, current main app, local account integrity and native runtime. Add seven complete unique R10 games: Phan Trade Master, Lhen Melody Memory and Beat Composer, Ace Chess Master and Tower Tactics, Niel Expedition Puzzle, ELESUR Bridge Puzzle. This is a DEV source milestone, NOT approval for staging/production OTA.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub source-level R9 automated CI passed Engineering Accountability, Performance and Main Integration on 550b55ac8f166eddda727c342ba43e83212bd957. New R10 changes use verified main-source reconciliation and unchanged legacy Kingdom map blob 88a4b1b4a70fc4acd59579419058b47f21be2554. No claim that actual Android staging APK/runtime/channel was verified; physical device acceptance waived at owner's request, production untouched, staging OTA not published.",
+  "productionBaselineEvidence": "verified: GitHub source reconciliation only. Prior shared base 269a70950f8eb50073b677bb5fa6bf0b63e0ecc4; latest main 03e048aa1675abe0141e67432ed51ce4de928144, current workstream 13ca4b2290d2e827d82003e5ace87fa8d8a0b1b3. 72 Kingdom-only source paths overlaid with zero collisions against 6 main-only files. Preserves advertising entry fixes on main. Explicit owner waiver of device test does NOT verify installed APK, runtime/channel, original premium audio or server points. No staging/production OTA published by this workflow.",
   "chosenApproach": "Implement deterministic offline engine and themed React Native game UI for the final seven games; vendor audited BSD-2-Clause chess.js 1.2.0 TS source and license unchanged for full legal chess moves without new native dependencies; wire new games into existing station routes, preserve all original games and map; enforce exact catalog and R10 test gates before release.",
   "selectionRationale": "Complete all planned mechanical game implementations in one consolidated branch with shared graphics/rendering and no new native dependency; uphold proven chess legality, supply constraints and route solvability. Premium licensed original audio/visual packs, official Character V2 reward budget, game-specific ad policy and staging binary/channel reconciliation remain separate release gates.",
   "alternativeApproaches": [
@@ -70,7 +70,8 @@
     "Niel graph puzzles must be provably safely solvable with finite food/water/risk, requirements and exit reached in a bounded number of moves.",
     "ELESUR bridge levels must have exact degree, connectivity and crossing/capacity validation, undo and hint, and provably valid authored solutions.",
     "Ace Tower Tactics must enforce grid placement/upgrade economics and bounded enemy waves; Chess Master must enforce complete chess.js legal move rules including underpromotion, castling, en passant, checkmate and draws with proper BSD attribution.",
-    "Do not publish any staging-user OTA before original music and sprite polish, authoritative rewards/ad policy, complete automated QA and compatible installed staging-user binary/environment are reconciled. User waived physical testing, not runtime proof."
+    "Do not publish any staging-user OTA before original music and sprite polish, authoritative rewards/ad policy, complete automated QA and compatible installed staging-user binary/environment are reconciled. User waived physical testing, not runtime proof.",
+    "Reconcile against latest main, preserving advertising entry source from Nov 7. Confirm no duplicate/lost main files in exact two-parent merge tree before staging."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",

@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore tappable Advertise entry points in BUKLOD Profile quick actions and unfilled sponsor surfaces, and prove navigation to the existing self-service advertising form through focused end-to-end source contracts.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main 269a70950f8eb50073b677bb5fa6bf0b63e0ecc4 is the production Android OTA source on 2026-11-07 (update ID 01a1b60a-2b37-7102-b105-1b673a98d4d3). Read-only source inspection showed ProfileQuickActionsStrip onScrollBeginDrag sets horizontalDragging true while onScrollEndDrag clears it only for velocity <0.05 and onMomentumScrollEnd may never fire for short drags; ProfilePressable is disabled indefinitely, including the 4th Advertise item. Both BuklodSponsorSlot and BuklodHeaderSponsorLegacy render an inert View for their visible ADVERTISE placeholders. Existing /advertise route exists but was not declared explicitly in root Stack. Read-only production Supabase project yhanxndaqbmuzbdqlblu confirms 8 active ad rate rows, 2 previously submitted pending campaigns, media bucket public, payment proof bucket private, owner-scoped self-submit RLS and pending-only insert policy. No live device-tap proof is available.",
+  "chosenApproach": "Remove sticky horizontalDragging disabled state from ProfileQuickActionsStrip, relying on standard nested BuklodPressable movement-cancel handling; make only empty sponsor placeholders Pressable CTAs routing to /advertise; explicitly register the self-service route; add focused entry-to-submit route and security regression checks. Preserve actual sponsored ad destination clicks, pricing, payments and approval policy.",
+  "selectionRationale": "This isolates two direct reproducible source causes of 'Advertise not clickable' while leaving the existing working submission/storage/RLS system intact. The generic gesture wrapper already cancels scrolling presses, so the extra persistent disabled state is redundant and failure-prone.",
+  "alternativeApproaches": [
+    "Add a new Advertise duplicate modal screen: rejected as it would fragment submission state and introduce new payment risks.",
+    "Reset horizontalDragging only in onMomentumScrollEnd: rejected because no-momentum drag never emits that event.",
+    "Make every sponsor card redirect to /advertise: rejected as it would hijack real sponsor destination links and invalidate click analytics.",
+    "Loosen paid-ad insert RLS: rejected since account-scoped pending submissions and private payment proof already exist."
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "All four Profile Quick Actions retain their actions, snap layout and normal swipe cancellation; no drag is interpreted as a tap.",
+    "Sponsored cards with actual campaigns continue opening their own approved destination URLs; only no-sponsor copy becomes a call-to-action.",
+    "The Advertise screen remains the single destination for photo/video, 30-second video limit, geo-targeting, admin pricing, GCash/invoice reference, proof upload and pending review.",
+    "Authenticated account isolation and pending-only RLS policies remain unchanged; no campaign becomes approved or marked paid automatically.",
+    "BUKLOD Classroom/staging projects, production database records, approved ads, Android native runtime and EAS secrets untouched.",
+    "No app release is considered live until successful build/CI and exact OTA/web publication evidence."
+  ],
+  "acceptanceChecks": [
+    "After any Profile quick-action horizontal drag (including zero momentum), Advertise tap is enabled and navigates to /advertise.",
+    "Empty first-party body and header sponsor placeholders are accessible buttons and open /advertise; actual sponsor destinations still work.",
+    "/advertise is registered in the root Stack with an interactive form, media/proof pickers, rates, GCash and pending-only submission.",
+    "Existing rate/authorization/storage schema and preview/approval protections remain intact.",
+    "Focused Node regression, TypeScript and web export gates pass; release follows DEV -> frozen RC -> correct production targets."
+  ],
+  "regressionTests": [
+    "tests/advertise-entry-navigation-e2e-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/me.tsx",
+    "src/app/_layout.tsx",
+    "src/components/BuklodSponsorSlot.tsx",
+    "src/components/BuklodHeaderSponsorLegacy.tsx",
+    "tests/advertise-entry-navigation-e2e-20261107.test.mjs",
+    ".buklod/scopes/advertise-tap-e2e-20261107.json"
+  ]
+}

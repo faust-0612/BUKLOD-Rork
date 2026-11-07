@@ -19,6 +19,8 @@ import {
   supabase,
 } from '@/lib/supabase';
 
+import { router } from 'expo-router';
+
 
 type Placement =
   | 'home'
@@ -424,7 +426,16 @@ export default function BuklodHeaderSponsor({
 
       ) : (
 
-        <View style={styles.ad}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Advertise on BUKLOD"
+          testID="buklod-header-advertise"
+          onPress={() => router.push('/advertise' as any)}
+          style={({ pressed }) => [
+            styles.ad,
+            pressed && { opacity: 0.72 },
+          ]}
+        >
 
           <View style={styles.copy}>
 
@@ -448,7 +459,7 @@ export default function BuklodHeaderSponsor({
 
           </View>
 
-        </View>
+        </Pressable>
 
       )}
 
