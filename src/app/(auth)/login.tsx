@@ -1690,7 +1690,21 @@ const chooseSuggestedLogin =
               FORGOT PASSWORD?
             </Text>
           </Pressable>
-          {/* PATCH_CREATE_ACCOUNT_TOUCH_R1 */}
+          <Pressable
+             onPress={() => router.push('/support/live' as any)}
+             accessibilityRole="button"
+             accessibilityLabel="Help and support, report a problem"
+             disabled={busy}
+             style={{paddingVertical:10,alignItems:'center'}}
+           >
+             <Text style={{color:colors.greenDark,fontWeight:'800',fontSize:13}}>
+               NEED HELP? · REPORT A PROBLEM
+             </Text>
+             <Text style={{color:colors.muted,fontSize:11,textAlign:'center'}}>
+               Support guide · screenshots or video evidence if needed
+             </Text>
+           </Pressable>
+           {/* PATCH_CREATE_ACCOUNT_TOUCH_R1 */}
           <Pressable
             onPress={() => router.push('/(auth)/register')}
             accessibilityRole="button"
