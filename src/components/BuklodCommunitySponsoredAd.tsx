@@ -20,7 +20,7 @@ const ROTATE_MS = 12_000;
 // Audio defaults to muted and no automatic playback is requested on load.
 function AdVideo({uri}: {uri: string}) {
   const player = useVideoPlayer(uri, p => {p.loop = true; p.muted = true;});
-  return <VideoView player={player} style={s.media} contentFit="cover" nativeControls/>;
+  return <VideoView player={player} style={s.media} contentFit="contain" nativeControls/>;
 }
 
 export default function BuklodCommunitySponsoredAd({
@@ -168,7 +168,7 @@ export default function BuklodCommunitySponsoredAd({
     {campaign.creative_type === 'video' && campaign.video_url
       ? <AdVideo key={campaign.id} uri={campaign.video_url}/>
       : campaign.image_url
-        ? <Image source={{uri: campaign.image_url}} style={s.media} resizeMode="cover"/>
+        ? <Image source={{uri: campaign.image_url}} style={s.media} resizeMode="contain"/>
         : null}
     <View style={s.copy}>
       <Text style={s.advertiser}>{campaign.advertiser_name}</Text>
