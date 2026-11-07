@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "objective": "Resolve the second identified Android production OTA gate regression: old literal notch padding anchor invalidated by approved modern wide-desktop scoped-header safe-area logic. Keep the Android notch protection and make all production safety + Formation positive-anchor checks verifiable before release without reverting desktop UX.",
+  "baseRef": "1dc2213538bfa55ddf352ea7813b67fa0e9c2c73",
+  "productionBaselineEvidence": "User November 7, 2026 production qa-and-publish failed at Verify production safety anchors because old Cluster Retry ActionButton title=RETRY assertion no longer matched. Concurrent PR already merged in latest main: script/test-pending-client-reconciliation-20261027.cjs upgraded, always-run Engineering Accountability gate, and tests/cluster-production-ota-retry-20261107.test.mjs. Cumulative source reconciliation found one more hard blocker in next OTA step: grep -F 'paddingTop: insets.top' src/components/BuklodScopedDashboardHeader.tsx; modern desktop change uses scopedTopInset = Platform.OS === 'web' && viewportWidth >= 1200 ? 0 : insets.top. A 57-anchor source audit of Verify production safety anchors + Verify automatic Formation completion anchors showed only this additional mismatch. The original failed OTA did not export or publish an RC.",
+  "chosenApproach": "Do not duplicate or revert the already merged Cluster retry safety fix. Change only obsolete scoped-header grep in production OTA workflow to three functional anchors checking desktop>=1200 conditional, `insets.top` on phones and both scoped-header padding consumers; execute a dedicated Node test in that same step. Test all positive literal checks in production safety and Formation stages against current source on exact PR head so a subsequent brittle grep mismatch is found before a manual production OTA. Leave rendering implementation, AdMob, SOS, auth, calling, database and frozen RC workflow intact.",
+  "selectionRationale": "Original safety invariant is mobile status-bar safe area; current implementation keeps it while intentionally avoiding desktop double padding. Reintroducing `paddingTop: insets.top` would cause Android/desktop layout regression, and deleting the check would weaken safety. Scoped source checks and preflight full-step literal audit are the smallest safe release-unblocking change.",
+  "alternativeApproaches": [
+    "Restore old notch literal to the UI solely for grep (rejected: breaks latest approved desktop layout)",
+    "Remove safety-anchor step or manually ignore grep failure (rejected: disables important login, notification, formation, Cluster and ADS protection)",
+    "Override the original Client Retry script again (rejected: the concurrent already merged solution includes broader coverage and always-run CI)",
+    "Skip OTA validation entirely (rejected: integrity and release verification requirements)"
+  ],
+  "riskAreas": [
+    "release-identity",
+    "navigation-scroll",
+    "cluster-membership-auth"
+  ],
+  "preserveBehaviors": [
+    "Original Android V28 scope header stays below notch by using insets.top for native and narrow web devices",
+    "Wide >=1200px desktop web scope header maintains zero duplicated top inset",
+    "Approved blue scoped UI and alternate green header both reference same scopedTopInset; styles and back actions remain unchanged",
+    "Current main pending-client retry behavior is already fixed and Engineering Accountability runs the original contract on every PR; this branch does not duplicate or weaken that fix",
+    "Existing SOS R1/R2 notification and proximity security locks, AdMob production live unit preflight, auth, formation, cluster permissions, calling and Media unchanged",
+    "Production OTA runs mandatory safety-anchor step before frozen RC, exact source/runtime checks and publishing; no actual deployment from CI only"
+  ],
+  "regressionTests": [
+    "tests/scoped-header-safe-area-production-ota-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Production workflow no longer requires retired literal paddingTop: insets.top in scoped header",
+    "Production gate enforces correct platform-conditioned scopedTopInset and consumers for both header variants",
+    "Dedicated Node test validates Android and small-web insets, desktop >=1200 no double padding, and all >=55 positive safety/formation grep anchors",
+    "Previously merged full pending-client protection script executes successfully without new edits",
+    "Exact-head Engineering Accountability, TypeScript/Performance and Integration/Web QA green",
+    "After merged source is reconciled, Android production OTA still requires new manual main run, verified runtime 1.3.2, exact frozen RC and actual app acceptance; screenshot failed run does not count"
+  ],
+  "allowedPaths": [
+    ".github/workflows/production_android_ota.yml",
+    "tests/scoped-header-safe-area-production-ota-20261107.test.mjs",
+    ".buklod/scopes/ota-scoped-header-safe-insets-20261107.json"
+  ]
+}
