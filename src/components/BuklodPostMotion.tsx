@@ -16,6 +16,7 @@ const PARTICLES=Array.from({length:20},(_,i)=>({
 export default function BuklodPostMotion({preset,children,active=true}:Props){
   const progress=useRef(new Animated.Value(0)).current;
   const [reduceMotion,setReduceMotion]=useState(false);
+  const [canvasHeight,setCanvasHeight]=useState(260);
   const [appActive,setAppActive]=useState(Platform.OS==='web'||AppState.currentState==='active');
   useEffect(()=>{
     let mounted=true;
@@ -32,10 +33,18 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
     progress.setValue(0);
     if(!running)return;
     const weather=preset==='rain'||preset==='storm';
-    const animation=Animated.loop(Animated.timing(progress,{
-      toValue:1,duration:weather?2600:7600,
-      easing:Easing.linear,useNativeDriver:Platform.OS!=='web',
-    }));
+    const ambiance=AMBIENT.has(preset);
+    const config={duration:weather?2600:ambiance?7600:3800,
+      easing:ambiance?Easing.linear:Easing.inOut(Easing.ease),
+      useNativeDriver:Platform.OS!=='web'};
+    // Preserve the original gentle ping-pong motion; weather particles fall
+    // one way and loop seamlessly instead of reversing raindrops upwards.
+    const animation=Animated.loop(ambiance
+      ?Animated.timing(progress,{...config,toValue:1})
+      :Animated.sequence([
+        Animated.timing(progress,{...config,toValue:1}),
+        Animated.timing(progress,{...config,toValue:0}),
+      ]));
     animation.start();
     return ()=>animation.stop();
   },[running,preset,progress]);
@@ -60,7 +69,11 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
     preset==='autumn'?'#eaa34d':preset==='underwater'?'#a3ebf5':
     preset==='mist'?'#e6edf2':'#fff4ce';
   return (
-    <View style={{position:'relative',overflow:'hidden',borderRadius:12}}>
+    <View onLayout={AMBIENT.has(preset)?event=>{
+      const height=Math.round(event.nativeEvent.layout.height);
+      if(Number.isFinite(height)&&height>0)
+        setCanvasHeight(old=>Math.abs(old-height)>6?height:old);
+    }:undefined} style={{position:'relative',overflow:'hidden',borderRadius:12}}>
       <Animated.View style={motionStyle}>{children}</Animated.View>
       {AMBIENT.has(preset)&&running&&(
         <View pointerEvents="none" accessibilityElementsHidden
@@ -72,7 +85,7 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
             const drift=progress.interpolate({inputRange:[0,1],
               outputRange:[p.reverse?-22:12,p.reverse?12:-22]});
             const vertical=progress.interpolate({inputRange:[0,1],
-              outputRange:falling?[-80,270]:rising?[130,-230]:[-8,10]});
+              outputRange:falling?[-80,canvasHeight+80]:rising?[canvasHeight+80,-80]:[-8,10]});
             const glow=progress.interpolate({inputRange:[0,.5,1],
               outputRange:[.13,.43,.13]});
             return (

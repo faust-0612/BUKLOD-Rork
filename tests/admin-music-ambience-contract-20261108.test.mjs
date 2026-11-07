@@ -67,6 +67,8 @@ test('effects auto-render only on visible posts and respect reduced-motion and a
   assert.match(motion,/isReduceMotionEnabled/);
   assert.match(motion,/running=active&&appActive&&!reduceMotion/);
   assert.match(motion,/Animated\.loop/);
+  assert.match(motion,/Animated\\.sequence/);
+  assert.match(motion,/canvasHeight\+80/);
   assert.doesNotMatch(motion,/Play post animation|Pause post animation/);
   assert.match(wall,/onCommunityWallViewableItemsChanged/);
   assert.match(wall,/visibleMotionPostIds/);

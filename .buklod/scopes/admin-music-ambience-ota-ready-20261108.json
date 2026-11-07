@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Prepare (do not publish) System Admin music upload/delete and auto-playing photo ambience post-creative enhancements in consolidated BUKLOD Main V28 runtime 1.3.2.",
   "baseRef": "main",
-  "productionBaselineEvidence": "2026-11-08 consolidated production 9a560caaec9befc0d54c70be36eaca619d587797 verified Android OTA 01a1b786-efd5-7076-a7c4-00c1498705b9 and web buklod.expo.app; crash hotfix is already in main.",
+  "productionBaselineEvidence": "verified: 2026-11-08 consolidated production 9a560caaec9befc0d54c70be36eaca619d587797 verified Android OTA 01a1b786-efd5-7076-a7c4-00c1498705b9 and web buklod.expo.app; crash hotfix is already in main.",
   "chosenApproach": "Extend existing private buklod-music-library storage and active metadata table with System Admin-gated CRUD using server RLS; use no new native modules; extend post-creative CHECK/preset map with lightweight visible-only auto ambiance overlay and keep lazy native audio on Play.",
   "selectionRationale": "Preserves 42 existing live songs and all existing post/media/ads. Avoids duplicating music storage, stale read cache, frontend-only authorization, eager native audio and heavy video effects.",
   "alternativeApproaches": [
