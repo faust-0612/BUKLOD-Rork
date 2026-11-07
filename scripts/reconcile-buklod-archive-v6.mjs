@@ -353,6 +353,17 @@ if(process.argv.includes("--self-test")){
    const resolved=selectV6ArchiveFileEntries([...modelDirs,...modelFiles],modelPaths);
    assert(resolved.files.length===2632&&resolved.ignoredDirs.length===2,
      "V6 fixture: 2,632 real files plus 2 containing directories not reconciled");
+   // End-to-end fixture models the exact Windows incident: 2 directory records
+   // plus 1 empty file without CRC, yielding 2,634 parsed entries before filtering.
+   const incidentRaw="7-Zip list\\n\\n----------\\nPath = archive.7z\\nType = 7z\\n\\n----------\\n".replaceAll("\\n","\n")+
+     [...modelDirs,...modelFiles].map(x=>
+       "Path = "+x.path+"\nSize = "+x.size+"\nCRC = "+(x.size===0?"":x.crc)+
+       "\nFolder = -\n\n").join("");
+   const incidentEntries=list7zText(incidentRaw,"V6 2,634-entry incident fixture");
+   assert(incidentEntries.length===2634,"V6 incident fixture must have 2,634 entries");
+   const incidentChecked=selectV6ArchiveFileEntries(incidentEntries,modelPaths);
+   assert(incidentChecked.files.length===2632&&incidentChecked.ignoredDirs.length===2,
+     "V6 incident fixture must reconcile 2,632 files + 2 directories");
    let rejectedExtra=false;
    try{selectV6ArchiveFileEntries([...modelDirs,...modelFiles,
        {path:"payload/unknown-file.exe",size:10,crc:"CBF43926"}],modelPaths)}
