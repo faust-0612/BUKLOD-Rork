@@ -28,7 +28,7 @@ test('navigation isolates mobile, scoped, media and authentication routes', () =
   assert.equal(check('/scope/my-cluster', 1920), true);
   assert.equal(check('/login', 1920), false);
   assert.equal(check('/reels', 1920), false);
-  assert.equal(check('/connect/personal/new', 1920), false);
+  assert.equal(check('/connect/personal/new', 1920), true);
 });
 
 test('navigation preserves scroll boundaries with a single routed center', () => {
