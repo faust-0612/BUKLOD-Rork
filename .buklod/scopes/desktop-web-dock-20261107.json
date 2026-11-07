@@ -1,0 +1,60 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore readable centered BUKLOD Main desktop Web Wall feed, show approved top-bar BUKLOD image only once, and keep personal/community conversations and member previews in a contextual right-side panel unless the user explicitly selects Expand.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "GitHub Main reviewed as aa479f4bb9572977aad1921ba615e488884def31 from previous verified Desktop logo retirement and latest merged web baseline. User screenshot of buklod.expo.app/buklod shows squeezed center with side rail overflow. This is screenshot evidence of observed behavior, not a verified live deploy SHA.",
+  "chosenApproach": "Disable ScrollView flex growing with explicit rail widths, preserve flex center, mount existing BuklodConnectThread in an account-bound right context dock, reuse privacy-aware member loader for profile preview, and intercept only known secondary navigations via transient desktop registration.",
+  "selectionRationale": "Changing only fixed rail width did not control RN Web ScrollView flex defaults; duplicating a chat engine or using iframes risks permissions, cache, memory and notifications. Existing BuklodConnectThread onBackOverride enables safe in-place dismissal. Member public loader respects locked accounts. The approved PNG has the wordmark already, so standalone extra header wordmark was redundant.",
+  "alternativeApproaches": [
+    "Replace all screens with fullscreen tabs: rejected because it disrupts Main Web continuity.",
+    "Implement a second chat UI/RPC: rejected due duplicate state and permission/security risks.",
+    "Embed a same-origin iframe for each chat: rejected due duplicate root app, auth, media and realtime subscriptions.",
+    "Replace approved B icon with conceptual three-person logo: explicitly rejected by owner."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "auth-privacy",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Android native app UI, chat routes and OTA untouched",
+    "Phone web below 1200px keeps original bottom navigation and full routes",
+    "Scope-managed desktop rules remain intact; only public desktop shell gets dock listener",
+    "Messages/attachments/calls still use existing BuklodConnectThread and RPC",
+    "Main Wall remains mounted while the user opens a chat or profile",
+    "All unrelated current Main/DEV changes, incl Cluster, SOS, Quiz and Classroom, untouched",
+    "User identity/account isolated profile/chat panels, no stale cross-account display",
+    "Lock/private profile fields never exposed in contextual preview",
+    "Approved BUKLOD logo artwork unchanged",
+    "Production web deployment and Android OTA not triggered from DEV"
+  ],
+  "acceptanceChecks": [
+    "At viewport 1200 and 1399px center remains at least 640px and rails fixed",
+    "At 1400/1590/1920px left/right rails stay capped and centered dashboard stays readable",
+    "Approved logo renders once in public and scoped top bar with no duplicate wordmark",
+    "Recent Connect chats, contacts, Inbox and web avatar taps open a side panel without route replacement",
+    "Inside dock, existing Connect message/composer/call controls render; Back and errors dismiss in place",
+    "Member visits open privacy-safe preview in side dock; locked profiles have no avatar lookup",
+    "Expand is explicit full route navigation; Close preserves active Main route",
+    "Phone/native and deep links continue normal navigation",
+    "Source/accountability, TypeScript, integration web export gates pass before merge"
+  ],
+  "regressionTests": [
+    "tests/buklod-desktop-navigation-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodDesktopMemberPreview.tsx",
+    "src/components/BuklodDesktopWebShell.tsx",
+    "src/components/BuklodPublicDesktopDashboard.tsx",
+    "src/components/connect/ConnectTappableAvatar.web.tsx",
+    "src/lib/buklodDesktopContextDock.ts",
+    "src/lib/buklodInstantNavigation.ts",
+    "src/lib/buklodMemberProfile.ts",
+    "src/lib/buklodWebResponsivePolicy.ts",
+    "tests/buklod-desktop-navigation-20261107.test.mjs",
+    "docs/BUKLOD_DESKTOP_CONTEXT_DOCK_20261107.md",
+    ".buklod/scopes/desktop-web-dock-20261107.json"
+  ]
+}
