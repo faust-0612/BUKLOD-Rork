@@ -5,7 +5,7 @@ import {supabase} from '@/lib/supabase';
 import {showBuklodAdOpportunity,warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
 
 type Mix={participation:number;learning:number;impact:number;other:number};
-type Nomination={type:string;status:string;submitted_at:string};
+type Nomination={type:string;status:string;submitted_at:string;review_note?:string|null};
 type Focus={total:number;pending:number;period:string;actual_points:Mix;actual_percent:Mix;target:Omit<Mix,'other'>;my_milestones:Nomination[]};
 type Milestones={
  bible_scholar:{completed:number;target:number;basis:string};
@@ -100,7 +100,8 @@ export default function BuklodR2FocusMonitor(){
       <Text style={s.submitText}>{busy?'Submitting...':'Submit for verification'}</Text>
     </Pressable>
    </>}
-   {own&&<Text style={s.desc}>Current milestone status: {own.status}. {own.status === 'rejected' ? 'Review the reason provided by the Admin and revise your evidence before resubmitting.' : 'An authorized reviewer must validate evidence before any award is credited.'}</Text>}
+   {own&&<Text style={s.desc}>Current milestone status: {own.status}. {own.status === 'rejected' ? 'Review the Admin feedback and revise your evidence before resubmitting.' : 'An authorized reviewer must validate evidence before any award is credited.'}</Text>}
+   {own?.review_note && <Text accessibilityRole="text" style={s.reviewNote}>Admin feedback: {own.review_note}</Text>}
   </>}
   <View style={s.links}>
    <Pressable onPress={()=>router.push('/faith/bible-quiz' as any)} style={s.link}><Text style={s.linkText}>Play Daily Bible Quiz</Text></Pressable>
@@ -136,5 +137,6 @@ const s=StyleSheet.create({
  link:{padding:11,backgroundColor:'#EDF7F0',borderRadius:10},
  linkText:{color:'#0D6F39',fontWeight:'800',fontSize:11},
  refresh:{padding:10,alignItems:'center'},refreshText:{color:'#0C7B41',fontWeight:'800',fontSize:11},
+ reviewNote:{fontSize:11,lineHeight:17,color:'#6B4210',backgroundColor:'#FFF3DC',borderRadius:9,padding:10},
  err:{color:'#A63B27',fontSize:11}
 });
