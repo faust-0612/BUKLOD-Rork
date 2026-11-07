@@ -8,6 +8,6 @@ test('BUKLOD Lesson portal links actual mentor teaching workflow without changin
  assert.match(s,/BuklodLearningContent variant="embedded"/);
  assert.match(s,/\/faith\/mentor-evidence/);
  const mentor=read('src/app/faith/mentor-evidence.tsx');
- assert.match(mentor,/report_my_mentor_teaching_with_roster_r2/);
+ assert.match(mentor,/report_my_mentor_teaching_with_details_r3/);
  assert.match(mentor,/attach_my_mentor_session_photo_r2/);
 });
