@@ -201,7 +201,8 @@ export async function pinLoadedCommunityWallPhoto(input: {
       warm.set(key, destination);
       return;
     }
-    const size = Number((await FileSystem.getInfoAsync(existing)).size ?? 0);
+    const existingInfo = await FileSystem.getInfoAsync(existing);
+    const size = existingInfo.exists ? Number(existingInfo.size ?? 0) : 0;
     if (!size || size > MAX_SINGLE_PHOTO_BYTES) return;
     const dir = ownerDirectory(owner);
     await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
