@@ -1,0 +1,38 @@
+{
+  "contractVersion": 2,
+  "objective": "Promote the verified automatic approved+paid sponsorship Community Wall and desktop Home placement from protected BUKLOD Main source to production Android V28 runtime 1.3.2 OTA and Expo Hosting web with full original RC/QA guards.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: source PR #566 was merged at fedd27a8f8b1a89b150ba4816eec01c94e8e2118 after three successful QA workflows on frozen RC 36c454f32755956f996952db41b6ae181b21c5ec, covering paid eligibility, period expiry, geo-targeting, navigation scroll and main web compatibility. Production Supabase yhanxndaqbmuzbdqlblu has two currently paid approved nationwide photo campaigns with 30-day approval schedules; no payment/approval schema change needed. Existing V28 production OTA remains runtime 1.3.2 and native compatibility is guarded by production_android_ota.yml. Last verified Expo web deployment ojcu7a6kch from earlier Advertise web fix source aafc7b9fe3cab9b6caa783b01fede9b494ff1b0b. New source has NOT been published; real deployment evidence required.",
+  "chosenApproach": "Add one exact release commit marker to the existing protected-main-only dispatcher selecting both unchanged production_android_ota.yml and production_web_deploy.yml. Preserve exact source SHA, baseline/runtime check, frozen Android RC and Expo production web archive/hash/status checks. No direct EAS operations or source behavior changes in this release PR.",
+  "selectionRationale": "New placements must reach compatible installed Android clients and desktop web together, while preserving existing mandatory release protection, credits, and immutable artifacts. Existing one-shot dispatcher is already verified to publish both production variants.",
+  "alternativeApproaches": [
+    "Web-only deployment: rejected because Public Community Wall must also appear on installed APK.",
+    "Direct EAS update bypassing original RC freeze: rejected due to runtime mismatch and regression risk.",
+    "Modify staging/production origin, rerun earlier source commit or create APK: rejected because neither publishes latest approved change safely."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Original Android V28 runtime 1.3.2, production channel, native AdMob, Expo credential, exact RC hash and live manifest verification remain mandatory.",
+    "Original Expo production web public backend, source SHA, bundle hash, environment/credential and deployment status checks remain mandatory.",
+    "No DB mutation, no campaign approval, no billing charge, no RLS relaxation, no app source or dependency drift in release PR.",
+    "Legacy sponsors and Google ads remain unaffected; exact new sponsored UI source already passed prior PR tests.",
+    "One release commit title only authorizes one Android and one Expo web workflow_dispatch."
+  ],
+  "acceptanceChecks": [
+    "Release PR engineering accountability, targeted release test, performance and Main web compatibility succeed.",
+    "Protected main squash merge carries exact release title and dispatches one original Android and one original Expo web production publisher.",
+    "Android update ID + V28 runtime + live manifest and frozen RC hashes verified.",
+    "Expo web immutable deployment ID and buklod.expo.app production address verified.",
+    "No unrelated app code or DB/payment state changed by release metadata PR."
+  ],
+  "regressionTests": [
+    "tests/paid-sponsorship-production-release-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod-authorized-production-20261107.yml",
+    "tests/paid-sponsorship-production-release-20261107.test.mjs",
+    ".buklod/scopes/paid-sponsorship-production-release-20261107.json"
+  ]
+}

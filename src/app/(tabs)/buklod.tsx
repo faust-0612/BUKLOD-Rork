@@ -71,6 +71,7 @@ import {
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
 import {
   buildCommunityFeedWithInlineAds,
@@ -4817,7 +4818,11 @@ const communityFeedRows =
     placementId="public_wall_entry"
    />
 
-   {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}   {/* Personal greetings and BUKLOD milestones: one bounded, dismissible card. */}
+   {/* Paid campaign stays in a stable top-of-Wall slot during its approved
+       30-day period. Do not turn it into an unexpiring ordinary post. */}
+   <BuklodCommunitySponsoredAd audience="public" placement="community" />
+
+   {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}   {/* BUKLOD Living Community: personalized and scoped celebration cards. */}
    <BuklodLivingWallMoments />
    <BuklodLivingNetworkMoments />
 

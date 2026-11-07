@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodLivingWallMoments from '@/components/BuklodLivingWallMoments';
+import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
@@ -74,6 +75,9 @@ export default function BuklodLightHome() {
             A community of faith, connection, and shared purpose.
           </Text>
         </LinearGradient>
+        {/* Desktop Home: approved paid ads share a persistent placement,
+            independent of AdMob/legacy sidebar sponsors. */}
+        <BuklodCommunitySponsoredAd audience="public" placement="home" />
         <Text style={{ color: theme.textPrimary, fontWeight: '900', fontSize: 16 }}>Quick Actions</Text>        <BuklodLivingWallMoments />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
