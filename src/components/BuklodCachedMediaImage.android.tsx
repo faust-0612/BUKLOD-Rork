@@ -733,7 +733,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
                   ? 'Mag-online para ma-download; maaari ring i-tap para suriin muli ang cache'
                   : 'I-tap para subukan muli'}
               </Text>
-            ) : null
+            ) : null}
           </>
         ) : (
           <ActivityIndicator color="#688A81" size="small" />
