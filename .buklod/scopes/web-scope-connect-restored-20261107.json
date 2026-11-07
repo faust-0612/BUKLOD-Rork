@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore the original single-room Organization/Cluster Connect in the desktop routed center, lower only its desktop composer, and place compact daily Encouragement beside the notification/profile actions.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Authenticated GitHub Main source 59fe3df64700465ae3f37726e73a31d07c748042 reconciled against predecessor 3ead9e9a2ce707b10fa9c53aa17d39f3b1e5ebaf and the rejected compact R1 code. Expo Hosting production artifact has not been independently fingerprinted and must be checked at release.",
+  "chosenApproach": "Remove only the 340px desktop scope panel and its Expand state, reuse the one original authorized scope thread inside center. Apply a 12px composer reduction only on web scope >=1200px. Render existing daily encouragement once as a compact desktop header card before notifications/avatar, suppress duplicate center bar only when public desktop shell applies.",
+  "selectionRationale": "The 340px quick-chat wrapper caused the unwanted visual redesign, while the shared engine and guarded public-scope sidebar transition were already correct. Restore presentation without undoing navigation or permissions.",
+  "alternativeApproaches": [
+    "Replace scoped chat with an entirely new messenger: rejected due to duplicate room state and auth risks.",
+    "Move all Connect to a full-screen or floating overlay: rejected because user wants original center pane and intact Main nav.",
+    "Globally change composer bottom padding for native and phone web: rejected due keyboard and system navigation regressions."
+  ],
+  "riskAreas": [
+    "connect",
+    "faith-cluster"
+  ],
+  "preserveBehaviors": [
+    "Original message send, media, calling and account-isolated scope membership preserved",
+    "Sidebar selectScope(PUBLIC) handshake and canonical navigation guard remain unchanged",
+    "Public and personal Connect, Android and phone-web composer clearances unchanged",
+    "Existing logo, announcements, Wall, ads, Cluster dashboard and BUKLOD Economy untouched",
+    "Production web release remains independent from DEV and does not trigger Android OTA"
+  ],
+  "acceptanceChecks": [
+    "Original Organization/Cluster Connect is one full-height routed room without quick-chat wrapper",
+    "Write Message sits 12px lower only on >=1200px web /scope, keyboard behavior unchanged",
+    "Encouragement card fits header free space before notifications and profile, with no duplicate routed banner",
+    "Phone web/Android maintain existing chat behavior and encouragement layout",
+    "Focused desktop tests and scope-accountability checks pass before release"
+  ],
+  "regressionTests": [
+    "tests/desktop-cluster-connect-navigation-20261107.test.mjs",
+    "tests/buklod-desktop-connect-dock-20261107.test.mjs",
+    "tests/buklod-desktop-navigation-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/scope/index.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodPublicDesktopDashboard.tsx",
+    "src/components/BuklodPublicDailyMessageBar.tsx",
+    "src/components/BuklodDashboardContextBar.tsx",
+    "tests/desktop-cluster-connect-navigation-20261107.test.mjs",
+    "tests/buklod-desktop-connect-dock-20261107.test.mjs",
+    "tests/buklod-desktop-navigation-20261107.test.mjs",
+    "docs/BUKLOD_WEB_SCOPE_CONNECT_RESTORE_20261107.md",
+    ".buklod/scopes/web-scope-connect-restored-20261107.json"
+  ]
+}
