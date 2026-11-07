@@ -14,7 +14,6 @@ import {
   type TextStyle,
 } from 'react-native';
 
-import BuklodMentionText from '@/components/BuklodMentionText';
 import {
   activeMentionQuery,
   insertMention,
@@ -67,7 +66,6 @@ export default function BuklodMentionField({
     { start: number; end: number } | undefined
   >();
 
-  const knownNames = mentions.map(mention => mention.full_name);
   const suggestionsOpen = query !== null && !dismissed && rows.length > 0;
 
   useEffect(() => {
@@ -173,15 +171,6 @@ export default function BuklodMentionField({
   return (
     <View style={suggestionsAbove ? styles.aboveWrap : undefined}>
       <View style={styles.field}>
-        {!!value && (
-          <View pointerEvents="none" style={styles.mirror}>
-            <BuklodMentionText
-              text={value}
-              knownNames={knownNames}
-              style={[style, styles.mirrorText]}
-            />
-          </View>
-        )}
         <TextInput
           ref={node => {
             inputRef.current = node;
@@ -204,10 +193,9 @@ export default function BuklodMentionField({
             setSelection(undefined);
             syncQuery(value, next.start);
           }}
-          style={[
-            style,
-            value ? styles.typing : null,
-          ]}
+          // The native input owns the visible glyphs. A transparent input over
+          // an asynchronously painted mirror can hide newly typed captions.
+          style={[styles.visibleTyping, style]}
         />
       </View>
 
@@ -239,19 +227,8 @@ const styles = StyleSheet.create({
   field: {
     position: 'relative',
   },
-  mirror: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    zIndex: 1,
-  },
-  mirrorText: {
+  visibleTyping: {
     color: colors.text,
-    borderColor: 'transparent',
-  },
-  typing: {
-    color: 'transparent',
   },
   aboveWrap: {
     zIndex: 20,
