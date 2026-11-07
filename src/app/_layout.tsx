@@ -1,4 +1,5 @@
 import BuklodPttGlobalHost from '@/components/BuklodPttGlobalHost';
+import BuklodGlobalEmergencyHost from '@/components/BuklodGlobalEmergencyHost';
 import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
