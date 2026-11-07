@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "objective": "Create a production-source-identical staging Android APK baseline, then publish only frozen Community Wall RC to staging-user after backend, channel and runtime safety gates.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub production Android OTA run 42183558084 used exact source 8e1956e617a65b3350b3fba81597fc86604da4a1, runtime 1.3.2, update 01a1afda-304b-72a7-a859-8799f25ac602. The Nov 1 staging APK from 35431cd is stale; production OTA and APK are never changed here.",
+  "chosenApproach": "Checkout main exact SHA for staged APK, Wall RC exact SHA for staging OTA. Apply only transient staging app package/version/EAS production-connected backend settings while keeping live source/assets unmodified.",
+  "selectionRationale": "Old staging branch is behind and diverged. Current logo files match but APK contains historical native/UI implementation; rebuild from canonical source instead of reusing older staging code.",
+  "alternativeApproaches": [
+    "Keep historical APK and OTA over it: rejected because native logo and binary baseline cannot be updated over JS OTA alone.",
+    "Merge old staging branch into main: rejected due stale implementation and lost approved features.",
+    "Publish to production to compare: rejected, staging approval only."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "staging-native-runtime",
+    "backend-data-isolation",
+    "branding-parity",
+    "OTA-channel-provenance"
+  ],
+  "regressionTests": [
+    "tests/staging-production-mirror-release.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "No production APK, AAB, OTA or channel modified",
+    "Production source and images copied into mirrored staging baseline",
+    "Original live BUKLOD backend used with public-only key, no DB mutation",
+    "Staging package is distinct, same runtime and EAS project",
+    "AdMob staging test inventory preserves same placement UI, avoids live advertising requests",
+    "No old staging code merged; Wall RC exact SHA only"
+  ],
+  "acceptanceChecks": [
+    "Main SHA and RC SHA pinned; RC contains all main commits",
+    "Icon, splash, native dependencies and static asset hashes match",
+    "Staging package identity, versionCode >=2, runtime 1.3.2 and OTA channel validated",
+    "EAS production environment explicitly checked for original Supabase URL and public-only key",
+    "Channel staging-user points only to staging-user branch",
+    "Signed installable APK receipt precedes OTA publish",
+    "Exact EAS staging OTA group and Android runtime verified",
+    "Physical-device check waived, never represented as complete"
+  ],
+  "allowedPaths": [
+    "scripts/staging-production-mirror.cjs",
+    "tests/staging-production-mirror-release.test.mjs",
+    "docs/STAGING_PRODUCTION_MIRROR_20261106.md",
+    ".buklod/scopes/staging-production-mirror-20261106.json",
+    ".github/workflows/staging-production-mirror.yml"
+  ]
+}
