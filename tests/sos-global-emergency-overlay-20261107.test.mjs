@@ -58,7 +58,7 @@ test('Root overlay is above all routes and preserves in-progress navigation/draf
 test('Only active proximity-authorized incidents can be displayed and responded to',()=>{
   assert.match(host, /const freshActive =/);
   assert.match(host, /row\.status === 'ACTIVE'/);
-  assert.match(host, /!shown\?\.verified \|\| shown\.origin !== 'recipient'/);
+  assert.match(host, /!shown\?\.verified \|\| shown\.ownerId !== owner \|\| shown\.origin !== 'recipient'/);
   assert.match(host, /supabase\.rpc\('buklod_help_respond'/);
   assert.match(host, /p_request_id: id, p_response_type: responseType/);
   for (const r of ['CAN_HELP','ON_MY_WAY','CANNOT_HELP','FALSE_ALERT']) {
