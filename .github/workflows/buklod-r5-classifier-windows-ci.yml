@@ -1,0 +1,48 @@
+name: BUKLOD R5 read-only classifier Windows contract
+on:
+  push:
+    branches: [dev/quiz-consolidation-identity-audit-20261107]
+    paths:
+      - .github/workflows/buklod-r5-classifier-windows-ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: buklod-r5-windows-classifier
+  cancel-in-progress: true
+
+jobs:
+  powershell-51:
+    runs-on: windows-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check PowerShell 5.1 syntax and safe category ordering
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $file='scripts/BUKLOD_Quiz_Local_Difference_Classifier_R5.ps1'
+          $astErrors=$null
+          $tokens=$null
+          $null=[System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file),[ref]$tokens,[ref]$astErrors)
+          if (@($astErrors).Count -ne 0) {
+            $astErrors | ForEach-Object { Write-Error $_.Message }
+            throw 'PowerShell parser errors'
+          }
+          & $file -SelfTest
+          if (-not $?) { throw 'Classifier self-test failed' }
+      - name: Confirm missing R4 report fails closed with no disk scan
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $caught=$false
+          try {
+            & ./scripts/BUKLOD_Quiz_Local_Difference_Classifier_R5.ps1 -R4ReportPath 'Z:\nonexistent\r4-report.json'
+          } catch {
+            $caught=$true
+          }
+          if (-not $caught) { throw 'Missing R4 report did not block classification' }
+          Write-Host 'PASS: R5 refuses missing R4 report and does not scan other disks.'
