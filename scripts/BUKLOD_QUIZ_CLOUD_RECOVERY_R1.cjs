@@ -44,7 +44,7 @@ function git(cwd, args, capture=false) {
 }
 function isExcluded(relative,isDirectory) {
   const segments=relative.split(path.sep);
-  if (segments.some(s=>excludedDirs.has(s))) return true;
+  if (segments.some(s=>excludedDirs.has(s) || /^node_modules(?:[_-].+)?$/i.test(s))) return true;
   const base=segments[segments.length-1];
   if (bannedNames.test(base)) return true;
   if (!isDirectory && bannedExt.test(base)) return true;
