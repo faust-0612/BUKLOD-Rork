@@ -95,12 +95,9 @@ begin
     raise exception 'This ABC item is not rewardable';
   end if;
 
-  select greatest(0, least(100, coalesce(r.base_points, 8)))::integer into reward_points
+  select greatest(0, least(100,r.base_points,coalesce(r.max_points_per_event,100)))::integer into reward_points
   from public.buklod_point_rules r
   where r.activity_type = 'abc_growth_lesson' and r.is_active = true;
-  if reward_points is null or reward_points = 0 then
-    raise exception 'ABC reward configuration unavailable';
-  end if;
 
   canonical_source_key := 'abc_growth:v1:' || normalized_lesson;
 
@@ -117,6 +114,9 @@ begin
   if found then
     was_already_completed := true;
   else
+    if reward_points is null or reward_points <= 0 then
+      raise exception 'ABC reward configuration unavailable';
+    end if;
     insert into public.buklod_points_ledger (
       user_id,
       direction,
@@ -194,7 +194,7 @@ begin
     'lesson_id', normalized_lesson,
     'completed', true,
     'already_completed', was_already_completed,
-    'points', coalesce((select l.points from public.buklod_points_ledger l where l.id = ledger_id and l.user_id = actor), reward_points),
+    'points', coalesce((select l.points from public.buklod_points_ledger l where l.id = ledger_id and l.user_id = actor), reward_points, 5),
     'claim_state', coalesce(current_claim_state, 'legacy'),
     'point_ledger_id', ledger_id,
     'completed_at', completed_when
