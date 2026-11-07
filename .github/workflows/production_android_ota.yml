@@ -122,7 +122,11 @@ jobs:
           grep -F 'serverCanManage' 'src/components/BuklodClusterHomeCommandCenter.tsx'
           grep -F 'accessibilityLabel="Manage Cluster"' 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
           grep -F 'clusterScopeManageRoute(scope.scope_id,scope.name)' 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
-          grep -F 'paddingTop: insets.top' 'src/components/BuklodScopedDashboardHeader.tsx'
+          # The scoped header still honors the phone status-bar inset, while
+          # desktop >=1200px owns its own top chrome and must not double-pad.
+          grep -F "const scopedTopInset = Platform.OS === 'web' && viewportWidth >= 1200" 'src/components/BuklodScopedDashboardHeader.tsx'
+          grep -F '? 0 : insets.top;' 'src/components/BuklodScopedDashboardHeader.tsx'
+          grep -F 'paddingTop: scopedTopInset' 'src/components/BuklodScopedDashboardHeader.tsx'
           grep -F "constrainContextToOrganization" 'src/lib/buklodClusterFormationGate.ts'
           grep -F "readMediaForUpload" 'src/app/scope/bulletin-editor.tsx'
           grep -F "Title and message are required before publishing." 'src/app/scope/bulletin-editor.tsx'
