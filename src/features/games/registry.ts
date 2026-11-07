@@ -18,8 +18,8 @@ export const BUKLOD_GAMES: Record<string, BuklodGameDefinition> = {
   },
   'mitch-restore-mural': {
     id: 'mitch-restore-mural', characterKey: 'mitch', mapType: 'art-village', stationKey: 'mural-restoration-01',
-    title: 'Restore the Mural', subtitle: 'Mitch • Art Village',
-    objective: 'Drag six mural fragments into their true positions, restore the composition with precision, and build a clean restoration combo.', replayable: true,
+    title: 'Block Forge', subtitle: 'Mitch • Art Village',
+    objective: 'Place block shapes on an eight-by-eight board, clear complete rows and columns, and restore the Kingdom mosaic.', replayable: true,
   },
   'niel-mission-trail': {
     id: 'niel-mission-trail', characterKey: 'niel', mapType: 'mission-frontier', stationKey: 'mission-trail-01',
@@ -48,13 +48,13 @@ export const BUKLOD_GAMES: Record<string, BuklodGameDefinition> = {
   },
   'van-living-city-dispatch': {
     id: 'van-living-city-dispatch', characterKey: 'van', mapType: 'living-city', stationKey: 'city-dispatch-01',
-    title: 'City Dispatch', subtitle: 'Van • The Living City',
-    objective: 'Prioritize urban service requests, deploy the right teams, preserve capacity and keep public trust from collapsing.', replayable: true,
+    title: 'Mind Challenge', subtitle: 'Van • The Living City',
+    objective: 'Solve number patterns, sequences, and logic challenges in ten rounds.', replayable: true,
   },
   'christian-civic-leadership': {
     id: 'christian-civic-leadership', characterKey: 'christian', mapType: 'civic-academy', stationKey: 'leadership-council-01',
-    title: 'Leadership Council', subtitle: 'Christian • Civic Academy',
-    objective: 'Navigate five civic leadership cases while protecting trust, unity, budget and time.', replayable: true,
+    title: 'Bible Quest', subtitle: 'Christian • Civic Academy',
+    objective: 'Answer ten Scripture-based questions, learn the references, and build Bible knowledge.', replayable: true,
   },
   'lhen-rhythm-journey': {
     id: 'lhen-rhythm-journey', characterKey: 'lhen', mapType: 'music-city', stationKey: 'rhythm-journey-01',
@@ -63,8 +63,8 @@ export const BUKLOD_GAMES: Record<string, BuklodGameDefinition> = {
   },
   'quin-discovery-expedition': {
     id: 'quin-discovery-expedition', characterKey: 'quin', mapType: 'discovery-world', stationKey: 'discovery-expedition-01',
-    title: 'Discovery Expedition', subtitle: 'Quin • Discovery World',
-    objective: 'Explore fog-of-war, gather clues, avoid hazards, protect expedition energy and secure the hidden relic.', replayable: true,
+    title: 'Guessing Quest', subtitle: 'Quin • Discovery World',
+    objective: 'Use clues to identify Bible characters, objects, and everyday mysteries in ten rounds.', replayable: true,
   },
 };
 

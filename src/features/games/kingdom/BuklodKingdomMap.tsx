@@ -24,10 +24,14 @@ import Svg, {
 } from 'react-native-svg';
 
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
+import BuklodGameCharacterCompanion from '@/features/games/runtime/BuklodGameCharacterCompanion';
+import { useAuth } from '@/providers/AuthProvider';
 import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
 
 import {
   loadBuklodKingdomPreviewProgress,
+  canImportLegacyBuklodKingdomProgress,
+  importLegacyBuklodKingdomProgress,
   subscribeBuklodKingdomPreviewProgress,
   type BuklodKingdomPreviewProgress,
 } from './progress';
@@ -53,15 +57,15 @@ const STATIONS: readonly Station[] = [
   { id: 'vhen-farm-to-market', character: 'Vhen', region: 'Agricultural Valley', game: 'Farm to Market', href: '/games/vhen-farm-to-market', x: 265, y: 745, icon: 'sprout', accent: '#75a841', worldChange: 'Fields become greener and the market road activates.' },
   { id: 'jawo-forest-trail', character: 'Jawo', region: 'Explorer Forest', game: 'Forest Trail', href: '/games/jawo-forest-trail', x: 170, y: 475, icon: 'pine-tree', accent: '#3d8758', worldChange: 'Trail lights awaken and the forest route glows.' },
   { id: 'trudice-playground-memory', character: 'Trudice', region: "Children's Haven", game: 'Wonder Path', href: '/games/trudice-playground-memory', x: 355, y: 375, icon: 'human-child', accent: '#bc6fb1', worldChange: 'Playground stations light up one by one.' },
-  { id: 'mitch-restore-mural', character: 'Mitch', region: 'Art Village', game: 'Restore the Mural', href: '/games/mitch-restore-mural', x: 505, y: 545, icon: 'palette-outline', accent: '#bf6d50', worldChange: 'The village mural returns and new colors appear.' },
-  { id: 'christian-civic-leadership', character: 'Christian', region: 'Civic Academy', game: 'Leadership Council', href: '/games/christian-civic-leadership', x: 580, y: 285, icon: 'bank-outline', accent: '#4b69a0', worldChange: 'The council hall opens and civic lights activate.' },
+  { id: 'mitch-restore-mural', character: 'Mitch', region: 'Art Village', game: 'Block Forge', href: '/games/mitch-restore-mural', x: 505, y: 545, icon: 'palette-outline', accent: '#bf6d50', worldChange: 'New block mosaic patterns light up the art village.' },
+  { id: 'christian-civic-leadership', character: 'Christian', region: 'Civic Academy', game: 'Bible Quest', href: '/games/christian-civic-leadership', x: 580, y: 285, icon: 'bank-outline', accent: '#4b69a0', worldChange: 'Bible wisdom challenges illuminate the Academy.' },
   { id: 'ace-rescue-grid', character: 'Ace', region: 'Strategy / Rescue', game: 'Rescue Grid', href: '/games/ace-rescue-grid', x: 720, y: 430, icon: 'map-marker-path', accent: '#397b9c', worldChange: 'Blocked corridors clear and rescue beacons stay lit.' },
-  { id: 'van-living-city-dispatch', character: 'Van', region: 'Living City', game: 'City Dispatch', href: '/games/van-living-city-dispatch', x: 825, y: 260, icon: 'city-variant-outline', accent: '#327c91', worldChange: 'The skyline activates and service routes begin moving.' },
+  { id: 'van-living-city-dispatch', character: 'Van', region: 'Living City', game: 'Mind Challenge', href: '/games/van-living-city-dispatch', x: 825, y: 260, icon: 'city-variant-outline', accent: '#327c91', worldChange: 'Solved logic puzzles illuminate the city.' },
   { id: 'lhen-rhythm-journey', character: 'Lhen', region: 'Music City', game: 'Rhythm Journey', href: '/games/lhen-rhythm-journey', x: 970, y: 350, icon: 'music-note', accent: '#8b4b91', worldChange: 'Music lights pulse across the performance district.' },
   { id: 'angel-kingdom-treasury', character: 'Angel', region: 'Treasury City', game: 'Kingdom Treasury', href: '/games/angel-kingdom-treasury', x: 910, y: 620, icon: 'treasure-chest-outline', accent: '#a36c24', worldChange: 'Treasury lanterns glow and reserve vaults open.' },
   { id: 'niel-mission-trail', character: 'Niel', region: 'Mission Frontier', game: 'Mission Trail', href: '/games/niel-mission-trail', x: 690, y: 710, icon: 'compass-outline', accent: '#55744d', worldChange: 'A frontier road extends toward distant settlements.' },
   { id: 'elesur-village-builder', character: 'ELESUR', region: 'Highland Community', game: 'Village Builder', href: '/games/elesur-village-builder', x: 1040, y: 710, icon: 'home-group', accent: '#54766f', worldChange: 'New community structures rise in the highlands.' },
-  { id: 'quin-discovery-expedition', character: 'Quin', region: 'Discovery World', game: 'Discovery Expedition', href: '/games/quin-discovery-expedition', x: 1045, y: 135, icon: 'telescope', accent: '#5268a4', worldChange: 'Fog clears and a hidden route becomes visible.' },
+  { id: 'quin-discovery-expedition', character: 'Quin', region: 'Discovery World', game: 'Guessing Quest', href: '/games/quin-discovery-expedition', x: 1045, y: 135, icon: 'telescope', accent: '#5268a4', worldChange: 'New discoveries and guessing clues reveal hidden paths.' },
 ] as const;
 
 const JOURNEY_PATH = [
@@ -305,22 +309,55 @@ function DecorativeLabel({
 
 export default function BuklodKingdomMap() {
   const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const [legacyAvailable, setLegacyAvailable] = useState(false);
+  const [legacyPrompt, setLegacyPrompt] = useState(false);
+  const [legacyError, setLegacyError] = useState('');
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     let mounted = true;
-    loadBuklodKingdomPreviewProgress().then((value) => {
+    setProgress(emptyProgress());
+    if (!userId) return () => { mounted = false; };
+    loadBuklodKingdomPreviewProgress(userId).then((value) => {
       if (mounted) setProgress(value);
     }).catch(() => undefined);
     const unsubscribe = subscribeBuklodKingdomPreviewProgress((value) => {
       if (mounted) setProgress(value);
-    });
+    }, userId);
     return () => {
       mounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [userId]);
+
+  useEffect(() => {
+    let active = true;
+    setLegacyAvailable(false);
+    setLegacyPrompt(false);
+    setLegacyError('');
+    if (userId) {
+      canImportLegacyBuklodKingdomProgress(userId).then((allowed) => {
+        if (active) setLegacyAvailable(allowed);
+      }).catch(() => undefined);
+    }
+    return () => { active = false; };
+  }, [userId]);
+
+  const importLegacy = async () => {
+    if (!userId) return;
+    try {
+      const imported = await importLegacyBuklodKingdomProgress(userId);
+      setProgress(imported);
+      setLegacyAvailable(false);
+      setLegacyPrompt(false);
+      setLegacyError('');
+    } catch {
+      setLegacyError('Could not import local preview progress. It was not deleted.');
+    }
+  };
 
   const clearedCount = useMemo(
     () => STATIONS.filter((station) => (progress.stations[station.id]?.clears ?? 0) > 0).length,
@@ -531,12 +568,43 @@ export default function BuklodKingdomMap() {
           </View>
         </ScrollView>
       </ScrollView>
+      {legacyAvailable ? (
+        <View style={styles.legacyPanel}>
+          {legacyPrompt ? (
+            <>
+              <Text style={styles.legacyTitle}>Is the older Kingdom preview on this device yours?</Text>
+              <Text style={styles.legacyCopy}>Import only if you played those games. The old preview remains unchanged.</Text>
+              {legacyError ? <Text style={styles.legacyError}>{legacyError}</Text> : null}
+              <View style={styles.legacyActions}>
+                <Pressable accessibilityRole="button" onPress={() => void importLegacy()} style={styles.legacyButton}>
+                  <Text style={styles.legacyButtonText}>YES, IMPORT</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" onPress={() => setLegacyPrompt(false)} style={styles.legacyButton}>
+                  <Text style={styles.legacyButtonText}>CANCEL</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <Pressable accessibilityRole="button" onPress={() => setLegacyPrompt(true)}>
+              <Text style={styles.legacyButtonText}>IMPORT MY OLDER KINGDOM GAME RESULTS</Text>
+            </Pressable>
+          )}
+        </View>
+      ) : null}
+      <BuklodGameCharacterCompanion gameId="kingdom-map" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#071b2a' },
+  legacyPanel: { position: 'absolute', right: 10, bottom: 12, zIndex: 15, maxWidth: 320, padding: 12, backgroundColor: 'rgba(14,33,49,0.96)', borderColor: '#d2a54d', borderWidth: 1, borderRadius: 12 },
+  legacyTitle: { fontSize: 14, fontWeight: '900', color: '#ffedc6' },
+  legacyCopy: { fontSize: 11, color: '#e6e1db', marginTop: 5, marginBottom: 8 },
+  legacyError: { fontSize: 11, color: '#ffb8b8' },
+  legacyActions: { flexDirection: 'row', gap: 8 },
+  legacyButton: { borderRadius: 8, backgroundColor: '#805c2e', padding: 9 },
+  legacyButtonText: { fontSize: 11, fontWeight: '900', color: '#fff2ce' },
   horizontalContent: { minWidth: '100%' },
   verticalContent: { minHeight: '100%' },
   worldFrame: {
