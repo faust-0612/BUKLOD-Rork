@@ -45,7 +45,7 @@ test('Compact cards have isolated Open and Manage actions so a management tap ca
 
 test('My Clusters search runs locally and shows first eight until user expands', () => {
   assert.match(src, /const \[myQuery, setMyQuery\] = useState\(''\)/);
-  assert.match(src, /const \[showAllMyClusters, setShowAllMyClusters\] = useState\(false\)/);
+  assert.match(src, /showAllMyClusters \|\| myQuery\.trim\(\) \? filteredMyClusters : filteredMyClusters\.slice\(0, 8\)/);
   assert.match(src, /filteredMyClusters = useMemo\(\(\) =>/);
   assert.match(src, /item\.name \+ ' ' \+ \(item\.category \|\| ''\)/);
   assert.match(src, /showAllMyClusters \\|\\| myQuery\\.trim\\(\\) \\? filteredMyClusters : filteredMyClusters\\.slice\\(0, 8\\)/);
