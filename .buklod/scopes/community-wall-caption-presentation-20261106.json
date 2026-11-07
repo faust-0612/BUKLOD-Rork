@@ -1,17 +1,19 @@
 {
   "contractVersion": 2,
-  "objective": "Consolidated Community Wall patch: compact collapsed post entry, shared posts, reactions, one-line captions, Android original-photo upgrades.",
+  "objective": "Consolidated Community Wall UI from staging RC plus Android direct-original photo and visible-video parity with Web.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: independent production release evidence recorded in PR #515 identifies Android OTA 01a1afda-304b-72a7-a859-8799f25ac602 on runtime 1.3.2 and source 8e1956e617a65b3350b3fba81597fc86604da4a1. The main branch is a DEV integration baseline, not automatic proof of the installed APK; this PR has no production or staging OTA.",
-  "chosenApproach": "Reconcile current main, prior UI and Android-only photo fixes; use compact one-tap composer entry with post-render autofocus and preserve canonical gallery. Constrain the reaction picker to its own 46px action column so the Like label remains visible.",
-  "selectionRationale": "Composes existing renderers in a shared shell and extends platform-specific image cache promotion. Avoids merging diverged branches or overwriting main video/photo paths.",
+  "chosenApproach": "Reconcile current main, prior UI and Android-only photo fixes; use compact one-tap composer entry with post-render autofocus and preserve canonical gallery. Constrain the reaction picker to its own 46px action column so the Like label remains visible. On Android Wall feed, bypass optional 384px preview and fetch the canonical authorized original directly through existing image cache/native fallback; allow active video player mounting even when reachability is degraded (offscreen remains unmounted).",
+  "selectionRationale": "Use the already CI-verified staged Community Wall UI as the base; remove only the Android preview-to-sharp dependency that can strand already-downloaded originals. Preserve the existing media signer, native modules, web renderer and all post/feed behaviors.",
   "riskAreas": [
     "community-post-presentation",
     "wall-media",
     "navigation-scroll",
     "scope-isolation",
     "React Native and web parity",
-    "Android image rendering"
+    "Android image rendering",
+    "weak-network video playback",
+    "direct-original photo rendering"
   ],
   "regressionTests": [
     "tests/community-wall-caption-presentation.test.mjs",
@@ -21,15 +23,16 @@
     "tests/android-wall-sharp-paint-contract.test.mjs",
     "tests/android-wall-transfer-gate.test.mjs",
     "tests/community-wall-social-actions.test.mjs",
-    "tests/community-wall-compact-composer.test.mjs"
+    "tests/community-wall-compact-composer.test.mjs",
+    "tests/android-wall-direct-original-video-parity-20261107.test.mjs"
   ],
   "preserveBehaviors": [
     "Canonical mention parsing and highlighting",
-    "Public and scoped photo collages, videos, signed URLs and caches unchanged",
+    "Public/scoped collage geometry, photo viewer, signed media authorization, cache and video controls remain canonical; Android Wall source selection intentionally changes to direct originals",
     "All composer actions, reaction and comment controls unchanged",
     "No feed pagination, scroll reset, ads, navigation or authorization modification",
     "No backend, RLS, native dependency, runtime or production OTA modification",
-    "Current main Community Wall collage and Marites video renderer, signed media, ads, auth, pagination, posting flow and backend stay unchanged",
+    "Marites video renderer, signed media, ads, auth, pagination, posting flow and backend stay unchanged",
     "Existing long-press reaction picker, share RPC, comments and all Reels controls unchanged",
     "Composer intent activation and prefilled drafts remain functional, with unchanged submit, media picker, mention, audience and moderation controls"
   ],
@@ -47,7 +50,10 @@
     "Both post feeds expose Like/Comment/Share in one accessible action row without duplicate Comment/Share buttons",
     "Public and scoped Wall show compact single-row post entry when empty; one tap opens canonical editor, photos use canonical gallery, Reels and drafts stay expanded",
     "Social action row allocates visible space for all three labels and keeps the Like picker touch area accessible",
-    "One-tap text entry focuses after the expanded composer mounts; photo picker does not trigger keyboard autofocus"
+    "One-tap text entry focuses after the expanded composer mounts; photo picker does not trigger keyboard autofocus",
+    "Both single-photo and collage Wall tiles pass useWallPreview=false to bypass low-quality sidecars",
+    "Active Android video renders even under degraded reachability; offscreen player remains unmounted",
+    "Exact-main production runtime compatibility and frozen RC remain mandatory before any OTA"
   ],
   "alternativeApproaches": [
     "Replace the full Wall feed card (rejected: risks media and scroll regressions)",
@@ -72,6 +78,10 @@
     "src/components/BuklodCommunityPostEngagement.tsx",
     "src/components/BuklodPostInternalShare.tsx",
     "tests/community-wall-social-actions.test.mjs",
-    "tests/community-wall-compact-composer.test.mjs"
+    "tests/community-wall-compact-composer.test.mjs",
+    "src/components/BuklodCommunityPhotoCollage.tsx",
+    "src/lib/communityVideoPlayback.ts",
+    "__tests__/communityWeakNetworkP0.test.ts",
+    "tests/android-wall-direct-original-video-parity-20261107.test.mjs"
   ]
 }
