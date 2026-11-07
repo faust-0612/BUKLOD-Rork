@@ -118,6 +118,7 @@ export default function BuklodGlobalEmergencyHost() {
     origin: 'sender' | 'recipient',
   ): Promise<Emergency | null> => {
     if (!owner || !isBuklodEmergencyId(incidentId)) return null;
+    let ownEmergency: Emergency | null = null;
     if (origin === 'recipient') {
       // Push payload alone NEVER authorizes displaying the incident.
       const { data: entitlement, error: entitlementError } = await supabase
@@ -139,17 +140,27 @@ export default function BuklodGlobalEmergencyHost() {
         .maybeSingle();
       if (mineError) throw mineError;
       if (!mine || mine.kind !== 'EMERGENCY' || !freshActive(mine)) return null;
+      ownEmergency = {
+        id: mine.id, origin: 'sender', category: mine.category,
+        message: mine.message, status: mine.status,
+        created_at: mine.created_at, expires_at: mine.expires_at,
+        distance_km: null, can_help_count: null,
+        on_my_way_count: null, confirm_count: null, my_response: null,
+      };
     }
     // This RPC enforces recent opted-in presence and <= server-approved radius.
     // For recipients its absence must fail closed, not trust the push contents.
     const { data: nearby, error: nearbyError } = await supabase.rpc(
       'buklod_help_list_nearby', { p_limit: 50 },
     );
-    if (nearbyError) throw nearbyError;
+    if (nearbyError) {
+      if (ownEmergency) return ownEmergency; // Owner can still resolve if presence is stale.
+      throw nearbyError;
+    }
     const item = ((nearby ?? []) as Nearby[]).find(
       row => row.id === incidentId && row.kind === 'EMERGENCY' && freshActive(row),
     );
-    if (!item) return null;
+    if (!item) return ownEmergency;
     if (origin === 'sender' && item.creator_id !== owner) return null;
     if (origin === 'recipient' && item.creator_id === owner) return null;
     return fromNearby(item, origin);
