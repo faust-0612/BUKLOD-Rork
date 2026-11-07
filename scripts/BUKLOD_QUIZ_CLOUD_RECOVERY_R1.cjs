@@ -40,7 +40,8 @@ const maxCombinedBytes = 450*1024*1024;
 const maxCandidates = 8;
 
 function git(cwd, args, capture=false) {
-  return execFileSync('git',args,{cwd,encoding:'utf8',stdio:capture?'pipe':'inherit',timeout:120000});
+  return execFileSync('git',args,{cwd,encoding:'utf8',stdio:capture?'pipe':'inherit',
+    maxBuffer:32*1024*1024,timeout:120000});
 }
 function isExcluded(relative,isDirectory) {
   const segments=relative.split(path.sep);
@@ -246,10 +247,54 @@ function preflightSources(roots) {
   }
   return snapshots;
 }
+function verifyGitIndexBytes(work,snapshots) {
+  // This is an archival transfer, NOT an application lint. Preserve original
+  // source whitespace, line endings and other bytes exactly in Git objects.
+  const objectFormat=git(work,['rev-parse','--show-object-format'],true).trim();
+  if(objectFormat!=='sha1')throw Error('Unexpected Git object format: '+objectFormat);
+  const items=git(work,['ls-files','--stage','-z','--',target],true)
+    .split('\0').filter(Boolean);
+  const staged=new Map();
+  for(const item of items) {
+    const match=/^([0-7]{6}) ([0-9a-f]{40}) 0\t(.+)$/.exec(item);
+    if(!match||staged.has(match[3]))throw Error('Invalid/duplicate Git index record');
+    staged.set(match[3],match[2]);
+  }
+  let verified=0;
+  for(const snapshot of snapshots) {
+    const files=snapshot.files.map(item=>item.rel)
+      .concat(['QUIZ_RECOVERY_MANIFEST.json']);
+    for(const rel of files) {
+      const gitPath=path.join(target,snapshot.id,...rel.split('/'))
+        .split(path.sep).join('/');
+      const diskPath=path.join(work,...gitPath.split('/'));
+      const bytes=fs.readFileSync(diskPath);
+      // Standard Git SHA-1 blob OID, *without* text or CRLF normalization.
+      const oid=crypto.createHash('sha1')
+        .update(Buffer.from('blob '+bytes.length+'\0'))
+        .update(bytes).digest('hex');
+      if(staged.get(gitPath)!==oid) {
+        throw Error('Git index differs from original archived bytes: '+gitPath);
+      }
+      verified++;
+    }
+  }
+  const changed=git(work,['diff','--cached','--name-only','-z'],true)
+    .split('\0').filter(Boolean);
+  const prefix=target.split(path.sep).join('/')+'/';
+  if(changed.some(p=>!p.startsWith(prefix)))
+    throw Error('Unexpected staged path outside Quiz source candidates');
+  process.stdout.write('GIT INDEX BYTE PARITY VERIFIED: '+verified+
+    ' candidate files/manifests, unrelated staged files=0\n');
+}
 function archiveSources(snapshots) {
   const work=fs.mkdtempSync(path.join(os.tmpdir(),'buklod-quiz-cloud-'));
   try {
     git(process.cwd(),['clone','--single-branch','--depth','1','--branch',branch,remote,work]);
+    // Git for Windows often defaults to core.autocrlf=true. Disable automatic
+    // normalization inside this disposable checkout to retain exact bytes.
+    git(work,['config','core.autocrlf','false']);
+    git(work,['config','core.safecrlf','true']);
     for(const snapshot of snapshots) {
       const dest=path.join(work,target,snapshot.id);
       const manifestFile=path.join(dest,'QUIZ_RECOVERY_MANIFEST.json');
@@ -284,8 +329,10 @@ function archiveSources(snapshots) {
       fs.writeFileSync(manifestFile,JSON.stringify(snapshot.manifest,null,2)+'\n');
       process.stdout.write('ARCHIVED CANDIDATE: '+snapshot.id+'\n');
     }
-    git(work,['add','--',target]);
-    git(work,['diff','--cached','--check']);
+    // Snapshot .gitignore files can legitimately ignore historical sources.
+    // The preflight scanner owns the allowlist; force-add only that snapshot subtree.
+    git(work,['add','-f','--',target]);
+    verifyGitIndexBytes(work,snapshots);
     const staged=git(work,['diff','--cached','--name-only'],true).trim();
     if(!staged) {
       process.stdout.write('CLOUD ALREADY UP-TO-DATE; no new commit needed.\n');
