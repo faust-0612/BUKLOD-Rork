@@ -1042,7 +1042,9 @@ useEffect(() => {
           }}
         >
           <Image
-            source={require('../../../assets/release/buklod-generic-photo.jpg')}
+            source={Platform.OS === 'web'
+              ? require('../../../assets/release/buklod-main-canonical.png')
+              : require('../../../assets/release/buklod-generic-photo.jpg')}
             style={styles.logo}
           />
 

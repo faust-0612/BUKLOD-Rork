@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -305,9 +306,8 @@ export default function BuklodDesktopWebShell({
             onPress={() => openGlobalDestination('/buklod')}
             style={({ pressed }) => [styles.brand, pressed && styles.pressed]}
           >
-            <View style={[styles.brandMark, { backgroundColor: theme.accent }]}>
-              <Text style={styles.brandLetter}>B</Text>
-            </View>
+            <Image source={require('../../assets/release/buklod-main-canonical.png')}
+              resizeMode="contain" accessibilityLabel="BUKLOD canonical logo" style={styles.brandLogo} />
             <Text style={[styles.brandText, { color: theme.accent }]}>BUKLOD</Text>
           </Pressable>
 
@@ -528,8 +528,7 @@ const styles = StyleSheet.create({
   },
   topLeft: { minWidth: 220, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  brandMark: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  brandLetter: { color: '#FFFFFF', fontWeight: '900', fontSize: 23 },
+  brandLogo: { width: 42, height: 42, borderRadius: 10 },
   brandText: { fontSize: 20, fontWeight: '900', letterSpacing: 0.2 },
   searchPill: {
     height: 42,

@@ -8,6 +8,7 @@ import {
 import {
   AccessibilityInfo,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -677,6 +678,32 @@ export function BuklodGuideAvatar() {
   const onPress = () => {
     animateTap();
     scheduleGuideHide(3600);
+
+    // WEB_SCOPED_GUIDE_EXIT_SOURCE_R2: formerly injected only during export.
+    // Keep Android's existing native profile-return flow unchanged below.
+    if (Platform.OS === 'web') {
+      const exitingScopedWorkspace =
+        !isProfileRoute && scopedWorkspaceActive &&
+        isBuklodScopedWorkspacePath(pathname);
+
+      if (exitingScopedWorkspace) {
+        void (async () => {
+          const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
+          if (publicScope) {
+            try {
+              await selectScope(publicScope.scope_id);
+            } catch (error) {
+              console.warn('BUKLOD web public scope reset:', error);
+              return;
+            }
+          }
+          router.replace('/me' as any);
+        })();
+      } else {
+        router.navigate('/me' as any);
+      }
+      return;
+    }
 
     if (
       profileReturnMode &&

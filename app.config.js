@@ -121,7 +121,7 @@ module.exports = ({ config }) => {
 
       favicon: isClassroom
         ? './assets/classroom/favicon.png'
-        : './assets/release/app-icon.png',
+        : './assets/release/buklod-main-canonical.png',
     },
 
 
