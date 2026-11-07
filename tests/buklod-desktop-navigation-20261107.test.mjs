@@ -54,3 +54,11 @@ test('account switch masks old Connect preview on the first render', () => {
   assert.match(shell, /<Contribution key=\{userId\} \/>/);
   assert.match(shell, /const sequence = \+\+requestId\.current/);
 });
+
+test('desktop detail routes never mount the mobile bottom nav pane', () => {
+  const mobileShell = read('src/components/BuklodMobileWebShell.tsx');
+  assert.match(mobileShell, /const desktopDetail = width >= BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH && eligibleForGlobalNav/);
+  assert.match(mobileShell, /const showGlobalNav = eligibleForGlobalNav && !desktopDetail/);
+  assert.match(mobileShell, /desktopDetail && styles\.desktopDetail/);
+  assert.match(mobileShell, /maxWidth: 1190/);
+});
