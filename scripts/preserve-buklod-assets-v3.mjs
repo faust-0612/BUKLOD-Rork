@@ -121,6 +121,7 @@ try{
    roots.push(root);
  }
  assert(roots.length>=8,'Too few local BUKLOD roots; no upload');
+ result.totalAvailableRoots=roots.length;
 
  const files=[],aliases=[],duplicateBlobs=new Map(),seenPath=new Set();
  for(const root of roots){
@@ -188,7 +189,8 @@ try{
  fs.mkdirSync(out,{recursive:true});
  // Stable plan digest is content-based, so unchanged re-runs resume exact assets.
  const meta=files.map(f=>[f.source,f.bytes,f.mtime,f.gitBlob].join('|')).sort();
- const planDigest=hashString(meta.join('\n')+'\n'+remoteSHA+'\n'+roots.join('\n'));
+ const aliasFingerprint=aliases.map(a=>[a.source,a.gitBlob,a.sameAs||'',a.remoteGitPath||''].join('|')).sort();
+ const planDigest=hashString(meta.join('\n')+'\n'+remoteSHA+'\n'+roots.join('\n')+'\n'+aliasFingerprint.join('\n'));
  const tag='remaining-v3-'+runId+'-'+planDigest.slice(0,12);
  result.planDigest=planDigest;result.remoteRelease='https://github.com/'+repo+'/releases/tag/'+tag;
  // A distinct immutable folder for each exact content plan makes upload resumes safe.
@@ -219,7 +221,7 @@ try{
  console.log('Unique originals to preserve:',files.length,'bytes:',Math.round(result.representativeBytes/1024/1024)+' MiB');
  console.log('Damaged/unavailable roots:',result.missingRoots.length,'I/O errors:',result.unreadablePaths.length);
  console.log('Historical folders excluded from active migration:',result.excludedHistoricalDirectories);
- if(!files.length){result.status='NO_ADDITIONAL_CONTENT_REQUIRED_IN_THIS_SCAN';save();console.log('No new content to preserve; unresolved historical and build gates remain.');process.exit(0)}
+ if(!files.length)console.log('All file bytes already represented in Git; preserve path/provenance map as encrypted metadata-only archive.');
  if(!fs.existsSync(first)){
    // Check available temporary disk before writing a multi-GB archive. No write to damaged D: by default.
    if(typeof fs.statfsSync==='function'){
