@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix the unresponsive final Advertise submit button inside Profile → Advertise and complete the existing self-service paid advertisement workflow through authenticated System Admin review, manual payment verification and content approval, without disturbing existing sponsor ads or payment records.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub Main Advertise entry patch bd0acf0b7f783fd0aa9d9bfc663e6dc35c127faf is live on Android V28 runtime 1.3.2 and Expo web wmxsz8136r. Advertise final submit form uses Alert.alert-only validation, silently returns on missing auth, and its button sits after a long ScrollView beneath phone nav/keyboard. Production paid campaigns currently contain 2 pending rows with expired initial 30-day dates and zero new submissions over the last 24 hours. Admin Sponsors & Ads only reads app_sponsors, not buklod_paid_ad_campaigns, so self-service campaigns are invisible in admin review. DB has RLS account-isolated pending-only inserts and admin read/write, but private paid-ad-payment bucket had NO admin SELECT policy. Dry-run SQL migration/test executed in a ROLLBACK scope and passed; no production data mutated.",
+  "chosenApproach": "Keep the existing advertiser form and payment pipeline. Make the final Submit Advertisement for Review a persistent keyboard-safe footer; show inline validation and submission results, block duplicate taps and require live DB prices. Extend the existing protected admin Sponsors & Ads screen with a paid campaign review section; add a guard-locked admin-only RPC for explicit separate payment verification, creative approval/rejection, pause/resume, and approval-time 30-day schedule reset. Grant read-only signed URL access to private payment evidence only to active system admins. Preserve ad price quote snapshot across administrative status changes.",
+  "selectionRationale": "Entry shortcut OTA was published successfully, but it did not alter the separate final submit button. The admin screen looked only at the legacy app_sponsors table, so even successful self-service submissions were not reviewable. Current RLS already protects pending insert and existing live ads; a small admin bridge and feedback fix avoids replacing the monetization stack.",
+  "alternativeApproaches": [
+    "Auto-approve and mark paid immediately on submit: rejected due to financial fraud and policy risks.",
+    "Publish a second ad backend or migrate existing app_sponsors rows: rejected because both existing tables have distinct purposes.",
+    "Use Alert.alert as sole validation/error feedback: rejected as it can silently fail on web and behind the keyboard.",
+    "Open payment proof as a public URL or give all authenticated members SELECT permission: rejected, payment data must remain private."
+  ],
+  "riskAreas": [
+    "ads-monetization"
+  ],
+  "preserveBehaviors": [
+    "Existing Profile → Advertise entry and previous live OTA untouched until new verified release.",
+    "Paid campaign insert remains restricted to owner, status pending and payment pending; never auto-charged or auto-approved.",
+    "Private payment screenshots remain private; signed proof access is admin-only and short-lived.",
+    "Legacy app_sponsors create/approve/pause/reject flow preserved in the same admin screen.",
+    "Real paid advertisements require explicit verified payment and separate creative approval before RLS live feed can read them.",
+    "Expiry does not begin at submission; admin approval starts 30 days, guarded server-side.",
+    "No member/account data, existing submitted campaigns, paid financial ledger or source secrets edited by this patch."
+  ],
+  "acceptanceChecks": [
+    "Profile Advertise final CTA remains clickable after scrolling or keyboard, with immediate visible validation when fields, auth, media or rate are missing.",
+    "Successful submission creates one pending-only row in buklod_paid_ad_campaigns and shows persistent Pending Admin Review confirmation.",
+    "Admin Sponsors & Ads shows self-service campaigns while retaining legacy sponsor tools.",
+    "Admin can safely preview creative, view private signed payment proof, verify external payment separately, approve/reject content, pause/resume only if eligible.",
+    "Unauthorized users and anonymous calls cannot use payment/approval RPC; no unpaid campaign can be approved; 30-day dates reset on approval.",
+    "SQL migration rollback contract succeeds; focused Node tests, TypeScript, build/CI and release gates pass before deployment."
+  ],
+  "regressionTests": [
+    "tests/advertise-submit-admin-approval-20261107.test.mjs",
+    "supabase/tests/advertise_paid_admin_review_20261107.sql"
+  ],
+  "allowedPaths": [
+    "src/app/advertise/index.tsx",
+    "src/app/admin/sponsors.tsx",
+    "src/components/BuklodPaidAdsReview.tsx",
+    "supabase/migrations/20261107222500_buklod_paid_ad_admin_review_v1.sql",
+    "supabase/tests/advertise_paid_admin_review_20261107.sql",
+    "tests/advertise-submit-admin-approval-20261107.test.mjs",
+    ".buklod/scopes/advertise-form-submit-admin-e2e-20261107.json"
+  ]
+}

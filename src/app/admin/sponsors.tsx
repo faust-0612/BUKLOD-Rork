@@ -22,6 +22,7 @@ import {
 import {
   AdminGate,
 } from '@/components/AdminGate';
+import BuklodPaidAdsReview from '@/components/BuklodPaidAdsReview';
 
 import {
   Button,
@@ -481,6 +482,10 @@ export default function SponsorAdminScreen() {
 
             </Card>
 
+
+            {/* Separate review of customer-submitted paid campaigns.
+                App-sponsors below retain their existing admin-only workflow. */}
+            <BuklodPaidAdsReview />
 
             <SectionTitle>
               ADD LOCAL SPONSOR

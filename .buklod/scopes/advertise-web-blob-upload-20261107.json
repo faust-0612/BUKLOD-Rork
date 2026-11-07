@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "objective": "Repair the exact production web Advertise submit error 'expo-file-system.readAsStringAsync is not available on web' for both creative photo/video and optional private payment screenshot upload without changing Android runtime, app monetization/approval contracts or credentials.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub Main 03e920798cb5e1401fbbc283add39ac8d63ff8db already deployed to Expo Hosting buklod.expo.app at deployment r9d28ba7ik and Android production OTA 01a1b67f-83aa-7e6c-93d7-ed8f7daa4ba8 with runtime 1.3.2. `src/app/advertise/index.tsx` calls FileSystem.readAsStringAsync for all platforms, which is unsupported on web as confirmed by user's live submission error. Expo ImagePicker SDK defines asset.file as a web-only File and Supabase Storage accepts browser File/Blob. Existing native decoder yields ArrayBuffer and must remain intact. Source-only fix does not need schema migration or EAS secrets.",
+  "chosenApproach": "Introduce a small hook-free platform upload-body reader. On web, use ImagePickerAsset.file (browser File) or fetch the selected blob URI, validating non-empty bytes and size. On native, retain existing expo-file-system/legacy readAsStringAsync and base64-arraybuffer decode via lazy callback. Use one shared uploadAsset flow for paid-ad-media creative and paid-ad-payment proof, keeping paths user-scoped, Supabase content-type and upsert:false, with limits aligned to actual storage buckets.",
+  "selectionRationale": "The failure is due to invoking a native-only method on web, not missing native linking. A platform-specific byte acquisition avoids unnecessary binary changes and allows large files to upload without expensive browser base64 conversion. No approval or payment status logic changes.",
+  "alternativeApproaches": [
+    "Link or rebuild native module in browser: rejected, web has no native filesystem API.",
+    "Read all browser files as base64 using FileReader: rejected, memory-heavy for videos and unnecessary with Supabase browser File support.",
+    "Change Android upload to browser Blob for all platforms: rejected because Supabase RN Blob upload compatibility is not guaranteed.",
+    "Alter or expose payment proof bucket: rejected; private admin-reviewed screenshots remain private."
+  ],
+  "riskAreas": [
+    "ads-monetization"
+  ],
+  "preserveBehaviors": [
+    "Existing Android V28 runtime 1.3.2, native base64-to-ArrayBuffer behavior and EAS configuration untouched",
+    "Photo/video creative and private proof stay in their original separate buckets with original owner-scoped paths, RLS and no overwrite",
+    "Campaign always inserts pending review with payment pending, no automatic activation",
+    "Existing Admin paid campaign review, manual verification and 30-day approval start preserved",
+    "Do not perform duplicate submission retries or alter real payment records",
+    "No Android OTA required if only web browser code path changes; publish to Expo Hosting web after mandatory QA",
+    "Previously passing advertiser/admin contract tests remain covered by existing CI without being misdeclared as changed source files."
+  ],
+  "acceptanceChecks": [
+    "Web File from ImagePicker goes to Supabase Storage without readAsStringAsync invocation",
+    "Older blob URI web picker can upload via fetch/blob fallback; missing/empty blob yields actionable error",
+    "Native path returns original decoded ArrayBuffer with no browser fetch",
+    "Shared upload path handles advertisement photo/video and private payment proof",
+    "TypeScript and web compatibility/export pass; immutable production web source and deployment verified",
+    "Existing payment and campaign state unchanged"
+  ],
+  "regressionTests": [
+    "tests/advertise-browser-file-upload-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/advertise/readAdvertiseUploadBody.ts",
+    "src/app/advertise/index.tsx",
+    "tests/advertise-browser-file-upload-20261107.test.mjs",
+    ".buklod/scopes/advertise-web-blob-upload-20261107.json"
+  ]
+}
