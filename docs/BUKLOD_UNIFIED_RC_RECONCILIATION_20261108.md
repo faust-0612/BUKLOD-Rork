@@ -26,3 +26,6 @@ Current main Ads, Wall, SOS, KL, sponsor and desktop work is inherited from the 
 
 ## Public Wall music and motion source reconciliation
 Music source branch: feature/wall-music-motion-20261108. Uses active library, explicit playback, optional post-creative metadata, scoped audio focus, reduced-motion support. Supabase ledger confirms the exact music migration 20261107171413 already applied live. Do not reapply it or imply new app frontend has been published.
+
+## Centered compact post Share dialog
+The existing internal Share post destination modal is changed from a bottom-aligned max-82% sheet to a centered max-460px, max-72% dialog. Long recipient lists scroll inside the card. Outside-tap dismissal and existing authorized backend share-count behavior remain unchanged. Actual device pixels are skipped, not verified.

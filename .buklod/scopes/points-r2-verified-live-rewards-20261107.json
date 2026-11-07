@@ -103,7 +103,8 @@
     "Optional music errors do not erase posted messages",
     "Shared audio focus avoids competing Wall music, Premium Deck and DZAS playback",
     "No music copyright rights implied by technical feature availability",
-    "Public Wall Music must preserve FlashList scroll, pagination, ads viewability and pause off-screen audio without navigation mutation"
+    "Public Wall Music must preserve FlashList scroll, pagination, ads viewability and pause off-screen audio without navigation mutation",
+    "Post share destination dialog renders as a centered compact max-460px card with scrollable results, outside-tap dismissal and unchanged authorized share RPC"
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -179,7 +180,8 @@
     "supabase/tests/bsoc_live_chat_authorization.sql",
     "tests/cluster-editor-keyboard-safe.test.mjs",
     "tests/wall-post-music-motion-contract.test.mjs",
-    "tests/wall-post-music-navigation-scroll.test.mjs"
+    "tests/wall-post-music-navigation-scroll.test.mjs",
+    "tests/share-card-centered-compact-20261108.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/points-r2-verified-live-rewards-20261107.json",
@@ -230,6 +232,7 @@
     "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
     "src/components/BuklodHomeCheckinToday.tsx",
     "src/components/BuklodHomeFaithPanel.tsx",
+    "src/components/BuklodPostInternalShare.tsx",
     "src/components/BuklodPostMotion.tsx",
     "src/components/BuklodPostMusicPicker.tsx",
     "src/components/BuklodPremiumMusicDeck.tsx",
@@ -345,6 +348,7 @@
     "tests/kingdom-premium-map-r6.test.mjs",
     "tests/kingdom-production-ota-r12.test.mjs",
     "tests/kingdom-staging-performance-r11.test.mjs",
+    "tests/share-card-centered-compact-20261108.test.mjs",
     "tests/wall-post-music-motion-contract.test.mjs",
     "tests/wall-post-music-navigation-scroll.test.mjs"
   ]

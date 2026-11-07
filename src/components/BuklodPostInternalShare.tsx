@@ -965,19 +965,23 @@ const styles =
 
     backdrop: {
       flex: 1,
-      justifyContent:
-        'flex-end',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 24,
       backgroundColor:
         'rgba(0,0,0,0.35)',
     },
 
     sheet: {
-      maxHeight: '82%',
-      paddingTop: 10,
+      width: '100%',
+      maxWidth: 460,
+      maxHeight: '72%',
+      minHeight: 0,
+      paddingTop: 12,
       paddingHorizontal: 14,
-      paddingBottom: 24,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
+      paddingBottom: 18,
+      borderRadius: 20,
       backgroundColor:
         '#FFFFFF',
     },
@@ -1082,6 +1086,8 @@ const styles =
 
     list: {
       flexGrow: 0,
+      flexShrink: 1,
+      minHeight: 0,
     },
 
     listContent: {
