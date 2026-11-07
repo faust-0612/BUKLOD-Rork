@@ -5,7 +5,8 @@
 param(
   [string]$R10Local = 'C:\BUKLODQ_R10_BUILD\project',
   [string]$BuildLocal = 'C:\BUKLODQ_BUILD\project',
-  [string[]]$InventoryRoots = @()
+  [string[]]$InventoryRoots = @(),
+  [switch]$SelfTest
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
@@ -16,20 +17,10 @@ $cases=@(
  @{tag='R10';id='BUKLODQ_R10_BUILD_project_3d5647803088_04e596c8cfeb';local=$R10Local;count=300;digest='04e596c8cfeb04bea54a618686d70ca1560628f06967a0bcc3510ad31b41a1f7'},
  @{tag='BUILD';id='BUKLODQ_BUILD_project_8374b517b993_481385774640';local=$BuildLocal;count=336;digest='481385774640c64813eafbb7c2451390541bbff3d63b55c9159da74fc835faad'}
 )
-$work=Join-Path $env:TEMP ('BUKLOD_R4_DIRECT_'+(Get-Date -Format 'yyyyMMdd-HHmmss'))
-$cloud=Join-Path $work 'source'
-New-Item -ItemType Directory -Force -Path $work|Out-Null
-Write-Host 'Downloading verified source from private GitHub into TEMP; original laptop files are read-only...'
-& git clone --quiet --filter=blob:none --sparse --depth 1 --single-branch --branch migration/quiz-canonical-source-20261107 https://github.com/faust-0612/BUKLOD-Migrated-Sources.git $cloud
-if($LASTEXITCODE -ne 0){throw 'GitHub clone failed; verify Git credentials and private repository access.'}
-& git -C $cloud sparse-checkout set "$prefix/BUKLODQ_R10_BUILD_project_3d5647803088_04e596c8cfeb" "$prefix/BUKLODQ_BUILD_project_8374b517b993_481385774640"
-if($LASTEXITCODE -ne 0){throw 'Cloud sparse checkout failed; originals unchanged.'}
-$head=(& git -C $cloud rev-parse HEAD).Trim()
-if($head -ne $archiveSha){throw 'Unexpected GitHub archive revision; stop.'}
 function Sha([string]$p){(Get-FileHash -LiteralPath $p -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()}
 function Rel([string]$p){
  if([string]::IsNullOrWhiteSpace($p) -or $p.StartsWith('/') -or $p.Contains('\') -or $p.Contains(':') -or
-    (@($p.Split('/'))|Where-Object {$_ -eq '.' -or $_ -eq '..' -or $_ -eq ''}).Count -gt 0){throw 'Unsafe manifest path'}
+    @($p.Split('/') | Where-Object {$_ -eq '.' -or $_ -eq '..' -or $_ -eq ''}).Count -gt 0){throw 'Unsafe manifest path'}
  return $p.Replace('/','\')
 }
 function LocalCheck([string]$root,[hashtable]$expected){
@@ -62,13 +53,43 @@ function LocalCheck([string]$root,[hashtable]$expected){
  return @{present=$true;scanned=$files.Count;extras=$extras;missingExpected=$missing;
   hashMismatch=$changed;secretLike=$secret;reparsePoints=$links.Count;scanErrors=$scanErrors.Count}
 }
+# Safe non-network self-test. Run before any Git clone or local inventory scan.
+if ($SelfTest) {
+  $valid = @('app/exam.tsx','assets/quiz-logo.png','src/lib/supabase.ts')
+  foreach ($item in $valid) {
+    $actual = Rel $item
+    if ($actual -ne $item.Replace('/','\')) { throw "Self-test: valid path failed: $item" }
+  }
+  $invalid = @('../secret','.', '/root','app//exam.tsx','app\exam.tsx','C:/foo','a/../b','')
+  foreach ($item in $invalid) {
+    $rejected = $false
+    try { $null = Rel $item } catch { $rejected = $true }
+    if (-not $rejected) { throw "Self-test: unsafe path was accepted" }
+  }
+  if (@().Count -ne 0 -or @('one').Count -ne 1) {
+    throw 'Self-test: array count semantics failed.'
+  }
+  Write-Host 'BUKLOD R4 PowerShell SELF-TEST PASSED: valid/invalid manifest paths and StrictMode empty arrays.'
+  return
+}
+
+$work=Join-Path $env:TEMP ('BUKLOD_R4_DIRECT_'+(Get-Date -Format 'yyyyMMdd-HHmmss'))
+$cloud=Join-Path $work 'source'
+New-Item -ItemType Directory -Force -Path $work|Out-Null
+Write-Host 'Downloading verified source from private GitHub into TEMP; original laptop files are read-only...'
+& git clone --quiet --filter=blob:none --sparse --depth 1 --single-branch --branch migration/quiz-canonical-source-20261107 https://github.com/faust-0612/BUKLOD-Migrated-Sources.git $cloud
+if($LASTEXITCODE -ne 0){throw 'GitHub clone failed; verify Git credentials and private repository access.'}
+& git -C $cloud sparse-checkout set "$prefix/BUKLODQ_R10_BUILD_project_3d5647803088_04e596c8cfeb" "$prefix/BUKLODQ_BUILD_project_8374b517b993_481385774640"
+if($LASTEXITCODE -ne 0){throw 'Cloud sparse checkout failed; originals unchanged.'}
+$head=(& git -C $cloud rev-parse HEAD).Trim()
+if($head -ne $archiveSha){throw 'Unexpected GitHub archive revision; stop.'}
 $results=@()
 foreach($c in $cases){
  $base=Join-Path $cloud ($prefix+'/'+$c.id)
  $manifest=Join-Path $base 'QUIZ_RECOVERY_MANIFEST.json'
  if(-not (Test-Path -LiteralPath $manifest -PathType Leaf)){throw "Archive manifest missing: $($c.tag)"}
  $j=Get-Content -LiteralPath $manifest -Raw -Encoding UTF8|ConvertFrom-Json
- if($j.file_count -ne $c.count -or $j.files.Count -ne $c.count -or $j.file_manifest_sha256 -ne $c.digest){
+ if($j.file_count -ne $c.count -or @($j.files).Count -ne $c.count -or $j.file_manifest_sha256 -ne $c.digest){
   throw "Archive manifest mismatch: $($c.tag)"
  }
  $expected=@{};$verified=0
