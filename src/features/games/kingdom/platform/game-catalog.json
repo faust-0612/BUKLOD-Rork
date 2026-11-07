@@ -94,7 +94,7 @@
           "id": "christian-scripture-word-search",
           "title": "Scripture Word Search",
           "genre": "words",
-          "status": "planned"
+          "status": "pilot"
         }
       ]
     },
@@ -208,7 +208,7 @@
           "id": "mitch-block-forge",
           "title": "Block Forge",
           "genre": "blocks",
-          "status": "planned"
+          "status": "pilot"
         },
         {
           "id": "mitch-color-merge",
