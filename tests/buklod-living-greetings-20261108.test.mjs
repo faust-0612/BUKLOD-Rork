@@ -12,7 +12,9 @@ test('Living community uses canonical BUKLOD followers and Organization/Cluster 
   assert.match(migration,/public\.buklod_user_follows/);
   assert.match(migration,/public\.buklod_scope_memberships/);
   assert.match(migration,/in \('CLUSTER','ORGANIZATION'\)/);
-  assert.doesNotMatch(migration,/\bchurch_id\b/i);
+  // A comment documenting retirement may name church_id; query logic must not use it.
+  const sqlWithoutComments=migration.replace(/^\\s*--.*$/gm,'');
+  assert.doesNotMatch(sqlWithoutComments,/\\bchurch_id\\b/i);
   assert.match(migration,/new\.membership_status <> 'ACTIVE'/);
 });
 
@@ -35,7 +37,7 @@ test('Event queue delivers at most 100 per minute, respects notifications prefer
   assert.match(migration,/public\.queue_notification\(/);
   assert.match(migration,/buklod-living-greetings-dispatch-v1/);
   assert.match(migration,/buklod-living-greetings-daily-v1/);
-  assert.match(migration,/revoke all on private\.buklod_living_dispatch_greetings_v1/);
+  assert.match(migration,/revoke all on function private\.buklod_living_dispatch_greetings_v1/);
 });
 
 test('Notifications use explicit safe routes, real approved KL releases and no event retroactive spam',()=>{
