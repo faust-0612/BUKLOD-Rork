@@ -19,7 +19,8 @@ jobs:
   initiate:
     if: >-
       github.event_name == 'push' &&
-      startsWith(github.event.head_commit.message, 'release(buklod): one-time prod OTA and web 2026-11-07')
+      (startsWith(github.event.head_commit.message, 'release(buklod): one-time prod OTA and web 2026-11-07') ||
+       startsWith(github.event.head_commit.message, 'release(buklod): Android OTA recovery 2026-11-07'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -31,10 +32,18 @@ jobs:
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "faust-0612/BUKLOD-Rork"
           test "$GITHUB_REF" = "refs/heads/main"
-          test "$(jq -r '.head_commit.message | split("\n")[0]' "$GITHUB_EVENT_PATH")" = 'release(buklod): one-time prod OTA and web 2026-11-07'
+          commit_title="$(jq -r '.head_commit.message | split("\n")[0]' "$GITHUB_EVENT_PATH")"
+          case "$commit_title" in
+            'release(buklod): one-time prod OTA and web 2026-11-07')
+              targets=("production_android_ota.yml|BUKLOD/Android production OTA" "production_web_deploy.yml|BUKLOD/Expo Hosting production web") ;;
+            'release(buklod): Android OTA recovery 2026-11-07')
+              targets=("production_android_ota.yml|BUKLOD/Android production OTA") ;;
+            *)
+              echo "STOP: no authorized release marker"; exit 1 ;;
+          esac
           api="https://api.github.com/repos/$GITHUB_REPOSITORY"
           h=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
-          for entry in "production_android_ota.yml|BUKLOD/Android production OTA" "production_web_deploy.yml|BUKLOD/Expo Hosting production web"; do
+          for entry in "${targets[@]}"; do
             workflow="${entry%%|*}"; context="${entry#*|}"
             head="$(curl -fsSL "${h[@]}" "$api/git/ref/heads/main" | jq -r '.object.sha')"
             test "$head" = "$GITHUB_SHA" || { echo "STOP: main changed before $workflow"; exit 1; }
@@ -70,7 +79,10 @@ jobs:
           url="$(jq -r '.workflow_run.html_url' "$GITHUB_EVENT_PATH")"
           if [ "$branch" != main ] || [ "$event" != workflow_dispatch ]; then exit 0; fi
           commit_title="$(curl -fsSL "${h[@]}" "$api/commits/$source_sha" | jq -r '.commit.message | split("\n")[0]')"
-          if [ "$commit_title" != 'release(buklod): one-time prod OTA and web 2026-11-07' ]; then exit 0; fi
+          case "$commit_title" in
+            'release(buklod): one-time prod OTA and web 2026-11-07'|'release(buklod): Android OTA recovery 2026-11-07') ;;
+            *) exit 0 ;;
+          esac
           case "$name" in
             "BUKLOD Production Android OTA")
               context="BUKLOD/Android production OTA"
