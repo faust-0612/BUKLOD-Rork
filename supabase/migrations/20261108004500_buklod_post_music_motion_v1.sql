@@ -5,8 +5,7 @@ create table if not exists public.buklod_post_creatives (
  music_track_id uuid references public.buklod_music_library(id) on delete set null,
  motion_preset text not null default 'none'
   check (motion_preset in ('none','zoom','pan','float','fade')),
- created_at timestamptz not null default now(),
- check (music_track_id is not null or motion_preset <> 'none')
+ created_at timestamptz not null default now()
 );
 create index if not exists buklod_post_creatives_track_idx
  on public.buklod_post_creatives(music_track_id) where music_track_id is not null;
