@@ -12,7 +12,7 @@
     "Disable device/native compatibility gates: rejected; only physical verification is skipped."
   ],
   "riskAreas": [
-    "story"
+    "release-identity"
   ],
   "preserveBehaviors": [
     "Do not modify either production release workflow or its guards",
@@ -26,9 +26,12 @@
     "Expo Hosting web must pass production environment and immutable SHA export/deploy checks",
     "Both actions conclude successfully and per-target statuses reflect real results"
   ],
-  "regressionTests": [],
+  "regressionTests": [
+    "tests/buklod-authorized-production-promotion-20261107.test.mjs"
+  ],
   "allowedPaths": [
     ".buklod/scopes/buklod-one-time-prod-ota-web-20261107.json",
-    ".github/workflows/buklod-authorized-production-20261107.yml"
+    ".github/workflows/buklod-authorized-production-20261107.yml",
+    "tests/buklod-authorized-production-promotion-20261107.test.mjs"
   ]
 }
