@@ -442,6 +442,16 @@ export default function MeScreen() {
     refreshProfile,
   } = useAuth();
 
+  const [bsocAuthorized,setBsocAuthorized]=useState(false);
+  useEffect(()=>{
+    if(!profile?.id){setBsocAuthorized(false);return;}
+    let live=true;
+    void supabase.rpc('buklod_bsoc_can',{p_permission_key:'bsoc.support.read'})
+      .then(({data,error})=>{if(live)setBsocAuthorized(!error&&data===true);})
+      .catch(()=>{if(live)setBsocAuthorized(false);});
+    return ()=>{live=false;};
+  },[profile?.id,roles]);
+
   const [
     personalDashboardTheme,
     setPersonalDashboardTheme,
@@ -1533,6 +1543,15 @@ export default function MeScreen() {
             subtitle="Makipag-chat sa support; magsend ng screenshot o video ng problema kung kailangan"
             onPress={() => router.push('/support/live' as any)}
           />
+
+          {bsocAuthorized && (
+            <MenuRow
+              icon="headset"
+              title="BSOC Support Operations"
+              subtitle="Authorized personnel · live inbox · notifications · GPT diagnostics"
+              onPress={() => router.push('/admin/bsoc-support' as any)}
+            />
+          )}
 
           <MenuRow
             icon="message-text-outline"
