@@ -7,7 +7,7 @@ const files = [
   'content/word/2026-11/november-21-30.json',
 ];
 const entries = files.flatMap(f => JSON.parse(fs.readFileSync(f,'utf8')));
-const migration = fs.readFileSync('supabase/migrations/20261107093220_word_november_2026_complete_publication.sql','utf8');
+const migration = fs.readFileSync('supabase/migrations/20261107094642_word_november_2026_complete_publication.sql','utf8');
 
 test('November Word has thirty distinct, complete Scripture-grounded days', () => {
   assert.equal(entries.length,30);
@@ -44,7 +44,7 @@ test('daily route, reminders and monitor use exact Philippine day', () => {
 });
 
 test('future published Word stays hidden by Supabase date RLS', () => {
-  const policy = fs.readFileSync('supabase/migrations/20261107095500_word_future_date_rls_visibility.sql','utf8');
+  const policy = fs.readFileSync('supabase/migrations/20261107095323_word_future_date_rls_visibility.sql','utf8');
   assert.match(policy,/ALTER POLICY "Published devotionals are readable"/);
   assert.match(policy,/publish_date <=/);
   assert.match(policy,/Asia\/Manila/);
