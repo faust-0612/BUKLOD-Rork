@@ -179,10 +179,19 @@ if(process.argv.includes("--self-test")){
  const a=[{source:"C:\\Users\\abc\\same.txt",bytes:2},{source:"D:\\Users\\abc\\same.txt",bytes:2}];
  const g=shardRepair(a,"test");assert(g.length===2,"drive-letter collision not isolated");
  assert(archiveKeys("C:\\Users\\Jose\\x.txt").includes("users/jose/x.txt"),"expected path normalization failed");
- const t=path.join(os.tmpdir(),"BUKLOD_V4_CRC_TEST_"+process.pid+".txt");
- try{fs.writeFileSync(t,"123456789");assert(crc32(t)==="CBF43926","CRC32 vector incorrect")}
- finally{fs.rmSync(t,{force:true})}
- console.log("SELF TEST PASSED: CRC32, -spf2 drive-collision isolation, path normalization.");process.exit(0)
+ const testDir=fs.mkdtempSync(path.join(os.tmpdir(),"BUKLOD_V5_STAGING_TEST_"));
+ const t=path.join(testDir,"source.txt"),tempAlias=path.join(testDir,"000001.dat");
+ try{
+   fs.writeFileSync(t,"123456789");
+   assert(crc32(t)==="CBF43926","CRC32 vector incorrect");
+   fs.linkSync(t,tempAlias);
+   assert(sha256(t)===sha256(tempAlias),"Temp hardlink did not preserve original bytes");
+   fs.unlinkSync(tempAlias);
+   assert(fs.existsSync(t),"Removing temp hardlink affected source file");
+   const safe=norm("payload\\data\\000001.dat");
+   assert(safe==="payload/data/000001.dat","Fixed indexed archive path invalid");
+ }finally{fs.rmSync(testDir,{recursive:true,force:true})}
+ console.log("SELF TEST PASSED: CRC32, deterministic paths, -spf2 drive isolation, and non-destructive staging hardlinks.");process.exit(0)
 }
 try{
  const original=JSON.parse(fs.readFileSync(path.join(BASE,"RESUMABLE_REMAINING_ASSETS_V3.json"),"utf8"));
@@ -361,7 +370,7 @@ try{
    state.v5RemoteVolumesVerified=k+1;checkpoint();
  }
  state.status="V5_ALL_MISSING_ARCHIVE_FILES_RECOVERED_AND_CLOUD_VERIFIED";
- state.v4RepairArchiveVerified=true; // V5 supersedes the abandoned, partial V4 repair.
+ state.v5RepairArchiveVerified=true; // Previous V4 repair remained partial; V5 is independent.
  state.allAvailableV3CandidatesAccountedFor=true;
  checkpoint();
  console.log("V5 EXACT INDEXED REPAIR CLOUD VERIFIED");
