@@ -1,4 +1,5 @@
 name: BUKLOD R9 recovered source reconciliation contract
+# Final regression verifies R5 dynamic counts and actual native/cloud manifest-mapping source.
 on:
   push:
     branches: [dev/quiz-consolidation-identity-audit-20261107]
