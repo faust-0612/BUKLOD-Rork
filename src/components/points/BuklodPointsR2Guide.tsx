@@ -89,14 +89,20 @@ export default function BuklodPointsR2Guide() {
      {expanded && (
        <View style={styles.body}>
          <Text style={styles.explainer}>
-           Higher rewards require real accomplishments and evidence.
-           Daily Bible Quiz: Show Faith → Daily Bible Quiz → submit five server-scored answers.
-           Cluster Verified Attendance: open Cluster → Events & Attendance → authorized operator records present/late.
-           Mentor reward: BUKLOD Lesson → report registered mentees → attach teaching photo → Pastor and Admin approval.
-           Major milestones: nominate with evidence in the Live Reward Focus panel; Admin reviews before reward claim.
-           Only backend-validated activities earn points. Unsupported challenges remain disabled.
-           Your existing lifetime and available balances are preserved.
+           HOW TO EARN: A reward appears only after a real BUKLOD activity is completed and validated. All points go into the same Points claim balance. Ads after successful submissions or claims are optional and never required for a reward.
          </Text>
+         <Text style={styles.rowTitle}>Daily Bible Quiz — HOME</Text>
+         <Text style={styles.explainer}>Open Home → Daily Bible Quiz → choose Easy (+3), Medium (+6), or Hard (+12). Five questions are assigned automatically each day. Answer at least 4/5 correctly. One attempt per account per Manila day.</Text>
+         <Text style={styles.rowTitle}>Check In Today — HOME</Text>
+         <Text style={styles.explainer}>When a live Cluster event is shown, tap Check In Today once. Its name, location and date are recorded. Status is Pending until the System Admin verifies; then +10 BP. No need to open another attendance app.</Text>
+         <Text style={styles.rowTitle}>Mentoring Teaching — BUKLOD LESSON</Text>
+         <Text style={styles.explainer}>An authorized mentor selects the actual lesson, registered mentees, location and teaching notes, then uploads a real teaching photo with participant consent. The System Admin alone reviews it. Once approved, +15 BP. Separate lesson-completion points remain auto-submitted through the normal lessons flow.</Text>
+         <Text style={styles.rowTitle}>How to earn Major Achievement bonuses</Text>
+         <Text style={styles.explainer}>Open Points → Live Reward Focus & Milestones. Choose a milestone, check your recorded progress, describe the real accomplishment with date, place, participants and verifiable proof, then press Submit for verification. Track Pending, Approved or Rejected in the same panel. No points are credited just by applying.</Text>
+         <Text style={styles.explainer}>Bible Scholar: complete 28 verified ABC lessons and apply with supporting records. Community Builder: document an actual community project and beneficiaries. Faithful Mentor: complete 4 approved teaching sessions. Kingdom Champion: 20 recorded Kingdom levels plus independent event proof, because client game scores alone cannot award BP. Other verified service, ministry and tournament awards also require evidence and Admin approval.</Text>
+         <Text style={styles.rowTitle}>Kabihasnang Ligaw</Text>
+         <Text style={styles.explainer}>Finish reading each released chapter with verified engagement: +5 BP. Finish all 30 chapters of a complete series: additional +30 BP once. Previously credited historical rewards remain unchanged.</Text>
+         <Text style={styles.explainer}>Existing activities remain: Daily Bible +10; Devotional +12; Formation Lesson +25; Stage Completion +75; Mentoring Lesson Release +20; Weekly Consistency +20; ABC Lesson +8 for new verified completions. Social activity points follow the live rules shown below and anti-abuse validation.</Text>
          {loading && <ActivityIndicator color="#0A7436" />}
          {error && (
            <Text style={styles.fallback}>
