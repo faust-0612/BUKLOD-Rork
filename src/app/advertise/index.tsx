@@ -9,6 +9,7 @@ import {decode} from 'base64-arraybuffer';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
+import {readAdvertiseUploadBody} from '@/lib/advertise/readAdvertiseUploadBody';
 
 type Creative='photo'|'video';
 type Coverage='barangay'|'city'|'province'|'nationwide';
@@ -94,8 +95,24 @@ export default function AdvertiseScreen(){
  async function uploadAsset(a:ImagePicker.ImagePickerAsset, bucket:'paid-ad-media'|'paid-ad-payment', folder:'creative'|'payment', c:Creative|'proof'){
    if(!user?.id)throw new Error('Please sign in again.');
    const path=`${user.id}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext(a,c)}`;
-   const b64=await FileSystem.readAsStringAsync(a.uri,{encoding:FileSystem.EncodingType.Base64});
-   const {error}=await supabase.storage.from(bucket).upload(path,decode(b64),{contentType:mime(a,c),upsert:false});
+   const maxBytes=bucket==='paid-ad-payment'?10*1024*1024:50*1024*1024;
+   if(a.fileSize&&a.fileSize>maxBytes){
+     throw new Error(bucket==='paid-ad-payment'
+       ? 'Payment screenshot must be 10 MB or smaller.'
+       : 'Advertising creative exceeds the 50 MB upload limit. Choose a smaller file.');
+   }
+   const fileBody=await readAdvertiseUploadBody(
+     {uri:a.uri,file:a.file},
+     Platform.OS==='web',
+     async()=>decode(await FileSystem.readAsStringAsync(a.uri,{encoding:FileSystem.EncodingType.Base64})),
+   );
+   const byteLength=fileBody instanceof ArrayBuffer?fileBody.byteLength:fileBody.size;
+   if(byteLength>maxBytes){
+     throw new Error(bucket==='paid-ad-payment'
+       ? 'Payment screenshot must be 10 MB or smaller.'
+       : 'Advertising creative exceeds the 50 MB upload limit. Choose a smaller file.');
+   }
+   const {error}=await supabase.storage.from(bucket).upload(path,fileBody,{contentType:mime(a,c),upsert:false});
    if(error)throw error;
    const {data}=supabase.storage.from(bucket).getPublicUrl(path);
    return {path,url:data.publicUrl,mime:mime(a,c)};
