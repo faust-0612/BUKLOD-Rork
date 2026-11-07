@@ -121,7 +121,7 @@ begin
   -- Birth dates are private: birthday event initially targets only that member.
   -- Followers/Cluster members are included ONLY if the member opts in.
   for v_user in select p.id from public.profiles p
-    where p.is_active and p.is_verified and p.birth_date is not null
+    where p.is_active and p.birth_date is not null
       and extract(month from p.birth_date)=extract(month from v_day)
       and extract(day from p.birth_date)=extract(day from v_day)
   loop
@@ -301,7 +301,8 @@ begin
   end if;
   for v_recipient in
     select p.id from public.profiles p
-    where p.is_active and p.is_verified
+    where p.is_active
+      and (p.is_verified or (v_event.kind='birthday' and p.id=v_event.actor_id))
       and not exists (select 1 from private.buklod_living_greeting_delivery_v1 d
         where d.event_id=v_event.id and d.recipient_id=p.id)
       and (
