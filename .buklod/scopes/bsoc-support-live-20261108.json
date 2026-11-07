@@ -1,0 +1,69 @@
+{
+  "contractVersion": 2,
+  "objective": "BUKLOD BSOC member support chat, secure staff invitations and notifications: isolated source reconciliation without production deployment.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main afdeb8f4ad3034328235a77342720c04212106c2; last published Android OTA and Expo Hosting web were successful for main on November 7 2026 UTC, not this branch. New code is DEV only. Exact native V28 runtime 1.3.2; no production activation authorized.",
+  "chosenApproach": "Preserve latest GitHub main and add narrowly scoped BSOC integration, type-safe permission read, RLS protections, bounded realtime recovery and isolated regression evidence; keep branch draft awaiting full consolidated RC.",
+  "selectionRationale": "Existing main paid sponsorship, Wall, ads, and web protections must not be regressed; existing support table and scoped staff permissions are authoritative.",
+  "alternativeApproaches": [
+    "Merge all standalone BSOC files and bypass QA (rejected: unsafe cross-app auth)",
+    "Ship guest live support with missing APIs (rejected: insecure and broken)",
+    "Keep an isolated tested member/staff BSOC feature candidate until the full production release gate can be satisfied (chosen)"
+  ],
+  "acceptanceChecks": [
+    "Member can open own BUKLOD support cases and receive scoped live messages without exposing other accounts",
+    "Message/evidence permissions remain account-bound and backend RLS is checked, no anonymous evidence access",
+    "Login and System Admin recovery remain available while incomplete guest support intake is not falsely exposed",
+    "BSOC personnel invitation codes remain one-time, identity bound, expiring and rate limited",
+    "Message, evidence and notifications use realtime with bounded fallback and stale-thread race protection",
+    "TypeScript and focused Node auth/security, SQL and release identity checks must pass against exact branch SHA",
+    "Final authenticated live support send/receive/upload/reopen E2E remains a mandatory manual/automated gate before production release",
+    "App Expo project, Android runtime 1.3.2, native package and separate standalone BSOC Expo identity remain fixed",
+    "Do not merge into main, apply migrations or publish OTA/web until full consolidated RC reconciled and reward authority complete"
+  ],
+  "preserveBehaviors": [
+    "Main auth session and recovery flow",
+    "Admin authorization and active operator training gate",
+    "Existing user_feedback tickets",
+    "Main public Wall, ads, sponsorship and desktop navigation",
+    "Production build runtime and app identifiers"
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "release-identity",
+    "database-security",
+    "notifications",
+    "live-support"
+  ],
+  "regressionTests": [
+    "tests/bsoc-auth-privacy-20261108.test.mjs",
+    "tests/bsoc-release-identity-20261108.test.mjs",
+    "supabase/tests/bsoc_live_chat_authorization.sql"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/bsoc-support-live-20261108.json",
+    "docs/BSOC_EXPO_RELEASE_RECONCILIATION_20261107.md",
+    "scripts/BUKLOD_BSOC_EXPO_WEB_PINNED_DEPLOY.ps1",
+    "scripts/BUKLOD_BSOC_LOCAL_INVENTORY_AND_SAFE_MIGRATE.ps1",
+    "src/app/(auth)/login.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/admin/bsoc-conversations.tsx",
+    "src/app/admin/bsoc-gpt-debug.tsx",
+    "src/app/admin/bsoc-notifications.tsx",
+    "src/app/admin/bsoc-personnel.tsx",
+    "src/app/admin/bsoc-support.tsx",
+    "src/app/admin/index.tsx",
+    "src/app/bsoc/access.tsx",
+    "src/app/support/index.tsx",
+    "src/app/support/live.tsx",
+    "supabase/functions/bsoc-gpt-debug-v1/index.ts",
+    "supabase/migrations/20261107224000_bsoc_direct_support_chat_evidence.sql",
+    "supabase/migrations/20261107235000_bsoc_support_notifications_v1.sql",
+    "supabase/migrations/20261107235500_bsoc_personnel_invitation_codes_v1.sql",
+    "supabase/migrations/20261107235900_bsoc_support_fk_indexes.sql",
+    "supabase/migrations/20261108002000_bsoc_chat_nonce_default.sql",
+    "supabase/tests/bsoc_live_chat_authorization.sql",
+    "tests/bsoc-auth-privacy-20261108.test.mjs",
+    "tests/bsoc-release-identity-20261108.test.mjs"
+  ]
+}
