@@ -21,6 +21,9 @@ test('Three image layouts are available with correct hero geometry and bounded h
 });
 
 test('Composer shows clear Grid, Highlight and Swipe choice; post presentation allows toggling',()=>{
+  assert.match(collage, /showLayoutPicker = false/); // other consumers keep their UI
+  assert.match(publicWall, /<BuklodCommunityPhotoCollage\s+showLayoutPicker/);
+  assert.match(scopedWall, /<BuklodCommunityPhotoCollage\s+showLayoutPicker/);
   assert.match(publicWall, /<Text style=\{\[shared\.muted,\{fontSize:11,fontWeight:'800'\}\]\}>Collage layout<\/Text>/);
   assert.match(publicWall, /layoutMode=\{collageLayout\}/);
   assert.match(scopedWall, /layoutMode=\{collageLayout\}/);
