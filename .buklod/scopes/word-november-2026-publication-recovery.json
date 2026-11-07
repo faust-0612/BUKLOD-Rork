@@ -1,0 +1,51 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore published November 2026 Word Devotion end-to-end without recycling content or altering October archive/Reading.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: live BUKLOD Supabase before repair had 69 prior published records and zero Nov, active no-op cron and old October reminders. Verified after applied migration: 30/30 November published, all 973 November 1-7 in-app reminder links correct, monitor next 8 days covered; Android/web OTA untouched.",
+  "chosenApproach": "Write 30 new source-tracked date-specific devotionals, publish via idempotent Supabase migration, update the existing daily RPC, reminder date lookup and scheduler health check, with focused SQL and Node tests.",
+  "selectionRationale": "Recycled-content guard must remain, and current Word UI already supports future-date gating. Backend content + exact-date logic is the smallest complete recovery.",
+  "alternativeApproaches": [
+    "Remove the V26 duplicate guard and recycle prior devotions automatically; rejected because it repeats texts and violates owner guidelines.",
+    "Modify only client empty-state or force an Android OTA; rejected because source records and reminder targets remain absent.",
+    "Generate daily unreviewed text inside PostgreSQL; rejected because deterministic, auditable new content cannot be produced safely by a SQL cron."
+  ],
+  "riskAreas": [
+    "word-publishing",
+    "daily-rpc",
+    "notification-integrity",
+    "scheduler-monitoring",
+    "auth-rls",
+    "future-publish-date-rls"
+  ],
+  "acceptanceChecks": [
+    "Exactly 30 fresh November entries in production, complete and day-specific.",
+    "Current day reading and 8-day coverage present; no October/September data lost.",
+    "November in-app reminders point to same dated devotion, future sends never use stale October IDs.",
+    "Daily RPC preserves active Cluster gate; reminder worker cannot be invoked anonymously.",
+    "No Android OTA, web asset, Daily Reading or weekly assignment modification.",
+    "Future-dated devotional content is not directly readable by authenticated nonadmins before its publication date."
+  ],
+  "preserveBehaviors": [
+    "Historical October and September Word archives stay unchanged.",
+    "September/October and weekly member assignment RPC unchanged.",
+    "Show Faith/active Cluster membership gates and existing RLS preserved.",
+    "Devotional reward amount remains 2; no duplicate awards or notifications.",
+    "Published future readings only visible when their date arrives.",
+    "Admin may preview and edit future devotional records; authenticated nonadmin reads are restricted by Philippine date."
+  ],
+  "regressionTests": [
+    "tests/word-november-publication-20261107.test.mjs",
+    "supabase/tests/word_november_2026_publication_contract.sql"
+  ],
+  "allowedPaths": [
+    "content/word/2026-11/november-01-10.json",
+    "content/word/2026-11/november-11-20.json",
+    "content/word/2026-11/november-21-30.json",
+    "supabase/migrations/20261107094642_word_november_2026_complete_publication.sql",
+    "tests/word-november-publication-20261107.test.mjs",
+    "supabase/tests/word_november_2026_publication_contract.sql",
+    ".buklod/scopes/word-november-2026-publication-recovery.json",
+    "supabase/migrations/20261107095323_word_future_date_rls_visibility.sql"
+  ]
+}
