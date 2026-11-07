@@ -5,6 +5,7 @@
  * The game remains entirely offline, without any account/economy side effects.
  * See ./vendor/LICENSE and original repo https://github.com/jhlywa/chess.js.
  */
+// @ts-expect-error -- Node strip-types test runner requires explicit .ts; Metro resolves the same vendored TypeScript module.
 import {Chess,type Square,type Move,type PieceSymbol} from './vendor/chess-js-1.2.0.ts';
 export {Chess};
 export type ChessSquare=Square;

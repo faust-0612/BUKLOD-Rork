@@ -32,7 +32,7 @@ test('R10 Trade Master: finite prices, order budget, no duplicate contract and t
   assert.ok(r.marketStock.every(v=>v>0));
   const p=tradePrice(level,0,0,'buy'),sale=tradePrice(level,0,0,'sell');
   assert.ok(p>sale);
-  assert.equal(tradeBuy(r,0,100),r,'reject excessive purchase');
+  assert.throws(()=>tradeBuy(r,0,100),/Invalid trade order/,'reject excessive purchase');
   for(const contract of r.contracts){
    let remaining=contract.quantity-r.inventory[contract.good];
    while(remaining>0){
