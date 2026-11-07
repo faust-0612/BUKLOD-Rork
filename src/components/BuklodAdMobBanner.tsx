@@ -109,15 +109,15 @@ function BuklodAdMobBanner({
     pathname,
   });
   const { ref, eligible } = useBuklodAdViewportGate();
-  // Preserve a BannerAd already loaded while its still-mounted screen
-  // scrolls out of the viewport. Starting a NEW request still requires
-  // viewport eligibility; remounting a loaded native view caused flicker.
-  const viewportReady = !requireViewport || eligible || loaded;
   const diagnostic =
     diagnosticName ?? diagnosticPlacementFor(placement);
 
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // Preserve a BannerAd already loaded while its still-mounted screen
+  // scrolls out of the viewport. Starting a NEW request still requires
+  // viewport eligibility; remounting a loaded native view caused flicker.
+  const viewportReady = !requireViewport || eligible || loaded;
   const [attempt, setAttempt] = useState(0);
   const [reservationReady, setReservationReady] = useState(false);
   const [reservationTick, setReservationTick] = useState(0);
