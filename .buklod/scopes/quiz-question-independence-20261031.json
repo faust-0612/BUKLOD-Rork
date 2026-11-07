@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Prevent BUKLOD Quiz generated items from referencing unseen questions, pages, source checklists, or missing stimuli in randomized/paginated attempts",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main SHA f773f44a0a5664f8c795b910f30bb31d848420f7 as immutable source baseline at work start; dedicated BUKLOD Quiz project's deployed generator buklod-quiz-pdf v3 SHA256 06fbf0d33c8fc99353ad9221abe4ab15e8bd2199dee88845e17865701ccfca87 retrieved before patch. Dedicated Quiz still production v3. RC v2 is separate, not used by live UI. Current exam attempts must remain unchanged.",
+  "chosenApproach": "A narrow, production-v3-based Edge Function patch that adds an explicit standalone generation prompt and deterministic pre-insert validator shared with focused Node tests; deploy to unreferenced RC function until full release gates pass.",
+  "selectionRationale": "Protects existing PDF/DOCX generator behavior and all examination/grade APIs, avoids releasing broader unverified candidate AI generator and avoids touching live question rows. Deterministic rejects are a backstop for AI prompt noncompliance.",
+  "alternativeApproaches": [
+    "Release entire divergent board-style generator branch with multiple unverified changes (rejected: higher regression risk).",
+    "Group dependent items and shared stimuli as an atomic display unit (deferred: requires untracked standalone Quiz web frontend and changes to K-of-N assignment)."
+  ],
+  "acceptanceChecks": [
+    "Source is production v3 with only independent prompt, helper import and pre-insert validation added",
+    "English/Filipino source page, question-number and source-list references are rejected before persistence",
+    "30 focused Node tests pass and existing legitimate law-number or standard MCQ cases remain valid",
+    "Read-only SQL contract passes dedicated Quiz schema without writes",
+    "RC bundles match exact GitHub source and JWT required",
+    "Production remains v3 while live attempts exist and until authorized RC AI E2E and production release proof are complete"
+  ],
+  "preserveBehaviors": [
+    "Do not change any existing question/answer, attempt, score, or published result",
+    "Keep K-of-N and shuffle/attempt assignments and existing exam IDs unchanged",
+    "Preserve existing PDF/DOCX uploads, faculty authentication, exam language and question type handling",
+    "No Android APK/OTA or unrelated Wall, Cluster, Connect, Show Faith edits"
+  ],
+  "riskAreas": [
+    "classroom-quiz"
+  ],
+  "regressionTests": [
+    "tests/quiz-question-independence.test.mjs",
+    "supabase/tests/buklod_quiz_question_independence_contract.sql"
+  ],
+  "allowedPaths": [
+    "supabase/functions/buklod-quiz-pdf/index.ts",
+    "supabase/functions/buklod-quiz-pdf/questionIndependence.mjs",
+    "tests/quiz-question-independence.test.mjs",
+    "supabase/tests/buklod_quiz_question_independence_contract.sql",
+    ".buklod/scopes/quiz-question-independence-20261031.json"
+  ],
+  "releaseStatus": "DEV + isolated RC v2 only; production blocked by live student attempts and incomplete authenticated RC AI E2E"
+}
