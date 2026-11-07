@@ -334,7 +334,8 @@ async function loadClasses() {
 async function openClass(id, tab = 'overview') {
   if (!state.classes.some(c => c.classroom_id===id)) { notice('You are not assigned to that classroom.', true); return; }
   const seq = ++state.seq;
-  state.classId = id; state.tab = tab; state.data=[]; state.additional=[]; state.error=''; state.busy=true;
+  state.classId = id; state.tab = tab; state.context=null; state.overview=null;
+  state.data=[]; state.additional=[]; state.error=''; state.busy=true;
   render(); history.replaceState({},'', '?class='+encodeURIComponent(id)+'&tab='+encodeURIComponent(tab));
   try {
     const [ctx,o] = await Promise.all([
