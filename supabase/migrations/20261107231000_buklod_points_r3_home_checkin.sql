@@ -105,6 +105,9 @@ begin
  if not found then raise exception 'Check-in missing';end if;
  if row_rec.status<>'pending' then raise exception 'Already reviewed';end if;
  if p_approve then
+  if trim(coalesce(row_rec.location,''))='' then
+   raise exception 'Live event venue must be recorded before attendance reward approval';
+  end if;
   if not exists(select 1 from public.buklod_scope_memberships m
    where m.scope_id=row_rec.scope_id and m.user_id=row_rec.user_id
    and m.membership_status='ACTIVE' and m.left_at is null) then
