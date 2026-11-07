@@ -20,7 +20,8 @@
     "Campaign always inserts pending review with payment pending, no automatic activation",
     "Existing Admin paid campaign review, manual verification and 30-day approval start preserved",
     "Do not perform duplicate submission retries or alter real payment records",
-    "No Android OTA required if only web browser code path changes; publish to Expo Hosting web after mandatory QA"
+    "No Android OTA required if only web browser code path changes; publish to Expo Hosting web after mandatory QA",
+    "Previously passing advertiser/admin contract tests remain covered by existing CI without being misdeclared as changed source files."
   ],
   "acceptanceChecks": [
     "Web File from ImagePicker goes to Supabase Storage without readAsStringAsync invocation",
@@ -31,8 +32,7 @@
     "Existing payment and campaign state unchanged"
   ],
   "regressionTests": [
-    "tests/advertise-browser-file-upload-20261107.test.mjs",
-    "tests/advertise-submit-admin-approval-20261107.test.mjs"
+    "tests/advertise-browser-file-upload-20261107.test.mjs"
   ],
   "allowedPaths": [
     "src/lib/advertise/readAdvertiseUploadBody.ts",
