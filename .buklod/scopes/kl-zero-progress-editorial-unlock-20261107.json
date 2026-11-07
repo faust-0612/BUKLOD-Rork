@@ -1,0 +1,38 @@
+{
+  "contractVersion": 2,
+  "objective": "Correct KL release editing protection so opening-only reader sessions do not falsely block editorial manuscript and illustration changes, while verified reader progress, comments and rewards stay immutable.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Read live Supabase project yhanxndaqbmuzbdqlblu on 2026-11-07; Chapter 3 was flagged as released despite editing, had one session with ping_count=0 and completed_at NULL, no ledger points, comments or achievements. Function guard inspected before applying migration; protected production source baseline GitHub Main 59fe3df64700465ae3f37726e73a31d07c748042. No Expo artifact fingerprint implied.",
+  "chosenApproach": "Tightly adjust only kl_admin_unlock_unread_release_v1 to treat ping_count=0 and no completion as an opening-only session while retaining authorization, reward and engagement checks, existing session data, draft reset and audit. Apply one migration and add non-destructive SQL contract regression test.",
+  "selectionRationale": "kl_read_episode_v1 itself creates a session on opening; existing guard interpreted any session as verified reading and falsely blocked Chapter 3. Preserve all actual activity rather than deleting sessions or disabling the gate.",
+  "alternativeApproaches": [
+    "Delete reader session and reopen chapter: rejected, destructive data-integrity risk.",
+    "Allow unguarded edits to published chapters: rejected, would invalidate actual points and reader history.",
+    "Disable client-side edit button only: rejected, server still rejects legitimate changes and web/native remain broken."
+  ],
+  "riskAreas": [
+    "story"
+  ],
+  "preserveBehaviors": [
+    "Only an active system admin can edit released content and media",
+    "Any reading with ping_count>0 or completed_at remains protected",
+    "Any KL points, achievements or comments remain protected",
+    "Every existing session, media row, placement and reward remains intact",
+    "No Android OTA, web build or unrelated app schema change"
+  ],
+  "acceptanceChecks": [
+    "Unreleased chapter remains editable by current workflow",
+    "Released chapter with only opening-only sessions can return to draft for real edits",
+    "Any verified engagement, points, comments or achievements blocks editorial reopening",
+    "Existing session records are retained; unlock is auditable",
+    "SQL regression test, scope gate, and live result checks pass"
+  ],
+  "regressionTests": [
+    "supabase/tests/kl_zero_progress_editorial_unlock_20261107.sql"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261107174500_kl_zero_progress_session_editorial_unlock.sql",
+    "supabase/tests/kl_zero_progress_editorial_unlock_20261107.sql",
+    ".buklod/scopes/kl-zero-progress-editorial-unlock-20261107.json"
+  ]
+}
