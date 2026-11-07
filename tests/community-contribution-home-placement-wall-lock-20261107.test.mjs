@@ -14,11 +14,11 @@ test('Community Contribution renders on Home exactly once and is absent from Pub
   assert.doesNotMatch(wall, /import BuklodCommunityContributionCard/);
 });
 
-test('Home positions card below the existing bulletins and before Top 10; no screen rearrangement', () => {
+test('Home shows contribution near the top, before long bulletin sections, without losing Top 10', () => {
   const bulletins = home.indexOf('<BuklodHomeScopeBulletins />');
   const contribution = home.indexOf('<BuklodCommunityContributionCard />');
   const topTen = home.indexOf('TOP 10 MEMBERS');
-  assert.ok(bulletins >= 0 && contribution > bulletins && topTen > contribution);
+  assert.ok(contribution >= 0 && bulletins > contribution && topTen > bulletins);
   assert.match(home, /<BuklodSystemAnnouncementBoard slot="public_home"\s*\/>/);
   assert.match(home, /<BuklodScreenBottomBanner placement="home" variant="large"\s*\/>/);
 });
