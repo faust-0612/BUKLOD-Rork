@@ -118,6 +118,7 @@ export function CodeBreakerGameV1({ onFinish }: Props) {
     draftRef.current = Array<number | null>(spec.digits).fill(null);
     setDraft(draftRef.current);
     slotRef.current = 0;
+    explicitSlotRef.current = false;
     setActiveSlot(0);
     if (next.status === 'won') {
       scoreRef.current += next.score;
