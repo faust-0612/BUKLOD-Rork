@@ -42,7 +42,7 @@ test('In-flight music loading is cancelled on navigation and scrolling',()=>{
  assert.match(wall,/wallAudioPendingOwnerRef/);
  assert.match(wall,/onCommunityWallViewableItemsChanged/);
  assert.match(wall,/communityViewabilityListener\.current\(event\)/);
- assert.match(wall,/useFocusEffect\(useCallback\(\(\)=>\(\)=>\{/);
+ assert.match(wall,/useFocusEffect\(useCallback\(\(\)=>\{/);
 });
 test('Audio focus includes the premium music deck and DZAS',()=>{
  const deck=read('src/components/BuklodPremiumMusicDeck.tsx');
