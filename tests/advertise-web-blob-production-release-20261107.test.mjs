@@ -22,7 +22,10 @@ test('one-shot browser upload release dispatches Expo web and never Android OTA'
  const marker="'release(buklod): Advertise web file upload 2026-11-07')";
  const target='targets=("production_web_deploy.yml|BUKLOD/Expo Hosting production web") ;;';
  assert.ok(workflow.includes(marker+'\n              '+target));
- const caseBody=workflow.slice(workflow.indexOf(marker),workflow.indexOf(';;',workflow.indexOf(marker))+2);
+ const dispatcherCases=workflow.slice(workflow.indexOf('case "$commit_title" in'));
+ const markerPosition=dispatcherCases.indexOf(marker);
+ assert.ok(markerPosition>=0,'Release marker must be a shell case label');
+ const caseBody=dispatcherCases.slice(markerPosition,dispatcherCases.indexOf(';;',markerPosition)+2);
  assert.doesNotMatch(caseBody,/production_android_ota\.yml/);
  assert.match(workflow,/for entry in "\$\{targets\[@\]\}"; do/);
  assert.match(workflow,/\$api\/actions\/workflows\/\$workflow\/dispatches/);
