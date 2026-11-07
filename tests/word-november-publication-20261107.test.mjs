@@ -28,7 +28,7 @@ test('idempotent November migration preserves historical archives and avoids rec
   assert.match(migration,/November dates belong to another Daily Devotion series/);
   assert.match(migration,/Word editorial conflict for November day/);
   assert.match(migration,/WHERE NOT EXISTS\(/);
-  assert.match(migration,/is_published,true,true,2/);
+  assert.match(migration,/v->>'prayer_text',true,true,2/);
   for(const e of entries) assert.ok(migration.includes(JSON.stringify(e).slice(1,-1)),'devotion not embedded: '+e.day);
 });
 
