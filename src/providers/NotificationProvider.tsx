@@ -65,12 +65,18 @@ export function NotificationProvider({children}:{children:ReactNode}){
   if(kind==='community_emergency'&&data?.help_request_id){
    const id = data.help_request_id;
    if(isBuklodEmergencyId(id)){
-    emitBuklodEmergencySignal({ incidentId:id, origin:'recipient' });
-    // Leave the current draft/screen intact; the global SOS host is the
-    // canonical incident destination. A web/direct URL still uses Wall.
+    const delivered = emitBuklodEmergencySignal({ incidentId:id, origin:'recipient' });
+    // Leave the current draft/screen intact when the global R2 SOS host
+    // is ready. A cold launch may receive a push BEFORE it subscribes:
+    // restore the locked R1 Community deep link only as a fallback.
+    // The host still verifies canonical recipient, active SOS and proximity.
+    if(!delivered){
+     router.push(`/buklod?help_request_id=${encodeURIComponent(id)}` as any);
+    }
     return;
    }
-   router.push('/buklod' as any);
+   // Malformed/untrusted push data never reaches an incident route.
+   router.push('/notifications' as any);
    return;
   }
 
