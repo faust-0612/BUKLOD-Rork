@@ -97,3 +97,78 @@ This pilot does NOT yet claim licensed music, downloadable media packs, server-f
 - Ad frequency/placements and asset licensing require verification with applicable AdMob policy and actual build behavior.
 - Need accurate performance measurement and completed source/asset inventory to replace planning budgets.
 - Gemini may be used for independent code, puzzle balancing, question QA, or asset research if an accessible approved integration is available; never send secrets, private user data, exam material or repository credentials.
+
+
+## 11. Individual game mechanics and content production contract
+These are proposed playable specifications, NOT a claim of implementation. All original games marked "existing" remain available until separately verified replacements are ready. Every game ships with tutorial, pause/restart, accessible EN/TL rules, deterministic scoring, result panel, saved best, separate original music/SFX, character-reactive visual feedback, and earned-only game mastery.
+
+**Phan — Enterprise Town** (market percussion, trading bell, wagon motion)
+- Enterprise Builder [existing]: Six decision cycles; balance production, sales, cash flow and reputation. Win at sustainable enterprise valuation; lose when debt/cash/reputation breaks threshold. Animate workshop upgrades and inventory flow.
+- Trade Master [planned]: Buy/sell finite stock through demand shifts, choose contracts, avoid insolvency. Three market seasons and risk tiers; score net margin plus fulfilled orders, never sheer taps.
+- Market Match [planned]: Swap adjacent goods to complete orders in limited moves. Only valid swaps causing a match count; combos process sale crates. No pay-to-win undo or extra moves.
+
+**Quin — Discovery World** (curious orchestral/woodwind pulses, lantern/fog reveals)
+- Discovery Expedition [existing]: Uncover fog, collect clues and relic within energy. Win with documented evidence; failure at zero energy or unsafe extraction.
+- Guessing Quest [planned]: Three escalating clues, limited wrong attempts, optional clue tokens; score evidence-based accuracy, with answer reveal and explanation after lock. Every level has exactly one defensible solution.
+- Code Breaker [planned]: Deduce a hidden symbol/color code from position and presence feedback. Bounded attempts, duplicate handling, optional no-timer mode; win on exact code.
+
+**Van — Mind City** (metronomic synth, geometric motion)
+- City Dispatch [existing]: Match service teams to urgent city cases while preserving capacity and public trust; decision outcomes are consistent.
+- Sudoku Master [planned]: Generate only uniquely solvable 9x9 puzzles; full row/column/box rule validation, pencil marks, undo, mistake settings, difficulty from solving technique rather than empty-cell count.
+- Mind Challenge [planned]: Sequences, spatial rotation and numeric patterns, no ambiguous answers. Fixed rule explanations, difficulty ramp and adaptive non-punitive practice.
+
+**Christian — Bible Academy** (original ceremonial strings, soft chime, crown illumination)
+- Leadership Council [existing]: Five civic cases; preserve unity, trust, budget and time; keep the original game unchanged and selectable.
+- Bible Crown [pilot]: Fifteen bilingual Bible questions, two checkpoints, one automatic Second Chance, 50/50 and Mentor. Ladder score and Scripture-based feedback. No BUKLOD economy awards; audio/asset pass and cloud verification remain pending.
+- Scripture Word Search [planned]: Find valid Bible names/places/terms on a grid using word paths; answer review with contextual reference, no unrelated letters or hidden off-grid terms.
+
+**Lhen — Music City** (original rhythm tracks, visual beat lanes, calibrated hit effects)
+- Rhythm Journey [existing]: Perfect/Good/Miss timing windows, combo and accuracy; input-calibration option and pause-safe clock.
+- Melody Memory [planned]: Play an original phrase, reproduce note/beat sequence. Progressive length; audio and visible note cues make it accessible without hearing.
+- Beat Composer [planned]: Place constrained rhythm tiles into a loop and test against a target timing pattern. Grid snap, undo, playback-preview and objective correctness check; no copyrighted songs.
+
+**Jawo — Explorer Forest** (woodland ambience, branch/footstep impacts)
+- Forest Trail [existing]: Three-lane obstacle runner, moving hazards and collectible trail lights; endless score vs bounded missions are distinct modes.
+- Trail Maze [planned]: Navigate guaranteed-solvable procedurally verified mazes; route efficiency and safe exits determine stars.
+- Nature Match [planned]: Swap forest elements to fulfill habitat goals in limited moves. Responsive chain animation; reshuffle only when no valid move remains.
+
+**Trudice — Wonder Garden** (playful marimba, memory glows)
+- Wonder Path [existing]: Observe and replay a growing station sequence; missed inputs return clear feedback, no invisible pattern.
+- Picture Pairs [planned]: Match pairs from identical hidden-face cards, optionally untimed; count attempts and difficulty from deck size.
+- Word Garden [planned]: Connect letters into meaningful validated Tagalog/English words, with adaptive dictionary and no false spelling deductions.
+
+**Ace — Strategy Fortress** (tactical drum accents, chess-piece movement)
+- Rescue Grid [existing]: Visit rescue beacons and extraction through legal adjacent cells with an energy budget; blocked corridors never traversable.
+- Chess Master [planned]: Complete FIDE-compatible move legality, castling, en passant, promotion choice, checkmate/stalemate, repetition/50-75-move/insufficient-material, undo for solo, AI levels, puzzle training, game clocks where appropriate. No simplistic movement-only engine.
+- Tower Tactics [planned]: Turn-based tower selection and placement against previewed enemy waves; resource budget and wave clear objective. No tap-to-win loops.
+
+**Mitch — Art Village** (artisan clicks, glass-tile glimmer, painted reveal)
+- Restore the Mural [existing]: Drag fragments to matching targets; precision and combos restore full mural. Original implementation remains accessible.
+- Block Forge [planned]: Eight-by-eight placement, legal collision/board bounds, simultaneous row/column clears, score chain and no-legal-move end. Review historic draft #220 but do not merge it without reconciliation.
+- Color Merge [planned]: Merge adjacent compatible color tiles to meet mural palette goals; deterministic merge rule, bounded moves and undo where fair.
+
+**Niel — Mission Frontier** (expedition drums, map pin and camp ambience)
+- Mission Trail [existing]: Five decisions balancing food, water, energy and morale; safe arrival is the objective.
+- Expedition Puzzle [planned]: Optimize a route between mission stops under terrain and supplies constraints; score safety, supplies and distance, not fastest random tap.
+- Word Explorer [planned]: Solve meaning-based word clues as location/story knowledge; no cross-question dependencies.
+
+**Angel — Treasury City** (measured coin-like chimes, vault mechanisms)
+- Kingdom Treasury [existing]: Set balanced budget and emergency reserve, absorb crisis, keep trust and stability.
+- Number Vault [planned]: Reach a target number with explicit legal arithmetic/move constraints; prove solution existence and uniqueness where one answer is required.
+- Treasure Merge [planned]: Combine like-valued pieces under board-space pressure; milestones, valid-move terminal state and capped reward loops.
+
+**Vhen — Harvest Valley** (light acoustic textures, crop harvesting and cart sounds)
+- Farm to Market [existing]: Crop planning, weather, harvest timing and market deliveries; limit spoilage and protect production sustainability.
+- Harvest Match [planned]: Match-3 to complete crop orders in limited moves, with finite boosters acquired by play, clear win/fail.
+- Farm Merge [planned]: Merge matched crop stages into higher growth tiers using land and water budget; prevent endless unbounded click rewards.
+
+**ELESUR — Highland Community** (warm community instruments, wooden structure animations)
+- Village Builder [existing]: Allocate workers/material to community needs; success requires balanced care, access, learning and livelihood.
+- Domino Village [planned]: Classic legal tile matching, turn order and scoring, optional AI, draw/pass rules, round-end and draw handling. The rule set must be explicit for each play mode.
+- Bridge Puzzle [planned]: Connect endpoints with limited pieces/capacity while meeting load/route constraints; reject dangling/invalid supports and explain failed designs.
+
+## 12. Asset, score and level definitions before each game's release
+- For each of the 39 entries create a separate versioned "game spec" containing genre engine, immutable level ID, world-specific sound palette, animation states (idle/anticipation/impact/success/failure), accessible input, testable win/loss predicate, score/stars thresholds, authored assets and licenses, economy policy set to "NO CLIENT AWARDS", ad break eligibility and QA receipt.
+- Never mark "planned" as "pilot" or "existing" unless source-level gameplay and actual runtime test evidence exist. No placeholder button claiming to launch a complete game.
+- Score values across different genres are not directly interchangeable. Use per-game best/stars for display. Only a server-approved non-redeemable mastery score can normalize cross-game progress; never average game scores into redeemable BUKLOD Points.
+- Content packs are hash-pinned and sized; caching and LRU priority protect complete offline games. Music is licensed/original, no third-party TV-show audio or copied game branding.
