@@ -169,5 +169,5 @@ export function peekDzasPlaying(): boolean {
 
 // A voluntary music Play action releases DZAS before opening another track.
 subscribeBuklodAudioFocus(owner => {
-  if (owner !== 'dzas') pauseDzasRadio();
+  if (owner !== 'dzas' && peekDzasPlaying()) pauseDzasRadio();
 });
