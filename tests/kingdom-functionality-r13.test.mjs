@@ -144,3 +144,9 @@ test('R13: all 39 games retain in-app selection, account isolation and Map back 
  assert.ok(progress.includes('createKingdomProgressController'));
  assert.ok(!progress.includes("AsyncStorage.getItem('buklod.kingdom.preview.progress.v1')"));
 });
+
+test('R13: interior callback persists original game only for authenticated account', () => {
+ const ui=read('src/features/games/kingdom/platform/KingdomInteriorCenter.tsx');
+ assert.match(ui,/if \(user\?\.id\) void recordBuklodKingdomPreviewResult\(result, user\.id\)\.catch/);
+ assert.doesNotMatch(ui,/recordBuklodKingdomPreviewResult\(result\);/);
+});
