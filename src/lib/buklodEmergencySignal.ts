@@ -10,6 +10,12 @@ export type BuklodEmergencySignal = {
 };
 type Handler = (signal: BuklodEmergencySignal) => void;
 const listeners = new Set<Handler>();
+// Cold-launch notifications may arrive before the root SOS host mounts.
+// Retain only UUID + origin, never coordinates/identity/content. Bound the
+// queue so stale notifications cannot keep resurfacing after a long delay.
+const MAX_QUEUED_SIGNALS = 4;
+const PENDING_TTL_MS = 2 * 60 * 1000;
+const pending: Array<{ signal: BuklodEmergencySignal; queuedAt: number }> = [];
 const UUID = /^[a-f\d]{8}-[a-f\d]{4}-[1-8][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i;
 
 export function isBuklodEmergencyId(value: unknown): value is string {
@@ -17,6 +23,14 @@ export function isBuklodEmergencyId(value: unknown): value is string {
 }
 export function subscribeBuklodEmergencySignal(handler: Handler) {
   listeners.add(handler);
+  if (pending.length) {
+    const now = Date.now();
+    const queued = pending.splice(0);
+    for (const entry of queued) {
+      if (now - entry.queuedAt > PENDING_TTL_MS) continue;
+      try { handler(entry.signal); } catch { /* host failure must not crash app */ }
+    }
+  }
   return () => { listeners.delete(handler); };
 }
 /**
@@ -34,6 +48,19 @@ export function emitBuklodEmergencySignal(signal: BuklodEmergencySignal): boolea
       delivered = true;
     } catch {
       // A bad view must never abort SOS notification navigation.
+    }
+  }
+  if (!delivered) {
+    const now = Date.now();
+    for (let index = pending.length - 1; index >= 0; index--) {
+      if (now - pending[index].queuedAt > PENDING_TTL_MS ||
+          pending[index].signal.incidentId === signal.incidentId) {
+        pending.splice(index, 1);
+      }
+    }
+    pending.push({ signal, queuedAt: now });
+    if (pending.length > MAX_QUEUED_SIGNALS) {
+      pending.splice(0, pending.length - MAX_QUEUED_SIGNALS);
     }
   }
   return delivered;
