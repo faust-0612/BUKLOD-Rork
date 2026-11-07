@@ -1,4 +1,5 @@
 name: BUKLOD R8 native source rescue Windows safety test
+# Verify native C/C++/Objective-C, Flow and Android source-set XML against synthetic restore.
 on:
   push:
     branches: [dev/quiz-consolidation-identity-audit-20261107]
