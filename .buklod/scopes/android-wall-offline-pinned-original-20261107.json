@@ -1,0 +1,52 @@
+{
+  "contractVersion": 2,
+  "objective": "Prevent already-loaded Android Community Wall original photos from re-downloading on scroll/reopen and strengthen offline photo persistence while preserving the approved Wall layout, media quality and account privacy.",
+  "baseRef": "6276317fc2a0978e56ebf12a1ee5bb8de870d5d3",
+  "productionBaselineEvidence": "User reported repeat photo loading on Android Production Wall, 2026-11-07. Source baseline is verified main 6276317fc2a0978e56ebf12a1ee5bb8de870d5d3, containing locked Wall UI, Home-only contribution and caption fixes. Exact production OTA ID and on-device photo cache behavior are not yet verified; this change is DEV until release gates and an independent production OTA publish.",
+  "chosenApproach": "Use already installed expo-file-system/legacy and expo-crypto to copy only originals that the authenticated Wall photo renderer has actually decoded from Expo Image's memory/disk cache into an account-partitioned app-private documents directory. Check pinned copy, then Expo cache, then signed URL only when online. Retain existing image/source auth and native fallback; impose per-account size, age, item-size and concurrency caps with corrupted-local-file invalidation.",
+  "selectionRationale": "Expo's memory-disk cache may evict photos and signed URL refreshes can lead to a new loader when FlashList remounts recycled cells. Keeping an already-downloaded image in app-private durable storage avoids repeat network downloads without a second fetch. Scope by authenticated user rather than sharing private media across accounts.",
+  "alternativeApproaches": [
+    "Always prefetch or re-download the high resolution photo on remount (rejected: wastes data and fails offline).",
+    "Re-enable low-resolution sidecar thumbnails (rejected: reintroduces previously fixed permanently blurry images).",
+    "Remove FlashList virtualization to keep every photo view mounted (rejected: unbounded Android RAM, crash and lag risk).",
+    "Store signed Storage URLs offline (rejected: credentials expire and are sensitive)."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "Android-offline-photo",
+    "account-scoped-cache",
+    "weak-network-resilience",
+    "signed-media-authorisation",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Original-quality photos, cacheKey, expo native display verification and RN fallback remain; low-quality previews remain disabled",
+    "All Public, Organization/Suborganization/Cluster Wall posts retain existing collage, full-screen, scroll, pagination, videos, captions, buttons, reactions, Marites and ad placement",
+    "Auth uses session.user.id; no downloaded media reuses another user's pinned directory and signed URLs are not persisted",
+    "Stale/corrupt local file cannot suppress online retry or show another image",
+    "Data cache remains scoped to authenticated feed; offline photos whose original bytes were never downloaded show explicit unavailable state",
+    "Community Contribution remains Home-only and approved caption/spacing fixes remain",
+    "No changes to native package version, Expo runtime 1.3.2, dependencies, Supabase schema or server permissions",
+    "Production OTA requires exact-main frozen RC verification and is not implied by merging this PR"
+  ],
+  "regressionTests": [
+    "tests/android-wall-pinned-offline-original-20261107.test.mjs",
+    "tests/android-wall-sharp-paint-contract.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Already-rendered original uses private file on remount without network requests",
+    "App restart/offline can read the persisted original for the same signed-in user",
+    "Missing cache with no network never signs; explicit offline message and retry remains",
+    "One corrupt offline file is invalidated and bounded online recovery resumes",
+    "Repeated cells share a single cache probe / disk copy; bounded 2 concurrent copies, 32 waiting, 160MB / 240 file / 45 day account limits",
+    "Originals not thumbnails, old privacy rules, scroll anchors, Home/Wall layout preserved",
+    "CI engineering, TypeScript and integration QA pass on exact PR head before merge"
+  ],
+  "allowedPaths": [
+    "src/lib/communityWallPinnedPhotoCache.ts",
+    "src/components/BuklodCachedMediaImage.android.tsx",
+    "tests/android-wall-sharp-paint-contract.test.mjs",
+    "tests/android-wall-pinned-offline-original-20261107.test.mjs",
+    ".buklod/scopes/android-wall-offline-pinned-original-20261107.json"
+  ]
+}
