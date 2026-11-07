@@ -85,6 +85,7 @@ import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones'
 import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import BuklodLifeWallCard from '@/components/BuklodLifeWallCard';
 import KabihasnangLigawWallCard from '@/components/KabihasnangLigawWallCard';
+import BuklodLivingWallMoments from '@/components/BuklodLivingWallMoments';
 import BuklodCommunityWallProfileBubbles from '@/components/BuklodCommunityWallProfileBubbles';
 import {
   type BuklodCommunityComposerIntent,
@@ -4815,7 +4816,10 @@ const communityFeedRows =
     placementId="public_wall_entry"
    />
 
-   {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}
+   {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}   {/* Personal greetings and BUKLOD milestones: one bounded, dismissible card. */}
+   <BuklodLivingWallMoments />
+
+
    <BuklodLifeWallCard />
 
    {/* Home-only BUKLOD Today; story remains a Community Wall post card. */}
