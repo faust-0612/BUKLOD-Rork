@@ -17,7 +17,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   initiate:
-    if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'release(buklod): one-time prod OTA and web 2026-11-07')
+    if: >-
+      github.event_name == 'push' &&
+      startsWith(github.event.head_commit.message, 'release(buklod): one-time prod OTA and web 2026-11-07')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
