@@ -574,6 +574,12 @@ function createStyles(
       backgroundColor: 'rgba(8, 16, 12, 0.52)',
       justifyContent: 'flex-end',
     },
+    desktopComposerBackdrop: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+    },
     sheet: {
       maxHeight: '88%',
       borderTopLeftRadius: 20,
@@ -582,6 +588,14 @@ function createStyles(
       paddingHorizontal: 16,
       paddingTop: 14,
       paddingBottom: 24,
+    },
+    desktopComposerSheet: {
+      width: '100%',
+      maxWidth: 560,
+      borderRadius: 20,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 20,
     },
     sheetHeader: {
       flexDirection: 'row',
@@ -1733,6 +1747,8 @@ export default function BuklodMaritesBoard({
   const drawerBottomInset = useBuklodDrawerBottomInset();
   const { height: windowHeight, width: windowWidth } =
     useWindowDimensions();
+  // Desktop shares open as a centered dialog; phone layouts retain the bottom sheet.
+  const isDesktopComposer = Platform.OS === 'web' && windowWidth >= 768;
 
   const canPlayInline = playbackActive && !playbackBlocked && !viewStory && !composerOpen;
   const visibilityGeneration = useRef(0);
@@ -1847,7 +1863,7 @@ export default function BuklodMaritesBoard({
       <Modal
         visible={composerOpen}
         transparent
-        animationType="slide"
+        animationType={isDesktopComposer ? 'fade' : 'slide'}
         onRequestClose={resetComposer}
       >
         {/* PATCH_MARITES_KEYBOARD_SAFE_R2C */}
@@ -1861,13 +1877,18 @@ export default function BuklodMaritesBoard({
           keyboardVerticalOffset={0}
         >
         <Pressable
-          style={styles.backdrop}
+          style={[
+            styles.backdrop,
+            isDesktopComposer && styles.desktopComposerBackdrop,
+          ]}
           onPress={resetComposer}
         >
           <Pressable
             style={[
               styles.sheet,
-              { paddingBottom: drawerBottomInset + 12 },
+              isDesktopComposer
+                ? styles.desktopComposerSheet
+                : { paddingBottom: drawerBottomInset + 12 },
             ]}
             onPress={(event) =>
               event.stopPropagation()
