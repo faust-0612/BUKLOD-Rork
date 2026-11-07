@@ -212,7 +212,14 @@ async function main() {
   localRecords.set(key,row);
  }
  const eligible=[...localRecords].filter(([,row])=>row.kind!=='MISSING_LOCALLY_BUT_IN_CLOUD');
- assert(eligible.length===r6.totalFilesHashed && r6.totalFilesHashed===15770,
+ const expectedDetailEntries=r5.candidates.reduce((acc,c)=>{
+  const extras=Number(c.localExtraFiles);
+  const excluded=Number(c.extrasByCategory.generated_or_dependency||0)+
+    Number(c.extrasByCategory.protected_credentials_or_data||0);
+  return acc+(extras-excluded)+Number(c.changedArchivedFiles||0);
+ },0);
+ assert(eligible.length===r6.totalFilesHashed &&
+  expectedDetailEntries===eligible.length,
   'R5/R6 eligible-count reconciliation changed; verify the current audit');
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'buklod-r9-trees-'));
  const recovered=new Map(), sourceStatus=[];
@@ -316,7 +323,7 @@ async function main() {
   previouslyOmittedProtectedFilesNotRead:protectedFilesNotInR5,
   previouslyOmittedGeneratedFilesNotAssessed:generatedNotInR5,
   archivedFilesMissingFromOriginalLocalWorkingFolder:originalMissingButCloudArchived,
-  r10ReparsePointPreviouslyObserved:true,
+  r10ReparsePointPreviouslyObserved:Number(r5.candidates.find(c=>c.candidate==='R10')?.reparsePoints||0)>0,
   nonQuizProjectsFullRecoveryVerified:false,
   signingKeysSecureVaultRestoreVerified:false,
   independentEncryptedFullBackupVerified:false,
