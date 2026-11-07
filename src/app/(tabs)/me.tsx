@@ -1560,6 +1560,13 @@ export default function MeScreen() {
           )}
 
           <MenuRow
+            icon="account-key"
+            title="BSOC Personnel Access Code"
+            subtitle="Enter the one-time authorization code from your System Administrator"
+            onPress={() => router.push('/bsoc/access' as any)}
+          />
+
+          <MenuRow
             icon="message-text-outline"
             title="Send Feedback"
             onPress={() => router.push('/feedback')}
