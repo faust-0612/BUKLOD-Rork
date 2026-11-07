@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
-  "objective": "Finish all 39 BUKLOD Kingdom in-app game source implementations (13 original and 26 new game pilots), preserving game-station routes, current main app, local account integrity and native runtime. Add seven complete unique R10 games: Phan Trade Master, Lhen Melody Memory and Beat Composer, Ace Chess Master and Tower Tactics, Niel Expedition Puzzle, ELESUR Bridge Puzzle. This is a DEV source milestone, NOT approval for staging/production OTA.",
+  "objective": "Harden complete 39-game BUKLOD Kingdom DEV candidate with bounded cross-platform audio feedback, cleanup cap and fail-closed staging-user artifact preflight. Preserve original 13 games, new 26 pilots and current main advertising improvements.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: GitHub source reconciliation only. Prior shared base 269a70950f8eb50073b677bb5fa6bf0b63e0ecc4; latest main 03e048aa1675abe0141e67432ed51ce4de928144, current workstream 13ca4b2290d2e827d82003e5ace87fa8d8a0b1b3. 72 Kingdom-only source paths overlaid with zero collisions against 6 main-only files. Preserves advertising entry fixes on main. Explicit owner waiver of device test does NOT verify installed APK, runtime/channel, original premium audio or server points. No staging/production OTA published by this workflow.",
-  "chosenApproach": "Implement deterministic offline engine and themed React Native game UI for the final seven games; vendor audited BSD-2-Clause chess.js 1.2.0 TS source and license unchanged for full legal chess moves without new native dependencies; wire new games into existing station routes, preserve all original games and map; enforce exact catalog and R10 test gates before release.",
-  "selectionRationale": "Complete all planned mechanical game implementations in one consolidated branch with shared graphics/rendering and no new native dependency; uphold proven chess legality, supply constraints and route solvability. Premium licensed original audio/visual packs, official Character V2 reward budget, game-specific ad policy and staging binary/channel reconciliation remain separate release gates.",
+  "chosenApproach": "Pure shared feedback limiter and maximum six native fallback players, plus explicit source-only EAS staging profile validator and optional strict release-evidence metadata check. No native dependency, production ad controller, or OTA mutation.",
+  "selectionRationale": "Protect lower-memory Android devices from high-frequency game taps and prevent mismatched staging binary/channel/runtime deployments.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
     "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
@@ -71,7 +71,10 @@
     "ELESUR bridge levels must have exact degree, connectivity and crossing/capacity validation, undo and hint, and provably valid authored solutions.",
     "Ace Tower Tactics must enforce grid placement/upgrade economics and bounded enemy waves; Chess Master must enforce complete chess.js legal move rules including underpromotion, castling, en passant, checkmate and draws with proper BSD attribution.",
     "Do not publish any staging-user OTA before original music and sprite polish, authoritative rewards/ad policy, complete automated QA and compatible installed staging-user binary/environment are reconciled. User waived physical testing, not runtime proof.",
-    "Reconcile against latest main, preserving advertising entry source from Nov 7. Confirm no duplicate/lost main files in exact two-parent merge tree before staging."
+    "Reconcile against latest main, preserving advertising entry source from Nov 7. Confirm no duplicate/lost main files in exact two-parent merge tree before staging.",
+    "R11 game feedback limiter bounds rapid sounds but preserves terminal success/failure; native fallback audio player count <= six.",
+    "R11 source-only staging validation checks channel staging-user, EAS preview env, runtime 1.3.2, staging Android package and 39-game manifest.",
+    "R11 release mode fails closed without EAS artifact evidence matching full RC commit and exact APK identity; it cannot claim a device installation passed."
   ],
   "regressionTests": [
     "tests/kingdom-game-platform-20261107.test.mjs",
@@ -83,7 +86,8 @@
     "tests/kingdom-games-r7.test.mjs",
     "tests/kingdom-games-r8.test.mjs",
     "tests/kingdom-games-r9.test.mjs",
-    "tests/kingdom-games-r10.test.mjs"
+    "tests/kingdom-games-r10.test.mjs",
+    "tests/kingdom-staging-performance-r11.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-game-platform-20261107.json",
@@ -157,6 +161,11 @@
     "src/features/games/ace/ChessMasterGameV1.tsx",
     "src/app/games/lhen-rhythm-journey.tsx",
     "src/app/games/ace-rescue-grid.tsx",
-    "tests/kingdom-games-r10.test.mjs"
+    "tests/kingdom-games-r10.test.mjs",
+    "src/features/games/runtime/feedbackThrottle.ts",
+    "src/features/games/runtime/BuklodGameFeedback.native.ts",
+    "src/features/games/runtime/BuklodGameFeedback.web.ts",
+    "scripts/kingdom-staging-preflight.mjs",
+    "tests/kingdom-staging-performance-r11.test.mjs"
   ]
 }
