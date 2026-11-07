@@ -5,6 +5,7 @@ import { Pressable,Text,View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { KlSceneEffect,type SceneEffect } from './KlSceneEffect';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
+import { splitKlManuscriptBlocks } from '@/lib/kabihasnang-ligaw/paragraphBlocks';
 type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
 type Bundle={title:string;manuscript:string;version:number;media:Media[]};
 export default function KlAdminPreview({episodeId,onApproved}:{episodeId:string;onApproved?:()=>void}) {
@@ -78,7 +79,7 @@ export default function KlAdminPreview({episodeId,onApproved}:{episodeId:string;
   {error?<Text accessibilityRole="alert" style={{color:'#ffb8b8'}}>{error}</Text>:null}
  {feedback?<Text accessibilityRole="alert" style={{color:'#c7f4d8'}}>{feedback}</Text>:null}
  </View>;
- const paragraphs=bundle.manuscript.split(/\n\s*\n/).filter(Boolean);
+ const paragraphs=splitKlManuscriptBlocks(bundle.manuscript);
  const image=(m:Media, gallery=false)=>{
  const key=m.kind+':'+m.placement;
  const uri=urls[key];

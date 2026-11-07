@@ -5,6 +5,7 @@ import {supabase} from '@/lib/supabase';
 import {KlSceneEffect,type SceneEffect} from './KlSceneEffect';
 import KlChapterAudio from './KlChapterAudio';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
+import { splitKlManuscriptBlocks } from '@/lib/kabihasnang-ligaw/paragraphBlocks';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 type Chapter={id:string;season_number:number;episode_number:number;title:string};
 type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
@@ -73,7 +74,7 @@ export default function KlDynamicLibrary(){
   onError={()=>setMediaErrors(previous=>({...previous,[key]:'Image download failed'}))}/>
  <KlSceneEffect effect={m.effect??'none'} intensity={m.intensity??30}/></View>;
  };
- const paragraphs=text.split(/\n\s*\n/).filter(Boolean);
+ const paragraphs=splitKlManuscriptBlocks(text);
  return <View style={{gap:12}}>
  <Pressable onPress={()=>void refresh()}><Text style={{color:'#f1d39b'}}>Refresh released chapters</Text></Pressable>
  {chapter?<View style={{gap:12}}>

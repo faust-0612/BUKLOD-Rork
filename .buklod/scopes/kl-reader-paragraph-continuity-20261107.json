@@ -1,0 +1,45 @@
+{
+  "contractVersion": 2,
+  "objective": "Repair truncated/clipped prose and excessive blank space in released Kabihasnang Ligaw Chapter 2 on Android, match admin manuscript paragraph breaks, and prevent scrolled reading under the system status bar.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main 0be759bd27d4771bac2b40b4939cb2a115ef7d3a was inspected, including KlReaderScreen, KlAdminPreview, manuscript splitter and Android shell. Read-only production Supabase project yhanxndaqbmuzbdqlblu showed S1 Chapter 2 has 6 whitespace-only blank lines; example 'Hindi sabay...' is 324 characters combined by released /\\n{2,}/ splitter while the admin uses /\\n\\s*\\n/. The user-supplied November 7 Android screenshot shows a one-line ellipsis, a giant blank text area and scroll into the system status bar. Media server verification shows 14/14 approved scenes still map to unique paragraphs after corrected splitting. Live device build SHA is not verified.",
+  "chosenApproach": "Unify blank-line normalization across canonical released reader, dynamic reader and admin preview using one pure splitter that treats whitespace-only blank lines as borders. Render standard Android story prose as a direct Text child (retaining interactive nested Text only when glossary references occur). Keep native scroll viewport outside the status bar rather than only adding scrollable content top padding; preserve all manuscript content and chapter media/point APIs.",
+  "selectionRationale": "The editor/reader discrepancy is an actual, reproducible source bug in Chapter 2. The large joined text block and nested Text spans create Android clipping risk. A pure text-only presentation correction avoids any manuscript overwrite, schema change or reward invalidation.",
+  "alternativeApproaches": [
+    "Rewrite approved Chapter 2 manuscript to remove whitespace blank lines: rejected, would mutate released canon and readers/rewards.",
+    "Force fixed-height truncated paragraphs with Read More: rejected, loses story content and creates giant blank gaps.",
+    "Rewrite all native reader layout and new pagination: rejected, scope/risk disproportional.",
+    "Remove dictionary interactivity from all paragraphs: rejected, preserve glossary taps only where terms exist."
+  ],
+  "riskAreas": [
+    "story"
+  ],
+  "preserveBehaviors": [
+    "Full published manuscript remains untouched and unreleased content stays gated",
+    "All 14 approved illustration anchors and effects remain readable without remapping, reapproval, or reupload",
+    "Chapter completion points, bookmarks, discussion, music, and release/admin permissions unchanged",
+    "Glossary terms still open their descriptions; direct prose has no artificial ellipsis or length cap",
+    "Web and iOS viewport safe areas remain unchanged; Android top inset is static above scrolled content",
+    "No Android production OTA until staged native verification and runtime compatibility"
+  ],
+  "acceptanceChecks": [
+    "The Chapter 2 example with space-only blank line splits into distinct paragraphs and preserves every word",
+    "Canonical reader, private admin preview and dynamic reader share the same paragraph parser",
+    "Single newline inside an intentional paragraph is preserved; BOM/CRLF/tabs handled",
+    "Prose without glossary terms is a direct Text child; no body numberOfLines or ellipsizeMode",
+    "Android scroll cannot pass under native status bar while mobile bottom nav remains unaffected",
+    "Build/QA regressions succeed; 14/14 approved scene anchors remain valid"
+  ],
+  "regressionTests": [
+    "tests/kl-reader-paragraph-continuity-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/kabihasnang-ligaw/paragraphBlocks.ts",
+    "src/lib/kabihasnang-ligaw/manuscript.ts",
+    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "tests/kl-reader-paragraph-continuity-20261107.test.mjs",
+    ".buklod/scopes/kl-reader-paragraph-continuity-20261107.json"
+  ]
+}

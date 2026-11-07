@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
   "objective": "Continue consolidated BUKLOD Kingdom implementation in the BUKLOD App: add three new playable, offline, account-scoped local preview games (Jawo Trail Maze, Trudice Picture Pairs and Angel Number Vault) while preserving 13 original games, 13 stations, approved map, ads/economy rules and newest main changes.",
-  "baseRef": "0be759bd27d4771bac2b40b4939cb2a115ef7d3a",
-  "productionBaselineEvidence": "Reconciled from main 0be759bd27d4771bac2b40b4939cb2a115ef7d3a with base tree ae598a20029d4d4b93472f249b663690eacfd45c. Verified 32 Kingdom changes had zero file-path overlap with main changes since common base 59fe3df64700465ae3f37726e73a31d07c748042. Copy exact R6 blob hashes; no broad stale merge. Live production OTA and installed staging-user binary/environment remain unverified. No OTA authorized.",
-  "chosenApproach": "New pure deterministic rule engines and themed RN game scenes; reuse the existing in-app /games station routes and account-scoped KingdomInteriorCenter; no new native dependencies or direct rewards. Consolidated branch continues from current main.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Forward-reconciled into main df1e4652bac9858df58b40173483baa4d85ec73d from original main 0be759bd27d4771bac2b40b4939cb2a115ef7d3a and current Kingdom DEV c20c445d64cacf29ef95f5c04a772aa5791b82e8. Zero overlapping file paths; all KL/Word current-main files preserved via Git tree overlay. Scope compares main's current PR merge-base rather than pinning a stale main SHA. Device/staging artifact unverified; no OTA.",
+  "chosenApproach": "Single cumulative DEV branch. Explicit two-parent merge commit constructed from latest-main tree plus exact changed Kingdom blobs; preserve newer KL and Word source without unrelated patches. Use main-relative workstream scope diff for independent CI changes.",
   "selectionRationale": "Three different robust genres (maze, memory, arithmetic) expand gameplay variety without bloating native APK, and reusable result/center integration prevents authentication/economy regressions.",
   "alternativeApproaches": [
     "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
