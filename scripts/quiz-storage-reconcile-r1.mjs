@@ -22,6 +22,7 @@ export const MAIN_URL = 'https://yhanxndaqbmuzbdqlblu.supabase.co';
 export const BUCKET = 'buklod-quiz-source-docs';
 export const EXPECTED_SOURCE_OBJECTS = 98;
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_SOURCE_SNAPSHOT_MEMORY = 128 * 1024 * 1024;
 const MAX_LIST_OBJECTS = 1024;
 const LIST_PAGE_SIZE = 100;
 const MAX_RETRIES = 3;
@@ -155,15 +156,29 @@ export async function reconcileBucket(sourceClient, mainClient, options = {}) {
   const missing = originalNames.filter(p => !mainFiles.has(p));
   log({ step: 'inventory', source: originalNames.length, existing: present.length, missing: missing.length });
 
+  // Prehash the entire *source* before writing anything to the destination.
+  // Otherwise, a source edit between inventory and a later upload can slip
+  // past the final re-read. Cache bytes in memory only, with a bounded cap.
+  const sourceSnapshots = new Map();
+  let snapshotBytes = 0;
+  for (const path of originalNames) {
+    const snapshot = await download(source, path);
+    snapshotBytes += snapshot.bytes.length;
+    if (snapshotBytes > MAX_SOURCE_SNAPSHOT_MEMORY) {
+      throw new MigrationStop('SOURCE_SNAPSHOT_MEMORY_CAP');
+    }
+    sourceSnapshots.set(path, snapshot);
+  }
+  log({ step: 'source_snapshot_hashed', objects: sourceSnapshots.size, bytes: snapshotBytes });
+
   let contentVerified = 0;
   let bytesVerified = 0;
   const originalDigests = new Map();
   // Verify all existing paths BEFORE the first upload: any collision stops
   // without modifying an existing file.
   for (const path of present) {
-    const [src, dest] = await Promise.all([
-      download(source, path), download(main, path),
-    ]);
+    const src = sourceSnapshots.get(path);
+    const dest = await download(main, path);
     if (src.sha256 !== dest.sha256 || src.bytes.length !== dest.bytes.length) {
       throw new MigrationStop('EXISTING_OBJECT_CONTENT_CONFLICT');
     }
@@ -185,7 +200,7 @@ export async function reconcileBucket(sourceClient, mainClient, options = {}) {
   // run is safely resumable: existing files are verified on the next run.
   let copied = 0;
   for (const path of missing) {
-    const src = await download(source, path);
+    const src = sourceSnapshots.get(path);
     const contentType = contentTypeFor(path);
     try {
       await storageCall(() => main.upload(path, src.bytes, {
