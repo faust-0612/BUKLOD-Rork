@@ -14,6 +14,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import {spawnSync} from "node:child_process";
+import {StringDecoder} from "node:string_decoder";
 
 const TEMP=process.env.TEMP||os.tmpdir();
 const BASE=path.join(TEMP,"BUKLOD_CONSOLIDATED_CLOUD_MIGRATION");
@@ -370,10 +371,11 @@ function* streamTree(target,depth=0){
 }
 function eachJSONLine(file,action){
  const fd=fs.openSync(file,"r"),buf=Buffer.alloc(4*MiB);
+ const decoder=new StringDecoder("utf8");
  let carry="",reads=0;
  try{
    for(let n;(n=fs.readSync(fd,buf,0,buf.length,null))>0;){
-     carry+=buf.toString("utf8",0,n);
+     carry+=decoder.write(buf.subarray(0,n));
      let pos;
      while((pos=carry.indexOf("\n"))!==-1){
        const line=carry.slice(0,pos);carry=carry.slice(pos+1);
@@ -382,6 +384,7 @@ function eachJSONLine(file,action){
      }
      assert(carry.length<8*MiB,"Oversized journal item; abort rather than consume unlimited RAM");
    }
+   carry+=decoder.end();
    if(carry.trim()){action(JSON.parse(carry));reads++}
  }finally{fs.closeSync(fd)}
  return reads;
@@ -413,13 +416,20 @@ try{
  // This is a new, transaction-like planning session, never reuse a V13
  // partial inventory. No files are modified before scan is complete.
  const out=fs.openSync(JOURNAL,"w"),dirs=fs.openSync(DIR_JOURNAL,"w");
+ let actionBuffer="",dirBuffer="";
+ const writeAction=item=>{actionBuffer+=JSON.stringify(item)+"\n";
+   if(actionBuffer.length>=512*1024){fs.writeSync(out,actionBuffer);actionBuffer=""}
+ };
+ const writeDirectory=item=>{dirBuffer+=JSON.stringify(item)+"\n";
+   if(dirBuffer.length>=512*1024){fs.writeSync(dirs,dirBuffer);dirBuffer=""}
+ };
  let doneScan=false;
  try{
    for(const root of roots){
      for(const item of streamTree(root.path)){
        const target=item.path,base=norm(target);
        if(item.type==="dir"){
-         fs.writeSync(dirs,JSON.stringify({path:target})+"\n");
+         writeDirectory({path:target});
          continue;
        }
        const st=item.stat;
@@ -449,8 +459,8 @@ try{
        if(proof)records.filesBacked++;
        records.candidateCount++;
        records.candidateBytes+=st.size;
-       fs.writeSync(out,JSON.stringify({path:target,bytes:st.size,
-         modifiedAt:st.mtimeMs,hash,kind:proof||"regenerable"})+"\n");
+       writeAction({path:target,bytes:st.size,
+         modifiedAt:st.mtimeMs,hash,kind:proof||"regenerable"});
        if(records.filesExamined%50000===0){
          records.stagedFileActionJournal=records.candidateCount;
          records.result="SCANNING";
@@ -462,6 +472,8 @@ try{
    }
    doneScan=true;
  }finally{
+   if(actionBuffer)fs.writeSync(out,actionBuffer);
+   if(dirBuffer)fs.writeSync(dirs,dirBuffer);
    fs.closeSync(out);
    fs.closeSync(dirs);
  }
@@ -532,6 +544,7 @@ try{
    console.log("Report:",AUDIT);
  }
 }catch(e){
+ if(!records.deletePhaseStarted)removeJournal();
  records.result=records.deletePhaseStarted?"PARTIAL_CLEANUP_STOPPED":"SAFETY_STOP_NO_DELETION";
  records.errors.push({type:"blocker",reason:String(e.message)});
  persist();
