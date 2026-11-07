@@ -47,3 +47,10 @@ test('Create Post from desktop Home opens the existing collapsed Wall composer',
   assert.match(wall, /Desktop Home -> Create Post:[\s\S]*?setCommunityComposerOpen\(true\)/);
   assert.match(wall, /focusCommunityComposerRef\.current = true/);
 });
+
+test('account switch masks old Connect preview on the first render', () => {
+  assert.match(shell, /connectOwnerId === userId \? threads : \[\]/);
+  assert.match(shell, /connectOwnerId === userId \? contacts : \[\]/);
+  assert.match(shell, /<Contribution key=\{userId\} \/>/);
+  assert.match(shell, /const sequence = \+\+requestId\.current/);
+});

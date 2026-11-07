@@ -105,6 +105,7 @@ export default function BuklodPublicDesktopDashboard({
   const [threads, setThreads] = useState<RecentThread[]>([]);
   const [contacts, setContacts] = useState<ConnectSuggestedContact[]>([]);
   const [connectStatus, setConnectStatus] = useState<'loading' | 'ready' | 'offline'>('loading');
+  const [connectOwnerId, setConnectOwnerId] = useState<string | null>(null);
   const [navigationError, setNavigationError] = useState('');
   const requestId = useRef(0);
 
@@ -132,6 +133,7 @@ export default function BuklodPublicDesktopDashboard({
 
   const refreshConnect = useCallback(async () => {
     const sequence = ++requestId.current;
+    setConnectOwnerId(userId);
     setThreads([]);
     setContacts([]);
     setConnectStatus('loading');
@@ -175,7 +177,11 @@ export default function BuklodPublicDesktopDashboard({
     : pathname.startsWith('/clusters') ? 'Clusters'
     : pathname.startsWith('/bible') ? 'My Bible'
     : 'BUKLOD Dashboard';
-  const unreadChats = threads.reduce((sum, item) => sum + item.unread_count, 0);
+  // Account switch privacy: render no previous-user chat/contact data even
+  // for the frame before useEffect clears asynchronous cached state.
+  const visibleThreads = connectOwnerId === userId ? threads : [];
+  const visibleContacts = connectOwnerId === userId ? contacts : [];
+  const unreadChats = visibleThreads.reduce((sum, item) => sum + item.unread_count, 0);
   const bg = theme.canvas;
   const surface = theme.surface;
   const border = theme.border;
@@ -266,7 +272,7 @@ export default function BuklodPublicDesktopDashboard({
                 <Text style={[styles.sectionTitle, { color: ink }]}>Contribution</Text>
               </View>
               <Suspense fallback={<ActivityIndicator color={mainColor} accessibilityLabel="Loading Contribution" />}>
-                <Contribution />
+                <Contribution key={userId} />
               </Suspense>
             </View>
             <View style={[styles.sideCard, { backgroundColor: surface, borderColor: border }]}>
@@ -320,7 +326,7 @@ export default function BuklodPublicDesktopDashboard({
                       <Text style={[styles.viewAll, { color: mainColor }]}>View All</Text>
                     </Pressable>
                   </View>
-                  {threads.slice(0, 5).map(thread => (
+                  {visibleThreads.slice(0, 5).map(thread => (
                     <Pressable key={thread.thread_id} accessibilityRole="button"
                       accessibilityLabel={'Open chat with ' + thread.other_user_name}
                       onPress={() => void navigate('/connect/personal/' + encodeURIComponent(thread.thread_id))}
@@ -342,7 +348,7 @@ export default function BuklodPublicDesktopDashboard({
                       </View>
                     </Pressable>
                   ))}
-                  {!threads.length ? (
+                  {!visibleThreads.length ? (
                     <Text style={[styles.empty, { color: muted }]}>
                       {connectStatus === 'loading' ? 'Loading chats…'
                         : connectStatus === 'offline' ? 'Connect is offline. Open the inbox for cached messages.'
@@ -363,7 +369,7 @@ export default function BuklodPublicDesktopDashboard({
               ) : (
                 <>
                   <Text style={[styles.sideHeading, { color: ink }]}>Recent Contacts</Text>
-                  {contacts.slice(0, 7).map(person => (
+                  {visibleContacts.slice(0, 7).map(person => (
                     <Pressable key={person.user_id} accessibilityRole="button"
                       accessibilityLabel={'Message ' + person.full_name}
                       onPress={() => void navigate('/connect/personal/new', {
@@ -379,7 +385,7 @@ export default function BuklodPublicDesktopDashboard({
                       <MaterialCommunityIcons name="message-outline" size={18} color={mainColor} />
                     </Pressable>
                   ))}
-                  {!contacts.length ? <Text style={[styles.empty, { color: muted }]}>No contacts available yet.</Text> : null}
+                  {!visibleContacts.length ? <Text style={[styles.empty, { color: muted }]}>No contacts available yet.</Text> : null}
                 </>
               )}
               <View style={styles.quickRow}>
