@@ -25,7 +25,6 @@ export function PicturePairsGameV1({ onFinish }: Props) {
   const missesRef = useRef(0);
   const [message, setMessage] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [startedAt, setStartedAt] = useState(0);
   const sessionRef = useRef('');
   const completedRef = useRef(false);
 
@@ -41,7 +40,6 @@ export function PicturePairsGameV1({ onFinish }: Props) {
     roundRef.current = next;
     setRound(next);
     setLevel(index);
-    setStartedAt(Date.now());
     changePhase('playing');
     setMessage(t('Tap any two cards to find a pair. Remember their positions!', 'I-tap ang dalawang card upang makahanap ng pares. Tandaan ang mga lokasyon!'));
     void playBuklodGameFeedback('move');
@@ -141,7 +139,7 @@ export function PicturePairsGameV1({ onFinish }: Props) {
             <Text style={s.stat}>{t('GARDEN', 'GARDEN')} {level + 1}/{PAIR_LEVELS.length}</Text>
             <Text style={s.stat}>{t('PAIRS', 'PARES')}: {round.matched.length / 2}/{PAIR_LEVELS[level].pairs}</Text>
             <Text style={s.stat}>{t('MISSES', 'MALI')}: {totalMisses}</Text>
-            <Pressable accessibilityRole="button" onPress={() => { clearPending(); changePhase('paused'); }}
+            <Pressable accessibilityRole="button" onPress={() => { clearPending(); const old = roundRef.current; const settled = settlePairMismatch(old, old.up); if (settled !== old) { roundRef.current = settled; setRound(settled); } changePhase('paused'); }}
               style={s.minor}><Text style={s.minorText}>{t('PAUSE', 'IHINTO')}</Text></Pressable>
           </View>
           <View style={s.board}>
