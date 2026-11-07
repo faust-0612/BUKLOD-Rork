@@ -135,11 +135,13 @@ function discoverSource() {
     if(depth>=3)continue;
     let entries;
     try{entries=fs.readdirSync(dir,{withFileTypes:true});}catch{continue;}
-    if(entries.length>650)continue;
-    for(const ent of entries) {
-      if(!ent.isDirectory()||ent.isSymbolicLink())continue;
-      if(isExcluded(ent.name,true))continue;
-      // At depth 2+, avoid scanning unrelated huge home folders.
+    const children=entries.filter(ent=>ent.isDirectory()&&!ent.isSymbolicLink() &&
+      !isExcluded(ent.name,true));
+    // Search recognizable project folders first, even in crowded Downloads.
+    children.sort((a,b)=>Number(/quiz|buklod|project|source|standalone/i.test(b.name))-
+      Number(/quiz|buklod|project|source|standalone/i.test(a.name)));
+    for(const ent of children.slice(0,450)) {
+      // At depth 2+, avoid crawling unrelated nested backups.
       if(depth>=2&&!/quiz|buklod|project|backup|source|app|web|standalone|r\d+/i.test(ent.name))continue;
       queue.push({dir:path.join(dir,ent.name),depth:depth+1});
     }
@@ -177,7 +179,7 @@ function scanFiles() {
       total+=stat.size;
       if(total>maxTotalBytes||result.length>30000) throw Error('Source size/file-count safety gate exceeded');
       const buf=fs.readFileSync(abs);
-      if(buf.indexOf(0)===-1 && buf.length <= 4*1024*1024) {
+      if(buf.indexOf(0)===-1) {
         const str=buf.toString('utf8');
         if(secretPatterns.some(pattern=>pattern.test(str))) {
           throw Error('Possible hardcoded secret; cloud push refused. Review: '+rel);
