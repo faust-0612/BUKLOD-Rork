@@ -129,6 +129,9 @@ async function prepareInterstitial(
 
   listenerCleanup.push(
     interstitial.addAdEventListener(AdEventType.OPENED, () => {
+      // OPENED proves the interstitial was actually presented. AdMob
+      // impression/revenue callbacks are separate; do not invent impressions.
+      interstitialLoaded = false;
       recordBuklodAdEvent(
         'interstitial',
         'ad_rendered',
@@ -144,7 +147,16 @@ export function warmBuklodInterstitial(
   placementId = 'interstitial_generic',
 ) {
   if (canWarmBuklodFullScreenAd(placementId)) {
-    void prepareInterstitial(placementId);
+    void prepareInterstitial(placementId).catch(error => {
+      // Preload must never raise an unhandled rejection during navigation
+      // or app resume. A fresh eligible route can retry the next request.
+      recordBuklodAdEvent('interstitial', 'ad_failed', error, {
+        route: getBuklodGlobalAdSafetySnapshot().pathname,
+      });
+      interstitialLoaded = false;
+      cleanupInterstitialListeners();
+      interstitial = null;
+    });
   }
 }
 
@@ -155,7 +167,10 @@ export async function maybeShowBuklodInterstitial(
   try {
     if (await isBuklodAdLightPassActive()) return false;
   } catch (error) {
+    // A failed local benefit lookup must not accidentally ignore an active
+    // ad-light pass that a user has already earned.
     console.warn('BUKLOD Ad-Light pass check:', error);
+    return false;
   }
 
   const reserved = await reserveBuklodFullScreenAd(reason, placementId);
@@ -168,7 +183,10 @@ export async function maybeShowBuklodInterstitial(
 
   await prepareInterstitial(placementId);
 
-  if (!interstitial || !interstitialLoaded) {
+  if (!interstitial || !interstitialLoaded ||
+      !canWarmBuklodFullScreenAd(placementId)) {
+    // Never display a late SDK response over an exam, chat draft, SOS or
+    // another protected route. A later natural break may reuse the preload.
     await finishBuklodFullScreenAd(false);
     return false;
   }
@@ -185,6 +203,11 @@ export async function maybeShowBuklodInterstitial(
       error,
       { route: getBuklodGlobalAdSafetySnapshot().pathname },
     );
+    // A consumed/stale SDK instance cannot be reused for another successful
+    // action. Clear it, otherwise the app can stay permanently ad-empty.
+    interstitialLoaded = false;
+    cleanupInterstitialListeners();
+    interstitial = null;
     console.warn('BUKLOD interstitial:', error);
     return false;
   }
