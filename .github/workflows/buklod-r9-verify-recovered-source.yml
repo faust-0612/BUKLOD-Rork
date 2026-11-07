@@ -1,0 +1,41 @@
+name: BUKLOD R9 recovered source reconciliation contract
+on:
+  push:
+    branches: [dev/quiz-consolidation-identity-audit-20261107]
+    paths:
+      - .github/workflows/buklod-r9-verify-recovered-source.yml
+      - scripts/BUKLOD_R9_Cloud_Recovery_Reconciliation.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-r9-source-reconciliation
+  cancel-in-progress: true
+
+jobs:
+  windows-readonly-safety:
+    runs-on: windows-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check NodeJS syntax
+        shell: pwsh
+        run: |
+          node --check scripts/BUKLOD_R9_Cloud_Recovery_Reconciliation.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'R9 syntax failure' }
+      - name: Run Windows R9 synthetic CSV, manifest path, Git tree and SHA256 tests
+        shell: pwsh
+        run: |
+          node scripts/BUKLOD_R9_Cloud_Recovery_Reconciliation.mjs --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'R9 synthetic safety failure' }
+      - name: Verify incomplete reports fail closed without any clone
+        shell: pwsh
+        run: |
+          $null = & node scripts/BUKLOD_R9_Cloud_Recovery_Reconciliation.mjs --r4 "Z:\missing\BUKLOD_R4_Direct_Report.json" 2>&1
+          if ($LASTEXITCODE -eq 0) { throw 'Missing recovery proof failed to block R9' }
+          Write-Host 'PASS: missing R4-R8 proof blocks R9; no local originals or remote branches changed.'
+          exit 0
