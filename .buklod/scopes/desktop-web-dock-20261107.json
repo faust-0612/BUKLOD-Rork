@@ -14,7 +14,8 @@
   "riskAreas": [
     "navigation-scroll",
     "auth-privacy",
-    "release-identity"
+    "release-identity",
+    "connect"
   ],
   "preserveBehaviors": [
     "Android native app UI, chat routes and OTA untouched",
@@ -37,10 +38,12 @@
     "Member visits open privacy-safe preview in side dock; locked profiles have no avatar lookup",
     "Expand is explicit full route navigation; Close preserves active Main route",
     "Phone/native and deep links continue normal navigation",
-    "Source/accountability, TypeScript, integration web export gates pass before merge"
+    "Source/accountability, TypeScript, integration web export gates pass before merge",
+    "Focused Connect dock contract: invalid target is rejected, old shell disposal cannot unregister new shell, no active listener falls back to canonical phone/native route"
   ],
   "regressionTests": [
-    "tests/buklod-desktop-navigation-20261107.test.mjs"
+    "tests/buklod-desktop-navigation-20261107.test.mjs",
+    "tests/buklod-desktop-connect-dock-20261107.test.mjs"
   ],
   "allowedPaths": [
     "src/app/(tabs)/messages.tsx",
@@ -55,6 +58,7 @@
     "src/lib/buklodWebResponsivePolicy.ts",
     "tests/buklod-desktop-navigation-20261107.test.mjs",
     "docs/BUKLOD_DESKTOP_CONTEXT_DOCK_20261107.md",
-    ".buklod/scopes/desktop-web-dock-20261107.json"
+    ".buklod/scopes/desktop-web-dock-20261107.json",
+    "tests/buklod-desktop-connect-dock-20261107.test.mjs"
   ]
 }
