@@ -256,6 +256,9 @@ async function main() {
     throw new MigrationStop('INVALID_ARGUMENTS');
   }
   const apply = args.includes('--apply');
+  if (apply && process.env.BUKLOD_QUIZ_STORAGE_RC_GATE !== 'VERIFIED_RC') {
+    throw new MigrationStop('RC_STORAGE_GATE_NOT_VERIFIED');
+  }
   const sourceKey = process.env.BUKLOD_QUIZ_SOURCE_STORAGE_ADMIN_KEY ?? '';
   const mainKey = process.env.BUKLOD_QUIZ_MAIN_STORAGE_ADMIN_KEY ?? '';
   if (!sourceKey || !mainKey ||
