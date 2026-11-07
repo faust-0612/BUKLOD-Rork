@@ -4,18 +4,25 @@ import { readFileSync } from 'node:fs';
 
 const read = file => readFileSync(file,'utf8');
 const home = read('src/app/(tabs)/home.tsx');
+const hub = read('src/app/(tabs)/hub.tsx');
+const nav = read('src/components/BuklodPersistentBottomNav.tsx');
+const tabs = read('src/app/(tabs)/_layout.tsx');
 const qmp = read('src/components/BuklodCommunityContributionCard.tsx');
 const wall = read('src/app/(tabs)/buklod.tsx');
 const scope = read('src/components/BuklodExclusiveScopeCommunity.tsx');
 const overflow = read('src/components/BuklodContentOverflowMenu.tsx');
 const marites = read('src/components/BuklodMaritesBoard.tsx');
 
-test('Home visibly renders the private Contribution card ahead of long bulletins, Wall remains locked',()=>{
-  const qmpPos=home.indexOf('<BuklodCommunityContributionCard />');
-  assert.equal((home.match(/<BuklodCommunityContributionCard \/>/g)||[]).length,1);
-  assert.ok(qmpPos > home.indexOf('<EnvironmentBadge />'));
-  assert.ok(qmpPos < home.indexOf('<BuklodSystemAnnouncementBoard'));
-  assert.ok(qmpPos < home.indexOf('<BuklodHomeScopeBulletins />'));
+test('Canonical /hub Home mounts Contribution before Drawer; retired /home redirects without a duplicate',()=>{
+  const qmpPos=hub.indexOf('<Contribution />');
+  assert.match(hub, /const Contribution = lazy\(\(\) => import\('@\/components\/BuklodCommunityContributionCard'\)\)/);
+  assert.equal((hub.match(/<Contribution \/>/g)||[]).length,1);
+  assert.ok(qmpPos > hub.indexOf('BUKLOD Home'));
+  assert.ok(qmpPos < hub.indexOf('<DrawerCard />'));
+  assert.ok(qmpPos < hub.indexOf('<PttCard />'));
+  assert.match(nav, /route: '\/hub'/);
+  assert.match(tabs, /pathname === '\/home'/);
+  assert.match(home, /<BuklodCommunityContributionCard \/>/); // dormant legacy alias only
   assert.doesNotMatch(wall, /<BuklodCommunityContributionCard\s*\/>/);
   assert.match(qmp, /YOUR COMMUNITY CONTRIBUTION/);
   assert.match(qmp, /Unable to load right now · tap to retry/);
