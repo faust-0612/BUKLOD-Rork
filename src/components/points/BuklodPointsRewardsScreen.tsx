@@ -31,7 +31,6 @@ import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import BuklodPointsClaimCelebration from '@/components/points/BuklodPointsClaimCelebration';
 import BuklodRedeemCatalogSection from '@/components/points/BuklodRedeemCatalogSection';
 import BuklodPointsR2Guide from '@/components/points/BuklodPointsR2Guide';
-import BuklodR2FocusMonitor from '@/components/points/BuklodR2FocusMonitor';
 import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
 import { useClaimButtonGlow } from '@/components/points/PointsMotion';
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
@@ -910,7 +909,6 @@ export default function BuklodPointsRewardsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       <BuklodPointsR2Guide />
-      <BuklodR2FocusMonitor />
       <View style={styles.heroWrap}>
         <View style={styles.heroTopBand}>
           <View style={styles.brandRow}>
