@@ -18,7 +18,7 @@ const zip=fs.existsSync("C:\\Program Files\\7-Zip\\7z.exe")?"C:\\Program Files\\
 const MiB=1024**2, CAP=1900*MiB, MAX_FILE=200*MiB, MAX_PARTS=32;
 const state={schema:"buklod-historical-priority-preservation/v9",created:new Date().toISOString(),
  status:"NOT_STARTED",v7UniqueFiles:0,v7UniqueBytes:0,selectedFiles:0,selectedBytes:0,
- remainingFiles:0,remainingBytes:0,archiveEntriesVerified:0,remoteVolumesVerified:0,
+ remainingFiles:0,remainingBytes:0,previousUnitemizedExclusions:0,archiveEntriesVerified:0,remoteVolumesVerified:0,
  archivedOriginalFilesDeleted:0,safeToDeleteLocal:false,cloudOnlyBuildsCertified:false,
  remoteRelease:null,issues:[]};
 function save(){fs.mkdirSync(base,{recursive:true});state.updated=new Date().toISOString();fs.writeFileSync(reportFile,JSON.stringify(state,null,2))}
@@ -290,6 +290,7 @@ try{
  const plan=selectedCandidates(v7);
  const selected=plan.selected,remaining=plan.remaining;
  state.v7UniqueFiles=v7.uniqueFiles;state.v7UniqueBytes=v7.uniqueBytes;
+ state.previousUnitemizedExclusions=Number(v7.previousExclusionsUnitemized||0);
  state.selectedFiles=selected.length;state.selectedBytes=plan.bytes;
  state.remainingFiles=remaining.length;state.remainingBytes=remaining.reduce((n,f)=>n+f.bytes,0);
  assert(selected.length>1000,"Too few priority files selected");
@@ -304,6 +305,24 @@ try{
  const folder=path.join(stageRoot,"priority-"+fingerprint),payload=path.join(folder,"payload");
  const staging=path.join(payload,"data");
  fs.mkdirSync(staging,{recursive:true});
+ // Conservative peak-space preflight: copies of cross-volume inputs plus the
+ // maximum uncompressed archive size, with 300 MiB free-space reserve.
+ if(typeof fs.statfsSync==="function"){
+   const drive=p=>path.parse(path.resolve(p)).root.toLowerCase();
+   const stageDrive=drive(staging);
+   const crossVolumeBytes=selected.filter(f=>drive(f.originalPath)!==stageDrive)
+     .reduce((n,f)=>n+f.bytes,0);
+   const estimate=crossVolumeBytes+plan.bytes+300*MiB;
+   const d=fs.statfsSync(staging);
+   const free=Number(d.bavail)*Number(d.bsize);
+   state.estimatedCrossVolumeCopyBytes=crossVolumeBytes;
+   state.estimatedPeakNewTempBytes=estimate;
+   state.availableTempBytesAtPreflight=free;
+   assert(free>estimate,
+     "Insufficient free TEMP drive capacity for safe archive. Need "+
+       Math.ceil(estimate/MiB)+" MiB; available "+Math.floor(free/MiB)+
+       " MiB. Set BUKLOD_MIGRATION_STAGING to a healthy volume with free space.");
+ }
  const files=[];
  console.log("V9 priority historical recovery:",selected.length,"files,",(plan.bytes/1024**3).toFixed(2),
    "GiB. Remaining historical files:",remaining.length,"(NOT backed up by this batch).");
@@ -400,6 +419,7 @@ try{
  console.log("BUKLOD HISTORICAL V9 PRIORITY ENCRYPTED CLOUD VERIFIED");
  console.log("Priority originals preserved:",state.selectedFiles,"remote encrypted volumes:",state.remoteVolumesVerified);
  console.log("HISTORICAL FILES STILL PENDING:",state.remainingFiles,"bytes GiB:",(state.remainingBytes/1024**3).toFixed(2));
+ console.log("PREVIOUS UNITEMIZED EXCLUSIONS STILL PENDING:",state.previousUnitemizedExclusions);
  console.log("Private release:",state.remoteRelease);
  console.log("Audit report:",reportFile);
  console.log("NOT AUTHORIZED TO DELETE LOCAL FILES: remaining historical content, 33,049 unitemized exclusions, and cloud-only app builds.");
