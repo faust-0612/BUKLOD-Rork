@@ -4,6 +4,7 @@ on:
     branches: [dev/quiz-consolidation-identity-audit-20261107]
     paths:
       - .github/workflows/buklod-r5-classifier-windows-ci.yml
+      - scripts/BUKLOD_Quiz_Local_Difference_Classifier_R5.ps1
   workflow_dispatch:
 
 permissions:
