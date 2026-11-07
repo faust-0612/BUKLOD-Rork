@@ -11,7 +11,10 @@ test('Music uses approved library; bytes require Play',()=>{
 test('Motion is lightweight and accessible',()=>{
  const s=read('src/components/BuklodPostMotion.tsx');
  assert.match(s,/isReduceMotionEnabled/);
- assert.match(s,/setPlaying/);
+ assert.match(s,/AppState\.addEventListener/);
+ assert.match(s,/Animated\.loop/);
+ assert.match(s,/reduceMotion/);
+ assert.doesNotMatch(s,/Pause post animation/);
  assert.doesNotMatch(s,/VideoView|ffmpeg/);
 });
 test('Post creative metadata is gated by post audience/owner',()=>{
