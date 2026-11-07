@@ -2,10 +2,10 @@ import React,{useCallback,useEffect,useState} from 'react';
 import {ActivityIndicator,Image,Pressable,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
-type Activity={type:string;label:string;configured_points:number;active:boolean;earned_count:number;earned_points:number};
+type Activity={type:string;label:string;configured_points:number|null;active:boolean|null;source?:string;earned_count:number;earned_points:number};
 type Nom={id:string;user_id:string;type:string;status:string;evidence_note:string;submitted_at:string};
 type Report={as_of:string;activities:Activity[];nominations:{pending:number;approved:number;rejected:number};recent_nominations:Nom[];
- mentor_photos:number;pending_mentoring_photos:number};
+ mentor_photos:number;pending_mentoring_photos:number;focus:{total:number;participation:number;learning:number;impact:number;unclassified:number}};
 type Evidence={session_id:string;lesson:string;status:string;mentor_id:string;
  session_date:string;participant_count:number;photo_path:string|null};
 export default function R2AdminMonitor(){
@@ -118,10 +118,18 @@ export default function R2AdminMonitor(){
    <Text style={s.btnText}>Reject</Text>
   </Pressable></View>
  </View>)}
+ <View style={s.card}>
+  <Text style={s.heading}>Reward Focus — Actual 30-day basis</Text>
+  <Text style={s.stat}>Total: {report.focus.total} credited BP</Text>
+  <Text style={s.info}>Participation: {report.focus.participation} BP · target 40%</Text>
+  <Text style={s.info}>Learning & Skills: {report.focus.learning} BP · target 35%</Text>
+  <Text style={s.info}>Community Impact: {report.focus.impact} BP · target 25%</Text>
+  <Text style={s.info}>Other/unclassified: {report.focus.unclassified} BP (not concealed)</Text>
+ </View>
  <Text style={s.heading}>Live Reward Rules & Credits (30 days)</Text>
  {report.activities.map(a=><View style={s.row} key={a.type}>
   <Text style={s.name}>{a.label}</Text>
-  <Text style={s.info}>{a.active?'Active':'Disabled'} · rule +{a.configured_points} BP</Text>
+  <Text style={s.info}>{a.source==='ledger_without_current_rule'?'Legacy ledger event without active catalog mapping':a.active?'Active':'Disabled'} · {a.configured_points===null?'Legacy amount':`rule +${a.configured_points} BP`}</Text>
   <Text style={s.stat}>{a.earned_count} credits · {a.earned_points} BP issued</Text>
  </View>)}
  </>}
