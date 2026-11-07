@@ -148,3 +148,7 @@ end;
 $$;
 revoke all on function public.submit_my_buklod_bible_quiz_r3(uuid,jsonb) from public,anon;
 grant execute on function public.submit_my_buklod_bible_quiz_r3(uuid,jsonb) to authenticated;
+
+-- Retire R2 direct quiz RPCs: no alternate scoring path may bypass selected difficulty.
+revoke all on function public.get_my_buklod_bible_quiz_r2() from public,anon,authenticated;
+revoke all on function public.submit_my_buklod_bible_quiz_r2(uuid,jsonb) from public,anon,authenticated;
