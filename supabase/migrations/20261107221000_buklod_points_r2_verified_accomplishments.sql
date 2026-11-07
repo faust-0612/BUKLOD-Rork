@@ -116,3 +116,29 @@ grant execute on function public.admin_award_buklod_r2_accomplishment_v1(uuid,te
  to authenticated;
 comment on function public.admin_award_buklod_r2_accomplishment_v1(uuid,text,text,text,text)
  is 'R2 evidence-reviewed admin-only idempotent milestone and difficulty reward path.';
+
+-- Read-only authenticated R2 catalog; the frontend cannot award points.
+create or replace function public.get_buklod_points_r2_catalog_v1()
+returns jsonb language sql stable security definer set search_path=''
+as $$
+ select coalesce(jsonb_agg(jsonb_build_object(
+ 'activity_type',r.activity_type, 'label',r.label,
+ 'points',r.base_points,'active',r.is_active,
+ 'max_per_event',r.max_points_per_event) order by r.activity_type),'[]'::jsonb)
+ from public.buklod_point_rules r
+ where r.activity_type in (
+ 'abc_growth_lesson','community_reaction','community_comment','community_post',
+ 'daily_bible_reading','daily_devotional_reflection',
+ 'bible_quiz_easy','bible_quiz_medium','bible_quiz_hard',
+ 'formation_assessment','formation_module','verified_church_attendance',
+ 'verified_volunteer_service','verified_mentoring_session',
+ 'bible_weekly_streak','consistency_30_day','ministry_major_milestone',
+ 'kl_episode','kl_season','game_first_qualified','game_medium_win',
+ 'game_hard_win','game_advanced_perfect','game_puzzle_series',
+ 'game_expert_campaign','game_tournament_champion',
+ 'achievement_bible_scholar','achievement_community_builder',
+ 'achievement_faithful_mentor','achievement_kingdom_champion',
+ 'r2_verified_challenge');
+$$;
+revoke all on function public.get_buklod_points_r2_catalog_v1() from public,anon;
+grant execute on function public.get_buklod_points_r2_catalog_v1() to authenticated;
