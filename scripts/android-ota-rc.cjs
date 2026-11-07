@@ -58,7 +58,8 @@ async function run() {
     assert.equal(git('diff', '--name-only', pinnedV28, sha, '--', 'package.json', 'package-lock.json', 'android', 'plugins'), '', 'Native baseline changed');
     // The changed web favicon is not compiled into V28; all native Expo
     // configuration fields still have to match the pinned installed build.
-    assertNativeExpoConfigCompatible(config, resolveExpoConfigFromSource(git('show', pinnedV28 + ':app.config.js')));
+    const currentConfig = require('../app.config.js')({config:{}});
+    assertNativeExpoConfigCompatible(currentConfig, resolveExpoConfigFromSource(git('show', pinnedV28 + ':app.config.js')));
     write('ota-evidence/baseline.json', {id:before.id, runtime, source:sha, launchAssetHash:before.launchAsset.hash});
     console.log('PASS: production baseline, exact main source, unchanged native runtime');
   } else if (mode === 'freeze') {
