@@ -1,13 +1,20 @@
-import {
-  supabase,
-} from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import {
   loadPersonDisplayNames,
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
+import { SCALE_LIMITS } from '@/lib/performanceScale';
 import {
-  SCALE_LIMITS,
-} from '@/lib/performanceScale';
+  applyConnectHistoryDirectQuery,
+  connectHistoryQueryPlan,
+  type ConnectHistoryCursor,
+} from '@/lib/connectChatWindow';
+import {
+  createConnectHistoryAvailability,
+  selectConnectHistoryRows,
+  type ConnectHistoryAvailability,
+  type ConnectHistoryGateway,
+} from '@/lib/connectHistoryLoader';
 
 export type ConnectHistoryMessage = {
   id: string;
@@ -22,6 +29,12 @@ export type ConnectHistoryMessage = {
   deleted_at?: string | null;
 };
 
+export type ConnectHistoryPage = {
+  messages: ConnectHistoryMessage[];
+  hasOlder: boolean;
+  oldestCursor: ConnectHistoryCursor | null;
+};
+
 const DIRECT_MESSAGE_SELECT_WITH_DELETED =
   'id,sender_id,body,attachment_path,attachment_name,attachment_mime,attachment_size,created_at,deleted_at';
 
@@ -34,27 +47,16 @@ const SCOPE_MESSAGE_SELECT_WITH_DELETED =
 const SCOPE_MESSAGE_SELECT_LEGACY =
   'id,scope_id,sender_id,body,attachment_path,attachment_name,attachment_mime,attachment_size,created_at';
 
-const HISTORY_LIMIT = SCALE_LIMITS.connectHistory;
+const historyAvailability: ConnectHistoryAvailability =
+  createConnectHistoryAvailability();
 
-function isMissingColumnError(
-  message: string
-) {
-  return /deleted_at|column.*does not exist|schema cache/i.test(
-    message
-  );
-}
-
-function isMissingRpcError(
-  message: string
-) {
-  return /could not find the function|function.*does not exist|schema cache/i.test(
-    message
-  );
+function isMissingColumnError(message: string) {
+  return /deleted_at|column.*does not exist|schema cache/i.test(message);
 }
 
 function mapDirectRows(
   rows: any[],
-  names: Record<string, string> = {},
+  names: Record<string, string> = {}
 ): ConnectHistoryMessage[] {
   return rows.map(row => {
     const senderId = String(row.sender_id);
@@ -62,10 +64,7 @@ function mapDirectRows(
     return {
       id: String(row.id),
       sender_id: senderId,
-      sender_name: resolvePersonDisplayName(
-        names[senderId],
-        senderId,
-      ),
+      sender_name: resolvePersonDisplayName(names[senderId], senderId),
       body: String(row.body ?? ''),
       attachment_path: row.attachment_path ?? null,
       attachment_name: row.attachment_name ?? null,
@@ -79,7 +78,7 @@ function mapDirectRows(
 
 function normalizeScopeRows(
   rows: any[],
-  names: Record<string, string>,
+  names: Record<string, string>
 ): ConnectHistoryMessage[] {
   return rows.map(row => {
     const senderId = String(row.sender_id);
@@ -89,7 +88,7 @@ function normalizeScopeRows(
       sender_id: senderId,
       sender_name: resolvePersonDisplayName(
         row.sender_name ?? names[senderId],
-        senderId,
+        senderId
       ),
       body: String(row.body ?? ''),
       attachment_path: row.attachment_path ?? null,
@@ -102,198 +101,187 @@ function normalizeScopeRows(
   });
 }
 
-async function fetchDirectConnectMessagesDirect(
-  threadId: string,
-  limit: number = HISTORY_LIMIT
-): Promise<ConnectHistoryMessage[]> {
-  const safeLimit = Math.min(
-    Math.max(limit, 1),
-    SCALE_LIMITS.connectHistory
-  );
-
-  const runQuery = (columns: string) =>
-    (supabase as any)
-      .from('buklod_connect_direct_messages')
+async function queryMessageTable(args: {
+  table: string;
+  columnsWithDeleted: string;
+  columnsLegacy: string;
+  idColumn: 'thread_id' | 'scope_id';
+  containerId: string;
+  plan: ReturnType<typeof connectHistoryQueryPlan>;
+}) {
+  const run = async (columns: string) => {
+    const query = (supabase as any)
+      .from(args.table)
       .select(columns)
-      .eq('thread_id', threadId)
-      .order('created_at', {
-        ascending: true,
-      })
-      .limit(safeLimit);
+      .eq(args.idColumn, args.containerId);
 
-  let result = await runQuery(
-    DIRECT_MESSAGE_SELECT_WITH_DELETED
-  );
+    return applyConnectHistoryDirectQuery(query, args.plan);
+  };
+
+  let result = await run(args.columnsWithDeleted);
 
   if (
     result.error &&
-    isMissingColumnError(
-      String(result.error.message ?? '')
-    )
+    isMissingColumnError(String(result.error.message ?? ''))
   ) {
-    result = await runQuery(
-      DIRECT_MESSAGE_SELECT_LEGACY
-    );
+    result = await run(args.columnsLegacy);
   }
 
-  if (result.error) {
-    throw new Error(result.error.message);
-  }
-
-  const rows = result.data ?? [];
-  const names = await loadPersonDisplayNames(
-    rows.map((row: any) => row.sender_id),
-  );
-
-  return mapDirectRows(rows, names);
+  return {
+    data: (result.data ?? null) as ConnectHistoryMessage[] | null,
+    error: result.error
+      ? { message: String(result.error.message ?? '') }
+      : null,
+  };
 }
 
-async function fetchScopeConnectMessagesDirect(
-  scopeId: string,
-  limit: number = HISTORY_LIMIT
-): Promise<ConnectHistoryMessage[]> {
-  const safeLimit = Math.min(
-    Math.max(limit, 1),
-    SCALE_LIMITS.connectHistory
-  );
+function createGateway(): ConnectHistoryGateway<any> {
+  return {
+    pageV2: async ({ kind, containerId, plan }) => {
+      const rpcName =
+        kind === 'direct'
+          ? 'buklod_connect_direct_messages_page_v2'
+          : 'buklod_connect_scope_messages_page_v2';
+      const idArg =
+        kind === 'direct'
+          ? { _thread_id: containerId }
+          : { _scope_id: containerId };
 
-  const runQuery = (columns: string) =>
-    (supabase as any)
-      .from('buklod_connect_scope_messages')
-      .select(columns)
-      .eq('scope_id', scopeId)
-      .order('created_at', {
-        ascending: true,
-      })
-      .limit(safeLimit);
+      const result = await (supabase as any).rpc(rpcName, {
+        ...idArg,
+        _limit: plan.limit,
+        _before: plan.before?.createdAt ?? null,
+        _before_id: plan.before?.id ?? null,
+      });
 
-  let result = await runQuery(
-    SCOPE_MESSAGE_SELECT_WITH_DELETED
-  );
+      return {
+        data: result.data ?? null,
+        error: result.error
+          ? { message: String(result.error.message ?? '') }
+          : null,
+      };
+    },
+    legacyRpc: async ({ kind, containerId, pageSize }) => {
+      const rpcName =
+        kind === 'direct'
+          ? 'buklod_connect_direct_messages_v1'
+          : 'buklod_connect_scope_messages_v1';
+      const args =
+        kind === 'direct'
+          ? { _thread_id: containerId, _limit: pageSize }
+          : { _scope_id: containerId, _limit: pageSize };
+      const result = await (supabase as any).rpc(rpcName, args);
 
-  if (
-    result.error &&
-    isMissingColumnError(
-      String(result.error.message ?? '')
-    )
-  ) {
-    result = await runQuery(
-      SCOPE_MESSAGE_SELECT_LEGACY
-    );
-  }
+      return {
+        data: result.data ?? null,
+        error: result.error
+          ? { message: String(result.error.message ?? '') }
+          : null,
+      };
+    },
+    direct: async ({ kind, containerId, plan }) =>
+      queryMessageTable({
+        table:
+          kind === 'direct'
+            ? 'buklod_connect_direct_messages'
+            : 'buklod_connect_scope_messages',
+        columnsWithDeleted:
+          kind === 'direct'
+            ? DIRECT_MESSAGE_SELECT_WITH_DELETED
+            : SCOPE_MESSAGE_SELECT_WITH_DELETED,
+        columnsLegacy:
+          kind === 'direct'
+            ? DIRECT_MESSAGE_SELECT_LEGACY
+            : SCOPE_MESSAGE_SELECT_LEGACY,
+        idColumn: kind === 'direct' ? 'thread_id' : 'scope_id',
+        containerId,
+        plan,
+      }),
+  };
+}
 
-  if (result.error) {
-    throw new Error(result.error.message);
-  }
-
-  const rows = result.data ?? [];
+async function hydrate(
+  kind: 'direct' | 'scope',
+  rows: any[]
+) {
   const names = await loadPersonDisplayNames(
-    rows.map((row: any) => row.sender_id),
+    rows.map(row => row.sender_id)
   );
 
-  return normalizeScopeRows(rows, names);
+  return kind === 'direct'
+    ? mapDirectRows(rows, names)
+    : normalizeScopeRows(rows, names);
+}
+
+export async function fetchConnectHistoryPage(args: {
+  kind: 'direct' | 'scope';
+  containerId: string;
+  limit?: number;
+  before?: ConnectHistoryCursor | null;
+}): Promise<ConnectHistoryPage> {
+  const selected = await selectConnectHistoryRows({
+    gateway: createGateway(),
+    kind: args.kind,
+    containerId: args.containerId,
+    limit: args.limit ?? SCALE_LIMITS.connectHistory,
+    before: args.before,
+    availability: historyAvailability,
+  });
+  const messages = await hydrate(args.kind, selected.rows);
+
+  return {
+    messages,
+    hasOlder: selected.hasOlder,
+    oldestCursor: selected.oldestCursor,
+  };
 }
 
 export async function fetchDirectConnectMessages(
   threadId: string,
-  limit = HISTORY_LIMIT
-): Promise<ConnectHistoryMessage[]> {
-  const safeLimit = Math.min(
-    Math.max(limit, 1),
-    SCALE_LIMITS.connectHistory
-  );
-
-  const rpcResult = await (supabase as any).rpc(
-    'buklod_connect_direct_messages_v1',
-    {
-      _thread_id: threadId,
-      _limit: safeLimit,
-    }
-  );
-
-  if (!rpcResult.error) {
-    const rows = rpcResult.data ?? [];
-    const names = await loadPersonDisplayNames(
-      rows.map((row: any) => row.sender_id),
-    );
-
-    return mapDirectRows(rows, names);
-  }
-
-  const message = String(
-    rpcResult.error?.message ?? ''
-  );
-
-  if (!isMissingRpcError(message)) {
-    try {
-      return await fetchDirectConnectMessagesDirect(
-        threadId,
-        safeLimit
-      );
-    } catch (directError: any) {
-      throw new Error(
-        String(
-          directError?.message ??
-            message
-        )
-      );
-    }
-  }
-
-  return fetchDirectConnectMessagesDirect(
-    threadId,
-    safeLimit
-  );
+  limit: number = SCALE_LIMITS.connectHistory
+) {
+  const page = await fetchConnectHistoryPage({
+    kind: 'direct',
+    containerId: threadId,
+    limit,
+  });
+  return page.messages;
 }
 
 export async function fetchScopeConnectMessages(
   scopeId: string,
-  limit = HISTORY_LIMIT
-): Promise<ConnectHistoryMessage[]> {
-  const safeLimit = Math.min(
-    Math.max(limit, 1),
-    SCALE_LIMITS.connectHistory
-  );
+  limit: number = SCALE_LIMITS.connectHistory
+) {
+  const page = await fetchConnectHistoryPage({
+    kind: 'scope',
+    containerId: scopeId,
+    limit,
+  });
+  return page.messages;
+}
 
-  const rpcResult = await (supabase as any).rpc(
-    'buklod_connect_scope_messages_v1',
-    {
-      _scope_id: scopeId,
-      _limit: safeLimit,
-    }
-  );
+export async function fetchDirectConnectHistoryPage(
+  threadId: string,
+  limit: number = SCALE_LIMITS.connectHistory,
+  before?: ConnectHistoryCursor | null
+) {
+  return fetchConnectHistoryPage({
+    kind: 'direct',
+    containerId: threadId,
+    limit,
+    before,
+  });
+}
 
-  if (!rpcResult.error) {
-    const rows = rpcResult.data ?? [];
-    const names = await loadPersonDisplayNames(
-      rows.map((row: any) => row.sender_id),
-    );
-
-    return normalizeScopeRows(rows, names);
-  }
-
-  const message = String(
-    rpcResult.error?.message ?? ''
-  );
-
-  if (!isMissingRpcError(message)) {
-    try {
-      return await fetchScopeConnectMessagesDirect(
-        scopeId,
-        safeLimit
-      );
-    } catch (directError: any) {
-      throw new Error(
-        String(
-          directError?.message ??
-            message
-        )
-      );
-    }
-  }
-
-  return fetchScopeConnectMessagesDirect(
-    scopeId,
-    safeLimit
-  );
+export async function fetchScopeConnectHistoryPage(
+  scopeId: string,
+  limit: number = SCALE_LIMITS.connectHistory,
+  before?: ConnectHistoryCursor | null
+) {
+  return fetchConnectHistoryPage({
+    kind: 'scope',
+    containerId: scopeId,
+    limit,
+    before,
+  });
 }

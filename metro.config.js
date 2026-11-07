@@ -38,6 +38,19 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     };
   }
 
+  // The drawer imports expo-sqlite only after a native platform check, but Metro
+  // still bundles that import. The web worker then requires wa-sqlite.wasm, which
+  // Metro 0.84 does not treat as an asset. The website already skips SQLite.
+  if (
+    platform === 'web' &&
+    (moduleName === 'expo-sqlite' || moduleName.startsWith('expo-sqlite/'))
+  ) {
+    return {
+      type: 'sourceFile',
+      filePath: path.resolve(__dirname, 'src/lib/expoSqliteWebStub.ts'),
+    };
+  }
+
   if (originalResolveRequest) {
     return originalResolveRequest(context, moduleName, platform);
   }

@@ -115,9 +115,26 @@ import {
   saveHiddenConnectMessageIds,
 } from '@/lib/connectMessageActions';
 import {
-  fetchDirectConnectMessages,
-  fetchScopeConnectMessages,
+  fetchDirectConnectHistoryPage,
+  fetchScopeConnectHistoryPage,
 } from '@/lib/buklodConnectMessageHistory';
+import {
+  CONNECT_LOAD_OLDER_PX,
+  CONNECT_NEAR_BOTTOM_PX,
+  connectBubbleGrouping,
+  connectPhotoSlots,
+  connectScrollAction,
+  connectSignedUrlNeedsRefresh,
+  connectThreadSessionKey,
+  mergeConnectServerMessages,
+  readersForMessageWindow,
+  shouldAdvanceConnectReadCursor,
+  type ConnectReadCursorReason,
+  type ConnectScopeReader,
+} from '@/lib/connectChatWindow';
+import {
+  fetchScopeConnectReaders,
+} from '@/lib/connectScopeReaders';
 import {
   FLATLIST_TUNING,
 } from '@/lib/performanceInstrumentation';
@@ -316,6 +333,14 @@ function BuklodSharedPostPhotoPreview185AR5({
 
 type ComposerPhoto = ConnectPickedFile & {
   id: string;
+  storagePath?: string | null;
+  storageMeta?: {
+    path: string;
+    name: string;
+    mimeType: string;
+    size: number;
+  } | null;
+  uploadState?: 'pending' | 'uploading' | 'uploaded' | 'failed';
 };
 
 type Message = {
@@ -567,61 +592,6 @@ function repairBuklodMessageText(
         return run;
       }
     }
-  );
-}
-
-function mergeServerMessages(
-  server: Message[],
-  current: Message[],
-): Message[] {
-  const locals = current.filter(item =>
-    String(item.id).startsWith('local-')
-  );
-
-  const kept = locals.filter(local => {
-    if (local.delivery_state === 'not_sent') {
-      return true;
-    }
-
-    if (local.delivery_state !== 'pending') {
-      return false;
-    }
-
-    const localTime =
-      new Date(local.created_at).getTime();
-    const localCaption =
-      parseConnectAlbumBody(local.body).caption;
-    const localHasMedia =
-      !!(
-        local.attachment_path ||
-        local.pending_album?.length
-      );
-
-    return !server.some(row => {
-      const rowCaption =
-        parseConnectAlbumBody(row.body).caption;
-      const rowHasMedia = !!row.attachment_path;
-
-      return (
-        row.sender_id === local.sender_id &&
-        rowCaption === localCaption &&
-        rowHasMedia === localHasMedia &&
-        Math.abs(
-          new Date(row.created_at).getTime() -
-            localTime
-        ) < 120000
-      );
-    });
-  });
-
-  if (!kept.length) {
-    return server;
-  }
-
-  return [...server, ...kept].sort(
-    (a, b) =>
-      new Date(a.created_at).getTime() -
-      new Date(b.created_at).getTime()
   );
 }
 
@@ -993,6 +963,46 @@ const [
     );
 
   const [
+    scopeReaders,
+    setScopeReaders,
+  ] = useState<ConnectScopeReader[]>([]);
+
+  const [
+    seenDetail,
+    setSeenDetail,
+  ] = useState<ConnectScopeReader[] | null>(null);
+
+  const [
+    hasOlder,
+    setHasOlder,
+  ] = useState(false);
+
+  const [
+    loadingOlder,
+    setLoadingOlder,
+  ] = useState(false);
+
+  const [
+    listAnchored,
+    setListAnchored,
+  ] = useState(false);
+
+  const [
+    awayFromLatest,
+    setAwayFromLatest,
+  ] = useState(false);
+
+  const [
+    newWhileAway,
+    setNewWhileAway,
+  ] = useState(0);
+
+  const [
+    failedAttachmentPaths,
+    setFailedAttachmentPaths,
+  ] = useState<Record<string, boolean>>({});
+
+  const [
     attachmentUrls,
     setAttachmentUrls,
   ] =
@@ -1243,26 +1253,13 @@ const [
 
   const visibleMessages =
     useMemo(
-      () => {
-        const filtered = messages.filter(
+      () =>
+        messages.filter(
           item =>
             !hiddenMessageIds.has(
               item.id
             )
-        );
-
-        if (
-          filtered.length <=
-          SCALE_LIMITS.connectRenderWindow
-        ) {
-          return filtered;
-        }
-
-        return filtered.slice(
-          filtered.length -
-            SCALE_LIMITS.connectRenderWindow
-        );
-      },
+        ),
       [
         hiddenMessageIds,
         messages,
@@ -1292,88 +1289,108 @@ const [
       FlatList<Message>
     >(null);
 
-  /* PATCH_191B_CONNECT_SCROLL_ANCHOR */
   const connectScrollOffsetRef =
     useRef(0);
 
-  const connectReadingOlderRef =
+  const nearBottomRef =
+    useRef(true);
+
+  const listAnchoredRef =
     useRef(false);
 
-  const connectPreserveScrollRef =
+  const pendingVisibleReadRef =
+    useRef<ConnectReadCursorReason | null>(null);
+
+  const pinLatestOnOpenRef =
+    useRef(true);
+
+  const followOwnSendRef =
     useRef(false);
 
-  const connectPreserveOffsetRef =
+  const suppressStickRef =
+    useRef(false);
+
+  const initialLoadSettledRef =
+    useRef(false);
+
+  const olderPagesLoadedRef =
+    useRef(false);
+
+  const loadingOlderRef =
+    useRef(false);
+
+  const historyCursorRef =
+    useRef<{
+      createdAt: string;
+      id: string;
+    } | null>(null);
+
+  const messagesLengthRef =
     useRef(0);
 
-  const connectPreserveTimerRef =
-    useRef<ReturnType<typeof setTimeout> | null>(
-      null
+  const messagesRef =
+    useRef<Message[]>([]);
+
+  const contentHeightRef =
+    useRef(0);
+
+  const attachmentSignedAtRef =
+    useRef<Record<string, number>>({});
+
+  const attachmentSigningRef =
+    useRef<Map<string, Promise<string | null>>>(
+      new Map()
     );
 
-  const armConnectScrollPreservation =
-    () => {
-      if (!connectReadingOlderRef.current) {
-        return;
-      }
+  const attachmentRetryRef =
+    useRef<Record<string, number>>({});
 
-      connectPreserveOffsetRef.current =
-        connectScrollOffsetRef.current;
+  const threadSessionKeyValue =
+    connectThreadSessionKey({
+      profileId,
+      mode,
+      containerId: effectiveContainerId,
+    });
 
-      connectPreserveScrollRef.current =
-        true;
+  const [
+    threadSession,
+    setThreadSession,
+  ] = useState(threadSessionKeyValue);
 
-      if (connectPreserveTimerRef.current) {
-        clearTimeout(
-          connectPreserveTimerRef.current
-        );
-      }
+  if (threadSession !== threadSessionKeyValue) {
+    setThreadSession(threadSessionKeyValue);
+    setMessages([]);
+    setReactions({});
+    setAttachmentUrls({});
+    setDirectPeerReadAt(null);
+    setScopeReaders([]);
+    setSeenDetail(null);
+    setHasOlder(false);
+    setLoadingOlder(false);
+    setListAnchored(false);
+    listAnchoredRef.current = false;
+    pendingVisibleReadRef.current = null;
+    setAwayFromLatest(false);
+    setNewWhileAway(0);
+    setFailedAttachmentPaths({});
+    pinLatestOnOpenRef.current = true;
+    followOwnSendRef.current = false;
+    suppressStickRef.current = false;
+    initialLoadSettledRef.current = false;
+    olderPagesLoadedRef.current = false;
+    loadingOlderRef.current = false;
+    historyCursorRef.current = null;
+    messagesLengthRef.current = 0;
+    messagesRef.current = [];
+    contentHeightRef.current = 0;
+    nearBottomRef.current = true;
+    attachmentSignedAtRef.current = {};
+    attachmentSigningRef.current = new Map();
+    attachmentRetryRef.current = {};
+  }
 
-      connectPreserveTimerRef.current =
-        setTimeout(
-          () => {
-            connectPreserveScrollRef.current =
-              false;
-            connectPreserveTimerRef.current =
-              null;
-          },
-          8000
-        );
-    };
-
-  useEffect(
-    () => {
-      if (!connectPreserveScrollRef.current) {
-        return;
-      }
-
-      const offset =
-        connectPreserveOffsetRef.current;
-
-      requestAnimationFrame(
-        () => {
-          listRef.current
-            ?.scrollToOffset({
-              offset,
-              animated: false,
-            });
-
-          connectPreserveScrollRef.current =
-            false;
-
-          if (
-            connectPreserveTimerRef.current
-          ) {
-            clearTimeout(
-              connectPreserveTimerRef.current
-            );
-            connectPreserveTimerRef.current =
-              null;
-          }
-        }
-      );
-    },
-    [messages]
-  );
+  messagesLengthRef.current = messages.length;
+  messagesRef.current = messages;
 
   const connectThreadOfflineCacheKey =
     `connect-thread:${mode}:${effectiveContainerId}`;
@@ -1675,6 +1692,159 @@ const [
       ]
     );
 
+  const markVisibleRoomRead = (
+    reason: ConnectReadCursorReason
+  ) => {
+    if (
+      !effectiveContainerId ||
+      !profileId ||
+      !shouldAdvanceConnectReadCursor({
+        listAnchored: listAnchoredRef.current,
+        nearLatest: nearBottomRef.current,
+        reason,
+      })
+    ) {
+      return;
+    }
+
+    pendingVisibleReadRef.current = null;
+
+    const containerId = effectiveContainerId;
+    const readMode = mode;
+
+    void (async () => {
+      const result = await (supabase as any).rpc(
+        readMode === 'direct'
+          ? 'buklod_connect_mark_direct_read'
+          : 'buklod_connect_mark_scope_read',
+        readMode === 'direct'
+          ? { _thread_id: containerId }
+          : { _scope_id: containerId }
+      );
+
+      if (result.error) {
+        console.warn(
+          'Connect mark read:',
+          result.error.message
+        );
+        return;
+      }
+
+      if (readMode === 'scope') {
+        const readers = await fetchScopeConnectReaders(
+          containerId
+        );
+        if (readers) {
+          setScopeReaders(readers);
+        }
+        return;
+      }
+
+      void loadPeerRead();
+    })();
+  };
+
+  const scheduleInitialAnchor = (
+    markOnReveal = false
+  ) => {
+    const action = connectScrollAction({
+      intent: 'open',
+      nearBottom: nearBottomRef.current,
+      initialSettled: initialLoadSettledRef.current,
+    });
+
+    if (action === 'wait') {
+      return;
+    }
+
+    setTimeout(() => {
+      if (!pinLatestOnOpenRef.current) {
+        return;
+      }
+
+      if (messagesLengthRef.current < 1) {
+        pinLatestOnOpenRef.current = false;
+        nearBottomRef.current = true;
+        listAnchoredRef.current = true;
+        setListAnchored(true);
+        if (markOnReveal) {
+          markVisibleRoomRead('open');
+        }
+        return;
+      }
+
+      listRef.current?.scrollToEnd({
+        animated: false,
+      });
+
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({
+          animated: false,
+        });
+        pinLatestOnOpenRef.current = false;
+        nearBottomRef.current = true;
+        listAnchoredRef.current = true;
+        setAwayFromLatest(false);
+        setNewWhileAway(0);
+        setListAnchored(true);
+        if (markOnReveal) {
+          markVisibleRoomRead('open');
+        }
+      }, 32);
+    }, 48);
+  };
+
+  const applyHistoryPage = (
+    page: {
+      messages: Message[];
+      hasOlder: boolean;
+      oldestCursor: {
+        createdAt: string;
+        id: string;
+      } | null;
+    }
+  ) => {
+    const current = messagesRef.current;
+    const next = mergeConnectServerMessages(
+      page.messages,
+      current,
+      olderPagesLoadedRef.current
+        ? 'retain-older'
+        : 'replace'
+    );
+
+    if (
+      initialLoadSettledRef.current &&
+      !pinLatestOnOpenRef.current &&
+      !nearBottomRef.current
+    ) {
+      const known = new Set(
+        current.map(item => item.id)
+      );
+      const incoming = next.filter(
+        item =>
+          !known.has(item.id) &&
+          !String(item.id).startsWith('local-') &&
+          item.sender_id !== profileId
+      );
+
+      if (incoming.length) {
+        setNewWhileAway(
+          count => count + incoming.length
+        );
+      }
+    }
+
+    messagesRef.current = next;
+    messagesLengthRef.current = next.length;
+    setMessages(next);
+
+    if (!olderPagesLoadedRef.current) {
+      setHasOlder(page.hasOlder);
+      historyCursorRef.current = page.oldestCursor;
+    }
+  };
+
   const load =
     useCallback(
       async () => {
@@ -1686,6 +1856,9 @@ const [
         }
 
         try {
+        const newestBeforeLoad =
+          messagesRef.current[messagesRef.current.length - 1] ?? null;
+
         if (
           mode === 'direct'
         ) {
@@ -1731,35 +1904,12 @@ const [
               null
           );
 
-          const rows =
-            await fetchDirectConnectMessages(
+          const page =
+            await fetchDirectConnectHistoryPage(
               effectiveContainerId
             );
 
-          setMessages(current =>
-            mergeServerMessages(
-              rows,
-              current
-            )
-          );
-
-          const readResult =
-            await (
-              supabase as any
-            ).rpc(
-              'buklod_connect_mark_direct_read',
-              {
-                _thread_id:
-                  effectiveContainerId,
-              }
-            );
-
-          if (readResult.error) {
-            console.warn(
-              'Connect mark direct read:',
-              readResult.error.message
-            );
-          }
+          applyHistoryPage(page);
         }
         else {
           const details =
@@ -1805,51 +1955,61 @@ const [
                 } ${String.fromCodePoint(0x2022)} AUTOMATIC ROOM`
           );
 
-          const rows =
-            await fetchScopeConnectMessages(
+          const page =
+            await fetchScopeConnectHistoryPage(
               effectiveContainerId
             );
 
-          setMessages(current =>
-            mergeServerMessages(
-              rows,
-              current
-            )
-          );
+          applyHistoryPage(page);
 
-          const readResult =
-            await (
-              supabase as any
-            ).rpc(
-              'buklod_connect_mark_scope_read',
-              {
-                _scope_id:
-                  effectiveContainerId,
-              }
+          const readers =
+            await fetchScopeConnectReaders(
+              effectiveContainerId
             );
 
-          if (readResult.error) {
-            console.warn(
-              'Connect mark scope read:',
-              readResult.error.message
-            );
-          }
+          setScopeReaders(readers ?? []);
         }
 
         await loadReactions();
 
-        requestAnimationFrame(
-          () =>
-            listRef.current
-              ?.scrollToEnd({
-                animated: false,
-              })
-        );
+        const newestAfterLoad =
+          messagesRef.current[messagesRef.current.length - 1] ?? null;
+        const hasNewerMessage =
+          !!newestAfterLoad &&
+          (
+            !newestBeforeLoad ||
+            newestAfterLoad.id !== newestBeforeLoad.id ||
+            newestAfterLoad.created_at !== newestBeforeLoad.created_at
+          );
+        const reloading =
+          initialLoadSettledRef.current;
+        initialLoadSettledRef.current = true;
+
+        if (!reloading) {
+          scheduleInitialAnchor(true);
+        } else if (
+          nearBottomRef.current &&
+          listAnchoredRef.current &&
+          hasNewerMessage
+        ) {
+          // Wait until the new row is scrolled into view. now() before that
+          // would cover a message the reader has not seen yet.
+          pendingVisibleReadRef.current = 'incoming';
+        } else if (
+          nearBottomRef.current &&
+          listAnchoredRef.current &&
+          !hasNewerMessage
+        ) {
+          markVisibleRoomRead('reconnect');
+        }
       } catch (error: any) {
         console.warn(
           'Connect history load:',
           error?.message ?? error
         );
+
+        initialLoadSettledRef.current = true;
+        scheduleInitialAnchor(false);
 
         Alert.alert(
           'Connect',
@@ -2023,86 +2183,222 @@ const [
   ]);
 
   useEffect(() => {
+    if (
+      mode !== 'scope' ||
+      !effectiveContainerId ||
+      !profileId
+    ) {
+      return;
+    }
+
     let active = true;
 
-    const pendingPaths = Array.from(
+    const refreshReaders = () => {
+      void fetchScopeConnectReaders(
+        effectiveContainerId
+      ).then(readers => {
+        if (active && readers) {
+          setScopeReaders(readers);
+        }
+      });
+    };
+
+    const timer = setInterval(
+      refreshReaders,
+      SCALE_LIMITS.connectPeerReadPollMs
+    );
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [
+    effectiveContainerId,
+    mode,
+    profileId,
+  ]);
+
+  const signAttachmentPath = useCallback(
+    async (path: string, force = false) => {
+      const signedAt =
+        attachmentSignedAtRef.current[path] ?? 0;
+
+      if (
+        !force &&
+        attachmentUrls[path] &&
+        !connectSignedUrlNeedsRefresh(
+          signedAt,
+          Date.now()
+        )
+      ) {
+        return attachmentUrls[path];
+      }
+
+      if (!force) {
+        const existing =
+          attachmentSigningRef.current.get(path);
+        if (existing) {
+          return existing;
+        }
+      }
+
+      const task = (async () => {
+        const result = await supabase.storage
+          .from('connect-files')
+          .createSignedUrl(path, 3600);
+        const url = result.data?.signedUrl ?? null;
+
+        if (url) {
+          attachmentSignedAtRef.current[path] = Date.now();
+          setFailedAttachmentPaths(current => {
+            if (!current[path]) {
+              return current;
+            }
+            const next = { ...current };
+            delete next[path];
+            return next;
+          });
+          setAttachmentUrls(current => ({
+            ...current,
+            [path]: url,
+          }));
+        } else {
+          setFailedAttachmentPaths(current => ({
+            ...current,
+            [path]: true,
+          }));
+        }
+
+        attachmentSigningRef.current.delete(path);
+        return url;
+      })();
+
+      attachmentSigningRef.current.set(path, task);
+      return task;
+    },
+    [attachmentUrls]
+  );
+
+  useEffect(() => {
+    const now = Date.now();
+    const paths = Array.from(
       new Set(
         messages.flatMap(item => {
           if (item.pending_album?.length) {
             return [];
           }
 
-          return getConnectMessageImagePaths(
-            item
-          ).filter(path =>
+          return getConnectMessageImagePaths(item).filter(path =>
             isConnectStoragePath(path)
           );
         })
       )
-    ).filter(path => !attachmentUrls[path]);
+    );
 
-    if (!pendingPaths.length) {
+    for (const path of paths) {
+      const retries = attachmentRetryRef.current[path] ?? 0;
+      const signedAt = attachmentSignedAtRef.current[path] ?? 0;
+      const missing = !attachmentUrls[path];
+      const expired = connectSignedUrlNeedsRefresh(signedAt, now);
+      const failed = !!failedAttachmentPaths[path];
+
+      if (failed && retries >= 3 && !expired) {
+        continue;
+      }
+
+      if (missing || expired) {
+        if (failed) {
+          attachmentRetryRef.current[path] = retries + 1;
+        }
+        void signAttachmentPath(path, expired || failed);
+      }
+    }
+  }, [
+    attachmentUrls,
+    failedAttachmentPaths,
+    messages,
+    signAttachmentPath,
+  ]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now();
+      for (const [path, signedAt] of Object.entries(
+        attachmentSignedAtRef.current
+      )) {
+        if (connectSignedUrlNeedsRefresh(signedAt, now)) {
+          void signAttachmentPath(path, true);
+        }
+      }
+    }, 60_000);
+
+    return () => clearInterval(timer);
+  }, [signAttachmentPath]);
+
+  const loadOlder = useCallback(async () => {
+    if (
+      loadingOlderRef.current ||
+      !hasOlder ||
+      !historyCursorRef.current ||
+      !effectiveContainerId
+    ) {
       return;
     }
 
-    void Promise.all(
-      pendingPaths.map(
-        async path => {
-          const result =
-            await supabase
-              .storage
-              .from(
-                'connect-files'
-              )
-              .createSignedUrl(
-                path,
-                3600
-              );
+    loadingOlderRef.current = true;
+    setLoadingOlder(true);
+    suppressStickRef.current = true;
 
-          return {
-            path,
-            url:
-              result.data
-                ?.signedUrl ??
-              null,
-          };
-        }
-      )
-    ).then(rows => {
-      if (!active) {
-        return;
-      }
+    try {
+      const page =
+        mode === 'direct'
+          ? await fetchDirectConnectHistoryPage(
+              effectiveContainerId,
+              SCALE_LIMITS.connectOlderPage,
+              historyCursorRef.current
+            )
+          : await fetchScopeConnectHistoryPage(
+              effectiveContainerId,
+              SCALE_LIMITS.connectOlderPage,
+              historyCursorRef.current
+            );
 
-      setAttachmentUrls(
-        current => {
-          const next = {
-            ...current,
-          };
-
-          for (
-            const row of rows
-          ) {
-            if (
-              row.url
-            ) {
-              next[
-                row.path
-              ] =
-                row.url;
-            }
-          }
-
-          return next;
-        }
+      const previousCursor = historyCursorRef.current;
+      const cursorMoved =
+        !!page.oldestCursor &&
+        (
+          !previousCursor ||
+          page.oldestCursor.id !== previousCursor.id ||
+          page.oldestCursor.createdAt !== previousCursor.createdAt
+        );
+      olderPagesLoadedRef.current = true;
+      historyCursorRef.current = page.oldestCursor ?? historyCursorRef.current;
+      setHasOlder(
+        page.hasOlder &&
+          page.messages.length > 0 &&
+          cursorMoved
       );
-    });
-
-    return () => {
-      active = false;
-    };
+      const next = mergeConnectServerMessages(
+        page.messages,
+        messagesRef.current,
+        'retain-older'
+      );
+      messagesRef.current = next;
+      messagesLengthRef.current = next.length;
+      setMessages(next);
+    } catch (error: any) {
+      console.warn(
+        'Connect older history:',
+        error?.message ?? error
+      );
+    } finally {
+      loadingOlderRef.current = false;
+      setLoadingOlder(false);
+    }
   }, [
-    attachmentUrls,
-    messages,
+    effectiveContainerId,
+    hasOlder,
+    mode,
   ]);
 
   const closeOptionMenu =
@@ -2187,7 +2483,6 @@ const [
       message: Message,
       anchor: ConnectMessageActionAnchor,
     ) => {
-      armConnectScrollPreservation();
       setOptionMenu(null);
       setReactionTargetId(message.id);
       setActionTargetMessage(message);
@@ -2553,13 +2848,12 @@ const [
         ]
       );
 
-      requestAnimationFrame(
-        () =>
-          listRef.current
-            ?.scrollToEnd({
-              animated: true,
-            })
-      );
+      followOwnSendRef.current = true;
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToEnd({
+          animated: false,
+        });
+      });
     };
 
   const markLocalMessageSent =
@@ -3026,13 +3320,12 @@ const [
         ]
       );
 
-      requestAnimationFrame(
-        () =>
-          listRef.current
-            ?.scrollToEnd({
-              animated: true,
-            })
-      );
+      followOwnSendRef.current = true;
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToEnd({
+          animated: false,
+        });
+      });
 
       void (async () => {
         try {
@@ -3043,35 +3336,73 @@ const [
             size: number;
           }> = [];
 
+          const writeAlbum = (
+            nextAlbum: ComposerPhoto[]
+          ) => {
+            setMessages(current =>
+              current.map(item =>
+                item.id === localId
+                  ? {
+                      ...item,
+                      pending_album: nextAlbum,
+                    }
+                  : item
+              )
+            );
+          };
+
           for (
             let index = 0;
             index < snapshot.length;
             index += 1
           ) {
-            const photo =
-              snapshot[index];
-            const row =
-              await uploadConnectFile(
-                {
-                  mode,
-                  containerId:
-                    effectiveContainerId,
-                  file: photo,
-                  uniqueKey: `${Date.now()}-${index}-${Math.random()
-                    .toString(36)
-                    .slice(2, 8)}`,
-                }
-              );
+            const photo = snapshot[index];
 
-            uploaded.push(row);
+            if (photo.storageMeta?.path) {
+              uploaded.push(photo.storageMeta);
+              continue;
+            }
 
-            setAttachmentUrls(
-              current => ({
+            snapshot[index] = {
+              ...photo,
+              uploadState: 'uploading',
+            };
+            writeAlbum([...snapshot]);
+
+            try {
+              const row = await uploadConnectFile({
+                mode,
+                containerId: effectiveContainerId,
+                file: photo,
+                uniqueKey: `${Date.now()}-${index}-${Math.random()
+                  .toString(36)
+                  .slice(2, 8)}`,
+              });
+
+              snapshot[index] = {
+                ...photo,
+                storagePath: row.path,
+                storageMeta: row,
+                uploadState: 'uploaded',
+              };
+              uploaded.push(row);
+              writeAlbum([...snapshot]);
+              setAttachmentUrls(current => ({
                 ...current,
-                [row.path]:
-                  photo.uri,
-              })
-            );
+                [row.path]: photo.uri,
+              }));
+            } catch (uploadError) {
+              snapshot[index] = {
+                ...photo,
+                uploadState: 'failed',
+              };
+              writeAlbum([...snapshot]);
+              throw uploadError;
+            }
+          }
+
+          if (uploaded.length !== snapshot.length) {
+            throw new Error('Photo upload did not finish.');
           }
 
           const paths =
@@ -3349,13 +3680,12 @@ const [
           ]
         );
 
-        requestAnimationFrame(
-          () =>
-            listRef.current
-              ?.scrollToEnd({
-                animated: true,
-              })
-        );
+        followOwnSendRef.current = true;
+        requestAnimationFrame(() => {
+          listRef.current?.scrollToEnd({
+            animated: false,
+          });
+        });
 
         void (async () => {
           try {
@@ -3707,7 +4037,7 @@ const [
       >
 <FlatList
         ref={listRef}
-        style={{ flex: 1 }}
+        style={{ flex: 1, opacity: listAnchored ? 1 : 0 }}
         data={visibleMessages}
         keyboardShouldPersistTaps="always"
         keyboardDismissMode="none"
@@ -3737,13 +4067,107 @@ const [
               18,
           },
         ]}
-        onContentSizeChange={
-          () =>
-            listRef.current
-              ?.scrollToEnd({
-                animated: true,
-              })
+        ListHeaderComponent={
+          hasOlder || loadingOlder ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Load earlier messages"
+              disabled={loadingOlder}
+              onPress={() => {
+                void loadOlder();
+              }}
+              style={{
+                minHeight: 44,
+                paddingVertical: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {loadingOlder ? (
+                <ActivityIndicator color={theme.accent} />
+              ) : (
+                <Text
+                  style={{
+                    color: theme.accent,
+                    fontSize: 13,
+                    fontWeight: '800',
+                  }}
+                >
+                  Load earlier messages
+                </Text>
+              )}
+            </Pressable>
+          ) : null
         }
+        onContentSizeChange={(_width, height) => {
+          const previous = contentHeightRef.current;
+          const delta = previous > 0 ? height - previous : 0;
+          contentHeightRef.current = height;
+
+          if (suppressStickRef.current) {
+            suppressStickRef.current = false;
+            return;
+          }
+
+          if (
+            pinLatestOnOpenRef.current &&
+            initialLoadSettledRef.current &&
+            messagesLengthRef.current > 0
+          ) {
+            listRef.current?.scrollToEnd({
+              animated: false,
+            });
+            return;
+          }
+
+          if (
+            pinLatestOnOpenRef.current &&
+            initialLoadSettledRef.current &&
+            messagesLengthRef.current < 1
+          ) {
+            pinLatestOnOpenRef.current = false;
+            listAnchoredRef.current = true;
+            setListAnchored(true);
+            return;
+          }
+
+          if (followOwnSendRef.current) {
+            followOwnSendRef.current = false;
+            listRef.current?.scrollToEnd({
+              animated: false,
+            });
+            nearBottomRef.current = true;
+            setAwayFromLatest(false);
+            setNewWhileAway(0);
+            if (listAnchoredRef.current) {
+              pendingVisibleReadRef.current = 'own-send';
+              setTimeout(() => {
+                markVisibleRoomRead('own-send');
+              }, 32);
+            }
+            return;
+          }
+
+          const action = connectScrollAction({
+            intent: 'content',
+            nearBottom: nearBottomRef.current,
+            initialSettled: initialLoadSettledRef.current,
+          });
+
+          if (action === 'stick-end' && delta > 1) {
+            listRef.current?.scrollToEnd({
+              animated: false,
+            });
+            const pending = pendingVisibleReadRef.current;
+            if (pending && listAnchoredRef.current) {
+              setTimeout(() => {
+                if (nearBottomRef.current) {
+                  markVisibleRoomRead(pending);
+                }
+              }, 32);
+            }
+          }
+        }}
         ListEmptyComponent={
           <View
             style={
@@ -3809,8 +4233,35 @@ const [
               layoutMeasurement.height
             );
 
-          connectReadingOlderRef.current =
-            distanceFromBottom > 120;
+          const nearBottom =
+            distanceFromBottom <= CONNECT_NEAR_BOTTOM_PX;
+          const wasNearLatest = nearBottomRef.current;
+          nearBottomRef.current = nearBottom;
+
+          if (
+            nearBottom &&
+            !wasNearLatest &&
+            listAnchoredRef.current
+          ) {
+            markVisibleRoomRead('returned-to-latest');
+          }
+
+          if (nearBottom) {
+            if (awayFromLatest || newWhileAway > 0) {
+              setAwayFromLatest(false);
+              setNewWhileAway(0);
+            }
+          } else if (!awayFromLatest && listAnchored) {
+            setAwayFromLatest(true);
+          }
+
+          if (
+            contentOffset.y <= CONNECT_LOAD_OLDER_PX &&
+            hasOlder &&
+            !loadingOlderRef.current
+          ) {
+            void loadOlder();
+          }
         }}
         scrollEventThrottle={16}
         maintainVisibleContentPosition={{
@@ -3818,10 +4269,39 @@ const [
         }}
         renderItem={({
           item,
+          index,
         }) => {
           const own =
             item.sender_id ===
             profileId;
+
+          const previous = visibleMessages[index - 1];
+          const next = visibleMessages[index + 1];
+          const grouping = connectBubbleGrouping({
+            senderId: item.sender_id,
+            createdAt: item.created_at,
+            previous: previous
+              ? {
+                  senderId: previous.sender_id,
+                  createdAt: previous.created_at,
+                }
+              : null,
+            next: next
+              ? {
+                  senderId: next.sender_id,
+                  createdAt: next.created_at,
+                }
+              : null,
+          });
+          const seenReaders =
+            mode === 'scope'
+              ? readersForMessageWindow({
+                  messageCreatedAt: item.created_at,
+                  nextMessageCreatedAt: next?.created_at ?? null,
+                  readers: scopeReaders,
+                  selfUserId: profileId,
+                })
+              : [];
 
           const messageDeleted =
             isConnectDeletedMessage(
@@ -3920,28 +4400,21 @@ const [
               messageBody
             ).caption;
 
-          const photoUrls =
+          const photoSlots =
             item.pending_album?.length
-              ? item.pending_album.map(
-                  photo => photo.uri
-                )
-              : getConnectMessageImagePaths(
-                  item
-                )
-                  .map(path =>
-                    attachmentUrls[path] ??
-                    (
-                      isConnectStoragePath(
-                        path
-                      )
-                        ? null
-                        : path
-                    )
-                  )
-                  .filter(
-                    (uri): uri is string =>
-                      !!uri
-                  );
+              ? item.pending_album.map(photo => ({
+                  key: photo.id,
+                  uri: photo.uri,
+                  failed: photo.uploadState === 'failed',
+                }))
+              : connectPhotoSlots({
+                  paths: getConnectMessageImagePaths(item),
+                  urls: attachmentUrls,
+                  failed: failedAttachmentPaths,
+                });
+          const photoUrls = photoSlots
+            .map(slot => slot.uri)
+            .filter((uri): uri is string => !!uri);
 
           /* PATCH_172A_AVATAR_BUBBLE */
           const avatarReaction =
@@ -3984,22 +4457,26 @@ const [
                 ] ??
                 null
               : null;
+          const uploadedAlbumCount =
+            item.pending_album?.filter(
+              photo => photo.uploadState === 'uploaded'
+            ).length ?? 0;
           const deliveryLabel =
-            own && mode === 'direct'
-              ? (
-                  item.delivery_state === 'not_sent'
-                    ? '\u2022 Not sent'
-                    : item.delivery_state === 'pending'
-                      ? '\u2022 Sending'
-                      : (
-                          directPeerReadAt &&
-                          new Date(directPeerReadAt).getTime() >=
-                            new Date(item.created_at).getTime()
-                        )
-                        ? '\u2022 Seen'
-                        : '\u2022 Sent'
-                )
-              : null;
+            own && item.delivery_state === 'not_sent'
+              ? '\u2022 Not sent'
+              : own && item.delivery_state === 'pending'
+                ? item.pending_album && item.pending_album.length > 1
+                  ? `\u2022 Sending ${uploadedAlbumCount}/${item.pending_album.length}`
+                  : '\u2022 Sending'
+                : own && mode === 'direct'
+                  ? (
+                      directPeerReadAt &&
+                      new Date(directPeerReadAt).getTime() >=
+                        new Date(item.created_at).getTime()
+                    )
+                    ? '\u2022 Seen'
+                    : '\u2022 Sent'
+                  : null;
 
           void hasMine;
 
@@ -4020,10 +4497,15 @@ const [
                     )
               }
               senderLabel={
-                mode === 'scope' && !own && item.sender_name
+                mode === 'scope' &&
+                !own &&
+                grouping.startsGroup &&
+                item.sender_name
                   ? repairBuklodMessageText(item.sender_name)
                   : null
               }
+              compact={!grouping.endsGroup}
+              showTime={grouping.endsGroup || !!deliveryLabel}
               standaloneReaction={standaloneReaction}
               avatarReaction={avatarReaction}
               standaloneEmoji={
@@ -4055,6 +4537,33 @@ const [
               }
               photoUrl={!messageDeleted && isPhoto ? imageUrl : null}
               photoUrls={!messageDeleted && isPhoto ? photoUrls : []}
+              photoSlots={
+                !messageDeleted && isPhoto ? photoSlots : undefined
+              }
+              onRetryPhoto={slotIndex => {
+                const path = getConnectMessageImagePaths(item)[slotIndex];
+                if (!path || !isConnectStoragePath(path)) {
+                  return;
+                }
+
+                const retries = attachmentRetryRef.current[path] ?? 0;
+                if (retries >= 4) {
+                  setFailedAttachmentPaths(current => ({
+                    ...current,
+                    [path]: true,
+                  }));
+                  return;
+                }
+
+                attachmentRetryRef.current[path] = retries + 1;
+                void signAttachmentPath(path, true);
+              }}
+              seenReaders={seenReaders}
+              onPressSeenReaders={() => {
+                if (seenReaders.length) {
+                  setSeenDetail(seenReaders);
+                }
+              }}
               isGif={
                 photoUrls.length <= 1 &&
                 item.attachment_mime === 'image/gif'
@@ -4107,16 +4616,22 @@ const [
                 )
               }
               onOpenPhoto={index => {
-                if (photoUrls.length) {
+                const resolved = photoSlots
+                  .map((slot, slotIndex) => ({
+                    uri: slot.uri,
+                    slotIndex,
+                  }))
+                  .filter(
+                    (slot): slot is { uri: string; slotIndex: number } =>
+                      !!slot.uri
+                  );
+                if (resolved.length) {
+                  const match = resolved.findIndex(
+                    slot => slot.slotIndex === (index ?? 0)
+                  );
                   setPhotoViewer({
-                    uris: photoUrls,
-                    index: Math.max(
-                      0,
-                      Math.min(
-                        index ?? 0,
-                        photoUrls.length - 1
-                      )
-                    ),
+                    uris: resolved.map(slot => slot.uri),
+                    index: Math.max(0, match),
                   });
                   return;
                 }
@@ -4169,6 +4684,159 @@ const [
           );
         }}
       />
+
+      {!listAnchored && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <ActivityIndicator color={theme.accent} />
+        </View>
+      )}
+
+      {listAnchored && (awayFromLatest || newWhileAway > 0) && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            newWhileAway > 0
+              ? 'New messages'
+              : 'Latest messages'
+          }
+          onPress={() => {
+            followOwnSendRef.current = false;
+            listRef.current?.scrollToEnd({
+              animated: false,
+            });
+            nearBottomRef.current = true;
+            setAwayFromLatest(false);
+            setNewWhileAway(0);
+            pendingVisibleReadRef.current = 'returned-to-latest';
+            setTimeout(() => {
+              markVisibleRoomRead('returned-to-latest');
+            }, 32);
+          }}
+          style={{
+            position: 'absolute',
+            right: 16,
+            bottom:
+              composerBottom +
+              CONNECT_COMPOSER_RESERVED_HEIGHT +
+              12,
+            zIndex: 30,
+            minHeight: 36,
+            paddingHorizontal: 12,
+            borderRadius: 18,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.accent,
+          }}
+        >
+          <Text
+            style={{
+              color: theme.white,
+              fontSize: 13,
+              fontWeight: '800',
+            }}
+          >
+            {newWhileAway > 0
+              ? newWhileAway > 1
+                ? `↓ New messages (${newWhileAway})`
+                : '↓ New messages'
+              : '↓ Latest'}
+          </Text>
+        </Pressable>
+      )}
+
+      <Modal
+        visible={!!seenDetail?.length}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSeenDetail(null)}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close seen list"
+          onPress={() => setSeenDetail(null)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <Pressable
+            onPress={() => undefined}
+            style={{
+              maxHeight: '60%',
+              paddingTop: 16,
+              paddingHorizontal: 16,
+              paddingBottom: 28,
+              borderTopLeftRadius: 18,
+              borderTopRightRadius: 18,
+              backgroundColor: theme.surface,
+            }}
+          >
+            <Text
+              style={{
+                color: theme.textPrimary,
+                fontSize: 16,
+                fontWeight: '800',
+                marginBottom: 10,
+              }}
+            >
+              Seen by
+            </Text>
+            <Text
+              style={{
+                color: theme.textMuted,
+                fontSize: 12,
+                fontWeight: '600',
+                marginBottom: 12,
+              }}
+            >
+              When they last viewed the latest messages. This is not a separate receipt for every message.
+            </Text>
+            {(seenDetail ?? []).map(reader => (
+              <View
+                key={reader.userId}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                  minHeight: 48,
+                }}
+              >
+                <Text
+                  style={{
+                    flex: 1,
+                    color: theme.textPrimary,
+                    fontSize: 15,
+                    fontWeight: '700',
+                  }}
+                >
+                  {reader.name}
+                </Text>
+                <Text
+                  style={{
+                    color: theme.textMuted,
+                    fontSize: 12,
+                    fontWeight: '700',
+                  }}
+                >
+                  {formatConnectTimestamp(reader.lastReadAt)}
+                </Text>
+              </View>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <View
         style={{
