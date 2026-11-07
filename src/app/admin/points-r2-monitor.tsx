@@ -12,8 +12,8 @@ type Pipeline={
 };
 type Report={as_of:string;activities:Activity[];nominations:{pending:number;approved:number;rejected:number};recent_nominations:Nom[];
  mentor_photos:number;pending_mentoring_photos:number;focus:{total:number;participation:number;learning:number;impact:number;unclassified:number}};
-type Checkin={id:string;event_id:string;member_id:string;event:string;place:string;starts_at:string;cluster:string;checked_in_at:string;status:string};
-type Evidence={session_id:string;lesson:string;status:string;mentor_id:string;
+type Checkin={id:string;event_id:string;member_id:string;member_name:string;event:string;place:string;starts_at:string;cluster:string;checked_in_at:string;status:string};
+type Evidence={session_id:string;lesson:string;status:string;mentor_id:string;mentor_name:string;session_location:string|null;mentor_notes:string|null;attendees:{id:string;name:string}[];
  session_date:string;participant_count:number;photo_path:string|null};
 export default function R2AdminMonitor(){
  const[report,setReport]=useState<Report|null>(null);const [pipeline,setPipeline]=useState<Pipeline|null>(null);
@@ -115,7 +115,7 @@ export default function R2AdminMonitor(){
  {checkins.map(item=><View style={s.card} key={item.id}>
   <Text style={s.heading}>{item.event} · {item.cluster}</Text>
   <Text style={s.info}>Venue: {item.place||'Not provided'} · Event: {new Date(item.starts_at).toLocaleString('en-PH')}</Text>
-  <Text style={s.info}>Member reference: {item.member_id.slice(0,8)} · Checked in: {new Date(item.checked_in_at).toLocaleString('en-PH')}</Text>
+  <Text style={s.info}>Member: {item.member_name||item.member_id.slice(0,8)} · Checked in: {new Date(item.checked_in_at).toLocaleString('en-PH')}</Text>
   <TextInput style={s.note} placeholder="Verification notes, 8+ characters" multiline
    placeholderTextColor="#79887D" value={notes[item.id]||''}
    onChangeText={v=>setNotes(old=>({...old,[item.id]:v}))}/>
@@ -133,7 +133,11 @@ export default function R2AdminMonitor(){
    <Text style={s.info}>No mentor sessions awaiting final approval.</Text>}
  {photos.filter(p=>p.status==='pending_admin').map(item=><View style={s.card} key={item.session_id}>
   <Text style={s.heading}>{item.lesson}</Text>
-  <Text style={s.info}>{item.session_date} · {item.participant_count} reported learners · Awaiting Admin</Text>
+  <Text style={s.info}>Mentor: {item.mentor_name||item.mentor_id.slice(0,8)}</Text>
+  <Text style={s.info}>Venue: {item.session_location||'Not provided'} · {item.session_date}</Text>
+  <Text style={s.info}>{item.participant_count} learners: {(item.attendees||[]).map(a=>a.name).join(', ')||'No registered learners'}</Text>
+  <Text style={s.evidence}>Mentor notes: {item.mentor_notes||'No notes'}</Text>
+  <Text style={s.info}>Awaiting Admin verification</Text>
   <Text style={s.info}>{item.photo_path?'Evidence uploaded':'Evidence photo missing'}</Text>
   {item.photo_path&&<Pressable style={s.btn} onPress={()=>void viewPhoto(item)}>
    <Text style={s.btnText}>View private mentoring photo</Text>
