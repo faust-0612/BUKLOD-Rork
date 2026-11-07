@@ -74,7 +74,7 @@ test('Domino Village: draw is legal only without matches; blocked round uses low
   assert.equal(dominoLegalMoves(drawn, 0).length, 0);
   const blocked = passDomino(drawn, 0);
   assert.equal(blocked.winner, 'ai');
-  assert.equal(blocked.award.ai, 6);
+  assert.equal(blocked.award.ai, 4); // The human has 0-0 (0 pips) and 2-2 (4 pips).
   assert.equal(blocked.award.human, 0);
   assert.equal(dominoChainValid(blocked), true);
   assert.throws(() => drawDomino(blocked, 0), /Cannot draw/);
