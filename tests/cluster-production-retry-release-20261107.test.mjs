@@ -31,6 +31,19 @@ test('Online Cluster failure remains actionable and does not hide cached account
   assert.match(directory, /usingSavedClusters = !online \|\| Boolean\(loadError\) \|\| loading/);
 });
 
+test('Scoped header keeps Android notch padding while wide desktop avoids a duplicate safe-area gap', () => {
+  const header = read('src/components/BuklodScopedDashboardHeader.tsx');
+  assert.match(header, /const insets = useSafeAreaInsets\(\)/);
+  assert.match(header, /const \{ width: viewportWidth \} = useWindowDimensions\(\)/);
+  assert.match(header, /const scopedTopInset = Platform\.OS === 'web' && viewportWidth >= 1200\s*\? 0 : insets\.top/);
+  assert.equal((header.match(/paddingTop: scopedTopInset/g) || []).length, 2,
+    'both blue Cluster header and regular scoped header honor the same platform-aware inset');
+  assert.doesNotMatch(workflow, /grep -F 'paddingTop: insets\.top'/);
+  assert.match(workflow, /grep -F "const scopedTopInset = Platform\.OS === 'web' && viewportWidth >= 1200"/);
+  assert.match(workflow, /grep -F '\? 0 : insets\.top;'/);
+  assert.match(workflow, /grep -F 'paddingTop: scopedTopInset'/);
+});
+
 test('Release workflow retains production safety anchors and frozen RC stages', () => {
   const gate = workflow.indexOf('Verify production safety anchors');
   const script = workflow.indexOf('node scripts/test-pending-client-reconciliation-20261027.cjs');
