@@ -21,7 +21,8 @@
     "Web canonical logo/favicon is not reverted; SOS, Cluster, Wall, Quiz, Classroom, Supabase and ads features are not changed"
   ],
   "regressionTests": [
-    "tests/native-expo-config-compat.test.cjs"
+    "tests/native-expo-config-compat.test.cjs",
+    "tests/android-ota-release-identity.test.cjs"
   ],
   "acceptanceChecks": [
     "Web-only favicon edit passes native compatibility while genuine Android package, version, permission, plugin, project URL, scheme and runtime mutations fail closed",
@@ -35,6 +36,7 @@
     "tests/native-expo-config-compat.test.cjs",
     "scripts/android-ota-rc.cjs",
     ".github/workflows/production_android_ota.yml",
-    ".buklod/scopes/ota-v28-web-favicon-native-config-20261107.json"
+    ".buklod/scopes/ota-v28-web-favicon-native-config-20261107.json",
+    "tests/android-ota-release-identity.test.cjs"
   ]
 }
