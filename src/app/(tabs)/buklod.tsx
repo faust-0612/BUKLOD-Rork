@@ -4974,6 +4974,12 @@ const communityFeedRows =
      >
       <MaterialCommunityIcons name="image-multiple-outline" size={22} color={wallGalleryTone.ink} />
      </Pressable>
+     <Pressable accessibilityRole="button" accessibilityLabel="Add music to Community post"
+       onPress={()=>{setCommunityComposerOpen(true);setComposerMusicPickerOpen(true);}}
+       style={{width:42,height:42,borderRadius:13,backgroundColor:'#e7f4ef',
+         alignItems:'center',justifyContent:'center'}}>
+       <MaterialCommunityIcons name="music-note-plus" size={21} color="#195d47"/>
+     </Pressable>
     </View>
    ) : (
     <>
@@ -5025,6 +5031,55 @@ const communityFeedRows =
       </Text>
      </Pressable>
 </View>
+    <BuklodPostMusicPicker visible={composerMusicPickerOpen}
+      selectedId={composerMusicTrack?.id}
+      previewId={wallAudioOwner==='composer'?wallLoadedTrackId:null}
+      previewPlaying={wallAudioOwner==='composer'&&!!wallAudioStatus?.playing}
+      onSelect={setComposerMusicTrack}
+      onPreview={track=>{void toggleWallMusic(track,'composer');}}
+      onClose={()=>setComposerMusicPickerOpen(false)}
+    />
+    <View style={{gap:8,marginBottom:12}}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Choose music for post"
+        onPress={()=>setComposerMusicPickerOpen(true)}
+        style={{backgroundColor:'#e7f4ef',borderRadius:12,padding:11,
+          flexDirection:'row',alignItems:'center',gap:8}}>
+        <MaterialCommunityIcons name="music-note" size={19} color="#195d47"/>
+        <Text numberOfLines={1} style={{flex:1,fontWeight:'800',fontSize:12,color:'#195d47'}}>
+          {composerMusicTrack?.title??'Add music / audio (optional)'}
+        </Text>
+        <MaterialCommunityIcons name="chevron-right" size={19} color="#195d47"/>
+      </Pressable>
+      {!wallVideo186O&&!communityGif&&(
+        <>
+          <Text style={{fontWeight:'800',fontSize:11,color:colors.muted}}>Animate your photo or text post</Text>
+          <View style={{flexDirection:'row',flexWrap:'wrap',gap:7}}>
+            {BUKLOD_POST_MOTION_PRESETS.map(preset=>(
+              <Pressable key={preset} accessibilityRole="button"
+                accessibilityLabel={'Select '+preset+' motion'}
+                onPress={()=>setComposerMotionPreset(preset)}
+                style={{borderRadius:15,paddingHorizontal:11,paddingVertical:8,borderWidth:1,
+                  borderColor:composerMotionPreset===preset?colors.green:colors.line,
+                  backgroundColor:composerMotionPreset===preset?colors.greenSoft:colors.white}}>
+                <Text style={{color:composerMotionPreset===preset?colors.greenDark:colors.muted,
+                  textTransform:'capitalize',fontSize:11,fontWeight:'800'}}>{preset}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {composerMotionPreset!=='none'&&!photos.length&&(
+            <BuklodPostMotion preset={composerMotionPreset}>
+              <View style={{backgroundColor:colors.white,padding:14,borderRadius:12,
+                borderWidth:1,borderColor:colors.line}}>
+                <Text numberOfLines={3} style={{color:colors.text,fontSize:13}}>
+                  {body.trim()||'Preview your animated post'}
+                </Text>
+              </View>
+            </BuklodPostMotion>
+          )}
+        </>
+      )}
+      {!!wallAudioError&&<Text style={{fontSize:11,color:'#b43a2b'}}>{wallAudioError}</Text>}
+    </View>
     {!!communityGif&&(
      <BuklodCommunityGifPreview
       file={communityGif}
@@ -5129,6 +5184,7 @@ const communityFeedRows =
         ))}
        </View>
       )}
+      <BuklodPostMotion preset={composerMotionPreset}>
       <BuklodCommunityPhotoCollage
        items={photos.map(photo=>({
         media_url:photo.uri,
@@ -5149,6 +5205,7 @@ const communityFeedRows =
         }
        }}
       />
+      </BuklodPostMotion>
      </View>
     )}
     <Button
@@ -5469,6 +5526,7 @@ const communityFeedRows =
     </View>
    </View>
    </View>
+   <BuklodPostMotion preset={postCreatives[String(item.id)]?.motion_preset??'none'}>
    <BuklodExpandableWallCaption
     key={String(item.id)}
     text={String(repairMojibakeText(item.body) ?? '').replace(
@@ -5491,6 +5549,46 @@ const communityFeedRows =
    )}
 
     {renderCommunityMedia(item)}
+   </BuklodPostMotion>
+   {!!postCreatives[String(item.id)]?.music&&(
+     <View style={{backgroundColor:'#e7f4ef',borderRadius:12,padding:10,marginTop:7,marginBottom:5,gap:5}}>
+       <Pressable accessibilityRole="button"
+        accessibilityLabel={wallAudioOwner===String(item.id)&&wallAudioStatus?.playing?'Pause post music':'Play post music'}
+        onPress={()=>{void toggleWallMusic(postCreatives[String(item.id)].music!,String(item.id));}}
+        style={{minHeight:36,flexDirection:'row',gap:9,alignItems:'center'}}>
+        <MaterialCommunityIcons
+         name={wallAudioOwner===String(item.id)&&wallAudioStatus?.playing?'pause-circle':'play-circle'}
+         size={28} color="#195d47"/>
+        <View style={{flex:1,minWidth:0}}>
+          <Text numberOfLines={1} style={{fontSize:12,fontWeight:'800',color:'#164f3c'}}>
+            {postCreatives[String(item.id)].music!.title}
+          </Text>
+          <Text numberOfLines={1} style={{fontSize:10,color:'#58786a'}}>
+            {postCreatives[String(item.id)].music!.artist||'BUKLOD Music'} · Tap to play
+          </Text>
+        </View>
+       </Pressable>
+       {wallAudioOwner===String(item.id)&&(
+        <View style={{flexDirection:'row',alignItems:'center',gap:12}}>
+          <Text style={{fontSize:10,color:'#416b5b',flex:1}}>
+            {Math.floor(Number(wallAudioStatus?.currentTime||0)/60)}:
+            {String(Math.floor(Number(wallAudioStatus?.currentTime||0)%60)).padStart(2,'0')}
+            {' / '}
+            {Math.floor(Number(wallAudioStatus?.duration||0)/60)}:
+            {String(Math.floor(Number(wallAudioStatus?.duration||0)%60)).padStart(2,'0')}
+          </Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Music volume down"
+            onPress={()=>{wallAudioPlayer.volume=Math.max(0,wallAudioPlayer.volume-.15);}}>
+            <MaterialCommunityIcons name="volume-minus" size={19} color="#195d47"/>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Music volume up"
+            onPress={()=>{wallAudioPlayer.volume=Math.min(1,wallAudioPlayer.volume+.15);}}>
+            <MaterialCommunityIcons name="volume-plus" size={19} color="#195d47"/>
+          </Pressable>
+        </View>
+       )}
+     </View>
+   )}
 
     <BuklodCommunityPostEngagement
      reactionOptions={
