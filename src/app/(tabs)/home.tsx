@@ -5,6 +5,7 @@ import BuklodFindAChurchDoorway from '@/components/BuklodFindAChurchDoorway';
 import BuklodMentionText from '@/components/BuklodMentionText';
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
+import BuklodCommunityContributionCard from '@/components/BuklodCommunityContributionCard';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import {
@@ -600,6 +601,11 @@ export default function HomeScreen() {
       >
         <BuklodHomeScopeBulletins />
       </BuklodFocusScaleIn>
+
+      {/* BUKLOD_COMMUNITY_CONTRIBUTION_HOME_R1: move only; preserve original card and Wall layout. */}
+      <View style={{ paddingHorizontal: 10 }}>
+        <BuklodCommunityContributionCard />
+      </View>
 
       <HomeMotionSection delay={180}>
         <View style={{ paddingHorizontal: 12 }}>
