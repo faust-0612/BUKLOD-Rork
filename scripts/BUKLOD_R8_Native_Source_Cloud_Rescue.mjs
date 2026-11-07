@@ -249,13 +249,13 @@ async function main(){
   const candidates=new Map(r5.candidates.map(c=>[c.candidate,c]));
   requireSafe(rows.length>=15770,'Local R5 detailed list unexpectedly incomplete');
   const branch=TARGET_BRANCH;
-  console.log('Checking private GitHub destination and existing branch before copying local source...');
+  console.log('R8: checking R7 source branch, private GitHub destination and non-overwrite safety gate...');
   await privateRepoGuard();
   const r7Remote=git(['ls-remote','--heads',GITHUB_URL,'refs/heads/'+PRIOR_R7_BRANCH]);
   requireSafe(r7Remote.startsWith(r7.commit+'\t'),
     'Prior R7 private cloud branch SHA differs from the verified local R7 report');
   const exists=git(['ls-remote','--heads',GITHUB_URL,'refs/heads/'+branch]);
-  requireSafe(exists.length===0,'R7 destination branch already exists; refusing overwrite or duplicate push.');
+  requireSafe(exists.length===0,'R8 destination branch already exists; refusing overwrite or duplicate push.');
   const temp=fs.mkdtempSync(path.join(os.tmpdir(),'buklod-r8-native-recovery-'));
   let completed=false;
   const counted=countByCategory();
