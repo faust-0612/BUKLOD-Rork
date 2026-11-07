@@ -9,6 +9,7 @@ import {
   type KingdomPreviewRecord,
 } from './previewStore';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
+import { KingdomMasteryCheck } from './KingdomMasteryCheck';
 
 type MiniGameFinish = (result: BuklodGameResult, sessionId: string) => void;
 export type KingdomInteriorOption = {
@@ -39,6 +40,7 @@ export function KingdomInteriorCenter({
   const [activeId, setActiveId] = useState(options[0]?.id ?? '');
   const [record, setRecord] = useState<KingdomPreviewRecord | null>(null);
   const [notice, setNotice] = useState('');
+  const [masteryEligibility, setMasteryEligibility] = useState<{ owner: string; gameId: string } | null>(null);
   const ownerRef = useRef(user?.id ?? null);
   const gameRef = useRef(activeId);
   ownerRef.current = user?.id ?? null;
@@ -69,7 +71,8 @@ export function KingdomInteriorCenter({
       .then(value => {
         if (ownerRef.current !== owner || gameRef.current !== result.gameId) return;
         setRecord(value);
-        setNotice(t('Saved locally. No Character Points or cash were awarded.', 'Na-save sa device. Walang Character Points o cash na ibinigay.'));
+        setNotice(t('Game saved locally. You may verify a separate Mastery Check below for real Points.', 'Na-save ang laro sa device. Puwedeng mag-Mastery Check sa ibaba para sa totoong Points.'));
+        if (result.status === 'won') setMasteryEligibility({ owner, gameId: result.gameId });
       })
       .catch(() => {
         if (ownerRef.current === owner && gameRef.current === result.gameId) {
@@ -110,8 +113,18 @@ export function KingdomInteriorCenter({
         <View key={(user?.id ?? 'guest') + ':' + active.id} style={styles.game}>{active.render(save, (result) => {
           // Original games must use the authenticated account, just like pilots.
           // Never fall back to an unscoped local progress record.
-          if (user?.id) void recordBuklodKingdomPreviewResult(result, user.id).catch(() => undefined);
+          const owner = user?.id;
+          if (!owner) return;
+          void recordBuklodKingdomPreviewResult(result, owner)
+            .then(() => {
+              if (ownerRef.current === owner && gameRef.current === result.gameId && result.status === 'won') {
+                setMasteryEligibility({ owner, gameId: result.gameId });
+              }
+            }).catch(() => undefined);
         })}</View>
+        {masteryEligibility?.owner === user?.id && masteryEligibility?.gameId === active.id ? (
+          <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id} />
+        ) : null}
       </View>
     </ScrollView>
   );
