@@ -263,6 +263,31 @@ function list7zText(raw,label){
  if(records.length<10)throw Error("Cannot parse encrypted listing. No upload: only "+records.length+" file records.");
  return records;
 }
+// Exact manifest files only; 7-Zip also lists the two containing folders.
+ // A folder can lack a Folder=+ marker in an encrypted technical listing.
+ // Allow ONLY these recognized zero-size folder records, never arbitrary entries.
+function selectV6ArchiveFileEntries(allEntries,expectedPaths) {
+ const knownDirs=new Set(["payload","payload/data"]);
+ const selected=[],ignoredDirs=[],unexpected=[];
+ const seen=new Set();
+ for(const entry of allEntries){
+   const k=norm(entry.path).replace(/\/+$/,"");
+   if(expectedPaths.has(k)){
+     assert(!seen.has(k),"Duplicate original file entry in V6 archive: "+k);
+     seen.add(k);selected.push(entry);
+   }else if(knownDirs.has(k)&&entry.size===0&&entry.crc==="00000000"){
+     assert(!ignoredDirs.includes(k),"Duplicate containing directory entry: "+k);
+     ignoredDirs.push(k);
+   }else unexpected.push({path:entry.path,size:entry.size,crc:entry.crc});
+ }
+ assert(unexpected.length===0,"Unexpected V6 archive entries ("+unexpected.length+"): "+
+     unexpected.slice(0,4).map(x=>x.path).join(", ")+". No upload.");
+ assert(selected.length===expectedPaths.size,
+   "Encrypted V6 file coverage mismatch: expected "+expectedPaths.size+
+   ", found "+selected.length+". No upload.");
+ assert(seen.size===expectedPaths.size,"Duplicate or missing V6 file entries. No upload.");
+ return {files:selected,ignoredDirs};
+}
 const stripDrive=s=>norm(s).replace(/^[a-z]:\/?/,"");
 function shardRepair(missing,planId){
  // Split across original drive letters and avoid collisions in -spf2 stored paths.
@@ -318,6 +343,21 @@ if(process.argv.includes("--self-test")){
    const padded=zero+Array.from({length:10},(_,i)=>"Path = payload/data/"+String(i+2).padStart(6,"0")+".dat\nSize = 9\nCRC = CBF43926\nFolder = -\n\n").join("");
    const emptyCase=list7zText(padded,"zero-byte CRC fixture");
    assert(emptyCase.length===11&&emptyCase[0].crc==="00000000","Empty file CRC fallback test failed");
+   const modelPaths=new Set(["payload/private_v6_restore_map.json",
+     ...Array.from({length:2631},(_,i)=>"payload/data/"+String(i+1).padStart(6,"0")+".dat")]);
+   const modelFiles=[{path:"payload/PRIVATE_V6_RESTORE_MAP.json",size:200,crc:"AABBCCDD"},
+     ...Array.from({length:2631},(_,i)=>({path:"payload/data/"+String(i+1).padStart(6,"0")+".dat",
+       size:i===6?0:9,crc:i===6?"00000000":"CBF43926"}))];
+   const modelDirs=[{path:"payload",size:0,crc:"00000000"},
+     {path:"payload/data",size:0,crc:"00000000"}];
+   const resolved=selectV6ArchiveFileEntries([...modelDirs,...modelFiles],modelPaths);
+   assert(resolved.files.length===2632&&resolved.ignoredDirs.length===2,
+     "V6 fixture: 2,632 real files plus 2 containing directories not reconciled");
+   let rejectedExtra=false;
+   try{selectV6ArchiveFileEntries([...modelDirs,...modelFiles,
+       {path:"payload/unknown-file.exe",size:10,crc:"CBF43926"}],modelPaths)}
+   catch{rejectedExtra=true}
+   assert(rejectedExtra,"Unexpected archive file must block upload");
  }finally{fs.rmSync(testDir,{recursive:true,force:true})}
  console.log("SELF TEST PASSED: CRC32, deterministic paths, -spf2 drive isolation, and non-destructive staging hardlinks.");process.exit(0)
 }
@@ -451,9 +491,18 @@ try{
  }
  // One secure prompt and one password, reused by child processes for creation, test and header listing.
  // A previous incomplete V6 archive stays untouched in its own staging directory.
- const entries=createTestAndListV6(archiveBase,firstPart,repairDir,"V6 indexed repair");
-  assert(entries.length===manifest.length+1,
-   "V6 encrypted file count mismatch. Expected "+(manifest.length+1)+", found "+entries.length+". No upload.");
+ const allEntries=createTestAndListV6(archiveBase,firstPart,repairDir,"V6 indexed repair");
+ // 7-Zip's -slt listing includes directory records. Count exact expected indexed FILES,
+ // and separately permit only the known, empty containing directories.
+ const expectedArchivedPaths=new Set(["payload/private_v6_restore_map.json",
+   ...manifest.map(f=>norm(f.archivedPath))]);
+ assert(expectedArchivedPaths.size===manifest.length+1,
+   "Indexed manifest has duplicate archived names. No upload.");
+ const selectedEntries=selectV6ArchiveFileEntries(allEntries,expectedArchivedPaths);
+ const entries=selectedEntries.files;
+ state.v6IgnoredDirectoryRecords=selectedEntries.ignoredDirs;
+ console.log("V6 archive: verified",entries.length,"file records and",
+   selectedEntries.ignoredDirs.length,"containing directory entries.");
  const archiveIndex=new Map();
  for(const item of entries)archiveIndex.set(norm(item.path),item);
  const privateEntry=archiveIndex.get("payload/private_v6_restore_map.json");
