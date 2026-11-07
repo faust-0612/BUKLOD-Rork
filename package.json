@@ -13,7 +13,7 @@
     "doctor": "npx expo-doctor@latest",
     "character:contract": "node scripts/character-release-contract.mjs && node scripts/character-active-renderer-gate.mjs",
     "character:contract:dist": "node scripts/character-release-contract.mjs --dist dist && node scripts/character-active-renderer-gate.mjs",
-    "game:contract": "node scripts/game-kingdom-release-contract.mjs && node scripts/test-kingdom-game-platform-r1.mjs",
+    "game:contract": "node scripts/game-kingdom-release-contract.mjs && node scripts/test-kingdom-game-platform-r1.mjs && node --experimental-strip-types --test tests/kingdom-games-r2.test.mjs",
     "game:contract:dist": "node scripts/game-kingdom-release-contract.mjs --dist dist",
     "release:base-gate": "node scripts/release-gate.mjs",
     "release:gate": "npm run character:contract && npm run game:contract && npm run release:base-gate",
