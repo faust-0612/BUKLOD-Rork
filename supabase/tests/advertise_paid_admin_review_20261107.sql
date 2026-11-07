@@ -40,7 +40,7 @@ BEGIN
   SELECT pg_get_functiondef('public.buklod_set_paid_ad_price()'::regprocedure)
     INTO v_price;
   IF position('TG_OP' in v_price)=0
-     OR position('UPDATE' in v_price)=0
+     OR position('IS DISTINCT FROM OLD' in v_price)=0
      OR position('monthly_price' in v_price)=0 THEN
     RAISE EXCEPTION 'Advertising price snapshot not preserved across status review';
   END IF;
