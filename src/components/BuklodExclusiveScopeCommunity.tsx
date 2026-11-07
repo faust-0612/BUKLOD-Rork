@@ -4300,6 +4300,15 @@ return (
             </>
           )}
         </View>
+        {(publishNotice || scopedPostFeedback) && (
+          <View accessibilityRole="alert"
+            style={{marginTop:5,marginBottom:6,borderRadius:12,paddingHorizontal:12,
+              paddingVertical:9,backgroundColor:colors.greenSoft}}>
+            <Text style={{fontSize:12,fontWeight:'700',color:colors.greenDark}}>
+              {publishNotice || scopedPostFeedback}
+            </Text>
+          </View>
+        )}
 
         <View
           style={[
