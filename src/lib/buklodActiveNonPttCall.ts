@@ -25,6 +25,15 @@ const TERMINAL_STATES = new Set([
   'offline',
   'reconnecting-failed',
   'reconnecting_failed',
+  'cancelled',
+  'canceled',
+  'declined',
+  'rejected',
+  'missed',
+  'ended',
+  'failed',
+  'closed',
+  'disconnected',
 ]);
 
 let surfaceMode: BuklodCallSurfaceMode =
@@ -64,7 +73,8 @@ export function isBuklodActiveNonPttCall(
 ) {
   if (
     !call ||
-    call.type === 'buklod_ptt'
+    call.type === 'buklod_ptt' ||
+    !call.state
   ) {
     return false;
   }
@@ -91,7 +101,12 @@ export function isBuklodActiveNonPttCall(
    * before callingState has fully propagated.
    * This fallback is intentionally narrow.
    */
-  return call.ringing === true;
+  // Do not resurrect a terminal or disposed Stream call just because an
+  // old ringing flag has not been cleared by native call.leave() yet.
+  return (
+    (state === '' || state === 'unknown') &&
+    call.ringing === true
+  );
 }
 
 export function isBuklodAcceptedNonPttCall(
