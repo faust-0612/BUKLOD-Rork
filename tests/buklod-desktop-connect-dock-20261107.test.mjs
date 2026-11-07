@@ -79,8 +79,8 @@ test('scoped desktop Connect uses one original center chat, not the context dock
   const chat = scoped.slice(scoped.indexOf('function OrganizationCommunityConnect('),scoped.indexOf('function ScopeConnect('));
   assert.equal((chat.match(/<BuklodConnectThread/g) ?? []).length, 1);
   assert.match(chat,/mode="scope"/);
-  assert.match(chat,/containerId=\\{scope\\.scope_id\\}/);
-  assert.match(chat,/onBackOverride=\\{onBack\\}/);
-  assert.doesNotMatch(chat,/setExpanded|compactDesktop|router\\.push/);
+  assert.match(chat,/containerId=\{scope\.scope_id\}/);
+  assert.match(chat,/onBackOverride=\{onBack\}/);
+  assert.doesNotMatch(chat,/setExpanded|compactDesktop|router\.push/);
   assert.doesNotMatch(scoped,/scopeConnectCompact:|scopeConnectExpanded:/);
 });
