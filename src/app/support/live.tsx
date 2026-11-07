@@ -1,5 +1,5 @@
-import React,{useCallback,useEffect,useState} from 'react';
-import {ActivityIndicator,Alert,FlatList,Platform,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
+import React,{useCallback,useEffect,useRef,useState} from 'react';
+import {ActivityIndicator,AppState,Alert,FlatList,Platform,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import {File} from 'expo-file-system';
@@ -30,6 +30,7 @@ export default function LiveSupport(){
   const [evidence,setEvidence]=useState<(Evidence&{url?:string})[]>([]);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
+  const requestSequence=useRef(0);
 
   const loadCases=useCallback(async()=>{
     const {data:{user}}=await supabase.auth.getUser();
@@ -41,15 +42,21 @@ export default function LiveSupport(){
     setLoading(false);
   },[]);
   useEffect(()=>{void loadCases();},[loadCases]);
+  useEffect(()=>{
+    const timer=setInterval(()=>{if(AppState.currentState==='active')void loadCases();},25000);
+    return ()=>clearInterval(timer);
+  },[loadCases]);
 
   const loadThread=useCallback(async()=>{
     if(!caseId)return;
+    const sequence=++requestSequence.current;
     const [chat,attachments]=await Promise.all([
       supabase.from('bsoc_case_messages').select('id,body,sender_id,sender_kind,created_at')
         .eq('case_id',caseId).order('created_at',{ascending:true}).limit(150),
       supabase.from('bsoc_case_attachments').select('id,case_id,message_id,object_path,mime_type,created_at')
         .eq('case_id',caseId).order('created_at',{ascending:true}).limit(50)
     ]);
+    if(sequence!==requestSequence.current)return;
     if(chat.error) {setError(chat.error.message);return;}
     if(attachments.error){setError(attachments.error.message);return;}
     setMessages((chat.data||[]) as Message[]);
@@ -58,6 +65,7 @@ export default function LiveSupport(){
       const {data}=await supabase.storage.from(BUCKET).createSignedUrl(file.object_path,300);
       return {...file,url:data?.signedUrl};
     }));
+    if(sequence!==requestSequence.current)return;
     setEvidence(signed);
   },[caseId]);
   useEffect(()=>{
@@ -66,7 +74,8 @@ export default function LiveSupport(){
     const channel=supabase.channel('bsoc-member-'+caseId)
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'bsoc_case_messages',filter:'case_id=eq.'+caseId},()=>{void loadThread();})
       .subscribe();
-    return ()=>{void supabase.removeChannel(channel);};
+    const timer=setInterval(()=>{if(AppState.currentState==='active')void loadThread();},15000);
+    return ()=>{requestSequence.current+=1;clearInterval(timer);void supabase.removeChannel(channel);};
   },[caseId,loadThread]);
 
   const create=async()=>{
@@ -147,16 +156,10 @@ export default function LiveSupport(){
         <Text style={styles.buttonText}>Password Recovery / Admin Help</Text>
       </Pressable>
       <Text style={styles.h2}>Other account problem</Text>
-      <TextInput style={styles.input} placeholder="Username, mobile or email (optional)" value={guestIdentifier} onChangeText={setGuestIdentifier}/>
-      <TextInput style={[styles.input,styles.area]} multiline placeholder="Describe the account problem (no password or OTP)" value={guestProblem} onChangeText={setGuestProblem}/>
-      <Pressable style={styles.button} onPress={()=>void requestGuestSupport()} disabled={guestBusy||guestProblem.trim().length<10}>
-        <Text style={styles.buttonText}>{guestBusy?'Submitting…':'Submit pre-login concern'}</Text>
+      <Text style={styles.muted}>For sign-in problems, use secure password recovery and existing System Admin assistance. Private two-way chat and media evidence require a signed-in BUKLOD account.</Text>
+      <Pressable style={styles.secondary} onPress={()=>router.push('/(auth)/login' as any)}>
+        <Text style={styles.link}>Sign in to create a support conversation</Text>
       </Pressable>
-      {!!guestCaseCode&&<View style={styles.evidence}>
-        <Text style={styles.bold}>Support reference: {guestCaseCode}</Text>
-        <Text style={styles.muted}>Keep this reference before leaving the screen. Status: {guestStatus}</Text>
-        <Pressable onPress={()=>void checkGuestStatus()}><Text style={styles.link}>Check concern status</Text></Pressable>
-      </View>}
     </View>:<>
       {!!error&&<Text style={styles.error} accessibilityRole="alert">{error}</Text>}
       {!!notice&&<Text style={styles.notice}>{notice}</Text>}
@@ -197,10 +200,10 @@ export default function LiveSupport(){
             </Pressable>}
           </View>)}
           <TextInput multiline style={[styles.input,styles.area]} placeholder="Message your support agent…" value={draft} onChangeText={setDraft}/>
-          <Pressable disabled={busy||!draft.trim()} style={styles.button} onPress={()=>void send()}>
+          <Pressable disabled={busy||!draft.trim()||cases.find(c=>c.id===caseId)?.status==='closed'} style={styles.button} onPress={()=>void send()}>
             <Text style={styles.buttonText}>{busy?'Sending…':'Send message'}</Text>
           </Pressable>
-          <Pressable disabled={uploadBusy} style={styles.secondary} onPress={()=>void upload()}>
+          <Pressable disabled={uploadBusy||cases.find(c=>c.id===caseId)?.status==='closed'} style={styles.secondary} onPress={()=>void upload()}>
             <Text style={styles.link}>{uploadBusy?'Uploading evidence…':'Attach photo or video'}</Text>
           </Pressable>
           <Text style={styles.muted}>Tip: screenshot ng error message ang pinakamainam para sa visual bug; maikling video para sa playback, scrolling o navigation bugs. Huwag isama ang mga password, OTP, personal messages o financial details.</Text>
