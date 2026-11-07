@@ -1,4 +1,5 @@
 import React,{useCallback,useEffect,useState} from 'react';
+import * as Crypto from 'expo-crypto';
 import {ActivityIndicator,Alert,Pressable,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -8,42 +9,51 @@ import {supabase} from '@/lib/supabase';
 
 type Task={session_id:string;session_date:string;status:string;lesson:string;has_photo:boolean};
 type Lesson={id:string;title:string};
+type Disciple={disciple_id:string;disciple_name:string};
 export default function MentorTeachingPhotoEvidence(){
  const [tasks,setTasks]=useState<Task[]>([]);
  const [lessons,setLessons]=useState<Lesson[]>([]);
  const [selectedLesson,setSelectedLesson]=useState('');
  const [lessonSearch,setLessonSearch]=useState('');
- const [participants,setParticipants]=useState('1');
+ const [disciples,setDisciples]=useState<Disciple[]>([]);
+ const [selectedDisciples,setSelectedDisciples]=useState<string[]>([]);
+ const [requestKey,setRequestKey]=useState(()=>Crypto.randomUUID());
  const [notes,setNotes]=useState('');
  const [busy,setBusy]=useState<string|null>(null);
  const[loading,setLoading]=useState(true);const [err,setErr]=useState('');
  const load=useCallback(async()=>{
   setLoading(true);setErr('');
-  try{const [taskResponse,lessonResponse]=await Promise.all([
+  try{const [taskResponse,lessonResponse,menteeResponse]=await Promise.all([
    (supabase as any).rpc('get_my_mentor_photo_tasks_r2'),
    (supabase as any).rpc('get_my_mentor_reportable_lessons_r2'),
+   (supabase as any).rpc('mentor_disciple_progress'),
  ]);
  if(taskResponse.error)throw taskResponse.error;
  if(lessonResponse.error)throw lessonResponse.error;
+ if(menteeResponse.error)throw menteeResponse.error;
  setTasks(Array.isArray(taskResponse.data)?taskResponse.data:[]);
  setLessons(Array.isArray(lessonResponse.data)?lessonResponse.data:[]);
+ setDisciples(Array.isArray(menteeResponse.data)?menteeResponse.data:[]);
   }catch{setErr('Mentoring sessions are unavailable. Try again.');}
   finally{setLoading(false)}
  },[]);
  useEffect(()=>{void load()},[load]);
 
+
  const createSession=async()=>{
-  const count=Number(participants);
-  if(busy||!selectedLesson||!Number.isInteger(count)||count<1||count>1000||
+  if(busy||!selectedLesson||selectedDisciples.length<1||selectedDisciples.length>50||
      notes.trim().length<20)return;
   setBusy('creating');setErr('');
   try {
-   const {error}=await (supabase as any).rpc('report_mentor_teaching_session',{
-     p_lesson_id:selectedLesson,p_participant_count:count,p_notes:notes.trim()
+   const {error}=await (supabase as any).rpc('report_my_mentor_teaching_with_roster_r2',{
+     p_lesson_id:selectedLesson,p_attendee_ids:selectedDisciples,
+     p_notes:notes.trim(),p_request_key:requestKey
    });
    if(error)throw error;
-   setNotes('');setSelectedLesson('');setLessonSearch('');await load();
-   Alert.alert('Teaching session recorded','Attach your mentoring photo and complete the existing Pastor and Admin review.');
+   setRequestKey(Crypto.randomUUID());
+   setNotes('');setSelectedLesson('');setSelectedDisciples([]);setLessonSearch('');
+   await load();
+   Alert.alert('Teaching session recorded','Learners are linked. Attach your mentoring photo and complete the Pastor and Admin review.');
   }catch(e){setErr(e instanceof Error?e.message:'Could not record session.');}
   finally{setBusy(null);}
  };
@@ -102,13 +112,20 @@ export default function MentorTeachingPhotoEvidence(){
     </Pressable>
   )}
   {!!selectedLesson&&<Text style={s.meta}>Selected: {lessons.find(l=>l.id===selectedLesson)?.title}</Text>}
-  <TextInput style={s.field} keyboardType="number-pad" value={participants}
-    onChangeText={setParticipants} placeholder="Number of learners"/>
+  <Text style={s.meta}>Select registered assigned mentees who attended ({selectedDisciples.length} selected).</Text>
+  {disciples.map(d=><Pressable key={d.disciple_id} accessibilityRole="checkbox"
+   accessibilityState={{checked:selectedDisciples.includes(d.disciple_id)}}
+   style={[s.lessonChoice,selectedDisciples.includes(d.disciple_id)&&s.lessonChoiceOn]}
+   onPress={()=>setSelectedDisciples(current=>current.includes(d.disciple_id)?
+      current.filter(id=>id!==d.disciple_id):[...current,d.disciple_id])}>
+   <Text style={s.lessonLabel}>{selectedDisciples.includes(d.disciple_id)?'☑':'☐'} {d.disciple_name}</Text>
+  </Pressable>)}
+  {disciples.length===0&&<Text style={s.meta}>No assigned mentees. Ask the Pastor to assign learners before reporting a new session.</Text>
   <TextInput style={[s.field,{minHeight:88}]} multiline textAlignVertical="top"
     placeholder="Teaching summary and location (20+ characters)"
     placeholderTextColor="#859688" value={notes} onChangeText={setNotes} maxLength={2000}/>
   <Pressable accessibilityRole="button" disabled={busy!==null||!selectedLesson||
-   !Number.isInteger(Number(participants))||Number(participants)<1||Number(participants)>1000||
+   selectedDisciples.length<1||selectedDisciples.length>50||
    notes.trim().length<20} style={[s.button,busy!==null&&s.disabled]} onPress={()=>void createSession()}>
    <Text style={s.btnText}>{busy==='creating'?'Recording...':'Record teaching session'}</Text>
   </Pressable>
