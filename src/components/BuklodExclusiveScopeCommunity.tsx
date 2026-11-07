@@ -82,6 +82,8 @@ import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import {
   BuklodCommunityPhotoCollage,
   communityPhotoCollageItems,
+  rememberCommunityCollageLayout,
+  type CommunityPhotoCollageLayout,
 } from '@/components/BuklodCommunityPhotoCollage';
 import { peekCommunityMediaUrl, resignCommunityMediaUrl } from '@/lib/buklodMediaUrl';
 import { applyCommunityWallMediaHydration, preservePendingCommunityWallMedia } from '@/lib/communityWallHydration';
@@ -564,6 +566,14 @@ export default function BuklodExclusiveScopeCommunity({
     useState<SelectedPhoto[]>(
       []
     );
+  const [collageLayout,setCollageLayout] = useState<CommunityPhotoCollageLayout>('grid');
+  const [scopedPostFeedback,setScopedPostFeedback] = useState<string|null>(null);
+  const postingSubmissionRef = useRef(false);
+  useEffect(()=>{
+    if (!scopedPostFeedback) return;
+    const timer=setTimeout(()=>setScopedPostFeedback(null),4000);
+    return ()=>clearTimeout(timer);
+  },[scopedPostFeedback]);
   const photo =
     photos[0] ??
     null;
@@ -662,6 +672,8 @@ export default function BuklodExclusiveScopeCommunity({
   const [commentLoading, setCommentLoading] = useState(false);
   const [commentLoadError, setCommentLoadError] = useState<string | null>(null);
   const [wallComposerOpen, setWallComposerOpen] = useState(false);
+  const largeScopedText = mode === 'wall' && !photos.length && !wallVideo && !communityGif &&
+    Array.from(body.trim()).length > 0 && Array.from(body.trim()).length <= 80;
   const focusScopedComposerRef = useRef(false);
   const scopedComposerInputRef = useRef<TextInput | null>(null);
   useEffect(() => {
@@ -1570,7 +1582,7 @@ export default function BuklodExclusiveScopeCommunity({
   const publish =
     async () => {
       if (
-        !user?.id
+        !user?.id || postingSubmissionRef.current
       ) {
         return;
       }
@@ -1634,8 +1646,10 @@ export default function BuklodExclusiveScopeCommunity({
         return;
       }
 
+      postingSubmissionRef.current = true;
       const snapshot = {
         photos: [...photos],
+        collageLayout,
         wallVideo:
           wallVideo as SelectedVideo | null,
         reel:
@@ -1653,6 +1667,9 @@ export default function BuklodExclusiveScopeCommunity({
       setBody('');
       setMentions([]);
       clearMedia();
+      setCollageLayout('grid');
+      setWallComposerOpen(false);
+      setScopedPostFeedback('Publishing to Community…');
       setBusy(false);
       setPublishNotice(
         snapshot.communityGif
@@ -1780,6 +1797,9 @@ export default function BuklodExclusiveScopeCommunity({
             null;
 
           extraMedia = photoUploads;
+          if (photoUploads[0]?.media_path) {
+            rememberCommunityCollageLayout(photoUploads[0].media_path, snapshot.collageLayout);
+          }
         }
 
         if (
@@ -1991,6 +2011,7 @@ export default function BuklodExclusiveScopeCommunity({
         }
 
         await load();
+        setScopedPostFeedback('Posted to this Community');
       }
       catch (
         error: any
@@ -2013,13 +2034,18 @@ export default function BuklodExclusiveScopeCommunity({
 
         const saved = postConfirmed || Boolean(createdPostId);
         if (!saved) {
-          setBody(snapshot.cleanBody);
-          setMentions(snapshot.mentions);
-          setPhotos(snapshot.photos);
-          setWallVideo(snapshot.wallVideo);
-          setReel(snapshot.reel);
-          setCommunityGif(snapshot.communityGif);
+          setBody(current => current.trim() ? current : snapshot.cleanBody);
+          setMentions(current => current.length ? current : snapshot.mentions);
+          setPhotos(current => current.length ? current : snapshot.photos);
+          setWallVideo(current => current ?? snapshot.wallVideo);
+          setReel(current => current ?? snapshot.reel);
+          setCommunityGif(current => current ?? snapshot.communityGif);
+          setCollageLayout(snapshot.collageLayout);
+          setWallComposerOpen(true);
         }
+        setScopedPostFeedback(saved
+          ? 'Post saved; a follow-up step needs attention'
+          : 'Could not confirm posting — check your draft and feed');
 
         Alert.alert(
           saved ? 'Post Saved' : createAttempted ? 'Check Posting Status' : 'Could Not Post',
@@ -2031,6 +2057,7 @@ export default function BuklodExclusiveScopeCommunity({
         );
       }
       finally {
+        postingSubmissionRef.current = false;
         setBusy(
           false
         );
@@ -3750,16 +3777,40 @@ return (
             }
             placeholderTextColor={colors.muted}
             maxLength={5000}
-            style={styles.composer}
+            style={[styles.composer, largeScopedText && { fontSize:25, lineHeight:33, fontWeight:'800', minHeight:96 }]}
           />
+          {!!body.trim() && (
+            <Text style={{marginTop:4,fontSize:10,color:colors.muted}}>
+              {largeScopedText ? 'Large text · big letters after publishing' : 'Regular caption'}
+            </Text>
+          )}
 
           {photos.length > 0 && (
             <View style={styles.composerPhotos}>
+              {photos.length > 1 && (
+                <View style={{flexDirection:'row',alignItems:'center',flexWrap:'wrap',gap:7,marginBottom:8}}>
+                  <Text style={{fontSize:11,fontWeight:'800',color:colors.muted}}>Collage layout</Text>
+                  {(['grid','highlight','swipe'] as const).map(choice=>(
+                    <Pressable key={choice} accessibilityRole="button"
+                      accessibilityLabel={`Choose ${choice} collage`}
+                      onPress={()=>setCollageLayout(choice)}
+                      style={{minHeight:34,borderRadius:16,paddingHorizontal:12,borderWidth:1,justifyContent:'center',
+                        borderColor:collageLayout===choice?colors.green:colors.line,
+                        backgroundColor:collageLayout===choice?colors.greenSoft:colors.white}}>
+                      <Text style={{fontSize:11,fontWeight:'800',
+                        color:collageLayout===choice?colors.greenDark:colors.muted,
+                        textTransform:'capitalize'}}>{choice}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
               <BuklodCommunityPhotoCollage
                 items={photos.map(item => ({
                   media_url: item.uri,
                 }))}
                 height={220}
+                layoutMode={collageLayout}
+                showLayoutPicker={false}
                 onPressPhoto={(index, items) =>
                   setPhotoViewer({
                     uris: items.map(photo =>
