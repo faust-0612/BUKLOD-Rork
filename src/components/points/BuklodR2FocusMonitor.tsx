@@ -90,7 +90,7 @@ export default function BuklodR2FocusMonitor(){
    {achievements.map(([key,label])=><Pressable key={key} onPress={()=>setSelected(key)} style={[s.choice,selected===key&&s.selected]}>
       <Text style={s.choiceText}>{label}</Text><Text style={s.status}>{report.my_milestones.find(n=>n.type===key)?.status||'Not submitted'}</Text>
    </Pressable>)}
-   {!own&&<>
+   {(!own || own.status === 'rejected')&&<>
     <Text style={s.desc}>Describe the completed course, ministry project, mentoring cycle, volunteer service or tournament challenge. Include dates, scope and verifiable references. Submission does not automatically earn points. After successful submission, an optional ad may appear, but ads never control earning points.</Text>
     <TextInput multiline textAlignVertical="top" accessibilityLabel="Achievement supporting evidence"
        placeholder="Evidence details (60–2000 characters)" placeholderTextColor="#879A8A"
@@ -100,7 +100,7 @@ export default function BuklodR2FocusMonitor(){
       <Text style={s.submitText}>{busy?'Submitting...':'Submit for verification'}</Text>
     </Pressable>
    </>}
-   {own&&<Text style={s.desc}>Current milestone status: {own.status}. An authorized reviewer must validate evidence before any award is credited.</Text>}
+   {own&&<Text style={s.desc}>Current milestone status: {own.status}. {own.status === 'rejected' ? 'Review the reason provided by the Admin and revise your evidence before resubmitting.' : 'An authorized reviewer must validate evidence before any award is credited.'}</Text>}
   </>}
   <View style={s.links}>
    <Pressable onPress={()=>router.push('/faith/bible-quiz' as any)} style={s.link}><Text style={s.linkText}>Play Daily Bible Quiz</Text></Pressable>
