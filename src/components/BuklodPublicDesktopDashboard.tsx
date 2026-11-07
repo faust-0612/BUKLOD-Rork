@@ -209,7 +209,8 @@ export default function BuklodPublicDesktopDashboard({
           <Pressable onPress={() => void navigate('/hub')}
             accessibilityRole="button" accessibilityLabel="BUKLOD Home"
             style={styles.brand}>
-            <MaterialCommunityIcons name="account-group" color="#159F68" size={34} />
+            <Image source={require('../../assets/release/buklod-main-canonical.png')}
+              resizeMode="contain" accessibilityLabel="BUKLOD canonical logo" style={styles.brandLogo} />
             <Text style={[styles.brandText, { color: mainColor }]}>BUKLOD</Text>
           </Pressable>
           <View style={styles.titleBlock}>
@@ -436,6 +437,7 @@ const styles = StyleSheet.create({
   header: { height: 66, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16,
     borderRadius: 20, borderWidth: 1, marginBottom: 10 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 174 },
+  brandLogo: { width: 42, height: 42, borderRadius: 10 },
   brandText: { fontSize: 24, fontWeight: '900' },
   titleBlock: { flex: 1, minWidth: 100, maxWidth: 290 },
   pageTitle: { fontSize: 18, fontWeight: '900' },

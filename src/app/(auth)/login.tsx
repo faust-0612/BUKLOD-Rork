@@ -391,8 +391,11 @@ async function signInForFreshPublicHome(
 }
 
 /* PATCH_174C_R5_SUGGESTED_LOGIN_AVATAR_EXACT_AST_FIX */
+// Web displays the authoritative brand; native keeps its existing fallback.
 const SUGGESTED_LOGIN_BUKLOD_LOGO =
-  require('../../../assets/release/buklod-generic.png');
+  Platform.OS === 'web'
+    ? require('../../../assets/release/buklod-main-canonical.png')
+    : require('../../../assets/release/buklod-generic.png');
 
 function normalizeSuggestedAvatarUrl(
   rawAvatarUrl: unknown
