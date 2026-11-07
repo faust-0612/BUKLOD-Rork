@@ -143,15 +143,15 @@ export default function BuklodPublicDailyMessageBar({
 
       <View style={styles.copy}>
         <View style={[styles.metaRow, compact && styles.compactMetaRow]}>
-          <Text style={styles.label}>
-            TODAY'S ENCOURAGEMENT
+          <Text style={styles.label} numberOfLines={1}>
+            {compact ? 'ENCOURAGEMENT' : "TODAY'S ENCOURAGEMENT"}
           </Text>
 
-          <Text style={styles.language}>
-            {buklodLanguageLabel(
-              language
-            )}
-          </Text>
+          {!compact ? (
+            <Text style={styles.language}>
+              {buklodLanguageLabel(language)}
+            </Text>
+          ) : null}
         </View>
 
         <Text
