@@ -41,6 +41,7 @@
     "content/word/2026-11/november-21-30.json",
     "supabase/migrations/20261107093220_word_november_2026_complete_publication.sql",
     "tests/word-november-publication-20261107.test.mjs",
-    "supabase/tests/word_november_2026_publication_contract.sql"
+    "supabase/tests/word_november_2026_publication_contract.sql",
+    ".buklod/scopes/word-november-2026-publication-recovery.json"
   ]
 }
