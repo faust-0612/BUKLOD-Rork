@@ -137,8 +137,21 @@ export default function KlReaderScreen() {
 
   const compact = width < 420;
   const bodySize = Math.round(19 * cache.textScale);
-  const releasedIds = releasedChapters.map((chapter) => chapter.id);
+  // A new chapter can have a random UUID in the actual database.
+  // Reader/points/media must use the same authoritative ID after release.
+  const visibleAdminRows = isSystemAdmin && adminRowsOwner === user?.id
+    ? adminRows : [];
+  const releasedNumbers = new Set(
+    releasedChapters.filter(chapter => chapter.season_number === 1)
+      .map(chapter => chapter.episode_number),
+  );
+  const databaseIdForEpisode = (episodeNumber: number): string =>
+    releasedChapters.find(chapter =>
+      chapter.season_number === 1 && chapter.episode_number === episodeNumber)?.id ??
+    findKlAdminChapter(visibleAdminRows, 1, episodeNumber)?.id ??
+    klDatabaseId(episodeNumber);
   const selected = EPISODES.find((episode) => episode.id === selectedId) ?? null;
+  const selectedDbId = selected ? databaseIdForEpisode(selected.episodeNumber) : null;
   const selectedTitle = selected ? displayChapterTitle(selected, releasedChapters.find((chapter) => chapter.season_number === 1 && chapter.episode_number === selected.episodeNumber)) : '';
   const completedChapters = journeyResult && journeyResult.userId === user?.id ? journeyResult.completed : null;
   const selectedAssets = ASSETS.filter((asset) => asset.episodeId === selected?.id);
@@ -150,7 +163,7 @@ export default function KlReaderScreen() {
     userDataSaver: cache.dataSaver,
   });
   const reading = selectMemberReading({
-    locallyReadable: decision?.readable === true || Boolean(selected && releasedIds.includes(klDatabaseId(selected.episodeNumber))),
+    locallyReadable: decision?.readable === true || Boolean(selected && releasedNumbers.has(selected.episodeNumber)),
     serverState,
     serverText,
     bundledText: selected?.prose ?? null,
@@ -237,8 +250,6 @@ export default function KlReaderScreen() {
   // KL_WEB_ADMIN_RELEASE_EXACT_SERVER_ID_R1: admin decisions NEVER synthesize
   // an episode UUID from its chapter number. The server is authoritative:
   // newer chapters may have random UUIDs even when older rows match legacy IDs.
-  const visibleAdminRows = isSystemAdmin && adminRowsOwner === user?.id
-    ? adminRows : [];
   const refreshAdminRows = useCallback(async (): Promise<KlAdminChapterRow[]> => {
     if (!isSystemAdmin || !user?.id) {
       throw new Error('Story admin access is unavailable for this account.');
@@ -388,13 +399,13 @@ export default function KlReaderScreen() {
   }, [user?.id, journeyRefreshToken]);
 
   useEffect(() => {
-    if (!selected || serverState !== 'readable' || !appActive || !online) return;
-    const episodeId = klDatabaseId(selected.episodeNumber);
+    if (!selected || !selectedDbId || serverState !== 'readable' || !appActive || !online) return;
+    const episodeId = selectedDbId;
     const timer = setInterval(() => {
       void supabase.rpc('kl_reading_progress_v1', { p_episode_id: episodeId, p_action: 'ping' });
     }, 30000);
     return () => clearInterval(timer);
-  }, [selected?.episodeNumber, serverState, appActive, online]);
+  }, [selectedDbId, serverState, appActive, online]);
 
   useEffect(() => {
     if (selected && serverState === 'readable' && online) {
@@ -403,11 +414,11 @@ export default function KlReaderScreen() {
   }, [selected?.id, serverState, online]);
 
   const finishChapter = async () => {
-    if (!selected || chapterCompletionInFlight.current) return;
+    if (!selected || !selectedDbId || chapterCompletionInFlight.current) return;
     chapterCompletionInFlight.current = true;
     try {
       const { data, error } = await supabase.rpc('kl_reading_progress_v1', {
-        p_episode_id: klDatabaseId(selected.episodeNumber), p_action: 'complete',
+        p_episode_id: selectedDbId, p_action: 'complete',
       });
       if (error) { setRewardFeedback(error.message); return; }
       const result = data as { new_completion?: boolean; points_awarded?: number; completed?: boolean } | null;
@@ -462,7 +473,7 @@ export default function KlReaderScreen() {
     setGlossaryOpen(false);
     let nextCache = rememberScroll(cache, episodeId, 0, readable);
     try {
-      const dbId = klDatabaseId(episode.episodeNumber);
+      const dbId = databaseIdForEpisode(episode.episodeNumber);
       const { data, error } = await supabase.rpc(KL_RPC.readEpisode, { p_episode_id: dbId });
       if (sequence !== openSequence.current) return;
       if (error || !data || typeof data !== 'object') {
@@ -513,7 +524,7 @@ export default function KlReaderScreen() {
   };
   const episodeReadable = (episodeId: string) => {
     const fromCatalog = EPISODES.find((item) => item.id === episodeId);
-    if (fromCatalog && releasedIds.includes(klDatabaseId(fromCatalog.episodeNumber))) return true;
+    if (fromCatalog && releasedNumbers.has(fromCatalog.episodeNumber)) return true;
     const episode = EPISODES.find((item) => item.id === episodeId);
     if (!episode) return false;
     const episodeAssets = ASSETS.filter((asset) => asset.episodeId === episodeId);
@@ -551,7 +562,7 @@ export default function KlReaderScreen() {
     : null;
   const openTermEntry = openTerm ? dictionaryByName(openTerm) : null;
   const readingOpen = Boolean(selected && paragraphs.length > 0);
-  const liveReleased = Boolean(selected && (decision?.readable || releasedIds.includes(klDatabaseId(selected.episodeNumber))));
+  const liveReleased = Boolean(selected && (decision?.readable || releasedNumbers.has(selected.episodeNumber)));
 
   const cycleVolume = (channel: 'music' | 'ambient') => {
     const steps = [0.3, 0.6, 1];
@@ -773,7 +784,7 @@ export default function KlReaderScreen() {
             </Pressable>
             {rewardFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{rewardFeedback}</Text> : null}
 
-            <KlLiveDiscussion episodeId={klDatabaseId(selected.episodeNumber)} live={liveReleased} />
+            <KlLiveDiscussion episodeId={selectedDbId ?? klDatabaseId(selected.episodeNumber)} live={liveReleased} />
           </View>
         ) : (
           <View style={styles.list}>

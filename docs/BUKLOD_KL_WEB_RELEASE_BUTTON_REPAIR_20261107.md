@@ -10,6 +10,7 @@
 - Fetch `kl_admin_list_v1` for the signed-in system administrator, match chapter by season_number and episode_number, and carry the **server row UUID** to admin preview and every write RPC. Refuse synthetic ID fallback when rows are absent.
 - Make the chapter navigation button a sibling of its admin action buttons; each remains independently clickable, with explicit accessibility roles.
 - Release Now opens a chapter-specific preflight. Show status and actionable blockers (save manuscript, prepare private preview, approve) or already-released notice. Confirm is disabled until ready, and a second explicit click is still required.
+- Reader, progress, discussion and reward flows resolve a released chapter's real server UUID (or admin row UUID), falling back to the legacy computed ID only for unlisted bundled content. This prevents Kabanata 4 from becoming unopenable after a successful publication.
 - On confirm, re-fetch server state, serialize writes with in-flight lock, require server JSONB `ok: true`, confirm `release_at` and the chapter's presence in public `kl_list_library_v1`. Never declare success on a request alone.
 - User-facing feedback is shown per chapter, with a Refresh Status button. The database still independently checks all media and manuscript length at release time.
 

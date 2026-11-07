@@ -54,3 +54,16 @@ test('KL admin action uses exact server-provided chapter ID, with verified relea
   assert.match(chapter,/Release Now/);
   assert.match(chapter,/Refresh status/);
 });
+
+
+test('published random-ID chapters stay readable with real UUID for reading and rewards', () => {
+  const source=read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx');
+  assert.match(source,/const databaseIdForEpisode = \(episodeNumber: number\)/);
+  assert.match(source,/releasedChapters\.find\(chapter =>[\s\S]*?chapter\.episode_number === episodeNumber\)\?\.id/);
+  assert.match(source,/findKlAdminChapter\(visibleAdminRows, 1, episodeNumber\)\?\.id/);
+  assert.match(source,/const dbId = databaseIdForEpisode\(episode\.episodeNumber\)/);
+  assert.match(source,/const selectedDbId = selected \? databaseIdForEpisode\(selected\.episodeNumber\)/);
+  assert.match(source,/p_episode_id: selectedDbId, p_action: 'complete'/);
+  assert.match(source,/releasedNumbers\.has\(selected\.episodeNumber\)/);
+  assert.match(source,/releasedNumbers\.has\(fromCatalog\.episodeNumber\)/);
+});

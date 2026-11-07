@@ -3,7 +3,7 @@
   "objective": "Make KL Admin Release Now reliable and intelligible on BUKLOD desktop web without publishing any chapter, bypassing server approvals, or changing native runtime.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: Inspected GitHub Main 3ead9e9a2ce707b10fa9c53aa17d39f3b1e5ebaf KLReaderScreen nested Pressable chapter admin actions and klDatabaseId arithmetic mapping. Read-only production Supabase yhanxndaqbmuzbdqlblu confirmed kl_admin_action_v1 returns JSONB ok:true and requires system_admin role, approved status, prepared preview, approved media, manuscript >=100 characters. Chapter 4 has non-legacy UUID, draft, no manuscript and one unapproved media; chapters 2-3 already released; chapter 1 draft. These are production DB observations, not live browser click/transport traces.",
-  "chosenApproach": "Read the private admin RPC `kl_admin_list_v1` for exact per-episode server UUID and approved/preview/status data. Fail closed if unlisted, draft or already released; still let owner open release status and see explicit blockers. Before any action refetch server rows and lock against duplicate clicks; send exact UUID to existing authorized server RPC, verify ok:true and post-release admin+public-library result before claiming success. Split chapter-open Pressable from admin control siblings to prevent nested desktop-web button interactions. Preserve mandatory two-click release confirmation.",
+  "chosenApproach": "Read the private admin RPC `kl_admin_list_v1` for exact per-episode server UUID and approved/preview/status data. Fail closed if unlisted, draft or already released; still let owner open release status and see explicit blockers. Before any action refetch server rows and lock against duplicate clicks; send exact UUID to existing authorized server RPC, verify ok:true and post-release admin+public-library result before claiming success. Split chapter-open Pressable from admin control siblings to prevent nested desktop-web button interactions. Preserve mandatory two-click release confirmation. Ensure the reader/progress/rewards and discussion use server-provided UUIDs after a chapter is released; retain the legacy formula only as fallback for pre-server/bundled chapters.",
   "selectionRationale": "New chapter 4 ID differs from legacy `klDatabaseId` sequence; source currently routes all admin actions to computed IDs. Chapter list also renders Release Now on drafts/nonexistent rows and nested clickable containers, creating false nonfunctional feedback. Server action requirements must remain enforced.",
   "alternativeApproaches": [
     "Change Chapter 4 database UUID to match hardcoded formula: rejected, risks breaking media/approval references and external links.",
@@ -23,7 +23,8 @@
     "Only current account can view admin row metadata; unauthorized users do not call private admin list",
     "Same native/mobile chapter reader and existing RPC, no new database table or migration",
     "Previous Main SOS, Wall, Cluster, ads, Quiz, Classroom, and unrelated DEV fixes untouched",
-    "Production Expo Hosting manual exact-SHA release separate from source merge"
+    "Production Expo Hosting manual exact-SHA release separate from source merge",
+    "Existing bundled chapters continue working with legacy fallback ID if no server metadata is available"
   ],
   "acceptanceChecks": [
     "Newest random UUID chapter resolves to exact server ID and never to synthetic chapter number",
@@ -33,16 +34,19 @@
     "Reject/Approve and admin preview use same server-derived UUID to avoid future Chapter 4 failures",
     "Network or permission failure surfaces error, never reports false success",
     "Story-focused Node tests, TypeScript and Expo web export gates pass",
-    "No production chapter state mutation or deployment from DEV"
+    "No production chapter state mutation or deployment from DEV",
+    "After random-ID chapter release, reader, discussion, progress and reward RPCs use actual released-library UUID; no false lock despite successful release"
   ],
   "regressionTests": [
-    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs",
+    "tests/kl-unified-reader-audio.test.cjs"
   ],
   "allowedPaths": [
     "src/lib/kabihasnang-ligaw/releasePreflight.ts",
     "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
     "tests/kl-web-release-admin-preflight-20261107.test.mjs",
     ".buklod/scopes/kl-web-release-admin-preflight-20261107.json",
-    "docs/BUKLOD_KL_WEB_RELEASE_BUTTON_REPAIR_20261107.md"
+    "docs/BUKLOD_KL_WEB_RELEASE_BUTTON_REPAIR_20261107.md",
+    "tests/kl-unified-reader-audio.test.cjs"
   ]
 }
