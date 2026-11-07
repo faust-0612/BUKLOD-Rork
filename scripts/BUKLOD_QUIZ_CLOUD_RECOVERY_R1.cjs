@@ -9,13 +9,18 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const {execFileSync} = require('node:child_process');
 
-const sourceRoot = path.resolve(process.env.BUKLOD_QUIZ_SOURCE_DIR ||
-  path.join(os.homedir(), 'Downloads', 'BUKLOD_Quiz_Standalone'));
+const explicitSourceDir = process.env.BUKLOD_QUIZ_SOURCE_DIR;
+let sourceRoot = '';
+
 const remote = 'https://github.com/faust-0612/BUKLOD-Migrated-Sources.git';
 const branch = 'migration/quiz-canonical-source-20261107';
 const target = path.join('systems','quiz','BUKLOD_Quiz_Standalone_CANONICAL');
-const required = ['package.json','app/exam.tsx','app/live-join.tsx',
-  'src/lib/quizSecureLocal.ts','src/lib/buklodQuizWebFetch.ts'];
+const required = ['package.json','app/exam.tsx','app/live-join.tsx'];
+const supabasePaths = ['lib/supabase.ts','src/lib/supabase.ts'];
+const supportingPaths = ['app/review.tsx','lib/quizSecureLocal.ts',
+  'src/lib/quizSecureLocal.ts','lib/buklodQuizWebFetch.ts',
+  'src/lib/buklodQuizWebFetch.ts'];
+
 const excludedDirs = new Set(['.git','node_modules','.expo','.gradle',
   '.cache','.next','.turbo','.buklod-backups','.eas','.idea','.vscode',
   'dist','build','coverage','Pods','tmp','temp','logs']);
@@ -43,13 +48,120 @@ function isExcluded(relative,isDirectory) {
   if (!isDirectory && bannedExt.test(base)) return true;
   return false;
 }
-function scanFiles() {
-  for(const rel of required) {
-    const actual=path.join(sourceRoot,...rel.split('/'));
-    if(!fs.existsSync(actual)||!fs.statSync(actual).isFile()) {
-      throw Error('NOT CANONICAL QUIZ: required file missing: '+rel);
+function present(file) {
+  try {return fs.statSync(file).isFile();} catch {return false;}
+}
+function isActualDir(file) {
+  try {return fs.lstatSync(file).isDirectory() && !fs.lstatSync(file).isSymbolicLink();}
+  catch {return false;}
+}
+function inspectCandidate(root) {
+  const presentRequired=required.filter(rel=>present(path.join(root,...rel.split('/'))));
+  const presentSupabase=supabasePaths.filter(rel=>present(path.join(root,...rel.split('/'))));
+  const presentSupporting=supportingPaths.filter(rel=>present(path.join(root,...rel.split('/'))));
+  let packageValid=false, quizScreenMarkers=false;
+  if(presentRequired.includes('package.json')) {
+    try {
+      const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+      packageValid=!!((pkg.dependencies?.expo||pkg.devDependencies?.expo) &&
+        (pkg.dependencies?.['@supabase/supabase-js']||pkg.devDependencies?.['@supabase/supabase-js']));
+    } catch {packageValid=false;}
+  }
+  if(presentRequired.includes('app/exam.tsx')&&presentRequired.includes('app/live-join.tsx')){
+    try{
+      const exam=fs.readFileSync(path.join(root,'app','exam.tsx'),'utf8').slice(0,1000000);
+      const join=fs.readFileSync(path.join(root,'app','live-join.tsx'),'utf8').slice(0,1000000);
+      quizScreenMarkers=/buklod_quiz/i.test(exam)&&/buklod_quiz/i.test(join);
+    }catch {quizScreenMarkers=false;}
+  }
+  return {
+    root,presentRequired,presentSupabase,presentSupporting,packageValid,quizScreenMarkers,
+    complete:presentRequired.length===required.length &&
+      presentSupabase.length>0 && packageValid && quizScreenMarkers,
+    score:presentRequired.length*8+presentSupabase.length*3+
+      presentSupporting.length+Number(packageValid)*4+Number(quizScreenMarkers)*4,
+  };
+}
+function knownSourcePaths() {
+  const home=os.homedir();
+  return [
+    path.join(home,'Downloads','BUKLOD_Quiz_Standalone'),
+    path.join(home,'OneDrive','Documents','ChatGPT','BUKLOD_Quiz_Standalone'),
+    'C:\\BUKLODQ_BUILD\\project','C:\\BUKLODQ_BUILD_R126\\project',
+    'C:\\BUKLODQ_R10_BUILD\\project','C:\\BUKLODQ_R10_BUILD',
+    'D:\\Download\\BUKLOD_Quiz_Standalone',
+    'D:\\Downloads\\BUKLOD_Quiz_Standalone',
+    'D:\\BUKLOD_DATA\\BUKLOD_Quiz_Standalone',
+    path.join(home,'Downloads','BUKLOD_Production_Starter_v16','BUKLOD_Production_Starter_v16'),
+  ];
+}
+function searchBases() {
+  const home=os.homedir();
+  return [
+    path.join(home,'Downloads'),
+    path.join(home,'Documents'),
+    path.join(home,'Desktop'),
+    path.join(home,'OneDrive','Documents','ChatGPT'),
+    'C:\\BUKLODQ_BUILD','C:\\BUKLODQ_BUILD_R126','C:\\BUKLODQ_R10_BUILD',
+    'C:\\BUKLODQ_TOOLS','D:\\Download','D:\\Downloads','D:\\BUKLOD_DATA',
+  ];
+}
+function discoverSource() {
+  if(explicitSourceDir) {
+    const root=path.resolve(explicitSourceDir);
+    const c=inspectCandidate(root);
+    if(!c.complete) throw Error('Explicit BUKLOD_QUIZ_SOURCE_DIR is not a verified Quiz project: '+
+      root+' (package/exam/live/supabase/Expo/Quiz RPC checks failed).');
+    process.stdout.write('EXPLICIT CANONICAL SOURCE VERIFIED: '+root+'\n');
+    return root;
+  }
+  const seen=new Set(),candidates=[];
+  function consider(dir) {
+    if(!isActualDir(dir)) return;
+    const resolved=path.resolve(dir), key=process.platform==='win32'?resolved.toLowerCase():resolved;
+    if(seen.has(key)) return;
+    seen.add(key);
+    const c=inspectCandidate(resolved);
+    if(c.score>0)candidates.push(c);
+  }
+  for(const dir of knownSourcePaths())consider(dir);
+  const queue=searchBases().filter(isActualDir).map(dir=>({dir,depth:0}));
+  let visited=0;
+  while(queue.length && visited<2400) {
+    const {dir,depth}=queue.shift();
+    if(!isActualDir(dir))continue;
+    ++visited;
+    consider(dir);
+    if(depth>=3)continue;
+    let entries;
+    try{entries=fs.readdirSync(dir,{withFileTypes:true});}catch{continue;}
+    if(entries.length>650)continue;
+    for(const ent of entries) {
+      if(!ent.isDirectory()||ent.isSymbolicLink())continue;
+      if(isExcluded(ent.name,true))continue;
+      // At depth 2+, avoid scanning unrelated huge home folders.
+      if(depth>=2&&!/quiz|buklod|project|backup|source|app|web|standalone|r\d+/i.test(ent.name))continue;
+      queue.push({dir:path.join(dir,ent.name),depth:depth+1});
     }
   }
+  candidates.sort((a,b)=>Number(b.complete)-Number(a.complete)||b.score-a.score);
+  const complete=candidates.filter(c=>c.complete);
+  process.stdout.write('QUIZ SOURCE DISCOVERY: searched '+seen.size+
+    ' directories in bounded known locations, strong='+complete.length+'\n');
+  for(const c of candidates.slice(0,16)) {
+    process.stdout.write((c.complete?'VERIFIED ':'PARTIAL  ')+' | '+c.root+
+      ' | required='+c.presentRequired.join(',')+
+      ' | supabase='+c.presentSupabase.join(',')+
+      ' | Quiz RPC='+c.quizScreenMarkers+
+      ' | Expo manifest='+c.packageValid+'\n');
+  }
+  if(complete.length===1)return complete[0].root;
+  if(complete.length>1)throw Error('Multiple verified Quiz sources found. Do not choose an outdated copy. Set BUKLOD_QUIZ_SOURCE_DIR to the authoritative root and rerun.');
+  throw Error('No verified standalone Quiz source in known folders. The Main app is not a substitute. Check moved source/backup folders; set BUKLOD_QUIZ_SOURCE_DIR to actual project root. No upload attempted.');
+}
+function scanFiles() {
+  const candidate=inspectCandidate(sourceRoot);
+  if(!candidate.complete) throw Error('NOT CANONICAL QUIZ: source fingerprint is incomplete (package/exam/live/supabase/Expo/Quiz RPC).');
   const result=[];
   let total=0;
   function visit(directory, relDir) {
@@ -79,12 +191,14 @@ function scanFiles() {
   for(const req of required) if(!result.some(x=>x.rel===req)) {
     throw Error('Required canonical code was excluded: '+req);
   }
+  if(!supabasePaths.some(req=>result.some(x=>x.rel===req)))
+    throw Error('Quiz Supabase client source was excluded');
   return {files:result,total};
 }
 async function main() {
   const push=process.argv.slice(2).includes('--push');
   if(process.argv.slice(2).some(a=>a!=='--push')) throw Error('Unknown argument; only --push accepted');
-  if(!fs.existsSync(sourceRoot)) throw Error('Canonical Quiz directory not found: '+sourceRoot);
+  sourceRoot=discoverSource();
   const {files,total}=scanFiles();
   process.stdout.write('CANONICAL QUIZ SOURCE CHECK PASSED; files='+files.length+
     ' bytes='+total+'; source='+sourceRoot+'\n');
