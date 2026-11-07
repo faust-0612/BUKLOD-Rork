@@ -1,6 +1,6 @@
 -- BUKLOD Living Community R1.
 -- Canonical audiences: follower graph and active CLUSTER/ORGANIZATION memberships.
--- No legacy church_id, church directory, or unscoped personal-data broadcast.
+-- No retired standalone-church identifiers or unscoped personal-data broadcast.
 -- Birthdays require explicit opt-in; welcome is on by default and can be disabled.
 begin;
 
