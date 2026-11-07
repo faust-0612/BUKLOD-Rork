@@ -10,7 +10,10 @@ const achievements=[
  ['achievement_bible_scholar','Bible Scholar — +100 BP'],
  ['achievement_community_builder','Community Builder — +150 BP'],
  ['achievement_faithful_mentor','Faithful Mentor — +200 BP'],
- ['achievement_kingdom_champion','Kingdom Champion — +250 BP']
+ ['achievement_kingdom_champion','Kingdom Champion — +250 BP'],
+ ['verified_volunteer_service','Verified Volunteer Service — +20 BP'],
+ ['ministry_major_milestone','Major Ministry Milestone — +100 BP'],
+ ['game_tournament_champion','Verified Tournament Champion — +100 BP']
 ] as const;
 const buckets=[['participation','Participation'],['learning','Learning & Skills'],['impact','Verified Community Impact']] as const;
 export default function BuklodR2FocusMonitor(){
@@ -64,7 +67,7 @@ export default function BuklodR2FocusMonitor(){
       <Text style={s.choiceText}>{label}</Text><Text style={s.status}>{report.my_milestones.find(n=>n.type===key)?.status||'Not submitted'}</Text>
    </Pressable>)}
    {!own&&<>
-    <Text style={s.desc}>Describe the completed course, ministry project, mentoring cycle, or tournament challenge. Include dates, scope and verifiable references. Submission does not automatically earn points.</Text>
+    <Text style={s.desc}>Describe the completed course, ministry project, mentoring cycle, volunteer service or tournament challenge. Include dates, scope and verifiable references. Submission does not automatically earn points.</Text>
     <TextInput multiline textAlignVertical="top" accessibilityLabel="Achievement supporting evidence"
        placeholder="Evidence details (60–2000 characters)" placeholderTextColor="#879A8A"
        style={s.input} value={evidence} onChangeText={setEvidence} maxLength={2000}/>
