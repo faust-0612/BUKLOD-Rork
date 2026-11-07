@@ -98,6 +98,6 @@ test('Kingdom R8: three original character stations are retained and score stays
   assert.equal(catalog.characters.length, 13);
   assert.equal(games.length, 39);
   assert.equal(games.filter(x => x.status === 'existing').length, 13);
-  assert.equal(games.filter(x => x.status === 'pilot').length, 12);
-  assert.equal(games.filter(x => x.status === 'planned').length, 14);
+  assert.ok(games.filter(x => x.status === 'pilot').length >= 12, 'R8 pilots must remain playable');
+  assert.ok(games.filter(x => x.status === 'planned').length <= 14, 'later games may graduate');
 });

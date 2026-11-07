@@ -188,6 +188,6 @@ test('Kingdom R7 stations preserve originals, preview isolation, same 13-positio
   assert.equal(catalog.characters.length, 13);
   assert.equal(all.length, 39);
   assert.equal(all.filter(g => g.status === 'existing').length, 13);
-  assert.equal(all.filter(g => g.status === 'pilot').length, 9);
-  assert.equal(all.filter(g => g.status === 'planned').length, 17);
+  assert.ok(all.filter(g => g.status === 'pilot').length >= 9, 'R7 pilots must never disappear');
+  assert.ok(all.filter(g => g.status === 'planned').length <= 17, 'planned games can only graduate to playable');
 });
