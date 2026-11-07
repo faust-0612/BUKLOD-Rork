@@ -60,11 +60,62 @@ function sha256(pathname){
  finally{fs.closeSync(fd)}
  return h.digest("hex");
 }
+// Run 7-Zip behind a secure PowerShell prompt and feed its password over STDIN.
+// Do NOT put the passphrase in argv, on disk, in a report, or in a process command line.
 function list7z(first,label){
  console.log("7-Zip encrypted listing:",label);
- console.log("Type the saved archive passphrase when 7-Zip waits. The prompt may not be visible because its listing is being captured.");
- // Explicit -p asks 7z for password interactively, does not echo or store it.
- const raw=run(ZIP,["l","-slt","-p",first],{mode:"capture-interactive"});
+ console.log("Enter the saved archive password when explicitly prompted. It will not echo.");
+ const helper=path.join(BASE,"buklod-secure-7zip-list-v4.ps1");
+ const listing=path.join(BASE,"7ZIP_LIST_"+crypto.createHash("sha256").update(first).digest("hex").slice(0,16)+".txt");
+ const secureScript=String.raw`param(
+  [Parameter(Mandatory=$true)][string]$SevenZip,
+  [Parameter(Mandatory=$true)][string]$Archive,
+  [Parameter(Mandatory=$true)][string]$Output
+)
+$ErrorActionPreference = 'Stop'
+$secret = Read-Host 'Archive password (hidden; not saved)' -AsSecureString
+if ($secret.Length -eq 0) { throw 'No password was entered.' }
+$bstr = [IntPtr]::Zero
+$proc = $null
+try {
+  $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)
+  $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $SevenZip
+  $psi.Arguments = 'l -slt -p "' + $Archive + '"'
+  $psi.RedirectStandardInput = $true
+  $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError = $true
+  $psi.UseShellExecute = $false
+  $psi.CreateNoWindow = $true
+  $proc = [Diagnostics.Process]::Start($psi)
+  if ($null -eq $proc) { throw 'Could not launch 7-Zip.' }
+  $proc.StandardInput.WriteLine($plain)
+  $proc.StandardInput.Close()
+  $plain = $null
+  [IO.File]::WriteAllText($Output, $proc.StandardOutput.ReadToEnd(), (New-Object System.Text.UTF8Encoding($false)))
+  $err = $proc.StandardError.ReadToEnd()
+  $proc.WaitForExit()
+  if ($proc.ExitCode -ne 0) {
+    throw "7-Zip listing failed (exit $($proc.ExitCode)). Check the saved archive password. $($err.Substring(0,[Math]::Min($err.Length,120)))"
+  }
+} finally {
+  $plain = $null
+  $secret.Dispose()
+  if ($bstr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+  if ($null -ne $proc) { $proc.Dispose() }
+}
+`;
+ fs.writeFileSync(helper,secureScript,"utf8");
+ let raw;
+ try{
+   run("powershell.exe",["-NoProfile","-ExecutionPolicy","Bypass","-File",helper,
+     "-SevenZip",ZIP,"-Archive",first,"-Output",listing],{mode:"inherit"});
+   assert(fs.existsSync(listing),"7-Zip did not write its encrypted file listing.");
+   raw=fs.readFileSync(listing,"utf8");
+ }finally{
+   if(fs.existsSync(listing))fs.rmSync(listing,{force:true});
+ }
  const records=[];
  let seenSeparator=false, block=[];
  function finish(){
@@ -86,7 +137,7 @@ function list7z(first,label){
    block.push(line);
  }
  finish();
- if(records.length<10)throw Error("Unable to parse encrypted listing, or password wrong; parsed "+records.length+" file records");
+ if(records.length<10)throw Error("Unable to parse encrypted listing; parsed "+records.length+" file records");
  console.log(label,"has",records.length,"encrypted file records.");
  return records;
 }
