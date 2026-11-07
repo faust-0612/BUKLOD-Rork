@@ -4,7 +4,12 @@ import { router } from 'expo-router';
 import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 
 type Surface = 'inbox' | 'personal_thread' | 'community_thread';
-type Props = { children: React.ReactNode; surface: Surface };
+type Props = {
+  children: React.ReactNode;
+  surface: Surface;
+  /** Desktop embedded panels close in place; full routes still return to Wall. */
+  onFallbackClose?: () => void;
+};
 type State = { failed: boolean; signature: string };
 
 function renderSignature(error: Error) {
@@ -44,8 +49,16 @@ export default class ConnectRenderBoundary extends React.Component<Props, State>
           <Text style={styles.buttonText}>Subukan muli</Text>
         </Pressable>
         <Pressable accessibilityRole="button" style={styles.secondary}
-          onPress={() => router.replace('/(tabs)/buklod' as any)}>
-          <Text style={styles.secondaryText}>Bumalik sa Wall</Text>
+          onPress={() => {
+            if (this.props.onFallbackClose) {
+              this.props.onFallbackClose();
+              return;
+            }
+            router.replace('/(tabs)/buklod' as any);
+          }}>
+          <Text style={styles.secondaryText}>
+            {this.props.onFallbackClose ? 'Close panel' : 'Bumalik sa Wall'}
+          </Text>
         </Pressable>
       </View>
     );

@@ -41,6 +41,20 @@ export function shouldUseBuklodDesktopPublicFeed(
 /** Desktop-wide unified dashboard chrome is only enabled for authenticated
  * dashboard routes, never auth, call, immersive video, system or scoped views. */
 export const BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH = 1200;
+/** BUKLOD_DESKTOP_COLUMN_SIZING_R2
+ * The responsive rails have a fixed footprint; only the routed content
+ * may flex. This prevents React Native Web's ScrollView flex defaults from
+ * squeezing the Wall into an unreadable mobile-sized strip.
+ */
+export function resolveBuklodDesktopRailWidths(width: number): {
+  left: number; right: number;
+} {
+  if (Number.isFinite(width) && width >= 1400) {
+    return { left: 240, right: 318 };
+  }
+  return { left: 198, right: 270 };
+}
+
 export function shouldUseBuklodPublicDesktopShell(
   normalizedPathname: string,
   width: number,

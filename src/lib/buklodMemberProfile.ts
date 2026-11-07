@@ -1,4 +1,5 @@
 import { buklodInstantPush } from '@/lib/buklodInstantNavigation';
+import { tryOpenBuklodDesktopDock } from '@/lib/buklodDesktopContextDock';
 
 import { supabase } from '@/lib/supabase';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
@@ -277,6 +278,11 @@ export function visitMemberProfile(
     return;
   }
 
+  // Desktop contextual preview first; full page requires explicit Expand.
+  if (tryOpenBuklodDesktopDock({
+    kind: 'profile', userId: id, displayName: displayName?.trim() || '',
+  })) return;
+
   buklodInstantPush({
     pathname: '/member/[id]',
     params: {
@@ -290,6 +296,11 @@ export function openMemberConnect(
   userId: string,
   displayName: string,
 ) {
+  if (tryOpenBuklodDesktopDock({
+    kind: 'direct', threadId: 'new',
+    targetUserId: userId, otherUserName: displayName,
+  })) return;
+
   buklodInstantPush({
     pathname: '/connect/personal/[threadId]',
     params: {

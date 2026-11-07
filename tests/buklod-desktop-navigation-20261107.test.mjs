@@ -62,3 +62,89 @@ test('desktop detail routes never mount the mobile bottom nav pane', () => {
   assert.match(mobileShell, /desktopDetail && styles\.desktopDetail/);
   assert.match(mobileShell, /maxWidth: 1190/);
 });
+
+
+test('desktop rail widths prioritize the routed content at all supported sizes', () => {
+  const rails = policy.resolveBuklodDesktopRailWidths;
+  assert.deepEqual(rails(1200), { left: 198, right: 270 });
+  assert.deepEqual(rails(1399), { left: 198, right: 270 });
+  assert.deepEqual(rails(1400), { left: 240, right: 318 });
+  assert.deepEqual(rails(1920), { left: 240, right: 318 });
+  for (const width of [1200, 1280, 1400, 1590, 1920]) {
+    const frame = Math.min(width, 1590);
+    const { left, right } = rails(width);
+    // 24px frame padding and 24px inter-column gaps.
+    assert.ok(frame - left - right - 48 >= 640, width + ' must keep a readable center');
+  }
+  const source = read('src/components/BuklodPublicDesktopDashboard.tsx');
+  assert.match(source, /flexGrow: 0, flexShrink: 0/);
+  assert.match(source, /width: railWidths.left, minWidth: railWidths.left/);
+  assert.match(source, /width: railWidths.right, minWidth: railWidths.right/);
+  assert.match(source, /flexGrow: 1, flexShrink: 1/);
+});
+
+test('top bar renders the approved BUKLOD image once without duplicate wordmark', () => {
+  const main = read('src/components/BuklodPublicDesktopDashboard.tsx');
+  const scoped = read('src/components/BuklodDesktopWebShell.tsx');
+  for (const source of [main, scoped]) {
+    assert.match(source, /source=\{require\('\.\.\/\.\.\/assets\/release\/buklod-main-canonical\.png'\)\}/);
+    assert.doesNotMatch(source, /<Text style=\{\[styles\.brandText/);
+  }
+  assert.match(main, /brandLogo: \{ width: 66, height: 66/);
+});
+
+
+test('desktop Connect side dock is contextual, not a forced route', () => {
+  const shell = read('src/components/BuklodPublicDesktopDashboard.tsx');
+  const inbox = read('src/app/(tabs)/messages.tsx');
+  const dock = read('src/lib/buklodDesktopContextDock.ts');
+  assert.match(shell, /registerBuklodDesktopDockOpener/);
+  assert.match(shell, /<BuklodConnectThread/);
+  assert.match(shell, /onBackOverride=\{\(\) => setDockRequest\(null\)\}/);
+  assert.match(shell, /position: 'absolute', top: 0, right: 0, bottom: 0/);
+  assert.match(shell, /Expand conversation to full screen/);
+  assert.match(shell, /Close conversation panel/);
+  assert.match(shell, /dockRequest\?\.userId === userId/);
+  assert.match(inbox, /if \(tryOpenBuklodDesktopDock\(\{/);
+  assert.match(dock, /return false/);
+  assert.match(dock, /activeDesktopOpener = null/);
+});
+
+
+test('embedded Connect engine dismisses in place on all thread lookup failures', () => {
+  const thread = read('src/components/BuklodConnectThread.tsx');
+  assert.match(thread, /const leaveThread = useCallback/);
+  assert.match(thread, /dockBackRef.current\(\)/);
+  assert.match(thread, /onBack=\{leaveThread\}/);
+  assert.equal((thread.match(/leaveThread\(\);/g) ?? []).length, 4);
+  const avatar = read('src/components/connect/ConnectTappableAvatar.web.tsx');
+  assert.match(avatar, /tryOpenBuklodDesktopDock\(\{/);
+});
+
+
+test('member profiles use contextual privacy-aware preview with optional Expand', () => {
+  const shell = read('src/components/BuklodPublicDesktopDashboard.tsx');
+  const member = read('src/lib/buklodMemberProfile.ts');
+  const preview = read('src/components/BuklodDesktopMemberPreview.tsx');
+  const dock = read('src/lib/buklodDesktopContextDock.ts');
+  assert.match(shell, /visibleDock\.kind === 'profile'/);
+  assert.match(shell, /Expand member profile/);
+  assert.match(member, /kind: 'profile', userId: id/);
+  assert.match(member, /kind: 'direct', threadId: 'new'/);
+  assert.match(preview, /loadMemberPublicProfile\(userId\)/);
+  assert.match(preview, /profile\.can_view_details/);
+  assert.match(preview, /result\?\.viewerId === viewerId/);
+  assert.match(dock, /kind: 'profile'/);
+});
+
+
+test('instant navigation treats only secondary destinations as contextual', () => {
+  const instant = read('src/lib/buklodInstantNavigation.ts');
+  assert.match(instant, /resolveBuklodContextualHref/);
+  assert.match(instant, /if \(detail && tryOpenBuklodDesktopDock\(detail\)\) return/);
+  assert.match(instant, /router\.replace\(href as any\)/);
+  assert.match(instant, /router\.push\(href as any\)/);
+  assert.match(instant, /pathname === '\/connect\/personal\/\[threadId\]'/);
+  assert.match(instant, /pathname === '\/member\/\[id\]'/);
+  assert.doesNotMatch(instant, /\/reels\/\[id\]|\/login\/\[id\]|\/scope\/\[id\]/);
+});
