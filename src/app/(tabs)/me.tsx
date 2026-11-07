@@ -107,6 +107,8 @@ function ProfileQuickActionsStrip({
   styles: ReturnType<typeof createMeStyles>;
   theme: ReturnType<typeof useBuklodTheme>['theme'];
 }) {
+  // BuklodPressable already cancels drag gestures. Never hold a disabled
+  // button state after a short horizontal scroll without momentum.
   return (
     <ScrollView
       horizontal
@@ -118,9 +120,6 @@ function ProfileQuickActionsStrip({
       snapToInterval={QUICK_ACTION_SNAP_INTERVAL}
       snapToAlignment="start"
       scrollEventThrottle={16}
-      // The nested BuklodPressable already cancels drag gestures. Avoid
-      // disabling buttons from ScrollView momentum events: short drags may
-      // never fire onMomentumScrollEnd and formerly locked Advertise.
       contentContainerStyle={styles.quickRow}
     >
       {items.map((item, index) => (
