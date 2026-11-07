@@ -43,6 +43,18 @@ begin
  if position('status=''rejected''' in v)=0 or position('on conflict' in lower(v))=0 then
    raise exception 'Rejected achievement nomination cannot be revised safely';
  end if;
+ if has_function_privilege('authenticated',
+ 'public.buklod_award_verification_points_v1(uuid,integer,text,text,uuid,text,uuid)','EXECUTE')
+ or has_function_privilege('anon',
+ 'public.buklod_award_verification_points_v1(uuid,integer,text,text,uuid,text,uuid)','EXECUTE') then
+  raise exception 'Critical: generic arbitrary points credit RPC is still directly executable';
+ end if;
+ if has_function_privilege('authenticated',
+ 'public.get_my_buklod_bible_quiz_r2()','EXECUTE') or
+ has_function_privilege('authenticated',
+ 'public.submit_my_buklod_bible_quiz_r2(uuid,jsonb)','EXECUTE') then
+  raise exception 'Legacy Bible Quiz score RPC bypass still public';
+ end if;
  raise notice 'Points R3 Home Quiz / Check-in / Mentoring / KL contracts: PASS';
 end;
 $contract$;
