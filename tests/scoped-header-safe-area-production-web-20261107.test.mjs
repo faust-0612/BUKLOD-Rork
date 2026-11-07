@@ -36,7 +36,7 @@ test('production web gate enforces semantic policy rather than retired source ma
     deployWeb > exportWeb, 'The safety test must gate production export and deployment');
   assert.ok(!webWorkflow.includes("grep -F 'paddingTop: insets.top'"));
   assert.match(webWorkflow, /grep -F 'serverCanManage' 'src\/components\/BuklodClusterHomeCommandCenter\.tsx'/);
-  assert.match(webWorkflow, /grep -F 'constrainContextToOrganization' 'src\/lib\/buklodClusterFormationGate\.ts'/);
+  assert.ok(webWorkflow.includes('grep -F "constrainContextToOrganization" \'src/lib/buklodClusterFormationGate.ts\''));
   assert.match(webWorkflow, /grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2'/);
   assert.match(webWorkflow, /git ls-remote origin refs\/heads\/main/);
   assert.match(webWorkflow, /sha256sum -c web-rc-sha256\.txt/);
