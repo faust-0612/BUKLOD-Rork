@@ -257,6 +257,22 @@ function selfTest(){
     "Firebase credentials must survive local cleanup");
   assert(generatedDirs.test("node_modules")&&generatedDirs.test("build"),
     "Cache classification invalid");
+  const mockRoot=path.join(dir,"demo"),nested=path.join(mockRoot,"build");
+  fs.mkdirSync(nested,{recursive:true});
+  for(let k=0;k<32;k++)fs.writeFileSync(path.join(nested,"item_"+k+".o"),String(k));
+  const walked=[...streamTree(mockRoot)];
+  assert(walked.filter(v=>v.type==="file").length===32,
+    "V14 streaming traversal omitted files");
+  assert(walked.filter(v=>v.type==="dir").length===2,
+    "V14 streaming traversal did not close nested folders");
+  const journal=path.join(dir,"stream-test.jsonl");
+  const entry={path:"C:\\\\BUKLOD\\\\mañana\\\\photo.png",hash:"a".repeat(40)};
+  // Exercise UTF-8 decoding across 4 MiB read boundaries.
+  fs.writeFileSync(journal,JSON.stringify({content:"z".repeat(4*MiB-90)})+"\n"+
+    JSON.stringify(entry)+"\n","utf8");
+  let seen=0,found=false;
+  eachJSONLine(journal,row=>{seen++;if(row.path===entry.path)found=true});
+  assert(seen===2&&found,"V14 bounded disk journal stream failed UTF-8 fixture");
  }finally{fs.rmSync(dir,{recursive:true,force:true})}
  console.log("SELF TEST PASSED: protected roots, personal/secret guards, Git content hash, cache classification.");
 }
