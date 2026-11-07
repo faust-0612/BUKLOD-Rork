@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" fill="none" role="img" aria-label="BUKLOD Classroom Canonical Cyan Logo">
+<defs><linearGradient id="cyan" x1="20" y1="10" x2="220" y2="230" gradientUnits="userSpaceOnUse"><stop stop-color="#05C3FF"/><stop offset=".55" stop-color="#00A6F2"/><stop offset="1" stop-color="#0082DA"/></linearGradient>
+<linearGradient id="stem" x1="85" y1="30" x2="115" y2="128" gradientUnits="userSpaceOnUse"><stop stop-color="#9EFF00"/><stop offset=".45" stop-color="#1FC423"/><stop offset="1" stop-color="#096B21"/></linearGradient>
+<linearGradient id="loop" x1="72" y1="34" x2="168" y2="132" gradientUnits="userSpaceOnUse"><stop stop-color="#D4FF14"/><stop offset=".35" stop-color="#5CE61E"/><stop offset=".75" stop-color="#18B225"/><stop offset="1" stop-color="#097324"/></linearGradient>
+<linearGradient id="shadow" x1="78" y1="45" x2="150" y2="128" gradientUnits="userSpaceOnUse"><stop stop-color="#075B1B"/><stop offset="1" stop-color="#149E26"/></linearGradient></defs>
+<rect x="4" y="4" width="232" height="232" rx="52" fill="url(#cyan)"/>
+<path d="M88 34 C88 30 108 30 108 36 L108 122 C108 128 88 128 88 120 Z" fill="url(#stem)"/>
+<path d="M88 34 C118 34 152 44 152 62 C152 76 128 84 104 88 L104 72 C122 69 132 64 132 58 C132 50 110 46 88 46 Z" fill="url(#shadow)"/>
+<path d="M84 106 C108 118 156 122 158 102 C160 88 132 82 106 80 L106 95 C126 96 138 100 136 105 C134 111 106 108 84 96 Z" fill="url(#shadow)"/>
+<path d="M88 33 C128 31 156 43 156 61 C156 79 122 86 96 96 C78 103 75 114 88 122 C106 132 156 128 158 104 C160 88 136 80 114 78 C134 73 142 64 138 55 C134 45 106 44 88 45 Z" fill="url(#loop)"/>
+<path d="M90 34 C126 33 151 44 151 60 C151 75 118 82 92 93 C79 99 77 109 86 117" stroke="#E8FF4A" stroke-width="3.2" stroke-linecap="round"/>
+<line x1="42" y1="149" x2="68" y2="149" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>
+<text x="120" y="154" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-weight="900" font-size="18" letter-spacing="3.5">BUKLOD</text>
+<line x1="172" y1="149" x2="198" y2="149" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>
+<text x="120" y="195" text-anchor="middle" fill="#fff" font-family="Georgia,serif" font-style="italic" font-weight="bold" font-size="37">Classroom</text>
+<path d="M52 214 Q124 202 188 210 Q124 209 52 214 Z" fill="#fff"/></svg>

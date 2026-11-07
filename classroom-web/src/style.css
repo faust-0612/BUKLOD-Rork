@@ -71,3 +71,36 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .danger-outline{border:1px solid #f3afb4;background:#fff6f6;color:#9a2433;padding:11px 16px;border-radius:10px;font-weight:800;font-size:.86rem}
 .danger-outline:hover{background:#ffe6e8}
 @media(max-width:640px){.head-actions{flex-wrap:wrap;gap:8px}.back-button{font-size:.84rem}}
+
+/* Canonical Cyan visual system: design only, not a replacement for secure data flows. */
+:root{background:#f3f8fa;color:#0f172a}
+body{background:#f3f8fa}
+.topbar{min-height:68px;padding-top:10px;padding-bottom:10px;border-bottom:1px solid #dce8ef;background:rgba(255,255,255,.98)}
+.brand-mark{display:block;object-fit:contain;box-shadow:0 2px 8px #00a6f22e;border-radius:17px;background:#fff}
+.brand-mark.small{border-radius:12px}
+.logo strong{color:#0f172a}.logo small{color:#64748b}
+.shell{padding-top:28px}.eyebrow{color:#0d9488}
+.class-card{border-color:#e2e8f0;color:#0f172a;box-shadow:0 2px 10px #0f172a08}
+.class-card:hover{border-color:#38bdf8;box-shadow:0 10px 25px #0284c718}
+.class-card small{color:#64748b}.class-icon{background:#eff8ff}.chevron{color:#0284c7}
+.side-card,.module,.info-panel{border-color:#e2e8f0}
+.class-head{background:linear-gradient(118deg,#036f99,#00a6f2);color:#fff}
+.class-head .eyebrow,.class-head p{color:#e0f6fe}
+.nav-groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:0 0 12px}
+.nav-group{border:1px solid #dce8ef;background:#fff;color:#475569;font-weight:850;
+  border-radius:13px;padding:13px 10px;min-width:0;letter-spacing:.025em;text-transform:uppercase}
+.nav-group.active{background:#0284c7;color:white;border-color:#0284c7;box-shadow:0 3px 11px #0284c72a}
+.nav-group:hover:not(.active){border-color:#38bdf8;background:#e0f6fe}
+.tabstrip{margin-bottom:10px;scrollbar-width:thin;scrollbar-color:#bae6fd transparent}
+.tab{border-color:#e2e8f0;color:#475569}
+.tab.active{background:#e0f6fe;border-color:#00a6f2;color:#0369a1}
+.tab:hover:not(.active){background:#f0f9ff}
+.primary{background:#0284c7}.primary:hover{background:#0369a1}
+.quiet{color:#0369a1;border-color:#bae6fd}.quiet:hover{background:#f0f9ff}
+.feature-card{background:#f8fafc;border-color:#e2e8f0;color:#0f172a}
+.group-caption{color:#64748b;font-size:.82rem;margin:0 0 10px}
+.login-layout{background:radial-gradient(circle at top left,#e0f6fe,#f3f8fa 55%)}
+.login-brand h1{color:#0f172a}.login-brand p:not(.eyebrow){color:#475569}
+.brand-note{color:#0369a1}.login-card{border-color:#e2e8f0}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #00a6f2}
+@media(max-width:640px){.nav-groups{gap:5px}.nav-group{font-size:.74rem;padding:11px 3px}}

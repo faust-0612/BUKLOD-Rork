@@ -18,7 +18,7 @@ const db = url && key ? createClient(url, key, {
 }) : null;
 
 const state = { user: null, classes: [], classId: '', context: null, overview: null,
-  tab: 'overview', data: [], additional: [], gradeCategories: [], thread: null, busy: false, loading: true,
+  tab: 'overview', group: 'CLASS', data: [], additional: [], gradeCategories: [], thread: null, busy: false, loading: true,
   error: '', recover: false, seq: 0 };
 const tabs = [
   ['overview', 'Overview'], ['discussions', 'Discussions'], ['chat', 'Class Messages'],
@@ -26,6 +26,19 @@ const tabs = [
   ['grades', 'My Grades'], ['assessments', 'Assessments'], ['notices', 'Notices'],
   ['monitor', 'Class Monitor'], ['faculty', 'Faculty Tools']
 ];
+
+const GROUP_TABS = Object.freeze({
+  CLASS: [['overview','Overview'],['materials','Materials'],['notices','Notices']],
+  WORK: [['activities','Activities'],['assessments','BUKLOD Quiz / Assessments']],
+  CONNECT: [['discussions','Discussions'],['chat','Class Messages']],
+  MORE: [['attendance','Attendance'],['grades','Gradebook'],['monitor','Class Monitor'],['faculty','Faculty Tools']]
+});
+const GROUP_LABELS = Object.freeze({CLASS:'Class',WORK:'Work',CONNECT:'Connect',MORE:'More'});
+const DEFAULT_TAB = Object.freeze({CLASS:'overview',WORK:'activities',CONNECT:'discussions',MORE:'grades'});
+const groupOf = tab => Object.entries(GROUP_TABS).find(([,list])=>list.some(([id])=>id===tab))?.[0]||'CLASS';
+const classLink = (id,tab) => '?class='+encodeURIComponent(id)+'&group='+encodeURIComponent(groupOf(tab))+'&tab='+encodeURIComponent(tab);
+const validTab = (tab,group) => tabs.some(([id])=>id===tab) && (tab!=='faculty'||isFaculty())
+  ? tab : DEFAULT_TAB[group]||'overview';
 const e = esc;
 const norm = (v) => v == null ? '' : String(v);
 const el = (tag, cls, value) => '<' + tag + (cls ? ' class="' + cls + '"' : '') + '>' + e(norm(value)) + '</' + tag + '>';
@@ -68,7 +81,7 @@ function render() {
   renderClass();
 }
 function renderAuth() {
-  root.innerHTML = '<div class="login-layout"><section class="login-brand"><div class="brand-mark">B</div>' +
+  root.innerHTML = '<div class="login-layout"><section class="login-brand"><img src="/buklod-classroom-cyan.svg" class="brand-mark" alt="BUKLOD Classroom cyan logo" width="64" height="64" />' +
     '<p class="eyebrow">BUKLOD EDUCATION</p><h1>One connected classroom.</h1>' +
     '<p>Learning resources, discussions, activities, attendance, and released grades — secured by your BUKLOD account.</p>' +
     '<div class="brand-note">Same BUKLOD education records. No separate student database.</div></section>' +
@@ -87,7 +100,7 @@ function renderAuth() {
     '<div id="feedback" class="feedback"></div></section></div>';
 }
 function layout(content, title) {
-  const nav = '<header class="topbar"><div class="logo"><span class="brand-mark small">B</span>' +
+  const nav = '<header class="topbar"><div class="logo"><img src="/buklod-classroom-cyan.svg" class="brand-mark small" alt="BUKLOD Classroom cyan logo" width="42" height="42" />' +
     '<span><strong>BUKLOD Classroom</strong><small>Connected Learning</small></span></div>' +
     '<div class="top-actions"><span class="account" title="Signed-in account">' + e(state.user?.email || 'BUKLOD user') +
     '</span>' + btn('My Classes', 'classes') + btn('Sign out', 'signout') + '</div></header>';
@@ -109,11 +122,15 @@ function renderClasses() {
     'My Classrooms');
 }
 function navClasses() {
-  return '<div class="tabstrip" role="tablist" aria-label="Classroom modules">' +
-    tabs.filter(t => t[0] !== 'faculty' || isFaculty()).map(t =>
-    '<button role="tab" aria-selected="' + (state.tab===t[0]) + '" class="tab ' +
-    (state.tab===t[0] ? 'active' : '') + '" data-action="tab" data-id="' + e(t[0]) + '">' + e(t[1]) + '</button>').join('') +
-    '</div>';
+  const group = GROUP_TABS[state.group] ? state.group : groupOf(state.tab);
+  const top = '<nav class="nav-groups" aria-label="Classroom navigation">' +
+    Object.keys(GROUP_TABS).map(g => '<button type="button" data-action="group" data-id="'+g+'" class="nav-group'+
+      (group===g?' active':'')+'" aria-current="'+(group===g?'page':'false')+'">'+GROUP_LABELS[g]+'</button>').join('')+'</nav>';
+  const visible = GROUP_TABS[group].filter(([id])=>id!=='faculty'||isFaculty());
+  return top + (group==='CONNECT' ? '<p class="group-caption">Live classroom sessions remain in the authorized BUKLOD app; web messages and discussions work here.</p>' : '') +
+    '<div class="tabstrip" role="tablist" aria-label="'+GROUP_LABELS[group]+' modules">' +
+    visible.map(([id,label])=>'<button type="button" role="tab" aria-selected="'+(state.tab===id)+
+      '" class="tab'+(state.tab===id?' active':'')+'" data-action="tab" data-id="'+id+'">'+e(label)+'</button>').join('')+'</div>';
 }
 function renderClass() {
   const c = state.context || {};
@@ -325,18 +342,19 @@ async function loadClasses() {
     const params = new URLSearchParams(location.search);
     const requested = params.get('class');
     const requestedTab = params.get('tab');
+    const requestedGroup = params.get('group');
     state.loading = false;
     if (requested && state.classes.some(c=>c.classroom_id===requested)) {
-      await openClass(requested, tabs.some(t=>t[0]===requestedTab) ? requestedTab : 'overview');
+      await openClass(requested, validTab(requestedTab, requestedGroup));
     } else render();
   } catch (err) { state.loading=false; render(); notice(errorMessage(err), true); }
 }
 async function openClass(id, tab = 'overview') {
   if (!state.classes.some(c => c.classroom_id===id)) { notice('You are not assigned to that classroom.', true); return; }
   const seq = ++state.seq;
-  state.classId = id; state.tab = tab; state.context=null; state.overview=null;
+  state.classId = id; state.tab = tab; state.group = groupOf(tab); state.context=null; state.overview=null;
   state.data=[]; state.additional=[]; state.error=''; state.busy=true;
-  render(); history.replaceState({},'', '?class='+encodeURIComponent(id)+'&tab='+encodeURIComponent(tab));
+  render(); history.replaceState({},'', classLink(id,tab));
   try {
     const [ctx,o] = await Promise.all([
       checked(db.rpc('buklod_classroom_context_v1', { p_classroom_id:id })),
@@ -486,9 +504,19 @@ async function doAction(action,id) {
   if (action==='refresh-classes'){await loadClasses();return;}
   if (action==='delete-class'){await deleteCurrentClass();return;}
   if (action==='open-class'){await openClass(id);return;}
+  if (action==='group') {
+    if (!GROUP_TABS[id]) return;
+    const tab = validTab(DEFAULT_TAB[id],id);
+    state.group=id; state.tab=tab;
+    history.replaceState({},'',classLink(state.classId,tab));
+    if(tab==='overview'){state.error='';state.data=[];state.additional=[];render();}
+    else await loadTab();
+    return;
+  }
   if (action==='tab') {
-    if (id==='faculty' && !isFaculty()) return;
-    state.tab=id;history.replaceState({},'','?class='+encodeURIComponent(state.classId)+'&tab='+encodeURIComponent(id));
+    if (!tabs.some(t=>t[0]===id) || (id==='faculty' && !isFaculty())) return;
+    state.group=groupOf(id);
+    state.tab=id;history.replaceState({},'',classLink(state.classId,id));
     if (id==='overview'){state.error='';state.data=[];state.additional=[];render();}else await loadTab();return;
   }
   if (action==='refresh-tab') {if(state.tab==='overview') await openClass(state.classId);else await loadTab();return;}

@@ -22,3 +22,14 @@ test('deletion uses the guarded, authenticated backend RPC with exact confirmati
 test('student grade visibility is still limited to released-grade RPC', () => {
   assert.match(webSource, /buklod_classroom_student_released_grade_items_v2/);
 });
+
+test('canonical cyan grouped navigation retains real authenticated data flows', () => {
+  assert.match(webSource,/const GROUP_TABS = Object\.freeze/);
+  for(const g of ['CLASS','WORK','CONNECT','MORE']) assert.match(webSource,new RegExp(g+':'));
+  assert.match(webSource,/data-action="group"/);
+  assert.match(webSource,/classLink\(state\.classId,id\)/);
+  assert.match(webSource,/buklod-classroom-cyan\.svg/);
+  assert.doesNotMatch(webSource,/var APP_STATE/);
+  assert.doesNotMatch(webSource,/data-bard-client-injected/);
+  assert.match(webSource,/db\.auth\.signInWithPassword/);
+});
