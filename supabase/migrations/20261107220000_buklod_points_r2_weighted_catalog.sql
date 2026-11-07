@@ -1,7 +1,7 @@
 -- BUKLOD points R2: additive configuration; does not issue any points by itself.
 -- Historical credits and claim records are never rewritten.
 -- New activity families intentionally disabled pending authoritative completion validators.
-insert into public.buklod_point_rules (activity_type,label,base_points,max_points_per_event,is_active,notes,updated_at)
+insert into public.buklod_point_rules (activity_type,label,base_points,max_points_per_event,is_active,notes)
 values
 ('community_reaction', 'community reaction', 1, 1, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
 ('community_comment', 'community comment', 2, 2, false, 'R2 proposal: activate only after verified server-side qualification, scope and abuse controls'),
