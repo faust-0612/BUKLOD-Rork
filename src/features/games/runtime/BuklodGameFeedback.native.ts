@@ -4,9 +4,14 @@ import { createAudioPlayer } from 'expo-audio';
 import type { BuklodGameFeedbackEvent } from './feedbackTypes';
 import { tryPlayRorkGameFeedback } from './rorkAudio';
 import { emitBuklodGameCharacterMotion } from './characterMotionBus';
+import { createBuklodGameFeedbackLimiter } from './feedbackThrottle';
 
 const reactionSound = require('../../../../assets/sounds/buklod-reaction.wav');
 const rewardSound = require('../../../../assets/sounds/buklod-points-claim.wav');
+
+const allowFeedback = createBuklodGameFeedbackLimiter();
+let activeFallbackPlayers = 0;
+const MAX_ACTIVE_FALLBACK_PLAYERS = 6;
 
 function playNativeSound(
   source: number,
@@ -14,20 +19,36 @@ function playNativeSound(
   volume: number,
   cleanupDelay = 1100,
 ) {
+  // Fast puzzle taps must never spawn an unbounded number of native players.
+  if (activeFallbackPlayers >= MAX_ACTIVE_FALLBACK_PLAYERS) return;
+  activeFallbackPlayers += 1;
+  let player: ReturnType<typeof createAudioPlayer> | null = null;
+  let released = false;
+  const cleanup = () => {
+    if (released) return;
+    released = true;
+    try { player?.remove(); } catch { /* sound must never block gameplay */ }
+    activeFallbackPlayers = Math.max(0, activeFallbackPlayers - 1);
+  };
   try {
-    const player = createAudioPlayer(source);
+    player = createAudioPlayer(source);
     player.volume = volume;
     player.playbackRate = playbackRate;
-    void player.seekTo(0).then(() => player.play()).catch(() => player.play());
-    setTimeout(() => {
-      try { player.remove(); } catch { /* sound must never block gameplay */ }
-    }, cleanupDelay);
+    void player.seekTo(0).then(() => {
+      if (!released) player?.play();
+    }).catch(() => {
+      if (!released) {
+        try { player?.play(); } catch { /* optional feedback */ }
+      }
+    });
+    setTimeout(cleanup, cleanupDelay);
   } catch {
-    // Audio is enhancement only. Haptics and gameplay continue if unavailable.
+    cleanup();
   }
 }
 
 export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
+  if (!allowFeedback(event)) return;
   emitBuklodGameCharacterMotion(event);
   try {
     // Use Rork SFX only after they are actually loaded; otherwise keep the

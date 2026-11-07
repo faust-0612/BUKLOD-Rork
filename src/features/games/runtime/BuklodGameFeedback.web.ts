@@ -1,6 +1,7 @@
 import type { BuklodGameFeedbackEvent } from './feedbackTypes';
 import { tryPlayRorkGameFeedback } from './rorkAudio';
 import { emitBuklodGameCharacterMotion } from './characterMotionBus';
+import { createBuklodGameFeedbackLimiter } from './feedbackThrottle';
 
 type AudioContextLike = {
   currentTime: number;
@@ -12,6 +13,7 @@ type AudioContextLike = {
 };
 
 let audioContext: AudioContextLike | null = null;
+const allowFeedback = createBuklodGameFeedbackLimiter();
 
 function getAudioContext(): AudioContextLike | null {
   try {
@@ -63,6 +65,7 @@ function tone(
 }
 
 export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
+  if (!allowFeedback(event)) return;
   emitBuklodGameCharacterMotion(event);
   // Prefer the Rork SFX only after the remote player reports ready. Until
   // then the proven synthesized feedback remains the guaranteed baseline.

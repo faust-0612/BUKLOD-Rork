@@ -1,0 +1,467 @@
+[
+  {
+    "id": "q01",
+    "reference": "Genesis 6:14–22",
+    "prompt": {
+      "en": "Who was instructed to build the ark?",
+      "tl": "Sino ang inutusang gumawa ng arka?"
+    },
+    "choices": {
+      "en": [
+        "Moses",
+        "Noah",
+        "Abraham",
+        "Joseph"
+      ],
+      "tl": [
+        "Moises",
+        "Noe",
+        "Abraham",
+        "Jose"
+      ]
+    },
+    "correct": 1,
+    "explanation": {
+      "en": "Noah built the ark in obedience to God's instructions.",
+      "tl": "Si Noe ang nagtayo ng arka ayon sa utos ng Diyos."
+    },
+    "mentor": {
+      "en": "Recall the account before the flood in Genesis.",
+      "tl": "Alalahanin ang kuwento bago ang baha sa Genesis."
+    }
+  },
+  {
+    "id": "q02",
+    "reference": "Ruth 1:16",
+    "prompt": {
+      "en": "Who stayed with Naomi and said that her people would become her people?",
+      "tl": "Sino ang nanatili kay Naomi at nangakong magiging kanyang bayan ang bayan nito?"
+    },
+    "choices": {
+      "en": [
+        "Esther",
+        "Miriam",
+        "Ruth",
+        "Deborah"
+      ],
+      "tl": [
+        "Esther",
+        "Miriam",
+        "Ruth",
+        "Debora"
+      ]
+    },
+    "correct": 2,
+    "explanation": {
+      "en": "Ruth chose to stay with Naomi.",
+      "tl": "Pinili ni Ruth na manatili kay Naomi."
+    },
+    "mentor": {
+      "en": "This story centers on loyalty and family.",
+      "tl": "Tungkol ito sa katapatan at pamilya."
+    }
+  },
+  {
+    "id": "q03",
+    "reference": "Exodus 14:21–22",
+    "prompt": {
+      "en": "Who stretched out his hand as the Red Sea was divided?",
+      "tl": "Sino ang nag-unat ng kaniyang kamay nang mahati ang Dagat na Pula?"
+    },
+    "choices": {
+      "en": [
+        "Joshua",
+        "Moses",
+        "Aaron",
+        "Samuel"
+      ],
+      "tl": [
+        "Josue",
+        "Moises",
+        "Aaron",
+        "Samuel"
+      ]
+    },
+    "correct": 1,
+    "explanation": {
+      "en": "Moses stretched out his hand; God divided the waters.",
+      "tl": "Iniunat ni Moises ang kamay; hinati ng Diyos ang dagat."
+    },
+    "mentor": {
+      "en": "Think of Israel's journey out of Egypt.",
+      "tl": "Alalahanin ang pag-alis ng Israel sa Egipto."
+    }
+  },
+  {
+    "id": "q04",
+    "reference": "1 Samuel 17:49–50",
+    "prompt": {
+      "en": "Who defeated Goliath with a sling and stone?",
+      "tl": "Sino ang tumalo kay Goliat gamit ang tirador at bato?"
+    },
+    "choices": {
+      "en": [
+        "Saul",
+        "Jonathan",
+        "David",
+        "Samuel"
+      ],
+      "tl": [
+        "Saul",
+        "Jonathan",
+        "David",
+        "Samuel"
+      ]
+    },
+    "correct": 2,
+    "explanation": {
+      "en": "David struck Goliath with a stone from his sling.",
+      "tl": "Tinamaan ni David si Goliat gamit ang batong mula sa kaniyang tirador."
+    },
+    "mentor": {
+      "en": "Remember the account of the young shepherd.",
+      "tl": "Alalahanin ang kuwento ng batang pastol."
+    }
+  },
+  {
+    "id": "q05",
+    "reference": "Esther 5:1–2",
+    "prompt": {
+      "en": "Who approached the Persian king to plead for her people?",
+      "tl": "Sino ang lumapit sa hari ng Persia upang ipagtanggol ang kanyang bayan?"
+    },
+    "choices": {
+      "en": [
+        "Hannah",
+        "Esther",
+        "Abigail",
+        "Sarah"
+      ],
+      "tl": [
+        "Ana",
+        "Esther",
+        "Abigail",
+        "Sara"
+      ]
+    },
+    "correct": 1,
+    "explanation": {
+      "en": "Esther courageously approached the king.",
+      "tl": "Matapang na lumapit si Esther sa hari."
+    },
+    "mentor": {
+      "en": "This story takes place in a royal court.",
+      "tl": "Nangyari ang kuwentong ito sa palasyo."
+    }
+  },
+  {
+    "id": "q06",
+    "reference": "Daniel 6:16–23",
+    "prompt": {
+      "en": "Who was thrown into a den of lions and survived?",
+      "tl": "Sino ang itinapon sa yungib ng mga leon at nakaligtas?"
+    },
+    "choices": {
+      "en": [
+        "Nehemiah",
+        "Ezekiel",
+        "Jeremiah",
+        "Daniel"
+      ],
+      "tl": [
+        "Nehemias",
+        "Ezekiel",
+        "Jeremias",
+        "Daniel"
+      ]
+    },
+    "correct": 3,
+    "explanation": {
+      "en": "Daniel survived because God sent an angel to shut the lions' mouths.",
+      "tl": "Nakaligtas si Daniel dahil nagsugo ang Diyos ng anghel upang ipikit ang bibig ng mga leon."
+    },
+    "mentor": {
+      "en": "Consider the exile-era accounts.",
+      "tl": "Alalahanin ang mga kuwento noong pagkabihag."
+    }
+  },
+  {
+    "id": "q07",
+    "reference": "Genesis 41:25–32",
+    "prompt": {
+      "en": "Who interpreted Pharaoh's dreams about seven good and seven bad years?",
+      "tl": "Sino ang nagpaliwanag sa panaginip ng Faraon tungkol sa pitong mabuti at pitong masamang taon?"
+    },
+    "choices": {
+      "en": [
+        "Joseph",
+        "Benjamin",
+        "Jacob",
+        "Levi"
+      ],
+      "tl": [
+        "Jose",
+        "Benjamin",
+        "Jacob",
+        "Levi"
+      ]
+    },
+    "correct": 0,
+    "explanation": {
+      "en": "Joseph explained the coming years of plenty and famine.",
+      "tl": "Ipinaliwanag ni Jose ang darating na kasaganaan at taggutom."
+    },
+    "mentor": {
+      "en": "This happens in Egypt and involves grain storage.",
+      "tl": "Nangyari ito sa Egipto at may kinalaman sa pag-iimbak ng butil."
+    }
+  },
+  {
+    "id": "q08",
+    "reference": "1 Kings 18:36–39",
+    "prompt": {
+      "en": "Which prophet called on God during the contest on Mount Carmel?",
+      "tl": "Sinong propeta ang nanalangin sa Diyos sa paghaharap sa Bundok Carmel?"
+    },
+    "choices": {
+      "en": [
+        "Elisha",
+        "Isaiah",
+        "Elijah",
+        "Amos"
+      ],
+      "tl": [
+        "Eliseo",
+        "Isaias",
+        "Elias",
+        "Amos"
+      ]
+    },
+    "correct": 2,
+    "explanation": {
+      "en": "Elijah prayed, and fire consumed the offering.",
+      "tl": "Nanalangin si Elias, at tinupok ng apoy ang handog."
+    },
+    "mentor": {
+      "en": "The story involves an altar and a divided people's loyalty.",
+      "tl": "May dambana sa kuwento at nahahati ang katapatan ng bayan."
+    }
+  },
+  {
+    "id": "q09",
+    "reference": "Matthew 3:13–17",
+    "prompt": {
+      "en": "Who baptized Jesus in the Jordan River?",
+      "tl": "Sino ang nagbautismo kay Jesus sa Ilog Jordan?"
+    },
+    "choices": {
+      "en": [
+        "Peter",
+        "John the Baptist",
+        "James",
+        "Andrew"
+      ],
+      "tl": [
+        "Pedro",
+        "Juan Bautista",
+        "Santiago",
+        "Andres"
+      ]
+    },
+    "correct": 1,
+    "explanation": {
+      "en": "John the Baptist baptized Jesus in the Jordan.",
+      "tl": "Si Juan Bautista ang nagbautismo kay Jesus sa Jordan."
+    },
+    "mentor": {
+      "en": "This occurred near the beginning of Jesus' public ministry.",
+      "tl": "Nangyari ito sa simula ng pampublikong ministeryo ni Jesus."
+    }
+  },
+  {
+    "id": "q10",
+    "reference": "Luke 10:33–35",
+    "prompt": {
+      "en": "In Jesus' parable, who cared for the injured traveler?",
+      "tl": "Sa talinghaga ni Jesus, sino ang nag-alaga sa sugatang manlalakbay?"
+    },
+    "choices": {
+      "en": [
+        "A priest",
+        "A Levite",
+        "An innkeeper first",
+        "A Samaritan"
+      ],
+      "tl": [
+        "Isang pari",
+        "Isang Levita",
+        "Ang may-ari ng bahay-panuluyan muna",
+        "Isang Samaritano"
+      ]
+    },
+    "correct": 3,
+    "explanation": {
+      "en": "The Samaritan tended the man's injuries and arranged care.",
+      "tl": "Inalagaan ng Samaritano ang sugat at naglaan para sa patuloy na pag-aalaga."
+    },
+    "mentor": {
+      "en": "The parable teaches practical mercy beyond social divisions.",
+      "tl": "Tungkol ito sa habag sa kabila ng pagkakaiba ng mga tao."
+    }
+  },
+  {
+    "id": "q11",
+    "reference": "Matthew 14:28–31",
+    "prompt": {
+      "en": "Which disciple stepped out of the boat to walk toward Jesus on the water?",
+      "tl": "Sinong alagad ang bumaba sa bangka upang lumakad patungo kay Jesus sa tubig?"
+    },
+    "choices": {
+      "en": [
+        "Peter",
+        "Thomas",
+        "John",
+        "Philip"
+      ],
+      "tl": [
+        "Pedro",
+        "Tomas",
+        "Juan",
+        "Felipe"
+      ]
+    },
+    "correct": 0,
+    "explanation": {
+      "en": "Peter stepped onto the water but began to sink when afraid.",
+      "tl": "Si Pedro ang lumakad sa tubig at nagsimulang lumubog nang matakot."
+    },
+    "mentor": {
+      "en": "This account happened during a storm on the lake.",
+      "tl": "Nangyari ito habang may unos sa lawa."
+    }
+  },
+  {
+    "id": "q12",
+    "reference": "Luke 19:1–6",
+    "prompt": {
+      "en": "Who climbed a sycamore tree to see Jesus?",
+      "tl": "Sino ang umakyat sa puno ng sikomoro upang makita si Jesus?"
+    },
+    "choices": {
+      "en": [
+        "Nicodemus",
+        "Lazarus",
+        "Zacchaeus",
+        "Bartimaeus"
+      ],
+      "tl": [
+        "Nicodemo",
+        "Lazaro",
+        "Zaqueo",
+        "Bartimeo"
+      ]
+    },
+    "correct": 2,
+    "explanation": {
+      "en": "Zacchaeus climbed the tree because he was short and wanted to see Jesus.",
+      "tl": "Umakyat si Zaqueo dahil maliit siya at nais makita si Jesus."
+    },
+    "mentor": {
+      "en": "The event took place in Jericho.",
+      "tl": "Naganap ang pangyayari sa Jerico."
+    }
+  },
+  {
+    "id": "q13",
+    "reference": "Acts 11:26",
+    "prompt": {
+      "en": "In which city were Jesus' disciples first called Christians?",
+      "tl": "Saang lungsod unang tinawag na mga Kristiyano ang mga alagad ni Jesus?"
+    },
+    "choices": {
+      "en": [
+        "Jerusalem",
+        "Antioch",
+        "Corinth",
+        "Ephesus"
+      ],
+      "tl": [
+        "Jerusalem",
+        "Antioquia",
+        "Corinto",
+        "Efeso"
+      ]
+    },
+    "correct": 1,
+    "explanation": {
+      "en": "The disciples were first called Christians in Antioch.",
+      "tl": "Sa Antioquia unang tinawag na mga Kristiyano ang mga alagad."
+    },
+    "mentor": {
+      "en": "The answer is recorded in Acts, during the church's expansion.",
+      "tl": "Nasa Mga Gawa ang sagot, habang lumalawak ang iglesya."
+    }
+  },
+  {
+    "id": "q14",
+    "reference": "Acts 18:24–26",
+    "prompt": {
+      "en": "Who explained God's way more accurately to Apollos?",
+      "tl": "Sino ang nagpaliwanag nang mas wasto sa daan ng Diyos kay Apolos?"
+    },
+    "choices": {
+      "en": [
+        "Paul and Barnabas",
+        "Peter and John",
+        "Priscilla and Aquila",
+        "Silas and Timothy"
+      ],
+      "tl": [
+        "Pablo at Bernabe",
+        "Pedro at Juan",
+        "Priscila at Aquila",
+        "Silas at Timoteo"
+      ]
+    },
+    "correct": 2,
+    "explanation": {
+      "en": "Priscilla and Aquila took Apollos aside and explained more accurately.",
+      "tl": "Sina Priscila at Aquila ang nagpalinaw kay Apolos tungkol sa daan ng Diyos."
+    },
+    "mentor": {
+      "en": "The two served together as a married couple.",
+      "tl": "Mag-asawang magkatuwang sa paglilingkod ang tinutukoy."
+    }
+  },
+  {
+    "id": "q15",
+    "reference": "Acts 17:10–12",
+    "prompt": {
+      "en": "Which community examined the Scriptures daily to check Paul's teaching?",
+      "tl": "Aling mga tao ang araw-araw na nagsuri ng Kasulatan upang tiyakin ang aral ni Pablo?"
+    },
+    "choices": {
+      "en": [
+        "Philippians",
+        "Galatians",
+        "Thessalonians",
+        "Bereans"
+      ],
+      "tl": [
+        "Mga taga-Filipos",
+        "Mga taga-Galacia",
+        "Mga taga-Tesalonica",
+        "Mga taga-Berea"
+      ]
+    },
+    "correct": 3,
+    "explanation": {
+      "en": "The Bereans carefully examined the Scriptures every day.",
+      "tl": "Araw-araw na sinuri ng mga taga-Berea ang Kasulatan."
+    },
+    "mentor": {
+      "en": "Acts praises their careful examination of teaching.",
+      "tl": "Pinuri sa Mga Gawa ang kanilang maingat na pagsusuri sa aral."
+    }
+  }
+]

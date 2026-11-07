@@ -1,108 +1,39 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import type { BuklodGameResult } from '../types';
+import {
+  createKingdomProgressController,
+  emptyKingdomPreviewProgress,
+  type BuklodKingdomPreviewProgress,
+} from './progressController';
 
-export type BuklodKingdomStationProgress = {
-  gameId: string;
-  clears: number;
-  bestScore: number;
-  bestStars: 0 | 1 | 2 | 3;
-  lastStatus: 'won' | 'lost';
-  updatedAt: string;
-};
+export type { BuklodKingdomPreviewProgress, BuklodKingdomStationProgress } from './progressController';
+const controller = createKingdomProgressController(AsyncStorage);
 
-export type BuklodKingdomPreviewProgress = {
-  version: 1;
-  stations: Record<string, BuklodKingdomStationProgress>;
-};
-
-const STORAGE_KEY = 'buklod.kingdom.preview.progress.v1';
-const DUPLICATE_RESULT_WINDOW_MS = 1800;
-const listeners = new Set<(progress: BuklodKingdomPreviewProgress) => void>();
-let cache: BuklodKingdomPreviewProgress | null = null;
-let lastResultSignature = '';
-let lastResultAt = 0;
-
-const emptyProgress = (): BuklodKingdomPreviewProgress => ({ version: 1, stations: {} });
-
-function normalize(value: unknown): BuklodKingdomPreviewProgress {
-  if (!value || typeof value !== 'object') return emptyProgress();
-  const row = value as Partial<BuklodKingdomPreviewProgress>;
-  return {
-    version: 1,
-    stations: row.stations && typeof row.stations === 'object' ? row.stations : {},
-  };
+/**
+ * Legacy original-station records are now strictly keyed by an authenticated
+ * BUKLOD account. Never migrate old globally shared Kingdom v1 records:
+ * their author cannot be established safely on shared devices.
+ * Unauthenticated game sessions remain playable but not saved.
+ * The persisted station view has canonical fields clears, bestScore, bestStars.
+ */
+export function getCachedBuklodKingdomPreviewProgress(userId?: string | null) {
+  return controller.getCached(userId);
 }
-
-function publish(progress: BuklodKingdomPreviewProgress) {
-  cache = progress;
-  listeners.forEach((listener) => listener(progress));
+export function loadBuklodKingdomPreviewProgress(userId?: string | null) {
+  return controller.load(userId);
 }
-
-function resultSignature(result: BuklodGameResult) {
-  return [result.gameId, result.status, result.score || 0, result.stars].join('|');
+export function recordBuklodKingdomPreviewResult(
+  result: BuklodGameResult, userId?: string | null,
+): Promise<BuklodKingdomPreviewProgress> {
+  return controller.record(userId, result);
 }
-
-export function getCachedBuklodKingdomPreviewProgress() {
-  return cache;
-}
-
-export async function loadBuklodKingdomPreviewProgress() {
-  if (cache) return cache;
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    const progress = raw ? normalize(JSON.parse(raw)) : emptyProgress();
-    publish(progress);
-    return progress;
-  } catch {
-    const progress = emptyProgress();
-    publish(progress);
-    return progress;
-  }
-}
-
-export async function recordBuklodKingdomPreviewResult(result: BuklodGameResult) {
-  // Older route screens may still forward the same finish result while the shared
-  // BuklodGameStage also records it. Treat the same near-simultaneous result as one
-  // completion so one game finish can never add two Kingdom clears.
-  const signature = resultSignature(result);
-  const now = Date.now();
-  if (signature === lastResultSignature && now - lastResultAt < DUPLICATE_RESULT_WINDOW_MS) {
-    return loadBuklodKingdomPreviewProgress();
-  }
-  lastResultSignature = signature;
-  lastResultAt = now;
-
-  const current = await loadBuklodKingdomPreviewProgress();
-  const previous = current.stations[result.gameId];
-  const won = result.status === 'won';
-
-  const nextStation: BuklodKingdomStationProgress = {
-    gameId: result.gameId,
-    clears: Math.max(0, previous?.clears ?? 0) + (won ? 1 : 0),
-    bestScore: Math.max(previous?.bestScore ?? 0, Math.max(0, result.score || 0)),
-    bestStars: Math.max(previous?.bestStars ?? 0, result.stars) as 0 | 1 | 2 | 3,
-    lastStatus: result.status,
-    updatedAt: new Date().toISOString(),
-  };
-
-  const next: BuklodKingdomPreviewProgress = {
-    version: 1,
-    stations: { ...current.stations, [result.gameId]: nextStation },
-  };
-
-  cache = next;
-  try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } finally {
-    publish(next);
-  }
-  return next;
-}
-
 export function subscribeBuklodKingdomPreviewProgress(
-  listener: (progress: BuklodKingdomPreviewProgress) => void,
+  userIdOrListener: string | null | ((progress: BuklodKingdomPreviewProgress) => void),
+  listener?: (progress: BuklodKingdomPreviewProgress) => void,
 ) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+  // The original, byte-locked fallback map still calls this with only a callback.
+  // It deliberately receives no account progress rather than leaking another user's.
+  if (typeof userIdOrListener === 'function') return () => undefined;
+  return controller.subscribe(userIdOrListener, listener ?? (() => undefined));
 }
+export { emptyKingdomPreviewProgress };

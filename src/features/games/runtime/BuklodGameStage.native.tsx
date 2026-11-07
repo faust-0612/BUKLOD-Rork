@@ -11,6 +11,7 @@ import {
   vec,
 } from '@shopify/react-native-skia';
 
+import { useAuth } from '@/providers/AuthProvider';
 import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import type { BuklodGameResult } from '@/features/games/types';
 import { BuklodGameLanguageControl, BuklodGameLanguageProvider } from './BuklodGameLanguage';
@@ -68,15 +69,17 @@ function withResultHandler(children: React.ReactNode, onFinish: (result: BuklodG
 }
 
 export function BuklodGameStage({ biome, gameId, children }: Props) {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const pathname = usePathname();
   const resolvedGameId = gameId ?? routeGameId(pathname);
   const colors = [...palettes[biome]];
   useRorkGameAmbience(resolvedGameId);
 
   const recordResult = useCallback((result: BuklodGameResult) => {
-    if (resolvedGameId && result.gameId !== resolvedGameId) return;
-    recordBuklodKingdomPreviewResult(result).catch(() => undefined);
-  }, [resolvedGameId]);
+    if (!userId || (resolvedGameId && result.gameId !== resolvedGameId)) return;
+    recordBuklodKingdomPreviewResult(result, userId).catch(() => undefined);
+  }, [resolvedGameId, userId]);
 
   const connectedChildren = withResultHandler(children, recordResult);
 
