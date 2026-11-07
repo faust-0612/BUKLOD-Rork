@@ -25,7 +25,8 @@
     "R3: Home Check In Today on actual live Cluster event, attendee verification with venue/time, no attendance workspace; Admin only finalizes credit",
     "R3: mentoring report with actual assigned mentees, location, photo and Admin-only approval; lesson completion remains independent",
     "R3: KL verified first chapter completion +5, all 30 chapter series completion +30, no retroactive mutation",
-    "R3: optional post-success interstitial opportunities for point submissions and existing claims, never before verifying or as a prerequisite"
+    "R3: optional post-success interstitial opportunities for point submissions and existing claims, never before verifying or as a prerequisite",
+    "Admin sees member full name, Cluster event venue/date and full mentoring participant names, lesson, teaching notes, venue and photo in authorized-only review"
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -80,6 +81,7 @@
     "supabase/migrations/20261107231000_buklod_points_r3_home_checkin.sql",
     "supabase/migrations/20261107232000_buklod_points_r3_kl_reading_rewards.sql",
     "supabase/migrations/20261107233000_buklod_points_r3_mentor_admin_only.sql",
+    "supabase/migrations/20261107234000_buklod_points_r3_admin_evidence_details.sql",
     "supabase/tests/buklod_points_r2_reward_integrity.sql",
     "supabase/tests/buklod_points_r3_home_earning_contract.sql",
     "tests/buklod-ad-points-r3.test.mjs",
