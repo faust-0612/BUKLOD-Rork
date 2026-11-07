@@ -74,3 +74,12 @@ test('Rejected milestone remains editable while pending and approved cannot be r
  assert.match(sql,/where public\.buklod_r2_achievement_nominations\.status='rejected'/);
  assert.match(sql,/if row_rec\.status<>'pending'/);
 });
+
+test('member sees authorized reviewer feedback and can revise rejected evidence', () => {
+ const source = read('supabase/migrations/20261107224000_buklod_r2_live_rewards_monitor.sql');
+ assert.match(source, /'review_note',review_note/);
+ assert.match(source, /where n\.user_id=\(select auth\.uid\(\)\)/);
+ assert.match(focusUI, /own\?\.review_note/);
+ assert.match(focusUI, /Admin feedback:/);
+ assert.match(focusUI, /own\.status === 'rejected'/);
+});
