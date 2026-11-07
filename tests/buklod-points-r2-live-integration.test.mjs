@@ -67,3 +67,10 @@ test('Admin report includes real photo previews and the admin drawer entry',()=>
  assert.match(adminUI,/admin_review_mentor_session/);
  assert.match(adminUI,/admin_get_buklod_r2_mentor_evidence_v1/);
 });
+
+test('Rejected milestone remains editable while pending and approved cannot be resubmitted',()=>{
+ assert.match(focusUI,/!own \|\| own\.status === 'rejected'/);
+ const sql=read('supabase/migrations/20261107235000_buklod_points_r3_achievement_objective_gates.sql');
+ assert.match(sql,/where public\.buklod_r2_achievement_nominations\.status='rejected'/);
+ assert.match(sql,/if row_rec\.status<>'pending'/);
+});
