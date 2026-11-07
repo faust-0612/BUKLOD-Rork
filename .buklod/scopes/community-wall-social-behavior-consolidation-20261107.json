@@ -1,0 +1,80 @@
+{
+  "contractVersion": 2,
+  "objective": "Consolidate eight Android Community Wall and Home UX defects photographed on 2026-11-07: Home QMP visibility, video frame/buffering experience, empty ad whitespace, live big-letter preview, cancelable overflow, multi-photo layout options, immediate post composer collapse with feedback, full-bleed Marites media.",
+  "baseRef": "98961ba42a80c21bdd9b62860e00eae301e69d39",
+  "productionBaselineEvidence": "Owner-submitted Android BUKLOD v28 screenshots 2026-11-07 with Home first fold, Wall media, creator composer, native overflow Alert, Marites strip and video-ad blank gap. Verified main source SHA at branch creation 98961ba42a80c21bdd9b62860e00eae301e69d39. Exact deployed production OTA update ID and device build source SHA remain unverified. DEV changes must not be called a published OTA.",
+  "chosenApproach": "Move the unchanged Contribution card ahead of long Home sections and provide honest retry placeholder. Use current canonical shared Wall/Scope composers for dynamic <=80-codepoint big-text typing and immediately collapse after valid submission; show compact async progress and restore drafts on failure. Replace Android native four-action Alert with accessible modal sheet including Cancel, back and outside dismiss. Add three bounded-original-photo collage view layouts (Grid/Highlight/Swipe) selectable in Public/scoped composers and local feed. Keep portrait video full fit by default with optional Fill; collapse only unloaded companion-ad reserved area to an 8px viewport probe without suppressing loaded AdMob. Make Marites imagery full bleed with metadata overlaid, preserving social controls and media engines.",
+  "selectionRationale": "Screenshots show the QMP card buried after lengthy sections, lost Cancel due Android three-button Alert limit, black sidebars from safe portrait aspect, video blank space partly due fixed companion-ad reserve, and photo ending above a gray Marites footer. Targeted presentation changes preserve previous original-quality media/offline fixes and avoid database/native risky changes.",
+  "alternativeApproaches": [
+    "Replace entire Wall with Web implementation (rejected: native video, media cache and secure signers differ; regressions likely).",
+    "Remove companion ads to shrink the post (rejected: violates monetization and loses valid ad fills; collapse only pending/failed space).",
+    "Embed collage layout markers in public caption text (rejected: leaks metadata into notifications and introduces backend compatibility/policy risk).",
+    "Use native Android Alert with a fourth Cancel action (rejected: platform silently truncates the fourth action)."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "ads-monetization",
+    "caption-compose",
+    "home-qmp",
+    "post-publish-flow",
+    "cross-scope-parity",
+    "author-menu",
+    "Marites-layout",
+    "weak-network-resilience"
+  ],
+  "preserveBehaviors": [
+    "Main Android production package org.mzbministry.buklod, runtime 1.3.2, v28 and signed original media authorization unchanged",
+    "Public and Organization/Cluster scope privacy, media upload and playback, own-post operations, mention recognition, redirects and moderation preserved",
+    "User-approved Wall post shell, compact posting entry, location tabs, Marites, social buttons, captions and navigation preserved",
+    "Previously merged private account-scoped photo offline cache remains used for Grid/Highlight/Swipe, no reintroduction of low-resolution sidecars",
+    "Community Contribution QMP and provisional/nonwithdrawable revenue calculations untouched; never invent amounts",
+    "Video default contains full source picture with audio controls, optional Fill only on user selection",
+    "AdMob loaded companion creatives remain monetized, labelled and eligible; no fabricated ads or hidden loaded inventory",
+    "Draft restoration on failure and scoped ambiguous RPC commit duplicate-prevention stay intact",
+    "No backend schema, Supabase RPC, native dependencies, Expo runtime or production OTA workflow modified",
+    "Chosen collage layout is a device/session viewing preference; no claim of cross-account server-side persistence"
+  ],
+  "regressionTests": [
+    "tests/android-wall-direct-original-video-parity-20261107.test.mjs",
+    "tests/android-wall-pinned-offline-original-20261107.test.mjs",
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/community-contribution-home-placement-wall-lock-20261107.test.mjs",
+    "tests/community-video-ad-layout-20261107.test.mjs",
+    "tests/community-wall-collage-posting-20261107.test.mjs",
+    "tests/community-wall-post-card-google-pattern.test.mjs",
+    "tests/community-wall-social-navigation-scroll-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Home mounts QMP early and returns private retry/loading placeholder if unavailable; not in Wall",
+    "Short text-only draft visibly uses 25px before posting; media caption stays normal and See more/less works",
+    "Owner menu is dismissible through Cancel, outside tap and Android Back, with Edit/Visibility/Delete/Report accessible",
+    "Accepted post exits composer immediately, shows feedback outside composer, and failed draft is safely restored",
+    "Both Public and scoped composer can preview Grid/Highlight/Swipe; feed supports independent layout selection with lazy image rendering",
+    "Portrait video defaults to full picture with sound and can switch Fit/Fill without player remount",
+    "Unfilled companion-ad reserved height collapses to 8px but a loaded creative expands and remains visible",
+    "Marites media covers card bottom behind metadata without opaque gray band",
+    "Original-quality photos, offline cache, scoped permissions, social interactions and visible scroll anchors preserved",
+    "CI Engineering Accountability, TypeScript/performance and integration/web compatibility gates pass exact PR head; independent RC/production OTA still required"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/home.tsx",
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodCommunityContributionCard.tsx",
+    "src/components/BuklodCommunityPhotoCollage.tsx",
+    "src/components/BuklodContentOverflowMenu.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/CommunityVideo.tsx",
+    "tests/android-wall-direct-original-video-parity-20261107.test.mjs",
+    "tests/android-wall-pinned-offline-original-20261107.test.mjs",
+    "tests/buklod-ad-request-gate-recovery.test.mjs",
+    "tests/community-contribution-home-placement-wall-lock-20261107.test.mjs",
+    "tests/community-video-ad-layout-20261107.test.mjs",
+    "tests/community-wall-collage-posting-20261107.test.mjs",
+    "tests/community-wall-post-card-google-pattern.test.mjs",
+    "tests/community-wall-social-navigation-scroll-20261107.test.mjs",
+    ".buklod/scopes/community-wall-social-behavior-consolidation-20261107.json"
+  ]
+}
