@@ -13,7 +13,7 @@ import {spawnSync} from "node:child_process";
 
 const BASE=path.join(process.env.TEMP||os.tmpdir(),"BUKLOD_CONSOLIDATED_CLOUD_MIGRATION");
 const STAGING=path.resolve(process.env.BUKLOD_MIGRATION_STAGING||path.join(BASE,"remaining-assets-v3"));
-const AUDIT=path.join(BASE,"ARCHIVE_COMPLETENESS_AND_REPAIR_V4.json");
+const AUDIT=path.join(BASE,"ARCHIVE_COMPLETENESS_AND_REPAIR_V6.json");
 const REPO="faust-0612/BUKLOD-Local-Recovery",SOURCES="faust-0612/BUKLOD-Migrated-Sources";
 const GH=fs.existsSync("C:\\Program Files\\GitHub CLI\\gh.exe")?"C:\\Program Files\\GitHub CLI\\gh.exe":"gh";
 const ZIP=fs.existsSync("C:\\Program Files\\7-Zip\\7z.exe")?"C:\\Program Files\\7-Zip\\7z.exe":"7z";
@@ -21,7 +21,7 @@ const MiB=1024*1024;
 const MAX_SHARD_RAW_BYTES=3*1024*1024*1024;
 const MAX_ASSET_PARTS=100;
 const state={
- phase:"V6 exact V3 audit and indexed-payload encrypted repair",started:new Date().toISOString(),
+ phase:"V6 single-pass AES archive repair and cloud checksum verification",started:new Date().toISOString(),
  status:"IN_PROGRESS",v3FilesExpected:0,v3FilesObserved:0,
  v3PathsAndContentMatched:0,missingFromV3Archive:0,changedSincePlan:0,
  v3AlreadyCloudVerified:false,v4RepairArchiveVerified:false,
