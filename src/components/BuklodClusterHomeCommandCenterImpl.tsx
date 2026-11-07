@@ -1,7 +1,7 @@
 import { BuklodGivingSettingsButton } from './BuklodGivingSettingsButton';
 /* PATCH_170B_CLUSTER_HOME_COMMAND_CENTER */
 import React,{useCallback,useEffect,useMemo,useRef,useState}from'react';
-import{ActivityIndicator,Alert,Linking,Modal,Pressable,RefreshControl,ScrollView,Share,StyleSheet,Text,TextInput,View}from'react-native';
+import{ActivityIndicator,Alert,KeyboardAvoidingView,Linking,Modal,Platform,Pressable,RefreshControl,ScrollView,Share,StyleSheet,Text,TextInput,View}from'react-native';
 import*as Clipboard from'expo-clipboard';
 import{MaterialCommunityIcons}from'@expo/vector-icons';
 import{router,useFocusEffect}from'expo-router';
@@ -399,7 +399,58 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
    </View>
   </View>
  </Modal>
- <Modal visible={kind!==null} transparent animationType="slide" onRequestClose={()=>setKind(null)}><View style={s.backdrop}><View style={s.modal}><View style={s.between}><Text style={s.modalTitle}>{kind==='notice'?'Important Notice':kind==='event'?'Add Event':kind==='task'?'Add Task':kind==='poll'?'Create Poll':kind==='resource'?'Add Resource':kind==='recognition'?'Add Recognition':'Edit About Cluster'}</Text><Pressable onPress={()=>setKind(null)}><MaterialCommunityIcons name="close" size={24} color={colors.text}/></Pressable></View>{kind!=='about'?<TextInput value={title} onChangeText={setTitle} placeholder={kind==='poll'?'Question':'Title'} style={s.input}/>:null}<TextInput value={body} onChangeText={setBody} placeholder={kind==='about'?'Cluster description / purpose':'Details / description'} multiline style={[s.input,s.area]}/>{kind==='notice'?<TextInput value={extra} onChangeText={setExtra} placeholder="Type EMERGENCY for emergency priority" style={s.input}/>:null}{kind==='event'?<><TextInput value={extra} onChangeText={setExtra} placeholder="Location" style={s.input}/><TextInput value={when} onChangeText={setWhen} placeholder="2026-08-20 18:00" style={s.input}/></>:null}{kind==='task'?<TextInput value={when} onChangeText={setWhen} placeholder="Due date/time (optional)" style={s.input}/>:null}{kind==='poll'?<TextInput value={extra} onChangeText={setExtra} placeholder="Option 1, Option 2, Option 3" style={s.input}/>:null}{kind==='resource'?<TextInput value={extra} onChangeText={setExtra} placeholder="https://..." autoCapitalize="none" style={s.input}/>:null}{kind==='recognition'?<TextInput value={extra} onChangeText={setExtra} placeholder="Member / team name" style={s.input}/>:null}<Pressable disabled={saving} onPress={()=>void save()} style={[s.primary,saving&&{opacity:.5}]}>{saving?<ActivityIndicator size="small" color="#fff"/>:<MaterialCommunityIcons name="content-save-outline" size={18} color="#fff"/>}<Text style={s.primaryText}>SAVE</Text></Pressable></View></View></Modal>
+ <Modal
+  visible={kind!==null}
+  transparent
+  animationType="slide"
+  onRequestClose={()=>setKind(null)}
+ >
+  {/* The editor is a separate native Modal; root keyboard avoidance cannot resize it. */}
+  <KeyboardAvoidingView
+   style={s.backdrop}
+   behavior={Platform.OS==='ios'?'padding':'height'}
+   keyboardVerticalOffset={0}
+  >
+   <View style={[s.modal,{paddingBottom:drawerBottomInset}]}>
+    <View style={s.between}>
+     <Text style={s.modalTitle}>{kind==='notice'?'Important Notice':kind==='event'?'Add Event':kind==='task'?'Add Task':kind==='poll'?'Create Poll':kind==='resource'?'Add Resource':kind==='recognition'?'Add Recognition':'Edit About Cluster'}</Text>
+     <Pressable accessibilityRole="button" accessibilityLabel="Close editor" onPress={()=>setKind(null)}>
+      <MaterialCommunityIcons name="close" size={24} color={colors.text}/>
+     </Pressable>
+    </View>
+    <ScrollView
+     style={s.editorFieldsScroll}
+     contentContainerStyle={s.editorFields}
+     keyboardShouldPersistTaps="handled"
+     keyboardDismissMode={Platform.OS==='ios'?'interactive':'on-drag'}
+     showsVerticalScrollIndicator={false}
+    >
+     {kind!=='about'?<TextInput value={title} onChangeText={setTitle} placeholder={kind==='poll'?'Question':'Title'} style={s.input}/>:null}
+     <TextInput value={body} onChangeText={setBody} placeholder={kind==='about'?'Cluster description / purpose':'Details / description'} multiline style={[s.input,s.area]}/>
+     {kind==='notice'?<TextInput value={extra} onChangeText={setExtra} placeholder="Type EMERGENCY for emergency priority" style={s.input}/>:null}
+     {kind==='event'?<>
+      <TextInput value={extra} onChangeText={setExtra} placeholder="Location" style={s.input}/>
+      <TextInput value={when} onChangeText={setWhen} placeholder="2026-08-20 18:00" style={s.input}/>
+     </>:null}
+     {kind==='task'?<TextInput value={when} onChangeText={setWhen} placeholder="Due date/time (optional)" style={s.input}/>:null}
+     {kind==='poll'?<TextInput value={extra} onChangeText={setExtra} placeholder="Option 1, Option 2, Option 3" style={s.input}/>:null}
+     {kind==='resource'?<TextInput value={extra} onChangeText={setExtra} placeholder="https://..." autoCapitalize="none" style={s.input}/>:null}
+     {kind==='recognition'?<TextInput value={extra} onChangeText={setExtra} placeholder="Member / team name" style={s.input}/>:null}
+    </ScrollView>
+    {/* Footer remains outside the scrolling fields and inside the keyboard-safe sheet. */}
+    <Pressable
+     accessibilityRole="button"
+     accessibilityLabel="Save Cluster Home changes"
+     disabled={saving}
+     onPress={()=>void save()}
+     style={[s.primary,s.editorSave,saving&&{opacity:.5}]}
+    >
+     {saving?<ActivityIndicator size="small" color="#fff"/>:<MaterialCommunityIcons name="content-save-outline" size={18} color="#fff"/>}
+     <Text style={s.primaryText}>SAVE</Text>
+    </Pressable>
+   </View>
+  </KeyboardAvoidingView>
+ </Modal>
  </>;
 }
 function Quick({icon,text,onPress}:{icon:any;text:string;onPress:()=>void}){return <Pressable onPress={onPress} style={s.quick}><MaterialCommunityIcons name={icon} size={22} color={colors.greenDark}/><Text style={s.quickText}>{text}</Text></Pressable>}
@@ -435,6 +486,6 @@ const s=StyleSheet.create({
  toggleKnobOn:{alignSelf:'flex-end'},
  drawerDone:{minHeight:48,borderRadius:14,backgroundColor:colors.greenDark,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,marginTop:4},
  drawerDoneText:{color:colors.white,fontSize:10,fontWeight:'900',letterSpacing:.6},
- backdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.35)'},modal:{maxHeight:'86%',borderTopLeftRadius:24,borderTopRightRadius:24,padding:18,gap:10,backgroundColor:colors.white},modalTitle:{flex:1,color:colors.text,fontSize:16,fontWeight:'900'},input:{minHeight:46,borderRadius:12,borderWidth:1,borderColor:colors.line,paddingHorizontal:12,paddingVertical:10,color:colors.text,backgroundColor:colors.white,fontSize:11},area:{minHeight:96,textAlignVertical:'top'}
+ backdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.35)'},modal:{maxHeight:'86%',minHeight:0,flexShrink:1,borderTopLeftRadius:24,borderTopRightRadius:24,padding:18,gap:10,backgroundColor:colors.white},modalTitle:{flex:1,color:colors.text,fontSize:16,fontWeight:'900'},editorFieldsScroll:{flexGrow:0,flexShrink:1,minHeight:0},editorFields:{gap:10,paddingBottom:2},editorSave:{minHeight:48,flexShrink:0},input:{minHeight:46,borderRadius:12,borderWidth:1,borderColor:colors.line,paddingHorizontal:12,paddingVertical:10,color:colors.text,backgroundColor:colors.white,fontSize:11},area:{minHeight:96,textAlignVertical:'top'}
 });
 
