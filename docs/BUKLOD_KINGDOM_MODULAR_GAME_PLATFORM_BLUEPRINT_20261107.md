@@ -172,3 +172,13 @@ These are proposed playable specifications, NOT a claim of implementation. All o
 - Never mark "planned" as "pilot" or "existing" unless source-level gameplay and actual runtime test evidence exist. No placeholder button claiming to launch a complete game.
 - Score values across different genres are not directly interchangeable. Use per-game best/stars for display. Only a server-approved non-redeemable mastery score can normalize cross-game progress; never average game scores into redeemable BUKLOD Points.
 - Content packs are hash-pinned and sized; caching and LRU priority protect complete offline games. Music is licensed/original, no third-party TV-show audio or copied game branding.
+
+
+## 13. R2 implementation evidence — DEV ONLY (November 7, 2026)
+- src/features/games/mitch/blockForgeRules.ts and BlockForgeGameV1.tsx: playable 8×8 puzzle with seven-plus block shapes, three-item hand, simultaneous row/column clear, victory at 1,200 points, no-legal-move defeat, bilingual game instructions, original game scene visual feedback and existing SFX/haptics.
+- src/features/games/christian/scriptureWordRules.ts and ScriptureWordSearchGameV1.tsx: three deterministic, guaranteed-solvable 12×12 Bible word-search levels, eight-direction linear selections (including reversed), limited misses, starting-cell hints, scripture references, bilingual instructions and score.
+- Both games launch INSIDE existing Mitch and Christian station routes. Their existing Restore the Mural and Leadership Council games remain separately selectable.
+- Both record account-scoped preview-only local results with unique session receipts. Neither can grant Character Points, Circle Rank, collectible assets, ad-derived value or cash.
+- Status: two new playable R2 pilots in addition to Bible Crown R1. These are DEVELOPMENT PILOTS, not full production assets: dedicated composed music, premium animation asset packs, certified Android offline/browser UX, cloud first-clear verification and game-specific AdMob slots are NOT complete.
+- R2 rule tests (tests/kingdom-games-r2.test.mjs) cover legal placement, double clear, immutable board, grid reproducibility, complete word solutions forward and reverse, UI retention of original games and zero economy mutations.
+- Release remains HOLD until DEV QA, RC snapshot, Android device acceptance, actual music/animation quality review, server-side points authorization and AdMob compliance checks pass; no production OTA or native AAB release is authorized in this development phase.
