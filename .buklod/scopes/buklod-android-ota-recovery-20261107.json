@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "objective": "Finish user-authorized production Android OTA after a stale desktop Encouragement test blocked the first Android release; preserve the already deployed BUKLOD Main Expo Hosting web artifact.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: production Expo Hosting run 42372957549 succeeded for exact main SHA 7e8af1fee499827c37f07abd71b5e05b43338234 (URL https://buklod.expo.app; deployment mufigf26tz). Android production run 42372955298 stopped before RC creation at 'Social photo and video rendering regression suite': 32/33 pass, failing test tests/compact-public-wall-header-20261104.test.mjs expected retired numberOfLines={2} while current correct UI uses compact ? 1 : 2. No Android OTA published. Existing version/runtime 1.3.2 and pinned V28 guard intact.",
+  "chosenApproach": "Update only obsolete test expectations to assert normal full two-line copy with verse reference and one-line compact desktop copy. Extend one-time source-title-gated dispatcher with a second explicit Android-only recovery title; keep original production OTA workflow unchanged and do not invoke already successful Expo web workflow again.",
+  "selectionRationale": "Observed test failure is an outdated static regex, not an actual rendering regression. Changing production UI to satisfy it would undo user-requested compact Encouragement header. Android-only redispatch avoids redundant web export and credits.",
+  "alternativeApproaches": [
+    "Reset the approved compact Encouragement UI to satisfy an old test: rejected, user asked to keep compact header.",
+    "Rerun failed Android workflow at old SHA: rejected, old test fails again and source is immutable.",
+    "Repeat both Expo web and Android builds: rejected, published web is already verified and unnecessary duplicate publication."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "The production Android runtime version 1.3.2, V28 pinned native compatibility check and frozen RC publish gates remain mandatory",
+    "Successful production web deployment mufigf26tz remains live without a second web deploy",
+    "No other application code, ads UI, published story, manuscript, rewards or DB schemas change",
+    "Android-only recovery is allowed only for the exact main commit marker and cannot be triggered by arbitrary pushes",
+    "No physical device testing, consistent with user's explicit skip request; automated QA still mandatory"
+  ],
+  "acceptanceChecks": [
+    "Old static Encouragement check replaced by variant-aware source assertion",
+    "New production dispatcher test proves recovery dispatches only original Android OTA workflow",
+    "Focused tests and engineering scope gate pass",
+    "Android production workflow passes social regression suite and frozen runtime 1.3.2 RC gates",
+    "Android OTA update ID and deployed production manifest hash verified; web remains deployed"
+  ],
+  "regressionTests": [
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/buklod-authorized-production-promotion-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/buklod-authorized-production-promotion-20261107.test.mjs",
+    ".github/workflows/buklod-authorized-production-20261107.yml",
+    ".buklod/scopes/buklod-android-ota-recovery-20261107.json"
+  ]
+}
