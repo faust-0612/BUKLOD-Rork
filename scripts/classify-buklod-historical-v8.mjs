@@ -89,7 +89,9 @@ try{
    ensure(!names.has(key),"Duplicate original path in V7 candidates");names.add(key);
    result.inspectedUniqueFiles++;
    const kind=classify(f.originalPath);
-   const top=norm(f.originalPath).split("/").slice(0,4).join("/").replace(/^[a-z]:/i,"<volume>");
+   const segments=norm(f.originalPath).split("/").filter(Boolean);
+   const first=segments.findIndex(x=>/BUKLOD|KABIHASNANG|IGPAT|QUICKCHECK|BSOC/i.test(x));
+   const top=first>=0?segments.slice(first,first+2).join("/"):"<other-historical>/"+ext(f.originalPath);
    add(result.classifications,kind,f.bytes);
    add(result.extensions,ext(f.originalPath),f.bytes);
    add(result.rootFamilies,top,f.bytes);
