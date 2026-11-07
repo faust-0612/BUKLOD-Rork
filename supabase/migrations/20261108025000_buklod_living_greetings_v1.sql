@@ -38,7 +38,7 @@ on conflict(month_day) do nothing;
 create table if not exists private.buklod_living_greeting_events_v1 (
   id uuid primary key default gen_random_uuid(),
   event_key text not null unique,
-  kind text not null check(kind in ('cluster_welcome','birthday','holiday','kl_release')),
+  kind text not null check(kind in ('cluster_welcome','birthday','holiday','kl_release','rank_up','character_reward')),
   actor_id uuid,
   scope_id uuid,
   title text not null check(char_length(title) between 1 and 140),
@@ -68,17 +68,23 @@ create or replace function private.buklod_living_member_welcome_v1()
 returns trigger language plpgsql security definer set search_path='' as $living$
 declare
   v_scope_type text;
+  v_scope_name text;
+  v_name text;
 begin
   if new.membership_status <> 'ACTIVE' or
     (tg_op='UPDATE' and old.membership_status='ACTIVE') then return new; end if;
-  select s.scope_type into v_scope_type from public.buklod_scopes s
+  select s.scope_type,s.name into v_scope_type,v_scope_name from public.buklod_scopes s
   where s.id=new.scope_id and s.status='ACTIVE';
   if v_scope_type not in ('CLUSTER','ORGANIZATION') then return new; end if;
+  select coalesce(nullif(pg_catalog.btrim(p.full_name),''),'bagong miyembro')
+    into v_name from public.profiles p where p.id=new.user_id;
   insert into private.buklod_living_greeting_events_v1
     (event_key,kind,actor_id,scope_id,title,body,route,expires_at)
   values (
     'membership:'||new.id::text,'cluster_welcome',new.user_id,new.scope_id,
-    'May bagong ka-BUKLOD!','Batiin ang bagong kasama sa ating BUKLOD community.',
+    left('Welcome, '||coalesce(v_name,'bagong miyembro')||'!',140),
+    left('Kasama na si '||coalesce(v_name,'bagong miyembro')||' sa '||
+      coalesce(v_scope_name,'BUKLOD')||'. Batiin siya sa Community!',450),
     '/member/'||new.user_id::text,now()+interval '48 hours'
   ) on conflict(event_key) do nothing;
   return new;
@@ -129,15 +135,16 @@ begin
   end loop;
   -- Release gating requires both approved and released; do not notify drafts,
   -- scheduled-future episodes or historical releases from the first migration.
-  for v_story in select k.id,k.title from public.kl_episodes k
+  for v_story in select k.id,k.title,k.season_number,k.episode_number from public.kl_episodes k
     where k.status='approved' and k.release_at <= now()
       and k.release_at >= now()-interval '48 hours'
   loop
     insert into private.buklod_living_greeting_events_v1
       (event_key,kind,title,body,route,expires_at)
     values ('kl_release:'||v_story.id::text,'kl_release',
-      'Bagong Kabanata ng Kabihasnang Ligaw',
-      left('Basahin na: '||v_story.title,450),
+      left(pg_catalog.format('Kabihasnang Ligaw — Series %s: Kabanata %s available na!',
+        v_story.season_number,v_story.episode_number),140),
+      left('Bagong release: '||v_story.title||'. Basahin na!',450),
       '/kabihasnang-ligaw',now()+interval '7 days')
     on conflict(event_key) do nothing;
     get diagnostics v_added = row_count; v_count := v_count+v_added;
@@ -164,7 +171,9 @@ begin
   insert into private.buklod_living_greeting_events_v1
     (event_key,kind,title,body,route,expires_at)
   values ('kl_release:'||new.id::text,'kl_release',
-    'Bagong Kabanata ng Kabihasnang Ligaw',left('Basahin na: '||new.title,450),
+    left(pg_catalog.format('Kabihasnang Ligaw — Series %s: Kabanata %s available na!',
+      new.season_number,new.episode_number),140),
+    left('Bagong release: '||new.title||'. Basahin na!',450),
     '/kabihasnang-ligaw',now()+interval '7 days')
   on conflict(event_key) do nothing;
   return new;
@@ -175,6 +184,65 @@ drop trigger if exists buklod_living_kl_release_trigger_v1 on public.kl_episodes
 create trigger buklod_living_kl_release_trigger_v1
 after insert or update on public.kl_episodes
 for each row execute function private.buklod_living_kl_release_trigger_v1();
+
+
+-- Verified rank and collectible events only. These are notifications, never
+-- point awards or claims, and cannot mint a character/item on their own.
+create or replace function private.buklod_living_rank_milestone_v1()
+returns trigger language plpgsql security definer set search_path='' as $living$
+declare v_name text;
+begin
+  if new.trigger_ledger_id is null or new.achievement_source='baseline'
+  then return new; end if;
+  select coalesce(nullif(pg_catalog.btrim(p.full_name),''),'ka-BUKLOD')
+    into v_name from public.profiles p where p.id=new.user_id;
+  insert into private.buklod_living_greeting_events_v1
+    (event_key,kind,actor_id,title,body,route,expires_at)
+  values ('rank:'||new.id::text,'rank_up',new.user_id,
+    left('Rank unlocked: '||new.rank_name,140),
+    left(coalesce(v_name,'Ka-BUKLOD')||' reached '||new.rank_name||'. Congratulate them!',450),
+    '/member/'||new.user_id::text,now()+interval '7 days')
+  on conflict(event_key) do nothing;
+  return new;
+end;
+$living$;
+revoke all on function private.buklod_living_rank_milestone_v1() from public,anon,authenticated;
+drop trigger if exists buklod_living_rank_milestone_v1 on public.buklod_rank_history;
+create trigger buklod_living_rank_milestone_v1 after insert on public.buklod_rank_history
+for each row execute function private.buklod_living_rank_milestone_v1();
+
+create or replace function private.buklod_living_character_reward_v1()
+returns trigger language plpgsql security definer set search_path='' as $living$
+declare v_name text;
+declare v_reward text;
+begin
+  if new.discovered_at is null or new.discovered_at < now()-interval '48 hours'
+  then return new; end if;
+  if tg_op='UPDATE' and old.discovered_at is not distinct from new.discovered_at
+  then return new; end if;
+  select coalesce(nullif(pg_catalog.btrim(p.full_name),''),'ka-BUKLOD')
+    into v_name from public.profiles p where p.id=new.user_id;
+  v_reward:=case when new.reward_kind='title_badge' then 'character badge'
+    when new.reward_kind='profile_frame' then 'profile frame'
+    when new.reward_kind='visual_effect' then 'character effect'
+    when new.reward_kind='expression' then 'character expression'
+    else 'character reward' end;
+  insert into private.buklod_living_greeting_events_v1
+    (event_key,kind,actor_id,title,body,route,expires_at)
+  values ('character-reward:'||new.user_id::text||':'||new.collectible_id,
+    'character_reward',new.user_id,
+    left('Character reward unlocked!',140),
+    left(coalesce(v_name,'Ka-BUKLOD')||' unlocked a new '||v_reward||'. Say congrats!',450),
+    '/member/'||new.user_id::text,now()+interval '7 days')
+  on conflict(event_key) do nothing;
+  return new;
+end;
+$living$;
+revoke all on function private.buklod_living_character_reward_v1() from public,anon,authenticated;
+drop trigger if exists buklod_living_character_reward_v1 on public.buklod_character_collectible_state;
+create trigger buklod_living_character_reward_v1
+after insert or update of discovered_at on public.buklod_character_collectible_state
+for each row execute function private.buklod_living_character_reward_v1();
 
 create or replace function private.buklod_living_dispatch_greetings_v1(p_limit integer default 100)
 returns integer language plpgsql security definer set search_path='' as $living$
@@ -209,13 +277,14 @@ begin
       and (
         v_event.kind in ('holiday','kl_release')
         or (
-          v_event.kind='cluster_welcome' and p.id <> v_event.actor_id and (
+          v_event.kind in ('cluster_welcome','rank_up','character_reward')
+          and (p.id=v_event.actor_id or (p.id <> v_event.actor_id and (
             exists (select 1 from public.buklod_scope_memberships ms
               where ms.user_id=p.id and ms.scope_id=v_event.scope_id
                 and ms.membership_status='ACTIVE')
             or exists (select 1 from public.buklod_user_follows f
               where f.follower_id=p.id and f.followed_user_id=v_event.actor_id)
-          )
+          )))
         )
         or (
           v_event.kind='birthday' and (
@@ -284,10 +353,24 @@ begin
   select pg_catalog.jsonb_build_object(
     'new_member_count', (select count(*) from public.profiles p
       where p.is_active and p.is_verified and coalesce(p.verified_at,p.created_at) >= now()-interval '24 hours'),
-    'latest_kl_title', (select k.title from public.kl_episodes k
+    'latest_kl_title', (select pg_catalog.format(
+      'Kabihasnang Ligaw — Series %s: Kabanata %s available na!',
+      k.season_number,k.episode_number) from public.kl_episodes k
       where k.status='approved' and k.release_at<=now()
         and k.release_at>=now()-interval '7 days'
       order by k.release_at desc limit 1),
+    'my_recent_rank', (select r.rank_name from public.buklod_rank_history r
+      where r.user_id=v_user and r.achievement_source<>'baseline'
+        and r.achieved_at >= now()-interval '7 days'
+      order by r.achieved_at desc limit 1),
+    'my_recent_reward', (select
+      case when c.reward_kind='title_badge' then 'bagong character badge'
+           when c.reward_kind='profile_frame' then 'bagong profile frame'
+           when c.reward_kind='visual_effect' then 'bagong character effect'
+           else 'bagong character item' end
+      from public.buklod_character_collectible_state c
+      where c.user_id=v_user and c.discovered_at >= now()-interval '7 days'
+      order by c.discovered_at desc limit 1),
     'holiday_title', (select h.title from private.buklod_living_greeting_holidays_v1 h
       where h.enabled and h.month_day=to_char(v_today,'MM-DD') limit 1),
     'my_birthday', (select exists(select 1 from public.profiles p where p.id=v_user
