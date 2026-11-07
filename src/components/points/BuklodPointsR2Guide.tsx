@@ -12,24 +12,29 @@ type Rule = {
 };
 
 const LABELS: Record<string,string> = {
- abc_growth_lesson: 'ABC lesson',
- daily_bible_reading: 'Daily Bible Reading',
- daily_devotional_reflection: 'Daily reflection',
- bible_quiz_easy: 'Bible Quiz — Easy',
- bible_quiz_medium: 'Bible Quiz — Medium',
- bible_quiz_hard: 'Bible Quiz — Hard',
- formation_assessment: 'Formation assessment',
- formation_module: 'Completed formation module',
- verified_volunteer_service: 'Verified volunteer service',
- verified_mentoring_session: 'Verified mentoring',
- consistency_30_day: '30-day consistency milestone',
- r2_verified_challenge: 'Verified difficulty challenge',
- achievement_bible_scholar: 'Bible Scholar',
- achievement_community_builder: 'Community Builder',
- achievement_faithful_mentor: 'Faithful Mentor',
- achievement_kingdom_champion: 'Kingdom Champion',
- game_tournament_champion: 'Tournament champion',
-};
+ abc_growth_lesson: 'ABC growth lesson',
+ daily_bible: 'Daily Bible Reading',
+ devotional: 'Daily Word devotional',
+ formation_lesson: 'Approved Formation Lesson',
+ stage_completion: 'Formation Stage Completion',
+ weekly_consistency: 'Weekly Consistency',
+ scope_attendance: 'Cluster Verified Attendance',
+ event_attendance: 'Official Event Attendance',
+ mentor_session: 'Verified Mentoring Session',
+ mentoring_release: 'Mentoring Lesson Completion',
+ bible_quiz_easy: 'Daily Bible Quiz — 3/5 correct',
+ bible_quiz_medium: 'Daily Bible Quiz — 4/5 correct',
+ bible_quiz_hard: 'Daily Bible Quiz — 5/5 correct',
+ verified_volunteer_service: 'Verified volunteer service (upcoming)',
+ verified_mentoring_session: 'Mentoring milestone (upcoming)',
+ consistency_30_day: '30-day consistency milestone (upcoming)',
+ r2_verified_challenge: 'Difficulty challenge (upcoming)',
+ achievement_bible_scholar: 'Bible Scholar (reviewed milestone)',
+ achievement_community_builder: 'Community Builder (reviewed milestone)',
+ achievement_faithful_mentor: 'Faithful Mentor (reviewed milestone)',
+ achievement_kingdom_champion: 'Kingdom Champion (reviewed milestone)',
+ game_tournament_champion: 'Tournament Champion (upcoming)',
+}
 const KEYS = Object.keys(LABELS);
 
 export default function BuklodPointsR2Guide() {
@@ -84,7 +89,7 @@ export default function BuklodPointsR2Guide() {
        <View style={styles.body}>
          <Text style={styles.explainer}>
            More difficult verified accomplishments can earn higher rewards.
-           Only active rules with a completed validation process earn points.
+           Only backend-validated activities earn points. Some upcoming challenges still require verification.
            Your existing lifetime and available balances are preserved.
          </Text>
          {loading && <ActivityIndicator color="#0A7436" />}
@@ -97,7 +102,7 @@ export default function BuklodPointsR2Guide() {
            <View style={styles.row} key={rule.activity_type}>
              <View style={{flex:1}}>
                <Text style={styles.rowTitle}>{LABELS[rule.activity_type]}</Text>
-               <Text style={styles.status}>{rule.active ? 'Configured reward' : 'Coming soon — not claimable yet'}</Text>
+               <Text style={styles.status}>{rule.active ? 'Configured in BUKLOD · claim after verified completion' : 'Upcoming · not claimable'}</Text>
              </View>
              <Text style={[styles.points,!rule.active && styles.inactive]}>
                {rule.active ? '+' : ''}{rule.points} BP
