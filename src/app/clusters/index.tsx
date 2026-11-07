@@ -675,7 +675,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
             </View>
           ) : (
             <>
-              {filteredMyClusters.slice(0, showAllMyClusters || myQuery.trim() ? 100 : 8).map(item => (
+              {(showAllMyClusters || myQuery.trim() ? filteredMyClusters : filteredMyClusters.slice(0, 8)).map(item => (
                 <ClusterCard key={item.scope_id} item={item} onOpen={openCluster}>
                   <ActionButton title="Open"
                     onPress={() => openCluster(item.scope_id)} />
