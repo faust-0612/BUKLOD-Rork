@@ -24,7 +24,8 @@ $categories = @(
 function Category([string]$relative) {
   $p = $relative.Replace('\','/').ToLowerInvariant()
   # Sensitive data always takes priority, including when inside generated folders.
-  if ($p -match '(^|/)(\.env($|[.])|\.npmrc$|\.pypirc$|id_rsa$|id_ed25519$|service[-_]?account|credentials?|secret[s]?|keystores?)(/|[.]|$)' -or
+  if ($p -match '(^|/)\.env($|[.])' -or
+      $p -match '(^|/)(\.npmrc|\.pypirc|id_rsa|id_ed25519|service[-_]?account|credentials?|secret[s]?|keystores?)(/|[.]|$)' -or
       $p -match '(\.jks$|\.keystore$|\.p12$|\.pfx$|\.pem$|\.key$|\.sqlite3?$|\.db$|\.kdbx$|\.asc$|google-services\.json$|google-service-info\.plist$)') {
     return 'protected_credentials_or_data'
   }
