@@ -217,6 +217,10 @@ export default function BuklodCommunityHelp(){
         if(result.error){
           Alert.alert('SOS active · delivery unconfirmed',
             'Your SOS is active on BUKLOD, but nearby push delivery could not be confirmed. Contact official emergency services too.');
+        }else if(Number((result.data as { recipients?: number } | null)?.recipients) === 0){
+          // A successful zero-recipient dispatch is NOT a successful rescue.
+          Alert.alert('SOS active · no nearby recipients',
+            'No eligible nearby BUKLOD users were found. Contact official emergency services directly.');
         }
       }
     }catch(error:any){
