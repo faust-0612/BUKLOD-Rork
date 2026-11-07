@@ -1,0 +1,46 @@
+{
+  "contractVersion": 2,
+  "objective": "Complete the BUKLOD Kingdom premium modular-game platform blueprint and begin isolated implementation of one multi-game Character Center without changing the map, existing character economy, BUKLOD Empire, or Android native release.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main production-source comparator at 59fe3df64700465ae3f37726e73a31d07c748042 after November Word publication, and canonical Kingdom map blob 88a4b1b4a70fc4acd59579419058b47f21be2554 unchanged. Live Android production OTA fingerprint was NOT verified; this DEV change is not authorized for release. Compare against current main in CI to avoid falsely treating concurrently merged Word changes as part of this isolated Kingdom objective.",
+  "chosenApproach": "A 39-game JSON catalog plus isolated Christian Bible Crown pilot, preserving the original route and game; per-user local score preview with zero payout, guarded by a pinned map source test.",
+  "selectionRationale": "Lowest-risk real progress: retains all 13 existing routes, map pixels and character progression, isolates economy/ad changes, reduces native binary and Actions churn.",
+  "alternativeApproaches": [
+    "Replace all 13 station games with a monolithic new engine and downloadable binaries; rejected due to regression, startup size, security and APK compatibility risks.",
+    "Deploy 39 separate web applications; rejected as an initial solution due to inconsistent Android ad/audio/offline experiences and large integration burden.",
+    "Selected: shared Kingdom game platform with incremental playable interior games and strict no-economy pilot records."
+  ],
+  "riskAreas": [
+    "kingdom-gameplay",
+    "character-account-isolation",
+    "release-compatibility"
+  ],
+  "preserveBehaviors": [
+    "Keep canonical 13-station Kingdom Map and IDs, art, navigation, profiles and original character routes unchanged.",
+    "Keep Christian Leadership Council available at its existing route.",
+    "Do not change Character V2, Circle Rank, payouts or existing ad sensitive-route protections.",
+    "Do not touch native v28 runtime, BUKLOD Empire or production release."
+  ],
+  "acceptanceChecks": [
+    "13 center / 39-game uniqueness and status contracts, plus 15 bilingual question and reference contracts.",
+    "Exact Kingdom Map git blob SHA matches verified source and old 13 station route paths remain.",
+    "Bible Crown is playable and does not grant any client Character Points.",
+    "Player sessions saved locally with account-scoped storage and deduplicated receipts.",
+    "Engineering regression gate, TypeScript, character/game release checks and physical Android/web acceptance before release."
+  ],
+  "regressionTests": [
+    "tests/kingdom-game-platform-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-game-platform-20261107.json",
+    "docs/BUKLOD_KINGDOM_MODULAR_GAME_PLATFORM_BLUEPRINT_20261107.md",
+    "package.json",
+    "scripts/test-kingdom-game-platform-r1.mjs",
+    "src/app/games/christian-civic-leadership.tsx",
+    "src/features/games/christian/BibleCrownGameV1.tsx",
+    "src/features/games/christian/BibleCrownQuestions.json",
+    "src/features/games/kingdom/platform/game-catalog.json",
+    "src/features/games/kingdom/platform/previewStore.ts",
+    "tests/kingdom-game-platform-20261107.test.mjs"
+  ]
+}
