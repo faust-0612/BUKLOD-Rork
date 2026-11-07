@@ -16,7 +16,8 @@ const STATUSES: Status[] = ['new','triaged','in_progress','resolved','closed'];
 const friendlyError = (e: unknown) => String((e as any)?.message ?? e ?? 'Please retry.').slice(0,350);
 
 export default function BsocSupportOperations() {
-  const {hasRole} = useAuth();
+  const [canRead,setCanRead]=useState<boolean|null>(null);
+  const [canManage,setCanManage]=useState(false);
   const [cases,setCases] = useState<Case[]>([]);
   const [status,setStatus] = useState<string>('');
   const [refreshing,setRefreshing] = useState(false);
@@ -42,7 +43,19 @@ export default function BsocSupportOperations() {
     finally {setLoading(false);setRefreshing(false);}
   },[status]);
 
-  useEffect(()=>{if(hasRole('system_admin')) void load(); else setLoading(false);},[hasRole,load]);
+  useEffect(()=>{
+    let live=true;
+    void Promise.all([
+      supabase.rpc('buklod_bsoc_can',{p_permission_key:'bsoc.support.read'}),
+      supabase.rpc('buklod_bsoc_can',{p_permission_key:'bsoc.support.manage'})
+    ]).then(([read,manage])=>{
+      if(!live)return;
+      setCanRead(!read.error&&read.data===true);
+      setCanManage(!manage.error&&manage.data===true);
+    }).catch(()=>{if(live)setCanRead(false);});
+    return ()=>{live=false;};
+  },[]);
+  useEffect(()=>{if(canRead)void load();else if(canRead===false)setLoading(false);},[canRead,load]);
 
   function selectCase(item: Case) {
     setSelected(item);setNextStatus(item.status as Status);setResolution(item.resolution || '');
@@ -50,7 +63,7 @@ export default function BsocSupportOperations() {
   }
 
   async function inspect() {
-    if(!selected || saving) return;
+    if(!selected || !canManage || saving) return;
     setSaving(true);setError('');setPreview(null);
     try {
       const {data,error:rpcError}=await supabase.rpc('buklod_bsoc_preview_support_case_action_v1',{
@@ -64,7 +77,7 @@ export default function BsocSupportOperations() {
   }
 
   async function apply() {
-    if(!selected || !preview || saving || reason.trim().length < 8) {
+    if(!canManage || !selected || !preview || saving || reason.trim().length < 8) {
       setError('Enter an audit reason (at least 8 characters) before confirming.'); return;
     }
     setSaving(true);setError('');
@@ -83,20 +96,29 @@ export default function BsocSupportOperations() {
     finally{setSaving(false);}
   }
 
-  if(!hasRole('system_admin')) return <View style={styles.page}><Text style={styles.header}>System Admin access required</Text></View>;
+  if(canRead===null) return <View style={styles.page}><ActivityIndicator color={colors.green}/></View>;
+  if(!canRead) return <View style={styles.page}><Text style={styles.header}>BSOC support permission required</Text></View>;
   return <ScrollView style={styles.page} keyboardShouldPersistTaps="handled"
     contentContainerStyle={styles.content}
     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>void load()}/>}>
     <Pressable accessibilityRole="button" onPress={()=>router.back()}><Text style={styles.link}>‹ Back</Text></Pressable>
     <Text style={styles.header}>BSOC · Support Operations</Text>
     <Text style={styles.muted}>Live case queue from BUKLOD support infrastructure. Changes require server authorization, preview, confirmation and audit.</Text>
-    <Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/account-recovery' as any)}>
+    {canManage&&<Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/account-recovery' as any)}>
       <Text style={styles.recoveryTitle}>Password Reset · Admin Assistance ›</Text>
-      <Text style={styles.muted}>Identity verification and secure automatic one-time-code delivery. Support agents must never request passwords or recovery codes.</Text>
-    </Pressable>
+      <Text style={styles.muted}>Restricted System Admin workflow. Verify identity first; no manual password or code sharing.</Text>
+    </Pressable>}
     <Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/bsoc-conversations' as any)}>
       <Text style={styles.recoveryTitle}>Open Live Support Inbox ›</Text>
       <Text style={styles.muted}>Member conversations, photo and video evidence, and replies.</Text>
+    </Pressable>
+    <Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/bsoc-notifications' as any)}>
+      <Text style={styles.recoveryTitle}>Notifications · New concerns & replies ›</Text>
+      <Text style={styles.muted}>Alerts for every authorized BSOC support personnel, not only administrators.</Text>
+    </Pressable>
+    <Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/bsoc-gpt-debug' as any)}>
+      <Text style={styles.recoveryTitle}>GPT Debug Assistant ›</Text>
+      <Text style={styles.muted}>Analyze sanitized technical descriptions. No private case details are shared automatically.</Text>
     </Pressable>
     <Text style={styles.section}>Support cases</Text>
     <View style={styles.filters}>
@@ -117,6 +139,7 @@ export default function BsocSupportOperations() {
       <Text style={styles.section}>Case {selected.reference}</Text>
       <Text style={styles.muted}>{selected.user_name||'BUKLOD member'} · {selected.platform||'Unknown platform'} · {selected.app_version||'Version unknown'}</Text>
       <Text style={styles.caseText}>{selected.message}</Text>
+      {!canManage&&<Text style={styles.muted}>Read-only BSOC access. An authorized support manager must update cases.</Text>}
       <Text style={styles.muted}>Status</Text>
       <View style={styles.filters}>
         {STATUSES.map(s=><Pressable key={s} style={[styles.chip,nextStatus===s&&styles.active]}
@@ -126,7 +149,7 @@ export default function BsocSupportOperations() {
       <TextInput multiline value={resolution} onChangeText={v=>{setResolution(v);setPreview(null);}} style={styles.input} placeholder="Resolution details"/>
       <Text style={styles.muted}>Required audit reason</Text>
       <TextInput value={reason} onChangeText={setReason} style={styles.input} placeholder="Why is this case status changing?"/>
-      <Pressable disabled={saving} style={styles.button} onPress={()=>void inspect()}>
+      <Pressable disabled={saving||!canManage} style={[styles.button,!canManage&&{opacity:.45}]} onPress={()=>void inspect()}>
         <Text style={styles.buttonText}>{saving?'Processing…':'Preview audited change'}</Text>
       </Pressable>
       {!!preview&&<View style={styles.preview}>
