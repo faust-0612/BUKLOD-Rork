@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const lock = read('scripts/character-release-contract.mjs');
@@ -41,4 +43,13 @@ test('Special Character identities stay masked before server/rank unlock', () =>
   assert.match(special, /setMyBuklodCharacterActiveV2/);
   assert.match(special, /get_my_buklod_special_collectibles_v2/);
   assert.doesNotMatch(special, /NEXT TO UNLOCK/);
+});
+
+test('Execute the exact mandatory R31/R40 production Character source lock including real image assets', () => {
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  execFileSync(process.execPath, ['scripts/character-release-contract.mjs'], {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 45000,
+  });
 });
