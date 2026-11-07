@@ -52,6 +52,7 @@ import {
 } from '@/components/HomeMotion';
 
 import BuklodFindAChurchDoorway from '@/components/BuklodFindAChurchDoorway';
+import BuklodHomeCheckinToday from '@/components/BuklodHomeCheckinToday';
 import {
   fetchScopeFaithAccessStatus,
   type ScopeFaithAccessStatus,
@@ -577,10 +578,12 @@ export default function BuklodHomeFaithPanel({
         <MaterialCommunityIcons name="help-circle-outline" size={24} color="#236842" />
         <View style={{flex:1}}>
           <Text style={{fontSize:13,fontWeight:'900',color:'#195C37'}}>Daily Bible Quiz</Text>
-          <Text style={{fontSize:11,color:'#486B55'}}>5 questions daily · Earn verified BUKLOD Points</Text>
+          <Text style={{fontSize:11,color:'#486B55'}}>Easy +3 · Medium +6 · Hard +12 BP · 5 auto questions daily</Text>
         </View>
         <MaterialCommunityIcons name="chevron-right" size={22} color="#236842"/>
       </Pressable>
+      <BuklodHomeCheckinToday />
+
       <View style={styles.grid}>
         <FaithAction
           compact={compact}
