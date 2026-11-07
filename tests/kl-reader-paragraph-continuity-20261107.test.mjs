@@ -56,7 +56,7 @@ test('admin preview, canonical reader and dynamic reader share identical splitte
 test('released Android reader renders ordinary prose directly and keeps glossary links', () => {
   const reader = read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx');
   assert.match(reader, /const hasDictionaryLinks = dictionaryParts\.some/);
-  assert.match(reader, /\}\)\) : displayText\}/);
+  assert.match(reader, /\)\) : displayText\}/);
   assert.match(reader, /onPress=\{\(\) => setOpenTerm\(part\.term\)\}/);
   assert.match(reader, /styles\.body/);
   const prose = reader.slice(reader.indexOf('const displayText = paragraphDisplayText'),
