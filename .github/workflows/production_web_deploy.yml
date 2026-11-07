@@ -232,6 +232,14 @@ jobs:
           grep -F 'BUKLOD_5K_SCALE_R1_PRAYER_NO_CDC' 'src/app/(tabs)/prayer.tsx'
           grep -F 'BUKLOD 5K SCALE HARDENING R1' 'supabase/migrations/20260904131000_buklod_5k_scale_hardening_r1.sql'
 
+      - name: Validate complete BUKLOD Kingdom before production release
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/game-kingdom-release-contract.mjs
+          node --experimental-strip-types --test tests/kingdom-*.test.mjs
+          node scripts/test-kingdom-game-platform-r1.mjs
+
       - name: Export production web with production environment
         shell: bash
         env:
