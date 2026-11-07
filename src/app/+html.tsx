@@ -137,6 +137,10 @@ export default function Root({
           name="google-adsense-account"
           content={ADSENSE_CLIENT}
         />
+        {/* WEB_CANONICAL_BRAND_R2: one canonical icon in browser and PWA. */}
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" type="image/png" href="/buklod-brand-r2-512.png" />
+        <link rel="apple-touch-icon" href="/buklod-brand-r2-512.png" />
         <ScrollViewStyleReset />
         <style>{WEB_LIVE_ATMOSPHERE_CSS}</style>
         <script
