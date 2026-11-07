@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Unblock verified Android production OTA after the modern Clusters dashboard retired the legacy RETRY ActionButton markup. Preserve the functional online failure retry, pull-to-refresh, offline saved memberships, account-scoped cache, and all preexisting production safety locks.",
+  "baseRef": "336e8cb8293d36e8eb957777e6c261b4c2e70861",
+  "productionBaselineEvidence": "Owner Android screenshot 2026-11-07 16:09 Asia/Manila: production_android_ota qa-and-publish failed in Verify production safety anchors; output is source assertion mismatch expected /title=\"RETRY\" onPress=\\{\\(\\) => void load\\(query,true\\)\\}/ for src/app/clusters/index.tsx. Inspect main: test-pending-client-reconciliation-20261027.cjs lines 46-53 still enforces old ActionButton markup; modern Cluster directory (merged PR #524) has a real conditional {Boolean(loadError) && online ? ... <Pressable accessibilityRole=\"button\" onPress={() => void load(query, true)}><Text style={styles.retryLink}>Retry loading</Text>} and independent pull-to-refresh plus saved-membership cache. Workflow halted before OTA export/publish. No release or on-device verification inferred. The previously configured Engineering Accountability 'Verify approved pending client and rollback recovery' check only ran when head_ref was fix/pending-client-reconciliation-20261027-r1, which is why the Cluster UI modernization CI missed this legacy contract.",
+  "chosenApproach": "Update only the obsolete assertion inside the ORIGINAL production safety script to check the real modern conditional online failed-fetch retry and pull-to-refresh path. Preserve the existing offline fallback, owner account isolation, RPC Promise.allSettled and all other tests, including the untouched SOS R1, AdMob and Android RC verification. Add a focused Node test which executes the original production safety script end-to-end, and independently asserts retry visibility, action, offline branch, cached membership retention and workflow-gate presence. Source UI remains unchanged. Also remove the retired branch-only condition on the existing Engineering Accountability production safety check so the full original script runs on every PR and stops stale anchors before manual Android OTA. The condition is not deleted from production; it now executes earlier too.",
+  "selectionRationale": "Reintroducing an obsolete RETRY ActionButton just to satisfy source-text matching would regress the approved compact Cluster layout and duplicate controls. Removing/loosening the production safety check is unsafe. The test is stale; locking behavior rather than label/layout is the smallest correct compatibility repair.",
+  "alternativeApproaches": [
+    "Restore old title=\"RETRY\" ActionButton UI (rejected: reverts approved professional Cluster dashboard and duplicates retry affordances)",
+    "Delete or skip the production safety anchor step (rejected: bypasses auth, cluster cache, scoped posts, trusted-device and recovery guards)",
+    "Change the production workflow to run a different script (rejected: weakens existing rollout gate unnecessarily)"
+  ],
+  "riskAreas": [
+    "release-identity",
+    "faith-cluster",
+    "navigation-scroll",
+    "weak-network",
+    "account-isolation"
+  ],
+  "preserveBehaviors": [
+    "Home, Wall, Profile, Connect, scoped clusters and approved Cluster dashboard layout unchanged",
+    "Cluster retry is available when loadError is nonempty AND online, reruns load(query,true) and preserves last known memberships",
+    "Offline keeps saved memberships and does not start unauthorized network operations; manual pull-to-refresh remains connected",
+    "Owner-specific cluster memory cache isolation, latest searchRequest reconciliation, Promise.allSettled behavior and active-only workspace authorization unchanged",
+    "Original production safety script remains a mandatory workflow gate and retains all other existing assertions",
+    "SOC/SOS R1/R2 lock and cold-start notification routing compatibility from PR #531 unchanged",
+    "All ad recovery and production AdMob environment requirements from PR #529 remain active",
+    "No native package, Expo runtime, Android build, DB migration, push credentials, OTA publication, or client behavior changes",
+    "Every PR now checks all original production safety anchors (source-level only) before allowing a merge; runtime/native/production publication still require separate gates"
+  ],
+  "regressionTests": [
+    "tests/cluster-production-ota-retry-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Original scripts/test-pending-client-reconciliation-20261027.cjs passes on current Cluster source, with all untouched recovery/security assertions still exercised",
+    "New focused test verifies actual modern Retry loading conditional and live load(query,true) handler, plus RefreshControl and offline branch",
+    "Cluster user/account cache isolation and partial-failure retention still checked",
+    "Production workflow still runs all locked SOS, AdMob and exact frozen Android RC gates",
+    "Exact PR-head Engineering Accountability, TypeScript/Performance, and Main Integration/Web QA pass before merge",
+    "Actual production Android OTA run must be restarted on new main and verified; no unconfirmed live release claims",
+    "On every pull request, Engineering Accountability executes the entire original scripts/test-pending-client-reconciliation-20261027.cjs to detect future stale safety anchors before production Android OTA"
+  ],
+  "allowedPaths": [
+    "scripts/test-pending-client-reconciliation-20261027.cjs",
+    "tests/cluster-production-ota-retry-20261107.test.mjs",
+    ".buklod/scopes/cluster-production-ota-retry-gate-20261107.json",
+    ".github/workflows/engineering-accountability.yml"
+  ]
+}
