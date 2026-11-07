@@ -1,23 +1,55 @@
 import React,{useCallback,useEffect,useState} from 'react';
-import {ActivityIndicator,Pressable,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
+import {ActivityIndicator,Image,Pressable,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 type Activity={type:string;label:string;configured_points:number;active:boolean;earned_count:number;earned_points:number};
 type Nom={id:string;user_id:string;type:string;status:string;evidence_note:string;submitted_at:string};
 type Report={as_of:string;activities:Activity[];nominations:{pending:number;approved:number;rejected:number};recent_nominations:Nom[];
  mentor_photos:number;pending_mentoring_photos:number};
+type Evidence={session_id:string;lesson:string;status:string;mentor_id:string;
+ session_date:string;participant_count:number;photo_path:string|null};
 export default function R2AdminMonitor(){
  const[report,setReport]=useState<Report|null>(null);const[loading,setLoading]=useState(true);
  const[error,setError]=useState('');const[busy,setBusy]=useState<string|null>(null);
  const[notes,setNotes]=useState<Record<string,string>>({});
+ const[photos,setPhotos]=useState<Evidence[]>([]);
+ const[photoUrls,setPhotoUrls]=useState<Record<string,string>>({});
  const load=useCallback(async()=>{
   setLoading(true);setError('');
-  try{const{data,error:e}=await(supabase as any).rpc('admin_get_buklod_r2_rewards_monitor_v1');
-   if(e)throw e;setReport(data as Report);
+  try{const [overview,evidence]=await Promise.all([
+    (supabase as any).rpc('admin_get_buklod_r2_rewards_monitor_v1'),
+    (supabase as any).rpc('admin_get_buklod_r2_mentor_evidence_v1')
+   ]);
+   if(overview.error)throw overview.error;
+   if(evidence.error)throw evidence.error;
+   setReport(overview.data as Report);
+   setPhotos(Array.isArray(evidence.data)?evidence.data:[]);
   }catch{setError('System Admin access or live monitor unavailable.');}
   finally{setLoading(false)}
  },[]);
  useEffect(()=>{void load()},[load]);
+
+ const viewPhoto=async(e:Evidence)=>{
+  if(!e.photo_path)return;
+  setError('');
+  try{
+   const{data,error}=await supabase.storage.from('buklod-mentoring-evidence')
+     .createSignedUrl(e.photo_path,120);
+   if(error)throw error;
+   if(data?.signedUrl)setPhotoUrls(old=>({...old,[e.session_id]:data.signedUrl}));
+  }catch{setError('Could not open private mentoring photo.')}
+ };
+ const reviewMentor=async(e:Evidence,approve:boolean)=>{
+  if(busy||!photoUrls[e.session_id]||(notes[e.session_id]||'').trim().length<12)return;
+  setBusy(e.session_id);setError('');
+  try{
+   const{error}=await(supabase as any).rpc('admin_review_mentor_session',{
+    p_session_id:e.session_id,p_approve:approve,p_admin_note:notes[e.session_id].trim()
+   });
+   if(error)throw error;await load();
+  }catch(err){setError(err instanceof Error?err.message:'Mentor review failed');}
+  finally{setBusy(null)}
+ };
  const review=async(item:Nom,approved:boolean)=>{
   if(busy||!notes[item.id]||notes[item.id].trim().length<12)return;
   setBusy(item.id);setError('');
@@ -42,6 +74,31 @@ export default function R2AdminMonitor(){
  <Text style={s.stat}>Mentor photos submitted: {report.mentor_photos}</Text>
  <Text style={s.stat}>New sessions still missing photo: {report.pending_mentoring_photos}</Text>
  </View>
+
+ <Text style={s.heading}>Mentoring Photo Evidence</Text>
+ {photos.filter(p=>p.status==='pending_admin').length===0&&
+   <Text style={s.info}>No mentor sessions awaiting final approval.</Text>}
+ {photos.filter(p=>p.status==='pending_admin').map(item=><View style={s.card} key={item.session_id}>
+  <Text style={s.heading}>{item.lesson}</Text>
+  <Text style={s.info}>{item.session_date} · {item.participant_count} reported learners · Pending admin</Text>
+  <Text style={s.info}>{item.photo_path?'Evidence uploaded':'Evidence photo missing'}</Text>
+  {item.photo_path&&<Pressable style={s.btn} onPress={()=>void viewPhoto(item)}>
+   <Text style={s.btnText}>View private mentoring photo</Text>
+  </Pressable>}
+  {!!photoUrls[item.session_id]&&<Image source={{uri:photoUrls[item.session_id]}}
+    style={{width:'100%',height:190,borderRadius:12}} resizeMode="contain"/>}
+  <TextInput style={s.note} placeholder="Verification note (12+ characters)" multiline
+    placeholderTextColor="#79887D" value={notes[item.session_id]||''}
+    onChangeText={v=>setNotes(old=>({...old,[item.session_id]:v}))}/>
+  <View style={s.actions}>
+   <Pressable style={[s.btn,(!photoUrls[item.session_id]||(notes[item.session_id]||'').trim().length<12)&&s.disabled]}
+    disabled={busy!==null||!photoUrls[item.session_id]||(notes[item.session_id]||'').trim().length<12}
+    onPress={()=>void reviewMentor(item,true)}><Text style={s.btnText}>Approve session</Text></Pressable>
+   <Pressable style={[s.btn,s.reject,(notes[item.session_id]||'').trim().length<12&&s.disabled]}
+    disabled={busy!==null||(notes[item.session_id]||'').trim().length<12}
+    onPress={()=>void reviewMentor(item,false)}><Text style={s.btnText}>Reject</Text></Pressable>
+  </View>
+ </View>)}
  <Text style={s.heading}>Pending verification</Text>
  {report.recent_nominations.filter(n=>n.status==='pending').length===0&&<Text style={s.info}>No pending milestones.</Text>}
  {report.recent_nominations.filter(n=>n.status==='pending').map(item=><View style={s.card} key={item.id}>
