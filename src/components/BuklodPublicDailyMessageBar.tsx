@@ -38,8 +38,10 @@ import {
 
 export default function BuklodPublicDailyMessageBar({
   forceVisible = false,
+  compact = false,
 }: {
   forceVisible?: boolean;
+  compact?: boolean;
 }) {
   /* PATCH_186F_ENCOURAGEMENT_THROUGH_PROFILE */
   const {
@@ -126,8 +128,8 @@ export default function BuklodPublicDailyMessageBar({
   }
 
   return (
-    <View style={styles.shell}>
-      <View style={styles.icon}>
+    <View style={[styles.shell, compact && styles.compactShell]}>
+      <View style={[styles.icon, compact && styles.compactIcon]}>
         <MaterialCommunityIcons
           name={
             showFaithContent
@@ -140,28 +142,28 @@ export default function BuklodPublicDailyMessageBar({
       </View>
 
       <View style={styles.copy}>
-        <View style={styles.metaRow}>
-          <Text style={styles.label}>
-            TODAY'S ENCOURAGEMENT
+        <View style={[styles.metaRow, compact && styles.compactMetaRow]}>
+          <Text style={styles.label} numberOfLines={1}>
+            {compact ? 'ENCOURAGEMENT' : "TODAY'S ENCOURAGEMENT"}
           </Text>
 
-          <Text style={styles.language}>
-            {buklodLanguageLabel(
-              language
-            )}
-          </Text>
+          {!compact ? (
+            <Text style={styles.language}>
+              {buklodLanguageLabel(language)}
+            </Text>
+          ) : null}
         </View>
 
         <Text
-          style={styles.message}
-          numberOfLines={2}
+          style={[styles.message, compact && styles.compactMessage]}
+          numberOfLines={compact ? 1 : 2}
         >
           {showFaithContent
             ? verse.text
             : motivation}
         </Text>
 
-        {showFaithContent ? (
+        {showFaithContent && !compact ? (
           <Text style={styles.reference}>
             {verse.reference}
           </Text>
@@ -186,6 +188,20 @@ function createStyles(
     backgroundColor: colors.white,
   },
 
+  // Desktop header card: 2-line micro-card, not a second content bar.
+  compactShell: {
+    width: '100%',
+    minWidth: 0,
+    height: 52,
+    borderBottomWidth: 0,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    overflow: 'hidden',
+  },
+  compactIcon: { width: 28, height: 28, borderRadius: 14 },
+  compactMetaRow: { justifyContent: 'flex-start' },
+  compactMessage: { fontSize: 11, lineHeight: 14, marginTop: 1 },
   loading: {
     minHeight: 54,
     alignItems: 'center',

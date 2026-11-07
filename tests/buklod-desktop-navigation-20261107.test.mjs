@@ -187,3 +187,20 @@ test('Cluster does not trap global desktop nav clicks behind scoped route guard'
   assert.match(shell, /if \(leavingScopedPage\) router\.replace\(href\)/);
   assert.match(guard, /isManagedCommunityScope\(activeScope\)/);
 });
+
+test('daily encouragement fills free desktop header space next to notifications and avatar', () => {
+  const header = read('src/components/BuklodPublicDesktopDashboard.tsx');
+  const daily = read('src/components/BuklodPublicDailyMessageBar.tsx');
+  const context = read('src/components/BuklodDashboardContextBar.tsx');
+  assert.match(header, /<BuklodPublicDailyMessageBar forceVisible compact \/>/);
+  assert.match(header, /styles\.encouragementHeaderSlot/);
+  const encouragement = header.indexOf('<BuklodPublicDailyMessageBar forceVisible compact />');
+  const notifications = header.indexOf("iconButton('Notifications'", encouragement);
+  const avatar = header.indexOf('accessibilityLabel="Open my profile"', notifications);
+  assert.ok(encouragement > 0 && notifications > encouragement && avatar > notifications);
+  assert.match(daily, /compact\?: boolean/);
+  assert.match(daily, /numberOfLines=\{compact \? 1 : 2\}/);
+  assert.match(context, /Platform\.OS === 'web'/);
+  assert.match(context, /shouldUseBuklodPublicDesktopShell\(/);
+  assert.match(context, /if \(dailyMessageInDesktopHeader\) \{[\s\S]*?return null/);
+});

@@ -1,6 +1,8 @@
 import { usePathname } from 'expo-router';
 import React from 'react';
-import { View } from 'react-native';
+import { Platform, useWindowDimensions, View } from 'react-native';
+import { normalizeBuklodPathname } from '@/lib/buklodSafeArea';
+import { shouldUseBuklodPublicDesktopShell } from '@/lib/buklodWebResponsivePolicy';
 
 import BuklodScopeBar
   from '@/components/BuklodScopeBar';
@@ -19,6 +21,14 @@ export default function BuklodDashboardContextBar() {
   /* PATCH_169F_R3_PROFILE_ROUTE */
   const pathname =
     usePathname();
+  const { width } = useWindowDimensions();
+  // Desktop header owns the daily encouragement; avoid a duplicate banner
+  // inside the routed center card. Mobile/web-phone retains the original bar.
+  const dailyMessageInDesktopHeader =
+    Platform.OS === 'web' &&
+    shouldUseBuklodPublicDesktopShell(
+      normalizeBuklodPathname(pathname), width
+    );
 
   const profileRoute =
     pathname === '/me' ||
@@ -44,6 +54,10 @@ export default function BuklodDashboardContextBar() {
    * No Public / Church / Cluster / Organization / Sub-org
    * context bar or scope selector is rendered here.
    */
+  if (dailyMessageInDesktopHeader) {
+    return null;
+  }
+
   if (profileRoute) {
     /* PATCH_186F_ENCOURAGEMENT_THROUGH_PROFILE */
     return (

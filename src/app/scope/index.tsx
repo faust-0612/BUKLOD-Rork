@@ -32,7 +32,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -1017,12 +1016,6 @@ function OrganizationCommunityConnect({
   scope: BuklodScope;
   onBack?: () => void;
 }) {
-  const { width } = useWindowDimensions();
-  const compactDesktop = Platform.OS === 'web' && width >= 1200;
-  const [expanded, setExpanded] = useState(false);
-  // Never carry a prior room's expanded state into another Cluster/Org.
-  useEffect(() => setExpanded(false), [scope.scope_id]);
-
   if (
     scope.scope_type !== 'ORGANIZATION' &&
     scope.scope_type !== 'CLUSTER'
@@ -1030,57 +1023,15 @@ function OrganizationCommunityConnect({
     return null;
   }
 
+  // Restore the original single, full-height Connect room inside the
+  // existing routed center column. Never replace the Main desktop shell.
   return (
-    <View style={[styles.scopeConnectHost,
-      compactDesktop && styles.scopeConnectDesktopHost]}>
-      {compactDesktop ? (
-        <View style={[styles.scopeConnectPanelHeading,
-          expanded && styles.scopeConnectPanelHeadingExpanded]}>
-          <View style={styles.scopeConnectHeadingText}>
-            <Text numberOfLines={1} style={styles.scopeConnectTitle}>
-              {scope.scope_type === 'CLUSTER'
-                ? 'Cluster Connect' : 'Organization Connect'}
-            </Text>
-            <Text style={styles.scopeConnectHint}>
-              {expanded ? 'Expanded within this dashboard' : 'Quick chat · compact view'}
-            </Text>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={expanded
-              ? 'Collapse cluster conversation' : 'Expand cluster conversation'}
-            onPress={() => setExpanded(current => !current)}
-            style={styles.scopeConnectExpandButton}>
-            <MaterialCommunityIcons
-              name={expanded ? 'arrow-collapse' : 'arrow-expand'}
-              size={17}
-              color="#116B3D"
-            />
-            <Text style={styles.scopeConnectExpandText}>
-              {expanded ? 'Collapse' : 'Expand'}
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
-      <View style={[
-        styles.scopeConnectThread,
-        compactDesktop && !expanded && styles.scopeConnectCompact,
-        compactDesktop && expanded && styles.scopeConnectExpanded,
-      ]}>
-        <BuklodConnectThread
-          mode="scope"
-          containerId={scope.scope_id}
-          onBackOverride={compactDesktop && expanded
-            ? () => setExpanded(false)
-            : onBack}
-        />
-      </View>
-      {compactDesktop && !expanded ? (
-        <Text style={styles.scopeConnectFootnote}>
-          Your main dashboard and sidebar remain available.
-          Expand only when you need more room.
-        </Text>
-      ) : null}
+    <View style={styles.scopeConnectHost}>
+      <BuklodConnectThread
+        mode="scope"
+        containerId={scope.scope_id}
+        onBackOverride={onBack}
+      />
     </View>
   );
 }
@@ -1307,46 +1258,11 @@ function Info({
 
 const styles =
   StyleSheet.create({
-    // DESKTOP_SCOPE_CONNECT_COMPACT_R1: the full real chat engine stays
-    // inside the center canvas; expanding never hides the left navigation.
-    scopeConnectHost: { flex: 1, minHeight: 0 },
-    scopeConnectDesktopHost: {
-      padding: 14, alignItems: 'flex-start',
-      backgroundColor: '#F7FAFD',
+    scopeConnectHost: {
+      flex: 1,
+      minHeight: 0,
+      width: '100%',
     },
-    scopeConnectPanelHeading: {
-      width: '100%', maxWidth: 740, minHeight: 55,
-      flexDirection: 'row', alignItems: 'center',
-      justifyContent: 'space-between', gap: 10,
-      paddingHorizontal: 12, paddingVertical: 7,
-      borderWidth: 1, borderBottomWidth: 0,
-      borderColor: '#D7E3EB', borderTopLeftRadius: 13,
-      borderTopRightRadius: 13, backgroundColor: '#FFFFFF',
-    },
-    scopeConnectPanelHeadingExpanded: { maxWidth: '100%' },
-    scopeConnectHeadingText: { flex: 1, minWidth: 0, gap: 3 },
-    scopeConnectTitle: { fontSize: 13, fontWeight: '900', color: '#103D2D' },
-    scopeConnectHint: { fontSize: 10, color: '#527365' },
-    scopeConnectExpandButton: {
-      minHeight: 35, paddingHorizontal: 12,
-      flexDirection: 'row', alignItems: 'center', gap: 5,
-      backgroundColor: '#E8F4ED', borderRadius: 10,
-    },
-    scopeConnectExpandText: { color: '#116B3D', fontSize: 11, fontWeight: '900' },
-    scopeConnectThread: { flex: 1, minHeight: 0, width: '100%' },
-    scopeConnectCompact: {
-      flex: 0, height: 340, maxWidth: 740, width: '100%',
-      borderWidth: 1, borderColor: '#D7E3EB',
-      borderBottomLeftRadius: 13, borderBottomRightRadius: 13,
-      overflow: 'hidden', backgroundColor: '#FFFFFF',
-    },
-    scopeConnectExpanded: {
-      flex: 1, width: '100%',
-      borderWidth: 1, borderColor: '#D7E3EB',
-      borderBottomLeftRadius: 13, borderBottomRightRadius: 13,
-      overflow: 'hidden', backgroundColor: '#FFFFFF',
-    },
-    scopeConnectFootnote: { color: '#527365', fontSize: 11, marginTop: 10 },
     screen: {
       flex: 1,
       backgroundColor:

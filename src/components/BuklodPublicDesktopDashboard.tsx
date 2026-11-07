@@ -13,6 +13,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import BuklodPublicDailyMessageBar from '@/components/BuklodPublicDailyMessageBar';
 import ConnectRenderBoundary from '@/components/connect/ConnectRenderBoundary';
 import {
   registerBuklodDesktopDockOpener,
@@ -361,6 +362,9 @@ export default function BuklodPublicDesktopDashboard({
               <MaterialCommunityIcons name="arrow-right" color={mainColor} size={23} />
             </Pressable> : null}
           </View>
+          <View style={styles.encouragementHeaderSlot}>
+            <BuklodPublicDailyMessageBar forceVisible compact />
+          </View>
           {iconButton('Notifications', 'bell-outline', () => void navigate('/notifications'), notificationsUnread)}
           <Pressable accessibilityRole="button" accessibilityLabel="Open my profile"
             onPress={() => void navigate('/me')} style={styles.profileButton}>
@@ -687,6 +691,10 @@ const styles = StyleSheet.create({
   searchArea: { flex: 1.4, minWidth: 180, maxWidth: 480, height: 40, borderWidth: 1, borderRadius: 24,
     paddingHorizontal: 12, alignItems: 'center', flexDirection: 'row', gap: 8 },
   searchInput: { flex: 1, minWidth: 0, fontSize: 12, paddingVertical: 5 },
+  encouragementHeaderSlot: {
+    flex: 1.15, minWidth: 165, maxWidth: 340, height: 52,
+    justifyContent: 'center',
+  },
   roundButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   bubble: { position: 'absolute', right: -5, top: -4, minWidth: 17, height: 17, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center', backgroundColor: '#D42C48', paddingHorizontal: 3 },

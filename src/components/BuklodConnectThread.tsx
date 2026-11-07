@@ -39,6 +39,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -631,6 +632,7 @@ function BuklodConnectThreadInner({
   const insets =
     useSafeAreaInsets();
   const pathname = usePathname();
+  const { width: viewportWidth } = useWindowDimensions();
   const navOccupied =
     useBuklodPersistentNavOccupiedHeight();
   const threadBodyRef =
@@ -652,10 +654,19 @@ function BuklodConnectThreadInner({
     !isBuklodScopedWorkspacePath(pathname) &&
     !normalizeBuklodPathname(pathname).startsWith('/connect/personal/') &&
     !normalizeBuklodPathname(pathname).startsWith('/connect/community/');
-  // Standalone/scoped threads without public navigation retain phone clearance.
+  // On wide web Cluster/Org pages the desktop center column already
+  // provides the bottom gutter. Do not lift Write Message by another 20px.
+  // Keep native, phone-web and personal-thread keyboard safe areas unchanged.
+  const scopedDesktopComposer =
+    Platform.OS === 'web' &&
+    viewportWidth >= 1200 &&
+    mode === 'scope' &&
+    isBuklodScopedWorkspacePath(pathname);
   const phoneNavClearance = shellReservesPersistentNav
     ? 0
-    : Math.max(insets.bottom, 8) + 12;
+    : scopedDesktopComposer
+      ? 8
+      : Math.max(insets.bottom, 8) + 12;
   // The IME replaces the phone-navigation clearance, it does not add to it.
   // In particular an embedded Cluster/Org thread can already be resized by
   // Android and must not float a second safe-area gap above the keyboard.
