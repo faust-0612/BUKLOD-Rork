@@ -61,3 +61,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .brand-mark.small{height:35px;width:35px}.class-head{padding:19px;flex-direction:column;align-items:flex-start}.head-actions{width:100%;justify-content:space-between}
 .module{padding:18px 15px}.feature-card{padding:14px;min-height:87px}.inline-form{flex-wrap:wrap}.inline-form input{flex-basis:61%}.login-card{padding:25px 20px}}
 @media(prefers-reduced-motion:reduce){.spinner{animation:none}.class-card{transition:none}}
+
+/* Classroom actions intentionally visible independently of horizontal module navigation. */
+.class-head>div:first-child{min-width:0}
+.class-back{margin:0 0 17px}
+.back-button{padding:8px 13px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:10px;font-weight:780;font-size:.86rem}
+.back-button:hover{background:rgba(255,255,255,.2)}
+.head-actions{flex-wrap:wrap}
+.danger-outline{border:1px solid #f3afb4;background:#fff6f6;color:#9a2433;padding:11px 16px;border-radius:10px;font-weight:800;font-size:.86rem}
+.danger-outline:hover{background:#ffe6e8}
+@media(max-width:640px){.head-actions{flex-wrap:wrap;gap:8px}.back-button{font-size:.84rem}}
