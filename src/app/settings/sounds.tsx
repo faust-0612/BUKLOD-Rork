@@ -7,6 +7,8 @@ import {
   playBuklodCue,
   saveBuklodSoundSettings,
   type BuklodSoundCategory,
+  type BuklodSoundProfile,
+  type BuklodSoundVolume,
   type BuklodSoundCue,
   type BuklodSoundSettings,
 } from '@/lib/buklodSounds';
@@ -40,7 +42,7 @@ export default function BuklodSoundSettingsScreen() {
     return () => { mounted = false; };
   }, []);
 
-  const update = async (key: keyof BuklodSoundSettings, value: boolean) => {
+  const update = async <K extends keyof BuklodSoundSettings>(key: K, value: BuklodSoundSettings[K]) => {
     if (saving) return;
     const previous = settings;
     const next = { ...settings, [key]: value };
@@ -62,7 +64,43 @@ export default function BuklodSoundSettingsScreen() {
         <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
       <Text style={styles.title}>BUKLOD Sounds</Text>
-      <Text style={styles.help}>Soft Modern tones. Sounds play only when needed, with automatic grouping for rapid alerts.</Text>
+      <Text style={styles.help}>Choose your sound style and loudness. Separate controls below manage which events may play sounds.</Text>
+      <View style={styles.group}>
+        <Text style={styles.label}>Sound style</Text>
+        <Text style={styles.sub}>All choices use existing BUKLOD sounds—no additional download required.</Text>
+        <View style={styles.optionRow}>
+          {([
+            {id:'classic',name:'Classic',hint:'Original BUKLOD'},
+            {id:'gentle',name:'Gentle',hint:'Subtle & brief'},
+            {id:'celebration',name:'Celebration',hint:'Lively feedback'},
+          ] as const).map(item=><Pressable key={item.id} accessibilityRole="button"
+            accessibilityState={{selected:settings.soundProfile===item.id}}
+            disabled={loading||saving}
+            onPress={()=>void update('soundProfile',item.id as BuklodSoundProfile)}
+            style={[styles.option,settings.soundProfile===item.id&&styles.selected]}>
+            <Text style={styles.optionTitle}>{item.name}</Text>
+            <Text style={styles.optionHint}>{item.hint}</Text>
+          </Pressable>)}
+        </View>
+        <Pressable accessibilityRole="button" onPress={()=>void playBuklodCue('community',{preview:true})}
+          style={styles.preview}><Text style={styles.previewText}>▶ Preview selected style</Text></Pressable>
+      </View>
+      <View style={styles.group}>
+        <Text style={styles.label}>Playback volume</Text>
+        <View style={styles.optionRow}>
+          {([
+            {id:'low',name:'Low'},
+            {id:'balanced',name:'Balanced'},
+            {id:'high',name:'High'},
+          ] as const).map(item=><Pressable key={item.id}
+            accessibilityRole="button" accessibilityState={{selected:settings.volumeLevel===item.id}}
+            disabled={loading||saving}
+            onPress={()=>void update('volumeLevel',item.id as BuklodSoundVolume)}
+            style={[styles.option,settings.volumeLevel===item.id&&styles.selected]}>
+            <Text style={styles.optionTitle}>{item.name}</Text>
+          </Pressable>)}
+        </View>
+      </View>
       {choices.map(item => (
         <View style={styles.row} key={item.category}>
           <View style={styles.description}>
@@ -71,7 +109,7 @@ export default function BuklodSoundSettingsScreen() {
             {!!item.preview && (
               <Pressable
                 accessibilityRole="button"
-                onPress={() => void playBuklodCue(item.preview!)}
+                onPress={() => void playBuklodCue(item.preview!,{preview:true})}
                 style={styles.preview}
               >
                 <Text style={styles.previewText}>▶ Test sound</Text>
@@ -116,4 +154,11 @@ const styles = StyleSheet.create({
   preview: { paddingVertical: 8, alignSelf: 'flex-start', marginTop: 3 },
   previewText: { color: '#176F69', fontWeight: '700', fontSize: 12 },
   foot: { color: '#627D7A', lineHeight: 19, fontSize: 12, padding: 8 },
+  group:{padding:16,backgroundColor:'#FFFFFF',borderRadius:13,gap:9},
+  optionRow:{flexDirection:'row',flexWrap:'wrap',gap:8},
+  option:{flex:1,minWidth:90,padding:11,borderRadius:10,borderWidth:1,borderColor:'#CFE0D6',
+    backgroundColor:'#F8FBF9',alignItems:'center',gap:3},
+  selected:{backgroundColor:'#E1F3E9',borderColor:'#1B8162',borderWidth:2},
+  optionTitle:{color:'#174C3D',fontWeight:'900',fontSize:12},
+  optionHint:{color:'#637A71',fontSize:10,textAlign:'center'},
 });
