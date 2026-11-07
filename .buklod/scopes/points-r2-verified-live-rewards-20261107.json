@@ -3,7 +3,7 @@
   "objective": "BUKLOD consolidated production release candidate — Points R3, 39 Kingdom games with optional server-scored mastery credits, Character compatibility, BSOC live support, compact Share, Wall audio/motion, Cluster keyboard editor and social greetings",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: production main afdeb8f4ad3034328235a77342720c04212106c2 is prior successful Android OTA and Expo web source; this unified RC is not live. Points 9d6eed8a275b67cef8e3f3bfc65734bc65fb4e72 BSOC 8af6ed3d005e2a2ac260a696afb2b5c7b2ba238a; only source compatibility established. No applied feature migrations or E2E reward claim proof. Supabase read-only catalog confirms four BSOC migration IDs and existing tables/RLS; nonce default and support counts RPC are already present. Remaining new migration versions must not blindly re-run existing objects.",
-  "chosenApproach": "Combine non-overlapping feature PRs on isolated main-based branch, retain all code/test coverage and guarded SQL, run whole integrated release gates, protect V28 pinned Android runtime/Character assets, and hold OTA/web until missing authoritative game credit and runtime approval evidence is resolved. Return review_note only through auth.uid-scoped personal milestone monitor; show correction guidance in the existing UI and retain audited admin approval. Reconcile BSOC and Cluster keyboard changes in separate non-production RC; preserve latest main and admin routes; assign distinct later migration IDs to all BSOC SQL files. Integrate approved BUKLOD music library picker and lightweight post motion presets as optional public Wall UI on the same isolated RC. DB migration 20261107171413 already applied under that exact version; never replay as a different ID. Add opt-in privacy, server-owned events, bounded deduplicated push fanout, and aggregate compact Public Wall banner; do not activate production cron or notifications until DB and scale QA pass. R14 adds independent server-scored post-game mastery credit, randomized private answer positions, one award per account/game, and a Points claim CTA on original and pilot game centers. This validates the mastery challenge only, NOT the local game victory. Production still requires exact RC/backend migration ledger plus safe runtime/deployment acceptance.",
+  "chosenApproach": "Combine non-overlapping feature PRs on isolated main-based branch, retain all code/test coverage and guarded SQL, run whole integrated release gates, protect V28 pinned Android runtime/Character assets, and hold OTA/web until missing authoritative game credit and runtime approval evidence is resolved. Return review_note only through auth.uid-scoped personal milestone monitor; show correction guidance in the existing UI and retain audited admin approval. Reconcile BSOC and Cluster keyboard changes in separate non-production RC; preserve latest main and admin routes; assign distinct later migration IDs to all BSOC SQL files. Integrate approved BUKLOD music library picker and lightweight post motion presets as optional public Wall UI on the same isolated RC. DB migration 20261107171413 already applied under that exact version; never replay as a different ID. Add opt-in privacy, server-owned events, bounded deduplicated push fanout, and aggregate compact Public Wall banner; do not activate production cron or notifications until DB and scale QA pass. R14 adds independent server-scored post-game mastery credit, randomized private answer positions, one award per account/game, and a Points claim CTA on original and pilot game centers. This validates the mastery challenge only, NOT the local game victory. Production still requires exact RC/backend migration ledger plus safe runtime/deployment acceptance. Live BSOC ACL inspection found authenticated roles had broad table mutation grants despite read/insert-only RLS. Revoke all and restore only SELECT+INSERT on chat/messages; retain service_role, policies, Realtime, and evidence insert.",
   "selectionRationale": "Original separate PRs independently passed source checks but combined PR triggered one-scope-manifest rule. One complete integration-specific risk and path manifest preserves accountability while avoiding blanket gate bypass or release of unverified client-only score rewards. Recovered one original-game callback that omitted account ID and silently discarded original progress; propagate authenticated account ID and retain local-only economy isolation. One overlapping Admin file merged to retain both Points monitor and BSOC Support Operations. Source SQL migration version conflicts resolved before testing. Keep unverified game reward proof disabled. Music motion branch is ahead of the same latest-main baseline, has no overlapping changed paths with prior consolidated candidate, and reuses already applied DB migration ID. Canonical social audiences are BUKLOD Clusters, Organizations, followers, Public Wall. Birth dates are private and need explicit owner opt-in for fanout. Existing notifications preferences and authorized routing are reused.",
   "alternativeApproaches": [
     "Turn on every R2 catalog activity and use client submitted completion events (rejected: spoofable and double awards).",
@@ -113,7 +113,8 @@
     "Wall greeting is compact/expandable and does not move first-view ad or leak birth dates",
     "Isolated SQL/cron/privacy, real push, scale, opt-out and authenticated navigation E2E must pass before release",
     "Each of the 39 selectable Kingdom games exposes optional authenticated post-win Mastery Check: private server questions, randomized options, bounded attempts, account-locked idempotent +2 BP first-only claim. No client game win result itself grants points.",
-    "Before any live production deployment, CI compiles the exact PR SHA to V28 Android runtime 1.3.2 and Main Expo Hosting web, verifies canonical package and Expo project and produces actual export artifacts without publishing."
+    "Before any live production deployment, CI compiles the exact PR SHA to V28 Android runtime 1.3.2 and Main Expo Hosting web, verifies canonical package and Expo project and produces actual export artifacts without publishing.",
+    "BSOC live client SQL permissions are append-only: authenticated SELECT/INSERT with scoped RLS; no UPDATE, DELETE or TRUNCATE and no regression to member chat or agent response."
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -161,7 +162,8 @@
     "wall-media",
     "navigation-scroll",
     "notification-delivery",
-    "server-scored-kingdom-mastery-and-points-ledger"
+    "server-scored-kingdom-mastery-and-points-ledger",
+    "bsoc-case-table-acl-hardening"
   ],
   "regressionTests": [
     "supabase/tests/buklod_points_r2_reward_integrity.sql",
@@ -196,7 +198,8 @@
     "tests/share-card-centered-compact-20261108.test.mjs",
     "tests/buklod-living-greetings-20261108.test.mjs",
     "supabase/tests/buklod_living_greetings_v1.sql",
-    "tests/kingdom-certified-mastery-39-20261108.test.mjs"
+    "tests/kingdom-certified-mastery-39-20261108.test.mjs",
+    "tests/bsoc-append-only-acl-20261108.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/points-r2-verified-live-rewards-20261107.json",
@@ -374,6 +377,8 @@
     "supabase/migrations/20261108030000_buklod_kingdom_mastery_challenges_v2.sql",
     "src/features/games/kingdom/platform/KingdomMasteryCheck.tsx",
     "tests/kingdom-certified-mastery-39-20261108.test.mjs",
-    ".github/workflows/unified_rc_compiled_qa_20261108.yml"
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "supabase/migrations/20261108031000_bsoc_chat_append_only_permissions.sql",
+    "tests/bsoc-append-only-acl-20261108.test.mjs"
   ]
 }
