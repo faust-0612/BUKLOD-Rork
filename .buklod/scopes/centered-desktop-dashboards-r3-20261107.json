@@ -1,0 +1,55 @@
+{
+  "contractVersion": 2,
+  "objective": "Keep every ordinary BUKLOD Main desktop dashboard centered in the persistent web chrome; restore Cluster workspace, correctly-sized left navigation, desktop Connect Enter-to-send, and safely contained centered Character Customize editor.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Source baseline from authenticated GitHub Main 99df54a39b688e367cd64b22f8a64eb09085e019 inspected against user screenshots from 2026-11-07: scoped Cluster showed blank top and full page; Points left desktop chrome and Profile back was inconsistent; Character Customize produced SYS-500 render boundary; desktop chat uses multiline with no Enter send handler. These screenshots do not establish the live Expo deployment commit. This does not attest to live Expo production SHA, which requires independent release verification.",
+  "chosenApproach": "Route /scope, /points and ordinary profile/member/Connect dashboard details through existing persistent desktop shell at >=1200px. Widen only left rail with minimum center width. Suppress mobile safe-area padding inside desktop scope child. Add web-only Enter keyboard handler with guard against duplicate submits and composition. Lazy-load and crash-isolate existing Character Studio without modifying its protected R31/R40 modal or character data. Character visual lock mismatch is a separate blocker.",
+  "selectionRationale": "Route mismatch between two web shells caused full-page escapes; phone status-bar inset belongs to native. Character Studio must not be allowed to crash all of BUKLOD. Retaining canonical post/Connect/character engines and mobile fallback avoids divergent implementations and data migration.",
+  "alternativeApproaches": [
+    "Navigate desktop Points and Cluster to standalone fullscreen pages: rejected because main dashboard continuity is required.",
+    "Rewrite Connect composer and Character data engine: rejected due duplication and account/data risks.",
+    "Remove Character customization button: rejected because it was functional previously and must remain available."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "connect",
+    "auth-privacy"
+  ],
+  "preserveBehaviors": [
+    "Approved canonical BUKLOD image and desktop shell unchanged",
+    "Unfinished DEV and other current Main branches unmodified",
+    "Android/native chat keyboard and mobile web multiline behavior retained",
+    "Existing Connect send handler and attachment/reaction paths retained",
+    "Character selection/storage, points accounting and native character editor preserved",
+    "Cluster access guards, community posts and scope authorizations preserved",
+    "PWA favicon, ads, SOS, Wall media and Classroom boundaries unchanged",
+    "No database/Android OTA or production-hosting deployment from DEV",
+    "Protected R31/R40 CharacterCustomizeSheet remains byte-identical to latest Main; no visual/unlock contract rebaseline"
+  ],
+  "acceptanceChecks": [
+    "Desktop at >=1200px uses one centered shell for Home, Cluster, Points, profile settings and Connect details",
+    "Desktop Cluster header does not reserve enormous top inset; cluster tabs remain functional",
+    "Points-to-Profile/back keeps the same desktop chrome",
+    "Left rail wider and center remains at least 635px at representative sizes",
+    "Web Enter sends populated draft once, ignores blank drafts, composing, shift and repeats",
+    "Character customization mounts lazily and render exceptions are contained with Retry/Close; canonical R31/R40 editor source remains unmodified pending its own release-gate reconciliation",
+    "All CI/typecheck/web export and focused regression gates pass before release"
+  ],
+  "regressionTests": [
+    "tests/buklod-desktop-navigation-20261107.test.mjs",
+    "tests/buklod-desktop-web-source-20261107.test.mjs",
+    "tests/buklod-connect-keyboard-web-20261107.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/connect/ConnectComposer.tsx",
+    "src/lib/buklodWebResponsivePolicy.ts",
+    "src/components/BuklodPublicDesktopDashboard.tsx",
+    "src/components/BuklodScopedDashboardHeader.tsx",
+    "src/components/points/BuklodProfileCharacterCard.tsx",
+    "tests/buklod-desktop-navigation-20261107.test.mjs",
+    "tests/buklod-desktop-web-source-20261107.test.mjs",
+    "tests/buklod-connect-keyboard-web-20261107.test.mjs",
+    "docs/BUKLOD_CENTERED_DESKTOP_DASHBOARDS_R3.md",
+    ".buklod/scopes/centered-desktop-dashboards-r3-20261107.json"
+  ]
+}

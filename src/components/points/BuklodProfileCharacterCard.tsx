@@ -4,6 +4,7 @@
 /* BUKLOD_CHARACTER_VISIBLE_SYNC_R31_R40_V2 */
 /* BUKLOD_PROFILE_TOP10_R1 */
 import React, {
+  Suspense,
   useCallback,
   useEffect,
   useRef,
@@ -26,8 +27,37 @@ import {
   MaterialCommunityIcons,
 } from '@expo/vector-icons';
 
-import BuklodCharacterCustomizeSheet
-  from '@/components/points/BuklodCharacterCustomizeSheet';
+// Isolate the Character Studio's heavy scene and render exceptions.
+const BuklodCharacterCustomizeSheet = React.lazy(
+  () => import('@/components/points/BuklodCharacterCustomizeSheet')
+);
+class CharacterStudioBoundary extends React.Component<{
+  children: React.ReactNode; onClose: () => void;
+}, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(error: unknown) {
+    console.warn('BUKLOD Character Studio render error:', error);
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <View style={{ padding: 18, gap: 10, alignItems: 'center' }}>
+        <Text style={{ fontSize: 14, fontWeight: '900' }}>
+          Character Studio could not load. Your selection is unchanged.
+        </Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Retry Character Studio"
+          onPress={() => this.setState({ failed: false })}>
+          <Text style={{ color: '#076B39', fontWeight: '800' }}>Try Again</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close Character Studio"
+          onPress={this.props.onClose}>
+          <Text style={{ color: '#076B39', fontWeight: '800' }}>Close</Text>
+        </Pressable>
+      </View>
+    );
+  }
+}
 
 import BuklodActiveCharacterArt
   from '@/components/points/BuklodActiveCharacterArt';
@@ -734,7 +764,12 @@ export default function BuklodProfileCharacterCard({
         </View>
       </ProfileMotionFadeUp>
 
-      <BuklodCharacterCustomizeSheet
+      {customizeOpen ? (
+        <CharacterStudioBoundary onClose={() => setCustomizeOpen(false)}>
+          <Suspense fallback={<View style={{ padding: 12 }}>
+            <Text>Opening Character Studio…</Text>
+          </View>}>
+            <BuklodCharacterCustomizeSheet
         visible={customizeOpen}
         onClose={() => setCustomizeOpen(false)}
         userId={userId}
@@ -750,7 +785,10 @@ export default function BuklodProfileCharacterCard({
             () => undefined,
           );
         }}
-      />
+            />
+          </Suspense>
+        </CharacterStudioBoundary>
+      ) : null}
     </>
   );
 }

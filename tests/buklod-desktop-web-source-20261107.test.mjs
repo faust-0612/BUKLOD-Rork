@@ -67,9 +67,9 @@ test('desktop public dashboard routes preserve phone and scoped shell boundaries
   assert.equal(p('/me', 1600), true);
   assert.equal(p('/clusters', 1600), true);
   assert.equal(p('/bible/read', 1600), true);
-  assert.equal(p('/scope', 1600), false);
+  assert.equal(p('/scope', 1600), true);
   assert.equal(p('/login', 1600), false);
-  assert.equal(p('/connect/personal/new', 1600), false);
+  assert.equal(p('/connect/personal/new', 1600), true);
   assert.equal(p('/hub', 1199), false);
   const nav = read('src/components/BuklodNavSafeShell.web.tsx');
   assert.match(nav, /BuklodPublicDesktopDashboard/);

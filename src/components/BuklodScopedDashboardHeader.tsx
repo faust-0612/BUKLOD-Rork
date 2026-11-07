@@ -1,9 +1,11 @@
 import React from 'react';
 
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import {
@@ -75,6 +77,10 @@ BuklodScopedDashboardHeader({
   onThemeChange,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { width: viewportWidth } = useWindowDimensions();
+  // Only Android/phone web owns status-bar padding; desktop chrome owns its top.
+  const scopedTopInset = Platform.OS === 'web' && viewportWidth >= 1200
+    ? 0 : insets.top;
 
   const normalizedType =
     String(scopeType ?? '')
@@ -98,7 +104,7 @@ BuklodScopedDashboardHeader({
   /* BUKLOD_V28_BLUE_SCOPE_LAYOUT_R1: stay BELOW the phone status bar. */
   if (showCommercialHeader) {
     return (
-      <View style={[styles.blueShell, { paddingTop: insets.top }]}>
+      <View style={[styles.blueShell, { paddingTop: scopedTopInset }]}>
         <View style={styles.blueTopRow}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back"
             onPress={onBack} hitSlop={BUKLOD_HIT_SLOP_TIGHT} style={styles.blueBack}>
@@ -126,7 +132,7 @@ BuklodScopedDashboardHeader({
       style={[
         styles.shell,
         {
-          paddingTop: insets.top,
+          paddingTop: scopedTopInset,
         },
       ]}
     >
