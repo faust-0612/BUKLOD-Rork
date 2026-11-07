@@ -1,5 +1,12 @@
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
+import BuklodPostMotion from '@/components/BuklodPostMotion';
+import BuklodPostMusicPicker from '@/components/BuklodPostMusicPicker';
+import { BUKLOD_POST_MOTION_PRESETS, loadBuklodPostCreatives, resolveBuklodPostMusicUrl,
+  saveBuklodPostCreative, type BuklodPostCreative, type BuklodPostMotionPreset,
+  type BuklodPostMusicTrack } from '@/lib/buklodPostCreatives';
+import { requestBuklodAudioFocus, subscribeBuklodAudioFocus } from '@/lib/buklodAudioFocus';
+import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 /* BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME: existing broadcast implementation preserved */
 /* PERF_EMERGENCY_R2_VISIBLE_POSTS: list-shape-drift-safely-skipped */
 /* PERF_EMERGENCY_R2_MULTI_MEDIA_CACHE: existing-community-media-url-cache-preserved */
@@ -868,6 +875,63 @@ function LegacyPublicBuklodScreen(){
   ]);
 
  const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
+ const [postCreatives,setPostCreatives]=useState<Record<string,BuklodPostCreative>>({});
+ const creativeIdsKey=useMemo(()=>posts.map(p=>String(p?.id??'')).filter(Boolean).join(','),[posts]);
+ useEffect(()=>{
+   if(!user?.id||!creativeIdsKey)return;
+   let cancelled=false;
+   void loadBuklodPostCreatives(creativeIdsKey.split(',')).then(result=>{
+     if(!cancelled)setPostCreatives(prev=>({...prev,...result}));
+   }).catch(error=>{
+     if(__DEV__)console.warn('BUKLOD post creative metadata:',error?.message??error);
+   });
+   return()=>{cancelled=true;};
+ },[creativeIdsKey,user?.id]);
+ // One shared feed/composer player: no per-post players or audio downloads on load.
+ const wallAudioPlayer=useAudioPlayer(null);
+ const wallAudioStatus=useAudioPlayerStatus(wallAudioPlayer);
+ const [wallAudioOwner,setWallAudioOwner]=useState('');
+ const [wallLoadedTrackId,setWallLoadedTrackId]=useState('');
+ const [wallAudioError,setWallAudioError]=useState('');
+ const wallAudioBusyRef=useRef(false);
+ useEffect(()=>subscribeBuklodAudioFocus(owner=>{
+   if(owner!=='wall-post'){
+     wallAudioPlayer.pause();
+     setWallAudioOwner('');
+   }
+ }),[wallAudioPlayer]);
+ const toggleWallMusic=async(track:BuklodPostMusicTrack,ownerKey:string)=>{
+   if(wallAudioBusyRef.current)return;
+   if(wallAudioOwner===ownerKey&&wallAudioStatus?.playing){
+     wallAudioPlayer.pause();return;
+   }
+   wallAudioBusyRef.current=true;
+   setWallAudioError('');
+   try{
+     await setIsAudioActiveAsync(true);
+     await setAudioModeAsync({playsInSilentMode:true,shouldRouteThroughEarpiece:false});
+     if(wallLoadedTrackId!==track.id||!wallAudioPlayer.isLoaded){
+       wallAudioPlayer.pause();
+       const url=await resolveBuklodPostMusicUrl(track);
+       wallAudioPlayer.replace(url);
+       const started=Date.now();
+       while(!wallAudioPlayer.isLoaded&&Date.now()-started<6500){
+         await new Promise<void>(done=>setTimeout(done,100));
+       }
+       if(!wallAudioPlayer.isLoaded)throw new Error('Music could not load. Please retry.');
+       setWallLoadedTrackId(track.id);
+     }
+     requestBuklodAudioFocus('wall-post');
+     wallAudioPlayer.volume=1;
+     wallAudioPlayer.play();
+     setWallAudioOwner(ownerKey);
+   }catch(error:any){
+     wallAudioPlayer.pause();
+     setWallAudioError(String(error?.message??'Music playback failed.'));
+   }finally{
+     wallAudioBusyRef.current=false;
+   }
+ };
  const notificationParams = useLocalSearchParams<{
   focusPostId?:string;
   focusComments?:string;
@@ -942,6 +1006,9 @@ function LegacyPublicBuklodScreen(){
  },[postFeedback]);
  const [communityGif,setCommunityGif]=useState<BuklodCommunityGifFile|null>(null);
  const [communityGifPickerOpen,setCommunityGifPickerOpen]=useState(false);
+ const [composerMusicPickerOpen,setComposerMusicPickerOpen]=useState(false);
+ const [composerMusicTrack,setComposerMusicTrack]=useState<BuklodPostMusicTrack|null>(null);
+ const [composerMotionPreset,setComposerMotionPreset]=useState<BuklodPostMotionPreset>('none');
 
  /* PATCH_186B_PHOTO_EDITOR_PUBLIC_STATE */
  const [
@@ -2495,6 +2562,8 @@ const load=useCallback(async(options?:{
    photos:
     [...photos],
    collageLayout,
+   musicTrack:composerMusicTrack,
+   motionPreset:wallVideo186O?'none' as BuklodPostMotionPreset:composerMotionPreset,
    wallVideo:
     wallVideo186O as {
      uri:string;
@@ -2520,6 +2589,8 @@ const load=useCallback(async(options?:{
  setBody('');
  setPhotos([]);
  setCollageLayout('grid');
+ setComposerMusicTrack(null);
+ setComposerMotionPreset('none');
  setCommunityComposerOpen(false); // Return to compact posting bar immediately.
  setPostFeedback('Publishing your post…');
  setWallVideo186O(null);
@@ -2773,6 +2844,23 @@ const load=useCallback(async(options?:{
     );
    }
 
+   if(createdPostId){
+    await saveBuklodPostCreative({
+      postId:createdPostId,userId:snapshot.userId,
+      musicTrackId:snapshot.musicTrack?.id??null,
+      motionPreset:snapshot.motionPreset,
+    });
+    setPostCreatives(previous=>({
+      ...previous,
+      [createdPostId!]:{
+        post_id:createdPostId!,
+        music_track_id:snapshot.musicTrack?.id??null,
+        motion_preset:snapshot.motionPreset,
+        music:snapshot.musicTrack,
+      },
+    }));
+   }
+
    if(
     createdPostId &&
     snapshot.mentions.length
@@ -2803,6 +2891,8 @@ const load=useCallback(async(options?:{
    setCommunityGif(current => current ?? snapshot.communityGif);
    setMentions(current => current.length ? current : snapshot.mentions);
    setCollageLayout(snapshot.collageLayout);
+   setComposerMusicTrack(current=>current??snapshot.musicTrack);
+   setComposerMotionPreset(snapshot.motionPreset);
    setCommunityComposerOpen(true);
    setPostFeedback('Post failed — your draft was restored');
 
