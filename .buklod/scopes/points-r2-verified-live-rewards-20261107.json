@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Make BUKLOD Points R2 rewards correspond to real earning workflows: Show Faith Bible Quiz, membership-verified Cluster attendance, photo-backed mentoring sessions, evidence-reviewed milestones, live ledger-based reward focus monitoring.",
-  "baseRef": "03e048aa1675abe0141e67432ed51ce4de928144",
-  "productionBaselineEvidence": "verified: Read-only inspected live BUKLOD Connect Supabase project yhanxndaqbmuzbdqlblu, canonical points rule table, canonical ledger, mentor and scope-attendance SQL functions, current permissions and schema on 2026-11-07. Verified repository merge-base 03e048aa1675abe0141e67432ed51ce4de928144; does NOT establish current production OTA artifact or justify release. No production migration applied.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Read-only audited production Supabase yhanxndaqbmuzbdqlblu canonical points rules, ledger, scope attendance, mentor and game RPC contracts 2026-11-07. CI compares PR merge against current main solely for change isolation; this does NOT assert main equals installed production OTA or authorized OTA release.",
   "chosenApproach": "Preserve existing ledger and claim RPCs; additive guarded migrations, validated new quiz path, photo-gated new mentoring approvals, authenticated-only dashboards and admin evidence review, deny direct attendance credit/debit execution.",
   "selectionRationale": "Prevents fake rewards and client-only credit creation, preserves current balances and old approved sessions, limits economics and CI costs; avoids rewriting academic Quiz or existing Kingdom XP.",
   "alternativeApproaches": [
