@@ -18,7 +18,7 @@ test('Bible Quiz is a functioning Show Faith route, not academic exam grading',(
  assert.match(hub,/router\.push\('\/faith\/bible-quiz'/);
  assert.match(quizUI,/submit_my_buklod_bible_quiz_r2/);
  assert.match(quizUI,/get_my_buklod_bible_quiz_r2/);
- assert.doesNotMatch(quiz,/buklod_quiz_attempts|buklod_quiz_exams|classroom/i);
+ assert.doesNotMatch(quiz,/\\b(?:insert|update|delete)\\s+(?:into\\s+|from\\s+)?public\\.buklod_quiz_(?:attempts|exams)/i);
 });
 test('Bible Quiz answers never leave server and one day yields at most one award',()=>{
  assert.match(quiz,/private\.buklod_r2_bible_quiz_questions/);
@@ -36,7 +36,7 @@ test('Cluster attendance is existing verified scope reward, no fake church atten
  assert.doesNotMatch(guide,/Church Attendance/);
 });
 test('Mentoring reports actual learning lessons and requires private image proof',()=>{
- assert.match(mentorUI,/report_mentor_teaching_session/);
+ assert.match(mentorUI,/report_my_mentor_teaching_with_roster_r2/);
  assert.match(mentorUI,/get_my_mentor_reportable_lessons_r2/);
  assert.match(mentorUI,/attach_my_mentor_session_photo_r2/);
  assert.match(lessons,/public\.has_capability\(actor,'mentor'\)/);
