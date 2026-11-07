@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {ActivityIndicator,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import {router} from 'expo-router';
+import * as Crypto from 'expo-crypto';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {colors} from '@/lib/theme';
@@ -55,7 +56,7 @@ export default function BsocInbox(){
    try{
      const {error:e}=await supabase.from('bsoc_case_messages').insert({
        case_id:caseId,sender_id:uid,sender_kind:'agent',body:draft.trim().slice(0,8000),
-       client_nonce:require('expo-crypto').randomUUID()
+       client_nonce:Crypto.randomUUID()
      });
      if(e)throw e;
      setDraft('');await loadThread();
