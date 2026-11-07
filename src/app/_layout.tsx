@@ -98,7 +98,9 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
           onPress={() => router.replace(
             (pathname.startsWith('/clusters') || pathname.startsWith('/scope')
               ? '/clusters'
-              : '/buklod') as any,
+              : pathname === '/buklod' || pathname.startsWith('/buklod/')
+                ? '/home'
+                : '/buklod') as any,
           )}
           style={styles.helpButton}
         >
