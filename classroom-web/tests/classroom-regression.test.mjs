@@ -42,3 +42,9 @@ test('overview navigation invalidates in-flight module loads', () => {
   assert.match(webSource,/if\(tab==='overview'\)\{\+\+state\.seq/);
   assert.match(webSource,/if \(id==='overview'\)\{\+\+state\.seq/);
 });
+
+test('connect live deep-link fails closed to secured web discussions, not a simulated live session', () => {
+  assert.match(webSource,/const DEFAULT_TAB = Object\.freeze\(\{CLASS:'overview',WORK:'activities',CONNECT:'discussions',MORE:'grades'\}\)/);
+  assert.match(webSource,/Live classroom sessions remain in the authorized BUKLOD app/);
+  assert.doesNotMatch(webSource,/APP_STATE\.liveSession/);
+});
