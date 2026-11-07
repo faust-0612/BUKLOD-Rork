@@ -15,8 +15,13 @@ test('PWA icon is the byte-identical 512px canonical BUKLOD PNG', () => {
   assert.equal(png.readUInt32BE(16),512);
   assert.equal(png.readUInt32BE(20),512);
   const manifest=JSON.parse(read('public/manifest.json').replace(/^\uFEFF/,''));
-  assert.deepEqual(manifest.icons.map(x=>x.src),['/buklod-brand-r2-512.png']);
-  assert.equal(manifest.icons[0].sizes,'512x512');
+  assert.deepEqual(manifest.icons.map(x=>x.src),['/buklod-brand-r2-192.png','/buklod-brand-r2-512.png']);
+  assert.equal(manifest.icons[0].sizes,'192x192');
+  assert.equal(manifest.icons[1].sizes,'512x512');
+  const icon192=bytes('public/buklod-brand-r2-192.png');
+  assert.equal(icon192.toString('hex',0,8),'89504e470d0a1a0a');
+  assert.equal(icon192.readUInt32BE(16),192);
+  assert.equal(icon192.readUInt32BE(20),192);
   assert.equal(existsSync(file('public/buklod-192.png')),false);
   assert.equal(existsSync(file('public/buklod-512.png')),false);
 });
@@ -29,6 +34,7 @@ test('web favicon canonical, Android icon remains untouched', () => {
   for(const p of ['public/index.html','src/app/+html.tsx']) {
     const s=read(p);
     assert.ok(s.includes('/buklod-brand-r2-512.png'),p);
+    assert.ok(s.includes('/buklod-brand-r2-192.png'),p);
     assert.doesNotMatch(s,/buklod-192\.png|buklod-512\.png|ZION/);
   }
 });
