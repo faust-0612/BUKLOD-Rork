@@ -257,29 +257,11 @@ export function formatFaithMonitoringRate(completed: number, total: number) {
 export async function fetchScopeFaithMonitoringSummary(
   scopeId: string
 ): Promise<ScopeFaithMonitoringSummary | null> {
-  const v3 = await supabase.rpc('buklod_scope_faith_monitoring_summary_v3' as any, {
+  const { data, error } = await supabase.rpc('buklod_scope_faith_monitoring_summary_v4' as any, {
     p_scope_id: scopeId,
   } as any);
 
-  if (!v3.error) return parseSummary(v3.data);
-  if (!isMissingRpcError(String(v3.error.message ?? ''))) throw v3.error;
-
-  const v2 = await supabase.rpc('buklod_scope_faith_monitoring_summary_v2' as any, {
-    p_scope_id: scopeId,
-  } as any);
-
-  if (!v2.error) return parseSummary(v2.data);
-  if (!isMissingRpcError(String(v2.error.message ?? ''))) throw v2.error;
-
-  const { data, error } = await supabase.rpc('buklod_scope_faith_monitoring_summary_v1', {
-    p_scope_id: scopeId,
-  });
-
-  if (error) {
-    if (isMissingRpcError(String(error.message ?? ''))) return null;
-    throw error;
-  }
-
+  if (error) throw error;
   return parseSummary(data);
 }
 
