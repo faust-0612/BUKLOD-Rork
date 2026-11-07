@@ -17,6 +17,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { supabase } from '@/lib/supabase';
 import { acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
 import { registerPushToken } from '@/lib/pushNotifications';
+import { emitBuklodEmergencySignal, isBuklodEmergencyId } from '@/lib/buklodEmergencySignal';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 
@@ -203,15 +204,24 @@ export default function BuklodCommunityHelp(){
       if(error)throw error;
       const requestId=String(data??'');
       setOpen(false);setMessage('');
-      await refresh();
-      if(kind==='EMERGENCY'&&requestId){
+      // The authenticated request exists. Surface the global dashboard now,
+      // not after a feed refresh or potentially slow push fan-out.
+      if(kind==='EMERGENCY'&&isBuklodEmergencyId(requestId)){
+        emitBuklodEmergencySignal({ incidentId: requestId, origin: 'sender' });
+      }
+      void refresh();
+      if(kind==='EMERGENCY'&&isBuklodEmergencyId(requestId)){
         const result=await supabase.functions.invoke('buklod-help-alert',{body:{request_id:requestId}});
-        Alert.alert(
-          result.error?'SOS posted':'SOS sent',
-          result.error
-            ? 'The alert is active on BUKLOD, but push delivery could not be confirmed. Contact official emergency services too.'
-            : 'Nearby eligible BUKLOD users were alerted. Contact official emergency services too when immediate danger exists.'
-        );
+        // Do not cover the new emergency screen with another success Alert.
+        // Failed dispatch is NOT failed emergency creation: keep SOS active.
+        if(result.error){
+          Alert.alert('SOS active · delivery unconfirmed',
+            'Your SOS is active on BUKLOD, but nearby push delivery could not be confirmed. Contact official emergency services too.');
+        }else if(Number((result.data as { recipients?: number } | null)?.recipients) === 0){
+          // A successful zero-recipient dispatch is NOT a successful rescue.
+          Alert.alert('SOS active · no nearby recipients',
+            'No eligible nearby BUKLOD users were found. Contact official emergency services directly.');
+        }
       }
     }catch(error:any){
       const raw=String(error?.message??'Please try again.');

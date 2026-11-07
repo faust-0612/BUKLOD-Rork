@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "objective": "Activate authenticated, account-isolated app-wide BUKLOD Emergency SOS overlays for nearby eligible recipients and initiating senders across existing screens; preserve SOS R1 anti-abuse and privacy baseline, support response/resolve, minimized chip, missed-push reconciliation and closed-app notification tap routing.",
+  "baseRef": "50cf765bad171348547e41cf0800a3b29a3c3da3",
+  "productionBaselineEvidence": "Inspected docs/COMMUNITY_HELP_SOS_R1_LOCK.md R1 protected invariants and current default main 3512c1be015d0ad9f70ea07990739b0a4d438147. Existing SOS backend emits authenticated community_emergency notification rows for opted-in fresh presence in density-selected 1/3/5 km radius, current native NotificationProvider routes tapped SOS to generic Public Wall. Actual latest production OTA bundle and device delivery are not verified; this change is DEV until verified RC and production OTA. Reconciled against main 50cf765bad171348547e41cf0800a3b29a3c3da3. Concurrent desktop/web changes have no overlapping SOS paths.",
+  "chosenApproach": "Keep existing privileged SOS request RPC, 2s hold/local device authentication, Edge fanout, RLS, 1/3/5km recipient eligibility and push webhook unchanged. Add typed in-app event coordination, native push received bridge, root in-app Modal above all routes with sender/recipient state, explicit action buttons and minimized persistent chip. On recipient lookup, verify current-user canonical notification row AND active proximity-gated buklod_help_list_nearby RPC before revealing any incident detail or accepting response. On sender lookup, verify creator-owned emergency via RLS and keep owner resolve available even with stale presence. Avoid per-user Realtime channels; Expo push primary with 45-second bounded foreground inbox fallback and 15-second refresh for one active incident. Web uses authenticated foreground inbox polling. Do not force an OS screen above other apps, claim government Cell Broadcast, or send duplicate push.",
+  "selectionRationale": "User requests interruptive notification above any BUKLOD page, even when viewing other content, and a sender response console. Existing SOS has server security but no global overlay or targeted app destination. A root host with canonical verification is compatible with current Expo OTA runtime/native modules, respects user opt-in/location privacy, does not rewrite backend/notification systems and avoids 1M-user permanent database subscriptions.",
+  "alternativeApproaches": [
+    "Install an Android full-screen intent/service to open over other apps (rejected: platform restrictions, native rebuild required, not available to ordinary safety apps)",
+    "Use Realtime postgres_changes subscription for every signed-in BUKLOD member (rejected: database connection/cost scaling, historic notification subscription removal)",
+    "Replace existing HELP/SOS RPCs and push dispatch with a new broadcast service (rejected: threatens locked anti-abuse, authenticated proximity, privacy and idempotence)",
+    "Trust data in push notification for incident coordinates or response (rejected: stale tokens/account crossover and spoofable payload)"
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "emergency-safety",
+    "auth-privacy",
+    "weak-network-resilience",
+    "notification-routing",
+    "account-isolation",
+    "production-boundary"
+  ],
+  "preserveBehaviors": [
+    "Emergency SOS continues through protected authenticated send with long press and local authentication, independent of points or ads",
+    "1/3/5 km proximity, 5km maximum fan-out, fresh opt-in presence, bounded radius, cooldown, one active emergency, expiry and canonical RLS unchanged",
+    "Exact location remains server-side; only approximate distance from nearby RPC shown",
+    "Push dispatch stays canonical community_emergency notifications and single webhook, not double Expo push",
+    "Android notification channel capabilities and existing runtime remain unchanged; old clients still use fallback channel",
+    "Existing message/cluster invite/PTT push routing, background call behavior, other app stacks and drafts unchanged",
+    "Recipient actions are server-side authorized by buklod_help_respond; only creator can resolve; no unverified or stale push can reveal incident details",
+    "No new per-account Realtime subscription; no extra native dependencies, service permission, backend migrations or schema changes",
+    "All accounts own separate dismissed IDs and overlay state; logout clears state; offline never fabricates alert activity or delivery counts",
+    "No claim of guaranteed push receipt, OS-level full-screen intrusion, location background service, or emergency-services integration"
+  ],
+  "regressionTests": [
+    "tests/sos-global-emergency-overlay-20261107.test.mjs",
+    "tests/sos-global-navigation-scroll-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Sender sees an in-app SOS control overlay after canonical emergency created, even if push fan-out is delayed/fails; can resolve through protected RPC",
+    "When an authenticated opted-in recipient receives push while using BUKLOD, an interruptive verified overlay appears above Home, Wall, Cluster, Connect, Profile",
+    "App background/closed receives high priority existing notification; tap opens current incident without destroying composer drafts",
+    "During reopened session, missed nearby push is discovered via current account's canonical notifications and active proximity RPC",
+    "Recipient sees approximate distance, category and message without raw coordinates; can help, on my way, cannot help, flag with confirmation",
+    "User can minimize/back; persistent mini indicator remains while incident active; same incident does not repeatedly pop after dismiss",
+    "Sender sees real response counts if authorized nearby RPC available; no fabricated physical push receipt metrics",
+    "Expired, resolved, unauthorized, no-longer-nearby or wrong-account events fail closed with safe retry, not stale incident detail",
+    "No existing SOS baseline invariants weakened, native app identity/runtimes unchanged",
+    "Engineering, TypeScript/Performance and Integration/Web checks pass exact PR head before DEV merge; production requires separate verified Android OTA and on-device acceptance"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodEmergencySignal.ts",
+    "src/components/BuklodGlobalEmergencyHost.tsx",
+    "src/components/BuklodEmergencyPushBridge.tsx",
+    "src/components/BuklodEmergencyPushBridge.native.tsx",
+    "src/components/BuklodEmergencyPushBridge.web.tsx",
+    "src/app/_layout.tsx",
+    "src/components/BuklodCommunityHelp.tsx",
+    "src/providers/NotificationProvider.tsx",
+    "tests/sos-global-emergency-overlay-20261107.test.mjs",
+    "tests/sos-global-navigation-scroll-20261107.test.mjs",
+    ".buklod/scopes/sos-global-emergency-overlay-r2-20261107.json"
+  ]
+}
