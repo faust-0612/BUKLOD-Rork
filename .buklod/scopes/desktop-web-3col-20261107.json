@@ -34,7 +34,8 @@
     "Home quick actions, Bible, Wall composer handoff, authentic chats and contact links open working underlying screens",
     "A different user never sees stale Connect or Contribution records",
     "No source/DB/Android OTA/production web release is made from this DEV PR",
-    "Desktop test, TypeScript and engineering accountability gates pass before merging"
+    "Desktop test, TypeScript and engineering accountability gates pass before merging",
+    "At >=1200px desktop conversation/post detail pages rendered by fallback MobileWebShell have no bottom navigation, use centered maximum-width content, and retain phone nav below 1200px"
   ],
   "allowedPaths": [
     "src/components/BuklodPublicDesktopDashboard.tsx",
@@ -48,6 +49,7 @@
     "tests/buklod-desktop-web-source-20261107.test.mjs",
     "tests/buklod-desktop-navigation-20261107.test.mjs",
     "docs/BUKLOD_DESKTOP_WEB_SOURCE.md",
-    ".buklod/scopes/desktop-web-3col-20261107.json"
+    ".buklod/scopes/desktop-web-3col-20261107.json",
+    "src/components/BuklodMobileWebShell.tsx"
   ]
 }

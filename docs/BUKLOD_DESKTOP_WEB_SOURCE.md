@@ -68,3 +68,12 @@ The existing Android/phone web bottom navigation is unchanged.
 Android OTA, DB migration or backend RPC mutation is part of this change.
 Before publication, verify desktop widths 1200/1440/1920, phone web, Cluster
 routing, web auth, scoped account switching, and original Wall media.
+
+## Desktop detail-page fallback
+
+The `BuklodMobileWebShell` keeps its existing phone navigation below 1200px.
+When a wide browser opens a detail route not owned by the three-column shell
+(for example an individual Connect thread), it does **not** mount the mobile
+bottom navigation. Its content is limited to a centered 1190px container.
+Login/policy/system routes and non-dashboard immersive views remain outside
+this new fallback rule.
