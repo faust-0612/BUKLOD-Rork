@@ -37,3 +37,16 @@ test('Mentor approvals use System Admin only with attendee, location and private
  assert.match(admin,/admin_review_mentor_session_r3/);
  assert.match(admin,/admin_review_buklod_home_checkin_r3/);
 });
+
+test('Admin sees full names, event venue/time, mentor attendees and teaching location without public exposure',()=>{
+ const db=read('supabase/migrations/20261107234000_buklod_points_r3_admin_evidence_details.sql');
+ const admin=read('src/app/admin/points-r2-monitor.tsx');
+ assert.match(db,/public\.is_system_admin\(\)/);
+ assert.match(db,/session_location/);
+ assert.match(db,/mentor_notes/);
+ assert.match(db,/mentor_session_attendees/);
+ assert.match(db,/member_name/);
+ assert.match(db,/checked_in_at/);
+ assert.match(admin,/member_name/);
+ assert.match(admin,/attendees/);
+});
