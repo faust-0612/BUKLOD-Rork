@@ -38,7 +38,11 @@ const generatedDirs=/^(?:node_modules|\.next|\.expo|\.gradle|\.cache|\.turbo|\.p
 const generatedFiles=/\.(?:tmp|cache|pyc|o|obj|class|dex|dSYM|gcda|gcno|pch|log)$/i;
 const sensitive=/(?:^|[\\/])(?:\.env(?:\..*)?|\.npmrc|\.netrc|gradle\.properties|google-services\.json|GoogleService-Info\.plist|id_rsa|id_ed25519|[^\\/]*(?:credential|service[-_.]?account|firebase-adminsdk|secret|private[-_.]?key)[^\\/]*)$|\.(?:pem|key|jks|keystore|p12|pfx|gpg|asc)$/i;
 const nonBUKLOD=/(?:^|[\\/])(?:_PHONE_RESTORE|PHONE_RECOVERY)(?:[\\/]|$)|(?:^|[\\/])(?:Kingdom\.Of\.The\.Planet\.Of\.The\.Apes|Godzilla\.X\.Kong)[^\\/]*\.(?:mp4|mkv|avi)$|\.(?:iso)$/i;
-const protectedFolders=/^(?:\.git|\.svn|\.hg)$/i;
+const protectedFolders=/^(?:\\.git|\\.svn|\\.hg)$/i;
+const mutableLocalData=/\\.(?:sqlite3?|db3?|db|realm|ldb|bak|dump)$/i;
+const mixedLegacyRoot=/(?:^|[\\\\/])BUKLOD_D_(?:BACKUP|RESCUE)[^\\\\/]*(?:[\\\\/]|$)/i;
+const personalMedia=/\\.(?:mp4|mov|mkv|avi|heic|jpe?g)$/i;
+const personalFolder=/(?:^|[\\\\/])(?:Downloads?|DCIM|Camera|Pictures|Videos|Music|Documents)(?:[\\\\/]|$)/i;
 const forbiddenBase=/^(?:[a-z]:\\?|[a-z]:\\users\\[^\\]+|[a-z]:\\users\\[^\\]+\\(?:desktop|documents|downloads|pictures|videos|onedrive|appdata)|[a-z]:\\(?:program files(?: \(x86\))?|windows|users|programdata|recovery))\\?$/i;
 const rootCategories=new Set(["main","quiz","classroom","faculty","attendance","kl","igpat","quickcheck","report","bsoc","kingdom","misc"]);
 const norm=p=>path.resolve(p).toLowerCase();
@@ -83,6 +87,14 @@ function blob(file,size){
 function riskProtect(file){
  if(sensitive.test(file))return "sensitive";
  if(nonBUKLOD.test(file))return "personal";
+ // A local database/backup may be actively used even if an old archive
+ // contains identical bytes. It requires an app-specific database cutover.
+ if(mutableLocalData.test(file))return "unproven";
+ // Mixed historical rescue/Download trees contain unrelated personal media.
+ // Never infer that BUKLOD-named parent directory makes them app assets.
+ if(mixedLegacyRoot.test(file)&&
+   (personalFolder.test(file)||personalMedia.test(file))&&
+   !basenameProduct.test(path.basename(file)))return "personal";
  return null;
 }
 function candidateRoot(p,allowGroup=false){
@@ -255,6 +267,10 @@ function selfTest(){
     "Gradle credentials must survive local cleanup");
   assert(riskProtect("D:\\BUKLOD\\android\\app\\google-services.json")==="sensitive",
     "Firebase credentials must survive local cleanup");
+  assert(riskProtect("D:\\\\BUKLOD_D_RESCUE_20261016\\\\Photos\\\\portrait.jpg")==="personal",
+    "Personal recovery photos must be retained");
+  assert(riskProtect("D:\\\\BUKLOD\\\\state\\\\attendance.sqlite")==="unproven",
+    "Local mutable databases require app-specific migration proof");
   assert(generatedDirs.test("node_modules")&&generatedDirs.test("build"),
     "Cache classification invalid");
   const mockRoot=path.join(dir,"demo"),nested=path.join(mockRoot,"build");
