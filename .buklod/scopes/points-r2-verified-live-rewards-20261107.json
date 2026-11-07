@@ -112,7 +112,8 @@
     "Scheduler and event delivery are serialized, cap recipients per minute and retain push notification preferences",
     "Wall greeting is compact/expandable and does not move first-view ad or leak birth dates",
     "Isolated SQL/cron/privacy, real push, scale, opt-out and authenticated navigation E2E must pass before release",
-    "Each of the 39 selectable Kingdom games exposes optional authenticated post-win Mastery Check: private server questions, randomized options, bounded attempts, account-locked idempotent +2 BP first-only claim. No client game win result itself grants points."
+    "Each of the 39 selectable Kingdom games exposes optional authenticated post-win Mastery Check: private server questions, randomized options, bounded attempts, account-locked idempotent +2 BP first-only claim. No client game win result itself grants points.",
+    "Before any live production deployment, CI compiles the exact PR SHA to V28 Android runtime 1.3.2 and Main Expo Hosting web, verifies canonical package and Expo project and produces actual export artifacts without publishing."
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -372,6 +373,7 @@
     "tests/wall-post-music-navigation-scroll.test.mjs",
     "supabase/migrations/20261108030000_buklod_kingdom_mastery_challenges_v2.sql",
     "src/features/games/kingdom/platform/KingdomMasteryCheck.tsx",
-    "tests/kingdom-certified-mastery-39-20261108.test.mjs"
+    "tests/kingdom-certified-mastery-39-20261108.test.mjs",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml"
   ]
 }
