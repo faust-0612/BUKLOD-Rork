@@ -26,7 +26,8 @@
     "R3: mentoring report with actual assigned mentees, location, photo and Admin-only approval; lesson completion remains independent",
     "R3: KL verified first chapter completion +5, all 30 chapter series completion +30, no retroactive mutation",
     "R3: optional post-success interstitial opportunities for point submissions and existing claims, never before verifying or as a prerequisite",
-    "Admin sees member full name, Cluster event venue/date and full mentoring participant names, lesson, teaching notes, venue and photo in authorized-only review"
+    "Admin sees member full name, Cluster event venue/date and full mentoring participant names, lesson, teaching notes, venue and photo in authorized-only review",
+    "Daily Bible Quiz and Check In Today appear on canonical public Home tab, not only scoped Show Faith or academic Quiz"
   ],
   "preserveBehaviors": [
     "Canonical Lifetime/Available/Pending->Claim ledger and idempotent unique source",
@@ -56,6 +57,7 @@
   ],
   "allowedPaths": [
     ".buklod/scopes/points-r2-verified-live-rewards-20261107.json",
+    "src/app/(tabs)/home.tsx",
     "src/app/admin/index.tsx",
     "src/app/admin/points-r2-monitor.tsx",
     "src/app/faith/bible-quiz.tsx",
