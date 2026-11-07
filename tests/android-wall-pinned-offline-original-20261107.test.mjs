@@ -65,7 +65,7 @@ test('Offline storage has a per-user cap, eviction, deduplication and bounded I/
 });
 
 test('Wall visuals remain original-resolution, and photo rendering remains shared across all scopes', () => {
-  assert.equal((collage.match(/useWallPreview=\{false\}/g) || []).length, 2);
+  assert.ok((collage.match(/useWallPreview=\{false\}/g) || []).length >= 3, 'grid, single and swipe use originals');
   assert.match(android, /source=\{\{ uri: actual\.url, cacheKey \}\}/);
   assert.match(android, /decideAndroidPhotoRecovery/);
   const publicWall = read('src/app/(tabs)/buklod.tsx');
