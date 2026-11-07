@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Complete the BUKLOD Kingdom 39-game modular blueprint and deliver three locally playable DEV pilots (Bible Crown, Block Forge and Scripture Word Search) inside existing character stations, without changing map, Empire, Character V2 economy, ads controller or native release.",
-  "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub main production-source comparator at 59fe3df64700465ae3f37726e73a31d07c748042 after November Word publication, and canonical Kingdom map blob 88a4b1b4a70fc4acd59579419058b47f21be2554 unchanged. Live Android production OTA fingerprint was NOT verified; this DEV change is not authorized for release. Compare against current main in CI to avoid falsely treating concurrently merged Word changes as part of this isolated Kingdom objective.",
+  "baseRef": "8f5ccc527abb8b570cf30fd73193d1b54e04cc62",
+  "productionBaselineEvidence": "verified: Current GitHub main source at 59fe3df64700465ae3f37726e73a31d07c748042 includes independent November Word publication. The exact R2 parent source is Kingdom R1 commit 8f5ccc527abb8b570cf30fd73193d1b54e04cc62; this scope compares that immutable source snapshot so unrelated Word files cannot be included or rolled back. Canonical Kingdom map remains Git blob 88a4b1b4a70fc4acd59579419058b47f21be2554. This is not verified Android production and no release is permitted.",
   "chosenApproach": "Keep immutable 13-station map and original games. Extend R1 Christian pilot with a deterministic 3-level Bible Word Search; add Mitch Block Forge 8x8 pure rules and UI; account-scoped zero-payout previews; focused game-rule regression tests.",
   "selectionRationale": "Use existing Expo web/native game stage and sound/haptic feedback. Pure deterministic puzzle engines are inexpensive, fast, offline-ready, and independently testable while leaving the production economy and native runtime untouched.",
   "alternativeApproaches": [
