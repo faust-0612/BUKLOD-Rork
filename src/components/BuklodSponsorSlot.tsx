@@ -19,6 +19,8 @@ import {
   MaterialCommunityIcons,
 } from '@expo/vector-icons';
 
+import { router } from 'expo-router';
+
 import {
   supabase,
 } from '@/lib/supabase';
@@ -473,7 +475,16 @@ export default function BuklodSponsorSlot({
 
       ) : (
 
-        <View style={styles.card}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Advertise your business on BUKLOD"
+          testID="buklod-sponsor-advertise"
+          onPress={() => router.push('/advertise' as any)}
+          style={({ pressed }) => [
+            styles.card,
+            pressed && { opacity: 0.78 },
+          ]}
+        >
 
           <View style={styles.icon}>
 
@@ -502,7 +513,7 @@ export default function BuklodSponsorSlot({
 
           </View>
 
-        </View>
+        </Pressable>
 
       )}
 
