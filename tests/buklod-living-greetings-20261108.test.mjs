@@ -50,7 +50,7 @@ test('Notifications use explicit safe routes, real approved KL releases and no e
   assert.match(migration,/created_at < now\(\)-interval '120 days'/);
 });
 
-test('Prominent Wall banner is compact/expandable, preserves first-view ads and provides privacy controls',()=>{
+test('Living interaction strip is compact, expandable and leaves the first-view ad intact',()=>{
   assert.match(banner,/setExpanded\(value=>!value\)/);
   assert.match(banner,/numberOfLines=\{expanded\?3:1\}/);
   assert.match(banner,/new_member_count/);
@@ -80,7 +80,7 @@ test('Exactly numbered KL release is announced only after publish time, includin
   assert.match(migration,/\*\/5 \* \* \* \*/);
 });
 test('The interaction strip is automatic, rotates verified events and never asks for birthday approval',()=>{
-  assert.match(migration,/birthday:'\|\|v_user\.id|birthday:'\|\|v_user\.id/);
+  assert.match(migration,/birthday:'\|\|v_user\.id::text/);
   assert.match(banner,/useFocusEffect/);
   assert.match(banner,/Next community update/);
   assert.doesNotMatch(banner,/admin approval|Approve Birthday|Birthday approval/i);
