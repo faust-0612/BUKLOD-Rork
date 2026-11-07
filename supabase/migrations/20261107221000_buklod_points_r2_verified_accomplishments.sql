@@ -128,9 +128,11 @@ as $$
  from public.buklod_point_rules r
  where r.activity_type in (
  'abc_growth_lesson','community_reaction','community_comment','community_post',
+ 'daily_bible','devotional','formation_lesson','stage_completion',
+ 'scope_attendance','event_attendance','mentor_session','mentoring_release','weekly_consistency',
  'daily_bible_reading','daily_devotional_reflection',
  'bible_quiz_easy','bible_quiz_medium','bible_quiz_hard',
- 'formation_assessment','formation_module','verified_church_attendance',
+ 'formation_assessment','formation_module','verified_cluster_attendance',
  'verified_volunteer_service','verified_mentoring_session',
  'bible_weekly_streak','consistency_30_day','ministry_major_milestone',
  'kl_episode','kl_season','game_first_qualified','game_medium_win',
