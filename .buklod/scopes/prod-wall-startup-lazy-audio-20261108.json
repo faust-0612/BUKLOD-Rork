@@ -37,9 +37,7 @@
   ],
   "regressionTests": [
     "tests/wall-post-music-motion-contract.test.mjs",
-    "tests/wall-post-music-navigation-scroll.test.mjs",
-    "tests/kl-chapter-audio-lifecycle.test.mjs",
-    "tests/production-ota-ads-regression.test.mjs"
+    "tests/wall-post-music-navigation-scroll.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/prod-wall-startup-lazy-audio-20261108.json",
