@@ -36,6 +36,7 @@ export default function SupportCenter(){
           <Text style={shared.muted}>Quick answers about privacy, pilot testing, notifications, and common app workflows.</Text>
           <TextInput value={query} onChangeText={setQuery}
             placeholder="Search help..." style={styles.search}/>
+          <Button title="LIVE SUPPORT · CHAT / PHOTO / VIDEO" onPress={()=>router.push('/support/live' as any)}/>
           <Button title="SEND FEEDBACK" onPress={()=>router.push('/feedback')}/>
         </View>}
         ListEmptyComponent={<Card><Text style={shared.muted}>No help article matches your search.</Text></Card>}
