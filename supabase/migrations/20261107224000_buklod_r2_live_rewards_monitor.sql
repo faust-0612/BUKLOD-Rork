@@ -1,3 +1,33 @@
+-- Canonical 30-day analytics classification. Unmatched ledger events remain 'other'.
+create or replace function private.buklod_r2_focus_classify_v1(p_type text)
+returns text language sql immutable set search_path=''
+as $$
+ select case
+ when p_type in (
+   'community_post','community_comment','community_reaction','community_poll_vote',
+   'community_dugtong','community_chain_resolve','community_challenge_complete',
+   'community_helpful_dugtong','community_takeaway_share','prayer_response',
+   'r36_publish_wall','r36_publish_reel','r36_engager_reaction',
+   'r36_engager_comment','r36_engager_reply','r36_creator_impact',
+   'r36_publish_reel','event_attendance','scope_attendance',
+   'verified_cluster_attendance','weekly_consistency') then 'participation'
+ when p_type in (
+   'daily_bible','daily_bible_verification','devotional','abc_growth_lesson',
+   'formation_lesson','formation_assessment','formation_module',
+   'learning_progress_verification','stage_completion','reflection_quality_bonus',
+   'daily_devotional_reflection','daily_bible_reading',
+   'bible_quiz_easy','bible_quiz_medium','bible_quiz_hard',
+   'bible_weekly_streak','consistency_30_day') then 'learning'
+ when p_type in (
+   'mentor_session','mentoring_release','ministry_activity',
+   'verified_mentoring_session','verified_volunteer_service',
+   'ministry_major_milestone','achievement_bible_scholar',
+   'achievement_community_builder','achievement_faithful_mentor',
+   'achievement_kingdom_champion') then 'impact'
+ else 'other' end
+$$;
+revoke all on function private.buklod_r2_focus_classify_v1(text) from public,anon,authenticated;
+
 -- Explicitly activated only for evidence-reviewed, admin-approved accomplishments.
 -- User submissions NEVER mint points directly. One nomination per user/achievement.
 update public.buklod_point_rules
@@ -107,29 +137,7 @@ returns jsonb language sql stable security definer set search_path=''
 as $$
 with labels as (
  select l.points,l.claim_state,
- case
- when l.activity_type in (
-   'community_post','community_comment','community_reaction','community_poll_vote',
-   'community_dugtong','community_chain_resolve','community_challenge_complete',
-   'community_helpful_dugtong','community_takeaway_share','prayer_response',
-   'r36_publish_wall','r36_publish_reel','r36_engager_reaction',
-   'r36_engager_comment','r36_engager_reply','r36_creator_impact',
-   'r36_publish_reel','event_attendance','scope_attendance',
-   'verified_cluster_attendance','weekly_consistency') then 'participation'
- when l.activity_type in (
-   'daily_bible','daily_bible_verification','devotional','abc_growth_lesson',
-   'formation_lesson','formation_assessment','formation_module',
-   'learning_progress_verification','stage_completion','reflection_quality_bonus',
-   'daily_devotional_reflection','daily_bible_reading',
-   'bible_quiz_easy','bible_quiz_medium','bible_quiz_hard',
-   'bible_weekly_streak','consistency_30_day') then 'learning'
- when l.activity_type in (
-   'mentor_session','mentoring_release','ministry_activity',
-   'verified_mentoring_session','verified_volunteer_service',
-   'ministry_major_milestone','achievement_bible_scholar',
-   'achievement_community_builder','achievement_faithful_mentor',
-   'achievement_kingdom_champion') then 'impact'
- else 'other' end as focus
+ private.buklod_r2_focus_classify_v1(l.activity_type) as focus
  from public.buklod_points_ledger l
  where l.user_id=(select auth.uid()) and l.direction='credit'
  and l.created_at>=now()-interval '30 days'
@@ -174,14 +182,26 @@ begin
  select jsonb_build_object(
  'window','last_30_days','as_of',now(),
  'activities',(select coalesce(jsonb_agg(jsonb_build_object(
-  'type',r.activity_type,'label',r.label,'configured_points',r.base_points,
+  'type',coalesce(r.activity_type,e.activity_type),
+  'label',coalesce(r.label,replace(e.activity_type,'_',' ')),
+  'configured_points',r.base_points,
   'active',r.is_active,'earned_count',coalesce(e.n,0),
-  'earned_points',coalesce(e.total,0)) order by r.activity_type),'[]'::jsonb)
+  'earned_points',coalesce(e.total,0),
+  'source',case when r.activity_type is null then 'ledger_without_current_rule' else 'rule_catalog' end
+  ) order by coalesce(r.activity_type,e.activity_type)),'[]'::jsonb)
  from public.buklod_point_rules r
- left join (select activity_type,count(*) n,sum(points) total
+ full outer join (select activity_type,count(*) n,sum(points) total
    from public.buklod_points_ledger where direction='credit'
    and created_at>=now()-interval '30 days' group by activity_type) e
  on e.activity_type=r.activity_type),
+ 'focus',(select jsonb_build_object(
+    'total',coalesce(sum(l.points),0),
+    'participation',coalesce(sum(l.points) filter(where private.buklod_r2_focus_classify_v1(l.activity_type)='participation'),0),
+    'learning',coalesce(sum(l.points) filter(where private.buklod_r2_focus_classify_v1(l.activity_type)='learning'),0),
+    'impact',coalesce(sum(l.points) filter(where private.buklod_r2_focus_classify_v1(l.activity_type)='impact'),0),
+    'unclassified',coalesce(sum(l.points) filter(where private.buklod_r2_focus_classify_v1(l.activity_type)='other'),0))
+    from public.buklod_points_ledger l where l.direction='credit'
+    and l.created_at>=now()-interval '30 days'),
  'nominations',(select jsonb_build_object(
    'pending',count(*) filter(where status='pending'),
    'approved',count(*) filter(where status='approved'),
