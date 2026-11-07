@@ -93,7 +93,7 @@ try {
   $proc.StandardInput.WriteLine($plain)
   $proc.StandardInput.Close()
   $plain = $null
-  [IO.File]::WriteAllText($Output, $proc.StandardOutput.ReadToEnd(), (New-Object System.Text.UTF8Encoding($false)))
+  [IO.File]::WriteAllText($Output, $proc.StandardOutput.ReadToEnd(), [System.Text.UTF8Encoding]::new($false))
   $err = $proc.StandardError.ReadToEnd()
   $proc.WaitForExit()
   if ($proc.ExitCode -ne 0) {
