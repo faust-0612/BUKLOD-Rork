@@ -5113,7 +5113,7 @@ const communityFeedRows =
      flexDirection:'row',
      alignItems:'center',
      gap:10,
-     marginBottom:6
+     marginBottom:0
     }}
    >
     <View style={{flex:1}}>
@@ -5123,7 +5123,7 @@ const communityFeedRows =
      flexDirection:'row',
      alignItems:'center',
      gap:10,
-     marginBottom:6
+     marginBottom:0
     }}
    >
     <BuklodTappableAvatar
