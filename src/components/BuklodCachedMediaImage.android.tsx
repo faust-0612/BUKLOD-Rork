@@ -21,6 +21,13 @@ import {
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useNetwork } from '@/providers/NetworkProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import {
+  peekPinnedCommunityWallPhoto,
+  loadCachedCommunityWallPhoto,
+  pinLoadedCommunityWallPhoto,
+  invalidateCachedCommunityWallPhoto,
+} from '@/lib/communityWallPinnedPhotoCache';
 
 import {
   communityMediaCacheKey,
@@ -59,14 +66,24 @@ type SourceState = {
 // Check infrequently only while a photo is mounted and not yet painted.
 const WATCHDOG_INTERVAL_MS = 3_000;
 
-function initialSource(identity: string, path: string, preferred: string, preferNative = false): SourceState {
+function initialSource(
+  identity: string,
+  path: string,
+  preferred: string,
+  preferNative = false,
+  cachedLocalUri: string | null = null,
+): SourceState {
+  // Never start a new remote request before the offline-original lookup.
+  // Signed URL refreshes must not cause already displayed originals to reload.
+  const local = cachedLocalUri ||
+    (/^(file|content):\/\//i.test(preferred) ? preferred : null);
   return {
     identity,
-    url: peekCommunityMediaUrl(path, preferred) || (!path ? preferred || null : null),
+    url: local || (!path ? peekCommunityMediaUrl(path, preferred) || preferred || null : null),
     failed: false,
     renderer: preferNative ? 'native' : 'expo',
     painted: false,
-    fromDiskCache: false,
+    fromDiskCache: Boolean(local),
     alternateAttempted: false,
   };
 }
@@ -413,8 +430,14 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   // Never pass the original signed URL as a preference for the preview: it
   // refers to the wrong bytes and would poison the stable preview cache key.
   const preferred = usingPreview ? '' : String(uri ?? '').trim();
-  const identity = path || `url:${preferred}`;
+  const { session } = useAuth();
+  const ownerId = session?.user?.id ?? null;
+  // Changing accounts must never reuse the previous user's already painted tile.
+  const identity = `${ownerId ?? 'signed-out'}:${path || `url:${preferred}`}`;
   const cacheKey = communityMediaCacheKey(path, path ? path : preferred);
+  const hotPhoto = ownerId && path
+    ? peekPinnedCommunityWallPhoto(ownerId, path)
+    : null;
   const signRetryRef = useRef(0);
   const resignInFlightRef = useRef(false);
   const progressRef = useRef({ uri: '', startedAt: Date.now(), lastProgressAt: 0, bytes: 0, decodedAt: 0 });
@@ -424,8 +447,11 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   const canRequest = isConnected && isInternetReachable !== false;
   const canRequestRef = useRef(canRequest);
   canRequestRef.current = canRequest;
-  const [source, setSource] = useState<SourceState>(() => initialSource(identity, path, preferred, usingPreview));
-  const actual = source.identity === identity ? source : initialSource(identity, path, preferred, usingPreview);
+  const [source, setSource] = useState<SourceState>(() =>
+    initialSource(identity, path, preferred, usingPreview, hotPhoto));
+  const actual = source.identity === identity
+    ? source
+    : initialSource(identity, path, preferred, usingPreview, hotPhoto);
   // Every callback is tied to the currently selected media identity, URL and renderer.
   // Recycled FlashList cells can finish an old request after a new post occupies the tile.
   const activeImageRef = useRef({ identity, url: actual.url, renderer: actual.renderer });
@@ -437,9 +463,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     resignInFlightRef.current = false;
     // Reconnection must not reset a previously painted tile.
     if (actual.identity === identity && actual.painted) return;
-    const first = retryEpoch
-      ? { ...initialSource(identity, path, preferred, usingPreview), url: null }
-      : initialSource(identity, path, preferred, usingPreview);
+    const first = initialSource(identity, path, preferred, usingPreview, hotPhoto);
     setSource(first);
 
     void (async () => {
@@ -448,30 +472,29 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       // or downloading the same bytes after reopening or scrolling.
       if (path && cacheKey && !badCacheKeys.current.has(cacheKey)) {
         try {
-          // Resolve the original locally before signing; Expo onDisplay is
-          // required before treating previously cached pixels as painted.
-          // A stalled cache lookup must never delay first-time URL signing.
+          // Private persisted ORIGINAL first; the Expo Image cache second.
+          // Both are local-only reads. No signing or redownload when offline.
           let cacheTimer: ReturnType<typeof setTimeout> | null = null;
           const cached = await Promise.race([
-            ExpoImage.getCachePathAsync(cacheKey).catch(() => null),
+            ownerId
+              ? loadCachedCommunityWallPhoto({ owner: ownerId, mediaPath: path, cacheKey })
+              : ExpoImage.getCachePathAsync(cacheKey).then(file =>
+                  file ? (/^(file|content):\/\//i.test(file) ? file : `file://${file}`) : null),
             new Promise<null>(resolve => {
-              cacheTimer = setTimeout(() => resolve(null), 800);
+              cacheTimer = setTimeout(() => resolve(null), 2_400);
             }),
           ]).finally(() => {
             if (cacheTimer) clearTimeout(cacheTimer);
           });
           if (!active) return;
           if (cached) {
-            const fileUri = /^(file|content):\/\//i.test(cached)
-              ? cached
-              : `file://${cached}`;
             setSource(current => current.identity === identity && !current.painted
-              ? { ...current, url: fileUri, renderer: 'expo', fromDiskCache: true }
+              ? { ...current, url: cached, renderer: 'expo', fromDiskCache: true, failed: false }
               : current);
             return;
           }
         } catch {
-          // Disk cache is an optimization, not a requirement to load photos.
+          // A cache miss is not a photo failure; signing remains the fallback.
         }
       }
 
@@ -504,7 +527,7 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
     }
 
     return () => { active = false; };
-  }, [identity, cacheKey, path, usingPreview, retryEpoch]);
+  }, [identity, cacheKey, path, usingPreview, retryEpoch, ownerId]);
 
   // Per-mounted-photo autonomous recovery. This never loops a request while
   // offline, always exposes Retry, and tops out at one retry per 2 minutes.
@@ -597,12 +620,12 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
 
     if (actual.fromDiskCache) {
       if (cacheKey) badCacheKeys.current.add(cacheKey);
-      // Cached bytes may have been evicted. Recover via the protected signer
-      // once, rather than trapping the viewer in a corrupt local file.
+      if (ownerId && path) void invalidateCachedCommunityWallPhoto(ownerId, path);
+      // Invalid local bytes are a separate failure from network loss. Never
+      // attempt remote recovery while offline; the reconnect gate retries.
       const first = initialSource(identity, path, preferred, usingPreview);
-      // Fall back to the independent network loader if local bytes are bad.
-      setSource({ ...first, failed: false, renderer: 'native' });
-      if (!first.url && path) {
+      setSource({ ...first, url: null, failed: !canRequestRef.current, renderer: 'native', fromDiskCache: false });
+      if (canRequestRef.current && path) {
         resignInFlightRef.current = true;
         void resolveCommunityMediaUrl(path, null)
           .then(next => setSource(current => current.identity === identity && !current.url
@@ -642,6 +665,11 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   const retryManually = (event: { stopPropagation: () => void }) => {
     event.stopPropagation();
     if (!path || resignInFlightRef.current) return;
+    if (!canRequestRef.current) {
+      // Retry a local read without making a doomed offline signing request.
+      setRetryEpoch(epoch => epoch + 1);
+      return;
+    }
     signRetryRef.current = 0;
     resignInFlightRef.current = true;
     setSource({ identity, url: null, failed: false, renderer: usingPreview ? 'native' : 'expo', painted: false, fromDiskCache: false, alternateAttempted: false });
@@ -660,7 +688,9 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
   // white or stalled thumbnail can never block its sharp replacement.
   // Keep a visible loading affordance while the decoder has not confirmed
   // on-screen paint. A raw image view is otherwise a large white rectangle.
-  const pendingPaintIndicator = !actual.painted ? (
+  // Remounting an offline original needs only a local decode, not another
+  // download indicator. Keep the spinner for genuinely uncached transfers.
+  const pendingPaintIndicator = !actual.painted && !actual.fromDiskCache ? (
     <ActivityIndicator
       pointerEvents="none"
       size="small"
@@ -692,8 +722,18 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
       >
         {actual.failed ? (
           <>
-            <Text style={styles.label}>Hindi ma-load ang larawan</Text>
-            {path ? <Text style={styles.retry}>I-tap para subukan muli</Text> : null}
+            <Text style={styles.label}>
+              {!canRequest && path
+                ? 'Wala pang naka-save na offline copy ng larawang ito'
+                : 'Hindi ma-load ang larawan'}
+            </Text>
+            {path ? (
+              <Text style={styles.retry}>
+                {!canRequest
+                  ? 'Mag-online para ma-download; maaari ring i-tap para suriin muli ang cache'
+                  : 'I-tap para subukan muli'}
+              </Text>
+            ) : null}
           </>
         ) : (
           <ActivityIndicator color="#688A81" size="small" />
@@ -726,6 +766,12 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
             return;
           }
           if (!usingPreview) paintedOriginalPathRef.current = originalPath;
+          if (!usingPreview && ownerId && originalPath && actual.url) {
+            void pinLoadedCommunityWallPhoto({
+              owner: ownerId, mediaPath: originalPath,
+              cacheKey, displayedUri: actual.url,
+            });
+          }
           setSource(current => current.identity === identity && current.url === actual.url &&
             current.renderer === 'native' && !current.painted
             ? { ...current, painted: true } : current);
@@ -781,6 +827,12 @@ function AndroidWallPhoto({ uri, mediaPath, useWallPreview = false, previewPath,
         const activeImage = activeImageRef.current;
         if (activeImage.identity !== identity || activeImage.url !== actual.url || activeImage.renderer !== 'expo') return;
         if (!usingPreview) paintedOriginalPathRef.current = originalPath;
+        if (!usingPreview && ownerId && originalPath && actual.url) {
+          void pinLoadedCommunityWallPhoto({
+            owner: ownerId, mediaPath: originalPath,
+            cacheKey, displayedUri: actual.url,
+          });
+        }
         if (!usingPreview && !actual.painted && originalPath && actual.url) {
           wallOriginalReady.publish(originalPath, actual.url);
         }
