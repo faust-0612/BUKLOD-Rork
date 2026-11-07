@@ -896,8 +896,12 @@ function LegacyPublicBuklodScreen(){
  const [wallLoadedTrackId,setWallLoadedTrackId]=useState('');
  const [wallAudioError,setWallAudioError]=useState('');
  const wallAudioBusyRef=useRef(false);
+ const wallAudioRequestEpochRef=useRef(0);
+ const wallAudioPendingOwnerRef=useRef('');
  useEffect(()=>subscribeBuklodAudioFocus(owner=>{
    if(owner!=='wall-post'){
+     wallAudioRequestEpochRef.current++;
+     wallAudioPendingOwnerRef.current='';
      wallAudioPlayer.pause();
      wallAudioOwnerRef.current='';
      setWallAudioOwner('');
@@ -915,12 +919,16 @@ function LegacyPublicBuklodScreen(){
  const toggleWallMusic=async(track:BuklodPostMusicTrack,ownerKey:string)=>{
    if(wallAudioBusyRef.current)return;
    if(wallAudioOwner===ownerKey&&wallAudioPlayer.playing){
+     wallAudioRequestEpochRef.current++;
+     wallAudioPendingOwnerRef.current='';
      wallAudioPlayer.pause();
      wallAudioOwnerRef.current='';
      setWallAudioOwner('');
      return;
    }
    wallAudioBusyRef.current=true;
+   const requestEpoch=++wallAudioRequestEpochRef.current;
+   wallAudioPendingOwnerRef.current=ownerKey;
    setWallAudioError('');
    try{
      await setIsAudioActiveAsync(true);
@@ -928,6 +936,7 @@ function LegacyPublicBuklodScreen(){
      if(wallLoadedTrackId!==track.id||!wallAudioPlayer.isLoaded){
        wallAudioPlayer.pause();
        const url=await resolveBuklodPostMusicUrl(track);
+       if(wallAudioRequestEpochRef.current!==requestEpoch)return;
        wallAudioPlayer.replace(url);
        const started=Date.now();
        while(!wallAudioPlayer.isLoaded&&Date.now()-started<6500){
@@ -936,6 +945,8 @@ function LegacyPublicBuklodScreen(){
        if(!wallAudioPlayer.isLoaded)throw new Error('Music could not load. Please retry.');
        setWallLoadedTrackId(track.id);
      }
+     if(wallAudioRequestEpochRef.current!==requestEpoch||
+       wallAudioPendingOwnerRef.current!==ownerKey)return;
      requestBuklodAudioFocus('wall-post');
      wallAudioPlayer.volume=1;
      wallAudioPlayer.play();
@@ -945,6 +956,9 @@ function LegacyPublicBuklodScreen(){
      wallAudioPlayer.pause();
      setWallAudioError(String(error?.message??'Music playback failed.'));
    }finally{
+     if(wallAudioRequestEpochRef.current===requestEpoch){
+       wallAudioPendingOwnerRef.current='';
+     }
      wallAudioBusyRef.current=false;
    }
  };
@@ -4782,15 +4796,19 @@ const communityFeedRows =
    viewableItems:Array<{item?:any}>;
  })=>{
    communityViewabilityListener.current(event);
-   const owner=wallAudioOwnerRef.current;
+   const owner=wallAudioOwnerRef.current||wallAudioPendingOwnerRef.current;
    if(owner&&owner!=='composer'&&
      !event.viewableItems.some(row=>String(row.item?.id??'')===owner)){
+     wallAudioRequestEpochRef.current++;
+     wallAudioPendingOwnerRef.current='';
      wallAudioForVisibility.current.pause();
      wallAudioOwnerRef.current='';
      setWallAudioOwner('');
    }
  }).current;
  useFocusEffect(useCallback(()=>()=>{
+   wallAudioRequestEpochRef.current++;
+   wallAudioPendingOwnerRef.current='';
    wallAudioPlayer.pause();
    wallAudioOwnerRef.current='';
    setWallAudioOwner('');
@@ -5075,9 +5093,13 @@ const communityFeedRows =
       selectedId={composerMusicTrack?.id}
       previewId={wallAudioOwner==='composer'?wallLoadedTrackId:null}
       previewPlaying={wallAudioOwner==='composer'&&wallAudioPlayer.playing}
-      onSelect={track=>{wallAudioPlayer.pause();setWallAudioOwner('');setComposerMusicTrack(track);}}
+      onSelect={track=>{wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
+        wallAudioPlayer.pause();setWallAudioOwner('');setComposerMusicTrack(track);}}
       onPreview={track=>{void toggleWallMusic(track,'composer');}}
-      onClose={()=>{if(wallAudioOwner==='composer'){wallAudioPlayer.pause();setWallAudioOwner('');}setComposerMusicPickerOpen(false);}}
+      onClose={()=>{if(wallAudioOwner==='composer'||wallAudioPendingOwnerRef.current==='composer'){
+        wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
+        wallAudioPlayer.pause();setWallAudioOwner('');
+      }setComposerMusicPickerOpen(false);}}
     />
     <View style={{gap:8,marginBottom:12}}>
       <Pressable accessibilityRole="button" accessibilityLabel="Choose music for post"
