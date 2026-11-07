@@ -86,6 +86,7 @@ import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContrib
 import BuklodLifeWallCard from '@/components/BuklodLifeWallCard';
 import KabihasnangLigawWallCard from '@/components/KabihasnangLigawWallCard';
 import BuklodLivingWallMoments from '@/components/BuklodLivingWallMoments';
+import BuklodLivingNetworkMoments from '@/components/BuklodLivingNetworkMoments';
 import BuklodCommunityWallProfileBubbles from '@/components/BuklodCommunityWallProfileBubbles';
 import {
   type BuklodCommunityComposerIntent,
@@ -4818,6 +4819,7 @@ const communityFeedRows =
 
    {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}   {/* Personal greetings and BUKLOD milestones: one bounded, dismissible card. */}
    <BuklodLivingWallMoments />
+   <BuklodLivingNetworkMoments />
 
 
    <BuklodLifeWallCard />
