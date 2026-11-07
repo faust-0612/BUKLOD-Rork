@@ -37,6 +37,12 @@ create policy "Mentor photo delete own R2" on storage.objects for delete
 to authenticated using (
  bucket_id='buklod-mentoring-evidence'
  and (storage.foldername(name))[1]=(select auth.uid())::text
+ and exists (
+  select 1 from public.mentor_teaching_sessions s
+  where s.id::text=(storage.foldername(name))[2]
+    and s.mentor_id=(select auth.uid())
+    and s.status not in ('approved','rejected')
+ )
 );
 
 create table if not exists private.buklod_r2_mentor_session_evidence(
