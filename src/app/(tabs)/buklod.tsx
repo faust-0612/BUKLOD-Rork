@@ -1,4 +1,5 @@
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
+import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
 /* BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME: existing broadcast implementation preserved */
 /* PERF_EMERGENCY_R2_VISIBLE_POSTS: list-shape-drift-safely-skipped */
 /* PERF_EMERGENCY_R2_MULTI_MEDIA_CACHE: existing-community-media-url-cache-preserved */
@@ -4618,6 +4619,14 @@ const communityFeedRows =
  } = useBuklodCommunityAdViewability();
 
  const maritesVisibilityRefreshRef = useRef<(() => void) | null>(null);
+ const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
+ const focusCommunityComposerRef = useRef(false);
+ useEffect(() => {
+  if (!communityComposerOpen || !focusCommunityComposerRef.current) return;
+  focusCommunityComposerRef.current = false;
+  const frame = requestAnimationFrame(() => composerInputRef.current?.focus?.());
+  return () => cancelAnimationFrame(frame);
+ }, [communityComposerOpen]);
  if(!featureEnabled('community_feed'))return <FeatureUnavailable title="Community"/>;
  return <>
  <FlashList
@@ -4786,7 +4795,46 @@ const communityFeedRows =
           setPublicLocationScopeId
         }
       />
-   <SectionTitle>SHARE SOMETHING</SectionTitle><Card style={{ backgroundColor: wallComposerTone.surface, borderColor: wallComposerTone.border }}>
+   <Card style={{ backgroundColor: wallComposerTone.surface, borderColor: wallComposerTone.border }}>
+   {!communityComposerOpen && composerIntent === 'post' && !body.trim() && !photos.length && !wallVideo186O && !communityGif ? (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Write a Community post"
+      onPress={() => {
+       focusCommunityComposerRef.current = true;
+       setCommunityComposerOpen(true);
+      }}
+      style={({ pressed }) => ({
+       flex: 1, minWidth: 0, minHeight: 44, flexDirection: 'row', gap: 9,
+       alignItems: 'center', paddingHorizontal: 11, borderRadius: 24,
+       borderWidth: 1, borderColor: colors.line,
+       backgroundColor: colors.white, opacity: pressed ? 0.78 : 1,
+      })}
+     >
+      <MaterialCommunityIcons name="account-circle-outline" size={25} color={colors.greenDark} />
+      <Text numberOfLines={1} style={{ flex: 1, color: colors.muted, fontSize: 12 }}>
+       Share with your Community...
+      </Text>
+     </Pressable>
+     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Add photos or video to Community post"
+      disabled={busy || videoBusy186O}
+      onPress={() => {
+       setCommunityComposerOpen(true);
+       void pickWallGallery186O();
+      }}
+      style={({ pressed }) => ({
+       width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center',
+       backgroundColor: wallGalleryTone.soft, opacity: pressed ? 0.72 : 1,
+      })}
+     >
+      <MaterialCommunityIcons name="image-multiple-outline" size={22} color={wallGalleryTone.ink} />
+     </Pressable>
+    </View>
+   ) : (
+    <>
 <BuklodMentionField
  focusRef={composerInputRef}
  value={body}
@@ -4948,6 +4996,8 @@ const communityFeedRows =
      }
      onPress={publish}
     />
+    </>
+   )}
    </Card>
 
    <View
@@ -5050,7 +5100,7 @@ const communityFeedRows =
 
     return (
       <BuklodFocusVisibleRow index={index}>
-    <Card style={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
+    <BuklodCommunityWallPostCard containerStyle={focusPostId===String(item.id)?{borderColor:colors.green,borderWidth:2}:undefined}>
    <View
      style={{
        flexDirection:
@@ -5254,6 +5304,11 @@ const communityFeedRows =
      ''
     )}
     style={s.body}
+    hasMedia={Boolean(
+     item.media_path ||
+     item.media_url ||
+     (Array.isArray(item.media_items) && item.media_items.length > 0)
+    )}
     knownNames={ms.map((mention:any)=>String(mention.full_name??''))}
    />
    {!!ms.filter((mention:any)=>!String(item.body??'').toLowerCase().includes(`@${String(mention.full_name??'').toLowerCase()}`)).length&&(
@@ -5301,15 +5356,16 @@ const communityFeedRows =
       openComments(item)
      }
      showCommentAction
+     socialActions
      rightAction={
       <BuklodPostInternalShare
        postId={item.id}
        compact
-       iconOnly
+       social
       />
      }
     />
-  </Card>
+  </BuklodCommunityWallPostCard>
       </BuklodFocusVisibleRow>
     );}}/>
 {/* BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_SWIPE_R4 */}
