@@ -6,6 +6,12 @@ import {supabase} from '@/lib/supabase';
 type Mix={participation:number;learning:number;impact:number;other:number};
 type Nomination={type:string;status:string;submitted_at:string};
 type Focus={total:number;pending:number;period:string;actual_points:Mix;actual_percent:Mix;target:Omit<Mix,'other'>;my_milestones:Nomination[]};
+type Milestones={
+ bible_scholar:{completed:number;target:number;basis:string};
+ faithful_mentor:{completed:number;target:number;basis:string};
+ kingdom_champion:{completed:number;target:number;basis:string};
+ community_builder:{recorded_contributions:number;cluster_attendance_events:number;basis:string};
+};
 const achievements=[
  ['achievement_bible_scholar','Bible Scholar — +100 BP'],
  ['achievement_community_builder','Community Builder — +150 BP'],
@@ -17,15 +23,23 @@ const achievements=[
 ] as const;
 const buckets=[['participation','Participation'],['learning','Learning & Skills'],['impact','Verified Community Impact']] as const;
 export default function BuklodR2FocusMonitor(){
- const [report,setReport]=useState<Focus|null>(null);const [expanded,setExpanded]=useState(false);
+ const [report,setReport]=useState<Focus|null>(null);
+ const [progress,setProgress]=useState<Milestones|null>(null);
+ const [expanded,setExpanded]=useState(false);
  const [selected,setSelected]=useState<string>(achievements[0][0]);
  const [evidence,setEvidence]=useState(''); const [busy,setBusy]=useState(false);
  const [err,setErr]=useState('');
  const load=useCallback(async()=>{
   setErr('');
   try{
-   const{data,error}=await(supabase as any).rpc('get_my_buklod_r2_focus_monitor_v1');
-   if(error)throw error;setReport(data as Focus);
+   const [reportResult,milestoneResult]=await Promise.all([
+    (supabase as any).rpc('get_my_buklod_r2_focus_monitor_v1'),
+    (supabase as any).rpc('get_my_buklod_r2_milestone_progress_v1')
+   ]);
+   if(reportResult.error)throw reportResult.error;
+   if(milestoneResult.error)throw milestoneResult.error;
+   setReport(reportResult.data as Focus);
+   setProgress(milestoneResult.data as Milestones);
   }catch{setErr('Live reward monitoring is unavailable. Existing points are unchanged.');}
  },[]);
  useEffect(()=>{if(expanded)void load()},[expanded,load]);
@@ -62,6 +76,14 @@ export default function BuklodR2FocusMonitor(){
     </View>
    })}
    <Text style={s.desc}>Other/unclassified: {report.actual_points.other} BP. These are not silently assigned to a category.</Text>
+   <Text style={s.section}>Milestone progress — actual records</Text>
+   {progress&&<>
+    <Text style={s.metric}>Bible Scholar: {progress.bible_scholar.completed}/{progress.bible_scholar.target} ABC lessons completed</Text>
+    <Text style={s.metric}>Faithful Mentor: {progress.faithful_mentor.completed}/{progress.faithful_mentor.target} admin-approved teaching sessions</Text>
+    <Text style={s.metric}>Kingdom Champion: {progress.kingdom_champion.completed}/{progress.kingdom_champion.target} Kingdom levels recorded as cleared</Text>
+    <Text style={s.metric}>Community Builder: {progress.community_builder.recorded_contributions} credited contributions and {progress.community_builder.cluster_attendance_events} Cluster attendances (indicative only)</Text>
+    <Text style={s.desc}>Milestone progress is not automatic approval. The completed course, mentoring cycle, real service project, or verified tournament must still be reviewed.</Text>
+   </>}
    <Text style={s.section}>Major Achievement Applications</Text>
    {achievements.map(([key,label])=><Pressable key={key} onPress={()=>setSelected(key)} style={[s.choice,selected===key&&s.selected]}>
       <Text style={s.choiceText}>{label}</Text><Text style={s.status}>{report.my_milestones.find(n=>n.type===key)?.status||'Not submitted'}</Text>
