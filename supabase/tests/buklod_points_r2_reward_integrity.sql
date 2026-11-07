@@ -35,6 +35,16 @@ begin
     or position('pg_advisory_xact_lock' in v_definition)=0 then
     raise exception 'Achievement award missing admin or concurrency checks';
  end if;
+ if to_regclass('private.buklod_r2_mentor_report_requests') is null then
+    raise exception 'Idempotent mentor report registry missing';
+ end if;
+ select pg_get_functiondef('public.report_my_mentor_teaching_with_roster_r2(uuid,uuid[],text,text)'::regprocedure)
+ into v_definition;
+ if position('mentor_assignments' in v_definition)=0
+    or position('mentor_set_session_attendees' in v_definition)=0
+    or position('pg_advisory_xact_lock' in v_definition)=0 then
+    raise exception 'Mentor report must use real active mentees, registered attendance and idempotency';
+ end if;
  if to_regclass('private.buklod_r2_mentor_session_evidence') is null then
     raise exception 'Private mentoring photo proof missing';
  end if;
