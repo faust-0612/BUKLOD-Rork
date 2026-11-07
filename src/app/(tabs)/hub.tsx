@@ -69,7 +69,7 @@ export default function BuklodLightHome() {
         contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ minHeight: 112, borderRadius: 16, padding: 20, justifyContent: 'center' }}>
+          style={{ minHeight: 112, borderRadius: 4, padding: 20, justifyContent: 'center' }}>
           <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF' }}>Welcome to BUKLOD!</Text>
           <Text style={{ fontSize: 12, marginTop: 4, color: '#FFFFFF' }}>
             A community of faith, connection, and shared purpose.
@@ -84,7 +84,7 @@ export default function BuklodLightHome() {
             <Pressable key={item.label} accessibilityRole="button"
               accessibilityLabel={item.label} onPress={item.action}
               style={({ pressed }) => ({
-                width: 112, minHeight: 72, borderRadius: 14, padding: 9,
+                width: 112, minHeight: 72, borderRadius: 4, padding: 9,
                 alignItems: 'center', justifyContent: 'center', gap: 7,
                 backgroundColor: theme.accentSoft, opacity: pressed ? 0.75 : 1,
               })}>
@@ -108,7 +108,7 @@ export default function BuklodLightHome() {
           <BuklodHomeUtilityCards />
           <Pressable accessibilityRole="button" accessibilityLabel="Create a public Wall post"
             onPress={openPost} style={({ pressed }) => ({
-              backgroundColor: theme.inputSurface, borderRadius: 15,
+              backgroundColor: theme.inputSurface, borderRadius: 4,
               paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
               opacity: pressed ? 0.75 : 1,
             })}>
@@ -149,7 +149,7 @@ export default function BuklodLightHome() {
         <Pressable accessibilityRole="button" accessibilityLabel="Show home tools"
           accessibilityState={{ expanded: desktopToolsOpen }}
           onPress={() => setDesktopToolsOpen(v => !v)}
-          style={{ backgroundColor: theme.accentSoft, borderRadius: 14, padding: 14,
+          style={{ backgroundColor: theme.accentSoft, borderRadius: 4, padding: 14,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ color: theme.textPrimary, fontWeight: '900' }}>
             {desktopToolsOpen ? 'Hide Home Tools' : 'Open Home Tools: Drawer, PTT, Map & SOS'}
@@ -207,7 +207,7 @@ export default function BuklodLightHome() {
         accessibilityState={{ expanded: updatesOpen }}
         onPress={() => setUpdatesOpen(value => !value)}
         style={{
-          borderRadius: 14,
+          borderRadius: 4,
           borderWidth: 1,
           borderColor: theme.navBorder,
           padding: 14,
@@ -242,7 +242,7 @@ export default function BuklodLightHome() {
         </ToolBoundary>
       ) : null}
       <Pressable accessibilityRole="button" onPress={() => router.replace('/buklod')}
-        style={{ padding: 16, alignItems: 'center', borderRadius: 14, backgroundColor: theme.navActive }}>
+        style={{ padding: 16, alignItems: 'center', borderRadius: 4, backgroundColor: theme.navActive }}>
         <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>Return to Community Wall</Text>
       </Pressable>
 
