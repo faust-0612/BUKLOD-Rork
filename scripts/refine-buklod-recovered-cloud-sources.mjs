@@ -164,6 +164,7 @@ try{
   }
   result.sourceSystems=Object.entries(bySystem).map(([name,obj])=>({name,files:obj.files,projectCandidateCount:obj.projects.size,buildConfigs:obj.buildConfigs}));
   result.after={trackedFilesAfterIndexPrune:cleanPaths.length,sdkFilesStillTracked:cleanPaths.filter(x=>sdkDir.test(x)).length,
+     otherGeneratedSdkOrBuildCandidates:cleanPaths.filter(x=>/\/sdk\/|\/platforms\/android-\d+\/|\/build\/|\/dist\//i.test(x)).length,
      cleanupBranch:cleaned,missingEssentialSourceFileCount:essentialMissing.length};
   // Include only a bounded report; NO private credentials or full file contents.
   const committedReport={generated:new Date().toISOString(),status:'SOURCE RECOVERY REFINEMENT (NOT COMPLETE)',
