@@ -188,10 +188,10 @@ export default function BuklodCommunityContributionCard() {
 }
 
 const s = StyleSheet.create({
-  emptyShell:{marginTop:10,marginBottom:12,padding:14,borderRadius:16,
+  emptyShell:{marginTop:0,marginBottom:0,padding:14,borderRadius:4,
     borderWidth:1,borderColor:contributionTone.border,backgroundColor:contributionTone.surface,
     flexDirection:'row',alignItems:'center',gap:12,minHeight:72},
-  shell:{marginTop:10,marginBottom:12,borderWidth:1,borderColor:contributionTone.border,borderRadius:16,backgroundColor:contributionTone.surface,padding:12,gap:9},
+  shell:{marginTop:0,marginBottom:0,borderWidth:1,borderColor:contributionTone.border,borderRadius:4,backgroundColor:contributionTone.surface,padding:12,gap:9},
   head:{flexDirection:'row',alignItems:'center',gap:9},
   icon:{width:36,height:36,borderRadius:18,backgroundColor:contributionTone.soft,alignItems:'center',justifyContent:'center'},
   eyebrow:{fontSize:11,fontWeight:'900',color:'#173C2C',letterSpacing:.4},
