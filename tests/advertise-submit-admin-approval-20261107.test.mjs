@@ -22,7 +22,7 @@ test('submit must never fail silently, mark paid, or duplicate after a successfu
  assert.match(form,/if\(!user\?\.id\)\{fail\('/);
  assert.match(form,/if\(!name\.trim\(\)\)\{fail\('/);
  assert.match(form,/if\(!headline\.trim\(\)\)\{fail\('/);
- assert.match(form,/if\(!asset\)\{fail\('/);
+ assert.match(form,/if\(!asset\)\{fail\(/);
  assert.match(form,/if\(!reference\.trim\(\)\)\{fail\('/);
  assert.match(form,/ratesBusy \|\| !selectedRate/);
  assert.match(form,/submitLock\.current=true/);
