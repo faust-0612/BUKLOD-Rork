@@ -420,6 +420,7 @@ function RootLayout() {
                 <Stack.Screen name="drawer/item/[id]" />
                 <Stack.Screen name="drawer/settings" />
               </Stack>
+              <BuklodGlobalEmergencyHost />
               </BuklodMandatoryUpdateBoundary>
               </BuklodNavSafeShell>
               </BuklodWebAdSenseProvider>
