@@ -250,6 +250,20 @@ try{
    const verified=list7z(firstPart,"repair "+batch.id);
    assert(verified.length===batch.files.length+1,
      "Repair shard archive file count mismatch: found "+verified.length+" expected "+(batch.files.length+1));
+   // Prove EACH repaired original path and byte content exists in this encrypted archive.
+   const repairedIndex=new Map();
+   for(const entry of verified){
+     const k=selected.fn(entry.path);
+     if(!repairedIndex.has(k))repairedIndex.set(k,[]);
+     repairedIndex.get(k).push(entry);
+   }
+   for(const file of batch.files){
+     const key=selected.fn(file.source),rec=(repairedIndex.get(key)||[]);
+     assert(rec.some(x=>x.size===file.bytes&&x.crc===crc32(file.source)),
+       "Archived repair file absent or CRC mismatch. No upload: "+batch.id);
+     assert(sha256(file.source)===file.sha256,
+       "Original file changed while repair archive was being created: "+batch.id);
+   }
    const parts=fs.readdirSync(dir).filter(n=>n.startsWith(label+".7z.")&&/\.7z\.\d{3}$/.test(n)).sort();
    assert(parts.length>0&&parts.length<=MAX_ASSET_PARTS,"Unexpected number of repair volume assets");
    for(let i=0;i<parts.length;i++){
