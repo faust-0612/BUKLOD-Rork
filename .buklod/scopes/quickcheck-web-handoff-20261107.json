@@ -1,0 +1,35 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore QuickCheck web browser redirect after a secure Supabase handoff without changing native or permission behavior",
+  "baseRef": "269a70950f8eb50073b677bb5fa6bf0b63e0ecc4",
+  "productionBaselineEvidence": "Prior production had async quickcheck-handoff-mint followed by Linking.openURL; this can be blocked as a popup in browsers. Existing server Edge Function mints URL with one-time handoff code and existing QuickCheck web receiver redeems it.",
+  "chosenApproach": "Web same-tab location.assign after validated server-issued handoff; preserve native Linking behavior",
+  "selectionRationale": "Navigates reliably after async token mint without opening a popup, preserving authorization and avoiding new-tab orphan windows.",
+  "alternativeApproaches": [
+    "Preopen about:blank window before await and navigate it after token mint",
+    "Same-tab location.assign after validated token mint"
+  ],
+  "acceptanceChecks": [
+    "QuickCheck secure handoff minted and destination validated",
+    "Web redirects within same tab after async mint",
+    "Native Linking path unchanged",
+    "Focused node regression tests pass",
+    "Vercel production protection permits intended authenticated user access",
+    "No claim of production without verified web deployment"
+  ],
+  "preserveBehaviors": [
+    "No bypass of Supabase handoff mint or QuickCheck token redemption",
+    "No unverified production OTA or Android changes",
+    "No changes to Classroom/Quiz authorization or scope routing"
+  ],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/quickcheck-web-handoff.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodFoundationWorkspaceNav.tsx",
+    "tests/quickcheck-web-handoff.test.mjs"
+  ]
+}
