@@ -253,18 +253,7 @@ end
 $$;
 revoke all on function public.buklod_living_dispatch_notifications(integer) from public,anon,authenticated;
 
--- Scheduled jobs only after a release gate applies this migration.
--- Database uses UTC: 16:05 UTC is 00:05 in Manila the next day.
-do $$
-begin
-  if exists(select 1 from pg_extension where extname='pg_cron') then
-    perform cron.schedule('buklod-living-birthdays-r1',
-      '5 16 * * *',
-      'select public.buklod_living_generate_birthdays()');
-    perform cron.schedule('buklod-living-notifications-r1',
-      '* * * * *',
-      'select public.buklod_living_dispatch_notifications(80)');
-  end if;
-end
-$$;
+-- Intentionally do NOT schedule the birthday/delivery jobs here.
+-- Activate only after Expo APK/web deployment is verified, using
+-- scripts/release/activate-buklod-living-community-r1.sql.
 commit;
