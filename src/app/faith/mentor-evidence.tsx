@@ -6,6 +6,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import {decode} from 'base64-arraybuffer';
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
+import {showBuklodAdOpportunity,warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
 
 type Task={session_id:string;session_date:string;status:string;lesson:string;has_photo:boolean};
 type Lesson={id:string;title:string};
@@ -19,6 +20,7 @@ export default function MentorTeachingPhotoEvidence(){
  const [selectedDisciples,setSelectedDisciples]=useState<string[]>([]);
  const [requestKey,setRequestKey]=useState(()=>Crypto.randomUUID());
  const [notes,setNotes]=useState('');
+ const [location,setLocation]=useState('');
  const [busy,setBusy]=useState<string|null>(null);
  const[loading,setLoading]=useState(true);const [err,setErr]=useState('');
  const load=useCallback(async()=>{
@@ -37,23 +39,24 @@ export default function MentorTeachingPhotoEvidence(){
   }catch{setErr('Mentoring sessions are unavailable. Try again.');}
   finally{setLoading(false)}
  },[]);
- useEffect(()=>{void load()},[load]);
+ useEffect(()=>{void load();warmBuklodAdOpportunity('points_submission_success')},[load]);
 
 
  const createSession=async()=>{
   if(busy||!selectedLesson||selectedDisciples.length<1||selectedDisciples.length>50||
-     notes.trim().length<20)return;
+     notes.trim().length<20||location.trim().length<4)return;
   setBusy('creating');setErr('');
   try {
-   const {error}=await (supabase as any).rpc('report_my_mentor_teaching_with_roster_r2',{
+   const {error}=await (supabase as any).rpc('report_my_mentor_teaching_with_details_r3',{
      p_lesson_id:selectedLesson,p_attendee_ids:selectedDisciples,
-     p_notes:notes.trim(),p_request_key:requestKey
+     p_notes:notes.trim(),p_location:location.trim(),p_request_key:requestKey
    });
    if(error)throw error;
    setRequestKey(Crypto.randomUUID());
-   setNotes('');setSelectedLesson('');setSelectedDisciples([]);setLessonSearch('');
+   setNotes('');setLocation('');setSelectedLesson('');setSelectedDisciples([]);setLessonSearch('');
    await load();
-   Alert.alert('Teaching session recorded','Learners are linked. Attach your mentoring photo and complete the Pastor and Admin review.');
+   Alert.alert('Teaching session recorded','Learners are linked. Attach your mentoring photo and complete the Admin review. +15 BP after verified approval.');
+   showBuklodAdOpportunity('points_submission_success');
   }catch(e){setErr(e instanceof Error?e.message:'Could not record session.');}
   finally{setBusy(null);}
  };
@@ -81,7 +84,8 @@ export default function MentorTeachingPhotoEvidence(){
    const {error:attachError}=await (supabase as any).rpc('attach_my_mentor_session_photo_r2',{
       p_session_id:task.session_id,p_photo_path:path});
    if(attachError)throw attachError;
-   Alert.alert('Photo submitted','Your lesson mentoring photo is attached for verification.');
+   Alert.alert('Photo submitted','Evidence photo attached. System Admin verification is required before +15 BP.');
+   showBuklodAdOpportunity('points_submission_success');
    await load();
   }catch(e){
    if(uploadedPath)await supabase.storage.from('buklod-mentoring-evidence').remove([uploadedPath]).catch(()=>{});
@@ -92,7 +96,7 @@ export default function MentorTeachingPhotoEvidence(){
  <Pressable onPress={()=>router.back()} style={s.back}><Text style={s.backText}>‹ Back</Text></Pressable>
  <Text style={s.heading}>Mentoring Lesson Evidence</Text>
  <Text style={s.sub}>Complete a real BUKLOD teaching session connected to a learning lesson.
- Record the learners, attach a genuine photo of your mentoring session, then wait for Pastor and System Admin verification.
+ Record the learners, attach a genuine photo of your mentoring session, then wait for System Admin verification.
  Once approved, the existing +15 BP mentor-session reward becomes claimable.</Text>
  <Text style={s.privacy}>Get consent before taking or uploading photos. Avoid posting images of children or participants without appropriate permission. Photos are stored privately for authorized review.</Text>
  {loading&&<ActivityIndicator color="#0A7436" size="large"/>}
@@ -120,13 +124,15 @@ export default function MentorTeachingPhotoEvidence(){
       current.filter(id=>id!==d.disciple_id):[...current,d.disciple_id])}>
    <Text style={s.lessonLabel}>{selectedDisciples.includes(d.disciple_id)?'☑':'☐'} {d.disciple_name}</Text>
   </Pressable>)}
-  {disciples.length===0&&<Text style={s.meta}>No assigned mentees. Ask the Pastor to assign learners before reporting a new session.</Text>}
+  {disciples.length===0&&<Text style={s.meta}>No assigned mentees. Ask your Cluster administrator to assign learners before reporting a new session.</Text>}
+  <TextInput style={s.field} value={location} onChangeText={setLocation}
+    placeholder="Where did mentoring take place? (required)" placeholderTextColor="#859688" maxLength={180}/>
   <TextInput style={[s.field,{minHeight:88}]} multiline textAlignVertical="top"
     placeholder="Teaching summary and location (20+ characters)"
     placeholderTextColor="#859688" value={notes} onChangeText={setNotes} maxLength={2000}/>
   <Pressable accessibilityRole="button" disabled={busy!==null||!selectedLesson||
    selectedDisciples.length<1||selectedDisciples.length>50||
-   notes.trim().length<20} style={[s.button,busy!==null&&s.disabled]} onPress={()=>void createSession()}>
+   (notes.trim().length<20||location.trim().length<4)} style={[s.button,busy!==null&&s.disabled]} onPress={()=>void createSession()}>
    <Text style={s.btnText}>{busy==='creating'?'Recording...':'Record teaching session'}</Text>
   </Pressable>
  </View>
