@@ -93,8 +93,9 @@ const secretTokens=[
   /"(?:private_key|client_secret|refresh_token)"\s*:\s*"(?!\*|PLACEHOLDER|REDACTED|YOUR_)[^"]{20,}"/i,
   /(?:^|[\s,;])(?:EXPO_TOKEN|VERCEL_TOKEN|SUPABASE_SERVICE_ROLE_KEY|DATABASE_PASSWORD|GITHUB_TOKEN)\s*[:=]\s*["']?(?!process\.env|import\.meta|YOUR_|REDACTED|PLACEHOLDER)[A-Za-z0-9._\-/+=]{20,}/im
 ];
-function looksSecretInBuffer(data,category){
-  if(category==='media_or_fonts')return false;
+function looksSecretInBuffer(data,category,relative=''){
+  // SVG is text, so scan it for embedded tokens too. Other media are binary.
+  if(category==='media_or_fonts' && !/\.svg$/i.test(relative))return false;
   if(data.includes(0))return true; // source/config must be text, not arbitrary binary.
   const text=data.toString('utf8');
   if(text.includes('\uFFFD'))return true;
@@ -192,6 +193,8 @@ async function smokeTest(){
       'Technical whitelist allowed personal documents or unknown binaries');
     requireSafe(looksSecretInBuffer(Buffer.from('ghp_abcdefghijklmnopqrst123456'),'source_code'),
       'A known secret example was accepted');
+    requireSafe(looksSecretInBuffer(Buffer.from('<svg><!-- ghp_abcdefghijklmnopqrst123456 --></svg>'),
+      'media_or_fonts','assets/logo.svg'),'An SVG with a secret token was accepted');
     requireSafe(!looksSecretInBuffer(Buffer.from("const x = process.env.SUPABASE_SERVICE_ROLE_KEY;\n"),'source_code'),
       'Safe environment variable reference wrongly excluded');
     const row=csvRows('"candidate","kind","category","relative","bytes"\r\n'+
@@ -268,7 +271,7 @@ async function main(){
         const before=fs.statSync(original);
         if(before.size!==originalBytes){counted.changed_since_audit++;continue;}
         const bytes=fs.readFileSync(original);
-        if(looksSecretInBuffer(bytes,row.category)){counted.potential_secret++;continue;}
+        if(looksSecretInBuffer(bytes,row.category,rel)){counted.potential_secret++;continue;}
         const changed=fs.statSync(original);
         if(changed.size!==before.size||changed.mtimeMs!==before.mtimeMs){
           counted.changed_since_audit++;continue;
