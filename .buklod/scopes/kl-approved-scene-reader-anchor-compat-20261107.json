@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "objective": "Make all previously approved KL scene images visible in published Chapter 2-4 readers when approved exact manuscript anchors span blank-line-separated paragraphs, without altering editorial approvals or reading records.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Read-only production Supabase yhanxndaqbmuzbdqlblu S1 Chapters 2-4 (14 approved illustrations, 14 existing storage objects, 14 globally unique full-manuscript anchors). Exact current reader SQL kl_episode_media_v1 and KlReaderScreen/KlDynamicLibrary use per-paragraph substring matching. SQL confirms four cross-paragraph anchors are invisible in readers (S1 Ch3 scene 1, Ch4 scenes 1-3); 14/14 have unique final-paragraph segments. Main source checked at 0fd0d0bd696b8900311c9c835c021f36f6c28f1e; deployed artifact not independently fingerprinted.",
+  "chosenApproach": "Compatibility-only adjustment to kl_episode_media_v1: for approved multi-block illustration anchors, return a unique matching piece of the first or last paragraph according to before/after. Preserve saved canonical anchors and all media/approval/release/reader data. Ensure the source full anchor and projected segment both occur once in current manuscript; otherwise preserve original fail-closed behavior. No client APK/web change required for same media API consumers.",
+  "selectionRationale": "Existing app/web reader renders one paragraph at a time; never matches multiline spanning anchor even though admin validation accepts it. Returning an unambiguous display-local anchor in the existing authorized media endpoint repairs already installed clients without a risky UI/OTA change.",
+  "alternativeApproaches": [
+    "Overwrite approved paragraph anchors in production media rows: rejected; mutates released editorial history and loses exact author-selected placement.",
+    "Replace manuscript with forced combined paragraphs: rejected; changes reading formatting/canon and possible rewards.",
+    "Patch native and web clients only: rejected as a single fix because previously installed Android clients would still hide images until OTA.",
+    "Return a generic short suffix without checking uniqueness: rejected due to incorrect duplicate scene placement."
+  ],
+  "riskAreas": [
+    "story"
+  ],
+  "preserveBehaviors": [
+    "All original manuscript, title, approved media rows, effects, unique storage paths, release timestamps, comments, rewards and reading sessions unchanged",
+    "Keep original authenticated system-admin / released-to-public access gate and SECURITY DEFINER explicit search_path",
+    "Do not expose any unpublished or unapproved artwork to public reader",
+    "Do not modify mobile/web UI or touch production APK, OTA or Vercel",
+    "One approved scene resolves to one exact unique paragraph, no duplicate or relocated unrelated scene"
+  ],
+  "acceptanceChecks": [
+    "Read-only SQL fixture: S1 Ch2 four, Ch3 five, Ch4 five approved illustrations each match exactly one display paragraph",
+    "Recover precisely four previously invisible scenes, while other ten keep their original anchors",
+    "No media path, approved flag, effect, scene side, reader session, points, manuscript, or release date mutation",
+    "Unreleased Ch1 remains hidden to reader API",
+    "Focused SQL regression and engineering accountability/CI gates pass before merge"
+  ],
+  "regressionTests": [
+    "supabase/tests/kl_approved_multiblock_reader_anchor_compat.sql"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261107192500_kl_approved_multiblock_reader_anchor_compat.sql",
+    "supabase/tests/kl_approved_multiblock_reader_anchor_compat.sql",
+    ".buklod/scopes/kl-approved-scene-reader-anchor-compat-20261107.json"
+  ]
+}
