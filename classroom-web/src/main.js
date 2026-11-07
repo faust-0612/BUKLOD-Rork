@@ -455,7 +455,7 @@ async function deleteCurrentClass() {
   notice('Checking class records before deletion…');
   try {
     // Enforce authorization and academic-history checks on the backend, not in browser state.
-    const result = await checked(db.rpc('buklod_classroom_delete_empty_v1', {p_classroom_id: classroomId}));
+    const result = await checked(db.rpc('buklod_classroom_delete_empty_guarded_v1', {p_classroom_id: classroomId}));
     if (!result || result.deleted !== true || result.classroom_id !== classroomId) {
       throw new Error('The server did not confirm deletion. Please refresh and check this class.');
     }
