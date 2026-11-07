@@ -21,7 +21,7 @@ export default function BuklodHomeUtilityCards(){
       accessibilityRole="button" accessibilityLabel={card.action}
       onPress={()=>router.push(card.path as any)}
       style={({pressed})=>[s.card,{backgroundColor:index===0?theme.accentSoft:theme.surface,
-        borderColor:theme.border,opacity:pressed?.8:1}]}>
+        borderColor:theme.border,opacity:pressed ? 0.8 : 1}]}>
       <View style={[s.icon,{backgroundColor:theme.surface}]}>
         <MaterialCommunityIcons name={card.icon} size={32} color={theme.accent}/>
       </View>
