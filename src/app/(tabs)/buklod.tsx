@@ -1,12 +1,13 @@
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
 import BuklodPostMotion from '@/components/BuklodPostMotion';
+import BuklodWallPostAudioMeter from '@/components/BuklodWallPostAudioMeter';
 import BuklodPostMusicPicker from '@/components/BuklodPostMusicPicker';
 import { BUKLOD_POST_MOTION_PRESETS, loadBuklodPostCreatives, resolveBuklodPostMusicUrl,
   saveBuklodPostCreative, type BuklodPostCreative, type BuklodPostMotionPreset,
   type BuklodPostMusicTrack } from '@/lib/buklodPostCreatives';
 import { requestBuklodAudioFocus, subscribeBuklodAudioFocus } from '@/lib/buklodAudioFocus';
-import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer } from 'expo-audio';
 /* BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME: existing broadcast implementation preserved */
 /* PERF_EMERGENCY_R2_VISIBLE_POSTS: list-shape-drift-safely-skipped */
 /* PERF_EMERGENCY_R2_MULTI_MEDIA_CACHE: existing-community-media-url-cache-preserved */
@@ -888,8 +889,7 @@ function LegacyPublicBuklodScreen(){
    return()=>{cancelled=true;};
  },[creativeIdsKey,user?.id]);
  // One shared feed/composer player: no per-post players or audio downloads on load.
- const wallAudioPlayer=useAudioPlayer(null);
- const wallAudioStatus=useAudioPlayerStatus(wallAudioPlayer);
+ const wallAudioPlayer=useAudioPlayer(null, { updateInterval: 1000 });
  const [wallAudioOwner,setWallAudioOwner]=useState('');
  const [wallLoadedTrackId,setWallLoadedTrackId]=useState('');
  const [wallAudioError,setWallAudioError]=useState('');
@@ -900,10 +900,18 @@ function LegacyPublicBuklodScreen(){
      setWallAudioOwner('');
    }
  }),[wallAudioPlayer]);
+ useEffect(()=>{
+   const subscription=wallAudioPlayer.addListener('playbackStatusUpdate',status=>{
+     if(status.didJustFinish)setWallAudioOwner('');
+   });
+   return()=>subscription.remove();
+ },[wallAudioPlayer]);
  const toggleWallMusic=async(track:BuklodPostMusicTrack,ownerKey:string)=>{
    if(wallAudioBusyRef.current)return;
-   if(wallAudioOwner===ownerKey&&wallAudioStatus?.playing){
-     wallAudioPlayer.pause();return;
+   if(wallAudioOwner===ownerKey&&wallAudioPlayer.playing){
+     wallAudioPlayer.pause();
+     setWallAudioOwner('');
+     return;
    }
    wallAudioBusyRef.current=true;
    setWallAudioError('');
@@ -5034,10 +5042,10 @@ const communityFeedRows =
     <BuklodPostMusicPicker visible={composerMusicPickerOpen}
       selectedId={composerMusicTrack?.id}
       previewId={wallAudioOwner==='composer'?wallLoadedTrackId:null}
-      previewPlaying={wallAudioOwner==='composer'&&!!wallAudioStatus?.playing}
-      onSelect={setComposerMusicTrack}
+      previewPlaying={wallAudioOwner==='composer'&&wallAudioPlayer.playing}
+      onSelect={track=>{wallAudioPlayer.pause();setWallAudioOwner('');setComposerMusicTrack(track);}}
       onPreview={track=>{void toggleWallMusic(track,'composer');}}
-      onClose={()=>setComposerMusicPickerOpen(false)}
+      onClose={()=>{if(wallAudioOwner==='composer'){wallAudioPlayer.pause();setWallAudioOwner('');}setComposerMusicPickerOpen(false);}}
     />
     <View style={{gap:8,marginBottom:12}}>
       <Pressable accessibilityRole="button" accessibilityLabel="Choose music for post"
@@ -5553,11 +5561,11 @@ const communityFeedRows =
    {!!postCreatives[String(item.id)]?.music&&(
      <View style={{backgroundColor:'#e7f4ef',borderRadius:12,padding:10,marginTop:7,marginBottom:5,gap:5}}>
        <Pressable accessibilityRole="button"
-        accessibilityLabel={wallAudioOwner===String(item.id)&&wallAudioStatus?.playing?'Pause post music':'Play post music'}
+        accessibilityLabel={wallAudioOwner===String(item.id)&&wallAudioPlayer.playing?'Pause post music':'Play post music'}
         onPress={()=>{void toggleWallMusic(postCreatives[String(item.id)].music!,String(item.id));}}
         style={{minHeight:36,flexDirection:'row',gap:9,alignItems:'center'}}>
         <MaterialCommunityIcons
-         name={wallAudioOwner===String(item.id)&&wallAudioStatus?.playing?'pause-circle':'play-circle'}
+         name={wallAudioOwner===String(item.id)&&wallAudioPlayer.playing?'pause-circle':'play-circle'}
          size={28} color="#195d47"/>
         <View style={{flex:1,minWidth:0}}>
           <Text numberOfLines={1} style={{fontSize:12,fontWeight:'800',color:'#164f3c'}}>
@@ -5569,23 +5577,7 @@ const communityFeedRows =
         </View>
        </Pressable>
        {wallAudioOwner===String(item.id)&&(
-        <View style={{flexDirection:'row',alignItems:'center',gap:12}}>
-          <Text style={{fontSize:10,color:'#416b5b',flex:1}}>
-            {Math.floor(Number(wallAudioStatus?.currentTime||0)/60)}:
-            {String(Math.floor(Number(wallAudioStatus?.currentTime||0)%60)).padStart(2,'0')}
-            {' / '}
-            {Math.floor(Number(wallAudioStatus?.duration||0)/60)}:
-            {String(Math.floor(Number(wallAudioStatus?.duration||0)%60)).padStart(2,'0')}
-          </Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Music volume down"
-            onPress={()=>{wallAudioPlayer.volume=Math.max(0,wallAudioPlayer.volume-.15);}}>
-            <MaterialCommunityIcons name="volume-minus" size={19} color="#195d47"/>
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Music volume up"
-            onPress={()=>{wallAudioPlayer.volume=Math.min(1,wallAudioPlayer.volume+.15);}}>
-            <MaterialCommunityIcons name="volume-plus" size={19} color="#195d47"/>
-          </Pressable>
-        </View>
+         <BuklodWallPostAudioMeter player={wallAudioPlayer}/>
        )}
      </View>
    )}
