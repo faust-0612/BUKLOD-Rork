@@ -448,9 +448,16 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="headset"
+                title="BSOC Support Operations"
+                subtitle="Live support queue, audited case handling and password-reset assistance"
+                path="/admin/bsoc-support"
+              />
+
+              <AdminRow
                 icon="account-key-outline"
                 title="Account Recovery"
-                subtitle="Verify assistance requests and issue one-time recovery codes"
+                subtitle="BSOC identity verification and secure one-time-code delivery"
                 path="/admin/account-recovery"
               />
             </DrawerSection>
