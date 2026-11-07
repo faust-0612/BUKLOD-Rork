@@ -53,7 +53,7 @@ test('admin payment proof is private and payment verification precedes content a
  assert.match(migration,/CREATE POLICY paid_ad_payment_admin_read_v1/);
  assert.match(migration,/bucket_id='paid-ad-payment' AND public\.is_system_admin\(\)/);
  assert.match(review,/Confirm you independently verified the full payment/);
- assert.match(review,/Verified payment/);
+ assert.match(review,/Confirm payment verified/);
  assert.match(review,/p_campaign_id:item\.id,p_action:action/);
  assert.match(review,/admin-paid-ad-confirm-/);
  assert.match(migration,/p_action='verify_payment'/);
