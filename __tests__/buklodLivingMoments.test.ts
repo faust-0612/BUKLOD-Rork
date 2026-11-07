@@ -73,6 +73,15 @@ describe('BUKLOD living Wall moments', () => {
     expect(visible.some(item => item.kind === 'occasion')).toBe(true);
   });
 
+  test('unread notification activity is actionable, not a duplicate push', () => {
+    const moments = buildBuklodLivingMoments({
+      ...account, now: new Date('2026-11-07T14:00:00Z'), unreadCount: 3,
+    });
+    expect(moments.find(item => item.kind === 'activity')).toMatchObject({
+      route: '/notifications', key: 'activity:2026-11-07',
+    });
+  });
+
   test('stale and malformed personal data never produce private moments', () => {
     const moments = buildBuklodLivingMoments({
       ...account,
