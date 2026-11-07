@@ -4,7 +4,7 @@ import type { BuklodGameResult } from '@/features/games/types';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import {
-  SCRIPTURE_WORD_LEVELS, makeScriptureWordPuzzle, scriptureWordAt, type WordCell,
+  SCRIPTURE_WORD_LEVELS, makeScriptureWordPuzzle, readScriptureWordLine, scriptureWordAt, type WordCell,
 } from './scriptureWordRules';
 
 const GAME_ID = 'christian-scripture-word-search';
@@ -18,6 +18,7 @@ export function ScriptureWordSearchGameV1({ onFinish }: Props) {
   const phaseRef = useRef<Phase>('ready');
   const [level, setLevel] = useState(0);
   const [found, setFound] = useState<string[]>([]);
+  const [foundPaths, setFoundPaths] = useState<Record<string, WordCell[]>>({});
   const foundRef = useRef<string[]>([]);
   const [selected, setSelected] = useState<WordCell | null>(null);
   const selectedRef = useRef<WordCell | null>(null);
@@ -64,6 +65,7 @@ export function ScriptureWordSearchGameV1({ onFinish }: Props) {
     setPhase('playing');
     setLevel(0);
     setFound([]);
+    setFoundPaths({});
     setSelected(null);
     setMisses(0);
     setHints(0);
@@ -81,6 +83,7 @@ export function ScriptureWordSearchGameV1({ onFinish }: Props) {
     phaseRef.current = 'playing';
     setLevel(level + 1);
     setFound([]);
+    setFoundPaths({});
     setSelected(null);
     setLevelHint(null);
     setPhase('playing');
@@ -107,6 +110,9 @@ export function ScriptureWordSearchGameV1({ onFinish }: Props) {
       foundRef.current = nextFound;
       scoreRef.current = nextScore;
       setFound(nextFound);
+      // Highlight the player's exact winning path, including a reverse match.
+      const matchedLine = readScriptureWordLine(puzzle.grid, first, cell);
+      setFoundPaths(previous => ({ ...previous, [match.word]: matchedLine?.cells ?? [] }));
       setScore(nextScore);
       setMessage(t('Found', 'Nahanap') + ': ' + match.word + ' • ' + match.reference);
       void playBuklodGameFeedback('collect');
@@ -140,11 +146,11 @@ export function ScriptureWordSearchGameV1({ onFinish }: Props) {
 
   const marked = useMemo(() => {
     const keys = new Set<string>();
-    for (const word of found) {
-      for (const cell of puzzle.placements[word] ?? []) keys.add(cell.row + ':' + cell.col);
+    for (const path of Object.values(foundPaths)) {
+      for (const cell of path) keys.add(cell.row + ':' + cell.col);
     }
     return keys;
-  }, [found, puzzle]);
+  }, [foundPaths]);
 
   return (
     <View style={s.shell}>
