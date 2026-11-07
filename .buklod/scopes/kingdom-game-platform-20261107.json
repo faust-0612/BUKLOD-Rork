@@ -19,7 +19,8 @@
     "release-compatibility",
     "production-ota-runtime-pinned-package",
     "expo-hosting-web-release",
-    "release-ci-guards"
+    "release-ci-guards",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "Keep canonical 13-station Kingdom Map and IDs, art, navigation, profiles and original character routes unchanged.",
