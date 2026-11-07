@@ -16,6 +16,7 @@ const STATUSES: Status[] = ['new','triaged','in_progress','resolved','closed'];
 const friendlyError = (e: unknown) => String((e as any)?.message ?? e ?? 'Please retry.').slice(0,350);
 
 export default function BsocSupportOperations() {
+  const {hasRole}=useAuth();
   const [canRead,setCanRead]=useState<boolean|null>(null);
   const [canManage,setCanManage]=useState(false);
   const [cases,setCases] = useState<Case[]>([]);
@@ -104,7 +105,7 @@ export default function BsocSupportOperations() {
     <Pressable accessibilityRole="button" onPress={()=>router.back()}><Text style={styles.link}>‹ Back</Text></Pressable>
     <Text style={styles.header}>BSOC · Support Operations</Text>
     <Text style={styles.muted}>Live case queue from BUKLOD support infrastructure. Changes require server authorization, preview, confirmation and audit.</Text>
-    {canManage&&<Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/account-recovery' as any)}>
+    {hasRole('system_admin')&&<Pressable style={styles.recovery} accessibilityRole="button" onPress={()=>router.push('/admin/account-recovery' as any)}>
       <Text style={styles.recoveryTitle}>Password Reset · Admin Assistance ›</Text>
       <Text style={styles.muted}>Restricted System Admin workflow. Verify identity first; no manual password or code sharing.</Text>
     </Pressable>}
