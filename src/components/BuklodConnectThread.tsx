@@ -174,7 +174,6 @@ type Props = {
   initialSubtitle?: string;
   initialOtherUserId?: string;
   pendingTargetUserId?: string;
-  focusMessageId?: string;
   onBackOverride?: () => void;
 };
 
@@ -620,7 +619,6 @@ function BuklodConnectThreadInner({
   initialSubtitle,
   initialOtherUserId,
   pendingTargetUserId,
-  focusMessageId,
   onBackOverride,
 }: Props) {
   // Web dock closes in-place on navigation, lookup failure and Back.
@@ -2584,43 +2582,6 @@ const [
     }
   },[effectiveContainerId,focusMessageId,visibleMessages,hasOlder,loadingOlder,listAnchored,loadOlder]);
 
-  /* BUKLOD_EXACT_CONNECT_MESSAGE_FOCUS_R1 */
-  const messageFocusAttempt=useRef<{thread:string;id:string;pages:number;done:boolean}>({
-    thread:'',id:'',pages:0,done:false,
-  });
-  useEffect(()=>{
-    const id=String(focusMessageId??'').trim();
-    if(!id||!effectiveContainerId)return;
-    const focus=messageFocusAttempt.current;
-    if(focus.thread!==effectiveContainerId||focus.id!==id){
-      messageFocusAttempt.current={thread:effectiveContainerId,id,pages:0,done:false};
-    }
-    const current=messageFocusAttempt.current;
-    if(current.done)return;
-    const index=visibleMessages.findIndex(row=>row.id===id);
-    if(index>=0){
-      current.done=true;
-      pinLatestOnOpenRef.current=false;
-      suppressStickRef.current=true;
-      listAnchoredRef.current=true;
-      nearBottomRef.current=false;
-      setListAnchored(true);
-      setAwayFromLatest(true);
-      const frame=requestAnimationFrame(()=>{
-        try{listRef.current?.scrollToIndex({index,animated:true,viewPosition:0.4});}
-        catch{listRef.current?.scrollToOffset({offset:0,animated:false});}
-      });
-      return ()=>cancelAnimationFrame(frame);
-    }
-    if(!initialLoadSettledRef.current||loadingOlder||loadingOlderRef.current)return;
-    if(hasOlder&&current.pages<8){
-      current.pages++;
-      void loadOlder();
-    }else{
-      current.done=true; // Unavailable older records never trigger endless requests.
-    }
-  },[focusMessageId,effectiveContainerId,visibleMessages,hasOlder,loadingOlder,loadOlder]);
-
   const closeOptionMenu =
     () => {
       setOptionMenu(null);
@@ -4250,11 +4211,6 @@ const [
       >
 <FlatList
         ref={listRef}
-        onScrollToIndexFailed={({averageItemLength,index})=>{
-          listRef.current?.scrollToOffset({
-            offset:Math.max(0,index*averageItemLength),animated:false,
-          });
-        }}
         style={{ flex: 1, opacity: listAnchored ? 1 : 0 }}
         data={visibleMessages}
         keyboardShouldPersistTaps="always"
