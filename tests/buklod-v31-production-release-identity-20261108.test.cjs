@@ -12,6 +12,8 @@ test('V31 production workflow is one-shot, source-locked, release-only, no OTA/w
   assert.doesNotMatch(flow,/eas-cli@latest\s+(?:submit|update|deploy)\b/);
   assert.match(flow,/git diff --name-only/);
   assert.match(flow,/versionCode,31/);
+  assert.match(flow,/node --test tests\/native-expo-config-compat\.test\.cjs tests\/staging-release-identity-v30-20261108\.test\.cjs tests\/buklod-v31-production-release-identity-20261108\.test\.cjs/);
+  assert.doesNotMatch(flow,/node --test [^\n]*tests\/android-v29-runtime-compat-release-20261108\.test\.cjs/);
   assert.match(flow,/versionCode="31"/);
   assert.match(flow,/FOREGROUND_SERVICE_CONNECTED_DEVICE/);
 });
