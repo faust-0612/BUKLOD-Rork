@@ -23,7 +23,7 @@ const show = msg => window.showToast(String(msg));
 const call = async result => {const x=await result; if(x.error)throw x.error; return x.data;};
 const fmt = value => value ? new Date(value).toLocaleString('en-PH',{dateStyle:'medium',timeStyle:'short'}) : 'Not scheduled';
 let activeUser=null, roleByClass=new Map(), cache=new Map(), pending=false, activeRequest=0, activeFilter='all';
-const isFaculty = () => roleByClass.get(app.activeClassId)?.faculty===true;
+const isFaculty = () => roleByClass.get(app.activeClassId)?.authorizedFaculty===true;
 const box = (title,body) => '<section class="surface-card" style="margin-bottom:14px"><h3 style="font-size:16px;font-weight:800;margin-bottom:9px">' + esc(title) + '</h3>' + body + '</section>';
 const empty = label => '<p style="color:#64748b;font-size:13px">' + esc(label) + '</p>';
 const card = (label,info) => '<div style="padding:11px 12px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;margin-bottom:9px"><strong>' +
@@ -43,7 +43,7 @@ function projectCards(){
     'oncontextmenu="openCardContextMenu(event,\'class\',\''+c.id+'\',\'Classroom\')">' +
     '<div class="classroom-card-left"><div class="classroom-icon-tile">'+ window.createCanonicalLogoSVG(48,true)+'</div><div>' +
     '<div class="classroom-card-title">'+esc(c.className)+'</div><div class="classroom-card-sub">'+esc(c.section)+'</div>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill-badge pill-cyan">'+esc(roleByClass.get(c.id)?.faculty?'Faculty':'Student')+'</span>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill-badge pill-cyan">'+esc(roleByClass.get(c.id)?.authorizedFaculty?'Faculty':roleByClass.get(c.id)?.student?'Student':'Assigned')+'</span>' +
     '<span class="pill-badge pill-slate">'+esc(c.status || 'Assigned')+'</span><span style="font-size:12px;color:#64748b">'+esc(c.semester)+'</span></div>' +
     '</div></div><div class="classroom-chevron">›</div></article>').join('') : box('No authorized classrooms',empty(activeFilter==='active'?'No active classrooms are assigned to this account.':'No enrolled or faculty classrooms were returned by BUKLOD.'));
   const first=classes[0];
@@ -93,7 +93,7 @@ async function refreshClasses(){
   }
   roleByClass=new Map();app.classrooms={};cache=new Map();
   for(const [id,row] of merged){
-    roleByClass.set(id,{faculty:row.can_faculty_view,student:row.can_student_view});
+    roleByClass.set(id,{faculty:row.can_faculty_view===true,student:row.can_student_view===true,authorizedFaculty:false});
     app.classrooms[id]={id,className:row.classroom_name||row.name||'Classroom',section:[row.subject_code,row.section_name].filter(Boolean).join(' · '),
       code:row.subject_code||'',classType:row.classroom_mode||'Classroom',status:String(row.status||''),
       academicYear:row.school_year||'—',semester:row.term||'—',term:row.term||'—',faculty:'Authorized BUKLOD faculty',
@@ -119,11 +119,17 @@ async function fetchCurrent(id,tab){
   if(request!==activeRequest)return;
   const identity=Array.isArray(ctx)?ctx[0]:ctx;
   if(!identity?.role)throw Error('This account has no authorized Classroom role.');
-  if(identity.role==='FACULTY'&&!roleByClass.get(id)?.faculty)throw Error('Faculty authorization was not confirmed.');
+  const assigned=roleByClass.get(id);
+  if(!assigned || (identity.role==='FACULTY'&&(!assigned.faculty || identity.is_faculty!==true)))
+    throw Error('Faculty authorization was not confirmed.');
+  assigned.authorizedFaculty=identity.role==='FACULTY' && identity.is_faculty===true && assigned.faculty===true;
   const out={context:identity};
   const select=(table,cols)=>db.from(table).select(cols).eq('classroom_id',id);
   if(tab==='overview'||tab==='discussions'){
     out.posts=await call(select('buklod_education_classroom_posts','id,title,body,is_pinned,is_locked,created_at,author_user_id').is('deleted_at',null).order('created_at',{ascending:false}).limit(70));
+    const ids=out.posts.map(p=>p.id).filter(isoId);
+    out.comments=ids.length?await call(select('buklod_education_classroom_comments','id,post_id,body,author_user_id,created_at')
+      .in('post_id',ids).is('deleted_at',null).order('created_at',{ascending:true}).limit(500)):[];
   }else if(tab==='syllabus'){
     const [a,b]=await Promise.all([
       call(select('buklod_education_modules','id,module_no,title,description,term_key,status').order('module_no',{ascending:true}).limit(120)),
