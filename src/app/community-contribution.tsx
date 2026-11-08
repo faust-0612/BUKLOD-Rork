@@ -93,7 +93,7 @@ export default function CommunityContributionScreen() {
         <View style={s.breakdownSeparator}/>
         <Row label="Your qualified QMP" value={Number(data.this_month_qmp).toLocaleString()}/>
         <Row label="All qualified QMP" value={Number(data.total_qualified_qmp).toLocaleString()}/>
-        <Row label="Your share of the 30% pool" value={formatCommunitySharePercent(revenue.memberPoolFraction)}/>
+        <Row label={`Your share of the ${formatCommunityPoolPercent(revenue.poolBps)} pool`} value={formatCommunitySharePercent(revenue.memberPoolFraction)}/>
         <Row label="Your effective share of total revenue" value={formatCommunitySharePercent(revenue.memberGrossFraction)}/>
         <Row label="Your estimated peso share" value={data.estimated_share_minor===null?'Not available':data.estimate_below_cent?'Below ₱0.01':formatMinorPhp(data.estimated_share_minor)}/>
         <Text style={s.note}>Calculation: your QMP ÷ all qualified QMP × Community pool. Individual estimates round down to a cent and may change when the report or QMP changes.</Text>
