@@ -1,0 +1,38 @@
+{
+  "contractVersion": 2,
+  "objective": "Recover user-authorized staging-user APK build blocked before EAS by missing GitHub secret. Safely use the already tracked canonical multi-client Firebase config, which contains separately registered staging Android client org.mzbministry.buklod.staging, without creating fake Firebase credentials or changing the app source. Produce one finished signed APK, no OTA/web/Play.",
+  "baseRef": "edef58e4b564ec31a9065c700a4e2ce7a1b497dc",
+  "productionBaselineEvidence": "Verified live main commit edef58e4b564ec31a9065c700a4e2ce7a1b497dc contains PR583 release-only files. CI 42484376179 failed before EAS build because STAGING_FIREBASE_JSON_B64 GitHub secret was blank. Source has google-services.production.json with three verified distinct clients org.mzbministry.buklod, org.mzbministry.buklod.classroom and org.mzbministry.buklod.staging. No APK has been produced in this request yet.",
+  "chosenApproach": "Keep protected-secret-first behavior, fall back only if canonical tracked multi-client Firebase file is present and exact staging package client exists. Copy to ignored google-services.staging.json in ephemeral GitHub Actions checkout; enforce package selection via Expo config, then original preview environment and EAS staging-user signed APK build and exact metadata validation. Branch/merge must preserve no source drift and no OTA/web/Play.",
+  "selectionRationale": "The fallback uses actual registered package-specific Firebase configuration, not production package identity. The source already contains the exact required staging Firebase client, avoiding a separate missing repository secret and avoiding reconstructing keys. No user-private signing key or token is exposed.",
+  "alternativeApproaches": [
+    "Retry unchanged GitHub secret gate: would fail identically, rejected.",
+    "Disable Firebase calls and build a degraded APK: would break features, rejected.",
+    "Invent staging Firebase client from production values: insecure/unverified, rejected.",
+    "Rebuild old staging source: stale source, rejected."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "security-and-credentials",
+    "native-runtime"
+  ],
+  "preserveBehaviors": [
+    "Staging build only; Main app source, Expo runtime1.3.2, database, current OTA/web and Google Play unchanged.",
+    "Staging Firebase client package remains org.mzbministry.buklod.staging and preview EAS environment.",
+    "Original protected secret takes precedence when present; fallback validated against exact registered package."
+  ],
+  "acceptanceChecks": [
+    "Workflow fails closed if neither protected secret nor source-registered staging client exists.",
+    "Only workflow, test and scope manifest change on top of verified current main.",
+    "Existing staging-user EAS profile, channel, package and runtime unchanged.",
+    "Finished signed .apk EAS build ID and artifact link verified before completion report; no OTA/web/Play."
+  ],
+  "regressionTests": [
+    "tests/staging-user-current-main-apk-20261108.test.cjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod-staging-user-latest-main-apk-20261108.yml",
+    "tests/staging-user-current-main-apk-20261108.test.cjs",
+    ".buklod/scopes/staging-user-firebase-registered-client-20261108.json"
+  ]
+}
