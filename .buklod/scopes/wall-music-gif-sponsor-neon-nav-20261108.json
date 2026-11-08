@@ -1,0 +1,55 @@
+{
+  "contractVersion": 2,
+  "objective": "Reconcile requested Wall song-on-tap, 5–60s clip selection, correct GIF comment previews, sound-on visible paid videos, distinct neon Home utility/weekly tip cards, Heavy Rain controls and persistent tab navigation without native ABI drift.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Verified repository main bd0f0155ad3fa6a7481e60d29ef9091de8b527b1 (V29 AAB versionName 1.3.5 code 29, Expo runtime 1.3.2) on Nov 8; existing stable production V28-compatible OTA/web is separate. Production Supabase project yhanxndaqbmuzbdqlblu active; additive version 20261108093945 recorded and two new nullable clip columns read-back verified. No OTA, web, Play or APK published by this PR.",
+  "chosenApproach": "Preserve existing approved music library and attach only segment start/duration metadata; one shared Wall player seeks and stops at segment end, with native visibility autoplay and explicit tap control. Safely decode preview marker without altering comment RPC. Visible-only sponsored sound player with gesture fallback. Keep existing scoped nav logic while using router.navigate, and keep Home cards mounted through focus changes. Isolated 3-card neon/Heavy Rain styling.",
+  "selectionRationale": "No video rendering, duplicated full song storage, new native dependency, replacement of release runtime, or permanent ad posting. Database migration is additive/nullable, preserves RLS; legacy post creatives remain playable and owner/audience security unchanged.",
+  "alternativeApproaches": [
+    "Server-side transcode and upload a new 30-second audio file for every post: rejected for unnecessary bandwidth, storage and copyright/ownership risk; catalog licensing remains authoritative.",
+    "Replace the entire navigation/router shell to remove loads: rejected as incompatible with scopes, desktop dock and safe routes.",
+    "Autoplay sponsored video even when hidden: rejected for bandwidth/CPU and intrusive sound.",
+    "Render encoded GIF body text directly on Wall: rejected as unusable and leaks token-like markup."
+  ],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Unchanged profile session/scope guards, Public/Cluster/Organization room isolation and Wall first-view media/ads/scroll.",
+    "Unchanged sponsorship eligibility, payment, geotargeting, 30-day expiry, on-view impression/click events and fixed slot placement.",
+    "One shared lazy Wall audio player, DZAS/audio focus handoff, post/editor lifecycle and cancel-on-scroll.",
+    "Legacy song posts with null segment values remain valid; author-only write and audience read RLS intact; delete-on-music-archive remains set-null.",
+    "Native V28 compatible runtime 1.3.2, V29 metadata unchanged; no new native packages, direct prod OTA or Play release.",
+    "Reduced-motion accessibility and low-end Android weak-network performance."
+  ],
+  "acceptanceChecks": [
+    "Post composer can choose approved song, preview selected 5–60s bounded segment, save its metadata, and display clear song title on post; user can tap to control playback.",
+    "Encoded GIF comment snippets show GIF thumbnail or legible GIF label, never raw marker text.",
+    "Eligible paid sponsored videos audibly autoplay only in-view and pause on blur/background; browser gesture fallback retained.",
+    "Heavy Rain button compact and animation visibly more intense while honoring reduce motion.",
+    "Home weekly tips, My BUKLOD Home and Health Center have three distinct neon card accents.",
+    "Switch Home, Cluster, Wall, Connect, Profile without replace-driven remount; preserve existing active scope switches.",
+    "Focused Node test, SQL test, TypeScript compile, protected engineering accountability, unified RC compile and Android/web compatibility gates pass before marking OTA ready; user physical testing skipped only if expressly authorized."
+  ],
+  "regressionTests": [
+    "tests/wall-media-navigation-polish-20261108.test.mjs",
+    "supabase/tests/buklod_post_music_selected_clip_v1.sql"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/components/BuklodCommunityCommentPreview.tsx",
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "src/components/BuklodPersistentBottomNav.tsx",
+    "src/components/BuklodPostMotion.tsx",
+    "src/components/BuklodPostMusicPicker.tsx",
+    "src/components/BuklodTodayCard.tsx",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
+    "src/lib/buklodInstantNavigation.ts",
+    "src/lib/buklodPostCreatives.ts",
+    "supabase/migrations/20261108093945_buklod_post_music_selected_clip_v1_20261108.sql",
+    "supabase/tests/buklod_post_music_selected_clip_v1.sql",
+    "tests/wall-media-navigation-polish-20261108.test.mjs",
+    ".buklod/scopes/wall-music-gif-sponsor-neon-nav-20261108.json"
+  ]
+}
