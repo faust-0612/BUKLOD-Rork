@@ -87,9 +87,9 @@ jobs:
           printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
           test -s google-services.staging.json || { echo 'STOP: invalid staging Firebase secret'; exit 1; }
           npx eas-cli@latest whoami --non-interactive >/dev/null
-          npx eas-cli@latest env:pull --environment preview --path .env.staging-user --non-interactive
-          test -s .env.staging-user
-          set -a; . ./.env.staging-user; set +a
+          npx eas-cli@latest env:pull --environment preview --path /tmp/buklod-preview-public.env --non-interactive
+          test -s /tmp/buklod-preview-public.env
+          set -a; . /tmp/buklod-preview-public.env; set +a
           case "${EXPO_PUBLIC_SUPABASE_URL:-}" in https://*.supabase.co) ;; *) echo 'STOP: preview Supabase endpoint missing or invalid'; exit 1 ;; esac
           test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" || { echo 'STOP: preview Supabase publishable key missing'; exit 1; }
           test -s google-services.staging.json || { echo 'STOP: missing staging Firebase file'; exit 1; }
