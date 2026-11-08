@@ -58,10 +58,9 @@ export function buklodFormationNotificationTarget(
     const query = new URLSearchParams();
     if (submissionId) query.set('submissionId', submissionId);
     query.set('notificationKind', normalizedKind);
-    return {
-      path: `/devotional/submissions?${query.toString()}`,
-      scopeId: scopeId || null,
-    };
+    // Personal records are already bound to auth.uid() by row-level security.
+    // Do not switch scopes for a private revision: that could hide old records.
+    return { path: `/devotional/submissions?${query.toString()}` };
   }
 
   if (itemKind === 'DAILY_READING' && itemId) {
