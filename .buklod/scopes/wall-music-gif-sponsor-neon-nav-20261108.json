@@ -48,7 +48,8 @@
     "Canonical Points claim with existing ad opportunity, no alternate economy claim RPC, rank info separate.",
     "Admin-scoped private resource documents, event/notice media, and profile photo uploads with rollback on failed writes.",
     "Check In Today only for active official Cluster event within time window, one admin-reviewed reward.",
-    "Scoped comment notification scrolls to matching ID; direct/scope Connect notifications scroll to exact message through bounded access-controlled history."
+    "Scoped comment notification scrolls to matching ID; direct/scope Connect notifications scroll to exact message through bounded access-controlled history.",
+    "Points notification with ledger ID loads owner-authorized older activity and scrolls to exact highlighted ledger entry."
   ],
   "regressionTests": [
     "tests/wall-media-navigation-polish-20261108.test.mjs",
@@ -105,6 +106,11 @@
     "src/components/BuklodCommunityCommentThread.tsx",
     "src/components/BuklodConnectThread.tsx",
     "src/components/BuklodExclusiveScopeCommunity.tsx",
-    "tests/buklod-ad-opportunities.test.cjs"
+    "tests/buklod-ad-opportunities.test.cjs",
+    "src/components/BuklodPortalScrollView.tsx",
+    "src/components/BuklodScopeCallLauncher.tsx",
+    "src/components/BuklodScopeCallLauncher.web.tsx",
+    "supabase/migrations/20261108120757_buklod_atomic_claim_all_rank_history_v1_20261108.sql",
+    "supabase/tests/buklod_scope_assets_and_claim_all_rank_v1.sql"
   ]
 }
