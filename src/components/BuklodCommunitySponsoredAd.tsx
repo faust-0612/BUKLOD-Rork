@@ -127,10 +127,8 @@ export default function BuklodCommunitySponsoredAd({
 
   useEffect(() => {
     if (!rows.length) return;
-    const timer = setInterval(() => {
-      setAtMs(Date.now()); // Expire a campaign even while the view stays open.
-      if (rows.length > 1) setIndex(current => current + 1);
-    }, ROTATE_MS);
+    // Expiry must still advance while a visible sponsored video is playing.
+    const timer = setInterval(() => setAtMs(Date.now()), ROTATE_MS);
     return () => clearInterval(timer);
   }, [rows.length]);
 
@@ -142,6 +140,14 @@ export default function BuklodCommunitySponsoredAd({
   ), [rows, profile, atMs, scopeCoverage, audience]);
 
   const campaign = eligible.length ? eligible[index % eligible.length] : null;
+  useEffect(() => {
+    if (eligible.length <= 1) return;
+    // Video creative must not be cut short at the photo rotation interval.
+    const ms = screenFocused && videoVisible && campaign?.creative_type === 'video'
+      ? 30_000 : ROTATE_MS;
+    const timer = setTimeout(() => setIndex(current => current + 1), ms);
+    return () => clearTimeout(timer);
+  }, [eligible.length, campaign?.id, campaign?.creative_type, screenFocused, videoVisible]);
   // Feed headers stay mounted while scrolling: measure actual intersection.
   useEffect(() => {
     if (!screenFocused || campaign?.creative_type !== 'video') {
