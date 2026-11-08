@@ -5,6 +5,9 @@ import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   formatMinorPhp,
+  getCommunityRevenueBreakdown,
+  formatCommunitySharePercent,
+  formatCommunityPoolPercent,
   loadMyCommunityContribution,
   loadMyCommunityQmpHistory,
   recordCommunityEconomyAnalytics,
@@ -107,6 +110,7 @@ export default function BuklodCommunityContributionCard() {
     ? 'No safe estimate yet'
     : data.estimate_below_cent ? 'Below ₱0.01' : formatMinorPhp(data.estimated_share_minor);
   const breakdown = data.engagement_breakdown;
+  const revenue = getCommunityRevenueBreakdown(data);
   const trendPctPoints = Number(data.share_weight_delta || 0) * 100;
   const trendLabel =
     Math.abs(trendPctPoints) < 0.0001
@@ -159,9 +163,21 @@ export default function BuklodCommunityContributionCard() {
         </Text>
       </View>
 
-      <View style={s.estimate}>
-        <Text style={s.estimateLabel}>ESTIMATED REVENUE SHARE</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="View full AdMob revenue sharing breakdown"
+        onPress={() => router.push('/community-contribution' as any)}
+        style={s.estimate}>
+        <Text style={s.estimateLabel}>YOUR ESTIMATED REVENUE SHARE</Text>
         <Text style={s.estimateValue}>{estimate}</Text>
+        {revenue ? (
+          <View style={s.revenueSplit}>
+            <Text style={s.revenueLine}>AdMob estimate (100%): {formatMinorPhp(revenue.grossMinor)}</Text>
+            <Text style={s.revenueLine}>Community pool ({formatCommunityPoolPercent(revenue.poolBps)}): {formatMinorPhp(revenue.poolMinor)}</Text>
+            <Text style={s.revenueLine}>Your QMP share of pool: {formatCommunitySharePercent(revenue.memberPoolFraction)}</Text>
+            <Text style={s.revenueFootnote}>Of full AdMob revenue: {formatCommunitySharePercent(revenue.memberGrossFraction)} · estimate only</Text>
+          </View>
+        ) : null}
         <Text style={s.estimateGuard}>
           {data.estimate_status === 'PROVISIONAL_ADMOB'
             ? 'ADMOB PRELIMINARY · CHANGES WITH COMMUNITY QMP · NOT WITHDRAWABLE'
@@ -170,7 +186,8 @@ export default function BuklodCommunityContributionCard() {
         {data.estimate_updated_at ? (
           <Text style={s.estimateGuard}>Report updated {new Date(data.estimate_updated_at).toLocaleString()}</Text>
         ) : null}
-      </View>
+        {revenue ? <Text style={s.detailLink}>SEE FULL 100% / COMMUNITY / PERSONAL BREAKDOWN</Text> : null}
+      </Pressable>
 
       <Pressable
         accessibilityRole="button"
@@ -206,6 +223,10 @@ const s = StyleSheet.create({
   impactTitle:{fontSize:8,fontWeight:'900',color:impactTone.ink},
   impactText:{marginTop:3,fontSize:8.5,lineHeight:12,color:'#5F7066'},
   estimate:{borderRadius:12,backgroundColor:revenueTone.surface,padding:10}, estimateLabel:{fontSize:8,fontWeight:'900',color:revenueTone.ink},
+  revenueSplit:{marginTop:6,paddingTop:6,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:'#CDE3D5',gap:3},
+  revenueLine:{fontSize:9,lineHeight:14,fontWeight:'700',color:'#295440'},
+  revenueFootnote:{fontSize:8,lineHeight:12,color:'#586D60'},
+  detailLink:{marginTop:7,fontSize:8,fontWeight:'900',color:'#1E6B45'},
   estimateValue:{marginTop:2,fontSize:17,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:7,lineHeight:10,fontWeight:'900',color:'#66501D'},
   secondary:{minHeight:34,borderRadius:10,borderWidth:1,borderColor:shareTone.border,backgroundColor:shareTone.soft,alignItems:'center',justifyContent:'center',paddingHorizontal:8}, secondaryText:{color:shareTone.ink,fontSize:8.5,fontWeight:'900'},
 });

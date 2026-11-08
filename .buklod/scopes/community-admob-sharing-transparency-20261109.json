@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Show the verified official AdMob preliminary gross revenue (100%), rule-driven Community Contribution pool (30%), non-pool remainder (70% plus cents), private personal QMP share ratio and estimated PHP allocation across BUKLOD Home contribution card and details. Never present estimates as cash or withdrawable.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: 2026-11-09 production BUKLOD Connect Supabase project yhanxndaqbmuzbdqlblu has an official 2026-11 AdMob source snapshot amount_minor=864 PHP8.64, observed_at 2026-11-08 17:15:54 UTC, source_mode=OFFICIAL_ADMOB_API, period OPEN, rule_version community_qmp_v1 config.pool_bps=3000 (30%), 16 qualified accounts and 702 total QMP. Private get_my_buklod_community_contribution_live_v1 source verified against existing SQL migration: member estimate= floor(floor(gross_minor*pool_bps/10000)*user_qmp/total_qmp). API currently does not return gross / pool percent / remainder / effective gross share fields. UI Home card src/components/BuklodCommunityContributionCard.tsx and details src/app/community-contribution.tsx show only member estimated pesos and weight without complete financial breakdown. No change to payout, ledger, or official importer is required. Merged GitHub baseline main used after PR #593 v11 source is verified production; client deployed state not inferred.",
+  "allowedPaths": [
+    ".buklod/scopes/community-admob-sharing-transparency-20261109.json",
+    "supabase/migrations/20261109013500_buklod_admob_revenue_sharing_breakdown_v1.sql",
+    "supabase/tests/buklod_admob_sharing_breakdown_contract_20261109.sql",
+    "src/lib/buklodCommunityContributionEconomy.ts",
+    "src/components/BuklodCommunityContributionCard.tsx",
+    "src/app/community-contribution.tsx",
+    "tests/community-admob-preview-contract.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "Source-backed fresh monthly gross only from private AdMob snapshot; no back-solving gross from rounded 30% pool",
+    "Use existing configured pool_bps, server cent flooring, and user-weight ratio; no client-side monetary authority",
+    "Show 100% gross, 30% pool, 70% plus rounding non-pool, total QMP, own QMP, own pool share percentage, own effective gross percentage and own cent-rounded estimate",
+    "Display only on PROVISIONAL_ADMOB after verifying exact gross=pool+remainder and configured bps; hide stale/missing/reconciled gross breakdown",
+    "No anonymous or cross-user direct snapshot access, no other user personal data displayed",
+    "Preserve existing QMP, finance, wallets, funding, referral, settlement, withdrawal, server scheduler, Expo runtime and screen navigation",
+    "Pass focused tests, database read-only SQL contract, PR QA; verify production migration and keep OTA unpublished until explicit release gate"
+  ],
+  "chosenApproach": "Add optional additive fields to existing authenticated read-only live_v1 RPC without changing its signature. Return gross cents, configured bps, non-pool cents, effective gross participation and source mode only in fresh provisional branch. Add typed client guard and UI rows in Home card/details, with precision and noncash notices.",
+  "selectionRationale": "The server already computes the 30% pool and private member estimate correctly; UI lacks underlying gross and configured rate. An additive response extending its existing secure RPC avoids duplicate authorization, app-wide backend redesign or divergent client payout math.",
+  "alternativeApproaches": [
+    "Infer gross in client by dividing rounded pool by 30%: rejected because rounding creates ambiguity, false displayed figures, and can conflict with configurable rules",
+    "Add a separate public revenue endpoint: rejected due privacy and duplicated backend/source reconciliation",
+    "Extend existing private read-only response with exact source-reconciled fields and visual breakdown: chosen"
+  ],
+  "preserveBehaviors": [
+    "Official AdMob OAuth import and scheduled function source unchanged",
+    "30% QMP pool remains server-rule configured; no change to share payout or rounding calculation",
+    "No new cash balance entitlement, no user-visible withdrawal eligibility, no finance ledger mutation",
+    "Existing private RLS/grants and Supabase auth user scoping preserved",
+    "Existing Home navigation, noncash estimate state and historical QMP information preserved",
+    "No automatic OTA or Android build deployment without release verification"
+  ],
+  "riskAreas": [
+    "private-financial-display",
+    "qmp-share-integrity",
+    "source-backed-revenue",
+    "home-render-compatibility"
+  ],
+  "regressionTests": [
+    "tests/community-admob-preview-contract.test.cjs",
+    "supabase/tests/buklod_admob_sharing_breakdown_contract_20261109.sql"
+  ]
+}

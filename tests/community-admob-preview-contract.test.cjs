@@ -56,6 +56,44 @@ test('official API path scopes to the BUKLOD app and verified PHP network earnin
   assert.match(schedule, /BUKLOD_ADMOB_SYNC_ENABLED == 'true'/);
 });
 
+test('official estimated revenue shares reconcile from private server source without fabrication', () => {
+  const sharingSql = readFileSync(
+    'supabase/migrations/20261109013500_buklod_admob_revenue_sharing_breakdown_v1.sql', 'utf8',
+  );
+  const helper = readFileSync('src/lib/buklodCommunityContributionEconomy.ts', 'utf8');
+  const detail = readFileSync('src/app/community-contribution.tsx', 'utf8');
+  assert.match(sharingSql, /'estimated_gross_revenue_minor',v_snapshot.amount_minor/);
+  assert.match(sharingSql, /'estimated_pool_bps',v_bps/);
+  assert.match(sharingSql, /'estimated_non_pool_revenue_minor',v_snapshot.amount_minor-v_pool/);
+  assert.match(sharingSql, /'estimated_share_of_total_revenue'/);
+  assert.match(sharingSql, /'estimate_source_mode',v_snapshot.source_mode/);
+  assert.match(sharingSql, /v_pool:=floor\(v_snapshot.amount_minor::numeric\*v_bps\/10000\)::bigint/);
+  assert.match(helper, /data.estimate_status !== 'PROVISIONAL_ADMOB'/);
+  assert.match(helper, /Math.floor\(gross \* bps \/ 10000\) !== pool/);
+  assert.match(helper, /gross - pool !== remainder/);
+  assert.match(card, /getCommunityRevenueBreakdown\(data\)/);
+  assert.match(detail, /getCommunityRevenueBreakdown\(data\)/);
+  assert.match(detail, /Total app estimated revenue/);
+  assert.match(detail, /All qualified QMP/);
+  assert.match(detail, /not the app's net profit/);
+  assert.match(detail, /not finalized, funded, or withdrawable/);
+  assert.doesNotMatch(sharingSql, /admin_finalize_buklod|credit_wallet|process_withdrawal/i);
+});
+
+test('30% preliminary pool math uses final cents and floors member cents without inventing payouts', () => {
+  const grossMinor = 864;
+  const communityBps = 3000;
+  const poolMinor = Math.floor(grossMinor * communityBps / 10000);
+  const outsideMinor = grossMinor - poolMinor;
+  assert.equal(poolMinor, 259);
+  assert.equal(outsideMinor, 605);
+  assert.equal(poolMinor + outsideMinor, grossMinor);
+  const memberQmp = 20, allQmp = 702;
+  assert.equal(Math.floor(poolMinor * memberQmp / allQmp), 7);
+  assert.equal(Math.floor(poolMinor * 1 / allQmp), 0);
+  assert.ok(memberQmp / allQmp * communityBps / 10000 > 0);
+});
+
 test('QMP-weighted example: projection is independent from cash entitlement', () => {
   const approximateMinor = (revenueMinor, poolBps, qmp, total) =>
     total > 0 ? Math.floor(Math.floor(revenueMinor * poolBps / 10000) * qmp / total) : null;

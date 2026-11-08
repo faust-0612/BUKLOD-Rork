@@ -50,6 +50,15 @@ export type CommunityContributionDashboard = {
   next_level: { label: string; min_qmp: number; remaining_qmp: number } | null;
   estimated_share_minor: number | null;
   estimated_pool_minor: number;
+  /** Fresh source-backed revenue preview only; absent on old server versions. */
+  estimated_gross_revenue_minor?: number | null;
+  /** Configured Community pool fraction in 1/100 of one percent. */
+  estimated_pool_bps?: number | null;
+  /** Revenue outside Community pool, including rounding cents; not net profit. */
+  estimated_non_pool_revenue_minor?: number | null;
+  /** Effective QMP participation fraction of gross estimated AdMob revenue. */
+  estimated_share_of_total_revenue?: number | null;
+  estimate_source_mode?: 'OFFICIAL_ADMOB_API' | 'ADMIN_ADMOB_REPORT' | null;
   estimate_label: string;
   estimate_status?: 'PROVISIONAL_ADMOB' | 'RECONCILED_OR_FINALIZED' | 'SOURCE_NOT_CONNECTED' | 'STALE';
   estimate_updated_at?: string | null;
@@ -248,6 +257,52 @@ export async function adminFinalizeCommunityUserPool(periodKey: string, reason?:
     p_period_key: periodKey.trim(),
     p_reason: reason?.trim() || null,
   });
+}
+
+/** A display-only view over the server's private, source-backed QMP calculation.
+ * Do not derive gross revenue by dividing a rounded Community pool by 30%.
+ * When source data is stale or incomplete, hide the financial breakdown.
+ */
+export function getCommunityRevenueBreakdown(data: CommunityContributionDashboard) {
+  if (data.estimate_status !== 'PROVISIONAL_ADMOB') return null;
+  const gross = data.estimated_gross_revenue_minor;
+  const pool = data.estimated_pool_minor;
+  const remainder = data.estimated_non_pool_revenue_minor;
+  const bps = data.estimated_pool_bps;
+  if (gross == null || remainder == null || bps == null ||
+      ![gross, pool, remainder, bps].every(Number.isSafeInteger) ||
+      gross < 0 || pool < 0 || remainder < 0 || bps < 0 || bps > 10000 ||
+      Math.floor(gross * bps / 10000) !== pool || gross - pool !== remainder) {
+    return null;
+  }
+  const effective = data.estimated_share_of_total_revenue;
+  const poolWeight = Number(data.share_weight);
+  const memberRatio = data.total_qualified_qmp > 0 && Number.isFinite(poolWeight)
+    ? Math.max(0, Math.min(1, poolWeight)) : null;
+  if (effective != null && (!Number.isFinite(effective) || effective < 0 ||
+      effective > bps / 10000 + 1e-9)) return null;
+  return {
+    grossMinor: gross,
+    poolMinor: pool,
+    remainderMinor: remainder,
+    poolBps: bps,
+    remainderBps: 10000 - bps,
+    memberPoolFraction: memberRatio,
+    memberGrossFraction: effective == null ? null : Number(effective),
+    isOfficial: data.estimate_source_mode === 'OFFICIAL_ADMOB_API',
+    sourceMode: data.estimate_source_mode || 'UNVERIFIED',
+  };
+}
+
+export function formatCommunitySharePercent(fraction: number | null | undefined) {
+  if (fraction == null || !Number.isFinite(fraction)) return '—';
+  const value = Math.max(0, fraction) * 100;
+  if (value > 0 && value < 0.0001) return '<0.0001%';
+  return `${value.toFixed(value > 0 && value < 0.01 ? 4 : 2)}%`;
+}
+
+export function formatCommunityPoolPercent(bps: number) {
+  return `${(bps / 100).toLocaleString('en-PH', { maximumFractionDigits: 2 })}%`;
 }
 
 export function formatMinorPhp(value: number | null | undefined) {
