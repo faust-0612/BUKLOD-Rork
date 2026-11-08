@@ -86,6 +86,13 @@ function postInItsCommunity(
   const commentId = clean(payload.comment_id) || clean(payload.commentId);
   if (openComments && commentId) query.set('focusCommentId', commentId);
 
+  // A selected public comment with an actual ID should open and locate that
+  // comment, not merely the Wall. Legacy notifications retain Wall focus.
+  const exactCommentId=clean(payload.comment_id)||clean(payload.commentId);
+  if(!managed && openComments && exactCommentId){
+    return {path:'/post/'+encodeURIComponent(postId)+
+      '?focusCommentId='+encodeURIComponent(exactCommentId)};
+  }
   return managed && scopeId
     ? { path: `/scope?${query.toString()}`, scopeId }
     : { path: `/buklod?${query.toString()}` };
