@@ -1,0 +1,33 @@
+{
+  "contractVersion": 2,
+  "objective": "Ensure V31 production AAB prebuild gate avoids obsolete staging version 1.3.4 assertions and directly runs V31 release identity regression.",
+  "baseRef": "ebefe2db7f5ea046099b2172a7132fc07fc38355",
+  "productionBaselineEvidence": "Latest V31 workflow from merge ebefe2db runs V29/V30 tests with staging identity version 1.3.4, but latest main staging version is 1.3.6; those tests are stale and would falsely fail before the paid EAS build.",
+  "chosenApproach": "Use current-source native compatibility and staging icon tests plus the dedicated V31 production release test in the V31 workflow. Leave archived V29/V30 source tests and current app code unchanged.",
+  "selectionRationale": "A narrow build-workflow test selection correction preserves feature tests and release verification while eliminating an obsolete staging metadata assertion unrelated to production V31.",
+  "alternativeApproaches": [
+    "Downgrade staging app version: rejected due existing signed staging app source and upgrade regression.",
+    "Rewrite historical V29 and V30 tests globally: rejected as retrospective evidence corruption and unnecessary release scope."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Production version 1.3.6/code31 runtime1.3.2 green B icon runner overlay remains unchanged",
+    "No OTA, web, Play or DB action",
+    "Current source main feature and regression tests stay intact"
+  ],
+  "acceptanceChecks": [
+    "Workflow executes focused native + staging + V31 identity tests before EAS build",
+    "Archived V29/V30 tests untouched",
+    "Production signed AAB and final binary validation retained"
+  ],
+  "regressionTests": [
+    "tests/buklod-v31-production-release-identity-20261108.test.cjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod-v31-green-b-aab-20261108.yml",
+    "tests/buklod-v31-production-release-identity-20261108.test.cjs",
+    ".buklod/scopes/buklod-v31-qa-correction-20261108.json"
+  ]
+}
