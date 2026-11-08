@@ -422,7 +422,7 @@ function ClaimGroupCard({
   onToggle: () => void;
 }) {
   const meta = GROUP_META[group.group_key] ?? GROUP_META.other;
-  const visibleRows = expanded ? rows : rows.slice(0, 3);
+  const visibleRows = expanded ? rows : [];
   const reveal = useRef(new Animated.Value(expanded ? 1 : 0)).current;
 
   useEffect(() => {
@@ -453,7 +453,8 @@ function ClaimGroupCard({
 
   return (
     <View style={[styles.claimCard, { backgroundColor: meta.tint, borderColor: `${meta.accent}3A` }]}>
-      <View style={styles.claimHeader}>
+      <Pressable accessibilityRole="button" accessibilityLabel={expanded?'Hide earning sources for '+group.group_label:'View earning sources for '+group.group_label}
+        onPress={onToggle} style={styles.claimHeader}>
         <View style={[styles.groupIcon, { backgroundColor: meta.accent }]}>
           <MaterialCommunityIcons name={meta.icon} size={22} color={COLORS.white} />
         </View>
@@ -472,9 +473,9 @@ function ClaimGroupCard({
             color={meta.accent}
           />
         </View>
-      </View>
+      </Pressable>
 
-      <Animated.View style={[styles.activityPreview, listMotion]}>
+      {expanded && <Animated.View style={[styles.activityPreview, listMotion]}>
         {visibleRows.length === 0 ? (
           <Text style={styles.reconcileText}>
             Activity details are syncing. The group total remains authoritative.
@@ -498,9 +499,9 @@ function ClaimGroupCard({
             </View>
           ))
         )}
-      </Animated.View>
+      </Animated.View>}
 
-      {rows.length > 3 ? (
+      {rows.length > 3 && expanded ? (
         <Pressable
           accessibilityRole="button"
           onPress={onToggle}
@@ -517,13 +518,13 @@ function ClaimGroupCard({
         </Pressable>
       ) : null}
 
-      {notLoadedCount > 0 ? (
+      {expanded && notLoadedCount > 0 ? (
         <Text style={styles.morePendingText}>
           +{notLoadedCount} more pending activities are included in this Claim All.
         </Text>
       ) : null}
 
-      <Text style={styles.morePendingText}>This category is included in the single Claim All button above.</Text>
+      {!expanded && <Text style={styles.morePendingText}>Tap to view the activity breakdown. Claim All includes every verified activity.</Text>}
     </View>
   );
 }
@@ -544,6 +545,8 @@ export default function BuklodPointsRewardsScreen() {
   const [dashboard, setDashboard] = useState<BuklodPointsDashboard | null>(null);
   const [claimGroups, setClaimGroups] = useState<BuklodClaimGroup[]>([]);
   const [history, setHistory] = useState<PointRow[]>([]);
+  const [historyOpen,setHistoryOpen] = useState(Boolean(exactLedgerId));
+  useEffect(()=>{if(exactLedgerId)setHistoryOpen(true);},[exactLedgerId]);
   const [evaluations, setEvaluations] = useState<EvaluationRow[]>([]);
   const [rankDashboard, setRankDashboard] = useState<RankDashboard | null>(null);
   const [claimingGroup, setClaimingGroup] = useState<string | null>(null);
@@ -1202,9 +1205,15 @@ export default function BuklodPointsRewardsScreen() {
       <View style={styles.section} onLayout={event=>{
         historySectionYRef.current=event.nativeEvent.layout.y;
       }}>
-        <Text style={styles.sectionTitle}>Points History</Text>
-        <Text style={styles.sectionSub}>Search and review your recorded point activity.</Text>
-
+        <Pressable accessibilityRole="button" accessibilityLabel={historyOpen?'Hide full Points history':'Open full Points history'} onPress={()=>setHistoryOpen(v=>!v)}
+          style={[styles.sectionHeadingRow,{minHeight:48}]}>
+          <View style={{flex:1}}>
+            <Text style={styles.sectionTitle}>Points History</Text>
+            <Text style={styles.sectionSub}>{history.length} recent records • Tap to {historyOpen?'hide':'search and review'} details</Text>
+          </View>
+          <MaterialCommunityIcons name={historyOpen?'chevron-up':'chevron-down'} size={24} color={COLORS.green}/>
+        </Pressable>
+        {historyOpen && <>
         <View style={styles.searchBox}>
           <MaterialCommunityIcons name="magnify" size={20} color="#77847D" />
           <TextInput
@@ -1276,6 +1285,7 @@ export default function BuklodPointsRewardsScreen() {
             ))
           )}
         </View>
+        </>}
       </View>
 
       <View style={styles.disclaimer}>

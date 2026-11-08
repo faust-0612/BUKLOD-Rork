@@ -49,7 +49,7 @@ function createStyles(_theme: ConnectThemeRoles) {
   return StyleSheet.create({
     header: {
       paddingHorizontal: 12,
-      paddingBottom: 15,
+      paddingBottom: 8,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
@@ -201,7 +201,7 @@ export function ConnectThreadHeader({
         styles.header,
         {
           paddingTop,
-          minHeight: 68 + paddingTop,
+          minHeight: 56 + paddingTop,
         },
       ]}
     >
