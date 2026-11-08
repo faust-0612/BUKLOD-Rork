@@ -519,6 +519,12 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="music-box-multiple-outline"
+                title="Music Library"
+                subtitle="System Admin: upload, publish and delete songs for Wall posts"
+                path="/admin/music-library"
+              />
+              <AdminRow
                 icon="script-text-outline"
                 title="Kabihasnang Ligaw"
                 subtitle="Story management, preview, schedule, and pause"

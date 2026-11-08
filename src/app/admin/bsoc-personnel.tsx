@@ -108,8 +108,14 @@ export default function BsocPersonnelAuthorization(){
     <Text style={styles.title}>One-time personnel access code</Text>
     <Text selectable style={styles.code}>{invitation.access_code}</Text>
     <Text style={styles.hint}>Expires: {new Date(invitation.expires_at).toLocaleString()} · One use only · Bound to selected member's account.</Text>
-    <Pressable style={styles.button} onPress={()=>void Clipboard.setStringAsync(invitation.access_code)}>
-      <Text style={styles.btnText}>Copy code for secure delivery</Text>
+    <Pressable style={styles.button} onPress={()=>void Clipboard.setStringAsync(
+      'BUKLOD BSOC Personnel Invitation\n'
+      +'Sign in to your own BUKLOD account, then open: https://buklod.expo.app/bsoc/access\n'
+      +'One-time code: '+invitation.access_code+'\n'
+      +'Expires: '+new Date(invitation.expires_at).toLocaleString()+'\n'
+      +'This code is account-bound. Never forward it.'
+    )}>
+      <Text style={styles.btnText}>Copy employee activation instructions + code</Text>
     </Pressable>
     <Text style={styles.hint}>The code will not be displayed again after leaving this screen. Use secure direct delivery, not public chat or group posts.</Text>
    </View>}

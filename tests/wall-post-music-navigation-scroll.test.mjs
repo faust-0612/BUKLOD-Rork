@@ -25,8 +25,17 @@ test('Audio stops when post leaves the visible window without changing native fe
 
 test('Leaving Wall cancels loading and pauses music; existing navigation stays mounted',()=>{
   const part=wall.slice(wall.indexOf('const onCommunityWallViewableItemsChanged=useRef'),wall.indexOf('const maritesVisibilityRefreshRef'));
-  assert.match(part,/useFocusEffect\(useCallback\(\(\)=>\(\)=>\{/);
+  assert.match(part,/useFocusEffect\(useCallback\(\(\)=>\{/);
   assert.match(part,/wallAudioPendingOwnerRef\.current=''/);
   assert.match(part,/pauseWallAudio\(\)/);
   assert.match(wall,/<FlashList/);
+});
+
+test('New ambient photo overlays follow the original FlashList visibility and route focus',()=>{
+  assert.match(wall,/setVisibleCreativePostIds\(nextIds\)/);
+  assert.match(wall,/wallScreenFocused&&visibleCreativePostIds\.includes\(String\(item\.id\)\)/);
+  assert.match(wall,/extraData=\{communityCreativeExtraData\}/);
+  assert.match(wall,/setWallScreenFocused\(false\)/);
+  assert.match(wall,/communityViewabilityListener\.current\(event\)/);
+  assert.match(wall,/maintainVisibleContentPosition=\{\{ disabled: true \}\}/);
 });
