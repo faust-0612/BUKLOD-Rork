@@ -1,0 +1,80 @@
+name: BUKLOD Classroom Live Browser Security Audit
+
+on:
+  push:
+    branches: [dev/classroom-gpt-ui-integration-20261108]
+    paths: ['.github/workflows/classroom-live-e2e-audit-20261109.yml']
+  workflow_dispatch:
+
+permissions: {contents: read}
+
+jobs:
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SITE: https://buklod-classroom.expo.app
+    steps:
+      - name: Install isolated Playwright browser harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          which google-chrome || which chromium || true
+          mkdir -p /tmp/buklod-live-e2e
+          npm install --prefix /tmp/buklod-live-e2e --no-audit --no-fund --no-save playwright@1.56.1
+      - name: Test actual production in Chrome desktop and mobile without modifying records
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const {chromium}=require('/tmp/buklod-live-e2e/node_modules/playwright');
+          const assert=require('node:assert/strict');
+          (async()=>{
+            const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            try {
+              let passed=0;
+              for(const [label,size] of [['desktop',{width:1440,height:900}],['mobile',{width:390,height:844}]]){
+                const context=await browser.newContext({viewport:size});
+                const page=await context.newPage(),errors=[];
+                page.on('pageerror',err=>errors.push(err.message));
+                const response=await page.goto(process.env.SITE+'/?audit='+label,{waitUntil:'networkidle',timeout:45000});
+                assert.equal(response?.status(),200,'Production HTTP 200 '+label);passed++;
+                await page.locator('#liveAuthScreen').waitFor({state:'visible',timeout:20000});passed++;
+                await page.locator('#liveLogin input[name="email"]').waitFor({state:'visible'});passed++;
+                await page.locator('#liveLogin input[name="password"]').waitFor({state:'visible'});passed++;
+                assert.equal(await page.evaluate(()=>document.body.classList.contains('buklod-live-authed')),false);passed++;
+                assert.equal(await page.locator('body > main').evaluate(el=>getComputedStyle(el).visibility),'hidden');passed++;
+                assert.deepEqual(await page.evaluate(()=>Object.keys(window.APP_STATE?.classrooms||{})),[]);passed++;
+                assert.deepEqual(errors,[],'uncaught JS errors '+label);passed++;
+                const visibleText=await page.locator('#liveAuthScreen').innerText();
+                assert.match(visibleText,/BUKLOD Classroom/);
+                assert.doesNotMatch(visibleText,/58\s*\/\s*60 Live|Juan Mateo|93.8%/);passed++;
+                if(label==='mobile'){assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+3),false);passed++;}
+                console.log('LIVE_BROWSER_'+label.toUpperCase()+'_PASS_COUNT='+passed);
+                await context.close();
+              }
+              const context=await browser.newContext({viewport:{width:390,height:844}});
+              const page=await context.newPage();
+              await page.goto(process.env.SITE+'/?class=ffffffff-ffff-ffff-ffff-ffffffffffff&tab=grades',{waitUntil:'networkidle',timeout:45000});
+              await page.locator('#liveAuthScreen').waitFor({state:'visible',timeout:20000});
+              assert.equal(await page.locator('body > main').isVisible(),false);
+              console.log('UNAUTH_GRADE_DEEPLINK_GUARD=PASS');
+              await context.close();
+              console.log('LIVE_BROWSER_TESTS_ALL_PASS='+passed);
+            } finally {await browser.close();}
+          })().catch(err=>{console.error('BROWSER_AUDIT_FAILED',err);process.exitCode=1;});
+          NODE
+      - name: Check actual production JS bundle includes signed-in RPCs
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 2 --max-time 35 "$SITE/?asset-audit=$(date +%s)" -o /tmp/index.html
+          grep -Fq 'classroomSecureBootGuard' /tmp/index.html
+          js="$(grep -oE '/assets/index-[^"]+\.js' /tmp/index.html | head -1)"
+          test -n "$js"
+          curl -fsSL --max-time 35 "$SITE$js" -o /tmp/bundle.js
+          for action in buklod_classroom_my_classes_v2 buklod_classroom_context_v1 buklod_classroom_grade_submission_v2 buklod_classroom_student_released_grade_items_v2 buklod_education_classroom_comments; do
+            grep -Fq "$action" /tmp/bundle.js || { echo "MISSING_BUNDLED_RPC=$action"; exit 1; }
+            echo "LIVE_BUNDLED_RPC=$action"
+          done
+          echo LIVE_SIGNED_OUT_E2E_ASSET_CHECK=PASS
