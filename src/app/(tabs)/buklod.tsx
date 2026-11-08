@@ -4984,7 +4984,7 @@ const communityFeedRows =
     scrollEventThrottle={16}
  /* PERF2_PROGRESSIVE_FEED_LIST */
  /* BUKLOD_COMMUNITY_FAST_SCROLL_BUFFER_R3 */
- drawDistance={Platform.OS==='web' ? 1800 : 400}
+ drawDistance={Platform.OS==='web' ? 2400 : 1250}
  onEndReachedThreshold={0.45}
   onEndReached={() => {
     void loadMoreCommunity186L();
