@@ -1,0 +1,136 @@
+name: BUKLOD Main V29 Production AAB
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/buklod-v29-aab-production-20261108.yml']
+permissions:
+  contents: read
+concurrency:
+  group: buklod-v29-main-aab
+  cancel-in-progress: false
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  BUKLOD_APP_TARGET: main
+  EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
+jobs:
+  signed-v29-aab:
+    if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'BUKLOD_V29_AAB_BUILD_20261108')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exact main release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify exact production commit and EAS production AAB profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+          git diff --exit-code
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const c = require('./app.config.js')({config:{}});
+          const e = JSON.parse(fs.readFileSync('eas.json','utf8'));
+          assert.equal(c.version,'1.3.5');
+          assert.equal(c.android.versionCode,29);
+          assert.equal(c.runtimeVersion, '1.3.2');
+          assert.equal(c.android.package,'org.mzbministry.buklod');
+          assert.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.equal(e.cli.appVersionSource,'local');
+          assert.equal(e.build.production.channel,'production');
+          assert.equal(e.build.production.android.buildType,'app-bundle');
+          assert.notEqual(e.build.production.autoIncrement,true);
+          NODE
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Locked install and comprehensive V28/V29 runtime compatibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node --test tests/native-expo-config-compat.test.cjs tests/android-v29-runtime-compat-release-20261108.test.cjs
+          npx tsc --noEmit
+          node scripts/game-kingdom-release-contract.mjs
+      - name: Check EAS production credentials, production DB and AdMob
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          npx eas-cli@latest env:exec production 'node scripts/verify-production-ads-env.cjs'
+          npx expo config --json > /tmp/v29-config.json
+          node <<'NODE'
+          const c = JSON.parse(require('node:fs').readFileSync('/tmp/v29-config.json','utf8'));
+          const a = require('node:assert/strict');
+          a.equal(c.android.versionCode,29);
+          a.equal(c.version,'1.3.5');
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.android.package,'org.mzbministry.buklod');
+          a.equal(c.extra?.eas?.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.equal(c.updates.url,'https://u.expo.dev/23dad7d0-389a-406e-8dec-08965dab85d8');
+          NODE
+      - name: EAS build signed Android App Bundle V29 only (no APK/OTA/Play submission)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+          npx eas-cli@latest build --platform android --profile production --non-interactive --wait --json > eas-v29-aab.json
+          test -s eas-v29-aab.json
+      - name: Verify finished EAS AAB and release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const a = require('node:assert/strict');
+          const fs = require('node:fs');
+          const j = JSON.parse(fs.readFileSync('eas-v29-aab.json','utf8'));
+          const b = Array.isArray(j)?j[0]:j;
+          a.ok(b && typeof b==='object');
+          a.equal(String(b.status).toLowerCase(),'finished');
+          a.equal(String(b.platform).toLowerCase(),'android');
+          if(b.appVersion!=null)a.equal(String(b.appVersion),'1.3.5');
+          if(b.appBuildVersion!=null)a.equal(String(b.appBuildVersion),'29');
+          if(b.gitCommitHash)a.equal(String(b.gitCommitHash).toLowerCase(),process.env.GITHUB_SHA.toLowerCase());
+          const url=b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl;
+          a.ok(typeof url==='string' && url.startsWith('https://'));
+          a.match(new URL(url).pathname,/\.aab$/i);
+          const summary=[
+            '# BUKLOD Main Android V29 AAB',
+            '- Source commit: '+process.env.GITHUB_SHA,
+            '- App version: 1.3.5',
+            '- Play versionCode: 29',
+            '- OTA runtime: 1.3.2',
+            '- Channel: production',
+            '- EAS build ID: '+b.id,
+            '- AAB: '+url,
+            '- Google Play submission: NOT performed',
+            '- OTA/web publication: NOT performed',
+          ].join('\n')+'\n';
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,summary);
+          console.log('VERIFIED BUKLOD V29 AAB BUILD_ID='+b.id);
+          console.log('VERIFIED BUKLOD V29 AAB_URL='+url);
+          NODE
+      - name: Archive build metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-v29-aab-${{ github.sha }}
+          path: eas-v29-aab.json
+          retention-days: 30
+          if-no-files-found: ignore
