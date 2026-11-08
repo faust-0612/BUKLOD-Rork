@@ -7,6 +7,13 @@ import { createClient } from '@supabase/supabase-js';
 const db = createClient('https://yhanxndaqbmuzbdqlblu.supabase.co', "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS", {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
 });
+// Never accept or retain legacy credential-bearing handoff query parameters.
+const incoming = new URLSearchParams(location.search);
+if (incoming.has('access_token') || incoming.has('refresh_token') || incoming.has('buklod_handoff')) {
+  for (const name of ['access_token','refresh_token','buklod_handoff']) incoming.delete(name);
+  const rest = incoming.toString();
+  history.replaceState({}, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+}
 const app = window.APP_STATE;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
