@@ -136,23 +136,17 @@ BuklodScopeCallLauncher({
               }
             );
 
-          if (details.error) {
-            throw details.error;
+          // RLS-controlled scope metadata fallback; fresh active membership
+          // is revalidated before the SDK rings any users.
+          let d=Array.isArray(details.data)?details.data[0]:details.data;
+          if(details.error||!d?.scope_type){
+            const fallback=await supabase.from('buklod_scopes')
+              .select('scope_type').eq('id',scopeId).maybeSingle();
+            if(fallback.error||!fallback.data?.scope_type)
+              throw details.error??fallback.error??new Error('Scope details unavailable.');
+            d=fallback.data;
           }
-
-          const d =
-            Array.isArray(
-              details.data
-            )
-              ? details.data[0]
-              : details.data;
-
-          const type =
-            String(
-              d?.scope_type ??
-              ''
-            ).toUpperCase();
-
+          const type=String(d?.scope_type??'').toUpperCase();
           const canCall =
             type === 'CLUSTER' ||
             type === 'ORGANIZATION' ||
@@ -528,7 +522,14 @@ BuklodScopeCallLauncher({
     );
 
   if (!enabled) {
-    return null;
+    return <Pressable accessibilityRole="button" accessibilityLabel="Retry group call setup"
+      disabled={loading} onPress={()=>void load()}
+      style={{minHeight:44,borderWidth:1,borderColor:theme.border,borderRadius:12,
+        padding:10,alignItems:'center',justifyContent:'center'}}>
+      <Text style={{color:theme.textPrimary,fontSize:11,fontWeight:'800'}}>
+        {loading?'Checking call availability…':'Group call unavailable · Tap to retry'}
+      </Text>
+    </Pressable>;
   }
 
   /* PATCH_172H_COMPACT_SCOPE_CALLS */
