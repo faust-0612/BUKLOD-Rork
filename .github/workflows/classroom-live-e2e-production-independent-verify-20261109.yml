@@ -1,0 +1,52 @@
+name: BUKLOD Classroom E2E Fix Production Independent Verification
+
+on:
+  push:
+    branches:
+      - dev/classroom-live-e2e-fixes-20261109
+    paths:
+      - '.github/workflows/classroom-live-e2e-production-independent-verify-20261109.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compare-expo-hosting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify immutable preview and production live assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREVIEW='https://buklod-classroom--0g49qf2xe0.expo.app'
+          PROD='https://buklod-classroom.expo.app'
+          curl --fail --silent --show-error --location --max-time 35 "$PREVIEW/?v=0g49qf2xe0" -o /tmp/preview.html
+          grep -Fq 'classroomSecureBootGuard' /tmp/preview.html
+          p_asset="$(grep -oE '/assets/index-[^"]+\.js' /tmp/preview.html | head -1)"
+          test -n "$p_asset"
+          curl --fail --silent --show-error --location --max-time 35 "$PREVIEW$p_asset" -o /tmp/preview.js
+          echo "PREVIEW_ASSET=$p_asset"
+          for n in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --location --max-time 35 "$PROD/?classroom_release=0g49qf2xe0-$n" -o /tmp/production.html; then
+              echo "PRODUCTION_HTML_HASH=$(sha256sum /tmp/production.html | cut -d' ' -f1)"
+              echo "PREVIEW_HTML_HASH=$(sha256sum /tmp/preview.html | cut -d' ' -f1)"
+              if grep -Fq 'classroomSecureBootGuard' /tmp/production.html; then
+                prod_asset="$(grep -oE '/assets/index-[^"]+\.js' /tmp/production.html | head -1)"
+                if [ -n "$prod_asset" ]; then
+                  echo "PRODUCTION_ASSET=$prod_asset"
+                  if curl --fail --silent --show-error --location --max-time 35 "$PROD$prod_asset" -o /tmp/production.js; then
+                    if cmp -s /tmp/preview.js /tmp/production.js; then
+                      echo EXPO_CLASSROOM_LIVE_PRODUCTION_VERIFIED=TRUE
+                      echo EXPO_CLASSROOM_URL=https://buklod-classroom.expo.app/
+                      echo EXACT_EXPO_DEPLOYMENT=0g49qf2xe0
+                      exit 0
+                    fi
+                  fi
+                fi
+              fi
+            fi
+            sleep 5
+          done
+          echo 'FAIL: current production does not serve verified Gemini authenticated bundle'
+          exit 1
