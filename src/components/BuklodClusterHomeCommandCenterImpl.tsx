@@ -1,7 +1,7 @@
 import { BuklodGivingSettingsButton } from './BuklodGivingSettingsButton';
 /* PATCH_170B_CLUSTER_HOME_COMMAND_CENTER */
 import React,{useCallback,useEffect,useMemo,useRef,useState}from'react';
-import{ActivityIndicator,Alert,KeyboardAvoidingView,Linking,Modal,Platform,Pressable,RefreshControl,ScrollView,Share,StyleSheet,Text,TextInput,View}from'react-native';
+import{ActivityIndicator,Alert,Image,KeyboardAvoidingView,Linking,Modal,Platform,Pressable,RefreshControl,ScrollView,Share,StyleSheet,Text,TextInput,View}from'react-native';
 import*as Clipboard from'expo-clipboard';
 import{MaterialCommunityIcons}from'@expo/vector-icons';
 import{router,useFocusEffect}from'expo-router';
@@ -21,6 +21,10 @@ import BuklodScopeBuklodLessonPanel from'@/components/BuklodScopeBuklodLessonPan
 import BuklodScopeFaithMonitoringDoor from'@/components/BuklodScopeFaithMonitoringDoor';
 import BuklodScopeCallLauncher from'@/components/BuklodScopeCallLauncher';
 import BuklodScopeProfilePhoto from '@/components/BuklodScopeProfilePhoto';
+import {
+ type BuklodScopeHomeFile,pickBuklodScopeHomeMedia,pickBuklodScopeHomeResource,
+ uploadBuklodScopeHomeAsset,signedBuklodScopeHomeAsset,rollbackBuklodScopeHomeAsset,
+} from '@/lib/buklodScopeHomeAssets';
 import{BuklodTappableAvatar}from'@/components/BuklodTappableAvatar';
 import{CommunityVideo}from'@/components/CommunityVideo';
 import { BuklodCommunityPhotoCollage, communityPhotoCollageItems } from '@/components/BuklodCommunityPhotoCollage';
@@ -37,14 +41,14 @@ import{DEFAULT_DASHBOARD_THEME}from'@/components/BuklodDashboardCustomizer';
 
 type Props={scope:BuklodScope;onOpenCommunity?:()=>void;onOpenConnect?:()=>void;manageMode?:boolean;theme?:DashboardTheme};
 type Member={user_id:string;full_name:string;avatar_url:string|null;is_admin:boolean};
-type Notice={id:string;title:string;body:string|null;priority:string;expires_at:string|null;created_at:string};
-type Event={id:string;title:string;description:string|null;starts_at:string;location:string|null};
+type Notice={id:string;title:string;body:string|null;priority:string;expires_at:string|null;created_at:string;media_path?:string|null;media_mime_type?:string|null;media_url?:string|null};
+type Event={id:string;title:string;description:string|null;starts_at:string;location:string|null;media_path?:string|null;media_mime_type?:string|null;media_url?:string|null};
 type Rsvp={event_id:string;status:string};
 type Task={id:string;title:string;description:string|null;assigned_to:string|null;due_at:string|null;status:string};
 type Poll={id:string;question:string;closes_at:string|null;is_active:boolean};
 type Option={id:string;poll_id:string;label:string;sort_order:number};
 type Vote={poll_id:string;option_id:string;user_id:string};
-type Resource={id:string;title:string;description:string|null;resource_url:string};
+type Resource={id:string;title:string;description:string|null;resource_url:string;storage_path?:string|null;original_name?:string|null;mime_type?:string|null;asset_url?:string|null};
 type Recognition={id:string;title:string;recipient_name:string|null;body:string|null};
 type Settings={scope_id:string;about_text:string|null;hidden_widgets:string[]|null};
 type Post={id:string;body:string;created_at:string;author_name:string|null;media_path:string|null;media_mime_type:string|null;reaction_counts:Record<string,number>|null;comment_count:number;media_url?:string|null};
@@ -98,6 +102,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
  const[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[members,setMembers]=useState<Member[]>([]),[notices,setNotices]=useState<Notice[]>([]),[events,setEvents]=useState<Event[]>([]),[rsvps,setRsvps]=useState<Rsvp[]>([]),[tasks,setTasks]=useState<Task[]>([]),[polls,setPolls]=useState<Poll[]>([]),[options,setOptions]=useState<Option[]>([]),[votes,setVotes]=useState<Vote[]>([]),[resources,setResources]=useState<Resource[]>([]),[recognitions,setRecognitions]=useState<Recognition[]>([]),[settings,setSettings]=useState<Settings|null>(null),[posts,setPosts]=useState<Post[]>([]),[attendance,setAttendance]=useState<any[]>([]),[description,setDescription]=useState('');
  const[kind,setKind]=useState<Kind>(null),[title,setTitle]=useState(''),[body,setBody]=useState(''),[extra,setExtra]=useState(''),[when,setWhen]=useState(''),[saving,setSaving]=useState(false);
  const[customizeOpen,setCustomizeOpen]=useState(false);
+ const[pickedAsset,setPickedAsset]=useState<BuklodScopeHomeFile|null>(null);
  const[openWidget,setOpenWidget]=useState<string|null>(null);
  /* BUKLOD_V28_CLUSTER_TILE_LAYOUT_R1: preserve all existing widget bodies and actions. */
  const hidden=useMemo(()=>new Set(settings?.hidden_widgets??[]),[settings?.hidden_widgets]);const show=(k:string)=>(manageMode||(k!=='members'&&k!=='officers'))&&!hidden.has(k);
@@ -118,8 +123,18 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
   const today=localClusterDate();
   const loaders:Record<string,()=>Promise<any>>={
    members:()=>fetchClusterHomeMembers(scope.scope_id),
-   notices:()=>clusterData(supabase.from('buklod_cluster_home_notices').select('id,title,body,priority,expires_at,created_at').eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(5)),
-   events:()=>clusterData(supabase.from('buklod_cluster_events').select('id,title,description,starts_at,location').eq('scope_id',scope.scope_id).gte('starts_at',new Date(Date.now()-86400000).toISOString()).order('starts_at').limit(20)),
+   notices:async()=>{
+    const rows=(await clusterData(supabase.from('buklod_cluster_home_notices')
+      .select('id,title,body,priority,expires_at,created_at,media_path,media_mime_type')
+      .eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(5)))??[];
+    return Promise.all(rows.map(async(x:Notice)=>({...x,media_url:await signedBuklodScopeHomeAsset(x.media_path)})));
+   },
+   events:async()=>{
+    const rows=(await clusterData(supabase.from('buklod_cluster_events')
+      .select('id,title,description,starts_at,location,media_path,media_mime_type')
+      .eq('scope_id',scope.scope_id).gte('starts_at',new Date(Date.now()-86400000).toISOString()).order('starts_at').limit(20)))??[];
+    return Promise.all(rows.map(async(x:Event)=>({...x,media_url:await signedBuklodScopeHomeAsset(x.media_path)})));
+   },
    rsvps:()=>clusterData(supabase.from('buklod_cluster_event_rsvps').select('event_id,status').eq('user_id',user.id)),
    tasks:()=>clusterData(supabase.from('buklod_cluster_tasks').select('id,title,description,assigned_to,due_at,status').eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(30)),
    polls:async()=>{
@@ -131,7 +146,12 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
     ]):[[],[]];
     return {rows,options,votes};
    },
-   resources:()=>clusterData(supabase.from('buklod_cluster_resources').select('id,title,description,resource_url').eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(12)),
+   resources:async()=>{
+    const rows=(await clusterData(supabase.from('buklod_cluster_resources')
+      .select('id,title,description,resource_url,storage_path,original_name,mime_type')
+      .eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(12)))??[];
+    return Promise.all(rows.map(async(x:Resource)=>({...x,asset_url:await signedBuklodScopeHomeAsset(x.storage_path)})));
+   },
    recognitions:()=>clusterData(supabase.from('buklod_cluster_recognitions').select('id,title,recipient_name,body').eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(10)),
    settings:()=>clusterData(supabase.from('buklod_cluster_home_settings').select('scope_id,about_text,hidden_widgets').eq('scope_id',scope.scope_id).maybeSingle()),
    attendance:()=>clusterData(supabase.from('buklod_cluster_attendance').select('user_id').eq('scope_id',scope.scope_id).eq('checkin_date',today)),
@@ -177,7 +197,15 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
  const filteredResources=resources;
  const filteredRecognitions=recognitions;
 
- const edit=(k:Exclude<Kind,null>)=>{setKind(k);setTitle('');setBody(k==='about'?(settings?.about_text??description):'');setExtra('');setWhen('')};
+ const edit=(k:Exclude<Kind,null>)=>{setKind(k);setTitle('');setBody(k==='about'?(settings?.about_text??description):'');setExtra('');setWhen('');setPickedAsset(null)};
+ const pickHomeAsset=async()=>{
+  if(!isAdmin||!kind)return;
+  try{
+   const next=kind==='resource'?await pickBuklodScopeHomeResource():
+    (kind==='notice'||kind==='event'?await pickBuklodScopeHomeMedia():null);
+   if(next)setPickedAsset(next);
+  }catch(e:any){Alert.alert('Attach media or file',e?.message||'Unable to select a file.');}
+ };
  const save=async()=>{if(!kind||!isAdmin)return;setSaving(true);try{
   if(kind==='notice'){if(!title.trim())throw new Error('Title required');const q=await supabase.from('buklod_cluster_home_notices').insert({scope_id:scope.scope_id,title:title.trim(),body:body.trim()||null,priority:extra.trim().toLowerCase()==='emergency'?'EMERGENCY':'IMPORTANT',created_by:user?.id});if(q.error)throw q.error}
   if(kind==='event'){if(!title.trim())throw new Error('Title required');const d=when.trim()?new Date(when):new Date(Date.now()+86400000);if(Number.isNaN(d.getTime()))throw new Error('Invalid date/time');const q=await supabase.from('buklod_cluster_events').insert({scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,location:extra.trim()||null,starts_at:d.toISOString(),created_by:user?.id});if(q.error)throw q.error}
