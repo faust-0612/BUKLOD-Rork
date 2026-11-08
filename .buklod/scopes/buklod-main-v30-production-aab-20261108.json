@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "objective": "Build exactly one NEW signed production Android App Bundle (AAB) for the latest BUKLOD Main live source including merged PR #581, with higher Play versionCode 30 (versionName 1.3.6) than the already built V29 AAB, retaining production Expo runtime 1.3.2. Do not publish OTA, web, or submit to Google Play.",
+  "baseRef": "d67e805879e3398cbff8a4383c6c7e05039ed9f7",
+  "productionBaselineEvidence": "Verified production main d67e805879e3398cbff8a4383c6c7e05039ed9f7 was Android OTA published as update 01a1bb25-6d17-7d36-a5ad-85740ee22493 (runtime 1.3.2) and Expo web promoted at buklod.expo.app. Earlier BUKLOD Main V29 AAB production build 84056134-678a-403e-a4a0-c88a7b2c5cb4 finished with appVersion 1.3.5/versionCode 29 (GitHub run 42458599364). No Play submission requested.",
+  "chosenApproach": "Isolate Android store-only metadata bump on a DEV release branch, add a source-frozen V30 production AAB-only workflow with explicit main ancestry and commit-title gates, EAS production credential/DB/AdMob checks, full native ABI compatibility against installed V28 runtime, full TypeScript and feature regression suite. Merge only after 6 PR release checks; exact merge commit triggers one --wait EAS production Android AAB build and verifies FINISHED status, artifact URL and versionCode. Preserve existing OTA and web hosting without triggering publish.",
+  "selectionRationale": "VersionCode 29 has already generated a signed build; a new Play-ready artifact should use the next unique code 30. VersionName 1.3.6 keeps store release intelligible. Since native dependencies and runtime config stay identical, existing V28/V29 clients and OTA 1.3.2 remain compatible. One-time main push gate prevents accidental duplicate EAS builds/credits.",
+  "alternativeApproaches": [
+    "Rebuild versionCode29 from new source: rejected because it would duplicate an already built Play code and could be rejected if code29 was uploaded.",
+    "Increase Expo runtime or add native packages: rejected because no native incompatibility requires it and it risks stranding installed V28 clients.",
+    "Trigger an OTA/web release with the AAB build: rejected because the user only requested a new binary."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "native-runtime",
+    "android-aab",
+    "security-and-credentials"
+  ],
+  "preserveBehaviors": [
+    "Existing BUKLOD main production Android OTA source d67e805879e3398cbff8a4383c6c7e05039ed9f7, notification deep links, scoped media calls, Points and ads remain intact.",
+    "Expo runtime 1.3.2, EAS project 23dad7d0-389a-406e-8dec-08965dab85d8, Android package org.mzbministry.buklod, production push/AdMob permissions and native plugins remain unchanged.",
+    "Staging and Classroom version metadata, package and native runtime untouched.",
+    "No database migration, no native dependencies, no Google Play submission or other production channel deploy."
+  ],
+  "acceptanceChecks": [
+    "PR changed files only app.config.js, release workflow, version compatibility contracts, compile gate, release scope manifest; no src, lockfile, plugins, android/ios changes.",
+    "Current versionName 1.3.6 and Android versionCode 30; pinned runtime 1.3.2 remains native ABI compatible with installed V28 and latest V29.",
+    "Protected main push and exact merge source SHA; EAS production profile is app-bundle; no APK, OTA, web, or Google Play submit.",
+    "EAS build reports status FINISHED, platform Android, appVersion 1.3.6, appBuildVersion 30, exact Git commit and valid .aab artifact URL, with evidence archived."
+  ],
+  "regressionTests": [
+    "tests/native-expo-config-compat.test.cjs",
+    "tests/android-v29-runtime-compat-release-20261108.test.cjs",
+    "tests/android-v30-runtime-compat-release-20261108.test.cjs",
+    "tests/release-rc-v29-compiled-gate-20261108.test.mjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs"
+  ],
+  "allowedPaths": [
+    "app.config.js",
+    ".github/workflows/buklod-v30-aab-production-20261108.yml",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/android-v29-runtime-compat-release-20261108.test.cjs",
+    "tests/android-v30-runtime-compat-release-20261108.test.cjs",
+    "tests/release-rc-v29-compiled-gate-20261108.test.mjs",
+    ".buklod/scopes/buklod-main-v30-production-aab-20261108.json"
+  ]
+}
