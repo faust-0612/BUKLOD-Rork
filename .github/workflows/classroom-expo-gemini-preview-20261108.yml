@@ -1,0 +1,86 @@
+name: BUKLOD Classroom Gemini Expo Preview
+
+on:
+  push:
+    branches:
+      - dev/classroom-gpt-ui-integration-20261108
+    paths:
+      - 'classroom-web/index.html'
+      - 'classroom-web/gemini-reference/**'
+      - 'classroom-web/src/**'
+      - 'classroom-web/tests/**'
+      - 'classroom-web/package.json'
+      - '.github/workflows/classroom-expo-gemini-preview-20261108.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-classroom-expo-gemini-preview
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    if: github.ref == 'refs/heads/dev/classroom-gpt-ui-integration-20261108'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BUKLOD_APP_TARGET: classroom
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - name: Checkout exact Classroom dev source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify commit source and standalone Expo project
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF}" = 'refs/heads/dev/classroom-gpt-ui-integration-20261108'
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const cfg = require('./app.config.js')({config:{extra:{}}});
+          assert.equal(cfg.slug,'buklod-classroom');
+          assert.equal(cfg.extra.eas.projectId,'14100ed1-7f25-4551-9627-09d280498241');
+          assert.equal(cfg.android.package,'org.mzbministry.buklod.classroom');
+          assert.equal(cfg.extra.appTarget,'classroom');
+          const html = fs.readFileSync('classroom-web/index.html','utf8');
+          assert.match(html,/function renderTabLiveClassroom\(/);
+          assert.match(html,/function renderPortalHome\(/);
+          assert.match(html,/function openSlideDrawer\(/);
+          assert.match(html,/BUKLOD Classroom/);
+          assert.ok(html.length > 180000,'Uploaded Gemini design is missing');
+          assert.ok(!html.includes('<script type="module" src="/src/main.js">'),'Do not deploy rejected Vite UI');
+          console.log('CLASSROOM_GEMINI_EXACT_SOURCE_AND_EXPO_IDENTITY=PASS');
+          NODE
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Classroom web dependencies only
+        run: npm install --prefix classroom-web --ignore-scripts --no-audit --no-fund
+      - name: Validate and build Classroom static site
+        run: |
+          set -euo pipefail
+          npm run build --prefix classroom-web
+          test -s classroom-web/dist/index.html
+          grep -Fq 'function renderTabLiveClassroom' classroom-web/dist/index.html
+          ! grep -Fq '/src/main.js' classroom-web/dist/index.html
+      - name: Authenticate Expo without revealing credentials
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx --yes eas-cli@21.7.0 whoami --non-interactive >/dev/null
+          echo 'Expo CI authentication confirmed'
+      - name: Publish PREVIEW ONLY to existing BUKLOD Classroom Expo project
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@21.7.0 deploy --non-interactive --environment preview --export-dir classroom-web/dist --json
+          echo 'PREVIEW_ONLY=TRUE'
+          echo 'PRODUCTION_ALIAS_UNCHANGED=TRUE'
