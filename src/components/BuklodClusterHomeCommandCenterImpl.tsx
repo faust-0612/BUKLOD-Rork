@@ -15,6 +15,7 @@ import{useAuth}from'@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import BuklodHomeScopeBulletins from'@/components/BuklodHomeScopeBulletins';
 import BuklodHomeFaithPanel from'@/components/BuklodHomeFaithPanel';
+import BuklodHomeCheckinToday from '@/components/BuklodHomeCheckinToday';
 import BuklodNonFaithEncouragementDoor from '@/components/BuklodNonFaithEncouragementDoor';
 import BuklodScopeBuklodLessonPanel from'@/components/BuklodScopeBuklodLessonPanel';
 import BuklodScopeFaithMonitoringDoor from'@/components/BuklodScopeFaithMonitoringDoor';
@@ -165,7 +166,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
  },[contextKey]);
  useFocusEffect(useCallback(()=>{void load();},[load]));
 
- const notice=notices.find(x=>!x.expires_at||new Date(x.expires_at).getTime()>Date.now())??null,upcoming=events.filter(x=>new Date(x.starts_at).getTime()>=Date.now()-3600000),week=upcoming.filter(x=>new Date(x.starts_at).getTime()<=Date.now()+7*86400000),officers=members.filter(x=>x.is_admin),myTasks=tasks.filter(x=>!x.assigned_to||x.assigned_to===user?.id||isAdmin),openTasks=myTasks.filter(x=>x.status!=='DONE'),poll=polls[0]??null,pollOptions=poll?options.filter(x=>x.poll_id===poll.id):[],myVote=poll&&user?.id?votes.find(x=>x.poll_id===poll.id&&x.user_id===user.id):null,myChecked=!!user?.id&&attendance.some(x=>x.user_id===user.id);
+ const notice=notices.find(x=>!x.expires_at||new Date(x.expires_at).getTime()>Date.now())??null,upcoming=events.filter(x=>new Date(x.starts_at).getTime()>=Date.now()-3600000),week=upcoming.filter(x=>new Date(x.starts_at).getTime()<=Date.now()+7*86400000),officers=members.filter(x=>x.is_admin),myTasks=tasks.filter(x=>!x.assigned_to||x.assigned_to===user?.id||isAdmin),openTasks=myTasks.filter(x=>x.status!=='DONE'),poll=polls[0]??null,pollOptions=poll?options.filter(x=>x.poll_id===poll.id):[],myVote=poll&&user?.id?votes.find(x=>x.poll_id===poll.id&&x.user_id===user.id):null;
 
  const filteredWeek=week;
  const filteredUpcoming=upcoming;
@@ -190,7 +191,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
  const rsvp=async(id:string,status:string)=>{if(!user?.id)return;const q=await supabase.from('buklod_cluster_event_rsvps').upsert({event_id:id,user_id:user.id,status},{onConflict:'event_id,user_id'});if(q.error)Alert.alert('RSVP',q.error.message);else await load({background:true,resources:['rsvps']})};
  const taskDone=async(x:Task)=>{const q=await supabase.from('buklod_cluster_tasks').update({status:'DONE'}).eq('id',x.id);if(q.error)Alert.alert('Task',q.error.message);else await load({background:true,resources:['tasks']})};
  const vote=async(optionId:string)=>{if(!poll||!user?.id)return;const q=await supabase.from('buklod_cluster_poll_votes').upsert({poll_id:poll.id,option_id:optionId,user_id:user.id},{onConflict:'poll_id,user_id'});if(q.error)Alert.alert('Poll',q.error.message);else await load({background:true,resources:['polls']})};
- const checkin=async()=>{if(!user?.id)return;const q=await supabase.from('buklod_cluster_attendance').upsert({scope_id:scope.scope_id,user_id:user.id,checkin_date:localClusterDate()},{onConflict:'scope_id,user_id,checkin_date'});if(q.error)Alert.alert('Check-in',q.error.message);else{characterEvents?.emit({type:CharacterEventType.ATTENDANCE_RECORDED,success:true});await load({background:true,resources:['attendance']})}};
+
  const toggle=async(k:string)=>{if(!isAdmin)return;const n=new Set(settings?.hidden_widgets??[]);n.has(k)?n.delete(k):n.add(k);const arr=[...n];setSettings(x=>({scope_id:scope.scope_id,about_text:x?.about_text??null,hidden_widgets:arr}));const q=await supabase.from('buklod_cluster_home_settings').upsert({scope_id:scope.scope_id,hidden_widgets:arr,updated_by:user?.id},{onConflict:'scope_id'});if(q.error){Alert.alert('Customize',q.error.message);void load({background:true,resources:['settings']})}else{await load({background:true,resources:['settings']})}};
  const openCommunity=()=>{
   if(onOpenCommunity){
@@ -266,7 +267,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
    title="ATTENDANCE SNAPSHOT"
    action="OPEN"
    onAction={()=>router.push({pathname:'/scope/attendance',params:scopeRouteParams(scope.scope_id,{scopeType:'CLUSTER'})} as any)}
-  cardColor={cardColor}><View style={s.stats}><Stat v={attendance.length} l="CHECKED IN"/><Stat v={scope.member_count??members.length} l="MEMBERS"/></View><Text style={s.body}>{myChecked?"You are checked in today.":"Mark today's Cluster attendance, then open the full attendance tools when needed."}</Text>{!myChecked?<Pressable onPress={()=>void checkin()} style={s.primary}><MaterialCommunityIcons name="clipboard-check-outline" size={18} color="#fff"/><Text style={s.primaryText}>CHECK IN TODAY</Text></Pressable>:null}</Card>}
+  cardColor={cardColor}><View style={s.stats}><Stat v={attendance.length} l="CHECKED IN"/><Stat v={scope.member_count??members.length} l="MEMBERS"/></View><Text style={s.body}>Check In Today is available only during an official live Cluster attendance event. Each submission needs Admin verification before Points are issued.</Text><BuklodHomeCheckinToday/></Card>}
   {show('resources')&&openWidget==='resources'&&<Card icon="folder-multiple-outline" title="FILES & RESOURCES" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('resource'):undefined} cardColor={cardColor}>{filteredResources.length?filteredResources.map(x=><Pressable key={x.id} onPress={()=>void Linking.openURL(x.resource_url)} style={s.row}><MaterialCommunityIcons name="file-link-outline" size={21} color={colors.greenDark}/><View style={{flex:1}}><Text style={s.item}>{x.title}</Text>{x.description?<Text numberOfLines={2} style={s.meta}>{x.description}</Text>:null}</View><MaterialCommunityIcons name="open-in-new" size={17} color={colors.muted}/></Pressable>):<Empty>No shared resources yet.</Empty>}</Card>}
   {show('recognition')&&openWidget==='recognition'&&<Card icon="trophy-outline" title="RECOGNITION / MILESTONES" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('recognition'):undefined} cardColor={cardColor}>{filteredRecognitions.length?filteredRecognitions.map(x=><View key={x.id} style={s.row}><MaterialCommunityIcons name="medal-outline" size={25} color="#B78216"/><View style={{flex:1}}><Text style={s.item}>{x.title}</Text>{x.recipient_name?<Text style={s.recipient}>{x.recipient_name}</Text>:null}{x.body?<Text style={s.body}>{x.body}</Text>:null}</View></View>):<Empty>No recognition posted yet.</Empty>}</Card>}
   {show('calls')&&openWidget==='calls'&&<Card icon="phone-in-talk-outline" title="CLUSTER AUDIO / VIDEO CALL" cardColor={cardColor}><BuklodScopeCallLauncher scopeId={scope.scope_id} title={scope.name}/></Card>}
