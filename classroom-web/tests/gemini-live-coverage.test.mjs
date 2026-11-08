@@ -76,3 +76,12 @@ test('Browser client never carries a privileged Supabase key',()=>{
   assert.match(js,/sb_publishable_/);
   assert.match(js,/incoming\.delete\(name\)/);
 });
+
+test('Both Gemini drawer overlays start CLOSED; authenticated dashboard stays clickable',()=>{
+  assert.match(html,/id="drawerBackdrop" class="drawer-backdrop" onclick="closeSlideDrawer\(\)"/);
+  assert.match(html,/id="universalSlideDrawer" class="slide-drawer" aria-label=/);
+  assert.doesNotMatch(html,/id="drawerBackdrop" class="drawer-backdrop open"/);
+  assert.doesNotMatch(html,/id="universalSlideDrawer" class="slide-drawer open"/);
+  const drawer=getStaticDivInner('drawerBodyContent');
+  assert.ok(drawer.length<500,'No preloaded synthetic assessment drawer');
+});
