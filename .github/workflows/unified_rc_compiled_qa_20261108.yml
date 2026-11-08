@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify-compiled-artifacts:
-    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108')
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:

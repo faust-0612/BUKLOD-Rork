@@ -15,12 +15,14 @@
     "Sponsored ad approvals, period expiry, geo-targeting, impressions, click tracking and in-viewport playback guard remain unchanged.",
     "Existing licensed music catalog and 5–60 second clip metadata and seek playback remain unchanged.",
     "Point ledger remains server-authoritative, notification focusLedgerId direct link expands history, Claim All unchanged.",
-    "Native runtime 1.3.2 and Play/AAB identity untouched; no production OTA/web deployment triggered."
+    "Native runtime 1.3.2 and Play/AAB identity untouched; no production OTA/web deployment triggered.",
+    "Unified RC compile QA remains restricted to exact explicit approved branches and still requires Expo authentication, prod env and versionCode 30; workflow never publishes."
   ],
   "riskAreas": [
     "navigation-scroll",
     "connect",
-    "faith-cluster"
+    "faith-cluster",
+    "release-identity"
   ],
   "acceptanceChecks": [
     "Comment action is an emoji; long press opens centered bounded reaction options, counts remain accessible, no horizontally out-of-screen tray.",
@@ -29,12 +31,14 @@
     "Sponsor caption has See more/less, safe destination link preserved, custom play/pause button outside creative avoids native video overlay.",
     "Music picker supports drag-to-move, resize start/end, 5–60 second clipping and exact time fallback.",
     "Inbox hero is shorter; Circle Rank highlight opens information and Points shows collapsed history and group sources until opened.",
-    "Focused Node tests and protected CI run; no real OTA until separately verified frozen RC and runtime gate."
+    "Focused Node tests and protected CI run; no real OTA until separately verified frozen RC and runtime gate.",
+    "RC Android and Expo web compiled exports complete against exact PR SHA with production EAS identity/runtime 1.3.2 but with no publishing, version change or build submission."
   ],
   "regressionTests": [
     "tests/ota-navigation-scroll-polish-20261108.test.mjs",
     "tests/ota-connect-chat-20261108.test.mjs",
-    "tests/ota-cluster-photo-20261108.test.mjs"
+    "tests/ota-cluster-photo-20261108.test.mjs",
+    "tests/ota-release-compile-20261108.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/ota-ui-polish-photo-reactions-music-20261108.json",
@@ -56,6 +60,8 @@
     "src/components/BuklodMusicClipTimeline.tsx",
     "tests/ota-navigation-scroll-polish-20261108.test.mjs",
     "tests/ota-connect-chat-20261108.test.mjs",
-    "tests/ota-cluster-photo-20261108.test.mjs"
+    "tests/ota-cluster-photo-20261108.test.mjs",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/ota-release-compile-20261108.test.mjs"
   ]
 }
