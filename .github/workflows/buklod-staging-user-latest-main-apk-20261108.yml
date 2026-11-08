@@ -125,6 +125,39 @@ jobs:
           assert.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
           NODE
           echo 'VERIFIED staging-user profile, preview environment, Firebase, runtime and current main ancestry'
+      - name: Select EAS remote version source only in ephemeral staging-user runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          # EAS CLI rejects autoIncrement:true with app.config.js when its
+          # appVersionSource is 'local'. Remote versioning is supported for
+          # dynamic Expo config and is isolated here to this one build job.
+          node <<'NODE'
+          const fs=require('node:fs');
+          const assert=require('node:assert/strict');
+          const file='eas.json';
+          const eas=JSON.parse(fs.readFileSync(file,'utf8'));
+          assert.equal(eas.cli.appVersionSource,'local');
+          assert.equal(eas.build['staging-user'].autoIncrement,true);
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          assert.equal(eas.build['staging-user'].environment,'preview');
+          assert.equal(eas.build['staging-user'].android.buildType,'apk');
+          assert.equal(eas.build.production.channel,'production');
+          assert.equal(eas.build.production.android.buildType,'app-bundle');
+          eas.cli.appVersionSource='remote';
+          fs.writeFileSync(file,JSON.stringify(eas,null,2)+'\n');
+          assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).cli.appVersionSource,'remote');
+          console.log('Remote EAS versioning enabled for staging-user runner only; repository config unchanged');
+          NODE
+          test "$(git diff --name-only)" = "eas.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const assert=require('node:assert/strict');
+          const c=require('./app.config.js')({config:{}});
+          assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(c.runtimeVersion,'1.3.2');
+          assert.equal(JSON.parse(fs.readFileSync('eas.json','utf8')).build['staging-user'].channel,'staging-user');
+          NODE
       - name: Build exactly one signed staging-user installable APK (NO OTA, web or Play)
         shell: bash
         run: |
@@ -158,6 +191,7 @@ jobs:
             '- Runtime: 1.3.2',
             '- EAS profile/channel: staging-user',
             '- EAS environment: preview',
+            '- App versionCode: EAS staging-package remote automatic version',
             '- Build ID: '+build.id,
             '- Build number: '+(build.appBuildVersion||'reported by EAS build details'),
             '- APK: '+url,
