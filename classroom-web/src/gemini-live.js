@@ -191,8 +191,12 @@ window.switchWorkspaceSubtab=async key=>{
 const rows=(items,make)=>items?.length?items.map(make).join(''):empty('No authorized records found.');
 window.renderTabOverview=c=>box('Class Announcements & Stream',
   (isFaculty()?button('+ Magpaskil ng Anunsyo','openRealPost')+'<div style="height:12px"></div>':'')+
-  rows(current().posts,p=>card(p.title||'Class discussion',p.body||'')+
-  button('Open / Comment','openRealComment',JSON.stringify(p.id))));
+  rows(current().posts,p=>{
+    const count=(current().comments||[]).filter(x=>x.post_id===p.id).length;
+    return card(p.title||'Class discussion',p.body||'')+
+      '<p class="muted" style="font-size:12px;margin:5px 0 9px">'+esc(count+' comment'+(count===1?'':'s'))+'</p>'+
+      button('Read / Comment','openRealComment',JSON.stringify(p.id));
+  }));
 window.renderTabDiscussions=c=>window.renderTabOverview(c);
 window.renderTabSyllabus=c=>box('Syllabus & Weeks',rows(current().modules,m=>card('Week '+(m.module_no||'—')+' · '+m.title,m.description)))+
   box('Official Class Materials',rows(current().materials,m=>card(m.title,m.description||'Released learning material')));
@@ -235,9 +239,25 @@ let writeBusy=false;
 async function writeOnce(task){
   if(writeBusy)return;
   writeBusy=true;
-  try{await task();show('Saved and confirmed by BUKLOD Supabase.');await fetchCurrent(app.activeClassId,app.activeSubtab);window.closeSlideDrawer();window.renderSubjectWorkspace();}
-  catch(err){show('Not saved: '+safeError(err));}
-  finally{writeBusy=false;}
+  let result;
+  try{
+    result=await task();
+    if(result?.ok===false)throw Error(result?.error||'Backend rejected the action.');
+  }catch(err){
+    show('Not saved: '+safeError(err));
+    writeBusy=false;
+    return;
+  }
+  const warning=result?.warning || (result?.gradebook_recorded===false?
+    'Score saved, but it was not added to the weighted gradebook.':'');
+  show(warning?'Saved with warning: '+warning:'Saved and confirmed by BUKLOD Supabase.');
+  try{
+    await fetchCurrent(app.activeClassId,app.activeSubtab);
+    window.closeSlideDrawer();
+    window.renderSubjectWorkspace();
+  }catch(err){
+    show('Saved successfully, but refreshing failed: '+safeError(err));
+  }finally{writeBusy=false;}
 }
 window.openRealPost=()=>{
   if(!isFaculty())return show('Faculty access required.');
@@ -252,10 +272,15 @@ window.openRealPost=()=>{
 window.openRealComment=postId=>{
   const p=current().posts?.find(x=>x.id===postId);
   if(!p)return show('Post unavailable.');
-  if(p.is_locked)return show('This post is locked.');
+  const comments=(current().comments||[]).filter(x=>x.post_id===postId);
+  const history=box('Class comments',rows(comments,x=>card('Comment · '+fmt(x.created_at),x.body)));
   window.openSlideDrawer('CLASS DISCUSSION',p.title||'Post',
-    '<p style="margin-bottom:14px">'+esc(p.body)+'</p><form id="realCommentForm"><textarea name="body" class="form-textarea" rows="4" required maxlength="1200" placeholder="Write a comment"></textarea><button type="submit" class="btn-primary-cyan">Post Comment</button></form>');
-  el('realCommentForm').onsubmit=e=>{e.preventDefault();const text=String(new FormData(e.target).get('body')||'').trim();
+    '<p style="margin-bottom:14px;white-space:pre-wrap">'+esc(p.body)+'</p>'+history+
+    (p.is_locked?empty('This post is locked. New comments are not allowed.'):
+     '<form id="realCommentForm"><textarea name="body" class="form-textarea" rows="4" required maxlength="1200" placeholder="Write a comment"></textarea><button type="submit" class="btn-primary-cyan">Post Comment</button></form>'));
+  const form=el('realCommentForm');
+  if(!form)return;
+  form.onsubmit=e=>{e.preventDefault();const text=String(new FormData(e.target).get('body')||'').trim();
     if(!text)return;void writeOnce(()=>call(db.from('buklod_education_classroom_comments').insert({
       classroom_id:app.activeClassId,post_id:p.id,author_user_id:activeUser.id,body:text
     })));};
@@ -311,6 +336,16 @@ window.openAuditDrawer=()=>window.openSlideDrawer('LIVE SYSTEM STATUS','Authenti
   Object.keys(app.classrooms).length+' authorized classroom(s) · Supabase RLS protected'))+
   empty('The original prototype 15/15 badge is not an actual end-to-end production audit.'));
 window.openQuickAddDrawer=type=>{if(type==='announcement'||!type)return window.openRealPost();show('Use the corresponding authorized class module to create this item.');};
+
+window.openClassSwitcherDrawer=()=>{
+  const items=Object.values(app.classrooms);
+  const html=items.length?items.map(c=>
+    '<button type="button" class="surface-card" style="display:block;width:100%;text-align:left;margin-bottom:10px" '+
+    'onclick="openSubjectClass(\''+c.id+'\',\'CLASS\',\'overview\')">'+
+    '<strong>'+esc(c.className)+'</strong><div style="font-size:12px;color:#64748b">'+
+    esc(c.section)+' · '+esc(c.semester)+'</div></button>').join(''):empty('No linked classrooms');
+  window.openSlideDrawer('CLASSROOM DIRECTORY','Switch assigned classroom',html);
+};
 window.openCreateClassroomDrawer=()=>show('Use the authorized BUKLOD Main faculty controls to create a classroom.');
 window.openItemInspector=(type,id)=>type==='announcement'?window.openRealComment(id):show('Open the relevant official module for details.');
 window.runContextAction=action=>{window.closeContextMenu();show(action==='open'?'Open the official classroom module.':'This context action requires a verified backend write. Nothing was modified.');};
