@@ -1,0 +1,91 @@
+name: BUKLOD Classroom Gemini Exact Expo Production Promotion
+
+on:
+  push:
+    branches:
+      - dev/classroom-gpt-ui-integration-20261108
+    paths:
+      - '.github/workflows/classroom-expo-gemini-promote-20261108.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-classroom-expo-prod-promote
+  cancel-in-progress: false
+
+jobs:
+  verify-and-promote:
+    if: github.ref == 'refs/heads/dev/classroom-gpt-ui-integration-20261108'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPO_TOKEN: \${{ secrets.EXPO_TOKEN }}
+      EXPO_NO_TELEMETRY: '1'
+      BUKLOD_APP_TARGET: classroom
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+
+    steps:
+      - name: Checkout authorized source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify source is the exact tested Gemini build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/dev/classroom-gpt-ui-integration-20261108'
+          test "$(git hash-object classroom-web/index.html)" = '2805051b87c95cde537b762d5525016953da8143'
+          test "$(git hash-object classroom-web/src/gemini-live.js)" = '8dd462f1cd6877c1d986cb04210485625d88f8b5'
+          test "$(git hash-object classroom-web/tests/gemini-live-gates.test.mjs)" = 'd6207950c347274088fe2320f052c8e1bbfd3eb0'
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const config = require('./app.config.js')({config:{extra:{}}});
+          assert.equal(config.slug,'buklod-classroom');
+          assert.equal(config.extra.eas.projectId,'14100ed1-7f25-4551-9627-09d280498241');
+          assert.equal(config.extra.appTarget,'classroom');
+          NODE
+          node --test classroom-web/tests/*.test.mjs
+          echo EXACT_SOURCE_AND_SECURITY_TESTS=PASS
+      - name: Smoke test immutable Gemini Expo preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://buklod-classroom--rhw44sqqts.expo.app'
+          curl --fail --silent --show-error --location --retry 2 --max-time 30 "$url/?release=rhw44sqqts" -o /tmp/classroom-preview.html
+          grep -Fq 'classroomSecureBootGuard' /tmp/classroom-preview.html
+          grep -Fq 'BUKLOD Classroom' /tmp/classroom-preview.html
+          asset="$(grep -oE '/assets/index-[^"]+\.js' /tmp/classroom-preview.html | head -1)"
+          test -n "$asset"
+          curl --fail --silent --show-error --location --retry 2 --max-time 30 "$url$asset" -o /tmp/classroom-preview.js
+          grep -Fq 'buklod_classroom_my_classes_v2' /tmp/classroom-preview.js
+          grep -Fq 'buklod_classroom_context_v1' /tmp/classroom-preview.js
+          grep -Fq 'buklod_classroom_student_released_grade_items_v2' /tmp/classroom-preview.js
+          echo IMMUTABLE_EXPO_PREVIEW_AND_RLS_CLIENT=PASS
+      - name: Authenticate existing BUKLOD Classroom Expo project
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          test -n "$EXPO_TOKEN"
+          npx --yes eas-cli@21.7.0 whoami --non-interactive >/dev/null
+      - name: Promote verified deployment rhw44sqqts to production
+        run: npx --yes eas-cli@21.7.0 deploy:alias --prod --id=rhw44sqqts --non-interactive --json
+      - name: Verify production is exact same immutable Gemini HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4; do
+            if curl --fail --silent --show-error --location --max-time 30 "https://buklod-classroom.expo.app/?release=rhw44sqqts-$attempt" -o /tmp/classroom-production.html; then
+              if cmp -s /tmp/classroom-preview.html /tmp/classroom-production.html; then
+                grep -Fq 'classroomSecureBootGuard' /tmp/classroom-production.html
+                echo 'EXPO_CLASSROOM_PRODUCTION_VERIFIED=https://buklod-classroom.expo.app/'
+                echo 'EXACT_GEMINI_DEPLOYMENT=rhw44sqqts'
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo 'FAIL: production alias content did not match verified preview'
+          exit 1
