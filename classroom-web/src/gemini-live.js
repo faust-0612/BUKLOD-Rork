@@ -22,7 +22,7 @@ const isoId = value => /^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(String(value||''))
 const show = msg => window.showToast(String(msg));
 const call = async result => {const x=await result; if(x.error)throw x.error; return x.data;};
 const fmt = value => value ? new Date(value).toLocaleString('en-PH',{dateStyle:'medium',timeStyle:'short'}) : 'Not scheduled';
-let activeUser=null, roleByClass=new Map(), cache=new Map(), pending=false, activeRequest=0, activeFilter='all';
+let activeUser=null, roleByClass=new Map(), cache=new Map(), pending=false, activeRequest=0, activeFilter='all', liveKnown=false, liveCount=0;
 const isFaculty = () => roleByClass.get(app.activeClassId)?.authorizedFaculty===true;
 const box = (title,body) => '<section class="surface-card" style="margin-bottom:14px"><h3 style="font-size:16px;font-weight:800;margin-bottom:9px">' + esc(title) + '</h3>' + body + '</section>';
 const empty = label => '<p style="color:#64748b;font-size:13px">' + esc(label) + '</p>';
@@ -48,7 +48,6 @@ function projectCards(){
     '</div></div><div class="classroom-chevron">›</div></article>').join('') : box('No authorized classrooms',empty(activeFilter==='active'?'No active classrooms are assigned to this account.':'No enrolled or faculty classrooms were returned by BUKLOD.'));
   const first=classes[0];
   const active=classes.filter(c=>c.status==='ACTIVE'||c.status==='OPEN');
-  const live=[...cache.values()].flatMap(x=>x.live||[]).filter(x=>['LIVE','ACTIVE','STARTED','IN_PROGRESS'].includes(String(x.status||'').toUpperCase()));
   const blocks=[
     ['My Classrooms',classes.length+' Assigned','portal'],
     ['My Active Classes',active.length+' Active','active'],
@@ -58,7 +57,7 @@ function projectCards(){
     ['Attendance','Verified sessions','attendance'],
     ['My Released Grades','Authorized results','grades'],
     ['Clinical & RLE Progress','Verified records only','rle'],
-    ['Live Now',live.length+' live sessions','live'],
+    ['Live Now',liveKnown?(liveCount+' verified live'):'Check session status','live'],
     ['Continue','Open last assigned class','overview']
   ];
   el('portalSummaryBento').innerHTML=blocks.map((b)=>{
@@ -68,11 +67,52 @@ function projectCards(){
   }).join('');
 }
 window.renderPortalHome=projectCards;
-window.showActiveClassrooms=()=>{originalShowPortalHome();activeFilter='active';projectCards();};
+window.showActiveClassrooms=async()=>{
+  originalShowPortalHome();
+  activeFilter='active';
+  const holder=el('portalClassroomsList');
+  const classes=Object.values(app.classrooms).filter(c=>c.status==='ACTIVE'||c.status==='OPEN');
+  holder.innerHTML=loadingCard();
+  const request=++activeRequest;
+  if(!classes.length){holder.innerHTML=box('Active Academic Work',empty('No active assigned classes.'));return;}
+  try{
+    const tasks=await call(db.from('buklod_education_classroom_assignments')
+      .select('id,classroom_id,title,due_at,status').in('classroom_id',classes.map(c=>c.id))
+      .eq('status','PUBLISHED').order('due_at',{ascending:true}).limit(120));
+    if(request!==activeRequest || app.viewMode!=='portal')return;
+    holder.innerHTML=box('My Active Classes — Current Academic Work',
+      empty('Unlike My Classrooms (directory), this view shows published work in each active class.')+
+      classes.map(c=>{
+        const list=(tasks||[]).filter(t=>t.classroom_id===c.id);
+        return '<div class="surface-card" style="margin-top:12px;padding:15px"><strong>'+esc(c.className)+'</strong>'+
+          '<div style="font-size:12px;color:#64748b">'+esc(c.section)+'</div>'+
+          (list.length?list.slice(0,5).map(a=>card(a.title,'Due: '+fmt(a.due_at))).join(''):
+            empty('No published assignments in this classroom.'))+
+          button('Open class activities','openSubjectClass',JSON.stringify(c.id)+",'WORK','activities'")+
+          '</div>';
+      }).join(''));
+  }catch(err){if(request===activeRequest)holder.innerHTML=box('Active Academic Work',empty('Official work list unavailable: '+safeError(err)));}
+};
 const originalShowPortalHome=window.showPortalHome;
 window.showPortalHome=()=>{activeFilter='all';originalShowPortalHome();};
 window.refreshPortalList=()=>void refreshClasses();
 
+async function fetchLiveOverview(){
+  const ids=Object.keys(app.classrooms).filter(isoId);
+  if(!ids.length){liveCount=0;liveKnown=true;return;}
+  try{
+    let count=0;
+    // Bounded query batches preserve provider URL limits and RLS for many classes.
+    for(let i=0;i<ids.length;i+=30){
+      const result=await call(db.from('buklod_education_classroom_live_sessions').select('id')
+        .in('classroom_id',ids.slice(i,i+30)).eq('status','LIVE').limit(200));
+      count+=(result||[]).length;
+    }
+    if(!activeUser)return;
+    liveCount=count;liveKnown=true;
+  }catch(err){liveKnown=false;}
+  if(app.viewMode==='portal'&&activeFilter==='all')projectCards();
+}
 async function refreshClasses(){
   if(!activeUser)return;
   const results=await Promise.allSettled([
@@ -91,7 +131,7 @@ async function refreshClasses(){
         can_student_view:!!(old.can_student_view||row.can_student_view||row.role_key==='STUDENT')});
     }
   }
-  roleByClass=new Map();app.classrooms={};cache=new Map();
+  roleByClass=new Map();app.classrooms={};cache=new Map();liveKnown=false;liveCount=0;
   for(const [id,row] of merged){
     roleByClass.set(id,{faculty:row.can_faculty_view===true,student:row.can_student_view===true,authorizedFaculty:false});
     app.classrooms[id]={id,className:row.classroom_name||row.name||'Classroom',section:[row.subject_code,row.section_name].filter(Boolean).join(' · '),
@@ -104,6 +144,7 @@ async function refreshClasses(){
   app.activeClassId=Object.keys(app.classrooms)[0]||'';
   window.injectAllCanonicalLogos();
   window.showPortalHome();
+  void fetchLiveOverview();
   el('portalSubRoleText').textContent='ONE IDENTITY • OFFICIAL BUKLOD RECORDS';
   const oldEmail=el('activeEmailLabel');if(oldEmail)oldEmail.textContent=activeUser.email||'Signed in';
   const create=el('createClassPortalBtn');if(create)create.style.display='none';
