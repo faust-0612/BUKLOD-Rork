@@ -1453,14 +1453,6 @@ export default function MeScreen() {
           </View>
 
           <MenuRow
-            icon="crown-outline"
-            title="Paid Features"
-            onPress={() =>
-              router.push('/premium' as any)
-            }
-          />
-
-          <MenuRow
             icon="lock-reset"
             title="Password & Recovery"
             onPress={() =>
@@ -1530,11 +1522,10 @@ export default function MeScreen() {
           />
 
           <MenuRow
-            icon="lifebuoy"
-            title="BUKLOD Policy"
-            onPress={() =>
-              router.push('/policy' as any)
-            }
+            icon="shield-alert-outline"
+            title="Community Safety"
+            subtitle="Report unsafe content or behavior"
+            onPress={() => router.push('/moderation/report' as any)}
           />
 
           <MenuRow
@@ -1560,19 +1551,6 @@ export default function MeScreen() {
               onPress={() => router.push('/admin/bsoc-support' as any)}
             />
           )}
-
-          <MenuRow
-            icon="account-key"
-            title="BSOC Personnel Access Code"
-            subtitle="Enter the one-time authorization code from your System Administrator"
-            onPress={() => router.push('/bsoc/access' as any)}
-          />
-
-          <MenuRow
-            icon="message-text-outline"
-            title="Send Feedback"
-            onPress={() => router.push('/feedback')}
-          />
 
           {isSystemAdmin && (
             <MenuRow

@@ -298,9 +298,9 @@ export default function SmartDrawerWallCard() {
 
 const styles = StyleSheet.create({
   card: {
-    marginTop: 10,
-    marginBottom: 12,
-    borderRadius: 18,
+    marginTop: 0,
+    marginBottom: 0,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: '#D7E5F2',
     backgroundColor: '#F5F9FD',

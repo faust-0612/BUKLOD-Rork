@@ -49,11 +49,11 @@ export default function BuklodPttEntryButton() {
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 14,
+    marginHorizontal: 0,
     marginTop: 10,
     marginBottom: 8,
     minHeight: 78,
-    borderRadius: 18,
+    borderRadius: 4,
     padding: 10,
     flexDirection: 'row',
     alignItems: 'center',

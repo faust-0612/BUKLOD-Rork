@@ -18,6 +18,7 @@ import BuklodScopeFaithMonitoringDoor from '@/components/BuklodScopeFaithMonitor
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
 import BuklodScopeActionCenterSlot from '@/components/BuklodScopeActionCenterSlot';
 import BuklodScopeAttendanceCard from '@/components/BuklodScopeAttendanceCard';
+import BuklodR2FocusMonitor from '@/components/points/BuklodR2FocusMonitor';
 import BuklodMzbHomeWidgets from '@/components/BuklodMzbHomeWidgets';
 import BuklodOrgHomeClusterCard from '@/components/BuklodOrgHomeClusterCard';
 import BuklodOrgHomeBayanihanCard from '@/components/BuklodOrgHomeBayanihanCard';
@@ -199,7 +200,9 @@ export default function BuklodScopeHomeDashboard({
                   router.push(scopeManageRoute(scope) as any)
                 }
               />
-              {scope.scope_type === 'ORGANIZATION' ? (
+              {scope.scope_type === 'CLUSTER' ? <BuklodR2FocusMonitor /> : null}
+
+      {scope.scope_type === 'ORGANIZATION' ? (
                 <>
                   <QuickLink
                     icon="account-group-outline"
