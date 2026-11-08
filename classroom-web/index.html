@@ -744,7 +744,7 @@
 
                 <!-- E2E 15/15 Self-Test Drawer Button -->
                 <button onclick="openAuditDrawer()" class="btn-soft-cyan" title="Patakbuhin ang 15-Pipeline E2E Self-Test">
-                    <span>✓ E2E Audit (15/15)</span>
+                    <span>System Status</span>
                 </button>
 
                 <!-- My Classes Button (Matches user screenshot image_85d623.png) -->
@@ -1057,203 +1057,10 @@
            Includes the exact classes from image_85d623.png: chn, CHN LEVEL 3, CHN 2, Logic 2D
            ========================================================================== */
         var APP_STATE = {
-            viewMode: 'portal', // 'portal' or 'workspace'
-            activeClassId: '99923b52-0967-4a5f-b4b0-43cb4653fbb8',
-            activeGroup: 'CLASS', // 'CLASS', 'WORK', 'CONNECT', 'MORE'
-            activeSubtab: 'overview',
-            persona: 'primary_faculty', // 'primary_faculty', 'student_view', 'co_teacher', 'isolated_faculty'
-            isOffline: false,
-            offlineQueue: [],
-            liveSession: {
-                active: true,
-                mode: 'Recitation',
-                connectedCount: 58,
-                maxTarget: 60,
-                activeCameras: 14,
-                calledStudentId: 'stu-1',
-                lastScoreUndo: null
-            },
-            rosterImportDraft: null,
-            classrooms: {
-                'chn-ncm-a': {
-                    id: 'chn-ncm-a',
-                    className: 'chn',
-                    section: 'ncm · a',
-                    code: 'ncm',
-                    classType: 'RLE + Clinical Duty',
-                    academicYear: '2026–2027',
-                    semester: 'First Semester',
-                    term: 'Midterm',
-                    faculty: 'Prof. Ferdinand Gabut Jr., RN, MAN (efmagaj@gmail.com)',
-                    schedule: 'Biyernes · 07:00 AM – 03:00 PM',
-                    venue: 'Barangay Health Station · Block A',
-                    cutoff: '08:00',
-                    title: 'chn — Community Health Nursing Practicum (ncm · a)',
-                    syllabusSummary: 'Clinical practicum, CHN bag technique, family health care plan, at barangay immunization monitoring.',
-                    gradingScheme: 'rle404020',
-                    lifecycleStage: 3, // 1:Draft, 2:Review, 3:Release, 4:Compute Final, 5:Release Final, 6:Lock
-                    announcements: [
-                        { id: 'ann-chn-1', title: 'chn (ncm · a): RLE Bag Technique Return Demo Bukas', meta: 'efmagaj@gmail.com · Pinned', pinned: true, done: false, body: 'Ihanda ang kumpletong CHN bag, thermometer, at apron bago mag-08:00 AM cutoff.', comments: ['Dela Cruz, Juan: Copy po Sir Gabut!'] }
-                    ],
-                    modules: [
-                        { id: 'mod-chn-1', week: 'Linggo 1–2', title: 'Modyul 1: Bag Technique & Home Visit Protocol', format: 'PDF · 2.1 MB', cached: true, done: true, summary: 'Step-by-step aseptic bag technique sa tahanan ng pasyente.' }
-                    ],
-                    activities: [
-                        { id: 'act-chn-1', title: 'Family Nursing Care Plan (FNCP) Case Output', category: 'RLE', term: 'Midterm', maxPoints: 100, due: 'Nov 12, 2026', state: 'Submitted', score: 94, feedback: 'Kompleto ang first at second-level assessment.' }
-                    ],
-                    quizzes: [
-                        { id: 'qz-chn-1', title: 'Quick Check: Cold Chain & EPI Vaccines', items: 10, duration: '15 min', released: true, attempts: 1, bestScore: 9, maxScore: 10, integrityLogs: '0 Tab Switches (Verified Clean)' }
-                    ],
-                    rleSkills: [
-                        { id: 'sk-1', skill: 'CHN Bag Technique (Infection Control)', venue: 'Brgy. San Isidro RHU', hoursReq: 48, hoursDone: 44, status: 'Competent', note: 'Maayos ang handwashing at sterilization.' },
-                        { id: 'sk-2', skill: 'Leopold’s Maneuver & Fundic Height', venue: 'Birthing Clinic', hoursReq: 24, hoursDone: 24, status: 'Competent', note: 'Tumpak ang fetal presentation identification.' }
-                    ],
-                    notices: [
-                        { id: 'nt-1', type: 'Commendation', severity: 'Positive', student: 'Dela Cruz, Juan Mateo', title: 'Outstanding RHU Triage Leadership', ack: true, ackTime: 'Nov 7, 2026 08:15 AM' }
-                    ],
-                    roster: [
-                        { id: 'stu-1', studentId: '2024-01042-TG', buklodId: 'buklod_u101', name: 'Dela Cruz, Juan Mateo', section: 'ncm · a', status: 'Active', attendance: 'Present', timeIn: '07:42 AM', quizScore: 92, activityScore: 95, rleScore: 96, examScore: 91, exception: 'None' },
-                        { id: 'stu-2', studentId: '2024-01088-TG', buklodId: 'buklod_u102', name: 'Reyes, Clara Isabel', section: 'ncm · a', status: 'Active', attendance: 'Present', timeIn: '07:50 AM', quizScore: 95, activityScore: 93, rleScore: 94, examScore: 94, exception: 'None' }
-                    ],
-                    auditLogs: [
-                        { time: '08:30 AM', actor: 'efmagaj@gmail.com', detail: 'Released Midterm RLE grades for ncm · a' }
-                    ]
-                },
-
-                '99923b52-0967-4a5f-b4b0-43cb4653fbb8': {
-                    id: '99923b52-0967-4a5f-b4b0-43cb4653fbb8',
-                    className: 'CHN LEVEL 3',
-                    section: 'NCM 113 · BLOCK A',
-                    code: 'NCM 113',
-                    classType: 'RLE + Lecture',
-                    academicYear: '2026–2027',
-                    semester: 'First Semester',
-                    term: 'Midterm',
-                    faculty: 'Prof. Ferdinand Gabut Jr., RN, MAN (efmagaj@gmail.com)',
-                    schedule: 'Lunes & Miyerkules · 07:00 AM – 03:00 PM',
-                    venue: 'Brgy. San Isidro RHU · Tanay, Rizal',
-                    cutoff: '08:00',
-                    title: 'CHN LEVEL 3 — Community Health Nursing II (Population Groups & Community as Client)',
-                    syllabusSummary: 'COPAR Participatory Action Research, FHSIS/PIDSR Epidemiological Surveillance, Maternal & Child Health, at Field RLE Duty.',
-                    gradingScheme: 'standard',
-                    lifecycleStage: 3,
-                    announcements: [
-                        { id: 'ann-1', title: 'Field RLE Immersion & FHSIS Spot Map Briefing (Brgy. San Isidro)', meta: 'Prof. F. Gabut Jr. · Pinned', pinned: true, done: false, body: 'Magkita-kita sa RHU Triage nang 07:30 AM. Ang attendance cutoff ay eksaktong 08:00 AM. Dalhin ang Family Health Folders at BP apparatus.', comments: ['Dela Cruz, Juan: Handa na po ang RLE Group 1 spot maps!', 'Reyes, Clara: Copy po Sir, nasa RHU na po kami.'] },
-                        { id: 'ann-2', title: 'Midterm Situational Exam sa BUKLOD Quiz Engine', meta: 'Prof. F. Gabut Jr. · Kahapon', pinned: false, done: false, body: 'Buksan ang WORK → BUKLOD Quiz tab upang sagutan ang 30-item situational board-style examination.', comments: [] }
-                    ],
-                    modules: [
-                        { id: 'mod-1', week: 'Linggo 1–2', title: 'Modyul 1: COPAR Phases (Pre-Entry, Entry, Organization-Building, Sustenance)', format: 'PDF · 3.4 MB', cached: true, done: true, summary: 'Komprehensibong gabay sa Community Organizing Participatory Action Research at pagbuo ng Core Group.' },
-                        { id: 'mod-2', week: 'Linggo 3–4', title: 'Modyul 2: FHSIS Target Client Lists & PIDSR Disease Surveillance', format: 'PDF + Case Video · 4.2 MB', cached: true, done: false, summary: 'Pag-encode at pagsusuri ng Field Health Services Information System (FHSIS) at Outbreak Investigation.' },
-                        { id: 'mod-3', week: 'Linggo 5–6', title: 'Modyul 3: Expanded Program on Immunization (EPI) & Cold Chain Management', format: 'Interactive Handout · 1.9 MB', cached: true, done: false, summary: 'Vaccine storage temperatures (-15°C to -25°C OPV vs +2°C to +8°C Pentavalent/BCG) at shake test.' }
-                    ],
-                    activities: [
-                        { id: 'act-1', title: 'Barangay San Isidro Epidemiological Spot Map & Family Profile', category: 'RLE / Project', term: 'Midterm', maxPoints: 100, due: 'Nov 10, 2026 · 05:00 PM', state: 'Graded', score: 96, feedback: 'Napakalinaw ng high-risk maternal & dengue clustering sa Purok 3.' },
-                        { id: 'act-2', title: 'COPAR Community Diagnosis & Priority Health Problem Matrix', category: 'Activities', term: 'Midterm', maxPoints: 50, due: 'Nov 14, 2026 · 11:59 PM', state: 'Submitted', score: 47, feedback: 'Tama ang computation ng Magnitude, Modifiability, at Preventive Potential.' },
-                        { id: 'act-3', title: 'Weekly Clinical Reflective Journal (Week 4 RHU Duty)', category: 'Journal', term: 'Midterm', maxPoints: 50, due: 'Nov 16, 2026 · 06:00 PM', state: 'Draft', score: null, feedback: 'Naka-save sa Offline Draft Queue.' }
-                    ],
-                    quizzes: [
-                        { id: 'qz-1', title: 'Midterm Exam: COPAR, FHSIS & EPI Cold Chain (PNLE Situational)', items: 25, duration: '30 min', released: true, attempts: 1, bestScore: 23, maxScore: 25, integrityLogs: '0 Focus Violations · Verified BUKLOD Session' },
-                        { id: 'qz-2', title: 'BUKLOD Quick Check: IMCI Danger Signs & ORS Classification', items: 10, duration: '10 min', released: true, attempts: 1, bestScore: 10, maxScore: 10, integrityLogs: '0 Focus Violations · Auto-mapped to Gradebook' }
-                    ],
-                    rleSkills: [
-                        { id: 'sk-101', skill: 'CHN Bag Technique & Home Visit Asepsis', venue: 'Brgy. San Isidro Purok 2', hoursReq: 48, hoursDone: 48, status: 'Competent', note: 'Passed Return Demo with 98% rubric rating.' },
-                        { id: 'sk-102', skill: 'EPI Cold Chain Thermometer Check & Intramuscular Administration', venue: 'San Isidro RHU Immunization Room', hoursReq: 48, hoursDone: 44, status: 'Competent', note: 'Accurate Vastus Lateralis landmarking.' },
-                        { id: 'sk-103', skill: 'Leopold’s Maneuver (4 Grips) & Fetal Heart Tone Auscultation', venue: 'RHU Birthing Center', hoursReq: 32, hoursDone: 28, status: 'Needs Improvement', note: 'Requires 1 follow-up return demo on pelvic grip.' },
-                        { id: 'sk-104', skill: 'OJT / Practicum Weekly Logbook & MHO Clearance', venue: 'Tanay Municipal Health Office', hoursReq: 160, hoursDone: 152, status: 'Competent', note: 'Signed by Dr. Roberto Alonzo, MHO.' }
-                    ],
-                    notices: [
-                        { id: 'nt-101', type: 'Formal Academic Notice', severity: 'Action Required', student: 'Santos, Gabriel Antonio (2024-01105-TG)', title: 'Follow-up Return Demo for Leopold’s Maneuver (Pelvic Grip)', ack: false, ackTime: null },
-                        { id: 'nt-102', type: 'Commendation', severity: 'Positive', student: 'Dela Cruz, Juan Mateo (2024-01042-TG)', title: 'Exemplary Leadership as Class Mayor during Barangay Dengue Brigade', ack: true, ackTime: 'Nov 7, 2026 · 08:12 AM' }
-                    ],
-                    roster: [
-                        { id: 'stu-1', studentId: '2024-01042-TG', buklodId: 'buklod_uid_991a', name: 'Dela Cruz, Juan Mateo', section: 'BSN 3A · BLOCK A', status: 'Active', attendance: 'Present', timeIn: '07:38 AM', quizScore: 94, activityScore: 96, rleScore: 95, examScore: 92, exception: 'None' },
-                        { id: 'stu-2', studentId: '2024-01088-TG', buklodId: 'buklod_uid_992b', name: 'Reyes, Clara Isabel', section: 'BSN 3A · BLOCK A', status: 'Active', attendance: 'Present', timeIn: '07:46 AM', quizScore: 96, activityScore: 94, rleScore: 96, examScore: 95, exception: 'None' },
-                        { id: 'stu-3', studentId: '2024-01105-TG', buklodId: 'buklod_uid_993c', name: 'Santos, Gabriel Antonio', section: 'BSN 3A · BLOCK A', status: 'Active', attendance: 'Late', timeIn: '08:11 AM', quizScore: 84, activityScore: 86, rleScore: 85, examScore: 82, exception: 'None' },
-                        { id: 'stu-4', studentId: '2024-01190-TG', buklodId: 'buklod_uid_994d', name: 'Mendoza, Sofia Lorraine', section: 'BSN 3A · BLOCK A', status: 'Active', attendance: 'Excused', timeIn: 'Medical Cert', quizScore: 91, activityScore: 92, rleScore: 93, examScore: 90, exception: 'Excused' },
-                        { id: 'stu-5', studentId: '2023-00812-TG', buklodId: 'buklod_uid_995e', name: 'Villanueva, Mark Joseph (Irregular)', section: 'BSN 3B -> Block A', status: 'Active', attendance: 'Absent', timeIn: '—', quizScore: 79, activityScore: 80, rleScore: 82, examScore: 78, exception: 'INC' }
-                    ],
-                    auditLogs: [
-                        { time: '09:10 AM', actor: 'efmagaj@gmail.com', detail: 'Updated Dela Cruz, Juan Mateo Activity Score 94 -> 96 (Reason: Verified Spot Map Legend)' },
-                        { time: '08:45 AM', actor: 'efmagaj@gmail.com', detail: 'Recorded Live Recitation +5 pts for Reyes, Clara Isabel' }
-                    ]
-                },
-
-                'chn-2-ncm113-3a': {
-                    id: 'chn-2-ncm113-3a',
-                    className: 'CHN 2',
-                    section: 'NCM 113 · 3A',
-                    code: 'NCM 113',
-                    classType: 'RLE + Lecture',
-                    academicYear: '2026–2027',
-                    semester: 'First Semester',
-                    term: 'Midterm',
-                    faculty: 'Prof. Ferdinand Gabut Jr., RN, MAN (efmagaj@gmail.com)',
-                    schedule: 'Martes & Huwebes · 07:00 AM – 03:00 PM',
-                    venue: 'Brgy. Sampaloc RHU · Tanay, Rizal',
-                    cutoff: '08:00',
-                    title: 'CHN 2 — Community Health Nursing (NCM 113 · Section 3A)',
-                    syllabusSummary: 'Primary Health Care, Universal Health Care Act (RA 11223), Maternal Child Nursing, at Family Health Care.',
-                    gradingScheme: 'standard',
-                    lifecycleStage: 3,
-                    announcements: [
-                        { id: 'ann-chn2-1', title: 'CHN 2 (Section 3A): Submission ng Family Health Folder', meta: 'efmagaj@gmail.com · Pinned', pinned: true, done: false, body: 'Ipasa ang inyong Family Coping Index at Typology sheets sa WORK tab.', comments: [] }
-                    ],
-                    modules: [
-                        { id: 'mod-chn2-1', week: 'Linggo 1–2', title: 'Modyul 1: Universal Health Care (RA 11223) & Primary Health Care', format: 'PDF · 2.5 MB', cached: true, done: true, summary: 'Service delivery network at Geographically Isolated and Disadvantaged Areas (GIDA).' }
-                    ],
-                    activities: [
-                        { id: 'act-chn2-1', title: 'Family Coping Index & First-Level Assessment', category: 'Activities', term: 'Midterm', maxPoints: 100, due: 'Nov 15, 2026', state: 'Graded', score: 93, feedback: 'Mahusay ang nursing diagnosis prioritization.' }
-                    ],
-                    quizzes: [
-                        { id: 'qz-chn2-1', title: 'Midterm Quiz: RA 11223 & Herbal Medicines (SANTALUBBY)', items: 20, duration: '20 min', released: true, attempts: 1, bestScore: 19, maxScore: 20, integrityLogs: '0 Violations' }
-                    ],
-                    rleSkills: [
-                        { id: 'sk-chn2-1', skill: 'Herbal Preparation & Health Education Session', venue: 'Brgy. Sampaloc Gym', hoursReq: 48, hoursDone: 48, status: 'Competent', note: 'Clear Tagalog health teaching.' }
-                    ],
-                    notices: [],
-                    roster: [
-                        { id: 'stu-1', studentId: '2024-01042-TG', buklodId: 'buklod_uid_991a', name: 'Dela Cruz, Juan Mateo', section: 'NCM 113 · 3A', status: 'Active', attendance: 'Present', timeIn: '07:45 AM', quizScore: 95, activityScore: 93, rleScore: 94, examScore: 92, exception: 'None' }
-                    ],
-                    auditLogs: []
-                },
-
-                'logic-2d-gec105': {
-                    id: 'logic-2d-gec105',
-                    className: 'Logic 2D',
-                    section: 'GEC 105 · 2D',
-                    code: 'GEC 105',
-                    classType: 'Lecture',
-                    academicYear: '2026–2027',
-                    semester: 'First Semester',
-                    term: 'Midterm',
-                    faculty: 'Prof. Ferdinand Gabut Jr., RN, MAN (efmagaj@gmail.com)',
-                    schedule: 'Huwebes · 01:00 PM – 04:00 PM',
-                    venue: 'Academic Hall Room 204',
-                    cutoff: '13:15',
-                    title: 'Logic 2D — Critical Thinking, Syllogisms & Argumentation',
-                    syllabusSummary: 'Aristotelian Deductive Logic, Categorical Propositions, Venn Diagrams, at Informal Fallacies sa Clinical Decision-Making.',
-                    gradingScheme: 'standard',
-                    lifecycleStage: 2,
-                    announcements: [
-                        { id: 'ann-log-1', title: 'Midterm Syllogism & Fallacy Analysis Seatwork', meta: 'efmagaj@gmail.com · Active', pinned: true, done: false, body: 'Pag-aralan ang Square of Opposition (A, E, I, O propositions) para sa ating Quick Check.', comments: [] }
-                    ],
-                    modules: [
-                        { id: 'mod-log-1', week: 'Linggo 1–3', title: 'Modyul 1: Categorical Propositions & Square of Opposition', format: 'PDF · 1.4 MB', cached: true, done: true, summary: 'Contradictory, Contrary, Subcontrary, at Subalternation.' }
-                    ],
-                    activities: [
-                        { id: 'act-log-1', title: 'Clinical Fallacy Identification Matrix', category: 'Activities', term: 'Midterm', maxPoints: 50, due: 'Nov 18, 2026', state: 'Submitted', score: 48, feedback: 'Tumpak ang pagsusuri.' }
-                    ],
-                    quizzes: [
-                        { id: 'qz-log-1', title: 'Syllogistic Mood & Figure Validity Exam', items: 15, duration: '20 min', released: true, attempts: 1, bestScore: 14, maxScore: 15, integrityLogs: 'Clean Session' }
-                    ],
-                    rleSkills: [],
-                    notices: [],
-                    roster: [
-                        { id: 'stu-1', studentId: '2024-01042-TG', buklodId: 'buklod_uid_991a', name: 'Dela Cruz, Juan Mateo', section: 'GEC 105 · 2D', status: 'Active', attendance: 'Present', timeIn: '12:55 PM', quizScore: 93, activityScore: 96, rleScore: 90, examScore: 91, exception: 'None' }
-                    ],
-                    auditLogs: []
-                }
-            }
+            viewMode: 'portal', activeClassId: '', activeGroup: 'CLASS', activeSubtab: 'overview',
+            persona: 'primary_faculty', isOffline: false, offlineQueue: [],
+            liveSession: {active:false, mode:'NONE', connectedCount:0, maxTarget:0, activeCameras:0, calledStudentId:null, lastScoreUndo:null},
+            classrooms: {}
         };
 
         var SUBTABS_BY_GROUP = {
@@ -2950,7 +2757,8 @@
             }
         }
 
-        initBuklodApp();
+        // Authenticated Gemini module owns boot, never run sample initialization
     </script>
 
+<script type="module" src="/src/gemini-live.js"></script>
 </body></html>
