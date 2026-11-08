@@ -85,7 +85,7 @@ Deno.serve(async (req: Request) => {
             },
             dimensions: ['APP'],
             dimensionFilters: [{
-              dimension: 'APP', matchesAny: { values: [{ value: appId }] },
+              dimension: 'APP', matchesAny: { values: [appId] },
             }],
             metrics: ['ESTIMATED_EARNINGS'],
             localizationSettings: { currencyCode: 'PHP', languageCode: 'en-US' },
