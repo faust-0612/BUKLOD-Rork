@@ -22,7 +22,7 @@ function asObject(value: unknown): Record<string, unknown> | null {
 
 export async function pingKlReading(episodeId: string): Promise<boolean> {
   try {
-    const { data, error } = await supabase.rpc(KL_RPC.pingReading, { p_episode_id: episodeId });
+    const { data, error } = await supabase.rpc(KL_RPC.pingReading, { p_episode_id: episodeId, p_action: 'ping' });
     if (error) return false;
     return asObject(data)?.ok === true;
   } catch {
@@ -88,16 +88,17 @@ export async function addKlComment(
   body: string,
 ): Promise<{ ok: boolean; comment: KlEpisodeComment | null; error?: string }> {
   const trimmed = body.trim().slice(0, 500);
-  if (!trimmed) return { ok: false, comment: null, error: 'empty' };
+  if (trimmed.length < 12) return { ok: false, comment: null, error: 'Kailangan ng 12 karakter o higit pa ang repleksyon.' };
   try {
     const { data, error } = await supabase.rpc(KL_RPC.addComment, {
       p_episode_id: episodeId,
       p_body: trimmed,
+      p_parent_id: null,
     });
-    if (error) return { ok: false, comment: null, error: 'server' };
+    if (error) return { ok: false, comment: null, error: String(error.message || 'Hindi maipadala ngayon.').slice(0,160) };
     const payload = asObject(data);
     if (!payload || payload.ok !== true) {
-      return { ok: false, comment: null, error: typeof payload?.error === 'string' ? payload.error : 'server' };
+      return { ok: false, comment: null, error: typeof payload?.error === 'string' ? payload.error : 'Hindi maipadala ngayon.' };
     }
     const item = asObject(payload.comment);
     if (!item || typeof item.id !== 'string' || typeof item.body !== 'string') {
