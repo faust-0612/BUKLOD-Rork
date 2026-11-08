@@ -72,6 +72,8 @@ jobs:
           test -s classroom-web/dist/index.html
           grep -Fq 'function renderTabLiveClassroom' classroom-web/dist/index.html
           ! grep -Fq '/src/main.js' classroom-web/dist/index.html
+      - name: Install canonical Expo config/plugin dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Authenticate Expo without revealing credentials
         run: |
           set -euo pipefail
