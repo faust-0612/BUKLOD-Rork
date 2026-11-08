@@ -361,9 +361,21 @@ export default function BuklodReferralInviteCard({
         {summary?.qualified_count ?? 0}
         {summary?.was_referred ? ' · You joined via referral' : ''}
       </Text>
+      {Number(summary?.legacy_unreconciled_count ?? 0) > 0 ? (
+        <Text style={styles.economyNote}>
+          {summary?.legacy_unreconciled_count} earlier invitation(s) are counted but awaiting
+          financial reconciliation. Historical referrals are not withdrawable earnings.
+        </Text>
+      ) : null}
+      {!!summary?.legacy_code && summary.legacy_code !== code ? (
+        <Text style={styles.economyNote}>
+          A previous invite code exists. Use the code above for NEW invitations;
+          it matches Economy and Life Sharing.
+        </Text>
+      ) : null}
       <Text style={styles.economyNote}>
-        Sharing rewards follow the active BUKLOD referral settings. Points and
-        referral units are not pesos.
+        Sharing and finance rewards are separate. Earnings are recognized only
+        after official qualification, funding and settlement.
       </Text>
 
       {economyLinks}
