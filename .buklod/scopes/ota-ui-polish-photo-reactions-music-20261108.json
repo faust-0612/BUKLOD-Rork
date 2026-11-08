@@ -1,6 +1,6 @@
 {
   "contractVersion": 2,
-  "objective": "Make BUKLOD comments reaction controls screen-safe, cluster/org Connect compact, synchronized cluster profile photos, expandable sponsored caption and unobstructed video playback, waveform-style music clip trimming, compact inbox header, informational Circle Rank highlight and collapsed Points history; preserve all back-end functions and prepare isolated code for consolidated OTA only.",
+  "objective": "Make BUKLOD comments reaction controls screen-safe, cluster/org Connect compact, synchronized cluster profile photos, expandable sponsored caption and unobstructed video playback, waveform-style music clip trimming, compact inbox header, informational Circle Rank highlight and collapsed Points history; preserve all back-end functions and prepare isolated code for consolidated OTA only. Prepare safe production publication gates for V30.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: BUKLOD GitHub main 1b1627a72b509d3a1f97c67f85cdf5394040f1b2 adopted as latest V30 Android source baseline (versionCode 30, runtimeVersion 1.3.2); earlier DEV started at ce157c66, source merge preserves unrelated V30 foreground service permission cleanup, Expo config and workflow updates. Production OTA/web/Play artifacts remain unverified and unchanged by this PR. No mobile native dependencies or database objects touched.",
   "chosenApproach": "Target existing presentational components and an account-scoped signed photo hook, reuse long-press modal for viewport safety, retain scoped chat APIs, use a JS PanResponder and trim metadata instead of new media files, add disclosure UX to ledger and sponsor captions, add focused Node regression contracts.",
@@ -16,7 +16,8 @@
     "Existing licensed music catalog and 5–60 second clip metadata and seek playback remain unchanged.",
     "Point ledger remains server-authoritative, notification focusLedgerId direct link expands history, Claim All unchanged.",
     "Native runtime 1.3.2 and Play/AAB identity untouched; no production OTA/web deployment triggered.",
-    "Unified RC compile QA remains restricted to exact explicit approved branches and still requires Expo authentication, prod env and versionCode 30; workflow never publishes."
+    "Unified RC compile QA remains restricted to exact explicit approved branches and still requires Expo authentication, prod env and versionCode 30; workflow never publishes.",
+    "The V28 native ABI baseline comparison stays strict except for the V30 removal of the unused connectedDevice manifest permission; no new native permissions or dependencies."
   ],
   "riskAreas": [
     "navigation-scroll",
@@ -32,13 +33,15 @@
     "Music picker supports drag-to-move, resize start/end, 5–60 second clipping and exact time fallback.",
     "Inbox hero is shorter; Circle Rank highlight opens information and Points shows collapsed history and group sources until opened.",
     "Focused Node tests and protected CI run; no real OTA until separately verified frozen RC and runtime gate.",
-    "RC Android and Expo web compiled exports complete against exact PR SHA with production EAS identity/runtime 1.3.2 but with no publishing, version change or build submission."
+    "RC Android and Expo web compiled exports complete against exact PR SHA with production EAS identity/runtime 1.3.2 but with no publishing, version change or build submission.",
+    "Production OTA baseline accepts only the precisely audited V30 native permission BLOCK and single PTT plugin permission deletion, rejects any other native/permission/dependency drift, then checks frozen RC hashes and live manifest identity."
   ],
   "regressionTests": [
     "tests/ota-navigation-scroll-polish-20261108.test.mjs",
     "tests/ota-connect-chat-20261108.test.mjs",
     "tests/ota-cluster-photo-20261108.test.mjs",
-    "tests/ota-release-compile-20261108.test.mjs"
+    "tests/ota-release-compile-20261108.test.mjs",
+    "tests/android-v30-runtime-compat-release-20261108.test.cjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/ota-ui-polish-photo-reactions-music-20261108.json",
@@ -62,6 +65,8 @@
     "tests/ota-connect-chat-20261108.test.mjs",
     "tests/ota-cluster-photo-20261108.test.mjs",
     ".github/workflows/unified_rc_compiled_qa_20261108.yml",
-    "tests/ota-release-compile-20261108.test.mjs"
+    "tests/ota-release-compile-20261108.test.mjs",
+    "scripts/android-ota-rc.cjs",
+    "tests/android-v30-runtime-compat-release-20261108.test.cjs"
   ]
 }

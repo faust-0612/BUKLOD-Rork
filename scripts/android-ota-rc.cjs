@@ -55,10 +55,23 @@ async function run() {
     assert.match(before.id || '', /^[0-9a-f-]{36}$/i, 'Invalid live production update ID');
     assert.ok(before.launchAsset?.hash, 'Missing live production bundle fingerprint');
     git('merge-base', '--is-ancestor', pinnedV28, sha);
-    assert.equal(git('diff', '--name-only', pinnedV28, sha, '--', 'package.json', 'package-lock.json', 'android', 'plugins'), '', 'Native baseline changed');
-    // The changed web favicon is not compiled into V28; all native Expo
-    // configuration fields still have to match the pinned installed build.
+    // V30 removes only the unused connectedDevice foreground-service manifest
+    // permission. The plugin is compared byte-for-byte against a single removal;
+    // every other native/dependency drift remains a hard stop for V28 OTA clients.
+    const changedNative = git('diff', '--name-only', pinnedV28, sha, '--', 'package.json', 'package-lock.json', 'android', 'plugins').split(/\r?\n/).filter(Boolean);
+    assert.deepEqual(changedNative, ['plugins/withBuklodPttHardwareFoundation.js'], 'Unexpected native/dependency drift since V28');
+    const oldPlugin = git('show', pinnedV28 + ':plugins/withBuklodPttHardwareFoundation.js');
+    const currentPlugin = fs.readFileSync('plugins/withBuklodPttHardwareFoundation.js', 'utf8').trimEnd();
+    const expectedPlugin = oldPlugin.replace("  ['android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE', null],", "  // No connectedDevice foreground service: PTT uses Stream VoIP transport.").trimEnd();
+    assert.equal(currentPlugin, expectedPlugin, 'Only the approved connectedDevice permission deletion is allowed');
     const currentConfig = require('../app.config.js')({config:{}});
+    const removedPermission = 'android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE';
+    assert.equal(currentConfig.android.versionCode, 30, 'V30 production identity required');
+    assert.equal(currentConfig.android.blockedPermissions.filter(p => p === removedPermission).length, 1,
+      'V30 must block the unused foreground-service permission');
+    // Native V28 cannot gain new APIs through OTA. Ignore only the approved
+    // V30 manifest permission BLOCK; all other Expo ABI/config must match V28.
+    currentConfig.android.blockedPermissions = currentConfig.android.blockedPermissions.filter(p => p !== removedPermission);
     assertNativeRuntimeCompatible(currentConfig, resolveExpoConfigFromSource(git('show', pinnedV28 + ':app.config.js')));
     write('ota-evidence/baseline.json', {id:before.id, runtime, source:sha, launchAssetHash:before.launchAsset.hash});
     console.log('PASS: production baseline, exact main source, unchanged native runtime');
