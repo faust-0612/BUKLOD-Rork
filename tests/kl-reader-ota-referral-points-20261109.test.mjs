@@ -39,7 +39,7 @@ test('KL completion uses server 60 seconds and two spaced pings, cumulative read
   assert.match(klSocial,/p_action: 'ping'/);
   assert.match(klSocial,/p_parent_id: null/);
   assert.match(klSocial,/trimmed\.length < 12/);
-  assert.match(klAudio,/useIsFocused\(/);
+  assert.match(klAudio,/useFocusEffect\(useCallback/);
   assert.match(klAudio,/player\.pause\(\)/);
   assert.match(klCopy,/Mga reaksyon at repleksyon/);
   assert.match(klCopy,/bumasa/);
