@@ -381,7 +381,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
    title="ATTENDANCE SNAPSHOT"
    action="OPEN"
    onAction={()=>router.push({pathname:'/scope/attendance',params:scopeRouteParams(scope.scope_id,{scopeType:'CLUSTER'})} as any)}
-  cardColor={cardColor}><View style={s.stats}><Stat v={attendance.length} l="CHECKED IN"/><Stat v={scope.member_count??members.length} l="MEMBERS"/></View><Text style={s.body}>Check In Today is available only during an official live Cluster attendance event. Each submission needs Admin verification before Points are issued.</Text><BuklodHomeCheckinToday/></Card>}
+  cardColor={cardColor}><View style={s.stats}><Stat v={attendance.length} l="CHECKED IN"/><Stat v={scope.member_count??members.length} l="MEMBERS"/></View><Text style={s.body}>Check In Today is available only during an official live Cluster attendance event. Each submission needs Admin verification before Points are issued.</Text><BuklodHomeCheckinToday scopeId={scope.scope_id}/></Card>}
   {show('resources')&&openWidget==='resources'&&<Card icon="folder-multiple-outline" title="FILES & RESOURCES" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('resource'):undefined} cardColor={cardColor}>{filteredResources.length?filteredResources.map(x=><Pressable key={x.id} onPress={()=>{
    const url=x.asset_url||(/^https?:\/\//i.test(x.resource_url)?x.resource_url:null);
    if(url)void Linking.openURL(url);
