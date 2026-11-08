@@ -169,6 +169,7 @@ type Props = {
     | 'direct'
     | 'scope';
   containerId: string;
+  focusMessageId?: string | null;
   initialTitle?: string;
   initialSubtitle?: string;
   initialOtherUserId?: string;
@@ -613,6 +614,7 @@ function repairBuklodMessageText(
 function BuklodConnectThreadInner({
   mode,
   containerId,
+  focusMessageId,
   initialTitle,
   initialSubtitle,
   initialOtherUserId,
@@ -2554,6 +2556,32 @@ const [
     mode,
   ]);
 
+  // Notification-to-message focus survives paginated history and never
+  // guesses a different message. Existing thread permission/RLS stays intact.
+  const focusMessageAttemptsRef = useRef(0);
+  const focusedMessageRef = useRef<string|null>(null);
+  useEffect(() => {
+    focusMessageAttemptsRef.current=0;
+    focusedMessageRef.current=null;
+  },[effectiveContainerId,focusMessageId]);
+  useEffect(() => {
+    const id=String(focusMessageId??'').trim();
+    if(!id||!effectiveContainerId||!listAnchored)return;
+    const index=visibleMessages.findIndex(row=>String(row.id)===id);
+    if(index>=0){
+      if(focusedMessageRef.current===id)return;
+      focusedMessageRef.current=id;
+      const frame=requestAnimationFrame(()=>{
+        listRef.current?.scrollToIndex({index,animated:true,viewPosition:0.4});
+      });
+      return ()=>cancelAnimationFrame(frame);
+    }
+    if(hasOlder&&!loadingOlder&&focusMessageAttemptsRef.current<12){
+      focusMessageAttemptsRef.current++;
+      void loadOlder();
+    }
+  },[effectiveContainerId,focusMessageId,visibleMessages,hasOlder,loadingOlder,listAnchored,loadOlder]);
+
   const closeOptionMenu =
     () => {
       setOptionMenu(null);
@@ -4204,6 +4232,16 @@ const [
           item =>
             item.id
         }
+        onScrollToIndexFailed={info=>{
+          const len=Math.max(1,visibleMessages.length);
+          listRef.current?.scrollToOffset({
+            offset:Math.max(0,info.averageItemLength*Math.min(info.index,len-1)),
+            animated:false,
+          });
+          requestAnimationFrame(()=>listRef.current?.scrollToIndex?.({
+            index:Math.min(info.index,len-1),animated:true,viewPosition:0.4,
+          }));
+        }}
         contentContainerStyle={[
           styles.messages,
           {
@@ -4644,7 +4682,10 @@ const [
           void hasMine;
 
           return (
-            <View>
+            <View style={focusMessageId===item.id?{
+              backgroundColor:'rgba(20,139,93,0.11)',borderRadius:12,borderWidth:1,
+              borderColor:'#42B98A',
+            }:undefined}>
             {!!dayHeading && (
               <View style={styles.hiblaDayRow} accessibilityRole="header">
                 <View style={styles.hiblaDayRule} />
