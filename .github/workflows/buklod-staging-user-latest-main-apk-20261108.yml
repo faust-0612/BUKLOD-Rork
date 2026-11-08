@@ -72,7 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts
-          node --test tests/staging-user-current-main-apk-20261108.test.cjs tests/native-expo-config-compat.test.cjs
+          node --test tests/staging-user-current-main-apk-20261108.test.cjs tests/staging-release-identity-v30-20261108.test.cjs tests/native-expo-config-compat.test.cjs
           npx tsc --noEmit
           node scripts/game-kingdom-release-contract.mjs
           node --test tests/cluster-connect-notifications-points-20261108.test.mjs
