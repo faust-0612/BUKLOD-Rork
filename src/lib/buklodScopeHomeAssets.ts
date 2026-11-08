@@ -44,7 +44,7 @@ export function validateBuklodScopeHomeFile(asset:BuklodScopeHomeFile,kind:Buklo
   if(mime!==expected&&mime!=='application/octet-stream')
     throw Error('File extension and content type do not match.');
   if(asset.size>limit(kind))throw Error('File is too large for this section.');
-  if(!UUID.test(String(asset.uri).trim())&&!String(asset.uri).trim())throw Error('Select a valid local file.');
+  if(!String(asset.uri).trim())throw Error('Select a valid local file.');
   return {contentType:expected,extension,maxBytes:limit(kind)};
 }
 
