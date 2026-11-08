@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useRef,useState} from 'react';
+import React,{useMemo,useRef,useState} from 'react';
 import {PanResponder,Text,View} from 'react-native';
 
 type Props={start:number;length:number;total:number;onChange:(start:number,length:number)=>void};
@@ -28,7 +28,11 @@ export default function BuklodMusicClipTimeline({start,length,total,onChange}:Pr
       const right=((n.start+n.length)/n.total)*n.width;
       const mode:Drag['mode']=Math.abs(x-left)<21?'start':Math.abs(x-right)<21?'end':'move';
       drag.current={mode,start:n.start,length:n.length,total:n.total};
-      if(mode==='move'&&(x<left||x>right))apply((x/n.width)*n.total-n.length/2,n.length);
+      if(mode==='move'&&(x<left||x>right)){
+        const centered=clamp((x/n.width)*n.total-n.length/2,0,Math.max(0,n.total-n.length));
+        drag.current.start=centered;
+        apply(centered,n.length);
+      }
     },
     onPanResponderMove:(_,gesture)=>{
       const startAt=drag.current.start;
@@ -54,7 +58,7 @@ export default function BuklodMusicClipTimeline({start,length,total,onChange}:Pr
         flexDirection:'row',alignItems:'center',justifyContent:'space-around',paddingHorizontal:3}}>
       {HEIGHTS.map((height,i)=><View key={i} pointerEvents="none"
         style={{width:3,height,backgroundColor:i/HEIGHTS.length*100>=left&&i/HEIGHTS.length*100<=right?'#155F47':'#9CB7A9',borderRadius:3}}/>)}
-      <View pointerEvents="none" style={{position:'absolute',left:left+'%',width:Math.max(1,right-left)+'%',top:3,bottom:3,
+      <View pointerEvents="none" style={{position:'absolute',left:`${left}%` as const,width:`${Math.max(1,right-left)}%` as const,top:3,bottom:3,
         borderColor:'#155F47',borderWidth:2,borderRadius:9,backgroundColor:'rgba(34,157,104,0.12)',
         flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
         <View style={{width:5,height:34,borderRadius:4,backgroundColor:'#155F47',marginLeft:-2}}/>
