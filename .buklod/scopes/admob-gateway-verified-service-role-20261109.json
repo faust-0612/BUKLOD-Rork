@@ -1,0 +1,45 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix authenticated AdMob revenue sync 401 when Supabase-gateway-accepted legacy service_role JWT does not byte-match runtime SUPABASE_SERVICE_ROLE_KEY. Preserve strict JWT signature verification and server-only noncash behavior.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "2026-11-09 Asia/Manila: owner ran hidden PowerShell JWT claim inspection (role=service_role); authenticated requests to ACTIVE Supabase Edge Function v10 returned JSON 401 Authorized scheduler required. Supabase logs recorded repeated POST 401 for function; code matches GitHub main blob 3996a4e1f225b3799449a844ce7323680217c79b. Function verify_jwt=true, therefore Supabase gateway validated the bearer JWT before reaching function body. No official AdMob snapshot; provider PARTIAL and last_sync_at null. Existing v10 code compares entire bearer token to env key; mismatch causes rejection. Official Supabase auth docs state gateway verifies signature, expiry and same-project signing key.",
+  "allowedPaths": [
+    ".buklod/scopes/admob-gateway-verified-service-role-20261109.json",
+    "supabase/functions/buklod-admob-revenue-preview-sync/index.ts",
+    "supabase/functions/buklod-admob-revenue-preview-sync/gateway-service-role.mjs",
+    "tests/community-admob-preview-contract.test.cjs",
+    "tests/admob-gateway-service-role.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Preserve verify_jwt=true on production and code contract: gateway signature validation mandatory",
+    "Require exact service_role claim and unexpired/not-before timestamp; never trust ordinary bearer claims without verified gateway",
+    "Do not compare rotated legitimate service JWT bytes to serviceRole env; keep env key for private database RPC",
+    "Reject anon/authenticated/expired/malformed JWT roles; keep fail-closed for Google OAuth/network report failures",
+    "Preserve BUKLOD QMP/Finance calculations and no payouts; do not enable unverified scheduler",
+    "Run targeted Node tests and PR CI before exact-source production deployment"
+  ],
+  "chosenApproach": "Minimal server-only authentication gate: depend on deployed verify_jwt=true Supabase gateway cryptographic validation, then check role and token lifetime; leave private DB admin key in use. Add pure role predicate with Node behavior tests and retain previous AdMob Network Report guard.",
+  "selectionRationale": "Accepted same-project service-role bearer reached handler but bytewise equality against internal env credential failed; tying caller identity to unrelated current env literal makes rotated credentials cause false 401. Platform signature validation is enforced and authoritative.",
+  "alternativeApproaches": [
+    "Disable JWT verification and trust role in unsigned token: REJECTED, insecure",
+    "Reset or print server service-role secret: REJECTED, secret exposure and unnecessary credentials mutation",
+    "Continue repeating a verified valid JWT in dashboard: REJECTED, no change to root cause"
+  ],
+  "preserveBehaviors": [
+    "Existing official AdMob Network report with exact BUKLOD app ID/PHP and completeness guard",
+    "No QMP, cash payout, admin access, or finance changes",
+    "Service role key remains server-only and is used for admin RPC",
+    "Google OAuth secrets remain server-only",
+    "Other BUKLOD branches, staging, runtime, mobile app untouched"
+  ],
+  "riskAreas": [
+    "auth-service-role-gate",
+    "jwt-verification-deployment-config",
+    "official-revenue-integrity",
+    "production-external-auth"
+  ],
+  "regressionTests": [
+    "tests/community-admob-preview-contract.test.cjs",
+    "tests/admob-gateway-service-role.test.mjs"
+  ]
+}
