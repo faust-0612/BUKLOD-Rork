@@ -113,7 +113,6 @@ export default function BuklodPostMusicPicker({
                 style={{padding:9,borderRadius:9,backgroundColor:'#195d47',alignSelf:'flex-end'}}>
                 <Text style={{color:'#fff',fontWeight:'800'}}>Set</Text>
               </Pressable>
-            </View>
             </View>}
             <Text style={{fontSize:10,color:'#527366',marginTop:5}}>
               Preview plays the chosen section. Full audio is not copied into your post.
