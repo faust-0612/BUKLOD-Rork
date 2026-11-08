@@ -75,9 +75,17 @@ jobs:
           node --test tests/cluster-connect-notifications-points-20261108.test.mjs
       - name: Verify Expo credentials, preview environment and staging Firebase
         shell: bash
+        env:
+          STAGING_FIREBASE_JSON_B64: ${{ secrets.STAGING_FIREBASE_JSON_B64 }}
         run: |
           set -euo pipefail
           test -n "${EXPO_TOKEN:-}"
+          # Staging Firebase credentials are never kept in Git; restore them
+          # ephemerally from the previously established protected staging secret.
+          test -n "${STAGING_FIREBASE_JSON_B64:-}" || { echo 'STOP: STAGING_FIREBASE_JSON_B64 secret is unavailable'; exit 1; }
+          umask 077
+          printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
+          test -s google-services.staging.json || { echo 'STOP: invalid staging Firebase secret'; exit 1; }
           npx eas-cli@latest whoami --non-interactive >/dev/null
           npx eas-cli@latest env:pull --environment preview --path .env.staging-user --non-interactive
           test -s .env.staging-user
