@@ -169,3 +169,30 @@ export async function captureBuklodReferralCodeFromPath(value:unknown,source='DE
   await captureBuklodReferralCode(code,source);
   return code;
 }
+
+export type BuklodReferralReconciliationV1 = {
+  identity_ready: boolean;
+  referral_code: string;
+  share_url: string | null;
+  legacy_code: string | null;
+  invited_count: number;
+  qualified_count: number;
+  legacy_invited_count: number;
+  legacy_qualified_count: number;
+  legacy_unreconciled_count: number;
+  financial_invited_count: number;
+  financial_qualified_count: number;
+  historical_invitations_do_not_create_cash: true;
+};
+export async function loadMyBuklodReferralReconciliationV1(): Promise<BuklodReferralReconciliationV1> {
+  await ensureBuklodProfitFirstIdentity();
+  const { data, error } = await withBuklodTimeout<{ data:any; error:any }>(
+    (supabase as any).rpc('get_my_buklod_referral_reconciliation_v1'),
+    6000,
+    'BUKLOD referral reconciliation',
+  );
+  if (error || !data || data.identity_ready !== true) {
+    throw new Error(String(error?.message ?? 'Could not reconcile your referral totals.'));
+  }
+  return data as BuklodReferralReconciliationV1;
+}
