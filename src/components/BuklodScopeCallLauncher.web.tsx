@@ -91,14 +91,17 @@ export default function BuklodScopeCallLauncher({
         { _scope_id: scopeId }
       );
 
-      if (details.error) {
-        throw details.error;
+      // Older room details may omit scope_type. RLS limits the fallback
+      // and the member roster is rechecked before call.getOrCreate.
+      let raw=Array.isArray(details.data)?details.data[0]:details.data;
+      if(details.error||!raw?.scope_type){
+        const fallback=await supabase.from('buklod_scopes')
+          .select('scope_type').eq('id',scopeId).maybeSingle();
+        if(fallback.error||!fallback.data?.scope_type)
+          throw details.error??fallback.error??new Error('Scope details unavailable.');
+        raw=fallback.data;
       }
-
-      const raw = Array.isArray(details.data)
-        ? details.data[0]
-        : details.data;
-      const type = String(raw?.scope_type ?? '').toUpperCase();
+      const type=String(raw?.scope_type??'').toUpperCase();
       const canCall = CALLABLE_SCOPE_TYPES.has(type);
 
       setScopeType(type);
@@ -241,7 +244,14 @@ export default function BuklodScopeCallLauncher({
   }, [label, scopeId, scopeType, starting, title, videoClient]);
 
   if (!enabled) {
-    return null;
+    return <Pressable accessibilityRole="button" accessibilityLabel="Retry group call setup"
+      disabled={loading} onPress={()=>void load()}
+      style={{minHeight:44,borderWidth:1,borderColor:theme.border,borderRadius:12,
+        padding:10,alignItems:'center',justifyContent:'center'}}>
+      <Text style={{color:theme.textPrimary,fontSize:11,fontWeight:'800'}}>
+        {loading?'Checking call availability…':'Group call unavailable · Tap to retry'}
+      </Text>
+    </Pressable>;
   }
 
   if (compact) {
