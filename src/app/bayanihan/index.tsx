@@ -229,13 +229,7 @@ export default function BayanihanScreen() {
           <MaterialCommunityIcons name="book-open-page-variant-outline" size={17} color="#FFFFFF" />
           <Text style={styles.actionPrimaryText}>{t('economy.openGuide')}</Text>
         </Pressable>
-        <Pressable
-          onPress={() => router.push('/preferences/language' as any)}
-          style={styles.actionSecondary}
-        >
-          <MaterialCommunityIcons name="translate" size={17} color="#275D45" />
-          <Text style={styles.actionSecondaryText}>{t('economy.guideLanguage')}</Text>
-        </Pressable>
+
       </View>
 
       {loading && !summary ? (
