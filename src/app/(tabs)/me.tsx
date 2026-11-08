@@ -1462,6 +1462,13 @@ export default function MeScreen() {
           />
 
           <MenuRow
+             icon="translate"
+             title="App Language"
+             subtitle="Display language and device preference"
+             onPress={() => router.push('/preferences/language' as any)}
+           />
+
+           <MenuRow
             icon="volume-high"
             title="Sounds & Notifications"
             subtitle="Messages, calls, submissions and quiet hours"
