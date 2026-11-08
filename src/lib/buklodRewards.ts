@@ -415,6 +415,11 @@ export type ReferralSummary = {
   invited_count: number;
   qualified_count: number;
   was_referred: boolean;
+  legacy_code?: string;
+  legacy_invited_count?: number;
+  legacy_unreconciled_count?: number;
+  financial_invited_count?: number;
+  reconciled?: boolean;
 };
 
 export type ReferralSuggestItem = {
@@ -433,22 +438,27 @@ export type ReferralResolveResult = {
 };
 
 export async function loadReferralSummary(): Promise<ReferralSummary | null> {
-  const { data, error } = await (supabase as any).rpc(
-    'get_my_buklod_referral_summary_v1',
-  );
-
-  if (error || !data || typeof data !== 'object') {
-    return null;
+  // The canonical code is the SAME one used by Economy and the Life share link.
+  // Historical invitations remain visible; they cannot create cash earnings.
+  const { data, error } = await (supabase as any).rpc('get_my_buklod_referral_reconciliation_v1');
+  if (!error && data?.identity_ready === true && data.referral_code) {
+    const row = data as Record<string, unknown>;
+    return {
+      referral_code: String(row.referral_code),
+      invited_count: toNumber(row.invited_count),
+      qualified_count: toNumber(row.financial_qualified_count),
+      legacy_code: String(row.legacy_code ?? ''),
+      legacy_invited_count: toNumber(row.legacy_invited_count),
+      legacy_unreconciled_count: toNumber(row.legacy_unreconciled_count),
+      financial_invited_count: toNumber(row.financial_invited_count),
+      was_referred: false,
+      reconciled: true,
+    };
   }
-
-  const row = data as Record<string, unknown>;
-
-  return {
-    referral_code: String(row.referral_code ?? ''),
-    invited_count: toNumber(row.invited_count),
-    qualified_count: toNumber(row.qualified_count),
-    was_referred: Boolean(row.was_referred),
-  };
+  // Fail closed rather than silently offering an obsolete alias that the
+  // canonical registration flow may no longer accept.
+  if (error) throw new Error(String(error.message ?? 'Could not load canonical invite details.'));
+  return null;
 }
 
 export async function suggestReferralTargets(
