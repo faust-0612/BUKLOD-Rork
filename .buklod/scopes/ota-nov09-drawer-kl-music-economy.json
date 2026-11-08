@@ -1,0 +1,69 @@
+{
+  "contractVersion": 2,
+  "objective": "Consolidated BUKLOD OTA corrections for Drawer, Kabihasnang Ligaw, Wall song clips, language settings, referral reconciliation, and Points navigation",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main commit 981720eac31062af35c0a610b9723fc13c4a0ba0 and Expo main app config Android runtime 1.3.2; no claim that this OTA candidate is deployed or production tested",
+  "chosenApproach": "Isolated GitHub patch branch with targeted client fixes, additive/versioned DB reconciliation and authenticated reads, protected cash ledger, read-only migration contracts, and gated draft PR before OTA",
+  "selectionRationale": "Preserves Android runtime and existing main, protects legacy clients, does not backfill or issue financial payouts, and minimizes cross-feature regression.",
+  "alternativeApproaches": [
+    "Patch production main and immediately publish OTA: rejected because it bypasses independent QA and release freeze.",
+    "Add isolated independently staged fixes plus compatible server endpoint versions: selected for account isolation and rollback safety."
+  ],
+  "acceptanceChecks": [
+    "Drawer preserves all plain-text content and only builds checklists when opted in or explicit bullet markers",
+    "KL audio pauses on route exit; chapter complete only after 60s and two paced server pings; comments/reactions persist",
+    "Cumulative distinct KL reader totals and released chapter labels show accurately",
+    "Visible Wall music autoplays where platform allows, clips start at selected time and repeat 30 seconds, with editor preview",
+    "Language preferences live under Profile with only reviewed packs active",
+    "Canonical referral code agrees in Profile, Sharing, Economy; historical invites deduped without creating cash",
+    "Points remain visible across tab switches with short account-scoped cache and forced claim refresh",
+    "TypeScript, focused Node and Supabase SQL contracts pass before merge, with no OTA publish"
+  ],
+  "preserveBehaviors": [
+    "Main app Android runtimeVersion 1.3.2 and current production AAB remain unchanged",
+    "No old-client cutoff, Play submission, EAS build, OTA, or web publish",
+    "No payout eligibility or withdrawable cash changes; old referral and KL reader identities remain valid",
+    "Community video, media, captions, ads, audio focus, Drawer private account scope, and points award idempotency remain intact"
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "story"
+  ],
+  "regressionTests": [
+    "supabase/tests/kl_reader_referral_ota_reconciliation_20261109.sql",
+    "tests/kl-reader-ota-referral-points-20261109.test.mjs",
+    "tests/wall-media-navigation-polish-20261108.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/bayanihan/index.tsx",
+    "src/app/drawer/quick-note.tsx",
+    "src/app/preferences/language.tsx",
+    "src/components/BuklodMusicClipTimeline.tsx",
+    "src/components/BuklodPostMusicPicker.tsx",
+    "src/components/BuklodReferralInviteCard.tsx",
+    "src/components/kabihasnang-ligaw/KlChapterAudio.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlLiveDiscussion.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/points/BuklodEconomyDashboard.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/lib/buklodEconomyLedger.ts",
+    "src/lib/buklodLifeImpact.ts",
+    "src/lib/buklodPostCreatives.ts",
+    "src/lib/buklodReferralV2.ts",
+    "src/lib/buklodRewards.ts",
+    "src/lib/kabihasnang-ligaw/copy.ts",
+    "src/lib/kabihasnang-ligaw/readerSocial.ts",
+    "src/lib/kabihasnang-ligaw/rpc.ts",
+    "src/lib/smartDrawer/classify.ts",
+    "supabase/migrations/20261109040000_kl_reader_time_count_reconciliation.sql",
+    "supabase/migrations/20261109044500_buklod_referral_display_reconciliation_v1.sql",
+    "supabase/migrations/20261109051000_buklod_referral_code_and_status_consistency.sql",
+    "supabase/migrations/20261109053500_buklod_signup_dual_referral_code_resolver.sql",
+    "supabase/tests/kl_reader_referral_ota_reconciliation_20261109.sql",
+    "tests/kl-reader-ota-referral-points-20261109.test.mjs",
+    "tests/wall-media-navigation-polish-20261108.test.mjs"
+  ]
+}
