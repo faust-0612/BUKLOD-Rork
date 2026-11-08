@@ -10,7 +10,7 @@ test('comment reacts via visible emoji and long-press uses screen bounded modal'
  assert.match(bubble,/showAction=\{false\}/);
  assert.match(bubble,/visible=\{reactionPickerOpen\}/);
  assert.match(action,/showAction\?: boolean/);
- assert.match(bubble,/onReactionSummaryPress=\{onReactionSummaryPress\}/);
+ assert.match(bubble,/onSummaryPress=\{onReactionSummaryPress\}/);
 });
 test('scope messages remain complete but compact with preserved composer, calls and reader badges',()=>{
  const thread=read('src/components/BuklodConnectThread.tsx');
