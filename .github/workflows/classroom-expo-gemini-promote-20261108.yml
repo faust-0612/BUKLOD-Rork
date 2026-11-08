@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      EXPO_TOKEN: \${{ secrets.EXPO_TOKEN }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EXPO_NO_TELEMETRY: '1'
       BUKLOD_APP_TARGET: classroom
       APP_VARIANT: production
