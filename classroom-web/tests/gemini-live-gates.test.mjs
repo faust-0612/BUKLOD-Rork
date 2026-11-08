@@ -40,5 +40,5 @@ test('official academic actions use guarded backend and no mock successful saves
   assert.match(live,/recordLiveRecitationScore/);
   assert.match(live,/confirmRosterImportCommit/);
   assert.match(live,/No records were changed/);
-  assert.match(live,/function writeOnce\(/);
+  assert.match(live,/async function writeOnce\(/);
 });
