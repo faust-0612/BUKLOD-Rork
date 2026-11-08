@@ -60,7 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts
-          node --test tests/native-expo-config-compat.test.cjs tests/android-v29-runtime-compat-release-20261108.test.cjs tests/android-v30-runtime-compat-release-20261108.test.cjs tests/staging-release-identity-v30-20261108.test.cjs
+          node --test tests/native-expo-config-compat.test.cjs tests/staging-release-identity-v30-20261108.test.cjs tests/buklod-v31-production-release-identity-20261108.test.cjs
           npx tsc --noEmit
           node scripts/game-kingdom-release-contract.mjs
           node --test tests/admin-music-multiselect-motion-drawer-20261108.test.mjs tests/cluster-connect-notifications-points-20261108.test.mjs tests/wall-media-navigation-polish-20261108.test.mjs tests/production-ota-ads-regression.test.mjs
