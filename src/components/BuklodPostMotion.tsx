@@ -9,7 +9,7 @@ const AMBIENT=new Set<BuklodPostMotionPreset>([
   'rain','storm','snow','mist','sparkles','fireflies','petals','sunrays',
   'dust','bokeh','stars','autumn','underwater',
 ]);
-const PARTICLES=Array.from({length:20},(_,i)=>({
+const PARTICLES=Array.from({length:36},(_,i)=>({
   x:(i*37+7)%97,y:(i*29+11)%87,scale:0.7+((i*13)%9)/10,
   reverse:i%3===0,
 }));
@@ -34,7 +34,7 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
     if(!running)return;
     const weather=preset==='rain'||preset==='storm';
     const ambiance=AMBIENT.has(preset);
-    const config={duration:weather?2600:ambiance?7600:3800,
+    const config={duration:preset==='storm'?1650:weather?2600:ambiance?7600:3800,
       easing:ambiance?Easing.linear:Easing.inOut(Easing.ease),
       useNativeDriver:Platform.OS!=='web'};
     // Preserve the original gentle ping-pong motion; weather particles fall
@@ -61,7 +61,7 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
   const falling=weather||preset==='snow'||preset==='petals'||preset==='autumn';
   const rising=preset==='fireflies'||preset==='underwater';
   const mist=preset==='mist'||preset==='sunrays';
-  const count=preset==='storm'?20:weather?16:mist?4:12;
+  const count=preset==='storm'?36:weather?16:mist?4:12;
   const tint=weather?'#badde7':preset==='snow'?'#ffffff':
     preset==='fireflies'?'#f8dc70':preset==='petals'?'#ffb6cc':
     preset==='sunrays'?'#ffe8a2':preset==='dust'?'#f1d7a4':
@@ -80,8 +80,8 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
           importantForAccessibility="no-hide-descendants"
           style={{position:'absolute',left:0,right:0,top:0,bottom:0,overflow:'hidden'}}>
           {PARTICLES.slice(0,count).map((p,i)=>{
-            const h=mist?95:weather?28:falling?8:8;
-            const w=mist?75:weather?1.5:falling?6:8;
+            const h=mist?95:preset==='storm'?40:weather?28:falling?8:8;
+            const w=mist?75:preset==='storm'?2.2:weather?1.5:falling?6:8;
             const drift=progress.interpolate({inputRange:[0,1],
               outputRange:[p.reverse?-22:12,p.reverse?12:-22]});
             const vertical=progress.interpolate({inputRange:[0,1],
@@ -95,7 +95,7 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
                 width:w*p.scale,height:h*p.scale,
                 borderRadius:mist?50:weather?1:20,
                 backgroundColor:tint,
-                opacity:weather?(preset==='storm'?.55:.32):
+                opacity:weather?(preset==='storm'?.72:.32):
                   falling?.65:mist?.12:glow,
                 transform:[
                   {translateY:falling||rising?vertical:0},
