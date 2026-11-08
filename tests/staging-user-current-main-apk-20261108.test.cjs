@@ -102,5 +102,5 @@ test('canonical staging mark does not silently alter production Android icon or 
   assert.equal(prod.runtimeVersion,'1.3.2');
  }finally{old===undefined?delete process.env[key]:process.env[key]=old;}
  assert.ok(fs.statSync('assets/release/buklod-main-canonical.png').size>0);
- assert.match(flow,/HEAD:assets\\/release\\/buklod-main-canonical\\.png/);
+ assert.match(flow,/HEAD:assets\/release\/buklod-main-canonical\.png/);
 });
