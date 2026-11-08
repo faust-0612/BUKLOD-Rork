@@ -39,9 +39,12 @@ test('estimates have strict write authorization and cannot automatically pay or 
   assert.match(admin, /This does not finalize revenue, fund balances, or unlock withdrawals/);
 });
 
-test('official API path scopes to one BUKLOD app and PHP mediation earnings only', () => {
+test('official API path scopes to the BUKLOD app and verified PHP network earnings only', () => {
   assert.match(importer, /BUKLOD_ADMOB_APP_ID/);
-  assert.match(importer, /mediationReport:generate/);
+  assert.match(importer, /networkReport:generate/);
+  assert.doesNotMatch(importer, /mediationReport:generate/);
+  assert.match(importer, /OFFICIAL_ADMOB_NETWORK:/);
+  assert.match(importer, /report\.some\(\(item\) => item\?\.footer\)/);
   assert.match(importer, /dimension: 'APP', matchesAny/);
   assert.match(importer, /currencyCode: 'PHP'/);
   assert.match(importer, /totalMicros \+= BigInt\(micros\)/);
