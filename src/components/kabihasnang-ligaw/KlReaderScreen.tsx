@@ -411,7 +411,7 @@ export default function KlReaderScreen() {
     const episodeId = selectedDbId;
     const timer = setInterval(() => {
       void supabase.rpc('kl_reading_progress_v1', { p_episode_id: episodeId, p_action: 'ping' });
-    }, 30000);
+    }, 20000);
     return () => clearInterval(timer);
   }, [selectedDbId, serverState, appActive, online]);
 
@@ -805,7 +805,7 @@ export default function KlReaderScreen() {
             <View style={{ marginHorizontal: compact ? -16 : -24 }}>
               <KlCoverImage variant="hero" lowBandwidth={false} />
             </View>
-            <Text style={styles.kicker}>{klCopy.libraryKicker}</Text>
+            <Text style={styles.kicker}>{klCopy.libraryKicker} · MGA KABANATA</Text>
             <Text style={[styles.title, compact && styles.titleCompact]}>{KL_SEASON_ONE_TITLE}</Text>
             <Text style={styles.by}>{KL_AUTHOR}</Text>
             <Text style={styles.lede}>{klCopy.librarySubtitle}</Text>
