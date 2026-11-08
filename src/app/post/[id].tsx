@@ -68,6 +68,7 @@ export default function PostDetail(){
  const {id,focusCommentId}=useLocalSearchParams<{id:string;focusCommentId?:string}>();
  const {user}=useAuth();
  const detailScrollRef=useRef<ScrollView|null>(null);
+ const commentsStartYRef=useRef(0);
  const lastFocusedComment=useRef<string|null>(null);
  const {
   openReport,
@@ -526,6 +527,7 @@ export default function PostDetail(){
    COMMENTS ({comments.length})
   </SectionTitle>
 
+  <View onLayout={event=>{commentsStartYRef.current=event.nativeEvent.layout.y;}}>
   {comments.map(c => (
    <View
     key={c.id}
@@ -533,7 +535,7 @@ export default function PostDetail(){
      if(!focusCommentId||String(c.id)!==String(focusCommentId)||
         lastFocusedComment.current===String(focusCommentId))return;
      lastFocusedComment.current=String(focusCommentId);
-     const y=Math.max(0,event.nativeEvent.layout.y-100);
+     const y=Math.max(0,commentsStartYRef.current+event.nativeEvent.layout.y-100);
      requestAnimationFrame(()=>detailScrollRef.current?.scrollTo({y,animated:true}));
     }}
     style={[
@@ -614,6 +616,7 @@ export default function PostDetail(){
     </Card>
    </View>
   ))}
+  </View>
   {!comments.length&&<Card><Text style={shared.muted}>No comments yet.</Text></Card>}
   <Card>
    <Text style={s.commentName}>
