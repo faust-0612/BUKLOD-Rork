@@ -151,7 +151,7 @@ function createStyles(theme: BuklodThemeRoles) {
       minWidth: 0,
     },
     actionLink: {
-      fontSize: 12,
+      fontSize: 19,
       fontWeight: '800',
       color: theme.textMuted,
       paddingVertical: 2,
@@ -574,14 +574,14 @@ export function BuklodCommunityCommentBubble({
       <View style={styles.footer}>
         <View style={styles.footerActions}>
           <Pressable
-            onPress={() =>
-              onReact(
-                reactionOptions[0]?.key ?? 'with_you'
-              )
-            }
+            onPress={() => onReact(comment.my_reaction || reactionOptions[0]?.key || 'with_you')}
+            onLongPress={() => setReactionPickerOpen(true)}
+            delayLongPress={BUKLOD_LONG_PRESS_MS}
             hitSlop={BUKLOD_HIT_SLOP}
             accessibilityRole="button"
-            accessibilityLabel="Like comment"
+            accessibilityLabel="React to comment"
+            accessibilityHint="Long press to choose a different reaction"
+            style={{minWidth:38,minHeight:38,alignItems:'center',justifyContent:'center'}}
           >
             <Text
               style={[
@@ -591,7 +591,8 @@ export function BuklodCommunityCommentBubble({
                   styles.actionLinkActive,
               ]}
             >
-              Like
+              {reactionOptions.find(option => option.key === comment.my_reaction)?.emoji ??
+                reactionOptions[0]?.emoji ?? '\uD83D\uDC4D'}
             </Text>
           </Pressable>
 
@@ -614,6 +615,7 @@ export function BuklodCommunityCommentBubble({
         <View style={styles.footerReactions}>
           <BuklodReactionAction
             layout="comment"
+            showAction={false}
             options={reactionOptions}
             counts={comment.reaction_counts}
             mine={comment.my_reaction}

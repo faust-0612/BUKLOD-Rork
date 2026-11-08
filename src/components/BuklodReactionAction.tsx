@@ -42,6 +42,8 @@ type Props = {
   compact?: boolean;
   overlay?: boolean;
   showSummary?: boolean;
+  /** The comment footer already supplies its main reaction button. */
+  showAction?: boolean;
   summaryProminent?: boolean;
   disabled?: boolean;
   onSelect: (key: string) => void;
@@ -272,6 +274,7 @@ export function BuklodReactionAction({
   compact = false,
   overlay = false,
   showSummary = true,
+  showAction = true,
   summaryProminent = false,
   layout = 'default',
   disabled = false,
@@ -388,7 +391,7 @@ export function BuklodReactionAction({
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
-        <Animated.View style={{ transform: [{ scale }] }}>
+        {showAction && <Animated.View style={{ transform: [{ scale }] }}>
           <BuklodPressable
             accessibilityRole="button"
             accessibilityLabel={
@@ -414,7 +417,7 @@ export function BuklodReactionAction({
               {preview?.emoji ?? '\u2764\uFE0F'}
             </Text>
           </BuklodPressable>
-        </Animated.View>
+        </Animated.View>}
 
         {showSummary && summary.length > 0 && (
           <View style={styles.summary}>

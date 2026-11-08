@@ -21,27 +21,35 @@ const ROTATE_MS = 12_000;
 // navigation changes pause immediately; no hidden video streams.
 function AdVideo({uri, visible}: {uri: string; visible: boolean}) {
   const player = useVideoPlayer(uri, p => {p.loop = true; p.muted = false;});
+  const [playing,setPlaying] = useState(false);
+  const playWithSound = useCallback(() => {
+    try {
+      requestBuklodAudioFocus('sponsor-ad');
+      player.muted = false; player.play(); setPlaying(true);
+    } catch { setPlaying(false); }
+  },[player]);
   // DZAS, video calls and a tapped Wall song must win audio focus.
   useEffect(() => subscribeBuklodAudioFocus(owner => {
     if (owner !== 'sponsor-ad') {
       try {player.pause();} catch {}
+      setPlaying(false);
     }
   }), [player]);
   useEffect(() => {
-    if (!visible) { try {player.pause();} catch {} return; }
-    requestBuklodAudioFocus('sponsor-ad');
-    try {player.muted = false; player.play();} catch {
-      // Audible browser autoplay may require a user gesture.
-    }
+    if (!visible) { try {player.pause();} catch {} setPlaying(false); return; }
+    playWithSound();
     return () => {try {player.pause();} catch {}};
-  }, [player, visible]);
+  }, [player, visible, playWithSound]);
   return <View>
-    <VideoView player={player} style={s.media} contentFit="contain" nativeControls/>
-    <Pressable accessibilityRole="button" accessibilityLabel="Play sponsored video with sound"
-      onPress={() => {requestBuklodAudioFocus('sponsor-ad'); player.muted=false; player.play();}}
-      style={s.soundAction}>
-      <MaterialCommunityIcons name="volume-high" size={16} color="#fff"/>
-      <Text style={{color:'#fff',fontSize:11,fontWeight:'800'}}>Play with sound</Text>
+    <VideoView player={player} style={s.media} contentFit="contain" nativeControls={false}/>
+    <Pressable accessibilityRole="button" accessibilityLabel={playing ? 'Pause sponsored video' : 'Play sponsored video with sound'}
+      onPress={() => {
+        if(playing) {try {player.pause();} catch {} setPlaying(false);}
+        else playWithSound();
+      }}
+      style={s.videoBar}>
+      <MaterialCommunityIcons name={playing?'pause-circle-outline':'play-circle-outline'} size={19} color="#195d47"/>
+      <Text style={{color:'#195d47',fontSize:12,fontWeight:'800'}}>{playing?'Pause video':'Play with sound'}</Text>
     </Pressable>
   </View>;
 }
@@ -58,6 +66,7 @@ export default function BuklodCommunitySponsoredAd({
   const shellRef = useRef<View>(null);
   const [rows, setRows] = useState<Campaign[]>([]);
   const [index, setIndex] = useState(0);
+  const [captionExpanded,setCaptionExpanded] = useState(false);
   const [atMs, setAtMs] = useState(() => Date.now());
   const [videoVisible, setVideoVisible] = useState(false);
   const [screenFocused, setScreenFocused] = useState(false);
@@ -197,6 +206,7 @@ export default function BuklodCommunitySponsoredAd({
     return () => {alive = false; clearTimeout(timer);};
   }, [campaign?.id, placement]);
 
+  useEffect(() => {setCaptionExpanded(false);},[campaign?.id]);
   if (!campaign) return null;
   const safeUrl = /^https?:\/\//i.test(campaign.destination_url?.trim() ?? '')
     ? campaign.destination_url!.trim() : null;
@@ -229,7 +239,14 @@ export default function BuklodCommunitySponsoredAd({
     <View style={s.copy}>
       <Text style={s.advertiser}>{campaign.advertiser_name}</Text>
       <Text style={s.headline}>{campaign.headline}</Text>
-      {!!campaign.short_text && <Text style={s.body}>{campaign.short_text}</Text>}
+      {!!campaign.short_text && <>
+        <Text style={s.body} numberOfLines={captionExpanded ? undefined : 4}>{campaign.short_text}</Text>
+        {campaign.short_text.length > 110 && <Pressable accessibilityRole="button"
+          accessibilityLabel={captionExpanded?'Show less sponsorship caption':'See more sponsorship caption'}
+          onPress={()=>setCaptionExpanded(value=>!value)} style={s.moreButton}>
+          <Text style={s.moreText}>{captionExpanded?'See less':'See more'}</Text>
+        </Pressable>}
+      </>}
       <Text style={s.period}>Sponsored until {new Date(campaign.ends_at).toLocaleDateString()}</Text>
       {safeUrl && <Pressable accessibilityRole="link" onPress={() => void open()} style={s.cta}>
         <Text style={s.ctaText}>Learn more</Text>
@@ -238,4 +255,4 @@ export default function BuklodCommunitySponsoredAd({
     </View>
   </View>;
 }
-const s=StyleSheet.create({soundAction:{position:'absolute',right:9,bottom:9,backgroundColor:'rgba(0,0,0,.65)',paddingHorizontal:10,paddingVertical:7,borderRadius:12,flexDirection:'row',alignItems:'center',gap:5},shell:{marginHorizontal:12,marginVertical:10,borderRadius:18,overflow:'hidden',backgroundColor:'#fff',borderWidth:1,borderColor:'#DCE7E0'},top:{minHeight:38,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},badge:{flexDirection:'row',alignItems:'center',gap:5},badgeText:{fontSize:9,fontWeight:'900',letterSpacing:.8,color:'#25573F'},scope:{fontSize:10,fontWeight:'700',color:'#7A877F'},media:{width:'100%',height:220,backgroundColor:'#E7ECE9'},copy:{padding:14},advertiser:{fontSize:11,fontWeight:'800',color:'#557064'},headline:{marginTop:3,fontSize:18,lineHeight:23,fontWeight:'900',color:'#173C2C'},body:{marginTop:6,fontSize:12,lineHeight:18,color:'#617168'},period:{marginTop:7,fontSize:10,color:'#657C6C'},cta:{alignSelf:'flex-start',marginTop:12,minHeight:38,paddingHorizontal:14,borderRadius:12,flexDirection:'row',alignItems:'center',gap:7,backgroundColor:'#1E6B45'},ctaText:{fontSize:12,fontWeight:'900',color:'#fff'}});
+const s=StyleSheet.create({videoBar:{minHeight:38,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,backgroundColor:'#EDF6F1'},moreButton:{alignSelf:'flex-start',paddingVertical:7,paddingHorizontal:4},moreText:{fontSize:12,fontWeight:'900',color:'#145C41'},soundAction:{position:'absolute',right:9,bottom:9,backgroundColor:'rgba(0,0,0,.65)',paddingHorizontal:10,paddingVertical:7,borderRadius:12,flexDirection:'row',alignItems:'center',gap:5},shell:{marginHorizontal:12,marginVertical:10,borderRadius:18,overflow:'hidden',backgroundColor:'#fff',borderWidth:1,borderColor:'#DCE7E0'},top:{minHeight:38,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},badge:{flexDirection:'row',alignItems:'center',gap:5},badgeText:{fontSize:9,fontWeight:'900',letterSpacing:.8,color:'#25573F'},scope:{fontSize:10,fontWeight:'700',color:'#7A877F'},media:{width:'100%',height:220,backgroundColor:'#E7ECE9'},copy:{padding:14},advertiser:{fontSize:11,fontWeight:'800',color:'#557064'},headline:{marginTop:3,fontSize:18,lineHeight:23,fontWeight:'900',color:'#173C2C'},body:{marginTop:6,fontSize:12,lineHeight:18,color:'#617168'},period:{marginTop:7,fontSize:10,color:'#657C6C'},cta:{alignSelf:'flex-start',marginTop:12,minHeight:38,paddingHorizontal:14,borderRadius:12,flexDirection:'row',alignItems:'center',gap:7,backgroundColor:'#1E6B45'},ctaText:{fontSize:12,fontWeight:'900',color:'#fff'}});
