@@ -64,6 +64,7 @@
     "supabase/migrations/20261109053500_buklod_signup_dual_referral_code_resolver.sql",
     "supabase/tests/kl_reader_referral_ota_reconciliation_20261109.sql",
     "tests/kl-reader-ota-referral-points-20261109.test.mjs",
-    "tests/wall-media-navigation-polish-20261108.test.mjs"
+    "tests/wall-media-navigation-polish-20261108.test.mjs",
+    ".buklod/scopes/ota-nov09-drawer-kl-music-economy.json"
   ]
 }
