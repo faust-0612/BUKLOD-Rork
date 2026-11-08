@@ -8,6 +8,7 @@
 // ADMOB_OAUTH_REFRESH_TOKEN, BUKLOD_ADMOB_PUBLISHER_ID,
 // BUKLOD_ADMOB_APP_ID. No client-side AdMob revenue can fund an estimate.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { hasGatewayVerifiedServiceRoleClaims } from './gateway-service-role.mjs';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -40,8 +41,13 @@ Deno.serve(async (req: Request) => {
     const url = requireEnv('SUPABASE_URL');
     const serviceRole = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
     const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '').trim();
-    // A trusted scheduler must authenticate with the server service key.
-    if (!token || token !== serviceRole) return json({ error: 'Authorized scheduler required' }, 401);
+    // Security boundary: deployed with verify_jwt=true. Supabase's gateway
+    // validates the JWT signature, expiry, and project BEFORE this handler.
+    // A rotated service-role JWT need not byte-match SUPABASE_SERVICE_ROLE_KEY,
+    // which this function still uses privately for trusted database writes.
+    // Never use this claim check behind verify_jwt=false.
+    if (!token || !hasGatewayVerifiedServiceRoleClaims(token))
+      return json({ error: 'Authorized scheduler required' }, 401);
 
     const clientId = requireEnv('ADMOB_OAUTH_CLIENT_ID');
     const clientSecret = requireEnv('ADMOB_OAUTH_CLIENT_SECRET');
