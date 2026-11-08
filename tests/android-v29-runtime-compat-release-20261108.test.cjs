@@ -8,8 +8,9 @@ const { resolveExpoConfigFromSource, assertNativeRuntimeCompatible } =
 
 const projectId = '23dad7d0-389a-406e-8dec-08965dab85d8';
 const pinnedV28 = '2f26645e50e8e079ebf09f3999aacfc506ae7651';
+const builtV29 = 'bd0f0155ad3fa6a7481e60d29ef9091de8b527b1';
 
-function configFor(target, variant) {
+function configFor(target, variant, historical = false) {
   const previous = {
     BUKLOD_APP_TARGET: process.env.BUKLOD_APP_TARGET,
     APP_VARIANT: process.env.APP_VARIANT,
@@ -19,6 +20,10 @@ function configFor(target, variant) {
     process.env.BUKLOD_APP_TARGET = target;
     process.env.APP_VARIANT = variant;
     process.env.EXPO_PUBLIC_APP_ENV = variant;
+    if (historical) {
+      const source = execFileSync('git', ['show', builtV29 + ':app.config.js'], { encoding: 'utf8' });
+      return resolveExpoConfigFromSource(source, process.env);
+    }
     return require('../app.config.js')({ config: {} });
   } finally {
     for (const [name, value] of Object.entries(previous)) {
@@ -29,7 +34,7 @@ function configFor(target, variant) {
 }
 
 test('BUKLOD Main V29 is production 1.3.5 (29), shares only V28 runtime 1.3.2', () => {
-  const cfg = configFor('main', 'production');
+  const cfg = configFor('main', 'production', true);
   assert.equal(cfg.name, 'BUKLOD');
   assert.equal(cfg.android.package, 'org.mzbministry.buklod');
   assert.equal(cfg.version, '1.3.5');
@@ -47,10 +52,10 @@ test('V29 native contract is identical to installed V28 except app display versi
     APP_VARIANT: 'production',
     EXPO_PUBLIC_APP_ENV: 'production',
   });
-  const actual = configFor('main', 'production');
+  const actual = configFor('main', 'production', true);
   assertNativeRuntimeCompatible(actual, pinned);
   const changed = execFileSync('git', [
-    'diff', '--name-only', pinnedV28, 'HEAD', '--',
+    'diff', '--name-only', pinnedV28, builtV29, '--',
     'android', 'plugins', 'package-lock.json', 'package.json',
   ], { encoding: 'utf8' });
   assert.equal(changed.trim(), '', 'V29 must not silently change native dependencies or plugins');
