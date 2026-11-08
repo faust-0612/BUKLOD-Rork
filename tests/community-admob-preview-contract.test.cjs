@@ -46,9 +46,13 @@ test('official API path scopes to the BUKLOD app and verified PHP network earnin
   assert.match(importer, /OFFICIAL_ADMOB_NETWORK:/);
   assert.match(importer, /report\.some\(\(item\) => item\?\.footer\)/);
   assert.match(importer, /dimension: 'APP', matchesAny/);
+  assert.match(importer, /matchesAny: \{ values: \[appId\] \}/);
+  assert.doesNotMatch(importer, /values: \[\{ value: appId \}\]/);
   assert.match(importer, /currencyCode: 'PHP'/);
   assert.match(importer, /totalMicros \+= BigInt\(micros\)/);
-  assert.match(importer, /if \(!token \|\| token !== serviceRole\)/);
+  assert.match(importer, /hasGatewayVerifiedServiceRoleClaims\(token\)/);
+  assert.match(importer, /verify_jwt=true/);
+  assert.doesNotMatch(importer, /token !== serviceRole/);
   assert.match(schedule, /BUKLOD_ADMOB_SYNC_ENABLED == 'true'/);
 });
 
