@@ -1,6 +1,6 @@
 -- Read-only DB contract: no user data is modified and no monetary entitlement is inferred.
 do $$
-declare v progress record; v_readers record; v_ref record; v_resolver record;
+declare v record; v_readers record; v_ref record; v_resolver record;
 begin
   select p.oid,p.prosecdef,pg_get_functiondef(p.oid) as def into v
   from pg_proc p join pg_namespace n on n.oid=p.pronamespace
