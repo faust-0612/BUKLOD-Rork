@@ -27,14 +27,14 @@ export default function BuklodPostMusicPicker({
   useEffect(() => {
     if (visible) {
       setClipStartText(String(clipStartSeconds));
-      setClipDurationText(String(clipDurationSeconds));
+      setClipDurationText('30');
     }
   }, [visible]);
   const readClip=():[number,number]=>{
     const start=Number(clipStartText),duration=Number(clipDurationText);
     return [
       Number.isFinite(start)?Math.max(0,Math.min(21600,Math.round(start))):0,
-      Number.isFinite(duration)?Math.max(5,Math.min(60,Math.round(duration))):30,
+      30,
     ];
   };
   const commitClip=():[number,number]=>{
@@ -71,7 +71,7 @@ export default function BuklodPostMusicPicker({
             </Pressable>
           </View>
           <Text style={{color:'#61756d',fontSize:12,marginBottom:9}}>
-            Select licensed BUKLOD music and choose which 5–60 second section plays with the post.
+            Choose an approved song and select one 30-second segment. It loops while your post is visible.
           </Text>
           <TextInput value={search} onChangeText={setSearch} placeholder="Search song title"
             accessibilityLabel="Search music library" autoCapitalize="none"
@@ -79,17 +79,11 @@ export default function BuklodPostMusicPicker({
               paddingHorizontal:12,marginBottom:10,color:'#183c31'}}/>
           <View style={{padding:10,borderWidth:1,borderColor:'#CEE4D7',borderRadius:12,backgroundColor:'#F0FAF4',marginBottom:9}}>
             <Text style={{fontSize:12,fontWeight:'900',color:'#195d47',marginBottom:6}}>Song segment for this post</Text>
-            <Text style={{fontSize:11,color:'#527366',marginBottom:8}}>Drag the green window to choose the part of the song. Move either edge to change its length (5–60 seconds).</Text>
-            <BuklodMusicClipTimeline start={Number(clipStartText)||0} length={Number(clipDurationText)||30}
+            <Text style={{fontSize:11,color:'#527366',marginBottom:8}}>Drag the green window to choose where your 30-second loop starts. Preview before using.</Text>
+            <BuklodMusicClipTimeline start={Number(clipStartText)||0} length={30} fixedLength={30}
               total={previewDurationSeconds&&previewDurationSeconds>0?previewDurationSeconds:Math.max(120,(Number(clipStartText)||0)+90)}
-              onChange={(start,duration)=>{setClipStartText(String(start));setClipDurationText(String(duration));onClipChange(start,duration);}}/>
+              onChange={(start,duration)=>{setClipStartText(String(start));setClipDurationText('30');onClipChange(start,30);}}/>
             <View style={{flexDirection:'row',alignItems:'center',gap:8,marginTop:8,marginBottom:6}}>
-              <Pressable accessibilityRole="button" accessibilityLabel="Shorten music clip by five seconds"
-                onPress={()=>{const [start,duration]=readClip();const n=Math.max(5,duration-5);setClipDurationText(String(n));onClipChange(start,n);}}
-                style={{backgroundColor:'#DDEFE5',padding:8,borderRadius:8}}><Text style={{color:'#145C41',fontWeight:'900'}}>−5s</Text></Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel="Lengthen music clip by five seconds"
-                onPress={()=>{const [start,duration]=readClip();const n=Math.min(60,duration+5);setClipDurationText(String(n));onClipChange(start,n);}}
-                style={{backgroundColor:'#DDEFE5',padding:8,borderRadius:8}}><Text style={{color:'#145C41',fontWeight:'900'}}>+5s</Text></Pressable>
               <Pressable accessibilityRole="button" onPress={()=>setPreciseTimingOpen(v=>!v)} style={{marginLeft:'auto',padding:8}}>
                 <Text style={{color:'#145C41',fontWeight:'800'}}>{preciseTimingOpen?'Hide exact timing':'Exact seconds'}</Text></Pressable>
             </View>
@@ -101,13 +95,6 @@ export default function BuklodPostMusicPicker({
                   keyboardType="number-pad" selectTextOnFocus
                   style={{borderColor:'#B6D4C4',borderWidth:1,borderRadius:8,padding:8,color:'#173c2d'}}/>
               </View>
-              <View style={{flex:1}}>
-                <Text style={{fontSize:11,color:'#527366'}}>Length (5–60 sec)</Text>
-                <TextInput accessibilityLabel="Song clip duration in seconds" value={clipDurationText}
-                  onChangeText={v=>setClipDurationText(v.replace(/[^\d]/g,''))}
-                  keyboardType="number-pad" selectTextOnFocus
-                  style={{borderColor:'#B6D4C4',borderWidth:1,borderRadius:8,padding:8,color:'#173c2d'}}/>
-              </View>
               <Pressable accessibilityRole="button" accessibilityLabel="Apply music segment"
                 onPress={()=>{commitClip();}}
                 style={{padding:9,borderRadius:9,backgroundColor:'#195d47',alignSelf:'flex-end'}}>
@@ -115,9 +102,14 @@ export default function BuklodPostMusicPicker({
               </Pressable>
             </View>}
             <Text style={{fontSize:10,color:'#527366',marginTop:5}}>
-              Preview plays the chosen section. Full audio is not copied into your post.
+              Preview the 30-second loop. The original full-length song is not copied into your post.
             </Text>
           </View>
+          {!!selectedId && tracks.some(item=>item.id===selectedId) && <Pressable accessibilityRole="button" accessibilityLabel="Preview selected 30 second loop"
+            onPress={()=>{const item=tracks.find(track=>track.id===selectedId);if(item){const [start]=commitClip();onPreview(item,start,30);}}}
+            style={{backgroundColor:'#dcefe5',borderRadius:10,padding:10,alignItems:'center',marginBottom:8}}>
+            <Text style={{fontWeight:'800',color:'#195d47'}}>▶ Preview selected 30s loop</Text>
+          </Pressable>}
           {loading && <ActivityIndicator color="#195d47"/>}
           {!!error && <Text style={{color:'#b43a2b',marginBottom:8}}>{error}</Text>}
           <FlatList data={tracks} keyExtractor={item=>item.id}
@@ -138,7 +130,7 @@ export default function BuklodPostMusicPicker({
                   <Text numberOfLines={1} style={{color:'#678075',fontSize:11}}>{item.artist||'BUKLOD Music'}</Text>
                 </View>
                 <Pressable accessibilityRole="button" accessibilityLabel={'Use '+item.title}
-                  onPress={()=>{const [start,duration]=commitClip();onSelect(item,start,duration);onClose();}}
+                  onPress={()=>{const [start,duration]=commitClip();onSelect(item,start,30);onClose();}}
                   style={{paddingVertical:9,paddingHorizontal:12,borderRadius:12,
                     backgroundColor:selectedId===item.id?'#dcebe4':'#1c6049'}}>
                   <Text style={{color:selectedId===item.id?'#1c6049':'#fff',fontWeight:'800'}}>
