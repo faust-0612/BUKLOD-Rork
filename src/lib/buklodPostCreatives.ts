@@ -103,9 +103,12 @@ export async function resolveBuklodPostMusicUrl(track: BuklodPostMusicTrack): Pr
   const original = String(track.audio_path ?? '').trim();
   if (!original) throw new Error('Music file unavailable.');
   if (/^https:\/\//i.test(original)) return original;
-  const cached = musicUrlCache.get(original);
+  const sessionResult = await supabase.auth.getSession();
+  const accountScope = sessionResult.data.session?.user?.id ?? 'anonymous';
+  const cacheKey = accountScope + ':' + original;
+  const cached = musicUrlCache.get(cacheKey);
   if (cached && cached.until > Date.now()) return cached.url;
-  if (cached) musicUrlCache.delete(original);
+  if (cached) musicUrlCache.delete(cacheKey);
   if (/^http:\/\//i.test(original)) throw new Error('Insecure music URL blocked.');
   const path = original.replace(/^\/+/, '');
   const bare = path.replace(/^buklod-music-library\//i, '');
@@ -116,7 +119,7 @@ export async function resolveBuklodPostMusicUrl(track: BuklodPostMusicTrack): Pr
     if (!error && data?.signedUrl) {
       const url = String(data.signedUrl);
       if (musicUrlCache.size >= 80) musicUrlCache.clear();
-      musicUrlCache.set(original, { url, until: Date.now() + 10 * 60_000 });
+      musicUrlCache.set(cacheKey, { url, until: Date.now() + 10 * 60_000 });
       return url;
     }
     message = String(error?.message ?? message);
