@@ -89,7 +89,7 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
     const result = await addKlComment(episodeId, text);
     setBusy(false);
     if (!result.ok || !result.comment) {
-      setNotice(klCopy.commentFailed);
+      setNotice(result.error && result.error !== 'server' ? result.error : klCopy.commentFailed);
       return;
     }
     setDraft('');
@@ -97,7 +97,7 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
   };
 
   return (
-    <View style={styles.wrap} accessibilityLabel="Live reading discussion">
+    <View style={styles.wrap} accessibilityLabel="Reading reactions and reflections">
       <View style={styles.card}>
         <Text style={styles.title}>{klCopy.liveReaders}</Text>
         {loading ? (
@@ -137,9 +137,9 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={klCopy.commentSend}
-          disabled={busy || !draft.trim()}
+          disabled={busy || draft.trim().length < 12}
           onPress={() => void send()}
-          style={[styles.send, (busy || !draft.trim()) && styles.sendOff]}
+          style={[styles.send, (busy || draft.trim().length < 12) && styles.sendOff]}
         >
           <Text style={styles.sendText}>{klCopy.commentSend}</Text>
         </Pressable>
