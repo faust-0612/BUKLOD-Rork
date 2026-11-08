@@ -22,16 +22,14 @@ export default function BuklodPostMusicPicker({
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState('');
   const [clipStartText,setClipStartText]=useState(String(clipStartSeconds));
-  const [clipDurationText,setClipDurationText]=useState(String(clipDurationSeconds));
   const [preciseTimingOpen,setPreciseTimingOpen]=useState(false);
   useEffect(() => {
     if (visible) {
       setClipStartText(String(clipStartSeconds));
-      setClipDurationText('30');
     }
   }, [visible]);
   const readClip=():[number,number]=>{
-    const start=Number(clipStartText),duration=Number(clipDurationText);
+    const start=Number(clipStartText);
     return [
       Number.isFinite(start)?Math.max(0,Math.min(21600,Math.round(start))):0,
       30,
@@ -39,7 +37,7 @@ export default function BuklodPostMusicPicker({
   };
   const commitClip=():[number,number]=>{
     const [start,duration]=readClip();
-    setClipStartText(String(start));setClipDurationText(String(duration));
+    setClipStartText(String(start));
     onClipChange(start,duration);
     return [start,duration];
   };
@@ -82,7 +80,7 @@ export default function BuklodPostMusicPicker({
             <Text style={{fontSize:11,color:'#527366',marginBottom:8}}>Drag the green window to choose where your 30-second loop starts. Preview before using.</Text>
             <BuklodMusicClipTimeline start={Number(clipStartText)||0} length={30} fixedLength={30}
               total={previewDurationSeconds&&previewDurationSeconds>0?previewDurationSeconds:Math.max(120,(Number(clipStartText)||0)+90)}
-              onChange={(start,duration)=>{setClipStartText(String(start));setClipDurationText('30');onClipChange(start,30);}}/>
+              onChange={(start)=>{setClipStartText(String(start));onClipChange(start,30);}}/>
             <View style={{flexDirection:'row',alignItems:'center',gap:8,marginTop:8,marginBottom:6}}>
               <Pressable accessibilityRole="button" onPress={()=>setPreciseTimingOpen(v=>!v)} style={{marginLeft:'auto',padding:8}}>
                 <Text style={{color:'#145C41',fontWeight:'800'}}>{preciseTimingOpen?'Hide exact timing':'Exact seconds'}</Text></Pressable>
@@ -130,7 +128,7 @@ export default function BuklodPostMusicPicker({
                   <Text numberOfLines={1} style={{color:'#678075',fontSize:11}}>{item.artist||'BUKLOD Music'}</Text>
                 </View>
                 <Pressable accessibilityRole="button" accessibilityLabel={'Use '+item.title}
-                  onPress={()=>{const [start,duration]=commitClip();onSelect(item,start,30);onClose();}}
+                  onPress={()=>{const [start]=commitClip();onSelect(item,start,30);onClose();}}
                   style={{paddingVertical:9,paddingHorizontal:12,borderRadius:12,
                     backgroundColor:selectedId===item.id?'#dcebe4':'#1c6049'}}>
                   <Text style={{color:selectedId===item.id?'#1c6049':'#fff',fontWeight:'800'}}>
