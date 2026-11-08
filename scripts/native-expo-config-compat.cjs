@@ -32,4 +32,24 @@ function assertNativeExpoConfigCompatible(current, pinned) {
   );
 }
 
-module.exports = { resolveExpoConfigFromSource, nativeExpoConfig, assertNativeExpoConfigCompatible };
+// Android versionName and versionCode are store metadata. Unlike plugins,
+// permissions, SDK/native dependencies and update configuration, these values
+// may change across V28/V29 while both still use Expo runtime 1.3.2.
+function nativeRuntimeConfig(config) {
+  const native = nativeExpoConfig(config);
+  delete native.version;
+  if (native.android) delete native.android.versionCode;
+  return native;
+}
+function assertNativeRuntimeCompatible(current, pinned) {
+  assert.deepStrictEqual(
+    nativeRuntimeConfig(current),
+    nativeRuntimeConfig(pinned),
+    'Native ABI/config changed since pinned V28 baseline; bump runtime and build before OTA',
+  );
+}
+
+module.exports = {
+  resolveExpoConfigFromSource, nativeExpoConfig, nativeRuntimeConfig,
+  assertNativeExpoConfigCompatible, assertNativeRuntimeCompatible,
+};

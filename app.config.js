@@ -44,7 +44,7 @@ module.exports = ({ config }) => {
 
     name: appName,
     slug: isClassroom ? 'buklod-classroom' : 'buklod',
-    version: '1.3.4',
+    version: isClassroom || isStaging ? '1.3.4' : '1.3.5',
 
     orientation: 'default',
     scheme,
@@ -79,7 +79,7 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : 28,
+      versionCode: isStaging ? undefined : (isClassroom ? 28 : 29),
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
@@ -389,8 +389,9 @@ module.exports = ({ config }) => {
         : undefined,
 
 
-    // Main BUKLOD 1.3.4 is native v28. Classroom stays on its own runtime.
-    // Installed V28 APK reports expo-updates runtime 1.3.2. Production OTAs must use that runtime.
+    // Main BUKLOD 1.3.5 (Play versionCode 29) shares the verified V28 native ABI.
+    // Keep Expo runtime 1.3.2 for BOTH V28 and V29: changing app version/build code alone
+    // does not introduce new native modules. Classroom has its independent runtime.
     runtimeVersion: isClassroom ? '1.3.0' : '1.3.2',
   };
 };

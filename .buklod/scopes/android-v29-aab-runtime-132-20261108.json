@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "objective": "Build exactly one BUKLOD Main Android V29 Google Play AAB from latest verified production source, preserve V28-compatible Expo runtime 1.3.2, without OTA publish, APK rebuild, or Play submission.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: protected main f010513fdfcf0d21da65d1f591b13b57b5ec9a51; installed V28 pinned native source 2f26645e50e8e079ebf09f3999aacfc506ae7651; production Android OTA verified 01a1b9d2-1ac4-7db9-a0ad-d73931873da3 runtime 1.3.2 on 2026-11-08; production Expo web deployed same source. Existing main version 1.3.4 code 28, package org.mzbministry.buklod, EAS project 23dad7d0-389a-406e-8dec-08965dab85d8. Native dependency/package/plugin paths unchanged since V28 as gated by latest successful OTA.",
+  "chosenApproach": "Main-only app version 1.3.5/versionCode 29 with explicit runtime 1.3.2. Add strict ABI-equivalence gate that ignores ONLY version/versionCode while rejecting any native config or native dependency drift. Create isolated GitHub Action on exact merged main commit to invoke EAS production AAB once and verify its signed build metadata and URL. No Expo OTA or web deploy.",
+  "selectionRationale": "VersionCode must rise for Google Play; versionName is human-facing and may become 1.3.5 independently of update runtime. Preserving compatible runtime allows V28 and V29 to consume the same verified production JS OTA; a false jump to runtime 1.3.5 would strand the existing OTA channel unless a new runtime OTA is published.",
+  "alternativeApproaches": [
+    "Change runtime to 1.3.5 when only store metadata changed—rejected because V28-compatible native ABI remains unchanged and would split OTA audience needlessly.",
+    "Rebuild from legacy frozen native workflow's V21 source—rejected because it would lose all consolidated changes and carry stale branding.",
+    "Build V29 on current production source with isolated one-time release pipeline, exact-main guard and AAB verification—selected."
+  ],
+  "acceptanceChecks": [
+    "Main versionName 1.3.5, versionCode 29, Expo runtime exactly 1.3.2, package org.mzbministry.buklod, correct EAS project.",
+    "Classroom and staging app versions and native identities remain unchanged.",
+    "Only versionName and Android versionCode change within pinned V28 native configuration; native dependencies unchanged and tests reject any other ABI drift.",
+    "Existing production Android OTA native runtime gate still permits future V28/V29 OTA for shared 1.3.2.",
+    "GitHub EAS production AAB cloud build succeeds with signed artifact matching exact main SHA and Play-ready .aab URL.",
+    "No APK build, OTA, web deployment, Google Play upload or production database change."
+  ],
+  "preserveBehaviors": [
+    "Current production Android OTA and web unchanged.",
+    "Installed Android V28 continues to accept runtime 1.3.2 updates.",
+    "Classroom and staging are separate and unchanged.",
+    "All social, ads, Points, security, storage and backend features maintained from current production main."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/native-expo-config-compat.test.cjs",
+    "tests/android-v29-runtime-compat-release-20261108.test.cjs"
+  ],
+  "allowedPaths": [
+    "app.config.js",
+    "scripts/native-expo-config-compat.cjs",
+    "scripts/android-ota-rc.cjs",
+    "tests/native-expo-config-compat.test.cjs",
+    "tests/android-v29-runtime-compat-release-20261108.test.cjs",
+    ".github/workflows/buklod-v29-aab-production-20261108.yml",
+    ".buklod/scopes/android-v29-aab-runtime-132-20261108.json"
+  ]
+}

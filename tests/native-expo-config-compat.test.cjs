@@ -7,6 +7,7 @@ const { execFileSync } = require('node:child_process');
 const {
   resolveExpoConfigFromSource,
   assertNativeExpoConfigCompatible,
+  assertNativeRuntimeCompatible,
 } = require('../scripts/native-expo-config-compat.cjs');
 
 const pinnedV28 = '2f26645e50e8e079ebf09f3999aacfc506ae7651';
@@ -58,19 +59,39 @@ test('pinned-source evaluator uses the same controlled Expo environment', () => 
   assert.throws(() => assertNativeExpoConfigCompatible(updated, pinned), /Native Expo configuration changed/);
 });
 
-test('actual checked-in main app config matches pinned V28 native config', () => {
+test('only app versionName and Android versionCode can differ without new runtime', () => {
+  const v29 = copy(fixture);
+  v29.version = '1.3.5';
+  v29.android.versionCode = 29;
+  assert.doesNotThrow(() => assertNativeRuntimeCompatible(v29, fixture));
+  assert.throws(() => assertNativeExpoConfigCompatible(v29, fixture), /Native Expo configuration changed/);
+  for (const mutate of [
+    item => { item.runtimeVersion = '1.3.5'; },
+    item => { item.android.permissions.push('android.permission.RECORD_AUDIO'); },
+    item => { item.plugins.push('expo-native-special'); },
+    item => { item.updates.url = 'https://u.expo.dev/changed'; },
+    item => { item.android.package = 'org.mzbministry.buklod.other'; },
+  ]) {
+    const changed = copy(v29);
+    mutate(changed);
+    assert.throws(() => assertNativeRuntimeCompatible(changed, fixture),
+      /Native ABI\/config changed/);
+  }
+});
+
+test('actual production app config remains V28 runtime-compatible across V29 store metadata', () => {
   // Release and PR workflow both check out full Git history. Missing baseline
   // is a hard failure: never skip the release identity contract.
   const source = execFileSync('git', ['show', pinnedV28 + ':app.config.js'], { encoding: 'utf8' });
   const actual = require('../app.config.js')({ config: {} });
-  assertNativeExpoConfigCompatible(actual, resolveExpoConfigFromSource(source));
+  assertNativeRuntimeCompatible(actual, resolveExpoConfigFromSource(source));
 });
 
 test('release guard still verifies native paths, source identity and frozen RC', () => {
   const release = fs.readFileSync('scripts/android-ota-rc.cjs', 'utf8');
   const workflow = fs.readFileSync('.github/workflows/production_android_ota.yml', 'utf8');
   assert.match(release, /2f26645e50e8e079ebf09f3999aacfc506ae7651/);
-  assert.match(release, /assertNativeExpoConfigCompatible\(/);
+  assert.match(release, /assertNativeRuntimeCompatible\(/);
   assert.match(release, /package-lock\.json/);
   assert.match(release, /'android', 'plugins'/);
   assert.match(workflow, /node --test tests\/native-expo-config-compat\.test\.cjs/);
