@@ -44,7 +44,7 @@ module.exports = ({ config }) => {
 
     name: appName,
     slug: isClassroom ? 'buklod-classroom' : 'buklod',
-    version: isClassroom || isStaging ? '1.3.4' : '1.3.5',
+    version: isClassroom || isStaging ? '1.3.4' : '1.3.6',
 
     orientation: 'default',
     scheme,
@@ -79,7 +79,7 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : (isClassroom ? 28 : 29),
+      versionCode: isStaging ? undefined : (isClassroom ? 28 : 30),
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
