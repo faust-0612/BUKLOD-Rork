@@ -1,0 +1,153 @@
+# Exactly one user-authorized BUKLOD staging-user APK from the verified live production source.
+# Never re-run a stale staging branch, publish an OTA, deploy web, or submit to Google Play.
+name: BUKLOD Staging User Latest Main APK 2026-11-08
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/buklod-staging-user-latest-main-apk-20261108.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-staging-user-latest-main-apk-20261108
+  cancel-in-progress: false
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  APP_VARIANT: staging
+  EXPO_PUBLIC_APP_ENV: staging
+  BUKLOD_APP_TARGET: main
+  EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+jobs:
+  build-staging-user:
+    if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'BUKLOD_STAGING_USER_CURRENT_MAIN_APK_20261108')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exactly authorized current main source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify production-main ancestry and immutable staging-user identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor d67e805879e3398cbff8a4383c6c7e05039ed9f7 "$GITHUB_SHA"
+          git diff --exit-code
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const eas=JSON.parse(fs.readFileSync('eas.json','utf8'));
+          const cfg=require('./app.config.js')({config:{}});
+          const target=eas.build['staging-user'];
+          assert.equal(eas.cli.appVersionSource,'local');
+          assert.equal(target.channel,'staging-user');
+          assert.equal(target.environment,'preview');
+          assert.equal(target.android.buildType,'apk');
+          assert.equal(target.distribution,'internal');
+          assert.equal(target.env.APP_VARIANT,'staging');
+          assert.equal(target.env.EXPO_PUBLIC_APP_ENV,'staging');
+          assert.equal(target.env.EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME,'firebase-video-staging');
+          assert.equal(cfg.name,'BUKLOD Staging');
+          assert.equal(cfg.version,'1.3.4');
+          assert.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(cfg.runtimeVersion,'1.3.2');
+          assert.equal(cfg.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.equal(cfg.updates.url,'https://u.expo.dev/23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.match(cfg.android.googleServicesFile,/google-services\.staging\.json/);
+          NODE
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies and run scoped verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node --test tests/staging-user-current-main-apk-20261108.test.cjs tests/native-expo-config-compat.test.cjs
+          npx tsc --noEmit
+          node scripts/game-kingdom-release-contract.mjs
+          node --test tests/cluster-connect-notifications-points-20261108.test.mjs
+      - name: Verify Expo credentials, preview environment and staging Firebase
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          npx eas-cli@latest env:pull --environment preview --path .env.staging-user --non-interactive
+          test -s .env.staging-user
+          set -a; . ./.env.staging-user; set +a
+          case "${EXPO_PUBLIC_SUPABASE_URL:-}" in https://*.supabase.co) ;; *) echo 'STOP: preview Supabase endpoint missing or invalid'; exit 1 ;; esac
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" || { echo 'STOP: preview Supabase publishable key missing'; exit 1; }
+          test -s google-services.staging.json || { echo 'STOP: missing staging Firebase file'; exit 1; }
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const f=JSON.parse(fs.readFileSync('google-services.staging.json','utf8'));
+          assert.ok(f.client?.some(x=>x.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging'),'Staging Firebase package not registered');
+          NODE
+          # Do not trust ambient preview overrides for the source identity.
+          APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main npx expo config --json > /tmp/buklod-staging-user-config.json
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const c=JSON.parse(require('node:fs').readFileSync('/tmp/buklod-staging-user-config.json','utf8'));
+          assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(c.name,'BUKLOD Staging');
+          assert.equal(c.runtimeVersion,'1.3.2');
+          assert.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          NODE
+          echo 'VERIFIED staging-user profile, preview environment, Firebase, runtime and current main ancestry'
+      - name: Build exactly one signed staging-user installable APK (NO OTA, web or Play)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+          npx eas-cli@latest build --platform android --profile staging-user --non-interactive --wait --json > eas-staging-user-current-main.json
+          test -s eas-staging-user-current-main.json
+      - name: Verify finished APK and archive exact source evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const obj=JSON.parse(fs.readFileSync('eas-staging-user-current-main.json','utf8'));
+          const build=Array.isArray(obj)?obj[0]:obj;
+          assert.ok(build && typeof build==='object');
+          assert.equal(String(build.status).toLowerCase(),'finished');
+          assert.equal(String(build.platform).toLowerCase(),'android');
+          if(build.appVersion!=null)assert.equal(String(build.appVersion),'1.3.4');
+          if(build.gitCommitHash)assert.equal(String(build.gitCommitHash).toLowerCase(),process.env.GITHUB_SHA.toLowerCase());
+          const url=build.artifacts?.buildUrl||build.artifacts?.applicationArchiveUrl;
+          assert.ok(typeof url==='string' && url.startsWith('https://'));
+          assert.match(new URL(url).pathname,/\.apk$/i);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,[
+            '# BUKLOD Staging User — VERIFIED APK',
+            '- Exact source commit: '+process.env.GITHUB_SHA,
+            '- Built from verified production baseline: d67e805879e3398cbff8a4383c6c7e05039ed9f7',
+            '- Android package: org.mzbministry.buklod.staging',
+            '- App version: 1.3.4',
+            '- Runtime: 1.3.2',
+            '- EAS profile/channel: staging-user',
+            '- EAS environment: preview',
+            '- Build ID: '+build.id,
+            '- Build number: '+(build.appBuildVersion||'reported by EAS build details'),
+            '- APK: '+url,
+            '- Production OTA/web and Google Play submission: NOT performed',
+          ].join('\n')+'\n');
+          console.log('VERIFIED_BUKLOD_STAGING_USER_APK_BUILD_ID='+build.id);
+          console.log('VERIFIED_BUKLOD_STAGING_USER_APK_URL='+url);
+          NODE
+      - name: Preserve staging-user build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-staging-user-apk-${{ github.sha }}
+          path: eas-staging-user-current-main.json
+          retention-days: 30
+          if-no-files-found: ignore
