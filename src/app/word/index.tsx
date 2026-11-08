@@ -286,6 +286,20 @@ export default function WordScreen() {
         { paddingTop: insets.top },
       ]}
     >
+      <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="My devotional submissions and revisions"
+          onPress={() => router.push('/devotional/submissions' as any)}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13,
+            backgroundColor: '#EAF6EE', borderWidth: 1, borderColor: '#C9E2D1', borderRadius: 12 }}
+        >
+          <Text style={{ flex: 1, color: '#186342', fontWeight: '900', fontSize: 13 }}>
+            My Devotional Submissions · Check Revisions
+          </Text>
+          <Text style={{ color: '#186342', fontWeight: '900' }}>›</Text>
+        </Pressable>
+      </View>
       {!!loadError && <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
         <Text style={shared.muted}>{loadError}</Text>
         {online && <Pressable accessibilityRole="button" onPress={() => void load()}>
