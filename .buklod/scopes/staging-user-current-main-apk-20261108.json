@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "objective": "Build a newly signed installable BUKLOD staging-user APK from the exact current released production main app source, never from older diverged staging branches or stopped V30 AAB branch. Build only: do not publish any OTA/web/Play changes.",
+  "baseRef": "d67e805879e3398cbff8a4383c6c7e05039ed9f7",
+  "productionBaselineEvidence": "2026-11-08 latest production merge d67e805879e3398cbff8a4383c6c7e05039ed9f7 from PR #581; Android OTA update 01a1bb25-6d17-7d36-a5ad-85740ee22493 successfully verified runtime 1.3.2; Expo Hosting live at buklod.expo.app. Previously used staging-user branches had stale/diverged source; do not reuse. Stopped production V30 AAB PR #582 remains separate, not merged.",
+  "chosenApproach": "Create one isolated source-locked new GitHub Actions workflow using the existing EAS staging-user profile (internal apk, preview env, staging-user channel), derive staging-native identity from production app.config.js without changing source. Merge only after scope and regression CI. Explicit main release marker launches exactly one EAS --wait cloud APK build and verifies status FINISHED, app version, source SHA and .apk URL. No OTA or production web release.",
+  "selectionRationale": "A new build from main provides all latest cumulative Wall/Points/Connect/Scope features while avoiding divergence. Staging-user package org.mzbministry.buklod.staging and Firebase credentials isolate native installation; Expo runtime remains 1.3.2 and standalone profile staging-user is used instead of production or gradle debug APK. EAS channel is staging-user; no publishing.",
+  "alternativeApproaches": [
+    "Re-run prior staging branch: rejected because it can be behind main and produce the old screens/runtime.",
+    "Use production or staging-dev APK profile: rejected because package/channel/env differ or could alter other clients.",
+    "Publish staging OTA: rejected; user only asked to build the installable staging-user APK.",
+    "Build using prior Gradle debug path: rejected because no signed EAS installable staging-user artifact with source provenance and existing EAS profile."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "native-runtime",
+    "connect",
+    "security-and-credentials"
+  ],
+  "preserveBehaviors": [
+    "The exact production source, binaries, OTA updates, Expo web, Google Play, database and user's pending V30 branch are untouched.",
+    "BUKLOD main production package remains org.mzbministry.buklod, versionName 1.3.5, versionCode 29; only staging config is selected by environment.",
+    "Staging package org.mzbministry.buklod.staging; native runtime 1.3.2, staging Firebase, preview environment and staging-user update channel retained.",
+    "No use of outdated staging branch and no automatic release to production."
+  ],
+  "acceptanceChecks": [
+    "No application source files, app.config.js, eas.json, dependencies, android/ios or database changes; only one new workflow, one test and this scope manifest.",
+    "Protected workflow only fires on explicit authorized main merge marker and validates current live main source ancestry and SHA.",
+    "Build must report FINISHED with Android platform, .apk signed cloud EAS URL, version 1.3.4 and source SHA matching merge.",
+    "No production OTA, staging OTA, web deployment or Google Play submission."
+  ],
+  "regressionTests": [
+    "tests/staging-user-current-main-apk-20261108.test.cjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod-staging-user-latest-main-apk-20261108.yml",
+    "tests/staging-user-current-main-apk-20261108.test.cjs",
+    ".buklod/scopes/staging-user-current-main-apk-20261108.json"
+  ]
+}
