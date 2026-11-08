@@ -22,6 +22,7 @@ import {
   formatEconomyPhp,
   formatEconomyPts,
   loadBuklodEconomyLedger,
+  peekBuklodEconomyLedger,
   type BuklodEconomyLedgerSnapshot,
   type BuklodEconomyLedgerTxn,
 } from '@/lib/buklodEconomyLedger';
@@ -132,44 +133,42 @@ function txnLabel(row: BuklodEconomyLedgerTxn) {
 export default function BuklodEconomyDashboard() {
   const { session, profile } = useAuth();
   const userId = session?.user?.id ?? null;
-  const [snapshot, setSnapshot] = useState<BuklodEconomyLedgerSnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [snapshot, setSnapshot] = useState<BuklodEconomyLedgerSnapshot | null>(
+    () => peekBuklodEconomyLedger(userId),
+  );
+  const [loading, setLoading] = useState(!peekBuklodEconomyLedger(userId));
   const [refreshing, setRefreshing] = useState(false);
   const [section, setSection] = useState<SectionKey>('overview');
   const [message, setMessage] = useState<string | null>(null);
   const [selectedTxn, setSelectedTxn] = useState<BuklodEconomyLedgerTxn | null>(null);
 
-  const load = useCallback(async () => {
-    const next = await loadBuklodEconomyLedger(userId);
-    setSnapshot(next);
-  }, [userId]);
+  const load = useCallback((force = false) => loadBuklodEconomyLedger(userId, force), [userId]);
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    const cached = peekBuklodEconomyLedger(userId);
+    setSnapshot(cached);
+    setLoading(!cached);
+    if (!userId) return () => { alive = false; };
     void load()
-      .catch(() => {
-        if (alive) setMessage('Could not load your Economy ledger right now.');
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [load]);
+      .then(next => { if (alive) setSnapshot(next); })
+      .catch(() => { if (alive) setMessage('Could not load your Economy ledger right now.'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [load, userId]);
 
   const refresh = useCallback(async () => {
+    if (!userId) return;
     setRefreshing(true);
     setMessage(null);
     try {
-      await load();
+      setSnapshot(await load(true));
     } catch {
       setMessage('Could not refresh your Economy ledger.');
     } finally {
       setRefreshing(false);
     }
-  }, [load]);
+  }, [load, userId]);
 
   const available = snapshot?.points?.available_points ?? 0;
   const lifetime = snapshot?.points?.lifetime_points ?? snapshot?.points?.total_points ?? 0;
