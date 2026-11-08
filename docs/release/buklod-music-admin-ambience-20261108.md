@@ -2,7 +2,7 @@
 
 ## Scope and live isolation
 - Branch: `dev/admin-music-library-ambience-ota-ready-20261108`. Built atop production SHA `9a560caaec9befc0d54c70be36eaca619d587797`.
-- **Do not merge, apply migration, publish Android OTA, or deploy Expo Hosting without release authorization.**
+- **Migration was applied and SQL-verified on 2026-11-08. Do not reapply it, merge, publish Android OTA, or deploy Expo Hosting without release authorization.**
 - The native V28 code 28 / runtime 1.3.2 must stay unchanged; no new native dependencies or rebuild.
 - Current live music catalog: 42 active entries before this change; preserve all existing rows and media unless System Admin explicitly deletes them.
 
@@ -21,8 +21,8 @@ Open System Admin → Formation & Content → Music Library:
 - Publishing saves only the preset, never generates or stores an animated video; motion starts automatically on published post when visible, stops offscreen/on route blur/app background and respects system reduced-motion preference.
 - All effects are vector/lightweight React Native Animated overlays. No new native module and no forced music autoplay.
 
-## Backend release dependency (not applied yet)
-`supabase/migrations/20261108043000_buklod_music_admin_and_ambience_v1.sql`:
+## Backend production activation (applied 2026-11-08)
+`supabase/migrations/20261108030015_buklod_music_admin_and_ambience_v1_20261108.sql`:
 - Expands `buklod_post_creatives.motion_preset` CHECK; preserves existing records.
 - Enables System Admin-only music catalog INSERT/UPDATE/DELETE and read of inactive rows.
 - Enables private signed read for active catalog objects; upload/remove only for authenticated System Admin under bucket RLS. No service keys in client.

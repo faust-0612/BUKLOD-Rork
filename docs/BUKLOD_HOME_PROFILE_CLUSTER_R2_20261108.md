@@ -63,10 +63,10 @@ Profile is `/(tabs)/me`. Organization/Cluster Home is
   gentle suggested action, reaction and personal Dugtong, optional Share to
   Wall. General wellbeing information only, not medical diagnosis.
 
-### Real BP for weekly engagement (source-only backend)
+### Real BP for weekly engagement (production backend activated)
 - Additive migration:
-  `supabase/migrations/20261108050000_buklod_weekly_tips_r1.sql`
-  (NOT APPLIED). Client must wait for authenticated/server-confirmed result.
+  `supabase/migrations/20261108030033_buklod_weekly_tips_r1_20261108.sql`
+  (APPLIED on 2026-11-08). Client still waits for authenticated/server-confirmed results.
 - `get_buklod_weekly_tip_v1` shows the current Manila calendar week.
 - `react_to_buklod_weekly_tip_v1` verifies active member, current tip,
   input and duplicate actions, serializes per user/week, writes bounded
@@ -94,7 +94,6 @@ Profile is `/(tabs)/me`. Organization/Cluster Home is
   weak-network fallback, sound previews, responsive mobile/desktop layout,
   actual module navigation and ad placements.
 - Existing R1 greetings backend is already applied live; the preceding
-  interaction R2 migration is still DEV-only. Do not replay R1.
-- **No production DB migration, main merge, OTA, Expo web hosting update or
-  Play/App binary publish has been made by this branch.** Release explicitly
+  interaction R2 migration was applied and verified in production on 2026-11-08. Do not replay R1.
+- **The four production DB migrations are applied and verified. No main merge, OTA, Expo web hosting update or Play/App binary publish was made by this branch.** Release explicitly
   held. Distinguish source changes from live features.

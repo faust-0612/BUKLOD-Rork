@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const baseMigration=read('supabase/migrations/20261108025000_buklod_living_greetings_v1.sql');
-const upgrade=read('supabase/migrations/20261108040000_buklod_living_interactions_r2.sql');
+const upgrade=read('supabase/migrations/20261108025948_buklod_living_interactions_r2_20261108.sql');
 const migration=baseMigration+'\n'+upgrade;
 const banner=read('src/components/BuklodLivingGreetingsBanner.tsx');
 const settings=read('src/app/settings/buklod-greetings.tsx');

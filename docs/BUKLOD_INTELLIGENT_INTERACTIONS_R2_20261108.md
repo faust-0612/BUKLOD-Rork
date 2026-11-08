@@ -92,7 +92,7 @@ and published post records must remain unaffected.
 1. **Reconciled:** R1 `20261108025000_buklod_living_greetings_v1.sql`
    is ALREADY APPLIED live, with existing greetings tables/RPC/daily and
    per-minute dispatch cron. DO NOT reapply or edit R1. R2 is new additive
-   `20261108040000_buklod_living_interactions_r2.sql` and NOT applied.
+   `20261108025948_buklod_living_interactions_r2_20261108.sql` and APPLIED to production on 2026-11-08.
    Apply R2 only after isolated DB tests, schema verification and
    explicit release authorization.
 2. SQL tests: active membership; cross-scope isolation; birthday self delivery
@@ -106,6 +106,5 @@ and published post records must remain unaffected.
 5. Source/CI and targeted device tests, version and runtime compatibility
    gate, then separately authorize any promotion.
 
-**Current authorization:** DEV-only source changes. No R2 database migration, web
-deployment, Android build or production/staging OTA has been issued. Existing R1
+**Current authorization:** R2 database migration APPLIED and SQL-verified on 2026-11-08. App source is RC-only; no web deployment or production/staging OTA has been issued. Existing R1
 birthday/holiday greetings backend and its jobs were already live before R2.

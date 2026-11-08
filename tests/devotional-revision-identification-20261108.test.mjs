@@ -9,7 +9,7 @@ const reflection=read('src/app/reflection/[id].tsx');
 const word=read('src/app/word/index.tsx');
 const detail=read('src/app/devotional/[id].tsx');
 const notification=read('src/app/notifications/index.tsx');
-const producer=read('supabase/migrations/20261108063000_devotional_revision_notification_context_r1.sql');
+const producer=read('supabase/migrations/20261108030050_devotional_revision_notification_context_r1_20261108.sql');
 
 test('old DAILY_DEVOTION outcome notices route to the learner submission, not a generic report',()=>{
  for(const kind of ['formation_needs_improvement','formation_approved'])

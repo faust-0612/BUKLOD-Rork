@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 const read=path=>readFileSync(path,'utf8');
-const migration=read('supabase/migrations/20261108043000_buklod_music_admin_and_ambience_v1.sql');
+const migration=read('supabase/migrations/20261108030015_buklod_music_admin_and_ambience_v1_20261108.sql');
 const library=read('src/lib/buklodPostCreatives.ts');
 const admin=read('src/lib/buklodMusicAdmin.ts');
 const page=read('src/app/admin/music-library.tsx');

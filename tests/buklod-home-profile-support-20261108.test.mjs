@@ -56,7 +56,7 @@ test('Weekly tips have real continuation, reactions and confirmed BP feedback',(
   assert.ok(screen.includes(key),key);
 });
 test('Weekly Point awards are server-side, bounded and idempotent',()=>{
- const sql=read('supabase/migrations/20261108050000_buklod_weekly_tips_r1.sql');
+ const sql=read('supabase/migrations/20261108030033_buklod_weekly_tips_r1_20261108.sql');
  for(const key of ['auth.uid()','Asia/Manila','primary key(user_id,week_start)','for update','pg_advisory_xact_lock','weekly_tip_reaction','weekly_tip_dugtong','on conflict(user_id,source_key) do nothing','points_pending_claim'])
    assert.ok(sql.includes(key),key);
  assert.ok(!sql.includes('grant insert on public.buklod_weekly_tip_interactions_v1 to authenticated'));
