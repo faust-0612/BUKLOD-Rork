@@ -1,5 +1,5 @@
 /* BUKLOD_POINTS_STAGE_CHARACTER_500K_R1 */
-import React from 'react';
+import React,{useState} from 'react';
 
 import {
   Pressable,
@@ -7,7 +7,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
 
 import {
   MaterialCommunityIcons,
@@ -73,6 +72,7 @@ export default function BuklodPointsStage({
 }: Props) {
   const { theme } =
     useBuklodPresentation();
+  const [rankDetailsOpen,setRankDetailsOpen]=useState(false);
 
   const rankLabel =
     String(rankName ?? '').trim();
@@ -205,12 +205,7 @@ export default function BuklodPointsStage({
           intensity={0.72}
         />
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open Economy and Bayanihan"
-          onPress={() => router.push('/points/economy' as any)}
-          style={styles.art}
-        >
+        <View style={styles.art}>
           <BuklodCharacterLayeredArt
             body={character.body}
             equipment={character.equipment}
@@ -218,7 +213,7 @@ export default function BuklodPointsStage({
             showStage
             showEffects
           />
-        </Pressable>
+        </View>
 
         <View style={styles.copy}>
           <Text style={styles.eyebrow}>
@@ -256,6 +251,36 @@ export default function BuklodPointsStage({
                 : 'Highest available rank reached'}
             </Text>
           </View>
+          <Pressable accessibilityRole="button"
+            accessibilityLabel="Show Circle Rank requirements and progression"
+            accessibilityState={{expanded:rankDetailsOpen}}
+            onPress={()=>setRankDetailsOpen(v=>!v)}
+            style={{paddingVertical:8,flexDirection:'row',alignItems:'center',gap:4}}>
+            <MaterialCommunityIcons name="trophy-outline" size={16} color={theme.accent}/>
+            <Text style={{color:theme.accent,fontSize:10,fontWeight:'900'}}>
+              {rankDetailsOpen?'Hide rank progression':'View rank progression'}
+            </Text>
+            <MaterialCommunityIcons name={rankDetailsOpen?'chevron-up':'chevron-down'} size={16} color={theme.accent}/>
+          </Pressable>
+          {rankDetailsOpen&&(
+            <View style={{padding:10,borderRadius:12,borderColor:theme.border,borderWidth:1,
+              backgroundColor:theme.surface,gap:4}}>
+              <Text style={{fontSize:11,fontWeight:'900',color:theme.textPrimary}}>
+                {rankLabel||'BUKLOD Circle Rank'}
+              </Text>
+              <Text style={{fontSize:10,color:theme.textSecondary}}>
+                {formatPoints(lifetimePoints)} verified lifetime Points · {formatPoints(availablePoints)} available
+              </Text>
+              <Text style={{fontSize:10,color:theme.textSecondary}}>
+                {pointsToNext&&pointsToNext>0
+                  ? formatPoints(pointsToNext)+' more lifetime Points to '+(nextLabel||'the next Circle Rank')
+                  : 'Highest available Circle Rank attained'}
+              </Text>
+              <Text style={{fontSize:9,color:theme.textMuted}}>
+                Rank progress is based on verified lifetime Points, not Bayanihan ₱ or cash redemption.
+              </Text>
+            </View>
+          )}
 
           {onOpenCustomize ? (
             <Pressable
