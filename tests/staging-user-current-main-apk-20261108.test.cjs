@@ -57,6 +57,16 @@ test('staging Firebase fallback requires an actually registered staging package'
  assert.match(flow,/google-services\.staging\.json/);
 });
 
+test('dynamic app.config.js staging autoIncrement uses remote source only in build runner',()=>{
+ assert.equal(eas.cli.appVersionSource,'local','production EAS config remains local');
+ assert.equal(eas.build['staging-user'].autoIncrement,true);
+ assert.match(flow,/eas\.cli\.appVersionSource='remote'/);
+ assert.match(flow,/test "\$\(git diff --name-only\)" = "eas\.json"/);
+ assert.match(flow,/assert\.equal\(c\.runtimeVersion,'1\.3\.2'\)/);
+ assert.match(flow,/assert\.equal\(eas\.build\.production\.channel,'production'\)/);
+ assert.match(flow,/--profile staging-user --non-interactive --wait --json/);
+});
+
 test('only user-authorized live-main commit can trigger one staging-user APK without release side effects',()=>{
  assert.match(flow,/BUKLOD_STAGING_USER_CURRENT_MAIN_APK_20261108/);
  assert.match(flow,/git merge-base --is-ancestor d67e805879e3398cbff8a4383c6c7e05039ed9f7/);
