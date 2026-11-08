@@ -126,7 +126,7 @@ export async function loadBuklodPointsDashboard(): Promise<BuklodPointsDashboard
 
       return normalizePointsDashboard(data as Record<string, unknown>);
     },
-    { ttlMs: 15_000, staleMs: 45_000 },
+    { ttlMs: 60_000, staleMs: 120_000 },
   );
 }
 
