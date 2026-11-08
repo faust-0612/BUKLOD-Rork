@@ -19,7 +19,7 @@ import {
 
 import BuklodPressable from '@/components/BuklodPressable';
 import {
-  buklodInstantReplace,
+  buklodInstantNavigate,
 } from '@/lib/buklodInstantNavigation';
 import { rememberBuklodRoute } from '@/lib/buklodRouteDiagnostics';
 
@@ -179,7 +179,7 @@ BuklodPersistentBottomNav() {
         // selectScope applies the local scope immediately; server persistence is non-blocking.
         await selectScope(publicScope.scope_id);
       }
-      buklodInstantReplace(Platform.OS === 'web' ? (lastRequestedRoute.current ?? route) : route);
+      buklodInstantNavigate(Platform.OS === 'web' ? (lastRequestedRoute.current ?? route) : route);
     } catch (error) {
       setPendingRoute(null);
       Alert.alert('Hindi mabuksan', error instanceof Error ? error.message : 'Subukang muli.');
