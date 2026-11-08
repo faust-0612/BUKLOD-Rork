@@ -1,0 +1,32 @@
+name: BUKLOD Classroom Synthetic Authenticated Browser E2E
+
+on:
+  push:
+    branches: [dev/classroom-live-e2e-fixes-20261109]
+    paths: ['.github/workflows/classroom-mocked-browser-e2e-20261109.yml']
+  workflow_dispatch:
+
+permissions: { contents: read }
+
+jobs:
+  synthetic-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PREVIEW_URL: https://buklod-classroom--j6e5o4e73z.expo.app
+    steps:
+      - name: Checkout exact test source
+        uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Install isolated Chrome driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          which google-chrome
+          mkdir -p /tmp/buklod-classroom-browser
+          npm install --prefix /tmp/buklod-classroom-browser --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Synthetic authenticated UI E2E (ALL backend requests mocked, NO production writes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node classroom-web/e2e/mock-auth-browser.mjs
