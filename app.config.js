@@ -44,14 +44,16 @@ module.exports = ({ config }) => {
 
     name: appName,
     slug: isClassroom ? 'buklod-classroom' : 'buklod',
-    version: isClassroom || isStaging ? '1.3.4' : '1.3.6',
+    version: isClassroom ? '1.3.4' : '1.3.6',
 
     orientation: 'default',
     scheme,
 
     userInterfaceStyle: 'automatic',
 
-    icon: isClassroom ? './assets/classroom/app-icon.png' : './assets/release/app-icon.png',
+    icon: isClassroom
+      ? './assets/classroom/app-icon.png'
+      : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png'),
 
     assetBundlePatterns: [
       'assets/**',
@@ -108,7 +110,7 @@ module.exports = ({ config }) => {
       adaptiveIcon: {
         foregroundImage: isClassroom
           ? './assets/classroom/adaptive-icon.png'
-          : './assets/release/app-icon.png',
+          : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png'),
 
         backgroundColor:
           '#FFFFFF',

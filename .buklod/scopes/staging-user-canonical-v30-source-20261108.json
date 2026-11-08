@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "objective": "Build a new signed staging-user APK from latest V30 production main with canonical green-B launcher branding (not previous multicolor Android icon). Source must be latest main, not any historical staging branch.",
+  "baseRef": "da2ddfd8d5942865707ad6f308ff074fca73e99b",
+  "productionBaselineEvidence": "Verified latest main da2ddfd8d5942865707ad6f308ff074fca73e99b (merged V30 AAB config), prior successful staging APK run 42486145405 was built from older main ce157c66 and displayed legacy multicolor icon; the canonical green-B web logo is assets/release/buklod-main-canonical.png blob 9a4e4a826191d6e310dc26f5c74d4611293ceb17. Previous PR #527 retired web legacy icon but intentionally left Android icon unchanged. New consolidated UI release main da2ddfd8d5942865707ad6f308ff074fca73e99b is the exact fresh source pin; includes PR #587 layout/reaction/photo/music fixes.",
+  "chosenApproach": "Change only staging appConfig icon/adaptiveIcon to canonical green-B and align staging versionName to V30 main 1.3.6, preserve production Android icon and ABI/runtime 1.3.2. Pin staging artifact source ancestry to current main V30 sha and verify canonical asset blob SHA, Expo preflight, EAS finished APK and source SHA. Build one EAS staging-user internal signed APK via explicitly labeled merge; no OTA/web/Google Play.",
+  "riskAreas": [
+    "release-identity",
+    "native-runtime",
+    "android-icon",
+    "staging-firebase"
+  ],
+  "preserveBehaviors": [
+    "Production Android icon and native compatibility contract unchanged",
+    "Main app features/assets and source pin remain current production main",
+    "Staging Firebase/preview channel package org.mzbministry.buklod.staging and runtime1.3.2 unchanged",
+    "No production OTA/web/Play changes; no unmerged dev branch included"
+  ],
+  "acceptanceChecks": [
+    "Diff app source from da2ddfd8d5942865707ad6f308ff074fca73e99b includes only exact staged icon and versionName mapping",
+    "Canonical green-B asset is the pinned existing PNG from main",
+    "Code/type contracts, staging Firebase and Expo preview environment pass before build",
+    "Signed EAS staging-user APK finished with source SHA, correct URL/version and internal distribution",
+    "Obsolete branches must not supply source; branch deletion requires separate non-destructive audit"
+  ],
+  "regressionTests": [
+    "tests/staging-user-current-main-apk-20261108.test.cjs",
+    "tests/staging-release-identity-v30-20261108.test.cjs"
+  ],
+  "allowedPaths": [
+    "app.config.js",
+    ".github/workflows/buklod-staging-user-latest-main-apk-20261108.yml",
+    "tests/staging-user-current-main-apk-20261108.test.cjs",
+    ".buklod/scopes/staging-user-canonical-v30-source-20261108.json",
+    "tests/staging-release-identity-v30-20261108.test.cjs"
+  ],
+  "selectionRationale": "The owner needs a dependable stage APK from the exact newest main with the approved green-B launcher. Restricting the asset change to the stage environment avoids production V28/V30 native config/OTA ABI drift while ensuring tests exercise the new release screen and app source.",
+  "alternativeApproaches": [
+    "Re-run last successfully signed stage APK (ce157c66): rejected due stale source and verified legacy launcher icon.",
+    "Build an APK from one of 14 older staging branches: rejected because they diverge from latest production main and can regress features.",
+    "Switch production Android icon in this PR: rejected because it alters protected production native config and unrelated V30 AAB/OTA release artifacts."
+  ]
+}
