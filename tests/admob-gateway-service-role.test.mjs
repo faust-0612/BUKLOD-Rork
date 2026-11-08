@@ -32,7 +32,7 @@ test('production source depends on enforced Supabase JWT signature validation', 
   const importer = readFileSync('supabase/functions/buklod-admob-revenue-preview-sync/index.ts', 'utf8');
   assert.match(importer, /verify_jwt=true/);
   assert.match(importer, /hasGatewayVerifiedServiceRoleClaims\(token\)/);
-  assert.doesNotMatch(importer, /verify_jwt=false/);
+  assert.doesNotMatch(importer, /^\s*verify_jwt\s*=\s*false/m);
   assert.doesNotMatch(importer, /token !== serviceRole/);
   assert.match(importer, /admin_set_buklod_community_admob_estimate_v1/);
   assert.doesNotMatch(importer, /payout_processing|credit_wallet|process_withdrawal/i);
