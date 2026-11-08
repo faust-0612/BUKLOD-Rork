@@ -5245,6 +5245,7 @@ const communityFeedRows =
       selectedId={composerMusicTrack?.id}
       previewId={wallAudioOwner==='composer'?wallLoadedTrackId:null}
       previewPlaying={wallAudioOwner==='composer'&&wallAudioPlaying}
+      previewDurationSeconds={wallAudioOwner==='composer'?Number(wallAudioPlayerRef.current?.duration??0):0}
       onSelect={(track,start,duration)=>{wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
         pauseWallAudio();setWallAudioOwner('');setComposerMusicTrack(track);
         setComposerClipStartSeconds(start);setComposerClipDurationSeconds(duration);}}

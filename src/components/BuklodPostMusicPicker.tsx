@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import BuklodMusicClipTimeline from '@/components/BuklodMusicClipTimeline';
 import { ActivityIndicator, FlatList, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,14 +7,14 @@ import { listBuklodPostMusic, type BuklodPostMusicTrack } from '@/lib/buklodPost
 
 type Props={
   visible:boolean; selectedId?:string|null; previewId?:string|null;
-  previewPlaying?:boolean; clipStartSeconds:number; clipDurationSeconds:number;
+  previewPlaying?:boolean; previewDurationSeconds?:number; clipStartSeconds:number; clipDurationSeconds:number;
   onClipChange:(startSeconds:number,durationSeconds:number)=>void;
   onSelect:(track:BuklodPostMusicTrack|null,startSeconds:number,durationSeconds:number)=>void;
   onPreview:(track:BuklodPostMusicTrack,startSeconds:number,durationSeconds:number)=>void;
   onClose:()=>void;
 };
 export default function BuklodPostMusicPicker({
-  visible,selectedId,previewId,previewPlaying,clipStartSeconds,clipDurationSeconds,onClipChange,onSelect,onPreview,onClose,
+  visible,selectedId,previewId,previewPlaying,previewDurationSeconds,clipStartSeconds,clipDurationSeconds,onClipChange,onSelect,onPreview,onClose,
 }:Props) {
   const insets=useSafeAreaInsets();
   const [search,setSearch]=useState('');
@@ -22,6 +23,7 @@ export default function BuklodPostMusicPicker({
   const [error,setError]=useState('');
   const [clipStartText,setClipStartText]=useState(String(clipStartSeconds));
   const [clipDurationText,setClipDurationText]=useState(String(clipDurationSeconds));
+  const [preciseTimingOpen,setPreciseTimingOpen]=useState(false);
   useEffect(() => {
     if (visible) {
       setClipStartText(String(clipStartSeconds));
@@ -77,7 +79,21 @@ export default function BuklodPostMusicPicker({
               paddingHorizontal:12,marginBottom:10,color:'#183c31'}}/>
           <View style={{padding:10,borderWidth:1,borderColor:'#CEE4D7',borderRadius:12,backgroundColor:'#F0FAF4',marginBottom:9}}>
             <Text style={{fontSize:12,fontWeight:'900',color:'#195d47',marginBottom:6}}>Song segment for this post</Text>
-            <View style={{flexDirection:'row',gap:10,alignItems:'center'}}>
+            <Text style={{fontSize:11,color:'#527366',marginBottom:8}}>Drag the green window to choose the part of the song. Move either edge to change its length (5–60 seconds).</Text>
+            <BuklodMusicClipTimeline start={Number(clipStartText)||0} length={Number(clipDurationText)||30}
+              total={previewDurationSeconds&&previewDurationSeconds>0?previewDurationSeconds:Math.max(120,(Number(clipStartText)||0)+90)}
+              onChange={(start,duration)=>{setClipStartText(String(start));setClipDurationText(String(duration));onClipChange(start,duration);}}/>
+            <View style={{flexDirection:'row',alignItems:'center',gap:8,marginTop:8,marginBottom:6}}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Shorten music clip by five seconds"
+                onPress={()=>{const [start,duration]=readClip();const n=Math.max(5,duration-5);setClipDurationText(String(n));onClipChange(start,n);}}
+                style={{backgroundColor:'#DDEFE5',padding:8,borderRadius:8}}><Text style={{color:'#145C41',fontWeight:'900'}}>−5s</Text></Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="Lengthen music clip by five seconds"
+                onPress={()=>{const [start,duration]=readClip();const n=Math.min(60,duration+5);setClipDurationText(String(n));onClipChange(start,n);}}
+                style={{backgroundColor:'#DDEFE5',padding:8,borderRadius:8}}><Text style={{color:'#145C41',fontWeight:'900'}}>+5s</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={()=>setPreciseTimingOpen(v=>!v)} style={{marginLeft:'auto',padding:8}}>
+                <Text style={{color:'#145C41',fontWeight:'800'}}>{preciseTimingOpen?'Hide exact timing':'Exact seconds'}</Text></Pressable>
+            </View>
+            {preciseTimingOpen&&<View style={{flexDirection:'row',gap:10,alignItems:'center'}}>
               <View style={{flex:1}}>
                 <Text style={{fontSize:11,color:'#527366'}}>Start at (seconds)</Text>
                 <TextInput accessibilityLabel="Song clip start time in seconds" value={clipStartText}
@@ -98,6 +114,7 @@ export default function BuklodPostMusicPicker({
                 <Text style={{color:'#fff',fontWeight:'800'}}>Set</Text>
               </Pressable>
             </View>
+            </View>}
             <Text style={{fontSize:10,color:'#527366',marginTop:5}}>
               Preview plays the chosen section. Full audio is not copied into your post.
             </Text>
