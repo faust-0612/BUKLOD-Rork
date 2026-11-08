@@ -111,6 +111,8 @@ function DevotionalScreenContent() {
       <S title="🛠️ PRACTICAL TODAY">{item.live_it_today || item.application_text}</S>
       <S title="🙏 PRAY">{item.prayer_text}</S>
       <Button title="CONTINUE TO REFLECTION" onPress={()=>router.push(`/reflection/${item.id}`)} />
+      <Button title="MY DEVOTIONAL SUBMISSIONS / REVISIONS"
+        onPress={()=>router.push('/devotional/submissions' as any)} />
     </ScrollView>
       </SafeAreaView>
     </>
