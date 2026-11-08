@@ -426,6 +426,14 @@ function CommunityZoomPhoto({
 const COMMUNITY_VIEWER_HEIGHT=
  Dimensions.get('window').height;
 
+// Presets are grouped for presentation only; canonical saved values never change.
+const BUKLOD_MOTION_DRAWER_GROUPS=[
+ {title:'Animation',items:BUKLOD_POST_MOTION_PRESETS.slice(0,5)},
+ {title:'Weather & nature',items:BUKLOD_POST_MOTION_PRESETS.filter(p=>
+  ['rain','storm','snow','mist','petals','autumn'].includes(p))},
+ {title:'Light & atmosphere',items:BUKLOD_POST_MOTION_PRESETS.filter(p=>
+  ['sparkles','fireflies','sunrays','dust','bokeh','stars','underwater'].includes(p))},
+];
 export default function BuklodScreen(){
  const { focusPostId } = useLocalSearchParams<{focusPostId?:string}>();
  const openingPublicPost = typeof focusPostId==='string' && !!focusPostId.trim();
@@ -1103,6 +1111,7 @@ function LegacyPublicBuklodScreen(){
  const [composerClipStartSeconds,setComposerClipStartSeconds]=useState(0);
  const [composerClipDurationSeconds,setComposerClipDurationSeconds]=useState(30);
  const [composerMotionPreset,setComposerMotionPreset]=useState<BuklodPostMotionPreset>('none');
+ const [composerMotionDrawerOpen,setComposerMotionDrawerOpen]=useState(false);
 
  /* PATCH_186B_PHOTO_EDITOR_PUBLIC_STATE */
  const [
@@ -2689,6 +2698,7 @@ const load=useCallback(async(options?:{
  setComposerClipStartSeconds(0);
  setComposerClipDurationSeconds(30);
  setComposerMotionPreset('none');
+ setComposerMotionDrawerOpen(false);
  setComposerMusicPickerOpen(false);
  if(wallAudioOwnerRef.current==='composer' || wallAudioPendingOwnerRef.current==='composer'){
   wallAudioRequestEpochRef.current++;
@@ -5257,32 +5267,65 @@ const communityFeedRows =
         <MaterialCommunityIcons name="chevron-right" size={19} color="#195d47"/>
       </Pressable>
       {!wallVideo186O&&!communityGif&&(
-        <>
-          <Text style={{fontWeight:'800',fontSize:11,color:colors.muted}}>Photo motion and ambiance • plays automatically after publishing</Text>
-          <View style={{flexDirection:'row',flexWrap:'wrap',gap:7}}>
-            {BUKLOD_POST_MOTION_PRESETS.map(preset=>(
-              <Pressable key={preset} accessibilityRole="button"
-                accessibilityLabel={'Select '+preset+' motion'}
-                onPress={()=>setComposerMotionPreset(preset)}
-                style={{borderRadius:15,paddingHorizontal:9,paddingVertical:7,minHeight:34,borderWidth:1,
-                  borderColor:composerMotionPreset===preset?colors.green:colors.line,
-                  backgroundColor:composerMotionPreset===preset?colors.greenSoft:colors.white}}>
-                <Text style={{color:composerMotionPreset===preset?colors.greenDark:colors.muted,
-                  textTransform:'capitalize',fontSize:11,fontWeight:'800'}}>{BUKLOD_POST_MOTION_LABELS[preset]}</Text>
-              </Pressable>
-            ))}
-          </View>
-          {composerMotionPreset!=='none'&&!photos.length&&(
-            <BuklodPostMotion preset={composerMotionPreset}>
-              <View style={{backgroundColor:colors.white,padding:14,borderRadius:12,
-                borderWidth:1,borderColor:colors.line}}>
-                <Text numberOfLines={3} style={{color:colors.text,fontSize:13}}>
-                  {body.trim()||'Preview your animated post'}
-                </Text>
-              </View>
-            </BuklodPostMotion>
+        <View style={{gap:7}}>
+          {/* BUKLOD_MOTION_DRAWER_R1: hidden options retain selected state. */}
+          <Pressable accessibilityRole="button" accessibilityLabel="Photo animation and ambiance drawer"
+            accessibilityState={{expanded:composerMotionDrawerOpen}}
+            onPress={()=>setComposerMotionDrawerOpen(current=>!current)}
+            style={{backgroundColor:'#eef7f3',borderRadius:12,padding:12,
+              borderWidth:1,borderColor:composerMotionPreset==='none'?'#cfe1d7':'#4bb88e',
+              flexDirection:'row',alignItems:'center',gap:9}}>
+            <MaterialCommunityIcons name="auto-fix" color="#195d47" size={21}/>
+            <View style={{flex:1,minWidth:0}}>
+              <Text style={{fontWeight:'900',fontSize:12,color:'#195d47'}}>
+                Photo animation & ambiance
+              </Text>
+              <Text numberOfLines={1} style={{fontSize:11,color:'#55776a'}}>
+                {composerMotionPreset==='none'?'Optional · Tap to choose an effect':
+                  'Selected: '+BUKLOD_POST_MOTION_LABELS[composerMotionPreset]}
+              </Text>
+            </View>
+            <MaterialCommunityIcons name={composerMotionDrawerOpen?'chevron-up':'chevron-down'}
+              color="#195d47" size={23}/>
+          </Pressable>
+          {composerMotionDrawerOpen&&(
+            <View style={{padding:11,borderRadius:12,borderWidth:1,borderColor:'#d6e8df',
+              backgroundColor:'#fbfffd',gap:12}}>
+              <Text style={{fontSize:11,color:'#58756a'}}>
+                Choose one effect. It plays automatically on your published photo post.
+              </Text>
+              {BUKLOD_MOTION_DRAWER_GROUPS.map(group=>(
+                <View key={group.title} style={{gap:7}}>
+                  <Text style={{fontSize:11,color:'#35634f',fontWeight:'900'}}>{group.title}</Text>
+                  <View style={{flexDirection:'row',flexWrap:'wrap',gap:7}}>
+                    {group.items.map(preset=>(
+                      <Pressable key={preset} accessibilityRole="button"
+                        accessibilityLabel={'Select '+BUKLOD_POST_MOTION_LABELS[preset]+' motion'}
+                        accessibilityState={{selected:composerMotionPreset===preset}}
+                        onPress={()=>setComposerMotionPreset(preset)}
+                        style={{borderRadius:15,paddingHorizontal:9,paddingVertical:7,minHeight:34,
+                          borderWidth:1,borderColor:composerMotionPreset===preset?colors.green:colors.line,
+                          backgroundColor:composerMotionPreset===preset?colors.greenSoft:colors.white}}>
+                        <Text style={{color:composerMotionPreset===preset?colors.greenDark:colors.muted,
+                          fontSize:11,fontWeight:'800'}}>{BUKLOD_POST_MOTION_LABELS[preset]}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ))}
+              {composerMotionPreset!=='none'&&!photos.length&&(
+                <BuklodPostMotion preset={composerMotionPreset}>
+                  <View style={{backgroundColor:colors.white,padding:14,borderRadius:12,
+                    borderWidth:1,borderColor:colors.line}}>
+                    <Text numberOfLines={3} style={{color:colors.text,fontSize:13}}>
+                      {body.trim()||'Preview your animated post'}
+                    </Text>
+                  </View>
+                </BuklodPostMotion>
+              )}
+            </View>
           )}
-        </>
+        </View>
       )}
       {!!wallAudioError&&<Text style={{fontSize:11,color:'#b43a2b'}}>{wallAudioError}</Text>}
     </View>
