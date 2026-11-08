@@ -47,7 +47,8 @@
     "Exact post/comment and thread notification targets; no silent generic dashboard fallback for missing identifiers.",
     "Canonical Points claim with existing ad opportunity, no alternate economy claim RPC, rank info separate.",
     "Admin-scoped private resource documents, event/notice media, and profile photo uploads with rollback on failed writes.",
-    "Check In Today only for active official Cluster event within time window, one admin-reviewed reward."
+    "Check In Today only for active official Cluster event within time window, one admin-reviewed reward.",
+    "Scoped comment notification scrolls to matching ID; direct/scope Connect notifications scroll to exact message through bounded access-controlled history."
   ],
   "regressionTests": [
     "tests/wall-media-navigation-polish-20261108.test.mjs",
@@ -97,6 +98,13 @@
     "supabase/migrations/20261108114034_buklod_scope_home_private_assets_v1_20261108.sql",
     "tests/cluster-connect-notifications-points-20261108.test.mjs",
     "scripts/r38-economy-release-contract.mjs",
-    "src/components/motion/BuklodRiveSceneOverlay.tsx"
+    "src/components/motion/BuklodRiveSceneOverlay.tsx",
+    "src/app/connect/community/[scopeId].tsx",
+    "src/app/connect/personal/[threadId].tsx",
+    "src/app/scope/index.tsx",
+    "src/components/BuklodCommunityCommentThread.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "tests/buklod-ad-opportunities.test.cjs"
   ]
 }
