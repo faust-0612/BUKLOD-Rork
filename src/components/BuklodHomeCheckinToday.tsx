@@ -1,4 +1,5 @@
 import React,{useCallback,useEffect,useState} from 'react';
+import {useFocusEffect} from 'expo-router';
 import {ActivityIndicator,Pressable,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {supabase} from '@/lib/supabase';
@@ -17,7 +18,13 @@ export default function BuklodHomeCheckinToday(){
   }catch{setEvents([]);setMessage('Check-in status unavailable. Your existing attendance is unchanged.');}
   finally{setLoading(false)}
  },[]);
- useEffect(()=>{void load();warmBuklodAdOpportunity('points_submission_success')},[load]);
+ useEffect(()=>{warmBuklodAdOpportunity('points_submission_success')},[]);
+ useFocusEffect(useCallback(()=>{
+   void load();
+   // Refresh the authoritative server window while the screen is visible.
+   const tick=setInterval(()=>{void load()},60000);
+   return ()=>clearInterval(tick);
+ },[load]));
  const submit=async(item:LiveEvent)=>{
   if(busy||item.checkin_status)return;
   setBusy(item.event_id);setMessage('');
