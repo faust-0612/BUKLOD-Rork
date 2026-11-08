@@ -41,7 +41,7 @@ function projectCards(){
     '</div></div><div class="classroom-chevron">›</div></article>').join('') : box('No authorized classrooms',empty(activeFilter==='active'?'No active classrooms are assigned to this account.':'No enrolled or faculty classrooms were returned by BUKLOD.'));
   const first=classes[0];
   const active=classes.filter(c=>c.status==='ACTIVE'||c.status==='OPEN');
-  const live=[...cache.values()].filter(x=>x.live?.status && ['LIVE','ACTIVE','STARTED','IN_PROGRESS'].includes(x.live.status.toUpperCase()));
+  const live=[...cache.values()].flatMap(x=>x.live||[]).filter(x=>['LIVE','ACTIVE','STARTED','IN_PROGRESS'].includes(String(x.status||'').toUpperCase()));
   const blocks=[
     ['My Classrooms',classes.length+' Assigned','portal'],
     ['My Active Classes',active.length+' Active','active'],
@@ -209,7 +209,7 @@ window.renderTabAttendance=c=>box('Verified Class Attendance',
     'Closed: '+fmt(x.closed_at)+' · '+(x.term_key||'Term not specified')))+
   (!isFaculty()?box('My Attendance',rows(current().studentAttendance,x=>card(x.status,fmt(x.time_in)))):''));
 window.renderTabMasterlist=c=>box('Official Class Roster',
-  isFaculty()?rows(current().roster,x=>card(x.official_name,(x.official_student_no||'Unassigned ID')+
+  (isFaculty()?rows(current().roster,x=>card(x.official_name,(x.official_student_no||'Unassigned ID')+
   ' · '+x.roster_status+' · '+x.link_status)):empty('Student accounts cannot access the private faculty roster.'))+
   empty('Import and roster modifications require the official validated eight-step importer.'));
 window.renderTabRLE=c=>statusCard('Clinical & RLE Progress');
@@ -286,7 +286,10 @@ const unsupported=['confirmCreateClassroom','runEightStepRosterWizard','confirmR
   'recordLiveRecitationScore','undoLastRecitationScore','autoGenerateSyllabusWeek','testIdempotentSubmission',
   'triggerQuickCheckPulse','syncQuizToGradebook','addMakeupDutyHours','toggleRleSkillCompetency',
   'saveJournalEntry','saveSpeedGraderScore','saveQuickAddItem','addAnnouncementComment',
-  'pushDirectlyToGitHub','openVercelDeployDrawer','openSpeedGraderDrawer','exportGradebookCSV'];
+  'pushDirectlyToGitHub','openVercelDeployDrawer','openSpeedGraderDrawer','exportGradebookCSV',
+  'acknowledgeFormalNotice','advanceGradeLifecycle','changeGradingScheme','launchInteractiveQuizDrawer',
+  'postClassChatMessage','sendCallAttentionAlert','submitInteractiveQuizAttempt','submitQuickAdd',
+  'syncLiveAttendanceToClass','copyFullHtmlToClipboard','downloadFullHtmlFile'];
 for(const name of unsupported)window[name]=()=>show('This action is not available in Classroom web until its secure backend workflow is verified. No records were changed.');
 window.switchPersona=()=>show('Account roles are assigned by BUKLOD authorization, not by a browser switch.');
 window.toggleOfflineMode=()=>show('Offline writes are not enabled in this web release. Reconnect before submitting work.');
