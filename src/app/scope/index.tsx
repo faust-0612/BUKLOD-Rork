@@ -140,6 +140,7 @@ ScopeWorkspaceScreen() {
       scope_id?: string | string[];
       focusPostId?: string;
       focusComments?: string;
+      focusCommentId?: string;
     }>();
 
   const routeScopeId =
@@ -530,6 +531,7 @@ return (
           scope={workspaceScope}
           focusPostId={params.focusPostId}
           focusComments={params.focusComments === '1'}
+          focusCommentId={params.focusCommentId}
         />
         </View>
       ) : null}
@@ -685,10 +687,12 @@ function ScopeCommunity({
   scope,
   focusPostId,
   focusComments,
+  focusCommentId,
 }: {
   scope: BuklodScope;
   focusPostId?: string;
   focusComments?: boolean;
+  focusCommentId?: string;
 }) {
   if (
     scope.scope_type === 'ORGANIZATION' ||
@@ -699,6 +703,7 @@ function ScopeCommunity({
         scope={scope}
         focusPostId={focusPostId}
         focusComments={focusComments}
+        focusCommentId={focusCommentId}
       />
     );
   }
