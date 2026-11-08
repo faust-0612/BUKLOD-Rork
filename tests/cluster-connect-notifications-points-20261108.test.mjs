@@ -26,6 +26,13 @@ test('notifications honor source record and comment identity, never generic Wall
  assert.match(post,/lastFocusedComment/);
  assert.match(post,/scrollTo/);
  assert.match(notification,/return null/);
+ const pointScreen=read('src/components/points/BuklodPointsRewardsScreen.tsx');
+ const portal=read('src/components/BuklodPortalScrollView.tsx');
+ assert.match(pointScreen,/focusLedgerId/);
+ assert.match(pointScreen,/\.eq\('user_id',auth\.data\.user\.id\)/);
+ assert.match(pointScreen,/\.eq\('id',exactLedgerId\)/);
+ assert.match(pointScreen,/historyScrollRef\.current\?\.scrollTo/);
+ assert.match(portal,/scrollRef\?: React\.Ref<ScrollView>/);
 });
 
 test('Cluster attendance is gated to an active official event and admin review',()=>{
