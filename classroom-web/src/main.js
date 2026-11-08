@@ -17,7 +17,7 @@ const db = url && key ? createClient(url, key, {
   }
 }) : null;
 
-const state = { user: null, classes: [], classId: '', context: null, overview: null,
+const state = { user: null, classes: [], classId: '', drawerOpen: false, context: null, overview: null,
   tab: 'overview', group: 'CLASS', data: [], additional: [], gradeCategories: [], thread: null, busy: false, loading: true,
   error: '', recover: false, seq: 0 };
 const tabs = [
@@ -102,17 +102,52 @@ function layout(content, title) {
   const nav = '<header class="topbar"><div class="logo"><img src="/buklod-classroom-cyan.svg" class="brand-mark small" alt="BUKLOD Classroom cyan logo" width="42" height="42" />' +
     '<span><strong>BUKLOD Classroom</strong><small>Connected Learning</small></span></div>' +
     '<div class="top-actions"><span class="account" title="Signed-in account">' + e(state.user?.email || 'BUKLOD user') +
-    '</span>' + btn('My Classes', 'classes') + btn('Sign out', 'signout') + '</div></header>';
+    '</span>' + btn('My Classes', 'classes') + (state.classId ? btn('Switch class', 'switch-class') : '') + btn('Sign out', 'signout') + '</div></header>';
   root.innerHTML = nav + '<main class="shell"><div class="heading"><p class="eyebrow">CLASSROOM PORTAL</p><h1>' +
     e(title) + '</h1></div>' + content + '<div id="feedback" class="feedback"></div></main>';
 }
+function dashboardCards() {
+  const first=state.classes[0];
+  const count=state.classes.length;
+  const blocks=[
+    ['My Classrooms', count + ' linked', 'overview', '▦'],
+    ['My Active Classes', 'Open classroom', 'overview', '▣'],
+    ['To Do', 'Activities & submissions', 'activities', '✓'],
+    ['Upcoming', 'Class schedule & overview', 'overview', '◷'],
+    ['Notifications', 'Official notices', 'notices', '✉'],
+    ['Attendance', 'Verified sessions', 'attendance', '◎'],
+    ['My Grades', 'Authorized grade viewer', 'grades', '▥'],
+    ['Progress', 'Learning overview', 'overview', '◉'],
+    ['Live Now', 'Live room in BUKLOD Main', 'overview', '◉'],
+    ['Continue', 'Resume assigned classroom', 'overview', '↗']
+  ];
+  return '<section class="portal-overview" aria-label="Classroom dashboard"><div class="section-line"><h2>Connected learning dashboard</h2>' +
+    pill(count + ' classroom' + (count===1?'':'s'))+'</div><div class="portal-bento">' +
+    blocks.map(([title,detail,tab,mark]) =>
+      '<button type="button" class="portal-tile" data-action="portal-shortcut" data-id="' + e(tab) + '"' +
+      (first ? '' : ' disabled aria-disabled="true"') + '><span class="portal-tile-mark" aria-hidden="true">' + mark +
+      '</span><strong>' + e(title) + '</strong><small>' + e(first ? detail : 'No linked class') +
+      '</small></button>').join('') + '</div></section>';
+}
+function renderSwitchDrawer() {
+  if(!state.drawerOpen) return '';
+  return '<div class="drawer-layer"><button type="button" class="drawer-shade" data-action="close-switch" aria-label="Close class switcher"></button>' +
+    '<aside class="switch-drawer" role="dialog" aria-modal="true" aria-label="Switch classroom">' +
+    '<div class="drawer-title"><h2>Switch classroom</h2>' + btn('Close','close-switch')+'</div>' +
+    '<p class="muted">Only classrooms assigned to your BUKLOD account are available.</p>' +
+    state.classes.map(c => '<div class="drawer-class"><button type="button" data-action="open-class" data-id="' +
+      e(c.classroom_id) + '" class="drawer-class-main"><strong>' + e(c.classroom_name) +
+      '</strong><small>' + e([c.subject_code,c.section_name,c.term].filter(Boolean).join(' · ')) +
+      '</small></button>' + btn('Copy link','copy-class-link',c.classroom_id) + '</div>').join('') +
+    '</aside></div>';
+}
 function renderClasses() {
   const list = state.classes.map(c => '<button class="class-card" data-action="open-class" data-id="' + e(c.classroom_id) +
-    '"><span class="class-icon">📚</span><span><strong>' + e(c.classroom_name) +
+    '"><span class="class-icon"><img src="/buklod-classroom-cyan.svg" width="40" height="40" alt="" /></span><span><strong>' + e(c.classroom_name) +
     '</strong><small>' + e([c.subject_code,c.section_name,c.term].filter(Boolean).join(' · ') || 'BUKLOD Classroom') +
     '</small><span class="role-row">' + (c.can_faculty_view ? pill('Faculty') : '') +
     (c.can_student_view ? pill('Student') : '') + '</span></span><span class="chevron">›</span></button>').join('');
-  layout('<div class="cards-area"><section><div class="section-line"><h2>Your Classrooms</h2>' +
+  layout(dashboardCards() + '<div class="cards-area"><section><div class="section-line"><h2>Your Classrooms</h2>' +
     btn('Refresh', 'refresh-classes') + '</div>' +
     (list || noRows('No active classes linked to your BUKLOD account. Ask your faculty to add you to the official roster.')) +
     '</section><aside class="side-card"><h3>Student access</h3><p>Course materials, classroom discussions, official work, attendance and released grades are shown only for your enrolled classes.</p>' +
@@ -141,7 +176,7 @@ function renderClass() {
     btn('Refresh module', 'refresh-tab') +
     (canDeleteClass() ? btn('Delete Class', 'delete-class', null, 'danger-outline') : '') +
     '</div></div>';
-  layout(summary + navClasses() + '<section id="module" class="module">' + (state.error ? '<div class="feedback error" role="alert">' + e(state.error) + '</div>' : '') + moduleContent() + '</section>', c.name || 'Classroom');
+  layout(summary + navClasses() + '<section id="module" class="module">' + (state.error ? '<div class="feedback error" role="alert">' + e(state.error) + '</div>' : '') + moduleContent() + '</section>' + renderSwitchDrawer(), c.name || 'Classroom');
 }
 function moduleContent() {
   if (state.busy && !state.data.length) return '<div class="splash inline"><span class="spinner"></span> Loading module…</div>';
@@ -351,7 +386,7 @@ async function loadClasses() {
 async function openClass(id, tab = 'overview') {
   if (!state.classes.some(c => c.classroom_id===id)) { notice('You are not assigned to that classroom.', true); return; }
   const seq = ++state.seq;
-  state.classId = id; state.tab = tab; state.group = groupOf(tab); state.context=null; state.overview=null;
+  state.classId = id; state.drawerOpen=false; state.tab = tab; state.group = groupOf(tab); state.context=null; state.overview=null;
   state.data=[]; state.additional=[]; state.error=''; state.busy=true;
   render(); history.replaceState({},'', classLink(id,tab));
   try {
@@ -494,10 +529,25 @@ async function deleteCurrentClass() {
 }
 
 async function doAction(action,id) {
-  if (state.busy) return;
+  const navigation=['classes','open-class','portal-shortcut','tab','group','switch-class','close-switch','copy-class-link'];
+  if(state.busy && !navigation.includes(action)) return;
+  if(action==='switch-class'){state.drawerOpen=true;render();return;}
+  if(action==='close-switch'){state.drawerOpen=false;render();return;}
+  if(action==='copy-class-link'){
+    if(!state.classes.some(c=>c.classroom_id===id)) return;
+    const link=new URL(classLink(id,'overview'),location.origin).href;
+    try { await navigator.clipboard.writeText(link); notice('Classroom link copied.'); }
+    catch { window.prompt('Copy classroom link:',link); }
+    return;
+  }
+  if(action==='portal-shortcut'){
+    if(!state.classes.length || !tabs.some(t=>t[0]===id)) return;
+    const first=state.classes[0].classroom_id;
+    history.pushState({},'',classLink(first,id));await openClass(first,id);return;
+  }
   if (action==='classes') {
     ++state.seq; state.classId=''; state.context=null; state.overview=null; state.data=[];
-    state.additional=[]; state.error=''; history.replaceState({},'',location.pathname); render(); return;
+    state.additional=[]; state.error=''; state.drawerOpen=false; history.pushState({},'',location.pathname); render(); return;
   }
   if (action==='signout') {
     const {error}=await db.auth.signOut(); if(error){notice(error.message,true);return;}
@@ -506,12 +556,12 @@ async function doAction(action,id) {
   }
   if (action==='refresh-classes'){await loadClasses();return;}
   if (action==='delete-class'){await deleteCurrentClass();return;}
-  if (action==='open-class'){await openClass(id);return;}
+  if (action==='open-class'){history.pushState({},'',classLink(id,'overview'));await openClass(id);return;}
   if (action==='group') {
     if (!GROUP_TABS[id]) return;
     const tab = validTab(DEFAULT_TAB[id],id);
     state.group=id; state.tab=tab;
-    history.replaceState({},'',classLink(state.classId,tab));
+    history.pushState({},'',classLink(state.classId,tab));
     if(tab==='overview'){++state.seq;state.busy=false;state.error='';state.data=[];state.additional=[];render();}
     else await loadTab();
     return;
@@ -519,7 +569,7 @@ async function doAction(action,id) {
   if (action==='tab') {
     if (!tabs.some(t=>t[0]===id) || (id==='faculty' && !isFaculty())) return;
     state.group=groupOf(id);
-    state.tab=id;history.replaceState({},'',classLink(state.classId,id));
+    state.tab=id;history.pushState({},'',classLink(state.classId,id));
     if (id==='overview'){++state.seq;state.busy=false;state.error='';state.data=[];state.additional=[];render();}else await loadTab();return;
   }
   if (action==='refresh-tab') {if(state.tab==='overview') await openClass(state.classId);else await loadTab();return;}
@@ -615,6 +665,20 @@ async function handleForm(form) {
   } catch(err){notice(errorMessage(err),true);}
   finally {state.busy=false;if(oldLabel?.isConnected) oldLabel.disabled=false;}
 }
+window.addEventListener('popstate', () => {
+  const params=new URLSearchParams(location.search);
+  const classId=params.get('class'), tab=validTab(params.get('tab'),params.get('group'));
+  if(!classId || !state.classes.some(c=>c.classroom_id===classId)){
+    ++state.seq;state.classId='';state.context=null;state.overview=null;
+    state.data=[];state.additional=[];state.error='';state.busy=false;state.drawerOpen=false;render();
+    return;
+  }
+  if(state.classId===classId && state.context){
+    state.drawerOpen=false;state.tab=tab;state.group=groupOf(tab);
+    if(tab==='overview'){++state.seq;state.busy=false;state.error='';state.data=[];state.additional=[];render();}
+    else void loadTab();
+  } else void openClass(classId,tab);
+});
 root.addEventListener('click',event=>{
   const target=event.target.closest('button[data-action]');
   if(!target) return;
