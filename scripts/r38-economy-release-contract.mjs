@@ -92,7 +92,15 @@ requireText(referralPath, referral, [
   'PAYOUT PROFILE',
   'HISTORY',
 ]);
+// Updated Points entry: the old redundant Economy door was intentionally retired.
+// Preserve the hard points-versus-cash distinction and canonical guide route.
 requireText(redeemPath, redeem, [
+  'How Economy & Bayanihan works',
+  'Points are not pesos',
+  'OPEN ECONOMY GUIDE',
+  "router.push('/bayanihan/guide'",
+]);
+forbidText(redeemPath, redeem, [
   'Points stay progression-only',
   'OPEN ECONOMY & BAYANIHAN',
   "router.push('/points/economy'",
