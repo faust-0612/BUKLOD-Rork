@@ -1,0 +1,174 @@
+name: BUKLOD V31 Production Green B AAB
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/buklod-v31-green-b-aab-20261108.yml']
+permissions:
+  contents: read
+concurrency:
+  group: buklod-v31-green-b-production-aab
+  cancel-in-progress: false
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  BUKLOD_APP_TARGET: main
+  EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
+jobs:
+  signed-v31-aab:
+    if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'BUKLOD_V31_GREEN_B_PRODUCTION_AAB_20261108')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exact authorized current main source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Enforce current main identity and canonical approved icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor 1b1627a72b509d3a1f97c67f85cdf5394040f1b2 "$GITHUB_SHA"
+          git diff --exit-code
+          test "$(git rev-parse HEAD:assets/release/buklod-main-canonical.png)" = 9a4e4a826191d6e310dc26f5c74d4611293ceb17
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const c=require('./app.config.js')({config:{}}),e=JSON.parse(fs.readFileSync('eas.json','utf8'));
+          a.equal(c.name,'BUKLOD');
+          a.equal(c.android.package,'org.mzbministry.buklod');
+          a.equal(c.version,'1.3.6');a.equal(c.android.versionCode,30);a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.icon,'./assets/release/app-icon.png');
+          a.equal(c.android.adaptiveIcon.foregroundImage,'./assets/release/app-icon.png');
+          a.equal(c.android.googleServicesFile,'./google-services.production.json');
+          a.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.ok(c.android.blockedPermissions.includes('android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE'));
+          a.equal(e.cli.appVersionSource,'local');
+          a.equal(e.build.production.channel,'production');
+          a.equal(e.build.production.environment,'production');
+          a.equal(e.build.production.android.buildType,'app-bundle');
+          a.ok(fs.statSync('assets/release/buklod-main-canonical.png').size>0);
+          NODE
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies and run V30 production regression baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node --test tests/native-expo-config-compat.test.cjs tests/android-v29-runtime-compat-release-20261108.test.cjs tests/android-v30-runtime-compat-release-20261108.test.cjs tests/staging-release-identity-v30-20261108.test.cjs
+          npx tsc --noEmit
+          node scripts/game-kingdom-release-contract.mjs
+          node --test tests/admin-music-multiselect-motion-drawer-20261108.test.mjs tests/cluster-connect-notifications-points-20261108.test.mjs tests/wall-media-navigation-polish-20261108.test.mjs tests/production-ota-ads-regression.test.mjs
+      - name: Apply exact V31 native release overlay to ephemeral runner only
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const path='app.config.js';let s=fs.readFileSync(path,'utf8');
+          const oldCode="versionCode: isStaging ? undefined : (isClassroom ? 28 : 30)";
+          a.equal(s.split(oldCode).length,2,'Unexpected baseline versionCode expression');
+          s=s.replace(oldCode,"versionCode: isStaging ? undefined : (isClassroom ? 28 : 31)");
+          const oldIcon="(isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png')";
+          a.equal(s.split(oldIcon).length,3,'Expected exactly two production launcher/adaptive icons');
+          s=s.split(oldIcon).join("'./assets/release/buklod-main-canonical.png'");
+          fs.writeFileSync(path,s);
+          const cfg=require('./app.config.js')({config:{}});
+          a.equal(cfg.android.versionCode,31);a.equal(cfg.version,'1.3.6');
+          a.equal(cfg.icon,'./assets/release/buklod-main-canonical.png');
+          a.equal(cfg.android.adaptiveIcon.foregroundImage,cfg.icon);
+          a.equal(cfg.runtimeVersion,'1.3.2');a.equal(cfg.android.package,'org.mzbministry.buklod');
+          a.equal(cfg.android.googleServicesFile,'./google-services.production.json');
+          a.equal(cfg.updates.url,'https://u.expo.dev/23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.ok(cfg.android.blockedPermissions.includes('android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE'));
+          console.log('V31 release overlay: versionCode31 + approved green B both launcher forms, no other app changes');
+          NODE
+          test "$(git diff --name-only)" = "app.config.js"
+          git diff --unified=2 -- app.config.js
+          APP_VARIANT=production EXPO_PUBLIC_APP_ENV=production npx expo config --json > /tmp/buklod-v31-config.json
+          node <<'NODE'
+          const a=require('node:assert/strict'),c=JSON.parse(require('node:fs').readFileSync('/tmp/buklod-v31-config.json','utf8'));
+          a.equal(c.android.versionCode,31);a.equal(c.version,'1.3.6');
+          a.equal(c.icon,'./assets/release/buklod-main-canonical.png');
+          a.equal(c.android.adaptiveIcon.foregroundImage,c.icon);
+          a.equal(c.android.package,'org.mzbministry.buklod');
+          a.equal(c.runtimeVersion,'1.3.2');
+          NODE
+      - name: Verify production credentials and environment before paid cloud build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a; . ./.env.local; set +a
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          test -s google-services.production.json
+          npx eas-cli@latest env:exec production 'node scripts/verify-production-ads-env.cjs'
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+      - name: Build one production-signed V31 Android AAB, no OTA web or Play
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest build --platform android --profile production --non-interactive --wait --json > eas-v31-aab.json
+          test -s eas-v31-aab.json
+      - name: Verify EAS finished artifact and exact version
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const j=JSON.parse(fs.readFileSync('eas-v31-aab.json','utf8')),b=Array.isArray(j)?j[0]:j;
+          a.equal(String(b.status).toLowerCase(),'finished');
+          a.equal(String(b.platform).toLowerCase(),'android');
+          if(b.appVersion!=null)a.equal(String(b.appVersion),'1.3.6');
+          if(b.appBuildVersion!=null)a.equal(String(b.appBuildVersion),'31');
+          const u=b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl;
+          a.ok(typeof u==='string'&&u.startsWith('https://'));
+          a.match(new URL(u).pathname,/\.aab$/i);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,[
+            '# BUKLOD V31 Production AAB — EAS finished',
+            '- Exact source commit: '+process.env.GITHUB_SHA,
+            '- Native runner overlay: approved green B icon + versionCode 31 only',
+            '- App: 1.3.6; code: 31; runtime: 1.3.2',
+            '- Android package: org.mzbministry.buklod',
+            '- EAS channel/environment: production',
+            '- Build ID: '+b.id,
+            '- AAB URL: '+u,
+            '- OTA, web, and Play submission: NOT performed'
+          ].join('\n')+'\n');
+          console.log('BUKLOD_V31_EAS_ID='+b.id);
+          NODE
+      - name: Inspect final built AAB binary manifest and bundled icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="$(node -e "const j=require('./eas-v31-aab.json');const b=Array.isArray(j)?j[0]:j;process.stdout.write(b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl||'')")"
+          curl -fL --retry 2 --max-time 900 "$URL" -o /tmp/buklod-v31.aab
+          test "$(stat -c '%s' /tmp/buklod-v31.aab)" -gt 1000000
+          curl -fsSL --retry 2 https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o /tmp/bundletool.jar
+          java -jar /tmp/bundletool.jar dump manifest --bundle=/tmp/buklod-v31.aab --module=base > /tmp/buklod-v31-manifest.xml
+          grep -q 'org.mzbministry.buklod' /tmp/buklod-v31-manifest.xml
+          grep -Eq 'versionCode="31"|versionCode="0x1f"' /tmp/buklod-v31-manifest.xml
+          if grep -qi 'FOREGROUND_SERVICE_CONNECTED_DEVICE\|foregroundServiceType="[^"]*connectedDevice' /tmp/buklod-v31-manifest.xml; then
+            echo 'BLOCKED: connectedDevice foreground service remains in final V31 AAB' >&2; exit 1
+          fi
+          grep -q 'FOREGROUND_SERVICE_MICROPHONE' /tmp/buklod-v31-manifest.xml
+          grep -q 'FOREGROUND_SERVICE_CAMERA' /tmp/buklod-v31-manifest.xml
+          unzip -l /tmp/buklod-v31.aab | grep -Eq 'base/res/.*(ic_launcher|mipmap|icon)'
+          echo 'PASS final V31 AAB production manifest, code31, no connectedDevice, launcher resources present'
+      - name: Archive exact V31 release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-v31-green-b-aab-${{ github.sha }}
+          path: eas-v31-aab.json
+          retention-days: 30
+          if-no-files-found: ignore
