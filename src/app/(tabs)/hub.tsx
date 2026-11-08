@@ -96,7 +96,7 @@ export default function BuklodLightHome() {
           ))}
         </ScrollView>
         <View style={{ gap: 10 }}>
-          {focused && foreground ? (
+          {foreground ? (
             <ToolBoundary onClose={() => {}}>
               <Suspense fallback={<ActivityIndicator color={theme.accent} accessibilityLabel="Loading Today's message" />}>
                 <Today onRespond={draft => {
@@ -176,7 +176,7 @@ export default function BuklodLightHome() {
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
           Old /home redirects here; do not bury QMP in the retired screen. */}
-      {focused && foreground ? (
+      {foreground ? (
         <ToolBoundary onClose={() => {}}>
           <Suspense fallback={
             <View style={{padding:12,borderRadius:14,backgroundColor:theme.surface}}>
@@ -189,7 +189,7 @@ export default function BuklodLightHome() {
         </ToolBoundary>
       ) : null}
       <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
-      {focused && foreground ? (
+      {foreground ? (
         <ToolBoundary onClose={() => {}}>
           <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading Home cards" color={theme.accent} />}>
             <DrawerCard />
@@ -234,7 +234,7 @@ export default function BuklodLightHome() {
           </Suspense>
         </ToolBoundary>
       ) : null}
-      {focused && foreground ? (
+      {foreground ? (
         <ToolBoundary onClose={() => {}}>
           <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading Home SOS" color={theme.accent} />}>
             <Help />
