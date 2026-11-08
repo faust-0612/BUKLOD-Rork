@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Build one BUKLOD Main V30 signed production AAB, remove unjustified FOREGROUND_SERVICE_CONNECTED_DEVICE from final manifest, retain Expo runtime 1.3.2 and production OTA channel; do not publish Google Play, OTA or web.",
+  "baseRef": "ce157c66f80978b0eb0d7f89c0766e0ca06c11dd",
+  "productionBaselineEvidence": "Source main ce157c66f80978b0eb0d7f89c0766e0ca06c11dd includes verified V29 source and later Wall/Connect/staging changes. Successful V29 EAS build 84056134-678a-403e-a4a0-c88a7b2c5cb4 from bd0f0155. Production app config 1.3.5/code29. Existing old V30 PR #582 is unmerged and diverged; new branch starts fresh from main.",
+  "chosenApproach": "Remove the explicit connectedDevice permission from the BUKLOD PTT plugin; add android.blockedPermissions to ensure merged manifests from transitive libraries remove it. Keep camera, microphone, VoIP, media playback, screen-share integrations intact. Build V30 1.3.6/code30 with runtime1.3.2 only after focused compatibility and compiled RC gates. EAS workflow verifies actual AAB manifest post-build.",
+  "selectionRationale": "PTT uses Stream VoIP, not external-device foreground-service transport. Google Play foreground-service declaration should reflect real behavior. This permission removal is audited and narrow, without native JS ABI additions. Runtime stays 1.3.2 by explicit user direction.",
+  "alternativeApproaches": [
+    "Make inaccurate Connected Device declaration: rejected as policy risk.",
+    "Rebuild V29 same versionCode: rejected because already uploaded to Play.",
+    "Merge obsolete V30 PR #582: rejected because old source would lose newer main changes."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "android-foreground-service-permissions",
+    "native-runtime",
+    "production-ota-compatibility"
+  ],
+  "preserveBehaviors": [
+    "Existing production OTA/web unchanged and no database migrations",
+    "All app source from current main retained: Wall, Connect, notifications, uploads, Points, ads, calls",
+    "Keep BUKLOD package org.mzbministry.buklod, production EAS project, runtime1.3.2, channel production",
+    "Keep Camera, Microphone, phoneCall, mediaProjection, mediaPlayback foreground-service support; retain Bluetooth/nearby permission for PTT"
+  ],
+  "acceptanceChecks": [
+    "Main version1.3.6 code30 runtime1.3.2; same package, project and production channel",
+    "PTT plugin no longer adds connectedDevice foreground-service permission; android.blockedPermissions explicitly blocks third-party manifest merge",
+    "V28/V29 native config otherwise compatible and only named PTT plugin source changed; historical V29 tests remain pinned to built V29 SHA",
+    "Signed EAS AAB finished from exact protected main commit; bundletool confirms final binary base manifest lacks connectedDevice permission/service type",
+    "No OTA, web, Google Play submission or database writes"
+  ],
+  "regressionTests": [
+    "tests/android-v30-runtime-compat-release-20261108.test.cjs",
+    "tests/android-v29-runtime-compat-release-20261108.test.cjs",
+    "tests/native-expo-config-compat.test.cjs",
+    "tests/release-rc-v29-compiled-gate-20261108.test.mjs"
+  ],
+  "allowedPaths": [
+    "app.config.js",
+    "plugins/withBuklodPttHardwareFoundation.js",
+    "tests/native-expo-config-compat.test.cjs",
+    "tests/android-v29-runtime-compat-release-20261108.test.cjs",
+    "tests/release-rc-v29-compiled-gate-20261108.test.mjs",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    ".github/workflows/buklod-v30-aab-production-20261108.yml",
+    "tests/android-v30-runtime-compat-release-20261108.test.cjs",
+    ".buklod/scopes/buklod-main-v30-production-permission-cleanup-20261108.json"
+  ]
+}

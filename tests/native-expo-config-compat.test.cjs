@@ -79,11 +79,12 @@ test('only app versionName and Android versionCode can differ without new runtim
   }
 });
 
-test('actual production app config remains V28 runtime-compatible across V29 store metadata', () => {
+test('historical built V29 app config remains V28 runtime-compatible across store metadata', () => {
   // Release and PR workflow both check out full Git history. Missing baseline
   // is a hard failure: never skip the release identity contract.
   const source = execFileSync('git', ['show', pinnedV28 + ':app.config.js'], { encoding: 'utf8' });
-  const actual = require('../app.config.js')({ config: {} });
+  const builtV29Source = execFileSync('git', ['show', 'bd0f0155ad3fa6a7481e60d29ef9091de8b527b1:app.config.js'], { encoding: 'utf8' });
+  const actual = resolveExpoConfigFromSource(builtV29Source);
   assertNativeRuntimeCompatible(actual, resolveExpoConfigFromSource(source));
 });
 
