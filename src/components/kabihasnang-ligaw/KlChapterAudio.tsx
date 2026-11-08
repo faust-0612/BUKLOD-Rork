@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Pressable, Text, View } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
-import { useIsFocused } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 
 import { otherAudioPlaying } from '@/lib/kabihasnang-ligaw/externalAudioState';
 import { closeKlAudioPlayer, runKlAudioCommand } from '@/lib/kabihasnang-ligaw/audioPlayerLifecycle';
@@ -40,13 +40,22 @@ class ChapterAudioBoundary extends React.Component<{ children: React.ReactNode }
 
 function ChapterAudioControls({ music, ambient, autoPlay = false }: Pick<Props, 'music' | 'ambient' | 'autoPlay'>) {
   const playerRef = useRef<NativePlayer | null>(null);
-  const routeFocused = useIsFocused();
+  const [routeFocused, setRouteFocused] = useState(true);
   const lastSourcesRef = useRef([music, ambient]);
   const autoAttemptedRef = useRef(false);
   const [enabled, setEnabled] = useState(false);
   const [track, setTrack] = useState<'music' | 'ambient'>('music');
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState('');
+  useFocusEffect(useCallback(() => {
+    setRouteFocused(true);
+    return () => {
+      const player = playerRef.current;
+      if (player) runKlAudioCommand(() => player.pause());
+      setRouteFocused(false);
+      setEnabled(false);
+    };
+  }, []));
 
   useEffect(() => {
     // Own the player explicitly: expo-audio's hook may release native state before
