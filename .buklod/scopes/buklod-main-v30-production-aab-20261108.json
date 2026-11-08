@@ -26,14 +26,13 @@
     "PR changed files only app.config.js, release workflow, version compatibility contracts, compile gate, release scope manifest; no src, lockfile, plugins, android/ios changes.",
     "Current versionName 1.3.6 and Android versionCode 30; pinned runtime 1.3.2 remains native ABI compatible with installed V28 and latest V29.",
     "Protected main push and exact merge source SHA; EAS production profile is app-bundle; no APK, OTA, web, or Google Play submit.",
-    "EAS build reports status FINISHED, platform Android, appVersion 1.3.6, appBuildVersion 30, exact Git commit and valid .aab artifact URL, with evidence archived."
+    "EAS build reports status FINISHED, platform Android, appVersion 1.3.6, appBuildVersion 30, exact Git commit and valid .aab artifact URL, with evidence archived.",
+    "Unchanged baseline contracts (native runtime and scoped interactions) run in protected production AAB builder; scope regressionTests only lists tests authored or edited by this PR to meet change-coverage gate."
   ],
   "regressionTests": [
-    "tests/native-expo-config-compat.test.cjs",
     "tests/android-v29-runtime-compat-release-20261108.test.cjs",
     "tests/android-v30-runtime-compat-release-20261108.test.cjs",
-    "tests/release-rc-v29-compiled-gate-20261108.test.mjs",
-    "tests/cluster-connect-notifications-points-20261108.test.mjs"
+    "tests/release-rc-v29-compiled-gate-20261108.test.mjs"
   ],
   "allowedPaths": [
     "app.config.js",
