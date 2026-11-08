@@ -15,10 +15,6 @@ import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
 import { useAuth } from '@/providers/AuthProvider';
 import {
-  claimBuklodRewardEvent,
-  claimBuklodRewardGroup,
-} from '@/lib/buklodRewards';
-import {
   economyEstimatedBayanihanPhp,
   economyFinalizedBayanihanPhp,
   economyPoolSharePct,
@@ -204,7 +200,7 @@ export default function BuklodEconomyDashboard() {
         key: 'claim',
         title: `${formatEconomyPts(claimable)} pts ready to claim`,
         body: 'Completed activities are waiting in Claim Center.',
-        action: () => setSection('rewards'),
+        action: () => router.push('/points' as any),
         actionLabel: 'Open Claims',
       });
     }
@@ -229,35 +225,6 @@ export default function BuklodEconomyDashboard() {
     return items;
   }, [claimable, withdrawable, snapshot?.errors, refresh]);
 
-  const claimAll = async () => {
-    if (busy) return;
-    setBusy('claim-all');
-    setMessage(null);
-    try {
-      const result = await claimBuklodRewardEvent('__buklod_claim_all_eligible__');
-      setMessage(`Claimed ${formatEconomyPts(result.claimed_points)} pts.`);
-      await load();
-    } catch (error: unknown) {
-      setMessage(error instanceof Error ? error.message : 'Could not claim points.');
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const claimGroup = async (groupKey: string) => {
-    if (busy) return;
-    setBusy(groupKey);
-    setMessage(null);
-    try {
-      const result = await claimBuklodRewardGroup(groupKey);
-      setMessage(`Claimed ${formatEconomyPts(result.claimed_points)} pts from ${result.group_key}.`);
-      await load();
-    } catch (error: unknown) {
-      setMessage(error instanceof Error ? error.message : 'Could not claim this group.');
-    } finally {
-      setBusy(null);
-    }
-  };
 
   if (loading && !snapshot) {
     return (
@@ -374,14 +341,13 @@ export default function BuklodEconomyDashboard() {
             <View style={styles.actionGrid}>
               <ActionButton
                 icon="gift-outline"
-                label={busy === 'claim-all' ? 'Claiming…' : 'Claim All'}
-                onPress={() => void claimAll()}
-                disabled={claimable <= 0 || Boolean(busy)}
+                label={claimable > 0 ? 'Go to BUKLOD Claim Center' : 'View BUKLOD Points'}
+                onPress={() => router.push('/points' as any)}
               />
               <ActionButton
                 icon="star-circle-outline"
-                label="Claim Center"
-                onPress={() => setSection('rewards')}
+                label="BUKLOD Claim Center"
+                onPress={() => router.push('/points' as any)}
                 tone="secondary"
               />
               <ActionButton
@@ -602,7 +568,7 @@ export default function BuklodEconomyDashboard() {
       ) : null}
 
       {section === 'rewards' ? (
-        <SectionCard title="Claim Center" caption="Earned → Pending → Claimable → Claimed → Available.">
+        <SectionCard title="Ready to Claim" caption="All BUKLOD Points claims use one verified Claim Center and the same optional ad opportunity.">
           <View style={styles.grid}>
             <Metric label="Claimable now" value={formatEconomyPts(claimable)} emphasis />
             <Metric label="Available after claim" value={formatEconomyPts(available)} />
@@ -610,36 +576,21 @@ export default function BuklodEconomyDashboard() {
           </View>
           <ActionButton
             icon="gift-outline"
-            label={busy === 'claim-all' ? 'Claiming…' : 'Claim All'}
-            onPress={() => void claimAll()}
-            disabled={claimable <= 0 || Boolean(busy)}
+            label="OPEN BUKLOD POINTS CLAIM CENTER"
+            onPress={() => router.push('/points' as any)}
           />
-          {(snapshot?.claimGroups ?? []).map((group) => (
+          {(snapshot?.claimGroups ?? []).map(group => (
             <View key={group.group_key} style={styles.claimCard}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.claimTitle}>{group.group_label}</Text>
-                <Text style={styles.claimMeta}>
-                  {group.event_count} ready · {formatEconomyPts(group.total_points)} pts
-                </Text>
-              </View>
-              <ActionButton
-                icon="check"
-                label={busy === group.group_key ? '…' : 'Claim'}
-                onPress={() => void claimGroup(group.group_key)}
-                disabled={Boolean(busy)}
-                tone="secondary"
-              />
+              <Text style={styles.claimTitle}>{group.group_label}</Text>
+              <Text style={styles.claimMeta}>
+                {group.event_count} completed · {formatEconomyPts(group.total_points)} points
+              </Text>
             </View>
           ))}
-          {(snapshot?.claimGroups.length ?? 0) === 0 ? (
-            <Text style={styles.empty}>No claimable groups right now.</Text>
-          ) : null}
-          <ActionButton
-            icon="shopping-outline"
-            label="Open Redeem / Points Catalog"
-            onPress={() => router.push('/points' as any)}
-            tone="secondary"
-          />
+          <Text style={styles.helpLine}>
+            Claims and reward ads are not processed inside Economy & Bayanihan.
+            The authoritative Claim Center handles every verified Points reward.
+          </Text>
         </SectionCard>
       ) : null}
 
