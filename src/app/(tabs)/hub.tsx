@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
@@ -65,10 +66,10 @@ export default function BuklodLightHome() {
     return (
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.surface }}
-        contentContainerStyle={{ padding: 12, paddingBottom: 32, gap: 12 }}>
+        contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ minHeight: 112, borderRadius: 16, padding: 20, justifyContent: 'center' }}>
+          style={{ minHeight: 112, borderRadius: 4, padding: 20, justifyContent: 'center' }}>
           <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF' }}>Welcome to BUKLOD!</Text>
           <Text style={{ fontSize: 12, marginTop: 4, color: '#FFFFFF' }}>
             A community of faith, connection, and shared purpose.
@@ -83,7 +84,7 @@ export default function BuklodLightHome() {
             <Pressable key={item.label} accessibilityRole="button"
               accessibilityLabel={item.label} onPress={item.action}
               style={({ pressed }) => ({
-                width: 112, minHeight: 72, borderRadius: 14, padding: 9,
+                width: 112, minHeight: 72, borderRadius: 4, padding: 9,
                 alignItems: 'center', justifyContent: 'center', gap: 7,
                 backgroundColor: theme.accentSoft, opacity: pressed ? 0.75 : 1,
               })}>
@@ -104,9 +105,10 @@ export default function BuklodLightHome() {
               </Suspense>
             </ToolBoundary>
           ) : null}
+          <BuklodHomeUtilityCards />
           <Pressable accessibilityRole="button" accessibilityLabel="Create a public Wall post"
             onPress={openPost} style={({ pressed }) => ({
-              backgroundColor: theme.inputSurface, borderRadius: 15,
+              backgroundColor: theme.inputSurface, borderRadius: 4,
               paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
               opacity: pressed ? 0.75 : 1,
             })}>
@@ -118,7 +120,7 @@ export default function BuklodLightHome() {
         <Pressable accessibilityRole="button" accessibilityLabel="Open announcements, Quiz and Bulletins"
           accessibilityState={{ expanded: updatesOpen }}
           onPress={() => setUpdatesOpen(value => !value)}
-          style={{ borderRadius: 14, padding: 14, backgroundColor: theme.accentSoft,
+          style={{ borderRadius: 4, padding: 14, backgroundColor: theme.accentSoft,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ color: theme.textPrimary, fontWeight: '900' }}>
             {updatesOpen ? 'Hide Announcements, Quiz & Bulletins' : 'Announcements, Quiz & Bulletins'}
@@ -135,7 +137,7 @@ export default function BuklodLightHome() {
         ) : null}
         <Pressable accessibilityRole="button" accessibilityLabel="Open the Community Wall"
           onPress={() => router.push('/buklod')}
-          style={{ padding: 16, backgroundColor: theme.surface, borderRadius: 14,
+          style={{ padding: 16, backgroundColor: theme.surface, borderRadius: 4,
             borderWidth: 1, borderColor: theme.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <MaterialCommunityIcons name="post-outline" size={26} color={theme.accent} />
           <View style={{ flex: 1 }}>
@@ -147,7 +149,7 @@ export default function BuklodLightHome() {
         <Pressable accessibilityRole="button" accessibilityLabel="Show home tools"
           accessibilityState={{ expanded: desktopToolsOpen }}
           onPress={() => setDesktopToolsOpen(v => !v)}
-          style={{ backgroundColor: theme.accentSoft, borderRadius: 14, padding: 14,
+          style={{ backgroundColor: theme.accentSoft, borderRadius: 4, padding: 14,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ color: theme.textPrimary, fontWeight: '900' }}>
             {desktopToolsOpen ? 'Hide Home Tools' : 'Open Home Tools: Drawer, PTT, Map & SOS'}
@@ -169,7 +171,7 @@ export default function BuklodLightHome() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ padding: 18, gap: 12 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, gap: 8 }}>
       <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
@@ -198,13 +200,14 @@ export default function BuklodLightHome() {
           </Suspense>
         </ToolBoundary>
       ) : null}
+      <BuklodHomeUtilityCards />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Announcements, BUKLOD Quiz and Bulletins"
         accessibilityState={{ expanded: updatesOpen }}
         onPress={() => setUpdatesOpen(value => !value)}
         style={{
-          borderRadius: 14,
+          borderRadius: 4,
           borderWidth: 1,
           borderColor: theme.navBorder,
           padding: 14,
@@ -239,7 +242,7 @@ export default function BuklodLightHome() {
         </ToolBoundary>
       ) : null}
       <Pressable accessibilityRole="button" onPress={() => router.replace('/buklod')}
-        style={{ padding: 16, alignItems: 'center', borderRadius: 14, backgroundColor: theme.navActive }}>
+        style={{ padding: 16, alignItems: 'center', borderRadius: 4, backgroundColor: theme.navActive }}>
         <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>Return to Community Wall</Text>
       </Pressable>
 
