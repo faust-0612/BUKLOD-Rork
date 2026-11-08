@@ -390,10 +390,26 @@ window.openClassSwitcherDrawer=()=>{
 window.openCreateClassroomDrawer=()=>show('Use the authorized BUKLOD Main faculty controls to create a classroom.');
 window.openItemInspector=(type,id)=>type==='announcement'?window.openRealComment(id):show('Open the relevant official module for details.');
 window.runContextAction=action=>{window.closeContextMenu();show(action==='open'?'Open the official classroom module.':'This context action requires a verified backend write. Nothing was modified.');};
+function clearPrivateSession(){
+  ++activeRequest;
+  activeUser=null;
+  roleByClass=new Map();cache=new Map();
+  liveKnown=false;liveCount=0;
+  app.classrooms={};app.activeClassId='';
+  document.body.classList.remove('buklod-live-authed');
+  document.querySelector('#universalSlideDrawer')?.classList.remove('open');
+  document.querySelector('#drawerBackdrop')?.classList.remove('open');
+  displayAuth();
+}
 window.handleSignOutClick=async()=>{
-  try{await call(db.auth.signOut());activeUser=null;app.classrooms={};cache=new Map();document.body.classList.remove('buklod-live-authed');displayAuth();}
+  try{await call(db.auth.signOut());clearPrivateSession();}
   catch(error){show(safeError(error));}
 };
+// Respond immediately to sign-out from another tab/device to avoid showing stale
+// cached academic data from a revoked local session.
+db.auth.onAuthStateChange(event=>{
+  if(event==='SIGNED_OUT')clearPrivateSession();
+});
 
 function displayAuth(errorText=''){
   el('liveAuthScreen')?.remove();
