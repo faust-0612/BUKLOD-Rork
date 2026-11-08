@@ -77,6 +77,12 @@ export function buklodInstantReplace(href: RouterHref) {
   router.replace(href as any);
 }
 
+/** Primary dashboard navigation reuses already mounted screen state. Do not
+ * change replace behavior for auth gates, redirects or subordinate routes. */
+export function buklodInstantNavigate(href: RouterHref) {
+  router.navigate(href as any);
+}
+
 /** Contextual destinations stay within the desktop shell when one is mounted.
  * Mobile/native and explicit full-screen actions retain canonical Expo routing. */
 export function buklodInstantPush(href: RouterHref) {
