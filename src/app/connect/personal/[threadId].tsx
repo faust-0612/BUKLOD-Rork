@@ -12,12 +12,14 @@ export default function PersonalConnectThreadRoute() {
     otherUserId?: string | string[];
     otherUserName?: string | string[];
     focusMessageId?: string | string[];
+    focusMessageId?: string | string[];
   }>();
 
   const threadId = firstRouteParam(params.threadId);
   const targetUserId = firstRouteParam(params.targetUserId);
   const otherUserId = firstRouteParam(params.otherUserId);
   const otherUserName = firstRouteParam(params.otherUserName);
+  const focusMessageId = firstRouteParam(params.focusMessageId);
   const focusMessageId = firstRouteParam(params.focusMessageId);
 
   if (!threadId && !targetUserId) {
@@ -40,6 +42,7 @@ export default function PersonalConnectThreadRoute() {
     <ConnectRenderBoundary surface="personal_thread">
       <BuklodConnectThread
       mode="direct"
+      focusMessageId={focusMessageId}
       focusMessageId={focusMessageId}
       containerId={
         pendingNewThread
