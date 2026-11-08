@@ -80,12 +80,27 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${EXPO_TOKEN:-}"
-          # Staging Firebase credentials are never kept in Git; restore them
-          # ephemerally from the previously established protected staging secret.
-          test -n "${STAGING_FIREBASE_JSON_B64:-}" || { echo 'STOP: STAGING_FIREBASE_JSON_B64 secret is unavailable'; exit 1; }
+          # Prefer a protected staging Firebase secret. If it is absent, the
+          # existing checked-in multi-client Firebase config explicitly
+          # registers org.mzbministry.buklod.staging alongside Main. Copy that
+          # authoritative file for this isolated build only: the Google Services
+          # plugin selects the registered client by Android package.
           umask 077
-          printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
-          test -s google-services.staging.json || { echo 'STOP: invalid staging Firebase secret'; exit 1; }
+          if [ -n "${STAGING_FIREBASE_JSON_B64:-}" ]; then
+            printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
+            echo 'Restored staging Firebase client from protected GitHub secret'
+          else
+            test -s google-services.production.json || { echo 'STOP: no registered Firebase source'; exit 1; }
+            node <<'NODE'
+          const f=require('./google-services.production.json');
+          if(!f.client?.some(x=>x.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging')) {
+            throw Error('STOP: current Firebase source has no registered staging package');
+          }
+          NODE
+            cp google-services.production.json google-services.staging.json
+            echo 'Restored registered staging Firebase client from canonical multi-client config'
+          fi
+          test -s google-services.staging.json || { echo 'STOP: invalid staging Firebase source'; exit 1; }
           npx eas-cli@latest whoami --non-interactive >/dev/null
           npx eas-cli@latest env:pull --environment preview --path /tmp/buklod-preview-public.env --non-interactive
           test -s /tmp/buklod-preview-public.env
