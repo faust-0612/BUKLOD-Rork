@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      PREVIEW_URL: https://buklod-classroom--j6e5o4e73z.expo.app
+      PREVIEW_URL: https://buklod-classroom--0g49qf2xe0.expo.app
     steps:
       - name: Checkout exact test source
         uses: actions/checkout@v4
