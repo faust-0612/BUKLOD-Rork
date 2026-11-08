@@ -25,6 +25,8 @@ type ThreadRoot = {
 type Props = {
   comments: BuklodCommunityCommentModel[];
   currentUserId?: string | null;
+  focusCommentId?: string | null;
+  onFocusedCommentLayout?: (y:number)=>void;
   reactionOptions: readonly BuklodReactionOption[];
   emptyText?: string;
   sortMode?: CommentSortMode;
@@ -99,6 +101,8 @@ function buildThreads(
 export function BuklodCommunityCommentThread({
   comments,
   currentUserId,
+  focusCommentId,
+  onFocusedCommentLayout,
   reactionOptions,
   emptyText = 'No comments yet. Be the first to respond.',
   sortMode: controlledSort,
@@ -138,7 +142,11 @@ export function BuklodCommunityCommentThread({
     root: BuklodCommunityCommentModel,
     isReply: boolean,
   ) => (
-    <View style={[styles.row, isReply && styles.replyRow]}>
+    <View style={[styles.row, isReply && styles.replyRow,
+      String(comment.id)===String(focusCommentId)&&{
+        backgroundColor:'rgba(27,153,97,0.09)',borderRadius:12,
+        borderWidth:1,borderColor:'#28AA76',
+      }]}>
       {isReply ? <View style={styles.replyRail} /> : null}
       <BuklodTappableAvatar
         userId={comment.user_id}
@@ -208,7 +216,9 @@ export function BuklodCommunityCommentThread({
       ) : (
         threads.map(({ root, replies }) => {
           const rootId = String(root.id);
-          const isExpanded = Boolean(expanded[rootId]);
+          const focusInside=!!focusCommentId&&(rootId===String(focusCommentId)||
+            replies.some(row=>String(row.id)===String(focusCommentId)));
+          const isExpanded = focusInside||Boolean(expanded[rootId]);
           const hiddenCount = Math.max(0, replies.length - COLLAPSE_AFTER);
           const visibleReplies =
             isExpanded || replies.length <= COLLAPSE_AFTER
@@ -216,7 +226,10 @@ export function BuklodCommunityCommentThread({
               : replies.slice(0, COLLAPSE_AFTER);
 
           return (
-            <View key={rootId} style={styles.thread}>
+            <View key={rootId} style={styles.thread}
+              onLayout={event=>{
+                if(focusInside)onFocusedCommentLayout?.(event.nativeEvent.layout.y);
+              }}>
               {renderBubble(root, root, false)}
 
               {visibleReplies.map((reply) => (
