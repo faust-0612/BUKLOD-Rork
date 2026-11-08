@@ -63,15 +63,26 @@ jobs:
           grep -Fq 'buklod_classroom_context_v1' /tmp/classroom-preview.js
           grep -Fq 'buklod_classroom_student_released_grade_items_v2' /tmp/classroom-preview.js
           echo IMMUTABLE_EXPO_PREVIEW_AND_RLS_CLIENT=PASS
-      - name: Authenticate existing BUKLOD Classroom Expo project
+      - name: Install Expo project config dependencies
         shell: bash
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
           test -n "$EXPO_TOKEN"
-          npx --yes eas-cli@21.7.0 whoami --non-interactive >/dev/null
-      - name: Promote verified deployment rhw44sqqts to production
-        run: npx --yes eas-cli@21.7.0 deploy:alias --prod --id=rhw44sqqts --non-interactive --json
+      - name: Promote verified immutable deployment to Classroom production
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Alias assignment is idempotent for this exact Expo deployment ID.
+          # Do not require a separate flaky whoami GraphQL probe.
+          for attempt in 1 2; do
+            if npx --yes eas-cli@21.7.0 deploy:alias --prod --id=rhw44sqqts --non-interactive --json; then
+              echo EXPO_CLASSROOM_ALIAS_PROMOTION_ACCEPTED=rhw44sqqts
+              exit 0
+            fi
+            if [ "$attempt" -eq 1 ]; then sleep 6; fi
+          done
+          exit 1
       - name: Verify production is exact same immutable Gemini HTML
         shell: bash
         run: |
