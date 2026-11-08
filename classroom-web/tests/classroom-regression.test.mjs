@@ -48,3 +48,22 @@ test('connect live deep-link fails closed to secured web discussions, not a simu
   assert.match(webSource,/Live classroom sessions remain in the authorized BUKLOD app/);
   assert.doesNotMatch(webSource,/APP_STATE\.liveSession/);
 });
+
+test('GPT portal dashboard uses authorized class roster instead of demo accounts', () => {
+  assert.match(webSource, /function dashboardCards\(\)/);
+  assert.match(webSource, /state\.classes\[0\]/);
+  for (const label of ['My Classrooms','My Active Classes','To Do','Upcoming','Notifications',
+      'Attendance','My Grades','Progress','Live Now','Continue']) {
+    assert.ok(webSource.includes(label), 'Missing dashboard block: ' + label);
+  }
+  assert.doesNotMatch(webSource, /var APP_STATE/);
+  assert.doesNotMatch(webSource, /ghTokenInput/);
+});
+
+test('class switcher only offers backend-authorized classes and navigation restores browser history', () => {
+  assert.match(webSource,/function renderSwitchDrawer\(\)/);
+  assert.match(webSource,/state\.classes\.map\(c =>/);
+  assert.match(webSource,/if\(action==='copy-class-link'\)/);
+  assert.match(webSource,/history\.pushState/);
+  assert.match(webSource,/addEventListener\('popstate'/);
+});
