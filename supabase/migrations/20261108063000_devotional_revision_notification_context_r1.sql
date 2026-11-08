@@ -77,7 +77,7 @@ begin
     end loop;
   end if;
 end;
-$function$
+$function$;
 
 -- The outcome producer is invoked exclusively by the existing database
 -- approval trigger. Never let arbitrary client roles invoke this SECURITY
