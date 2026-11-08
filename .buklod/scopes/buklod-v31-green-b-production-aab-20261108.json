@@ -1,0 +1,36 @@
+{
+  "contractVersion": 2,
+  "objective": "Build production BUKLOD V31 AAB with approved green B Android launcher and adaptive icon, versionCode31 from latest main; do not publish OTA, web or Play.",
+  "baseRef": "d725b4f52c339d7fadfbdf6d8ec2767907a995de",
+  "productionBaselineEvidence": "Verified signed V30 AAB from main commit 1b1627a72b509d3a1f97c67f85cdf5394040f1b2 version 1.3.6/code30 runtime1.3.2; latest main d725b4f52c339d7fadfbdf6d8ec2767907a995de includes consolidated production and staging changes. Production default launcher still points to old app-icon.png, approved icon blob 9a4e4a826191d6e310dc26f5c74d4611293ceb17.",
+  "chosenApproach": "Add a one-time main-triggered production EAS AAB builder that verifies exact current main, runs existing production regression gates, applies only Android production icon/adaptive icon and versionCode31 to the ephemeral checkout, checks Expo config, production credentials and final signed AAB binary. Keep tracked production app config unchanged to avoid unintended production OTA guard behavior.",
+  "selectionRationale": "One isolated runner overlay prevents native release-only version and logo correction from modifying production OTA runtime, existing V30 guard tests, staging APK, or other features. The signed AAB retains 1.3.6 runtime1.3.2 and production Android package.",
+  "alternativeApproaches": [
+    "Change app.config.js on main and update existing V30 hardcoded guards: rejected for this build because it risks stopping existing production OTA and creates unnecessary unrelated churn.",
+    "Use staging-user APK or old staging branch: rejected because package and signing are not production and source may be stale."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "native-launcher-branding",
+    "production-play-versioning"
+  ],
+  "preserveBehaviors": [
+    "No production OTA/web/Play publishing or database modifications",
+    "Retain current main Wall, Connect, Points, ads, notifications, upload and other existing features",
+    "Preserve package org.mzbministry.buklod, Firebase production config, production EAS profile, runtime1.3.2 and production channel"
+  ],
+  "acceptanceChecks": [
+    "One signed EAS production AAB from exact current main release commit",
+    "Android Play versionCode31, app version1.3.6, approved green B launcher and adaptive foreground",
+    "Final AAB package and manifest code31, no connectedDevice foreground service",
+    "No changes beyond isolated new workflow, scope and focused test"
+  ],
+  "regressionTests": [
+    "tests/buklod-v31-production-release-identity-20261108.test.cjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod-v31-green-b-aab-20261108.yml",
+    "tests/buklod-v31-production-release-identity-20261108.test.cjs",
+    ".buklod/scopes/buklod-v31-green-b-production-aab-20261108.json"
+  ]
+}
