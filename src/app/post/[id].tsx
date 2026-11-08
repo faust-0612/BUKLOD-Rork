@@ -17,6 +17,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
 } from 'react';
 import {Alert,Pressable,ScrollView,Share,StyleSheet,Text,TextInput,View} from 'react-native';
 import {router,useLocalSearchParams} from 'expo-router';
@@ -64,7 +65,10 @@ export default function PostDetail(){
     null
   );
 
- const {id}=useLocalSearchParams<{id:string}>(); const {user}=useAuth();
+ const {id,focusCommentId}=useLocalSearchParams<{id:string;focusCommentId?:string}>();
+ const {user}=useAuth();
+ const detailScrollRef=useRef<ScrollView|null>(null);
+ const lastFocusedComment=useRef<string|null>(null);
  const {
   openReport,
   reportSheet,
@@ -377,7 +381,7 @@ export default function PostDetail(){
  const counts=post.reaction_counts||{},mentions=Array.isArray(post.mentions)?post.mentions:[];
 
  return <>
- <ScrollView style={shared.screen} contentContainerStyle={s.content}>
+ <ScrollView ref={detailScrollRef} style={shared.screen} contentContainerStyle={s.content}>
   <Text style={s.eyebrow}>BUKLOD POST</Text><Card><View
    style={{
      flexDirection:
@@ -525,13 +529,17 @@ export default function PostDetail(){
   {comments.map(c => (
    <View
     key={c.id}
-    style={
-     c.parent_id
-      ? {
-         marginLeft:24
-        }
-      : undefined
-    }
+    onLayout={event=>{
+     if(!focusCommentId||String(c.id)!==String(focusCommentId)||
+        lastFocusedComment.current===String(focusCommentId))return;
+     lastFocusedComment.current=String(focusCommentId);
+     const y=Math.max(0,event.nativeEvent.layout.y-100);
+     requestAnimationFrame(()=>detailScrollRef.current?.scrollTo({y,animated:true}));
+    }}
+    style={[
+     c.parent_id?{marginLeft:24}:undefined,
+     focusCommentId===String(c.id)?{borderWidth:2,borderColor:'#17895A',borderRadius:12}:undefined,
+    ]}
    >
     <Card>
      <Text style={s.commentName}>
