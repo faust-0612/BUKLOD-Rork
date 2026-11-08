@@ -14,6 +14,7 @@ import {
 
 type Props = ScrollViewProps & {
   contentExtra?: number;
+  scrollRef?: React.Ref<ScrollView>;
 };
 
 /**
@@ -23,6 +24,7 @@ type Props = ScrollViewProps & {
 export default function BuklodPortalScrollView({
   contentContainerStyle,
   contentExtra = 16,
+  scrollRef,
   ...rest
 }: Props) {
   const portalInsets =
@@ -33,6 +35,7 @@ export default function BuklodPortalScrollView({
   return (
     <ScrollView
       {...rest}
+      ref={scrollRef}
       contentContainerStyle={mergeBuklodSafeContentInsets(
         contentContainerStyle,
         portalInsets,

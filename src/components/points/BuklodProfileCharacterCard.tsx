@@ -548,15 +548,7 @@ export default function BuklodProfileCharacterCard({
             </Text>
 
             <View style={styles.body}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open ranking and BUKLOD Points"
-                onPress={() => router.push('/points')}
-                style={({ pressed }) => [
-                  styles.artPress,
-                  pressed && { opacity: 0.92 },
-                ]}
-              >
+              <View style={styles.artPress}>
                 <BuklodActiveCharacterArt
                   key={`profile-art-${liveDisplay?.character_id ?? 'none'}-${liveLevel ?? 0}`}
                   fallbackCharacter={config}
@@ -565,7 +557,7 @@ export default function BuklodProfileCharacterCard({
                   showStage={false}
                   showEffects={false}
                 />
-              </Pressable>
+              </View>
 
               <View style={styles.copyCol}>
                 <Pressable
@@ -609,6 +601,12 @@ export default function BuklodProfileCharacterCard({
                   <Text style={styles.customizeText}>
                     Customize
                   </Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel="Open BUKLOD Points and Claim Center"
+                  onPress={()=>router.push('/points')} style={[styles.customize,{backgroundColor:pointsTone.soft,
+                    borderColor:pointsTone.border,marginTop:7}]}>
+                  <MaterialCommunityIcons name="star-circle-outline" size={16} color={pointsTone.ink}/>
+                  <Text style={[styles.customizeText,{color:pointsTone.ink}]}>BUKLOD POINTS · OPEN CLAIM CENTER</Text>
                 </Pressable>
               </View>
             </View>

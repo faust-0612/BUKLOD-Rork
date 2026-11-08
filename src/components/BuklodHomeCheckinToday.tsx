@@ -1,11 +1,12 @@
 import React,{useCallback,useEffect,useState} from 'react';
+import {useFocusEffect} from 'expo-router';
 import {ActivityIndicator,Pressable,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {supabase} from '@/lib/supabase';
 import {showBuklodAdOpportunity,warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
 type LiveEvent={event_id:string;title:string;location:string;scope_name:string;starts_at:string;ends_at:string;
  checkin_id?:string;checkin_status?:'pending'|'approved'|'rejected';checked_in_at?:string};
-export default function BuklodHomeCheckinToday(){
+export default function BuklodHomeCheckinToday({scopeId}:{scopeId?:string}={}){
  const[events,setEvents]=useState<LiveEvent[]>([]);
  const[loading,setLoading]=useState(true);
  const[busy,setBusy]=useState<string|null>(null);
@@ -13,11 +14,19 @@ export default function BuklodHomeCheckinToday(){
  const load=useCallback(async()=>{
   setLoading(true);try{
    const{data,error}=await(supabase as any).rpc('get_my_buklod_home_checkin_today_r3');
-   if(error)throw error;setEvents(Array.isArray(data)?data:[]);
+   if(error)throw error;
+   const rows=Array.isArray(data)?data:[];
+   setEvents(scopeId?rows.filter((item:any)=>String(item.scope_id)===scopeId):rows);
   }catch{setEvents([]);setMessage('Check-in status unavailable. Your existing attendance is unchanged.');}
   finally{setLoading(false)}
- },[]);
- useEffect(()=>{void load();warmBuklodAdOpportunity('points_submission_success')},[load]);
+ },[scopeId]);
+ useEffect(()=>{warmBuklodAdOpportunity('points_submission_success')},[]);
+ useFocusEffect(useCallback(()=>{
+   void load();
+   // Refresh the authoritative server window while the screen is visible.
+   const tick=setInterval(()=>{void load()},60000);
+   return ()=>clearInterval(tick);
+ },[load]));
  const submit=async(item:LiveEvent)=>{
   if(busy||item.checkin_status)return;
   setBusy(item.event_id);setMessage('');

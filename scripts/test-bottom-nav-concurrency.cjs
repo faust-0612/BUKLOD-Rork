@@ -18,7 +18,7 @@ function handler({ platform = 'android', type = 'CLUSTER', publicAvailable = tru
     isOnGlobalNavDestination: (path, route) => path === route,
     setPendingRoute: route => events.push(['pending', route]),
     selectScope: async id => { events.push(['scope', id]); if (wait) await wait; if (fail) throw new Error('failed'); },
-    buklodInstantReplace: route => events.push(['route', route]),
+    buklodInstantNavigate: route => events.push(['route', route]),
     Alert: { alert: (...args) => events.push(['alert', ...args]) },
     Error,
   };

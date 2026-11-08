@@ -1,7 +1,7 @@
 import { BuklodGivingSettingsButton } from './BuklodGivingSettingsButton';
 /* PATCH_170B_CLUSTER_HOME_COMMAND_CENTER */
 import React,{useCallback,useEffect,useMemo,useRef,useState}from'react';
-import{ActivityIndicator,Alert,KeyboardAvoidingView,Linking,Modal,Platform,Pressable,RefreshControl,ScrollView,Share,StyleSheet,Text,TextInput,View}from'react-native';
+import{ActivityIndicator,Alert,Image,KeyboardAvoidingView,Linking,Modal,Platform,Pressable,RefreshControl,ScrollView,Share,StyleSheet,Text,TextInput,View}from'react-native';
 import*as Clipboard from'expo-clipboard';
 import{MaterialCommunityIcons}from'@expo/vector-icons';
 import{router,useFocusEffect}from'expo-router';
@@ -15,10 +15,16 @@ import{useAuth}from'@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import BuklodHomeScopeBulletins from'@/components/BuklodHomeScopeBulletins';
 import BuklodHomeFaithPanel from'@/components/BuklodHomeFaithPanel';
+import BuklodHomeCheckinToday from '@/components/BuklodHomeCheckinToday';
 import BuklodNonFaithEncouragementDoor from '@/components/BuklodNonFaithEncouragementDoor';
 import BuklodScopeBuklodLessonPanel from'@/components/BuklodScopeBuklodLessonPanel';
 import BuklodScopeFaithMonitoringDoor from'@/components/BuklodScopeFaithMonitoringDoor';
 import BuklodScopeCallLauncher from'@/components/BuklodScopeCallLauncher';
+import BuklodScopeProfilePhoto from '@/components/BuklodScopeProfilePhoto';
+import {
+ type BuklodScopeHomeFile,pickBuklodScopeHomeMedia,pickBuklodScopeHomeResource,
+ uploadBuklodScopeHomeAsset,signedBuklodScopeHomeAsset,rollbackBuklodScopeHomeAsset,
+} from '@/lib/buklodScopeHomeAssets';
 import{BuklodTappableAvatar}from'@/components/BuklodTappableAvatar';
 import{CommunityVideo}from'@/components/CommunityVideo';
 import { BuklodCommunityPhotoCollage, communityPhotoCollageItems } from '@/components/BuklodCommunityPhotoCollage';
@@ -35,14 +41,14 @@ import{DEFAULT_DASHBOARD_THEME}from'@/components/BuklodDashboardCustomizer';
 
 type Props={scope:BuklodScope;onOpenCommunity?:()=>void;onOpenConnect?:()=>void;manageMode?:boolean;theme?:DashboardTheme};
 type Member={user_id:string;full_name:string;avatar_url:string|null;is_admin:boolean};
-type Notice={id:string;title:string;body:string|null;priority:string;expires_at:string|null;created_at:string};
-type Event={id:string;title:string;description:string|null;starts_at:string;location:string|null};
+type Notice={id:string;title:string;body:string|null;priority:string;expires_at:string|null;created_at:string;media_path?:string|null;media_mime_type?:string|null;media_url?:string|null};
+type Event={id:string;title:string;description:string|null;starts_at:string;location:string|null;media_path?:string|null;media_mime_type?:string|null;media_url?:string|null};
 type Rsvp={event_id:string;status:string};
 type Task={id:string;title:string;description:string|null;assigned_to:string|null;due_at:string|null;status:string};
 type Poll={id:string;question:string;closes_at:string|null;is_active:boolean};
 type Option={id:string;poll_id:string;label:string;sort_order:number};
 type Vote={poll_id:string;option_id:string;user_id:string};
-type Resource={id:string;title:string;description:string|null;resource_url:string};
+type Resource={id:string;title:string;description:string|null;resource_url:string;storage_path?:string|null;original_name?:string|null;mime_type?:string|null;asset_url?:string|null};
 type Recognition={id:string;title:string;recipient_name:string|null;body:string|null};
 type Settings={scope_id:string;about_text:string|null;hidden_widgets:string[]|null};
 type Post={id:string;body:string;created_at:string;author_name:string|null;media_path:string|null;media_mime_type:string|null;reaction_counts:Record<string,number>|null;comment_count:number;media_url?:string|null};
@@ -96,6 +102,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
  const[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[members,setMembers]=useState<Member[]>([]),[notices,setNotices]=useState<Notice[]>([]),[events,setEvents]=useState<Event[]>([]),[rsvps,setRsvps]=useState<Rsvp[]>([]),[tasks,setTasks]=useState<Task[]>([]),[polls,setPolls]=useState<Poll[]>([]),[options,setOptions]=useState<Option[]>([]),[votes,setVotes]=useState<Vote[]>([]),[resources,setResources]=useState<Resource[]>([]),[recognitions,setRecognitions]=useState<Recognition[]>([]),[settings,setSettings]=useState<Settings|null>(null),[posts,setPosts]=useState<Post[]>([]),[attendance,setAttendance]=useState<any[]>([]),[description,setDescription]=useState('');
  const[kind,setKind]=useState<Kind>(null),[title,setTitle]=useState(''),[body,setBody]=useState(''),[extra,setExtra]=useState(''),[when,setWhen]=useState(''),[saving,setSaving]=useState(false);
  const[customizeOpen,setCustomizeOpen]=useState(false);
+ const[pickedAsset,setPickedAsset]=useState<BuklodScopeHomeFile|null>(null);
  const[openWidget,setOpenWidget]=useState<string|null>(null);
  /* BUKLOD_V28_CLUSTER_TILE_LAYOUT_R1: preserve all existing widget bodies and actions. */
  const hidden=useMemo(()=>new Set(settings?.hidden_widgets??[]),[settings?.hidden_widgets]);const show=(k:string)=>(manageMode||(k!=='members'&&k!=='officers'))&&!hidden.has(k);
@@ -116,8 +123,18 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
   const today=localClusterDate();
   const loaders:Record<string,()=>Promise<any>>={
    members:()=>fetchClusterHomeMembers(scope.scope_id),
-   notices:()=>clusterData(supabase.from('buklod_cluster_home_notices').select('id,title,body,priority,expires_at,created_at').eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(5)),
-   events:()=>clusterData(supabase.from('buklod_cluster_events').select('id,title,description,starts_at,location').eq('scope_id',scope.scope_id).gte('starts_at',new Date(Date.now()-86400000).toISOString()).order('starts_at').limit(20)),
+   notices:async()=>{
+    const rows=(await clusterData(supabase.from('buklod_cluster_home_notices')
+      .select('id,title,body,priority,expires_at,created_at,media_path,media_mime_type')
+      .eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(5)))??[];
+    return Promise.all(rows.map(async(x:Notice)=>({...x,media_url:await signedBuklodScopeHomeAsset(x.media_path)})));
+   },
+   events:async()=>{
+    const rows=(await clusterData(supabase.from('buklod_cluster_events')
+      .select('id,title,description,starts_at,location,media_path,media_mime_type')
+      .eq('scope_id',scope.scope_id).gte('starts_at',new Date(Date.now()-86400000).toISOString()).order('starts_at').limit(20)))??[];
+    return Promise.all(rows.map(async(x:Event)=>({...x,media_url:await signedBuklodScopeHomeAsset(x.media_path)})));
+   },
    rsvps:()=>clusterData(supabase.from('buklod_cluster_event_rsvps').select('event_id,status').eq('user_id',user.id)),
    tasks:()=>clusterData(supabase.from('buklod_cluster_tasks').select('id,title,description,assigned_to,due_at,status').eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(30)),
    polls:async()=>{
@@ -129,7 +146,12 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
     ]):[[],[]];
     return {rows,options,votes};
    },
-   resources:()=>clusterData(supabase.from('buklod_cluster_resources').select('id,title,description,resource_url').eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(12)),
+   resources:async()=>{
+    const rows=(await clusterData(supabase.from('buklod_cluster_resources')
+      .select('id,title,description,resource_url,storage_path,original_name,mime_type')
+      .eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(12)))??[];
+    return Promise.all(rows.map(async(x:Resource)=>({...x,asset_url:await signedBuklodScopeHomeAsset(x.storage_path)})));
+   },
    recognitions:()=>clusterData(supabase.from('buklod_cluster_recognitions').select('id,title,recipient_name,body').eq('scope_id',scope.scope_id).order('created_at',{ascending:false}).limit(10)),
    settings:()=>clusterData(supabase.from('buklod_cluster_home_settings').select('scope_id,about_text,hidden_widgets').eq('scope_id',scope.scope_id).maybeSingle()),
    attendance:()=>clusterData(supabase.from('buklod_cluster_attendance').select('user_id').eq('scope_id',scope.scope_id).eq('checkin_date',today)),
@@ -165,7 +187,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
  },[contextKey]);
  useFocusEffect(useCallback(()=>{void load();},[load]));
 
- const notice=notices.find(x=>!x.expires_at||new Date(x.expires_at).getTime()>Date.now())??null,upcoming=events.filter(x=>new Date(x.starts_at).getTime()>=Date.now()-3600000),week=upcoming.filter(x=>new Date(x.starts_at).getTime()<=Date.now()+7*86400000),officers=members.filter(x=>x.is_admin),myTasks=tasks.filter(x=>!x.assigned_to||x.assigned_to===user?.id||isAdmin),openTasks=myTasks.filter(x=>x.status!=='DONE'),poll=polls[0]??null,pollOptions=poll?options.filter(x=>x.poll_id===poll.id):[],myVote=poll&&user?.id?votes.find(x=>x.poll_id===poll.id&&x.user_id===user.id):null,myChecked=!!user?.id&&attendance.some(x=>x.user_id===user.id);
+ const notice=notices.find(x=>!x.expires_at||new Date(x.expires_at).getTime()>Date.now())??null,upcoming=events.filter(x=>new Date(x.starts_at).getTime()>=Date.now()-3600000),week=upcoming.filter(x=>new Date(x.starts_at).getTime()<=Date.now()+7*86400000),officers=members.filter(x=>x.is_admin),myTasks=tasks.filter(x=>!x.assigned_to||x.assigned_to===user?.id||isAdmin),openTasks=myTasks.filter(x=>x.status!=='DONE'),poll=polls[0]??null,pollOptions=poll?options.filter(x=>x.poll_id===poll.id):[],myVote=poll&&user?.id?votes.find(x=>x.poll_id===poll.id&&x.user_id===user.id):null;
 
  const filteredWeek=week;
  const filteredUpcoming=upcoming;
@@ -175,22 +197,102 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
  const filteredResources=resources;
  const filteredRecognitions=recognitions;
 
- const edit=(k:Exclude<Kind,null>)=>{setKind(k);setTitle('');setBody(k==='about'?(settings?.about_text??description):'');setExtra('');setWhen('')};
- const save=async()=>{if(!kind||!isAdmin)return;setSaving(true);try{
-  if(kind==='notice'){if(!title.trim())throw new Error('Title required');const q=await supabase.from('buklod_cluster_home_notices').insert({scope_id:scope.scope_id,title:title.trim(),body:body.trim()||null,priority:extra.trim().toLowerCase()==='emergency'?'EMERGENCY':'IMPORTANT',created_by:user?.id});if(q.error)throw q.error}
-  if(kind==='event'){if(!title.trim())throw new Error('Title required');const d=when.trim()?new Date(when):new Date(Date.now()+86400000);if(Number.isNaN(d.getTime()))throw new Error('Invalid date/time');const q=await supabase.from('buklod_cluster_events').insert({scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,location:extra.trim()||null,starts_at:d.toISOString(),created_by:user?.id});if(q.error)throw q.error}
-  if(kind==='task'){if(!title.trim())throw new Error('Title required');let due=null;if(when.trim()){const d=new Date(when);if(Number.isNaN(d.getTime()))throw new Error('Invalid due date');due=d.toISOString()}const q=await supabase.from('buklod_cluster_tasks').insert({scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,due_at:due,status:'OPEN',created_by:user?.id});if(q.error)throw q.error}
-  if(kind==='poll'){const labels=extra.split(',').map(x=>x.trim()).filter(Boolean);if(!title.trim()||labels.length<2)throw new Error('Question + at least 2 comma-separated options required');const q=await supabase.from('buklod_cluster_polls').insert({scope_id:scope.scope_id,question:title.trim(),created_by:user?.id}).select('id').single();if(q.error)throw q.error;const o=await supabase.from('buklod_cluster_poll_options').insert(labels.map((label,i)=>({poll_id:q.data.id,label,sort_order:i})));if(o.error)throw o.error}
-  if(kind==='resource'){if(!title.trim()||!extra.trim())throw new Error('Title and URL required');const q=await supabase.from('buklod_cluster_resources').insert({scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,resource_url:extra.trim(),created_by:user?.id});if(q.error)throw q.error}
-  if(kind==='recognition'){if(!title.trim())throw new Error('Title required');const q=await supabase.from('buklod_cluster_recognitions').insert({scope_id:scope.scope_id,title:title.trim(),recipient_name:extra.trim()||null,body:body.trim()||null,created_by:user?.id});if(q.error)throw q.error}
-  if(kind==='about'){const q=await supabase.from('buklod_cluster_home_settings').upsert({scope_id:scope.scope_id,about_text:body.trim()||null,updated_by:user?.id},{onConflict:'scope_id'});if(q.error)throw q.error}
-  setKind(null);await load({background:true,resources:[({notice:'notices',event:'events',task:'tasks',poll:'polls',resource:'resources',recognition:'recognitions',about:'settings'} as Record<string,string>)[kind!] ]});
- }catch(err:any){Alert.alert('Cluster Home',err?.message??'Save failed')}finally{setSaving(false)}};
+ const edit=(k:Exclude<Kind,null>)=>{setKind(k);setTitle('');setBody(k==='about'?(settings?.about_text??description):'');setExtra('');setWhen('');setPickedAsset(null)};
+ const pickHomeAsset=async()=>{
+  if(!isAdmin||!kind)return;
+  try{
+   const next=kind==='resource'?await pickBuklodScopeHomeResource():
+    (kind==='notice'||kind==='event'?await pickBuklodScopeHomeMedia():null);
+   if(next)setPickedAsset(next);
+  }catch(e:any){Alert.alert('Attach media or file',e?.message||'Unable to select a file.');}
+ };
+ const save=async()=>{
+  if(!kind||!isAdmin||saving)return;
+  setSaving(true);
+  let pendingAssetPath:string|null=null;
+  try{
+   const selectedKind=kind;
+   let assetRef:{storagePath:string;mimeType:string}|null=null;
+   if(pickedAsset&&(kind==='resource'||kind==='event'||kind==='notice')){
+     assetRef=await uploadBuklodScopeHomeAsset({scopeId:scope.scope_id,kind,asset:pickedAsset});
+     pendingAssetPath=assetRef.storagePath;
+   }
+   if(kind==='notice'){
+     if(!title.trim())throw Error('Title required');
+     const q=await supabase.from('buklod_cluster_home_notices').insert({
+       scope_id:scope.scope_id,title:title.trim(),body:body.trim()||null,
+       priority:extra.trim().toLowerCase()==='emergency'?'EMERGENCY':'IMPORTANT',
+       created_by:user?.id,media_path:assetRef?.storagePath??null,
+       media_mime_type:assetRef?.mimeType??null,
+     });if(q.error)throw q.error;
+   }
+   if(kind==='event'){
+     if(!title.trim())throw Error('Title required');
+     const d=when.trim()?new Date(when):new Date(Date.now()+86400000);
+     if(Number.isNaN(d.getTime()))throw Error('Invalid date/time');
+     const q=await supabase.from('buklod_cluster_events').insert({
+       scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,
+       location:extra.trim()||null,starts_at:d.toISOString(),created_by:user?.id,
+       media_path:assetRef?.storagePath??null,media_mime_type:assetRef?.mimeType??null,
+     });if(q.error)throw q.error;
+   }
+   if(kind==='task'){
+     if(!title.trim())throw Error('Title required');
+     let due=null;
+     if(when.trim()){const d=new Date(when);if(Number.isNaN(d.getTime()))throw Error('Invalid due date');due=d.toISOString()}
+     const q=await supabase.from('buklod_cluster_tasks').insert({
+       scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,
+       due_at:due,status:'OPEN',created_by:user?.id,
+     });if(q.error)throw q.error;
+   }
+   if(kind==='poll'){
+     const labels=extra.split(',').map(x=>x.trim()).filter(Boolean);
+     if(!title.trim()||labels.length<2)throw Error('Question + at least 2 comma-separated options required');
+     const q=await supabase.from('buklod_cluster_polls').insert({
+       scope_id:scope.scope_id,question:title.trim(),created_by:user?.id,
+     }).select('id').single();if(q.error)throw q.error;
+     const o=await supabase.from('buklod_cluster_poll_options').insert(
+       labels.map((label,i)=>({poll_id:q.data.id,label,sort_order:i})));
+     if(o.error)throw o.error;
+   }
+   if(kind==='resource'){
+     if(!title.trim()||(!extra.trim()&&!assetRef))throw Error('Title and a URL or file required');
+     if(!assetRef&&!/^https?:\/\//i.test(extra.trim()))throw Error('Resource URL must use https://');
+     const q=await supabase.from('buklod_cluster_resources').insert({
+       scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,
+       resource_url:extra.trim()||'',created_by:user?.id,
+       storage_path:assetRef?.storagePath??null,original_name:assetRef?pickedAsset?.name??null:null,
+       mime_type:assetRef?.mimeType??null,
+     });if(q.error)throw q.error;
+   }
+   if(kind==='recognition'){
+     if(!title.trim())throw Error('Title required');
+     const q=await supabase.from('buklod_cluster_recognitions').insert({
+       scope_id:scope.scope_id,title:title.trim(),recipient_name:extra.trim()||null,
+       body:body.trim()||null,created_by:user?.id,
+     });if(q.error)throw q.error;
+   }
+   if(kind==='about'){
+     const q=await supabase.from('buklod_cluster_home_settings').upsert({
+       scope_id:scope.scope_id,about_text:body.trim()||null,updated_by:user?.id,
+     },{onConflict:'scope_id'});if(q.error)throw q.error;
+   }
+   pendingAssetPath=null;
+   setPickedAsset(null);
+   setKind(null);
+   const resource=({notice:'notices',event:'events',task:'tasks',poll:'polls',
+     resource:'resources',recognition:'recognitions',about:'settings'} as Record<string,string>)[selectedKind];
+   await load({background:true,resources:[resource]});
+  }catch(err:any){
+    if(pendingAssetPath)await rollbackBuklodScopeHomeAsset(pendingAssetPath).catch(()=>undefined);
+    Alert.alert('Cluster Home',err?.message??'Save failed. Existing records were not changed.');
+  }finally{setSaving(false)}
+ };
 
  const rsvp=async(id:string,status:string)=>{if(!user?.id)return;const q=await supabase.from('buklod_cluster_event_rsvps').upsert({event_id:id,user_id:user.id,status},{onConflict:'event_id,user_id'});if(q.error)Alert.alert('RSVP',q.error.message);else await load({background:true,resources:['rsvps']})};
  const taskDone=async(x:Task)=>{const q=await supabase.from('buklod_cluster_tasks').update({status:'DONE'}).eq('id',x.id);if(q.error)Alert.alert('Task',q.error.message);else await load({background:true,resources:['tasks']})};
  const vote=async(optionId:string)=>{if(!poll||!user?.id)return;const q=await supabase.from('buklod_cluster_poll_votes').upsert({poll_id:poll.id,option_id:optionId,user_id:user.id},{onConflict:'poll_id,user_id'});if(q.error)Alert.alert('Poll',q.error.message);else await load({background:true,resources:['polls']})};
- const checkin=async()=>{if(!user?.id)return;const q=await supabase.from('buklod_cluster_attendance').upsert({scope_id:scope.scope_id,user_id:user.id,checkin_date:localClusterDate()},{onConflict:'scope_id,user_id,checkin_date'});if(q.error)Alert.alert('Check-in',q.error.message);else{characterEvents?.emit({type:CharacterEventType.ATTENDANCE_RECORDED,success:true});await load({background:true,resources:['attendance']})}};
+
  const toggle=async(k:string)=>{if(!isAdmin)return;const n=new Set(settings?.hidden_widgets??[]);n.has(k)?n.delete(k):n.add(k);const arr=[...n];setSettings(x=>({scope_id:scope.scope_id,about_text:x?.about_text??null,hidden_widgets:arr}));const q=await supabase.from('buklod_cluster_home_settings').upsert({scope_id:scope.scope_id,hidden_widgets:arr,updated_by:user?.id},{onConflict:'scope_id'});if(q.error){Alert.alert('Customize',q.error.message);void load({background:true,resources:['settings']})}else{await load({background:true,resources:['settings']})}};
  const openCommunity=()=>{
   if(onOpenCommunity){
@@ -228,7 +330,14 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
       <MaterialCommunityIcons name="tune-variant" size={15} color="#0869C9"/><Text style={s.customizeMiniText}>Customize Home</Text>
     </Pressable> : null}
   </View>
-  {show('notice')&&<Card icon={notice?.priority==='EMERGENCY'?'alert-octagon-outline':'alert-circle-outline'} title={notice?.priority==='EMERGENCY'?'EMERGENCY NOTICE':'IMPORTANT NOTICE'} action={isAdmin?'EDIT':undefined} onAction={isAdmin?()=>edit('notice'):undefined} cardColor={cardColor}>{notice?<><Text style={[s.big,notice.priority==='EMERGENCY'&&{color:'#A82020'}]}>{notice.title}</Text>{notice.body?<Text style={s.body}>{notice.body}</Text>:null}</>:<Empty>No important notice right now.</Empty>}</Card>}
+  <BuklodScopeProfilePhoto scopeId={scope.scope_id} scopeName={scope.name} isAdmin={isAdmin}/>
+  {show('notice')&&<Card icon={notice?.priority==='EMERGENCY'?'alert-octagon-outline':'alert-circle-outline'} title={notice?.priority==='EMERGENCY'?'EMERGENCY NOTICE':'IMPORTANT NOTICE'} action={isAdmin?'EDIT':undefined} onAction={isAdmin?()=>edit('notice'):undefined} cardColor={cardColor}>{notice?<><Text style={[s.big,notice.priority==='EMERGENCY'&&{color:'#A82020'}]}>{notice.title}</Text>{notice.body?<Text style={s.body}>{notice.body}</Text>:null}
+ {notice.media_url&&notice.media_mime_type?.startsWith('image/')?
+   <Image source={{uri:notice.media_url}} style={s.homeMedia} resizeMode="cover"/>:null}
+ {notice.media_url&&notice.media_mime_type?.startsWith('video/')?
+   <View style={s.video}><CommunityVideo uri={notice.media_url} active={false}
+     onOpenFullscreen={()=>{if(notice.media_url)void Linking.openURL(notice.media_url);}}/></View>:null}
+ </>:<Empty>No important notice right now.</Empty>}</Card>}
   <BuklodFirstViewAd placement="cluster" placementId="cluster_command_first_view" />
   {/* CLUSTER BULLETIN uses the existing official bulletin card directly. */}
   {show('bulletin')&&<BuklodHomeScopeBulletins/>}
@@ -253,7 +362,13 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
   </View>
   {openWidget ? <View style={s.expandedLabel}><Text style={s.expandedText}>Selected Cluster feature</Text><Pressable onPress={()=>setOpenWidget(null)} accessibilityRole="button" accessibilityLabel="Close expanded feature"><MaterialCommunityIcons name="close" size={19} color="#0B5FA9"/></Pressable></View> : null}
   {show('today')&&openWidget==='today'&&<Card icon="calendar-today-outline" title="TODAY / THIS WEEK" cardColor={cardColor}>{filteredWeek.length?filteredWeek.slice(0,4).map(x=><View key={x.id} style={s.row}><View style={s.badge}><Text style={s.badgeText}>{sd(x.starts_at)}</Text></View><View style={{flex:1}}><Text style={s.item}>{x.title}</Text><Text style={s.meta}>{dt(x.starts_at)}</Text></View></View>):<Empty>No scheduled activity in the next 7 days.</Empty>}</Card>}
-  {show('events')&&openWidget==='events'&&<Card icon="calendar-star" title="UPCOMING EVENTS" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('event'):undefined} cardColor={cardColor}>{filteredUpcoming.length?filteredUpcoming.slice(0,6).map(x=>{const mine=rsvps.find(y=>y.event_id===x.id)?.status;return <View key={x.id} style={s.block}><Text style={s.item}>{x.title}</Text><Text style={s.meta}>{dt(x.starts_at)}{x.location?` · ${x.location}`:''}</Text>{x.description?<Text style={s.body}>{x.description}</Text>:null}<View style={s.chips}>{['GOING','MAYBE','NOT_GOING'].map(z=><Pressable key={z} onPress={()=>void rsvp(x.id,z)} style={[s.chip,mine===z&&s.chipOn]}><Text style={[s.chipText,mine===z&&s.chipTextOn]}>{z.replace('_',' ')}</Text></Pressable>)}</View></View>}):<Empty>No upcoming event.</Empty>}</Card>}
+  {show('events')&&openWidget==='events'&&<Card icon="calendar-star" title="UPCOMING EVENTS" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('event'):undefined} cardColor={cardColor}>{filteredUpcoming.length?filteredUpcoming.slice(0,6).map(x=>{const mine=rsvps.find(y=>y.event_id===x.id)?.status;return <View key={x.id} style={s.block}><Text style={s.item}>{x.title}</Text><Text style={s.meta}>{dt(x.starts_at)}{x.location?` · ${x.location}`:''}</Text>{x.description?<Text style={s.body}>{x.description}</Text>:null}
+ {x.media_url&&x.media_mime_type?.startsWith('image/')?
+   <Image source={{uri:x.media_url}} style={s.homeMedia} resizeMode="cover"/>:null}
+ {x.media_url&&x.media_mime_type?.startsWith('video/')?
+   <View style={s.video}><CommunityVideo uri={x.media_url} active={false}
+     onOpenFullscreen={()=>{if(x.media_url)void Linking.openURL(x.media_url);}}/></View>:null}
+ <View style={s.chips}>{['GOING','MAYBE','NOT_GOING'].map(z=><Pressable key={z} onPress={()=>void rsvp(x.id,z)} style={[s.chip,mine===z&&s.chipOn]}><Text style={[s.chipText,mine===z&&s.chipTextOn]}>{z.replace('_',' ')}</Text></Pressable>)}</View></View>}):<Empty>No upcoming event.</Empty>}</Card>}
 
   {show('members')&&openWidget==='members'&&<Card icon="account-multiple-outline" title="MEMBER SNAPSHOT" cardColor={cardColor}><View style={s.stats}><Stat v={scope.member_count??members.length} l="MEMBERS"/><Stat v={officers.length} l="ADMINS"/><Stat v={attendance.length} l="CHECKED IN"/></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.people}>{filteredMembers.slice(0,12).map(x=><View key={x.user_id} style={s.person}><BuklodTappableAvatar userId={x.user_id} uri={x.avatar_url} name={x.full_name} size={42}/><Text numberOfLines={1} style={s.personName}>{x.full_name}</Text></View>)}</ScrollView></Card>}
   {show('officers')&&openWidget==='officers'&&<Card icon="shield-account-outline" title="CLUSTER OFFICERS / ADMINS" cardColor={cardColor}>{officers.length?officers.map(x=><View key={x.user_id} style={s.row}><BuklodTappableAvatar userId={x.user_id} uri={x.avatar_url} name={x.full_name} size={36}/><Text style={s.item}>{x.full_name}</Text></View>):<Empty>No officer information available.</Empty>}</Card>}
@@ -266,10 +381,15 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
    title="ATTENDANCE SNAPSHOT"
    action="OPEN"
    onAction={()=>router.push({pathname:'/scope/attendance',params:scopeRouteParams(scope.scope_id,{scopeType:'CLUSTER'})} as any)}
-  cardColor={cardColor}><View style={s.stats}><Stat v={attendance.length} l="CHECKED IN"/><Stat v={scope.member_count??members.length} l="MEMBERS"/></View><Text style={s.body}>{myChecked?"You are checked in today.":"Mark today's Cluster attendance, then open the full attendance tools when needed."}</Text>{!myChecked?<Pressable onPress={()=>void checkin()} style={s.primary}><MaterialCommunityIcons name="clipboard-check-outline" size={18} color="#fff"/><Text style={s.primaryText}>CHECK IN TODAY</Text></Pressable>:null}</Card>}
-  {show('resources')&&openWidget==='resources'&&<Card icon="folder-multiple-outline" title="FILES & RESOURCES" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('resource'):undefined} cardColor={cardColor}>{filteredResources.length?filteredResources.map(x=><Pressable key={x.id} onPress={()=>void Linking.openURL(x.resource_url)} style={s.row}><MaterialCommunityIcons name="file-link-outline" size={21} color={colors.greenDark}/><View style={{flex:1}}><Text style={s.item}>{x.title}</Text>{x.description?<Text numberOfLines={2} style={s.meta}>{x.description}</Text>:null}</View><MaterialCommunityIcons name="open-in-new" size={17} color={colors.muted}/></Pressable>):<Empty>No shared resources yet.</Empty>}</Card>}
+  cardColor={cardColor}><View style={s.stats}><Stat v={attendance.length} l="CHECKED IN"/><Stat v={scope.member_count??members.length} l="MEMBERS"/></View><Text style={s.body}>Check In Today is available only during an official live Cluster attendance event. Each submission needs Admin verification before Points are issued.</Text><BuklodHomeCheckinToday scopeId={scope.scope_id}/></Card>}
+  {show('resources')&&openWidget==='resources'&&<Card icon="folder-multiple-outline" title="FILES & RESOURCES" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('resource'):undefined} cardColor={cardColor}>{filteredResources.length?filteredResources.map(x=><Pressable key={x.id} onPress={()=>{
+   const url=x.asset_url||(/^https?:\/\//i.test(x.resource_url)?x.resource_url:null);
+   if(url)void Linking.openURL(url);
+   else Alert.alert('Resource','This resource is not accessible with your current membership.');
+ }} style={s.row}><MaterialCommunityIcons name="file-link-outline" size={21} color={colors.greenDark}/><View style={{flex:1}}><Text style={s.item}>{x.title}</Text>{x.description?<Text numberOfLines={2} style={s.meta}>{x.description}</Text>:null}
+ {x.original_name?<Text style={s.meta}>{x.original_name} · secure shared file</Text>:null}</View><MaterialCommunityIcons name="open-in-new" size={17} color={colors.muted}/></Pressable>):<Empty>No shared resources yet.</Empty>}</Card>}
   {show('recognition')&&openWidget==='recognition'&&<Card icon="trophy-outline" title="RECOGNITION / MILESTONES" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('recognition'):undefined} cardColor={cardColor}>{filteredRecognitions.length?filteredRecognitions.map(x=><View key={x.id} style={s.row}><MaterialCommunityIcons name="medal-outline" size={25} color="#B78216"/><View style={{flex:1}}><Text style={s.item}>{x.title}</Text>{x.recipient_name?<Text style={s.recipient}>{x.recipient_name}</Text>:null}{x.body?<Text style={s.body}>{x.body}</Text>:null}</View></View>):<Empty>No recognition posted yet.</Empty>}</Card>}
-  {show('calls')&&openWidget==='calls'&&<Card icon="phone-in-talk-outline" title="CLUSTER AUDIO / VIDEO CALL" cardColor={cardColor}><BuklodScopeCallLauncher scopeId={scope.scope_id} title={scope.name}/></Card>}
+  {show('calls')&&openWidget==='calls'&&<Card icon="phone-in-talk-outline" title="LIVE CLUSTER AUDIO / VIDEO CALL" cardColor={cardColor}><BuklodScopeCallLauncher scopeId={scope.scope_id} title={scope.name}/></Card>}
   {show('invite')&&openWidget==='invite'&&<Card icon="qrcode" title="INVITE / QR" cardColor={cardColor}><View style={s.invite}><BuklodQrMatrix value={invite} size={176}/><View style={{flex:1}}><Text style={s.item}>Cluster invitation link</Text><Pressable onPress={()=>void copyInvite()} accessibilityRole="button" accessibilityLabel="Copy Cluster invite link"><Text selectable numberOfLines={2} style={[s.meta,s.inviteLink]}>{invite}</Text></Pressable></View></View><View style={s.inviteActions}><Pressable onPress={()=>void shareInvite()} style={s.primary}><MaterialCommunityIcons name="share-variant-outline" size={18} color="#fff"/><Text style={s.primaryText}>SHARE INVITE</Text></Pressable><Pressable onPress={()=>void copyInvite()} style={s.secondary}><MaterialCommunityIcons name="content-copy" size={18} color={colors.greenDark}/><Text style={s.secondaryText}>COPY LINK</Text></Pressable></View><Text style={s.help}>Scan or share this invite link. Join approval depends on Cluster privacy settings.</Text></Card>}
   {show('about')&&openWidget==='about'&&<Card icon="information-outline" title="ABOUT CLUSTER" action={isAdmin?'EDIT':undefined} onAction={isAdmin?()=>edit('about'):undefined} cardColor={cardColor}><Text style={s.body}>{settings?.about_text||description||'No Cluster description yet.'}</Text><Text style={[s.meta,{marginTop:8}]}>Visibility: {scope.visibility??'—'} · Status: {scope.scope_status??'ACTIVE'}</Text></Card>}
   {isAdmin&&show('insights')&&openWidget==='insights'&&<Card icon="chart-box-outline" title="ADMIN INSIGHTS" cardColor={cardColor}><View style={s.stats}><Stat v={scope.member_count??members.length} l="MEMBERS"/><Stat v={openTasks.length} l="OPEN TASKS"/><Stat v={upcoming.length} l="EVENTS"/><Stat v={attendance.length} l="TODAY"/></View></Card>}
@@ -434,7 +554,30 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
      </>:null}
      {kind==='task'?<TextInput value={when} onChangeText={setWhen} placeholder="Due date/time (optional)" style={s.input}/>:null}
      {kind==='poll'?<TextInput value={extra} onChangeText={setExtra} placeholder="Option 1, Option 2, Option 3" style={s.input}/>:null}
-     {kind==='resource'?<TextInput value={extra} onChangeText={setExtra} placeholder="https://..." autoCapitalize="none" style={s.input}/>:null}
+     {kind==='resource'?<TextInput value={extra} onChangeText={setExtra}
+       placeholder="https:// link (optional when uploading file)" autoCapitalize="none" style={s.input}/>:null}
+     {(kind==='resource'||kind==='notice'||kind==='event')&&(
+       <View style={{gap:8,marginVertical:5}}>
+         <Pressable accessibilityRole="button" accessibilityLabel={kind==='resource'?'Choose resource file':'Choose photo or video'}
+           disabled={saving} onPress={()=>void pickHomeAsset()} style={s.secondary}>
+           <MaterialCommunityIcons name={kind==='resource'?'file-upload-outline':'image-multiple-outline'}
+             size={19} color={colors.greenDark}/>
+           <Text style={s.secondaryText}>{kind==='resource'?'UPLOAD FILE':'UPLOAD PHOTO / VIDEO'}</Text>
+         </Pressable>
+         {pickedAsset&&(
+           <View style={{padding:9,backgroundColor:'#E8F8EF',borderRadius:10,gap:5}}>
+             <Text style={s.item}>{pickedAsset.name}</Text>
+             <Text style={s.meta}>{pickedAsset.mediaType.toUpperCase()} · {(pickedAsset.size/1048576).toFixed(1)} MB · Upload starts when you save</Text>
+             {pickedAsset.mediaType==='image'&&(
+               <Image source={{uri:pickedAsset.uri}} style={s.homeMedia} resizeMode="cover"/>
+             )}
+             <Pressable accessibilityRole="button" onPress={()=>setPickedAsset(null)}>
+               <Text style={[s.actionText,{color:'#AA3737'}]}>REMOVE SELECTED FILE</Text>
+             </Pressable>
+           </View>
+         )}
+       </View>
+     )}
      {kind==='recognition'?<TextInput value={extra} onChangeText={setExtra} placeholder="Member / team name" style={s.input}/>:null}
     </ScrollView>
     {/* Footer remains outside the scrolling fields and inside the keyboard-safe sheet. */}
@@ -457,6 +600,7 @@ function Quick({icon,text,onPress}:{icon:any;text:string;onPress:()=>void}){retu
 function Stat({v,l}:{v:number|string;l:string}){return <View style={s.stat}><Text style={s.statV}>{v}</Text><Text style={s.statL}>{l}</Text></View>}
 
 const s=StyleSheet.create({
+ homeMedia:{width:'100%',height:190,borderRadius:12,marginTop:6,backgroundColor:'#DAEAE3'},
  loadingNotice:{flexDirection:'row',alignItems:'center',gap:9,padding:10,backgroundColor:'#FFFFFF',borderRadius:12},
  content:{paddingHorizontal:10,paddingTop:9,paddingBottom:30,gap:9,backgroundColor:'#F2F7FD'},topBar:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:6,marginBottom:2},topSearch:{flexGrow:1,flexShrink:1,minWidth:125,minHeight:40,maxHeight:40,borderRadius:9,borderWidth:1,borderColor:'#CDE1F7',paddingHorizontal:10,color:colors.text,backgroundColor:colors.white,fontSize:11},manageMini:{minHeight:40,paddingHorizontal:8,borderRadius:9,flexDirection:'row',alignItems:'center',gap:4,backgroundColor:'#0874DE'},manageMiniText:{fontSize:9,color:'#FFFFFF',fontWeight:'900'},customizeMini:{minHeight:40,paddingHorizontal:8,borderRadius:9,borderWidth:1,borderColor:'#87B9ED',flexDirection:'row',alignItems:'center',gap:4,backgroundColor:'#FFFFFF'},customizeMiniText:{fontSize:9,color:'#0869C9',fontWeight:'900'},featureGrid:{flexDirection:'row',flexWrap:'wrap',gap:6},featureTile:{width:'22%',minWidth:73,flexGrow:1,minHeight:69,paddingHorizontal:4,paddingVertical:9,borderRadius:10,backgroundColor:'#FFFFFF',borderWidth:1,borderColor:'#DEECFA',justifyContent:'center',alignItems:'center',gap:5},featureTileActive:{backgroundColor:'#0874DE',borderColor:'#0874DE'},featureTileText:{color:'#224D78',fontSize:9,fontWeight:'800',textAlign:'center'},expandedLabel:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:5,paddingTop:7},expandedText:{fontSize:10,color:'#0B5FA9',fontWeight:'800'},topInvite:{minHeight:48,minWidth:48,paddingHorizontal:14,borderRadius:12,backgroundColor:colors.greenDark,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6},topInviteText:{color:'#fff',fontSize:10,fontWeight:'900',letterSpacing:.2},loading:{flex:1,alignItems:'center',justifyContent:'center',gap:9,padding:30},card:{borderWidth:StyleSheet.hairlineWidth,borderColor:colors.line,borderRadius:18,padding:12,backgroundColor:colors.white},head:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:10},hleft:{flex:1,flexDirection:'row',alignItems:'center',gap:8},ico:{width:31,height:31,borderRadius:10,alignItems:'center',justifyContent:'center',backgroundColor:colors.greenSoft},ht:{flex:1,color:colors.text,fontSize:12,fontWeight:'900'},action:{paddingHorizontal:9,paddingVertical:6,borderRadius:999,backgroundColor:colors.greenSoft},actionText:{color:colors.greenDark,fontSize:8,fontWeight:'900'},empty:{color:colors.muted,fontSize:11,lineHeight:17},big:{color:colors.text,fontSize:13,fontWeight:'900',marginBottom:5},body:{color:colors.text,fontSize:11.5,lineHeight:18},meta:{color:colors.muted,fontSize:9,lineHeight:14},row:{flexDirection:'row',alignItems:'center',gap:9,paddingVertical:7},block:{paddingVertical:9,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:colors.line,gap:5},between:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:9},badge:{width:52,minHeight:38,borderRadius:10,alignItems:'center',justifyContent:'center',backgroundColor:colors.greenSoft},badgeText:{color:colors.greenDark,fontSize:9,fontWeight:'900'},item:{flex:1,color:colors.text,fontSize:11,fontWeight:'900'},chips:{flexDirection:'row',flexWrap:'wrap',gap:6,marginTop:6},chip:{paddingHorizontal:9,paddingVertical:6,borderRadius:999,borderWidth:1,borderColor:colors.line,flexDirection:'row',alignItems:'center',gap:4},chipOn:{backgroundColor:colors.greenDark,borderColor:colors.greenDark},chipText:{color:colors.muted,fontSize:7.5,fontWeight:'900'},chipTextOn:{color:colors.white},grid:{flexDirection:'row',flexWrap:'wrap',gap:8},quick:{width:'22%',minWidth:72,flexGrow:1,minHeight:50,padding:6,borderRadius:10,alignItems:'center',justifyContent:'center',gap:3,backgroundColor:'#E9F4FF'},quickText:{color:'#145EAA',fontSize:8,fontWeight:'900',textAlign:'center'},stats:{flexDirection:'row',flexWrap:'wrap',gap:8},stat:{minWidth:78,flex:1,padding:10,borderRadius:13,alignItems:'center',backgroundColor:colors.greenSoft},statV:{color:colors.greenDark,fontSize:20,fontWeight:'900'},statL:{marginTop:2,color:colors.muted,fontSize:7,fontWeight:'900'},people:{gap:10,paddingTop:12},person:{width:64,alignItems:'center',gap:4},avatar:{width:42,height:42,borderRadius:21,backgroundColor:colors.greenSoft},avFallback:{alignItems:'center',justifyContent:'center'},personName:{width:'100%',color:colors.text,fontSize:8,fontWeight:'800',textAlign:'center'},status:{color:colors.greenDark,fontSize:8,fontWeight:'900'},done:{textDecorationLine:'line-through',color:colors.muted},small:{alignSelf:'flex-start',paddingHorizontal:9,paddingVertical:6,borderRadius:999,backgroundColor:colors.greenSoft},smallText:{color:colors.greenDark,fontSize:8,fontWeight:'900'},poll:{minHeight:42,paddingHorizontal:12,paddingVertical:9,borderRadius:12,borderWidth:1,borderColor:colors.line,flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:6},pollOn:{backgroundColor:colors.greenDark,borderColor:colors.greenDark},post:{borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:colors.line,paddingVertical:10,gap:7},author:{flex:1,color:colors.text,fontSize:10.5,fontWeight:'900'},postImage:{width:'100%',height:180,borderRadius:13,backgroundColor:colors.greenSoft},video:{minHeight:200,borderRadius:13,overflow:'hidden'},postMeta:{flexDirection:'row',gap:14},cal:{width:49,height:49,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:colors.greenDark},calDay:{color:'#fff',fontSize:17,fontWeight:'900'},calMonth:{color:'#fff',fontSize:7,fontWeight:'900'},primary:{minHeight:42,paddingHorizontal:14,paddingVertical:9,borderRadius:12,backgroundColor:colors.greenDark,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},primaryText:{color:'#fff',fontSize:9,fontWeight:'900'},recipient:{color:'#8A6214',fontSize:9,fontWeight:'900'},invite:{flexDirection:'row',alignItems:'center',gap:12,marginBottom:10},inviteLink:{color:colors.greenDark,textDecorationLine:'underline'},inviteActions:{flexDirection:'row',flexWrap:'wrap',gap:8},secondary:{minHeight:42,paddingHorizontal:14,paddingVertical:9,borderRadius:12,borderWidth:1,borderColor:colors.greenDark,backgroundColor:colors.white,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,flex:1},secondaryText:{color:colors.greenDark,fontSize:9,fontWeight:'900'},qr:{width:82,height:82,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:colors.greenSoft},code:{marginVertical:4,color:colors.greenDark,fontSize:17,fontWeight:'900',letterSpacing:2},help:{color:colors.muted,fontSize:9,lineHeight:14,marginTop:8},
  customizeLauncher:{minHeight:76,borderWidth:StyleSheet.hairlineWidth,borderColor:colors.line,borderRadius:18,paddingHorizontal:13,paddingVertical:12,backgroundColor:colors.white,flexDirection:'row',alignItems:'center',gap:11},

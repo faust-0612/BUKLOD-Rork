@@ -196,13 +196,13 @@ export default function BuklodCharacterNavigator({
 
   const onPress = useCallback(() => {
     if (claimableCount > 0) {
-      showBubble('Scroll up to claim your reward!', 2600);
+      router.push('/points' as any);
       return;
     }
-
-    // Character picture door → canonical Economy & Bayanihan ledger.
-    router.push('/points/economy' as any);
-  }, [claimableCount, showBubble]);
+    showBubble(nextRankName && pointsToNext!=null && pointsToNext>0
+      ? pointsToNext.toLocaleString('en-PH')+' pts to '+nextRankName
+      : 'Open BUKLOD Points to explore your Circle Rank.', 3200);
+  }, [claimableCount, showBubble, nextRankName, pointsToNext]);
 
   const avatarSize = 48;
 
@@ -253,7 +253,7 @@ export default function BuklodCharacterNavigator({
         accessibilityLabel={
           claimableCount > 0
             ? 'Open claimable rewards'
-            : 'Open Economy and Bayanihan'
+            : 'Show Circle Rank progression information'
         }
         style={({ pressed }) => [
           styles.row,
@@ -270,7 +270,7 @@ export default function BuklodCharacterNavigator({
           ]}
         >
           <Text style={[styles.pointsEyebrow, { color: theme.textMuted }]}>
-            BUKLOD
+            BUKLOD POINTS
           </Text>
           <Text style={[styles.pointsValue, { color: theme.accent }]}>
             {lifetimePoints.toLocaleString('en-PH')} pts

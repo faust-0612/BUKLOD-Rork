@@ -3,6 +3,7 @@ import {AppState, Dimensions, Image, Linking, Pressable, StyleSheet, Text, View}
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {VideoView, useVideoPlayer} from 'expo-video';
 import {useFocusEffect} from 'expo-router';
+import {requestBuklodAudioFocus, subscribeBuklodAudioFocus} from '@/lib/buklodAudioFocus';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
@@ -16,11 +17,33 @@ type SponsorLocation = 'community' | 'home';
 const REFRESH_MS = 60_000;
 const ROTATE_MS = 12_000;
 
-// The player is mounted only for the currently selected, eligible video ad.
-// Audio defaults to muted and no automatic playback is requested on load.
-function AdVideo({uri}: {uri: string}) {
-  const player = useVideoPlayer(uri, p => {p.loop = true; p.muted = true;});
-  return <VideoView player={player} style={s.media} contentFit="contain" nativeControls/>;
+// Only the eligible in-view ad plays. Off-screen, app background and
+// navigation changes pause immediately; no hidden video streams.
+function AdVideo({uri, visible}: {uri: string; visible: boolean}) {
+  const player = useVideoPlayer(uri, p => {p.loop = true; p.muted = false;});
+  // DZAS, video calls and a tapped Wall song must win audio focus.
+  useEffect(() => subscribeBuklodAudioFocus(owner => {
+    if (owner !== 'sponsor-ad') {
+      try {player.pause();} catch {}
+    }
+  }), [player]);
+  useEffect(() => {
+    if (!visible) { try {player.pause();} catch {} return; }
+    requestBuklodAudioFocus('sponsor-ad');
+    try {player.muted = false; player.play();} catch {
+      // Audible browser autoplay may require a user gesture.
+    }
+    return () => {try {player.pause();} catch {}};
+  }, [player, visible]);
+  return <View>
+    <VideoView player={player} style={s.media} contentFit="contain" nativeControls/>
+    <Pressable accessibilityRole="button" accessibilityLabel="Play sponsored video with sound"
+      onPress={() => {requestBuklodAudioFocus('sponsor-ad'); player.muted=false; player.play();}}
+      style={s.soundAction}>
+      <MaterialCommunityIcons name="volume-high" size={16} color="#fff"/>
+      <Text style={{color:'#fff',fontSize:11,fontWeight:'800'}}>Play with sound</Text>
+    </Pressable>
+  </View>;
 }
 
 export default function BuklodCommunitySponsoredAd({
@@ -36,6 +59,12 @@ export default function BuklodCommunitySponsoredAd({
   const [rows, setRows] = useState<Campaign[]>([]);
   const [index, setIndex] = useState(0);
   const [atMs, setAtMs] = useState(() => Date.now());
+  const [videoVisible, setVideoVisible] = useState(false);
+  const [screenFocused, setScreenFocused] = useState(false);
+  useFocusEffect(useCallback(() => {
+    setScreenFocused(true);
+    return () => {setScreenFocused(false); setVideoVisible(false);};
+  }, []));
 
   const scopeCoverage = useMemo<PaidSponsorshipCoverage | null>(() => {
     if (audience === 'public') return null;
@@ -104,10 +133,8 @@ export default function BuklodCommunitySponsoredAd({
 
   useEffect(() => {
     if (!rows.length) return;
-    const timer = setInterval(() => {
-      setAtMs(Date.now()); // Expire a campaign even while the view stays open.
-      if (rows.length > 1) setIndex(current => current + 1);
-    }, ROTATE_MS);
+    // Expiry must still advance while a visible sponsored video is playing.
+    const timer = setInterval(() => setAtMs(Date.now()), ROTATE_MS);
     return () => clearInterval(timer);
   }, [rows.length]);
 
@@ -119,6 +146,35 @@ export default function BuklodCommunitySponsoredAd({
   ), [rows, profile, atMs, scopeCoverage, audience]);
 
   const campaign = eligible.length ? eligible[index % eligible.length] : null;
+  useEffect(() => {
+    if (eligible.length <= 1) return;
+    // Video creative must not be cut short at the photo rotation interval.
+    const ms = screenFocused && videoVisible && campaign?.creative_type === 'video'
+      ? 30_000 : ROTATE_MS;
+    const timer = setTimeout(() => setIndex(current => current + 1), ms);
+    return () => clearTimeout(timer);
+  }, [eligible.length, campaign?.id, campaign?.creative_type, screenFocused, videoVisible]);
+  // Feed headers stay mounted while scrolling: measure actual intersection.
+  useEffect(() => {
+    if (!screenFocused || campaign?.creative_type !== 'video') {
+      setVideoVisible(false);
+      return;
+    }
+    let alive = true;
+    const check = () => {
+      if (AppState.currentState !== 'active') {setVideoVisible(false); return;}
+      shellRef.current?.measureInWindow((x,y,w,h) => {
+        if (!alive) return;
+        const screen=Dimensions.get('window');
+        const clipped=Math.max(0,Math.min(y+h,screen.height)-Math.max(y,0));
+        const onScreen=w>40&&h>40&&x<screen.width&&x+w>0&&clipped>=Math.min(h*0.5,180);
+        setVideoVisible(previous => previous===onScreen ? previous : onScreen);
+      });
+    };
+    const warmup=setTimeout(check,350);
+    const watch=setInterval(check,900);
+    return () => {alive=false; clearTimeout(warmup); clearInterval(watch);};
+  }, [screenFocused,campaign?.id,campaign?.creative_type]);
 
   // Count an impression only after the active card is physically visible.
   // No impression is recorded for an unmounted or off-screen card.
@@ -166,7 +222,7 @@ export default function BuklodCommunitySponsoredAd({
         : campaign.coverage_level === 'city' ? 'Town / City' : campaign.coverage_level}</Text>
     </View>
     {campaign.creative_type === 'video' && campaign.video_url
-      ? <AdVideo key={campaign.id} uri={campaign.video_url}/>
+      ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={screenFocused&&videoVisible}/>
       : campaign.image_url
         ? <Image source={{uri: campaign.image_url}} style={s.media} resizeMode="contain"/>
         : null}
@@ -182,4 +238,4 @@ export default function BuklodCommunitySponsoredAd({
     </View>
   </View>;
 }
-const s=StyleSheet.create({shell:{marginHorizontal:12,marginVertical:10,borderRadius:18,overflow:'hidden',backgroundColor:'#fff',borderWidth:1,borderColor:'#DCE7E0'},top:{minHeight:38,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},badge:{flexDirection:'row',alignItems:'center',gap:5},badgeText:{fontSize:9,fontWeight:'900',letterSpacing:.8,color:'#25573F'},scope:{fontSize:10,fontWeight:'700',color:'#7A877F'},media:{width:'100%',height:220,backgroundColor:'#E7ECE9'},copy:{padding:14},advertiser:{fontSize:11,fontWeight:'800',color:'#557064'},headline:{marginTop:3,fontSize:18,lineHeight:23,fontWeight:'900',color:'#173C2C'},body:{marginTop:6,fontSize:12,lineHeight:18,color:'#617168'},period:{marginTop:7,fontSize:10,color:'#657C6C'},cta:{alignSelf:'flex-start',marginTop:12,minHeight:38,paddingHorizontal:14,borderRadius:12,flexDirection:'row',alignItems:'center',gap:7,backgroundColor:'#1E6B45'},ctaText:{fontSize:12,fontWeight:'900',color:'#fff'}});
+const s=StyleSheet.create({soundAction:{position:'absolute',right:9,bottom:9,backgroundColor:'rgba(0,0,0,.65)',paddingHorizontal:10,paddingVertical:7,borderRadius:12,flexDirection:'row',alignItems:'center',gap:5},shell:{marginHorizontal:12,marginVertical:10,borderRadius:18,overflow:'hidden',backgroundColor:'#fff',borderWidth:1,borderColor:'#DCE7E0'},top:{minHeight:38,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},badge:{flexDirection:'row',alignItems:'center',gap:5},badgeText:{fontSize:9,fontWeight:'900',letterSpacing:.8,color:'#25573F'},scope:{fontSize:10,fontWeight:'700',color:'#7A877F'},media:{width:'100%',height:220,backgroundColor:'#E7ECE9'},copy:{padding:14},advertiser:{fontSize:11,fontWeight:'800',color:'#557064'},headline:{marginTop:3,fontSize:18,lineHeight:23,fontWeight:'900',color:'#173C2C'},body:{marginTop:6,fontSize:12,lineHeight:18,color:'#617168'},period:{marginTop:7,fontSize:10,color:'#657C6C'},cta:{alignSelf:'flex-start',marginTop:12,minHeight:38,paddingHorizontal:14,borderRadius:12,flexDirection:'row',alignItems:'center',gap:7,backgroundColor:'#1E6B45'},ctaText:{fontSize:12,fontWeight:'900',color:'#fff'}});

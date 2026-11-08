@@ -16,6 +16,8 @@ import BuklodNonFaithEncouragementDoor from '@/components/BuklodNonFaithEncourag
 import BuklodScopeBuklodLessonPanel from '@/components/BuklodScopeBuklodLessonPanel';
 import BuklodScopeFaithMonitoringDoor from '@/components/BuklodScopeFaithMonitoringDoor';
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
+import BuklodScopeProfilePhoto from '@/components/BuklodScopeProfilePhoto';
+import BuklodScopeCallLauncher from '@/components/BuklodScopeCallLauncher';
 import BuklodScopeActionCenterSlot from '@/components/BuklodScopeActionCenterSlot';
 import BuklodScopeAttendanceCard from '@/components/BuklodScopeAttendanceCard';
 import BuklodR2FocusMonitor from '@/components/points/BuklodR2FocusMonitor';
@@ -177,6 +179,13 @@ export default function BuklodScopeHomeDashboard({
       }
       showsVerticalScrollIndicator={false}
     >
+      <BuklodScopeProfilePhoto scopeId={scope.scope_id} scopeName={scope.name} isAdmin={showAdminSummary}/>
+      {scope.scope_type==='ORGANIZATION'&&(
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>ORGANIZATION LIVE AUDIO / VIDEO CALL</Text>
+          <BuklodScopeCallLauncher scopeId={scope.scope_id} title={scope.name}/>
+        </View>
+      )}
       {/* BUKLOD_V28_ORG_HOME_BLUE_R1: Quick Links exclude Community/Connect. */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>QUICK LINKS</Text>

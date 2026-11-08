@@ -119,8 +119,9 @@ export default function BuklodTodayCard({onRespond}:{onRespond?:(draft?:string)=
  </View>;
 }
 const s=StyleSheet.create({
- shell:{width:'100%',backgroundColor:'#FFFFFF',borderWidth:1,borderColor:'#DCE8DF',
-   borderRadius:4,padding:14,gap:10,marginHorizontal:0,marginBottom:0},
+ shell:{width:'100%',backgroundColor:'#FDF8FF',borderWidth:2,borderColor:'#AD65FF',
+   borderRadius:12,padding:14,gap:10,marginHorizontal:0,marginBottom:4,
+   shadowColor:'#A020F0',shadowOffset:{width:0,height:0},shadowOpacity:.22,shadowRadius:10,elevation:5},
  head:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'},
  eyebrow:{fontSize:12,fontWeight:'900',letterSpacing:.7,color:'#17644B'},
  sub:{fontSize:11,color:'#64796A',marginTop:3,textTransform:'capitalize'},

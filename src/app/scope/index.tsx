@@ -140,6 +140,8 @@ ScopeWorkspaceScreen() {
       scope_id?: string | string[];
       focusPostId?: string;
       focusComments?: string;
+      focusCommentId?: string;
+      focusMessageId?: string;
     }>();
 
   const routeScopeId =
@@ -530,6 +532,7 @@ return (
           scope={workspaceScope}
           focusPostId={params.focusPostId}
           focusComments={params.focusComments === '1'}
+          focusCommentId={params.focusCommentId}
         />
         </View>
       ) : null}
@@ -544,6 +547,7 @@ return (
                 <OrganizationCommunityConnect
                   scope={workspaceScope}
                   onBack={() => openSection('home')}
+                  focusMessageId={params.focusMessageId}
                 />
               )
             : (
@@ -685,10 +689,12 @@ function ScopeCommunity({
   scope,
   focusPostId,
   focusComments,
+  focusCommentId,
 }: {
   scope: BuklodScope;
   focusPostId?: string;
   focusComments?: boolean;
+  focusCommentId?: string;
 }) {
   if (
     scope.scope_type === 'ORGANIZATION' ||
@@ -699,6 +705,7 @@ function ScopeCommunity({
         scope={scope}
         focusPostId={focusPostId}
         focusComments={focusComments}
+        focusCommentId={focusCommentId}
       />
     );
   }
@@ -1012,9 +1019,11 @@ function LegacyScopeCommunity({
 function OrganizationCommunityConnect({
   scope,
   onBack,
+  focusMessageId,
 }: {
   scope: BuklodScope;
   onBack?: () => void;
+  focusMessageId?: string;
 }) {
   if (
     scope.scope_type !== 'ORGANIZATION' &&
@@ -1031,6 +1040,7 @@ function OrganizationCommunityConnect({
         mode="scope"
         containerId={scope.scope_id}
         onBackOverride={onBack}
+        focusMessageId={focusMessageId}
       />
     </View>
   );

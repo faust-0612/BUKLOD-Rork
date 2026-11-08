@@ -10,9 +10,11 @@ export default function CommunityConnectThreadRoute() {
     scopeId?: string | string[];
     scopeName?: string | string[];
     scopeType?: string | string[];
+    focusMessageId?: string | string[];
   }>();
 
   const scopeId = firstRouteParam(params.scopeId);
+  const focusMessageId = firstRouteParam(params.focusMessageId);
   const scopeName = firstRouteParam(params.scopeName);
   const scopeType = firstRouteParam(params.scopeType);
 
@@ -39,6 +41,7 @@ export default function CommunityConnectThreadRoute() {
     <ConnectRenderBoundary surface="community_thread">
       <BuklodConnectThread
       mode="scope"
+      focusMessageId={focusMessageId}
       containerId={scopeId}
       initialTitle={scopeName || undefined}
       initialSubtitle={initialSubtitle}

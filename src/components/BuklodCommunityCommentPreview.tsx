@@ -1,4 +1,6 @@
 import React from 'react';
+import { Image as ExpoImage } from 'expo-image';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   StyleSheet,
   Text,
@@ -6,6 +8,7 @@ import {
 } from 'react-native';
 
 import BuklodPressable from '@/components/BuklodPressable';
+import { parseBuklodCommentMediaBody } from '@/lib/buklodCommentMediaBody';
 
 import {
   BuklodTappableAvatar,
@@ -44,6 +47,13 @@ export function BuklodCommunityCommentPreview({
 }: Props) {
   const { theme } = useBuklodTheme();
   const isReel = variant === 'reel';
+  const parsed = parseBuklodCommentMediaBody(preview.body);
+  // RPC snippets sometimes truncate a media header: never expose its token.
+  const encoded = String(preview.body || '').startsWith('[[BUKLOD_COMMENT_MEDIA:v1:');
+  const isGif = parsed.media?.kind === 'gif' ||
+    String(preview.body || '').startsWith('[[BUKLOD_COMMENT_MEDIA:v1:gif:');
+  const isPhoto = parsed.media?.kind === 'image' || (encoded && !isGif);
+  const visibleCaption = encoded && !parsed.media ? '' : parsed.caption;
 
   return (
     <BuklodPressable
@@ -92,16 +102,22 @@ export function BuklodCommunityCommentPreview({
           )}
         </View>
 
-        <Text
-          numberOfLines={2}
-          style={[
-            styles.body,
-            isReel && styles.reelBody,
-            !isReel && { color: theme.textPrimary },
-          ]}
-        >
-          {repairMojibakeText(preview.body)}
-        </Text>
+        {isGif ? (
+          <View style={styles.mediaRow}>
+            {parsed.media?.kind === 'gif' && /^https:\/\//i.test(parsed.media.ref) ? (
+              <ExpoImage source={{ uri: parsed.media.ref }} style={styles.gifThumb} contentFit="cover" />
+            ) : <MaterialCommunityIcons name="file-gif-box" size={23} color={isReel ? '#FFFFFF' : '#186B50'} />}
+            <Text style={[styles.mediaLabel, isReel && styles.reelBody]}>GIF · Tap to view</Text>
+          </View>
+        ) : isPhoto ? (
+          <Text style={[styles.mediaLabel, isReel && styles.reelBody]}>Photo · Tap to view</Text>
+        ) : null}
+        {!!visibleCaption.trim() && (
+          <Text numberOfLines={2} style={[styles.body, isReel && styles.reelBody,
+            !isReel && { color: theme.textPrimary }]}>
+            {repairMojibakeText(visibleCaption)}
+          </Text>
+        )}
       </View>
     </BuklodPressable>
   );
@@ -150,6 +166,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
+  mediaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
+  gifThumb: { width: 58, height: 48, borderRadius: 8 },
+  mediaLabel: { fontSize: 12, fontWeight: '800', color: '#186B50' },
   body: {
     fontSize: 15,
     lineHeight: 21,

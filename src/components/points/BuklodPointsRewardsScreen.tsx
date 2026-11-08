@@ -19,7 +19,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import {
   buildBuklodUserFeedback,
@@ -32,14 +32,13 @@ import BuklodPointsClaimCelebration from '@/components/points/BuklodPointsClaimC
 import BuklodRedeemCatalogSection from '@/components/points/BuklodRedeemCatalogSection';
 import BuklodPointsR2Guide from '@/components/points/BuklodPointsR2Guide';
 import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
-import { useClaimButtonGlow } from '@/components/points/PointsMotion';
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import { useBuklodCharacterEventsOptional } from '@/components/character/BuklodCharacterEventProvider';
 import { CharacterEventType } from '@/lib/buklodCharacterEvents';
 import { DEFAULT_CHARACTER } from '@/lib/buklodCharacter';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {
-  claimBuklodRewardGroup,
+  claimBuklodRewardEvent,
   loadBuklodClaimGroups,
   loadBuklodPointsDashboard,
   type BuklodClaimGroup,
@@ -413,25 +412,18 @@ function ClaimGroupCard({
   group,
   rows,
   expanded,
-  busy,
-  blocked,
   motionEnabled,
   onToggle,
-  onClaim,
 }: {
   group: BuklodClaimGroup;
   rows: PointRow[];
   expanded: boolean;
-  busy: boolean;
-  blocked: boolean;
   motionEnabled: boolean;
   onToggle: () => void;
-  onClaim: () => void;
 }) {
   const meta = GROUP_META[group.group_key] ?? GROUP_META.other;
   const visibleRows = expanded ? rows : rows.slice(0, 3);
   const reveal = useRef(new Animated.Value(expanded ? 1 : 0)).current;
-  const { scale, glow } = useClaimButtonGlow(!blocked, !motionEnabled);
 
   useEffect(() => {
     if (!motionEnabled) {
@@ -531,47 +523,19 @@ function ClaimGroupCard({
         </Text>
       ) : null}
 
-      <View style={styles.claimButtonWrap}>
-        {motionEnabled && !blocked ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[styles.claimGlow, { backgroundColor: meta.accent, opacity: glow }]}
-          />
-        ) : null}
-        <Animated.View style={{ transform: [{ scale: motionEnabled && !blocked ? scale : 1 }] }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Claim all ${group.group_label} points`}
-            disabled={blocked}
-            onPress={onClaim}
-            style={({ pressed }) => [
-              styles.claimButton,
-              { backgroundColor: meta.accent },
-              blocked && !busy && { opacity: 0.48 },
-              pressed && !blocked && { opacity: 0.87 },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={busy ? 'progress-clock' : 'circle-multiple-outline'}
-              size={19}
-              color={COLORS.white}
-            />
-            <Text style={styles.claimButtonText}>
-              {busy
-                ? `ADDING +${group.total_points.toLocaleString('en-PH')} PTS…`
-                : `CLAIM ALL  +${group.total_points.toLocaleString('en-PH')} PTS`}
-            </Text>
-            {!busy ? (
-              <MaterialCommunityIcons name="star-four-points" size={14} color="#FFE798" />
-            ) : null}
-          </Pressable>
-        </Animated.View>
-      </View>
+      <Text style={styles.morePendingText}>This category is included in the single Claim All button above.</Text>
     </View>
   );
 }
 
 export default function BuklodPointsRewardsScreen() {
+  const {focusLedgerId}=useLocalSearchParams<{focusLedgerId?:string}>();
+  const exactLedgerId=typeof focusLedgerId==='string'?focusLedgerId.trim():'';
+  const historyScrollRef=useRef<ScrollView|null>(null);
+  const historySectionYRef=useRef(0);
+  const historyListYRef=useRef(0);
+  const focusedLedgerRef=useRef<string|null>(null);
+  const [ledgerFocusMissing,setLedgerFocusMissing]=useState(false);
   const reduceMotion = useBuklodReduceMotion();
   const characterEvents = useBuklodCharacterEventsOptional();
   const claimSound = useAudioPlayer(CLAIM_SUCCESS_SOUND);
@@ -696,6 +660,26 @@ export default function BuklodPointsRewardsScreen() {
     void load();
   }, [load]);
 
+  useEffect(()=>{
+    if(!exactLedgerId||loading)return;
+    let active=true;
+    setFilter('all');setSearch('');setLedgerFocusMissing(false);
+    // The first 300 historical rows may not include the referenced ledger.
+    // Fetch ONLY the specific authenticated owner's row, protected by RLS.
+    void (async()=>{
+      const auth=await supabase.auth.getUser();
+      if(!active||!auth.data.user?.id)return;
+      const {data,error}=await supabase.from('buklod_points_ledger')
+        .select('id,direction,claim_state,points,activity_type,source_key,source_id,description,created_at')
+        .eq('user_id',auth.data.user.id).eq('id',exactLedgerId).maybeSingle();
+      if(!active)return;
+      if(error||!data){setLedgerFocusMissing(true);return;}
+      setHistory(current=>current.some(row=>row.id===exactLedgerId)?
+        current:[data as PointRow,...current]);
+    })().catch(()=>{if(active)setLedgerFocusMissing(true);});
+    return()=>{active=false;};
+  },[exactLedgerId,loading]);
+
   useEffect(() => {
     if (!lastSuccess) return;
     const timer = setTimeout(() => setLastSuccess(null), 2300);
@@ -738,77 +722,47 @@ export default function BuklodPointsRewardsScreen() {
     [playTap],
   );
 
-  const claimGroup = useCallback(
-    async (group: BuklodClaimGroup) => {
-      if (claimingGroup) return;
-
-      setClaimingGroup(group.group_key);
-      setClaimError(null);
-      setClaimTechnicalError(null);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-
-      try {
-        const result = await claimBuklodRewardGroup(group.group_key);
-        if (result.claimed_count <= 0 || result.claimed_points <= 0) {
-          setClaimError('Some activities were already claimed or are no longer pending. The list has been refreshed.');
-          await load();
-          return;
-        }
-
-        setDashboard((current) =>
-          current
-            ? {
-                ...current,
-                total_points: result.lifetime_points,
-                lifetime_points: result.lifetime_points,
-                available_points: result.available_points,
-                pending_claimable_points: Math.max(
-                  0,
-                  current.pending_claimable_points - result.claimed_points,
-                ),
-              }
-            : current,
-        );
-        setClaimGroups((current) => current.filter((item) => item.group_key !== group.group_key));
-        setExpandedGroups((current) => ({ ...current, [group.group_key]: false }));
-
-        if (soundOn) playAudio(claimSound);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-
-        // Claim is already authoritative before a capped, skippable ad break.
-        // The ad never gates existing or withdrawable BUKLOD Points.
-        await showBuklodAdOpportunity('points_claim_success');
-        setLastSuccess({ label: group.group_label, points: result.claimed_points });
-        setCelebrationActive(motionEnabled);
-
-        if (result.rank_up) {
-          characterEvents?.emit({
-            type: CharacterEventType.MILESTONE_REACHED,
-            success: true,
-            spokenText: result.rank_name ? `Rank up! You are now ${result.rank_name}.` : undefined,
-          });
-        }
-        characterEvents?.emit({
-          type: CharacterEventType.POINTS_CLAIMED,
-          success: true,
-          points: result.claimed_points,
-          spokenText: `${group.group_label}: ${result.claimed_points} points claimed.`,
-          dialogue: `${group.group_label} — +${result.claimed_points} pts`,
-        });
-
-        await load();
-      } catch (error) {
-        const technical = normalizeErrorMessage(error);
-        console.warn('BUKLOD grouped claim:', technical);
-        setClaimTechnicalError(technical);
-        setClaimError(friendlyClaimError(technical));
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
-      } finally {
-        setClaimingGroup(null);
+  const claimAll = useCallback(async () => {
+    if(claimingGroup!==null || claimablePoints<=0)return;
+    setClaimingGroup('all');
+    setClaimError(null);setClaimTechnicalError(null);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(()=>undefined);
+    let awarded=0;
+    try {
+      // Atomic one-click server claim. Economy and Profile only link here.
+      const result=await claimBuklodRewardEvent('__buklod_claim_all_eligible__');
+      awarded=result.claimed_points;
+      if(awarded<=0){
+        setClaimError('No eligible points remain. Your balance has been refreshed.');
+        await load();return;
       }
-    },
-    [characterEvents, claimSound, claimingGroup, load, motionEnabled, soundOn],
-  );
+      setDashboard(current=>current?{...current,total_points:result.lifetime_points,
+        lifetime_points:result.lifetime_points,available_points:result.available_points,
+        pending_claimable_points:Math.max(0,current.pending_claimable_points-awarded)}:current);
+      setClaimGroups([]);
+      if(soundOn)playAudio(claimSound);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>undefined);
+      setLastSuccess({label:'All verified activities',points:awarded});
+      setCelebrationActive(motionEnabled);
+      if(result.rank_up)characterEvents?.emit({
+        type:CharacterEventType.MILESTONE_REACHED,success:true,
+        spokenText:result.rank_name?'Rank up! You are now '+result.rank_name:undefined,
+      });
+      characterEvents?.emit({
+        type:CharacterEventType.POINTS_CLAIMED,success:true,points:awarded,
+        spokenText:awarded+' verified BUKLOD Points claimed.',
+        dialogue:'All verified activities — +'+awarded+' pts',
+      });
+      // An ad follows the authorized claim, never acts as a balance gate.
+      await showBuklodAdOpportunity('points_claim_success').catch(()=>false);
+      await load();
+    }catch(error){
+      const technical=normalizeErrorMessage(error);
+      setClaimTechnicalError(technical);setClaimError(friendlyClaimError(technical));
+      if(awarded>0)await load().catch(()=>undefined);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(()=>undefined);
+    }finally{setClaimingGroup(null);}
+  },[characterEvents,claimSound,claimingGroup,claimablePoints,load,motionEnabled,soundOn]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -903,6 +857,7 @@ export default function BuklodPointsRewardsScreen() {
 
   return (
     <BuklodPortalScrollView
+      scrollRef={historyScrollRef}
       style={[shared.screen, { backgroundColor: COLORS.canvas }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
@@ -1038,23 +993,30 @@ export default function BuklodPointsRewardsScreen() {
         ) : null}
 
         <BuklodAdLightRewardCard />
+        {claimGroups.length>0&&(
+          <Pressable accessibilityRole="button" accessibilityLabel="Claim all verified BUKLOD Points"
+            disabled={claimingGroup!==null} onPress={()=>void claimAll()}
+            style={[styles.claimButton,{backgroundColor:COLORS.green,marginBottom:12,marginHorizontal:4},
+              claimingGroup!==null&&{opacity:0.55}]}>
+            <MaterialCommunityIcons name="gift-outline" size={20} color={COLORS.white}/>
+            <Text style={styles.claimButtonText}>
+              {claimingGroup!==null?'CLAIMING…':`CLAIM ALL +${claimablePoints.toLocaleString('en-PH')} PTS`}
+            </Text>
+          </Pressable>
+        )}
 
         {claimGroups.map((group) => {
           const rows = pendingRows.filter(
             (item) => claimGroupKeyForActivity(item.activity_type) === group.group_key,
           );
-          const busy = claimingGroup === group.group_key;
           return (
             <ClaimGroupCard
               key={group.group_key}
               group={group}
               rows={rows}
               expanded={Boolean(expandedGroups[group.group_key])}
-              busy={busy}
-              blocked={claimingGroup !== null}
               motionEnabled={motionEnabled}
               onToggle={() => toggleGroup(group.group_key)}
-              onClaim={() => void claimGroup(group)}
             />
           );
         })}
@@ -1237,7 +1199,9 @@ export default function BuklodPointsRewardsScreen() {
         </View>
       ) : null}
 
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={event=>{
+        historySectionYRef.current=event.nativeEvent.layout.y;
+      }}>
         <Text style={styles.sectionTitle}>Points History</Text>
         <Text style={styles.sectionSub}>Search and review your recorded point activity.</Text>
 
@@ -1273,12 +1237,33 @@ export default function BuklodPointsRewardsScreen() {
           ))}
         </ScrollView>
 
-        <View style={styles.historyList}>
+        <View style={styles.historyList} onLayout={event=>{
+          historyListYRef.current=event.nativeEvent.layout.y;
+        }}>
+          {ledgerFocusMissing&&exactLedgerId&&(
+            <Text accessibilityRole="alert" style={styles.emptyText}>
+              This Points activity is unavailable or outside your allowed records.
+            </Text>
+          )}
           {filtered.length === 0 ? (
             <Text style={styles.emptyText}>No matching points activity.</Text>
           ) : (
             filtered.map((item, index) => (
-              <View key={item.id} style={[styles.historyRow, index === filtered.length - 1 && { borderBottomWidth: 0 }]}>
+              <View key={item.id}
+                onLayout={event=>{
+                  if(!exactLedgerId||item.id!==exactLedgerId||
+                    focusedLedgerRef.current===exactLedgerId)return;
+                  focusedLedgerRef.current=exactLedgerId;
+                  const y=Math.max(0,historySectionYRef.current+
+                    historyListYRef.current+event.nativeEvent.layout.y-105);
+                  requestAnimationFrame(()=>historyScrollRef.current?.scrollTo({
+                    y,animated:true,
+                  }));
+                }}
+                style={[styles.historyRow,
+                  item.id===exactLedgerId&&{backgroundColor:'#D9FAE8',borderColor:'#28B479',
+                    borderWidth:2,borderRadius:12},
+                  index===filtered.length-1&&{borderBottomWidth:0}]}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.historyTitle}>{activityLabel(item.activity_type)}</Text>
                   {!!item.description && <Text style={styles.historyDescription}>{item.description}</Text>}

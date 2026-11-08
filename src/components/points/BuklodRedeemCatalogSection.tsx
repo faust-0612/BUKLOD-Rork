@@ -105,16 +105,16 @@ export default function BuklodRedeemCatalogSection({
       <View style={styles.headerRow}>
         <View style={styles.icon}>
           <MaterialCommunityIcons
-            name="shield-check-outline"
+            name="book-open-page-variant-outline"
             size={22}
             color={theme.accent}
           />
         </View>
-        <Text style={styles.title}>Points stay progression-only</Text>
+        <Text style={styles.title}>How Economy & Bayanihan works</Text>
       </View>
 
       <Text style={styles.sub}>
-        BUKLOD Points are for progression, rank and supported in-app reward mechanics. They are not pesos and cannot be converted into Bayanihan cash or a fixed Cash Reward.
+        Learn how your verified activities earn Points, how Points support character/rank progression, and how qualified participation contributes to separate Economy & Bayanihan reports.
       </Text>
 
       <View style={styles.pointsBox}>
@@ -131,13 +131,13 @@ export default function BuklodRedeemCatalogSection({
           color={theme.accent}
         />
         <Text style={styles.ruleText}>
-          Actual BUKLOD earnings, when available, come only from finalized funded platform revenue and are reported separately from Points.
+          Points are not pesos. Estimated Bayanihan earnings are not withdrawable; only finalized, funded amounts can enter payout eligibility.
         </Text>
       </View>
 
       <Pressable
         accessibilityRole="button"
-        onPress={() => router.push('/points/economy' as any)}
+        onPress={() => router.push('/bayanihan/guide' as any)}
         style={({ pressed }) => [
           styles.button,
           pressed && { opacity: 0.82 },
@@ -148,7 +148,7 @@ export default function BuklodRedeemCatalogSection({
           size={18}
           color="#FFFFFF"
         />
-        <Text style={styles.buttonText}>OPEN ECONOMY & BAYANIHAN</Text>
+        <Text style={styles.buttonText}>OPEN ECONOMY GUIDE</Text>
       </Pressable>
     </View>
   );

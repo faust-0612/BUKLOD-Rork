@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
@@ -10,11 +10,24 @@ import {
 } from '@/lib/buklodMusicAdmin';
 
 const accent='#215c43', border='#dce7e0';
+const MAX_MUSIC_FILES_PER_BATCH=20;
+type MusicDraft={
+  key:string;asset:DocumentPicker.DocumentPickerAsset;
+  title:string;artist:string;error:string|null;
+};
+const sizeOf=(asset:DocumentPicker.DocumentPickerAsset)=>
+  Number(asset.size??asset.file?.size??0);
+const assetSignature=(asset:DocumentPicker.DocumentPickerAsset)=>
+  [asset.uri,asset.name,sizeOf(asset)].join('|');
+const inferredTitle=(name:string)=>
+  name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim().slice(0,160);
 export default function AdminMusicLibrary(){
   const [tracks,setTracks]=useState<BuklodMusicAdminTrack[]>([]);
-  const [picked,setPicked]=useState<DocumentPicker.DocumentPickerAsset|null>(null);
-  const [title,setTitle]=useState('');
-  const [artist,setArtist]=useState('');
+  const [picked,setPicked]=useState<MusicDraft[]>([]);
+  const [pickerBusy,setPickerBusy]=useState(false);
+  const uploadInFlight=useRef(false);
+  const pickerInFlight=useRef(false);
+  const nextDraftId=useRef(0);
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState(false);
   const [pendingDeleteId,setPendingDeleteId]=useState<string|null>(null);
@@ -29,30 +42,91 @@ export default function AdminMusicLibrary(){
   },[]);
   useEffect(()=>{void refresh();},[refresh]);
   const choose=async()=>{
-    if(busy)return;
+    if(busy||uploadInFlight.current||pickerInFlight.current)return;
+    pickerInFlight.current=true;
+    setPickerBusy(true);
     setError('');setStatus('');
     try{
-      // Must be initiated by a real tap (especially in web browsers).
+      // Multiple selection is initiated by a real tap, including on mobile web.
       const result=await DocumentPicker.getDocumentAsync({
-        type:'audio/*',copyToCacheDirectory:true,multiple:false,
+        type:'audio/*',copyToCacheDirectory:true,multiple:true,
       });
       if(result.canceled||!result.assets?.length)return;
-      const file=result.assets[0];
-      validateBuklodMusicFile(file.name,Number(file.size??0));
-      setPicked(file);
-      setTitle(file.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').slice(0,160));
+      const signatures=new Set(picked.map(item=>assetSignature(item.asset)));
+      const available=Math.max(0,MAX_MUSIC_FILES_PER_BATCH-picked.length);
+      const added:MusicDraft[]=[];
+      const rejected:string[]=[];
+      for(const asset of result.assets){
+        if(added.length>=available){
+          rejected.push('Batch limit: '+MAX_MUSIC_FILES_PER_BATCH+' files. Publish selected files first.');
+          break;
+        }
+        try{
+          validateBuklodMusicFile(asset.name,sizeOf(asset));
+          const signature=assetSignature(asset);
+          if(signatures.has(signature))continue;
+          signatures.add(signature);
+          added.push({
+            key:'draft-'+(++nextDraftId.current),asset,
+            title:inferredTitle(asset.name),artist:'',error:null,
+          });
+        }catch(e:any){
+          rejected.push(asset.name+': '+String(e?.message??'Invalid audio file.'));
+        }
+      }
+      if(added.length)setPicked(current=>[...current,...added]);
+      if(rejected.length)setError(rejected.slice(0,3).join('\n')+
+        (rejected.length>3?' · '+(rejected.length-3)+' more rejected.':''));
+      else if(added.length)setStatus(added.length+' file(s) added. Check their titles before publishing.');
     }catch(e:any){setError(String(e?.message??'Unable to select audio.'));}
+    finally{pickerInFlight.current=false;setPickerBusy(false);}
+  };
+  const updateDraft=(key:string,field:'title'|'artist',value:string)=>{
+    setPicked(current=>current.map(item=>item.key===key?
+      {...item,[field]:value,error:null}:item));
   };
   const upload=async()=>{
-    if(!picked||busy)return;
-    setBusy(true);setError('');setStatus('Uploading and publishing music…');
+    if(!picked.length||pickerBusy||busy||uploadInFlight.current)return;
+    uploadInFlight.current=true;
+    setBusy(true);setError('');
+    const queue=[...picked];
+    let published=0;
+    const failures:string[]=[];
     try{
-      const saved=await uploadBuklodAdminMusic({asset:picked,title,artist});
-      setPicked(null);setTitle('');setArtist('');
-      setStatus('Published: '+saved.title+'. Available in the BUKLOD Music picker now.');
-      await refresh();
-    }catch(e:any){setStatus('');setError(String(e?.message??'Music upload failed.'));}
-    finally{setBusy(false);}
+      for(let i=0;i<queue.length;i++){
+        const item=queue[i];
+        setStatus('Publishing '+(i+1)+' / '+queue.length+': '+item.asset.name+'…');
+        if(!item.title.trim()){
+          const message='Enter a song title.';
+          failures.push(item.asset.name+': '+message);
+          setPicked(current=>current.map(row=>row.key===item.key?
+            {...row,error:message}:row));
+          continue;
+        }
+        try{
+          // Sequential, bounded uploads avoid exhausting phone memory/network.
+          // Successful entries leave the queue immediately; retries never
+          // accidentally republish already completed files.
+          await uploadBuklodAdminMusic({
+            asset:item.asset,title:item.title,artist:item.artist,
+          });
+          published++;
+          setPicked(current=>current.filter(row=>row.key!==item.key));
+        }catch(e:any){
+          const message=String(e?.message??'Upload failed.');
+          failures.push(item.asset.name+': '+message);
+          setPicked(current=>current.map(row=>row.key===item.key?
+            {...row,error:message}:row));
+          if(/System Admin authorization required/i.test(message))break;
+        }
+      }
+      setStatus('Published '+published+' / '+queue.length+
+        ' selected song(s). '+(failures.length?'Failed files remain below for retry.':
+          'Available in the BUKLOD music picker now.'));
+      if(failures.length)setError(failures.slice(0,3).join('\n')+
+        (failures.length>3?' · '+(failures.length-3)+' more errors.':''));
+      if(published)await refresh();
+    }finally{uploadInFlight.current=false;setBusy(false);}
   };
   const remove=async(track:BuklodMusicAdminTrack)=>{
     if(busy)return;
@@ -83,22 +157,59 @@ export default function AdminMusicLibrary(){
           <Text style={{fontSize:12,color:'#60776b'}}>
             MP3, M4A, AAC, WAV and OGG • up to 25 MB • upload audio you own or are licensed to share.
           </Text>
-          <Pressable onPress={()=>void choose()} disabled={busy} accessibilityRole="button"
-            style={{borderWidth:1,borderColor:accent,borderRadius:12,padding:13,alignItems:'center'}}>
-            <Text style={{color:accent,fontWeight:'800'}}>{picked?'Change audio file':'Choose audio file'}</Text>
+          <Pressable onPress={()=>void choose()} disabled={busy||pickerBusy||picked.length>=MAX_MUSIC_FILES_PER_BATCH}
+            accessibilityRole="button" accessibilityLabel="Choose multiple audio files"
+            style={{borderWidth:1,borderColor:accent,borderRadius:12,padding:13,alignItems:'center',
+              opacity:busy||pickerBusy?0.5:1}}>
+            <Text style={{color:accent,fontWeight:'800'}}>
+              {pickerBusy?'Opening files…':picked.length?'Add more audio files':'Choose multiple audio files'}
+            </Text>
           </Pressable>
-          {!!picked&&<Text numberOfLines={2} style={{color:'#395d49',fontSize:12}}>{picked.name} • {(Number(picked.size??0)/1048576).toFixed(1)} MB</Text>}
-          <TextInput value={title} onChangeText={setTitle} placeholder="Song / audio title"
-            accessibilityLabel="Music title" maxLength={160}
-            style={{borderWidth:1,borderColor:border,borderRadius:12,paddingHorizontal:12,minHeight:46,color:'#142d24'}}/>
-          <TextInput value={artist} onChangeText={setArtist} placeholder="Artist / source (optional)"
-            accessibilityLabel="Music artist" maxLength={160}
-            style={{borderWidth:1,borderColor:border,borderRadius:12,paddingHorizontal:12,minHeight:46,color:'#142d24'}}/>
-          <Pressable disabled={!picked||!title.trim()||busy} accessibilityRole="button"
+          {!!picked.length&&(
+            <View style={{gap:9}}>
+              <Text style={{fontSize:12,fontWeight:'800',color:accent}}>
+                {picked.length} / {MAX_MUSIC_FILES_PER_BATCH} selected · Edit each song before publishing
+              </Text>
+              {picked.map((item,index)=>(
+                <View key={item.key} style={{padding:10,borderWidth:1,borderColor:item.error?'#d99c98':border,
+                  borderRadius:12,gap:8,backgroundColor:'#f8fbf9'}}>
+                  <View style={{flexDirection:'row',alignItems:'center',gap:8}}>
+                    <MaterialCommunityIcons name="music-note" size={18} color={accent}/>
+                    <Text numberOfLines={2} style={{flex:1,color:'#395d49',fontSize:12,fontWeight:'700'}}>
+                      {index+1}. {item.asset.name} · {(sizeOf(item.asset)/1048576).toFixed(1)} MB
+                    </Text>
+                    <Pressable accessibilityRole="button" accessibilityLabel={'Remove selected '+item.asset.name}
+                      disabled={busy} onPress={()=>setPicked(current=>current.filter(row=>row.key!==item.key))}
+                      style={{padding:6}}>
+                      <MaterialCommunityIcons name="close-circle-outline" size={21} color="#a24646"/>
+                    </Pressable>
+                  </View>
+                  <TextInput value={item.title} onChangeText={value=>updateDraft(item.key,'title',value)}
+                    placeholder="Song / audio title" accessibilityLabel={'Music title for '+item.asset.name}
+                    maxLength={160} editable={!busy}
+                    style={{borderWidth:1,borderColor:border,borderRadius:10,paddingHorizontal:12,
+                      minHeight:43,color:'#142d24',backgroundColor:'#fff'}}/>
+                  <TextInput value={item.artist} onChangeText={value=>updateDraft(item.key,'artist',value)}
+                    placeholder="Artist / source (optional)" accessibilityLabel={'Music artist for '+item.asset.name}
+                    maxLength={160} editable={!busy}
+                    style={{borderWidth:1,borderColor:border,borderRadius:10,paddingHorizontal:12,
+                      minHeight:43,color:'#142d24',backgroundColor:'#fff'}}/>
+                  {!!item.error&&<Text accessibilityRole="alert" style={{fontSize:11,color:'#a63232'}}>
+                    {item.error} · Correct the entry and retry.
+                  </Text>}
+                </View>
+              ))}
+            </View>
+          )}
+          <Pressable disabled={!picked.length||busy||pickerBusy} accessibilityRole="button"
+            accessibilityLabel={'Upload and publish '+picked.length+' music files'}
             onPress={()=>void upload()}
             style={{borderRadius:12,padding:14,alignItems:'center',
-              backgroundColor:!picked||!title.trim()||busy?'#b5c4bb':accent}}>
-            <Text style={{color:'#fff',fontWeight:'900'}}>{busy?'Working…':'Upload and publish now'}</Text>
+              backgroundColor:!picked.length||busy||pickerBusy?'#b5c4bb':accent}}>
+            <Text style={{color:'#fff',fontWeight:'900'}}>
+              {busy?'Publishing music…':picked.length===1?'Upload and publish song':
+                'Upload and publish '+picked.length+' songs'}
+            </Text>
           </Pressable>
         </View>
         {!!status&&<Text accessibilityRole="text" style={{color:accent,fontWeight:'700'}}>{status}</Text>}

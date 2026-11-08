@@ -190,6 +190,7 @@ type Props = {
   scope: BuklodScope;
   focusPostId?: string;
   focusComments?: boolean;
+  focusCommentId?: string;
 };
 
 type Reaction = BuklodCommunityReactionKey;
@@ -447,8 +448,11 @@ export default function BuklodExclusiveScopeCommunity({
   scope,
   focusPostId,
   focusComments = false,
+  focusCommentId,
 }: Props) {
   const focusId = String(focusPostId ?? '').trim();
+  const focusComment = String(focusCommentId ?? '').trim();
+  const focusCommentScrollRef=useRef<ScrollView|null>(null);
   const {
     user,
   } = useAuth();
@@ -4543,6 +4547,7 @@ return (
             </View>
 
             <ScrollView
+              ref={focusCommentScrollRef}
               style={styles.commentsScroll}
               contentContainerStyle={styles.commentsContent}
               keyboardShouldPersistTaps="handled"
@@ -4575,6 +4580,12 @@ return (
                 </View>
               ) : comments.length ? (
                 <BuklodCommunityCommentThread
+                  focusCommentId={focusComment}
+                  onFocusedCommentLayout={y=>{
+                    requestAnimationFrame(()=>focusCommentScrollRef.current?.scrollTo({
+                      y:Math.max(0,y-45),animated:true,
+                    }));
+                  }}
                   comments={comments.map(comment => ({
                     ...comment,
                     body: repairMojibakeText(comment.body),
