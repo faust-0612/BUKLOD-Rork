@@ -453,7 +453,7 @@ export async function loadReferralSummary(): Promise<ReferralSummary | null> {
       legacy_invited_count: toNumber(row.legacy_invited_count),
       legacy_unreconciled_count: toNumber(row.legacy_unreconciled_count),
       financial_invited_count: toNumber(row.financial_invited_count),
-      was_referred: false,
+      was_referred: row.was_referred === true,
       reconciled: true,
     };
   }
