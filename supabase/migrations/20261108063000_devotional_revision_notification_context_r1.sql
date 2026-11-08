@@ -78,3 +78,12 @@ begin
   end if;
 end;
 $function$
+
+-- The outcome producer is invoked exclusively by the existing database
+-- approval trigger. Never let arbitrary client roles invoke this SECURITY
+-- DEFINER producer with another member's approval UUID. Trigger invocation
+-- executes as its own trusted database function owner, not as an RPC grant.
+revoke all on function public.buklod_notify_scope_formation_outcome_v1(uuid,boolean)
+  from public, anon, authenticated;
+grant execute on function public.buklod_notify_scope_formation_outcome_v1(uuid,boolean)
+  to service_role;
