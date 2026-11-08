@@ -4,6 +4,7 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Image,
   StyleSheet,
   Text,
   View,
@@ -26,6 +27,7 @@ import {
   ConnectTappableAvatar,
 } from '@/components/connect/ConnectTappableAvatar';
 import { HIBLA } from '@/lib/connectHibla';
+import {useBuklodScopePhoto} from '@/hooks/useBuklodScopePhoto';
 
 type Props = {
   title: string;
@@ -35,6 +37,7 @@ type Props = {
   compactEmbedded?: boolean;
   paddingTop: number;
   otherUserId?: string | null;
+  scopeId?: string | null;
   showDirectCalls?: boolean;
   callStarting?: 'audio' | 'video' | null;
   onBack: () => void;
@@ -49,7 +52,7 @@ function createStyles(_theme: ConnectThemeRoles) {
   return StyleSheet.create({
     header: {
       paddingHorizontal: 12,
-      paddingBottom: 15,
+      paddingBottom: 8,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
@@ -158,6 +161,7 @@ export function ConnectThreadHeader({
   compactEmbedded = false,
   paddingTop,
   otherUserId,
+  scopeId,
   showDirectCalls = false,
   callStarting = null,
   onBack,
@@ -172,6 +176,7 @@ export function ConnectThreadHeader({
     [theme]
   );
   const [menuOpen, setMenuOpen] = useState(false);
+  const scopePhoto=useBuklodScopePhoto(scopeId);
 
   const callBusy = callStarting !== null;
 
@@ -201,7 +206,7 @@ export function ConnectThreadHeader({
         styles.header,
         {
           paddingTop,
-          minHeight: 68 + paddingTop,
+          minHeight: 56 + paddingTop,
         },
       ]}
     >
@@ -228,6 +233,7 @@ export function ConnectThreadHeader({
         />
       )}
 
+      {!!scopePhoto && <Image source={{uri:scopePhoto}} style={{width:38,height:38,borderRadius:12}} resizeMode="cover"/>}
       <View style={styles.copy}>
         <Text numberOfLines={2} style={styles.title}>
           {title}

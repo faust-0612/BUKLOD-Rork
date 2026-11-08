@@ -114,12 +114,12 @@ function createStyles(theme: ConnectThemeRoles) {
   return StyleSheet.create({
     wrap: {
       width: '100%',
-      marginBottom: 20,
+      marginBottom: 9,
       position: 'relative',
       overflow: 'visible',
     },
     wrapCompact: {
-      marginBottom: 4,
+      marginBottom: 2,
     },
     own: {
       alignItems: 'flex-end',
@@ -140,8 +140,8 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     bubble: {
       paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderRadius: 22,
+      paddingVertical: 9,
+      borderRadius: 19,
       overflow: 'visible',
     },
     bubbleColumn: {

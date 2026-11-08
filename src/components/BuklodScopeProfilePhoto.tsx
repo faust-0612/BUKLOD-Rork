@@ -3,6 +3,7 @@ import {ActivityIndicator,Alert,Image,Pressable,StyleSheet,Text,View} from 'reac
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {useFocusEffect} from 'expo-router';
 import {supabase} from '@/lib/supabase';
+import {notifyBuklodScopePhotoUpdated} from '@/hooks/useBuklodScopePhoto';
 import {
  pickBuklodScopeHomeMedia,uploadBuklodScopeHomeAsset,
  signedBuklodScopeHomeAsset,rollbackBuklodScopeHomeAsset,
@@ -44,6 +45,7 @@ export default function BuklodScopeProfilePhoto({
      if(error||!data?.id)throw error??new Error('No profile photo was updated.');
      uploaded=null;
      await load();
+     notifyBuklodScopePhotoUpdated(scopeId);
      setNote('Community profile photo updated.');
      // Old object removal is safe after the DB row points to the new one.
      if(path&&path!==result.storagePath)void rollbackBuklodScopeHomeAsset(path).catch(()=>undefined);

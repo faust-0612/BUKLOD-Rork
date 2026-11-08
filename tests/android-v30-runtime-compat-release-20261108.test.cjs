@@ -76,3 +76,14 @@ test('V30 build workflow validates the final AAB manifest without submitting to 
  assert.match(w,/runtimeVersion, '1\.3\.2'/);
  assert.doesNotMatch(w,/eas-cli@latest\s+(?:submit|update|deploy)\b/);
 });
+
+test('production Android OTA baseline explicitly allows only V30 connectedDevice removal and preserves frozen RC',()=>{
+ const source=fs.readFileSync('scripts/android-ota-rc.cjs','utf8');
+ assert.match(source,/assert\.deepEqual\(changedNative, \['plugins\/withBuklodPttHardwareFoundation\.js'\]/);
+ assert.match(source,/assert\.equal\(currentPlugin, expectedPlugin/);
+ assert.match(source,/assert\.equal\(currentConfig\.android\.versionCode, 30/);
+ assert.match(source,/assert\.equal\(currentConfig\.android\.blockedPermissions\.filter/);
+ assert.match(source,/assertNativeRuntimeCompatible\(currentConfig,/);
+ assert.match(source,/assert\.deepEqual\(inventory\('rc'\), rc\.files/);
+ assert.match(source,/assert\.equal\(live\.id, update\.id/);
+});

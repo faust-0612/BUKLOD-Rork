@@ -17,6 +17,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  Image,
   View,
 } from 'react-native';
 
@@ -38,6 +39,7 @@ import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
+import {useBuklodScopePhoto} from '@/hooks/useBuklodScopePhoto';
 import { getBuklodCardTone, getStableBuklodCardTone, type BuklodCardToneName } from '@/lib/buklodCardTones';
 
 function messageOf(error: unknown) {
@@ -132,6 +134,7 @@ function ClusterCard({
   children?: React.ReactNode;
 }) {
   const accent = getBuklodCardTone(getStableBuklodCardTone(item.scope_id));
+  const scopePhoto=useBuklodScopePhoto(item.scope_id);
   const canOpen = item.membership_status === 'ACTIVE' && Boolean(onOpen);
   const role = item.is_admin ? 'Admin' : 'Member';
   const status = item.membership_status === 'ACTIVE'
@@ -152,7 +155,8 @@ function ClusterCard({
         style={({ pressed }) => [styles.cardHeadPress, pressed && { opacity: 0.75 }]}
       >
         <View style={[styles.clusterIcon, { backgroundColor: accent.soft }]}>
-          <MaterialCommunityIcons name="account-group-outline" size={23} color={accent.ink} />
+          {scopePhoto?<Image source={{uri:scopePhoto}} style={styles.clusterIconPhoto} resizeMode="cover"/>:
+            <MaterialCommunityIcons name="account-group-outline" size={23} color={accent.ink} />}
         </View>
         <View style={styles.cardBody}>
           <Text numberOfLines={2} style={styles.cardTitle}>{item.name}</Text>
@@ -888,6 +892,7 @@ const styles = StyleSheet.create({
     width: 44, height: 44, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
+  clusterIconPhoto:{width:44,height:44,borderRadius:14},
   cardBody: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 3 },
   cardRight: { alignItems: 'flex-end', justifyContent: 'center', gap: 3 },
   cardTitle: { fontSize: 14, lineHeight: 19, fontWeight: '900', color: '#19392A' },

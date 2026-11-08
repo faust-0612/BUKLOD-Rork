@@ -1274,8 +1274,9 @@ export default function MeScreen() {
             <BuklodProfileGlassRow
               icon="star-circle-outline"
               title={circleRank}
-              subtitle="Circle rank"
-              onPress={() => router.push('/points')}
+              subtitle="About your Circle rank"
+              onPress={() => Alert.alert('About Circle Rank',
+                `Your current Circle rank: ${circleRank}.\n\nCircle Rank reflects verified BUKLOD participation. It is separate from Kingdom character levels, items and badges. Use BUKLOD Points separately to review and claim eligible rewards.`)}
             />
           </BuklodProfileGlassCard>
         </View>

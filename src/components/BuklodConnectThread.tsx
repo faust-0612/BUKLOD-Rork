@@ -4057,6 +4057,7 @@ const [
       }}
     >
       <ConnectThreadHeader
+        scopeId={mode === 'scope' ? effectiveContainerId : null}
         title={title}
         subtitle={subtitle}
         showSubtitle={!managedCompactScope}
@@ -5610,8 +5611,9 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     },
 
     messages: {
-      padding: 12,
-      paddingBottom: 18,
+      paddingHorizontal: 10,
+      paddingTop: 7,
+      paddingBottom: 12,
       flexGrow: 1,
       justifyContent:
         'flex-end',
@@ -5621,8 +5623,8 @@ function createThreadStyles(theme: ConnectThemeRoles) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 9,
-      marginTop: 10,
-      marginBottom: 25,
+      marginTop: 7,
+      marginBottom: 11,
     },
     hiblaDayRule: {
       flex: 1,
@@ -5633,8 +5635,8 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     hiblaDayPill: {
       backgroundColor: '#FBE8BB',
       paddingHorizontal: 17,
-      paddingVertical: 10,
-      borderRadius: 22,
+      paddingVertical: 6,
+      borderRadius: 18,
     },
     hiblaDayText: {
       fontSize: 12,

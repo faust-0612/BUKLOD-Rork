@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Image,
 } from 'react-native';
 import {
   MaterialCommunityIcons,
@@ -22,8 +23,10 @@ import {
   ConnectPressable,
 } from '@/components/connect/ConnectPressable';
 import { HIBLA } from '@/lib/connectHibla';
+import {useBuklodScopePhoto} from '@/hooks/useBuklodScopePhoto';
 
 type Props = {
+  scopeId?: string;
   scopeName: string;
   scopeType: string;
   preview: string;
@@ -93,6 +96,7 @@ function createStyles(theme: ConnectThemeRoles) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    avatarPhoto: {width:AVATAR_SIZE,height:AVATAR_SIZE,borderRadius:14},
     avatarOrg: {
       backgroundColor: '#E6F3E9',
       borderWidth: 0,
@@ -149,6 +153,7 @@ function createStyles(theme: ConnectThemeRoles) {
 }
 
 export function ConnectCommunityRow({
+  scopeId,
   scopeName,
   scopeType,
   preview,
@@ -164,6 +169,7 @@ export function ConnectCommunityRow({
   );
   const unread =
     Math.max(0, unreadCount);
+  const scopePhoto=useBuklodScopePhoto(scopeId);
 
   const initials =
     initialsFromName(scopeName);
@@ -186,7 +192,9 @@ export function ConnectCommunityRow({
             : styles.avatarScope,
         ]}
       >
-        {useInitials ? (
+        {scopePhoto ? (
+          <Image source={{uri:scopePhoto}} style={styles.avatarPhoto} resizeMode="cover" />
+        ) : useInitials ? (
           <Text style={styles.initials}>
             {initials}
           </Text>
