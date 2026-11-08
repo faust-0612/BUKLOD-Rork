@@ -21,7 +21,7 @@ const box = (title,body) => '<section class="surface-card" style="margin-bottom:
 const empty = label => '<p style="color:#64748b;font-size:13px">' + esc(label) + '</p>';
 const card = (label,info) => '<div style="padding:11px 12px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;margin-bottom:9px"><strong>' +
   esc(label) + '</strong><div style="font-size:12px;color:#64748b;margin-top:4px">' + esc(info) + '</div></div>';
-const button = (title,fn,args='') => '<button class="btn-soft-cyan" onclick="' + fn + '(' + args + ')">' + esc(title) + '</button>';
+const button = (title,fn,args='') => '<button class="btn-soft-cyan" onclick="' + fn + '(' + esc(args) + ')">' + esc(title) + '</button>';
 function safeError(error){return String(error?.message||error||'Request failed').slice(0,250);}
 function current(){return cache.get(app.activeClassId)||{};}
 function validClass(id){return isoId(id) && Object.hasOwn(app.classrooms,id);}
@@ -61,7 +61,7 @@ function projectCards(){
   }).join('');
 }
 window.renderPortalHome=projectCards;
-window.showActiveClassrooms=()=>{activeFilter='active';window.showPortalHome();};
+window.showActiveClassrooms=()=>{originalShowPortalHome();activeFilter='active';projectCards();};
 const originalShowPortalHome=window.showPortalHome;
 window.showPortalHome=()=>{activeFilter='all';originalShowPortalHome();};
 window.refreshPortalList=()=>void refreshClasses();
