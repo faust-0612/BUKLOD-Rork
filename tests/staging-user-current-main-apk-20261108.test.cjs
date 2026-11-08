@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const cp=require('node:child_process');
-const base='d67e805879e3398cbff8a4383c6c7e05039ed9f7';
+const base='da2ddfd8d5942865707ad6f308ff074fca73e99b';
 const flow=fs.readFileSync('.github/workflows/buklod-staging-user-latest-main-apk-20261108.yml','utf8');
 const eas=JSON.parse(fs.readFileSync('eas.json','utf8'));
 const config=require('../app.config.js');
@@ -22,10 +22,19 @@ test('staging-user APK shares current main source, independent package and the r
  const pinned=cp.execFileSync('git',['show',base+':app.config.js'],{encoding:'utf8'});
  assert.match(pinned,/runtimeVersion: isClassroom \? '1\.3\.0' : '1\.3\.2'/);
  const d=cp.execFileSync('git',['diff','--name-only',base,'HEAD','--','src','assets','app.config.js','eas.json','package.json','package-lock.json','plugins','android','ios'],{encoding:'utf8'});
- assert.equal(d.trim(),'','The staging build must have identical application source to verified live main');
+ assert.equal(d.trim(),'app.config.js','Only explicit staging icon and staged versionName may differ from the latest V30 main source');
+ const baselineIcon = "icon: isClassroom ? './assets/classroom/app-icon.png' : './assets/release/app-icon.png',";
+ const canonicalIcon = "icon: isClassroom\\n      ? './assets/classroom/app-icon.png'\\n      : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png'),".replaceAll('\\n','\n');
+ const baselineAdaptive = "foregroundImage: isClassroom\\n          ? './assets/classroom/adaptive-icon.png'\\n          : './assets/release/app-icon.png',".replaceAll('\\n','\n');
+ const canonicalAdaptive = "foregroundImage: isClassroom\\n          ? './assets/classroom/adaptive-icon.png'\\n          : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png'),".replaceAll('\\n','\n');
+ assert.ok(pinned.includes(baselineIcon) && pinned.includes(baselineAdaptive));
+ const expected = pinned.replace("version: isClassroom || isStaging ? '1.3.4' : '1.3.6'", "version: isClassroom ? '1.3.4' : '1.3.6'").replace(baselineIcon,canonicalIcon).replace(baselineAdaptive,canonicalAdaptive);
+ assert.equal(fs.readFileSync('app.config.js','utf8'),expected,'Staging-only native icon and versionName must be the entire app config delta');
  withStaging(c=>{
   assert.equal(c.name,'BUKLOD Staging');
-  assert.equal(c.version,'1.3.4');
+  assert.equal(c.version,'1.3.6');
+  assert.equal(c.icon,'./assets/release/buklod-main-canonical.png');
+  assert.equal(c.android.adaptiveIcon.foregroundImage,'./assets/release/buklod-main-canonical.png');
   assert.equal(c.runtimeVersion,'1.3.2');
   assert.equal(c.android.package,'org.mzbministry.buklod.staging');
   assert.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
@@ -68,8 +77,8 @@ test('dynamic app.config.js staging autoIncrement uses remote source only in bui
 });
 
 test('only user-authorized live-main commit can trigger one staging-user APK without release side effects',()=>{
- assert.match(flow,/BUKLOD_STAGING_USER_CURRENT_MAIN_APK_20261108/);
- assert.match(flow,/git merge-base --is-ancestor d67e805879e3398cbff8a4383c6c7e05039ed9f7/);
+ assert.match(flow,/BUKLOD_STAGING_USER_CANONICAL_V30_APK_20261108/);
+ assert.match(flow,/git merge-base --is-ancestor da2ddfd8d5942865707ad6f308ff074fca73e99b/);
  assert.match(flow,/git ls-remote origin refs\/heads\/main/);
  assert.match(flow,/--platform android --profile staging-user --non-interactive --wait --json/);
  assert.match(flow,/status\)\.toLowerCase\(\),'finished'/);
@@ -77,4 +86,21 @@ test('only user-authorized live-main commit can trigger one staging-user APK wit
  assert.doesNotMatch(flow,/eas-cli@latest\s+(?:update|deploy|submit)\b/);
  assert.doesNotMatch(flow,/--profile production-apk|--profile production\s/);
  assert.doesNotMatch(flow,/BUKLOD_V30_AAB_BUILD_20261108/);
+});
+
+test('canonical staging mark does not silently alter production Android icon or runtime',()=>{
+ const key='APP_VARIANT';
+ const old=process.env[key];
+ try{
+  process.env[key]='production';
+  const prod=config({config:{}});
+  assert.equal(prod.name,'BUKLOD');
+  assert.equal(prod.version,'1.3.6');
+  assert.equal(prod.icon,'./assets/release/app-icon.png');
+  assert.equal(prod.android.adaptiveIcon.foregroundImage,'./assets/release/app-icon.png');
+  assert.equal(prod.android.package,'org.mzbministry.buklod');
+  assert.equal(prod.runtimeVersion,'1.3.2');
+ }finally{old===undefined?delete process.env[key]:process.env[key]=old;}
+ assert.ok(fs.statSync('assets/release/buklod-main-canonical.png').size>0);
+ assert.match(flow,/HEAD:assets\\/release\\/buklod-main-canonical\\.png/);
 });
