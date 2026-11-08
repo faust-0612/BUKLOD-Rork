@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Correct official AdMob earnings feed for Community QMP live preview: use AdMob Network instead of third-party Mediation report. Do not modify cash, referral, QMP, or UI.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Live Supabase BUKLOD Connect read-only inspection 2026-11-08: QMP November=683 across 16 qualified accounts; zero AdMob preview snapshots; AdMob FBC source PARTIAL, no financial report sync; active Edge function v4 uses Mediation Report incorrectly. GitHub main d725b4f52c339d7fadfbdf6d8ec2767907a995de was compared against our original source baseline da2ddfd8d5942865707ad6f308ff074fca73e99b; intervening unrelated staging-user commits do not touch target QMP files. BaseRef main compares current PR target and ignores intervening changes. Neither Android OTA deployed source nor external AdMob credentials verified.",
+  "allowedPaths": [
+    ".buklod/scopes/qmp-admob-network-report-20261108.json",
+    "supabase/functions/buklod-admob-revenue-preview-sync/index.ts",
+    "tests/community-admob-preview-contract.test.cjs",
+    "supabase/tests/buklod_admob_network_report_preview_contract_20261108.sql"
+  ],
+  "acceptanceChecks": [
+    "Network report is the single authoritative native AdMob source; mediation report is never substituted or double-counted",
+    "Completeness checked via report footer and PHP header, exact app ID and micros validation",
+    "Any OAuth, network, malformed or missing report fails closed and cannot fabricate estimated amounts",
+    "Source writes only provisional AdMob snapshot; no cash, funding, referral, or withdrawal behavior changes",
+    "One scoped PR and CI verification before production deploy; source credentials and scheduler must be confirmed independently"
+  ],
+  "chosenApproach": "Keep the existing production QMP and payout SQL unchanged. Update only the official AdMob server importer from mediationReport to networkReport, require footer and exact APP + PHP checks, retain fail-closed handling and traceable source reference.",
+  "selectionRationale": "Production operational inventory reports show AdMob-native ad events; AdMob Network Report is the appropriate official revenue source. A Mediation Report alone would understate or distort native inventory. No new client build, schema, finance ledger, or user money operations required.",
+  "alternativeApproaches": [
+    "Continue using Mediation Report: rejected because it measures third-party mediation performance rather than native AdMob Network estimated earnings.",
+    "Compute revenue from local ad impressions or guessed eCPM: rejected because this would create unverified money figures.",
+    "Pull exact BUKLOD app official Network Report on server with PHP, completeness validation and guarded noncash snapshot: chosen."
+  ],
+  "preserveBehaviors": [
+    "Existing monthly qualified QMP, 30% weighting and lifetime accounting unchanged",
+    "Personal preview accessible only to authenticated user; source unavailable remains unavailable",
+    "No change to canonical finance, funding, actual cash payouts, referral and finalized pools",
+    "Do not affect native ads SDK, banners, app build or runtime 1.3.2",
+    "No new automation enablement without verified OAuth and trusted service-role scheduler",
+    "No source exposure to clients; server token stays in secret store"
+  ],
+  "riskAreas": [
+    "official-admob-report-selection",
+    "noncash-source-integrity",
+    "private-user-preview",
+    "production-external-auth"
+  ],
+  "regressionTests": [
+    "tests/community-admob-preview-contract.test.cjs",
+    "supabase/tests/buklod_admob_network_report_preview_contract_20261108.sql"
+  ]
+}

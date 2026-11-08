@@ -1,4 +1,7 @@
-// BUKLOD official AdMob report → QMP noncash preview.
+// BUKLOD official AdMob NETWORK report → QMP noncash preview.
+// Native AdMob ad impressions are accounted for by Network reports, not
+// third-party Mediation reports. Keep this source exclusive to prevent
+// accidental double counting if mediation is added in the future.
 // Deploy with JWT verification enabled. Invoke with a *server-only* service-role
 // bearer token from a scheduled worker; never send this token to a device.
 // Required secrets: ADMOB_OAUTH_CLIENT_ID, ADMOB_OAUTH_CLIENT_SECRET,
@@ -61,7 +64,7 @@ Deno.serve(async (req: Request) => {
     const date = manilaParts(new Date());
     const periodKey = `${date.year}-${String(date.month).padStart(2, '0')}`;
     const report = await fetchJson(
-      `https://admob.googleapis.com/v1/accounts/${publisherId}/mediationReport:generate`,
+      `https://admob.googleapis.com/v1/accounts/${publisherId}/networkReport:generate`,
       {
         method: 'POST',
         headers: {
@@ -89,6 +92,10 @@ Deno.serve(async (req: Request) => {
     const header = report.find((item) => item?.header)?.header;
     if (header?.localizationSettings?.currencyCode !== 'PHP')
       throw new Error('AdMob did not confirm PHP report currency');
+    // Google terminates a complete report with a footer. Do not store a
+    // partial stream or silently treat a truncated response as zero earnings.
+    if (!report.some((item) => item?.footer))
+      throw new Error('AdMob network report footer missing');
 
     let totalMicros = 0n;
     for (const entry of report) {
@@ -108,7 +115,7 @@ Deno.serve(async (req: Request) => {
     const { error } = await admin.rpc('admin_set_buklod_community_admob_estimate_v1', {
       p_period_key: periodKey,
       p_amount_php: amountPhp,
-      p_source_reference: `OFFICIAL_ADMOB_MEDIATION:${publisherId}:${appId}:${periodKey}:PHP`,
+      p_source_reference: `OFFICIAL_ADMOB_NETWORK:${publisherId}:${appId}:${periodKey}:PHP`,
       p_source_mode: 'OFFICIAL_ADMOB_API',
       p_observed_at: new Date().toISOString(),
     });
