@@ -1,6 +1,7 @@
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { supabase } from '@/lib/supabase';
 import { cachedQuery, invalidateCache } from '@/lib/performance';
+import { ensureBuklodProfitFirstIdentity } from '@/lib/buklodReferralV2';
 
 export type BuklodPointsDashboard = {
   total_points: number;
@@ -440,6 +441,7 @@ export type ReferralResolveResult = {
 export async function loadReferralSummary(): Promise<ReferralSummary | null> {
   // The canonical code is the SAME one used by Economy and the Life share link.
   // Historical invitations remain visible; they cannot create cash earnings.
+  await ensureBuklodProfitFirstIdentity();
   const { data, error } = await (supabase as any).rpc('get_my_buklod_referral_reconciliation_v1');
   if (!error && data?.identity_ready === true && data.referral_code) {
     const row = data as Record<string, unknown>;
