@@ -909,7 +909,8 @@ function LegacyPublicBuklodScreen(){
  // No native player on Wall render; native visibility starts one shared player.
  // On browsers, audible autoplay remains opt-in due to platform restrictions.
  const wallAudioPlayerRef=useRef<AudioPlayer|null>(null);
- const wallClipWindowRef=useRef<{end:number}|null>(null);
+ const wallClipWindowRef=useRef<{start:number;end:number}|null>(null);
+ const wallClipLoopingRef=useRef(false);
  const wallAudioListenerRef=useRef<{remove:()=>void}|null>(null);
  const [wallAudioOwner,setWallAudioOwner]=useState('');
  const wallAudioOwnerRef=useRef('');
@@ -922,6 +923,7 @@ function LegacyPublicBuklodScreen(){
  const wallAudioPendingOwnerRef=useRef('');
  const pauseWallAudio=()=>{
    wallClipWindowRef.current=null;
+   wallClipLoopingRef.current=false;
    try{wallAudioPlayerRef.current?.pause();}catch{
      // A stale or disposed native handle must never replace the entire Wall.
    }
@@ -934,16 +936,23 @@ function LegacyPublicBuklodScreen(){
      wallAudioListenerRef.current=player.addListener('playbackStatusUpdate',status=>{
        setWallAudioPlaying(value=>value===!!status.playing?value:!!status.playing);
        const clip=wallClipWindowRef.current;
-       if(clip&&status.playing&&status.currentTime>=clip.end-0.08){
-         wallClipWindowRef.current=null;
-         try{player.pause();}catch{}
+       if(clip&&(status.currentTime>=clip.end-0.08||status.didJustFinish)
+         &&!wallClipLoopingRef.current){
+         // Loop only the authored 30-second segment, including at the end of a short track.
+         wallClipLoopingRef.current=true;
+         void player.seekTo(clip.start).then(()=>{
+           if(wallClipWindowRef.current===clip)player.play();
+         }).catch(()=>{
+           wallClipWindowRef.current=null;
+           try{player.pause();}catch{}
+           wallAudioOwnerRef.current='';
+           setWallAudioOwner('');
+           setWallAudioPlaying(false);
+         }).finally(()=>{wallClipLoopingRef.current=false;});
+       }else if(status.didJustFinish&&!clip){
          wallAudioOwnerRef.current='';
          setWallAudioOwner('');
          setWallAudioPlaying(false);
-       }else if(status.didJustFinish){
-         wallClipWindowRef.current=null;
-         wallAudioOwnerRef.current='';
-         setWallAudioOwner('');
        }
      });
    }catch(error){
@@ -1008,13 +1017,15 @@ function LegacyPublicBuklodScreen(){
      if(wallAudioRequestEpochRef.current!==requestEpoch||
        wallAudioPendingOwnerRef.current!==ownerKey)return;
      const start=Math.max(0,Math.min(21600,Number(clipStart)||0));
-     const duration=clipDuration == null ? null : Math.max(5,Math.min(60,Number(clipDuration)||30));
+     const duration=30; // Fixed segment length for every Wall post.
      if(player.duration>0 && start>=player.duration)
        throw new Error('Song segment starts after the track ends.');
      await player.seekTo(start);
      if(wallAudioRequestEpochRef.current!==requestEpoch||
        wallAudioPendingOwnerRef.current!==ownerKey)return;
-     wallClipWindowRef.current=duration==null?null:{end:start+duration};
+     wallClipWindowRef.current={start,end:Math.min(player.duration>0?player.duration:start+duration,start+duration)};
+     wallClipLoopingRef.current=false;
+     player.loop=false;
      requestBuklodAudioFocus('wall-post');
      player.volume=1;
      player.play();
@@ -4954,7 +4965,7 @@ const communityFeedRows =
      void toggleWallMusic(track,candidate.id,
        candidate.creative!.music_clip_start_seconds??0,
        candidate.creative!.music_clip_duration_seconds??undefined);
-   },700);
+   },200);
    return ()=>clearTimeout(timer);
  },[wallScreenFocused,user?.id,communityComposerOpen,visibleVideoPostId,
     visibleCreativePostIds,postCreatives,wallAudioSettledTick]);
