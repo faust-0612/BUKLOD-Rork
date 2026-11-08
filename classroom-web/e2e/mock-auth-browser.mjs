@@ -20,7 +20,8 @@ const rpc={
  'buklod_classroom_context_v1':()=>({role:'FACULTY',is_faculty:true,is_student:false,faculty_role:'PRIMARY',allow_student_posts:true}),
  'buklod_classroom_gradebook_roster_v1':()=>[{roster_member_id:'66666666-6666-4666-8666-666666666666',official_name:'Synthetic student',final_status:'DRAFT',transmuted_grade:null,grade_remarks:null}],
  'buklod_classroom_overview_v1':()=>({posts:1,assignments:1,students:1}),
- 'buklod_classroom_grade_submission_v2':()=>({ok:true,gradebook_recorded:true,released:false})
+ 'buklod_classroom_grade_submission_v2':()=>({ok:true,gradebook_recorded:true,released:false}),
+ 'buklod_classroom_roster_members_v2':()=>[{roster_member_id:'66666666-6666-4666-8666-666666666666',official_name:'Synthetic student',official_student_no:'TEST-001',roster_status:'ACTIVE',link_status:'LINKED'}]
 };
 const tables={
  'buklod_education_classroom_posts':posts,
@@ -108,6 +109,29 @@ try{
   await page.getByText('Live Classroom — official session status').waitFor({timeout:5000});
   assert.doesNotMatch(await page.locator('#workspaceBodyContent').innerText(),/58 \/ 60 Live|Recitation Mode Active/);
   console.log('SYNTHETIC_LIVE_READ_ONLY_STATUS=PASS');
+  const modules=[
+    ['CLASS','overview','Class Announcements & Stream'],
+    ['CLASS','syllabus','Syllabus & Weeks'],
+    ['WORK','activities','Activities & Submissions'],
+    ['WORK','quiz','BUKLOD Quiz / Assessments'],
+    ['WORK','rle','Clinical & RLE Progress'],
+    ['WORK','portfolio','Student Portfolio / Journals'],
+    ['CONNECT','live','Live Classroom'],
+    ['CONNECT','discussions','Class Announcements & Stream'],
+    ['CONNECT','notices','Formal Notices & Conduct'],
+    ['MORE','grades','Official Faculty Gradebook'],
+    ['MORE','attendance','Verified Class Attendance'],
+    ['MORE','masterlist','Official Class Roster'],
+    ['MORE','settings','Classroom Settings']
+  ];
+  for(const [group,tab,title] of modules){
+    await page.evaluate(([g,t])=>window.switchWorkspaceGroup(g,t),[group,tab]);
+    const text=await page.locator('#workspaceBodyContent').innerText();
+    assert.ok(text.includes(title),'Module failed: '+group+'/'+tab+'; got '+text.slice(0,110));
+    console.log('SYNTHETIC_MODULE_PASS='+group+'/'+tab);
+  }
+  assert.deepEqual(uncaught,[],'No browser exceptions across all tabs');
+  console.log('SYNTHETIC_ALL_13_MODULES=PASS');
   await page.evaluate(()=>window.handleSignOutClick());
   await page.locator('#liveAuthScreen').waitFor({state:'visible',timeout:7000});
   assert.equal(await page.locator('body').evaluate(x=>x.classList.contains('buklod-live-authed')),false);
