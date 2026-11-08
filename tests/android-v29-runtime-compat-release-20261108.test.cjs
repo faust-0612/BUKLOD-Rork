@@ -28,18 +28,18 @@ function configFor(target, variant) {
   }
 }
 
-test('BUKLOD Main V29 is production 1.3.5 (29), shares only V28 runtime 1.3.2', () => {
+test('Current Main V30 supersedes historical V29 AAB while retaining V28 runtime 1.3.2', () => {
   const cfg = configFor('main', 'production');
   assert.equal(cfg.name, 'BUKLOD');
   assert.equal(cfg.android.package, 'org.mzbministry.buklod');
-  assert.equal(cfg.version, '1.3.5');
-  assert.equal(cfg.android.versionCode, 29);
+  assert.equal(cfg.version, '1.3.6');
+  assert.equal(cfg.android.versionCode, 30);
   assert.equal(cfg.runtimeVersion, '1.3.2');
   assert.equal(cfg.extra.eas.projectId, projectId);
   assert.equal(cfg.updates.url, 'https://u.expo.dev/' + projectId);
 });
 
-test('V29 native contract is identical to installed V28 except app display version and versionCode', () => {
+test('Main V30 native contract remains identical to installed V28 except app version and versionCode', () => {
   const src = execFileSync('git', ['show', pinnedV28 + ':app.config.js'], { encoding: 'utf8' });
   const pinned = resolveExpoConfigFromSource(src, {
     ...process.env,
@@ -53,7 +53,7 @@ test('V29 native contract is identical to installed V28 except app display versi
     'diff', '--name-only', pinnedV28, 'HEAD', '--',
     'android', 'plugins', 'package-lock.json', 'package.json',
   ], { encoding: 'utf8' });
-  assert.equal(changed.trim(), '', 'V29 must not silently change native dependencies or plugins');
+  assert.equal(changed.trim(), '', 'Main V30 must not silently change native dependencies or plugins');
 });
 
 test('Classroom and staging native identities stay unchanged by Main V29', () => {
@@ -78,7 +78,7 @@ test('Production EAS build makes an AAB, uses local versionCode and production O
   assert.equal(eas.build.production.env.BUKLOD_APP_TARGET, undefined);
 });
 
-test('V29 AAB builder never publishes OTA, submits to Google Play or generates an APK', () => {
+test('Historical V29 AAB builder was isolated from OTA, Play and APK deployment', () => {
   const workflow = fs.readFileSync('.github/workflows/buklod-v29-aab-production-20261108.yml', 'utf8');
   assert.match(workflow, /BUKLOD_V29_AAB_BUILD_20261108/);
   assert.match(workflow, /--profile production --non-interactive --wait --json/);
