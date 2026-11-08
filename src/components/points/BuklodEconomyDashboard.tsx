@@ -380,12 +380,6 @@ export default function BuklodEconomyDashboard() {
                 tone="secondary"
               />
               <ActionButton
-                icon="book-open-page-variant-outline"
-                label="How it works"
-                onPress={() => router.push('/bayanihan/guide' as any)}
-                tone="secondary"
-              />
-              <ActionButton
                 icon="alert-circle-outline"
                 label="Report a Problem"
                 onPress={() => router.push({
@@ -657,19 +651,6 @@ export default function BuklodEconomyDashboard() {
           />
         </SectionCard>
       ) : null}
-
-      <SectionCard title="How it works">
-        <Text style={styles.helpLine}>• Available Points = spendable now. Lifetime Points = historical earned total.</Text>
-        <Text style={styles.helpLine}>• Pool Share / QMP Weight = participation weight for funded pools — not certificates.</Text>
-        <Text style={styles.helpLine}>• Estimated Bayanihan ₱ is not withdrawable. Finalized Bayanihan ₱ is funded cash.</Text>
-        <Text style={styles.helpLine}>• Points never convert into Bayanihan ₱ or Pool Share weight.</Text>
-        <ActionButton
-          icon="book-open-page-variant-outline"
-          label="Open Economy Guide"
-          onPress={() => router.push('/bayanihan/guide' as any)}
-          tone="secondary"
-        />
-      </SectionCard>
 
       {message ? <Text style={styles.message}>{message}</Text> : null}
 
