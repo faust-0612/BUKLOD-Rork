@@ -1,0 +1,18 @@
+{
+  "contractVersion": 2,
+  "objective": "Correct official AdMob earnings feed for Community QMP live preview: use AdMob Network instead of third-party Mediation report. Do not modify cash, referral, QMP, or UI.",
+  "baseRef": "da2ddfd8d5942865707ad6f308ff074fca73e99b",
+  "productionBaselineEvidence": "2026-11-08 read-only live Supabase: official sync function ACTIVE version 4; no provisional AdMob snapshots; QMP 2026-11=683 from 16 qualified accounts; publisher FBC AdMob source PARTIAL and last_sync_at null. Google docs confirm Network report covers AdMob performance while Mediation includes third-party performance.",
+  "allowedPaths": [
+    ".buklod/scopes/qmp-admob-network-report-20261108.json",
+    "supabase/functions/buklod-admob-revenue-preview-sync/index.ts",
+    "tests/community-admob-preview-contract.test.cjs"
+  ],
+  "acceptanceChecks": [
+    "Network report is the single authoritative native AdMob source; mediation report is never substituted or double-counted",
+    "Completeness checked via report footer and PHP header, exact app ID and micros validation",
+    "Any OAuth, network, malformed or missing report fails closed and cannot fabricate estimated amounts",
+    "Source writes only provisional AdMob snapshot; no cash, funding, referral, or withdrawal behavior changes",
+    "One scoped PR and CI verification before production deploy; source credentials and scheduler must be confirmed independently"
+  ]
+}
