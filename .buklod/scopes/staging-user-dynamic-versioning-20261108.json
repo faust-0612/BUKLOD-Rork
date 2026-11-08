@@ -1,0 +1,38 @@
+{
+  "contractVersion": 2,
+  "objective": "Build user-requested latest source signed staging-user APK after EAS CLI rejected the existing local autoIncrement with dynamic app.config.js before allocating an APK. Use official Expo remote build versioning only ephemerally in staging-user workflow, preserving production CLI version source local and runtime 1.3.2.",
+  "baseRef": "c868c097ca41beace5ddb85af42b9f326c192722",
+  "productionBaselineEvidence": "Verified latest main c868c097ca41beace5ddb85af42b9f326c192722, includes exact released app source from d67e805879e3398cbff8a4383c6c7e05039ed9f7. Staging-user job 42485210075 passed all tests, Expo preview credentials and registered staging Firebase, but EAS CLI failed before queueing: 'autoIncrement option is not supported when using app.config.js'. No successful APK build in this request. Expo docs https://docs.expo.dev/build-reference/app-versions/ recommend remote version source for dynamic app config.",
+  "chosenApproach": "In EAS builder runner after source/preview/Firebase verification, rewrite ONLY ephemeral eas.json cli.appVersionSource local->remote with exact precondition checks; preserve staging-user autoIncrement true, channel staging-user, environment preview, Android package and runtime1.3.2. Assert working tree only eas.json changed after runtime preflight; then npx eas-cli build --profile staging-user --wait and verify finished signed APK. Commit no app source/eas.json changes and do not affect production OTA or V29 AAB versioning.",
+  "selectionRationale": "EAS remote versioning is officially supported for dynamic app.config.js and increments staging buildCode by registered Android package. Adjusting only runner config avoids broad production EAS versioning changes, avoids fabricated versionCode and preserves source code.",
+  "alternativeApproaches": [
+    "Rerun identical local autoIncrement: guaranteed fail, rejected.",
+    "Commit global eas.json appVersionSource remote: would unexpectedly change production AAB version strategy, rejected.",
+    "Patch app.config.js with invented fixed versionCode: could downgrade staging build and alter code, rejected."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "native-runtime",
+    "android-apk",
+    "build-version"
+  ],
+  "preserveBehaviors": [
+    "Main app native source, production profile, native runtime, Supabase database, OTA/web deployment and paused V30 AAB branch untouched.",
+    "Staging package org.mzbministry.buklod.staging, Firebase registered stage client, preview environment and staging-user channel unchanged.",
+    "Only staging-runner ephemeral EAS config uses remote appBuildVersion, repository configuration remains local."
+  ],
+  "acceptanceChecks": [
+    "Existing reviewed staging source and preview Firebase/Expo preflight all pass.",
+    "GitHub PR only workflow, regression test and scope manifest modifications; production app/eas.json untouched.",
+    "Dynamic config and remote versioning contract proven in tests and run logs.",
+    "Signed EAS build FINISHED, correct Android APK URL and build ID, build source exact main SHA, no OTA/web/Play."
+  ],
+  "regressionTests": [
+    "tests/staging-user-current-main-apk-20261108.test.cjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod-staging-user-latest-main-apk-20261108.yml",
+    "tests/staging-user-current-main-apk-20261108.test.cjs",
+    ".buklod/scopes/staging-user-dynamic-versioning-20261108.json"
+  ]
+}
