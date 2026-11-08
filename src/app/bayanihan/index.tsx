@@ -21,6 +21,7 @@ import {
   type CommunityContributionDashboard,
 } from '@/lib/buklodCommunityContributionEconomy';
 import { communityQmpMetrics } from '@/lib/buklodEconomyQmp';
+import { loadMyBuklodReferralReconciliationV1, type BuklodReferralReconciliationV1 } from '@/lib/buklodReferralV2';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
@@ -85,6 +86,7 @@ export default function BayanihanScreen() {
 
   const [summary, setSummary] =
     useState<BuklodFinancialSummaryV3 | null>(null);
+  const [referralAudit, setReferralAudit] = useState<BuklodReferralReconciliationV1 | null>(null);
   const [contribution, setContribution] = useState<CommunityContributionDashboard | null>(null);
   const [qmpError, setQmpError] = useState('');
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
@@ -100,6 +102,7 @@ export default function BayanihanScreen() {
     if (authLoading) return;
     if (!userId) {
       setSummary(null);
+      setReferralAudit(null);
       setContribution(null);
       setError('Sign in to view your personal Economy summary.');
       setLoading(false);
@@ -112,12 +115,14 @@ export default function BayanihanScreen() {
       setError('');
       setQmpError('');
       setSupportCode(null);
-      const [financialResult, communityResult] = await Promise.allSettled([
+      const [financialResult, communityResult, referralResult] = await Promise.allSettled([
         loadMyBuklodFinancialSummaryV3(),
         withBuklodTimeout(loadMyCommunityContribution(), 8000, 'Community QMP'),
+        loadMyBuklodReferralReconciliationV1(),
       ]);
       if (request !== requestRef.current) return;
 
+      setReferralAudit(referralResult.status === 'fulfilled' ? referralResult.value : null);
       const financialReady = financialResult.status === 'fulfilled'
         && financialResult.value.identity_ready === true;
       if (financialReady && financialResult.status === 'fulfilled') {
@@ -170,6 +175,7 @@ export default function BayanihanScreen() {
       ++requestRef.current;
       lastSyncedRef.current = 0;
       setSummary(null);
+      setReferralAudit(null);
       setContribution(null);
       setQmpError('');
       setLastUpdatedAt(null);
@@ -389,6 +395,7 @@ export default function BayanihanScreen() {
               />
             </View>
             <Text style={styles.explainer}>{t('economy.earningsNote')}</Text>
+            <Text style={styles.explainer}>The preliminary AdMob Community QMP preview and finalized Financial Earnings are separate sources. Preliminary estimates and BUKLOD Points cannot be withdrawn.</Text>
             <View style={styles.actionRow}>
               <Pressable
                 onPress={() => router.push('/bayanihan/payout-profile' as any)}
@@ -409,15 +416,17 @@ export default function BayanihanScreen() {
             <View style={styles.grid}>
               <Metric
                 label={t('economy.referralCode')}
-                value={String(referral.referral_code ?? '—')}
+                value={String(referralAudit?.referral_code ?? referral.referral_code ?? '—')}
               />
               <Metric
                 label={t('economy.totalReferrals')}
-                value={formatNumber(Number(referral.invited_count ?? 0))}
+                value={referralAudit ? formatNumber(referralAudit.invited_count) : '—'}
+                note="Unique historical and financial invitations; no cash entitlement."
               />
               <Metric
                 label={t('economy.qualifiedReferrals')}
                 value={formatNumber(Number(referral.qualified_count ?? 0))}
+                note="Financially qualified referrals only."
               />
               <Metric
                 label={t('economy.pending')}
@@ -426,6 +435,7 @@ export default function BayanihanScreen() {
               <Metric
                 label={t('economy.oneTimeReward')}
                 value={formatPhp(Number(referral.one_time_reward_php ?? 0))}
+                note="Configured potential reward per eligible invite; not earned cash."
               />
               <Metric
                 label={t('economy.firstLineShare')}
@@ -440,6 +450,10 @@ export default function BayanihanScreen() {
               />
             </View>
             <Text style={styles.explainer}>{t('economy.referralNote')}</Text>
+            {referralAudit ? <Text style={styles.explainer}>
+              Historical invitations: {referralAudit.legacy_invited_count} · Financial referrals: {referralAudit.financial_invited_count} · Awaiting reconciliation: {referralAudit.legacy_unreconciled_count}. Historical invitations do not create cash balances.
+              {referralAudit.legacy_code && referralAudit.legacy_code !== referralAudit.referral_code ? ' Use the canonical referral code above, also shown in Profile and Sharing.' : ''}
+            </Text> : <Text style={styles.explainer}>Referral history unavailable; missing data must not be displayed as verified zero.</Text>}
             <Text style={styles.explainer}>{t('economy.firstLineOnly')}</Text>
           </Section>
 
