@@ -53,6 +53,9 @@ function MyDevotionalSubmissionsContent() {
       setLoading(false);
       return () => { alive = false; };
     }
+    // Do not retain another session's private submission cards while changing
+    // account, refocusing, or retrying a stale network request.
+    setRows([]);
     setLoading(true);
     setError('');
     void (async () => {
@@ -185,7 +188,10 @@ function MyDevotionalSubmissionsContent() {
 }
 
 export default function MyDevotionalSubmissionsScreen() {
-  return <BuklodFaithRouteBoundary><MyDevotionalSubmissionsContent/></BuklodFaithRouteBoundary>;
+  const { user } = useAuth();
+  return <BuklodFaithRouteBoundary>
+    <MyDevotionalSubmissionsContent key={user?.id ?? 'signed-out'}/>
+  </BuklodFaithRouteBoundary>;
 }
 
 const styles = StyleSheet.create({

@@ -71,3 +71,8 @@ test('no fake rewards or duplicated submission table',()=>{
  assert.doesNotMatch(producer,/create\s+table|alter\s+table|drop\s+table/i);
  assert.doesNotMatch(reflection,/admin_review_devotional_bayanihan/);
 });
+
+test('changing accounts cannot render another member\'s private devotional history',()=>{
+ assert.match(inbox,/setRows\(\[\]\)/);
+ assert.match(inbox,/key=\{user\?\.id \?\? 'signed-out'\}/);
+});
