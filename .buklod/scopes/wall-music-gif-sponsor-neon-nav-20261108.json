@@ -3,7 +3,7 @@
   "objective": "Reconcile requested Wall song-on-tap, 5–60s clip selection, correct GIF comment previews, sound-on visible paid videos, distinct neon Home utility/weekly tip cards, Heavy Rain controls and persistent tab navigation without native ABI drift.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: repository main bd0f0155ad3fa6a7481e60d29ef9091de8b527b1 (V29 AAB versionName 1.3.5 code 29, Expo runtime 1.3.2) on Nov 8; existing stable production V28-compatible OTA/web is separate. Production Supabase project yhanxndaqbmuzbdqlblu active; additive version 20261108093945 recorded and two new nullable clip columns read-back verified. No OTA, web, Play or APK published by this PR.",
-  "chosenApproach": "Preserve existing approved music library and attach only segment start/duration metadata; one shared Wall player seeks and stops at segment end, with native visibility autoplay and explicit tap control. Safely decode preview marker without altering comment RPC. Visible-only sponsored sound player with gesture fallback. Keep existing scoped nav logic while using router.navigate, and keep Home cards mounted through focus changes. Isolated 3-card neon/Heavy Rain styling.",
+  "chosenApproach": "Preserve existing approved music library and attach only segment start/duration metadata; one shared Wall player seeks and stops at segment end, with native visibility autoplay and explicit tap control. Safely decode preview marker without altering comment RPC. Visible-only sponsored sound player with gesture fallback. Keep existing scoped nav logic while using router.navigate, and keep Home cards mounted through focus changes. Isolated 3-card neon/Heavy Rain styling. Reconcile the compile-only RC workflow's branch allowlist and app versionCode assertion with V29 while retaining runtime 1.3.2, Expo production environment checks and no-publish behavior. Update pre-existing nav concurrency harness to exercise the new navigation API.",
   "selectionRationale": "No video rendering, duplicated full song storage, new native dependency, replacement of release runtime, or permanent ad posting. Database migration is additive/nullable, preserves RLS; legacy post creatives remain playable and owner/audience security unchanged.",
   "alternativeApproaches": [
     "Server-side transcode and upload a new 30-second audio file for every post: rejected for unnecessary bandwidth, storage and copyright/ownership risk; catalog licensing remains authoritative.",
@@ -12,7 +12,8 @@
     "Render encoded GIF body text directly on Wall: rejected as unusable and leaks token-like markup."
   ],
   "riskAreas": [
-    "navigation-scroll"
+    "navigation-scroll",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "Unchanged profile session/scope guards, Public/Cluster/Organization room isolation and Wall first-view media/ads/scroll.",
@@ -29,11 +30,13 @@
     "Heavy Rain button compact and animation visibly more intense while honoring reduce motion.",
     "Home weekly tips, My BUKLOD Home and Health Center have three distinct neon card accents.",
     "Switch Home, Cluster, Wall, Connect, Profile without replace-driven remount; preserve existing active scope switches.",
-    "Focused Node test, SQL test, TypeScript compile, protected engineering accountability, unified RC compile and Android/web compatibility gates pass before marking OTA ready; user physical testing skipped only if expressly authorized."
+    "Focused Node test, SQL test, TypeScript compile, protected engineering accountability, unified RC compile and Android/web compatibility gates pass before marking OTA ready; user physical testing skipped only if expressly authorized.",
+    "CI compile-only job checks exact PR SHA, code 29/runtime 1.3.2, production env linkage and Android + web export without publishing."
   ],
   "regressionTests": [
     "tests/wall-media-navigation-polish-20261108.test.mjs",
-    "supabase/tests/buklod_post_music_selected_clip_v1.sql"
+    "supabase/tests/buklod_post_music_selected_clip_v1.sql",
+    "tests/release-rc-v29-compiled-gate-20261108.test.mjs"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -50,6 +53,9 @@
     "supabase/migrations/20261108093945_buklod_post_music_selected_clip_v1_20261108.sql",
     "supabase/tests/buklod_post_music_selected_clip_v1.sql",
     "tests/wall-media-navigation-polish-20261108.test.mjs",
-    ".buklod/scopes/wall-music-gif-sponsor-neon-nav-20261108.json"
+    ".buklod/scopes/wall-music-gif-sponsor-neon-nav-20261108.json",
+    "scripts/test-bottom-nav-concurrency.cjs",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/release-rc-v29-compiled-gate-20261108.test.mjs"
   ]
 }
