@@ -4938,6 +4938,15 @@ const communityFeedRows =
 
  const maritesVisibilityRefreshRef = useRef<(() => void) | null>(null);
  const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
+ // Re-arm autoplay after a previously played card leaves the viewport,
+ // without retrying failures continually while the same card stays visible.
+ useEffect(()=>{
+   const visible=new Set(visibleCreativePostIds);
+   for(const key of wallAutoMusicAttemptedRef.current){
+     const split=key.indexOf(':');
+     if(split>0&&!visible.has(key.slice(0,split)))wallAutoMusicAttemptedRef.current.delete(key);
+   }
+ },[visibleCreativePostIds]);
  // Attached music starts on native after the visible card settles. One shared
  // player; no hidden-card downloads or repeated auto-retries on failures.
  useEffect(()=>{
@@ -5252,7 +5261,13 @@ const communityFeedRows =
     <BuklodPostMusicPicker visible={composerMusicPickerOpen}
       clipStartSeconds={composerClipStartSeconds}
       clipDurationSeconds={composerClipDurationSeconds}
-      onClipChange={(start,duration)=>{setComposerClipStartSeconds(start);setComposerClipDurationSeconds(duration);}}
+      onClipChange={(start,duration)=>{
+         setComposerClipStartSeconds(start);setComposerClipDurationSeconds(30);
+         if(wallAudioOwnerRef.current==='composer'&&wallAudioPlaying){
+           wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
+           pauseWallAudio();wallAudioOwnerRef.current='';setWallAudioOwner('');
+         }
+       }}
       selectedId={composerMusicTrack?.id}
       previewId={wallAudioOwner==='composer'?wallLoadedTrackId:null}
       previewPlaying={wallAudioOwner==='composer'&&wallAudioPlaying}
