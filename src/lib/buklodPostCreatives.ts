@@ -83,10 +83,10 @@ export async function saveBuklodPostCreative(input: {
   if (!UUID.test(input.postId) || !UUID.test(input.userId)) throw new Error('Invalid post/account ID.');
   const hasClip = !!input.musicTrackId && input.clipStartSeconds != null && input.clipDurationSeconds != null;
   const clipStart = hasClip ? Number(input.clipStartSeconds) : null;
-  const clipDuration = hasClip ? Number(input.clipDurationSeconds) : null;
+  const clipDuration = hasClip ? 30 : null;
   if (hasClip && (!Number.isFinite(clipStart) || !Number.isFinite(clipDuration) ||
-    clipStart! < 0 || clipStart! > 21600 || clipDuration! < 5 || clipDuration! > 60)) {
-    throw new Error('Select a valid 5–60 second music clip.');
+    clipStart! < 0 || clipStart! > 21600 || clipDuration! !== 30)) {
+    throw new Error('Select a valid 30-second music clip.');
   }
   const { error } = await (supabase as any).from('buklod_post_creatives').insert({
     post_id:input.postId, created_by:input.userId,
@@ -95,11 +95,17 @@ export async function saveBuklodPostCreative(input: {
   });
   if (error) throw error;
 }
-/** Only invoked after listener taps Play; keeps preview/catalog bandwidth minimal. */
+// Short-lived in-memory signed-URL cache avoids repeated roundtrips on Wall navigation.
+// Never store signed URLs on disk or keep them near their one-hour expiry.
+const musicUrlCache = new Map<string, { url: string; until: number }>();
+/** Only resolves a music URL on demand for a visible post or user preview. */
 export async function resolveBuklodPostMusicUrl(track: BuklodPostMusicTrack): Promise<string> {
   const original = String(track.audio_path ?? '').trim();
   if (!original) throw new Error('Music file unavailable.');
   if (/^https:\/\//i.test(original)) return original;
+  const cached = musicUrlCache.get(original);
+  if (cached && cached.until > Date.now()) return cached.url;
+  if (cached) musicUrlCache.delete(original);
   if (/^http:\/\//i.test(original)) throw new Error('Insecure music URL blocked.');
   const path = original.replace(/^\/+/, '');
   const bare = path.replace(/^buklod-music-library\//i, '');
@@ -107,7 +113,12 @@ export async function resolveBuklodPostMusicUrl(track: BuklodPostMusicTrack): Pr
   for (const candidate of [...new Set([path,bare])]) {
     const { data, error } = await (supabase as any).storage
       .from('buklod-music-library').createSignedUrl(candidate, 3600);
-    if (!error && data?.signedUrl) return String(data.signedUrl);
+    if (!error && data?.signedUrl) {
+      const url = String(data.signedUrl);
+      if (musicUrlCache.size >= 80) musicUrlCache.clear();
+      musicUrlCache.set(original, { url, until: Date.now() + 10 * 60_000 });
+      return url;
+    }
     message = String(error?.message ?? message);
   }
   throw new Error(message || 'Secure music URL unavailable.');
