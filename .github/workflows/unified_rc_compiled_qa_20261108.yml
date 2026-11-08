@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify-compiled-artifacts:
-    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108')
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-main-v30-aab-runtime132-20261108')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:
@@ -51,7 +51,7 @@ jobs:
           set -a; . ./.env.local; set +a
           test "${EXPO_PUBLIC_SUPABASE_URL:-}" = "https://yhanxndaqbmuzbdqlblu.supabase.co"
           test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
-          node -e "const fs=require('node:fs'); const c=JSON.parse(require('node:child_process').execFileSync('npx',['expo','config','--json'],{encoding:'utf8'})); const assert=require('node:assert/strict'); assert.equal(c.android.package,'org.mzbministry.buklod'); assert.equal(c.android.versionCode,29); assert.equal(c.runtimeVersion,'1.3.2'); assert.equal(c.extra?.eas?.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8'); fs.writeFileSync('/tmp/buklod-rc-identity.json', JSON.stringify({sha:process.env.GITHUB_SHA,runtime:c.runtimeVersion,package:c.android.package,project:c.extra.eas.projectId}));"
+          node -e "const fs=require('node:fs'); const c=JSON.parse(require('node:child_process').execFileSync('npx',['expo','config','--json'],{encoding:'utf8'})); const assert=require('node:assert/strict'); assert.equal(c.android.package,'org.mzbministry.buklod'); assert.equal(c.android.versionCode,30); assert.equal(c.runtimeVersion,'1.3.2'); assert.equal(c.extra?.eas?.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8'); fs.writeFileSync('/tmp/buklod-rc-identity.json', JSON.stringify({sha:process.env.GITHUB_SHA,runtime:c.runtimeVersion,package:c.android.package,project:c.extra.eas.projectId}));"
       - name: TypeScript and 39-game proof contracts
         run: |
           npx tsc --noEmit
