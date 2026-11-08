@@ -1360,6 +1360,7 @@ function ConnectScreenInner({
               return (
                 <BuklodFocusVisibleRow index={index}>
                   <ConnectCommunityRow
+                    scopeId={item.scope_id}
                     scopeName={item.scope_name}
                     scopeType={item.scope_type}
                     preview={connectMessagePreview(item.last_message)}

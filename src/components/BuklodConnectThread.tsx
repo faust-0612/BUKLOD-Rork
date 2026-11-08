@@ -4057,6 +4057,7 @@ const [
       }}
     >
       <ConnectThreadHeader
+        scopeId={mode === 'scope' ? effectiveContainerId : null}
         title={title}
         subtitle={subtitle}
         showSubtitle={!managedCompactScope}
