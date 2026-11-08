@@ -901,6 +901,7 @@ function LegacyPublicBuklodScreen(){
  // No native player on Wall render; native visibility starts one shared player.
  // On browsers, audible autoplay remains opt-in due to platform restrictions.
  const wallAudioPlayerRef=useRef<AudioPlayer|null>(null);
+ const wallClipWindowRef=useRef<{end:number}|null>(null);
  const wallAudioListenerRef=useRef<{remove:()=>void}|null>(null);
  const [wallAudioOwner,setWallAudioOwner]=useState('');
  const wallAudioOwnerRef=useRef('');
@@ -912,6 +913,7 @@ function LegacyPublicBuklodScreen(){
  const wallAudioRequestEpochRef=useRef(0);
  const wallAudioPendingOwnerRef=useRef('');
  const pauseWallAudio=()=>{
+   wallClipWindowRef.current=null;
    try{wallAudioPlayerRef.current?.pause();}catch{
      // A stale or disposed native handle must never replace the entire Wall.
    }
@@ -923,7 +925,15 @@ function LegacyPublicBuklodScreen(){
    try{
      wallAudioListenerRef.current=player.addListener('playbackStatusUpdate',status=>{
        setWallAudioPlaying(value=>value===!!status.playing?value:!!status.playing);
-       if(status.didJustFinish){
+       const clip=wallClipWindowRef.current;
+       if(clip&&status.playing&&status.currentTime>=clip.end-0.08){
+         wallClipWindowRef.current=null;
+         try{player.pause();}catch{}
+         wallAudioOwnerRef.current='';
+         setWallAudioOwner('');
+         setWallAudioPlaying(false);
+       }else if(status.didJustFinish){
+         wallClipWindowRef.current=null;
          wallAudioOwnerRef.current='';
          setWallAudioOwner('');
        }
@@ -957,7 +967,7 @@ function LegacyPublicBuklodScreen(){
      try{player.release();}catch{/* player already disposed */}
    }
  },[]);
- const toggleWallMusic=async(track:BuklodPostMusicTrack,ownerKey:string)=>{
+ const toggleWallMusic=async(track:BuklodPostMusicTrack,ownerKey:string,clipStart=0,clipDuration?:number)=>{
    if(wallAudioBusyRef.current)return;
    if(wallAudioOwner===ownerKey&&wallAudioPlaying){
      wallAudioRequestEpochRef.current++;
@@ -989,6 +999,14 @@ function LegacyPublicBuklodScreen(){
      }
      if(wallAudioRequestEpochRef.current!==requestEpoch||
        wallAudioPendingOwnerRef.current!==ownerKey)return;
+     const start=Math.max(0,Math.min(21600,Number(clipStart)||0));
+     const duration=clipDuration == null ? null : Math.max(5,Math.min(60,Number(clipDuration)||30));
+     if(player.duration>0 && start>=player.duration)
+       throw new Error('Song segment starts after the track ends.');
+     await player.seekTo(start);
+     if(wallAudioRequestEpochRef.current!==requestEpoch||
+       wallAudioPendingOwnerRef.current!==ownerKey)return;
+     wallClipWindowRef.current=duration==null?null:{end:start+duration};
      requestBuklodAudioFocus('wall-post');
      player.volume=1;
      player.play();
@@ -1082,6 +1100,8 @@ function LegacyPublicBuklodScreen(){
  const [communityGifPickerOpen,setCommunityGifPickerOpen]=useState(false);
  const [composerMusicPickerOpen,setComposerMusicPickerOpen]=useState(false);
  const [composerMusicTrack,setComposerMusicTrack]=useState<BuklodPostMusicTrack|null>(null);
+ const [composerClipStartSeconds,setComposerClipStartSeconds]=useState(0);
+ const [composerClipDurationSeconds,setComposerClipDurationSeconds]=useState(30);
  const [composerMotionPreset,setComposerMotionPreset]=useState<BuklodPostMotionPreset>('none');
 
  /* PATCH_186B_PHOTO_EDITOR_PUBLIC_STATE */
@@ -2637,6 +2657,8 @@ const load=useCallback(async(options?:{
     [...photos],
    collageLayout,
    musicTrack:composerMusicTrack,
+   clipStartSeconds:composerClipStartSeconds,
+   clipDurationSeconds:composerClipDurationSeconds,
    motionPreset:wallVideo186O?'none' as BuklodPostMotionPreset:composerMotionPreset,
    wallVideo:
     wallVideo186O as {
@@ -2664,6 +2686,8 @@ const load=useCallback(async(options?:{
  setPhotos([]);
  setCollageLayout('grid');
  setComposerMusicTrack(null);
+ setComposerClipStartSeconds(0);
+ setComposerClipDurationSeconds(30);
  setComposerMotionPreset('none');
  setComposerMusicPickerOpen(false);
  if(wallAudioOwnerRef.current==='composer' || wallAudioPendingOwnerRef.current==='composer'){
@@ -2932,6 +2956,8 @@ const load=useCallback(async(options?:{
      await saveBuklodPostCreative({
        postId:createdPostId,userId:snapshot.userId,
        musicTrackId:snapshot.musicTrack?.id??null,
+       clipStartSeconds:snapshot.musicTrack?snapshot.clipStartSeconds:null,
+       clipDurationSeconds:snapshot.musicTrack?snapshot.clipDurationSeconds:null,
        motionPreset:snapshot.motionPreset,
      });
      setPostCreatives(previous=>({
@@ -2940,6 +2966,8 @@ const load=useCallback(async(options?:{
          post_id:createdPostId!,
          music_track_id:snapshot.musicTrack?.id??null,
          motion_preset:snapshot.motionPreset,
+         music_clip_start_seconds:snapshot.musicTrack?snapshot.clipStartSeconds:null,
+         music_clip_duration_seconds:snapshot.musicTrack?snapshot.clipDurationSeconds:null,
          music:snapshot.musicTrack,
        },
      }));
@@ -2981,6 +3009,8 @@ const load=useCallback(async(options?:{
    setMentions(current => current.length ? current : snapshot.mentions);
    setCollageLayout(snapshot.collageLayout);
    setComposerMusicTrack(current=>current??snapshot.musicTrack);
+   setComposerClipStartSeconds(snapshot.clipStartSeconds);
+   setComposerClipDurationSeconds(snapshot.clipDurationSeconds);
    setComposerMotionPreset(snapshot.motionPreset);
    setCommunityComposerOpen(true);
    setPostFeedback('Post failed — your draft was restored');
@@ -4911,7 +4941,9 @@ const communityFeedRows =
         visibleCreativeIdsRef.current.includes(wallAudioOwnerRef.current))||
        wallAudioBusyRef.current)return;
      wallAutoMusicAttemptedRef.current.add(key);
-     void toggleWallMusic(track,candidate.id);
+     void toggleWallMusic(track,candidate.id,
+       candidate.creative!.music_clip_start_seconds??0,
+       candidate.creative!.music_clip_duration_seconds??undefined);
    },700);
    return ()=>clearTimeout(timer);
  },[wallScreenFocused,user?.id,communityComposerOpen,visibleVideoPostId,
@@ -5197,12 +5229,16 @@ const communityFeedRows =
      </Pressable>
 </View>
     <BuklodPostMusicPicker visible={composerMusicPickerOpen}
+      clipStartSeconds={composerClipStartSeconds}
+      clipDurationSeconds={composerClipDurationSeconds}
+      onClipChange={(start,duration)=>{setComposerClipStartSeconds(start);setComposerClipDurationSeconds(duration);}}
       selectedId={composerMusicTrack?.id}
       previewId={wallAudioOwner==='composer'?wallLoadedTrackId:null}
       previewPlaying={wallAudioOwner==='composer'&&wallAudioPlaying}
-      onSelect={track=>{wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
-        pauseWallAudio();setWallAudioOwner('');setComposerMusicTrack(track);}}
-      onPreview={track=>{void toggleWallMusic(track,'composer');}}
+      onSelect={(track,start,duration)=>{wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
+        pauseWallAudio();setWallAudioOwner('');setComposerMusicTrack(track);
+        setComposerClipStartSeconds(start);setComposerClipDurationSeconds(duration);}}
+      onPreview={(track,start,duration)=>{void toggleWallMusic(track,'composer',start,duration);}}
       onClose={()=>{if(wallAudioOwner==='composer'||wallAudioPendingOwnerRef.current==='composer'){
         wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
         pauseWallAudio();setWallAudioOwner('');
@@ -5215,7 +5251,8 @@ const communityFeedRows =
           flexDirection:'row',alignItems:'center',gap:8}}>
         <MaterialCommunityIcons name="music-note" size={19} color="#195d47"/>
         <Text numberOfLines={1} style={{flex:1,fontWeight:'800',fontSize:12,color:'#195d47'}}>
-          {composerMusicTrack?.title??'Add music / audio (optional)'}
+          {composerMusicTrack ? composerMusicTrack.title+' · '+composerClipStartSeconds+'s–'+
+             (composerClipStartSeconds+composerClipDurationSeconds)+'s' : 'Add music / audio (optional)'}
         </Text>
         <MaterialCommunityIcons name="chevron-right" size={19} color="#195d47"/>
       </Pressable>
@@ -5227,7 +5264,7 @@ const communityFeedRows =
               <Pressable key={preset} accessibilityRole="button"
                 accessibilityLabel={'Select '+preset+' motion'}
                 onPress={()=>setComposerMotionPreset(preset)}
-                style={{borderRadius:15,paddingHorizontal:11,paddingVertical:8,borderWidth:1,
+                style={{borderRadius:15,paddingHorizontal:9,paddingVertical:7,minHeight:34,borderWidth:1,
                   borderColor:composerMotionPreset===preset?colors.green:colors.line,
                   backgroundColor:composerMotionPreset===preset?colors.greenSoft:colors.white}}>
                 <Text style={{color:composerMotionPreset===preset?colors.greenDark:colors.muted,
@@ -5733,7 +5770,9 @@ const communityFeedRows =
             wallAutoMusicSuppressedRef.current.delete(id);
             wallAutoMusicAttemptedRef.current.delete(id+':'+track.id);
           }
-          void toggleWallMusic(track,id);
+          void toggleWallMusic(track,id,
+            postCreatives[id].music_clip_start_seconds??0,
+            postCreatives[id].music_clip_duration_seconds??undefined);
         }}
         style={{minHeight:36,flexDirection:'row',gap:9,alignItems:'center'}}>
         <MaterialCommunityIcons
@@ -5741,10 +5780,10 @@ const communityFeedRows =
          size={28} color="#195d47"/>
         <View style={{flex:1,minWidth:0}}>
           <Text numberOfLines={1} style={{fontSize:12,fontWeight:'800',color:'#164f3c'}}>
-            {postCreatives[String(item.id)].music!.title}
+            {'Song: '+postCreatives[String(item.id)].music!.title}
           </Text>
           <Text numberOfLines={1} style={{fontSize:10,color:'#58786a'}}>
-            {postCreatives[String(item.id)].music!.artist||'BUKLOD Music'} · {Platform.OS==='web'?'Tap to listen':'Auto sound when visible'}
+            {postCreatives[String(item.id)].music!.artist||'BUKLOD Music'} · {Platform.OS==='web'?'Tap to hear':'Tap to play / pause'}
           </Text>
         </View>
        </Pressable>
