@@ -11,8 +11,10 @@ test('Music uses approved library; audio resolves only after a visible autoplay 
 test('Motion is lightweight and accessible',()=>{
  const s=read('src/components/BuklodPostMotion.tsx');
  assert.match(s,/isReduceMotionEnabled/);
- assert.match(s,/!active \|\| reduceMotion/);
+ assert.match(s,/const running=active&&appActive&&!reduceMotion/);
+ assert.match(s,/AppState\.addEventListener/);
  assert.match(s,/animation\.start\(\)/);
+ assert.match(s,/AMBIENT\.has\(preset\)/);
  assert.doesNotMatch(s,/Pause motion|Play motion/);
  assert.doesNotMatch(s,/VideoView|ffmpeg/);
 });
@@ -82,7 +84,7 @@ test('Post motion is automatically active only in visible Wall cards, without re
  const motion=read('src/components/BuklodPostMotion.tsx');
  assert.match(wall,/active=\{wallScreenFocused&&visibleCreativePostIds\.includes/);
  assert.match(wall,/setVisibleCreativePostIds\(nextIds\)/);
- assert.match(motion,/style=\{!active \|\| reduceMotion \? \{\} : style\}/);
+ assert.match(motion,/style=\{!running \? \{\} : motionStyle\}/);
  assert.match(motion,/progress\.stopAnimation\(\)/);
 });
 test('Native audio autostarts only on a settled visible card; web remains opt-in',()=>{

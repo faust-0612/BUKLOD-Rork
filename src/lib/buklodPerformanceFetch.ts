@@ -89,7 +89,8 @@ const restTableTtlMs: Record<string, number> = {
   buklod_cluster_events: 10_000,
   buklod_profile_status: 10_000,
   buklod_system_announcement_boards: 30_000,
-  buklod_music_library: 2 * 60_000,
+  // Admin uploads must be available to other accounts on their next picker open.
+  buklod_music_library: 0,
   buklod_user_addresses: 30_000,
   buklod_dashboard_themes: 30_000,
   profiles: 5_000,

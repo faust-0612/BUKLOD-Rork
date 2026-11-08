@@ -3,7 +3,7 @@ import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCar
 import BuklodPostMotion from '@/components/BuklodPostMotion';
 import BuklodWallPostAudioMeter from '@/components/BuklodWallPostAudioMeter';
 import BuklodPostMusicPicker from '@/components/BuklodPostMusicPicker';
-import { BUKLOD_POST_MOTION_PRESETS, loadBuklodPostCreatives, resolveBuklodPostMusicUrl,
+import { BUKLOD_POST_MOTION_PRESETS, BUKLOD_POST_MOTION_LABELS, loadBuklodPostCreatives, resolveBuklodPostMusicUrl,
   saveBuklodPostCreative, type BuklodPostCreative, type BuklodPostMotionPreset,
   type BuklodPostMusicTrack } from '@/lib/buklodPostCreatives';
 import { requestBuklodAudioFocus, subscribeBuklodAudioFocus } from '@/lib/buklodAudioFocus';
@@ -5221,7 +5221,7 @@ const communityFeedRows =
       </Pressable>
       {!wallVideo186O&&!communityGif&&(
         <>
-          <Text style={{fontWeight:'800',fontSize:11,color:colors.muted}}>Animate your photo or text post</Text>
+          <Text style={{fontWeight:'800',fontSize:11,color:colors.muted}}>Photo motion and ambiance • plays automatically after publishing</Text>
           <View style={{flexDirection:'row',flexWrap:'wrap',gap:7}}>
             {BUKLOD_POST_MOTION_PRESETS.map(preset=>(
               <Pressable key={preset} accessibilityRole="button"
@@ -5231,7 +5231,7 @@ const communityFeedRows =
                   borderColor:composerMotionPreset===preset?colors.green:colors.line,
                   backgroundColor:composerMotionPreset===preset?colors.greenSoft:colors.white}}>
                 <Text style={{color:composerMotionPreset===preset?colors.greenDark:colors.muted,
-                  textTransform:'capitalize',fontSize:11,fontWeight:'800'}}>{preset}</Text>
+                  textTransform:'capitalize',fontSize:11,fontWeight:'800'}}>{BUKLOD_POST_MOTION_LABELS[preset]}</Text>
               </Pressable>
             ))}
           </View>
