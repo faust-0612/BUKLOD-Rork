@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, Pressable, Text, View } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
+import { useIsFocused } from '@react-navigation/native';
 
 import { otherAudioPlaying } from '@/lib/kabihasnang-ligaw/externalAudioState';
 import { closeKlAudioPlayer, runKlAudioCommand } from '@/lib/kabihasnang-ligaw/audioPlayerLifecycle';
@@ -39,6 +40,7 @@ class ChapterAudioBoundary extends React.Component<{ children: React.ReactNode }
 
 function ChapterAudioControls({ music, ambient, autoPlay = false }: Pick<Props, 'music' | 'ambient' | 'autoPlay'>) {
   const playerRef = useRef<NativePlayer | null>(null);
+  const routeFocused = useIsFocused();
   const lastSourcesRef = useRef([music, ambient]);
   const autoAttemptedRef = useRef(false);
   const [enabled, setEnabled] = useState(false);
@@ -74,7 +76,7 @@ function ChapterAudioControls({ music, ambient, autoPlay = false }: Pick<Props, 
   }, []);
 
   useEffect(() => {
-    if (!autoPlay || autoAttemptedRef.current || (!music && !ambient)) return;
+    if (!routeFocused || !autoPlay || autoAttemptedRef.current || (!music && !ambient)) return;
     const player = playerRef.current;
     if (!player || AppState.currentState !== 'active') return;
     autoAttemptedRef.current = true;
@@ -91,7 +93,7 @@ function ChapterAudioControls({ music, ambient, autoPlay = false }: Pick<Props, 
     });
     setEnabled(started);
     setError(started ? '' : 'Hindi awtomatikong tumugtog. Pindutin ang Patugtugin upang subukan muli.');
-  }, [autoPlay, music, ambient]);
+  }, [routeFocused, autoPlay, music, ambient]);
 
   useEffect(() => {
     const [oldMusic, oldAmbient] = lastSourcesRef.current;
@@ -102,8 +104,16 @@ function ChapterAudioControls({ music, ambient, autoPlay = false }: Pick<Props, 
     setEnabled(false);
   }, [music, ambient]);
 
+  useEffect(() => {
+    if (routeFocused) return;
+    const player = playerRef.current;
+    if (player) runKlAudioCommand(() => player.pause());
+    setEnabled(false);
+  }, [routeFocused]);
+
   const toggle = () => {
     const player = playerRef.current;
+    if (!routeFocused) return;
     if (!player) { setError('Audio is temporarily unavailable. Reading is still available.'); return; }
     if (enabled) {
       if (!runKlAudioCommand(() => player.pause())) setError('Audio could not pause.');
