@@ -3,7 +3,7 @@ import {AppState, Dimensions, Image, Linking, Pressable, StyleSheet, Text, View}
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {VideoView, useVideoPlayer} from 'expo-video';
 import {useFocusEffect} from 'expo-router';
-import {requestBuklodAudioFocus} from '@/lib/buklodAudioFocus';
+import {requestBuklodAudioFocus, subscribeBuklodAudioFocus} from '@/lib/buklodAudioFocus';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
@@ -21,6 +21,12 @@ const ROTATE_MS = 12_000;
 // navigation changes pause immediately; no hidden video streams.
 function AdVideo({uri, visible}: {uri: string; visible: boolean}) {
   const player = useVideoPlayer(uri, p => {p.loop = true; p.muted = false;});
+  // DZAS, video calls and a tapped Wall song must win audio focus.
+  useEffect(() => subscribeBuklodAudioFocus(owner => {
+    if (owner !== 'sponsor-ad') {
+      try {player.pause();} catch {}
+    }
+  }), [player]);
   useEffect(() => {
     if (!visible) { try {player.pause();} catch {} return; }
     requestBuklodAudioFocus('sponsor-ad');
