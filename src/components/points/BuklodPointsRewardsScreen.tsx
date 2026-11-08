@@ -19,7 +19,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import {
   buildBuklodUserFeedback,
@@ -529,6 +529,13 @@ function ClaimGroupCard({
 }
 
 export default function BuklodPointsRewardsScreen() {
+  const {focusLedgerId}=useLocalSearchParams<{focusLedgerId?:string}>();
+  const exactLedgerId=typeof focusLedgerId==='string'?focusLedgerId.trim():'';
+  const historyScrollRef=useRef<ScrollView|null>(null);
+  const historySectionYRef=useRef(0);
+  const historyListYRef=useRef(0);
+  const focusedLedgerRef=useRef<string|null>(null);
+  const [ledgerFocusMissing,setLedgerFocusMissing]=useState(false);
   const reduceMotion = useBuklodReduceMotion();
   const characterEvents = useBuklodCharacterEventsOptional();
   const claimSound = useAudioPlayer(CLAIM_SUCCESS_SOUND);
@@ -652,6 +659,26 @@ export default function BuklodPointsRewardsScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(()=>{
+    if(!exactLedgerId||loading)return;
+    let active=true;
+    setFilter('all');setSearch('');setLedgerFocusMissing(false);
+    // The first 300 historical rows may not include the referenced ledger.
+    // Fetch ONLY the specific authenticated owner's row, protected by RLS.
+    void (async()=>{
+      const auth=await supabase.auth.getUser();
+      if(!active||!auth.data.user?.id)return;
+      const {data,error}=await supabase.from('buklod_points_ledger')
+        .select('id,direction,claim_state,points,activity_type,source_key,source_id,description,created_at')
+        .eq('user_id',auth.data.user.id).eq('id',exactLedgerId).maybeSingle();
+      if(!active)return;
+      if(error||!data){setLedgerFocusMissing(true);return;}
+      setHistory(current=>current.some(row=>row.id===exactLedgerId)?
+        current:[data as PointRow,...current]);
+    })().catch(()=>{if(active)setLedgerFocusMissing(true);});
+    return()=>{active=false;};
+  },[exactLedgerId,loading]);
 
   useEffect(() => {
     if (!lastSuccess) return;
@@ -830,6 +857,7 @@ export default function BuklodPointsRewardsScreen() {
 
   return (
     <BuklodPortalScrollView
+      scrollRef={historyScrollRef}
       style={[shared.screen, { backgroundColor: COLORS.canvas }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
@@ -1171,7 +1199,9 @@ export default function BuklodPointsRewardsScreen() {
         </View>
       ) : null}
 
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={event=>{
+        historySectionYRef.current=event.nativeEvent.layout.y;
+      }}>
         <Text style={styles.sectionTitle}>Points History</Text>
         <Text style={styles.sectionSub}>Search and review your recorded point activity.</Text>
 
@@ -1207,12 +1237,33 @@ export default function BuklodPointsRewardsScreen() {
           ))}
         </ScrollView>
 
-        <View style={styles.historyList}>
+        <View style={styles.historyList} onLayout={event=>{
+          historyListYRef.current=event.nativeEvent.layout.y;
+        }}>
+          {ledgerFocusMissing&&exactLedgerId&&(
+            <Text accessibilityRole="alert" style={styles.emptyText}>
+              This Points activity is unavailable or outside your allowed records.
+            </Text>
+          )}
           {filtered.length === 0 ? (
             <Text style={styles.emptyText}>No matching points activity.</Text>
           ) : (
             filtered.map((item, index) => (
-              <View key={item.id} style={[styles.historyRow, index === filtered.length - 1 && { borderBottomWidth: 0 }]}>
+              <View key={item.id}
+                onLayout={event=>{
+                  if(!exactLedgerId||item.id!==exactLedgerId||
+                    focusedLedgerRef.current===exactLedgerId)return;
+                  focusedLedgerRef.current=exactLedgerId;
+                  const y=Math.max(0,historySectionYRef.current+
+                    historyListYRef.current+event.nativeEvent.layout.y-105);
+                  requestAnimationFrame(()=>historyScrollRef.current?.scrollTo({
+                    y,animated:true,
+                  }));
+                }}
+                style={[styles.historyRow,
+                  item.id===exactLedgerId&&{backgroundColor:'#D9FAE8',borderColor:'#28B479',
+                    borderWidth:2,borderRadius:12},
+                  index===filtered.length-1&&{borderBottomWidth:0}]}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.historyTitle}>{activityLabel(item.activity_type)}</Text>
                   {!!item.description && <Text style={styles.historyDescription}>{item.description}</Text>}
