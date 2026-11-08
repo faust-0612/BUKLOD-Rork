@@ -206,16 +206,88 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
    if(next)setPickedAsset(next);
   }catch(e:any){Alert.alert('Attach media or file',e?.message||'Unable to select a file.');}
  };
- const save=async()=>{if(!kind||!isAdmin)return;setSaving(true);try{
-  if(kind==='notice'){if(!title.trim())throw new Error('Title required');const q=await supabase.from('buklod_cluster_home_notices').insert({scope_id:scope.scope_id,title:title.trim(),body:body.trim()||null,priority:extra.trim().toLowerCase()==='emergency'?'EMERGENCY':'IMPORTANT',created_by:user?.id});if(q.error)throw q.error}
-  if(kind==='event'){if(!title.trim())throw new Error('Title required');const d=when.trim()?new Date(when):new Date(Date.now()+86400000);if(Number.isNaN(d.getTime()))throw new Error('Invalid date/time');const q=await supabase.from('buklod_cluster_events').insert({scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,location:extra.trim()||null,starts_at:d.toISOString(),created_by:user?.id});if(q.error)throw q.error}
-  if(kind==='task'){if(!title.trim())throw new Error('Title required');let due=null;if(when.trim()){const d=new Date(when);if(Number.isNaN(d.getTime()))throw new Error('Invalid due date');due=d.toISOString()}const q=await supabase.from('buklod_cluster_tasks').insert({scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,due_at:due,status:'OPEN',created_by:user?.id});if(q.error)throw q.error}
-  if(kind==='poll'){const labels=extra.split(',').map(x=>x.trim()).filter(Boolean);if(!title.trim()||labels.length<2)throw new Error('Question + at least 2 comma-separated options required');const q=await supabase.from('buklod_cluster_polls').insert({scope_id:scope.scope_id,question:title.trim(),created_by:user?.id}).select('id').single();if(q.error)throw q.error;const o=await supabase.from('buklod_cluster_poll_options').insert(labels.map((label,i)=>({poll_id:q.data.id,label,sort_order:i})));if(o.error)throw o.error}
-  if(kind==='resource'){if(!title.trim()||!extra.trim())throw new Error('Title and URL required');const q=await supabase.from('buklod_cluster_resources').insert({scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,resource_url:extra.trim(),created_by:user?.id});if(q.error)throw q.error}
-  if(kind==='recognition'){if(!title.trim())throw new Error('Title required');const q=await supabase.from('buklod_cluster_recognitions').insert({scope_id:scope.scope_id,title:title.trim(),recipient_name:extra.trim()||null,body:body.trim()||null,created_by:user?.id});if(q.error)throw q.error}
-  if(kind==='about'){const q=await supabase.from('buklod_cluster_home_settings').upsert({scope_id:scope.scope_id,about_text:body.trim()||null,updated_by:user?.id},{onConflict:'scope_id'});if(q.error)throw q.error}
-  setKind(null);await load({background:true,resources:[({notice:'notices',event:'events',task:'tasks',poll:'polls',resource:'resources',recognition:'recognitions',about:'settings'} as Record<string,string>)[kind!] ]});
- }catch(err:any){Alert.alert('Cluster Home',err?.message??'Save failed')}finally{setSaving(false)}};
+ const save=async()=>{
+  if(!kind||!isAdmin||saving)return;
+  setSaving(true);
+  let pendingAssetPath:string|null=null;
+  try{
+   const selectedKind=kind;
+   let assetRef:{storagePath:string;mimeType:string}|null=null;
+   if(pickedAsset&&(kind==='resource'||kind==='event'||kind==='notice')){
+     assetRef=await uploadBuklodScopeHomeAsset({scopeId:scope.scope_id,kind,asset:pickedAsset});
+     pendingAssetPath=assetRef.storagePath;
+   }
+   if(kind==='notice'){
+     if(!title.trim())throw Error('Title required');
+     const q=await supabase.from('buklod_cluster_home_notices').insert({
+       scope_id:scope.scope_id,title:title.trim(),body:body.trim()||null,
+       priority:extra.trim().toLowerCase()==='emergency'?'EMERGENCY':'IMPORTANT',
+       created_by:user?.id,media_path:assetRef?.storagePath??null,
+       media_mime_type:assetRef?.mimeType??null,
+     });if(q.error)throw q.error;
+   }
+   if(kind==='event'){
+     if(!title.trim())throw Error('Title required');
+     const d=when.trim()?new Date(when):new Date(Date.now()+86400000);
+     if(Number.isNaN(d.getTime()))throw Error('Invalid date/time');
+     const q=await supabase.from('buklod_cluster_events').insert({
+       scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,
+       location:extra.trim()||null,starts_at:d.toISOString(),created_by:user?.id,
+       media_path:assetRef?.storagePath??null,media_mime_type:assetRef?.mimeType??null,
+     });if(q.error)throw q.error;
+   }
+   if(kind==='task'){
+     if(!title.trim())throw Error('Title required');
+     let due=null;
+     if(when.trim()){const d=new Date(when);if(Number.isNaN(d.getTime()))throw Error('Invalid due date');due=d.toISOString()}
+     const q=await supabase.from('buklod_cluster_tasks').insert({
+       scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,
+       due_at:due,status:'OPEN',created_by:user?.id,
+     });if(q.error)throw q.error;
+   }
+   if(kind==='poll'){
+     const labels=extra.split(',').map(x=>x.trim()).filter(Boolean);
+     if(!title.trim()||labels.length<2)throw Error('Question + at least 2 comma-separated options required');
+     const q=await supabase.from('buklod_cluster_polls').insert({
+       scope_id:scope.scope_id,question:title.trim(),created_by:user?.id,
+     }).select('id').single();if(q.error)throw q.error;
+     const o=await supabase.from('buklod_cluster_poll_options').insert(
+       labels.map((label,i)=>({poll_id:q.data.id,label,sort_order:i})));
+     if(o.error)throw o.error;
+   }
+   if(kind==='resource'){
+     if(!title.trim()||(!extra.trim()&&!assetRef))throw Error('Title and a URL or file required');
+     if(!assetRef&&!/^https?:\/\//i.test(extra.trim()))throw Error('Resource URL must use https://');
+     const q=await supabase.from('buklod_cluster_resources').insert({
+       scope_id:scope.scope_id,title:title.trim(),description:body.trim()||null,
+       resource_url:extra.trim()||'',created_by:user?.id,
+       storage_path:assetRef?.storagePath??null,original_name:assetRef?pickedAsset?.name??null:null,
+       mime_type:assetRef?.mimeType??null,
+     });if(q.error)throw q.error;
+   }
+   if(kind==='recognition'){
+     if(!title.trim())throw Error('Title required');
+     const q=await supabase.from('buklod_cluster_recognitions').insert({
+       scope_id:scope.scope_id,title:title.trim(),recipient_name:extra.trim()||null,
+       body:body.trim()||null,created_by:user?.id,
+     });if(q.error)throw q.error;
+   }
+   if(kind==='about'){
+     const q=await supabase.from('buklod_cluster_home_settings').upsert({
+       scope_id:scope.scope_id,about_text:body.trim()||null,updated_by:user?.id,
+     },{onConflict:'scope_id'});if(q.error)throw q.error;
+   }
+   pendingAssetPath=null;
+   setPickedAsset(null);
+   setKind(null);
+   const resource=({notice:'notices',event:'events',task:'tasks',poll:'polls',
+     resource:'resources',recognition:'recognitions',about:'settings'} as Record<string,string>)[selectedKind];
+   await load({background:true,resources:[resource]});
+  }catch(err:any){
+    if(pendingAssetPath)await rollbackBuklodScopeHomeAsset(pendingAssetPath).catch(()=>undefined);
+    Alert.alert('Cluster Home',err?.message??'Save failed. Existing records were not changed.');
+  }finally{setSaving(false)}
+ };
 
  const rsvp=async(id:string,status:string)=>{if(!user?.id)return;const q=await supabase.from('buklod_cluster_event_rsvps').upsert({event_id:id,user_id:user.id,status},{onConflict:'event_id,user_id'});if(q.error)Alert.alert('RSVP',q.error.message);else await load({background:true,resources:['rsvps']})};
  const taskDone=async(x:Task)=>{const q=await supabase.from('buklod_cluster_tasks').update({status:'DONE'}).eq('id',x.id);if(q.error)Alert.alert('Task',q.error.message);else await load({background:true,resources:['tasks']})};
