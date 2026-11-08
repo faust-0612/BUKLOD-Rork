@@ -8,7 +8,8 @@
     "supabase/functions/buklod-admob-revenue-preview-sync/index.ts",
     "supabase/functions/buklod-admob-revenue-preview-sync/gateway-service-role.mjs",
     "tests/community-admob-preview-contract.test.cjs",
-    "tests/admob-gateway-service-role.test.mjs"
+    "tests/admob-gateway-service-role.test.mjs",
+    "supabase/tests/buklod_admob_scheduler_auth_contract_20261109.sql"
   ],
   "acceptanceChecks": [
     "Preserve verify_jwt=true on production and code contract: gateway signature validation mandatory",
@@ -16,7 +17,8 @@
     "Do not compare rotated legitimate service JWT bytes to serviceRole env; keep env key for private database RPC",
     "Reject anon/authenticated/expired/malformed JWT roles; keep fail-closed for Google OAuth/network report failures",
     "Preserve BUKLOD QMP/Finance calculations and no payouts; do not enable unverified scheduler",
-    "Run targeted Node tests and PR CI before exact-source production deployment"
+    "Run targeted Node tests and PR CI before exact-source production deployment",
+    "Read-only production SQL contract confirms service_role RPC execution, anon rejection and private snapshot isolation"
   ],
   "chosenApproach": "Minimal server-only authentication gate: depend on deployed verify_jwt=true Supabase gateway cryptographic validation, then check role and token lifetime; leave private DB admin key in use. Add pure role predicate with Node behavior tests and retain previous AdMob Network Report guard.",
   "selectionRationale": "Accepted same-project service-role bearer reached handler but bytewise equality against internal env credential failed; tying caller identity to unrelated current env literal makes rotated credentials cause false 401. Platform signature validation is enforced and authoritative.",
@@ -40,6 +42,7 @@
   ],
   "regressionTests": [
     "tests/community-admob-preview-contract.test.cjs",
-    "tests/admob-gateway-service-role.test.mjs"
+    "tests/admob-gateway-service-role.test.mjs",
+    "supabase/tests/buklod_admob_scheduler_auth_contract_20261109.sql"
   ]
 }
