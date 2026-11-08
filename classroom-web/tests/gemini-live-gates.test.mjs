@@ -1,0 +1,44 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const live=readFileSync(new URL('../src/gemini-live.js',import.meta.url),'utf8');
+test('Gemini design is the deployed entry and requires the authenticated module',()=>{
+  assert.match(html,/BUKLOD Classroom — Connected Learning/);
+  assert.match(html,/id="portalClassroomsList"/);
+  assert.match(html,/id="portalSummaryBento"/);
+  assert.match(html,/id="classroomSecureBootGuard"/);
+  assert.match(html,/<script type="module" src="\/src\/gemini-live.js"><\/script>/);
+  assert.doesNotMatch(html,/^\s*initBuklodApp\(\);\s*$/m);
+  const start=html.indexOf('var APP_STATE = {');
+  const end=html.indexOf('var SUBTABS_BY_GROUP =',start);
+  assert.ok(start>=0&&end>start);
+  const runtimeState=html.slice(start,end);
+  assert.match(runtimeState,/classrooms:\s*\{\s*\}/);
+  assert.doesNotMatch(runtimeState,/2024-01042-TG|Dela Cruz|Recitation Mode Active|58 \/ 60/);
+});
+test('authenticated Supabase source never trusts role toggles or URL token handoffs',()=>{
+  assert.match(live,/db\.auth\.getUser\(\)/);
+  assert.match(live,/db\.auth\.signInWithPassword\(/);
+  assert.match(live,/db\.auth\.signOut\(/);
+  assert.match(live,/incoming\.delete\(name\)/);
+  assert.match(live,/buklod_classroom_my_classes_v2/);
+  assert.match(live,/buklod_classroom_context_v1/);
+  assert.match(live,/validClass\(id\)/);
+  assert.match(live,/roleByClass/);
+  assert.match(live,/window\.switchPersona=\(\)=>show/);
+  assert.doesNotMatch(live,/service_role|sb_secret_/);
+});
+test('official academic actions use guarded backend and no mock successful saves',()=>{
+  assert.match(live,/buklod_classroom_student_released_grade_items_v2/);
+  assert.match(live,/buklod_classroom_gradebook_roster_v1/);
+  assert.match(live,/buklod_classroom_grade_submission_v2/);
+  assert.match(live,/buklod_education_classroom_submissions/);
+  assert.match(live,/buklod_education_classroom_posts/);
+  assert.match(live,/buklod_education_classroom_comments/);
+  assert.match(live,/window\.renderTabLiveClassroom=/);
+  assert.match(live,/recordLiveRecitationScore/);
+  assert.match(live,/confirmRosterImportCommit/);
+  assert.match(live,/No records were changed/);
+  assert.match(live,/function writeOnce\(/);
+});
