@@ -30,7 +30,48 @@ export default function NotificationCenter(){
   let query=supabase.from('notifications').select('id,title,body,kind,data,read_at,created_at').eq('user_id',user.id);
   if(!faithEnabled){for(const pattern of FAITH_NOTIFICATION_PATTERNS){query=query.not('kind','ilike',pattern)}}
   const {data,error}=await query.order('created_at',{ascending:false}).limit(150);
-  setLoading(false);if(error)return Alert.alert('Notifications',error.message);setItems(data??[]);await refreshUnread()
+  if(error){setLoading(false);return Alert.alert('Notifications',error.message);}
+  let displayed=data??[];
+
+  // Historical notification bodies say only "Daily Devotion needs improvement".
+  // Resolve titles against the MEMBER'S OWN canonical submissions, so two
+  // pending revisions cannot be confused. This is a read-only enhancement;
+  // nothing rewrites history and the DB's own-user RLS remains authoritative.
+  const ids=Array.from(new Set(displayed
+    .filter(n=>['formation_needs_improvement','formation_approved'].includes(n.kind)
+      && n.data?.item_kind==='DAILY_DEVOTION' && typeof n.data?.item_id==='string')
+    .map(n=>String(n.data.item_id)))).slice(0,150);
+  if(ids.length){
+    try{
+      const {data:mine,error:detailsError}=await supabase
+        .from('devotional_reward_submissions')
+        .select('id,devotional_title_snapshot,status,admin_note')
+        .eq('user_id',user.id).in('id',ids);
+      if(!detailsError&&mine){
+        const byId=new Map(mine.map(sub=>[sub.id,sub]));
+        displayed=displayed.map(n=>{
+          const sub=byId.get(String(n.data?.item_id??''));
+          if(!sub)return n;
+          const title=String(sub.devotional_title_snapshot??'').trim()||'Daily Devotion';
+          if(sub.status==='rejected')return {
+            ...n,
+            title:'Revision needed — '+title,
+            body:String(sub.admin_note??'').trim()||n.body,
+          };
+          if(sub.status==='approved')return {
+            ...n,
+            title:'Approved — '+title,
+            body:'This devotional is now approved. Open it to see the current status.',
+          };
+          return {...n,title:'Under review — '+title,
+            body:'Your devotional was resubmitted and is being checked.'};
+        });
+      }
+    }catch{/* Keep the original alert if the detail request fails. */}
+  }
+  setItems(displayed);
+  setLoading(false);
+  await refreshUnread();
  },[user?.id,refreshUnread,faithEnabled]);
  useEffect(()=>{void load()},[load]);
  const open=async(x:any)=>{
