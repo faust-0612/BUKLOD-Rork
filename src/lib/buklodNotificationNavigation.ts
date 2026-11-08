@@ -30,6 +30,9 @@ const COMMUNITY_POST_KINDS = new Set([
   'community_reply',
   'community_share',
   'community_commented',
+  'post_comment',
+  'post_reaction',
+  'post_reply',
   'post_share_request',
   'post_share_approved',
   'post_share_declined',
@@ -78,6 +81,10 @@ function postInItsCommunity(
   }
   query.set('focusPostId', postId);
   if (openComments) query.set('focusComments', '1');
+  // Exact comment/message identity from newer producers, while old pushes
+  // without these fields still open their post using the proven legacy route.
+  const commentId = clean(payload.comment_id) || clean(payload.commentId);
+  if (openComments && commentId) query.set('focusCommentId', commentId);
 
   return managed && scopeId
     ? { path: `/scope?${query.toString()}`, scopeId }
@@ -95,7 +102,25 @@ export function resolveBuklodNotificationTarget(
   options?: NotificationTargetOptions,
 ): BuklodNotificationTarget | null {
   const normalizedKind = clean(kind).toLowerCase();
-  const payload = data ?? {};
+  // New producers and older push gateways differ in field casing and nesting.
+  // Normalize only known IDs, never treat arbitrary payload strings as routes.
+  const raw = data ?? {};
+  const nested = raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data)
+    ? raw.data as Record<string, unknown> : {};
+  const payload: Record<string, unknown> = { ...nested, ...raw };
+  for (const [canonical, aliases] of Object.entries({
+    post_id: ['postId', 'community_post_id', 'target_post_id'],
+    comment_id: ['commentId', 'target_comment_id'],
+    conversation_id: ['conversationId', 'thread_id', 'threadId'],
+    message_id: ['messageId', 'target_message_id'],
+    scope_id: ['scopeId', 'cluster_id', 'organization_id'],
+    actor_id: ['actorId'],
+  })) {
+    if (!clean(payload[canonical])) {
+      const candidate = aliases.map(key => clean(payload[key])).find(Boolean);
+      if (candidate) payload[canonical] = candidate;
+    }
+  }
 
   const formationTarget = buklodFormationNotificationTarget(
     normalizedKind,
@@ -168,7 +193,7 @@ export function resolveBuklodNotificationTarget(
       postId,
       payload,
       options,
-      ['community_comment', 'community_commented', 'community_reply'].includes(normalizedKind),
+      ['community_comment', 'community_commented', 'community_reply', 'post_comment', 'post_reply'].includes(normalizedKind),
     );
   }
 
@@ -255,7 +280,16 @@ export function resolveBuklodNotificationTarget(
     options,
   );
 
-  if (baseTarget) {
+  if (baseTarget && (clean(payload.conversation_id) ||
+    ['direct_message','connect_message','scope_message','community_message','ptt_message'].includes(normalizedKind))) {
+    // The thread opens at the exact message if the producer provided its ID.
+    // Existing thread routes without an ID retain legacy behavior.
+    const messageId = clean(payload.message_id);
+    if (messageId && clean(payload.conversation_id)) {
+      const joiner = baseTarget.path.includes('?') ? '&' : '?';
+      return { ...baseTarget, path: baseTarget.path+joiner+
+        'focusMessageId='+encodeURIComponent(messageId) };
+    }
     return baseTarget;
   }
 
@@ -290,21 +324,29 @@ export function resolveBuklodNotificationTarget(
     };
   }
 
-  if (
-    normalizedKind === 'membership_approved' ||
-    normalizedKind === 'character_collectible_redeemed'
-  ) {
-    return {
-      path: '/(tabs)/me',
-    };
+  if (normalizedKind === 'membership_approved' && clean(payload.scope_id)) {
+    const id=clean(payload.scope_id);
+    return { path:'/scope?section=home&scopeId='+encodeURIComponent(id),scopeId:id };
+  }
+  if (normalizedKind === 'character_collectible_redeemed')
+    return {path:'/points'};
+  if (normalizedKind === 'membership_approved')
+    return {path:'/(tabs)/me'};
+
+  const ledgerId = clean(payload.ledger_id) || clean(payload.points_ledger_id);
+  if (ledgerId && ['points_earned','points_claimed','reward_approved',
+      'points_reward','reward_claimed'].includes(normalizedKind)) {
+    return {path:'/points?focusLedgerId='+encodeURIComponent(ledgerId)};
   }
 
   // Current follow-up payloads carry group/church metadata but no canonical
   // conversation route. Open the BUKLOD hub instead of silently doing nothing.
   if (normalizedKind === 'follow_up_opened') {
-    return {
-      path: '/buklod',
-    };
+    // Do not disguise a missing record destination as a generic Wall visit.
+    const threadId = clean(payload.conversation_id);
+    return threadId
+      ? {path:'/connect/personal/'+encodeURIComponent(threadId)}
+      : null;
   }
 
   return null;
