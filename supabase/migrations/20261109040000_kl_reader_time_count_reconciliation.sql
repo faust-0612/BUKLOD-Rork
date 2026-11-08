@@ -76,7 +76,7 @@ begin
 end;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.kl_list_readers_v1(p_episode_id uuid)
+CREATE OR REPLACE FUNCTION public.kl_list_readers_v2(p_episode_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
@@ -111,3 +111,6 @@ BEGIN
   RETURN jsonb_build_object('ok',true,'count',v_count,'readers',v_rows);
 END;
 $function$;
+
+revoke all on function public.kl_list_readers_v2(uuid) from public, anon;
+grant execute on function public.kl_list_readers_v2(uuid) to authenticated;
