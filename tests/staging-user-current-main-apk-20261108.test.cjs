@@ -45,6 +45,18 @@ test('staging-user uses Expo preview EAS environment and independent staging-use
  assert.equal(p.env.EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME,'firebase-video-staging');
  assert.equal(p.autoIncrement,true);
 });
+test('staging Firebase fallback requires an actually registered staging package',()=>{
+ const source=JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
+ const packages=source.client?.map(c=>c.client_info?.android_client_info?.package_name)||[];
+ assert.ok(packages.includes('org.mzbministry.buklod.staging'),'staging Firebase client is registered');
+ assert.ok(packages.includes('org.mzbministry.buklod'),'original production Firebase client remains');
+ assert.match(flow,/STAGING_FIREBASE_JSON_B64/);
+ assert.match(flow,/f\.client\?\.some\(x=>x\.client_info\?\.android_client_info\?\.package_name==='org\.mzbministry\.buklod\.staging'/);
+ assert.match(flow,/cp google-services\.production\.json google-services\.staging\.json/);
+ assert.match(flow,/test -s google-services\.staging\.json/);
+ assert.match(flow,/google-services\.staging\.json/);
+});
+
 test('only user-authorized live-main commit can trigger one staging-user APK without release side effects',()=>{
  assert.match(flow,/BUKLOD_STAGING_USER_CURRENT_MAIN_APK_20261108/);
  assert.match(flow,/git merge-base --is-ancestor d67e805879e3398cbff8a4383c6c7e05039ed9f7/);
