@@ -136,7 +136,6 @@ export default function BuklodEconomyDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [section, setSection] = useState<SectionKey>('overview');
-  const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [selectedTxn, setSelectedTxn] = useState<BuklodEconomyLedgerTxn | null>(null);
 
