@@ -1,7 +1,7 @@
 /*
  * PATCH_178H_R2_PREMIUM_SHOW_FAITH_HUB
  *
- * Premium SHOW FAITH Home hub.
+ * SHOW FAITH Home hub; paid access gates retired.
  * Existing BUKLOD Bible DB / routes only.
  * No autoplay. No native dependency.
  */
@@ -600,8 +600,8 @@ export default function BuklodHomeFaithPanel({
               ? 'Join a Cluster first'
               : dailyReadingLocked
               ? access?.daily_reading.pending_request_id
-                ? 'Payment pending verification'
-                : 'This feature is available through your Cluster Premium.'
+                ? 'Check your Cluster membership'
+                : 'An active Cluster membership is required.'
               : displayedReading
               ? `${displayedReading.chapters_today} ${
                   displayedReading.chapters_today ===
@@ -668,8 +668,8 @@ export default function BuklodHomeFaithPanel({
               ? 'Join a Cluster first'
               : devotionLocked
               ? access?.devotion_word.pending_request_id
-                ? 'Payment pending verification'
-                : 'This feature is available through your Cluster Premium.'
+                ? 'Check your Cluster membership'
+                : 'An active Cluster membership is required.'
               : 'Read • Reflect • Apply'
           }
           icon="book-open-page-variant-outline"
