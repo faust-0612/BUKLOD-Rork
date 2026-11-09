@@ -30,7 +30,8 @@
     "financial-display",
     "rank-state",
     "expo-runtime",
-    "production-release"
+    "production-release",
+    "navigation-scroll"
   ],
   "regressionTests": [
     "tests/music-library-live-scrub-folders-20261109.test.mjs",
@@ -38,7 +39,9 @@
     "tests/buklod-notification-latency-20261109.test.mjs",
     "tests/ptt-quiet-notifications-20261109.test.mjs",
     "tests/community-revenue-member-ui-20261109.test.mjs",
-    "tests/faith-offline-prefetch-20261109.test.mjs"
+    "tests/faith-offline-prefetch-20261109.test.mjs",
+    "tests/ota-navigation-scroll-polish-20261108.test.mjs",
+    "supabase/tests/buklod_music_notification_nov09_contract.sql"
   ],
   "allowedPaths": [
     "docs/release/buklod-music-folders-live-scrub-20261109.md",
@@ -84,6 +87,13 @@
     "tests/qmp-monthly-reset-clarity-20261102.test.mjs",
     ".buklod/scopes/nov09-consolidated-ota-web.json",
     ".github/workflows/unified_rc_compiled_qa_20261108.yml",
-    "tests/faith-offline-prefetch-20261109.test.mjs"
+    "tests/faith-offline-prefetch-20261109.test.mjs",
+    "supabase/tests/buklod_music_notification_nov09_contract.sql"
+  ],
+  "selectionRationale": "Combine only latest nonconflicting, source-compatible 2026-11-09 fixes so one Android OTA and Expo web update can be compiled and promoted from the same protected SHA; retain independent stable native release and financial ledgers.",
+  "alternativeApproaches": [
+    "Publish all unrelated DEV branches directly into production without one compiled RC (rejected: unresolved overlapping notification and offline lesson cache behavior).",
+    "Use the offline-timed alternative plus offline-prefetch files without reconciling different cache key formats (rejected: saved lessons would become inconsistent).",
+    "Create a new Expo native AAB for only JavaScript/UI changes (rejected: unnecessary and potentially incompatible with installed V30 runtime)."
   ]
 }
