@@ -1,0 +1,27 @@
+{
+  "objective": "Suppress repeated normal PTT transmission notices in Notifications and badges while preserving SOS, Priority, ordinary social notifications, in-app PTT duty status, and closed-app PTT push/audio receive.",
+  "baseRef": "922d26d9d67468566d9699918ea82519880ef4b3",
+  "productionBaselineEvidence": "Main source 922d26d9 verified before branch; deployed OTA and physical Android PTT behavior not independently verified. This branch is DEV only, not released; production DB unchanged.",
+  "chosenApproach": "Client-side display/count filtering only for kind ptt_incoming in the native/web Notification Center and foreground handlers. Retain all transport rows and incoming visible/headless pushes for background reliability.",
+  "selectionRationale": "Changing the production floor-claim RPC or removing PTT transport pushes risks breaking background receive. Existing backend uses one notification per transmission to dispatch the headless and visible push signals.",
+  "alternativeApproaches": [
+    "Deleting per-transmission notification rows or push fanout: rejected because closed-app PTT receivers depend on it.",
+    "Mutating production database history to mark old records read: rejected because no user records need changing."
+  ],
+  "allowedPaths": [
+    "src/app/notifications/index.tsx",
+    "src/providers/NotificationProvider.tsx",
+    "src/providers/NotificationProvider.web.tsx",
+    "src/lib/pushNotifications.ts",
+    "tests/ptt-quiet-notifications-20261109.test.mjs",
+    ".buklod/scopes/ptt-quiet-notifications-20261109.json"
+  ],
+  "acceptanceChecks": [
+    "Normal PTT transmission is not added to Notifications UI or native/web unread counters.",
+    "Normal PTT push stays a receive signal but does not create foreground visual/sound/badge spam.",
+    "PTT SOS, Priority, community emergency, ordinary messages remain visible and audible as before.",
+    "Normal PTT remains receivable in the background via existing dual visible/headless pipeline; Android physical-device validation remains a release requirement.",
+    "Existing PTT hold/release, floor authorization, native foreground duty, Stream audio, database notification dispatch, all data and RLS unchanged.",
+    "Static and handler behavior tests pass; production remains unchanged until verified release candidate."
+  ]
+}
