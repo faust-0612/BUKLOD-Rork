@@ -36,7 +36,7 @@ export default function BuklodContributionDestinationPicker({
         .select('scope_id').eq('user_id', userId)
         .eq('membership_status', 'ACTIVE').is('left_at', null).limit(250);
       if (member.error) throw member.error;
-      const ids = Array.from(new Set((member.data ?? []).map(row => row.scope_id).filter(Boolean)));
+      const ids = Array.from(new Set<string>((member.data ?? []).map(row => row.scope_id).filter((id): id is string => typeof id === 'string' && id.length > 0)));
       if (ids.length === 0) {
         if (request === generation.current) setChoices([]);
         return;
