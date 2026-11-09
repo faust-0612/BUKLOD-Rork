@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Expose all personal real-money earnings to users on Public Home, Organization Home and Cluster Home, clearly separating official AdMob noncash estimates, finalized personal cash, paid/reserved cash and exact-scope funded community ledgers. Reuse canonical unified PROFIT_FIRST_V3 withdrawal entry and keep admin nonfunded reward paths disabled.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Production BUKLOD Connect Supabase on 2026-11-09 has get_my_buklod_financial_earnings_breakdown_v1 returning authenticated own finalized user-pool, first-line and one-time referral earned source amounts and PF cash AVAILABLE/RESERVED/PAID. get_my_buklod_financial_summary_v3 uses private PF cash ledger; canonical request_my_buklod_pf_withdrawal_v2 atomically reserves the full PF AVAILABLE balance, including cash from finalized user pool/first-line/referral reward sources, with idempotency, identity/payout profile and approval gates. Existing config economics_enabled=false, settlement_enabled=false, withdrawal_enabled=false, payout_processing_enabled=false, minimum_withdrawal_centavos=20000. Legacy admin_reward_member_bayanihan_v2 deliberately raises money-write-disabled. Org Home: BuklodScopeHomeDashboard; Cluster Home: BuklodClusterHomeCommandCenterImpl; Personal Home: src/app/(tabs)/home.tsx. Official AdMob preliminary source Nov 2026 gross_minor=864, pool_minor=259, QMP total 702, snapshot is not withdrawable. Scope fund ledger distinct from personal PF cash. No release baseline or tested mobile UI implied.",
+  "allowedPaths": [
+    ".buklod/scopes/unified-earnings-scope-home-20261109.json",
+    "supabase/migrations/20261109023000_buklod_scope_revenue_fund_visibility_v1.sql",
+    "supabase/tests/buklod_scope_revenue_fund_visibility_contract_20261109.sql",
+    "src/components/BuklodUnifiedEarningsHomeCard.tsx",
+    "src/app/(tabs)/home.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "tests/buklod-unified-earnings-scope-home-20261109.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Personal cash and estimated revenue read solely from existing auth.uid-scoped RPCs; no cross-account cache or client-controlled recipient selector",
+    "Personal Home, Organization Home, Cluster Home all render same personal earnings card and single canonical payout route",
+    "Private personal finalized cash, reserved, paid, latest earnings, and preliminary AdMob source remain distinct with noncash notices",
+    "Organization/Cluster scope funds return only for active members and never become a member's available PF cash",
+    "Reuse idempotent PF full-balance withdrawal, reject inactive processing flags, do not enable financial payout in production",
+    "No points-to-cash, unsupported admin grants, or external money creation",
+    "Read-only database scope contract plus source regression tests and CI pass before merge; OTA remains unpublished pending verified RC"
+  ],
+  "chosenApproach": "Reuse private PF earnings and current QMP RPCs for per-user estimates/cash, show a single existing PF payout door, add one membership-protected read-only RPC for separate scope fund and mount a reusable Home widget in 3 existing paths. No modifications to withdrawal ledger and config gates.",
+  "selectionRationale": "Existing canonical PF V3 already consolidates funded user pool, first-line and one-time referral rewards, with one withdrawal and payout identity; only cross-Home visibility and properly isolated scope fund read are missing. Replacing payout engine or treating noncash Rewards as cash risks double-credit.",
+  "alternativeApproaches": [
+    "Move all points, AdMob estimates, scope treasury and referrals into one withdrawable balance: rejected as unfunded, inaccurate and financially unsafe.",
+    "Build parallel referral and revenue payout engines: rejected because canonical PF V3 already provides one idempotent available-cash withdrawal.",
+    "Reuse canonical funded cash wallet and add read-only personal/scope views across homes: chosen."
+  ],
+  "preserveBehaviors": [
+    "Current 30% preliminary AdMob QMP estimate remains noncash and subject to freshness",
+    "Existing PF funding, user-pool and referral ledger mechanics and idempotent full-balance reservation unchanged",
+    "No payouts enabled; production financial controls remain OFF",
+    "Scope funds remain owned by scope governance, never by individual organization/cluster members",
+    "No global role bypass, no data read from other users, no secret in client",
+    "No OTA/Web app production publish; DEV only until explicit verified RC"
+  ],
+  "riskAreas": [
+    "private-earnings-scope-visibility",
+    "cash-fund-isolation",
+    "withdrawal-gate-clarity"
+  ],
+  "regressionTests": [
+    "tests/buklod-unified-earnings-scope-home-20261109.test.mjs",
+    "supabase/tests/buklod_scope_revenue_fund_visibility_contract_20261109.sql"
+  ]
+}
