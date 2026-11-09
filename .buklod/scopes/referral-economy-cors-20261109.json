@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix BUKLOD referral identity CORS preflight to restore Share BUKLOD and authenticated Economy summary.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: 2026-11-09 06:30–07:00 UTC production Edge Function buklod-referral-v2 version 14 logged 19 OPTIONS and only 1 POST; live client configured x-buklod-client header absent from old CORS allow-list. Existing authenticated Economy/referral SQL functions present. Production backend hotfix v15 ACTIVE, its source equals this PR source; live end-user retry not yet verified.",
+  "chosenApproach": "Preserve exact deployed function authentication, attribution and financial boundaries; make only CORS allow-header/method changes, version control source and protect it with Node and read-only SQL contract tests.",
+  "selectionRationale": "No schema or finance computation change is needed; same header compatibility pattern is already used by BUKLOD recovery functions.",
+  "alternativeApproaches": [
+    "Move identity bootstrap into the client or bypass auth (rejected as unsafe)",
+    "Rebuild financial RPC/ledger (rejected as out of scope)",
+    "Correct CORS allow-list on canonical Edge Function (chosen)"
+  ],
+  "acceptanceChecks": [
+    "Preflight explicitly allows x-buklod-client and supported Supabase request headers",
+    "OPTIONS and POST supported without relaxing existing bearer-token user validation",
+    "Canonical referral and Economy readers remain executable for authenticated users",
+    "No changes to attribution, payout, settled money, point rewards or production web/OTA binary",
+    "Focused Node contract and read-only SQL contract pass; use mandatory PR gate"
+  ],
+  "preserveBehaviors": [
+    "Enforced user bearer token via admin.auth.getUser",
+    "Existing HMAC identity signals and referral attachment logic unchanged",
+    "Revenue and payout database data untouched",
+    "No new native dependencies, client release or OTA publication"
+  ],
+  "riskAreas": [
+    "referral-identity",
+    "economy-report-access",
+    "web-preflight",
+    "production-source-reconciliation"
+  ],
+  "regressionTests": [
+    "tests/referral-v2-cors-identity-20261109.test.mjs",
+    "supabase/tests/referral_identity_economy_cors_contract_20261109.sql"
+  ],
+  "allowedPaths": [
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/referral-economy-cors-20261109.json",
+    "supabase/functions/buklod-referral-v2/index.ts",
+    "tests/referral-v2-cors-identity-20261109.test.mjs",
+    "supabase/tests/referral_identity_economy_cors_contract_20261109.sql"
+  ]
+}
