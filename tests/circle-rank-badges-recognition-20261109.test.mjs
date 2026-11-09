@@ -41,6 +41,8 @@ test('Rank entry points preserve character autonomy and navigate to the canonica
   assert.match(recognition, /buklod:character-level:last-seen:v1:/);
   assert.match(recognition, /baseline/);
   assert.match(recognition, /level > previous/);
-  assert.match(profile, /<BuklodCharacterLevelRecognition userId=\{userId\} selection=\{selection\}/);
+  assert.match(profile, /<BuklodCharacterLevelRecognition userId=\{userId\} selection=\{confirmedSelection\}/);
+  assert.match(profile, /setConfirmedSelection\(next\)/);
+  assert.match(profile, /getMyBuklodCharacterSelectionV2\(userId, true\)/);
   assert.match(profile, /<BuklodCircleRankBadge rankName=\{rankLabel\}/);
 });

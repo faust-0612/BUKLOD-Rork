@@ -170,6 +170,8 @@ export default function BuklodProfileCharacterCard({
   const [selection, setSelection] = useState<BuklodCharacterSelectionV2State | null>(() =>
     getCachedBuklodCharacterSelectionV2(userId),
   );
+  // Cache can paint the Character immediately, but cannot prove a new level-up.
+  const [confirmedSelection, setConfirmedSelection] = useState<BuklodCharacterSelectionV2State | null>(null);
   const [, setSelectionTick] = useState(0);
 
   useEffect(() => {
@@ -193,18 +195,26 @@ export default function BuklodProfileCharacterCard({
   useEffect(() => {
     if (!userId) {
       setSelection(null);
+      setConfirmedSelection(null);
       return;
     }
+    setConfirmedSelection(null);
     let mounted = true;
+    let verified = false;
     void getMyBuklodCharacterSelectionV2(userId, true).then(
       (next) => {
-        if (mounted) setSelection(next);
+        if (mounted) {
+          verified = true;
+          setSelection(next);
+          setConfirmedSelection(next);
+        }
       },
       () => undefined,
     );
     const unsubscribeSelection = subscribeBuklodCharacterSelectionV2((changedUserId, next) => {
       if (mounted && changedUserId === userId) {
         setSelection(next);
+        if (verified) setConfirmedSelection(next);
         setSelectionTick((value) => value + 1);
       }
     });
@@ -542,7 +552,7 @@ export default function BuklodProfileCharacterCard({
 
   return (
     <>
-      <BuklodCharacterLevelRecognition userId={userId} selection={selection} />
+      <BuklodCharacterLevelRecognition userId={userId} selection={confirmedSelection} />
       <ProfileMotionFadeUp delay={55}>
         <View style={styles.wrap}>
           <View style={styles.card}>
