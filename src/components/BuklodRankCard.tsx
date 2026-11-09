@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef } from 'react';
+import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
 import {
   Animated,
   Easing,
@@ -115,13 +116,7 @@ export default function BuklodRankCard({
             },
           ]}
         >
-          <View style={styles.emblemMiddle}>
-            <View style={styles.emblemInner}>
-              <Text style={styles.emblemSymbol}>
-                ◉
-              </Text>
-            </View>
-          </View>
+          <BuklodCircleRankBadge rankName={rankName} size={70} />
         </Animated.View>
 
         <View style={styles.rankInfo}>
@@ -248,11 +243,9 @@ const styles = StyleSheet.create({
 
   emblemOuter: {
     width: 76,
-    height: 76,
-    borderRadius: 38,
+    height: 82,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#D8E6DD',
   },
 
   emblemMiddle: {
