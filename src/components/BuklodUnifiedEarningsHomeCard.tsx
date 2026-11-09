@@ -7,9 +7,6 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   formatMinorPhp,
-  formatCommunityPoolPercent,
-  formatCommunitySharePercent,
-  getCommunityRevenueBreakdown,
   loadMyCommunityContribution,
   type CommunityContributionDashboard,
 } from '@/lib/buklodCommunityContributionEconomy';
@@ -123,7 +120,6 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
   }, [load, retries]);
 
   if (!userId) return null;
-  const breakdown = contribution ? getCommunityRevenueBreakdown(contribution) : null;
   const estimate = contribution?.estimated_share_minor == null
     ? 'Source not available'
     : contribution.estimate_below_cent ? 'Below ₱0.01' : formatMinorPhp(contribution.estimated_share_minor);
@@ -171,12 +167,6 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
       <View style={styles.estimateBox}>
         <Text style={styles.category}>PRELIMINARY COMMUNITY REVENUE SHARE</Text>
         <Text style={styles.estimateValue}>{activeProvisional ? estimate : 'No fresh estimate'}</Text>
-        {breakdown ? (
-          <>
-            <Text style={styles.note}>AdMob (100%): {formatMinorPhp(breakdown.grossMinor)} · Community pool ({formatCommunityPoolPercent(breakdown.poolBps)}): {formatMinorPhp(breakdown.poolMinor)}</Text>
-            <Text style={styles.note}>Your QMP weight: {formatCommunitySharePercent(breakdown.memberPoolFraction)} of Community pool</Text>
-          </>
-        ) : null}
         <Text style={styles.warning}>Estimate only. Not finalized, funded, or withdrawable.</Text>
       </View>
 
@@ -205,10 +195,10 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
           <Text style={styles.primaryText}>PAYOUT / WITHDRAWAL</Text>
         </Pressable>
         <Pressable accessibilityRole="button"
-          accessibilityLabel="Open detailed revenue sharing"
+          accessibilityLabel="Open my personal contribution report"
           onPress={() => router.push('/community-contribution' as any)}
           style={styles.secondary}>
-          <Text style={styles.secondaryText}>SHARING DETAILS</Text>
+          <Text style={styles.secondaryText}>MY CONTRIBUTION DETAILS</Text>
         </Pressable>
       </View>
       <Text style={styles.disclaimer}>One payout request reserves only available finalized cash. System Admin reward transfers require separate verified funding; no manual claim converts points into cash.</Text>

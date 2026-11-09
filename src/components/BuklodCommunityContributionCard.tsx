@@ -5,9 +5,6 @@ import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   formatMinorPhp,
-  getCommunityRevenueBreakdown,
-  formatCommunitySharePercent,
-  formatCommunityPoolPercent,
   loadMyCommunityContribution,
   loadMyCommunityQmpHistory,
   recordCommunityEconomyAnalytics,
@@ -110,7 +107,6 @@ export default function BuklodCommunityContributionCard() {
     ? 'No safe estimate yet'
     : data.estimate_below_cent ? 'Below ₱0.01' : formatMinorPhp(data.estimated_share_minor);
   const breakdown = data.engagement_breakdown;
-  const revenue = getCommunityRevenueBreakdown(data);
   const trendPctPoints = Number(data.share_weight_delta || 0) * 100;
   const trendLabel =
     Math.abs(trendPctPoints) < 0.0001
@@ -165,19 +161,11 @@ export default function BuklodCommunityContributionCard() {
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="View full AdMob revenue sharing breakdown"
+        accessibilityLabel="View my personal community contribution details"
         onPress={() => router.push('/community-contribution' as any)}
         style={s.estimate}>
         <Text style={s.estimateLabel}>YOUR ESTIMATED REVENUE SHARE</Text>
         <Text style={s.estimateValue}>{estimate}</Text>
-        {revenue ? (
-          <View style={s.revenueSplit}>
-            <Text style={s.revenueLine}>AdMob estimate (100%): {formatMinorPhp(revenue.grossMinor)}</Text>
-            <Text style={s.revenueLine}>Community pool ({formatCommunityPoolPercent(revenue.poolBps)}): {formatMinorPhp(revenue.poolMinor)}</Text>
-            <Text style={s.revenueLine}>Your QMP share of pool: {formatCommunitySharePercent(revenue.memberPoolFraction)}</Text>
-            <Text style={s.revenueFootnote}>Of full AdMob revenue: {formatCommunitySharePercent(revenue.memberGrossFraction)} · estimate only</Text>
-          </View>
-        ) : null}
         <Text style={s.estimateGuard}>
           {data.estimate_status === 'PROVISIONAL_ADMOB'
             ? 'ADMOB PRELIMINARY · CHANGES WITH COMMUNITY QMP · NOT WITHDRAWABLE'
@@ -186,7 +174,7 @@ export default function BuklodCommunityContributionCard() {
         {data.estimate_updated_at ? (
           <Text style={s.estimateGuard}>Report updated {new Date(data.estimate_updated_at).toLocaleString()}</Text>
         ) : null}
-        {revenue ? <Text style={s.detailLink}>SEE FULL 100% / COMMUNITY / PERSONAL BREAKDOWN</Text> : null}
+        <Text style={s.detailLink}>SEE MY PERSONAL CONTRIBUTION DETAILS</Text>
       </Pressable>
 
       <Pressable

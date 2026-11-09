@@ -6,7 +6,7 @@ import { ActivityIndicator, Alert, AppState, Pressable, RefreshControl, ScrollVi
 import { useAuth } from '@/providers/AuthProvider';
 
 import {
-  formatMinorPhp, formatQuotaBytes, formatCommunityPoolPercent, formatCommunitySharePercent, getCommunityRevenueBreakdown, loadMyCommunityContribution, loadMyCommunityQmpHistory, requestCommunityContributionReview,
+  formatMinorPhp, formatQuotaBytes, loadMyCommunityContribution, loadMyCommunityQmpHistory, requestCommunityContributionReview,
   type CommunityContributionDashboard,
 } from '@/lib/buklodCommunityContributionEconomy';
 import type { CommunityQmpHistory } from '@/lib/buklodQmpHistory';
@@ -52,7 +52,6 @@ export default function CommunityContributionScreen() {
   if(busy&&!data)return <View style={s.center}><ActivityIndicator color="#1E6B45"/><Text style={s.muted}>Loading your private contribution report…</Text></View>;
   if(!data)return null;
   const q=data.video_quota; const weight=Math.max(0,Number(data.share_weight||0))*100; const guide=String(params.guide||'')==='1';
-  const revenue = getCommunityRevenueBreakdown(data);
   return <ScrollView style={s.screen} contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh}/>}>
     <Pressable onPress={()=>router.back()} style={s.back}><MaterialCommunityIcons name="arrow-left" size={19} color="#1E6B45"/><Text style={s.backText}>BACK TO COMMUNITY</Text></Pressable>
     <View style={s.hero}><Text style={s.eyebrow}>PRIVATE · YOUR COMMUNITY CONTRIBUTION</Text><Text style={s.title}>Create value. Build community.</Text><Text style={s.heroBody}>Qualified Monthly Points (QMP) are monthly contribution weight — not pesos. Final share depends on the finalized designated User Revenue Pool and your proportion of total qualified QMP.</Text></View>
@@ -83,28 +82,12 @@ export default function CommunityContributionScreen() {
       <Row label="Share-weight trend" value={`${Number(data.share_weight_delta||0)>=0?'+':''}${(Number(data.share_weight_delta||0)*100).toFixed(Math.abs(Number(data.share_weight_delta||0)*100)<.01?4:2)} pp`}/>
       <Text style={s.note}>Only qualified, unique, legitimate engagement counts. Self-engagement, duplicate/loop activity, bots, spam, and ad interactions do not raise your share weight.</Text>
     </Card>
-    <Card title="ESTIMATED ADMOB REVENUE · 100% BREAKDOWN">
-      {revenue ? <>
-        <Text style={s.note}>{revenue.isOfficial ? 'Official AdMob Network Report' : 'Admin-submitted preliminary AdMob report'} · {data.period.key} · PHP amounts rounded to cents for the preview.</Text>
-        <Row label="Total app estimated revenue · 100%" value={formatMinorPhp(revenue.grossMinor)}/>
-        <Row label={`Community Contribution pool · ${formatCommunityPoolPercent(revenue.poolBps)}`} value={formatMinorPhp(revenue.poolMinor)}/>
-        <Row label={`Outside the community pool · ${formatCommunityPoolPercent(revenue.remainderBps)} + rounding`} value={formatMinorPhp(revenue.remainderMinor)}/>
-        <Text style={s.note}>The non-pool amount is not the app's net profit; operating costs, tax, and actual payouts are separate.</Text>
-        <View style={s.breakdownSeparator}/>
-        <Row label="Your qualified QMP" value={Number(data.this_month_qmp).toLocaleString()}/>
-        <Row label="All qualified QMP" value={Number(data.total_qualified_qmp).toLocaleString()}/>
-        <Row label={`Your share of the ${formatCommunityPoolPercent(revenue.poolBps)} pool`} value={formatCommunitySharePercent(revenue.memberPoolFraction)}/>
-        <Row label="Your effective share of total revenue" value={formatCommunitySharePercent(revenue.memberGrossFraction)}/>
-        <Row label="Your estimated peso share" value={data.estimated_share_minor===null?'Not available':data.estimate_below_cent?'Below ₱0.01':formatMinorPhp(data.estimated_share_minor)}/>
-        <Text style={s.note}>Calculation: your QMP ÷ all qualified QMP × Community pool. Individual estimates round down to a cent and may change when the report or QMP changes.</Text>
-      </> : <Text style={s.note}>Source-backed breakdown is unavailable for this period. No gross or pool amounts are inferred from old, missing, or stale reports.</Text>}
-    </Card>
     <Card title="USER REVENUE SHARE">
       <Row label="Estimated share" value={data.estimated_share_minor===null?'Not available':data.estimate_below_cent?'Below ₱0.01':formatMinorPhp(data.estimated_share_minor)}/>
       <Text style={s.warn}>{data.estimate_label}</Text>
       {data.estimate_updated_at?<Row label="Estimate source updated" value={new Date(data.estimate_updated_at).toLocaleString()}/>:null}
       <Row label="Finalized share" value={data.finalized_share?`${formatMinorPhp(data.finalized_share.amount_minor)} · ${data.finalized_share.status}`:'Not finalized'}/>
-      <Text style={s.note}>Preliminary earnings are not finalized, funded, or withdrawable. Referral rewards and Community Fund remain separate programs.</Text>
+      <Text style={s.note}>Preliminary earnings are not finalized, funded, or withdrawable. Referral rewards and Community Fund remain separate programs.</Text><Pressable accessibilityRole="button" onPress={() => router.push('/bayanihan' as any)} style={s.reviewButton}><Text style={s.reviewButtonText}>CHOOSE MY ORGANIZATION OR CLUSTER DESTINATION</Text></Pressable>
     </Card>
     <View style={[s.card,guide&&s.guide]}><Text style={s.cardTitle}>HOW CAN I INCREASE MY SHARE?</Text>{['Create useful original Community posts.','Upload legitimate original Wall videos within your quota.','Give meaningful replies that help other people.','Join useful discussions across multiple days.','Improve content quality instead of repeating low-value activity.'].map(x=><View key={x} style={s.bulletRow}><MaterialCommunityIcons name="check-circle-outline" size={16} color="#1E6B45"/><Text style={s.bullet}>{x}</Text></View>)}<Text style={s.warn}>Never watch/click ads, refresh, loop videos, spam comments, create fake accounts, or manipulate engagement to earn QMP. Those actions do not create cash entitlement.</Text></View>
     <Card title="MONTHLY VIDEO ALLOWANCE"><Row label="Used" value={formatQuotaBytes(q.used_bytes)}/><Row label="Remaining" value={formatQuotaBytes(q.remaining_bytes)}/><Row label="Allowance" value={formatQuotaBytes(q.allowance_bytes)}/><Row label="Reset" value={new Date(q.reset_at).toLocaleDateString()}/><Text style={s.note}>Per video: maximum 1 GB and 30 minutes.</Text></Card>

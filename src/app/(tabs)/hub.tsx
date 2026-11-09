@@ -33,7 +33,8 @@ class ToolBoundary extends React.Component<{ children: React.ReactNode; onClose:
   }
 }
 
-export default function BuklodLightHome() {
+/** BUKLOD Hub: canonical PUBLIC app Home (not scope Home or Bahay). */
+export default function BuklodHubScreen() {
   const { theme } = useBuklodTheme();
   const [focused, setFocused] = useState(false);
   const [updatesOpen, setUpdatesOpen] = useState(false);
@@ -61,6 +62,7 @@ export default function BuklodLightHome() {
       { label: 'Join Cluster', icon: 'account-group-outline', path: '/clusters', action: () => openRoute('/clusters') },
       { label: 'Connect', icon: 'message-outline', path: '/messages', action: () => openRoute('/messages') },
       { label: 'Contribute', icon: 'heart-outline', path: '/community-contribution', action: () => openRoute('/community-contribution') },
+      { label: 'My Earnings', icon: 'wallet-outline', path: '/bayanihan', action: () => openRoute('/bayanihan') },
       { label: 'Daily Reading', icon: 'book-open-variant', path: '/bible/read', action: () => router.push('/bible/read?source=daily_plan' as any) },
     ] as const;
     return (
@@ -172,7 +174,7 @@ export default function BuklodLightHome() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, gap: 8 }}>
-      <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
+      <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Hub</Text>
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
           Old /home redirects here; do not bury QMP in the retired screen. */}
@@ -188,6 +190,12 @@ export default function BuklodLightHome() {
           </Suspense>
         </ToolBoundary>
       ) : null}
+      <Pressable accessibilityRole="button" accessibilityLabel="Open my earnings, payout and community contribution destination" onPress={() => router.push('/bayanihan' as any)}
+        style={{ borderRadius: 10, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.accentSoft, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+        <MaterialCommunityIcons name="wallet-outline" size={21} color={theme.accent} />
+        <Text style={{ fontWeight: '800', flex: 1, color: theme.textPrimary }}>My Earnings & Contribution Destination</Text>
+        <MaterialCommunityIcons name="chevron-right" size={20} color={theme.accent} />
+      </Pressable>
       <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
       {foreground ? (
         <ToolBoundary onClose={() => {}}>

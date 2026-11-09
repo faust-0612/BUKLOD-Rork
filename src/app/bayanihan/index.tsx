@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodContributionDestinationPicker from '@/components/BuklodContributionDestinationPicker';
 import { shared } from '@/components/UI';
 import {
   loadMyBuklodFinancialSummaryV3,
@@ -511,6 +512,13 @@ export default function BayanihanScreen() {
               </View>
             )}
             <Text style={styles.explainer}>{t('economy.communityNotPersonal')}</Text>
+            {userId ? <BuklodContributionDestinationPicker
+              userId={userId}
+              selectedScopeId={community.selected ? community.scope_id ?? null : null}
+              lockedUntil={community.locked_until ?? null}
+              eligibleToSelect={earnings.user_pool_eligibility_active === true}
+              onChanged={() => { lastSyncedRef.current = 0; void load(true); }}
+            /> : null}
           </Section>
 
           <View style={styles.safetyCard}>
