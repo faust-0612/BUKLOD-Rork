@@ -528,6 +528,20 @@ export default function AdminEconomyOperationsScreen() {
             </View>
 
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Funded System Admin Rewards</Text>
+              <Text style={styles.muted}>
+                Only real, separately funded and attested external receipts can support
+                admin-to-user cash rewards. No Points or preliminary AdMob estimates
+                are convertible here. Canonical payouts and withdrawals stay gated.
+              </Text>
+              <ActionButton
+                title="OPEN FUNDED REWARDS"
+                icon="cash-plus"
+                onPress={() => router.push('/admin/funded-rewards' as any)}
+              />
+            </View>
+
+            <View style={styles.section}>
               <Text style={styles.sectionTitle}>
                 Record canonical financial entry
               </Text>
