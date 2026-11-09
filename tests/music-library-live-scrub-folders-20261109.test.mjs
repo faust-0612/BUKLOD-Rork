@@ -1,0 +1,41 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const picker=read('src/components/BuklodPostMusicPicker.tsx');
+const timeline=read('src/components/BuklodMusicClipTimeline.tsx');
+const wall=read('src/app/(tabs)/buklod.tsx');
+const admin=read('src/app/admin/music-library.tsx');
+const service=read('src/lib/buklodMusicAdmin.ts');
+const music=read('src/lib/buklodPostCreatives.ts');
+const migration=read('supabase/migrations/20261109074543_buklod_music_categories_v1_20261109.sql');
+test('scrubbing seeks current song instead of restarting it for each pointer movement',()=>{
+ assert.match(timeline,/onPanResponderRelease/);
+ assert.match(timeline,/lastSeekAt\.current>=120/);
+ assert.match(picker,/onScrub=\{start=>/);
+ assert.match(wall,/const scrubWallMusic=/);
+ assert.match(wall,/wallComposerSeekBusyRef/);
+ assert.match(wall,/await player\.seekTo\(at\)/);
+ assert.match(wall,/onScrub=\{\(track,start\)=>scrubWallMusic/);
+ assert.match(wall,/wallClipWindowRef\.current/);
+ assert.doesNotMatch(wall,/onClipChange=\{\(start,duration\)=>\{[^}]*pauseWallAudio\(\)/s);
+});
+test('category browsing paginates instead of truncating at 120 entries',()=>{
+ assert.match(music,/\.range\(from,from\+limit-1\)/);
+ assert.match(music,/\.eq\('category',folder\)/);
+ assert.match(picker,/BUKLOD_MUSIC_CATEGORIES\.map/);
+ assert.match(picker,/onEndReached/);
+ assert.match(admin,/Load more music/);
+ assert.match(service,/\.range\(offset,offset\+size-1\)/);
+ assert.match(service,/await assertSystemAdmin\(\)/);
+});
+test('additive category migration and role-guarded batch uploads preserve existing music',()=>{
+ assert.match(migration,/add column if not exists category text not null default 'others'/);
+ assert.doesNotMatch(migration,/truncate|delete from|drop table/i);
+ assert.match(service,/updateBuklodAdminMusicCategory/);
+ assert.match(service,/upsert:false/);
+ assert.match(service,/BUKLOD_MUSIC_ADMIN_LIMIT_BYTES=25\*1024\*1024/);
+ assert.match(admin,/MAX_MUSIC_FILES_PER_BATCH=20/);
+ assert.match(admin,/category:item\.category/);
+ assert.match(admin,/pendingDeleteId===track\.id/);
+});

@@ -921,6 +921,10 @@ function LegacyPublicBuklodScreen(){
  const wallAudioBusyRef=useRef(false);
  const wallAudioRequestEpochRef=useRef(0);
  const wallAudioPendingOwnerRef=useRef('');
+ const wallLoadedTrackIdRef=useRef('');
+ const wallComposerScrubRef=useRef<{trackId:string;start:number}|null>(null);
+ const wallComposerSeekBusyRef=useRef(false);
+ const wallComposerAppliedRef=useRef(-1);
  const pauseWallAudio=()=>{
    wallClipWindowRef.current=null;
    wallClipLoopingRef.current=false;
@@ -937,7 +941,7 @@ function LegacyPublicBuklodScreen(){
        setWallAudioPlaying(value=>value===!!status.playing?value:!!status.playing);
        const clip=wallClipWindowRef.current;
        if(clip&&(status.currentTime>=clip.end-0.08||status.didJustFinish)
-         &&!wallClipLoopingRef.current){
+         &&!wallClipLoopingRef.current&&!wallComposerSeekBusyRef.current){
          // Loop only the authored 30-second segment, including at the end of a short track.
          wallClipLoopingRef.current=true;
          void player.seekTo(clip.start).then(()=>{
@@ -984,9 +988,9 @@ function LegacyPublicBuklodScreen(){
      try{player.release();}catch{/* player already disposed */}
    }
  },[]);
- const toggleWallMusic=async(track:BuklodPostMusicTrack,ownerKey:string,clipStart=0,clipDuration?:number)=>{
+ const toggleWallMusic=async(track:BuklodPostMusicTrack,ownerKey:string,clipStart=0,clipDuration?:number,intent:'toggle'|'scrub'='toggle')=>{
    if(wallAudioBusyRef.current)return;
-   if(wallAudioOwner===ownerKey&&wallAudioPlaying){
+   if(wallAudioOwner===ownerKey&&wallAudioPlaying&&wallLoadedTrackIdRef.current===track.id&&intent==='toggle'){
      wallAudioRequestEpochRef.current++;
      wallAudioPendingOwnerRef.current='';
      pauseWallAudio();
@@ -1002,7 +1006,7 @@ function LegacyPublicBuklodScreen(){
      await setIsAudioActiveAsync(true);
      await setAudioModeAsync({playsInSilentMode:true,shouldRouteThroughEarpiece:false});
      const player=ensureWallAudioPlayer();
-     if(wallLoadedTrackId!==track.id||!player.isLoaded){
+     if(wallLoadedTrackIdRef.current!==track.id||!player.isLoaded){
        pauseWallAudio();
        const url=await resolveBuklodPostMusicUrl(track);
        if(wallAudioRequestEpochRef.current!==requestEpoch)return;
@@ -1012,18 +1016,29 @@ function LegacyPublicBuklodScreen(){
          await new Promise<void>(done=>setTimeout(done,100));
        }
        if(!player.isLoaded)throw new Error('Music could not load. Please retry.');
-       setWallLoadedTrackId(track.id);
+       wallLoadedTrackIdRef.current=track.id;
+     setWallLoadedTrackId(track.id);
      }
      if(wallAudioRequestEpochRef.current!==requestEpoch||
        wallAudioPendingOwnerRef.current!==ownerKey)return;
-     const start=Math.max(0,Math.min(21600,Number(clipStart)||0));
+     const queued=ownerKey==='composer'&&wallComposerScrubRef.current?.trackId===track.id
+       ? wallComposerScrubRef.current.start:clipStart;
+     const start=Math.max(0,Math.min(21600,Number(queued)||0));
      const duration=30; // Fixed segment length for every Wall post.
      if(player.duration>0 && start>=player.duration)
        throw new Error('Song segment starts after the track ends.');
      await player.seekTo(start);
+     let actualStart=start;
+     const updated=wallComposerScrubRef.current;
+     if(ownerKey==='composer'&&updated?.trackId===track.id&&updated.start!==actualStart
+       &&(player.duration<=0||updated.start<player.duration)){
+       await player.seekTo(updated.start);
+       actualStart=updated.start;
+     }
+     if(ownerKey==='composer')wallComposerAppliedRef.current=actualStart;
      if(wallAudioRequestEpochRef.current!==requestEpoch||
        wallAudioPendingOwnerRef.current!==ownerKey)return;
-     wallClipWindowRef.current={start,end:Math.min(player.duration>0?player.duration:start+duration,start+duration)};
+     wallClipWindowRef.current={start:actualStart,end:Math.min(player.duration>0?player.duration:actualStart+duration,actualStart+duration)};
      wallClipLoopingRef.current=false;
      player.loop=false;
      requestBuklodAudioFocus('wall-post');
@@ -1040,7 +1055,41 @@ function LegacyPublicBuklodScreen(){
        wallAudioPendingOwnerRef.current='';
      }
      wallAudioBusyRef.current=false;
+     const pending=wallComposerScrubRef.current;
+     if(ownerKey==='composer'&&pending?.trackId===track.id
+       &&wallAudioOwnerRef.current==='composer'&&pending.start!==wallComposerAppliedRef.current){
+       void Promise.resolve().then(()=>scrubWallMusic(track,pending.start));
+     }
      setWallAudioSettledTick(t=>t+1);
+   }
+ };
+ const scrubWallMusic=(track:BuklodPostMusicTrack,rawStart:number)=>{
+   const start=Math.max(0,Math.min(21600,Math.round(rawStart)||0));
+   wallComposerScrubRef.current={trackId:track.id,start};
+   if(wallAudioBusyRef.current)return; // loading uses latest dragged position
+   const player=wallAudioPlayerRef.current;
+   if(wallAudioOwnerRef.current==='composer'&&wallLoadedTrackIdRef.current===track.id
+     &&player?.isLoaded){
+     if(wallComposerSeekBusyRef.current)return; // coalesce bridge seeks
+     wallComposerSeekBusyRef.current=true;
+     void (async()=>{
+       let lastApplied=-1;
+       while(wallAudioOwnerRef.current==='composer'){
+         const next=wallComposerScrubRef.current;
+         if(!next||next.trackId!==track.id||next.start===lastApplied)break;
+         const at=next.start;
+         if(player.duration>0&&at>=player.duration)break;
+         lastApplied=at;
+         wallClipWindowRef.current={start:at,end:Math.min(
+           player.duration>0?player.duration:at+30,at+30)};
+         wallClipLoopingRef.current=false;
+         await player.seekTo(at);
+         wallComposerAppliedRef.current=at;
+       }
+     })().catch(error=>setWallAudioError(String(error?.message??'Preview seek failed.')))
+       .finally(()=>{wallComposerSeekBusyRef.current=false;});
+   }else{
+     void toggleWallMusic(track,'composer',start,30,'scrub');
    }
  };
  const notificationParams = useLocalSearchParams<{
@@ -5259,24 +5308,22 @@ const communityFeedRows =
      </Pressable>
 </View>
     <BuklodPostMusicPicker visible={composerMusicPickerOpen}
+      selectedTrack={composerMusicTrack}
       clipStartSeconds={composerClipStartSeconds}
       clipDurationSeconds={composerClipDurationSeconds}
       onClipChange={(start,duration)=>{
          setComposerClipStartSeconds(start);setComposerClipDurationSeconds(30);
-         if(wallAudioOwnerRef.current==='composer'&&wallAudioPlaying){
-           wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
-           pauseWallAudio();wallAudioOwnerRef.current='';setWallAudioOwner('');
-         }
        }}
       selectedId={composerMusicTrack?.id}
       previewId={wallAudioOwner==='composer'?wallLoadedTrackId:null}
       previewPlaying={wallAudioOwner==='composer'&&wallAudioPlaying}
       previewDurationSeconds={wallAudioOwner==='composer'?Number(wallAudioPlayerRef.current?.duration??0):0}
-      onSelect={(track,start,duration)=>{wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
+      onSelect={(track,start,duration)=>{wallComposerScrubRef.current=null;wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
         pauseWallAudio();setWallAudioOwner('');setComposerMusicTrack(track);
         setComposerClipStartSeconds(start);setComposerClipDurationSeconds(duration);}}
-      onPreview={(track,start,duration)=>{void toggleWallMusic(track,'composer',start,duration);}}
-      onClose={()=>{if(wallAudioOwner==='composer'||wallAudioPendingOwnerRef.current==='composer'){
+      onPreview={(track,start,duration)=>{wallComposerScrubRef.current=null;void toggleWallMusic(track,'composer',start,duration);}}
+      onScrub={(track,start)=>scrubWallMusic(track,start)}
+      onClose={()=>{wallComposerScrubRef.current=null;if(wallAudioOwner==='composer'||wallAudioPendingOwnerRef.current==='composer'){
         wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
         pauseWallAudio();setWallAudioOwner('');
       }setComposerMusicPickerOpen(false);}}
