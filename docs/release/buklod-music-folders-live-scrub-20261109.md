@@ -30,3 +30,10 @@ Base main: `97d037834bcba86e27cc50e067cbefb31cd14125`
 - Consolidated candidate PR: #605; includes independent rank badges, private notifications/PTT, personal earnings UI, and one coherent offline faith prefetch implementation.
 - Earlier PR #604 caught a real JSX parser failure at admin Music Library and missing engineering coverage; these were fixed in the candidate before rerunning QA.
 - Do not claim production release from PR status alone. Require new exact-head compiled checks, approved source merge, successful Android publication evidence and Expo Hosting deploy evidence.
+
+## Production notification migration reconciliation (2026-11-09)
+- Applied version: `20261109102454`, migration name `buklod_notification_latency_v1_20261109`.
+- The source SQL file is named with that exact applied version to prevent duplicate future migration runs.
+- Read-back: cron job `buklod-living-greetings-dispatch-v1`, `jobid=43`, active schedule `* * * * *`, calls `private.buklod_living_dispatch_batch_v1(6,100)`.
+- The private batch function denies EXECUTE to both `authenticated` and `anon`; active tracks remain 41/41. Existing social/earnings/Points ledgers unchanged.
+- This database change is live; the corresponding Android/web RC remains publish-gated.

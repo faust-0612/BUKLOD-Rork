@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const migration = readFileSync('supabase/migrations/20261109150000_buklod_notification_latency_v1.sql','utf8');
+const migration = readFileSync('supabase/migrations/20261109102454_buklod_notification_latency_v1_20261109.sql','utf8');
 const notifications = readFileSync('src/app/notifications/index.tsx','utf8');
 
 test('New welcome key is unique per member and scope, not membership row', () => {

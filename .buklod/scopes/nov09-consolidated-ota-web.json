@@ -75,7 +75,7 @@
     "src/providers/NotificationProvider.tsx",
     "src/providers/NotificationProvider.web.tsx",
     "supabase/migrations/20261109074543_buklod_music_categories_v1_20261109.sql",
-    "supabase/migrations/20261109150000_buklod_notification_latency_v1.sql",
+    "supabase/migrations/20261109102454_buklod_notification_latency_v1_20261109.sql",
     "tests/buklod-earnings-final-source-clarity-20261109.test.mjs",
     "tests/buklod-notification-latency-20261109.test.mjs",
     "tests/circle-rank-badges-recognition-20261109.test.mjs",
