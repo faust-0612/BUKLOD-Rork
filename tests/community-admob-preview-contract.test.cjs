@@ -71,7 +71,7 @@ test('official estimated revenue shares reconcile from private server source wit
   assert.match(helper, /data.estimate_status !== 'PROVISIONAL_ADMOB'/);
   assert.match(helper, /Math.floor\(gross \* bps \/ 10000\) !== pool/);
   assert.match(helper, /gross - pool !== remainder/);
-  assert.doesNotMatch(card, /AdMob estimate \\(100%\\)|Community pool \\(/);
+  assert.doesNotMatch(card, /AdMob estimate \(100%\)|Community pool \(/);
   assert.doesNotMatch(detail, /Total app estimated revenue|ESTIMATED ADMOB REVENUE/);
   assert.match(card, /YOUR ESTIMATED REVENUE SHARE/);
   assert.match(detail, /USER REVENUE SHARE/);
