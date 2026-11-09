@@ -19,6 +19,9 @@ import {
   STAGE_PHASES,
 } from '@/lib/formationCopy';
 import { loadFormationTrackLessonAccessBatch } from '@/lib/buklodFormationProgress';
+import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { colors } from '@/lib/theme';
 import type {
   FormationCatalogLesson,
@@ -257,6 +260,8 @@ export default function FormationAdvancedStageCatalog({
   stageLocked = false,
   loading = false,
 }: Props) {
+  const { user } = useAuth();
+  const { online } = useNetwork();
   const [lessonAccessByTrackLessonId, setLessonAccessByTrackLessonId] =
     useState<Map<string, FormationLessonAccess>>(new Map());
   const [accessResolved, setAccessResolved] = useState(false);
@@ -286,12 +291,32 @@ export default function FormationAdvancedStageCatalog({
 
     let cancelled = false;
     setAccessResolved(false);
-
-    void loadFormationTrackLessonAccessBatch(trackLessonIds)
+    const accountId = user?.id;
+    const cacheKey = 'formation-advanced-access-v1:' + stageCode;
+    void (async () => {
+      if (!accountId) {
+        if (!cancelled) { setLessonAccessByTrackLessonId(new Map()); setAccessResolved(true); }
+        return;
+      }
+      const saved = await getOfflineCache<Array<[string, FormationLessonAccess]>>(
+        cacheKey, { userId: accountId, allowStale: true });
+      if (cancelled) return;
+      if (!online) {
+        const stillValid = saved && Date.now() - saved.storedAt <= 7 * 24 * 60 * 60 * 1000;
+        const knownIds = new Set(trackLessonIds);
+        const entries = stillValid ? saved.data.filter(([id]) => knownIds.has(id)) : [];
+        setLessonAccessByTrackLessonId(new Map(entries));
+        setAccessResolved(true);
+        return;
+      }
+      void loadFormationTrackLessonAccessBatch(trackLessonIds)
       .then((map) => {
         if (!cancelled) {
           setLessonAccessByTrackLessonId(map);
           setAccessResolved(true);
+          void setOfflineCache(cacheKey, Array.from(map.entries()),
+            { userId: accountId, ttlMs: 7 * 24 * 60 * 60 * 1000 })
+            .catch(() => undefined);
         }
       })
       .catch(() => {
@@ -301,10 +326,12 @@ export default function FormationAdvancedStageCatalog({
         }
       });
 
+    })();
+
     return () => {
       cancelled = true;
     };
-  }, [catalog, locked]);
+  }, [catalog, locked, stageCode, user?.id, online]);
 
   if (loading) {
     return (
