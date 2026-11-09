@@ -340,10 +340,23 @@ export function BuklodLearningContent({
 
 
   const load = useCallback(async () => {
-    if (!user) return;
-
+    if (!user) {
+      setStages([]); setTracks([]); setEnrollments([]); setLoading(false);
+      return;
+    }
     setLoading(true);
-
+    const saved = await getOfflineCache<{ stages: StageProgress[]; tracks: any[]; enrollments: any[] }>(
+      'learning-portal-v1', { userId: user.id, allowStale: true });
+    if (saved?.data) {
+      setStages(saved.data.stages);
+      setTracks(saved.data.tracks);
+      setEnrollments(saved.data.enrollments);
+      setLoading(false);
+    }
+    if (!online || (saved && Date.now() - saved.storedAt < 6 * 60 * 60 * 1000)) {
+      setLoading(false);
+      return;
+    }
     const [
       { data: stageData, error: stageError },
       { data: trackData, error: trackError },
@@ -391,10 +404,16 @@ export function BuklodLearningContent({
       );
     }
 
-    setStages((stageData ?? []) as StageProgress[]);
-    setTracks(trackData ?? []);
-    setEnrollments(enrollmentData ?? []);
-  }, [user?.id]);
+    const nextStages = stageError ? saved?.data?.stages ?? [] : (stageData ?? []) as StageProgress[];
+    const nextTracks = trackError ? saved?.data?.tracks ?? [] : trackData ?? [];
+    const nextEnrollments = enrollmentError ? saved?.data?.enrollments ?? [] : enrollmentData ?? [];
+    setStages(nextStages); setTracks(nextTracks); setEnrollments(nextEnrollments);
+    if (!stageError && !trackError && !enrollmentError) {
+      void setOfflineCache('learning-portal-v1',
+        { stages: nextStages, tracks: nextTracks, enrollments: nextEnrollments },
+        { userId: user.id, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
+    }
+  }, [user?.id, online]);
 
   const loadAdvancedCatalogs = useCallback(async () => {
     if (!user?.id) {
@@ -422,9 +441,9 @@ export function BuklodLearningContent({
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(useCallback(() => {
+    void load();
+  }, [load]));
 
   useEffect(() => {
     void loadAdvancedCatalogs();
