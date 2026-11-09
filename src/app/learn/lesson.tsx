@@ -76,6 +76,33 @@ export default function LessonDetail() {
     if (lesson && !formationLesson) warmBuklodAdOpportunity('formation_lesson_success');
   }, [lesson?.id, formationLesson]);
 
+  // Device drafts stay local until the existing online validation is run.
+  useEffect(() => {
+    if (!accountId || !lesson?.id) return;
+    let active = true;
+    void getOfflineCache<{ reflection: string; assignment: string; answers: Record<string, string> }>(
+      'learning-lesson-text-draft-v1:' + lesson.id,
+      { userId: accountId, allowStale: true }).then((cached) => {
+        if (!active || !cached?.data) return;
+        setReflection((old) => old || cached.data.reflection || '');
+        setAssignment((old) => old || cached.data.assignment || '');
+        setAnswers((old) => Object.keys(old).length ? old : cached.data.answers || {});
+      }).catch(() => undefined);
+    return () => { active = false; };
+  }, [accountId, lesson?.id]);
+
+  const saveOfflineDraft = async () => {
+    if (!accountId || !lesson?.id) return;
+    try {
+      await setOfflineCache('learning-lesson-text-draft-v1:' + lesson.id,
+        { reflection, assignment, answers },
+        { userId: accountId, ttlMs: 30 * 24 * 60 * 60 * 1000 });
+      Alert.alert('Saved Offline', 'Your draft is on this device. Reconnect to validate and submit for official progress or points.');
+    } catch {
+      Alert.alert('Offline storage unavailable', 'Copy your responses before leaving this screen.');
+    }
+  };
+
   const reflectionQuestionContext = useMemo(() => {
     if (!lesson?.id) {
       return null;
@@ -418,6 +445,7 @@ export default function LessonDetail() {
   }, [officialStatus, formationStatus?.studied]);
 
   const saveFormationStudy = async () => {
+    if (!online) { await saveOfflineDraft(); return; }
     if (!lesson || !enrollmentId) {
       Alert.alert(
         'BUKLOD Formation',
@@ -467,6 +495,7 @@ export default function LessonDetail() {
   };
 
   const completeLegacyLesson = async () => {
+    if (!online) { await saveOfflineDraft(); return; }
     if (!lesson || !enrollmentId) return;
 
     if (reflection.trim()) {
@@ -507,6 +536,7 @@ export default function LessonDetail() {
   };
 
   const submitAssignment = async () => {
+    if (!online) { await saveOfflineDraft(); return; }
     if (!lesson || !enrollmentId || !assignment.trim()) {
       Alert.alert('Assignment', 'Write your response first.');
       return;
@@ -549,6 +579,7 @@ export default function LessonDetail() {
   };
 
   const submitQuiz = async () => {
+    if (!online) { await saveOfflineDraft(); return; }
     if (!lesson || !enrollmentId) return;
 
     setBusy(true);
@@ -644,6 +675,7 @@ export default function LessonDetail() {
       </Text>
 
       <Text style={shared.h1}>{lesson.title}</Text>
+       {!online && <Text style={shared.muted}>Saved lesson · Offline reading. Official checking and completion require internet.</Text>}
 
       {!!lesson.scripture_reference && (
         <Text style={styles.scripture}>
