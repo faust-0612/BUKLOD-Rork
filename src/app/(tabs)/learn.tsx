@@ -419,24 +419,30 @@ export function BuklodLearningContent({
     }
 
     setAdvancedCatalogLoading(true);
-
+    const saved = await getOfflineCache<Partial<Record<106 | 107, FormationStageCatalog | null>>>(
+      'learning-advanced-catalogs-v1', { userId: user.id, allowStale: true });
+    if (saved?.data) setAdvancedCatalogs(saved.data);
+    if (!online || (saved && Date.now() - saved.storedAt < 6 * 60 * 60 * 1000)) {
+      setAdvancedCatalogLoading(false);
+      return;
+    }
     try {
       const [catalog106, catalog107] = await Promise.all([
         loadFormationStageCatalog(106),
         loadFormationStageCatalog(107),
       ]);
 
-      setAdvancedCatalogs({
-        106: catalog106,
-        107: catalog107,
-      });
+      const catalogs = { 106: catalog106, 107: catalog107 };
+      setAdvancedCatalogs(catalogs);
+      void setOfflineCache('learning-advanced-catalogs-v1', catalogs,
+        { userId: user.id, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
     } catch (error: any) {
       console.warn('Formation advanced catalog:', error?.message ?? error);
-      setAdvancedCatalogs({});
+      if (!saved?.data) setAdvancedCatalogs({});
     } finally {
       setAdvancedCatalogLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, online]);
 
   useFocusEffect(useCallback(() => {
     void load();
@@ -510,6 +516,14 @@ export function BuklodLearningContent({
 
   const startTrack = async (trackId: string) => {
     const track = tracks.find((item) => item.id === trackId);
+    if (!online) {
+      if (enrollments.some((row) => row.track_id === trackId && row.status !== 'cancelled')) {
+        router.push('/learn/' + trackId);
+      } else {
+        Alert.alert('Connect to enroll', 'New enrollment needs internet. Previously enrolled lessons can be read offline.');
+      }
+      return;
+    }
     const stageCode = Number(track?.stage_code ?? 0);
 
     if (isFormationStageLocked(stageCode)) {
