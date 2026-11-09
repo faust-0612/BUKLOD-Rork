@@ -88,7 +88,8 @@
     ".buklod/scopes/nov09-consolidated-ota-web.json",
     ".github/workflows/unified_rc_compiled_qa_20261108.yml",
     "tests/faith-offline-prefetch-20261109.test.mjs",
-    "supabase/tests/buklod_music_notification_nov09_contract.sql"
+    "supabase/tests/buklod_music_notification_nov09_contract.sql",
+    "tests/ota-navigation-scroll-polish-20261108.test.mjs"
   ],
   "selectionRationale": "Combine only latest nonconflicting, source-compatible 2026-11-09 fixes so one Android OTA and Expo web update can be compiled and promoted from the same protected SHA; retain independent stable native release and financial ledgers.",
   "alternativeApproaches": [

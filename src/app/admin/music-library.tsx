@@ -299,7 +299,7 @@ export default function AdminMusicLibrary(){
             </Pressable>
             {editingCategoryId===track.id&&<ScrollView horizontal showsHorizontalScrollIndicator={false} style={{flexGrow:0}}>
               {BUKLOD_MUSIC_CATEGORIES.map(c=>folderChip(c.id,c.label,track.category===c.id,()=>void moveToFolder(track,c.id)))}
-            </ScrollView>
+            </ScrollView>}
             {pendingDeleteId===track.id&&<Text style={{color:'#973b2c',fontSize:12}}>
               Confirm permanent deletion. Existing posts using this track will lose their music, but their photos and text remain.
             </Text>}
