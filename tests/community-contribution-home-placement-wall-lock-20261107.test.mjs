@@ -41,7 +41,7 @@ test('card financial privacy, monthly/lifetime separation, noncash guidance and 
   for (const anchor of [
     'YOUR COMMUNITY CONTRIBUTION',
     'THIS MONTH QMP',
-    'SHARE WEIGHT',
+    'MEANINGFUL REPLIES',
     'QUALIFIED CONTENT',
     'Lifetime QMP:',
     'ESTIMATED REVENUE SHARE',
