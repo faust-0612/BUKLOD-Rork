@@ -40,7 +40,8 @@
   "riskAreas": [
     "private-earnings-scope-visibility",
     "cash-fund-isolation",
-    "withdrawal-gate-clarity"
+    "withdrawal-gate-clarity",
+    "faith-cluster"
   ],
   "regressionTests": [
     "tests/buklod-unified-earnings-scope-home-20261109.test.mjs",
