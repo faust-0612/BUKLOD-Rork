@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify-compiled-artifacts:
-    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108' || github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy' || github.head_ref == 'integration/ota-nov09-circle-rank-progression' || github.head_ref == 'integration/buklod-nov09-consolidated-ota-web' || github.head_ref == 'integration/buklod-nov09-bible-v4-rank-ptt-ota-rc')
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108' || github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy' || github.head_ref == 'integration/ota-nov09-circle-rank-progression' || github.head_ref == 'integration/buklod-nov09-consolidated-ota-web' || github.head_ref == 'integration/buklod-nov09-bible-v4-rank-ptt-ota-rc' || github.head_ref == 'integration/buklod-nov09-bible-v4-font-sizing-ota-rc')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:
@@ -69,6 +69,8 @@ jobs:
           node --test tests/buklod-earnings-final-source-clarity-20261109.test.mjs tests/community-admob-preview-contract.test.cjs
       - name: Bible Quiz V4 events, R3 compatibility, points and noncash ads contracts
         run: node --test tests/buklod-bible-v4-events-kingdom-20261109.test.mjs tests/bible-v4-quiz-compat-20261109.test.mjs tests/bible-v4-ads-separation-20261109.test.mjs
+      - name: Verify Home/Profile Health Center external-door privacy and route gate
+        run: node --test tests/health-center-doorway-20261109.test.mjs tests/buklod-home-profile-support-20261108.test.mjs
       - name: Compile V28-compatible Android OTA bundle (no publish)
         run: npx expo export --platform android --output-dir /tmp/buklod-rc-android --clear
       - name: Compile Main Expo Hosting web bundle (no publish)
