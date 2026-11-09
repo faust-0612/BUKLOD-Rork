@@ -27,19 +27,7 @@ type CashReport = {
   cash_status?: { available_php?: number; reserved_php?: number; paid_php?: number };
   points_used_for_cash?: boolean;
 };
-type ScopeFund = {
-  scope_id: string;
-  scope_type: string;
-  fund_source: 'CANONICAL_FUNDED_COMMUNITY_LEDGER';
-  policy_allocation_bps: number;
-  available_fund_minor: number;
-  reserved_fund_minor: number;
-  spent_fund_minor: number;
-  member_withdrawal_allowed: false;
-  is_member_personal_wallet: false;
-  economics_enabled: boolean;
-};
-type Props = { scopeId?: string | null; scopeType?: string | null; compact?: boolean };
+type Props = { compact?: boolean };
 
 const php = (value: number | undefined | null) =>
   value == null || !Number.isFinite(value)
@@ -55,13 +43,13 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, compact = true }: Props) {
+/** Personal wallet: never resolves or displays a scope's fund. */
+export default function BuklodUnifiedEarningsHomeCard({ compact = true }: Props) {
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
   const serial = useRef(0);
   const [cash, setCash] = useState<CashReport | null>(null);
   const [contribution, setContribution] = useState<CommunityContributionDashboard | null>(null);
-  const [scopeFund, setScopeFund] = useState<ScopeFund | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [retries, setRetries] = useState(0);
@@ -69,16 +57,13 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
   const load = useCallback(async () => {
     const id = ++serial.current;
     if (!userId) {
-      setCash(null); setContribution(null); setScopeFund(null);
+      setCash(null); setContribution(null);
       setLoading(false); return;
     }
     setLoading(true);
-    const [personal, community, group] = await Promise.allSettled([
+    const [personal, community] = await Promise.allSettled([
       (supabase as any).rpc('get_my_buklod_financial_earnings_breakdown_v1'),
       loadMyCommunityContribution(),
-      scopeId
-        ? (supabase as any).rpc('get_buklod_scope_revenue_fund_summary_v1', { p_scope_id: scopeId })
-        : Promise.resolve({ data: null, error: null }),
     ]);
     if (id !== serial.current) return;
     const issues: string[] = [];
@@ -93,22 +78,13 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
       setContribution(null);
       issues.push('Community revenue estimate unavailable');
     }
-    if (!scopeId) setScopeFund(null);
-    else if (group.status === 'fulfilled' && !group.value.error
-      && group.value.data?.scope_id === scopeId
-      && group.value.data?.fund_source === 'CANONICAL_FUNDED_COMMUNITY_LEDGER') {
-      setScopeFund(group.value.data as ScopeFund);
-    } else {
-      setScopeFund(null);
-      issues.push('Scope fund summary unavailable');
-    }
     setErrors(issues);
     setLoading(false);
-  }, [userId, scopeId]);
+  }, [userId]);
 
   useEffect(() => {
     ++serial.current;
-    setCash(null); setContribution(null); setScopeFund(null); setErrors([]);
+    setCash(null); setContribution(null); setErrors([]);
     void load();
     const listener = AppState.addEventListener('change', state => {
       if (state === 'active') void load();
@@ -125,7 +101,6 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
     : contribution.estimate_below_cent ? 'Below ₱0.01' : formatMinorPhp(contribution.estimated_share_minor);
   const activeProvisional = contribution?.estimate_status === 'PROVISIONAL_ADMOB';
   const available = cash?.cash_status?.available_php;
-  const scopeIsSupported = !scopeType || ['ORGANIZATION', 'CLUSTER', 'SUB_ORGANIZATION'].includes(scopeType.toUpperCase());
 
   return (
     <View style={styles.shell} accessibilityLabel="Your private BUKLOD earnings and withdrawal summary">
@@ -169,22 +144,6 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
         <Text style={styles.estimateValue}>{activeProvisional ? estimate : 'No fresh estimate'}</Text>
         <Text style={styles.warning}>Estimate only. Not finalized, funded, or withdrawable.</Text>
       </View>
-
-      {scopeId && scopeIsSupported ? (
-        <View style={styles.scopeBox}>
-          <Text style={styles.category}>THIS {scopeType?.toUpperCase() ?? 'SCOPE'} FUND · SEPARATE ACCOUNT</Text>
-          {scopeFund ? (
-            <>
-              <View style={styles.cashRow}>
-                <Stat label="Fund available" value={formatMinorPhp(scopeFund.available_fund_minor)} />
-                <Stat label="Reserved" value={formatMinorPhp(scopeFund.reserved_fund_minor)} />
-              </View>
-              <Text style={styles.note}>Policy allocation: {formatCommunityPoolPercent(scopeFund.policy_allocation_bps)} · This fund belongs to the scope, not to individual members.</Text>
-              <Text style={styles.warning}>Not transferable to a member's personal withdrawal without an authorized, funded transaction.</Text>
-            </>
-          ) : <Text style={styles.note}>No verified member-accessible fund summary.</Text>}
-        </View>
-      ) : null}
 
       {errors.length > 0 ? <Text style={styles.warning}>{errors.join(' · ')} · Refresh to retry.</Text> : null}
       <View style={styles.actions}>
