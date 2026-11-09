@@ -97,7 +97,7 @@ export default function PastorFormationValidationScreen() {
         setApproverSetup(
           String(
             setup.data?.message ??
-              'This Cluster has no authorized Cluster Head, Mentor, or Pastor yet. Official completion cannot be approved until one is assigned.',
+              'This Cluster may still need personnel for separate non-reflection evidence tasks. Lesson reflections are evaluated automatically by BUKLOD AI.',
           ),
         );
       } else {
@@ -134,49 +134,6 @@ export default function PastorFormationValidationScreen() {
           ),
     [lessons, q],
   );
-
-  const validateLesson = (r: LessonRow) =>
-    Alert.alert(
-      'Pastor Validation',
-      `Confirm that ${r.member_name} studied "${r.lesson_title}"?`,
-      [
-        { text: 'CANCEL', style: 'cancel' },
-        {
-          text: 'VALIDATE',
-          onPress: async () => {
-            setBusyId(r.progress_id);
-            const { error } = await (supabase as any).rpc(
-              'pastor_validate_learning_progress_v2',
-              {
-                p_progress_id: r.progress_id,
-                p_pastor_note: notes[r.progress_id]?.trim() || null,
-              },
-            );
-            if (
-              !error &&
-              activeScope?.scope_type === 'CLUSTER' &&
-              activeScope.scope_id
-            ) {
-              await (supabase as any).rpc(
-                'buklod_approve_cluster_formation_item_v1',
-                {
-                  p_cluster_id: activeScope.scope_id,
-                  p_learner_id: r.user_id,
-                  p_item_kind: 'LESSON',
-                  p_item_id: r.lesson_id,
-                  p_approve: true,
-                  p_remarks: notes[r.progress_id]?.trim() || null,
-                },
-              );
-            }
-            setBusyId(null);
-            if (error) return Alert.alert('Validation failed', error.message);
-            Alert.alert('Pastor Validated', 'Waiting for System Admin approval.');
-            await load();
-          },
-        },
-      ],
-    );
 
   const verifyBayanihan = (row: BayanihanRow, approve: boolean) =>
     Alert.alert(
@@ -224,8 +181,8 @@ export default function PastorFormationValidationScreen() {
       <Text style={s.eyebrow}>FORMATION REVIEW</Text>
       <Text style={shared.h1}>Learning & Formation Queue</Text>
       <Text style={shared.muted}>
-        Official credit is approved inside the member's Cluster by a Cluster
-        Head, Mentor, or Pastor of that same Cluster.
+        Lesson answers and personal reflections are validated by BUKLOD AI.
+        Approved lesson points are issued automatically, without human approval.
       </Text>
       {approverSetup ? (
         <Card>
@@ -258,11 +215,11 @@ export default function PastorFormationValidationScreen() {
 
       {section === 'LESSONS' && (
         <>
-          <SectionTitle>NEEDS REVIEW · LESSONS</SectionTitle>
+          <SectionTitle>LESSON AUTO-VALIDATION MONITOR</SectionTitle>
           {!loading && visibleLessons.length === 0 && (
             <Card>
               <Text style={shared.muted}>
-                No studied lesson is waiting for Pastor validation.
+                No legacy lesson records are waiting in this monitor.
               </Text>
             </Card>
           )}
@@ -275,21 +232,10 @@ export default function PastorFormationValidationScreen() {
                 Lesson {r.lesson_number}: {r.lesson_title}
               </Text>
               <Text style={s.meta}>Study saved: {date(r.studied_at)}</Text>
-              <TextInput
-                style={s.note}
-                multiline
-                placeholder="Pastor note (optional)"
-                value={notes[r.progress_id] ?? ''}
-                onChangeText={(v) =>
-                  setNotes((x) => ({ ...x, [r.progress_id]: v }))
-                }
-              />
-              <Button
-                title={
-                  busyId === r.progress_id ? 'VALIDATING...' : 'APPROVE / VALIDATE'
-                }
-                onPress={() => validateLesson(r)}
-              />
+              <Text style={shared.muted}>
+                AI-only record. The member submits answers and reflection for
+                automatic checking; no manual approval or points action exists here.
+              </Text>
             </Card>
           ))}
         </>
@@ -339,8 +285,8 @@ export default function PastorFormationValidationScreen() {
           <SectionTitle>REFLECTIONS</SectionTitle>
           <Card>
             <Text style={shared.muted}>
-              Reflection review continues through the lesson validation queue.
-              Private reflection text remains pastor-gated.
+              BUKLOD AI reviews each submitted reflection against its lesson.
+              No Pastor or Admin approval is necessary. Private responses remain protected.
             </Text>
           </Card>
         </>
