@@ -1,5 +1,6 @@
-import React,{useEffect,useRef,useState} from 'react';
-import {Pressable,Text,View} from 'react-native';
+import React,{useCallback,useEffect,useRef,useState} from 'react';
+import { useFocusEffect } from 'expo-router';
+import {AppState,Pressable,Text,View} from 'react-native';
 import {Image} from 'expo-image';
 import {supabase} from '@/lib/supabase';
 import {KlSceneEffect,type SceneEffect} from './KlSceneEffect';
@@ -18,6 +19,10 @@ export default function KlDynamicLibrary(){
  const [mediaErrors,setMediaErrors]=useState<Record<string,string>>({});
  const [message,setMessage]=useState('');
  const [startTime,setStartTime]=useState(0);
+ const [routeFocused,setRouteFocused]=useState(false);
+ const [appActive,setAppActive]=useState(AppState.currentState!=='background'&&AppState.currentState!=='inactive');
+ useFocusEffect(useCallback(()=>{setRouteFocused(true);return()=>setRouteFocused(false);},[]));
+ useEffect(()=>{const sub=AppState.addEventListener('change',s=>setAppActive(s==='active'));return()=>sub.remove();},[]);
  const openSequence=useRef(0);
  const refresh=async()=>{const {data,error}=await supabase.rpc('kl_list_library_v1');if(error){setMessage(error.message);return;}if(Array.isArray(data))setChapters(data as Chapter[]);};
  useEffect(()=>{void refresh();},[]);
@@ -53,10 +58,10 @@ export default function KlDynamicLibrary(){
  setMediaErrors(failures);
  };
  useEffect(()=>{
- if(!chapter||!text)return;
+ if(!chapter||!text||!routeFocused||!appActive)return;
  const timer=setInterval(()=>{void supabase.rpc('kl_reading_progress_v1',{p_episode_id:chapter.id,p_action:'ping'});},20000);
  return()=>clearInterval(timer);
- },[chapter?.id,text]);
+ },[chapter?.id,text,routeFocused,appActive]);
  const complete=async()=>{
  if(!chapter||Date.now()-startTime<60000){setMessage('Ipagpatuloy muna ang pagbabasa.');return;}
  const {data,error}=await supabase.rpc('kl_reading_progress_v1',{p_episode_id:chapter.id,p_action:'complete'});
