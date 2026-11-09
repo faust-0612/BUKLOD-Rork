@@ -70,7 +70,9 @@ export function NotificationProvider({
             .is(
               'read_at',
               null
-            );
+            )
+            // Normal PTT is transport activity, not a user-facing inbox alert.
+            .neq('kind', 'ptt_incoming');
 
         if (error) {
           console.warn(
