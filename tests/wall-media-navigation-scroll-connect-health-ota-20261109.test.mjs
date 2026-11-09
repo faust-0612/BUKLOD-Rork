@@ -15,7 +15,7 @@ test('navigation-scroll: stale restricted-route checks cannot redirect from pati
   const checkingRef = { current: '' };
   const verifyFocusApp = () => new Promise(resolve => { resolveDenied = resolve; });
   const runGuard = runInNewContext(
-    source.slice(fnStart).replace('export default function', 'function') +
+    source.slice(fnStart).replace('export default function', 'function').replace(/ as any/g, '') +
       '\nBuklodFocusAppRouteGuard;',
     {
       useEffect: callback => callback(),
