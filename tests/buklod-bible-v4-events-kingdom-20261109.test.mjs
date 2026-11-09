@@ -130,3 +130,11 @@ test('all original R3 trivia now has evidence-backed V4 feedback without modifyi
  assert.match(bibleLegacyFeedback,/Mga Gawa 13:9/);
  assert.match(bibleLegacyFeedback,/Genesis 11:28, 31/);
 });
+
+const dedupSource=read('supabase/migrations/20261109161644_buklod_bible_v4_eliminate_exact_prompt_repeat_20261109.sql');
+test('word-for-word repeated question is removed from V4 but legacy R3 remains intact',()=>{
+ assert.match(dedupSource,/id='r3_e1'/);
+ assert.match(dedupSource,/e\.mary_visits_elizabeth/);
+ assert.match(dedupSource,/group by prompt having count\(\*\)>1/);
+ assert.doesNotMatch(dedupSource,/update private\.buklod_r2_bible_quiz_questions/);
+});
