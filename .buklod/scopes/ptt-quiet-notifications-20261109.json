@@ -1,7 +1,7 @@
 {
   "objective": "Suppress repeated normal PTT transmission notices in Notifications and badges while preserving SOS, Priority, ordinary social notifications, in-app PTT duty status, and closed-app PTT push/audio receive.",
-  "baseRef": "922d26d9d67468566d9699918ea82519880ef4b3",
-  "productionBaselineEvidence": "Main source 922d26d9 verified before branch; deployed OTA and physical Android PTT behavior not independently verified. This branch is DEV only, not released; production DB unchanged.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main source was inspected at 922d26d9d67468566d9699918ea82519880ef4b3 and advanced independently to 97d037834bcba86e27cc50e067cbefb31cd14125 with unrelated referral-only changes. PR merge checkout must compare this isolated fix against current main. Main source is NOT proof of installed client or live OTA; production runtime not independently verified; no production modification from this PR.",
   "chosenApproach": "Client-side display/count filtering only for kind ptt_incoming in the native/web Notification Center and foreground handlers. Retain all transport rows and incoming visible/headless pushes for background reliability.",
   "selectionRationale": "Changing the production floor-claim RPC or removing PTT transport pushes risks breaking background receive. Existing backend uses one notification per transmission to dispatch the headless and visible push signals.",
   "alternativeApproaches": [
