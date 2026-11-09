@@ -209,6 +209,15 @@ export function resolveBuklodNotificationTarget(
     payload.route ?? payload.href ?? payload.deep_link,
   );
   if (explicitPath) {
+    // BSOC notifications carry an exact case ID; preserve it through the
+    // existing safe route resolver rather than opening an unrelated thread.
+    if (normalizedKind === 'bsoc_support' &&
+        (explicitPath === '/support/live' || explicitPath === '/admin/bsoc-conversations')) {
+      const caseId = clean(payload.case_id);
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId)) {
+        return {path: explicitPath+'?case_id='+encodeURIComponent(caseId)};
+      }
+    }
     const oldPostLink = /^\/post\/([^/?#]+)\/?(?:\?.*)?$/.exec(explicitPath);
     if (oldPostLink) {
       try {
