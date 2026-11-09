@@ -46,5 +46,6 @@ test('public patient doorway bypasses only the global Health Worker role gate', 
   assert.match(guard, /pathname === '\/profile\/buklod-health'/);
   assert.ok(guard.indexOf("pathname === '/profile/buklod-health'") < guard.indexOf('focusAppForPathname(pathname)'));
   assert.match(guard, /checkingRef\.current === key/); // stale requests cannot redirect back
+  assert.match(guard, /if \(loading \|\| !app\) \{\s*checkingRef\.current = '';/); // invalidate on public routes
   assert.match(guard, /verifyFocusApp\(app\)/); // other privileged workspaces remain gated
 });
