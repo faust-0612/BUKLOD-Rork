@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Pressable,
   StyleSheet,
   Text,
@@ -8,13 +9,13 @@ import {
   View,
 } from 'react-native';
 
+import { useFocusEffect } from 'expo-router';
 import { klCopy, klLiveReadersCountLabel } from '@/lib/kabihasnang-ligaw/copy';
 import {
   addKlComment,
   formatReaderStamp,
   listKlComments,
   listKlReaders,
-  pingKlReading,
   type KlEpisodeComment,
   type KlReaderPresence,
 } from '@/lib/kabihasnang-ligaw/readerSocial';
@@ -34,12 +35,19 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [routeFocused, setRouteFocused] = useState(false);
+  const [appActive, setAppActive] = useState(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
+  useFocusEffect(useCallback(() => {
+    setRouteFocused(true);
+    return () => setRouteFocused(false);
+  }, []));
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => setAppActive(state === 'active'));
+    return () => sub.remove();
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!live || !episodeId) return;
-    if (user?.id) {
-      await pingKlReading(episodeId);
-    }
     const [presence, thread] = await Promise.all([
       listKlReaders(episodeId),
       listKlComments(episodeId),
@@ -66,14 +74,14 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
   }, [episodeId, live, profile?.full_name, user?.id]);
 
   useEffect(() => {
-    if (!live) return;
+    if (!live || !routeFocused || !appActive) return;
     setLoading(true);
     void refresh();
     const timer = setInterval(() => {
       void refresh();
     }, 20000);
     return () => clearInterval(timer);
-  }, [live, refresh]);
+  }, [live, routeFocused, appActive, refresh]);
 
   if (!live) return null;
 
@@ -89,7 +97,7 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
     const result = await addKlComment(episodeId, text);
     setBusy(false);
     if (!result.ok || !result.comment) {
-      setNotice(klCopy.commentFailed);
+      setNotice(result.error && result.error !== 'server' ? result.error : klCopy.commentFailed);
       return;
     }
     setDraft('');
@@ -97,7 +105,7 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
   };
 
   return (
-    <View style={styles.wrap} accessibilityLabel="Live reading discussion">
+    <View style={styles.wrap} accessibilityLabel="Reading reactions and reflections">
       <View style={styles.card}>
         <Text style={styles.title}>{klCopy.liveReaders}</Text>
         {loading ? (
@@ -137,9 +145,9 @@ export default function KlLiveDiscussion({ episodeId, live }: Props) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={klCopy.commentSend}
-          disabled={busy || !draft.trim()}
+          disabled={busy || draft.trim().length < 12}
           onPress={() => void send()}
-          style={[styles.send, (busy || !draft.trim()) && styles.sendOff]}
+          style={[styles.send, (busy || draft.trim().length < 12) && styles.sendOff]}
         >
           <Text style={styles.sendText}>{klCopy.commentSend}</Text>
         </Pressable>

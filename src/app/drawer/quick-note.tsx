@@ -28,11 +28,12 @@ export default function SmartDrawerQuickNote() {
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [asChecklist, setAsChecklist] = useState(false);
   const [notice, setNotice] = useState('');
 
   const classification = useMemo(
-    () => classifySmartDrawerText(text),
-    [text],
+    () => classifySmartDrawerText(text, new Date(), asChecklist),
+    [text, asChecklist],
   );
 
   const save = async () => {
@@ -69,7 +70,7 @@ export default function SmartDrawerQuickNote() {
       }
 
       setTimeout(() => {
-        router.replace('/drawer' as any);
+        router.replace(`/drawer/item/${result.item.id}` as any);
       }, 650);
     } catch (error) {
       setNotice(
@@ -107,7 +108,7 @@ export default function SmartDrawerQuickNote() {
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Quick Note</Text>
           <Text style={styles.subtitle}>
-            Type naturally. BUKLOD will understand and organize it.
+            Ordinary text stays a note. Choose checklist only when needed.
           </Text>
         </View>
       </View>
@@ -130,6 +131,16 @@ export default function SmartDrawerQuickNote() {
         <Text style={styles.counter}>
           {text.length}/5000
         </Text>
+        <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: asChecklist }}
+          onPress={() => setAsChecklist(value => !value)}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 }}>
+          <MaterialCommunityIcons
+            name={asChecklist ? 'checkbox-marked-outline' : 'checkbox-blank-outline'}
+            size={23} color="#173B63" />
+          <Text style={{ color: '#173B63', fontWeight: '700' }}>
+            Gawing checklist (optional)
+          </Text>
+        </Pressable>
 
         {!!text.trim() && (
           <View style={styles.detected}>

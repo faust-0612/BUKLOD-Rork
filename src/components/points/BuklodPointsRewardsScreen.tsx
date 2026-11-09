@@ -45,6 +45,7 @@ import {
   type BuklodPointsDashboard,
 } from '@/lib/buklodRewards';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 import BuklodAdLightRewardCard from '@/components/BuklodAdLightRewardCard';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
@@ -529,7 +530,25 @@ function ClaimGroupCard({
   );
 }
 
+// Keep a short-lived, account-scoped view model between tab mounts.
+const pointsViewCache = new Map<string, {
+  loadedAt: number;
+  dashboard: BuklodPointsDashboard;
+  groups: BuklodClaimGroup[];
+  history: PointRow[];
+  evaluations: EvaluationRow[];
+  rank: RankDashboard | null;
+}>();
 export default function BuklodPointsRewardsScreen() {
+  const { user } = useAuth();
+  const accountId = user?.id ?? '';
+  // Keyed owner boundary: never render another account's cached Points after a
+  // session switch, even before the new account's first network response.
+  return <AccountScopedBuklodPointsRewards key={accountId || 'signed-out'} accountId={accountId} />;
+}
+
+function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) {
+  const initialCache = accountId ? pointsViewCache.get(accountId) : undefined;
   const {focusLedgerId}=useLocalSearchParams<{focusLedgerId?:string}>();
   const exactLedgerId=typeof focusLedgerId==='string'?focusLedgerId.trim():'';
   const historyScrollRef=useRef<ScrollView|null>(null);
@@ -542,20 +561,20 @@ export default function BuklodPointsRewardsScreen() {
   const claimSound = useAudioPlayer(CLAIM_SUCCESS_SOUND);
   const tapSound = useAudioPlayer(SOFT_TAP_SOUND);
 
-  const [dashboard, setDashboard] = useState<BuklodPointsDashboard | null>(null);
-  const [claimGroups, setClaimGroups] = useState<BuklodClaimGroup[]>([]);
-  const [history, setHistory] = useState<PointRow[]>([]);
+  const [dashboard, setDashboard] = useState<BuklodPointsDashboard | null>(initialCache?.dashboard ?? null);
+  const [claimGroups, setClaimGroups] = useState<BuklodClaimGroup[]>(initialCache?.groups ?? []);
+  const [history, setHistory] = useState<PointRow[]>(initialCache?.history ?? []);
   const [historyOpen,setHistoryOpen] = useState(Boolean(exactLedgerId));
   useEffect(()=>{if(exactLedgerId)setHistoryOpen(true);},[exactLedgerId]);
-  const [evaluations, setEvaluations] = useState<EvaluationRow[]>([]);
-  const [rankDashboard, setRankDashboard] = useState<RankDashboard | null>(null);
+  const [evaluations, setEvaluations] = useState<EvaluationRow[]>(initialCache?.evaluations ?? []);
+  const [rankDashboard, setRankDashboard] = useState<RankDashboard | null>(initialCache?.rank ?? null);
   const [claimingGroup, setClaimingGroup] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimTechnicalError, setClaimTechnicalError] = useState<string | null>(null);
   const [lastSuccess, setLastSuccess] = useState<{ label: string; points: number } | null>(null);
   const [celebrationActive, setCelebrationActive] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCache);
   const [dashboardError, setDashboardError] = useState('');
   const [dashboardSupportCode, setDashboardSupportCode] =
     useState<string | null>(null);
@@ -597,7 +616,17 @@ export default function BuklodPointsRewardsScreen() {
     setLeaderboardBusy(false);
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
+    const cached = accountId ? pointsViewCache.get(accountId) : undefined;
+    if (!force && cached && Date.now() - cached.loadedAt < 60_000) {
+      setDashboard(cached.dashboard);setClaimGroups(cached.groups);
+      setHistory(cached.history);setEvaluations(cached.evaluations);
+      setRankDashboard(cached.rank);setLoading(false);
+      return;
+    }
+    if (!accountId) { setLoading(false); return; }
+    let freshDashboard: BuklodPointsDashboard | null = null;
+    let freshGroups: BuklodClaimGroup[] | null = null;
     const [rankResult, historyResult, evaluationResult] = await Promise.all([
       supabase.rpc('get_my_buklod_rank_dashboard'),
       supabase
@@ -617,6 +646,7 @@ export default function BuklodPointsRewardsScreen() {
       setDashboardSupportCode(null);
       const nextDashboard = await loadBuklodPointsDashboard();
       setDashboard(nextDashboard);
+      freshDashboard = nextDashboard;
     } catch (error) {
       console.warn('BUKLOD Points dashboard could not be loaded.');
       const feedback = buildBuklodUserFeedback(
@@ -628,7 +658,7 @@ export default function BuklodPointsRewardsScreen() {
             "BUKLOD couldn't load your Points dashboard right now.",
         },
       );
-      setDashboard(null);
+      // Preserve the previously loaded snapshot on transient network errors.
       setDashboardError(
         "BUKLOD couldn't load your Points dashboard right now. Your existing points are unchanged.",
       );
@@ -646,6 +676,7 @@ export default function BuklodPointsRewardsScreen() {
     try {
       const groups = await loadBuklodClaimGroups();
       setClaimGroups(groups);
+      freshGroups = groups;
     } catch (error) {
       const technical = normalizeErrorMessage(error);
       console.warn('BUKLOD claim groups:', technical);
@@ -656,8 +687,17 @@ export default function BuklodPointsRewardsScreen() {
     if (!rankResult.error) setRankDashboard(rankResult.data as RankDashboard);
     if (!historyResult.error) setHistory((historyResult.data ?? []) as PointRow[]);
     if (!evaluationResult.error) setEvaluations((evaluationResult.data ?? []) as EvaluationRow[]);
+    if (freshDashboard && freshGroups && !rankResult.error && !historyResult.error && !evaluationResult.error) {
+      pointsViewCache.set(accountId, {
+        loadedAt: Date.now(), dashboard: freshDashboard, groups: freshGroups,
+        history: (historyResult.data ?? []) as PointRow[],
+        evaluations: (evaluationResult.data ?? []) as EvaluationRow[],
+        rank: rankResult.data as RankDashboard,
+      });
+      if (pointsViewCache.size > 8) pointsViewCache.clear();
+    }
     setLoading(false);
-  }, []);
+  }, [accountId]);
 
   useEffect(() => {
     void load();
@@ -693,7 +733,7 @@ export default function BuklodPointsRewardsScreen() {
     setRefreshing(true);
     setClaimError(null);
     setClaimTechnicalError(null);
-    await load();
+    await load(true);
     setRefreshing(false);
   }, [load]);
 
@@ -737,7 +777,7 @@ export default function BuklodPointsRewardsScreen() {
       awarded=result.claimed_points;
       if(awarded<=0){
         setClaimError('No eligible points remain. Your balance has been refreshed.');
-        await load();return;
+        await load(true);return;
       }
       setDashboard(current=>current?{...current,total_points:result.lifetime_points,
         lifetime_points:result.lifetime_points,available_points:result.available_points,
@@ -758,11 +798,11 @@ export default function BuklodPointsRewardsScreen() {
       });
       // An ad follows the authorized claim, never acts as a balance gate.
       await showBuklodAdOpportunity('points_claim_success').catch(()=>false);
-      await load();
+      await load(true);
     }catch(error){
       const technical=normalizeErrorMessage(error);
       setClaimTechnicalError(technical);setClaimError(friendlyClaimError(technical));
-      if(awarded>0)await load().catch(()=>undefined);
+      if(awarded>0)await load(true).catch(()=>undefined);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(()=>undefined);
     }finally{setClaimingGroup(null);}
   },[characterEvents,claimSound,claimingGroup,claimablePoints,load,motionEnabled,soundOn]);
@@ -823,7 +863,7 @@ export default function BuklodPointsRewardsScreen() {
         )}
         <View style={styles.dashboardErrorActions}>
           <Pressable
-            onPress={() => void load()}
+            onPress={() => void load(true)}
             style={styles.dashboardRetry}
           >
             <Text style={styles.dashboardRetryText}>TRY AGAIN</Text>
@@ -1128,6 +1168,24 @@ export default function BuklodPointsRewardsScreen() {
             size={24}
             color={COLORS.green}
           />
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View full 40-level Circle Rank progression"
+          onPress={() => router.push('/points/progression' as any)}
+          style={{
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 12, borderWidth: 1, borderColor: COLORS.green,
+            backgroundColor: COLORS.greenSoft, paddingVertical: 13,
+            marginTop: 9, gap: 8,
+          }}
+        >
+          <MaterialCommunityIcons name="chart-line" size={20} color={COLORS.green} />
+          <Text style={{ color: COLORS.green, fontSize: 13, fontWeight: '900' }}>
+            VIEW 40-RANK PROGRESSION
+          </Text>
+          <MaterialCommunityIcons name="arrow-right" size={17} color={COLORS.green} />
         </Pressable>
 
         {leaderboardOpen ? (

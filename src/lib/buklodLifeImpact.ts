@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/lib/supabase';
+import { loadMyBuklodReferralReconciliationV1 } from '@/lib/buklodReferralV2';
 import {
   loadReferralSummary,
 } from '@/lib/buklodRewards';
@@ -80,18 +81,8 @@ export async function loadBuklodLifeShareInfo():
 Promise<BuklodLifeShareInfo | null> {
 
   try {
-    const {
-      data,
-      error,
-    } =
-      await (
-        supabase as any
-      ).rpc(
-        'get_my_buklod_referral_summary_v2'
-      );
-
+    const data = await loadMyBuklodReferralReconciliationV1();
     if (
-      !error &&
       data &&
       typeof data ===
         'object' &&
@@ -152,7 +143,7 @@ Promise<BuklodLifeShareInfo | null> {
       };
     }
   } catch {
-    // Fall through to the legacy summary.
+    // Fall through to the canonical Profile summary, never to an obsolete code.
   }
 
   const legacy =

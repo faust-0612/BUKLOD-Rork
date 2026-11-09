@@ -1274,9 +1274,8 @@ export default function MeScreen() {
             <BuklodProfileGlassRow
               icon="star-circle-outline"
               title={circleRank}
-              subtitle="About your Circle rank"
-              onPress={() => Alert.alert('About Circle Rank',
-                `Your current Circle rank: ${circleRank}.\n\nCircle Rank reflects verified BUKLOD participation. It is separate from Kingdom character levels, items and badges. Use BUKLOD Points separately to review and claim eligible rewards.`)}
+              subtitle="View 40-level Circle Rank progression"
+              onPress={() => router.push('/points/progression' as any)}
             />
           </BuklodProfileGlassCard>
         </View>
@@ -1462,6 +1461,13 @@ export default function MeScreen() {
           />
 
           <MenuRow
+             icon="translate"
+             title="App Language"
+             subtitle="Display language and device preference"
+             onPress={() => router.push('/preferences/language' as any)}
+           />
+
+           <MenuRow
             icon="volume-high"
             title="Sounds & Notifications"
             subtitle="Messages, calls, submissions and quiet hours"

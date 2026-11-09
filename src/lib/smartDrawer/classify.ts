@@ -143,17 +143,18 @@ function createListEntryId() {
   return `drawer-list-${Date.now()}-${listIdCounter}`;
 }
 
-function listFromText(text: string): SmartDrawerListItem[] {
-  const normalized = text
-    .replace(/^\s*(bibilhin|shopping|grocery|listahan)\s*:?/i, '')
-    .trim();
-
-  const pieces = normalized
-    .split(/\r?\n|,|;|\s+-\s+/)
-    .map(value => value.replace(/^[-•*]\s*/, '').trim())
+function listFromText(text: string, forceList = false): SmartDrawerListItem[] {
+  // Never turn ordinary comma-separated prose into an unsolicited checklist.
+  // An explicit bullet/number marker or the user's List choice is required.
+  const normalized = text.trim();
+  const lines = forceList
+    ? normalized.split(/\r?\n|,|;/)
+    : normalized.split(/\r?\n/).filter(line =>
+        /^\s*(?:[-•*]\s+|\d+[.)]\s+|\[[xX ]\]\s+)/.test(line));
+  const pieces = lines
+    .map(value => value.replace(/^\s*(?:[-•*]\s+|\d+[.)]\s+|\[[xX ]\]\s+)/, '').trim())
     .filter(value => value.length > 0 && value.length <= 120);
-
-  if (pieces.length < 2) return [];
+  if (!pieces.length) return [];
 
   return pieces.slice(0, 100).map(text => ({
     id: createListEntryId(),
@@ -195,7 +196,7 @@ function classifyType(text: string, dueAt: string | null, listCount: number) {
     return 'POEM' as SmartDrawerItemType;
   }
 
-  if (listCount >= 2) {
+  if (listCount > 0) {
     if (
       hasAny(lower, [
         'bibilhin',
@@ -263,10 +264,11 @@ function fallbackTitle(type: SmartDrawerItemType) {
 export function classifySmartDrawerText(
   rawText: string,
   now = new Date(),
+  forceList = false,
 ): SmartDrawerClassification {
   const text = rawText.trim();
   const dueAt = detectSmartDrawerDate(text, now);
-  const listItems = listFromText(text);
+  const listItems = listFromText(text, forceList);
   const type = classifyType(text, dueAt, listItems.length);
 
   const eventAt =
@@ -276,7 +278,7 @@ export function classifySmartDrawerText(
 
   const reasons: string[] = [];
   if (dueAt) reasons.push('date_or_time_detected');
-  if (listItems.length >= 2) reasons.push('list_structure_detected');
+  if (listItems.length > 0) reasons.push(forceList ? 'user_selected_list' : 'explicit_list_markers');
   if (type !== 'QUICK_NOTE') reasons.push(`type_${type.toLowerCase()}`);
 
   return {
@@ -286,7 +288,7 @@ export function classifySmartDrawerText(
     eventAt,
     listItems,
     confidence:
-      dueAt || listItems.length >= 2 || type !== 'QUICK_NOTE'
+      dueAt || listItems.length > 0 || type !== 'QUICK_NOTE'
         ? 'MEDIUM'
         : 'LOW',
     reasons,

@@ -159,7 +159,7 @@ async function loadLedgerRows() {
   }));
 }
 
-export async function loadBuklodEconomyLedger(
+async function fetchBuklodEconomyLedger(
   userId?: string | null,
 ): Promise<BuklodEconomyLedgerSnapshot> {
   const errors: string[] = [];
@@ -265,6 +265,39 @@ export async function loadBuklodEconomyLedger(
     characterName,
     errors,
   };
+}
+
+// Short-lived, account-scoped display snapshot: avoid a blank loading screen or
+// nine parallel server calls every time a user switches tabs. Explicit refresh
+// bypasses TTL. Cache is memory-only (never shared across logins or persisted).
+const LEDGER_CACHE_TTL_MS = 60_000;
+const ledgerSnapshots = new Map<string, { value: BuklodEconomyLedgerSnapshot; savedAt: number }>();
+const ledgerInFlight = new Map<string, Promise<BuklodEconomyLedgerSnapshot>>();
+export function peekBuklodEconomyLedger(userId: string | null | undefined): BuklodEconomyLedgerSnapshot | null {
+  if (!userId) return null;
+  return ledgerSnapshots.get(userId)?.value ?? null;
+}
+export function invalidateBuklodEconomyLedger(userId: string | null | undefined) {
+  if (userId) ledgerSnapshots.delete(userId);
+}
+export async function loadBuklodEconomyLedger(
+  userId?: string | null,
+  force = false,
+): Promise<BuklodEconomyLedgerSnapshot> {
+  if (!userId) throw new Error('Sign in required for the Economy ledger.');
+  const cached = ledgerSnapshots.get(userId);
+  if (!force && cached && Date.now() - cached.savedAt < LEDGER_CACHE_TTL_MS) return cached.value;
+  const active = ledgerInFlight.get(userId);
+  if (active) return active;
+  const request = fetchBuklodEconomyLedger(userId)
+    .then(value => {
+      if (ledgerSnapshots.size > 8) ledgerSnapshots.clear();
+      ledgerSnapshots.set(userId, { value, savedAt: Date.now() });
+      return value;
+    })
+    .finally(() => ledgerInFlight.delete(userId));
+  ledgerInFlight.set(userId, request);
+  return request;
 }
 
 export function formatEconomyPts(value: unknown) {

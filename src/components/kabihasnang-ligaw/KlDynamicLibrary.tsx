@@ -1,5 +1,6 @@
-import React,{useEffect,useRef,useState} from 'react';
-import {Pressable,Text,View} from 'react-native';
+import React,{useCallback,useEffect,useRef,useState} from 'react';
+import { useFocusEffect } from 'expo-router';
+import {AppState,Pressable,Text,View} from 'react-native';
 import {Image} from 'expo-image';
 import {supabase} from '@/lib/supabase';
 import {KlSceneEffect,type SceneEffect} from './KlSceneEffect';
@@ -18,6 +19,10 @@ export default function KlDynamicLibrary(){
  const [mediaErrors,setMediaErrors]=useState<Record<string,string>>({});
  const [message,setMessage]=useState('');
  const [startTime,setStartTime]=useState(0);
+ const [routeFocused,setRouteFocused]=useState(false);
+ const [appActive,setAppActive]=useState(AppState.currentState!=='background'&&AppState.currentState!=='inactive');
+ useFocusEffect(useCallback(()=>{setRouteFocused(true);return()=>setRouteFocused(false);},[]));
+ useEffect(()=>{const sub=AppState.addEventListener('change',s=>setAppActive(s==='active'));return()=>sub.remove();},[]);
  const openSequence=useRef(0);
  const refresh=async()=>{const {data,error}=await supabase.rpc('kl_list_library_v1');if(error){setMessage(error.message);return;}if(Array.isArray(data))setChapters(data as Chapter[]);};
  useEffect(()=>{void refresh();},[]);
@@ -53,16 +58,16 @@ export default function KlDynamicLibrary(){
  setMediaErrors(failures);
  };
  useEffect(()=>{
- if(!chapter||!text)return;
- const timer=setInterval(()=>{void supabase.rpc('kl_reading_progress_v1',{p_episode_id:chapter.id,p_action:'ping'});},30000);
+ if(!chapter||!text||!routeFocused||!appActive)return;
+ const timer=setInterval(()=>{void supabase.rpc('kl_reading_progress_v1',{p_episode_id:chapter.id,p_action:'ping'});},20000);
  return()=>clearInterval(timer);
- },[chapter?.id,text]);
+ },[chapter?.id,text,routeFocused,appActive]);
  const complete=async()=>{
- if(!chapter||Date.now()-startTime<90000){setMessage('Ipagpatuloy muna ang pagbabasa.');return;}
+ if(!chapter||Date.now()-startTime<60000){setMessage('Ipagpatuloy muna ang pagbabasa.');return;}
  const {data,error}=await supabase.rpc('kl_reading_progress_v1',{p_episode_id:chapter.id,p_action:'complete'});
  const result=data as {new_completion?:boolean;completed?:boolean}|null;
  if(!error && result?.new_completion) await showBuklodAdOpportunity('kl_chapter_success');
- setMessage(error?.message??(result?.new_completion?'Completed · +7 BUKLOD Points':result?.completed===false?'Reading not yet verified':'Completion recorded.'));
+ setMessage(error?.message??(result?.new_completion?'Natapos ang kabanata · +5 BUKLOD Points':result?.completed===false?'Reading not yet verified':'Completion recorded.'));
  };
  const image=(m:Media)=>{
  const key=m.kind+':'+m.placement;
@@ -76,9 +81,9 @@ export default function KlDynamicLibrary(){
  };
  const paragraphs=splitKlManuscriptBlocks(text);
  return <View style={{gap:12}}>
- <Pressable onPress={()=>void refresh()}><Text style={{color:'#f1d39b'}}>Refresh released chapters</Text></Pressable>
+ <Pressable onPress={()=>void refresh()}><Text style={{color:'#f1d39b'}}>I-refresh ang mga kabanata</Text></Pressable>
  {chapter?<View style={{gap:12}}>
- <Pressable onPress={()=>{openSequence.current+=1;setChapter(null);setText('');}}><Text style={{color:'#f1d39b'}}>Back to library</Text></Pressable>
+ <Pressable onPress={()=>{openSequence.current+=1;setChapter(null);setText('');setUrls({});}}><Text style={{color:'#f1d39b'}}>Bumalik sa mga kabanata</Text></Pressable>
  <Text style={{color:'#fff',fontSize:22}}>{chapter.title}</Text>
  <KlChapterAudio music={urls['music:0']} ambient={urls['ambient:0']}/>
  {media.filter(m=>m.kind==='cover').map(image)}

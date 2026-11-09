@@ -1,6 +1,7 @@
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { supabase } from '@/lib/supabase';
 import { cachedQuery, invalidateCache } from '@/lib/performance';
+import { ensureBuklodProfitFirstIdentity, attachBuklodReferral, captureBuklodReferralCode } from '@/lib/buklodReferralV2';
 
 export type BuklodPointsDashboard = {
   total_points: number;
@@ -125,7 +126,7 @@ export async function loadBuklodPointsDashboard(): Promise<BuklodPointsDashboard
 
       return normalizePointsDashboard(data as Record<string, unknown>);
     },
-    { ttlMs: 15_000, staleMs: 45_000 },
+    { ttlMs: 60_000, staleMs: 120_000 },
   );
 }
 
@@ -415,6 +416,11 @@ export type ReferralSummary = {
   invited_count: number;
   qualified_count: number;
   was_referred: boolean;
+  legacy_code?: string;
+  legacy_invited_count?: number;
+  legacy_unreconciled_count?: number;
+  financial_invited_count?: number;
+  reconciled?: boolean;
 };
 
 export type ReferralSuggestItem = {
@@ -429,26 +435,33 @@ export type ReferralResolveResult = {
   username?: string | null;
   label?: string;
   referral_code?: string;
+  canonical_referral_code?: string;
   message?: string;
 };
 
 export async function loadReferralSummary(): Promise<ReferralSummary | null> {
-  const { data, error } = await (supabase as any).rpc(
-    'get_my_buklod_referral_summary_v1',
-  );
-
-  if (error || !data || typeof data !== 'object') {
-    return null;
+  // The canonical code is the SAME one used by Economy and the Life share link.
+  // Historical invitations remain visible; they cannot create cash earnings.
+  await ensureBuklodProfitFirstIdentity();
+  const { data, error } = await (supabase as any).rpc('get_my_buklod_referral_reconciliation_v1');
+  if (!error && data?.identity_ready === true && data.referral_code) {
+    const row = data as Record<string, unknown>;
+    return {
+      referral_code: String(row.referral_code),
+      invited_count: toNumber(row.invited_count),
+      qualified_count: toNumber(row.financial_qualified_count),
+      legacy_code: String(row.legacy_code ?? ''),
+      legacy_invited_count: toNumber(row.legacy_invited_count),
+      legacy_unreconciled_count: toNumber(row.legacy_unreconciled_count),
+      financial_invited_count: toNumber(row.financial_invited_count),
+      was_referred: row.was_referred === true,
+      reconciled: true,
+    };
   }
-
-  const row = data as Record<string, unknown>;
-
-  return {
-    referral_code: String(row.referral_code ?? ''),
-    invited_count: toNumber(row.invited_count),
-    qualified_count: toNumber(row.qualified_count),
-    was_referred: Boolean(row.was_referred),
-  };
+  // Fail closed rather than silently offering an obsolete alias that the
+  // canonical registration flow may no longer accept.
+  if (error) throw new Error(String(error.message ?? 'Could not load canonical invite details.'));
+  return null;
 }
 
 export async function suggestReferralTargets(
@@ -528,30 +541,36 @@ export async function resolveReferralTarget(
     username: row.username ? String(row.username) : null,
     label: String(row.label ?? 'BUKLOD member'),
     referral_code: String(row.referral_code ?? ''),
+    canonical_referral_code: String(row.canonical_referral_code ?? ''),
   };
 }
 
 export async function recordReferral(
   referrerCode: string,
-  options: { alreadyResolved?: boolean } = {},
+  _options: { alreadyResolved?: boolean } = {},
 ) {
   const value = referrerCode.trim();
   if (!value) throw new Error('Referral code required');
-
-  // A selected suggestion already carries the canonical referral code.
-  // The server RPC remains authoritative and validates it again.
-  let code = value;
-  if (!options.alreadyResolved) {
-    const resolved = await resolveReferralTarget(value);
-    if (!resolved.found) {
-      throw new Error(resolved.message || 'Referral could not be verified.');
-    }
-    code = String(resolved.referral_code || value);
-  }
-
+  // Resolve even if the user selected a suggestion: that suggestion may carry
+  // an historical alias while their published Economy code is canonical.
+  const resolved = await resolveReferralTarget(value);
+  if (!resolved.found) throw new Error(resolved.message || 'Referral not found.');
+  const legacyCode = String(resolved.referral_code ?? '').trim();
+  const canonicalCode = String(resolved.canonical_referral_code ?? '').trim();
+  if (!legacyCode) throw new Error('Referral identity unavailable.');
   const { error } = await (supabase as any).rpc(
-    'buklod_record_referral_v1',
-    { p_referrer_code: code },
+    'buklod_record_referral_v1', { p_referrer_code: legacyCode },
   );
-  if (error) throw error;
+  if (error && !/already recorded/i.test(String(error.message ?? ''))) throw error;
+
+  if (canonicalCode) {
+    // Durable pending attribution: if the edge function or network fails,
+    // bootstrap can retry safely on the next authenticated session.
+    await captureBuklodReferralCode(canonicalCode, 'SIGNUP_FORM');
+    try {
+      await attachBuklodReferral(canonicalCode);
+    } catch (attachError) {
+      throw new Error('Invitation recorded. Financial referral linking is pending; it will retry after sign-in.');
+    }
+  }
 }

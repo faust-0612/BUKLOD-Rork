@@ -89,7 +89,7 @@ test('Weak network reuses owner-scoped membership cache and does not leak across
 });
 
 test('Compact touch targets, header and controls do not replace the global bottom nav', () => {
-  assert.match(src, /paddingHorizontal: 14, paddingTop: 12, paddingBottom: 32/);
+  assert.match(src, /paddingHorizontal: 12, paddingTop: 8, paddingBottom: 24/);
   assert.match(src, /minHeight: 44/);
   assert.match(src, /minHeight: 42/);
   assert.match(src, /borderRadius: 16/);
