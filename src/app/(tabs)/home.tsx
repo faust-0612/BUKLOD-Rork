@@ -7,6 +7,7 @@ import BuklodMentionText from '@/components/BuklodMentionText';
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import BuklodCommunityContributionCard from '@/components/BuklodCommunityContributionCard';
+import BuklodUnifiedEarningsHomeCard from '@/components/BuklodUnifiedEarningsHomeCard';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import {
@@ -630,6 +631,7 @@ export default function HomeScreen() {
       {/* BUKLOD_COMMUNITY_CONTRIBUTION_HOME_R1: move only; preserve original card and Wall layout. */}
       <View style={{ paddingHorizontal: 10 }}>
         <BuklodCommunityContributionCard />
+        <BuklodUnifiedEarningsHomeCard />
       </View>
 
       <HomeMotionSection delay={180}>
