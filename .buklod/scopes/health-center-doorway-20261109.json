@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Connect the existing standalone BUKLOD Health Center to Main's public Home and Profile Health Center entry points; do not modify Classroom.",
+  "baseRef": "cae4cbc427d877264f35390d74e15d28540e6e02",
+  "productionBaselineEvidence": "GitHub main cae4cbc427d877264f35390d74e15d28540e6e02 is the inspected source. Vercel project buklod-health-center has a READY production deployment dpl_C7Lp7U1uxiXskq4ibyHthEyEdZXs and verified buklod-health-center.vercel.app domain. Live browser behavior and exact Main installed production OTA are unverified. No publication authorized by this change.",
+  "chosenApproach": "Reuse the already mounted Home Health Center card as a one-tap HTTPS browser launcher; replace the Profile's role-gated placeholder with a fallback launcher. Pass no auth token or medical data. Keep Classroom unchanged.",
+  "selectionRationale": "The patient-facing standalone site is already deployed; linking it uses less code and avoids exposing sensitive data or duplicating health modules in Main.",
+  "alternativeApproaches": [
+    "Embed the entire Health Center into Main (rejected: violates standalone focus-app boundary and duplicates privacy-sensitive state).",
+    "Pass Supabase access and refresh tokens in URL for SSO (rejected: credentials leak through browser/history/logs).",
+    "Keep organization-role-gated placeholder for personal Health Center (rejected: ordinary members cannot open the patient app)."
+  ],
+  "riskAreas": [
+    "Home navigation",
+    "Profile routing",
+    "external-browser availability",
+    "health-data isolation",
+    "Classroom preservation",
+    "OTA release identity"
+  ],
+  "preserveBehaviors": [
+    "Home Bahay and utility cards",
+    "All Classroom launch, student/faculty permissions and enrollment flows unchanged",
+    "No new medical permissions, backend migrations, token handoff, data copy or standalone Health Center deployment",
+    "Main Expo runtime, package, ads and bottom navigation unchanged"
+  ],
+  "regressionTests": [
+    "tests/health-center-doorway-20261109.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Home Health card one tap opens the exact standalone HTTPS URL",
+    "Profile Health route no longer shows integration-ready placeholder and offers retry/address if opening fails",
+    "No tokens or health data are attached to URL",
+    "Classroom existing door remains unchanged",
+    "No production OTA or web deployment until verified RC and release approval"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodHealthCenterLauncher.ts",
+    "src/app/profile/buklod-health.tsx",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
+    "tests/health-center-doorway-20261109.test.mjs",
+    ".buklod/scopes/health-center-doorway-20261109.json"
+  ]
+}

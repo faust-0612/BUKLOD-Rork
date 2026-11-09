@@ -1,8 +1,9 @@
 import React from 'react';
-import {Pressable,StyleSheet,Text,View} from 'react-native';
+import {Linking,Pressable,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {router} from 'expo-router';
 import {useBuklodTheme} from '@/providers/BuklodThemeProvider';
+import {launchBuklodHealthCenter} from '@/lib/buklodHealthCenterLauncher';
 
 /**
  * Home launchers reuse the real standalone modules. Never embed the complete
@@ -10,16 +11,25 @@ import {useBuklodTheme} from '@/providers/BuklodThemeProvider';
  */
 export default function BuklodHomeUtilityCards(){
   const {theme}=useBuklodTheme();
+  const healthOpeningRef=React.useRef(false);
+  const openCard=async (id:string,path:string)=>{
+    if(id!=='health') {router.push(path as any);return;}
+    if(healthOpeningRef.current)return;
+    healthOpeningRef.current=true;
+    try {await launchBuklodHealthCenter(url=>Linking.openURL(url));}
+    catch {router.push('/profile/buklod-health' as any);}
+    finally {healthOpeningRef.current=false;}
+  };
   const cards=[
     {id:'home',title:'My BUKLOD Home',description:'Family · chores · bills · notes · garden',
       action:'Open my home',icon:'home-heart' as const,path:'/personal-home'},
-    {id:'health',title:'Health Center',description:'BUKLOD Health · secured integration portal',
+    {id:'health',title:'Health Center',description:'Medicines · vitals · appointments · medical records',
       action:'Open Health Center',icon:'heart-pulse' as const,path:'/profile/buklod-health'},
   ];
   return <View style={s.grid} accessibilityLabel="BUKLOD Home dashboard apps">
     {cards.map((card,index)=><Pressable key={card.id}
       accessibilityRole="button" accessibilityLabel={card.action}
-      onPress={()=>router.push(card.path as any)}
+      onPress={()=>void openCard(card.id,card.path)}
       style={({pressed})=>[s.card,{
         backgroundColor:index===0?'#E0FFF7':'#FFF0FD',
         borderColor:index===0?'#00E6B5':'#F14AE0',
