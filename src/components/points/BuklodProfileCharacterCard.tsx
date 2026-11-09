@@ -619,11 +619,11 @@ export default function BuklodProfileCharacterCard({
 
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Open full ranking dashboard"
-                  onPress={() => router.push('/points')}
+                  accessibilityLabel="Open Circle Rank progression"
+                  onPress={() => router.push('/points/progression' as any)}
                 >
                   <Text style={styles.fullRankingText}>
-                    Full ranking →
+                    Circle progression →
                   </Text>
                 </Pressable>
               </View>
