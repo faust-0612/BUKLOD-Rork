@@ -6,6 +6,7 @@ const read = path => readFileSync(path, 'utf8');
 const home = read('src/components/BuklodCommunityContributionCard.tsx');
 const details = read('src/app/community-contribution.tsx');
 const earnings = read('src/components/BuklodUnifiedEarningsHomeCard.tsx');
+const scopeFund = read('src/components/BuklodScopeFundHomeCard.tsx');
 const source = read('src/lib/buklodCommunityContributionEconomy.ts');
 const admin = read('src/app/admin/economy-operations.tsx');
 
@@ -30,6 +31,7 @@ test('financial source processing and system admin inspection remain intact', ()
   assert.match(source, /getCommunityRevenueBreakdown/);
   assert.match(admin, /AdMob preliminary estimate/);
   assert.match(earnings, /get_my_buklod_financial_earnings_breakdown_v1/);
-  assert.match(earnings, /get_buklod_scope_revenue_fund_summary_v1/);
+  assert.doesNotMatch(earnings, /get_buklod_scope_revenue_fund_summary_v1/);
+  assert.match(scopeFund, /get_buklod_scope_revenue_fund_summary_v1/);
   assert.match(earnings, /router.push\('\/bayanihan\/payout-profile'/);
 });

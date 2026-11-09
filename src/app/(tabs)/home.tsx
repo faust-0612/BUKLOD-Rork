@@ -1,3 +1,10 @@
+/**
+ * @deprecated Retired PUBLIC Home implementation (DO NOT add features here).
+ * Active public route is /(tabs)/hub / BUKLOD Hub. The tab layout intercepts
+ * /home and redirects to that canonical route; scoped homes belong to /scope;
+ * household Bahay lives at /personal-home. This file is retained only for
+ * backward-compatibility review and old source contracts.
+ */
 import BuklodHomeCheckinToday from '@/components/BuklodHomeCheckinToday';
 import BuklodPublicCommunityBulletin from '@/components/BuklodPublicCommunityBulletin';
 import BuklodPremiumMusicDeck from '@/components/BuklodPremiumMusicDeck';

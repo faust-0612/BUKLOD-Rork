@@ -11,6 +11,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodContributionDestinationPicker from '@/components/BuklodContributionDestinationPicker';
+import BuklodUnifiedEarningsHomeCard from '@/components/BuklodUnifiedEarningsHomeCard';
 import { shared } from '@/components/UI';
 import {
   loadMyBuklodFinancialSummaryV3,
@@ -95,6 +97,7 @@ export default function BayanihanScreen() {
   const lastSyncedRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showEarningsSources, setShowEarningsSources] = useState(false);
   const [error, setError] = useState('');
   const [supportCode, setSupportCode] = useState<string | null>(null);
 
@@ -199,7 +202,6 @@ export default function BayanihanScreen() {
   const referral = summary?.referral ?? {};
   const community = summary?.community ?? {};
   const qmp = communityQmpMetrics(contribution);
-  const poolSharePct = Number(earnings.estimated_pool_share_pct ?? 0);
   const referralItems = Array.isArray(referral.items)
     ? referral.items
     : [];
@@ -290,6 +292,14 @@ export default function BayanihanScreen() {
             </View>
           </View>
 
+            {userId ? <BuklodContributionDestinationPicker
+              userId={userId}
+              selectedScopeId={community.selected ? community.scope_id ?? null : null}
+              lockedUntil={community.locked_until ?? null}
+              eligibleToSelect={earnings.user_pool_eligibility_active === true}
+              onChanged={() => { lastSyncedRef.current = 0; void load(true); }}
+            /> : null}
+
           <Section icon="star-circle-outline" title={t('economy.progressTitle')}>
             <Text style={styles.explainer}>
               {qmp ? `Community QMP · ${qmp.periodKey}` : 'Community QMP · not available'}
@@ -355,20 +365,6 @@ export default function BayanihanScreen() {
 
             <View style={styles.grid}>
               <Metric
-                label={t('economy.estimatedPoolShare')}
-                value={poolSharePct.toLocaleString(undefined, {
-                  maximumFractionDigits: 4,
-                }) + '%'}
-                note={earnings.user_pool_eligibility_active
-                  ? t('economy.estimate')
-                  : 'Financial pool eligibility not activated.'}
-              />
-              <Metric
-                label={t('economy.estimatedUserPool')}
-                value={formatPhp(Number(earnings.estimated_user_pool_php ?? 0))}
-                note={t('economy.estimate')}
-              />
-              <Metric
                 label={t('economy.estimatedEarnings')}
                 value={formatPhp(Number(earnings.estimated_earnings_php ?? 0))}
                 note={t('economy.estimate')}
@@ -396,7 +392,7 @@ export default function BayanihanScreen() {
             </View>
             <Text style={styles.explainer}>{t('economy.earningsNote')}</Text>
             <Text style={styles.explainer}>
-              One canonical finalized cash wallet holds eligible settled user revenue share, first-line and one-time referral rewards, and separately verified funded System Admin cash rewards. View your private source-by-source lifetime earnings from the Home earnings card. The available balance here alone can be withdrawn, subject to finance activation, the minimum, payout review and one full-balance reservation. Estimated AdMob revenue, QMP, Points, pending rewards and Organization/Cluster funds are not withdrawable.
+              One canonical finalized cash wallet holds eligible settled user revenue share, first-line and one-time referral rewards, and separately verified funded System Admin cash rewards. Your account-level earnings and payout status are managed here. The available balance here alone can be withdrawn, subject to finance activation, the minimum, payout review and one full-balance reservation. Estimated AdMob revenue, QMP, Points, pending rewards and Organization/Cluster funds are not withdrawable.
             </Text>
             <Text style={styles.explainer}>The preliminary AdMob Community QMP preview and finalized Financial Earnings are separate sources. Preliminary estimates and BUKLOD Points cannot be withdrawn.</Text>
             <View style={styles.actionRow}>
@@ -414,6 +410,17 @@ export default function BayanihanScreen() {
               </Pressable>
             </View>
           </Section>
+
+          <Pressable accessibilityRole="button"
+            accessibilityLabel="View personal lifetime earnings by source"
+            accessibilityState={{ expanded: showEarningsSources }}
+            onPress={() => setShowEarningsSources(current => !current)}
+            style={styles.actionSecondary}>
+            <Text style={styles.actionSecondaryText}>
+              {showEarningsSources ? 'HIDE LIFETIME EARNINGS SOURCES' : 'VIEW LIFETIME EARNINGS SOURCES'}
+            </Text>
+          </Pressable>
+          {showEarningsSources ? <BuklodUnifiedEarningsHomeCard compact={false} /> : null}
 
           <Section icon="account-plus-outline" title={t('economy.referralTitle')}>
             <View style={styles.grid}>
@@ -470,33 +477,8 @@ export default function BayanihanScreen() {
                     emphasis
                   />
                   <Metric
-                    label={t('economy.communityRate')}
-                    value={
-                      Number(community.allocation_pct ?? 0).toLocaleString(
-                        undefined,
-                        { maximumFractionDigits: 2 },
-                      ) + '%'
-                    }
-                  />
-                  <Metric
-                    label={t('economy.activeContributors')}
-                    value={formatNumber(Number(community.active_contributors ?? 0))}
-                  />
-                  <Metric
-                    label={t('economy.organizationThreshold')}
-                    value={formatNumber(Number(community.organization_threshold ?? 0))}
-                  />
-                  <Metric
-                    label={t('economy.availableFund')}
-                    value={formatPhp(Number(community.available_fund_php ?? 0))}
-                  />
-                  <Metric
-                    label={t('economy.reservedFund')}
-                    value={formatPhp(Number(community.reserved_fund_php ?? 0))}
-                  />
-                  <Metric
-                    label={t('economy.spentFund')}
-                    value={formatPhp(Number(community.spent_fund_php ?? 0))}
+                    label="Destination type"
+                    value={String(community.tier ?? 'Community')}
                   />
                 </View>
                 {community.locked_until ? (
@@ -511,6 +493,7 @@ export default function BayanihanScreen() {
               </View>
             )}
             <Text style={styles.explainer}>{t('economy.communityNotPersonal')}</Text>
+
           </Section>
 
           <View style={styles.safetyCard}>
