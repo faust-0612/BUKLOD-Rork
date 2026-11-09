@@ -199,6 +199,20 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
     }
 
     const normalized = answers.map((value) => value.trim());
+    const reflectionText = reflection.trim();
+    // Offline saving must support partial drafts; validation only runs online.
+    if (!online) {
+      if (!user?.id) return Alert.alert('Offline draft', 'Sign in to save this lesson draft.');
+      try {
+        await setOfflineCache('learning-lesson-answers-v1:' + lesson.id,
+          { answers, reflection },
+          { userId: user.id, ttlMs: 30 * 24 * 60 * 60 * 1000 });
+        Alert.alert('Saved Offline', 'Even incomplete answers are saved on this device. Reconnect and tap Complete Lesson to validate and submit for eligible points.');
+      } catch {
+        Alert.alert('Could not save offline', 'Device storage is unavailable. Copy your answers before leaving.');
+      }
+      return;
+    }
     if (normalized.length !== 4 || normalized.some((value) => value.length < 10)) {
       return Alert.alert(
         'Answer All Questions',
@@ -206,23 +220,10 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       );
     }
 
-    const reflectionText = reflection.trim();
     if (reflectionText.length < 20) {
       return Alert.alert('Personal Reflection', 'Write a Personal Reflection with at least 20 characters.');
     }
 
-    if (!online) {
-      if (!user?.id) return Alert.alert('Offline draft', 'Sign in to save this lesson draft.');
-      try {
-        await setOfflineCache('learning-lesson-answers-v1:' + lesson.id,
-          { answers: normalized, reflection: reflectionText },
-          { userId: user.id, ttlMs: 30 * 24 * 60 * 60 * 1000 });
-        Alert.alert('Saved Offline', 'Answers and reflection are saved on this device. Reconnect and tap Complete Lesson to validate, submit, and earn eligible points.');
-      } catch {
-        Alert.alert('Could not save offline', 'Device storage is unavailable. Copy your answers before leaving.');
-      }
-      return;
-    }
     const validated = await validateAllFields(normalized, reflectionText);
     if (!validated) {
       return Alert.alert(
