@@ -1,0 +1,43 @@
+name: BUKLOD Main BSOC member thread isolated DEV QA
+on:
+  push:
+    branches: [dev/bsoc-member-support-continuity-20261109]
+    paths:
+      - 'src/app/support/live.tsx'
+      - 'src/lib/buklodNotificationNavigation.ts'
+      - 'supabase/migrations/20261109173000_bsoc_member_reopen_existing_thread_v1.sql'
+      - '.github/workflows/bsoc-member-thread-dev-qa-20261109.yml'
+permissions:
+  contents: read
+jobs:
+  member-thread:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secure continuity and single-thread behavior
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const s=fs.readFileSync('src/app/support/live.tsx','utf8');
+          const nav=fs.readFileSync('src/lib/buklodNotificationNavigation.ts','utf8');
+          const sql=fs.readFileSync('supabase/migrations/20261109173000_bsoc_member_reopen_existing_thread_v1.sql','utf8');
+          for(const x of ['useLocalSearchParams','handledDeepLink','Your support conversations','Your original conversation was reopened','setCaseId(item.id)',"\.eq('user_id',user.id)",'sender_kind:\'member\''])
+            if(!s.includes(x.replace('\\.','.') ))throw Error('Member continuity contract missing '+x);
+          if(!nav.includes("normalizedKind === 'bsoc_support'")||!nav.includes('case_id='+ ''))throw Error('Deep link exact target missing');
+          for(const x of ['user_id=actor for update',"support_case.status='closed'","status='in_progress'","bsoc_case_messages"])
+            if(!sql.includes(x))throw Error('Secure reopen contract missing '+x);
+          if(!sql.includes('p_client_nonce uuid')||!sql.includes('auth.uid()'))throw Error('Reopen idempotency/ownership missing');
+          console.log('BUKLOD main support continuity contract verified; no OTA published.');
+          NODE
+      - name: Run existing BSOC native security regressions
+        run: node --test tests/bsoc-auth-privacy-20261108.test.mjs tests/bsoc-append-only-acl-20261108.test.mjs tests/buklod-home-profile-support-20261108.test.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Pinned install
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript source check
+        run: npx --no-install tsc --noEmit --pretty false
