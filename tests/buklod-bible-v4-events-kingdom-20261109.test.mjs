@@ -120,3 +120,13 @@ test('V4 audited daily and event hardening closes cross-version race and repeats
  assert.match(v4Audit,/order by random_key limit v_limit/,'event has a bounded randomized question set');
  assert.match(v4Audit,/v_count<>v_limit/,'fail closed if the bank is insufficient');
 });
+
+const bibleLegacyFeedback=read('supabase/migrations/20261109161407_buklod_bible_v4_legacy_scripture_feedback_20261109.sql');
+test('all original R3 trivia now has evidence-backed V4 feedback without modifying R3',()=>{
+ assert.match(bibleLegacyFeedback,/scripture_reference=v\.reference/);
+ assert.match(bibleLegacyFeedback,/rationale=v\.explanation/);
+ assert.match(bibleLegacyFeedback,/private\.buklod_bible_v4_questions/);
+ assert.doesNotMatch(bibleLegacyFeedback,/update private\.buklod_r2_bible_quiz_questions/i);
+ assert.match(bibleLegacyFeedback,/Mga Gawa 13:9/);
+ assert.match(bibleLegacyFeedback,/Genesis 11:28, 31/);
+});
