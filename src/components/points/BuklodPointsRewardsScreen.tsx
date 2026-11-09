@@ -1141,7 +1141,7 @@ export default function BuklodPointsRewardsScreen() {
             marginTop: 9, gap: 8,
           }}
         >
-          <MaterialCommunityIcons name="chart-timeline-variant-shimmer" size={20} color={COLORS.green} />
+          <MaterialCommunityIcons name="chart-line" size={20} color={COLORS.green} />
           <Text style={{ color: COLORS.green, fontSize: 13, fontWeight: '900' }}>
             VIEW 40-RANK PROGRESSION
           </Text>
