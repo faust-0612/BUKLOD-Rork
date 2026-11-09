@@ -291,6 +291,14 @@ export default function BayanihanScreen() {
             </View>
           </View>
 
+            {userId ? <BuklodContributionDestinationPicker
+              userId={userId}
+              selectedScopeId={community.selected ? community.scope_id ?? null : null}
+              lockedUntil={community.locked_until ?? null}
+              eligibleToSelect={earnings.user_pool_eligibility_active === true}
+              onChanged={() => { lastSyncedRef.current = 0; void load(true); }}
+            /> : null}
+
           <Section icon="star-circle-outline" title={t('economy.progressTitle')}>
             <Text style={styles.explainer}>
               {qmp ? `Community QMP · ${qmp.periodKey}` : 'Community QMP · not available'}
@@ -512,13 +520,7 @@ export default function BayanihanScreen() {
               </View>
             )}
             <Text style={styles.explainer}>{t('economy.communityNotPersonal')}</Text>
-            {userId ? <BuklodContributionDestinationPicker
-              userId={userId}
-              selectedScopeId={community.selected ? community.scope_id ?? null : null}
-              lockedUntil={community.locked_until ?? null}
-              eligibleToSelect={earnings.user_pool_eligibility_active === true}
-              onChanged={() => { lastSyncedRef.current = 0; void load(true); }}
-            /> : null}
+
           </Section>
 
           <View style={styles.safetyCard}>
