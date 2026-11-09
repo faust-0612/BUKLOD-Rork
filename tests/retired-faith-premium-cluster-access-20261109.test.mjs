@@ -6,7 +6,7 @@ import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = path => readFileSync(resolve(root, path), 'utf8');
-const migration = read('supabase/migrations/20261109121500_retire_faith_premium_cluster_access.sql');
+const migration = read('supabase/migrations/20261109104024_retire_faith_premium_cluster_access_20261109.sql');
 const today = migration.split('CREATE OR REPLACE FUNCTION public.get_automatic_bible_today()')[1]?.split('CREATE OR REPLACE FUNCTION public.buklod_daily_bible_submission_requires_cluster_premium_v1()')[0] ?? '';
 const submission = migration.split('CREATE OR REPLACE FUNCTION public.buklod_daily_bible_submission_requires_cluster_premium_v1()')[1]?.split('CREATE OR REPLACE FUNCTION public.buklod_scope_faith_access_status_v1(')[0] ?? '';
 const faith = migration.split('CREATE OR REPLACE FUNCTION public.buklod_scope_faith_access_status_v1(')[1]?.split('CREATE OR REPLACE FUNCTION public.buklod_scope_lesson_stage_unlocked_v1(')[0] ?? '';
