@@ -25,3 +25,8 @@ Base main: `97d037834bcba86e27cc50e067cbefb31cd14125`
 - DEV only. The production database additive schema is active, but code has **not** been merged to main, deployed to web, OTA-published, or included in a new APK/AAB.
 - Reconcile current main + other consolidated RC changes; run focused Node tests and TypeScript build, confirm current Expo runtime, perform critical Android/web preview smoke tests, freeze verified RC, then publish through authorized DEV -> RC -> Production OTA gate.
 - Keep the existing 41 tracks in Others until the System Admin categorizes them; never auto-classify by title or overwrite existing audio.
+
+## Nov09 consolidated RC evidence update
+- Consolidated candidate PR: #605; includes independent rank badges, private notifications/PTT, personal earnings UI, and one coherent offline faith prefetch implementation.
+- Earlier PR #604 caught a real JSX parser failure at admin Music Library and missing engineering coverage; these were fixed in the candidate before rerunning QA.
+- Do not claim production release from PR status alone. Require new exact-head compiled checks, approved source merge, successful Android publication evidence and Expo Hosting deploy evidence.
