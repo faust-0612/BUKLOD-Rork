@@ -35,6 +35,7 @@ export default function LiveSupport(){
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const requestSequence=useRef(0);
+  const handledDeepLink=useRef<string|null>(null);
 
   const loadCases=useCallback(async()=>{
     const {data:{user}}=await supabase.auth.getUser();
@@ -50,7 +51,10 @@ export default function LiveSupport(){
         setError('The requested support case is not available for this account.');
       setCaseId(current=>{
         if(creatingNew)return '';
-        if(requestedCaseId&&rows.some(x=>x.id===requestedCaseId))return requestedCaseId;
+        if(requestedCaseId&&handledDeepLink.current!==requestedCaseId&&rows.some(x=>x.id===requestedCaseId)){
+          handledDeepLink.current=requestedCaseId;
+          return requestedCaseId;
+        }
         if(current&&rows.some(x=>x.id===current))return current;
         return rows.find(x=>!['closed','resolved'].includes(x.status))?.id??
           rows.find(x=>x.status!=='closed')?.id??rows[0]?.id??'';
