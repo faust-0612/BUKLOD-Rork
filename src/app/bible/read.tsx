@@ -1391,6 +1391,11 @@ const [showChapters, setShowChapters] =
         if (!hasSaved) throw new Error('No Bible reader data saved on this device. Connect once to download it.');
         return;
       }
+      // Reader preferences and available translations are stable enough to
+      // refresh once daily; reading sessions are still checked per online use.
+      if (hasSaved && cached && Date.now() - cached.storedAt < 24 * 60 * 60 * 1000) {
+        return;
+      }
       const [translationsResult, preferredResult, recentResult] = await Promise.all([
         (supabase as any).rpc('get_available_bible_translations'),
         (supabase as any).rpc('get_my_preferred_bible_version'),
