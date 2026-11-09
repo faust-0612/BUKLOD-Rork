@@ -102,7 +102,6 @@ export default function CircleRankProgressionScreen() {
 
   const percent = Math.min(100, Math.max(0, number(progress?.progress_percent)));
   const currentOrder = number(progress?.rank_order);
-  let previousFamily = '';
 
   return (
     <ScrollView
@@ -164,7 +163,7 @@ export default function CircleRankProgressionScreen() {
               accessibilityValue={{ min: 0, max: 100, now: percent }}
               style={styles.track}
             >
-              <View style={[styles.trackFill, { width: percent + '%' }]} />
+              <View style={[styles.trackFill, { width: `${percent}%` as `${number}%` }]} />
             </View>
             <Text style={styles.nextRank}>
               {progress.next_rank_name
@@ -186,9 +185,8 @@ export default function CircleRankProgressionScreen() {
             </Text>
           </View>
 
-          {ladder.map((item) => {
-            const familyHeading = previousFamily !== item.rank_family;
-            previousFamily = item.rank_family;
+          {ladder.map((item, index) => {
+            const familyHeading = index === 0 || ladder[index - 1].rank_family !== item.rank_family;
             const order = number(item.rank_order);
             const achieved = order < currentOrder;
             const current = order === currentOrder;
