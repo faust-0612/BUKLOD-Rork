@@ -80,10 +80,16 @@ test('Points screen and Economy use account-isolated short caches and explicit r
 
 test('Consolidated November OTA candidate triggers exact-branch Android and web compile without publish',()=>{
   const workflow=read('.github/workflows/unified_rc_compiled_qa_20261108.yml');
-  assert.match(workflow,/github\\.head_ref == 'fix\\/ota-nov09-drawer-kl-music-economy'/);
-  assert.match(workflow,/github\\.event\\.pull_request\\.head\\.sha/);
-  assert.match(workflow,/assert\\.equal\\(c\\.runtimeVersion,'1\\.3\\.2'\\)/);
-  assert.match(workflow,/npx expo export --platform android/);
-  assert.match(workflow,/npx expo export --platform web/);
+  assert.ok(workflow.includes("github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy'"));
+  assert.ok(workflow.includes('github.event.pull_request.head.sha'));
+  assert.ok(workflow.includes("assert.equal(c.runtimeVersion,'1.3.2')"));
+  assert.ok(workflow.includes('npx expo export --platform android'));
+  assert.ok(workflow.includes('npx expo export --platform web'));
   assert.doesNotMatch(workflow,/eas update --branch|eas submit --platform|eas build --platform/);
+});
+
+test('Points renders account-scoped state and does not leak a previous login snapshot',()=>{
+  assert.match(points,/function AccountScopedBuklodPointsRewards/);
+  assert.ok(points.includes("key={accountId || 'signed-out'}"));
+  assert.ok(points.includes('pointsViewCache.get(accountId)'));
 });
