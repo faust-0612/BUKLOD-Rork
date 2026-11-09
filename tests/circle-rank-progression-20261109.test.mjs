@@ -24,7 +24,7 @@ test('Circle Rank roadmap reads the canonical 40-rank ladder and authenticated p
   assert.match(route, /item\.max_points/);
   assert.match(route, /progress\.points_to_next/);
   assert.match(route, /progress\.next_rank_name/);
-  assert.match(route, /progress\.progress_percent/);
+  assert.match(route, /progress\?\.progress_percent/);
   assert.doesNotMatch(route, /get_buklod_points_leaderboard/);
 });
 
