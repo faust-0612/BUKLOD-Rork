@@ -26,8 +26,9 @@ export default function NotificationCenter(){
  const {unreadCount,refreshUnread,markAllRead}=useNotifications();
  const [items,setItems]=useState<any[]>([]),[loading,setLoading]=useState(false),[busyId,setBusyId]=useState<string|null>(null);
  const faithEnabled=activeScope?.show_faith_content===true;
+ // Routine PTT belongs to the live PTT channel, not the notification inbox.
  const load=useCallback(async()=>{if(!user?.id)return;setLoading(true);
-  let query=supabase.from('notifications').select('id,title,body,kind,data,read_at,created_at').eq('user_id',user.id);
+  let query=supabase.from('notifications').select('id,title,body,kind,data,read_at,created_at').eq('user_id',user.id).neq('kind','ptt_incoming');
   if(!faithEnabled){for(const pattern of FAITH_NOTIFICATION_PATTERNS){query=query.not('kind','ilike',pattern)}}
   const {data,error}=await query.order('created_at',{ascending:false}).limit(150);
   if(error){setLoading(false);return Alert.alert('Notifications',error.message);}
