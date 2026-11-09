@@ -438,7 +438,7 @@ export default function BuklodScopeFaithMonitoringAdminFeedbackCard({
             </View>
           ) : null}
         </>
-      )}
+      ) : null}
     </View>
   );
 }
