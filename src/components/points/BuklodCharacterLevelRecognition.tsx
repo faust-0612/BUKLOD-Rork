@@ -34,10 +34,10 @@ export default function BuklodCharacterLevelRecognition({ userId, selection }: P
         const saved = await AsyncStorage.getItem(key);
         if (id !== revision.current) return;
         const previous = saved === null ? null : Number(saved);
-        if (saved === null || (Number.isFinite(previous) && level > previous)) {
+        if (saved === null || (previous !== null && Number.isFinite(previous) && level > previous)) {
           await AsyncStorage.setItem(key, String(level));
         }
-        if (id === revision.current && saved !== null &&
+        if (id === revision.current && previous !== null &&
             Number.isFinite(previous) && level > previous) {
           setUnlocked({
             name: CHARACTER_DISPLAY_NAME[characterId],

@@ -42,14 +42,6 @@
     "circle-rank-badge-recognition"
   ],
   "regressionTests": [
-    "supabase/tests/kl_reader_referral_ota_reconciliation_20261109.sql",
-    "tests/kl-reader-ota-referral-points-20261109.test.mjs",
-    "tests/wall-media-navigation-polish-20261108.test.mjs",
-    "tests/circle-rank-progression-20261109.test.mjs",
-    "tests/ota-navigation-scroll-polish-20261108.test.mjs",
-    "tests/cluster-dashboard-modern-navigation-20261107.test.mjs",
-    "tests/cluster-compact-colorful-20261109.test.mjs",
-    "tests/buklod-earnings-final-source-clarity-20261109.test.mjs",
     "tests/circle-rank-badges-recognition-20261109.test.mjs"
   ],
   "allowedPaths": [
