@@ -155,8 +155,8 @@ export default function BuklodR38PayoutProfileScreen() {
     if (!canRequest || !profile) return;
 
     Alert.alert(
-      'Request Full Referral Balance?',
-      `${formatPhp(availableCash)} of finalized BUKLOD Economy cash will be reserved for manual payout to ${profile.payout_method} ${profile.destination_masked}. BUKLOD Points are not used or deducted.`,
+      'Request all available finalized cash?',
+      `${formatPhp(availableCash)} of AVAILABLE finalized BUKLOD cash will be reserved for manual payout to ${profile.payout_method} ${profile.destination_masked}. It can include settled revenue share, finalized referral earnings, and verified funded System Admin rewards. Preliminary AdMob estimates, pending rewards, Points, and Organization/Cluster funds are excluded.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -334,7 +334,7 @@ export default function BuklodR38PayoutProfileScreen() {
               <Text style={styles.statusText}>{gateText}</Text>
             </View>
             <Text style={styles.muted}>
-              Phase 1 uses full-balance withdrawal only. Partial withdrawal is not allowed. The request reserves finalized BUKLOD Economy cash for manual review and payout.
+              ONE canonical full-balance withdrawal only: eligible finalized revenue-share, referral earnings and funded System Admin rewards share the same AVAILABLE wallet. Partial withdrawal is not allowed. Pending/referral estimates, AdMob preliminary QMP shares, Points, and Organization/Cluster funds are not withdrawable. Requests reserve cash once for review and actual payment.
             </Text>
             <Pressable
               disabled={!canRequest}
