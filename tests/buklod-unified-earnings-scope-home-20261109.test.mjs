@@ -21,6 +21,12 @@ test('all three Home entry points show the same authenticated user wallet', () =
 
 test('estimated source cannot masquerade as available cash or Organization funds', () => {
   assert.match(wallet, /cash\?\.cash_status\?\.available_php/);
+  assert.match(wallet, /ACCUMULATED AVAILABLE CASH/);
+  assert.match(wallet, /LIFETIME FINALIZED EARNINGS/);
+  assert.match(wallet, /cash\.lifetime_earned\?\.total_php/);
+  assert.match(wallet, /Finalized cash carries across months until withdrawn/);
+  assert.match(wallet, /THIS MONTH · PRELIMINARY COMMUNITY REVENUE SHARE/);
+  assert.match(wallet, /historical finalized cash carries forward separately/);
   assert.match(wallet, /contribution\.estimate_below_cent/);
   assert.match(wallet, /Not finalized, funded, or withdrawable/);
   assert.match(wallet, /Personal account only/);
