@@ -146,6 +146,8 @@ function ClusterCard({
         : null;
   return (
     <View style={styles.card}>
+      <View pointerEvents="none" style={[styles.cardColorLayer, { backgroundColor: accent.surface, borderColor: accent.border }]} />
+      <View pointerEvents="none" style={[styles.cardAccentBar, { backgroundColor: accent.action }]} />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={canOpen ? 'Open cluster ' + item.name : 'Cluster ' + item.name}
@@ -217,8 +219,10 @@ function DashboardMetric({
     >
       <MaterialCommunityIcons name={icon} size={18}
         color={selected ? '#F0FFF6' : '#4A8169'} />
-      <Text style={[styles.metricCount, selected && styles.metricTextActive]}>{count}</Text>
-      <Text style={[styles.metricTitle, selected && styles.metricTextActive]}>{title}</Text>
+      <View style={styles.metricTextColumn}>
+        <Text style={[styles.metricCount, selected && styles.metricTextActive]}>{count}</Text>
+        <Text style={[styles.metricTitle, selected && styles.metricTextActive]}>{title}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -546,7 +550,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
           <View style={styles.heroCopy}>
             <Text style={styles.eyebrow}>BUKLOD · COMMUNITY</Text>
             <Text style={styles.title}>Your Clusters</Text>
-            <Text style={styles.subtitle}>Your communities, together in one place.</Text>
+            <Text numberOfLines={1} style={styles.subtitle}>Your communities in one place</Text>
           </View>
           <Pressable
             accessibilityRole="button"
@@ -567,8 +571,6 @@ function ClusterDirectory({ owner }: { owner: string }) {
             selected={section === 'pending'} onPress={() => setSection('pending')} />
         </View>
       </View>
-
-      <BuklodFirstViewAd placement="cluster" placementId="cluster_directory_first_view" />
 
       {!online ? (
         <View style={styles.feedback}>
@@ -619,6 +621,10 @@ function ClusterDirectory({ owner }: { owner: string }) {
           })}
         </ScrollView>
       </View>
+
+      {(section !== 'mine' || filteredMyClusters.length === 0) ? (
+        <BuklodFirstViewAd placement="cluster" placementId="cluster_directory_first_view" />
+      ) : null}
 
       {loading && visibleMyClusters.length === 0 && online ? (
         <View style={styles.loading}>
@@ -679,15 +685,18 @@ function ClusterDirectory({ owner }: { owner: string }) {
             </View>
           ) : (
             <>
-              {(showAllMyClusters || myQuery.trim() ? filteredMyClusters : filteredMyClusters.slice(0, 8)).map(item => (
-                <ClusterCard key={item.scope_id} item={item} onOpen={openCluster}>
-                  <ActionButton title="Open"
+              {(showAllMyClusters || myQuery.trim() ? filteredMyClusters : filteredMyClusters.slice(0, 8)).map((item, index) => (
+                <React.Fragment key={item.scope_id}>
+                <ClusterCard item={item} onOpen={openCluster}>
+                  <ActionButton title="Open" tone={getStableBuklodCardTone(item.scope_id)}
                     onPress={() => openCluster(item.scope_id)} />
                   {item.is_admin ? (
                     <ActionButton title="Manage" outline tone={getStableBuklodCardTone(item.scope_id)}
                       onPress={() => router.push(clusterScopeManageRoute(item.scope_id, item.name) as any)} />
                   ) : null}
                 </ClusterCard>
+                {index === 0 ? <BuklodFirstViewAd placement="cluster" placementId="cluster_directory_first_view" /> : null}
+                </React.Fragment>
               ))}
               {!myQuery.trim() && filteredMyClusters.length > 8 ? (
                 <Pressable accessibilityRole="button"
@@ -827,43 +836,44 @@ function ClusterDirectory({ owner }: { owner: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F5F7F6' },
-  content: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 32, gap: 12 },
+  content: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 24, gap: 7 },
   hero: {
-    borderRadius: 22, borderWidth: 1, borderColor: '#DCE9E1',
-    backgroundColor: '#FFFFFF', padding: 16, gap: 16,
+    borderRadius: 18, borderWidth: 1, borderColor: '#DCE9E1',
+    backgroundColor: '#FFFFFF', padding: 12, gap: 9,
   },
   heroHeading: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12,
   },
-  heroCopy: { flex: 1, minWidth: 0, gap: 4 },
-  eyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1.4, color: '#257A52' },
-  title: { fontSize: 25, fontWeight: '900', letterSpacing: -0.5, color: '#123A2B' },
-  subtitle: { fontSize: 12, lineHeight: 17, color: '#718078' },
+  heroCopy: { flex: 1, minWidth: 0, gap: 2 },
+  eyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1.1, color: '#257A52' },
+  title: { fontSize: 21, fontWeight: '900', letterSpacing: -0.5, color: '#123A2B' },
+  subtitle: { fontSize: 11, lineHeight: 15, color: '#718078' },
   createClusterCompact: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#145B3B', borderRadius: 13,
     paddingHorizontal: 13, minHeight: 44, justifyContent: 'center',
   },
   createClusterCompactText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
-  metricRow: { flexDirection: 'row', gap: 8 },
+  metricRow: { flexDirection: 'row', gap: 6 },
   metricTile: {
-    flex: 1, minWidth: 0, paddingVertical: 11, paddingHorizontal: 6,
-    alignItems: 'center', justifyContent: 'center', gap: 3,
-    borderRadius: 14, backgroundColor: '#F2F7F3', borderWidth: 1,
+    flex: 1, minWidth: 0, minHeight: 52, paddingVertical: 7, paddingHorizontal: 7,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    borderRadius: 12, backgroundColor: '#F2F7F3', borderWidth: 1,
     borderColor: '#E7EFE9',
   },
   metricTileActive: { backgroundColor: '#19633F', borderColor: '#19633F' },
-  metricCount: { fontSize: 19, fontWeight: '900', color: '#1D4A33' },
+  metricTextColumn: { minWidth: 0, alignItems: 'flex-start', gap: 1 },
+  metricCount: { fontSize: 17, fontWeight: '900', color: '#1D4A33' },
   metricTitle: { fontSize: 10, fontWeight: '800', color: '#61766A' },
   metricTextActive: { color: '#FFFFFF' },
   sectionNavigation: {
     borderRadius: 16, borderWidth: 1, borderColor: '#E0E9E3',
     backgroundColor: '#FFFFFF', overflow: 'hidden',
   },
-  sectionNavigationInner: { paddingHorizontal: 7, paddingVertical: 7, gap: 5, alignItems: 'center' },
+  sectionNavigationInner: { paddingHorizontal: 5, paddingVertical: 5, gap: 3, alignItems: 'center' },
   tab: {
     minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, borderRadius: 12, justifyContent: 'center',
+    paddingHorizontal: 10, borderRadius: 10, justifyContent: 'center',
   },
   tabSelected: { backgroundColor: '#145B3B' },
   tabText: { fontSize: 12, color: '#52695C', fontWeight: '800' },
@@ -874,43 +884,45 @@ const styles = StyleSheet.create({
   },
   tabCountPillSelected: { backgroundColor: 'rgba(255,255,255,0.17)' },
   tabCountText: { fontSize: 10, fontWeight: '900', color: '#236042' },
-  directorySection: { gap: 9 },
+  directorySection: { gap: 7 },
   sectionHeading: {
-    paddingHorizontal: 2, paddingTop: 4, flexDirection: 'row',
+    paddingHorizontal: 2, paddingTop: 2, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'space-between', gap: 10,
   },
-  sectionTitle: { fontSize: 17, fontWeight: '900', color: '#193C2D' },
+  sectionTitle: { fontSize: 16, fontWeight: '900', color: '#193C2D' },
   sectionNote: { fontSize: 11, lineHeight: 16, color: '#7C8B82', marginTop: 3 },
   sectionCount: { fontSize: 11, fontWeight: '800', color: '#2D7751' },
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16,
+    backgroundColor: '#FFFFFF', borderRadius: 14, overflow: 'hidden',
     borderWidth: 1, borderColor: '#E1E8E3',
-    paddingHorizontal: 12, paddingVertical: 11, gap: 6,
+    paddingHorizontal: 10, paddingVertical: 9, gap: 4,
   },
-  cardHeadPress: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
+  cardColorLayer: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 14, borderWidth: 1 },
+  cardAccentBar: { position: 'absolute', top: 9, bottom: 9, left: 0, width: 3, borderRadius: 3 },
+  cardHeadPress: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 42 },
   clusterIcon: {
-    width: 44, height: 44, borderRadius: 14,
+    width: 40, height: 40, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
   },
-  clusterIconPhoto:{width:44,height:44,borderRadius:14},
-  cardBody: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 3 },
+  clusterIconPhoto:{width:40,height:40,borderRadius:12},
+  cardBody: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 2 },
   cardRight: { alignItems: 'flex-end', justifyContent: 'center', gap: 3 },
-  cardTitle: { fontSize: 14, lineHeight: 19, fontWeight: '900', color: '#19392A' },
-  cardMeta: { fontSize: 11, lineHeight: 15, color: '#73867C' },
-  description: { color: '#61736A', fontSize: 11, paddingLeft: 54 },
+  cardTitle: { fontSize: 13, lineHeight: 18, fontWeight: '900', color: '#19392A' },
+  cardMeta: { fontSize: 10.5, lineHeight: 14, color: '#73867C' },
+  description: { color: '#53685D', fontSize: 10.5, lineHeight: 14, paddingLeft: 48 },
   cardBottom: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    gap: 7, paddingLeft: 54,
+    gap: 5, paddingLeft: 0,
   },
   roleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 0 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  membership: { fontSize: 11, fontWeight: '800', color: '#3A7960' },
-  badge: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4 },
+  membership: { fontSize: 10.5, fontWeight: '800', color: '#3A7960' },
+  badge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
   badgeText: { fontSize: 9, fontWeight: '900' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'flex-end' },
   actionButton: {
-    minHeight: 34, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#206447', paddingHorizontal: 12, borderRadius: 10,
+    minHeight: 36, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#206447', paddingHorizontal: 10, borderRadius: 9,
   },
   actionButtonOutline: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#B4D3BF' },
   actionButtonDanger: { backgroundColor: '#A84242' },
@@ -919,10 +931,10 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   searchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    minHeight: 46, borderWidth: 1, borderColor: '#E0E8E2',
+    minHeight: 42, borderWidth: 1, borderColor: '#E0E8E2',
     borderRadius: 13, backgroundColor: '#FFFFFF', paddingHorizontal: 12,
   },
-  search: { flex: 1, minHeight: 44, padding: 0, fontSize: 13, color: '#183E2D' },
+  search: { flex: 1, minHeight: 40, padding: 0, fontSize: 13, color: '#183E2D' },
   searchHint: { fontSize: 11, color: '#6C8274', paddingHorizontal: 3 },
   moreButton: {
     minHeight: 44, flexDirection: 'row', gap: 6,
@@ -939,10 +951,10 @@ const styles = StyleSheet.create({
   retryLink: { fontSize: 12, fontWeight: '900', color: '#155D3D' },
   empty: {
     backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E8E3',
-    borderRadius: 16, alignItems: 'center', paddingVertical: 22,
+    borderRadius: 14, alignItems: 'center', paddingVertical: 16,
     paddingHorizontal: 16, gap: 9,
   },
   emptyTitle: { fontSize: 14, fontWeight: '900', color: '#234A35', textAlign: 'center' },
   muted: { color: '#798980', fontSize: 12, textAlign: 'center', lineHeight: 18 },
-  loading: { padding: 24, alignItems: 'center', gap: 10 },
+  loading: { padding: 16, alignItems: 'center', gap: 8 },
 });

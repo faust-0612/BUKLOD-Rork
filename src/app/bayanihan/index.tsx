@@ -395,6 +395,9 @@ export default function BayanihanScreen() {
               />
             </View>
             <Text style={styles.explainer}>{t('economy.earningsNote')}</Text>
+            <Text style={styles.explainer}>
+              One canonical finalized cash wallet holds eligible settled user revenue share, first-line and one-time referral rewards, and separately verified funded System Admin cash rewards. View your private source-by-source lifetime earnings from the Home earnings card. The available balance here alone can be withdrawn, subject to finance activation, the minimum, payout review and one full-balance reservation. Estimated AdMob revenue, QMP, Points, pending rewards and Organization/Cluster funds are not withdrawable.
+            </Text>
             <Text style={styles.explainer}>The preliminary AdMob Community QMP preview and finalized Financial Earnings are separate sources. Preliminary estimates and BUKLOD Points cannot be withdrawn.</Text>
             <View style={styles.actionRow}>
               <Pressable

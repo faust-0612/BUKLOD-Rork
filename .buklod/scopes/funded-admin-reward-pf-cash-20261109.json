@@ -1,0 +1,53 @@
+{
+  "contractVersion": 2,
+  "objective": "Prepare one unified funded-cash withdrawal source including verified System Admin to user funded rewards alongside finalized user-pool, first-line referral and one-time referral rewards. Record external receipts separately and require manual verification, gated activation, atomic/idempotent budget debit and canonical person cash credit; never transfer noncash QMP/Points/scope funds.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: BUKLOD Connect production Supabase on 2026-11-09 has private.buklod_pf_cash_ledger with AVAILABLE/RESERVED/PAID and entry_type ADMIN_CORRECTION; public.request_my_buklod_pf_withdrawal_v2 locks the exact person row FOR UPDATE and reserves entire positive PF AVAILABLE cash in one idempotent canonical Profit-First V3 withdrawal. Current economics_enabled=false, settlement_enabled=false, withdrawal_enabled=false, payout_processing_enabled=false and minimum_withdrawal_centavos=20000 (PHP200). No external admin cash funding verification/escrow exists, and legacy admin_reward_member_bayanihan_v2 explicitly disallows money writes. Existing authenticated read get_my_buklod_financial_earnings_breakdown_v1 includes lifetime user pool/first-line/one-time referral and PF available/reserved/paid without admin funded reward. User source files main were reconciled before branch: src/app/admin/economy-operations.tsx old unchanged; prior PR #596 adds read-only personal/scope Home card, no shared files with this grant PR. This PR does NOT assert that a real external bank receipt was independently verified or finance controls can be activated.",
+  "allowedPaths": [
+    ".buklod/scopes/funded-admin-reward-pf-cash-20261109.json",
+    "supabase/migrations/20261109030000_buklod_pf_funded_admin_cash_rewards_v1.sql",
+    "supabase/migrations/20261109032000_buklod_pf_admin_reward_breakdown_v1.sql",
+    "src/app/admin/funded-rewards.tsx",
+    "src/app/admin/economy-operations.tsx",
+    "tests/buklod-pf-funded-admin-reward-contract-20261109.test.mjs",
+    "supabase/tests/buklod_pf_funded_admin_reward_privacy_contract_20261109.sql"
+  ],
+  "acceptanceChecks": [
+    "All admin funding and transfer APIs require authenticated system admin, and private ledger/budgets reject anon/authenticated direct table writes",
+    "Funding starts PENDING with external transaction+receipt reference and manual attestation; no spendable user cash created on registration or verification",
+    "System Admin rewards default OFF and fail closed when Profit First economics OFF; never auto-switch on real money payouts",
+    "One verified funded source is atomically debited with remaining>=award and recipient canonical PF AVAILABLE credited in same DB transaction",
+    "Request keys unique and consistent for retry, recipient person row locked same as full-balance PF withdrawal to avoid races",
+    "Rewards included in existing unified PF cash available/withdrawal only when funded; no new payout engine or extra withdrawal process",
+    "One per-user lifetime admin funded reward amount added read-only while prior source breakdown remains unchanged and private",
+    "Admin UI supports receipt, verify, recipient search, grant and explicit enable/disable; admin control cannot silently bypass finance flags",
+    "Repo QA and DB privacy contract pass, source provenance recorded, no actual transfer or bank verification without external funding evidence"
+  ],
+  "chosenApproach": "Build an additive, default-disabled dedicated admin reward budget with external receipt and two-step admin verification, a serialized verified-budget debit and exactly-once PF ADMIN_CORRECTION credit tagged ADMIN_FUNDED_REWARD, an admin console and read-only private lifetime reward breakdown. Existing PROFIT_FIRST_V3 payout remains sole withdrawal queue; do not change minimum/flags.",
+  "selectionRationale": "Profit First V3 already safely mixes all funded final cash in its AVAILABLE ledger and one idempotent withdrawal. Adding a funded source under the existing ledger prevents competing payout pipelines and protects noncash Points/AdMob and scope treasury from minting money.",
+  "alternativeApproaches": [
+    "Directly credit user wallet from QMP, points, estimated revenue or admin button: rejected, unfunded cash creation",
+    "Build separate admin reward payout system or merge scope treasury into personal cash: rejected, conflicting ledgers and double withdrawals",
+    "Require separately recorded external funding and manually verified proof, preserve atomic funded-budget debit and canonical PF credits under default-OFF controls: chosen"
+  ],
+  "preserveBehaviors": [
+    "Canonical existing PF V3 full-balance request, payout identity, replay and queue unchanged",
+    "Existing PF user pool and referral earned/payout rules unchanged",
+    "No Point, AdMob estimate, rewards or scope fund converted automatically to cash",
+    "Default production payout, economics, reward funding controls remain off; creating tables/RPCs performs no user credit",
+    "Member account data protected, admin user picker uses existing admin-only search RPC",
+    "No actual bank verification claim; manual receipt review is an explicit admin attestation",
+    "No OTA or web production release; RC and exact artifact verification required separately"
+  ],
+  "riskAreas": [
+    "cash-funding-integrity",
+    "identity-privacy",
+    "admin-authorization",
+    "withdrawal-concurrency",
+    "payout-gates"
+  ],
+  "regressionTests": [
+    "tests/buklod-pf-funded-admin-reward-contract-20261109.test.mjs",
+    "supabase/tests/buklod_pf_funded_admin_reward_privacy_contract_20261109.sql"
+  ]
+}
