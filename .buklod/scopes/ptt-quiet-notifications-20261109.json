@@ -23,5 +23,17 @@
     "Normal PTT remains receivable in the background via existing dual visible/headless pipeline; Android physical-device validation remains a release requirement.",
     "Existing PTT hold/release, floor authorization, native foreground duty, Stream audio, database notification dispatch, all data and RLS unchanged.",
     "Static and handler behavior tests pass; production remains unchanged until verified release candidate."
+  ],
+  "contractVersion": 2,
+  "preserveBehaviors": [
+    "PTT core/floor authorization, hold/release, Stream audio/foreground duty, closed-app visible and headless push transport remain identical to main.",
+    "PTT Priority/SOS and community emergency remain audible and visible; ordinary messages and reaction notifications unchanged.",
+    "No production DB mutation, migrations, Expo runtime/package/version change, OTA, web publish, or AAB build."
+  ],
+  "riskAreas": [
+    "ptt-notifications"
+  ],
+  "regressionTests": [
+    "tests/ptt-quiet-notifications-20261109.test.mjs"
   ]
 }
