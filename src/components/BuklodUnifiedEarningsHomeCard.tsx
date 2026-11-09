@@ -148,11 +148,13 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
 
       {cash ? (
         <View style={styles.cashBox}>
-          <Stat label="FINALIZED AVAILABLE CASH" value={php(available)} />
+          <Stat label="ACCUMULATED AVAILABLE CASH" value={php(available)} />
+          <Text style={styles.note}>Finalized cash carries across months until withdrawn. A withdrawal request moves available cash into reserved; paid withdrawals remain in lifetime earnings.</Text>
           <View style={styles.cashRow}>
             <Stat label="Reserved for payout" value={php(cash.cash_status?.reserved_php)} />
             <Stat label="Already paid" value={php(cash.cash_status?.paid_php)} />
           </View>
+          <Stat label="LIFETIME FINALIZED EARNINGS" value={php(cash.lifetime_earned?.total_php)} />
           {!compact ? (
             <View style={styles.cashRow}>
               <Stat label="Lifetime finalized user pool" value={php(cash.lifetime_earned?.user_pool_php)} />
@@ -168,7 +170,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
       ) : !loading ? <Text style={styles.warning}>Cash report unavailable. No withdrawable amount is assumed.</Text> : null}
 
       <View style={styles.estimateBox}>
-        <Text style={styles.category}>PRELIMINARY COMMUNITY REVENUE SHARE</Text>
+        <Text style={styles.category}>THIS MONTH · PRELIMINARY COMMUNITY REVENUE SHARE</Text>
         <Text style={styles.estimateValue}>{activeProvisional ? estimate : 'No fresh estimate'}</Text>
         {breakdown ? (
           <>
@@ -176,7 +178,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
             <Text style={styles.note}>Your QMP weight: {formatCommunitySharePercent(breakdown.memberPoolFraction)} of Community pool</Text>
           </>
         ) : null}
-        <Text style={styles.warning}>Estimate only. Not finalized, funded, or withdrawable.</Text>
+        <Text style={styles.warning}>Current-month estimate only. Not finalized, funded, or withdrawable; historical finalized cash carries forward separately.</Text>
       </View>
 
       {scopeId && scopeIsSupported ? (
