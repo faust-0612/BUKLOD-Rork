@@ -29,7 +29,8 @@ const Context=createContext<Ctx|undefined>(undefined);
 let showFaithNotifications = false;
 Notifications.setNotificationHandler({handleNotification:async n=>{
  const kind=String(n.request.content.data?.kind||'');
- const visible=showFaithNotifications || !isFaithNotificationKind(kind);
+ // Normal PTT pushes wake receivers but are not social alerts.
+ const visible=(showFaithNotifications || !isFaithNotificationKind(kind)) && kind!=='ptt_incoming';
  return {
   shouldShowBanner:visible,
   shouldShowList:visible,
@@ -53,7 +54,7 @@ export function NotificationProvider({children}:{children:ReactNode}){
  },[user?.id]);
  const badge=useCallback(async(n:number)=>{try{await Notifications.setBadgeCountAsync(n)}catch(e){console.warn('Notification badge',e)}},[]);
  const refreshUnread=useCallback(async()=>{if(!user?.id){setUnreadCount(0);await badge(0);return}
-  let query=supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',user.id).is('read_at',null);
+  let query=supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',user.id).is('read_at',null).neq('kind','ptt_incoming');
   if(!faithEnabled){for(const pattern of FAITH_NOTIFICATION_PATTERNS){query=query.not('kind','ilike',pattern)}}
   const {count,error}=await query;
   if(error){console.warn('Notification count',error.message);return}const n=count??0;setUnreadCount(n);await badge(n);
@@ -156,6 +157,8 @@ export function NotificationProvider({children}:{children:ReactNode}){
   const receivedSub=Notifications.addNotificationReceivedListener(notification=>{
    const data:any=notification.request.content.data||{};
    const kind=String(data.kind||'');
+   // Background PTT wake-up pushes must not inflate the app's unread badge.
+   if(kind==='ptt_incoming')return;
    if(!faithEnabled && isFaithNotificationKind(kind))return;
    setUnreadCount(current=>{
     const next=current+1;
