@@ -11,6 +11,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Card, SectionTitle, shared, Button } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { colors } from '@/lib/theme';
 import { useFormationJourney } from '@/hooks/useFormationJourney';
 import {
@@ -36,8 +38,10 @@ import type {
 export default function TrackDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const { online } = useNetwork();
 
   const [track, setTrack] = useState<any>(null);
+  const [offlineMissing, setOfflineMissing] = useState(false);
   const [lessons, setLessons] = useState<any[]>([]);
   const [enrollment, setEnrollment] = useState<any>(null);
 
@@ -54,6 +58,27 @@ export default function TrackDetail() {
 
   const load = useCallback(async () => {
     if (!id || !user) return;
+    const saved = await getOfflineCache<{
+      track: any; lessons: any[]; enrollment: any;
+      statuses: any[]; legacyProgress: any[];
+      accessEntries: Array<[string, FormationLessonAccess]>;
+      weeklyDelivery: FormationWeeklyDelivery | null;
+    }>('learning-track-v1:' + id, { userId: user.id, allowStale: true });
+    if (saved?.data?.enrollment?.user_id === user.id && saved.data.track?.id === id) {
+      setTrack(saved.data.track);
+      setLessons(saved.data.lessons);
+      setEnrollment(saved.data.enrollment);
+      setFormationStatuses(saved.data.statuses);
+      setLegacyProgress(saved.data.legacyProgress);
+      setLessonAccessById(new Map(saved.data.accessEntries));
+      setWeeklyDelivery(saved.data.weeklyDelivery);
+      setOfflineMissing(false);
+    }
+    if (!online) {
+      setOfflineMissing(!saved?.data?.enrollment || saved.data.enrollment.user_id !== user.id);
+      return;
+    }
+    setOfflineMissing(false);
 
     const [
       { data: t },
@@ -116,6 +141,8 @@ export default function TrackDetail() {
 
     const lessonRows = l ?? [];
     const statusRows: any[] = [];
+    let progressSnapshot: any[] = [];
+    let accessEntries: Array<[string, FormationLessonAccess]> = [];
 
     if (isFormationTrack) {
       const { data: statusData } = await supabase.rpc(
@@ -134,7 +161,8 @@ export default function TrackDetail() {
         .select('lesson_id,completed_at')
         .eq('enrollment_id', e.id);
 
-      setLegacyProgress(p ?? []);
+      progressSnapshot = p ?? [];
+      setLegacyProgress(progressSnapshot);
       setFormationStatuses([]);
     } else {
       setLegacyProgress([]);
@@ -184,6 +212,7 @@ export default function TrackDetail() {
           }
         }
 
+        accessEntries = Array.from(merged.entries());
         setLessonAccessById(merged);
       } catch {
         setLessonAccessById(new Map());
@@ -192,10 +221,15 @@ export default function TrackDetail() {
       setLessonAccessById(new Map());
     }
 
-    if (isFormationTrack) {
-      return;
+    if (t?.status === 'published' && e?.user_id === user.id && Array.isArray(l)) {
+      void setOfflineCache('learning-track-v1:' + id, {
+        track: t, lessons: lessonRows, enrollment: e,
+        statuses: statusRows, legacyProgress: progressSnapshot,
+        accessEntries, weeklyDelivery: null,
+      }, { userId: user.id, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
     }
-  }, [id, user?.id, formationJourney.engineEnabled]);
+    if (isFormationTrack) return;
+  }, [id, user?.id, formationJourney.engineEnabled, online]);
 
   useEffect(() => {
     load();
@@ -362,7 +396,9 @@ export default function TrackDetail() {
     });
   };
 
-  if (!track) return null;
+  if (!track) return offlineMissing ? (
+    <View style={shared.content}><Text style={shared.body}>No saved lessons for this track on this device. Connect once to download them.</Text></View>
+  ) : null;
 
   const journeyStage = formationJourney.journey?.stages.find(
     (s) => s.stage_code === stageCode,
