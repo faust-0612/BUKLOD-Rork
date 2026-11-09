@@ -13,10 +13,10 @@ const art = read('src/components/points/BuklodProgressiveCharacterArt.tsx');
 
 test('RC lock pins exact currently reviewed source blobs, not the older pre-collectibles layout', () => {
   for (const sha of [
-    '1debd5659a96c97f83f32eeebb37c309a527d4ae',
+    '3547d7c87a1e0d696430da26b6c8bb51ac8d5204',
     '4cf837d453c4c33c867e2b0ae714e6f81f1ffeb6',
     '33fdfd5d1c599183f80eb4d7a4e99e7511c3bbc0',
-    '3000d9e03b77fc48f345c093fd5bd2a88bfad26d',
+    'e328dd696193e7680d2df2ddd3e178d32a1bfac9',
   ]) assert.ok(lock.includes(sha), sha);
 });
 test('Core Character levels, items, and Circle Rank authority remain independently guarded', () => {
@@ -31,6 +31,9 @@ test('Core Character levels, items, and Circle Rank authority remain independent
   assert.match(host, /getMyBuklodCharacterSelectionV2/);
   assert.match(host, /BuklodSpecialCharacterSeries/);
   assert.match(art, /4940/);
+  assert.match(art, /allowDownscaling=\{false\}/);
+  assert.match(art, /highQuality = false/);
+  assert.match(core, /height=\{zoomHeight\}[\s\S]*?highQuality/);
 });
 test('Special Character identities stay masked before server/rank unlock', () => {
   assert.match(special, /visibleSpecialRail\(/);

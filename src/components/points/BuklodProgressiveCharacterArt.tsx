@@ -2,6 +2,7 @@
 /* Approved crop. Native sprite sheets are 4940px wide x 20 levels. */
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 
 import {
   PROGRESSIVE_CHARACTERS,
@@ -13,6 +14,8 @@ type Props = {
   level: number;
   height: number;
   viewportWidth?: number;
+  /** Full-resolution decode only for fullscreen zoom, never tiny list thumbnails. */
+  highQuality?: boolean;
 };
 
 const NATIVE_SPRITE_WIDTH = 4940;
@@ -38,6 +41,7 @@ export default function BuklodProgressiveCharacterArt({
   level,
   height,
   viewportWidth,
+  highQuality = false,
 }: Props) {
   const profile = PROGRESSIVE_CHARACTERS[characterId];
   const safeLevel = Math.max(1, Math.min(20, Math.floor(Number(level) || 1)));
@@ -50,24 +54,38 @@ export default function BuklodProgressiveCharacterArt({
       ? Math.max(1, Math.round(viewportWidth))
       : artWidth;
   const left = Math.round((frameWidth - artWidth) / 2);
+  const spriteStyle = {
+    position: 'absolute' as const,
+    left: Math.round(-((safeLevel - 1) * NATIVE_CELL_WIDTH * scale)),
+    top: 0,
+    width: Math.round(NATIVE_SPRITE_WIDTH * scale),
+    height: Math.round(nativeRowHeight * scale),
+  };
 
   return (
     <View pointerEvents="none" style={[styles.frame, { width: frameWidth, height }]}>
       <View style={[styles.crop, { left, width: artWidth, height }]}>
-        <Image
-          key={`${characterId}-${safeLevel}`}
-          source={SHEETS[characterId]}
-          resizeMode="stretch"
-          resizeMethod="scale"
-          fadeDuration={0}
-          style={{
-            position: 'absolute',
-            left: Math.round(-((safeLevel - 1) * NATIVE_CELL_WIDTH * scale)),
-            top: 0,
-            width: Math.round(NATIVE_SPRITE_WIDTH * scale),
-            height: Math.round(nativeRowHeight * scale),
-          }}
-        />
+        {highQuality ? (
+          <ExpoImage
+            key={`${characterId}-${safeLevel}-zoom`}
+            source={SHEETS[characterId]}
+            contentFit="fill"
+            allowDownscaling={false}
+            cachePolicy="memory-disk"
+            priority="high"
+            transition={0}
+            style={spriteStyle}
+          />
+        ) : (
+          <Image
+            key={`${characterId}-${safeLevel}`}
+            source={SHEETS[characterId]}
+            resizeMode="stretch"
+            resizeMethod="scale"
+            fadeDuration={0}
+            style={spriteStyle}
+          />
+        )}
       </View>
     </View>
   );

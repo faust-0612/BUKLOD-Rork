@@ -76,6 +76,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
   const [collectionLevel, setCollectionLevel] = useState(activeCore ? clampLevel(state.character_level) : 1);
   const [zoom, setZoom] = useState<{ id: ProgressiveCharacterId; level: number } | null>(null);
   const window = useWindowDimensions();
+  const lastLiveLevel = useRef({ id: state.active_character_id, level: clampLevel(state.character_level) });
   const zoomHeight = Math.max(1, Math.min(500, window.height * 0.86 - 110, (window.width - 64) * 508 / 247));
   const [busy, setBusy] = useState(false);
   const [collectibleState, setCollectibleState] = useState<CharacterCollectibleState | null>(null);
@@ -108,6 +109,17 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
     // Sync only when the profile character changes, not while browsing another draft.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, [state.active_character_id]);
+
+  // Sync newly earned levels into the fullscreen/level preview, but do not
+  // interrupt a member manually browsing a different unlocked stage.
+  useEffect(() => {
+    const previous = lastLiveLevel.current;
+    const current = { id: state.active_character_id, level: clampLevel(state.character_level) };
+    lastLiveLevel.current = current;
+    if (previous.id === current.id && previous.level !== current.level && draft === current.id) {
+      setCollectionLevel((shown) => shown === previous.level ? current.level : shown);
+    }
+  }, [draft, state.active_character_id, state.character_level]);
 
   useEffect(() => {
     let alive = true;
@@ -685,6 +697,7 @@ export default function BuklodProgressiveCharacterSelector({ userId, state, onSt
                   characterId={zoom.id}
                   level={zoom.level}
                   height={zoomHeight}
+                  highQuality
                 />
               </>
             ) : null}
