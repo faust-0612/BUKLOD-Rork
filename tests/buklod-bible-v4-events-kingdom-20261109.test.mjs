@@ -138,3 +138,18 @@ test('word-for-word repeated question is removed from V4 but legacy R3 remains i
  assert.match(dedupSource,/group by prompt having count\(\*\)>1/);
  assert.doesNotMatch(dedupSource,/update private\.buklod_r2_bible_quiz_questions/);
 });
+
+const permanentHistory=read('supabase/migrations/20261109162959_buklod_bible_v4_permanent_unseen_first_history_20261109.sql');
+test('years-long durable per-user Bible question history is unseen-first across R3/V4',()=>{
+ assert.match(permanentHistory,/primary key\(user_id,question_id\)/);
+ assert.match(permanentHistory,/alter table private\.buklod_bible_v4_seen_questions enable row level security/);
+ assert.match(permanentHistory,/from private\.buklod_r2_bible_quiz_attempts a/);
+ assert.match(permanentHistory,/from private\.buklod_bible_v4_attempts a/);
+ assert.match(permanentHistory,/seen_count=private\.buklod_bible_v4_seen_questions\.seen_count\+1/);
+ assert.match(permanentHistory,/\(seen_id\.question_id is not null\) asc/);
+ assert.match(permanentHistory,/h\.last_seen_at asc nulls first/);
+ assert.match(permanentHistory,/old\.kind=v_kind and old\.difficulty=v_level/);
+ assert.match(permanentHistory,/old\.state<>'cancelled'/);
+ assert.match(permanentHistory,/last_used nulls first/);
+ assert.doesNotMatch(permanentHistory,/extract\(month from|date_trunc\('month'.*seen_questions/i);
+});
