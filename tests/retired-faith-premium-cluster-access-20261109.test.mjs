@@ -13,20 +13,19 @@ const faith = migration.split('CREATE OR REPLACE FUNCTION public.buklod_scope_fa
 const stages = migration.split('CREATE OR REPLACE FUNCTION public.buklod_scope_lesson_stage_unlocked_v1(')[1] ?? '';
 
 test('daily reading keeps authenticated active Cluster requirement, not paid entitlement', () => {
-  assert.match(today, /actor is null[\\s\\S]*Authentication required/);
+  assert.match(today, /actor is null[\s\S]*Authentication required/);
   assert.match(today, /if not has_required_cluster then/);
-  assert.match(today, /public\\.buklod_scope_is_active_lifecycle/);
+  assert.match(today, /public\.buklod_scope_is_active_lifecycle/);
   assert.doesNotMatch(today, /buklod_scope_product_entitlements|has_premium|Cluster Premium is required/);
 });
 
 test('Daily Reading submission retains active cluster guard', () => {
-  assert.match(submission, /buklod_has_active_cluster_membership_v1\\(new\\.user_id\\)/);
+  assert.match(submission, /buklod_has_active_cluster_membership_v1\(new\.user_id\)/);
   assert.doesNotMatch(submission, /buklod_user_has_active_cluster_product_v1|raise exception 'Cluster Premium/);
 });
 
 test('Word and Daily Reading + stages 101-107 no longer depend on purchases', () => {
-  assert.match(faith, /'unlocked', v_has_cluster and v_premium/);
-  assert.match(faith, /'unlocked', v_has_cluster and v_premium/);
+  assert.equal((faith.match(/'unlocked', v_has_cluster and v_premium/g) ?? []).length, 2);
   assert.match(faith, /'scope_unlocked', v_has_cluster and v_ccp/);
   assert.match(faith, /'scope_unlocked', v_has_cluster and v_disc/);
   assert.match(faith, /'scope_unlocked', v_has_cluster and v_ment/);
@@ -48,5 +47,5 @@ test('clients have retired paid UI copy and disabled purchases', () => {
 });
 
 test('migration does not touch grants, RLS, payment rows or reward ledgers', () => {
-  assert.doesNotMatch(migration, /\\b(DROP POLICY|ALTER TABLE|GRANT |REVOKE |DELETE FROM|UPDATE public\\.|TRUNCATE|DROP TRIGGER)\\b/i);
+  assert.doesNotMatch(migration, /\b(DROP POLICY|ALTER TABLE|GRANT |REVOKE |DELETE FROM|UPDATE public\.|TRUNCATE|DROP TRIGGER)\b/i);
 });
