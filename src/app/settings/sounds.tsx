@@ -25,6 +25,7 @@ const choices: Array<{
   { category: 'community', title: 'Cluster & organization', details: 'Community updates and mentions', preview: 'community' },
   { category: 'achievements', title: 'Points & achievements', details: 'Rewards and milestones', preview: 'achievement' },
   { category: 'buttons', title: 'Button feedback', details: 'Optional subtle taps', preview: 'button' },
+  { category: 'games', title: 'Kingdom & mini-game sounds', details: 'Movement, collecting, puzzles, victory, failure and unlocks', preview: 'achievement' },
 ];
 
 export default function BuklodSoundSettingsScreen() {

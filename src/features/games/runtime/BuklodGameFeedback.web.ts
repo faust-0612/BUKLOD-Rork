@@ -1,4 +1,6 @@
 import type { BuklodGameFeedbackEvent } from './feedbackTypes';
+import { getBuklodSoundSettings, isBuklodGameSoundEnabled, getBuklodGameSoundVolume } from '@/lib/buklodSounds';
+void getBuklodSoundSettings();
 import { tryPlayRorkGameFeedback } from './rorkAudio';
 import { emitBuklodGameCharacterMotion } from './characterMotionBus';
 import { createBuklodGameFeedbackLimiter } from './feedbackThrottle';
@@ -67,6 +69,7 @@ function tone(
 export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
   if (!allowFeedback(event)) return;
   emitBuklodGameCharacterMotion(event);
+  if (!isBuklodGameSoundEnabled()) return;
   // Prefer the Rork SFX only after the remote player reports ready. Until
   // then the proven synthesized feedback remains the guaranteed baseline.
   if (tryPlayRorkGameFeedback(event, 0.24)) return;
@@ -74,13 +77,15 @@ export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
   if (!ctx) return;
 
   await ensureRunning(ctx);
+  // WebAudio synthesizes local cues; no remote audio dependency.
+  const volume = getBuklodGameSoundVolume() / 0.28;
 
   switch (event) {
     case 'move':
-      tone(ctx, 330, 0, 0.055, 0.035, 'triangle');
+      tone(ctx, 330, 0, 0.055, 0.035 * volume, 'triangle');
       return;
     case 'collect':
-      tone(ctx, 660, 0, 0.07, 0.055, 'sine');
+      tone(ctx, 660, 0, 0.07, 0.055 * volume, 'sine');
       tone(ctx, 880, 0.055, 0.09, 0.045, 'sine');
       return;
     case 'impact':

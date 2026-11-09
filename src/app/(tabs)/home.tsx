@@ -1,3 +1,4 @@
+import BuklodBibleEventsHomeCard from '@/components/bible/BuklodBibleEventsHomeCard';
 import BuklodHomeCheckinToday from '@/components/BuklodHomeCheckinToday';
 import BuklodPublicCommunityBulletin from '@/components/BuklodPublicCommunityBulletin';
 import BuklodPremiumMusicDeck from '@/components/BuklodPremiumMusicDeck';
@@ -611,6 +612,7 @@ export default function HomeScreen() {
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#F5CC75"/>
         </Pressable>
+        <BuklodBibleEventsHomeCard />
         <BuklodHomeCheckinToday />
       </View>
 

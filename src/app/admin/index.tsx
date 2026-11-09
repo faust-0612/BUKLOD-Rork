@@ -477,6 +477,12 @@ export default function AdminDashboard() {
               onPress={() => toggle('content')}
             >
               <AdminRow
+                icon="trophy-award"
+                title="Bible V4 Events & Essay Review"
+                subtitle="Schedule Flash / Arena; review the Hard essay queue"
+                path="/admin/bible-v4-events"
+              />
+              <AdminRow
                 icon="book-open-variant"
                 title="Daily Bible Reading"
                 subtitle="Set daily passages, reflection questions and monitor submissions"
