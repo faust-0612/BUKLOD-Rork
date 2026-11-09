@@ -35,6 +35,7 @@ import {
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { warmPublishedWordsOffline } from '@/lib/buklodFaithOfflineWarmup';
 import {
   selectCurrentWeekWord,
   selectPreviousWords,
@@ -185,6 +186,8 @@ export default function WordScreen() {
       Date.now() - cached.storedAt < 6 * 60 * 60 * 1000 &&
       toLocalDateKey(new Date(cached.storedAt)) === toLocalDateKey(new Date())
     ) {
+      void warmPublishedWordsOffline(accountId, saved.map(item => item.id))
+        .catch(() => undefined);
       setLoading(false);
       return;
     }
@@ -205,20 +208,10 @@ export default function WordScreen() {
       void setOfflineCache('word-published-v1', next, {
         userId: accountId, ttlMs: 14 * 24 * 60 * 60 * 1000,
       }).catch(() => undefined);
-      // Warm only the latest published daily Word in the current week.
-      const weekKey = toLocalDateKey(startOfCurrentWeek());
-      const weekly = selectCurrentWeekWord(next, weekKey, todayKey);
-      if (weekly) {
-        void Promise.resolve(supabase.from('devotionals').select('*')
-          .eq('id', weekly.id).eq('is_published', true).single())
-          .then(({data: detail, error: detailError}) => {
-            if (!detailError && detail && current()) {
-              void setOfflineCache('word-full:' + weekly.id, detail, {
-                userId: accountId, ttlMs: 30 * 24 * 60 * 60 * 1000,
-              }).catch(() => undefined);
-            }
-          }).catch(() => undefined);
-      }
+      // Save complete published Word content (current week and recent archive)
+      // for later offline use, with at most two requests in flight.
+      void warmPublishedWordsOffline(accountId, next.map(item => item.id))
+        .catch(() => undefined);
     } catch {
       if (current()) setLoadError(saved.length
         ? 'Connection unavailable. Showing your last saved Word.'

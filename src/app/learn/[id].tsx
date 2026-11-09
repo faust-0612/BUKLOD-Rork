@@ -11,6 +11,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Card, SectionTitle, shared, Button } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { colors } from '@/lib/theme';
 import { useFormationJourney } from '@/hooks/useFormationJourney';
 import {
@@ -36,6 +38,8 @@ import type {
 export default function TrackDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const { online } = useNetwork();
+  const [contentOwner, setContentOwner] = useState('');
 
   const [track, setTrack] = useState<any>(null);
   const [lessons, setLessons] = useState<any[]>([]);
@@ -53,12 +57,36 @@ export default function TrackDetail() {
   const formationJourney = useFormationJourney(user?.id);
 
   const load = useCallback(async () => {
-    if (!id || !user) return;
+    if (!id || !user?.id) {
+      setTrack(null);
+      setLessons([]);
+      setContentOwner('');
+      return;
+    }
+
+    // Cache is account-partitioned. Display the last authorized lesson list
+    // immediately, then refresh only while connected.
+    const cached = await getOfflineCache<any>('lesson-track-v1:' + id, {
+      userId: user.id, allowStale: true,
+    });
+    if (cached?.data?.track?.id === id) {
+      const snapshot = cached.data;
+      setTrack(snapshot.track);
+      setLessons(snapshot.lessons ?? []);
+      setEnrollment(snapshot.enrollment ?? null);
+      setFormationStatuses(snapshot.formationStatuses ?? []);
+      setLegacyProgress(snapshot.legacyProgress ?? []);
+      setRoleTrack(snapshot.roleTrack ?? null);
+      setWeeklyDelivery(snapshot.weeklyDelivery ?? null);
+      setLessonAccessById(new Map(snapshot.access ?? []));
+      setContentOwner(user.id);
+    }
+    if (!online) return;
 
     const [
-      { data: t },
-      { data: l },
-      { data: e },
+      { data: t, error: trackError },
+      { data: l, error: lessonsError },
+      { data: e, error: enrollmentError },
     ] = await Promise.all([
       supabase
         .from('learning_tracks')
@@ -79,15 +107,24 @@ export default function TrackDetail() {
         .eq('user_id', user.id)
         .maybeSingle(),
     ]);
-
+    if (trackError || lessonsError || enrollmentError || !t || !Array.isArray(l)) {
+      // A failed refresh must not overwrite the saved offline copy.
+      return;
+    }
     setTrack(t);
-    setLessons(l ?? []);
+    setLessons(l);
     setEnrollment(e);
+    setContentOwner(user.id);
+    let roleForCache: Record<string, unknown> | null = null;
+    let weeklyForCache: FormationWeeklyDelivery | null = null;
+    let legacyForCache: any[] = [];
+    let accessForCache: Array<[string, FormationLessonAccess]> = [];
 
     if (t?.stage_code === 106 && formationJourney.engineEnabled) {
       try {
         const trackInfo = await loadMyFormationRoleTrack();
         setRoleTrack(trackInfo);
+        roleForCache = trackInfo;
       } catch {
         setRoleTrack(null);
       }
@@ -103,6 +140,7 @@ export default function TrackDetail() {
       try {
         const weekly = await loadMyFormationWeeklyDelivery(stageNum);
         setWeeklyDelivery(weekly);
+        weeklyForCache = weekly;
       } catch {
         setWeeklyDelivery(null);
       }
@@ -135,6 +173,7 @@ export default function TrackDetail() {
         .eq('enrollment_id', e.id);
 
       setLegacyProgress(p ?? []);
+      legacyForCache = p ?? [];
       setFormationStatuses([]);
     } else {
       setLegacyProgress([]);
@@ -185,6 +224,7 @@ export default function TrackDetail() {
         }
 
         setLessonAccessById(merged);
+        accessForCache = Array.from(merged.entries());
       } catch {
         setLessonAccessById(new Map());
       }
@@ -192,10 +232,20 @@ export default function TrackDetail() {
       setLessonAccessById(new Map());
     }
 
-    if (isFormationTrack) {
-      return;
-    }
-  }, [id, user?.id, formationJourney.engineEnabled]);
+    void setOfflineCache('lesson-track-v1:' + id, {
+      track: t,
+      lessons: l,
+      enrollment: e,
+      formationStatuses: statusRows,
+      legacyProgress: legacyForCache,
+      roleTrack: roleForCache,
+      weeklyDelivery: weeklyForCache,
+      access: accessForCache,
+    }, { userId: user.id, ttlMs: 30 * 24 * 60 * 60 * 1000 })
+      .catch(() => undefined);
+
+    if (isFormationTrack) return;
+  }, [id, user?.id, formationJourney.engineEnabled, online]);
 
   useEffect(() => {
     load();
@@ -362,7 +412,7 @@ export default function TrackDetail() {
     });
   };
 
-  if (!track) return null;
+  if (!track || !user?.id || contentOwner !== user.id) return null;
 
   const journeyStage = formationJourney.journey?.stages.find(
     (s) => s.stage_code === stageCode,
@@ -382,6 +432,12 @@ export default function TrackDetail() {
           </Text>
 
           <Text style={shared.h1}>{track.title}</Text>
+          {!online && (
+            <Text style={shared.muted}>
+              Saved offline lessons · Reading is available for previously opened
+              lessons. Progress, checking, and points sync online.
+            </Text>
+          )}
 
           {!!track.description && (
             <Text style={shared.body}>
