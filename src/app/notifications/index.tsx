@@ -2,7 +2,8 @@ import BuklodPressable from '@/components/BuklodPressable';
 import ClusterNotificationActions from '@/components/ClusterNotificationActions';
 import { buklodInstantPush } from '@/lib/buklodInstantNavigation';
 import { runClusterJoinNotificationAction } from '@/lib/clusterJoinNotificationAction';
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
+import {useFocusEffect} from 'expo-router';
 import {Alert,FlatList,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +27,11 @@ export default function NotificationCenter(){
  const {unreadCount,refreshUnread,markAllRead}=useNotifications();
  const [items,setItems]=useState<any[]>([]),[loading,setLoading]=useState(false),[busyId,setBusyId]=useState<string|null>(null);
  const faithEnabled=activeScope?.show_faith_content===true;
+ // Foreground notifications update the shared unread count. Refresh the visible
+ // list on a new count or screen focus, without adding a Postgres CDC channel.
+ // This does not touch PTT, call, push handling, or background audio.
+ const notificationsFocused=useRef(false);
+ const lastUnreadCount=useRef(unreadCount);
  const load=useCallback(async()=>{if(!user?.id)return;setLoading(true);
   let query=supabase.from('notifications').select('id,title,body,kind,data,read_at,created_at').eq('user_id',user.id);
   if(!faithEnabled){for(const pattern of FAITH_NOTIFICATION_PATTERNS){query=query.not('kind','ilike',pattern)}}
@@ -73,7 +79,16 @@ export default function NotificationCenter(){
   setLoading(false);
   await refreshUnread();
  },[user?.id,refreshUnread,faithEnabled]);
- useEffect(()=>{void load()},[load]);
+ useFocusEffect(useCallback(()=>{
+  notificationsFocused.current=true;
+  void load();
+  return ()=>{notificationsFocused.current=false};
+ },[load]));
+ useEffect(()=>{
+  if(lastUnreadCount.current===unreadCount)return;
+  lastUnreadCount.current=unreadCount;
+  if(notificationsFocused.current)void load();
+ },[unreadCount,load]);
  const open=async(x:any)=>{
   const kind=String(x?.kind??'');
   if(!faithEnabled && isFaithNotificationKind(kind))return;
