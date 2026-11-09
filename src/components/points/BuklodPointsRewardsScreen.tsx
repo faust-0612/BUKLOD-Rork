@@ -1130,6 +1130,24 @@ export default function BuklodPointsRewardsScreen() {
           />
         </Pressable>
 
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View full 40-level Circle Rank progression"
+          onPress={() => router.push('/points/progression' as any)}
+          style={{
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 12, borderWidth: 1, borderColor: COLORS.green,
+            backgroundColor: COLORS.greenSoft, paddingVertical: 13,
+            marginTop: 9, gap: 8,
+          }}
+        >
+          <MaterialCommunityIcons name="chart-timeline-variant-shimmer" size={20} color={COLORS.green} />
+          <Text style={{ color: COLORS.green, fontSize: 13, fontWeight: '900' }}>
+            VIEW 40-RANK PROGRESSION
+          </Text>
+          <MaterialCommunityIcons name="arrow-right" size={17} color={COLORS.green} />
+        </Pressable>
+
         {leaderboardOpen ? (
           <View style={styles.leaderboardCard}>
             <View style={styles.periodRow}>
