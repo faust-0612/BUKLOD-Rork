@@ -168,8 +168,8 @@ export const enMessages = {
     withdrawableBalance: 'Withdrawable Balance',
     reservedBalance: 'Reserved for Withdrawal',
     paidEarnings: 'Paid Earnings',
-    userPoolActive: '30% User Pool eligibility is active',
-    userPoolInactive: '30% User Pool eligibility is not active yet',
+    userPoolActive: 'Eligible for personal revenue share',
+    userPoolInactive: 'Personal revenue share eligibility not yet active',
     earningsNote:
       'Estimated may change before settlement. Finalized means settlement has completed. Withdrawable means finalized cash is available for payout subject to withdrawal rules.',
     referralTitle: 'Referral / Sharing',
