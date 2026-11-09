@@ -240,19 +240,19 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 18,
-    padding: 12,
-    marginBottom: 9,
+    padding: 8,
+    marginBottom: 6,
     gap: 6,
     overflow: 'visible', // Keep reaction picker outside the card clipping boundary.
   },
   card: {
     width: '100%',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingTop: 10,
-    paddingBottom: 9,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   header: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     minHeight: 42,
     justifyContent: 'center',
   },
@@ -273,11 +273,11 @@ const styles = StyleSheet.create({
   authorMeta: {
     flex: 1,
     minWidth: 0,
-    marginLeft: 9,
+    marginLeft: 7,
   },
   authorName: {
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 16,
+    lineHeight: 21,
     fontWeight: '800',
   },
   metaLine: {
@@ -287,25 +287,25 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   timestamp: {
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: 12,
+    lineHeight: 16,
     flexShrink: 1,
   },
   privacy: {
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: 12,
+    lineHeight: 16,
     flexShrink: 0,
   },
   body: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 9,
-    fontSize: 14,
-    lineHeight: 20,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 7,
+    fontSize: 16,
+    lineHeight: 23,
   },
   engagementDivider: {
-    marginTop: 8,
-    marginHorizontal: 12,
+    marginTop: 5,
+    marginHorizontal: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   shareAction: {
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   actionLabel: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
   },
   pressed: {
