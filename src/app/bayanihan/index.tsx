@@ -12,6 +12,7 @@ import { router, useFocusEffect } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import BuklodContributionDestinationPicker from '@/components/BuklodContributionDestinationPicker';
+import BuklodUnifiedEarningsHomeCard from '@/components/BuklodUnifiedEarningsHomeCard';
 import { shared } from '@/components/UI';
 import {
   loadMyBuklodFinancialSummaryV3,
@@ -96,6 +97,7 @@ export default function BayanihanScreen() {
   const lastSyncedRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showEarningsSources, setShowEarningsSources] = useState(false);
   const [error, setError] = useState('');
   const [supportCode, setSupportCode] = useState<string | null>(null);
 
@@ -408,6 +410,17 @@ export default function BayanihanScreen() {
               </Pressable>
             </View>
           </Section>
+
+          <Pressable accessibilityRole="button"
+            accessibilityLabel="View personal lifetime earnings by source"
+            accessibilityState={{ expanded: showEarningsSources }}
+            onPress={() => setShowEarningsSources(current => !current)}
+            style={styles.actionSecondary}>
+            <Text style={styles.actionSecondaryText}>
+              {showEarningsSources ? 'HIDE LIFETIME EARNINGS SOURCES' : 'VIEW LIFETIME EARNINGS SOURCES'}
+            </Text>
+          </Pressable>
+          {showEarningsSources ? <BuklodUnifiedEarningsHomeCard compact={false} /> : null}
 
           <Section icon="account-plus-outline" title={t('economy.referralTitle')}>
             <View style={styles.grid}>
