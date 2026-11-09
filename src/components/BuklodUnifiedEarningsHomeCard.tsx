@@ -24,6 +24,7 @@ type CashReport = {
     user_pool_php?: number;
     first_line_php?: number;
     referral_reward_php?: number;
+    admin_funded_reward_php?: number;
     total_php?: number;
   };
   cash_status?: { available_php?: number; reserved_php?: number; paid_php?: number };
@@ -153,17 +154,17 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
             <Stat label="Reserved for payout" value={php(cash.cash_status?.reserved_php)} />
             <Stat label="Already paid" value={php(cash.cash_status?.paid_php)} />
           </View>
-          {!compact ? (
-            <View style={styles.cashRow}>
-              <Stat label="Lifetime finalized user pool" value={php(cash.lifetime_earned?.user_pool_php)} />
-              <Stat label="Lifetime referral / first-line" value={php(
-                Number(cash.lifetime_earned?.first_line_php ?? 0) +
-                Number(cash.lifetime_earned?.referral_reward_php ?? 0)
-              )} />
-            </View>
-          ) : (
-            <Text style={styles.note}>Finalized revenue-share and funded referral rewards use the same canonical cash wallet. Points are excluded.</Text>
-          )}
+          <Text style={styles.category}>LIFETIME FUNDED EARNINGS BY SOURCE</Text>
+          <View style={styles.cashRow}>
+            <Stat label="Finalized revenue / user pool" value={php(cash.lifetime_earned?.user_pool_php)} />
+            <Stat label="First-line referral revenue" value={php(cash.lifetime_earned?.first_line_php)} />
+          </View>
+          <View style={styles.cashRow}>
+            <Stat label="One-time referral rewards" value={php(cash.lifetime_earned?.referral_reward_php)} />
+            <Stat label="System Admin funded rewards" value={php(cash.lifetime_earned?.admin_funded_reward_php)} />
+          </View>
+          {!compact ? <Stat label="Total lifetime funded earnings (not available balance)" value={php(cash.lifetime_earned?.total_php)} /> : null}
+          <Text style={styles.note}>Lifetime earnings are historical totals, not extra withdrawable money. The AVAILABLE figure above is the sole withdrawal source; reserved and paid cash cannot be requested again.</Text>
         </View>
       ) : !loading ? <Text style={styles.warning}>Cash report unavailable. No withdrawable amount is assumed.</Text> : null}
 
