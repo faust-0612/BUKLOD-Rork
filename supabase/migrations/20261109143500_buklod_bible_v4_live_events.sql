@@ -126,6 +126,7 @@ begin
   select id,concept_key,md5(id||p_start_at::text) as random_key
   from private.buklod_bible_v4_questions
   where active and reviewed and difficulty=v_level and kind='mcq'
+    and (v_kind='flash' or skill in ('situation','analysis','comparison'))
   order by random_key limit v_limit
  ) q;
  v_count:=coalesce(array_length(v_questions,1),0);
