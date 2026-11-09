@@ -1,20 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
+import { stripTypeScriptTypes } from 'node:module';
 import { runInNewContext } from 'node:vm';
 
-const require = createRequire(import.meta.url);
-const ts = require('typescript');
 const launcherSource = readFileSync('src/lib/buklodHealthCenterLauncher.ts', 'utf8');
-const compiled = ts.transpileModule(launcherSource, {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  reportDiagnostics: true,
-});
-assert.equal(compiled.diagnostics?.length ?? 0, 0);
-const actual = { exports: {} };
-runInNewContext(compiled.outputText, { exports: actual.exports });
-const { launchBuklodHealthCenter, BUKLOD_HEALTH_CENTER_URL } = actual.exports;
+const js = stripTypeScriptTypes(launcherSource).replace(/^export /gm, '');
+const { launchBuklodHealthCenter, BUKLOD_HEALTH_CENTER_URL } = runInNewContext(
+  js + '\n({ launchBuklodHealthCenter, BUKLOD_HEALTH_CENTER_URL })',
+  {},
+);
+
 
 test('Health Center doorway opens only the dedicated HTTPS production origin', async () => {
   const opened = [];
