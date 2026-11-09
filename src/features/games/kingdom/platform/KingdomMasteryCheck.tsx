@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
+import { showBuklodAdOpportunity,warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
+import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 
 type Question = { id: string; prompt: string; choices: string[] };
 type StartData = {
@@ -33,6 +35,7 @@ export function KingdomMasteryCheck({ gameId }: { gameId: string }) {
   const busy = useRef(false);
   useEffect(() => {
     mounted.current = true;
+    warmBuklodAdOpportunity('kingdom_mastery_verified');
     return () => { mounted.current = false; };
   }, []);
 
@@ -91,6 +94,8 @@ export function KingdomMasteryCheck({ gameId }: { gameId: string }) {
       if (!mounted.current) return;
       const result = data as FinishData | null;
       if (result?.verified) {
+        void playBuklodGameFeedback('success');
+        if ((result.points_awarded ?? 0)>0) void showBuklodAdOpportunity('kingdom_mastery_verified');
         setHasCredit(true);
         setPhase('complete');
         setNotice((result.points_awarded ?? 0) > 0

@@ -1,4 +1,6 @@
 import * as Haptics from 'expo-haptics';
+import { AppState } from 'react-native';
+import { getBuklodSoundSettings, isBuklodGameSoundEnabled, getBuklodGameSoundVolume } from '@/lib/buklodSounds';
 import { createAudioPlayer } from 'expo-audio';
 
 import type { BuklodGameFeedbackEvent } from './feedbackTypes';
@@ -8,6 +10,12 @@ import { createBuklodGameFeedbackLimiter } from './feedbackThrottle';
 
 const reactionSound = require('../../../../assets/sounds/buklod-reaction.wav');
 const rewardSound = require('../../../../assets/sounds/buklod-points-claim.wav');
+const impactSound = require('../../../../assets/sounds/buklod_community.wav');
+const successSound = require('../../../../assets/sounds/buklod_approval.wav');
+const unlockSound = require('../../../../assets/sounds/buklod_achievement.wav');
+const failSound = require('../../../../assets/sounds/buklod_error.wav');
+const tapSound = require('../../../../assets/sounds/buklod_message_sent.wav');
+void getBuklodSoundSettings();
 
 const allowFeedback = createBuklodGameFeedbackLimiter();
 let activeFallbackPlayers = 0;
@@ -53,27 +61,29 @@ export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
   try {
     // Use Rork SFX only after they are actually loaded; otherwise keep the
     // shipped local WAV path. Haptics always remain active.
-    const usedRork = tryPlayRorkGameFeedback(event, 0.28);
+    const canSound = AppState.currentState === 'active' && isBuklodGameSoundEnabled();
+    const volume = getBuklodGameSoundVolume();
+    const usedRork = canSound && tryPlayRorkGameFeedback(event, volume);
     switch (event) {
       case 'move':
-        if (!usedRork) playNativeSound(reactionSound, 1.55, 0.18, 700);
+        if (canSound && !usedRork) playNativeSound(tapSound, 1.32, volume * 0.65, 700);
         await Haptics.selectionAsync();
         return;
       case 'collect':
-        if (!usedRork) playNativeSound(reactionSound, 1.85, 0.28, 800);
+        if (canSound && !usedRork) playNativeSound(reactionSound, 1.7, volume, 800);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         return;
       case 'impact':
-        if (!usedRork) playNativeSound(reactionSound, 0.72, 0.32, 1050);
+        if (canSound && !usedRork) playNativeSound(impactSound, 0.8, volume, 1050);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         return;
       case 'success':
       case 'unlock':
-        if (!usedRork) playNativeSound(rewardSound, event === 'unlock' ? 1.18 : 1, 0.42, 1500);
+        if (canSound && !usedRork) playNativeSound(event === 'unlock' ? unlockSound : successSound, event === 'unlock' ? 1.10 : 1, volume, 1500);
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         return;
       case 'failure':
-        if (!usedRork) playNativeSound(reactionSound, 0.5, 0.30, 1300);
+        if (canSound && !usedRork) playNativeSound(failSound, 0.9, volume * 0.80, 1200);
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
     }
