@@ -1,0 +1,46 @@
+{
+  "contractVersion": 2,
+  "objective": "Make final user-facing earnings transparent across BUKLOD Personal, Organization and Cluster Home surfaces and the one canonical unified Profit First payout entry: separate finalized revenue-share, first-line referral, one-time referral, and safely funded System Admin cash from preliminary AdMob and group/community money. Remove misleading referral-only withdrawal label; do not enable cash controls or OTA.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Production Supabase BUKLOD Connect 2026-11-09 includes official private AdMob Nov estimate amount_minor=864 with 30% Community pool=259 centavos, not cash; production get_my_buklod_financial_earnings_breakdown_v1 has own-user `lifetime_earned.user_pool_php`, `first_line_php`, `referral_reward_php`, newly added `admin_funded_reward_php`, and PF AVAILABLE/RESERVED/PAID wallet. Previous merged PR #596 commit 00c2e3aaa058196124ffd9d97e73d85e4d9969fc already mounted unified personal earnings on Personal, Organization, Cluster Homes, separate scope fund. Previous merged PR #597 commit 263450644ecdb3b79410ecfebfcc0eda879821f8 installed admin funding logic and read-only private source field. Production DB verified grant_enabled=false, economics_enabled=false, withdrawal_enabled=false, payout_processing_enabled=false, recorded_budgets=0, transfers=0, cash_ledger_rows=0. Existing canonical request_my_buklod_pf_withdrawal_v2 reserves entire PF AVAILABLE balance atomically, with authenticated payout profile, minimum and replay protection. Baseline app payout confirmation misleadingly said Request Full Referral Balance. This PR changes only UI/readability and tests, no release artifact is asserted deployed.",
+  "allowedPaths": [
+    ".buklod/scopes/earnings-final-source-clarity-20261109.json",
+    "src/components/BuklodUnifiedEarningsHomeCard.tsx",
+    "src/app/bayanihan/payout-profile.tsx",
+    "src/app/bayanihan/index.tsx",
+    "tests/buklod-earnings-final-source-clarity-20261109.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Show four disjoint lifetime funded source categories on all three already-mounted Home cards: settled revenue/user pool, first-line, one-time referral, verified funded admin reward.",
+    "Retain available/reserved/paid balances and use only the actual canonical PF available cash for one withdrawal door",
+    "Preserve privacy: no cross-user data, no account selector, no direct use of private tables, no client money writes",
+    "Preserve source-backed preliminary AdMob estimation and group funds separate from withdrawable personal balances",
+    "Correct misleading referral-only confirmation to all available finalized cash in PF payout UI; exclude pending estimates and points",
+    "No finance config activation, cash transfer, production OTA, new AAB or web deployment",
+    "All required CI and focused test gates must pass for RC source readiness; device acceptance and exact production OTA require separate verified release evidence"
+  ],
+  "chosenApproach": "Minimal UI-only refinement on merged canonical Home card and payout/earnings pages; read back private server-reported source categories and remove referral-only wording while preserving the existing full balance withdrawal RPC, review gates and noncash distinction.",
+  "selectionRationale": "Existing merged code and tested read-only RPCs already implement user-scoped gross/pool source visibility and funded admin reward source. There is no reason to change cash storage, financial accrual logic, or add a second withdrawal flow. A single UI clarity change avoids misleading reward users and keeps compatibility.",
+  "alternativeApproaches": [
+    "Reimplement withdrawals to merge wallets: rejected because Profit First V3 already withdraws unified finalized cash, and separate new withdrawal would risk double reservation",
+    "Mix pending/referral/noncash AdMob into available cash: rejected because it would fabricate withdrawable funds",
+    "Display existing server-authenticated lifetime origins and correct explanatory labels: chosen"
+  ],
+  "preserveBehaviors": [
+    "Production economics, reward grants, payout processing and withdrawal activation remain OFF",
+    "No changes to Supabase backend, RLS, RPCs, tables, financial history, point system or user balances",
+    "Noncash QMP and AdMob estimates remain non-withdrawable",
+    "Organization and Cluster fund never becomes personal cash by viewing the same Home",
+    "One PF full-available-cash withdrawal with minimum and manual review unchanged",
+    "All previous BUKLOD Home cards, Connect, Cluster/Org navigation and performance kept",
+    "Consolidated OTA remains unpublished pending RC and exact artifact verification"
+  ],
+  "riskAreas": [
+    "private-financial-display",
+    "wallet-source-integrity",
+    "withdrawal-label-accuracy"
+  ],
+  "regressionTests": [
+    "tests/buklod-earnings-final-source-clarity-20261109.test.mjs"
+  ]
+}
