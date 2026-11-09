@@ -4,13 +4,13 @@ import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import {File} from 'expo-file-system';
 import * as Crypto from 'expo-crypto';
-import {router} from 'expo-router';
+import {router,useLocalSearchParams} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 import {colors} from '@/lib/theme';
 
 const BUCKET='bsoc-support-evidence';
 const ALLOWED=new Set(['image/jpeg','image/png','image/webp','video/mp4','video/quicktime','video/webm']);
-type Case={id:string; title:string; status:string; created_at:string};
+type Case={id:string; title:string; status:string; resolution:string|null; created_at:string};
 type Message={id:string;body:string;sender_id:string;sender_kind:string;created_at:string};
 type Evidence={id:string;case_id:string;message_id:string|null;object_path:string;mime_type:string;created_at:string};
 const errorText=(e:unknown)=>String((e as any)?.message??e??'Network error').slice(0,250);
@@ -18,7 +18,11 @@ const errorText=(e:unknown)=>String((e as any)?.message??e??'Network error').sli
 export default function LiveSupport(){
   const [uid,setUid]=useState<string|null>(null);
   const [cases,setCases]=useState<Case[]>([]);
+  const params=useLocalSearchParams<{case_id?:string;caseId?:string}>();
+  const requestedCaseId=typeof params.case_id==='string'?params.case_id:typeof params.caseId==='string'?params.caseId:null;
   const [caseId,setCaseId]=useState('');
+  const [creatingNew,setCreatingNew]=useState(false);
+  const [showAllCases,setShowAllCases]=useState(false);
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState(false);
   const [uploadBusy,setUploadBusy]=useState(false);
@@ -37,10 +41,23 @@ export default function LiveSupport(){
     setUid(user?.id||null);
     if(!user){setLoading(false);return;}
     const {data,error}=await supabase.from('user_feedback')
-      .select('id,title,status,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(40);
-    if(error)setError(error.message);else setCases((data||[]) as Case[]);
+      .select('id,title,status,resolution,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(80);
+    if(error)setError(error.message);
+    else{
+      const rows=(data||[]) as Case[];
+      setCases(rows);
+      if(requestedCaseId&&!rows.some(x=>x.id===requestedCaseId))
+        setError('The requested support case is not available for this account.');
+      setCaseId(current=>{
+        if(creatingNew)return '';
+        if(requestedCaseId&&rows.some(x=>x.id===requestedCaseId))return requestedCaseId;
+        if(current&&rows.some(x=>x.id===current))return current;
+        return rows.find(x=>!['closed','resolved'].includes(x.status))?.id??
+          rows.find(x=>x.status!=='closed')?.id??rows[0]?.id??'';
+      });
+    }
     setLoading(false);
-  },[]);
+  },[requestedCaseId,creatingNew]);
   useEffect(()=>{void loadCases();},[loadCases]);
   useEffect(()=>{
     const timer=setInterval(()=>{if(AppState.currentState==='active')void loadCases();},25000);
@@ -52,15 +69,15 @@ export default function LiveSupport(){
     const sequence=++requestSequence.current;
     const [chat,attachments]=await Promise.all([
       supabase.from('bsoc_case_messages').select('id,body,sender_id,sender_kind,created_at')
-        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(150),
+        .eq('case_id',caseId).order('created_at',{ascending:false}).limit(150),
       supabase.from('bsoc_case_attachments').select('id,case_id,message_id,object_path,mime_type,created_at')
-        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(50)
+        .eq('case_id',caseId).order('created_at',{ascending:false}).limit(50)
     ]);
     if(sequence!==requestSequence.current)return;
     if(chat.error) {setError(chat.error.message);return;}
     if(attachments.error){setError(attachments.error.message);return;}
-    setMessages((chat.data||[]) as Message[]);
-    const files=(attachments.data||[]) as Evidence[];
+    setMessages(((chat.data||[]) as Message[]).slice().reverse());
+    const files=((attachments.data||[]) as Evidence[]).slice().reverse();
     const signed=await Promise.all(files.map(async file=>{
       const {data}=await supabase.storage.from(BUCKET).createSignedUrl(file.object_path,300);
       return {...file,url:data?.signedUrl};
@@ -92,6 +109,7 @@ export default function LiveSupport(){
       if(error)throw error;
       if(!data)throw Error('Ticket not returned');
       setTitle('');setDescription('');
+      setCreatingNew(false);
       await loadCases();
       setCaseId(String(data));setNotice('Support case created. You can now chat and attach evidence.');
     }catch(e){setError(errorText(e));}finally{setBusy(false);}
@@ -107,6 +125,21 @@ export default function LiveSupport(){
       if(error)throw error;
       setDraft('');await loadThread();
     }catch(e){setError(errorText(e));}finally{setBusy(false);}
+  };
+  const reopen=async()=>{
+    if(!caseId||!uid||busy||draft.trim().length<10)return;
+    setBusy(true);setError('');setNotice('');
+    try{
+      const {error}=await supabase.rpc('buklod_bsoc_member_reopen_case_v1',{
+        p_case_id:caseId,p_message:draft.trim().slice(0,8000),
+        p_client_nonce:Crypto.randomUUID()
+      });
+      if(error)throw error;
+      setDraft('');
+      setNotice('Your original conversation was reopened. BSOC has been notified.');
+      await Promise.all([loadCases(),loadThread()]);
+    }catch(e){setError(errorText(e));}
+    finally{setBusy(false);}
   };
   const upload=async(kind:'photo'|'video')=>{
     if(!uid||uploadBusy||busy||Boolean(caseId&&cases.find(c=>c.id===caseId)?.status==='closed'))return;
@@ -139,6 +172,7 @@ export default function LiveSupport(){
         if(!data)throw Error('Could not create support case for attachment.');
         targetCaseId=String(data);
         setCaseId(targetCaseId);
+        setCreatingNew(false);
         setTitle('');setDescription('');
         await loadCases();
       }
@@ -209,6 +243,25 @@ export default function LiveSupport(){
       {!!error&&<Text style={styles.error} accessibilityRole="alert">{error}</Text>}
       {!!notice&&<Text style={styles.notice}>{notice}</Text>}
 
+      <View style={styles.caseChooser}>
+        <View style={styles.caseHead}>
+          <Text style={styles.h2}>Your support conversations</Text>
+          <Pressable style={styles.secondary} accessibilityRole="button"
+            onPress={()=>{setCreatingNew(true);setCaseId('');setNotice('');}}>
+            <Text style={styles.link}>+ New concern</Text>
+          </Pressable>
+        </View>
+        {cases.length===0?<Text style={styles.muted}>No support conversation yet. Create one below.</Text>:null}
+        {(showAllCases?cases:cases.slice(0,3)).map(item=><Pressable key={item.id} accessibilityRole="button"
+          style={[styles.case,styles.caseChoice,caseId===item.id&&styles.active]}
+          onPress={()=>{setCreatingNew(false);setCaseId(item.id);setNotice('');setError('');}}>
+          <Text style={styles.bold} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.muted}>{item.status.toUpperCase()} · {item.id.slice(0,8).toUpperCase()}</Text>
+        </Pressable>)}
+        {cases.length>3?<Pressable style={styles.secondary} accessibilityRole="button" onPress={()=>setShowAllCases(x=>!x)}>
+          <Text style={styles.link}>{showAllCases?'SHOW FEWER':'VIEW ALL '+cases.length+' CASES'}</Text>
+        </Pressable>:null}
+      </View>
       {!caseId?<View style={styles.card}>
         <Text style={styles.h2}>Create a concern</Text>
         <View style={styles.cases}>
@@ -222,13 +275,23 @@ export default function LiveSupport(){
           <Text style={styles.buttonText}>{busy?'Creating…':'Create support case'}</Text>
         </Pressable>
       </View>:<>
-        <Pressable style={styles.linkButton} onPress={()=>setCaseId('')}><Text style={styles.link}>+ New concern</Text></Pressable>
         <View style={styles.card}>
-          <Text style={styles.h2}>Chat with BSOC</Text>
+          <Text style={styles.h2}>Chat with BSOC · {caseId.slice(0,8).toUpperCase()}</Text>
+          <Text style={styles.muted}>This is the same private thread used by BSOC personnel. Replies appear here automatically while online.</Text>
+          {cases.find(c=>c.id===caseId)?.status==='resolved'?<>
+            <Text style={styles.notice}>BSOC marked this case resolved. If it is still happening, describe what persists, then choose REOPEN SAME CASE below.</Text>
+            {!!cases.find(c=>c.id===caseId)?.resolution&&<Text style={styles.muted} numberOfLines={4}>Recorded resolution: {cases.find(c=>c.id===caseId)?.resolution}</Text>}
+          </>:null}
+          {cases.find(c=>c.id===caseId)?.status==='closed'?<Text style={styles.notice}>This support case is closed and remains available as history. Create a new concern for unrelated issues.</Text>:null}
           <TextInput multiline style={[styles.input,styles.area]} placeholder="Message your support agent…" value={draft} onChangeText={setDraft}/>
           <Pressable disabled={busy||!draft.trim()||cases.find(c=>c.id===caseId)?.status==='closed'} style={styles.button} onPress={()=>void send()}>
             <Text style={styles.buttonText}>{busy?'Sending…':'Send message'}</Text>
           </Pressable>
+          {cases.find(c=>c.id===caseId)?.status==='resolved'?<Pressable
+            disabled={busy||draft.trim().length<10} accessibilityRole="button" style={styles.reopen}
+            onPress={()=>void reopen()}>
+            <Text style={styles.link}>ISSUE PERSISTS? REOPEN SAME CASE</Text>
+          </Pressable>:null}
           <View style={styles.uploadActions}>
             <Pressable disabled={uploadBusy} style={styles.secondary} onPress={()=>void upload('photo')}>
               <Text style={styles.link}>Attach photo</Text>
@@ -256,20 +319,15 @@ export default function LiveSupport(){
 
         </View>
       </>}
-      <View style={styles.card}>
-        <Text style={styles.h2}>Previous support cases · Activity logs</Text>
-        {cases.length===0&&<Text style={styles.muted}>No previous cases yet.</Text>}
-        {cases.map(item=><Pressable key={item.id} onPress={()=>setCaseId(item.id)}
-          style={[styles.case,caseId===item.id&&styles.active]}>
-          <Text style={styles.bold}>{item.title}</Text>
-          <Text style={styles.muted}>{item.status} · {item.id.slice(0,8).toUpperCase()}</Text>
-        </Pressable>)}
-      </View>
     </>}
   </ScrollView>;
 }
 const styles=StyleSheet.create({
- screen:{flex:1,backgroundColor:colors.white},content:{padding:18,gap:13,paddingBottom:90},
+ screen:{flex:1,backgroundColor:colors.white},content:{padding:13,gap:10,paddingBottom:90},
+ caseChooser:{padding:12,borderRadius:12,borderWidth:1,borderColor:'#CBD5E1',gap:7,backgroundColor:'#F8FAFC'},
+ caseHead:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:8},
+ caseChoice:{minHeight:51},
+ reopen:{padding:13,borderWidth:1,borderColor:colors.green,borderRadius:9,alignItems:'center',backgroundColor:'#F2FAF6'},
  uploadHero:{backgroundColor:'#E8F7EF',borderRadius:14,padding:15,gap:9},
  uploadActions:{flexDirection:'row',flexWrap:'wrap',gap:9},
  uploadButton:{flex:1,minWidth:130,padding:13,borderRadius:10,backgroundColor:colors.green,alignItems:'center'},
