@@ -21,7 +21,8 @@ test('Notification list updates on focus and when push changes the unread count'
   assert.match(notifications,/lastUnreadCount\.current===unreadCount/);
   assert.match(notifications,/if\(notificationsFocused\.current\)void load\(\)/);
 });
-test('No change to birthday sharing, PTT or notification provider logic', () => {
+test('Birthday sharing and PTT transport unchanged; ordinary PTT is filtered only in inbox', () => {
   assert.doesNotMatch(migration,/share_birthday\s*=|ptt_/);
-  assert.doesNotMatch(notifications,/ptt_|setNotificationHandler/);
+  assert.match(notifications,/\.neq\('kind','ptt_incoming'\)/);
+  assert.doesNotMatch(notifications,/setNotificationHandler/);
 });
