@@ -178,6 +178,16 @@ export default function WordScreen() {
       setLoading(false);
       return;
     }
+    // Saved copy first. Sync at most every six hours, and always on the
+    // next local calendar day so today's newly published Word is discovered.
+    if (
+      saved.length && cached &&
+      Date.now() - cached.storedAt < 6 * 60 * 60 * 1000 &&
+      toLocalDateKey(new Date(cached.storedAt)) === toLocalDateKey(new Date())
+    ) {
+      setLoading(false);
+      return;
+    }
     try {
       const todayKey = toLocalDateKey(new Date());
       const { data, error } = await supabase.from('devotionals')
