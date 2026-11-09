@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Consolidated BUKLOD OTA corrections for Drawer, Kabihasnang Ligaw, Wall song clips, language settings, referral reconciliation, and Points navigation; restore the server-backed 40-level Circle Rank progression and Profile navigation in the same OTA batch",
-  "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub main commit 981720eac31062af35c0a610b9723fc13c4a0ba0 and Expo main app config Android runtime 1.3.2; no claim that this OTA candidate is deployed or production tested",
+  "baseRef": "fix/ota-nov09-drawer-kl-music-economy",
+  "productionBaselineEvidence": "verified: GitHub main commit 981720eac31062af35c0a610b9723fc13c4a0ba0 and Expo main app config Android runtime 1.3.2; no claim that this OTA candidate is deployed or production tested; this stacked Circle Rank PR compares only against the unchanged November 9 OTA candidate head, while the candidate's final production reconciliation still must compare to main prior to promotion",
   "chosenApproach": "Isolated GitHub patch branch with targeted client fixes, additive/versioned DB reconciliation and authenticated reads, protected cash ledger, read-only migration contracts, and gated draft PR before OTA",
   "selectionRationale": "Preserves Android runtime and existing main, protects legacy clients, does not backfill or issue financial payouts, and minimizes cross-feature regression.",
   "alternativeApproaches": [
