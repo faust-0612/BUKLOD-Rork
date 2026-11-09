@@ -579,8 +579,8 @@ export function BuklodLearningContent({
         Study at your own pace. You may read
         lessons from later stages without waiting
         for previous agreements. Official lesson
-        completion requires Pastor validation and
-        System Admin final approval.
+        completion follows BUKLOD AI checking.
+        No Pastor or Admin approval is required.
       </Text>
 
       {/* PATCH_185B_PROGRESS_ADMIN_BUTTON */}
@@ -876,7 +876,7 @@ export function BuklodLearningContent({
                     <Text style={styles.progressText}>
                       {stage.approved_lessons} of{' '}
                       {stage.expected_lessons}{' '}
-                      lessons Admin Approved
+                      lessons AI Approved
                     </Text>
                   </>
                 )}
