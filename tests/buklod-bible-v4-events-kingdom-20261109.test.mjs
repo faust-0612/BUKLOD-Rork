@@ -110,7 +110,7 @@ test('ads are optional after authenticated completions, not points or cash trigg
  assert.doesNotMatch(events,/admob|qmp|cash_credited|pf_withdraw/i);
 });
 
-const v4Audit=read('supabase/migrations/20261109170000_buklod_bible_v4_audit_hardening_20261109.sql');
+const v4Audit=read('supabase/migrations/20261109160724_buklod_bible_v4_audit_hardening_20261109.sql');
 test('V4 audited daily and event hardening closes cross-version race and repeats',()=>{
  assert.equal([...v4Audit.matchAll(/bible-daily-shared:/g)].length,2,'R3 and V4 must share the same actor/day advisory lock');
  assert.match(v4Audit,/from private\.buklod_bible_v4_attempts\s+where user_id=actor and local_date=local_day/);

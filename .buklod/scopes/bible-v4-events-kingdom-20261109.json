@@ -77,7 +77,7 @@
     "supabase/migrations/20261109142600_buklod_bible_v4_accessible_arena_bank.sql",
     "supabase/migrations/20261109143500_buklod_bible_v4_live_events.sql",
     "supabase/migrations/20261109144000_buklod_bible_v4_admin_essay_queue.sql",
-    "supabase/migrations/20261109170000_buklod_bible_v4_audit_hardening_20261109.sql"
+    "supabase/migrations/20261109160724_buklod_bible_v4_audit_hardening_20261109.sql"
   ],
   "alternativeApproaches": [
     "Blind replacement of R3 Quiz and award ledger: rejected; risks older Android clients, concurrent scoring and financial integrity.",
