@@ -230,7 +230,7 @@ begin
   results:=results||jsonb_build_array(jsonb_build_object(
    'id',q.id,'kind',q.kind,'earned_units',case when q.kind='essay' then null else item_units end,
    'max_units',2,'reference',q.scripture_reference,'rationale',q.rationale,
-   'correct_answer',case when q.kind='mcq' then to_jsonb(q.correct_choice)
+   'correct_answer',case when q.kind='mcq' then to_jsonb(q.options->>q.correct_choice)
      when q.kind='essay' then null else q.answer_spec end));
  end loop;
  if count_items<>5 then raise exception 'Invalid frozen quiz';end if;

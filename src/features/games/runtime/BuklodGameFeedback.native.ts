@@ -9,7 +9,6 @@ import { emitBuklodGameCharacterMotion } from './characterMotionBus';
 import { createBuklodGameFeedbackLimiter } from './feedbackThrottle';
 
 const reactionSound = require('../../../../assets/sounds/buklod-reaction.wav');
-const rewardSound = require('../../../../assets/sounds/buklod-points-claim.wav');
 const impactSound = require('../../../../assets/sounds/buklod_community.wav');
 const successSound = require('../../../../assets/sounds/buklod_approval.wav');
 const unlockSound = require('../../../../assets/sounds/buklod_achievement.wav');
