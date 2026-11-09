@@ -28,6 +28,7 @@ test('Points source breakdown and history are opt-in, but deep-link ledger focus
  assert.match(points,/\{historyOpen && <>/);
  assert.match(points,/const visibleRows = expanded \? rows : \[\]/);
  assert.match(points,/Claim all verified BUKLOD Points/);
- assert.match(profile,/About Circle Rank/);
+ assert.match(profile,/View 40-level Circle Rank progression/);
+ assert.match(profile,/router\.push\('\/points\/progression' as any\)/);
  assert.doesNotMatch(profile,/subtitle="Circle rank"\s*onPress=\{\(\) => router\.push\('\/points'\)/);
 });
