@@ -4,6 +4,7 @@ on:
     branches: [dev/bsoc-member-support-continuity-20261109]
     paths:
       - 'src/app/support/live.tsx'
+      - 'tests/buklod-home-profile-support-20261108.test.mjs'
       - 'src/lib/buklodNotificationNavigation.ts'
       - 'supabase/migrations/20261109173000_bsoc_member_reopen_existing_thread_v1.sql'
       - '.github/workflows/bsoc-member-thread-dev-qa-20261109.yml'
