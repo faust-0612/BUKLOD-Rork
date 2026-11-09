@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Stop Android keyboard/layout jitter when typing in Formation Submission Report member feedback; keep input mounted, debounce lookup, reject stale cross-scope responses.",
+  "baseRef": "ca8e7e508b13e197b0c86aaf3d275962d977d157",
+  "productionBaselineEvidence": "GitHub main ca8e7e508b13e197b0c86aaf3d275962d977d157 inspected on 2026-11-09; user screenshot shows cropped ATTENTION card and open Android keyboard, but installed app runtime, current production OTA and exact native reproduction are not verified.",
+  "allowedPaths": [
+    ".buklod/scopes/faith-feedback-keyboard-jitter-20261109.json",
+    "src/components/BuklodScopeFaithMonitoringAdminFeedbackCard.tsx",
+    "src/lib/buklodFaithMonitoringMemberSearch.ts",
+    "tests/faith-monitoring-feedback-keyboard.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Member search typing never invokes full feedback refresh or unmounts focused text input",
+    "Debounce 250ms; stale search results and response errors after cleanup ignored",
+    "Existing feedback publications and selected member remain correct per exact workspace; reset on scope switch",
+    "Initial loading and refresh preserve existing feedback save functionality",
+    "Run focused Node tests and Engineering Accountability gate before any RC",
+    "Confirm keyboard open, repeated typing, scope switch, blur, scrolling and publish on real Android before release; no production OTA from this PR"
+  ],
+  "chosenApproach": "Scope-only split of feedback list refresh from debounced member lookup plus latest-only cancellation and stable initial-load form gate.",
+  "selectionRationale": "Current useFocusEffect depends on load() which depends on memberQuery, so every keystroke sets loading true and removes the full input subtree; keyboard focus is lost and layout jumps. Decoupling the data sources fixes the actual lifecycle trigger without touching shared keyboard/nav components.",
+  "alternativeApproaches": [
+    "Change global root KeyboardAvoidingView Android behavior: rejected pending evidence because broad impact on Connect, login, messages and other routes",
+    "Disable keyboard resize globally: rejected because it risks covered composers and Android accessibility",
+    "Debounce the full report reload: rejected because it still unmounts focused inputs after delay"
+  ],
+  "preserveBehaviors": [
+    "No modifications to Supabase persistence, RLS, exports or private admin scope access",
+    "No changes to global navigation, keyboard policy, Reels, Wall, Connect, ads or points",
+    "All-member and one-member feedback publication and existing-draft recall remain intact",
+    "No production release, OTA, SDK or runtime change in this isolated DEV branch"
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "android-keyboard-focus",
+    "report-feedback-scope-isolation"
+  ],
+  "regressionTests": [
+    "tests/faith-monitoring-feedback-keyboard.test.mjs"
+  ]
+}
