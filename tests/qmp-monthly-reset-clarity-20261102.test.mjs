@@ -11,10 +11,10 @@ test('monthly QMP display remains period-scoped and lifetime QMP remains a separ
   assert.match(card, /Period:\s*\{data\.period\.key\}/);
 });
 
-test('monthly reset explanation distinguishes lifetime total from monthly share weight', () => {
+test('monthly reset explanation distinguishes lifetime total from monthly contribution history', () => {
   assert.match(card, /Monthly QMP starts fresh each month/);
   assert.match(card, /lifetime QMP is preserved/);
-  assert.match(card, /previous months’ share weight does not carry into this period/);
+  assert.match(card, /record of your contributions/);
   assert.match(card, /THIS MONTH’S QUALIFIED CONTRIBUTION/);
   assert.doesNotMatch(card, /WHAT HELPED YOUR SHARE GROW\?/);
 });
