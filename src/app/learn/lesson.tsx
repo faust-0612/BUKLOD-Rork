@@ -161,6 +161,9 @@ export default function LessonDetail() {
     let resolvedAccess: FormationLessonAccess | null = null;
     let engineOn = false;
     let trackStageCode: number | null = null;
+    let authorizedTrack: any = null;
+    let cachedQuestions: any[] = [];
+    let cachedFormationStatus: any = null;
 
     try {
       engineOn = await loadFormationEngineEnabled();
@@ -182,7 +185,7 @@ export default function LessonDetail() {
           }
 
           setFormationLesson(payload);
-          setLesson({
+          const preparedLesson = {
             id: trackLessonId,
             title: payload?.title ?? 'Formation Lesson',
             content:
@@ -196,11 +199,19 @@ export default function LessonDetail() {
                   )
                 : '',
             track_id: null,
-          });
-          setTrack({
+          };
+          setLesson(preparedLesson);
+          const preparedTrack = {
             stage_code: payload?.stage_code,
             title: payload?.role_track_title_en ?? 'Formation',
-          });
+          };
+          setTrack(preparedTrack);
+          if (accountId && access.allowed) {
+            void setOfflineCache('learning-lesson-content-v1:' + trackLessonId, {
+              verified: true, lesson: preparedLesson, formationLesson: payload,
+              track: preparedTrack, questions: [], formationStatus: null, lessonAccess: access,
+            }, { userId: accountId, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
+          }
           setLoadState('ready');
           return;
         }
@@ -248,6 +259,7 @@ export default function LessonDetail() {
         .single();
 
       setTrack(t);
+      authorizedTrack = t;
       trackStageCode =
         t?.stage_code == null ? null : Number(t.stage_code);
 
@@ -271,6 +283,7 @@ export default function LessonDetail() {
         );
 
         setFormationStatus(current ?? null);
+        cachedFormationStatus = current ?? null;
 
         const applySequentialLock = requiresFormationSequentialLock(
           trackStageCode,
@@ -326,6 +339,7 @@ export default function LessonDetail() {
         .order('question_order');
 
       setQuestions(q ?? []);
+      cachedQuestions = q ?? [];
     }
 
     if (enrollmentId) {
@@ -341,6 +355,19 @@ export default function LessonDetail() {
       }
     }
 
+    // Cache only a published lesson that passed its current server access gate.
+    // Offline reads never perform server progress/points mutations.
+    const isManagedFormation =
+      authorizedTrack?.formation_program === 'ccp' ||
+      authorizedTrack?.formation_program === 'discipleship';
+    if (accountId && l && authorizedTrack?.status === 'published' &&
+        (!isManagedFormation || !engineOn || resolvedAccess?.allowed === true)) {
+      void setOfflineCache('learning-lesson-content-v1:' + lessonId, {
+        verified: true, lesson: l, formationLesson: null, track: authorizedTrack,
+        questions: cachedQuestions, formationStatus: cachedFormationStatus,
+        lessonAccess: resolvedAccess,
+      }, { userId: accountId, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
+    }
     setLoadState('ready');
   }, [lessonId, enrollmentId, trackLessonId, online, accountId]);
 
