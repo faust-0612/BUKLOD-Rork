@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,7 @@ import {
 } from '@/lib/buklodScopeFaithMonitoringFeedback';
 import { fetchScopeMembers } from '@/lib/buklodScopeMembers';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import { createFaithMonitoringMemberSearch } from '@/lib/buklodFaithMonitoringMemberSearch';
 import { colors } from '@/lib/theme';
 
 type Audience = 'all' | 'member';
@@ -54,6 +55,8 @@ export default function BuklodScopeFaithMonitoringAdminFeedbackCard({
   const [headline, setHeadline] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [initiallyLoaded, setInitiallyLoaded] = useState(false);
+  const feedbackRequestVersion = useRef(0);
   const [saving, setSaving] = useState(false);
 
   const selectedMember = useMemo(
@@ -78,34 +81,70 @@ export default function BuklodScopeFaithMonitoringAdminFeedbackCard({
     [published]
   );
 
+  // Search must not refresh/unmount the entire form on every keystroke.
+  // An older response (or a screen blur/scope change) cannot replace new data.
   const load = useCallback(async () => {
+    const requestVersion = ++feedbackRequestVersion.current;
     setLoading(true);
-
     try {
-      const [rows, memberRows] = await Promise.all([
-        fetchScopeFaithMonitoringFeedbackAdminList(scopeId),
-        fetchScopeMembers({
-          scopeId,
-          status: 'ACTIVE',
-          limit: 80,
-          query: memberQuery.trim() || undefined,
-        }),
-      ]);
-
-      setPublished(rows);
-      setMembers(memberRows);
+      const rows = await fetchScopeFaithMonitoringFeedbackAdminList(scopeId);
+      if (feedbackRequestVersion.current === requestVersion) {
+        setPublished(rows);
+      }
     } catch (error) {
-      console.warn('Faith monitoring feedback load:', error);
+      if (feedbackRequestVersion.current === requestVersion) {
+        console.warn('Faith monitoring feedback load:', error);
+      }
     } finally {
-      setLoading(false);
+      if (feedbackRequestVersion.current === requestVersion) {
+        setLoading(false);
+        setInitiallyLoaded(true);
+      }
     }
-  }, [memberQuery, scopeId]);
+  }, [scopeId]);
+
+  useEffect(() => {
+    // Never retain another workspace's feedback or selected member.
+    feedbackRequestVersion.current += 1;
+    setAudience('all');
+    setMemberQuery('');
+    setMembers([]);
+    setSelectedMemberId(null);
+    setPublished([]);
+    setHeadline('');
+    setMessage('');
+    setInitiallyLoaded(false);
+  }, [scopeId]);
 
   useFocusEffect(
     useCallback(() => {
       void load();
+      return () => {
+        feedbackRequestVersion.current += 1;
+      };
     }, [load])
   );
+
+  useEffect(() => {
+    if (audience !== 'member') {
+      setMembers([]);
+      return;
+    }
+    // Debounce search, discard stale responses and preserve TextInput focus.
+    const search = createFaithMonitoringMemberSearch(
+      (query: string) =>
+        fetchScopeMembers({
+          scopeId,
+          status: 'ACTIVE',
+          limit: 80,
+          query: query.trim() || undefined,
+        }),
+      setMembers,
+      (error) => console.warn('Faith monitoring member search:', error)
+    );
+    search.update(memberQuery);
+    return () => search.dispose();
+  }, [audience, memberQuery, scopeId]);
 
   useEffect(() => {
     if (!published.length) return;
@@ -260,9 +299,8 @@ export default function BuklodScopeFaithMonitoringAdminFeedbackCard({
         </Pressable>
       </View>
 
-      {loading ? (
-        <ActivityIndicator color={colors.green} />
-      ) : (
+      {loading ? <ActivityIndicator color={colors.green} /> : null}
+      {initiallyLoaded ? (
         <>
           {audience === 'member' ? (
             <>
