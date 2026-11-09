@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/referral-economy-cors-20261109)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/referral-economy-cors-20261109.json" >> "$GITHUB_ENV";;
             fix/the-word-safe-area-20261106)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/the-word-safe-area-20261106.json" >> "$GITHUB_ENV";;
             ui/compact-public-wall-header-20261104)
