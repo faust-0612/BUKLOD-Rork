@@ -45,9 +45,9 @@ declare
   v_i integer;
   v_total integer := 0;
 begin
-  for v_i in 1..pg_catalog.least(pg_catalog.greatest(coalesce(p_iterations,1),1),6) loop
+  for v_i in 1..least(greatest(coalesce(p_iterations,1),1),6) loop
     v_total := v_total + private.buklod_living_dispatch_greetings_v1(
-      pg_catalog.least(pg_catalog.greatest(coalesce(p_recipients_per_iteration,100),1),100)
+      least(greatest(coalesce(p_recipients_per_iteration,100),1),100)
     );
   end loop;
   return v_total;
