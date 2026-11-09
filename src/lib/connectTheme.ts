@@ -81,25 +81,25 @@ export const connectTypography = {
     lineHeight: 19,
   },
   rowTime: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500' as const,
-    lineHeight: 16,
+    lineHeight: 17,
   },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800' as const,
     letterSpacing: 0.8,
-    lineHeight: 14,
+    lineHeight: 16,
   },
   quickContactName: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600' as const,
-    lineHeight: 14,
+    lineHeight: 18,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700' as const,
-    lineHeight: 14,
+    lineHeight: 17,
   },
   fabLabel: {
     fontSize: 15,
@@ -121,9 +121,9 @@ export const connectTypography = {
     lineHeight: 21,
   },
   headerSub: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700' as const,
-    lineHeight: 15,
+    lineHeight: 17,
   },
   bubbleBody: {
     fontSize: 16,
@@ -131,12 +131,12 @@ export const connectTypography = {
     lineHeight: 23,
   },
   bubbleMeta: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600' as const,
-    lineHeight: 14,
+    lineHeight: 16,
   },
   composerInput: {
-    fontSize: 15.5,
+    fontSize: 16,
     fontWeight: '400' as const,
   },
 };
@@ -160,9 +160,9 @@ export const COMMUNITY_FILTER_LABELS: Record<
 };
 
 export const connectSpacing = {
-  screenHorizontal: 16,
+  screenHorizontal: 10,
   rowVertical: 10,
-  rowGap: 12,
+  rowGap: 8,
   sectionGap: 8,
   bottomNavHeight: 48,
   fabAboveSwitcher: 12,

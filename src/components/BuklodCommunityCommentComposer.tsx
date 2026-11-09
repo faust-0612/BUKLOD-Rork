@@ -337,8 +337,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.line,
     backgroundColor: colors.white,
     paddingTop: 7,
-    paddingHorizontal: 9,
-    gap: 7,
+    paddingHorizontal: 6,
+    gap: 5,
   },
   previewRow: {
     alignSelf: 'flex-start',
@@ -392,24 +392,24 @@ const styles = StyleSheet.create({
   expandedInputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 5,
   },
   expandedToolsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 7,
     paddingTop: 2,
   },
   toolsHint: {
     color: colors.muted,
-    fontSize: 11,
+    fontSize: 12,
     marginLeft: 'auto',
   },
   row: {
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 6,
+    gap: 5,
   },
   tool: {
     width: 36,
@@ -428,15 +428,16 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     minWidth: 0,
-    minHeight: 42,
-    maxHeight: 105,
-    paddingHorizontal: 10,
+    minHeight: 48,
+    maxHeight: 150,
+    paddingHorizontal: 8,
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 12,
     textAlignVertical: 'top',
     backgroundColor: colors.background,
+    fontSize: 16,
   },
   send: {
     width: 42,
@@ -499,7 +500,7 @@ const styles = StyleSheet.create({
   gifLabel: {
     paddingHorizontal: 6,
     paddingVertical: 4,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.muted,
   },

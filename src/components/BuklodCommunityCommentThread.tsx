@@ -279,7 +279,7 @@ function createStyles(theme: {
 }) {
   return StyleSheet.create({
     root: {
-      gap: 10,
+      gap: 8,
     },
     sortRow: {
       flexDirection: 'row',
@@ -288,13 +288,13 @@ function createStyles(theme: {
       marginBottom: 4,
     },
     sortLabel: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '800',
       color: theme.textMuted,
       marginRight: 2,
     },
     sortChip: {
-      paddingHorizontal: 10,
+      paddingHorizontal: 8,
       paddingVertical: 6,
       borderRadius: 999,
       borderWidth: 1,
@@ -306,7 +306,7 @@ function createStyles(theme: {
       backgroundColor: theme.accent + '22',
     },
     sortChipText: {
-      fontSize: 11,
+      fontSize: 13,
       fontWeight: '800',
       color: theme.textMuted,
     },
@@ -316,7 +316,7 @@ function createStyles(theme: {
     empty: {
       paddingVertical: 32,
       textAlign: 'center',
-      fontSize: 12,
+      fontSize: 14,
       color: theme.textMuted,
     },
     thread: {
@@ -326,10 +326,10 @@ function createStyles(theme: {
     row: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      gap: 8,
+      gap: 6,
     },
     replyRow: {
-      marginLeft: 18,
+      marginLeft: 12,
       paddingLeft: 8,
     },
     replyRail: {
@@ -350,7 +350,7 @@ function createStyles(theme: {
       paddingVertical: 4,
     },
     toggleRepliesText: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '800',
       color: theme.accent,
     },

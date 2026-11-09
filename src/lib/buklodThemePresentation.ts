@@ -65,7 +65,7 @@ export function createBuklodSharedStyles(
       backgroundColor: theme.canvas,
     },
     content: {
-      paddingHorizontal: 11,
+      paddingHorizontal: 8,
       paddingTop: 10,
       paddingBottom: 18,
       gap: 8,
@@ -83,13 +83,13 @@ export function createBuklodSharedStyles(
       color: theme.textPrimary,
     },
     muted: {
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 20,
       color: theme.textMuted,
     },
     body: {
-      fontSize: 15.5,
-      lineHeight: 22,
+      fontSize: 16,
+      lineHeight: 23,
       color: theme.textPrimary,
     },
     row: {
@@ -107,8 +107,8 @@ export function createBuklodCardStyle(
   return {
     backgroundColor: theme.cardSurface,
     borderRadius: 13,
-    paddingHorizontal: 11,
-    paddingVertical: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: theme.border,
   };
@@ -146,7 +146,7 @@ export function createBuklodButtonStyles(
       marginTop: 7,
       marginBottom: 4,
       color: theme.textMuted,
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 19,
       fontWeight: '900',
       letterSpacing: 0.35,

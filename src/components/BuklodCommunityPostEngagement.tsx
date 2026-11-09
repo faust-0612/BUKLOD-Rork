@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   socialCounts: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7 },
   socialCountChip: { flexDirection: 'row', alignItems: 'center', gap: 3, minHeight: 25 },
   socialCountEmoji: { fontSize: 14 },
-  socialCountText: { fontSize: 11, fontWeight: '700' },
+  socialCountText: { fontSize: 12, fontWeight: '700' },
   socialReport: { minHeight: 32, minWidth: 32, alignItems: 'center', justifyContent: 'center' },
   socialActionRow: {
     gap: 3,
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(127,127,127,0.22)',
   },
   socialReactions: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  socialLikeLabel: { fontSize: 12, fontWeight: '700', flexShrink: 1 },
+  socialLikeLabel: { fontSize: 13, fontWeight: '700', flexShrink: 1 },
   legacyReactionIcon: { flex: 1, minWidth: 0 },
   socialReactionIcon: { width: 46, flexShrink: 0 },
   socialActionBtn: { flex: 1, minWidth: 0, minHeight: 40, gap: 6 },
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   inlineActionCount: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
   },
   reportBtn: {
@@ -251,23 +251,23 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   reportText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
   },
   fallbackPreview: {
-    marginTop: 8,
-    paddingHorizontal: 10,
+    marginTop: 5,
+    paddingHorizontal: 8,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
   },
   fallbackTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '800',
   },
   fallbackBody: {
     marginTop: 2,
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
   },
 });

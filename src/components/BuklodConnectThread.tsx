@@ -5583,7 +5583,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     headerSub: {
       marginTop: 1,
       color: theme.accent,
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '900',
     },
 
@@ -5605,13 +5605,13 @@ function createThreadStyles(theme: ConnectThemeRoles) {
       flex: 1,
       color:
         theme.accent,
-      fontSize: 12,
-      lineHeight: 18,
+      fontSize: 13,
+      lineHeight: 19,
       fontWeight: '800',
     },
 
     messages: {
-      paddingHorizontal: 10,
+      paddingHorizontal: 6,
       paddingTop: 7,
       paddingBottom: 12,
       flexGrow: 1,
@@ -5694,8 +5694,8 @@ function createThreadStyles(theme: ConnectThemeRoles) {
 
     bubble: {
       maxWidth: '86%',
-      paddingHorizontal: 14,
-      paddingVertical: 11,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
       borderRadius: 18,
       overflow: 'visible',
     },
@@ -5720,14 +5720,14 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     sender: {
       marginBottom: 4,
       color: theme.accent,
-      fontSize: 12,
+      fontSize: 14,
       fontWeight: '900',
     },
 
     body: {
       color: theme.textPrimary,
-      fontSize: 14.5,
-      lineHeight: 21,
+      fontSize: 16,
+      lineHeight: 23,
     },
 
     bodyOwn: {
@@ -5737,7 +5737,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     time: {
       color: theme.textMuted,
       fontSize: 12,
-      lineHeight: 12,
+      lineHeight: 16,
     },
 
     white: {
@@ -6397,7 +6397,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     },
     selectedFile: {
       minHeight: 48,
-      marginHorizontal: 10,
+      marginHorizontal: 6,
       marginBottom: 6,
       paddingHorizontal:
         11,
@@ -6433,7 +6433,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
         'row',
       alignItems:
         'flex-end',
-      gap: 7,
+      gap: 5,
       borderTopWidth:
         StyleSheet
           .hairlineWidth,
@@ -6442,7 +6442,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
       backgroundColor:
         '#FFFFFF',
       paddingVertical: 5,
-      paddingHorizontal: 8,
+      paddingHorizontal: 6,
     },
 
     attach: {
@@ -6459,10 +6459,10 @@ function createThreadStyles(theme: ConnectThemeRoles) {
 
     input: {
       flex: 1,
-      minHeight: 44,
-      maxHeight: 82,
+      minHeight: 48,
+      maxHeight: 150,
       paddingHorizontal:
-        12,
+        8,
       paddingVertical: 6,
       borderWidth: 1,
       borderColor:
@@ -6471,7 +6471,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
       backgroundColor:
         '#F8FAF9',
       color: theme.textPrimary,
-      fontSize: 14.5,
+      fontSize: 16,
       textAlignVertical:
         'top',
     },

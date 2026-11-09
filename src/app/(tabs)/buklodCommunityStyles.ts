@@ -7,7 +7,7 @@ content:{
  paddingHorizontal:0,
  paddingTop:8,
  paddingBottom:50
-},eyebrow:{fontSize:10,fontWeight:'900',color:c.greenDark,letterSpacing:.8},label:{fontSize:10,fontWeight:'900',color:c.muted,marginBottom:7},
+},eyebrow:{fontSize:12,fontWeight:'900',color:c.greenDark,letterSpacing:.8},label:{fontSize:12,fontWeight:'900',color:c.muted,marginBottom:7},
 wrap:{flexDirection:'row',flexWrap:'wrap',gap:7},
 
 audienceRow:{
@@ -41,7 +41,7 @@ categoryChip:{
 },
 
 compactChipText:{
- fontSize:9,
+ fontSize:12,
  fontWeight:'900',
  color:c.text
 },
@@ -61,42 +61,42 @@ chipOn:{
 },
 
 chipText:{
- fontSize:10,
+ fontSize:13,
  fontWeight:'900',
  color:c.text
 },
 
 audienceHelp:{
  marginTop:5,
- fontSize:9,
- lineHeight:13,
+ fontSize:12,
+ lineHeight:17,
  color:c.muted
 },
 
 typeLabel:{
  marginTop:9,
  marginBottom:6,
- fontSize:9,
+ fontSize:12,
  fontWeight:'900',
  color:c.muted
 },
 area:{
- minHeight:52,
- maxHeight:120,
- marginTop:9,
- paddingHorizontal:11,
- paddingVertical:9,
+ minHeight:96,
+ maxHeight:200,
+ marginTop:5,
+ paddingHorizontal:8,
+ paddingVertical:8,
  borderWidth:1,
  borderColor:c.line,
  borderRadius:11,
  textAlignVertical:'top',
  backgroundColor:c.white,
- fontSize:13
+ fontSize:16
 },
 
 mentioned:{
  marginTop:6,
- fontSize:10,
+ fontSize:13,
  fontWeight:'800',
  color:c.greenDark
 },
@@ -120,12 +120,12 @@ tool:{
 },
 
 toolText:{
- fontSize:9.5,
+ fontSize:12,
  fontWeight:'900',
  color:c.greenDark
 },
 preview:{width:'100%',height:210,borderRadius:12,marginTop:10,marginBottom:8},filter:{gap:7,paddingBottom:4},rank:{flexDirection:'row',alignItems:'center',gap:8,paddingTop:9,marginTop:9,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:c.line},rankNo:{width:30,fontWeight:'900',color:c.greenDark},rankName:{flex:1,fontWeight:'900',color:c.text},rankPts:{fontSize:11,fontWeight:'900',color:c.greenDark},
-author:{fontSize:15,fontWeight:'900',color:c.text},meta:{marginTop:3,fontSize:9.5,color:c.muted},body:{marginTop:4,fontSize:16,lineHeight:23,color:c.text},postImage:{width:'100%',height:240,borderRadius:12,marginTop:10},
+author:{fontSize:16,fontWeight:'900',color:c.text},meta:{marginTop:3,fontSize:12,color:c.muted},body:{marginTop:3,fontSize:17,lineHeight:25,color:c.text},postImage:{width:'100%',height:240,borderRadius:12,marginTop:10},
 rx:{
  flexDirection:'row',
  alignItems:'center',
@@ -154,7 +154,7 @@ rxBtnActive:{
 },
 
 rxCount:{
- fontSize:8.5,
+ fontSize:12,
  fontWeight:'900',
  color:c.muted
 },
@@ -162,9 +162,9 @@ rxCount:{
 rxCountActive:{
  color:c.greenDark
 },
-footer:{marginTop:10,paddingTop:9,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:c.line,flexDirection:'row',gap:8},footBtn:{flex:1,minHeight:38,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,borderRadius:10,backgroundColor:'#F7F7F7'},footText:{fontSize:10.5,fontWeight:'900',color:c.greenDark},
+footer:{marginTop:10,paddingTop:9,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:c.line,flexDirection:'row',gap:8},footBtn:{flex:1,minHeight:38,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,borderRadius:10,backgroundColor:'#F7F7F7'},footText:{fontSize:13,fontWeight:'900',color:c.greenDark},
 overlay:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.35)'},drawer:{minHeight:'58%',maxHeight:'82%',padding:18,paddingBottom:24,borderTopLeftRadius:24,borderTopRightRadius:24,backgroundColor:c.background},drawerTitle:{fontSize:20,fontWeight:'900',color:c.text,marginBottom:10},search:{borderWidth:1,borderColor:c.line,borderRadius:12,padding:12,backgroundColor:c.white},
-member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12,flexDirection:'row',alignItems:'center',gap:8,backgroundColor:c.white},memberOn:{borderColor:c.green,backgroundColor:c.greenSoft},memberName:{fontSize:13,fontWeight:'900',color:c.text},memberMeta:{marginTop:3,fontSize:9.5,color:c.muted}
+member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12,flexDirection:'row',alignItems:'center',gap:8,backgroundColor:c.white},memberOn:{borderColor:c.green,backgroundColor:c.greenSoft},memberName:{fontSize:15,fontWeight:'900',color:c.text},memberMeta:{marginTop:3,fontSize:12,color:c.muted}
 ,
 
  communityComposerPhotos:{
@@ -391,14 +391,14 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
  },
 
  communityCommentName:{
-  fontSize:11,
+  fontSize:14,
   fontWeight:'900',
   color:c.text
  },
 
  communityCommentMeta:{
   marginTop:1,
-  fontSize:8.5,
+  fontSize:12,
   color:c.muted
  },
 
@@ -411,8 +411,8 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
 
  communityCommentBody:{
   marginTop:4,
-  fontSize:12.5,
-  lineHeight:18,
+  fontSize:16,
+  lineHeight:23,
   color:c.text
  },
 
@@ -431,7 +431,7 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
  },
 
  communityCommentActionText:{
-  fontSize:9.5,
+  fontSize:13,
   fontWeight:'800',
   color:c.muted
  },
@@ -453,20 +453,20 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
  },
 
  communityReplyBannerLabel:{
-  fontSize:8,
+  fontSize:12,
   color:c.muted
  },
 
  communityReplyBannerName:{
   marginTop:1,
-  fontSize:10,
+  fontSize:14,
   fontWeight:'900',
   color:c.greenDark
  },
 
  communityCommentComposer:{
   minHeight:62,
-  paddingHorizontal:9,
+  paddingHorizontal:6,
   paddingTop:7,
   paddingBottom:10,
   flexDirection:'row',
@@ -482,9 +482,9 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
 
  communityCommentInput:{
   flex:1,
-  minHeight:42,
-  maxHeight:105,
-  paddingHorizontal:10,
+  minHeight:48,
+  maxHeight:150,
+  paddingHorizontal:8,
   paddingVertical:8,
   borderWidth:1,
   borderColor:c.line,
@@ -492,7 +492,8 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
   textAlignVertical:'top',
   backgroundColor:
    c.background
- },
+   fontSize: 16,
+  },
 
  communityCommentSend:{
   width:42,

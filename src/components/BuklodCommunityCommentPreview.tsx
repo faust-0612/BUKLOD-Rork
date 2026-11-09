@@ -125,9 +125,9 @@ export function BuklodCommunityCommentPreview({
 
 const styles = StyleSheet.create({
   row: {
-    marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -154,30 +154,30 @@ const styles = StyleSheet.create({
   },
   name: {
     flexShrink: 1,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '800',
     color: colors.text,
   },
   reelName: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 13,
   },
   time: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
   },
   mediaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
   gifThumb: { width: 58, height: 48, borderRadius: 8 },
-  mediaLabel: { fontSize: 12, fontWeight: '800', color: '#186B50' },
+  mediaLabel: { fontSize: 13, fontWeight: '800', color: '#186B50' },
   body: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 23,
     color: colors.text,
   },
   reelBody: {
     color: '#F2F5F3',
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
 

@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   inlineToggle: {
     minHeight: 32,
     justifyContent: 'center',
-    paddingLeft: 7,
+    paddingLeft: 6,
     flexShrink: 0,
   },
   toggle: {
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   toggleText: {
     color: '#2867A5',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 14,
   },
   largeText: {
     fontSize: 25,
