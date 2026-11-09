@@ -268,8 +268,7 @@ begin
   perform public.buklod_notify_scope_formation_outcome_v1(p_approval_id, v_auto);
   return v_result;
 end;
-$function$
-
+$function$;
 
 -- Prevent direct invocation of the old core mutation RPC by members.
 REVOKE EXECUTE ON FUNCTION public.buklod_review_scope_formation_approval_core_r22b(uuid,boolean,text)
