@@ -77,3 +77,13 @@ test('Points screen and Economy use account-isolated short caches and explicit r
   assert.match(points,/pointsViewCache\.get\(accountId\)/);
   assert.match(points,/await load\(true\)/);
 });
+
+test('Consolidated November OTA candidate triggers exact-branch Android and web compile without publish',()=>{
+  const workflow=read('.github/workflows/unified_rc_compiled_qa_20261108.yml');
+  assert.match(workflow,/github\\.head_ref == 'fix\\/ota-nov09-drawer-kl-music-economy'/);
+  assert.match(workflow,/github\\.event\\.pull_request\\.head\\.sha/);
+  assert.match(workflow,/assert\\.equal\\(c\\.runtimeVersion,'1\\.3\\.2'\\)/);
+  assert.match(workflow,/npx expo export --platform android/);
+  assert.match(workflow,/npx expo export --platform web/);
+  assert.doesNotMatch(workflow,/eas update --branch|eas submit --platform|eas build --platform/);
+});
