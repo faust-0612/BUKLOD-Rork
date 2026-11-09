@@ -70,10 +70,10 @@ export default function BuklodScopeLessonLicensesCard({
   if (!BUKLOD_PAID_FEATURES_ENABLED) {
     return (
       <View style={styles.licenseBox}>
-        <Text style={styles.licenseTitle}>PAID LESSON PACKAGES PAUSED</Text>
+        <Text style={styles.licenseTitle}>BUKLOD LESSONS ACCESS</Text>
         <Text style={styles.licenseMeta}>
-          No package payments are being accepted pending final approval.
-          Existing free learning and stage progression rules remain unchanged.
+          Lesson purchases are paused. Active Cluster members can study
+          according to the existing stage progression and completion rules.
         </Text>
       </View>
     );

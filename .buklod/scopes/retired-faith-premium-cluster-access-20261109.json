@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Retire purchase-based access checks for BUKLOD Cluster Daily Reading, Word and Lessons 101–107 while preserving active membership, stage progression and installed-client compatibility.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main SHA 7ce0f15ec1b748b3ddd6d869538ffe8c0c91699c on 2026-11-09. Production Supabase project yhanxndaqbmuzbdqlblu migration 20261109104024 applied and read back; MZB NAYON active member and nonmember cases tested. Android installed-client and OTA SHA not verified; source merge does not release.",
+  "chosenApproach": "Replace only four existing backend compatibility functions through an additive migration; leave RLS/roles/payments/memberships untouched; keep client membership gate and update obsolete Premium copy. New focused SQL and Node tests enforce both positive and negative access.",
+  "selectionRationale": "The application already disables paid checkout, but live Daily Reading and submission used a deprecated paid entitlement. Fixing the backend resolves installed clients without a forced app update and avoids bypassing the canonical cluster and lesson progression checks.",
+  "alternativeApproaches": [
+    "Grant special MZB NAYON Premium or mark an MZB exemption (rejected: user-specific workaround contradicts retired premium policy).",
+    "Remove all cluster checks or grant unconditional client access (rejected: breaks membership, permissions and submission integrity).",
+    "Require new Android binary before changing backend (rejected: current installed clients depend on live RPC compatibility)."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/retired-faith-premium-cluster-access-20261109.json",
+    "src/components/BuklodHomeFaithPanel.tsx",
+    "src/components/BuklodScopeLessonLicensesCard.tsx",
+    "src/lib/buklodScopeFaithAccess.ts",
+    "supabase/migrations/20261109104024_retire_faith_premium_cluster_access_20261109.sql",
+    "supabase/tests/retired_faith_premium_cluster_access_20261109.sql",
+    "tests/retired-faith-premium-cluster-access-20261109.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Authentication, valid active Cluster membership and lifecycle remain mandatory for Daily Reading, Word and Lessons.",
+    "Stage prerequisites, repeat locks, learning progress, user privacy and RLS preserved.",
+    "Existing paid transactions, entitlement records, revenue and reward balances unchanged.",
+    "No new native runtime dependency and no client/OTA deployment without the separate release gate."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "authorization-security",
+    "database-migration"
+  ],
+  "regressionTests": [
+    "supabase/tests/retired_faith_premium_cluster_access_20261109.sql",
+    "tests/retired-faith-premium-cluster-access-20261109.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "MZB NAYON active member without Premium can load Daily Reading and Word, stage 101/107 available.",
+    "Nonmember remains denied by RPC; submission trigger still requires active Cluster.",
+    "Invalid stage 108 and Organization scope cannot become Cluster entitlement.",
+    "SQL regression runs read-only, Node source contract passes, no RLS/payment mutation.",
+    "Backend marked live only after migration and runtime read-back; OTA/web separately gated."
+  ]
+}
