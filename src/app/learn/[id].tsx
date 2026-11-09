@@ -81,9 +81,9 @@ export default function TrackDetail() {
     setOfflineMissing(false);
 
     const [
-      { data: t },
-      { data: l },
-      { data: e },
+      { data: t, error: trackError },
+      { data: l, error: lessonError },
+      { data: e, error: enrollmentError },
     ] = await Promise.all([
       supabase
         .from('learning_tracks')
@@ -105,6 +105,18 @@ export default function TrackDetail() {
         .maybeSingle(),
     ]);
 
+    if (trackError || lessonError || enrollmentError) {
+      const errors = [trackError, lessonError, enrollmentError].filter(Boolean);
+      const transportError = errors.every((error) =>
+        /network|fetch|timeout|connection|offline|timed out/i.test(error?.message ?? ''));
+      if (!transportError || saved?.data?.enrollment?.user_id !== user.id) {
+        setTrack(null); setLessons([]); setEnrollment(null);
+        setOfflineMissing(true);
+      }
+      // An ordinary connection failure keeps the last authorized snapshot;
+      // permission-denied and missing-enrollment responses do not.
+      return;
+    }
     setTrack(t);
     setLessons(l ?? []);
     let weeklySnapshot: FormationWeeklyDelivery | null = null;
