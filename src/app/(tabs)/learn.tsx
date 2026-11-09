@@ -172,11 +172,17 @@ export function BuklodLearningContent({
       }
 
 
-      setWeeklyDevotionalLoading(
-        true
-      );
-
-
+      setWeeklyDevotionalLoading(true);
+      const saved = await getOfflineCache<{ available: boolean; item: WeeklyDevotional | null }>(
+        'learning-weekly-devotional-v1', { userId: user.id, allowStale: true });
+      if (saved?.data) {
+        setWeeklyDevotional(saved.data.item);
+        setWeeklyDevotionalAvailable(saved.data.available);
+      }
+      if (!online || (saved && Date.now() - saved.storedAt < 6 * 60 * 60 * 1000)) {
+        setWeeklyDevotionalLoading(false);
+        return;
+      }
       try {
         const {
           data,
@@ -196,14 +202,7 @@ export function BuklodLearningContent({
          * working normally.
          */
         if (error) {
-          setWeeklyDevotional(
-            null
-          );
-
-          setWeeklyDevotionalAvailable(
-            false
-          );
-
+          if (!saved) { setWeeklyDevotional(null); setWeeklyDevotionalAvailable(false); }
           return;
         }
 
@@ -273,7 +272,7 @@ export function BuklodLearningContent({
               );
 
 
-        setWeeklyDevotional({
+        const currentWord: WeeklyDevotional = {
           id:
             String(
               devotionalId
@@ -320,23 +319,21 @@ export function BuklodLearningContent({
             raw.series_title ??
             raw.devotional_series_title ??
             null,
-        });
+        };
+        setWeeklyDevotional(currentWord);
+        void setOfflineCache('learning-weekly-devotional-v1',
+          { available: true, item: currentWord },
+          { userId: user.id, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
 
       } catch {
-        setWeeklyDevotional(
-          null
-        );
-
-        setWeeklyDevotionalAvailable(
-          false
-        );
+        if (!saved) { setWeeklyDevotional(null); setWeeklyDevotionalAvailable(false); }
 
       } finally {
         setWeeklyDevotionalLoading(
           false
         );
       }
-    }, [user?.id]);
+    }, [user?.id, online]);
 
 
   const load = useCallback(async () => {
