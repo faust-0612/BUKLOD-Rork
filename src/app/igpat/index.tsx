@@ -322,7 +322,6 @@ export default function IgpatScreen() {
 
       // Sign the first video first: do not block first paint on every URL.
       // Keep stable row IDs/order while the remaining signed URLs arrive.
-      const generation = loadGenerationRef.current;
       const sign = async (row: IgpatRow): Promise<IgpatRow> => {
         try {
           const { data: signed, error: signError } = await supabase.storage
