@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import {
   Button,
@@ -16,6 +16,8 @@ import {
   shared,
 } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { colors } from '@/lib/theme';
 import { useFormationJourney } from '@/hooks/useFormationJourney';
@@ -115,6 +117,7 @@ export function BuklodLearningContent({
 }) {
   const embedded = variant === 'embedded';
   const { user , hasRole} = useAuth();
+  const { online } = useNetwork();
   const { activeScope } = useBuklodScope();
 
   /* PATCH_185B_PROGRESS_ADMIN */
