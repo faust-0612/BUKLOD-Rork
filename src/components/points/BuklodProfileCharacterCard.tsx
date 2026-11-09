@@ -64,6 +64,8 @@ import BuklodActiveCharacterArt
 
 import BuklodAdLightRewardCard
   from '@/components/BuklodAdLightRewardCard';
+import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
+import BuklodCharacterLevelRecognition from '@/components/points/BuklodCharacterLevelRecognition';
 
 import {
   CHARACTER_DISPLAY_NAME,
@@ -168,6 +170,8 @@ export default function BuklodProfileCharacterCard({
   const [selection, setSelection] = useState<BuklodCharacterSelectionV2State | null>(() =>
     getCachedBuklodCharacterSelectionV2(userId),
   );
+  // Cache can paint the Character immediately, but cannot prove a new level-up.
+  const [confirmedSelection, setConfirmedSelection] = useState<BuklodCharacterSelectionV2State | null>(null);
   const [, setSelectionTick] = useState(0);
 
   useEffect(() => {
@@ -191,18 +195,26 @@ export default function BuklodProfileCharacterCard({
   useEffect(() => {
     if (!userId) {
       setSelection(null);
+      setConfirmedSelection(null);
       return;
     }
+    setConfirmedSelection(null);
     let mounted = true;
+    let verified = false;
     void getMyBuklodCharacterSelectionV2(userId, true).then(
       (next) => {
-        if (mounted) setSelection(next);
+        if (mounted) {
+          verified = true;
+          setSelection(next);
+          setConfirmedSelection(next);
+        }
       },
       () => undefined,
     );
     const unsubscribeSelection = subscribeBuklodCharacterSelectionV2((changedUserId, next) => {
       if (mounted && changedUserId === userId) {
         setSelection(next);
+        if (verified) setConfirmedSelection(next);
         setSelectionTick((value) => value + 1);
       }
     });
@@ -540,6 +552,7 @@ export default function BuklodProfileCharacterCard({
 
   return (
     <>
+      <BuklodCharacterLevelRecognition userId={userId} selection={confirmedSelection} />
       <ProfileMotionFadeUp delay={55}>
         <View style={styles.wrap}>
           <View style={styles.card}>
@@ -650,12 +663,12 @@ export default function BuklodProfileCharacterCard({
                       </Pressable>
                     ) : null}
                   </View>
-                  <Text
-                    numberOfLines={1}
-                    style={styles.summaryValue}
-                  >
-                    {rankLabel || 'BUKLOD Rank'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 2 }}>
+                    {rankLabel ? <BuklodCircleRankBadge rankName={rankLabel} size={32} /> : null}
+                    <Text numberOfLines={2} style={[styles.summaryValue, { flex: 1 }]}>
+                      {rankLabel || 'BUKLOD Rank'}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={[styles.summaryChip, { backgroundColor: pointsTone.surface, borderColor: pointsTone.border }]}>

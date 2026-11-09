@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,6 +13,8 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
 
 type RankProgress = {
   lifetime_points: number;
@@ -49,6 +53,18 @@ export default function CircleRankProgressionScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const requestId = useRef(0);
+  const [rankUp, setRankUp] = useState<RankProgress | null>(null);
+  const medalScale = useRef(new Animated.Value(0.84)).current;
+
+  useEffect(() => {
+    if (!rankUp) return;
+    medalScale.setValue(0.84);
+    const animation = Animated.spring(medalScale, {
+      toValue: 1, friction: 5, tension: 78, useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [rankUp, medalScale]);
 
   const load = useCallback(async (refresh = false) => {
     const request = ++requestId.current;
@@ -75,12 +91,38 @@ export default function CircleRankProgressionScreen() {
       }
 
       if (request !== requestId.current) return;
-      setProgress(progressRows[0] as RankProgress);
+      const verifiedProgress = progressRows[0] as RankProgress;
+      setProgress(verifiedProgress);
       setLadder(
         [...(ladderRows as RankLadderRow[])].sort(
           (a, b) => number(a.rank_order) - number(b.rank_order),
         ),
       );
+
+      // Recognition only after a server-confirmed rank increase, once per user.
+      // First visit establishes a baseline: no false celebration of past ranks.
+      // Failure to persist the seen marker must never block the rank roadmap.
+      try {
+        const { data: auth } = await supabase.auth.getSession();
+        const userId = auth.session?.user?.id;
+        const order = Math.floor(number(verifiedProgress.rank_order));
+        if (request === requestId.current && userId && order > 0) {
+          const key = `buklod:circle-rank:last-seen:v1:${userId}`;
+          const stored = await AsyncStorage.getItem(key);
+          const previous = stored === null ? null : Number(stored);
+          if (request === requestId.current) {
+            if (previous === null || (Number.isFinite(previous) && order > previous)) {
+              await AsyncStorage.setItem(key, String(order));
+            }
+            if (request === requestId.current && previous !== null &&
+                Number.isFinite(previous) && order > previous) {
+              setRankUp(verifiedProgress);
+            }
+          }
+        }
+      } catch {
+        // Offline/storage errors never affect the server-authored rank.
+      }
     } catch {
       if (request === requestId.current) {
         setError('Could not load your Circle Rank progression. Your points are unchanged.');
@@ -151,9 +193,14 @@ export default function CircleRankProgressionScreen() {
       {progress ? (
         <>
           <View style={styles.currentCard}>
-            <Text style={styles.lightLabel}>YOUR CURRENT CIRCLE RANK</Text>
-            <Text style={styles.currentRank}>{progress.rank_name}</Text>
-            <Text style={styles.points}>{money(progress.lifetime_points)} lifetime points</Text>
+            <View style={styles.heroRankRow}>
+              <BuklodCircleRankBadge rankName={progress.rank_name} size={79} />
+              <View style={styles.heroRankDetails}>
+                <Text style={styles.lightLabel}>YOUR PERMANENT CIRCLE RANK</Text>
+                <Text style={styles.currentRank}>{progress.rank_name}</Text>
+                <Text style={styles.points}>{money(progress.lifetime_points)} lifetime points</Text>
+              </View>
+            </View>
             <View style={styles.progressMeta}>
               <Text style={styles.lightLabel}>RANK PROGRESS</Text>
               <Text style={styles.progressValue}>{percent.toFixed(0)}%</Text>
@@ -196,15 +243,13 @@ export default function CircleRankProgressionScreen() {
                   <Text style={styles.familyHeading}>{item.rank_family}</Text>
                 ) : null}
                 <View style={[styles.rankRow, current && styles.activeRow]}>
-                  <View style={[styles.rankNumber, current && styles.activeNumber]}>
-                    {achieved ? (
-                      <MaterialCommunityIcons name="check" color={GREEN} size={16} />
-                    ) : (
-                      <Text style={[styles.rankNumberText, current && styles.activeNumberText]}>
-                        {order}
-                      </Text>
-                    )}
-                  </View>
+                  <BuklodCircleRankBadge
+                    rankFamily={item.rank_family}
+                    rankLevel={item.rank_level}
+                    rankName={item.rank_name}
+                    size={51}
+                    locked={!achieved && !current}
+                  />
                   <View style={styles.rankDetails}>
                     <Text style={[styles.rankTitle, current && styles.currentRowText]}>
                       {item.rank_name}
@@ -225,9 +270,9 @@ export default function CircleRankProgressionScreen() {
           })}
 
           <Text style={styles.note}>
-            Circle Rank is based on verified lifetime BUKLOD Points. Spending available points
-            does not lower your rank. Character levels are separate; eligible character and
-            reward unlocks follow their own verified progression rules.
+            Circle Rank is permanent and based on verified lifetime BUKLOD Points.
+            Spending available points or selecting a new Level 1 Character will not lower it.
+            Character Levels 1–20 and their collectibles have separate progression.
           </Text>
           <Pressable
             accessibilityRole="button"
@@ -239,6 +284,35 @@ export default function CircleRankProgressionScreen() {
           </Pressable>
         </>
       ) : null}
+      <Modal
+        visible={Boolean(rankUp)}
+        transparent
+        statusBarTranslucent
+        animationType="fade"
+        onRequestClose={() => setRankUp(null)}
+      >
+        <View style={styles.celebrationBackdrop}>
+          <Animated.View style={[styles.celebrationCard, { transform: [{ scale: medalScale }] }]}>
+            <MaterialCommunityIcons name="creation" size={24} color="#C39125" />
+            <Text style={styles.celebrationEyebrow}>BUKLOD MILESTONE UNLOCKED</Text>
+            <BuklodCircleRankBadge rankName={rankUp?.rank_name} size={112} />
+            <Text style={styles.celebrationTitle}>Congratulations! Rank up!</Text>
+            <Text style={styles.celebrationRank}>{rankUp?.rank_name}</Text>
+            <Text style={styles.celebrationDetail}>
+              Naabot mo ang bagong permanenteng Circle Rank!
+              Nananatili ito kahit magpalit ka ng Character o bumalik iyon sa Level 1.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close Circle Rank recognition"
+              onPress={() => setRankUp(null)}
+              style={styles.celebrationButton}
+            >
+              <Text style={styles.celebrationButtonText}>CONTINUE MY JOURNEY</Text>
+            </Pressable>
+          </Animated.View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -265,7 +339,9 @@ const styles = StyleSheet.create({
     backgroundColor: GREEN, borderRadius: 22, padding: 20, marginBottom: 24,
   },
   lightLabel: { color: '#D5F4DF', fontWeight: '800', fontSize: 11, letterSpacing: 0.7 },
-  currentRank: { color: '#FFFFFF', fontSize: 26, fontWeight: '900', marginTop: 8 },
+  heroRankRow: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  heroRankDetails: { flex: 1, minWidth: 0 },
+  currentRank: { color: '#FFFFFF', fontSize: 23, fontWeight: '900', marginTop: 5 },
   points: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', marginTop: 6 },
   progressMeta: {
     marginTop: 24, flexDirection: 'row', justifyContent: 'space-between',
@@ -292,7 +368,7 @@ const styles = StyleSheet.create({
   },
   rankRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 12, marginBottom: 7, backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10, paddingVertical: 7, marginBottom: 6, backgroundColor: '#FFFFFF',
     borderWidth: 1, borderColor: '#DFE8E2', borderRadius: 13,
   },
   activeRow: { backgroundColor: '#E7F6EB', borderColor: GREEN, borderWidth: 1.5 },
@@ -303,11 +379,11 @@ const styles = StyleSheet.create({
   activeNumber: { backgroundColor: GREEN },
   rankNumberText: { color: '#617268', fontWeight: '800', fontSize: 12 },
   activeNumberText: { color: '#FFFFFF' },
-  rankDetails: { flex: 1 },
+  rankDetails: { flex: 1, minWidth: 0 },
   rankTitle: { color: '#21392D', fontWeight: '800', fontSize: 13 },
   currentRowText: { color: GREEN },
   rankThreshold: { color: '#78877D', fontSize: 11, marginTop: 3 },
-  status: { color: '#87948B', fontSize: 9, fontWeight: '800' },
+  status: { color: '#87948B', fontSize: 9, fontWeight: '800', maxWidth: 70, textAlign: 'right' },
   currentStatus: { color: GREEN },
   note: { color: '#617268', fontSize: 12, lineHeight: 19, marginTop: 23 },
   pointsButton: {
@@ -315,4 +391,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9,
   },
   pointsButtonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 13 },
+  celebrationBackdrop: {
+    flex: 1, backgroundColor: 'rgba(10,30,19,0.72)',
+    justifyContent: 'center', paddingHorizontal: 25,
+  },
+  celebrationCard: {
+    alignItems: 'center', borderRadius: 26, backgroundColor: '#FFFFFF',
+    borderWidth: 2, borderColor: '#D9BB69', padding: 25,
+  },
+  celebrationEyebrow: {
+    fontSize: 10, color: '#876418', fontWeight: '900', letterSpacing: 1,
+    marginTop: 9, marginBottom: 14,
+  },
+  celebrationTitle: { color: '#163C2A', fontSize: 22, fontWeight: '900', marginTop: 13 },
+  celebrationRank: { color: GREEN, fontSize: 20, fontWeight: '900', marginTop: 4 },
+  celebrationDetail: {
+    color: '#586D61', fontSize: 13, lineHeight: 20, marginTop: 12,
+    textAlign: 'center',
+  },
+  celebrationButton: {
+    backgroundColor: GREEN, paddingVertical: 13, paddingHorizontal: 18,
+    borderRadius: 13, marginTop: 22, width: '100%', alignItems: 'center',
+  },
+  celebrationButtonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 12 },
 });
