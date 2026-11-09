@@ -78,7 +78,7 @@ begin
  if a.state='completed' then
   return jsonb_build_object('status','completed','score_units',a.score_units,'points',a.points_awarded);
  end if;
- if p_units<0 or p_units>10 then raise exception 'Score out of range';end if;
+ if p_units is null or p_units<0 or p_units>10 then raise exception 'Score out of range';end if;
  desired:=private.buklod_bible_v4_points(a.difficulty,p_units);
  select r.base_points,r.max_points_per_event,r.is_active into v_rule
  from public.buklod_point_rules r where r.activity_type='bible_quiz_'||a.difficulty;
@@ -256,7 +256,7 @@ declare a record; v_earned int:=0; result jsonb;
 begin
  if auth.uid() is null or not public.buklod_is_system_admin() then
   raise exception 'System Admin only' using errcode='42501';end if;
- if p_essay_units not between 0 and 2 then raise exception 'Essay score must be 0–2 units';end if;
+ if p_essay_units is null or p_essay_units not between 0 and 2 then raise exception 'Essay score must be 0–2 units';end if;
  select * into a from private.buklod_bible_v4_attempts where id=p_attempt_id for update;
  if not found or a.state<>'pending_review' then raise exception 'No pending essay';end if;
  select coalesce(sum((item->>'earned_units')::int),0) into v_earned

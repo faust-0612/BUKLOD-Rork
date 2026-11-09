@@ -117,7 +117,7 @@ begin
   raise exception 'Invalid event type or difficulty';end if;
  if p_start_at<now()+interval '2 minutes' or p_start_at>now()+interval '45 days' then
   raise exception 'Schedule 2 minutes to 45 days ahead';end if;
- if v_kind='arena' and p_slots not between 3 and 5 then raise exception 'Arena accepts 3–5 players';end if;
+ if v_kind='arena' and (p_slots is null or p_slots not between 3 and 5) then raise exception 'Arena accepts 3–5 players';end if;
  minutes:=coalesce(p_duration_minutes,case when v_kind='flash' then 10 else 20 end);
  if minutes not between 5 and 40 then raise exception 'Event duration out of range';end if;
  v_limit:=case when v_kind='flash' then 1 else 10 end;

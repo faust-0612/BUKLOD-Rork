@@ -30,10 +30,15 @@
     "question-bank-quality",
     "live-event-timing",
     "game-audio",
-    "QMP-separation"
+    "QMP-separation",
+    "classroom-quiz",
+    "ads-monetization"
   ],
   "regressionTests": [
-    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs"
+    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
+    "tests/bible-v4-quiz-compat-20261109.test.mjs",
+    "tests/bible-v4-ads-separation-20261109.test.mjs",
+    "supabase/tests/buklod_bible_v4_secure_events_20261109.sql"
   ],
   "allowedPaths": [
     "src/app/(tabs)/home.tsx",
@@ -58,6 +63,14 @@
     "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
     ".github/workflows/engineering-accountability.yml",
     ".github/workflows/unified_rc_compiled_qa_20261108.yml",
-    ".buklod/scopes/bible-v4-events-kingdom-20261109.json"
+    ".buklod/scopes/bible-v4-events-kingdom-20261109.json",
+    "tests/bible-v4-quiz-compat-20261109.test.mjs",
+    "tests/bible-v4-ads-separation-20261109.test.mjs",
+    "supabase/tests/buklod_bible_v4_secure_events_20261109.sql"
+  ],
+  "alternativeApproaches": [
+    "Blind replacement of R3 Quiz and award ledger: rejected; risks older Android clients, concurrent scoring and financial integrity.",
+    "Versioned private V4 engine with reviewed question bank, server-authoritative Points, R3 fallback and optional natural-break Ads: selected.",
+    "Unreviewed AI-generated live answers and cash incentives: rejected; essays require human rubric grading and QMP stays source-of-truth in official AdMob reporting."
   ]
 }
