@@ -394,6 +394,7 @@ export default function TrackDetail() {
       params: {
         lessonId: lesson.id,
         enrollmentId: enrollment?.id ?? '',
+        trackId: id,
       },
     });
   };
