@@ -18,7 +18,10 @@ export default function BuklodFocusAppRouteGuard() {
     }
     const app = focusAppForPathname(pathname);
 
+    // Invalidate pending denials when moving to any ungated route or
+    // while permissions are loading; stale requests cannot bounce Home.
     if (loading || !app) {
+      checkingRef.current = '';
       return;
     }
 
