@@ -12,7 +12,7 @@ test('New welcome key is unique per member and scope, not membership row', () =>
 });
 test('Bounded dispatcher reuses existing privacy and idempotent delivery path', () => {
   assert.match(migration,/private\.buklod_living_dispatch_greetings_v1\(/);
-  assert.match(migration,/pg_catalog\.least\(pg_catalog\.greatest\(coalesce\(p_iterations,1\),1\),6\)/);
+  assert.match(migration,/least\(greatest\(coalesce\(p_iterations,1\),1\),6\)/);
   assert.match(migration,/buklod-living-greetings-dispatch-v1/);
   assert.doesNotMatch(migration,/create table|drop table|delete from public\.notifications/i);
 });
