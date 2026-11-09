@@ -4,6 +4,14 @@ const CACHE_PREFIX = '@buklod/cache/v1/';
 const CACHE_INDEX_KEY = '@buklod/cache/v1-index';
 const DEFAULT_TTL_MS = 15 * 60 * 1000;
 const MAX_INDEX_ENTRIES = 240;
+const MAX_SAVED_FAITH_ENTRIES = 160;
+const SAVED_FAITH_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
+// Keep downloaded Bible, Word, and Lesson content beyond routine UI-cache
+// pruning. Storage remains user-scoped with a bounded faith-content LRU.
+function isSavedFaithContent(key: string): boolean {
+  return /\/(?:bible-|word-|learning-|formation-)/.test(key);
+}
 
 type CacheEnvelope<T> = {
   version: 1;
@@ -55,8 +63,11 @@ async function touchIndex(key: string, storedAt: number): Promise<void> {
       .filter((row) => typeof row?.storageKey === 'string')
       .sort((a, b) => Number(b.storedAt || 0) - Number(a.storedAt || 0));
 
-    const keep = next.slice(0, MAX_INDEX_ENTRIES);
-    const evicted = next.slice(MAX_INDEX_ENTRIES).map((row) => row.storageKey);
+    const faithRows = next.filter((row) => isSavedFaithContent(row.storageKey));
+    const otherRows = next.filter((row) => !isSavedFaithContent(row.storageKey));
+    const keep = [...faithRows.slice(0, MAX_SAVED_FAITH_ENTRIES), ...otherRows.slice(0, MAX_INDEX_ENTRIES)];
+    const keptKeys = new Set(keep.map((row) => row.storageKey));
+    const evicted = next.filter((row) => !keptKeys.has(row.storageKey)).map((row) => row.storageKey);
 
     await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(keep));
     if (evicted.length) {
@@ -153,8 +164,11 @@ export async function pruneOfflineCache(options?: {
   );
   const cutoff = Date.now() - olderThanMs;
   const rows = await readIndex();
-  const stale = rows.filter((row) => Number(row.storedAt || 0) < cutoff);
-  const keep = rows.filter((row) => Number(row.storedAt || 0) >= cutoff);
+  const faithCutoff = Date.now() - SAVED_FAITH_RETENTION_MS;
+  const stale = rows.filter((row) => Number(row.storedAt || 0) <
+    (isSavedFaithContent(row.storageKey) ? faithCutoff : cutoff));
+  const staleKeys = new Set(stale.map((row) => row.storageKey));
+  const keep = rows.filter((row) => !staleKeys.has(row.storageKey));
 
   if (stale.length) {
     await AsyncStorage.multiRemove(stale.map((row) => row.storageKey));

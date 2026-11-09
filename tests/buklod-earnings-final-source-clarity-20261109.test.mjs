@@ -55,5 +55,5 @@ test('cash visibility never treats scope funds or points as personal payout', ()
   assert.match(card, /member-withdrawable|member's personal withdrawal/);
   assert.match(card, /Not finalized, funded, or withdrawable/);
   assert.match(card, /scope_id === scopeId/);
-  assert.match(card, /getCommunityRevenueBreakdown\(contribution\)/);
+  assert.doesNotMatch(card, /getCommunityRevenueBreakdown\(contribution\)/);
 });

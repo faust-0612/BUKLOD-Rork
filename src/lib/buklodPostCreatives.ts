@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import {BUKLOD_MUSIC_PAGE_SIZE,type BuklodMusicFolder,type BuklodMusicCategory} from '@/lib/buklodMusicCategories';
 
 export const BUKLOD_POST_MOTION_PRESETS = [
   'none', 'zoom', 'pan', 'float', 'fade',
@@ -21,7 +22,7 @@ export const BUKLOD_POST_MOTION_LABELS: Record<typeof BUKLOD_POST_MOTION_PRESETS
 export type BuklodPostMotionPreset = typeof BUKLOD_POST_MOTION_PRESETS[number];
 export type BuklodPostMusicTrack = {
   id: string; title: string; artist: string | null;
-  audio_path: string; mime_type: string | null;
+  audio_path: string; mime_type: string | null; category?: BuklodMusicCategory;
 };
 export type BuklodPostCreative = {
   post_id: string;
@@ -35,15 +36,22 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 export function normalizeBuklodMotion(v: unknown): BuklodPostMotionPreset {
   return BUKLOD_POST_MOTION_PRESETS.includes(v as BuklodPostMotionPreset) ? v as BuklodPostMotionPreset : 'none';
 }
-export async function listBuklodPostMusic(search = ''): Promise<BuklodPostMusicTrack[]> {
-  let q = (supabase as any).from('buklod_music_library')
-    .select('id,title,artist,audio_path,mime_type')
-    .eq('is_active', true).order('sort_order', { ascending: true }).limit(120);
-  const term = search.trim().replace(/[%_]/g, '').slice(0, 64);
-  if (term) q = q.ilike('title', '%' + term + '%');
-  const { data, error } = await q;
-  if (error) throw error;
-  return (data ?? []).filter((t: any) => UUID.test(String(t.id)) && !!t.audio_path);
+export async function listBuklodPostMusic(
+ search='',folder:BuklodMusicFolder='all',offset=0,pageSize=BUKLOD_MUSIC_PAGE_SIZE,
+):Promise<BuklodPostMusicTrack[]>{
+ const limit=Math.max(1,Math.min(60,Math.floor(pageSize)||BUKLOD_MUSIC_PAGE_SIZE));
+ const from=Math.max(0,Math.floor(offset)||0);
+ let q=(supabase as any).from('buklod_music_library')
+   .select('id,title,artist,audio_path,mime_type,category').eq('is_active',true)
+   .order('sort_order',{ascending:true}).order('title',{ascending:true}).order('id',{ascending:true})
+   .range(from,from+limit-1);
+ const term=search.trim().replace(/[%,()_]/g,'').slice(0,64);
+ if(term)q=q.or('title.ilike.%'+term+'%,artist.ilike.%'+term+'%');
+ if(folder!=='all')q=q.eq('category',folder);
+ const {data,error}=await q;
+ if(error)throw error;
+ return (data??[]).filter((t:any)=>UUID.test(String(t.id))&&!!t.audio_path)
+   .map((t:any)=>({...t,category:t.category??'others'}));
 }
 export async function loadBuklodPostCreatives(ids: string[]): Promise<Record<string, BuklodPostCreative>> {
   const unique = [...new Set(ids.filter(id => UUID.test(id)))];

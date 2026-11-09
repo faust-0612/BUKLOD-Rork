@@ -32,3 +32,13 @@ test('Points source breakdown and history are opt-in, but deep-link ledger focus
  assert.match(profile,/router\.push\('\/points\/progression' as any\)/);
  assert.doesNotMatch(profile,/subtitle="Circle rank"\s*onPress=\{\(\) => router\.push\('\/points'\)/);
 });
+
+test('music segment drag previews in-place without breaking Wall navigation lifecycle',()=>{
+ const wall=read('src/app/(tabs)/buklod.tsx');
+ const picker=read('src/components/BuklodPostMusicPicker.tsx');
+ assert.match(wall,/const scrubWallMusic=/);
+ assert.match(wall,/onScrub=\{\(track,start\)=>scrubWallMusic/);
+ assert.match(wall,/wallComposerScrubRef\.current=null/);
+ assert.match(picker,/onPanResponder|BuklodMusicClipTimeline/);
+ assert.doesNotMatch(wall,/onClipChange=\{\(start,duration\)=>\{[^}]*pauseWallAudio\(\)/s);
+});

@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify-compiled-artifacts:
-    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108' || github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy' || github.head_ref == 'integration/ota-nov09-circle-rank-progression')
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108' || github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy' || github.head_ref == 'integration/ota-nov09-circle-rank-progression' || github.head_ref == 'integration/buklod-nov09-consolidated-ota-web')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:
@@ -60,6 +60,13 @@ jobs:
         run: |
           node --test tests/admin-music-ambience-contract-20261108.test.mjs tests/wall-post-music-motion-contract.test.mjs tests/wall-post-music-navigation-scroll.test.mjs tests/buklod-wall-crash-escape-20261108.test.mjs
           node --test tests/production-ota-ads-regression.test.mjs
+      - name: Consolidated Nov09 focused regression contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/music-library-live-scrub-folders-20261109.test.mjs tests/circle-rank-badges-recognition-20261109.test.mjs tests/buklod-notification-latency-20261109.test.mjs tests/ptt-quiet-notifications-20261109.test.mjs tests/community-revenue-member-ui-20261109.test.mjs tests/faith-offline-prefetch-20261109.test.mjs
+          node --test tests/wall-media-navigation-polish-20261108.test.mjs tests/ota-navigation-scroll-polish-20261108.test.mjs tests/admin-music-multiselect-motion-drawer-20261108.test.mjs
+          node --test tests/buklod-earnings-final-source-clarity-20261109.test.mjs tests/community-admob-preview-contract.test.cjs
       - name: Compile V28-compatible Android OTA bundle (no publish)
         run: npx expo export --platform android --output-dir /tmp/buklod-rc-android --clear
       - name: Compile Main Expo Hosting web bundle (no publish)

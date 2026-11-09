@@ -71,12 +71,10 @@ test('official estimated revenue shares reconcile from private server source wit
   assert.match(helper, /data.estimate_status !== 'PROVISIONAL_ADMOB'/);
   assert.match(helper, /Math.floor\(gross \* bps \/ 10000\) !== pool/);
   assert.match(helper, /gross - pool !== remainder/);
-  assert.match(card, /getCommunityRevenueBreakdown\(data\)/);
-  assert.match(detail, /getCommunityRevenueBreakdown\(data\)/);
-  assert.match(detail, /Total app estimated revenue/);
-  assert.match(detail, /All qualified QMP/);
-  assert.match(detail, /not the app's net profit/);
-  assert.match(detail, /not finalized, funded, or withdrawable/);
+  assert.doesNotMatch(card, /getCommunityRevenueBreakdown\(data\)/);
+  assert.doesNotMatch(detail, /getCommunityRevenueBreakdown\(data\)/);
+  assert.doesNotMatch(card + detail, /Total app estimated revenue|Community pool \(|AdMob estimate \(100%\)/);
+  assert.match(detail, /Estimated earnings are not finalized, funded, or withdrawable/);
   assert.doesNotMatch(sharingSql, /admin_finalize_buklod|credit_wallet|process_withdrawal/i);
 });
 

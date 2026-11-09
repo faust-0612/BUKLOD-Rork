@@ -164,7 +164,7 @@ export default function BuklodLivingGreetingsBanner(){
         'Congrats! Umangat ka sa '+snapshot.my_recent_rank+'.',
       ]),
       detail:'Bagong milestone sa iyong BUKLOD journey. Tuloy-tuloy ang progreso!',
-      action:'Tingnan ang rank',route:'/(tabs)/me',icon:'trophy-outline',
+      action:'Tingnan ang rank',route:'/points/progression',icon:'trophy-outline',
     });
     if(snapshot.my_recent_reward)cards.push({
       key:'reward',title:variation(snapshot.my_recent_reward,[

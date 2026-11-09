@@ -4,14 +4,18 @@ import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
 Notifications.setNotificationHandler({
-  handleNotification: async notification => ({
-    shouldPlaySound: ['community_emergency', 'ptt_sos', 'ptt_priority', 'ptt_incoming'].includes(
-      String(notification.request.content.data?.kind ?? '')
-    ),
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async notification => {
+    const kind = String(notification.request.content.data?.kind ?? '');
+    // Suppress only routine PTT foreground cards. Closed-app PTT receive,
+    // Priority and SOS continue through the existing transport pipeline.
+    const show = kind !== 'ptt_incoming';
+    return {
+      shouldPlaySound: show && ['community_emergency', 'ptt_sos', 'ptt_priority'].includes(kind),
+      shouldSetBadge: show,
+      shouldShowBanner: show,
+      shouldShowList: show,
+    };
+  },
 });
 
 /* PATCH_171C_TOKEN_CHANNEL_V2 */

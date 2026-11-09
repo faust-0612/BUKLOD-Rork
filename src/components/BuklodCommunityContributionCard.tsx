@@ -5,9 +5,6 @@ import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   formatMinorPhp,
-  getCommunityRevenueBreakdown,
-  formatCommunitySharePercent,
-  formatCommunityPoolPercent,
   loadMyCommunityContribution,
   loadMyCommunityQmpHistory,
   recordCommunityEconomyAnalytics,
@@ -105,19 +102,10 @@ export default function BuklodCommunityContributionCard() {
     );
   }
 
-  const weightPct = Math.max(0, Number(data.share_weight || 0)) * 100;
   const estimate = data.estimated_share_minor === null
     ? 'No safe estimate yet'
     : data.estimate_below_cent ? 'Below ₱0.01' : formatMinorPhp(data.estimated_share_minor);
   const breakdown = data.engagement_breakdown;
-  const revenue = getCommunityRevenueBreakdown(data);
-  const trendPctPoints = Number(data.share_weight_delta || 0) * 100;
-  const trendLabel =
-    Math.abs(trendPctPoints) < 0.0001
-      ? 'No prior-period change yet'
-      : `${trendPctPoints > 0 ? '+' : ''}${trendPctPoints.toFixed(
-          Math.abs(trendPctPoints) < 0.01 ? 4 : 2,
-        )} pp share-weight trend`;
 
   return (
     <View style={s.shell}>
@@ -127,7 +115,7 @@ export default function BuklodCommunityContributionCard() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.eyebrow}>YOUR COMMUNITY CONTRIBUTION</Text>
-          <Text style={s.sub}>Create value → grow qualified monthly share weight.</Text>
+          <Text style={s.sub}>Your contribution progress and estimated earnings at a glance.</Text>
         </View>
         <Text style={s.level}>{data.contribution_level}</Text>
       </View>
@@ -138,8 +126,8 @@ export default function BuklodCommunityContributionCard() {
           <Text style={s.metricLabel}>THIS MONTH QMP</Text>
         </View>
         <View style={[s.metric, { backgroundColor: shareTone.surface }]}>
-          <Text style={[s.metricValue, { color: shareTone.ink }]}>{weightPct.toFixed(weightPct < 0.01 ? 4 : 2)}%</Text>
-          <Text style={s.metricLabel}>SHARE WEIGHT</Text>
+          <Text style={[s.metricValue, { color: shareTone.ink }]}>{data.meaningful_replies}</Text>
+          <Text style={s.metricLabel}>MEANINGFUL REPLIES</Text>
         </View>
         <View style={[s.metric, { backgroundColor: contentTone.surface }]}>
           <Text style={[s.metricValue, { color: contentTone.ink }]}>{data.qualified_posts + data.qualified_videos}</Text>
@@ -150,7 +138,7 @@ export default function BuklodCommunityContributionCard() {
         Lifetime QMP: {history ? history.lifetime_qmp.toLocaleString() : '—'} · Period: {data.period.key}
       </Text>
       <Text style={s.periodNote}>
-        Monthly QMP starts fresh each month. Your lifetime QMP is preserved; previous months’ share weight does not carry into this period.
+        Monthly QMP starts fresh each month. Your lifetime QMP is preserved as a record of your contributions.
       </Text>
 
       <View style={s.impact}>
@@ -159,34 +147,24 @@ export default function BuklodCommunityContributionCard() {
           Posts {breakdown?.useful_post_qmp ?? 0} QMP · Videos {breakdown?.qualified_video_qmp ?? 0} QMP · Replies {breakdown?.meaningful_reply_qmp ?? 0} QMP
         </Text>
         <Text style={s.impactText}>
-          Validated engagement {breakdown?.validated_engagement_qmp ?? 0} QMP · {trendLabel}
+          Validated engagement {breakdown?.validated_engagement_qmp ?? 0} QMP
         </Text>
       </View>
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="View full AdMob revenue sharing breakdown"
+        accessibilityLabel="View my community contributions and earnings"
         onPress={() => router.push('/community-contribution' as any)}
         style={s.estimate}>
         <Text style={s.estimateLabel}>YOUR ESTIMATED REVENUE SHARE</Text>
         <Text style={s.estimateValue}>{estimate}</Text>
-        {revenue ? (
-          <View style={s.revenueSplit}>
-            <Text style={s.revenueLine}>AdMob estimate (100%): {formatMinorPhp(revenue.grossMinor)}</Text>
-            <Text style={s.revenueLine}>Community pool ({formatCommunityPoolPercent(revenue.poolBps)}): {formatMinorPhp(revenue.poolMinor)}</Text>
-            <Text style={s.revenueLine}>Your QMP share of pool: {formatCommunitySharePercent(revenue.memberPoolFraction)}</Text>
-            <Text style={s.revenueFootnote}>Of full AdMob revenue: {formatCommunitySharePercent(revenue.memberGrossFraction)} · estimate only</Text>
-          </View>
-        ) : null}
         <Text style={s.estimateGuard}>
-          {data.estimate_status === 'PROVISIONAL_ADMOB'
-            ? 'ADMOB PRELIMINARY · CHANGES WITH COMMUNITY QMP · NOT WITHDRAWABLE'
-            : 'ESTIMATE · NOT FINAL · NOT WITHDRAWABLE'}
+          ESTIMATE ONLY · NOT FINAL · NOT WITHDRAWABLE
         </Text>
         {data.estimate_updated_at ? (
-          <Text style={s.estimateGuard}>Report updated {new Date(data.estimate_updated_at).toLocaleString()}</Text>
+          <Text style={s.estimateGuard}>Last updated {new Date(data.estimate_updated_at).toLocaleString()}</Text>
         ) : null}
-        {revenue ? <Text style={s.detailLink}>SEE FULL 100% / COMMUNITY / PERSONAL BREAKDOWN</Text> : null}
+        <Text style={s.detailLink}>VIEW MY EARNINGS DETAILS</Text>
       </Pressable>
 
       <Pressable
@@ -223,9 +201,6 @@ const s = StyleSheet.create({
   impactTitle:{fontSize:8,fontWeight:'900',color:impactTone.ink},
   impactText:{marginTop:3,fontSize:8.5,lineHeight:12,color:'#5F7066'},
   estimate:{borderRadius:12,backgroundColor:revenueTone.surface,padding:10}, estimateLabel:{fontSize:8,fontWeight:'900',color:revenueTone.ink},
-  revenueSplit:{marginTop:6,paddingTop:6,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:'#CDE3D5',gap:3},
-  revenueLine:{fontSize:9,lineHeight:14,fontWeight:'700',color:'#295440'},
-  revenueFootnote:{fontSize:8,lineHeight:12,color:'#586D60'},
   detailLink:{marginTop:7,fontSize:8,fontWeight:'900',color:'#1E6B45'},
   estimateValue:{marginTop:2,fontSize:17,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:7,lineHeight:10,fontWeight:'900',color:'#66501D'},
   secondary:{minHeight:34,borderRadius:10,borderWidth:1,borderColor:shareTone.border,backgroundColor:shareTone.soft,alignItems:'center',justifyContent:'center',paddingHorizontal:8}, secondaryText:{color:shareTone.ink,fontSize:8.5,fontWeight:'900'},

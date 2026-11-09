@@ -6,9 +6,10 @@ import * as Crypto from 'expo-crypto';
 import { File } from 'expo-file-system';
 import { supabase } from '@/lib/supabase';
 import type { BuklodPostMusicTrack } from '@/lib/buklodPostCreatives';
+import {BUKLOD_MUSIC_PAGE_SIZE,normalizeBuklodMusicCategory,type BuklodMusicCategory,type BuklodMusicFolder} from '@/lib/buklodMusicCategories';
 
 export type BuklodMusicAdminTrack = BuklodPostMusicTrack & {
-  sort_order: number; is_active: boolean; created_at: string;
+  sort_order: number; is_active: boolean; created_at: string; category: BuklodMusicCategory;
 };
 const BUCKET='buklod-music-library';
 export const BUKLOD_MUSIC_ADMIN_LIMIT_BYTES=25*1024*1024;
@@ -38,16 +39,32 @@ export function buklodMusicStoragePath(raw:string):string|null{
   const normalized=path.replace(/^\/+/, '').replace(/^buklod-music-library\//i,'');
   return normalized.startsWith('library/') && !normalized.includes('..') ? normalized : null;
 }
-export async function listBuklodMusicAdminTracks():Promise<BuklodMusicAdminTrack[]>{
-  await assertSystemAdmin();
-  const {data,error}=await (supabase as any).from('buklod_music_library')
-    .select('id,title,artist,audio_path,mime_type,sort_order,is_active,created_at')
-    .order('sort_order',{ascending:true}).limit(400);
-  if(error)throw error;
-  return (data??[]) as BuklodMusicAdminTrack[];
+export async function listBuklodMusicAdminTracks(input:{
+ search?:string;folder?:BuklodMusicFolder;offset?:number;pageSize?:number;
+}={}):Promise<BuklodMusicAdminTrack[]>{
+ await assertSystemAdmin();
+ const size=Math.max(1,Math.min(60,Math.floor(input.pageSize??BUKLOD_MUSIC_PAGE_SIZE)));
+ const offset=Math.max(0,Math.floor(input.offset??0));
+ let q=(supabase as any).from('buklod_music_library')
+   .select('id,title,artist,audio_path,mime_type,sort_order,is_active,created_at,category')
+   .order('sort_order',{ascending:true}).order('title',{ascending:true}).order('id',{ascending:true})
+   .range(offset,offset+size-1);
+ const term=String(input.search??'').trim().replace(/[%,()_]/g,'').slice(0,64);
+ if(term)q=q.or('title.ilike.%'+term+'%,artist.ilike.%'+term+'%');
+ if(input.folder&&input.folder!=='all')q=q.eq('category',input.folder);
+ const {data,error}=await q;
+ if(error)throw error;
+ return (data??[]).map((row:any)=>({...row,category:normalizeBuklodMusicCategory(row.category)}));
+}
+export async function updateBuklodAdminMusicCategory(id:string,category:BuklodMusicCategory):Promise<void>{
+ await assertSystemAdmin();
+ if(!/^[0-9a-f-]{36}$/i.test(id))throw new Error('Invalid track ID.');
+ const {data,error}=await (supabase as any).from('buklod_music_library')
+   .update({category:normalizeBuklodMusicCategory(category)}).eq('id',id).select('id').single();
+ if(error||!data?.id)throw new Error('Unable to move track: '+failure(error??'No row changed.'));
 }
 export async function uploadBuklodAdminMusic(input:{
-  asset:DocumentPicker.DocumentPickerAsset;title:string;artist:string;
+  asset:DocumentPicker.DocumentPickerAsset;title:string;artist:string;category?:BuklodMusicCategory;
 }):Promise<BuklodMusicAdminTrack>{
   await assertSystemAdmin();
   const title=input.title.trim().slice(0,160);
@@ -70,8 +87,8 @@ export async function uploadBuklodAdminMusic(input:{
     // refetch catalog on open and do not require an OTA for new audio entries.
     const {data,error}=await (supabase as any).from('buklod_music_library')
       .insert({title,artist:artist||null,audio_path:path,mime_type:mime,
-        is_active:true,sort_order:100})
-      .select('id,title,artist,audio_path,mime_type,sort_order,is_active,created_at').single();
+        is_active:true,sort_order:100,category:normalizeBuklodMusicCategory(input.category)})
+      .select('id,title,artist,audio_path,mime_type,sort_order,is_active,created_at,category').single();
     if(error)throw error;
     return data as BuklodMusicAdminTrack;
   }catch(error){

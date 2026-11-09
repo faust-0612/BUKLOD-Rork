@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { getOfflineCache, removeOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { warmBibleWeekOffline } from '@/lib/buklodFaithOfflineWarmup';
 import { BuklodBibleNarrationBar } from '@/components/BuklodBibleNarrationBar';
 import {
   mapBibleChapterRows,
@@ -1316,6 +1317,12 @@ export default function DailyBibleScreen() {
       { weekStart: days[0], assignments: aa, submissions: nextSubmissions, points: nextPoints },
       { userId: accountId, ttlMs: DAILY_READING_CACHE_TTL_MS },
     ).catch(() => undefined);
+    // Background download of this week's authorized chapter texts.
+    // Sync is bounded; reading and reflection submission are never blocked.
+    void warmBibleWeekOffline(accountId, aa.map(assignment => ({
+      readingDate: assignment.reading_date,
+      fallback: getBibleReaderTarget(assignment.bible_reference),
+    }))).catch(() => undefined);
   }, [days, accountId, online]);
 
   useEffect(() => {
@@ -1352,6 +1359,14 @@ export default function DailyBibleScreen() {
       if (!online) {
         if (!hadCache) setLoadError('No saved Daily Reading for this week. Connect once to download it.');
         setDataOwner(accountId);
+        setLoading(false);
+        return;
+      }
+      // Keep the last authorized week ready instantly. Do not poll the server
+      // on every visit; a new local day or six hours triggers reconciliation.
+      if (hadCache && cache &&
+          Date.now() - cache.storedAt < 6 * 60 * 60 * 1000 &&
+          new Date(cache.storedAt).toDateString() === new Date().toDateString()) {
         setLoading(false);
         return;
       }
