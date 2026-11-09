@@ -168,8 +168,8 @@ export const enMessages = {
     withdrawableBalance: 'Withdrawable Balance',
     reservedBalance: 'Reserved for Withdrawal',
     paidEarnings: 'Paid Earnings',
-    userPoolActive: '30% User Pool eligibility is active',
-    userPoolInactive: '30% User Pool eligibility is not active yet',
+    userPoolActive: 'Eligible for personal revenue share',
+    userPoolInactive: 'Personal revenue share eligibility not yet active',
     earningsNote:
       'Estimated may change before settlement. Finalized means settlement has completed. Withdrawable means finalized cash is available for payout subject to withdrawal rules.',
     referralTitle: 'Referral / Sharing',
@@ -244,7 +244,7 @@ export const enMessages = {
       baselineTitle: 'Planning example only',
       baselineBody:
         'Current planning baseline uses approximately ₱39/month eligible platform revenue associated with a regular active user. This is not guaranteed income and must not be presented as “every user earns ₱11.70.”',
-      qualificationTitle: 'When does my 30% User Pool eligibility start?',
+      qualificationTitle: 'When does my personal revenue share eligibility start?',
       qualificationReferred:
         'With a valid referrer: the referred user completes referral qualification first. The current configurable working target is approximately ₱40 qualifying platform revenue/activity value.',
       qualificationNoRef:

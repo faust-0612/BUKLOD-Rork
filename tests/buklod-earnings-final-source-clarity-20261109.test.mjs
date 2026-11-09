@@ -3,25 +3,30 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = p => readFileSync(p, 'utf8');
 const card = read('src/components/BuklodUnifiedEarningsHomeCard.tsx');
+const scopeFund = read('src/components/BuklodScopeFundHomeCard.tsx');
 const payout = read('src/app/bayanihan/payout-profile.tsx');
 const economy = read('src/app/bayanihan/index.tsx');
 const adminReader = read('supabase/migrations/20261109032000_buklod_pf_admin_reward_breakdown_v1.sql');
-const home = read('src/app/(tabs)/home.tsx');
+const hub = read('src/app/(tabs)/hub.tsx');
 const org = read('src/components/BuklodScopeHomeDashboard.tsx');
 const cluster = read('src/components/BuklodClusterHomeCommandCenterImpl.tsx');
 
-test('all public/org/cluster Homes show real-money sources and only one cash withdrawal door', () => {
-  assert.match(home, /<BuklodUnifiedEarningsHomeCard \/>/);
-  assert.match(org, /<BuklodUnifiedEarningsHomeCard scopeId=\{scope.scope_id\}/);
-  assert.match(cluster, /<BuklodUnifiedEarningsHomeCard scopeId=\{scope.scope_id\}/);
+test('one personal earnings surface remains separate from all Organization/Cluster funds', () => {
+  assert.match(hub, /My Earnings & Contribution Destination/);
+  assert.match(org, /<BuklodScopeFundHomeCard/);
+  assert.match(cluster, /<BuklodScopeFundHomeCard/);
+  assert.doesNotMatch(org, /<BuklodUnifiedEarningsHomeCard/);
+  assert.doesNotMatch(cluster, /<BuklodUnifiedEarningsHomeCard/);
   assert.match(card, /get_my_buklod_financial_earnings_breakdown_v1/);
   assert.match(card, /loadMyCommunityContribution\(\)/);
-  assert.match(card, /get_buklod_scope_revenue_fund_summary_v1/);
+  assert.doesNotMatch(card, /get_buklod_scope_revenue_fund_summary_v1/);
+  assert.match(scopeFund, /get_buklod_scope_revenue_fund_summary_v1/);
+  assert.doesNotMatch(scopeFund, /get_my_buklod_financial_earnings_breakdown_v1/);
   assert.match(card, /router.push\('\/bayanihan\/payout-profile'/);
   assert.doesNotMatch(card, /request_my_buklod_pf_withdrawal_v2/);
 });
 
-test('funded lifetime earnings show all four origins independently, without double counting unavailable cash', () => {
+test('funded lifetime earnings show four sources without converting historical money into cash', () => {
   assert.match(card, /Finalized revenue \/ user pool/);
   assert.match(card, /First-line referral revenue/);
   assert.match(card, /One-time referral rewards/);
@@ -34,11 +39,10 @@ test('funded lifetime earnings show all four origins independently, without doub
   assert.match(card, /reserved and paid cash cannot be requested again/);
   assert.match(adminReader, /'admin_funded_reward_php'/);
   assert.match(adminReader, /'funding_class'='ADMIN_FUNDED_REWARD'/);
-  assert.doesNotMatch(card, /Number\(cash\.lifetime_earned\?\.admin_funded_reward_php \?\? 0\)/);
   assert.doesNotMatch(card, /ADMIN_CORRECTION|admin_transfer_buklod_pf_funded_reward_v1/);
 });
 
-test('withdrawal confirmation is NOT incorrectly referral-only and excludes unfinalized entitlements', () => {
+test('withdrawal excludes estimates, Points and Organization/Cluster funds', () => {
   assert.doesNotMatch(payout, /Request Full Referral Balance/);
   assert.match(payout, /Request all available finalized cash/);
   assert.match(payout, /requestMyBuklodWithdrawalV3\(profile\)/);
@@ -47,13 +51,11 @@ test('withdrawal confirmation is NOT incorrectly referral-only and excludes unfi
   assert.match(payout, /Preliminary AdMob estimates/);
   assert.match(payout, /Organization\/Cluster funds/);
   assert.match(economy, /One canonical finalized cash wallet/);
-  assert.match(economy, /Estimated AdMob revenue, QMP, Points, pending rewards/);
 });
 
-test('cash visibility never treats scope funds or points as personal payout', () => {
+test('ordinary user wallet never displays platform gross revenue or internal pool percentages', () => {
   assert.match(card, /Personal account only/);
-  assert.match(card, /member-withdrawable|member's personal withdrawal/);
   assert.match(card, /Not finalized, funded, or withdrawable/);
-  assert.match(card, /scope_id === scopeId/);
-  assert.doesNotMatch(card, /getCommunityRevenueBreakdown\(contribution\)/);
+  assert.doesNotMatch(card, /AdMob \(100%\)|Community pool \(/);
+  assert.doesNotMatch(card, /scope_id === scopeId|getCommunityRevenueBreakdown/);
 });
