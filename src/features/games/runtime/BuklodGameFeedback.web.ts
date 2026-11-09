@@ -72,7 +72,7 @@ export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
   if (!isBuklodGameSoundEnabled()) return;
   // Prefer the Rork SFX only after the remote player reports ready. Until
   // then the proven synthesized feedback remains the guaranteed baseline.
-  if (tryPlayRorkGameFeedback(event, 0.24)) return;
+  if (tryPlayRorkGameFeedback(event, getBuklodGameSoundVolume())) return;
   const ctx = getAudioContext();
   if (!ctx) return;
 
@@ -86,21 +86,21 @@ export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
       return;
     case 'collect':
       tone(ctx, 660, 0, 0.07, 0.055 * volume, 'sine');
-      tone(ctx, 880, 0.055, 0.09, 0.045, 'sine');
+      tone(ctx, 880, 0.055, 0.09, 0.045 * volume, 'sine');
       return;
     case 'impact':
-      tone(ctx, 105, 0, 0.14, 0.07, 'square');
-      tone(ctx, 78, 0.035, 0.16, 0.045, 'triangle');
+      tone(ctx, 105, 0, 0.14, 0.07 * volume, 'square');
+      tone(ctx, 78, 0.035, 0.16, 0.045 * volume, 'triangle');
       return;
     case 'success':
     case 'unlock':
-      tone(ctx, 523.25, 0, 0.13, 0.055, 'sine');
-      tone(ctx, 659.25, 0.09, 0.15, 0.055, 'sine');
-      tone(ctx, 783.99, 0.18, 0.2, 0.06, 'sine');
+      tone(ctx, 523.25, 0, 0.13, 0.055 * volume, 'sine');
+      tone(ctx, 659.25, 0.09, 0.15, 0.055 * volume, 'sine');
+      tone(ctx, 783.99, 0.18, 0.2, 0.06 * volume, 'sine');
       return;
     case 'failure':
-      tone(ctx, 246.94, 0, 0.15, 0.05, 'triangle');
-      tone(ctx, 196, 0.11, 0.19, 0.055, 'triangle');
+      tone(ctx, 246.94, 0, 0.15, 0.05 * volume, 'triangle');
+      tone(ctx, 196, 0.11, 0.19, 0.055 * volume, 'triangle');
       return;
   }
 }

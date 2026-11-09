@@ -6,6 +6,7 @@ import {router,useFocusEffect} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {showBuklodAdOpportunity,warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
+import {playBuklodGameFeedback} from '@/features/games/runtime/BuklodGameFeedback';
 
 type Level='easy'|'medium'|'hard';
 type Question={id:string;kind:'mcq'|'identification'|'enumeration'|'essay';question:string;options?:Record<string,string>;reference?:string};
@@ -73,6 +74,7 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
    setMessage(data.status==='pending_review'
      ?'Essay received. Final score and BP await a rubric review.'
      :data.points>0?'+'+String(data.points)+' BP verified. Claim on Points.':'Quiz completed — see the rationale below.');
+   void playBuklodGameFeedback(data.status==='completed'?'success':'collect');
    if(data.status==='completed')void showBuklodAdOpportunity('points_submission_success');
   }catch{setMessage('Submit failed. Your draft remains saved. Try again.');}
   finally{setBusy(false);}
@@ -106,7 +108,7 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
    <Text style={s.heading}>{i+1}. {q.question}</Text>
    {q.reference?<Text style={s.muted}>Reference: {q.reference}</Text>:null}
    {q.kind==='mcq'?(['A','B','C','D'] as const).map(a=><Pressable key={a}
-    style={[s.choice,answers[q.id]===a&&s.selected]} onPress={()=>setAnswer(q.id,a)}>
+    style={[s.choice,answers[q.id]===a&&s.selected]} onPress={()=>{setAnswer(q.id,a);void playBuklodGameFeedback('move');}}>
     <Text style={s.dark}>{a}. {q.options?.[a]}</Text>
    </Pressable>):null}
    {q.kind==='identification'?<TextInput style={s.input} placeholder="Type your answer" maxLength={120}

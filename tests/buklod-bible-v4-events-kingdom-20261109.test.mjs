@@ -81,6 +81,9 @@ test('V4 UI has secure RPCs, typed inputs, partial score feedback, and R3 compat
  assert.match(home,/<BuklodBibleEventsHomeCard \/>/);
  assert.match(eventUI,/join_my_buklod_bible_arena_v4/);
  assert.match(eventUI,/submit_my_buklod_bible_event_v4/);
+ assert.match(eventUI,/roundByEvent/);
+ assert.match(ui,/playBuklodGameFeedback\('move'\)/);
+ assert.match(eventUI,/playBuklodGameFeedback\('move'\)/);
 });
 test('game sounds are offline native and browser sounds with an explicit preference',()=>{
  assert.match(settings,/games: true/);
@@ -95,6 +98,7 @@ test('game sounds are offline native and browser sounds with an explicit prefere
  assert.match(native,/Haptics/);
  assert.match(web,/isBuklodGameSoundEnabled\(\)/);
  assert.match(web,/createOscillator/);
+ assert.match(web,/tryPlayRorkGameFeedback\(event, getBuklodGameSoundVolume\(\)\)/);
 });
 test('ads are optional after authenticated completions, not points or cash triggers',()=>{
  for(const key of ['bible_flash_submission_success','bible_arena_round_complete','kingdom_mastery_verified']){
