@@ -64,7 +64,7 @@ begin
  'minimum_correct',4,
  'questions',case when existing.completed_at is null then questions else '[]'::jsonb end);
 end;
-$function$
+$function$;
 
 create or replace function public.get_my_buklod_bible_quiz_v4(p_difficulty text default null)
 returns jsonb language plpgsql security definer set search_path='' as $$
