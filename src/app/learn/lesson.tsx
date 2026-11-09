@@ -43,11 +43,12 @@ import { friendlyLessonBlockingReason, formationCopy, lessonBlockingGuide } from
 import type { FormationLessonAccess } from '@/types/buklodFormation';
 
 export default function LessonDetail() {
-  const { lessonId, enrollmentId, trackLessonId } =
+  const { lessonId, enrollmentId, trackLessonId, trackId } =
     useLocalSearchParams<{
       lessonId: string;
       enrollmentId: string;
       trackLessonId: string;
+      trackId?: string;
     }>();
 
   const { user } = useAuth();
@@ -167,9 +168,36 @@ export default function LessonDetail() {
     if (!online) {
       const key = 'learning-lesson-content-v1:' + (trackLessonId || lessonId);
       const cached = accountId ? await getOfflineCache<any>(key, { userId: accountId, allowStale: true }) : null;
-      const data = cached?.data;
+      let data = cached?.data;
+      let savedAt = cached?.storedAt ?? 0;
+      // The track's published, enrolled snapshot already contains the lesson
+      // text. Recover it directly even when this individual lesson was not
+      // previously opened, without allowing locked lessons to become visible.
+      if (!data?.lesson && lessonId && trackId && accountId) {
+        const trackCache = await getOfflineCache<{
+          track: any; lessons: any[]; enrollment: any;
+          accessEntries: Array<[string, FormationLessonAccess]>;
+        }>('learning-track-v1:' + trackId, { userId: accountId, allowStale: true });
+        const savedTrack = trackCache?.data;
+        const accessible = new Map(savedTrack?.accessEntries ?? []).get(lessonId);
+        const isFormationTrack =
+          savedTrack?.track?.formation_program === 'ccp' ||
+          savedTrack?.track?.formation_program === 'discipleship';
+        const authorized = !isFormationTrack || accessible?.allowed === true;
+        const foundLesson = savedTrack?.lessons?.find((row: any) => row.id === lessonId);
+        if (trackCache && savedTrack?.track?.id === trackId &&
+            savedTrack.track.status === 'published' &&
+            savedTrack.enrollment?.user_id === accountId &&
+            savedTrack.enrollment?.id === enrollmentId && authorized && foundLesson) {
+          data = { verified: true, lesson: foundLesson,
+            formationLesson: null, track: savedTrack.track,
+            lessonAccess: accessible ?? null, questions: [],
+            formationStatus: null };
+          savedAt = trackCache.storedAt;
+        }
+      }
       if (data?.lesson && data?.verified === true &&
-          Date.now() - cached!.storedAt <= 30 * 24 * 60 * 60 * 1000 &&
+          Date.now() - savedAt <= 30 * 24 * 60 * 60 * 1000 &&
           data.lessonAccess?.allowed !== false) {
         setLesson(data.lesson);
         setFormationLesson(data.formationLesson ?? null);
@@ -396,7 +424,7 @@ export default function LessonDetail() {
       }, { userId: accountId, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
     }
     setLoadState('ready');
-  }, [lessonId, enrollmentId, trackLessonId, online, accountId]);
+  }, [lessonId, enrollmentId, trackLessonId, trackId, online, accountId]);
 
   useEffect(() => {
     load();
