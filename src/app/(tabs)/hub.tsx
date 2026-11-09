@@ -8,6 +8,7 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
+import { BUKLOD_HOME_SURFACES } from '@/lib/buklodHomeSurfaces';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
@@ -174,7 +175,7 @@ export default function BuklodHubScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, gap: 8 }}>
-      <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Hub</Text>
+      <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>{BUKLOD_HOME_SURFACES.PUBLIC_HUB.label}</Text>
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
           Old /home redirects here; do not bury QMP in the retired screen. */}
