@@ -109,3 +109,14 @@ test('ads are optional after authenticated completions, not points or cash trigg
  assert.match(eventUI,/if\(data\?\.submitted\)/);
  assert.doesNotMatch(events,/admob|qmp|cash_credited|pf_withdraw/i);
 });
+
+const v4Audit=read('supabase/migrations/20261109170000_buklod_bible_v4_audit_hardening_20261109.sql');
+test('V4 audited daily and event hardening closes cross-version race and repeats',()=>{
+ assert.equal([...v4Audit.matchAll(/bible-daily-shared:/g)].length,2,'R3 and V4 must share the same actor/day advisory lock');
+ assert.match(v4Audit,/from private\.buklod_bible_v4_attempts\s+where user_id=actor and local_date=local_day/);
+ assert.match(v4Audit,/earlier_q\.concept_key=q\.concept_key/,'daily recency is concept-aware');
+ assert.match(v4Audit,/distinct on \(b\.concept_key\)/,'one concept per Arena question');
+ assert.match(v4Audit,/v_level='easy'/,'Easy-level Arena supports reviewed familiar-story MCQs');
+ assert.match(v4Audit,/order by random_key limit v_limit/,'event has a bounded randomized question set');
+ assert.match(v4Audit,/v_count<>v_limit/,'fail closed if the bank is insufficient');
+});
