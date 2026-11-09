@@ -10,6 +10,8 @@ import Svg, {
 } from 'react-native-svg';
 import { useAuth } from '@/providers/AuthProvider';
 import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
+import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
+import { getBuklodSoundSettings } from '@/lib/buklodSounds';
 import {
   loadBuklodKingdomPreviewProgress,
   subscribeBuklodKingdomPreviewProgress,
@@ -404,14 +406,17 @@ export default function BuklodKingdomMapPremium() {
     });
   }, [mode, screenWidth, viewportHeight]);
 
+  useEffect(()=>{void getBuklodSoundSettings();},[]);
+
   const chooseStation = useCallback((station: Station) => {
+    void playBuklodGameFeedback('move');
     setSelectedId(station.id);
     focus(station);
   }, [focus]);
 
   const enterStation = useCallback((station: Station) => {
     setSelectedId(station.id);
-    playRorkSignatureSfx(station.id, .20);
+    if (!playRorkSignatureSfx(station.id, .20)) void playBuklodGameFeedback('unlock');
     router.push(station.href as any);
   }, []);
 

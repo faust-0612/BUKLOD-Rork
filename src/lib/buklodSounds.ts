@@ -8,7 +8,8 @@ export type BuklodSoundCategory =
   | 'submissions'
   | 'community'
   | 'achievements'
-  | 'buttons';
+  | 'buttons'
+  | 'games';
 
 export type BuklodSoundCue =
   | 'button'
@@ -36,6 +37,7 @@ export const DEFAULT_BUKLOD_SOUND_SETTINGS: BuklodSoundSettings = {
   community: true,
   achievements: false,
   buttons: false,
+  games: true,
   quietHours: false,
   soundProfile: 'classic',
   volumeLevel: 'balanced',
@@ -67,7 +69,7 @@ const categories: Record<BuklodSoundCue, BuklodSoundCategory> = {
 };
 
 const categoriesByPreference:Record<BuklodSoundCategory,true>={
-  messages:true,calls:true,submissions:true,community:true,achievements:true,buttons:true
+  messages:true,calls:true,submissions:true,community:true,achievements:true,buttons:true,games:true
 };
 const GENTLE_SOUNDS:Partial<Record<BuklodSoundCue,BuklodSoundCue>>={
   message:'message_sent',community:'message_sent',achievement:'approval',
@@ -205,4 +207,17 @@ export function classifyBuklodNotificationSound(kind: string): BuklodSoundCue | 
   if (/points|achievement|reward|milestone/.test(kind)) return 'achievement';
   if (/community|cluster|scope|organization|mention|invite/.test(kind)) return 'community';
   return null;
+}
+
+/** Synchronous cached game sound policy. Gameplay never waits on storage or network. */
+export function isBuklodGameSoundEnabled(): boolean {
+  if (!settings.games || activeCall) return false;
+  if (settings.quietHours) {
+    const hour = new Date().getHours();
+    if (hour >= 22 || hour < 7) return false;
+  }
+  return true;
+}
+export function getBuklodGameSoundVolume(): number {
+  return VOLUME_LEVEL[settings.volumeLevel];
 }
