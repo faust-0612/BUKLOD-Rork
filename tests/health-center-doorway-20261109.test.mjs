@@ -44,3 +44,11 @@ test('Home and Profile use the same real Health Center doorway without creating 
   assert.doesNotMatch(profile, /BuklodFoundationPortalShell|BuklodFocusAppGate/);
   assert.doesNotMatch(launcherSource, /access_token|refresh_token|session=|user_id=/);
 });
+
+test('public patient doorway bypasses only the global Health Worker role gate', () => {
+  const guard = readFileSync('src/components/BuklodFocusAppRouteGuard.tsx', 'utf8');
+  assert.match(guard, /pathname === '\/profile\/buklod-health'/);
+  assert.ok(guard.indexOf("pathname === '/profile/buklod-health'") < guard.indexOf('focusAppForPathname(pathname)'));
+  assert.match(guard, /checkingRef\.current === key/); // stale requests cannot redirect back
+  assert.match(guard, /verifyFocusApp\(app\)/); // other privileged workspaces remain gated
+});

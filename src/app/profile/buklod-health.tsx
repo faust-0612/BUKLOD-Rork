@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   description: { fontSize: 16, lineHeight: 23, color: '#375444' },
   launchButton: { borderRadius: 12, backgroundColor: '#126946', paddingVertical: 16, paddingHorizontal: 14, minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   pressed: { opacity: 0.78 },
-  launchLabel: { color: '#FFFFFF', fontWeight: '850', fontSize: 17 },
+  launchLabel: { color: '#FFFFFF', fontWeight: '800', fontSize: 17 },
   error: { fontSize: 15, lineHeight: 21, color: '#B42318' },
   url: { color: '#245C46', fontSize: 13, lineHeight: 20, textDecorationLine: 'underline' },
   notice: { borderRadius: 12, backgroundColor: '#EAF4ED', padding: 13, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
