@@ -37,5 +37,5 @@ test('Feed posts, chat messages and Marites writing boxes remain readable', () =
 });
 
 test('Community comment input style separates background and readable font declarations', () => {
-  assert.match(publicStyles, /communityCommentInput:\\s*\\{[\\s\\S]*?backgroundColor:\\s*c\\.background,\\s*fontSize:\\s*16/);
+  assert.match(publicStyles, /communityCommentInput:\s*\{[\s\S]*?backgroundColor:\s*c\.background,\s*fontSize:\s*16/);
 });
