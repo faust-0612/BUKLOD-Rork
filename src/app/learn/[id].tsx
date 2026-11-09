@@ -107,6 +107,7 @@ export default function TrackDetail() {
 
     setTrack(t);
     setLessons(l ?? []);
+    let weeklySnapshot: FormationWeeklyDelivery | null = null;
     setEnrollment(e);
 
     if (t?.stage_code === 106 && formationJourney.engineEnabled) {
@@ -127,6 +128,7 @@ export default function TrackDetail() {
     ) {
       try {
         const weekly = await loadMyFormationWeeklyDelivery(stageNum);
+        weeklySnapshot = weekly;
         setWeeklyDelivery(weekly);
       } catch {
         setWeeklyDelivery(null);
@@ -225,7 +227,7 @@ export default function TrackDetail() {
       void setOfflineCache('learning-track-v1:' + id, {
         track: t, lessons: lessonRows, enrollment: e,
         statuses: statusRows, legacyProgress: progressSnapshot,
-        accessEntries, weeklyDelivery: null,
+        accessEntries, weeklyDelivery: weeklySnapshot,
       }, { userId: user.id, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
     }
     if (isFormationTrack) return;
