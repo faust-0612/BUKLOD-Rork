@@ -16,6 +16,9 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
 import { VoiceReader } from '@/components/VoiceReader';
@@ -47,6 +50,9 @@ export default function LessonDetail() {
       trackLessonId: string;
     }>();
 
+  const { user } = useAuth();
+  const { online } = useNetwork();
+  const accountId = user?.id ?? '';
   const [lesson, setLesson] = useState<any>(null);
   const [formationLesson, setFormationLesson] = useState<any>(null);
   const [track, setTrack] = useState<any>(null);
@@ -131,6 +137,27 @@ export default function LessonDetail() {
 
     setLoadState('loading');
     setLoadMessage(null);
+    if (!online) {
+      const key = 'learning-lesson-content-v1:' + (trackLessonId || lessonId);
+      const cached = accountId ? await getOfflineCache<any>(key, { userId: accountId, allowStale: true }) : null;
+      const data = cached?.data;
+      if (data?.lesson && data?.verified === true &&
+          Date.now() - cached!.storedAt <= 30 * 24 * 60 * 60 * 1000 &&
+          data.lessonAccess?.allowed !== false) {
+        setLesson(data.lesson);
+        setFormationLesson(data.formationLesson ?? null);
+        setTrack(data.track ?? null);
+        setQuestions(data.questions ?? []);
+        setFormationStatus(data.formationStatus ?? null);
+        setLessonAccess(data.lessonAccess ?? null);
+        setLoadMessage('Saved lesson available offline. Reconnect to submit, validate, or update progress.');
+        setLoadState('ready');
+      } else {
+        setLoadState('unavailable');
+        setLoadMessage('This lesson has not been downloaded and authorized on this device. Connect once to save it.');
+      }
+      return;
+    }
     let resolvedAccess: FormationLessonAccess | null = null;
     let engineOn = false;
     let trackStageCode: number | null = null;
@@ -315,7 +342,7 @@ export default function LessonDetail() {
     }
 
     setLoadState('ready');
-  }, [lessonId, enrollmentId, trackLessonId]);
+  }, [lessonId, enrollmentId, trackLessonId, online, accountId]);
 
   useEffect(() => {
     load();
