@@ -13,6 +13,9 @@ import {
 } from '@/lib/buklodAiResponseValidation';
 import { pickGeneratedQuestions } from '@/lib/buklodQuestionEngine';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { colors } from '@/lib/theme';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import type { AIAnswerValidationResult } from '@/types/buklodAiValidation';
@@ -59,6 +62,8 @@ function emptyAnswers(): string[] {
 }
 
 export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: Props) {
+  const { user } = useAuth();
+  const { online } = useNetwork();
   const questions = useMemo(
     () =>
       pickGeneratedQuestions({
@@ -88,6 +93,13 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
     const loadExisting = async () => {
       if (!lesson?.id || !enrollmentId) return;
 
+      const draft = user?.id ? await getOfflineCache<{ answers: string[]; reflection: string }>(
+        'learning-lesson-answers-v1:' + lesson.id, { userId: user.id, allowStale: true }) : null;
+      if (active && draft?.data) {
+        if (draft.data.answers?.length === 4) setAnswers(draft.data.answers);
+        setReflection(draft.data.reflection ?? '');
+      }
+      if (!online) return;
       const { data, error } = await supabase
         .from('learning_lesson_responses')
         .select('question_answers,reflection_text,submitted_at')
@@ -110,7 +122,7 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
     return () => {
       active = false;
     };
-  }, [lesson?.id, enrollmentId]);
+  }, [lesson?.id, enrollmentId, user?.id, online]);
 
   const updateAnswer = (index: number, value: string) => {
     setAnswers((current) => {
@@ -199,6 +211,18 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       return Alert.alert('Personal Reflection', 'Write a Personal Reflection with at least 20 characters.');
     }
 
+    if (!online) {
+      if (!user?.id) return Alert.alert('Offline draft', 'Sign in to save this lesson draft.');
+      try {
+        await setOfflineCache('learning-lesson-answers-v1:' + lesson.id,
+          { answers: normalized, reflection: reflectionText },
+          { userId: user.id, ttlMs: 30 * 24 * 60 * 60 * 1000 });
+        Alert.alert('Saved Offline', 'Answers and reflection are saved on this device. Reconnect and tap Complete Lesson to validate, submit, and earn eligible points.');
+      } catch {
+        Alert.alert('Could not save offline', 'Device storage is unavailable. Copy your answers before leaving.');
+      }
+      return;
+    }
     const validated = await validateAllFields(normalized, reflectionText);
     if (!validated) {
       return Alert.alert(
