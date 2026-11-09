@@ -53,7 +53,17 @@ async function readIndex(): Promise<CacheIndexRow[]> {
   }
 }
 
+// AsyncStorage cannot atomically merge the shared index. Serializing index
+// writes prevents parallel Bible/Word/Lesson cache saves losing each other.
+let indexMutation: Promise<unknown> = Promise.resolve();
+function withIndexLock<T>(operation: () => Promise<T>): Promise<T> {
+  const next = indexMutation.then(operation, operation);
+  indexMutation = next.then(() => undefined, () => undefined);
+  return next;
+}
+
 async function touchIndex(key: string, storedAt: number): Promise<void> {
+  return withIndexLock(async () => {
   try {
     const rows = await readIndex();
     const next = [
@@ -76,6 +86,7 @@ async function touchIndex(key: string, storedAt: number): Promise<void> {
   } catch {
     // Cache index maintenance must never break the caller.
   }
+  });
 }
 
 export async function setOfflineCache<T>(
@@ -158,6 +169,7 @@ export async function clearOfflineCacheForUser(
 export async function pruneOfflineCache(options?: {
   olderThanMs?: number;
 }): Promise<number> {
+  return withIndexLock(async () => {
   const olderThanMs = Math.max(
     60_000,
     Number(options?.olderThanMs ?? 14 * 24 * 60 * 60 * 1000),
@@ -175,6 +187,7 @@ export async function pruneOfflineCache(options?: {
   }
   await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(keep));
   return stale.length;
+  });
 }
 
 export async function staleWhileRevalidate<T>(args: {
