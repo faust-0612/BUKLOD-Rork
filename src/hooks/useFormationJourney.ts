@@ -5,6 +5,8 @@ import {
   loadMyFormationJourney,
 } from '@/lib/buklodFormationProgress';
 import type { FormationJourney } from '@/types/buklodFormation';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 
 type FormationJourneyState = {
   engineAvailable: boolean;
@@ -16,6 +18,7 @@ type FormationJourneyState = {
 };
 
 export function useFormationJourney(userId: string | undefined): FormationJourneyState {
+  const { online } = useNetwork();
   const [engineEnabled, setEngineEnabled] = useState(false);
   const [engineAvailable, setEngineAvailable] = useState(false);
   const [journey, setJourney] = useState<FormationJourney | null>(null);
@@ -34,6 +37,25 @@ export function useFormationJourney(userId: string | undefined): FormationJourne
     setLoading(true);
     setError(null);
 
+    if (!online) {
+      const cached = await getOfflineCache<{
+        enabled: boolean;
+        journey: FormationJourney | null;
+      }>('formation-journey-v1', { userId, allowStale: true });
+      if (cached?.data) {
+        setEngineEnabled(cached.data.enabled);
+        setEngineAvailable(true);
+        setJourney(cached.data.journey);
+      } else {
+        setEngineAvailable(false);
+        setEngineEnabled(false);
+        setJourney(null);
+        setError('Connect once to save your BUKLOD Lesson progress.');
+      }
+      setLoading(false);
+      return;
+    }
+
     try {
       const enabled = await loadFormationEngineEnabled();
       setEngineAvailable(true);
@@ -41,12 +63,18 @@ export function useFormationJourney(userId: string | undefined): FormationJourne
 
       if (!enabled) {
         setJourney(null);
+        void setOfflineCache('formation-journey-v1',
+          { enabled: false, journey: null },
+          { userId, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
         return;
       }
 
       try {
         const data = await loadMyFormationJourney();
         setJourney(data);
+        void setOfflineCache('formation-journey-v1',
+          { enabled: true, journey: data },
+          { userId, ttlMs: 30 * 24 * 60 * 60 * 1000 }).catch(() => undefined);
       } catch (journeyError: unknown) {
         const message =
           journeyError instanceof Error
@@ -65,7 +93,7 @@ export function useFormationJourney(userId: string | undefined): FormationJourne
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, online]);
 
   useEffect(() => {
     void refresh();

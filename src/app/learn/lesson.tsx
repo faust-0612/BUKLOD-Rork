@@ -16,6 +16,9 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
 import { VoiceReader } from '@/components/VoiceReader';
@@ -47,6 +50,11 @@ export default function LessonDetail() {
       trackLessonId: string;
     }>();
 
+  const { user } = useAuth();
+  const { online } = useNetwork();
+  const accountId = user?.id ?? '';
+  const [offlineReadOnly, setOfflineReadOnly] = useState(false);
+  const [offlineContentOwner, setOfflineContentOwner] = useState('');
   const [lesson, setLesson] = useState<any>(null);
   const [formationLesson, setFormationLesson] = useState<any>(null);
   const [track, setTrack] = useState<any>(null);
@@ -123,14 +131,49 @@ export default function LessonDetail() {
   );
 
   const load = useCallback(async () => {
+    const readingId = trackLessonId || lessonId;
+    const useSavedReading = async (): Promise<boolean> => {
+      if (!accountId || !readingId) return false;
+      const saved = await getOfflineCache<any>('lesson-reading-v1:' + readingId, {
+        userId: accountId, allowStale: true,
+      });
+      if (!saved?.data?.lesson || saved.data.lesson.id !== readingId) return false;
+      setLesson(saved.data.lesson);
+      setTrack(saved.data.track ?? null);
+      setQuestions(saved.data.questions ?? []);
+      setFormationStatus(saved.data.formationStatus ?? null);
+      setFormationLesson(saved.data.formationLesson ?? null);
+      setLessonAccess(null);
+      setOfflineReadOnly(true);
+      setOfflineContentOwner(accountId);
+      setLoadMessage('Saved lesson · read-only until connected');
+      setLoadState('ready');
+      return true;
+    };
     if (!lessonId && !trackLessonId) {
       setLoadState('unavailable');
       setLoadMessage(formationCopy.lessonCouldNotOpenGuide);
       return;
     }
 
+    if (!accountId) {
+      setLoadState('unavailable');
+      setLoadMessage('Sign in to open your saved BUKLOD Lessons.');
+      return;
+    }
+    if (!online) {
+      if (!await useSavedReading()) {
+        setLoadState('unavailable');
+        setLoadMessage('This lesson has not been downloaded yet. Open it once while online.');
+      }
+      return;
+    }
+    setOfflineReadOnly(false);
     setLoadState('loading');
     setLoadMessage(null);
+    let trackForCache: any = null;
+    let formationStatusForCache: any = null;
+    let questionsForCache: any[] = [];
     let resolvedAccess: FormationLessonAccess | null = null;
     let engineOn = false;
     let trackStageCode: number | null = null;
@@ -174,6 +217,22 @@ export default function LessonDetail() {
             stage_code: payload?.stage_code,
             title: payload?.role_track_title_en ?? 'Formation',
           });
+          void setOfflineCache('lesson-reading-v1:' + trackLessonId, {
+            lesson: {
+              id: trackLessonId,
+              title: payload?.title ?? 'Formation Lesson',
+              content: typeof payload?.lesson_content === 'object'
+                ? String((payload.lesson_content as Record<string, unknown>).core_teaching ??
+                    (payload.lesson_content as Record<string, unknown>).content ??
+                    JSON.stringify(payload.lesson_content, null, 2))
+                : String(payload?.lesson_content ?? ''),
+            },
+            track: { stage_code: payload?.stage_code, title: payload?.role_track_title_en ?? 'Formation' },
+            formationLesson: payload,
+            formationStatus: null,
+            questions: [],
+          }, { userId: accountId, ttlMs: 30 * 24 * 60 * 60 * 1000 })
+            .catch(() => undefined);
           setLoadState('ready');
           return;
         }
@@ -206,6 +265,10 @@ export default function LessonDetail() {
       .single();
 
     if (lessonError) {
+      const transient = /network|fetch|timeout|connection|offline/i.test(
+        String(lessonError.message ?? ''),
+      );
+      if (transient && await useSavedReading()) return;
       setLoadState('unavailable');
       setLoadMessage(formationCopy.lessonCouldNotOpenGuide);
       return;
@@ -221,6 +284,7 @@ export default function LessonDetail() {
         .single();
 
       setTrack(t);
+      trackForCache = t;
       trackStageCode =
         t?.stage_code == null ? null : Number(t.stage_code);
 
@@ -244,6 +308,7 @@ export default function LessonDetail() {
         );
 
         setFormationStatus(current ?? null);
+        formationStatusForCache = current ?? null;
 
         const applySequentialLock = requiresFormationSequentialLock(
           trackStageCode,
@@ -299,6 +364,7 @@ export default function LessonDetail() {
         .order('question_order');
 
       setQuestions(q ?? []);
+      questionsForCache = q ?? [];
     }
 
     if (enrollmentId) {
@@ -314,8 +380,17 @@ export default function LessonDetail() {
       }
     }
 
+    // Only cache content after a successful authorized server read.
+    void setOfflineCache('lesson-reading-v1:' + lessonId, {
+      lesson: l,
+      track: trackForCache,
+      questions: questionsForCache,
+      formationStatus: formationStatusForCache,
+      formationLesson: null,
+    }, { userId: accountId, ttlMs: 30 * 24 * 60 * 60 * 1000 })
+      .catch(() => undefined);
     setLoadState('ready');
-  }, [lessonId, enrollmentId, trackLessonId]);
+  }, [lessonId, enrollmentId, trackLessonId, accountId, online]);
 
   useEffect(() => {
     load();
@@ -535,6 +610,43 @@ export default function LessonDetail() {
             Please wait while we prepare your lesson.
           </Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (offlineReadOnly && lesson && accountId && offlineContentOwner === accountId &&
+      lesson.id === (trackLessonId || lessonId)) {
+    return (
+      <SafeAreaView style={shared.screen} edges={['top', 'bottom']}>
+        <ScrollView contentContainerStyle={shared.content}>
+          <Text style={shared.muted}>
+            SAVED OFFLINE · READING ONLY
+          </Text>
+          <Text style={shared.h1}>{String(lesson.title ?? 'BUKLOD Lesson')}</Text>
+          {!!lesson.scripture_reference && (
+            <Text style={shared.body}>{String(lesson.scripture_reference)}</Text>
+          )}
+          <Card>
+            <Text style={shared.body}>{String(lesson.content ?? '')}</Text>
+          </Card>
+          {!!lesson.reflection_question && (
+            <Card>
+              <SectionTitle>REFLECTION GUIDE</SectionTitle>
+              <Text style={shared.body}>{String(lesson.reflection_question)}</Text>
+            </Card>
+          )}
+          {!!lesson.assignment_prompt && (
+            <Card>
+              <SectionTitle>ASSIGNMENT GUIDE</SectionTitle>
+              <Text style={shared.body}>{String(lesson.assignment_prompt)}</Text>
+            </Card>
+          )}
+          <Text style={shared.muted}>
+            Reading is available offline. Checking, submissions, and BUKLOD Points
+            require an online connection and server verification.
+          </Text>
+          <Button title="BACK" onPress={() => router.back()} />
+        </ScrollView>
       </SafeAreaView>
     );
   }

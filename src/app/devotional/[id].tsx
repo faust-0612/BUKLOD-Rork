@@ -47,6 +47,12 @@ function DevotionalScreenContent() {
         setLoading(false);
         return;
       }
+      // Full published Word content only needs periodic online reconciliation.
+      if (cache?.data?.id === id &&
+          Date.now() - cache.storedAt < 6 * 60 * 60 * 1000) {
+        setLoading(false);
+        return;
+      }
       try {
         const { data, error } = await supabase.from('devotionals').select('*')
           .eq('id', id).eq('is_published', true).single();

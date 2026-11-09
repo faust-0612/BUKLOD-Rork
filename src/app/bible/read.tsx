@@ -1447,6 +1447,10 @@ const [showChapters, setShowChapters] =
         }
         return;
       }
+      // Book metadata changes infrequently; refresh at most once per week.
+      if (saved.length && cached && Date.now() - cached.storedAt < 7 * 24 * 60 * 60 * 1000) {
+        return;
+      }
       try {
         const {data, error} = await (supabase as any).rpc(
           'get_bible_books', {p_translation_code: translation});
@@ -1525,43 +1529,31 @@ const [showChapters, setShowChapters] =
           return;
         }
 
-        const {
-          data,
-          error,
-        } =
-          await (supabase as any).rpc(
+        // A saved chapter can render without another download. Session
+        // creation below remains online for authoritative progress and points.
+        const useSavedChapter =
+          hasCachedChapter && cached &&
+          Date.now() - cached.storedAt < 24 * 60 * 60 * 1000;
+        let chapter: BibleVerse[] | null = useSavedChapter ? cached!.data : null;
+        if (!chapter) {
+          const { data, error } = await (supabase as any).rpc(
             'get_bible_chapter',
             {
-              p_translation_code:
-                translation,
-
-              p_book_no:
-                bookNo,
-
-              p_chapter_no:
-                chapterNo,
+              p_translation_code: translation,
+              p_book_no: bookNo,
+              p_chapter_no: chapterNo,
             }
           );
-
-
-        if (error) throw error;
-
-        if (cancelled) return;
-
-
-        const chapter =
-          (
-            data ??
-            []
-          ) as BibleVerse[];
-
-
-        setVerses(chapter);
-        if (chapter.length) {
-          void setOfflineCache(cacheKey, chapter, {
-            userId: accountId, ttlMs: 90 * 24 * 60 * 60 * 1000,
-          }).catch(() => undefined);
+          if (error) throw error;
+          chapter = (data ?? []) as BibleVerse[];
+          if (chapter.length) {
+            void setOfflineCache(cacheKey, chapter, {
+              userId: accountId, ttlMs: 90 * 24 * 60 * 60 * 1000,
+            }).catch(() => undefined);
+          }
         }
+        if (cancelled) return;
+        setVerses(chapter);
 
         if (cancelled) return;
 
