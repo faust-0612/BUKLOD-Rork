@@ -491,8 +491,8 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
   borderRadius:12,
   textAlignVertical:'top',
   backgroundColor:
-   c.background
-   fontSize: 16,
+   c.background,
+  fontSize: 16,
   },
 
  communityCommentSend:{
