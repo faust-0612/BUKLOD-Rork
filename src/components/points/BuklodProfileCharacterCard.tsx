@@ -64,6 +64,8 @@ import BuklodActiveCharacterArt
 
 import BuklodAdLightRewardCard
   from '@/components/BuklodAdLightRewardCard';
+import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
+import BuklodCharacterLevelRecognition from '@/components/points/BuklodCharacterLevelRecognition';
 
 import {
   CHARACTER_DISPLAY_NAME,
@@ -540,6 +542,7 @@ export default function BuklodProfileCharacterCard({
 
   return (
     <>
+      <BuklodCharacterLevelRecognition userId={userId} selection={selection} />
       <ProfileMotionFadeUp delay={55}>
         <View style={styles.wrap}>
           <View style={styles.card}>
@@ -650,12 +653,12 @@ export default function BuklodProfileCharacterCard({
                       </Pressable>
                     ) : null}
                   </View>
-                  <Text
-                    numberOfLines={1}
-                    style={styles.summaryValue}
-                  >
-                    {rankLabel || 'BUKLOD Rank'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 2 }}>
+                    {rankLabel ? <BuklodCircleRankBadge rankName={rankLabel} size={32} /> : null}
+                    <Text numberOfLines={2} style={[styles.summaryValue, { flex: 1 }]}>
+                      {rankLabel || 'BUKLOD Rank'}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={[styles.summaryChip, { backgroundColor: pointsTone.surface, borderColor: pointsTone.border }]}>

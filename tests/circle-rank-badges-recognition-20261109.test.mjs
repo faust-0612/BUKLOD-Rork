@@ -36,4 +36,11 @@ test('Rank entry points preserve character autonomy and navigate to the canonica
   assert.match(selection, /ATOMIC_RESET_LEVEL_1_V2/);
   assert.match(selection, /circle_rank_order/);
   assert.match(selection, /character_points_since_selection/);
+  const recognition = read('src/components/points/BuklodCharacterLevelRecognition.tsx');
+  const profile = read('src/components/points/BuklodProfileCharacterCard.tsx');
+  assert.match(recognition, /buklod:character-level:last-seen:v1:/);
+  assert.match(recognition, /baseline/);
+  assert.match(recognition, /level > previous/);
+  assert.match(profile, /<BuklodCharacterLevelRecognition userId=\{userId\} selection=\{selection\}/);
+  assert.match(profile, /<BuklodCircleRankBadge rankName=\{rankLabel\}/);
 });
