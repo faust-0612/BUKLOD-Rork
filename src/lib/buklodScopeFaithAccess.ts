@@ -183,12 +183,12 @@ export function buildDefaultScopeFaithAccessStatus(
     organization_name: null,
     join_status: 'NONE',
     daily_reading: {
-      price_php: 49,
+      price_php: 0,
       unlocked: false,
       pending_request_id: null,
     },
     devotion_word: {
-      price_php: 49,
+      price_php: 0,
       unlocked: false,
       pending_request_id: null,
     },
@@ -309,8 +309,8 @@ export async function reviewFaithPayment(
  * recover the signed-in user's real ACTIVE Cluster and ask the SAME
  * backend faith-access RPC again using that real Cluster id.
  *
- * Important: this does NOT manufacture/unlock Cluster Premium.
- * The backend remains authoritative for unlocked/pending/payment state.
+ * Important: this does NOT fabricate Cluster membership.
+ * The backend remains authoritative for feature access and authorization.
  */
 function buklodFaithRawHasActiveCluster(
   raw: unknown,
