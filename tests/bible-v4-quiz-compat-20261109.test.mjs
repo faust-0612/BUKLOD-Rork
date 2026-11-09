@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const v4=read('supabase/migrations/20261109141500_buklod_bible_quiz_v4_daily_secure.sql');
+const v4=read('supabase/migrations/20261109143346_buklod_bible_quiz_v4_daily_secure_20261109.sql');
 const route=read('src/app/faith/bible-quiz.tsx');
 const classroom=read('src/app/profile/buklod-faculty-class.tsx');
 test('Bible V4 is independent from academic Classroom Quiz',()=>{

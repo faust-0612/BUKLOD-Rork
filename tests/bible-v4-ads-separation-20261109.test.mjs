@@ -5,7 +5,7 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const breaks=read('src/lib/buklodAdOpportunities.ts');
 const events=read('src/app/faith/bible-events.tsx');
 const mastery=read('src/features/games/kingdom/platform/KingdomMasteryCheck.tsx');
-const sql=read('supabase/migrations/20261109143500_buklod_bible_v4_live_events.sql');
+const sql=read('supabase/migrations/20261109143403_buklod_bible_v4_live_events_20261109.sql');
 test('Ads are natural post-completion opportunities and not BP eligibility gates',()=>{
  for(const key of ['bible_flash_submission_success','bible_arena_round_complete','kingdom_mastery_verified'])assert.match(breaks,new RegExp(key));
  assert.match(breaks,/No credit, reward mutation or re-submission/);
