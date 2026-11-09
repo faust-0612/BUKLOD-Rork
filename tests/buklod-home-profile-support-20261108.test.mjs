@@ -27,7 +27,11 @@ test('Live Support exposes photo and video before cases, and logs after chat edi
  assert.ok(s.includes('targetCaseId')&&s.includes('bsoc_case_attachments'));
  assert.ok(s.indexOf('Send a photo or video to BSOC')<s.indexOf('Create a concern'));
  assert.ok(s.indexOf('Conversation & evidence log')>s.indexOf('Send message'));
- assert.ok(s.indexOf('Previous support cases · Activity logs')>s.indexOf('Conversation & evidence log'));
+ // The previous giant history list is now a compact selector ABOVE the
+ // persistent conversation so the user never needs to scroll to resume chat.
+ assert.ok(s.indexOf('Your support conversations')<s.indexOf('Chat with BSOC'));
+ assert.ok(s.includes('useLocalSearchParams')&&s.includes('handledDeepLink'));
+ assert.ok(s.includes('REOPEN SAME CASE')&&s.includes('buklod_bsoc_member_reopen_case_v1'));
 });
 test('Contact Us is direct, no second Send Feedback',()=>{
  const s=read('src/app/contact-us/index.tsx');
