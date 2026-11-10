@@ -10,7 +10,9 @@ const policy = readFileSync('src/lib/communityVideoPlayback.ts', 'utf8');
 
 test('Native Reels loads the first signed playable row without waiting for the full feed', () => {
   assert.match(native, /const first = source\.length \? await sign\(source\[0\]\)/);
-  assert.match(native, /setRows\(source\.map/);
+  assert.match(native, /const seeded = source\.map/);
+  assert.match(native, /setRows\(seeded\)/);
+  assert.match(native, /if \(first\?\.media_url \|\| retainedRows\.length === 0/);
   assert.match(native, /void mapWithConcurrency\(source\.slice\(1\), SIGN_CONCURRENCY/);
   assert.match(native, /generation === loadGenerationRef\.current/);
   assert.match(native, /return \(\) => \{ loadGenerationRef\.current \+= 1; \}/);
