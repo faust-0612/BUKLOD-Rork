@@ -9,7 +9,7 @@ create table if not exists public.buklod_ptt_channel_messages (
   kind text not null check (kind in ('TEXT', 'CAPTION')),
   body text not null check (char_length(body) between 1 and 4000 and body = btrim(body)),
   provider_event_id text,
-  transmission_id uuid references public.buklod_ptt_transmissions(id) on delete set null,
+  transmission_id uuid, -- keep history when short-lived floor leases are pruned
   created_at timestamptz not null default now(),
   constraint buklod_ptt_message_origin check (
     (kind = 'TEXT' and provider_event_id is null and transmission_id is null) or
