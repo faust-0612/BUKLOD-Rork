@@ -206,12 +206,18 @@ export function isBuklodPassiveAdAllowed({
   // screens and all interstitial/rewarded ads remain blocked.
   const safeFacultyLanding =
     placement === 'focus' && route === '/profile/buklod-faculty';
+  // Reels are intentionally native-feed sponsored cards, NOT interstitials.
+  // The IGPAT route is otherwise sensitive to prevent forced ads; allow
+  // only the explicit passive reels placement, respecting all remote gates.
+  const safeReelsPlacement =
+    placement === 'reels' &&
+    (route === '/igpat' || route === '/reels');
 
   return (
     foreground &&
     enabled('ads_passive') &&
     placementEnabled(placementId) &&
-    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding) &&
+    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding || safeReelsPlacement) &&
     !hasInteractionLock()
   );
 }
