@@ -54,6 +54,8 @@ import {
 
 type Props = {
   uri: string;
+  /** Stable post identity across rotations of short-lived signed URLs. */
+  playbackKey?: string;
   height?: number;
   autoPlay?: boolean;
   expectedDurationSeconds?: number;
@@ -485,6 +487,7 @@ function useSessionSound() {
 
 function ExpoCommunityVideo({
   uri,
+  playbackKey,
   height = 380,
   autoPlay = false,
   expectedDurationSeconds,
@@ -501,6 +504,7 @@ function ExpoCommunityVideo({
   onPosterGenerated,
 }: Props) {
   const soundOn = useSessionSound();
+  const playbackIdentity = playbackKey ? `post:${playbackKey}` : uri;
   const userPausedRef = useRef(false);
   const activeRef = useRef(active);
   const autoPlayRef = useRef(autoPlay);
@@ -740,7 +744,7 @@ function ExpoCommunityVideo({
           const known = Number(player.duration || 0);
           if (known > 0) setDuration(known);
 
-          const saved = playbackTimeByUri.get(uri) ?? 0;
+          const saved = playbackTimeByUri.get(playbackIdentity) ?? 0;
           if (
             saved > 0.35 &&
             (known <= 0 || saved < known - 0.4)
@@ -797,7 +801,12 @@ function ExpoCommunityVideo({
       'timeUpdate',
       (event: { currentTime?: number }) => {
         const next = Number(event?.currentTime ?? 0);
-        playbackTimeByUri.set(uri, next);
+        playbackTimeByUri.set(playbackIdentity, next);
+        // Keep the in-memory resume map bounded even across signed-URL churn.
+        if (playbackTimeByUri.size > 120) {
+          const oldest = playbackTimeByUri.keys().next().value;
+          if (oldest) playbackTimeByUri.delete(oldest);
+        }
         setCurrentTime(next);
         const known = Number(player.duration || 0);
         if (known > 0) setDuration(known);
@@ -818,7 +827,7 @@ function ExpoCommunityVideo({
         recoveryDeadlineRef.current = null;
       }
     };
-  }, [player, uri]);
+  }, [player, uri, playbackIdentity]);
 
   useEffect(() => {
     if (!active) {
@@ -909,7 +918,7 @@ function ExpoCommunityVideo({
     } catch {
       return;
     }
-    playbackTimeByUri.set(uri, next);
+    playbackTimeByUri.set(playbackIdentity, next);
     setCurrentTime(next);
   }
 
@@ -1058,7 +1067,7 @@ function ExpoCommunityVideo({
                 onPress={() => {
                   try {
                     playbackTimeByUri.set(
-                      uri,
+                      playbackIdentity,
                       Number(player.currentTime || currentTime || 0),
                     );
                     player.pause();
