@@ -42,7 +42,7 @@ test('AI continuation sessions cap charges globally and per member and prevent c
   assert.match(sql, /enable row level security/);
   assert.match(sql, /revoke all on public\.buklod_kingdom_ai_levels_v1 from public, anon, authenticated/);
   assert.match(sql, /grant select,insert,update on public\.buklod_kingdom_ai_levels_v1 to service_role/);
-  assert.doesNotMatch(sql, /insert into public\.buklod_points_ledger|update public\.buklod_point_rules|buklod_pf_|qmp/i);
+  assert.doesNotMatch(sql, /(?:insert into|update|delete from)\s+(?:public\.)?(?:buklod_points_ledger|buklod_point_rules|buklod_pf_|qmp)/i);
 });
 
 test('Edge AI generator fails closed before provider spending and never manufactures BP', () => {
