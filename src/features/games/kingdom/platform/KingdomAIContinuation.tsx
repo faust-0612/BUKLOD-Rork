@@ -46,6 +46,7 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
     mounted.current = true;
     setProgressBusy(true);
     setPhase('ready');
+    setResumeAfter(0);
     setSessionId('');
     void Promise.resolve(supabase.rpc('get_my_buklod_kingdom_ai_progress_v1',
       { p_game_id: gameId }))
@@ -59,6 +60,8 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
             ? Math.max(0, unfinished - 1) : completed;
           if (Number.isInteger(previous)) setResumeAfter(Math.max(0, Math.min(200, previous)));
         }
+      }).catch(() => {
+        // Offline/missing feature migration must not block verified Kingdom games.
       }).finally(() => { if (mounted.current) setProgressBusy(false); });
     return () => { mounted.current = false; };
   }, [gameId]);
