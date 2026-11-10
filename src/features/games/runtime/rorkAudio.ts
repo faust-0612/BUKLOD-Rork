@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
+import { getBuklodSoundSettings, isBuklodGameSoundEnabled, getBuklodGameSoundVolume } from '@/lib/buklodSounds';
 import { createAudioPlayer } from 'expo-audio';
 
 import type { BuklodGameFeedbackEvent } from './feedbackTypes';
@@ -101,23 +103,56 @@ export function playRorkSignatureSfx(gameId?: string | null, volume = 0.26) {
   return playKey(media.signature, volume, 180);
 }
 
+const LOCAL_KINGDOM_AMBIENCE = require('../../../../assets/sounds/buklod-kingdom-ambient-original.wav');
+
+/**
+ * The previous preview-host MP3s are unreliable. The original BUKLOD-owned
+ * local ambient loop is bundled with the app, works without network and
+ * follows the existing game sound/quiet-hours settings. This is decorative:
+ * audio loading/playback must never block real gameplay.
+ */
 export function useRorkGameAmbience(gameId?: string | null) {
+  const [musicEnabled, setMusicEnabled] = useState(true);
   useEffect(() => {
+    if (!gameId || !musicEnabled) return;
     const media = getRorkGameMedia(gameId);
-    if (!media) return;
-
-    const player = createPlayer(RORK_AUDIO[media.ambience], true);
-    if (!player) return;
-
-    player.volume = 0.075;
+    let player: Player | null = null;
     try {
-      player.play();
-    } catch {
-      // Ambience is decorative and must fail closed when autoplay/network fails.
-    }
-
-    return () => {
-      try { player.remove(); } catch { /* enhancement only */ }
+      player = media && REMOTE_RORK_AUDIO_ENABLED
+        ? createPlayer(RORK_AUDIO[media.ambience], true)
+        : createAudioPlayer(LOCAL_KINGDOM_AMBIENCE, { updateInterval: 1000 });
+    } catch { return; }
+    if (!player) return;
+    const audio = player;
+    let active = true;
+    audio.loop = true;
+    const sync = async () => {
+      try {
+        await getBuklodSoundSettings();
+        if (!active) return;
+        if (AppState.currentState !== 'active' || !isBuklodGameSoundEnabled()) {
+          audio.pause();
+          return;
+        }
+        audio.volume = Math.min(0.14, getBuklodGameSoundVolume() * 0.16);
+        if (audio.isLoaded) audio.play();
+      } catch {
+        // No impact to gameplay if sound assets, platform or autoplay fail.
+      }
     };
-  }, [gameId]);
+    // Initial local asset loading is asynchronous. Listen for a ready player
+    // instead of losing the first playback attempt.
+    const readyListener = audio.addListener('playbackStatusUpdate', status => {
+      if (active && status.isLoaded) void sync();
+    });
+    const stateListener = AppState.addEventListener('change', () => { void sync(); });
+    void sync();
+    return () => {
+      active = false;
+      readyListener.remove();
+      stateListener.remove();
+      try { audio.remove(); } catch { /* enhancement only */ }
+    };
+  }, [gameId, musicEnabled]);
+  return { musicEnabled, toggleMusic: () => setMusicEnabled(value => !value) };
 }
