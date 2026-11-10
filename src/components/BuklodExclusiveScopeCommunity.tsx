@@ -1142,11 +1142,22 @@ export default function BuklodExclusiveScopeCommunity({
 
   const {
     onViewableItemsChanged: onCommunityAdViewableItemsChanged,
+    onVideoViewableItemsChanged: onCommunityVideoViewableItemsChanged,
     viewabilityConfig: communityAdViewabilityConfig,
+    videoViewabilityConfig: communityVideoViewabilityConfig,
     extraData: communityAdExtraData,
     isAdActive,
     visibleVideoPostId,
-  } = useBuklodCommunityAdViewability();
+    preloadVideoPostId,
+  } = useBuklodCommunityAdViewability(
+    mode === 'reels' ? visiblePosts : wallFeedRows,
+  );
+  const communityViewabilityPairs = useRef([
+    { viewabilityConfig: communityAdViewabilityConfig,
+      onViewableItemsChanged: onCommunityAdViewableItemsChanged },
+    { viewabilityConfig: communityVideoViewabilityConfig,
+      onViewableItemsChanged: onCommunityVideoViewableItemsChanged },
+  ]).current;
 
   const listData =
     mode ===
@@ -3424,6 +3435,7 @@ return (
                     uri={
                       item.media_url
                     }
+                    playbackKey={String(item.id)}
                     posterUri={item.media_items?.find((media:any) =>
                       String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
                     )?.preview_url ?? null}
@@ -3447,6 +3459,10 @@ return (
                     autoPlay
                     active={
                       visibleVideoPostId ===
+                      String(item.id)
+                    }
+                    preload={
+                      preloadVideoPostId ===
                       String(item.id)
                     }
                     onPlaybackError={() => {
@@ -4363,11 +4379,8 @@ return (
         extraData={
           communityAdExtraData
         }
-        onViewableItemsChanged={
-          onCommunityAdViewableItemsChanged
-        }
-        viewabilityConfig={
-          communityAdViewabilityConfig
+        viewabilityConfigCallbackPairs={
+          communityViewabilityPairs
         }
         renderItem={
           ({ item }) => {
