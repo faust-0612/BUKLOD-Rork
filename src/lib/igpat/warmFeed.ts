@@ -41,6 +41,26 @@ export function getIgpatWarmFeed<T extends IgpatWarmRow>(
   return entry.rows.map(row => ({ ...row })) as unknown as T[];
 }
 
+/**
+ * A quick Wall → IGPAT → Wall → IGPAT switch should reuse fresh signed
+ * playback metadata rather than immediately re-request the entire feed.
+ * Explicit retry still fetches because it occurs on an already-visible feed.
+ */
+export function isIgpatWarmFeedFresh(
+  userId: string | null | undefined,
+  mode: string,
+  dataSaver: boolean,
+  maxAgeMs = 45_000,
+  now = Date.now(),
+): boolean {
+  const key = igpatFeedKey(userId, mode, dataSaver);
+  if (!key) return false;
+  const entry = feed.get(key);
+  if (!entry || now < entry.storedAt) return false;
+  return now - entry.storedAt < Math.min(MAX_AGE_MS, Math.max(0, maxAgeMs)) &&
+    entry.rows.some(row => Boolean(row.media_url));
+}
+
 export function rememberIgpatWarmFeed<T extends IgpatWarmRow>(
   userId: string | null | undefined,
   mode: string,
