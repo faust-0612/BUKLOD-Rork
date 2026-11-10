@@ -11,6 +11,9 @@ const portal = read('src/app/scope/buklod-lesson/index.tsx');
 test('photo attachment enters admin queue transactionally with verified ownership', () => {
   assert.match(sql, /create or replace function public\.attach_my_mentor_session_photo_r2/);
   assert.match(sql, /row_rec\.mentor_id<>actor/);
+  assert.match(sql, /row_rec\.status<>'reported'/);
+  assert.match(sql, /s\.mentor_id=\(select auth\.uid\(\)\) and s\.status='reported'/);
+  assert.match(mentor, /task\.status !== 'reported'/);
   assert.match(sql, /storage\.objects o/);
   assert.match(sql, /set status='pending_admin'/);
   assert.match(sql, /where id=p_session_id and mentor_id=actor and status='reported'/);
