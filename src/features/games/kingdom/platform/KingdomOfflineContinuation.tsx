@@ -39,7 +39,8 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
         'Hindi na-load ang local progress; maaari pa ring mag-practice.')); }
     });
     return () => { mounted.current = false; };
-  }, [key, t]);
+  // Language switches should not reset an active offline level or its answers.
+  }, [key]);
 
   const items = useMemo(() => userId ? buildKingdomOfflineLevel(gameId, level, userId) : [],
     [gameId, level, userId]);
