@@ -27,6 +27,8 @@ test('IGPAT native ad requests require consent and a narrowly approved feed rout
   assert.match(component, /isBuklodPassiveAdAllowed\(/);
   assert.match(component, /placementId: 'igpat_reels_inline'/);
   assert.match(component, /if \(cancelled \|\| timedOut\)/);
+  assert.match(component, /Inactive or consent-pending is not a native no-fill result/);
+  assert.match(read('src/app/igpat/index.tsx'), /Math\.abs\(index - activeIndex\) <= 2/);
   assert.doesNotMatch(component, /initializeBuklodAds\(/);
   assert.match(controller, /'\/igpat'/);
   assert.match(controller, /const safeReelsInline =/);
