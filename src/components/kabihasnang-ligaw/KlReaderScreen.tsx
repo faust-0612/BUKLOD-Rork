@@ -352,6 +352,21 @@ export default function KlReaderScreen() {
       const serverChapter = findKlAdminChapter(freshRows, 1, targetEpisode.episodeNumber);
       if (!serverChapter) throw new Error('Chapter not created on server. Open KL Studio first.');
       if (action === 'release') {
+        // Do not publish an unreadable quiz-only chapter if generation failed.
+        // Try the pending bank once before enforcing release readiness.
+        const { data: quizContext, error: quizContextError } = await supabase.rpc(
+          'kl_quiz_admin_context_v1', { p_episode_id: serverChapter.id },
+        );
+        if (quizContextError) throw new Error('Hindi ma-verify ang KL reading questions. Hindi muna ma-release.');
+        if ((quizContext as { quiz_status?: string } | null)?.quiz_status !== 'ready') {
+          await prepareQuizForApprovedChapter(serverChapter.id);
+          const { data: refreshedQuiz, error: refreshedError } = await supabase.rpc(
+            'kl_quiz_admin_context_v1', { p_episode_id: serverChapter.id },
+          );
+          if (refreshedError || (refreshedQuiz as { quiz_status?: string } | null)?.quiz_status !== 'ready') {
+            throw new Error('Hindi pa handa ang 5 manuscript-based questions. Retry muna sa KL Admin bago mag-release.');
+          }
+        }
         const blockers = klReleaseBlockers(serverChapter);
         if (blockers.length) throw new Error(blockers.join(' '));
       }
