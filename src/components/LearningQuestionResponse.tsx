@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAudioPlayer } from 'expo-audio';
 
@@ -77,6 +77,8 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
   );
   const [reflectionValidation, setReflectionValidation] = useState<AIAnswerValidationResult | null>(null);
   const [previouslySubmitted, setPreviouslySubmitted] = useState(false);
+  // Guards the entire validation + submit RPC cycle against double tapping.
+  const submissionLock = useRef(false);
 
   useEffect(() => {
     warmBuklodAdOpportunity('formation_lesson_success');
@@ -199,17 +201,20 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       return Alert.alert('Personal Reflection', 'Write a Personal Reflection with at least 20 characters.');
     }
 
-    const validated = await validateAllFields(normalized, reflectionText);
-    if (!validated) {
-      return Alert.alert(
-        'Review your answers',
-        'Please improve your answers using the guidance shown, then try again.',
-      );
-    }
-
+    if (submissionLock.current) return;
+    submissionLock.current = true;
     setBusy(true);
 
     try {
+      const validated = await validateAllFields(normalized, reflectionText);
+      if (!validated) {
+        Alert.alert(
+          'Review your answers',
+          'Please improve the flagged answers using the AI guidance, then try again.',
+        );
+        return;
+      }
+
       const { data, error } = await (supabase as any).rpc('complete_my_formation_lesson_v2', {
         p_enrollment_id: enrollmentId,
         p_lesson_id: lesson.id,
@@ -222,8 +227,15 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
       const result = (data ?? {}) as AutomaticLessonResult;
       const approved = result.status === 'approved' || result.auto_approved === true;
       setPreviouslySubmitted(true);
-      // The approved lesson is persisted first; ad failure cannot roll it back.
-      if (approved) await showBuklodAdOpportunity('formation_lesson_success');
+      // Ads are best effort after the authoritative database commit.
+      // A failed ad must never tell the learner that their completion failed.
+      if (approved) {
+        try {
+          await showBuklodAdOpportunity('formation_lesson_success');
+        } catch {
+          // Do not change a committed approval or award because of an ad failure.
+        }
+      }
 
       Alert.alert(
         approved ? 'Lesson completed' : 'Please improve this lesson',
@@ -236,9 +248,10 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
     } catch (error: any) {
       Alert.alert(
         'Could Not Complete Lesson',
-        error?.message ?? 'Nothing was partially submitted. Please try again.',
+        error?.message ?? 'Unable to verify this response. Your text remains available; check your connection and retry.',
       );
     } finally {
+      submissionLock.current = false;
       setBusy(false);
     }
   };

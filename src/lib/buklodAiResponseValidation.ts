@@ -96,14 +96,24 @@ export async function validateBuklodResponse(input: {
   response: string;
   attachments?: BuklodValidationAttachment[];
 }): Promise<AIAnswerValidationResult> {
-  const { data, error } = await (supabase as any).rpc(
-    'validate_buklod_response_v1',
-    {
-      p_question_context: input.questionContext,
-      p_response: input.response,
-      p_attachments: input.attachments ?? [],
-    },
-  );
+  // Lessons require real source-grounded AI validation. Never accept a
+  // rule-only / fail-open response as proof of a formation reflection.
+  // Other modules retain their existing adapter until server-side canonical
+  // source lookup is available for them.
+  const { data, error } =
+    input.questionContext.module === 'lesson'
+      ? await (supabase as any).functions.invoke('buklod-ai-validate-response', {
+          body: {
+            question_context: input.questionContext,
+            response: input.response,
+            attachments: input.attachments ?? [],
+          },
+        })
+      : await (supabase as any).rpc('validate_buklod_response_v1', {
+          p_question_context: input.questionContext,
+          p_response: input.response,
+          p_attachments: input.attachments ?? [],
+        });
 
   if (error) {
     throw error;

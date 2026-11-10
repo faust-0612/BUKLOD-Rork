@@ -27,7 +27,6 @@ import {
 
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
-import { useAuth } from '@/providers/AuthProvider';
 
 
 type Assignment = {
@@ -100,7 +99,7 @@ function label(
     string
   > = {
     pending_admin:
-      'WAITING REVIEW',
+      'AUTOMATIC AI CHECKING',
 
     approved:
       'APPROVED',
@@ -168,11 +167,6 @@ function jsonTextArray(
 
 export function BibleReadingMonitor() {
 
-  const {
-    hasRole,
-  } = useAuth();
-
-
   const [
     assignments,
     setAssignments,
@@ -195,15 +189,6 @@ export function BibleReadingMonitor() {
 
 
   const [
-    notes,
-    setNotes,
-  ] =
-    useState<
-      Record<string,string>
-    >({});
-
-
-  const [
     search,
     setSearch,
   ] =
@@ -222,23 +207,6 @@ export function BibleReadingMonitor() {
     setLoadingRows,
   ] =
     useState(false);
-
-
-  const [
-    busyId,
-    setBusyId,
-  ] =
-    useState<string|null>(
-      null
-    );
-
-
-  const reviewerLabel =
-    hasRole('system_admin')
-      ? 'SYSTEM ADMIN REVIEW'
-      : hasRole('mentor')
-        ? 'MENTOR REVIEW'
-        : 'PASTOR REVIEW';
 
 
   const loadAssignments =
@@ -263,7 +231,7 @@ export function BibleReadingMonitor() {
         if (error) {
 
           Alert.alert(
-            'Bible Reading Validation',
+            'Bible Reading AI Results',
             error.message
           );
 
@@ -500,179 +468,6 @@ export function BibleReadingMonitor() {
     };
 
 
-  const review =
-    (
-      row: Row,
-      approve: boolean
-    ) => {
-
-      if (
-        !row.submission_id
-      ) {
-        return;
-      }
-
-
-      const questions =
-        jsonTextArray(
-          row.answer_language ===
-            'en'
-            ? row.chapter_questions_en
-            : row.chapter_questions_fil
-        );
-
-
-      const answers =
-        jsonTextArray(
-          row.question_answers
-        );
-
-
-      const questionsOkay =
-        questions.length === 4 &&
-        answers.length === 4 &&
-        answers.every(
-          answer =>
-            answer.trim().length >=
-            10
-        );
-
-
-      const bibleOkay =
-        String(
-          row.bible_text ??
-          ''
-        )
-          .trim()
-          .length >= 20 ||
-        row.has_bible_photo;
-
-
-      const reflectionOkay =
-        String(
-          row.reflection_text ??
-          ''
-        )
-          .trim()
-          .length >= 20 ||
-        row.has_reflection_photo;
-
-
-      if (
-        approve &&
-        (
-          !questionsOkay ||
-          !bibleOkay ||
-          !reflectionOkay
-        )
-      ) {
-
-        Alert.alert(
-          'Cannot Approve',
-          'The four Scripture questions, Bible evidence, and Personal Reflection must all be complete.'
-        );
-
-        return;
-      }
-
-
-      Alert.alert(
-        approve
-          ? 'Approve Bible Reading?'
-          : 'Return for Revision?',
-
-        approve
-          ? `Approve ${row.full_name}'s Daily Bible Reading? This approval becomes final.`
-          : `Return ${row.full_name}'s submission for revision?`,
-
-        [
-          {
-            text:
-              'CANCEL',
-
-            style:
-              'cancel',
-          },
-
-          {
-            text:
-              approve
-                ? 'APPROVE'
-                : 'RETURN',
-
-            style:
-              approve
-                ? 'default'
-                : 'destructive',
-
-            onPress:
-              async () => {
-
-                setBusyId(
-                  row.submission_id
-                );
-
-
-                const {
-                  error,
-                } =
-                  await (
-                    supabase as any
-                  ).rpc(
-                    'admin_review_daily_bible_submission',
-                    {
-                      p_submission_id:
-                        row.submission_id,
-
-                      p_approve:
-                        approve,
-
-                      p_admin_note:
-                        notes[
-                          row.submission_id as string
-                        ]?.trim() ||
-                        null,
-                    }
-                  );
-
-
-                setBusyId(
-                  null
-                );
-
-
-                if (error) {
-
-                  Alert.alert(
-                    'Bible Reading Review',
-                    error.message
-                  );
-
-                  return;
-                }
-
-
-                Alert.alert(
-                  approve
-                    ? 'APPROVED'
-                    : 'RETURNED',
-
-                  approve
-                    ? 'Daily Bible Reading approved. The member receives +2 BUKLOD Points ⭐ (Ready to Claim on the Points screen).'
-                    : 'The submission was returned for revision.'
-                );
-
-
-                await loadRows();
-
-              },
-          },
-        ]
-      );
-
-    };
-
-
   return (
     <ScrollView
       style={
@@ -704,7 +499,7 @@ export function BibleReadingMonitor() {
           s.eyebrow
         }
       >
-        {reviewerLabel}
+        AUTOMATIC AI MONITOR
       </Text>
 
 
@@ -722,7 +517,7 @@ export function BibleReadingMonitor() {
           shared.muted
         }
       >
-        Review the four Scripture responses and Personal Reflection before approval.
+        This is a read-only dashboard. BUKLOD AI checks all four Scripture answers and Personal Reflection, then awards qualified points automatically.
       </Text>
 
 
@@ -773,7 +568,7 @@ export function BibleReadingMonitor() {
             s.ruleLine
           }
         >
-          • Assigned Mentor, Local Pastor, or System Admin may review. The first valid review is final.
+          • No manual approval is needed. AI-validated submissions receive points and eligible quality bonuses automatically.
         </Text>
 
       </View>
@@ -982,20 +777,11 @@ export function BibleReadingMonitor() {
               .length;
 
 
-          const bibleOkay =
-            bibleCharacters >= 20 ||
-            row.has_bible_photo;
-
 
           const reflectionOkay =
             reflectionCharacters >= 20 ||
             row.has_reflection_photo;
 
-
-          const fullyComplete =
-            questionsOkay &&
-            bibleOkay &&
-            reflectionOkay;
 
 
           return (
@@ -1378,93 +1164,11 @@ export function BibleReadingMonitor() {
 
 
               {!!row.submission_id &&
-               row.reviewer_can_act && (
-                <>
-
-                  <TextInput
-                    style={
-                      s.note
-                    }
-
-                    multiline
-
-                    placeholder=
-                      "Reviewer note (optional)"
-
-                    value={
-                      notes[
-                        row.submission_id
-                      ] ?? ''
-                    }
-
-                    onChangeText={
-                      value =>
-                        setNotes(
-                          current => ({
-                            ...current,
-
-                            [
-                              row.submission_id as string
-                            ]:
-                              value,
-                          })
-                        )
-                    }
-                  />
-
-
-                  <Button
-                    title={
-                      busyId ===
-                      row.submission_id
-                        ? 'PROCESSING...'
-                        : fullyComplete
-                          ? 'APPROVE BIBLE READING'
-                          : 'APPROVAL BLOCKED - INCOMPLETE'
-                    }
-
-                    onPress={
-                      () =>
-                        review(
-                          row,
-                          true
-                        )
-                    }
-                  />
-
-
-                  <Button
-                    title=
-                      "RETURN FOR REVISION"
-
-                    outline
-
-                    onPress={
-                      () =>
-                        review(
-                          row,
-                          false
-                        )
-                    }
-                  />
-
-                </>
-              )}
-
-
-              {!!row.submission_id &&
-               row.submission_status ===
-                 'pending_admin' &&
-               !row.reviewer_can_act && (
-
-                <Text
-                  style={
-                    s.blocked
-                  }
-                >
-                  This submission requires another authorized reviewer.
+               ['ai_checking','pending_admin'].includes(row.submission_status) && (
+                <Text style={s.blocked}>
+                  BUKLOD AI is checking this submission automatically.
+                  No Pastor, Mentor, or Admin approval is needed.
                 </Text>
-
               )}
 
             </Card>

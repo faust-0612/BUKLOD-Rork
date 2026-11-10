@@ -351,14 +351,14 @@ export default function TrackDetail() {
 
     if (item?.official_status === 'approved') {
       return {
-        label: '✓ Admin Approved',
+        label: '✓ AI Approved',
         style: styles.approved,
       };
     }
 
     if (item?.official_status === 'pending_admin') {
       return {
-        label: 'Pastor Validated',
+        label: 'AI Checking',
         style: styles.pending,
       };
     }
@@ -372,7 +372,7 @@ export default function TrackDetail() {
 
     if (item?.studied) {
       return {
-        label: 'Studied • Awaiting Pastor',
+        label: 'Studied • AI Checking',
         style: styles.studied,
       };
     }
@@ -490,7 +490,7 @@ export default function TrackDetail() {
               <View>
                 <Text style={styles.progressLabel}>
                   {isFormation
-                    ? 'Admin Approved'
+                    ? 'AI Approved'
                     : 'Completed'}
                 </Text>
 
@@ -532,7 +532,7 @@ export default function TrackDetail() {
                       {pendingAdminCount}
                     </Text>
                     <Text style={styles.summaryLabel}>
-                      Pastor Validated
+                      AI Checking
                     </Text>
                   </View>
 
@@ -549,16 +549,16 @@ export default function TrackDetail() {
                 {rejectedCount > 0 && (
                   <Text style={styles.reviewText}>
                     {rejectedCount} lesson
-                    {rejectedCount === 1 ? '' : 's'} require review.
+                    {rejectedCount === 1 ? '' : 's'} need a revised response.
                   </Text>
                 )}
 
                 <View style={styles.divider} />
 
                 <Text style={styles.explanation}>
-                  Studying a lesson does not officially complete it.
-                  Official progress is counted only after Pastor
-                  validation and System Admin final approval.
+                  Studying alone does not finish a lesson. Official
+                  completion follows automatic BUKLOD AI checking
+                  of all required answers and personal reflection.
                 </Text>
               </>
             )}
