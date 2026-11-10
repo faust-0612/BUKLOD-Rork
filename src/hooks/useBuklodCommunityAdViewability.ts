@@ -137,7 +137,7 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
   }).current;
   const videoViewabilityConfig = useRef({
     itemVisiblePercentThreshold: 45,
-    minimumViewTime: 0,
+    minimumViewTime: 80,
   }).current;
 
   const extraData = useMemo(
