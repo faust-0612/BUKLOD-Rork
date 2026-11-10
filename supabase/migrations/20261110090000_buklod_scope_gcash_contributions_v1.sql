@@ -1,7 +1,7 @@
 -- BUKLOD SCOPE GCASH FUND REPORTING V1
 -- Manual GCash is sent directly to the exact scope's registered receiver.
--- Reporting alone NEVER credits funds. Independent verified review atomically credits
--- the canonical scope Community Fund ledger, never a member's personal cash wallet.
+-- Report and verification are EXTERNALLY HELD scope-GCash records only.
+-- This never credits a BUKLOD-owned settlement ledger or personal cash wallet.
 create table if not exists private.buklod_scope_gcash_contribution_reports_v1 (
   id uuid primary key default gen_random_uuid(),
   scope_id uuid not null references public.buklod_scopes(id) on delete restrict,
@@ -27,18 +27,6 @@ create index if not exists buklod_scope_gcash_reports_user_idx
 on private.buklod_scope_gcash_contribution_reports_v1(submitted_by,created_at desc);
 alter table private.buklod_scope_gcash_contribution_reports_v1 enable row level security;
 revoke all on table private.buklod_scope_gcash_contribution_reports_v1 from public,anon,authenticated;
-
--- Existing PF ledger is authoritative for amounts, reservations and approved spending.
--- Extend allowed entry types rather than disguising a donation as an admin correction.
-alter table private.buklod_pf_community_fund_ledger
-  drop constraint if exists buklod_pf_community_fund_ledger_entry_type_check;
-alter table private.buklod_pf_community_fund_ledger
-  add constraint buklod_pf_community_fund_ledger_entry_type_check
-  check (entry_type in (
-    'SETTLEMENT_ALLOCATION','REQUEST_RESERVE','REQUEST_RELEASE',
-    'REQUEST_CANCEL_RELEASE','PROJECT_SPEND','ADMIN_CORRECTION',
-    'MANUAL_GCASH_CONTRIBUTION'
-  ));
 
 create or replace function public.report_buklod_scope_gcash_contribution_v1(
   p_scope_id uuid, p_amount_php numeric, p_reference text,
@@ -107,7 +95,6 @@ declare
   v_actor uuid := (select auth.uid());
   v_report private.buklod_scope_gcash_contribution_reports_v1%rowtype;
   v_review text := btrim(coalesce(p_review_note,''));
-  v_entry text;
 begin
   if v_actor is null then raise exception 'Authentication required'; end if;
   select * into v_report
@@ -129,22 +116,6 @@ begin
   if p_approve is null then raise exception 'Review decision required'; end if;
   if length(v_review)<12 or length(v_review)>500 then
     raise exception 'Review must include 12-500 characters documenting GCash account evidence';
-  end if;
-  if p_approve then
-    v_entry := 'scope-gcash-verified:'||v_report.id::text;
-    -- Independent bank/GCash account reconciliation is a required reviewer action.
-    -- A sender screenshot/reference alone cannot be treated as confirmation.
-    insert into private.buklod_pf_community_fund_ledger (
-      scope_id,bucket,direction,amount_centavos,entry_type,event_key,
-      description,metadata
-    ) values (
-      v_report.scope_id,'AVAILABLE','CREDIT',v_report.amount_centavos,
-      'MANUAL_GCASH_CONTRIBUTION',v_entry,
-      'Verified direct-to-scope GCash contribution',
-      jsonb_build_object('report_id',v_report.id,'gcash_ref',v_report.gcash_reference,
-        'receiver_last4',right(v_report.receiver_mobile,4),
-        'reviewed_by',v_actor,'verification','INDEPENDENT_MANUAL_RECONCILIATION')
-    ) on conflict(event_key) do nothing;
   end if;
   update private.buklod_scope_gcash_contribution_reports_v1
   set status=case when p_approve then 'VERIFIED' else 'REJECTED' end,
@@ -177,9 +148,8 @@ begin
   select * into v_receiver from public.giving_scope_receivers
   where scope_id=p_scope_id and active=true;
   select coalesce(sum(amount_centavos),0) into v_manual
-    from private.buklod_pf_community_fund_ledger
-    where scope_id=p_scope_id and bucket='AVAILABLE' and direction='CREDIT'
-      and entry_type='MANUAL_GCASH_CONTRIBUTION';
+    from private.buklod_scope_gcash_contribution_reports_v1
+    where scope_id=p_scope_id and status='VERIFIED';
   select coalesce(sum(amount_centavos),0) into v_allocation
     from private.buklod_pf_community_fund_ledger
     where scope_id=p_scope_id and bucket='AVAILABLE' and direction='CREDIT'
@@ -204,6 +174,8 @@ begin
       else null end,
     'can_review',v_can_review,
     'manual_received_minor',v_manual,
+    'manual_fund_custody','EXTERNAL_SCOPE_GCASH',
+    'manual_fund_spendable_in_buklod',false,
     'buklod_allocation_received_minor',v_allocation,
     'reports',v_reports
   );
@@ -216,4 +188,4 @@ grant execute on function public.report_buklod_scope_gcash_contribution_v1(uuid,
 grant execute on function public.review_buklod_scope_gcash_contribution_v1(uuid,boolean,text) to authenticated;
 grant execute on function public.get_buklod_scope_gcash_fund_dashboard_v1(uuid) to authenticated;
 comment on function public.review_buklod_scope_gcash_contribution_v1(uuid,boolean,text) is
-'Independent exact-scope authorized manual reconciliation. Approving one GCash report credits ONLY the canonical scope fund, idempotently; never personal earnings.';
+'Independent exact-scope authorized review. A verified external GCash receipt remains externally held and is NOT a BUKLOD-funded ledger credit or personal earnings.';

@@ -1,18 +1,19 @@
 {
   "contractVersion": 2,
-  "objective": "Separate Cluster/Organization funds from personal earnings and implement reported direct-to-registered-GCash voluntary contributions with independent scoped reconciliation into the canonical funded Community Ledger.",
+  "objective": "Separate exact-scope Cluster/Organization funded allocations and externally held manually reported GCash contributions, with independently verified local receipt reporting and zero platform cash minting.",
   "baseRef": "a4badb341c16444fa42c44a5e0906760b85d2a08",
   "productionBaselineEvidence": "GitHub main a4badb341c16444fa42c44a5e0906760b85d2a08 inspected 2026-11-10; exact production Android binary/runtime not verified. No OTA or production web deployment authorized as part of this change.",
-  "chosenApproach": "Re-use giving_scope_receivers per exact scope; create private report-only database records and independent finance review, credit canonical Community Fund ledger via unique event-key transaction; mount scope-only fund UI replacing personal wallet in scoped Homes.",
-  "selectionRationale": "Separate reporting from verified ledger credit avoids false paid status and duplicate/replayed revenue; existing PF project reserve/spend accounting remains the only scope cash ledger. A Giving app deep link alone does not capture manual transfer evidence.",
+  "chosenApproach": "Re-use registered exact-scope giving_scope_receivers; keep local direct-GCash receipts in an RLS-protected private table with independent review and global per-receiver reference uniqueness; show verified externally held receipts separately from the canonical PF settlement-backed available fund.",
+  "selectionRationale": "Direct member GCash deposits are held by the scope, not by BUKLOD. Crediting them into the PF platform settlement ledger would create unbacked platform payout liability and potential double spending. Separate custody ledgers avoid this.",
   "alternativeApproaches": [
-    "Do not credit unverified manual reports directly to community ledger (unsafe self-minting).",
-    "Do not build an independent scope wallet parallel to PF canonical reserves and project approvals (risk of double balances)."
+    "Crediting verified direct-to-scope GCash into the existing PF settlement ledger: rejected because BUKLOD does not hold this money.",
+    "Using standalone Giving app deep-link without an in-app report/reconciliation record: rejected because the owner requires visible reporting and approval.",
+    "Approving self-reported GCash receipts without independent receiving-account verification: rejected because member claims are not payment evidence."
   ],
   "acceptanceChecks": [
     "Personal wallet appears only on Public Home, with Cluster and Organization fund card instead.",
     "Members can copy active exact-scope GCash receiver and report amount/reference, without automatic credit.",
-    "Authorized non-submitting finance manager verifies from independent GCash statement, credits canonical scope ledger once or rejects.",
+    "An authorized independent reviewer verifies reported transfers from real receiving-account history; platform cash is NEVER increased.",
     "5%/7% tier designation and funded settlement untouched; disabled settlements never count as cash.",
     "Changing scopes invalidates stale cached display; read failures do not masquerade as zero; no OTA publish."
   ],
@@ -21,7 +22,8 @@
     "Canonical scope Fund request/vote/release ledger remains intact.",
     "Scope registered GCash receiver settings remain exact-scope admin only.",
     "AdMob and financial finalization disabled gates remain unchanged.",
-    "Other Cluster and Organization Home modules untouched."
+    "Other Cluster and Organization Home modules untouched.",
+    "Externally held GCash is never converted to platform payout cash."
   ],
   "riskAreas": [
     "faith-cluster",

@@ -81,7 +81,7 @@ export default function BuklodScopeFundScreen() {
             {p_report_id:r.id,p_approve:approve,p_review_note:reviewNote});
           if(rpcError)throw rpcError;
           await load();
-          Alert.alert('Saved',approve?'Verified payment credited to this exact scope fund.':'Contribution report rejected.');
+          Alert.alert('Saved',approve?'Verified local GCash receipt recorded; BUKLOD-funded cash was not increased.':'Contribution report rejected.');
         }catch(e:any){Alert.alert('Review failed',e?.message||'Try again');}
         finally{submitLock.current=false;setBusy(false)}
       })();}}]);
@@ -89,17 +89,17 @@ export default function BuklodScopeFundScreen() {
   return <><Stack.Screen options={{title:'Cluster / Organization Fund'}}/>
     <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
       <Text style={s.heading}>Community Fund</Text>
-      <Text style={s.helper}>Fund records for the selected Cluster or Organization only. Personal earnings and withdrawal are separate.</Text>
+      <Text style={s.helper}>Separate funds for the selected Cluster or Organization. Verified local GCash is held by the receiving scope, not in BUKLOD payout custody.</Text>
       {loading?<ActivityIndicator color="#176B49"/>:null}
       {error?<Text style={s.warning}>{error} · Refresh to retry.</Text>:null}
       <Pressable onPress={()=>void load()} style={s.smallButton}><Text style={s.smallButtonText}>REFRESH FUND</Text></Pressable>
       {fund?<><View style={s.card}>
-        <Text style={s.label}>AVAILABLE VERIFIED FUND</Text>
+        <Text style={s.label}>AVAILABLE BUKLOD-FUNDED CASH</Text>
         <Text style={s.total}>{pesos(fund.available_fund_minor)}</Text>
         <View style={s.line}><Text style={s.label}>Reserved</Text><Text style={s.value}>{pesos(fund.reserved_fund_minor)}</Text></View>
         <View style={s.line}><Text style={s.label}>Spent</Text><Text style={s.value}>{pesos(fund.spent_fund_minor)}</Text></View>
         <View style={s.line}><Text style={s.label}>BUKLOD finalized allocation (historical)</Text><Text style={s.value}>{pesos(fund.buklod_allocation_received_minor)}</Text></View>
-        <View style={s.line}><Text style={s.label}>Verified manual GCash (historical)</Text><Text style={s.value}>{pesos(fund.manual_received_minor)}</Text></View>
+        <View style={s.line}><Text style={s.label}>Verified local GCash receipts (externally held)</Text><Text style={s.value}>{pesos(fund.manual_received_minor)}</Text></View>
       </View>
       <View style={s.card}>
         <Text style={s.title}>Manual contribution · registered GCash</Text>
@@ -124,7 +124,7 @@ export default function BuklodScopeFundScreen() {
           <Pressable disabled={busy} style={[s.primary,busy&&s.faded]} onPress={()=>void submit()}>
             <Text style={s.primaryText}>{busy?'SAVING…':'REPORT MY GCASH CONTRIBUTION'}</Text>
           </Pressable>
-          <Text style={s.warning}>A report does not transfer money and does not increase available funds. The officer must independently match actual GCash account history. Do not send MPIN or OTP.</Text>
+          <Text style={s.warning}>A report does not transfer money or increase BUKLOD-funded cash. The officer must independently match actual receiving GCash history. Do not send MPIN or OTP.</Text>
         </> : <>
           <Text style={s.warning}>This scope does not have an active registered GCash receiver. Manual contribution reporting is disabled.</Text>
           {fund.can_review?<Pressable style={s.smallButton} onPress={()=>router.push({pathname:'/scope-giving-settings',params:{scopeId}} as any)}>

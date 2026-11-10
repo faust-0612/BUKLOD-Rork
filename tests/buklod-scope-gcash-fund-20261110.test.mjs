@@ -33,15 +33,16 @@ test('scope cards replace personal payout card without affecting public Home',()
   assert.match(card,/get_buklod_scope_gcash_fund_dashboard_v1/);
 });
 
-test('report-only GCash flow cannot generate money before independent verification',()=>{
+test('reported and reviewed external GCash receipts never mint platform money',()=>{
   assert.match(sql,/giving_scope_receivers/);
   assert.match(sql,/Active scope membership required/);
   assert.match(sql,/unique \(receiver_mobile, gcash_reference\)/);
   assert.match(sql,/status text not null default 'REPORTED'/);
   assert.match(sql,/cannot approve your own contribution/);
   assert.match(sql,/giving_can_manage_receiver\(v_report.scope_id,v_actor\)/);
-  assert.match(sql,/on conflict\(event_key\) do nothing/);
-  assert.match(sql,/MANUAL_GCASH_CONTRIBUTION/);
+  assert.match(sql,/manual_fund_spendable_in_buklod',false/);
+  assert.match(sql,/EXTERNAL_SCOPE_GCASH/);
+  assert.doesNotMatch(sql,/insert into private\.buklod_pf_community_fund_ledger|alter table private\.buklod_pf_community_fund_ledger/);
   assert.match(sql,/revoke all on table private.buklod_scope_gcash_contribution_reports_v1/);
   assert.doesNotMatch(sql,/private\.buklod_pf_cash_ledger|wallet_credit/);
   assert.match(route,/REPORT MY GCASH CONTRIBUTION/);

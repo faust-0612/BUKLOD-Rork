@@ -9,11 +9,6 @@ begin
     raise exception 'Manual report RLS must be enabled'; end if;
   if has_table_privilege('authenticated','private.buklod_scope_gcash_contribution_reports_v1','INSERT') then
     raise exception 'Direct client INSERT forbidden'; end if;
-  if not exists (
-    select 1 from pg_constraint where conrelid='private.buklod_pf_community_fund_ledger'::regclass
-    and conname='buklod_pf_community_fund_ledger_entry_type_check'
-    and pg_get_constraintdef(oid) like '%MANUAL_GCASH_CONTRIBUTION%'
-  ) then raise exception 'Canonical fund ledger contribution type missing'; end if;
   select to_regprocedure('public.report_buklod_scope_gcash_contribution_v1(uuid,numeric,text,text,text)') into v_func;
   if v_func is null then raise exception 'Report function missing'; end if;
   if has_function_privilege('anon',v_func,'EXECUTE') then raise exception 'Anon report not allowed'; end if;

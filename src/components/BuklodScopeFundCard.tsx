@@ -68,7 +68,7 @@ export default function BuklodScopeFundCard({scopeId,scopeName}:Props) {
     {error ? <Text style={s.warning}>{error} · Retry refresh.</Text> : null}
     {fund ? <>
       <View style={s.total}>
-        <Text style={s.caption}>AVAILABLE VERIFIED FUND</Text>
+        <Text style={s.caption}>AVAILABLE BUKLOD-FUNDED CASH</Text>
         <Text style={s.amount}>{money(fund.available_fund_minor)}</Text>
         <View style={s.row}>
           <View style={s.flex}><Text style={s.caption}>Reserved</Text><Text style={s.metric}>{money(fund.reserved_fund_minor)}</Text></View>
@@ -77,7 +77,7 @@ export default function BuklodScopeFundCard({scopeId,scopeName}:Props) {
       </View>
       <View style={s.row}>
         <View style={s.flex}><Text style={s.caption}>BUKLOD funded allocations</Text><Text style={s.metric}>{money(fund.buklod_allocation_received_minor)}</Text></View>
-        <View style={s.flex}><Text style={s.caption}>Verified manual GCash received</Text><Text style={s.metric}>{money(fund.manual_received_minor)}</Text></View>
+        <View style={s.flex}><Text style={s.caption}>Verified local GCash receipts</Text><Text style={s.metric}>{money(fund.manual_received_minor)}</Text></View>
       </View>
       {fund.registered_gcash
         ? <Text style={s.note}>Registered GCash: {fund.registered_gcash.name} · {fund.registered_gcash.mobile}</Text>
@@ -93,7 +93,7 @@ export default function BuklodScopeFundCard({scopeId,scopeName}:Props) {
         <Text style={s.outlineText}>FUND RECORDS</Text>
       </Pressable>
     </View>
-    <Text style={s.note}>Reports do not increase the balance until independently verified. The fund is not a personal withdrawal wallet.</Text>
+    <Text style={s.note}>Local GCash receipts are held by this Cluster/Organization, not by BUKLOD. Reporting never credits the BUKLOD-funded available balance or personal cash.</Text>
   </View>;
 }
 const s=StyleSheet.create({
