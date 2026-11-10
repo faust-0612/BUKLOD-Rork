@@ -33,7 +33,7 @@ jobs:
           test "$GITHUB_REF" = 'refs/heads/dev/classroom-completion-20261110'
           test "$(git hash-object classroom-web/index.html)" = 'b85ccfbeed6a6a1d29006f14b05df343c104f719'
           test "$(git hash-object classroom-web/src/gemini-live.js)" = '1d0f098c469156b054035f8bf60043c990bcb73b'
-          test "$(git hash-object classroom-web/tests/gemini-live-coverage.test.mjs)" = 'b1370607274b40d0786cc278be72606dfe12c629'
+          test "$(git hash-object classroom-web/tests/gemini-live-coverage.test.mjs)" = 'ce9a8b132db0b88e228cdb216608a5bd8f0586d8'
           node <<'NODE'
           const assert=require('node:assert/strict');
           const c=require('./app.config.js')({config:{extra:{}}});
