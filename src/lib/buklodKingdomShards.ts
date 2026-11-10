@@ -95,7 +95,7 @@ export async function getMyKingdomShards(userId: string): Promise<KingdomShardsS
   if (!userId) return emptyKingdomShards();
   try {
     await enforceAccount(userId);
-    const { data, error } = await timeout(
+    const { data, error } = await timeout<{ data: unknown; error: { message?: string } | null }>(
       (supabase as any).rpc('get_my_buklod_kingdom_shards_v1'),8000);
     if (error) throw new Error(error.message || 'Kingdom Shards are not active yet.');
     const snapshot = normalize(data,'server');
@@ -113,7 +113,7 @@ export async function buyMyKingdomItem(userId: string, key: KingdomShardItemKey)
 }> {
   if (!userId || !KEYS.has(key)) throw new Error('Unknown Kingdom item.');
   await enforceAccount(userId);
-  const { data, error } = await timeout(
+  const { data, error } = await timeout<{ data: unknown; error: { message?: string } | null }>(
     (supabase as any).rpc('buy_my_buklod_kingdom_item_v1',{p_item_key:key}),10000);
   if (error) throw new Error(error.message || 'Could not complete your Kingdom purchase.');
   const row = asObject(data);
