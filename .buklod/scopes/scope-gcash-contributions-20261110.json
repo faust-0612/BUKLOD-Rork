@@ -1,0 +1,53 @@
+{
+  "contractVersion": 2,
+  "objective": "Separate Cluster/Organization funds from personal earnings and implement reported direct-to-registered-GCash voluntary contributions with independent scoped reconciliation into the canonical funded Community Ledger.",
+  "baseRef": "a4badb341c16444fa42c44a5e0906760b85d2a08",
+  "productionBaselineEvidence": "GitHub main a4badb341c16444fa42c44a5e0906760b85d2a08 inspected 2026-11-10; exact production Android binary/runtime not verified. No OTA or production web deployment authorized as part of this change.",
+  "chosenApproach": "Re-use giving_scope_receivers per exact scope; create private report-only database records and independent finance review, credit canonical Community Fund ledger via unique event-key transaction; mount scope-only fund UI replacing personal wallet in scoped Homes.",
+  "selectionRationale": "Separate reporting from verified ledger credit avoids false paid status and duplicate/replayed revenue; existing PF project reserve/spend accounting remains the only scope cash ledger. A Giving app deep link alone does not capture manual transfer evidence.",
+  "alternativeApproaches": [
+    "Do not credit unverified manual reports directly to community ledger (unsafe self-minting).",
+    "Do not build an independent scope wallet parallel to PF canonical reserves and project approvals (risk of double balances)."
+  ],
+  "acceptanceChecks": [
+    "Personal wallet appears only on Public Home, with Cluster and Organization fund card instead.",
+    "Members can copy active exact-scope GCash receiver and report amount/reference, without automatic credit.",
+    "Authorized non-submitting finance manager verifies from independent GCash statement, credits canonical scope ledger once or rejects.",
+    "5%/7% tier designation and funded settlement untouched; disabled settlements never count as cash.",
+    "Changing scopes invalidates stale cached display; read failures do not masquerade as zero; no OTA publish."
+  ],
+  "preserveBehaviors": [
+    "Existing private user earnings/withdrawals and QMP remain unchanged.",
+    "Canonical scope Fund request/vote/release ledger remains intact.",
+    "Scope registered GCash receiver settings remain exact-scope admin only.",
+    "AdMob and financial finalization disabled gates remain unchanged.",
+    "Other Cluster and Organization Home modules untouched."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "scope-fund",
+    "auth-privacy",
+    "financial-ledger",
+    "manual-gcash",
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/buklod-scope-gcash-fund-20261110.test.mjs",
+    "tests/buklod-unified-earnings-scope-home-20261109.test.mjs",
+    "tests/buklod-earnings-final-source-clarity-20261109.test.mjs",
+    "supabase/tests/buklod_scope_gcash_contributions_20261110.sql"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodScopeFundCard.tsx",
+    "src/app/scope-fund.tsx",
+    "tests/buklod-scope-gcash-fund-20261110.test.mjs",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "tests/buklod-unified-earnings-scope-home-20261109.test.mjs",
+    "tests/buklod-earnings-final-source-clarity-20261109.test.mjs",
+    "supabase/migrations/20261110090000_buklod_scope_gcash_contributions_v1.sql",
+    "supabase/tests/buklod_scope_gcash_contributions_20261110.sql",
+    "src/lib/buklodScopeFundAmounts.ts"
+  ],
+  "status": "DEV_SOURCE_ONLY_PENDING_MERGE_RC_AND_RELEASE"
+}
