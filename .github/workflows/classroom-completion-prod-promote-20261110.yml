@@ -1,0 +1,98 @@
+name: BUKLOD Classroom 20261110 SSO+Notice Expo Production Promotion
+
+on:
+  push:
+    branches: [dev/classroom-completion-20261110]
+    paths: ['.github/workflows/classroom-completion-prod-promote-20261110.yml']
+
+permissions: { contents: read }
+concurrency:
+  group: buklod-classroom-completion-20261110-production-release
+  cancel-in-progress: false
+
+jobs:
+  promote-verified-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      BUKLOD_APP_TARGET: classroom
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      EXPO_NO_TELEMETRY: '1'
+      PREVIEW: https://buklod-classroom--sxd3jh9n3b.expo.app
+      PROD: https://buklod-classroom.expo.app
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Verify exact app identity, unchanged source and 37 regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/dev/classroom-completion-20261110'
+          test "$(git hash-object classroom-web/index.html)" = 'b85ccfbeed6a6a1d29006f14b05df343c104f719'
+          test "$(git hash-object classroom-web/src/gemini-live.js)" = '1d0f098c469156b054035f8bf60043c990bcb73b'
+          test "$(git hash-object classroom-web/tests/gemini-live-coverage.test.mjs)" = 'b1370607274b40d0786cc278be72606dfe12c629'
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const c=require('./app.config.js')({config:{extra:{}}});
+          assert.equal(c.slug,'buklod-classroom');
+          assert.equal(c.extra.eas.projectId,'14100ed1-7f25-4551-9627-09d280498241');
+          assert.equal(c.extra.appTarget,'classroom');
+          NODE
+          node --test classroom-web/tests/*.test.mjs
+          echo SOURCE_LOCK_AND_REGRESSION_GATE=PASS
+      - name: Verify exact immutable Preview HTML and authenticated JS bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 2 --max-time 35 "$PREVIEW/?verification=sxd3jh9n3b" -o /tmp/preview.html
+          grep -Fq 'classroomSecureBootGuard' /tmp/preview.html
+          grep -Fq 'id="drawerBackdrop" class="drawer-backdrop"' /tmp/preview.html
+          if grep -Fq 'id="drawerBackdrop" class="drawer-backdrop open"' /tmp/preview.html; then exit 1; fi
+          asset="$(grep -oE '/assets/index-[^"]+\.js' /tmp/preview.html | head -1)"
+          test -n "$asset"
+          curl -fsSL --retry 2 --max-time 35 "$PREVIEW$asset" -o /tmp/preview.js
+          grep -Fq 'buklod_classroom_context_v1' /tmp/preview.js
+          grep -Fq 'authorizedFaculty' /tmp/preview.js
+          grep -Fq 'buklod_education_classroom_comments' /tmp/preview.js
+          grep -Fq 'buklod_classroom_token_hash' /tmp/preview.js
+          grep -Fq 'buklod_education_notice_acknowledgments' /tmp/preview.js
+          echo EXACT_IMMUTABLE_EXPO_PREVIEW=PASS
+      - name: Install Expo CLI prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          test -n "$EXPO_TOKEN"
+      - name: Promote exactly the tested Classroom Expo deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@21.7.0 deploy:alias --prod --id=sxd3jh9n3b --non-interactive --json
+          echo EXACT_CLASSROOM_PROMOTION_ACCEPTED=sxd3jh9n3b
+      - name: Verify canonical live alias serves identical Gemini assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          verified=0
+          for n in 1 2 3 4 5 6; do
+            if curl -fsSL --max-time 35 "$PROD/?verify=sxd3jh9n3b-$n" -o /tmp/live.html; then
+              p_asset="$(grep -oE '/assets/index-[^"]+\.js' /tmp/live.html | head -1)"
+              source_asset="$(grep -oE '/assets/index-[^"]+\.js' /tmp/preview.html | head -1)"
+              if [ "$p_asset" = "$source_asset" ] && cmp -s /tmp/live.html /tmp/preview.html; then
+                if curl -fsSL --max-time 35 "$PROD$p_asset" -o /tmp/live.js && cmp -s /tmp/live.js /tmp/preview.js; then
+                  verified=1
+                  break
+                fi
+              fi
+            fi
+            sleep 5
+          done
+          if [ "$verified" -ne 1 ]; then
+            echo 'FAIL: Expo production differs from tested Classroom preview'
+            exit 1
+          fi
+          echo 'EXPO_CLASSROOM_PRODUCTION_VERIFIED=https://buklod-classroom.expo.app/'
+          echo 'IMMUTABLE_EXPO_DEPLOYMENT=sxd3jh9n3b'
