@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "objective": "Maximize legitimate Android AdMob impressions on high-traffic BUKLOD Wall, IGPAT Reels, Home/Hub, Profile, Connect inbox, Organization and Cluster dashboards without direct sponsorship or disruptive every-click full-screen ads.",
-  "baseRef": "main",
+  "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
   "branch": "dev/admob-high-traffic-max-safe-20261111",
   "scope": "DEV source only; pending merged RC, production EAS environment gate and OTA fingerprint verification",
   "changes": {
@@ -90,6 +90,7 @@
     "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
     "src/app/(tabs)/messages.tsx",
     "tests/buklod-high-traffic-ads-20261111.test.mjs",
-    "tests/buklod-cluster-ad-coverage-20261111.test.mjs"
+    "tests/buklod-cluster-ad-coverage-20261111.test.mjs",
+    ".buklod/scopes/ads-high-traffic-max-safe-20261111.json"
   ]
 }
