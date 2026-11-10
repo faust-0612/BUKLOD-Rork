@@ -74,7 +74,7 @@ test('offline ambience is a real packaged original WAV and obeys game-sound sett
   assert.ok(wav.byteLength>120000 && wav.byteLength<500000);
   assert.match(audio, /LOCAL_KINGDOM_AMBIENCE/);
   assert.match(audio, /isBuklodGameSoundEnabled\(\)/);
-  assert.match(audio, /getBuklodGameSoundSettings\(\)/);
+  assert.match(audio, /getBuklodSoundSettings\(\)/);
   assert.match(audio, /AppState\.addEventListener/);
   assert.match(audio, /loadedOnce/);
   assert.match(map, /useRorkGameAmbience\('kingdom-map'\)/);
