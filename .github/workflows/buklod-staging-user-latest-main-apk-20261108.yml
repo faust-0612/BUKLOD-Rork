@@ -19,7 +19,7 @@ env:
   EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
 jobs:
   build-staging-user:
-    if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'BUKLOD_STAGING_USER_CANONICAL_V30_APK_20261108')
+    if: github.ref == 'refs/heads/main' && (startsWith(github.event.head_commit.message, 'BUKLOD_STAGING_USER_CANONICAL_V30_APK_20261108') || startsWith(github.event.head_commit.message, 'BUKLOD_STAGING_USER_GREEN_B_REBUILD_20261110'))
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -221,6 +221,37 @@ jobs:
           console.log('VERIFIED_BUKLOD_STAGING_USER_APK_BUILD_ID='+build.id);
           console.log('VERIFIED_BUKLOD_STAGING_USER_APK_URL='+url);
           NODE
+      - name: Download and verify actual staging APK (not JSON build metadata)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync('eas-staging-user-current-main.json','utf8'));
+          const b=Array.isArray(d)?d[0]:d;
+          if(String(b.status).toLowerCase()!=='finished') throw Error('Build did not finish');
+          const url=b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl;
+          if(!url || !/^https:\\/\\//.test(url)) throw Error('No actual APK URL');
+          fs.writeFileSync('/tmp/staging-apk-url',url);
+          NODE
+          mkdir -p staging-apk
+          curl --fail --location --retry 3 --retry-delay 3 --connect-timeout 20 --max-time 900 --output staging-apk/BUKLOD-Staging-Green-B.apk "$(cat /tmp/staging-apk-url)"
+          python3 - <<'PY'
+          import zipfile,os
+          p='staging-apk/BUKLOD-Staging-Green-B.apk'
+          assert os.stat(p).st_size > 5_000_000, 'APK unexpectedly small'
+          assert zipfile.is_zipfile(p), 'Downloaded file is not a valid Android APK ZIP'
+          with zipfile.ZipFile(p) as f:
+              assert 'AndroidManifest.xml' in f.namelist(), 'Not an Android APK'
+          print('VALID APK bytes:', os.stat(p).st_size)
+          PY
+      - name: Upload actual installable staging-user APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUKLOD-Staging-Green-B-APK-${{ github.sha }}
+          path: staging-apk/BUKLOD-Staging-Green-B.apk
+          retention-days: 30
+          if-no-files-found: error
       - name: Preserve staging-user build evidence
         if: always()
         uses: actions/upload-artifact@v4
