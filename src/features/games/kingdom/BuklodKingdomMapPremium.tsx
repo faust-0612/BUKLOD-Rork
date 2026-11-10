@@ -9,7 +9,7 @@ import Svg, {
   LinearGradient as SvgGradient, Path, Rect, Stop,
 } from 'react-native-svg';
 import { useAuth } from '@/providers/AuthProvider';
-import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
+import { playRorkSignatureSfx, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import { getBuklodSoundSettings } from '@/lib/buklodSounds';
@@ -355,6 +355,7 @@ export default function BuklodKingdomMapPremium() {
   const userId = user?.id ?? null;
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map');
   const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
   const [selectedId, setSelectedId] = useState('christian-civic-leadership');
   const [mode, setMode] = useState<'detail' | 'fit'>('detail');
@@ -532,6 +533,12 @@ export default function BuklodKingdomMapPremium() {
       </View>
 
       <View style={[styles.zoomTools, { top: Math.max(24, insets.top) + 84 }]}>
+        <Pressable accessibilityRole="button"
+          accessibilityLabel={musicEnabled ? 'Mute Kingdom ambient music' : 'Play Kingdom ambient music'}
+          onPress={toggleMusic} style={styles.zoomButton}>
+          <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'}
+            size={21} color="#ffe7b1" />
+        </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Zoom in on Kingdom map"
           disabled={mode === 'detail' && zoomStep >= 3}
           style={styles.zoomButton}
