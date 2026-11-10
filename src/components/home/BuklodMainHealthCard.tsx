@@ -77,6 +77,7 @@ export default function BuklodMainHealthCard({
   const [consent,setConsent] = useState(false);
   const [selectedCase,setSelectedCase] = useState<string|null>(null);
   const [caseNotes,setCaseNotes] = useState<CaseNote[]>([]);
+  const [notesError,setNotesError] = useState('');
   const [message,setMessage] = useState('');
   const [messageKind,setMessageKind] = useState<Kind>('CLIENT_QUESTION');
   const [reviewMethod,setReviewMethod] = useState('VERIFIED_IN_PERSON');
@@ -114,7 +115,7 @@ export default function BuklodMainHealthCard({
   },[user?.id,language]);
   const openSection=(next:Exclude<Section,null>)=>{
     setSection(next);setSelectedCase(null);caseIdRef.current=null;notesGeneration.current+=1;
-    setCaseNotes([]);setMessage('');setBackendError('');
+    setCaseNotes([]);setNotesError('');setMessage('');setBackendError('');
     if(user?.id)void load();
   };
   useEffect(()=>()=>{dataGeneration.current+=1;notesGeneration.current+=1;},[]);
@@ -181,9 +182,13 @@ export default function BuklodMainHealthCard({
     const generation=++notesGeneration.current;
     try{
       const data=await rpc('buklod_health_card_get_notes_v1',{p_consult_id:id});
+      if(generation===notesGeneration.current&&caseIdRef.current===id){
+        setCaseNotes(Array.isArray(data)?data:[]);setNotesError('');
+      }
+    }catch{
       if(generation===notesGeneration.current&&caseIdRef.current===id)
-        setCaseNotes(Array.isArray(data)?data:[]);
-    }catch{if(generation===notesGeneration.current&&caseIdRef.current===id)setCaseNotes([]);}
+        setNotesError(t('Unable to refresh notes. Existing records are retained.','Hindi na-refresh ang notes; nananatili ang dating records.'));
+    }
   };
   const claim=(id:string)=>void run(async()=>{
     await rpc('buklod_health_card_claim_consult_v1',{p_consult_id:id});
@@ -385,7 +390,10 @@ export default function BuklodMainHealthCard({
         {caseItem.status==='IN_PROGRESS'?<>
           <View style={styles.section}>
             <Text style={styles.title}>{t('Clinical record','Clinical record')}</Text>
-            {caseNotes.length===0?<Info>{t('No notes yet.','Wala pang notes.')}</Info>:null}
+            <Button label={t('REFRESH CLINICAL UPDATES','I-REFRESH ANG CLINICAL NOTES')} outline
+              onPress={()=>{if(selectedCase)void loadNotes(selectedCase);}}/>
+            {notesError?<Text style={styles.warning}>{notesError}</Text>:null}
+            {caseNotes.length===0&&!notesError?<Info>{t('No notes yet.','Wala pang notes.')}</Info>:null}
             {caseNotes.map(n=><View key={n.id} style={styles.note}>
               <Text style={styles.label}>{n.kind.replace('_',' ')} · {n.mine?t('You','Ikaw'):t('Participant','Kasama')}</Text>
               <Text style={styles.caseText}>{n.message}</Text>
