@@ -6,6 +6,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import { KingdomMasteryCheck } from '@/features/games/kingdom/platform/KingdomMasteryCheck';
 import { KingdomAIContinuation } from '@/features/games/kingdom/platform/KingdomAIContinuation';
+import { KingdomOfflineContinuation } from '@/features/games/kingdom/platform/KingdomOfflineContinuation';
 import { BibleCrownGameV1 } from '@/features/games/christian/BibleCrownGameV1';
 import { ScriptureWordSearchGameV1 } from '@/features/games/christian/ScriptureWordSearchGameV1';
 import { CivicLeadershipGameV1 } from '@/features/games/christian/CivicLeadershipGameV1';
@@ -133,6 +134,7 @@ function ChristianGameCenterContent() {
         {!!user?.id && completedGameId === (selectedGame === 'council' ? GAME_ID : previewGameId) ? (
           <>
             <KingdomMasteryCheck key={user.id + ':' + completedGameId} gameId={completedGameId} />
+            <KingdomOfflineContinuation key={'offline:' + user.id + ':' + completedGameId} gameId={completedGameId} />
             <KingdomAIContinuation key={user.id + ':' + completedGameId} gameId={completedGameId} />
           </>
         ) : null}
