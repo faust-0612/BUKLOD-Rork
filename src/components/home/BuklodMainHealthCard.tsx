@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Alert, AppState, Linking, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
@@ -100,10 +100,10 @@ export default function BuklodMainHealthCard({
   const expiryDays=dash?.professional?.days_to_expire;
   const licenseCurrent=dash?.professional?.status==='VERIFIED' && typeof expiryDays==='number' && expiryDays>=0 && dash?.professional?.profession!=='OTHER';
 
-  const load=useCallback(async()=>{
+  const load=useCallback(async(silent=false)=>{
     if(!user?.id){setDash(null);setDashUserId(null);return;}
     const generation=++dataGeneration.current;
-    setLoading(true);
+    if(!silent)setLoading(true);
     try{
       const {data,error}=await (supabase as any).rpc('buklod_health_card_dashboard_v1');
       if(error)throw error;
@@ -117,7 +117,7 @@ export default function BuklodMainHealthCard({
         setBackendError(t('Private consultation is unavailable or could not sync. Retry when online.',
           'Hindi makakonekta sa konsultasyon. Subukang muli kapag online.'));
       }
-    }finally{if(generation===dataGeneration.current)setLoading(false);}
+    }finally{if(!silent&&generation===dataGeneration.current)setLoading(false);}
   },[user?.id,language]);
   const openSection=(next:Exclude<Section,null>)=>{
     setSection(next);setSelectedCase(null);caseIdRef.current=null;notesGeneration.current+=1;
@@ -197,6 +197,24 @@ export default function BuklodMainHealthCard({
         setNotesError(t('Unable to refresh notes. Existing records are retained.','Hindi na-refresh ang notes; nananatili ang dating records.'));
     }
   };
+  // Bounded foreground-only updates while a consultation is open.
+  useEffect(()=>{
+    if(section!=='case'||!selectedCase||!user?.id||
+      (caseItem?.status!=='OPEN'&&caseItem?.status!=='IN_PROGRESS'))return;
+    let cancelled=false;let pending=false;
+    const currentId=selectedCase;
+    const sync=async()=>{
+      if(cancelled||pending||AppState.currentState==='background'||caseIdRef.current!==currentId)return;
+      pending=true;
+      try{
+        await load(true);
+        if(!cancelled&&caseIdRef.current===currentId)await loadNotes(currentId);
+      }finally{pending=false;}
+    };
+    const interval=setInterval(()=>void sync(),20000);
+    return ()=>{cancelled=true;clearInterval(interval);};
+  },[section,selectedCase,caseItem?.status,user?.id,load]);
+
   const claim=(id:string)=>void run(async()=>{
     await rpc('buklod_health_card_claim_consult_v1',{p_consult_id:id});
     await load();openCase(id);
