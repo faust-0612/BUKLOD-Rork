@@ -217,9 +217,12 @@ export function classifySmartDrawerText(
   forceList = false,
 ): SmartDrawerClassification {
   const text = rawText.trim();
-  const dueAt = detectSmartDrawerDate(text, now);
+  const detectedAt = detectSmartDrawerDate(text, now);
   const listItems = listFromText(text, forceList);
-  const type = classifyType(text, dueAt, listItems.length);
+  const type = classifyType(text, detectedAt, listItems.length);
+  // Mentioning a date in a diary, receipt or reference is not a reminder.
+  const dueAt = ['TASK', 'DUE_TASK', 'EVENT', 'APPOINTMENT', 'PROGRAM'].includes(type)
+    ? detectedAt : null;
 
   const eventAt =
     ['EVENT', 'APPOINTMENT', 'PROGRAM'].includes(type) && dueAt
