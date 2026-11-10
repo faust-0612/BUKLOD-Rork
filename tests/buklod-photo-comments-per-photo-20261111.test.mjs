@@ -12,11 +12,16 @@ test('photo comments have media-level foreign key, private table and idempotent 
  assert.match(sql,/on conflict\(user_id,client_request_key\) do nothing/);
  assert.match(sql,/grant execute on function public\.add_buklod_photo_comment_v1[\s\S]*?to authenticated/);
  assert.doesNotMatch(sql,/grant (?:all|select|insert|update) on table public\.community_photo_comments to authenticated/i);
+ assert.match(sql,/insert into public\.community_post_media/);
+ assert.match(sql,/on conflict \(post_id, media_position\) do nothing/);
+ assert.match(sql,/get_buklod_photo_comment_counts_v1/);
+ assert.match(sql,/revoke all on function public\.get_buklod_photo_comment_counts_v1/);
 });
 test('per-photo UI reads actual counts and writes scoped comments', () => {
  const wall=read('src/app/(tabs)/buklod.tsx');
  const sheet=read('src/components/BuklodPhotoCommentsSheet.tsx');
- assert.match(wall,/get_buklod_photo_comment_summary_v1/);
+ assert.match(wall,/get_buklod_photo_comment_counts_v1/);
+ assert.match(sheet,/get_buklod_photo_comment_summary_v1/);
  assert.match(wall,/Photo comments/);
  assert.match(wall,/BuklodPhotoCommentsSheet/);
  assert.match(sheet,/add_buklod_photo_comment_v1/);

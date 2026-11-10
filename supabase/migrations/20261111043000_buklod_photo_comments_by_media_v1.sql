@@ -1,3 +1,18 @@
+
+-- Recover legacy image posts that had only post-level media metadata.
+-- Never touch the physical media or overwrite any existing multi-photo post.
+insert into public.community_post_media(
+ post_id, media_position, media_path, media_mime_type, media_size_bytes
+)
+select cp.id, 0::smallint, cp.media_path, cp.media_mime_type, cp.media_size_bytes
+from public.community_posts cp
+where cp.media_path is not null and cp.media_mime_type like 'image/%'
+ and cp.is_hidden = false and cp.deleted_at is null
+ and not exists (
+  select 1 from public.community_post_media m where m.post_id = cp.id
+ )
+on conflict (post_id, media_position) do nothing;
+
 -- Independently threaded photo comments; posts and the existing post-wide comments are unchanged.
 create table if not exists public.community_photo_comments (
   id uuid primary key default gen_random_uuid(),
@@ -119,3 +134,23 @@ revoke all on function public.delete_buklod_photo_comment_v1(uuid) from public,a
 grant execute on function public.get_buklod_photo_comment_summary_v1(uuid,smallint) to authenticated;
 grant execute on function public.add_buklod_photo_comment_v1(uuid,smallint,text,text) to authenticated;
 grant execute on function public.delete_buklod_photo_comment_v1(uuid) to authenticated;
+
+-- One audience-protected, index-backed count request for the entire photo collage.
+create or replace function public.get_buklod_photo_comment_counts_v1(
+ p_post_id uuid
+) returns table(media_position smallint, comment_count bigint)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+ if (select auth.uid()) is null then raise exception 'Authentication required'; end if;
+ if not public.can_view_community_post_v2(p_post_id) then
+  raise exception 'Post is unavailable';
+ end if;
+ return query
+ select c.media_position, count(*)::bigint
+ from public.community_photo_comments c
+ where c.post_id = p_post_id and not c.is_hidden
+ group by c.media_position;
+end $$;
+revoke all on function public.get_buklod_photo_comment_counts_v1(uuid) from public,anon,authenticated;
+grant execute on function public.get_buklod_photo_comment_counts_v1(uuid) to authenticated;
+

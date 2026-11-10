@@ -36,7 +36,8 @@
     "Retain Expo package org.mzbministry.buklod, runtime 1.3.2 and existing native permissions; do not alter Classroom.",
     "Do not merge to production main, publish OTA or mark a release live until independent production fingerprint evidence exists.",
     "Photo comments SQL migration applied and audience/RLS verified before the new photo comments UI is live.",
-    "KL question bank SQL/security tests, approved manuscript five-question generation, three-question server verification and idempotent BP rewards tested before client release."
+    "KL question bank SQL/security tests, approved manuscript five-question generation, three-question server verification and idempotent BP rewards tested before client release.",
+    "Legacy image media metadata backfill and one-per-viewer batched photo comment counters validated without touching physical media."
   ],
   "preserveBehaviors": [
     "Security and private access rules",

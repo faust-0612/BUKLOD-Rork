@@ -1359,23 +1359,32 @@ function LegacyPublicBuklodScreen(){
  // Change only when a new collage opens; swipes must not remount the list.
  const [viewerSession,setViewerSession]=useState(0);
 
+
+ const photoCountsRequestRef=useRef(0);
  useEffect(()=>{
   if(!viewerOpen) return;
-  const photo=viewerItems[viewerIndex];
-  const postId=String(photo?.post_id??'');
-  const mediaPosition=Number(photo?.media_position??0);
-  if(!postId) return;
+  const postId=String(viewerItems[0]?.post_id??'');
+  if(!postId)return;
+  const requestId=++photoCountsRequestRef.current;
   let active=true;
-  void communityRpc('get_buklod_photo_comment_summary_v1',{
-   p_post_id:postId,p_media_position:mediaPosition
+  void communityRpc('get_buklod_photo_comment_counts_v1',{
+   p_post_id:postId
   }).then(({data,error})=>{
-   if(!active||error) return;
-   const key=postId+':'+mediaPosition;
-   const count=Math.max(0,Number(data?.comment_count??0));
-   setPhotoCommentCounts(current=>({...current,[key]:count}));
+   if(!active||requestId!==photoCountsRequestRef.current||error||!Array.isArray(data))return;
+   const counts:Record<string,number>={};
+   for(const photo of viewerItems){
+    counts[postId+':'+Number(photo?.media_position??0)]=0;
+   }
+   for(const entry of data){
+    const mediaPosition=Number(entry?.media_position);
+    if(!Number.isInteger(mediaPosition)||mediaPosition<0)continue;
+    counts[postId+':'+mediaPosition]=Math.max(0,Number(entry?.comment_count??0));
+   }
+   setPhotoCommentCounts(current=>({...current,...counts}));
   }).catch(()=>undefined);
   return ()=>{active=false;};
- },[viewerOpen,viewerIndex,viewerSession]);
+ },[viewerOpen,viewerSession]);
+
 
 
  const [viewerZoomed,setViewerZoomed]=
@@ -6743,6 +6752,7 @@ const communityFeedRows =
   mediaPosition={photoCommentsTarget?.mediaPosition??0}
   onClose={()=>setPhotoCommentsTarget(null)}
   onCountChange={count=>{
+   photoCountsRequestRef.current+=1;
    if(!photoCommentsTarget)return;
    const key=photoCommentsTarget.postId+':'+photoCommentsTarget.mediaPosition;
    setPhotoCommentCounts(current=>({...current,[key]:count}));

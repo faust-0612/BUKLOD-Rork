@@ -3,7 +3,7 @@
   "objective": "Add real per-photo comments and visible counts beside existing per-photo reactions on the BUKLOD public Wall. No production publish.",
   "baseRef": "c5ba9af02977215249e3aa26ae02696a9645f19c",
   "productionBaselineEvidence": "GitHub current main 5efb994 and Nov11 RC c5ba9af; live database has photo reactions but lacks photo comments.",
-  "chosenApproach": "Use existing (post_id, media_position) image identity, audience-protected RPC, private RLS table, client request idempotency and minimal photo-viewer sheet.",
+  "chosenApproach": "Use existing (post_id, media_position) image identity, audience-protected RPC, private RLS table, client request idempotency and minimal photo-viewer sheet. Recover single-photo media metadata when an old post had no media row; aggregate counts across all photos per viewer open.",
   "selectionRationale": "Post-wide comment counts cannot represent per-photo engagement; exposing direct table writes would be unsafe.",
   "alternativeApproaches": [
     "Re-label post-wide comments as per-photo (rejected: incorrect count)",
@@ -41,7 +41,9 @@
     "Resubmit after weak-network ambiguity does not create duplicates",
     "Full Android/Web compile, SQL transaction dry run and RLS checks before rollout",
     "Device verification waived, not passed",
-    "Hold production OTA and payouts"
+    "Hold production OTA and payouts",
+    "Batch photo comment counts once per opened collage and ignore stale responses during fast swipe/reopen.",
+    "Legacy photo posts missing canonical media rows are recovered as metadata-only, idempotent, without copying or deleting photos."
   ],
   "physicalDeviceVerification": "Not performed: waived by owner.",
   "releaseState": "DEV / HOLD pending SQL migration and exact-head RC gates"
