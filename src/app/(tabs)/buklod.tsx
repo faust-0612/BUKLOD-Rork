@@ -6015,6 +6015,10 @@ const communityFeedRows =
      flex:1,
      backgroundColor:'#000000'
     }}
+    onLayout={event=>{
+     const h=Number(event.nativeEvent.layout.height)||0;
+     if(h>240)setVideoViewerPageHeight(current=>Math.abs(current-h)>1?h:current);
+    }}
    >
     <GestureFlatList
      key={
@@ -6026,6 +6030,14 @@ const communityFeedRows =
       width:'100%'
      }}
      data={videoViewerPosts}
+     extraData={videoViewerIndex}
+     initialNumToRender={2}
+     maxToRenderPerBatch={2}
+     windowSize={3}
+     updateCellsBatchingPeriod={16}
+     removeClippedSubviews={false}
+     onViewableItemsChanged={videoViewerOnViewableItemsChanged}
+     viewabilityConfig={videoViewerViewabilityConfig}
      keyExtractor={(post,index)=>
       String(
        post?.id??
@@ -6033,7 +6045,7 @@ const communityFeedRows =
       )
      }
      pagingEnabled
-     snapToInterval={COMMUNITY_VIEWER_HEIGHT}
+     snapToInterval={videoViewerPageHeight}
      snapToAlignment="start"
      decelerationRate="fast"
      showsVerticalScrollIndicator={false}
@@ -6048,9 +6060,9 @@ const communityFeedRows =
      }
      getItemLayout={(_data,index)=>({
       length:
-       COMMUNITY_VIEWER_HEIGHT,
+       videoViewerPageHeight,
       offset:
-       COMMUNITY_VIEWER_HEIGHT*
+       videoViewerPageHeight*
        index,
       index
      })}
@@ -6062,7 +6074,7 @@ const communityFeedRows =
          Math.round(
           event.nativeEvent
            .contentOffset.y/
-          COMMUNITY_VIEWER_HEIGHT
+          videoViewerPageHeight
          ),
          videoViewerPosts.length-1
         )
@@ -6072,16 +6084,8 @@ const communityFeedRows =
        nextIndex
       );
 
-      const nextPost=
-       videoViewerPosts[
-        nextIndex
-       ];
-
-      if(nextPost){
-       void refreshVideoViewerUrl(
-        nextPost
-       );
-      }
+      if(nextIndex!==videoViewerIndex)setVideoViewerShowHint(false);
+      // Never rotate a still-playable signed URL merely on swipe.
        if(nextIndex>=videoViewerPosts.length-3 &&
           videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT){
         void loadMoreVideoViewer();
@@ -6120,7 +6124,7 @@ const communityFeedRows =
          style={{
           width:'100%',
           height:
-           COMMUNITY_VIEWER_HEIGHT,
+           videoViewerPageHeight,
           backgroundColor:'#000000'
          }}
         />
@@ -6132,7 +6136,7 @@ const communityFeedRows =
         style={{
          width:'100%',
          height:
-          COMMUNITY_VIEWER_HEIGHT,
+          videoViewerPageHeight,
          backgroundColor:'#000000',
          alignItems:'center',
          justifyContent:'center'
@@ -6159,12 +6163,13 @@ const communityFeedRows =
            thumbnail,
           });
          }}
-         height={COMMUNITY_VIEWER_HEIGHT}
+         height={videoViewerPageHeight}
          fullscreen
          active={
           index===
           videoViewerIndex
          }
+         preload={index===videoViewerIndex+1}
          autoPlay={
           index===
           videoViewerIndex
@@ -6179,9 +6184,7 @@ const communityFeedRows =
           descriptor.durationSeconds
          }
          onPlaybackError={()=>{
-          void refreshVideoViewerUrl(
-           item
-          );
+          void refreshVideoViewerUrl(item,fullscreenUri);
          }}
         />
 
