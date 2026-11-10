@@ -357,6 +357,7 @@ export default function BuklodKingdomMapPremium() {
   const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
   const [selectedId, setSelectedId] = useState('christian-civic-leadership');
   const [mode, setMode] = useState<'detail' | 'fit'>('detail');
+  const [zoomStep, setZoomStep] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(550);
   const horizontalRef = useRef<ScrollView>(null);
   const verticalRef = useRef<ScrollView>(null);
@@ -383,9 +384,10 @@ export default function BuklodKingdomMapPremium() {
   const stageCopy = STAGE_COPY[stage];
   const selectedStation = STATIONS.find(station => station.id === selectedId) ?? STATIONS[5];
 
+  const detailScale = clamp((screenWidth < 650 ? .86 : screenWidth < 1100 ? 1 : 1.06) * Math.pow(1.2, zoomStep), .55, 1.75);
   const scale = mode === 'fit'
     ? clamp((screenWidth - 20) / WORLD_W, .32, 1)
-    : screenWidth < 650 ? .86 : screenWidth < 1100 ? 1 : 1.06;
+    : detailScale;
   const mapWidth = WORLD_W * scale;
   const mapHeight = WORLD_H * scale;
   const compact = mode === 'fit';
@@ -393,7 +395,7 @@ export default function BuklodKingdomMapPremium() {
   const focus = useCallback((station: Station, animated = true) => {
     const currentScale = mode === 'fit'
       ? clamp((screenWidth - 20) / WORLD_W, .32, 1)
-      : screenWidth < 650 ? .86 : screenWidth < 1100 ? 1 : 1.06;
+      : detailScale;
     horizontalRef.current?.scrollTo({
       x: clamp(station.x * currentScale - screenWidth / 2, 0,
         Math.max(0, WORLD_W * currentScale - screenWidth)),
@@ -404,9 +406,13 @@ export default function BuklodKingdomMapPremium() {
         Math.max(0, WORLD_H * currentScale - viewportHeight)),
       animated,
     });
-  }, [mode, screenWidth, viewportHeight]);
+  }, [mode, screenWidth, viewportHeight, detailScale]);
 
   useEffect(()=>{void getBuklodSoundSettings();},[]);
+  // Preserve the chosen station when the user zooms instead of resetting to the Citadel.
+  useEffect(() => {
+    if (initialFocusRef.current) focus(selectedStation, false);
+  }, [zoomStep, mode, focus, selectedStation]);
 
   const chooseStation = useCallback((station: Station) => {
     void playBuklodGameFeedback('move');
@@ -495,7 +501,7 @@ export default function BuklodKingdomMapPremium() {
         </ScrollView>
       </ScrollView>
 
-      <View style={[styles.header, { paddingTop: Math.max(8, insets.top) + 7 }]}>
+      <View style={[styles.header, { paddingTop: Math.max(24, insets.top) + 10 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD App"
           onPress={() => router.back()} style={styles.back}>
           <MaterialCommunityIcons name="arrow-left" size={21} color="#ffedbf" />
@@ -518,6 +524,22 @@ export default function BuklodKingdomMapPremium() {
           <MaterialCommunityIcons name={compact ? 'magnify-plus-outline' : 'fit-to-screen-outline'}
             size={20} color="#fbeac2" />
           <Text style={styles.fitLabel}>{compact ? 'DETAIL' : 'FIT'}</Text>
+        </Pressable>
+      </View>
+
+      <View style={[styles.zoomTools, { top: Math.max(24, insets.top) + 84 }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Zoom in on Kingdom map"
+          disabled={mode === 'detail' && zoomStep >= 3}
+          style={styles.zoomButton}
+          onPress={() => { setMode('detail'); setZoomStep(value => Math.min(3, value + 1)); }}>
+          <MaterialCommunityIcons name="plus" size={21} color="#ffe7b1" />
+        </Pressable>
+        <Text style={styles.zoomReadout}>{mode === 'fit' ? 'FIT' : Math.round(detailScale * 100) + '%'}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Zoom out on Kingdom map"
+          disabled={mode === 'detail' && zoomStep <= -2}
+          style={styles.zoomButton}
+          onPress={() => { setMode('detail'); setZoomStep(value => Math.max(-2, value - 1)); }}>
+          <MaterialCommunityIcons name="minus" size={21} color="#ffe7b1" />
         </Pressable>
       </View>
 
@@ -654,6 +676,16 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   fitLabel: { color: '#ffedc5', fontSize: 8, fontWeight: '900' },
+  zoomTools: {
+    position: 'absolute', zIndex: 81, right: 10, borderRadius: 15,
+    backgroundColor: 'rgba(8,30,43,.94)', borderWidth: 1, borderColor: '#cbb283',
+    alignItems: 'center', padding: 5, gap: 3, elevation: 5,
+  },
+  zoomButton: {
+    width: 42, height: 39, borderRadius: 10, alignItems: 'center',
+    justifyContent: 'center', backgroundColor: '#25475a',
+  },
+  zoomReadout: { color: '#ffe4ac', fontWeight: '800', fontSize: 9 },
 
   bottomPanel: {
     position: 'absolute', zIndex: 80, left: 8, right: 8,
