@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -330,7 +331,7 @@ export default function SmartDrawerItemScreen() {
 
     Alert.alert(
       'Remove Original Image?',
-      'BUKLOD will keep the saved details, but the local original image cannot be restored after it is removed.',
+      'BUKLOD will keep the saved details, but the local local attachment cannot be restored after it is removed.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -360,7 +361,7 @@ export default function SmartDrawerItemScreen() {
 
                 syncFields(result.item);
                 setNotice(
-                  'Original image removed. Saved details remain in your Drawer.',
+                  'Attachments removed. Saved details remain in your Drawer.',
                 );
               } catch (error) {
                 setNotice(
@@ -617,13 +618,14 @@ export default function SmartDrawerItemScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.assets}
               >
-                {item.assets.map(asset => (
-                  <Image
-                    key={asset.id}
-                    source={{ uri: asset.uri }}
-                    style={styles.asset}
-                    resizeMode="cover"
-                  />
+                {item.assets.map(asset => asset.kind === 'FILE' ? (
+                  <Pressable key={asset.id} onPress={() => void Linking.openURL(asset.uri).catch(() => setNotice('No app available to open this file.'))}
+                    style={[styles.asset, { padding: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EAF4FC' }]}>
+                    <MaterialCommunityIcons name="file-document-outline" size={32} color="#0A6EBD" />
+                    <Text numberOfLines={3} style={{ color: '#173B63', fontSize: 11, textAlign: 'center' }}>{asset.originalName ?? 'Open file'}</Text>
+                  </Pressable>
+                ) : (
+                  <Image key={asset.id} source={{ uri: asset.uri }} style={styles.asset} resizeMode="cover" />
                 ))}
               </ScrollView>
             )}
@@ -851,7 +853,7 @@ export default function SmartDrawerItemScreen() {
             {!!item.assets.length && (
               <SheetAction
                 icon="image-remove-outline"
-                label="Manage Original Image"
+                label="Manage Attached Files"
                 onPress={removeOriginalImages}
               />
             )}
