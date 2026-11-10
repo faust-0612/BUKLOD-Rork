@@ -542,11 +542,18 @@ function ExpoCommunityVideo({
   const readyStartedAtRef = useRef(Date.now());
   const readyReportedRef = useRef(false);
   const resumeAppliedRef = useRef(false);
+  const playingRef = useRef(false);
+  const posterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     readyStartedAtRef.current = Date.now();
     readyReportedRef.current = false;
     resumeAppliedRef.current = false;
+    playingRef.current = false;
+    if (posterTimerRef.current) {
+      clearTimeout(posterTimerRef.current);
+      posterTimerRef.current = null;
+    }
     setVideoAspectRatio(null);
     setHasStartedPlayback(false);
     setAutoRecovering(false);
@@ -571,6 +578,10 @@ function ExpoCommunityVideo({
       if (recoveryDeadlineRef.current) {
         clearTimeout(recoveryDeadlineRef.current);
         recoveryDeadlineRef.current = null;
+      }
+      if (posterTimerRef.current) {
+        clearTimeout(posterTimerRef.current);
+        posterTimerRef.current = null;
       }
     };
   }, [uri]);
@@ -725,26 +736,6 @@ function ExpoCommunityVideo({
             const ratio = Number(activeTrack.size.width) / Number(activeTrack.size.height);
             if (Number.isFinite(ratio) && ratio > 0) setVideoAspectRatio(ratio);
           }
-          // Generate a poster only from a player already mounted for visible
-          // playback. Never create hidden players or download offscreen videos.
-          if (Platform.OS !== 'web' && !posterUri && activeRef.current && !getCommunityVideoPoster(uri) && beginCommunityVideoPosterGeneration(uri)) {
-            void Promise.resolve()
-              .then(() => player.generateThumbnailsAsync(0.1, { maxWidth: 720, maxHeight: 720 }))
-              .then(thumbnails => {
-                const first = thumbnails?.[0];
-                if (first) {
-                  publishCommunityVideoPoster(uri, first);
-                  void Promise.resolve()
-                    .then(() => onPosterGenerated?.(first))
-                    .catch(() => undefined);
-                }
-              })
-              .catch(() => {
-                // Poster generation is best-effort; playback remains primary.
-              })
-              .finally(() => releaseCommunityVideoPosterGeneration(uri));
-          }
-
           const known = Number(player.duration || 0);
           if (known > 0) setDuration(known);
 
@@ -791,7 +782,36 @@ function ExpoCommunityVideo({
       'playingChange',
       (event: { isPlaying?: boolean }) => {
         const isPlaying = Boolean(event?.isPlaying);
+        playingRef.current = isPlaying;
         setPlaying(isPlaying);
+        if (!isPlaying && posterTimerRef.current) {
+          clearTimeout(posterTimerRef.current);
+          posterTimerRef.current = null;
+        }
+        if (isPlaying && Platform.OS !== 'web' && !posterUri &&
+            !getCommunityVideoPoster(uri) && !posterTimerRef.current) {
+          // First decoded frame wins. Thumbnail extraction must never compete
+          // with startup/visible playback or an offscreen cached video.
+          posterTimerRef.current = setTimeout(() => {
+            posterTimerRef.current = null;
+            if (!activeRef.current || !playingRef.current ||
+                getCommunityVideoPoster(uri) ||
+                !beginCommunityVideoPosterGeneration(uri)) return;
+            void Promise.resolve()
+              .then(() => player.generateThumbnailsAsync(0.1, { maxWidth: 720, maxHeight: 720 }))
+              .then(thumbnails => {
+                const first = thumbnails?.[0];
+                if (first) {
+                  publishCommunityVideoPoster(uri, first);
+                  void Promise.resolve()
+                    .then(() => onPosterGenerated?.(first))
+                    .catch(() => undefined);
+                }
+              })
+              .catch(() => undefined)
+              .finally(() => releaseCommunityVideoPosterGeneration(uri));
+          }, 1500);
+        }
         if (isPlaying) {
           setHasStartedPlayback(true);
           setAutoRecovering(false);
@@ -832,12 +852,20 @@ function ExpoCommunityVideo({
         clearTimeout(recoveryDeadlineRef.current);
         recoveryDeadlineRef.current = null;
       }
+      if (posterTimerRef.current) {
+        clearTimeout(posterTimerRef.current);
+        posterTimerRef.current = null;
+      }
     };
   }, [player, uri, playbackIdentity]);
 
   useEffect(() => {
     if (!active) {
       userPausedRef.current = false;
+      if (posterTimerRef.current) {
+        clearTimeout(posterTimerRef.current);
+        posterTimerRef.current = null;
+      }
       try {
         player.pause();
       } catch {
