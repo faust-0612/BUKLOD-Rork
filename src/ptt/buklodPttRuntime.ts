@@ -87,7 +87,8 @@ function detachCaptionListener() {
 function attachCaptionListener(connection: BuklodPttConnection) {
   detachCaptionListener();
   // The existing Stream call emits speech-to-text. No new native capture.
-  captionUnsubscribe = connection.call.on('call.closed_caption', (event: any) => {
+  try {
+    captionUnsubscribe = connection.call.on('call.closed_caption', (event: any) => {
     if (state.connection !== connection) return;
     const caption = event?.closed_caption;
     if (!caption || caption.translated) return;
@@ -108,7 +109,13 @@ function attachCaptionListener(connection: BuklodPttConnection) {
         return persistOwnBuklodPttCaption(connection, caption, id);
       })
       .catch((error) => console.warn('PTT caption persistence failed', error));
-  });
+    });
+  } catch {
+    // Captions are optional. A missing/unsupported listener must never
+    // turn a successful Stream join into a failed PTT connection.
+    captionUnsubscribe = null;
+    console.warn('Optional PTT caption listener unavailable; voice PTT remains active.');
+  }
 }
 
 function emit() {
