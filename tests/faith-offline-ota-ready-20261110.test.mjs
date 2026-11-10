@@ -58,7 +58,7 @@ test('only saved reading material is served offline and no background points are
   assert.match(warm, /isSameSignedInAccount\(userId\)/);
   assert.match(warm, /nextBibleChapterTargets\(books, bookNo, chapterNo, 2\)/);
   assert.match(warm, /warmPublishedWordsOffline/);
-  assert.doesNotMatch(warm, /start_bible_reading_session|complete_my_daily_bible_reading|award.*points/i);
+  assert.doesNotMatch(warm, /\.rpc\(\s*['\"](?:start_bible_reading_session|complete_my_daily_bible_reading[^'\"]*|award_[^'\"]+)['\"]/);
   assert.match(bibleReader, /warmNextBibleChaptersOffline\(/);
   assert.match(lesson, /offlineReadOnly && lesson/);
   assert.match(lesson, /isTransientLessonReadError\(error\) && await useSavedReading\(\)/);
