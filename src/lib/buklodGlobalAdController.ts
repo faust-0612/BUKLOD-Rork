@@ -211,7 +211,7 @@ export function isBuklodPassiveAdAllowed({
   // only the explicit passive reels placement, respecting all remote gates.
   const safeReelsPlacement =
     placement === 'reels' &&
-    (route === '/igpat' || route.startsWith('/igpat/') || route === '/reels');
+    (route === '/igpat' || route === '/reels');
 
   return (
     foreground &&
