@@ -95,6 +95,8 @@ test('Reels passive gate is narrowly allowed in IGPAT; other sensitive placement
   assert.equal(c.isBuklodPassiveAdAllowed({ placementId:'reels_inline',placement:'reels' }),true);
   assert.equal(c.isBuklodPassiveAdAllowed({ placementId:'home',placement:'home' }),false);
   assert.equal(c.canWarmBuklodFullScreenAd('interstitial_generic'),false);
+  c.setBuklodAdRoute('/igpat/create');
+  assert.equal(c.isBuklodPassiveAdAllowed({ placementId:'reels_inline',placement:'reels' }),false);
   c.setBuklodAdRoute('/quiz');
   assert.equal(c.isBuklodPassiveAdAllowed({ placementId:'reels_inline',placement:'reels' }),false);
 });
