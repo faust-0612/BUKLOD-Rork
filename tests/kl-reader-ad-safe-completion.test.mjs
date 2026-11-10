@@ -11,17 +11,15 @@ test('KL ad is prewarmed only when a released chapter is readable and online', (
   assert.match(source, /warmBuklodAdOpportunity\('kl_chapter_success'\)/);
 });
 
-test('first-time server completion is required; replay and unverified reading cannot show', () => {
-  const start=source.indexOf('const finishChapter = async');
-  const end=source.indexOf('const syncViewport',start);
-  assert.ok(start>0 && end>start);
-  const code=source.slice(start,end);
-  assert.match(code, /if \(!selected \|\| chapterCompletionInFlight\.current\) return/);
-  assert.match(code, /if \(error\) \{ setRewardFeedback\(error\.message\); return/);
-  assert.match(code, /if \(result\?\.new_completion === true\) await showBuklodAdOpportunity\('kl_chapter_success'\)/);
-  assert.match(code, /finally \{\s*chapterCompletionInFlight\.current = false/);
-  assert.ok(code.indexOf('setJourneyRefreshToken(') < code.indexOf("await showBuklodAdOpportunity('kl_chapter_success')"));
-  assert.doesNotMatch(code, /claimBuklodRewardGroup|grantPoints|points_awarded\s*=/);
+test('first-time server quiz completion is required; replay and unverified reading cannot show ads', () => {
+  const source = readFileSync('src/components/kabihasnang-ligaw/KlReadingQuiz.tsx', 'utf8');
+  assert.match(source, /'kl_quiz_begin_v1'/);
+  assert.match(source, /'kl_quiz_submit_v1'/);
+  assert.match(source, /result\.passed && result\.completion\?\.completed === true/);
+  assert.match(source, /result\.completion\.new_completion === true/);
+  assert.match(source, /showBuklodAdOpportunity\('kl_chapter_success'\)/);
+  assert.doesNotMatch(source, /claimBuklodRewardGroup|grantPoints|points_awarded\s*=/);
+  assert.match(readFileSync('src/components/kabihasnang-ligaw/KlReaderScreen.tsx','utf8'), /<KlReadingQuiz/);
 });
 
 test('unified reader autoplay and Journey behavior remain present', () => {
