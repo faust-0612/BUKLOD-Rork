@@ -57,6 +57,8 @@ test('evidence upload has consent, photo preview, retry receipt and private sign
   assert.match(mentor, /requestMediaLibraryPermissionsAsync/);
   assert.match(mentor, /confirm permission to upload/i);
   assert.match(mentor, /setRetrySessionId\(savedSessionId\)/);
+  assert.match(mentor, /actionLock\.current/);
+  assert.match(mentor, /sequence !== requestSeq\.current/);
   assert.match(mentor, /Retry saved photo/);
   assert.match(mentor, /createSignedUrl\(task\.photo_path, 120\)/);
   assert.match(mentor, /PHOTO_BUCKET = 'buklod-mentoring-evidence'/);
