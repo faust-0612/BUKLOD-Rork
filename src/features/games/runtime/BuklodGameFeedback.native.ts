@@ -10,7 +10,7 @@ import { createBuklodGameFeedbackLimiter } from './feedbackThrottle';
 
 const reactionSound = require('../../../../assets/sounds/buklod-reaction.wav');
 const impactSound = require('../../../../assets/sounds/buklod_community.wav');
-const successSound = require('../../../../assets/sounds/buklod_approval.wav');
+const rewardSound = require('../../../../assets/sounds/buklod-points-claim.wav');
 const unlockSound = require('../../../../assets/sounds/buklod_achievement.wav');
 const failSound = require('../../../../assets/sounds/buklod_error.wav');
 const tapSound = require('../../../../assets/sounds/buklod_message_sent.wav');
@@ -78,7 +78,7 @@ export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
         return;
       case 'success':
       case 'unlock':
-        if (canSound && !usedRork) playNativeSound(event === 'unlock' ? unlockSound : successSound, event === 'unlock' ? 1.10 : 1, volume, 1500);
+        if (canSound && !usedRork) playNativeSound(event === 'unlock' ? unlockSound : rewardSound, event === 'unlock' ? 1.10 : 1, volume, 1500);
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         return;
       case 'failure':

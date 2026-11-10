@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore existing shipped Kingdom points-claim sound in the actual native success feedback path after a required production release gate blocked Android OTA and Expo Hosting web",
+  "baseRef": "91ff33f869414aec67c125ad10f811bb11b74f91",
+  "productionBaselineEvidence": "verified: 2026-11-10 repository main source 91ff33f869414aec67c125ad10f811bb11b74f91 and failed exact-head Android production OTA workflow 42778847935 and Expo production web workflow 42778847805. Both failed in required game-kingdom-release-contract.mjs because BuklodGameFeedback.native.ts lost the buklod-points-claim.wav asset reference. Asset blob 3c7216609b41b4af1db40502235864d614f52a14 exists. No publication from failed workflows; installed Android OTA and web fingerprint remain unverified.",
+  "chosenApproach": "Use existing bundled points-claim WAV as the native success fallback cue, keeping the existing unlock cue, collect reaction, Rork sound override, preferences, haptics and native player cap; keep source contract and protected game behavior intact.",
+  "selectionRationale": "The required release gate correctly detected removed sound reference. Using existing approved claim sound restores a real functional cue without adding a new file, dependency, backend service or unnecessary infrastructure expense.",
+  "alternativeApproaches": [
+    "Remove the Kingdom release contract token (rejected: bypasses mandatory production safety gate)",
+    "Add an unused sound import solely to satisfy the check (rejected: fake fix without behavior)",
+    "Restore existing claim sound into real game success branch while preserving all other feedback (chosen)"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-reward-sound-release-20261110.json",
+    "src/features/games/runtime/BuklodGameFeedback.native.ts",
+    "tests/kingdom-reward-sound-release-20261110.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Existing WAV asset exists and is actually selected for native success event",
+    "All existing movement/collect/impact/unlock/failure cues, native haptics and sound preference remain",
+    "Game feedback event limiter and six-player limit unchanged",
+    "No modified package/native runtime, Supabase, ads, economy, or Kingdom progress",
+    "Focused source test, Kingdom release contract and automated TypeScript/CI pass before retrying production publication",
+    "Previously blocked production release must publish only from reviewed main exact SHA with no bypass; actual device verification waived"
+  ],
+  "preserveBehaviors": [
+    "Game Rork SFX preference and fallback",
+    "Rork existing unlock and collect audio",
+    "Native sound settings volume, quiet hours, foreground-only gate",
+    "Existing Expo production Web and EAS OTA publishing workflows",
+    "Other application feature and release gates unchanged"
+  ],
+  "riskAreas": [
+    "kingdom-native-audio",
+    "mandatory-production-gates",
+    "cross-platform-release"
+  ],
+  "regressionTests": [
+    "tests/kingdom-reward-sound-release-20261110.test.mjs"
+  ]
+}
