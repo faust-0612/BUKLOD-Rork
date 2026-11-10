@@ -68,7 +68,7 @@ revoke all on private.buklod_r4_mentor_revision_audit from public,anon,authentic
 -- One mentor may correct THEIR rejected session, but cannot reopen an approved
 -- or rewarded session. A new evidence image is required before reentering review.
 create or replace function public.revise_my_rejected_mentor_session_r4(
- p_session_id uuid,p_location text,p_notes text)
+ p_session_id uuid,p_location text,p_notes text,p_attendee_ids uuid[])
 returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare
@@ -77,6 +77,8 @@ declare
  old_photo text;
  clean_location text:=trim(coalesce(p_location,''));
  clean_notes text:=trim(coalesce(p_notes,''));
+ unique_count integer;
+ valid_count integer;
 begin
  if actor is null or not public.has_capability(actor,'mentor') then
    raise exception 'Assigned Mentor required' using errcode='42501';
@@ -86,6 +88,19 @@ begin
  end if;
  if length(clean_notes) not between 20 and 2000 then
    raise exception 'Teaching summary must be 20-2000 characters';
+ end if;
+ select count(distinct attendee) into unique_count from unnest(p_attendee_ids) attendee;
+ if unique_count not between 1 and 50 or
+    coalesce(array_length(p_attendee_ids,1),0)<>unique_count then
+   raise exception 'Choose 1 to 50 distinct assigned attendees';
+ end if;
+ select count(distinct ma.disciple_id) into valid_count
+ from public.mentor_assignments ma
+ join public.profiles p on p.id=ma.disciple_id and p.is_active=true
+ where ma.mentor_id=actor and ma.is_active=true
+   and ma.disciple_id=any(p_attendee_ids);
+ if valid_count<>unique_count then
+   raise exception 'Only active assigned mentees may be reported';
  end if;
  select id,mentor_id,status,admin_id,admin_note,admin_reviewed_at,
    session_location,mentor_notes into row_rec
@@ -112,12 +127,13 @@ begin
  set status='reported',session_location=clean_location,mentor_notes=clean_notes,
    admin_id=null,admin_reviewed_at=null,admin_note=null
  where id=p_session_id;
+ perform public.mentor_set_session_attendees(p_session_id,p_attendee_ids);
  return jsonb_build_object('session_id',p_session_id,'status','reported',
-  'previous_photo_path',old_photo);
+  'attendee_count',unique_count,'previous_photo_path',old_photo);
 end;
 $$;
-revoke all on function public.revise_my_rejected_mentor_session_r4(uuid,text,text) from public,anon;
-grant execute on function public.revise_my_rejected_mentor_session_r4(uuid,text,text) to authenticated;
+revoke all on function public.revise_my_rejected_mentor_session_r4(uuid,text,text,uuid[]) from public,anon;
+grant execute on function public.revise_my_rejected_mentor_session_r4(uuid,text,text,uuid[]) to authenticated;
 
 -- Only current user sees session details, their own review feedback, and a path
 -- to their own private evidence. Award status derives from the immutable ledger.
@@ -128,6 +144,8 @@ as $$
    'session_id',s.id,'session_date',s.session_date,'status',s.status,
    'lesson',l.title,'location',s.session_location,'notes',s.mentor_notes,
    'participant_count',s.participant_count,
+   'attendee_ids',(select coalesce(jsonb_agg(a.user_id order by a.user_id),'[]'::jsonb)
+      from public.mentor_session_attendees a where a.session_id=s.id),
    'admin_note',case when s.status in ('approved','rejected') then s.admin_note else null end,
    'reviewed_at',s.admin_reviewed_at,
    'has_photo',(e.session_id is not null and o.id is not null),
