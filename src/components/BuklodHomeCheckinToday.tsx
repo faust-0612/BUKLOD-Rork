@@ -16,14 +16,21 @@ export default function BuklodHomeCheckinToday({scopeId}:{scopeId?:string}={}){
  const context=`${session?.user?.id??''}:${scopeId??'all'}`;
  const contextRef=useRef(context);
  const lastSuccessRef=useRef({context:'',at:0});
- const inFlightRef=useRef(false);
+ const inFlightRef=useRef('');
+ const [visibleContext,setVisibleContext]=useState(context);
  if(contextRef.current!==context){
   contextRef.current=context;
   lastSuccessRef.current={context:'',at:0};
  }
+ useEffect(()=>{
+  setVisibleContext(context);
+  setEvents([]);
+  setLoading(true);
+  setMessage('');
+ },[context]);
  const load=useCallback(async()=>{
-  if(!session?.user?.id||inFlightRef.current)return;
-  inFlightRef.current=true;
+  if(!session?.user?.id||inFlightRef.current===context)return;
+  inFlightRef.current=context;
   const requestedContext=context;
   // Only the first uncached request shows a full loading state.
   if(lastSuccessRef.current.context!==context)setLoading(true);
@@ -40,7 +47,10 @@ export default function BuklodHomeCheckinToday({scopeId}:{scopeId?:string}={}){
     setMessage('Unable to refresh check-in status. Previously loaded events remain visible.');
    }
   }
-  finally{inFlightRef.current=false;if(contextRef.current===requestedContext)setLoading(false)}
+  finally{
+   if(inFlightRef.current===requestedContext)inFlightRef.current='';
+   if(contextRef.current===requestedContext)setLoading(false);
+  }
  },[scopeId,session?.user?.id,context]);
  useEffect(()=>{warmBuklodAdOpportunity('points_submission_success')},[]);
  useFocusEffect(useCallback(()=>{
@@ -61,6 +71,7 @@ export default function BuklodHomeCheckinToday({scopeId}:{scopeId?:string}={}){
   }catch(e){setMessage(e instanceof Error?e.message:'Could not check in. Try again.');}
   finally{setBusy(null)}
  };
+ if(visibleContext!==context)return null;
  if(!loading&&events.length===0&&!message)return null;
  return <View style={styles.container}>
   <View style={styles.heading}>
