@@ -2,14 +2,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, {
   Circle as SvgCircle, Defs, Ellipse, G,
   LinearGradient as SvgGradient, Path, Rect, Stop,
 } from 'react-native-svg';
 import { useAuth } from '@/providers/AuthProvider';
-import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
+import { playRorkSignatureSfx, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
+import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
+import BuklodKingdomAtmosphere from './BuklodKingdomAtmosphere';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import { getBuklodSoundSettings } from '@/lib/buklodSounds';
 import {
@@ -131,20 +133,20 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
     <Svg width={mapWidth} height={mapHeight} viewBox="0 0 1200 900" pointerEvents="none">
       <Defs>
         <SvgGradient id="sea" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#164563" />
-          <Stop offset=".5" stopColor="#1b6077" />
-          <Stop offset="1" stopColor="#0c2945" />
+          <Stop offset="0" stopColor="#3db5d6" />
+          <Stop offset=".5" stopColor="#218faf" />
+          <Stop offset="1" stopColor="#10658c" />
         </SvgGradient>
         <SvgGradient id="cliff" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#92b1a0" />
-          <Stop offset=".6" stopColor="#436f78" />
-          <Stop offset="1" stopColor="#173c58" />
+          <Stop offset="0" stopColor="#c7e2b2" />
+          <Stop offset=".6" stopColor="#79b9a7" />
+          <Stop offset="1" stopColor="#287b91" />
         </SvgGradient>
         <SvgGradient id="meadow" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#b9d18f" />
-          <Stop offset=".34" stopColor="#80af79" />
-          <Stop offset=".68" stopColor="#548975" />
-          <Stop offset="1" stopColor="#396f6c" />
+          <Stop offset="0" stopColor="#e0eca6" />
+          <Stop offset=".34" stopColor="#a4d580" />
+          <Stop offset=".68" stopColor="#6cae78" />
+          <Stop offset="1" stopColor="#438c77" />
         </SvgGradient>
         <SvgGradient id="river" x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0" stopColor="#bbf7ef" />
@@ -167,20 +169,28 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         </SvgGradient>
       </Defs>
       <Rect width={1200} height={900} fill="url(#sea)" />
+      {/* The outer ocean, with lighter shallows around the island. */}
+      <Ellipse cx={620} cy={480} rx={595} ry={396} fill="#b8f3ef" opacity=".13" />
+      <Path d="M 17 142 C 187 89 282 105 405 65 M 769 72 C 946 49 1037 123 1160 82 M 56 826 C 183 794 299 856 407 828"
+        fill="none" stroke="#e5fcf3" strokeWidth={5} strokeLinecap="round" opacity=".27" />
       {Array.from({ length: 18 }, (_, i) => (
         <Path key={i} fill="none" stroke="#bde9eb" strokeWidth={2} opacity=".22"
           d={'M ' + (20 + (i * 163) % 1150) + ' ' + (24 + (i * 91) % 855) + ' c 16 -6 31 -7 48 0 c 11 5 20 4 30 -1'} />
       ))}
-      <Path d={LAND_DEEP} fill="#103d55" stroke="#78ccd0" strokeWidth={21} opacity=".52" />
-      <Path d={LAND_DEEP} fill="url(#cliff)" stroke="#1b5367" strokeWidth={10} />
+      <Path d={LAND_DEEP} fill="#14718d" stroke="#c5f2e3" strokeWidth={21} opacity=".52" />
+      <Path d={LAND_DEEP} fill="url(#cliff)" stroke="#2a8098" strokeWidth={10} />
+      {/* Sunlit sand along the older island coast, rather than a dark flat outline. */}
+      <Path d={LAND_DEEP} fill="none" stroke="#f8e6b4" strokeWidth={6} opacity=".70" />
+      <Path d="M 118 726 C 204 794 332 819 456 823 M 872 794 C 963 820 1053 793 1104 724"
+        fill="none" stroke="#fff2bf" strokeWidth={5} opacity=".63" />
       <Path d={LAND_FACE} fill="url(#meadow)" stroke="#f0e6c2" strokeWidth={10} />
       <Path d={LAND_FACE} fill="none" stroke="#fff8dd" strokeWidth={2} opacity=".6" />
       <Path d="M 109 432 C 201 260 315 238 466 219 C 410 315 345 395 240 424 C 167 476 146 510 99 590 Z"
-        fill="#275e57" opacity=".47" />
+        fill="#6d9e6f" opacity=".47" />
       <Path d="M 361 210 C 445 147 604 115 727 180 C 636 250 625 317 492 306 C 448 286 409 251 361 210 Z"
-        fill="#a9c697" opacity=".50" />
+        fill="#d1e5a3" opacity=".50" />
       <Path d="M 778 229 C 921 190 1033 259 1101 350 C 1071 422 977 460 842 426 C 781 344 775 301 778 229 Z"
-        fill="#a5baa3" opacity=".49" />
+        fill="#b4dcb4" opacity=".49" />
       <Path d="M 172 628 C 304 559 437 570 532 624 C 557 697 493 792 345 775 C 233 749 141 698 172 628 Z"
         fill="#dbcd81" opacity=".40" />
 
@@ -192,7 +202,7 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
       ))}
 
       <Path d="M 552 147 C 582 234 588 290 628 357 C 651 420 662 464 699 515 C 744 597 735 682 772 766"
-        fill="none" stroke="#236079" strokeWidth={30} opacity=".55" strokeLinecap="round" />
+        fill="none" stroke="#3d95ac" strokeWidth={30} opacity=".55" strokeLinecap="round" />
       <Path d="M 552 147 C 582 234 588 290 628 357 C 651 420 662 464 699 515 C 744 597 735 682 772 766"
         fill="none" stroke="url(#river)" strokeWidth={18} strokeLinecap="round" />
       <Path d="M 552 147 C 582 234 588 290 628 357 C 651 420 662 464 699 515 C 744 597 735 682 772 766"
@@ -205,10 +215,51 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
           <Path d={route} fill="none" stroke="#314c4a" strokeWidth={20} strokeLinecap="round" opacity=".40" />
           <Path d={route} fill="none" stroke="#b39a73" strokeWidth={13} strokeLinecap="round" />
           <Path d={route} fill="none" stroke="url(#road)" strokeWidth={8} strokeLinecap="round" />
-          <Path d={route} fill="none" stroke="#fff9e3" strokeWidth={1.5} strokeLinecap="round"
-            strokeDasharray="2 16" opacity=".56" />
+          <Path d={route} fill="none" stroke={stage >= 3 ? "#fffbba" : "#fff9e3"} strokeWidth={stage >= 3 ? 2.5 : 1.5} strokeLinecap="round"
+            strokeDasharray="2 16" opacity={stage >= 3 ? .88 : .56} />
         </G>
       ))}
+
+      {/* Bridges reconnect the established roads across the two rivers. */}
+      {[
+        { x: 614, y: 355, tilt: 17 },
+        { x: 677, y: 502, tilt: -10 },
+        { x: 811, y: 446, tilt: 24 },
+      ].map((bridge, i) => (
+        <G key={'bridge-' + i} transform={'rotate(' + bridge.tilt + ' ' + bridge.x + ' ' + bridge.y + ')'}>
+          <Rect x={bridge.x - 34} y={bridge.y - 10} width={68} height={20} rx={3}
+            fill="#b98752" stroke="#694e36" strokeWidth={3} />
+          {Array.from({ length: 7 }, (_, n) => (
+            <Path key={n} d={'M ' + (bridge.x - 28 + n * 9) + ' ' + (bridge.y - 8) + ' v 16'}
+              stroke="#f9d99a" strokeWidth={2.5} />
+          ))}
+          <Path d={'M ' + (bridge.x - 35) + ' ' + (bridge.y - 15) + ' h 70 M ' + (bridge.x - 35) + ' ' + (bridge.y + 15) + ' h 70'}
+            stroke="#f7dca3" strokeWidth={4} />
+        </G>
+      ))}
+
+      {/* Waterfalls in the northern highlands and a bright river basin. */}
+      <Path d="M 540 146 C 552 184 557 216 570 250"
+        fill="none" stroke="#effdff" strokeWidth={11} strokeLinecap="round" opacity=".78" />
+      <Path d="M 551 160 C 557 192 562 222 572 255"
+        fill="none" stroke="#9fe7f9" strokeWidth={6} strokeLinecap="round" opacity=".92" />
+      <Ellipse cx={574} cy={252} rx={27} ry={10} fill="#f2ffff" opacity=".64" />
+      <Path d="M 815 230 C 805 252 806 272 800 288"
+        fill="none" stroke="#efffff" strokeWidth={5} strokeLinecap="round" opacity=".78" />
+      <Ellipse cx={801} cy={293} rx={16} ry={6} fill="#eaffff" opacity=".70" />
+
+      {/* Coastal pier, market boats and 2.5D destination landmarks. */}
+      <G>
+        <Path d="M 130 686 L 62 718 L 68 731 L 139 701 Z" fill="#af8452" stroke="#795d3d" strokeWidth={3}/>
+        {Array.from({ length: 5 }, (_, n) => (
+          <Path key={n} d={'M ' + (78 + n * 11) + ' ' + (713 - n * 5) + ' l 6 16'}
+            stroke="#efc68a" strokeWidth={3} />
+        ))}
+        <Path d="M 22 749 Q 54 762 85 745 L 79 759 Q 53 777 28 758 Z" fill="#8c523f" stroke="#f1c391" strokeWidth={3}/>
+        <Path d="M 49 750 L 49 699 L 76 734 Z" fill="#fff6dd" stroke="#8dbec6" strokeWidth={2}/>
+        <Path d="M 1136 567 Q 1163 580 1191 564 L 1182 577 Q 1159 590 1141 575 Z" fill="#c47850"/>
+        <Path d="M 1161 563 L 1161 518 L 1183 552 Z" fill="#f9f1d6"/>
+      </G>
 
       {Array.from({ length: 6 }, (_, i) => (
         <G key={'farm-' + i} transform={'rotate(-14 ' + (214 + i * 21) + ' ' + (681 + i * 7) + ')'}>
@@ -221,6 +272,31 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         </G>
       ))}
 
+      {/* Countryside cottages, stone paths and a working windmill replace
+          blank schematic zones without changing their canonical stations. */}
+      {[
+        { x: 146, y: 612, roof: '#be7b50' },
+        { x: 327, y: 688, roof: '#cf884f' },
+        { x: 758, y: 575, roof: '#c68162' },
+        { x: 977, y: 654, roof: '#9876af' },
+      ].map((house, i) => (
+        <G key={'cottage-' + i}>
+          <Ellipse cx={house.x} cy={house.y + 19} rx={28} ry={9} fill="#35756c" opacity=".22"/>
+          <Rect x={house.x - 16} y={house.y - 9} width={32} height={28} rx={3}
+            fill="#fae2b2" stroke="#ad976c" strokeWidth={2} />
+          <Path d={'M ' + (house.x - 22) + ' ' + (house.y - 9) + ' L ' + house.x + ' ' + (house.y - 29) +
+            ' L ' + (house.x + 22) + ' ' + (house.y - 9) + ' Z'} fill={house.roof} stroke="#805d4b" strokeWidth={2} />
+          <Rect x={house.x - 5} y={house.y + 3} width={10} height={16} rx={2} fill="#8d6b53"/>
+          <SvgCircle cx={house.x + 10} cy={house.y} r={4} fill="#fcf4c6" />
+        </G>
+      ))}
+      <G>
+        <Rect x={365} y={614} width={19} height={60} rx={4} fill="#f2e4b9" stroke="#9a986d" strokeWidth={2}/>
+        <Path d="M 358 616 L 375 582 L 392 616 Z" fill="#b7774c" stroke="#785c41" strokeWidth={2}/>
+        <SvgCircle cx={375} cy={618} r={5} fill="#bf9c67"/>
+        <Path d="M 335 618 L 415 618 M 375 577 L 375 659" stroke="#fff3cd" strokeWidth={9} strokeLinecap="round"/>
+        <Path d="M 335 618 L 415 618 M 375 577 L 375 659" stroke="#8b704f" strokeWidth={2}/>
+      </G>
       {MOUNTAINS.map(({ x, y, s }, i) => (
         <G key={'mountain-' + i}>
           <Path d={'M ' + (x - 56 * s) + ' ' + (y + 81 * s) +
@@ -238,13 +314,13 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
 
       {FOREST_POINTS.map(([x, y], i) => (
         <G key={'tree-' + i}>
-          <Ellipse cx={x} cy={y + 21} rx={18} ry={7} fill="#15434d" opacity=".28" />
+          <Ellipse cx={x} cy={y + 21} rx={18} ry={7} fill="#30736a" opacity=".28" />
           <Path d={'M ' + (x - 14) + ' ' + (y + 5) + ' L ' + x + ' ' + (y - 26) +
             ' L ' + (x + 14) + ' ' + (y + 5) + ' Z'}
-            fill={i % 2 ? "#245a53" : "#236d5b"} />
+            fill={i % 2 ? "#32815e" : "#348f67"} />
           <Path d={'M ' + (x - 20) + ' ' + (y + 16) + ' L ' + x + ' ' + (y - 8) +
             ' L ' + (x + 20) + ' ' + (y + 16) + ' Z'}
-            fill={i % 3 ? "#388b6b" : "#2f745c"} />
+            fill={i % 3 ? "#52a96f" : "#3e946c"} />
           <Rect x={x - 2} y={y + 15} width={5} height={11} rx={2} fill="#796a50" />
         </G>
       ))}
@@ -256,7 +332,7 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         { x: 488, y: 533, color: '#debbb2' },
       ].map((town, i) => (
         <G key={'town-' + i}>
-          <Ellipse cx={town.x} cy={town.y + 15} rx={72} ry={33} fill="#255465" opacity=".21" />
+          <Ellipse cx={town.x} cy={town.y + 15} rx={72} ry={33} fill="#468e93" opacity=".21" />
           {Array.from({ length: 5 }, (_, j) => {
             const x = town.x - 53 + j * 25;
             const y = town.y - (j % 2) * 8;
@@ -272,7 +348,115 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         </G>
       ))}
 
-      <Ellipse cx={607} cy={469} rx={123} ry={65} fill="#204c58" opacity=".34" />
+
+      {/* R2 inspired scenic biomes: unique illustrated landmarks for canonical
+          stations, not static UI text/false progress counters or extra routes. */}
+      <G>
+        {/* Quin: starlit observatory above the northern discovery cliffs. */}
+        <Ellipse cx={1036} cy={160} rx={65} ry={24} fill="#557b9e" opacity=".27" />
+        <Rect x={1010} y={110} width={55} height={49} rx={5}
+          fill="#f3e6c2" stroke="#8095ac" strokeWidth={3} />
+        <Path d="M 1000 112 Q 1037 62 1073 112 Z" fill="#567aca" stroke="#dde4ed" strokeWidth={3} />
+        <Path d="M 1037 67 L 1037 43" stroke="#f9e7a0" strokeWidth={5} strokeLinecap="round" />
+        <SvgCircle cx={1037} cy={39} r={10} fill="#fff1aa" />
+        <Path d="M 1008 149 L 1070 149" stroke="#a5d2e4" strokeWidth={4}/>
+        {[1019,1037,1054].map(x=>(
+          <Rect key={'sky-window-'+x} x={x-4} y={121} width={8} height={15} rx={3} fill="#80d5fd" />
+        ))}
+
+        {/* Music City: colorful acoustic plaza, instruments and glowing lanterns. */}
+        <Ellipse cx={965} cy={394} rx={61} ry={28} fill="#b09bb9" stroke="#f1ddbe" strokeWidth={3}/>
+        <Ellipse cx={965} cy={390} rx={48} ry={18} fill="#7f74aa" opacity=".90" />
+        {Array.from({length:8},(_,i)=>{
+          const x=965+Math.cos(i*Math.PI/4)*44,y=390+Math.sin(i*Math.PI/4)*21;
+          return <SvgCircle key={'music-lantern-'+i} cx={x} cy={y} r={4}
+            fill={i%2?'#f2b5e8':'#ffdc82'} />;
+        })}
+        <Path d="M 946 381 L 946 360 L 955 356 L 955 379 M 946 366 L 955 362"
+          fill="none" stroke="#fff2d4" strokeWidth={4} strokeLinecap="round" />
+        <Path d="M 978 395 L 978 370 L 987 365 L 987 391 M 978 375 L 987 370"
+          fill="none" stroke="#f8d2ed" strokeWidth={4} strokeLinecap="round" />
+
+        {/* Trudice: flowering safe playground / children's haven. */}
+        {[{x:310,y:347},{x:388,y:347},{x:355,y:321}].map((flower,i)=>(
+          <G key={'flower-'+i}>
+            <Rect x={flower.x-3} y={flower.y-1} width={6} height={28} rx={2} fill="#7b7856"/>
+            {Array.from({length:5},(_,petal)=>(
+              <SvgCircle key={petal}
+                cx={flower.x+Math.cos(petal*Math.PI*2/5)*15}
+                cy={flower.y-9+Math.sin(petal*Math.PI*2/5)*15}
+                r={12} fill={petal%2?'#f8c7e5':'#eaa6d2'} opacity=".93"/>
+            ))}
+            <SvgCircle cx={flower.x} cy={flower.y-9} r={10} fill="#ffe7bf"/>
+          </G>
+        ))}
+        <Path d="M 321 396 Q 355 363 388 396" stroke="#f6d99c" strokeWidth={8}
+          fill="none" strokeLinecap="round"/>
+        <Path d="M 323 397 L 323 422 M 386 397 L 386 422" stroke="#9d845b" strokeWidth={7}/>
+
+        {/* Phan: sunlit coastal lighthouse and pier. */}
+        <Rect x={104} y={584} width={19} height={60} rx={2} fill="#fff4d8" stroke="#bf8d73" strokeWidth={3}/>
+        <Path d="M 98 588 L 114 564 L 129 588 Z" fill="#cb745d" stroke="#f5d8b4" strokeWidth={2}/>
+        <Rect x={107} y={606} width={13} height={8} fill="#99d5e8"/>
+        <Path d="M 99 627 L 128 627" stroke="#d7825e" strokeWidth={5}/>
+        <SvgCircle cx={114} cy={582} r={5} fill="#fff59c"/>
+
+        {/* Mitch: artistic fountain and painted mural wall. */}
+        <Rect x={458} y={510} width={91} height={25} rx={3} fill="#eac3a1" stroke="#a77e6c" strokeWidth={3}/>
+        {['#f5a57c','#f6d26e','#7acbb3','#99b0e7','#da9dd4'].map((color,i)=>(
+          <Path key={'mural-'+i}
+            d={'M '+(463+i*17)+' 531 l 10 -16 l 10 8 l 4 -9'}
+            fill="none" stroke={color} strokeWidth={7} strokeLinecap="round"/>
+        ))}
+
+        {/* Ace: compact rescue beacon and modular strategy outpost. */}
+        <Rect x={697} y={443} width={46} height={29} rx={3} fill="#e6ebdf" stroke="#7e9491" strokeWidth={3}/>
+        <Path d="M 693 444 L 720 423 L 748 444 Z" fill="#c77e69" stroke="#fff0c6" strokeWidth={2}/>
+        <Path d="M 720 434 L 720 411" stroke="#8b8470" strokeWidth={3}/>
+        <SvgCircle cx={720} cy={408} r={6} fill="#fff3a9"/>
+        <Rect x={713} y={449} width={14} height={15} rx={3} fill="#6ac8ae"/>
+
+        {/* Angel: treasury vault surrounded by warm gold lanterns. */}
+        <Ellipse cx={897} cy={653} rx={53} ry={24} fill="#dfc28b" stroke="#92754a" strokeWidth={3}/>
+        <Rect x={871} y={608} width={49} height={41} rx={5} fill="#eecf8d" stroke="#a07c48" strokeWidth={3}/>
+        <Path d="M 867 611 L 895 589 L 924 611 Z" fill="#e7a358" stroke="#88603e" strokeWidth={3}/>
+        <SvgCircle cx={895} cy={627} r={12} fill="#f6e2a4" stroke="#ad8850" strokeWidth={3}/>
+        <Rect x={892} y={622} width={6} height={14} rx={2} fill="#936b36"/>
+        {[850,939].map(x=><SvgCircle key={'treasury-light-'+x} cx={x} cy={638} r={5} fill="#ffdf84"/>)}
+
+        {/* Niel: river-crossing frontier campsite with mission pennants. */}
+        {[{x:652,y:742},{x:721,y:755}].map((camp,i)=>(
+          <G key={'camp-'+i}>
+            <Path d={'M '+(camp.x-28)+' '+(camp.y+6)+' L '+camp.x+' '+(camp.y-25)+
+              ' L '+(camp.x+28)+' '+(camp.y+6)+' Z'}
+              fill={i?'#f0ba7d':'#cf8b77'} stroke="#8f6b52" strokeWidth={3}/>
+            <Path d={'M '+camp.x+' '+(camp.y-25)+' L '+camp.x+' '+(camp.y+6)}
+              stroke="#f7e3b2" strokeWidth={2}/>
+            <Path d={'M '+camp.x+' '+(camp.y-25)+' L '+camp.x+' '+(camp.y-42)+' L '+(camp.x+18)+
+              ' '+(camp.y-36)+' L '+camp.x+' '+(camp.y-30)}
+              fill="#f5d17a" stroke="#bc875c" strokeWidth={2}/>
+          </G>
+        ))}
+
+        {/* The eastern highland holds a dormant volcanic/mystery frontier. */}
+        <Path d="M 1087 431 L 1132 334 L 1171 414 L 1198 476 L 1078 476 Z"
+          fill="#6b6270" stroke="#9d8883" strokeWidth={3} />
+        <Path d="M 1113 378 L 1132 334 L 1146 367 Z" fill="#e8d2c5" />
+        <Path d="M 1129 353 C 1138 389 1135 419 1155 467"
+          stroke="#ff9854" strokeWidth={9} opacity=".89" strokeLinecap="round" fill="none"/>
+        <Path d="M 1132 357 C 1136 389 1135 429 1152 462"
+          stroke="#ffe2a3" strokeWidth={4} opacity=".93" strokeLinecap="round" fill="none"/>
+
+        {/* Small magic stars and lanterns scale with the SVG and do not animate on
+            their own, protecting battery and 3G mode on budget Android devices. */}
+        {Array.from({length:18},(_,i)=>(
+          <SvgCircle key={'kingdom-world-light-'+i}
+            cx={128+(i*173)%995} cy={193+(i*103)%530}
+            r={i%3===0?3:2} fill={i%2?'#fff6bc':'#c8f9f7'} opacity=".82"/>
+        ))}
+      </G>
+
+      <Ellipse cx={607} cy={469} rx={123} ry={65} fill="#3d857a" opacity=".34" />
       <Ellipse cx={607} cy={442} rx={113} ry={65} fill="#e5d2a5" stroke="#73948a" strokeWidth={6} />
       <Ellipse cx={607} cy={436} rx={100} ry={52} fill="#70a599" stroke="#ece8bb" strokeWidth={3} />
       <Path d="M 529 466 L 540 398 L 551 398 L 559 350 L 574 350 L 581 398 L 599 377 L 611 318 L 625 377 L 639 401 L 651 352 L 667 352 L 677 398 L 688 398 L 696 466 Z"
@@ -280,16 +464,16 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
       <Path d="M 596 381 L 612 292 L 626 381 Z" fill="#fff4d1" stroke="#b39055" strokeWidth={2} />
       <Path d="M 552 357 L 562 324 L 575 357 Z M 651 356 L 659 324 L 672 356 Z"
         fill="#f9edc6" stroke="#af8555" strokeWidth={1.5} />
-      <Rect x={599} y={419} width={25} height={47} rx={12} fill="#285564" stroke="#fff5c7" strokeWidth={3} />
+      <Rect x={599} y={419} width={25} height={47} rx={12} fill="#417788" stroke="#fff5c7" strokeWidth={3} />
       <SvgCircle cx={612} cy={386} r={6} fill={stage >= 3 ? '#fff9bf' : '#eecf92'} />
       <Path d="M 582 468 Q 609 485 640 468" fill="none" stroke="#fcf1cf" strokeWidth={4} />
       <Ellipse cx={609} cy={509} rx={75} ry={10} fill="#9ad7cb" opacity=".58" />
 
-      <Ellipse cx={591} cy={642} rx={59} ry={36} fill="#4b9471" stroke="#b9c599" strokeWidth={3} />
+      <Ellipse cx={591} cy={642} rx={59} ry={36} fill="#75bd7b" stroke="#b9c599" strokeWidth={3} />
       <Rect x={585} y={628} width={12} height={44} rx={4} fill="#806747" />
-      <SvgCircle cx={591} cy={620} r={27} fill="#398766" />
-      <SvgCircle cx={575} cy={629} r={22} fill="#4d9e73" />
-      <SvgCircle cx={610} cy={623} r={22} fill="#6aae79" />
+      <SvgCircle cx={591} cy={620} r={27} fill="#439d65" />
+      <SvgCircle cx={575} cy={629} r={22} fill="#62b77b" />
+      <SvgCircle cx={610} cy={623} r={22} fill="#83c68b" />
 
       <Path d={LAND_FACE} fill="none" stroke="#faf2d6" strokeWidth={2} opacity=".42" />
     </Svg>
@@ -354,9 +538,12 @@ export default function BuklodKingdomMapPremium() {
   const userId = user?.id ?? null;
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { musicEnabled, toggleMusic } = useRorkGameAmbience('kingdom-map');
   const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
   const [selectedId, setSelectedId] = useState('christian-civic-leadership');
   const [mode, setMode] = useState<'detail' | 'fit'>('detail');
+  const [zoomStep, setZoomStep] = useState(0);
+  const [panelExpanded, setPanelExpanded] = useState(true);
   const [viewportHeight, setViewportHeight] = useState(550);
   const horizontalRef = useRef<ScrollView>(null);
   const verticalRef = useRef<ScrollView>(null);
@@ -382,10 +569,14 @@ export default function BuklodKingdomMapPremium() {
   const stage = stageFor(clearedCount);
   const stageCopy = STAGE_COPY[stage];
   const selectedStation = STATIONS.find(station => station.id === selectedId) ?? STATIONS[5];
+  // Only one selected-station art plate is mounted: preserve the old richer
+  // artwork without reinstating 13 always-on thumbnails/animated loops.
+  const selectedArt = getRorkGameMedia(selectedStation.id)?.background;
 
+  const detailScale = clamp((screenWidth < 650 ? .86 : screenWidth < 1100 ? 1 : 1.06) * Math.pow(1.2, zoomStep), .55, 1.75);
   const scale = mode === 'fit'
     ? clamp((screenWidth - 20) / WORLD_W, .32, 1)
-    : screenWidth < 650 ? .86 : screenWidth < 1100 ? 1 : 1.06;
+    : detailScale;
   const mapWidth = WORLD_W * scale;
   const mapHeight = WORLD_H * scale;
   const compact = mode === 'fit';
@@ -393,7 +584,7 @@ export default function BuklodKingdomMapPremium() {
   const focus = useCallback((station: Station, animated = true) => {
     const currentScale = mode === 'fit'
       ? clamp((screenWidth - 20) / WORLD_W, .32, 1)
-      : screenWidth < 650 ? .86 : screenWidth < 1100 ? 1 : 1.06;
+      : detailScale;
     horizontalRef.current?.scrollTo({
       x: clamp(station.x * currentScale - screenWidth / 2, 0,
         Math.max(0, WORLD_W * currentScale - screenWidth)),
@@ -404,9 +595,13 @@ export default function BuklodKingdomMapPremium() {
         Math.max(0, WORLD_H * currentScale - viewportHeight)),
       animated,
     });
-  }, [mode, screenWidth, viewportHeight]);
+  }, [mode, screenWidth, viewportHeight, detailScale]);
 
   useEffect(()=>{void getBuklodSoundSettings();},[]);
+  // Preserve the chosen station when the user zooms instead of resetting to the Citadel.
+  useEffect(() => {
+    if (initialFocusRef.current) focus(selectedStation, false);
+  }, [zoomStep, mode, focus, selectedStation]);
 
   const chooseStation = useCallback((station: Station) => {
     void playBuklodGameFeedback('move');
@@ -423,12 +618,12 @@ export default function BuklodKingdomMapPremium() {
   const initialFocus = useCallback(() => {
     if (initialFocusRef.current) return;
     initialFocusRef.current = true;
-    focus(STATIONS[5], false);
-  }, [focus]);
+    focus(selectedStation, false);
+  }, [focus, selectedStation]);
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={['#0d2d43', '#103b4b', '#081e30']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#40bbd1', '#86dce6', '#1d86ad']} style={StyleSheet.absoluteFill} />
 
       <ScrollView
         ref={horizontalRef} horizontal bounces={false} showsHorizontalScrollIndicator={false}
@@ -444,6 +639,7 @@ export default function BuklodKingdomMapPremium() {
         >
           <View style={[styles.worldFrame, { width: mapWidth, height: mapHeight }]}>
             <IllustratedRealm mapWidth={mapWidth} mapHeight={mapHeight} stage={stage} />
+            <BuklodKingdomAtmosphere stage={stage} scale={scale} />
 
             <View pointerEvents="none" style={[styles.realmTitle, {
               left: 68 * scale, top: 88 * scale,
@@ -495,7 +691,7 @@ export default function BuklodKingdomMapPremium() {
         </ScrollView>
       </ScrollView>
 
-      <View style={[styles.header, { paddingTop: Math.max(8, insets.top) + 7 }]}>
+      <View style={[styles.header, { paddingTop: Math.max(24, insets.top) + 10 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD App"
           onPress={() => router.back()} style={styles.back}>
           <MaterialCommunityIcons name="arrow-left" size={21} color="#ffedbf" />
@@ -521,9 +717,34 @@ export default function BuklodKingdomMapPremium() {
         </Pressable>
       </View>
 
-      <View style={[styles.bottomPanel, { bottom: Math.max(insets.bottom + 7, 8) }]}>
+      <View style={[styles.zoomTools, { top: Math.max(24, insets.top) + 84 }]}>
+        <Pressable accessibilityRole="button"
+          accessibilityLabel={musicEnabled ? 'Mute Kingdom ambient music' : 'Play Kingdom ambient music'}
+          onPress={toggleMusic} style={styles.zoomButton}>
+          <MaterialCommunityIcons name={musicEnabled ? 'music-note' : 'music-note-off'}
+            size={21} color="#ffe7b1" />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Zoom in on Kingdom map"
+          disabled={mode === 'detail' && zoomStep >= 3}
+          style={styles.zoomButton}
+          onPress={() => { setMode('detail'); setZoomStep(value => Math.min(3, value + 1)); }}>
+          <MaterialCommunityIcons name="plus" size={21} color="#ffe7b1" />
+        </Pressable>
+        <Text style={styles.zoomReadout}>{mode === 'fit' ? 'FIT' : Math.round(detailScale * 100) + '%'}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Zoom out on Kingdom map"
+          disabled={mode === 'detail' && zoomStep <= -2}
+          style={styles.zoomButton}
+          onPress={() => { setMode('detail'); setZoomStep(value => Math.max(-2, value - 1)); }}>
+          <MaterialCommunityIcons name="minus" size={21} color="#ffe7b1" />
+        </Pressable>
+      </View>
+
+      {panelExpanded ? <View style={[styles.bottomPanel, { bottom: Math.max(insets.bottom + 7, 8) }]}>
         <View style={styles.selectedRow}>
           <View style={styles.selectedIcon}>
+            {selectedArt ? <Image source={{ uri: selectedArt }}
+              resizeMode="cover" style={styles.selectedArt} /> : null}
+            <View style={styles.selectedArtScrim} pointerEvents="none" />
             <MaterialCommunityIcons name={selectedStation.icon} size={24} color="#ffe1a2" />
           </View>
           <View style={styles.selectedDetails}>
@@ -540,7 +761,11 @@ export default function BuklodKingdomMapPremium() {
         </View>
         <View style={styles.railTitleRow}>
           <Text style={styles.railTitle}>EXPLORE THE KINGDOM</Text>
-          <Text style={styles.railHelp}>SWIPE • FIND • ENTER</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Hide Kingdom station dock to explore full illustrated map"
+            onPress={() => setPanelExpanded(false)} style={styles.hideDock}>
+            <MaterialCommunityIcons name="chevron-down" size={16} color="#ffe2a4"/>
+            <Text style={styles.railHelp}>MAP ONLY</Text>
+          </Pressable>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.rail}>
@@ -557,18 +782,25 @@ export default function BuklodKingdomMapPremium() {
             </Pressable>
           ))}
         </ScrollView>
-      </View>
+      </View> : <Pressable accessibilityRole="button"
+        accessibilityLabel="Show Kingdom station dock"
+        onPress={() => setPanelExpanded(true)}
+        style={[styles.showDock, { bottom: Math.max(insets.bottom + 10, 14) }]}>
+        <MaterialCommunityIcons name="map-marker-multiple" size={19} color="#fff2cd" />
+        <Text style={styles.showDockText}>EXPLORE 13 STATIONS</Text>
+        <MaterialCommunityIcons name="chevron-up" size={18} color="#fff2cd" />
+      </Pressable>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0b293a' },
+  root: { flex: 1, backgroundColor: '#40adcf' },
   mapScroll: { flex: 1 },
   verticalScroll: { flex: 1 },
   horizontalContent: { justifyContent: 'center' },
   verticalContent: { alignItems: 'center', justifyContent: 'center' },
-  worldFrame: { position: 'relative', overflow: 'hidden', backgroundColor: '#154c5d' },
+  worldFrame: { position: 'relative', overflow: 'hidden', backgroundColor: '#40adcf' },
   stationAnchor: { position: 'absolute', alignItems: 'center' },
   stationPress: { width: '100%', alignItems: 'center' },
   stationPressed: { transform: [{ scale: .95 }] },
@@ -598,13 +830,13 @@ const styles = StyleSheet.create({
   },
   stationPlaque: {
     marginTop: 3, width: 118, borderWidth: 1, borderColor: '#c2ad83',
-    backgroundColor: 'rgba(13,37,52,.93)',
+    backgroundColor: 'rgba(255,247,215,.95)',
     paddingHorizontal: 6, paddingVertical: 6, borderRadius: 9,
     alignItems: 'center', shadowColor: '#07111b', shadowOpacity: .3, shadowRadius: 8,
   },
-  stationPlaqueSelected: { borderColor: '#fff0b7', borderWidth: 1.5, backgroundColor: '#263b4e' },
-  stationName: { color: '#fff1ce', fontSize: 12, fontWeight: '900' },
-  stationZone: { color: '#cddbdc', fontSize: 8, fontWeight: '800' },
+  stationPlaqueSelected: { borderColor: '#dba44f', borderWidth: 2, backgroundColor: '#fff0bf' },
+  stationName: { color: '#324b44', fontSize: 12, fontWeight: '900' },
+  stationZone: { color: '#496866', fontSize: 8, fontWeight: '800' },
   futureMarker: {
     position: 'absolute', width: 44, height: 44, borderRadius: 22,
     backgroundColor: 'rgba(29,58,65,.58)',
@@ -654,6 +886,16 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   fitLabel: { color: '#ffedc5', fontSize: 8, fontWeight: '900' },
+  zoomTools: {
+    position: 'absolute', zIndex: 81, right: 10, borderRadius: 15,
+    backgroundColor: 'rgba(8,30,43,.94)', borderWidth: 1, borderColor: '#cbb283',
+    alignItems: 'center', padding: 5, gap: 3, elevation: 5,
+  },
+  zoomButton: {
+    width: 42, height: 39, borderRadius: 10, alignItems: 'center',
+    justifyContent: 'center', backgroundColor: '#25475a',
+  },
+  zoomReadout: { color: '#ffe4ac', fontWeight: '800', fontSize: 9 },
 
   bottomPanel: {
     position: 'absolute', zIndex: 80, left: 8, right: 8,
@@ -665,10 +907,12 @@ const styles = StyleSheet.create({
   },
   selectedRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 10 },
   selectedIcon: {
-    width: 43, height: 43, backgroundColor: '#29475b',
+    width: 65, height: 58, backgroundColor: '#29475b', overflow: 'hidden',
     borderWidth: 1, borderColor: '#d4b578', borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
   },
+  selectedArt: { ...StyleSheet.absoluteFillObject },
+  selectedArtScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(9,23,40,.36)' },
   selectedDetails: { flex: 1, minWidth: 0 },
   selectedEyebrow: { color: '#bad0d2', fontSize: 8, fontWeight: '900' },
   selectedName: { fontSize: 18, color: '#fff3cf', fontWeight: '900', marginTop: 1 },
@@ -679,7 +923,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
   },
   enterText: { color: '#283e47', fontSize: 12, fontWeight: '900' },
-  railTitleRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 5, paddingHorizontal: 12 },
+  railTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5, paddingHorizontal: 12 },
+  hideDock: { flexDirection:'row',alignItems:'center',paddingVertical:5,paddingHorizontal:7,
+    borderRadius:8, backgroundColor:'rgba(39,71,86,.6)' },
+  showDock: { position:'absolute',zIndex:80,alignSelf:'center',flexDirection:'row',
+    alignItems:'center',gap:8,paddingHorizontal:18,paddingVertical:12,
+    backgroundColor:'rgba(9,44,58,.93)',borderWidth:1,borderColor:'#fff0bc',
+    borderRadius:16,elevation:9 },
+  showDockText: { color:'#fff2cd',fontSize:12,fontWeight:'900' },
   railTitle: { color: '#f1d597', fontSize: 9, fontWeight: '900', letterSpacing: .7 },
   railHelp: { color: '#b7cbce', fontSize: 8, fontWeight: '800' },
   rail: { paddingHorizontal: 10, paddingBottom: 2, gap: 6 },

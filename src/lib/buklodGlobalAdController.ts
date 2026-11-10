@@ -206,12 +206,18 @@ export function isBuklodPassiveAdAllowed({
   // screens and all interstitial/rewarded ads remain blocked.
   const safeFacultyLanding =
     placement === 'focus' && route === '/profile/buklod-faculty';
+  // Passive Kingdom sponsorship only inside explicitly designated game-center
+  // slots. All other sensitive areas retain their current ad protections.
+  const safeKingdomCenter =
+    placement === 'content' &&
+    placementId.startsWith('kingdom-game-center-') &&
+    route.startsWith('/games/');
 
   return (
     foreground &&
     enabled('ads_passive') &&
     placementEnabled(placementId) &&
-    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding) &&
+    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding || safeKingdomCenter) &&
     !hasInteractionLock()
   );
 }
@@ -219,11 +225,16 @@ export function isBuklodPassiveAdAllowed({
 export function isBuklodRewardedAdAllowed(
   placementId = 'rewarded_generic',
 ) {
+  // The only Kingdom exception is an explicitly opted-in, noncash
+  // practice hint; no exams, payment, forms or other sensitive routes.
+  const safeKingdomPracticeHint =
+    placementId === 'rewarded_kingdom_practice_hint' &&
+    pathname.startsWith('/games/');
   return (
     foreground &&
     enabled('ads_rewarded') &&
     placementEnabled(placementId) &&
-    !isBuklodAdRouteSensitive(pathname) &&
+    (!isBuklodAdRouteSensitive(pathname) || safeKingdomPracticeHint) &&
     !hasInteractionLock()
   );
 }
@@ -231,11 +242,17 @@ export function isBuklodRewardedAdAllowed(
 export function canWarmBuklodFullScreenAd(
   placementId = 'interstitial_generic',
 ) {
+  // A completed Kingdom game or verified mastery is a natural break.
+  // Generic ads remain prohibited while the user is on a sensitive route.
+  const gameCompletionOnly = (
+    placementId === 'interstitial_kingdom_game_completed' ||
+    placementId === 'interstitial_kingdom_mastery_verified'
+  ) && pathname.startsWith('/games/');
   return (
     foreground &&
     enabled('ads_interstitial') &&
     placementEnabled(placementId) &&
-    !isBuklodAdRouteSensitive(pathname) &&
+    (!isBuklodAdRouteSensitive(pathname) || gameCompletionOnly) &&
     !hasInteractionLock() &&
     !fullScreenCadencePersistenceFailed
   );

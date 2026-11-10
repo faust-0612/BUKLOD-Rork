@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
+import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
+import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import type { BuklodGameResult } from '@/features/games/types';
 import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import {
@@ -10,6 +13,8 @@ import {
 } from './previewStore';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { KingdomMasteryCheck } from './KingdomMasteryCheck';
+import { KingdomAIContinuation } from './KingdomAIContinuation';
+import { KingdomOfflineContinuation } from './KingdomOfflineContinuation';
 
 type MiniGameFinish = (result: BuklodGameResult, sessionId: string) => void;
 export type KingdomInteriorOption = {
@@ -30,7 +35,7 @@ export type KingdomInteriorProps = {
 
 /**
  * Reusable, map-preserving Game Center for new stations.
- * No economy RPC or ads are implemented here. R1/R2 centers can migrate after QA.
+ * Game scores remain local previews. Only separate server-scored mastery may grant BP.
  */
 export function KingdomInteriorCenter({
   character, subtitleEn, subtitleTl, options,
@@ -40,12 +45,44 @@ export function KingdomInteriorCenter({
   const [activeId, setActiveId] = useState(options[0]?.id ?? '');
   const [record, setRecord] = useState<KingdomPreviewRecord | null>(null);
   const [notice, setNotice] = useState('');
+  const [masteries, setMasteries] = useState<number | null>(null);
+  const [masteredIds, setMasteredIds] = useState<ReadonlySet<string>>(new Set());
+  const [masteryRefresh, setMasteryRefresh] = useState(0);
+  const [lastCompletedId, setLastCompletedId] = useState<string | null>(null);
+  const offeredAds = useRef(new Set<string>());
   const [masteryEligibility, setMasteryEligibility] = useState<{ owner: string; gameId: string } | null>(null);
   const ownerRef = useRef(user?.id ?? null);
   const gameRef = useRef(activeId);
   ownerRef.current = user?.id ?? null;
   gameRef.current = activeId;
   const active = options.find(option => option.id === activeId) ?? options[0];
+  const nextOption = options.length > 1
+    ? options[(options.findIndex(option => option.id === active?.id) + 1) % options.length]
+    : null;
+
+  useEffect(() => {
+    let mounted = true;
+    setMasteries(null);
+    setMasteredIds(new Set());
+    if (user?.id) {
+      void Promise.resolve(supabase.rpc('get_my_buklod_kingdom_mastery_progress_v1'))
+        .then(({ data, error }) => {
+          if (!error && mounted) {
+            const record = data as { mastered_games?: number; game_ids?: unknown } | null;
+            const count = Number(record?.mastered_games);
+            if (Number.isFinite(count)) setMasteries(Math.max(0, Math.min(39, count)));
+            if (Array.isArray(record?.game_ids)) {
+              setMasteredIds(new Set(record.game_ids.filter((id): id is string => typeof id === 'string')));
+            }
+          }
+        }).catch(() => {
+          // The server owns BP. Keep UI usable if this optional summary is offline.
+        });
+    }
+    return () => { mounted = false; };
+  }, [user?.id, masteryRefresh]);
+
+  useEffect(() => { warmBuklodAdOpportunity('kingdom_game_completed'); }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -72,7 +109,15 @@ export function KingdomInteriorCenter({
         if (ownerRef.current !== owner || gameRef.current !== result.gameId) return;
         setRecord(value);
         setNotice(t('Game saved locally. You may verify a separate Mastery Check below for real Points.', 'Na-save ang laro sa device. Puwedeng mag-Mastery Check sa ibaba para sa totoong Points.'));
-        if (result.status === 'won') setMasteryEligibility({ owner, gameId: result.gameId });
+        if (result.status === 'won') {
+          setMasteryEligibility({ owner, gameId: result.gameId });
+          setLastCompletedId(result.gameId);
+          const receiptKey = owner + ':' + result.gameId + ':' + sessionId;
+          if (!offeredAds.current.has(receiptKey)) {
+            offeredAds.current.add(receiptKey);
+            void showBuklodAdOpportunity('kingdom_game_completed');
+          }
+        }
       })
       .catch(() => {
         if (ownerRef.current === owner && gameRef.current === result.gameId) {
@@ -92,6 +137,20 @@ export function KingdomInteriorCenter({
         <Text style={styles.eyebrow}>{character.toUpperCase()} • KINGDOM GAME CENTER</Text>
         <Text style={styles.heading}>{t('Choose a game', 'Pumili ng laro')}</Text>
         <Text style={styles.help}>{t(subtitleEn, subtitleTl)}</Text>
+        <View style={styles.bpSummary}>
+          <Text style={styles.bpHeading}>✦ KINGDOM BP MASTERY</Text>
+          <Text style={styles.bpNumbers}>
+            {masteries ?? '—'}/39 {t('verified games', 'verified games')}
+            {masteries !== null ? '  •  ' + (masteries * 2) + ' BP ' + t('earned here', 'earned dito') : ''}
+          </Text>
+          <View style={styles.bpTrack}>
+            <View style={[styles.bpFill, { width: `${masteries !== null ? masteries / 39 * 100 : 0}%` as const }]} />
+          </View>
+          <Text style={styles.masterySummary}>
+            {t('2 BP per first server-verified game mastery; replays do not multiply BP.',
+              '2 BP sa unang server-verified mastery bawat laro; walang dagdag na BP sa replay.')}
+          </Text>
+        </View>
         <View style={styles.chooser}>
           {options.map(option => <Pressable
             key={option.id} accessibilityRole="button"
@@ -101,6 +160,11 @@ export function KingdomInteriorCenter({
           >
             <Text style={styles.optionTitle}>{option.title}</Text>
             <Text style={styles.optionDescription}>{t(option.descriptionEn, option.descriptionTl)}</Text>
+            {masteries !== null ? <Text style={[styles.bpStatus,
+              masteredIds.has(option.id) && styles.bpStatusEarned]}>
+              {masteredIds.has(option.id) ? '✓ BP VERIFIED'
+                : t('◇ BP MASTERY AVAILABLE', '◇ MAY BP MASTERY')}
+            </Text> : null}
           </Pressable>)}
         </View>
         {active.kind === 'pilot' ? (
@@ -119,12 +183,30 @@ export function KingdomInteriorCenter({
             .then(() => {
               if (ownerRef.current === owner && gameRef.current === result.gameId && result.status === 'won') {
                 setMasteryEligibility({ owner, gameId: result.gameId });
+                setLastCompletedId(result.gameId);
               }
             }).catch(() => undefined);
         })}</View>
         {masteryEligibility?.owner === user?.id && masteryEligibility?.gameId === active.id ? (
-          <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id} />
+          <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id}
+            onVerified={() => setMasteryRefresh(value => value + 1)} />
         ) : null}
+        {user?.id ? (
+          <>
+            <KingdomOfflineContinuation key={'offline:' + user.id + ':' + active.id} gameId={active.id} />
+            <KingdomAIContinuation key={user.id + ':' + active.id} gameId={active.id} />
+          </>
+        ) : null}
+        {lastCompletedId === active.id && nextOption ? (
+          <Pressable accessibilityRole="button" style={styles.nextChallenge}
+            onPress={() => { setActiveId(nextOption.id); setLastCompletedId(null); }}>
+            <Text style={styles.nextChallengeText}>
+              {t('NEXT CHALLENGE', 'SUNOD NA CHALLENGE')}: {nextOption.title} →
+            </Text>
+          </Pressable>
+        ) : null}
+        <BuklodAdMobBanner placement="content" compact
+          placementId={'kingdom-game-center-' + character.toLowerCase()} />
       </View>
     </ScrollView>
   );
@@ -147,4 +229,16 @@ const styles = StyleSheet.create({
   record: { color: '#ffdfa6', fontSize: 12, fontWeight: '800' },
   notice: { color: '#dce8fd', fontSize: 11, lineHeight: 17 },
   game: { flexGrow: 1 },
+  masterySummary: { color: '#f4dba5', fontSize: 11, lineHeight: 17, fontWeight: '700' },
+  bpSummary: { backgroundColor:'#263d51',borderColor:'#cbab6b',borderWidth:1,
+    borderRadius:14,padding:12,gap:5 },
+  bpHeading: { color:'#e8d09a',fontSize:11,fontWeight:'900',letterSpacing:1 },
+  bpNumbers: { color:'#fff3ce',fontSize:17,fontWeight:'900' },
+  bpTrack: { height:8,backgroundColor:'#546575',borderRadius:5,overflow:'hidden' },
+  bpFill: { height:'100%',backgroundColor:'#ecca78',borderRadius:5 },
+  bpStatus: { color:'#e4cea7',fontSize:10,fontWeight:'800',marginTop:9 },
+  bpStatusEarned: { color:'#b9e5be' },
+  nextChallenge: { padding: 13, borderWidth: 1, borderRadius: 12,
+    borderColor: '#d6b879', backgroundColor: '#295769', alignItems: 'center' },
+  nextChallengeText: { color: '#fff2c8', fontSize: 13, fontWeight: '900' },
 });

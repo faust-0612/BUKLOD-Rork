@@ -3,6 +3,10 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/providers/AuthProvider';
+import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
+import { KingdomMasteryCheck } from '@/features/games/kingdom/platform/KingdomMasteryCheck';
+import { KingdomAIContinuation } from '@/features/games/kingdom/platform/KingdomAIContinuation';
+import { KingdomOfflineContinuation } from '@/features/games/kingdom/platform/KingdomOfflineContinuation';
 import { BibleCrownGameV1 } from '@/features/games/christian/BibleCrownGameV1';
 import { ScriptureWordSearchGameV1 } from '@/features/games/christian/ScriptureWordSearchGameV1';
 import { CivicLeadershipGameV1 } from '@/features/games/christian/CivicLeadershipGameV1';
@@ -30,6 +34,7 @@ function ChristianGameCenterContent() {
   liveGameId.current = previewGameId;
   const [preview, setPreview] = useState<KingdomPreviewRecord | null>(null);
   const [saveNotice, setSaveNotice] = useState('');
+  const [completedGameId, setCompletedGameId] = useState('');
   const liveUserId = useRef<string | null>(null);
   liveUserId.current = user?.id ?? null;
 
@@ -56,6 +61,7 @@ function ChristianGameCenterContent() {
       if (liveUserId.current !== owner || liveGameId.current !== result.gameId) return;
       setPreview(record);
       setSaveNotice(t('Preview saved on this device. No Character Points were awarded.', 'Na-save ang preview sa device. Walang naibigay na Character Points.'));
+      if (result.status === 'won') setCompletedGameId(result.gameId);
     }).catch(() => {
       if (liveUserId.current === owner && liveGameId.current === result.gameId) {
         setSaveNotice(t('Could not save locally. Your game can still be replayed.', 'Hindi na-save sa device. Maaari pa ring ulitin ang laro.'));
@@ -107,7 +113,12 @@ function ChristianGameCenterContent() {
         </View>
         {selectedGame === 'council' ? (
           // Preserve original Leadership Council and its existing preview-map behavior.
-          <CivicLeadershipGameV1 key={user?.id ?? 'guest'} onFinish={(result) => { void recordBuklodKingdomPreviewResult(result, user?.id ?? null).catch(() => undefined); }} />
+          <CivicLeadershipGameV1 key={user?.id ?? 'guest'} onFinish={(result) => {
+            const owner = user?.id;
+            void recordBuklodKingdomPreviewResult(result, owner).then(() => {
+              if (owner && liveUserId.current === owner && result.status === 'won') setCompletedGameId(result.gameId);
+            }).catch(() => undefined);
+          }} />
         ) : (
           <>
             <Text style={styles.record}>
@@ -120,6 +131,16 @@ function ChristianGameCenterContent() {
               : <ScriptureWordSearchGameV1 key={user?.id ?? 'guest'} onFinish={saveMinigameResult} />}
           </>
         )}
+        {!!user?.id && completedGameId === (selectedGame === 'council' ? GAME_ID : previewGameId) ? (
+          <>
+            <KingdomMasteryCheck key={user.id + ':' + completedGameId} gameId={completedGameId} />
+            <KingdomAIContinuation key={user.id + ':' + completedGameId} gameId={completedGameId} />
+          </>
+        ) : null}
+        {!!user?.id ? <KingdomOfflineContinuation
+          key={'offline:' + user.id + ':' + (selectedGame === 'council' ? GAME_ID : previewGameId)}
+          gameId={selectedGame === 'council' ? GAME_ID : previewGameId} /> : null}
+        <BuklodAdMobBanner placement="content" compact placementId="kingdom-game-center-christian" />
       </View>
     </ScrollView>
   );

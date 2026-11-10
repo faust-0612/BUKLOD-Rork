@@ -23,7 +23,7 @@ type Phase = 'ready' | 'loading' | 'answering' | 'submitting' | 'complete';
  * is ever accepted as a reward credential. The server owns the questions,
  * answer mapping, uniqueness, expiry, and the real Points ledger credit.
  */
-export function KingdomMasteryCheck({ gameId }: { gameId: string }) {
+export function KingdomMasteryCheck({ gameId, onVerified }: { gameId: string; onVerified?: () => void }) {
   const { t } = useBuklodGameLanguage();
   const [phase, setPhase] = useState<Phase>('ready');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -95,7 +95,10 @@ export function KingdomMasteryCheck({ gameId }: { gameId: string }) {
       const result = data as FinishData | null;
       if (result?.verified) {
         void playBuklodGameFeedback('success');
+        // Preserve the prior release-contract anchor for the existing
+        // optional post-verification ad. Verified BP remains server-owned.
         if ((result.points_awarded ?? 0)>0) void showBuklodAdOpportunity('kingdom_mastery_verified');
+        if ((result.points_awarded ?? 0) > 0) onVerified?.();
         setHasCredit(true);
         setPhase('complete');
         setNotice((result.points_awarded ?? 0) > 0
