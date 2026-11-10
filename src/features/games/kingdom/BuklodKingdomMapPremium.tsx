@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, {
   Circle as SvgCircle, Defs, Ellipse, G,
@@ -10,6 +10,7 @@ import Svg, {
 } from 'react-native-svg';
 import { useAuth } from '@/providers/AuthProvider';
 import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
+import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import { getBuklodSoundSettings } from '@/lib/buklodSounds';
 import {
@@ -383,6 +384,9 @@ export default function BuklodKingdomMapPremium() {
   const stage = stageFor(clearedCount);
   const stageCopy = STAGE_COPY[stage];
   const selectedStation = STATIONS.find(station => station.id === selectedId) ?? STATIONS[5];
+  // Only one selected-station art plate is mounted: preserve the old richer
+  // artwork without reinstating 13 always-on thumbnails/animated loops.
+  const selectedArt = getRorkGameMedia(selectedStation.id)?.background;
 
   const detailScale = clamp((screenWidth < 650 ? .86 : screenWidth < 1100 ? 1 : 1.06) * Math.pow(1.2, zoomStep), .55, 1.75);
   const scale = mode === 'fit'
@@ -546,6 +550,9 @@ export default function BuklodKingdomMapPremium() {
       <View style={[styles.bottomPanel, { bottom: Math.max(insets.bottom + 7, 8) }]}>
         <View style={styles.selectedRow}>
           <View style={styles.selectedIcon}>
+            {selectedArt ? <Image source={{ uri: selectedArt }}
+              resizeMode="cover" style={styles.selectedArt} /> : null}
+            <View style={styles.selectedArtScrim} pointerEvents="none" />
             <MaterialCommunityIcons name={selectedStation.icon} size={24} color="#ffe1a2" />
           </View>
           <View style={styles.selectedDetails}>
@@ -697,10 +704,12 @@ const styles = StyleSheet.create({
   },
   selectedRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 10 },
   selectedIcon: {
-    width: 43, height: 43, backgroundColor: '#29475b',
+    width: 54, height: 54, backgroundColor: '#29475b', overflow: 'hidden',
     borderWidth: 1, borderColor: '#d4b578', borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
   },
+  selectedArt: { ...StyleSheet.absoluteFillObject },
+  selectedArtScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(9,23,40,.36)' },
   selectedDetails: { flex: 1, minWidth: 0 },
   selectedEyebrow: { color: '#bad0d2', fontSize: 8, fontWeight: '900' },
   selectedName: { fontSize: 18, color: '#fff3cf', fontWeight: '900', marginTop: 1 },
