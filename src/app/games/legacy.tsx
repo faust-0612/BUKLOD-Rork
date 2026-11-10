@@ -14,6 +14,7 @@ import KingdomRelicEmblem, { kingdomFinishLabel } from '@/features/games/kingdom
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
 import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
 import {
   CHARACTER_DISPLAY_NAME, CORE_CHARACTER_ORDER, SPECIAL_CHARACTER_ORDER,
   getCachedBuklodCharacterSelectionV2, getMyBuklodCharacterSelectionV2,
@@ -144,10 +145,18 @@ export default function KingdomLegacyScreen() {
     if (!uid || !core || !collection || operation.current) return;
     if (!isCollectibleLevelOpen(collection, level)) return;
     const original = { uid, core, level };
+    const accountUnchanged = async () => {
+      if (accountRef.current !== original.uid) throw new Error('Character account changed. Refresh before trying again.');
+      const { data, error: authError } = await supabase.auth.getSession();
+      if (authError || data.session?.user.id !== original.uid) {
+        throw new Error('Session changed. Sign in again before claiming rewards.');
+      }
+    };
     operation.current = true;
     setBusyKey(String(index));
     setNotice('');
     try {
+      await accountUnchanged();
       if (equipped) {
         const item = collection.items.find(row =>
           row.characterId === core && row.level === level && row.itemIndex === index);
@@ -156,8 +165,10 @@ export default function KingdomLegacyScreen() {
       } else {
         // The server validates level ownership, account and item before any activation.
         await redeemMyCharacterCollectible(core, level, index);
+        await accountUnchanged();
         await useMyCharacterCollectible(core, level, index);
       }
+      await accountUnchanged();
       const updated = await getMyCharacterCollectibles(core);
       // Never carry an old account's collection into a newly signed-in account.
       if (original.uid === accountRef.current && original.core === core && original.level === level) {
