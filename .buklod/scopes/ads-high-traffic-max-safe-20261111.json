@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
-  "objective": "CONSO OTA SOURCE INCLUSION / HOLD: forward-port audited BUKLOD high-traffic AdMob opportunities and the adjacent Wall COMMUNITY+IGPAT button with weak-signal IGPAT feed continuity onto Nov11 integrated source (Community scroll/comment ads, fullscreen Wall video and mentoring fixes remain intact). Skip on-device verification only at owner request; retain automated integrity/compile/RC and production evidence requirements.",
-  "baseRef": "f0dbdd6702d80f589433ccdccb9e92fd5ac15299",
-  "branch": "dev/admob-high-traffic-max-safe-20261111",
-  "scope": "DEV source only; pending merged RC, production EAS environment gate and OTA fingerprint verification",
+  "objective": "DEV CONSOLIDATION HOLD: reconcile Wall/IGPAT feed ads, weak-network playback, responsive dashboard inventory, and Kingdom/Character/Points post-completion advertising on top of PTT, Finance, Shards and Messenger posting. No production OTA or native build.",
+  "baseRef": "3da9fb0db687ad65b025d48b575c1a698e3b5dff",
+  "branch": "integration/buklod-nov11-final-ads-surfaces-forwardport",
+  "scope": "DEV integrated code only; dependent QMP/Kingdom/mentor backend migrations and RC compile gate required",
   "changes": {
     "androidWallDefault": "4 organic posts before first; variable 4-6 organic posts between ad markers",
     "androidReelsDefault": "5 organic videos before first; variable 5-7 organic videos between sponsored pages",
@@ -12,9 +12,12 @@
       "Profile mid native + bottom banner",
       "Connect inbox native after fourth row",
       "Organization/Cluster Home mid native first-view fallback",
-      "Cluster Command mid native first-view fallback"
+      "Cluster Command mid native first-view fallback",
+      "Kingdom map, Hall, Treasury, offline practice and post-win game center",
+      "Points progression/redeem and Economy, Character save, Profile Note, Mentoring completion"
     ],
-    "reelsPolicy": "central useAds consent, active/sensitive route gate, native test-mode guard and late-response destroy"
+    "reelsPolicy": "central useAds consent, active/sensitive route gate, native test-mode guard and late-response destroy",
+    "kingdomPolicy": "Server-verified completion-only interstitials; passive ads only on allowlisted game routes; optional rewarded practice-only hint never creates points/cash."
   },
   "preserve": [
     "QMP/user revenue pool 30% unchanged",
@@ -29,7 +32,14 @@
   "verification": {
     "sourcePatch": "static assertions and readback pending",
     "tests": [
-      "tests/buklod-high-traffic-ads-20261111.test.mjs"
+      "tests/buklod-high-traffic-ads-20261111.test.mjs",
+      "tests/buklod-cluster-ad-coverage-20261111.test.mjs",
+      "tests/igpat-fast-start-video-20261110.test.mjs",
+      "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
+      "tests/buklod-kingdom-character-ads-20261111.test.mjs",
+      "tests/buklod-ad-surface-audit-20261111.test.mjs",
+      "tests/kingdom-ads-policy-20261111.test.mjs",
+      "tests/kingdom-native-rewarded-completions-20261111.test.mjs"
     ],
     "unverified": [
       "Node/test suite runtime",
@@ -74,7 +84,13 @@
     "Focused IGPAT fast-start and Wall navigation tests, TypeScript and integration regression gates pass exact head before RC",
     "This branch is ahead of the exact parent by only expected scoped files; target Public Wall diff is +26 insertions, zero deletions",
     "Focused source tests, PR objective scope QA, TypeScript and main integration compatibility must pass on exact head",
-    "No OTA, RC or production promotion is performed by source inclusion branch; future consolidated release identifies exact artifact and runtime"
+    "No OTA, RC or production promotion is performed by source inclusion branch; future consolidated release identifies exact artifact and runtime",
+    "Kingdom map, post-win center, Circle Rank and Points/Economy Android passive ads honor consent/viewport/no-fill/Ad-Light/kill-switch and have no game-input overlays",
+    "Character Studio interstitial only after successful saved change and closed editing surface",
+    "Mentoring completion ad only after authoritative RPC success and success-dialog dismissal; IGPAT only after confirmed publication, Profile Note only after server upsert",
+    "Kingdom Mastery full-screen exception requires a server-verified completion; no ads on every tap, Back, answer choice or upload",
+    "New focused Node test passes along with preexisting high-traffic coverage before merged RC.",
+    "Dependency-free read-only source audit traverses all Main route TSX files, including sensitive carve-outs, and reports uncovered successful workflow candidates without adding per-tap ads."
   ],
   "preserveBehaviors": [
     "30% QMP pool, cash accounting, finalization and withdrawals unchanged",
@@ -116,7 +132,28 @@
     "src/app/igpat/index.web.tsx",
     "src/lib/igpat/warmFeed.ts",
     "tests/igpat-fast-start-video-20261110.test.mjs",
-    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs"
+    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
+    "src/app/games/index.tsx",
+    "src/app/igpat/create.tsx",
+    "src/app/mentoring/index.tsx",
+    "src/app/points/economy.tsx",
+    "src/app/points/progression.tsx",
+    "src/app/profile/status.tsx",
+    "src/components/BuklodKingdomAdSlot.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/components/points/BuklodProfileCharacterCard.tsx",
+    "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
+    "src/features/games/kingdom/platform/KingdomMasteryCheck.tsx",
+    "src/lib/buklodAdOpportunities.ts",
+    "tests/buklod-kingdom-character-ads-20261111.test.mjs",
+    "scripts/buklod-ad-surface-audit.mjs",
+    "tests/buklod-ad-surface-audit-20261111.test.mjs",
+    "src/app/games/legacy.tsx",
+    "src/app/games/rewards.tsx",
+    "src/features/games/kingdom/platform/KingdomOfflineContinuation.tsx",
+    "src/lib/buklodRewardedAds.web.ts",
+    "tests/kingdom-ads-policy-20261111.test.mjs",
+    "tests/kingdom-native-rewarded-completions-20261111.test.mjs"
   ],
   "physicalDeviceVerification": "SKIPPED BY OWNER for consolidation preparation. This is not evidence that Android on-device video, AdMob fill, or 3G behavior passed.",
   "actualDeviceTesting": "NOT RUN (OWNER WAIVER FOR PREPARATION ONLY)",
@@ -127,6 +164,14 @@
     "sourcePr": 647,
     "communityPr": 648,
     "publicWallStrategy": "Insert only sibling button at stable header marker; +26 lines, zero removals, preserve comment/scroll/video code",
-    "ownerWaiver": "Skip actual device verification for preparation; DO NOT interpret as compiled RC or production success"
+    "ownerWaiver": "Skip actual device verification for preparation; DO NOT interpret as compiled RC or production success",
+    "newBaseBranch": "integration/buklod-nov11-consolidated-rc-prep",
+    "forwardPortSourcePrs": [
+      649,
+      650,
+      654
+    ],
+    "preservedRecentNativeReels": true,
+    "release": "HOLD"
   }
 }
