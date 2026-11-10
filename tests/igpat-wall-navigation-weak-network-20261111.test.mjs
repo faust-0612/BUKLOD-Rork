@@ -67,5 +67,8 @@ test('IGPAT still uses progressive signed URLs, bounded signing and gated native
     assert.match(source, /const SIGN_CONCURRENCY = 4/);
     assert.match(source, /SIGNED_URL_TTL_SECONDS = 1200/);
   }
-  assert.match(native, /active=\{index === activeIndex \|\| \(!weakSignal && Math\.abs\(index - activeIndex\) <= 2\)\}/);
+  // Preserve the newer persistent Reels player: prewarm the next page without activating it.
+  assert.match(native, /active=\{active\}/);
+  assert.match(native, /prepare=\{!weakSignal && index===activeIndex\+1\}/);
+  assert.match(native, /onLoadStateChange/);
 });
