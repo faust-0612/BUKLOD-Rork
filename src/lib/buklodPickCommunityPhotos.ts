@@ -1,4 +1,5 @@
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
@@ -6,6 +7,9 @@ import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 export type PickedCommunityPhoto = {
   id: string;
   uri: string;
+  /** Browser-owned file avoids re-fetching multi-MB data URIs in iOS webviews. */
+  webFile?: Blob;
+  mimeType?: string;
 };
 
 export async function pickCommunityPhotos(options: {
@@ -23,17 +27,19 @@ export async function pickCommunityPhotos(options: {
     return [];
   }
 
-  const P = await import('expo-image-picker');
-  const allowed = await ensureImagePickerLibraryAccess(
-    P.requestMediaLibraryPermissionsAsync
-  );
-
-  if (!allowed) {
-    Alert.alert('Photos', 'Please allow photo access.');
-    return [];
+  // Expo web picker must run directly within the tap gesture. Permissions
+  // are native-only; awaiting the web no-op loses transient user activation.
+  if (Platform.OS !== 'web') {
+    const allowed = await ensureImagePickerLibraryAccess(
+      ImagePicker.requestMediaLibraryPermissionsAsync
+    );
+    if (!allowed) {
+      Alert.alert('Photos', 'Please allow photo access.');
+      return [];
+    }
   }
 
-  const result = await P.launchImageLibraryAsync({
+  const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'] as any,
     allowsEditing: false,
     allowsMultipleSelection: true,
@@ -50,6 +56,8 @@ export async function pickCommunityPhotos(options: {
     .map(asset => ({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       uri: String(asset.uri ?? '').trim(),
+      webFile: Platform.OS === 'web' ? asset.file ?? undefined : undefined,
+      mimeType: String(asset.mimeType ?? asset.file?.type ?? '').trim().toLowerCase() || undefined,
     }))
     .filter(photo => !!photo.uri)
     .slice(0, remaining);
@@ -80,17 +88,19 @@ export async function pickCommunityGallery(options: {
     return null;
   }
 
-  const P = await import('expo-image-picker');
-  const allowed = await ensureImagePickerLibraryAccess(
-    P.requestMediaLibraryPermissionsAsync,
-  );
-
-  if (!allowed) {
-    Alert.alert('Gallery', 'Please allow photo and video access.');
-    return null;
+  // Do not await a permission request or a dynamic import before opening
+  // the web file dialog. Video and photo selection share this gesture path.
+  if (Platform.OS !== 'web') {
+    const allowed = await ensureImagePickerLibraryAccess(
+      ImagePicker.requestMediaLibraryPermissionsAsync,
+    );
+    if (!allowed) {
+      Alert.alert('Gallery', 'Please allow photo and video access.');
+      return null;
+    }
   }
 
-  const result = await P.launchImageLibraryAsync({
+  const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images', 'videos'] as any,
     allowsEditing: false,
     allowsMultipleSelection: true,
@@ -113,6 +123,8 @@ export async function pickCommunityGallery(options: {
     .map(asset => ({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       uri: String(asset.uri ?? '').trim(),
+      webFile: Platform.OS === 'web' ? asset.file ?? undefined : undefined,
+      mimeType: String(asset.mimeType ?? asset.file?.type ?? '').trim().toLowerCase() || undefined,
     }))
     .filter(photo => !!photo.uri)
     .slice(0, photoRemaining);
