@@ -178,7 +178,7 @@ function classifyType(text: string, dueAt: string | null, listCount: number): Sm
   if (matches(t, /\b(meeting|seminar|birthday|anniversary|conference|event|reunion|workshop|pagpupulong)\b/i)) return 'EVENT';
   if (matches(t, /\b(tula|poem|saknong|stanza|poetry)\b/i)) return 'POEM';
   if (listCount) return matches(t, /\b(grocery|groceries|palengke|shopping|bibilhin|bilhin|pamilihan|sari[- ]sari)\b/i) ? 'SHOPPING_LIST' : 'CHECKLIST';
-  if (matches(t, /\b(announcement|abiso|notice|memorandum|advisory|anunsyo)\b/i)) return 'NOTICE';
+  if (matches(t, /\b(announcement|abiso|notice|memorandum|advisory|anunsyo|paalaala|paalala)\b/i)) return 'NOTICE';
   if (matches(t, /\b(contact details|contact number|phone number|email address|telepono)\b/i)) return 'CONTACT_REFERENCE';
   if (matches(t, /\b(reference|citation|source|bibliography|sanggunian|link to read)\b/i)) return 'REFERENCE';
   if (matches(t, /\b(document|certificate|contract|agreement|affidavit|form|license|lisensya|permit)\b/i)) return 'DOCUMENT';
