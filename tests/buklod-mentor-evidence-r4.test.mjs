@@ -38,6 +38,9 @@ test('rejected reports may be revised without reopening credited records', () =>
   assert.match(sql, /row_rec\.mentor_id<>actor or row_rec\.status<>'rejected'/);
   assert.match(sql, /Credited mentoring sessions cannot be reopened/);
   assert.match(sql, /delete from private\.buklod_r2_mentor_session_evidence/);
+  assert.match(sql, /create table if not exists private\.buklod_r4_mentor_revision_audit/);
+  assert.match(sql, /alter table private\.buklod_r4_mentor_revision_audit enable row level security/);
+  assert.match(sql, /original_admin_note,original_location,original_notes,original_photo_path/);
   assert.match(mentor, /Correct and resubmit this report/);
   assert.match(mentor, /Attach a new consented photo/);
 });
