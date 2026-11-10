@@ -45,6 +45,7 @@ export function KingdomInteriorCenter({
   const [record, setRecord] = useState<KingdomPreviewRecord | null>(null);
   const [notice, setNotice] = useState('');
   const [masteries, setMasteries] = useState<number | null>(null);
+  const [masteredIds, setMasteredIds] = useState<ReadonlySet<string>>(new Set());
   const [masteryRefresh, setMasteryRefresh] = useState(0);
   const [lastCompletedId, setLastCompletedId] = useState<string | null>(null);
   const offeredAds = useRef(new Set<string>());
@@ -61,12 +62,17 @@ export function KingdomInteriorCenter({
   useEffect(() => {
     let mounted = true;
     setMasteries(null);
+    setMasteredIds(new Set());
     if (user?.id) {
       void supabase.rpc('get_my_buklod_kingdom_mastery_progress_v1')
         .then(({ data, error }) => {
           if (!error && mounted) {
-            const count = Number((data as { mastered_games?: number } | null)?.mastered_games);
+            const record = data as { mastered_games?: number; game_ids?: unknown } | null;
+            const count = Number(record?.mastered_games);
             if (Number.isFinite(count)) setMasteries(Math.max(0, Math.min(39, count)));
+            if (Array.isArray(record?.game_ids)) {
+              setMasteredIds(new Set(record.game_ids.filter((id): id is string => typeof id === 'string')));
+            }
           }
         }).catch(() => undefined);
     }
@@ -128,11 +134,20 @@ export function KingdomInteriorCenter({
         <Text style={styles.eyebrow}>{character.toUpperCase()} • KINGDOM GAME CENTER</Text>
         <Text style={styles.heading}>{t('Choose a game', 'Pumili ng laro')}</Text>
         <Text style={styles.help}>{t(subtitleEn, subtitleTl)}</Text>
-        <Text style={styles.masterySummary}>
-          {t('Verified Kingdom mastery', 'Verified Kingdom mastery')}: {masteries ?? '—'}/39
-          {'  •  '}{t('2 BP per first server-verified game mastery; replays do not multiply BP.',
-            '2 BP sa unang server-verified mastery bawat laro; walang dagdag na BP sa replay.')}
-        </Text>
+        <View style={styles.bpSummary}>
+          <Text style={styles.bpHeading}>✦ KINGDOM BP MASTERY</Text>
+          <Text style={styles.bpNumbers}>
+            {masteries ?? '—'}/39 {t('verified games', 'verified games')}
+            {masteries !== null ? '  •  ' + (masteries * 2) + ' BP ' + t('earned here', 'earned dito') : ''}
+          </Text>
+          <View style={styles.bpTrack}>
+            <View style={[styles.bpFill, { width: (masteries !== null ? masteries / 39 * 100 : 0) + '%' }]} />
+          </View>
+          <Text style={styles.masterySummary}>
+            {t('2 BP per first server-verified game mastery; replays do not multiply BP.',
+              '2 BP sa unang server-verified mastery bawat laro; walang dagdag na BP sa replay.')}
+          </Text>
+        </View>
         <View style={styles.chooser}>
           {options.map(option => <Pressable
             key={option.id} accessibilityRole="button"
@@ -142,6 +157,11 @@ export function KingdomInteriorCenter({
           >
             <Text style={styles.optionTitle}>{option.title}</Text>
             <Text style={styles.optionDescription}>{t(option.descriptionEn, option.descriptionTl)}</Text>
+            {masteries !== null ? <Text style={[styles.bpStatus,
+              masteredIds.has(option.id) && styles.bpStatusEarned]}>
+              {masteredIds.has(option.id) ? '✓ BP VERIFIED'
+                : t('◇ BP MASTERY AVAILABLE', '◇ MAY BP MASTERY')}
+            </Text> : null}
           </Pressable>)}
         </View>
         {active.kind === 'pilot' ? (
@@ -203,7 +223,15 @@ const styles = StyleSheet.create({
   record: { color: '#ffdfa6', fontSize: 12, fontWeight: '800' },
   notice: { color: '#dce8fd', fontSize: 11, lineHeight: 17 },
   game: { flexGrow: 1 },
-  masterySummary: { color: '#f4dba5', fontSize: 12, lineHeight: 18, fontWeight: '700' },
+  masterySummary: { color: '#f4dba5', fontSize: 11, lineHeight: 17, fontWeight: '700' },
+  bpSummary: { backgroundColor:'#263d51',borderColor:'#cbab6b',borderWidth:1,
+    borderRadius:14,padding:12,gap:5 },
+  bpHeading: { color:'#e8d09a',fontSize:11,fontWeight:'900',letterSpacing:1 },
+  bpNumbers: { color:'#fff3ce',fontSize:17,fontWeight:'900' },
+  bpTrack: { height:8,backgroundColor:'#546575',borderRadius:5,overflow:'hidden' },
+  bpFill: { height:'100%',backgroundColor:'#ecca78',borderRadius:5 },
+  bpStatus: { color:'#e4cea7',fontSize:10,fontWeight:'800',marginTop:9 },
+  bpStatusEarned: { color:'#b9e5be' },
   nextChallenge: { padding: 13, borderWidth: 1, borderRadius: 12,
     borderColor: '#d6b879', backgroundColor: '#295769', alignItems: 'center' },
   nextChallengeText: { color: '#fff2c8', fontSize: 13, fontWeight: '900' },
