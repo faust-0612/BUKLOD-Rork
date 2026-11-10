@@ -1,0 +1,59 @@
+{
+  "contractVersion": 2,
+  "objective": "Include previously verified Community Wall ad visibility and extra-comment natural-break ad changes in current consolidated OTA source, preserving newer video fixes.",
+  "baseRef": "2e4022da7ca52ff221762cd6f445eb1792d6ddbd",
+  "productionBaselineEvidence": "Compared main 5efb99435243a4bcaeff27fc8d41d58b6a9969c2, Community candidate cf1e8b7 and the existing NOV10 OTA integration 2e4022da7ca52ff221762cd6f445eb1792d6ddbd. Integration is ahead of main with newer video/mentor fixes; neither it nor this candidate is independently verified as live production.",
+  "chosenApproach": "Forward-port only the missing, tested Community changes to the current non-production consolidation branch. Avoid whole-file replacement and do not alter existing 45%/80ms video autoplay/viewability, fullscreen playback, ad safety, scoped access, points, PTT, or data. Correct the Engineering Accountability workflow's existing hardcoded main-only PR comparison so verification uses the actual integration target without waiving any test. Also apply a narrow compile-only type narrowing correction in the pre-existing mentor evidence receipt flow that the integrated baseline's TypeScript gate exposed; no request/auth/upload logic is changed.",
+  "selectionRationale": "Existing consolidation source contains unique working video/caption/mentor changes and a different useBuklodCommunityAdViewability API; minimal function-level changes preserve it instead of overwriting it with the older PR #645 Wall file.",
+  "alternativeApproaches": [
+    "Merge the entire PR #645 branch as a Git tree replacement; rejected because it was based on older main and would overwrite accumulated video enhancements.",
+    "Patch/merge directly into production main and publish a separate OTA; rejected because the owner requires one consolidated OTA after RC verification."
+  ],
+  "preserveBehaviors": [
+    "Video and photo playback changes already merged in NOV10 integration",
+    "No new native dependencies/build settings",
+    "Existing server-controlled rewards/anti-farming stay authoritative",
+    "Ad request consent, native + banner fallback, viewport and cooldown gates unchanged",
+    "Comment posting and threading are never ad-gated",
+    "No Play AAB or OTA publishing",
+    "Keep PR #647 separate for its own source reconciliation",
+    "Mentoring evidence receipts remain validated and retryable with unchanged storage and review flow"
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "ads-monetization"
+  ],
+  "regressionTests": [
+    "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
+    "tests/buklod-community-scroll-ads-20261111.test.mjs",
+    "tests/community-conso-target-scope-gate-20261111.test.mjs",
+    "tests/conso-mentor-session-receipt-typeguard-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/app/post/[id].tsx",
+    "src/lib/buklodAdOpportunities.ts",
+    "src/lib/buklodCommunityCommentAdCadence.ts",
+    "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
+    "tests/buklod-community-scroll-ads-20261111.test.mjs",
+    ".buklod/scopes/community-scroll-comment-conso-inclusion-20261111.json",
+    ".github/workflows/engineering-accountability.yml",
+    "tests/community-conso-target-scope-gate-20261111.test.mjs",
+    "src/app/faith/mentor-evidence.tsx",
+    "tests/conso-mentor-session-receipt-typeguard-20261111.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Community inline ad rows remain measurable during fast scroll",
+    "Public and scope comments allow unlimited ordinary engagement after server confirmation",
+    "Interstitial is optional at a natural editor close after additional comments",
+    "No double BP/earnings logic or new backend migration",
+    "Previous video/audio/scroll code remains byte-for-byte unchanged outside anchors",
+    "Focused source/behavior, performance, TypeScript and web compatibility pass",
+    "NO PRODUCTION OTA triggered from this branch",
+    "Integration PR engineering gate resolves its actual base and rejects unrelated paths, preserving strict failure on missing evidence",
+    "Mentor evidence TypeScript compile regression resolved without rewriting the existing mentoring/RLS flow"
+  ],
+  "physicalDeviceVerification": "Not performed, remain unverified.",
+  "releaseState": "CONSOLIDATED OTA SOURCE INCLUSION / HOLD — NOT PROD"
+}
