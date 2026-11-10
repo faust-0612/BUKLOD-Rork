@@ -33,7 +33,8 @@
       "tests/buklod-cluster-ad-coverage-20261111.test.mjs",
       "tests/igpat-fast-start-video-20261110.test.mjs",
       "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
-      "tests/buklod-kingdom-character-ads-20261111.test.mjs"
+      "tests/buklod-kingdom-character-ads-20261111.test.mjs",
+      "tests/buklod-ad-surface-audit-20261111.test.mjs"
     ],
     "unverified": [
       "Node/test suite runtime",
@@ -85,7 +86,8 @@
     "Character Studio interstitial only after successful saved change and closed editing surface",
     "Mentoring completion ad only after authoritative RPC success and success-dialog dismissal; IGPAT only after confirmed publication, Profile Note only after server upsert",
     "Kingdom Mastery full-screen exception requires a server-verified completion; no ads on every tap, Back, answer choice or upload",
-    "New focused Node test passes along with preexisting high-traffic coverage before merged RC."
+    "New focused Node test passes along with preexisting high-traffic coverage before merged RC.",
+    "Dependency-free read-only source audit traverses all Main route TSX files, including sensitive carve-outs, and reports uncovered successful workflow candidates without adding per-tap ads."
   ],
   "preserveBehaviors": [
     "30% QMP pool, cash accounting, finalization and withdrawals unchanged",
@@ -107,7 +109,8 @@
     "tests/buklod-cluster-ad-coverage-20261111.test.mjs",
     "tests/igpat-fast-start-video-20261110.test.mjs",
     "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
-    "tests/buklod-kingdom-character-ads-20261111.test.mjs"
+    "tests/buklod-kingdom-character-ads-20261111.test.mjs",
+    "tests/buklod-ad-surface-audit-20261111.test.mjs"
   ],
   "allowedPaths": [
     "src/lib/buklodAdMonetizationPolicy.android.ts",
@@ -139,6 +142,8 @@
     "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
     "src/features/games/kingdom/platform/KingdomMasteryCheck.tsx",
     "src/lib/buklodAdOpportunities.ts",
-    "tests/buklod-kingdom-character-ads-20261111.test.mjs"
+    "tests/buklod-kingdom-character-ads-20261111.test.mjs",
+    "scripts/buklod-ad-surface-audit.mjs",
+    "tests/buklod-ad-surface-audit-20261111.test.mjs"
   ]
 }
