@@ -26,7 +26,7 @@ export default function KingdomPracticeScreen() {
         <Text style={styles.backText}>BACK TO KINGDOM GAMES</Text>
       </Pressable>
       <Text style={styles.title}>Kingdom Adventure Levels</Text>
-      <Text style={styles.help}>200 deterministic practice levels per official game, playable without internet. Only separate server-verified Mastery earns BP; this practice awards no BP, XP or cash.</Text>
+      <Text style={styles.help}>5,000 deterministic practice levels per official game, playable without internet. Only separate server-verified Mastery earns BP; this practice awards no BP, XP or cash.</Text>
       {!user?.id ? <Text style={styles.notice}>Sign in to start or resume your offline adventure.</Text>
         : !gameId ? <Text style={styles.notice}>This game is not in the official Kingdom catalog.</Text>
         : <KingdomOfflineContinuation key={user.id+':'+gameId} gameId={gameId}/>}
