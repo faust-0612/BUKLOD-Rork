@@ -21,7 +21,7 @@ import BuklodScopeBuklodLessonPanel from'@/components/BuklodScopeBuklodLessonPan
 import BuklodScopeFaithMonitoringDoor from'@/components/BuklodScopeFaithMonitoringDoor';
 import BuklodScopeCallLauncher from'@/components/BuklodScopeCallLauncher';
 import BuklodScopeProfilePhoto from '@/components/BuklodScopeProfilePhoto';
-import BuklodUnifiedEarningsHomeCard from '@/components/BuklodUnifiedEarningsHomeCard';
+import BuklodScopeFundCard from '@/components/BuklodScopeFundCard';
 import BuklodScopeBPTop10 from '@/components/BuklodScopeBPTop10';
 import {
  type BuklodScopeHomeFile,pickBuklodScopeHomeMedia,pickBuklodScopeHomeResource,
@@ -333,7 +333,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
     </Pressable> : null}
   </View>
   <BuklodScopeProfilePhoto scopeId={scope.scope_id} scopeName={scope.name} isAdmin={isAdmin}/>
-  <BuklodUnifiedEarningsHomeCard scopeId={scope.scope_id} scopeType={scope.scope_type} />
+  <BuklodScopeFundCard scopeId={scope.scope_id} scopeName={scope.name} />
   {show('notice')&&<Card icon={notice?.priority==='EMERGENCY'?'alert-octagon-outline':'alert-circle-outline'} title={notice?.priority==='EMERGENCY'?'EMERGENCY NOTICE':'IMPORTANT NOTICE'} action={isAdmin?'EDIT':undefined} onAction={isAdmin?()=>edit('notice'):undefined} cardColor={cardColor}>{notice?<><Text style={[s.big,notice.priority==='EMERGENCY'&&{color:'#A82020'}]}>{notice.title}</Text>{notice.body?<Text style={s.body}>{notice.body}</Text>:null}
  {notice.media_url&&notice.media_mime_type?.startsWith('image/')?
    <Image source={{uri:notice.media_url}} style={s.homeMedia} resizeMode="cover"/>:null}
