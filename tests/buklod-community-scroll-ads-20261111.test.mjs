@@ -6,7 +6,9 @@ import { stripTypeScriptTypes } from 'node:module';
 
 const read = path => readFileSync(path, 'utf8');
 const source = read('src/lib/buklodAdPlacements.ts');
-const sourceNoImports = source.replace(/^import[\s\S]*?from\s+['"][^'"]+['"];\s*/gm, '');
+const sourceNoImports = source
+  .replace(/^import[\s\S]*?from\s+['"][^'"]+['"];\s*/gm, '')
+  .replace(/^export\s+\{[\s\S]*?\};\s*/m, '');
 const runnable = stripTypeScriptTypes(sourceNoImports, { mode: 'strip' }).replace(/^export\s+/gm, '');
 const placements = vm.runInNewContext(
   runnable + '\n({ buildCommunityFeedWithInlineAds, isCommunityFeedInlineAdRow })',
