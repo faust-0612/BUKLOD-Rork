@@ -579,7 +579,7 @@ export default function IgpatScreen() {
           if (isReelsFeedInlineAdRow(item)) {
             return (
               <View style={[styles.page, { height: viewportHeight }]}>
-                <BuklodReelsInlineAd slotId={item.id} active={index === activeIndex} />
+                <BuklodReelsInlineAd slotId={item.id} active={Math.abs(index - activeIndex) <= 2} />
               </View>
             );
           }
