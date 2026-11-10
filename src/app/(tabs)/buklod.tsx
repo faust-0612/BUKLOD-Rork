@@ -6194,23 +6194,20 @@ const communityFeedRows =
           pointerEvents="none"
           style={{
            position:'absolute',
-           top:'48%',
+           top:Math.max(communityInsets.top+90,110),
            alignSelf:'center',
-           paddingHorizontal:12,
-           paddingVertical:7,
-           borderRadius:16,
-           backgroundColor:
-            'rgba(0,0,0,.46)'
+           flexDirection:'row',
+           alignItems:'center',
+           gap:8,
+           paddingHorizontal:14,
+           paddingVertical:8,
+           borderRadius:18,
+           backgroundColor:'rgba(0,0,0,.75)'
           }}
          >
-          <Text
-           style={{
-            color:'#FFFFFF',
-            fontSize:10,
-            fontWeight:'800'
-           }}
-          >
-           Refreshing videoâ€¦
+          <ActivityIndicator size="small" color="#FFFFFF"/>
+          <Text style={{color:'#FFFFFF',fontSize:12,fontWeight:'700'}}>
+           Reconnecting video…
           </Text>
          </View>
         )}
@@ -6220,12 +6217,10 @@ const communityFeedRows =
     />
 
     <View
-     style={[
-      s.communityViewerTop,
-      {
-       pointerEvents:'box-none'
-      } as any
-     ]}
+     pointerEvents="box-none"
+     style={[s.communityViewerTop,{
+      paddingTop:Math.max(communityInsets.top+14,54),
+     }]}
     >
      <Text
       style={
@@ -6272,22 +6267,14 @@ const communityFeedRows =
         position:'absolute',
         left:8,
         right:8,
-        bottom:
-         Math.max(
-          communityInsets.bottom+
-           (Platform.OS==='web'
-            ? 78
-            : 72),
-          84
-         ),
-        paddingHorizontal:8,
-        paddingTop:4,
-        paddingBottom:4,
-        borderRadius:14,
-        /* BUKLOD_VIDEO_VIEWER_NO_CONTROL_OVERLAP_R6 */
-        backgroundColor:
-         'rgba(0,0,0,.16)',
-        borderWidth:0
+        bottom:Math.max(communityInsets.bottom+18,28),
+        paddingHorizontal:12,
+        paddingTop:9,
+        paddingBottom:9,
+        borderRadius:18,
+        backgroundColor:'rgba(0,0,0,.68)',
+        borderWidth:1,
+        borderColor:'rgba(255,255,255,.12)'
        }}
       >
        <Text
@@ -6343,6 +6330,8 @@ const communityFeedRows =
          activePost.comment_count
         }
         commentPreview={null}
+        showCommentPreview={false}
+        socialActions
         onReactionSummaryPress={key =>
          openReactionDetails(
           activePost,
@@ -6375,23 +6364,20 @@ const communityFeedRows =
      );
     })()}
 
-    {videoViewerPosts.length>1&&(
-     <Text
-      style={[
-       s.communityViewerHint,
-       {
-        bottom:
-         Math.max(
-          communityInsets.bottom+118,
-          Platform.OS==='android'
-           ? 158
-           : 128
-         )
-       }
-      ]}
-     >
-      Swipe vertically for next video
-     </Text>
+    {videoViewerPosts.length>1&&videoViewerShowHint&&(
+     <View pointerEvents="none" style={{
+      position:'absolute',
+      top:Math.max(communityInsets.top+105,126),
+      alignSelf:'center',
+      paddingHorizontal:12,
+      paddingVertical:6,
+      borderRadius:16,
+      backgroundColor:'rgba(0,0,0,.58)'
+     }}>
+      <Text style={{color:'#FFFFFF',fontSize:11,fontWeight:'700'}}>
+       Swipe up for next video
+      </Text>
+     </View>
     )}
 
     {videoViewerIndex>=videoViewerPosts.length-2 &&
