@@ -79,6 +79,14 @@ import {
 } from '@/lib/buklodVideoDiscovery';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+import BuklodReelsInlineAd, {
+  type BuklodReelsAdLoadState,
+} from '@/components/BuklodReelsInlineAd';
+import {
+  buildReelsFeedWithInlineAds,
+  isReelsFeedInlineAdRow,
+} from '@/lib/buklodAdPlacements';
+import { useAds } from '@/providers/AdsProvider';
 import { recordConfirmedCommunityComment, takePendingCommunityCommentAdBreak } from '@/lib/buklodCommunityCommentAdCadence';
 import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
@@ -438,6 +446,7 @@ const BUKLOD_MOTION_DRAWER_GROUPS=[
   ['sparkles','fireflies','sunrays','dust','bokeh','stars','underwater'].includes(p))},
 ];
 export default function BuklodScreen(){
+ const { ready: reelAdsReady, canRequestAds: reelAdConsent } = useAds();
  const { focusPostId } = useLocalSearchParams<{focusPostId?:string}>();
  const openingPublicPost = typeof focusPostId==='string' && !!focusPostId.trim();
  const {
@@ -1419,7 +1428,51 @@ function LegacyPublicBuklodScreen(){
  // Only small metadata pages are read; actual video URLs are resolved when
  // entering the viewer / approaching playback. No offscreen downloads.
  const [videoViewerPosts,setVideoViewerPosts]=useState<any[]>([]);
+ // Freeze consent/format at opening so ad slots do not shift scroll positions
+ // if the consent bootstrap resolves halfway through a swipe session.
+ const [videoViewerAdsEnabled,setVideoViewerAdsEnabled]=useState(false);
+ const [videoViewerAdStates,setVideoViewerAdStates]=useState<Record<string,BuklodReelsAdLoadState>>({});
+ const videoViewerListRef=useRef<any>(null);
+ const videoViewerFeedRows=useMemo(()=>{
+  if(!videoViewerAdsEnabled)return videoViewerPosts;
+  const rows=buildReelsFeedWithInlineAds(videoViewerPosts);
+  // Never end a finite playlist on an empty sponsored slot.
+  return isReelsFeedInlineAdRow(rows[rows.length-1])
+   ? rows.slice(0,-1) : rows;
+ },[videoViewerPosts,videoViewerAdsEnabled]);
+ const videoViewerActiveRow=videoViewerFeedRows[videoViewerIndex];
+ const videoViewerActiveIsAd=isReelsFeedInlineAdRow(videoViewerActiveRow);
+ const videoViewerNextVideoIndex=videoViewerFeedRows.findIndex((row,index)=>
+   index>videoViewerIndex && !isReelsFeedInlineAdRow(row));
+ const videoViewerContentPosition=videoViewerFeedRows
+  .slice(0,videoViewerIndex+1)
+  .filter(row=>!isReelsFeedInlineAdRow(row)).length;
  const [videoViewerSession,setVideoViewerSession]=useState(0);
+ const videoViewerSessionRef=useRef(videoViewerSession);
+ videoViewerSessionRef.current=videoViewerSession;
+ useEffect(()=>{
+  if(!videoViewerOpen)return;
+  const row=videoViewerFeedRows[videoViewerIndex];
+  if(!isReelsFeedInlineAdRow(row))return;
+  const state=videoViewerAdStates[row.id]??'loading';
+  if(state==='ready')return;
+  // No-fill or stalled ads must never strand the user on a black slide.
+  // This timeout is only for native ad cards; ordinary video playback stays
+  // independent. Users can swipe/continue even earlier.
+  const timer=setTimeout(()=>{
+   const next=videoViewerFeedRows.findIndex((candidate,index)=>
+     index>videoViewerIndex && !isReelsFeedInlineAdRow(candidate));
+   const target=next>=0?next:Math.max(0,videoViewerIndex-1);
+   if(target===videoViewerIndex)return;
+   try{
+    videoViewerListRef.current?.scrollToIndex({index:target,animated:false});
+    setVideoViewerIndex(target);
+   }catch{
+    // List may already be closing; leave navigation fully usable.
+   }
+  },state==='unavailable'?120:3000);
+  return()=>clearTimeout(timer);
+ },[videoViewerOpen,videoViewerFeedRows,videoViewerIndex,videoViewerAdStates]);
  useEffect(()=>{
   if(!videoViewerOpen)return;
   const timer=setTimeout(()=>setVideoViewerShowHint(false),2700);
@@ -4483,6 +4536,8 @@ const load=useCallback(async(options?:{
     setVideoViewerLoadError(false);
     setVideoViewerPosts([target]);
     setVideoViewerIndex(0);
+    setVideoViewerAdsEnabled(Platform.OS==='android' && reelAdsReady && reelAdConsent);
+    setVideoViewerAdStates({});
     setVideoViewerFreshUrls({});
     setVideoViewerResolvingPostId(null);
     videoViewerUrlInflightRef.current.clear();
@@ -4989,6 +5044,7 @@ const communityFeedRows =
   viewabilityConfig: communityAdViewabilityConfig,
   videoViewabilityConfig: communityVideoViewabilityConfig,
   extraData: communityAdExtraData,
+
   visibleVideoPostId,
   preloadVideoPostId,
  } = useBuklodCommunityAdViewability(communityFeedRows);
@@ -6036,6 +6092,7 @@ const communityFeedRows =
     }}
    >
     <GestureFlatList
+     ref={videoViewerListRef}
      key={
       'video-viewer-'+
        videoViewerSession
@@ -6044,7 +6101,7 @@ const communityFeedRows =
       flex:1,
       width:'100%'
      }}
-     data={videoViewerPosts}
+     data={videoViewerFeedRows}
      extraData={videoViewerIndex}
      initialNumToRender={2}
      maxToRenderPerBatch={2}
@@ -6069,7 +6126,7 @@ const communityFeedRows =
        videoViewerIndex,
        Math.max(
         0,
-        videoViewerPosts.length-1
+        videoViewerFeedRows.length-1
        )
       )
      }
@@ -6091,7 +6148,7 @@ const communityFeedRows =
            .contentOffset.y/
           videoViewerPageHeight
          ),
-         videoViewerPosts.length-1
+         videoViewerFeedRows.length-1
         )
        );
 
@@ -6101,7 +6158,7 @@ const communityFeedRows =
 
       if(nextIndex!==videoViewerIndex)setVideoViewerShowHint(false);
       // Never rotate a still-playable signed URL merely on swipe.
-       if(nextIndex>=videoViewerPosts.length-3 &&
+       if(nextIndex>=videoViewerFeedRows.length-3 &&
           videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT){
         void loadMoreVideoViewer();
        }
@@ -6113,6 +6170,56 @@ const communityFeedRows =
       }}
       onEndReachedThreshold={0.8}
      renderItem={({item,index})=>{
+      if (isReelsFeedInlineAdRow(item)) {
+       const adState=videoViewerAdStates[item.id]??'loading';
+       const isActive=index===videoViewerIndex;
+       return (
+        <View style={{
+          height:videoViewerPageHeight,width:'100%',
+          backgroundColor:'#000000',
+          justifyContent:'center',
+          paddingTop:Math.max(communityInsets.top+112,140),
+          paddingBottom:Math.max(communityInsets.bottom+34,46)
+        }}>
+         {isActive && adState!=='ready' ? (
+          <View style={{
+            paddingHorizontal:24,alignItems:'center',gap:14
+          }}>
+           <ActivityIndicator color="#FFFFFF" size="small"/>
+           <Text style={{color:'#FFFFFF',fontSize:15,fontWeight:'700'}}>
+            Preparing sponsored content…
+           </Text>
+           <Pressable accessibilityRole="button"
+            accessibilityLabel="Continue to next video"
+            style={{
+             minHeight:48,paddingHorizontal:22,paddingVertical:12,
+             borderRadius:24,backgroundColor:'#24372F'
+            }}
+            onPress={()=>{
+             const next=Math.min(index+1,videoViewerFeedRows.length-1);
+             if(next===index)return;
+             videoViewerListRef.current?.scrollToIndex({index:next,animated:false});
+             setVideoViewerIndex(next);
+            }}>
+            <Text style={{color:'#FFFFFF',fontSize:14,fontWeight:'700'}}>
+             Continue watching
+            </Text>
+           </Pressable>
+          </View>
+         ) : null}
+         <BuklodReelsInlineAd
+          slotId={item.id}
+          active={videoViewerOpen&&isActive}
+          prepare={videoViewerOpen&&index===videoViewerIndex+1}
+          onLoadStateChange={state=>{
+           if(videoViewerSessionRef.current!==videoViewerSession)return;
+           setVideoViewerAdStates(previous=>
+            previous[item.id]===state?previous:{...previous,[item.id]:state});
+          }}
+         />
+        </View>
+       );
+      }
       const descriptor=
        communityWallVideoDescriptor(
         item
@@ -6185,7 +6292,7 @@ const communityFeedRows =
           index===
           videoViewerIndex
          }
-         preload={index===videoViewerIndex+1}
+         preload={index===videoViewerNextVideoIndex}
          autoPlay={
           index===
           videoViewerIndex
@@ -6243,9 +6350,9 @@ const communityFeedRows =
        s.communityViewerCount
       }
      >
-      {videoViewerIndex+1}
-      {' / '}
-      {videoViewerPosts.length}
+      {videoViewerActiveIsAd ? 'Sponsored' : Math.max(1,videoViewerContentPosition)}
+      {videoViewerActiveIsAd ? '' : ' / '}
+      {videoViewerActiveIsAd ? '' : videoViewerPosts.length}
      </Text>
 
      <Pressable
@@ -6266,13 +6373,8 @@ const communityFeedRows =
      </Pressable>
     </View>
 
-    {!!videoViewerPosts[
-      videoViewerIndex
-    ]&&(()=>{
-     const activePost=
-      videoViewerPosts[
-       videoViewerIndex
-      ];
+    {!videoViewerActiveIsAd&&!!videoViewerActiveRow&&(()=>{
+     const activePost=videoViewerActiveRow;
      const counts=
       activePost?.reaction_counts||
       {};
@@ -6380,7 +6482,7 @@ const communityFeedRows =
      );
     })()}
 
-    {videoViewerPosts.length>1&&videoViewerShowHint&&(
+    {videoViewerPosts.length>1&&!videoViewerActiveIsAd&&videoViewerShowHint&&(
      <View pointerEvents="none" style={{
       position:'absolute',
       top:Math.max(communityInsets.top+105,126),
@@ -6396,7 +6498,7 @@ const communityFeedRows =
      </View>
     )}
 
-    {videoViewerIndex>=videoViewerPosts.length-2 &&
+    {videoViewerIndex>=videoViewerFeedRows.length-2 &&
      videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT &&
      videoViewerLoadError&&!videoViewerLoadingMore&&(
      <Pressable
