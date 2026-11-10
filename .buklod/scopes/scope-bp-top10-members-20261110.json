@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Add a private exact-scope lifetime BP Top 10 to Cluster Home and Organization Home, showing active members only and never disclosing another scope's or former members' BP.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main SHA a4badb341c16444fa42c44a5e0906760b85d2a08 uses BuklodClusterHomeCommandCenterImpl for Cluster Home and BuklodScopeHomeDashboard for Organization Home. Production BUKLOD Connect Supabase yhanxndaqbmuzbdqlblu has canonical buklod_user_points_balances lifetime_points and ACTIVE membership records, with 24 active Cluster scopes and 34 active Organizations on 2026-11-10. New additive migration 20261110093333 applied to Supabase; live simulated-member and outsider/anonymous SQL checks for both scope types passed. No RC binary, installed-app test, or OTA production publication is implied.",
+  "allowedPaths": [
+    ".buklod/scopes/scope-bp-top10-members-20261110.json",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodScopeBPTop10.tsx",
+    "supabase/migrations/20261110093333_buklod_scope_bp_top10_members_only.sql",
+    "supabase/tests/buklod_scope_bp_top10_members_only_20261110.sql",
+    "tests/scope-bp-top10-contract-20261110.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Both canonical Cluster and Organization Home show a compact Member BP Top 10 card after first-view ad without changing existing functionality.",
+    "The exact selected scope's ACTIVE, not-left, active-profile members only can see rankings.",
+    "The backend checks viewer membership before returning any data; outsiders and anonymous callers are denied.",
+    "Lifetime BP uses canonical balances, with deterministic descending order, 0 BP allowed, and at most 10 rows.",
+    "No cross-account persisted cache; stale responses ignored on navigation/auth changes; retry available.",
+    "Backend test and focused Node source regression pass; no production OTA or web publish."
+  ],
+  "chosenApproach": "Add one membership-guarded, read-only exact-scope Supabase RPC and one reusable lightweight Home component. Use canonical lifetime_points, never client-side global leaderboard filtering.",
+  "selectionRationale": "A global leaderboard filtered on the phone could leak unrelated user points and miss scope members outside the global top limit. Server-side authorization and ranking enforce correct scope and Top 10.",
+  "alternativeApproaches": [
+    "Filter existing global leaderboard client-side: rejected because it is not scoped to memberships, may be incomplete and can disclose unrelated people.",
+    "Download all members and their ledger rows to the app: rejected because of privacy, load and cross-account cache risks.",
+    "Use a membership-guarded SQL RPC returning at most ten rows: chosen."
+  ],
+  "preserveBehaviors": [
+    "Existing global BP leaderboard, Circle Rank, Kingdom level, QMP, earnings and redemption ledgers remain unchanged.",
+    "Existing scope-specific navigation, earnings card, first-view ad, and configurable Cluster widgets remain available.",
+    "No hidden administrator bypass of member-only ranking; no public Home leaderboard changes.",
+    "Never push OTA or Expo Web production publish from this workstream."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "auth-privacy"
+  ],
+  "regressionTests": [
+    "tests/scope-bp-top10-contract-20261110.test.mjs",
+    "supabase/tests/buklod_scope_bp_top10_members_only_20261110.sql"
+  ]
+}
