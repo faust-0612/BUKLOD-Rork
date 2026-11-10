@@ -147,6 +147,8 @@ BEGIN
     THEN RETURN jsonb_build_object('ok',true,'already_completed',true); END IF;
   IF NOT EXISTS(SELECT 1 FROM public.kl_quiz_sets WHERE episode_id=p_episode_id AND manuscript_hash=v_hash AND status='ready')
     THEN RETURN jsonb_build_object('ok',false,'reason','questions_preparing'); END IF;
+  INSERT INTO public.kl_reading_sessions(user_id,episode_id)
+    VALUES(v_user,p_episode_id) ON CONFLICT(user_id,episode_id) DO NOTHING;
   SELECT count(*) INTO v_count FROM public.kl_quiz_attempts
    WHERE user_id=v_user AND episode_id=p_episode_id AND started_at>now()-interval '10 minutes';
   IF v_count>=8 THEN RETURN jsonb_build_object('ok',false,'reason','retry_later'); END IF;
@@ -169,7 +171,12 @@ BEGIN
   SELECT * INTO v FROM public.kl_quiz_attempts WHERE id=p_attempt_id AND user_id=auth.uid() FOR UPDATE;
   IF NOT FOUND THEN RETURN jsonb_build_object('ok',false,'reason','attempt_unavailable'); END IF;
   IF v.submitted_at IS NOT NULL THEN
-    RETURN jsonb_build_object('ok',true,'passed',v.verified_at IS NOT NULL,'already_submitted',true);
+    IF v.verified_at IS NOT NULL THEN
+      -- Safe replay when the network failed after a successful transaction.
+      SELECT public.kl_reading_progress_v1(v.episode_id,'complete') INTO v_result;
+      RETURN jsonb_build_object('ok',true,'passed',true,'already_submitted',true,'completion',v_result);
+    END IF;
+    RETURN jsonb_build_object('ok',true,'passed',false,'already_submitted',true);
   END IF;
   IF v.started_at<now()-interval '2 hours' OR
     NOT EXISTS(SELECT 1 FROM public.kl_episodes e JOIN public.kl_quiz_sets s ON s.episode_id=e.id
