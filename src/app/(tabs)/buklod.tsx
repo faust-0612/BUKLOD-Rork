@@ -1394,11 +1394,7 @@ function LegacyPublicBuklodScreen(){
  const videoViewerUrlInflightRef=useRef(new Set<string>());
  const videoViewerUrlAttemptsRef=useRef(new Map<string,number>());
  const videoViewerUrlRetryAfterRef=useRef(new Map<string,number>());
- useEffect(()=>{
-  if(!videoViewerOpen)return;
-  const timer=setTimeout(()=>setVideoViewerShowHint(false),2700);
-  return()=>clearTimeout(timer);
- },[videoViewerOpen,videoViewerSession]);
+
 
  const wallVideoPosts=
   useMemo(
@@ -1421,6 +1417,11 @@ function LegacyPublicBuklodScreen(){
  // entering the viewer / approaching playback. No offscreen downloads.
  const [videoViewerPosts,setVideoViewerPosts]=useState<any[]>([]);
  const [videoViewerSession,setVideoViewerSession]=useState(0);
+ useEffect(()=>{
+  if(!videoViewerOpen)return;
+  const timer=setTimeout(()=>setVideoViewerShowHint(false),2700);
+  return()=>clearTimeout(timer);
+ },[videoViewerOpen,videoViewerSession]);
  const [videoViewerLoadingMore,setVideoViewerLoadingMore]=useState(false);
  const [videoViewerHasMore,setVideoViewerHasMore]=useState(true);
  const [videoViewerLoadError,setVideoViewerLoadError]=useState(false);
