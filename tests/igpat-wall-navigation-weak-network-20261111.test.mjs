@@ -25,6 +25,8 @@ test('Both IGPAT clients retain account and mode scoped media rather than blanki
     assert.match(source, /visibleFeedKeyRef\.current === key/);
     assert.match(source, /const retainedRows = matchingFeed && rowsRef\.current\.length \? rowsRef\.current : warmRows/);
     assert.match(source, /setLoading\(retainedRows\.length === 0\)/);
+    assert.match(source, /!matchingFeed && warmRows\.length &&/);
+    assert.match(source, /isIgpatWarmFeedFresh\(user\.id, feedMode, dataSaver\)/);
     assert.match(source, /rowsRef\.current = retainedRows;\s*setRows\(retainedRows\);/);
     assert.match(source, /if \(!matchingFeed\) setActiveIndex\(0\)/);
     assert.match(source, /generation !== loadGenerationRef\.current/);
@@ -48,6 +50,8 @@ test('Weak connectivity prioritizes the current video and recovers once internet
 test('Signed URL warm cache expires, remains in memory only and is account isolated', () => {
   assert.match(cache, /const MAX_AGE_MS = 8 \* 60 \* 1000/);
   assert.match(cache, /const MAX_ENTRIES = 6/);
+  assert.match(cache, /export function isIgpatWarmFeedFresh\(/);
+  assert.match(cache, /maxAgeMs = 45_000/);
   assert.match(cache, /JSON\.stringify\(\[userId, mode, dataSaver \? 'saver' : 'normal'\]\)/);
   assert.match(cache, /now - entry\.storedAt >= MAX_AGE_MS/);
   assert.match(cache, /return entry\.rows\.map\(row => \(\{ \.\.\.row \}\)\)/);
