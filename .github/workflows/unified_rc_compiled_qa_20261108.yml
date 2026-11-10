@@ -56,7 +56,7 @@ jobs:
         run: |
           npx tsc --noEmit
           node --test tests/kingdom-certified-mastery-39-20261108.test.mjs tests/kingdom-functionality-r13.test.mjs
-          node --test tests/kingdom-legacy-visual-r1.test.mjs tests/kingdom-main-visual-consolidated-20261111.test.mjs tests/kingdom-premium-map-r6.test.mjs tests/kingdom-complete-user-experience-20261111.test.mjs
+          node --test tests/kingdom-legacy-visual-r1.test.mjs tests/kingdom-main-visual-consolidated-20261111.test.mjs tests/kingdom-premium-map-r6.test.mjs tests/kingdom-complete-user-experience-20261111.test.mjs tests/kingdom-shards-free-powers-20261111.test.mjs
       - name: Regression checks for BUKLOD music admin and automatic ambiance
         run: |
           node --test tests/admin-music-ambience-contract-20261108.test.mjs tests/wall-post-music-motion-contract.test.mjs tests/wall-post-music-navigation-scroll.test.mjs tests/buklod-wall-crash-escape-20261108.test.mjs
