@@ -86,3 +86,14 @@ test('Gallery links all canonical game centers and cannot invent credits', () =>
     assert.ok(!route.includes(forbidden), forbidden);
   }
 });
+
+
+test('Account session is checked at each step of multi-RPC equip operation', () => {
+  const route = read('src/app/games/legacy.tsx');
+  assert.match(route, /const accountUnchanged = async/);
+  assert.match(route, /supabase\.auth\.getSession\(\)/);
+  assert.match(route, /data\.session\?\.user\.id !== original\.uid/);
+  assert.match(route, /await redeemMyCharacterCollectible\(core, level, index\);\s*await accountUnchanged\(\);\s*await useMyCharacterCollectible/);
+  assert.match(route, /await accountUnchanged\(\);\s*const updated = await getMyCharacterCollectibles/);
+  assert.match(route, /original\.uid === accountRef\.current/);
+});
