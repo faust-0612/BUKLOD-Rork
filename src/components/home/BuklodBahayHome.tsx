@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -359,6 +359,7 @@ export default function BuklodBahayHome() {
     setActiveHomeId(id);
     setActiveRoom(null);
     setSelectedCommunityId('');
+    setSnapshot(null);
     setInviteId('');
     setSelectedInvitee(null);
     setInviteSuggestions([]);
@@ -393,7 +394,13 @@ export default function BuklodBahayHome() {
 
   const decideInvite = (homeId:string,accept:boolean) => run(async()=>{
     await decideBahayInvite(homeId,accept);
-    await refreshHomes();
+    if (accept) {
+      // After acceptance enter the specific invited home, not the previous one.
+      await refreshHomes(homeId);
+      await switchHome(homeId);
+    } else {
+      await refreshHomes();
+    }
   },accept?'Kasambahay ka na.':'Invitation declined.');
 
   const itemTypeForRoom = (room:RoomKey) => {

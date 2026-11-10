@@ -106,7 +106,9 @@ export async function loadBahayHomes(userId: string) {
     .order('created_at', { ascending: true });
   if (memberships.error) throw memberships.error;
 
-  const active = (memberships.data ?? []).filter((m: any) => m.status === 'ACTIVE');
+  const active = (memberships.data ?? []).filter((m: any) =>
+    m.status === 'ACTIVE' && (!m.expires_at || new Date(m.expires_at).getTime() > Date.now())
+  );
   const pending = (memberships.data ?? []).filter((m: any) =>
     m.status === 'PENDING' && (!m.expires_at || new Date(m.expires_at).getTime() > Date.now())
   );
@@ -132,6 +134,7 @@ export async function loadBahayHomes(userId: string) {
       .from('buklod_homes')
       .select('id,name,home_kind,created_by')
       .in('id', pendingIds);
+    if (result.error) throw result.error;
     invitations = (result.data ?? []).map((home: any) => ({
       ...home,
       role: pending.find((m: any) => m.home_id === home.id)?.role,

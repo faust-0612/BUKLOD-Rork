@@ -15,6 +15,9 @@ test('Bahay invitation UI provides searchable suggestions and selection', () => 
     "subscribeBahayInvitations(userId",
     "useFocusEffect(useCallback(",
     "Waiting for acceptance.",
+    "await refreshHomes(homeId)",
+    "await switchHome(homeId)",
+    "setSnapshot(null)",
   ]) assert.ok(ui.includes(token), `missing invite UI flow: ${token}`);
   assert.match(ui, /const timer=setTimeout\(/);
   assert.match(ui, /if \(!cancelled\)/);
@@ -28,6 +31,7 @@ test('Bahay client RPCs remain typed and invite by server-side user ID', () => {
   assert.match(client, /'buklod_home_invite_user_v2'/);
   assert.match(client, /'buklod_home_pending_invites_v1'/);
   assert.match(client, /m.status === 'PENDING' && \(!m.expires_at/);
+  assert.match(client, /m.status === 'ACTIVE' && \(!m.expires_at/);
   assert.match(client, /'buklod_home_invite_v1'/);
 });
 

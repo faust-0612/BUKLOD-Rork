@@ -13,7 +13,8 @@
     "Guest invitation expires and cannot be accepted after expiry; eligible re-invite remains possible",
     "Recipient sees invitation on returning to Bahay and can accept/decline in existing UI",
     "Focused Node source contract and rollback-only live Postgres positive and negative auth test pass",
-    "No migration activation or OTA/web deploy before exact RC compile, production migration and release verification"
+    "No migration activation or OTA/web deploy before exact RC compile, production migration and release verification",
+    "The exact source SHA passes production-identity, TypeScript, Android Expo export, Expo web export and regression suite in unified compiled RC QA; do not publish from PR"
   ],
   "preserveBehaviors": [
     "Existing Bahay rooms, chores, files, garden, community and notification preferences",
@@ -41,7 +42,8 @@
     "src/lib/buklodBahay.ts",
     "supabase/migrations/20261110113000_buklod_bahay_invite_suggestions.sql",
     "tests/bahay-kasambahay-invite-20261110.test.cjs",
-    "supabase/tests/buklod_bahay_invite_20261110.sql"
+    "supabase/tests/buklod_bahay_invite_20261110.sql",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml"
   ],
   "alternativeApproaches": [
     "Manual exact-identifier-only search (rejected: no suggestions and fragile for people without a known @username)",
