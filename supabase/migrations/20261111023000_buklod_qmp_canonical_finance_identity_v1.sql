@@ -32,6 +32,15 @@ begin
   where l.user_id=p_user_id and l.retired_at is null;
   if v_person is not null then return v_person; end if;
 
+  -- A retired link may represent a closed, recreated or risk-flagged account.
+  -- Never silently reactivate it from ordinary QMP activity.
+  if exists (
+    select 1 from private.buklod_pf_user_links l
+    where l.user_id=p_user_id and l.retired_at is not null
+  ) then
+    raise exception 'Retired Finance identity requires authorized review';
+  end if;
+
   -- An existing canonical person for this auth UID must never be duplicated.
   select p.person_id into v_person from private.buklod_pf_persons p
   where p.current_user_id=p_user_id for update;
