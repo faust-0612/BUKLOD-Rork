@@ -47,7 +47,7 @@ test('Canonical Home uses square Bahay and Health Center cards, mobile and deskt
  const hub=read('src/app/(tabs)/hub.tsx');
  const cards=read('src/components/home/BuklodHomeUtilityCards.tsx');
  assert.equal(hub.split('<BuklodHomeUtilityCards />').length-1,2);
- for(const key of ['paddingHorizontal: 0','/personal-home','/profile/buklod-health'])
+ for(const key of ['paddingHorizontal: 0','/personal-home','BuklodMainHealthCard'])
    assert.ok((hub+cards).includes(key),key);
  assert.match(cards,/aspectRatio:\s*1\b/,'utility cards must stay square');
  assert.match(hub,/borderRadius:\s*4\b/,'public Hub compact card corners retained');

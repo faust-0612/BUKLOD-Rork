@@ -53,8 +53,8 @@ function Field({value,onChange,placeholder,multiline=false}:HealthFieldProps) {
 }
 
 export default function BuklodMainHealthCard({
-  openStandalone,tileId,
-}: {openStandalone:()=>void;tileId:string}) {
+  openStandalone,tileId,externalError=false,
+}: {openStandalone:()=>void;tileId:string;externalError?:boolean}) {
   const {user} = useAuth();
   const [language,setLanguage] = useState<Language>('fil');
   const [section,setSection] = useState<Section>(null);
@@ -238,6 +238,8 @@ export default function BuklodMainHealthCard({
         <Text style={[styles.langText,language==='en'&&styles.langSelectedText]}>English</Text>
       </Pressable>
     </View>
+    {externalError?<Text style={styles.warning}>{t('Full Health Center could not open. Please retry from this card.',
+      'Hindi nabuksan ang buong Health Center. Subukan muli dito sa card.')}</Text>:null}
     {!active?<View style={styles.buttons}>
       <Info>{t('Free professional advice, with verified identities.','Libreng payong pangkalusugan mula sa verified professionals.')}</Info>
       <Button label={t('FREE ONLINE CONSULTATION','LIBRENG KONSULTASYON')} onPress={()=>openSection('consult')}/>

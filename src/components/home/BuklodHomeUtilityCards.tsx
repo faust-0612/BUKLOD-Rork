@@ -14,14 +14,17 @@ import BuklodMainHealthCard from '@/components/home/BuklodMainHealthCard';
 export default function BuklodHomeUtilityCards() {
   const { theme } = useBuklodTheme();
   const healthOpeningRef = React.useRef(false);
+  const [healthLinkError,setHealthLinkError] = React.useState(false);
 
   const openStandaloneHealth = async () => {
     if (healthOpeningRef.current) return;
     healthOpeningRef.current = true;
+    setHealthLinkError(false);
     try {
       await launchBuklodHealthCenter(url => Linking.openURL(url));
     } catch {
-      router.push('/profile/buklod-health' as any);
+      // Main Health Center card remains the entrypoint even on failed external links.
+      setHealthLinkError(true);
     } finally {
       healthOpeningRef.current = false;
     }
@@ -61,7 +64,8 @@ export default function BuklodHomeUtilityCards() {
       </Pressable>
 
       {/* Inline Health Center workspace, without leaving Main Home. */}
-      <BuklodMainHealthCard tileId={healthCard.id} openStandalone={() => void openStandaloneHealth()} />
+      <BuklodMainHealthCard tileId={healthCard.id} externalError={healthLinkError}
+        openStandalone={() => void openStandaloneHealth()} />
 
     </View>
   );

@@ -39,7 +39,7 @@ test('Home square Health card has distinct online consultation and full standalo
   assert.match(home, /BuklodMainHealthCard/);
   assert.match(inline, /ONLINE CONSULTATION|LIBRENG KONSULTASYON/i);
   assert.match(inline, /Full Health Center/);
-  assert.match(home, /router\.push\('\/profile\/buklod-health'/);
+  assert.doesNotMatch(home, /router\.push\('\/profile\/buklod-health'/);
   assert.match(home, /launchBuklodHealthCenter/);
   assert.match(home, /aspectRatio: 1/);
   assert.equal(hub.split('<BuklodHomeUtilityCards />').length-1, 2);
