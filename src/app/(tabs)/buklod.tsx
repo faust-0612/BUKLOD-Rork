@@ -79,6 +79,14 @@ import {
 } from '@/lib/buklodVideoDiscovery';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+import BuklodReelsInlineAd, {
+  type BuklodReelsAdLoadState,
+} from '@/components/BuklodReelsInlineAd';
+import {
+  buildReelsFeedWithInlineAds,
+  isReelsFeedInlineAdRow,
+} from '@/lib/buklodAdPlacements';
+import { useAds } from '@/providers/AdsProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
@@ -435,6 +443,7 @@ const BUKLOD_MOTION_DRAWER_GROUPS=[
   ['sparkles','fireflies','sunrays','dust','bokeh','stars','underwater'].includes(p))},
 ];
 export default function BuklodScreen(){
+ const { ready: reelAdsReady, canRequestAds: reelAdConsent } = useAds();
  const { focusPostId } = useLocalSearchParams<{focusPostId?:string}>();
  const openingPublicPost = typeof focusPostId==='string' && !!focusPostId.trim();
  const {
@@ -1416,7 +1425,28 @@ function LegacyPublicBuklodScreen(){
  // Only small metadata pages are read; actual video URLs are resolved when
  // entering the viewer / approaching playback. No offscreen downloads.
  const [videoViewerPosts,setVideoViewerPosts]=useState<any[]>([]);
+ // Freeze consent/format at opening so ad slots do not shift scroll positions
+ // if the consent bootstrap resolves halfway through a swipe session.
+ const [videoViewerAdsEnabled,setVideoViewerAdsEnabled]=useState(false);
+ const [videoViewerAdStates,setVideoViewerAdStates]=useState<Record<string,BuklodReelsAdLoadState>>({});
+ const videoViewerListRef=useRef<any>(null);
+ const videoViewerFeedRows=useMemo(()=>{
+  if(!videoViewerAdsEnabled)return videoViewerPosts;
+  const rows=buildReelsFeedWithInlineAds(videoViewerPosts);
+  // Never end a finite playlist on an empty sponsored slot.
+  return isReelsFeedInlineAdRow(rows[rows.length-1])
+   ? rows.slice(0,-1) : rows;
+ },[videoViewerPosts,videoViewerAdsEnabled]);
+ const videoViewerActiveRow=videoViewerFeedRows[videoViewerIndex];
+ const videoViewerActiveIsAd=isReelsFeedInlineAdRow(videoViewerActiveRow);
+ const videoViewerNextVideoIndex=videoViewerFeedRows.findIndex((row,index)=>
+   index>videoViewerIndex && !isReelsFeedInlineAdRow(row));
+ const videoViewerContentPosition=videoViewerFeedRows
+  .slice(0,videoViewerIndex+1)
+  .filter(row=>!isReelsFeedInlineAdRow(row)).length;
  const [videoViewerSession,setVideoViewerSession]=useState(0);
+ const videoViewerSessionRef=useRef(videoViewerSession);
+ videoViewerSessionRef.current=videoViewerSession;
  useEffect(()=>{
   if(!videoViewerOpen)return;
   const timer=setTimeout(()=>setVideoViewerShowHint(false),2700);
@@ -4470,6 +4500,8 @@ const load=useCallback(async(options?:{
     setVideoViewerLoadError(false);
     setVideoViewerPosts([target]);
     setVideoViewerIndex(0);
+    setVideoViewerAdsEnabled(Platform.OS==='android' && reelAdsReady && reelAdConsent);
+    setVideoViewerAdStates({});
     setVideoViewerFreshUrls({});
     setVideoViewerResolvingPostId(null);
     videoViewerUrlInflightRef.current.clear();
