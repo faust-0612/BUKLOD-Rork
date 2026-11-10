@@ -3,13 +3,15 @@
  * No client-minted BP, Shards, XP, cash, or gameplay entitlements.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
+import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+import { maybeShowBuklodInterstitial, warmBuklodInterstitial } from '@/lib/buklodAds';
 import KingdomRelicEmblem, { kingdomFinishLabel } from '@/features/games/kingdom/KingdomRelicEmblem';
 import KingdomBadgeTrials from '@/features/games/kingdom/KingdomBadgeTrials';
 import { emptyKingdomShards, getMyKingdomShards, hasKingdomPower, type KingdomShardsSnapshot } from '@/lib/buklodKingdomShards';
@@ -70,6 +72,7 @@ export default function KingdomLegacyScreen() {
   const [trialItem, setTrialItem] = useState<CharacterCollectibleItem | null>(null);
   const [visibleCount, setVisibleCount] = useState(8);
   const [reveal, setReveal] = useState<{ name: string; index: number; level: number; kind?: import('@/lib/buklodCharacterCollectibles').CharacterCollectibleRewardKind } | null>(null);
+  const pendingClaimAd = useRef<{ owner: string; hero: string; level: number } | null>(null);
   const revealScale = useRef(new Animated.Value(.72)).current;
   const revealOpacity = useRef(new Animated.Value(0)).current;
   const operation = useRef(false);
@@ -83,6 +86,17 @@ export default function KingdomLegacyScreen() {
   const level = Math.min(20, Math.max(1, Math.floor(state?.character_level || 1)));
   const levelRef = useRef(level);
   levelRef.current = level;
+  const dismissRewardReveal = () => {
+    setReveal(null);
+    const verified = pendingClaimAd.current;
+    pendingClaimAd.current = null;
+    // Wait for explicit user dismissal of the reward celebration.
+    // Never interrupt the verified collectible animation with a full-screen ad.
+    if (verified && accountRef.current === verified.owner &&
+        activeIdRef.current === verified.hero && levelRef.current === verified.level) {
+      void maybeShowBuklodInterstitial('content_session_completed', 'interstitial_kingdom_legacy_claim');
+    }
+  };
   const points = Math.max(0, state?.character_points_since_selection || 0);
   const nextTarget = level < 20 ? PROGRESSIVE_LEVEL_THRESHOLDS[level] : null;
   const previousTarget = PROGRESSIVE_LEVEL_THRESHOLDS[level - 1];
@@ -179,10 +193,14 @@ export default function KingdomLegacyScreen() {
     } finally { setLoading(false); }
   }, [uid, load]);
 
+  useEffect(() => { warmBuklodInterstitial('interstitial_kingdom_legacy_claim'); }, []);
   const changeItem = useCallback(async (targetLevel: number, index: number, equipped: boolean) => {
     if (!uid || !core || !collection || operation.current) return;
     if (!isCollectibleLevelOpen(collection, targetLevel)) return;
     const original = { uid, core, level, targetLevel };
+    const wasPreviouslyClaimed = collection.items.some(item =>
+      item.characterId === core && item.level === targetLevel &&
+      item.itemIndex === index && Boolean(item.redeemedAt));
     const accountUnchanged = async () => {
       if (accountRef.current !== original.uid) throw new Error('Character account changed. Refresh before trying again.');
       if (activeIdRef.current !== original.core || levelRef.current !== original.level) {
@@ -219,6 +237,9 @@ export default function KingdomLegacyScreen() {
           const verified = updated.items.find(row => row.characterId === core &&
             row.level === targetLevel && row.itemIndex === index && Boolean(row.redeemedAt));
           if (verified) {
+            if (!wasPreviouslyClaimed) {
+              pendingClaimAd.current = { owner: original.uid, hero: original.core, level: original.level };
+            }
             setReveal({ name: collectibleNames(core, targetLevel)[index-1] ?? 'Character collectible', index,
               kind: verified.rewardKind, level: targetLevel });
             void playBuklodGameFeedback('unlock');
@@ -293,6 +314,7 @@ export default function KingdomLegacyScreen() {
             </Pressable>
           </LinearGradient>
 
+          {Platform.OS === 'android' ? <BuklodCommunityInlineAd surface="home" slotId="kingdom_legacy_native" placementIdOverride="kingdom_legacy_native" active /> : null}
           <Pressable accessibilityRole="button" accessibilityLabel="Open Shard Treasury and game powers"
             onPress={() => router.push('/games/rewards' as any)} style={s.shardsBar}>
             <MaterialCommunityIcons name="diamond-stone" size={25} color={C.gold}/>
@@ -451,7 +473,7 @@ export default function KingdomLegacyScreen() {
         </View>
       </Modal>
       <Modal visible={Boolean(reveal)} transparent animationType="fade"
-        onRequestClose={() => setReveal(null)}>
+        onRequestClose={dismissRewardReveal}>
         <View style={s.modalShade}>
           <Animated.View style={[s.modalCard, {
             opacity: revealOpacity, transform: [{ scale: revealScale }],
@@ -465,7 +487,7 @@ export default function KingdomLegacyScreen() {
             <Text style={s.modalName}>{reveal?.name ?? ''}</Text>
             <Text style={s.modalDescription}>Server-confirmed character collectible • {reveal ? kingdomFinishLabel(reveal.level) : ''} visual finish. No additional BP or currency awarded.</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Close reward celebration"
-              onPress={() => setReveal(null)} style={s.goldButton}>
+              onPress={dismissRewardReveal} style={s.goldButton}>
               <Text style={s.goldButtonText}>CONTINUE MY KINGDOM</Text>
             </Pressable>
           </Animated.View>
