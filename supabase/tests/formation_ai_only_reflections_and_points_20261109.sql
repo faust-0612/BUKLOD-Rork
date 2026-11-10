@@ -72,6 +72,21 @@ BEGIN
     );
   IF v_count<>0 THEN RAISE EXCEPTION 'Eligible AI-approved reflection has no issued bonus'; END IF;
 
+  -- R5 compatibility: older clients can save enrollment-bound lesson drafts,
+  -- but the finalization helper still requires five independent Gemini checks.
+  v_definition:=pg_get_functiondef(
+    'public.submit_learning_lesson_response_v1(uuid,uuid,jsonb,text)'::regprocedure);
+  IF position('assert_buklod_response_validated_v1' in v_definition)>0
+    OR position('enrollment_user <> actor' in v_definition)=0
+    OR position('jsonb_array_length(p_question_answers) <> 4' in v_definition)=0
+  THEN RAISE EXCEPTION 'Lesson draft capture lost auth/completeness or still blocks old clients'; END IF;
+
+  v_definition:=pg_get_functiondef(
+    'public.save_my_formation_lesson_study(uuid,uuid,text)'::regprocedure);
+  IF position('assert_buklod_response_validated_v1' in v_definition)>0
+    OR position('enrollment_record.id is null' in v_definition)=0
+  THEN RAISE EXCEPTION 'Formation study drafts are blocked or enrollment protection was lost'; END IF;
+
   -- R4 regression: production must not accept legacy rule-v1 lesson scores
   -- for new automatic point awards, even if the score previously passed.
   IF position('buklod_lesson_ai_answer_checked_v3'
