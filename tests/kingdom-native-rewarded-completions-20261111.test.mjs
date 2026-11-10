@@ -19,3 +19,13 @@ test('Dedicated Kingdom routes retain global ad safety and two-completion cadenc
   assert.ok(gate.includes(id),id+' missing');
  assert.match(gate,/Math\.max\(2, INTERSTITIAL_MIN_EVENT_COUNT\)/);
 });
+
+test('Optional rewarded video unlocks only local hints when SDK confirms earned reward and same account',()=>{
+ const s=read('src/features/games/kingdom/platform/KingdomOfflineContinuation.tsx');
+ assert.match(s,/isBuklodRewardedAdAllowed\('kingdom_practice_hint'\)/);
+ assert.match(s,/ad\.earned && accountKey === keyRef\.current/);
+ assert.match(s,/setRewardedHintIndex\(0\)/);
+ assert.match(s,/phase === 'playing' && allowOptInHint/);
+ assert.match(s,/kingdom_practice_complete_banner/);
+ assert.match(read('src/lib/buklodRewardedAds.web.ts'),/earned: false/);
+});

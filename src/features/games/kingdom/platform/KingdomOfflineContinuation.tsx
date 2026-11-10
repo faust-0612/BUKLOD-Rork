@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuth } from '@/providers/AuthProvider';
+import { useAds } from '@/providers/AdsProvider';
+import { isBuklodRewardedAdAllowed } from '@/lib/buklodGlobalAdController';
+import { showBuklodRewardedAd, warmBuklodRewardedAd } from '@/lib/buklodRewardedAds';
+import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import { buildKingdomOfflineLevel, KINGDOM_OFFLINE_MAX_LEVEL } from './kingdomOfflineGenerator.mjs';
@@ -17,6 +21,7 @@ type Phase = 'loading' | 'ready' | 'playing' | 'saving' | 'complete';
 
 export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
   const { user } = useAuth();
+  const { canRequestAds } = useAds();
   const userId = user?.id ?? null;
   const { t } = useBuklodGameLanguage();
   const key = userId ? `buklod:kingdom:offline:v1:${userId}:${gameId}` : '';
@@ -27,15 +32,22 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
   const [notice, setNotice] = useState('');
   const [powerState, setPowerState] = useState<KingdomShardsSnapshot>(emptyKingdomShards);
   const [wisdomHintIndex, setWisdomHintIndex] = useState<number | null>(null);
+  const [rewardedHintIndex, setRewardedHintIndex] = useState<number | null>(null);
+  const [watchingHint, setWatchingHint] = useState(false);
   const [compassActive, setCompassActive] = useState(false);
   const keyRef = useRef(key);
   keyRef.current = key;
+  const currentLevelRef = useRef(level);
+  currentLevelRef.current = level;
+  const currentPhaseRef = useRef(phase);
+  currentPhaseRef.current = phase;
   const busy = useRef(false);
 
   useEffect(() => {
     let alive = true;
     setPhase('loading'); setCompleted(0); setLevel(1); setAnswers([-1,-1,-1]); setNotice('');
-    setWisdomHintIndex(null); setCompassActive(false); setPowerState(emptyKingdomShards());
+    setWisdomHintIndex(null); setRewardedHintIndex(null);
+    setCompassActive(false); setPowerState(emptyKingdomShards());
     if (!key) { setPhase('ready'); return () => { alive = false; }; }
     void AsyncStorage.getItem(key).then(value => {
       if (!alive || keyRef.current !== key) return;
@@ -70,6 +82,33 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
   const hasShield = hasKingdomPower(powerState,'guardian_shield');
   const hasCompass = hasKingdomPower(powerState,'explorer_compass');
   const hasAura = hasKingdomPower(powerState,'aura_emerald');
+  const allowOptInHint = Platform.OS === 'android' && canRequestAds &&
+    isBuklodRewardedAdAllowed('kingdom_practice_hint') && !hasWisdom;
+  useEffect(() => {
+    if (allowOptInHint && phase === 'playing' && rewardedHintIndex === null) warmBuklodRewardedAd();
+  }, [allowOptInHint, phase, rewardedHintIndex]);
+
+  const watchForOneHint = async () => {
+    if (!allowOptInHint || phase !== 'playing' || watchingHint ||
+        rewardedHintIndex !== null || !key) return;
+    const accountKey = key;
+    const currentLevel = level;
+    setWatchingHint(true);
+    try {
+      const ad = await showBuklodRewardedAd();
+      if (ad.earned && accountKey === keyRef.current &&
+          currentLevel === currentLevelRef.current && currentPhaseRef.current === 'playing') {
+        // Temporary local practice explanation; never BP, Shards, XP,
+        // character rank, cash, QMP or an authoritative Mastery result.
+        setRewardedHintIndex(0);
+        setNotice('Your optional video unlocked one practice hint for this level.');
+      } else if (!ad.shown) {
+        setNotice('Rewarded video unavailable; your free level remains playable.');
+      }
+    } catch {
+      setNotice('Video unavailable; continue the level without an ad.');
+    } finally { setWatchingHint(false); }
+  };
 
   const items = useMemo(() => userId ? buildKingdomOfflineLevel(gameId, level, userId) : [],
     [gameId, level, userId]);
@@ -154,6 +193,13 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
         <Text style={styles.powerToggleText}>{compassActive?'HIDE COMPASS GUIDE':'USE EXPLORER COMPASS'}</Text>
       </Pressable>:null}
       <Text style={styles.levelTitle}>LEVEL {level} {phase === 'complete' ? `• ${score}/3` : ''}</Text>
+      {phase === 'playing' && allowOptInHint && rewardedHintIndex === null ? (
+        <Pressable accessibilityRole="button" disabled={watchingHint}
+          onPress={() => { void watchForOneHint(); }} style={[styles.powerToggle, watchingHint && styles.disabled]}>
+          <MaterialCommunityIcons name="play-circle-outline" size={20} color="#ffdf9b"/>
+          <Text style={styles.powerToggleText}>{watchingHint ? 'OPENING VIDEO…' : 'WATCH OPTIONAL AD FOR ONE PRACTICE HINT (NO BP)'}</Text>
+        </Pressable>
+      ) : null}
       {items.map((item,i)=>{
         const eliminated = item.choices.map((_choice,index)=>index)
           .filter(index=>index!==item.answer_index).slice(0,2);
@@ -165,6 +211,7 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
               color="#ffe7ad" size={18}/><Text style={styles.hintText}>USE WISDOM LENS (ONE HINT)</Text>
           </Pressable>:null}
         {wisdomHintIndex===i ? <Text style={styles.hintText}>Wisdom Lens: {item.explanation}</Text>:null}
+        {rewardedHintIndex===i && phase==='playing' ? <Text style={styles.hintText}>Practice hint: {item.explanation}</Text>:null}
         {compassActive && hasCompass && phase==='playing' ?
           <Text style={styles.hintText}>Explorer Compass: rule out choices {eliminated.map(j=>String.fromCharCode(65+j)).join(' and ')}.</Text>:null}
         {item.choices.map((option,j)=><Pressable key={j} accessibilityRole="button"
@@ -183,7 +230,7 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
         onPress={()=>{void save();}}><Text style={styles.buttonText}>SAVE PRACTICE RESULT</Text></Pressable>:null}
       {phase==='saving'?<Text style={styles.notice}>Saving locally…</Text>:null}
       {phase==='complete' && score===3 && level<LIMIT?<Pressable accessibilityRole="button"
-        style={styles.button} onPress={()=>{setLevel(completed+1);setAnswers([-1,-1,-1]);setWisdomHintIndex(null);setCompassActive(false);setPhase('playing');}}>
+        style={styles.button} onPress={()=>{setLevel(completed+1);setAnswers([-1,-1,-1]);setWisdomHintIndex(null);setRewardedHintIndex(null);setCompassActive(false);setPhase('playing');}}>
         <Text style={styles.buttonText}>NEXT LEVEL {completed+1} →</Text>
       </Pressable>:null}
       {phase==='complete' && score<3 ? <Pressable accessibilityRole="button" style={styles.button}
@@ -191,6 +238,9 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
         <Text style={styles.buttonText}>RETRY THIS LEVEL</Text>
       </Pressable>:null}
     </View>:null}
+    {Platform.OS === 'android' && phase === 'complete' && score === 3 ? (
+      <BuklodAdMobBanner placement="content" placementId="kingdom_practice_complete_banner" compact format="adaptive" />
+    ) : null}
     {!!notice?<Text accessibilityRole="alert" style={styles.notice}>{notice}</Text>:null}
   </View>;
 }
