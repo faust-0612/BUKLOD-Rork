@@ -8,6 +8,7 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
+import BuklodKingdomHubCard from '@/components/home/BuklodKingdomHubCard';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
@@ -166,12 +167,13 @@ export default function BuklodLightHome() {
           </ToolBoundary>
         ) : null}
         <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
+        <BuklodKingdomHubCard />
       </ScrollView>
     );
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, gap: 8 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 28, gap: 8 }}>
       <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
@@ -245,7 +247,7 @@ export default function BuklodLightHome() {
         style={{ padding: 16, alignItems: 'center', borderRadius: 4, backgroundColor: theme.navActive }}>
         <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>Return to Community Wall</Text>
       </Pressable>
-
+      <BuklodKingdomHubCard />
     </ScrollView>
   );
 }
