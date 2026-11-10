@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   setVideoCacheSizeAsync,
@@ -54,12 +55,16 @@ import {
 
 type Props = {
   uri: string;
+  /** Stable post identity across rotations of short-lived signed URLs. */
+  playbackKey?: string;
   height?: number;
   autoPlay?: boolean;
   expectedDurationSeconds?: number;
   fullscreen?: boolean;
   edgeToEdge?: boolean;
   active?: boolean;
+  /** Only the next near-viewport clip is prebuffered without autoplay. */
+  preload?: boolean;
   controlsBottomInset?: number;
   onOpenFullscreen?: () => void;
   onPlaybackError?: () => void;
@@ -121,6 +126,7 @@ function useCommunityNetworkDegraded() {
 export function CommunityVideo(props: Props) {
   const degraded = useCommunityNetworkDegraded();
   const [playIntent, setPlayIntent] = useState(false);
+  const [recentlyActive, setRecentlyActive] = useState(props.active !== false);
   const [poster, setPoster] = useState<any>(() =>
     props.posterUri ? { uri: props.posterUri } : getCommunityVideoPoster(props.uri),
   );
@@ -136,11 +142,29 @@ export function CommunityVideo(props: Props) {
     if (props.active === false) setPlayIntent(false);
   }, [props.active]);
 
+  useEffect(() => {
+    if (props.active !== false) {
+      setRecentlyActive(true);
+      return;
+    }
+    // Keep a recently visible decoder briefly paused for scroll-backs.
+    const timer = setTimeout(() => setRecentlyActive(false), 1_400);
+    return () => clearTimeout(timer);
+  }, [props.active, props.uri]);
+
+  const imaEligible =
+    !props.fullscreen &&
+    Platform.OS === 'android' &&
+    isBuklodImaNativeAvailable() &&
+    shouldUseBuklodImaForVideo(props.expectedDurationSeconds);
+  const active = props.active !== false;
   const mountPlayer = shouldMountCommunityVideoPlayer({
-    active: props.active !== false,
+    active,
     fullscreen: Boolean(props.fullscreen),
     degraded,
     playIntent,
+    preload: !imaEligible && !degraded && props.preload === true,
+    keepWarm: !imaEligible && recentlyActive,
   });
 
   const requestPlay = () => {
@@ -158,16 +182,9 @@ export function CommunityVideo(props: Props) {
     );
   }
 
-  const imaEligible =
-    props.active !== false &&
-    !props.fullscreen &&
-    Platform.OS === 'android' &&
-    isBuklodImaNativeAvailable() &&
-    shouldUseBuklodImaForVideo(
-      props.expectedDurationSeconds,
-    );
-
-  if (imaEligible) {
+  // In-stream advertising retains its own native lifecycle: never
+  // silently prebuffer eligible content with a separate expo player.
+  if (imaEligible && active) {
     return (
       <ImaCommunityVideo
         {...props}
@@ -471,6 +488,7 @@ function useSessionSound() {
 
 function ExpoCommunityVideo({
   uri,
+  playbackKey,
   height = 380,
   autoPlay = false,
   expectedDurationSeconds,
@@ -487,6 +505,8 @@ function ExpoCommunityVideo({
   onPosterGenerated,
 }: Props) {
   const soundOn = useSessionSound();
+  const viewerSafeInsets = useSafeAreaInsets();
+  const playbackIdentity = playbackKey ? `post:${playbackKey}` : uri;
   const userPausedRef = useRef(false);
   const activeRef = useRef(active);
   const autoPlayRef = useRef(autoPlay);
@@ -508,6 +528,10 @@ function ExpoCommunityVideo({
   const [playerStatus, setPlayerStatus] = useState<
     'idle' | 'loading' | 'readyToPlay' | 'error'
   >('idle');
+  const [autoRecovering, setAutoRecovering] = useState(false);
+  const [showDelayedLoading, setShowDelayedLoading] = useState(false);
+  const playerStatusRef = useRef('idle');
+  const recoveryDeadlineRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const replayAttemptsRef = useRef(0);
   const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryNotBeforeRef = useRef(0);
@@ -517,12 +541,24 @@ function ExpoCommunityVideo({
   const centerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readyStartedAtRef = useRef(Date.now());
   const readyReportedRef = useRef(false);
+  const resumeAppliedRef = useRef(false);
+  const playingRef = useRef(false);
+  const posterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     readyStartedAtRef.current = Date.now();
     readyReportedRef.current = false;
+    resumeAppliedRef.current = false;
+    playingRef.current = false;
+    if (posterTimerRef.current) {
+      clearTimeout(posterTimerRef.current);
+      posterTimerRef.current = null;
+    }
     setVideoAspectRatio(null);
     setHasStartedPlayback(false);
+    setAutoRecovering(false);
+    setPlayerStatus('idle');
+    playerStatusRef.current = 'idle';
     replayAttemptsRef.current = 0;
     retryNotBeforeRef.current = 0;
     errorReportedRef.current = false;
@@ -530,13 +566,35 @@ function ExpoCommunityVideo({
       clearTimeout(replayTimerRef.current);
       replayTimerRef.current = null;
     }
+    if (recoveryDeadlineRef.current) {
+      clearTimeout(recoveryDeadlineRef.current);
+      recoveryDeadlineRef.current = null;
+    }
     return () => {
       if (replayTimerRef.current) {
         clearTimeout(replayTimerRef.current);
         replayTimerRef.current = null;
       }
+      if (recoveryDeadlineRef.current) {
+        clearTimeout(recoveryDeadlineRef.current);
+        recoveryDeadlineRef.current = null;
+      }
+      if (posterTimerRef.current) {
+        clearTimeout(posterTimerRef.current);
+        posterTimerRef.current = null;
+      }
     };
   }, [uri]);
+
+  // Do not show a buffering alert for every ordinary, sub-second startup.
+  useEffect(() => {
+    if (!active || (playerStatus !== 'loading' && !autoRecovering)) {
+      setShowDelayedLoading(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowDelayedLoading(true), 950);
+    return () => clearTimeout(timer);
+  }, [active, playerStatus, autoRecovering]);
 
   const source = useMemo(
     () => communityVideoSource(uri),
@@ -550,6 +608,13 @@ function ExpoCommunityVideo({
       instance.loop = !fullscreen;
       instance.muted = fullscreen ? false : !sessionSoundOn;
       instance.timeUpdateEventInterval = 0.25;
+      if (Platform.OS === 'android') {
+        instance.bufferOptions = {
+          minBufferForPlayback: 1,
+          preferredForwardBufferDuration: 18,
+          prioritizeTimeOverSizeThreshold: true,
+        };
+      }
       instance.audioMixingMode = instance.muted
         ? 'mixWithOthers'
         : 'doNotMix';
@@ -574,6 +639,7 @@ function ExpoCommunityVideo({
       'statusChange',
       (event: { status?: string }) => {
         const nextStatus = event?.status;
+        if (nextStatus) playerStatusRef.current = nextStatus;
         if (
           nextStatus === 'loading' ||
           nextStatus === 'readyToPlay' ||
@@ -605,7 +671,9 @@ function ExpoCommunityVideo({
           if (action === 'replay') {
             replayAttemptsRef.current = 1;
             retryNotBeforeRef.current = Date.now() + 2_500;
+            setAutoRecovering(true);
             if (replayTimerRef.current) clearTimeout(replayTimerRef.current);
+            if (recoveryDeadlineRef.current) clearTimeout(recoveryDeadlineRef.current);
             replayTimerRef.current = setTimeout(() => {
               replayTimerRef.current = null;
               if (!activeRef.current) return;
@@ -614,22 +682,40 @@ function ExpoCommunityVideo({
               } catch {
                 if (!errorReportedRef.current) {
                   errorReportedRef.current = true;
+                  setAutoRecovering(false);
                   playbackErrorHandlerRef.current?.();
                 }
               }
-            }, 900);
+            }, 350);
+            // expo-video may remain in error without emitting a second event.
+            // This timeout guarantees one terminal recovery callback.
+            recoveryDeadlineRef.current = setTimeout(() => {
+              recoveryDeadlineRef.current = null;
+              if (!activeRef.current || errorReportedRef.current ||
+                  playerStatusRef.current === 'readyToPlay') return;
+              errorReportedRef.current = true;
+              setAutoRecovering(false);
+              playbackErrorHandlerRef.current?.();
+            }, 2_650);
             return;
           }
           // The recovery attempt itself may emit repeated error events.
           // Refresh signed access only after the bounded local retry fails.
           if (action === 'refresh') {
             errorReportedRef.current = true;
+            setAutoRecovering(false);
             playbackErrorHandlerRef.current?.();
           }
           return;
         }
 
         if (nextStatus === 'readyToPlay') {
+          setAutoRecovering(false);
+          retryNotBeforeRef.current = 0;
+          if (recoveryDeadlineRef.current) {
+            clearTimeout(recoveryDeadlineRef.current);
+            recoveryDeadlineRef.current = null;
+          }
           if (replayTimerRef.current) {
             clearTimeout(replayTimerRef.current);
             replayTimerRef.current = null;
@@ -650,38 +736,20 @@ function ExpoCommunityVideo({
             const ratio = Number(activeTrack.size.width) / Number(activeTrack.size.height);
             if (Number.isFinite(ratio) && ratio > 0) setVideoAspectRatio(ratio);
           }
-          // Generate a poster only from a player already mounted for visible
-          // playback. Never create hidden players or download offscreen videos.
-          if (Platform.OS !== 'web' && !posterUri && !getCommunityVideoPoster(uri) && beginCommunityVideoPosterGeneration(uri)) {
-            void Promise.resolve()
-              .then(() => player.generateThumbnailsAsync(0.1, { maxWidth: 720, maxHeight: 720 }))
-              .then(thumbnails => {
-                const first = thumbnails?.[0];
-                if (first) {
-                  publishCommunityVideoPoster(uri, first);
-                  void Promise.resolve()
-                    .then(() => onPosterGenerated?.(first))
-                    .catch(() => undefined);
-                }
-              })
-              .catch(() => {
-                // Poster generation is best-effort; playback remains primary.
-              })
-              .finally(() => releaseCommunityVideoPosterGeneration(uri));
-          }
-
           const known = Number(player.duration || 0);
           if (known > 0) setDuration(known);
 
-          const saved = playbackTimeByUri.get(uri) ?? 0;
-          if (
-            saved > 0.35 &&
-            (known <= 0 || saved < known - 0.4)
-          ) {
-            try {
-              player.currentTime = saved;
-            } catch {
-              // Seek before the surface is ready is safe to ignore.
+          // Resume only on initial media readiness. Seeking again after
+          // every rebuffer causes backward jumps and unnecessary downloads.
+          if (!resumeAppliedRef.current) {
+            resumeAppliedRef.current = true;
+            const saved = playbackTimeByUri.get(playbackIdentity) ?? 0;
+            if (saved > 0.35 && (known <= 0 || saved < known - 0.4)) {
+              try {
+                player.currentTime = saved;
+              } catch {
+                // Initial seek is best effort; never block playback.
+              }
             }
           }
 
@@ -714,8 +782,44 @@ function ExpoCommunityVideo({
       'playingChange',
       (event: { isPlaying?: boolean }) => {
         const isPlaying = Boolean(event?.isPlaying);
+        playingRef.current = isPlaying;
         setPlaying(isPlaying);
-        if (isPlaying) setHasStartedPlayback(true);
+        if (!isPlaying && posterTimerRef.current) {
+          clearTimeout(posterTimerRef.current);
+          posterTimerRef.current = null;
+        }
+        if (isPlaying && Platform.OS !== 'web' && !posterUri &&
+            !getCommunityVideoPoster(uri) && !posterTimerRef.current) {
+          // First decoded frame wins. Thumbnail extraction must never compete
+          // with startup/visible playback or an offscreen cached video.
+          posterTimerRef.current = setTimeout(() => {
+            posterTimerRef.current = null;
+            if (!activeRef.current || !playingRef.current ||
+                getCommunityVideoPoster(uri) ||
+                !beginCommunityVideoPosterGeneration(uri)) return;
+            void Promise.resolve()
+              .then(() => player.generateThumbnailsAsync(0.1, { maxWidth: 720, maxHeight: 720 }))
+              .then(thumbnails => {
+                const first = thumbnails?.[0];
+                if (first) {
+                  publishCommunityVideoPoster(uri, first);
+                  void Promise.resolve()
+                    .then(() => onPosterGenerated?.(first))
+                    .catch(() => undefined);
+                }
+              })
+              .catch(() => undefined)
+              .finally(() => releaseCommunityVideoPosterGeneration(uri));
+          }, 1500);
+        }
+        if (isPlaying) {
+          setHasStartedPlayback(true);
+          setAutoRecovering(false);
+          if (recoveryDeadlineRef.current) {
+            clearTimeout(recoveryDeadlineRef.current);
+            recoveryDeadlineRef.current = null;
+          }
+        }
       },
     );
 
@@ -723,7 +827,12 @@ function ExpoCommunityVideo({
       'timeUpdate',
       (event: { currentTime?: number }) => {
         const next = Number(event?.currentTime ?? 0);
-        playbackTimeByUri.set(uri, next);
+        playbackTimeByUri.set(playbackIdentity, next);
+        // Keep the in-memory resume map bounded even across signed-URL churn.
+        if (playbackTimeByUri.size > 120) {
+          const oldest = playbackTimeByUri.keys().next().value;
+          if (oldest) playbackTimeByUri.delete(oldest);
+        }
         setCurrentTime(next);
         const known = Number(player.duration || 0);
         if (known > 0) setDuration(known);
@@ -739,11 +848,24 @@ function ExpoCommunityVideo({
         clearTimeout(replayTimerRef.current);
         replayTimerRef.current = null;
       }
+      if (recoveryDeadlineRef.current) {
+        clearTimeout(recoveryDeadlineRef.current);
+        recoveryDeadlineRef.current = null;
+      }
+      if (posterTimerRef.current) {
+        clearTimeout(posterTimerRef.current);
+        posterTimerRef.current = null;
+      }
     };
-  }, [player, uri]);
+  }, [player, uri, playbackIdentity]);
 
   useEffect(() => {
     if (!active) {
+      userPausedRef.current = false;
+      if (posterTimerRef.current) {
+        clearTimeout(posterTimerRef.current);
+        posterTimerRef.current = null;
+      }
       try {
         player.pause();
       } catch {
@@ -782,18 +904,33 @@ function ExpoCommunityVideo({
   }
 
   function retryPlayback() {
-    if (replayAttemptsRef.current < 1) {
-      replayAttemptsRef.current += 1;
-      setPlayerStatus('loading');
-      try {
-        player.replay();
-      } catch {
-        onPlaybackError?.();
-      }
+    // A manual tap always does useful work, even after the automatic replay
+    // limit was reached or a previous URL-renewal request failed.
+    userPausedRef.current = false;
+    errorReportedRef.current = false;
+    replayAttemptsRef.current = 1;
+    retryNotBeforeRef.current = Date.now() + 1_500;
+    setAutoRecovering(true);
+    setPlayerStatus('loading');
+    if (recoveryDeadlineRef.current) clearTimeout(recoveryDeadlineRef.current);
+    try {
+      player.replay();
+    } catch {
+      errorReportedRef.current = true;
+      setAutoRecovering(false);
+      setPlayerStatus('error');
+      playbackErrorHandlerRef.current?.();
       return;
     }
-
-    onPlaybackError?.();
+    recoveryDeadlineRef.current = setTimeout(() => {
+      recoveryDeadlineRef.current = null;
+      if (!activeRef.current || errorReportedRef.current ||
+          playerStatusRef.current === 'readyToPlay') return;
+      errorReportedRef.current = true;
+      setAutoRecovering(false);
+      setPlayerStatus('error');
+      playbackErrorHandlerRef.current?.();
+    }, 2_650);
   }
 
   function togglePlayback() {
@@ -830,7 +967,7 @@ function ExpoCommunityVideo({
     } catch {
       return;
     }
-    playbackTimeByUri.set(uri, next);
+    playbackTimeByUri.set(playbackIdentity, next);
     setCurrentTime(next);
   }
 
@@ -842,7 +979,9 @@ function ExpoCommunityVideo({
     knownDuration > 0
       ? Math.min(1, Math.max(0, currentTime / knownDuration))
       : 0;
-  const centerVisible = !playing || showCenter;
+  // Do not confuse automatic initialization with a manual Play state.
+  const centerVisible = playerStatus !== 'error' &&
+    (showCenter || (!playing && (!autoPlay || userPausedRef.current)));
   const chromeVisible = !fullscreen || !playing || showCenter;
   const frameHeight = !fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio && measuredWidth > 0
     ? communityVideoFrameHeight(measuredWidth, videoAspectRatio, height)
@@ -886,21 +1025,15 @@ function ExpoCommunityVideo({
         />
       ) : null}
 
-      {playerStatus === 'loading' ? (
-        <View pointerEvents="none" style={styles.bufferChip}>
-          <Text style={styles.durationText}>Buffering…</Text>
+      {showDelayedLoading ? (
+        <View pointerEvents="none" style={[
+          styles.bufferChip,
+          fullscreen && { top: Math.max(viewerSafeInsets.top + 16, 68) },
+        ]}>
+          <Text style={styles.durationText}>
+            {hasStartedPlayback ? 'Reconnecting…' : 'Preparing video…'}
+          </Text>
         </View>
-      ) : null}
-
-      {playerStatus === 'error' ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Retry video"
-          onPress={retryPlayback}
-          style={styles.bufferChip}
-        >
-          <Text style={styles.durationText}>Retry</Text>
-        </Pressable>
       ) : null}
 
       <Pressable
@@ -911,6 +1044,20 @@ function ExpoCommunityVideo({
         onPress={togglePlayback}
         style={styles.tapLayer}
       />
+
+      {playerStatus === 'error' && !autoRecovering ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retry video"
+          onPress={retryPlayback}
+          style={[
+            styles.retryButton,
+            fullscreen && { top: '42%' },
+          ]}
+        >
+          <Text style={styles.retryText}>Retry video</Text>
+        </Pressable>
+      ) : null}
 
       {!fullscreen && preserveAspectRatio ? (
         <Pressable accessibilityRole="button"
@@ -975,7 +1122,7 @@ function ExpoCommunityVideo({
                 onPress={() => {
                   try {
                     playbackTimeByUri.set(
-                      uri,
+                      playbackIdentity,
                       Number(player.currentTime || currentTime || 0),
                     );
                     player.pause();
@@ -1247,6 +1394,25 @@ const styles =
       fontWeight: '800',
     },
 
+    retryButton: {
+      position: 'absolute',
+      top: '43%',
+      alignSelf: 'center',
+      zIndex: 4,
+      minHeight: 44,
+      paddingHorizontal: 18,
+      borderRadius: 24,
+      backgroundColor: 'rgba(0,0,0,0.82)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.45)',
+    },
+    retryText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '700',
+    },
     bufferChip: {
       position: 'absolute',
       left: 10,

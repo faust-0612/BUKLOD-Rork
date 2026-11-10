@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "objective": "Include Mentoring BUKLOD Lesson report and private photo evidence R4 in the ONE cumulative BUKLOD Main OTA, not as an independent release.",
+  "sourceCandidate": "fix/mentor-lesson-photo-evidence-r4-20261110",
+  "sourcePullRequest": "https://github.com/faust-0612/BUKLOD-Rork/pull/639",
+  "sourceSha": "1e6b90943a804a77de5c96de74396c3ad8f97dcf",
+  "baseIntegration": "integration/buklod-nov10-single-source-ota",
+  "baseIntegrationSha": "005ef10f79b1df10c9b5ca6ae7481a9fb57ea1af",
+  "currentState": "DEV integration inclusion; database and combined RC gates pending; NOT published",
+  "ownerWaiver": "Physical Android device verification explicitly SKIPPED on 2026-11-11 by owner. This does not mark device testing as passed and does not waive database migration, security, TypeScript, release gates or exact production evidence.",
+  "allowedPaths": [
+    ".buklod/scopes/mentor-photo-evidence-ota-inclusion-20261111.json",
+    "src/app/admin/points-r2-monitor.tsx",
+    "src/app/faith/mentor-evidence.tsx",
+    "src/app/scope/buklod-lesson/index.tsx",
+    "supabase/migrations/20261110213500_mentor_report_evidence_review_r4.sql",
+    "tests/buklod-mentor-evidence-r4.test.mjs"
+  ],
+  "reconciliation": {
+    "method": "Exact blob transfer of five reviewed source/test/SQL files onto existing NOV10 one-source integration branch, not an old source merge",
+    "baseParity": "Three existing screen files match main and NOV10 integration exactly before overlay; two new migration/test paths absent in both.",
+    "preserves": "No app/package/native/runtime changes. Keep existing NOV10 Wall autoplay, Home/Hub, Cluster, BP Top10, PTT, ads, Bible offline, Health Center and server RLS.",
+    "serverStatus": "BUKLOD Connect R2/R3 RPCs exist; R4 migration not live at inclusion time.",
+    "sourceTests": "52/52 source contract assertions previously checked; this is not a compiled TypeScript or authenticated E2E pass."
+  },
+  "functionality": {
+    "report": "Mentor selects actual lesson, assigned attendees, venue, notes, consenting camera/gallery photo",
+    "upload": "Photo compressed, uploaded privately, linked transactionally; successful attachment transitions reported to pending_admin",
+    "review": "System Admin only; immutable photo while under review; approve leads to existing one-time +15 BP after server validation",
+    "recovery": "Idempotent session creation, retry pending photo without duplicating report; old reported sessions with genuine photos repaired by migration",
+    "revision": "Rejected, uncredited reports may update location, notes, registered roster and fresh photo with private reviewer history",
+    "privacy": "Owner+system-admin signed photo review; immutable admin-review proof; no public evidence URLs"
+  },
+  "deploymentOrder": [
+    "Reconcile against exact current production main and all selected OTA candidates before RC freeze",
+    "Run R4 SQL migration validation and security checks on authorized database, then apply and verify on BUKLOD Connect before exposing new client",
+    "Run node focused contracts and TypeScript, compiled Android/web RC and regression gates against single exact source SHA",
+    "Physical device verification waived, NOT PASSED",
+    "Freeze compatible existing Android runtime 1.3.2; publish exactly one consolidated OTA only after owner release authorization and canonical gates"
+  ],
+  "release": {
+    "nativeBuild": false,
+    "otaPublished": false,
+    "webDeployed": false,
+    "mainModified": false,
+    "independentOTAPermitted": false
+  }
+}

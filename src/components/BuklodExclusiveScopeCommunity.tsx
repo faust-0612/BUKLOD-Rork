@@ -144,6 +144,9 @@ import type {
 } from '@/lib/buklodScope';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+import { recordConfirmedCommunityComment, takePendingCommunityCommentAdBreak } from '@/lib/buklodCommunityCommentAdCadence';
+import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
+
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
 import {
@@ -1142,11 +1145,21 @@ export default function BuklodExclusiveScopeCommunity({
 
   const {
     onViewableItemsChanged: onCommunityAdViewableItemsChanged,
+    onVideoViewableItemsChanged: onCommunityVideoViewableItemsChanged,
     viewabilityConfig: communityAdViewabilityConfig,
+    videoViewabilityConfig: communityVideoViewabilityConfig,
     extraData: communityAdExtraData,
-    isAdActive,
     visibleVideoPostId,
-  } = useBuklodCommunityAdViewability();
+    preloadVideoPostId,
+  } = useBuklodCommunityAdViewability(
+    mode === 'reels' ? visiblePosts : wallFeedRows,
+  );
+  const communityViewabilityPairs = useRef([
+    { viewabilityConfig: communityAdViewabilityConfig,
+      onViewableItemsChanged: onCommunityAdViewableItemsChanged },
+    { viewabilityConfig: communityVideoViewabilityConfig,
+      onViewableItemsChanged: onCommunityVideoViewableItemsChanged },
+  ]).current;
 
   const listData =
     mode ===
@@ -2273,6 +2286,11 @@ export default function BuklodExclusiveScopeCommunity({
     setCommentLoading(false);
     setCommentLoadError(null);
     setCommentOpen(false);
+    const adAccount=String(user?.id??'');
+    if(!commentSubmitRef.current && adAccount &&
+       takePendingCommunityCommentAdBreak(adAccount)){
+      void showBuklodAdOpportunity('community_comment_overage');
+    }
     // Keep the draft when closing this post, including attachments and reply.
   };
 
@@ -2458,6 +2476,10 @@ export default function BuklodExclusiveScopeCommunity({
         'Post scoped comment',
       );
       if (error) throw error;
+      if(user?.id){
+        const adCount=recordConfirmedCommunityComment(String(user.id));
+        if(adCount.shouldWarm)warmBuklodAdOpportunity('community_comment_overage');
+      }
 
       // A late response must never clear a draft on another post.
       if (commentActivePostRef.current === postId) {
@@ -3424,6 +3446,7 @@ return (
                     uri={
                       item.media_url
                     }
+                    playbackKey={String(item.id)}
                     posterUri={item.media_items?.find((media:any) =>
                       String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
                     )?.preview_url ?? null}
@@ -3447,6 +3470,10 @@ return (
                     autoPlay
                     active={
                       visibleVideoPostId ===
+                      String(item.id)
+                    }
+                    preload={
+                      preloadVideoPostId ===
                       String(item.id)
                     }
                     onPlaybackError={() => {
@@ -4363,11 +4390,8 @@ return (
         extraData={
           communityAdExtraData
         }
-        onViewableItemsChanged={
-          onCommunityAdViewableItemsChanged
-        }
-        viewabilityConfig={
-          communityAdViewabilityConfig
+        viewabilityConfigCallbackPairs={
+          communityViewabilityPairs
         }
         renderItem={
           ({ item }) => {
@@ -4379,7 +4403,7 @@ return (
               return (
                 <BuklodCommunityInlineAd
                   slotId={item.id}
-                  active={isAdActive(item.id)}
+                  // Preserve a measurable probe until in-viewport ad eligibility.
                   inventory={
                     scope.scope_type === 'CLUSTER'
                       ? 'cluster'

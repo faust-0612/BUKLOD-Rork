@@ -39,6 +39,7 @@ export default function R2AdminMonitor(){
    setPipeline(pipelineResult.data as Pipeline);
    setReport(overview.data as Report);
    setPhotos(Array.isArray(evidence.data)?evidence.data:[]);
+   setPhotoUrls({});
   }catch{setError('System Admin access or live monitor unavailable.');}
   finally{setLoading(false)}
  },[]);
@@ -91,7 +92,7 @@ export default function R2AdminMonitor(){
  keyboardShouldPersistTaps="handled">
  <Pressable onPress={()=>router.back()}><Text style={s.back}>‹ Back</Text></Pressable>
  <Text style={s.title}>R2 Points — Live Admin Monitor</Text>
- <Text style={s.subtitle}>Server-authoritative rules and 30-day ledger totals. Review milestone evidence before awarding.</Text>
+ <Text style={s.subtitle}>Server-authoritative rewards, attendance, and photo-backed mentoring. System Admin reviews completed evidence before any mentor BP award.</Text>
  {loading&&<ActivityIndicator color="#0A7436"/>}
  {!!error&&<Text accessibilityRole="alert" style={s.error}>{error}</Text>}
  {report&&<>
@@ -129,16 +130,18 @@ export default function R2AdminMonitor(){
     onPress={()=>void reviewCheckin(item,false)}><Text style={s.btnText}>Reject</Text></Pressable>
   </View>
  </View>)}
- <Text style={s.heading}>Mentoring Photo Evidence</Text>
- {photos.filter(p=>p.status==='reported'||p.status==='pending_admin').length===0&&
-   <Text style={s.info}>No mentor sessions awaiting final approval.</Text>}
- {photos.filter(p=>p.status==='pending_admin').map(item=><View style={s.card} key={item.session_id}>
+ <Text style={s.heading}>Mentoring Lesson Reports — System Admin Review</Text>
+ {photos.filter(p=>p.status==='pending_admin'||(p.status==='reported'&&!!p.photo_path)).length===0&&
+   <Text style={s.info}>No completed mentor photo reports awaiting approval.</Text>}
+ {photos.filter(p=>p.status==='reported'&&!p.photo_path).length>0&&
+   <Text style={s.info}>{photos.filter(p=>p.status==='reported'&&!p.photo_path).length} saved mentor reports still require photo evidence; they are not approvable yet.</Text>}
+ {photos.filter(p=>p.status==='pending_admin'||(p.status==='reported'&&!!p.photo_path)).map(item=><View style={s.card} key={item.session_id}>
   <Text style={s.heading}>{item.lesson}</Text>
   <Text style={s.info}>Mentor: {item.mentor_name||item.mentor_id.slice(0,8)}</Text>
   <Text style={s.info}>Venue: {item.session_location||'Not provided'} · {item.session_date}</Text>
   <Text style={s.info}>{item.participant_count} learners: {(item.attendees||[]).map(a=>a.name).join(', ')||'No registered learners'}</Text>
   <Text style={s.evidence}>Mentor notes: {item.mentor_notes||'No notes'}</Text>
-  <Text style={s.info}>Awaiting Admin verification</Text>
+  <Text style={s.info}>Private evidence received · verify attendance, lesson, venue and photo before approval.</Text>
   <Text style={s.info}>{item.photo_path?'Evidence uploaded':'Evidence photo missing'}</Text>
   {item.photo_path&&<Pressable style={s.btn} onPress={()=>void viewPhoto(item)}>
    <Text style={s.btnText}>View private mentoring photo</Text>

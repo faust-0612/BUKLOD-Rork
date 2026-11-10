@@ -79,6 +79,17 @@ import {
 } from '@/lib/buklodVideoDiscovery';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+import BuklodReelsInlineAd, {
+  type BuklodReelsAdLoadState,
+} from '@/components/BuklodReelsInlineAd';
+import {
+  buildReelsFeedWithInlineAds,
+  isReelsFeedInlineAdRow,
+} from '@/lib/buklodAdPlacements';
+import { useAds } from '@/providers/AdsProvider';
+import { recordConfirmedCommunityComment, takePendingCommunityCommentAdBreak } from '@/lib/buklodCommunityCommentAdCadence';
+import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
+
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
@@ -435,6 +446,7 @@ const BUKLOD_MOTION_DRAWER_GROUPS=[
   ['sparkles','fireflies','sunrays','dust','bokeh','stars','underwater'].includes(p))},
 ];
 export default function BuklodScreen(){
+ const { ready: reelAdsReady, canRequestAds: reelAdConsent } = useAds();
  const { focusPostId } = useLocalSearchParams<{focusPostId?:string}>();
  const openingPublicPost = typeof focusPostId==='string' && !!focusPostId.trim();
  const {
@@ -1354,6 +1366,24 @@ function LegacyPublicBuklodScreen(){
   videoViewerIndex,
   setVideoViewerIndex
  ]=useState(0);
+ const [videoViewerPageHeight,setVideoViewerPageHeight]=useState(COMMUNITY_VIEWER_HEIGHT);
+ const [videoViewerShowHint,setVideoViewerShowHint]=useState(true);
+ // Advance playback as the next page becomes visible, not after momentum ends.
+ const videoViewerViewabilityConfig=useRef({
+  itemVisiblePercentThreshold:60,
+  minimumViewTime:80
+ }).current;
+ const videoViewerOnViewableItemsChanged=useRef(({
+  viewableItems
+ }:{viewableItems:Array<{index?:number|null;isViewable?:boolean}>})=>{
+  const visible=viewableItems.find(row=>
+   row.isViewable && typeof row.index==='number' && row.index>=0
+  );
+  if(typeof visible?.index==='number'){
+   const next=visible.index;
+   setVideoViewerIndex(current=>current===next?current:next);
+  }
+ }).current;
 
  const [
   videoViewerFreshUrls,
@@ -1366,12 +1396,17 @@ function LegacyPublicBuklodScreen(){
  ]=useState<Record<string,string>>({});
 
  const wallVideoFailedUriRef=
-  useRef<Record<string,string>>({});
+  useRef<Record<string,{uri:string;retryAfter:number}>>({});
+ const wallVideoRefreshInFlightRef=useRef(new Set<string>());
 
  const [
   videoViewerResolvingPostId,
   setVideoViewerResolvingPostId
  ]=useState<string|null>(null);
+ const videoViewerUrlInflightRef=useRef(new Map<string,number>());
+ const videoViewerUrlAttemptsRef=useRef(new Map<string,number>());
+ const videoViewerUrlRetryAfterRef=useRef(new Map<string,number>());
+
 
  const wallVideoPosts=
   useMemo(
@@ -1393,7 +1428,56 @@ function LegacyPublicBuklodScreen(){
  // Only small metadata pages are read; actual video URLs are resolved when
  // entering the viewer / approaching playback. No offscreen downloads.
  const [videoViewerPosts,setVideoViewerPosts]=useState<any[]>([]);
+ // Freeze consent/format at opening so ad slots do not shift scroll positions
+ // if the consent bootstrap resolves halfway through a swipe session.
+ const [videoViewerAdsEnabled,setVideoViewerAdsEnabled]=useState(false);
+ const [videoViewerAdStates,setVideoViewerAdStates]=useState<Record<string,BuklodReelsAdLoadState>>({});
+ const videoViewerListRef=useRef<any>(null);
+ const videoViewerFeedRows=useMemo(()=>{
+  if(!videoViewerAdsEnabled)return videoViewerPosts;
+  const rows=buildReelsFeedWithInlineAds(videoViewerPosts);
+  // Never end a finite playlist on an empty sponsored slot.
+  return isReelsFeedInlineAdRow(rows[rows.length-1])
+   ? rows.slice(0,-1) : rows;
+ },[videoViewerPosts,videoViewerAdsEnabled]);
+ const videoViewerActiveRow=videoViewerFeedRows[videoViewerIndex];
+ const videoViewerActiveIsAd=isReelsFeedInlineAdRow(videoViewerActiveRow);
+ const videoViewerNextVideoIndex=videoViewerFeedRows.findIndex((row,index)=>
+   index>videoViewerIndex && !isReelsFeedInlineAdRow(row));
+ const videoViewerContentPosition=videoViewerFeedRows
+  .slice(0,videoViewerIndex+1)
+  .filter(row=>!isReelsFeedInlineAdRow(row)).length;
  const [videoViewerSession,setVideoViewerSession]=useState(0);
+ const videoViewerSessionRef=useRef(videoViewerSession);
+ videoViewerSessionRef.current=videoViewerSession;
+ useEffect(()=>{
+  if(!videoViewerOpen)return;
+  const row=videoViewerFeedRows[videoViewerIndex];
+  if(!isReelsFeedInlineAdRow(row))return;
+  const state=videoViewerAdStates[row.id]??'loading';
+  if(state==='ready')return;
+  // No-fill or stalled ads must never strand the user on a black slide.
+  // This timeout is only for native ad cards; ordinary video playback stays
+  // independent. Users can swipe/continue even earlier.
+  const timer=setTimeout(()=>{
+   const next=videoViewerFeedRows.findIndex((candidate,index)=>
+     index>videoViewerIndex && !isReelsFeedInlineAdRow(candidate));
+   const target=next>=0?next:Math.max(0,videoViewerIndex-1);
+   if(target===videoViewerIndex)return;
+   try{
+    videoViewerListRef.current?.scrollToIndex({index:target,animated:false});
+    setVideoViewerIndex(target);
+   }catch{
+    // List may already be closing; leave navigation fully usable.
+   }
+  },state==='unavailable'?120:3000);
+  return()=>clearTimeout(timer);
+ },[videoViewerOpen,videoViewerFeedRows,videoViewerIndex,videoViewerAdStates]);
+ useEffect(()=>{
+  if(!videoViewerOpen)return;
+  const timer=setTimeout(()=>setVideoViewerShowHint(false),2700);
+  return()=>clearTimeout(timer);
+ },[videoViewerOpen,videoViewerSession]);
  const [videoViewerLoadingMore,setVideoViewerLoadingMore]=useState(false);
  const [videoViewerHasMore,setVideoViewerHasMore]=useState(true);
  const [videoViewerLoadError,setVideoViewerLoadError]=useState(false);
@@ -1419,6 +1503,7 @@ function LegacyPublicBuklodScreen(){
     videoViewerScanSeqRef.current+=1;
     videoViewerScanBusyRef.current=false;
     setVideoViewerLoadingMore(false);
+    setVideoViewerResolvingPostId(null);
     setVideoViewerOpen(false);
   },[]);
 
@@ -3485,6 +3570,12 @@ const load=useCallback(async(options?:{
    setCommentMentions([]);
    setCommentMedia(null);
    setCommentMediaPreview(null);
+   // Optional natural-break ad is separate from sending and earning BP.
+   const adAccount=String(user?.id??'');
+   if(!commentSendInFlightRef.current && adAccount &&
+      takePendingCommunityCommentAdBreak(adAccount)){
+    void showBuklodAdOpportunity('community_comment_overage');
+   }
   };
 
  const submitCommunityComment=
@@ -3548,6 +3639,10 @@ const load=useCallback(async(options?:{
      p_parent_id:replyRootId,
     });
     if(error)throw error;
+    if(authorId && commentAccountIdRef.current===authorId){
+     const adCount=recordConfirmedCommunityComment(authorId);
+     if(adCount.shouldWarm)warmBuklodAdOpportunity('community_comment_overage');
+    }
 
     // One confirmed mutation: update just this post, not the whole feed.
     if(commentAccountIdRef.current===authorId){
@@ -4197,18 +4292,20 @@ const load=useCallback(async(options?:{
     const failed=
      String(failedUri??'').trim();
 
-    if(
-     failed&&
-     wallVideoFailedUriRef
-      .current[postId]===failed
-    ){
-     return null;
+    const last=wallVideoFailedUriRef.current[postId];
+    // Dedupe in-flight signing and briefly back off repeated failures.
+    // Do not blacklist a stale URL for the lifetime of the app.
+    if(wallVideoRefreshInFlightRef.current.has(postId) ||
+       (failed && last?.uri===failed && Date.now()<last.retryAfter)){
+      return null;
     }
-
     if(failed){
-     wallVideoFailedUriRef
-      .current[postId]=failed;
+      wallVideoFailedUriRef.current[postId]={
+        uri:failed,
+        retryAfter:Date.now()+2500
+      };
     }
+    wallVideoRefreshInFlightRef.current.add(postId);
 
     try{
      const freshUrl=
@@ -4234,60 +4331,56 @@ const load=useCallback(async(options?:{
     catch{
      return null;
     }
+    finally{
+     wallVideoRefreshInFlightRef.current.delete(postId);
+    }
    },
    [resolveFreshVideoUrl]
   );
 
  const refreshVideoViewerUrl=
   useCallback(
-   async(post:any)=>{
-    const postId=
-     String(post?.id??'').trim();
-
-    if(!postId){
-     return null;
+   async(post:any,failedUri?:string)=>{
+    const postId=String(post?.id??'').trim();
+    if(!postId)return null;
+    const now=Date.now();
+    const attempts=videoViewerUrlAttemptsRef.current.get(postId)??0;
+    if(videoViewerUrlInflightRef.current.has(postId) ||
+       attempts>=3 ||
+       now<(videoViewerUrlRetryAfterRef.current.get(postId)??0)){
+      return null;
     }
-
-    setVideoViewerResolvingPostId(
-     postId
-    );
-
+    // Only an actual player error authorizes private URL re-signing.
+    // A session counter drops late responses after close or playlist change.
+    const requestSession=videoViewerScanSeqRef.current;
+    videoViewerUrlInflightRef.current.set(postId,requestSession);
+    videoViewerUrlAttemptsRef.current.set(postId,attempts+1);
+    videoViewerUrlRetryAfterRef.current.set(postId,now+2500);
+    setVideoViewerResolvingPostId(postId);
     try{
-     const freshUrl=
-      await resolveFreshVideoUrl(
-       post
-      );
-
-     if(freshUrl){
-      setVideoViewerFreshUrls(
-       current=>({
-        ...current,
-        [postId]:freshUrl
-       })
-      );
-
-      setWallVideoFreshUrls(
-       current=>({
-        ...current,
-        [postId]:freshUrl
-       })
-      );
-
-      return freshUrl;
-     }
-
-     return null;
-    }
-    catch{
-     return null;
-    }
-    finally{
-     setVideoViewerResolvingPostId(
-      current=>
-       current===postId
-        ? null
-        : current
+     const freshUrl=await resolveFreshVideoUrl(post);
+     if(requestSession!==videoViewerScanSeqRef.current)return null;
+     const failed=String(failedUri??'').trim();
+     if(!freshUrl || freshUrl===failed)return null;
+     setVideoViewerFreshUrls(current=>{
+      const already=current[postId];
+      // A late request must not replace a newer successful rotation.
+      if(already && failed && already!==failed)return current;
+      return already===freshUrl?current:{...current,[postId]:freshUrl};
+     });
+     setWallVideoFreshUrls(current=>
+      current[postId]===freshUrl?current:{...current,[postId]:freshUrl}
      );
+     return freshUrl;
+    }catch{
+     return null;
+    }finally{
+     if(videoViewerUrlInflightRef.current.get(postId)===requestSession){
+      videoViewerUrlInflightRef.current.delete(postId);
+     }
+     if(requestSession===videoViewerScanSeqRef.current){
+      setVideoViewerResolvingPostId(current=>current===postId?null:current);
+     }
     }
    },
    [resolveFreshVideoUrl]
@@ -4443,19 +4536,20 @@ const load=useCallback(async(options?:{
     setVideoViewerLoadError(false);
     setVideoViewerPosts([target]);
     setVideoViewerIndex(0);
+    setVideoViewerAdsEnabled(Platform.OS==='android' && reelAdsReady && reelAdConsent);
+    setVideoViewerAdStates({});
+    setVideoViewerFreshUrls({});
+    setVideoViewerResolvingPostId(null);
+    videoViewerUrlInflightRef.current.clear();
+    videoViewerUrlAttemptsRef.current.clear();
+    videoViewerUrlRetryAfterRef.current.clear();
+    setVideoViewerShowHint(true);
     setVideoViewerSession(current=>current+1);
    setVideoViewerOpen(true);
    enableCommunityVideoSound();
 
-   /*
-    * BUKLOD_VIDEO_FULLSCREEN_FRESH_URL_R5
-    * A Wall URL may be a short-lived signed URL. Refresh it when opening the
-    * fullscreen player so a second player instance never relies only on the
-    * feed's older URL.
-    */
-   void refreshVideoViewerUrl(
-    target
-   );
+   // Reuse the existing authorized URL and cached media from the Wall.
+   // Renew access only after a genuine playback error, not on every open.
   };
 
 
@@ -4495,6 +4589,7 @@ const load=useCallback(async(options?:{
                 wallUri
               }
               uri={wallUri}
+              playbackKey={postId}
                posterUri={wallVideo.media?.preview_url ?? null}
                onPosterGenerated={thumbnail => {
                  if (!user?.id || String(wallVideo.post?.user_id ?? '') !== String(user.id)) return;
@@ -4521,7 +4616,13 @@ const load=useCallback(async(options?:{
               autoPlay
               active={
                 visibleVideoPostId===postId &&
-                !videoViewerOpen
+                !videoViewerOpen &&
+                wallScreenFocused
+              }
+              preload={
+                preloadVideoPostId===postId &&
+                !videoViewerOpen &&
+                wallScreenFocused
               }
               expectedDurationSeconds={
                 wallVideo.durationSeconds
@@ -4939,11 +5040,14 @@ const communityFeedRows =
 
  const {
   onViewableItemsChanged: onCommunityAdViewableItemsChanged,
+  onVideoViewableItemsChanged: onCommunityVideoViewableItemsChanged,
   viewabilityConfig: communityAdViewabilityConfig,
+  videoViewabilityConfig: communityVideoViewabilityConfig,
   extraData: communityAdExtraData,
-  isAdActive,
+
   visibleVideoPostId,
- } = useBuklodCommunityAdViewability();
+  preloadVideoPostId,
+ } = useBuklodCommunityAdViewability(communityFeedRows);
 
  // Preserve the existing ad/video visibility engine; also pause an audio
  // post as soon as its card is no longer visible (no off-screen music).
@@ -4971,6 +5075,12 @@ const communityFeedRows =
      setWallAudioOwner('');
    }
  }).current;
+ const communityViewabilityPairs = useRef([
+   { viewabilityConfig: communityAdViewabilityConfig,
+     onViewableItemsChanged: onCommunityWallViewableItemsChanged },
+   { viewabilityConfig: communityVideoViewabilityConfig,
+     onViewableItemsChanged: onCommunityVideoViewableItemsChanged },
+ ]).current;
  useFocusEffect(useCallback(()=>{
    wallScreenFocusedRef.current=true;
    setWallScreenFocused(true);
@@ -5060,7 +5170,7 @@ const communityFeedRows =
   }}
       style={shared.screen} contentContainerStyle={s.content} data={
       communityFeedRows
-    } keyExtractor={(i: any)=>i.id} extraData={communityCreativeExtraData} onViewableItemsChanged={onCommunityWallViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
+    } keyExtractor={(i: any)=>i.id} extraData={communityCreativeExtraData} viewabilityConfigCallbackPairs={communityViewabilityPairs} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
     refreshing={busy}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
@@ -5635,7 +5745,8 @@ const communityFeedRows =
       return (
         <BuklodCommunityInlineAd
           slotId={item.id}
-          active={isAdActive(item.id)}
+          // Keep a measurable viewport probe mounted before first activation.
+          // Real ad requests remain gated by the existing SDK consent/viewport rules.
         />
       );
     }
@@ -5975,8 +6086,13 @@ const communityFeedRows =
      flex:1,
      backgroundColor:'#000000'
     }}
+    onLayout={event=>{
+     const h=Number(event.nativeEvent.layout.height)||0;
+     if(h>240)setVideoViewerPageHeight(current=>Math.abs(current-h)>1?h:current);
+    }}
    >
     <GestureFlatList
+     ref={videoViewerListRef}
      key={
       'video-viewer-'+
        videoViewerSession
@@ -5985,7 +6101,15 @@ const communityFeedRows =
       flex:1,
       width:'100%'
      }}
-     data={videoViewerPosts}
+     data={videoViewerFeedRows}
+     extraData={videoViewerIndex}
+     initialNumToRender={2}
+     maxToRenderPerBatch={2}
+     windowSize={3}
+     updateCellsBatchingPeriod={16}
+     removeClippedSubviews={false}
+     onViewableItemsChanged={videoViewerOnViewableItemsChanged}
+     viewabilityConfig={videoViewerViewabilityConfig}
      keyExtractor={(post,index)=>
       String(
        post?.id??
@@ -5993,7 +6117,7 @@ const communityFeedRows =
       )
      }
      pagingEnabled
-     snapToInterval={COMMUNITY_VIEWER_HEIGHT}
+     snapToInterval={videoViewerPageHeight}
      snapToAlignment="start"
      decelerationRate="fast"
      showsVerticalScrollIndicator={false}
@@ -6002,15 +6126,15 @@ const communityFeedRows =
        videoViewerIndex,
        Math.max(
         0,
-        videoViewerPosts.length-1
+        videoViewerFeedRows.length-1
        )
       )
      }
      getItemLayout={(_data,index)=>({
       length:
-       COMMUNITY_VIEWER_HEIGHT,
+       videoViewerPageHeight,
       offset:
-       COMMUNITY_VIEWER_HEIGHT*
+       videoViewerPageHeight*
        index,
       index
      })}
@@ -6022,9 +6146,9 @@ const communityFeedRows =
          Math.round(
           event.nativeEvent
            .contentOffset.y/
-          COMMUNITY_VIEWER_HEIGHT
+          videoViewerPageHeight
          ),
-         videoViewerPosts.length-1
+         videoViewerFeedRows.length-1
         )
        );
 
@@ -6032,17 +6156,9 @@ const communityFeedRows =
        nextIndex
       );
 
-      const nextPost=
-       videoViewerPosts[
-        nextIndex
-       ];
-
-      if(nextPost){
-       void refreshVideoViewerUrl(
-        nextPost
-       );
-      }
-       if(nextIndex>=videoViewerPosts.length-3 &&
+      if(nextIndex!==videoViewerIndex)setVideoViewerShowHint(false);
+      // Never rotate a still-playable signed URL merely on swipe.
+       if(nextIndex>=videoViewerFeedRows.length-3 &&
           videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT){
         void loadMoreVideoViewer();
        }
@@ -6054,6 +6170,56 @@ const communityFeedRows =
       }}
       onEndReachedThreshold={0.8}
      renderItem={({item,index})=>{
+      if (isReelsFeedInlineAdRow(item)) {
+       const adState=videoViewerAdStates[item.id]??'loading';
+       const isActive=index===videoViewerIndex;
+       return (
+        <View style={{
+          height:videoViewerPageHeight,width:'100%',
+          backgroundColor:'#000000',
+          justifyContent:'center',
+          paddingTop:Math.max(communityInsets.top+112,140),
+          paddingBottom:Math.max(communityInsets.bottom+34,46)
+        }}>
+         {isActive && adState!=='ready' ? (
+          <View style={{
+            paddingHorizontal:24,alignItems:'center',gap:14
+          }}>
+           <ActivityIndicator color="#FFFFFF" size="small"/>
+           <Text style={{color:'#FFFFFF',fontSize:15,fontWeight:'700'}}>
+            Preparing sponsored content…
+           </Text>
+           <Pressable accessibilityRole="button"
+            accessibilityLabel="Continue to next video"
+            style={{
+             minHeight:48,paddingHorizontal:22,paddingVertical:12,
+             borderRadius:24,backgroundColor:'#24372F'
+            }}
+            onPress={()=>{
+             const next=Math.min(index+1,videoViewerFeedRows.length-1);
+             if(next===index)return;
+             videoViewerListRef.current?.scrollToIndex({index:next,animated:false});
+             setVideoViewerIndex(next);
+            }}>
+            <Text style={{color:'#FFFFFF',fontSize:14,fontWeight:'700'}}>
+             Continue watching
+            </Text>
+           </Pressable>
+          </View>
+         ) : null}
+         <BuklodReelsInlineAd
+          slotId={item.id}
+          active={videoViewerOpen&&isActive}
+          prepare={videoViewerOpen&&index===videoViewerIndex+1}
+          onLoadStateChange={state=>{
+           if(videoViewerSessionRef.current!==videoViewerSession)return;
+           setVideoViewerAdStates(previous=>
+            previous[item.id]===state?previous:{...previous,[item.id]:state});
+          }}
+         />
+        </View>
+       );
+      }
       const descriptor=
        communityWallVideoDescriptor(
         item
@@ -6070,6 +6236,7 @@ const communityFeedRows =
         videoViewerFreshUrls[
          postId
         ]??
+        wallVideoFreshUrls[postId]??
         descriptor?.uri??
         ''
        ).trim();
@@ -6080,7 +6247,7 @@ const communityFeedRows =
          style={{
           width:'100%',
           height:
-           COMMUNITY_VIEWER_HEIGHT,
+           videoViewerPageHeight,
           backgroundColor:'#000000'
          }}
         />
@@ -6092,7 +6259,7 @@ const communityFeedRows =
         style={{
          width:'100%',
          height:
-          COMMUNITY_VIEWER_HEIGHT,
+          videoViewerPageHeight,
          backgroundColor:'#000000',
          alignItems:'center',
          justifyContent:'center'
@@ -6107,6 +6274,7 @@ const communityFeedRows =
          uri={
           fullscreenUri
          }
+         playbackKey={postId}
          posterUri={descriptor.media?.preview_url ?? null}
          onPosterGenerated={thumbnail => {
           if (!user?.id || String(descriptor.post?.user_id ?? '') !== String(user.id)) return;
@@ -6118,12 +6286,13 @@ const communityFeedRows =
            thumbnail,
           });
          }}
-         height={COMMUNITY_VIEWER_HEIGHT}
+         height={videoViewerPageHeight}
          fullscreen
          active={
           index===
           videoViewerIndex
          }
+         preload={index===videoViewerNextVideoIndex}
          autoPlay={
           index===
           videoViewerIndex
@@ -6138,9 +6307,7 @@ const communityFeedRows =
           descriptor.durationSeconds
          }
          onPlaybackError={()=>{
-          void refreshVideoViewerUrl(
-           item
-          );
+          void refreshVideoViewerUrl(item,fullscreenUri);
          }}
         />
 
@@ -6150,23 +6317,20 @@ const communityFeedRows =
           pointerEvents="none"
           style={{
            position:'absolute',
-           top:'48%',
+           top:Math.max(communityInsets.top+90,110),
            alignSelf:'center',
-           paddingHorizontal:12,
-           paddingVertical:7,
-           borderRadius:16,
-           backgroundColor:
-            'rgba(0,0,0,.46)'
+           flexDirection:'row',
+           alignItems:'center',
+           gap:8,
+           paddingHorizontal:14,
+           paddingVertical:8,
+           borderRadius:18,
+           backgroundColor:'rgba(0,0,0,.75)'
           }}
          >
-          <Text
-           style={{
-            color:'#FFFFFF',
-            fontSize:10,
-            fontWeight:'800'
-           }}
-          >
-           Refreshing videoâ€¦
+          <ActivityIndicator size="small" color="#FFFFFF"/>
+          <Text style={{color:'#FFFFFF',fontSize:12,fontWeight:'700'}}>
+           Reconnecting video…
           </Text>
          </View>
         )}
@@ -6176,21 +6340,19 @@ const communityFeedRows =
     />
 
     <View
-     style={[
-      s.communityViewerTop,
-      {
-       pointerEvents:'box-none'
-      } as any
-     ]}
+     pointerEvents="box-none"
+     style={[s.communityViewerTop,{
+      paddingTop:Math.max(communityInsets.top+14,54),
+     }]}
     >
      <Text
       style={
        s.communityViewerCount
       }
      >
-      {videoViewerIndex+1}
-      {' / '}
-      {videoViewerPosts.length}
+      {videoViewerActiveIsAd ? 'Sponsored' : Math.max(1,videoViewerContentPosition)}
+      {videoViewerActiveIsAd ? '' : ' / '}
+      {videoViewerActiveIsAd ? '' : videoViewerPosts.length}
      </Text>
 
      <Pressable
@@ -6211,13 +6373,8 @@ const communityFeedRows =
      </Pressable>
     </View>
 
-    {!!videoViewerPosts[
-      videoViewerIndex
-    ]&&(()=>{
-     const activePost=
-      videoViewerPosts[
-       videoViewerIndex
-      ];
+    {!videoViewerActiveIsAd&&!!videoViewerActiveRow&&(()=>{
+     const activePost=videoViewerActiveRow;
      const counts=
       activePost?.reaction_counts||
       {};
@@ -6228,22 +6385,14 @@ const communityFeedRows =
         position:'absolute',
         left:8,
         right:8,
-        bottom:
-         Math.max(
-          communityInsets.bottom+
-           (Platform.OS==='web'
-            ? 78
-            : 72),
-          84
-         ),
-        paddingHorizontal:8,
-        paddingTop:4,
-        paddingBottom:4,
-        borderRadius:14,
-        /* BUKLOD_VIDEO_VIEWER_NO_CONTROL_OVERLAP_R6 */
-        backgroundColor:
-         'rgba(0,0,0,.16)',
-        borderWidth:0
+        bottom:Math.max(communityInsets.bottom+18,28),
+        paddingHorizontal:12,
+        paddingTop:9,
+        paddingBottom:9,
+        borderRadius:18,
+        backgroundColor:'rgba(0,0,0,.68)',
+        borderWidth:1,
+        borderColor:'rgba(255,255,255,.12)'
        }}
       >
        <Text
@@ -6253,7 +6402,7 @@ const communityFeedRows =
          color:'#FFFFFF',
          textShadowColor:'rgba(0,0,0,.55)',
          textShadowRadius:3,
-         fontSize:12,
+         fontSize:14,
          fontWeight:'900'
         }}
        >
@@ -6275,8 +6424,8 @@ const communityFeedRows =
           color:'rgba(255,255,255,.88)',
           textShadowColor:'rgba(0,0,0,.55)',
           textShadowRadius:3,
-          fontSize:10.5,
-          lineHeight:14
+          fontSize:12,
+          lineHeight:17
          }}
         >
          {String(
@@ -6299,6 +6448,8 @@ const communityFeedRows =
          activePost.comment_count
         }
         commentPreview={null}
+        showCommentPreview={false}
+        socialActions
         onReactionSummaryPress={key =>
          openReactionDetails(
           activePost,
@@ -6331,44 +6482,37 @@ const communityFeedRows =
      );
     })()}
 
-    {videoViewerPosts.length>1&&(
-     <Text
-      style={[
-       s.communityViewerHint,
-       {
-        bottom:
-         Math.max(
-          communityInsets.bottom+118,
-          Platform.OS==='android'
-           ? 158
-           : 128
-         )
-       }
-      ]}
-     >
-      Swipe vertically for next video
-     </Text>
+    {videoViewerPosts.length>1&&!videoViewerActiveIsAd&&videoViewerShowHint&&(
+     <View pointerEvents="none" style={{
+      position:'absolute',
+      top:Math.max(communityInsets.top+105,126),
+      alignSelf:'center',
+      paddingHorizontal:12,
+      paddingVertical:6,
+      borderRadius:16,
+      backgroundColor:'rgba(0,0,0,.58)'
+     }}>
+      <Text style={{color:'#FFFFFF',fontSize:11,fontWeight:'700'}}>
+       Swipe up for next video
+      </Text>
+     </View>
     )}
 
-    {videoViewerIndex>=videoViewerPosts.length-2 &&
+    {videoViewerIndex>=videoViewerFeedRows.length-2 &&
      videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT &&
-     (videoViewerHasMore||videoViewerLoadingMore||videoViewerLoadError)&&(
+     videoViewerLoadError&&!videoViewerLoadingMore&&(
      <Pressable
       accessibilityRole="button"
       disabled={videoViewerLoadingMore}
       onPress={()=>void loadMoreVideoViewer()}
       style={{
-       position:'absolute',top:100,alignSelf:'center',
+       position:'absolute',top:Math.max(communityInsets.top+100,122),alignSelf:'center',
        paddingHorizontal:14,paddingVertical:8,
        backgroundColor:'rgba(0,0,0,.62)',borderRadius:16,
       }}
      >
       <Text style={{color:'#FFFFFF',fontSize:12,fontWeight:'700'}}>
-       {videoViewerLoadingMore
-        ? 'Finding recent videos...'
-        : videoViewerLoadError
-         ? 'Could not load more — tap to retry'
-         : 'Load more recent videos'}
+       Could not load more videos. Tap to retry
       </Text>
      </Pressable>
     )}
