@@ -24,8 +24,12 @@ export function shouldMountCommunityVideoPlayer(input: {
   fullscreen: boolean;
   degraded: boolean;
   playIntent: boolean;
+  preload?: boolean;
+  keepWarm?: boolean;
 }) {
-  if (!input.active) return false;
+  // Pause immediately when out of view, but retain the decoder briefly on
+  // rapid scroll-backs; one upcoming video may buffer without playing.
+  if (!input.active && !input.preload && !input.keepWarm) return false;
   if (input.fullscreen || input.playIntent) return true;
   // Browser video loads for the visible row regardless of measured network
   // quality. Android must not render a permanent black/placeholder-only row
