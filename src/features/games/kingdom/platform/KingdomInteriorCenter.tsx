@@ -54,7 +54,9 @@ export function KingdomInteriorCenter({
   ownerRef.current = user?.id ?? null;
   gameRef.current = activeId;
   const active = options.find(option => option.id === activeId) ?? options[0];
-  const nextOption = options[options.findIndex(option => option.id === active?.id) + 1];
+  const nextOption = options.length > 1
+    ? options[(options.findIndex(option => option.id === active?.id) + 1) % options.length]
+    : null;
 
   useEffect(() => {
     let mounted = true;
@@ -166,7 +168,7 @@ export function KingdomInteriorCenter({
           <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id}
             onVerified={() => setMasteryRefresh(value => value + 1)} />
         ) : null}
-        {lastCompletedId === active.id && user?.id ? (
+        {user?.id ? (
           <KingdomAIContinuation key={user.id + ':' + active.id} gameId={active.id} />
         ) : null}
         {lastCompletedId === active.id && nextOption ? (
