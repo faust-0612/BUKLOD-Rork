@@ -73,6 +73,10 @@ export default function BuklodReelsInlineAd({
   });
   const requestKey = String(slotId ?? 'reels-default').slice(0, 80);
   const canAttempt = prepared && sdkReady && online && routeSafe;
+  const [requested, setRequested] = useState(false);
+  useEffect(() => {
+    if (canAttempt) setRequested(true);
+  }, [canAttempt]);
 
   const [nativeAd, setNativeAd] =
     useState<NativeAd | null>(null);
@@ -123,7 +127,9 @@ export default function BuklodReelsInlineAd({
     );
 
   useEffect(() => {
-    if (!canAttempt) return;
+    // After first eligible request, retain its loaded NativeAd until this
+    // row unmounts; temporary background/network changes must not destroy it.
+    if (!requested) return;
     if (!nativeUnitId) {
       setNativeFailed(true);
       return;
@@ -223,7 +229,7 @@ export default function BuklodReelsInlineAd({
       createdAd?.destroy();
     };
   }, [
-    canAttempt,
+    requested,
     nativeUnitId,
     pathname,
     requestKey,
