@@ -29,6 +29,7 @@ import KlAdminPreview from '@/components/kabihasnang-ligaw/KlAdminPreview';
 import KlChapterAudio from '@/components/kabihasnang-ligaw/KlChapterAudio';
 import { KlSceneEffect, type SceneEffect } from '@/components/kabihasnang-ligaw/KlSceneEffect';
 import KlLiveDiscussion from '@/components/kabihasnang-ligaw/KlLiveDiscussion';
+import KlReadingQuiz from '@/components/kabihasnang-ligaw/KlReadingQuiz';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
 import {
   buildAssetGate,
@@ -140,13 +141,11 @@ export default function KlReaderScreen() {
   const [dynamicMedia, setDynamicMedia] = useState<DynamicMedia[]>([]);
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [mediaErrors, setMediaErrors] = useState<Record<string, string>>({});
-  const [rewardFeedback, setRewardFeedback] = useState('');
   const [viewStart, setViewStart] = useState<number | null>(null);
   const [viewEnd, setViewEnd] = useState<number | null>(null);
   const paragraphY = useRef<Record<number, number>>({});
   const readerTop = useRef(0);
   const openSequence = useRef(0);
-  const chapterCompletionInFlight = useRef(false);
 
   const compact = width < 420;
   const bodySize = Math.round(19 * cache.textScale);
@@ -332,6 +331,19 @@ export default function KlReaderScreen() {
       if (error) throw error;
       if (result?.ok !== true) throw new Error('Server did not confirm the chapter action.');
 
+      let quizFeedback = '';
+      if (action === 'approve') {
+        try {
+          const { data: generated, error: generationError } = await supabase.functions.invoke(
+            'kl-generate-reading-quiz', { body: { episode_id: serverChapter.id } },
+          );
+          quizFeedback = !generationError && (generated as { status?: string } | null)?.status === 'ready'
+            ? ' Awtomatikong nagawa ang 5 simple reading questions.'
+            : ' Naka-queue ang 5 reading questions; hindi pa verified ang generation.';
+        } catch {
+          quizFeedback = ' Naka-queue ang reading questions; subukang muli kapag may koneksiyon.';
+        }
+      }
       const updatedRows = await refreshAdminRows();
       if (action === 'release') {
         const updatedChapter = findKlAdminChapter(updatedRows, 1, targetEpisode.episodeNumber);
@@ -346,7 +358,7 @@ export default function KlReaderScreen() {
         setReleasedChapters(libraryData as ReleasedChapter[]);
       }
       setAdminFeedback(action === 'approve'
-        ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.'
+        ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.' + quizFeedback
         : action === 'release'
           ? 'Verified: inilabas ang kabanata at nasa public library na.'
           : 'Ibinalik sa draft sa server.');
@@ -426,27 +438,6 @@ export default function KlReaderScreen() {
     }
   }, [selected?.id, serverState, online]);
 
-  const finishChapter = async () => {
-    if (!selected || !selectedDbId || chapterCompletionInFlight.current) return;
-    chapterCompletionInFlight.current = true;
-    try {
-      const { data, error } = await supabase.rpc('kl_reading_progress_v1', {
-        p_episode_id: selectedDbId, p_action: 'complete',
-      });
-      if (error) { setRewardFeedback(error.message); return; }
-      const result = data as { new_completion?: boolean; points_awarded?: number; chapter_points?: number; series_points?: number; completed?: boolean } | null;
-      setRewardFeedback(result?.completed === false ? 'Kailangan muna ng sapat na oras ng pagbabasa.' :
-        result?.new_completion ? `Natapos ang kabanata · +${Number(result.chapter_points||5)} BP${Number(result.series_points||0)>0?` · Series completed +${Number(result.series_points)} BP`:''}` : 'Naitala na ang pagkumpleto sa kabanatang ito.');
-      if (result?.completed !== false) setJourneyRefreshToken((token) => token + 1);
-      // Completion and Journey refresh are confirmed before any optional ad.
-      if (result?.new_completion === true) await showBuklodAdOpportunity('kl_chapter_success');
-    } catch {
-      setRewardFeedback('Hindi makumpirma ang kabanata. Subukang muli.');
-    } finally {
-      chapterCompletionInFlight.current = false;
-    }
-  };
-
   const syncViewport = (scrollY: number) => {
     const entries = Object.entries(paragraphY.current)
       .map(([index, y]) => ({ index: Number(index), y: y + readerTop.current }))
@@ -481,7 +472,6 @@ export default function KlReaderScreen() {
     setDynamicMedia([]);
     setMediaUrls({});
     setMediaErrors({});
-    setRewardFeedback('');
     setSelectedId(episodeId);
     setGlossaryOpen(false);
     let nextCache = rememberScroll(cache, episodeId, 0, readable);
@@ -798,10 +788,8 @@ export default function KlReaderScreen() {
                 <IconButton icon="refresh" label={klCopy.tryAgain} disabled={busy} onPress={() => void refresh()} />
               </View>
             ) : null}
-            <Pressable accessibilityRole="button" onPress={() => void finishChapter()} style={{ padding: 12, borderRadius: 8, backgroundColor: '#28583f' }}>
-              <Text style={{ color: '#fff' }}>Mark Chapter Complete</Text>
-            </Pressable>
-            {rewardFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{rewardFeedback}</Text> : null}
+            <KlReadingQuiz key={selectedDbId ?? 'unavailable'} episodeId={selectedDbId}
+              onVerified={() => setJourneyRefreshToken((token) => token + 1)} />
 
             <KlLiveDiscussion episodeId={selectedDbId ?? klDatabaseId(selected.episodeNumber)} live={liveReleased} />
           </View>
