@@ -14,6 +14,7 @@ import {
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { KingdomMasteryCheck } from './KingdomMasteryCheck';
 import { KingdomAIContinuation } from './KingdomAIContinuation';
+import { KingdomOfflineContinuation } from './KingdomOfflineContinuation';
 
 type MiniGameFinish = (result: BuklodGameResult, sessionId: string) => void;
 export type KingdomInteriorOption = {
@@ -191,8 +192,11 @@ export function KingdomInteriorCenter({
             onVerified={() => setMasteryRefresh(value => value + 1)} />
         ) : null}
         {user?.id ? (
-          <KingdomAIContinuation key={user.id + ':' + active.id} gameId={active.id} />
-        ) : null}
+          <>
+            <KingdomOfflineContinuation key={'offline:' + user.id + ':' + active.id} gameId={active.id} />
+            <KingdomAIContinuation key={user.id + ':' + active.id} gameId={active.id} />
+          </>
+        ) : null
         {lastCompletedId === active.id && nextOption ? (
           <Pressable accessibilityRole="button" style={styles.nextChallenge}
             onPress={() => { setActiveId(nextOption.id); setLastCompletedId(null); }}>
