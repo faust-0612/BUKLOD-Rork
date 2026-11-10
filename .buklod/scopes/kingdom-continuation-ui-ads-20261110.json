@@ -1,0 +1,68 @@
+{
+  "contractVersion": 2,
+  "objective": "Make BUKLOD Kingdom map usable and richer, let members move the companion, add all-station compliant ads, reliable BP mastery feedback, optional AI continuation with no repeat practice prompts and bounded cost",
+  "baseRef": "c134ee35c459c42967aac3c9d24a49cd66f65a0c",
+  "productionBaselineEvidence": "Current production OTA/web artifact and runtime have NOT been verified in this DEV change. No production release is authorized in this scope.",
+  "chosenApproach": "Protect canonical 13 routes and ledger; shared center plus two special centers; add zoom and selected station art; distribute original offline 12-second music; add optional non-credit AI practice with per-account/global quota behind disabled-by-default server flag; retain server-only BP mastery",
+  "selectedAlternatives": [
+    "Never allow a client or AI practice result to credit BP (chosen)",
+    "No generic ad bypass of sensitive /games route, only narrowly scoped sponsorship and natural-break placements (chosen)",
+    "Do not re-enable failing Rork preview CDN audio; use original bundled WAV (chosen)",
+    "Do not enable unmetered AI provider requests by default (chosen)"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-continuation-ui-ads-20261110.json",
+    "src/features/games/runtime/BuklodGameCharacterCompanion.tsx",
+    "src/features/games/runtime/rorkAudio.ts",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
+    "src/features/games/kingdom/platform/KingdomMasteryCheck.tsx",
+    "src/features/games/kingdom/platform/KingdomAIContinuation.tsx",
+    "src/lib/buklodGlobalAdController.ts",
+    "src/lib/buklodAdOpportunities.ts",
+    "src/app/games/christian-civic-leadership.tsx",
+    "src/app/games/mitch-restore-mural.tsx",
+    "assets/sounds/buklod-kingdom-ambient-original.wav",
+    "supabase/migrations/20261110110100_buklod_kingdom_ai_continuation_v1.sql",
+    "supabase/functions/buklod-kingdom-ai-continuation-v1/index.ts",
+    "tests/kingdom-continuation-mobile-ads-20261110.test.mjs",
+    "tests/kingdom-ai-continuation-20261110.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "All 13 canonical station game routes, x/y coordinates and journey paths, unaffected legacy map rollback source",
+    "Existing 39 game catalog membership and client-account-scoped local score records",
+    "Current public.start/finish_my_buklod_kingdom_mastery_v1 scoring, +2 BP once-per-game, ledger idempotency",
+    "R31/R40 active character portrait art and character progression",
+    "Default block for sensitive financial, reporting, exam, messaging and other ads",
+    "Existing sound/quiet-hours preferences, game SFX and web/native fallbacks",
+    "No change to Supabase production DB, existing earned BP records, published OTA or Play AAB"
+  ],
+  "acceptanceChecks": [
+    "Focused Node regression tests for all 13 stations, map geometry, zoom, drag, ads, offline WAV and AI quotas",
+    "Existing map R6, Kingdom games, Bible V4/Kingdom audio and app-wide ad controller contracts",
+    "TypeScript typecheck, Android native Metro and Expo Web bundle compile on frozen RC",
+    "Isolated staging SQL migration with RLS, concurrency, quota, replay, idempotency and auth proof",
+    "Gemini API runtime and cost validation, static secret checks, no-credit practice proof",
+    "Physical Android navigation/drag/music/image/ad fill and AI next-level screenshot acceptance or explicit device waiver",
+    "Reconcile against current live production baseline; no automated merge or OTA publication from this branch"
+  ],
+  "knownRemainingIssue": "Existing certified BP mastery bank has only five questions for each of 39 games (195 rows total and only 40 semantically distinct de-prefixed prompts across games). Strict no-repeat BP retries require vetted bank expansion plus server-side per-user question history before any replacement of the live scoring RPC. AI-generated continuation here is practice only and does not yet add unreviewed questions to the authoritative BP bank.",
+  "riskAreas": [
+    "game-performance-and-bundle-size",
+    "ad-frequency-and-policy",
+    "AI-provider-cost-and-quotas",
+    "expo-audio-lifecycle",
+    "database-RLS-security",
+    "cross-platform-layout"
+  ],
+  "regressionTests": [
+    "tests/kingdom-continuation-mobile-ads-20261110.test.mjs",
+    "tests/kingdom-ai-continuation-20261110.test.mjs",
+    "tests/kingdom-premium-map-r6.test.mjs",
+    "tests/kingdom-certified-mastery-39-20261108.test.mjs",
+    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
+    "scripts/rork-media-contract-test.mjs",
+    "scripts/game-kingdom-release-contract.mjs"
+  ],
+  "releaseState": "DEV_HOLD"
+}
