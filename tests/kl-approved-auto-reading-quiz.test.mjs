@@ -17,7 +17,7 @@ test('approving an actual manuscript queues precisely five source-grounded quest
   assert.match(generator, /EXACTLY FIVE simple/);
   assert.match(generator, /manuscript\.includes\(evidence\)/);
   assert.match(reader, /prepareQuizForApprovedChapter\(serverChapter\.id\)/);
-  assert.match(reader, /if \(action === 'approve'\)/);
+  assert.match(reader, /const quizFeedback = action === 'approve'/);
   assert.match(reader, /Check \/ Retry 5 Reading Questions/);
 });
 
