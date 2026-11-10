@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, type BuklodPttConnection } from './buklodPttCore';
 
 export type BuklodPttMessage = {
@@ -105,4 +106,24 @@ export async function setBuklodPttCaptions(
   if (error) throw error;
   if (data?.error) throw new Error(String(data.error));
   return data;
+}
+
+const consentCache = new Map<string, boolean>();
+function consentKey(userId: string, scopeId: string, channel: number) {
+  return `buklod.ptt.caption.consent.v1.${userId}.${scopeId}.${channel}`;
+}
+
+/** Caption storage is opt-in per user and channel. Listening remains unaffected. */
+export async function hasBuklodPttCaptionConsent(userId: string, scopeId: string, channel: number) {
+  const key = consentKey(userId, scopeId, channel);
+  if (consentCache.has(key)) return consentCache.get(key) === true;
+  const consent = (await AsyncStorage.getItem(key).catch(() => null)) === 'yes';
+  consentCache.set(key, consent);
+  return consent;
+}
+
+export async function saveBuklodPttCaptionConsent(userId: string, scopeId: string, channel: number, consent: boolean) {
+  const key = consentKey(userId, scopeId, channel);
+  await AsyncStorage.setItem(key, consent ? 'yes' : 'no');
+  consentCache.set(key, consent);
 }
