@@ -473,7 +473,7 @@ export default function BuklodMainHealthCard({
             </View>
           </View>)}
         </View>)}
-        <Pressable onPress={()=>void Linking.openURL('https://online.prc.gov.ph/')}
+        <Pressable onPress={()=>void Linking.openURL('https://verification.prc.gov.ph/')}
           accessibilityRole="link" style={styles.fullDoor}>
           <Text style={styles.fullDoorText}>{t('Official PRC verification website','Opisyal na PRC verification website')}</Text>
           <MaterialCommunityIcons name="open-in-new" size={15} color="#155743"/>
