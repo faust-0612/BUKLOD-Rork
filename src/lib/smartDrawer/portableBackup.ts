@@ -51,6 +51,7 @@ async function decryptBackup(raw: string, recoveryKey: string): Promise<Envelope
   }
 }
 const MAX_ARCHIVE_BYTES = 20 * 1024 * 1024;
+const MAX_ENCRYPTED_BYTES = 28 * 1024 * 1024;
 const MAX_ITEMS = 10000;
 const BATCH_SIZE = 100;
 
@@ -181,6 +182,7 @@ export async function shareSmartDrawerBackup(userId: string, recoveryKey: string
   const envelope: Envelope = { format: FORMAT, sha256, payload };
   const uri = FileSystem.cacheDirectory + 'buklod-drawer-' + Date.now() + '.buklodbackup';
   const encrypted = await encryptBackup(envelope, recoveryKey);
+  if (encrypted.length > MAX_ENCRYPTED_BYTES) throw new Error('Encrypted backup exceeds 28 MB. Nothing was shared.');
   await FileSystem.writeAsStringAsync(uri, encrypted, { encoding: FileSystem.EncodingType.UTF8 });
   if (!await Sharing.isAvailableAsync()) throw new Error('No compatible app is available to save your backup.');
   await Sharing.shareAsync(uri, { mimeType: 'application/octet-stream', dialogTitle: 'Save encrypted backup to your personal cloud' });
@@ -201,11 +203,11 @@ export async function restoreSmartDrawerBackup(userId: string, recoveryKey: stri
   });
   if (picked.canceled || !picked.assets[0]) return { restored: 0, skipped: 0, canceled: true };
   const uri = picked.assets[0].uri;
-  if ((picked.assets[0].size ?? 0) > MAX_ARCHIVE_BYTES + 1024) {
-    throw new Error('Backup file is larger than the supported 20 MB limit.');
+  if ((picked.assets[0].size ?? 0) > MAX_ENCRYPTED_BYTES) {
+    throw new Error('Encrypted backup file exceeds the 28 MB import limit.');
   }
   const raw = await FileSystem.readAsStringAsync(uri);
-  if (raw.length > MAX_ARCHIVE_BYTES + 1024) throw new Error('Backup is too large.');
+  if (raw.length > MAX_ENCRYPTED_BYTES) throw new Error('Backup is too large.');
   const envelope = await decryptBackup(raw, recoveryKey);
   if (envelope?.format !== FORMAT || typeof envelope.sha256 !== 'string') {
     throw new Error('This is not a supported BUKLOD Drawer backup.');
