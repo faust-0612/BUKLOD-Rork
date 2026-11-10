@@ -230,6 +230,6 @@ begin
     end
   );
 end
-$function$
+$function$;
 revoke all on function public.get_my_buklod_financial_summary_v3() from public,anon;
 grant execute on function public.get_my_buklod_financial_summary_v3() to authenticated;
