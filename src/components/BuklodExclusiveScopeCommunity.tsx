@@ -3435,6 +3435,7 @@ return (
                     uri={
                       item.media_url
                     }
+                    playbackKey={String(item.id)}
                     posterUri={item.media_items?.find((media:any) =>
                       String(media.media_mime_type ?? '').toLowerCase().startsWith('video/')
                     )?.preview_url ?? null}
