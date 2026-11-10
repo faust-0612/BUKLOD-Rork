@@ -122,6 +122,11 @@ export function KingdomInteriorCenter({
               }
             }).catch(() => undefined);
         })}</View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Play next Kingdom level offline"
+          onPress={() => router.push({pathname:'/games/practice',params:{gameId:active.id}} as any)}
+          style={styles.practiceLink}>
+          <Text style={styles.practiceText}>NEXT ADVENTURE LEVEL • OFFLINE PRACTICE</Text>
+        </Pressable>
         {masteryEligibility?.owner === user?.id && masteryEligibility?.gameId === active.id ? (
           <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id} />
         ) : null}
@@ -131,6 +136,9 @@ export function KingdomInteriorCenter({
 }
 
 const styles = StyleSheet.create({
+  practiceLink: { minHeight:44, padding:12, borderRadius:12, borderWidth:1, borderColor:'#e9ca88', backgroundColor:'#254a53', alignItems:'center', justifyContent:'center', marginVertical:7 },
+  practiceText: { color:'#ffebbb', fontSize:12, fontWeight:'900', textAlign:'center' },
+
   page: { flexGrow: 1, paddingTop: 18, paddingBottom: 36 },
   shell: { width: '100%', maxWidth: 940, alignSelf: 'center', paddingHorizontal: 12, gap: 9 },
   mapBack: { alignSelf: 'flex-start', borderColor: '#c6b68f', borderWidth: 1,
