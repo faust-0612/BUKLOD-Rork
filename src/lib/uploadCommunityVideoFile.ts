@@ -244,7 +244,12 @@ async function readCommunityPhotoDimensions(uri: string): Promise<{width: number
  */
 async function convertWebPhotoToJpegBlob(source: Blob): Promise<Blob | null> {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return null;
-  const url = URL.createObjectURL(source);
+  let url: string;
+  try {
+    url = URL.createObjectURL(source);
+  } catch {
+    return null;
+  }
   try {
     const image = document.createElement('img');
     await new Promise<void>((resolve, reject) => {
