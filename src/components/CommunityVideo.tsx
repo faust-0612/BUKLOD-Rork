@@ -522,6 +522,10 @@ function ExpoCommunityVideo({
   const [playerStatus, setPlayerStatus] = useState<
     'idle' | 'loading' | 'readyToPlay' | 'error'
   >('idle');
+  const [autoRecovering, setAutoRecovering] = useState(false);
+  const [showDelayedLoading, setShowDelayedLoading] = useState(false);
+  const playerStatusRef = useRef('idle');
+  const recoveryDeadlineRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const replayAttemptsRef = useRef(0);
   const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryNotBeforeRef = useRef(0);
@@ -537,6 +541,9 @@ function ExpoCommunityVideo({
     readyReportedRef.current = false;
     setVideoAspectRatio(null);
     setHasStartedPlayback(false);
+    setAutoRecovering(false);
+    setPlayerStatus('idle');
+    playerStatusRef.current = 'idle';
     replayAttemptsRef.current = 0;
     retryNotBeforeRef.current = 0;
     errorReportedRef.current = false;
@@ -544,13 +551,31 @@ function ExpoCommunityVideo({
       clearTimeout(replayTimerRef.current);
       replayTimerRef.current = null;
     }
+    if (recoveryDeadlineRef.current) {
+      clearTimeout(recoveryDeadlineRef.current);
+      recoveryDeadlineRef.current = null;
+    }
     return () => {
       if (replayTimerRef.current) {
         clearTimeout(replayTimerRef.current);
         replayTimerRef.current = null;
       }
+      if (recoveryDeadlineRef.current) {
+        clearTimeout(recoveryDeadlineRef.current);
+        recoveryDeadlineRef.current = null;
+      }
     };
   }, [uri]);
+
+  // Do not show a buffering alert for every ordinary, sub-second startup.
+  useEffect(() => {
+    if (!active || (playerStatus !== 'loading' && !autoRecovering)) {
+      setShowDelayedLoading(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowDelayedLoading(true), 950);
+    return () => clearTimeout(timer);
+  }, [active, playerStatus, autoRecovering]);
 
   const source = useMemo(
     () => communityVideoSource(uri),
@@ -595,6 +620,7 @@ function ExpoCommunityVideo({
       'statusChange',
       (event: { status?: string }) => {
         const nextStatus = event?.status;
+        if (nextStatus) playerStatusRef.current = nextStatus;
         if (
           nextStatus === 'loading' ||
           nextStatus === 'readyToPlay' ||
@@ -626,7 +652,9 @@ function ExpoCommunityVideo({
           if (action === 'replay') {
             replayAttemptsRef.current = 1;
             retryNotBeforeRef.current = Date.now() + 2_500;
+            setAutoRecovering(true);
             if (replayTimerRef.current) clearTimeout(replayTimerRef.current);
+            if (recoveryDeadlineRef.current) clearTimeout(recoveryDeadlineRef.current);
             replayTimerRef.current = setTimeout(() => {
               replayTimerRef.current = null;
               if (!activeRef.current) return;
@@ -635,22 +663,40 @@ function ExpoCommunityVideo({
               } catch {
                 if (!errorReportedRef.current) {
                   errorReportedRef.current = true;
+                  setAutoRecovering(false);
                   playbackErrorHandlerRef.current?.();
                 }
               }
-            }, 900);
+            }, 350);
+            // expo-video may remain in error without emitting a second event.
+            // This timeout guarantees one terminal recovery callback.
+            recoveryDeadlineRef.current = setTimeout(() => {
+              recoveryDeadlineRef.current = null;
+              if (!activeRef.current || errorReportedRef.current ||
+                  playerStatusRef.current === 'readyToPlay') return;
+              errorReportedRef.current = true;
+              setAutoRecovering(false);
+              playbackErrorHandlerRef.current?.();
+            }, 2_650);
             return;
           }
           // The recovery attempt itself may emit repeated error events.
           // Refresh signed access only after the bounded local retry fails.
           if (action === 'refresh') {
             errorReportedRef.current = true;
+            setAutoRecovering(false);
             playbackErrorHandlerRef.current?.();
           }
           return;
         }
 
         if (nextStatus === 'readyToPlay') {
+          setAutoRecovering(false);
+          retryNotBeforeRef.current = 0;
+          if (recoveryDeadlineRef.current) {
+            clearTimeout(recoveryDeadlineRef.current);
+            recoveryDeadlineRef.current = null;
+          }
           if (replayTimerRef.current) {
             clearTimeout(replayTimerRef.current);
             replayTimerRef.current = null;
@@ -736,7 +782,10 @@ function ExpoCommunityVideo({
       (event: { isPlaying?: boolean }) => {
         const isPlaying = Boolean(event?.isPlaying);
         setPlaying(isPlaying);
-        if (isPlaying) setHasStartedPlayback(true);
+        if (isPlaying) {
+          setHasStartedPlayback(true);
+          setAutoRecovering(false);
+        }
       },
     );
 
@@ -759,6 +808,10 @@ function ExpoCommunityVideo({
       if (replayTimerRef.current) {
         clearTimeout(replayTimerRef.current);
         replayTimerRef.current = null;
+      }
+      if (recoveryDeadlineRef.current) {
+        clearTimeout(recoveryDeadlineRef.current);
+        recoveryDeadlineRef.current = null;
       }
     };
   }, [player, uri]);
