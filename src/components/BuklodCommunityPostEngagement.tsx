@@ -58,7 +58,7 @@ export function BuklodCommunityPostEngagement({
 
   return (
     <View style={styles.wrap}>
-      {socialActions && (activeReactions.length > 0 || !!onReport) ? (
+      {socialActions ? (
         <View style={styles.socialSummary}>
           <View style={styles.socialCounts}>
             {activeReactions.map(option => (
@@ -78,6 +78,18 @@ export function BuklodCommunityPostEngagement({
               </BuklodPressable>
             ))}
           </View>
+          <BuklodPressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${totalComments} post comments`}
+            nested compact
+            onPress={onOpenComments}
+            style={styles.visibleCommentCount}
+          >
+            <MaterialCommunityIcons name="comment-outline" size={16} color={theme.textMuted} />
+            <Text style={[styles.visibleCommentCountText, { color: theme.textMuted }]}>
+              {totalComments} {totalComments === 1 ? 'comment' : 'comments'}
+            </Text>
+          </BuklodPressable>
           {onReport ? (
             <BuklodPressable accessibilityRole="button" accessibilityLabel="Report this post"
               nested compact onPress={onReport} style={styles.socialReport}>
@@ -205,6 +217,8 @@ const styles = StyleSheet.create({
   },
   socialSummary: { minHeight: 27, flexDirection: 'row', alignItems: 'center', gap: 7 },
   socialCounts: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7 },
+  visibleCommentCount: { minHeight: 30, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 5 },
+  visibleCommentCountText: { fontSize: 12, fontWeight: '800' },
   socialCountChip: { flexDirection: 'row', alignItems: 'center', gap: 3, minHeight: 25 },
   socialCountEmoji: { fontSize: 14 },
   socialCountText: { fontSize: 12, fontWeight: '700' },
