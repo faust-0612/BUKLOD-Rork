@@ -49,3 +49,56 @@ test('Safari WebView Load failed is a network upload error, not unexplained SYS-
   assert.match(media, /network request failed\|failed to fetch\|network error\|load failed/);
   assert.match(media, /case 'network':/);
 });
+
+test('web photo and gallery pickers open on the active user gesture', () => {
+  const picker = readFileSync('src/lib/buklodPickCommunityPhotos.ts', 'utf8');
+  assert.match(picker, /import \* as ImagePicker from 'expo-image-picker'/);
+  assert.doesNotMatch(picker, /await import\('expo-image-picker'\)/);
+  const pickers = [picker.indexOf('export async function pickCommunityPhotos('),
+    picker.indexOf('export async function pickCommunityGallery(')];
+  for (const start of pickers) {
+    const section = picker.slice(start, picker.indexOf('const result = await ImagePicker.launchImageLibraryAsync', start));
+    assert.ok(start > 0);
+    assert.match(section, /if \(Platform\.OS !== 'web'\)/);
+    assert.match(section, /ImagePicker\.requestMediaLibraryPermissionsAsync/);
+    assert.doesNotMatch(section, /await import\(/);
+  }
+});
+
+test('browser-selected image File stays alive from picker through Storage PUT', () => {
+  const picker = readFileSync('src/lib/buklodPickCommunityPhotos.ts', 'utf8');
+  assert.match(picker, /webFile: Platform\.OS === 'web' \? asset\.file/);
+  assert.match(wall, /webFile\?:Blob/);
+  assert.match(wall, /\.\.\.picked\.photos,/);
+  assert.match(wall, /webFile:photo\.webFile/);
+  assert.match(upload, /prepareCommunityJpegUri\(uri, webFile\)/);
+  assert.match(upload, /webBlob: prepared\.webBlob/);
+  assert.match(upload, /webBlob,\s*contentType/);
+  assert.match(upload, /const blob = webBlob \?\? await readWebBlob\(uri\)/);
+});
+
+test('JPEG uploads do not require conversion; non-JPEG must become an actual JPEG', () => {
+  assert.match(upload, /isJpeg && existingBytes > 0 && existingBytes <= 12 \* 1024 \* 1024/);
+  assert.match(upload, /const actualMime = String\(webSelectedBlob\?\.type/);
+  assert.match(upload, /\^image\\\/jpe\?g\$/);
+  assert.match(upload, /webBlob = Platform\.OS === 'web'/);
+  assert.match(upload, /Prepared photo is not a valid JPEG/);
+  assert.match(upload, /canvas\.toBlob\(resolve, 'image\/jpeg', 0\.82\)/);
+  assert.match(upload, /URL\.revokeObjectURL\(url\)/);
+  assert.match(upload, /if \(converted\) \{/);
+});
+
+test('video and native storage paths remain unchanged and web photo concurrency is bounded', () => {
+  assert.match(wall, /Platform\.OS==='web'\?2:3/);
+  assert.match(upload, /export async function uploadCommunityVideoFile/);
+  assert.match(upload, /FileSystem\.createUploadTask\(/);
+  assert.match(upload, /FileSystem\.uploadAsync\(/);
+  assert.match(upload, /await uploadCommunitySignedPut\(/);
+  assert.match(upload, /method: 'PUT'/);
+});
+
+test('only photo failures get photo recovery instructions', () => {
+  assert.match(wall, /publishStage === 'upload_photo'/);
+  assert.match(wall, /Photo upload failed\. Your draft was restored/);
+  assert.match(wall, /setPhotos\(current => current\.length \? current : snapshot\.photos\)/);
+});
