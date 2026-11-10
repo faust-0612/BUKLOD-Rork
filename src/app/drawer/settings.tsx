@@ -4,6 +4,8 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +27,7 @@ import {
   type SmartDrawerSettings,
 } from '@/lib/smartDrawer/settings';
 import { useAuth } from '@/providers/AuthProvider';
+import { shareSmartDrawerBackup, restoreSmartDrawerBackup } from '@/lib/smartDrawer/portableBackup';
 
 const STYLES: Array<{
   key: SmartDrawerReminderStyle;
@@ -86,6 +89,49 @@ export default function SmartDrawerSettingsScreen() {
       };
     }, [user?.id]),
   );
+
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupNotice, setBackupNotice] = useState('');
+
+  const exportBackup = () => {
+    if (!user?.id || backupBusy) return;
+    Alert.alert(
+      'Private backup — please read',
+      'Your personal cloud account pays for storage, not BUKLOD. This export contains your private notes and original attachments in an UNENCRYPTED file. Anyone with this backup file can read them. Use only your own trusted private cloud folder, never a public/shared folder. This is a manual backup, not automatic sync. Do you want to continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Export', onPress: () => {
+          setBackupBusy(true);
+          setBackupNotice('');
+          void shareSmartDrawerBackup(user.id)
+            .then(({ count }) => setBackupNotice(`${count} notes prepared for sharing. Confirm in your cloud app that the file was uploaded.`))
+            .catch(error => setBackupNotice(error instanceof Error ? error.message : 'Backup failed. Your notes remain on this phone.'))
+            .finally(() => setBackupBusy(false));
+        } },
+      ],
+    );
+  };
+
+  const importBackup = () => {
+    if (!user?.id || backupBusy) return;
+    Alert.alert(
+      'Restore a backup?',
+      'Choose a BUKLOD backup from your device or cloud files. The backup must belong to this same BUKLOD account. Existing notes will not be overwritten. A partial restore may remain if a file fails.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Choose Backup', onPress: () => {
+          setBackupBusy(true);
+          setBackupNotice('');
+          void restoreSmartDrawerBackup(user.id)
+            .then(result => {
+              if (!result.canceled) setBackupNotice(`Restored ${result.restored} notes. Skipped ${result.skipped} existing notes.`);
+            })
+            .catch(error => setBackupNotice(error instanceof Error ? error.message : 'Restore failed.'))
+            .finally(() => setBackupBusy(false));
+        } },
+      ],
+    );
+  };
 
   const save = async () => {
     if (!user?.id || busy) return;
@@ -158,6 +204,42 @@ export default function SmartDrawerSettingsScreen() {
             },
           ]}
         >
+          <Text style={styles.sectionTitle}>My Storage & Backup</Text>
+          <Text style={styles.sectionHint}>
+            Local Only is always free. Your files stay on this device. Optional backup uses your own Google Drive, OneDrive, Dropbox or other file provider through the phone share sheet — BUKLOD does not host these files.
+          </Text>
+          <View style={styles.privacy}>
+            <MaterialCommunityIcons name="cellphone" size={24} color="#0A6EBD" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.privacyTitle}>Local Only (default)</Text>
+              <Text style={styles.privacyText}>
+                Works offline. Uninstalling or clearing app data can erase local notes. Portable backups are manual, not real-time sync.
+              </Text>
+            </View>
+          </View>
+          {Platform.OS === 'web' ? (
+            <Text style={styles.sectionHint}>Portable backup and restore require the Android/iOS app.</Text>
+          ) : (
+            <>
+              <Pressable onPress={exportBackup} disabled={backupBusy} style={styles.option}>
+                <MaterialCommunityIcons name="cloud-upload-outline" size={24} color="#0A6EBD" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.optionTitle}>Back Up to My Own Cloud</Text>
+                  <Text style={styles.optionText}>Exports up to 20 MB including files. Select your personal cloud app. Unencrypted portable backup — private folder only.</Text>
+                </View>
+              </Pressable>
+              <Pressable onPress={importBackup} disabled={backupBusy} style={styles.option}>
+                <MaterialCommunityIcons name="cloud-download-outline" size={24} color="#0A6EBD" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.optionTitle}>Restore My Backup</Text>
+                  <Text style={styles.optionText}>Select a previously exported BUKLOD backup file. Additive restore; existing notes are preserved.</Text>
+                </View>
+              </Pressable>
+              {backupBusy && <ActivityIndicator color="#0A6EBD" />}
+              {!!backupNotice && <Text style={styles.notice}>{backupNotice}</Text>}
+            </>
+          )}
+
           <Text style={styles.sectionTitle}>
             Reminder Style
           </Text>
