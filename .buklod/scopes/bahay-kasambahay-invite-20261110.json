@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Fix BUKLOD Bahay Kasambahay suggested contacts, name search, invitation status and secure acceptance without changing unrelated rooms or membership roles",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: 2026-11-10 GitHub main baseline f635a7b31d249842add00fa9d1425bb06c76b610 at branch creation. Main is a repository source baseline, not proof of current installed OTA. BUKLOD Connect Supabase yhanxndaqbmuzbdqlblu has existing invite_v1/decide_v1 and active Bahay memberships; new migration compiled and full invite/search/notification/acceptance/duplicate/authorization flow passed in SQL transaction, rolled back without live schema/data changes. Exact live Android OTA/production fingerprint not established for this PR.",
+  "productionBaselineEvidence": "verified: 2026-11-10 GitHub main baseline f635a7b31d249842add00fa9d1425bb06c76b610 at branch creation. Main is a repository source baseline, not proof of current installed OTA. BUKLOD Connect Supabase yhanxndaqbmuzbdqlblu has existing invite_v1/decide_v1 and active Bahay memberships; new migration compiled and full invite/search/notification/acceptance/duplicate/authorization flow passed in SQL transaction, rolled back without live schema/data changes. Exact live Android OTA/production fingerprint not established for this PR. Backend activation: Supabase migration history version 20261110042518/buklod_bahay_invite_suggestions_20261110 applied successfully; read-only schema/grant tests passed live. Authenticated-role simulated search/invite/pending/recipient notification/acceptance/duplicate denial/authorization passed in BEGIN/ROLLBACK with no persisted test invite.",
   "chosenApproach": "Bounded server-gated suggestion RPC based on Connect contacts and follower graph; typed name/username search with no private identifier output; user-ID invite RPC guarding active/pending conflicts; preserve old exact username RPC and expiration handling; only small client changes on Bahay People room; no production deployment in this PR.",
   "selectionRationale": "Current UI has only exact identifier input and no suggestions. Original backend upsert can reset active members to pending. An additive RPC fixes both while remaining compatible with old clients and protecting private details.",
   "acceptanceChecks": [
@@ -13,14 +13,15 @@
     "Guest invitation expires and cannot be accepted after expiry; eligible re-invite remains possible",
     "Recipient sees invitation on returning to Bahay and can accept/decline in existing UI",
     "Focused Node source contract and rollback-only live Postgres positive and negative auth test pass",
-    "No migration activation or OTA/web deploy before exact RC compile, production migration and release verification",
+    "Migration version in repository equals applied Supabase migration history; no Android OTA or web publication from PR",
     "The exact source SHA passes production-identity, TypeScript, Android Expo export, Expo web export and regression suite in unified compiled RC QA; do not publish from PR"
   ],
   "preserveBehaviors": [
     "Existing Bahay rooms, chores, files, garden, community and notification preferences",
     "Existing admin/owner role boundaries and recipient acceptance choice",
     "Existing RPC for older released clients",
-    "Unrelated Home/Cluster/Wall and runtime/natives untouched"
+    "Unrelated Home/Cluster/Wall and runtime/natives untouched",
+    "New backend function definitions active on BUKLOD Connect Supabase; app client remains on existing production OTA until approved consolidated publish"
   ],
   "riskAreas": [
     "household-authorization",
@@ -40,7 +41,7 @@
     ".github/workflows/engineering-accountability.yml",
     "src/components/home/BuklodBahayHome.tsx",
     "src/lib/buklodBahay.ts",
-    "supabase/migrations/20261110113000_buklod_bahay_invite_suggestions.sql",
+    "supabase/migrations/20261110042518_buklod_bahay_invite_suggestions_20261110.sql",
     "tests/bahay-kasambahay-invite-20261110.test.cjs",
     "supabase/tests/buklod_bahay_invite_20261110.sql",
     ".github/workflows/unified_rc_compiled_qa_20261108.yml"

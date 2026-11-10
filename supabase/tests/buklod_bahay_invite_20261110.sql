@@ -1,5 +1,5 @@
 -- Safe, read-only schema + security regression for BUKLOD Bahay invite.
--- Run after applying 20261110113000_buklod_bahay_invite_suggestions.sql.
+-- Run after applying 20261110042518_buklod_bahay_invite_suggestions_20261110.sql.
 do $check_bahay_invite$
 declare
   v_fn regprocedure;

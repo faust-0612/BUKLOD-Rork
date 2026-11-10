@@ -4,7 +4,7 @@ const fs = require('node:fs');
 
 const ui = fs.readFileSync('src/components/home/BuklodBahayHome.tsx', 'utf8');
 const client = fs.readFileSync('src/lib/buklodBahay.ts', 'utf8');
-const sql = fs.readFileSync('supabase/migrations/20261110113000_buklod_bahay_invite_suggestions.sql', 'utf8');
+const sql = fs.readFileSync('supabase/migrations/20261110042518_buklod_bahay_invite_suggestions_20261110.sql', 'utf8');
 
 test('Bahay invitation UI provides searchable suggestions and selection', () => {
   for (const token of [
