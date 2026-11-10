@@ -163,79 +163,29 @@ function listFromText(text: string, forceList = false): SmartDrawerListItem[] {
   }));
 }
 
-function hasAny(text: string, words: string[]) {
-  return words.some(word => text.includes(word));
+function matches(text: string, pattern: RegExp) {
+  return pattern.test(text);
 }
 
-function classifyType(text: string, dueAt: string | null, listCount: number) {
-  const lower = text.toLowerCase();
-
-  if (
-    hasAny(lower, ['receipt', 'resibo', 'official receipt', 'invoice'])
-  ) {
-    return 'RECEIPT' as SmartDrawerItemType;
-  }
-
-  if (
-    hasAny(lower, ['appointment', 'dentist', 'doctor', 'checkup', 'check-up'])
-  ) {
-    return 'APPOINTMENT' as SmartDrawerItemType;
-  }
-
-  if (
-    hasAny(lower, ['meeting', 'anniversary', 'event', 'program', 'seminar'])
-  ) {
-    return hasAny(lower, ['program', 'anniversary'])
-      ? ('PROGRAM' as SmartDrawerItemType)
-      : ('EVENT' as SmartDrawerItemType);
-  }
-
-  if (
-    hasAny(lower, ['tula', 'poem', 'stanza', 'saknong'])
-  ) {
-    return 'POEM' as SmartDrawerItemType;
-  }
-
-  if (listCount > 0) {
-    if (
-      hasAny(lower, [
-        'bibilhin',
-        'shopping',
-        'grocery',
-        'palengke',
-        'bilhin',
-      ])
-    ) {
-      return 'SHOPPING_LIST' as SmartDrawerItemType;
-    }
-    return 'CHECKLIST' as SmartDrawerItemType;
-  }
-
-  if (
-    hasAny(lower, ['idea:', 'idea ', 'possible ', 'maybe ', 'isip ko'])
-  ) {
-    return 'IDEA' as SmartDrawerItemType;
-  }
-
-  if (
-    hasAny(lower, ['notice', 'announcement', 'paalala', 'abiso'])
-  ) {
-    return 'NOTICE' as SmartDrawerItemType;
-  }
-
-  if (dueAt) return 'DUE_TASK' as SmartDrawerItemType;
-
-  if (
-    hasAny(lower, ['task', 'todo', 'to do', 'gawin', 'tawagan', 'puntahan'])
-  ) {
-    return 'TASK' as SmartDrawerItemType;
-  }
-
-  if (text.includes('\n') && text.length > 120) {
-    return 'WRITING' as SmartDrawerItemType;
-  }
-
-  return 'QUICK_NOTE' as SmartDrawerItemType;
+// Order matters: strong, explicit intent outranks incidental words.
+// Whole-word matching prevents "programming" from becoming PROGRAM,
+// and a date alone never turns a personal note into a task.
+function classifyType(text: string, dueAt: string | null, listCount: number): SmartDrawerItemType {
+  const t = text.toLowerCase();
+  if (matches(t, /\b(resibo|receipt|invoice|official receipt|payment proof|proof of payment)\b/i)) return 'RECEIPT';
+  if (matches(t, /\b(appointment|check[- ]?up|consultation|dentist|doctor visit|follow[- ]?up visit|pa[- ]?checkup)\b/i)) return 'APPOINTMENT';
+  if (matches(t, /\b(programa|program schedule|event program|order of service|program flow|itinerary)\b/i)) return 'PROGRAM';
+  if (matches(t, /\b(meeting|seminar|birthday|anniversary|conference|event|reunion|workshop|pagpupulong)\b/i)) return 'EVENT';
+  if (matches(t, /\b(tula|poem|saknong|stanza|poetry)\b/i)) return 'POEM';
+  if (listCount) return matches(t, /\b(grocery|groceries|palengke|shopping|bibilhin|bilhin|pamilihan|sari[- ]sari)\b/i) ? 'SHOPPING_LIST' : 'CHECKLIST';
+  if (matches(t, /\b(announcement|abiso|notice|memorandum|advisory|anunsyo)\b/i)) return 'NOTICE';
+  if (matches(t, /\b(contact details|contact number|phone number|email address|telepono)\b/i)) return 'CONTACT_REFERENCE';
+  if (matches(t, /\b(reference|citation|source|bibliography|sanggunian|link to read)\b/i)) return 'REFERENCE';
+  if (matches(t, /\b(document|certificate|contract|agreement|affidavit|form|license|lisensya|permit)\b/i)) return 'DOCUMENT';
+  if (matches(t, /(?:^|[\n.!?]\s*)(?:idea|ideya|naisip ko|proposal|what if)\s*[:\-]?/i)) return 'IDEA';
+  if (matches(t, /\b(todo|to do|task|gawin|kailangang gawin|tawagan|ipasa|submit|deadline|due date|tapusin|remind me|paalalahanan)\b/i)) return dueAt ? 'DUE_TASK' : 'TASK';
+  if (matches(t, /\b(draft|essay|sanaysay|journal|diary|reflection|talumpati|letter|liham|story|kwento|sermon)\b/i) || (text.includes('\n') && text.length > 120)) return 'WRITING';
+  return 'QUICK_NOTE';
 }
 
 function fallbackTitle(type: SmartDrawerItemType) {
@@ -288,9 +238,9 @@ export function classifySmartDrawerText(
     eventAt,
     listItems,
     confidence:
-      dueAt || listItems.length > 0 || type !== 'QUICK_NOTE'
-        ? 'MEDIUM'
-        : 'LOW',
+      listItems.length > 0 || ['RECEIPT', 'APPOINTMENT', 'EVENT', 'PROGRAM', 'POEM', 'NOTICE', 'CONTACT_REFERENCE', 'DOCUMENT', 'REFERENCE', 'TASK', 'DUE_TASK'].includes(type)
+        ? 'HIGH'
+        : type === 'QUICK_NOTE' ? 'LOW' : 'MEDIUM',
     reasons,
   };
 }
