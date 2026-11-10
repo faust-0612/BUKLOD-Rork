@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, View } from 'react-native';
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
-import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
+import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
 
 type Props = { placementId: string; kind: 'native' | 'banner' };
 
@@ -14,7 +14,7 @@ export default function BuklodKingdomAdSlot({ placementId, kind }: Props) {
   return (
     <View style={{ width: '100%', paddingVertical: 14, paddingHorizontal: 8 }}>
       {kind === 'native'
-        ? <BuklodNativeSponsoredCard surface="home" slotId={placementId} />
+        ? <BuklodCommunityInlineAd surface="home" slotId={placementId} placementIdOverride={placementId} active />
         : <BuklodAdMobBanner placement="content" placementId={placementId} compact format="adaptive" />}
     </View>
   );

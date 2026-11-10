@@ -47,3 +47,8 @@ test('IGPAT publishing and mentoring submission ads are scoped to completed work
   assert.match(reel, /if \(error\) throw error;[\s\S]*showBuklodAdOpportunity\('igpat_video_published'\)/);
   assert.match(mentoring, /'Mentoring Submitted'[\s\S]*onPress: \(\) => \{ void showBuklodAdOpportunity/);
 });
+
+test('Route-sensitive Kingdom native inventory preserves the exact placement override',()=>{
+ const component=read('src/components/BuklodKingdomAdSlot.tsx');
+ assert.match(component,/placementIdOverride=\{placementId\}/);
+});
