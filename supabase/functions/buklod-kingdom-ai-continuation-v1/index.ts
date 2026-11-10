@@ -64,7 +64,7 @@ function validate(candidate: unknown, history: string[]): PracticeQuestion[] {
       !Array.isArray(choices) || choices.length !== 4 ||
       !choices.every(c => typeof c === 'string' && c.trim().length >= 2 && c.trim().length <= 180) ||
       new Set(choices.map((c: string) => normalized(c))).size !== 4 ||
-      !Number.isInteger(index) || (index as number) < 0 || (index as number) > 3) {
+      typeof index !== 'number' || !Number.isInteger(index) || index < 0 || index > 3) {
       throw new Error('malformed_ai_question');
     }
     if ([...history, ...reviewed.map(q => q.prompt)].some(previous => similar(prompt, previous))) {
