@@ -4,6 +4,8 @@ import {readFileSync} from 'node:fs';
 
 const sql=readFileSync('supabase/migrations/20261111015000_buklod_monthly_earnings_carryforward_readonly_v1.sql','utf8');
 const card=readFileSync('src/components/BuklodUnifiedEarningsHomeCard.tsx','utf8');
+const helper=readFileSync('src/lib/buklodMonthlyEarnings.ts','utf8');
+const detail=readFileSync('src/app/community-contribution.tsx','utf8');
 
 test('monthly earnings endpoint stays authenticated, own-account, read-only',()=>{
   assert.match(sql,/get_my_buklod_monthly_earnings_v1\(\)/);
@@ -19,6 +21,7 @@ test('last-month earn is fixed after finalized settlement; current QMP stays sep
   assert.match(sql,/v_last_status := 'AWAITING_FINALIZATION'/);
   assert.match(sql,/s\.status='FINALIZED' and s\.period_key<v_current_month/);
   assert.match(sql,/current_month_estimate_included',false/);
+  assert.match(helper,/contribution\\.estimate_status !== 'PROVISIONAL_ADMOB'/);
   assert.match(card,/contribution\.period\.key === monthly\.current_month_key/);
   assert.match(card,/monthly\.last_month\.status === 'FINALIZED'/);
 });
@@ -27,6 +30,7 @@ test('projected balance contains available plus current estimate, never reserved
   assert.match(card,/monthly\.available_finalized_minor \+ contribution\.estimated_share_minor/);
   assert.match(card,/PROJECTED TOTAL · NOT WITHDRAWABLE/);
   assert.match(card,/AVAILABLE FINALIZED · MINIMUM/);
+  assert.match(detail,/Projected total · not withdrawable/);
   assert.doesNotMatch(card,/monthly\.available_finalized_minor\s*\+\s*monthly\.reserved_for_payout_minor/);
 });
 
