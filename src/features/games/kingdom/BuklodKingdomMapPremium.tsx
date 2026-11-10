@@ -508,6 +508,10 @@ export default function BuklodKingdomMapPremium() {
             <Text style={styles.headerMeta}>{clearedCount}/13 LOCAL CLEARS • STAGE {stage}</Text>
           </View>
         </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open Kingdom Hall of Legacy"
+          onPress={() => router.push('/games/legacy' as any)} style={styles.legacyButton}>
+          <MaterialCommunityIcons name="shield-crown" size={23} color="#f1d598" />
+        </Pressable>
         <Pressable accessibilityRole="button"
           accessibilityLabel={compact ? 'Detailed kingdom map' : 'Fit kingdom map'}
           onPress={() => {
@@ -648,6 +652,11 @@ const styles = StyleSheet.create({
   headerEyebrow: { color: '#b2c6c9', fontSize: 8, fontWeight: '900', letterSpacing: .9 },
   headerTitle: { color: '#ffe8b1', fontWeight: '900', fontSize: 17, letterSpacing: .3 },
   headerMeta: { fontSize: 9, color: '#dbc6a3', fontWeight: '800' },
+  legacyButton: {
+    width: 43, height: 43, borderWidth: 1, borderRadius: 12,
+    borderColor: '#af9874', backgroundColor: '#254456',
+    alignItems: 'center', justifyContent: 'center',
+  },
   fitButton: {
     width: 54, height: 43, borderWidth: 1, borderRadius: 12,
     borderColor: '#af9874', backgroundColor: '#254456',
