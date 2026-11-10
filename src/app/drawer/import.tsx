@@ -11,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,6 +34,8 @@ type Picked = {
   mimeType?: string | null;
   width?: number | null;
   height?: number | null;
+  isFile?: boolean;
+  size?: number | null;
 };
 
 export default function SmartDrawerImport() {
@@ -76,6 +80,35 @@ export default function SmartDrawerImport() {
     );
   };
 
+  const chooseFiles = async () => {
+    setNotice('');
+    if (Platform.OS === 'web') {
+      setNotice('File vault requires persistent device storage. Please import files through the BUKLOD mobile app.');
+      return;
+    }
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'text/plain', 'text/csv',
+          'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          'image/*'],
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const selected = result.assets.map(file => ({
+        uri: file.uri, fileName: file.name, mimeType: file.mimeType,
+        size: file.size, isFile: true,
+      }));
+      const safe = selected.filter(file => (file.size ?? 0) <= 25 * 1024 * 1024);
+      setItems(old => [...old, ...safe].slice(0, 30));
+      if (safe.length !== selected.length) setNotice('Files over 25 MB were skipped. Other files remain selected.');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not open file picker.');
+    }
+  };
+
   const save = async () => {
     if (!user?.id || !items.length || busy) return;
     setBusy(true);
@@ -88,22 +121,24 @@ export default function SmartDrawerImport() {
         const asset = await persistSmartDrawerAsset({
           userId: user.id,
           uri: picked.uri,
-          kind: 'IMPORT',
+          kind: picked.isFile ? 'FILE' : 'IMPORT',
           mimeType: picked.mimeType,
           width: picked.width,
           height: picked.height,
           originalName: picked.fileName,
         });
 
+        const fileName = (picked.fileName ?? '').toLowerCase();
+        const category = /receipt|resibo|invoice|or[-_ ]?\d/.test(fileName) ? 'RECEIPT' : 'DOCUMENT';
         await commitSmartDrawerItem(
           user.id,
           {
             title:
               picked.fileName?.replace(/\.[^.]+$/, '') ||
-              'Imported Image',
+              'Imported File',
             body: '',
             extractedText: '',
-            type: 'DOCUMENT',
+            type: category,
             assets: [asset],
             status: 'ACTIVE',
             syncState: 'LOCAL_ONLY',
@@ -152,10 +187,10 @@ export default function SmartDrawerImport() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>
-            Import from Gallery
+            Import Photos & Files
           </Text>
           <Text style={styles.subtitle}>
-            Select one or multiple images.
+            Save photos, PDFs, Word, Excel and other supported files on this device.
           </Text>
         </View>
       </View>
@@ -177,6 +212,11 @@ export default function SmartDrawerImport() {
           </Text>
         </Pressable>
 
+        <Pressable onPress={() => void chooseFiles()} style={[styles.pickButton, { marginTop: 10 }]}>
+          <MaterialCommunityIcons name="file-upload-outline" size={22} color="#0A6EBD" />
+          <Text style={styles.pickText}>Choose Files (PDF / Word / Excel)</Text>
+        </Pressable>
+
         {items.length ? (
           <View style={styles.grid}>
             {items.map((item, index) => (
@@ -184,10 +224,14 @@ export default function SmartDrawerImport() {
                 key={`${item.uri}:${index}`}
                 style={styles.thumbWrap}
               >
-                <Image
-                  source={{ uri: item.uri }}
-                  style={styles.thumb}
-                />
+                {item.isFile ? (
+                  <View style={[styles.thumb, { alignItems: 'center', justifyContent: 'center', padding: 8 }]}>
+                    <MaterialCommunityIcons name="file-document-outline" size={30} color="#0A6EBD" />
+                    <Text numberOfLines={2} style={{ fontSize: 10, textAlign: 'center', color: '#173B63' }}>{item.fileName}</Text>
+                  </View>
+                ) : (
+                  <Image source={{ uri: item.uri }} style={styles.thumb} />
+                )}
                 <View style={styles.selected}>
                   <MaterialCommunityIcons
                     name="check"
