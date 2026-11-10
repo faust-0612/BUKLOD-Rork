@@ -71,9 +71,13 @@ export default function KingdomLegacyScreen() {
   const accountRef = useRef(uid);
   accountRef.current = uid;
   const activeId = state?.active_character_id;
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
   const core = activeId && CORE_CHARACTER_ORDER.includes(activeId as BuklodCoreCharacterId)
     ? activeId as BuklodCoreCharacterId : null;
   const level = Math.min(20, Math.max(1, Math.floor(state?.character_level || 1)));
+  const levelRef = useRef(level);
+  levelRef.current = level;
   const points = Math.max(0, state?.character_points_since_selection || 0);
   const nextTarget = level < 20 ? PROGRESSIVE_LEVEL_THRESHOLDS[level] : null;
   const previousTarget = PROGRESSIVE_LEVEL_THRESHOLDS[level - 1];
@@ -124,7 +128,24 @@ export default function KingdomLegacyScreen() {
       if (alive) setError(reason instanceof Error ? reason.message : 'Your progress could not load.');
     }).finally(() => { if (alive) setLoading(false); });
     const unsubscribe = subscribeBuklodCharacterSelectionV2((changedId, next) => {
-      if (alive && changedId === uid) { setState(next); setCollection(null); }
+      if (!alive || changedId !== uid) return;
+      activeIdRef.current = next.active_character_id;
+      levelRef.current = next.character_level;
+      setState(next);
+      setCollection(null);
+      setReveal(null);
+      const hero = next.active_character_id;
+      if (CORE_CHARACTER_ORDER.includes(hero as BuklodCoreCharacterId)) {
+        void getMyCharacterCollectibles(hero as BuklodCoreCharacterId).then(items => {
+          if (alive && accountRef.current === uid && activeIdRef.current === hero) {
+            setCollection(items);
+          }
+        }).catch(() => {
+          if (alive && accountRef.current === uid && activeIdRef.current === hero) {
+            setError('Could not refresh character equipment. Use refresh to retry.');
+          }
+        });
+      }
     });
     return () => { alive = false; unsubscribe(); };
   }, [uid, load]);
@@ -135,7 +156,9 @@ export default function KingdomLegacyScreen() {
     setError('');
     try {
       const { next, items } = await load(uid, true);
-      if (accountRef.current === uid) { setState(next); setCollection(items); }
+      if (accountRef.current === uid && activeIdRef.current === next.active_character_id) {
+        setState(next); setCollection(items);
+      }
     } catch (reason) {
       if (accountRef.current === uid) setError(reason instanceof Error ? reason.message : 'Unable to refresh progress.');
     } finally { setLoading(false); }
@@ -147,6 +170,9 @@ export default function KingdomLegacyScreen() {
     const original = { uid, core, level };
     const accountUnchanged = async () => {
       if (accountRef.current !== original.uid) throw new Error('Character account changed. Refresh before trying again.');
+      if (activeIdRef.current !== original.core || levelRef.current !== original.level) {
+        throw new Error('Active hero or level changed. Refresh before updating equipment.');
+      }
       const { data, error: authError } = await supabase.auth.getSession();
       if (authError || data.session?.user.id !== original.uid) {
         throw new Error('Session changed. Sign in again before claiming rewards.');
@@ -171,7 +197,7 @@ export default function KingdomLegacyScreen() {
       await accountUnchanged();
       const updated = await getMyCharacterCollectibles(core);
       // Never carry an old account's collection into a newly signed-in account.
-      if (original.uid === accountRef.current && original.core === core && original.level === level) {
+      if (original.uid === accountRef.current && original.core === activeIdRef.current && original.level === levelRef.current) {
         setCollection(updated);
         setNotice(equipped ? 'Item removed from your character.' : 'Item claimed and equipped to your character!');
         if (!equipped) {
