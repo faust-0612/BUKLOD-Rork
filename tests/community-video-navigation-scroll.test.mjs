@@ -67,8 +67,11 @@ test('retry is tappable above the overlay only after recovery; progress is not r
   const native = read('src/components/CommunityVideo.tsx');
   const body = native.slice(native.indexOf('function ExpoCommunityVideo('));
   const tap = body.indexOf('style={styles.tapLayer}');
-  const retry = body.indexOf('style={styles.retryButton}');
+  // Retry now carries an optional fullscreen-position override; keep it after the tap layer.
+  const retry = body.indexOf('styles.retryButton,');
   assert.ok(tap >= 0 && retry > tap, 'Retry must receive touch priority');
+  assert.match(body, /style=\{\[\s*styles\.retryButton,/);
+  assert.match(native, /retryButton:\s*\{[\s\S]*?zIndex:\s*4/);
   assert.match(body, /playerStatus === 'error' && !autoRecovering/);
   assert.match(body, /recoveryDeadlineRef\.current = setTimeout/);
   assert.match(body, /resumeAppliedRef\.current/);
