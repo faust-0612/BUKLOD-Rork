@@ -75,3 +75,12 @@ test('retry is tappable above the overlay only after recovery; progress is not r
   assert.match(body, /playbackTimeByUri\.get\(playbackIdentity\)/);
   assert.match(body, /playbackKey \? `post:\$\{playbackKey\}` : uri/);
 });
+
+test('public Wall video URL retry never permanently blacklists a failed signed URL', () => {
+  const wall = read('src/app/(tabs)/buklod.tsx');
+  assert.match(wall, /wallVideoRefreshInFlightRef=useRef\(new Set<string>\(\)\)/);
+  assert.match(wall, /Date\.now\(\)<last\.retryAfter/);
+  assert.match(wall, /retryAfter:Date\.now\(\)\+2500/);
+  assert.match(wall, /finally\{\s*wallVideoRefreshInFlightRef\.current\.delete\(postId\)/);
+  assert.doesNotMatch(wall, /\.current\[postId\]===failed/);
+});
