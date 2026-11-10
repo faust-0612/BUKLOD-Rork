@@ -66,7 +66,7 @@ export default function BuklodHomeUtilityCards() {
           </View>
           <Text style={s.healthTitle}>{healthCard.title}</Text>
         </View>
-        <Text style={s.healthSubtitle} numberOfLines={2}>AI health guide · urgent sign check</Text>
+        <Text style={s.healthSubtitle} numberOfLines={2}>Health guide · urgent warning-sign check</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Online Consultation"

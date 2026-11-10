@@ -51,7 +51,7 @@ export default function BuklodScopeFundCard({scopeId,scopeName}:Props) {
     });
     return ()=>{++generation.current;subscription.remove()};
   },[reload,retry]);
-  const open=()=>router.push({pathname:'/scope-fund',params:{scopeId}} as any);
+  const open=(pathname:'/scope-fund'|'/scope-contribute'|'/scope-contribution-reports')=>router.push({pathname,params:{scopeId}} as any);
   return <View style={s.card} accessibilityLabel="Exact-scope community fund, separate from personal earnings">
     <View style={s.top}>
       <MaterialCommunityIcons name="bank-outline" color="#1B6544" size={22}/>
@@ -84,14 +84,9 @@ export default function BuklodScopeFundCard({scopeId,scopeName}:Props) {
         : <Text style={s.warning}>No active registered GCash receiver. Manual contribution reporting is unavailable.</Text>}
     </> : null}
     <View style={s.row}>
-      <Pressable accessibilityRole="button" onPress={open} disabled={!fund}
-        style={[s.button, !fund && s.disabled]}>
-        <Text style={s.buttonText}>CONTRIBUTE / REPORT</Text>
-      </Pressable>
-      <Pressable accessibilityRole="button" onPress={open} disabled={!fund}
-        style={[s.button,s.outline,!fund && s.disabled]}>
-        <Text style={s.outlineText}>FUND RECORDS</Text>
-      </Pressable>
+      <Pressable accessibilityRole="button" onPress={()=>open('/scope-contribute')} style={s.button}><Text style={s.buttonText}>CONTRIBUTE</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={()=>open('/scope-fund')} style={[s.button,s.outline]}><Text style={s.outlineText}>FUND</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={()=>open('/scope-contribution-reports')} style={[s.button,s.outline]}><Text style={s.outlineText}>REPORT</Text></Pressable>
     </View>
     <Text style={s.note}>Local GCash receipts are held by this Cluster/Organization, not by BUKLOD. Reporting never credits the BUKLOD-funded available balance or personal cash.</Text>
   </View>;

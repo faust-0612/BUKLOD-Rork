@@ -34,6 +34,10 @@ const CONCERNS: { id: Concern; label: string; icon: keyof typeof MaterialCommuni
  */
 export default function BuklodHealthPortal() {
   const [concern, setConcern] = useState<Concern>('general');
+  const [language,setLanguage]=useState<'fil'|'en'>('fil');
+  const [guideOpen,setGuideOpen]=useState(false);
+  const [contributorInfoOpen,setContributorInfoOpen]=useState(false);
+  const t=(en:string,fil:string)=>language==='fil'?fil:en;
   const [urgency, setUrgency] = useState<Urgency>('unanswered');
   const [opening, setOpening] = useState<Door | null>(null);
   const [error, setError] = useState(false);
@@ -77,17 +81,18 @@ export default function BuklodHealthPortal() {
             </View>
             <View style={styles.heroText}>
               <Text style={styles.eyebrow}>BUKLOD HEALTH CENTER</Text>
-              <Text style={styles.title}>Online Consultation</Text>
+              <Text style={styles.title}>{t('Online Consultation','Konsultasyong Pangkalusugan')}</Text>
             </View>
           </View>
-          <Text style={styles.description}>
-            Start with a quick safety check, then open the private AI Health Guide.
-            This is AI-supported health information, not a human doctor, diagnosis, or prescription.
-          </Text>
+          <View style={styles.choiceRow}>
+            <Pressable accessibilityRole="button" onPress={()=>setLanguage('fil')} style={[styles.chip,language==='fil'&&styles.selectedChip]}><Text style={[styles.chipText,language==='fil'&&styles.selectedChipText]}>Filipino</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={()=>setLanguage('en')} style={[styles.chip,language==='en'&&styles.selectedChip]}><Text style={[styles.chipText,language==='en'&&styles.selectedChipText]}>English</Text></Pressable>
+          </View>
+          <Text style={styles.description}>{t('Start with a safety check, then use the BUKLOD Health Guide for general educational information. It is not a doctor, diagnosis or prescription.','Magsimula sa pagsusuri ng babalang sintomas bago gamitin ang BUKLOD Health Guide para sa pangkalahatang kaalaman. Hindi ito doktor, diagnosis o reseta.')}</Text>
         </View>
 
         <View style={styles.guideCard}>
-          <Text style={styles.sectionHeading}>1. What can we help with?</Text>
+          <Text style={styles.sectionHeading}>{t('1. What can we help with?','1. Ano ang kailangan mong malaman?')}</Text>
           <Text style={styles.hint}>Select a topic. Your selection stays on this screen and is not sent to BUKLOD or the Health Center.</Text>
           <View style={styles.chips}>
             {CONCERNS.map(item => (
@@ -109,7 +114,7 @@ export default function BuklodHealthPortal() {
         </View>
 
         <View style={styles.guideCard}>
-          <Text style={styles.sectionHeading}>2. Check for urgent warning signs</Text>
+          <Text style={styles.sectionHeading}>{t('2. Check for urgent warning signs','2. Suriin ang mga babalang sintomas')}</Text>
           <Text style={styles.body}>
             Are you experiencing severe chest pain, difficulty breathing, possible stroke symptoms,
             uncontrolled bleeding, loss of consciousness, or an immediate risk of self-harm?
@@ -159,33 +164,39 @@ export default function BuklodHealthPortal() {
 
         {!urgent ? (
           <View style={styles.guideCard}>
-            <Text style={styles.sectionHeading}>3. Open private AI Health Guide</Text>
+            <Text style={styles.sectionHeading}>{t('3. BUKLOD Health Guide','3. BUKLOD Health Guide')}</Text>
             <Text style={styles.body}>
-              General health education only. The standalone service controls AI availability and privacy consent.
-              If it is not active, no consultation will be submitted.
+              {t('General education only. Automated tools may be used and can make errors. Private interactive consultation requires separate consent.','Pangkalahatang kaalaman lamang. Maaaring gumamit ng automated na tulong na maaaring magkamali. May hiwalay na pahintulot para sa pribadong konsultasyon.')}
             </Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Continue to AI Health Guide"
-              accessibilityState={{ disabled: urgency !== 'none' || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null, busy: opening === 'consult' }}
-              disabled={urgency !== 'none' || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null}
-              onPress={() => void openDoor('consult')}
+              accessibilityLabel="Continue to BUKLOD Health Guide"
+              accessibilityState={{ disabled: urgency !== 'none' || opening !== null, busy: opening === 'consult' }}
+              disabled={urgency !== 'none' || opening !== null}
+              onPress={() => { if(BUKLOD_HEALTH_CONSULTATION_READY){void openDoor('consult')}else{setGuideOpen(true)} }}
               style={({ pressed }) => [
                 styles.primaryButton,
-                (urgency !== 'none' || !BUKLOD_HEALTH_CONSULTATION_READY || opening !== null) && styles.disabledButton,
+                (urgency !== 'none' || opening !== null) && styles.disabledButton,
                 pressed && styles.pressed,
               ]}
             >
               {opening === 'consult' ? <ActivityIndicator color="#FFFFFF" /> : <MaterialCommunityIcons name="message-text" size={20} color="#FFFFFF" />}
               <Text style={styles.primaryButtonText}>
-                {opening === 'consult' ? 'Opening secure guide…' : BUKLOD_HEALTH_CONSULTATION_READY ? 'Continue to AI Health Guide' : 'AI Health Guide activation pending'}
+                {opening === 'consult' ? t('Opening secure guide…','Binubuksan…') : t('OPEN BUKLOD HEALTH GUIDE','BUKSAN ANG HEALTH GUIDE')}
               </Text>
             </Pressable>
             {urgency === 'unanswered' ? (
               <Text style={styles.hint}>First confirm whether you have urgent warning signs.</Text>
-            ) : !BUKLOD_HEALTH_CONSULTATION_READY ? (
-              <Text style={styles.hint}>AI consultation is not yet active. This screening stays available, and you can still open the full Health Center below.</Text>
             ) : null}
+            {guideOpen && urgency==='none'?<View style={styles.notice}>
+              <Text style={styles.sectionHeading}>{t('Health information','Impormasyong pangkalusugan')}</Text>
+              <Text style={styles.body}>{concern==='symptoms'?t('Record when symptoms started, their severity, medicines and any changes. Seek clinical assessment if symptoms worsen or persist.','Itala ang simula, tindi, gamot at pagbabago ng sintomas. Magpatingin kung lumalala o nagtatagal.')
+                :concern==='medicines'?t('Check medicine name, strength, instructions and allergies. Ask a clinician or pharmacist before changing prescribed medicines.','Suriin ang pangalan, lakas, panuto at allergy. Kumonsulta sa doktor o parmasyutiko bago baguhin ang reseta.')
+                :concern==='laboratory'?t('Lab results require reference ranges and clinical context. Discuss critical or abnormal findings with a licensed clinician.','Kailangang isaalang-alang ang reference ranges at kalagayan ng pasyente. Ipakonsulta ang abnormal o kritikal na resulta.')
+                :concern==='wellbeing'?t('Seek professional mental health support; immediate risk of harm requires emergency help.','Humingi ng tulong sa mental health professional; sa agarang panganib, humingi ng emergency help.')
+                :t('Prepare symptoms, past conditions, current medicines and allergies before a healthcare consultation.','Ihanda ang sintomas, nakaraang sakit, gamot at allergy bago magpakonsulta.')}</Text>
+              {!BUKLOD_HEALTH_CONSULTATION_READY?<Text style={styles.hint}>{t('Private interactive consultation is not yet active; this local guide is available.','Hindi pa aktibo ang pribadong interactive consultation; available ang gabay na ito.')}</Text>:null}
+            </View>:null}
           </View>
         ) : null}
 
@@ -222,14 +233,15 @@ export default function BuklodHealthPortal() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Open health professional contributor program"
-                disabled={opening !== null || !BUKLOD_HEALTH_PROFESSIONALS_READY}
-                accessibilityState={{ disabled: opening !== null || !BUKLOD_HEALTH_PROFESSIONALS_READY }}
-                onPress={() => void openDoor('professional')}
+                disabled={opening !== null}
+                accessibilityState={{ disabled: opening !== null }}
+                onPress={() => { if(BUKLOD_HEALTH_PROFESSIONALS_READY){void openDoor('professional')}else{setContributorInfoOpen(v=>!v)} }}
                 style={styles.professionalLink}
               >
-                <Text style={styles.professionalLinkText}>{BUKLOD_HEALTH_PROFESSIONALS_READY ? 'Contributor information' : 'Contributor registration pending'}</Text>
+                <Text style={styles.professionalLinkText}>{t('Contributor requirements','Mga kinakailangan sa pag-aambag')}</Text>
                 <MaterialCommunityIcons name="arrow-right" size={16} color="#126946" />
               </Pressable>
+              {contributorInfoOpen?<Text style={styles.hint}>{t('License verification, independent clinical review and privacy safeguards are required. Enrollment is not yet open; do not submit license or personal details here.','Kailangan ang beripikasyon ng lisensiya, pagsusuring medikal at proteksiyon sa privacy. Hindi pa bukas ang rehistrasyon; huwag magsumite ng personal na detalye rito.')}</Text>:null}
             </View>
           </View>
         ) : null}
@@ -237,7 +249,7 @@ export default function BuklodHealthPortal() {
         {error ? (
           <Text accessibilityRole="alert" style={styles.error}>
             Could not open the requested link. Check your connection, or open the standalone website directly.
-            AI and professional features may not yet be activated.
+            Private consultation and professional registration may not yet be activated.
           </Text>
         ) : null}
 
@@ -266,7 +278,7 @@ export default function BuklodHealthPortal() {
             Advertisement is separate from health guidance and does not determine recommendations or emergency access.
           </Text>
         ) : null}
-        <Text selectable style={styles.assistiveUrl}>AI Guide URL: {BUKLOD_HEALTH_CONSULTATION_URL}</Text>
+        {BUKLOD_HEALTH_CONSULTATION_READY?<Text selectable style={styles.assistiveUrl}>Guide URL: {BUKLOD_HEALTH_CONSULTATION_URL}</Text>:null}
       </BuklodPortalScrollView>
     </>
   );

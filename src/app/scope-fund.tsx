@@ -1,5 +1,5 @@
 import React, {useCallback,useEffect,useRef,useState} from 'react';
-import {ActivityIndicator,Alert,AppState,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
+import {ActivityIndicator,Alert,AppState,Linking,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import {Stack,router,useLocalSearchParams} from 'expo-router';
 import {supabase} from '@/lib/supabase';
@@ -14,7 +14,7 @@ type Dashboard = {scope_id:string;scope_type:string;available_fund_minor:number;
 const pesos=(minor:number)=>formatMinorPhp(minor);
 const stringParam=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]||'':value||'';
 
-export default function BuklodScopeFundScreen() {
+export function BuklodScopeFundScreen({mode='fund'}:{mode?:'fund'|'contribute'|'reports'}) {
   const params=useLocalSearchParams<{scopeId?:string|string[]}>();
   const scopeId=stringParam(params.scopeId);
   const generation=useRef(0);
@@ -86,23 +86,34 @@ export default function BuklodScopeFundScreen() {
         finally{submitLock.current=false;setBusy(false)}
       })();}}]);
   };
-  return <><Stack.Screen options={{title:'Cluster / Organization Fund'}}/>
+  const openGcash=async()=>{
+    const registered=fund?.registered_gcash;
+    if(!registered)return;
+    try {
+      await Clipboard.setStringAsync(registered.mobile);
+      await Linking.openURL('gcash://');
+    } catch {
+      Alert.alert('GCash number copied','Open GCash > Send > Express Send. Paste the authorized recipient number, verify the name, then confirm the amount. BUKLOD does not send money.');
+    }
+  };
+  const openReports=()=>router.push({pathname:'/scope-contribution-reports',params:{scopeId}} as any);
+  return <><Stack.Screen options={{title:mode==='fund'?'Community Fund':mode==='contribute'?'Contribute':'Contribution Reports'}}/>
     <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
-      <Text style={s.heading}>Community Fund</Text>
+      <Text style={s.heading}>{mode==='fund'?'Community Fund':mode==='contribute'?'Contribute to this Community':'Contribution Reports'}</Text>
       <Text style={s.helper}>Separate funds for the selected Cluster or Organization. Verified local GCash is held by the receiving scope, not in BUKLOD payout custody.</Text>
       {loading?<ActivityIndicator color="#176B49"/>:null}
       {error?<Text style={s.warning}>{error} · Refresh to retry.</Text>:null}
       <Pressable onPress={()=>void load()} style={s.smallButton}><Text style={s.smallButtonText}>REFRESH FUND</Text></Pressable>
-      {fund?<><View style={s.card}>
+      {fund?<>{mode==='fund'?<View style={s.card}>
         <Text style={s.label}>AVAILABLE BUKLOD-FUNDED CASH</Text>
         <Text style={s.total}>{pesos(fund.available_fund_minor)}</Text>
         <View style={s.line}><Text style={s.label}>Reserved</Text><Text style={s.value}>{pesos(fund.reserved_fund_minor)}</Text></View>
         <View style={s.line}><Text style={s.label}>Spent</Text><Text style={s.value}>{pesos(fund.spent_fund_minor)}</Text></View>
         <View style={s.line}><Text style={s.label}>BUKLOD finalized allocation (historical)</Text><Text style={s.value}>{pesos(fund.buklod_allocation_received_minor)}</Text></View>
         <View style={s.line}><Text style={s.label}>Verified local GCash receipts (externally held)</Text><Text style={s.value}>{pesos(fund.manual_received_minor)}</Text></View>
-      </View>
-      <View style={s.card}>
-        <Text style={s.title}>Manual contribution · registered GCash</Text>
+      </View>:null}
+      {mode==='contribute'||mode==='reports'?<View style={s.card}>
+        <Text style={s.title}>{mode==='contribute'?'Send to registered GCash':'Report a completed GCash transfer'}</Text>
         {fund.registered_gcash ? <>
           <Text style={s.helper}>Send money directly to this registered scope receiver, then report the completed transaction below.</Text>
           <Text style={s.receiver}>{fund.registered_gcash.name}</Text>
@@ -110,6 +121,11 @@ export default function BuklodScopeFundScreen() {
           <Pressable style={s.smallButton} onPress={()=>void Clipboard.setStringAsync(fund.registered_gcash!.mobile)}>
             <Text style={s.smallButtonText}>COPY REGISTERED GCASH NUMBER</Text>
           </Pressable>
+          {mode==='contribute'?<>
+            <Pressable style={s.primary} onPress={()=>void openGcash()}><Text style={s.primaryText}>OPEN GCASH · COPY NUMBER FIRST</Text></Pressable>
+            <Text style={s.helper}>Use GCash Send → Express Send; paste the copied receiver number, check recipient name and amount. Opening the app is not a payment.</Text>
+            <Pressable style={s.smallButton} onPress={openReports}><Text style={s.smallButtonText}>ALREADY SENT? REPORT THE TRANSFER</Text></Pressable>
+          </>:<>
           <Text style={s.label}>AMOUNT (PHP)</Text>
           <TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="e.g. 100.00" style={s.input}/>
           <Text style={s.label}>ACTUAL GCASH TRANSACTION REFERENCE</Text>
@@ -125,14 +141,15 @@ export default function BuklodScopeFundScreen() {
             <Text style={s.primaryText}>{busy?'SAVING…':'REPORT MY GCASH CONTRIBUTION'}</Text>
           </Pressable>
           <Text style={s.warning}>A report does not transfer money or increase BUKLOD-funded cash. The officer must independently match actual receiving GCash history. Do not send MPIN or OTP.</Text>
+          </>}
         </> : <>
           <Text style={s.warning}>This scope does not have an active registered GCash receiver. Manual contribution reporting is disabled.</Text>
           {fund.can_review?<Pressable style={s.smallButton} onPress={()=>router.push({pathname:'/scope-giving-settings',params:{scopeId}} as any)}>
             <Text style={s.smallButtonText}>SET UP REGISTERED GCASH</Text>
           </Pressable>:null}
         </>}
-      </View>
-      <View style={s.card}>
+      </View>:null}
+      {mode==='reports'?<View style={s.card}>
         <Text style={s.title}>{fund.can_review?'GCash contribution reports · finance review':'My contribution reports'}</Text>
         <Text style={s.helper}>REPORTED = not verified, VERIFIED = counted in fund, REJECTED = not counted.</Text>
         {fund.reports.length===0?<Text style={s.helper}>No reports yet.</Text>:fund.reports.map(r=><View key={r.id} style={s.report}>
@@ -156,7 +173,7 @@ export default function BuklodScopeFundScreen() {
           {fund.can_review&&r.status==='REPORTED'&&r.own_report
             ? <Text style={s.warning}>Another authorized reviewer must verify your own report.</Text>:null}
         </View>)}
-      </View></>:null}
+      </View>:null}</>:null}
     </ScrollView>
   </>;
 }
