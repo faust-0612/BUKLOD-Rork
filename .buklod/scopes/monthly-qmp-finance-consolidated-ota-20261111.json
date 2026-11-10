@@ -1,0 +1,125 @@
+{
+  "id": "BUKLOD_MONTHLY_QMP_FINANCE_CONSOLIDATED_OTA_20261111",
+  "repository": "faust-0612/BUKLOD-Rork",
+  "status": "OTA_INTEGRATION_CANDIDATE_NOT_DEPLOYED",
+  "objective": "Unified Community qualified monthly contribution -> canonical Finance V3; historical earnings carry forward and nonwithdrawable live estimate",
+  "baseline_sha": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
+  "source_branch": "codex/monthly-earnings-carryforward-20261111",
+  "native_change": false,
+  "new_build_required": false,
+  "compatibility": "existing Expo Android runtime plus Expo Hosting Web; no Vercel or AWS",
+  "preconditions": [
+    "Reconcile branch against latest authoritative main and all approved DEV workstreams",
+    "Merge once into frozen consolidated release candidate; preserve unrelated changes",
+    "Execute CI/typecheck/Expo web export from exact merged SHA",
+    "Apply all six included Supabase migrations before OTA/web release",
+    "Verify canonical user QMP denominator equals Community QMP after identity backfill",
+    "Keep economics, settlement, withdrawal and payout flags OFF pending verified provider revenues and review",
+    "Resolve held/pending QMP records before future financial finalization, not a prerequisite for launching UI",
+    "Release one approved production Android OTA and Expo Hosting Web from exact frozen RC only"
+  ],
+  "migrations": [
+    "supabase/migrations/20261111015000_buklod_monthly_earnings_carryforward_readonly_v1.sql",
+    "supabase/migrations/20261111023000_buklod_qmp_canonical_finance_identity_v1.sql",
+    "supabase/migrations/20261111024500_buklod_pf_v3_qmp_single_settlement_v1.sql",
+    "supabase/migrations/20261111025000_buklod_pf_v3_monthly_summary_qmp_v1.sql",
+    "supabase/migrations/20261111031000_buklod_finance_qmp_readiness_audit_v1.sql",
+    "supabase/migrations/20261111032000_buklod_qmp_finance_review_queue_v1.sql"
+  ],
+  "appFiles": [
+    "src/lib/buklodMonthlyEarnings.ts",
+    "src/components/BuklodUnifiedEarningsHomeCard.tsx",
+    "src/app/community-contribution.tsx",
+    "src/lib/buklodR38AdminEconomy.ts",
+    "src/app/admin/economy-operations.tsx",
+    "src/components/BuklodCommunityEconomyAdminCard.tsx",
+    "src/app/bayanihan/index.tsx"
+  ],
+  "contracts": [
+    "tests/buklod-monthly-earnings-carryforward-20261111.test.mjs",
+    "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
+    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql"
+  ],
+  "dryRun": {
+    "at": "2026-11-11",
+    "method": "Six SQL migrations inside transaction on canonical production Supabase, then ROLLBACK",
+    "compiled": true,
+    "finance_link_count_before": 214,
+    "finance_link_count_in_dry_run": 362,
+    "missing_qualified_users_in_dry_run": 0,
+    "qmp_parity": true,
+    "frozen_month_edit_rejected": true,
+    "added_cash_credits": 0,
+    "finalized_cash_settlements": 0,
+    "rollback_verified": true,
+    "live_backend_changed": false
+  },
+  "live_finance_gates_all_off": true,
+  "doNotAutoActivateCash": true,
+  "noStandaloneOTA": true,
+  "docs": "docs/monthly-earnings-carryforward-v1.md",
+  "production_status": "NOT_LIVE",
+  "contractVersion": 2,
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: canonical GitHub main SHA 5efb99435243a4bcaeff27fc8d41d58b6a9969c and read-only BUKLOD Connect Supabase 2026-11-11: 306 qualified QMP users across 3 periods; 148 missing Finance links; 214 Finance links, 0 cash ledger credits, 0 settled Finance months, all payout/settlement/economics flags OFF. Six migration dry-run in BEGIN/ROLLBACK reached 362 links, 0 unlinked, exact QMP denominator parity and immutability guard pass; rollback reconfirmed unchanged production. No OTA runtime/RC fingerprint certified.",
+  "chosenApproach": "Build an additive authenticated monthly history reader; rewire canonical Finance V3 user pool to the existing verified period-scoped Community QMP accounts; idempotently create/repair safe Finance identity links, keep legacy Community/R38 payout paths retired, and introduce fail-closed month-close/admin evidence review gates. Leave actual money activation and production OTA for the single consolidated release.",
+  "selectionRationale": "The current Finance V3 has an unrelated BP ledger and personal revenue activation threshold that makes 306 qualified QMP users unequal. Reusing the existing canonical PF cash and payout ledger with one consistent monthly QMP denominator avoids dual cash creation and preserves funded reserves, withdrawal idempotency and last-month history.",
+  "alternativeApproaches": [
+    "Use lifetime BP/rank to distribute cash: rejected because early high-point users would dominate permanently, contrary to monthly fairness.",
+    "Create a second cash wallet solely for Community estimates: rejected because it would double-count AdMob revenue, bypass funding and break existing PF payouts.",
+    "Reuse canonical Finance V3 cash and one monthly QMP denominator with safe identity reconciliation, server period freeze and admin review: chosen."
+  ],
+  "acceptanceChecks": [
+    "All 306 existing qualified QMP identities reconcile in the dry-run without writing money; new authenticated qualified users can self-recover identity",
+    "Canonical Finance V3 monthly points sum equals Community QMP qualified monthly accounts, never lifetime BP or a per-person activation threshold",
+    "One Finance settlement for each ended Manila month, reviewed QMP only, verified revenue, profit guard, idempotent credits and immutable history",
+    "Retired Finance identities cannot self-reactivate, anon cannot invoke finance readers or admin release functions",
+    "Home and Community show last-month finalized only after reconciliation, dynamic monthly preview and separate available finalized withdrawal balance",
+    "Prior month earnings survive low current QMP and withdrawals; no estimates become withdrawable",
+    "Legacy Community finalizer and cash-designation controls cannot create a parallel cash pool; admin has review queue and readiness audit",
+    "All six SQL migrations and focused Postgres read-only contract compile in one rolled-back production database transaction",
+    "Physical-device verification waived, but exact consolidated Expo RC type/build and runtime release gates mandatory",
+    "Bayanihan Economy page uses the same finalized last month, current AdMob QMP preview, and nonwithdrawable projected balance source as Home and Community; no contradictory PF estimated cash summary"
+  ],
+  "preserveBehaviors": [
+    "BUKLOD referral reward and verified funded admin rewards remain separately accounted for in the canonical available cash ledger",
+    "PHP 200 withdrawal minimum, only one full-balance reservation, payout KYC and all financial activation gates remain unchanged/OFF",
+    "Existing Community post/comment qualification caps, duplicate and spam holds, and private per-user QMP previews remain in force",
+    "Community and Scope funds never become individual member cash and preliminary AdMob snapshots cannot fund payouts",
+    "Android Expo OTA and Expo Hosting Web are the sole main-app release endpoints; no new native dependencies or Vercel/AWS",
+    "All unrelated active main, Cluster, Wall, PTT, Kingdom and Classroom changes must survive consolidated merge",
+    "One source SHA for DEV -> verified RC -> production OTA, no standalone feature release",
+    "Bayanihan navigation, referral status, financial explanations and canonical payout entry remain usable"
+  ],
+  "riskAreas": [
+    "monthly-qmp-and-fraud-review",
+    "finance-identity-and-auth",
+    "user-revenue-and-cash-ledger",
+    "consolidated-ota-release"
+  ],
+  "regressionTests": [
+    "tests/buklod-monthly-earnings-carryforward-20261111.test.mjs",
+    "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
+    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/monthly-qmp-finance-consolidated-ota-20261111.json",
+    "docs/monthly-earnings-carryforward-v1.md",
+    "supabase/migrations/20261111015000_buklod_monthly_earnings_carryforward_readonly_v1.sql",
+    "supabase/migrations/20261111023000_buklod_qmp_canonical_finance_identity_v1.sql",
+    "supabase/migrations/20261111024500_buklod_pf_v3_qmp_single_settlement_v1.sql",
+    "supabase/migrations/20261111025000_buklod_pf_v3_monthly_summary_qmp_v1.sql",
+    "supabase/migrations/20261111031000_buklod_finance_qmp_readiness_audit_v1.sql",
+    "supabase/migrations/20261111032000_buklod_qmp_finance_review_queue_v1.sql",
+    "src/lib/buklodMonthlyEarnings.ts",
+    "src/components/BuklodUnifiedEarningsHomeCard.tsx",
+    "src/app/community-contribution.tsx",
+    "src/lib/buklodR38AdminEconomy.ts",
+    "src/app/admin/economy-operations.tsx",
+    "src/components/BuklodCommunityEconomyAdminCard.tsx",
+    "tests/buklod-monthly-earnings-carryforward-20261111.test.mjs",
+    "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
+    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql",
+    "src/app/bayanihan/index.tsx"
+  ]
+}

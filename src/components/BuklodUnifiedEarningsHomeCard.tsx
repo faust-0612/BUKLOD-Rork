@@ -6,6 +6,11 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import {
+  composeCurrentMonthProjectedBalance,
+  loadMyBuklodMonthlyEarnings,
+  type BuklodMonthlyEarnings,
+} from '@/lib/buklodMonthlyEarnings';
+import {
   formatMinorPhp,
   loadMyCommunityContribution,
   type CommunityContributionDashboard,
@@ -61,6 +66,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
   const serial = useRef(0);
   const [cash, setCash] = useState<CashReport | null>(null);
   const [contribution, setContribution] = useState<CommunityContributionDashboard | null>(null);
+  const [monthly, setMonthly] = useState<BuklodMonthlyEarnings | null>(null);
   const [scopeFund, setScopeFund] = useState<ScopeFund | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,13 +75,14 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
   const load = useCallback(async () => {
     const id = ++serial.current;
     if (!userId) {
-      setCash(null); setContribution(null); setScopeFund(null);
+      setCash(null); setContribution(null); setMonthly(null); setScopeFund(null);
       setLoading(false); return;
     }
     setLoading(true);
-    const [personal, community, group] = await Promise.allSettled([
+    const [personal, community, month, group] = await Promise.allSettled([
       (supabase as any).rpc('get_my_buklod_financial_earnings_breakdown_v1'),
       loadMyCommunityContribution(),
+      loadMyBuklodMonthlyEarnings(),
       scopeId
         ? (supabase as any).rpc('get_buklod_scope_revenue_fund_summary_v1', { p_scope_id: scopeId })
         : Promise.resolve({ data: null, error: null }),
@@ -93,6 +100,11 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
       setContribution(null);
       issues.push('Community revenue estimate unavailable');
     }
+    if (month.status === 'fulfilled') setMonthly(month.value);
+    else {
+      setMonthly(null);
+      issues.push('Monthly earned history unavailable');
+    }
     if (!scopeId) setScopeFund(null);
     else if (group.status === 'fulfilled' && !group.value.error
       && group.value.data?.scope_id === scopeId
@@ -108,7 +120,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
 
   useEffect(() => {
     ++serial.current;
-    setCash(null); setContribution(null); setScopeFund(null); setErrors([]);
+    setCash(null); setContribution(null); setMonthly(null); setScopeFund(null); setErrors([]);
     void load();
     const listener = AppState.addEventListener('change', state => {
       if (state === 'active') void load();
@@ -125,6 +137,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
     : contribution.estimate_below_cent ? 'Below ₱0.01' : formatMinorPhp(contribution.estimated_share_minor);
   const activeProvisional = contribution?.estimate_status === 'PROVISIONAL_ADMOB';
   const available = cash?.cash_status?.available_php;
+  const projected = composeCurrentMonthProjectedBalance(monthly, contribution);
   const scopeIsSupported = !scopeType || ['ORGANIZATION', 'CLUSTER', 'SUB_ORGANIZATION'].includes(scopeType.toUpperCase());
 
   return (
@@ -163,6 +176,37 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
           <Text style={styles.note}>Lifetime earnings are historical totals, not extra withdrawable money. The AVAILABLE figure above is the sole withdrawal source; reserved and paid cash cannot be requested again.</Text>
         </View>
       ) : !loading ? <Text style={styles.warning}>Cash report unavailable. No withdrawable amount is assumed.</Text> : null}
+
+      {monthly ? (
+        <View style={styles.cashBox}>
+          <Text style={styles.category}>MY MONTHLY REVENUE SHARING</Text>
+          <View style={styles.cashRow}>
+            <Stat
+              label={`${monthly.previous_month_key} · LAST MONTH`}
+              value={monthly.last_month.status === 'FINALIZED' && monthly.last_month.finalized_share_minor !== null
+                ? formatMinorPhp(monthly.last_month.finalized_share_minor)
+                : 'Awaiting finalization'}
+            />
+            <Stat
+              label={`${monthly.current_month_key} · THIS MONTH (ESTIMATE)`}
+              value={projected ? formatMinorPhp(projected.currentEstimateMinor) : 'No fresh estimate'}
+            />
+          </View>
+          <Stat label="PROJECTED TOTAL · NOT WITHDRAWABLE"
+            value={projected ? formatMinorPhp(projected.projectedTotalMinor) : 'Current estimate unavailable'} />
+          <Stat label={`AVAILABLE FINALIZED · MINIMUM ${formatMinorPhp(monthly.minimum_withdrawal_minor)}`}
+            value={formatMinorPhp(monthly.available_finalized_minor)} />
+          <Text style={styles.note}>
+            Finalized monthly earnings stay in history even after a payout. Current-month QMP changes only
+            the preliminary estimate. Projected total excludes money reserved or already paid.
+          </Text>
+          <Text style={styles.warning}>
+            {monthly.withdrawal_enabled && monthly.meets_amount_threshold
+              ? 'Minimum reached; payout profile, finance authorization and pending-request checks still apply.'
+              : 'Not yet withdrawal-eligible. Only available finalized cash can qualify; estimates do not.'}
+          </Text>
+        </View>
+      ) : !loading ? <Text style={styles.warning}>Monthly earnings unavailable. No historical earnings are assumed.</Text> : null}
 
       <View style={styles.estimateBox}>
         <Text style={styles.category}>PRELIMINARY COMMUNITY REVENUE SHARE</Text>

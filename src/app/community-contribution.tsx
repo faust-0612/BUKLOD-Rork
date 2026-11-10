@@ -10,6 +10,11 @@ import {
   type CommunityContributionDashboard,
 } from '@/lib/buklodCommunityContributionEconomy';
 import type { CommunityQmpHistory } from '@/lib/buklodQmpHistory';
+import {
+  composeCurrentMonthProjectedBalance,
+  loadMyBuklodMonthlyEarnings,
+  type BuklodMonthlyEarnings,
+} from '@/lib/buklodMonthlyEarnings';
 
 /* BUKLOD_COMMUNITY_CONTRIBUTION_PAGE_R1 */
 
@@ -21,6 +26,8 @@ export default function CommunityContributionScreen() {
   const data = report?.owner === userId ? report.value : null;
   const [historyReport,setHistoryReport]=useState<{owner:string;value:CommunityQmpHistory}|null>(null);
   const history = historyReport?.owner === userId ? historyReport.value : null;
+  const [monthlyReport, setMonthlyReport] = useState<{owner:string;value:BuklodMonthlyEarnings}|null>(null);
+  const monthly = monthlyReport?.owner === userId ? monthlyReport.value : null;
   const requestId = useRef(0);
   const [busy,setBusy]=useState(true); const [refreshing,setRefreshing]=useState(false);
   const load=useCallback(async(silent=false)=>{
@@ -32,6 +39,11 @@ export default function CommunityContributionScreen() {
         if(request===requestId.current)setHistoryReport({owner:userId,value:next});
       })
       .catch(()=>{ /* Unavailable history is not a legitimate zero. */ });
+    void loadMyBuklodMonthlyEarnings()
+      .then(next => {
+        if(request===requestId.current)setMonthlyReport({owner:userId,value:next});
+      })
+      .catch(()=>{ if(request===requestId.current)setMonthlyReport(null); });
     try {
       const next=await loadMyCommunityContribution();
       if(request===requestId.current)setReport({owner:userId,value:next});
@@ -52,6 +64,7 @@ export default function CommunityContributionScreen() {
   if(busy&&!data)return <View style={s.center}><ActivityIndicator color="#1E6B45"/><Text style={s.muted}>Loading your private contribution report…</Text></View>;
   if(!data)return null;
   const q=data.video_quota; const guide=String(params.guide||'')==='1';
+  const projected=composeCurrentMonthProjectedBalance(monthly,data);
   return <ScrollView style={s.screen} contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh}/>}>
     <Pressable onPress={()=>router.back()} style={s.back}><MaterialCommunityIcons name="arrow-left" size={19} color="#1E6B45"/><Text style={s.backText}>BACK TO COMMUNITY</Text></Pressable>
     <View style={s.hero}><Text style={s.eyebrow}>PRIVATE · YOUR COMMUNITY CONTRIBUTION</Text><Text style={s.title}>Create value. Build community.</Text><Text style={s.heroBody}>Track your contributions, history, and estimated earnings here. Estimates can change until finalized.</Text></View>
@@ -80,6 +93,25 @@ export default function CommunityContributionScreen() {
       <Row label="Internal share bonus QMP" value={String(data.engagement_breakdown?.internal_share_bonus_qmp ?? 0)}/>
       <Row label="Helpful reply engagement QMP" value={String(data.engagement_breakdown?.reply_engagement_bonus_qmp ?? 0)}/>
       <Text style={s.note}>Only legitimate, qualified activity counts. Duplicates, spam, and artificial engagement do not count.</Text>
+    </Card>
+    <Card title="MONTHLY EARNINGS · YOUR PERSONAL ACCOUNT">
+      {monthly ? (
+        <>
+          <Row label={`${monthly.previous_month_key} · Last month (fixed)`}
+            value={monthly.last_month.status==='FINALIZED'&&monthly.last_month.finalized_share_minor!==null
+              ?formatMinorPhp(monthly.last_month.finalized_share_minor):'Awaiting finalization'}/>
+          <Row label={`${monthly.current_month_key} · This month (estimate)`}
+            value={projected?formatMinorPhp(projected.currentEstimateMinor):'No fresh estimate'}/>
+          <Row label="Projected total · not withdrawable"
+            value={projected?formatMinorPhp(projected.projectedTotalMinor):'Current estimate unavailable'}/>
+          <Row label="Available finalized cash" value={formatMinorPhp(monthly.available_finalized_minor)}/>
+          <Row label="Withdrawal minimum" value={formatMinorPhp(monthly.minimum_withdrawal_minor)}/>
+          <Text style={s.note}>Last month's earnings are fixed only after funded settlement. Older finalized earnings carry forward even if your new QMP is zero. The projected total changes with this month's estimate, and cannot be withdrawn.</Text>
+          <Text style={s.warn}>{monthly.withdrawal_enabled&&monthly.meets_amount_threshold
+            ?'Amount threshold met. Payout identity, finance approval and outstanding requests still determine eligibility.'
+            :'Withdrawal is not yet available. Only eligible finalized cash counts toward the minimum.'}</Text>
+        </>
+      ) : <Text style={s.note}>Finalized monthly history unavailable. No cash amount has been assumed.</Text>}
     </Card>
     <Card title="YOUR EARNINGS">
       <Row label="Estimated share" value={data.estimated_share_minor===null?'Not available':data.estimate_below_cent?'Below ₱0.01':formatMinorPhp(data.estimated_share_minor)}/>

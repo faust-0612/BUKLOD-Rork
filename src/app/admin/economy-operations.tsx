@@ -26,6 +26,9 @@ import {
   adminFailBuklodPfWithdrawal,
   adminFinalizeBuklodPfMonthV3,
   adminGetBuklodPfFinanceConsoleV3,
+  adminGetBuklodPfQmpReadinessV1,
+  adminGetBuklodQmpMonthReviewQueue,
+  adminResolveBuklodQmpEvent,
   adminGetBuklodR38PayoutDetails,
   adminListBuklodR38Withdrawals,
   adminMarkBuklodPfWithdrawalProcessing,
@@ -33,6 +36,8 @@ import {
   adminRecordBuklodPfFinancialEntryV3,
   adminReviewBuklodR38Withdrawal,
   type BuklodPfFinanceConsoleV3,
+  type BuklodPfQmpReadiness,
+  type BuklodQmpAdminReviewQueue,
   type BuklodR38AdminWithdrawalQueue,
   type BuklodR38PayoutDetails,
 } from '@/lib/buklodR38AdminEconomy';
@@ -106,6 +111,9 @@ export default function AdminEconomyOperationsScreen() {
 
   const [periodKey, setPeriodKey] = useState(month.key);
   const [admobPreview, setAdmobPreview] = useState<AdminCommunityAdmobEstimate | null>(null);
+  const [qmpReadiness, setQmpReadiness] = useState<BuklodPfQmpReadiness | null>(null);
+  const [qmpQueue, setQmpQueue] = useState<BuklodQmpAdminReviewQueue | null>(null);
+  const [reviewListExpanded, setReviewListExpanded] = useState(false);
   const [admobReportAmount, setAdmobReportAmount] = useState('');
   const [admobReportCurrency, setAdmobReportCurrency] = useState<'USD' | 'PHP'>('USD');
   const [admobUsdPhpRate, setAdmobUsdPhpRate] = useState('');
@@ -130,19 +138,26 @@ export default function AdminEconomyOperationsScreen() {
   const [transactionRef, setTransactionRef] = useState('');
 
   const load = useCallback(async () => {
+    // Never reuse another month's readiness or review queue during a refresh.
+    setQmpReadiness(null);
+    setQmpQueue(null);
     try {
       setError(null);
 
-      const [nextReport, nextQueue, nextAdmob] = await Promise.all([
+      const [nextReport, nextQueue, nextAdmob, nextQmpReadiness, nextQmpQueue] = await Promise.all([
         adminGetBuklodPfFinanceConsoleV3(periodKey),
         adminListBuklodR38Withdrawals(),
         // The additive preview migration may be pending on older environments.
         adminGetCommunityAdmobEstimate(periodKey).catch(() => null),
+        adminGetBuklodPfQmpReadinessV1(periodKey).catch(() => null),
+        adminGetBuklodQmpMonthReviewQueue(periodKey).catch(() => null),
       ]);
 
       setReport(nextReport);
       setQueue(nextQueue);
       setAdmobPreview(nextAdmob);
+      setQmpReadiness(nextQmpReadiness);
+      setQmpQueue(nextQmpQueue);
     } catch (nextError: unknown) {
       setError(
         nextError instanceof Error
@@ -172,7 +187,27 @@ export default function AdminEconomyOperationsScreen() {
   const canFinalize =
     controls?.economics_enabled === true &&
     controls?.settlement_enabled === true &&
+    qmpReadiness?.ready_for_finalization === true &&
     currentStatus !== 'FINALIZED';
+
+  const reviewQmp = (eventId: string, approve: boolean) => {
+    Alert.alert(
+      approve ? 'Approve qualified QMP?' : 'Reject unqualified QMP?',
+      'Review the original post/reply evidence. This updates the monthly qualification weight, not cash. The decision is audited.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: approve ? 'Approve' : 'Reject',
+          style: approve ? 'default' : 'destructive',
+          onPress: () => void run(
+            `qmp-review:${eventId}`,
+            () => adminResolveBuklodQmpEvent(eventId, approve),
+            'Qualified-contribution review updated; month-readiness rechecked.',
+          ),
+        },
+      ],
+    );
+  };
 
   const payoutEnabled =
     queue?.payout_processing_enabled === true;
@@ -427,7 +462,11 @@ export default function AdminEconomyOperationsScreen() {
 
               <TextInput
                 value={periodKey}
-                onChangeText={setPeriodKey}
+                onChangeText={next => {
+                  setPeriodKey(next);
+                  setQmpReadiness(null);
+                  setQmpQueue(null);
+                }}
                 autoCapitalize="none"
                 placeholder="YYYY-MM"
                 style={styles.input}
@@ -467,13 +506,67 @@ export default function AdminEconomyOperationsScreen() {
               <Text style={styles.muted}>
                 Settlement status: {currentStatus}
               </Text>
+              <Text style={styles.muted}>
+                Canonical monthly QMP audit: {qmpReadiness?.period_exists
+                  ? `${qmpReadiness.qualified_users ?? 0} qualified users ·
+                  ${qmpReadiness.qualified_monthly_qmp ?? 0} QMP ·
+                  ${qmpReadiness.unlinked_finance_identities ?? 0} identity links missing ·
+                  ${qmpReadiness.pending_qmp_reviews ?? 0} pending ·
+                  ${qmpReadiness.held_qmp_reviews ?? 0} held ·
+                  ${qmpReadiness.legacy_share_records ?? 0} legacy allocations ·
+                  ${qmpReadiness.reconciled_eligible_revenue_sources ?? 0} verified revenue records`
+                  : 'Not verified. Finalization remains locked.'}
+              </Text>
 
               {!canFinalize &&
                 currentStatus !== 'FINALIZED' && (
                   <Text style={styles.warningText}>
-                    Finalization is locked by the canonical backend. Economics and Settlement must both be ON before a month can be finalized.
+                    Finalization requires a completed month, resolved QMP reviews, reconciled Finance identities,
+                    verified eligible revenue, no legacy allocations, and enabled server economics and settlement gates.
+                    Incomplete or missing readiness data never authorizes a payout.
                   </Text>
                 )}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>QMP month-close review queue</Text>
+              <Text style={styles.muted}>
+                {qmpQueue
+                  ? `${qmpQueue.total_pending} contribution records await qualification or rejection.
+                    Verify source text before approving; pending records are not cash or withdrawable.`
+                  : 'Review queue unavailable. Month finalization stays locked until verified.'}
+              </Text>
+              {qmpQueue?.rows.slice(0, reviewListExpanded ? 50 : 10).map(item => (
+                <View key={item.event_id} style={styles.guardCard}>
+                  <View style={{ flex: 1, gap: 5 }}>
+                    <Text style={styles.flagLabel}>
+                      {item.type.replace(/_/g,' ')} · {item.qmp} QMP · {item.state}
+                    </Text>
+                    <Text style={styles.muted}>
+                      {item.reason.replace(/_/g,' ')} · {new Date(item.created_at).toLocaleDateString()}
+                    </Text>
+                    <Text style={styles.muted}>
+                      {item.source_available
+                        ? item.source_excerpt || 'Media post · no text excerpt'
+                        : 'Source is unavailable, hidden or deleted. Do not approve without evidence.'}
+                    </Text>
+                    <View style={styles.actionWrap}>
+                      <ActionButton title="APPROVE QMP" icon="check-circle-outline"
+                        onPress={() => reviewQmp(item.event_id, true)}
+                        disabled={!!busy || !item.source_available} />
+                      <ActionButton title="REJECT QMP" icon="close-circle-outline"
+                        onPress={() => reviewQmp(item.event_id, false)}
+                        disabled={!!busy} danger />
+                    </View>
+                  </View>
+                </View>
+              ))}
+              {(qmpQueue?.rows.length ?? 0) > 10 && (
+                <ActionButton
+                  title={reviewListExpanded ? 'SHOW FEWER REVIEWS' : 'SHOW UP TO 50 REVIEWS'}
+                  icon="format-list-bulleted" onPress={() => setReviewListExpanded(v=>!v)}
+                  disabled={!!busy} />
+              )}
             </View>
 
             <View style={styles.section}>
