@@ -50,7 +50,9 @@ test('no-fill sponsorship automatically skips without stopping normal video play
 test('IGPAT also preserves native Reels ads and can avoid an empty no-fill page', () => {
   assert.match(igpat, /buildReelsFeedWithInlineAds\(rows\)/);
   assert.match(igpat, /isReelsFeedInlineAdRow\(feed\[feed\.length-1\]\)/);
-  assert.match(igpat, /prepare=\{index===activeIndex\+1\}/);
+  // On degraded connections do not compete with the currently visible video.
+  assert.match(igpat, /prepare=\{!weakSignal && index===activeIndex\+1\}/);
+  assert.match(igpat, /status==='unavailable'\?120:3000/);
   assert.match(igpat, /onLoadStateChange=\{next=>/);
   assert.match(igpat, /status==='unavailable'\?120:3000/);
   assert.match(igpat, /ref=\{reelsListRef\}/);
