@@ -10,6 +10,8 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
+import { maybeShowBuklodInterstitial, warmBuklodInterstitial } from '@/lib/buklodAds';
 import KingdomRelicEmblem, { kingdomFinishLabel } from '@/features/games/kingdom/KingdomRelicEmblem';
 import KingdomBadgeTrials from '@/features/games/kingdom/KingdomBadgeTrials';
 import { emptyKingdomShards, getMyKingdomShards, hasKingdomPower, type KingdomShardsSnapshot } from '@/lib/buklodKingdomShards';
@@ -179,6 +181,7 @@ export default function KingdomLegacyScreen() {
     } finally { setLoading(false); }
   }, [uid, load]);
 
+  useEffect(() => { warmBuklodInterstitial('interstitial_kingdom_legacy_claim'); }, []);
   const changeItem = useCallback(async (targetLevel: number, index: number, equipped: boolean) => {
     if (!uid || !core || !collection || operation.current) return;
     if (!isCollectibleLevelOpen(collection, targetLevel)) return;
@@ -193,6 +196,7 @@ export default function KingdomLegacyScreen() {
         throw new Error('Session changed. Sign in again before claiming rewards.');
       }
     };
+    let verifiedNewClaim = false;
     operation.current = true;
     setBusyKey(targetLevel + ':' + index);
     setNotice('');
@@ -219,6 +223,7 @@ export default function KingdomLegacyScreen() {
           const verified = updated.items.find(row => row.characterId === core &&
             row.level === targetLevel && row.itemIndex === index && Boolean(row.redeemedAt));
           if (verified) {
+            verifiedNewClaim = true;
             setReveal({ name: collectibleNames(core, targetLevel)[index-1] ?? 'Character collectible', index,
               kind: verified.rewardKind, level: targetLevel });
             void playBuklodGameFeedback('unlock');
@@ -235,6 +240,10 @@ export default function KingdomLegacyScreen() {
     } finally {
       operation.current = false;
       setBusyKey('');
+      if (verifiedNewClaim && accountRef.current === original.uid &&
+          activeIdRef.current === original.core && levelRef.current === original.level) {
+        void maybeShowBuklodInterstitial('content_session_completed', 'interstitial_kingdom_legacy_claim');
+      }
     }
   }, [uid, core, collection, level]);
 
@@ -293,6 +302,7 @@ export default function KingdomLegacyScreen() {
             </Pressable>
           </LinearGradient>
 
+          <BuklodNativeSponsoredCard surface="home" slotId="kingdom_legacy_native" />
           <Pressable accessibilityRole="button" accessibilityLabel="Open Shard Treasury and game powers"
             onPress={() => router.push('/games/rewards' as any)} style={s.shardsBar}>
             <MaterialCommunityIcons name="diamond-stone" size={25} color={C.gold}/>

@@ -206,12 +206,17 @@ export function isBuklodPassiveAdAllowed({
   // screens and all interstitial/rewarded ads remain blocked.
   const safeFacultyLanding =
     placement === 'focus' && route === '/profile/buklod-faculty';
+  // Explicit passive exceptions only: no ads over active questions or controls.
+  const safeKingdomPassive =
+    (route === '/games/legacy' && placementId === 'kingdom_legacy_native') ||
+    (route === '/games/rewards' && placementId === 'kingdom_treasury_native') ||
+    (route === '/games/practice' && placementId === 'kingdom_practice_complete_banner');
 
   return (
     foreground &&
     enabled('ads_passive') &&
     placementEnabled(placementId) &&
-    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding) &&
+    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding || safeKingdomPassive) &&
     !hasInteractionLock()
   );
 }
@@ -219,11 +224,12 @@ export function isBuklodPassiveAdAllowed({
 export function isBuklodRewardedAdAllowed(
   placementId = 'rewarded_generic',
 ) {
+  const safeKingdomOptIn = pathname === '/games/practice' && placementId === 'kingdom_practice_hint';
   return (
     foreground &&
     enabled('ads_rewarded') &&
     placementEnabled(placementId) &&
-    !isBuklodAdRouteSensitive(pathname) &&
+    (!isBuklodAdRouteSensitive(pathname) || safeKingdomOptIn) &&
     !hasInteractionLock()
   );
 }
@@ -231,11 +237,15 @@ export function isBuklodRewardedAdAllowed(
 export function canWarmBuklodFullScreenAd(
   placementId = 'interstitial_generic',
 ) {
+  // Only actual server-confirmed Hall claims and Shard power purchases.
+  const safeKingdomCompletion =
+    (pathname === '/games/legacy' && placementId === 'interstitial_kingdom_legacy_claim') ||
+    (pathname === '/games/rewards' && placementId === 'interstitial_kingdom_power_unlocked');
   return (
     foreground &&
     enabled('ads_interstitial') &&
     placementEnabled(placementId) &&
-    !isBuklodAdRouteSensitive(pathname) &&
+    (!isBuklodAdRouteSensitive(pathname) || safeKingdomCompletion) &&
     !hasInteractionLock() &&
     !fullScreenCadencePersistenceFailed
   );

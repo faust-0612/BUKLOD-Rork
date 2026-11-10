@@ -1,6 +1,6 @@
 /* BUKLOD Main / Kingdom Shard Store
  * Game-only permanent items. Transactions run only inside authenticated
- * server-owned SQL; no optimistic debit, no ads, no paid API, no real cash.
+ * server-owned SQL; no optimistic debit, no ad-gated spending or real cash.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -9,6 +9,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/providers/AuthProvider';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
+import { maybeShowBuklodInterstitial, warmBuklodInterstitial } from '@/lib/buklodAds';
 import {
   buyMyKingdomItem, getMyKingdomShards, emptyKingdomShards, KINGDOM_SHARD_ITEMS,
   type KingdomShardItemKey, type KingdomShardsSnapshot,
@@ -31,6 +33,7 @@ export default function KingdomRewardsScreen() {
   const [loading,setLoading]=useState(Boolean(uid));
   const [busy,setBusy]=useState<KingdomShardItemKey|null>(null);
   const [notice,setNotice]=useState('');
+  useEffect(() => { warmBuklodInterstitial('interstitial_kingdom_power_unlocked'); }, []);
 
   const reload=useCallback(async () => {
     if(!uid) {setSnapshot(emptyKingdomShards());return;}
@@ -53,17 +56,24 @@ export default function KingdomRewardsScreen() {
   const purchase=async(key:KingdomShardItemKey)=>{
     if(!uid||busy||snapshot.source!=='server')return;
     setBusy(key);setNotice('');
+    let verifiedUnlock = false;
     try {
       const receipt=await buyMyKingdomItem(uid,key);
       if(uidRef.current!==uid)return;
       setSnapshot(receipt.state);
+      verifiedUnlock = Boolean(receipt.purchased);
       setNotice(receipt.purchased?'Unlocked permanently! Use this power in Kingdom practice.'
         :'Already owned. No additional Shards were charged.');
     } catch(reason) {
       if(uidRef.current===uid) setNotice(
         (reason instanceof Error?reason.message:'Purchase not confirmed.')+
         ' Refresh to check your balance before trying again.');
-    } finally {if(uidRef.current===uid)setBusy(null);}
+    } finally {
+      if(uidRef.current===uid) {
+        setBusy(null);
+        if(verifiedUnlock) void maybeShowBuklodInterstitial('content_session_completed', 'interstitial_kingdom_power_unlocked');
+      }
+    }
   };
   return <View style={s.root}>
     <LinearGradient colors={['#071e31','#164451','#082435']} style={StyleSheet.absoluteFill}/>
@@ -127,6 +137,7 @@ export default function KingdomRewardsScreen() {
         </View>;
       })}
       {notice?<Text accessibilityRole="alert" style={s.notice}>{notice}</Text>:null}
+      <BuklodNativeSponsoredCard surface="home" slotId="kingdom_treasury_native" />
       <View style={s.footer}>
         <MaterialCommunityIcons name="information-outline" size={19} color={COLORS.muted}/>
         <Text style={s.footerText}>Shards are not BP, earnings, currency, or withdrawable value. Game powers work in free practice after one verified purchase, including offline after syncing. They do not apply to server-scored Mastery examinations.</Text>
