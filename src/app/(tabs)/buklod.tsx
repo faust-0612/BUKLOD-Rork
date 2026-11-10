@@ -3762,6 +3762,9 @@ const load=useCallback(async(options?:{
    }
 
    if(commentPost?.id){
+    if(commentPhotoPositionRef.current!==null){
+     void refreshViewerPhotoCommentCounts(String(commentPost.id));
+    }
     await Promise.all([
      loadComments(commentPost.id),
      load()
@@ -4717,9 +4720,10 @@ const load=useCallback(async(options?:{
     acquireSharedRealtimeSubscription(
      `community-drawer:${user.id}:${postId}`,
      ()=>{
-      void loadComments(
-       postId
-      );
+      void loadComments(postId);
+      if(commentPhotoPositionRef.current!==null){
+       void refreshViewerPhotoCommentCounts(postId);
+      }
      },
      emit=>{
       const channel=
