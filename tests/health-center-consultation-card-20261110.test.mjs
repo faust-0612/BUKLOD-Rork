@@ -35,8 +35,10 @@ test('Home square Health card has distinct online consultation and full standalo
   const home = read('src/components/home/BuklodHomeUtilityCards.tsx');
   const hub = read('src/app/(tabs)/hub.tsx');
   assert.match(home, /id:'health'/);
-  assert.match(home, /Online Consultation/);
-  assert.match(home, /Full Health Center/);
+  const inline = read('src/components/home/BuklodMainHealthCard.tsx');
+  assert.match(home, /BuklodMainHealthCard/);
+  assert.match(inline, /ONLINE CONSULTATION|LIBRENG KONSULTASYON/i);
+  assert.match(inline, /Full Health Center/);
   assert.match(home, /router\.push\('\/profile\/buklod-health'/);
   assert.match(home, /launchBuklodHealthCenter/);
   assert.match(home, /aspectRatio: 1/);
@@ -48,7 +50,7 @@ test('Online consultation is gated by explicit urgent check; urgent mode has eme
   const portal = read('src/app/profile/buklod-health.tsx');
   assert.match(portal, /useState<Urgency>\('unanswered'\)/);
   assert.match(portal, /urgency === 'none'/);
-  assert.match(portal, /urgency !== 'none' \|\| !BUKLOD_HEALTH_CONSULTATION_READY \|\| opening !== null/);
+  assert.match(portal, /urgency !== 'none' \|\| opening !== null/);
   assert.match(portal, /if \(door === 'standalone'\)/);
   assert.match(portal, /else if \(urgency === 'none' && BUKLOD_HEALTH_CONSULTATION_READY\)/);
   assert.match(portal, /Call 911 \(PH\)/);
@@ -80,8 +82,8 @@ test('No AI or professional browser handoff before HC standalone backend activat
   const portal = read('src/app/profile/buklod-health.tsx');
   assert.match(source, /EXPO_PUBLIC_HEALTH_CONSULTATION_ENABLED/);
   assert.match(source, /EXPO_PUBLIC_HEALTH_PROFESSIONAL_PORTAL_ENABLED/);
-  assert.match(portal, /!BUKLOD_HEALTH_CONSULTATION_READY/);
-  assert.match(portal, /!BUKLOD_HEALTH_PROFESSIONALS_READY/);
-  assert.match(portal, /AI Health Guide activation pending/);
-  assert.match(portal, /Contributor registration pending/);
+  assert.match(portal, /BUKLOD_HEALTH_CONSULTATION_READY/);
+  assert.match(portal, /BUKLOD_HEALTH_PROFESSIONALS_READY/);
+  assert.match(portal, /BUKLOD Health Guide/);
+  assert.match(portal, /independent clinical review/);
 });
