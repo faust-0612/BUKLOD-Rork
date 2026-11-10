@@ -241,41 +241,60 @@ async function readCommunityPhotoDimensions(uri: string): Promise<{width: number
 export async function prepareCommunityJpegUri(
   uri: string,
 ): Promise<{ uri: string; sizeBytes: number }> {
-  // Picker/editor JPEGs are already encoded. Re-encoding every photo
-  // wastes CPU and can create visible generational JPEG artifacts.
-  const existingBytes = await readBinarySizeBytes(uri).catch(() => 0);
-  if (
-    /\.jpe?g(?:[?#]|$)/i.test(uri) &&
-    existingBytes > 0 &&
-    existingBytes <= 2 * 1024 * 1024
-  ) {
+  // iOS in-app browsers may return a Blob URL or data URI without a .jpg
+  // extension. Recognize the real JPEG MIME and skip unsupported web canvas
+  // conversion for already-small photos.
+  const webSelectedBlob = Platform.OS === 'web'
+    ? await readWebBlob(uri).catch(() => null)
+    : null;
+  const existingBytes = webSelectedBlob
+    ? Number(webSelectedBlob.size ?? 0)
+    : await readBinarySizeBytes(uri).catch(() => 0);
+  const isJpeg = /\.jpe?g(?:[?#]|$)/i.test(uri)
+    || /^image\/jpe?g$/i.test(String(webSelectedBlob?.type ?? ''))
+    || /^data:image\/jpe?g[;,]/i.test(uri);
+
+  if (isJpeg && existingBytes > 0 && existingBytes <= 2 * 1024 * 1024) {
     return { uri, sizeBytes: existingBytes };
   }
 
-  const M = await import('expo-image-manipulator');
-  const context = M.ImageManipulator.manipulate(uri);
-  const dimensions = await readCommunityPhotoDimensions(uri);
-  if (dimensions && Math.max(dimensions.width, dimensions.height) > 1440) {
-    context.resize({
-      width: dimensions.width >= dimensions.height ? 1440 : null,
-      height: dimensions.height > dimensions.width ? 1440 : null,
+  try {
+    const M = await import('expo-image-manipulator');
+    const context = M.ImageManipulator.manipulate(uri);
+    const dimensions = await readCommunityPhotoDimensions(uri);
+    if (dimensions && Math.max(dimensions.width, dimensions.height) > 1440) {
+      context.resize({
+        width: dimensions.width >= dimensions.height ? 1440 : null,
+        height: dimensions.height > dimensions.width ? 1440 : null,
+      });
+    }
+    const rendered = await context.renderAsync();
+    const image = await rendered.saveAsync({
+      format: M.SaveFormat.JPEG,
+      compress: 0.82,
     });
-  }
-  const rendered = await context.renderAsync();
-  const image = await rendered.saveAsync({
-    format: M.SaveFormat.JPEG,
-    compress: 0.82,
-  });
-  const fileUri = String(image.uri ?? uri).trim() || uri;
-  const sizeBytes = await readBinarySizeBytes(fileUri);
+    const fileUri = String(image.uri ?? uri).trim() || uri;
+    const sizeBytes = await readBinarySizeBytes(fileUri);
 
-  if (!sizeBytes) {
-    throw new Error('Could not read the prepared photo size.');
+    if (!sizeBytes) {
+      throw new Error('Could not read the prepared photo size.');
+    }
+    return { uri: fileUri, sizeBytes };
+  } catch (error) {
+    // JPEG passthrough is preferable to rejecting a post when an iOS
+    // Messenger/WebKit canvas converter is unavailable. Never mislabel PNG,
+    // HEIC, or GIF source bytes as JPEG, and retain the existing native path.
+    if (Platform.OS === 'web') {
+      if (isJpeg && existingBytes > 0 && existingBytes <= 12 * 1024 * 1024) {
+        return { uri, sizeBytes: existingBytes };
+      }
+      throw new Error(
+        'Photo conversion failed in this browser. Try a JPEG photo or open BUKLOD in Safari.',
+      );
+    }
+    throw error;
   }
-
-  return { uri: fileUri, sizeBytes };
 }
-
 /**
  * Optional preview generation is deliberately best-effort. Never sacrifice
  * the original upload or a post to make a thumbnail.
