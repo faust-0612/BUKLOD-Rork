@@ -40,6 +40,7 @@ declare
   v_genre text;
   v_previous jsonb;
   v_daily integer;
+  v_started boolean := false;
 begin
   if v_uid is null then raise exception 'Sign in required' using errcode='28000'; end if;
   if p_after_level is null or p_after_level < 0 or p_after_level >= 200
@@ -75,11 +76,13 @@ begin
     if v_daily>=100 then raise exception 'Kingdom AI global daily generation cap reached'; end if;
     insert into public.buklod_kingdom_ai_levels_v1(user_id,game_id,level_no)
       values(v_uid,v_game,v_next) returning * into v_row;
+    v_started := true;
   elsif v_row.status='failed' and v_row.generation_attempts<2
       and v_row.updated_at<now()-interval '30 seconds' then
     update public.buklod_kingdom_ai_levels_v1
       set status='generating',generation_attempts=generation_attempts+1,updated_at=now()
       where id=v_row.id returning * into v_row;
+    v_started := true;
   end if;
 
   select coalesce(jsonb_agg(q.item->>'prompt'),'[]'::jsonb) into v_previous
@@ -95,7 +98,7 @@ begin
     'genre',v_genre,'level',v_next,'status',v_row.status,
     'prior_questions',v_previous,
     'generation_attempts',v_row.generation_attempts,
-    'updated_at',v_row.updated_at
+    'updated_at',v_row.updated_at,'started',v_started
   );
 end;
 $body$;
