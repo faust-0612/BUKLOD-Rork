@@ -65,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/music-library-live-scrub-folders-20261109.test.mjs tests/circle-rank-badges-recognition-20261109.test.mjs tests/buklod-notification-latency-20261109.test.mjs tests/ptt-quiet-notifications-20261109.test.mjs tests/community-revenue-member-ui-20261109.test.mjs tests/faith-offline-prefetch-20261109.test.mjs
-          node --experimental-strip-types --test tests/faith-offline-ota-ready-20261110.test.mjs tests/faith-offline-cache-behavior-20261110.test.mjs
+          node --experimental-strip-types --test tests/faith-offline-ota-ready-20261110.test.mjs tests/faith-offline-cache-behavior-20261110.test.mjs tests/auth-access-faith-offline-20261110.test.mjs
           node --test tests/wall-media-navigation-polish-20261108.test.mjs tests/ota-navigation-scroll-polish-20261108.test.mjs tests/admin-music-multiselect-motion-drawer-20261108.test.mjs
           node --test tests/buklod-earnings-final-source-clarity-20261109.test.mjs tests/community-admob-preview-contract.test.cjs
       - name: Bible Quiz V4 events, R3 compatibility, points and noncash ads contracts
