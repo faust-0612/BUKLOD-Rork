@@ -91,7 +91,7 @@ async function run(mode,dual=false,mismatch=false){
     await page.evaluate(()=>window.switchPersona('FACULTY'));
     if(dual){
       assert.equal(await page.locator('#rolePersonaSelect').inputValue(),'FACULTY');
-      assert.match(await page.locator('#portalSummaryBento').innerText(),/My Classrooms/);
+      assert.match(await page.locator('#portalSummaryBento').innerText(),/MY CLASSROOMS/i);
       await page.evaluate(()=>window.openSubjectClass('11111111-1111-4111-8111-111111111111','MORE','grades'));
       await page.getByText('Official synthetic student').waitFor({timeout:9000});
       assert.ok(used.some(x=>x.includes('gradebook_roster_v1')),'Authorized Faculty switch must load faculty roster');
