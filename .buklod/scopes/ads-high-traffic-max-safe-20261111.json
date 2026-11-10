@@ -38,5 +38,58 @@
       "RC/OTA deployment fingerprint"
     ],
     "production": "NOT RELEASED"
-  }
+  },
+  "productionBaselineEvidence": "Source baseline at initial branch point: GitHub main 5efb99435243a4bcaeff27fc8d41d58b6a9969c2. Prior official AdMob month-open snapshot from Nov 8 verified in repo scope records: estimated gross ₱8.64, 16 qualified accounts / 702 QMP, 30% provisionally designated pool; NOT a current daily revenue figure. Existing BUKLOD AdMob native surfaces, 2-action interstitial lock, consent/viewport gating and 2026-11-07 ad restoration scope were inspected. Production EAS env density variables, compiled release, Android visual fill and live OTA fingerprint are NOT verified.",
+  "chosenApproach": "Reuse central Android platform-specific feed cadence and existing NativeAd/first-view components. Increase organic spacing only to bounded high-traffic values; add one extra mid native opportunity on high-traffic dashboards, footer banners where absent, Connect inbox row-native ad, and Reels nearby preload. Tighten Reels consent and passive route gating so additional requests honor the same controls. No backend or native dependency modification.",
+  "selectionRationale": "AdMob eCPM does not justify hundreds of forced ads per user. Maximize real viewable opportunities with media native and placement diversity rather than unsafe every-action interstitials, direct sponsor sales or synthetic impressions. Reusing tested inventory minimizes RC native compatibility risk and preserves publisher controls.",
+  "alternativeApproaches": [
+    "New direct-sponsorship checkout/ads platform: rejected by product owner and requires independent payments and accounting",
+    "Interstitial after every tap, back, comment, or swipe: rejected by Google AdMob and Play disruptive ads guidance; risks fill and publisher account",
+    "New ad SDK with custom native video player: rejected due APK/native rebuild and increased media stability regression risk",
+    "Reuse existing native inventory and add bounded in-feed/dashboard opportunities under consent and kill-switches: selected"
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "faith-cluster",
+    "android-native-ad-rendering",
+    "navigation-scroll",
+    "interstitial-natural-break",
+    "reels-video-continuity"
+  ],
+  "acceptanceChecks": [
+    "Android Wall defaults 4 leading, variable 4-6 organic rows; IGPAT defaults 5 leading and 5-7 organic reels, subject to operator env overrides",
+    "Active Hub, Profile, Connect inbox, Organization and Cluster have distinct new native placements; no ads inside chat thread composer",
+    "Reels native request cannot start until AdsProvider allows ad requests and passive route is approved; no test unit in production identity",
+    "Reels no-fill / consent-pending state does not remain sticky and late native request is destroyed",
+    "Android existing native ViewportGate, impression callbacks, SDK readiness, remote flags, no-fill collapses and interstitial natural-break minimum two preserved",
+    "Node focused tests and CI objective-scope gate pass at exact PR head; Android compile and RC visual verification still required before OTA",
+    "Live production EAS ads configuration and minimum supported runtime verified before any publication"
+  ],
+  "preserveBehaviors": [
+    "30% QMP pool, cash accounting, finalization and withdrawals unchanged",
+    "No direct sponsorship or unrelated checkout changes",
+    "No new native dependency, Android build number or App ID changes",
+    "No ads in active chat threads, exams, grade entry, payments, SOS, account recovery or text entry overlays",
+    "Natural-break interstitial min two successful actions and shared locks stay unchanged",
+    "Google Ads consent, foreground, remote kill-switch, no-fill and viewport gate stay authoritative",
+    "Production remains unchanged until verified consolidated RC exact OTA",
+    "Existing cluster faith/attendance/lesson/navigation behavior and scope governance unchanged"
+  ],
+  "regressionTests": [
+    "tests/buklod-high-traffic-ads-20261111.test.mjs",
+    "tests/buklod-cluster-ad-coverage-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodAdMonetizationPolicy.android.ts",
+    "src/lib/buklodGlobalAdController.ts",
+    "src/components/BuklodReelsInlineAd.tsx",
+    "src/app/igpat/index.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "tests/buklod-high-traffic-ads-20261111.test.mjs",
+    "tests/buklod-cluster-ad-coverage-20261111.test.mjs"
+  ]
 }
