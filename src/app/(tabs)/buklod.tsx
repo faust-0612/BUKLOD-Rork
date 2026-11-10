@@ -78,6 +78,7 @@ import {
  type CommunityVideoCursor,
 } from '@/lib/buklodVideoDiscovery';
 
+import BuklodPhotoCommentsSheet from '@/components/BuklodPhotoCommentsSheet';
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
 import BuklodReelsInlineAd, {
   type BuklodReelsAdLoadState,
@@ -1352,9 +1353,30 @@ function LegacyPublicBuklodScreen(){
 
  const [viewerIndex,setViewerIndex]=
   useState(0);
+ const [photoCommentsTarget,setPhotoCommentsTarget]=useState<{postId:string;mediaPosition:number}|null>(null);
+ const [photoCommentCounts,setPhotoCommentCounts]=useState<Record<string,number>>({});
 
  // Change only when a new collage opens; swipes must not remount the list.
  const [viewerSession,setViewerSession]=useState(0);
+
+ useEffect(()=>{
+  if(!viewerOpen) return;
+  const photo=viewerItems[viewerIndex];
+  const postId=String(photo?.post_id??'');
+  const mediaPosition=Number(photo?.media_position??0);
+  if(!postId) return;
+  let active=true;
+  void communityRpc('get_buklod_photo_comment_summary_v1',{
+   p_post_id:postId,p_media_position:mediaPosition
+  }).then(({data,error})=>{
+   if(!active||error) return;
+   const key=postId+':'+mediaPosition;
+   const count=Math.max(0,Number(data?.comment_count??0));
+   setPhotoCommentCounts(current=>({...current,[key]:count}));
+  }).catch(()=>undefined);
+  return ()=>{active=false;};
+ },[viewerOpen,viewerIndex,viewerSession]);
+
 
  const [viewerZoomed,setViewerZoomed]=
   useState(false);
@@ -4174,6 +4196,7 @@ const load=useCallback(async(options?:{
     const counts=photo.reaction_counts??{};
     const total=photoReactionTotal(photo);
     const saveKey=String(photo?.post_id??'')+':'+String(photo?.media_position??0);
+    const photoComments=photoCommentCounts[saveKey]??0;
     return (
      <View
       style={[
@@ -4207,6 +4230,21 @@ const load=useCallback(async(options?:{
          </Text>
         </Pressable>
        )}
+
+       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={'Photo comments: '+photoComments+'. Open comments for this photo'}
+        onPress={()=>{
+         const postId=String(photo?.post_id??'');
+         if(postId) setPhotoCommentsTarget({
+          postId,mediaPosition:Number(photo?.media_position??0)
+         });
+        }}
+        style={{flexDirection:'row',alignItems:'center',gap:4,paddingHorizontal:4,minHeight:40}}
+       >
+        <MaterialCommunityIcons name="comment-outline" size={19} color="#FFFFFF"/>
+        <Text style={s.communityViewerReactionSummary}>{photoComments} comments</Text>
+       </Pressable>
        <View style={{flex:total>0?0:1}}/>
        <Pressable
         accessibilityRole="button"
@@ -6697,6 +6735,24 @@ const communityFeedRows =
  </GestureHandlerRootView>
  </Modal>
 
+
+ 
+ <BuklodPhotoCommentsSheet
+  open={Boolean(photoCommentsTarget)}
+  postId={photoCommentsTarget?.postId??''}
+  mediaPosition={photoCommentsTarget?.mediaPosition??0}
+  onClose={()=>setPhotoCommentsTarget(null)}
+  onCountChange={count=>{
+   if(!photoCommentsTarget)return;
+   const key=photoCommentsTarget.postId+':'+photoCommentsTarget.mediaPosition;
+   setPhotoCommentCounts(current=>({...current,[key]:count}));
+  }}
+  onSaved={()=>{
+   if(!user?.id)return;
+   const event=recordConfirmedCommunityComment(String(user.id));
+   if(event.shouldWarm)warmBuklodAdOpportunity('community_comment_overage');
+  }}
+ />
 
  {/* PATCH_161H_COMMENT_DRAWER */}
  <Modal

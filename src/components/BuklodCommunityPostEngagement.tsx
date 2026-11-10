@@ -129,7 +129,7 @@ export function BuklodCommunityPostEngagement({
                 { color: theme.textMuted },
               ]}
             >
-              {socialActions ? 'Comment' : totalComments}
+              {socialActions ? 'Comment ' + totalComments : totalComments}
             </Text>
           </BuklodPressable>
         ) : null}

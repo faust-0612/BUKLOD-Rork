@@ -70,6 +70,8 @@ jobs:
           node --test tests/buklod-earnings-final-source-clarity-20261109.test.mjs tests/community-admob-preview-contract.test.cjs
       - name: Wall fullscreen video performance and playback regression
         run: node --test tests/community-video-navigation-scroll.test.mjs tests/community-fullscreen-video-ota-20261111.test.mjs
+      - name: Photo-scoped comments security and UI regression
+        run: node --test tests/buklod-photo-comments-per-photo-20261111.test.mjs
       - name: Native Reels and fullscreen video ads regression
         run: node --test tests/reels-ads-fullscreen-ota-20261111.test.mjs tests/igpat-fast-start-video-20261110.test.mjs
       - name: Bible Quiz V4 events, R3 compatibility, points and noncash ads contracts

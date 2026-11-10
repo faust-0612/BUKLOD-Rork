@@ -5,7 +5,7 @@
   "objective": "Frozen BUKLOD Main DEV source for one consolidated RC compile, reconciliation and database-migration readiness; no production OTA yet.",
   "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
   "productionBaselineEvidence": "GitHub default main SHA 5efb99435243a4bcaeff27fc8d41d58b6a9969c2 checked on Nov 11 2026. This is a repository baseline, NOT live production OTA proof.",
-  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections.",
+  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections. Reconcile eleventh photo-comment scope; previous exact-head CI success is invalidated until retested at new SHA.",
   "selectionRationale": "A 116-file cumulative RC cannot legitimately pass the isolated one-manifest PR rule. An exact, auditable cumulative manifest with enumerated component scopes protects the release without disabling scope, security, regression and production gates.",
   "alternativeApproaches": [
     "Split the RC back into ten independently compiled production candidates (rejected: duplicates and regression risk)",
@@ -22,7 +22,8 @@
     ".buklod/scopes/ptt-fail-open-lazy-chat-20261111.json",
     ".buklod/scopes/reels-ads-fullscreen-consolidation-20261111.json",
     ".buklod/scopes/wall-messenger-photo-publish-20261110.json",
-    ".buklod/scopes/wall-video-ota-inclusion-20261110.json"
+    ".buklod/scopes/wall-video-ota-inclusion-20261110.json",
+    ".buklod/scopes/photo-comments-per-photo-20261111.json"
   ],
   "acceptanceChecks": [
     "All changed paths are individually listed and reviewed against current main; no broad directory allowlisting.",
@@ -32,7 +33,8 @@
     "Finance QMP six migrations, Kingdom Shards migration and Mentor R4 migration validated and applied in order with RLS and production readback before any client release.",
     "Canonical Finance settlements, withdrawal and payout processing remain disabled until funded accounting and recipient checks pass.",
     "Retain Expo package org.mzbministry.buklod, runtime 1.3.2 and existing native permissions; do not alter Classroom.",
-    "Do not merge to production main, publish OTA or mark a release live until independent production fingerprint evidence exists."
+    "Do not merge to production main, publish OTA or mark a release live until independent production fingerprint evidence exists.",
+    "Photo comments SQL migration applied and audience/RLS verified before the new photo comments UI is live."
   ],
   "preserveBehaviors": [
     "Security and private access rules",
@@ -42,7 +44,8 @@
     "Main vs Classroom separation",
     "No duplicated QMP or cash credits",
     "No active-game or payment-interrupting advertisements",
-    "No paid Kingdom AI or external provider"
+    "No paid Kingdom AI or external provider",
+    "Existing photo reactions and post-wide comments are independent of per-photo comments."
   ],
   "riskAreas": [
     "wall-media",
@@ -86,7 +89,8 @@
     "tests/reels-ads-fullscreen-ota-20261111.test.mjs",
     "tests/wall-messenger-photo-publish-20261110.test.mjs",
     "tests/wall-navigation-photo-publish-20261110.test.mjs",
-    "tests/wall-post-music-navigation-scroll.test.mjs"
+    "tests/wall-post-music-navigation-scroll.test.mjs",
+    "tests/buklod-photo-comments-per-photo-20261111.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/ads-high-traffic-max-safe-20261111.json",
@@ -208,7 +212,11 @@
     "tests/reels-ads-fullscreen-ota-20261111.test.mjs",
     "tests/wall-messenger-photo-publish-20261110.test.mjs",
     "tests/wall-navigation-photo-publish-20261110.test.mjs",
-    "tests/wall-post-music-navigation-scroll.test.mjs"
+    "tests/wall-post-music-navigation-scroll.test.mjs",
+    "supabase/migrations/20261111043000_buklod_photo_comments_by_media_v1.sql",
+    "src/components/BuklodPhotoCommentsSheet.tsx",
+    "tests/buklod-photo-comments-per-photo-20261111.test.mjs",
+    ".buklod/scopes/photo-comments-per-photo-20261111.json"
   ],
   "production": "HOLD / no OTA or Expo web publication",
   "verifiedDevSourceSha": "15a53f992cd51441b55a2aece7168ae012b39f8b",
@@ -220,6 +228,7 @@
     "20261111024500_buklod_pf_v3_qmp_single_settlement_v1.sql",
     "20261111025000_buklod_pf_v3_monthly_summary_qmp_v1.sql",
     "20261111031000_buklod_finance_qmp_readiness_audit_v1.sql",
-    "20261111032000_buklod_qmp_finance_review_queue_v1.sql"
+    "20261111032000_buklod_qmp_finance_review_queue_v1.sql",
+    "20261111043000_buklod_photo_comments_by_media_v1.sql"
   ]
 }
