@@ -22,11 +22,16 @@
     "Verified installer artifact uploaded separately from EAS JSON metadata"
   ],
   "regressionTests": [
-    "tests/staging-user-current-main-apk-20261108.test.cjs",
-    "tests/staging-release-identity-v30-20261108.test.cjs"
+    "tests/staging-green-b-apk-artifact-20261110.test.cjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/staging-user-green-b-rebuild-20261110.json",
-    ".github/workflows/buklod-staging-user-latest-main-apk-20261108.yml"
+    ".github/workflows/buklod-staging-user-latest-main-apk-20261108.yml",
+    "tests/staging-green-b-apk-artifact-20261110.test.cjs"
+  ],
+  "alternativeApproaches": [
+    "Reuse November 9 APK: rejected because user verified legacy launcher branding",
+    "Build from older staging branch: rejected as stale source",
+    "Publish production OTA: rejected because Android launcher icon requires a native APK rebuild"
   ]
 }
