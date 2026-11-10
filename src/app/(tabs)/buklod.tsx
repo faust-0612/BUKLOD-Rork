@@ -5182,6 +5182,32 @@ const communityFeedRows =
      </Text>
     </View>
 
+    {/* BUKLOD_WALL_IGPAT_SIBLING_R1: keep Community active, open video immediately. */}
+    <Pressable
+     accessibilityRole="button"
+     accessibilityLabel="Open BUKLOD IGPAT videos"
+     accessibilityHint="Switches from Community Wall to the immersive IGPAT video feed"
+     onPress={() => router.push('/igpat' as any)}
+     hitSlop={4}
+     style={({pressed})=>({
+      flex:1,
+      minWidth:0,
+      minHeight:42,
+      borderRadius:12,
+      flexDirection:'row',
+      alignItems:'center',
+      justifyContent:'center',
+      gap:5,
+      borderWidth:1,
+      borderColor:colors.green,
+      backgroundColor:colors.white,
+      opacity:pressed?0.72:1,
+     })}
+    >
+     <MaterialCommunityIcons name="play-circle-outline" size={18} color={colors.greenDark} />
+     <Text numberOfLines={1} style={{fontSize:11,fontWeight:'900',color:colors.greenDark}}>IGPAT</Text>
+    </Pressable>
+
     {/* BUKLOD_DZAS_WALL_SHORTCUT_R1 */}
     <Pressable
      accessibilityRole="button"
