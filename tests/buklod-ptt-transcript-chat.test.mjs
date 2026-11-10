@@ -19,6 +19,9 @@ test('hold/release/floor safety survives the additive caption listener', () => {
   assert.match(core, /call\.microphone\.disable\(\)/);
   assert.match(runtime, /call\.on\('call\.closed_caption'/);
   assert.match(runtime, /captionUnsubscribe/);
+  assert.match(runtime, /try \{\s+captionUnsubscribe = connection\.call\.on/);
+  assert.match(runtime, /catch \{\s+\/\/ Captions are optional/);
+  assert.match(runtime, /captionUnsubscribe = null;\s+console\.warn/);
 });
 
 test('only own opted-in speech with live transmission identity persists', () => {
