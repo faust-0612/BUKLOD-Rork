@@ -179,6 +179,7 @@ export default function BuklodMentionField({
             }
           }}
           multiline
+          allowFontScaling
           value={value}
           maxLength={maxLength}
           editable={!disabled}
@@ -229,6 +230,7 @@ const styles = StyleSheet.create({
   },
   visibleTyping: {
     color: colors.text,
+    fontSize: 16,
   },
   aboveWrap: {
     zIndex: 20,
@@ -254,19 +256,19 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   row: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.line,
   },
   name: {
     color: colors.green,
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 15,
   },
   meta: {
     marginTop: 2,
     color: colors.muted,
-    fontSize: 11,
+    fontSize: 12,
   },
 });

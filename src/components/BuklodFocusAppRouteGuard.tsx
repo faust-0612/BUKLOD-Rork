@@ -10,9 +10,18 @@ export default function BuklodFocusAppRouteGuard() {
   const checkingRef = useRef('');
 
   useEffect(() => {
+    // The patient-facing Health Center is an external website doorway,
+    // not a privileged Health Worker workspace. Do not role-gate it.
+    if (pathname === '/profile/buklod-health') {
+      checkingRef.current = '';
+      return;
+    }
     const app = focusAppForPathname(pathname);
 
+    // Invalidate pending denials when moving to any ungated route or
+    // while permissions are loading; stale requests cannot bounce Home.
     if (loading || !app) {
+      checkingRef.current = '';
       return;
     }
 
@@ -25,7 +34,7 @@ export default function BuklodFocusAppRouteGuard() {
     checkingRef.current = key;
 
     void verifyFocusApp(app).then((access) => {
-      if (!access.canSee) {
+      if (!access.canSee && checkingRef.current === key) {
         router.replace('/profile/focus-apps' as any);
       }
     });

@@ -1,3 +1,4 @@
+import BuklodBibleQuizV4 from '@/components/bible/BuklodBibleQuizV4';
 import React, {useCallback,useEffect,useState} from 'react';
 import {ActivityIndicator,Pressable,SafeAreaView,ScrollView,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
@@ -12,7 +13,7 @@ const LEVELS=[{id:'easy',title:'EASY',points:3,subtitle:'Familiar Bible stories'
 {id:'medium',title:'MEDIUM',points:6,subtitle:'People and Bible teachings'},
 {id:'hard',title:'HARD',points:12,subtitle:'Deeper Scripture knowledge'}] as const;
 const letters=['A','B','C','D'] as const;
-export default function BuklodDailyBibleQuiz(){
+export function BuklodDailyBibleQuizLegacy(){
  const [quiz,setQuiz]=useState<Quiz|null>(null);
  const [answers,setAnswers]=useState<Record<string,string>>({});
  const [loading,setLoading]=useState(true);
@@ -106,3 +107,9 @@ const s=StyleSheet.create({
  help:{fontSize:12,color:'#506A57',lineHeight:18},
  message:{color:'#7D431A',backgroundColor:'#FFF3DD',padding:10,borderRadius:10}
 });
+
+export default function BuklodDailyBibleQuiz(){
+ const [legacy,setLegacy]=useState(false);
+ const onLegacy=useCallback(()=>setLegacy(true),[]);
+ return legacy?<BuklodDailyBibleQuizLegacy/>:<BuklodBibleQuizV4 onLegacy={onLegacy}/>;
+}

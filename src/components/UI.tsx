@@ -106,7 +106,7 @@ export const shared = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    paddingHorizontal: 11,
+    paddingHorizontal: 8,
     paddingTop: 10,
     paddingBottom: 18,
     gap: 8,
@@ -124,13 +124,13 @@ export const shared = StyleSheet.create({
     color: colors.text,
   },
   muted: {
-    fontSize: 14,
+    fontSize: 15,
     lineHeight: 20,
     color: colors.muted,
   },
   body: {
-    fontSize: 15.5,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 23,
     color: colors.text,
   },
   row: {

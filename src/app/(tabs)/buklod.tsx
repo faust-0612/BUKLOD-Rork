@@ -4484,7 +4484,7 @@ const load=useCallback(async(options?:{
           <View
             /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
             style={{
-              marginHorizontal:-12,
+              marginHorizontal:-8,
               position:'relative',
             }}
           >
@@ -4547,7 +4547,7 @@ const load=useCallback(async(options?:{
             item?.media_items,
             null
           ).length>0&&(
-            <View style={{marginHorizontal:-12,marginTop:8}}>
+            <View style={{marginHorizontal:-8,marginTop:8}}>
              <BuklodCommunityPhotoCollage
               showLayoutPicker
               items={communityPhotoCollageItems(
@@ -4590,7 +4590,7 @@ const load=useCallback(async(options?:{
    }
 
    return (
-    <View style={{marginHorizontal:-12}}>
+    <View style={{marginHorizontal:-8}}>
      <BuklodCommunityPhotoCollage
       showLayoutPicker
       items={media}
@@ -5231,7 +5231,7 @@ const communityFeedRows =
       })}
      >
       <MaterialCommunityIcons name="account-circle-outline" size={25} color={colors.greenDark} />
-      <Text numberOfLines={1} style={{ flex: 1, color: colors.muted, fontSize: 12 }}>
+      <Text numberOfLines={1} style={{ flex: 1, color: colors.muted, fontSize: 16 }}>
        Share with your Community...
       </Text>
      </Pressable>
@@ -5280,7 +5280,7 @@ const communityFeedRows =
  style={[s.area, largeComposerText && { fontSize:25, lineHeight:33, fontWeight:'800', minHeight:96 }]}
  />
  {!!body.trim() && (
-  <Text style={[shared.muted,{fontSize:10,marginTop:4}]}>
+  <Text style={[shared.muted,{fontSize:12,marginTop:3}]}>
    {largeComposerText ? 'Large text · this post will appear in big letters' : 'Regular caption'}
   </Text>
  )}
@@ -5820,7 +5820,7 @@ const communityFeedRows =
        >
         <Text
          style={{
-          fontSize:8.5,
+          fontSize:12,
           fontWeight:'900',
           color:
            item.is_following_author

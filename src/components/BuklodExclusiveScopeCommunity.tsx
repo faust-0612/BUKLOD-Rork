@@ -3713,7 +3713,7 @@ return (
                 })}
               >
                 <MaterialCommunityIcons name="account-circle-outline" size={25} color={colors.greenDark} />
-                <Text numberOfLines={1} style={{ flex: 1, color: colors.muted, fontSize: 12 }}>
+                <Text numberOfLines={1} style={{ flex: 1, color: colors.muted, fontSize: 16 }}>
                   Share something with this community...
                 </Text>
               </Pressable>
@@ -3785,7 +3785,7 @@ return (
             style={[styles.composer, largeScopedText && { fontSize:25, lineHeight:33, fontWeight:'800', minHeight:96 }]}
           />
           {!!body.trim() && (
-            <Text style={{marginTop:4,fontSize:10,color:colors.muted}}>
+            <Text style={{marginTop:3,fontSize:12,color:colors.muted}}>
               {largeScopedText ? 'Large text · big letters after publishing' : 'Regular caption'}
             </Text>
           )}
@@ -4799,13 +4799,13 @@ const styles =
     {
       content: {
         paddingHorizontal:
-          12,
+          6,
         paddingTop:
-          12,
+          8,
         paddingBottom:
           120,
         gap:
-          10,
+          7,
         backgroundColor:
           '#F5F8FD',
       },
@@ -4921,9 +4921,9 @@ const styles =
         borderColor:
           colors.line,
         padding:
-          12,
+          8,
         marginBottom:
-          12,
+          8,
       },
 
       audienceLine: {
@@ -4947,28 +4947,28 @@ const styles =
         color:
           '#0A63D8',
         fontSize:
-          9.5,
+          12,
         fontWeight:
           '900',
       },
 
       composer: {
         minHeight:
-          76,
+          104,
         maxHeight:
-          180,
+          220,
         color:
           colors.text,
         fontSize:
-          14,
+          16,
         lineHeight:
-          20,
+          23,
         textAlignVertical:
           'top',
         paddingTop:
-          12,
+          8,
         paddingBottom:
-          10,
+          8,
       },
 
       preview: {
@@ -5100,7 +5100,7 @@ const styles =
         color:
           '#0A63D8',
         fontSize:
-          10,
+          13,
         fontWeight:
           '900',
       },
@@ -5131,7 +5131,7 @@ const styles =
         color:
           colors.white,
         fontSize:
-          10.5,
+          13,
         fontWeight:
           '900',
         letterSpacing:
@@ -5153,7 +5153,7 @@ const styles =
         color:
           colors.text,
         fontSize:
-          15,
+          17,
         fontWeight:
           '900',
       },
@@ -5209,7 +5209,7 @@ const styles =
         alignItems:
           'center',
         gap:
-          9,
+          6,
       },
 
       avatar: {
@@ -5236,7 +5236,7 @@ const styles =
         color:
           colors.text,
         fontSize:
-          12.5,
+          16,
         fontWeight:
           '900',
       },
@@ -5247,7 +5247,7 @@ const styles =
         color:
           colors.muted,
         fontSize:
-          8.5,
+          12,
         fontWeight:
           '700',
       },
@@ -5271,9 +5271,9 @@ const styles =
         color:
           colors.text,
         fontSize:
-          14,
+          17,
         lineHeight:
-          21,
+          25,
         fontWeight:
           '500',
       },
@@ -5352,7 +5352,7 @@ const styles =
         color:
           colors.muted,
         fontSize:
-          9,
+          12,
         fontWeight:
           '800',
       },
@@ -5451,7 +5451,7 @@ const styles =
         color:
           '#0A63D8',
         fontSize:
-          9.5,
+          13,
         fontWeight:
           '900',
       },
@@ -5709,9 +5709,9 @@ const styles =
         color:
           colors.text,
         fontSize:
-          11.5,
+          16,
         lineHeight:
-          17,
+          23,
       },
 
       commentFooter: {
@@ -5729,7 +5729,7 @@ const styles =
         color:
           colors.muted,
         fontSize:
-          7.5,
+          12,
         fontWeight:
           '700',
       },
@@ -5738,7 +5738,7 @@ const styles =
         color:
           '#0A63D8',
         fontSize:
-          8.5,
+          13,
         fontWeight:
           '900',
       },
@@ -5768,7 +5768,7 @@ const styles =
         color:
           '#0A63D8',
         fontSize:
-          9,
+          13,
         fontWeight:
           '900',
       },
@@ -5796,9 +5796,9 @@ const styles =
         flex:
           1,
         minHeight:
-          42,
+          48,
         maxHeight:
-          110,
+          150,
         borderRadius:
           13,
         borderWidth:
@@ -5810,11 +5810,11 @@ const styles =
         color:
           colors.text,
         paddingHorizontal:
-          11,
+          8,
         paddingVertical:
           9,
         fontSize:
-          11.5,
+          16,
         textAlignVertical:
           'top',
       },
