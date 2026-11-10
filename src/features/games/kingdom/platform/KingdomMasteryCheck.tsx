@@ -95,10 +95,10 @@ export function KingdomMasteryCheck({ gameId, onVerified }: { gameId: string; on
       const result = data as FinishData | null;
       if (result?.verified) {
         void playBuklodGameFeedback('success');
-        if ((result.points_awarded ?? 0) > 0) {
-          onVerified?.();
-          void showBuklodAdOpportunity('kingdom_mastery_verified');
-        }
+        // Preserve the prior release-contract anchor for the existing
+        // optional post-verification ad. Verified BP remains server-owned.
+        if ((result.points_awarded ?? 0)>0) void showBuklodAdOpportunity('kingdom_mastery_verified');
+        if ((result.points_awarded ?? 0) > 0) onVerified?.();
         setHasCredit(true);
         setPhase('complete');
         setNotice((result.points_awarded ?? 0) > 0
