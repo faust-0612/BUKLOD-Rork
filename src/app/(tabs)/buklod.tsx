@@ -1366,7 +1366,8 @@ function LegacyPublicBuklodScreen(){
  ]=useState<Record<string,string>>({});
 
  const wallVideoFailedUriRef=
-  useRef<Record<string,string>>({});
+  useRef<Record<string,{uri:string;retryAfter:number}>>({});
+ const wallVideoRefreshInFlightRef=useRef(new Set<string>());
 
  const [
   videoViewerResolvingPostId,
@@ -4197,18 +4198,20 @@ const load=useCallback(async(options?:{
     const failed=
      String(failedUri??'').trim();
 
-    if(
-     failed&&
-     wallVideoFailedUriRef
-      .current[postId]===failed
-    ){
-     return null;
+    const last=wallVideoFailedUriRef.current[postId];
+    // Dedupe in-flight signing and briefly back off repeated failures.
+    // Do not blacklist a stale URL for the lifetime of the app.
+    if(wallVideoRefreshInFlightRef.current.has(postId) ||
+       (failed && last?.uri===failed && Date.now()<last.retryAfter)){
+      return null;
     }
-
     if(failed){
-     wallVideoFailedUriRef
-      .current[postId]=failed;
+      wallVideoFailedUriRef.current[postId]={
+        uri:failed,
+        retryAfter:Date.now()+2500
+      };
     }
+    wallVideoRefreshInFlightRef.current.add(postId);
 
     try{
      const freshUrl=
@@ -4233,6 +4236,9 @@ const load=useCallback(async(options?:{
     }
     catch{
      return null;
+    }
+    finally{
+     wallVideoRefreshInFlightRef.current.delete(postId);
     }
    },
    [resolveFreshVideoUrl]
