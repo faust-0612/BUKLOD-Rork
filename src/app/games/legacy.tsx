@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
 import KingdomRelicEmblem, { kingdomFinishLabel } from '@/features/games/kingdom/KingdomRelicEmblem';
 import KingdomBadgeTrials from '@/features/games/kingdom/KingdomBadgeTrials';
+import { emptyKingdomShards, getMyKingdomShards, hasKingdomPower, type KingdomShardsSnapshot } from '@/lib/buklodKingdomShards';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
 import { useAuth } from '@/providers/AuthProvider';
@@ -61,6 +62,7 @@ export default function KingdomLegacyScreen() {
     getCachedBuklodCharacterSelectionV2(uid),
   );
   const [collection, setCollection] = useState<CharacterCollectibleState | null>(null);
+  const [shards, setShards] = useState<KingdomShardsSnapshot>(emptyKingdomShards);
   const [loading, setLoading] = useState(Boolean(uid));
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -119,6 +121,7 @@ export default function KingdomLegacyScreen() {
     let alive = true;
     setState(uid ? getCachedBuklodCharacterSelectionV2(uid) : null);
     setCollection(null);
+    setShards(emptyKingdomShards());
     setReveal(null);
     setTrialItem(null);
     setVisibleCount(8);
@@ -126,6 +129,9 @@ export default function KingdomLegacyScreen() {
     setNotice('');
     if (!uid) { setLoading(false); return; }
     setLoading(true);
+    void getMyKingdomShards(uid).then(value=>{
+      if(alive && accountRef.current===uid) setShards(value);
+    });
     void load(uid, true).then(({ next, items }) => {
       if (!alive) return;
       setState(next); setCollection(items);
@@ -164,6 +170,9 @@ export default function KingdomLegacyScreen() {
       const { next, items } = await load(uid, true);
       if (accountRef.current === uid && activeIdRef.current === next.active_character_id) {
         setState(next); setCollection(items);
+        void getMyKingdomShards(uid).then(value=>{
+          if(accountRef.current===uid)setShards(value);
+        });
       }
     } catch (reason) {
       if (accountRef.current === uid) setError(reason instanceof Error ? reason.message : 'Unable to refresh progress.');
@@ -279,11 +288,23 @@ export default function KingdomLegacyScreen() {
             </Pressable>
           </LinearGradient>
 
+          <Pressable accessibilityRole="button" accessibilityLabel="Open Shard Treasury and game powers"
+            onPress={() => router.push('/games/rewards' as any)} style={s.shardsBar}>
+            <MaterialCommunityIcons name="diamond-stone" size={25} color={C.gold}/>
+            <View style={{flex:1,gap:3}}>
+              <Text style={s.shardsTitle}>KINGDOM SHARD TREASURY</Text>
+              <Text style={s.shardsNote}>{shards.source==='unavailable'
+                ? 'Connect to verify Shards and game power unlocks'
+                : shards.source==='cached'?'Last verified balance (offline)':'Verified game-only balance'}</Text>
+            </View>
+            <Text style={s.shardsValue}>{shards.source==='unavailable'?'—':money(shards.balance)}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={21} color={C.gold}/>
+          </Pressable>
           <View style={s.sectionHead}>
             <Text style={s.sectionTitle}>YOUR ACTIVE HERO</Text>
             <Text style={s.sectionHint}>Character Level {level} / 20</Text>
           </View>
-          <View style={s.heroCard}>
+          <View style={[s.heroCard, hasKingdomPower(shards,'aura_emerald') && s.heroAura]}>
             <View style={[s.artFrame, { width: windowWidth < 390 ? 112 : 140 }]}>
               {core ? <BuklodProgressiveCharacterArt
                 characterId={core} level={level} height={205}
@@ -473,6 +494,11 @@ const s = StyleSheet.create({
   sectionTitle: { fontSize: 14, color: C.gold, fontWeight: '900', letterSpacing: 0.8 },
   sectionHint: { fontSize: 10, color: C.muted, fontWeight: '800' },
   heroCard: { minHeight: 215, flexDirection: 'row', gap: 11, borderRadius: 20, padding: 10, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+  heroAura: { borderWidth:2, borderColor:'#a9f6cf', backgroundColor:'#225148' },
+  shardsBar:{flexDirection:'row',alignItems:'center',gap:11,padding:12,borderRadius:14,backgroundColor:'#22474b',borderWidth:1,borderColor:'#d8b97b'},
+  shardsTitle:{color:C.gold,fontSize:12,fontWeight:'900'},
+  shardsNote:{color:C.muted,fontSize:10,lineHeight:15},
+  shardsValue:{color:C.white,fontSize:23,fontWeight:'900'},
   artFrame: { minHeight: 205, backgroundColor: '#1e4b54', borderRadius: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
   fallbackArt: { height: 205, alignItems: 'center', justifyContent: 'center' },
   itemPins: { position: 'absolute', top: 6, left: 5, gap: 4 },
