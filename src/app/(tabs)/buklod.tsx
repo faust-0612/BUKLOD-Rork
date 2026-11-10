@@ -6133,6 +6133,54 @@ const communityFeedRows =
       }}
       onEndReachedThreshold={0.8}
      renderItem={({item,index})=>{
+      if (isReelsFeedInlineAdRow(item)) {
+       const adState=videoViewerAdStates[item.id]??'loading';
+       const isActive=index===videoViewerIndex;
+       return (
+        <View style={{
+          height:videoViewerPageHeight,width:'100%',
+          backgroundColor:'#000000',
+          justifyContent:'center'
+        }}>
+         {isActive && adState!=='ready' ? (
+          <View style={{
+            paddingHorizontal:24,alignItems:'center',gap:14
+          }}>
+           <ActivityIndicator color="#FFFFFF" size="small"/>
+           <Text style={{color:'#FFFFFF',fontSize:15,fontWeight:'700'}}>
+            Preparing sponsored content…
+           </Text>
+           <Pressable accessibilityRole="button"
+            accessibilityLabel="Continue to next video"
+            style={{
+             minHeight:48,paddingHorizontal:22,paddingVertical:12,
+             borderRadius:24,backgroundColor:'#24372F'
+            }}
+            onPress={()=>{
+             const next=Math.min(index+1,videoViewerFeedRows.length-1);
+             if(next===index)return;
+             videoViewerListRef.current?.scrollToIndex({index:next,animated:false});
+             setVideoViewerIndex(next);
+            }}>
+            <Text style={{color:'#FFFFFF',fontSize:14,fontWeight:'700'}}>
+             Continue watching
+            </Text>
+           </Pressable>
+          </View>
+         ) : null}
+         <BuklodReelsInlineAd
+          slotId={item.id}
+          active={isActive}
+          prepare={index===videoViewerIndex+1}
+          onLoadStateChange={state=>{
+           if(videoViewerSessionRef.current!==videoViewerSession)return;
+           setVideoViewerAdStates(previous=>
+            previous[item.id]===state?previous:{...previous,[item.id]:state});
+          }}
+         />
+        </View>
+       );
+      }
       const descriptor=
        communityWallVideoDescriptor(
         item
