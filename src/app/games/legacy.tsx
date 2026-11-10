@@ -3,7 +3,7 @@
  * No client-minted BP, Shards, XP, cash, or gameplay entitlements.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -13,15 +13,16 @@ import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
 import { useAuth } from '@/providers/AuthProvider';
 import {
-  CHARACTER_DISPLAY_NAME, CORE_CHARACTER_ORDER,
+  CHARACTER_DISPLAY_NAME, CORE_CHARACTER_ORDER, SPECIAL_CHARACTER_ORDER,
   getCachedBuklodCharacterSelectionV2, getMyBuklodCharacterSelectionV2,
   subscribeBuklodCharacterSelectionV2,
-  type BuklodCharacterSelectionV2State, type BuklodCoreCharacterId,
+  type BuklodCharacterSelectionV2State, type BuklodCoreCharacterId, type BuklodSpecialCharacterId,
 } from '@/lib/buklodCharacterSelectionV2';
 import { PROGRESSIVE_LEVEL_THRESHOLDS, collectibleNames } from '@/lib/buklodProgressiveCharacter';
+import { getBuklodSpecialLevelAsset } from '@/lib/buklodSpecialCharacterAssets';
 import {
   characterTokenIcon, clearMyCharacterCollectible, getMyCharacterCollectibles,
-  isCollectibleLevelOpen, isCollectibleShown, redeemMyCharacterCollectible,
+  isCollectibleLevelOpen, isCollectibleShown, shownCollectiblePins, redeemMyCharacterCollectible,
   useMyCharacterCollectible, type CharacterCollectibleState,
 } from '@/lib/buklodCharacterCollectibles';
 
@@ -45,6 +46,8 @@ export default function KingdomLegacyScreen() {
   const [notice, setNotice] = useState('');
   const [busyKey, setBusyKey] = useState('');
   const operation = useRef(false);
+  const accountRef = useRef(uid);
+  accountRef.current = uid;
   const activeId = state?.active_character_id;
   const core = activeId && CORE_CHARACTER_ORDER.includes(activeId as BuklodCoreCharacterId)
     ? activeId as BuklodCoreCharacterId : null;
@@ -93,9 +96,9 @@ export default function KingdomLegacyScreen() {
     setError('');
     try {
       const { next, items } = await load(uid, true);
-      setState(next); setCollection(items);
+      if (accountRef.current === uid) { setState(next); setCollection(items); }
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Unable to refresh progress.');
+      if (accountRef.current === uid) setError(reason instanceof Error ? reason.message : 'Unable to refresh progress.');
     } finally { setLoading(false); }
   }, [uid, load]);
 
@@ -119,12 +122,12 @@ export default function KingdomLegacyScreen() {
       }
       const updated = await getMyCharacterCollectibles(core);
       // Never carry an old account's collection into a newly signed-in account.
-      if (original.uid === uid && original.core === core && original.level === level) {
+      if (original.uid === accountRef.current && original.core === core && original.level === level) {
         setCollection(updated);
         setNotice(equipped ? 'Item removed from your character.' : 'Item claimed and equipped to your character!');
       }
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : 'Could not update item. Please retry.');
+      if (original.uid === accountRef.current) setNotice(reason instanceof Error ? reason.message : 'Could not update item. Please retry.');
     } finally {
       operation.current = false;
       setBusyKey('');
@@ -195,7 +198,16 @@ export default function KingdomLegacyScreen() {
               {core ? <BuklodProgressiveCharacterArt
                 characterId={core} level={level} height={205}
                 viewportWidth={windowWidth < 390 ? 112 : 140}/> :
-                <View style={s.fallbackArt}><MaterialCommunityIcons name="crown" size={55} color={C.gold}/></View>}
+                activeId && SPECIAL_CHARACTER_ORDER.includes(activeId as BuklodSpecialCharacterId)
+                  ? <Image source={getBuklodSpecialLevelAsset(activeId as BuklodSpecialCharacterId, level)}
+                      resizeMode="contain" style={{ width: windowWidth < 390 ? 112 : 140, height: 205 }}/>
+                  : <View style={s.fallbackArt}><MaterialCommunityIcons name="crown" size={55} color={C.gold}/></View>}
+              {core && collection ? <View pointerEvents="none" style={s.itemPins}>
+                {shownCollectiblePins(collection, core).map(pin =>
+                  <View key={pin.key} style={s.itemPin}>
+                    <MaterialCommunityIcons name={characterTokenIcon(core, pin.itemIndex) as never} color={C.gold} size={14}/>
+                  </View>)}
+              </View> : null}
             </View>
             <View style={{ flex: 1, justifyContent: 'center', gap: 7 }}>
               <Text style={s.heroName}>{activeId ? CHARACTER_DISPLAY_NAME[activeId] : 'Character'}</Text>
@@ -294,6 +306,8 @@ const s = StyleSheet.create({
   heroCard: { minHeight: 215, flexDirection: 'row', gap: 11, borderRadius: 20, padding: 10, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
   artFrame: { minHeight: 205, backgroundColor: '#1e4b54', borderRadius: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
   fallbackArt: { height: 205, alignItems: 'center', justifyContent: 'center' },
+  itemPins: { position: 'absolute', top: 6, left: 5, gap: 4 },
+  itemPin: { width: 27, height: 27, borderRadius: 14, backgroundColor: '#0c2735', borderWidth: 1, borderColor: C.gold, alignItems: 'center', justifyContent: 'center' },
   heroName: { fontSize: 21, color: C.white, fontWeight: '900' },
   labelSmall: { color: C.gold, fontSize: 9, fontWeight: '900', lineHeight: 14 },
   valueSmall: { fontSize: 11, fontWeight: '700', color: C.white },
