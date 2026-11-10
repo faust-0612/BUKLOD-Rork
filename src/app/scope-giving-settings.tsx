@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   ScrollView,
+  Pressable,
   StyleSheet,
   Switch,
   Text,
@@ -11,6 +12,9 @@ import {
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
 
+type TreasurerMember = {id:string;name:string};
+type TreasurerAssignment = {id:string;active:boolean};
+type BankReceiver = {name:string;holder:string;number:string};
 type ScopeReceiver = {
   scope_id: string;
   scope_name: string;
@@ -41,6 +45,15 @@ export default function ScopeGivingSettingsScreen() {
       : '';
 
   const [scope, setScope] = useState<ScopeReceiver | null>(null);
+  const [bankReceiver,setBankReceiver]=useState<BankReceiver|null>(null);
+  const [bankName,setBankName]=useState('');
+  const [bankHolder,setBankHolder]=useState('');
+  const [bankAccount,setBankAccount]=useState('');
+  const [bankEnabled,setBankEnabled]=useState(true);
+  const [canManageBank,setCanManageBank]=useState(false);
+  const [members,setMembers]=useState<TreasurerMember[]>([]);
+  const [assigned,setAssigned]=useState<TreasurerAssignment[]>([]);
+  const [treasurerBusy,setTreasurerBusy]=useState<string|null>(null);
   const [gcashName, setGcashName] = useState('');
   const [gcashMobile, setGcashMobile] = useState('');
   const [paymentUrl, setPaymentUrl] = useState('');
@@ -75,6 +88,22 @@ export default function ScopeGivingSettingsScreen() {
       setGcashMobile(receiver.gcash_mobile || '');
       setPaymentUrl(receiver.gcash_payment_url || '');
       setActive(receiver.active !== false);
+      // Additive bank module and treasurer picker: absent DEV migration is fail-closed.
+      const [bankRpc,treasurerRpc]=await Promise.all([
+        (supabase as any).rpc('buklod_scope_bank_dashboard_v1',{p_scope_id:scopeId}),
+        (supabase as any).rpc('buklod_scope_treasurer_candidates_v1',{p_scope_id:scopeId})
+      ]);
+      if(!bankRpc.error&&bankRpc.data?.scope_id===scopeId){
+        const bank=bankRpc.data.registered_bank as BankReceiver|null;
+        setBankReceiver(bank);
+        setBankName(bank?.name||'');setBankHolder(bank?.holder||'');setBankAccount(bank?.number||'');
+        setBankEnabled(Boolean(bank));
+        setCanManageBank(bankRpc.data.can_manage_receiver===true);
+      }else{setCanManageBank(false);setBankReceiver(null);}
+      if(!treasurerRpc.error&&treasurerRpc.data?.scope_id===scopeId){
+        setMembers(treasurerRpc.data.members||[]);
+        setAssigned(treasurerRpc.data.treasurers||[]);
+      }else{setMembers([]);setAssigned([]);}
     } catch (error: any) {
       Alert.alert(
         'Giving / GCash Settings',
@@ -153,6 +182,37 @@ export default function ScopeGivingSettingsScreen() {
     }
   };
 
+  const saveBank=async()=>{
+    if(!canManageBank)return;
+    const name=bankName.trim(),holder=bankHolder.trim(),number=bankAccount.replace(/[\\s-]/g,'');
+    if(name.length<2||holder.length<2||!/^[A-Za-z0-9]{6,34}$/.test(number)){
+      Alert.alert('Bank account','Enter the authorized bank name, account holder and 6–34 character account number.');return;
+    }
+    setBusy(true);
+    try{
+      const {error}=await (supabase as any).rpc('buklod_scope_bank_receiver_save_v1',{
+        p_scope_id:scopeId,p_bank_name:name,p_account_name:holder,
+        p_account_number:number,p_active:bankEnabled
+      });
+      if(error)throw error;
+      Alert.alert('Bank receiver saved','Members can see this authorized bank account. No money was transferred.');
+      await load();
+    }catch(e:any){Alert.alert('Not saved',e?.message||'Bank receiver unavailable');}
+    finally{setBusy(false);}
+  };
+  const toggleTreasurer=async(member:TreasurerMember,activate:boolean)=>{
+    if(treasurerBusy)return;
+    setTreasurerBusy(member.id);
+    try{
+      const {error}=await (supabase as any).rpc('buklod_scope_treasurer_authorize_v1',{
+        p_scope_id:scopeId,p_user_id:member.id,p_active:activate
+      });
+      if(error)throw error;
+      Alert.alert('Treasurer updated',activate?'Authorized for this scope only.':'Treasurer authorization revoked.');
+      await load();
+    }catch(e:any){Alert.alert('Authorization failed',e?.message||'Try again');}
+    finally{setTreasurerBusy(null);}
+  };
   return (
     <>
       <Stack.Screen
@@ -235,6 +295,34 @@ export default function ScopeGivingSettingsScreen() {
           </Text>
         </View>
 
+        {canManageBank?<View style={styles.card}>
+          <Text style={styles.scopeName}>Authorized Bank Receiver</Text>
+          <Text style={styles.help}>Only a scope admin may change the receiving bank. This is separate from GCash and BUKLOD-owned cash.</Text>
+          <Text style={styles.label}>BANK NAME</Text>
+          <TextInput style={styles.input} value={bankName} onChangeText={setBankName} placeholder="Registered bank"/>
+          <Text style={styles.label}>ACCOUNT HOLDER</Text>
+          <TextInput style={styles.input} value={bankHolder} onChangeText={setBankHolder} placeholder="Name on receiving bank account"/>
+          <Text style={styles.label}>ACCOUNT NUMBER</Text>
+          <TextInput style={styles.input} value={bankAccount} onChangeText={setBankAccount} placeholder="Authorized account number" keyboardType="default"/>
+          <View style={styles.switchRow}><Text style={styles.label}>BANK RECEIVING ACTIVE</Text>
+            <Switch value={bankEnabled} onValueChange={setBankEnabled}/></View>
+          <Pressable disabled={busy} onPress={()=>void saveBank()} style={[styles.save,busy&&styles.disabled]}><Text style={{color:'white',fontWeight:'900',textAlign:'center'}}>SAVE AUTHORIZED BANK</Text></Pressable>
+          {bankReceiver?<Text style={styles.help}>Current bank receiver: {bankReceiver.name} · {bankReceiver.holder}</Text>:null}
+        </View>:null}
+        {members.length>0?<View style={styles.card}>
+          <Text style={styles.scopeName}>Authorize Treasurer</Text>
+          <Text style={styles.help}>Only the exact-scope admin can authorize or revoke a treasurer. Treasurer can review another member's receipt but cannot verify their own.</Text>
+          {members.map(member=>{
+            const active=assigned.some(item=>item.id===member.id&&item.active);
+            return <View key={member.id} style={{flexDirection:'row',alignItems:'center',gap:8,paddingVertical:6}}>
+              <Text style={{flex:1,color:'#143D2F',fontSize:14}}>{member.name}</Text>
+              <Pressable disabled={Boolean(treasurerBusy)||busy} onPress={()=>void toggleTreasurer(member,!active)}
+                style={[styles.save,{minHeight:42,marginTop:0,backgroundColor:active?'#8B4242':'#176B4A',paddingHorizontal:12}]}>
+                <Text style={{color:'white',fontWeight:'800'}}>{active?'REVOKE':'AUTHORIZE'}</Text>
+              </Pressable>
+            </View>;
+          })}
+        </View>:null}
         <View style={styles.notice}>
           <Text style={styles.noticeTitle}>Security</Text>
           <Text style={styles.noticeText}>

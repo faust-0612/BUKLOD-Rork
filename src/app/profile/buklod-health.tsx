@@ -93,7 +93,7 @@ export default function BuklodHealthPortal() {
 
         <View style={styles.guideCard}>
           <Text style={styles.sectionHeading}>{t('1. What can we help with?','1. Ano ang kailangan mong malaman?')}</Text>
-          <Text style={styles.hint}>Select a topic. Your selection stays on this screen and is not sent to BUKLOD or the Health Center.</Text>
+          <Text style={styles.hint}>{t('Select a topic. Your selection stays here and is not sent to the Health Center.','Pumili ng paksa. Nananatili rito ang iyong sagot at hindi ipinapadala sa Health Center.')}</Text>
           <View style={styles.chips}>
             {CONCERNS.map(item => (
               <Pressable
@@ -107,7 +107,7 @@ export default function BuklodHealthPortal() {
                 ]}
               >
                 <MaterialCommunityIcons name={item.icon} size={17} color={concern === item.id ? '#FFFFFF' : '#245F48'} />
-                <Text style={[styles.chipText, concern === item.id && styles.selectedChipText]}>{item.label}</Text>
+                <Text style={[styles.chipText, concern === item.id && styles.selectedChipText]}>{language==='fil'?({symptoms:'Sintomas',medicines:'Mga gamot',laboratory:'Resulta ng lab',wellbeing:'Kalusugang pangkaisipan',general:'Pangkalahatang kalusugan'} as Record<Concern,string>)[item.id]:item.label}</Text>
               </Pressable>
             ))}
           </View>
@@ -115,10 +115,10 @@ export default function BuklodHealthPortal() {
 
         <View style={styles.guideCard}>
           <Text style={styles.sectionHeading}>{t('2. Check for urgent warning signs','2. Suriin ang mga babalang sintomas')}</Text>
-          <Text style={styles.body}>
-            Are you experiencing severe chest pain, difficulty breathing, possible stroke symptoms,
-            uncontrolled bleeding, loss of consciousness, or an immediate risk of self-harm?
-          </Text>
+          <Text style={styles.body}>{t(
+            'Are you experiencing severe chest pain, difficulty breathing, possible stroke symptoms, uncontrolled bleeding, loss of consciousness, or immediate risk of self-harm?',
+            'May matinding sakit ba sa dibdib, hirap sa paghinga, sintomas ng stroke, pagdurugong hindi mapigil, pagkawala ng malay, o agarang panganib sa sarili?'
+          )}</Text>
           <View style={styles.choiceRow}>
             <Pressable
               accessibilityRole="button"
@@ -127,7 +127,7 @@ export default function BuklodHealthPortal() {
               onPress={() => setUrgency('urgent')}
               style={({ pressed }) => [styles.warningChoice, urgent && styles.warningChoiceSelected, pressed && styles.pressed]}
             >
-              <Text style={styles.warningChoiceText}>Yes / unsure</Text>
+              <Text style={styles.warningChoiceText}>{t('Yes / unsure','Oo / hindi sigurado')}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -136,18 +136,18 @@ export default function BuklodHealthPortal() {
               onPress={() => setUrgency('none')}
               style={({ pressed }) => [styles.clearChoice, urgency === 'none' && styles.clearChoiceSelected, pressed && styles.pressed]}
             >
-              <Text style={styles.clearChoiceText}>None of these</Text>
+              <Text style={styles.clearChoiceText}>{t('None of these','Wala sa mga ito')}</Text>
             </Pressable>
           </View>
           {urgent ? (
             <View accessibilityRole="alert" style={styles.urgentPanel}>
               <MaterialCommunityIcons name="alert-circle" size={23} color="#9E1B1B" />
               <View style={styles.urgentBody}>
-                <Text style={styles.urgentTitle}>Seek immediate medical help</Text>
-                <Text style={styles.urgentText}>
-                  Do not wait for an AI response. Call emergency services or go to the nearest emergency department.
-                  In the Philippines, you can dial 911.
-                </Text>
+                <Text style={styles.urgentTitle}>{t('Seek immediate medical help','Humingi agad ng tulong medikal')}</Text>
+                <Text style={styles.urgentText}>{t(
+                  'Do not delay emergency care for an online response. Call emergency services or go to the nearest emergency department. In the Philippines, dial 911.',
+                  'Huwag ipagpaliban ang agarang lunas para sa online na sagot. Tumawag sa emergency services o pumunta sa pinakamalapit na emergency department. Sa Pilipinas, tumawag sa 911.'
+                )}</Text>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Call emergency services 911"
@@ -186,7 +186,7 @@ export default function BuklodHealthPortal() {
               </Text>
             </Pressable>
             {urgency === 'unanswered' ? (
-              <Text style={styles.hint}>First confirm whether you have urgent warning signs.</Text>
+              <Text style={styles.hint}>{t('First confirm whether you have urgent warning signs.','Sagutin muna kung may mga babalang sintomas.')}</Text>
             ) : null}
             {guideOpen && urgency==='none'?<View style={styles.notice}>
               <Text style={styles.sectionHeading}>{t('Health information','Impormasyong pangkalusugan')}</Text>
@@ -226,7 +226,7 @@ export default function BuklodHealthPortal() {
           <View style={styles.professionalCard}>
             <MaterialCommunityIcons name="badge-account-outline" size={23} color="#416755" />
             <View style={styles.professionalBody}>
-              <Text style={styles.professionalTitle}>Licensed health professional?</Text>
+              <Text style={styles.professionalTitle}>{t('Licensed health professional?','Lisensiyadong health professional?')}</Text>
               <Text style={styles.hint}>
                 Learn about educational contributions. License verification, independent review and privacy controls are required before participation.
               </Text>

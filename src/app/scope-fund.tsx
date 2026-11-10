@@ -8,6 +8,8 @@ import {parseScopeContributionMinor,normalizeScopeGcashReference} from '@/lib/bu
 
 type Report = {id:string;amount_minor:number;purpose:string;reference:string;status:string;
  created_at:string;own_report:boolean;submitted_by:string|null;review_note:string|null};
+type BankReport = {id:string;amount_minor:number;purpose:string;reference:string;status:string;created_at:string;own_report:boolean;review_note:string|null};
+type BankDashboard = {scope_id:string;registered_bank:{name:string;holder:string;number:string}|null;can_review:boolean;can_manage_receiver:boolean;manual_received_minor:number;reports:BankReport[]};
 type Dashboard = {scope_id:string;scope_type:string;available_fund_minor:number;reserved_fund_minor:number;
  spent_fund_minor:number;manual_received_minor:number;buklod_allocation_received_minor:number;
  registered_gcash:{name:string;mobile:string}|null;can_review:boolean;reports:Report[]};
@@ -20,6 +22,11 @@ export function BuklodScopeFundScreen({mode='fund'}:{mode?:'fund'|'contribute'|'
   const generation=useRef(0);
   const submitLock=useRef(false);
   const [fund,setFund]=useState<Dashboard|null>(null);
+  const [bank,setBank]=useState<BankDashboard|null>(null);
+  const [bankAmount,setBankAmount]=useState('');
+  const [bankReference,setBankReference]=useState('');
+  const [bankNote,setBankNote]=useState('');
+  const [bankPurpose,setBankPurpose]=useState<'GENERAL'|'PROJECT'|'EMERGENCY'>('GENERAL');
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
   const [loading,setLoading]=useState(true);
@@ -38,9 +45,15 @@ export function BuklodScopeFundScreen({mode='fund'}:{mode?:'fund'|'contribute'|'
       if(rpcError)throw rpcError;
       if(data?.scope_id!==scopeId)throw new Error('Scope mismatch');
       if(n===generation.current){setFund(data as Dashboard);setError('');}
-    }catch(e:any){if(n===generation.current){setError(e?.message||'Unable to load fund');setFund(null);}}
+      if(mode!=='fund'){
+        const {data:bankData,error:bankError}=await (supabase as any).rpc(
+          'buklod_scope_bank_dashboard_v1',{p_scope_id:scopeId});
+        // Bank receiver is additive. An unapplied migration must not break existing GCash.
+        if(n===generation.current)setBank(!bankError&&bankData?.scope_id===scopeId?bankData as BankDashboard:null);
+      }
+    }catch(e:any){if(n===generation.current){setError(e?.message||'Unable to load fund');setFund(null);setBank(null);}}
     finally{if(n===generation.current)setLoading(false)}
-  },[scopeId]);
+  },[scopeId,mode]);
   useEffect(()=>{
     void load();
     const sub=AppState.addEventListener('change',state=>{if(state==='active')void load()});
@@ -65,6 +78,45 @@ export function BuklodScopeFundScreen({mode='fund'}:{mode?:'fund'|'contribute'|'
       await load();
     }catch(e:any){Alert.alert('Report not saved',e?.message||'Check the connection and retry.');}
     finally{setBusy(false);submitLock.current=false;}
+  };
+  const submitBank=async()=>{
+    if(submitLock.current)return;
+    const minor=parseScopeContributionMinor(bankAmount);
+    const ref=normalizeScopeGcashReference(bankReference);
+    if(minor===null||!ref){Alert.alert('Bank report','Enter a valid amount and the completed bank transaction reference.');return;}
+    if(!bank?.registered_bank){Alert.alert('No bank receiver','This scope has no admin-authorized bank account.');return;}
+    submitLock.current=true;setBusy(true);
+    try{
+      const {error:reportError}=await (supabase as any).rpc('buklod_scope_bank_report_v1',{
+        p_scope_id:scopeId,p_amount_php:minor/100,p_reference:ref,p_purpose:bankPurpose,p_note:bankNote.trim()||null
+      });
+      if(reportError)throw reportError;
+      setBankAmount('');setBankReference('');setBankNote('');
+      await load();
+      Alert.alert('Bank contribution reported','Pending independent verification using the receiving bank transaction history. This report did not transfer money.');
+    }catch(e:any){Alert.alert('Bank report not saved',e?.message||'Please try again.');}
+    finally{submitLock.current=false;setBusy(false);}
+  };
+  const reviewBank=async(r:BankReport,approve:boolean)=>{
+    if(submitLock.current)return;
+    const noteText=(reviewNotes['bank:'+r.id]||'').trim();
+    if(noteText.length<12){Alert.alert('Verification evidence','Enter at least 12 characters documenting the actual bank transaction match or rejection.');return;}
+    Alert.alert(approve?'Verify bank receipt':'Reject bank report','Confirm against the exact authorized receiving bank statement.',[
+      {text:'Cancel',style:'cancel'},
+      {text:'Confirm',onPress:()=>{void (async()=>{
+        if(submitLock.current)return;
+        submitLock.current=true;setBusy(true);
+        try{
+          const {error:reviewError}=await (supabase as any).rpc('buklod_scope_bank_review_v1',{
+            p_report_id:r.id,p_approve:approve,p_review_note:noteText
+          });
+          if(reviewError)throw reviewError;
+          await load();
+          Alert.alert('Saved',approve?'Verified external bank receipt recorded. BUKLOD cash balance unchanged.':'Report rejected.');
+        }catch(e:any){Alert.alert('Review failed',e?.message||'Try again.');}
+        finally{submitLock.current=false;setBusy(false);}
+      })();}}
+    ]);
   };
   const review=async(r:Report,approve:boolean)=>{
     if(submitLock.current)return;
@@ -149,6 +201,20 @@ export function BuklodScopeFundScreen({mode='fund'}:{mode?:'fund'|'contribute'|'
           </Pressable>:null}
         </>}
       </View>:null}
+      {mode==='contribute'?<View style={s.card}>
+        <Text style={s.title}>Bank transfer · authorized account</Text>
+        {bank?.registered_bank?<View style={{gap:10}}>
+          <Text style={s.label}>BANK</Text><Text style={s.receiver}>{bank.registered_bank.name}</Text>
+          <Text style={s.label}>ACCOUNT HOLDER</Text><Text style={s.value}>{bank.registered_bank.holder}</Text>
+          <Text style={s.label}>ACCOUNT NUMBER</Text><Text selectable style={s.receiver}>{bank.registered_bank.number}</Text>
+          <Pressable style={s.smallButton} onPress={()=>void Clipboard.setStringAsync(bank.registered_bank!.number)}>
+            <Text style={s.smallButtonText}>COPY AUTHORIZED BANK ACCOUNT NUMBER</Text></Pressable>
+          <Text style={s.helper}>Open your banking app manually. Verify the registered bank and account name before sending. No automatic transfer or universal bank app deep link is available.</Text>
+          <Pressable style={s.smallButton} onPress={openReports}><Text style={s.smallButtonText}>ALREADY TRANSFERRED? REPORT BANK PAYMENT</Text></Pressable>
+        </View>:<Text style={s.warning}>No active authorized bank account for this scope. Ask the scope admin to register one.</Text>}
+        {bank?.can_manage_receiver?<Pressable style={s.smallButton} onPress={()=>router.push({pathname:'/scope-giving-settings',params:{scopeId}} as any)}>
+          <Text style={s.smallButtonText}>ADMIN · MANAGE BANK ACCOUNT / TREASURERS</Text></Pressable>:null}
+      </View>:null}
       {mode==='reports'?<View style={s.card}>
         <Text style={s.title}>{fund.can_review?'GCash contribution reports · finance review':'My contribution reports'}</Text>
         <Text style={s.helper}>REPORTED = not verified, VERIFIED = counted in fund, REJECTED = not counted.</Text>
@@ -173,6 +239,35 @@ export function BuklodScopeFundScreen({mode='fund'}:{mode?:'fund'|'contribute'|'
           {fund.can_review&&r.status==='REPORTED'&&r.own_report
             ? <Text style={s.warning}>Another authorized reviewer must verify your own report.</Text>:null}
         </View>)}
+      </View>:null}
+      {mode==='reports'?<View style={s.card}>
+        <Text style={s.title}>Bank transfer report</Text>
+        {bank?.registered_bank?<View style={{gap:10}}>
+          <Text style={s.helper}>Authorized bank: {bank.registered_bank.name} · {bank.registered_bank.holder} · {bank.registered_bank.number}</Text>
+          <Text style={s.label}>AMOUNT (PHP)</Text>
+          <TextInput value={bankAmount} onChangeText={setBankAmount} keyboardType="decimal-pad" placeholder="e.g. 100.00" style={s.input}/>
+          <Text style={s.label}>ACTUAL COMPLETED BANK REFERENCE</Text>
+          <TextInput value={bankReference} onChangeText={setBankReference} autoCapitalize="characters" placeholder="From your bank transaction receipt" style={s.input}/>
+          <Text style={s.label}>PURPOSE</Text>
+          <View style={s.options}>{(['GENERAL','PROJECT','EMERGENCY'] as const).map(p=><Pressable key={p} onPress={()=>setBankPurpose(p)} style={[s.option,bankPurpose===p&&s.selected]}><Text style={bankPurpose===p?s.selectedText:s.optionText}>{p}</Text></Pressable>)}</View>
+          <TextInput value={bankNote} onChangeText={setBankNote} maxLength={240} placeholder="Optional description" style={s.input}/>
+          <Pressable disabled={busy} style={[s.primary,busy&&s.faded]} onPress={()=>void submitBank()}><Text style={s.primaryText}>{busy?'SAVING…':'REPORT COMPLETED BANK TRANSFER'}</Text></Pressable>
+        </View>:<Text style={s.warning}>Bank reporting unavailable until an authorized receiver is registered.</Text>}
+        <Text style={s.warning}>No automatic money movement or cash credit; actual bank receipt must be verified by independent authorized finance personnel.</Text>
+      </View>:null}
+      {mode==='reports'?<View style={s.card}>
+        <Text style={s.title}>{bank?.can_review?'Bank contribution reports · finance review':'My bank reports'}</Text>
+        {bank?.reports?.length?bank.reports.map(r=><View key={r.id} style={s.report}>
+          <View style={s.line}><Text style={s.value}>{pesos(r.amount_minor)}</Text><Text style={r.status==='VERIFIED'?s.good:s.warning}>{r.status}</Text></View>
+          <Text style={s.helper}>Bank reference: {r.reference} · {new Date(r.created_at).toLocaleDateString()}</Text>
+          {r.review_note?<Text style={s.helper}>Review: {r.review_note}</Text>:null}
+          {bank.can_review&&r.status==='REPORTED'&&!r.own_report?<View style={{gap:9}}>
+            <TextInput multiline style={[s.input,s.multi]} placeholder="Actual bank statement evidence / rejection reason" value={reviewNotes['bank:'+r.id]||''} onChangeText={v=>setReviewNotes(x=>({...x,['bank:'+r.id]:v}))}/>
+            <View style={s.options}><Pressable disabled={busy} style={[s.option,s.selected]} onPress={()=>void reviewBank(r,true)}><Text style={s.selectedText}>VERIFY MATCH</Text></Pressable>
+              <Pressable disabled={busy} style={s.option} onPress={()=>void reviewBank(r,false)}><Text style={s.optionText}>REJECT</Text></Pressable></View>
+          </View>:null}
+          {bank.can_review&&r.status==='REPORTED'&&r.own_report?<Text style={s.warning}>Independent treasurer/admin review required.</Text>:null}
+        </View>):<Text style={s.helper}>No bank reports available for this scope.</Text>}
       </View>:null}</>:null}
     </ScrollView>
   </>;
