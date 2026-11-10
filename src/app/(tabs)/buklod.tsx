@@ -87,6 +87,9 @@ import {
   isReelsFeedInlineAdRow,
 } from '@/lib/buklodAdPlacements';
 import { useAds } from '@/providers/AdsProvider';
+import { recordConfirmedCommunityComment, takePendingCommunityCommentAdBreak } from '@/lib/buklodCommunityCommentAdCadence';
+import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
+
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
@@ -3567,6 +3570,12 @@ const load=useCallback(async(options?:{
    setCommentMentions([]);
    setCommentMedia(null);
    setCommentMediaPreview(null);
+   // Optional natural-break ad is separate from sending and earning BP.
+   const adAccount=String(user?.id??'');
+   if(!commentSendInFlightRef.current && adAccount &&
+      takePendingCommunityCommentAdBreak(adAccount)){
+    void showBuklodAdOpportunity('community_comment_overage');
+   }
   };
 
  const submitCommunityComment=
@@ -3630,6 +3639,10 @@ const load=useCallback(async(options?:{
      p_parent_id:replyRootId,
     });
     if(error)throw error;
+    if(authorId && commentAccountIdRef.current===authorId){
+     const adCount=recordConfirmedCommunityComment(authorId);
+     if(adCount.shouldWarm)warmBuklodAdOpportunity('community_comment_overage');
+    }
 
     // One confirmed mutation: update just this post, not the whole feed.
     if(commentAccountIdRef.current===authorId){
@@ -5031,7 +5044,7 @@ const communityFeedRows =
   viewabilityConfig: communityAdViewabilityConfig,
   videoViewabilityConfig: communityVideoViewabilityConfig,
   extraData: communityAdExtraData,
-  isAdActive,
+
   visibleVideoPostId,
   preloadVideoPostId,
  } = useBuklodCommunityAdViewability(communityFeedRows);
@@ -5732,7 +5745,8 @@ const communityFeedRows =
       return (
         <BuklodCommunityInlineAd
           slotId={item.id}
-          active={isAdActive(item.id)}
+          // Keep a measurable viewport probe mounted before first activation.
+          // Real ad requests remain gated by the existing SDK consent/viewport rules.
         />
       );
     }
