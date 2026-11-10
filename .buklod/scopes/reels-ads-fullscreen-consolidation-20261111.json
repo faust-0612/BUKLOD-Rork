@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Show clear, native AdMob Reel sponsored slides in fullscreen Public Wall video swipe and restore reliable existing IGPAT Reels ad delivery as part of one consolidated OTA.",
+  "date": "2026-11-11",
+  "sourceBase": "integration/buklod-nov10-single-source-ota",
+  "sourceBranch": "feat/reels-ads-fullscreen-wall-ota-20261111",
+  "reconciliation": "Latest concurrently merged Community scroll/comment ad fixes were compared against common base 2e4022da7ca52ff221762cd6f445eb1792d6ddbd; all five incoming Wall patch chunks were preserved in this candidate before inclusion.",
+  "monetization": {
+    "format": "AdMob Native Advanced sponsored cards; native MediaView can show image or video according to actual advertiser fill. Banner fallback uses existing Reels/community ad unit.",
+    "cadence": "Existing central buildReelsFeedWithInlineAds policy: first after 8-12 organic videos depending on environment and content seed; subsequent slots spaced by central configured policy.",
+    "consent": "AdsProvider ready + canRequestAds, global remote placement/route/foreground safeguards and network status are authoritative; no ad rows in Wall fullscreen unless Android and consented at opening.",
+    "delivery": "Native creative may prewarm one page ahead and must report actual ad loaded or SDK impression; no ad revenue, view or click is fabricated.",
+    "noFill": "Ad unavailable or no internet skips without a blank screen; pending ad has a 3000ms budget and a Continue watching action. Organic content resumes without mandatory ad view.",
+    "sensitiveRoutes": "Allow only passive Reels feed ads on /igpat or /reels, never composer, exams, help, or forced interstitials.",
+    "privacy": "Use existing ad units, no additional native packages/permissions or new backend schema."
+  },
+  "changedPaths": [
+    ".buklod/scopes/reels-ads-fullscreen-consolidation-20261111.json",
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/igpat/index.tsx",
+    "src/components/BuklodReelsInlineAd.tsx",
+    "src/components/BuklodReelsInlineAd.web.tsx",
+    "src/lib/buklodGlobalAdController.ts",
+    "tests/reels-ads-fullscreen-ota-20261111.test.mjs"
+  ],
+  "validation": {
+    "sourceReview": "38/38 targeted source checks passed before final concurrent Wall reconciliation; latest Wall imported/comment ad deltas were restored intact.",
+    "pending": "Node regression execution, TypeScript compilation, compiled Android/web RC export and exact OTA manifest verification remain mandatory.",
+    "actualDevice": "Not run; owner previously waived physical Android acceptance for consolidated Wall video fixes, without waiving mandatory release gates."
+  },
+  "release": {
+    "branch": "integration/buklod-nov10-single-source-ota",
+    "androidRuntime": "1.3.2 expected, must verify at RC",
+    "newNativeBuild": false,
+    "mainModified": false,
+    "otaPublished": false,
+    "webPublished": false
+  }
+}
