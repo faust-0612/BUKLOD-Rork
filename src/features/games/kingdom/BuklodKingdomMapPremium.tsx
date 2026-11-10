@@ -11,6 +11,7 @@ import Svg, {
 import { useAuth } from '@/providers/AuthProvider';
 import { playRorkSignatureSfx, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
+import BuklodKingdomAtmosphere from './BuklodKingdomAtmosphere';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import { getBuklodSoundSettings } from '@/lib/buklodSounds';
 import {
@@ -132,20 +133,20 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
     <Svg width={mapWidth} height={mapHeight} viewBox="0 0 1200 900" pointerEvents="none">
       <Defs>
         <SvgGradient id="sea" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#164563" />
-          <Stop offset=".5" stopColor="#1b6077" />
-          <Stop offset="1" stopColor="#0c2945" />
+          <Stop offset="0" stopColor="#3db5d6" />
+          <Stop offset=".5" stopColor="#218faf" />
+          <Stop offset="1" stopColor="#10658c" />
         </SvgGradient>
         <SvgGradient id="cliff" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#92b1a0" />
-          <Stop offset=".6" stopColor="#436f78" />
-          <Stop offset="1" stopColor="#173c58" />
+          <Stop offset="0" stopColor="#c7e2b2" />
+          <Stop offset=".6" stopColor="#79b9a7" />
+          <Stop offset="1" stopColor="#287b91" />
         </SvgGradient>
         <SvgGradient id="meadow" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#b9d18f" />
-          <Stop offset=".34" stopColor="#80af79" />
-          <Stop offset=".68" stopColor="#548975" />
-          <Stop offset="1" stopColor="#396f6c" />
+          <Stop offset="0" stopColor="#e0eca6" />
+          <Stop offset=".34" stopColor="#a4d580" />
+          <Stop offset=".68" stopColor="#6cae78" />
+          <Stop offset="1" stopColor="#438c77" />
         </SvgGradient>
         <SvgGradient id="river" x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0" stopColor="#bbf7ef" />
@@ -168,20 +169,28 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         </SvgGradient>
       </Defs>
       <Rect width={1200} height={900} fill="url(#sea)" />
+      {/* The outer ocean, with lighter shallows around the island. */}
+      <Ellipse cx={620} cy={480} rx={595} ry={396} fill="#b8f3ef" opacity=".13" />
+      <Path d="M 17 142 C 187 89 282 105 405 65 M 769 72 C 946 49 1037 123 1160 82 M 56 826 C 183 794 299 856 407 828"
+        fill="none" stroke="#e5fcf3" strokeWidth={5} strokeLinecap="round" opacity=".27" />
       {Array.from({ length: 18 }, (_, i) => (
         <Path key={i} fill="none" stroke="#bde9eb" strokeWidth={2} opacity=".22"
           d={'M ' + (20 + (i * 163) % 1150) + ' ' + (24 + (i * 91) % 855) + ' c 16 -6 31 -7 48 0 c 11 5 20 4 30 -1'} />
       ))}
-      <Path d={LAND_DEEP} fill="#103d55" stroke="#78ccd0" strokeWidth={21} opacity=".52" />
-      <Path d={LAND_DEEP} fill="url(#cliff)" stroke="#1b5367" strokeWidth={10} />
+      <Path d={LAND_DEEP} fill="#14718d" stroke="#c5f2e3" strokeWidth={21} opacity=".52" />
+      <Path d={LAND_DEEP} fill="url(#cliff)" stroke="#2a8098" strokeWidth={10} />
+      {/* Sunlit sand along the older island coast, rather than a dark flat outline. */}
+      <Path d={LAND_DEEP} fill="none" stroke="#f8e6b4" strokeWidth={6} opacity=".70" />
+      <Path d="M 118 726 C 204 794 332 819 456 823 M 872 794 C 963 820 1053 793 1104 724"
+        fill="none" stroke="#fff2bf" strokeWidth={5} opacity=".63" />
       <Path d={LAND_FACE} fill="url(#meadow)" stroke="#f0e6c2" strokeWidth={10} />
       <Path d={LAND_FACE} fill="none" stroke="#fff8dd" strokeWidth={2} opacity=".6" />
       <Path d="M 109 432 C 201 260 315 238 466 219 C 410 315 345 395 240 424 C 167 476 146 510 99 590 Z"
-        fill="#275e57" opacity=".47" />
+        fill="#6d9e6f" opacity=".47" />
       <Path d="M 361 210 C 445 147 604 115 727 180 C 636 250 625 317 492 306 C 448 286 409 251 361 210 Z"
-        fill="#a9c697" opacity=".50" />
+        fill="#d1e5a3" opacity=".50" />
       <Path d="M 778 229 C 921 190 1033 259 1101 350 C 1071 422 977 460 842 426 C 781 344 775 301 778 229 Z"
-        fill="#a5baa3" opacity=".49" />
+        fill="#b4dcb4" opacity=".49" />
       <Path d="M 172 628 C 304 559 437 570 532 624 C 557 697 493 792 345 775 C 233 749 141 698 172 628 Z"
         fill="#dbcd81" opacity=".40" />
 
@@ -193,7 +202,7 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
       ))}
 
       <Path d="M 552 147 C 582 234 588 290 628 357 C 651 420 662 464 699 515 C 744 597 735 682 772 766"
-        fill="none" stroke="#236079" strokeWidth={30} opacity=".55" strokeLinecap="round" />
+        fill="none" stroke="#3d95ac" strokeWidth={30} opacity=".55" strokeLinecap="round" />
       <Path d="M 552 147 C 582 234 588 290 628 357 C 651 420 662 464 699 515 C 744 597 735 682 772 766"
         fill="none" stroke="url(#river)" strokeWidth={18} strokeLinecap="round" />
       <Path d="M 552 147 C 582 234 588 290 628 357 C 651 420 662 464 699 515 C 744 597 735 682 772 766"
@@ -206,10 +215,51 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
           <Path d={route} fill="none" stroke="#314c4a" strokeWidth={20} strokeLinecap="round" opacity=".40" />
           <Path d={route} fill="none" stroke="#b39a73" strokeWidth={13} strokeLinecap="round" />
           <Path d={route} fill="none" stroke="url(#road)" strokeWidth={8} strokeLinecap="round" />
-          <Path d={route} fill="none" stroke="#fff9e3" strokeWidth={1.5} strokeLinecap="round"
-            strokeDasharray="2 16" opacity=".56" />
+          <Path d={route} fill="none" stroke={stage >= 3 ? "#fffbba" : "#fff9e3"} strokeWidth={stage >= 3 ? 2.5 : 1.5} strokeLinecap="round"
+            strokeDasharray="2 16" opacity={stage >= 3 ? .88 : .56} />
         </G>
       ))}
+
+      {/* Bridges reconnect the established roads across the two rivers. */}
+      {[
+        { x: 614, y: 355, tilt: 17 },
+        { x: 677, y: 502, tilt: -10 },
+        { x: 811, y: 446, tilt: 24 },
+      ].map((bridge, i) => (
+        <G key={'bridge-' + i} transform={'rotate(' + bridge.tilt + ' ' + bridge.x + ' ' + bridge.y + ')'}>
+          <Rect x={bridge.x - 34} y={bridge.y - 10} width={68} height={20} rx={3}
+            fill="#b98752" stroke="#694e36" strokeWidth={3} />
+          {Array.from({ length: 7 }, (_, n) => (
+            <Path key={n} d={'M ' + (bridge.x - 28 + n * 9) + ' ' + (bridge.y - 8) + ' v 16'}
+              stroke="#f9d99a" strokeWidth={2.5} />
+          ))}
+          <Path d={'M ' + (bridge.x - 35) + ' ' + (bridge.y - 15) + ' h 70 M ' + (bridge.x - 35) + ' ' + (bridge.y + 15) + ' h 70'}
+            stroke="#f7dca3" strokeWidth={4} />
+        </G>
+      ))}
+
+      {/* Waterfalls in the northern highlands and a bright river basin. */}
+      <Path d="M 540 146 C 552 184 557 216 570 250"
+        fill="none" stroke="#effdff" strokeWidth={11} strokeLinecap="round" opacity=".78" />
+      <Path d="M 551 160 C 557 192 562 222 572 255"
+        fill="none" stroke="#9fe7f9" strokeWidth={6} strokeLinecap="round" opacity=".92" />
+      <Ellipse cx={574} cy={252} rx={27} ry={10} fill="#f2ffff" opacity=".64" />
+      <Path d="M 815 230 C 805 252 806 272 800 288"
+        fill="none" stroke="#efffff" strokeWidth={5} strokeLinecap="round" opacity=".78" />
+      <Ellipse cx={801} cy={293} rx={16} ry={6} fill="#eaffff" opacity=".70" />
+
+      {/* Coastal pier, market boats and 2.5D destination landmarks. */}
+      <G>
+        <Path d="M 130 686 L 62 718 L 68 731 L 139 701 Z" fill="#af8452" stroke="#795d3d" strokeWidth={3}/>
+        {Array.from({ length: 5 }, (_, n) => (
+          <Path key={n} d={'M ' + (78 + n * 11) + ' ' + (713 - n * 5) + ' l 6 16'}
+            stroke="#efc68a" strokeWidth={3} />
+        ))}
+        <Path d="M 22 749 Q 54 762 85 745 L 79 759 Q 53 777 28 758 Z" fill="#8c523f" stroke="#f1c391" strokeWidth={3}/>
+        <Path d="M 49 750 L 49 699 L 76 734 Z" fill="#fff6dd" stroke="#8dbec6" strokeWidth={2}/>
+        <Path d="M 1136 567 Q 1163 580 1191 564 L 1182 577 Q 1159 590 1141 575 Z" fill="#c47850"/>
+        <Path d="M 1161 563 L 1161 518 L 1183 552 Z" fill="#f9f1d6"/>
+      </G>
 
       {Array.from({ length: 6 }, (_, i) => (
         <G key={'farm-' + i} transform={'rotate(-14 ' + (214 + i * 21) + ' ' + (681 + i * 7) + ')'}>
@@ -222,6 +272,31 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         </G>
       ))}
 
+      {/* Countryside cottages, stone paths and a working windmill replace
+          blank schematic zones without changing their canonical stations. */}
+      {[
+        { x: 146, y: 612, roof: '#be7b50' },
+        { x: 327, y: 688, roof: '#cf884f' },
+        { x: 758, y: 575, roof: '#c68162' },
+        { x: 977, y: 654, roof: '#9876af' },
+      ].map((house, i) => (
+        <G key={'cottage-' + i}>
+          <Ellipse cx={house.x} cy={house.y + 19} rx={28} ry={9} fill="#35756c" opacity=".22"/>
+          <Rect x={house.x - 16} y={house.y - 9} width={32} height={28} rx={3}
+            fill="#fae2b2" stroke="#ad976c" strokeWidth={2} />
+          <Path d={'M ' + (house.x - 22) + ' ' + (house.y - 9) + ' L ' + house.x + ' ' + (house.y - 29) +
+            ' L ' + (house.x + 22) + ' ' + (house.y - 9) + ' Z'} fill={house.roof} stroke="#805d4b" strokeWidth={2} />
+          <Rect x={house.x - 5} y={house.y + 3} width={10} height={16} rx={2} fill="#8d6b53"/>
+          <SvgCircle cx={house.x + 10} cy={house.y} r={4} fill="#fcf4c6" />
+        </G>
+      ))}
+      <G>
+        <Rect x={365} y={614} width={19} height={60} rx={4} fill="#f2e4b9" stroke="#9a986d" strokeWidth={2}/>
+        <Path d="M 358 616 L 375 582 L 392 616 Z" fill="#b7774c" stroke="#785c41" strokeWidth={2}/>
+        <SvgCircle cx={375} cy={618} r={5} fill="#bf9c67"/>
+        <Path d="M 335 618 L 415 618 M 375 577 L 375 659" stroke="#fff3cd" strokeWidth={9} strokeLinecap="round"/>
+        <Path d="M 335 618 L 415 618 M 375 577 L 375 659" stroke="#8b704f" strokeWidth={2}/>
+      </G>
       {MOUNTAINS.map(({ x, y, s }, i) => (
         <G key={'mountain-' + i}>
           <Path d={'M ' + (x - 56 * s) + ' ' + (y + 81 * s) +
@@ -239,13 +314,13 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
 
       {FOREST_POINTS.map(([x, y], i) => (
         <G key={'tree-' + i}>
-          <Ellipse cx={x} cy={y + 21} rx={18} ry={7} fill="#15434d" opacity=".28" />
+          <Ellipse cx={x} cy={y + 21} rx={18} ry={7} fill="#30736a" opacity=".28" />
           <Path d={'M ' + (x - 14) + ' ' + (y + 5) + ' L ' + x + ' ' + (y - 26) +
             ' L ' + (x + 14) + ' ' + (y + 5) + ' Z'}
-            fill={i % 2 ? "#245a53" : "#236d5b"} />
+            fill={i % 2 ? "#32815e" : "#348f67"} />
           <Path d={'M ' + (x - 20) + ' ' + (y + 16) + ' L ' + x + ' ' + (y - 8) +
             ' L ' + (x + 20) + ' ' + (y + 16) + ' Z'}
-            fill={i % 3 ? "#388b6b" : "#2f745c"} />
+            fill={i % 3 ? "#52a96f" : "#3e946c"} />
           <Rect x={x - 2} y={y + 15} width={5} height={11} rx={2} fill="#796a50" />
         </G>
       ))}
@@ -257,7 +332,7 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         { x: 488, y: 533, color: '#debbb2' },
       ].map((town, i) => (
         <G key={'town-' + i}>
-          <Ellipse cx={town.x} cy={town.y + 15} rx={72} ry={33} fill="#255465" opacity=".21" />
+          <Ellipse cx={town.x} cy={town.y + 15} rx={72} ry={33} fill="#468e93" opacity=".21" />
           {Array.from({ length: 5 }, (_, j) => {
             const x = town.x - 53 + j * 25;
             const y = town.y - (j % 2) * 8;
@@ -273,7 +348,7 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         </G>
       ))}
 
-      <Ellipse cx={607} cy={469} rx={123} ry={65} fill="#204c58" opacity=".34" />
+      <Ellipse cx={607} cy={469} rx={123} ry={65} fill="#3d857a" opacity=".34" />
       <Ellipse cx={607} cy={442} rx={113} ry={65} fill="#e5d2a5" stroke="#73948a" strokeWidth={6} />
       <Ellipse cx={607} cy={436} rx={100} ry={52} fill="#70a599" stroke="#ece8bb" strokeWidth={3} />
       <Path d="M 529 466 L 540 398 L 551 398 L 559 350 L 574 350 L 581 398 L 599 377 L 611 318 L 625 377 L 639 401 L 651 352 L 667 352 L 677 398 L 688 398 L 696 466 Z"
@@ -281,16 +356,16 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
       <Path d="M 596 381 L 612 292 L 626 381 Z" fill="#fff4d1" stroke="#b39055" strokeWidth={2} />
       <Path d="M 552 357 L 562 324 L 575 357 Z M 651 356 L 659 324 L 672 356 Z"
         fill="#f9edc6" stroke="#af8555" strokeWidth={1.5} />
-      <Rect x={599} y={419} width={25} height={47} rx={12} fill="#285564" stroke="#fff5c7" strokeWidth={3} />
+      <Rect x={599} y={419} width={25} height={47} rx={12} fill="#417788" stroke="#fff5c7" strokeWidth={3} />
       <SvgCircle cx={612} cy={386} r={6} fill={stage >= 3 ? '#fff9bf' : '#eecf92'} />
       <Path d="M 582 468 Q 609 485 640 468" fill="none" stroke="#fcf1cf" strokeWidth={4} />
       <Ellipse cx={609} cy={509} rx={75} ry={10} fill="#9ad7cb" opacity=".58" />
 
-      <Ellipse cx={591} cy={642} rx={59} ry={36} fill="#4b9471" stroke="#b9c599" strokeWidth={3} />
+      <Ellipse cx={591} cy={642} rx={59} ry={36} fill="#75bd7b" stroke="#b9c599" strokeWidth={3} />
       <Rect x={585} y={628} width={12} height={44} rx={4} fill="#806747" />
-      <SvgCircle cx={591} cy={620} r={27} fill="#398766" />
-      <SvgCircle cx={575} cy={629} r={22} fill="#4d9e73" />
-      <SvgCircle cx={610} cy={623} r={22} fill="#6aae79" />
+      <SvgCircle cx={591} cy={620} r={27} fill="#439d65" />
+      <SvgCircle cx={575} cy={629} r={22} fill="#62b77b" />
+      <SvgCircle cx={610} cy={623} r={22} fill="#83c68b" />
 
       <Path d={LAND_FACE} fill="none" stroke="#faf2d6" strokeWidth={2} opacity=".42" />
     </Svg>
@@ -439,7 +514,7 @@ export default function BuklodKingdomMapPremium() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={['#0d2d43', '#103b4b', '#081e30']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#40bbd1', '#86dce6', '#1d86ad']} style={StyleSheet.absoluteFill} />
 
       <ScrollView
         ref={horizontalRef} horizontal bounces={false} showsHorizontalScrollIndicator={false}
@@ -455,6 +530,7 @@ export default function BuklodKingdomMapPremium() {
         >
           <View style={[styles.worldFrame, { width: mapWidth, height: mapHeight }]}>
             <IllustratedRealm mapWidth={mapWidth} mapHeight={mapHeight} stage={stage} />
+            <BuklodKingdomAtmosphere stage={stage} scale={scale} />
 
             <View pointerEvents="none" style={[styles.realmTitle, {
               left: 68 * scale, top: 88 * scale,
@@ -599,12 +675,12 @@ export default function BuklodKingdomMapPremium() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0b293a' },
+  root: { flex: 1, backgroundColor: '#40adcf' },
   mapScroll: { flex: 1 },
   verticalScroll: { flex: 1 },
   horizontalContent: { justifyContent: 'center' },
   verticalContent: { alignItems: 'center', justifyContent: 'center' },
-  worldFrame: { position: 'relative', overflow: 'hidden', backgroundColor: '#154c5d' },
+  worldFrame: { position: 'relative', overflow: 'hidden', backgroundColor: '#40adcf' },
   stationAnchor: { position: 'absolute', alignItems: 'center' },
   stationPress: { width: '100%', alignItems: 'center' },
   stationPressed: { transform: [{ scale: .95 }] },
