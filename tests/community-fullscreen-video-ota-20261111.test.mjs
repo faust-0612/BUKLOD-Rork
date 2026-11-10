@@ -18,6 +18,8 @@ test('fullscreen player opens using existing permitted URL, without immediately 
   assert.doesNotMatch(opening, /void refreshVideoViewerUrl\(/);
   assert.ok(view.includes('videoViewerFreshUrls['));
   assert.ok(view.includes('descriptor?.uri'));
+  assert.ok(view.includes('wallVideoFreshUrls[postId]'));
+  assert.ok(opening.includes('setVideoViewerFreshUrls({})'));
 });
 
 test('swipe changes playback on viewport entry and makes near-next video warm', () => {
@@ -68,4 +70,17 @@ test('existing byte caching, signed authorization and native ads remain in place
   assert.match(component, /if \(imaEligible && active\)/);
   assert.match(view, /playbackKey=\{postId\}/);
   assert.match(component, /onPlaybackError/);
+});
+
+test('unneeded load-more banners do not cover active video or fullscreen chrome', () => {
+  assert.match(view, /videoViewerLoadError&&!videoViewerLoadingMore/);
+  assert.doesNotMatch(view, /Load more recent videos/);
+  assert.match(view, /bottom:Math\.max\(communityInsets\.bottom\+18,28\)/);
+  assert.match(view, /Could not load more videos\. Tap to retry/);
+});
+
+test('stale asynchronous renewal from a closed session cannot clear newer inflight state', () => {
+  assert.match(wall, /const videoViewerUrlInflightRef=useRef\(new Map<string,number>\(\)\)/);
+  assert.match(refresh, /videoViewerUrlInflightRef\.current\.set\(postId,requestSession\)/);
+  assert.match(refresh, /videoViewerUrlInflightRef\.current\.get\(postId\)===requestSession/);
 });
