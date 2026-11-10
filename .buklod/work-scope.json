@@ -1,5 +1,5 @@
 {
-  "objective": "Isolated DEV Smart Drawer note classification, local file imports, and user-owned encrypted portable cloud backup/restore; no BUKLOD-hosted storage or production release.",
+  "objective": "Isolated DEV Smart Drawer categories, local file imports, encrypted user-owned backup, and production Android OAuth client configuration without enabling an unverified OAuth flow.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: Compared Drawer files and existing per-workstream scope against GitHub main during 2026-11-10 development. Live production Android fingerprint and OTA runtime were not verified; this DEV scope cannot authorize production publishing.",
   "allowedPaths": [
@@ -14,7 +14,9 @@
     "src/lib/smartDrawer/localStore.ts",
     "src/lib/smartDrawer/portableBackup.ts",
     "src/lib/smartDrawer/types.ts",
-    "tests/smart-drawer-cloud-backup.test.mjs"
+    "tests/smart-drawer-cloud-backup.test.mjs",
+    "app.config.js",
+    "tests/smart-drawer-release-identity.test.mjs"
   ],
   "acceptanceChecks": [
     "Default local-only Drawer requires no cloud provider subscription and does not send user files to BUKLOD servers.",
@@ -23,6 +25,8 @@
     "Manual backup generates user-owned 256-bit AES key, encrypts archive with AES-GCM and shares only encrypted content.",
     "Restoration checks authentication/account identity and integrity, skips duplicate items, protects existing files.",
     "Node regression tests, Jest, TypeScript compilation, device backup/restore and privacy tests pass before RC.",
-    "No Google OAuth, continuous sync, native build or production OTA is represented as complete."
+    "No Google OAuth, continuous sync, native build or production OTA is represented as complete.",
+    "Production Android OAuth client ID must only be exposed to org.mzbministry.buklod and never staging or Classroom.",
+    "No OAuth authorization, actual Drive access, continuous synchronization, native build, or production OTA is claimed without verified provider integration."
   ]
 }
