@@ -6,7 +6,10 @@ const read = path => readFileSync(path, 'utf8');
 
 test('Kingdom ads stay out of live gameplay and quiz answer buttons', () => {
   const policy=read('src/lib/buklodGlobalAdController.ts');
-  assert.match(policy, /placementId\.startsWith\('kingdom_'\)/);
+  for (const placement of ['kingdom_map_footer', 'kingdom_legacy_native', 'kingdom_treasury_native', 'kingdom_practice_complete_banner', 'kingdom_game_center_completed']) {
+    assert.ok(policy.includes(placement), `Exact allowlisted passive placement absent: ${placement}`);
+  }
+  assert.doesNotMatch(policy, /placementId\.startsWith\('kingdom_'\)/);
   assert.match(policy, /kingdom_game_center_completed/);
   assert.match(policy, /interstitial_kingdom_mastery_verified/);
   assert.match(policy, /Math\.max\(2, INTERSTITIAL_MIN_EVENT_COUNT\)/);
