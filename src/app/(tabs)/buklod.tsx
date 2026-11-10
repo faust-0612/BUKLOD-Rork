@@ -1354,6 +1354,24 @@ function LegacyPublicBuklodScreen(){
   videoViewerIndex,
   setVideoViewerIndex
  ]=useState(0);
+ const [videoViewerPageHeight,setVideoViewerPageHeight]=useState(COMMUNITY_VIEWER_HEIGHT);
+ const [videoViewerShowHint,setVideoViewerShowHint]=useState(true);
+ // Advance playback as the next page becomes visible, not after momentum ends.
+ const videoViewerViewabilityConfig=useRef({
+  itemVisiblePercentThreshold:60,
+  minimumViewTime:80
+ }).current;
+ const videoViewerOnViewableItemsChanged=useRef(({
+  viewableItems
+ }:{viewableItems:Array<{index?:number|null;isViewable?:boolean}>})=>{
+  const visible=viewableItems.find(row=>
+   row.isViewable && typeof row.index==='number' && row.index>=0
+  );
+  if(typeof visible?.index==='number'){
+   const next=visible.index;
+   setVideoViewerIndex(current=>current===next?current:next);
+  }
+ }).current;
 
  const [
   videoViewerFreshUrls,
@@ -1373,6 +1391,14 @@ function LegacyPublicBuklodScreen(){
   videoViewerResolvingPostId,
   setVideoViewerResolvingPostId
  ]=useState<string|null>(null);
+ const videoViewerUrlInflightRef=useRef(new Set<string>());
+ const videoViewerUrlAttemptsRef=useRef(new Map<string,number>());
+ const videoViewerUrlRetryAfterRef=useRef(new Map<string,number>());
+ useEffect(()=>{
+  if(!videoViewerOpen)return;
+  const timer=setTimeout(()=>setVideoViewerShowHint(false),2700);
+  return()=>clearTimeout(timer);
+ },[videoViewerOpen,videoViewerSession]);
 
  const wallVideoPosts=
   useMemo(
@@ -1420,6 +1446,7 @@ function LegacyPublicBuklodScreen(){
     videoViewerScanSeqRef.current+=1;
     videoViewerScanBusyRef.current=false;
     setVideoViewerLoadingMore(false);
+    setVideoViewerResolvingPostId(null);
     setVideoViewerOpen(false);
   },[]);
 
@@ -4449,19 +4476,18 @@ const load=useCallback(async(options?:{
     setVideoViewerLoadError(false);
     setVideoViewerPosts([target]);
     setVideoViewerIndex(0);
+    setVideoViewerFreshUrls({});
+    setVideoViewerResolvingPostId(null);
+    videoViewerUrlInflightRef.current.clear();
+    videoViewerUrlAttemptsRef.current.clear();
+    videoViewerUrlRetryAfterRef.current.clear();
+    setVideoViewerShowHint(true);
     setVideoViewerSession(current=>current+1);
    setVideoViewerOpen(true);
    enableCommunityVideoSound();
 
-   /*
-    * BUKLOD_VIDEO_FULLSCREEN_FRESH_URL_R5
-    * A Wall URL may be a short-lived signed URL. Refresh it when opening the
-    * fullscreen player so a second player instance never relies only on the
-    * feed's older URL.
-    */
-   void refreshVideoViewerUrl(
-    target
-   );
+   // Reuse the existing authorized URL and cached media from the Wall.
+   // Renew access only after a genuine playback error, not on every open.
   };
 
 
