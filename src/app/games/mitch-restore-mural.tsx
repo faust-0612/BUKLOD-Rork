@@ -5,6 +5,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import { KingdomMasteryCheck } from '@/features/games/kingdom/platform/KingdomMasteryCheck';
 import { KingdomAIContinuation } from '@/features/games/kingdom/platform/KingdomAIContinuation';
+import { KingdomOfflineContinuation } from '@/features/games/kingdom/platform/KingdomOfflineContinuation';
 import { MergeGameV1 } from '@/features/games/kingdom/platform/MergeGameV1';
 import { BlockForgeGameV1 } from '@/features/games/mitch/BlockForgeGameV1';
 import { RestoreMuralGameV1 } from '@/features/games/mitch/RestoreMuralGameV1';
@@ -119,6 +120,7 @@ function MitchInterior() {
           {!!user?.id && completedGameId === (selected === 'merge' ? MERGE_ID : FORGE_ID) ? (
             <View style={styles.rewardExtras}>
               <KingdomMasteryCheck key={user.id + ':' + completedGameId} gameId={completedGameId} />
+              <KingdomOfflineContinuation key={'offline:' + user.id + ':' + completedGameId} gameId={completedGameId} />
               <KingdomAIContinuation key={user.id + ':' + completedGameId} gameId={completedGameId} />
             </View>
           ) : null}
