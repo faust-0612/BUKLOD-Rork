@@ -47,7 +47,8 @@
     "tests/buklod-earnings-final-source-clarity-20261109.test.mjs",
     "supabase/migrations/20261110090000_buklod_scope_gcash_contributions_v1.sql",
     "supabase/tests/buklod_scope_gcash_contributions_20261110.sql",
-    "src/lib/buklodScopeFundAmounts.ts"
+    "src/lib/buklodScopeFundAmounts.ts",
+    ".buklod/scopes/scope-gcash-contributions-20261110.json"
   ],
   "status": "DEV_SOURCE_ONLY_PENDING_MERGE_RC_AND_RELEASE"
 }
