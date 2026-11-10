@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname } from 'expo-router';
 import {
   StyleSheet,
   Text,
@@ -9,6 +10,7 @@ import {
   BannerAd,
   BannerAdSize,
   NativeAd,
+  NativeAdEventType,
   NativeAdView,
   NativeAsset,
   NativeAssetType,
@@ -16,16 +18,24 @@ import {
   TestIds,
 } from 'react-native-google-mobile-ads';
 import {
-  type BuklodAdPlacement,
+  buklodAdsTestMode,
   getBuklodBannerUnitId,
 } from '@/lib/buklodAdUnits';
+import { recordBuklodAdEvent } from '@/lib/buklodAdDiagnostics';
 import {
-  initializeBuklodAds,
-} from '@/lib/buklodAds';
+  isBuklodPassiveAdAllowed,
+  reserveBuklodPassiveAdRequest,
+} from '@/lib/buklodGlobalAdController';
+import { useAds } from '@/providers/AdsProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
 
+export type BuklodReelsAdLoadState = 'loading' | 'ready' | 'unavailable';
 type Props = {
   slotId?: string;
   active?: boolean;
+  /** Prepare native inventory one nearby page ahead without showing offscreen. */
+  prepare?: boolean;
+  onLoadStateChange?: (state: BuklodReelsAdLoadState) => void;
 };
 
 const AD_LOAD_TIMEOUT_MS = 8000;
@@ -41,15 +51,36 @@ function envValue(
 export default function BuklodReelsInlineAd({
   slotId,
   active = true,
+  prepare = false,
+  onLoadStateChange,
 }: Props) {
-  const { width } =
-    useWindowDimensions();
-
-  const [sdkReady, setSdkReady] =
-    useState(false);
+  const { width } = useWindowDimensions();
+  const pathname = usePathname();
+  const { ready, canRequestAds } = useAds();
+  const { online } = useNetwork();
+  const sdkReady = ready && canRequestAds;
+  // Never reset a loaded native creative as the user swipes away/back.
+  const [prepared, setPrepared] = useState(false);
+  useEffect(() => {
+    if (active || prepare) setPrepared(true);
+  }, [active, prepare]);
+  const callbackRef = useRef(onLoadStateChange);
+  callbackRef.current = onLoadStateChange;
+  const routeSafe = isBuklodPassiveAdAllowed({
+    placement: 'reels',
+    placementId: 'reels_inline',
+    pathname,
+  });
+  const requestKey = String(slotId ?? 'reels-default').slice(0, 80);
+  const canAttempt = prepared && sdkReady && online && routeSafe;
+  const [requested, setRequested] = useState(false);
+  useEffect(() => {
+    if (canAttempt) setRequested(true);
+  }, [canAttempt]);
 
   const [nativeAd, setNativeAd] =
     useState<NativeAd | null>(null);
+  const renderedRef=useRef(false);
 
   const [nativeFailed, setNativeFailed] =
     useState(false);
@@ -66,15 +97,7 @@ export default function BuklodReelsInlineAd({
   const bannerTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const appEnv =
-    envValue(
-      process.env.EXPO_PUBLIC_APP_ENV ||
-        'development',
-    ).toLowerCase();
-
-  const testMode =
-    __DEV__ ||
-    appEnv !== 'production';
+  const testMode = buklodAdsTestMode;
 
   const nativeUnitId =
     useMemo(() => {
@@ -94,10 +117,7 @@ export default function BuklodReelsInlineAd({
       );
     }, [testMode]);
 
-  const bannerUnitId =
-    getBuklodBannerUnitId(
-      'community' as BuklodAdPlacement,
-    );
+  const bannerUnitId = getBuklodBannerUnitId('reels');
 
   const adWidth =
     Math.max(
@@ -108,50 +128,34 @@ export default function BuklodReelsInlineAd({
     );
 
   useEffect(() => {
-    if (!active) return;
-
-    let mounted = true;
-
-    void initializeBuklodAds()
-      .then((ready) => {
-        if (mounted) {
-          setSdkReady(
-            Boolean(ready),
-          );
-        }
-      })
-      .catch((error) => {
-        console.warn(
-          'BUKLOD Reels AdMob init:',
-          error,
-        );
-
-        if (mounted) {
-          setSdkReady(false);
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [active]);
-
-  useEffect(() => {
-    if (
-      !active ||
-      !sdkReady ||
-      !nativeUnitId
-    ) {
+    // After first eligible request, retain its loaded NativeAd until this
+    // row unmounts; temporary background/network changes must not destroy it.
+    if (!requested) return;
+    if (!nativeUnitId) {
       setNativeFailed(true);
+      return;
+    }
+    if (!reserveBuklodPassiveAdRequest('reels_inline', requestKey)) {
+      // A recycled ad slot must not generate duplicate requests.
+      setNativeFailed(true);
+      setBannerFailed(true);
       return;
     }
 
     let cancelled = false;
+    let timedOut = false;
     let createdAd: NativeAd | null = null;
+    let impressionSub: { remove: () => void } | null = null;
+    recordBuklodAdEvent('reels_inline', 'ad_request', undefined, {
+      placementId: 'reels_inline', route: pathname,
+    });
 
     nativeTimeoutRef.current =
       setTimeout(() => {
         if (!cancelled) {
+          timedOut = true;
+          recordBuklodAdEvent('reels_inline', 'ad_failed',
+            new Error('REELS_NATIVE_TIMEOUT'), { placementId: 'reels_inline', route: pathname });
           setNativeFailed(true);
         }
       }, AD_LOAD_TIMEOUT_MS);
@@ -165,7 +169,7 @@ export default function BuklodReelsInlineAd({
       .then((ad) => {
         createdAd = ad;
 
-        if (cancelled) {
+        if (cancelled || timedOut) {
           ad.destroy();
           return;
         }
@@ -179,6 +183,13 @@ export default function BuklodReelsInlineAd({
           nativeTimeoutRef.current = null;
         }
 
+        impressionSub = ad.addAdEventListener(
+          NativeAdEventType.IMPRESSION,
+          () => recordBuklodAdEvent('reels_inline', 'ad_impression',
+            undefined, { placementId: 'reels_inline', route: pathname }),
+        );
+        recordBuklodAdEvent('reels_inline', 'ad_loaded', undefined,
+          { placementId: 'reels_inline', route: pathname });
         setNativeAd(ad);
       })
       .catch((error) => {
@@ -196,7 +207,9 @@ export default function BuklodReelsInlineAd({
           error,
         );
 
-        if (!cancelled) {
+        if (!cancelled && !timedOut) {
+          recordBuklodAdEvent('reels_inline', 'ad_failed', error,
+            { placementId: 'reels_inline', route: pathname });
           setNativeFailed(true);
         }
       });
@@ -213,21 +226,20 @@ export default function BuklodReelsInlineAd({
         nativeTimeoutRef.current = null;
       }
 
-      if (createdAd) {
-        createdAd.destroy();
-      }
+      impressionSub?.remove();
+      createdAd?.destroy();
     };
   }, [
-    active,
-    sdkReady,
+    requested,
     nativeUnitId,
-    slotId,
+    pathname,
+    requestKey,
   ]);
 
   useEffect(() => {
     if (
       !active ||
-      !sdkReady ||
+      !canAttempt ||
       !nativeFailed ||
       !bannerUnitId ||
       bannerLoaded ||
@@ -253,7 +265,7 @@ export default function BuklodReelsInlineAd({
     };
   }, [
     active,
-    sdkReady,
+    canAttempt,
     nativeFailed,
     bannerUnitId,
     bannerLoaded,
@@ -261,12 +273,22 @@ export default function BuklodReelsInlineAd({
     slotId,
   ]);
 
-  if (
-    !active ||
-    !sdkReady
-  ) {
-    return null;
-  }
+  const adState: BuklodReelsAdLoadState =
+    !sdkReady || !routeSafe || !online ? 'unavailable' :
+    (nativeAd && !nativeFailed) || (bannerLoaded && !bannerFailed) ? 'ready' :
+    (nativeFailed && (bannerFailed || !bannerUnitId)) ? 'unavailable' : 'loading';
+  useEffect(() => {
+    if (prepared) callbackRef.current?.(adState);
+  }, [adState, prepared]);
+  useEffect(() => {
+    if (active && adState==='ready' && !renderedRef.current) {
+      renderedRef.current=true;
+      recordBuklodAdEvent('reels_inline','ad_rendered',undefined,
+        {placementId:'reels_inline',route:pathname});
+    }
+  },[active,adState,pathname]);
+
+  if (!active || !sdkReady || !routeSafe || !online) return null;
 
   if (
     nativeAd &&
@@ -370,6 +392,10 @@ export default function BuklodReelsInlineAd({
         }
       >
         <BannerAd
+          onAdImpression={()=>{
+            recordBuklodAdEvent('reels_inline','ad_impression',undefined,
+              {placementId:'reels_inline',route:pathname});
+          }}
           unitId={
             bannerUnitId
           }
@@ -393,9 +419,9 @@ export default function BuklodReelsInlineAd({
               bannerTimeoutRef.current = null;
             }
 
-            setBannerLoaded(
-              true,
-            );
+            recordBuklodAdEvent('reels_inline', 'ad_loaded', undefined,
+              { placementId: 'reels_inline', route: pathname });
+            setBannerLoaded(true);
           }}
           onAdFailedToLoad={(error) => {
             if (
@@ -412,9 +438,9 @@ export default function BuklodReelsInlineAd({
               error,
             );
 
-            setBannerFailed(
-              true,
-            );
+            recordBuklodAdEvent('reels_inline', 'ad_failed', error,
+              { placementId: 'reels_inline', route: pathname });
+            setBannerFailed(true);
           }}
         />
       </View>
