@@ -84,3 +84,39 @@ test('all reflection monitors show read-only status, no retired approval buttons
   assert.match(staff, /Lesson answers and personal reflections are validated by BUKLOD AI/);
   assert.match(learn, /AI Approved/);
 });
+
+test('R4 server gate requires real Gemini for every saved and awarded lesson answer', () => {
+  const m4 = read('supabase/migrations/20261110114700_formation_real_ai_server_enforcement_r4.sql');
+  const helper = m4.split('CREATE OR REPLACE FUNCTION public.buklod_lesson_ai_answer_checked_v3')[1]
+    ?.split('CREATE OR REPLACE FUNCTION public.buklod_lesson_ai_auto_approval_ready_v1')[0] ?? '';
+  const ready = m4.split('CREATE OR REPLACE FUNCTION public.buklod_lesson_ai_auto_approval_ready_v1')[1]
+    ?.split('CREATE OR REPLACE FUNCTION public.assert_buklod_response_validated_v1')[0] ?? '';
+  const assertions = m4.split('CREATE OR REPLACE FUNCTION public.assert_buklod_response_validated_v1')[1]
+    ?.split('CREATE OR REPLACE FUNCTION public.submit_my_formation_lesson_for_validation_v1')[0] ?? '';
+  const submission = m4.split('CREATE OR REPLACE FUNCTION public.submit_my_formation_lesson_for_validation_v1')[1] ?? '';
+  assert.match(helper, /coalesce\(v_attempt\.model,''\) NOT LIKE 'gemini-%'/);
+  assert.match(helper, /coalesce\(v_attempt\.fail_open,true\) <> false/);
+  assert.match(helper, /serverVerifiedLessonId/);
+  assert.match(helper, /serverVerifiedContentHash/);
+  assert.match(helper, /v_attempt\.created_at < greatest\(/);
+  assert.match(helper, /a\.answer_hash=v_hash/);
+  assert.match(helper, /v_question = v_lesson\.generated_questions_fil/);
+  assert.match(ready, /jsonb_array_length\(v_answers\)<>4/);
+  assert.match(ready, /buklod_lesson_ai_answer_checked_v3/);
+  assert.match(assertions, /IF coalesce\(p_question_id,''\) LIKE 'lesson:%' THEN/);
+  assert.doesNotMatch(assertions.split('IF coalesce((cfg')[0], /buklod_ai_validation_overrides/);
+  assert.match(submission, /buklod_try_auto_approve_lesson_v2\(v_approval_id\)/);
+  assert.doesNotMatch(submission, /buklod_try_auto_approve_lesson_v1\(/);
+  assert.match(submission, /status='REJECTED',approver_id=NULL/);
+});
+
+test('lesson UI catches AI outages without double submission or false failed point reports', () => {
+  const ui = read('src/components/LearningQuestionResponse.tsx');
+  assert.match(ui, /const submissionLock = useRef\(false\)/);
+  assert.match(ui, /if \(submissionLock\.current\) return/);
+  assert.match(ui, /submissionLock\.current = true/);
+  assert.match(ui, /submissionLock\.current = false/);
+  assert.match(ui, /const validated = await validateAllFields\(normalized, reflectionText\)/);
+  assert.match(ui, /try \{\s*await showBuklodAdOpportunity\('formation_lesson_success'\)/);
+  assert.match(ui, /Unable to verify this response/);
+});
