@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
-  adminFinalizeCommunityUserPool, adminRecordCommunityWallFinancialEntry, formatMinorPhp,
+  adminRecordCommunityWallFinancialEntry, formatMinorPhp,
   loadAdminCommunityEconomy, type CommunityAdminEconomy,
 } from '@/lib/buklodCommunityContributionEconomy';
 
@@ -18,18 +18,18 @@ export default function BuklodCommunityEconomyAdminCard({periodKey}:{periodKey:s
   useEffect(()=>{void load();},[load]);
   const categories=direction==='revenue'?REVENUE:COSTS; const margin=data?.video_wall.margin;
   const submit=async()=>{const n=Number(amount);if(!Number.isFinite(n)||n<0){Alert.alert('Video Wall P&L','Enter a valid non-negative amount.');return;}setBusy(true);try{await adminRecordCommunityWallFinancialEntry({periodKey,direction,amount:n,category,sourceSystem:source,externalReference:reference,reconciliationState:state,userPoolDesignated:designated});setAmount('');setReference('');await load();Alert.alert('Video Wall P&L','Financial entry recorded.');}catch(e:any){Alert.alert('Video Wall P&L',e?.message||'Could not record the entry.');}finally{setBusy(false)}};
-  const finalize=()=>Alert.alert('Finalize Community User Revenue Pool?','Finalization is server-gated, requires a funded finalized period, no held QMP, and explicitly designated reconciled revenue.',[{text:'Cancel',style:'cancel'},{text:'Finalize',style:'destructive',onPress:()=>void(async()=>{setBusy(true);try{await adminFinalizeCommunityUserPool(periodKey,'Finalized from Community Wall FBC');await load();Alert.alert('Community User Pool','Final settlement completed.');}catch(e:any){Alert.alert('Community User Pool',e?.message||'Finalization blocked.');}finally{setBusy(false)}})()}]);
+  // Legacy Community finalization is retired: Finance V3 is the sole payer.
   return <View style={s.shell}>
-    <View style={s.titleRow}><MaterialCommunityIcons name="chart-line" size={20} color="#1E6B45"/><View style={{flex:1}}><Text style={s.title}>Community Wall Ã‚Â· Video Wall P&L</Text><Text style={s.sub}>Actual reconciled economics + QMP User Revenue Pool.</Text></View></View>
+    <View style={s.titleRow}><MaterialCommunityIcons name="chart-line" size={20} color="#1E6B45"/><View style={{flex:1}}><Text style={s.title}>Community Wall Ã‚Â· Video Wall P&L</Text><Text style={s.sub}>Community P&L analytics only. Cash distribution is exclusively canonical Finance V3.</Text></View></View>
     {data?<><View style={s.metrics}><Metric label="Revenue" value={formatMinorPhp(data.video_wall.revenue_minor)}/><Metric label="Costs" value={formatMinorPhp(data.video_wall.cost_minor)}/><Metric label="Contribution" value={formatMinorPhp(data.video_wall.contribution_minor)}/><Metric label="Actual margin" value={margin==null?'Ã¢â‚¬â€':`${(margin*100).toFixed(1)}%`}/></View><Text style={s.note}>{data.video_wall.management_target}</Text><Text style={s.note}>{data.video_wall.note}</Text><View style={s.metrics}><Metric label="Total QMP" value={String(data.community_contribution.total_qualified_qmp)}/><Metric label="Qualified users" value={String(data.community_contribution.qualified_users)}/><Metric label="Held QMP" value={String(data.community_contribution.fraud_held_qmp)}/><Metric label="User pool" value={formatMinorPhp(data.community_contribution.user_pool_minor)}/></View></>:<Text style={s.note}>No Community economy summary yet for {periodKey}.</Text>}
     <Text style={s.section}>RECORD VIDEO WALL REVENUE / COST</Text>
     <View style={s.segmentRow}>{(['revenue','cost'] as const).map(v=><Pressable key={v} onPress={()=>{setDirection(v);setCategory(v==='revenue'?'ADS':'STORAGE');if(v==='cost')setDesignated(false)}} style={[s.segment,direction===v&&s.segmentOn]}><Text style={[s.segmentText,direction===v&&s.segmentTextOn]}>{v.toUpperCase()}</Text></Pressable>)}</View>
     <View style={s.chips}>{categories.map(v=><Pressable key={v} onPress={()=>setCategory(v)} style={[s.chip,category===v&&s.chipOn]}><Text style={[s.chipText,category===v&&s.chipTextOn]}>{v.replace(/_/g,' ')}</Text></Pressable>)}</View>
     <TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="Amount in PHP" style={s.input}/><TextInput value={source} onChangeText={setSource} placeholder="Provider / source system" style={s.input}/><TextInput value={reference} onChangeText={setReference} placeholder="Statement / invoice / reference" style={s.input}/>
     <View style={s.segmentRow}>{(['ESTIMATED','RECONCILED'] as const).map(v=><Pressable key={v} onPress={()=>setState(v)} style={[s.segment,state===v&&s.segmentOn]}><Text style={[s.segmentText,state===v&&s.segmentTextOn]}>{v}</Text></Pressable>)}</View>
-    {direction==='revenue'?<Pressable onPress={()=>setDesignated(v=>!v)} style={[s.designate,designated&&s.designateOn]}><MaterialCommunityIcons name={designated?'checkbox-marked':'checkbox-blank-outline'} size={18} color="#1E6B45"/><Text style={s.designateText}>Explicitly designate this finalized eligible revenue to the User Revenue Pool</Text></Pressable>:null}
+    {direction==='revenue'?<Pressable onPress={()=>setDesignated(v=>!v)} style={[s.designate,designated&&s.designateOn]}><MaterialCommunityIcons name={designated?'checkbox-marked':'checkbox-blank-outline'} size={18} color="#1E6B45"/><Text style={s.designateText}>Legacy P&L designation only (does not credit Finance V3 user cash)</Text></Pressable>:null}
     <Pressable disabled={busy} onPress={()=>void submit()} style={[s.action,busy&&{opacity:.5}]}><Text style={s.actionText}>ADD VIDEO WALL FINANCIAL ENTRY</Text></Pressable>
-    <Pressable disabled={busy} onPress={finalize} style={[s.finalize,busy&&{opacity:.5}]}><Text style={s.finalizeText}>FINALIZE COMMUNITY USER POOL</Text></Pressable>
+    <Text style={s.guard}>Community-only settlement has been retired. Review source-backed revenue and finalize through the canonical Finance V3 section on this page only, after all QMP reviews and identity checks pass.</Text>
     <Text style={s.guard}>Finalization is OFF by default. No raw view, ad view/click, Lifetime Point, self-view, Boost purchase, or estimated revenue directly creates cash entitlement.</Text>
   </View>
 }
