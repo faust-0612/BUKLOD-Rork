@@ -2,8 +2,8 @@
   "contractVersion": 2,
   "objective": "Retire all human approval of BUKLOD Daily Reading, Daily Devotion and formation lesson reflections, preserve automatic authenticated AI evaluation, award earned and quality points idempotently, and make all affected app monitors read-only.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub main reference cae4cbc427d877264f35390d74e15d28540e6e02 at branch fork; live Supabase BUKLOD Connect project yhanxndaqbmuzbdqlblu applied three migrations, active Gemini auto processor v18 and lesson validator v19, and read-only database regression succeeded. Actual Android APK/OTA, production web bundle, and RC device acceptance remain unverified and unpublished. R4 live Supabase production migration formation_real_ai_server_enforcement_r4 applied and read-back negative legacy rule-v1 acceptance regression passed, no feature runtime/device smoke was performed by request.",
-  "chosenApproach": "Retain canonical submission and point ledgers. Enforce server-grounded Gemini, prevent manual mutation via guarded/revoked SQL functions, calculate 5 point high-quality bonus using immutable authoritative response attempts with serialized net-delta ledger corrections; backfill only eligible history. Isolate UI, status labels, and client Gemini adapter in DEV until consolidated RC QA. R4 repairs the v1 Lesson submission caller, rejects all legacy rule-v1 claims at authoritative answer persistence AND reward readiness, requires a fresh source-bound Gemini evaluation for each required field; client prevents duplicate AI submissions, handles outages and avoids false failed status on ad errors.",
+  "productionBaselineEvidence": "verified: GitHub main reference cae4cbc427d877264f35390d74e15d28540e6e02 at branch fork; live Supabase BUKLOD Connect project yhanxndaqbmuzbdqlblu applied three migrations, active Gemini auto processor v18 and lesson validator v19, and read-only database regression succeeded. Actual Android APK/OTA, production web bundle, and RC device acceptance remain unverified and unpublished. R4 live Supabase production migration formation_real_ai_server_enforcement_r4 applied and read-back negative legacy rule-v1 acceptance regression passed, no feature runtime/device smoke was performed by request. Production Supabase R5 applied, read-only DB contract passed for enrollment-bound drafts, no rule-v1 reward bypass, and automatic quality bonus ledger integrity.",
+  "chosenApproach": "Retain canonical submission and point ledgers. Enforce server-grounded Gemini, prevent manual mutation via guarded/revoked SQL functions, calculate 5 point high-quality bonus using immutable authoritative response attempts with serialized net-delta ledger corrections; backfill only eligible history. Isolate UI, status labels, and client Gemini adapter in DEV until consolidated RC QA. R4 repairs the v1 Lesson submission caller, rejects all legacy rule-v1 claims at authoritative answer persistence AND reward readiness, requires a fresh source-bound Gemini evaluation for each required field; client prevents duplicate AI submissions, handles outages and avoids false failed status on ad errors. R5 preserves draft saving for old clients while the Gemini-only finalization/points gate stays enforced, avoiding loss of user text between app and OTA releases.",
   "selectionRationale": "Current system already credits ordinary reading/devotion rewards on AI finalization, but the separately configured reflection-quality bonus was previously manual-only and old lesson auto-approval impersonated reviewers and referenced a missing helper. Preserve genuine individual source evidence, existing offline/ad paths, and unrelated mentoring action verification.",
   "alternativeApproaches": [
     "Automatically credit every submitted reflection without AI evidence (rejected: low-quality and manipulated reward risk)",
@@ -26,7 +26,8 @@
     "tests/formation-ai-only-reflections-and-points-20261109.test.mjs",
     ".buklod/scopes/formation-ai-only-reflections-points-20261109.json",
     "src/components/LearningQuestionResponse.tsx",
-    "supabase/migrations/20261110114700_formation_real_ai_server_enforcement_r4.sql"
+    "supabase/migrations/20261110114700_formation_real_ai_server_enforcement_r4.sql",
+    "supabase/migrations/20261110120500_formation_draft_save_compatibility_r5.sql"
   ],
   "preserveBehaviors": [
     "Active authenticated learner and exact cluster entitlement checks remain mandatory.",
@@ -58,6 +59,7 @@
     "R4 read-only SQL confirms even historically accepted rule-v1 responses cannot qualify as newly validated lesson answers or trigger fresh points.",
     "Lesson submission v1 invokes safe AI auto-approval v2 with a rejection/retry path instead of human approval queue.",
     "New lesson validation client protects against double taps, reports AI network failure, keeps saved work and does not mark ad failures as failed lesson rewards.",
-    "Automation/CI TypeScript and integration tests gate the exact final DEV head before consolidated OTA preparation."
+    "Automation/CI TypeScript and integration tests gate the exact final DEV head before consolidated OTA preparation.",
+    "R5 older clients can save authenticated enrollment-bound lesson drafts; only Gemini-verified submissions are eligible for new lesson completion/points."
   ]
 }
