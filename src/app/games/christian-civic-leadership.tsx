@@ -134,10 +134,12 @@ function ChristianGameCenterContent() {
         {!!user?.id && completedGameId === (selectedGame === 'council' ? GAME_ID : previewGameId) ? (
           <>
             <KingdomMasteryCheck key={user.id + ':' + completedGameId} gameId={completedGameId} />
-            <KingdomOfflineContinuation key={'offline:' + user.id + ':' + completedGameId} gameId={completedGameId} />
             <KingdomAIContinuation key={user.id + ':' + completedGameId} gameId={completedGameId} />
           </>
         ) : null}
+        {!!user?.id ? <KingdomOfflineContinuation
+          key={'offline:' + user.id + ':' + (selectedGame === 'council' ? GAME_ID : previewGameId)}
+          gameId={selectedGame === 'council' ? GAME_ID : previewGameId} /> : null}
         <BuklodAdMobBanner placement="content" compact placementId="kingdom-game-center-christian" />
       </View>
     </ScrollView>
