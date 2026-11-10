@@ -61,3 +61,20 @@ test('Weekly Point awards are server-side, bounded and idempotent',()=>{
    assert.ok(sql.includes(key),key);
  assert.ok(!sql.includes('grant insert on public.buklod_weekly_tip_interactions_v1 to authenticated'));
 });
+
+test('Saved weekly Dugtong appears beneath the tip and is private until Wall share',()=>{
+ const screen=read('src/components/BuklodTodayCard.tsx');
+ assert.match(screen,/hasSavedDugtong&&<View style=\{s\.savedDugtong\}/);
+ assert.match(screen,/Ang Dugtong mo/);
+ assert.match(screen,/\{tip\.my_dugtong\}/);
+ assert.match(screen,/Pribado/);
+ assert.match(screen,/I-edit ang Dugtong/);
+ assert.match(screen,/setDraft\(tip\.my_dugtong\?\?''\);setEditing\(false\)/);
+ assert.match(screen,/my_dugtong:dugtong\?\?current\.my_dugtong/);
+ assert.ok(screen.indexOf('if(data?.ok!==true)throw')<screen.indexOf('setTip(current=>current?'));
+ assert.match(screen,/!hasSavedDugtong\|\|editing/);
+ assert.match(screen,/unchangedDugtong/);
+ const home=read('src/app/(tabs)/hub.tsx');
+ assert.match(home,/homeTodayDraft: draft \?\? ''/);
+ assert.match(screen,/onRespond\(draft\.trim\(\)\|\|tip\.my_dugtong/);
+});
