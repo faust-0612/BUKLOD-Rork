@@ -67,6 +67,8 @@ jobs:
           node --test tests/music-library-live-scrub-folders-20261109.test.mjs tests/circle-rank-badges-recognition-20261109.test.mjs tests/buklod-notification-latency-20261109.test.mjs tests/ptt-quiet-notifications-20261109.test.mjs tests/community-revenue-member-ui-20261109.test.mjs tests/faith-offline-prefetch-20261109.test.mjs
           node --test tests/wall-media-navigation-polish-20261108.test.mjs tests/ota-navigation-scroll-polish-20261108.test.mjs tests/admin-music-multiselect-motion-drawer-20261108.test.mjs
           node --test tests/buklod-earnings-final-source-clarity-20261109.test.mjs tests/community-admob-preview-contract.test.cjs
+      - name: Wall fullscreen video performance and playback regression
+        run: node --test tests/community-video-navigation-scroll.test.mjs tests/community-fullscreen-video-ota-20261111.test.mjs
       - name: Bible Quiz V4 events, R3 compatibility, points and noncash ads contracts
         run: node --test tests/buklod-bible-v4-events-kingdom-20261109.test.mjs tests/bible-v4-quiz-compat-20261109.test.mjs tests/bible-v4-ads-separation-20261109.test.mjs
       - name: Verify Home/Profile Health Center external-door privacy and route gate
