@@ -39,8 +39,12 @@
     "mobile-reels-memory"
   ],
   "regressionTests": [
-    "tests/igpat-fast-start-video-20261110.test.mjs",
-    "tests/community-video-playback-recovery.test.mjs",
-    "tests/community-video-ad-layout-20261107.test.mjs"
+    "tests/igpat-fast-start-video-20261110.test.mjs"
+  ],
+  "alternativeApproaches": [
+    "Move BUKLOD Main hosting from Expo to Vercel or a new provider (rejected: Expo Hosting already serves production and provider migration would add cost/routing risk)",
+    "Add AWS MediaConvert or another paid transcoder (rejected: owner explicitly disallows AWS spend)",
+    "Download all videos before opening IGPAT (rejected: excessive network/data use, signed URL lifetime and private-media cache risk)",
+    "Progressive signing and one-next-video warm preload using existing Expo runtime (selected)"
   ]
 }
