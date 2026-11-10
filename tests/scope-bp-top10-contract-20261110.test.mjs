@@ -25,5 +25,6 @@ test('only ACTIVE exact-scope members can see lifetime BP; max ten rows', () => 
   assert.match(ui, /get_buklod_scope_bp_top10_v1/);
   assert.match(ui, /\.slice\(0, 10\)/);
   assert.match(ui, /useFocusEffect/);
+  assert.match(ui, /loadedFor === identityKey/);
   assert.doesNotMatch(ui, /AsyncStorage|useBuklodOfflineCache/);
 });

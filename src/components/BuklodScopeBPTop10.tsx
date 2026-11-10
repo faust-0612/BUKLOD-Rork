@@ -14,11 +14,15 @@ export default function BuklodScopeBPTop10({ scopeId, scopeType }: Props) {
   const [rows, setRows] = useState<RankRow[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'restricted'>('loading');
   const [reload, setReload] = useState(0);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const identityKey = `${scopeId}:${user?.id ?? ''}`;
 
   useFocusEffect(useCallback(() => {
     let active = true;
     setRows([]);
+    setLoadedFor(null);
     if (!scopeId || !user?.id) {
+      setLoadedFor(identityKey);
       setStatus('restricted');
       return () => { active = false; };
     }
@@ -30,6 +34,7 @@ export default function BuklodScopeBPTop10({ scopeId, scopeType }: Props) {
         if (!active) return;
         if (error) {
           setRows([]);
+          setLoadedFor(identityKey);
           setStatus(String(error.code ?? '') === '42501' ? 'restricted' : 'error');
           return;
         }
@@ -42,16 +47,20 @@ export default function BuklodScopeBPTop10({ scopeId, scopeType }: Props) {
           }))
           .filter((row: RankRow) => Boolean(row.user_id && row.rank_position > 0));
         setRows(next);
+        setLoadedFor(identityKey);
         setStatus('ready');
       } catch {
         if (active) {
           setRows([]);
+          setLoadedFor(identityKey);
           setStatus('error');
         }
       }
     })();
     return () => { active = false; };
-  }, [scopeId, user?.id, reload]));
+  }, [scopeId, user?.id, reload, identityKey]));
+  const displayStatus = loadedFor === identityKey ? status : 'loading';
+  const displayRows = loadedFor === identityKey ? rows : [];
   const retry = useCallback(() => setReload(value => value + 1), []);
 
   return (
@@ -67,18 +76,18 @@ export default function BuklodScopeBPTop10({ scopeId, scopeType }: Props) {
       <Text style={styles.subtitle}>
         Lifetime BUKLOD Points · Active {scopeType === 'CLUSTER' ? 'Cluster' : 'Organization'} members only
       </Text>
-      {status === 'loading' ? (
+      {displayStatus === 'loading' ? (
         <View style={styles.loading}><ActivityIndicator size="small" color="#156B9F" />
           <Text style={styles.message}>Loading member rankings…</Text></View>
-      ) : status === 'restricted' ? (
+      ) : displayStatus === 'restricted' ? (
         <Text style={styles.message}>Available to active members only.</Text>
-      ) : status === 'error' ? (
+      ) : displayStatus === 'error' ? (
         <Text style={styles.message}>Rankings unavailable. Tap refresh to retry.</Text>
-      ) : rows.length === 0 ? (
+      ) : displayRows.length === 0 ? (
         <Text style={styles.message}>No active members to rank yet.</Text>
       ) : (
         <View style={styles.list}>
-          {rows.map(row => (
+          {displayRows.map(row => (
             <View key={row.user_id} style={[styles.row, row.user_id === user?.id && styles.mine]}
               accessibilityLabel={`Rank ${row.rank_position}, ${row.full_name}, ${row.total_points} BP`}>
               <Text style={[styles.rank, row.rank_position <= 3 && styles.top]}>#{row.rank_position}</Text>
