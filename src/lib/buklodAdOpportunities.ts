@@ -67,6 +67,8 @@ const BREAKS = {
   bible_flash_submission_success: { reason: 'content_session_completed', placement: 'interstitial_bible_flash_completed' },
   bible_arena_round_complete: { reason: 'content_session_completed', placement: 'interstitial_bible_arena_completed' },
   kingdom_mastery_verified: { reason: 'content_session_completed', placement: 'interstitial_kingdom_mastery_verified' },
+  // Local game session results may have ads, never real BP/XP or monetary rewards.
+  kingdom_game_completed: { reason: 'game_session_completed', placement: 'interstitial_kingdom_game_completed' },
   bulletin_published_success: {
     reason: 'content_session_completed',
     placement: 'interstitial_scope_bulletin_published',
@@ -85,7 +87,9 @@ export function warmBuklodAdOpportunity(event: BuklodAdOpportunity): void {
 }
 
 /**
- * Call ONLY after server-confirmed success. Failure/no fill is a no-op.
+ * Call after server-confirmed reward success, or (for kingdom_game_completed)
+ * after the account-scoped local game session was durably recorded.
+ * Failure/no fill is a no-op.
  * No credit, reward mutation or re-submission is performed by this module.
  */
 export async function showBuklodAdOpportunity(
