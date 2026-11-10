@@ -29,6 +29,8 @@ import {getClusterLabels,formatClusterName} from '@/lib/clusterLabels'; // PATCH
 import {Button,Card,SectionTitle,shared} from '@/components/UI';
 import {colors} from '@/lib/theme';
 import {useAuth} from '@/providers/AuthProvider';
+import {recordConfirmedCommunityComment} from '@/lib/buklodCommunityCommentAdCadence';
+import {warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
 
 
 import BuklodPostInternalShare
@@ -221,6 +223,10 @@ export default function PostDetail(){
    );
   }
 
+  if(user?.id){
+   const adCount=recordConfirmedCommunityComment(String(user.id));
+   if(adCount.shouldWarm)warmBuklodAdOpportunity('community_comment_overage');
+  }
   setComment('');
   setReplyTo(null);
   await load();
