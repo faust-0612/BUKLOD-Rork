@@ -380,6 +380,14 @@ function itemMatchesView(item: SmartDrawerItem, view: string) {
       return active && ['TASK', 'DUE_TASK'].includes(item.type);
     case 'reference':
       return active && item.type === 'REFERENCE';
+    case 'receipts':
+      return active && item.type === 'RECEIPT';
+    case 'notices':
+      return active && item.type === 'NOTICE';
+    case 'contacts':
+      return active && item.type === 'CONTACT_REFERENCE';
+    case 'notes':
+      return active && ['QUICK_NOTE', 'OTHER'].includes(item.type);
     case 'archive':
       return (
         item.status === 'ARCHIVED' ||
@@ -455,6 +463,14 @@ function nativeViewWhere(view: string) {
         sql: "i.status='ACTIVE' AND i.type='REFERENCE'",
         params: [],
       };
+    case 'receipts':
+      return { sql: "i.status='ACTIVE' AND i.type='RECEIPT'", params: [] };
+    case 'notices':
+      return { sql: "i.status='ACTIVE' AND i.type='NOTICE'", params: [] };
+    case 'contacts':
+      return { sql: "i.status='ACTIVE' AND i.type='CONTACT_REFERENCE'", params: [] };
+    case 'notes':
+      return { sql: "i.status='ACTIVE' AND i.type IN ('QUICK_NOTE','OTHER')", params: [] };
     case 'archive':
       return {
         sql: "i.status IN ('ARCHIVED','DONE')",
