@@ -32,7 +32,7 @@
   ],
   "regressionTests": [
     "tests/bahay-kasambahay-invite-20261110.test.cjs",
-    "Live rollback-only transactional Supabase e2e positive/negative auth test 2026-11-10 (passed)"
+    "supabase/tests/buklod_bahay_invite_20261110.sql"
   ],
   "allowedPaths": [
     ".buklod/scopes/bahay-kasambahay-invite-20261110.json",
@@ -40,6 +40,12 @@
     "src/components/home/BuklodBahayHome.tsx",
     "src/lib/buklodBahay.ts",
     "supabase/migrations/20261110113000_buklod_bahay_invite_suggestions.sql",
-    "tests/bahay-kasambahay-invite-20261110.test.cjs"
+    "tests/bahay-kasambahay-invite-20261110.test.cjs",
+    "supabase/tests/buklod_bahay_invite_20261110.sql"
+  ],
+  "alternativeApproaches": [
+    "Manual exact-identifier-only search (rejected: no suggestions and fragile for people without a known @username)",
+    "Direct client-side profiles table query (rejected: can bypass member privacy and exposes too much identity information)",
+    "Server-gated bounded suggestions plus typed name/username matching and UUID invite RPC (chosen)"
   ]
 }
