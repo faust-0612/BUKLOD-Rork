@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
+import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
+import { KingdomMasteryCheck } from '@/features/games/kingdom/platform/KingdomMasteryCheck';
+import { KingdomAIContinuation } from '@/features/games/kingdom/platform/KingdomAIContinuation';
 import { MergeGameV1 } from '@/features/games/kingdom/platform/MergeGameV1';
 import { BlockForgeGameV1 } from '@/features/games/mitch/BlockForgeGameV1';
 import { RestoreMuralGameV1 } from '@/features/games/mitch/RestoreMuralGameV1';
@@ -24,6 +27,7 @@ function MitchInterior() {
   const [selected, setSelected] = useState<'mural' | 'forge' | 'merge'>('forge');
   const [record, setRecord] = useState<KingdomPreviewRecord | null>(null);
   const [notice, setNotice] = useState('');
+  const [completedGameId, setCompletedGameId] = useState('');
   const liveOwner = useRef(user?.id ?? null);
   const liveSelected = useRef(selected);
   liveOwner.current = user?.id ?? null;
@@ -53,6 +57,7 @@ function MitchInterior() {
         if (liveOwner.current !== owner || liveSelected.current !== (result.gameId === MERGE_ID ? 'merge' : 'forge')) return;
         setRecord(r);
         setNotice(t('Saved on this device. No Character Points were awarded.', 'Na-save sa device. Walang Character Points na naibigay.'));
+        if (result.status === 'won') setCompletedGameId(result.gameId);
       })
       .catch(() => {
         if (liveOwner.current === owner && liveSelected.current === (result.gameId === MERGE_ID ? 'merge' : 'forge')) setNotice(t('Could not save locally.', 'Hindi na-save sa device.'));
@@ -87,7 +92,19 @@ function MitchInterior() {
       </View>
       {selected === 'mural' ? (
         <View style={styles.originalGame}>
-          <RestoreMuralGameV1 key={user?.id ?? 'guest'} onFinish={(result) => { void recordBuklodKingdomPreviewResult(result, user?.id ?? null).catch(() => undefined); }} />
+          <RestoreMuralGameV1 key={user?.id ?? 'guest'} onFinish={(result) => {
+            const owner = user?.id;
+            void recordBuklodKingdomPreviewResult(result, owner).then(() => {
+              if (owner && liveOwner.current === owner && result.status === 'won') setCompletedGameId(result.gameId);
+            }).catch(() => undefined);
+          }} />
+          {!!user?.id && completedGameId === GAME_ID ? (
+            <View style={styles.rewardExtras}>
+              <KingdomMasteryCheck key={user.id + ':' + GAME_ID} gameId={GAME_ID} />
+              <KingdomAIContinuation key={user.id + ':' + GAME_ID} gameId={GAME_ID} />
+            </View>
+          ) : null}
+          <BuklodAdMobBanner placement="content" compact placementId="kingdom-game-center-mitch" />
         </View>
       ) : (
         <ScrollView style={styles.forgeScroll} contentContainerStyle={styles.forgeContent}>
@@ -99,6 +116,13 @@ function MitchInterior() {
           ) : (
             <BlockForgeGameV1 key={user?.id ?? 'guest'} onFinish={handleForgeFinish} />
           )}
+          {!!user?.id && completedGameId === (selected === 'merge' ? MERGE_ID : FORGE_ID) ? (
+            <View style={styles.rewardExtras}>
+              <KingdomMasteryCheck key={user.id + ':' + completedGameId} gameId={completedGameId} />
+              <KingdomAIContinuation key={user.id + ':' + completedGameId} gameId={completedGameId} />
+            </View>
+          ) : null}
+          <BuklodAdMobBanner placement="content" compact placementId="kingdom-game-center-mitch" />
         </ScrollView>
       )}
     </View>
@@ -122,6 +146,7 @@ const styles = StyleSheet.create({
   optionText: { color: '#fff1df', fontSize: 13, fontWeight: '900' },
   optionSub: { color: '#e0cbbf', fontSize: 10, marginTop: 3 },
   originalGame: { flex: 1, paddingTop: 8, paddingBottom: 28 },
+  rewardExtras: { paddingHorizontal: 10, paddingVertical: 8, gap: 11 },
   forgeScroll: { flex: 1 },
   forgeContent: { paddingHorizontal: 9, paddingBottom: 32 },
   record: { color: '#f7dfc6', fontSize: 12, fontWeight: '900', paddingTop: 6 },
