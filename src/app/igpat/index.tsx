@@ -253,6 +253,7 @@ export default function IgpatScreen() {
   const [followBusy, setFollowBusy] = useState<Set<string>>(new Set());
   const [reactionBusy, setReactionBusy] = useState<Set<string>>(new Set());
   const viewportHeight = Dimensions.get('window').height;
+  useEffect(() => { setReelsAdStates({}); }, [feedMode]);
   const feedRows = useMemo(() => {
     const feed=buildReelsFeedWithInlineAds(rows);
     // No reel session should end on a sponsored placeholder.
