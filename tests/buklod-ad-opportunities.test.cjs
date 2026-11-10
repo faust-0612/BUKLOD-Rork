@@ -16,7 +16,17 @@ test('ad opportunities are server-success breaks, never required to claim or sub
   assert.ok(learning.indexOf("'complete_my_formation_lesson_v2'") < learning.indexOf("await showBuklodAdOpportunity('formation_lesson_success')"));
   assert.match(devotional, /BuklodSubmissionAdSlot placementId="devotional_reflection_before_submit"/);
   assert.match(learning, /BuklodSubmissionAdSlot placementId="formation_lesson_before_submit"/);
-  assert.ok(chapter.indexOf("'kl_quiz_submit_v1'") < chapter.indexOf("showBuklodAdOpportunity('kl_chapter_success')"));
+  const submitFlow = chapter.slice(chapter.indexOf('const submit = async'), chapter.indexOf('  return (', chapter.indexOf('const submit = async')));
+  const requestAt = submitFlow.indexOf("'kl_quiz_submit_v1'");
+  const verifiedAt = submitFlow.indexOf("result.passed && result.completion?.completed === true");
+  const awardedAt = submitFlow.indexOf("result.completion.new_completion === true", verifiedAt);
+  const adAt = submitFlow.indexOf("showBuklodAdOpportunity('kl_chapter_success')", awardedAt);
+  assert.ok(requestAt >= 0 && verifiedAt > requestAt && awardedAt > verifiedAt && adAt > awardedAt,
+    'KL optional ad must run only after server-verified new chapter completion');
+  const legacyFlow = chapter.slice(chapter.indexOf('const completeLegacy = async'), chapter.indexOf('const submit = async'));
+  assert.ok(legacyFlow.indexOf('completion?.completed === true') >= 0 &&
+    legacyFlow.indexOf("showBuklodAdOpportunity('kl_chapter_success')") > legacyFlow.indexOf('completion?.completed === true'),
+    'transitional legacy ad must also follow successful server completion');
 });
 
 test('rewards are not transferable points and ad unavailability never blocks a completion', () => {
