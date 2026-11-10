@@ -10,6 +10,8 @@ const center = read('src/features/games/kingdom/platform/KingdomInteriorCenter.t
 const mastery = read('src/features/games/kingdom/platform/KingdomMasteryCheck.tsx');
 const ads = read('src/lib/buklodGlobalAdController.ts');
 const events = read('src/lib/buklodAdOpportunities.ts');
+const hint = read('src/features/games/kingdom/platform/KingdomPracticeRewardedHint.tsx');
+const hintWeb = read('src/features/games/kingdom/platform/KingdomPracticeRewardedHint.web.tsx');
 
 const segment = (text, start, end) => {
   const from = text.indexOf(start);
@@ -60,5 +62,10 @@ test('Kingdom ads do not open generic sensitive routes or grant BP', () => {
   assert.match(center, /offeredAds\.current\.has\(receiptKey\)/);
   assert.match(center, /result\.status === 'won'/);
   assert.match(center, /<BuklodAdMobBanner placement="content"/);
+  assert.match(ads, /rewarded_kingdom_practice_hint/);
+  assert.match(hint, /showBuklodRewardedAd/);
+  assert.match(hint, /result\.earned/);
+  assert.doesNotMatch(hint, /buklod_points_ledger|claimBahayGardenAdReward|award.*Points/i);
+  assert.match(hintWeb, /return null/);
   assert.doesNotMatch(events, /kingdom_game_completed[^\n]+rewarded/);
 });
