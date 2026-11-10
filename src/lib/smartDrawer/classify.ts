@@ -172,6 +172,7 @@ function matches(text: string, pattern: RegExp) {
 // and a date alone never turns a personal note into a task.
 function classifyType(text: string, dueAt: string | null, listCount: number): SmartDrawerItemType {
   const t = text.toLowerCase();
+  if (/^\s*(paalaala|paalala|notice|abiso|announcement|anunsyo)\s*:/i.test(t)) return 'NOTICE';
   if (matches(t, /\b(resibo|receipt|invoice|official receipt|payment proof|proof of payment)\b/i)) return 'RECEIPT';
   if (matches(t, /\b(appointment|check[- ]?up|consultation|dentist|doctor visit|follow[- ]?up visit|pa[- ]?checkup)\b/i)) return 'APPOINTMENT';
   if (matches(t, /\b(programa|program schedule|event program|order of service|program flow|itinerary)\b/i)) return 'PROGRAM';
