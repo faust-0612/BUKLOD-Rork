@@ -221,11 +221,16 @@ async function fetchCurrent(id,tab){
   }else if(tab==='live'){
     out.live=await call(select('buklod_education_classroom_live_sessions','id,title,status,started_at,ended_at,call_id,provider').order('created_at',{ascending:false}).limit(8));
   }else if(tab==='notices'){
-    out.notices=await call(select('buklod_education_notices','id,title,body,student_user_id,requires_ack,notice_level,visible_from,expires_at,created_at').order('created_at',{ascending:false}).limit(80));
+    out.notices=await call(select('buklod_education_notices','id,title,body,student_user_id,requires_ack,notice_level,notice_type,visible_from,expires_at,created_at').order('created_at',{ascending:false}).limit(80));
     const now=Date.now();if(!isFaculty())out.notices=out.notices.filter(x=>
       (!x.student_user_id||x.student_user_id===activeUser.id)&&
       (!x.visible_from||new Date(x.visible_from).getTime()<=now)&&
       (!x.expires_at||new Date(x.expires_at).getTime()>now));
+    const visibleIds=out.notices.map(x=>x.id).filter(isoId);
+    out.acknowledgments=(!isFaculty()&&visibleIds.length)?
+      await call(db.from('buklod_education_notice_acknowledgments')
+        .select('notice_id,acknowledged_at').in('notice_id',visibleIds)
+        .eq('user_id',activeUser.id)):[];
   }else if(tab==='grades'){
     out.grades=await call(db.rpc(isFaculty()?'buklod_classroom_gradebook_roster_v1':'buklod_classroom_student_released_grade_items_v2',{p_classroom_id:id}));
   }else if(tab==='attendance'){
@@ -289,8 +294,17 @@ window.renderTabLiveClassroom=c=>box('Live Classroom — official session status
   rows(current().live?.slice(0,8),x=>card(x.title||'Class live session',
     'Status: '+(x.status||'UNKNOWN')+' · Started: '+fmt(x.started_at)+' · Provider: '+(x.provider||'BUKLOD')))+
   empty('Audio/video sessions and recitation controls operate in the authorized BUKLOD Classroom app. This web viewer does not claim to connect to a call, assign points, or mark attendance.'));
-window.renderTabNotices=c=>box('Formal Notices & Conduct',rows(current().notices,x=>
-  card(x.title,x.body||'Official notice')));
+window.renderTabNotices=c=>box('Formal Notices & Conduct',
+  (isFaculty()?button('+ Issue formal notice','openRealNotice')+'<div style="height:12px"></div>':'')+
+  rows(current().notices,n=>{
+    const seen=(current().acknowledgments||[]).find(a=>a.notice_id===n.id);
+    return card(n.title,n.body||'Official notice')+
+      '<div class="muted" style="font-size:12px;margin:3px 0 8px">'+esc(n.notice_level||'NOTICE')+
+      ' · '+esc(fmt(n.created_at))+'</div>'+
+      (!isFaculty()&&n.requires_ack?
+        (seen?'<span class="pill-badge pill-cyan">Acknowledged '+esc(fmt(seen.acknowledged_at))+'</span>':
+          button('I ACKNOWLEDGE','acknowledgeFormalNotice',JSON.stringify(n.id))):'');
+  }));
 window.renderTabGrades=c=>box(isFaculty()?'Official Faculty Gradebook':'My Released Grades',
   isFaculty()?rows(current().grades,x=>card(x.official_name,
     'Status: '+(x.final_status||'Draft')+' · Transmuted: '+(x.transmuted_grade??'Not released')+
@@ -335,6 +349,40 @@ async function writeOnce(task){
     show('Saved successfully, but refreshing failed: '+safeError(err));
   }finally{writeBusy=false;}
 }
+window.acknowledgeFormalNotice=noticeId=>{
+  const n=current().notices?.find(x=>x.id===noticeId);
+  if(!n||!n.requires_ack||isFaculty())return show('This notice is not available to acknowledge.');
+  if((current().acknowledgments||[]).some(x=>x.notice_id===noticeId))
+    return show('This notice is already acknowledged.');
+  void writeOnce(()=>call(db.from('buklod_education_notice_acknowledgments')
+    .upsert({notice_id:n.id,user_id:activeUser.id},
+      {onConflict:'notice_id,user_id',ignoreDuplicates:true})));
+};
+window.openRealNotice=()=>{
+  if(!isFaculty())return show('Only an authorized Faculty may issue a formal notice.');
+  window.openSlideDrawer('FORMAL CLASS NOTICE','Issue official notice',
+    '<form id="realNoticeForm">'+
+    '<label class="field">Title<input name="title" maxlength="180" class="form-input" required></label>'+
+    '<label class="field">Notice type<select name="type" class="form-select"><option value="WARNING">Warning</option><option value="ACADEMIC_INTERVENTION">Academic Intervention</option><option value="ATTENDANCE">Attendance Notice</option><option value="COMMENDATION">Commendation</option></select></label>'+
+    '<label class="field">Message<textarea name="body" class="form-textarea" rows="5" maxlength="8000" required></textarea></label>'+
+    '<label><input name="ack" type="checkbox" checked> Require each enrolled student to acknowledge</label>'+
+    '<label><input name="confirm" type="checkbox" required> I confirm this is an official class-wide notice.</label>'+
+    '<button type="submit" class="btn-primary-cyan">Publish official notice</button></form>');
+  el('realNoticeForm').onsubmit=e=>{
+    e.preventDefault();
+    const f=new FormData(e.target);
+    const type=String(f.get('type'));
+    if(!['WARNING','ACADEMIC_INTERVENTION','ATTENDANCE','COMMENDATION'].includes(type))
+      return show('Invalid notice category.');
+    const title=String(f.get('title')||'').trim(),body=String(f.get('body')||'').trim();
+    if(!title||!body||f.get('confirm')!=='on')return show('Confirm the official notice.');
+    void writeOnce(()=>call(db.from('buklod_education_notices').insert({
+      classroom_id:app.activeClassId,created_by:activeUser.id,title,body,
+      notice_level:type,notice_type:type,requires_ack:f.get('ack')==='on',
+      visible_from:new Date().toISOString()
+    })));
+  };
+};
 window.openRealPost=()=>{
   if(!isFaculty())return show('Faculty access required.');
   window.openSlideDrawer('OFFICIAL POST','New Class Announcement',
@@ -401,7 +449,7 @@ const unsupported=['confirmCreateClassroom','runEightStepRosterWizard','confirmR
   'triggerQuickCheckPulse','syncQuizToGradebook','addMakeupDutyHours','toggleRleSkillCompetency',
   'saveJournalEntry','saveSpeedGraderScore','saveQuickAddItem','addAnnouncementComment',
   'pushDirectlyToGitHub','openVercelDeployDrawer','openSpeedGraderDrawer','exportGradebookCSV',
-  'acknowledgeFormalNotice','advanceGradeLifecycle','changeGradingScheme','launchInteractiveQuizDrawer',
+  'advanceGradeLifecycle','changeGradingScheme','launchInteractiveQuizDrawer',
   'postClassChatMessage','sendCallAttentionAlert','submitInteractiveQuizAttempt','submitQuickAdd',
   'syncLiveAttendanceToClass','copyFullHtmlToClipboard','downloadFullHtmlFile'];
 for(const name of unsupported)window[name]=()=>show('This action is not available in Classroom web until its secure backend workflow is verified. No records were changed.');
