@@ -47,8 +47,12 @@ begin
     or has_table_privilege('anon','public.buklod_kingdom_ai_levels_v1','SELECT') then
     raise exception 'AI level answers must not be exposed through Data API roles';
   end if;
-  if to_regprocedure('public.reserve_my_buklod_kingdom_ai_level_v1(text,integer)') is null then
+  if to_regprocedure('public.reserve_my_buklod_kingdom_ai_level_v1(uuid,text,integer)') is null then
     raise exception 'Missing rate-limited AI level reservation RPC';
+  end if;
+  if has_function_privilege('authenticated',
+      'public.reserve_my_buklod_kingdom_ai_level_v1(uuid,text,integer)','EXECUTE') then
+    raise exception 'AI quota reservation must not be accessible to authenticated users';
   end if;
   if to_regprocedure('public.start_my_buklod_kingdom_mastery_v1(text)') is null then
     raise exception 'Mastery RPC missing after anti-repeat migration';
