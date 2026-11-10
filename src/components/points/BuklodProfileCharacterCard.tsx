@@ -65,6 +65,7 @@ import BuklodActiveCharacterArt
 import BuklodAdLightRewardCard
   from '@/components/BuklodAdLightRewardCard';
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
+import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import BuklodCharacterLevelRecognition from '@/components/points/BuklodCharacterLevelRecognition';
 
 import {
@@ -162,6 +163,15 @@ export default function BuklodProfileCharacterCard({
     ...DEFAULT_CHARACTER,
   });
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const characterSavedSinceOpen = useRef(false);
+  const closeCharacterStudio = useCallback(() => {
+    setCustomizeOpen(false);
+    if (characterSavedSinceOpen.current) {
+      characterSavedSinceOpen.current = false;
+      void showBuklodAdOpportunity('character_studio_saved');
+    }
+  }, []);
+  useEffect(() => { warmBuklodAdOpportunity('character_studio_saved'); }, []);
   const [displayPoints, setDisplayPoints] = useState(lifetimePoints);
   const [displayRank, setDisplayRank] = useState<string | null>(rankName);
   const [claimGroups, setClaimGroups] = useState<BuklodClaimGroup[]>([]);
@@ -776,22 +786,23 @@ export default function BuklodProfileCharacterCard({
       </ProfileMotionFadeUp>
 
       {customizeOpen ? (
-        <CharacterStudioBoundary onClose={() => setCustomizeOpen(false)}>
+        <CharacterStudioBoundary onClose={closeCharacterStudio}>
           <Suspense fallback={<View style={{ padding: 12 }}>
             <Text>Opening Character Studio…</Text>
           </View>}>
             <BuklodCharacterCustomizeSheet
         visible={customizeOpen}
-        onClose={() => setCustomizeOpen(false)}
+        onClose={closeCharacterStudio}
         userId={userId}
         lifetimePoints={displayPoints}
-        onSaved={setConfig}
+        onSaved={(updated) => { setConfig(updated); characterSavedSinceOpen.current = true; }}
         onActiveChanged={() => {
           if (!userId) return;
           void getMyBuklodCharacterSelectionV2(userId, true).then(
             (next) => {
               setSelection(next);
               setSelectionTick((value) => value + 1);
+              characterSavedSinceOpen.current = true;
             },
             () => undefined,
           );

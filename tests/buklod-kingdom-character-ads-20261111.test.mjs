@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const read = path => readFileSync(path, 'utf8');
+
+test('Kingdom ads stay out of live gameplay and quiz answer buttons', () => {
+  const policy=read('src/lib/buklodGlobalAdController.ts');
+  assert.match(policy, /placementId\.startsWith\('kingdom_'\)/);
+  assert.match(policy, /kingdom_game_center_completed/);
+  assert.match(policy, /interstitial_kingdom_mastery_verified/);
+  assert.match(policy, /Math\.max\(2, INTERSTITIAL_MIN_EVENT_COUNT\)/);
+  assert.match(policy, /fullScreenCadencePersistenceFailed/);
+});
+
+test('All major Kingdom and Points read surfaces use Android-only viewable inventory', () => {
+  for(const [p,needle] of [
+    ['src/app/games/index.tsx','kingdom_map_footer'],
+    ['src/features/games/kingdom/platform/KingdomInteriorCenter.tsx','kingdom_game_center_completed'],
+    ['src/app/points/progression.tsx','points_rank_progression_native'],
+    ['src/app/points/economy.tsx','points_economy_footer'],
+    ['src/components/points/BuklodPointsRewardsScreen.tsx','points_redeem_transition_native']
+  ]) assert.ok(read(p).includes(needle),p+' lost inventory');
+  assert.match(read('src/components/BuklodKingdomAdSlot.tsx'), /Platform\.OS !== 'android'/);
+});
+
+test('Character Studio full-screen opportunity only follows real saved changes and dismissal', () => {
+  const s=read('src/components/points/BuklodProfileCharacterCard.tsx');
+  assert.match(s, /characterSavedSinceOpen\.current = true/);
+  assert.match(s, /if \(characterSavedSinceOpen\.current\)/);
+  assert.match(s, /showBuklodAdOpportunity\('character_studio_saved'\)/);
+  assert.match(s, /onClose=\{closeCharacterStudio\}/);
+});
+
+test('Kingdom mastery advertising is conditional on server verification', () => {
+  const s=read('src/features/games/kingdom/platform/KingdomMasteryCheck.tsx');
+  assert.match(s, /if \(result\?\.verified\)/);
+  assert.match(s, /result\.points_awarded/);
+  assert.match(s, /showBuklodAdOpportunity\('kingdom_mastery_verified'\)/);
+});

@@ -10,6 +10,7 @@ import {
 } from './previewStore';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { KingdomMasteryCheck } from './KingdomMasteryCheck';
+import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 
 type MiniGameFinish = (result: BuklodGameResult, sessionId: string) => void;
 export type KingdomInteriorOption = {
@@ -123,7 +124,10 @@ export function KingdomInteriorCenter({
             }).catch(() => undefined);
         })}</View>
         {masteryEligibility?.owner === user?.id && masteryEligibility?.gameId === active.id ? (
-          <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id} />
+          <>
+            <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id} />
+            <BuklodKingdomAdSlot placementId="kingdom_game_center_completed" kind="banner" />
+          </>
         ) : null}
       </View>
     </ScrollView>
