@@ -69,6 +69,8 @@ jobs:
           node --test tests/buklod-earnings-final-source-clarity-20261109.test.mjs tests/community-admob-preview-contract.test.cjs
       - name: Wall fullscreen video performance and playback regression
         run: node --test tests/community-video-navigation-scroll.test.mjs tests/community-fullscreen-video-ota-20261111.test.mjs
+      - name: Native Reels and fullscreen video ads regression
+        run: node --test tests/reels-ads-fullscreen-ota-20261111.test.mjs tests/igpat-fast-start-video-20261110.test.mjs
       - name: Bible Quiz V4 events, R3 compatibility, points and noncash ads contracts
         run: node --test tests/buklod-bible-v4-events-kingdom-20261109.test.mjs tests/bible-v4-quiz-compat-20261109.test.mjs tests/bible-v4-ads-separation-20261109.test.mjs
       - name: Verify Home/Profile Health Center external-door privacy and route gate
