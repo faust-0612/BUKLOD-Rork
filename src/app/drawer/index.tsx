@@ -54,8 +54,8 @@ const ACTIONS = [
   },
   {
     key: 'import',
-    label: 'Import',
-    icon: 'image-multiple-outline',
+    label: 'Files & Photos',
+    icon: 'file-upload-outline',
     route: '/drawer/import',
     tone: '#F4ECFF',
     iconColor: '#8E44CE',
