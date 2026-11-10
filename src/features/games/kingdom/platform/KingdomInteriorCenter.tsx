@@ -64,7 +64,7 @@ export function KingdomInteriorCenter({
     setMasteries(null);
     setMasteredIds(new Set());
     if (user?.id) {
-      void supabase.rpc('get_my_buklod_kingdom_mastery_progress_v1')
+      void Promise.resolve(supabase.rpc('get_my_buklod_kingdom_mastery_progress_v1'))
         .then(({ data, error }) => {
           if (!error && mounted) {
             const record = data as { mastered_games?: number; game_ids?: unknown } | null;
@@ -74,6 +74,8 @@ export function KingdomInteriorCenter({
               setMasteredIds(new Set(record.game_ids.filter((id): id is string => typeof id === 'string')));
             }
           }
+        }).catch(() => {
+          // The server owns BP. Keep UI usable if this optional summary is offline.
         });
     }
     return () => { mounted = false; };
