@@ -348,6 +348,114 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         </G>
       ))}
 
+
+      {/* R2 inspired scenic biomes: unique illustrated landmarks for canonical
+          stations, not static UI text/false progress counters or extra routes. */}
+      <G>
+        {/* Quin: starlit observatory above the northern discovery cliffs. */}
+        <Ellipse cx={1036} cy={160} rx={65} ry={24} fill="#557b9e" opacity=".27" />
+        <Rect x={1010} y={110} width={55} height={49} rx={5}
+          fill="#f3e6c2" stroke="#8095ac" strokeWidth={3} />
+        <Path d="M 1000 112 Q 1037 62 1073 112 Z" fill="#567aca" stroke="#dde4ed" strokeWidth={3} />
+        <Path d="M 1037 67 L 1037 43" stroke="#f9e7a0" strokeWidth={5} strokeLinecap="round" />
+        <SvgCircle cx={1037} cy={39} r={10} fill="#fff1aa" />
+        <Path d="M 1008 149 L 1070 149" stroke="#a5d2e4" strokeWidth={4}/>
+        {[1019,1037,1054].map(x=>(
+          <Rect key={'sky-window-'+x} x={x-4} y={121} width={8} height={15} rx={3} fill="#80d5fd" />
+        ))}
+
+        {/* Music City: colorful acoustic plaza, instruments and glowing lanterns. */}
+        <Ellipse cx={965} cy={394} rx={61} ry={28} fill="#b09bb9" stroke="#f1ddbe" strokeWidth={3}/>
+        <Ellipse cx={965} cy={390} rx={48} ry={18} fill="#7f74aa" opacity=".90" />
+        {Array.from({length:8},(_,i)=>{
+          const x=965+Math.cos(i*Math.PI/4)*44,y=390+Math.sin(i*Math.PI/4)*21;
+          return <SvgCircle key={'music-lantern-'+i} cx={x} cy={y} r={4}
+            fill={i%2?'#f2b5e8':'#ffdc82'} />;
+        })}
+        <Path d="M 946 381 L 946 360 L 955 356 L 955 379 M 946 366 L 955 362"
+          fill="none" stroke="#fff2d4" strokeWidth={4} strokeLinecap="round" />
+        <Path d="M 978 395 L 978 370 L 987 365 L 987 391 M 978 375 L 987 370"
+          fill="none" stroke="#f8d2ed" strokeWidth={4} strokeLinecap="round" />
+
+        {/* Trudice: flowering safe playground / children's haven. */}
+        {[{x:310,y:347},{x:388,y:347},{x:355,y:321}].map((flower,i)=>(
+          <G key={'flower-'+i}>
+            <Rect x={flower.x-3} y={flower.y-1} width={6} height={28} rx={2} fill="#7b7856"/>
+            {Array.from({length:5},(_,petal)=>(
+              <SvgCircle key={petal}
+                cx={flower.x+Math.cos(petal*Math.PI*2/5)*15}
+                cy={flower.y-9+Math.sin(petal*Math.PI*2/5)*15}
+                r={12} fill={petal%2?'#f8c7e5':'#eaa6d2'} opacity=".93"/>
+            ))}
+            <SvgCircle cx={flower.x} cy={flower.y-9} r={10} fill="#ffe7bf"/>
+          </G>
+        ))}
+        <Path d="M 321 396 Q 355 363 388 396" stroke="#f6d99c" strokeWidth={8}
+          fill="none" strokeLinecap="round"/>
+        <Path d="M 323 397 L 323 422 M 386 397 L 386 422" stroke="#9d845b" strokeWidth={7}/>
+
+        {/* Phan: sunlit coastal lighthouse and pier. */}
+        <Rect x={104} y={584} width={19} height={60} rx={2} fill="#fff4d8" stroke="#bf8d73" strokeWidth={3}/>
+        <Path d="M 98 588 L 114 564 L 129 588 Z" fill="#cb745d" stroke="#f5d8b4" strokeWidth={2}/>
+        <Rect x={107} y={606} width={13} height={8} fill="#99d5e8"/>
+        <Path d="M 99 627 L 128 627" stroke="#d7825e" strokeWidth={5}/>
+        <SvgCircle cx={114} cy={582} r={5} fill="#fff59c"/>
+
+        {/* Mitch: artistic fountain and painted mural wall. */}
+        <Rect x={458} y={510} width={91} height={25} rx={3} fill="#eac3a1" stroke="#a77e6c" strokeWidth={3}/>
+        {['#f5a57c','#f6d26e','#7acbb3','#99b0e7','#da9dd4'].map((color,i)=>(
+          <Path key={'mural-'+i}
+            d={'M '+(463+i*17)+' 531 l 10 -16 l 10 8 l 4 -9'}
+            fill="none" stroke={color} strokeWidth={7} strokeLinecap="round"/>
+        ))}
+
+        {/* Ace: compact rescue beacon and modular strategy outpost. */}
+        <Rect x={697} y={443} width={46} height={29} rx={3} fill="#e6ebdf" stroke="#7e9491" strokeWidth={3}/>
+        <Path d="M 693 444 L 720 423 L 748 444 Z" fill="#c77e69" stroke="#fff0c6" strokeWidth={2}/>
+        <Path d="M 720 434 L 720 411" stroke="#8b8470" strokeWidth={3}/>
+        <SvgCircle cx={720} cy={408} r={6} fill="#fff3a9"/>
+        <Rect x={713} y={449} width={14} height={15} rx={3} fill="#6ac8ae"/>
+
+        {/* Angel: treasury vault surrounded by warm gold lanterns. */}
+        <Ellipse cx={897} cy={653} rx={53} ry={24} fill="#dfc28b" stroke="#92754a" strokeWidth={3}/>
+        <Rect x={871} y={608} width={49} height={41} rx={5} fill="#eecf8d" stroke="#a07c48" strokeWidth={3}/>
+        <Path d="M 867 611 L 895 589 L 924 611 Z" fill="#e7a358" stroke="#88603e" strokeWidth={3}/>
+        <SvgCircle cx={895} cy={627} r={12} fill="#f6e2a4" stroke="#ad8850" strokeWidth={3}/>
+        <Rect x={892} y={622} width={6} height={14} rx={2} fill="#936b36"/>
+        {[850,939].map(x=><SvgCircle key={'treasury-light-'+x} cx={x} cy={638} r={5} fill="#ffdf84"/>)}
+
+        {/* Niel: river-crossing frontier campsite with mission pennants. */}
+        {[{x:652,y:742},{x:721,y:755}].map((camp,i)=>(
+          <G key={'camp-'+i}>
+            <Path d={'M '+(camp.x-28)+' '+(camp.y+6)+' L '+camp.x+' '+(camp.y-25)+
+              ' L '+(camp.x+28)+' '+(camp.y+6)+' Z'}
+              fill={i?'#f0ba7d':'#cf8b77'} stroke="#8f6b52" strokeWidth={3}/>
+            <Path d={'M '+camp.x+' '+(camp.y-25)+' L '+camp.x+' '+(camp.y+6)}
+              stroke="#f7e3b2" strokeWidth={2}/>
+            <Path d={'M '+camp.x+' '+(camp.y-25)+' L '+camp.x+' '+(camp.y-42)+' L '+(camp.x+18)+
+              ' '+(camp.y-36)+' L '+camp.x+' '+(camp.y-30)}
+              fill="#f5d17a" stroke="#bc875c" strokeWidth={2}/>
+          </G>
+        ))}
+
+        {/* The eastern highland holds a dormant volcanic/mystery frontier. */}
+        <Path d="M 1087 431 L 1132 334 L 1171 414 L 1198 476 L 1078 476 Z"
+          fill="#6b6270" stroke="#9d8883" strokeWidth={3} />
+        <Path d="M 1113 378 L 1132 334 L 1146 367 Z" fill="#e8d2c5" />
+        <Path d="M 1129 353 C 1138 389 1135 419 1155 467"
+          stroke="#ff9854" strokeWidth={9} opacity=".89" strokeLinecap="round" fill="none"/>
+        <Path d="M 1132 357 C 1136 389 1135 429 1152 462"
+          stroke="#ffe2a3" strokeWidth={4} opacity=".93" strokeLinecap="round" fill="none"/>
+
+        {/* Small magic stars and lanterns scale with the SVG and do not animate on
+            their own, protecting battery and 3G mode on budget Android devices. */}
+        {Array.from({length:18},(_,i)=>(
+          <SvgCircle key={'kingdom-world-light-'+i}
+            cx={128+(i*173)%995} cy={193+(i*103)%530}
+            r={i%3===0?3:2} fill={i%2?'#fff6bc':'#c8f9f7'} opacity=".82"/>
+        ))}
+      </G>
+
       <Ellipse cx={607} cy={469} rx={123} ry={65} fill="#3d857a" opacity=".34" />
       <Ellipse cx={607} cy={442} rx={113} ry={65} fill="#e5d2a5" stroke="#73948a" strokeWidth={6} />
       <Ellipse cx={607} cy={436} rx={100} ry={52} fill="#70a599" stroke="#ece8bb" strokeWidth={3} />
