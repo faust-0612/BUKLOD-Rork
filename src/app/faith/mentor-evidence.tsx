@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import {
   ActivityIndicator, Alert, Image, Pressable, SafeAreaView, ScrollView,
@@ -70,8 +70,21 @@ export default function MentorTeachingPhotoEvidence() {
   const [busy, setBusy] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  const actionLock = useRef(false);
+  const requestSeq = useRef(0);
+  const beginAction = (id: string) => {
+    if (actionLock.current) return false;
+    actionLock.current = true;
+    setBusy(id);
+    return true;
+  };
+  const endAction = () => {
+    actionLock.current = false;
+    setBusy(null);
+  };
 
   const load = useCallback(async () => {
+    const sequence = ++requestSeq.current;
     setLoading(true);
     try {
       const [taskResponse, lessonResponse, menteeResponse] = await Promise.all([
@@ -82,14 +95,18 @@ export default function MentorTeachingPhotoEvidence() {
       if (taskResponse.error) throw taskResponse.error;
       if (lessonResponse.error) throw lessonResponse.error;
       if (menteeResponse.error) throw menteeResponse.error;
+      if (sequence !== requestSeq.current) return;
+      setErr('');
       setTasks(Array.isArray(taskResponse.data) ? taskResponse.data : []);
       setLessons(Array.isArray(lessonResponse.data) ? lessonResponse.data : []);
       setDisciples(Array.isArray(menteeResponse.data) ? menteeResponse.data : []);
       setPhotoUrls({});
     } catch (error) {
-      setErr(`Unable to load mentoring reports: ${message(error)}`);
+      if (sequence === requestSeq.current) {
+        setErr(`Unable to load mentoring reports: ${message(error)}`);
+      }
     } finally {
-      setLoading(false);
+      if (sequence === requestSeq.current) setLoading(false);
     }
   }, []);
 
@@ -177,7 +194,7 @@ export default function MentorTeachingPhotoEvidence() {
     if (busy || retrySessionId || !photo || !consent || !selectedLesson ||
       selectedDisciples.length < 1 || selectedDisciples.length > MAX_LEARNERS ||
       notes.trim().length < 20 || location.trim().length < 4) return;
-    setBusy('creating');
+    if (!beginAction('creating')) return;
     setErr('');
     let savedSessionId: string | null = null;
     try {
@@ -207,13 +224,13 @@ export default function MentorTeachingPhotoEvidence() {
         setErr(`Could not save report: ${message(error)}`);
       }
     } finally {
-      setBusy(null);
+      endAction();
     }
   };
 
   const retryPhoto = async () => {
     if (!retrySessionId || !photo || !consent || busy) return;
-    setBusy('retry');
+    if (!beginAction('retry')) return;
     setErr('');
     try {
       await uploadPhoto(retrySessionId, photo);
@@ -223,13 +240,13 @@ export default function MentorTeachingPhotoEvidence() {
     } catch (error) {
       setErr(`Photo still pending: ${message(error)}`);
     } finally {
-      setBusy(null);
+      endAction();
     }
   };
 
   const attachExisting = async (task: Task, source: Source) => {
     if (busy || !consent || task.status !== 'reported') return;
-    setBusy(task.session_id);
+    if (!beginAction(task.session_id)) return;
     setErr('');
     try {
       const asset = await choosePhoto(source);
@@ -242,7 +259,7 @@ export default function MentorTeachingPhotoEvidence() {
     } catch (error) {
       setErr(`Could not attach photo: ${message(error)}. Your saved report remains available for retry.`);
     } finally {
-      setBusy(null);
+      endAction();
     }
   };
 
@@ -271,7 +288,7 @@ export default function MentorTeachingPhotoEvidence() {
     if (busy || task.status !== 'rejected' ||
       revisionLocation.trim().length < 4 || revisionNotes.trim().length < 20 ||
       revisionLearners.length < 1 || revisionLearners.length > MAX_LEARNERS) return;
-    setBusy(task.session_id);
+    if (!beginAction(task.session_id)) return;
     setErr('');
     try {
       const { data, error } = await (supabase as any).rpc(
@@ -294,7 +311,7 @@ export default function MentorTeachingPhotoEvidence() {
     } catch (error) {
       setErr(`Could not revise report: ${message(error)}`);
     } finally {
-      setBusy(null);
+      endAction();
     }
   };
 
