@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
+import { KingdomPracticeRewardedHint } from './KingdomPracticeRewardedHint';
 
 type Question = {
   prompt: string; choices: string[]; answer_index: number; explanation: string;
@@ -33,6 +34,7 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<number[]>([-1, -1, -1]);
   const [notice, setNotice] = useState('');
+  const [hintRevealed, setHintRevealed] = useState(false);
   const busy = useRef(false);
   const mounted = useRef(true);
   useEffect(() => {
@@ -59,6 +61,7 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
       setQuestions(data.questions);
       setLevel(Number(data.level));
       setAnswers([-1, -1, -1]);
+      setHintRevealed(false);
       setPhase('playing');
     } catch {
       if (!mounted.current) return;
@@ -109,6 +112,15 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
               </Text> : null}
             </View>
           ))}
+          {phase === 'playing' && !hintRevealed ? (
+            <KingdomPracticeRewardedHint onHintEarned={() => setHintRevealed(true)} />
+          ) : null}
+          {phase === 'playing' && hintRevealed ? (
+            <Text style={styles.explanation}>
+              {t('Practice hint (no BP):', 'Practice hint (walang BP):')}{' '}
+              {questions[0]?.choices[questions[0]?.answer_index]}
+            </Text>
+          ) : null}
           {phase === 'playing' ? <Pressable accessibilityRole="button"
             disabled={!allAnswered} style={[styles.primary, !allAnswered && styles.disabled]}
             onPress={() => { setPhase('complete'); void playBuklodGameFeedback(score === 3 ? 'success' : 'collect'); }}>
