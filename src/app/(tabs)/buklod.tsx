@@ -448,7 +448,6 @@ const BUKLOD_MOTION_DRAWER_GROUPS=[
   ['sparkles','fireflies','sunrays','dust','bokeh','stars','underwater'].includes(p))},
 ];
 export default function BuklodScreen(){
- const { ready: reelAdsReady, canRequestAds: reelAdConsent } = useAds();
  const { focusPostId } = useLocalSearchParams<{focusPostId?:string}>();
  const openingPublicPost = typeof focusPostId==='string' && !!focusPostId.trim();
  const {
@@ -504,6 +503,7 @@ export default function BuklodScreen(){
 }
 
 function LegacyPublicBuklodScreen(){
+ const { ready: reelAdsReady, canRequestAds: reelAdConsent } = useAds();
 
  const {
   colors,
