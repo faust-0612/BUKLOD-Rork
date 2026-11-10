@@ -105,3 +105,15 @@ test('Other professional scopes do not automatically unlock medical advice',()=>
   assert.match(sql,/v_service='PHYSICIAN_CONSULT' and v_profession<>'PHYSICIAN'/);
   assert.match(panel,/profession==='OTHER'/);
 });
+
+test('Clinical note persistence and closure are serialized on same private case row',()=>{
+  assert.match(sql,/select \* into v_case from private\.buklod_health_consultations_v1[\s\S]*?for update/);
+  assert.match(sql,/note_request_key/);
+  assert.match(sql,/on conflict \(consultation_id,author_id,note_request_key\) do nothing/);
+  assert.match(sql,/status in \('IN_PROGRESS','REFERRED'\)/);
+});
+test('No device/native update is needed to render the clinical Main Home card',()=>{
+  assert.match(home,/<BuklodMainHealthCard/);
+  assert.doesNotMatch(panel,/expo-camera|expo-file-system|new NativeModules|react-native-webrtc/);
+  assert.doesNotMatch(panel,/provider_access_token|service_role|secret_key/);
+});
