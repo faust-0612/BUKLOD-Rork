@@ -744,7 +744,7 @@ export default function BuklodBahayHome() {
                   ))}
                   {!searchingInvitees&&!!inviteSearchError&&<Text style={styles.inviteWarning}>Suggestions unavailable: {inviteSearchError}. You can still invite by exact @username.</Text>}
                   {!searchingInvitees&&!inviteSearchError&&!inviteSuggestions.length&&(
-                    <Text style={styles.helper}>{inviteId.trim().length<2?'Type at least 2 letters to search.':'No matching users. Try their @username.'}</Text>
+                    <Text style={styles.helper}>{inviteId.trim().length===0?'No suggested connections yet. Search by name or @username.':inviteId.trim().length<2?'Type at least 2 letters to search.':'No matching users. Try their @username.'}</Text>
                   )}
                 </View>
               )}

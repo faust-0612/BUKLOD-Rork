@@ -55,6 +55,8 @@ begin
         expires_at = excluded.expires_at,
         joined_at = null
     where public.buklod_home_members.status in ('DECLINED', 'REMOVED')
+       or (public.buklod_home_members.expires_at is not null
+           and public.buklod_home_members.expires_at <= now())
   returning public.buklod_home_members.user_id into v_saved;
 
   if v_saved is null then
@@ -113,6 +115,22 @@ begin
     from public.buklod_home_invite_user_v2(p_home_id, v_target.id, p_role, p_expires_at) i;
 end $$;
 
+-- Expired guest invites cannot be accepted. A fresh invite is required.
+create or replace function public.buklod_home_invite_decide_v1(p_home_id uuid,p_accept boolean)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  update public.buklod_home_members
+     set status = case when p_accept then 'ACTIVE' else 'DECLINED' end,
+         joined_at = case when p_accept then now() else joined_at end
+   where home_id = p_home_id
+     and user_id = (select auth.uid())
+     and status = 'PENDING'
+     and (expires_at is null or expires_at > now());
+  if not found then raise exception 'Invitation expired or no longer pending'; end if;
+end $$;
+
 -- Empty query: only genuine shared-scope/chat contacts. Typed query: bounded
 -- search on display name or username (no email, phone, or login identifiers).
 create or replace function public.buklod_home_search_invitees_v1(
@@ -156,7 +174,8 @@ begin
   where p.id <> (select auth.uid())
     and p.is_active is distinct from false
     and p.user_deactivated_at is null
-    and (m.user_id is null or m.status not in ('ACTIVE','PENDING'))
+    and (m.user_id is null or m.status not in ('ACTIVE','PENDING')
+         or (m.expires_at is not null and m.expires_at <= now()))
     and (
       (v_query = '' and c.user_id is not null)
       or (v_query <> '' and (
@@ -193,14 +212,17 @@ begin
     from public.buklod_home_members m
     join public.profiles p on p.id = m.user_id
     where m.home_id = p_home_id and m.status = 'PENDING'
+      and (m.expires_at is null or m.expires_at > now())
     order by m.created_at desc limit 100;
 end $$;
 
 revoke all on function public.buklod_home_invite_user_v2(uuid,uuid,text,timestamptz) from public, anon;
 revoke all on function public.buklod_home_invite_v1(uuid,text,text,timestamptz) from public, anon;
+revoke all on function public.buklod_home_invite_decide_v1(uuid,boolean) from public, anon;
 revoke all on function public.buklod_home_search_invitees_v1(uuid,text,integer) from public, anon;
 revoke all on function public.buklod_home_pending_invites_v1(uuid) from public, anon;
 grant execute on function public.buklod_home_invite_user_v2(uuid,uuid,text,timestamptz) to authenticated;
 grant execute on function public.buklod_home_invite_v1(uuid,text,text,timestamptz) to authenticated;
+grant execute on function public.buklod_home_invite_decide_v1(uuid,boolean) to authenticated;
 grant execute on function public.buklod_home_search_invitees_v1(uuid,text,integer) to authenticated;
 grant execute on function public.buklod_home_pending_invites_v1(uuid) to authenticated;

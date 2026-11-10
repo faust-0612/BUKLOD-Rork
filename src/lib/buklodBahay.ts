@@ -107,7 +107,9 @@ export async function loadBahayHomes(userId: string) {
   if (memberships.error) throw memberships.error;
 
   const active = (memberships.data ?? []).filter((m: any) => m.status === 'ACTIVE');
-  const pending = (memberships.data ?? []).filter((m: any) => m.status === 'PENDING');
+  const pending = (memberships.data ?? []).filter((m: any) =>
+    m.status === 'PENDING' && (!m.expires_at || new Date(m.expires_at).getTime() > Date.now())
+  );
   const ids = active.map((m: any) => m.home_id);
   let homes: any[] = [];
   if (ids.length) {
