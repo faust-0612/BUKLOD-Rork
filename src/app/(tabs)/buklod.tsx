@@ -1330,6 +1330,12 @@ function LegacyPublicBuklodScreen(){
  const [replyTo,setReplyTo]=
   useState<any|null>(null);
 
+ // Per-photo comments keep their own draft and request scope.
+ const [commentPhotoPosition,setCommentPhotoPosition]=useState<number|null>(null);
+ const commentPhotoPositionRef=useRef<number|null>(null);
+ const photoCountsRequestRef=useRef(0);
+ const viewerPhotoPostIdRef=useRef<string|null>(null);
+
  const [viewerOpen,setViewerOpen]=
   useState(false);
 
@@ -3367,25 +3373,33 @@ const load=useCallback(async(options?:{
 
  const loadComments=
   useCallback(
-   async(postId:string)=>{
+   async(postId:string,requestedPhotoPosition?:number|null)=>{
     const targetId=String(postId);
+    const photoPosition=requestedPhotoPosition===undefined
+     ? commentPhotoPositionRef.current : requestedPhotoPosition;
     const requestAccountId=String(user?.id??'');
     if(
      !targetId ||
      activeCommentPostIdRef.current!==targetId ||
-     commentAccountIdRef.current!==requestAccountId
+     commentAccountIdRef.current!==requestAccountId ||
+     commentPhotoPositionRef.current!==photoPosition
     )return;
     const requestId=++commentLoadSeqRef.current;
     const isCurrent=()=>(
      requestId===commentLoadSeqRef.current &&
      activeCommentPostIdRef.current===targetId &&
-     commentAccountIdRef.current===requestAccountId
+     commentAccountIdRef.current===requestAccountId &&
+     commentPhotoPositionRef.current===photoPosition
     );
     setCommentLoading(true);
     setCommentLoadError(null);
     try{
      const [commentsResult,reactionsResult]=await Promise.all([
-      communityReadRpc('get_buklod_post_comments_v4',{p_post_id:targetId}),
+      photoPosition===null
+       ? communityReadRpc('get_buklod_post_comments_v4',{p_post_id:targetId})
+       : communityReadRpc('get_buklod_photo_comments_v1',{
+          p_post_id:targetId,p_media_position:photoPosition
+         }),
       communityReadRpc('get_buklod_comment_reactions_v1',{p_post_id:targetId}),
      ]);
      if(!isCurrent())return;
@@ -3436,10 +3450,17 @@ const load=useCallback(async(options?:{
   );
 
  const openComments=
-  async(post:any)=>{
+  async(post:any,photo?:any)=>{
    const postId=String(post.id);
-   const saved=commentDraftsRef.current.get(String(user?.id??'')+':'+postId);
+   const mediaPosition=Number(photo?.media_position??0);
+   const photoPosition=photo&&Number.isInteger(mediaPosition)&&mediaPosition>=0
+    ? mediaPosition : null;
+   const draftKey=String(user?.id??'')+':'+postId+
+    (photoPosition===null?'':':photo:'+photoPosition);
+   const saved=commentDraftsRef.current.get(draftKey);
    activeCommentPostIdRef.current=postId;
+   commentPhotoPositionRef.current=photoPosition;
+   setCommentPhotoPosition(photoPosition);
    ++commentLoadSeqRef.current;
    setCommentPost(post);
    setComments([]);
@@ -3451,14 +3472,15 @@ const load=useCallback(async(options?:{
    setCommentLoadError(null);
    setCommentNotice(null);
    setCommentOpen(true);
-   await loadComments(String(post.id));
+   await loadComments(postId,photoPosition);
   };
 
  const closeComments=
   ()=>{
    const postId=activeCommentPostIdRef.current;
    if(postId){
-    const key=String(user?.id??'')+':'+postId;
+    const key=String(user?.id??'')+':'+postId+
+     (commentPhotoPositionRef.current===null?'':':photo:'+commentPhotoPositionRef.current);
     if(buklodCommentHasSendableContent(commentText,commentMedia)){
      const drafts=commentDraftsRef.current;
      drafts.delete(key);
@@ -3475,6 +3497,8 @@ const load=useCallback(async(options?:{
     }
    }
    activeCommentPostIdRef.current=null;
+   commentPhotoPositionRef.current=null;
+   setCommentPhotoPosition(null);
    ++commentLoadSeqRef.current;
    setCommentLoading(false);
    setCommentLoadError(null);
@@ -3497,6 +3521,7 @@ const load=useCallback(async(options?:{
 
    const postId=String(commentPost.id);
    const authorId=String(user?.id??'');
+   const targetPhotoPosition=commentPhotoPositionRef.current;
    const initialMedia=commentMedia;
    const replyTarget=replyTo;
    let finalBody=commentText.trim();
@@ -3542,11 +3567,14 @@ const load=useCallback(async(options?:{
      mediaForBody={kind:'image',ref:path};
     }
     const body=encodeBuklodCommentMediaBody(mediaForBody,finalBody);
-    const {error}=await communityRpc('add_buklod_post_comment_v4',{
-     p_post_id:postId,
-     p_body:body,
-     p_parent_id:replyRootId,
-    });
+    const {error}=targetPhotoPosition===null
+     ? await communityRpc('add_buklod_post_comment_v4',{
+        p_post_id:postId,p_body:body,p_parent_id:replyRootId
+       })
+     : await communityRpc('add_buklod_photo_comment_v1',{
+        p_post_id:postId,p_media_position:targetPhotoPosition,
+        p_body:body,p_parent_id:replyRootId
+       });
     if(error)throw error;
 
     // One confirmed mutation: update just this post, not the whole feed.
@@ -3557,10 +3585,12 @@ const load=useCallback(async(options?:{
        : post
      ));
     }
-    commentDraftsRef.current.delete(authorId+':'+postId);
+    commentDraftsRef.current.delete(authorId+':'+postId+
+     (targetPhotoPosition===null?'':':photo:'+targetPhotoPosition));
     if(
      activeCommentPostIdRef.current===postId &&
-     commentAccountIdRef.current===authorId
+     commentAccountIdRef.current===authorId &&
+     commentPhotoPositionRef.current===targetPhotoPosition
     ){
      setCommentText('');
      setCommentMentions([]);
@@ -3574,7 +3604,8 @@ const load=useCallback(async(options?:{
      mentionedUserIds:mentionIds,
      context:'comment',
     });
-    void loadComments(postId);
+    if(targetPhotoPosition!==null)void refreshViewerPhotoCommentCounts(postId);
+    void loadComments(postId,targetPhotoPosition);
    }catch(error:any){
     if(commentAccountIdRef.current===authorId){
      if(activeCommentPostIdRef.current===postId){
@@ -4056,6 +4087,34 @@ const load=useCallback(async(options?:{
   };
 
 
+ // A single count RPC hydrates every photo in the opened collage.
+ // Generation guards prevent stale requests affecting a different post/viewer.
+ const refreshViewerPhotoCommentCounts=async(postId:string)=>{
+  if(!postId)return;
+  const requestId=++photoCountsRequestRef.current;
+  try{
+   const {data,error}=await communityReadRpc(
+    'get_buklod_photo_comment_counts_v1',{p_post_id:postId}
+   );
+   if(error || requestId!==photoCountsRequestRef.current ||
+      viewerPhotoPostIdRef.current!==postId)return;
+   const counts=new Map<number,number>();
+   for(const entry of (Array.isArray(data)?data:[])){
+    const position=Number(entry?.media_position);
+    if(Number.isInteger(position)&&position>=0){
+     counts.set(position,Math.max(0,Number(entry?.comment_count??0)));
+    }
+   }
+   setViewerItems(current=>current.map(photo=>
+    String(photo?.post_id??'')===postId
+     ? {...photo,photo_comment_count:counts.get(Number(photo?.media_position??0))??0}
+     : photo
+   ));
+  }catch{
+   // Count endpoint is optional while the matching DB migration is pending.
+  }
+ };
+
  const renderViewerPhotoActions=
    ()=>{
     const photo=viewerItems[viewerIndex];
@@ -4096,7 +4155,29 @@ const load=useCallback(async(options?:{
          </Text>
         </Pressable>
        )}
-       <View style={{flex:total>0?0:1}}/>
+       <View style={{flex:1,minWidth:1}}/>
+       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={photo.photo_comment_count==null
+         ? 'Open photo comments'
+         : `Open ${photo.photo_comment_count} photo comments`}
+        onPress={()=>{
+         const postId=String(photo?.post_id??'');
+         const post=posts.find(item=>String(item.id)===postId) ??
+          (String(focusedPost?.id??'')===postId?focusedPost:null) ??
+          {id:postId,author_name:'Photo'};
+         if(postId)void openComments(post,photo);
+        }}
+        style={{flexDirection:'row',alignItems:'center',gap:5,
+         minHeight:42,paddingHorizontal:4}}
+       >
+        <MaterialCommunityIcons name="comment-outline" size={21} color="#FFFFFF"/>
+        <Text style={s.communityViewerSaveText}>
+         {photo.photo_comment_count==null
+          ? 'Comments'
+          : `${photo.photo_comment_count} ${photo.photo_comment_count===1?'comment':'comments'}`}
+        </Text>
+       </Pressable>
        <Pressable
         accessibilityRole="button"
         accessibilityLabel="Save photo"
@@ -4127,11 +4208,15 @@ const load=useCallback(async(options?:{
     return;
    }
 
+   const postId=String(media[0]?.post_id??'');
+   viewerPhotoPostIdRef.current=postId||null;
+   ++photoCountsRequestRef.current;
    setViewerItems(media);
    setViewerSession(current=>current+1);
    setViewerIndex(index);
    setViewerZoomed(false);
    setViewerOpen(true);
+   if(postId)void refreshViewerPhotoCommentCounts(postId);
   };
 
  const resolveFreshVideoUrl=
@@ -4573,6 +4658,8 @@ const load=useCallback(async(options?:{
     communityPhotoCollageItems(
      item?.media_items,
      {
+      post_id:item?.id,
+      media_position:0,
       media_path:
        item?.media_path ??
        null,
@@ -6542,7 +6629,7 @@ const communityFeedRows =
      <View style={s.communityCommentHeader}>
       <View style={{flex:1}}>
        <Text style={s.communityCommentTitle}>
-        Comments
+        {commentPhotoPosition===null?'Comments':`Photo ${commentPhotoPosition+1} comments`}
        </Text>
 
        {!!commentPost&&(
