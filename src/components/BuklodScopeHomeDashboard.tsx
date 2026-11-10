@@ -25,6 +25,7 @@ import BuklodMzbHomeWidgets from '@/components/BuklodMzbHomeWidgets';
 import BuklodOrgHomeClusterCard from '@/components/BuklodOrgHomeClusterCard';
 import BuklodOrgHomeBayanihanCard from '@/components/BuklodOrgHomeBayanihanCard';
 import BuklodUnifiedEarningsHomeCard from '@/components/BuklodUnifiedEarningsHomeCard';
+import BuklodScopeBPTop10 from '@/components/BuklodScopeBPTop10';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
@@ -247,6 +248,7 @@ export default function BuklodScopeHomeDashboard({
         placement={scope.scope_type === 'CLUSTER' ? 'cluster' : 'org'}
         placementId={scope.scope_type === 'CLUSTER' ? 'cluster_scope_home_first_view' : 'organization_scope_home_first_view'}
       />
+      {scope.scope_type === 'ORGANIZATION' ? <BuklodScopeBPTop10 key={scope.scope_id} scopeId={scope.scope_id} scopeType="ORGANIZATION" /> : null}
 
       {loading && !homeCache ? (
         <View style={styles.card}>

@@ -22,6 +22,7 @@ import BuklodScopeFaithMonitoringDoor from'@/components/BuklodScopeFaithMonitori
 import BuklodScopeCallLauncher from'@/components/BuklodScopeCallLauncher';
 import BuklodScopeProfilePhoto from '@/components/BuklodScopeProfilePhoto';
 import BuklodUnifiedEarningsHomeCard from '@/components/BuklodUnifiedEarningsHomeCard';
+import BuklodScopeBPTop10 from '@/components/BuklodScopeBPTop10';
 import {
  type BuklodScopeHomeFile,pickBuklodScopeHomeMedia,pickBuklodScopeHomeResource,
  uploadBuklodScopeHomeAsset,signedBuklodScopeHomeAsset,rollbackBuklodScopeHomeAsset,
@@ -341,6 +342,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
      onOpenFullscreen={()=>{if(notice.media_url)void Linking.openURL(notice.media_url);}}/></View>:null}
  </>:<Empty>No important notice right now.</Empty>}</Card>}
   <BuklodFirstViewAd placement="cluster" placementId="cluster_command_first_view" />
+  <BuklodScopeBPTop10 key={scope.scope_id} scopeId={scope.scope_id} scopeType="CLUSTER" />
   {/* CLUSTER BULLETIN uses the existing official bulletin card directly. */}
   {show('bulletin')&&<BuklodHomeScopeBulletins/>}
   {scope.show_faith_content ? (
