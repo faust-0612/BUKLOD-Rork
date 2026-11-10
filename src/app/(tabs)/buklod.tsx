@@ -4521,7 +4521,13 @@ const load=useCallback(async(options?:{
               autoPlay
               active={
                 visibleVideoPostId===postId &&
-                !videoViewerOpen
+                !videoViewerOpen &&
+                wallScreenFocused
+              }
+              preload={
+                preloadVideoPostId===postId &&
+                !videoViewerOpen &&
+                wallScreenFocused
               }
               expectedDurationSeconds={
                 wallVideo.durationSeconds
@@ -4939,11 +4945,14 @@ const communityFeedRows =
 
  const {
   onViewableItemsChanged: onCommunityAdViewableItemsChanged,
+  onVideoViewableItemsChanged: onCommunityVideoViewableItemsChanged,
   viewabilityConfig: communityAdViewabilityConfig,
+  videoViewabilityConfig: communityVideoViewabilityConfig,
   extraData: communityAdExtraData,
   isAdActive,
   visibleVideoPostId,
- } = useBuklodCommunityAdViewability();
+  preloadVideoPostId,
+ } = useBuklodCommunityAdViewability(communityFeedRows);
 
  // Preserve the existing ad/video visibility engine; also pause an audio
  // post as soon as its card is no longer visible (no off-screen music).
@@ -4971,6 +4980,12 @@ const communityFeedRows =
      setWallAudioOwner('');
    }
  }).current;
+ const communityViewabilityPairs = useRef([
+   { viewabilityConfig: communityAdViewabilityConfig,
+     onViewableItemsChanged: onCommunityWallViewableItemsChanged },
+   { viewabilityConfig: communityVideoViewabilityConfig,
+     onViewableItemsChanged: onCommunityVideoViewableItemsChanged },
+ ]).current;
  useFocusEffect(useCallback(()=>{
    wallScreenFocusedRef.current=true;
    setWallScreenFocused(true);
@@ -5060,7 +5075,7 @@ const communityFeedRows =
   }}
       style={shared.screen} contentContainerStyle={s.content} data={
       communityFeedRows
-    } keyExtractor={(i: any)=>i.id} extraData={communityCreativeExtraData} onViewableItemsChanged={onCommunityWallViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
+    } keyExtractor={(i: any)=>i.id} extraData={communityCreativeExtraData} viewabilityConfigCallbackPairs={communityViewabilityPairs} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
     refreshing={busy}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
