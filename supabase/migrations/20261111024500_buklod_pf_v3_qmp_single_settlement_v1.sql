@@ -136,7 +136,15 @@ begin
     raise exception 'Matching Manila-calendar qualified QMP period is required';
   end if;
   if v_qperiod.status<>'OPEN' then
-    raise exception 'Community QMP period is already closed or finalized';
+    -- Retrying a successfully finalized month must return the original
+    -- settlement instead of creating credits or throwing a stale-period error.
+    select * into v_settlement from private.buklod_pf_settlements
+    where period_key=p_period_key and status='FINALIZED';
+    if found then
+      return jsonb_build_object('idempotent_replay',true,
+        'settlement',to_jsonb(v_settlement));
+    end if;
+    raise exception 'Community QMP period was closed outside canonical Finance V3';
   end if;
 
   if exists(select 1
