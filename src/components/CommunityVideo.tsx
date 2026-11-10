@@ -60,6 +60,8 @@ type Props = {
   fullscreen?: boolean;
   edgeToEdge?: boolean;
   active?: boolean;
+  /** Only the next near-viewport clip is prebuffered without autoplay. */
+  preload?: boolean;
   controlsBottomInset?: number;
   onOpenFullscreen?: () => void;
   onPlaybackError?: () => void;
@@ -121,6 +123,7 @@ function useCommunityNetworkDegraded() {
 export function CommunityVideo(props: Props) {
   const degraded = useCommunityNetworkDegraded();
   const [playIntent, setPlayIntent] = useState(false);
+  const [recentlyActive, setRecentlyActive] = useState(props.active !== false);
   const [poster, setPoster] = useState<any>(() =>
     props.posterUri ? { uri: props.posterUri } : getCommunityVideoPoster(props.uri),
   );
@@ -136,11 +139,29 @@ export function CommunityVideo(props: Props) {
     if (props.active === false) setPlayIntent(false);
   }, [props.active]);
 
+  useEffect(() => {
+    if (props.active !== false) {
+      setRecentlyActive(true);
+      return;
+    }
+    // Keep a recently visible decoder briefly paused for scroll-backs.
+    const timer = setTimeout(() => setRecentlyActive(false), 1_400);
+    return () => clearTimeout(timer);
+  }, [props.active, props.uri]);
+
+  const imaEligible =
+    !props.fullscreen &&
+    Platform.OS === 'android' &&
+    isBuklodImaNativeAvailable() &&
+    shouldUseBuklodImaForVideo(props.expectedDurationSeconds);
+  const active = props.active !== false;
   const mountPlayer = shouldMountCommunityVideoPlayer({
-    active: props.active !== false,
+    active,
     fullscreen: Boolean(props.fullscreen),
     degraded,
     playIntent,
+    preload: !imaEligible && !degraded && props.preload === true,
+    keepWarm: !imaEligible && recentlyActive,
   });
 
   const requestPlay = () => {
@@ -158,16 +179,9 @@ export function CommunityVideo(props: Props) {
     );
   }
 
-  const imaEligible =
-    props.active !== false &&
-    !props.fullscreen &&
-    Platform.OS === 'android' &&
-    isBuklodImaNativeAvailable() &&
-    shouldUseBuklodImaForVideo(
-      props.expectedDurationSeconds,
-    );
-
-  if (imaEligible) {
+  // In-stream advertising retains its own native lifecycle: never
+  // silently prebuffer eligible content with a separate expo player.
+  if (imaEligible && active) {
     return (
       <ImaCommunityVideo
         {...props}
@@ -550,6 +564,13 @@ function ExpoCommunityVideo({
       instance.loop = !fullscreen;
       instance.muted = fullscreen ? false : !sessionSoundOn;
       instance.timeUpdateEventInterval = 0.25;
+      if (Platform.OS === 'android') {
+        instance.bufferOptions = {
+          minBufferForPlayback: 1,
+          preferredForwardBufferDuration: 18,
+          prioritizeTimeOverSizeThreshold: true,
+        };
+      }
       instance.audioMixingMode = instance.muted
         ? 'mixWithOthers'
         : 'doNotMix';
@@ -744,6 +765,7 @@ function ExpoCommunityVideo({
 
   useEffect(() => {
     if (!active) {
+      userPausedRef.current = false;
       try {
         player.pause();
       } catch {
@@ -842,7 +864,9 @@ function ExpoCommunityVideo({
     knownDuration > 0
       ? Math.min(1, Math.max(0, currentTime / knownDuration))
       : 0;
-  const centerVisible = !playing || showCenter;
+  // Do not confuse automatic initialization with a manual Play state.
+  const centerVisible = playerStatus !== 'error' &&
+    (showCenter || (!playing && (!autoPlay || userPausedRef.current)));
   const chromeVisible = !fullscreen || !playing || showCenter;
   const frameHeight = !fullscreen && preserveAspectRatio && !fitFrame && videoAspectRatio && measuredWidth > 0
     ? communityVideoFrameHeight(measuredWidth, videoAspectRatio, height)
