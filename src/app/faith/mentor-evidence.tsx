@@ -43,7 +43,9 @@ function describeStatus(task: Task) {
       : 'Approved · reward ledger pending verification';
   }
   if (task.status === 'rejected') return 'Returned for correction';
-  if (task.status === 'pending_admin' && task.has_photo) return 'Photo received · awaiting System Admin';
+  if (task.status === 'pending_admin') return task.has_photo
+    ? 'Photo received · awaiting System Admin'
+    : 'Evidence unavailable · contact System Admin';
   return 'Action needed · attach photo evidence';
 }
 
@@ -226,7 +228,7 @@ export default function MentorTeachingPhotoEvidence() {
   };
 
   const attachExisting = async (task: Task, source: Source) => {
-    if (busy || !consent || !['reported', 'pending_admin'].includes(task.status)) return;
+    if (busy || !consent || task.status !== 'reported') return;
     setBusy(task.session_id);
     setErr('');
     try {
@@ -390,13 +392,13 @@ export default function MentorTeachingPhotoEvidence() {
         </Pressable>}
         {!!photoUrls[task.session_id] && <Image
           source={{ uri: photoUrls[task.session_id] }} style={s.preview} resizeMode="contain" />}
-        {['reported', 'pending_admin'].includes(task.status) && <>
+        {task.status === 'reported' && <>
           <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: consent }}
             style={s.consent} onPress={() => setConsent(current => !current)}>
             <Text style={s.choiceText}>{consent ? '☑' : '☐'} I have permission to upload or replace this report's private photo.</Text>
           </Pressable>
           <Text style={s.meta}>{task.has_photo
-            ? 'You may replace the photo before an Admin decision.'
+            ? 'This report needs to be resubmitted with a fresh photo.'
             : 'Photo missing. Attach it to enter the review queue.'}</Text>
           <View style={s.actions}>
             <Pressable disabled={!!busy || !consent} style={[s.button, s.flexButton, (!!busy || !consent) && s.disabled]}
