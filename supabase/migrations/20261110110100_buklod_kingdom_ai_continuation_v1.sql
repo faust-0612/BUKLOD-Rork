@@ -28,11 +28,13 @@ revoke all on public.buklod_kingdom_ai_levels_v1 from public, anon, authenticate
 grant select,insert,update on public.buklod_kingdom_ai_levels_v1 to service_role;
 
 create or replace function public.reserve_my_buklod_kingdom_ai_level_v1(
-  p_game_id text, p_after_level integer default 0
+  p_user_id uuid, p_game_id text, p_after_level integer default 0
 ) returns jsonb language plpgsql security definer set search_path=''
 as $body$
 declare
-  v_uid uuid := (select auth.uid());
+  -- Reservation is service-role-only, after the Edge Function authenticates
+  -- the real JWT; direct client RPC cannot reserve/burn AI budget.
+  v_uid uuid := p_user_id;
   v_game text := lower(trim(coalesce(p_game_id,'')));
   v_next integer;
   v_today timestamptz :=
@@ -107,10 +109,10 @@ begin
   );
 end;
 $body$;
-revoke all on function public.reserve_my_buklod_kingdom_ai_level_v1(text,integer)
-  from public,anon;
-grant execute on function public.reserve_my_buklod_kingdom_ai_level_v1(text,integer)
-  to authenticated;
+revoke all on function public.reserve_my_buklod_kingdom_ai_level_v1(uuid,text,integer)
+  from public,anon,authenticated;
+grant execute on function public.reserve_my_buklod_kingdom_ai_level_v1(uuid,text,integer)
+  to service_role;
 
 comment on table public.buklod_kingdom_ai_levels_v1 is
   'Private AI-generated optional Kingdom practice only. No BP, Character XP, Circle Rank, QMP or economic ledger side effects.';
