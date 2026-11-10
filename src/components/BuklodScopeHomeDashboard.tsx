@@ -181,7 +181,9 @@ export default function BuklodScopeHomeDashboard({
       showsVerticalScrollIndicator={false}
     >
       <BuklodScopeProfilePhoto scopeId={scope.scope_id} scopeName={scope.name} isAdmin={showAdminSummary}/>
-      <BuklodScopeFundCard scopeId={scope.scope_id} scopeName={scope.name} />
+      {['ORGANIZATION', 'CLUSTER', 'SUB_ORGANIZATION'].includes(scope.scope_type) ? (
+        <BuklodScopeFundCard scopeId={scope.scope_id} scopeName={scope.name} />
+      ) : null}
       {scope.scope_type==='ORGANIZATION'&&(
         <View style={styles.card}>
           <Text style={styles.cardTitle}>ORGANIZATION LIVE AUDIO / VIDEO CALL</Text>
