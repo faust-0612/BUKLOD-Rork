@@ -50,7 +50,7 @@ export function buildKingdomOfflineLevel(gameId,level,userId) {
     [`A ${domain} project needs ${a*3} units. After completing ${b} units, how many remain?`,a*3-b],
     [`A plan needs ${a} work units for each of ${b} tasks. How many units total?`,a*b],
     [`The ${domain} team completes ${a} steps, rests, then completes ${b+c} more. How many steps overall?`,a+b+c],
-    [`A route near ${domain} goes ${a+c} spaces east, then ${b} west. How far east is the destination?`,a+c-b],
+    [`A route near ${domain} goes ${a+c+b} spaces east, then ${b} west. How far east is the destination?`,a+c],
     [`For ${domain}, ${a+b} supplies are shared among two equal groups. After removing ${(a+b)%2} surplus item(s), how many does each group receive?`,Math.floor((a+b)/2)],
     [`A worker finishes ${a} units on each of three days but loses ${b} units to waste. How many remain usable?`,a*3-b],
     [`A sequence for ${domain} starts at ${a}, then increases by ${c} each step. What is its fifth number?`,a+4*c],
