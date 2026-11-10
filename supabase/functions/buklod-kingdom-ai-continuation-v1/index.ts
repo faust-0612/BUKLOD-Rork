@@ -146,7 +146,7 @@ Deno.serve(async request => {
   if (body.action === 'finish') {
     const sessionId = String(body?.sessionId ?? '');
     const answers = body?.answers;
-    if (!/^[0-9a-f-]{36}$/i.test(sessionId) ||
+    if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(sessionId) ||
       !Array.isArray(answers) || answers.length !== 3 ||
       !answers.every(a => typeof a === 'number' && Number.isInteger(a) && a >= 0 && a <= 3)) {
       return reply(400, { error: 'invalid_practice_submission' });
@@ -182,12 +182,13 @@ Deno.serve(async request => {
   }
   const sessionId = String(reservation.session_id);
   const { data: existing, error: readError } = await service.from(TABLE)
-    .select('id,user_id,game_id,level_no,status,questions,completed_at')
+    .select('id,user_id,game_id,level_no,status,questions,completed_at,final_score')
     .eq('id', sessionId).eq('user_id', auth.user.id).eq('game_id', gameId).single();
   if (readError || !existing) return reply(503, { error: 'ai_session_unavailable' });
   if (existing.status === 'ready' && Array.isArray(existing.questions)) {
     return reply(200, { level: existing.level_no, questions: existing.questions,
       session_id: sessionId, completed: Boolean(existing.completed_at),
+      score: existing.completed_at ? existing.final_score : null,
       practice_only: true, bp_awarded: 0 });
   }
   if (!reservation.started) {
