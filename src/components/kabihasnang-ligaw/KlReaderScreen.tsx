@@ -63,7 +63,7 @@ import {
 } from '@/lib/kabihasnang-ligaw/releasePreflight';
 import { otherAudioPlaying } from '@/lib/kabihasnang-ligaw/externalAudioState';
 import { supabase } from '@/lib/supabase';
-import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
+import { warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
