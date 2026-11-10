@@ -6,6 +6,7 @@ const sql = readFileSync('supabase/migrations/20261111015000_buklod_monthly_earn
 const card = readFileSync('src/components/BuklodUnifiedEarningsHomeCard.tsx','utf8');
 const helper = readFileSync('src/lib/buklodMonthlyEarnings.ts','utf8');
 const detail = readFileSync('src/app/community-contribution.tsx','utf8');
+const bayanihan = readFileSync('src/app/bayanihan/index.tsx','utf8');
 
 test('monthly endpoint is own-account, authenticated and read-only', () => {
   assert.match(sql,/get_my_buklod_monthly_earnings_v1\(\)/);
@@ -51,4 +52,17 @@ test('centavo scenarios: no earned-history reset after full-balance withdrawal',
   assert.equal(remainingAvailable,0);
   assert.equal(reserved,21500);
   assert.equal(monthA+monthBFinal+monthCFinal,21500);
+});
+
+test('Bayanihan Economy uses the same last/current/projected/monthly wallet source', () => {
+  assert.match(bayanihan,/loadMyBuklodMonthlyEarnings\(\)/);
+  assert.match(bayanihan,/composeCurrentMonthProjectedBalance\(monthly, contribution\)/);
+  assert.match(bayanihan,/monthly\.last_month\.status === 'FINALIZED'/);
+  assert.match(bayanihan,/PROJECTED TOTAL · NOT WITHDRAWABLE/);
+  assert.match(bayanihan,/AVAILABLE FINALIZED CASH/);
+  assert.match(bayanihan,/Minimum withdrawal:/);
+  assert.doesNotMatch(bayanihan,/poolSharePct/);
+  assert.doesNotMatch(bayanihan,/value=\{formatPhp\(Number\(earnings\.estimated_earnings_php \?\? 0\)\)\}/);
+  assert.match(bayanihan,/One canonical finalized cash wallet/);
+  assert.match(bayanihan,/Estimated AdMob revenue, QMP, Points, pending rewards/);
 });
