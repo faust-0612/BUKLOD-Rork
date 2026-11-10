@@ -84,6 +84,11 @@ function MitchInterior() {
             <Text style={styles.optionSub}>{t('Original art game', 'Orihinal na art game')}</Text>
           </Pressable>
         </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Play next Kingdom level offline"
+          onPress={() => router.push({pathname:'/games/practice',params:{gameId:(selected === 'mural' ? GAME_ID : selected === 'merge' ? MERGE_ID : FORGE_ID)}} as any)}
+          style={styles.practiceLink}>
+          <Text style={styles.practiceText}>NEXT ADVENTURE LEVEL • OFFLINE PRACTICE</Text>
+        </Pressable>
       </View>
       {selected === 'mural' ? (
         <View style={styles.originalGame}>
@@ -110,6 +115,9 @@ export default function MitchRestoreMuralScreen() {
 }
 
 const styles = StyleSheet.create({
+  practiceLink: { minHeight:44, padding:12, borderRadius:12, borderWidth:1, borderColor:'#e9ca88', backgroundColor:'#254a53', alignItems:'center', justifyContent:'center', marginVertical:7 },
+  practiceText: { color:'#ffebbb', fontSize:12, fontWeight:'900', textAlign:'center' },
+
   page: { flex: 1, paddingTop: 12 },
   centerTop: { paddingHorizontal: 13, gap: 7 },
   mapBack: { alignSelf: 'flex-start', backgroundColor: '#493440', borderRadius: 10,

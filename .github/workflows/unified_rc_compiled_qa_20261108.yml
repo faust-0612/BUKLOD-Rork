@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify-compiled-artifacts:
-    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108' || github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy' || github.head_ref == 'integration/ota-nov09-circle-rank-progression' || github.head_ref == 'integration/buklod-nov09-consolidated-ota-web' || github.head_ref == 'integration/buklod-nov09-bible-v4-rank-ptt-ota-rc' || github.head_ref == 'integration/buklod-nov09-bible-v4-font-sizing-ota-rc' || github.head_ref == 'fix/bahay-kasambahay-invite-20261110' || github.head_ref == 'integration/buklod-nov10-single-source-ota')
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108' || github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy' || github.head_ref == 'integration/ota-nov09-circle-rank-progression' || github.head_ref == 'integration/buklod-nov09-consolidated-ota-web' || github.head_ref == 'integration/buklod-nov09-bible-v4-rank-ptt-ota-rc' || github.head_ref == 'integration/buklod-nov09-bible-v4-font-sizing-ota-rc' || github.head_ref == 'fix/bahay-kasambahay-invite-20261110' || github.head_ref == 'integration/buklod-nov10-single-source-ota' || github.head_ref == 'dev/kingdom-main-visual-consolidated-20261111')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:
@@ -56,6 +56,7 @@ jobs:
         run: |
           npx tsc --noEmit
           node --test tests/kingdom-certified-mastery-39-20261108.test.mjs tests/kingdom-functionality-r13.test.mjs
+          node --test tests/kingdom-legacy-visual-r1.test.mjs tests/kingdom-main-visual-consolidated-20261111.test.mjs tests/kingdom-premium-map-r6.test.mjs tests/kingdom-complete-user-experience-20261111.test.mjs tests/kingdom-shards-free-powers-20261111.test.mjs
       - name: Regression checks for BUKLOD music admin and automatic ambiance
         run: |
           node --test tests/admin-music-ambience-contract-20261108.test.mjs tests/wall-post-music-motion-contract.test.mjs tests/wall-post-music-navigation-scroll.test.mjs tests/buklod-wall-crash-escape-20261108.test.mjs
