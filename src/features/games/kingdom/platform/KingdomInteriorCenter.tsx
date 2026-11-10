@@ -74,7 +74,7 @@ export function KingdomInteriorCenter({
               setMasteredIds(new Set(record.game_ids.filter((id): id is string => typeof id === 'string')));
             }
           }
-        }).catch(() => undefined);
+        });
     }
     return () => { mounted = false; };
   }, [user?.id, masteryRefresh]);
@@ -141,7 +141,7 @@ export function KingdomInteriorCenter({
             {masteries !== null ? '  •  ' + (masteries * 2) + ' BP ' + t('earned here', 'earned dito') : ''}
           </Text>
           <View style={styles.bpTrack}>
-            <View style={[styles.bpFill, { width: (masteries !== null ? masteries / 39 * 100 : 0) + '%' }]} />
+            <View style={[styles.bpFill, { width: `${masteries !== null ? masteries / 39 * 100 : 0}%` as const }]} />
           </View>
           <Text style={styles.masterySummary}>
             {t('2 BP per first server-verified game mastery; replays do not multiply BP.',
