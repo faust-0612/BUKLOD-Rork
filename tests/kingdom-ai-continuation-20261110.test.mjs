@@ -64,6 +64,25 @@ test('Edge AI generator fails closed before provider spending and never manufact
   assert.match(practice, /NEXT AI PRACTICE LEVEL/);
 });
 
+test('AI-generated practice is server-saved before unlocking the next level', () => {
+  assert.match(sql, /completed_at timestamptz/);
+  assert.match(sql, /final_score integer check \(final_score between 0 and 3\)/);
+  assert.match(sql, /x.completed_at is not null/);
+  assert.match(sql, /finish_my_buklod_kingdom_ai_level_v1/);
+  assert.match(sql, /get_my_buklod_kingdom_ai_progress_v1/);
+  assert.match(sql, /v_row.completed_at is not null/);
+  assert.match(sql, /where x.id=p_session_id and x.user_id=v_uid/);
+  assert.match(edge, /body.action === 'finish'/);
+  assert.match(edge, /finish_my_buklod_kingdom_ai_level_v1/);
+  assert.match(edge, /score: existing.completed_at \? existing.final_score : null/);
+  assert.match(practice, /get_my_buklod_kingdom_ai_progress_v1/);
+  assert.match(practice, /async function finishPractice/);
+  assert.match(practice, /action: 'finish', sessionId, answers/);
+  assert.match(practice, /data.bp_awarded !== 0/);
+  assert.doesNotMatch(practice, /onPress=\{\(\) => \{ setPhase\('complete'\)/);
+});
+
+
 test('offline ambience is a real packaged original WAV and obeys game-sound settings', () => {
   const asset=new URL('../assets/sounds/buklod-kingdom-ambient-original.wav',import.meta.url);
   assert.ok(existsSync(asset));
