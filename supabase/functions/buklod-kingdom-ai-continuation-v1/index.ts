@@ -172,9 +172,9 @@ Deno.serve(async request => {
   }
   // Server validates catalog game ID and reserves one attempt with an advisory
   // lock. A parallel tap or retry never triggers a second paid generation.
-  const { data: reservation, error: reserveError } = await session.rpc(
+  const { data: reservation, error: reserveError } = await service.rpc(
     'reserve_my_buklod_kingdom_ai_level_v1',
-    { p_game_id: gameId, p_after_level: after },
+    { p_user_id: auth.user.id, p_game_id: gameId, p_after_level: after },
   );
   if (reserveError || !reservation?.session_id) {
     return reply(409, { error: 'ai_level_unavailable',
