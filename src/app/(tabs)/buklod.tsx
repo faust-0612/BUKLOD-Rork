@@ -1366,7 +1366,8 @@ function LegacyPublicBuklodScreen(){
  ]=useState<Record<string,string>>({});
 
  const wallVideoFailedUriRef=
-  useRef<Record<string,string>>({});
+  useRef<Record<string,{uri:string;retryAfter:number}>>({});
+ const wallVideoRefreshInFlightRef=useRef(new Set<string>());
 
  const [
   videoViewerResolvingPostId,
@@ -4197,18 +4198,20 @@ const load=useCallback(async(options?:{
     const failed=
      String(failedUri??'').trim();
 
-    if(
-     failed&&
-     wallVideoFailedUriRef
-      .current[postId]===failed
-    ){
-     return null;
+    const last=wallVideoFailedUriRef.current[postId];
+    // Dedupe in-flight signing and briefly back off repeated failures.
+    // Do not blacklist a stale URL for the lifetime of the app.
+    if(wallVideoRefreshInFlightRef.current.has(postId) ||
+       (failed && last?.uri===failed && Date.now()<last.retryAfter)){
+      return null;
     }
-
     if(failed){
-     wallVideoFailedUriRef
-      .current[postId]=failed;
+      wallVideoFailedUriRef.current[postId]={
+        uri:failed,
+        retryAfter:Date.now()+2500
+      };
     }
+    wallVideoRefreshInFlightRef.current.add(postId);
 
     try{
      const freshUrl=
@@ -4233,6 +4236,9 @@ const load=useCallback(async(options?:{
     }
     catch{
      return null;
+    }
+    finally{
+     wallVideoRefreshInFlightRef.current.delete(postId);
     }
    },
    [resolveFreshVideoUrl]
@@ -4495,6 +4501,7 @@ const load=useCallback(async(options?:{
                 wallUri
               }
               uri={wallUri}
+              playbackKey={postId}
                posterUri={wallVideo.media?.preview_url ?? null}
                onPosterGenerated={thumbnail => {
                  if (!user?.id || String(wallVideo.post?.user_id ?? '') !== String(user.id)) return;
@@ -4521,7 +4528,13 @@ const load=useCallback(async(options?:{
               autoPlay
               active={
                 visibleVideoPostId===postId &&
-                !videoViewerOpen
+                !videoViewerOpen &&
+                wallScreenFocused
+              }
+              preload={
+                preloadVideoPostId===postId &&
+                !videoViewerOpen &&
+                wallScreenFocused
               }
               expectedDurationSeconds={
                 wallVideo.durationSeconds
@@ -4939,11 +4952,14 @@ const communityFeedRows =
 
  const {
   onViewableItemsChanged: onCommunityAdViewableItemsChanged,
+  onVideoViewableItemsChanged: onCommunityVideoViewableItemsChanged,
   viewabilityConfig: communityAdViewabilityConfig,
+  videoViewabilityConfig: communityVideoViewabilityConfig,
   extraData: communityAdExtraData,
   isAdActive,
   visibleVideoPostId,
- } = useBuklodCommunityAdViewability();
+  preloadVideoPostId,
+ } = useBuklodCommunityAdViewability(communityFeedRows);
 
  // Preserve the existing ad/video visibility engine; also pause an audio
  // post as soon as its card is no longer visible (no off-screen music).
@@ -4971,6 +4987,12 @@ const communityFeedRows =
      setWallAudioOwner('');
    }
  }).current;
+ const communityViewabilityPairs = useRef([
+   { viewabilityConfig: communityAdViewabilityConfig,
+     onViewableItemsChanged: onCommunityWallViewableItemsChanged },
+   { viewabilityConfig: communityVideoViewabilityConfig,
+     onViewableItemsChanged: onCommunityVideoViewableItemsChanged },
+ ]).current;
  useFocusEffect(useCallback(()=>{
    wallScreenFocusedRef.current=true;
    setWallScreenFocused(true);
@@ -5060,7 +5082,7 @@ const communityFeedRows =
   }}
       style={shared.screen} contentContainerStyle={s.content} data={
       communityFeedRows
-    } keyExtractor={(i: any)=>i.id} extraData={communityCreativeExtraData} onViewableItemsChanged={onCommunityWallViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
+    } keyExtractor={(i: any)=>i.id} extraData={communityCreativeExtraData} viewabilityConfigCallbackPairs={communityViewabilityPairs} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
     refreshing={busy}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
@@ -6107,6 +6129,7 @@ const communityFeedRows =
          uri={
           fullscreenUri
          }
+         playbackKey={postId}
          posterUri={descriptor.media?.preview_url ?? null}
          onPosterGenerated={thumbnail => {
           if (!user?.id || String(descriptor.post?.user_id ?? '') !== String(user.id)) return;
