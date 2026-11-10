@@ -34,7 +34,8 @@
     "supabase/migrations/20261111014500_buklod_kingdom_shards_game_only_v1.sql",
     "src/lib/buklodKingdomShards.ts",
     "src/app/games/rewards.tsx",
-    "tests/kingdom-shards-free-powers-20261111.test.mjs"
+    "tests/kingdom-shards-free-powers-20261111.test.mjs",
+    "supabase/tests/kingdom_shards_conservation_v1.sql"
   ],
   "preserveBehaviors": [
     "Canonical 13 game stations and stable coordinates/route IDs, and 39 existing games",
@@ -56,7 +57,8 @@
     "39 canonical games x 5,000 deterministic offline levels (32 scenario patterns), existing 200 progress preserved, no paid AI",
     "Exact source TypeScript and focused 39-game tests, new Shards SQL/client/power contracts, Android and web Expo bundle exports",
     "Security and database migration validation before applying to production; no physical device verification per owner waiver",
-    "Single-source RC reconcile with other BUKLOD Main OTA-ready branches; no Vercel, paid API, separate app or production publish until gates"
+    "Single-source RC reconcile with other BUKLOD Main OTA-ready branches; no Vercel, paid API, separate app or production publish until gates",
+    "Isolated migration-applied SQL regression: ownership grants, RLS, negative-balance prevention and conservation; not executed on the production DB until release gate."
   ],
   "riskAreas": [
     "kingdom-visual",
@@ -78,7 +80,8 @@
     "tests/kingdom-legacy-visual-r1.test.mjs",
     "tests/kingdom-main-visual-consolidated-20261111.test.mjs",
     "tests/kingdom-complete-user-experience-20261111.test.mjs",
-    "tests/kingdom-shards-free-powers-20261111.test.mjs"
+    "tests/kingdom-shards-free-powers-20261111.test.mjs",
+    "supabase/tests/kingdom_shards_conservation_v1.sql"
   ],
   "releaseState": "DEV_IMPLEMENTED_SQL_MIGRATION_STAGED_WAITING_EXACT_HEAD_QA_NO_PRODUCTION_DDL"
 }
