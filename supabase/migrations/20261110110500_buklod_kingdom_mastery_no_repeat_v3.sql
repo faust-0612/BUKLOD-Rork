@@ -14,7 +14,7 @@ values
   ('phan-enterprise-builder',10,'Enterprise Builder — One harvest wagon holds 12 baskets. How many baskets fit in 7 full wagons?','["84","86","81","90"]'::jsonb,0),
   ('phan-enterprise-builder',11,'Enterprise Builder — A building needs 65 blocks. Teams have already installed 21 blocks. How many more are needed?','["46","41","50","44"]'::jsonb,3),
   ('phan-enterprise-builder',12,'Enterprise Builder — The community has ₱280 for materials. After buying 9 items at ₱10 each, how much remains?','["187","196","190","192"]'::jsonb,2),
-  ('phan-enterprise-builder',13,'Enterprise Builder — A supply kit contains 15 water packets. At 3 packets per day, how many packets remain after 4 days?','["36","30","32","27"]'::jsonb,1),
+  ('phan-enterprise-builder',13,'Enterprise Builder — A kit starts with 27 water packets. At 3 packets per day for 4 days, how many packets remain?','["15","17","12","21"]'::jsonb,0)
   ('phan-enterprise-builder',14,'Enterprise Builder — Three gardens each produce 18 units; 5 units are kept for seed. How many units can be shared?','["49","51","46","55"]'::jsonb,0),
   ('phan-enterprise-builder',15,'Enterprise Builder — A trader bought 17 items at ₱12 each, then paid ₱12 shipping. What was the total cost?','["218","213","222","216"]'::jsonb,3),
   ('phan-enterprise-builder',16,'Enterprise Builder — A volunteer trip takes 18 minutes each way and 9 minutes at the destination. What is its total duration?','["42","51","45","47"]'::jsonb,2),
@@ -29,7 +29,7 @@ values
   ('phan-trade-master',10,'Trade Master — One harvest wagon holds 13 baskets. How many baskets fit in 8 full wagons?','["106","101","110","104"]'::jsonb,3),
   ('phan-trade-master',11,'Trade Master — A building needs 70 blocks. Teams have already installed 24 blocks. How many more are needed?','["43","52","46","48"]'::jsonb,2),
   ('phan-trade-master',12,'Trade Master — The community has ₱300 for materials. After buying 10 items at ₱10 each, how much remains?','["206","200","202","197"]'::jsonb,1),
-  ('phan-trade-master',13,'Trade Master — A supply kit contains 16 water packets. At 4 packets per day, how many packets remain after 6 days?','["32","34","29","38"]'::jsonb,0),
+  ('phan-trade-master',13,'Trade Master — A kit starts with 40 water packets. At 4 packets per day for 6 days, how many packets remain?','["16","18","13","22"]'::jsonb,0)
   ('phan-trade-master',14,'Trade Master — Three gardens each produce 19 units; 6 units are kept for seed. How many units can be shared?','["53","48","57","51"]'::jsonb,3),
   ('phan-trade-master',15,'Trade Master — A trader bought 18 items at ₱13 each, then paid ₱4 shipping. What was the total cost?','["235","244","238","240"]'::jsonb,2),
   ('phan-trade-master',16,'Trade Master — A volunteer trip takes 19 minutes each way and 10 minutes at the destination. What is its total duration?','["54","48","50","45"]'::jsonb,1),
@@ -62,7 +62,7 @@ values
   ('quin-discovery-expedition',13,'Discovery Expedition — There are 30 playable cells; 6 are blocked, and 4 are reserved. How many cells remain free?','["17","26","20","22"]'::jsonb,2),
   ('quin-discovery-expedition',14,'Discovery Expedition — Each of 10 units needs 8 turns to finish. How many unit-turns are required altogether?','["86","80","82","77"]'::jsonb,1),
   ('quin-discovery-expedition',15,'Discovery Expedition — A detour adds 6 tiles on each of 10 separate route sections. How many extra tiles are traveled?','["60","62","57","66"]'::jsonb,0),
-  ('quin-discovery-expedition',16,'Discovery Expedition — A player starts with 42 shield points and loses 6 twice. How many shield points remain?','["32","27","36","30"]'::jsonb,3),
+  ('quin-discovery-expedition',16,'Discovery Expedition — A player starts with 54 shield points and loses 6 points twice. How many shield points remain?','["42","44","39","48"]'::jsonb,0)
   ('quin-discovery-expedition',17,'Discovery Expedition — A team needs 30 evidence clues. It has verified 22 and 6. How many still need verification?','["0","8","2","4"]'::jsonb,2),
   ('quin-discovery-expedition',18,'Discovery Expedition — A route uses 23 diagonal moves and 8 straight moves. How many total moves does it use?','["37","31","33","28"]'::jsonb,1),
   ('quin-discovery-expedition',19,'Discovery Expedition — There are 25 choices each turn for 10 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["625","627","622","631"]'::jsonb,0),
@@ -92,7 +92,7 @@ values
   ('quin-code-breaker',13,'Code Breaker — There are 27 playable cells; 8 are blocked, and 2 are reserved. How many cells remain free?','["17","19","14","23"]'::jsonb,0),
   ('quin-code-breaker',14,'Code Breaker — Each of 12 units needs 6 turns to finish. How many unit-turns are required altogether?','["74","69","78","72"]'::jsonb,3),
   ('quin-code-breaker',15,'Code Breaker — A detour adds 4 tiles on each of 4 separate route sections. How many extra tiles are traveled?','["13","22","16","18"]'::jsonb,2),
-  ('quin-code-breaker',16,'Code Breaker — A player starts with 36 shield points and loses 8 twice. How many shield points remain?','["26","20","22","17"]'::jsonb,1),
+  ('quin-code-breaker',16,'Code Breaker — A player starts with 52 shield points and loses 8 points twice. How many shield points remain?','["36","38","33","42"]'::jsonb,0)
   ('quin-code-breaker',17,'Code Breaker — A team needs 33 evidence clues. It has verified 19 and 8. How many still need verification?','["6","8","3","12"]'::jsonb,0),
   ('quin-code-breaker',18,'Code Breaker — A route uses 20 diagonal moves and 10 straight moves. How many total moves does it use?','["32","27","36","30"]'::jsonb,3),
   ('quin-code-breaker',19,'Code Breaker — There are 22 choices each turn for 4 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["481","490","484","486"]'::jsonb,2),
@@ -107,7 +107,7 @@ values
   ('van-living-city-dispatch',13,'City Dispatch — There are 28 playable cells; 9 are blocked, and 4 are reserved. How many cells remain free?','["17","12","21","15"]'::jsonb,3),
   ('van-living-city-dispatch',14,'City Dispatch — Each of 5 units needs 8 turns to finish. How many unit-turns are required altogether?','["37","46","40","42"]'::jsonb,2),
   ('van-living-city-dispatch',15,'City Dispatch — A detour adds 6 tiles on each of 5 separate route sections. How many extra tiles are traveled?','["36","30","32","27"]'::jsonb,1),
-  ('van-living-city-dispatch',16,'City Dispatch — A player starts with 38 shield points and loses 9 twice. How many shield points remain?','["20","22","17","26"]'::jsonb,0),
+  ('van-living-city-dispatch',16,'City Dispatch — A player starts with 56 shield points and loses 9 points twice. How many shield points remain?','["38","40","35","44"]'::jsonb,0)
   ('van-living-city-dispatch',17,'City Dispatch — A team needs 31 evidence clues. It has verified 20 and 9. How many still need verification?','["4","0","8","2"]'::jsonb,3),
   ('van-living-city-dispatch',18,'City Dispatch — A route uses 21 diagonal moves and 3 straight moves. How many total moves does it use?','["21","30","24","26"]'::jsonb,2),
   ('van-living-city-dispatch',19,'City Dispatch — There are 23 choices each turn for 5 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["535","529","531","526"]'::jsonb,1),
@@ -137,7 +137,7 @@ values
   ('van-mind-challenge',13,'Mind Challenge — There are 30 playable cells; 3 are blocked, and 2 are reserved. How many cells remain free?','["31","25","27","22"]'::jsonb,1),
   ('van-mind-challenge',14,'Mind Challenge — Each of 7 units needs 6 turns to finish. How many unit-turns are required altogether?','["42","44","39","48"]'::jsonb,0),
   ('van-mind-challenge',15,'Mind Challenge — A detour adds 4 tiles on each of 7 separate route sections. How many extra tiles are traveled?','["30","25","34","28"]'::jsonb,3),
-  ('van-mind-challenge',16,'Mind Challenge — A player starts with 42 shield points and loses 11 twice. How many shield points remain?','["17","26","20","22"]'::jsonb,2),
+  ('van-mind-challenge',16,'Mind Challenge — A player starts with 64 shield points and loses 11 points twice. How many shield points remain?','["42","44","39","48"]'::jsonb,0)
   ('van-mind-challenge',17,'Mind Challenge — A team needs 31 evidence clues. It has verified 22 and 3. How many still need verification?','["12","6","8","3"]'::jsonb,1),
   ('van-mind-challenge',18,'Mind Challenge — A route uses 23 diagonal moves and 5 straight moves. How many total moves does it use?','["28","30","25","34"]'::jsonb,0),
   ('van-mind-challenge',19,'Mind Challenge — There are 25 choices each turn for 7 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["627","622","631","625"]'::jsonb,3),
@@ -152,7 +152,7 @@ values
   ('christian-civic-leadership',13,'Leadership Council — There are 31 playable cells; 4 are blocked, and 4 are reserved. How many cells remain free?','["23","25","20","29"]'::jsonb,0),
   ('christian-civic-leadership',14,'Leadership Council — Each of 8 units needs 8 turns to finish. How many unit-turns are required altogether?','["66","61","70","64"]'::jsonb,3),
   ('christian-civic-leadership',15,'Leadership Council — A detour adds 6 tiles on each of 8 separate route sections. How many extra tiles are traveled?','["45","54","48","50"]'::jsonb,2),
-  ('christian-civic-leadership',16,'Leadership Council — A player starts with 44 shield points and loses 12 twice. How many shield points remain?','["26","20","22","17"]'::jsonb,1),
+  ('christian-civic-leadership',16,'Leadership Council — A player starts with 68 shield points and loses 12 points twice. How many shield points remain?','["44","46","41","50"]'::jsonb,0)
   ('christian-civic-leadership',17,'Leadership Council — A team needs 29 evidence clues. It has verified 23 and 4. How many still need verification?','["2","4","0","8"]'::jsonb,0),
   ('christian-civic-leadership',18,'Leadership Council — A route uses 24 diagonal moves and 6 straight moves. How many total moves does it use?','["32","27","36","30"]'::jsonb,3),
   ('christian-civic-leadership',19,'Leadership Council — There are 26 choices each turn for 8 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["673","682","676","678"]'::jsonb,2),
@@ -257,7 +257,7 @@ values
   ('jawo-trail-maze',13,'Trail Maze — There are 28 playable cells; 3 are blocked, and 6 are reserved. How many cells remain free?','["25","19","21","16"]'::jsonb,1),
   ('jawo-trail-maze',14,'Trail Maze — Each of 7 units needs 10 turns to finish. How many unit-turns are required altogether?','["70","72","67","76"]'::jsonb,0),
   ('jawo-trail-maze',15,'Trail Maze — A detour adds 2 tiles on each of 7 separate route sections. How many extra tiles are traveled?','["16","11","20","14"]'::jsonb,3),
-  ('jawo-trail-maze',16,'Trail Maze — A player starts with 38 shield points and loses 11 twice. How many shield points remain?','["13","22","16","18"]'::jsonb,2),
+  ('jawo-trail-maze',16,'Trail Maze — A player starts with 60 shield points and loses 11 points twice. How many shield points remain?','["38","40","35","44"]'::jsonb,0)
   ('jawo-trail-maze',17,'Trail Maze — A team needs 27 evidence clues. It has verified 20 and 3. How many still need verification?','["10","4","6","1"]'::jsonb,1),
   ('jawo-trail-maze',18,'Trail Maze — A route uses 21 diagonal moves and 5 straight moves. How many total moves does it use?','["26","28","23","32"]'::jsonb,0),
   ('jawo-trail-maze',19,'Trail Maze — There are 23 choices each turn for 7 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["531","526","535","529"]'::jsonb,3),
@@ -332,7 +332,7 @@ values
   ('ace-rescue-grid',13,'Rescue Grid — There are 28 playable cells; 8 are blocked, and 4 are reserved. How many cells remain free?','["16","18","13","22"]'::jsonb,0),
   ('ace-rescue-grid',14,'Rescue Grid — Each of 12 units needs 8 turns to finish. How many unit-turns are required altogether?','["98","93","102","96"]'::jsonb,3),
   ('ace-rescue-grid',15,'Rescue Grid — A detour adds 6 tiles on each of 4 separate route sections. How many extra tiles are traveled?','["21","30","24","26"]'::jsonb,2),
-  ('ace-rescue-grid',16,'Rescue Grid — A player starts with 38 shield points and loses 8 twice. How many shield points remain?','["28","22","24","19"]'::jsonb,1),
+  ('ace-rescue-grid',16,'Rescue Grid — A player starts with 54 shield points and loses 8 points twice. How many shield points remain?','["38","40","35","44"]'::jsonb,0)
   ('ace-rescue-grid',17,'Rescue Grid — A team needs 30 evidence clues. It has verified 20 and 8. How many still need verification?','["2","4","0","8"]'::jsonb,0),
   ('ace-rescue-grid',18,'Rescue Grid — A route uses 21 diagonal moves and 10 straight moves. How many total moves does it use?','["33","28","37","31"]'::jsonb,3),
   ('ace-rescue-grid',19,'Rescue Grid — There are 23 choices each turn for 4 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["526","535","529","531"]'::jsonb,2),
@@ -362,7 +362,7 @@ values
   ('ace-tower-tactics',13,'Tower Tactics — There are 30 playable cells; 10 are blocked, and 2 are reserved. How many cells remain free?','["15","24","18","20"]'::jsonb,2),
   ('ace-tower-tactics',14,'Tower Tactics — Each of 6 units needs 6 turns to finish. How many unit-turns are required altogether?','["42","36","38","33"]'::jsonb,1),
   ('ace-tower-tactics',15,'Tower Tactics — A detour adds 4 tiles on each of 6 separate route sections. How many extra tiles are traveled?','["24","26","21","30"]'::jsonb,0),
-  ('ace-tower-tactics',16,'Tower Tactics — A player starts with 42 shield points and loses 10 twice. How many shield points remain?','["24","19","28","22"]'::jsonb,3),
+  ('ace-tower-tactics',16,'Tower Tactics — A player starts with 62 shield points and loses 10 points twice. How many shield points remain?','["42","44","39","48"]'::jsonb,0)
   ('ace-tower-tactics',17,'Tower Tactics — A team needs 38 evidence clues. It has verified 22 and 10. How many still need verification?','["3","12","6","8"]'::jsonb,2),
   ('ace-tower-tactics',18,'Tower Tactics — A route uses 23 diagonal moves and 4 straight moves. How many total moves does it use?','["33","27","29","24"]'::jsonb,1),
   ('ace-tower-tactics',19,'Tower Tactics — There are 25 choices each turn for 6 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["625","627","622","631"]'::jsonb,0),
@@ -419,7 +419,7 @@ values
   ('niel-mission-trail',10,'Mission Trail — One harvest wagon holds 14 baskets. How many baskets fit in 10 full wagons?','["146","140","142","137"]'::jsonb,1),
   ('niel-mission-trail',11,'Mission Trail — A building needs 75 blocks. Teams have already installed 30 blocks. How many more are needed?','["45","47","42","51"]'::jsonb,0),
   ('niel-mission-trail',12,'Mission Trail — The community has ₱320 for materials. After buying 4 items at ₱10 each, how much remains?','["282","277","286","280"]'::jsonb,3),
-  ('niel-mission-trail',13,'Mission Trail — A supply kit contains 17 water packets. At 6 packets per day, how many packets remain after 4 days?','["31","40","34","36"]'::jsonb,2),
+  ('niel-mission-trail',13,'Mission Trail — A kit starts with 41 water packets. At 6 packets per day for 4 days, how many packets remain?','["17","19","14","23"]'::jsonb,0)
   ('niel-mission-trail',14,'Mission Trail — Three gardens each produce 20 units; 8 units are kept for seed. How many units can be shared?','["58","52","54","49"]'::jsonb,1),
   ('niel-mission-trail',15,'Mission Trail — A trader bought 19 items at ₱15 each, then paid ₱12 shipping. What was the total cost?','["297","299","294","303"]'::jsonb,0),
   ('niel-mission-trail',16,'Mission Trail — A volunteer trip takes 20 minutes each way and 4 minutes at the destination. What is its total duration?','["46","41","50","44"]'::jsonb,3),
@@ -437,7 +437,7 @@ values
   ('niel-expedition-puzzle',13,'Expedition Puzzle — There are 30 playable cells; 7 are blocked, and 6 are reserved. How many cells remain free?','["23","17","19","14"]'::jsonb,1),
   ('niel-expedition-puzzle',14,'Expedition Puzzle — Each of 11 units needs 10 turns to finish. How many unit-turns are required altogether?','["110","112","107","116"]'::jsonb,0),
   ('niel-expedition-puzzle',15,'Expedition Puzzle — A detour adds 2 tiles on each of 3 separate route sections. How many extra tiles are traveled?','["8","3","12","6"]'::jsonb,3),
-  ('niel-expedition-puzzle',16,'Expedition Puzzle — A player starts with 42 shield points and loses 7 twice. How many shield points remain?','["25","34","28","30"]'::jsonb,2),
+  ('niel-expedition-puzzle',16,'Expedition Puzzle — A player starts with 56 shield points and loses 7 points twice. How many shield points remain?','["42","44","39","48"]'::jsonb,0)
   ('niel-expedition-puzzle',17,'Expedition Puzzle — A team needs 33 evidence clues. It has verified 22 and 7. How many still need verification?','["10","4","6","1"]'::jsonb,1),
   ('niel-expedition-puzzle',18,'Expedition Puzzle — A route uses 23 diagonal moves and 9 straight moves. How many total moves does it use?','["32","34","29","38"]'::jsonb,0),
   ('niel-expedition-puzzle',19,'Expedition Puzzle — There are 25 choices each turn for 3 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["627","622","631","625"]'::jsonb,3),
@@ -464,7 +464,7 @@ values
   ('angel-kingdom-treasury',10,'Kingdom Treasury — One harvest wagon holds 12 baskets. How many baskets fit in 5 full wagons?','["57","66","60","62"]'::jsonb,2),
   ('angel-kingdom-treasury',11,'Kingdom Treasury — A building needs 65 blocks. Teams have already installed 15 blocks. How many more are needed?','["56","50","52","47"]'::jsonb,1),
   ('angel-kingdom-treasury',12,'Kingdom Treasury — The community has ₱280 for materials. After buying 7 items at ₱10 each, how much remains?','["210","212","207","216"]'::jsonb,0),
-  ('angel-kingdom-treasury',13,'Kingdom Treasury — A supply kit contains 15 water packets. At 9 packets per day, how many packets remain after 4 days?','["32","27","36","30"]'::jsonb,3),
+  ('angel-kingdom-treasury',13,'Kingdom Treasury — A kit starts with 51 water packets. At 9 packets per day for 4 days, how many packets remain?','["15","17","12","21"]'::jsonb,0)
   ('angel-kingdom-treasury',14,'Kingdom Treasury — Three gardens each produce 18 units; 3 units are kept for seed. How many units can be shared?','["48","57","51","53"]'::jsonb,2),
   ('angel-kingdom-treasury',15,'Kingdom Treasury — A trader bought 17 items at ₱10 each, then paid ₱12 shipping. What was the total cost?','["188","182","184","179"]'::jsonb,1),
   ('angel-kingdom-treasury',16,'Kingdom Treasury — A volunteer trip takes 18 minutes each way and 7 minutes at the destination. What is its total duration?','["43","45","40","49"]'::jsonb,0),
@@ -509,7 +509,7 @@ values
   ('vhen-farm-to-market',10,'Farm to Market — One harvest wagon holds 15 baskets. How many baskets fit in 8 full wagons?','["122","117","126","120"]'::jsonb,3),
   ('vhen-farm-to-market',11,'Farm to Market — A building needs 80 blocks. Teams have already installed 24 blocks. How many more are needed?','["53","62","56","58"]'::jsonb,2),
   ('vhen-farm-to-market',12,'Farm to Market — The community has ₱340 for materials. After buying 10 items at ₱10 each, how much remains?','["246","240","242","237"]'::jsonb,1),
-  ('vhen-farm-to-market',13,'Farm to Market — A supply kit contains 18 water packets. At 4 packets per day, how many packets remain after 4 days?','["36","38","33","42"]'::jsonb,0),
+  ('vhen-farm-to-market',13,'Farm to Market — A kit starts with 34 water packets. At 4 packets per day for 4 days, how many packets remain?','["18","20","15","24"]'::jsonb,0)
   ('vhen-farm-to-market',14,'Farm to Market — Three gardens each produce 21 units; 6 units are kept for seed. How many units can be shared?','["59","54","63","57"]'::jsonb,3),
   ('vhen-farm-to-market',15,'Farm to Market — A trader bought 20 items at ₱13 each, then paid ₱12 shipping. What was the total cost?','["269","278","272","274"]'::jsonb,2),
   ('vhen-farm-to-market',16,'Farm to Market — A volunteer trip takes 21 minutes each way and 10 minutes at the destination. What is its total duration?','["58","52","54","49"]'::jsonb,1),
@@ -554,7 +554,7 @@ values
   ('elesur-village-builder',10,'Village Builder — One harvest wagon holds 13 baskets. How many baskets fit in 11 full wagons?','["143","145","140","149"]'::jsonb,0),
   ('elesur-village-builder',11,'Village Builder — A building needs 70 blocks. Teams have already installed 9 blocks. How many more are needed?','["63","58","67","61"]'::jsonb,3),
   ('elesur-village-builder',12,'Village Builder — The community has ₱300 for materials. After buying 5 items at ₱10 each, how much remains?','["247","256","250","252"]'::jsonb,2),
-  ('elesur-village-builder',13,'Village Builder — A supply kit contains 16 water packets. At 7 packets per day, how many packets remain after 4 days?','["38","32","34","29"]'::jsonb,1),
+  ('elesur-village-builder',13,'Village Builder — A kit starts with 44 water packets. At 7 packets per day for 4 days, how many packets remain?','["16","18","13","22"]'::jsonb,0)
   ('elesur-village-builder',14,'Village Builder — Three gardens each produce 19 units; 9 units are kept for seed. How many units can be shared?','["48","50","45","54"]'::jsonb,0),
   ('elesur-village-builder',15,'Village Builder — A trader bought 18 items at ₱8 each, then paid ₱12 shipping. What was the total cost?','["158","153","162","156"]'::jsonb,3),
   ('elesur-village-builder',16,'Village Builder — A volunteer trip takes 19 minutes each way and 5 minutes at the destination. What is its total duration?','["40","49","43","45"]'::jsonb,2),
@@ -572,7 +572,7 @@ values
   ('elesur-domino-village',13,'Domino Village — There are 29 playable cells; 8 are blocked, and 6 are reserved. How many cells remain free?','["15","17","12","21"]'::jsonb,0),
   ('elesur-domino-village',14,'Domino Village — Each of 12 units needs 10 turns to finish. How many unit-turns are required altogether?','["122","117","126","120"]'::jsonb,3),
   ('elesur-domino-village',15,'Domino Village — A detour adds 2 tiles on each of 4 separate route sections. How many extra tiles are traveled?','["5","14","8","10"]'::jsonb,2),
-  ('elesur-domino-village',16,'Domino Village — A player starts with 40 shield points and loses 8 twice. How many shield points remain?','["30","24","26","21"]'::jsonb,1),
+  ('elesur-domino-village',16,'Domino Village — A player starts with 56 shield points and loses 8 points twice. How many shield points remain?','["40","42","37","46"]'::jsonb,0)
   ('elesur-domino-village',17,'Domino Village — A team needs 33 evidence clues. It has verified 21 and 8. How many still need verification?','["4","6","1","10"]'::jsonb,0),
   ('elesur-domino-village',18,'Domino Village — A route uses 22 diagonal moves and 10 straight moves. How many total moves does it use?','["34","29","38","32"]'::jsonb,3),
   ('elesur-domino-village',19,'Domino Village — There are 24 choices each turn for 4 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["573","582","576","578"]'::jsonb,2),
@@ -587,7 +587,7 @@ values
   ('elesur-bridge-puzzle',13,'Bridge Puzzle — There are 30 playable cells; 9 are blocked, and 2 are reserved. How many cells remain free?','["21","16","25","19"]'::jsonb,3),
   ('elesur-bridge-puzzle',14,'Bridge Puzzle — Each of 5 units needs 6 turns to finish. How many unit-turns are required altogether?','["27","36","30","32"]'::jsonb,2),
   ('elesur-bridge-puzzle',15,'Bridge Puzzle — A detour adds 4 tiles on each of 5 separate route sections. How many extra tiles are traveled?','["26","20","22","17"]'::jsonb,1),
-  ('elesur-bridge-puzzle',16,'Bridge Puzzle — A player starts with 42 shield points and loses 9 twice. How many shield points remain?','["24","26","21","30"]'::jsonb,0),
+  ('elesur-bridge-puzzle',16,'Bridge Puzzle — A player starts with 60 shield points and loses 9 points twice. How many shield points remain?','["42","44","39","48"]'::jsonb,0)
   ('elesur-bridge-puzzle',17,'Bridge Puzzle — A team needs 37 evidence clues. It has verified 22 and 9. How many still need verification?','["8","3","12","6"]'::jsonb,3),
   ('elesur-bridge-puzzle',18,'Bridge Puzzle — A route uses 23 diagonal moves and 3 straight moves. How many total moves does it use?','["23","32","26","28"]'::jsonb,2),
   ('elesur-bridge-puzzle',19,'Bridge Puzzle — There are 25 choices each turn for 5 independent turns. How many distinct turn pairs could be formed if exactly two turns were considered?','["631","625","627","622"]'::jsonb,1),
