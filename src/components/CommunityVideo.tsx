@@ -436,7 +436,7 @@ function communityVideoSource(uri: string) {
     return {
       uri,
       useCaching: true,
-      ...(\/\.m3u8(?:[?#]|$)\/i.test(uri) ? { contentType: 'hls' as const } : {}),
+      ...(uri.split('?')[0].split('#')[0].toLowerCase().endsWith('.m3u8') ? { contentType: 'hls' as const } : {}),
     };
   }
 
