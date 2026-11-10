@@ -48,6 +48,23 @@ $$;
 revoke all on function public.attach_my_mentor_session_photo_r2(uuid,text) from public,anon;
 grant execute on function public.attach_my_mentor_session_photo_r2(uuid,text) to authenticated;
 
+-- Retain the original reviewer decision when a rejected report is corrected.
+-- This table is private: no client selects, and no existing ledger row is touched.
+create table if not exists private.buklod_r4_mentor_revision_audit(
+ id bigint generated always as identity primary key,
+ session_id uuid not null references public.mentor_teaching_sessions(id) on delete cascade,
+ mentor_id uuid not null references public.profiles(id),
+ original_reviewer uuid,
+ original_reviewed_at timestamptz,
+ original_admin_note text,
+ original_location text,
+ original_notes text,
+ original_photo_path text,
+ reopened_at timestamptz not null default now()
+);
+alter table private.buklod_r4_mentor_revision_audit enable row level security;
+revoke all on private.buklod_r4_mentor_revision_audit from public,anon,authenticated;
+
 -- One mentor may correct THEIR rejected session, but cannot reopen an approved
 -- or rewarded session. A new evidence image is required before reentering review.
 create or replace function public.revise_my_rejected_mentor_session_r4(
@@ -70,7 +87,8 @@ begin
  if length(clean_notes) not between 20 and 2000 then
    raise exception 'Teaching summary must be 20-2000 characters';
  end if;
- select id,mentor_id,status into row_rec
+ select id,mentor_id,status,admin_id,admin_note,admin_reviewed_at,
+   session_location,mentor_notes into row_rec
  from public.mentor_teaching_sessions
  where id=p_session_id for update;
  if not found or row_rec.mentor_id<>actor or row_rec.status<>'rejected' then
@@ -82,6 +100,12 @@ begin
  end if;
  select photo_path into old_photo
  from private.buklod_r2_mentor_session_evidence where session_id=p_session_id;
+ insert into private.buklod_r4_mentor_revision_audit(
+  session_id,mentor_id,original_reviewer,original_reviewed_at,
+  original_admin_note,original_location,original_notes,original_photo_path)
+ values(
+  p_session_id,actor,row_rec.admin_id,row_rec.admin_reviewed_at,
+  row_rec.admin_note,row_rec.session_location,row_rec.mentor_notes,old_photo);
  delete from private.buklod_r2_mentor_session_evidence
  where session_id=p_session_id;
  update public.mentor_teaching_sessions
