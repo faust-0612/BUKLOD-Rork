@@ -96,7 +96,7 @@ function ScopeBuklodLessonPortalScreenContent() {
           <View style={{flex:1}}>
             <Text style={{fontWeight:'900',color:'#185D38',fontSize:13}}>Mentor Teaching & Photo Evidence</Text>
             <Text style={{fontSize:11,color:'#5F7565',marginTop:3}}>
-              Assigned mentors: choose a real lesson and learners, upload a teaching photo, and track Pastor/Admin verification for +15 BP.
+              Assigned mentors: report the actual lesson, attendees, teaching venue and summary with a consented photo. Track System Admin review and verified +15 BP.
             </Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color="#1E7544"/>
