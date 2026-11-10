@@ -272,7 +272,7 @@ export default function KingdomLegacyScreen() {
               <Text style={s.labelSmall}>LEVEL {level} • CHARACTER PROGRESSION</Text>
               <Text style={s.valueSmall}>{money(points)} points earned since selection</Text>
               <View accessibilityLabel="Character level progress" style={s.track}>
-                <View style={[s.fill, { width: percent + '%' }]}/>
+                <View style={[s.fill, { width: `${percent}%` as `${number}%` }]}/>
               </View>
               <Text style={s.hint}>
                 {nextTarget === null ? 'Maximum character level reached'
