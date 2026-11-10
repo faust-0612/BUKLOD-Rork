@@ -263,7 +263,10 @@ declare v_actor uuid:=auth.uid();v_case private.buklod_health_consultations_v1%r
   v_is_prof boolean;v_note_id uuid;
 begin
   if v_actor is null then raise exception 'Sign in required'; end if;
-  select * into v_case from private.buklod_health_consultations_v1 where id=p_consult_id;
+  -- Lock the case while checking status and writing the clinical note:
+  -- a concurrent close/referral cannot create a note after closure.
+  select * into v_case from private.buklod_health_consultations_v1
+    where id=p_consult_id for update;
   if not found or (v_case.client_id<>v_actor and v_case.professional_id is distinct from v_actor) then
     raise exception 'Consultation not accessible'; end if;
   if length(v_key) not between 16 and 100 or v_key !~ '^[A-Za-z0-9_-]+$' then
