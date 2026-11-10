@@ -265,6 +265,8 @@ type Photo={
  uri:string;
  base64?:string;
  sizeBytes?:number;
+ webFile?:Blob;
+ mimeType?:string;
 };
 type Mention=BuklodMention;
 
@@ -2637,10 +2639,7 @@ const load=useCallback(async(options?:{
      setPhotos(current=>
       [
        ...current,
-       ...picked.photos.map(photo=>({
-        id:photo.id,
-        uri:photo.uri,
-       })),
+       ...picked.photos,
       ].slice(0, COMMUNITY_MAX_PHOTOS)
      );
     }
@@ -2975,7 +2974,7 @@ const load=useCallback(async(options?:{
     const photoUploads=
      await mapWithConcurrency(
       snapshot.photos,
-      3,
+      Platform.OS==='web'?2:3,
       async(photo,index)=>{
        const path=
         `${snapshot.userId}/post-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
@@ -2984,6 +2983,7 @@ const load=useCallback(async(options?:{
         await uploadCommunityPhotoFile({
          path,
          uri:photo.uri,
+         webFile:photo.webFile,
          wallPreview: true,
         });
 
