@@ -510,8 +510,8 @@ export default function BuklodKingdomMapPremium() {
   const initialFocus = useCallback(() => {
     if (initialFocusRef.current) return;
     initialFocusRef.current = true;
-    focus(STATIONS[5], false);
-  }, [focus]);
+    focus(selectedStation, false);
+  }, [focus, selectedStation]);
 
   return (
     <View style={styles.root}>
