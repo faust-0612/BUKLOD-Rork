@@ -21,7 +21,7 @@ const FOCUS_APP_ROUTE_PREFIXES = [
   '/profile/buklod-business',
   '/profile/buklod-local',
   '/profile/buklod-family',
-  '/profile/buklod-health',
+  // Health consultation owns one context-safe inline banner after triage.
   '/profile/buklod-market',
   '/profile/attendance-qr',
   '/scope/attendance',
