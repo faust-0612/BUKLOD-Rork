@@ -1,0 +1,56 @@
+{
+  "contractVersion": 2,
+  "objective": "Separate exact-scope Cluster/Organization funded allocations and externally held manually reported GCash contributions, with independently verified local receipt reporting and zero platform cash minting.",
+  "baseRef": "a4badb341c16444fa42c44a5e0906760b85d2a08",
+  "productionBaselineEvidence": "GitHub main a4badb341c16444fa42c44a5e0906760b85d2a08 inspected 2026-11-10; exact production Android binary/runtime not verified. No OTA or production web deployment authorized as part of this change.",
+  "chosenApproach": "Re-use registered exact-scope giving_scope_receivers; keep local direct-GCash receipts in an RLS-protected private table with independent review and global per-receiver reference uniqueness; show verified externally held receipts separately from the canonical PF settlement-backed available fund.",
+  "selectionRationale": "Direct member GCash deposits are held by the scope, not by BUKLOD. Crediting them into the PF platform settlement ledger would create unbacked platform payout liability and potential double spending. Separate custody ledgers avoid this.",
+  "alternativeApproaches": [
+    "Crediting verified direct-to-scope GCash into the existing PF settlement ledger: rejected because BUKLOD does not hold this money.",
+    "Using standalone Giving app deep-link without an in-app report/reconciliation record: rejected because the owner requires visible reporting and approval.",
+    "Approving self-reported GCash receipts without independent receiving-account verification: rejected because member claims are not payment evidence."
+  ],
+  "acceptanceChecks": [
+    "Personal wallet appears only on Public Home, with Cluster and Organization fund card instead.",
+    "Members can copy active exact-scope GCash receiver and report amount/reference, without automatic credit.",
+    "An authorized independent reviewer verifies reported transfers from real receiving-account history; platform cash is NEVER increased.",
+    "5%/7% tier designation and funded settlement untouched; disabled settlements never count as cash.",
+    "Changing scopes invalidates stale cached display; read failures do not masquerade as zero; no OTA publish."
+  ],
+  "preserveBehaviors": [
+    "Existing private user earnings/withdrawals and QMP remain unchanged.",
+    "Canonical scope Fund request/vote/release ledger remains intact.",
+    "Scope registered GCash receiver settings remain exact-scope admin only.",
+    "AdMob and financial finalization disabled gates remain unchanged.",
+    "Other Cluster and Organization Home modules untouched.",
+    "Externally held GCash is never converted to platform payout cash."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "scope-fund",
+    "auth-privacy",
+    "financial-ledger",
+    "manual-gcash",
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/buklod-scope-gcash-fund-20261110.test.mjs",
+    "tests/buklod-unified-earnings-scope-home-20261109.test.mjs",
+    "tests/buklod-earnings-final-source-clarity-20261109.test.mjs",
+    "supabase/tests/buklod_scope_gcash_contributions_20261110.sql"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodScopeFundCard.tsx",
+    "src/app/scope-fund.tsx",
+    "tests/buklod-scope-gcash-fund-20261110.test.mjs",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "tests/buklod-unified-earnings-scope-home-20261109.test.mjs",
+    "tests/buklod-earnings-final-source-clarity-20261109.test.mjs",
+    "supabase/migrations/20261110090000_buklod_scope_gcash_contributions_v1.sql",
+    "supabase/tests/buklod_scope_gcash_contributions_20261110.sql",
+    "src/lib/buklodScopeFundAmounts.ts",
+    ".buklod/scopes/scope-gcash-contributions-20261110.json"
+  ],
+  "status": "DEV_SOURCE_ONLY_PENDING_MERGE_RC_AND_RELEASE"
+}

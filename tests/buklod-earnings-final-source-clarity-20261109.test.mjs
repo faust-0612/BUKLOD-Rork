@@ -10,10 +10,10 @@ const home = read('src/app/(tabs)/home.tsx');
 const org = read('src/components/BuklodScopeHomeDashboard.tsx');
 const cluster = read('src/components/BuklodClusterHomeCommandCenterImpl.tsx');
 
-test('all public/org/cluster Homes show real-money sources and only one cash withdrawal door', () => {
+test('public Home shows personal money, scoped Homes show community funds only', () => {
   assert.match(home, /<BuklodUnifiedEarningsHomeCard \/>/);
-  assert.match(org, /<BuklodUnifiedEarningsHomeCard scopeId=\{scope.scope_id\}/);
-  assert.match(cluster, /<BuklodUnifiedEarningsHomeCard scopeId=\{scope.scope_id\}/);
+  assert.match(org, /<BuklodScopeFundCard scopeId=\{scope.scope_id\}/);
+  assert.match(cluster, /<BuklodScopeFundCard scopeId=\{scope.scope_id\}/);
   assert.match(card, /get_my_buklod_financial_earnings_breakdown_v1/);
   assert.match(card, /loadMyCommunityContribution\(\)/);
   assert.match(card, /get_buklod_scope_revenue_fund_summary_v1/);
