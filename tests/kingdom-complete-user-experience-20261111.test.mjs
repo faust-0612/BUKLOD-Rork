@@ -6,7 +6,7 @@ const read = path => readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const catalog = JSON.parse(read('src/features/games/kingdom/platform/game-catalog.json'));
 const games = catalog.characters.flatMap(c => c.games.map(g => g.id));
 
-test('all 39 Kingdom games have 200 reproducible, unique and answerable offline practice levels', () => {
+test('all 39 Kingdom games retain 200 deterministic base levels and extend to 5000 free levels', () => {
   assert.equal(games.length,39);
   assert.equal(new Set(games).size,39);
   for(const game of games) {
@@ -29,7 +29,7 @@ test('all 39 Kingdom games have 200 reproducible, unique and answerable offline 
   }
   assert.notDeepEqual(buildKingdomOfflineLevel(games[0],5,'account-A'),
     buildKingdomOfflineLevel(games[0],5,'account-B'));
-  for(const invalid of [0,201,-1,2.5,NaN]) {
+  for(const invalid of [0,5001,-1,2.5,NaN]) {
     assert.deepEqual(buildKingdomOfflineLevel(games[0],invalid,'account-A'),[]);
   }
 });
