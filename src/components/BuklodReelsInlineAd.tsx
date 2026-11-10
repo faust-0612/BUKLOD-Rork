@@ -274,11 +274,12 @@ export default function BuklodReelsInlineAd({
   ]);
 
   const adState: BuklodReelsAdLoadState =
-    nativeAd && !nativeFailed || bannerLoaded ? 'ready' :
+    !sdkReady || !routeSafe || !online ? 'unavailable' :
+    (nativeAd && !nativeFailed) || bannerLoaded ? 'ready' :
     (nativeFailed && (bannerFailed || !bannerUnitId)) ? 'unavailable' : 'loading';
   useEffect(() => {
-    if (prepared && routeSafe) callbackRef.current?.(adState);
-  }, [adState, prepared, routeSafe]);
+    if (prepared) callbackRef.current?.(adState);
+  }, [adState, prepared]);
   useEffect(() => {
     if (active && adState==='ready' && !renderedRef.current) {
       renderedRef.current=true;
