@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Prevent Community feed ad rows from disappearing during scrolling and allow unlimited comments with sparse optional interstitial ad opportunities beyond a conservative engagement threshold.",
+  "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
+  "productionBaselineEvidence": "GitHub main 5efb994 inspected 2026-11-11; PR #599 reports Nov 9 production OTA, but live binary and production source fingerprint have not been independently verified in this session.",
+  "rootCause": "The Public and Org/Cluster Wall passed active=isAdActive(item.id). Inactive ad components rendered null before the list's 60%-visible/400-ms activation threshold, leaving a zero-height ad marker that fast scrolling could never activate.",
+  "chosenApproach": "Always mount lightweight inline ad viewport probes on virtualized rows. Keep existing consent, current viewport, foreground, route, network, remote switches, NativeAd primary, Banner fallback, no-fill collapse, and request cooldown. Only confirmed extra comments queue a sparse optional interstitial for the next editor-close natural break.",
+  "selectedAlternativeReason": "Avoid triggering ads for all offscreen posts or disabling ad safety gates. NativeAd cache or forced new requests per scroll would bypass cooldowns and increase waste.",
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/app/post/[id].tsx",
+    "src/lib/buklodAdOpportunities.ts",
+    "src/lib/buklodCommunityCommentAdCadence.ts",
+    "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
+    ".buklod/scopes/community-feed-comment-ad-20261111.json"
+  ],
+  "preserveBehaviors": [
+    "Public/Org/Cluster scoped posts and virtualization",
+    "Existing Community video/audio and photo rendering",
+    "No third-party ad impressions fabricated; SDK only",
+    "Original backend comment RPC and server-side anti-farming/BP rules",
+    "A failed/missing ad never blocks user comments",
+    "No new ad unit, native build, Supabase schema or authorization changes",
+    "No unauthorized RC, production promotion or OTA publication"
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "community-wall-scroll",
+    "community-comments",
+    "points-integrity"
+  ],
+  "regressionTests": [
+    "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
+    "tests/buklod-ad-offscreen-banner-fallback.test.mjs",
+    "tests/buklod-inline-ad-remount-regression.test.mjs",
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Public and scoped feeds keep measurable ad probes before viewability",
+    "Only one confirmed-comment event is counted per successful RPC",
+    "No comment submission awaits ads",
+    "Ad queued on sixth and each fifth further confirmed success; display only on editor-close if global cadence, consent and fill permit",
+    "User/day isolation and no client-side BP award",
+    "Existing Google and BUKLOD ads safety gates preserved",
+    "No native device or production fill claims without live test"
+  ],
+  "deviceVerification": "Pending. No actual Android device testing or production publishing authorized by this change."
+}
