@@ -33,7 +33,8 @@ test('no parallel points or finance engines and no native runtime source drift i
   assert.match(bp,/viewer.user_id = v_viewer/);
   assert.match(bp,/LIMIT 10/);
   const rules=read('src/lib/buklodAiResponseValidation.ts');
-  assert.match(rules,/Gemini|gemini/);
+  assert.match(rules,/functions\.invoke\('buklod-ai-validate-response'/);
+  assert.match(rules,/rule-only \/ fail-open response/);
   const workflow=read('.github/workflows/unified_rc_compiled_qa_20261108.yml');
   assert.match(workflow,/integration\/buklod-nov10-single-source-ota/);
   const app=read('app.config.js');
