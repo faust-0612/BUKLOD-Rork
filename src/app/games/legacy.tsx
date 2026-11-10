@@ -198,6 +198,9 @@ export default function KingdomLegacyScreen() {
     if (!uid || !core || !collection || operation.current) return;
     if (!isCollectibleLevelOpen(collection, targetLevel)) return;
     const original = { uid, core, level, targetLevel };
+    const wasPreviouslyClaimed = collection.items.some(item =>
+      item.characterId === core && item.level === targetLevel &&
+      item.itemIndex === index && Boolean(item.redeemedAt));
     const accountUnchanged = async () => {
       if (accountRef.current !== original.uid) throw new Error('Character account changed. Refresh before trying again.');
       if (activeIdRef.current !== original.core || levelRef.current !== original.level) {
@@ -234,7 +237,9 @@ export default function KingdomLegacyScreen() {
           const verified = updated.items.find(row => row.characterId === core &&
             row.level === targetLevel && row.itemIndex === index && Boolean(row.redeemedAt));
           if (verified) {
-            pendingClaimAd.current = { owner: original.uid, hero: original.core, level: original.level };
+            if (!wasPreviouslyClaimed) {
+              pendingClaimAd.current = { owner: original.uid, hero: original.core, level: original.level };
+            }
             setReveal({ name: collectibleNames(core, targetLevel)[index-1] ?? 'Character collectible', index,
               kind: verified.rewardKind, level: targetLevel });
             void playBuklodGameFeedback('unlock');

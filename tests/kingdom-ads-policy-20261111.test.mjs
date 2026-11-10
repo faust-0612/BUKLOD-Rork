@@ -39,3 +39,9 @@ test('Kingdom native placements never render the web AdSense fallback',()=>{
  assert.match(legacy,/Platform\.OS === 'android' \? <BuklodCommunityInlineAd/);
  assert.match(rewards,/Platform\.OS === 'android' \? <BuklodCommunityInlineAd/);
 });
+
+test('Equipping previously redeemed collectibles never causes another fullscreen ad',()=>{
+ const legacy=read('src/app/games/legacy.tsx');
+ assert.match(legacy,/const wasPreviouslyClaimed = collection\.items\.some/);
+ assert.match(legacy,/if \(!wasPreviouslyClaimed\) \{[\s\S]*pendingClaimAd\.current/);
+});
