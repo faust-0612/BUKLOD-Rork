@@ -10,7 +10,7 @@ const SAVED_FAITH_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 // Keep downloaded Bible, Word, and Lesson content beyond routine UI-cache
 // pruning. Storage remains user-scoped with a bounded faith-content LRU.
 function isSavedFaithContent(key: string): boolean {
-  return /\/(?:bible-|word-|learning-|formation-)/.test(key);
+  return /\/(?:bible-|daily-bible-|word-|lesson-|learning-|formation-)/.test(key);
 }
 
 type CacheEnvelope<T> = {
@@ -53,7 +53,18 @@ async function readIndex(): Promise<CacheIndexRow[]> {
   }
 }
 
+let indexWriteTail: Promise<void> = Promise.resolve();
+
+function serializeIndexMutation<T>(operation: () => Promise<T>): Promise<T> {
+  // Prefetch downloads can finish concurrently. Serialized mutations prevent
+  // lost entries in the AsyncStorage cache index.
+  const result = indexWriteTail.then(operation, operation);
+  indexWriteTail = result.then(() => undefined, () => undefined);
+  return result;
+}
+
 async function touchIndex(key: string, storedAt: number): Promise<void> {
+  await serializeIndexMutation(async () => {
   try {
     const rows = await readIndex();
     const next = [
@@ -76,6 +87,7 @@ async function touchIndex(key: string, storedAt: number): Promise<void> {
   } catch {
     // Cache index maintenance must never break the caller.
   }
+  });
 }
 
 export async function setOfflineCache<T>(
@@ -158,6 +170,7 @@ export async function clearOfflineCacheForUser(
 export async function pruneOfflineCache(options?: {
   olderThanMs?: number;
 }): Promise<number> {
+  return serializeIndexMutation(async () => {
   const olderThanMs = Math.max(
     60_000,
     Number(options?.olderThanMs ?? 14 * 24 * 60 * 60 * 1000),
@@ -175,6 +188,7 @@ export async function pruneOfflineCache(options?: {
   }
   await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(keep));
   return stale.length;
+  });
 }
 
 export async function staleWhileRevalidate<T>(args: {

@@ -126,7 +126,9 @@ export default function TrackDetail() {
         setRoleTrack(trackInfo);
         roleForCache = trackInfo;
       } catch {
-        setRoleTrack(null);
+        // Keep last authorized role metadata during temporary outages.
+        roleForCache = cached?.data?.roleTrack ?? null;
+        if (!roleForCache) setRoleTrack(null);
       }
     } else {
       setRoleTrack(null);
@@ -142,7 +144,8 @@ export default function TrackDetail() {
         setWeeklyDelivery(weekly);
         weeklyForCache = weekly;
       } catch {
-        setWeeklyDelivery(null);
+        weeklyForCache = cached?.data?.weeklyDelivery ?? null;
+        if (!weeklyForCache) setWeeklyDelivery(null);
       }
     } else {
       setWeeklyDelivery(null);
@@ -156,21 +159,23 @@ export default function TrackDetail() {
     const statusRows: any[] = [];
 
     if (isFormationTrack) {
-      const { data: statusData } = await supabase.rpc(
+      const { data: statusData, error: statusError } = await supabase.rpc(
         'get_my_formation_track_lesson_status',
         {
           p_track_id: id,
         }
       );
+      if (statusError) return; // Do not replace a valid snapshot with unknown access.
 
       statusRows.push(...(statusData ?? []));
       setFormationStatuses(statusRows);
       setLegacyProgress([]);
     } else if (e?.id) {
-      const { data: p } = await supabase
+      const { data: p, error: progressError } = await supabase
         .from('lesson_progress')
         .select('lesson_id,completed_at')
         .eq('enrollment_id', e.id);
+      if (progressError) return;
 
       setLegacyProgress(p ?? []);
       legacyForCache = p ?? [];
@@ -226,7 +231,10 @@ export default function TrackDetail() {
         setLessonAccessById(merged);
         accessForCache = Array.from(merged.entries());
       } catch {
-        setLessonAccessById(new Map());
+        // Never reset previously authorized navigation merely because a
+        // permission RPC timed out. The detail view still checks online.
+        accessForCache = cached?.data?.access ?? [];
+        if (!accessForCache.length) setLessonAccessById(new Map());
       }
     } else {
       setLessonAccessById(new Map());
@@ -412,7 +420,8 @@ export default function TrackDetail() {
     });
   };
 
-  if (!track || !user?.id || contentOwner !== user.id) return null;
+  if (!track || track.id !== id || !user?.id ||
+      contentOwner !== user.id) return null;
 
   const journeyStage = formationJourney.journey?.stages.find(
     (s) => s.stage_code === stageCode,

@@ -56,6 +56,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { warmNextBibleChaptersOffline } from '@/lib/buklodFaithOfflineWarmup';
 import { colors } from '@/lib/theme';
 import {
   Card,
@@ -209,6 +210,14 @@ export default function BibleReaderScreen() {
 
     return 'free_reading';
   }, [params.source]);
+
+  // A Daily Reading shortcut without an assigned date must open the
+  // account's schedule, never silently substitute Genesis 1.
+  useEffect(() => {
+    if (source === 'daily_plan' && !assignedDate && requestedBook <= 0) {
+      router.replace('/bible' as any);
+    }
+  }, [source, assignedDate, requestedBook]);
 
 
   const [translations, setTranslations] =
@@ -1554,6 +1563,13 @@ const [showChapters, setShowChapters] =
         }
         if (cancelled) return;
         setVerses(chapter);
+        if (chapter.length && online) {
+          // Prefetch the next two chapters without opening a reading session
+          // or awarding points for background downloads.
+          void warmNextBibleChaptersOffline({
+            userId: accountId, translation, bookNo, chapterNo, books,
+          }).catch(() => undefined);
+        }
 
         if (cancelled) return;
 
