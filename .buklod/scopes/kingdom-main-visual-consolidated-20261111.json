@@ -1,14 +1,14 @@
 {
   "contractVersion": 2,
-  "objective": "Complete integrated BUKLOD Main Kingdom map/art/audio, movable character, 39-game free offline 200-level continuation, server-owned BP/Circle Rank and collectible claim/equip, historical armory and interactive badge trials without a new app, Vercel, payment or unauthorized backend.",
+  "objective": "Implement BUKLOD Kingdom free permanent gameplay powers and safe earn/spend Shards in Main app using existing server-verified Mastery and Character badges, while continuing unlimited-cost-free offline procedural levels without paid AI or Vercel.",
   "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
-  "productionBaselineEvidence": "Source base main 5efb99435243a4bcaeff27fc8d41d58b6a9969c2. Prior exact-head compiled QA PR #643 2c6ed2a8 verified Android and Expo web on runtime 1.3.2. The present additions require fresh QA. Original WAV copied byte-identical by existing asset blob SHA dc5f6e474e4bef12e537acc6027790c3f14e9c42 from already reviewed Kingdom DEV branch. Physical device/visual verification waived by owner, not passed.",
-  "chosenApproach": "Selectively integrate existing original locally bundled WAV and scoped sound hook, movable character, and proven 39×200 deterministic non-credit practice from PR #637; reconcile prior illustrated map and server-authoritative collectible art from PR #643, add safe older-equipment reuse and local badge training. Exclude not-yet-deployed AI edge function, SQL, paid currency and unapproved economic changes; use no new native dependencies or paid providers.",
-  "selectionRationale": "Owner requests complete original Kingdom with real meaningful badge experience in Main. Existing native Expo audio is already part of app and existing original WAV asset is reused. Training rewards are non-financial and fully local, real BP/level/claim remain server authority, and original 13 stations/39 catalog are not changed.",
+  "productionBaselineEvidence": "Main source baseline 5efb99435243a4bcaeff27fc8d41d58b6a9969c2. Former Kingdom PR #643 exact compiled head bd7f7854f7bb5f9122517c1b9538283b9315ecfc. Live Supabase read-only inspection confirms existing private kingdom_xp/game_xp wallet, credited Mastery attempt and official 2 BP source-key ledger, public claimed character collectible state. No existing Shards ledger or active dev DB branches found. SQL changes are staged as a migration file only; no live production DDL executed. Physical device/visual verification waived by owner.",
+  "chosenApproach": "Use existing main Supabase as game-only authority; stage isolated private RLS Shards wallet/ledger and fixed-price purchases, RPC granted to authenticated users only. Source grants exclusively from credited server-scored game Mastery plus redeemed Character collectibles, retroactively idempotent. Implement Main Treasury and verified offline entitlement cache for noncredit practice Lens/Shield/Compass/Aura. Extend each existing 39-game procedural route to 5,000 levels with 32 varied patterns. No paid AI, new project, client-issued points or game cash.",
+  "selectionRationale": "No additional provider needed; existing Mastery/collectible records already have server-owned source keys and first-achievement constraints. Permanent power purchases avoid offline consumable double-spend. A gated SQL migration plus React Native UI allows preview and compiled QA without silently modifying the already-live production backend. Existing verified BP/rank wallet unchanged.",
   "alternativeApproaches": [
-    "Bring every pending Kingdom SQL/AI/ads migration into production immediately (rejected: unverified server RLS/quotas and economic policy)",
-    "Split Kingdom into new paid project/Vercel (rejected: owner requires Main integration)",
-    "Reuse existing official art, offline music and local practice, with verified collectible rewards and narrowly scoped no-credit trials (chosen)"
+    "Paid AI model/Edge Function for each level (rejected: usage cost, latency, offline failure)",
+    "Client-side Shard balance and unlocks (rejected: trivial tampering, duplication and cross-account inconsistencies)",
+    "Reuse existing verified server proofs plus atomic permanent Shards purchases and free deterministic levels (chosen)"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-main-visual-consolidated-20261111.json",
@@ -30,7 +30,11 @@
     "src/app/games/christian-civic-leadership.tsx",
     "src/app/games/mitch-restore-mural.tsx",
     "src/app/games/practice.tsx",
-    "tests/kingdom-complete-user-experience-20261111.test.mjs"
+    "tests/kingdom-complete-user-experience-20261111.test.mjs",
+    "supabase/migrations/20261111014500_buklod_kingdom_shards_game_only_v1.sql",
+    "src/lib/buklodKingdomShards.ts",
+    "src/app/games/rewards.tsx",
+    "tests/kingdom-shards-free-powers-20261111.test.mjs"
   ],
   "preserveBehaviors": [
     "Canonical 13 game stations and stable coordinates/route IDs, and 39 existing games",
@@ -39,18 +43,20 @@
     "Other Home/Wall/Connect/Cluster/Health/Classroom experiences, pinned native runtime, production backend",
     "Backend validation before collectible display, account isolation, offline/local preview record labeling",
     "Consent/privacy and no monetization interstitials in local badge trials",
-    "Existing audio/SFX preferences and native player cleanup, cost caps and weak-signal offline support"
+    "Existing audio/SFX preferences and native player cleanup, cost caps and weak-signal offline support",
+    "Existing immutable verified game Mastery +2 BP first-claim policy, separate Kingdom/Game XP ledger and Community earnings"
   ],
   "acceptanceChecks": [
-    "Original 13 map coordinates, 39 routes, approved character art and old gameplay unchanged",
-    "All 39 games have 200 deterministic offline levels, unique answerable challenges, account-scoped saving and 3/3 advancement gate",
-    "Canonical Christian/Mitch/shared game centers all route to the offline practice catalog-validated game ID",
-    "Badge trials only accessible from server-claimed items; local mastery cannot mint BP, character level, Shards, QMP, cash or new paid items",
-    "Previously claimed inventory can be re-equipped and removed across character levels with authenticated account checks",
-    "Local ambient WAV plus approved sound preference and background pause, movable companion and reduced-motion map",
-    "Exact-head TypeScript, original R6/39 game regression suites, Node 39×200 stress tests, Android Expo and Expo web bundle export",
-    "No backend schema/Edge function migration, Vercel, new package or standalone app. No actual Android device test per owner waiver",
-    "Stage release candidate must reconcile cumulative Main and installed app OTA compatibility before production publishing"
+    "Migration has private three-table RLS, revoked direct client table grants and restricted auth-only RPC",
+    "Only verified credited Mastery with canonical ledger and redeemed collectible source can mint Shards, once per source",
+    "Wallet row locking, transaction atomicity, fixed server prices, no overdraft, duplicate permanent purchases at zero cost",
+    "No overlap between BP or QMP, character XP, financial earnings and game-only Shards",
+    "Treasury UI supports bounded wait/retry, server-confirmed purchases, user-scoped offline cache and false-success avoidance",
+    "Actual Wisdom Lens one-level hint, Guardian Shield preserving correct answers, Explorer Compass elimination, Emerald Aura cosmetics",
+    "39 canonical games x 5,000 deterministic offline levels (32 scenario patterns), existing 200 progress preserved, no paid AI",
+    "Exact source TypeScript and focused 39-game tests, new Shards SQL/client/power contracts, Android and web Expo bundle exports",
+    "Security and database migration validation before applying to production; no physical device verification per owner waiver",
+    "Single-source RC reconcile with other BUKLOD Main OTA-ready branches; no Vercel, paid API, separate app or production publish until gates"
   ],
   "riskAreas": [
     "kingdom-visual",
@@ -60,12 +66,19 @@
     "audio-lifecycle",
     "offline-account-isolation",
     "badge-claim-authorization",
-    "map-touch-responsiveness"
+    "map-touch-responsiveness",
+    "database-rls",
+    "atomic-spending",
+    "wallet-conservation",
+    "offline-cached-ownership",
+    "cross-account-shards",
+    "migration-rollout"
   ],
   "regressionTests": [
     "tests/kingdom-legacy-visual-r1.test.mjs",
     "tests/kingdom-main-visual-consolidated-20261111.test.mjs",
-    "tests/kingdom-complete-user-experience-20261111.test.mjs"
+    "tests/kingdom-complete-user-experience-20261111.test.mjs",
+    "tests/kingdom-shards-free-powers-20261111.test.mjs"
   ],
-  "releaseState": "DEV_IMPLEMENTED_AWAITING_EXACT_HEAD_COMPILED_QA_OWNER_WAIVED_DEVICE"
+  "releaseState": "DEV_IMPLEMENTED_SQL_MIGRATION_STAGED_WAITING_EXACT_HEAD_QA_NO_PRODUCTION_DDL"
 }
