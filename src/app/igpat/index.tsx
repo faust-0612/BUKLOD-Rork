@@ -17,7 +17,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer, type VideoSource } from 'expo-video';
 import { recordCommunityFeedMetric } from '@/lib/communityFeedTelemetry';
-import BuklodReelsInlineAd from '@/components/BuklodReelsInlineAd';
+import BuklodReelsInlineAd, {
+  type BuklodReelsAdLoadState,
+} from '@/components/BuklodReelsInlineAd';
 import {
   buildReelsFeedWithInlineAds,
   isReelsFeedInlineAdRow,
@@ -241,6 +243,8 @@ export default function IgpatScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const reelsListRef = useRef<FlatList<IgpatFeedRow>>(null);
+  const [reelsAdStates,setReelsAdStates] = useState<Record<string,BuklodReelsAdLoadState>>({});
   const [feedMode, setFeedMode] = useState<FeedMode>('for-you');
   const [dataSaver, setDataSaver] = useState(false);
   const [prefsReady, setPrefsReady] = useState(false);
@@ -249,7 +253,30 @@ export default function IgpatScreen() {
   const [followBusy, setFollowBusy] = useState<Set<string>>(new Set());
   const [reactionBusy, setReactionBusy] = useState<Set<string>>(new Set());
   const viewportHeight = Dimensions.get('window').height;
-  const feedRows = useMemo(() => buildReelsFeedWithInlineAds(rows), [rows]);
+  const feedRows = useMemo(() => {
+    const feed=buildReelsFeedWithInlineAds(rows);
+    // No reel session should end on a sponsored placeholder.
+    return isReelsFeedInlineAdRow(feed[feed.length-1]) ? feed.slice(0,-1) : feed;
+  }, [rows]);
+  useEffect(() => {
+    const row=feedRows[activeIndex];
+    if(!isReelsFeedInlineAdRow(row))return;
+    const status=reelsAdStates[row.id]??'loading';
+    if(status==='ready')return;
+    const timer=setTimeout(()=>{
+      const next=feedRows.findIndex((candidate,index)=>
+        index>activeIndex && !isReelsFeedInlineAdRow(candidate));
+      const target=next>=0?next:Math.max(0,activeIndex-1);
+      if(target===activeIndex)return;
+      try{
+        reelsListRef.current?.scrollToIndex({index:target,animated:false});
+        setActiveIndex(target);
+      }catch{
+        // A recycled feed item must not freeze or crash scrolling.
+      }
+    },status==='unavailable'?120:3000);
+    return()=>clearTimeout(timer);
+  },[feedRows,activeIndex,reelsAdStates]);
 
   useEffect(() => {
     let mounted = true;
@@ -556,6 +583,7 @@ export default function IgpatScreen() {
   return (
     <View style={styles.root}>
       <FlatList
+        ref={reelsListRef}
         data={feedRows}
         extraData={activeIndex}
         key={`${feedMode}:${dataSaver ? 'saver' : 'normal'}`}
@@ -577,9 +605,25 @@ export default function IgpatScreen() {
         })}
         renderItem={({ item, index }) => {
           if (isReelsFeedInlineAdRow(item)) {
+            const active=index===activeIndex;
+            const state=reelsAdStates[item.id]??'loading';
             return (
               <View style={[styles.page, { height: viewportHeight }]}>
-                <BuklodReelsInlineAd slotId={item.id} active={index === activeIndex} />
+                {active && state!=='ready' ? (
+                  <View style={styles.center}>
+                    <ActivityIndicator color="#FFFFFF" size="small"/>
+                    <Text style={styles.loadingTagline}>Preparing sponsored content…</Text>
+                  </View>
+                ) : null}
+                <BuklodReelsInlineAd
+                  slotId={item.id}
+                  active={active}
+                  prepare={index===activeIndex+1}
+                  onLoadStateChange={next=>{
+                    setReelsAdStates(current=>current[item.id]===next
+                      ? current:{...current,[item.id]:next});
+                  }}
+                />
               </View>
             );
           }
