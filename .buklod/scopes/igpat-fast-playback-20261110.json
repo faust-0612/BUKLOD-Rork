@@ -1,0 +1,50 @@
+{
+  "contractVersion": 2,
+  "objective": "Improve BUKLOD Wall and IGPAT/Reels first-video startup and one-video-ahead playback using existing SDK 57, without adding paid services or changing private-media access or advertisements",
+  "baseRef": "3ad05357f909a604d6bba15917bf6dde9c2c4ff7",
+  "productionBaselineEvidence": "verified: 2026-11-10 GitHub main source SHA 3ad05357f909a604d6bba15917bf6dde9c2c4ff7 inspected; existing Expo Hosting and Expo production OTA workflows inspected; branch is DEV, not proof of deployed web or installed Android OTA. Owner waives only physical device verification. Vercel build-rate-limit check is separate from canonical Expo Hosting workflow.",
+  "chosenApproach": "Use progressive private signed-URL preparation that renders the first row before completing all URL signs; preload one next playable row while respecting Data Saver, preserve inline ad rows and quick-edit controls; tune Android video buffering, add privacy-safe startup/rebuffer timing and recognize HLS URL metadata without requiring new backend. Route eventual web deployment through existing Expo Hosting workflow only.",
+  "selectionRationale": "Current IGPAT waits for all signed URLs before first paint and mounts player only at active index. Existing Expo SDK 57 supports player preload and native buffering. No cost-bearing backend migration is authorized. Independent Vercel status is not a BUKLOD Main Expo Hosting deployment gate.",
+  "allowedPaths": [
+    ".buklod/scopes/igpat-fast-playback-20261110.json",
+    "src/app/igpat/index.tsx",
+    "src/app/igpat/index.web.tsx",
+    "src/components/CommunityVideo.tsx",
+    "src/lib/communityFeedTelemetry.ts",
+    "tests/igpat-fast-start-video-20261110.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "First IGPAT playable row appears after its own signed access completes, without waiting on entire feed",
+    "Stale requests cannot overwrite a newly selected feed; background signing preserves row order",
+    "At most the next regular video is warmed; no preloading of ad media, no autoplay of offscreen media",
+    "Native data saver disables next-video warm loading; existing video caching is retained",
+    "Web quick-edit, play/pause, native two-times long-press, Wall media fit and ads remain intact",
+    "User-specific Supabase media access stays private and URLs are never sent to telemetry",
+    "HLS content type is supported if a backend later provides a playlist; no paid transcoder or new AWS resources",
+    "Run focused regression tests plus automated TypeScript and release gates before any publish",
+    "Do not publish from an unverified DEV head; physical device verification is waived, not performed"
+  ],
+  "preserveBehaviors": [
+    "Existing Supabase RLS and short-lived signed URLs",
+    "Google IMA ad insertion and Reels inline ad slots",
+    "One active playing Reel and offscreen pause",
+    "Main production Expo Hosting web and EAS production OTA release gates",
+    "Main app version, native SDK runtime and Android package"
+  ],
+  "riskAreas": [
+    "video-playback-lifecycle",
+    "signed-url-expiration",
+    "low-bandwidth-feed",
+    "ad-monetization",
+    "mobile-reels-memory"
+  ],
+  "regressionTests": [
+    "tests/igpat-fast-start-video-20261110.test.mjs"
+  ],
+  "alternativeApproaches": [
+    "Move BUKLOD Main hosting from Expo to Vercel or a new provider (rejected: Expo Hosting already serves production and provider migration would add cost/routing risk)",
+    "Add AWS MediaConvert or another paid transcoder (rejected: owner explicitly disallows AWS spend)",
+    "Download all videos before opening IGPAT (rejected: excessive network/data use, signed URL lifetime and private-media cache risk)",
+    "Progressive signing and one-next-video warm preload using existing Expo runtime (selected)"
+  ]
+}

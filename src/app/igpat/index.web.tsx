@@ -14,7 +14,7 @@ import {
   type ViewToken,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { VideoView, useVideoPlayer, type VideoSource } from 'expo-video';
 
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { parseIgpatQuickEdit } from '@/lib/igpat/quickEdit';
@@ -92,7 +92,11 @@ function IgpatVideo({
     : safeDuration;
   const baseRate = hasEditMeta ? edit.speed : 1;
 
-  const player = useVideoPlayer(uri, instance => {
+  const videoSource = useMemo<VideoSource>(() => ({
+    uri,
+    ...(uri.split('?')[0].split('#')[0].toLowerCase().endsWith('.m3u8') ? { contentType: 'hls' as const } : {}),
+  }), [uri]);
+  const player = useVideoPlayer(videoSource, instance => {
     instance.loop = !hasEditMeta;
     instance.muted = hasEditMeta ? edit.muted : false;
     instance.playbackRate = baseRate;
@@ -244,6 +248,7 @@ export default function IgpatWebScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<IgpatRow[]>([]);
+  const loadGenerationRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -302,6 +307,7 @@ export default function IgpatWebScreen() {
   }, [loadFollows]);
 
   const load = useCallback(async () => {
+    const generation = ++loadGenerationRef.current;
     if (!prefsReady) return;
     if (!user?.id) {
       setRows([]);
@@ -319,42 +325,56 @@ export default function IgpatWebScreen() {
         p_limit: limit,
       });
       if (error) throw error;
+      if (generation !== loadGenerationRef.current) return;
 
       const source = ((data ?? []) as IgpatRow[])
         .filter(row => Boolean(row.media_path))
         .slice(0, limit);
 
-      const signed = await mapWithConcurrency(
-        source,
-        SIGN_CONCURRENCY,
-        async row => {
-          const { data: mediaData, error: signError } = await supabase.storage
+      // First visible video first; sign the rest without blocking the feed.
+      const sign = async (row: IgpatRow): Promise<IgpatRow> => {
+        try {
+          const { data: signed, error: signError } = await supabase.storage
             .from('community-media')
             .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS);
-
-          if (signError) {
-            console.warn('BUKLOD IGPAT sign:', signError.message);
-            return { ...row, media_url: null };
-          }
-
-          return { ...row, media_url: mediaData?.signedUrl ?? null };
-        },
-      );
-
-      setRows(signed.filter(row => Boolean(row.media_url)));
+          if (signError) throw signError;
+          return { ...row, media_url: signed?.signedUrl ?? null };
+        } catch (error) {
+          console.warn('BUKLOD IGPAT sign:', String((error as any)?.message ?? error));
+          return { ...row, media_url: null };
+        }
+      };
+      const first = source.length ? await sign(source[0]) : null;
+      if (generation !== loadGenerationRef.current) return;
+      setRows(source.map((row, index) =>
+        index === 0 ? first! : { ...row, media_url: undefined },
+      ));
       setActiveIndex(0);
+      setLoading(false);
+      void mapWithConcurrency(source.slice(1), SIGN_CONCURRENCY, async row => {
+        const signed = await sign(row);
+        if (generation === loadGenerationRef.current) {
+          setRows(current => current.map(item => item.id === signed.id ? signed : item));
+        }
+        return signed;
+      }).catch(error => {
+        console.warn('BUKLOD IGPAT background sign:', String(error));
+      });
     } catch (error) {
       const message = String((error as any)?.message ?? error);
       console.warn('BUKLOD IGPAT load:', message);
-      setRows([]);
-      setLoadError(message);
+      if (generation === loadGenerationRef.current) {
+        setRows([]);
+        setLoadError(message);
+      }
     } finally {
-      setLoading(false);
+      if (generation === loadGenerationRef.current) setLoading(false);
     }
   }, [dataSaver, feedMode, prefsReady, user?.id]);
 
   useEffect(() => {
     void load();
+    return () => { loadGenerationRef.current += 1; };
   }, [load]);
 
   useEffect(() => {
@@ -499,6 +519,8 @@ export default function IgpatWebScreen() {
     [],
   );
 
+  const nextPlayableIndex = dataSaver ? -1 : activeIndex + 1;
+
   if (!prefsReady || loading) {
     return (
       <View style={styles.center}>
@@ -549,9 +571,9 @@ export default function IgpatWebScreen() {
         pagingEnabled
         showsVerticalScrollIndicator={false}
         initialNumToRender={1}
-        maxToRenderPerBatch={1}
-        updateCellsBatchingPeriod={80}
-        windowSize={2}
+        maxToRenderPerBatch={2}
+        updateCellsBatchingPeriod={60}
+        windowSize={4}
         removeClippedSubviews
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged}
@@ -568,13 +590,22 @@ export default function IgpatWebScreen() {
 
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
-              {!!item.media_url && index === activeIndex ? (
+              {!!item.media_url && (index === activeIndex || index === nextPlayableIndex) ? (
                 <IgpatVideo
                   uri={item.media_url}
-                  active
+                  active={index === activeIndex}
                   durationSeconds={Number(item.media_duration_seconds ?? 60)}
                   editMeta={item.igpat_edit_meta}
                 />
+              ) : null}
+              {index === activeIndex && !item.media_url ? (
+                <View style={styles.center}>
+                  {item.media_url === undefined ? <ActivityIndicator color="#FFFFFF" /> : (
+                    <Pressable onPress={() => void load()} style={styles.retryButton}>
+                      <Text style={styles.retryText}>RETRY VIDEO</Text>
+                    </Pressable>
+                  )}
+                </View>
               ) : null}
               <View pointerEvents="none" style={styles.scrim} />
 

@@ -9,7 +9,9 @@ export type CommunityFeedMetricStage =
   | 'feed_rpc'
   | 'first_text_paint'
   | 'media_prefetch'
-  | 'video_player';
+  | 'video_player'
+  | 'video_startup'
+  | 'video_rebuffer';
 
 export type CommunityFeedMetric = {
   stage: CommunityFeedMetricStage;
