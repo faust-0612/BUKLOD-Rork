@@ -45,9 +45,11 @@ create table if not exists private.buklod_health_consult_notes_v1(
   id uuid primary key default gen_random_uuid(),
   consultation_id uuid not null references private.buklod_health_consultations_v1(id) on delete cascade,
   author_id uuid not null references auth.users(id),
+  note_request_key text not null check(length(note_request_key) between 16 and 100),
   kind text not null check(kind in ('CLIENT_QUESTION','PROFESSIONAL_ADVICE','CARE_PLAN','FOLLOW_UP','REFERRAL')),
   message text not null check(length(message) between 2 and 2400),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint buklod_health_note_retry_key_v1 unique(consultation_id,author_id,note_request_key)
 );
 create index if not exists buklod_health_consult_notes_case_v1 on private.buklod_health_consult_notes_v1(consultation_id,created_at asc);
 create table if not exists private.buklod_health_review_audit_v1(
@@ -251,17 +253,29 @@ begin
 end;$f$;
 
 create or replace function public.buklod_health_card_post_note_v1(
-  p_consult_id uuid,p_kind text,p_message text
+  p_consult_id uuid,p_kind text,p_message text,p_note_key text
 ) returns uuid language plpgsql security definer set search_path=''
 as $f$
 declare v_actor uuid:=auth.uid();v_case private.buklod_health_consultations_v1%rowtype;
   v_kind text:=upper(btrim(coalesce(p_kind,'')));v_message text:=btrim(coalesce(p_message,''));
+  v_key text:=btrim(coalesce(p_note_key,''));
+  v_existing private.buklod_health_consult_notes_v1%rowtype;
   v_is_prof boolean;v_note_id uuid;
 begin
   if v_actor is null then raise exception 'Sign in required'; end if;
   select * into v_case from private.buklod_health_consultations_v1 where id=p_consult_id;
   if not found or (v_case.client_id<>v_actor and v_case.professional_id is distinct from v_actor) then
     raise exception 'Consultation not accessible'; end if;
+  if length(v_key) not between 16 and 100 or v_key !~ '^[A-Za-z0-9_-]+$' then
+    raise exception 'Invalid clinical note retry key'; end if;
+  -- Retry after a response timeout returns the original note, even if referral closed the conversation.
+  select * into v_existing from private.buklod_health_consult_notes_v1
+    where consultation_id=p_consult_id and author_id=v_actor and note_request_key=v_key;
+  if found then
+    if v_existing.kind<>v_kind or v_existing.message<>v_message
+      then raise exception 'This note identifier belongs to another message'; end if;
+    return v_existing.id;
+  end if;
   if v_case.status not in ('IN_PROGRESS') then raise exception 'Consultation is not active'; end if;
   if length(v_message) not between 2 and 2400 then raise exception 'Message must be 2-2400 characters'; end if;
   if v_kind not in ('CLIENT_QUESTION','PROFESSIONAL_ADVICE','CARE_PLAN','FOLLOW_UP','REFERRAL') then
@@ -275,8 +289,15 @@ begin
   else
     if v_kind not in ('CLIENT_QUESTION','FOLLOW_UP') then raise exception 'Clinical plans require a professional'; end if;
   end if;
-  insert into private.buklod_health_consult_notes_v1(consultation_id,author_id,kind,message)
-  values(p_consult_id,v_actor,v_kind,v_message) returning id into v_note_id;
+  insert into private.buklod_health_consult_notes_v1(consultation_id,author_id,note_request_key,kind,message)
+  values(p_consult_id,v_actor,v_key,v_kind,v_message)
+  on conflict (consultation_id,author_id,note_request_key) do nothing returning id into v_note_id;
+  if v_note_id is null then
+    select id into v_note_id from private.buklod_health_consult_notes_v1
+      where consultation_id=p_consult_id and author_id=v_actor and note_request_key=v_key
+        and kind=v_kind and message=v_message;
+    if v_note_id is null then raise exception 'Conflicting note retry'; end if;
+  end if;
   if v_kind='REFERRAL' then
     update private.buklod_health_consultations_v1
       set status='REFERRED',referral_note=v_message,updated_at=now()
@@ -388,7 +409,7 @@ revoke all on function public.buklod_health_card_register_professional_v1(text,t
 revoke all on function public.buklod_health_card_admin_review_v1(uuid,text,boolean,text,text) from public,anon,authenticated;
 revoke all on function public.buklod_health_card_open_consult_v1(text,text,text,text,boolean,boolean,text) from public,anon,authenticated;
 revoke all on function public.buklod_health_card_claim_consult_v1(uuid) from public,anon,authenticated;
-revoke all on function public.buklod_health_card_post_note_v1(uuid,text,text) from public,anon,authenticated;
+revoke all on function public.buklod_health_card_post_note_v1(uuid,text,text,text) from public,anon,authenticated;
 revoke all on function public.buklod_health_card_close_consult_v1(uuid) from public,anon,authenticated;
 revoke all on function public.buklod_health_card_get_notes_v1(uuid) from public,anon,authenticated;
 revoke all on function public.buklod_health_card_dashboard_v1() from public,anon,authenticated;
@@ -397,7 +418,7 @@ grant execute on function public.buklod_health_card_register_professional_v1(tex
 grant execute on function public.buklod_health_card_admin_review_v1(uuid,text,boolean,text,text) to authenticated;
 grant execute on function public.buklod_health_card_open_consult_v1(text,text,text,text,boolean,boolean,text) to authenticated;
 grant execute on function public.buklod_health_card_claim_consult_v1(uuid) to authenticated;
-grant execute on function public.buklod_health_card_post_note_v1(uuid,text,text) to authenticated;
+grant execute on function public.buklod_health_card_post_note_v1(uuid,text,text,text) to authenticated;
 grant execute on function public.buklod_health_card_close_consult_v1(uuid) to authenticated;
 grant execute on function public.buklod_health_card_get_notes_v1(uuid) to authenticated;
 grant execute on function public.buklod_health_card_dashboard_v1() to authenticated;

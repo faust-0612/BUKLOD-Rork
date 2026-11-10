@@ -33,6 +33,10 @@ const GUIDE = {
   },
 };
 const LIMIT_ERROR = 'Please check your connection and try again. No message was confirmed as saved.';
+function newHealthRequestKey() {
+  return 'hc-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+
+    '-'+Math.random().toString(36).slice(2);
+}
 
 
 type HealthButtonProps={label:string;onPress:()=>void;outline?:boolean;disabled?:boolean};
@@ -84,8 +88,8 @@ export default function BuklodMainHealthCard({
   const [reviewRef,setReviewRef] = useState('');
   const busyRef=useRef(false);
   // Reuse this identifier when a network timeout leaves server commit uncertain.
-  const requestKey=useRef('hc-'+Date.now().toString(36)+'-'+
-    Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2));
+  const requestKey=useRef(newHealthRequestKey());
+  const noteRequestKey=useRef(newHealthRequestKey());
   const dataGeneration=useRef(0);
   const notesGeneration=useRef(0);
   const caseIdRef=useRef<string|null>(null);
@@ -179,7 +183,8 @@ export default function BuklodMainHealthCard({
       t('Your case is pending acceptance by a verified volunteer. Do not treat this as emergency care.',
         'Nasa pila ang kaso para sa verified volunteer. Hindi ito emergency service.'));
   });
-  const openCase=(id:string)=>{setSelectedCase(id);caseIdRef.current=id;setSection('case');void loadNotes(id);};
+  const openCase=(id:string)=>{setSelectedCase(id);caseIdRef.current=id;
+    noteRequestKey.current=newHealthRequestKey();setSection('case');void loadNotes(id);};
   const loadNotes=async(id:string)=>{
     const generation=++notesGeneration.current;
     try{
@@ -200,8 +205,9 @@ export default function BuklodMainHealthCard({
     if(!selectedCase||message.trim().length<2)return;
     await rpc('buklod_health_card_post_note_v1',{
       p_consult_id:selectedCase,p_kind:isProfessional?messageKind:'CLIENT_QUESTION',
-      p_message:message.trim(),
+      p_message:message.trim(),p_note_key:noteRequestKey.current,
     });
+    noteRequestKey.current=newHealthRequestKey();
     setMessage('');await loadNotes(selectedCase);await load();
   });
   const closeCase=()=>void run(async()=>{
@@ -413,7 +419,9 @@ export default function BuklodMainHealthCard({
                 onPress={()=>setMessageKind(k)} style={[styles.chip,messageKind===k&&styles.chipOn]}>
                 <Text style={messageKind===k?styles.chipOnText:styles.chipText}>{k.replace('_',' ')}</Text></Pressable>)}
             </View>:null}
-            <Field value={message} onChange={setMessage} placeholder={t('Add a clinical note or question','Magdagdag ng clinical note o tanong')} multiline/>
+            <Field value={message} onChange={value=>{
+              setMessage(value);noteRequestKey.current=newHealthRequestKey();
+            }} placeholder={t('Add a clinical note or question','Magdagdag ng clinical note o tanong')} multiline/>
             <Button label={t('SAVE TO CLINICAL RECORD','I-SAVE SA CLINICAL RECORD')} onPress={postNote}
               disabled={busy||message.trim().length<2||(!caseItem.license_current&&isProfessional)}/>
             </>:<Info>{t('Read-only clinical history. The consultation has ended, but the records remain available to its participants.',
