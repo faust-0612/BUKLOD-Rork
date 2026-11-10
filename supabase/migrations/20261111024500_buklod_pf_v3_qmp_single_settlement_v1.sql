@@ -640,7 +640,7 @@ begin
     'settlement',to_jsonb(v_settlement)
   );
 end
-$function$
+$function$;
 
 -- Explicitly retain the existing admin-only execute contract.
 revoke all on function public.admin_finalize_buklod_pf_month_v3(text,text) from public,anon;
