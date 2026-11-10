@@ -196,7 +196,7 @@ export function KingdomInteriorCenter({
             <KingdomOfflineContinuation key={'offline:' + user.id + ':' + active.id} gameId={active.id} />
             <KingdomAIContinuation key={user.id + ':' + active.id} gameId={active.id} />
           </>
-        ) : null
+        ) : null}
         {lastCompletedId === active.id && nextOption ? (
           <Pressable accessibilityRole="button" style={styles.nextChallenge}
             onPress={() => { setActiveId(nextOption.id); setLastCompletedId(null); }}>
