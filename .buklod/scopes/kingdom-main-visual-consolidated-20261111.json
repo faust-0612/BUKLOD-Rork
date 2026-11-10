@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
-  "objective": "Implement BUKLOD Kingdom free permanent gameplay powers and safe earn/spend Shards in Main app using existing server-verified Mastery and Character badges, while continuing unlimited-cost-free offline procedural levels without paid AI or Vercel. Add native Hall/Treasury inventory and interstitial opportunities after verified item claims and Shard unlocks; opt-in practice hint is separately gated.",
+  "objective": "Implement BUKLOD Kingdom free permanent gameplay powers and safe earn/spend Shards in Main app using existing server-verified Mastery and Character badges, while continuing unlimited-cost-free offline procedural levels without paid AI or Vercel.",
   "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
   "productionBaselineEvidence": "Main source baseline 5efb99435243a4bcaeff27fc8d41d58b6a9969c2. Former Kingdom PR #643 exact compiled head bd7f7854f7bb5f9122517c1b9538283b9315ecfc. Live Supabase read-only inspection confirms existing private kingdom_xp/game_xp wallet, credited Mastery attempt and official 2 BP source-key ledger, public claimed character collectible state. No existing Shards ledger or active dev DB branches found. SQL changes are staged as a migration file only; no live production DDL executed. Physical device/visual verification waived by owner.",
-  "chosenApproach": "Use existing main Supabase as game-only authority; stage isolated private RLS Shards wallet/ledger and fixed-price purchases, RPC granted to authenticated users only. Source grants exclusively from credited server-scored game Mastery plus redeemed Character collectibles, retroactively idempotent. Implement Main Treasury and verified offline entitlement cache for noncredit practice Lens/Shield/Compass/Aura. Extend each existing 39-game procedural route to 5,000 levels with 32 varied patterns. No paid AI, new project, client-issued points or game cash. Put passive Android ads on non-gameplay Hall/Treasury views, use server-verified idempotent claim receipts for completion-only full-screen ads, and preserve protected game routes. Add Android opt-in rewarded video with SDK earned proof for one temporary local-only hint; web safely returns no reward and cannot import native SDK.",
+  "chosenApproach": "Use existing main Supabase as game-only authority; stage isolated private RLS Shards wallet/ledger and fixed-price purchases, RPC granted to authenticated users only. Source grants exclusively from credited server-scored game Mastery plus redeemed Character collectibles, retroactively idempotent. Implement Main Treasury and verified offline entitlement cache for noncredit practice Lens/Shield/Compass/Aura. Extend each existing 39-game procedural route to 5,000 levels with 32 varied patterns. No paid AI, new project, client-issued points or game cash.",
   "selectionRationale": "No additional provider needed; existing Mastery/collectible records already have server-owned source keys and first-achievement constraints. Permanent power purchases avoid offline consumable double-spend. A gated SQL migration plus React Native UI allows preview and compiled QA without silently modifying the already-live production backend. Existing verified BP/rank wallet unchanged.",
   "alternativeApproaches": [
     "Paid AI model/Edge Function for each level (rejected: usage cost, latency, offline failure)",
@@ -35,11 +35,7 @@
     "src/lib/buklodKingdomShards.ts",
     "src/app/games/rewards.tsx",
     "tests/kingdom-shards-free-powers-20261111.test.mjs",
-    "supabase/tests/kingdom_shards_conservation_v1.sql",
-    "src/lib/buklodGlobalAdController.ts",
-    "tests/kingdom-native-rewarded-completions-20261111.test.mjs",
-    "src/lib/buklodRewardedAds.web.ts",
-    "tests/kingdom-ads-policy-20261111.test.mjs"
+    "supabase/tests/kingdom_shards_conservation_v1.sql"
   ],
   "preserveBehaviors": [
     "Canonical 13 game stations and stable coordinates/route IDs, and 39 existing games",
@@ -49,8 +45,7 @@
     "Backend validation before collectible display, account isolation, offline/local preview record labeling",
     "Consent/privacy and no monetization interstitials in local badge trials",
     "Existing audio/SFX preferences and native player cleanup, cost caps and weak-signal offline support",
-    "Existing immutable verified game Mastery +2 BP first-claim policy, separate Kingdom/Game XP ledger and Community earnings",
-    "All offline Kingdom levels remain free without ads; optional hint never creates a dependency for completing a level."
+    "Existing immutable verified game Mastery +2 BP first-claim policy, separate Kingdom/Game XP ledger and Community earnings"
   ],
   "acceptanceChecks": [
     "Migration has private three-table RLS, revoked direct client table grants and restricted auth-only RPC",
@@ -63,15 +58,7 @@
     "Exact source TypeScript and focused 39-game tests, new Shards SQL/client/power contracts, Android and web Expo bundle exports",
     "Security and database migration validation before applying to production; no physical device verification per owner waiver",
     "Single-source RC reconcile with other BUKLOD Main OTA-ready branches; no Vercel, paid API, separate app or production publish until gates",
-    "Isolated migration-applied SQL regression: ownership grants, RLS, negative-balance prevention and conservation; not executed on the production DB until release gate.",
-    "Native Hall/Treasury ads honor exact route safelist and existing consent and viewport checks; claiming and Shard purchases never require an ad.",
-    "After verified item claims or confirmed Shard power unlock, optional interstitial only at safe break after server commit.",
-    "Practice hint rewarded video is Android-only, explicitly tapped, permitted by AdsProvider and Kingdom exact-route gate, credited only after EARNED_REWARD and account/level still match.",
-    "Rewarded hints never mint BP, Shards, XP, QMP, rank or cash, and practice works without a filled ad.",
-    "Collectible celebration animates before the user dismisses it, and only then may a successful-claim interstitial display; stale account cannot trigger it.",
-    "Focused ads-specific Node regression contract covers Kingdom route exceptions, post-claim celebration, idempotent Shard unlock and earned-only optional practice hints.",
-    "Native Kingdom Hall and Treasury AdMob components pass placementIdOverride equal to the exact route-allowlisted placement key, not just slotId.",
-    "Only a first-time collectible redemption offers an interstitial; equipping older claimed items never restarts the monetization event."
+    "Isolated migration-applied SQL regression: ownership grants, RLS, negative-balance prevention and conservation; not executed on the production DB until release gate."
   ],
   "riskAreas": [
     "kingdom-visual",
@@ -87,18 +74,14 @@
     "wallet-conservation",
     "offline-cached-ownership",
     "cross-account-shards",
-    "migration-rollout",
-    "ads-monetization",
-    "interstitial-natural-break"
+    "migration-rollout"
   ],
   "regressionTests": [
     "tests/kingdom-legacy-visual-r1.test.mjs",
     "tests/kingdom-main-visual-consolidated-20261111.test.mjs",
     "tests/kingdom-complete-user-experience-20261111.test.mjs",
     "tests/kingdom-shards-free-powers-20261111.test.mjs",
-    "supabase/tests/kingdom_shards_conservation_v1.sql",
-    "tests/kingdom-native-rewarded-completions-20261111.test.mjs",
-    "tests/kingdom-ads-policy-20261111.test.mjs"
+    "supabase/tests/kingdom_shards_conservation_v1.sql"
   ],
-  "releaseState": "DEV_HOLD_KINGDOM_ADS_UNMERGED_REQUIRES_SINGLE_OTA_RC_QA"
+  "releaseState": "DEV_IMPLEMENTED_SQL_MIGRATION_STAGED_WAITING_EXACT_HEAD_QA_NO_PRODUCTION_DDL"
 }
