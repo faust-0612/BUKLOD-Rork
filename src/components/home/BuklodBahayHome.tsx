@@ -359,6 +359,10 @@ export default function BuklodBahayHome() {
     setActiveHomeId(id);
     setActiveRoom(null);
     setSelectedCommunityId('');
+    setInviteId('');
+    setSelectedInvitee(null);
+    setInviteSuggestions([]);
+    setPendingInvites([]);
     if (userId) await AsyncStorage.setItem(`buklod.bahay.active.${userId}`,id);
   };
 

@@ -279,6 +279,9 @@ jobs:
       - name: Verify The Word safe-area and weekly empty state
         if: github.head_ref == 'fix/the-word-safe-area-20261106'
         run: node --test tests/the-word-safe-area-20261106.test.mjs
+      - name: Verify Bahay Kasambahay invitation contracts
+        if: github.head_ref == 'fix/bahay-kasambahay-invite-20261110'
+        run: node --test tests/bahay-kasambahay-invite-20261110.test.cjs
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
       - name: Verify KL per-scene saved placement and draft isolation

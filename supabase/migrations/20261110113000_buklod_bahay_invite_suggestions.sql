@@ -157,9 +157,18 @@ begin
 
   return query
   with connections as (
-    select c.user_id, min(c.shared_scope_label) as shared_scope_label
-    from public.buklod_connect_suggested_contacts_v1(80) c
-    group by c.user_id
+    select related.user_id, min(related.source_label) as shared_scope_label
+    from (
+      select c.user_id, c.shared_scope_label as source_label
+      from public.buklod_connect_suggested_contacts_v1(80) c
+      union all
+      select f.followed_user_id, 'Following'::text
+      from public.buklod_user_follows f where f.follower_id = (select auth.uid())
+      union all
+      select f.follower_id, 'Follower'::text
+      from public.buklod_user_follows f where f.followed_user_id = (select auth.uid())
+    ) related
+    group by related.user_id
   )
   select
     p.id,
