@@ -61,7 +61,7 @@ export default function BuklodHomeUtilityCards() {
       </Pressable>
 
       {/* Inline Health Center workspace, without leaving Main Home. */}
-      <BuklodMainHealthCard openStandalone={() => void openStandaloneHealth()} />
+      <BuklodMainHealthCard tileId={healthCard.id} openStandalone={() => void openStandaloneHealth()} />
 
     </View>
   );

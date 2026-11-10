@@ -33,11 +33,28 @@ const GUIDE = {
   },
 };
 const LIMIT_ERROR = 'Please check your connection and try again. No message was confirmed as saved.';
-const nowISODate = () => new Date().toISOString().slice(0, 10);
+
+
+type HealthButtonProps={label:string;onPress:()=>void;outline?:boolean;disabled?:boolean};
+function Button({label,onPress,outline=false,disabled=false}:HealthButtonProps) {
+  return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress}
+    style={({pressed})=>[styles.action,outline&&styles.outline,(pressed||disabled)&&styles.dim]}>
+    <Text style={[styles.actionText,outline&&styles.outlineText]}>{label}</Text>
+  </Pressable>;
+}
+function Info({children}:{children:React.ReactNode}) {
+  return <Text style={styles.info}>{children}</Text>;
+}
+type HealthFieldProps={value:string;onChange:(value:string)=>void;placeholder:string;multiline?:boolean};
+function Field({value,onChange,placeholder,multiline=false}:HealthFieldProps) {
+  return <TextInput style={[styles.input,multiline&&styles.multiline]} value={value}
+    onChangeText={onChange} placeholder={placeholder} placeholderTextColor="#718478"
+    multiline={multiline} maxLength={multiline?1500:150} autoCorrect={!multiline}/>;
+}
 
 export default function BuklodMainHealthCard({
-  openStandalone,
-}: {openStandalone:()=>void}) {
+  openStandalone,tileId,
+}: {openStandalone:()=>void;tileId:string}) {
   const {user,profile} = useAuth();
   const [language,setLanguage] = useState<Language>('fil');
   const [section,setSection] = useState<Section>(null);
@@ -66,7 +83,7 @@ export default function BuklodMainHealthCard({
   const t=(en:string,fil:string)=>language==='fil'?fil:en;
   const active=section!==null;
   const caseItem=dash?.consultations?.find(item=>item.id===selectedCase);
-  const isProfessional=(caseItem?.professional_name && caseItem?.client_name) != null && !!caseItem?.client_name;
+  const isProfessional=!!caseItem?.client_name;
   const expiryDays=dash?.professional?.days_to_expire;
   const licenseCurrent=dash?.professional?.status==='VERIFIED' && typeof expiryDays==='number' && expiryDays>=0;
 
@@ -181,21 +198,7 @@ export default function BuklodMainHealthCard({
     });
     setReviewRef('');await load();
   });
-  const Button=({label,onPress,outline=false,disabled=false}:{
-    label:string;onPress:()=>void;outline?:boolean;disabled?:boolean;
-  })=><Pressable accessibilityRole="button" disabled={disabled}
-      onPress={onPress} style={({pressed})=>[styles.action,outline&&styles.outline,
-        (pressed||disabled)&&styles.dim]}>
-      <Text style={[styles.actionText,outline&&styles.outlineText]}>{label}</Text>
-    </Pressable>;
-  const Info=({children}:{children:React.ReactNode})=><Text style={styles.info}>{children}</Text>;
-  const Field=({value,onChange,placeholder,multiline=false}:{
-    value:string;onChange:(value:string)=>void;placeholder:string;multiline?:boolean;
-  })=><TextInput style={[styles.input,multiline&&styles.multiline]} value={value}
-      onChangeText={onChange} placeholder={placeholder} placeholderTextColor="#718478"
-      multiline={multiline} maxLength={multiline?1500:150} autoCorrect={!multiline}/>;
-
-  return <View style={[styles.card,active&&styles.cardExpanded]} accessibilityLabel="Health Center">
+  return <View style={[styles.card,active&&styles.cardExpanded]} accessibilityLabel={tileId==='health'?'Health Center':tileId}>
     <View style={styles.header}>
       <MaterialCommunityIcons name="heart-pulse" size={24} color="#136348"/>
       <Text style={styles.heading}>{t('Health Center','Sentro ng Kalusugan')}</Text>
