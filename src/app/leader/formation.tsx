@@ -94,11 +94,11 @@ export default function PastorFormationValidationScreen() {
         { p_cluster_id: activeScope.scope_id },
       );
       if (!setup.error && setup.data?.has_authorized_approver === false) {
+        // Do not repeat the legacy server's human-approval warning for
+        // AI-only lesson submissions. Personnel still handle separate
+        // Bayanihan / documentary evidence workflows.
         setApproverSetup(
-          String(
-            setup.data?.message ??
-              'This Cluster may still need personnel for separate non-reflection evidence tasks. Lesson reflections are evaluated automatically by BUKLOD AI.',
-          ),
+          'No personnel reviewer is needed for Lesson, Daily Reading, or Daily Devotion reflections. Other verified actions may still require a Cluster representative.',
         );
       } else {
         setApproverSetup(null);
