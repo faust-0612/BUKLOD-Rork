@@ -74,6 +74,9 @@ test('Reels native inventory honours consent, remote gates, request spacing and 
   assert.match(reel, /impressionSub\?\.remove\(\)/);
   assert.match(reel, /createdAd\?\.destroy\(\)/);
   assert.match(reel, /getBuklodBannerUnitId\('reels'\)/);
+  assert.match(reel, /bannerLoaded && !bannerFailed/);
+  assert.match(reel, /!sdkReady \|\| !routeSafe \|\| !online \? 'unavailable'/);
+  assert.match(reel, /onAdImpression/);
   assert.doesNotMatch(reel, /maybeShowBuklodInterstitial\(/);
 });
 
