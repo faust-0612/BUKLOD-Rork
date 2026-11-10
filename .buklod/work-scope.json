@@ -1,5 +1,5 @@
 {
-  "objective": "Isolated DEV Smart Drawer categories, local file imports, encrypted user-owned backup, and production Android OAuth client configuration without enabling an unverified OAuth flow.",
+  "objective": "BUKLOD Smart Drawer local-first and encrypted personal-cloud portability, exact Android Google OAuth client identity, and scoped Google Drive API transport; native OAuth connection and automatic sync remain separate release gates.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: Compared Drawer files and existing per-workstream scope against GitHub main during 2026-11-10 development. Live production Android fingerprint and OTA runtime were not verified; this DEV scope cannot authorize production publishing.",
   "allowedPaths": [
@@ -16,7 +16,9 @@
     "src/lib/smartDrawer/types.ts",
     "tests/smart-drawer-cloud-backup.test.mjs",
     "app.config.js",
-    "tests/smart-drawer-release-identity.test.mjs"
+    "tests/smart-drawer-release-identity.test.mjs",
+    "src/lib/smartDrawer/googleDriveTransport.ts",
+    "tests/smart-drawer-google-drive-transport.test.mjs"
   ],
   "acceptanceChecks": [
     "Default local-only Drawer requires no cloud provider subscription and does not send user files to BUKLOD servers.",
@@ -27,6 +29,8 @@
     "Node regression tests, Jest, TypeScript compilation, device backup/restore and privacy tests pass before RC.",
     "No Google OAuth, continuous sync, native build or production OTA is represented as complete.",
     "Production Android OAuth client ID must only be exposed to org.mzbministry.buklod and never staging or Classroom.",
-    "No OAuth authorization, actual Drive access, continuous synchronization, native build, or production OTA is claimed without verified provider integration."
+    "No OAuth authorization, actual Drive access, continuous synchronization, native build, or production OTA is claimed without verified provider integration.",
+    "Drive API transport requests drive.file and refuses plaintext archive uploads, with authorization and quota failures surfaced explicitly.",
+    "Native Google authorization is not yet installed or connected; cloud transport must never be described as live sync."
   ]
 }
