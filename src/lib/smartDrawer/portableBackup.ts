@@ -14,7 +14,7 @@ const ENCRYPTED_FORMAT = 'buklod.drawer.encrypted.v1';
 
 export async function generateSmartDrawerRecoveryKey(): Promise<string> {
   const key = await Crypto.AESEncryptionKey.generate();
-  return key.encoded('hex');
+  return await key.encoded('hex');
 }
 
 function validateRecoveryKey(recoveryKey: string): string {
@@ -29,7 +29,7 @@ async function encryptBackup(envelope: Envelope, recoveryKey: string) {
   const key = await Crypto.AESEncryptionKey.import(validateRecoveryKey(recoveryKey), 'hex');
   const bytes = new TextEncoder().encode(JSON.stringify(envelope));
   const sealed = await Crypto.aesEncryptAsync(bytes, key);
-  const content = await sealed.combined('base64');
+  const content = await sealed.combined('base64') as string;
   return JSON.stringify({ format: ENCRYPTED_FORMAT, content });
 }
 
