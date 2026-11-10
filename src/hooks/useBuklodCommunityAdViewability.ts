@@ -57,7 +57,9 @@ export function useBuklodCommunityInlineVisibility(slotId?: string) {
  * Once activated, a slot stays mounted until the list recycles it so
  * visibility flicker does not spam extra AdMob requests.
  */
-export function useBuklodCommunityAdViewability() {
+export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = []) {
+  const feedRowsRef = useRef(feedRows);
+  feedRowsRef.current = feedRows;
   const [activatedAdIds, setActivatedAdIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -65,6 +67,9 @@ export function useBuklodCommunityAdViewability() {
     null,
   );
 
+  const [preloadVideoPostId, setPreloadVideoPostId] = useState<string | null>(null);
+
+  // Native ads retain the original conservative visibility requirement.
   const onViewableItemsChanged = useRef(
     ({
       viewableItems,
@@ -72,21 +77,9 @@ export function useBuklodCommunityAdViewability() {
       viewableItems: Array<{ item?: unknown }>;
     }) => {
       const incoming: string[] = [];
-      let nextVideoId: string | null = null;
       for (const token of viewableItems) {
-        if (isCommunityFeedInlineAdRow(token.item)) {
-          incoming.push(token.item.id);
-          continue;
-        }
-
-        if (!nextVideoId) {
-          nextVideoId = communityVideoPostId(token.item);
-        }
+        if (isCommunityFeedInlineAdRow(token.item)) incoming.push(token.item.id);
       }
-
-      setVisibleVideoPostId((current) =>
-        current === nextVideoId ? current : nextVideoId,
-      );
 
       publishVisibleCommunityInlineIds(new Set(incoming));
 
@@ -108,15 +101,49 @@ export function useBuklodCommunityAdViewability() {
     },
   ).current;
 
+  // Video becomes eligible as its post enters the viewport, independently
+  // of ad request visibility. Keep only one autoplay video at a time.
+  const onVideoViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: Array<{ item?: unknown }> }) => {
+      let nextVideoId: string | null = null;
+      for (const token of viewableItems) {
+        nextVideoId = communityVideoPostId(token.item);
+        if (nextVideoId) break;
+      }
+      setVisibleVideoPostId(current => current === nextVideoId ? current : nextVideoId);
+
+      // Prebuffer only the next video within three feed rows. This bounds
+      // concurrent downloads, decoder usage and needless mobile-data costs.
+      const rows = feedRowsRef.current;
+      const index = nextVideoId
+        ? rows.findIndex(item => communityVideoPostId(item) === nextVideoId)
+        : -1;
+      let nextPreloadId: string | null = null;
+      if (index >= 0) {
+        for (let i = index + 1; i < Math.min(rows.length, index + 4); i += 1) {
+          nextPreloadId = communityVideoPostId(rows[i]);
+          if (nextPreloadId) break;
+        }
+      }
+      setPreloadVideoPostId(current =>
+        current === nextPreloadId ? current : nextPreloadId,
+      );
+    },
+  ).current;
+
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 60,
     minimumViewTime: 400,
   }).current;
+  const videoViewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 45,
+    minimumViewTime: 0,
+  }).current;
 
   const extraData = useMemo(
     () =>
-      `${[...activatedAdIds].sort().join('|')}:${visibleVideoPostId ?? ''}`,
-    [activatedAdIds, visibleVideoPostId],
+      `${[...activatedAdIds].sort().join('|')}:${visibleVideoPostId ?? ''}:${preloadVideoPostId ?? ''}`,
+    [activatedAdIds, visibleVideoPostId, preloadVideoPostId],
   );
 
   const isAdActive = useCallback(
@@ -127,6 +154,9 @@ export function useBuklodCommunityAdViewability() {
   return {
     onViewableItemsChanged,
     viewabilityConfig,
+    videoViewabilityConfig,
+    onVideoViewableItemsChanged,
+    preloadVideoPostId,
     extraData,
     isAdActive,
     visibleVideoPostId,
