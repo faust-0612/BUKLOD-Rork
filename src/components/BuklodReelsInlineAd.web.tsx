@@ -7,6 +7,8 @@ export default function BuklodReelsInlineAd({
 }: {
   slotId?: string;
   active?: boolean;
+  prepare?: boolean;
+  onLoadStateChange?: (state: 'loading' | 'ready' | 'unavailable') => void;
 }) {
   if (!active) {
     return null;
