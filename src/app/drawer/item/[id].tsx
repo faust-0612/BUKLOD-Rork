@@ -17,6 +17,8 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 import {
   router,
   useFocusEffect,
@@ -619,7 +621,7 @@ export default function SmartDrawerItemScreen() {
                 contentContainerStyle={styles.assets}
               >
                 {item.assets.map(asset => asset.kind === 'FILE' ? (
-                  <Pressable key={asset.id} onPress={() => void Linking.openURL(asset.uri).catch(() => setNotice('No app available to open this file.'))}
+                  <Pressable key={asset.id} onPress={() => void (async () => { try { if (Platform.OS !== 'web' && await Sharing.isAvailableAsync()) await Sharing.shareAsync(asset.uri, { mimeType: asset.mimeType ?? undefined, dialogTitle: asset.originalName ?? 'Open file' }); else await Linking.openURL(asset.uri); } catch { setNotice('Could not open or share this file.'); } })()}
                     style={[styles.asset, { padding: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EAF4FC' }]}>
                     <MaterialCommunityIcons name="file-document-outline" size={32} color="#0A6EBD" />
                     <Text numberOfLines={3} style={{ color: '#173B63', fontSize: 11, textAlign: 'center' }}>{asset.originalName ?? 'Open file'}</Text>
