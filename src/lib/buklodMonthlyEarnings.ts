@@ -34,7 +34,24 @@ export async function loadMyBuklodMonthlyEarnings(): Promise<BuklodMonthlyEarnin
   if (result.error) {
     throw new Error(String(result.error?.message ?? 'Monthly earnings unavailable.'));
   }
-  const value = result.data as BuklodMonthlyEarnings | null;
+  let value = result.data as BuklodMonthlyEarnings | null;
+  if (value?.identity_ready === false) {
+    // Recover only the signed-in user's own qualified QMP identity.
+    // This is not a cash allocation, referral qualification or payout.
+    const ensured = await withBuklodTimeout<{ data: any; error: any }>(
+      (supabase as any).rpc('ensure_my_buklod_qmp_finance_identity_v1'),
+      7000, 'BUKLOD QMP Identity',
+    );
+    if (ensured.error || ensured.data?.identity_ready !== true) {
+      throw new Error('Qualified monthly Finance identity is not yet available.');
+    }
+    const retry = await withBuklodTimeout<{ data: unknown; error: any }>(
+      (supabase as any).rpc('get_my_buklod_monthly_earnings_v1'),
+      7000, 'BUKLOD Monthly Earnings',
+    );
+    if (retry.error) throw new Error(String(retry.error?.message ?? 'Monthly earnings unavailable.'));
+    value = retry.data as BuklodMonthlyEarnings | null;
+  }
   if (!value || value.identity_ready !== true
     || !/^\d{4}-\d{2}$/.test(value.current_month_key)
     || !Number.isSafeInteger(value.available_finalized_minor)
