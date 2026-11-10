@@ -5,8 +5,8 @@ const read=p=>readFileSync(p,'utf8');
 test('Kingdom Hall and Treasury native ads do not monetize invalid or duplicate claims',()=>{
  const legacy=read('src/app/games/legacy.tsx');
  const shop=read('src/app/games/rewards.tsx');
- assert.match(legacy,/if \(verified\) \{[\s\S]*verifiedNewClaim = true/);
- assert.match(legacy,/if \(verifiedNewClaim && accountRef\.current === original\.uid/);
+ assert.match(legacy,/if \(verified\) \{[\s\S]*pendingClaimAd\.current/);
+ assert.match(legacy,/if \(verified && accountRef\.current === verified\.owner/);
  assert.match(shop,/verifiedUnlock = Boolean\(receipt\.purchased\)/);
  assert.match(shop,/if\(verifiedUnlock\) void maybeShowBuklodInterstitial/);
  assert.match(legacy,/kingdom_legacy_native/);
