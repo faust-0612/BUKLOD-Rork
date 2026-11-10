@@ -435,6 +435,7 @@ export default function BuklodKingdomMapPremium() {
   const [selectedId, setSelectedId] = useState('christian-civic-leadership');
   const [mode, setMode] = useState<'detail' | 'fit'>('detail');
   const [zoomStep, setZoomStep] = useState(0);
+  const [panelExpanded, setPanelExpanded] = useState(true);
   const [viewportHeight, setViewportHeight] = useState(550);
   const horizontalRef = useRef<ScrollView>(null);
   const verticalRef = useRef<ScrollView>(null);
@@ -630,7 +631,7 @@ export default function BuklodKingdomMapPremium() {
         </Pressable>
       </View>
 
-      <View style={[styles.bottomPanel, { bottom: Math.max(insets.bottom + 7, 8) }]}>
+      {panelExpanded ? <View style={[styles.bottomPanel, { bottom: Math.max(insets.bottom + 7, 8) }]}>
         <View style={styles.selectedRow}>
           <View style={styles.selectedIcon}>
             {selectedArt ? <Image source={{ uri: selectedArt }}
@@ -652,7 +653,11 @@ export default function BuklodKingdomMapPremium() {
         </View>
         <View style={styles.railTitleRow}>
           <Text style={styles.railTitle}>EXPLORE THE KINGDOM</Text>
-          <Text style={styles.railHelp}>SWIPE • FIND • ENTER</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Hide Kingdom station dock to explore full illustrated map"
+            onPress={() => setPanelExpanded(false)} style={styles.hideDock}>
+            <MaterialCommunityIcons name="chevron-down" size={16} color="#ffe2a4"/>
+            <Text style={styles.railHelp}>MAP ONLY</Text>
+          </Pressable>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.rail}>
@@ -669,7 +674,14 @@ export default function BuklodKingdomMapPremium() {
             </Pressable>
           ))}
         </ScrollView>
-      </View>
+      </View> : <Pressable accessibilityRole="button"
+        accessibilityLabel="Show Kingdom station dock"
+        onPress={() => setPanelExpanded(true)}
+        style={[styles.showDock, { bottom: Math.max(insets.bottom + 10, 14) }]}>
+        <MaterialCommunityIcons name="map-marker-multiple" size={19} color="#fff2cd" />
+        <Text style={styles.showDockText}>EXPLORE 13 STATIONS</Text>
+        <MaterialCommunityIcons name="chevron-up" size={18} color="#fff2cd" />
+      </Pressable>}
     </View>
   );
 }
@@ -710,13 +722,13 @@ const styles = StyleSheet.create({
   },
   stationPlaque: {
     marginTop: 3, width: 118, borderWidth: 1, borderColor: '#c2ad83',
-    backgroundColor: 'rgba(13,37,52,.93)',
+    backgroundColor: 'rgba(255,247,215,.95)',
     paddingHorizontal: 6, paddingVertical: 6, borderRadius: 9,
     alignItems: 'center', shadowColor: '#07111b', shadowOpacity: .3, shadowRadius: 8,
   },
-  stationPlaqueSelected: { borderColor: '#fff0b7', borderWidth: 1.5, backgroundColor: '#263b4e' },
-  stationName: { color: '#fff1ce', fontSize: 12, fontWeight: '900' },
-  stationZone: { color: '#cddbdc', fontSize: 8, fontWeight: '800' },
+  stationPlaqueSelected: { borderColor: '#dba44f', borderWidth: 2, backgroundColor: '#fff0bf' },
+  stationName: { color: '#324b44', fontSize: 12, fontWeight: '900' },
+  stationZone: { color: '#496866', fontSize: 8, fontWeight: '800' },
   futureMarker: {
     position: 'absolute', width: 44, height: 44, borderRadius: 22,
     backgroundColor: 'rgba(29,58,65,.58)',
@@ -787,7 +799,7 @@ const styles = StyleSheet.create({
   },
   selectedRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 10 },
   selectedIcon: {
-    width: 54, height: 54, backgroundColor: '#29475b', overflow: 'hidden',
+    width: 65, height: 58, backgroundColor: '#29475b', overflow: 'hidden',
     borderWidth: 1, borderColor: '#d4b578', borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
   },
@@ -803,7 +815,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
   },
   enterText: { color: '#283e47', fontSize: 12, fontWeight: '900' },
-  railTitleRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 5, paddingHorizontal: 12 },
+  railTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5, paddingHorizontal: 12 },
+  hideDock: { flexDirection:'row',alignItems:'center',paddingVertical:5,paddingHorizontal:7,
+    borderRadius:8, backgroundColor:'rgba(39,71,86,.6)' },
+  showDock: { position:'absolute',zIndex:80,alignSelf:'center',flexDirection:'row',
+    alignItems:'center',gap:8,paddingHorizontal:18,paddingVertical:12,
+    backgroundColor:'rgba(9,44,58,.93)',borderWidth:1,borderColor:'#fff0bc',
+    borderRadius:16,elevation:9 },
+  showDockText: { color:'#fff2cd',fontSize:12,fontWeight:'900' },
   railTitle: { color: '#f1d597', fontSize: 9, fontWeight: '900', letterSpacing: .7 },
   railHelp: { color: '#b7cbce', fontSize: 8, fontWeight: '800' },
   rail: { paddingHorizontal: 10, paddingBottom: 2, gap: 6 },
