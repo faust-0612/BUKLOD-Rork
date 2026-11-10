@@ -94,7 +94,7 @@ export default function BuklodMainHealthCard({
   const caseItem=dash?.consultations?.find(item=>item.id===selectedCase);
   const isProfessional=!!caseItem?.client_name;
   const expiryDays=dash?.professional?.days_to_expire;
-  const licenseCurrent=dash?.professional?.status==='VERIFIED' && typeof expiryDays==='number' && expiryDays>=0;
+  const licenseCurrent=dash?.professional?.status==='VERIFIED' && typeof expiryDays==='number' && expiryDays>=0 && dash?.professional?.profession!=='OTHER';
 
   const load=useCallback(async()=>{
     if(!user?.id){setDash(null);setDashUserId(null);return;}
@@ -103,13 +103,15 @@ export default function BuklodMainHealthCard({
     try{
       const {data,error}=await (supabase as any).rpc('buklod_health_card_dashboard_v1');
       if(error)throw error;
+      if(!data||!Array.isArray(data.consultations))throw new Error('Invalid health dashboard');
       if(generation===dataGeneration.current){
         setDashUserId(user.id);setDash(data as Dashboard);setBackendError('');
       }
     }catch{
       if(generation===dataGeneration.current){
-        setDash(null);setDashUserId(null);
-        setBackendError(t('Private human consultation is not activated yet.','Hindi pa aktibo ang pribadong konsultasyon sa health professional.'));
+        // Preserve a last verified snapshot if temporary network synchronization fails.
+        setBackendError(t('Private consultation is unavailable or could not sync. Retry when online.',
+          'Hindi makakonekta sa konsultasyon. Subukang muli kapag online.'));
       }
     }finally{if(generation===dataGeneration.current)setLoading(false);}
   },[user?.id,language]);
@@ -334,6 +336,9 @@ export default function BuklodMainHealthCard({
         {dash.professional?<View style={styles.section}>
           <Text style={styles.label}>{t('Registration status','Estado ng rehistrasyon')}: {dash.professional.status}</Text>
           <Info>{dash.professional.profession} · PRC {dash.professional.license_number}</Info>
+          {dash.professional.profession==='OTHER'?<Text style={styles.warning}>{t(
+            'Other specialties require additional scope-specific authorization before receiving clinical cases.',
+            'Kailangan pa ng hiwalay na scope authorization ang ibang specialty bago tumanggap ng clinical case.')}</Text>:null}
           <Info>{t('License expiry','Expiration ng lisensiya')}: {dash.professional.expires_on}</Info>
           {typeof expiryDays==='number'&&expiryDays<0?<Text style={styles.warning}>{t(
             'License expired. Clinical access is blocked. Renew and undergo verification again.',
@@ -391,7 +396,7 @@ export default function BuklodMainHealthCard({
         {caseItem.referral_note?<Text style={styles.warning}>{t('Referral','Referral')}: {caseItem.referral_note}</Text>:null}
         {caseItem.status==='OPEN'?<Button label={t('CANCEL PENDING REQUEST','KANSELAHIN ANG NAKAPILANG REQUEST')}
           onPress={closeCase} outline disabled={busy}/>:null}
-        {caseItem.status==='IN_PROGRESS'?<>
+        {caseItem.status!=='OPEN'?<>
           <View style={styles.section}>
             <Text style={styles.title}>{t('Clinical record','Clinical record')}</Text>
             <Button label={t('REFRESH CLINICAL UPDATES','I-REFRESH ANG CLINICAL NOTES')} outline
@@ -402,6 +407,7 @@ export default function BuklodMainHealthCard({
               <Text style={styles.label}>{n.kind.replace('_',' ')} · {n.mine?t('You','Ikaw'):t('Participant','Kasama')}</Text>
               <Text style={styles.caseText}>{n.message}</Text>
             </View>)}
+            {caseItem.status==='IN_PROGRESS'?<>
             {isProfessional?<View style={styles.chips}>
               {(['PROFESSIONAL_ADVICE','CARE_PLAN','FOLLOW_UP','REFERRAL'] as const).map(k=><Pressable key={k}
                 onPress={()=>setMessageKind(k)} style={[styles.chip,messageKind===k&&styles.chipOn]}>
@@ -410,7 +416,10 @@ export default function BuklodMainHealthCard({
             <Field value={message} onChange={setMessage} placeholder={t('Add a clinical note or question','Magdagdag ng clinical note o tanong')} multiline/>
             <Button label={t('SAVE TO CLINICAL RECORD','I-SAVE SA CLINICAL RECORD')} onPress={postNote}
               disabled={busy||message.trim().length<2||(!caseItem.license_current&&isProfessional)}/>
-            <Button label={t('CLOSE CONSULTATION','ISARA ANG KONSULTASYON')} onPress={closeCase} outline disabled={busy}/>
+            </>:<Info>{t('Read-only clinical history. The consultation has ended, but the records remain available to its participants.',
+              'Read-only clinical history. Tapos na ang konsultasyon pero mababasa pa rin ng mga kalahok ang records.')}</Info>}
+            {caseItem.status==='REFERRED'?<Button label={t('CLOSE REFERRED CASE','ISARA ANG REFERRED CASE')} onPress={closeCase} outline disabled={busy}/>:null}
+            {caseItem.status==='IN_PROGRESS'?<Button label={t('CLOSE CONSULTATION','ISARA ANG KONSULTASYON')} onPress={closeCase} outline disabled={busy}/>:null}
           </View>
         </>:<Info>{t('This case is not currently in an active consultation.','Hindi aktibo ang kasong ito para sa consultation notes.')}</Info>}
         <Button label={t('BACK TO CONSULTATIONS','BUMALIK SA MGA KONSULTASYON')} outline onPress={()=>{setSection('consult');setSelectedCase(null);caseIdRef.current=null;notesGeneration.current+=1;}}/>

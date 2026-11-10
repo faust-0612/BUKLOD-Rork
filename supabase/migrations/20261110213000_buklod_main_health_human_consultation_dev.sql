@@ -17,7 +17,8 @@ create table if not exists private.buklod_health_professionals_v1(
   status text not null default 'PENDING' check(status in ('PENDING','VERIFIED','REJECTED','SUSPENDED')),
   submitted_at timestamptz not null default now(),
   reviewed_at timestamptz,reviewed_by uuid references auth.users(id),
-  verification_reference text
+  verification_reference text,
+  constraint buklod_health_unique_prc_by_profession_v1 unique(profession,prc_license_number)
 );
 create table if not exists private.buklod_health_consultations_v1(
   id uuid primary key default gen_random_uuid(),
@@ -233,6 +234,8 @@ begin
   select profession into v_profession from private.buklod_health_professionals_v1
     where user_id=v_actor and status='VERIFIED' and license_expires_on>=current_date;
   if v_profession is null then raise exception 'Current verified PRC professional required'; end if;
+  if v_profession='OTHER' then
+    raise exception 'Other professions require a verified scope-specific consultation pathway'; end if;
   select service,client_id into v_service,v_client from private.buklod_health_consultations_v1
     where id=p_consult_id and status='OPEN' and professional_id is null;
   if v_service is null then raise exception 'Consultation no longer available'; end if;
@@ -292,7 +295,7 @@ begin
     set status='CLOSED',updated_at=now()
     where id=p_consult_id and (
       (status='OPEN' and client_id=v_actor and professional_id is null)
-      or (status='IN_PROGRESS' and (client_id=v_actor or professional_id=v_actor))
+      or (status in ('IN_PROGRESS','REFERRED') and (client_id=v_actor or professional_id=v_actor))
     );
   get diagnostics v_count=row_count;
   return v_count=1;
@@ -348,7 +351,8 @@ begin
     left join private.buklod_health_identities_v1 pi on pi.user_id=c.professional_id
     left join private.buklod_health_identities_v1 ci on ci.user_id=c.client_id
     left join private.buklod_health_professionals_v1 hp on hp.user_id=c.professional_id;
-  if v_prof->>'status'='VERIFIED' and (v_prof->>'days_to_expire')::int>=0 then
+  if v_prof->>'status'='VERIFIED' and (v_prof->>'days_to_expire')::int>=0
+    and v_profession in ('PHYSICIAN','NURSE','PHARMACIST','MIDWIFE') then
     select coalesce(jsonb_agg(jsonb_build_object('id',q.id,'service',q.service,'created_at',q.created_at)
       order by q.created_at asc),'[]'::jsonb) into v_queue
     from (select id,service,created_at from private.buklod_health_consultations_v1
@@ -364,13 +368,13 @@ begin
       (select * from private.buklod_health_identities_v1
         where status='PENDING' order by submitted_at asc limit 20) x;
     select coalesce(jsonb_agg(jsonb_build_object(
-      'id',x.user_id,'name',p.full_name,'profession',x.profession,
+      'id',x.user_id,'name',pi.legal_name,'profession',x.profession,
       'license_number',x.prc_license_number,'expires_on',x.license_expires_on
     ) order by x.submitted_at asc),'[]'::jsonb)
     into v_pending_professionals from
       (select * from private.buklod_health_professionals_v1
         where status='PENDING' order by submitted_at asc limit 20) x
-      left join public.profiles p on p.id=x.user_id;
+      left join private.buklod_health_identities_v1 pi on pi.user_id=x.user_id;
   end if;
   return jsonb_build_object('identity',v_identity,'professional',v_prof,'consultations',v_cases,
     'queue',coalesce(v_queue,'[]'::jsonb),'admin',v_admin,
