@@ -26,8 +26,8 @@ test('Kingdom Legacy uses authoritative V2 state and claim/equip RPC helpers', (
   const route = read('src/app/games/legacy.tsx');
   assert.match(route, /getMyBuklodCharacterSelectionV2\(id, refresh\)/);
   assert.match(route, /getMyCharacterCollectibles\(next\.active_character_id/);
-  assert.match(route, /redeemMyCharacterCollectible\(core, level, index\)/);
-  assert.match(route, /useMyCharacterCollectible\(core, level, index\)/);
+  assert.match(route, /redeemMyCharacterCollectible\(core, targetLevel, index\)/);
+  assert.match(route, /useMyCharacterCollectible\(core, targetLevel, index\)/);
   assert.match(route, /clearMyCharacterCollectible\(core, item\.rewardKind\)/);
   assert.match(route, /getBuklodSpecialLevelAsset/);
   assert.match(route, /shownCollectiblePins\(collection, core\)/);
@@ -93,7 +93,7 @@ test('Account session is checked at each step of multi-RPC equip operation', () 
   assert.match(route, /const accountUnchanged = async/);
   assert.match(route, /supabase\.auth\.getSession\(\)/);
   assert.match(route, /data\.session\?\.user\.id !== original\.uid/);
-  assert.match(route, /await redeemMyCharacterCollectible\(core, level, index\);\s*await accountUnchanged\(\);\s*await useMyCharacterCollectible/);
+  assert.match(route, /await redeemMyCharacterCollectible\(core, targetLevel, index\);\s*await accountUnchanged\(\);\s*await useMyCharacterCollectible/);
   assert.match(route, /await accountUnchanged\(\);\s*const updated = await getMyCharacterCollectibles/);
   assert.match(route, /original\.uid === accountRef\.current/);
 });
