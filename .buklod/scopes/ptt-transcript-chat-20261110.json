@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "objective": "Add no-native PTT voice-to-text and in-channel text conversation without changing floor arbitration",
+  "baseRef": "355f41e8065e48e599544bfd8cdf860760f7e49f",
+  "productionBaselineEvidence": "Production OTA has not been independently fingerprint-verified for this task; main base SHA 355f41e8065e48e599544bfd8cdf860760f7e49f is GitHub's exact source at branch creation, not verified production. New Supabase table RLS and caption controller deployment independently checked; no app OTA published.",
+  "chosenApproach": "Use existing Stream PTT call closed-caption events with per-member opt-in, server-authenticated channel caption control and membership-scoped Supabase text/caption table; preserve mic/floor/native modules.",
+  "selectionRationale": "No native SDK changes, isolated backend and UI, channel-specific storage, supports actual realtime messages and avoids new parallel audio recording.",
+  "alternativeApproaches": [
+    "Record PTT audio in a second native module and send to an external speech-to-text service (rejected: native rebuild and mic contention)",
+    "Use Stream server-side closed captions with an authenticated controller and existing Stream call (chosen)",
+    "Store text in existing Connect chat (rejected: loses CH01–CH10 conversation isolation)"
+  ],
+  "acceptanceChecks": [
+    "Live PTT hold/release floor remains unchanged",
+    "Text messages insert and stream only to active members of matching scope and channel",
+    "Caption listener only attributes sender's own opted-in speech to an active/recent floor transmission",
+    "No app.config.js, native project, or new package dependency changes",
+    "Database policy regression and targeted Node contract tests pass",
+    "Client typecheck and actual Stream captioning pass before consolidation OTA"
+  ],
+  "preserveBehaviors": [
+    "PTT priority/SOS preemption and floor allocation",
+    "Existing microphone and background receive",
+    "Local/organization/cluster scoped access",
+    "PTT AdMob banner and existing routing"
+  ],
+  "riskAreas": [
+    "ptt",
+    "realtime",
+    "auth-privacy"
+  ],
+  "regressionTests": [
+    "tests/buklod-ptt-transcript-chat.test.mjs",
+    "supabase/tests/buklod_ptt_channel_messages_20261110.sql"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/ptt-transcript-chat-20261110.json",
+    "src/app/personal-home/ptt.tsx",
+    "src/components/BuklodPttConversation.tsx",
+    "src/ptt/__tests__/buklodPttConversation.test.ts",
+    "src/ptt/buklodPttConversation.ts",
+    "src/ptt/buklodPttRuntime.ts",
+    "supabase/functions/buklod-ptt-captions/index.ts",
+    "supabase/migrations/20261110191500_buklod_ptt_channel_messages.sql",
+    "supabase/tests/buklod_ptt_channel_messages_20261110.sql",
+    "tests/buklod-ptt-transcript-chat.test.mjs"
+  ]
+}

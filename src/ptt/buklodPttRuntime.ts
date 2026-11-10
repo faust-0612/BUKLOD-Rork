@@ -1,4 +1,5 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { hasBuklodPttCaptionConsent, persistOwnBuklodPttCaption } from './buklodPttConversation';
 
 import {
   claimBuklodPttFloor,
@@ -75,6 +76,40 @@ let holdToken = 0;
 // subsequent transmission on the same channel.
 let floorRequestPromise: Promise<void> | null = null;
 let floorReleasePromise: Promise<void> | null = null;
+let captionUnsubscribe: (() => void) | null = null;
+let recentlyReleased: { id: string; scopeId: string; channel: number; at: number } | null = null;
+
+function detachCaptionListener() {
+  try { captionUnsubscribe?.(); } catch {}
+  captionUnsubscribe = null;
+}
+
+function attachCaptionListener(connection: BuklodPttConnection) {
+  detachCaptionListener();
+  // The existing Stream call emits speech-to-text. No new native capture.
+  captionUnsubscribe = connection.call.on('call.closed_caption', (event: any) => {
+    if (state.connection !== connection) return;
+    const caption = event?.closed_caption;
+    if (!caption || caption.translated) return;
+    const currentId = state.transmissionId;
+    const recent = recentlyReleased;
+    const id = currentId || (
+      recent && recent.scopeId === connection.scope.id &&
+      recent.channel === connection.channel && Date.now() - recent.at < 60000
+        ? recent.id : null
+    );
+    if (!id) return;
+    // Only store the signed-in user's own speech; never impersonate a peer.
+    const speakerId = String(caption.speaker_id || caption.user?.id || '');
+    if (speakerId !== connection.userId) return;
+    void hasBuklodPttCaptionConsent(connection.userId, connection.scope.id, connection.channel)
+      .then((consented) => {
+        if (!consented) return;
+        return persistOwnBuklodPttCaption(connection, caption, id);
+      })
+      .catch((error) => console.warn('PTT caption persistence failed', error));
+  });
+}
 
 function emit() {
   const copy = { ...state };
@@ -155,6 +190,8 @@ async function disconnectCurrent(options?: { disableMonitor?: boolean }) {
     } catch {}
   }
 
+  detachCaptionListener();
+  recentlyReleased = null;
   await disconnectBuklodPtt(current);
   state = {
     ...state,
@@ -188,6 +225,8 @@ async function connectTarget(
   await pttUp().catch(() => undefined);
 
   if (current) {
+    detachCaptionListener();
+    recentlyReleased = null;
     await disconnectBuklodPtt(current);
   }
 
@@ -205,6 +244,7 @@ async function connectTarget(
     txKind: null,
     transmissionId: null,
   };
+  attachCaptionListener(next);
   emit();
   return next;
 }
@@ -321,6 +361,7 @@ export async function pttDown(kind: BuklodPttKind = 'NORMAL') {
       return;
     }
 
+    recentlyReleased = null;
     state = {
       ...state,
       requestingFloor: false,
@@ -361,6 +402,7 @@ export async function pttUp() {
   holdToken += 1;
   const current = state.connection;
   const tx = state.transmissionId;
+  if (tx && current) recentlyReleased = { id: tx, scopeId: current.scope.id, channel: current.channel, at: Date.now() };
   const previousRelease = floorReleasePromise;
 
   await stopHeartbeat();
