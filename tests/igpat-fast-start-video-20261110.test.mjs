@@ -17,7 +17,7 @@ test('Native Reels loads the first signed playable row without waiting for the f
 });
 
 test('Native IGPAT warms one next video but excludes inline ad rows and data saver', () => {
-  assert.match(native, /const nextPlayableIndex = dataSaver \? -1/);
+  assert.match(native, /const nextPlayableIndex = \(dataSaver \|\| weakSignal\) \? -1/);
   assert.match(native, /!isReelsFeedInlineAdRow\(item\)/);
   assert.match(native, /index === activeIndex \|\| index === nextPlayableIndex/);
   assert.match(native, /active=\{index === activeIndex\}/);
@@ -29,7 +29,7 @@ test('Native IGPAT warms one next video but excludes inline ad rows and data sav
 
 test('Web IGPAT preserves quick-edit controls and warms one subsequent video', () => {
   assert.match(web, /const first = source\.length \? await sign\(source\[0\]\)/);
-  assert.match(web, /const nextPlayableIndex = dataSaver \? -1 : activeIndex \+ 1/);
+  assert.match(web, /const nextPlayableIndex = \(dataSaver \|\| weakSignal\) \? -1 : activeIndex \+ 1/);
   assert.match(web, /index === activeIndex \|\| index === nextPlayableIndex/);
   assert.match(web, /active=\{index === activeIndex\}/);
   assert.match(web, /parseIgpatQuickEdit/);
