@@ -37,6 +37,8 @@ test('PTT chat is channel isolated, realtime and reachable without moving talk b
   assert.match(screen, /<LiveHoldButton/);
   assert.match(screen, /<BuklodPttConversation/);
   assert.match(screen, /chatScrollRef/);
+  assert.match(screen, /scope && chatOpen/);
+  assert.match(screen, /setChatOpen\(\(open\) => !open\)/);
   assert.match(ui, /postgres_changes/);
   assert.match(ui, /Number\(item\.channel\) !== channel/);
   assert.match(ui, /setDraft\(''\)/);
