@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, PanResponder, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
 import BuklodCharacterMotion, {
@@ -10,6 +10,26 @@ import { subscribeBuklodGameCharacterMotion } from './characterMotionBus';
 
 export default function BuklodGameCharacterCompanion({ gameId }: { gameId?: string }) {
   const [reaction, setReaction] = useState<BuklodCharacterReactionSignal | null>(null);
+  const { width, height } = useWindowDimensions();
+  const position = useRef({ x: 0, y: 0 });
+  const dragStart = useRef({ x: 0, y: 0 });
+  const translation = useRef(new Animated.ValueXY()).current;
+  // Move the companion without replacing any approved R31/R40 art.
+  const responder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gesture) =>
+      Math.abs(gesture.dx) > 3 || Math.abs(gesture.dy) > 3,
+    onPanResponderGrant: () => { dragStart.current = { ...position.current }; },
+    onPanResponderMove: (_, gesture) => {
+      const next = {
+        x: Math.max(-8, Math.min(width - 88, dragStart.current.x + gesture.dx)),
+        y: Math.max(-(height - 170), Math.min(35, dragStart.current.y + gesture.dy)),
+      };
+      position.current = next;
+      translation.setValue(next);
+    },
+    onPanResponderTerminationRequest: () => true,
+  }), [height, translation, width]);
 
   useEffect(() => subscribeBuklodGameCharacterMotion((event) => {
     setReaction({ id: event.id, type: event.type });
@@ -18,7 +38,7 @@ export default function BuklodGameCharacterCompanion({ gameId }: { gameId?: stri
   if (!gameId) return null;
 
   return (
-    <View pointerEvents="none" style={styles.anchor}>
+    <Animated.View {...responder.panHandlers} accessibilityLabel="Drag Kingdom character companion" style={[styles.anchor, { transform: translation.getTranslateTransform() }]}>
       <View style={styles.glow} />
       <BuklodCharacterMotion mode="game" reaction={reaction}>
         <BuklodActiveCharacterArt
@@ -27,7 +47,8 @@ export default function BuklodGameCharacterCompanion({ gameId }: { gameId?: stri
           viewportWidth={62}
         />
       </BuklodCharacterMotion>
-    </View>
+      <View pointerEvents="none" style={styles.dragHint} />
+    </Animated.View>
   );
 }
 
@@ -42,6 +63,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     opacity: 0.94,
+  },
+  dragHint: {
+    position: 'absolute', top: 0, right: 0, width: 20, height: 4,
+    borderRadius: 3, backgroundColor: 'rgba(245,222,163,0.8)',
   },
   glow: {
     position: 'absolute',
