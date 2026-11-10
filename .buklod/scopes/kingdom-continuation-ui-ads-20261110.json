@@ -26,7 +26,9 @@
     "tests/kingdom-no-repeat-mastery-20261110.test.mjs",
     "supabase/migrations/20261110110500_buklod_kingdom_mastery_no_repeat_v3.sql",
     "src/features/games/kingdom/platform/KingdomPracticeRewardedHint.tsx",
-    "src/features/games/kingdom/platform/KingdomPracticeRewardedHint.web.tsx"
+    "src/features/games/kingdom/platform/KingdomPracticeRewardedHint.web.tsx",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/kingdom-rc-compile-release-20261110.test.mjs"
   ],
   "preserveBehaviors": [
     "All 13 canonical station game routes, x/y coordinates and journey paths, unaffected legacy map rollback source",
@@ -46,7 +48,8 @@
     "Physical Android navigation/drag/music/image/ad fill and AI next-level screenshot acceptance or explicit device waiver",
     "Reconcile against current live production baseline; no automated merge or OTA publication from this branch",
     "Optional rewarded hint is gated on /games only, earned-only, no source or server BP mutation",
-    "All 39 game bank rows 20 each with known correct answers, no-repeat RPC and client return when exhausted"
+    "All 39 game bank rows 20 each with known correct answers, no-repeat RPC and client return when exhausted",
+    "Workflow export job must report the exact PR commit SHA and both Android/web exported files before RC readiness."
   ],
   "knownRemainingIssue": "Mastery bank expanded in unapplied DEV migration: +585 reviewed deterministic questions and account-scoped no-repeat selection; no production DB change yet. AI practice schema/Edge Function remain unapplied and disabled by default until staging testing and budget verification. Original Kingdom reference PNGs from Library contain inconsistent/invented station names; do not ship them unmodified as navigation. Recreated the approved bright illustrated island design in editable in-app SVG with the original canonical stations.",
   "riskAreas": [
@@ -56,16 +59,18 @@
     "expo-audio-lifecycle",
     "database-RLS-security",
     "cross-platform-layout",
-    "ads-monetization"
+    "ads-monetization",
+    "release-identity"
   ],
   "regressionTests": [
     "tests/kingdom-ai-continuation-20261110.test.mjs",
     "tests/kingdom-continuation-mobile-ads-20261110.test.mjs",
     "tests/kingdom-no-repeat-mastery-20261110.test.mjs",
-    "supabase/tests/kingdom_ai_continuation_20261110.sql"
+    "supabase/tests/kingdom_ai_continuation_20261110.sql",
+    "tests/kingdom-rc-compile-release-20261110.test.mjs"
   ],
-  "releaseState": "DEV_QA_PENDING",
-  "selectionRationale": "Restore approved illustrated island/map atmosphere in the current in-app Kingdom map, preserve 13 station routes, protect BP ledger, and re-use shipped/local media and shared ad controller without native dependency or new paid infrastructure.",
+  "releaseState": "DEV_COMPILED_RC_QA_REQUESTED",
+  "selectionRationale": "Restore approved illustrated island/map atmosphere in the current in-app Kingdom map, preserve 13 station routes, protect BP ledger, and re-use shipped/local media and shared ad controller without native dependency or new paid infrastructure. The existing no-publish compiled Android/Expo Web workflow is enabled only for this exact scoped Kingdom PR to collect a real native/web export proof.",
   "alternativeApproaches": [
     "Never allow a client or AI practice result to credit BP (chosen)",
     "No generic ad bypass of sensitive /games route, only narrowly scoped sponsorship and natural-break placements (chosen)",
