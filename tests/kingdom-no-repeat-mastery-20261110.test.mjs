@@ -76,7 +76,9 @@ test('approved visual map is bright, layered, richer and still uses the original
     section(legacy,'const JOURNEY_PATH','const FOREST_POINTS'));
   for(const token of ['#3db5d6','BuklodKingdomAtmosphere','bridge-',
     'Waterfalls in the northern highlands','Coastal pier','cottage-',
-    'showDock','MAP ONLY','musicEnabled','zoomStep']){
+    'showDock','MAP ONLY','musicEnabled','zoomStep',
+    'music-lantern-', 'treasury-light-', 'sky-window-', 'flower-',
+    'cottage-', 'kingdom-world-light-', 'mural-', 'bridge-']){
     assert.ok(map.includes(token),token+' missing');
   }
   assert.match(atmosphere,/isReduceMotionEnabled/);
