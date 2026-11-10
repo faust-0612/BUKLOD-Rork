@@ -4495,6 +4495,7 @@ const load=useCallback(async(options?:{
                 wallUri
               }
               uri={wallUri}
+              playbackKey={postId}
                posterUri={wallVideo.media?.preview_url ?? null}
                onPosterGenerated={thumbnail => {
                  if (!user?.id || String(wallVideo.post?.user_id ?? '') !== String(user.id)) return;
@@ -6122,6 +6123,7 @@ const communityFeedRows =
          uri={
           fullscreenUri
          }
+         playbackKey={postId}
          posterUri={descriptor.media?.preview_url ?? null}
          onPosterGenerated={thumbnail => {
           if (!user?.id || String(descriptor.post?.user_id ?? '') !== String(user.id)) return;
