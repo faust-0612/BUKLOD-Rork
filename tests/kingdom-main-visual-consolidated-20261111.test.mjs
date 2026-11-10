@@ -33,7 +33,8 @@ test('map artwork is live scalable BUKLOD SVG, not a static fabricated navigatio
   assert.match(map, /SUNSPIRE RUINS/);
   assert.match(map, /EXPLORE THE KINGDOM/);
   assert.match(map, /accessibilityLabel="Open Kingdom Hall of Legacy"/);
-  assert.ok(!map.includes('useRorkGameAmbience'), 'No new WAV or native dependency');
+  assert.match(map, /useRorkGameAmbience\('kingdom-map'\)/);
+  assert.match(map, /onPress=\{toggleMusic\}/);
   assert.match(effects,/AccessibilityInfo\.isReduceMotionEnabled/);
   assert.match(effects,/AppState\.addEventListener/);
   assert.match(effects,/pointerEvents="none"/);
