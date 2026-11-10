@@ -180,7 +180,7 @@ export function KingdomOfflineContinuation({ gameId }: { gameId: string }) {
     </Text>:null}
     {phase === 'loading' ? <Text style={styles.notice}>Loading local practice…</Text> : null}
     {phase === 'ready' && completed < LIMIT ? <Pressable accessibilityRole="button" style={styles.button}
-      onPress={() => { setLevel(completed+1); setAnswers([-1,-1,-1]); setWisdomHintIndex(null); setCompassActive(false); setPhase('playing'); setNotice(''); }}>
+      onPress={() => { setLevel(completed+1); setAnswers([-1,-1,-1]); setWisdomHintIndex(null); setRewardedHintIndex(null); setCompassActive(false); setPhase('playing'); setNotice(''); }}>
       <Text style={styles.buttonText}>{t('PLAY NEXT LEVEL', 'LARUIN ANG SUSUNOD NA LEVEL')} {completed+1} →</Text>
     </Pressable> : null}
     {phase === 'ready' && completed >= LIMIT ? <Text style={styles.notice}>
