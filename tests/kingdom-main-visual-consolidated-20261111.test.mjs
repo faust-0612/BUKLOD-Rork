@@ -46,7 +46,7 @@ test('legacy visual finishes are cosmetic and claims stay on the official accoun
   for(const tier of ['bronze','silver','gold','legendary']) assert.ok(medal.includes(tier));
   for(const type of ['expression','speech','profile_frame','visual_effect','title_badge']) assert.ok(medal.includes(type));
   assert.match(screen,/getMyBuklodCharacterSelectionV2/);
-  assert.match(screen,/redeemMyCharacterCollectible\(core, level, index\)/);
+  assert.match(screen,/redeemMyCharacterCollectible\(core, targetLevel, index\)/);
   assert.match(screen,/await accountUnchanged\(\)/);
   assert.match(screen,/setReveal\(\{ name: itemNames\[index-1\]/);
   assert.match(screen,/New relics and Shards are not yet spendable or claimable/);
