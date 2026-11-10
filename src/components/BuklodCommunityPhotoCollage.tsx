@@ -22,6 +22,13 @@ export type CommunityPhotoCollageItem = {
   media_url?: string | null;
   media_mime_type?: string | null;
   preview_path?: string | null;
+  // Preserve the canonical media identity and per-photo social state all the
+  // way from the batched media RPC to the full-screen viewer.
+  post_id?: string | null;
+  media_position?: number | null;
+  reaction_counts?: Record<string, number> | null;
+  my_reaction?: string | null;
+  photo_comment_count?: number | null;
 };
 
 export type CommunityPhotoCollageLayout = 'grid' | 'highlight' | 'swipe';
