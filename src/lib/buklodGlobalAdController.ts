@@ -225,11 +225,16 @@ export function isBuklodPassiveAdAllowed({
 export function isBuklodRewardedAdAllowed(
   placementId = 'rewarded_generic',
 ) {
+  // The only Kingdom exception is an explicitly opted-in, noncash
+  // practice hint; no exams, payment, forms or other sensitive routes.
+  const safeKingdomPracticeHint =
+    placementId === 'rewarded_kingdom_practice_hint' &&
+    pathname.startsWith('/games/');
   return (
     foreground &&
     enabled('ads_rewarded') &&
     placementEnabled(placementId) &&
-    !isBuklodAdRouteSensitive(pathname) &&
+    (!isBuklodAdRouteSensitive(pathname) || safeKingdomPracticeHint) &&
     !hasInteractionLock()
   );
 }
