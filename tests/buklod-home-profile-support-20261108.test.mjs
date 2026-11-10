@@ -47,8 +47,10 @@ test('Canonical Home uses square Bahay and Health Center cards, mobile and deskt
  const hub=read('src/app/(tabs)/hub.tsx');
  const cards=read('src/components/home/BuklodHomeUtilityCards.tsx');
  assert.equal(hub.split('<BuklodHomeUtilityCards />').length-1,2);
- for(const key of ['paddingHorizontal: 0','/personal-home','/profile/buklod-health','aspectRatio:1','borderRadius:4'])
+ for(const key of ['paddingHorizontal: 0','/personal-home','/profile/buklod-health'])
    assert.ok((hub+cards).includes(key),key);
+ assert.match(cards,/aspectRatio:\s*1\b/,'utility cards must stay square');
+ assert.match(hub,/borderRadius:\s*4\b/,'public Hub compact card corners retained');
 });
 test('Weekly tips have real continuation, reactions and confirmed BP feedback',()=>{
  const screen=read('src/components/BuklodTodayCard.tsx');
@@ -60,4 +62,21 @@ test('Weekly Point awards are server-side, bounded and idempotent',()=>{
  for(const key of ['auth.uid()','Asia/Manila','primary key(user_id,week_start)','for update','pg_advisory_xact_lock','weekly_tip_reaction','weekly_tip_dugtong','on conflict(user_id,source_key) do nothing','points_pending_claim'])
    assert.ok(sql.includes(key),key);
  assert.ok(!sql.includes('grant insert on public.buklod_weekly_tip_interactions_v1 to authenticated'));
+});
+
+test('Saved weekly Dugtong appears beneath the tip and is private until Wall share',()=>{
+ const screen=read('src/components/BuklodTodayCard.tsx');
+ assert.match(screen,/hasSavedDugtong&&<View style=\{s\.savedDugtong\}/);
+ assert.match(screen,/Ang Dugtong mo/);
+ assert.match(screen,/\{tip\.my_dugtong\}/);
+ assert.match(screen,/Pribado/);
+ assert.match(screen,/I-edit ang Dugtong/);
+ assert.match(screen,/setDraft\(tip\.my_dugtong\?\?''\);setEditing\(false\)/);
+ assert.match(screen,/my_dugtong:dugtong\?\?current\.my_dugtong/);
+ assert.ok(screen.indexOf('if(data?.ok!==true)throw')<screen.indexOf('setTip(current=>current?'));
+ assert.match(screen,/!hasSavedDugtong\|\|editing/);
+ assert.match(screen,/unchangedDugtong/);
+ const home=read('src/app/(tabs)/hub.tsx');
+ assert.match(home,/homeTodayDraft: draft \?\? ''/);
+ assert.match(screen,/onRespond\(draft\.trim\(\)\|\|tip\.my_dugtong/);
 });

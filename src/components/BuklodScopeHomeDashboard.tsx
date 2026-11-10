@@ -24,7 +24,7 @@ import BuklodR2FocusMonitor from '@/components/points/BuklodR2FocusMonitor';
 import BuklodMzbHomeWidgets from '@/components/BuklodMzbHomeWidgets';
 import BuklodOrgHomeClusterCard from '@/components/BuklodOrgHomeClusterCard';
 import BuklodOrgHomeBayanihanCard from '@/components/BuklodOrgHomeBayanihanCard';
-import BuklodUnifiedEarningsHomeCard from '@/components/BuklodUnifiedEarningsHomeCard';
+import BuklodScopeFundCard from '@/components/BuklodScopeFundCard';
 import BuklodScopeBPTop10 from '@/components/BuklodScopeBPTop10';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
@@ -182,7 +182,9 @@ export default function BuklodScopeHomeDashboard({
       showsVerticalScrollIndicator={false}
     >
       <BuklodScopeProfilePhoto scopeId={scope.scope_id} scopeName={scope.name} isAdmin={showAdminSummary}/>
-      <BuklodUnifiedEarningsHomeCard scopeId={scope.scope_id} scopeType={scope.scope_type} />
+      {['ORGANIZATION', 'CLUSTER', 'SUB_ORGANIZATION'].includes(scope.scope_type) ? (
+        <BuklodScopeFundCard scopeId={scope.scope_id} scopeName={scope.name} />
+      ) : null}
       {scope.scope_type==='ORGANIZATION'&&(
         <View style={styles.card}>
           <Text style={styles.cardTitle}>ORGANIZATION LIVE AUDIO / VIDEO CALL</Text>

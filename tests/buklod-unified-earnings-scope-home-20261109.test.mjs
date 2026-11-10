@@ -8,10 +8,10 @@ const home = read('src/app/(tabs)/home.tsx');
 const org = read('src/components/BuklodScopeHomeDashboard.tsx');
 const cluster = read('src/components/BuklodClusterHomeCommandCenterImpl.tsx');
 
-test('all three Home entry points show the same authenticated user wallet', () => {
+test('public Home retains private wallet, scoped Homes use the exact-scope fund account', () => {
   assert.match(home, /<BuklodUnifiedEarningsHomeCard \/>/);
-  assert.match(org, /<BuklodUnifiedEarningsHomeCard scopeId=\{scope.scope_id\}/);
-  assert.match(cluster, /<BuklodUnifiedEarningsHomeCard scopeId=\{scope.scope_id\}/);
+  assert.match(org, /<BuklodScopeFundCard scopeId=\{scope.scope_id\}/);
+  assert.match(cluster, /<BuklodScopeFundCard scopeId=\{scope.scope_id\}/);
   assert.match(wallet, /useAuth\(\)/);
   assert.match(wallet, /get_my_buklod_financial_earnings_breakdown_v1/);
   assert.match(wallet, /loadMyCommunityContribution\(\)/);

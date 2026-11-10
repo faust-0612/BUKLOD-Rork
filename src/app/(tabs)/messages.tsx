@@ -695,6 +695,9 @@ function ConnectScreenInner({
     '/connect/community/[scopeId]';
 
   const loadSequenceRef = useRef(0);
+  // Focus changes within a warm inbox must not replay four network requests.
+  // Realtime and periodic refreshes remain active independently.
+  const lastInboxSyncRef = useRef<{ context: string; at: number }>({ context: '', at: 0 });
   const load = useCallback(async () => {
     if (!profileId) {
       return;
@@ -767,6 +770,10 @@ function ConnectScreenInner({
     }
 
     if (connectContextRef.current !== requestedContext || sequence !== loadSequenceRef.current) return;
+
+    if (!p.error && !r.error) {
+      lastInboxSyncRef.current = { context: requestedContext, at: Date.now() };
+    }
 
     if (!p.error) {
       setPersonal(
@@ -853,11 +860,16 @@ function ConnectScreenInner({
       .sort()
       .join(',');
 
-  // Expo Router can retain the inbox mounted below a thread route. Refresh
-  // when it becomes visible again rather than waiting for the fallback poll.
+  // Reuse a warm authorized inbox during rapid tab changes. An actual
+  // stale snapshot, first entry, reconnect, polling or realtime still syncs.
   useFocusEffect(useCallback(() => {
-    void loadRef.current();
-  }, [profileId, forcedScopeId, connectOnline]));
+    if (!profileId || !connectOnline) return;
+    const synced = lastInboxSyncRef.current;
+    if (synced.context !== connectContext ||
+        Date.now() - synced.at >= 15_000) {
+      void loadRef.current();
+    }
+  }, [profileId, connectContext, connectOnline]));
 
   useEffect(() => {
     const pollTimer =

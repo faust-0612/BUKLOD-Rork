@@ -89,10 +89,13 @@ test('game sounds are offline native and browser sounds with an explicit prefere
  assert.match(settings,/games: true/);
  assert.match(settings,/isBuklodGameSoundEnabled/);
  assert.match(controls,/category: 'games'/);
- for(const name of ['buklod_reaction','buklod_community','buklod_approval','buklod_achievement','buklod_error','buklod_message_sent']){
+ for(const name of ['buklod_reaction','buklod_community','buklod_achievement','buklod_error','buklod_message_sent']){
   if(name==='buklod_reaction')continue;
   assert.match(native,new RegExp(name));
  }
+ // Verified Kingdom success audio uses points-claim, while unlock uses achievement.
+ assert.match(native,/buklod-points-claim\.wav/);
+ assert.match(native,/event === 'unlock' \? unlockSound : rewardSound/);
  assert.match(native,/MAX_ACTIVE_FALLBACK_PLAYERS = 6/);
  assert.match(native,/isBuklodGameSoundEnabled\(\)/);
  assert.match(native,/Haptics/);
