@@ -64,6 +64,11 @@ const BREAKS = {
     reason: 'content_session_completed',
     placement: 'interstitial_community_post_published',
   },
+  // Extra comments can offer an optional natural-break ad. Never block send/BP.
+  community_comment_overage: {
+    reason: 'content_session_completed',
+    placement: 'interstitial_community_comment_overage',
+  },
   bible_flash_submission_success: { reason: 'content_session_completed', placement: 'interstitial_bible_flash_completed' },
   bible_arena_round_complete: { reason: 'content_session_completed', placement: 'interstitial_bible_arena_completed' },
   kingdom_mastery_verified: { reason: 'content_session_completed', placement: 'interstitial_kingdom_mastery_verified' },
