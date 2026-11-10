@@ -17,8 +17,8 @@ begin
  if not found or row_rec.mentor_id<>actor then
    raise exception 'Mentor session unavailable' using errcode='42501';
  end if;
- if row_rec.status not in ('reported','pending_admin') then
-   raise exception 'Finalized mentoring session cannot be changed';
+ if row_rec.status<>'reported' then
+   raise exception 'Photo locked during Admin review; wait for a correction request';
  end if;
  if p_photo_path is null or
    p_photo_path !~ ('^'||actor::text||'/'||p_session_id::text||'/[A-Za-z0-9_-]+[.](jpg|jpeg|png|webp)$') then
@@ -47,6 +47,32 @@ end;
 $$;
 revoke all on function public.attach_my_mentor_session_photo_r2(uuid,text) from public,anon;
 grant execute on function public.attach_my_mentor_session_photo_r2(uuid,text) to authenticated;
+
+-- Once submitted, a photo is immutable until the Admin returns the report for
+-- correction. Otherwise a reviewer could view photo A and approve photo B.
+drop policy if exists "Mentor photo upload own path R2" on storage.objects;
+create policy "Mentor photo upload own path R2" on storage.objects for insert
+to authenticated with check (
+ bucket_id='buklod-mentoring-evidence'
+ and (storage.foldername(name))[1]=(select auth.uid())::text
+ and lower(storage.extension(name)) in ('jpg','jpeg','png','webp')
+ and exists(
+  select 1 from public.mentor_teaching_sessions s
+  where s.id::text=(storage.foldername(name))[2]
+   and s.mentor_id=(select auth.uid()) and s.status='reported'
+ )
+);
+drop policy if exists "Mentor photo delete own R2" on storage.objects;
+create policy "Mentor photo delete own R2" on storage.objects for delete
+to authenticated using (
+ bucket_id='buklod-mentoring-evidence'
+ and (storage.foldername(name))[1]=(select auth.uid())::text
+ and exists(
+  select 1 from public.mentor_teaching_sessions s
+  where s.id::text=(storage.foldername(name))[2]
+   and s.mentor_id=(select auth.uid()) and s.status='reported'
+ )
+);
 
 -- Retain the original reviewer decision when a rejected report is corrected.
 -- This table is private: no client selects, and no existing ledger row is touched.
