@@ -94,7 +94,7 @@ function MainClassroomDoor() {
       const fragment = [
         'buklod_classroom_token_hash=' + encodeURIComponent(tokenHash),
         'buklod_mode=' + encodeURIComponent(mode),
-        'buklod_user_id=' + encodeURIComponent(user.id),
+        'buklod_user_id=' + encodeURIComponent(String(data.user_id)),
       ].join('&');
       const target = 'https://buklod-classroom.expo.app/#' + fragment;
       if (Platform.OS === 'web') {
