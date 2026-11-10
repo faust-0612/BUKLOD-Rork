@@ -874,18 +874,33 @@ function ExpoCommunityVideo({
   }
 
   function retryPlayback() {
-    if (replayAttemptsRef.current < 1) {
-      replayAttemptsRef.current += 1;
-      setPlayerStatus('loading');
-      try {
-        player.replay();
-      } catch {
-        onPlaybackError?.();
-      }
+    // A manual tap always does useful work, even after the automatic replay
+    // limit was reached or a previous URL-renewal request failed.
+    userPausedRef.current = false;
+    errorReportedRef.current = false;
+    replayAttemptsRef.current = 1;
+    retryNotBeforeRef.current = Date.now() + 1_500;
+    setAutoRecovering(true);
+    setPlayerStatus('loading');
+    if (recoveryDeadlineRef.current) clearTimeout(recoveryDeadlineRef.current);
+    try {
+      player.replay();
+    } catch {
+      errorReportedRef.current = true;
+      setAutoRecovering(false);
+      setPlayerStatus('error');
+      playbackErrorHandlerRef.current?.();
       return;
     }
-
-    onPlaybackError?.();
+    recoveryDeadlineRef.current = setTimeout(() => {
+      recoveryDeadlineRef.current = null;
+      if (!activeRef.current || errorReportedRef.current ||
+          playerStatusRef.current === 'readyToPlay') return;
+      errorReportedRef.current = true;
+      setAutoRecovering(false);
+      setPlayerStatus('error');
+      playbackErrorHandlerRef.current?.();
+    }, 2_650);
   }
 
   function togglePlayback() {
