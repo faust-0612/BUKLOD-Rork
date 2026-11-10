@@ -1,0 +1,72 @@
+name: BUKLOD Kingdom Exact PR Android and Web Compile (No Publish)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/features/games/kingdom/**'
+      - 'src/features/games/runtime/**'
+      - 'src/app/games/**'
+      - 'src/lib/buklodAdOpportunities.ts'
+      - 'src/lib/buklodGlobalAdController.ts'
+      - 'assets/sounds/**'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/buklod-kingdom-ai-continuation-v1/**'
+      - 'tests/kingdom-*.test.mjs'
+      - '.buklod/scopes/kingdom-continuation-ui-ads-20261110.json'
+      - '.github/workflows/kingdom-compiled-qa-20261110.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-kingdom-exact-pr-compile-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  verify-kingdom-android-and-web:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'dev/kingdom-continuation-ui-ads-20261110'
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      BUKLOD_APP_TARGET: main
+    steps:
+      - name: Checkout exact PR HEAD SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Node 22 with locked npm dependencies
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Restore dependencies without native postinstall builds
+        run: npm ci --ignore-scripts
+      - name: Read public production Expo build environment without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+      - name: TypeScript and complete Kingdom focused Node contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          node --test tests/kingdom-premium-map-r6.test.mjs tests/kingdom-certified-mastery-39-20261108.test.mjs tests/kingdom-functionality-r13.test.mjs
+          node --test tests/kingdom-ai-continuation-20261110.test.mjs tests/kingdom-continuation-mobile-ads-20261110.test.mjs tests/kingdom-no-repeat-mastery-20261110.test.mjs tests/kingdom-offline-progression-20261110.test.mjs tests/kingdom-rc-compile-release-20261110.test.mjs
+      - name: Build actual Android OTA static bundle (NO OTA publish)
+        run: npx expo export --platform android --output-dir /tmp/buklod-kingdom-android --clear
+      - name: Build Expo Web bundle (NO WEB publish)
+        run: npx expo export --platform web --output-dir /tmp/buklod-kingdom-web --clear
+      - name: Ensure exact artifact sources and nonempty build outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test -n "$(find /tmp/buklod-kingdom-android -type f -print -quit)"
+          test -n "$(find /tmp/buklod-kingdom-web -type f -print -quit)"
+          git diff --exit-code
+          echo "KINGDOM_COMPILED_PR_SHA=$(git rev-parse HEAD)"
+          echo "KINGDOM_ANDROID_OUTPUT_FILES=$(find /tmp/buklod-kingdom-android -type f | wc -l)"
+          echo "KINGDOM_WEB_OUTPUT_FILES=$(find /tmp/buklod-kingdom-web -type f | wc -l)"
