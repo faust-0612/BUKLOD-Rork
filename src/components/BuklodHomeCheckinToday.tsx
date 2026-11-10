@@ -1,8 +1,9 @@
-import React,{useCallback,useEffect,useState} from 'react';
+import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {useFocusEffect} from 'expo-router';
 import {ActivityIndicator,Pressable,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {supabase} from '@/lib/supabase';
+import {useAuth} from '@/providers/AuthProvider';
 import {showBuklodAdOpportunity,warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
 type LiveEvent={event_id:string;title:string;location:string;scope_name:string;starts_at:string;ends_at:string;
  checkin_id?:string;checkin_status?:'pending'|'approved'|'rejected';checked_in_at?:string};
@@ -11,22 +12,44 @@ export default function BuklodHomeCheckinToday({scopeId}:{scopeId?:string}={}){
  const[loading,setLoading]=useState(true);
  const[busy,setBusy]=useState<string|null>(null);
  const[message,setMessage]=useState('');
+ const {session}=useAuth();
+ const context=`${session?.user?.id??''}:${scopeId??'all'}`;
+ const contextRef=useRef(context);
+ const lastSuccessRef=useRef({context:'',at:0});
+ const inFlightRef=useRef(false);
+ if(contextRef.current!==context){
+  contextRef.current=context;
+  lastSuccessRef.current={context:'',at:0};
+ }
  const load=useCallback(async()=>{
-  setLoading(true);try{
+  if(!session?.user?.id||inFlightRef.current)return;
+  inFlightRef.current=true;
+  const requestedContext=context;
+  // Only the first uncached request shows a full loading state.
+  if(lastSuccessRef.current.context!==context)setLoading(true);
+  try{
    const{data,error}=await(supabase as any).rpc('get_my_buklod_home_checkin_today_r3');
    if(error)throw error;
+   if(contextRef.current!==requestedContext)return;
    const rows=Array.isArray(data)?data:[];
    setEvents(scopeId?rows.filter((item:any)=>String(item.scope_id)===scopeId):rows);
-  }catch{setEvents([]);setMessage('Check-in status unavailable. Your existing attendance is unchanged.');}
-  finally{setLoading(false)}
- },[scopeId]);
+   lastSuccessRef.current={context,at:Date.now()};
+   setMessage('');
+  }catch{
+   if(contextRef.current===requestedContext){
+    setMessage('Unable to refresh check-in status. Previously loaded events remain visible.');
+   }
+  }
+  finally{inFlightRef.current=false;if(contextRef.current===requestedContext)setLoading(false)}
+ },[scopeId,session?.user?.id,context]);
  useEffect(()=>{warmBuklodAdOpportunity('points_submission_success')},[]);
  useFocusEffect(useCallback(()=>{
-   void load();
-   // Refresh the authoritative server window while the screen is visible.
+   const cached=lastSuccessRef.current;
+   if(cached.context!==context||Date.now()-cached.at>=60_000)void load();
+   // Server check-ins stay authoritative; no refetch merely from tab switching.
    const tick=setInterval(()=>{void load()},60000);
    return ()=>clearInterval(tick);
- },[load]));
+ },[load,context]));
  const submit=async(item:LiveEvent)=>{
   if(busy||item.checkin_status)return;
   setBusy(item.event_id);setMessage('');
