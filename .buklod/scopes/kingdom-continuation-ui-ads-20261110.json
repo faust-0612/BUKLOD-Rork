@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
   "objective": "Make BUKLOD Kingdom map usable and richer, let members move the companion, add all-station compliant ads, reliable BP mastery feedback, optional AI continuation with no repeat practice prompts and bounded cost",
-  "baseRef": "c134ee35c459c42967aac3c9d24a49cd66f65a0c",
-  "productionBaselineEvidence": "Current production OTA/web artifact and runtime have NOT been verified in this DEV change. No production release is authorized in this scope.",
-  "chosenApproach": "Protect canonical 13 routes and ledger; shared center plus two special centers; add zoom and selected station art; distribute original offline 12-second music; add optional non-credit AI practice with per-account/global quota behind disabled-by-default server flag; retain server-only BP mastery Restore earlier approved bright island artwork direction with scenic landmarks, original animated atmosphere and full-map minimization, not a dark node dashboard. Existing Android rewarded SDK can optionally reveal one practice hint only after EARNED_REWARD; never grant BP.",
+  "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
+  "productionBaselineEvidence": "Reconciled source with current main 5efb99435243a4bcaeff27fc8d41d58b6a9969c2; source comparison confirms no overlapping touched paths. Installed Android/web artifact and exact production release identity are still unverified. Release HOLD remains.",
+  "chosenApproach": "Protect canonical 13 routes and ledger; shared center plus two special centers; add zoom and selected station art; distribute original offline 12-second music; add optional non-credit AI practice with per-account/global quota behind disabled-by-default server flag; retain server-only BP mastery Restore earlier approved bright island artwork direction with scenic landmarks, original animated atmosphere and full-map minimization, not a dark node dashboard. Existing Android rewarded SDK can optionally reveal one practice hint only after EARNED_REWARD; never grant BP. All prior PNG concept designs are visual references only, because invented labels would be invalid BUKLOD game destinations.",
   "allowedPaths": [
     ".buklod/scopes/kingdom-continuation-ui-ads-20261110.json",
     "src/features/games/runtime/BuklodGameCharacterCompanion.tsx",
@@ -45,9 +45,10 @@
     "Gemini API runtime and cost validation, static secret checks, no-credit practice proof",
     "Physical Android navigation/drag/music/image/ad fill and AI next-level screenshot acceptance or explicit device waiver",
     "Reconcile against current live production baseline; no automated merge or OTA publication from this branch",
-    "Optional rewarded hint is gated on /games only, earned-only, no source or server BP mutation"
+    "Optional rewarded hint is gated on /games only, earned-only, no source or server BP mutation",
+    "All 39 game bank rows 20 each with known correct answers, no-repeat RPC and client return when exhausted"
   ],
-  "knownRemainingIssue": "Existing certified BP mastery bank has only five questions for each of 39 games (195 rows total and only 40 semantically distinct de-prefixed prompts across games). Strict no-repeat BP retries require vetted bank expansion plus server-side per-user question history before any replacement of the live scoring RPC. AI-generated continuation here is practice only and does not yet add unreviewed questions to the authoritative BP bank.",
+  "knownRemainingIssue": "Mastery bank expanded in unapplied DEV migration: +585 reviewed deterministic questions and account-scoped no-repeat selection; no production DB change yet. AI practice schema/Edge Function remain unapplied and disabled by default until staging testing and budget verification. Original Kingdom reference PNGs from Library contain inconsistent/invented station names; do not ship them unmodified as navigation. Recreated the approved bright illustrated island design in editable in-app SVG with the original canonical stations.",
   "riskAreas": [
     "game-performance-and-bundle-size",
     "ad-frequency-and-policy",
@@ -63,7 +64,7 @@
     "tests/kingdom-no-repeat-mastery-20261110.test.mjs",
     "supabase/tests/kingdom_ai_continuation_20261110.sql"
   ],
-  "releaseState": "DEV_HOLD",
+  "releaseState": "DEV_QA_PENDING",
   "selectionRationale": "Restore approved illustrated island/map atmosphere in the current in-app Kingdom map, preserve 13 station routes, protect BP ledger, and re-use shipped/local media and shared ad controller without native dependency or new paid infrastructure.",
   "alternativeApproaches": [
     "Never allow a client or AI practice result to credit BP (chosen)",
