@@ -22,6 +22,7 @@ type Task = {
   notes?: string | null;
   admin_note?: string | null;
   participant_count?: number;
+  attendee_ids?: string[];
   points_credited?: number;
 };
 type Lesson = { id: string; title: string };
@@ -62,6 +63,7 @@ export default function MentorTeachingPhotoEvidence() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [revisionNotes, setRevisionNotes] = useState('');
   const [revisionLocation, setRevisionLocation] = useState('');
+  const [revisionLearners, setRevisionLearners] = useState<string[]>([]);
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -258,12 +260,15 @@ export default function MentorTeachingPhotoEvidence() {
     setEditingId(task.session_id);
     setRevisionLocation(task.location ?? '');
     setRevisionNotes(task.notes ?? '');
+    const eligible = new Set(disciples.map(d => d.disciple_id));
+    setRevisionLearners((task.attendee_ids ?? []).filter(id => eligible.has(id)));
     setErr('');
   };
 
   const revise = async (task: Task) => {
     if (busy || task.status !== 'rejected' ||
-      revisionLocation.trim().length < 4 || revisionNotes.trim().length < 20) return;
+      revisionLocation.trim().length < 4 || revisionNotes.trim().length < 20 ||
+      revisionLearners.length < 1 || revisionLearners.length > MAX_LEARNERS) return;
     setBusy(task.session_id);
     setErr('');
     try {
@@ -272,10 +277,12 @@ export default function MentorTeachingPhotoEvidence() {
           p_session_id: task.session_id,
           p_location: revisionLocation.trim(),
           p_notes: revisionNotes.trim(),
+          p_attendee_ids: revisionLearners,
         },
       );
       if (error) throw error;
       setEditingId(null);
+      setRevisionLearners([]);
       const previous = data?.previous_photo_path;
       if (typeof previous === 'string') {
         await supabase.storage.from(PHOTO_BUCKET).remove([previous]).catch(() => {});
@@ -413,11 +420,20 @@ export default function MentorTeachingPhotoEvidence() {
             <TextInput style={[s.field, s.multiline]} multiline textAlignVertical="top"
               value={revisionNotes} onChangeText={setRevisionNotes}
               placeholder="Correct teaching summary" placeholderTextColor="#859688" maxLength={2000} />
+            <Text style={s.meta}>Correct the assigned learners who actually attended ({revisionLearners.length} selected).</Text>
+            {disciples.map(d => <Pressable key={d.disciple_id} accessibilityRole="checkbox"
+              accessibilityState={{ checked: revisionLearners.includes(d.disciple_id) }}
+              style={[s.choice, revisionLearners.includes(d.disciple_id) && s.selected]}
+              onPress={() => setRevisionLearners(current => current.includes(d.disciple_id)
+                ? current.filter(id => id !== d.disciple_id)
+                : current.length < MAX_LEARNERS ? [...current, d.disciple_id] : current)}>
+              <Text style={s.choiceText}>{revisionLearners.includes(d.disciple_id) ? '☑' : '☐'} {d.disciple_name}</Text>
+            </Pressable>)}
             <Text style={s.meta}>After saving corrections, attach a new consented photo. No duplicate report or BP is created.</Text>
             <View style={s.actions}>
               <Pressable style={[s.button, s.flexButton,
-                (!!busy || revisionNotes.trim().length < 20 || revisionLocation.trim().length < 4) && s.disabled]}
-                disabled={!!busy || revisionNotes.trim().length < 20 || revisionLocation.trim().length < 4}
+                (!!busy || revisionNotes.trim().length < 20 || revisionLocation.trim().length < 4 || revisionLearners.length < 1) && s.disabled]}
+                disabled={!!busy || revisionNotes.trim().length < 20 || revisionLocation.trim().length < 4 || revisionLearners.length < 1}
                 onPress={() => void revise(task)}>
                 <Text style={s.buttonText}>Save revision</Text>
               </Pressable>
