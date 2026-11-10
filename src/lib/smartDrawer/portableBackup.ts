@@ -10,6 +10,46 @@ import { commitSmartDrawerItem } from './service';
 import type { SmartDrawerItem, SmartDrawerAsset } from './types';
 
 const FORMAT = 'buklod.drawer.portable.v1';
+const ENCRYPTED_FORMAT = 'buklod.drawer.encrypted.v1';
+
+export async function generateSmartDrawerRecoveryKey(): Promise<string> {
+  const key = await Crypto.AESEncryptionKey.generate();
+  return key.encoded('hex');
+}
+
+function validateRecoveryKey(recoveryKey: string): string {
+  const trimmed = recoveryKey.replace(/\s+/g, '').toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(trimmed)) {
+    throw new Error('Invalid recovery key. Enter the full 64-character backup key.');
+  }
+  return trimmed;
+}
+
+async function encryptBackup(envelope: Envelope, recoveryKey: string) {
+  const key = await Crypto.AESEncryptionKey.import(validateRecoveryKey(recoveryKey), 'hex');
+  const bytes = new TextEncoder().encode(JSON.stringify(envelope));
+  const sealed = await Crypto.aesEncryptAsync(bytes, key);
+  const content = await sealed.combined('base64');
+  return JSON.stringify({ format: ENCRYPTED_FORMAT, content });
+}
+
+async function decryptBackup(raw: string, recoveryKey: string): Promise<Envelope> {
+  let encrypted: { format?: string; content?: string };
+  try { encrypted = JSON.parse(raw); }
+  catch { throw new Error('Invalid encrypted backup format.'); }
+  if (encrypted?.format !== ENCRYPTED_FORMAT || typeof encrypted.content !== 'string' ||
+      !/^[a-zA-Z0-9+/]+={0,2}$/.test(encrypted.content)) {
+    throw new Error('Select an encrypted BUKLOD Drawer backup.');
+  }
+  try {
+    const key = await Crypto.AESEncryptionKey.import(validateRecoveryKey(recoveryKey), 'hex');
+    const sealed = Crypto.AESSealedData.fromCombined(encrypted.content);
+    const bytes = await Crypto.aesDecryptAsync(sealed, key, { output: 'bytes' });
+    return JSON.parse(new TextDecoder().decode(bytes as Uint8Array)) as Envelope;
+  } catch {
+    throw new Error('Cannot decrypt backup. Check the recovery key and file integrity.');
+  }
+}
 const MAX_ARCHIVE_BYTES = 20 * 1024 * 1024;
 const MAX_ITEMS = 10000;
 const BATCH_SIZE = 100;
@@ -82,12 +122,13 @@ function assertPayload(value: unknown): asserts value is Payload {
 }
 
 /**
- * User-initiated device-to-personal-cloud backup. BUKLOD servers never receive
- * the archive. Archive is NOT encrypted; UI must disclose that before sharing.
+ * User-initiated device-to-personal-cloud encrypted backup. BUKLOD servers
+ * never receive the archive or recovery key.
  * An oversized backup fails closed rather than silently dropping attachments.
  */
-export async function shareSmartDrawerBackup(userId: string) {
+export async function shareSmartDrawerBackup(userId: string, recoveryKey: string) {
   requireMobile();
+  validateRecoveryKey(recoveryKey);
   if (!userId) throw new Error('Sign in to back up your Drawer.');
   const items: PortableItem[] = [];
   let estimatedBytes = 0;
@@ -138,10 +179,11 @@ export async function shareSmartDrawerBackup(userId: string) {
   if (raw.length > MAX_ARCHIVE_BYTES) throw new Error('Backup exceeds 20 MB. No incomplete archive was shared.');
   const sha256 = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, raw);
   const envelope: Envelope = { format: FORMAT, sha256, payload };
-  const uri = FileSystem.cacheDirectory + 'buklod-drawer-' + Date.now() + '.json';
-  await FileSystem.writeAsStringAsync(uri, JSON.stringify(envelope), { encoding: FileSystem.EncodingType.UTF8 });
+  const uri = FileSystem.cacheDirectory + 'buklod-drawer-' + Date.now() + '.buklodbackup';
+  const encrypted = await encryptBackup(envelope, recoveryKey);
+  await FileSystem.writeAsStringAsync(uri, encrypted, { encoding: FileSystem.EncodingType.UTF8 });
   if (!await Sharing.isAvailableAsync()) throw new Error('No compatible app is available to save your backup.');
-  await Sharing.shareAsync(uri, { mimeType: 'application/json', dialogTitle: 'Save backup to your personal cloud' });
+  await Sharing.shareAsync(uri, { mimeType: 'application/octet-stream', dialogTitle: 'Save encrypted backup to your personal cloud' });
   return { count: items.length, uri };
 }
 
@@ -150,8 +192,9 @@ export async function shareSmartDrawerBackup(userId: string) {
  * existing notes. Foreign-account archives are rejected to prevent accidental
  * cross-account disclosure. Restore is additive and idempotent by item ID.
  */
-export async function restoreSmartDrawerBackup(userId: string) {
+export async function restoreSmartDrawerBackup(userId: string, recoveryKey: string) {
   requireMobile();
+  validateRecoveryKey(recoveryKey);
   if (!userId) throw new Error('Sign in to restore your Drawer.');
   const picked = await DocumentPicker.getDocumentAsync({
     type: ['application/json', 'text/plain', '*/*'], copyToCacheDirectory: true,
@@ -163,9 +206,7 @@ export async function restoreSmartDrawerBackup(userId: string) {
   }
   const raw = await FileSystem.readAsStringAsync(uri);
   if (raw.length > MAX_ARCHIVE_BYTES + 1024) throw new Error('Backup is too large.');
-  let envelope: Envelope;
-  try { envelope = JSON.parse(raw) as Envelope; }
-  catch { throw new Error('The selected file is not valid JSON.'); }
+  const envelope = await decryptBackup(raw, recoveryKey);
   if (envelope?.format !== FORMAT || typeof envelope.sha256 !== 'string') {
     throw new Error('This is not a supported BUKLOD Drawer backup.');
   }
