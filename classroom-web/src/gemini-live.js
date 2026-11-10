@@ -14,6 +14,18 @@ if (incoming.has('access_token') || incoming.has('refresh_token') || incoming.ha
   const rest = incoming.toString();
   history.replaceState({}, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
 }
+// Read one-time Classroom SSO handoff from the URL fragment and scrub it
+// synchronously, before any asynchronous auth operation or UI rendering.
+const fragment=new URLSearchParams(location.hash.replace(/^#/,''));
+const ssoHash=fragment.get('buklod_classroom_token_hash');
+const ssoExpectedUser=fragment.get('buklod_user_id');
+const ssoRequestedMode=fragment.get('buklod_mode');
+if(ssoHash!==null || ssoExpectedUser!==null || ssoRequestedMode!==null){
+  for(const key of ['buklod_classroom_token_hash','buklod_mode','buklod_user_id'])fragment.delete(key);
+  const rest=fragment.toString();
+  history.replaceState({},'',location.pathname+location.search+(rest?'#'+rest:''));
+}
+const ssoHandoff=ssoHash!==null ? {hash:ssoHash,userId:ssoExpectedUser,mode:ssoRequestedMode}:null;
 const app = window.APP_STATE;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -22,8 +34,15 @@ const isoId = value => /^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(String(value||''))
 const show = msg => window.showToast(String(msg));
 const call = async result => {const x=await result; if(x.error)throw x.error; return x.data;};
 const fmt = value => value ? new Date(value).toLocaleString('en-PH',{dateStyle:'medium',timeStyle:'short'}) : 'Not scheduled';
-let activeUser=null, roleByClass=new Map(), cache=new Map(), pending=false, activeRequest=0, activeFilter='all', liveKnown=false, liveCount=0;
-const isFaculty = () => roleByClass.get(app.activeClassId)?.authorizedFaculty===true;
+let activeUser=null, roleByClass=new Map(), cache=new Map(), pending=false, activeRequest=0, activeFilter='all', liveKnown=false, liveCount=0, desiredMode=null;
+const isFaculty = () => desiredMode==='FACULTY' &&
+  roleByClass.get(app.activeClassId)?.authorizedFaculty===true;
+const visibleClasses = () => Object.values(app.classrooms).filter(c => {
+  const flags=roleByClass.get(c.id);
+  return desiredMode==='FACULTY' ? flags?.faculty===true
+    : desiredMode==='STUDENT' ? flags?.student===true
+    : flags?.faculty===true || flags?.student===true;
+});
 const box = (title,body) => '<section class="surface-card" style="margin-bottom:14px"><h3 style="font-size:16px;font-weight:800;margin-bottom:9px">' + esc(title) + '</h3>' + body + '</section>';
 const empty = label => '<p style="color:#64748b;font-size:13px">' + esc(label) + '</p>';
 const card = (label,info) => '<div style="padding:11px 12px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;margin-bottom:9px"><strong>' +
@@ -35,7 +54,7 @@ function validClass(id){return isoId(id) && Object.hasOwn(app.classrooms,id);}
 function statusCard(title){return box(title,empty('This section only displays verified BUKLOD records. Unavailable actions must be completed in the authorized BUKLOD Classroom controls.'));}
 function loadingCard(){return box('Loading official Classroom data…',empty('Reading records permitted for your signed-in account.'));}
 function projectCards(){
-  const classes=Object.values(app.classrooms);
+  const classes=visibleClasses();
   const selected=classes.filter(c=>activeFilter==='active' ? c.status==='ACTIVE' || c.status==='OPEN' : true);
   el('portalClassroomsList').innerHTML=selected.length ? selected.map(c =>
     '<article class="classroom-portal-card hold-card" role="button" tabindex="0" onclick="openSubjectClass(\''+c.id+'\',\'CLASS\',\'overview\')" ' +
@@ -71,7 +90,7 @@ window.showActiveClassrooms=async()=>{
   originalShowPortalHome();
   activeFilter='active';
   const holder=el('portalClassroomsList');
-  const classes=Object.values(app.classrooms).filter(c=>c.status==='ACTIVE'||c.status==='OPEN');
+  const classes=visibleClasses().filter(c=>c.status==='ACTIVE'||c.status==='OPEN');
   holder.innerHTML=loadingCard();
   const request=++activeRequest;
   if(!classes.length){holder.innerHTML=box('Active Academic Work',empty('No active assigned classes.'));return;}
@@ -98,7 +117,7 @@ window.showPortalHome=()=>{activeFilter='all';originalShowPortalHome();};
 window.refreshPortalList=()=>void refreshClasses();
 
 async function fetchLiveOverview(){
-  const ids=Object.keys(app.classrooms).filter(isoId);
+  const ids=visibleClasses().map(c=>c.id).filter(isoId);
   if(!ids.length){liveCount=0;liveKnown=true;return;}
   try{
     let count=0;
@@ -141,7 +160,12 @@ async function refreshClasses(){
       syllabusSummary:'Official classroom material',gradingScheme:'official',lifecycleStage:'—',
       announcements:[],modules:[],activities:[],quizzes:[],rleSkills:[],notices:[],roster:[],auditLogs:[]};
   }
-  app.activeClassId=Object.keys(app.classrooms)[0]||'';
+  const flags=[...roleByClass.values()];
+  const hasFaculty=flags.some(x=>x.faculty), hasStudent=flags.some(x=>x.student);
+  if(!desiredMode)desiredMode=hasFaculty?'FACULTY':hasStudent?'STUDENT':null;
+  if(desiredMode==='FACULTY'&&!hasFaculty || desiredMode==='STUDENT'&&!hasStudent)
+    throw Error('The requested Classroom role is not assigned to this BUKLOD account.');
+  app.activeClassId=visibleClasses()[0]?.id||'';
   window.injectAllCanonicalLogos();
   window.showPortalHome();
   void fetchLiveOverview();
@@ -149,7 +173,14 @@ async function refreshClasses(){
   const oldEmail=el('activeEmailLabel');if(oldEmail)oldEmail.textContent=activeUser.email||'Signed in';
   const create=el('createClassPortalBtn');if(create)create.style.display='none';
   const role=el('rolePersonaSelect');
-  if(role){role.innerHTML='<option>Signed in · Authorized BUKLOD roles only</option>';role.disabled=true;}
+  if(role){
+    const options=[];
+    if(hasFaculty)options.push('<option value="FACULTY">Faculty View</option>');
+    if(hasStudent)options.push('<option value="STUDENT">Student View</option>');
+    role.innerHTML=options.join('')||'<option value="">No assigned role</option>';
+    role.disabled=options.length<2;
+    if(desiredMode)role.value=desiredMode;
+  }
   const fakeJump=document.querySelector('button[onclick*="99923b52"]');if(fakeJump)fakeJump.style.display='none';
 }
 async function fetchCurrent(id,tab){
@@ -161,9 +192,11 @@ async function fetchCurrent(id,tab){
   const identity=Array.isArray(ctx)?ctx[0]:ctx;
   if(!identity?.role)throw Error('This account has no authorized Classroom role.');
   const assigned=roleByClass.get(id);
-  if(!assigned || (identity.role==='FACULTY'&&(!assigned.faculty || identity.is_faculty!==true)))
-    throw Error('Faculty authorization was not confirmed.');
-  assigned.authorizedFaculty=identity.role==='FACULTY' && identity.is_faculty===true && assigned.faculty===true;
+  if(!assigned || desiredMode==='STUDENT'&&!assigned.student ||
+      desiredMode==='FACULTY'&&(!assigned.faculty || identity.role!=='FACULTY' || identity.is_faculty!==true))
+    throw Error('The requested Student/Faculty view is not authorized for this class.');
+  assigned.authorizedFaculty=desiredMode==='FACULTY' &&
+    identity.role==='FACULTY' && identity.is_faculty===true && assigned.faculty===true;
   const out={context:identity};
   const select=(table,cols)=>db.from(table).select(cols).eq('classroom_id',id);
   if(tab==='overview'||tab==='discussions'){
@@ -211,7 +244,9 @@ async function fetchCurrent(id,tab){
 }
 const originalOpen=window.openSubjectClass;
 window.openSubjectClass=async(id,group='CLASS',tab='overview')=>{
-  if(!validClass(id)){show('Classroom access denied.');return;}
+  if(!validClass(id)||!visibleClasses().some(c=>c.id===id)){
+    show('Classroom access denied for this active role.');return;
+  }
   try{app.activeClassId=id;app.activeGroup=group;app.activeSubtab=tab;await fetchCurrent(id,tab);originalOpen(id,group,tab);
     history.replaceState({},'',location.pathname+'?class='+encodeURIComponent(id)+'&group='+encodeURIComponent(group)+'&tab='+encodeURIComponent(tab));
   }catch(error){show('Could not open authorized Classroom: '+safeError(error));window.showPortalHome();}
@@ -370,7 +405,26 @@ const unsupported=['confirmCreateClassroom','runEightStepRosterWizard','confirmR
   'postClassChatMessage','sendCallAttentionAlert','submitInteractiveQuizAttempt','submitQuickAdd',
   'syncLiveAttendanceToClass','copyFullHtmlToClipboard','downloadFullHtmlFile'];
 for(const name of unsupported)window[name]=()=>show('This action is not available in Classroom web until its secure backend workflow is verified. No records were changed.');
-window.switchPersona=()=>show('Account roles are assigned by BUKLOD authorization, not by a browser switch.');
+window.switchPersona=mode=>{
+  if(!['STUDENT','FACULTY'].includes(mode) ||
+    ![...roleByClass.values()].some(x=>mode==='FACULTY'?x.faculty:x.student)){
+    show('That role is not assigned to your BUKLOD account.');
+    const picker=el('rolePersonaSelect');if(picker)picker.value=desiredMode||'';
+    return;
+  }
+  if(desiredMode===mode)return;
+  desiredMode=mode;
+  // Avoid carrying private faculty data into a Student-only view.
+  ++activeRequest;cache=new Map();
+  for(const role of roleByClass.values())role.authorizedFaculty=false;
+  app.activeClassId=visibleClasses()[0]?.id||'';
+  window.showPortalHome();
+  projectCards();
+  const picker=el('rolePersonaSelect');if(picker)picker.value=mode;
+  const notice=el('portalSubRoleText');if(notice)notice.textContent=
+    mode+' VIEW • OFFICIAL BUKLOD RECORDS';
+  void fetchLiveOverview();
+};
 window.toggleOfflineMode=()=>show('Offline writes are not enabled in this web release. Reconnect before submitting work.');
 window.openAuditDrawer=()=>window.openSlideDrawer('LIVE SYSTEM STATUS','Authenticated BUKLOD Classroom',
   box('Verified session',card(activeUser?.email||'Unknown',
@@ -394,7 +448,7 @@ function clearPrivateSession(){
   ++activeRequest;
   activeUser=null;
   roleByClass=new Map();cache=new Map();
-  liveKnown=false;liveCount=0;
+  desiredMode=null;liveKnown=false;liveCount=0;
   app.classrooms={};app.activeClassId='';
   document.body.classList.remove('buklod-live-authed');
   document.querySelector('#universalSlideDrawer')?.classList.remove('open');
@@ -411,6 +465,34 @@ db.auth.onAuthStateChange(event=>{
   if(event==='SIGNED_OUT')clearPrivateSession();
 });
 
+function displayHandoffProgress(){
+  el('liveAuthScreen')?.remove();
+  const node=document.createElement('section');node.id='liveAuthScreen';
+  node.innerHTML='<div class="auth-wrap" role="status" aria-live="polite">'+
+    '<h1>BUKLOD Classroom</h1><p>Securing your BUKLOD Main session…</p>'+
+    '<p>One identity • no second sign in</p></div>';
+  document.body.appendChild(node);
+}
+async function consumeMainDoorHandoff(){
+  if(!ssoHandoff)return false;
+  if(!/^[A-Za-z0-9_-]{30,512}$/.test(ssoHandoff.hash) ||
+    !isoId(ssoHandoff.userId) ||
+    !['FACULTY','STUDENT'].includes(ssoHandoff.mode))
+    throw Error('Invalid or expired Classroom entry. Return to BUKLOD Main and enter again.');
+  desiredMode=ssoHandoff.mode;
+  const {data,error}=await db.auth.verifyOtp({token_hash:ssoHandoff.hash,type:'email'});
+  if(error || !data?.user || data.user.id!==ssoHandoff.userId){
+    // A wrong account must never continue with an unrelated stored session.
+    await db.auth.signOut();
+    throw Error('One-time Classroom entry expired or mismatched. Return to BUKLOD Main and enter again.');
+  }
+  const gate=await call(db.rpc('buklod_classroom_launcher_access_v1'));
+  if(!gate?.can_open || (desiredMode==='FACULTY'?!gate.is_faculty:!gate.is_student)){
+    await db.auth.signOut();
+    throw Error('This BUKLOD account does not have the requested Classroom role.');
+  }
+  return true;
+}
 function displayAuth(errorText=''){
   el('liveAuthScreen')?.remove();
   const node=document.createElement('section');node.id='liveAuthScreen';node.innerHTML=
@@ -461,5 +543,11 @@ for(const selector of ['button[onclick="openVercelDeployDrawer()"]','button[oncl
 }
 window.addEventListener('offline',()=>{const x=el('networkLabel');if(x)x.textContent='Offline · Read only';});
 window.addEventListener('online',()=>{const x=el('networkLabel');if(x)x.textContent='Online · BUKLOD';});
-displayAuth();
-try{await hydrate();}catch(err){displayAuth('Could not load your assigned classrooms: '+safeError(err));}
+if(ssoHandoff)displayHandoffProgress();else displayAuth();
+try{
+  if(ssoHandoff)await consumeMainDoorHandoff();
+  await hydrate();
+}catch(err){
+  displayAuth(ssoHandoff ? safeError(err) :
+    'Could not load your assigned classrooms: '+safeError(err));
+}
