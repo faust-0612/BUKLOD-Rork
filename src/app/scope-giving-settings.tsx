@@ -306,7 +306,7 @@ export default function ScopeGivingSettingsScreen() {
           <TextInput style={styles.input} value={bankAccount} onChangeText={setBankAccount} placeholder="Authorized account number" keyboardType="default"/>
           <View style={styles.switchRow}><Text style={styles.label}>BANK RECEIVING ACTIVE</Text>
             <Switch value={bankEnabled} onValueChange={setBankEnabled}/></View>
-          <Pressable disabled={busy} onPress={()=>void saveBank()} style={[styles.save,busy&&styles.disabled]}><Text style={{color:'white',fontWeight:'900',textAlign:'center'}}>SAVE AUTHORIZED BANK</Text></Pressable>
+          <Pressable disabled={busy} onPress={()=>void saveBank()} style={[styles.bankSave,busy&&styles.disabled]}><Text style={{color:'white',fontWeight:'900',textAlign:'center'}}>SAVE AUTHORIZED BANK</Text></Pressable>
           {bankReceiver?<Text style={styles.help}>Current bank receiver: {bankReceiver.name} · {bankReceiver.holder}</Text>:null}
         </View>:null}
         {members.length>0?<View style={styles.card}>
@@ -416,6 +416,10 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.55,
+  },
+  bankSave:{
+    backgroundColor:'#176B4A',borderRadius:12,minHeight:48,
+    alignItems:'center',justifyContent:'center',paddingHorizontal:14,paddingVertical:12,
   },
   notice: {
     borderRadius: 14,

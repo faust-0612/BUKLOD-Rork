@@ -155,7 +155,7 @@ export default function BuklodHealthPortal() {
                   style={styles.emergencyCall}
                 >
                   <MaterialCommunityIcons name="phone" size={18} color="#FFFFFF" />
-                  <Text style={styles.emergencyCallText}>Call 911 (PH)</Text>
+                  <Text style={styles.emergencyCallText}>{t('Call 911 (PH)','Tumawag sa 911 (PH)')}</Text>
                 </Pressable>
               </View>
             </View>
@@ -204,8 +204,8 @@ export default function BuklodHealthPortal() {
           <View style={styles.standaloneHeading}>
             <MaterialCommunityIcons name="hospital-building" size={27} color="#126946" />
             <View style={styles.standaloneText}>
-              <Text style={styles.sectionHeading}>Full Health Center</Text>
-              <Text style={styles.hint}>Medicines · vitals · appointments · health records · care plans</Text>
+              <Text style={styles.sectionHeading}>{t('Full Health Center','Buong Health Center')}</Text>
+              <Text style={styles.hint}>{t('Medicines · vitals · appointments · health records · care plans','Mga gamot · vital signs · appointment · health records · care plans')}</Text>
             </View>
           </View>
           <Pressable
@@ -217,7 +217,7 @@ export default function BuklodHealthPortal() {
             style={({ pressed }) => [styles.standaloneButton, pressed && styles.pressed]}
           >
             <MaterialCommunityIcons name="open-in-new" size={20} color="#126946" />
-            <Text style={styles.standaloneButtonText}>Open standalone Health Center</Text>
+            <Text style={styles.standaloneButtonText}>{t('Open standalone Health Center','Buksan ang buong Health Center')}</Text>
           </Pressable>
           <Text selectable style={styles.url}>{BUKLOD_HEALTH_CENTER_URL}</Text>
         </View>
@@ -227,9 +227,7 @@ export default function BuklodHealthPortal() {
             <MaterialCommunityIcons name="badge-account-outline" size={23} color="#416755" />
             <View style={styles.professionalBody}>
               <Text style={styles.professionalTitle}>{t('Licensed health professional?','Lisensiyadong health professional?')}</Text>
-              <Text style={styles.hint}>
-                Learn about educational contributions. License verification, independent review and privacy controls are required before participation.
-              </Text>
+              <Text style={styles.hint}>{t('Learn about professional educational contributions. License verification, independent clinical review and privacy controls are required.','Alamin ang pag-aambag ng mga lisensiyadong propesyonal. Kailangan ang beripikasyon ng lisensiya, hiwalay na pagsusuri at proteksiyon sa privacy.')}</Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Open health professional contributor program"
@@ -256,8 +254,7 @@ export default function BuklodHealthPortal() {
         <View style={styles.notice}>
           <MaterialCommunityIcons name="shield-lock-outline" size={21} color="#126946" />
           <Text style={styles.noticeText}>
-            Privacy: This screen does not save your answers or share BUKLOD login tokens, concerns or medical records.
-            The full Health Center has separate access controls.
+            {t('Privacy: This screen does not save answers or share BUKLOD tokens, concerns or medical records. The full Health Center has separate access controls.','Privacy: Hindi sini-save dito ang sagot o ipinapadala ang iyong BUKLOD token, tanong o medical record. May hiwalay na access controls ang buong Health Center.')}
           </Text>
         </View>
 

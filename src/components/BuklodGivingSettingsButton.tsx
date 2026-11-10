@@ -1,4 +1,5 @@
 import React from 'react';
+import { supabase } from '@/lib/supabase';
 import {
   Pressable,
   StyleSheet,
@@ -44,9 +45,21 @@ export function BuklodGivingSettingsButton({
     firstString(params.organization_id) ||
     firstString(params.id);
 
-  if (!resolvedScopeId) {
-    return null;
-  }
+  const [authorized,setAuthorized]=React.useState(false);
+  React.useEffect(()=>{
+    let active=true;
+    setAuthorized(false);
+    if(resolvedScopeId){
+      void supabase.rpc('giving_get_receiver_admin_scope',{p_scope_id:resolvedScopeId})
+        .then(({data,error})=>{
+          if(!active)return;
+          const row=Array.isArray(data)?data[0]:data;
+          setAuthorized(!error&&Boolean(row?.scope_id===resolvedScopeId));
+        }).catch(()=>{if(active)setAuthorized(false)});
+    }
+    return ()=>{active=false};
+  },[resolvedScopeId]);
+  if (!resolvedScopeId || !authorized) return null;
 
   return (
     <Pressable
@@ -54,7 +67,7 @@ export function BuklodGivingSettingsButton({
       accessibilityLabel="Giving and GCash Settings"
       onPress={() =>
         router.push({
-          pathname: '/giving',
+          pathname: '/scope-giving-settings',
           params: {
             scopeId: resolvedScopeId,
           },
@@ -66,12 +79,12 @@ export function BuklodGivingSettingsButton({
         pressed && styles.pressed,
       ]}>
       <Text style={styles.title}>
-        Giving / GCash Settings
+        Fund Receiver & Treasurer Settings
       </Text>
 
       {!compact ? (
         <Text style={styles.subtitle}>
-          Set the receiving GCash for this exact scope
+          Manage GCash, authorized bank and treasurers for this scope
         </Text>
       ) : null}
     </Pressable>
