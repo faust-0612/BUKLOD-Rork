@@ -42,7 +42,8 @@ test('Community ad marker IDs are stable across append/pagination without replac
   );
   const remainingPosts = after.filter(row=>!placements.isCommunityFeedInlineAdRow(row));
   assert.equal(remainingPosts.length, posts.length);
-  assert.deepEqual(remainingPosts.map(p=>p.id),posts.map(p=>p.id));
+  // VM arrays are from a different realm; compare canonical ID values.
+  assert.equal(JSON.stringify(remainingPosts.map(p=>p.id)), JSON.stringify(posts.map(p=>p.id)));
 });
 
 test('scroll ad slots can mount before visibility without bypassing viewport and fallback gates', () => {
