@@ -31,6 +31,7 @@ import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
 import {
   getIgpatWarmFeed,
   igpatFeedKey,
+  isIgpatWarmFeedFresh,
   rememberIgpatWarmFeed,
   updateIgpatWarmFeedRow,
 } from '@/lib/igpat/warmFeed';
@@ -341,6 +342,13 @@ export default function IgpatScreen() {
     // Never replace a usable, account/mode-scoped feed with a loading screen.
     setLoading(retainedRows.length === 0);
     setLoadError(null);
+    // Reuse the recently signed page on a rapid navigation return. The
+    // existing same-screen Retry path still performs a real refresh.
+    if (!matchingFeed && warmRows.length &&
+        isIgpatWarmFeedFresh(user.id, feedMode, dataSaver)) {
+      setLoading(false);
+      return;
+    }
     if (networkStatusRef.current === 'offline') {
       setLoadError('Offline: showing recently loaded videos when available.');
       setLoading(false);
