@@ -352,6 +352,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
       <BuklodHomeFaithPanel scopeId={scope.scope_id} compact />
     </>
   ) : <BuklodNonFaithEncouragementDoor />}
+  <BuklodFirstViewAd placement="cluster" placementId="cluster_command_mid_view" />
   {/* 14 existing configurable widgets as buttons; selecting opens the original fully functional card below. */}
   <View style={s.featureGrid}>
     {WIDGETS.filter(([k])=>k!=='notice' && k!=='bulletin' && show(k) && (k!=='insights'||isAdmin)).map(([k,l])=>(
