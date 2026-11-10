@@ -1,0 +1,60 @@
+{
+  "id": "BUKLOD_MONTHLY_QMP_FINANCE_CONSOLIDATED_OTA_20261111",
+  "repository": "faust-0612/BUKLOD-Rork",
+  "status": "OTA_INTEGRATION_CANDIDATE_NOT_DEPLOYED",
+  "objective": "Unified Community qualified monthly contribution -> canonical Finance V3; historical earnings carry forward and nonwithdrawable live estimate",
+  "baseline_sha": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
+  "source_branch": "codex/monthly-earnings-carryforward-20261111",
+  "native_change": false,
+  "new_build_required": false,
+  "compatibility": "existing Expo Android runtime plus Expo Hosting Web; no Vercel or AWS",
+  "preconditions": [
+    "Reconcile branch against latest authoritative main and all approved DEV workstreams",
+    "Merge once into frozen consolidated release candidate; preserve unrelated changes",
+    "Execute CI/typecheck/Expo web export from exact merged SHA",
+    "Apply all six included Supabase migrations before OTA/web release",
+    "Verify canonical user QMP denominator equals Community QMP after identity backfill",
+    "Keep economics, settlement, withdrawal and payout flags OFF pending verified provider revenues and review",
+    "Resolve held/pending QMP records before future financial finalization, not a prerequisite for launching UI",
+    "Release one approved production Android OTA and Expo Hosting Web from exact frozen RC only"
+  ],
+  "migrations": [
+    "supabase/migrations/20261111015000_buklod_monthly_earnings_carryforward_readonly_v1.sql",
+    "supabase/migrations/20261111023000_buklod_qmp_canonical_finance_identity_v1.sql",
+    "supabase/migrations/20261111024500_buklod_pf_v3_qmp_single_settlement_v1.sql",
+    "supabase/migrations/20261111025000_buklod_pf_v3_monthly_summary_qmp_v1.sql",
+    "supabase/migrations/20261111031000_buklod_finance_qmp_readiness_audit_v1.sql",
+    "supabase/migrations/20261111032000_buklod_qmp_finance_review_queue_v1.sql"
+  ],
+  "appFiles": [
+    "src/lib/buklodMonthlyEarnings.ts",
+    "src/components/BuklodUnifiedEarningsHomeCard.tsx",
+    "src/app/community-contribution.tsx",
+    "src/lib/buklodR38AdminEconomy.ts",
+    "src/app/admin/economy-operations.tsx",
+    "src/components/BuklodCommunityEconomyAdminCard.tsx"
+  ],
+  "contracts": [
+    "tests/buklod-monthly-earnings-carryforward-20261111.test.mjs",
+    "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs"
+  ],
+  "dryRun": {
+    "at": "2026-11-11",
+    "method": "Six SQL migrations inside transaction on canonical production Supabase, then ROLLBACK",
+    "compiled": true,
+    "finance_link_count_before": 214,
+    "finance_link_count_in_dry_run": 362,
+    "missing_qualified_users_in_dry_run": 0,
+    "qmp_parity": true,
+    "frozen_month_edit_rejected": true,
+    "added_cash_credits": 0,
+    "finalized_cash_settlements": 0,
+    "rollback_verified": true,
+    "live_backend_changed": false
+  },
+  "live_finance_gates_all_off": true,
+  "doNotAutoActivateCash": true,
+  "noStandaloneOTA": true,
+  "docs": "docs/monthly-earnings-carryforward-v1.md",
+  "production_status": "NOT_LIVE"
+}
