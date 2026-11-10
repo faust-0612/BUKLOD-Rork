@@ -164,25 +164,64 @@ create or replace function public.buklod_health_card_open_consult_v1(
   p_red_flags boolean,p_informed_consent boolean,p_request_key text
 ) returns uuid language plpgsql security definer set search_path=''
 as $f$
-declare v_actor uuid:=auth.uid();v_service text:=upper(btrim(coalesce(p_service,'')));
-  v_concern text:=btrim(coalesce(p_concern,''));v_id uuid;
+declare
+  v_actor uuid:=auth.uid();
+  v_service text:=upper(btrim(coalesce(p_service,'')));
+  v_concern text:=btrim(coalesce(p_concern,''));
   v_key text:=btrim(coalesce(p_request_key,''));
+  v_existing_concern text;
+  v_existing_service text;
+  v_id uuid;
 begin
   if v_actor is null then raise exception 'Sign in required'; end if;
-  if not exists(select 1 from private.buklod_health_identities_v1
+  if not exists (select 1 from private.buklod_health_identities_v1
     where user_id=v_actor and status='VERIFIED') then
     raise exception 'Independent client identity verification required'; end if;
-  if not exists(select 1 from public.profiles where id=v_actor and is_active=true
+  if not exists (select 1 from public.profiles where id=v_actor and is_active=true
     and birth_date is not null and birth_date<=current_date-interval '18 years') then
     raise exception 'Adult-only trial. Guardian-assisted pediatric pathway not yet active'; end if;
   if v_service not in ('HEALTH_ADVICE','PHYSICIAN_CONSULT') then
     raise exception 'Invalid consultation type'; end if;
-  if length(v_concern) not between 20 and 1500 or length(coalesce(p_symptom_duration,''))>120
-    or length(coalesce(p_location_city,''))>120 then raise exception 'Complete the structured intake'; end if;
+  if length(v_concern) not between 20 and 1500
+    or length(coalesce(p_symptom_duration,''))>120
+    or length(coalesce(p_location_city,''))>120 then
+    raise exception 'Complete the structured intake'; end if;
   if p_red_flags is distinct from false then
     raise exception 'Urgent warning signs require emergency or in-person care'; end if;
-  if p_informed_consent is distinct from true then raise exception 'Specific telehealth consent required'; end if;
-  if length(v_key) not between 16 and 100 or v_key !~ '^[A-Za-z0-9_-]+
+  if p_informed_consent is distinct from true then
+    raise exception 'Specific telehealth consent required'; end if;
+  if length(v_key) not between 16 and 100 or v_key !~ '^[A-Za-z0-9_-]+$' then
+    raise exception 'Valid request identifier required'; end if;
+
+  -- Serialize all pending submissions for this signed-in patient, then deduplicate.
+  perform pg_advisory_xact_lock(hashtext(v_actor::text),2511);
+  select id,service,concern into v_id,v_existing_service,v_existing_concern
+    from private.buklod_health_consultations_v1
+    where client_id=v_actor and client_request_key=v_key;
+  if v_id is not null then
+    if v_existing_service<>v_service or v_existing_concern<>v_concern then
+      raise exception 'Request identifier already used for a different intake'; end if;
+    return v_id;
+  end if;
+  if (select count(*) from private.buklod_health_consultations_v1
+    where client_id=v_actor and status in ('OPEN','IN_PROGRESS'))>=3 then
+    raise exception 'Three consultations already active; close one before starting another'; end if;
+  insert into private.buklod_health_consultations_v1(
+    client_id,client_request_key,service,concern,symptom_duration,location_city,
+    urgent_screen_clear,consent_version,consent_at
+  ) values (
+    v_actor,v_key,v_service,v_concern,
+    nullif(btrim(coalesce(p_symptom_duration,'')),''),
+    nullif(btrim(coalesce(p_location_city,'')),''),
+    true,'PH_TELEHEALTH_V1',now()
+  )
+  on conflict(client_id,client_request_key) do nothing returning id into v_id;
+  if v_id is null then
+    select id into v_id from private.buklod_health_consultations_v1
+      where client_id=v_actor and client_request_key=v_key;
+  end if;
+  if v_id is null then raise exception 'Unable to confirm consultation request'; end if;
+  return v_id;
 end;$f$;
 
 create or replace function public.buklod_health_card_claim_consult_v1(p_consult_id uuid)
@@ -351,200 +390,6 @@ grant execute on function public.buklod_health_card_register_identity_v1(text) t
 grant execute on function public.buklod_health_card_register_professional_v1(text,text,date) to authenticated;
 grant execute on function public.buklod_health_card_admin_review_v1(uuid,text,boolean,text,text) to authenticated;
 grant execute on function public.buklod_health_card_open_consult_v1(text,text,text,text,boolean,boolean,text) to authenticated;
-grant execute on function public.buklod_health_card_claim_consult_v1(uuid) to authenticated;
-grant execute on function public.buklod_health_card_post_note_v1(uuid,text,text) to authenticated;
-grant execute on function public.buklod_health_card_close_consult_v1(uuid) to authenticated;
-grant execute on function public.buklod_health_card_get_notes_v1(uuid) to authenticated;
-grant execute on function public.buklod_health_card_dashboard_v1() to authenticated;
-
-  then raise exception 'Valid request identifier required'; end if;
-  -- Serializes duplicate submissions and maintains per-client active case cap.
-  perform pg_advisory_xact_lock(hashtext(v_actor::text),2511);
-  select id into v_id from private.buklod_health_consultations_v1
-    where client_id=v_actor and client_request_key=v_key;
-  if v_id is not null then return v_id; end if;
-  if (select count(*) from private.buklod_health_consultations_v1
-    where client_id=v_actor and status in ('OPEN','IN_PROGRESS'))>=3 then
-    raise exception 'Three consultations already active; close one before starting another'; end if;
-  insert into private.buklod_health_consultations_v1(
-    client_id,client_request_key,service,concern,symptom_duration,location_city,urgent_screen_clear,
-    consent_version,consent_at
-  ) values(v_actor,v_key,v_service,v_concern,nullif(btrim(coalesce(p_symptom_duration,'')),''),
-    nullif(btrim(coalesce(p_location_city,'')),''),true,'PH_TELEHEALTH_V1',now())
-  on conflict(client_id,client_request_key) do nothing returning id into v_id;
-  if v_id is null then
-    select id into v_id from private.buklod_health_consultations_v1
-      where client_id=v_actor and client_request_key=v_key;
-  end if;
-  return v_id;
-end;$f$;
-
-create or replace function public.buklod_health_card_claim_consult_v1(p_consult_id uuid)
-returns jsonb language plpgsql security definer set search_path=''
-as $f$
-declare v_actor uuid:=auth.uid();v_profession text;v_service text;v_client uuid;v_count integer;
-begin
-  if v_actor is null then raise exception 'Sign in required'; end if;
-  select profession into v_profession from private.buklod_health_professionals_v1
-    where user_id=v_actor and status='VERIFIED' and license_expires_on>=current_date;
-  if v_profession is null then raise exception 'Current verified PRC professional required'; end if;
-  select service,client_id into v_service,v_client from private.buklod_health_consultations_v1
-    where id=p_consult_id and status='OPEN' and professional_id is null;
-  if v_service is null then raise exception 'Consultation no longer available'; end if;
-  if v_client=v_actor then raise exception 'Professionals cannot accept their own consultation'; end if;
-  if v_service='PHYSICIAN_CONSULT' and v_profession<>'PHYSICIAN' then
-    raise exception 'Medical consultation is physician-only'; end if;
-  update private.buklod_health_consultations_v1
-    set professional_id=v_actor,status='IN_PROGRESS',updated_at=now()
-    where id=p_consult_id and status='OPEN' and professional_id is null and client_id<>v_actor;
-  get diagnostics v_count=row_count;
-  if v_count<>1 then raise exception 'Already accepted by another professional'; end if;
-  return jsonb_build_object('status','IN_PROGRESS','claimed_by',v_actor);
-end;$f$;
-
-create or replace function public.buklod_health_card_post_note_v1(
-  p_consult_id uuid,p_kind text,p_message text
-) returns uuid language plpgsql security definer set search_path=''
-as $f$
-declare v_actor uuid:=auth.uid();v_case private.buklod_health_consultations_v1%rowtype;
-  v_kind text:=upper(btrim(coalesce(p_kind,'')));v_message text:=btrim(coalesce(p_message,''));
-  v_is_prof boolean;v_note_id uuid;
-begin
-  if v_actor is null then raise exception 'Sign in required'; end if;
-  select * into v_case from private.buklod_health_consultations_v1 where id=p_consult_id;
-  if not found or (v_case.client_id<>v_actor and v_case.professional_id is distinct from v_actor) then
-    raise exception 'Consultation not accessible'; end if;
-  if v_case.status not in ('IN_PROGRESS') then raise exception 'Consultation is not active'; end if;
-  if length(v_message) not between 2 and 2400 then raise exception 'Message must be 2-2400 characters'; end if;
-  if v_kind not in ('CLIENT_QUESTION','PROFESSIONAL_ADVICE','CARE_PLAN','FOLLOW_UP','REFERRAL') then
-    raise exception 'Invalid clinical note type'; end if;
-  v_is_prof := (v_actor=v_case.professional_id);
-  if v_is_prof then
-    if not exists(select 1 from private.buklod_health_professionals_v1
-      where user_id=v_actor and status='VERIFIED' and license_expires_on>=current_date)
-    then raise exception 'License not current; consultation paused for safe reassignment'; end if;
-    if v_kind='CLIENT_QUESTION' then raise exception 'Only clients may submit patient questions'; end if;
-  else
-    if v_kind not in ('CLIENT_QUESTION','FOLLOW_UP') then raise exception 'Clinical plans require a professional'; end if;
-  end if;
-  insert into private.buklod_health_consult_notes_v1(consultation_id,author_id,kind,message)
-  values(p_consult_id,v_actor,v_kind,v_message) returning id into v_note_id;
-  if v_kind='REFERRAL' then
-    update private.buklod_health_consultations_v1
-      set status='REFERRED',referral_note=v_message,updated_at=now()
-      where id=p_consult_id;
-  end if;
-  return v_note_id;
-end;$f$;
-
-create or replace function public.buklod_health_card_close_consult_v1(p_consult_id uuid)
-returns boolean language plpgsql security definer set search_path=''
-as $f$
-declare v_actor uuid:=auth.uid();v_count integer;
-begin
-  if v_actor is null then raise exception 'Sign in required'; end if;
-  update private.buklod_health_consultations_v1
-    set status='CLOSED',updated_at=now()
-    where id=p_consult_id and (
-      (status='OPEN' and client_id=v_actor and professional_id is null)
-      or (status='IN_PROGRESS' and (client_id=v_actor or professional_id=v_actor))
-    );
-  get diagnostics v_count=row_count;
-  return v_count=1;
-end;$f$;
-
-create or replace function public.buklod_health_card_get_notes_v1(p_consult_id uuid)
-returns jsonb language plpgsql stable security definer set search_path=''
-as $f$
-declare v_actor uuid:=auth.uid();v_result jsonb;
-begin
-  if v_actor is null or not exists(select 1 from private.buklod_health_consultations_v1
-    where id=p_consult_id and (client_id=v_actor or professional_id=v_actor))
-  then raise exception 'Consultation not accessible'; end if;
-  select coalesce(jsonb_agg(jsonb_build_object(
-    'id',n.id,'kind',n.kind,'message',n.message,'created_at',n.created_at,
-    'mine',n.author_id=v_actor
-  ) order by n.created_at asc),'[]'::jsonb) into v_result from
-    (select * from private.buklod_health_consult_notes_v1
-      where consultation_id=p_consult_id order by created_at desc limit 100) n;
-  return v_result;
-end;$f$;
-
-create or replace function public.buklod_health_card_dashboard_v1()
-returns jsonb language plpgsql stable security definer set search_path=''
-as $f$
-declare v_actor uuid:=auth.uid();v_identity jsonb;v_prof jsonb;v_cases jsonb;
-  v_queue jsonb;v_pending_identities jsonb;v_pending_professionals jsonb;v_admin boolean;
-  v_profession text;
-begin
-  if v_actor is null then raise exception 'Sign in required'; end if;
-  v_admin:=public.buklod_is_system_admin();
-  select jsonb_build_object('status',status,'legal_name',legal_name,'submitted_at',submitted_at,
-    'evidence_method',case when status='VERIFIED' then evidence_method else null end)
-    into v_identity from private.buklod_health_identities_v1 where user_id=v_actor;
-  select jsonb_build_object('status',status,'profession',profession,'expires_on',license_expires_on,
-    'days_to_expire',(license_expires_on-current_date),'license_number',prc_license_number)
-    into v_prof from private.buklod_health_professionals_v1 where user_id=v_actor;
-  v_profession:=v_prof->>'profession';
-  select coalesce(jsonb_agg(jsonb_build_object(
-    'id',c.id,'service',c.service,'concern',c.concern,'status',c.status,
-    'professional_name',p.full_name,'professional_role',hp.profession,
-    'license_number',case when hp.status='VERIFIED' and hp.license_expires_on>=current_date
-      then hp.prc_license_number else null end,
-    'license_current',coalesce(hp.status='VERIFIED' and hp.license_expires_on>=current_date,false),
-    'client_name',case when c.professional_id=v_actor then cp.full_name else null end,
-    'created_at',c.created_at,'referral_note',c.referral_note
-  ) order by c.created_at desc),'[]'::jsonb) into v_cases
-  from (select * from private.buklod_health_consultations_v1
-    where client_id=v_actor or professional_id=v_actor
-    order by created_at desc limit 30) c
-    left join public.profiles p on p.id=c.professional_id
-    left join public.profiles cp on cp.id=c.client_id
-    left join private.buklod_health_professionals_v1 hp on hp.user_id=c.professional_id;
-  if v_prof->>'status'='VERIFIED' and (v_prof->>'days_to_expire')::int>=0 then
-    select coalesce(jsonb_agg(jsonb_build_object('id',q.id,'service',q.service,'created_at',q.created_at)
-      order by q.created_at asc),'[]'::jsonb) into v_queue
-    from (select id,service,created_at from private.buklod_health_consultations_v1
-      where status='OPEN' and professional_id is null
-        and (service='HEALTH_ADVICE' or v_profession='PHYSICIAN')
-      order by created_at asc limit 20) q;
-  end if;
-  if v_admin then
-    select coalesce(jsonb_agg(jsonb_build_object(
-      'id',x.user_id,'name',x.legal_name,'submitted_at',x.submitted_at
-    ) order by x.submitted_at asc),'[]'::jsonb)
-    into v_pending_identities from
-      (select * from private.buklod_health_identities_v1
-        where status='PENDING' order by submitted_at asc limit 20) x;
-    select coalesce(jsonb_agg(jsonb_build_object(
-      'id',x.user_id,'name',p.full_name,'profession',x.profession,
-      'license_number',x.prc_license_number,'expires_on',x.license_expires_on
-    ) order by x.submitted_at asc),'[]'::jsonb)
-    into v_pending_professionals from
-      (select * from private.buklod_health_professionals_v1
-        where status='PENDING' order by submitted_at asc limit 20) x
-      left join public.profiles p on p.id=x.user_id;
-  end if;
-  return jsonb_build_object('identity',v_identity,'professional',v_prof,'consultations',v_cases,
-    'queue',coalesce(v_queue,'[]'::jsonb),'admin',v_admin,
-    'pending_identities',case when v_admin then coalesce(v_pending_identities,'[]'::jsonb) else '[]'::jsonb end,
-    'pending_professionals',case when v_admin then coalesce(v_pending_professionals,'[]'::jsonb) else '[]'::jsonb end,
-    'cost','FREE','data_owner','PRIVATE_HEALTH_SERVICE');
-end;$f$;
-
-revoke all on function public.buklod_health_card_register_identity_v1(text) from public,anon,authenticated;
-revoke all on function public.buklod_health_card_register_professional_v1(text,text,date) from public,anon,authenticated;
-revoke all on function public.buklod_health_card_admin_review_v1(uuid,text,boolean,text,text) from public,anon,authenticated;
-revoke all on function public.buklod_health_card_open_consult_v1(text,text,text,text,boolean,boolean) from public,anon,authenticated;
-revoke all on function public.buklod_health_card_claim_consult_v1(uuid) from public,anon,authenticated;
-revoke all on function public.buklod_health_card_post_note_v1(uuid,text,text) from public,anon,authenticated;
-revoke all on function public.buklod_health_card_close_consult_v1(uuid) from public,anon,authenticated;
-revoke all on function public.buklod_health_card_get_notes_v1(uuid) from public,anon,authenticated;
-revoke all on function public.buklod_health_card_dashboard_v1() from public,anon,authenticated;
-grant execute on function public.buklod_health_card_register_identity_v1(text) to authenticated;
-grant execute on function public.buklod_health_card_register_professional_v1(text,text,date) to authenticated;
-grant execute on function public.buklod_health_card_admin_review_v1(uuid,text,boolean,text,text) to authenticated;
-grant execute on function public.buklod_health_card_open_consult_v1(text,text,text,text,boolean,boolean) to authenticated;
 grant execute on function public.buklod_health_card_claim_consult_v1(uuid) to authenticated;
 grant execute on function public.buklod_health_card_post_note_v1(uuid,text,text) to authenticated;
 grant execute on function public.buklod_health_card_close_consult_v1(uuid) to authenticated;
