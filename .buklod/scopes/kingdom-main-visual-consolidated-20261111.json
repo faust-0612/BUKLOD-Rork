@@ -38,7 +38,8 @@
     "supabase/tests/kingdom_shards_conservation_v1.sql",
     "src/lib/buklodGlobalAdController.ts",
     "tests/kingdom-native-rewarded-completions-20261111.test.mjs",
-    "src/lib/buklodRewardedAds.web.ts"
+    "src/lib/buklodRewardedAds.web.ts",
+    "tests/kingdom-ads-policy-20261111.test.mjs"
   ],
   "preserveBehaviors": [
     "Canonical 13 game stations and stable coordinates/route IDs, and 39 existing games",
@@ -67,7 +68,8 @@
     "After verified item claims or confirmed Shard power unlock, optional interstitial only at safe break after server commit.",
     "Practice hint rewarded video is Android-only, explicitly tapped, permitted by AdsProvider and Kingdom exact-route gate, credited only after EARNED_REWARD and account/level still match.",
     "Rewarded hints never mint BP, Shards, XP, QMP, rank or cash, and practice works without a filled ad.",
-    "Collectible celebration animates before the user dismisses it, and only then may a successful-claim interstitial display; stale account cannot trigger it."
+    "Collectible celebration animates before the user dismisses it, and only then may a successful-claim interstitial display; stale account cannot trigger it.",
+    "Focused ads-specific Node regression contract covers Kingdom route exceptions, post-claim celebration, idempotent Shard unlock and earned-only optional practice hints."
   ],
   "riskAreas": [
     "kingdom-visual",
@@ -93,7 +95,8 @@
     "tests/kingdom-complete-user-experience-20261111.test.mjs",
     "tests/kingdom-shards-free-powers-20261111.test.mjs",
     "supabase/tests/kingdom_shards_conservation_v1.sql",
-    "tests/kingdom-native-rewarded-completions-20261111.test.mjs"
+    "tests/kingdom-native-rewarded-completions-20261111.test.mjs",
+    "tests/kingdom-ads-policy-20261111.test.mjs"
   ],
   "releaseState": "DEV_HOLD_KINGDOM_ADS_UNMERGED_REQUIRES_SINGLE_OTA_RC_QA"
 }
