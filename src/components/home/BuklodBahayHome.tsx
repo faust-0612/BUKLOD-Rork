@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -25,8 +25,10 @@ import {
   decideBahayInvite,
   errorMessage,
   inviteKasambahay,
+  inviteKasambahayById,
   joinBahayCommunity,
   loadBahayHomes,
+  loadBahayPendingInvites,
   loadBahayPreferences,
   loadBahaySnapshot,
   loadCommunity,
@@ -36,12 +38,16 @@ import {
   sendBahayMessage,
   sendCommunityMessage,
   saveBahayPreferences,
+  searchBahayInvitees,
   subscribeBahay,
+  subscribeBahayInvitations,
   subscribeBahayCommunity,
   toggleBahayItem,
   voteBahayPoll,
   waterBahayPlant,
   type BahayHome,
+  type BahayInviteCandidate,
+  type BahayPendingInvite,
   type BahayItem,
   type BahayMember,
   type BahayRole,
@@ -181,6 +187,11 @@ export default function BuklodBahayHome() {
   const [messageDraft,setMessageDraft] = useState('');
   const [inviteId,setInviteId] = useState('');
   const [inviteRole,setInviteRole] = useState<BahayRole>('ADULT');
+  const [selectedInvitee,setSelectedInvitee] = useState<BahayInviteCandidate|null>(null);
+  const [inviteSuggestions,setInviteSuggestions] = useState<BahayInviteCandidate[]>([]);
+  const [pendingInvites,setPendingInvites] = useState<BahayPendingInvite[]>([]);
+  const [searchingInvitees,setSearchingInvitees] = useState(false);
+  const [inviteSearchError,setInviteSearchError] = useState('');
   const [pollQuestion,setPollQuestion] = useState('');
   const [pollOptions,setPollOptions] = useState('Yes,No');
   const [plantNickname,setPlantNickname] = useState('');
@@ -239,20 +250,77 @@ export default function BuklodBahayHome() {
     }
   },[activeHomeId]);
 
-  useEffect(()=>{
-    let mounted=true;
+  // New invitations must be visible when the recipient returns to the Bahay screen.
+  useFocusEffect(useCallback(()=>{
     if (!userId) return;
+    let active=true;
     setLoading(true);
-    void refreshHomes().finally(()=>mounted&&setLoading(false));
-    return ()=>{mounted=false};
-  },[refreshHomes,userId]);
+    void refreshHomes().finally(()=>{if (active) setLoading(false);});
+    return ()=>{active=false;};
+  },[refreshHomes,userId]));
+
+  useEffect(()=>{
+    if (!userId) return;
+    return subscribeBahayInvitations(userId,()=>{void refreshHomes();});
+  },[userId,refreshHomes]);
+
+  const refreshPendingInvites = useCallback(async()=>{
+    if (!activeHomeId) return;
+    try {
+      setPendingInvites(await loadBahayPendingInvites(activeHomeId));
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  },[activeHomeId]);
+
+  useEffect(()=>{
+    if (!activeHomeId || !canAdmin || activeRoom!=='PEOPLE') {
+      setPendingInvites([]);
+      return;
+    }
+    void refreshPendingInvites();
+  },[activeHomeId,canAdmin,activeRoom,refreshPendingInvites]);
+
+  useEffect(()=>{
+    let cancelled=false;
+    if (!activeHomeId || !canAdmin || activeRoom!=='PEOPLE' || selectedInvitee) {
+      setInviteSuggestions([]);
+      setSearchingInvitees(false);
+      setInviteSearchError('');
+      return;
+    }
+    const query=inviteId.trim();
+    if (query.length===1) {
+      setInviteSuggestions([]);
+      setSearchingInvitees(false);
+      return;
+    }
+    setSearchingInvitees(true);
+    setInviteSearchError('');
+    const timer=setTimeout(()=>{
+      void searchBahayInvitees(activeHomeId,query).then(rows=>{
+        if (!cancelled) setInviteSuggestions(rows);
+      }).catch(e=>{
+        if (!cancelled) {
+          setInviteSuggestions([]);
+          setInviteSearchError(errorMessage(e));
+        }
+      }).finally(()=>{
+        if (!cancelled) setSearchingInvitees(false);
+      });
+    },query?300:0);
+    return ()=>{cancelled=true;clearTimeout(timer);};
+  },[activeHomeId,canAdmin,activeRoom,inviteId,selectedInvitee]);
 
   useEffect(()=>{
     void refreshSnapshot();
     if (!activeHomeId) return;
-    const unsubscribe = subscribeBahay(activeHomeId,()=>{ void refreshSnapshot(); });
+    const unsubscribe = subscribeBahay(activeHomeId,()=>{
+      void refreshSnapshot();
+      if (activeRoom==='PEOPLE' && canAdmin) void refreshPendingInvites();
+    });
     return unsubscribe;
-  },[activeHomeId,refreshSnapshot]);
+  },[activeHomeId,refreshSnapshot,activeRoom,canAdmin,refreshPendingInvites]);
 
   useEffect(()=>{
     if (!selectedCommunityId) {
@@ -291,6 +359,11 @@ export default function BuklodBahayHome() {
     setActiveHomeId(id);
     setActiveRoom(null);
     setSelectedCommunityId('');
+    setSnapshot(null);
+    setInviteId('');
+    setSelectedInvitee(null);
+    setInviteSuggestions([]);
+    setPendingInvites([]);
     if (userId) await AsyncStorage.setItem(`buklod.bahay.active.${userId}`,id);
   };
 
@@ -321,7 +394,13 @@ export default function BuklodBahayHome() {
 
   const decideInvite = (homeId:string,accept:boolean) => run(async()=>{
     await decideBahayInvite(homeId,accept);
-    await refreshHomes();
+    if (accept) {
+      // After acceptance enter the specific invited home, not the previous one.
+      await refreshHomes(homeId);
+      await switchHome(homeId);
+    } else {
+      await refreshHomes();
+    }
   },accept?'Kasambahay ka na.':'Invitation declined.');
 
   const itemTypeForRoom = (room:RoomKey) => {
@@ -394,12 +473,17 @@ export default function BuklodBahayHome() {
   });
 
   const inviteMember = () => run(async()=>{
-    if (!inviteId.trim()) throw new Error('Ilagay ang @username o login identifier.');
+    if (!inviteId.trim() && !selectedInvitee) throw new Error('Pumili ng suggested user o ilagay ang eksaktong @username.');
     const expires = inviteRole==='GUEST' ? new Date(Date.now()+7*24*60*60*1000).toISOString() : null;
-    const person = await inviteKasambahay(activeHomeId,inviteId,inviteRole,expires);
+    const person = selectedInvitee
+      ? await inviteKasambahayById(activeHomeId,selectedInvitee.user_id,inviteRole,expires)
+      : await inviteKasambahay(activeHomeId,inviteId.trim(),inviteRole,expires);
+    setSelectedInvitee(null);
     setInviteId('');
-    await refreshSnapshot();
-    Alert.alert('Invitation sent',`${person?.full_name || person?.username || 'User'} was invited.`);
+    setInviteSuggestions([]);
+    void refreshPendingInvites();
+    void refreshSnapshot();
+    Alert.alert('Invitation sent',`${person?.full_name || person?.username || 'BUKLOD member'} was invited. Waiting for acceptance.`);
   });
 
   const plant = () => run(async()=>{
@@ -629,12 +713,75 @@ export default function BuklodBahayHome() {
           <View style={styles.sectionStack}>
             {canAdmin&&<View style={styles.card}>
               <Text style={styles.cardTitle}>Invite Kasambahay</Text>
-              <TextInput value={inviteId} onChangeText={setInviteId} autoCapitalize="none" placeholder="@username or login identifier" placeholderTextColor="#8A978F" style={styles.input}/>
+              <Text style={styles.helper}>Pumili ng kakilala, o maghanap ayon sa pangalan o @username.</Text>
+              <TextInput
+                value={inviteId}
+                onChangeText={value=>{setInviteId(value);setSelectedInvitee(null);}}
+                autoCapitalize="none"
+                placeholder="Search name or @username"
+                placeholderTextColor="#8A978F"
+                style={styles.input}
+                accessibilityLabel="Find a BUKLOD member to invite"
+              />
+              {!!selectedInvitee&&(
+                <Pressable
+                  onPress={()=>{setSelectedInvitee(null);setInviteId('');}}
+                  style={styles.selectedInvitee}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear selected invitee"
+                >
+                  <MaterialCommunityIcons name="check-circle" size={19} color="#39734B"/>
+                  <Text style={styles.inviteeName}>Selected: {selectedInvitee.full_name}</Text>
+                  <MaterialCommunityIcons name="close" size={19} color="#47654E"/>
+                </Pressable>
+              )}
+              {!selectedInvitee&&(
+                <View style={styles.suggestionPanel}>
+                  <Text style={styles.suggestionHeading}>{inviteId.trim()?'Matching BUKLOD members':'Suggested from your connections'}</Text>
+                  {searchingInvitees&&<ActivityIndicator size="small" color="#4E7D5B"/>}
+                  {!searchingInvitees&&inviteSuggestions.map(candidate=>(
+                    <Pressable key={candidate.user_id}
+                      onPress={()=>{setSelectedInvitee(candidate);setInviteId(candidate.username?`@${candidate.username}`:candidate.full_name);}}
+                      style={styles.suggestionRow} accessibilityRole="button"
+                      accessibilityLabel={`Select ${candidate.full_name}`}
+                    >
+                      <View style={styles.avatar}><MaterialCommunityIcons name="account" size={20} color="#FFF"/></View>
+                      <View style={{flex:1,minWidth:0}}>
+                        <Text style={styles.inviteeName} numberOfLines={1}>{candidate.full_name}</Text>
+                        <Text style={styles.inviteeMeta} numberOfLines={1}>{candidate.username?`@${candidate.username} · `:''}{candidate.source_label}</Text>
+                      </View>
+                      <MaterialCommunityIcons name="plus-circle-outline" size={23} color="#4E7D5B"/>
+                    </Pressable>
+                  ))}
+                  {!searchingInvitees&&!!inviteSearchError&&<Text style={styles.inviteWarning}>Suggestions unavailable: {inviteSearchError}. You can still invite by exact @username.</Text>}
+                  {!searchingInvitees&&!inviteSearchError&&!inviteSuggestions.length&&(
+                    <Text style={styles.helper}>{inviteId.trim().length===0?'No suggested connections yet. Search by name or @username.':inviteId.trim().length<2?'Type at least 2 letters to search.':'No matching users. Try their @username.'}</Text>
+                  )}
+                </View>
+              )}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
                 {ROLE_OPTIONS.map((role)=><Pressable key={role} onPress={()=>setInviteRole(role)} style={[styles.chip,inviteRole===role&&styles.chipActive]}><Text style={[styles.chipText,inviteRole===role&&styles.chipTextActive]}>{role}</Text></Pressable>)}
               </ScrollView>
               <Text style={styles.helper}>Guest access automatically expires after 7 days. A person can belong to multiple Bahay.</Text>
-              <Pressable onPress={()=>void inviteMember()} style={styles.primaryButton}><Text style={styles.primaryText}>SEND INVITATION</Text></Pressable>
+              <Pressable onPress={()=>void inviteMember()} disabled={busy||(!selectedInvitee&&!inviteId.trim())}
+                style={[styles.primaryButton,(busy||(!selectedInvitee&&!inviteId.trim()))&&{opacity:.5}]}
+                accessibilityRole="button" accessibilityLabel="Send Kasambahay invitation">
+                <Text style={styles.primaryText}>{busy?'PLEASE WAIT…':'SEND INVITATION'}</Text>
+              </Pressable>
+              {!!pendingInvites.length&&(
+                <View style={styles.pendingInvitePanel}>
+                  <Text style={styles.suggestionHeading}>Awaiting acceptance · {pendingInvites.length}</Text>
+                  {pendingInvites.map(invite=>(
+                    <View key={invite.user_id} style={styles.pendingInviteRow}>
+                      <MaterialCommunityIcons name="clock-outline" size={17} color="#93691C"/>
+                      <View style={{flex:1,minWidth:0}}>
+                        <Text style={styles.inviteeName} numberOfLines={1}>{invite.full_name}</Text>
+                        <Text style={styles.inviteeMeta}>{invite.username?`@${invite.username} · `:''}{invite.role} · Pending</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>}
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Notifications</Text>
@@ -912,6 +1059,15 @@ const styles=StyleSheet.create({
   plantCard:{width:'48%',minHeight:120,padding:12,borderRadius:16,alignItems:'center',justifyContent:'center',backgroundColor:'#F4FAF2',borderWidth:1,borderColor:'#CFE1CB'},
   plantEmoji:{fontSize:34,marginBottom:5},
   memberRow:{flexDirection:'row',gap:9,alignItems:'center',paddingVertical:7},
+  suggestionPanel:{gap:6,borderWidth:1,borderColor:'#DCE6DE',backgroundColor:'#F8FBF8',borderRadius:12,padding:10},
+  suggestionHeading:{fontSize:11,fontWeight:'900',color:'#48634F'},
+  suggestionRow:{minHeight:48,flexDirection:'row',gap:10,alignItems:'center',paddingVertical:6,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:'#DCE6DE'},
+  inviteeName:{fontSize:12,fontWeight:'800',color:'#253D2D'},
+  inviteeMeta:{fontSize:10.5,color:'#687C6B',marginTop:2},
+  selectedInvitee:{flexDirection:'row',alignItems:'center',gap:8,minHeight:44,paddingHorizontal:10,borderRadius:11,backgroundColor:'#E5F2E7'},
+  pendingInvitePanel:{gap:7,marginTop:8,padding:10,borderRadius:12,backgroundColor:'#FFF8E9'},
+  pendingInviteRow:{minHeight:40,flexDirection:'row',gap:8,alignItems:'center'},
+  inviteWarning:{fontSize:10.5,color:'#934E38',lineHeight:15},
   avatar:{width:34,height:34,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:'#6D8D75'},
   dividerLine:{height:1,backgroundColor:'#E1E6E2',marginVertical:4},
   goalRow:{flexDirection:'row',gap:8,alignItems:'flex-start',paddingVertical:8,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:'#E2E6E2'},
