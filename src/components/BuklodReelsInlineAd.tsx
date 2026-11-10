@@ -107,11 +107,22 @@ export default function BuklodReelsInlineAd({
     );
 
   useEffect(() => {
-    if (
-      !adEligible ||
-      !sdkReady ||
-      !nativeUnitId
-    ) {
+    if (!adEligible || !sdkReady) {
+      // Inactive or consent-pending is not a native no-fill result.
+      // A fresh valid page must be allowed to attempt a native creative.
+      setNativeAd(null);
+      setNativeFailed(false);
+      setBannerLoaded(false);
+      setBannerFailed(false);
+      return;
+    }
+
+    // Reset stale error/creative state for this visible (or prewarmed) slot.
+    setNativeAd(null);
+    setNativeFailed(false);
+    setBannerLoaded(false);
+    setBannerFailed(false);
+    if (!nativeUnitId) {
       setNativeFailed(true);
       return;
     }
