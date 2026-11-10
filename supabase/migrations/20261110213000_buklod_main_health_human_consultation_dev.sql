@@ -333,18 +333,20 @@ begin
   v_profession:=v_prof->>'profession';
   select coalesce(jsonb_agg(jsonb_build_object(
     'id',c.id,'service',c.service,'concern',c.concern,'status',c.status,
-    'professional_name',p.full_name,'professional_role',hp.profession,
+    'professional_name',case when pi.status='VERIFIED' then pi.legal_name else null end,
+    'professional_role',hp.profession,
     'license_number',case when hp.status='VERIFIED' and hp.license_expires_on>=current_date
       then hp.prc_license_number else null end,
     'license_current',coalesce(hp.status='VERIFIED' and hp.license_expires_on>=current_date,false),
-    'client_name',case when c.professional_id=v_actor then cp.full_name else null end,
+    'client_name',case when c.professional_id=v_actor and ci.status='VERIFIED'
+      then ci.legal_name else null end,
     'created_at',c.created_at,'referral_note',c.referral_note
   ) order by c.created_at desc),'[]'::jsonb) into v_cases
   from (select * from private.buklod_health_consultations_v1
     where client_id=v_actor or professional_id=v_actor
     order by created_at desc limit 30) c
-    left join public.profiles p on p.id=c.professional_id
-    left join public.profiles cp on cp.id=c.client_id
+    left join private.buklod_health_identities_v1 pi on pi.user_id=c.professional_id
+    left join private.buklod_health_identities_v1 ci on ci.user_id=c.client_id
     left join private.buklod_health_professionals_v1 hp on hp.user_id=c.professional_id;
   if v_prof->>'status'='VERIFIED' and (v_prof->>'days_to_expire')::int>=0 then
     select coalesce(jsonb_agg(jsonb_build_object('id',q.id,'service',q.service,'created_at',q.created_at)

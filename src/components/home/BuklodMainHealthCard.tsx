@@ -380,7 +380,9 @@ export default function BuklodMainHealthCard({
         <Text style={styles.title}>{t('Private clinical consultation','Pribadong clinical consultation')}</Text>
         <Info>{caseItem.service} · {caseItem.status}</Info>
         {caseItem.professional_name?<Info>{t('Assigned','Naka-assign')}: {caseItem.professional_name} · {caseItem.professional_role||''}
-          {caseItem.license_current?t(' · verified PRC',' · verified PRC'):t(' · license not current',' · hindi current ang lisensiya')}</Info>:null}
+          {caseItem.license_current?t(' · verified PRC',' · verified PRC')+
+            (caseItem.license_number?' #'+caseItem.license_number:'')
+            :t(' · license not current',' · hindi current ang lisensiya')}</Info>:null}
         {caseItem.client_name?<Info>{t('Verified client','Beripikadong pasyente')}: {caseItem.client_name}</Info>:null}
         <Text style={styles.label}>{t('Case summary','Buod ng kaso')}</Text>
         <Info>{caseItem.concern}</Info>
