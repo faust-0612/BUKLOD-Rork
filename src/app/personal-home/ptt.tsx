@@ -231,6 +231,7 @@ export default function BuklodPttScreen() {
   const [nearbySearching, setNearbySearching] = useState(false);
   const [setup, setSetup] = useState<BuklodPttSetupSnapshot | null>(null);
   const [runtime, setRuntime] = useState(getBuklodPttRuntimeState());
+  const [chatOpen, setChatOpen] = useState(false);
   const chatScrollRef = useRef<ScrollView>(null);
   const chatOffsetRef = useRef(0);
   const connectLock = useRef(false);
@@ -583,12 +584,12 @@ export default function BuklodPttScreen() {
             <Text style={styles.subbrand}>Hold to talk with your group</Text>
           </View>
           <Pressable
-            onPress={() => chatScrollRef.current?.scrollTo({ y: chatOffsetRef.current, animated: true })}
+            onPress={() => setChatOpen((open) => !open)}
             style={styles.setupChip}
-            accessibilityLabel="Open PTT conversation"
+            accessibilityLabel={chatOpen ? "Close PTT conversation" : "Open PTT conversation"}
           >
             <MaterialCommunityIcons name="message-text-outline" size={18} color="#56DCE5" />
-            <Text style={styles.setupChipText}>Chat</Text>
+            <Text style={styles.setupChipText}>{chatOpen ? 'Hide chat' : 'Chat'}</Text>
           </Pressable>
           <Pressable
             onPress={() => {
@@ -844,8 +845,12 @@ export default function BuklodPttScreen() {
               </Pressable>
             ) : null}
           </View>
-          {scope ? (
-            <View onLayout={e => { chatOffsetRef.current = e.nativeEvent.layout.y; }}>
+          {scope && chatOpen ? (
+            <View onLayout={e => {
+              chatOffsetRef.current = e.nativeEvent.layout.y;
+              // No history load, Realtime socket or nested scroll until Chat opens.
+              chatScrollRef.current?.scrollTo({ y: chatOffsetRef.current, animated: true });
+            }}>
             <BuklodPttConversation
               scopeId={scope.id}
               channel={channel}
