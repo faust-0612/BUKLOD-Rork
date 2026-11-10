@@ -384,6 +384,10 @@ export default function MentorTeachingPhotoEvidence() {
         {!!photoUrls[task.session_id] && <Image
           source={{ uri: photoUrls[task.session_id] }} style={s.preview} resizeMode="contain" />}
         {['reported', 'pending_admin'].includes(task.status) && <>
+          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: consent }}
+            style={s.consent} onPress={() => setConsent(current => !current)}>
+            <Text style={s.choiceText}>{consent ? '☑' : '☐'} I have permission to upload or replace this report's private photo.</Text>
+          </Pressable>
           <Text style={s.meta}>{task.has_photo
             ? 'You may replace the photo before an Admin decision.'
             : 'Photo missing. Attach it to enter the review queue.'}</Text>
