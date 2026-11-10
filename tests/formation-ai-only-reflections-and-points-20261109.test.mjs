@@ -120,3 +120,19 @@ test('lesson UI catches AI outages without double submission or false failed poi
   assert.match(ui, /try \{\s*await showBuklodAdOpportunity\('formation_lesson_success'\)/);
   assert.match(ui, /Unable to verify this response/);
 });
+
+test('R5 old clients can save lesson drafts, without bypassing Gemini points', () => {
+  const m5 = read('supabase/migrations/20261110120500_formation_draft_save_compatibility_r5.sql');
+  const submission = m5.split('CREATE OR REPLACE FUNCTION public.submit_learning_lesson_response_v1')[1]
+    ?.split('CREATE OR REPLACE FUNCTION public.save_my_formation_lesson_study')[0] ?? '';
+  const study = m5.split('CREATE OR REPLACE FUNCTION public.save_my_formation_lesson_study')[1] ?? '';
+  assert.match(submission, /enrollment_user <> actor/);
+  assert.match(submission, /enrollment_track <> lesson_track/);
+  assert.match(submission, /jsonb_array_length\(p_question_answers\) <> 4/);
+  assert.doesNotMatch(submission, /assert_buklod_response_validated_v1/);
+  assert.match(study, /enrollment_record\.id is null/);
+  assert.doesNotMatch(study, /assert_buklod_response_validated_v1/);
+  const strict = read('supabase/migrations/20261110114700_formation_real_ai_server_enforcement_r4.sql');
+  assert.match(strict, /coalesce\(v_attempt\.model,''\) NOT LIKE 'gemini-%'/);
+  assert.match(strict, /buklod_try_auto_approve_lesson_v2\(v_approval_id\)/);
+});
