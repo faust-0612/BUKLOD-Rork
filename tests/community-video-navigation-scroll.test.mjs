@@ -21,7 +21,7 @@ test('offscreen feed rows do not create thumbnail players or trigger poster uplo
   const upload = read('src/lib/uploadCommunityVideoFile.ts');
   const preview = read('src/lib/communityVideoPreview.ts');
   assert.doesNotMatch(video, /createVideoPlayer\(/);
-  assert.match(video, /if \(Platform\.OS !== 'web' && !posterUri/);
+  assert.match(video, /if \(isPlaying && Platform\.OS !== 'web' && !posterUri/);
   assert.match(upload, /generateWallPreview = false/);
   assert.match(upload, /if \(!generateWallPreview\) return \{\}/);
   assert.match(preview, /createVideoPlayer\(\{ uri \}\)/);
@@ -83,4 +83,14 @@ test('public Wall video URL retry never permanently blacklists a failed signed U
   assert.match(wall, /retryAfter:Date\.now\(\)\+2500/);
   assert.match(wall, /finally\{\s*wallVideoRefreshInFlightRef\.current\.delete\(postId\)/);
   assert.doesNotMatch(wall, /\.current\[postId\]===failed/);
+});
+
+test('thumbnail work is deferred until the first visible frame has played', () => {
+  const video = read('src/components/CommunityVideo.tsx');
+  const ready = video.slice(video.indexOf("if (nextStatus === 'readyToPlay')"), video.indexOf('const playingSub'));
+  assert.doesNotMatch(ready, /generateThumbnailsAsync/);
+  assert.match(video, /posterTimerRef\.current = setTimeout/);
+  assert.match(video, /\}, 1500\)/);
+  assert.match(video, /!activeRef\.current \|\| !playingRef\.current/);
+  assert.match(video, /clearTimeout\(posterTimerRef\.current\)/);
 });
