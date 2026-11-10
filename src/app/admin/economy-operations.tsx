@@ -462,7 +462,11 @@ export default function AdminEconomyOperationsScreen() {
 
               <TextInput
                 value={periodKey}
-                onChangeText={setPeriodKey}
+                onChangeText={next => {
+                  setPeriodKey(next);
+                  setQmpReadiness(null);
+                  setQmpQueue(null);
+                }}
                 autoCapitalize="none"
                 placeholder="YYYY-MM"
                 style={styles.input}
