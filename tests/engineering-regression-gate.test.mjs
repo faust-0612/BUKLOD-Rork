@@ -144,3 +144,43 @@ test('scope allowlist rejects changed product or test paths omitted from the man
     [],
   );
 });
+
+test('cumulative RC permits only the exact named component scope set with complete allowlist', () => {
+  const rc = '.buklod/scopes/nov11-consolidated-rc.json';
+  const component = '.buklod/scopes/wall-media.json';
+  const source = 'src/components/BuklodCachedMediaImage.tsx';
+  const proof = 'tests/community-wall-behavior.test.mjs';
+  const paths = [rc, component, source, proof];
+  const manifest = {
+    ...goodManifest,
+    releaseMode: 'consolidated-main-rc',
+    scopeManifestPath: rc,
+    componentScopePaths: [component],
+    allowedPaths: paths,
+  };
+  assert.deepEqual(assessChanges(paths, manifest, { consolidatedRc: true }).failures, []);
+  assert.match(assessChanges(paths, manifest).failures.join(' '), /Only one new scope manifest/);
+  assert.match(
+    assessChanges([...paths, '.buklod/scopes/secret-extra.json'], manifest, { consolidatedRc: true }).failures.join(' '),
+    /enumerate every changed component scope/,
+  );
+  assert.match(
+    assessChanges([...paths, 'src/lib/buklodGlobalAdController.ts'], manifest, { consolidatedRc: true }).failures.join(' '),
+    /outside the declared scope allowlist/,
+  );
+});
+
+test('cumulative RC fails closed if own cumulative manifest is not explicitly declared', () => {
+  const paths = ['.buklod/scopes/nov11-consolidated-rc.json', '.buklod/scopes/item.json', 'tests/community-wall-behavior.test.mjs'];
+  const manifest = {
+    ...goodManifest,
+    releaseMode: 'consolidated-main-rc',
+    scopeManifestPath: '.buklod/scopes/nov11-consolidated-rc.json',
+    componentScopePaths: ['.buklod/scopes/item.json'],
+    allowedPaths: paths.filter(p => !p.includes('nov11-consolidated-rc.json')),
+  };
+  assert.match(
+    assessChanges(paths, manifest, { consolidatedRc: true }).failures.join(' '),
+    /outside the declared scope allowlist: \\.buklod\\/scopes\\/nov11/,
+  );
+});
