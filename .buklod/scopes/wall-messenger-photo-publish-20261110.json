@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "objective": "Repair BUKLOD Main Wall photo-only posting from iPhone Messenger in-app browser while retaining working Wall video, existing media authorization, optional music/motion and draft safety; prepare source for next consolidated web/OTA release without publishing.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main 5efb99435243a4bcaeff27fc8d41d58b6a9969c2 source baseline on 2026-11-10. Screenshot shows iPhone Messenger direct buklod.expo.app Wall photo publish failure with SYS-500 and composer restored; user reports video succeeds. Existing database RPCs and storage were inspected read-only. Exact production web SHA, failed browser request stack, and device E2E are not independently verified. Owner waived actual-device verification for this candidate; web/Android release gates remain required.",
+  "chosenApproach": "Preserve original selected web File via picker state through photo signing/upload. Call Expo web picker directly within active user tap instead of awaiting dynamic import/permission no-op. Bypass canvas conversion for ordinary real JPEGs and pass Blob to signed PUT; try bounded Expo conversion then short-lived browser canvas JPEG conversion for other browser-decodable formats. Preserve native/working video path; bound web photo concurrency, retain draft, and keep post commit independent of feed refresh.",
+  "selectionRationale": "A photo was present in failed composer while video reportedly works, pointing toward photo-specific picker and conversion/upload path. GitHub source reveals unnecessary web-await before file selection, lost asset.file and repeated URI fetch/conversion. Browser file metadata and native fallback maintain content fidelity, reduce memory spikes and avoid speculative database migrations or production configuration changes.",
+  "alternativeApproaches": [
+    "Require users to leave Messenger and open Safari to post photos (rejected: does not fix broken in-app user path)",
+    "Upload original HEIC/PNG bytes to .jpg without conversion (rejected: incorrectly labelled media breaks viewer compatibility and data integrity)",
+    "Retain video upload, forward web File and safely convert only when necessary; preserve existing Supabase signed PUT and native flow (chosen)"
+  ],
+  "acceptanceChecks": [
+    "Music and ambiance remain optional for text/photo-only Community Wall posts.",
+    "Photo-only and photo+video browser gallery open directly from user gesture without asynchronous web permission checks.",
+    "Browser-picked original JPEG File is available to upload without duplicate URI fetch/canvas conversion up to safe bounded size.",
+    "Other browser-decodable formats become actual JPEG bytes; unsupported conversions fail visibly without mislabelling or uploading invalid files.",
+    "Photo post success does not become a false failure when feed refresh fails; actual failed posts restore composer content.",
+    "Web photo uploads are bounded at two concurrent tasks, native and video upload logic unchanged.",
+    "Only authorized signed-upload paths used; no new Supabase migration, native package, app version, permission or runtime changes.",
+    "Focused Node regression suites cover photo, web picker, optional creative metadata, route/composer and single-flight behavior.",
+    "Before consolidated release: TypeScript compile, focused tests, full RC export and exact live-source fingerprint gates must pass; actual physical-device test waived, not represented as successful."
+  ],
+  "preserveBehaviors": [
+    "Working video submission, player, AWS routing, native upload and Reel/IGPAT constraints",
+    "Existing account-scoped draft restoration, submission deduplication and media storage RLS",
+    "Wall text-only post and optional audio/ambiance metadata",
+    "Existing scoped/community posting APIs and legacy photo edit flow",
+    "Production app and Expo web remain unchanged until separately gated consolidated promotion"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/wall-messenger-photo-publish-20261110.test.mjs",
+    "tests/wall-navigation-photo-publish-20261110.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/wall-messenger-photo-publish-20261110.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/lib/buklodCommunityWallMedia.ts",
+    "src/lib/buklodPickCommunityPhotos.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "tests/wall-messenger-photo-publish-20261110.test.mjs",
+    "tests/wall-navigation-photo-publish-20261110.test.mjs"
+  ]
+}
