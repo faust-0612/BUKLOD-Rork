@@ -57,7 +57,8 @@
     "tests/formation-ai-only-reflections-and-points-20261109.test.mjs",
     "tests/health-center-consultation-ads-20261110.test.mjs",
     "tests/health-center-consultation-card-20261110.test.mjs",
-    "tests/public-hub-kingdom-card-20261110.test.mjs"
+    "tests/public-hub-kingdom-card-20261110.test.mjs",
+    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs"
   ],
   "chosenApproach": "Use newest production main plus only missing changed modules from current candidates, targeted content merges on overlapping Hub/Lesson/Cluster/Org screens, retain latest approved server and runtime constraints. Run one compiled Android/web RC QA on the exact integrated source, then a separate protected-main, one-time production trigger only after merge.",
   "selectionRationale": "Re-merging already-superseded V4/Circle/PTT branches or copying old complete files would regress current-main changes; exact diff parity and isolated overlap patches preserve latest features and stop duplicate funding/notification/media engines.",
@@ -74,7 +75,8 @@
     "Exact live SQL checks for BP, manual fund and Formation passed; security policies/privileged function access unchanged except already applied additive migrations.",
     "Cumulative Engineering Accountability and Performance QA, TypeScript, focused source/SQL tests, Expo Android RC export, native ABI, runtime identity, ad gates and single published update verification pass.",
     "No production OTA or web deployment from intermediate branch merges; final authorized release uses exact frozen RC only.",
-    "Restore approved neon-pink Health Center card border/shadow after integrating online consultation doors; preserve neon-green Family Home card and approved existing Wall media visual regression."
+    "Restore approved neon-pink Health Center card border/shadow after integrating online consultation doors; preserve neon-green Family Home card and approved existing Wall media visual regression.",
+    "Kingdom native success uses verified points-claim cue, while unlock retains achievement, no retired approval cue."
   ],
   "preserveBehaviors": [
     "No native package, Android versionCode or runtime version changes; no Google Play AAB build or old-client cutoff.",
@@ -93,6 +95,7 @@
   "regressionTests": [
     "tests/consolidated-ota-navigation-scroll-source-reconcile-20261110.test.mjs",
     "supabase/tests/buklod_scope_gcash_contributions_20261110.sql",
-    "supabase/tests/formation_ai_only_reflections_and_points_20261109.sql"
+    "supabase/tests/formation_ai_only_reflections_and_points_20261109.sql",
+    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs"
   ]
 }
