@@ -292,3 +292,25 @@ begin
       (case when v_series_awarded then 30 else 0 end));
 end;
 $function$;
+
+
+-- Under quiz-only enforcement, prevent new chapter scheduling/release without verified questions.
+-- This does not affect existing published chapters or the staged legacy rollout.
+CREATE OR REPLACE FUNCTION public.kl_quiz_release_ready_guard_v1()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $fn$
+BEGIN
+  IF NEW.status='approved' AND NEW.release_at IS NOT NULL
+     AND (OLD.release_at IS DISTINCT FROM NEW.release_at)
+     AND coalesce((SELECT enforce_quiz FROM public.kl_quiz_rollout WHERE id=1),false)
+     AND NOT EXISTS(
+       SELECT 1 FROM public.kl_quiz_sets q
+       WHERE q.episode_id=NEW.id AND q.status='ready' AND q.manuscript_hash=md5(NEW.manuscript)
+     ) THEN
+     RAISE EXCEPTION 'Prepare verified KL reading questions before scheduling or releasing the chapter';
+  END IF;
+  RETURN NEW;
+END $fn$;
+DROP TRIGGER IF EXISTS kl_quiz_release_guard_trigger ON public.kl_episodes;
+CREATE TRIGGER kl_quiz_release_guard_trigger
+BEFORE UPDATE OF release_at ON public.kl_episodes
+FOR EACH ROW EXECUTE FUNCTION public.kl_quiz_release_ready_guard_v1();
