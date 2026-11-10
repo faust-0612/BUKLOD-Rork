@@ -142,8 +142,12 @@ export function useRorkGameAmbience(gameId?: string | null) {
     };
     // Initial local asset loading is asynchronous. Listen for a ready player
     // instead of losing the first playback attempt.
+    let loadedOnce = audio.isLoaded;
     const readyListener = audio.addListener('playbackStatusUpdate', status => {
-      if (active && status.isLoaded) void sync();
+      if (active && status.isLoaded && !loadedOnce) {
+        loadedOnce = true;
+        void sync();
+      }
     });
     const stateListener = AppState.addEventListener('change', () => { void sync(); });
     void sync();
