@@ -28,15 +28,12 @@
     "account-auth-isolation"
   ],
   "regressionTests": [
-    "tests/native-expo-config-compat.test.cjs",
-    "tests/production-ota-ads-regression.test.mjs",
-    "tests/web-bottom-nav-production-release-20261108.test.mjs",
-    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
-    "tests/health-center-doorway-20261109.test.mjs"
+    "tests/consolidated-production-release-20261110.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/release-consolidated-nov10-rc609-20261110.json",
-    "release/BUKLOD_CONSOLIDATED_PROD_20261110_RC609.md"
+    "release/BUKLOD_CONSOLIDATED_PROD_20261110_RC609.md",
+    "tests/consolidated-production-release-20261110.test.mjs"
   ],
   "alternativeApproaches": [
     "Direct main file creation: correctly rejected by repository rule requiring PR and objective-scope-gate.",
