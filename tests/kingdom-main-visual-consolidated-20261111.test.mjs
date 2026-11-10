@@ -51,3 +51,14 @@ test('legacy visual finishes are cosmetic and claims stay on the official accoun
   assert.match(screen,/New relics and Shards are not yet spendable or claimable/);
   for(const forbidden of ['setShards','grantKingdomXp','awardBP','creditPoints']) assert.ok(!screen.includes(forbidden+'('));
 });
+
+test('active Character switch clears stale equipment and refreshes live character collection', () => {
+  const screen=read('src/app/games/legacy.tsx');
+  assert.match(screen, /activeIdRef\.current = next\.active_character_id/);
+  assert.match(screen, /levelRef\.current = next\.character_level/);
+  assert.match(screen, /getMyCharacterCollectibles\(hero as BuklodCoreCharacterId\)/);
+  assert.match(screen, /accountRef\.current === uid && activeIdRef\.current === hero/);
+  assert.match(screen, /activeIdRef\.current !== original\.core \|\| levelRef\.current !== original\.level/);
+  assert.match(screen, /setCollection\(null\)/);
+  assert.match(screen, /setReveal\(null\)/);
+});
