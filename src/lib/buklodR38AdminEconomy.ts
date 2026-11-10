@@ -362,3 +362,32 @@ export async function adminFinalizeBuklodPfMonthV3(
     'Could not finalize the canonical Finance V3 month.',
   );
 }
+
+
+/** Server-owned release audit. No user identifiers or balances are disclosed. */
+export type BuklodPfQmpReadiness = {
+  period_key: string;
+  period_exists: boolean;
+  qmp_period_status?: string;
+  month_complete?: boolean;
+  qualified_users?: number;
+  qualified_monthly_qmp?: number;
+  unlinked_finance_identities?: number;
+  ineligible_or_risk_held?: number;
+  pending_qmp_reviews?: number;
+  held_qmp_reviews?: number;
+  legacy_share_records?: number;
+  canonical_finalized_months?: number;
+  reconciled_eligible_revenue_sources?: number;
+  finance_enabled?: boolean;
+  settlement_enabled?: boolean;
+  ready_for_finalization: boolean;
+};
+
+export async function adminGetBuklodPfQmpReadinessV1(periodKey: string) {
+  return rpc<BuklodPfQmpReadiness>(
+    'admin_get_buklod_pf_qmp_readiness_v1',
+    { p_period_key: periodKey.trim() },
+    'Could not verify canonical monthly QMP and Finance reconciliation.',
+  );
+}
