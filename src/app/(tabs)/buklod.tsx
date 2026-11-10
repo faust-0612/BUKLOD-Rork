@@ -6287,7 +6287,7 @@ const communityFeedRows =
          color:'#FFFFFF',
          textShadowColor:'rgba(0,0,0,.55)',
          textShadowRadius:3,
-         fontSize:12,
+         fontSize:14,
          fontWeight:'900'
         }}
        >
@@ -6391,7 +6391,7 @@ const communityFeedRows =
       disabled={videoViewerLoadingMore}
       onPress={()=>void loadMoreVideoViewer()}
       style={{
-       position:'absolute',top:100,alignSelf:'center',
+       position:'absolute',top:Math.max(communityInsets.top+100,122),alignSelf:'center',
        paddingHorizontal:14,paddingVertical:8,
        backgroundColor:'rgba(0,0,0,.62)',borderRadius:16,
       }}
