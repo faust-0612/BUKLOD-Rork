@@ -6195,8 +6195,8 @@ const communityFeedRows =
          ) : null}
          <BuklodReelsInlineAd
           slotId={item.id}
-          active={isActive}
-          prepare={index===videoViewerIndex+1}
+          active={videoViewerOpen&&isActive}
+          prepare={videoViewerOpen&&index===videoViewerIndex+1}
           onLoadStateChange={state=>{
            if(videoViewerSessionRef.current!==videoViewerSession)return;
            setVideoViewerAdStates(previous=>
