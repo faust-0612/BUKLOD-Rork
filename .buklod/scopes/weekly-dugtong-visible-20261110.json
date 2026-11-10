@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Make a server-confirmed weekly Home Dugtong appear beneath the tip on subsequent loads, with private edit and explicit Wall sharing.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main source f635a7b31d249842add00fa9d1425bb06c76b610 inspected 2026-11-10; BUKLOD canonical Supabase project yhanxndaqbmuzbdqlblu read-only checks confirm two saved 2026-11-09 Dugtong entries and one exact match to reported user-supplied text, 12 enabled weekly tips, both RPCs, active reward rules and RLS. These checks establish source and backend state only, not an installed-app fingerprint or deployed Expo update.",
+  "chosenApproach": "Render the saved per-user my_dugtong from the existing read RPC in Home, confirm the write RPC before displaying new content, then refresh; support changes and cancel editing. Existing Write, Points, Wall composition and Supabase schema stay intact.",
+  "selectionRationale": "The persisted content already exists; the issue is a missing UI read presentation. A single-component display fix prevents accidental public disclosure and avoids unnecessary schema/ledger changes.",
+  "alternativeApproaches": [
+    "Publishing all private reflections as public comments was rejected because that changes privacy and requires explicit consent.",
+    "Duplicating content into a new table was rejected because it would cause divergent state.",
+    "Selected: show the existing saved content privately in the Home card and keep explicit Share to Wall."
+  ],
+  "acceptanceChecks": [
+    "Existing Dugtong from get_buklod_weekly_tip_v1 is displayed under the weekly tip on reopen.",
+    "Successful save makes the entry visible after server acknowledgement, even when immediate read refresh fails.",
+    "Edit/cancel and unchanged-content controls keep the user informed without duplicate write spam.",
+    "No public post is made automatically; only explicit Share to Wall opens the existing composer.",
+    "Same existing verified BP award and RLS guarantees; no database writes, no rule modifications.",
+    "Source regression contracts, TS check and consolidated release gates pass before OTA.",
+    "Whitelist this same-repository PR only for existing compile-only Android/Web RC QA; never publish as part of CI."
+  ],
+  "preserveBehaviors": [
+    "Read-only privacy of per-user reflections enforced by existing Supabase RLS; no user enumeration.",
+    "Existing first reaction +1 BP and first meaningful Dugtong +2 BP weekly; repeat saves give no new credit.",
+    "All public Wall, notifications, ads, Clan/Cluster scope, Kingdom and Connect flows unchanged.",
+    "Android native runtime, Play package and current production OTA remain unchanged until RC verification."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "rewards-economy",
+    "home-ui"
+  ],
+  "regressionTests": [
+    "tests/buklod-home-profile-support-20261108.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodTodayCard.tsx",
+    "tests/buklod-home-profile-support-20261108.test.mjs",
+    ".buklod/scopes/weekly-dugtong-visible-20261110.json",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml"
+  ]
+}
