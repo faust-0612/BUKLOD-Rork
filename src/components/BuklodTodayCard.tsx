@@ -26,6 +26,7 @@ export default function BuklodTodayCard({onRespond}:{onRespond?:(draft?:string)=
  const [busy,setBusy]=useState(false);
  const [open,setOpen]=useState(false);
  const [draft,setDraft]=useState('');
+ const [editing,setEditing]=useState(false);
  const [notice,setNotice]=useState('');
  const [error,setError]=useState('');
  const load=useCallback(async(preserveDraft=false)=>{
@@ -34,7 +35,10 @@ export default function BuklodTodayCard({onRespond}:{onRespond?:(draft?:string)=
     if(rpcError)throw rpcError;
     if(!data?.title||!data?.week_start)throw Error('Weekly tips unavailable');
     setTip(data as Tip);
-    if(!preserveDraft)setDraft(typeof data.my_dugtong==='string'?data.my_dugtong:'');
+    if(!preserveDraft){
+      setDraft(typeof data.my_dugtong==='string'?data.my_dugtong:'');
+      setEditing(false);
+    }
     setUnavailable(false);
   }catch{setUnavailable(true);}
   finally{setLoading(false);}
@@ -49,10 +53,19 @@ export default function BuklodTodayCard({onRespond}:{onRespond?:(draft?:string)=
     });
     if(rpcError)throw rpcError;
     if(data?.ok!==true)throw Error('Action could not be confirmed.');
+    // The server confirmed the write. Show the Dugtong immediately, including
+    // when the subsequent read fails on a weak network; never optimistically award BP.
+    setTip(current=>current?{
+      ...current,
+      my_reaction:reaction??current.my_reaction,
+      my_dugtong:dugtong??current.my_dugtong,
+    }:current);
+    if(dugtong!==null)setEditing(false);
     const credited=Math.max(0,Math.trunc(Number(data.awarded_points)||0));
     setNotice(credited>0
       ?'+'+credited+' BP recorded. Claim your pending reward in BUKLOD Points.'
-      :'Saved. Each valid weekly action can earn points only once.');
+      :dugtong!==null?'Na-save ang Dugtong mo. Walang dobleng BP para sa edit.'
+      :'Na-save ang reaction mo. Walang dobleng BP ngayong linggo.');
     await load(true);
   }catch(e:any){setError(String(e?.message||'Could not save your weekly interaction.'));}
   finally{setBusy(false);}
@@ -65,6 +78,8 @@ export default function BuklodTodayCard({onRespond}:{onRespond?:(draft?:string)=
   {unavailable&&<Pressable onPress={()=>{setLoading(true);void load();}}>
     <Text style={s.link}>Retry loading tips</Text></Pressable>}
  </View>;
+ const hasSavedDugtong=!!tip.my_dugtong?.trim();
+ const unchangedDugtong=hasSavedDugtong&&draft.trim()===tip.my_dugtong?.trim();
  return <View style={s.shell}>
   <View style={s.head}>
     <View style={{flex:1}}>
@@ -85,6 +100,18 @@ export default function BuklodTodayCard({onRespond}:{onRespond?:(draft?:string)=
     <Text style={s.link}>{open?'Show less':'Continue reading'}</Text>
     <MaterialCommunityIcons name={open?'chevron-up':'chevron-down'} size={18} color="#17644B"/>
   </Pressable>
+  {hasSavedDugtong&&<View style={s.savedDugtong} accessibilityLabel="Ang na-save mong personal na Dugtong">
+    <View style={s.savedHead}>
+      <MaterialCommunityIcons name="check-circle-outline" size={19} color="#17644B"/>
+      <Text style={s.savedTitle}>Ang Dugtong mo</Text>
+      <Text style={s.privateLabel}>Pribado</Text>
+    </View>
+    <Text style={s.savedBody}>{tip.my_dugtong}</Text>
+    {!editing&&<Pressable accessibilityRole="button" onPress={()=>setEditing(true)}>
+      <Text style={s.link}>I-edit ang Dugtong</Text>
+    </Pressable>}
+    <Text style={s.savedHint}>Naka-save sa account mo. Hindi ito awtomatikong post sa Wall.</Text>
+  </View>}
   <Text style={s.section}>React to this week's tip</Text>
   <View style={s.reactions}>
     {REACTIONS.map(item=><Pressable key={item.id} accessibilityRole="button"
@@ -96,20 +123,27 @@ export default function BuklodTodayCard({onRespond}:{onRespond?:(draft?:string)=
       <Text style={s.reactionText}>{item.label}</Text>
     </Pressable>)}
   </View>
-  <Text style={s.section}>Dugtong: Ano ang natutuhan mo?</Text>
-  <TextInput value={draft} onChangeText={setDraft} multiline
-    accessibilityLabel="Weekly tip Dugtong"
-    placeholder="Ibahagi ang isang konkretong hakbang o insight (30 characters minimum)."
-    placeholderTextColor="#87998D" maxLength={1200}
-    style={s.input}/>
+  {(!hasSavedDugtong||editing)&&<>
+    <Text style={s.section}>{hasSavedDugtong?'Baguhin ang Dugtong':'Dugtong: Ano ang natutuhan mo?'}</Text>
+    <TextInput value={draft} onChangeText={setDraft} multiline
+      accessibilityLabel="Weekly tip Dugtong"
+      placeholder="Ibahagi ang isang konkretong hakbang o insight (30 characters minimum)."
+      placeholderTextColor="#87998D" maxLength={1200}
+      style={s.input}/>
+  </>}
   <View style={s.actions}>
-    <Pressable disabled={busy||!tip.authenticated||draft.trim().length<30}
+    {(!hasSavedDugtong||editing)&&<Pressable
+      disabled={busy||!tip.authenticated||draft.trim().length<30||unchangedDugtong}
       accessibilityRole="button" onPress={()=>void submit(null,draft.trim())}
-      style={[s.primary,(busy||!tip.authenticated||draft.trim().length<30)&&s.disabled]}>
-      <Text style={s.primaryText}>{busy?'Saving…':'Save Dugtong'}</Text>
-    </Pressable>
+      style={[s.primary,(busy||!tip.authenticated||draft.trim().length<30||unchangedDugtong)&&s.disabled]}>
+      <Text style={s.primaryText}>{busy?'Saving…':hasSavedDugtong?'I-update ang Dugtong':'Save Dugtong'}</Text>
+    </Pressable>}
+    {hasSavedDugtong&&editing&&<Pressable accessibilityRole="button" disabled={busy}
+      onPress={()=>{setDraft(tip.my_dugtong??'');setEditing(false);}} style={s.secondary}>
+      <Text style={s.link}>Kanselahin</Text>
+    </Pressable>}
     {!!onRespond&&<Pressable accessibilityRole="button"
-      onPress={()=>onRespond(draft.trim()||tip.title+' — '+tip.lead)}
+      onPress={()=>onRespond(draft.trim()||tip.my_dugtong||tip.title+' — '+tip.lead)}
       style={s.secondary}><Text style={s.link}>Share to Wall</Text></Pressable>}
   </View>
   {!tip.authenticated&&<Text style={s.help}>Sign in to react or save your Dugtong.</Text>}
@@ -133,6 +167,13 @@ const s=StyleSheet.create({
  read:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:4,paddingVertical:4},
  link:{color:'#17644B',fontWeight:'800',fontSize:12},
  section:{fontSize:12,fontWeight:'900',color:'#204C34'},
+ savedDugtong:{padding:12,borderWidth:1,borderColor:'#CFE1D4',
+   borderRadius:6,backgroundColor:'#EFF8F1',gap:8},
+ savedHead:{flexDirection:'row',alignItems:'center',gap:6,flexWrap:'wrap'},
+ savedTitle:{fontSize:14,fontWeight:'900',color:'#17644B',flexGrow:1},
+ privateLabel:{fontSize:11,color:'#66766C',fontWeight:'700'},
+ savedBody:{fontSize:14,lineHeight:21,color:'#183D2C'},
+ savedHint:{fontSize:11,lineHeight:17,color:'#66766C'},
  reactions:{flexDirection:'row',flexWrap:'wrap',gap:7},
  reaction:{flexDirection:'row',alignItems:'center',gap:5,borderWidth:1,borderColor:'#CFE1D4',
    borderRadius:4,paddingVertical:8,paddingHorizontal:10},
