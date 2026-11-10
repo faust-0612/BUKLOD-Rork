@@ -53,3 +53,14 @@ test('generation is authenticated/admin only and failures are non-destructive', 
   assert.match(migration, /md5\(v\.manuscript\)<>p_manuscript_hash/);
   assert.match(migration, /ON CONFLICT DO NOTHING/);
 });
+
+
+test('staged OTA permits safe 60-second fallback only while enforcement is disabled and questions are pending', () => {
+  assert.match(migration, /'allow_legacy',NOT coalesce\(\(SELECT enforce_quiz/);
+  assert.match(quiz, /result\?\.reason === 'questions_preparing' && result\?\.allow_legacy === true/);
+  assert.match(quiz, /const completeLegacy = async/);
+  assert.match(quiz, /p_episode_id: episodeId, p_action: 'complete'/);
+  assert.match(migration, /kl_quiz_release_ready_guard_v1/);
+  assert.match(reader, /'kl_quiz_admin_context_v1'/);
+  assert.match(reader, /Retry muna sa KL Admin bago mag-release/);
+});
