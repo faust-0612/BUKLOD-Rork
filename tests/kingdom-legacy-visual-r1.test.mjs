@@ -45,3 +45,44 @@ test('legacy rewards are honest about premium concepts not yet backed by server 
   assert.match(route, /getCachedBuklodCharacterSelectionV2\(uid\)/);
   assert.match(route, /setCollection\(null\)/);
 });
+
+
+test('Original medallions use existing reward kinds and visual-only level finishes', () => {
+  const art = read('src/features/games/kingdom/KingdomRelicEmblem.tsx');
+  const route = read('src/app/games/legacy.tsx');
+  for (const kind of ['expression','speech','profile_frame','visual_effect','title_badge']) {
+    assert.ok(art.includes(kind), 'missing server collectible kind '+kind);
+  }
+  for (const tier of ['bronze','silver','gold','legendary']) {
+    assert.ok(art.includes(tier), 'missing visual finish '+tier);
+  }
+  assert.match(art, /level < 5/);
+  assert.match(art, /level < 10/);
+  assert.match(art, /level < 15/);
+  assert.match(art, /React\.useId\(\)/);
+  assert.match(route, /KingdomRelicEmblem/);
+  assert.match(route, /acquired\.length/);
+  assert.match(route, /level={item\.level}/);
+  assert.match(route, /Modal visible={Boolean\(reveal\)}/);
+  assert.match(route, /const verified = updated\.items\.find/);
+  assert.match(route, /if \(verified\)/);
+  assert.match(route, /playBuklodGameFeedback\('unlock'\)/);
+});
+
+test('Gallery links all canonical game centers and cannot invent credits', () => {
+  const route = read('src/app/games/legacy.tsx');
+  const ids = [
+    'phan-enterprise-builder','quin-discovery-expedition','van-living-city-dispatch',
+    'christian-civic-leadership','lhen-rhythm-journey','jawo-forest-trail',
+    'vhen-farm-to-market','trudice-playground-memory','mitch-restore-mural',
+    'ace-rescue-grid','niel-mission-trail','angel-kingdom-treasury',
+    'elesur-village-builder',
+  ];
+  for (const id of ids) assert.ok(route.includes("'/games/"+id+"'"), id);
+  assert.match(route, /router\.push\(HERO_GAME\[activeId\]/);
+  assert.match(route, /Only server-verified mastery can credit real BP/);
+  assert.match(route, /New relics and Shards are not yet spendable or claimable/);
+  for (const forbidden of ['update_buklod_points', 'setShards(', 'grantKingdomXp(']) {
+    assert.ok(!route.includes(forbidden), forbidden);
+  }
+});
