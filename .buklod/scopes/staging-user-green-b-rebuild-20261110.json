@@ -1,0 +1,32 @@
+{
+  "contractVersion": 2,
+  "objective": "Build a new current-main staging-user signed Android APK with canonical green-B icon, and make actual installer downloadable in GitHub Actions.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Current main staging config already targets assets/release/buklod-main-canonical.png for both launcher icon and adaptive foreground; prior Nov 8 workflow uploaded EAS JSON evidence rather than APK; November 9 downloaded staging build was reported as showing legacy logo.",
+  "chosenApproach": "Extend existing isolated staging build workflow with one new explicitly authorized merge commit marker, retain Expo EAS staging profile with preview Firebase/runtime and checks, download finished .apk from EAS URL, validate installer archive and upload real APK artifact.",
+  "selectionRationale": "Safely rebuild latest source with no production OTA/Play release and provide a distinct actual APK artifact.",
+  "riskAreas": [
+    "release-identity",
+    "native-runtime"
+  ],
+  "preserveBehaviors": [
+    "Production source and production icon unchanged",
+    "Only staging-user internal APK; no Expo OTA, web deployment or Play upload",
+    "Staging Android package org.mzbministry.buklod.staging, runtime 1.3.2, preview environment, channel staging-user remain",
+    "Canonical green-B icon and adaptive foreground required before EAS build"
+  ],
+  "acceptanceChecks": [
+    "Current main SHA pinned and staging icon path plus blob verified before EAS credits",
+    "EAS build status FINISHED on staging profile",
+    "APK bytes downloaded, valid ZIP with AndroidManifest.xml, >5 MB",
+    "Verified installer artifact uploaded separately from EAS JSON metadata"
+  ],
+  "regressionTests": [
+    "tests/staging-user-current-main-apk-20261108.test.cjs",
+    "tests/staging-release-identity-v30-20261108.test.cjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/staging-user-green-b-rebuild-20261110.json",
+    ".github/workflows/buklod-staging-user-latest-main-apk-20261108.yml"
+  ]
+}
