@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const ts = require('typescript');
+import { readFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-function cacheRuntime() {
+let runtimeSequence = 0;
+async function cacheRuntime() {
   const storage = new Map();
   const asyncStorage = {
     async getItem(key) {
@@ -29,27 +30,30 @@ function cacheRuntime() {
       return [...storage.keys()];
     },
   };
+  // Engineering preflight runs *before npm ci*. Use built-in Node 22 type
+  // stripping and an isolated AsyncStorage mock; no package dependency.
   const source = readFileSync(new URL('../src/lib/offlineCache.ts', import.meta.url), 'utf8');
-  const js = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-      esModuleInterop: true,
-    },
-  }).outputText;
-  const mod = { exports: {} };
-  const mockRequire = name => {
-    if (name === '@react-native-async-storage/async-storage') {
-      return { __esModule: true, default: asyncStorage };
-    }
-    throw new Error('Unexpected import: ' + name);
-  };
-  new Function('require', 'module', 'exports', js)(mockRequire, mod, mod.exports);
-  return { ...mod.exports, storage };
+  const key = '__buklodOfflineCacheTest' + ++runtimeSequence;
+  const directory = mkdtempSync(join(tmpdir(), 'buklod-offline-'));
+  const file = join(directory, 'offlineCache.ts');
+  const modified = source.replace(
+    /^import AsyncStorage from '@react-native-async-storage\/async-storage';/m,
+    'const AsyncStorage = globalThis[' + JSON.stringify(key) + '];',
+  );
+  assert.notEqual(modified, source, 'AsyncStorage import replacement');
+  writeFileSync(file, modified, 'utf8');
+  globalThis[key] = asyncStorage;
+  try {
+    const api = await import(pathToFileURL(file).href);
+    return { ...api, storage };
+  } finally {
+    delete globalThis[key];
+    rmSync(directory, { recursive: true, force: true });
+  }
 }
 
 test('parallel Bible/Word/lesson downloads never lose cache-index entries', async () => {
-  const cache = cacheRuntime();
+  const cache = await cacheRuntime();
   await Promise.all(Array.from({ length: 40 }, (_, i) =>
     cache.setOfflineCache('lesson-reading-v1:' + i, { id: i }, {
       userId: 'member-one', ttlMs: 30 * 24 * 60 * 60 * 1000,
@@ -60,7 +64,7 @@ test('parallel Bible/Word/lesson downloads never lose cache-index entries', asyn
 });
 
 test('faith downloads survive routine 14-day pruning, but ordinary UI data expires', async () => {
-  const cache = cacheRuntime();
+  const cache = await cacheRuntime();
   const realNow = Date.now;
   const DAY = 24 * 60 * 60 * 1000;
   try {
@@ -85,7 +89,7 @@ test('faith downloads survive routine 14-day pruning, but ordinary UI data expir
 });
 
 test('clearing one member never deletes another member’s saved lessons', async () => {
-  const cache = cacheRuntime();
+  const cache = await cacheRuntime();
   await cache.setOfflineCache('lesson-reading-v1:L1', { account: 'A' }, { userId: 'A' });
   await cache.setOfflineCache('lesson-reading-v1:L1', { account: 'B' }, { userId: 'B' });
   await cache.clearOfflineCacheForUser('A');
