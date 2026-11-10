@@ -18,10 +18,11 @@ import {
 import {
   type BuklodAdPlacement,
   getBuklodBannerUnitId,
+  buklodAdsTestMode,
 } from '@/lib/buklodAdUnits';
-import {
-  initializeBuklodAds,
-} from '@/lib/buklodAds';
+import { usePathname } from 'expo-router';
+import { useAds } from '@/providers/AdsProvider';
+import { isBuklodPassiveAdAllowed } from '@/lib/buklodGlobalAdController';
 
 type Props = {
   slotId?: string;
@@ -45,8 +46,14 @@ export default function BuklodReelsInlineAd({
   const { width } =
     useWindowDimensions();
 
-  const [sdkReady, setSdkReady] =
-    useState(false);
+  const { ready, canRequestAds } = useAds();
+  const pathname = usePathname();
+  const sdkReady = ready && canRequestAds;
+  const adEligible = active && isBuklodPassiveAdAllowed({
+    placement: 'reels',
+    placementId: 'igpat_reels_inline',
+    pathname,
+  });
 
   const [nativeAd, setNativeAd] =
     useState<NativeAd | null>(null);
@@ -66,15 +73,7 @@ export default function BuklodReelsInlineAd({
   const bannerTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const appEnv =
-    envValue(
-      process.env.EXPO_PUBLIC_APP_ENV ||
-        'development',
-    ).toLowerCase();
-
-  const testMode =
-    __DEV__ ||
-    appEnv !== 'production';
+  const testMode = buklodAdsTestMode;
 
   const nativeUnitId =
     useMemo(() => {
@@ -108,50 +107,34 @@ export default function BuklodReelsInlineAd({
     );
 
   useEffect(() => {
-    if (!active) return;
+    if (!adEligible || !sdkReady) {
+      // Inactive or consent-pending is not a native no-fill result.
+      // A fresh valid page must be allowed to attempt a native creative.
+      setNativeAd(null);
+      setNativeFailed(false);
+      setBannerLoaded(false);
+      setBannerFailed(false);
+      return;
+    }
 
-    let mounted = true;
-
-    void initializeBuklodAds()
-      .then((ready) => {
-        if (mounted) {
-          setSdkReady(
-            Boolean(ready),
-          );
-        }
-      })
-      .catch((error) => {
-        console.warn(
-          'BUKLOD Reels AdMob init:',
-          error,
-        );
-
-        if (mounted) {
-          setSdkReady(false);
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [active]);
-
-  useEffect(() => {
-    if (
-      !active ||
-      !sdkReady ||
-      !nativeUnitId
-    ) {
+    // Reset stale error/creative state for this visible (or prewarmed) slot.
+    setNativeAd(null);
+    setNativeFailed(false);
+    setBannerLoaded(false);
+    setBannerFailed(false);
+    if (!nativeUnitId) {
       setNativeFailed(true);
       return;
     }
 
     let cancelled = false;
+    let timedOut = false;
     let createdAd: NativeAd | null = null;
 
     nativeTimeoutRef.current =
       setTimeout(() => {
         if (!cancelled) {
+          timedOut = true;
           setNativeFailed(true);
         }
       }, AD_LOAD_TIMEOUT_MS);
@@ -165,7 +148,7 @@ export default function BuklodReelsInlineAd({
       .then((ad) => {
         createdAd = ad;
 
-        if (cancelled) {
+        if (cancelled || timedOut) {
           ad.destroy();
           return;
         }
@@ -196,7 +179,7 @@ export default function BuklodReelsInlineAd({
           error,
         );
 
-        if (!cancelled) {
+        if (!cancelled && !timedOut) {
           setNativeFailed(true);
         }
       });
@@ -218,7 +201,7 @@ export default function BuklodReelsInlineAd({
       }
     };
   }, [
-    active,
+    adEligible,
     sdkReady,
     nativeUnitId,
     slotId,
@@ -226,7 +209,7 @@ export default function BuklodReelsInlineAd({
 
   useEffect(() => {
     if (
-      !active ||
+      !adEligible ||
       !sdkReady ||
       !nativeFailed ||
       !bannerUnitId ||
@@ -252,7 +235,7 @@ export default function BuklodReelsInlineAd({
       }
     };
   }, [
-    active,
+    adEligible,
     sdkReady,
     nativeFailed,
     bannerUnitId,
@@ -262,7 +245,7 @@ export default function BuklodReelsInlineAd({
   ]);
 
   if (
-    !active ||
+    !adEligible ||
     !sdkReady
   ) {
     return null;
