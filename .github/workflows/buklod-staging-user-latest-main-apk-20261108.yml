@@ -19,7 +19,7 @@ env:
   EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
 jobs:
   build-staging-user:
-    if: github.ref == 'refs/heads/main' && (startsWith(github.event.head_commit.message, 'BUKLOD_STAGING_USER_CANONICAL_V30_APK_20261108') || startsWith(github.event.head_commit.message, 'BUKLOD_STAGING_USER_GREEN_B_REBUILD_20261110'))
+    if: github.ref == 'refs/heads/main' && (startsWith(github.event.head_commit.message, 'BUKLOD_STAGING_USER_CANONICAL_V30_APK_20261108') || startsWith(github.event.head_commit.message, 'BUKLOD_STAGING_USER_GREEN_B_REBUILD_20261110') || startsWith(github.event.head_commit.message, 'BUKLOD_STAGING_USER_GREEN_B_RECOVERY_20261110'))
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -72,7 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts
-          node --test tests/staging-user-current-main-apk-20261108.test.cjs tests/staging-release-identity-v30-20261108.test.cjs tests/native-expo-config-compat.test.cjs
+          node --test tests/staging-user-current-main-apk-20261108.test.cjs tests/staging-release-identity-v30-20261108.test.cjs tests/native-expo-config-compat.test.cjs tests/staging-green-b-apk-artifact-20261110.test.cjs
           npx tsc --noEmit
           node scripts/game-kingdom-release-contract.mjs
           node --test tests/cluster-connect-notifications-points-20261108.test.mjs
