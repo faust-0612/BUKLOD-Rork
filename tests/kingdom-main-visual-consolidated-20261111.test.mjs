@@ -48,7 +48,7 @@ test('legacy visual finishes are cosmetic and claims stay on the official accoun
   assert.match(screen,/getMyBuklodCharacterSelectionV2/);
   assert.match(screen,/redeemMyCharacterCollectible\(core, targetLevel, index\)/);
   assert.match(screen,/await accountUnchanged\(\)/);
-  assert.match(screen,/setReveal\(\{ name: itemNames\[index-1\]/);
+  assert.match(screen,/setReveal\(\{ name: collectibleNames\(core, targetLevel\)\[index-1\]/);
   assert.match(screen,/New relics and Shards are not yet spendable or claimable/);
   for(const forbidden of ['setShards','grantKingdomXp','awardBP','creditPoints']) assert.ok(!screen.includes(forbidden+'('));
 });
