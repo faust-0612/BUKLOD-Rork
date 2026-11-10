@@ -785,6 +785,10 @@ function ExpoCommunityVideo({
         if (isPlaying) {
           setHasStartedPlayback(true);
           setAutoRecovering(false);
+          if (recoveryDeadlineRef.current) {
+            clearTimeout(recoveryDeadlineRef.current);
+            recoveryDeadlineRef.current = null;
+          }
         }
       },
     );
@@ -963,21 +967,12 @@ function ExpoCommunityVideo({
         />
       ) : null}
 
-      {playerStatus === 'loading' ? (
+      {showDelayedLoading ? (
         <View pointerEvents="none" style={styles.bufferChip}>
-          <Text style={styles.durationText}>Buffering…</Text>
+          <Text style={styles.durationText}>
+            {hasStartedPlayback ? 'Reconnecting…' : 'Preparing video…'}
+          </Text>
         </View>
-      ) : null}
-
-      {playerStatus === 'error' ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Retry video"
-          onPress={retryPlayback}
-          style={styles.bufferChip}
-        >
-          <Text style={styles.durationText}>Retry</Text>
-        </Pressable>
       ) : null}
 
       <Pressable
@@ -988,6 +983,17 @@ function ExpoCommunityVideo({
         onPress={togglePlayback}
         style={styles.tapLayer}
       />
+
+      {playerStatus === 'error' && !autoRecovering ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retry video"
+          onPress={retryPlayback}
+          style={styles.retryButton}
+        >
+          <Text style={styles.retryText}>Retry video</Text>
+        </Pressable>
+      ) : null}
 
       {!fullscreen && preserveAspectRatio ? (
         <Pressable accessibilityRole="button"
@@ -1324,6 +1330,25 @@ const styles =
       fontWeight: '800',
     },
 
+    retryButton: {
+      position: 'absolute',
+      top: '43%',
+      alignSelf: 'center',
+      zIndex: 4,
+      minHeight: 44,
+      paddingHorizontal: 18,
+      borderRadius: 24,
+      backgroundColor: 'rgba(0,0,0,0.82)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.45)',
+    },
+    retryText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '700',
+    },
     bufferChip: {
       position: 'absolute',
       left: 10,
