@@ -1,0 +1,37 @@
+{
+  "contractVersion": 2,
+  "objective": "Include faster viewport autoplay and bounded persistent Wall video playback in one NOV10 consolidated Android OTA without a new native build, independent OTA, or web deployment.",
+  "sourceCandidate": "fix/wall-video-viewport-persistent-20261110",
+  "baseIntegration": "integration/buklod-nov10-single-source-ota",
+  "currentState": "OTA inclusion candidate (source-parity verified), not frozen RC and not published",
+  "ownerWaiver": "Actual Android device playback verification skipped at owner's request on 2026-11-10; waiver does not waive source safety review, mandatory RC release gates, or production evidence.",
+  "allowedPaths": [
+    ".buklod/scopes/wall-video-ota-inclusion-20261110.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/CommunityVideo.tsx",
+    "src/hooks/useBuklodCommunityAdViewability.ts",
+    "src/lib/communityVideoPlayback.ts",
+    "tests/community-video-navigation-scroll.test.mjs",
+    "tests/wall-post-music-navigation-scroll.test.mjs"
+  ],
+  "selectionRationale": "All seven candidate file base blobs match the current NOV10 single-source integration branch exactly; transfer only these files instead of merging divergent main/release branches or reintroducing previous fixes.",
+  "behavior": {
+    "autoplay": "Viewport-specific activation at 45%/80ms, separate from the unchanged 60%/400ms ad activation",
+    "continuity": "One near-future video preloads; recently visible offscreen player remains paused for 1400ms; preserve progress by post ID during URL renewal",
+    "buffering": "Expo Android player minimum buffer 1s and forward target 18s; capped cache 256 MiB",
+    "recovery": "One automatic replay, bounded timeout, signed URL refresh with short dedupe/backoff, tappable terminal Retry only",
+    "preserved": "Native IMA video ads, per-scope authorization and server signing, account isolation, photo/media rendering, web playback path and existing approved Home/Kingdom/Bible/Health/monetization code"
+  },
+  "validation": {
+    "completed": "Verified seven changed blobs have exact parity with original source candidate; current NOV10 integration had base-identical blobs for those paths; static source assertions from candidate 27/27.",
+    "notRun": "Physical Android playback test (waived), full TypeScript/compiled RC QA and CI check, exact Expo runtime/manifest promotion.",
+    "remainingMandatoryGate": "Run consolidated RC compilation and release checks against exact merged source, freeze and verify RC fingerprint before the sole production OTA. No publish from this branch."
+  },
+  "release": {
+    "nativeBuild": false,
+    "otaPublished": false,
+    "webDeployed": false,
+    "mainModified": false
+  }
+}
