@@ -4273,54 +4273,45 @@ const load=useCallback(async(options?:{
 
  const refreshVideoViewerUrl=
   useCallback(
-   async(post:any)=>{
-    const postId=
-     String(post?.id??'').trim();
-
-    if(!postId){
-     return null;
+   async(post:any,failedUri?:string)=>{
+    const postId=String(post?.id??'').trim();
+    if(!postId)return null;
+    const now=Date.now();
+    const attempts=videoViewerUrlAttemptsRef.current.get(postId)??0;
+    if(videoViewerUrlInflightRef.current.has(postId) ||
+       attempts>=3 ||
+       now<(videoViewerUrlRetryAfterRef.current.get(postId)??0)){
+      return null;
     }
-
-    setVideoViewerResolvingPostId(
-     postId
-    );
-
+    // Only an actual player error authorizes private URL re-signing.
+    // A session counter drops late responses after close or playlist change.
+    const requestSession=videoViewerScanSeqRef.current;
+    videoViewerUrlInflightRef.current.add(postId);
+    videoViewerUrlAttemptsRef.current.set(postId,attempts+1);
+    videoViewerUrlRetryAfterRef.current.set(postId,now+2500);
+    setVideoViewerResolvingPostId(postId);
     try{
-     const freshUrl=
-      await resolveFreshVideoUrl(
-       post
-      );
-
-     if(freshUrl){
-      setVideoViewerFreshUrls(
-       current=>({
-        ...current,
-        [postId]:freshUrl
-       })
-      );
-
-      setWallVideoFreshUrls(
-       current=>({
-        ...current,
-        [postId]:freshUrl
-       })
-      );
-
-      return freshUrl;
-     }
-
-     return null;
-    }
-    catch{
-     return null;
-    }
-    finally{
-     setVideoViewerResolvingPostId(
-      current=>
-       current===postId
-        ? null
-        : current
+     const freshUrl=await resolveFreshVideoUrl(post);
+     if(requestSession!==videoViewerScanSeqRef.current)return null;
+     const failed=String(failedUri??'').trim();
+     if(!freshUrl || freshUrl===failed)return null;
+     setVideoViewerFreshUrls(current=>{
+      const already=current[postId];
+      // A late request must not replace a newer successful rotation.
+      if(already && failed && already!==failed)return current;
+      return already===freshUrl?current:{...current,[postId]:freshUrl};
+     });
+     setWallVideoFreshUrls(current=>
+      current[postId]===freshUrl?current:{...current,[postId]:freshUrl}
      );
+     return freshUrl;
+    }catch{
+     return null;
+    }finally{
+     videoViewerUrlInflightRef.current.delete(postId);
+     if(requestSession===videoViewerScanSeqRef.current){
+      setVideoViewerResolvingPostId(current=>current===postId?null:current);
+     }
     }
    },
    [resolveFreshVideoUrl]
