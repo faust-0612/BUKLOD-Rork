@@ -146,7 +146,8 @@ BEGIN
   IF EXISTS(SELECT 1 FROM public.kl_reading_sessions WHERE episode_id=p_episode_id AND user_id=v_user AND completed_at IS NOT NULL)
     THEN RETURN jsonb_build_object('ok',true,'already_completed',true); END IF;
   IF NOT EXISTS(SELECT 1 FROM public.kl_quiz_sets WHERE episode_id=p_episode_id AND manuscript_hash=v_hash AND status='ready')
-    THEN RETURN jsonb_build_object('ok',false,'reason','questions_preparing'); END IF;
+    THEN RETURN jsonb_build_object('ok',false,'reason','questions_preparing',
+      'allow_legacy',NOT coalesce((SELECT enforce_quiz FROM public.kl_quiz_rollout WHERE id=1),false)); END IF;
   INSERT INTO public.kl_reading_sessions(user_id,episode_id)
     VALUES(v_user,p_episode_id) ON CONFLICT(user_id,episode_id) DO NOTHING;
   SELECT count(*) INTO v_count FROM public.kl_quiz_attempts
