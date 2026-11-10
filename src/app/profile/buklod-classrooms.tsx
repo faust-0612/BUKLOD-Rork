@@ -66,45 +66,51 @@ function MainClassroomDoor() {
     }, [loadAccess])
   );
 
+  const [launchError, setLaunchError] = useState<string | null>(null);
+
   const openClassroom = async (mode: ClassroomMode) => {
     if (opening) return;
     setOpening(mode);
+    setLaunchError(null);
 
     try {
-      const { data, error } = await supabase.auth.getSession();
+      // The server checks the current Main auth session and the requested
+      // Student/Faculty role independently; no tokens are placed in URL query.
+      const { data, error } = await supabase.functions.invoke('buklod-classroom-sso-entry-v1', {
+        body: { mode },
+      });
       if (error) throw error;
-
-      const accessToken = data.session?.access_token;
-      const refreshToken = data.session?.refresh_token;
-      if (!accessToken || !refreshToken) {
-        throw new Error('Your BUKLOD session is not available. Please sign in again.');
+      const tokenHash = typeof data?.token_hash === 'string' ? data.token_hash : '';
+      const modeConfirmed = data?.mode === mode;
+      const userConfirmed = typeof data?.user_id === 'string' && data.user_id === user?.id;
+      if (data?.ok !== true || !modeConfirmed || !userConfirmed ||
+          !/^[a-zA-Z0-9_-]{30,512}$/.test(tokenHash)) {
+        throw new Error('Classroom could not verify your secure BUKLOD handoff.');
       }
 
-      const query = [
-        'buklod_handoff=1',
-        `access_token=${encodeURIComponent(accessToken)}`,
-        `refresh_token=${encodeURIComponent(refreshToken)}`,
-        `classroom_mode=${encodeURIComponent(mode)}`,
+      // Supabase Auth one-time magic-link hash, not a refresh/access token.
+      // Fragment is not sent in HTTP requests and Classroom removes it
+      // before verifyOtp. Always use the official Classroom web origin.
+      const fragment = [
+        'buklod_classroom_token_hash=' + encodeURIComponent(tokenHash),
+        'buklod_mode=' + encodeURIComponent(mode),
+        'buklod_user_id=' + encodeURIComponent(user.id),
       ].join('&');
-
-      if (Platform.OS !== 'web') {
-        try {
-          const nativeUrl = `buklod-classroom://?${query}`;
-          if (await Linking.canOpenURL(nativeUrl)) {
-            await Linking.openURL(nativeUrl);
-            return;
-          }
-        } catch {
-          // Fall through to the canonical Classroom web app.
-        }
+      const target = 'https://buklod-classroom.expo.app/#' + fragment;
+      if (Platform.OS === 'web') {
+        window.location.assign(target);
+      } else {
+        await Linking.openURL(target);
       }
-
-      await Linking.openURL(`https://buklod-classroom.expo.app/?${query}`);
-    } catch (error: any) {
-      Alert.alert(
-        'BUKLOD Classroom',
-        String(error?.message ?? 'Could not open BUKLOD Classroom.')
-      );
+    } catch (cause: any) {
+      const detail = String(cause?.context?.error || cause?.message || 'Please try again.');
+      const message = detail.includes('429') || detail.includes('please_retry_shortly')
+        ? 'Please try entering Classroom again in a few seconds.'
+        : detail.includes('verified_email_identity_required')
+          ? 'Your BUKLOD account must have a verified email for secure Classroom entry.'
+          : 'Secure Classroom entry is temporarily unavailable. Your Main session is unchanged.';
+      setLaunchError(message);
+      if (Platform.OS !== 'web') Alert.alert('BUKLOD Classroom', message);
     } finally {
       setOpening(null);
     }
@@ -127,6 +133,12 @@ function MainClassroomDoor() {
           BUKLOD Main is your account and session doorway. Classroom opens as its focused extension using this same BUKLOD account and connected academic records.
         </Text>
       </View>
+
+      {launchError ? (
+        <View style={styles.empty} accessibilityRole="alert">
+          <Text style={styles.emptyText}>{launchError}</Text>
+        </View>
+      ) : null}
 
       {loading ? (
         <View style={styles.empty}>
