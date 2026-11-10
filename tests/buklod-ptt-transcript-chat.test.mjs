@@ -19,6 +19,9 @@ test('hold/release/floor safety survives the additive caption listener', () => {
   assert.match(core, /call\.microphone\.disable\(\)/);
   assert.match(runtime, /call\.on\('call\.closed_caption'/);
   assert.match(runtime, /captionUnsubscribe/);
+  assert.match(runtime, /try \{\s+captionUnsubscribe = connection\.call\.on/);
+  assert.match(runtime, /catch \{\s+\/\/ Captions are optional/);
+  assert.match(runtime, /captionUnsubscribe = null;\s+console\.warn/);
 });
 
 test('only own opted-in speech with live transmission identity persists', () => {
@@ -34,6 +37,8 @@ test('PTT chat is channel isolated, realtime and reachable without moving talk b
   assert.match(screen, /<LiveHoldButton/);
   assert.match(screen, /<BuklodPttConversation/);
   assert.match(screen, /chatScrollRef/);
+  assert.match(screen, /scope && chatOpen/);
+  assert.match(screen, /setChatOpen\(\(open\) => !open\)/);
   assert.match(ui, /postgres_changes/);
   assert.match(ui, /Number\(item\.channel\) !== channel/);
   assert.match(ui, /setDraft\(''\)/);
