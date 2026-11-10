@@ -138,6 +138,9 @@ export default function AdminEconomyOperationsScreen() {
   const [transactionRef, setTransactionRef] = useState('');
 
   const load = useCallback(async () => {
+    // Never reuse another month's readiness or review queue during a refresh.
+    setQmpReadiness(null);
+    setQmpQueue(null);
     try {
       setError(null);
 
