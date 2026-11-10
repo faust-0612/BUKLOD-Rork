@@ -208,10 +208,11 @@ export default function MentorTeachingPhotoEvidence() {
         },
       );
       if (error) throw error;
-      if (!isValidSessionId(data?.session_id)) throw new Error('Report saved without a valid session receipt.');
-      savedSessionId = data.session_id;
-      setRetrySessionId(savedSessionId);
-      await uploadPhoto(savedSessionId, photo);
+      const confirmedSessionId: unknown = data?.session_id;
+      if (!isValidSessionId(confirmedSessionId)) throw new Error('Report saved without a valid session receipt.');
+      savedSessionId = confirmedSessionId;
+      setRetrySessionId(confirmedSessionId);
+      await uploadPhoto(confirmedSessionId, photo);
       completeNewReport();
       await load();
       Alert.alert('Report sent for review', 'Teaching report and private photo received. System Admin will verify before the +15 BP reward.');
