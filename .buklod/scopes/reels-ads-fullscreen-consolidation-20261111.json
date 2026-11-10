@@ -26,7 +26,7 @@
     "tests/reels-ads-fullscreen-ota-20261111.test.mjs"
   ],
   "validation": {
-    "sourceReview": "38/38 targeted source checks passed before final concurrent Wall reconciliation; latest Wall imported/comment ad deltas were restored intact.",
+    "sourceReview": "38/38 source-level checks passed before clean inclusion; all 5 latest Community Wall/comment-ad diff chunks preserved; 9-file PR diff ahead of current integration with 0 behind.",
     "pending": "Node regression execution, TypeScript compilation, compiled Android/web RC export and exact OTA manifest verification remain mandatory.",
     "actualDevice": "Not run; owner previously waived physical Android acceptance for consolidated Wall video fixes, without waiving mandatory release gates."
   },
@@ -36,6 +36,11 @@
     "newNativeBuild": false,
     "mainModified": false,
     "otaPublished": false,
-    "webPublished": false
-  }
+    "webPublished": false,
+    "sourceInclusionOnly": true,
+    "productionAndroidOtaPublished": false,
+    "compiledRcPassed": false,
+    "actualAdFillVerified": false
+  },
+  "inclusionBranch": "integration/reels-ads-ota-clean-20261111"
 }
