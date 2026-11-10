@@ -46,5 +46,5 @@ test('reported and reviewed external GCash receipts never mint platform money',(
   assert.match(sql,/revoke all on table private.buklod_scope_gcash_contribution_reports_v1/);
   assert.doesNotMatch(sql,/private\.buklod_pf_cash_ledger|wallet_credit/);
   assert.match(route,/REPORT MY GCASH CONTRIBUTION/);
-  assert.match(route,/independently match actual GCash account history/);
+  assert.match(route,/independently match actual receiving GCash history/);
 });
