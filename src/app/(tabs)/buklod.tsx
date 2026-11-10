@@ -6116,6 +6116,7 @@ const communityFeedRows =
         videoViewerFreshUrls[
          postId
         ]??
+        wallVideoFreshUrls[postId]??
         descriptor?.uri??
         ''
        ).trim();
@@ -6308,8 +6309,8 @@ const communityFeedRows =
           color:'rgba(255,255,255,.88)',
           textShadowColor:'rgba(0,0,0,.55)',
           textShadowRadius:3,
-          fontSize:10.5,
-          lineHeight:14
+          fontSize:12,
+          lineHeight:17
          }}
         >
          {String(
@@ -6384,7 +6385,7 @@ const communityFeedRows =
 
     {videoViewerIndex>=videoViewerPosts.length-2 &&
      videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT &&
-     (videoViewerHasMore||videoViewerLoadingMore||videoViewerLoadError)&&(
+     videoViewerLoadError&&!videoViewerLoadingMore&&(
      <Pressable
       accessibilityRole="button"
       disabled={videoViewerLoadingMore}
@@ -6396,11 +6397,7 @@ const communityFeedRows =
       }}
      >
       <Text style={{color:'#FFFFFF',fontSize:12,fontWeight:'700'}}>
-       {videoViewerLoadingMore
-        ? 'Finding recent videos...'
-        : videoViewerLoadError
-         ? 'Could not load more — tap to retry'
-         : 'Load more recent videos'}
+       Could not load more videos. Tap to retry
       </Text>
      </Pressable>
     )}
