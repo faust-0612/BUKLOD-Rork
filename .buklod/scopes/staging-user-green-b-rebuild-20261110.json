@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Build a new current-main staging-user signed Android APK with canonical green-B icon, and make actual installer downloadable in GitHub Actions.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Current main staging config already targets assets/release/buklod-main-canonical.png for both launcher icon and adaptive foreground; prior Nov 8 workflow uploaded EAS JSON evidence rather than APK; November 9 downloaded staging build was reported as showing legacy logo.",
+  "productionBaselineEvidence": "verified: GitHub main at 91ff33f869414aec67c125ad10f811bb11b74f91 was the authoritative latest source at initial inspection (2026-11-10), not asserted identical to installed/live OTA. Current staging config maps icon and adaptive foreground to assets/release/buklod-main-canonical.png, runtime 1.3.2 and package org.mzbministry.buklod.staging. Previous November 8 GitHub evidence artifact was only 1945 bytes and contains metadata rather than APK; user reports November 9 installer still showed old logo. Source-locked EAS APK must be newly built and actual installer tested, production untouched.",
   "chosenApproach": "Extend existing isolated staging build workflow with one new explicitly authorized merge commit marker, retain Expo EAS staging profile with preview Firebase/runtime and checks, download finished .apk from EAS URL, validate installer archive and upload real APK artifact.",
   "selectionRationale": "Safely rebuild latest source with no production OTA/Play release and provide a distinct actual APK artifact.",
   "riskAreas": [
