@@ -12,7 +12,7 @@ test('exact-scope Top 10 BP card appears on Cluster and Organization Home only',
 });
 
 test('only ACTIVE exact-scope members can see lifetime BP; max ten rows', () => {
-  const sql = read('supabase/migrations/20261110091000_buklod_scope_bp_top10_members_only.sql');
+  const sql = read('supabase/migrations/20261110093333_buklod_scope_bp_top10_members_only.sql');
   const ui = read('src/components/BuklodScopeBPTop10.tsx');
   assert.match(sql, /viewer.user_id = v_viewer/);
   assert.match(sql, /viewer.membership_status = 'ACTIVE'/);
