@@ -50,6 +50,10 @@ test('Edge AI generator fails closed before provider spending and never manufact
   assert.match(edge, /!== 'true'/);
   assert.match(edge, /session\.auth\.getUser\(\)/);
   assert.match(edge, /reserve_my_buklod_kingdom_ai_level_v1/);
+  assert.match(edge, /await service\.rpc\(/);
+  assert.match(edge, /p_user_id: auth\.user\.id/);
+  assert.match(sql, /grant execute on function public\.reserve_my_buklod_kingdom_ai_level_v1\(uuid,text,integer\)\s+to service_role/);
+  assert.match(sql, /revoke all on function public\.reserve_my_buklod_kingdom_ai_level_v1\(uuid,text,integer\)\s+from public,anon,authenticated/);
   assert.match(edge, /!reservation\.started/);
   assert.match(edge, /MAX_PREVIOUS = 1000/);
   assert.match(edge, /duplicate_ai_question/);
