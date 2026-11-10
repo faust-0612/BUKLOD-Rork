@@ -179,8 +179,8 @@ test('cumulative RC fails closed if own cumulative manifest is not explicitly de
     componentScopePaths: ['.buklod/scopes/item.json'],
     allowedPaths: paths.filter(p => !p.includes('nov11-consolidated-rc.json')),
   };
-  assert.match(
-    assessChanges(paths, manifest, { consolidatedRc: true }).failures.join(' '),
-    /outside the declared scope allowlist: \\.buklod\\/scopes\\/nov11/,
+  assert.ok(
+    assessChanges(paths, manifest, { consolidatedRc: true }).failures.join(' ')
+      .includes('outside the declared scope allowlist: .buklod/scopes/nov11'),
   );
 });
