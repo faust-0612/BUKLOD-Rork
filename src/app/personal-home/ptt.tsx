@@ -15,6 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
+import BuklodPttConversation from '@/components/BuklodPttConversation';
 import { useNetwork } from '@/providers/NetworkProvider';
 import {
   loadBuklodPttScopes,
@@ -832,6 +833,13 @@ export default function BuklodPttScreen() {
               </Pressable>
             ) : null}
           </View>
+          {scope ? (
+            <BuklodPttConversation
+              scopeId={scope.id}
+              channel={channel}
+              connection={runtime.connection}
+            />
+          ) : null}
         </ScrollView>
       </View>
 
