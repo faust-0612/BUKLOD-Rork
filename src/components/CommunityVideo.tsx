@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   setVideoCacheSizeAsync,
@@ -504,6 +505,7 @@ function ExpoCommunityVideo({
   onPosterGenerated,
 }: Props) {
   const soundOn = useSessionSound();
+  const viewerSafeInsets = useSafeAreaInsets();
   const playbackIdentity = playbackKey ? `post:${playbackKey}` : uri;
   const userPausedRef = useRef(false);
   const activeRef = useRef(active);
@@ -996,7 +998,10 @@ function ExpoCommunityVideo({
       ) : null}
 
       {showDelayedLoading ? (
-        <View pointerEvents="none" style={styles.bufferChip}>
+        <View pointerEvents="none" style={[
+          styles.bufferChip,
+          fullscreen && { top: Math.max(viewerSafeInsets.top + 16, 68) },
+        ]}>
           <Text style={styles.durationText}>
             {hasStartedPlayback ? 'Reconnecting…' : 'Preparing video…'}
           </Text>
@@ -1017,7 +1022,10 @@ function ExpoCommunityVideo({
           accessibilityRole="button"
           accessibilityLabel="Retry video"
           onPress={retryPlayback}
-          style={styles.retryButton}
+          style={[
+            styles.retryButton,
+            fullscreen && { top: '42%' },
+          ]}
         >
           <Text style={styles.retryText}>Retry video</Text>
         </Pressable>
