@@ -23,9 +23,9 @@ test('Gemini layout mounts no static fabricated classes, scores or exams',()=>{
   }
 });
 test('Faculty-gradebook decision waits for authoritative classroom context',()=>{
-  assert.match(js,/const isFaculty = \(\) => roleByClass\.get\(app\.activeClassId\)\?\.authorizedFaculty===true/);
+  assert.match(js,/const isFaculty = \(\) => desiredMode==='FACULTY'/);
   assert.match(js,/identity\.is_faculty===true/);
-  assert.match(js,/assigned\.authorizedFaculty=identity\.role==='FACULTY'/);
+  assert.match(js,/assigned\.authorizedFaculty=desiredMode==='FACULTY'/);
 });
 test('Student grade exposure uses only released-grade RPC',()=>{
   assert.match(js,/buklod_classroom_student_released_grade_items_v2/);
@@ -66,7 +66,7 @@ test('Sign-out clears private cache, including sign-out from another tab',()=>{
 });
 test('Unverified academic mutations are visibly blocked and not marked saved',()=>{
   for(const op of ['confirmRosterImportCommit','recordLiveRecitationScore','setStudentAttendance',
-    'archiveCurrentClass','markAllAttendancePresent','toggleOfflineMode','switchPersona','pushDirectlyToGitHub']){
+    'archiveCurrentClass','markAllAttendancePresent','toggleOfflineMode','pushDirectlyToGitHub']){
     assert.ok(js.includes(op),'unverified action disabled: '+op);
   }
   assert.match(js,/No records were changed/);
@@ -84,4 +84,16 @@ test('Both Gemini drawer overlays start CLOSED; authenticated dashboard stays cl
   assert.doesNotMatch(html,/id="universalSlideDrawer" class="slide-drawer open"/);
   const drawer=getStaticDivInner('drawerBodyContent');
   assert.ok(drawer.length<500,'No preloaded synthetic assessment drawer');
+});
+
+test('One-tap Main handoff scrubs one-time fragment before OTP exchange and enforces Student/Faculty role',()=>{
+    assert.match(js,/history\.replaceState\(\{\},'',location\.pathname\+location\.search/);
+    assert.match(js,/db\.auth\.verifyOtp\(\{token_hash:ssoHandoff\.hash,type:'email'\}\)/);
+    assert.match(js,/data\.user\.id!==ssoHandoff\.userId/);
+    assert.match(js,/buklod_classroom_launcher_access_v1/);
+    assert.match(js,/desiredMode==='STUDENT'/);
+    assert.match(js,/desiredMode==='FACULTY'/);
+    assert.match(js,/window\.switchPersona=mode=>/);
+    assert.match(js,/visibleClasses\(\)/);
+    assert.doesNotMatch(js,/auth\.setSession\(/);
 });
