@@ -1391,7 +1391,7 @@ function LegacyPublicBuklodScreen(){
   videoViewerResolvingPostId,
   setVideoViewerResolvingPostId
  ]=useState<string|null>(null);
- const videoViewerUrlInflightRef=useRef(new Set<string>());
+ const videoViewerUrlInflightRef=useRef(new Map<string,number>());
  const videoViewerUrlAttemptsRef=useRef(new Map<string,number>());
  const videoViewerUrlRetryAfterRef=useRef(new Map<string,number>());
 
@@ -4287,7 +4287,7 @@ const load=useCallback(async(options?:{
     // Only an actual player error authorizes private URL re-signing.
     // A session counter drops late responses after close or playlist change.
     const requestSession=videoViewerScanSeqRef.current;
-    videoViewerUrlInflightRef.current.add(postId);
+    videoViewerUrlInflightRef.current.set(postId,requestSession);
     videoViewerUrlAttemptsRef.current.set(postId,attempts+1);
     videoViewerUrlRetryAfterRef.current.set(postId,now+2500);
     setVideoViewerResolvingPostId(postId);
@@ -4309,7 +4309,9 @@ const load=useCallback(async(options?:{
     }catch{
      return null;
     }finally{
-     videoViewerUrlInflightRef.current.delete(postId);
+     if(videoViewerUrlInflightRef.current.get(postId)===requestSession){
+      videoViewerUrlInflightRef.current.delete(postId);
+     }
      if(requestSession===videoViewerScanSeqRef.current){
       setVideoViewerResolvingPostId(current=>current===postId?null:current);
      }
