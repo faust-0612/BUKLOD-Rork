@@ -32,7 +32,8 @@
     "src/app/community-contribution.tsx",
     "src/lib/buklodR38AdminEconomy.ts",
     "src/app/admin/economy-operations.tsx",
-    "src/components/BuklodCommunityEconomyAdminCard.tsx"
+    "src/components/BuklodCommunityEconomyAdminCard.tsx",
+    "src/app/bayanihan/index.tsx"
   ],
   "contracts": [
     "tests/buklod-monthly-earnings-carryforward-20261111.test.mjs",
@@ -77,7 +78,8 @@
     "Prior month earnings survive low current QMP and withdrawals; no estimates become withdrawable",
     "Legacy Community finalizer and cash-designation controls cannot create a parallel cash pool; admin has review queue and readiness audit",
     "All six SQL migrations and focused Postgres read-only contract compile in one rolled-back production database transaction",
-    "Physical-device verification waived, but exact consolidated Expo RC type/build and runtime release gates mandatory"
+    "Physical-device verification waived, but exact consolidated Expo RC type/build and runtime release gates mandatory",
+    "Bayanihan Economy page uses the same finalized last month, current AdMob QMP preview, and nonwithdrawable projected balance source as Home and Community; no contradictory PF estimated cash summary"
   ],
   "preserveBehaviors": [
     "BUKLOD referral reward and verified funded admin rewards remain separately accounted for in the canonical available cash ledger",
@@ -86,7 +88,8 @@
     "Community and Scope funds never become individual member cash and preliminary AdMob snapshots cannot fund payouts",
     "Android Expo OTA and Expo Hosting Web are the sole main-app release endpoints; no new native dependencies or Vercel/AWS",
     "All unrelated active main, Cluster, Wall, PTT, Kingdom and Classroom changes must survive consolidated merge",
-    "One source SHA for DEV -> verified RC -> production OTA, no standalone feature release"
+    "One source SHA for DEV -> verified RC -> production OTA, no standalone feature release",
+    "Bayanihan navigation, referral status, financial explanations and canonical payout entry remain usable"
   ],
   "riskAreas": [
     "monthly-qmp-and-fraud-review",
@@ -116,6 +119,7 @@
     "src/components/BuklodCommunityEconomyAdminCard.tsx",
     "tests/buklod-monthly-earnings-carryforward-20261111.test.mjs",
     "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
-    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql"
+    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql",
+    "src/app/bayanihan/index.tsx"
   ]
 }
