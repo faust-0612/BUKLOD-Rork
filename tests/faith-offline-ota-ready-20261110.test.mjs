@@ -2,10 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { nextBibleChapterTargets } from '../src/lib/buklodBiblePrefetchTargets.ts';
+import { selectAuthorizedOfflineLessonIds } from '../src/lib/buklodAuthorizedOfflineLessons.ts';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const paths = [
   'src/lib/buklodBiblePrefetchTargets.ts',
+  'src/lib/buklodAuthorizedOfflineLessons.ts',
   'src/lib/buklodFaithOfflineWarmup.ts',
   'src/lib/offlineCache.ts',
   'src/app/bible/index.tsx',
@@ -47,6 +49,32 @@ test('target planner rejects invalid chapters and strictly bounds downloads', ()
   assert.deepEqual(next(books, 1, 1, 100).map(x => x.chapterNo), [2, 3]);
 });
 
+test('only server-granted and released lessons are prepared for offline reading', () => {
+  const lessonIds = ['L1', 'L2', 'L3'];
+  const base = {
+    lessonIds, isFormation: true, enrolled: true, sequential: true,
+    access: [['L1', { allowed: true }], ['L2', { allowed: false }]],
+    weeklyStage: false, weekly: null,
+  };
+  assert.deepEqual(selectAuthorizedOfflineLessonIds(base), {
+    allowed: ['L1'], denied: ['L2'],
+  });
+  assert.deepEqual(selectAuthorizedOfflineLessonIds({
+    ...base, sequential: false, weeklyStage: true,
+    weekly: { delivery_assigned: true, lessons: [
+      { learning_lesson_id: 'L1', calendar_released: true, access_allowed: true, approved: false },
+      { learning_lesson_id: 'L2', calendar_released: false, access_allowed: true, approved: false },
+      { learning_lesson_id: 'L3', calendar_released: false, access_allowed: false, approved: false },
+    ] },
+  }), { allowed: ['L1'], denied: ['L3'] });
+  assert.deepEqual(selectAuthorizedOfflineLessonIds({
+    ...base, sequential: false, weeklyStage: false,
+  }), { allowed: [], denied: [] });
+  assert.deepEqual(selectAuthorizedOfflineLessonIds({
+    ...base, isFormation: false, enrolled: false,
+  }), { allowed: [], denied: [] });
+});
+
 test('only saved reading material is served offline and no background points are created', () => {
   const warm = read('src/lib/buklodFaithOfflineWarmup.ts');
   const bibleReader = read('src/app/bible/read.tsx');
@@ -58,6 +86,8 @@ test('only saved reading material is served offline and no background points are
   assert.match(warm, /isSameSignedInAccount\(userId\)/);
   assert.match(warm, /nextBibleChapterTargets\(books, bookNo, chapterNo, 2\)/);
   assert.match(warm, /warmPublishedWordsOffline/);
+  assert.match(warm, /warmAuthorizedLessonsOffline/);
+  assert.match(warm, /granted.has\(row.id\)/);
   assert.doesNotMatch(warm, /\.rpc\(\s*['\"](?:start_bible_reading_session|complete_my_daily_bible_reading[^'\"]*|award_[^'\"]+)['\"]/);
   assert.match(bibleReader, /warmNextBibleChaptersOffline\(/);
   assert.match(lesson, /offlineReadOnly && lesson/);
@@ -77,4 +107,6 @@ test('cache retention and snapshot recovery preserve previous authorized downloa
   assert.match(track, /if \(progressError\) return/);
   assert.match(track, /track\.id !== id/);
   assert.match(track, /accessForCache = cached\?\.data\?\.access/);
+  assert.match(track, /accessVerified && weeklyVerified/);
+  assert.match(track, /selectAuthorizedOfflineLessonIds/);
 });

@@ -4,7 +4,7 @@
  * bypass the server's authoritative publication/access checks.
  */
 import { supabase } from '@/lib/supabase';
-import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { getOfflineCache, removeOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { nextBibleChapterTargets, type BibleBookForPrefetch } from '@/lib/buklodBiblePrefetchTargets';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -239,6 +239,52 @@ export async function warmNextBibleChaptersOffline(input: {
         // Best effort. Existing saved chapters remain available.
       }
     }
+  } finally {
+    activeWarmups.delete(key);
+  }
+}
+
+/**
+ * Download only lesson rows confirmed accessible by an authoritative online
+ * access/release check. No content is fetched via unguarded catalog URLs.
+ */
+export async function warmAuthorizedLessonsOffline(input: {
+  userId: string;
+  track: { id: string } | null;
+  lessons: Array<{ id: string; track_id?: string | null; [key: string]: unknown }>;
+  allowedIds: string[];
+  deniedIds: string[];
+}): Promise<void> {
+  const { userId, track, lessons, allowedIds, deniedIds } = input;
+  if (!userId || !track?.id || !await isSameSignedInAccount(userId)) return;
+  const key = 'lessons:' + userId + ':' + track.id;
+  if (activeWarmups.has(key)) return;
+  activeWarmups.add(key);
+  try {
+    await runBounded([...new Set(deniedIds)].slice(0, 50), async id => {
+      if (!await isSameSignedInAccount(userId)) return;
+      await removeOfflineCache('lesson-reading-v1:' + id, userId);
+    });
+    const granted = new Set(allowedIds);
+    const selected = lessons.filter(row =>
+      granted.has(row.id) && row.track_id === track.id).slice(0, 30);
+    await runBounded(selected, async lesson => {
+      if (!await isSameSignedInAccount(userId)) return;
+      const cacheKey = 'lesson-reading-v1:' + lesson.id;
+      const saved = await getOfflineCache<any>(cacheKey, {
+        userId, allowStale: true,
+      });
+      if (saved?.data?.lesson?.id === lesson.id &&
+          Date.now() - saved.storedAt < FRESH) return;
+      if (!await isSameSignedInAccount(userId)) return;
+      await setOfflineCache(cacheKey, {
+        lesson,
+        track,
+        questions: saved?.data?.questions ?? [],
+        formationStatus: saved?.data?.formationStatus ?? null,
+        formationLesson: null,
+      }, { userId, ttlMs: 30 * DAY });
+    });
   } finally {
     activeWarmups.delete(key);
   }
