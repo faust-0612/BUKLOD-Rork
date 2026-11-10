@@ -238,24 +238,63 @@ async function readCommunityPhotoDimensions(uri: string): Promise<{width: number
   });
 }
 
+/** Browser-only JPEG fallback for photo formats WebKit can decode.
+ * This is attempted only if Expo's converter failed, and keeps source
+ * Blob URLs short-lived so repeated photos do not leak resources.
+ */
+async function convertWebPhotoToJpegBlob(source: Blob): Promise<Blob | null> {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return null;
+  const url = URL.createObjectURL(source);
+  try {
+    const image = document.createElement('img');
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Image decode timed out')), 12000);
+      image.onload = () => { clearTimeout(timeout); resolve(); };
+      image.onerror = () => { clearTimeout(timeout); reject(new Error('Image decode failed')); };
+      image.src = url;
+    });
+    const width = image.naturalWidth;
+    const height = image.naturalHeight;
+    if (!width || !height) return null;
+    const scale = Math.min(1, 1440 / Math.max(width, height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const result = await new Promise<Blob | null>(resolve =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.82)
+    );
+    return result?.size && /^image\/jpeg$/i.test(result.type) ? result : null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export async function prepareCommunityJpegUri(
   uri: string,
-): Promise<{ uri: string; sizeBytes: number }> {
-  // iOS in-app browsers may return a Blob URL or data URI without a .jpg
-  // extension. Recognize the real JPEG MIME and skip unsupported web canvas
-  // conversion for already-small photos.
+  webFile?: Blob | null,
+): Promise<{ uri: string; sizeBytes: number; webBlob?: Blob }> {
+  // Expo's web picker provides a File. Keep the actual bytes instead of
+  // loading a large base64 URI again in the iOS Messenger browser.
   const webSelectedBlob = Platform.OS === 'web'
-    ? await readWebBlob(uri).catch(() => null)
+    ? webFile ?? await readWebBlob(uri).catch(() => null)
     : null;
   const existingBytes = webSelectedBlob
     ? Number(webSelectedBlob.size ?? 0)
     : await readBinarySizeBytes(uri).catch(() => 0);
-  const isJpeg = /\.jpe?g(?:[?#]|$)/i.test(uri)
-    || /^image\/jpe?g$/i.test(String(webSelectedBlob?.type ?? ''))
-    || /^data:image\/jpe?g[;,]/i.test(uri);
+  const actualMime = String(webSelectedBlob?.type ?? '').trim().toLowerCase();
+  const isJpeg = actualMime
+    ? /^image\/jpe?g$/.test(actualMime)
+    : /\.jpe?g(?:[?#]|$)/i.test(uri) || /^data:image\/jpe?g[;,]/i.test(uri);
 
-  if (isJpeg && existingBytes > 0 && existingBytes <= 2 * 1024 * 1024) {
-    return { uri, sizeBytes: existingBytes };
+  // A valid browser JPEG can go straight to signed Storage PUT. This also
+  // avoids browser canvas crashes on common iPhone camera/photos exports.
+  if (isJpeg && existingBytes > 0 && existingBytes <= 12 * 1024 * 1024) {
+    return { uri, sizeBytes: existingBytes, webBlob: webSelectedBlob ?? undefined };
   }
 
   try {
@@ -273,23 +312,33 @@ export async function prepareCommunityJpegUri(
       format: M.SaveFormat.JPEG,
       compress: 0.82,
     });
-    const fileUri = String(image.uri ?? uri).trim() || uri;
-    const sizeBytes = await readBinarySizeBytes(fileUri);
-
-    if (!sizeBytes) {
-      throw new Error('Could not read the prepared photo size.');
+    const fileUri = String(image.uri ?? '').trim();
+    if (!fileUri) throw new Error('Photo conversion did not return an image.');
+    const webBlob = Platform.OS === 'web'
+      ? await readWebBlob(fileUri)
+      : null;
+    const sizeBytes = webBlob
+      ? Number(webBlob.size ?? 0)
+      : await readBinarySizeBytes(fileUri);
+    if (!sizeBytes || (webBlob && !/^image\/jpeg$/i.test(webBlob.type))) {
+      throw new Error('Prepared photo is not a valid JPEG.');
     }
-    return { uri: fileUri, sizeBytes };
+    return { uri: fileUri, sizeBytes, webBlob: webBlob ?? undefined };
   } catch (error) {
-    // JPEG passthrough is preferable to rejecting a post when an iOS
-    // Messenger/WebKit canvas converter is unavailable. Never mislabel PNG,
-    // HEIC, or GIF source bytes as JPEG, and retain the existing native path.
     if (Platform.OS === 'web') {
-      if (isJpeg && existingBytes > 0 && existingBytes <= 12 * 1024 * 1024) {
-        return { uri, sizeBytes: existingBytes };
+      // Browser canvas is an independent fallback for PNG/HEIC that WebKit
+      // itself can decode, without uploading non-JPEG bytes as a .jpg.
+      const converted = webSelectedBlob
+        ? await convertWebPhotoToJpegBlob(webSelectedBlob)
+        : null;
+      if (converted) {
+        return { uri, sizeBytes: converted.size, webBlob: converted };
+      }
+      if (isJpeg && existingBytes > 0 && existingBytes <= 45 * 1024 * 1024) {
+        return { uri, sizeBytes: existingBytes, webBlob: webSelectedBlob ?? undefined };
       }
       throw new Error(
-        'Photo conversion failed in this browser. Try a JPEG photo or open BUKLOD in Safari.',
+        'This photo could not be converted in your browser. Try a JPEG photo or open BUKLOD in Safari.',
       );
     }
     throw error;
@@ -337,17 +386,19 @@ export async function prepareCommunityPreviewJpegUri(
 export async function uploadCommunityPhotoFile({
   path,
   uri,
+  webFile,
   onProgress,
   wallPreview = false,
 }: {
   path: string;
   uri: string;
+  webFile?: Blob;
   onProgress?: (
     progress: CommunityVideoUploadProgress
   ) => void;
   wallPreview?: boolean;
 }): Promise<{ sizeBytes: number; path: string }> {
-  const prepared = await prepareCommunityJpegUri(uri);
+  const prepared = await prepareCommunityJpegUri(uri, webFile);
   let actualPath = path;
 
   // Upload preview first; only mark the original path with -p1 after Storage
@@ -377,6 +428,7 @@ export async function uploadCommunityPhotoFile({
   await uploadCommunityBinaryFile({
     path: actualPath,
     uri: prepared.uri,
+    webBlob: prepared.webBlob,
     contentType: 'image/jpeg',
     onProgress,
     sizeBytes: prepared.sizeBytes,
@@ -428,6 +480,7 @@ export async function uploadCommunityGifFile({
 async function uploadCommunityBinaryFile({
   path,
   uri,
+  webBlob,
   contentType,
   onProgress,
   sizeBytes = 0,
@@ -436,6 +489,7 @@ async function uploadCommunityBinaryFile({
 }: {
   path: string;
   uri: string;
+  webBlob?: Blob;
   contentType: string;
   onProgress?: (
     progress: CommunityVideoUploadProgress
@@ -479,6 +533,7 @@ async function uploadCommunityBinaryFile({
   await uploadCommunitySignedPut({
     path,
     uri,
+    webBlob,
     contentType,
     onProgress,
     sizeBytes,
@@ -489,6 +544,7 @@ async function uploadCommunityBinaryFile({
 async function uploadCommunitySignedPut({
   path,
   uri,
+  webBlob,
   contentType,
   onProgress,
   sizeBytes = 0,
@@ -496,6 +552,7 @@ async function uploadCommunitySignedPut({
 }: {
   path: string;
   uri: string;
+  webBlob?: Blob;
   contentType: string;
   onProgress?: (
     progress: CommunityVideoUploadProgress
@@ -532,7 +589,7 @@ async function uploadCommunitySignedPut({
 
   try {
     if (Platform.OS === 'web') {
-      const blob = await readWebBlob(uri);
+      const blob = webBlob ?? await readWebBlob(uri);
       const totalBytes = Number(blob.size ?? sizeBytes ?? 0);
       onProgress?.({ sentBytes: 0, totalBytes, ratio: 0 });
 
