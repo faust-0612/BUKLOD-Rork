@@ -1,14 +1,14 @@
 {
   "contractVersion": 2,
-  "objective": "Finish the original BUKLOD Main integrated Kingdom illustrated map and legitimate collectible/badge visual experience without Vercel or new app: 13 canonical stations, Hall of Legacy, existing server-based claim/use/remove, no phantom BP",
+  "objective": "Complete integrated BUKLOD Main Kingdom map/art/audio, movable character, 39-game free offline 200-level continuation, server-owned BP/Circle Rank and collectible claim/equip, historical armory and interactive badge trials without a new app, Vercel, payment or unauthorized backend.",
   "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
-  "productionBaselineEvidence": "Repository main verified at 5efb99435243a4bcaeff27fc8d41d58b6a9969c2. PR #637 had a reproducible TS1005 at KingdomInteriorCenter.tsx line 200, fixed in its DEV branch e99c0324...; artwork and map selectively reconciled here. PR #642 built the previous legacy gallery. Installed production Android OTA and Expo web exact artifacts not yet verified; this manifest does not authorize publication.",
-  "chosenApproach": "Bring 637 original illustrated atlas and low-cost reduced-motion weather effects into current main, preserve official 13 station coordinates and routes, bring 642 reusable SVG medallions and secure account-authoritative Hall of Legacy; intentionally do not merge experimental AI continuations, unapplied SQL, media assets or new native/audio dependencies. Run existing Expo Android/web compiled QA once; no Vercel.",
-  "selectionRationale": "Combines both tested design sources without merging behind-main branch, duplicating reward economy or adding cost/unsupported backends. Existing verified Circle Rank and Character collectible RPCs remain sole authority.",
+  "productionBaselineEvidence": "Source base main 5efb99435243a4bcaeff27fc8d41d58b6a9969c2. Prior exact-head compiled QA PR #643 2c6ed2a8 verified Android and Expo web on runtime 1.3.2. The present additions require fresh QA. Original WAV copied byte-identical by existing asset blob SHA dc5f6e474e4bef12e537acc6027790c3f14e9c42 from already reviewed Kingdom DEV branch. Physical device/visual verification waived by owner, not passed.",
+  "chosenApproach": "Selectively integrate existing original locally bundled WAV and scoped sound hook, movable character, and proven 39×200 deterministic non-credit practice from PR #637; reconcile prior illustrated map and server-authoritative collectible art from PR #643, add safe older-equipment reuse and local badge training. Exclude not-yet-deployed AI edge function, SQL, paid currency and unapproved economic changes; use no new native dependencies or paid providers.",
+  "selectionRationale": "Owner requests complete original Kingdom with real meaningful badge experience in Main. Existing native Expo audio is already part of app and existing original WAV asset is reused. Training rewards are non-financial and fully local, real BP/level/claim remain server authority, and original 13 stations/39 catalog are not changed.",
   "alternativeApproaches": [
-    "Wholesale merge PR #637 into main (rejected: behind-main changes, draft AI migrations, broader unresolved release blockers)",
-    "Create new standalone Kingdom or Vercel site (rejected: duplicates existing BUKLOD Main and costs)",
-    "Copy only safe on-app vector art plus current server-backed collectible UI (chosen)"
+    "Bring every pending Kingdom SQL/AI/ads migration into production immediately (rejected: unverified server RLS/quotas and economic policy)",
+    "Split Kingdom into new paid project/Vercel (rejected: owner requires Main integration)",
+    "Reuse existing official art, offline music and local practice, with verified collectible rewards and narrowly scoped no-credit trials (chosen)"
   ],
   "allowedPaths": [
     ".buklod/scopes/kingdom-main-visual-consolidated-20261111.json",
@@ -18,32 +18,54 @@
     "src/features/games/kingdom/BuklodKingdomAtmosphere.tsx",
     "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
     "tests/kingdom-legacy-visual-r1.test.mjs",
-    "tests/kingdom-main-visual-consolidated-20261111.test.mjs"
+    "tests/kingdom-main-visual-consolidated-20261111.test.mjs",
+    "assets/sounds/buklod-kingdom-ambient-original.wav",
+    "src/features/games/runtime/rorkAudio.ts",
+    "src/features/games/runtime/BuklodGameCharacterCompanion.tsx",
+    "src/features/games/kingdom/KingdomBadgeTrials.tsx",
+    "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
+    "src/features/games/kingdom/platform/KingdomOfflineContinuation.tsx",
+    "src/features/games/kingdom/platform/kingdomOfflineGenerator.mjs",
+    "src/features/games/kingdom/platform/kingdomOfflineGenerator.d.mts",
+    "src/app/games/christian-civic-leadership.tsx",
+    "src/app/games/mitch-restore-mural.tsx",
+    "src/app/games/practice.tsx",
+    "tests/kingdom-complete-user-experience-20261111.test.mjs"
   ],
   "preserveBehaviors": [
     "Canonical 13 game stations and stable coordinates/route IDs, and 39 existing games",
     "Original map rollback file and server-side Character V2/Circle Rank account authority",
     "Existing XP/Points ledger, +2 BP mastery policy, unmodified ads and sound preferences",
     "Other Home/Wall/Connect/Cluster/Health/Classroom experiences, pinned native runtime, production backend",
-    "Backend validation before collectible display, account isolation, offline/local preview record labeling"
+    "Backend validation before collectible display, account isolation, offline/local preview record labeling",
+    "Consent/privacy and no monetization interstitials in local badge trials",
+    "Existing audio/SFX preferences and native player cleanup, cost caps and weak-signal offline support"
   ],
   "acceptanceChecks": [
-    "Focused 642/this-PR source tests and existing R6 map regression source suites",
-    "Server RPC integration checks for authenticated claim, account switch and duplicate attempts",
-    "TypeScript compilation, Expo Android export and Expo web export with exact PR commit SHA",
-    "No new package/native changes, APK or paid AI required; no Vercel",
-    "Visual and accessibility checks at narrow handset and desktop, reduced-motion/background states",
-    "Reconcile exact main app production runtime/version/channel before approved consolidated OTA"
+    "Original 13 map coordinates, 39 routes, approved character art and old gameplay unchanged",
+    "All 39 games have 200 deterministic offline levels, unique answerable challenges, account-scoped saving and 3/3 advancement gate",
+    "Canonical Christian/Mitch/shared game centers all route to the offline practice catalog-validated game ID",
+    "Badge trials only accessible from server-claimed items; local mastery cannot mint BP, character level, Shards, QMP, cash or new paid items",
+    "Previously claimed inventory can be re-equipped and removed across character levels with authenticated account checks",
+    "Local ambient WAV plus approved sound preference and background pause, movable companion and reduced-motion map",
+    "Exact-head TypeScript, original R6/39 game regression suites, Node 39×200 stress tests, Android Expo and Expo web bundle export",
+    "No backend schema/Edge function migration, Vercel, new package or standalone app. No actual Android device test per owner waiver",
+    "Stage release candidate must reconcile cumulative Main and installed app OTA compatibility before production publishing"
   ],
   "riskAreas": [
     "kingdom-visual",
     "character-account-isolation",
     "cross-platform-layout",
-    "release-identity"
+    "release-identity",
+    "audio-lifecycle",
+    "offline-account-isolation",
+    "badge-claim-authorization",
+    "map-touch-responsiveness"
   ],
   "regressionTests": [
     "tests/kingdom-legacy-visual-r1.test.mjs",
-    "tests/kingdom-main-visual-consolidated-20261111.test.mjs"
+    "tests/kingdom-main-visual-consolidated-20261111.test.mjs",
+    "tests/kingdom-complete-user-experience-20261111.test.mjs"
   ],
-  "releaseState": "DEV_SOURCE_UNCOMPILED_HOLD"
+  "releaseState": "DEV_IMPLEMENTED_AWAITING_EXACT_HEAD_COMPILED_QA_OWNER_WAIVED_DEVICE"
 }
