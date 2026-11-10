@@ -3,13 +3,15 @@
  * No client-minted BP, Shards, XP, cash, or gameplay entitlements.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
+import KingdomRelicEmblem, { kingdomFinishLabel } from '@/features/games/kingdom/KingdomRelicEmblem';
+import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -45,6 +47,9 @@ export default function KingdomLegacyScreen() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busyKey, setBusyKey] = useState('');
+  const [reveal, setReveal] = useState<{ name: string; index: number; level: number; kind?: import('@/lib/buklodCharacterCollectibles').CharacterCollectibleRewardKind } | null>(null);
+  const revealScale = useRef(new Animated.Value(.72)).current;
+  const revealOpacity = useRef(new Animated.Value(0)).current;
   const operation = useRef(false);
   const accountRef = useRef(uid);
   accountRef.current = uid;
@@ -60,6 +65,22 @@ export default function KingdomLegacyScreen() {
     ? Math.max(0, Math.min(100, 100 * (points - previousTarget) / (nextTarget - previousTarget)))
     : nextTarget === null ? 100 : 0;
   const itemNames = useMemo(() => core ? collectibleNames(core, level) : [], [core, level]);
+  const acquired = useMemo(() => (collection?.items ?? []).filter(item =>
+    item.redeemedAt && item.collectibleId && item.characterId === core), [collection, core]);
+  const treasured = useMemo(() => [...acquired].sort((a,b) =>
+    b.level - a.level || b.itemIndex - a.itemIndex).slice(0, 10), [acquired]);
+
+  useEffect(() => {
+    if (!reveal) return;
+    revealScale.setValue(.72);
+    revealOpacity.setValue(0);
+    const entering = Animated.parallel([
+      Animated.spring(revealScale, { toValue:1, speed:17, bounciness:8, useNativeDriver:true }),
+      Animated.timing(revealOpacity, { toValue:1, duration:260, easing:Easing.out(Easing.quad), useNativeDriver:true }),
+    ]);
+    entering.start();
+    return () => entering.stop();
+  }, [reveal, revealOpacity, revealScale]);
 
   const load = useCallback(async (id: string, refresh = false) => {
     const next = await getMyBuklodCharacterSelectionV2(id, refresh);
@@ -74,6 +95,7 @@ export default function KingdomLegacyScreen() {
     let alive = true;
     setState(uid ? getCachedBuklodCharacterSelectionV2(uid) : null);
     setCollection(null);
+    setReveal(null);
     setError('');
     setNotice('');
     if (!uid) { setLoading(false); return; }
@@ -125,6 +147,15 @@ export default function KingdomLegacyScreen() {
       if (original.uid === accountRef.current && original.core === core && original.level === level) {
         setCollection(updated);
         setNotice(equipped ? 'Item removed from your character.' : 'Item claimed and equipped to your character!');
+        if (!equipped) {
+          const verified = updated.items.find(row => row.characterId === core &&
+            row.level === level && row.itemIndex === index && Boolean(row.redeemedAt));
+          if (verified) {
+            setReveal({ name: itemNames[index-1] ?? 'Character collectible', index,
+              kind: verified.rewardKind, level });
+            void playBuklodGameFeedback('unlock');
+          }
+        }
       }
     } catch (reason) {
       if (original.uid === accountRef.current) setNotice(reason instanceof Error ? reason.message : 'Could not update item. Please retry.');
@@ -132,7 +163,7 @@ export default function KingdomLegacyScreen() {
       operation.current = false;
       setBusyKey('');
     }
-  }, [uid, core, collection, level]);
+  }, [uid, core, collection, level, itemNames]);
 
   return (
     <View style={s.root}>
@@ -229,7 +260,7 @@ export default function KingdomLegacyScreen() {
 
           <View style={s.sectionHead}>
             <Text style={s.sectionTitle}>YOUR EQUIPMENT & REWARDS</Text>
-            <Text style={s.sectionHint}>Server-verified items</Text>
+            <Text style={s.sectionHint}>{collection ? acquired.length + ' claimed' : 'Server-verified items'}</Text>
           </View>
           {core ? <>
             <Text style={s.description}>Each item belongs to your current hero. Claim and show it to add its existing visual, profile or character effect. Other equipment types do not alter BP or rank.</Text>
@@ -241,12 +272,13 @@ export default function KingdomLegacyScreen() {
                 const equipped = Boolean(item && isCollectibleShown(item, collection));
                 const disabled = !collection || !unlocked || Boolean(busyKey);
                 return <View key={core + ':' + level + ':' + index} style={s.itemRow}>
-                  <LinearGradient colors={['#6e5a38', '#1e3845', '#0b2c40']} style={s.itemIcon}>
-                    <MaterialCommunityIcons name={characterTokenIcon(core, index) as never} size={28} color={C.gold}/>
-                  </LinearGradient>
+                  <View style={s.itemIcon}>
+                    <KingdomRelicEmblem index={index} level={level}
+                      rewardKind={item?.rewardKind} size={62} locked={!unlocked}/>
+                  </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text numberOfLines={2} style={s.itemName}>{name}</Text>
-                    <Text style={s.itemDescription}>{equipped ? 'EQUIPPED' : !collection ? 'CHECKING REWARD' : unlocked ? 'READY TO SHOW' : 'LOCKED'}</Text>
+                    <Text style={s.itemDescription}>{equipped ? 'EQUIPPED' : !collection ? 'CHECKING REWARD' : unlocked ? kingdomFinishLabel(level).toUpperCase() + ' FINISH · READY TO CLAIM' : 'LOCKED'}</Text>
                   </View>
                   <Pressable accessibilityRole="button"
                     accessibilityLabel={(equipped ? 'Remove ' : 'Claim and equip ') + name}
@@ -259,6 +291,23 @@ export default function KingdomLegacyScreen() {
                 </View>;
               })}
             </View>
+            {treasured.length > 0 ? <>
+              <View style={s.sectionHead}>
+                <Text style={s.sectionTitle}>LEGACY COLLECTION</Text>
+                <Text style={s.sectionHint}>Previously claimed • {acquired.length} total</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
+                {treasured.map(item => (
+                  <View key={item.collectibleId} style={s.trophyCard}>
+                    <KingdomRelicEmblem index={item.itemIndex} level={item.level}
+                      rewardKind={item.rewardKind} size={72}/>
+                    <Text numberOfLines={1} style={s.trophyLevel}>LEVEL {item.level}</Text>
+                    <Text numberOfLines={1} style={s.trophyFinish}>{kingdomFinishLabel(item.level)}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </> : null}
           </> : <View style={s.emptyPanel}>
             <Text style={s.emptyTitle}>Special Character Collection</Text>
             <Text style={s.hint}>Your Special Character badges and rewards are managed in Character Studio. This gallery never creates duplicate awards.</Text>
@@ -276,6 +325,27 @@ export default function KingdomLegacyScreen() {
           <Pressable accessibilityRole="button" onPress={() => void refresh()} style={s.outlineButton}><Text style={s.outlineText}>RETRY</Text></Pressable>
         </View> : null}
       </ScrollView>
+      <Modal visible={Boolean(reveal)} transparent animationType="fade"
+        onRequestClose={() => setReveal(null)}>
+        <View style={s.modalShade}>
+          <Animated.View style={[s.modalCard, {
+            opacity: revealOpacity, transform: [{ scale: revealScale }],
+          }]}>
+            <Text style={s.modalEyebrow}>KINGDOM COLLECTION</Text>
+            <View style={{ alignItems: 'center', marginVertical: 9 }}>
+              {reveal ? <KingdomRelicEmblem size={144} index={reveal.index}
+                level={reveal.level} rewardKind={reveal.kind}/> : null}
+            </View>
+            <Text style={s.modalTitle}>ITEM EQUIPPED!</Text>
+            <Text style={s.modalName}>{reveal?.name ?? ''}</Text>
+            <Text style={s.modalDescription}>Server-confirmed character collectible • {reveal ? kingdomFinishLabel(reveal.level) : ''} visual finish. No additional BP or currency awarded.</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close reward celebration"
+              onPress={() => setReveal(null)} style={s.goldButton}>
+              <Text style={s.goldButtonText}>CONTINUE MY KINGDOM</Text>
+            </Pressable>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -319,7 +389,16 @@ const s = StyleSheet.create({
   description: { color: C.muted, fontSize: 12, lineHeight: 18 },
   collection: { gap: 9 },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 81, padding: 9, borderRadius: 14, borderWidth: 1, borderColor: '#68828a', backgroundColor: '#153144' },
-  itemIcon: { width: 60, height: 60, borderRadius: 14, borderWidth: 1, borderColor: '#c0a16b', alignItems: 'center', justifyContent: 'center' },
+  itemIcon: { width: 68, height: 68, borderRadius: 14, backgroundColor:'#0c2734', alignItems: 'center', justifyContent: 'center' },
+  trophyCard: { width:105, alignItems:'center', gap:2, backgroundColor:'#143448', borderWidth:1, borderColor:'#987c53', borderRadius:13, padding:9 },
+  trophyLevel: { color:C.white, fontSize:11, fontWeight:'900' },
+  trophyFinish: { color:C.gold, fontSize:10, fontWeight:'800' },
+  modalShade: { flex:1, backgroundColor:'rgba(2,13,23,.88)', alignItems:'center', justifyContent:'center', padding:20 },
+  modalCard: { width:'100%', maxWidth:360, borderRadius:23, backgroundColor:'#183747', borderWidth:2, borderColor:'#edcc83', padding:22, alignItems:'center', gap:10 },
+  modalEyebrow: { color:C.gold, fontWeight:'900', fontSize:11, letterSpacing:2 },
+  modalTitle: { color:C.white, fontWeight:'900', fontSize:23, textAlign:'center' },
+  modalName: { color:C.gold, fontSize:16, fontWeight:'900', textAlign:'center' },
+  modalDescription: { color:C.muted, fontSize:12, lineHeight:19, textAlign:'center', marginBottom:13 },
   itemName: { fontSize: 12, fontWeight: '900', color: C.white },
   itemDescription: { marginTop: 5, fontSize: 9, letterSpacing: .5, fontWeight: '900', color: C.emerald },
   itemAction: { minWidth: 64, paddingHorizontal: 8, height: 38, backgroundColor: C.gold, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
