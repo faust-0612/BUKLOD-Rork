@@ -340,11 +340,11 @@ export default function MentorTeachingPhotoEvidence() {
           placeholderTextColor="#859688" value={notes} onChangeText={setNotes} maxLength={2000} />
         <Text style={s.meta}>Teaching photo required before the report goes to review.</Text>
         <View style={s.actions}>
-          <Pressable style={s.outline} disabled={busy !== null}
+          <Pressable style={[s.outline, s.flexButton]} disabled={busy !== null}
             onPress={() => void pickForNewReport('camera')}>
             <Text style={s.outlineText}>Take photo</Text>
           </Pressable>
-          <Pressable style={s.outline} disabled={busy !== null}
+          <Pressable style={[s.outline, s.flexButton]} disabled={busy !== null}
             onPress={() => void pickForNewReport('library')}>
             <Text style={s.outlineText}>Choose photo</Text>
           </Pressable>
@@ -421,7 +421,7 @@ export default function MentorTeachingPhotoEvidence() {
                 onPress={() => void revise(task)}>
                 <Text style={s.buttonText}>Save revision</Text>
               </Pressable>
-              <Pressable style={s.outline} onPress={() => setEditingId(null)}>
+              <Pressable style={[s.outline, s.flexButton]} onPress={() => setEditingId(null)}>
                 <Text style={s.outlineText}>Cancel</Text>
               </Pressable>
             </View>
@@ -461,7 +461,7 @@ const s = StyleSheet.create({
   flexButton: { flex: 1 },
   buttonText: { color: '#FFF', fontWeight: '900', fontSize: 13 },
   outline: { borderColor: '#9EC9AC', borderWidth: 1, borderRadius: 10,
-    padding: 11, justifyContent: 'center', alignItems: 'center', flex: 1 },
+    padding: 11, justifyContent: 'center', alignItems: 'center' },
   outlineText: { color: '#17643B', fontSize: 13, fontWeight: '800' },
   disabled: { opacity: 0.45 },
   consent: { padding: 11, backgroundColor: '#EDF7EF', borderRadius: 10 },
