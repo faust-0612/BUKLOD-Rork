@@ -231,6 +231,8 @@ export default function BuklodPttScreen() {
   const [nearbySearching, setNearbySearching] = useState(false);
   const [setup, setSetup] = useState<BuklodPttSetupSnapshot | null>(null);
   const [runtime, setRuntime] = useState(getBuklodPttRuntimeState());
+  const chatScrollRef = useRef<ScrollView>(null);
+  const chatOffsetRef = useRef(0);
   const connectLock = useRef(false);
   const connectPromiseRef = useRef<Promise<boolean> | null>(null);
 
@@ -581,6 +583,14 @@ export default function BuklodPttScreen() {
             <Text style={styles.subbrand}>Hold to talk with your group</Text>
           </View>
           <Pressable
+            onPress={() => chatScrollRef.current?.scrollTo({ y: chatOffsetRef.current, animated: true })}
+            style={styles.setupChip}
+            accessibilityLabel="Open PTT conversation"
+          >
+            <MaterialCommunityIcons name="message-text-outline" size={18} color="#56DCE5" />
+            <Text style={styles.setupChipText}>Chat</Text>
+          </Pressable>
+          <Pressable
             onPress={() => {
               setShowSetupDetails((v) => !v);
               void refreshSetup();
@@ -594,6 +604,7 @@ export default function BuklodPttScreen() {
         </View>
 
         <ScrollView
+          ref={chatScrollRef}
           style={{ flex: 1 }}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.content}
@@ -834,11 +845,13 @@ export default function BuklodPttScreen() {
             ) : null}
           </View>
           {scope ? (
+            <View onLayout={e => { chatOffsetRef.current = e.nativeEvent.layout.y; }}>
             <BuklodPttConversation
               scopeId={scope.id}
               channel={channel}
               connection={runtime.connection}
             />
+            </View>
           ) : null}
         </ScrollView>
       </View>
