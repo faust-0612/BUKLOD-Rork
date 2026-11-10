@@ -66,6 +66,8 @@ test('Edge AI generator fails closed before provider spending and never manufact
   assert.match(practice, /bp_awarded !== 0/);
   assert.match(practice, /safeQuestions/);
   assert.match(practice, /NEXT AI PRACTICE LEVEL/);
+  assert.match(practice, /EXPO_PUBLIC_BUKLOD_KINGDOM_AI_ENABLED === 'true'/);
+  assert.match(practice, /if \(!aiAvailable\) return null/);
 });
 
 test('AI-generated practice is server-saved before unlocking the next level', () => {
