@@ -36,7 +36,7 @@ function handler({ platform = 'android', type = 'CLUSTER', publicAvailable = tru
   let release;
   h = handler({ wait: new Promise(resolve => { release = resolve; }) });
   const first = h.open('/messages'); const second = h.open('/buklod'); release(); await Promise.all([first, second]);
-  assert.equal(h.events.filter(x => x[0] === 'route').length, 1, 'duplicate taps are suppressed');
+  assert.deepEqual(h.events.filter(x => x[0] === 'route'), [['route', '/buklod']], 'latest native tap wins while scope selection is pending');
   h = handler({ type: 'PUBLIC' }); await h.open('/me');
   assert.equal(h.events.length, 0, 'same global destination is a no-op');
   h = handler(); await h.open('/me');
@@ -46,5 +46,5 @@ function handler({ platform = 'android', type = 'CLUSTER', publicAvailable = tru
   await h.open('/buklod');
   release(); await webFirst;
   assert.deepEqual(h.events.filter(x => x[0] === 'route'), [['route', '/buklod']], 'web preserves latest request');
-  console.log('PASS: native duplicate taps, web latest request, scope ordering, failure, missing Public, same destination');
+  console.log('PASS: native latest request, web latest request, scope ordering, failure, missing Public, same destination');
 })().catch(error => { console.error(error); process.exitCode = 1; });

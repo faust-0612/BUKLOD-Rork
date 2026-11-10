@@ -159,14 +159,13 @@ BuklodPersistentBottomNav() {
   const navigationInFlight = React.useRef(false);
   const lastRequestedRoute = React.useRef<NavItem['route'] | null>(null);
   const openGlobalDestination = async (route: NavItem['route']) => {
-    if (Platform.OS !== 'web' && navigationInFlight.current) return;
-    if (Platform.OS === 'web' && navigationInFlight.current) {
-      // Do not discard a user's second tab choice while a scope switch is pending.
-      lastRequestedRoute.current = route;
+    // A new tap supersedes any older request, even during a scope transition.
+    // Keep global navigation behind the authorized Public scope switch.
+    lastRequestedRoute.current = route;
+    if (navigationInFlight.current) {
       setPendingRoute(route);
       return;
     }
-    if (Platform.OS === 'web') lastRequestedRoute.current = route;
     const needsScopeReset = activeScope?.scope_type === 'ORGANIZATION' || activeScope?.scope_type === 'CLUSTER';
     // A global destination cannot be skipped when a scope reset is still needed.
     if (isOnGlobalNavDestination(normalizedPath, route) && !needsScopeReset) return;
@@ -179,7 +178,7 @@ BuklodPersistentBottomNav() {
         // selectScope applies the local scope immediately; server persistence is non-blocking.
         await selectScope(publicScope.scope_id);
       }
-      buklodInstantNavigate(Platform.OS === 'web' ? (lastRequestedRoute.current ?? route) : route);
+      buklodInstantNavigate(lastRequestedRoute.current ?? route);
     } catch (error) {
       setPendingRoute(null);
       Alert.alert('Hindi mabuksan', error instanceof Error ? error.message : 'Subukang muli.');
@@ -246,7 +245,7 @@ BuklodPersistentBottomNav() {
             instant
             onPressIn={() => {
               // Visual response begins on touch-down; navigation remains release-only.
-              if (Platform.OS === 'web') setPendingRoute(item.route);
+              setPendingRoute(item.route);
             }}
             onPressOut={() => {
               if (!navigationInFlight.current && normalizedPath === item.route) {
