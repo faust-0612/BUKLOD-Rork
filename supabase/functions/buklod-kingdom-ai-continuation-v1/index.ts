@@ -120,16 +120,14 @@ async function generate(apiKey: string, model: string, game: {
 Deno.serve(async request => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: HEADERS });
   if (request.method !== 'POST') return reply(405, { error: 'method_not_allowed' });
-  // Disabled by default to prevent unbudgeted inference spending at scale.
-  if (Deno.env.get('BUKLOD_KINGDOM_AI_ENABLED') !== 'true') {
-    return reply(503, { error: 'ai_continuation_not_enabled' });
-  }
+  // Non-credit completion is still possible if AI generation is disabled.
+  // New provider requests remain opt-in and capped behind a server flag.
   const apiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
   const url = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   const bearer = request.headers.get('Authorization') ?? '';
-  if (!url || !anonKey || !serviceKey || !apiKey) {
+  if (!url || !anonKey || !serviceKey) {
     return reply(503, { error: 'ai_continuation_configuration_missing' });
   }
   if (!/^Bearer\s+\S+$/i.test(bearer)) return reply(401, { error: 'sign_in_required' });
@@ -145,6 +143,27 @@ Deno.serve(async request => {
   let body: Record<string, unknown>;
   try { body = await request.json(); }
   catch { return reply(400, { error: 'invalid_body' }); }
+  if (body.action === 'finish') {
+    const sessionId = String(body?.sessionId ?? '');
+    const answers = body?.answers;
+    if (!/^[0-9a-f-]{36}$/i.test(sessionId) ||
+      !Array.isArray(answers) || answers.length !== 3 ||
+      !answers.every(a => typeof a === 'number' && Number.isInteger(a) && a >= 0 && a <= 3)) {
+      return reply(400, { error: 'invalid_practice_submission' });
+    }
+    const { data: result, error: finishError } = await session.rpc(
+      'finish_my_buklod_kingdom_ai_level_v1',
+      { p_session_id: sessionId, p_answers: answers },
+    );
+    if (finishError || result?.completed !== true ||
+      result?.practice_only !== true || result?.bp_awarded !== 0) {
+      return reply(409, { error: 'practice_completion_unavailable' });
+    }
+    return reply(200, result);
+  }
+  if (Deno.env.get('BUKLOD_KINGDOM_AI_ENABLED') !== 'true' || !apiKey) {
+    return reply(503, { error: 'ai_continuation_not_enabled' });
+  }
   const gameId = String(body?.gameId ?? '').trim();
   const after = body?.afterLevel ?? 0;
   if (!/^[a-z][a-z0-9-]{2,99}$/.test(gameId) ||
@@ -163,11 +182,12 @@ Deno.serve(async request => {
   }
   const sessionId = String(reservation.session_id);
   const { data: existing, error: readError } = await service.from(TABLE)
-    .select('id,user_id,game_id,level_no,status,questions')
+    .select('id,user_id,game_id,level_no,status,questions,completed_at')
     .eq('id', sessionId).eq('user_id', auth.user.id).eq('game_id', gameId).single();
   if (readError || !existing) return reply(503, { error: 'ai_session_unavailable' });
   if (existing.status === 'ready' && Array.isArray(existing.questions)) {
     return reply(200, { level: existing.level_no, questions: existing.questions,
+      session_id: sessionId, completed: Boolean(existing.completed_at),
       practice_only: true, bp_awarded: 0 });
   }
   if (!reservation.started) {
@@ -203,8 +223,8 @@ Deno.serve(async request => {
       .eq('id',sessionId).eq('user_id',auth.user.id)
       .eq('status','generating').select('level_no').single();
     if (writeError || !written) throw new Error('ai_session_commit_failed');
-    return reply(200, { level: written.level_no, questions,
-      practice_only: true, bp_awarded: 0 });
+    return reply(200, { level: written.level_no, session_id: sessionId, questions,
+      completed: false, practice_only: true, bp_awarded: 0 });
   } catch (error) {
     await service.from(TABLE).update({
       status:'failed',updated_at:new Date().toISOString(),
