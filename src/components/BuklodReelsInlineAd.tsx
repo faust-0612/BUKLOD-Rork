@@ -80,6 +80,7 @@ export default function BuklodReelsInlineAd({
 
   const [nativeAd, setNativeAd] =
     useState<NativeAd | null>(null);
+  const renderedRef=useRef(false);
 
   const [nativeFailed, setNativeFailed] =
     useState(false);
@@ -278,6 +279,13 @@ export default function BuklodReelsInlineAd({
   useEffect(() => {
     if (prepared && routeSafe) callbackRef.current?.(adState);
   }, [adState, prepared, routeSafe]);
+  useEffect(() => {
+    if (active && adState==='ready' && !renderedRef.current) {
+      renderedRef.current=true;
+      recordBuklodAdEvent('reels_inline','ad_rendered',undefined,
+        {placementId:'reels_inline',route:pathname});
+    }
+  },[active,adState,pathname]);
 
   if (!active || !sdkReady || !routeSafe || !online) return null;
 
@@ -383,6 +391,10 @@ export default function BuklodReelsInlineAd({
         }
       >
         <BannerAd
+          onAdImpression={()=>{
+            recordBuklodAdEvent('reels_inline','ad_impression',undefined,
+              {placementId:'reels_inline',route:pathname});
+          }}
           unitId={
             bannerUnitId
           }
