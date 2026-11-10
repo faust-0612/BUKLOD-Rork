@@ -105,6 +105,9 @@ function MitchInterior() {
               <KingdomAIContinuation key={user.id + ':' + GAME_ID} gameId={GAME_ID} />
             </View>
           ) : null}
+          {!!user?.id ? <View style={styles.rewardExtras}>
+            <KingdomOfflineContinuation key={'offline:' + user.id + ':' + GAME_ID} gameId={GAME_ID} />
+          </View> : null}
           <BuklodAdMobBanner placement="content" compact placementId="kingdom-game-center-mitch" />
         </View>
       ) : (
@@ -120,10 +123,14 @@ function MitchInterior() {
           {!!user?.id && completedGameId === (selected === 'merge' ? MERGE_ID : FORGE_ID) ? (
             <View style={styles.rewardExtras}>
               <KingdomMasteryCheck key={user.id + ':' + completedGameId} gameId={completedGameId} />
-              <KingdomOfflineContinuation key={'offline:' + user.id + ':' + completedGameId} gameId={completedGameId} />
               <KingdomAIContinuation key={user.id + ':' + completedGameId} gameId={completedGameId} />
             </View>
           ) : null}
+          {!!user?.id ? <View style={styles.rewardExtras}>
+            <KingdomOfflineContinuation
+              key={'offline:' + user.id + ':' + (selected === 'merge' ? MERGE_ID : FORGE_ID)}
+              gameId={selected === 'merge' ? MERGE_ID : FORGE_ID} />
+          </View> : null}
           <BuklodAdMobBanner placement="content" compact placementId="kingdom-game-center-mitch" />
         </ScrollView>
       )}
