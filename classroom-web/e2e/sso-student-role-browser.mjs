@@ -7,6 +7,7 @@ const userId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const classId='11111111-1111-4111-8111-111111111111';
 const otherId='22222222-2222-4222-8222-222222222222';
 const tokenHash='a'.repeat(64);
+const noticeId='44444444-4444-4444-8444-444444444444';
 const user={
  id:userId,email:'synthetic-student@example.invalid',aud:'authenticated',
  role:'authenticated',created_at:'2026-11-10T00:00:00Z',app_metadata:{provider:'email'},user_metadata:{}
@@ -28,6 +29,7 @@ async function run(mode,dual=false,mismatch=false){
  try{
   const context=await browser.newContext({viewport:{width:1180,height:820}});
   const page=await context.newPage(),unexpected=[],used=[];
+  let noticeAcknowledged=false;
   page.on('pageerror',e=>unexpected.push(e.message));
   page.on('dialog',d=>d.dismiss());
   await page.route('https://yhanxndaqbmuzbdqlblu.supabase.co/**',async route=>{
@@ -60,10 +62,24 @@ async function run(mode,dual=false,mismatch=false){
    }
    if(p.includes('/rest/v1/')){
     const name=p.split('/').pop();
+    if(name==='buklod_education_notice_acknowledgments'){
+      if(req.method()==='POST'){
+        noticeAcknowledged=true;
+        return route.fulfill({status:201,headers:cors,body:''});
+      }
+      return route.fulfill(json(noticeAcknowledged?[{notice_id:noticeId,acknowledged_at:'2026-11-10T06:00:00Z'}]:[]));
+    }
     if(req.method()!=='GET')throw Error('Unexpected mutation in synthetic SSO test: '+name);
+    if(name==='buklod_education_notices')
+      return route.fulfill(json([{
+        id:noticeId,classroom_id:classId,title:'Verified student notice',
+        body:'Read and acknowledge',requires_ack:true,notice_level:'WARNING',
+        student_user_id:userId,visible_from:'2026-11-09T00:00:00Z',
+        expires_at:null,created_at:'2026-11-09T00:00:00Z'
+      }]));
     if(['buklod_education_classroom_live_sessions','buklod_education_classroom_posts',
         'buklod_education_classroom_comments','buklod_education_classroom_assignments',
-        'buklod_education_classroom_submissions','buklod_education_notices'].includes(name))
+        'buklod_education_classroom_submissions'].includes(name))
       return route.fulfill(json([]));
    }
    throw Error('Unhandled endpoint '+p);
@@ -88,6 +104,12 @@ async function run(mode,dual=false,mismatch=false){
     assert.ok(used.some(x=>x.includes('student_released_grade_items_v2')));
     assert.ok(!used.some(x=>x.includes('gradebook_roster_v1')),'Student View must not call faculty roster RPC');
     console.log('STUDENT_RELEASED_ONLY_GRADE_VIEW=PASS');
+    await page.evaluate(()=>window.switchWorkspaceGroup('CONNECT','notices'));
+    await page.getByText('Verified student notice').waitFor({timeout:8000});
+    await page.locator('#workspaceBodyContent').getByRole('button',{name:'I ACKNOWLEDGE'}).click();
+    await page.getByText(/Acknowledged/).waitFor({timeout:8000});
+    assert.equal(noticeAcknowledged,true,'Notice must reach Supabase write mock exactly for the signed-in user');
+    console.log('STUDENT_FORMAL_NOTICE_ACKNOWLEDGMENT=PASS');
     await page.evaluate(()=>window.switchPersona('FACULTY'));
     if(dual){
       assert.equal(await page.locator('#rolePersonaSelect').inputValue(),'FACULTY');
