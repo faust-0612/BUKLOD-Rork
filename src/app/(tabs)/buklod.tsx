@@ -6055,6 +6055,7 @@ const communityFeedRows =
     }}
    >
     <GestureFlatList
+     ref={videoViewerListRef}
      key={
       'video-viewer-'+
        videoViewerSession
@@ -6063,7 +6064,7 @@ const communityFeedRows =
       flex:1,
       width:'100%'
      }}
-     data={videoViewerPosts}
+     data={videoViewerFeedRows}
      extraData={videoViewerIndex}
      initialNumToRender={2}
      maxToRenderPerBatch={2}
@@ -6088,7 +6089,7 @@ const communityFeedRows =
        videoViewerIndex,
        Math.max(
         0,
-        videoViewerPosts.length-1
+        videoViewerFeedRows.length-1
        )
       )
      }
@@ -6110,7 +6111,7 @@ const communityFeedRows =
            .contentOffset.y/
           videoViewerPageHeight
          ),
-         videoViewerPosts.length-1
+         videoViewerFeedRows.length-1
         )
        );
 
@@ -6120,7 +6121,7 @@ const communityFeedRows =
 
       if(nextIndex!==videoViewerIndex)setVideoViewerShowHint(false);
       // Never rotate a still-playable signed URL merely on swipe.
-       if(nextIndex>=videoViewerPosts.length-3 &&
+       if(nextIndex>=videoViewerFeedRows.length-3 &&
           videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT){
         void loadMoreVideoViewer();
        }
@@ -6204,7 +6205,7 @@ const communityFeedRows =
           index===
           videoViewerIndex
          }
-         preload={index===videoViewerIndex+1}
+         preload={index===videoViewerNextVideoIndex}
          autoPlay={
           index===
           videoViewerIndex
@@ -6262,9 +6263,9 @@ const communityFeedRows =
        s.communityViewerCount
       }
      >
-      {videoViewerIndex+1}
-      {' / '}
-      {videoViewerPosts.length}
+      {videoViewerActiveIsAd ? 'Sponsored' : Math.max(1,videoViewerContentPosition)}
+      {videoViewerActiveIsAd ? '' : ' / '}
+      {videoViewerActiveIsAd ? '' : videoViewerPosts.length}
      </Text>
 
      <Pressable
@@ -6285,13 +6286,8 @@ const communityFeedRows =
      </Pressable>
     </View>
 
-    {!!videoViewerPosts[
-      videoViewerIndex
-    ]&&(()=>{
-     const activePost=
-      videoViewerPosts[
-       videoViewerIndex
-      ];
+    {!videoViewerActiveIsAd&&!!videoViewerActiveRow&&(()=>{
+     const activePost=videoViewerActiveRow;
      const counts=
       activePost?.reaction_counts||
       {};
@@ -6399,7 +6395,7 @@ const communityFeedRows =
      );
     })()}
 
-    {videoViewerPosts.length>1&&videoViewerShowHint&&(
+    {videoViewerPosts.length>1&&!videoViewerActiveIsAd&&videoViewerShowHint&&(
      <View pointerEvents="none" style={{
       position:'absolute',
       top:Math.max(communityInsets.top+105,126),
@@ -6415,7 +6411,7 @@ const communityFeedRows =
      </View>
     )}
 
-    {videoViewerIndex>=videoViewerPosts.length-2 &&
+    {videoViewerIndex>=videoViewerFeedRows.length-2 &&
      videoViewerPosts.length<COMMUNITY_VIDEO_DISCOVERY_LIMIT &&
      videoViewerLoadError&&!videoViewerLoadingMore&&(
      <Pressable
