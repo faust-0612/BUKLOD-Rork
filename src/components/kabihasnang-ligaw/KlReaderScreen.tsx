@@ -29,6 +29,7 @@ import KlAdminPreview from '@/components/kabihasnang-ligaw/KlAdminPreview';
 import KlChapterAudio from '@/components/kabihasnang-ligaw/KlChapterAudio';
 import { KlSceneEffect, type SceneEffect } from '@/components/kabihasnang-ligaw/KlSceneEffect';
 import KlLiveDiscussion from '@/components/kabihasnang-ligaw/KlLiveDiscussion';
+import KlReadingQuiz from '@/components/kabihasnang-ligaw/KlReadingQuiz';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
 import {
   buildAssetGate,
@@ -62,7 +63,7 @@ import {
 } from '@/lib/kabihasnang-ligaw/releasePreflight';
 import { otherAudioPlaying } from '@/lib/kabihasnang-ligaw/externalAudioState';
 import { supabase } from '@/lib/supabase';
-import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
+import { warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -140,13 +141,11 @@ export default function KlReaderScreen() {
   const [dynamicMedia, setDynamicMedia] = useState<DynamicMedia[]>([]);
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [mediaErrors, setMediaErrors] = useState<Record<string, string>>({});
-  const [rewardFeedback, setRewardFeedback] = useState('');
   const [viewStart, setViewStart] = useState<number | null>(null);
   const [viewEnd, setViewEnd] = useState<number | null>(null);
   const paragraphY = useRef<Record<number, number>>({});
   const readerTop = useRef(0);
   const openSequence = useRef(0);
-  const chapterCompletionInFlight = useRef(false);
 
   const compact = width < 420;
   const bodySize = Math.round(19 * cache.textScale);
@@ -295,6 +294,38 @@ export default function KlReaderScreen() {
     });
   }, [isSystemAdmin, user?.id, refreshAdminRows]);
 
+  const prepareQuizForApprovedChapter = async (databaseId: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'kl-generate-reading-quiz', { body: { episode_id: databaseId } },
+      );
+      return !error && (data as { status?: string } | null)?.status === 'ready'
+        ? 'Handa na ang 5 simpleng reading questions (3 random kada reader).'
+        : 'Approved ang manuscript pero pending pa ang mga tanong. Maaaring i-retry.';
+    } catch {
+      return 'Pending ang generation. Suriin ang koneksiyon bago mag-retry.';
+    }
+  };
+
+  const retryQuizForChapter = async (episodeId: string) => {
+    if (adminActionLockRef.current || adminBusyId) return;
+    const episode = EPISODES.find((item) => item.id === episodeId);
+    const chapter = episode
+      ? findKlAdminChapter(visibleAdminRows, 1, episode.episodeNumber)
+      : null;
+    if (!chapter || chapter.status !== 'approved') return;
+    adminActionLockRef.current = true;
+    setAdminBusyId(episodeId);
+    setAdminFeedbackEpisodeId(episodeId);
+    setAdminFeedback('Sinusuri ang reading questions…');
+    try {
+      setAdminFeedback(await prepareQuizForApprovedChapter(chapter.id));
+    } finally {
+      setAdminBusyId(null);
+      adminActionLockRef.current = false;
+    }
+  };
+
   const decideEpisode = async (episodeId: string, action: 'approve' | 'reject' | 'release', notes = '') => {
     setAdminFeedbackEpisodeId(episodeId);
     if (!isSystemAdmin) {
@@ -321,6 +352,21 @@ export default function KlReaderScreen() {
       const serverChapter = findKlAdminChapter(freshRows, 1, targetEpisode.episodeNumber);
       if (!serverChapter) throw new Error('Chapter not created on server. Open KL Studio first.');
       if (action === 'release') {
+        // Do not publish an unreadable quiz-only chapter if generation failed.
+        // Try the pending bank once before enforcing release readiness.
+        const { data: quizContext, error: quizContextError } = await supabase.rpc(
+          'kl_quiz_admin_context_v1', { p_episode_id: serverChapter.id },
+        );
+        if (quizContextError) throw new Error('Hindi ma-verify ang KL reading questions. Hindi muna ma-release.');
+        if ((quizContext as { quiz_status?: string } | null)?.quiz_status !== 'ready') {
+          await prepareQuizForApprovedChapter(serverChapter.id);
+          const { data: refreshedQuiz, error: refreshedError } = await supabase.rpc(
+            'kl_quiz_admin_context_v1', { p_episode_id: serverChapter.id },
+          );
+          if (refreshedError || (refreshedQuiz as { quiz_status?: string } | null)?.quiz_status !== 'ready') {
+            throw new Error('Hindi pa handa ang 5 manuscript-based questions. Retry muna sa KL Admin bago mag-release.');
+          }
+        }
         const blockers = klReleaseBlockers(serverChapter);
         if (blockers.length) throw new Error(blockers.join(' '));
       }
@@ -332,6 +378,9 @@ export default function KlReaderScreen() {
       if (error) throw error;
       if (result?.ok !== true) throw new Error('Server did not confirm the chapter action.');
 
+      const quizFeedback = action === 'approve'
+        ? ' ' + await prepareQuizForApprovedChapter(serverChapter.id)
+        : '';
       const updatedRows = await refreshAdminRows();
       if (action === 'release') {
         const updatedChapter = findKlAdminChapter(updatedRows, 1, targetEpisode.episodeNumber);
@@ -346,7 +395,7 @@ export default function KlReaderScreen() {
         setReleasedChapters(libraryData as ReleasedChapter[]);
       }
       setAdminFeedback(action === 'approve'
-        ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.'
+        ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.' + quizFeedback
         : action === 'release'
           ? 'Verified: inilabas ang kabanata at nasa public library na.'
           : 'Ibinalik sa draft sa server.');
@@ -426,27 +475,6 @@ export default function KlReaderScreen() {
     }
   }, [selected?.id, serverState, online]);
 
-  const finishChapter = async () => {
-    if (!selected || !selectedDbId || chapterCompletionInFlight.current) return;
-    chapterCompletionInFlight.current = true;
-    try {
-      const { data, error } = await supabase.rpc('kl_reading_progress_v1', {
-        p_episode_id: selectedDbId, p_action: 'complete',
-      });
-      if (error) { setRewardFeedback(error.message); return; }
-      const result = data as { new_completion?: boolean; points_awarded?: number; chapter_points?: number; series_points?: number; completed?: boolean } | null;
-      setRewardFeedback(result?.completed === false ? 'Kailangan muna ng sapat na oras ng pagbabasa.' :
-        result?.new_completion ? `Natapos ang kabanata · +${Number(result.chapter_points||5)} BP${Number(result.series_points||0)>0?` · Series completed +${Number(result.series_points)} BP`:''}` : 'Naitala na ang pagkumpleto sa kabanatang ito.');
-      if (result?.completed !== false) setJourneyRefreshToken((token) => token + 1);
-      // Completion and Journey refresh are confirmed before any optional ad.
-      if (result?.new_completion === true) await showBuklodAdOpportunity('kl_chapter_success');
-    } catch {
-      setRewardFeedback('Hindi makumpirma ang kabanata. Subukang muli.');
-    } finally {
-      chapterCompletionInFlight.current = false;
-    }
-  };
-
   const syncViewport = (scrollY: number) => {
     const entries = Object.entries(paragraphY.current)
       .map(([index, y]) => ({ index: Number(index), y: y + readerTop.current }))
@@ -481,7 +509,6 @@ export default function KlReaderScreen() {
     setDynamicMedia([]);
     setMediaUrls({});
     setMediaErrors({});
-    setRewardFeedback('');
     setSelectedId(episodeId);
     setGlossaryOpen(false);
     let nextCache = rememberScroll(cache, episodeId, 0, readable);
@@ -798,10 +825,8 @@ export default function KlReaderScreen() {
                 <IconButton icon="refresh" label={klCopy.tryAgain} disabled={busy} onPress={() => void refresh()} />
               </View>
             ) : null}
-            <Pressable accessibilityRole="button" onPress={() => void finishChapter()} style={{ padding: 12, borderRadius: 8, backgroundColor: '#28583f' }}>
-              <Text style={{ color: '#fff' }}>Mark Chapter Complete</Text>
-            </Pressable>
-            {rewardFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{rewardFeedback}</Text> : null}
+            <KlReadingQuiz key={selectedDbId ?? 'unavailable'} episodeId={selectedDbId}
+              onVerified={() => setJourneyRefreshToken((token) => token + 1)} />
 
             <KlLiveDiscussion episodeId={selectedDbId ?? klDatabaseId(selected.episodeNumber)} live={liveReleased} />
           </View>
@@ -886,6 +911,13 @@ export default function KlReaderScreen() {
                       <Text style={styles.meta}>Approve each illustration/audio in the private preview before approving the chapter. Chapter approval does not publish it.</Text>
                       <View style={{ flexDirection: 'row', gap: 12 }}>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
+                        {serverChapter?.status === 'approved' ? (
+                          <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
+                            onPress={(event) => { event.stopPropagation(); void retryQuizForChapter(episode.id); }}
+                            style={{ padding: 12, backgroundColor: '#375566', borderRadius: 8 }}>
+                            <Text style={{ color: '#fff' }}>Check / Retry 5 Reading Questions</Text>
+                          </Pressable>
+                        ) : null}
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
                           onPress={(event) => {

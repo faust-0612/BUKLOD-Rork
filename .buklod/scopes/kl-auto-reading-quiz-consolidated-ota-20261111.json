@@ -1,0 +1,71 @@
+{
+  "contractVersion": 2,
+  "objective": "KL approved manuscripts auto-generate 5 short evidence-grounded reading questions; show 3 random questions; 3/3 verifies +5 BP with preserved series bonus; add to one consolidated BUKLOD Main OTA, do not publish independently.",
+  "baseRef": "main",
+  "sourceBranch": "integration/buklod-nov10-single-source-ota",
+  "includedInConsolidatedOta": true,
+  "verificationPolicy": {
+    "actualDevice": "owner explicitly skipped",
+    "sourceContractChecks": "isolated branch 33 source-level assertions; consolidated exact-head CI pending",
+    "runtimeBuild": "not run; still required at consolidated RC gate",
+    "backendE2E": "not run; requires backend migration and AI key verification",
+    "productionStatus": "untouched"
+  },
+  "otaTarget": {
+    "appTarget": "main",
+    "runtimeVersion": "1.3.2",
+    "newNativeDependency": false,
+    "expoUpdatesEligible": true,
+    "doNotBuildStandaloneApk": true
+  },
+  "releaseOrdering": [
+    "Reconcile current authoritative production, DEV, and single consolidated RC before cherry-pick; never duplicate source patches.",
+    "Apply compatible database migration 20261111010000_kl_auto_reading_quiz_v1.sql before app OTA, with enforcement flag default false.",
+    "Deploy kl-generate-reading-quiz with JWT verification and protected server-side existing GEMINI_API_KEY; verify model generates correct source-evidenced questions without leaking answer keys.",
+    "Generate and source-review approved legacy Panimula and Kabanata 1-5 banks; confirm new approvals automatically produce five questions.",
+    "Compile/test exact consolidated RC branch; actual-device verification is waived by owner, but server checks, typecheck, and build checks are not.",
+    "Publish one consolidated OTA from exact verified RC/runtime, not this isolated DEV branch; verify release identifier and source commit.",
+    "After all old supported clients receive quiz UI or are cut off, switch enforce_quiz to true in a separately verified backend change."
+  ],
+  "acceptanceChecks": [
+    "Auth + approved/released manuscript required for quiz; server never sends correct answer indexes to client.",
+    "Exactly 5 easy questions per approved manuscript with verifiable quotation evidence; 3 randomized questions presented.",
+    "3/3 answers verified by server; wrong or incomplete answers earn no BP; retries rate-limited.",
+    "Already completed chapter remains completed; +5 chapter and +30 season bonus cannot duplicate.",
+    "If AI bank is pending while enforcement=false, temporary 60s+2 ping legacy fallback remains available; disabled after strict rollout.",
+    "An approved new chapter cannot be released in the new KL Admin flow without a verified bank; server also gates new schedule/release when strict enforcement=true.",
+    "Existing reader comments, media, audio, auto-pause, KL library, and other BUKLOD home flows are unchanged.",
+    "No change to native dependencies, Play AAB, app identifiers or runtimeVersion.",
+    "Correct option string must appear directly in the verbatim manuscript evidence; reject banks that fail evidence validation."
+  ],
+  "riskAreas": [
+    "KL manuscript approvals",
+    "Supabase RLS/RPC",
+    "Edge AI provider cost",
+    "points ledger idempotency",
+    "old-client compatibility",
+    "OTA consolidation"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kl-auto-reading-quiz-consolidated-ota-20261111.json",
+    "docs/KL_AUTO_READING_QUIZ_DEV_20261111.md",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/kabihasnang-ligaw/KlReadingQuiz.tsx",
+    "supabase/functions/kl-generate-reading-quiz/index.ts",
+    "supabase/migrations/20261111010000_kl_auto_reading_quiz_v1.sql",
+    "tests/kl-ad-completion.test.cjs",
+    "tests/buklod-ad-opportunities.test.cjs",
+    "tests/buklod-points-r3-kl-story.test.mjs",
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "tests/kl-reader-ad-safe-completion.test.mjs",
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Production Main OTA is unchanged until exact consolidated release is explicitly executed.",
+    "Old client completion remains functional until minimum build cutoff is in force.",
+    "Offline manuscript reading works; online server verification is required to award BP.",
+    "No additional Expo native modules, paid third-party app services or Vercel deployment.",
+    "Reuse the existing server Gemini key and one bounded on-approval generation; do not add a separate paid OpenAI API key."
+  ]
+}

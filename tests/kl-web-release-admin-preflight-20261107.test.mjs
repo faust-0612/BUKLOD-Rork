@@ -63,7 +63,7 @@ test('published random-ID chapters stay readable with real UUID for reading and 
   assert.match(source,/findKlAdminChapter\(visibleAdminRows, 1, episodeNumber\)\?\.id/);
   assert.match(source,/const dbId = databaseIdForEpisode\(episode\.episodeNumber\)/);
   assert.match(source,/const selectedDbId = selected \? databaseIdForEpisode\(selected\.episodeNumber\)/);
-  assert.match(source,/p_episode_id: selectedDbId, p_action: 'complete'/);
+  assert.match(source,/<KlReadingQuiz key=\{selectedDbId/);
   assert.match(source,/releasedNumbers\.has\(selected\.episodeNumber\)/);
   assert.match(source,/releasedNumbers\.has\(fromCatalog\.episodeNumber\)/);
 });

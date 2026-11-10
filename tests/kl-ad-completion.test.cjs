@@ -2,12 +2,12 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 
-test('KL chapter natural-break ad can occur only after new server-verified completion', () => {
-  const source = readFileSync('src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx', 'utf8');
-  const rpc = source.indexOf("p_action:'complete'");
-  const guard = source.indexOf("if(!error && result?.new_completion)");
-  const show = source.indexOf("await showBuklodAdOpportunity('kl_chapter_success')");
-  assert.ok(rpc > 0 && guard > rpc && show > guard);
-  assert.match(source, /result\?\.completed===false/);
+test('KL reading quiz uses server-verified completion before optional ad', () => {
+  const source = readFileSync('src/components/kabihasnang-ligaw/KlReadingQuiz.tsx', 'utf8');
+  const request = source.indexOf("'kl_quiz_submit_v1'");
+  const verified = source.indexOf('result.passed && result.completion?.completed === true');
+  const ad = source.indexOf("showBuklodAdOpportunity('kl_chapter_success')");
+  assert.ok(request > 0 && verified > request && ad > verified);
+  assert.match(source, /result\.completion\.new_completion === true/);
   assert.doesNotMatch(source, /claimBuklodRewardGroup\(|grant.*point/i);
 });

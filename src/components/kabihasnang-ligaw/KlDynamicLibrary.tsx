@@ -5,9 +5,10 @@ import {Image} from 'expo-image';
 import {supabase} from '@/lib/supabase';
 import {KlSceneEffect,type SceneEffect} from './KlSceneEffect';
 import KlChapterAudio from './KlChapterAudio';
+import KlReadingQuiz from './KlReadingQuiz';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
 import { splitKlManuscriptBlocks } from '@/lib/kabihasnang-ligaw/paragraphBlocks';
-import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
+import { warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 type Chapter={id:string;season_number:number;episode_number:number;title:string};
 type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
 export default function KlDynamicLibrary(){
@@ -18,7 +19,6 @@ export default function KlDynamicLibrary(){
  const [urls,setUrls]=useState<Record<string,string>>({});
  const [mediaErrors,setMediaErrors]=useState<Record<string,string>>({});
  const [message,setMessage]=useState('');
- const [startTime,setStartTime]=useState(0);
  const [routeFocused,setRouteFocused]=useState(false);
  const [appActive,setAppActive]=useState(AppState.currentState!=='background'&&AppState.currentState!=='inactive');
  useFocusEffect(useCallback(()=>{setRouteFocused(true);return()=>setRouteFocused(false);},[]));
@@ -28,7 +28,7 @@ export default function KlDynamicLibrary(){
  useEffect(()=>{void refresh();},[]);
  const open=async(c:Chapter)=>{
  const sequence=++openSequence.current;
- setMessage('');setText('');setMedia([]);setUrls({});setMediaErrors({});setChapter(c);setStartTime(Date.now());
+ setMessage('');setText('');setMedia([]);setUrls({});setMediaErrors({});setChapter(c);
  warmBuklodAdOpportunity('kl_chapter_success');
  const {data,error}=await supabase.rpc('kl_read_episode_v1',{p_episode_id:c.id});
  const payload=data as {readable?:boolean;content?:{text:string}[]}|null;
@@ -62,13 +62,6 @@ export default function KlDynamicLibrary(){
  const timer=setInterval(()=>{void supabase.rpc('kl_reading_progress_v1',{p_episode_id:chapter.id,p_action:'ping'});},20000);
  return()=>clearInterval(timer);
  },[chapter?.id,text,routeFocused,appActive]);
- const complete=async()=>{
- if(!chapter||Date.now()-startTime<60000){setMessage('Ipagpatuloy muna ang pagbabasa.');return;}
- const {data,error}=await supabase.rpc('kl_reading_progress_v1',{p_episode_id:chapter.id,p_action:'complete'});
- const result=data as {new_completion?:boolean;completed?:boolean}|null;
- if(!error && result?.new_completion) await showBuklodAdOpportunity('kl_chapter_success');
- setMessage(error?.message??(result?.new_completion?'Natapos ang kabanata · +5 BUKLOD Points':result?.completed===false?'Reading not yet verified':'Completion recorded.'));
- };
  const image=(m:Media)=>{
  const key=m.kind+':'+m.placement;
  const uri=urls[key];
@@ -92,7 +85,7 @@ export default function KlDynamicLibrary(){
  <Text style={{color:'#fff',fontSize:18,lineHeight:29}}>{p}</Text>
  {illustrationsAtParagraph(media,p,'after').map(image)}
  </View>)}
- <Pressable onPress={()=>void complete()}><Text style={{color:'#f1d39b'}}>Mark Chapter Complete</Text></Pressable>
+ <KlReadingQuiz key={chapter.id} episodeId={chapter.id}/>
  </View>:chapters.map(c=><Pressable key={c.id} onPress={()=>void open(c)} style={{padding:10,backgroundColor:'#243849',borderRadius:8}}>
  <Text style={{color:'#fff'}}>S{c.season_number} · Kabanata {c.episode_number}: {c.title}</Text></Pressable>)}
  {message?<Text accessibilityRole="alert" style={{color:'#fff'}}>{message}</Text>:null}

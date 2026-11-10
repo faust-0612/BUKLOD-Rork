@@ -5,7 +5,7 @@
   "objective": "Frozen BUKLOD Main DEV source for one consolidated RC compile, reconciliation and database-migration readiness; no production OTA yet.",
   "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
   "productionBaselineEvidence": "GitHub default main SHA 5efb99435243a4bcaeff27fc8d41d58b6a9969c2 checked on Nov 11 2026. This is a repository baseline, NOT live production OTA proof.",
-  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections. Reconcile eleventh photo-comment scope; previous exact-head CI success is invalidated until retested at new SHA.",
+  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections. Reconcile eleventh photo-comment scope; previous exact-head CI success is invalidated until retested at new SHA. Reconciled KL approved-manuscript auto quiz as the twelfth workstream, guarded by disabled-by-default strict backend enforcement and existing Gemini service; no new paid provider.",
   "selectionRationale": "A 116-file cumulative RC cannot legitimately pass the isolated one-manifest PR rule. An exact, auditable cumulative manifest with enumerated component scopes protects the release without disabling scope, security, regression and production gates.",
   "alternativeApproaches": [
     "Split the RC back into ten independently compiled production candidates (rejected: duplicates and regression risk)",
@@ -23,7 +23,8 @@
     ".buklod/scopes/reels-ads-fullscreen-consolidation-20261111.json",
     ".buklod/scopes/wall-messenger-photo-publish-20261110.json",
     ".buklod/scopes/wall-video-ota-inclusion-20261110.json",
-    ".buklod/scopes/photo-comments-per-photo-20261111.json"
+    ".buklod/scopes/photo-comments-per-photo-20261111.json",
+    ".buklod/scopes/kl-auto-reading-quiz-consolidated-ota-20261111.json"
   ],
   "acceptanceChecks": [
     "All changed paths are individually listed and reviewed against current main; no broad directory allowlisting.",
@@ -34,7 +35,8 @@
     "Canonical Finance settlements, withdrawal and payout processing remain disabled until funded accounting and recipient checks pass.",
     "Retain Expo package org.mzbministry.buklod, runtime 1.3.2 and existing native permissions; do not alter Classroom.",
     "Do not merge to production main, publish OTA or mark a release live until independent production fingerprint evidence exists.",
-    "Photo comments SQL migration applied and audience/RLS verified before the new photo comments UI is live."
+    "Photo comments SQL migration applied and audience/RLS verified before the new photo comments UI is live.",
+    "KL question bank SQL/security tests, approved manuscript five-question generation, three-question server verification and idempotent BP rewards tested before client release."
   ],
   "preserveBehaviors": [
     "Security and private access rules",
@@ -45,7 +47,8 @@
     "No duplicated QMP or cash credits",
     "No active-game or payment-interrupting advertisements",
     "No paid Kingdom AI or external provider",
-    "Existing photo reactions and post-wide comments are independent of per-photo comments."
+    "Existing photo reactions and post-wide comments are independent of per-photo comments.",
+    "No new paid OpenAI model for KL; existing Gemini service is optional and server-side, retry-only after failures."
   ],
   "riskAreas": [
     "wall-media",
@@ -90,7 +93,13 @@
     "tests/wall-messenger-photo-publish-20261110.test.mjs",
     "tests/wall-navigation-photo-publish-20261110.test.mjs",
     "tests/wall-post-music-navigation-scroll.test.mjs",
-    "tests/buklod-photo-comments-per-photo-20261111.test.mjs"
+    "tests/buklod-photo-comments-per-photo-20261111.test.mjs",
+    "tests/buklod-ad-opportunities.test.cjs",
+    "tests/buklod-points-r3-kl-story.test.mjs",
+    "tests/kl-ad-completion.test.cjs",
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "tests/kl-reader-ad-safe-completion.test.mjs",
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/ads-high-traffic-max-safe-20261111.json",
@@ -216,12 +225,26 @@
     "supabase/migrations/20261111043000_buklod_photo_comments_by_media_v1.sql",
     "src/components/BuklodPhotoCommentsSheet.tsx",
     "tests/buklod-photo-comments-per-photo-20261111.test.mjs",
-    ".buklod/scopes/photo-comments-per-photo-20261111.json"
+    ".buklod/scopes/photo-comments-per-photo-20261111.json",
+    ".buklod/scopes/kl-auto-reading-quiz-consolidated-ota-20261111.json",
+    "docs/KL_AUTO_READING_QUIZ_DEV_20261111.md",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/kabihasnang-ligaw/KlReadingQuiz.tsx",
+    "supabase/functions/kl-generate-reading-quiz/index.ts",
+    "supabase/migrations/20261111010000_kl_auto_reading_quiz_v1.sql",
+    "tests/buklod-ad-opportunities.test.cjs",
+    "tests/buklod-points-r3-kl-story.test.mjs",
+    "tests/kl-ad-completion.test.cjs",
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "tests/kl-reader-ad-safe-completion.test.mjs",
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
   ],
-  "production": "HOLD / no OTA or Expo web publication",
+  "production": "HOLD / no OTA or Expo web publication; ten pending new migrations incl. KL auto reading quiz and photo comments",
   "verifiedDevSourceSha": "15a53f992cd51441b55a2aece7168ae012b39f8b",
   "pendingBackendMigrations": [
     "20261110213500_mentor_report_evidence_review_r4.sql",
+    "20261111010000_kl_auto_reading_quiz_v1.sql",
     "20261111014500_buklod_kingdom_shards_game_only_v1.sql",
     "20261111015000_buklod_monthly_earnings_carryforward_readonly_v1.sql",
     "20261111023000_buklod_qmp_canonical_finance_identity_v1.sql",
