@@ -148,7 +148,7 @@ Deno.serve(async request => {
   const gameId = String(body?.gameId ?? '').trim();
   const after = body?.afterLevel ?? 0;
   if (!/^[a-z][a-z0-9-]{2,99}$/.test(gameId) ||
-      !Number.isInteger(after) || Number(after) < 0 || Number(after) >= 200) {
+      typeof after !== 'number' || !Number.isInteger(after) || after < 0 || after >= 200) {
     return reply(400, { error: 'invalid_game_or_level' });
   }
   // Server validates catalog game ID and reserves one attempt with an advisory
