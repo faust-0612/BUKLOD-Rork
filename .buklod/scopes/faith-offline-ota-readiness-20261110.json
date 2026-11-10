@@ -19,7 +19,8 @@
     "formation-access",
     "account-auth-isolation",
     "cache-concurrency",
-    "android-ota-rc"
+    "android-ota-rc",
+    "auth-privacy"
   ],
   "regressionTests": [
     "tests/auth-access-faith-offline-20261110.test.mjs",
