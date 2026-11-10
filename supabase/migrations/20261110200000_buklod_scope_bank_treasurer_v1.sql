@@ -26,7 +26,7 @@ create table if not exists private.buklod_scope_bank_reports_v1(
   reviewed_at timestamptz,
   review_note text,
   created_at timestamptz not null default now(),
-  unique(scope_id,receiver_bank,receiver_number,transfer_reference)
+  unique(scope_id,receiver_number,transfer_reference)
 );
 create index if not exists buklod_scope_bank_report_scope_idx on private.buklod_scope_bank_reports_v1(scope_id,created_at desc);
 alter table private.buklod_scope_bank_reports_v1 enable row level security;
@@ -134,11 +134,11 @@ begin
   ) values (
     p_scope_id,v_actor,v_bank.bank_name,v_bank.account_number,v_ref,
     (p_amount_php*100)::bigint,v_purpose,nullif(btrim(coalesce(p_note,'')),'')
-  ) on conflict (scope_id,receiver_bank,receiver_number,transfer_reference) do nothing
+  ) on conflict (scope_id,receiver_number,transfer_reference) do nothing
   returning id into v_id;
   if v_id is null then
     select * into v_existing from private.buklod_scope_bank_reports_v1
-    where scope_id=p_scope_id and receiver_bank=v_bank.bank_name
+    where scope_id=p_scope_id
       and receiver_number=v_bank.account_number and transfer_reference=v_ref;
     if v_existing.submitted_by=v_actor and v_existing.amount_centavos=(p_amount_php*100)::bigint then
       return jsonb_build_object('id',v_existing.id,'status',v_existing.status,'idempotent',true);

@@ -30,7 +30,7 @@ test('bank transfers require registered scope receiver and independent verificat
   assert.match(bankSql,/public.buklod_scope_can_access_v1/);
   assert.match(bankSql,/public.buklod_is_exact_scope_admin_v1/);
   assert.match(bankSql,/v_actor=v_report.submitted_by/);
-  assert.match(bankSql,/unique\(scope_id,receiver_bank,receiver_number,transfer_reference\)/);
+  assert.match(bankSql,/unique\(scope_id,receiver_number,transfer_reference\)/);
   assert.match(bankSql,/spendable_in_buklod',false/);
   assert.doesNotMatch(bankSql,/insert into private.buklod_pf_cash_ledger|insert into private.buklod_pf_community_fund_ledger/i);
 });

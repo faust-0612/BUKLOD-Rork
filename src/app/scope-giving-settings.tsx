@@ -184,7 +184,7 @@ export default function ScopeGivingSettingsScreen() {
 
   const saveBank=async()=>{
     if(!canManageBank)return;
-    const name=bankName.trim(),holder=bankHolder.trim(),number=bankAccount.replace(/[\\s-]/g,'');
+    const name=bankName.trim(),holder=bankHolder.trim(),number=bankAccount.replace(/[- ]/g,'');
     if(name.length<2||holder.length<2||!/^[A-Za-z0-9]{6,34}$/.test(number)){
       Alert.alert('Bank account','Enter the authorized bank name, account holder and 6–34 character account number.');return;
     }
@@ -317,7 +317,7 @@ export default function ScopeGivingSettingsScreen() {
             return <View key={member.id} style={{flexDirection:'row',alignItems:'center',gap:8,paddingVertical:6}}>
               <Text style={{flex:1,color:'#143D2F',fontSize:14}}>{member.name}</Text>
               <Pressable disabled={Boolean(treasurerBusy)||busy} onPress={()=>void toggleTreasurer(member,!active)}
-                style={[styles.save,{minHeight:42,marginTop:0,backgroundColor:active?'#8B4242':'#176B4A',paddingHorizontal:12}]}>
+                style={[styles.bankSave,{minHeight:42,marginTop:0,backgroundColor:active?'#8B4242':'#176B4A',paddingHorizontal:12}]}>
                 <Text style={{color:'white',fontWeight:'800'}}>{active?'REVOKE':'AUTHORIZE'}</Text>
               </Pressable>
             </View>;
