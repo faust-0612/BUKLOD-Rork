@@ -49,7 +49,7 @@ test('Private clinical records use controlled RPCs, never public direct table gr
   }
   assert.match(sql, /enable row level security/);
   assert.match(sql, /revoke all on private/);
-  assert.match(sql, /not exists\(select 1 from private\.buklod_health_consultations_v1/);
+  assert.match(sql, /where client_id=v_actor and status in \('OPEN','IN_PROGRESS'\)/);
   assert.match(sql, /v_case\.client_id<>v_actor/);
   assert.match(sql, /v_actor=v_case\.professional_id/);
   assert.match(sql, /v_profession<>'PHYSICIAN'/);
@@ -63,6 +63,8 @@ test('Consultation clinic has structured notes, referral, cancellation and repla
   assert.match(sql, /FOLLOW_UP/);
   assert.match(sql, /REFERRAL/);
   assert.match(sql, /pg_advisory_xact_lock/);
+  assert.match(sql, /buklod_health_consult_request_unique_v1 unique\(client_id,client_request_key\)/);
+  assert.match(panel, /p_request_key:requestKey\.current/);
   assert.match(sql, /client_id<>v_actor/);
   assert.match(panel, /buklod_health_card_get_notes_v1/);
   assert.match(panel, /buklod_health_card_close_consult_v1/);

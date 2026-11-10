@@ -82,6 +82,9 @@ export default function BuklodMainHealthCard({
   const [reviewMethod,setReviewMethod] = useState('VERIFIED_IN_PERSON');
   const [reviewRef,setReviewRef] = useState('');
   const busyRef=useRef(false);
+  // Reuse this identifier when a network timeout leaves server commit uncertain.
+  const requestKey=useRef('hc-'+Date.now().toString(36)+'-'+
+    Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2));
   const dataGeneration=useRef(0);
   const notesGeneration=useRef(0);
   const caseIdRef=useRef<string|null>(null);
@@ -162,7 +165,10 @@ export default function BuklodMainHealthCard({
     const id=await rpc('buklod_health_card_open_consult_v1',{
       p_service:service,p_concern:concern.trim(),p_symptom_duration:duration.trim()||null,
       p_location_city:city.trim()||null,p_red_flags:false,p_informed_consent:true,
+      p_request_key:requestKey.current,
     });
+    requestKey.current='hc-'+Date.now().toString(36)+'-'+
+      Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2);
     setConcern('');setDuration('');setCity('');setRedFlags('unanswered');setConsent(false);
     await load();
     setSelectedCase(id as string);caseIdRef.current=id as string;setSection('case');
