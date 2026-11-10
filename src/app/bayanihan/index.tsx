@@ -366,7 +366,11 @@ export default function BayanihanScreen() {
               />
               <Metric
                 label="AVAILABLE FINALIZED CASH"
-                value={monthly ? formatPhp(monthly.available_finalized_minor / 100) : 'Unavailable'}
+                value={monthly
+                  ? formatPhp(monthly.available_finalized_minor / 100)
+                  : summary && earnings.withdrawable_php != null
+                    ? formatPhp(Number(earnings.withdrawable_php))
+                    : 'Unavailable'}
                 note={monthly
                   ? `Minimum withdrawal: ${formatPhp(monthly.minimum_withdrawal_minor / 100)}`
                   : 'Awaiting verified cash ledger'}
