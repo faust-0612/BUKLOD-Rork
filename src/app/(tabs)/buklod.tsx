@@ -265,6 +265,8 @@ type Photo={
  uri:string;
  base64?:string;
  sizeBytes?:number;
+ webFile?:Blob;
+ mimeType?:string;
 };
 type Mention=BuklodMention;
 
@@ -2637,10 +2639,7 @@ const load=useCallback(async(options?:{
      setPhotos(current=>
       [
        ...current,
-       ...picked.photos.map(photo=>({
-        id:photo.id,
-        uri:photo.uri,
-       })),
+       ...picked.photos,
       ].slice(0, COMMUNITY_MAX_PHOTOS)
      );
     }
@@ -2799,6 +2798,7 @@ const load=useCallback(async(options?:{
    string|null=
    null;
   let optionalCreativeFailed = false;
+  let publishStage = 'preparing';
 
   const createPost=async(
    first:{
@@ -2873,13 +2873,13 @@ const load=useCallback(async(options?:{
     );
    }
 
-   void load();
   };
 
   try{
    setNotice(startNotice);
 
    if(snapshot.communityGif){
+    publishStage = 'upload_gif';
     const gifPath=
      `${snapshot.userId}/post-gif-${Date.now()}-${Math.random().toString(36).slice(2)}.gif`;
 
@@ -2901,6 +2901,7 @@ const load=useCallback(async(options?:{
    }
 
    if(snapshot.wallVideo){
+    publishStage = 'upload_video';
     const lowerMime=
      snapshot.wallVideo
       .mimeType
@@ -2960,6 +2961,7 @@ const load=useCallback(async(options?:{
    }
 
    if(snapshot.photos.length){
+    publishStage = 'upload_photo';
     setNotice(
      `Uploading photos… Keep BUKLOD open 0/${snapshot.photos.length}`
     );
@@ -2972,7 +2974,7 @@ const load=useCallback(async(options?:{
     const photoUploads=
      await mapWithConcurrency(
       snapshot.photos,
-      3,
+      Platform.OS==='web'?2:3,
       async(photo,index)=>{
        const path=
         `${snapshot.userId}/post-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
@@ -2981,6 +2983,7 @@ const load=useCallback(async(options?:{
         await uploadCommunityPhotoFile({
          path,
          uri:photo.uri,
+         webFile:photo.webFile,
          wallPreview: true,
         });
 
@@ -3010,9 +3013,11 @@ const load=useCallback(async(options?:{
     }
    }
 
+   publishStage = 'create_post';
    await createPost(uploaded[0]??null);
 
    if(uploaded.length && createdPostId){
+    publishStage = 'attach_media';
     setNotice('Finishing your postâ€¦');
     setPublishNotice('Finishing your postâ€¦');
     await attachCommunityPostMedia(
@@ -3062,7 +3067,8 @@ const load=useCallback(async(options?:{
     });
    }
 
-   await load();
+   // A feed refresh error must not roll back a successfully published post.
+   void load().catch(()=>undefined);
    setPostFeedback(optionalCreativeFailed ? 'Posted, but optional music/motion was not saved.' : 'Posted to Community');
   }
   catch(e:any){
@@ -3088,11 +3094,21 @@ const load=useCallback(async(options?:{
    reportCommunityFailure(
     e,
     'Post not published',
-    "BUKLOD couldn't publish your post. Your composer content was restored.",
+    publishStage === 'upload_photo'
+     ? 'Photo upload failed. Your draft was restored. Retry here; if Messenger keeps failing, use Safari and reselect the photo.'
+     : "BUKLOD couldn't publish your post. Your composer content was restored.",
     'post_publish_failed',
    );
+   // Safe diagnostics: stage and counts only, never captions, file URLs, or names.
+   void trackBuklodFeedbackEvent({
+    event:'action_failed',
+    route:'/(tabs)/buklod',
+    feature:'Community Wall',
+    outcome:'post_publish_'+publishStage,
+    metadata:{stage:publishStage, photoCount:snapshot.photos.length, platform:Platform.OS},
+   });
 
-   await load();
+   void load().catch(()=>undefined);
    throw e;
   }
   finally{
