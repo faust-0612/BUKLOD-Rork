@@ -142,6 +142,15 @@ export function BuklodScopeFundScreen({mode='fund'}:{mode?:'fund'|'contribute'|'
     const registered=fund?.registered_gcash;
     if(!registered)return;
     try {
+      // Confirm that the receiver is still authorized immediately before handoff.
+      const {data:fresh,error:freshError}=await (supabase as any).rpc(
+        'get_buklod_scope_gcash_fund_dashboard_v1',{p_scope_id:scopeId});
+      if(freshError||fresh?.scope_id!==scopeId||
+        fresh?.registered_gcash?.mobile!==registered.mobile||
+        fresh?.registered_gcash?.name!==registered.name){
+        Alert.alert('Receiver changed or not verified','Refresh this scope before sending. Do not use a cached account.');
+        return;
+      }
       await Clipboard.setStringAsync(registered.mobile);
       await Linking.openURL('gcash://');
     } catch {
@@ -207,8 +216,20 @@ export function BuklodScopeFundScreen({mode='fund'}:{mode?:'fund'|'contribute'|'
           <Text style={s.label}>BANK</Text><Text style={s.receiver}>{bank.registered_bank.name}</Text>
           <Text style={s.label}>ACCOUNT HOLDER</Text><Text style={s.value}>{bank.registered_bank.holder}</Text>
           <Text style={s.label}>ACCOUNT NUMBER</Text><Text selectable style={s.receiver}>{bank.registered_bank.number}</Text>
-          <Pressable style={s.smallButton} onPress={()=>void Clipboard.setStringAsync(bank.registered_bank!.number)}>
-            <Text style={s.smallButtonText}>COPY AUTHORIZED BANK ACCOUNT NUMBER</Text></Pressable>
+          <Pressable style={s.smallButton} onPress={()=>void (async()=>{
+            const receiver=bank.registered_bank;
+            if(!receiver)return;
+            try{
+              const {data:fresh,error:freshError}=await (supabase as any).rpc('buklod_scope_bank_dashboard_v1',{p_scope_id:scopeId});
+              if(freshError||fresh?.scope_id!==scopeId||fresh?.registered_bank?.number!==receiver.number||
+                fresh?.registered_bank?.name!==receiver.name||fresh?.registered_bank?.holder!==receiver.holder){
+                Alert.alert('Receiver changed or not verified','Refresh before sending. The bank account must still be authorized.');
+                return;
+              }
+              await Clipboard.setStringAsync(receiver.number);
+              Alert.alert('Account copied','Verify the bank and recipient name in your banking app before sending.');
+            }catch{Alert.alert('Verification unavailable','Unable to verify the current authorized bank account. Try again online.');}
+          })()}><Text style={s.smallButtonText}>VERIFY & COPY AUTHORIZED BANK ACCOUNT</Text></Pressable>
           <Text style={s.helper}>Open your banking app manually. Verify the registered bank and account name before sending. No automatic transfer or universal bank app deep link is available.</Text>
           <Pressable style={s.smallButton} onPress={openReports}><Text style={s.smallButtonText}>ALREADY TRANSFERRED? REPORT BANK PAYMENT</Text></Pressable>
         </View>:<Text style={s.warning}>No active authorized bank account for this scope. Ask the scope admin to register one.</Text>}

@@ -73,7 +73,11 @@ declare
 begin
   if v_actor is null or not public.buklod_scope_can_access_v1(p_scope_id,v_actor) then
     raise exception 'Active scope membership required'; end if;
-  v_reviewer := public.giving_can_manage_receiver(p_scope_id,v_actor);
+  v_reviewer := public.giving_can_manage_receiver(p_scope_id,v_actor) and (
+    public.buklod_scope_has_active_membership_v1(p_scope_id,v_actor)
+    or public.buklod_is_exact_scope_admin_v1(p_scope_id,v_actor)
+    or public.giving_is_central_admin(v_actor)
+  );
   select * into v_bank from public.buklod_scope_bank_receivers_v1 where scope_id=p_scope_id and active;
   select coalesce(sum(amount_centavos),0) into v_received
     from private.buklod_scope_bank_reports_v1 where scope_id=p_scope_id and status='VERIFIED';
@@ -156,8 +160,11 @@ begin
   if v_actor is null then raise exception 'Authentication required'; end if;
   select * into v_report from private.buklod_scope_bank_reports_v1 where id=p_report_id for update;
   if not found then raise exception 'Report not found'; end if;
-  if not public.giving_can_manage_receiver(v_report.scope_id,v_actor) then
-    raise exception 'Authorized exact-scope finance reviewer required'; end if;
+  if not public.giving_can_manage_receiver(v_report.scope_id,v_actor) or not (
+    public.buklod_scope_has_active_membership_v1(v_report.scope_id,v_actor)
+    or public.buklod_is_exact_scope_admin_v1(v_report.scope_id,v_actor)
+    or public.giving_is_central_admin(v_actor)
+  ) then raise exception 'Active authorized exact-scope finance reviewer required'; end if;
   if v_actor=v_report.submitted_by then raise exception 'Cannot approve your own report'; end if;
   if v_report.status<>'REPORTED' then
     if v_report.status='VERIFIED' and p_approve=true then
