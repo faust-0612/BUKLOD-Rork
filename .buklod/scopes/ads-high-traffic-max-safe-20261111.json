@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
-  "objective": "Increase safe AdMob inventory while restoring the IGPAT button immediately beside COMMUNITY on the public Wall and making IGPAT playback/navigation resilient on degraded and intermittent networks without new native dependencies or direct sponsorship.",
+  "objective": "Increase safe AdMob inventory while restoring the IGPAT button immediately beside COMMUNITY on the public Wall and making IGPAT playback/navigation resilient on degraded and intermittent networks without new native dependencies or direct sponsorship. Expand it with completion-only IGPAT video publication, Character Studio saves, Profile Note changes, Mentoring responses, Kingdom Mastery and passive Kingdom/Points read views without monetizing every button.",
   "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
-  "branch": "dev/admob-high-traffic-max-safe-20261111",
-  "scope": "DEV source only; pending merged RC, production EAS environment gate and OTA fingerprint verification",
+  "branch": "dev/main-ads-kingdom-character-completion-20261111",
+  "scope": "Stacked DEV-only AdMob candidate (PR #650 upon PR #647); pending exact-source QA, Kingdom visual #643 reconciliation and consolidated RC. NOT PRODUCTION.",
   "changes": {
     "androidWallDefault": "4 organic posts before first; variable 4-6 organic posts between ad markers",
     "androidReelsDefault": "5 organic videos before first; variable 5-7 organic videos between sponsored pages",
@@ -29,19 +29,26 @@
   "verification": {
     "sourcePatch": "static assertions and readback pending",
     "tests": [
-      "tests/buklod-high-traffic-ads-20261111.test.mjs"
+      "tests/buklod-high-traffic-ads-20261111.test.mjs",
+      "tests/buklod-cluster-ad-coverage-20261111.test.mjs",
+      "tests/igpat-fast-start-video-20261110.test.mjs",
+      "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
+      "tests/buklod-kingdom-character-ads-20261111.test.mjs"
     ],
     "unverified": [
       "Node/test suite runtime",
       "Expo Android compile",
       "Live AdMob fill, native placement rendering and revenue performance",
-      "RC/OTA deployment fingerprint"
+      "RC/OTA deployment fingerprint",
+      "Exact-head Expo Android/Web typecheck and compiled bundles",
+      "Actual ad unit fill/visibility on installed Android",
+      "Single frozen consolidated RC/OTA release evidence"
     ],
-    "production": "NOT RELEASED",
+    "production": "NOT RELEASED; PR #650 draft only",
     "note": "Weak-network and header source patched, CI typecheck/regression must be rerun at updated SHA; actual weak-signal/Android behavior not yet device-verified."
   },
   "productionBaselineEvidence": "Source baseline at initial branch point: GitHub main 5efb99435243a4bcaeff27fc8d41d58b6a9969c2. Prior official AdMob month-open snapshot from Nov 8 verified in repo scope records: estimated gross ₱8.64, 16 qualified accounts / 702 QMP, 30% provisionally designated pool; NOT a current daily revenue figure. Existing BUKLOD AdMob native surfaces, 2-action interstitial lock, consent/viewport gating and 2026-11-07 ad restoration scope were inspected. Production EAS env density variables, compiled release, Android visual fill and live OTA fingerprint are NOT verified.",
-  "chosenApproach": "Reuse central Android platform-specific feed cadence and existing NativeAd/first-view components. Increase organic spacing only to bounded high-traffic values; add one extra mid native opportunity on high-traffic dashboards, footer banners where absent, Connect inbox row-native ad, and Reels nearby preload. Tighten Reels consent and passive route gating so additional requests honor the same controls. No backend or native dependency modification. Restore a sibling IGPAT action in the public Wall header rather than changing persistent bottom navigation. Preserve account/mode-scoped signed IGPAT feed rows in a bounded session-only eight-minute cache, retain a playable feed through failed reload, use Data Saver or degraded-network bandwidth limits, suppress next-video preloading on weak signal, and automatically retry on actual recovery to online.",
+  "chosenApproach": "Reuse central Android platform-specific feed cadence and existing NativeAd/first-view components. Increase organic spacing only to bounded high-traffic values; add one extra mid native opportunity on high-traffic dashboards, footer banners where absent, Connect inbox row-native ad, and Reels nearby preload. Tighten Reels consent and passive route gating so additional requests honor the same controls. No backend or native dependency modification. Restore a sibling IGPAT action in the public Wall header rather than changing persistent bottom navigation. Preserve account/mode-scoped signed IGPAT feed rows in a bounded session-only eight-minute cache, retain a playable feed through failed reload, use Data Saver or degraded-network bandwidth limits, suppress next-video preloading on weak signal, and automatically retry on actual recovery to online. Extend the central naturally completed workflow list, allow only exact successful Kingdom/Reels completion placements through their otherwise sensitive routes, mount separate viewport-gated passive inventory on noninteractive Kingdom and Points views, and defer Character Studio ads until the editing modal unmounts.",
   "selectionRationale": "AdMob eCPM does not justify hundreds of forced ads per user. Maximize real viewable opportunities with media native and placement diversity rather than unsafe every-action interstitials, direct sponsor sales or synthetic impressions. Reusing tested inventory minimizes RC native compatibility risk and preserves publisher controls. Public Wall already had a static COMMUNITY header; inserting IGPAT there matches the requested visual location without stealing a bottom tab or blocking tap on network reads. IGPAT's old reload path returned a full-screen spinner and erased rows on fetch failure despite existing playable media; short-lived scoped warm cache fixes that failure while respecting signed URL expiry.",
   "alternativeApproaches": [
     "New direct-sponsorship checkout/ads platform: rejected by product owner and requires independent payments and accounting",
@@ -73,7 +80,12 @@
     "No user data, account ID, or signed media URL is persisted by new warm-feed cache; entries expire within 8 minutes, bounded to six scoped keys and separated by user/mode/Data Saver",
     "On weak or failed IGPAT refresh, keep same-account/mode playable rows; do not snap to page one or discard working video; reconnect attempts one refresh on recovery",
     "Constrained network bypasses next-video preload, prioritizes current video, and limits feed size while preserving normal-signal progressive signing and Reels sponsored pages",
-    "Focused IGPAT fast-start and Wall navigation tests, TypeScript and integration regression gates pass exact head before RC"
+    "Focused IGPAT fast-start and Wall navigation tests, TypeScript and integration regression gates pass exact head before RC",
+    "Kingdom map, post-win center, Circle Rank and Points/Economy Android passive ads honor consent/viewport/no-fill/Ad-Light/kill-switch and have no game-input overlays",
+    "Character Studio interstitial only after successful saved change and closed editing surface",
+    "Mentoring completion ad only after authoritative RPC success and success-dialog dismissal; IGPAT only after confirmed publication, Profile Note only after server upsert",
+    "Kingdom Mastery full-screen exception requires a server-verified completion; no ads on every tap, Back, answer choice or upload",
+    "New focused Node test passes along with preexisting high-traffic coverage before merged RC."
   ],
   "preserveBehaviors": [
     "30% QMP pool, cash accounting, finalization and withdrawals unchanged",
@@ -86,13 +98,16 @@
     "Existing cluster faith/attendance/lesson/navigation behavior and scope governance unchanged",
     "Canonical Wall Community, Bible shortcut, DZAS shortcut, FlashList, posting, feeds and Community back navigation unchanged",
     "IGPAT For You/Following/Latest identity, signed URL access rules, privacy, Data Saver toggle, reactions, follow, publishing, and Reels ad viewability unaffected",
-    "Warm cache is not durable offline guarantee: no new media downloads or persistence across process restarts"
+    "Warm cache is not durable offline guarantee: no new media downloads or persistence across process restarts",
+    "No full-screen interstitials on failure, cancels, form fields, game movement, sensitive classrooms, payout, health or emergency flows",
+    "Separate Kingdom visual/Shard candidate remains independently gated; PR #650 does not merge or deploy it."
   ],
   "regressionTests": [
     "tests/buklod-high-traffic-ads-20261111.test.mjs",
     "tests/buklod-cluster-ad-coverage-20261111.test.mjs",
     "tests/igpat-fast-start-video-20261110.test.mjs",
-    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs"
+    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
+    "tests/buklod-kingdom-character-ads-20261111.test.mjs"
   ],
   "allowedPaths": [
     "src/lib/buklodAdMonetizationPolicy.android.ts",
@@ -111,6 +126,19 @@
     "src/app/igpat/index.web.tsx",
     "src/lib/igpat/warmFeed.ts",
     "tests/igpat-fast-start-video-20261110.test.mjs",
-    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs"
+    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
+    "src/app/games/index.tsx",
+    "src/app/igpat/create.tsx",
+    "src/app/mentoring/index.tsx",
+    "src/app/points/economy.tsx",
+    "src/app/points/progression.tsx",
+    "src/app/profile/status.tsx",
+    "src/components/BuklodKingdomAdSlot.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/components/points/BuklodProfileCharacterCard.tsx",
+    "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
+    "src/features/games/kingdom/platform/KingdomMasteryCheck.tsx",
+    "src/lib/buklodAdOpportunities.ts",
+    "tests/buklod-kingdom-character-ads-20261111.test.mjs"
   ]
 }
