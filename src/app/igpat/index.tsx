@@ -11,10 +11,12 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
   type ViewToken,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { VideoView, useVideoPlayer, type VideoSource } from 'expo-video';
+import { recordCommunityFeedMetric } from '@/lib/communityFeedTelemetry';
 import BuklodReelsInlineAd from '@/components/BuklodReelsInlineAd';
 import {
   buildReelsFeedWithInlineAds,
@@ -74,10 +76,68 @@ async function mapWithConcurrency<T, R>(
 
 function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
   const [pausedByUser, setPausedByUser] = useState(false);
-  const player = useVideoPlayer(uri, instance => {
+  // Native cache and HLS auto-ABR when the backend supplies a playlist.
+  // The next (paused) row mounts a player ahead of time to fill its initial buffer.
+  const source = useMemo<VideoSource>(() => ({
+    uri,
+    useCaching: true,
+    ...(\/\.m3u8(?:[?#]|$)\/i.test(uri) ? { contentType: 'hls' as const } : {}),
+  }), [uri]);
+  const player = useVideoPlayer(source, instance => {
     instance.loop = true;
     instance.muted = false;
+    if (Platform.OS !== 'web') {
+      instance.bufferOptions = {
+        minBufferForPlayback: 1.5,
+        preferredForwardBufferDuration: 16,
+      };
+    }
   });
+  useEffect(() => {
+    if (!active) return;
+    const startedAt = Date.now();
+    let played = false;
+    let bufferingSince = 0;
+    const playing = player.addListener('playingChange', event => {
+      if (!event.isPlaying) return;
+      if (!played) {
+        played = true;
+        recordCommunityFeedMetric({
+          stage: 'video_startup',
+          elapsedMs: Date.now() - startedAt,
+          status: 'ok',
+          player: 'expo-video',
+        });
+      }
+      if (bufferingSince) {
+        recordCommunityFeedMetric({
+          stage: 'video_rebuffer',
+          elapsedMs: Date.now() - bufferingSince,
+          status: 'ok',
+          player: 'expo-video',
+        });
+        bufferingSince = 0;
+      }
+    });
+    const status = player.addListener('statusChange', event => {
+      if (event.status === 'loading' && played && !bufferingSince) {
+        bufferingSince = Date.now();
+      }
+      if (event.status === 'error') {
+        recordCommunityFeedMetric({
+          stage: played ? 'video_rebuffer' : 'video_startup',
+          elapsedMs: Date.now() - (bufferingSince || startedAt),
+          status: 'error',
+          player: 'expo-video',
+        });
+        bufferingSince = 0;
+      }
+    });
+    return () => {
+      playing.remove();
+      status.remove();
+    };
+  }, [active, player, uri]);
 
   useEffect(() => {
     try {
@@ -177,6 +237,7 @@ export default function IgpatScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<IgpatRow[]>([]);
+  const loadGenerationRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -235,6 +296,7 @@ export default function IgpatScreen() {
   }, [loadFollows]);
 
   const load = useCallback(async () => {
+    const generation = ++loadGenerationRef.current;
     if (!prefsReady) return;
     if (!user?.id) {
       setRows([]);
@@ -252,42 +314,60 @@ export default function IgpatScreen() {
         p_limit: limit,
       });
       if (error) throw error;
+      if (generation !== loadGenerationRef.current) return;
 
       const source = ((data ?? []) as IgpatRow[])
         .filter(row => Boolean(row.media_path))
         .slice(0, limit);
 
-      const signed = await mapWithConcurrency(
-        source,
-        SIGN_CONCURRENCY,
-        async row => {
-          const { data: mediaData, error: signError } = await supabase.storage
+      // Sign the first video first: do not block first paint on every URL.
+      // Keep stable row IDs/order while the remaining signed URLs arrive.
+      const sign = async (row: IgpatRow): Promise<IgpatRow> => {
+        try {
+          const { data: signed, error: signError } = await supabase.storage
             .from('community-media')
             .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS);
-
-          if (signError) {
-            console.warn('BUKLOD IGPAT sign:', signError.message);
-            return { ...row, media_url: null };
-          }
-
-          return { ...row, media_url: mediaData?.signedUrl ?? null };
+          if (signError) throw signError;
+          return { ...row, media_url: signed?.signedUrl ?? null };
+        } catch (error) {
+          console.warn('BUKLOD IGPAT sign:', String((error as any)?.message ?? error));
+          return { ...row, media_url: null };
         }
-      );
-
-      setRows(signed.filter(row => Boolean(row.media_url)));
+      };
+      const first = source.length ? await sign(source[0]) : null;
+      if (generation !== loadGenerationRef.current) return;
+      setRows(source.map((row, index) =>
+        index === 0 ? first! : { ...row, media_url: undefined },
+      ));
       setActiveIndex(0);
+      setLoading(false);
+      // Background signing never shifts the list or overrides a later feed request.
+      void mapWithConcurrency(source.slice(1), SIGN_CONCURRENCY, async row => {
+        const signed = await sign(row);
+        if (generation === loadGenerationRef.current) {
+          setRows(current => current.map(item =>
+            item.id === signed.id ? signed : item,
+          ));
+        }
+        return signed;
+      }).catch(error => {
+        console.warn('BUKLOD IGPAT background sign:', String(error));
+      });
     } catch (error) {
       const message = String((error as any)?.message ?? error);
       console.warn('BUKLOD IGPAT load:', message);
-      setRows([]);
-      setLoadError(message);
+      if (generation === loadGenerationRef.current) {
+        setRows([]);
+        setLoadError(message);
+      }
     } finally {
-      setLoading(false);
+      if (generation === loadGenerationRef.current) setLoading(false);
     }
   }, [dataSaver, feedMode, prefsReady, user?.id]);
 
   useEffect(() => {
     void load();
+    return () => { loadGenerationRef.current += 1; };
   }, [load]);
 
   useEffect(() => {
@@ -430,6 +510,9 @@ export default function IgpatScreen() {
     []
   );
 
+  const nextPlayableIndex = dataSaver ? -1 : feedRows.findIndex((item, index) =>
+    index > activeIndex && !isReelsFeedInlineAdRow(item));
+
   if (!prefsReady || loading) {
     return (
       <View style={styles.center}>
@@ -480,9 +563,9 @@ export default function IgpatScreen() {
         pagingEnabled
         showsVerticalScrollIndicator={false}
         initialNumToRender={1}
-        maxToRenderPerBatch={2}
-        updateCellsBatchingPeriod={80}
-        windowSize={3}
+        maxToRenderPerBatch={3}
+        updateCellsBatchingPeriod={60}
+        windowSize={5}
         removeClippedSubviews
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged}
@@ -507,8 +590,17 @@ export default function IgpatScreen() {
 
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
-              {!!item.media_url && index === activeIndex ? (
-                <IgpatVideo uri={item.media_url} active />
+              {!!item.media_url && (index === activeIndex || index === nextPlayableIndex) ? (
+                <IgpatVideo uri={item.media_url} active={index === activeIndex} />
+              ) : null}
+              {index === activeIndex && !item.media_url ? (
+                <View style={styles.center}>
+                  {item.media_url === undefined ? <ActivityIndicator color="#FFFFFF" /> : (
+                    <Pressable onPress={() => void load()} style={styles.retryButton}>
+                      <Text style={styles.retryText}>RETRY VIDEO</Text>
+                    </Pressable>
+                  )}
+                </View>
               ) : null}
               <View pointerEvents="none" style={styles.scrim} />
 
