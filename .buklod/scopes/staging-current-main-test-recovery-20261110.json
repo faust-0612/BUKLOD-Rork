@@ -1,0 +1,36 @@
+{
+  "contractVersion": 2,
+  "objective": "Recover failed green-B staging-user APK build preflight caused by obsolete frozen V30 app file diff test, and build latest main signed staging APK.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: The build logs of 2026-11-10 show 13/14 tests passing and the sole failure rejects legitimate post-V30 src application changes. Current main stage icon and adaptiveIcon resolve to green-B asset, staging package and runtime 1.3.2. No verified new APK yet.",
+  "chosenApproach": "Remove stale exact frozen V30 app-source delta assertion from staging contract; retain V30 ancestor, staging launcher, identity, Firebase and runtime checks. Extend build workflow to include actual APK artifact test and authorize exactly one recovery-build marker.",
+  "selectionRationale": "The prior V30 source restriction conflicts with requirement to build cumulative latest main. Native identity preflights remain protected.",
+  "alternativeApproaches": [
+    "Revert all current main features to V30: rejected because user requests latest main",
+    "Disable all QA: rejected because release integrity",
+    "Use stale November 9 APK: rejected because legacy icon"
+  ],
+  "riskAreas": [
+    "release-identity",
+    "native-runtime"
+  ],
+  "preserveBehaviors": [
+    "Staging-only signed APK, no Play/OTA/web publication",
+    "Canonical green-B staging icon and adaptive foreground",
+    "Production app config and runtime 1.3.2 unchanged",
+    "Use current main commit with V30 native ancestor and independent stage package"
+  ],
+  "acceptanceChecks": [
+    "Updated focused test passes for cumulative latest main",
+    "Release identity and native compatibility tests pass",
+    "EAS build FINISHED with real installable APK archived and verified"
+  ],
+  "regressionTests": [
+    "tests/staging-user-current-main-apk-20261108.test.cjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/staging-current-main-test-recovery-20261110.json",
+    "tests/staging-user-current-main-apk-20261108.test.cjs",
+    ".github/workflows/buklod-staging-user-latest-main-apk-20261108.yml"
+  ]
+}
