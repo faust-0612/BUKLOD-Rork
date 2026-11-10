@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 const wall = readFileSync('src/app/(tabs)/buklod.tsx', 'utf8');
 const upload = readFileSync('src/lib/uploadCommunityVideoFile.ts', 'utf8');
 const creatives = readFileSync('src/lib/buklodPostCreatives.ts', 'utf8');
+const media = readFileSync('src/lib/buklodCommunityWallMedia.ts', 'utf8');
 const publish = wall.slice(wall.indexOf(' const publish=async()=>{'), wall.indexOf('/* BUKLOD_COMMUNITY_AUTHOR_FOLLOW_ALL_R2 */'));
 
 test('music and motion are never required to publish a normal post', () => {
@@ -42,4 +43,9 @@ test('publish failure preserves draft and records privacy-safe stage', () => {
   assert.match(publish, /outcome:'post_publish_'\+publishStage/);
   assert.match(publish, /metadata:\{stage:publishStage, photoCount:snapshot\.photos\.length, platform:Platform\.OS\}/);
   assert.doesNotMatch(publish, /metadata:\{[^}]*snapshot\.body/);
+});
+
+test('Safari WebView Load failed is a network upload error, not unexplained SYS-500', () => {
+  assert.match(media, /network request failed\|failed to fetch\|network error\|load failed/);
+  assert.match(media, /case 'network':/);
 });
