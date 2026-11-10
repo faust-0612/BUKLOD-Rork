@@ -1449,6 +1449,29 @@ function LegacyPublicBuklodScreen(){
  videoViewerSessionRef.current=videoViewerSession;
  useEffect(()=>{
   if(!videoViewerOpen)return;
+  const row=videoViewerFeedRows[videoViewerIndex];
+  if(!isReelsFeedInlineAdRow(row))return;
+  const state=videoViewerAdStates[row.id]??'loading';
+  if(state==='ready')return;
+  // No-fill or stalled ads must never strand the user on a black slide.
+  // This timeout is only for native ad cards; ordinary video playback stays
+  // independent. Users can swipe/continue even earlier.
+  const timer=setTimeout(()=>{
+   const next=videoViewerFeedRows.findIndex((candidate,index)=>
+     index>videoViewerIndex && !isReelsFeedInlineAdRow(candidate));
+   const target=next>=0?next:Math.max(0,videoViewerIndex-1);
+   if(target===videoViewerIndex)return;
+   try{
+    videoViewerListRef.current?.scrollToIndex({index:target,animated:false});
+    setVideoViewerIndex(target);
+   }catch{
+    // List may already be closing; leave navigation fully usable.
+   }
+  },state==='unavailable'?120:3000);
+  return()=>clearTimeout(timer);
+ },[videoViewerOpen,videoViewerFeedRows,videoViewerIndex,videoViewerAdStates]);
+ useEffect(()=>{
+  if(!videoViewerOpen)return;
   const timer=setTimeout(()=>setVideoViewerShowHint(false),2700);
   return()=>clearTimeout(timer);
  },[videoViewerOpen,videoViewerSession]);
@@ -6140,7 +6163,9 @@ const communityFeedRows =
         <View style={{
           height:videoViewerPageHeight,width:'100%',
           backgroundColor:'#000000',
-          justifyContent:'center'
+          justifyContent:'center',
+          paddingTop:Math.max(communityInsets.top+112,140),
+          paddingBottom:Math.max(communityInsets.bottom+34,46)
         }}>
          {isActive && adState!=='ready' ? (
           <View style={{
