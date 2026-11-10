@@ -3,7 +3,7 @@
  * server-owned SQL; no optimistic debit, no ad-gated spending or real cash.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -137,7 +137,7 @@ export default function KingdomRewardsScreen() {
         </View>;
       })}
       {notice?<Text accessibilityRole="alert" style={s.notice}>{notice}</Text>:null}
-      <BuklodCommunityInlineAd surface="home" slotId="kingdom_treasury_native" placementIdOverride="kingdom_treasury_native" active />
+      {Platform.OS === 'android' ? <BuklodCommunityInlineAd surface="home" slotId="kingdom_treasury_native" placementIdOverride="kingdom_treasury_native" active /> : null}
       <View style={s.footer}>
         <MaterialCommunityIcons name="information-outline" size={19} color={COLORS.muted}/>
         <Text style={s.footerText}>Shards are not BP, earnings, currency, or withdrawable value. Game powers work in free practice after one verified purchase, including offline after syncing. They do not apply to server-scored Mastery examinations.</Text>

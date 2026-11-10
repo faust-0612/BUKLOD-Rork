@@ -3,7 +3,7 @@
  * No client-minted BP, Shards, XP, cash, or gameplay entitlements.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -309,7 +309,7 @@ export default function KingdomLegacyScreen() {
             </Pressable>
           </LinearGradient>
 
-          <BuklodCommunityInlineAd surface="home" slotId="kingdom_legacy_native" placementIdOverride="kingdom_legacy_native" active />
+          {Platform.OS === 'android' ? <BuklodCommunityInlineAd surface="home" slotId="kingdom_legacy_native" placementIdOverride="kingdom_legacy_native" active /> : null}
           <Pressable accessibilityRole="button" accessibilityLabel="Open Shard Treasury and game powers"
             onPress={() => router.push('/games/rewards' as any)} style={s.shardsBar}>
             <MaterialCommunityIcons name="diamond-stone" size={25} color={C.gold}/>

@@ -32,3 +32,10 @@ test('Kingdom native ad wrapper uses exact route-safe placement override',()=>{
  assert.match(legacy,/placementIdOverride="kingdom_legacy_native"/);
  assert.match(shop,/placementIdOverride="kingdom_treasury_native"/);
 });
+
+test('Kingdom native placements never render the web AdSense fallback',()=>{
+ const legacy=read('src/app/games/legacy.tsx');
+ const rewards=read('src/app/games/rewards.tsx');
+ assert.match(legacy,/Platform\.OS === 'android' \? <BuklodCommunityInlineAd/);
+ assert.match(rewards,/Platform\.OS === 'android' \? <BuklodCommunityInlineAd/);
+});
