@@ -1,7 +1,7 @@
 /**
  * Short-lived, account-scoped IGPAT warm feed. The source keeps signed media
  * URLs valid for 20 minutes; never re-use a token older than eight minutes.
- * Only in-memory: no signed links in AsyncStorage / disk / cross-account cache.
+ * Only in-memory: no signed links in persistent or cross-account storage.
  * expo-video is responsible for actual video byte caching.
  */
 export type IgpatWarmRow = {
@@ -38,7 +38,7 @@ export function getIgpatWarmFeed<T extends IgpatWarmRow>(
     feed.delete(key);
     return [];
   }
-  return entry.rows.map(row => ({ ...row })) as T[];
+  return entry.rows.map(row => ({ ...row })) as unknown as T[];
 }
 
 export function rememberIgpatWarmFeed<T extends IgpatWarmRow>(
