@@ -22,6 +22,7 @@ import {
 
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
 
 export default function ProfileStatusScreen() {
@@ -58,6 +59,8 @@ export default function ProfileStatusScreen() {
   ] =
     useState('');
 
+
+  useEffect(() => { warmBuklodAdOpportunity('profile_note_saved'); }, []);
 
   useEffect(() => {
     let active = true;
@@ -221,6 +224,9 @@ export default function ProfileStatusScreen() {
           throw error;
         }
 
+        // The profile-note upsert has succeeded; show only at the exit
+        // transition, never on typing, toggling or failed saves.
+        await showBuklodAdOpportunity('profile_note_saved');
         router.back();
       } catch (
         error: any

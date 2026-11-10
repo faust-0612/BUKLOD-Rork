@@ -210,12 +210,19 @@ export function isBuklodPassiveAdAllowed({
   // The route remains sensitive for interstitials and other advertising.
   const safeReelsInline =
     placement === 'reels' && placementId === 'igpat_reels_inline' && route === '/igpat';
+  // Kingdom passive ads are limited to noninteractive map/legacy/rewards
+  // surfaces and the screen below a confirmed game victory.
+  const safeKingdomPassive =
+    placementId.startsWith('kingdom_') &&
+    (route === '/games' || route === '/games/legacy' ||
+      route === '/games/rewards' ||
+      (route.startsWith('/games/') && placementId === 'kingdom_game_center_completed'));
 
   return (
     foreground &&
     enabled('ads_passive') &&
     placementEnabled(placementId) &&
-    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding || safeReelsInline) &&
+    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding || safeReelsInline || safeKingdomPassive) &&
     !hasInteractionLock()
   );
 }
@@ -235,11 +242,18 @@ export function isBuklodRewardedAdAllowed(
 export function canWarmBuklodFullScreenAd(
   placementId = 'interstitial_generic',
 ) {
+  // Strict completion-only exceptions: never the map controls, practice
+  // answer taps, purchase taps, or ordinary navigation.
+  const safeKingdomCompletion =
+    (pathname.startsWith('/games/') && placementId === 'interstitial_kingdom_mastery_verified') ||
+    (pathname === '/games/legacy' && placementId === 'interstitial_kingdom_legacy_claim') ||
+    (pathname === '/games/rewards' && placementId === 'interstitial_kingdom_power_unlocked') ||
+    (pathname === '/igpat/create' && placementId === 'interstitial_igpat_video_published');
   return (
     foreground &&
     enabled('ads_interstitial') &&
     placementEnabled(placementId) &&
-    !isBuklodAdRouteSensitive(pathname) &&
+    (!isBuklodAdRouteSensitive(pathname) || safeKingdomCompletion) &&
     !hasInteractionLock() &&
     !fullScreenCadencePersistenceFailed
   );

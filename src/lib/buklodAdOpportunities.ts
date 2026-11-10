@@ -14,7 +14,7 @@ import type { BuklodNaturalInterstitialReason } from '@/lib/buklodGlobalAdContro
  * benefits; the separate Points economy must never reward ad views.
  *
  * Existing global controller enforces route safety, remote kill switches,
- * session cap, multi-action threshold and cooldown. New slots share one
+ * multi-action threshold and durable full-screen reservation. New slots share one
  * existing interstitial unit to avoid extra native/build requirements.
  */
 const BREAKS = {
@@ -67,6 +67,12 @@ const BREAKS = {
   bible_flash_submission_success: { reason: 'content_session_completed', placement: 'interstitial_bible_flash_completed' },
   bible_arena_round_complete: { reason: 'content_session_completed', placement: 'interstitial_bible_arena_completed' },
   kingdom_mastery_verified: { reason: 'content_session_completed', placement: 'interstitial_kingdom_mastery_verified' },
+  character_studio_saved: { reason: 'content_session_completed', placement: 'interstitial_character_studio_saved' },
+  profile_note_saved: { reason: 'content_session_completed', placement: 'interstitial_profile_note_saved' },
+  igpat_video_published: { reason: 'content_session_completed', placement: 'interstitial_igpat_video_published' },
+  mentoring_response_submitted: { reason: 'content_session_completed', placement: 'interstitial_mentoring_response_submitted' },
+  kingdom_legacy_claim_success: { reason: 'content_session_completed', placement: 'interstitial_kingdom_legacy_claim' },
+  kingdom_power_unlock_success: { reason: 'content_session_completed', placement: 'interstitial_kingdom_power_unlocked' },
   bulletin_published_success: {
     reason: 'content_session_completed',
     placement: 'interstitial_scope_bulletin_published',

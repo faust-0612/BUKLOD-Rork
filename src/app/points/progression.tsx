@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
+import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 
 type RankProgress = {
   lifetime_points: number;
@@ -225,6 +226,7 @@ export default function CircleRankProgressionScreen() {
             </View>
           </View>
 
+          <BuklodKingdomAdSlot placementId="points_rank_progression_native" kind="native" />
           <View style={styles.roadmapHead}>
             <Text style={styles.roadmapTitle}>FULL RANK ROADMAP</Text>
             <Text style={styles.roadmapSubtitle}>
@@ -269,6 +271,7 @@ export default function CircleRankProgressionScreen() {
             );
           })}
 
+          <BuklodKingdomAdSlot placementId="points_rank_roadmap_footer" kind="banner" />
           <Text style={styles.note}>
             Circle Rank is permanent and based on verified lifetime BUKLOD Points.
             Spending available points or selecting a new Level 1 Character will not lower it.
