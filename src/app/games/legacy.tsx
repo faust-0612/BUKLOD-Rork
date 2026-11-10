@@ -18,7 +18,7 @@ import {
   CHARACTER_DISPLAY_NAME, CORE_CHARACTER_ORDER, SPECIAL_CHARACTER_ORDER,
   getCachedBuklodCharacterSelectionV2, getMyBuklodCharacterSelectionV2,
   subscribeBuklodCharacterSelectionV2,
-  type BuklodCharacterSelectionV2State, type BuklodCoreCharacterId, type BuklodSpecialCharacterId,
+  type BuklodCharacterSelectionV2State, type BuklodCoreCharacterId, type BuklodSpecialCharacterId, type BuklodCharacterId,
 } from '@/lib/buklodCharacterSelectionV2';
 import { PROGRESSIVE_LEVEL_THRESHOLDS, collectibleNames } from '@/lib/buklodProgressiveCharacter';
 import { getBuklodSpecialLevelAsset } from '@/lib/buklodSpecialCharacterAssets';
@@ -33,6 +33,22 @@ const C = {
   gold: '#f1d598', muted: '#bfd1d2', white: '#fff3d7', emerald: '#86d7bc',
 };
 const money = (value: number) => Math.max(0, Math.floor(value || 0)).toLocaleString('en-PH');
+/** Existing approved map routes. No new games, unlocks or station mutations. */
+const HERO_GAME: Record<BuklodCharacterId, string> = {
+  phan: '/games/phan-enterprise-builder',
+  quin: '/games/quin-discovery-expedition',
+  van: '/games/van-living-city-dispatch',
+  christian: '/games/christian-civic-leadership',
+  lhen: '/games/lhen-rhythm-journey',
+  jawo: '/games/jawo-forest-trail',
+  vhen: '/games/vhen-farm-to-market',
+  trudice: '/games/trudice-playground-memory',
+  mitch: '/games/mitch-restore-mural',
+  ace: '/games/ace-rescue-grid',
+  niel: '/games/niel-mission-trail',
+  angel: '/games/angel-kingdom-treasury',
+  ellusur: '/games/elesur-village-builder',
+};
 
 export default function KingdomLegacyScreen() {
   const { user } = useAuth();
@@ -68,7 +84,7 @@ export default function KingdomLegacyScreen() {
   const acquired = useMemo(() => (collection?.items ?? []).filter(item =>
     item.redeemedAt && item.collectibleId && item.characterId === core), [collection, core]);
   const treasured = useMemo(() => [...acquired].sort((a,b) =>
-    b.level - a.level || b.itemIndex - a.itemIndex).slice(0, 10), [acquired]);
+    b.level - a.level || b.itemIndex - a.itemIndex).slice(0, 6), [acquired]);
 
   useEffect(() => {
     if (!reveal) return;
@@ -258,6 +274,16 @@ export default function KingdomLegacyScreen() {
             </View>
           </View>
 
+          {activeId ? <Pressable accessibilityRole="button"
+            accessibilityLabel={'Play ' + CHARACTER_DISPLAY_NAME[activeId] + ' Kingdom games'}
+            onPress={() => router.push(HERO_GAME[activeId] as any)} style={s.questCard}>
+            <MaterialCommunityIcons name="sword-cross" size={25} color={C.gold}/>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={s.questTitle}>CONTINUE {CHARACTER_DISPLAY_NAME[activeId].toUpperCase()}'S ADVENTURE</Text>
+              <Text style={s.questCopy}>Open this hero's existing Kingdom game center. Only server-verified mastery can credit real BP.</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={25} color={C.gold}/>
+          </Pressable> : null}
           <View style={s.sectionHead}>
             <Text style={s.sectionTitle}>YOUR EQUIPMENT & REWARDS</Text>
             <Text style={s.sectionHint}>{collection ? acquired.length + ' claimed' : 'Server-verified items'}</Text>
@@ -387,6 +413,9 @@ const s = StyleSheet.create({
   outlineButton: { borderRadius: 10, borderWidth: 1, borderColor: C.gold, paddingHorizontal: 10, paddingVertical: 9, alignItems: 'center', justifyContent: 'center' },
   outlineText: { fontSize: 10, fontWeight: '900', color: C.gold, textAlign: 'center' },
   description: { color: C.muted, fontSize: 12, lineHeight: 18 },
+  questCard: { flexDirection:'row', alignItems:'center', gap:12, borderWidth:1, borderColor:'#b19a6c', borderRadius:14, backgroundColor:'#203e4a', padding:13, minHeight:76 },
+  questTitle: { color:C.gold, fontSize:12, fontWeight:'900', letterSpacing:.4 },
+  questCopy: { color:C.muted, fontSize:11, lineHeight:16 },
   collection: { gap: 9 },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 81, padding: 9, borderRadius: 14, borderWidth: 1, borderColor: '#68828a', backgroundColor: '#153144' },
   itemIcon: { width: 68, height: 68, borderRadius: 14, backgroundColor:'#0c2734', alignItems: 'center', justifyContent: 'center' },
