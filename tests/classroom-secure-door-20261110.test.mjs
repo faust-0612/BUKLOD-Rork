@@ -29,7 +29,7 @@ test('Edge validates active main auth and Student/Faculty role independently',()
   assert.match(edge,/admin\.auth\.admin\.getUserById\(user\.id\)/);
   assert.match(edge,/email_confirmed_at/);
   assert.match(edge,/origin_not_allowed/);
-  assert.match(edge,/verify_jwt/);
+  assert.match(edge,/main_session_required/);
 });
 
 test('Single-use Supabase Auth token hash, not long-lived session or action link in URL',()=>{
