@@ -11,6 +11,7 @@ type Question = {
 type Response = {
   level?: number; questions?: Question[]; practice_only?: boolean;
   bp_awarded?: number; error?: string; retry_after_seconds?: number;
+  session_id?: string; completed?: boolean; score?: number;
 };
 type Phase = 'ready' | 'loading' | 'playing' | 'complete';
 const safeQuestions = (value: unknown): value is Question[] =>
@@ -31,6 +32,10 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
   const { t } = useBuklodGameLanguage();
   const [phase, setPhase] = useState<Phase>('ready');
   const [level, setLevel] = useState(0);
+  const [resumeAfter, setResumeAfter] = useState(0);
+  const [progressBusy, setProgressBusy] = useState(true);
+  const [sessionId, setSessionId] = useState('');
+  const [finalScore, setFinalScore] = useState<number | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<number[]>([-1, -1, -1]);
   const [notice, setNotice] = useState('');
@@ -39,10 +44,27 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
+    setProgressBusy(true);
+    setPhase('ready');
+    setSessionId('');
+    void Promise.resolve(supabase.rpc('get_my_buklod_kingdom_ai_progress_v1',
+      { p_game_id: gameId }))
+      .then(({ data, error }) => {
+        if (!mounted.current) return;
+        if (!error && data && typeof data === 'object') {
+          const saved = data as { completed_level?: number; unfinished_level?: number | null };
+          const completed = Number(saved.completed_level ?? 0);
+          const unfinished = saved.unfinished_level;
+          const previous = unfinished && Number.isInteger(unfinished)
+            ? Math.max(0, unfinished - 1) : completed;
+          if (Number.isInteger(previous)) setResumeAfter(Math.max(0, Math.min(200, previous)));
+        }
+      }).finally(() => { if (mounted.current) setProgressBusy(false); });
     return () => { mounted.current = false; };
-  }, []);
+  }, [gameId]);
   async function loadNext(afterLevel: number) {
-    if (busy.current || !Number.isInteger(afterLevel) || afterLevel < 0) return;
+    if (busy.current || !Number.isInteger(afterLevel) || afterLevel < 0 ||
+      afterLevel >= 200) return;
     busy.current = true;
     setPhase('loading');
     setNotice('');
@@ -54,15 +76,24 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
       if (error) throw error;
       if (!mounted.current) return;
       if (!safeQuestions(data?.questions) || data?.practice_only !== true ||
-          data.bp_awarded !== 0 || typeof data.level !== 'number' || !Number.isInteger(data.level) ||
+          data.bp_awarded !== 0 || typeof data.session_id !== 'string' ||
+          !/^[a-f0-9-]{36}$/i.test(data.session_id) ||
+          typeof data.level !== 'number' || !Number.isInteger(data.level) ||
           Number(data.level) !== afterLevel + 1) {
         throw new Error('Invalid AI practice level.');
       }
       setQuestions(data.questions);
+      setSessionId(data.session_id);
+      setFinalScore(null);
       setLevel(Number(data.level));
       setAnswers([-1, -1, -1]);
       setHintRevealed(false);
-      setPhase('playing');
+      if (data.completed === true) {
+        setFinalScore(Number.isInteger(data.score) ? Number(data.score) : null);
+        setPhase('complete');
+      } else {
+        setPhase('playing');
+      }
     } catch {
       if (!mounted.current) return;
       setPhase(afterLevel === 0 ? 'ready' : 'complete');
@@ -70,8 +101,32 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
         'Hindi pa available ang AI continuation o naabot na ang daily limit. Gumagana pa rin ang normal na laro at BP mastery.'));
     } finally { busy.current = false; }
   }
+  async function finishPractice() {
+    if (busy.current || !sessionId || !answers.every(index => index >= 0 && index <= 3)) return;
+    busy.current = true;
+    setNotice('');
+    try {
+      const { data, error } = await supabase.functions.invoke<Response>(
+        'buklod-kingdom-ai-continuation-v1',
+        { body: { action: 'finish', sessionId, answers } },
+      );
+      if (error || data?.completed !== true || data.practice_only !== true ||
+          data.bp_awarded !== 0 || !Number.isInteger(data.score) ||
+          data.level !== level) throw new Error('AI practice was not saved.');
+      if (!mounted.current) return;
+      setFinalScore(Number(data.score));
+      setPhase('complete');
+      setResumeAfter(level);
+      void playBuklodGameFeedback(data.score === 3 ? 'success' : 'collect');
+    } catch {
+      if (mounted.current) setNotice(t(
+        'Could not save the completed practice. Check the connection and retry. No BP is affected.',
+        'Hindi ma-save ang practice. Suriin ang koneksyon at ulitin. Walang BP na maaapektuhan.'));
+    } finally { busy.current = false; }
+  }
   const allAnswered = answers.length === 3 && answers.every(index => index >= 0);
-  const score = questions.reduce((sum, q, i) => sum + (answers[i] === q.answer_index ? 1 : 0), 0);
+  const score = finalScore ?? questions.reduce(
+    (sum, q, i) => sum + (answers[i] === q.answer_index ? 1 : 0), 0);
   return (
     <View style={styles.shell}>
       <Text style={styles.eyebrow}>KINGDOM • AI PRACTICE QUEST</Text>
@@ -81,8 +136,13 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
         'Optional practice levels na may bagong mga tanong. Hindi ito verified mastery check at walang BP, pera, o character XP. May daily generation limit para kontrolado ang gastos.'
       )}</Text>
       {phase === 'ready' ? (
-        <Pressable accessibilityRole="button" style={styles.primary} onPress={() => void loadNext(0)}>
-          <Text style={styles.primaryText}>{t('START AI PRACTICE LEVEL 1', 'SIMULAN ANG AI PRACTICE LEVEL 1')}</Text>
+        <Pressable accessibilityRole="button" disabled={progressBusy || resumeAfter >= 200}
+          style={[styles.primary, (progressBusy || resumeAfter >= 200) && styles.disabled]}
+          onPress={() => void loadNext(resumeAfter)}>
+          <Text style={styles.primaryText}>{progressBusy ? t('CHECKING PROGRESS…', 'KINUKUHA ANG PROGRESS…')
+            : resumeAfter >= 200 ? t('ALL PRACTICE LEVELS COMPLETED', 'TAPOS NA ANG LAHAT NG PRACTICE')
+            : resumeAfter > 0 ? t('RESUME AI PRACTICE', 'ITULOY ANG AI PRACTICE')
+            : t('START AI PRACTICE LEVEL 1', 'SIMULAN ANG AI PRACTICE LEVEL 1')}</Text>
         </Pressable>
       ) : null}
       {phase === 'loading' ? <Text accessibilityRole="alert" style={styles.note}>
@@ -123,10 +183,10 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
           ) : null}
           {phase === 'playing' ? <Pressable accessibilityRole="button"
             disabled={!allAnswered} style={[styles.primary, !allAnswered && styles.disabled]}
-            onPress={() => { setPhase('complete'); void playBuklodGameFeedback(score === 3 ? 'success' : 'collect'); }}>
+            onPress={() => { void finishPractice(); }}>
             <Text style={styles.primaryText}>{t('FINISH PRACTICE', 'TAPUSIN ANG PRACTICE')}</Text>
           </Pressable> : null}
-          {phase === 'complete' ? <Pressable accessibilityRole="button" style={styles.primary}
+          {phase === 'complete' && level < 200 ? <Pressable accessibilityRole="button" style={styles.primary}
             onPress={() => void loadNext(level)}>
             <Text style={styles.primaryText}>{t('NEXT AI PRACTICE LEVEL', 'SUSUNOD NA AI PRACTICE LEVEL')} →</Text>
           </Pressable> : null}
