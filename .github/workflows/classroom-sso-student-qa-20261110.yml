@@ -1,0 +1,44 @@
+name: BUKLOD Classroom SSO and Student Role Final Browser QA
+
+on:
+  push:
+    branches: [dev/classroom-completion-20261110]
+    paths: ['.github/workflows/classroom-sso-student-qa-20261110.yml']
+  workflow_dispatch:
+
+permissions: {contents: read}
+jobs:
+  immutable-preview-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PREVIEW_URL: https://buklod-classroom--sxd3jh9n3b.expo.app
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Full Classroom source regression suite
+        run: node --test classroom-web/tests/*.test.mjs
+      - name: Install browser harness only (no new Expo build/deploy)
+        shell: bash
+        run: |
+          set -euo pipefail
+          which google-chrome
+          mkdir -p /tmp/buklod-classroom-browser
+          npm install --prefix /tmp/buklod-classroom-browser --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Authenticated Faculty module navigation regression
+        run: node classroom-web/e2e/mock-auth-browser.mjs
+      - name: Authenticated Student-only + dual-role no-login + notice ack browser regression
+        run: node classroom-web/e2e/sso-student-role-browser.mjs
+      - name: Check actual immutable Expo Preview SSO script
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 30 "$PREVIEW_URL/?verify=20261110" -o /tmp/preview.html
+          test "$(grep -oE '/assets/index-[^"]+\.js' /tmp/preview.html | head -1)" != ""
+          script="$(grep -oE '/assets/index-[^"]+\.js' /tmp/preview.html | head -1)"
+          curl -fsSL --max-time 30 "$PREVIEW_URL$script" -o /tmp/preview.js
+          grep -Fq 'buklod_classroom_token_hash' /tmp/preview.js
+          grep -Fq 'buklod_education_notice_acknowledgments' /tmp/preview.js
+          echo PREVIEW_SSO_NOTICE_BUNDLE=PASS
