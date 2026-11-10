@@ -16,7 +16,8 @@ const gameIds = JSON.parse(read('src/features/games/kingdom/platform/game-catalo
 
 test('Kingdom Shards are private, noncash and cannot be directly minted from client input',()=>{
   assert.equal((sql.match(/enable row level security/g)||[]).length,3);
-  assert.equal((sql.match(/revoke all on private\.buklod_kingdom_shards_/g)||[]).length,3);
+  assert.equal((sql.match(/revoke all on private\.buklod_kingdom_shards_/g)||[]).length,2);
+  assert.match(sql,/revoke all on private\.buklod_kingdom_items_v1/);
   for(const table of ['private.buklod_kingdom_shards_wallet_v1',
     'private.buklod_kingdom_shards_ledger_v1','private.buklod_kingdom_items_v1']) {
     assert.match(sql,new RegExp(table.replaceAll('.','\\.')));
