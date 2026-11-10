@@ -6,6 +6,7 @@ const identity = readFileSync('supabase/migrations/20261111023000_buklod_qmp_can
 const settle = readFileSync('supabase/migrations/20261111024500_buklod_pf_v3_qmp_single_settlement_v1.sql','utf8');
 const summary = readFileSync('supabase/migrations/20261111025000_buklod_pf_v3_monthly_summary_qmp_v1.sql','utf8');
 const audit = readFileSync('supabase/migrations/20261111031000_buklod_finance_qmp_readiness_audit_v1.sql','utf8');
+const queue = readFileSync('supabase/migrations/20261111032000_buklod_qmp_finance_review_queue_v1.sql','utf8');
 const admin = readFileSync('src/app/admin/economy-operations.tsx','utf8');
 const legacy = readFileSync('src/components/BuklodCommunityEconomyAdminCard.tsx','utf8');
 const helper = readFileSync('src/lib/buklodMonthlyEarnings.ts','utf8');
@@ -25,6 +26,7 @@ test('all qualified authenticated active users receive Finance person mapping',(
   assert.match(identity,/pr\.is_active=true and pr\.user_deactivated_at is null/);
   assert.match(identity,/private\.buklod_pf_link_identity_v2\(p_user_id,'\[\]'::jsonb\)/);
   assert.match(identity,/pg_advisory_xact_lock/);
+  assert.match(identity,/Retired Finance identity requires authorized review/);
   assert.match(identity,/auth\.uid\(\)/);
   assert.match(identity,/revoke all on function public\.ensure_my_buklod_qmp_finance_identity_v1\(\) from public,anon/);
   assert.match(helper,/ensure_my_buklod_qmp_finance_identity_v1/);
@@ -50,6 +52,8 @@ test('month close, unresolved QMP, verified identity and fraud gates are require
   assert.match(audit,/v_unlinked=0 and v_ineligible=0/);
   assert.match(audit,/v_pending=0 and v_held=0/);
   assert.match(audit,/v_reconciled_sources>0/);
+  assert.match(settle,/Verified source-backed eligible revenue is required for month finalization/);
+  assert.match(settle,/nullif\(trim\(coalesce\(e\.external_reference,''\)\),''\) is not null/);
   assert.match(admin,/qmpReadiness\?\.ready_for_finalization === true/);
 });
 
@@ -70,6 +74,10 @@ test('no financial activation or payout mutation in migrations',()=>{
     assert.doesNotMatch(sql,/admin_mark_buklod_pf_withdrawal_paid_v2\(/);
   }
   assert.match(audit,/not public\.buklod_is_system_admin\(\)/);
+  assert.match(queue,/not public\.buklod_is_system_admin\(\)/);
+  assert.match(queue,/revoke all on function public\.admin_list_buklod_qmp_month_review_queue_v1\(text,integer\)/);
+  assert.match(admin,/adminResolveBuklodQmpEvent\(eventId, approve\)/);
+  assert.match(admin,/setQmpReadiness\(null\)/);
   assert.match(audit,/revoke all on function public\.admin_get_buklod_pf_qmp_readiness_v1\(text\)\s+from public,anon/);
 });
 
