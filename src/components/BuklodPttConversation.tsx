@@ -39,7 +39,9 @@ export default function BuklodPttConversation({ scopeId, channel, connection }: 
 
   const refresh = useCallback(async () => {
     if (!scopeId) return;
+    const key = `${scopeId}:${channel}`;
     const rows = await listBuklodPttMessages(scopeId, channel);
+    if (loadedKey.current !== key) return;
     setMessages(previous => mergeMessages(previous, rows));
     setHasOlder(rows.length === 50);
     setErrorText('');
@@ -49,6 +51,9 @@ export default function BuklodPttConversation({ scopeId, channel, connection }: 
     const key = `${scopeId}:${channel}`;
     loadedKey.current = key;
     setMessages([]);
+    setDraft('');
+    setViewerId('');
+    setConsented(false);
     setErrorText('');
     setHasOlder(false);
     if (!scopeId) return;
