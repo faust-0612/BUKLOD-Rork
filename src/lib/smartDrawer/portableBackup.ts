@@ -52,15 +52,27 @@ function assertPayload(value: unknown): asserts value is Payload {
       !Array.isArray(p.items) || p.items.length > MAX_ITEMS) {
     throw new Error('Unsupported or invalid Drawer backup.');
   }
+  const allowedTypes = new Set([
+    'SHOPPING_LIST', 'CHECKLIST', 'TASK', 'DUE_TASK', 'EVENT', 'APPOINTMENT',
+    'PROGRAM', 'WRITING', 'POEM', 'IDEA', 'REFERENCE', 'DOCUMENT', 'RECEIPT',
+    'NOTICE', 'CONTACT_REFERENCE', 'QUICK_NOTE', 'OTHER',
+  ]);
+  const allowedStatuses = new Set(['ACTIVE', 'DONE', 'ARCHIVED', 'RECENTLY_REMOVED']);
+  const ids = new Set<string>();
   for (const row of p.items) {
     if (!row || typeof row !== 'object' || !row.note ||
-        typeof row.note.id !== 'string' || typeof row.note.title !== 'string' ||
-        typeof row.note.type !== 'string' || !Array.isArray(row.assets) ||
-        row.assets.length > 30) {
-      throw new Error('Backup contains an invalid note.');
+        typeof row.note.id !== 'string' || row.note.id.length > 128 ||
+        typeof row.note.title !== 'string' || row.note.title.length > 500 ||
+        !allowedTypes.has(row.note.type) || !allowedStatuses.has(row.note.status) ||
+        !Array.isArray(row.note.listItems) || row.note.listItems.length > 100 ||
+        !Array.isArray(row.assets) || row.assets.length > 30 || ids.has(row.note.id)) {
+      throw new Error('Backup contains an invalid or duplicate note.');
     }
+    ids.add(row.note.id);
     for (const asset of row.assets) {
-      if (typeof asset.contentBase64 !== 'string' ||
+      if (!['SCAN', 'PHOTO', 'IMPORT', 'FILE'].includes(asset.kind) ||
+          (asset.name !== null && (typeof asset.name !== 'string' || asset.name.length > 255)) ||
+          typeof asset.contentBase64 !== 'string' ||
           !/^[A-Za-z0-9+/]*={0,2}$/.test(asset.contentBase64) ||
           asset.contentBase64.length > MAX_ARCHIVE_BYTES * 2) {
         throw new Error('Invalid attachment content in backup.');
