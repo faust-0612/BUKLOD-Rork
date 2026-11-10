@@ -26,6 +26,22 @@ export type BahayMember = {
   profiles?: { full_name?: string|null; username?: string|null; avatar_url?: string|null }|null;
 };
 
+export type BahayInviteCandidate = {
+  user_id: string;
+  full_name: string;
+  username: string | null;
+  avatar_url: string | null;
+  source_label: string;
+};
+
+export type BahayPendingInvite = {
+  user_id: string;
+  full_name: string;
+  username: string | null;
+  role: BahayRole;
+  invited_at: string;
+};
+
 export type BahayItem = {
   id: string;
   home_id: string;
@@ -148,6 +164,34 @@ export async function inviteKasambahay(homeId: string, identifier: string, role:
   });
   if (result.error) throw result.error;
   return Array.isArray(result.data) ? result.data[0] : result.data;
+}
+
+/** Suggested connections are limited to shared contacts; typed search is server-gated to Bahay admins. */
+export async function searchBahayInvitees(homeId: string, query: string, limit = 12): Promise<BahayInviteCandidate[]> {
+  const result = await (supabase as any).rpc('buklod_home_search_invitees_v1', {
+    p_home_id: homeId,
+    p_query: query.trim(),
+    p_limit: limit,
+  });
+  if (result.error) throw result.error;
+  return (result.data ?? []) as BahayInviteCandidate[];
+}
+
+export async function inviteKasambahayById(homeId: string, userId: string, role: BahayRole, expiresAt?: string|null) {
+  const result = await (supabase as any).rpc('buklod_home_invite_user_v2', {
+    p_home_id: homeId,
+    p_user_id: userId,
+    p_role: role,
+    p_expires_at: expiresAt ?? null,
+  });
+  if (result.error) throw result.error;
+  return Array.isArray(result.data) ? result.data[0] : result.data;
+}
+
+export async function loadBahayPendingInvites(homeId: string): Promise<BahayPendingInvite[]> {
+  const result = await (supabase as any).rpc('buklod_home_pending_invites_v1', { p_home_id: homeId });
+  if (result.error) throw result.error;
+  return (result.data ?? []) as BahayPendingInvite[];
 }
 
 export async function loadBahaySnapshot(homeId: string) {
@@ -449,6 +493,18 @@ export function subscribeBahay(homeId: string, onChange: () => void) {
     .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_polls',filter:`home_id=eq.${homeId}`},onChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_poll_options'},onChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_poll_votes'},onChange)
+    .subscribe();
+  return () => { void (supabase as any).removeChannel(channel); };
+}
+
+/** Refresh incoming invitations while the Bahay screen is open. Focus refresh is the fallback. */
+export function subscribeBahayInvitations(userId: string, onChange: () => void) {
+  const channel = (supabase as any)
+    .channel(`buklod-bahay-invitations:${userId}`)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'buklod_home_members',
+      filter: `user_id=eq.${userId}`,
+    }, onChange)
     .subscribe();
   return () => { void (supabase as any).removeChannel(channel); };
 }
