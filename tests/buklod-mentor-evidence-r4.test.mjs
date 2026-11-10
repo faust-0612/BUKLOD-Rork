@@ -59,7 +59,7 @@ test('evidence upload has consent, photo preview, retry receipt and private sign
 test('admin queue prioritizes open reports and only system admin can retrieve private evidence', () => {
   assert.match(sql, /public\.is_system_admin\(\)/);
   assert.match(sql, /case when status in \('reported','pending_admin'\) then 0 else 1 end/);
-  assert.match(admin, /s\.status==='pending_admin'\|\|\(p\.status==='reported'&&!!p\.photo_path\)/);
+  assert.match(admin, /p\.status==='pending_admin'\|\|\(p\.status==='reported'&&!!p\.photo_path\)/);
   assert.match(admin, /createSignedUrl/);
   assert.match(admin, /admin_review_mentor_session_r3/);
   assert.match(portal, /Track System Admin review/);
