@@ -1142,11 +1142,22 @@ export default function BuklodExclusiveScopeCommunity({
 
   const {
     onViewableItemsChanged: onCommunityAdViewableItemsChanged,
+    onVideoViewableItemsChanged: onCommunityVideoViewableItemsChanged,
     viewabilityConfig: communityAdViewabilityConfig,
+    videoViewabilityConfig: communityVideoViewabilityConfig,
     extraData: communityAdExtraData,
     isAdActive,
     visibleVideoPostId,
-  } = useBuklodCommunityAdViewability();
+    preloadVideoPostId,
+  } = useBuklodCommunityAdViewability(
+    mode === 'reels' ? visiblePosts : wallFeedRows,
+  );
+  const communityViewabilityPairs = useRef([
+    { viewabilityConfig: communityAdViewabilityConfig,
+      onViewableItemsChanged: onCommunityAdViewableItemsChanged },
+    { viewabilityConfig: communityVideoViewabilityConfig,
+      onViewableItemsChanged: onCommunityVideoViewableItemsChanged },
+  ]).current;
 
   const listData =
     mode ===
@@ -3449,6 +3460,10 @@ return (
                       visibleVideoPostId ===
                       String(item.id)
                     }
+                    preload={
+                      preloadVideoPostId ===
+                      String(item.id)
+                    }
                     onPlaybackError={() => {
                       void recoverScopedWallVideo(item);
                     }}
@@ -4363,11 +4378,8 @@ return (
         extraData={
           communityAdExtraData
         }
-        onViewableItemsChanged={
-          onCommunityAdViewableItemsChanged
-        }
-        viewabilityConfig={
-          communityAdViewabilityConfig
+        viewabilityConfigCallbackPairs={
+          communityViewabilityPairs
         }
         renderItem={
           ({ item }) => {
