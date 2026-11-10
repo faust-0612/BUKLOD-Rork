@@ -5,7 +5,7 @@ import { showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
 type Question = { id: string; question: string; options: string[] };
 type BeginResponse = {
-  ok?: boolean; reason?: string; already_completed?: boolean; attempt_id?: string; questions?: Question[];
+  ok?: boolean; reason?: string; allow_legacy?: boolean; already_completed?: boolean; attempt_id?: string; questions?: Question[];
 };
 type Completion = { completed?: boolean; new_completion?: boolean; chapter_points?: number; series_points?: number };
 type SubmitResponse = {
@@ -31,10 +31,11 @@ export default function KlReadingQuiz({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [done, setDone] = useState(false);
+  const [legacyAllowed, setLegacyAllowed] = useState(false);
 
   const begin = async () => {
     if (!episodeId || busy) return;
-    setBusy(true); setMessage('');
+    setBusy(true); setMessage(''); setLegacyAllowed(false);
     try {
       const { data, error } = await supabase.rpc('kl_quiz_begin_v1', { p_episode_id: episodeId });
       if (error) throw error;
@@ -48,14 +49,43 @@ export default function KlReadingQuiz({
             typeof q.id !== 'string' || typeof q.question !== 'string' ||
             !Array.isArray(q.options) || q.options.length !== 4)) {
         setQuestions([]);
+        setLegacyAllowed(result?.reason === 'questions_preparing' && result?.allow_legacy === true);
         setMessage(reasons[result?.reason ?? ''] ?? 'Hindi pa available ang reading quiz. Subukan muli.');
         return;
       }
+      setLegacyAllowed(false);
       setAttemptId(result.attempt_id);
       setQuestions(result.questions);
       setAnswers({});
     } catch {
       setMessage('Hindi ma-load ang mga tanong. Suriin ang koneksiyon at subukan muli.');
+    } finally { setBusy(false); }
+  };
+
+  // No regression for readers when model generation is delayed during staged OTA rollout.
+  // The backend grants this fallback ONLY before quiz-only enforcement.
+  const completeLegacy = async () => {
+    if (!episodeId || !legacyAllowed || busy || done) return;
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.rpc('kl_reading_progress_v1', {
+        p_episode_id: episodeId, p_action: 'complete',
+      });
+      if (error) throw error;
+      const completion = data as Completion | null;
+      if (completion?.completed === true) {
+        setDone(true); setLegacyAllowed(false);
+        setMessage('Naitala ang pagkumpleto sa kabanata.' +
+          (completion.new_completion ? ' +' + Number(completion.chapter_points ?? 5) + ' BP' : ''));
+        onVerified?.();
+        if (completion.new_completion === true) {
+          void showBuklodAdOpportunity('kl_chapter_success').catch(() => undefined);
+        }
+      } else {
+        setMessage('Kailangan pa ng 60 segundong pagbabasa at sapat na activity para sa pansamantalang completion.');
+      }
+    } catch {
+      setMessage('Hindi makumpirma ang completion. Suriin ang koneksiyon at subukan muli.');
     } finally { setBusy(false); }
   };
 
@@ -108,6 +138,15 @@ export default function KlReadingQuiz({
           style={{ padding: 13, borderRadius: 9, backgroundColor: '#28583f', opacity: busy ? 0.7 : 1 }}>
           <Text style={{ color: '#fff', fontWeight: '700' }}>
             {busy ? 'Inihahanda ang mga tanong…' : 'Natapos magbasa? Sagutin ang 3 tanong'}
+          </Text>
+        </Pressable>
+      ) : null}
+      {legacyAllowed && !done && questions.length === 0 ? (
+        <Pressable accessibilityRole="button" disabled={busy}
+          onPress={() => void completeLegacy()}
+          style={{ padding: 13, borderRadius: 9, backgroundColor: '#364f59' }}>
+          <Text style={{ color: '#fff', fontWeight: '700' }}>
+            Pansamantalang completion habang inihahanda ang mga tanong
           </Text>
         </Pressable>
       ) : null}
