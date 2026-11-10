@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Maximize legitimate Android AdMob impressions on high-traffic BUKLOD Wall, IGPAT Reels, Home/Hub, Profile, Connect inbox, Organization and Cluster dashboards without direct sponsorship or disruptive every-click full-screen ads.",
+  "baseRef": "main",
+  "branch": "dev/admob-high-traffic-max-safe-20261111",
+  "scope": "DEV source only; pending merged RC, production EAS environment gate and OTA fingerprint verification",
+  "changes": {
+    "androidWallDefault": "4 organic posts before first; variable 4-6 organic posts between ad markers",
+    "androidReelsDefault": "5 organic videos before first; variable 5-7 organic videos between sponsored pages",
+    "dashboardInventory": [
+      "Hub mid native + bottom banner",
+      "Profile mid native + bottom banner",
+      "Connect inbox native after fourth row",
+      "Organization/Cluster Home mid native first-view fallback",
+      "Cluster Command mid native first-view fallback"
+    ],
+    "reelsPolicy": "central useAds consent, active/sensitive route gate, native test-mode guard and late-response destroy"
+  },
+  "preserve": [
+    "QMP/user revenue pool 30% unchanged",
+    "Existing admin-facing revenue reporting and accounting unchanged",
+    "Only native AdMob inventory; no new sponsorship checkout/provider",
+    "Interstitial requires two completed actions, only at natural break; no interstitial in active chat/quiz/payment/forms",
+    "Android production and test ID separation and AdsProvider consent remain authoritative",
+    "AdMob no fill fails without fake impressions; existing viewport gating used for sponsored cards",
+    "Production environment may override default density; verify actual EAS prod configuration",
+    "No new native dependency; release via consolidated verified Android OTA only"
+  ],
+  "verification": {
+    "sourcePatch": "static assertions and readback pending",
+    "tests": [
+      "tests/buklod-high-traffic-ads-20261111.test.mjs"
+    ],
+    "unverified": [
+      "Node/test suite runtime",
+      "Expo Android compile",
+      "Live AdMob fill, native placement rendering and revenue performance",
+      "RC/OTA deployment fingerprint"
+    ],
+    "production": "NOT RELEASED"
+  }
+}
