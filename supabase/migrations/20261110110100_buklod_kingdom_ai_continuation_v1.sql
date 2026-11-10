@@ -77,8 +77,10 @@ begin
     insert into public.buklod_kingdom_ai_levels_v1(user_id,game_id,level_no)
       values(v_uid,v_game,v_next) returning * into v_row;
     v_started := true;
-  elsif v_row.status='failed' and v_row.generation_attempts<2
-      and v_row.updated_at<now()-interval '30 seconds' then
+  elsif (
+    (v_row.status='failed' and v_row.updated_at<now()-interval '30 seconds')
+    or (v_row.status='generating' and v_row.updated_at<now()-interval '2 minutes')
+  ) and v_row.generation_attempts<2 then
     update public.buklod_kingdom_ai_levels_v1
       set status='generating',generation_attempts=generation_attempts+1,updated_at=now()
       where id=v_row.id returning * into v_row;
