@@ -52,7 +52,7 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
       if (error) throw error;
       if (!mounted.current) return;
       if (!safeQuestions(data?.questions) || data?.practice_only !== true ||
-          data.bp_awarded !== 0 || !Number.isInteger(data.level) ||
+          data.bp_awarded !== 0 || typeof data.level !== 'number' || !Number.isInteger(data.level) ||
           Number(data.level) !== afterLevel + 1) {
         throw new Error('Invalid AI practice level.');
       }
