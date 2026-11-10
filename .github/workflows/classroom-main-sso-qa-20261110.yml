@@ -1,0 +1,41 @@
+name: BUKLOD Main Classroom One-Tap SSO Focused QA
+
+on:
+  push:
+    branches: [dev/classroom-main-sso-20261110]
+    paths: ['.github/workflows/classroom-main-sso-qa-20261110.yml']
+  workflow_dispatch:
+
+permissions: {contents: read}
+jobs:
+  main-classroom-sso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - name: Checkout protected current Main-derived branch
+        uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Source-level SSO, role isolation and DB security tests
+        run: node --test tests/classroom-secure-door-20261110.test.mjs
+      - name: Install exact Main dependency lock
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: TypeScript Main compatibility check
+        run: ./node_modules/.bin/tsc --noEmit --pretty false
+      - name: Public non-credential Edge negative-auth check
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://yhanxndaqbmuzbdqlblu.supabase.co/functions/v1/buklod-classroom-sso-entry-v1'
+          status="$(curl -sS -o /tmp/response.json -w '%{http_code}' --max-time 25 \
+            -X POST -H 'Origin: https://buklod.expo.app' -H 'Content-Type: application/json' \
+            --data '{"mode":"FACULTY"}' "$url")"
+          test "$status" = 401 || test "$status" = 403
+          echo "ANONYMOUS_CLASSROOM_SSO_REJECTED=$status"
+          if grep -Eiq 'token_hash|access_token|refresh_token' /tmp/response.json; then
+            echo 'ERROR: SSO unauthenticated response contains a credential token'
+            exit 1
+          fi
+          echo CLASSROOM_SSO_PUBLIC_NEGATIVE_AUTH=PASS
