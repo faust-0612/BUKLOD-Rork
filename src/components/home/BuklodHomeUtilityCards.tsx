@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { launchBuklodHealthCenter } from '@/lib/buklodHealthCenterLauncher';
+import BuklodMainHealthCard from '@/components/home/BuklodMainHealthCard';
 
 /**
  * Public Home shows consultation as the primary Health Center action.
@@ -26,7 +27,7 @@ export default function BuklodHomeUtilityCards() {
     }
   };
 
-  const healthCard = { id:'health', title: 'Health Center' };
+  const healthCard = { id:'health', title: 'Health Center' }; // canonical main tile identity
 
   return (
     <View style={s.grid} accessibilityLabel="BUKLOD Home dashboard apps">
@@ -59,33 +60,9 @@ export default function BuklodHomeUtilityCards() {
         </View>
       </Pressable>
 
-      <View style={[s.card, s.healthCard]} accessibilityLabel={healthCard.title}>
-        <View style={s.healthHeader}>
-          <View style={s.healthIcon}>
-            <MaterialCommunityIcons name="heart-pulse" size={24} color="#136348" />
-          </View>
-          <Text style={s.healthTitle}>{healthCard.title}</Text>
-        </View>
-        <Text style={s.healthSubtitle} numberOfLines={2}>Health guide · urgent warning-sign check</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Online Consultation"
-          onPress={() => router.push('/profile/buklod-health' as any)}
-          style={({ pressed }) => [s.primaryDoor, pressed && s.pressed]}
-        >
-          <MaterialCommunityIcons name="message-text-outline" size={16} color="#FFFFFF" />
-          <Text style={s.primaryDoorText} numberOfLines={2}>Online Consultation</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open full standalone Health Center"
-          onPress={() => void openStandaloneHealth()}
-          style={({ pressed }) => [s.secondaryDoor, pressed && s.pressed]}
-        >
-          <Text style={s.secondaryDoorText} numberOfLines={2}>Full Health Center</Text>
-          <MaterialCommunityIcons name="open-in-new" size={16} color="#155743" />
-        </Pressable>
-      </View>
+      {/* Inline Health Center workspace, without leaving Main Home. */}
+      <BuklodMainHealthCard openStandalone={() => void openStandaloneHealth()} />
+
     </View>
   );
 }
