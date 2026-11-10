@@ -1,0 +1,97 @@
+name: BUKLOD Classroom Master Completion QA and Expo Preview
+
+on:
+  push:
+    branches: [dev/classroom-completion-20261110]
+    paths: ['.github/workflows/classroom-completion-preview-20261110.yml']
+  workflow_dispatch:
+
+permissions: {contents: read}
+concurrency:
+  group: classroom-completion-preview-20261110
+  cancel-in-progress: false
+
+jobs:
+  preview-with-auth-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_NO_TELEMETRY: '1'
+      BUKLOD_APP_TARGET: classroom
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+    steps:
+      - name: Checkout exact Classroom DEV source
+        uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Ensure classroom identity and no Main export leakage
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const c=require('./app.config.js')({config:{extra:{}}});
+          a.equal(c.slug,'buklod-classroom');
+          a.equal(c.extra.eas.projectId,'14100ed1-7f25-4551-9627-09d280498241');
+          a.equal(c.extra.appTarget,'classroom');
+          const h=fs.readFileSync('classroom-web/index.html','utf8');
+          a.match(h,/gemini-live.js/);a.match(h,/classroomSecureBootGuard/);
+          a.doesNotMatch(h,/<script type="module" src="\/src\/main.js"/);
+          NODE
+          echo CLASSROOM_IDENTITY_CHECK=PASS
+      - name: Install exact Classroom web dependencies and pass all regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix classroom-web --ignore-scripts --no-audit --no-fund
+          npm run build --prefix classroom-web
+          test -s classroom-web/dist/index.html
+          grep -Fq 'gemini-live.js' classroom-web/index.html
+          echo CLASSROOM_TEST_AND_BUILD=PASS
+      - name: Install Expo project tooling and authenticate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          test -n "$EXPO_TOKEN"
+          npx --yes eas-cli@21.7.0 whoami --non-interactive >/dev/null
+          echo CLASSROOM_EXPO_AUTH=PASS
+      - name: Deploy Classroom-only immutable PREVIEW (not production)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@21.7.0 deploy --non-interactive --environment preview --export-dir classroom-web/dist --json | tee /tmp/classroom-expo.json
+          url="$(grep -Eo 'https://buklod-classroom--[a-z0-9]+\.expo\.app' /tmp/classroom-expo.json | head -1)"
+          test -n "$url"
+          echo "PREVIEW_URL=$url" >> "$GITHUB_ENV"
+          echo "EXPO_CLASSROOM_PREVIEW_URL=$url"
+      - name: Install isolated Chrome browser E2E harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          which google-chrome
+          mkdir -p /tmp/buklod-classroom-browser
+          npm install --prefix /tmp/buklod-classroom-browser --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Synthetic signed-in Faculty module/grade browser flows
+        shell: bash
+        run: node classroom-web/e2e/mock-auth-browser.mjs
+      - name: Synthetic no-second-login Student-only, Dual-role and identity mismatch browser flows
+        shell: bash
+        run: node classroom-web/e2e/sso-student-role-browser.mjs
+      - name: Verify exact hosted preview auth bundle (not a local build)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 2 --max-time 30 "$PREVIEW_URL/?classroom_completion=1" -o /tmp/classroom-hosted.html
+          grep -Fq 'classroomSecureBootGuard' /tmp/classroom-hosted.html
+          asset="$(grep -oE '/assets/index-[^"]+\.js' /tmp/classroom-hosted.html | head -1)"
+          test -n "$asset"
+          curl -fsSL --max-time 30 "$PREVIEW_URL$asset" -o /tmp/classroom-hosted.js
+          grep -Fq 'buklod_classroom_launcher_access_v1' /tmp/classroom-hosted.js
+          grep -Fq 'buklod_education_notice_acknowledgments' /tmp/classroom-hosted.js
+          grep -Fq 'buklod_classroom_student_released_grade_items_v2' /tmp/classroom-hosted.js
+          echo EXPO_PREVIEW_SSO_AND_NOTICE_ASSET=PASS
