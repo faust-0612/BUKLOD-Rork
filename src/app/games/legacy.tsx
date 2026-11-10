@@ -62,7 +62,7 @@ export default function KingdomLegacyScreen() {
     getCachedBuklodCharacterSelectionV2(uid),
   );
   const [collection, setCollection] = useState<CharacterCollectibleState | null>(null);
-  const [shards, setShards] = useState<KingdomShardsSnapshot>(emptyKingdomShards);
+  const [shards, setShardSnapshot] = useState<KingdomShardsSnapshot>(emptyKingdomShards);
   const [loading, setLoading] = useState(Boolean(uid));
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -121,7 +121,7 @@ export default function KingdomLegacyScreen() {
     let alive = true;
     setState(uid ? getCachedBuklodCharacterSelectionV2(uid) : null);
     setCollection(null);
-    setShards(emptyKingdomShards());
+    setShardSnapshot(emptyKingdomShards());
     setReveal(null);
     setTrialItem(null);
     setVisibleCount(8);
@@ -130,7 +130,7 @@ export default function KingdomLegacyScreen() {
     if (!uid) { setLoading(false); return; }
     setLoading(true);
     void getMyKingdomShards(uid).then(value=>{
-      if(alive && accountRef.current===uid) setShards(value);
+      if(alive && accountRef.current===uid) setShardSnapshot(value);
     });
     void load(uid, true).then(({ next, items }) => {
       if (!alive) return;
@@ -171,7 +171,7 @@ export default function KingdomLegacyScreen() {
       if (accountRef.current === uid && activeIdRef.current === next.active_character_id) {
         setState(next); setCollection(items);
         void getMyKingdomShards(uid).then(value=>{
-          if(accountRef.current===uid)setShards(value);
+          if(accountRef.current===uid)setShardSnapshot(value);
         });
       }
     } catch (reason) {
