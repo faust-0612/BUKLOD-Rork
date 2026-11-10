@@ -1,3 +1,4 @@
+export const KINGDOM_OFFLINE_MAX_LEVEL: 5000;
 export type KingdomOfflinePracticeQuestion = {
   prompt: string;
   choices: string[];
