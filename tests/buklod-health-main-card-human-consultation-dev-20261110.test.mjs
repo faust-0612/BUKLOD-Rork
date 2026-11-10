@@ -39,7 +39,7 @@ test('PRC license checks and admin review are server-side, volunteer cannot self
   assert.match(sql, /license_expires_on>=current_date/);
   assert.match(panel, /expiryDays<=7/);
   assert.match(panel, /expiryDays<=30/);
-  assert.match(panel, /online\.prc\.gov\.ph/);
+  assert.match(panel, /verification\.prc\.gov\.ph/);
 });
 
 test('Private clinical records use controlled RPCs, never public direct table grants',()=>{
@@ -79,4 +79,29 @@ test('Private consultations are ad-free and keep external app doorway separate',
   assert.doesNotMatch(panel, /BuklodAdMobBanner|AdSlot|interstitial|rewarded|adsbygoogle/);
   assert.match(panel, /No ads inside private clinical records/);
   assert.doesNotMatch(sql, /insert into public\.posts|buklod_public_wall|provider_access_token/i);
+});
+
+test('Clinical updates do not require another screen or permanent background process',()=>{
+  assert.match(panel,/setInterval\(\(\)=>void sync\(\),20000\)/);
+  assert.match(panel,/AppState\.currentState==='background'/);
+  assert.match(panel,/caseItem\?\.status!=='IN_PROGRESS'/);
+  assert.match(panel,/if\(!silent\)setLoading\(true\)/);
+  assert.doesNotMatch(panel,/setInterval\([^\n]*1000\)/);
+});
+test('Recorded advice remains available after closure and transfer',()=>{
+  assert.match(panel,/caseItem\.status!=='OPEN'/);
+  assert.match(panel,/Read-only clinical history/);
+  assert.match(sql,/status in \('IN_PROGRESS','REFERRED'\)/);
+});
+test('PRC number and message replay protection are enforced on server',()=>{
+  assert.match(sql,/unique\(profession,prc_license_number\)/);
+  assert.match(sql,/note_request_key text not null/);
+  assert.match(sql,/unique\(consultation_id,author_id,note_request_key\)/);
+  assert.match(sql,/on conflict \(consultation_id,author_id,note_request_key\) do nothing/);
+  assert.match(panel,/p_note_key:noteRequestKey\.current/);
+});
+test('Other professional scopes do not automatically unlock medical advice',()=>{
+  assert.match(sql,/v_profession='OTHER'/);
+  assert.match(sql,/v_service='PHYSICIAN_CONSULT' and v_profession<>'PHYSICIAN'/);
+  assert.match(panel,/profession==='OTHER'/);
 });
