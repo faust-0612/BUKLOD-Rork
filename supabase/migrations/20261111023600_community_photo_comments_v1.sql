@@ -8,6 +8,23 @@ create index if not exists comments_photo_scoped_visible_idx
   on public.comments (post_id, media_position, created_at)
   where media_position is not null and is_hidden = false;
 
+-- Restore canonical media rows for old single-photo posts: without these
+-- rows the pre-existing per-photo reaction RPC cannot operate. The operation
+-- is idempotent and copies only existing image metadata, never media bytes.
+insert into public.community_post_media(
+  post_id, media_position, media_path, media_mime_type, media_size_bytes
+)
+select cp.id, 0::smallint, cp.media_path, cp.media_mime_type, cp.media_size_bytes
+from public.community_posts cp
+where cp.media_path is not null
+  and cp.media_mime_type like 'image/%'
+  and cp.is_hidden = false
+  and cp.deleted_at is null
+  and not exists (
+    select 1 from public.community_post_media m where m.post_id = cp.id
+  )
+on conflict (post_id, media_position) do nothing;
+
 -- A photo may be represented by community_post_media, or by the legacy
 -- single-photo community_posts media_path fallback.
 create or replace function public.get_buklod_photo_comments_v1(
