@@ -26,6 +26,7 @@ import {
   adminFailBuklodPfWithdrawal,
   adminFinalizeBuklodPfMonthV3,
   adminGetBuklodPfFinanceConsoleV3,
+  adminGetBuklodPfQmpReadinessV1,
   adminGetBuklodR38PayoutDetails,
   adminListBuklodR38Withdrawals,
   adminMarkBuklodPfWithdrawalProcessing,
@@ -33,6 +34,7 @@ import {
   adminRecordBuklodPfFinancialEntryV3,
   adminReviewBuklodR38Withdrawal,
   type BuklodPfFinanceConsoleV3,
+  type BuklodPfQmpReadiness,
   type BuklodR38AdminWithdrawalQueue,
   type BuklodR38PayoutDetails,
 } from '@/lib/buklodR38AdminEconomy';
@@ -106,6 +108,7 @@ export default function AdminEconomyOperationsScreen() {
 
   const [periodKey, setPeriodKey] = useState(month.key);
   const [admobPreview, setAdmobPreview] = useState<AdminCommunityAdmobEstimate | null>(null);
+  const [qmpReadiness, setQmpReadiness] = useState<BuklodPfQmpReadiness | null>(null);
   const [admobReportAmount, setAdmobReportAmount] = useState('');
   const [admobReportCurrency, setAdmobReportCurrency] = useState<'USD' | 'PHP'>('USD');
   const [admobUsdPhpRate, setAdmobUsdPhpRate] = useState('');
@@ -133,16 +136,18 @@ export default function AdminEconomyOperationsScreen() {
     try {
       setError(null);
 
-      const [nextReport, nextQueue, nextAdmob] = await Promise.all([
+      const [nextReport, nextQueue, nextAdmob, nextQmpReadiness] = await Promise.all([
         adminGetBuklodPfFinanceConsoleV3(periodKey),
         adminListBuklodR38Withdrawals(),
         // The additive preview migration may be pending on older environments.
         adminGetCommunityAdmobEstimate(periodKey).catch(() => null),
+        adminGetBuklodPfQmpReadinessV1(periodKey).catch(() => null),
       ]);
 
       setReport(nextReport);
       setQueue(nextQueue);
       setAdmobPreview(nextAdmob);
+      setQmpReadiness(nextQmpReadiness);
     } catch (nextError: unknown) {
       setError(
         nextError instanceof Error
@@ -172,6 +177,7 @@ export default function AdminEconomyOperationsScreen() {
   const canFinalize =
     controls?.economics_enabled === true &&
     controls?.settlement_enabled === true &&
+    qmpReadiness?.ready_for_finalization === true &&
     currentStatus !== 'FINALIZED';
 
   const payoutEnabled =
@@ -467,11 +473,24 @@ export default function AdminEconomyOperationsScreen() {
               <Text style={styles.muted}>
                 Settlement status: {currentStatus}
               </Text>
+              <Text style={styles.muted}>
+                Canonical monthly QMP audit: {qmpReadiness?.period_exists
+                  ? `${qmpReadiness.qualified_users ?? 0} qualified users ·
+                  ${qmpReadiness.qualified_monthly_qmp ?? 0} QMP ·
+                  ${qmpReadiness.unlinked_finance_identities ?? 0} identity links missing ·
+                  ${qmpReadiness.pending_qmp_reviews ?? 0} pending ·
+                  ${qmpReadiness.held_qmp_reviews ?? 0} held ·
+                  ${qmpReadiness.legacy_share_records ?? 0} legacy allocations ·
+                  ${qmpReadiness.reconciled_eligible_revenue_sources ?? 0} verified revenue records`
+                  : 'Not verified. Finalization remains locked.'}
+              </Text>
 
               {!canFinalize &&
                 currentStatus !== 'FINALIZED' && (
                   <Text style={styles.warningText}>
-                    Finalization is locked by the canonical backend. Economics and Settlement must both be ON before a month can be finalized.
+                    Finalization requires a completed month, resolved QMP reviews, reconciled Finance identities,
+                    verified eligible revenue, no legacy allocations, and enabled server economics and settlement gates.
+                    Incomplete or missing readiness data never authorizes a payout.
                   </Text>
                 )}
             </View>
