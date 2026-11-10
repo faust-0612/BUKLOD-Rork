@@ -13,6 +13,8 @@ import { Card, SectionTitle, shared, Button } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { selectAuthorizedOfflineLessonIds } from '@/lib/buklodAuthorizedOfflineLessons';
+import { warmAuthorizedLessonsOffline } from '@/lib/buklodFaithOfflineWarmup';
 import { colors } from '@/lib/theme';
 import { useFormationJourney } from '@/hooks/useFormationJourney';
 import {
@@ -119,6 +121,8 @@ export default function TrackDetail() {
     let weeklyForCache: FormationWeeklyDelivery | null = null;
     let legacyForCache: any[] = [];
     let accessForCache: Array<[string, FormationLessonAccess]> = [];
+    let accessVerified = true;
+    let weeklyVerified = true;
 
     if (t?.stage_code === 106 && formationJourney.engineEnabled) {
       try {
@@ -126,7 +130,9 @@ export default function TrackDetail() {
         setRoleTrack(trackInfo);
         roleForCache = trackInfo;
       } catch {
-        setRoleTrack(null);
+        // Keep last authorized role metadata during temporary outages.
+        roleForCache = cached?.data?.roleTrack ?? null;
+        if (!roleForCache) setRoleTrack(null);
       }
     } else {
       setRoleTrack(null);
@@ -142,7 +148,9 @@ export default function TrackDetail() {
         setWeeklyDelivery(weekly);
         weeklyForCache = weekly;
       } catch {
-        setWeeklyDelivery(null);
+        weeklyVerified = false;
+        weeklyForCache = cached?.data?.weeklyDelivery ?? null;
+        if (!weeklyForCache) setWeeklyDelivery(null);
       }
     } else {
       setWeeklyDelivery(null);
@@ -156,21 +164,23 @@ export default function TrackDetail() {
     const statusRows: any[] = [];
 
     if (isFormationTrack) {
-      const { data: statusData } = await supabase.rpc(
+      const { data: statusData, error: statusError } = await supabase.rpc(
         'get_my_formation_track_lesson_status',
         {
           p_track_id: id,
         }
       );
+      if (statusError) return; // Do not replace a valid snapshot with unknown access.
 
       statusRows.push(...(statusData ?? []));
       setFormationStatuses(statusRows);
       setLegacyProgress([]);
     } else if (e?.id) {
-      const { data: p } = await supabase
+      const { data: p, error: progressError } = await supabase
         .from('lesson_progress')
         .select('lesson_id,completed_at')
         .eq('enrollment_id', e.id);
+      if (progressError) return;
 
       setLegacyProgress(p ?? []);
       legacyForCache = p ?? [];
@@ -226,7 +236,11 @@ export default function TrackDetail() {
         setLessonAccessById(merged);
         accessForCache = Array.from(merged.entries());
       } catch {
-        setLessonAccessById(new Map());
+        accessVerified = false;
+        // Never reset previously authorized navigation merely because a
+        // permission RPC timed out. The detail view still checks online.
+        accessForCache = cached?.data?.access ?? [];
+        if (!accessForCache.length) setLessonAccessById(new Map());
       }
     } else {
       setLessonAccessById(new Map());
@@ -243,6 +257,25 @@ export default function TrackDetail() {
       access: accessForCache,
     }, { userId: user.id, ttlMs: 30 * 24 * 60 * 60 * 1000 })
       .catch(() => undefined);
+
+    // Pre-download actual lesson content that this member is authorized to
+    // access. A previously saved access map is never proof of *new* access.
+    if (accessVerified && weeklyVerified) {
+      const eligible = selectAuthorizedOfflineLessonIds({
+        lessonIds: l.map((row: { id: string }) => row.id),
+        isFormation: isFormationTrack,
+        enrolled: Boolean(e?.id),
+        sequential: applySequentialLock,
+        access: accessForCache,
+        weeklyStage: formationJourney.engineEnabled &&
+          (stageNum === 106 || stageNum === 107),
+        weekly: weeklyForCache,
+      });
+      void warmAuthorizedLessonsOffline({
+        userId: user.id, track: t, lessons: l,
+        allowedIds: eligible.allowed, deniedIds: eligible.denied,
+      }).catch(() => undefined);
+    }
 
     if (isFormationTrack) return;
   }, [id, user?.id, formationJourney.engineEnabled, online]);
@@ -412,7 +445,8 @@ export default function TrackDetail() {
     });
   };
 
-  if (!track || !user?.id || contentOwner !== user.id) return null;
+  if (!track || track.id !== id || !user?.id ||
+      contentOwner !== user.id) return null;
 
   const journeyStage = formationJourney.journey?.stages.find(
     (s) => s.stage_code === stageCode,

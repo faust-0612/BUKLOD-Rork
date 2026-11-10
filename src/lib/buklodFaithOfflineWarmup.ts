@@ -4,11 +4,24 @@
  * bypass the server's authoritative publication/access checks.
  */
 import { supabase } from '@/lib/supabase';
-import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { getOfflineCache, removeOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { nextBibleChapterTargets, type BibleBookForPrefetch } from '@/lib/buklodBiblePrefetchTargets';
 
 const DAY = 24 * 60 * 60 * 1000;
 const FRESH = 6 * 60 * 60 * 1000;
 const activeWarmups = new Set<string>();
+
+async function isSameSignedInAccount(userId: string): Promise<boolean> {
+  if (!userId) return false;
+  try {
+    // getSession reads locally persisted authentication; never retain content
+    // under a previous account after a sign-out or mid-download account switch.
+    const { data, error } = await supabase.auth.getSession();
+    return !error && data.session?.user?.id === userId;
+  } catch {
+    return false;
+  }
+}
 
 export type OfflineBibleDay = {
   readingDate: string;
@@ -41,7 +54,7 @@ export async function warmPublishedWordsOffline(
   userId: string,
   publishedIds: string[],
 ): Promise<void> {
-  if (!userId) return;
+  if (!userId || !await isSameSignedInAccount(userId)) return;
   const key = 'words:' + userId;
   if (activeWarmups.has(key)) return;
   activeWarmups.add(key);
@@ -54,7 +67,7 @@ export async function warmPublishedWordsOffline(
       if (cached?.data?.id === id && Date.now() - cached.storedAt < FRESH) return;
       const { data, error } = await supabase.from('devotionals')
         .select('*').eq('id', id).eq('is_published', true).single();
-      if (error || !data) return;
+      if (error || !data || !await isSameSignedInAccount(userId)) return;
       await setOfflineCache(cacheKey, data, { userId, ttlMs: 30 * DAY });
     });
   } finally {
@@ -66,7 +79,7 @@ export async function warmBibleWeekOffline(
   userId: string,
   days: OfflineBibleDay[],
 ): Promise<void> {
-  if (!userId || !days.length) return;
+  if (!userId || !days.length || !await isSameSignedInAccount(userId)) return;
   const key = 'bible:' + userId + ':' + days[0]?.readingDate;
   if (activeWarmups.has(key)) return;
   activeWarmups.add(key);
@@ -89,6 +102,7 @@ export async function warmBibleWeekOffline(
     const recentRows = settledData(recentResult);
     const recent = Array.isArray(recentRows)
       ? recentRows[0] ?? null : existing?.data?.recent ?? null;
+    if (!await isSameSignedInAccount(userId)) return;
     if (Array.isArray(translations) && translations.length) {
       await setOfflineCache('bible-bootstrap-v1', {
         translations, preferred, recent,
@@ -105,7 +119,8 @@ export async function warmBibleWeekOffline(
       try {
         const { data, error } = await (supabase as any).rpc(
           'get_bible_books', { p_translation_code: translation });
-        if (!error && Array.isArray(data) && data.length) {
+        if (!error && Array.isArray(data) && data.length &&
+            await isSameSignedInAccount(userId)) {
           await setOfflineCache(booksKey, data, { userId, ttlMs: 60 * DAY });
         }
       } catch {
@@ -114,7 +129,8 @@ export async function warmBibleWeekOffline(
     }
 
     await runBounded(days.slice(0, 7), async day => {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(day.readingDate)) return;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day.readingDate) ||
+          !await isSameSignedInAccount(userId)) return;
       const planKey = 'bible-daily-plan:' + day.readingDate;
       const savedPlan = await getOfflineCache<any>(planKey, {
         userId, allowStale: true,
@@ -144,7 +160,8 @@ export async function warmBibleWeekOffline(
         bookNo: positiveInteger(plan?.start_book_no) || day.fallback?.bookNo || 0,
         chapterNo: positiveInteger(plan?.start_chapter) || day.fallback?.chapterNo || 0,
       };
-      if (!start.bookNo || !start.chapterNo) return;
+      if (!start.bookNo || !start.chapterNo ||
+          !await isSameSignedInAccount(userId)) return;
       const end = {
         bookNo: positiveInteger(plan?.end_book_no) || start.bookNo,
         chapterNo: positiveInteger(plan?.end_chapter) || start.chapterNo,
@@ -172,10 +189,101 @@ export async function warmBibleWeekOffline(
           p_book_no: target.bookNo,
           p_chapter_no: target.chapterNo,
         });
-        if (!error && Array.isArray(data) && data.length) {
+        if (!error && Array.isArray(data) && data.length &&
+            await isSameSignedInAccount(userId)) {
           await setOfflineCache(chapterKey, data, { userId, ttlMs: 90 * DAY });
         }
       }
+    });
+  } finally {
+    activeWarmups.delete(key);
+  }
+}
+
+/**
+ * Prefetch the next two chapters when a user opens My Bible online.
+ * Never opens a reading session or awards points for background downloads.
+ */
+export async function warmNextBibleChaptersOffline(input: {
+  userId: string;
+  translation: string;
+  bookNo: number;
+  chapterNo: number;
+  books: BibleBookForPrefetch[];
+}): Promise<void> {
+  const { userId, translation, bookNo, chapterNo, books } = input;
+  if (!userId || !translation || !await isSameSignedInAccount(userId)) return;
+  const targets = nextBibleChapterTargets(books, bookNo, chapterNo, 2);
+  if (!targets.length) return;
+  const key = 'ahead:' + userId + ':' + translation + ':' + bookNo + ':' + chapterNo;
+  if (activeWarmups.has(key)) return;
+  activeWarmups.add(key);
+  try {
+    // Sequential download keeps the manual reader responsive on weak networks.
+    for (const target of targets) {
+      if (!await isSameSignedInAccount(userId)) return;
+      const cacheKey = 'bible-chapter-v1:' + translation + ':' +
+        target.bookNo + ':' + target.chapterNo;
+      const saved = await getOfflineCache<any[]>(cacheKey, { userId, allowStale: true });
+      if (saved?.data?.length && Date.now() - saved.storedAt < 18 * 60 * 60 * 1000) continue;
+      try {
+        const { data, error } = await (supabase as any).rpc('get_bible_chapter', {
+          p_translation_code: translation,
+          p_book_no: target.bookNo,
+          p_chapter_no: target.chapterNo,
+        });
+        if (error || !Array.isArray(data) || !data.length ||
+            !await isSameSignedInAccount(userId)) continue;
+        await setOfflineCache(cacheKey, data, { userId, ttlMs: 90 * DAY });
+      } catch {
+        // Best effort. Existing saved chapters remain available.
+      }
+    }
+  } finally {
+    activeWarmups.delete(key);
+  }
+}
+
+/**
+ * Download only lesson rows confirmed accessible by an authoritative online
+ * access/release check. No content is fetched via unguarded catalog URLs.
+ */
+export async function warmAuthorizedLessonsOffline(input: {
+  userId: string;
+  track: { id: string } | null;
+  lessons: Array<{ id: string; track_id?: string | null; [key: string]: unknown }>;
+  allowedIds: string[];
+  deniedIds: string[];
+}): Promise<void> {
+  const { userId, track, lessons, allowedIds, deniedIds } = input;
+  if (!userId || !track?.id || !await isSameSignedInAccount(userId)) return;
+  const key = 'lessons:' + userId + ':' + track.id;
+  if (activeWarmups.has(key)) return;
+  activeWarmups.add(key);
+  try {
+    await runBounded([...new Set(deniedIds)].slice(0, 50), async id => {
+      if (!await isSameSignedInAccount(userId)) return;
+      await removeOfflineCache('lesson-reading-v1:' + id, userId);
+    });
+    const granted = new Set(allowedIds);
+    const selected = lessons.filter(row =>
+      granted.has(row.id) && row.track_id === track.id).slice(0, 30);
+    await runBounded(selected, async lesson => {
+      if (!await isSameSignedInAccount(userId)) return;
+      const cacheKey = 'lesson-reading-v1:' + lesson.id;
+      const saved = await getOfflineCache<any>(cacheKey, {
+        userId, allowStale: true,
+      });
+      if (saved?.data?.lesson?.id === lesson.id &&
+          Date.now() - saved.storedAt < FRESH) return;
+      if (!await isSameSignedInAccount(userId)) return;
+      await setOfflineCache(cacheKey, {
+        lesson,
+        track,
+        questions: saved?.data?.questions ?? [],
+        formationStatus: saved?.data?.formationStatus ?? null,
+        formationLesson: null,
+      }, { userId, ttlMs: 30 * DAY });
     });
   } finally {
     activeWarmups.delete(key);

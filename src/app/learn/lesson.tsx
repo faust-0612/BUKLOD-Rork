@@ -18,7 +18,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
-import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { getOfflineCache, removeOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
 import { VoiceReader } from '@/components/VoiceReader';
@@ -42,6 +42,12 @@ import { useBuklodAnswerValidation } from '@/hooks/useBuklodAnswerValidation';
 import { friendlyLessonBlockingReason, formationCopy, lessonBlockingGuide } from '@/lib/formationCopy';
 import type { FormationLessonAccess } from '@/types/buklodFormation';
 
+function isTransientLessonReadError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message :
+    String((error as { message?: unknown } | null)?.message ?? error ?? '');
+  return /network|fetch|timeout|timed out|connection|offline|unreachable|aborted/i.test(message);
+}
+
 export default function LessonDetail() {
   const { lessonId, enrollmentId, trackLessonId } =
     useLocalSearchParams<{
@@ -55,6 +61,7 @@ export default function LessonDetail() {
   const accountId = user?.id ?? '';
   const [offlineReadOnly, setOfflineReadOnly] = useState(false);
   const [offlineContentOwner, setOfflineContentOwner] = useState('');
+  const [lessonOwner, setLessonOwner] = useState('');
   const [lesson, setLesson] = useState<any>(null);
   const [formationLesson, setFormationLesson] = useState<any>(null);
   const [track, setTrack] = useState<any>(null);
@@ -137,8 +144,11 @@ export default function LessonDetail() {
       const saved = await getOfflineCache<any>('lesson-reading-v1:' + readingId, {
         userId: accountId, allowStale: true,
       });
-      if (!saved?.data?.lesson || saved.data.lesson.id !== readingId) return false;
+      if (!saved?.data?.lesson || saved.data.lesson.id !== readingId ||
+          !Number.isFinite(saved.storedAt) ||
+          Date.now() - saved.storedAt > 14 * 24 * 60 * 60 * 1000) return false;
       setLesson(saved.data.lesson);
+      setLessonOwner(accountId);
       setTrack(saved.data.track ?? null);
       setQuestions(saved.data.questions ?? []);
       setFormationStatus(saved.data.formationStatus ?? null);
@@ -186,18 +196,21 @@ export default function LessonDetail() {
           resolvedAccess = access;
           setLessonAccess(access);
           if (!access || !access.allowed) {
+            await removeOfflineCache('lesson-reading-v1:' + trackLessonId, accountId);
             setLoadState('unavailable');
             return;
           }
 
           const payload = await loadFormationTrackLesson(trackLessonId);
           if (!payload) {
+            await removeOfflineCache('lesson-reading-v1:' + trackLessonId, accountId);
             setLoadState('unavailable');
             setLoadMessage(formationCopy.lessonCouldNotOpenGuide);
             return;
           }
 
           setFormationLesson(payload);
+          setLessonOwner(accountId);
           setLesson({
             id: trackLessonId,
             title: payload?.title ?? 'Formation Lesson',
@@ -245,7 +258,8 @@ export default function LessonDetail() {
       } else {
         setLessonAccess(null);
       }
-    } catch {
+    } catch (error) {
+      if (isTransientLessonReadError(error) && await useSavedReading()) return;
       setLessonAccess(null);
       setLoadState('unavailable');
       setLoadMessage(formationCopy.lessonCouldNotOpenGuide);
@@ -258,23 +272,32 @@ export default function LessonDetail() {
       return;
     }
 
-    const { data: l, error: lessonError } = await supabase
-      .from('learning_lessons')
-      .select('*')
-      .eq('id', lessonId)
-      .single();
+    let l: any = null;
+    let lessonError: unknown = null;
+    try {
+      const result = await supabase
+        .from('learning_lessons')
+        .select('*')
+        .eq('id', lessonId)
+        .single();
+      l = result.data;
+      lessonError = result.error;
+    } catch (error) {
+      lessonError = error;
+    }
 
     if (lessonError) {
-      const transient = /network|fetch|timeout|connection|offline/i.test(
-        String(lessonError.message ?? ''),
-      );
-      if (transient && await useSavedReading()) return;
+      if (isTransientLessonReadError(lessonError) && await useSavedReading()) return;
+      if (!isTransientLessonReadError(lessonError)) {
+        await removeOfflineCache('lesson-reading-v1:' + lessonId, accountId);
+      }
       setLoadState('unavailable');
       setLoadMessage(formationCopy.lessonCouldNotOpenGuide);
       return;
     }
 
     setLesson(l);
+    setLessonOwner(accountId);
 
     if (l?.track_id) {
       const { data: t } = await supabase
@@ -340,6 +363,7 @@ export default function LessonDetail() {
             resolvedAccess = merged;
             setLessonAccess(merged);
             if (!merged.allowed) {
+              await removeOfflineCache('lesson-reading-v1:' + lessonId, accountId);
               setLoadState('unavailable');
               return;
             }
@@ -348,6 +372,7 @@ export default function LessonDetail() {
             return;
           }
         } else if (engineOn && resolvedAccess && !resolvedAccess.allowed) {
+          await removeOfflineCache('lesson-reading-v1:' + lessonId, accountId);
           setLoadState('unavailable');
           return;
         }
@@ -600,7 +625,10 @@ export default function LessonDetail() {
     }
   };
 
-  if (loadState === 'loading') {
+  // A route/account change must never flash another user's cached lesson.
+  if (loadState === 'loading' ||
+      (lesson && (lessonOwner !== accountId ||
+        lesson.id !== (trackLessonId || lessonId)))) {
     return (
       <SafeAreaView style={shared.screen} edges={['top', 'bottom']}>
         <View style={[shared.content, styles.centered]}>

@@ -61,7 +61,7 @@ export default function BuklodLightHome() {
       { label: 'Join Cluster', icon: 'account-group-outline', path: '/clusters', action: () => openRoute('/clusters') },
       { label: 'Connect', icon: 'message-outline', path: '/messages', action: () => openRoute('/messages') },
       { label: 'Contribute', icon: 'heart-outline', path: '/community-contribution', action: () => openRoute('/community-contribution') },
-      { label: 'Daily Reading', icon: 'book-open-variant', path: '/bible/read', action: () => router.push('/bible/read?source=daily_plan' as any) },
+      { label: 'Daily Reading', icon: 'book-open-variant', path: '/bible', action: () => router.push('/bible' as any) },
     ] as const;
     return (
       <ScrollView
