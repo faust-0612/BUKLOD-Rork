@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/providers/AuthProvider';
-import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
+import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
 import { maybeShowBuklodInterstitial, warmBuklodInterstitial } from '@/lib/buklodAds';
 import {
   buyMyKingdomItem, getMyKingdomShards, emptyKingdomShards, KINGDOM_SHARD_ITEMS,
@@ -137,7 +137,7 @@ export default function KingdomRewardsScreen() {
         </View>;
       })}
       {notice?<Text accessibilityRole="alert" style={s.notice}>{notice}</Text>:null}
-      <BuklodNativeSponsoredCard surface="home" slotId="kingdom_treasury_native" />
+      <BuklodCommunityInlineAd surface="home" slotId="kingdom_treasury_native" placementIdOverride="kingdom_treasury_native" active />
       <View style={s.footer}>
         <MaterialCommunityIcons name="information-outline" size={19} color={COLORS.muted}/>
         <Text style={s.footerText}>Shards are not BP, earnings, currency, or withdrawable value. Game powers work in free practice after one verified purchase, including offline after syncing. They do not apply to server-scored Mastery examinations.</Text>

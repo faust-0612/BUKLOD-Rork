@@ -25,3 +25,10 @@ test('Optional rewarded hint and verified Kingdom operations never credit money 
  assert.match(practice,/setRewardedHintIndex\(0\)/);
  assert.match(read('src/lib/buklodRewardedAds.web.ts'),/earned: false/);
 });
+
+test('Kingdom native ad wrapper uses exact route-safe placement override',()=>{
+ const legacy=read('src/app/games/legacy.tsx');
+ const shop=read('src/app/games/rewards.tsx');
+ assert.match(legacy,/placementIdOverride="kingdom_legacy_native"/);
+ assert.match(shop,/placementIdOverride="kingdom_treasury_native"/);
+});

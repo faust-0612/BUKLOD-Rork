@@ -10,7 +10,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
-import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
+import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
 import { maybeShowBuklodInterstitial, warmBuklodInterstitial } from '@/lib/buklodAds';
 import KingdomRelicEmblem, { kingdomFinishLabel } from '@/features/games/kingdom/KingdomRelicEmblem';
 import KingdomBadgeTrials from '@/features/games/kingdom/KingdomBadgeTrials';
@@ -309,7 +309,7 @@ export default function KingdomLegacyScreen() {
             </Pressable>
           </LinearGradient>
 
-          <BuklodNativeSponsoredCard surface="home" slotId="kingdom_legacy_native" />
+          <BuklodCommunityInlineAd surface="home" slotId="kingdom_legacy_native" placementIdOverride="kingdom_legacy_native" active />
           <Pressable accessibilityRole="button" accessibilityLabel="Open Shard Treasury and game powers"
             onPress={() => router.push('/games/rewards' as any)} style={s.shardsBar}>
             <MaterialCommunityIcons name="diamond-stone" size={25} color={C.gold}/>

@@ -69,7 +69,8 @@
     "Practice hint rewarded video is Android-only, explicitly tapped, permitted by AdsProvider and Kingdom exact-route gate, credited only after EARNED_REWARD and account/level still match.",
     "Rewarded hints never mint BP, Shards, XP, QMP, rank or cash, and practice works without a filled ad.",
     "Collectible celebration animates before the user dismisses it, and only then may a successful-claim interstitial display; stale account cannot trigger it.",
-    "Focused ads-specific Node regression contract covers Kingdom route exceptions, post-claim celebration, idempotent Shard unlock and earned-only optional practice hints."
+    "Focused ads-specific Node regression contract covers Kingdom route exceptions, post-claim celebration, idempotent Shard unlock and earned-only optional practice hints.",
+    "Native Kingdom Hall and Treasury AdMob components pass placementIdOverride equal to the exact route-allowlisted placement key, not just slotId."
   ],
   "riskAreas": [
     "kingdom-visual",
