@@ -29,6 +29,9 @@ const safeQuestions = (value: unknown): value is Question[] =>
  * level completion. No ad or credit is granted by question generation.
  */
 export function KingdomAIContinuation({ gameId }: { gameId: string }) {
+  // Do not hit unavailable AI RPCs or display a disabled paid feature. Offline
+  // continuation works independently in all 39 games.
+  const aiAvailable = process.env.EXPO_PUBLIC_BUKLOD_KINGDOM_AI_ENABLED === 'true';
   const { t } = useBuklodGameLanguage();
   const [phase, setPhase] = useState<Phase>('ready');
   const [level, setLevel] = useState(0);
@@ -48,6 +51,7 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
     setPhase('ready');
     setResumeAfter(0);
     setSessionId('');
+    if (!aiAvailable) { setProgressBusy(false); return () => { mounted.current = false; }; }
     void Promise.resolve(supabase.rpc('get_my_buklod_kingdom_ai_progress_v1',
       { p_game_id: gameId }))
       .then(({ data, error }) => {
@@ -64,9 +68,9 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
         // Offline/missing feature migration must not block verified Kingdom games.
       }).finally(() => { if (mounted.current) setProgressBusy(false); });
     return () => { mounted.current = false; };
-  }, [gameId]);
+  }, [gameId, aiAvailable]);
   async function loadNext(afterLevel: number) {
-    if (busy.current || !Number.isInteger(afterLevel) || afterLevel < 0 ||
+    if (!aiAvailable || busy.current || !Number.isInteger(afterLevel) || afterLevel < 0 ||
       afterLevel >= 200) return;
     busy.current = true;
     setPhase('loading');
@@ -130,6 +134,7 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
   const allAnswered = answers.length === 3 && answers.every(index => index >= 0);
   const score = finalScore ?? questions.reduce(
     (sum, q, i) => sum + (answers[i] === q.answer_index ? 1 : 0), 0);
+  if (!aiAvailable) return null;
   return (
     <View style={styles.shell}>
       <Text style={styles.eyebrow}>KINGDOM • AI PRACTICE QUEST</Text>
