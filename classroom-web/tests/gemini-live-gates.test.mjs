@@ -26,7 +26,10 @@ test('authenticated Supabase source never trusts role toggles or URL token hando
   assert.match(live,/buklod_classroom_context_v1/);
   assert.match(live,/validClass\(id\)/);
   assert.match(live,/roleByClass/);
-  assert.match(live,/window\.switchPersona=\(\)=>show/);
+  assert.match(live,/window\.switchPersona=mode=>/);
+  assert.match(live,/db\.auth\.verifyOtp\(\{token_hash:ssoHandoff\.hash,type:'email'\}\)/);
+  assert.match(live,/ssoExpectedUser/);
+  assert.match(live,/buklod_classroom_launcher_access_v1/);
   assert.doesNotMatch(live,/service_role|sb_secret_/);
 });
 test('official academic actions use guarded backend and no mock successful saves',()=>{
