@@ -164,6 +164,25 @@ begin
     raise exception 'Outstanding QMP reviews must be resolved before finalization';
   end if;
 
+  -- Never lock an eligible month forever using a zero-funded placeholder.
+  -- At least one finalized per-person source or verified reconciled eligible
+  -- platform revenue entry is required. Preliminary AdMob reports are not money.
+  if not exists (
+    select 1 from private.buklod_pf_finalized_value_ledger f
+    where f.finalized_at>=v_start and f.finalized_at<v_end
+      and f.gross_value_centavos>0
+  ) and not exists (
+    select 1 from private.buklod_pf_financial_entries e
+    where e.period_key=p_period_key
+      and e.entry_type='UNATTRIBUTED_ELIGIBLE_REVENUE'
+      and e.direction='CREDIT'
+      and e.reconciliation_state='RECONCILED'
+      and e.amount_centavos>0
+      and nullif(trim(coalesce(e.external_reference,'')),'') is not null
+  ) then
+    raise exception 'Verified source-backed eligible revenue is required for month finalization';
+  end if;
+
   -- Authenticated active profiles are included independently of old
   -- per-person revenue qualification and referral activation gates.
   for v_row in
