@@ -56,7 +56,8 @@ test('evidence upload has consent, photo preview, retry receipt and private sign
   assert.match(mentor, /requestCameraPermissionsAsync/);
   assert.match(mentor, /requestMediaLibraryPermissionsAsync/);
   assert.match(mentor, /confirm permission to upload/i);
-  assert.match(mentor, /setRetrySessionId\(savedSessionId\)/);
+  assert.match(mentor, /setRetrySessionId\(confirmedSessionId\)/);
+  assert.match(mentor, /if \(!isValidSessionId\(confirmedSessionId\)\) throw new Error/);
   assert.match(mentor, /actionLock\.current/);
   assert.match(mentor, /sequence !== requestSeq\.current/);
   assert.match(mentor, /Retry saved photo/);
