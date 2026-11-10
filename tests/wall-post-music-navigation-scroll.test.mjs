@@ -10,8 +10,8 @@ test('Optional Wall music leaves the existing feed pagination, scroll and ad vis
   assert.match(wall,/onEndReachedThreshold=\{0\.45\}/);
   assert.match(wall,/onCommunityWallViewableItemsChanged=useRef/);
   assert.match(wall,/communityViewabilityListener\.current\(event\)/);
-  assert.match(wall,/onViewableItemsChanged=\{onCommunityWallViewableItemsChanged\}/);
-  assert.match(wall,/viewabilityConfig=\{communityAdViewabilityConfig\}/);
+  assert.match(wall,/viewabilityConfigCallbackPairs=\{communityViewabilityPairs\}/);
+  assert.match(wall,/viewabilityConfig: communityAdViewabilityConfig/);
 });
 
 test('Audio stops when post leaves the visible window without changing native feed ordering',()=>{
