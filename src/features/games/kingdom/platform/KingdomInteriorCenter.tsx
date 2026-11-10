@@ -10,6 +10,7 @@ import {
 } from './previewStore';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { KingdomMasteryCheck } from './KingdomMasteryCheck';
+import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 
 type MiniGameFinish = (result: BuklodGameResult, sessionId: string) => void;
 export type KingdomInteriorOption = {
@@ -30,7 +31,7 @@ export type KingdomInteriorProps = {
 
 /**
  * Reusable, map-preserving Game Center for new stations.
- * No economy RPC or ads are implemented here. R1/R2 centers can migrate after QA.
+ * Completion-only, passive inventory stays below the verified game result UI.
  */
 export function KingdomInteriorCenter({
   character, subtitleEn, subtitleTl, options,
@@ -128,7 +129,10 @@ export function KingdomInteriorCenter({
           <Text style={styles.practiceText}>NEXT ADVENTURE LEVEL • OFFLINE PRACTICE</Text>
         </Pressable>
         {masteryEligibility?.owner === user?.id && masteryEligibility?.gameId === active.id ? (
-          <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id} />
+          <>
+            <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id} />
+            <BuklodKingdomAdSlot placementId="kingdom_game_center_completed" kind="banner" />
+          </>
         ) : null}
       </View>
     </ScrollView>

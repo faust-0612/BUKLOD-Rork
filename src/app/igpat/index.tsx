@@ -28,6 +28,15 @@ import {
 import { supabase } from '@/lib/supabase';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
+import {
+  getIgpatWarmFeed,
+  igpatFeedKey,
+  isIgpatWarmFeedFresh,
+  rememberIgpatWarmFeed,
+  updateIgpatWarmFeedRow,
+} from '@/lib/igpat/warmFeed';
 
 type IgpatRow = {
   id: string;
@@ -237,9 +246,16 @@ function ActionButton({
 
 export default function IgpatScreen() {
   const { user } = useAuth();
+  const { status: networkStatus } = useNetwork();
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<IgpatRow[]>([]);
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
   const loadGenerationRef = useRef(0);
+  const visibleFeedKeyRef = useRef<string | null>(null);
+  const previousNetworkStatusRef = useRef(networkStatus);
+  const networkStatusRef = useRef(networkStatus);
+  networkStatusRef.current = networkStatus;
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -252,6 +268,12 @@ export default function IgpatScreen() {
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const [followBusy, setFollowBusy] = useState<Set<string>>(new Set());
   const [reactionBusy, setReactionBusy] = useState<Set<string>>(new Set());
+  // Preserve visible playback and avoid offscreen preload on weak connections.
+  const weakSignal = networkStatus === 'offline' || networkStatus === 'degraded' ||
+    classifyNetworkQuality() !== 'normal';
+  const weakSignalRef = useRef(weakSignal);
+  weakSignalRef.current = weakSignal;
+  const currentFeedKey = igpatFeedKey(user?.id, feedMode, dataSaver);
   const viewportHeight = Dimensions.get('window').height;
   useEffect(() => { setReelsAdStates({}); }, [feedMode]);
   const feedRows = useMemo(() => {
@@ -327,16 +349,41 @@ export default function IgpatScreen() {
     const generation = ++loadGenerationRef.current;
     if (!prefsReady) return;
     if (!user?.id) {
+      visibleFeedKeyRef.current = null;
+      rowsRef.current = [];
       setRows([]);
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    const key = igpatFeedKey(user.id, feedMode, dataSaver);
+    const matchingFeed = visibleFeedKeyRef.current === key;
+    const warmRows = getIgpatWarmFeed<IgpatRow>(user.id, feedMode, dataSaver);
+    const retainedRows = matchingFeed && rowsRef.current.length ? rowsRef.current : warmRows;
+    visibleFeedKeyRef.current = key;
+    if (!matchingFeed) {
+      rowsRef.current = warmRows;
+      setRows(warmRows);
+      setActiveIndex(0);
+    }
+    // Never replace a usable, account/mode-scoped feed with a loading screen.
+    setLoading(retainedRows.length === 0);
     setLoadError(null);
+    // Reuse the recently signed page on a rapid navigation return. The
+    // existing same-screen Retry path still performs a real refresh.
+    if (!matchingFeed && warmRows.length &&
+        isIgpatWarmFeedFresh(user.id, feedMode, dataSaver)) {
+      setLoading(false);
+      return;
+    }
+    if (networkStatusRef.current === 'offline') {
+      setLoadError('Offline: showing recently loaded videos when available.');
+      setLoading(false);
+      return;
+    }
 
     try {
-      const limit = dataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
+      const limit = dataSaver || weakSignalRef.current ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
       const { data, error } = await (supabase as any).rpc('get_buklod_igpat_feed_v2', {
         p_mode: feedMode,
         p_limit: limit,
@@ -364,18 +411,31 @@ export default function IgpatScreen() {
       };
       const first = source.length ? await sign(source[0]) : null;
       if (generation !== loadGenerationRef.current) return;
-      setRows(source.map((row, index) =>
+      const seeded = source.map((row, index) =>
         index === 0 ? first! : { ...row, media_url: undefined },
-      ));
-      setActiveIndex(0);
+      );
+      if (first?.media_url || retainedRows.length === 0 || source.length === 0) {
+        rowsRef.current = seeded;
+        setRows(seeded);
+        if (first?.media_url) {
+          rememberIgpatWarmFeed(user.id, feedMode, dataSaver, seeded);
+        }
+      }
+      // A refresh must not snap the viewer back to page one.
+      if (!matchingFeed) setActiveIndex(0);
       setLoading(false);
       // Background signing never shifts the list or overrides a later feed request.
       void mapWithConcurrency(source.slice(1), SIGN_CONCURRENCY, async row => {
         const signed = await sign(row);
-        if (generation === loadGenerationRef.current) {
-          setRows(current => current.map(item =>
-            item.id === signed.id ? signed : item,
-          ));
+        if (generation === loadGenerationRef.current && signed.media_url) {
+          const next = rowsRef.current.map(item => item.id === signed.id ? signed : item);
+          rowsRef.current = next;
+          setRows(next);
+          if (getIgpatWarmFeed<IgpatRow>(user.id, feedMode, dataSaver).length) {
+            updateIgpatWarmFeedRow(user.id, feedMode, dataSaver, signed);
+          } else {
+            rememberIgpatWarmFeed(user.id, feedMode, dataSaver, next);
+          }
         }
         return signed;
       }).catch(error => {
@@ -385,7 +445,9 @@ export default function IgpatScreen() {
       const message = String((error as any)?.message ?? error);
       console.warn('BUKLOD IGPAT load:', message);
       if (generation === loadGenerationRef.current) {
-        setRows([]);
+        // Keep cached/previously signed media playable through a failed refresh.
+        rowsRef.current = retainedRows;
+        setRows(retainedRows);
         setLoadError(message);
       }
     } finally {
@@ -401,6 +463,15 @@ export default function IgpatScreen() {
   useEffect(() => {
     setActiveIndex(0);
   }, [feedMode]);
+
+  useEffect(() => {
+    const previous = previousNetworkStatusRef.current;
+    previousNetworkStatusRef.current = networkStatus;
+    if ((previous === 'offline' || previous === 'degraded') &&
+        networkStatus === 'online' && prefsReady && loadError) {
+      void load(); // one recovery attempt on the actual network transition
+    }
+  }, [networkStatus, prefsReady, loadError, load]);
 
   const toggleDataSaver = useCallback(() => {
     setDataSaver(current => {
@@ -538,10 +609,10 @@ export default function IgpatScreen() {
     []
   );
 
-  const nextPlayableIndex = dataSaver ? -1 : feedRows.findIndex((item, index) =>
+  const nextPlayableIndex = (dataSaver || weakSignal) ? -1 : feedRows.findIndex((item, index) =>
     index > activeIndex && !isReelsFeedInlineAdRow(item));
 
-  if (!prefsReady || loading) {
+  if (!prefsReady || (loading && !rows.length) || visibleFeedKeyRef.current !== currentFeedKey) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#FFFFFF" />
@@ -619,7 +690,7 @@ export default function IgpatScreen() {
                 <BuklodReelsInlineAd
                   slotId={item.id}
                   active={active}
-                  prepare={index===activeIndex+1}
+                  prepare={!weakSignal && index===activeIndex+1}
                   onLoadStateChange={next=>{
                     setReelsAdStates(current=>current[item.id]===next
                       ? current:{...current,[item.id]:next});

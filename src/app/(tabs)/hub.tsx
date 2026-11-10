@@ -6,6 +6,8 @@ import { BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH } from '@/lib/buklodWebResponsivePol
 import { router, useFocusEffect } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
+import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 import BuklodKingdomHubCard from '@/components/home/BuklodKingdomHubCard';
@@ -107,6 +109,7 @@ export default function BuklodLightHome() {
             </ToolBoundary>
           ) : null}
           <BuklodHomeUtilityCards />
+      <BuklodNativeSponsoredCard surface="home" slotId="hub_mid_native" />
           <Pressable accessibilityRole="button" accessibilityLabel="Create a public Wall post"
             onPress={openPost} style={({ pressed }) => ({
               backgroundColor: theme.inputSurface, borderRadius: 4,
@@ -168,6 +171,7 @@ export default function BuklodLightHome() {
         ) : null}
         <BuklodFirstViewAd placement="home" placementId="new_home_first_view" />
         <BuklodKingdomHubCard />
+      <BuklodScreenBottomBanner placement="home" variant="large" />
       </ScrollView>
     );
   }
@@ -203,6 +207,7 @@ export default function BuklodLightHome() {
         </ToolBoundary>
       ) : null}
       <BuklodHomeUtilityCards />
+      <BuklodNativeSponsoredCard surface="home" slotId="hub_mid_native" />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Announcements, BUKLOD Quiz and Bulletins"
@@ -248,6 +253,7 @@ export default function BuklodLightHome() {
         <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>Return to Community Wall</Text>
       </Pressable>
       <BuklodKingdomHubCard />
+      <BuklodScreenBottomBanner placement="home" variant="large" />
     </ScrollView>
   );
 }
