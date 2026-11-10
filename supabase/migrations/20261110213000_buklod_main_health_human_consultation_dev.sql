@@ -196,20 +196,21 @@ end;$f$;
 create or replace function public.buklod_health_card_claim_consult_v1(p_consult_id uuid)
 returns jsonb language plpgsql security definer set search_path=''
 as $f$
-declare v_actor uuid:=auth.uid();v_profession text;v_service text;v_count integer;
+declare v_actor uuid:=auth.uid();v_profession text;v_service text;v_client uuid;v_count integer;
 begin
   if v_actor is null then raise exception 'Sign in required'; end if;
   select profession into v_profession from private.buklod_health_professionals_v1
     where user_id=v_actor and status='VERIFIED' and license_expires_on>=current_date;
   if v_profession is null then raise exception 'Current verified PRC professional required'; end if;
-  select service into v_service from private.buklod_health_consultations_v1
+  select service,client_id into v_service,v_client from private.buklod_health_consultations_v1
     where id=p_consult_id and status='OPEN' and professional_id is null;
   if v_service is null then raise exception 'Consultation no longer available'; end if;
+  if v_client=v_actor then raise exception 'Professionals cannot accept their own consultation'; end if;
   if v_service='PHYSICIAN_CONSULT' and v_profession<>'PHYSICIAN' then
     raise exception 'Medical consultation is physician-only'; end if;
   update private.buklod_health_consultations_v1
     set professional_id=v_actor,status='IN_PROGRESS',updated_at=now()
-    where id=p_consult_id and status='OPEN' and professional_id is null;
+    where id=p_consult_id and status='OPEN' and professional_id is null and client_id<>v_actor;
   get diagnostics v_count=row_count;
   if v_count<>1 then raise exception 'Already accepted by another professional'; end if;
   return jsonb_build_object('status','IN_PROGRESS','claimed_by',v_actor);
@@ -258,8 +259,10 @@ begin
   if v_actor is null then raise exception 'Sign in required'; end if;
   update private.buklod_health_consultations_v1
     set status='CLOSED',updated_at=now()
-    where id=p_consult_id and status='IN_PROGRESS'
-      and (client_id=v_actor or professional_id=v_actor);
+    where id=p_consult_id and (
+      (status='OPEN' and client_id=v_actor and professional_id is null)
+      or (status='IN_PROGRESS' and (client_id=v_actor or professional_id=v_actor))
+    );
   get diagnostics v_count=row_count;
   return v_count=1;
 end;$f$;

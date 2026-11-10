@@ -55,11 +55,14 @@ function Field({value,onChange,placeholder,multiline=false}:HealthFieldProps) {
 export default function BuklodMainHealthCard({
   openStandalone,tileId,
 }: {openStandalone:()=>void;tileId:string}) {
-  const {user,profile} = useAuth();
+  const {user} = useAuth();
   const [language,setLanguage] = useState<Language>('fil');
   const [section,setSection] = useState<Section>(null);
   const [service,setService] = useState<Service>('HEALTH_ADVICE');
-  const [dash,setDash] = useState<Dashboard|null>(null);
+  const [storedDash,setDash] = useState<Dashboard|null>(null);
+  const [dashUserId,setDashUserId] = useState<string|null>(null);
+  // Never show another user's health data on sign-out/account switch.
+  const dash = dashUserId===user?.id ? storedDash : null;
   const [loading,setLoading] = useState(false);
   const [busy,setBusy] = useState(false);
   const [backendError,setBackendError] = useState('');
@@ -80,6 +83,8 @@ export default function BuklodMainHealthCard({
   const [reviewRef,setReviewRef] = useState('');
   const busyRef=useRef(false);
   const dataGeneration=useRef(0);
+  const notesGeneration=useRef(0);
+  const caseIdRef=useRef<string|null>(null);
   const t=(en:string,fil:string)=>language==='fil'?fil:en;
   const active=section!==null;
   const caseItem=dash?.consultations?.find(item=>item.id===selectedCase);
@@ -88,27 +93,30 @@ export default function BuklodMainHealthCard({
   const licenseCurrent=dash?.professional?.status==='VERIFIED' && typeof expiryDays==='number' && expiryDays>=0;
 
   const load=useCallback(async()=>{
-    if(!user?.id){setDash(null);return;}
+    if(!user?.id){setDash(null);setDashUserId(null);return;}
     const generation=++dataGeneration.current;
     setLoading(true);
     try{
       const {data,error}=await (supabase as any).rpc('buklod_health_card_dashboard_v1');
       if(error)throw error;
       if(generation===dataGeneration.current){
-        setDash(data as Dashboard);setBackendError('');
+        setDashUserId(user.id);setDash(data as Dashboard);setBackendError('');
       }
     }catch{
       if(generation===dataGeneration.current){
-        setDash(null);
+        setDash(null);setDashUserId(null);
         setBackendError(t('Private human consultation is not activated yet.','Hindi pa aktibo ang pribadong konsultasyon sa health professional.'));
       }
     }finally{if(generation===dataGeneration.current)setLoading(false);}
   },[user?.id,language]);
   const openSection=(next:Exclude<Section,null>)=>{
-    setSection(next);setSelectedCase(null);setCaseNotes([]);setMessage('');setBackendError('');
+    setSection(next);setSelectedCase(null);caseIdRef.current=null;notesGeneration.current+=1;
+    setCaseNotes([]);setMessage('');setBackendError('');
     if(user?.id)void load();
   };
-  useEffect(()=>()=>{dataGeneration.current+=1;},[]);
+  useEffect(()=>()=>{dataGeneration.current+=1;notesGeneration.current+=1;},[]);
+  useEffect(()=>{setCaseNotes([]);setSelectedCase(null);caseIdRef.current=null;
+    notesGeneration.current+=1;},[user?.id]);
   const run=async(action:()=>Promise<void>)=>{
     if(busyRef.current)return;
     busyRef.current=true;setBusy(true);
@@ -157,17 +165,19 @@ export default function BuklodMainHealthCard({
     });
     setConcern('');setDuration('');setCity('');setRedFlags('unanswered');setConsent(false);
     await load();
-    setSelectedCase(id as string);setSection('case');
+    setSelectedCase(id as string);caseIdRef.current=id as string;setSection('case');
     Alert.alert(t('Consultation submitted','Naipadala ang konsultasyon'),
       t('Your case is pending acceptance by a verified volunteer. Do not treat this as emergency care.',
         'Nasa pila ang kaso para sa verified volunteer. Hindi ito emergency service.'));
   });
-  const openCase=(id:string)=>{setSelectedCase(id);setSection('case');void loadNotes(id);};
+  const openCase=(id:string)=>{setSelectedCase(id);caseIdRef.current=id;setSection('case');void loadNotes(id);};
   const loadNotes=async(id:string)=>{
+    const generation=++notesGeneration.current;
     try{
       const data=await rpc('buklod_health_card_get_notes_v1',{p_consult_id:id});
-      setCaseNotes(Array.isArray(data)?data:[]);
-    }catch{setCaseNotes([]);}
+      if(generation===notesGeneration.current&&caseIdRef.current===id)
+        setCaseNotes(Array.isArray(data)?data:[]);
+    }catch{if(generation===notesGeneration.current&&caseIdRef.current===id)setCaseNotes([]);}
   };
   const claim=(id:string)=>void run(async()=>{
     await rpc('buklod_health_card_claim_consult_v1',{p_consult_id:id});
@@ -184,7 +194,7 @@ export default function BuklodMainHealthCard({
   const closeCase=()=>void run(async()=>{
     if(!selectedCase)return;
     await rpc('buklod_health_card_close_consult_v1',{p_consult_id:selectedCase});
-    await load();setSelectedCase(null);setSection('consult');
+    await load();setSelectedCase(null);caseIdRef.current=null;notesGeneration.current+=1;setSection('consult');
   });
   const review=(record:ReviewItem,kind:ReviewKind,approve:boolean)=>void run(async()=>{
     if(reviewRef.trim().length<20){
@@ -203,7 +213,8 @@ export default function BuklodMainHealthCard({
       <MaterialCommunityIcons name="heart-pulse" size={24} color="#136348"/>
       <Text style={styles.heading}>{t('Health Center','Sentro ng Kalusugan')}</Text>
       {active?<Pressable accessibilityRole="button" accessibilityLabel="Close Health Center panel"
-          onPress={()=>{setSection(null);setSelectedCase(null);setCaseNotes([]);}}
+          onPress={()=>{setSection(null);setSelectedCase(null);caseIdRef.current=null;
+            notesGeneration.current+=1;setCaseNotes([]);}}
           style={styles.close}><MaterialCommunityIcons name="close" size={21} color="#265E45"/></Pressable>:null}
     </View>
     <View style={styles.languages}>
@@ -363,6 +374,8 @@ export default function BuklodMainHealthCard({
         <Text style={styles.label}>{t('Case summary','Buod ng kaso')}</Text>
         <Info>{caseItem.concern}</Info>
         {caseItem.referral_note?<Text style={styles.warning}>{t('Referral','Referral')}: {caseItem.referral_note}</Text>:null}
+        {caseItem.status==='OPEN'?<Button label={t('CANCEL PENDING REQUEST','KANSELAHIN ANG NAKAPILANG REQUEST')}
+          onPress={closeCase} outline disabled={busy}/>:null}
         {caseItem.status==='IN_PROGRESS'?<>
           <View style={styles.section}>
             <Text style={styles.title}>{t('Clinical record','Clinical record')}</Text>
@@ -382,7 +395,7 @@ export default function BuklodMainHealthCard({
             <Button label={t('CLOSE CONSULTATION','ISARA ANG KONSULTASYON')} onPress={closeCase} outline disabled={busy}/>
           </View>
         </>:<Info>{t('This case is not currently in an active consultation.','Hindi aktibo ang kasong ito para sa consultation notes.')}</Info>}
-        <Button label={t('BACK TO CONSULTATIONS','BUMALIK SA MGA KONSULTASYON')} outline onPress={()=>{setSection('consult');setSelectedCase(null);}}/>
+        <Button label={t('BACK TO CONSULTATIONS','BUMALIK SA MGA KONSULTASYON')} outline onPress={()=>{setSection('consult');setSelectedCase(null);caseIdRef.current=null;notesGeneration.current+=1;}}/>
       </View>:null}
       {dash&&section==='review'&&dash.admin?<View style={styles.body}>
         <Text style={styles.title}>{t('Independent verification queue','Independent verification queue')}</Text>
