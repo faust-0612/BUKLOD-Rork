@@ -72,7 +72,8 @@ begin
   where fe.period_key=p_period_key
     and fe.reconciliation_state='RECONCILED'
     and fe.entry_type='UNATTRIBUTED_ELIGIBLE_REVENUE'
-    and fe.direction='CREDIT' and fe.amount_centavos>0;
+    and fe.direction='CREDIT' and fe.amount_centavos>0
+    and nullif(trim(coalesce(fe.external_reference,'')),'') is not null;
   select v_reconciled_sources+count(*) into v_reconciled_sources
   from private.buklod_pf_finalized_value_ledger f
   where f.finalized_at>=v_p.starts_at and f.finalized_at<v_p.ends_at
