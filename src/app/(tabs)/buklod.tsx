@@ -79,6 +79,8 @@ import {
 } from '@/lib/buklodVideoDiscovery';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+import { recordConfirmedCommunityComment, takePendingCommunityCommentAdBreak } from '@/lib/buklodCommunityCommentAdCadence';
+import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
@@ -3485,6 +3487,12 @@ const load=useCallback(async(options?:{
    setCommentMentions([]);
    setCommentMedia(null);
    setCommentMediaPreview(null);
+   // A natural break after closing the comment editor may offer an ad.
+   const adAccount=String(user?.id??'');
+   if(!commentSendInFlightRef.current && adAccount &&
+      takePendingCommunityCommentAdBreak(adAccount)){
+    void showBuklodAdOpportunity('community_comment_overage');
+   }
   };
 
  const submitCommunityComment=
@@ -3548,6 +3556,10 @@ const load=useCallback(async(options?:{
      p_parent_id:replyRootId,
     });
     if(error)throw error;
+    if(authorId && commentAccountIdRef.current===authorId){
+     const adCount=recordConfirmedCommunityComment(authorId);
+     if(adCount.shouldWarm)warmBuklodAdOpportunity('community_comment_overage');
+    }
 
     // One confirmed mutation: update just this post, not the whole feed.
     if(commentAccountIdRef.current===authorId){
@@ -4941,7 +4953,6 @@ const communityFeedRows =
   onViewableItemsChanged: onCommunityAdViewableItemsChanged,
   viewabilityConfig: communityAdViewabilityConfig,
   extraData: communityAdExtraData,
-  isAdActive,
   visibleVideoPostId,
  } = useBuklodCommunityAdViewability();
 
@@ -5635,7 +5646,8 @@ const communityFeedRows =
       return (
         <BuklodCommunityInlineAd
           slotId={item.id}
-          active={isAdActive(item.id)}
+          // Measurable probe is mounted before first viewability; SDK still
+          // gates each request using the real viewport, consent and route.
         />
       );
     }
