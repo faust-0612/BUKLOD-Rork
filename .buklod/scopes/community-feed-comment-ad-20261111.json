@@ -13,7 +13,8 @@
     "src/lib/buklodAdOpportunities.ts",
     "src/lib/buklodCommunityCommentAdCadence.ts",
     "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
-    ".buklod/scopes/community-feed-comment-ad-20261111.json"
+    ".buklod/scopes/community-feed-comment-ad-20261111.json",
+    "tests/buklod-community-scroll-ads-20261111.test.mjs"
   ],
   "preserveBehaviors": [
     "Public/Org/Cluster scoped posts and virtualization",
@@ -28,13 +29,12 @@
     "ads-monetization",
     "community-wall-scroll",
     "community-comments",
-    "points-integrity"
+    "points-integrity",
+    "navigation-scroll"
   ],
   "regressionTests": [
     "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
-    "tests/buklod-ad-offscreen-banner-fallback.test.mjs",
-    "tests/buklod-inline-ad-remount-regression.test.mjs",
-    "tests/buklod-ad-restoration-locked-20261107.test.mjs"
+    "tests/buklod-community-scroll-ads-20261111.test.mjs"
   ],
   "acceptanceChecks": [
     "Public and scoped feeds keep measurable ad probes before viewability",
@@ -45,5 +45,11 @@
     "Existing Google and BUKLOD ads safety gates preserved",
     "No native device or production fill claims without live test"
   ],
-  "deviceVerification": "Pending. No actual Android device testing or production publishing authorized by this change."
+  "deviceVerification": "Pending. No actual Android device testing or production publishing authorized by this change.",
+  "selectionRationale": "Use the existing virtualized list viewport eligibility and consent gates: the inert 8px ad probe makes first-view activation measurable without speculative offscreen AdMob requests or changing existing renderer/native contracts.",
+  "alternativeApproaches": [
+    "Force all ad rows active and bypass the viewport gate; rejected because it would request inventory offscreen, waste AdMob calls, and risk policy compliance.",
+    "Replace the virtualized list with persistent fully mounted ad cards; rejected because it regresses large-feed performance, media memory and scroll responsiveness.",
+    "Add a single always-visible banner instead of inline cards; rejected because it does not fix failed inline inventory while scrolling or preserve existing feed monetization."
+  ]
 }
