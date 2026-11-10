@@ -51,7 +51,7 @@
     "tests/buklod-home-profile-support-20261108.test.mjs",
     "tests/buklod-scope-gcash-fund-20261110.test.mjs",
     "tests/buklod-unified-earnings-scope-home-20261109.test.mjs",
-    "tests/consolidated-ota-source-reconcile-20261110.test.mjs",
+    "tests/consolidated-ota-navigation-scroll-source-reconcile-20261110.test.mjs",
     "tests/faith-offline-cache-behavior-20261110.test.mjs",
     "tests/faith-offline-ota-ready-20261110.test.mjs",
     "tests/formation-ai-only-reflections-and-points-20261109.test.mjs",
@@ -73,7 +73,8 @@
     "One-tap nav, screen freshness, fast-scroll photo buffer, offline Word/Bible/Lessons, Dugtong Save persistence, Kingdom Hub, Health Center and auto AI points render together.",
     "Exact live SQL checks for BP, manual fund and Formation passed; security policies/privileged function access unchanged except already applied additive migrations.",
     "Cumulative Engineering Accountability and Performance QA, TypeScript, focused source/SQL tests, Expo Android RC export, native ABI, runtime identity, ad gates and single published update verification pass.",
-    "No production OTA or web deployment from intermediate branch merges; final authorized release uses exact frozen RC only."
+    "No production OTA or web deployment from intermediate branch merges; final authorized release uses exact frozen RC only.",
+    "Restore approved neon-pink Health Center card border/shadow after integrating online consultation doors; preserve neon-green Family Home card and approved existing Wall media visual regression."
   ],
   "preserveBehaviors": [
     "No native package, Android versionCode or runtime version changes; no Google Play AAB build or old-client cutoff.",
@@ -86,10 +87,11 @@
   "riskAreas": [
     "navigation-scroll",
     "faith-cluster",
-    "ads-monetization"
+    "ads-monetization",
+    "auth-privacy"
   ],
   "regressionTests": [
-    "tests/consolidated-ota-source-reconcile-20261110.test.mjs",
+    "tests/consolidated-ota-navigation-scroll-source-reconcile-20261110.test.mjs",
     "supabase/tests/buklod_scope_gcash_contributions_20261110.sql",
     "supabase/tests/formation_ai_only_reflections_and_points_20261109.sql"
   ]

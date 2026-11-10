@@ -103,7 +103,8 @@ const s = StyleSheet.create({
     shadowRadius: 7, elevation: 3,
   },
   homeCard: { backgroundColor: '#E0FFF7', borderColor: '#00E6B5', shadowColor: '#00CFA5' },
-  healthCard: { backgroundColor: '#F0FAF4', borderColor: '#6FCCAE', shadowColor: '#63B99D' },
+  // Keep the approved high-contrast neon Health card identity while adding consultation doors.
+  healthCard: { backgroundColor: '#FFF0FD', borderColor: '#F14AE0', shadowColor: '#DD2AD2' },
   miniHouse: { width: 86, borderWidth: 1, borderColor: '#C6D8C8', borderRadius: 3, overflow: 'hidden' },
   roof: { height: 20, backgroundColor: '#6D4A31', alignItems: 'center', justifyContent: 'center' },
   houseRooms: { flexDirection: 'row', flexWrap: 'wrap', padding: 3, gap: 3, backgroundColor: '#F1F7EF' },
