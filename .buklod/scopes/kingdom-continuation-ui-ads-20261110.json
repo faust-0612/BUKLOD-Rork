@@ -3,13 +3,7 @@
   "objective": "Make BUKLOD Kingdom map usable and richer, let members move the companion, add all-station compliant ads, reliable BP mastery feedback, optional AI continuation with no repeat practice prompts and bounded cost",
   "baseRef": "c134ee35c459c42967aac3c9d24a49cd66f65a0c",
   "productionBaselineEvidence": "Current production OTA/web artifact and runtime have NOT been verified in this DEV change. No production release is authorized in this scope.",
-  "chosenApproach": "Protect canonical 13 routes and ledger; shared center plus two special centers; add zoom and selected station art; distribute original offline 12-second music; add optional non-credit AI practice with per-account/global quota behind disabled-by-default server flag; retain server-only BP mastery",
-  "selectedAlternatives": [
-    "Never allow a client or AI practice result to credit BP (chosen)",
-    "No generic ad bypass of sensitive /games route, only narrowly scoped sponsorship and natural-break placements (chosen)",
-    "Do not re-enable failing Rork preview CDN audio; use original bundled WAV (chosen)",
-    "Do not enable unmetered AI provider requests by default (chosen)"
-  ],
+  "chosenApproach": "Protect canonical 13 routes and ledger; shared center plus two special centers; add zoom and selected station art; distribute original offline 12-second music; add optional non-credit AI practice with per-account/global quota behind disabled-by-default server flag; retain server-only BP mastery Restore earlier approved bright island artwork direction with scenic landmarks, original animated atmosphere and full-map minimization, not a dark node dashboard.",
   "allowedPaths": [
     ".buklod/scopes/kingdom-continuation-ui-ads-20261110.json",
     "src/features/games/runtime/BuklodGameCharacterCompanion.tsx",
@@ -26,7 +20,11 @@
     "supabase/migrations/20261110110100_buklod_kingdom_ai_continuation_v1.sql",
     "supabase/functions/buklod-kingdom-ai-continuation-v1/index.ts",
     "tests/kingdom-continuation-mobile-ads-20261110.test.mjs",
-    "tests/kingdom-ai-continuation-20261110.test.mjs"
+    "tests/kingdom-ai-continuation-20261110.test.mjs",
+    "src/features/games/kingdom/BuklodKingdomAtmosphere.tsx",
+    "supabase/tests/kingdom_ai_continuation_20261110.sql",
+    "tests/kingdom-no-repeat-mastery-20261110.test.mjs",
+    "supabase/migrations/20261110110500_buklod_kingdom_mastery_no_repeat_v3.sql"
   ],
   "preserveBehaviors": [
     "All 13 canonical station game routes, x/y coordinates and journey paths, unaffected legacy map rollback source",
@@ -53,16 +51,21 @@
     "AI-provider-cost-and-quotas",
     "expo-audio-lifecycle",
     "database-RLS-security",
-    "cross-platform-layout"
+    "cross-platform-layout",
+    "ads-monetization"
   ],
   "regressionTests": [
-    "tests/kingdom-continuation-mobile-ads-20261110.test.mjs",
     "tests/kingdom-ai-continuation-20261110.test.mjs",
-    "tests/kingdom-premium-map-r6.test.mjs",
-    "tests/kingdom-certified-mastery-39-20261108.test.mjs",
-    "tests/buklod-bible-v4-events-kingdom-20261109.test.mjs",
-    "scripts/rork-media-contract-test.mjs",
-    "scripts/game-kingdom-release-contract.mjs"
+    "tests/kingdom-continuation-mobile-ads-20261110.test.mjs",
+    "tests/kingdom-no-repeat-mastery-20261110.test.mjs",
+    "supabase/tests/kingdom_ai_continuation_20261110.sql"
   ],
-  "releaseState": "DEV_HOLD"
+  "releaseState": "DEV_HOLD",
+  "selectionRationale": "Restore approved illustrated island/map atmosphere in the current in-app Kingdom map, preserve 13 station routes, protect BP ledger, and re-use shipped/local media and shared ad controller without native dependency or new paid infrastructure.",
+  "alternativeApproaches": [
+    "Never allow a client or AI practice result to credit BP (chosen)",
+    "No generic ad bypass of sensitive /games route, only narrowly scoped sponsorship and natural-break placements (chosen)",
+    "Do not re-enable failing Rork preview CDN audio; use original bundled WAV (chosen)",
+    "Do not enable unmetered AI provider requests by default (chosen)"
+  ]
 }
