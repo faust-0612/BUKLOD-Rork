@@ -72,6 +72,29 @@ BEGIN
     );
   IF v_count<>0 THEN RAISE EXCEPTION 'Eligible AI-approved reflection has no issued bonus'; END IF;
 
+  -- R4 regression: production must not accept legacy rule-v1 lesson scores
+  -- for new automatic point awards, even if the score previously passed.
+  IF position('buklod_lesson_ai_answer_checked_v3'
+      IN pg_get_functiondef('public.buklod_lesson_ai_auto_approval_ready_v1(uuid,uuid)'::regprocedure))=0
+     OR position('buklod_try_auto_approve_lesson_v2(v_approval_id)'
+      IN pg_get_functiondef('public.submit_my_formation_lesson_for_validation_v1(uuid,uuid)'::regprocedure))=0
+     OR position('buklod_lesson_ai_answer_checked_v3'
+      IN pg_get_functiondef('public.assert_buklod_response_validated_v1(text,text)'::regprocedure))=0
+  THEN RAISE EXCEPTION 'Lesson submission still allows non-Gemini validation or old auto-approver'; END IF;
+
+  SELECT count(*) INTO v_count FROM (
+    SELECT a.user_id,a.question_id,a.response_snapshot
+    FROM public.buklod_ai_validation_attempts a
+    WHERE a.module='lesson' AND a.model='rule-v1' AND a.status='acceptable'
+    ORDER BY a.created_at DESC LIMIT 10
+  ) legacy
+  WHERE public.buklod_lesson_ai_answer_checked_v3(
+    legacy.question_id,legacy.response_snapshot,legacy.user_id
+  ) = true;
+  IF v_count<>0 THEN
+    RAISE EXCEPTION 'Legacy rule-v1 lesson answers are incorrectly accepted for new points';
+  END IF;
+
   SELECT count(*) INTO v_count
   FROM public.buklod_scope_formation_approvals_v2 a
   WHERE a.item_kind IN ('DAILY_READING','DAILY_DEVOTION')
