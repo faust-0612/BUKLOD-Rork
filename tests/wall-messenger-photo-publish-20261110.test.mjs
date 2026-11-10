@@ -24,14 +24,14 @@ test('feed refresh cannot reverse a committed publish', () => {
 test('iPhone web JPEG MIME is recognized even without a filename', () => {
   assert.match(upload, /const webSelectedBlob = Platform\.OS === 'web'/);
   assert.match(upload, /webSelectedBlob\?\.type/);
-  assert.match(upload, /isJpeg && existingBytes > 0 && existingBytes <= 2 \* 1024 \* 1024/);
-  assert.match(upload, /if \(Platform\.OS === 'web'\) \{[\s\S]{0,160}isJpeg && existingBytes > 0 && existingBytes <= 12 \* 1024 \* 1024/);
+  assert.match(upload, /isJpeg && existingBytes > 0 && existingBytes <= 12 \* 1024 \* 1024/);
+  assert.match(upload, /if \(isJpeg && existingBytes > 0 && existingBytes <= 45 \* 1024 \* 1024\)/);
   assert.match(upload, /throw error;/);
 });
 
 test('non-JPEG images cannot be uploaded while falsely labelled JPEG', () => {
   assert.match(upload, /if \(isJpeg && existingBytes > 0 && existingBytes <= 12 \* 1024 \* 1024\)/);
-  assert.match(upload, /Photo conversion failed in this browser/);
+  assert.match(upload, /This photo could not be converted in your browser/);
   assert.match(upload, /contentType: 'image\/jpeg'/);
 });
 
