@@ -72,6 +72,7 @@ export default function KingdomLegacyScreen() {
   const [trialItem, setTrialItem] = useState<CharacterCollectibleItem | null>(null);
   const [visibleCount, setVisibleCount] = useState(8);
   const [reveal, setReveal] = useState<{ name: string; index: number; level: number; kind?: import('@/lib/buklodCharacterCollectibles').CharacterCollectibleRewardKind } | null>(null);
+  const pendingClaimAd = useRef<{ owner: string; hero: string; level: number } | null>(null);
   const revealScale = useRef(new Animated.Value(.72)).current;
   const revealOpacity = useRef(new Animated.Value(0)).current;
   const operation = useRef(false);
@@ -85,6 +86,17 @@ export default function KingdomLegacyScreen() {
   const level = Math.min(20, Math.max(1, Math.floor(state?.character_level || 1)));
   const levelRef = useRef(level);
   levelRef.current = level;
+  const dismissRewardReveal = () => {
+    setReveal(null);
+    const verified = pendingClaimAd.current;
+    pendingClaimAd.current = null;
+    // Wait for explicit user dismissal of the reward celebration.
+    // Never interrupt the verified collectible animation with a full-screen ad.
+    if (verified && accountRef.current === verified.owner &&
+        activeIdRef.current === verified.hero && levelRef.current === verified.level) {
+      void maybeShowBuklodInterstitial('content_session_completed', 'interstitial_kingdom_legacy_claim');
+    }
+  };
   const points = Math.max(0, state?.character_points_since_selection || 0);
   const nextTarget = level < 20 ? PROGRESSIVE_LEVEL_THRESHOLDS[level] : null;
   const previousTarget = PROGRESSIVE_LEVEL_THRESHOLDS[level - 1];
@@ -196,7 +208,6 @@ export default function KingdomLegacyScreen() {
         throw new Error('Session changed. Sign in again before claiming rewards.');
       }
     };
-    let verifiedNewClaim = false;
     operation.current = true;
     setBusyKey(targetLevel + ':' + index);
     setNotice('');
@@ -223,7 +234,7 @@ export default function KingdomLegacyScreen() {
           const verified = updated.items.find(row => row.characterId === core &&
             row.level === targetLevel && row.itemIndex === index && Boolean(row.redeemedAt));
           if (verified) {
-            verifiedNewClaim = true;
+            pendingClaimAd.current = { owner: original.uid, hero: original.core, level: original.level };
             setReveal({ name: collectibleNames(core, targetLevel)[index-1] ?? 'Character collectible', index,
               kind: verified.rewardKind, level: targetLevel });
             void playBuklodGameFeedback('unlock');
@@ -240,10 +251,6 @@ export default function KingdomLegacyScreen() {
     } finally {
       operation.current = false;
       setBusyKey('');
-      if (verifiedNewClaim && accountRef.current === original.uid &&
-          activeIdRef.current === original.core && levelRef.current === original.level) {
-        void maybeShowBuklodInterstitial('content_session_completed', 'interstitial_kingdom_legacy_claim');
-      }
     }
   }, [uid, core, collection, level]);
 
@@ -461,7 +468,7 @@ export default function KingdomLegacyScreen() {
         </View>
       </Modal>
       <Modal visible={Boolean(reveal)} transparent animationType="fade"
-        onRequestClose={() => setReveal(null)}>
+        onRequestClose={dismissRewardReveal}>
         <View style={s.modalShade}>
           <Animated.View style={[s.modalCard, {
             opacity: revealOpacity, transform: [{ scale: revealScale }],
@@ -475,7 +482,7 @@ export default function KingdomLegacyScreen() {
             <Text style={s.modalName}>{reveal?.name ?? ''}</Text>
             <Text style={s.modalDescription}>Server-confirmed character collectible • {reveal ? kingdomFinishLabel(reveal.level) : ''} visual finish. No additional BP or currency awarded.</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Close reward celebration"
-              onPress={() => setReveal(null)} style={s.goldButton}>
+              onPress={dismissRewardReveal} style={s.goldButton}>
               <Text style={s.goldButtonText}>CONTINUE MY KINGDOM</Text>
             </Pressable>
           </Animated.View>

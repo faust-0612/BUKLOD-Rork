@@ -66,7 +66,8 @@
     "Native Hall/Treasury ads honor exact route safelist and existing consent and viewport checks; claiming and Shard purchases never require an ad.",
     "After verified item claims or confirmed Shard power unlock, optional interstitial only at safe break after server commit.",
     "Practice hint rewarded video is Android-only, explicitly tapped, permitted by AdsProvider and Kingdom exact-route gate, credited only after EARNED_REWARD and account/level still match.",
-    "Rewarded hints never mint BP, Shards, XP, QMP, rank or cash, and practice works without a filled ad."
+    "Rewarded hints never mint BP, Shards, XP, QMP, rank or cash, and practice works without a filled ad.",
+    "Collectible celebration animates before the user dismisses it, and only then may a successful-claim interstitial display; stale account cannot trigger it."
   ],
   "riskAreas": [
     "kingdom-visual",
