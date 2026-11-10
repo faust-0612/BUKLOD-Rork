@@ -99,7 +99,7 @@ export function KingdomAIContinuation({ gameId }: { gameId: string }) {
       }
     } catch {
       if (!mounted.current) return;
-      setPhase(afterLevel === 0 ? 'ready' : 'complete');
+      setPhase(afterLevel > 0 && questions.length === 3 && level > 0 ? 'complete' : 'ready');
       setNotice(t('AI continuation is unavailable or its daily allowance was reached. Existing games and BP mastery still work.',
         'Hindi pa available ang AI continuation o naabot na ang daily limit. Gumagana pa rin ang normal na laro at BP mastery.'));
     } finally { busy.current = false; }
