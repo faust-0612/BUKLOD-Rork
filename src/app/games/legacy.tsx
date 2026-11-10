@@ -222,6 +222,11 @@ export default function KingdomLegacyScreen() {
             setReveal({ name: collectibleNames(core, targetLevel)[index-1] ?? 'Character collectible', index,
               kind: verified.rewardKind, level: targetLevel });
             void playBuklodGameFeedback('unlock');
+            // Server-authored Shards sync from this verified badge redemption.
+            void getMyKingdomShards(uid).then(value => {
+              if (accountRef.current === uid && activeIdRef.current === core)
+                setShardSnapshot(value);
+            });
           }
         }
       }
