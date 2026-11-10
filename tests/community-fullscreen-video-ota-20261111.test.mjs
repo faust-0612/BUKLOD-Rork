@@ -28,7 +28,9 @@ test('swipe changes playback on viewport entry and makes near-next video warm', 
   assert.match(view, /onViewableItemsChanged=\{videoViewerOnViewableItemsChanged\}/);
   assert.match(view, /viewabilityConfig=\{videoViewerViewabilityConfig\}/);
   assert.match(view, /extraData=\{videoViewerIndex\}/);
-  assert.match(view, /preload=\{index===videoViewerIndex\+1\}/);
+  // Ads may occupy the next page; preload the next playable video, never an ad placeholder.
+  assert.match(view, /preload=\{index===videoViewerNextVideoIndex\}/);
+  assert.match(wall, /index>videoViewerIndex && !isReelsFeedInlineAdRow\(row\)/);
   assert.match(view, /initialNumToRender=\{2\}/);
   assert.match(view, /windowSize=\{3\}/);
   const scroll = view.slice(view.indexOf('onMomentumScrollEnd='), view.indexOf('onEndReached='));
