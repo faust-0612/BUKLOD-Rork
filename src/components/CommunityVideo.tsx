@@ -539,10 +539,12 @@ function ExpoCommunityVideo({
   const centerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readyStartedAtRef = useRef(Date.now());
   const readyReportedRef = useRef(false);
+  const resumeAppliedRef = useRef(false);
 
   useEffect(() => {
     readyStartedAtRef.current = Date.now();
     readyReportedRef.current = false;
+    resumeAppliedRef.current = false;
     setVideoAspectRatio(null);
     setHasStartedPlayback(false);
     setAutoRecovering(false);
@@ -744,15 +746,17 @@ function ExpoCommunityVideo({
           const known = Number(player.duration || 0);
           if (known > 0) setDuration(known);
 
-          const saved = playbackTimeByUri.get(playbackIdentity) ?? 0;
-          if (
-            saved > 0.35 &&
-            (known <= 0 || saved < known - 0.4)
-          ) {
-            try {
-              player.currentTime = saved;
-            } catch {
-              // Seek before the surface is ready is safe to ignore.
+          // Resume only on initial media readiness. Seeking again after
+          // every rebuffer causes backward jumps and unnecessary downloads.
+          if (!resumeAppliedRef.current) {
+            resumeAppliedRef.current = true;
+            const saved = playbackTimeByUri.get(playbackIdentity) ?? 0;
+            if (saved > 0.35 && (known <= 0 || saved < known - 0.4)) {
+              try {
+                player.currentTime = saved;
+              } catch {
+                // Initial seek is best effort; never block playback.
+              }
             }
           }
 
