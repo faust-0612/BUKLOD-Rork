@@ -206,12 +206,16 @@ export function isBuklodPassiveAdAllowed({
   // screens and all interstitial/rewarded ads remain blocked.
   const safeFacultyLanding =
     placement === 'focus' && route === '/profile/buklod-faculty';
+  // Only the separate in-feed sponsored page is eligible in IGPAT.
+  // The route remains sensitive for interstitials and other advertising.
+  const safeReelsInline =
+    placement === 'reels' && placementId === 'igpat_reels_inline' && route === '/igpat';
 
   return (
     foreground &&
     enabled('ads_passive') &&
     placementEnabled(placementId) &&
-    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding) &&
+    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding || safeReelsInline) &&
     !hasInteractionLock()
   );
 }

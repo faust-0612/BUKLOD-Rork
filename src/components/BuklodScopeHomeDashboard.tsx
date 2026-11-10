@@ -334,6 +334,10 @@ export default function BuklodScopeHomeDashboard({
       ) : <BuklodNonFaithEncouragementDoor />}
 
       <BuklodHomeScopeBulletins />
+      <BuklodFirstViewAd
+        placement={scope.scope_type === 'CLUSTER' ? 'cluster' : 'org'}
+        placementId={scope.scope_type === 'CLUSTER' ? 'cluster_scope_home_mid_view' : 'organization_scope_home_mid_view'}
+      />
       <BuklodScopeAttendanceCard
         scopeId={scope.scope_id}
         scopeType={scope.scope_type}
