@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Trigger a single user-authorized production promotion from one merged and fully compiled BUKLOD Main source, Android OTA and same-SHA Expo web, with exact served RC fingerprint and no parallel app source.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Protected main source 94d5c8101a995a06e610b8ae9c14ca5da83a48ad is the completed single-source reconciliation from PR #633 exact SHA 5bc842920a114a3ea9655e2f061ee8451fedcc4c; four head-locked CI suites green (Engineering Accountability 42802264505, Performance 42802264504, Main Report 42802264507, Unified Android+Expo web RC 42802264905). No production OTA is inferred. Canonical production Android workflow separately verifies EAS runtime 1.3.2, native ABI, hashes, served update ID and exact source; all original release gates remain intact.",
+  "chosenApproach": "Create only an isolated documentation/test release marker PR based on verified main, merge with existing strictly gated production marker prefix; both production workflows compile and verify the same resulting main SHA. No direct Github push or ad hoc Expo EAS call.",
+  "selectionRationale": "Prior releases use this gated prefix, branch protection and exact immutable RC; source code itself has completed cumulative compilation and changing release workflows or building another source would create unnecessary risk.",
+  "alternativeApproaches": [
+    "Publish from intermediate integration branch: rejected because it is not protected main or final release fingerprint.",
+    "Copy old RC exports or publish individually from feature branches: rejected because the served source would diverge and ABI/publication gates would be bypassed.",
+    "Reuse original protected-main release mechanism with marker-only PR: chosen."
+  ],
+  "acceptanceChecks": [
+    "Protected PR scope gate and CI pass on release marker; no app source modified.",
+    "Merge title starts BUKLOD_CONSOLIDATED_PROD_20261108 so existing original Android OTA and Expo web release jobs run only from exact latest main SHA.",
+    "Android frozen RC, target runtime, production environment, original permission/ABI checks and live baseline/hash gates pass.",
+    "Exactly one Android OTA update ID from EAS is verified as actually served, with runtime and launch bundle digest matching frozen RC.",
+    "Web deployment, if successful, has same main SHA, not a second source; do not confuse source merge with production publish.",
+    "No Google Play AAB submission or old-client cutoff. Installed device acceptance is not asserted."
+  ],
+  "preserveBehaviors": [
+    "No changes to application or native code, finances, medical records, member permissions, ads, or authentication.",
+    "No human reflection approvals, payouts, QMP money conversion, privilege changes, or legacy features re-enabled.",
+    "Do not publish if source advances, RC mutates, baseline changes, or runtime mismatches.",
+    "Preserve existing production gate workflows byte-for-byte; any failed gate must halt."
+  ],
+  "riskAreas": [
+    "production-release",
+    "source-fingerprint",
+    "expo-ota-android",
+    "expo-web",
+    "authorization"
+  ],
+  "regressionTests": [
+    "tests/nov10-one-source-production-promotion.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov10-one-source-production-promotion.json",
+    "release/BUKLOD_NOV10_ONE_SOURCE_PRODUCTION_PROMOTION.md",
+    "tests/nov10-one-source-production-promotion.test.mjs"
+  ]
+}
