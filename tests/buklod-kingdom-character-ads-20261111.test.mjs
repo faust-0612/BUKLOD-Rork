@@ -27,7 +27,7 @@ test('All major Kingdom and Points read surfaces use Android-only viewable inven
 test('Character Studio full-screen opportunity only follows real saved changes and dismissal', () => {
   const s=read('src/components/points/BuklodProfileCharacterCard.tsx');
   assert.match(s, /characterSavedSinceOpen\.current = true/);
-  assert.match(s, /if \(characterSavedSinceOpen\.current\)/);
+  assert.match(s, /if \(customizeOpen \|\| !characterSavedSinceOpen\.current\) return/);
   assert.match(s, /showBuklodAdOpportunity\('character_studio_saved'\)/);
   assert.match(s, /onClose=\{closeCharacterStudio\}/);
 });
@@ -37,4 +37,13 @@ test('Kingdom mastery advertising is conditional on server verification', () => 
   assert.match(s, /if \(result\?\.verified\)/);
   assert.match(s, /result\.points_awarded/);
   assert.match(s, /showBuklodAdOpportunity\('kingdom_mastery_verified'\)/);
+});
+
+test('IGPAT publishing and mentoring submission ads are scoped to completed workflows', () => {
+  const gate=read('src/lib/buklodGlobalAdController.ts');
+  const reel=read('src/app/igpat/create.tsx');
+  const mentoring=read('src/app/mentoring/index.tsx');
+  assert.match(gate, /interstitial_igpat_video_published/);
+  assert.match(reel, /if \(error\) throw error;[\s\S]*showBuklodAdOpportunity\('igpat_video_published'\)/);
+  assert.match(mentoring, /'Mentoring Submitted'[\s\S]*onPress: \(\) => \{ void showBuklodAdOpportunity/);
 });

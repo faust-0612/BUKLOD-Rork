@@ -164,14 +164,15 @@ export default function BuklodProfileCharacterCard({
   });
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const characterSavedSinceOpen = useRef(false);
-  const closeCharacterStudio = useCallback(() => {
-    setCustomizeOpen(false);
-    if (characterSavedSinceOpen.current) {
-      characterSavedSinceOpen.current = false;
-      void showBuklodAdOpportunity('character_studio_saved');
-    }
-  }, []);
+  const closeCharacterStudio = useCallback(() => setCustomizeOpen(false), []);
   useEffect(() => { warmBuklodAdOpportunity('character_studio_saved'); }, []);
+  useEffect(() => {
+    // Wait for Studio to unmount so the ad never covers an editing modal.
+    if (customizeOpen || !characterSavedSinceOpen.current) return;
+    characterSavedSinceOpen.current = false;
+    void showBuklodAdOpportunity('character_studio_saved');
+  }, [customizeOpen]);
+  useEffect(() => { characterSavedSinceOpen.current = false; }, [userId]);
   const [displayPoints, setDisplayPoints] = useState(lifetimePoints);
   const [displayRank, setDisplayRank] = useState<string | null>(rankName);
   const [claimGroups, setClaimGroups] = useState<BuklodClaimGroup[]>([]);

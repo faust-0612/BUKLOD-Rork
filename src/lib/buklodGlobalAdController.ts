@@ -247,7 +247,8 @@ export function canWarmBuklodFullScreenAd(
   const safeKingdomCompletion =
     (pathname.startsWith('/games/') && placementId === 'interstitial_kingdom_mastery_verified') ||
     (pathname === '/games/legacy' && placementId === 'interstitial_kingdom_legacy_claim') ||
-    (pathname === '/games/rewards' && placementId === 'interstitial_kingdom_power_unlocked');
+    (pathname === '/games/rewards' && placementId === 'interstitial_kingdom_power_unlocked') ||
+    (pathname === '/igpat/create' && placementId === 'interstitial_igpat_video_published');
   return (
     foreground &&
     enabled('ads_interstitial') &&

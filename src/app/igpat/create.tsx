@@ -15,6 +15,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { uploadCommunityVideoFile } from '@/lib/uploadCommunityVideoFile';
+import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import {
   BUKLOD_REEL_MAX_DURATION_SECONDS,
   formatVideoBytes,
@@ -93,6 +94,7 @@ export default function IgpatCreateScreen() {
   const pickerBusyRef = useRef(false);
   const mountedRef = useRef(true);
 
+  useEffect(() => { warmBuklodAdOpportunity('igpat_video_published'); }, []);
   useEffect(() => {
     return () => {
       mountedRef.current = false;
@@ -351,6 +353,9 @@ export default function IgpatCreateScreen() {
       });
       if (error) throw error;
 
+      // The video is already server-published; an optional ad must never
+      // control commit success, awards or duplicate this upload on retry.
+      await showBuklodAdOpportunity('igpat_video_published');
       Alert.alert('IGPAT Published', 'Your IGPAT is now available to the selected audience.');
       router.replace('/igpat' as any);
     } catch (error: any) {
