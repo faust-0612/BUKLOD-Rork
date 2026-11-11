@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Prepare the complete Trudice Wonder Path gameplay upgrade as a source-verified BUKLOD consolidated OTA component without publishing production.",
-  "baseRef": "4dcc6a7544b8e0d616e0c503fce6247a59e57cd7",
-  "productionBaselineEvidence": "Current main baseline on 2026-11-11 preserves canonical Trudice station and local preview; production OTA not changed here. Draft PR #710 is DEV-only, with CI exposing a TypeScript tuple-spread error and missing scope manifest, to be corrected before consolidation.",
+  "baseRef": "01f6c3a6a274a745c06c6e8adf4d89097f10000a",
+  "productionBaselineEvidence": "GitHub Main source baseline pinned to 01f6c3a6a274a745c06c6e8adf4d89097f10000a on Nov 11 2026, including the independent PTT web CORS backend patch. Branch is one source component of the future consolidated OTA; no production binary, served update, Expo web build or live environment identity was checked or published. Draft PR #710 is not release authorization.",
   "chosenApproach": "Retain /games/trudice-playground-memory and authenticated, local preview with five seeded quest modes, approved Trudice art, bilingual prompts, full all-station coverage, timer/input safeguards, and explicit game-score-versus-real-BP wording; fix strict TypeScript tuple error.",
   "selectionRationale": "Focused, rollback-friendly in-app update improves actual gameplay without moving Kingdom map nodes, changing native dependencies, touching monetary ledger or creating separate services.",
   "alternativeApproaches": [
@@ -36,7 +36,8 @@
     "No timers execute after unmount or input during non-interactive phases",
     "Save original clears in authenticated-account local preview only; no BP or cash minting",
     "Main Android runtime/Expo Hosting consolidated RC evidence still required before any OTA",
-    "User-waived physical verification documented as SKIPPED, never represented as passed"
+    "User-waived physical verification documented as SKIPPED, never represented as passed",
+    "The GitHub Main PTT CORS backend patch remains outside this scoped PR and is preserved by the consolidated merge; no PTT files modified."
   ],
   "preserveBehaviors": [
     "Canonical in-app Trudice route, Kingdom station ID and premium map coordinates",
