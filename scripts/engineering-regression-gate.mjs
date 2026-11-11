@@ -100,7 +100,7 @@ function runCli() {
   const cumulativeRc =
     process.env.BUKLOD_CONSOLIDATED_RC_GATE === 'true' &&
     base === 'main' &&
-    process.env.GITHUB_HEAD_REF === 'integration/buklod-nov10-single-source-ota';
+    ['integration/buklod-nov10-single-source-ota', 'integration/buklod-nov11-postprod-conso-ota'].includes(process.env.GITHUB_HEAD_REF);
   const manifestPath = process.env.BUKLOD_SCOPE_MANIFEST;
   if (changedScope.length === 1 || (cumulativeRc && changedScope.includes(manifestPath))) {
     const selected = changedScope.length === 1 ? changedScope[0] : manifestPath;

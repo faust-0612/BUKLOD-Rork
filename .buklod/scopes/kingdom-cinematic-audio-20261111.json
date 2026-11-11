@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Kingdom cinematic map and audio loop immediate focus-blur cleanup on current production main",
+  "baseRef": "6d1a80e3d009aafcfd94444dc198cb8465e68c2f",
+  "productionBaselineEvidence": "verified: GitHub main 6d1a80e3d009aafcfd94444dc198cb8465e68c2f after PTT v2 source promotion, not live OTA proof",
+  "chosenApproach": "Copy exact PR #668 Kingdom WAV, map controls, hook and test without changing existing PTT/media/finance source",
+  "selectionRationale": "Avoid old branches and keep currently live PTT improvements and latest photo upload hotfix",
+  "alternativeApproaches": [
+    "Merge divergent older Kingdom source wholesale (rejected)",
+    "Apply exact already-reviewed Kingdom file blobs on current main (selected)"
+  ],
+  "acceptanceChecks": [
+    "13 canonical stations and fit/zoom interactions preserved",
+    "Screen blur immediately pauses and releases only Kingdom-owned audio",
+    "Map ambient music is opted in, persists preference and respects quiet hours",
+    "No new native app dependency",
+    "Premium full-world artwork is still NOT integrated"
+  ],
+  "preserveBehaviors": [
+    "PTT v2 currently in main remains untouched",
+    "Video/reels/calls are not muted by Kingdom",
+    "Server rewards and economy remain unchanged",
+    "Expo runtime 1.3.2 unchanged; no production OTA"
+  ],
+  "riskAreas": [
+    "audio-lifecycle",
+    "kingdom-visual",
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-cinematic-audio-20261111.json",
+    "assets/sounds/buklod-kingdom-cinematic-ambient.wav",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "src/features/games/runtime/rorkAudio.ts",
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+  ],
+  "releaseState": "DEV_ONLY_NO_OTA"
+}

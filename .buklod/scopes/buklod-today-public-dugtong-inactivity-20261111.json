@@ -1,0 +1,51 @@
+{
+  "contractVersion": 2,
+  "objective": "Remove Home BUKLOD Today Share-to-Wall handoff; display all public Dugtong in-card with owner-controlled privacy and rotate curated tip only after 72h without substantive reactions or reflection activity.",
+  "baseRef": "c5ba9af02977215249e3aa26ae02696a9645f19c",
+  "productionBaselineEvidence": "Frozen Nov 11 consolidated RC is the DEV source parent and not proof of production OTA. This scope is isolated on a new branch; no production OTA or native release published.",
+  "chosenApproach": "Additive Supabase v2 cycle and engagement tables with RPC-only access, owner-only historical privacy changes, paginated public listing and the existing weekly BP ledger keys; remove both Home Wall-handoff callbacks.",
+  "selectionRationale": "Weekly PK/rotation would prevent repeated 72h cycles and risk duplicate BP. Dedicated v2 state preserves old installed clients and legacy private reflections while a locked server-owned cycle timer handles global inactivity.",
+  "alternativeApproaches": [
+    "Change v1 weekly PK and flows in place (rejected: breaks installed clients and existing points history)",
+    "Publish Dugtong to Wall (rejected: user requested in-card community visibility)",
+    "Client-side rotation timer (rejected: race-prone across devices)"
+  ],
+  "acceptanceChecks": [
+    "Both Home layouts show BUKLOD Today without Share to Wall",
+    "Public Dugtong visible to anonymous and signed-in readers through privacy-filtered paginated RPC; private Dugtong only to its author",
+    "Existing v1 Dugtong imported private, never automatically reclassified public",
+    "Server serializes 72h no-meaningful-activity rotation and rejects stale cycle writes",
+    "One reaction and Dugtong weekly BP source keys preserve v1 ledger idempotency; editing and privacy toggles do not generate more BP",
+    "Supabase additive migrations verified on BUKLOD Connect; security QA shows RLS and revoked direct table reads",
+    "Focused source regression and SQL test pass; full TypeScript/Android/Web compiled QA still required before changing frozen RC or OTA publishing"
+  ],
+  "preserveBehaviors": [
+    "R2 consolidated release freeze and package/runtime",
+    "Wall composer and generic Wall share buttons outside BUKLOD Today",
+    "Original v1 weekly functions for old clients",
+    "Weekly BP rules and points claim flow",
+    "Home and Hub layout, translations, ads and navigation",
+    "Private data isolation and user ownership"
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "home",
+    "points",
+    "release-identity",
+    "database-migration"
+  ],
+  "regressionTests": [
+    "tests/buklod-home-profile-support-20261108.test.mjs",
+    "supabase/tests/buklod_today_privacy_idle_v2.sql"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
+    "src/app/(tabs)/hub.tsx",
+    "src/components/BuklodTodayCard.tsx",
+    "supabase/migrations/20261111102700_buklod_today_public_dugtong_idle_rotation_v2.sql",
+    "supabase/migrations/20261111113000_buklod_today_cycles_fk_index_v2.sql",
+    "supabase/migrations/20261111115500_buklod_today_public_dugtong_paging_v2.sql",
+    "supabase/tests/buklod_today_privacy_idle_v2.sql",
+    "tests/buklod-home-profile-support-20261108.test.mjs"
+  ]
+}

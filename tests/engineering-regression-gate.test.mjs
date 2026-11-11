@@ -184,3 +184,19 @@ test('cumulative RC fails closed if own cumulative manifest is not explicitly de
       .includes('outside the declared scope allowlist: .buklod/scopes/nov11'),
   );
 });
+
+
+test('new post-production RC remains an exact named cumulative scope with strict allowlist', () => {
+ const path='.buklod/scopes/nov11-postprod-single-rc.json';
+ const parts=['.buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json',
+  '.buklod/scopes/kingdom-cinematic-audio-20261111.json',
+  ];
+ const proof='tests/kingdom-cinematic-ui-audio-20261111.test.mjs';
+ const files=[path,...parts,'src/features/games/runtime/rorkAudio.ts',proof];
+ const manifest={...goodManifest,releaseMode:'consolidated-main-rc',
+  scopeManifestPath:path,componentScopePaths:parts,allowedPaths:files,
+  regressionTests:[proof],riskAreas:[]};
+ assert.deepEqual(assessChanges(files,manifest,{consolidatedRc:true}).failures,[]);
+ assert.match(assessChanges(files,manifest).failures.join(' '),/Only one new scope manifest/);
+ assert.match(assessChanges([...files,'src/lib/buklodGlobalAdController.ts'],manifest,{consolidatedRc:true}).failures.join(' '),/outside the declared scope allowlist/);
+});

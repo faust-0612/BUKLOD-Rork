@@ -35,6 +35,11 @@ jobs:
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-consolidated-rc.json" >> "$GITHUB_ENV"
                 echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
               fi;;
+            integration/buklod-nov11-postprod-conso-ota)
+              if [ "$PR_BASE" = "main" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-postprod-single-rc.json" >> "$GITHUB_ENV"
+                echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
+              fi;;
             integration/buklod-nov09-bible-v4-rank-ptt-ota-rc)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/bible-v4-events-kingdom-20261109.json" >> "$GITHUB_ENV";;
             fix/referral-economy-cors-20261109)
