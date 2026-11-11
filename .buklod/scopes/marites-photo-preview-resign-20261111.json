@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix Marites compact preview photo failures: pass durable private Storage paths into signed-media cache and Full View with no changed permissions",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub source readback confirms production-main commit 59e4c1dff5200eec72a37ec065ecacbc23f0fe99 is this hotfix branch's exact parent; that commit is explicitly labeled production promotion and contains the unified five-feature source. GitHub evidence verifies ancestry and release metadata only—not installed OTA receipt, live production rendering, or new hotfix publication. Independent production artifact fingerprint required.",
+  "chosenApproach": "Keep photo URL and corresponding private media path aligned in all collage tiles and Full View. Existing bounded private signed-URL cache can re-sign after expiry without changing audience rules. Allow the already guarded Android/Web RC export job for the exact isolated hotfix branch, retaining every production credential, runtime and compiled artifact check.",
+  "selectionRationale": "Marites collage discarded photo_paths; the shared image component cannot renew failed signed URLs without them. Fresh Full View sometimes reloaded the same stored image, matching screenshot.",
+  "acceptanceChecks": [
+    "Single/multi Marites previews carry corresponding stable Storage path",
+    "Expired signed URL can recover through existing bounded signing/retry",
+    "Fullscreen shares same authorized path",
+    "Local story photos without storage paths continue rendering",
+    "No ad, PTT, QMP, upload, Finance, or native changes",
+    "Exact-source Node, TypeScript, Android and Web QA before promotion; no device success assertion",
+    "Compiled Android and Web RC workflows must run only on this exact named source with EAS production env identity, unchanged runtime, export fingerprints and no publish"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "auth-privacy",
+    "weak-network",
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/marites-photo-preview-resign-20261111.test.mjs",
+    "tests/marites-photo-preview-release-gate-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/marites-photo-preview-resign-20261111.json",
+    "src/components/BuklodMaritesPhotoCollage.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "tests/marites-photo-preview-resign-20261111.test.mjs",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/marites-photo-preview-release-gate-20261111.test.mjs"
+  ],
+  "releaseState": "DEV_HOLD_PENDING_COMPILED_RC_VERIFICATION",
+  "preserveBehaviors": [
+    "Existing public and scoped story audience filtering, RLS and private signing: never turn media public",
+    "Active Marites music stays Full View only; feed silent",
+    "Existing Community posts, local story/offline caching, video, reactions/comments and ads unchanged",
+    "Bounded media-signing retries, no new native modules or finance activation",
+    "Already published unified five-workstream production baseline inherited exactly"
+  ],
+  "alternativeApproaches": [
+    "Re-sign all Marites thumbnails on every render (rejected: network storm, poor 3G and battery impact)",
+    "Use public permanent photo URLs (rejected: violates private media and audiences)",
+    "Drop the existing cached image component (rejected: breaks recovery and offline behavior)",
+    "Pass durable authorized paths into existing cache and reuse its bounded recovery (selected)"
+  ]
+}

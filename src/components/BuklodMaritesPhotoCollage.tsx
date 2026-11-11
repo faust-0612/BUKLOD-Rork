@@ -19,6 +19,7 @@ import {
 
 type Props = {
   uris: string[];
+  mediaPaths?: Array<string | null | undefined>;
   width?: number;
   height?: number;
   style?: StyleProp<ViewStyle>;
@@ -27,14 +28,20 @@ type Props = {
 
 export default function BuklodMaritesPhotoCollage({
   uris,
+  mediaPaths,
   width = MARITES_CARD_WIDTH,
   height = MARITES_CARD_HEIGHT - MARITES_CARD_FOOTER_HEIGHT,
   style,
   onPressPhoto,
 }: Props) {
+  // Preserve the stable Storage path alongside its display URL. Signed URLs
+  // expire; the authenticated path is required for bounded recovery.
   const photos = useMemo(
-    () => uris.filter(Boolean).slice(0, MARITES_MAX_PHOTOS),
-    [uris]
+    () => uris.map((uri, index) => ({
+      uri: String(uri ?? '').trim(),
+      mediaPath: String(mediaPaths?.[index] ?? '').trim() || null,
+    })).filter(photo => Boolean(photo.uri)).slice(0, MARITES_MAX_PHOTOS),
+    [uris, mediaPaths]
   );
 
   if (!photos.length) {
@@ -43,7 +50,7 @@ export default function BuklodMaritesPhotoCollage({
 
   if (photos.length === 1) {
     const content = (
-      <BuklodCachedMediaImage uri={photos[0]} style={styles.single} contentFit="cover" />
+      <BuklodCachedMediaImage uri={photos[0].uri} mediaPath={photos[0].mediaPath} style={styles.single} contentFit="cover" />
     );
 
     if (onPressPhoto) {
@@ -76,7 +83,7 @@ export default function BuklodMaritesPhotoCollage({
         style,
       ]}
     >
-      {visible.map((uri, index) => {
+      {visible.map((photo, index) => {
         const tile = maritesCollageTileLayout(
           visible.length,
           index,
@@ -89,7 +96,7 @@ export default function BuklodMaritesPhotoCollage({
 
         const tileContent = (
           <>
-            <BuklodCachedMediaImage uri={uri} style={styles.tileImage} contentFit="cover" />
+            <BuklodCachedMediaImage uri={photo.uri} mediaPath={photo.mediaPath} style={styles.tileImage} contentFit="cover" />
             {showMore ? (
               <View style={styles.moreOverlay} pointerEvents="none">
                 <Text style={styles.moreText}>
@@ -103,7 +110,7 @@ export default function BuklodMaritesPhotoCollage({
         if (onPressPhoto) {
           return (
             <Pressable
-              key={`${uri}-${index}`}
+              key={`${photo.mediaPath || photo.uri}-${index}`}
               style={[styles.tile, tile]}
               onPress={() => onPressPhoto(index)}
             >
@@ -114,7 +121,7 @@ export default function BuklodMaritesPhotoCollage({
 
         return (
           <View
-            key={`${uri}-${index}`}
+            key={`${photo.mediaPath || photo.uri}-${index}`}
             style={[styles.tile, tile]}
           >
             {tileContent}

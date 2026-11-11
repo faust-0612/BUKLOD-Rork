@@ -808,6 +808,7 @@ function MaritesStoryCard({
       {hasPhoto && !hasVideo && (
         <BuklodMaritesPhotoCollage
           uris={photoUris}
+          mediaPaths={story.photo_paths}
           width={MARITES_COMPACT_CARD_WIDTH}
           height={MARITES_COMPACT_CARD_HEIGHT}
           style={styles.storyPhotoFill}
@@ -2138,6 +2139,7 @@ export default function BuklodMaritesBoard({
                       >
                         <BuklodZoomablePhoto
                           uri={photoUris[0]}
+                          mediaPath={viewStory.photo_paths?.[0] ?? null}
                           onZoomedChange={setStoryZoomed}
                           onLongPress={() =>
                             setReactionPickerOpen(true)
@@ -2163,7 +2165,7 @@ export default function BuklodMaritesBoard({
                         alignItems: 'center',
                       }}
                     >
-                      {photoUris.map((uri) => (
+                      {photoUris.map((uri, index) => (
                         <View
                           key={uri}
                           style={[
@@ -2177,6 +2179,7 @@ export default function BuklodMaritesBoard({
                         >
                           <BuklodZoomablePhoto
                             uri={uri}
+                            mediaPath={viewStory.photo_paths?.[index] ?? null}
                             onZoomedChange={
                               setStoryZoomed
                             }
