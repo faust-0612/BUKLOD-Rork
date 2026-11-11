@@ -11,6 +11,8 @@ test('degraded prefetch avoids a background request flood', () => {
 test('photo encoding bounds dimensions without upscaling', () => {
   const upload = read('src/lib/uploadCommunityVideoFile.ts');
   assert.ok(upload.includes('existingBytes <= 2 * 1024 * 1024'));
+  assert.match(upload, /Platform\.OS !== 'web' && isJpeg && existingBytes > 0 && existingBytes <= 2 \* 1024 \* 1024/);
+  assert.match(upload, /Platform\.OS === 'web'[\s\S]*isJpeg && existingBytes > 0 && existingBytes <= 12 \* 1024 \* 1024/);
   assert.ok(upload.includes('Math.max(dimensions.width, dimensions.height) > 1440'));
   assert.ok(upload.includes('compress: 0.82'));
   assert.ok(upload.includes('preferResumable: true'));
