@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer, type VideoSource } from 'expo-video';
 import { recordCommunityFeedMetric } from '@/lib/communityFeedTelemetry';
+import { useScreenFocused } from '@/hooks/useScreenFocused';
 import BuklodReelsInlineAd, {
   type BuklodReelsAdLoadState,
 } from '@/components/BuklodReelsInlineAd';
@@ -248,6 +249,7 @@ function ActionButton({
 
 export default function IgpatScreen() {
   const { user } = useAuth();
+  const screenFocused = useScreenFocused();
   const { status: networkStatus } = useNetwork();
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<IgpatRow[]>([]);
@@ -679,7 +681,7 @@ export default function IgpatScreen() {
         })}
         renderItem={({ item, index }) => {
           if (isReelsFeedInlineAdRow(item)) {
-            const active=index===activeIndex;
+            const active=screenFocused && index===activeIndex;
             const state=reelsAdStates[item.id]??'loading';
             return (
               <View style={[styles.page, { height: viewportHeight }]}>
@@ -689,6 +691,7 @@ export default function IgpatScreen() {
                     <Text style={styles.loadingTagline}>Preparing sponsored content…</Text>
                   </View>
                 ) : null}
+                {screenFocused ? (
                 <BuklodReelsInlineAd
                   slotId={item.id}
                   active={active}
@@ -698,6 +701,7 @@ export default function IgpatScreen() {
                       ? current:{...current,[item.id]:next});
                   }}
                 />
+                ) : null}
               </View>
             );
           }
@@ -708,7 +712,7 @@ export default function IgpatScreen() {
 
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
-              {!!item.media_url && (index === activeIndex || index === nextPlayableIndex) ? (
+              {screenFocused && !!item.media_url && (index === activeIndex || index === nextPlayableIndex) ? (
                 <IgpatVideo uri={item.media_url} active={index === activeIndex} />
               ) : null}
               {index === activeIndex && !item.media_url ? (
