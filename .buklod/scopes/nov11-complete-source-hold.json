@@ -4,7 +4,7 @@
   "scopeManifestPath": ".buklod/scopes/nov11-complete-source-hold.json",
   "objective": "Complete single-source BUKLOD Main Nov11 consolidated OTA candidate including prior frozen RC and every current authorized post-RC change, while prohibiting production publication until strict parity/security/exact-source Android and Web gates pass.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: current GitHub main SHA 75ae419357647bf1dc7596d0e144eeaac7d34b2b reconciled as ancestor with no source loss. Current main ad-engagement comment banner, safe diagnostics and QA were read back: 7/7 files are byte-identical, Wall and compile QA merged additively. GitHub compare confirms behind_by=0. Live production runtime/OTA fingerprint is NOT yet verified.",
+  "productionBaselineEvidence": "verified source baseline GitHub main SHA c4d7b51caf819f208e2686a8d9205324271853b6 and merged source ancestry; candidate contains all protected main changes including KL+10/+50 and new R4 as-is, plus earlier compiled consolidated Wall/PTT/IGPAT/Kingdom/AdMob source. Automatic QMP/admin snapshot applied to candidate from separately QA-verified PR #698. This is source evidence only; live OTA artifact remains unverified and unpublished.",
   "chosenApproach": "Overlay only already-authorized source updates on inherited consolidated Nov11 RC and verified current main, preserve ad/security/release guards, reconcile database migration filenames with exact applied live migration versions, and fail closed on all source and release gates. Use one named cumulative RC manifest with exact paths and tests rather than weaken single-scope controls.",
   "selectionRationale": "One frozen source prevents omitted late fixes, duplicate native releases, and conflicting live migrations; individually enumerated paths + tests retain strict accountability and production isolation.",
   "alternativeApproaches": [
@@ -14,6 +14,7 @@
   ],
   "componentScopePaths": [
     ".buklod/scopes/android-phone-gif-comments-20261111.json",
+    ".buklod/scopes/automatic-qmp-no-manual-review-20261111.json",
     ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
     ".buklod/scopes/igpat-real-first-frame-20261111.json",
     ".buklod/scopes/kingdom-cinematic-audio-20261111.json",
@@ -33,7 +34,12 @@
     "Kingdom Shards, BP/points/Finance canonical QMP, scope GCash reports and prior funded earnings remain isolated and financially consistent",
     "No release contains Smart Drawer Google Drive native OAuth changes, explicitly reserved for future native build",
     "No merge to production main, Expo Update, Android OTA, Play or Web publish until all recorded release gates pass and exact deployed OTA fingerprint can be verified",
-    "Device hands-on validation is waived only by prior owner instruction; CI and security gates are never waived"
+    "Device hands-on validation is waived only by prior owner instruction; CI and security gates are never waived",
+    "KL +10 per server-verified chapter and +50 only after all 30 chapters are individually verified; no retroactive credit",
+    "Social R4 progressive creator/helpful commenter/support-chain rewards require installed verified database functions, signed source events, anti-farming safeguards and private rollout flag review",
+    "Automatic QMP source-backed approval and late photo verification preserve open/closed month isolation; retired review actions inaccessible",
+    "Canonical Admin Economy snapshot RPC returns read-only period-consistent Finance V3+QMP+noncash AdMob, admin-only; stale requests and unfinished month never display fake PHP earnings",
+    "All QMP, KL and social migration versions audited against current live DB; any history drift or missing RPC blocks production promotion"
   ],
   "preserveBehaviors": [
     "Canonical Expo production app org.mzbministry.buklod, runtime 1.3.2, existing permissions, Play V30 identity",
@@ -54,14 +60,24 @@
     "classroom-quiz",
     "story",
     "ads-monetization",
-    "release-identity"
+    "release-identity",
+    "monthly-qmp-and-fraud-review",
+    "finance-identity-and-auth",
+    "user-revenue-and-cash-ledger",
+    "canonical-admin-finance-reporting",
+    "month-and-cache-isolation",
+    "provisional-admob-noncash"
   ],
   "regressionTests": [
+    "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql",
+    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql",
     "supabase/tests/buklod_today_privacy_idle_v2.sql",
+    "tests/buklod-admin-economy-snapshot-20261111.test.mjs",
     "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs",
     "tests/buklod-home-profile-support-20261108.test.mjs",
     "tests/buklod-nov11-complete-source-contract.test.mjs",
     "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
+    "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
     "tests/buklod-scope-dashboard-scroll-20261111.test.mjs",
     "tests/buklod-shared-dashboard-scroll-20261111.test.mjs",
     "tests/compact-public-wall-header-20261104.test.mjs",
@@ -76,6 +92,7 @@
   ],
   "allowedPaths": [
     ".buklod/scopes/android-phone-gif-comments-20261111.json",
+    ".buklod/scopes/automatic-qmp-no-manual-review-20261111.json",
     ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
     ".buklod/scopes/igpat-real-first-frame-20261111.json",
     ".buklod/scopes/kingdom-cinematic-audio-20261111.json",
@@ -91,12 +108,17 @@
     "src/app/(tabs)/hub.tsx",
     "src/app/(tabs)/me.tsx",
     "src/app/(tabs)/messages.tsx",
+    "src/app/admin/bayanihan.tsx",
+    "src/app/admin/economy-operations.tsx",
+    "src/app/admin/reports-center.tsx",
+    "src/app/community-contribution.tsx",
     "src/app/igpat/create.web.tsx",
     "src/app/igpat/index.tsx",
     "src/app/igpat/index.web.tsx",
     "src/app/scope/index.tsx",
     "src/components/BuklodCommunityCommentBubble.tsx",
     "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodCommunityEconomyAdminCard.tsx",
     "src/components/BuklodDashboardContextBar.tsx",
     "src/components/BuklodExclusiveScopeCommunity.tsx",
     "src/components/BuklodHomeReelsExtension.tsx",
@@ -107,6 +129,7 @@
     "src/components/BuklodWallQuickLinks.tsx",
     "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
     "src/features/games/runtime/rorkAudio.ts",
+    "src/lib/buklodCanonicalAdminEconomy.ts",
     "src/lib/buklodCommentGifShare.ts",
     "src/lib/buklodDashboardScroll.ts",
     "src/lib/buklodPickCommunityPhotos.ts",
@@ -116,11 +139,19 @@
     "supabase/migrations/20261111024318_buklod_today_public_dugtong_idle_rotation_v2_20261111.sql",
     "supabase/migrations/20261111024610_buklod_today_cycles_fk_index_v2_20261111.sql",
     "supabase/migrations/20261111025018_buklod_today_public_dugtong_paging_v2_20261111.sql",
+    "supabase/migrations/20261111093000_buklod_qmp_automatic_qualification_v2.sql",
+    "supabase/migrations/20261111093500_buklod_qmp_close_legacy_review_requests_v3.sql",
+    "supabase/migrations/20261111094000_buklod_qmp_indirect_reward_guard_v4.sql",
+    "supabase/migrations/20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql",
+    "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql",
+    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql",
     "supabase/tests/buklod_today_privacy_idle_v2.sql",
+    "tests/buklod-admin-economy-snapshot-20261111.test.mjs",
     "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs",
     "tests/buklod-home-profile-support-20261108.test.mjs",
     "tests/buklod-nov11-complete-source-contract.test.mjs",
     "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
+    "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
     "tests/buklod-scope-dashboard-scroll-20261111.test.mjs",
     "tests/buklod-shared-dashboard-scroll-20261111.test.mjs",
     "tests/compact-public-wall-header-20261104.test.mjs",
@@ -170,21 +201,27 @@
       }
     ],
     "latestMain": {
-      "sha": "75ae419357647bf1dc7596d0e144eeaac7d34b2b",
-      "commit": "Nov11 ad engagement-impression recovery (#696)",
-      "filesReviewed": 9,
-      "sourceParity": "7 exact file matches + 2 compatible additive merges",
-      "ads": "single compact labelled Android public-comments banner, viewport/consent controlled; sanitized diagnostics"
+      "sha": "c4d7b51caf819f208e2686a8d9205324271853b6",
+      "summary": "Ad engagement PR696 and KL+10/+50 with controlled mutual R4 PR697 already merged to protected main",
+      "source": "main"
+    },
+    "newWorkstreams": {
+      "qmpAuto": "PR #698 source sha df365162153cbc1c66d04717117fb60abec63c0a; latest source included and QA passed before consolidation",
+      "rewardR4": "Protected main includes PR #697, source and migrations retained",
+      "migrationStatus": "KL and R4 logic present in live DB but migration history not yet reconciled; QMP auto logic present but canonical admin snapshot RPC missing"
     }
   },
   "verifiedBackend": {
     "projectRef": "yhanxndaqbmuzbdqlblu",
     "readback": "Nov11 finance/mentor/Kingdom/KL/photo comments migrations present in production history; Today three applied statements verified byte-for-byte against revised version-aligned repo files",
-    "financialProcessing": "KEEP settlement and withdrawal OFF until funded accounting and recipient verification"
+    "financialProcessing": "KEEP settlement and withdrawal OFF until funded accounting and recipient verification",
+    "liveSnapshotRpc": "MISSING at initial reconciliation",
+    "revenueGuards": "Economics, settlement, withdrawals, payout processing OFF",
+    "schemaMigrationHistory": "KL/R4 and QMP auto migrations not registered at initial readback, despite some functions existing"
   },
   "verificationWaivers": [
     "Hands-on physical Android device testing skipped per owner, not counted as PASS"
   ],
-  "releaseState": "DEV_ASSEMBLY_HOLD__NO_PRODUCTION_PUBLICATION",
-  "qaStatus": "PENDING_EXACT_HEAD_RC_QA_AND_PRODUCTION_FINGERPRINT"
+  "releaseState": "DEV_CONSOLIDATED_QMP_REWARDS_HOLD__NO_PRODUCTION_OTA",
+  "qaStatus": "PENDING_EXACT_HEAD_FULL_QA_BACKEND_MIGRATION_AUDIT_AND_PRODUCTION_RUNTIME_FINGERPRINT"
 }
