@@ -3,8 +3,8 @@
   "releaseMode": "consolidated-main-rc",
   "scopeManifestPath": ".buklod/scopes/nov11-consolidated-rc.json",
   "objective": "Nov11 consolidated IGPAT Supabase-only video/crash protection, Marites Full View music, Wonder Path, automatic QMP/canonical Finance and modern Kingdom vector map.",
-  "baseRef": "4fa6853c00f19ea710dd1c2510b47ef4d008a085",
-  "productionBaselineEvidence": "Current production main 019299e0a47f31d4a58e6404d33ebb26dea09fe0 is exact parent; 37 DEV paths forward-ported, two IGPAT overlaps reconciled preserving first-frame/GIF. Latest main source intact.",
+  "baseRef": "019299e0a47f31d4a58e6404d33ebb26dea09fe0",
+  "productionBaselineEvidence": "verified: exact published main 019299e0a47f31d4a58e6404d33ebb26dea09fe0 is the immutable parent of this RC; GitHub main..branch behind=0, only 42 scoped changes. The gate must compare to this exact SHA (not a potentially stale local main alias).",
   "chosenApproach": "Use current Main tree as source of truth; create a two-parent merge candidate retaining all newer PTT, ad, Web, and release safeguards while overlaying only 34 missing or demonstrably improved RC paths. Merge admin month-close diagnostics and native JPEG safety with RC-only canonical Finance, Supabase-only video, Trudice Wonder Path and Marites audio. Align 4 source SQL filenames to live history rather than replay them. Preserve isolated regression tests and enforce exact manifest allowlist. Retire the last unused manual QMP admin RPC client wrappers left in Main after automatic qualification; update the existing Finance regression contract to require canonical snapshot and fail closed on obsolete review entrypoints.",
   "selectionRationale": "The old RC diverged 33 Main commits and overlapping release code; blind RC overwrite would regress PTT audio mixing, ad fill, release protection and photo upload. Source parity audit found 124/148 overlapping changed files byte-identical; selectively reconcile only 24 true conflicts, retaining Main for every unproven conflict.",
   "alternativeApproaches": [
