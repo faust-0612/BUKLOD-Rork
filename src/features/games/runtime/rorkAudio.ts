@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 import { getBuklodSoundSettings, isBuklodGameSoundEnabled, getBuklodGameSoundVolume } from '@/lib/buklodSounds';
 import { createAudioPlayer } from 'expo-audio';
@@ -103,7 +104,9 @@ export function playRorkSignatureSfx(gameId?: string | null, volume = 0.26) {
   return playKey(media.signature, volume, 180);
 }
 
-const LOCAL_KINGDOM_AMBIENCE = require('../../../../assets/sounds/buklod-kingdom-ambient-original.wav');
+// Original, seamlessly looping warm cinematic pad (no remote host, no paid AI).
+const LOCAL_KINGDOM_AMBIENCE = require('../../../../assets/sounds/buklod-kingdom-cinematic-ambient.wav');
+const KINGDOM_AMBIENCE_SETTING_KEY = '@buklod_kingdom_cinematic_ambience_v1';
 
 /**
  * The previous preview-host MP3s are unreliable. The original BUKLOD-owned
@@ -112,7 +115,15 @@ const LOCAL_KINGDOM_AMBIENCE = require('../../../../assets/sounds/buklod-kingdom
  * audio loading/playback must never block real gameplay.
  */
 export function useRorkGameAmbience(gameId?: string | null) {
-  const [musicEnabled, setMusicEnabled] = useState(true);
+  // Opt-in avoids surprising playback and the previously reported harsh intro.
+  const [musicEnabled, setMusicEnabled] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void AsyncStorage.getItem(KINGDOM_AMBIENCE_SETTING_KEY)
+      .then(value => { if (live) setMusicEnabled(value === 'on'); })
+      .catch(() => undefined);
+    return () => { live = false; };
+  }, []);
   useEffect(() => {
     if (!gameId || !musicEnabled) return;
     const media = getRorkGameMedia(gameId);
@@ -120,7 +131,7 @@ export function useRorkGameAmbience(gameId?: string | null) {
     try {
       player = media && REMOTE_RORK_AUDIO_ENABLED
         ? createPlayer(RORK_AUDIO[media.ambience], true)
-        : createAudioPlayer(LOCAL_KINGDOM_AMBIENCE, { updateInterval: 1000 });
+        : createAudioPlayer(LOCAL_KINGDOM_AMBIENCE, { updateInterval: 500 });
     } catch { return; }
     if (!player) return;
     const audio = player;
@@ -134,7 +145,7 @@ export function useRorkGameAmbience(gameId?: string | null) {
           audio.pause();
           return;
         }
-        audio.volume = Math.min(0.14, getBuklodGameSoundVolume() * 0.16);
+        audio.volume = Math.min(0.12, getBuklodGameSoundVolume() * 0.24);
         if (audio.isLoaded) audio.play();
       } catch {
         // No impact to gameplay if sound assets, platform or autoplay fail.
@@ -158,5 +169,9 @@ export function useRorkGameAmbience(gameId?: string | null) {
       try { audio.remove(); } catch { /* enhancement only */ }
     };
   }, [gameId, musicEnabled]);
-  return { musicEnabled, toggleMusic: () => setMusicEnabled(value => !value) };
+  return { musicEnabled, toggleMusic: () => setMusicEnabled(value => {
+    const next = !value;
+    void AsyncStorage.setItem(KINGDOM_AMBIENCE_SETTING_KEY, next ? 'on' : 'off').catch(() => undefined);
+    return next;
+  }) };
 }
