@@ -41,3 +41,11 @@ test('Release contract changes may not authorize automatic production publicatio
   assert.ok(scope.preserveBehaviors.some(x => x.includes('No separate OTA')));
   assert.ok(scope.allowedPaths.every(x => !x.startsWith('supabase/migrations/')));
 });
+
+test('Exact final ad-lock DEV branch is authorized for compiled Android/Web RC QA (not publishing)', () => {
+  const workflow = read('.github/workflows/unified_rc_compiled_qa_20261108.yml');
+  assert.ok(workflow.includes("github.head_ref == 'fix/buklod-ads-appwide-final-lock-20261111'"));
+  assert.match(workflow, /npx expo export --platform android/);
+  assert.match(workflow, /npx expo export --platform web/);
+  assert.doesNotMatch(workflow, /eas-cli@latest update --channel production/);
+});

@@ -33,3 +33,6 @@ Consolidate any still-open PR candidates with the actual current main, run sourc
 
 ## Post detail expanded inventory
 - Native-first AdMob sponsored card after post content/share and before comments; excluded for author-only posts. Existing ads consent/viewability/no-fill apply. The slot never overlays video or the comment form.
+
+## Compiled RC gate
+- Authorized the exact final DEV ads branch in existing Unified RC Android/Web Compile QA allowlist. This only compiles and verifies, it does not publish Expo OTA, deploy web or update Play Store. The branch remains DEV/hold until the compiled artifacts and other consolidated workstreams are reconciled and verified.
