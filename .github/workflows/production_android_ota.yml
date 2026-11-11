@@ -77,7 +77,9 @@ jobs:
           node --test tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs tests/community-wall-no-blank-photo.test.cjs tests/compact-public-wall-header-20261104.test.mjs tests/navigation-scroll-compact-public-wall.test.mjs tests/community-video-navigation-scroll.test.mjs tests/the-word-safe-area-20261106.test.mjs tests/dzas-signal-deck-implementation.test.mjs
 
       - name: Verify app-wide AdMob permanent policy lock before OTA
-        run: node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+        run: |
+          node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+          node --test tests/buklod-ads-production-release-contract-20261111.test.mjs
 
       - name: AdMob startup, Reels feed, scope, fallback and recovery regression suite
         run: |
