@@ -1,43 +1,6 @@
-# BUKLOD Main — one-command production OTA
-# Source of truth: %USERPROFILE%\BUKLOD_WORKSPACE\SOURCE\BUKLOD-MAIN on branch main
-# Target: same native APK/AAB as production (runtime 1.3.3, channel production)
-#
-# Usage (from repo root):
-#   powershell -ExecutionPolicy Bypass -File .\scripts\PUSH_MAIN_OTA.ps1
-#   powershell -ExecutionPolicy Bypass -File .\scripts\PUSH_MAIN_OTA.ps1 -Message "fix PTT UI"
-
-param(
-  [string]$Message = "BUKLOD Main OTA (runtime 1.3.3)"
-)
-
+# BUKLOD Main - legacy direct OTA shortcut retired 2026-11-11.
+# Never bypass protected PR, exact RC fingerprint, production status checks or release marker.
+# This script intentionally performs no network, build, Git or publish operation.
+param([string]$Message = "No direct OTA")
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
-Set-Location $root
-
-$branch = (git rev-parse --abbrev-ref HEAD).Trim()
-if ($branch -ne 'main') {
-  throw "Push OTA only from branch main (current: $branch). Checkout main first."
-}
-
-$dirty = git status --porcelain
-if ($dirty) {
-  throw "Working tree is dirty. Commit or stash before OTA so DEV/APK stay identical."
-}
-
-$env:CI = '1'
-Write-Host "Publishing OTA → channel=production environment=production runtime=1.3.3"
-Write-Host "Message: $Message"
-
-# Android-only: production APK/AAB path. Avoids web export noise (e.g. sqlite wasm).
-npx eas update `
-  --channel production `
-  --environment production `
-  --platform android `
-  --message $Message `
-  --non-interactive
-
-if ($LASTEXITCODE -ne 0) {
-  throw "eas update failed with exit $LASTEXITCODE"
-}
-
-Write-Host "OTA published. Install/use production APK (profile production-apk or dev-apk) to receive it."
+throw "DIRECT OTA BLOCKED: scripts/PUSH_MAIN_OTA.ps1 and npm run ota:main are disabled. Use the protected GitHub production release-marker PR, then the canonical .github/workflows/production_android_ota.yml from verified main. No OTA was published."
