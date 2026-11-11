@@ -45,6 +45,8 @@ type Props = {
   onEdit: (commentId: string, body: string) => Promise<void>;
   onDelete: (commentId: string) => Promise<void>;
   onReport: (commentId: string) => void;
+  /** Optional labelled native-sponsored banner after organic conversation. */
+  inlineAd?: React.ReactNode;
 };
 
 const COLLAPSE_AFTER = 2;
@@ -115,6 +117,7 @@ export function BuklodCommunityCommentThread({
   onEdit,
   onDelete,
   onReport,
+  inlineAd,
 }: Props) {
   const { theme } = useBuklodTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -214,7 +217,7 @@ export function BuklodCommunityCommentThread({
       {!threads.length ? (
         <Text style={styles.empty}>{emptyText}</Text>
       ) : (
-        threads.map(({ root, replies }) => {
+        threads.map(({ root, replies }, threadIndex) => {
           const rootId = String(root.id);
           const focusInside=!!focusCommentId&&(rootId===String(focusCommentId)||
             replies.some(row=>String(row.id)===String(focusCommentId)));
@@ -226,7 +229,8 @@ export function BuklodCommunityCommentThread({
               : replies.slice(0, COLLAPSE_AFTER);
 
           return (
-            <View key={rootId} style={styles.thread}
+            <React.Fragment key={rootId}>
+            <View style={styles.thread}
               onLayout={event=>{
                 if(focusInside)onFocusedCommentLayout?.(event.nativeEvent.layout.y);
               }}>
@@ -263,6 +267,10 @@ export function BuklodCommunityCommentThread({
                 </Pressable>
               ) : null}
             </View>
+            {inlineAd && threadIndex === (threads.length === 1 ? 0 : 1) ? (
+              <View style={styles.inlineAd}>{inlineAd}</View>
+            ) : null}
+            </React.Fragment>
           );
         })
       )}
@@ -323,6 +331,7 @@ function createStyles(theme: {
       gap: 8,
       marginBottom: 6,
     },
+    inlineAd: { marginVertical: 9 },
     row: {
       flexDirection: 'row',
       alignItems: 'flex-start',
