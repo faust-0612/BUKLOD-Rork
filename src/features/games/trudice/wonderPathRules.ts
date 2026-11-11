@@ -16,7 +16,12 @@ export const WONDER_TOTAL_ROUNDS = 5;
 export const WONDER_STARTING_HEARTS = 3;
 
 function nextRandom(seed: number) {
-  let state = (seed >>> 0) || 0x6d2b79f5;
+  // Avalanche nearby replay seeds before xorshift; otherwise adjacent seeds
+  // may generate the exact same four-station ordering over and over.
+  let state = (seed ^ 0x9e3779b9) >>> 0;
+  state = Math.imul(state ^ (state >>> 16), 0x7feb352d);
+  state = Math.imul(state ^ (state >>> 15), 0x846ca68b);
+  state = (state ^ (state >>> 16)) >>> 0 || 0x6d2b79f5;
   return () => {
     state ^= state << 13;
     state ^= state >>> 17;
