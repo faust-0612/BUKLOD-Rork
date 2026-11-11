@@ -112,7 +112,7 @@ test('post appears locally before the first network request without claiming ser
   assert.match(publish, /setOptimisticPost\(\{[\s\S]*?tempId:optimisticId,[\s\S]*?status:'uploading'/);
   assert.match(wall, /optimisticPost\.status==='uploading'\?'YOUR POST · UPLOADING':'YOUR POST · PUBLISHED'/);
   assert.match(wall, /optimisticPost\?\.authorId===user\?\.id/);
-  assert.match(wall, /photoUris: snapshot\.photos\.map\(photo=>photo\.uri\)/);
+  assert.match(wall, /photoUris:\s*snapshot\.photos\.map\(photo=>photo\.uri\)/);
   assert.doesNotMatch(publish.slice(0,firstServerWrite), /create_buklod_community_post_v3/);
 });
 
