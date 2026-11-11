@@ -89,6 +89,7 @@ function IgpatVideo({
   editMeta?: unknown;
 }) {
   const [pausedByUser, setPausedByUser] = useState(false);
+  const [firstFrameUri, setFirstFrameUri] = useState<string | null>(null);
   const hasEditMeta = Boolean(editMeta && typeof editMeta === 'object');
   const safeDuration = durationSeconds > 0 ? durationSeconds : 60;
   const edit = useMemo(
@@ -139,7 +140,10 @@ function IgpatVideo({
   ]);
 
   useEffect(() => {
-    if (!active) setPausedByUser(false);
+    if (!active) {
+      setPausedByUser(false);
+      setFirstFrameUri(null);
+    }
   }, [active]);
 
   useEffect(() => {
@@ -192,17 +196,26 @@ function IgpatVideo({
       accessibilityLabel={pausedByUser ? 'Play IGPAT video' : 'Pause IGPAT video'}
       accessibilityHint="Long press temporarily plays at two times speed."
     >
-      <VideoView
-        player={player}
-        style={[
-          StyleSheet.absoluteFill,
-          hasEditMeta && edit.rotation !== 0
-            ? { transform: [{ rotate: `${edit.rotation}deg` }] }
-            : null,
-        ]}
-        nativeControls={false}
-        contentFit={hasEditMeta ? edit.contentFit : 'cover'}
-      />
+      {active ? (
+        <VideoView
+          player={player}
+          style={[
+            StyleSheet.absoluteFill,
+            hasEditMeta && edit.rotation !== 0
+              ? { transform: [{ rotate: `${edit.rotation}deg` }] }
+              : null,
+          ]}
+          nativeControls={false}
+          contentFit={hasEditMeta ? edit.contentFit : 'cover'}
+          onFirstFrameRender={() => setFirstFrameUri(uri)}
+        />
+      ) : null}
+      {active && firstFrameUri !== uri ? (
+        <View pointerEvents="none" style={styles.videoLoading}>
+          <ActivityIndicator size="small" color="#FFFFFF" />
+          <Text style={styles.videoLoadingText}>OPENING VIDEO</Text>
+        </View>
+      ) : null}
 
       {hasEditMeta && !!edit.textOverlay.trim() ? (
         <View pointerEvents="none" style={styles.editTextWrap}>
@@ -645,9 +658,9 @@ export default function IgpatWebScreen() {
         keyExtractor={item => item.id}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        initialNumToRender={1}
+        initialNumToRender={2}
         maxToRenderPerBatch={2}
-        updateCellsBatchingPeriod={60}
+        updateCellsBatchingPeriod={40}
         windowSize={4}
         removeClippedSubviews
         decelerationRate="fast"
@@ -795,6 +808,19 @@ export default function IgpatWebScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#050807' },
+  videoLoading: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#050807',
+  },
+  videoLoadingText: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+  },
   page: { width: '100%', backgroundColor: '#050807', overflow: 'hidden' },
   center: {
     flex: 1,
