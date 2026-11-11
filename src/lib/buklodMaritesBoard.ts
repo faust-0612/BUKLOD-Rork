@@ -9,6 +9,7 @@ import {
   repairMojibakeText,
 } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
+import { InstantPublishUncertainError } from '@/lib/buklodInstantPublishQueue';
 import { uploadCommunityPhotoFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';
 import { resolveCommunityMediaUrl } from '@/lib/buklodMediaUrl';
 import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
@@ -1191,6 +1192,7 @@ export async function publishMaritesStory(input: {
   }> = [];
 
   let createdPostId: string | null = null;
+  let createAttempted = false;
   let videoPath: string | null = null;
 
   try {
@@ -1266,6 +1268,9 @@ export async function publishMaritesStory(input: {
       throw new Error('Account changed during Marites upload. Share again from the correct account.');
     }
 
+    // There is no client idempotency key in this RPC. A network failure
+    // after request submission is ambiguous and must not replay/delete it.
+    createAttempted = true;
     const { data: created, error: createError } = await (
       supabase as any
     ).rpc('create_buklod_community_post_v3', {
@@ -1364,6 +1369,13 @@ export async function publishMaritesStory(input: {
     // Once the RPC commits a post, deleting it on a later signing or
     // attachment failure can erase a successfully shared story.
     // Preserve the committed post and let a refresh recover its state.
+    if (createAttempted && !createdPostId) {
+      // The server may have committed even if the response was lost.
+      // Never delete the media or automatically retry an uncertain commit.
+      throw new InstantPublishUncertainError(
+        'Marites may already be published. Refresh the story board before posting again.'
+      );
+    }
     if (!createdPostId && uploaded.length) {
       await discardIncompleteCommunityPost({
         postId: null,
