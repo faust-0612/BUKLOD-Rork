@@ -1827,27 +1827,29 @@ export default function BuklodMaritesBoard({
         </View>
       </View>
 
-      {instantMaritesJobs.length>0&&(
-        <View style={{flexDirection:'row',alignItems:'center',flexWrap:'wrap',gap:8,paddingHorizontal:8,paddingVertical:6}}>
-          <Text accessibilityRole="alert" style={{flex:1,color:colors.greenDark,fontWeight:'700',fontSize:12}}>
-            {instantMaritesJobs[0].status==='uploading'
-              ? 'Your Marites Story is uploading · Only you can see it'
-              : instantMaritesJobs[0].notice}
+      {instantMaritesJobs.map(job=>(
+        <View key={job.id} style={{flexDirection:'row',alignItems:'center',
+          flexWrap:'wrap',gap:8,paddingHorizontal:8,paddingVertical:6}}>
+          <Text accessibilityRole="alert" style={{flex:1,color:colors.greenDark,
+            fontWeight:'700',fontSize:12}}>
+            {job.status==='uploading'
+              ? `Your Marites Story is uploading · ${job.progress==null?'':Math.round(job.progress*100)+'%'} · Only you can see it`
+              : job.notice}
           </Text>
-          {instantMaritesJobs[0].status==='failed'&&(
+          {job.status==='failed'&&(
             <Pressable accessibilityRole="button" accessibilityLabel="Retry Marites upload"
-              onPress={()=>retryInstantPublish(instantMaritesJobs[0].id,user!.id)}>
+              onPress={()=>retryInstantPublish(job.id,job.ownerId)}>
               <Text style={{color:colors.greenDark,fontWeight:'900'}}>RETRY</Text>
             </Pressable>
           )}
-          {(instantMaritesJobs[0].status==='failed'||instantMaritesJobs[0].status==='uncertain')&&(
+          {(job.status==='failed'||job.status==='uncertain')&&(
             <Pressable accessibilityRole="button" accessibilityLabel="Dismiss Marites upload"
-              onPress={()=>dismissInstantPublish(instantMaritesJobs[0].id,user!.id)}>
+              onPress={()=>dismissInstantPublish(job.id,job.ownerId)}>
               <Text style={{color:colors.muted,fontWeight:'900'}}>DISMISS</Text>
             </Pressable>
           )}
         </View>
-      )}
+      ))}
       <View ref={stripViewportRef} collapsable={false} onLayout={measureVisibility}>
       <ScrollView
         horizontal
