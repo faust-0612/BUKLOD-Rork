@@ -12,10 +12,10 @@ test('Retired IGPAT shortcut is absent and Community, DZAS remain accessible', (
   const shortcuts = read('src/components/BuklodWallQuickLinks.tsx');
   assert.match(shortcuts, /accessibilityLabel="Community Wall"/);
   assert.match(shortcuts, /accessibilityLabel="Open 702 DZAS Radio"/);
-  assert.doesNotMatch(shortcuts, /IGPAT|router\\.push\\('\\/igpat'/);
+  assert.doesNotMatch(shortcuts, /IGPAT|igpat/);
   assert.match(shortcuts, /minHeight:42/);
   assert.match(wall, /<BuklodWallQuickLinks/);
-  assert.doesNotMatch(read('src/components/BuklodPersistentBottomNav.tsx'), /key:\\s*'igpat'/);
+  assert.doesNotMatch(read('src/components/BuklodPersistentBottomNav.tsx'), /key:[^\n]*'igpat'/);
 });
 
 test('Both IGPAT clients retain account and mode scoped media rather than blanking on failed fetch', () => {
