@@ -66,3 +66,27 @@ test('canonical Supabase migrations exactly match previously applied live versio
     '20261111115500_buklod_today_public_dugtong_paging_v2.sql',
   ]) assert.equal(existsSync('supabase/migrations/'+stale),false,'dangerous duplicate migration '+stale);
 });
+
+test('byte-verified KL and automatic QMP migration filenames match live applied history, never a duplicate alias', () => {
+  const installed = [
+    '20261111082405_buklod_qmp_automatic_qualification_v2.sql',
+    '20261111082459_buklod_qmp_close_legacy_review_requests_v3.sql',
+    '20261111082707_buklod_qmp_indirect_reward_guard_v4.sql',
+    '20261111085702_kl_verified_reading_10_series_50.sql',
+    '20261111085727_buklod_mutual_engagement_r4.sql',
+    '20261111090714_buklod_canonical_admin_economy_snapshot_v1.sql',
+  ];
+  const retired = [
+    '20261111093000_buklod_qmp_automatic_qualification_v2.sql',
+    '20261111093500_buklod_qmp_close_legacy_review_requests_v3.sql',
+    '20261111094000_buklod_qmp_indirect_reward_guard_v4.sql',
+    '20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql',
+    '20261111152000_kl_verified_reading_10_series_50.sql',
+    '20261111152500_buklod_mutual_engagement_r4.sql',
+  ];
+  for (const file of installed) has('supabase/migrations/' + file);
+  for (const file of retired) assert.equal(existsSync('supabase/migrations/' + file), false, file + ' must not reapply');
+  includes('src/lib/buklodCanonicalAdminEconomy.ts','admin_get_buklod_canonical_economy_snapshot_v1');
+  includes('src/app/admin/economy-operations.tsx','loadCanonicalAdminEconomy');
+  includes('src/components/kabihasnang-ligaw/KlReadingQuiz.tsx','10');
+});
