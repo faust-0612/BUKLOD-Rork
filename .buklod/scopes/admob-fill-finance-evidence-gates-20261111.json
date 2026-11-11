@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Restore high-traffic Reels ad availability after legal cooldown, classify real Native/Banner/Interstitial no-fill, enforce true production AdMob live-unit readiness and explicitly block unsupported Finance cash distributions.",
-  "baseRef": "c4d7b51caf819f208e2686a8d9205324271853b6",
-  "productionBaselineEvidence": "Live Supabase BUKLOD Finance checks Nov 11: 0 finalized eligible revenue rows, 0 settled user accounts, 7 cost debits only, finance/settlement/withdrawal OFF; live ad requests/no-fill recorded Nov 9–11. GitHub source Reels permanently suppresses ad after normal cooldown denial. Rebased to Main c4d7b51caf819f208e2686a8d9205324271853b6 including independently completed KL+10/+50 and mutual support; no modifications to those changes.",
+  "baseRef": "af121c188c307c7d6ea4cdb4e1310e900659bae1",
+  "productionBaselineEvidence": "Live Supabase BUKLOD Finance checks Nov 11: 0 finalized eligible revenue rows, 0 settled user accounts, 7 cost debits only, finance/settlement/withdrawal OFF; live ad requests/no-fill recorded Nov 9–11. GitHub source Reels permanently suppresses ad after normal cooldown denial. Rebased to Main c4d7b51caf819f208e2686a8d9205324271853b6 including independently completed KL+10/+50 and mutual support; no modifications to those changes. Current main af121c188c307c7d6ea4cdb4e1310e900659bae1 contains KL/mutual-engagement migration-version alignment; preserved by this merge parent.",
   "chosenApproach": "Fix one permanent Reels denial with deferred cooldown retry, add only allowlisted ad_format metadata to existing already-deployed private telemetry RPC, gate compiled RC on existing non-secret AdMob live unit checker, expose exact canonical Finance blockers in system admin.",
   "selectionRationale": "Avoid duplicate ad requests and invented billable impressions; production misconfiguration and missing source-backed revenue must fail closed, not silently ship test inventory or cash credits.",
   "alternativeApproaches": [

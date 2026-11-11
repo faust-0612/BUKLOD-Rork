@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = p => readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const sql = read('supabase/migrations/20261111152000_kl_verified_reading_10_series_50.sql');
+const sql = read('supabase/migrations/20261111085702_kl_verified_reading_10_series_50.sql');
 const ui = read('src/components/kabihasnang-ligaw/KlReadingQuiz.tsx');
 const guide = read('src/components/points/BuklodPointsR2Guide.tsx');
 const types = read('src/lib/kabihasnang-ligaw/types.ts');
