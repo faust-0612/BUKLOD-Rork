@@ -1,7 +1,7 @@
 name: BUKLOD Unified RC Android and Expo Web Compile QA
 on:
   pull_request:
-    branches: [main, integration/buklod-nov11-postprod-conso-ota]
+    branches: [main, integration/buklod-nov11-postprod-conso-ota, qa/buklod-nov11-source-compile-20261111]
     paths:
       - '.github/workflows/unified_rc_compiled_qa_20261108.yml'
       - 'src/**'
