@@ -292,7 +292,9 @@ export default function IgpatScreen() {
   useEffect(() => { setReelsAdStates({}); }, [feedMode]);
   const feedRows = useMemo(() => {
     // Pending reels are private device previews, not real feed publications.
-    const pendingRows:PendingIgpatRow[] = instantJobs.map(job=>({
+    const pendingRows:PendingIgpatRow[] = instantJobs
+      .filter(job=>!job.remoteMediaPath || !rows.some(row=>row.media_path===job.remoteMediaPath))
+      .map(job=>({
       id:job.id,
       user_id:job.ownerId,
       author_name:'You',
@@ -492,6 +494,15 @@ export default function IgpatScreen() {
       void load();
     }
   },[instantJobs,load]);
+  useEffect(()=>{
+    // Remove a provisional row only when its canonical media path appears.
+    for(const job of instantJobs){
+      if(job.status==='posted' && job.remoteMediaPath &&
+        rows.some(row=>row.media_path===job.remoteMediaPath)){
+        dismissInstantPublish(job.id,job.ownerId);
+      }
+    }
+  },[instantJobs,rows]);
 
   useEffect(() => {
     setActiveIndex(0);
