@@ -9,6 +9,7 @@ import {
   repairMojibakeText,
 } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
+import { saveBuklodPostCreative, type BuklodPostMusicTrack } from '@/lib/buklodPostCreatives';
 import { resolveCommunityMediaUrl } from '@/lib/buklodMediaUrl';
 import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
 import { attachCommunityPostMedia, discardIncompleteCommunityPost, loadCommunityPostMediaByPostIds } from '@/lib/buklodCommunityPostMedia';
@@ -161,6 +162,9 @@ export type MaritesStory = {
   /** Storage paths aligned with photo_uris for community stories. */
   photo_paths?: string[];
   video_uri?: string | null;
+  /** Local offline metadata; shared stories load soundtracks on Full View. */
+  music_track?: BuklodPostMusicTrack | null;
+  music_clip_start_seconds?: number | null;
   reaction_counts?: Record<string, number>;
   my_reaction?: string | null;
   created_at: string;
@@ -260,6 +264,12 @@ function normalizeStory(row: Record<string, unknown>): MaritesStory | null {
     photo_uris: mergedPhotos.slice(0, MARITES_MAX_PHOTOS),
     photo_uri: mergedPhotos[0] ?? null,
     video_uri: row.video_uri ? String(row.video_uri) : null,
+    music_track: row.music_track && typeof row.music_track === 'object' &&
+      typeof (row.music_track as BuklodPostMusicTrack).id === 'string' &&
+      typeof (row.music_track as BuklodPostMusicTrack).audio_path === 'string'
+      ? row.music_track as BuklodPostMusicTrack : null,
+    music_clip_start_seconds: Number.isFinite(Number(row.music_clip_start_seconds))
+      ? Math.max(0, Math.min(21600, Number(row.music_clip_start_seconds))) : 0,
     mentions: Array.isArray(row.mentions)
       ? row.mentions.map((item) => String(item))
       : [],
@@ -1149,9 +1159,12 @@ export async function publishMaritesStory(input: {
   body: string;
   photoUris: string[];
   video?: { uri: string; durationSeconds: number; mimeType: string } | null;
+  musicTrack?: BuklodPostMusicTrack | null;
+  musicClipStartSeconds?: number | null;
 }): Promise<{
   story: MaritesStory;
   shared: boolean;
+  musicError?: string | null;
 }> {
   const body = repairMojibakeText(
     String(input.body ?? '')
@@ -1174,6 +1187,8 @@ export async function publishMaritesStory(input: {
     photo_uris: photoUris,
     photo_uri: photoUris[0] ?? null,
     video_uri: input.video?.uri ?? null,
+    music_track: input.musicTrack ?? null,
+    music_clip_start_seconds: input.musicTrack ? Math.max(0, Math.min(21600, Number(input.musicClipStartSeconds) || 0)) : null,
     mentions: [],
     author_only: false,
     source: 'local',
@@ -1317,6 +1332,8 @@ export async function publishMaritesStory(input: {
       photo_uri: input.video ? null : (signedPhotos.find(Boolean) ?? null),
       photo_paths: input.video ? [] : uploaded.map((item) => item.media_path),
       video_uri: input.video ? (publishedVideoUrl || input.video.uri) : null,
+      music_track: input.musicTrack ?? null,
+      music_clip_start_seconds: localStory.music_clip_start_seconds,
       mentions: [],
       author_only: false,
       source: 'community',
@@ -1326,7 +1343,25 @@ export async function publishMaritesStory(input: {
       created_at: new Date().toISOString(),
     };
 
-    return { story: sharedStory, shared: true };
+    // A failed soundtrack write must not erase a post the server already created.
+    let musicError: string | null = null;
+    if (input.musicTrack) {
+      try {
+        await saveBuklodPostCreative({
+          postId: createdPostId,
+          userId: input.userId,
+          musicTrackId: input.musicTrack.id,
+          motionPreset: 'none',
+          clipStartSeconds: localStory.music_clip_start_seconds ?? 0,
+          clipDurationSeconds: 30,
+        });
+      } catch (error) {
+        musicError = String((error as Error)?.message ?? 'Could not attach music.');
+        sharedStory.music_track = null;
+        sharedStory.music_clip_start_seconds = null;
+      }
+    }
+    return { story: sharedStory, shared: true, musicError };
   } catch (error) {
     // Once the RPC commits a post, deleting it on a later signing or
     // attachment failure can erase a successfully shared story.

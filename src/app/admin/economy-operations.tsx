@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,34 +14,26 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
-import BuklodCommunityEconomyAdminCard from '@/components/BuklodCommunityEconomyAdminCard';
 import {
-  adminGetCommunityAdmobEstimate,
   adminSetCommunityAdmobEstimate,
   formatMinorPhp,
-  type AdminCommunityAdmobEstimate,
 } from '@/lib/buklodCommunityContributionEconomy';
 import { shared } from '@/components/UI';
 import {
   adminFailBuklodPfWithdrawal,
   adminFinalizeBuklodPfMonthV3,
-  adminGetBuklodPfFinanceConsoleV3,
-  adminGetBuklodPfQmpReadinessV1,
-  adminGetBuklodQmpMonthReviewQueue,
-  adminResolveBuklodQmpEvent,
   adminGetBuklodR38PayoutDetails,
   adminListBuklodR38Withdrawals,
   adminMarkBuklodPfWithdrawalProcessing,
   adminMarkBuklodR38WithdrawalPaid,
   adminRecordBuklodPfFinancialEntryV3,
   adminReviewBuklodR38Withdrawal,
-  type BuklodPfFinanceConsoleV3,
-  type BuklodPfQmpReadiness,
-  type BuklodQmpAdminReviewQueue,
   type BuklodR38AdminWithdrawalQueue,
   type BuklodR38PayoutDetails,
 } from '@/lib/buklodR38AdminEconomy';
 import { formatPhp } from '@/lib/buklodR38Economy';
+import { financeMoneyOrUnavailable, isEconomyMonth, loadCanonicalAdminEconomy,
+  manilaEconomyMonth, type CanonicalAdminEconomySnapshot } from '@/lib/buklodCanonicalAdminEconomy';
 import { getBuklodFinanceMonthCloseBlockers } from '@/lib/buklodFinanceMonthCloseBlockers';
 import { colors } from '@/lib/theme';
 
@@ -56,18 +48,7 @@ const ENTRY_KINDS = [
   'OTHER_COST',
 ] as const;
 
-function defaultMonth() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const start = new Date(year, month, 1, 0, 0, 0, 0);
-  const end = new Date(year, month + 1, 1, 0, 0, 0, 0);
-  return {
-    key: `${year}-${String(month + 1).padStart(2, '0')}`,
-    start: start.toISOString(),
-    end: end.toISOString(),
-  };
-}
+function defaultMonth() { return { key: manilaEconomyMonth() }; }
 
 function ActionButton({
   title,
@@ -101,20 +82,21 @@ function ActionButton({
 
 export default function AdminEconomyOperationsScreen() {
   const month = useMemo(defaultMonth, []);
-  const [report, setReport] =
-    useState<BuklodPfFinanceConsoleV3 | null>(null);
+  const [snapshot, setSnapshot] = useState<CanonicalAdminEconomySnapshot | null>(null);
   const [queue, setQueue] =
     useState<BuklodR38AdminWithdrawalQueue | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [queueError, setQueueError] = useState('');
 
   const [periodKey, setPeriodKey] = useState(month.key);
-  const [admobPreview, setAdmobPreview] = useState<AdminCommunityAdmobEstimate | null>(null);
-  const [qmpReadiness, setQmpReadiness] = useState<BuklodPfQmpReadiness | null>(null);
-  const [qmpQueue, setQmpQueue] = useState<BuklodQmpAdminReviewQueue | null>(null);
-  const [reviewListExpanded, setReviewListExpanded] = useState(false);
+  const [draftPeriodKey, setDraftPeriodKey] = useState(month.key);
+  const requestSerial = useRef(0);
+  const report = snapshot?.finance ?? null;
+  const qmpReadiness = snapshot?.qmp ?? null;
+  const admobPreview = snapshot?.admob_provisional ?? null;
   const [admobReportAmount, setAdmobReportAmount] = useState('');
   const [admobReportCurrency, setAdmobReportCurrency] = useState<'USD' | 'PHP'>('USD');
   const [admobUsdPhpRate, setAdmobUsdPhpRate] = useState('');
@@ -139,39 +121,37 @@ export default function AdminEconomyOperationsScreen() {
   const [transactionRef, setTransactionRef] = useState('');
 
   const load = useCallback(async () => {
-    // Never reuse another month's readiness or review queue during a refresh.
-    setQmpReadiness(null);
-    setQmpQueue(null);
+    const generation = ++requestSerial.current;
+    setSnapshot(null);
+    setQueue(null);
+    setQueueError('');
+    setLoading(true);
+    setError(null);
     try {
-      setError(null);
-
-      const [nextReport, nextQueue, nextAdmob, nextQmpReadiness, nextQmpQueue] = await Promise.all([
-        adminGetBuklodPfFinanceConsoleV3(periodKey),
+      const [financeResult, payoutResult] = await Promise.allSettled([
+        loadCanonicalAdminEconomy(periodKey),
         adminListBuklodR38Withdrawals(),
-        // The additive preview migration may be pending on older environments.
-        adminGetCommunityAdmobEstimate(periodKey).catch(() => null),
-        adminGetBuklodPfQmpReadinessV1(periodKey).catch(() => null),
-        adminGetBuklodQmpMonthReviewQueue(periodKey).catch(() => null),
       ]);
-
-      setReport(nextReport);
-      setQueue(nextQueue);
-      setAdmobPreview(nextAdmob);
-      setQmpReadiness(nextQmpReadiness);
-      setQmpQueue(nextQmpQueue);
+      if (generation !== requestSerial.current) return;
+      if (financeResult.status !== 'fulfilled') throw financeResult.reason;
+      setSnapshot(financeResult.value);
+      // Withdrawal queue failure must never suppress a valid finance report.
+      // Payout processing remains disabled until this separate secure read succeeds.
+      setQueue(payoutResult.status === 'fulfilled' ? payoutResult.value : null);
+      setQueueError(payoutResult.status === 'rejected'
+        ? 'Withdrawal queue could not be verified. Payout actions are disabled.'
+        : '');
     } catch (nextError: unknown) {
-      setError(
-        nextError instanceof Error
-          ? nextError.message
-          : 'Could not load canonical BUKLOD Economy operations.',
-      );
+      if (generation !== requestSerial.current) return;
+      setError(nextError instanceof Error ? nextError.message : 'Could not synchronize canonical BUKLOD Economy.');
     } finally {
-      setLoading(false);
+      if (generation === requestSerial.current) setLoading(false);
     }
   }, [periodKey]);
 
   useEffect(() => {
     void load();
+    return () => { requestSerial.current++; };
   }, [load]);
 
   const refresh = useCallback(async () => {
@@ -181,35 +161,20 @@ export default function AdminEconomyOperationsScreen() {
   }, [load]);
 
   const controls = report?.controls;
+  const monthCloseBlockers = getBuklodFinanceMonthCloseBlockers(qmpReadiness, controls);
   const settlement = report?.settlement ?? null;
+  const monthLoaded = draftPeriodKey.trim() === periodKey;
+  const formatSettlement = (value: unknown) =>
+    financeMoneyOrUnavailable(value, settlement?.status === 'FINALIZED');
   const currentStatus =
     settlement?.status ?? 'NOT FINALIZED';
 
-  const monthCloseBlockers = getBuklodFinanceMonthCloseBlockers(qmpReadiness, controls);
   const canFinalize =
+    !loading && !error && monthLoaded &&
     controls?.economics_enabled === true &&
     controls?.settlement_enabled === true &&
     qmpReadiness?.ready_for_finalization === true &&
     currentStatus !== 'FINALIZED';
-
-  const reviewQmp = (eventId: string, approve: boolean) => {
-    Alert.alert(
-      approve ? 'Approve qualified QMP?' : 'Reject unqualified QMP?',
-      'Review the original post/reply evidence. This updates the monthly qualification weight, not cash. The decision is audited.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: approve ? 'Approve' : 'Reject',
-          style: approve ? 'default' : 'destructive',
-          onPress: () => void run(
-            `qmp-review:${eventId}`,
-            () => adminResolveBuklodQmpEvent(eventId, approve),
-            'Qualified-contribution review updated; month-readiness rechecked.',
-          ),
-        },
-      ],
-    );
-  };
 
   const payoutEnabled =
     queue?.payout_processing_enabled === true;
@@ -228,18 +193,20 @@ export default function AdminEconomyOperationsScreen() {
   };
 
   const loadPeriod = () => {
-    if (!/^\d{4}-\d{2}$/.test(periodKey.trim())) {
-      Alert.alert(
-        'Finance Period',
-        'Enter the month as YYYY-MM.',
-      );
+    const next = draftPeriodKey.trim();
+    if (!isEconomyMonth(next)) {
+      Alert.alert('Finance Period', 'Enter a valid Manila month YYYY-MM (01-12).');
       return;
     }
-
-    void load();
+    if (next !== periodKey) setPeriodKey(next);
+    else void load();
   };
 
   const addEntry = () => {
+    if (!monthLoaded || loading || !snapshot) {
+      Alert.alert('Financial Entry', 'Load the selected month before recording an entry.');
+      return;
+    }
     const numericAmount = Number(amount);
 
     if (
@@ -288,6 +255,10 @@ export default function AdminEconomyOperationsScreen() {
   };
 
   const publishAdmobPreview = () => {
+    if (!monthLoaded || loading || !snapshot) {
+      Alert.alert('AdMob estimate', 'Load the selected month before saving a provisional estimate.');
+      return;
+    }
     const amount = Number(admobReportAmount.trim());
     const rate = admobReportCurrency === 'USD' ? Number(admobUsdPhpRate.trim()) : 1;
     const php = Math.round(amount * rate * 100) / 100;
@@ -463,12 +434,8 @@ export default function AdminEconomyOperationsScreen() {
               </View>
 
               <TextInput
-                value={periodKey}
-                onChangeText={next => {
-                  setPeriodKey(next);
-                  setQmpReadiness(null);
-                  setQmpQueue(null);
-                }}
+                value={draftPeriodKey}
+                onChangeText={setDraftPeriodKey}
                 autoCapitalize="none"
                 placeholder="YYYY-MM"
                 style={styles.input}
@@ -506,15 +473,21 @@ export default function AdminEconomyOperationsScreen() {
               </View>
 
               <Text style={styles.muted}>
-                Settlement status: {currentStatus}
+                Loaded month: {periodKey} · Settlement status: {currentStatus}
               </Text>
+              {!monthLoaded && <Text style={styles.warningText}>
+                Month field changed. Press LOAD MONTH before any finance action.
+              </Text>}
               <Text style={styles.muted}>
-                Canonical monthly QMP audit: {qmpReadiness?.period_exists
+                Finance V3, monthly QMP and provisional AdMob are synchronized in one source-consistent server snapshot.
+              </Text>
+              {!!queueError && <Text style={styles.warningText}>{queueError}</Text>}
+              <Text style={styles.muted}>
+                Automated QMP audit (source-backed): {qmpReadiness?.period_exists
                   ? `${qmpReadiness.qualified_users ?? 0} qualified users ·
                   ${qmpReadiness.qualified_monthly_qmp ?? 0} QMP ·
                   ${qmpReadiness.unlinked_finance_identities ?? 0} identity links missing ·
-                  ${qmpReadiness.pending_qmp_reviews ?? 0} pending ·
-                  ${qmpReadiness.held_qmp_reviews ?? 0} held ·
+
                   ${qmpReadiness.legacy_share_records ?? 0} legacy allocations ·
                   ${qmpReadiness.reconciled_eligible_revenue_sources ?? 0} verified revenue records`
                   : 'Not verified. Finalization remains locked.'}
@@ -525,50 +498,9 @@ export default function AdminEconomyOperationsScreen() {
                   <Text style={styles.warningText}>
                     Finance settlement LOCKED: {monthCloseBlockers.join(' · ')}.
                     AdMob estimates, ad impressions and BUKLOD Points are not finalized cash.
-                    No automatic payout or withdrawal is authorized.
+                    Incomplete or missing readiness data never authorizes a payout.
                   </Text>
                 )}
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>QMP month-close review queue</Text>
-              <Text style={styles.muted}>
-                {qmpQueue
-                  ? `${qmpQueue.total_pending} contribution records await qualification or rejection.
-                    Verify source text before approving; pending records are not cash or withdrawable.`
-                  : 'Review queue unavailable. Month finalization stays locked until verified.'}
-              </Text>
-              {qmpQueue?.rows.slice(0, reviewListExpanded ? 50 : 10).map(item => (
-                <View key={item.event_id} style={styles.guardCard}>
-                  <View style={{ flex: 1, gap: 5 }}>
-                    <Text style={styles.flagLabel}>
-                      {item.type.replace(/_/g,' ')} · {item.qmp} QMP · {item.state}
-                    </Text>
-                    <Text style={styles.muted}>
-                      {item.reason.replace(/_/g,' ')} · {new Date(item.created_at).toLocaleDateString()}
-                    </Text>
-                    <Text style={styles.muted}>
-                      {item.source_available
-                        ? item.source_excerpt || 'Media post · no text excerpt'
-                        : 'Source is unavailable, hidden or deleted. Do not approve without evidence.'}
-                    </Text>
-                    <View style={styles.actionWrap}>
-                      <ActionButton title="APPROVE QMP" icon="check-circle-outline"
-                        onPress={() => reviewQmp(item.event_id, true)}
-                        disabled={!!busy || !item.source_available} />
-                      <ActionButton title="REJECT QMP" icon="close-circle-outline"
-                        onPress={() => reviewQmp(item.event_id, false)}
-                        disabled={!!busy} danger />
-                    </View>
-                  </View>
-                </View>
-              ))}
-              {(qmpQueue?.rows.length ?? 0) > 10 && (
-                <ActionButton
-                  title={reviewListExpanded ? 'SHOW FEWER REVIEWS' : 'SHOW UP TO 50 REVIEWS'}
-                  icon="format-list-bulleted" onPress={() => setReviewListExpanded(v=>!v)}
-                  disabled={!!busy} />
-              )}
             </View>
 
             <View style={styles.section}>
@@ -578,7 +510,7 @@ export default function AdminEconomyOperationsScreen() {
               </Text>
               {admobPreview ? (
                 <Text style={styles.muted}>
-                  Current preliminary report: {formatMinorPhp(admobPreview.amount_minor)} · observed {new Date(admobPreview.observed_at).toLocaleString()} · {admobPreview.source_reference}
+                  Current preliminary report (not finalized revenue): {formatMinorPhp(admobPreview.amount_minor)} · observed {new Date(admobPreview.observed_at).toLocaleString()} · {admobPreview.source_reference}
                 </Text>
               ) : (
                 <Text style={styles.warningText}>No preliminary AdMob report recorded for this month.</Text>
@@ -619,7 +551,7 @@ export default function AdminEconomyOperationsScreen() {
                 style={styles.input}
               />
               <ActionButton title={busy === 'admob-preview' ? 'SAVING...' : 'PUBLISH NON-CASH ESTIMATE'}
-                icon="chart-line" onPress={publishAdmobPreview} disabled={!!busy} />
+                icon="chart-line" onPress={publishAdmobPreview} disabled={!!busy || loading || !monthLoaded || !snapshot} />
             </View>
 
             <View style={styles.section}>
@@ -769,10 +701,7 @@ export default function AdminEconomyOperationsScreen() {
                 icon="database-plus-outline"
                 onPress={addEntry}
                 disabled={
-                  !!busy ||
-                  !/^\d{4}-\d{2}$/.test(
-                    periodKey.trim(),
-                  )
+                  !!busy || loading || !monthLoaded || !snapshot
                 }
               />
             </View>
@@ -790,9 +719,7 @@ export default function AdminEconomyOperationsScreen() {
               >
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.normal_eligible_revenue_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.normal_eligible_revenue_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     Eligible Revenue
@@ -801,9 +728,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.user_pool_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.user_pool_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     30% User Pool
@@ -812,9 +737,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.first_line_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.first_line_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     First-line
@@ -823,9 +746,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.community_fund_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.community_fund_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     Community Fund
@@ -834,9 +755,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.buklod_retained_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.buklod_retained_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     BUKLOD Retained
@@ -845,9 +764,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.operating_cost_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.operating_cost_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     Operating Cost
@@ -856,9 +773,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.tax_reserve_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.tax_reserve_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     Tax Reserve
@@ -867,9 +782,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.estimated_final_net_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.estimated_final_net_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     Final Net
@@ -878,7 +791,9 @@ export default function AdminEconomyOperationsScreen() {
               </View>
 
               <Text style={styles.muted}>
-                QMP total: {String(settlement?.qualified_monthly_points ?? 0)} · Settled users: {String(report?.user_shares?.length ?? 0)} · Community allocations: {String(report?.community_allocations?.length ?? 0)}
+                {settlement?.status === 'FINALIZED'
+                  ? `Finalized QMP: ${settlement.qualified_monthly_points} · Settled users: ${report?.user_shares.length ?? 0} · Community allocations: ${report?.community_allocations.length ?? 0}`
+                  : 'No finalized settlement. This is not a zero-revenue claim.'}
               </Text>
             </View>
 

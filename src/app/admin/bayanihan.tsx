@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -13,12 +14,15 @@ import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
 import { shared } from '@/components/UI';
+import { formatMinorPhp } from '@/lib/buklodCommunityContributionEconomy';
 import {
-  asMoney,
-  formatPhp,
-  loadAdminBuklodR38EconomyReport,
-  type BuklodR38AdminEconomyReport,
-} from '@/lib/buklodR38Economy';
+  financeMoneyOrUnavailable,
+  hasFinalizedFinanceMonth,
+  isEconomyMonth,
+  loadCanonicalAdminEconomy,
+  manilaEconomyMonth,
+  type CanonicalAdminEconomySnapshot,
+} from '@/lib/buklodCanonicalAdminEconomy';
 import { colors } from '@/lib/theme';
 
 function Metric({ label, value, note }: { label: string; value: string; note?: string }) {
@@ -53,25 +57,40 @@ function FlagRow({ label, enabled }: { label: string; enabled: boolean }) {
   );
 }
 
+function safeCount(value: unknown): string {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value.toLocaleString('en-PH') : '—';
+}
+
 export default function AdminBayanihanScreen() {
-  const [report, setReport] = useState<BuklodR38AdminEconomyReport | null>(null);
+  const [monthKey, setMonthKey] = useState(manilaEconomyMonth);
+  const [draftMonth, setDraftMonth] = useState(monthKey);
+  const [report, setReport] = useState<CanonicalAdminEconomySnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestSerial = useRef(0);
 
   const load = useCallback(async () => {
+    const generation = ++requestSerial.current;
+    setLoading(true);
+    setReport(null);
+    setError(null);
     try {
-      setError(null);
-      setReport(await loadAdminBuklodR38EconomyReport());
+      const next = await loadCanonicalAdminEconomy(monthKey);
+      if (generation === requestSerial.current) setReport(next);
     } catch (nextError: unknown) {
-      setError(nextError instanceof Error ? nextError.message : 'Could not load the economy report.');
+      if (generation === requestSerial.current) {
+        setError(nextError instanceof Error ? nextError.message : 'Canonical finance report unavailable.');
+      }
     } finally {
-      setLoading(false);
+      if (generation === requestSerial.current) setLoading(false);
     }
-  }, []);
+  }, [monthKey]);
 
   useEffect(() => {
     void load();
+    return () => { requestSerial.current++; };
   }, [load]);
 
   const refresh = useCallback(async () => {
@@ -80,17 +99,23 @@ export default function AdminBayanihanScreen() {
     setRefreshing(false);
   }, [load]);
 
-  const periodLabel = useMemo(() => {
-    if (!report?.period) return 'No economic period created yet';
-    const key = report.period.period_key;
-    const status = report.period.status;
-    return `${typeof key === 'string' ? key : 'Period'} · ${typeof status === 'string' ? status : 'UNKNOWN'}`;
-  }, [report]);
+  const selectMonth = () => {
+    const next = draftMonth.trim();
+    if (!isEconomyMonth(next)) {
+      setError('Enter a valid Manila month using YYYY-MM (01-12).');
+      return;
+    }
+    if (next === monthKey) void load();
+    else setMonthKey(next);
+  };
 
-  const revenue = report?.revenue_chain;
-  const activation = report?.activation ?? {};
-  const checks = report?.invariant_checks ?? {};
-  const shareCount = report?.user_shares?.length ?? 0;
+  const finance = report?.finance;
+  const qmp = report?.qmp;
+  const provisional = report?.admob_provisional;
+  const settlement = finance?.settlement ?? null;
+  const finalized = hasFinalizedFinanceMonth(report);
+  const money = (value: unknown) => financeMoneyOrUnavailable(value, finalized);
+  const policy = finance?.policy;
 
   return (
     <AdminGate>
@@ -102,10 +127,10 @@ export default function AdminBayanihanScreen() {
       >
         <View style={styles.hero}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>SYSTEM ADMIN · ECONOMY REPORT</Text>
-            <Text style={shared.h1}>Economy, Bayanihan & Shares</Text>
+            <Text style={styles.eyebrow}>SYSTEM ADMIN · CANONICAL ECONOMY</Text>
+            <Text style={shared.h1}>Economy, QMP & Earnings</Text>
             <Text style={shared.muted}>
-              Platform revenue reconciliation, funded-pool allocation, BCU/RCU weights, finalized user shares and payout controls.
+              Finance V3 is the only actual earnings and settlement ledger. QMP is a monthly weight; provisional AdMob is not cash.
             </Text>
           </View>
           <MaterialCommunityIcons name="finance" size={31} color={colors.greenDark} />
@@ -114,11 +139,29 @@ export default function AdminBayanihanScreen() {
         <View style={styles.guardCard}>
           <MaterialCommunityIcons name="shield-lock-outline" size={23} color={colors.greenDark} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.guardTitle}>Hard economic invariant</Text>
+            <Text style={styles.guardTitle}>Hard economic invariant · One authoritative source</Text>
             <Text style={styles.guardText}>
-              Points, Circle Rank, Character, Collectibles, BCU and RCU never mint pesos. Cash may be created only from reconciled, finalized and funded platform revenue pools.
+              Legacy R38 BCU/RCU allocations and Community Wall analytics are excluded from cash totals. Never infer pesos from points or from preliminary ad income.
             </Text>
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Manila reporting month</Text>
+          <Text style={styles.sectionSubtitle}>
+            Only the loaded month is displayed. Changing this field does not silently mix or refresh other periods.
+          </Text>
+          <TextInput
+            value={draftMonth}
+            onChangeText={setDraftMonth}
+            placeholder="YYYY-MM"
+            autoCapitalize="none"
+            style={{ borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: 10, color: colors.text }}
+          />
+          <Pressable onPress={selectMonth} style={styles.operationsButton}>
+            <MaterialCommunityIcons name="calendar-search" size={18} color="#FFFFFF" />
+            <Text style={styles.operationsTitle}>LOAD CANONICAL MONTH</Text>
+          </Pressable>
         </View>
 
         <Pressable
@@ -128,17 +171,17 @@ export default function AdminBayanihanScreen() {
           <MaterialCommunityIcons name="finance" size={19} color="#FFFFFF" />
           <View style={{ flex: 1 }}>
             <Text style={styles.operationsTitle}>OPEN ECONOMY OPERATIONS</Text>
-            <Text style={styles.operationsSubtitle}>Periods, revenue/cost reconciliation, referral review and payout queue</Text>
+            <Text style={styles.operationsSubtitle}>Finance V3 journal, actual settlement controls and canonical withdrawal queue</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF" />
         </Pressable>
 
-        {loading && !report ? (
+        {loading ? (
           <View style={styles.loadingCard}>
             <ActivityIndicator color={colors.greenDark} />
-            <Text style={styles.muted}>Loading economy report...</Text>
+            <Text style={styles.muted}>Synchronizing {monthKey} canonical finance sources...</Text>
           </View>
-        ) : error && !report ? (
+        ) : error ? (
           <View style={styles.loadingCard}>
             <Text style={styles.errorTitle}>Economy report unavailable</Text>
             <Text style={styles.muted}>{error}</Text>
@@ -148,141 +191,90 @@ export default function AdminBayanihanScreen() {
           </View>
         ) : report ? (
           <>
-            <Section title="Current Economic Period" subtitle={periodLabel}>
-              {revenue ? (
+            <Section title="Finance V3 · canonical settlement" subtitle={`Period ${report.period_key} · ${finalized ? 'FINALIZED' : 'NOT FINALIZED'} · Source: Finance V3`}>
+              <View style={styles.grid}>
+                <Metric label="Eligible revenue" value={money(settlement?.normal_eligible_revenue_php)} />
+                <Metric label="30% User Pool" value={money(settlement?.user_pool_php)} />
+                <Metric label="User pool distributed" value={money(settlement?.user_pool_distributed_php)} />
+                <Metric label="User pool reserved" value={money(settlement?.user_pool_reserved_php)} />
+                <Metric label="First-line referral" value={money(settlement?.first_line_php)} />
+                <Metric label="Cluster / Organization Fund" value={money(settlement?.community_fund_php)} />
+                <Metric label="BUKLOD retained" value={money(settlement?.buklod_retained_php)} />
+                <Metric label="Operating costs" value={money(settlement?.operating_cost_php)} />
+                <Metric label="Tax reserve" value={money(settlement?.tax_reserve_php)} />
+                <Metric label="Final net" value={money(settlement?.estimated_final_net_php)} />
+              </View>
+              {!finalized && <Text style={styles.muted}>No finalized settlement for this month. A missing settlement is not ₱0 revenue and no user cash can be inferred from it.</Text>}
+            </Section>
+
+            <Section title="Monthly QMP · source qualification" subtitle="Automatic source-verified participation weights; not BP or a cash wallet.">
+              {qmp?.period_exists ? (
                 <View style={styles.grid}>
-                  <Metric label="Reconciled Revenue" value={formatPhp(revenue.actual_reconciled_revenue)} />
-                  <Metric label="Reconciled Costs" value={formatPhp(revenue.actual_reconciled_costs)} />
-                  <Metric label="Distributable Base" value={formatPhp(revenue.distributable_base)} />
+                  <Metric label="Qualified QMP" value={safeCount(qmp.qualified_monthly_qmp)} />
+                  <Metric label="Qualified members" value={safeCount(qmp.qualified_users)} />
+                  <Metric label="Unlinked identities" value={safeCount(qmp.unlinked_finance_identities)} />
+                  <Metric label="Pending validation" value={safeCount(qmp.pending_qmp_reviews)} />
+                  <Metric label="Held for risk" value={safeCount(qmp.held_qmp_reviews)} />
+                  <Metric label="Eligible revenue records" value={safeCount(qmp.reconciled_eligible_revenue_sources)} />
                 </View>
-              ) : (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyTitle}>No financial period yet</Text>
-                  <Text style={styles.muted}>
-                    No PHP is being estimated, finalized or distributed. Create/reconcile periods only when actual platform revenue and costs are available.
-                  </Text>
-                </View>
-              )}
+              ) : <Text style={styles.muted}>No QMP period has been created for this month.</Text>}
+              <Text style={styles.muted}>Finance readiness: {qmp?.ready_for_finalization === true ? 'PASS' : 'LOCKED / NOT READY'}. A report does not activate settlement or payout.</Text>
             </Section>
 
-            <Section
-              title="Funded Allocation"
-              subtitle="Pools are percentages of the reconciled distributable base — never of user Points."
-            >
+            <Section title="Provisional AdMob · separate noncash estimate" subtitle="Official provider/admin snapshot only; never added to finalized Finance totals.">
+              {provisional ? (
+                <View style={styles.grid}>
+                  <Metric label="Estimated AdMob revenue" value={formatMinorPhp(provisional.amount_minor)} />
+                  <Metric label="Source" value={provisional.source_mode === 'OFFICIAL_ADMOB_API' ? 'Official AdMob' : 'Admin report'} />
+                </View>
+              ) : <Text style={styles.muted}>No provider-backed preliminary snapshot for {monthKey}. No amount has been assumed.</Text>}
+              {!!provisional && <Text style={styles.muted}>Reported {new Date(provisional.observed_at).toLocaleString('en-PH')} · {provisional.source_reference}</Text>}
+            </Section>
+
+            <Section title="Finance V3 allocation policy" subtitle="Live canonical policy, not retired R38 BCU/RCU pool percentages.">
               <View style={styles.grid}>
-                <Metric label="Bayanihan 30%" value={formatPhp(revenue?.bayanihan_pool)} />
-                <Metric label="Direct Referral 5%" value={formatPhp(revenue?.referral_pool)} />
-                <Metric label="Founder 35%" value={formatPhp(revenue?.founder)} />
-                <Metric label="Growth 20%" value={formatPhp(revenue?.growth)} />
-                <Metric label="Reserve 10%" value={formatPhp(revenue?.reserve)} />
+                <Metric label="Monthly user pool" value={policy ? `${policy.user_pool_pct}%` : '—'} />
+                <Metric label="First-line" value={policy ? `${policy.first_line_pct}%` : '—'} />
+                <Metric label="Cluster fund" value={policy ? `${policy.cluster_pct}%` : '—'} />
+                <Metric label="Organization fund" value={policy ? `${policy.organization_pct}%` : '—'} />
+              </View>
+              <Text style={styles.muted}>Community fund tier is either Cluster or Organization for eligible allocations, never both.</Text>
+            </Section>
+
+            <Section title="Actual financial journal" subtitle="Only Finance V3 source records. Entries are not automatically finalized revenue.">
+              {finance?.financial_entries.length ? (
+                finance.financial_entries.slice(0, 20).map(entry => (
+                  <View key={entry.id} style={styles.checkRow}>
+                    <Text style={styles.checkKey}>{entry.entry_type.replace(/_/g, ' ')} · {entry.reconciliation_state} · {entry.direction}</Text>
+                    <Text style={styles.checkValue}>
+                      {typeof entry.amount_php === 'number' && Number.isFinite(entry.amount_php)
+                        ? entry.amount_php.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })
+                        : '—'}
+                    </Text>
+                  </View>
+                ))
+              ) : <Text style={styles.muted}>No canonical financial journal entries for {monthKey}.</Text>}
+            </Section>
+
+            <Section title="Finalized distribution" subtitle="Amounts below are published only after an actual finalized settlement.">
+              <View style={styles.grid}>
+                <Metric label="Settled user shares" value={finalized ? safeCount(finance?.user_shares.length) : '—'} />
+                <Metric label="Community allocations" value={finalized ? safeCount(finance?.community_allocations.length) : '—'} />
+                <Metric label="Finalized QMP weight" value={finalized ? safeCount(settlement?.qualified_monthly_points) : '—'} />
               </View>
             </Section>
 
-            <Section
-              title="Contribution Units"
-              subtitle="BCU and RCU are proportional weights only. The effective PHP/unit shown after finalization is retrospective analytics, not a future rate."
-            >
-              <View style={styles.grid}>
-                <Metric
-                  label="Qualified BCU"
-                  value={asMoney(report.qualified_units?.bcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
-                />
-                <Metric
-                  label="Qualified RCU"
-                  value={asMoney(report.qualified_units?.rcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
-                />
-                <Metric
-                  label="Effective PHP / BCU"
-                  value={report.effective_rates_analytics_only.php_per_bcu == null ? '—' : formatPhp(report.effective_rates_analytics_only.php_per_bcu)}
-                  note="Analytics only"
-                />
-                <Metric
-                  label="Effective PHP / RCU"
-                  value={report.effective_rates_analytics_only.php_per_rcu == null ? '—' : formatPhp(report.effective_rates_analytics_only.php_per_rcu)}
-                  note="Analytics only"
-                />
-              </View>
-            </Section>
-
-            <Section title="Finalized Distribution" subtitle={`${shareCount.toLocaleString('en-PH')} finalized user-share records in the selected period.`}>
-              <View style={styles.grid}>
-                <Metric label="Bayanihan Distributed" value={formatPhp(report.distributed.bayanihan)} />
-                <Metric label="Referral Distributed" value={formatPhp(report.distributed.direct_referral)} />
-                <Metric label="Cash Available" value={formatPhp(report.cash_ledger.available)} />
-                <Metric label="Cash Reserved" value={formatPhp(report.cash_ledger.reserved)} />
-                <Metric label="Cash Paid" value={formatPhp(report.cash_ledger.paid)} />
-              </View>
-
-              {report.user_shares.length ? (
-                <View style={styles.tableCard}>
-                  <Text style={styles.tableTitle}>Finalized user shares</Text>
-                  {report.user_shares.slice(0, 50).map((item) => (
-                    <View key={`${item.user_id}-${item.pool_key}`} style={styles.shareRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.shareName}>{item.full_name}</Text>
-                        <Text style={styles.shareMeta}>
-                          {item.pool_key === 'DIRECT_REFERRAL' ? 'Direct Referral' : 'Bayanihan'} · {asMoney(item.qualified_units).toLocaleString('en-PH', { maximumFractionDigits: 6 })} units
-                        </Text>
-                      </View>
-                      <Text style={styles.shareAmount}>{formatPhp(item.finalized_share_amount)}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-            </Section>
-
-            <Section title="Activation Gates" subtitle="Money movement remains disabled until each controlled phase is explicitly activated.">
+            <Section title="Cash safety gates">
               <View style={styles.flagCard}>
-                <FlagRow label="RCU accrual" enabled={activation.rcu_accrual_enabled === true} />
-                <FlagRow label="Estimated economics" enabled={activation.estimated_economics_enabled === true} />
-                <FlagRow label="Financial finalization" enabled={activation.financial_finalization_enabled === true} />
-                <FlagRow label="Referral withdrawal" enabled={activation.referral_withdrawal_enabled === true} />
-                <FlagRow label="Payout processing" enabled={activation.payout_processing_enabled === true} />
+                <FlagRow label="Economics" enabled={finance?.controls.economics_enabled === true} />
+                <FlagRow label="Settlement" enabled={finance?.controls.settlement_enabled === true} />
+                <FlagRow label="Withdrawal" enabled={finance?.controls.withdrawal_enabled === true} />
+                <FlagRow label="Payout processing" enabled={finance?.controls.payout_processing_enabled === true} />
               </View>
+              <Text style={styles.muted}>Minimum withdrawal and each actual member balance remain in the canonical Finance V3 payout workflow, not the retired R38 ledger.</Text>
             </Section>
 
-            <Section title="Safety Checks">
-              <View style={styles.flagCard}>
-                {Object.keys(checks).length ? (
-                  Object.entries(checks).map(([key, value]) => (
-                    <View key={key} style={styles.checkRow}>
-                      <MaterialCommunityIcons
-                        name={value === true ? 'check-circle-outline' : value === false ? 'alert-circle-outline' : 'information-outline'}
-                        size={18}
-                        color={value === false ? '#A35C00' : colors.greenDark}
-                      />
-                      <Text style={styles.checkKey}>{key.replace(/_/g, ' ')}</Text>
-                      <Text style={styles.checkValue}>{String(value)}</Text>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.muted}>No period-specific invariant checks yet.</Text>
-                )}
-              </View>
-            </Section>
-
-            <Section title="Referral & Withdrawal Status">
-              <View style={styles.statusColumns}>
-                <View style={styles.statusCard}>
-                  <Text style={styles.tableTitle}>Referral states</Text>
-                  {Object.keys(report.referral_states).length ? Object.entries(report.referral_states).map(([key, value]) => (
-                    <View key={key} style={styles.smallRow}>
-                      <Text style={styles.smallLabel}>{key.replace(/_/g, ' ')}</Text>
-                      <Text style={styles.smallValue}>{Number(value).toLocaleString('en-PH')}</Text>
-                    </View>
-                  )) : <Text style={styles.muted}>No referral-state records.</Text>}
-                </View>
-                <View style={styles.statusCard}>
-                  <Text style={styles.tableTitle}>Withdrawals</Text>
-                  {Object.keys(report.withdrawals).length ? Object.entries(report.withdrawals).map(([key, value]) => (
-                    <View key={key} style={styles.smallRow}>
-                      <Text style={styles.smallLabel}>{key.replace(/_/g, ' ')}</Text>
-                      <Text style={styles.smallValue}>{Number(value).toLocaleString('en-PH')}</Text>
-                    </View>
-                  )) : <Text style={styles.muted}>No withdrawal records.</Text>}
-                </View>
-              </View>
-            </Section>
+            <Text style={styles.muted}>Synchronized snapshot for {report.period_key} · {new Date(report.generated_at).toLocaleString('en-PH')}</Text>
           </>
         ) : null}
       </ScrollView>
