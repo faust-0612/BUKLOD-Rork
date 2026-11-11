@@ -49,3 +49,11 @@ test('Exact final ad-lock DEV branch is authorized for compiled Android/Web RC Q
   assert.match(workflow, /npx expo export --platform web/);
   assert.doesNotMatch(workflow, /eas-cli@latest update --channel production/);
 });
+
+test('Engagement-to-impression ad patch runs in compiled Android/Web QA without publishing',()=>{
+  const workflow=read('.github/workflows/unified_rc_compiled_qa_20261108.yml');
+  assert.ok(workflow.includes("github.head_ref == 'fix/engagement-ad-fill-and-comment-viewability-20261111'"));
+  assert.match(workflow,/npx expo export --platform android/);
+  assert.match(workflow,/npx expo export --platform web/);
+  assert.doesNotMatch(workflow,/eas-cli@latest update --channel production/);
+});

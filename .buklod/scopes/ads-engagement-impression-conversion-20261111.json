@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "objective": "Recover real AdMob engagement impressions by adding one visible sponsored banner to public Wall comments and diagnosing no-fill/timeout correctly; no cash-for-ads.",
+  "baseRef": "a216bbdd6dee99b161f7861addba766f115203f1",
+  "productionBaselineEvidence": "Nov11 2026 live private Android events 7d: 8628 requests, 3459 loads, 1292 impression callbacks, 2906 failures; 1647 no-fill and 958 unclassified AD_ERROR. Source main a216bbdd6dee99b161f7861addba766f115203f1",
+  "chosenApproach": "Insert one compact passive SDK banner after organic comments (never over keyboard), classify known SDK errors with fixed redacted strings, preserve revenue and AdMob policy.",
+  "selectionRationale": "Real supply or viewability losses cannot be solved by ads after every tap; a measured comment banner can earn organic impressions without coercion or accidental clicks.",
+  "alternativeApproaches": [
+    "Force fullscreen on each like/comment (rejected: disallowed interstitial repetition).",
+    "Repeated offscreen ad refresh (rejected: false activity).",
+    "Single compact in-thread placement plus operational diagnosis (chosen)."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "ads-monetization",
+    "release-identity"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunityCommentThread.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/lib/buklodAdDiagnostics.ts",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/buklod-ads-engagement-navigation-scroll-20261111.test.mjs",
+    ".buklod/scopes/ads-engagement-impression-conversion-20261111.json",
+    "docs/BUKLOD_ADS_ENGAGEMENT_REVENUE_DIAGNOSIS_20261111.md",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/buklod-ads-production-release-contract-20261111.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/buklod-ads-engagement-navigation-scroll-20261111.test.mjs",
+    "tests/buklod-ads-production-release-contract-20261111.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Only one public Android viewport-gated compact sponsored ad after organic comments, never on author-only content",
+    "No cash/points per ad view, no artificial impressions",
+    "Non-PII error categories distinguish no-fill, network and native/banner timeout",
+    "Focused ad and navigation tests + TypeScript/main QA green",
+    "No OTA published",
+    "Exact HEAD Android and Web compiled RC QA is enabled on engagement branch; source SHA verified, no production publish trigger."
+  ],
+  "preserveBehaviors": [
+    "All public/scoped comments threading, reply/edit/report, keyboard and focus",
+    "App-wide interstitial cadence, consent, no-fill cooldown and remote kill",
+    "BP/QMP remain independent of ad views, no native/DB changes",
+    "Current production Android/Web release gates"
+  ]
+}
