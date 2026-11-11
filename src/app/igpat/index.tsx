@@ -882,7 +882,7 @@ export default function IgpatScreen() {
                   icon="comment-outline"
                   label="Open comments"
                   count={item.comment_count}
-                  onPress={() => router.push(`/post/${item.id}` as any)}
+                  onPress={() => router.push(`/post/${item.id}?openComments=1` as any)}
                 />
                 <ActionButton
                   icon="share-variant-outline"
