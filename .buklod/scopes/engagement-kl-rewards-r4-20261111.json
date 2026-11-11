@@ -17,7 +17,8 @@
     "auth-privacy",
     "ads-monetization",
     "wall-media",
-    "release-identity"
+    "release-identity",
+    "classroom-quiz"
   ],
   "preserveBehaviors": [
     "Existing verified KL quiz, timer, 30-chapter series and publication rules",
@@ -39,7 +40,7 @@
     "SQL contract tests, Node focused tests, TypeScript/Web and Android export gates pass"
   ],
   "regressionTests": [
-    "tests/kl-points-r4-10-50.test.mjs",
+    "tests/kl-reading-quiz-r4-10-50.test.mjs",
     "tests/buklod-mutual-engagement-r4.test.mjs",
     "supabase/tests/kl_verified_reading_r4_10_50.sql",
     "supabase/tests/buklod_mutual_engagement_r4.sql"
@@ -49,7 +50,7 @@
     "supabase/migrations/20261111152500_buklod_mutual_engagement_r4.sql",
     "supabase/tests/kl_verified_reading_r4_10_50.sql",
     "supabase/tests/buklod_mutual_engagement_r4.sql",
-    "tests/kl-points-r4-10-50.test.mjs",
+    "tests/kl-reading-quiz-r4-10-50.test.mjs",
     "tests/buklod-mutual-engagement-r4.test.mjs",
     "src/components/kabihasnang-ligaw/KlReadingQuiz.tsx",
     "src/components/points/BuklodPointsR2Guide.tsx",
