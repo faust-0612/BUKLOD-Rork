@@ -4,7 +4,7 @@
   "scopeManifestPath": ".buklod/scopes/nov11-complete-source-hold.json",
   "objective": "Complete single-source BUKLOD Main Nov11 consolidated OTA candidate including prior frozen RC and every current authorized post-RC change, while prohibiting production publication until strict parity/security/exact-source Android and Web gates pass.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified source baseline GitHub main SHA c4d7b51caf819f208e2686a8d9205324271853b6 and merged source ancestry; candidate contains all protected main changes including KL+10/+50 and new R4 as-is, plus earlier compiled consolidated Wall/PTT/IGPAT/Kingdom/AdMob source. Automatic QMP/admin snapshot applied to candidate from separately QA-verified PR #698. This is source evidence only; live OTA artifact remains unverified and unpublished.",
+  "productionBaselineEvidence": "verified: inspected current protected GitHub main source SHA 4dcc6a7544b8e0d616e0c503fce6247a59e57cd7; it is a parent of this candidate, and all latest PR #701 ad-fill/finance gates are retained by exact blob or reviewed additive merge. Main includes KL/R4 +10/+50 and latest AdMob inventory. Prior consolidated Wall/IGPAT/Kingdom/Web PTT and QA-verified automatic QMP/admin Economy changes preserved. This source audit does not prove production OTA publication; no production release performed.",
   "chosenApproach": "Overlay only already-authorized source updates on inherited consolidated Nov11 RC and verified current main, preserve ad/security/release guards, reconcile database migration filenames with exact applied live migration versions, and fail closed on all source and release gates. Use one named cumulative RC manifest with exact paths and tests rather than weaken single-scope controls.",
   "selectionRationale": "One frozen source prevents omitted late fixes, duplicate native releases, and conflicting live migrations; individually enumerated paths + tests retain strict accountability and production isolation.",
   "alternativeApproaches": [
@@ -139,10 +139,10 @@
     "supabase/migrations/20261111024318_buklod_today_public_dugtong_idle_rotation_v2_20261111.sql",
     "supabase/migrations/20261111024610_buklod_today_cycles_fk_index_v2_20261111.sql",
     "supabase/migrations/20261111025018_buklod_today_public_dugtong_paging_v2_20261111.sql",
-    "supabase/migrations/20261111093000_buklod_qmp_automatic_qualification_v2.sql",
-    "supabase/migrations/20261111093500_buklod_qmp_close_legacy_review_requests_v3.sql",
-    "supabase/migrations/20261111094000_buklod_qmp_indirect_reward_guard_v4.sql",
-    "supabase/migrations/20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql",
+    "supabase/migrations/20261111082405_buklod_qmp_automatic_qualification_v2.sql",
+    "supabase/migrations/20261111082459_buklod_qmp_close_legacy_review_requests_v3.sql",
+    "supabase/migrations/20261111082707_buklod_qmp_indirect_reward_guard_v4.sql",
+    "supabase/migrations/20261111090714_buklod_canonical_admin_economy_snapshot_v1.sql",
     "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql",
     "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql",
     "supabase/tests/buklod_today_privacy_idle_v2.sql",
@@ -201,27 +201,42 @@
       }
     ],
     "latestMain": {
-      "sha": "c4d7b51caf819f208e2686a8d9205324271853b6",
-      "summary": "Ad engagement PR696 and KL+10/+50 with controlled mutual R4 PR697 already merged to protected main",
-      "source": "main"
+      "sha": "4dcc6a7544b8e0d616e0c503fce6247a59e57cd7",
+      "commit": "PR #701 AdMob/Reels fill and Finance month-close safety and exact migration versions",
+      "integrated": "All source current through this SHA"
     },
     "newWorkstreams": {
       "qmpAuto": "PR #698 source sha df365162153cbc1c66d04717117fb60abec63c0a; latest source included and QA passed before consolidation",
       "rewardR4": "Protected main includes PR #697, source and migrations retained",
       "migrationStatus": "KL and R4 logic present in live DB but migration history not yet reconciled; QMP auto logic present but canonical admin snapshot RPC missing"
-    }
+    },
+    "autoQmp": "PR #698 code included from SHA df365162153cbc1c66d04717117fb60abec63c0a; no manual review UI",
+    "rewards": "KL +10/+50 and mutual R4 from current main"
   },
   "verifiedBackend": {
     "projectRef": "yhanxndaqbmuzbdqlblu",
-    "readback": "Nov11 finance/mentor/Kingdom/KL/photo comments migrations present in production history; Today three applied statements verified byte-for-byte against revised version-aligned repo files",
-    "financialProcessing": "KEEP settlement and withdrawal OFF until funded accounting and recipient verification",
-    "liveSnapshotRpc": "MISSING at initial reconciliation",
-    "revenueGuards": "Economics, settlement, withdrawals, payout processing OFF",
-    "schemaMigrationHistory": "KL/R4 and QMP auto migrations not registered at initial readback, despite some functions existing"
+    "sourceComparison": "6/6 applied KL/QMP/R4/Admin Economy migration SQL bodies byte-for-byte identical to consolidated source files; earlier 3 Today migrations matched exactly",
+    "versions": {
+      "qmp_auto": "20261111082405",
+      "qmp_close_reviews": "20261111082459",
+      "qmp_indirect_guard": "20261111082707",
+      "kl_10_50": "20261111085702",
+      "engagement_r4": "20261111085727",
+      "canonical_admin_snapshot": "20261111090714"
+    },
+    "security": "Read-only SQL KL, R4, canonical QMP-Finance, admin Economy snapshot contracts all executed without errors; snapshot anon denied and System Admin checked",
+    "financeFlags": {
+      "economics_enabled": false,
+      "settlement_enabled": false,
+      "withdrawal_enabled": false,
+      "payout_processing_enabled": false
+    },
+    "mutualR4": "Active via backend rollout flag; idempotent source-event guards checked, never cash directly",
+    "migrationDuplicates": "Retired six misnumbered timestamp source aliases; no overlapping versions in repo"
   },
   "verificationWaivers": [
     "Hands-on physical Android device testing skipped per owner, not counted as PASS"
   ],
-  "releaseState": "DEV_CONSOLIDATED_QMP_REWARDS_HOLD__NO_PRODUCTION_OTA",
-  "qaStatus": "PENDING_EXACT_HEAD_FULL_QA_BACKEND_MIGRATION_AUDIT_AND_PRODUCTION_RUNTIME_FINGERPRINT"
+  "releaseState": "DEV_RC_CANDIDATE_NO_PUBLISH_UNTIL_ALL_QA_AND_PRODUCTION_FINGERPRINT",
+  "qaStatus": "EXACT_SHA_REQUIRED_AFTER_LATEST_MAIN_PR701_RECONCILIATION"
 }
