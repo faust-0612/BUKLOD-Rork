@@ -76,7 +76,9 @@ export default function KlReadingQuiz({
       if (completion?.completed === true) {
         setDone(true); setLegacyAllowed(false);
         setMessage('Naitala ang pagkumpleto sa kabanata.' +
-          (completion.new_completion ? ' +' + Number(completion.chapter_points ?? 5) + ' BP' : ''));
+          (completion.new_completion ? ' +' + Number(completion.chapter_points ?? 10) + ' BP' +
+            (Number(completion.series_points ?? 0) > 0
+              ? ' · Series bonus +' + completion.series_points + ' BP' : '') : ''));
         onVerified?.();
         if (completion.new_completion === true) {
           void showBuklodAdOpportunity('kl_chapter_success').catch(() => undefined);
@@ -110,7 +112,7 @@ export default function KlReadingQuiz({
         setQuestions([]);
         setMessage('Natapos ang kabanata!' +
           (result.completion.new_completion
-            ? ' +' + Number(result.completion.chapter_points ?? 5) + ' BP' +
+            ? ' +' + Number(result.completion.chapter_points ?? 10) + ' BP' +
               (Number(result.completion.series_points ?? 0) > 0
                 ? ' · Series bonus +' + result.completion.series_points + ' BP' : '')
             : ' Naitala na ang completion.'));
