@@ -80,7 +80,7 @@ test('Weekly Point awards are server-side, bounded and idempotent',()=>{
 });
 
 test('72-hour inactivity and privacy are enforced server-side, not merely UI',()=>{
- const sql=read('supabase/migrations/20261111102700_buklod_today_public_dugtong_idle_rotation_v2.sql');
+ const sql=read('supabase/migrations/20261111024318_buklod_today_public_dugtong_idle_rotation_v2_20261111.sql');
  for(const key of ["interval '72 hours'",'last_engagement_at',
    'ensure_buklod_today_tip_cycle_v2','pg_advisory_xact_lock',
    "visibility='public'","'private',updated_at",
@@ -93,7 +93,7 @@ test('72-hour inactivity and privacy are enforced server-side, not merely UI',()
   assert.ok(sql.includes(key),key);
  assert.ok(!sql.includes('grant select on public.buklod_today_tip_engagement_v2 to anon'));
  assert.ok(!sql.includes('grant insert on public.buklod_today_tip_engagement_v2 to authenticated'));
- const paging=read('supabase/migrations/20261111115500_buklod_today_public_dugtong_paging_v2.sql');
+ const paging=read('supabase/migrations/20261111025018_buklod_today_public_dugtong_paging_v2_20261111.sql');
  for(const key of ['list_buklod_today_dugtongs_v2',"visibility='public'",
   'least(greatest(coalesce(p_limit,30),1),30)','p_offset'])
   assert.ok(paging.includes(key),key);
