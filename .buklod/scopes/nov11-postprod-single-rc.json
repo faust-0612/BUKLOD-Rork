@@ -4,8 +4,8 @@
   "scopeManifestPath": ".buklod/scopes/nov11-postprod-single-rc.json",
   "objective": "Single BUKLOD Main post-production RC: Today public/private Dugtong and 72h inactivity rotation, Kingdom cinematic audio blur/stop, and animated GIF attachments to Public/Cluster/Organization comments from Android gallery or share. Inherits already-promoted PTT v2 from production main. NO OTA PUBLISH.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: current GitHub main SHA 6d1a80e3d009aafcfd94444dc198cb8465e68c2f and tree 911d154f49f17d69a0fc648aa48834dc4156ab59 on 2026-11-11; PTT v2 already in main, not re-introduced.",
-  "chosenApproach": "Rebase isolated DEV source onto latest production main with only PR #667 Today and PR #668 Kingdom file blobs; preserve newly promoted PTT v2 and all production changes, run scoped release QA. Reconcile merged isolated PR #671 GIF comment code with no source overlap, preserve private per-scope media, and compile one exact post-production RC containing all three workstreams.",
+  "productionBaselineEvidence": "Verified production GitHub main ce164744c55428fb43c51f5d4bf1a2c74ee1616f after governance PR #672 (2026-11-11); zero commits behind main. Existing production PTT promotion came from 6d1a80e3d009aafcfd94444dc198cb8465e68c2f and remains inherited unchanged; consolidated DEV RC has not been published.",
+  "chosenApproach": "Rebase isolated DEV source onto latest production main with only PR #667 Today and PR #668 Kingdom file blobs; preserve newly promoted PTT v2 and all production changes, run scoped release QA. Reconcile merged isolated PR #671 GIF comment code with no source overlap, preserve private per-scope media, and compile one exact post-production RC containing all three workstreams. Inherit governance-only production PR #672 using merge commit 4449b1518c9e018b7026d5e568cdbe9afa452759. The regression gate source is current main security code plus an explicit Nov11 consolidated-branch allowlist; no retired OTA bypass restored.",
   "selectionRationale": "Live main advanced to incorporate PTT and its edge release. Exact main-derived source avoids duplicate PTT updates and a PR merge conflict; no new native package. GIF intake is additive to existing public/scoped comment RPC and uses existing Expo picker and app cache; no new native module, runtime or database migration.",
   "alternativeApproaches": [
     "Merge old conflictful PR directly (rejected)",
@@ -28,7 +28,8 @@
     "GIF comments from Android gallery / external share retain image/gif animation; target post selected explicitly and no automatic Wall root post",
     "Public and scoped GIF comment private media signing, 25 MB bound, draft retry, scope ownership isolation and temporary file cleanup preserved",
     "Exact-source GitHub engineering gate, TypeScript, Android and web export, and focused GIF regression tests PASS before release-eligible status",
-    "2026-11-11 owner explicitly waives physical Android device verification only; all automated and production release gates remain required"
+    "2026-11-11 owner explicitly waives physical Android device verification only; all automated and production release gates remain required",
+    "Production governance PR #672 strict all-change scope and disabled direct OTA bypasses inherited and verified after exact-source build"
   ],
   "preserveBehaviors": [
     "Previous production PTT 2.0, video/audio mixing and caption Edge v2",
@@ -36,7 +37,8 @@
     "Auth, finance, Shards, BP and RLS protection",
     "Main runtime 1.3.2 and no native package changes",
     "Community root-post GIF restriction is unchanged; public/scoped comment RPC, reactions, replies and drafts remain unchanged",
-    "External Android text/photo/video share routes remain unchanged"
+    "External Android text/photo/video share routes remain unchanged",
+    "Mandatory scope manifest for every product/script/workflow/test change and blocked direct OTA routes from production governance PR #672"
   ],
   "riskAreas": [
     "wall-media",
@@ -102,11 +104,14 @@
     }
   ],
   "inheritedProduction": {
-    "sha": "6d1a80e3d009aafcfd94444dc198cb8465e68c2f",
+    "sha": "ce164744c55428fb43c51f5d4bf1a2c74ee1616f",
     "pttPr": 669,
-    "pttSource": "255af9baabd8bd375f6ec971097380de964b76cd"
+    "pttSource": "255af9baabd8bd375f6ec971097380de964b76cd",
+    "pttPromotionSha": "6d1a80e3d009aafcfd94444dc198cb8465e68c2f",
+    "securityGuardrailsPr": 672,
+    "securityGuardrailsSha": "ce164744c55428fb43c51f5d4bf1a2c74ee1616f"
   },
-  "releaseState": "DEV_RC_COMPILE_PENDING_NO_OTA",
+  "releaseState": "DEV_RC_COMPILE_PENDING_AFTER_PROD_GOVERNANCE_RECONCILIATION_NO_OTA",
   "verificationWaivers": [
     "Owner waived hands-on Android/device GIF comment validation on 2026-11-11; this waiver does not cover TypeScript, automated regressions, RC Android/web compilation, security/RLS nor exact OTA artifact verification."
   ]
