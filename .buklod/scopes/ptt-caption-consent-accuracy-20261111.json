@@ -13,7 +13,8 @@
     "src/app/igpat/index.web.tsx",
     "src/components/BuklodCommunityIgpatPreview.android.tsx",
     "src/components/BuklodCommunitySponsoredAd.tsx",
-    "tests/ptt-media-audio-mixing-20261111.test.mjs"
+    "tests/ptt-media-audio-mixing-20261111.test.mjs",
+    "supabase/tests/buklod_ptt_channel_messages_20261110.sql"
   ],
   "preserveBehaviors": [
     "PTT hold/release, floor and microphone",
@@ -28,5 +29,25 @@
     "Production OTA not triggered",
     "In-app Wall/Reels/Ads video audioMixingMode is nonexclusive",
     "Audio coexistence on external apps cannot be guaranteed without Android device/SDK acceptance"
+  ],
+  "productionBaselineEvidence": "Inspected GitHub main source 1dfe6e3da1ef569916f43607067e0a29e4d29bbb before changes; installed Android OTA fingerprint and real device audio coexistence not independently verified. Draft PR is DEV only.",
+  "chosenApproach": "Preserve existing Stream PTT mic/floor/priority stack while giving Expo videos nonexclusive mixing; separate call-wide captions from member transcript consent; specify Tagalog/English language; use 5-second caption segments; isolate message refresh failures.",
+  "selectionRationale": "Voice PTT already works. Changing native Stream audio-role or forcing media pauses would risk talk/receive and require an APK. Nonexclusive video mode is an additive JS-side improvement while keeping backend caption changes behind release gates.",
+  "alternativeApproaches": [
+    "Switch Stream callManager to listener role (rejected: jeopardizes microphone transmission and requires role switching)",
+    "Force-pause/resume other media whenever PTT connects (rejected: violates owner request)",
+    "Change native AudioManager audio focus in existing APK (deferred: cannot be shipped as JS-only OTA)"
+  ],
+  "riskAreas": [
+    "PTT live audio",
+    "Android audio focus/WebRTC interop",
+    "Wall/Reels playback",
+    "Supabase caption permission",
+    "caption recognition"
+  ],
+  "regressionTests": [
+    "tests/buklod-ptt-transcript-chat.test.mjs",
+    "tests/ptt-media-audio-mixing-20261111.test.mjs",
+    "supabase/tests/buklod_ptt_channel_messages_20261110.sql"
   ]
 }
