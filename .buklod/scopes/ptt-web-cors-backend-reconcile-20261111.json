@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "objective": "Permanently preserve the already-deployed BUKLOD Web PTT Edge Function CORS fix, allowing BUKLOD custom browser header without relaxing membership authorization.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: at 2026-11-11 18:08 Asia/Manila browser OPTIONS 200 for buklod-ptt-access had no subsequent browser POST; Android POST 200; BUKLOD global supabase fetch adds x-buklod-client but both Edge Functions omitted it from Access-Control-Allow-Headers. Already deployed function access v13 and captions v3 ACTIVE with header allowlist; both live source bodies reconciled with this commit. Current GitHub main 4dcc6a7544b8e0d616e0c503fce6247a59e57cd7 is a SOURCE baseline only; no new Expo/Android release is authorized.",
+  "chosenApproach": "Commit exact deployed production Edge Function sources into canonical GitHub; explicitly whitelist application-specific and supported Supabase browser headers for preflight in PTT access/captions, preserve bearer authentication, membership gates, and function JWT settings.",
+  "selectionRationale": "The minimal allowlist addition fixes browser OPTIONS-to-POST failure while leaving existing mobile behavior, backend authorization, and Stream calls untouched. Version control prevents an older tracked captions function from erasing the deployed fix.",
+  "alternativeApproaches": [
+    "Add a proxy to bypass Supabase CORS; rejected because it duplicates auth and creates extra security attack surface.",
+    "Remove x-buklod-client from every BUKLOD browser request; rejected because it affects unrelated features and performance headers.",
+    "Selected: explicit CORS allowlist in both existing PTT Edge Functions."
+  ],
+  "acceptanceChecks": [
+    "Both production PTT functions remain ACTIVE with whitelisted x-buklod-client and necessary Supabase request headers; get_edge_function returns the exact stored source.",
+    "Browser preflight OPTIONS can proceed to authorized POST once browser retries the request; unauthorized sessions still denied by function body.",
+    "Both functions preserve membership/ACTIVE checks, generated call identity, secure token delivery and transcript permissions.",
+    "No new schema changes; read-only RLS, floor RPC and anonymous message access guard passes.",
+    "Node CORS regression and full engineering accountability CI pass; source-only GitHub merge must not trigger Android OTA or Web deploy."
+  ],
+  "preserveBehaviors": [
+    "Native BUKLOD Android PTT, existing Stream token and scope membership verification, and CH01–CH10 floor leasing.",
+    "PTT chat RLS and caption consent isolation; no new public or anonymous data access.",
+    "Production Web and Android artifact code, deployment markers, and other backend functions."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "ptt-web-cors"
+  ],
+  "regressionTests": [
+    "tests/buklod-ptt-web-edge-cors.test.mjs",
+    "supabase/tests/buklod_ptt_web_cors_20261111.sql"
+  ],
+  "allowedPaths": [
+    "supabase/functions/buklod-ptt-access/index.ts",
+    "supabase/functions/buklod-ptt-captions/index.ts",
+    "tests/buklod-ptt-web-edge-cors.test.mjs",
+    "supabase/tests/buklod_ptt_web_cors_20261111.sql",
+    ".buklod/scopes/ptt-web-cors-backend-reconcile-20261111.json"
+  ]
+}

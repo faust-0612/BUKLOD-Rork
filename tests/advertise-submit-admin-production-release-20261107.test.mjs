@@ -27,8 +27,10 @@ test('one-time marker dispatches original Android RC and Expo web source gates',
  assert.match(trigger,/for entry in "\$\{targets\[@\]\}"; do/);
  assert.match(trigger,/\$api\/actions\/workflows\/\$workflow\/dispatches/);
  assert.match(trigger,/if \[ "\$code" != 204 \]/);
- assert.match(android,/workflow_dispatch:/);
- assert.match(web,/workflow_dispatch:/);
+ assert.doesNotMatch(android,/^  workflow_dispatch:/m);
+ assert.doesNotMatch(web,/^  workflow_dispatch:/m);
+ assert.match(android,/BUKLOD_CONSOLIDATED_PROD_20261108/);
+ assert.match(web,/BUKLOD_CONSOLIDATED_PROD_20261108/);
  assert.match(android,/node scripts\/android-ota-rc\.cjs published/);
  assert.match(web,/npx eas-cli@latest deploy --prod/);
 });

@@ -23,6 +23,7 @@ import {
 } from '@/lib/buklodAdUnits';
 import { recordBuklodAdEvent } from '@/lib/buklodAdDiagnostics';
 import {
+  getBuklodPassiveAdRequestWaitMs,
   isBuklodPassiveAdAllowed,
   reserveBuklodPassiveAdRequest,
 } from '@/lib/buklodGlobalAdController';
@@ -81,6 +82,8 @@ export default function BuklodReelsInlineAd({
   const [nativeAd, setNativeAd] =
     useState<NativeAd | null>(null);
   const renderedRef=useRef(false);
+  const bannerRequestRecorded=useRef(false);
+  const [recycleRetryTick,setRecycleRetryTick]=useState(0);
 
   const [nativeFailed, setNativeFailed] =
     useState(false);
@@ -136,10 +139,20 @@ export default function BuklodReelsInlineAd({
       return;
     }
     if (!reserveBuklodPassiveAdRequest('reels_inline', requestKey)) {
-      // A recycled ad slot must not generate duplicate requests.
+      // A recycled Reels page is temporarily unavailable, not permanently
+      // exhausted. Honor the shared cooldown; never flood or block playback.
       setNativeFailed(true);
       setBannerFailed(true);
-      return;
+      const waitMs = Math.max(
+        1_000,
+        getBuklodPassiveAdRequestWaitMs('reels_inline', requestKey),
+      );
+      const timer = setTimeout(() => {
+        setNativeFailed(false);
+        setBannerFailed(false);
+        setRecycleRetryTick(current => current + 1);
+      }, waitMs + 25);
+      return () => clearTimeout(timer);
     }
 
     let cancelled = false;
@@ -147,7 +160,7 @@ export default function BuklodReelsInlineAd({
     let createdAd: NativeAd | null = null;
     let impressionSub: { remove: () => void } | null = null;
     recordBuklodAdEvent('reels_inline', 'ad_request', undefined, {
-      placementId: 'reels_inline', route: pathname,
+      placementId: 'reels_inline', route: pathname, adFormat: 'native',
     });
 
     nativeTimeoutRef.current =
@@ -155,7 +168,7 @@ export default function BuklodReelsInlineAd({
         if (!cancelled) {
           timedOut = true;
           recordBuklodAdEvent('reels_inline', 'ad_failed',
-            new Error('REELS_NATIVE_TIMEOUT'), { placementId: 'reels_inline', route: pathname });
+            new Error('REELS_NATIVE_TIMEOUT'), { placementId: 'reels_inline', route: pathname, adFormat: 'native' });
           setNativeFailed(true);
         }
       }, AD_LOAD_TIMEOUT_MS);
@@ -186,10 +199,10 @@ export default function BuklodReelsInlineAd({
         impressionSub = ad.addAdEventListener(
           NativeAdEventType.IMPRESSION,
           () => recordBuklodAdEvent('reels_inline', 'ad_impression',
-            undefined, { placementId: 'reels_inline', route: pathname }),
+            undefined, { placementId: 'reels_inline', route: pathname, adFormat: 'native' }),
         );
         recordBuklodAdEvent('reels_inline', 'ad_loaded', undefined,
-          { placementId: 'reels_inline', route: pathname });
+          { placementId: 'reels_inline', route: pathname, adFormat: 'native' });
         setNativeAd(ad);
       })
       .catch((error) => {
@@ -209,7 +222,7 @@ export default function BuklodReelsInlineAd({
 
         if (!cancelled && !timedOut) {
           recordBuklodAdEvent('reels_inline', 'ad_failed', error,
-            { placementId: 'reels_inline', route: pathname });
+            { placementId: 'reels_inline', route: pathname, adFormat: 'native' });
           setNativeFailed(true);
         }
       });
@@ -234,6 +247,7 @@ export default function BuklodReelsInlineAd({
     nativeUnitId,
     pathname,
     requestKey,
+    recycleRetryTick,
   ]);
 
   useEffect(() => {
@@ -246,6 +260,13 @@ export default function BuklodReelsInlineAd({
       bannerFailed
     ) {
       return;
+    }
+
+    if (!bannerRequestRecorded.current) {
+      bannerRequestRecorded.current = true;
+      recordBuklodAdEvent('reels_inline', 'ad_request', undefined, {
+        placementId: 'reels_inline', route: pathname, adFormat: 'banner',
+      });
     }
 
     bannerTimeoutRef.current =
@@ -284,7 +305,8 @@ export default function BuklodReelsInlineAd({
     if (active && adState==='ready' && !renderedRef.current) {
       renderedRef.current=true;
       recordBuklodAdEvent('reels_inline','ad_rendered',undefined,
-        {placementId:'reels_inline',route:pathname});
+        {placementId:'reels_inline',route:pathname,
+          adFormat: nativeAd && !nativeFailed ? 'native' : 'banner'});
     }
   },[active,adState,pathname]);
 
@@ -394,7 +416,7 @@ export default function BuklodReelsInlineAd({
         <BannerAd
           onAdImpression={()=>{
             recordBuklodAdEvent('reels_inline','ad_impression',undefined,
-              {placementId:'reels_inline',route:pathname});
+              {placementId:'reels_inline',route:pathname,adFormat:'banner'});
           }}
           unitId={
             bannerUnitId
@@ -420,7 +442,7 @@ export default function BuklodReelsInlineAd({
             }
 
             recordBuklodAdEvent('reels_inline', 'ad_loaded', undefined,
-              { placementId: 'reels_inline', route: pathname });
+              { placementId: 'reels_inline', route: pathname, adFormat: 'banner' });
             setBannerLoaded(true);
           }}
           onAdFailedToLoad={(error) => {
@@ -439,7 +461,7 @@ export default function BuklodReelsInlineAd({
             );
 
             recordBuklodAdEvent('reels_inline', 'ad_failed', error,
-              { placementId: 'reels_inline', route: pathname });
+              { placementId: 'reels_inline', route: pathname, adFormat: 'banner' });
             setBannerFailed(true);
           }}
         />

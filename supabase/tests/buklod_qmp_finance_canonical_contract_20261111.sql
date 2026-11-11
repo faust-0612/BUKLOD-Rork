@@ -30,15 +30,8 @@ begin
   if not has_function_privilege('authenticated',v_my,'EXECUTE')
     or not has_function_privilege('authenticated',v_own_link,'EXECUTE')
     or not has_function_privilege('authenticated',v_admin,'EXECUTE')
-    or has_function_privilege('authenticated',v_queue,'EXECUTE') then
-    raise exception 'Canonical QMP finance authorization or retired review-queue grant invalid';
-  end if;
-
-  if has_function_privilege('authenticated',to_regprocedure(
-       'public.admin_review_buklod_community_qmp_event_v1(uuid,boolean,text)'),'EXECUTE')
-     or has_function_privilege('authenticated',to_regprocedure(
-       'public.request_my_buklod_community_qmp_review_v1(uuid,text)'),'EXECUTE') then
-    raise exception 'Retired manual QMP decision or request RPC remains executable';
+    or not has_function_privilege('authenticated',v_queue,'EXECUTE') then
+    raise exception 'Required authenticated RPC grant missing';
   end if;
 
   v_code:=pg_get_functiondef(v_points);

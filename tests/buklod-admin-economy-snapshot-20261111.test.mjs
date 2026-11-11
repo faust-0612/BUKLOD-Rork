@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(path, 'utf8');
-const sql = read('supabase/migrations/20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql');
+const sql = read('supabase/migrations/20261111090714_buklod_canonical_admin_economy_snapshot_v1.sql');
 const helper = read('src/lib/buklodCanonicalAdminEconomy.ts');
 const ops = read('src/app/admin/economy-operations.tsx');
 const home = read('src/app/admin/bayanihan.tsx');

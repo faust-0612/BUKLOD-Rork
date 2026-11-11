@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Repair historical release test expectations without changing application or publisher behavior",
+  "baseRef": "fad25d053023b6ea8008aa4a1b2e17a3c8ba1143",
+  "productionBaselineEvidence": "GitHub main fad25d053023b6ea8008aa4a1b2e17a3c8ba1143 includes the merged report-door retirement PR #675 and guardrail PR #672. This is a source baseline only, not a live deployed OTA fingerprint.",
+  "chosenApproach": "Update six existing legacy release contract tests to assert current explicit main push marker and absence of manual Android/Web publish dispatch, retaining all historical content and product assertions.",
+  "selectionRationale": "Existing release tests describe retired manual workflows and falsely fail when modern production safeguards operate; updating only the assertions provides truthful regression coverage while avoiding app or release workflow mutation.",
+  "alternativeApproaches": [
+    "Re-enable unguarded manual publisher solely to satisfy stale tests (rejected)",
+    "Delete historical tests (rejected, loses functional checks)",
+    "Update stale assertions to actual guarded source while retaining tests (selected)"
+  ],
+  "acceptanceChecks": [
+    "All six changed Node release tests execute successfully on exact SHA.",
+    "Historical sponsorship, ad, photo, and code-identity assertions remain intact.",
+    "No app, production workflow, migration, RLS, credentials, native runtime or user data changes.",
+    "No production OTA or web publish."
+  ],
+  "preserveBehaviors": [
+    "Legacy read-only release history remains testable.",
+    "Current canonical Android/Web marker release unchanged.",
+    "No changes to app visual or behavior, including Wall, PTT, Kingdom, Ads, Connect, Classroom and Quiz."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/advertise-production-release-20261107.test.mjs",
+    "tests/advertise-submit-admin-production-release-20261107.test.mjs",
+    "tests/android-photo-oct28-rollback.test.cjs",
+    "tests/buklod-authorized-production-promotion-20261107.test.mjs",
+    "tests/paid-sponsorship-production-release-20261107.test.mjs",
+    "tests/production-release-controls.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/release-test-marker-reconcile-20261111.json",
+    "tests/advertise-production-release-20261107.test.mjs",
+    "tests/advertise-submit-admin-production-release-20261107.test.mjs",
+    "tests/android-photo-oct28-rollback.test.cjs",
+    "tests/buklod-authorized-production-promotion-20261107.test.mjs",
+    "tests/paid-sponsorship-production-release-20261107.test.mjs",
+    "tests/production-release-controls.test.mjs"
+  ]
+}

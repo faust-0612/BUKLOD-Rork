@@ -13,6 +13,7 @@ import {
 } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 
 export default function OrganizationsIndexScreen() {
   const router = useRouter();
@@ -111,6 +112,8 @@ export default function OrganizationsIndexScreen() {
           </View>
           <Text style={styles.chevron}>{'>'}</Text>
         </Pressable>
+
+        <BuklodFirstViewAd placement="org" placementId="organization_setup_info_native" />
 
         <View style={styles.footerNote}>
           <Text style={styles.footerTitle}>PRE-SETTING PRINCIPLE</Text>

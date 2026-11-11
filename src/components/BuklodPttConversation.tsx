@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { supabase, type BuklodPttConnection } from '@/ptt/buklodPttCore';
@@ -13,6 +13,25 @@ import {
 } from '@/ptt/buklodPttConversation';
 
 type Props = { scopeId: string; channel: number; connection: BuklodPttConnection | null };
+
+/* Browser Alert is not implemented by React Native Web. Preserve informed
+ * opt-in, including confirmation before changing a channel-wide setting. */
+const BrowserSafeAlert = {
+  alert(title: string, message: string, buttons: any[] = []) {
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined') return;
+      const next = buttons.find(button => button.style !== 'cancel' && typeof button.onPress === 'function');
+      if (next) {
+        if (window.confirm(title + '\n\n' + message)) next.onPress();
+      } else {
+        window.alert(title + '\n\n' + message);
+      }
+      return;
+    }
+    Alert.alert(title, message, buttons);
+  },
+};
+
 
 function mergeMessages(a: BuklodPttMessage[], b: BuklodPttMessage[]) {
   const unique = new Map<string, BuklodPttMessage>();
@@ -124,7 +143,12 @@ export default function BuklodPttConversation({ scopeId, channel, connection }: 
     try {
       await sendBuklodPttText(scopeId, channel, body);
       setDraft('');
-      await refresh();
+      // Never report a successful insert as a failed send on weak networks.
+      try {
+        await refresh();
+      } catch {
+        setErrorText('Message sent. Conversation history will refresh when online.');
+      }
     } catch (e: any) {
       setErrorText(e?.message || 'Unable to send message.');
     } finally {
@@ -146,38 +170,68 @@ export default function BuklodPttConversation({ scopeId, channel, connection }: 
     }
   };
 
-  const toggleCaptions = async (enable: boolean) => {
+  // Shared caption engine and per-user transcript consent are independent.
+  const updateOwnCaptionConsent = (enable: boolean) => {
     if (!connection || connection.scope.id !== scopeId || connection.channel !== channel) {
-      Alert.alert('Connect PTT first', 'Join this PTT channel before enabling voice-to-text.');
+      BrowserSafeAlert.alert('Connect PTT first', 'Join this PTT channel before enabling voice-to-text.');
       return;
     }
+    if (captionWorking) return;
     const act = async () => {
       setCaptionWorking(true);
       try {
-        await setBuklodPttCaptions(scopeId, channel, enable, language);
+        if (enable && !captionsActive) {
+          // The spoken language is selected before starting the channel-wide engine.
+          await setBuklodPttCaptions(scopeId, channel, true, language);
+        }
         await saveBuklodPttCaptionConsent(connection.userId, scopeId, channel, enable);
         setConsented(enable);
-        setCaptionsActive(enable);
+        if (enable && !captionsActive) setCaptionsActive(true);
         setErrorText('');
       } catch (e: any) {
-        setErrorText(e?.message || 'Voice-to-text is not available on this channel.');
+        setErrorText(e?.message || 'Unable to update your voice-to-text setting.');
       } finally {
         setCaptionWorking(false);
       }
     };
-    if (enable) {
-      Alert.alert(
-        'Enable channel voice-to-text?',
-        'The audio of this channel will be processed by Stream while captions are active. Tell other participants first. Only members who opt in will save their own transcript to BUKLOD.',
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Enable', onPress: () => void act() }],
-      );
-    } else {
-      Alert.alert(
-        'Stop channel captions?',
-        'This stops live captioning for everyone currently listening to this channel.',
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Stop captions', onPress: () => void act() }],
-      );
+    if (!enable) {
+      void act();
+      return;
     }
+    BrowserSafeAlert.alert(
+      captionsActive ? 'Save your spoken words?' : 'Enable channel voice-to-text?',
+      captionsActive
+        ? 'Captions already run for this channel. Only your own spoken words will be saved to your BUKLOD conversation.'
+        : 'Stream will process voice on this channel. Inform other members. Only members who opt in will save their own spoken words to BUKLOD.',
+      [{ text: 'Cancel', style: 'cancel' }, { text: 'Continue', onPress: () => void act() }],
+    );
+  };
+
+  const stopChannelCaptions = () => {
+    if (!connection || connection.scope.id !== scopeId || connection.channel !== channel || captionWorking) return;
+    BrowserSafeAlert.alert(
+      'Stop captions for everyone?',
+      'This stops voice recognition for all participants, not only your personal transcript.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Stop channel captions', style: 'destructive', onPress: () => {
+          void (async () => {
+            setCaptionWorking(true);
+            try {
+              await setBuklodPttCaptions(scopeId, channel, false, language);
+              await saveBuklodPttCaptionConsent(connection.userId, scopeId, channel, false);
+              setConsented(false);
+              setCaptionsActive(false);
+              setErrorText('');
+            } catch (e: any) {
+              setErrorText(e?.message || 'Could not stop channel captions.');
+            } finally {
+              setCaptionWorking(false);
+            }
+          })();
+        } },
+      ],
+    );
   };
 
   return (
@@ -197,24 +251,29 @@ export default function BuklodPttConversation({ scopeId, channel, connection }: 
           <Text style={styles.captionLabel}>{captionsActive ? '● Captions on' : 'Voice-to-text optional'}</Text>
           <View style={styles.langRow}>
             {(['tl', 'en'] as const).map(code =>
-              <Pressable key={code} onPress={() => setLanguage(code)} style={[styles.langButton, language === code && styles.langOn]}>
+              <Pressable key={code} disabled={captionsActive || captionWorking} onPress={() => setLanguage(code)} style={[styles.langButton, language === code && styles.langOn, (captionsActive || captionWorking) && { opacity: 0.5 }]}>
                 <Text style={styles.langText}>{code === 'tl' ? 'Tagalog' : 'English'}</Text>
               </Pressable>
             )}
           </View>
         </View>
-        <Text style={styles.note}>Channel captions process voice for all listeners. Saving your spoken words requires your consent. Speech recognition can make mistakes.</Text>
+        <Text style={styles.note}>Choose the language actually spoken before starting: Tagalog or English. Specifying the correct language improves recognition. Language is locked during channel captions. Saving your words is optional; automatic transcripts can still make mistakes.</Text>
         <Pressable
           disabled={captionWorking || !connection}
           accessibilityRole="button"
-          onPress={() => void toggleCaptions(!captionsActive || !consented)}
+          onPress={() => updateOwnCaptionConsent(!captionsActive || !consented)}
           style={[styles.captionButton, captionWorking && { opacity: 0.5 }]}
         >
           {captionWorking ? <ActivityIndicator color="#071725" size="small" /> :
             <Text style={styles.captionButtonText}>
-              {captionsActive && consented ? 'STOP CAPTIONS' : captionsActive ? 'JOIN VOICE-TO-TEXT' : 'ENABLE VOICE-TO-TEXT'}
+              {captionsActive && consented ? 'STOP SAVING MY VOICE' : captionsActive ? 'SAVE MY SPOKEN WORDS' : 'ENABLE VOICE-TO-TEXT'}
             </Text>}
         </Pressable>
+        {captionsActive ? (
+          <Pressable disabled={captionWorking || !connection} accessibilityRole="button" onPress={stopChannelCaptions} style={[styles.channelStopButton, captionWorking && { opacity: 0.5 }]}>
+            <Text style={styles.channelStopText}>STOP CHANNEL CAPTIONS (EVERYONE)</Text>
+          </Pressable>
+        ) : null}
       </View>
       {loading ? <ActivityIndicator color="#56DCE5" style={{ padding: 10 }} /> : null}
       {hasOlder ? <Pressable onPress={() => void loadOlder()} disabled={loadingOlder} style={styles.older}>
@@ -279,6 +338,8 @@ const styles = StyleSheet.create({
   langText: { color: '#E4FBFF', fontWeight: '700', fontSize: 11 },
   captionButton: { backgroundColor: '#56DCE5', borderRadius: 9, minHeight: 40, alignItems: 'center', justifyContent: 'center' },
   captionButtonText: { fontSize: 12, fontWeight: '900', color: '#071725' },
+  channelStopButton: { minHeight: 34, alignItems: 'center', justifyContent: 'center' },
+  channelStopText: { color: '#F9B0AC', fontSize: 11, fontWeight: '800' },
   history: { maxHeight: 320, minHeight: 100 },
   empty: { color: '#93AAB4', textAlign: 'center', padding: 20, fontSize: 13 },
   older: { alignSelf: 'center', padding: 6 },

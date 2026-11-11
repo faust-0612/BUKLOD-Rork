@@ -63,3 +63,23 @@ test('SQL requires active membership, PTT floor and stable dedupe for captions',
   assert.match(schema, /buklod_ptt_messages_caption_dedupe_idx/);
   assert.match(schema, /supabase_realtime/);
 });
+
+test('personal transcript consent does not restart or stop shared captions', () => {
+  assert.match(ui, /if \(enable && !captionsActive\)/);
+  assert.match(ui, /saveBuklodPttCaptionConsent\(connection\.userId, scopeId, channel, enable\)/);
+  assert.doesNotMatch(ui, /setBuklodPttCaptions\(scopeId, channel, enable, language\)/);
+  assert.match(ui, /STOP SAVING MY VOICE/);
+  assert.match(ui, /STOP CHANNEL CAPTIONS \(EVERYONE\)/);
+  assert.match(ui, /disabled=\{captionsActive \|\| captionWorking\}/);
+});
+
+test('caption language and short speech segmentation are explicit', () => {
+  assert.match(server, /const language = body\.language === "en" \? "en" : "tl"/);
+  assert.match(server, /max_speech_caption_ms: 5000, silence_duration_ms: 700/);
+  assert.match(ui, /Choose the language actually spoken before starting/);
+});
+
+test('successful text send is not reported failed if refresh fails', () => {
+  assert.match(ui, /Message sent\. Conversation history will refresh when online\./);
+  assert.match(ui, /await sendBuklodPttText\(scopeId, channel, body\);\s+setDraft\(''\);/);
+});

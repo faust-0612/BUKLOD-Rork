@@ -5,8 +5,7 @@
 name: BUKLOD Production Web Deploy
 
 on:
-  workflow_dispatch:
-  # One-time authorized consolidated Main push; other main changes skip all jobs.
+  # Manual dispatch is disabled; only explicit reviewed release-marker merges may publish.
   push:
     branches: [main]
 
@@ -23,7 +22,7 @@ env:
 jobs:
   qa-export-deploy:
     # Explicit Android-only releases must not publish Expo Hosting.
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (startsWith(github.event.head_commit.message, 'BUKLOD_CONSOLIDATED_PROD_20261108') || startsWith(github.event.head_commit.message, 'BUKLOD_WEB_NAV_ONLY_20261108')))
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && (startsWith(github.event.head_commit.message, 'BUKLOD_CONSOLIDATED_PROD_20261108') || startsWith(github.event.head_commit.message, 'BUKLOD_WEB_NAV_ONLY_20261108') || startsWith(github.event.head_commit.message, 'BUKLOD_PTT_WEB_20261111'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source
@@ -130,6 +129,9 @@ jobs:
 
       - name: Verify mobile-browser bottom navigation
         run: node --test tests/web-bottom-nav-production-release-20261108.test.mjs
+
+      - name: Verify BUKLOD browser PTT floor and privacy contracts
+        run: node --test tests/buklod-ptt-web-contract.test.mjs tests/buklod-ptt-web-release.test.mjs
 
       - name: TypeScript QA
         run: npx tsc --noEmit

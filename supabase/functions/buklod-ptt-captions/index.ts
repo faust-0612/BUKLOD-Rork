@@ -3,7 +3,7 @@ import { StreamClient } from "npm:@stream-io/node-sdk";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-buklod-client, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 function response(body: unknown, status = 200) {
@@ -72,7 +72,11 @@ Deno.serve(async (req) => {
       // transcription for unrelated groups.
       await call.update({
         settings_override: {
-          transcription: { mode: "available", closed_caption_mode: "available", language },
+          transcription: {
+            mode: "available", closed_caption_mode: "available", language,
+            // Short PTT turns finalize quickly without new audio capture.
+            speech_segment_config: { max_speech_caption_ms: 5000, silence_duration_ms: 700 },
+          },
         },
       });
       try {

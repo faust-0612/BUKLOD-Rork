@@ -108,6 +108,7 @@ function IgpatVideo({
   const player = useVideoPlayer(videoSource, instance => {
     instance.loop = !hasEditMeta;
     instance.muted = hasEditMeta ? edit.muted : false;
+    instance.audioMixingMode = 'mixWithOthers';
     instance.playbackRate = baseRate;
   });
 

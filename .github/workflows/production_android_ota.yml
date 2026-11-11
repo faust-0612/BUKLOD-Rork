@@ -2,8 +2,7 @@
 name: BUKLOD Production Android OTA
 
 on:
-  workflow_dispatch:
-  # One-time authorized consolidated Main push; other main changes skip all jobs.
+  # Manual dispatch is disabled; only explicit reviewed release-marker merges may publish.
   push:
     branches: [main]
 
@@ -22,7 +21,7 @@ permissions:
 
 jobs:
   qa-and-publish:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'BUKLOD_CONSOLIDATED_PROD_20261108'))
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && startsWith(github.event.head_commit.message, 'BUKLOD_CONSOLIDATED_PROD_20261108')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source
@@ -75,6 +74,15 @@ jobs:
         run: |
           node --experimental-strip-types --test tests/unified-social-media-rendering.test.mjs tests/community-video-persistent-preview.test.mjs tests/community-video-playback-recovery.test.mjs tests/community-media-aspect-ratio-20261103.test.mjs tests/community-wall-media-navigation-scroll.test.mjs tests/buklod-word-schedule.test.mjs
           node --test tests/weak-media-rendering.test.cjs tests/community-media-weak-signal.test.cjs tests/community-wall-no-blank-photo.test.cjs tests/compact-public-wall-header-20261104.test.mjs tests/navigation-scroll-compact-public-wall.test.mjs tests/community-video-navigation-scroll.test.mjs tests/the-word-safe-area-20261106.test.mjs tests/dzas-signal-deck-implementation.test.mjs
+
+      - name: Verify app-wide AdMob policy before production OTA
+        run: |
+          node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+          node --test tests/buklod-ads-production-release-contract-20261111.test.mjs
+          node scripts/buklod-ad-surface-audit.mjs --summary
+
+      - name: Verify AdMob fill diagnostics and source-backed Finance gate
+        run: node --test tests/buklod-admob-fill-finance-release-20261111.test.mjs
 
       - name: AdMob startup, Reels feed, scope, fallback and recovery regression suite
         run: |

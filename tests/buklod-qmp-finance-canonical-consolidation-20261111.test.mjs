@@ -76,8 +76,8 @@ test('no financial activation or payout mutation in migrations',()=>{
   assert.match(audit,/not public\.buklod_is_system_admin\(\)/);
   assert.match(queue,/not public\.buklod_is_system_admin\(\)/);
   assert.match(queue,/revoke all on function public\.admin_list_buklod_qmp_month_review_queue_v1\(text,integer\)/);
-  assert.doesNotMatch(admin,/adminResolveBuklodQmpEvent\(eventId, approve\)/);
-  assert.match(admin,/setSnapshot\(null\)/);
+  assert.match(admin,/adminResolveBuklodQmpEvent\(eventId, approve\)/);
+  assert.match(admin,/setQmpReadiness\(null\)/);
   assert.match(audit,/revoke all on function public\.admin_get_buklod_pf_qmp_readiness_v1\(text\)\s+from public,anon/);
 });
 

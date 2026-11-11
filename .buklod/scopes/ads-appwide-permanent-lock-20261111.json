@@ -1,0 +1,65 @@
+{
+  "contractVersion": 2,
+  "objective": "Complete 354-route app-wide maximum-safe aggressive ads inventory; lock critical route protection, add discovery/org native ad spots and enforce PR/RC/OTA policy tests without changing native dependencies, finance or production. Include native post detail natural-break ad without monetizing author-only notes.",
+  "baseRef": "7565a6fae2a07aaf46d771f86889ff153ef6da96",
+  "productionBaselineEvidence": "GitHub Main source 7565a6fae2a07aaf46d771f86889ff153ef6da96 inspected on Nov 11, 2026 including release security guardrails; current app OTA and AdMob live fill are NOT verified.",
+  "chosenApproach": "Fix central route guard so PTT, radio and Health Center cannot warm full-screen ads while approved passive informational banners remain. Lock all existing Android high-traffic, Kingdom, Character, Points and completion inventory through PR/RC/OTA test gates. Extend sensitive route map for personal chats, quizzes and financial/admin flows; add native-first, viewport-gated Community Discovery and Organization setup cards; enrich all-route audit report. Close legacy Connect `/connect/[id]` and fund/attendance/administrative screen gaps, without interrupting ad-rich dashboard and public discovery routes.",
+  "selectionRationale": "Existing passive route allowance returned not-sensitive for PTT/radio, which also admitted full-screen ads. Explicit passive-only exception fixes the cross-format hole without removing ad impressions.",
+  "alternativeApproaches": [
+    "Per-tap interstitials rejected as AdMob-policy unsafe",
+    "Bulk merge older feature branches rejected due to source conflicts",
+    "Narrow route fix plus automated inventory and release checks chosen"
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "PTT/radio",
+    "health",
+    "reels",
+    "Kingdom",
+    "points",
+    "release-identity"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodGlobalAdController.ts",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/CODEOWNERS",
+    "docs/BUKLOD_ADS_APPWIDE_LOCK_20261111.md",
+    ".buklod/scopes/ads-appwide-permanent-lock-20261111.json",
+    "tests/buklod-ads-production-release-contract-20261111.test.mjs",
+    "src/app/community/discover.tsx",
+    "src/app/organizations/index.tsx",
+    "scripts/buklod-ad-surface-audit.mjs",
+    "tests/buklod-ad-surface-audit-20261111.test.mjs",
+    "src/app/post/[id].tsx"
+  ],
+  "regressionTests": [
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/buklod-ads-production-release-contract-20261111.test.mjs",
+    "tests/buklod-ad-surface-audit-20261111.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "PTT original audio/transcript and DZAS radio",
+    "Health Center approved single nonurgent information banner",
+    "Consent, remote kill switches, visibility and no-fill fail-open",
+    "Two completed actions between full-screen ads; not per tap",
+    "No interstitial in chat/SOS/payment/grades/quiz/forms",
+    "No cash, QMP or BP generated from ad watches",
+    "No native dependency/runtime/DB change",
+    "No separate OTA/web release",
+    "Existing Community Discovery tab, list refresh, vote and Dugtong actions not altered; Organization setup navigation unchanged",
+    "Post detail reaction, playback, share approvals, comment focus and reporting remain unchanged."
+  ],
+  "acceptanceChecks": [
+    "Exact PTT/radio/Health Center passive vs fullscreen behavior verified",
+    "All Main route TSX files audited (over 300), uncovered candidates retained",
+    "Permanent PR, compiled RC and production Android OTA gate",
+    "No staged unit used as a live ID",
+    "No release without exact artifact, EAS environment and production fingerprint proof",
+    "Static inventory >=350 routes and every discovered route is classified, personal chat/admin/quiz protected; Community Discovery and Organization setup sponsor cards check Android native-first + viewport gate",
+    "Post detail sponsor after content, before comments, absent for author-only and never overlaid on video or typing.",
+    "Legacy Connect, finance, GCash, attendance, premium, support and organizer-office screens have zero generic interstitial eligibility."
+  ]
+}
