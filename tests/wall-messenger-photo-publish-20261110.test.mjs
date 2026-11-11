@@ -18,7 +18,9 @@ test('music and motion are never required to publish a normal post', () => {
 test('feed refresh cannot reverse a committed publish', () => {
   const createPost = publish.slice(publish.indexOf('  const createPost=async('), publish.indexOf('\n  try{', publish.indexOf('  const createPost=async(')));
   assert.doesNotMatch(createPost, /\bload\(\)/);
-  assert.match(publish, /\/\/ A feed refresh error must not roll back a successfully published post\.[\s\S]{0,90}void load\(\)\.catch\(\(\)=>undefined\)/);
+  assert.match(publish, /\/\/ A failed refresh must never roll back a successful publish\./);
+  assert.match(publish, /void load\(\)\.then\(\(\)=>\{/);
+  assert.match(publish, /setPostFeedback\(optionalCreativeFailed/);
 });
 
 test('iPhone web JPEG MIME is recognized even without a filename', () => {
@@ -101,4 +103,36 @@ test('only photo failures get photo recovery instructions', () => {
   assert.match(wall, /publishStage === 'upload_photo'/);
   assert.match(wall, /Photo upload failed\. Your draft was restored/);
   assert.match(wall, /setPhotos\(current => current\.length \? current : snapshot\.photos\)/);
+});
+
+test('post appears locally before the first network request without claiming server success', () => {
+  const pending = publish.indexOf('const optimisticId=');
+  const firstServerWrite = publish.indexOf('const createPost=async(');
+  assert.ok(pending > 0 && firstServerWrite > pending);
+  assert.match(publish, /setOptimisticPost\(\{[\s\S]*?tempId:optimisticId,[\s\S]*?status:'uploading'/);
+  assert.match(wall, /optimisticPost\.status==='uploading'\?'YOUR POST · UPLOADING':'YOUR POST · PUBLISHED'/);
+  assert.match(wall, /optimisticPost\?\.authorId===user\?\.id/);
+  assert.match(wall, /photoUris:\s*snapshot\.photos\.map\(photo=>photo\.uri\)/);
+  assert.doesNotMatch(publish.slice(0,firstServerWrite), /create_buklod_community_post_v3/);
+});
+
+test('publish progress and failures reconcile only the matching local preview', () => {
+  assert.match(publish, /const setNotice=\(notice:string\)=>\{/);
+  assert.match(publish, /notifyQueue\(notice\)/);
+  assert.match(publish, /current\?\.tempId===optimisticId/);
+  assert.match(publish, /status:'posted',notice:'Posted\. Updating Wall/);
+  assert.match(publish, /setOptimisticPost\(current=>current\?\.tempId===optimisticId\?null:current\)/);
+  assert.match(publish, /catch\(e:any\)\{\s*setOptimisticPost/);
+  assert.match(publish, /setPhotos\(current => current\.length \? current : snapshot\.photos\)/);
+  assert.match(wall, /setOptimisticPost\(null\);\s*\},\[user\?\.id\]\)/);
+});
+
+test('pending card does not expose interactions or count as a published post', () => {
+  const start = wall.indexOf("{optimisticPost?.authorId===user?.id&&(");
+  const end = wall.indexOf('</BuklodCommunityWallPostCard>', start);
+  assert.ok(start > 0 && end > start);
+  const card = wall.slice(start, end);
+  assert.match(card, /BuklodCommunityPhotoCollage/);
+  assert.match(card, /hasVideo/);
+  assert.doesNotMatch(card, /onReact=|onOpenComments=|BuklodPostInternalShare|create_buklod_community_post_v3/);
 });
