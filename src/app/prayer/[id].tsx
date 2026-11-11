@@ -488,8 +488,8 @@ export default function PrayerDetail() {
             {
               responders.length > 0
                 ? showResponders
-                  ? ' â–²'
-                  : ' â–¼'
+                  ? ' ▲'
+                  : ' ▼'
                 : ''
             }
           </Text>
@@ -565,7 +565,7 @@ export default function PrayerDetail() {
           />
 
           <Button
-            title="âš‘ REPORT CONTENT"
+            title="REPORT CONTENT"
             outline
             onPress={()=>
               router.push({
@@ -609,7 +609,7 @@ export default function PrayerDetail() {
               />
 
               <Button
-                title="âœ“ MARK AS ANSWERED"
+                title={'\u2713 MARK AS ANSWERED'}
                 onPress={markAnswered}
               />
 
@@ -627,7 +627,7 @@ export default function PrayerDetail() {
           <Card>
 
             <Text style={shared.h2}>
-              âœ“ Answered Prayer
+              {'\u2713'} Answered Prayer
             </Text>
 
             <Text style={shared.body}>

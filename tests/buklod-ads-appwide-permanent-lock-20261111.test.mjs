@@ -182,7 +182,9 @@ test('Post detail has native-first sponsored break after media outside author-on
   assert.match(detail, /BuklodFirstViewAd placement="community_entry" placementId="community_post_detail_native"/);
   assert.match(detail, /!post\.author_only\s*\?/);
   assert.ok(detail.indexOf('community_post_detail_native') > detail.indexOf('<CommunityVideo'));
-  assert.ok(detail.indexOf('community_post_detail_native') < detail.indexOf('COMMENTS ({comments.length})'));
+  const commentsStart = detail.indexOf('style={s.commentsSection}');
+  assert.ok(commentsStart > -1, 'Modern comments section must remain present');
+  assert.ok(detail.indexOf('community_post_detail_native') < commentsStart, 'Sponsored card must precede comments');
 });
 
 test('Legacy Connect, funds, attendance and administrative deep links cannot trigger generic ads', () => {
