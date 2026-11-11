@@ -81,8 +81,7 @@ begin
     updated_at=now();
   return v_id;
 end;
-$function$
-
+$function$;
 
 -- A late photo attachment legitimately qualifies an otherwise short Wall post.
 -- It does not double-credit an already qualified post or bypass velocity guards.
