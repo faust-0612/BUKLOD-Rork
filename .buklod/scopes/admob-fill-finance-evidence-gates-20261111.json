@@ -1,0 +1,51 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore high-traffic Reels ad availability after legal cooldown, classify real Native/Banner/Interstitial no-fill, enforce true production AdMob live-unit readiness and explicitly block unsupported Finance cash distributions.",
+  "baseRef": "75ae419357647bf1dc7596d0e144eeaac7d34b2b",
+  "productionBaselineEvidence": "Live Supabase BUKLOD Finance checks Nov 11: 0 finalized eligible revenue rows, 0 settled user accounts, 7 cost debits only, finance/settlement/withdrawal OFF; live ad requests/no-fill recorded Nov 9–11. GitHub source Reels permanently suppresses ad after normal cooldown denial.",
+  "chosenApproach": "Fix one permanent Reels denial with deferred cooldown retry, add only allowlisted ad_format metadata to existing already-deployed private telemetry RPC, gate compiled RC on existing non-secret AdMob live unit checker, expose exact canonical Finance blockers in system admin.",
+  "selectionRationale": "Avoid duplicate ad requests and invented billable impressions; production misconfiguration and missing source-backed revenue must fail closed, not silently ship test inventory or cash credits.",
+  "alternativeApproaches": [
+    "Aggressive per-click interstitial and artificially repeated SDK loads (rejected due Google policy and lower genuine fill).",
+    "Write QMP money despite unverified AdMob revenue (rejected due real-money accounting).",
+    "Safeguarded diagnostic, passive recovery, verified EAS config and admin readiness (chosen)."
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "finance-money",
+    "release-identity",
+    "navigation-scroll"
+  ],
+  "allowedPaths": [
+    "src/app/admin/economy-operations.tsx",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/production_android_ota.yml",
+    "src/lib/buklodFinanceMonthCloseBlockers.ts",
+    "tests/buklod-admob-fill-finance-release-20261111.test.mjs",
+    "docs/BUKLOD_ADMOB_FILL_FINANCE_GATES_20261111.md",
+    ".buklod/scopes/admob-fill-finance-evidence-gates-20261111.json",
+    "src/lib/buklodAdDiagnostics.ts",
+    "src/lib/buklodAdOperationalTelemetry.ts",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodReelsInlineAd.tsx",
+    "src/lib/buklodAds.ts"
+  ],
+  "regressionTests": [
+    "tests/buklod-admob-fill-finance-release-20261111.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Reels temporarily denied by cooldown retries after quiet window and never floods on rapid remount",
+    "Format-specific metadata delivered in existing private Postgres telemetry without personal information or extra migration",
+    "Android/Web compiled RC refuses missing live AdMob unit configuration and records exact source SHA",
+    "System admin displays source-backed blockers; user QMP/withdrawal balances unchanged",
+    "All PR, RC, OTA gates run regression test; production publication not triggered"
+  ],
+  "preserveBehaviors": [
+    "Native ad load/visibility, consent, remote kill and existing wall/reel interval",
+    "No change to actual finalized ad impressions, BP, QMP, payout ledgers or finance flags",
+    "Existing immutable finalized months and no double allocation",
+    "No new native modules, no web/Android OTA release"
+  ]
+}

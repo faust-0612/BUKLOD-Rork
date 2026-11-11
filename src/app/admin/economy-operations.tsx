@@ -42,6 +42,7 @@ import {
   type BuklodR38PayoutDetails,
 } from '@/lib/buklodR38AdminEconomy';
 import { formatPhp } from '@/lib/buklodR38Economy';
+import { getBuklodFinanceMonthCloseBlockers } from '@/lib/buklodFinanceMonthCloseBlockers';
 import { colors } from '@/lib/theme';
 
 const ENTRY_KINDS = [
@@ -184,6 +185,7 @@ export default function AdminEconomyOperationsScreen() {
   const currentStatus =
     settlement?.status ?? 'NOT FINALIZED';
 
+  const monthCloseBlockers = getBuklodFinanceMonthCloseBlockers(qmpReadiness, controls);
   const canFinalize =
     controls?.economics_enabled === true &&
     controls?.settlement_enabled === true &&
@@ -521,9 +523,9 @@ export default function AdminEconomyOperationsScreen() {
               {!canFinalize &&
                 currentStatus !== 'FINALIZED' && (
                   <Text style={styles.warningText}>
-                    Finalization requires a completed month, resolved QMP reviews, reconciled Finance identities,
-                    verified eligible revenue, no legacy allocations, and enabled server economics and settlement gates.
-                    Incomplete or missing readiness data never authorizes a payout.
+                    Finance settlement LOCKED: {monthCloseBlockers.join(' · ')}.
+                    AdMob estimates, ad impressions and BUKLOD Points are not finalized cash.
+                    No automatic payout or withdrawal is authorized.
                   </Text>
                 )}
             </View>
