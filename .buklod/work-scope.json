@@ -1,5 +1,5 @@
 {
-  "objective": "Modernize BUKLOD Main Kingdom map-first HUD and replace harsh navigation audio with an opt-in original local cinematic ambience without changing routes or revenue",
+  "objective": "Modernize BUKLOD Main Kingdom map-first HUD and replace harsh navigation audio with an opt-in original local cinematic ambience without changing routes or revenue; guarantee Kingdom ambience stops on exit or stack screen blur",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: GitHub main commit 1dfe6e3da1ef569916f43607067e0a29e4d29bbb read back as branch fork source on 2026-11-11. Live Android update fingerprint, runtime and map visual acceptance not verified; DEV branch only, no release.",
   "chosenApproach": "Retain 13 canonical station coordinates and SVG map geometry, reduce UI occlusion, apply deeper scenic palette, ship local deterministic PCM ambient audio with quiet defaults for main map only, preserve interior game auto audio. No Vercel, extra paid model, native module or backend migration.",
@@ -19,7 +19,7 @@
   "acceptanceChecks": [
     "13 canonical stations unchanged and selectable by tap, map controls/zoom/pan remain functional",
     "Map-first dock hides to expose scenery and can re-open, dark compact station plaques do not block routes",
-    "Main-map ambience default OFF, persists ON/OFF preference, honors game sound and quiet-hours and cleans audio on unmount",
+    "Main-map ambience default OFF, persists ON/OFF preference, honors game sound and quiet-hours, and synchronously pauses/removes the owned player on every screen blur and unmount",
     "New local original 18-second mono seamless WAV plays without remote host, network dependency, old navigation chirps or paid generation",
     "Interior gameplay auto-audio behavior remains unchanged",
     "Read-back focused WAV RIFF and source contract tests, Engineering Accountability and Performance QA",
@@ -30,7 +30,8 @@
     "kingdom-visual",
     "map-touch-responsiveness",
     "audio-lifecycle",
-    "cross-platform-layout"
+    "cross-platform-layout",
+    "router-focus-lifecycle"
   ],
   "regressionTests": [
     "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"

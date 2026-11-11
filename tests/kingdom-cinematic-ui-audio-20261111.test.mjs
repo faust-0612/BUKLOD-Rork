@@ -23,6 +23,12 @@ test('Kingdom ambience is local, opt-in, persisted, respects sound settings and 
   assert.match(a, /AsyncStorage\.setItem\(KINGDOM_AMBIENCE_SETTING_KEY/);
   assert.match(a, /isBuklodGameSoundEnabled\(\)/);
   assert.match(a, /AppState\.addEventListener/);
+  assert.match(a, /useFocusEffect\(useCallback\(\(\) => \{/);
+  assert.match(a, /if \(!gameId \|\| !musicEnabled\) return/);
+  assert.match(a, /active = false;\s*readyListener\.remove\(\);\s*stateListener\.remove\(\);\s*try \{ audio\.pause\(\); \}/);
+  // Cached Expo Router screens stay mounted after navigating away:
+  // a plain useEffect would leak ambience into Home / Wall / video playback.
+  assert.doesNotMatch(a, /useEffect\(\(\) => \{\s*if \(!gameId \|\| !musicEnabled\)/);
   assert.match(a, /audio\.remove\(\)/);
   const wav = readFileSync(new URL('../assets/sounds/buklod-kingdom-cinematic-ambient.wav', import.meta.url));
   assert.equal(wav.toString('ascii', 0, 4), 'RIFF');

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 import { getBuklodSoundSettings, isBuklodGameSoundEnabled, getBuklodGameSoundVolume } from '@/lib/buklodSounds';
@@ -127,7 +128,11 @@ export function useRorkGameAmbience(gameId?: string | null) {
       .catch(() => undefined);
     return () => { live = false; };
   }, [isKingdomMap]);
-  useEffect(() => {
+  // Expo Router can keep inactive game screens mounted in its stack. This
+  // effect is owned by *navigation focus*, not just React mount lifetime.
+  // On every blur (Home, Wall, Connect, another game) the Kingdom-only
+  // player is immediately paused and disposed; other app audio is untouched.
+  useFocusEffect(useCallback(() => {
     if (!gameId || !musicEnabled) return;
     const media = getRorkGameMedia(gameId);
     let player: Player | null = null;
@@ -166,12 +171,15 @@ export function useRorkGameAmbience(gameId?: string | null) {
     const stateListener = AppState.addEventListener('change', () => { void sync(); });
     void sync();
     return () => {
+      // Invalidate pending hydration/status callbacks before release to avoid
+      // late replay of the loop after a rapid back/forward navigation.
       active = false;
       readyListener.remove();
       stateListener.remove();
+      try { audio.pause(); } catch { /* already disposed or unavailable */ }
       try { audio.remove(); } catch { /* enhancement only */ }
     };
-  }, [gameId, musicEnabled]);
+  }, [gameId, musicEnabled]));
   return { musicEnabled, toggleMusic: () => setMusicEnabled(value => {
     const next = !value;
     if (isKingdomMap) {
