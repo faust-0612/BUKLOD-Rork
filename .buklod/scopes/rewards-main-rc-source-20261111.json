@@ -1,0 +1,37 @@
+{
+  "contractVersion": 2,
+  "objective": "Compile a new immutable-main-based BUKLOD consolidated RC with verified live KL 10/50 and mutual engagement R4, without rewriting the diverged older RC or publishing production OTA.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main af121c188c307c7d6ea4cdb4e1310e900659bae1 contains all reward source and live Supabase yhanxndaqbmuzbdqlblu has migrations 20261111085702 & 20261111085727 applied, forward-only R4 enabled 2026-11-11 09:00:08 UTC. Old RC 6afc8ea is merge-dirty against main, so it is preserved as an unmerged archive candidate; no OTA fingerprint claimed.",
+  "chosenApproach": "Use latest protected main as exact RC source; add isolated compile-QA allowlist for fresh branch. Verify Android production runtime and Expo web with established existing GitHub workflow; never auto publish OTA.",
+  "selectionRationale": "Avoid branch rewriting, stale RC overwrites and ambiguous release source. Latest main file tree contains all paths from old RC plus additional independent fixes; 37 source blobs differ and require treating main as authoritative, not force merging old RC.",
+  "alternativeApproaches": [
+    "Force reset of old frozen RC rejected",
+    "Manually override 37 conflicting source files without regression validation rejected",
+    "Publish DEV-only backend without OTA verification rejected"
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Existing production OTA remains unchanged",
+    "Full merged main source includes KL +10 / +50 and R4 engagement",
+    "No change to QMP/finance settlement or payout gates",
+    "No native dependency/version changes",
+    "Old RC branch and history remain preserved"
+  ],
+  "acceptanceChecks": [
+    "GitHub Actions compile QA success on exact new RC head for Android production runtime 1.3.2 and Expo Web",
+    "Node and engineering scope gates pass",
+    "Both live database migration versions reconcile with tracked main source",
+    "Production OTA must stay HOLD until exact compiled source and release contract gates pass"
+  ],
+  "regressionTests": [
+    "tests/rewards-main-rc-release-identity.test.mjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/rewards-main-rc-release-identity.test.mjs",
+    ".buklod/scopes/rewards-main-rc-source-20261111.json"
+  ]
+}
