@@ -87,6 +87,11 @@ jobs:
           node scripts/buklod-ad-surface-audit.mjs --summary
       - name: Native Reels and fullscreen video ads regression
         run: node --test tests/reels-ads-fullscreen-ota-20261111.test.mjs tests/igpat-fast-start-video-20261110.test.mjs
+      - name: Verify retired IGPAT stays blocked while Community, Marites and legacy media are preserved
+        if: github.head_ref == 'integration/buklod-nov11-reconciled-ota-candidate'
+        run: |
+          node --test tests/igpat-retirement-20261111.test.mjs tests/buklod-shared-dashboard-scroll-20261111.test.mjs tests/compact-public-wall-header-20261104.test.mjs
+          node --test tests/marites-fullview-music-contract.test.mjs tests/marites-photo-preview-resign-20261111.test.mjs
       - name: Bible Quiz V4 events, R3 compatibility, points and noncash ads contracts
         run: node --test tests/buklod-bible-v4-events-kingdom-20261109.test.mjs tests/bible-v4-quiz-compat-20261109.test.mjs tests/bible-v4-ads-separation-20261109.test.mjs
       - name: Verify Home/Profile Health Center external-door privacy and route gate
