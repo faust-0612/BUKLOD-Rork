@@ -7,6 +7,7 @@ const composer = read('src/components/BuklodCommunityCommentComposer.tsx');
 const picker = read('src/lib/buklodPickCommunityPhotos.ts');
 const bubble = read('src/components/BuklodCommunityCommentBubble.tsx');
 const upload = read('src/lib/uploadCommunityVideoFile.ts');
+const staging = read('src/lib/buklodCommentGifShare.ts');
 test('shared GIF selects a comment target instead of root post', () => {
   assert.match(wall, /pendingSharedCommentGif187A/);
   assert.match(wall, /GIF ready for comment/);
@@ -23,6 +24,8 @@ test('phone GIF picker preserves animation and accepts local GIF', () => {
 test('comment GIF storage has bounded size, Android content support and signed display', () => {
   assert.match(upload, /contentType: 'image\/gif'/);
   assert.match(upload, /FileSystem\.copyAsync/);
+  assert.match(staging, /FileSystem\.copyAsync/);
+  assert.match(wall, /await stageSharedCommentGif/);
   assert.match(upload, /Maximum GIF size is 25 MB/);
   assert.match(bubble, /resolveCommunityMediaUrl\(media\.ref\)/);
   assert.doesNotMatch(bubble, /media\.kind === 'gif' \|\|/);
