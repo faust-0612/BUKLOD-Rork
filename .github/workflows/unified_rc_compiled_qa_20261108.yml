@@ -78,7 +78,9 @@ jobs:
           set -euo pipefail
           node --test tests/kl-approved-auto-reading-quiz.test.mjs tests/kl-ad-completion.test.cjs tests/buklod-ad-opportunities.test.cjs tests/buklod-points-r3-kl-story.test.mjs tests/kl-reader-ad-safe-completion.test.mjs tests/kl-web-release-admin-preflight-20261107.test.mjs
       - name: Verify app-wide AdMob permanent policy lock before compiled RC
-        run: node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+        run: |
+          node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+          node --test tests/buklod-ads-production-release-contract-20261111.test.mjs
 
       - name: Native Reels and fullscreen video ads regression
         run: node --test tests/reels-ads-fullscreen-ota-20261111.test.mjs tests/igpat-fast-start-video-20261110.test.mjs
