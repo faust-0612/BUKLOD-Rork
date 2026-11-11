@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Refresh the BUKLOD Main title/encouragement and Community–IGPAT–DZAS shortcut chrome across Home, Wall, Connect, Profile and scoped Organization/Cluster dashboards, reduce wasted mobile height, and collapse header presentation on scrolling without remounting feeds.",
-  "baseRef": "main",
-  "productionBaselineEvidence": "GitHub main observed at a0d986b835d778209fc3ab69a35a157798266d3b during DEV implementation on 2026-11-11. Branch created before two unrelated main commits touching ads and org release infrastructure; GitHub compare shows no overlapping changed paths. This is a DEV-only patch: no OTA, app-store build, web deployment or production database mutation was performed.",
+  "baseRef": "7565a6fae2a07aaf46d771f86889ff153ef6da96",
+  "productionBaselineEvidence": "verified: exact repository source parent 7565a6fae2a07aaf46d771f86889ff153ef6da96 was read at the start of this DEV work on 2026-11-11; the proposed branch includes only new dashboard design and scroll commits. This is a verified GitHub SOURCE baseline, NOT verification of installed Android or live production OTA. Main later advanced separately with ads and org release changes; branch contains no overlapping target-file edits. No web/OTA/database production deployment authorized or performed.",
   "chosenApproach": "Reuse canonical BUKLOD logo image, compact safe-area-aware native header, theme-aware rounded encouragement card, extracted accessible Wall quick links, and small hysteresis-based shared scroll coordinator. Integrate scroll events with existing FlashList/FlatList/ScrollView rather than replacing feed internals. Retain desktop shell and scoped section/header rules. Scope switches reset compact state.",
   "selectionRationale": "A shared header prevents design drift and excess vertical occupancy across tabs; hysteresis limits scroll rerenders on low-end devices while keeping navigation, media, sponsorship and permissions intact.",
   "riskAreas": [
