@@ -15,7 +15,7 @@ import BuklodHomeFaithPanel from '@/components/BuklodHomeFaithPanel';
 import BuklodNonFaithEncouragementDoor from '@/components/BuklodNonFaithEncouragementDoor';
 import BuklodScopeBuklodLessonPanel from '@/components/BuklodScopeBuklodLessonPanel';
 import BuklodScopeFaithMonitoringSummary from '@/components/BuklodScopeFaithMonitoringSummary';
-import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
+import { reportBuklodDashboardScroll, resetBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import React, {
   useCallback,
   useEffect,
@@ -256,6 +256,7 @@ ScopeWorkspaceScreen() {
   const openSection =
     useCallback(
       (nextSection: Section) => {
+        resetBuklodDashboardScroll('scope');
         setSection(nextSection);
 
         router.setParams({
