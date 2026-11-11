@@ -53,11 +53,12 @@ test('Photo-collage layout and per-photo taps remain on canonical shared compone
   assert.match(native,/onLoad\?\.\(\{ source: event\.nativeEvent\.source \}\)/);
 });
 
-test('Android photo fix ships only from exact-main manually verified Android OTA',()=>{
-  assert.match(release,/workflow_dispatch:/);
-  assert.match(release,/Only exact manual production RC promotions/);
+test('Android photo fix can only ship through marker-approved frozen production OTA',()=>{
+  assert.doesNotMatch(release,/^  workflow_dispatch:/m);
+  assert.match(release,/github\.event_name == 'push'/);
+  assert.match(release,/BUKLOD_CONSOLIDATED_PROD_20261108/);
   assert.match(release,/git ls-remote origin refs\/heads\/main/);
   assert.match(release,/node scripts\/android-ota-rc\.cjs verify/);
   assert.match(release,/update --channel production --platform android/);
-  assert.doesNotMatch(release,/^\s+push:/m);
+  assert.match(release,/^  push:/m);
 });
