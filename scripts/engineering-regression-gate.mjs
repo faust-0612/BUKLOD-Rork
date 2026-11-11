@@ -16,14 +16,15 @@ const areas = [
   { id: 'ads-monetization', source: /^(?:src\/(?:components\/(?:BuklodAdMobBanner|BuklodCommunityInlineAd|BuklodFirstViewAd|BuklodAdSafetyRouteBridge|BuklodScopedHeaderBanner|BuklodHeaderSponsor|BuklodReelsInlineAd|BuklodVideoCompanionAd|BuklodFocusAppAdStrip|BuklodNativeSponsoredCard|BuklodWebAdSlot)|providers\/AdsProvider|lib\/(?:adMob|buklodAd|buklodAds|buklodGlobalAdController|buklodAdViewport|buklodAdMonetizationPolicy|buklodAdOperationalTelemetry|buklodAdDiagnostics|buklodAdUnits|buklodAdPlacements|buklodAdOpportunities)|hooks\/useBuklodCommunityAdViewability))/i, proof: /(?:ad|ads|admob|monetization|banner|fill|placement|gate|viewport|telemetry)/i },
   { id: 'release-identity', source: /^(?:app\.config\.[cm]?[jt]s|eas\.json|\.github\/workflows\/.*(?:production|deploy|ota)|scripts\/.*(?:production|deploy|release|ota))/i, proof: /(?:release|deploy|ota|production|identity|boundary)/i },
 ];
-const productPath = p => /^(?:src\/|supabase\/|app\.config\.|eas\.json$|\.github\/workflows\/.*(?:production|deploy|ota)|scripts\/.*(?:production|deploy|release|ota))/i.test(p);
+// Every functional source, workflow, dependency, asset or script is scope-controlled.
+const productPath = p => /^(?:src\/|supabase\/|assets\/|scripts\/|\.github\/workflows\/|package(?:-lock)?\.json$|app\.config\.|eas\.json$)/i.test(p);
 const nodeTest = p => /^(?:tests\/|__tests__\/).+\.test\.(?:cjs|mjs)$/i.test(p);
 const tsTest = p => /^(?:tests\/|__tests__\/).+\.test\.[jt]sx?$/i.test(p);
 const dbTest = p => /^supabase\/tests\/.+\.sql$/i.test(p);
 const testPath = p => nodeTest(p) || tsTest(p) || dbTest(p);
 const safe = p => typeof p === 'string' && p.length > 0 && !p.startsWith('/') && !p.includes('..') && !p.includes('\\');
 
-export function assessChanges(changedPaths, manifest = null, { consolidatedRc = false } = {}) {
+export function assessChanges(changedPaths, manifest = null, { consolidatedRc = false, requireScope = false } = {}) {
   const failures = [];
   const paths = [...new Set(changedPaths)];
   if (paths.some(p => !safe(p))) failures.push('Unsafe changed path detected.');
@@ -43,6 +44,11 @@ export function assessChanges(changedPaths, manifest = null, { consolidatedRc = 
     failures.push('Source change has only Jest tests; provide a runnable Node or DB contract test in this low-cost gate (Jest may run separately).');
   }
   const scopeChanges = paths.filter(p => /^\.buklod\/scopes\/[^/]+\.json$/.test(p));
+  // The CI entrypoint always enables this option: no hidden legacy/no-manifest PR escape.
+  // The pure helper defaults off only for old classifier unit-test fixtures.
+  if (requireScope && (modifiedProduct.length || modifiedTests.length) && !scopeChanges.length) {
+    failures.push('Product, CI, release or test changes require a new .buklod/scopes/*.json change manifest.');
+  }
   const cumulativeScope = consolidatedRc && manifest?.releaseMode === 'consolidated-main-rc';
   if (scopeChanges.length) {
     if (scopeChanges.length !== 1 && !cumulativeScope) failures.push('Only one new scope manifest is permitted per isolated PR.');
@@ -120,7 +126,7 @@ function runCli() {
       }
     }
   }
-  const result = assessChanges(paths, manifest, { consolidatedRc: cumulativeRc });
+  const result = assessChanges(paths, manifest, { consolidatedRc: cumulativeRc, requireScope: true });
   for (const failure of result.failures) console.error('REGRESSION BLOCK:', failure);
   if (result.failures.length) { process.exitCode = 1; return; }
   if (process.argv.includes('--run-focused-node-tests')) {
