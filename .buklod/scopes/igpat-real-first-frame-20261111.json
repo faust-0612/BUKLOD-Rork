@@ -1,0 +1,50 @@
+{
+  "contractVersion": 2,
+  "objective": "Reduce perceived and actual IGPAT first-frame startup and swipe latency on Android/Web using the installed Expo SDK 57 video system; preserve private media, sponsored Reels, audio mixing, Quick Edit and consolidated OTA hold.",
+  "baseRef": "fad25d053023b6ea8008aa4a1b2e17a3c8ba1143",
+  "productionBaselineEvidence": "Inspected current GitHub main and existing Nov10 fast-playback scope and Nov11 consolidated OTA branches, but did not verify a live installed APK, exact production OTA source fingerprint, or runtime timings. User reports slow startup. This change remains isolated DEV; no production upload.",
+  "chosenApproach": "Create one ahead VideoPlayer but mount VideoView only for the active reel. Measure native playback startup when the first frame actually renders rather than at playingChange, with a UI placeholder and direct user-gesture recovery for blocked/stalled autoplay. Lower normal-network initial buffer to 0.75s and keep conservative 1.5s buffer for weak-network/Data Saver. Render two feed cells up front. Apply to Android and Web only.",
+  "selectionRationale": "Expo documentation supports preloading a player without a VideoView and onFirstFrameRender. Avoids simultaneous offscreen surfaces and background decoding pressure without replacing expo-video or rearchitecting signed URLs. Keeps existing progressive first-item signing and next organic clip preload.",
+  "allowedPaths": [
+    ".buklod/scopes/igpat-real-first-frame-20261111.json",
+    "src/app/igpat/index.tsx",
+    "src/app/igpat/index.web.tsx",
+    "tests/igpat-first-frame-faststart-20261111.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "First video shows immediate loading state and clears it only after actual first frame, not merely player playing event",
+    "Healthy networks start at 0.75 second minimum buffer while weak network uses existing 1.5s",
+    "One next organic video preloads without rendering an offscreen video surface; no eager ad video preloading",
+    "Offscreen video never plays; on swipe back active video mounts its view",
+    "After 3 seconds without first frame the active clip offers direct tap-to-play recovery; no automatic unbounded request retry",
+    "Preserve signed private Supabase URLs and 8 minute account-scoped warm feed; do not persist URLs",
+    "Preserve Reels ad cadence, interactive gestures, web Quick Edit and PTT-compatible audioMixingMode",
+    "Focused Node regression plus TypeScript/CI gate; skipped real Android device test remains unverified"
+  ],
+  "preserveBehaviors": [
+    "Canonical BUKLOD navigation and legacy /reels alias",
+    "Supabase RLS and 20 minute signed media URLs",
+    "Native sponsored Reel slides and existing Google IMA branch",
+    "Data Saver/weak signal next preloading restrictions",
+    "Quick Edit trim/rotation/speed, temporary 2x long press and mute/audio mixing",
+    "No new native package, backend schema, paid encoding, cloud provider or direct production publish"
+  ],
+  "riskAreas": [
+    "Expo SDK 57 onFirstFrameRender availability",
+    "First frame callback timing on Android SurfaceView",
+    "Browser autoplay restrictions",
+    "VideoPlayer buffer options on native",
+    "Fast swipe View mounting and pause/reuse",
+    "Consolidated branch integration conflicts"
+  ],
+  "regressionTests": [
+    "tests/igpat-first-frame-faststart-20261111.test.mjs",
+    "tests/igpat-fast-start-video-20261110.test.mjs"
+  ],
+  "alternativeApproaches": [
+    "Adopt new player or CDN/transcoding (rejected: new cost, backend and native upgrade)",
+    "Preload the entire feed (rejected: memory/data/permissions risk)",
+    "Play all adjacent videos offscreen (rejected: excessive decoder/audio usage)",
+    "Mount native VideoView only for active item while preloading VideoPlayer (selected)"
+  ]
+}
