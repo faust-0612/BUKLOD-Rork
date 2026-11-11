@@ -5,7 +5,7 @@
   "objective": "Frozen BUKLOD Main DEV source for one consolidated RC compile, reconciliation and database-migration readiness; no production OTA yet.",
   "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
   "productionBaselineEvidence": "GitHub default main SHA 5efb99435243a4bcaeff27fc8d41d58b6a9969c2 checked on Nov 11 2026. This is a repository baseline, NOT live production OTA proof.",
-  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections.",
+  "chosenApproach": "Aggregate eleven individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections.",
   "selectionRationale": "A 116-file cumulative RC cannot legitimately pass the isolated one-manifest PR rule. An exact, auditable cumulative manifest with enumerated component scopes protects the release without disabling scope, security, regression and production gates.",
   "alternativeApproaches": [
     "Split the RC back into ten independently compiled production candidates (rejected: duplicates and regression risk)",
@@ -14,6 +14,7 @@
   ],
   "componentScopePaths": [
     ".buklod/scopes/ads-high-traffic-max-safe-20261111.json",
+    ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
     ".buklod/scopes/community-scroll-comment-conso-inclusion-20261111.json",
     ".buklod/scopes/fullscreen-wall-video-smooth-ota-20261111.json",
     ".buklod/scopes/kingdom-main-visual-consolidated-20261111.json",
@@ -26,13 +27,15 @@
   ],
   "acceptanceChecks": [
     "All changed paths are individually listed and reviewed against current main; no broad directory allowlisting.",
-    "Every changed component scope JSON has engineering contractVersion 2 and is listed exactly once.",
-    "Targeted runnable Node regression tests cover impacted source categories and SQL changes include SQL tests.",
-    "Full BUKLOD Main TypeScript, Economy QA, Native Android export and Expo Web export succeed on exact frozen HEAD.",
-    "Finance QMP six migrations, Kingdom Shards migration and Mentor R4 migration validated and applied in order with RLS and production readback before any client release.",
+    "BUKLOD Today Public/Private Dugtong, 72-hour inactivity cycle and safe pagination stay included without Share to Wall, preserving existing weekly BP source-key deduplication.",
+    "BUKLOD Today v2 additive migrations were applied to BUKLOD Connect; historical Dugtong retained private; release is not equivalent to a production OTA publish.",
     "Canonical Finance settlements, withdrawal and payout processing remain disabled until funded accounting and recipient checks pass.",
+    "Do not merge to production main, publish OTA or mark a release live until independent production fingerprint evidence exists.",
+    "Every changed component scope JSON has engineering contractVersion 2 and is listed exactly once.",
+    "Finance QMP six migrations, Kingdom Shards migration and Mentor R4 migration validated and applied in order with RLS and production readback before any client release.",
+    "Full BUKLOD Main TypeScript, Economy QA, Native Android export and Expo Web export succeed on exact frozen HEAD.",
     "Retain Expo package org.mzbministry.buklod, runtime 1.3.2 and existing native permissions; do not alter Classroom.",
-    "Do not merge to production main, publish OTA or mark a release live until independent production fingerprint evidence exists."
+    "Targeted runnable Node regression tests cover impacted source categories and SQL changes include SQL tests."
   ],
   "preserveBehaviors": [
     "Security and private access rules",
@@ -57,12 +60,14 @@
   ],
   "regressionTests": [
     "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql",
+    "supabase/tests/buklod_today_privacy_idle_v2.sql",
     "supabase/tests/kingdom_shards_conservation_v1.sql",
     "tests/buklod-ad-surface-audit-20261111.test.mjs",
     "tests/buklod-cluster-ad-coverage-20261111.test.mjs",
     "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
     "tests/buklod-community-scroll-ads-20261111.test.mjs",
     "tests/buklod-high-traffic-ads-20261111.test.mjs",
+    "tests/buklod-home-profile-support-20261108.test.mjs",
     "tests/buklod-kingdom-character-ads-20261111.test.mjs",
     "tests/buklod-mentor-evidence-r4.test.mjs",
     "tests/buklod-monthly-earnings-carryforward-20261111.test.mjs",
@@ -90,6 +95,7 @@
   ],
   "allowedPaths": [
     ".buklod/scopes/ads-high-traffic-max-safe-20261111.json",
+    ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
     ".buklod/scopes/community-scroll-comment-conso-inclusion-20261111.json",
     ".buklod/scopes/fullscreen-wall-video-smooth-ota-20261111.json",
     ".buklod/scopes/kingdom-main-visual-consolidated-20261111.json",
@@ -140,6 +146,7 @@
     "src/components/BuklodReelsInlineAd.tsx",
     "src/components/BuklodReelsInlineAd.web.tsx",
     "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodTodayCard.tsx",
     "src/components/BuklodUnifiedEarningsHomeCard.tsx",
     "src/components/CommunityVideo.tsx",
     "src/components/points/BuklodPointsRewardsScreen.tsx",
@@ -178,13 +185,18 @@
     "supabase/migrations/20261111025000_buklod_pf_v3_monthly_summary_qmp_v1.sql",
     "supabase/migrations/20261111031000_buklod_finance_qmp_readiness_audit_v1.sql",
     "supabase/migrations/20261111032000_buklod_qmp_finance_review_queue_v1.sql",
+    "supabase/migrations/20261111102700_buklod_today_public_dugtong_idle_rotation_v2.sql",
+    "supabase/migrations/20261111113000_buklod_today_cycles_fk_index_v2.sql",
+    "supabase/migrations/20261111115500_buklod_today_public_dugtong_paging_v2.sql",
     "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql",
+    "supabase/tests/buklod_today_privacy_idle_v2.sql",
     "supabase/tests/kingdom_shards_conservation_v1.sql",
     "tests/buklod-ad-surface-audit-20261111.test.mjs",
     "tests/buklod-cluster-ad-coverage-20261111.test.mjs",
     "tests/buklod-community-feed-comment-ad-20261111.test.mjs",
     "tests/buklod-community-scroll-ads-20261111.test.mjs",
     "tests/buklod-high-traffic-ads-20261111.test.mjs",
+    "tests/buklod-home-profile-support-20261108.test.mjs",
     "tests/buklod-kingdom-character-ads-20261111.test.mjs",
     "tests/buklod-mentor-evidence-r4.test.mjs",
     "tests/buklod-monthly-earnings-carryforward-20261111.test.mjs",
@@ -210,7 +222,7 @@
     "tests/wall-navigation-photo-publish-20261110.test.mjs",
     "tests/wall-post-music-navigation-scroll.test.mjs"
   ],
-  "production": "HOLD / no OTA or Expo web publication",
+  "production": "HOLD / no OTA publication, no Expo web publication, no production branch promotion",
   "verifiedDevSourceSha": "15a53f992cd51441b55a2aece7168ae012b39f8b",
   "pendingBackendMigrations": [
     "20261110213500_mentor_report_evidence_review_r4.sql",
@@ -221,5 +233,27 @@
     "20261111025000_buklod_pf_v3_monthly_summary_qmp_v1.sql",
     "20261111031000_buklod_finance_qmp_readiness_audit_v1.sql",
     "20261111032000_buklod_qmp_finance_review_queue_v1.sql"
-  ]
+  ],
+  "includedWorkstreams": [
+    "buklod-today-public-dugtong-inactivity-20261111"
+  ],
+  "buklodTodayIntake": {
+    "sourcePullRequest": "https://github.com/faust-0612/BUKLOD-Rork/pull/667",
+    "mergedIntoRcCommit": "5ac65bc1703836b96f08fbb42ccaead79f3915ea",
+    "sourceBranch": "dev/buklod-today-dugtong-privacy-idle-20261111",
+    "scopePath": ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
+    "databaseProject": "yhanxndaqbmuzbdqlblu",
+    "databaseMigrationsApplied": [
+      "20261111102700_buklod_today_public_dugtong_idle_rotation_v2.sql",
+      "20261111113000_buklod_today_cycles_fk_index_v2.sql",
+      "20261111115500_buklod_today_public_dugtong_paging_v2.sql"
+    ],
+    "sourceCiEvidence": {
+      "engineeringAccountability": "success",
+      "mainWebCompatibilityAndTypeScript": "success",
+      "compiledAndroidRc": "not_verified_on_merged_head",
+      "fullConsolidatedRc": "not_verified_on_merged_head"
+    },
+    "releaseState": "SOURCE_INCLUDED / PRODUCTION_OTA_HOLD"
+  }
 }
