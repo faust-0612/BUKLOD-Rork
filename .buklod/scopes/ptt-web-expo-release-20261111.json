@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Publish working BUKLOD PTT in the existing BUKLOD Expo Web Home and route, interoperable with Android without any Android OTA.",
   "baseRef": "main",
-  "productionBaselineEvidence": "GitHub main SHA a0d986b835d778209fc3ab69a35a157798266d3b inspected 2026-11-11; Web route placeholder and Web entry hidden. Main Supabase yhanxndaqbmuzbdqlblu active; buklod-ptt-access v12 and buklod-ptt-captions v2 ACTIVE; shared PTT RPCs exist, PTT and membership tables RLS enabled. Current live Expo production web asset SHA not independently verified. Release is fail-closed pending exact RC build and live verification.",
+  "productionBaselineEvidence": "verified: GitHub main source SHA a0d986b835d778209fc3ab69a35a157798266d3b inspected on 2026-11-11; web route and web Home PTT entry were nonfunctional placeholders. verified: canonical production Supabase yhanxndaqbmuzbdqlblu active, PTT access v12 and captions v2 ACTIVE, PTT RPCs exist, PTT/active membership tables RLS enabled. Important: production live Expo asset fingerprint is NOT independently verified, therefore no release claim until deployment checks pass.",
   "chosenApproach": "Use platform-specific web PTT core based on existing low-level Stream browser SDK and shared secure membership token, floor lease RPC, and chat runtime; expose Web Home PTT door; retain native core unchanged; add web confirmation to existing caption consent UI; gate promotion on exact Expo Hosting production export.",
   "selectionRationale": "Reuses server membership/stream call and Android PTT floor control, avoids new service, native build, duplicate channels, and replacing currently functioning Android PTT. Platform file preserves behavior and limits regression.",
   "alternativeApproaches": [
@@ -38,6 +38,7 @@
     "src/components/BuklodPttEntryButton.web.tsx",
     "tests/buklod-ptt-web-contract.test.mjs",
     "tests/buklod-ptt-web-release.test.mjs",
-    ".github/workflows/production_web_deploy.yml"
+    ".github/workflows/production_web_deploy.yml",
+    ".buklod/scopes/ptt-web-expo-release-20261111.json"
   ]
 }
