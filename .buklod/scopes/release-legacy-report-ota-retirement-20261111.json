@@ -1,0 +1,33 @@
+{
+  "contractVersion": 2,
+  "objective": "Retire obsolete Report-door direct production web/OTA publishing shortcut while preserving existing Main app functionality",
+  "baseRef": "ce164744c55428fb43c51f5d4bf1a2c74ee1616f",
+  "productionBaselineEvidence": "GitHub main ce164744c55428fb43c51f5d4bf1a2c74ee1616f checked on Nov 11, 2026. Published production OTA fingerprint is not inferred from main; no live releases here.",
+  "chosenApproach": "Replace stale production release launcher with fail-closed explicit error, add focused regression contract.",
+  "selectionRationale": "The old direct launcher used runtime 1.3.0 and could publish Expo Hosting and production OTA outside verified RC; keeping it executable undermines release isolation.",
+  "alternativeApproaches": [
+    "Keep legacy direct launcher (rejected; bypasses canonical RC)",
+    "Retire single obsolete launcher and preserve canonical marker workflows (chosen)"
+  ],
+  "acceptanceChecks": [
+    "Legacy report-door shortcut immediately stops without invoking export/EAS/OTA.",
+    "Current Android/Web production publishers remain marker-only.",
+    "No app screens, packages, backend, RLS, CI workflows or user data modified."
+  ],
+  "preserveBehaviors": [
+    "Report-door in-app navigation and web integration unchanged.",
+    "Existing canonical production Android/Web workflows and freeze gates unchanged.",
+    "No new native version/build or database migration."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/release-legacy-report-ota-retirement-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/release-legacy-report-ota-retirement-20261111.json",
+    "scripts/release-main-report-door-safe.ps1",
+    "tests/release-legacy-report-ota-retirement-20261111.test.mjs"
+  ]
+}
