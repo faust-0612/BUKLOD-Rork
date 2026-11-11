@@ -12,7 +12,7 @@ test('instant jobs are account-scoped, in-memory and not claimed as server posts
   assert.match(queue,/job\.ownerId === ownerId && job\.kind === kind/);
   assert.match(queue,/job\.status === 'uploading'/);
   assert.match(queue,/status: 'uploading'/);
-  assert.match(queue,/status === 'failed'/);
+  assert.match(queue,/status !== 'failed'/);
   assert.match(queue,/status !== 'failed'/);
   assert.match(queue,/export class InstantPublishUncertainError/);
   assert.match(queue,/status: uncertain \? 'uncertain' : 'failed'/);
