@@ -49,3 +49,10 @@ test('prayer detail has no double-encoded control labels and retains recording/r
   assert.match(prayer, /prayer_responses/);
   assert.match(prayer, /moderation\/report/);
 });
+
+test('Reconciled OTA candidate remains strictly gated by explicit engineering scope allowlist', () => {
+  const gate=read('scripts/engineering-regression-gate.mjs');
+  assert.match(gate, /integration\/buklod-nov11-reconciled-ota-candidate/);
+  assert.match(gate, /BUKLOD_CONSOLIDATED_RC_GATE/);
+  assert.match(gate, /changedScope\.length > 1/);
+});
