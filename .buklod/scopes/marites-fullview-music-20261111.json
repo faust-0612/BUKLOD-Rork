@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Add user-selectable approved BUKLOD Music to Marites stories; soundtrack audible only on Full View (except explicit composer preview); always silent in compact feed.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main source SHA 4dcc6a7544b8e0d616e0c503fce6247a59e57cd7 was read as the isolated branch baseline and shared Marites publisher / Music Library/creative contract were inspected. This verifies SOURCE ancestry only, NOT live production baseline, backend runtime or OTA. Consolidated production RC PR #706 remains HOLD and divergent; no live migrations, release or revenue changes are performed.",
+  "chosenApproach": "Reuse existing BuklodPostMusicPicker and saveBuklodPostCreative on the created community post, and keep selected track in offline local Marites story. Fetch music creative lazily only for the open full-screen story. Mount an expo-audio player only in Full View or explicit picker preview; separate signed-URL resolve and playback, bound audio load, clip-segment loop, audio focus, and cleanup. Keep video sound muted while music is actually playing.",
+  "selectionRationale": "Reuse of existing admin-controlled audio library plus existing creative table avoids new backend schema, permissions and native SDK changes, and preserves current Wall and Marites posting/player behavior. Reader only fetches/signs music for one open story to protect scroll performance and 3G usage.",
+  "alternativeApproaches": [
+    "Upload arbitrary new user audio into a new storage bucket (rejected: needs permissions, moderation, new migrations and native/web file flow)",
+    "Load soundtrack metadata and construct players for every feed card (rejected: unnecessary network and Android decoder load)",
+    "Automatically play audio in feed (rejected: violates full-view-only requirement and interferes with browsing)"
+  ],
+  "acceptanceChecks": [
+    "All compact Marites Quick Video feed cards and composer video previews stay muted",
+    "Music picker permits an approved 30-second segment; normal post without music unchanged",
+    "Shared Marites story persists soundtrack by existing authenticated post creative pathway; local fallback persists selection",
+    "Selected soundtrack starts only in opened Full View, stops on exit, app blur, or switch story, and supports manual mute",
+    "Video audio is muted while soundtrack is actually playing, and restores if soundtrack is stopped",
+    "No duplicate player on feed re-render; no audio start after stale signed URL; bounded load and pause-before-release",
+    "No new dependencies, SQL, RLS, native changes, release publish or payout/ads changes",
+    "Exact-HEAD TypeScript, Node contracts, Android + Web compiled exports and RC gates must pass before promotion"
+  ],
+  "preserveBehaviors": [
+    "Marites local/shared 72-hour stories, reactions/comments, author edit and privacy, existing picture collage and Quick Video",
+    "Existing Wall music/audio focus, PTT, video, DZAS and app sound modes; do not overwrite global session audio configuration",
+    "Ad placements, app performance, weak-signal controls and existing audio/photo/video upload authentication",
+    "Main release identity and production OTA freeze until consolidated RC and backend verification gates"
+  ],
+  "riskAreas": [
+    "wall-media"
+  ],
+  "regressionTests": [
+    "tests/marites-fullview-music-contract.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/BuklodMaritesStoryAudio.tsx",
+    "src/lib/buklodMaritesBoard.ts",
+    "tests/marites-fullview-music-contract.test.mjs",
+    ".buklod/scopes/marites-fullview-music-20261111.json"
+  ]
+}

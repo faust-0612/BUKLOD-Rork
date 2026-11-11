@@ -34,6 +34,9 @@ import {
   BuklodTappableAvatar,
 } from '@/components/BuklodTappableAvatar';
 import BuklodMaritesPhotoCollage from '@/components/BuklodMaritesPhotoCollage';
+import BuklodPostMusicPicker from '@/components/BuklodPostMusicPicker';
+import BuklodMaritesStoryAudio, { type MaritesMusicPlaybackState } from '@/components/BuklodMaritesStoryAudio';
+import { loadBuklodPostCreatives, type BuklodPostMusicTrack } from '@/lib/buklodPostCreatives';
 import { BuklodComposerPhotoEditSheet } from '@/components/BuklodComposerPhotoEditSheet';
 import {
   BuklodPhotoEditor,
@@ -938,6 +941,14 @@ export default function BuklodMaritesBoard({
     []
   );
   const [quickVideo, setQuickVideo] = useState<{ uri: string; durationSeconds: number; mimeType: string } | null>(null);
+  const [musicPickerOpen, setMusicPickerOpen] = useState(false);
+  const [composerMusicTrack, setComposerMusicTrack] = useState<BuklodPostMusicTrack | null>(null);
+  const [composerMusicClipStart, setComposerMusicClipStart] = useState(0);
+  const [previewMusic, setPreviewMusic] = useState<{ track: BuklodPostMusicTrack; start: number } | null>(null);
+  const [previewMusicStatus, setPreviewMusicStatus] = useState<MaritesMusicPlaybackState>({ playing: false, duration: 0, error: '' });
+  const [viewerMusic, setViewerMusic] = useState<{ storyId: string; track: BuklodPostMusicTrack; start: number } | null>(null);
+  const [viewerMusicEnabled, setViewerMusicEnabled] = useState(true);
+  const [viewerMusicStatus, setViewerMusicStatus] = useState<MaritesMusicPlaybackState>({ playing: false, duration: 0, error: '' });
   const [posting, setPosting] = useState(false);
   const postingGuardRef = useRef(false);
   const [expiryTick, setExpiryTick] = useState(0);
@@ -1185,6 +1196,37 @@ export default function BuklodMaritesBoard({
     []
   );
 
+  // Resolve only the open story. No feed-level music queries, signing or audio.
+  useEffect(() => {
+    const story = viewStory;
+    let cancelled = false;
+    setViewerMusic(null);
+    setViewerMusicEnabled(true);
+    setViewerMusicStatus({ playing: false, duration: 0, error: '' });
+    if (!story) return;
+    if (story.music_track) {
+      setViewerMusic({
+        storyId: story.id,
+        track: story.music_track,
+        start: story.music_clip_start_seconds ?? 0,
+      });
+    }
+    const postId = communityPostIdForStory(story);
+    if (!postId) return;
+    void loadBuklodPostCreatives([postId]).then(rows => {
+      if (cancelled) return;
+      const creative = rows[postId];
+      setViewerMusic(creative?.music ? {
+        storyId: story.id,
+        track: creative.music,
+        start: creative.music_clip_start_seconds ?? 0,
+      } : null);
+    }).catch(error => {
+      if (!cancelled) console.warn('Marites story music:', String((error as Error)?.message ?? error));
+    });
+    return () => { cancelled = true; };
+  }, [viewStory?.id, communityPostIdForStory]);
+
   const applyLocalStoryRows = useCallback(
     (next: MaritesStory[], storyId: string) => {
       if (!user?.id) {
@@ -1419,6 +1461,10 @@ export default function BuklodMaritesBoard({
     setDraft('');
     setPhotos([]);
     setQuickVideo(null);
+    setComposerMusicTrack(null);
+    setComposerMusicClipStart(0);
+    setPreviewMusic(null);
+    setMusicPickerOpen(false);
     setPhotoEditorSource(null);
     setPhotoEditorTargetId(null);
     setComposerOpen(false);
@@ -1655,7 +1701,7 @@ export default function BuklodMaritesBoard({
     setPosting(true);
 
     try {
-      const { story, shared } = await publishMaritesStory({
+      const { story, shared, musicError } = await publishMaritesStory({
         userId: user.id,
         authorName:
           profile?.full_name?.trim() ||
@@ -1664,6 +1710,8 @@ export default function BuklodMaritesBoard({
         body,
         photoUris,
         video: quickVideo,
+        musicTrack: composerMusicTrack,
+        musicClipStartSeconds: composerMusicTrack ? composerMusicClipStart : null,
       });
 
       loadGenerationRef.current += 1;
@@ -1691,6 +1739,7 @@ export default function BuklodMaritesBoard({
       }
 
       resetComposer();
+      if (musicError) Alert.alert('Marites Music', 'Your story was posted, but the music could not be saved. Please try another track for a new story.\n' + musicError);
     } catch (error) {
       Alert.alert(
         'Marites Story',
@@ -1708,6 +1757,8 @@ export default function BuklodMaritesBoard({
     cacheKey,
     photos,
     quickVideo,
+    composerMusicTrack,
+    composerMusicClipStart,
     profile?.avatar_url,
     profile?.full_name,
     resetComposer,
@@ -1948,7 +1999,16 @@ export default function BuklodMaritesBoard({
               </Pressable>
               <Pressable style={styles.toolBtn} disabled={posting} onPress={() => void pickQuickVideo()}><MaterialCommunityIcons name="video-plus" size={17} color={colors.green} /><Text style={styles.toolText}>{quickVideo ? 'Replace Quick Video' : 'Quick Video (max 30s)'}</Text></Pressable>
             </View>
-            {quickVideo ? <View><View style={{ height: 190 }}><MaritesQuickVideo uri={quickVideo.uri} /></View><Pressable accessibilityRole="button" onPress={() => setQuickVideo(null)}><Text style={styles.toolText}>Remove video</Text></Pressable></View> : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="Choose Marites story music"
+              style={[styles.toolBtn, { alignSelf: 'flex-start', marginTop: 9 }]}
+              onPress={() => setMusicPickerOpen(true)} disabled={posting}>
+              <MaterialCommunityIcons name="music-note-plus" size={19} color={colors.green}/>
+              <Text style={styles.toolText} numberOfLines={1}>
+                {composerMusicTrack ? composerMusicTrack.title + ' · Edit music' : 'Add music (30s)'}
+              </Text>
+            </Pressable>
+            <Text style={[styles.composerPhotoHint, { marginTop: 5 }]}>Music is silent in the Marites feed. It plays only in Full View.</Text>
+            {quickVideo ? <View><View style={{ height: 190 }}><MaritesQuickVideo uri={quickVideo.uri} muted /></View><Pressable accessibilityRole="button" onPress={() => setQuickVideo(null)}><Text style={styles.toolText}>Remove video</Text></Pressable></View> : null}
 
             <Text style={styles.composerPhotoHint}>
               Tap Add photos, then tap each photo you want. Press OK when done.
@@ -2013,6 +2073,36 @@ export default function BuklodMaritesBoard({
         </KeyboardAvoidingView>
 </Modal>
 
+      <BuklodPostMusicPicker
+        visible={composerOpen && musicPickerOpen}
+        selectedId={composerMusicTrack?.id}
+        selectedTrack={composerMusicTrack}
+        previewId={previewMusic?.track.id}
+        previewPlaying={previewMusicStatus.playing}
+        previewDurationSeconds={previewMusicStatus.duration}
+        clipStartSeconds={composerMusicClipStart}
+        clipDurationSeconds={30}
+        onClipChange={start => setComposerMusicClipStart(start)}
+        onSelect={(track, start) => {
+          setComposerMusicTrack(track);
+          setComposerMusicClipStart(start);
+          setPreviewMusic(null);
+        }}
+        onPreview={(track, start) => {
+          setPreviewMusic(current => current?.track.id === track.id && current.start === start
+            ? null : { track, start });
+        }}
+        onScrub={(track, start) => setPreviewMusic({ track, start })}
+        onClose={() => { setPreviewMusic(null); setMusicPickerOpen(false); }}
+      />
+      <BuklodMaritesStoryAudio
+        track={previewMusic?.track ?? null}
+        startSeconds={previewMusic?.start ?? 0}
+        active={composerOpen && musicPickerOpen && !!previewMusic}
+        onPlaybackChange={setPreviewMusicStatus}
+        onInterrupted={() => setPreviewMusic(null)}
+      />
+
       <Modal
         visible={viewStory !== null}
         animationType="fade"
@@ -2021,6 +2111,13 @@ export default function BuklodMaritesBoard({
       >
         {viewStory && (
           <GestureHandlerRootView style={styles.fullscreen}>
+            <BuklodMaritesStoryAudio
+              track={viewerMusic?.storyId === viewStory.id ? viewerMusic.track : null}
+              startSeconds={viewerMusic?.start ?? 0}
+              active={playbackActive && !playbackBlocked && !composerOpen && !musicPickerOpen && viewerMusicEnabled && viewerMusic?.storyId === viewStory.id}
+              onPlaybackChange={setViewerMusicStatus}
+              onInterrupted={() => setViewerMusicEnabled(false)}
+            />
             {(() => {
                 const photoUris =
                   getMaritesStoryPhotos(viewStory);
@@ -2030,7 +2127,7 @@ export default function BuklodMaritesBoard({
                   !photoUris.length &&
                   isMaritesEmojiOnlyBody(body);
 
-                if (viewStory.video_uri) return <MaritesQuickVideo uri={viewStory.video_uri} />;
+                if (viewStory.video_uri) return <MaritesQuickVideo uri={viewStory.video_uri} muted={viewerMusicStatus.playing} />;
                 if (photoUris.length) {
                   if (photoUris.length === 1) {
                     return (
@@ -2139,6 +2236,21 @@ export default function BuklodMaritesBoard({
                   </Pressable>
                 );
               })()}
+
+            {viewerMusic?.storyId === viewStory.id && !storyZoomed ? (
+              <Pressable accessibilityRole="button"
+                accessibilityLabel={viewerMusicEnabled ? 'Mute Marites story music' : 'Play Marites story music'}
+                onPress={() => setViewerMusicEnabled(value => !value)}
+                style={{ position: 'absolute', left: 12, bottom: drawerBottomInset + 83,
+                  maxWidth: '54%', minHeight: 44, paddingHorizontal: 12,
+                  flexDirection: 'row', alignItems: 'center', gap: 7,
+                  backgroundColor: 'rgba(0,0,0,0.72)', borderRadius: 22, zIndex: 22 }}>
+                <MaterialCommunityIcons name={viewerMusicEnabled ? 'volume-high' : 'volume-off'} size={20} color="#FFFFFF"/>
+                <Text numberOfLines={1} style={{ color: '#FFFFFF', fontWeight: '700', flexShrink: 1, fontSize: 12 }}>
+                  {viewerMusicStatus.error || viewerMusic.track.title}
+                </Text>
+              </Pressable>
+            ) : null}
 
             <View
               style={[
