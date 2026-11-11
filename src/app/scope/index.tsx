@@ -15,6 +15,7 @@ import BuklodHomeFaithPanel from '@/components/BuklodHomeFaithPanel';
 import BuklodNonFaithEncouragementDoor from '@/components/BuklodNonFaithEncouragementDoor';
 import BuklodScopeBuklodLessonPanel from '@/components/BuklodScopeBuklodLessonPanel';
 import BuklodScopeFaithMonitoringSummary from '@/components/BuklodScopeFaithMonitoringSummary';
+import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import React, {
   useCallback,
   useEffect,
@@ -613,6 +614,8 @@ function LegacyScopeHome({
 
   return (
     <ScrollView
+      onScroll={event => reportBuklodDashboardScroll('scope', event.nativeEvent.contentOffset.y)}
+      scrollEventThrottle={64}
       contentContainerStyle={[
         styles.content,
         {
@@ -816,6 +819,8 @@ function LegacyScopeCommunity({
 
   return (
     <ScrollView
+      onScroll={event => reportBuklodDashboardScroll('scope', event.nativeEvent.contentOffset.y)}
+      scrollEventThrottle={64}
       contentContainerStyle={
         styles.content
       }
@@ -1113,6 +1118,8 @@ function ScopeConnect({
 
   return (
     <ScrollView
+      onScroll={event => reportBuklodDashboardScroll('scope', event.nativeEvent.contentOffset.y)}
+      scrollEventThrottle={64}
       contentContainerStyle={[
         styles.content,
         {
@@ -1292,7 +1299,7 @@ const styles =
         colors.background,
     },
     header: {
-      minHeight: 64,
+      minHeight: 56,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
@@ -1325,7 +1332,7 @@ const styles =
       fontWeight: '900',
     },
     tabs: {
-      minHeight: 54,
+      minHeight: 48,
       flexDirection: 'row',
       paddingHorizontal: 7,
       paddingVertical: 6,
