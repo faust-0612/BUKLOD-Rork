@@ -1775,10 +1775,11 @@ export default function BuklodMaritesBoard({
         topInset: insets.top, bottomInset: Math.max(insets.bottom, drawerBottomInset),
         offset: storyStripOffset.current,
         cardWidth: MARITES_COMPACT_CARD_WIDTH, gap: 7,
-        videos: activeStories.map(story => Boolean(story.video_uri)),
+        videos: displayStories.map(story =>
+          !story.id.startsWith('pending-marites-') && Boolean(story.video_uri)),
       }));
     });
-  }, [canPlayInline, activeStories, windowWidth, windowHeight, insets.top, insets.bottom, drawerBottomInset]);
+  }, [canPlayInline, displayStories, windowWidth, windowHeight, insets.top, insets.bottom, drawerBottomInset]);
   useEffect(() => {
     if (visibilityRefreshRef) visibilityRefreshRef.current = measureVisibility;
     measureVisibility();
