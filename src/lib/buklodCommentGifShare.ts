@@ -16,7 +16,7 @@ export async function stageSharedCommentGif(sourceUri: string): Promise<string> 
     Math.random().toString(36).slice(2) + '.gif';
   try {
     await FileSystem.copyAsync({ from: uri, to: target });
-    const info = await FileSystem.getInfoAsync(target, { size: true });
+    const info = await FileSystem.getInfoAsync(target);
     if (!info.exists || !('size' in info) || !Number(info.size)) {
       throw new Error('The shared GIF is empty or unreadable.');
     }
