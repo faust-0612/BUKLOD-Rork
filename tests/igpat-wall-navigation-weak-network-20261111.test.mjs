@@ -8,16 +8,14 @@ const native = read('src/app/igpat/index.tsx');
 const web = read('src/app/igpat/index.web.tsx');
 const cache = read('src/lib/igpat/warmFeed.ts');
 
-test('IGPAT remains a sibling shortcut in the public Wall, not a bottom-nav tab', () => {
+test('Retired IGPAT shortcut is absent and Community, DZAS remain accessible', () => {
   const shortcuts = read('src/components/BuklodWallQuickLinks.tsx');
-  const communityAt = shortcuts.indexOf('accessibilityLabel="Community Wall"');
-  const igpatAt = shortcuts.indexOf('accessibilityLabel="Open BUKLOD IGPAT videos"');
-  const dzasAt = shortcuts.indexOf('accessibilityLabel="Open 702 DZAS Radio"');
-  assert.ok(communityAt >= 0 && igpatAt > communityAt && dzasAt > igpatAt);
-  assert.match(shortcuts.slice(igpatAt, dzasAt), /router\.push\('\/igpat' as any\)/);
+  assert.match(shortcuts, /accessibilityLabel="Community Wall"/);
+  assert.match(shortcuts, /accessibilityLabel="Open 702 DZAS Radio"/);
+  assert.doesNotMatch(shortcuts, /IGPAT|igpat/);
   assert.match(shortcuts, /minHeight:42/);
   assert.match(wall, /<BuklodWallQuickLinks/);
-  assert.doesNotMatch(read('src/components/BuklodPersistentBottomNav.tsx'), /key:\s*'igpat'/);
+  assert.doesNotMatch(read('src/components/BuklodPersistentBottomNav.tsx'), /key:[^\n]*'igpat'/);
 });
 
 test('Both IGPAT clients retain account and mode scoped media rather than blanking on failed fetch', () => {

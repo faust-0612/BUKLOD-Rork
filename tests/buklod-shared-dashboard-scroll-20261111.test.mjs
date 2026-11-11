@@ -47,9 +47,10 @@ test('Wall, Home, Connect, Profile, Cluster, and Organization report scroll with
 
 test('all Wall shortcuts remain accessible and route to existing features', () => {
   const links = source('src/components/BuklodWallQuickLinks.tsx');
-  for (const label of ['Open My Bible', 'Community Wall', 'Open BUKLOD IGPAT videos', 'Open 702 DZAS Radio'])
+  for (const label of ['Open My Bible', 'Community Wall', 'Open 702 DZAS Radio'])
     assert.ok(links.includes(label), label);
-  for (const route of ['/bible/read?source=my_bible', '/igpat', '/personal-home/radio'])
+  for (const route of ['/bible/read?source=my_bible', '/personal-home/radio'])
     assert.ok(links.includes(route), route);
   assert.match(links, /onCommunityPress/);
+  assert.doesNotMatch(links, /IGPAT|\/igpat/);
 });

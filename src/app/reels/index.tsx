@@ -2,9 +2,9 @@ import { Redirect } from 'expo-router';
 
 /**
  * Legacy compatibility route.
- * BUKLOD Reels has been replaced by BUKLOD IGPAT.
- * Keep /reels working for old deep links without shipping a second video system.
+ * BUKLOD Reels and IGPAT are retired; preserve old links without opening a video feature.
+ * Send legacy /reels deep links to the Community Wall.
  */
 export default function LegacyReelsRedirect() {
-  return <Redirect href="/igpat" />;
+  return <Redirect href="/buklod" />;
 }

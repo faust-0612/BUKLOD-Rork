@@ -13,7 +13,8 @@ test('BUKLOD canonical Green B header and scroll treatment cover all public and 
   includes('src/app/(tabs)/buklod.tsx','reportBuklodDashboardScroll');
   for(const path of ['src/app/(tabs)/hub.tsx','src/app/(tabs)/messages.tsx','src/app/(tabs)/me.tsx','src/app/scope/index.tsx'])
     includes(path,'reportBuklodDashboardScroll');
-  for(const route of ['/igpat','/personal-home/radio','/bible/read?source=my_bible'])
+  assert.doesNotMatch(read('src/components/BuklodWallQuickLinks.tsx'), /IGPAT|\/igpat/);
+  for(const route of ['/personal-home/radio','/bible/read?source=my_bible'])
     includes('src/components/BuklodWallQuickLinks.tsx',route);
 });
 

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -280,7 +280,12 @@ function ActionButton({
   );
 }
 
-export default function IgpatScreen() {
+/** Retired route. Keep the old implementation inert for rollback/history. */
+export default function RetiredIgpatRoute() {
+  return <Redirect href="/buklod" />;
+}
+
+function IgpatScreen() {
   const { user } = useAuth();
   const screenFocused = useScreenFocused();
   const { status: networkStatus } = useNetwork();
