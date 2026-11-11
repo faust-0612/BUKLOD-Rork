@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "objective": "Refresh the BUKLOD Main title/encouragement and Community–IGPAT–DZAS shortcut chrome across Home, Wall, Connect, Profile and scoped Organization/Cluster dashboards, reduce wasted mobile height, and collapse header presentation on scrolling without remounting feeds.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "GitHub main observed at a0d986b835d778209fc3ab69a35a157798266d3b during DEV implementation on 2026-11-11. Branch created before two unrelated main commits touching ads and org release infrastructure; GitHub compare shows no overlapping changed paths. This is a DEV-only patch: no OTA, app-store build, web deployment or production database mutation was performed.",
+  "chosenApproach": "Reuse canonical BUKLOD logo image, compact safe-area-aware native header, theme-aware rounded encouragement card, extracted accessible Wall quick links, and small hysteresis-based shared scroll coordinator. Integrate scroll events with existing FlashList/FlatList/ScrollView rather than replacing feed internals. Retain desktop shell and scoped section/header rules. Scope switches reset compact state.",
+  "selectionRationale": "A shared header prevents design drift and excess vertical occupancy across tabs; hysteresis limits scroll rerenders on low-end devices while keeping navigation, media, sponsorship and permissions intact.",
+  "riskAreas": [
+    "navigation-scroll",
+    "scoped-dashboard",
+    "media-feed-preservation",
+    "header-hit-targets",
+    "accessibility",
+    "mobile-safe-area",
+    "production-release-gates"
+  ],
+  "preserveBehaviors": [
+    "Original Bible, Community, IGPAT and 702 DZAS routes plus one-tap interaction",
+    "Wall media player, native/web ads, first view campaign slot, profile bubbles, search, refresh, pagination, signed URLs, and virtualized row identity",
+    "Authenticated public and Cluster/Organization scope access, active scope isolation and back behavior",
+    "Desktop shell and its single desktop encouragement header with no duplicate",
+    "Canonical BUKLOD logo asset, notification badge, sponsorship button, status-bar inset and mobile bottom navigation",
+    "No native dependencies, data model, authorization, finance/points, AdMob, Play, OTA or production Supabase changes"
+  ],
+  "acceptanceChecks": [
+    "Main header displays canonical BUKLOD mark and reachable notifications on mobile",
+    "Community, IGPAT, DZAS, and Bible shortcuts work; Community returns to top",
+    "Home, Wall, Connect, Profile and scoped Home/Community all collapse the header on downward scrolling and expand near top; scoped section transitions reset",
+    "Encouragement shows localized verse/motivation and reference in expanded mode, with desktop copy not duplicated",
+    "Main feed navigation, weak-network cache, media viewport rules, paid sponsorship and on-refresh paths remain unchanged",
+    "Focused regression tests and TypeScript compile complete before RC; physical-device visuals and real OTA are not verified in this DEV change"
+  ],
+  "regressionTests": [
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/navigation-scroll-compact-public-wall.test.mjs",
+    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/shared-dashboard-header-scroll-20261111.json",
+    "src/lib/buklodDashboardScroll.ts",
+    "src/components/BuklodWallQuickLinks.tsx",
+    "src/components/BuklodDashboardContextBar.tsx",
+    "src/components/BuklodPublicDailyMessageBar.tsx",
+    "src/components/BuklodScopedDashboardHeader.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/scope/index.tsx",
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/navigation-scroll-compact-public-wall.test.mjs",
+    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
+  ],
+  "alternativeApproaches": [
+    "Separate hardcoded screens per dashboard rejected for drift, duplication and scope regressions",
+    "Absolute overlay and negative-margin navigation rejected for unsafe insets and feed jumps",
+    "New native rendering dependency or replacement of working FlashList/FlatList rejected to preserve runtime compatibility and performance"
+  ]
+}
