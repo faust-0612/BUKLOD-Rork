@@ -2,11 +2,11 @@
   "contractVersion": 2,
   "releaseMode": "consolidated-main-rc",
   "scopeManifestPath": ".buklod/scopes/nov11-consolidated-rc.json",
-  "objective": "Frozen BUKLOD Main DEV source for one consolidated RC compile, reconciliation and database-migration readiness; no production OTA yet. Integrate automatic source-backed QMP qualification and one canonical monthly System Admin Economy reporting snapshot (read-only Finance V3/QMP/AdMob) before final frozen RC.",
+  "objective": "Frozen BUKLOD Main DEV source for one consolidated RC compile, reconciliation and database-migration readiness; no production OTA yet. Integrate automatic source-backed QMP qualification and one canonical monthly System Admin Economy reporting snapshot (read-only Finance V3/QMP/AdMob) before final frozen RC. Include verified IGPAT Android decoder/upload memory protection and Supabase-only video upload fix for screenshot error; no new AWS writes or additional native binary.",
   "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
   "productionBaselineEvidence": "GitHub default main SHA 5efb99435243a4bcaeff27fc8d41d58b6a9969c2 checked on Nov 11 2026. This is a repository baseline, NOT live production OTA proof.",
-  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections. Reconcile eleventh photo-comment scope; previous exact-head CI success is invalidated until retested at new SHA. Reconciled KL approved-manuscript auto quiz as the twelfth workstream, guarded by disabled-by-default strict backend enforcement and existing Gemini service; no new paid provider. Reconcile the approved QMP automatic-review retirement and System Admin Economy report workstream into this same integration source, with an explicit pending read-only RPC migration and admin UI fail-closed period/race guards. Release-scope inventory reconciled with the concurrent mutual-engagement/KL reward workstream already in this cumulative branch. Add isolated Marites Full View soundtrack workstream (existing BUKLOD Music Library, existing RLS-secured post creatives, lazy Expo Audio) with explicit 15th component scope and no new DB/native dependency. Do not publish until reconciled RC.",
-  "selectionRationale": "A 116-file cumulative RC cannot legitimately pass the isolated one-manifest PR rule. An exact, auditable cumulative manifest with enumerated component scopes protects the release without disabling scope, security, regression and production gates.",
+  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections. Reconcile eleventh photo-comment scope; previous exact-head CI success is invalidated until retested at new SHA. Reconciled KL approved-manuscript auto quiz as the twelfth workstream, guarded by disabled-by-default strict backend enforcement and existing Gemini service; no new paid provider. Reconcile the approved QMP automatic-review retirement and System Admin Economy report workstream into this same integration source, with an explicit pending read-only RPC migration and admin UI fail-closed period/race guards. Release-scope inventory reconciled with the concurrent mutual-engagement/KL reward workstream already in this cumulative branch. Add isolated Marites Full View soundtrack workstream (existing BUKLOD Music Library, existing RLS-secured post creatives, lazy Expo Audio) with explicit 15th component scope and no new DB/native dependency. Do not publish until reconciled RC. Integrate the isolated QA-passed PR #704 code additively into this exact existing consolidated source; preserve unrelated IGPAT fast-start/Marites music, Community photo JPEG recovery and all existing component scopes. Route all new IGPAT/Community video to Supabase TUS or signed PUT, preserving read-only historical AWS media.",
+  "selectionRationale": "A 116-file cumulative RC cannot legitimately pass the isolated one-manifest PR rule. An exact, auditable cumulative manifest with enumerated component scopes protects the release without disabling scope, security, regression and production gates. Live IGPAT R10 RPC checks only storage.objects community-media: previous >45 MiB AWS dispatch creates a deterministic missing-object rejection, while configured Supabase Pro bucket already allows 1 GiB. Focused video decoder lifecycle fix lowers native memory pressure without adding permissions.",
   "alternativeApproaches": [
     "Split the RC back into ten independently compiled production candidates (rejected: duplicates and regression risk)",
     "Skip release scope accountability for cumulative PRs (rejected: unsafe)",
@@ -18,6 +18,7 @@
     ".buklod/scopes/community-scroll-comment-conso-inclusion-20261111.json",
     ".buklod/scopes/engagement-kl-rewards-r4-20261111.json",
     ".buklod/scopes/fullscreen-wall-video-smooth-ota-20261111.json",
+    ".buklod/scopes/igpat-native-memory-upload-20261111.json",
     ".buklod/scopes/kingdom-main-visual-consolidated-20261111.json",
     ".buklod/scopes/kl-auto-reading-quiz-consolidated-ota-20261111.json",
     ".buklod/scopes/marites-fullview-music-20261111.json",
@@ -49,7 +50,10 @@
     "Nov 11 mutual-engagement and KL verified-reading reward scope reconciled into exact cumulative scope inventory; no duplicate point credits or separate deployment.",
     "Dead member-side manual QMP review RPC client wrapper retired; source-backed automatic eligibility remains the sole path.",
     "Marites music from approved BUKLOD catalog persists on authenticated shared post creative and offline local story; 30-second clip; only Full View auto-plays, compact feed remains silent.",
-    "Marites music player is lazy, cancels on close/next story/background, respects explicit audio focus/mute, and does not create an audio player for feed cards. Validate native/Web compatibility on exact RC."
+    "Marites music player is lazy, cancels on close/next story/background, respects explicit audio focus/mute, and does not create an audio player for feed cards. Validate native/Web compatibility on exact RC.",
+    "IGPAT Android creator unmounts preview decoder during upload; hidden feed players and ads unmount on route blur; normal focused fast-start and PTT mixing preserved.",
+    "All new IGPAT and Community videos use Supabase community-media only, with 6 MiB resumable TUS and existing bounded retries; unknown sizes fail closed; no AWS upload dispatch.",
+    "Source-only IGPAT focused checks included; actual Android verification explicitly waived, NOT reported as device pass; production OTA still held for remaining cross-release gates."
   ],
   "preserveBehaviors": [
     "Security and private access rules",
@@ -64,7 +68,9 @@
     "No new paid OpenAI model for KL; existing Gemini service is optional and server-side, retry-only after failures.",
     "Existing merged RC media, ads, Kingdom and other experiences unchanged by reward-only integration; no OTA published before compiled artifact verification.",
     "Release candidate keeps separate payout queue fail-closed while finance totals remain accessible if payout queue fetch fails.",
-    "Marites post/reaction/comment/privacy/QuickVideo and all previously approved consolidated source workstreams unchanged by music inclusion."
+    "Marites post/reaction/comment/privacy/QuickVideo and all previously approved consolidated source workstreams unchanged by music inclusion.",
+    "17 historical AWS-referenced media records not deleted or rewritten; legacy read paths retained pending separate migration.",
+    "Marites 30s full-view music, existing video ad placements and supported Android binary compatibility preserved."
   ],
   "riskAreas": [
     "wall-media",
@@ -126,7 +132,9 @@
     "tests/reels-ads-fullscreen-ota-20261111.test.mjs",
     "tests/wall-messenger-photo-publish-20261110.test.mjs",
     "tests/wall-navigation-photo-publish-20261110.test.mjs",
-    "tests/wall-post-music-navigation-scroll.test.mjs"
+    "tests/wall-post-music-navigation-scroll.test.mjs",
+    "tests/igpat-native-memory-upload-20261111.test.mjs",
+    "tests/igpat-supabase-only-upload-20261111.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/ads-high-traffic-max-safe-20261111.json",
@@ -292,10 +300,13 @@
     "tests/reels-ads-fullscreen-ota-20261111.test.mjs",
     "tests/wall-messenger-photo-publish-20261110.test.mjs",
     "tests/wall-navigation-photo-publish-20261110.test.mjs",
-    "tests/wall-post-music-navigation-scroll.test.mjs"
+    "tests/wall-post-music-navigation-scroll.test.mjs",
+    ".buklod/scopes/igpat-native-memory-upload-20261111.json",
+    "tests/igpat-native-memory-upload-20261111.test.mjs",
+    "tests/igpat-supabase-only-upload-20261111.test.mjs"
   ],
-  "production": "HOLD / NO PUBLISH: Marites Full View Music included in cumulative source inventory, but current production OTA still requires exact candidate QA/compile, source reconciliation with main, and pending admin reporting snapshot migration/permissions readback. Payout flags remain OFF.",
-  "verifiedDevSourceSha": "PENDING_RECHECK_AFTER_MARITES_SCOPE",
+  "production": "HOLD / NO PUBLISH: Marites Full View Music included in cumulative source inventory, but current production OTA still requires exact candidate QA/compile, source reconciliation with main, and pending admin reporting snapshot migration/permissions readback. Payout flags remain OFF. IGPAT Supabase-only fix included in DEV candidate. No live publishing authorized; exact RC and unrelated pending backend requirements remain release blockers.",
+  "verifiedDevSourceSha": "PENDING_EXACT_CUMULATIVE_RC_QA",
   "pendingBackendMigrations": [
     "20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql"
   ],
@@ -348,5 +359,16 @@
       "production": "HOLD_NO_PUBLISH"
     },
     "backend": "Existing BUKLOD Music library, buklod_post_creatives and signed URLs; no new migration or native package"
+  },
+  "sourceIntake": {
+    "igpatSupabaseUpload": {
+      "sourcePr": 704,
+      "releaseStatus": "INCLUDED_IN_DEV_CONSOLIDATED_SOURCE__NO_OTA",
+      "previousStableSourceSha": "68d8b9e7a3959367fe34ee7a1a3008fc3be75870",
+      "waiver": "Physical device testing waived; not a passed verification",
+      "backend": "No new DB migration; existing live create_buklod_reel_v1 requires Supabase community-media object",
+      "adSafety": "Normal ad display after RPC only, no upload-time native interstitial prewarm",
+      "provider": "New uploads Supabase-only; historical AWS read-only"
+    }
   }
 }
