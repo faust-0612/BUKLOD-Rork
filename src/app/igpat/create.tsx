@@ -15,6 +15,10 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { uploadCommunityVideoFile } from '@/lib/uploadCommunityVideoFile';
+import {
+  enqueueInstantPublish,
+  InstantPublishUncertainError,
+} from '@/lib/buklodInstantPublishQueue';
 import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import {
   BUKLOD_REEL_MAX_DURATION_SECONDS,
@@ -329,43 +333,72 @@ export default function IgpatCreateScreen() {
       return Alert.alert('BUKLOD IGPAT', 'A Local Church assignment is required for this audience.');
     }
 
+    const snapshot = {
+      userId: user.id,
+      video: { ...draft },
+      body: caption.trim(),
+      audience,
+      groupId: audience === 'group' ? groupId : null,
+    };
     setBusy(true);
-    let uploadedPath: string | null = null;
-
     try {
-      uploadedPath = `${user.id}/igpat-${Date.now()}-${Math.random().toString(36).slice(2)}.${extensionForMime(draft.mimeType)}`;
-      setProgress(0);
-      await uploadCommunityVideoFile({
-        path: uploadedPath,
-        uri: draft.uri,
-        contentType: draft.mimeType,
-        onProgress: value => setProgress(value.ratio),
-      });
+      enqueueInstantPublish({
+        ownerId: snapshot.userId,
+        kind: 'igpat',
+        caption: snapshot.body,
+        mediaUri: snapshot.video.uri,
+        photoUris: [],
+      }, async reportProgress => {
+        const uploadedPath =
+          `${snapshot.userId}/igpat-${Date.now()}-${Math.random().toString(36).slice(2)}.${extensionForMime(snapshot.video.mimeType)}`;
+        let createAttempted = false;
+        try {
+          await uploadCommunityVideoFile({
+            path: uploadedPath,
+            uri: snapshot.video.uri,
+            contentType: snapshot.video.mimeType,
+            onProgress: value => reportProgress(value.ratio, `Uploading IGPAT… ${Math.round(value.ratio * 100)}%`),
+          });
+          reportProgress(1, 'Saving IGPAT…');
+          // Do not replay an ambiguous server commit: create_buklod_reel_v1
+          // currently does not accept a client idempotency key.
+          createAttempted = true;
+          const { error } = await (supabase as any).rpc('create_buklod_reel_v1', {
+            p_audience: snapshot.audience,
+            p_group_id: snapshot.groupId,
+            p_body: snapshot.body,
+            p_media_path: uploadedPath,
+            p_media_mime_type: snapshot.video.mimeType,
+            p_media_size_bytes: snapshot.video.sizeBytes,
+            p_duration_seconds: snapshot.video.durationSeconds,
+          });
+          if (error) throw error;
 
-      const { error } = await (supabase as any).rpc('create_buklod_reel_v1', {
-        p_audience: audience,
-        p_group_id: audience === 'group' ? groupId : null,
-        p_body: caption.trim(),
-        p_media_path: uploadedPath,
-        p_media_mime_type: draft.mimeType,
-        p_media_size_bytes: draft.sizeBytes,
-        p_duration_seconds: draft.durationSeconds,
+          // Existing ad opportunity remains after confirmed server commit.
+          // It is optional and cannot delay/roll back publication.
+          void showBuklodAdOpportunity('igpat_video_published').catch(() => undefined);
+          return 'posted';
+        } catch (error) {
+          if (createAttempted) {
+            throw new InstantPublishUncertainError(
+              'IGPAT upload finished, but server confirmation is unclear. Check your IGPAT feed before trying a new post.'
+            );
+          }
+          // No create RPC was sent. Removing an incomplete upload is safe.
+          void supabase.storage.from('community-media').remove([uploadedPath]).catch(() => undefined);
+          throw error;
+        }
       });
-      if (error) throw error;
-
-      // The video is already server-published; an optional ad must never
-      // control commit success, awards or duplicate this upload on retry.
-      await showBuklodAdOpportunity('igpat_video_published');
-      Alert.alert('IGPAT Published', 'Your IGPAT is now available to the selected audience.');
+      // Navigate immediately; the owner-only playable preview and upload
+      // status remain visible in the IGPAT feed while network work continues.
       router.replace('/igpat' as any);
     } catch (error: any) {
-      if (uploadedPath) {
-        await supabase.storage.from('community-media').remove([uploadedPath]);
-      }
-      Alert.alert('Could Not Publish IGPAT', error?.message ?? 'Please try again.');
+      Alert.alert('Could Not Start IGPAT', error?.message ?? 'Please try again.');
     } finally {
-      setBusy(false);
-      setProgress(null);
+      if (mountedRef.current) {
+        setBusy(false);
+        setProgress(null);
+      }
     }
   };
 
@@ -378,7 +411,7 @@ export default function IgpatCreateScreen() {
       <Text style={styles.eyebrow}>BUKLOD IGPAT</Text>
       <Text style={styles.title}>Create an Instant Bond</Text>
       <Text style={styles.subtitle}>
-        Record or choose a short video, preview it, then publish.
+        Record or choose a short video. Your preview appears immediately while upload continues in BUKLOD.
       </Text>
 
       {draft ? (
