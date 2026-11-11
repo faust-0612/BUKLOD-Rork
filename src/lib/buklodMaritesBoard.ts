@@ -1251,6 +1251,13 @@ export async function publishMaritesStory(input: {
             : '')
     );
 
+    // Do not publish a prior account's local media under a newly signed-in
+    // user if an in-progress upload outlives an account switch.
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || authData.user?.id !== input.userId) {
+      throw new Error('Account changed during Marites upload. Share again from the correct account.');
+    }
+
     const { data: created, error: createError } = await (
       supabase as any
     ).rpc('create_buklod_community_post_v3', {
