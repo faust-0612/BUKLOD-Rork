@@ -43,7 +43,7 @@ begin
   select tip_index into v_tip from public.buklod_weekly_tips_v1
    where enabled order by case when tip_index=mod(((v_week-date '2026-11-02')/7),12) then 0 else 1 end,tip_index limit 1;
   if v_tip is null then return null;end if;
-  select max(pg_catalog.greatest(reacted_at,dugtong_at)) into v_last
+  select max(greatest(reacted_at,dugtong_at)) into v_last
    from public.buklod_weekly_tip_interactions_v1
    where week_start=v_week and tip_index=v_tip;
   insert into public.buklod_today_tip_cycles_v2(tip_index,started_at,last_engagement_at)
