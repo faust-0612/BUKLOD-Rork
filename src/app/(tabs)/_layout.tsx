@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { buklodDashboardRoute, isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
@@ -14,6 +13,7 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   Text,
@@ -140,11 +140,12 @@ function SwipeDashboardHeader() {
       }}
     >
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-        <LinearGradient colors={['#B8F756','#42CC54','#087440']}
-          start={{x:0,y:0}} end={{x:1,y:1}}
-          style={{width:scrollCompact?31:37,height:scrollCompact?31:37,borderRadius:12,alignItems:'center',justifyContent:'center'}}>
-          <Text style={{color:'#FFFFFF',fontSize:scrollCompact?23:28,fontWeight:'900',fontStyle:'italic'}}>B</Text>
-        </LinearGradient>
+        <Image
+          accessibilityLabel="BUKLOD Green B logo"
+          source={require('../../../assets/release/buklod-main-canonical.png')}
+          resizeMode="contain"
+          style={{width:scrollCompact?31:37,height:scrollCompact?31:37}}
+        />
         <View style={{flex:1,minWidth:0}}>
           <Text numberOfLines={1} style={{color:theme.accent,fontSize:scrollCompact?22:25,
             lineHeight:scrollCompact?26:29,fontWeight:'900'}}>{title}</Text>
