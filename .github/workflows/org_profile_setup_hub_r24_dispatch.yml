@@ -1,34 +1,21 @@
-name: BUKLOD Organization Setup Hub R24 Dispatch
+# Retired R24 source-change auto-dispatch. Production web publication is only
+# authorized by production_web_deploy.yml's protected release-marker push.
+# The target workflow has no workflow_dispatch trigger: do not reintroduce
+# a gh workflow run call or any push trigger here.
+name: BUKLOD Organization Setup Hub R24 Legacy Dispatch (Retired)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/org_profile_setup_hub_r24_dispatch.yml'
-      - 'src/app/organizations/**'
-      - 'src/components/BuklodFoundationWorkspaceNav.tsx'
-      - 'src/components/BuklodProfileMembershipNav.tsx'
 
 permissions:
-  actions: write
   contents: read
 
 jobs:
-  dispatch-production:
+  legacy-dispatch-retired:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch vetted production web workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run production_web_deploy.yml --repo faust-0612/BUKLOD-Rork --ref main
-
-      # MANUAL_LOGIN_GATE_RELEASE_20260914
-      # Phase 1 is intentionally Web-only. Android OTA is dispatched only
-      # after the Web production workflow and live verification succeed.
-      - name: Summary
+      - name: Explain retired production shortcut
         run: |
-          echo 'BUKLOD manual login-gate release Phase 1 dispatched.'
-          echo 'Web uses the existing production QA/safety gates.'
-          echo 'Android OTA remains intentionally pending until Web is verified.'
+          echo "R24 legacy web auto-dispatch is retired."
+          echo "Use the single reviewed Main release-marker workflow for production publication."
+          echo "This workflow never deploys or triggers another workflow."
