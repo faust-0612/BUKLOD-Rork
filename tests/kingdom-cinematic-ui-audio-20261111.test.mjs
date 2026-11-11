@@ -17,7 +17,8 @@ test('Kingdom remains interactive with exactly 13 canonical routes and fit contr
 test('Kingdom ambience is local, opt-in, persisted, respects sound settings and cleans up on exit', () => {
   const a = read('src/features/games/runtime/rorkAudio.ts');
   assert.match(a, /buklod-kingdom-cinematic-ambient\.wav/);
-  assert.match(a, /useState\(false\)/);
+  assert.match(a, /useState\(!isKingdomMap\)/);
+  assert.match(a, /gameId === 'kingdom-map'/);
   assert.match(a, /AsyncStorage\.getItem\(KINGDOM_AMBIENCE_SETTING_KEY\)/);
   assert.match(a, /AsyncStorage\.setItem\(KINGDOM_AMBIENCE_SETTING_KEY/);
   assert.match(a, /isBuklodGameSoundEnabled\(\)/);

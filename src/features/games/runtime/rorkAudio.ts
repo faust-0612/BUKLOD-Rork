@@ -116,14 +116,17 @@ const KINGDOM_AMBIENCE_SETTING_KEY = '@buklod_kingdom_cinematic_ambience_v1';
  */
 export function useRorkGameAmbience(gameId?: string | null) {
   // Opt-in avoids surprising playback and the previously reported harsh intro.
-  const [musicEnabled, setMusicEnabled] = useState(false);
+  // Keep legacy interior-game audio behavior unchanged; only the main map is opt-in.
+  const isKingdomMap = gameId === 'kingdom-map';
+  const [musicEnabled, setMusicEnabled] = useState(!isKingdomMap);
   useEffect(() => {
+    if (!isKingdomMap) return;
     let live = true;
     void AsyncStorage.getItem(KINGDOM_AMBIENCE_SETTING_KEY)
       .then(value => { if (live) setMusicEnabled(value === 'on'); })
       .catch(() => undefined);
     return () => { live = false; };
-  }, []);
+  }, [isKingdomMap]);
   useEffect(() => {
     if (!gameId || !musicEnabled) return;
     const media = getRorkGameMedia(gameId);
@@ -171,7 +174,9 @@ export function useRorkGameAmbience(gameId?: string | null) {
   }, [gameId, musicEnabled]);
   return { musicEnabled, toggleMusic: () => setMusicEnabled(value => {
     const next = !value;
-    void AsyncStorage.setItem(KINGDOM_AMBIENCE_SETTING_KEY, next ? 'on' : 'off').catch(() => undefined);
+    if (isKingdomMap) {
+      void AsyncStorage.setItem(KINGDOM_AMBIENCE_SETTING_KEY, next ? 'on' : 'off').catch(() => undefined);
+    }
     return next;
   }) };
 }
