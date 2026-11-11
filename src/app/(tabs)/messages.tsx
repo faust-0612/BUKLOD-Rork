@@ -1,3 +1,4 @@
+import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import React, {
   useCallback,
   useEffect,
@@ -1331,6 +1332,8 @@ function ConnectScreenInner({
     <ConnectThreadBackground style={styles.screen}>
       <View style={styles.body}>
         <FlatList
+          onScroll={event => reportBuklodDashboardScroll('connect', event.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={64}
           ListHeaderComponent={renderHiblaHeader(tab === 'community')}
           data={tab === 'community' ? filteredRooms : personalListData}
           keyExtractor={(item: any) =>

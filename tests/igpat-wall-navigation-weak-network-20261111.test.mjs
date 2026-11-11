@@ -7,15 +7,17 @@ const wall = read('src/app/(tabs)/buklod.tsx');
 const native = read('src/app/igpat/index.tsx');
 const web = read('src/app/igpat/index.web.tsx');
 const cache = read('src/lib/igpat/warmFeed.ts');
+const signingBatch = read('src/lib/igpat/signBatch.ts');
 
-test('IGPAT is a sibling button in the public Wall header, not a new bottom-navigation tab', () => {
-  const communityAt = wall.indexOf('>\n      COMMUNITY\n');
-  const igpatAt = wall.indexOf('BUKLOD_WALL_IGPAT_SIBLING_R1');
-  const dzasAt = wall.indexOf('BUKLOD_DZAS_WALL_SHORTCUT_R1');
+test('IGPAT remains a sibling shortcut in the public Wall, not a bottom-nav tab', () => {
+  const shortcuts = read('src/components/BuklodWallQuickLinks.tsx');
+  const communityAt = shortcuts.indexOf('accessibilityLabel="Community Wall"');
+  const igpatAt = shortcuts.indexOf('accessibilityLabel="Open BUKLOD IGPAT videos"');
+  const dzasAt = shortcuts.indexOf('accessibilityLabel="Open 702 DZAS Radio"');
   assert.ok(communityAt >= 0 && igpatAt > communityAt && dzasAt > igpatAt);
-  assert.match(wall.slice(igpatAt, dzasAt), /accessibilityLabel="Open BUKLOD IGPAT videos"/);
-  assert.match(wall.slice(igpatAt, dzasAt), /onPress=\{\(\) => router\.push\('\/igpat' as any\)\}/);
-  assert.match(wall.slice(igpatAt, dzasAt), /minHeight:42/);
+  assert.match(shortcuts.slice(igpatAt, dzasAt), /router\.push\('\/igpat' as any\)/);
+  assert.match(shortcuts, /minHeight:42/);
+  assert.match(wall, /<BuklodWallQuickLinks/);
   assert.doesNotMatch(read('src/components/BuklodPersistentBottomNav.tsx'), /key:\s*'igpat'/);
 });
 
@@ -28,7 +30,7 @@ test('Both IGPAT clients retain account and mode scoped media rather than blanki
     assert.match(source, /!matchingFeed && warmRows\.length &&/);
     assert.match(source, /isIgpatWarmFeedFresh\(user\.id, feedMode, dataSaver\)/);
     assert.match(source, /rowsRef\.current = retainedRows;\s*setRows\(retainedRows\);/);
-    assert.match(source, /if \(!matchingFeed\) setActiveIndex\(0\)/);
+    assert.match(source, /if \(!matchingFeed\) \{\s*rowsRef\.current = warmRows;\s*setRows\(warmRows\);\s*setActiveIndex\(0\);/);
     assert.match(source, /generation !== loadGenerationRef\.current/);
   }
 });
@@ -63,10 +65,13 @@ test('Signed URL warm cache expires, remains in memory only and is account isola
 test('IGPAT still uses progressive signed URLs, bounded signing and gated native advertising', () => {
   for (const source of [native, web]) {
     assert.match(source, /const first = source\.length \? await sign\(source\[0\]\) : null/);
-    assert.match(source, /mapWithConcurrency\(source\.slice\(1\), SIGN_CONCURRENCY/);
-    assert.match(source, /const SIGN_CONCURRENCY = 4/);
+    assert.match(source, /signIgpatRowsInBatch\(\s*source\.slice\(2\)/);
+    assert.match(source, /void sign\(source\[1\]\)/);
+    assert.match(source, /createSignedUrls\(paths, SIGNED_URL_TTL_SECONDS\)/);
     assert.match(source, /SIGNED_URL_TTL_SECONDS = 1200/);
   }
+  assert.match(signingBatch, /Math\.min\(2, missing\.length\)/);
+  assert.match(signingBatch, /!isCurrent\(\)/);
   // Preserve the newer persistent Reels player: prewarm the next page without activating it.
   assert.match(native, /active=\{active\}/);
   assert.match(native, /prepare=\{!weakSignal && index===activeIndex\+1\}/);

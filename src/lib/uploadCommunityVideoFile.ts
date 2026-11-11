@@ -452,42 +452,46 @@ export async function uploadCommunityPhotoFile({
   return { sizeBytes: prepared.sizeBytes, path: actualPath };
 }
 
-/* Legacy compatibility only. Community Wall no longer exposes GIF upload. */
+/* Comment GIF uploader: preserve animation and copy Android content:// shares. */
 export async function uploadCommunityGifFile({
-  path,
-  uri,
-  sizeBytes = 0,
-  onProgress,
+  path, uri, sizeBytes = 0, onProgress,
 }: {
   path: string;
   uri: string;
   sizeBytes?: number;
-  onProgress?: (
-    progress: CommunityVideoUploadProgress
-  ) => void;
+  onProgress?: (progress: CommunityVideoUploadProgress) => void;
 }): Promise<{ sizeBytes: number }> {
-  let resolvedSizeBytes = Math.max(0, Number(sizeBytes ?? 0));
-  if (!resolvedSizeBytes) {
-    resolvedSizeBytes = await readBinarySizeBytes(uri);
-  }
-  if (!resolvedSizeBytes) {
-    throw new Error('Could not read the GIF file size.');
-  }
-  if (resolvedSizeBytes > 25 * 1024 * 1024) {
-    throw new Error('Maximum GIF size is 25 MB.');
-  }
+  let uploadUri = uri;
+  let temporaryUri: string | null = null;
+  try {
+    if (Platform.OS === 'android' && /^content:\/\//i.test(uri)) {
+      const directory = FileSystem.cacheDirectory;
+      if (!directory) throw new Error('Could not access the GIF upload cache.');
+      temporaryUri = directory + 'buklod-comment-gif-' +
+        Date.now() + '-' + Math.random().toString(36).slice(2) + '.gif';
+      await FileSystem.copyAsync({ from: uri, to: temporaryUri });
+      uploadUri = temporaryUri;
+    }
 
-  await uploadCommunityBinaryFile({
-    path,
-    uri,
-    contentType: 'image/gif',
-    onProgress,
-    sizeBytes: resolvedSizeBytes,
-    failureLabel: 'GIF',
-    preferResumable: false,
-  });
+    let resolvedSizeBytes = Math.max(0, Number(sizeBytes ?? 0));
+    if (!resolvedSizeBytes) resolvedSizeBytes = await readBinarySizeBytes(uploadUri);
+    if (!resolvedSizeBytes) throw new Error('Could not read the GIF file size.');
+    if (resolvedSizeBytes > 25 * 1024 * 1024) {
+      throw new Error('Maximum GIF size is 25 MB.');
+    }
 
-  return { sizeBytes: resolvedSizeBytes };
+    await uploadCommunityBinaryFile({
+      path, uri: uploadUri, contentType: 'image/gif', onProgress,
+      sizeBytes: resolvedSizeBytes, failureLabel: 'GIF',
+      preferResumable: false,
+    });
+    return { sizeBytes: resolvedSizeBytes };
+  } finally {
+    if (temporaryUri) {
+      await FileSystem.deleteAsync(temporaryUri, { idempotent: true })
+        .catch(() => undefined);
+    }
+  }
 }
 
 async function uploadCommunityBinaryFile({

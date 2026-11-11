@@ -15,6 +15,8 @@ export type PickedCommunityPhoto = {
 export async function pickCommunityPhotos(options: {
   remaining: number;
   maxPhotos?: number;
+  /** Preserve original animated GIF bytes in comment attachments. */
+  preserveAnimation?: boolean;
 }): Promise<PickedCommunityPhoto[]> {
   const maxPhotos = options.maxPhotos ?? COMMUNITY_MAX_PHOTOS;
   const remaining = Math.max(0, Number(options.remaining ?? 0));
@@ -44,7 +46,7 @@ export async function pickCommunityPhotos(options: {
     allowsEditing: false,
     allowsMultipleSelection: true,
     selectionLimit: remaining,
-    quality: 0.85,
+    quality: options.preserveAnimation ? 1 : 0.85,
     legacy: false,
   });
 

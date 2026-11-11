@@ -14,12 +14,14 @@ test('compact Wall header leaves feed scroll, pagination and refresh semantics u
   assert.match(wall, /communityFeedRefBackR2\.current\.scrollToTop\(\{ animated: true \}\)/);
 });
 
-test('all compact Wall entry controls remain in the scrollable header', () => {
+test('all compact Wall controls remain inside the scrollable header', () => {
   const start = wall.indexOf('/* PATCH_161A_COMMUNITY_COMPACT */');
   const end = wall.indexOf("{Platform.OS !== 'web' ?", start);
   const header = wall.slice(start, end);
-  assert.match(header, /Open My Bible/);
-  assert.match(header, /COMMUNITY/);
-  assert.match(header, /Open 702 DZAS Radio/);
+  const shortcuts = readFileSync('src/components/BuklodWallQuickLinks.tsx','utf8');
+  assert.match(header, /<BuklodWallQuickLinks/);
+  assert.match(shortcuts, /Open My Bible/);
+  assert.match(shortcuts, /COMMUNITY/);
+  assert.match(shortcuts, /Open 702 DZAS Radio/);
   assert.match(wall, /BuklodCommunityWallProfileBubbles/);
 });

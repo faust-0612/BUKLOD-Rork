@@ -286,10 +286,8 @@ export function BuklodCommunityCommentBubble({
       return;
     }
 
-    if (
-      media.kind === 'gif' ||
-      /^https?:\/\//i.test(media.ref)
-    ) {
+    // Catalog GIFs are HTTPS; phone GIFs need a signed private Storage URL.
+    if (/^https?:\/\//i.test(media.ref)) {
       setMediaUri(media.ref);
       return;
     }
