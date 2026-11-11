@@ -5,7 +5,7 @@
   "objective": "Frozen BUKLOD Main DEV source for one consolidated RC compile, reconciliation and database-migration readiness; no production OTA yet. Integrate automatic source-backed QMP qualification and one canonical monthly System Admin Economy reporting snapshot (read-only Finance V3/QMP/AdMob) before final frozen RC.",
   "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
   "productionBaselineEvidence": "GitHub default main SHA 5efb99435243a4bcaeff27fc8d41d58b6a9969c2 checked on Nov 11 2026. This is a repository baseline, NOT live production OTA proof.",
-  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections. Reconcile eleventh photo-comment scope; previous exact-head CI success is invalidated until retested at new SHA. Reconciled KL approved-manuscript auto quiz as the twelfth workstream, guarded by disabled-by-default strict backend enforcement and existing Gemini service; no new paid provider. Reconcile the approved QMP automatic-review retirement and System Admin Economy report workstream into this same integration source, with an explicit pending read-only RPC migration and admin UI fail-closed period/race guards.",
+  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections. Reconcile eleventh photo-comment scope; previous exact-head CI success is invalidated until retested at new SHA. Reconciled KL approved-manuscript auto quiz as the twelfth workstream, guarded by disabled-by-default strict backend enforcement and existing Gemini service; no new paid provider. Reconcile the approved QMP automatic-review retirement and System Admin Economy report workstream into this same integration source, with an explicit pending read-only RPC migration and admin UI fail-closed period/race guards. Release-scope inventory reconciled with the concurrent mutual-engagement/KL reward workstream already in this cumulative branch.",
   "selectionRationale": "A 116-file cumulative RC cannot legitimately pass the isolated one-manifest PR rule. An exact, auditable cumulative manifest with enumerated component scopes protects the release without disabling scope, security, regression and production gates.",
   "alternativeApproaches": [
     "Split the RC back into ten independently compiled production candidates (rejected: duplicates and regression risk)",
@@ -25,7 +25,8 @@
     ".buklod/scopes/wall-video-ota-inclusion-20261110.json",
     ".buklod/scopes/photo-comments-per-photo-20261111.json",
     ".buklod/scopes/kl-auto-reading-quiz-consolidated-ota-20261111.json",
-    ".buklod/scopes/automatic-qmp-no-manual-review-20261111.json"
+    ".buklod/scopes/automatic-qmp-no-manual-review-20261111.json",
+    ".buklod/scopes/engagement-kl-rewards-r4-20261111.json"
   ],
   "acceptanceChecks": [
     "All changed paths are individually listed and reviewed against current main; no broad directory allowlisting.",
@@ -43,7 +44,8 @@
     "Verified KL +10 chapter / +50 30-chapter season and gated qualified likes, comments, helper +2/+5/+10, three-person chain +3 BP, without duplicate QMP.",
     "Admin Reports Center, Economy/Bayanihan and Economy Operations use the same month-specific canonical Finance V3 + QMP + provisional AdMob read-only snapshot. Legacy R38 BCU/RCU excluded from money reports.",
     "Run canonical admin Economy SQL permission/period contract after snapshot migration; no client exposure before the RPC exists.",
-    "No live verification and no new production migration/publish in this preparation task; no change to financial activation or payout gates."
+    "No live verification and no new production migration/publish in this preparation task; no change to financial activation or payout gates.",
+    "Nov 11 mutual-engagement and KL verified-reading reward scope reconciled into exact cumulative scope inventory; no duplicate point credits or separate deployment."
   ],
   "preserveBehaviors": [
     "Security and private access rules",
