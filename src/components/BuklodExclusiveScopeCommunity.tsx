@@ -85,7 +85,7 @@ import {
   rememberCommunityCollageLayout,
   type CommunityPhotoCollageLayout,
 } from '@/components/BuklodCommunityPhotoCollage';
-import { peekCommunityMediaUrl, resignCommunityMediaUrl } from '@/lib/buklodMediaUrl';
+import { peekCommunityMediaUrl, resignCommunityMediaUrl, isLocalMediaUri } from '@/lib/buklodMediaUrl';
 import { applyCommunityWallMediaHydration, preservePendingCommunityWallMedia } from '@/lib/communityWallHydration';
 import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
 import { useNetwork } from '@/providers/NetworkProvider';
@@ -2460,6 +2460,13 @@ export default function BuklodExclusiveScopeCommunity({
           uri: originalMedia.ref,
         });
         mediaForBody = { kind: 'image', ref: path };
+      }
+      if (originalMedia?.kind === 'gif' && isLocalMediaUri(originalMedia.ref)) {
+        if (!user?.id) throw new Error('Please sign in to add a GIF.');
+        // Scope/media RLS uses the authorized scope and owner path.
+        const path = `scope/${scope.scope_id}/${user.id}/comment-gif-${Date.now()}-${Math.random().toString(36).slice(2)}.gif`;
+        await uploadCommunityGifFile({ path, uri: originalMedia.ref });
+        mediaForBody = { kind: 'gif', ref: path };
       }
 
       finalBody = encodeBuklodCommentMediaBody(mediaForBody, finalBody);
