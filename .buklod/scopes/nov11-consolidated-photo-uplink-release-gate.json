@@ -17,9 +17,7 @@
     "release-identity"
   ],
   "regressionTests": [
-    "tests/weak-media-rendering.test.cjs",
-    "tests/community-media-weak-signal.test.cjs",
-    "tests/wall-messenger-photo-publish-20261110.test.mjs"
+    "tests/weak-media-rendering.test.cjs"
   ],
   "allowedPaths": [
     "src/lib/uploadCommunityVideoFile.ts",
@@ -31,7 +29,8 @@
     "Web Messenger valid JPEG up to 12MB bypasses unreliable WebKit canvas and 45MB fallback remains",
     "Original weak-signal and Messenger tests pass with no test gate deleted",
     "Production Android/Web release workflows verify matching exact source SHA before publishing",
-    "No native module/runtime, Supabase migration, financial flag or auth change"
+    "No native module/runtime, Supabase migration, financial flag or auth change",
+    "Run existing Community weak-signal and iOS Messenger JPEG contracts as unmodified external release checks; scope regressionTests enumerates changed test files only."
   ],
   "preserveBehaviors": [
     "Existing WebView image/jpeg safety and signed upload MIME correctness",
