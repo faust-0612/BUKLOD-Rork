@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "objective": "Publish working BUKLOD PTT in the existing BUKLOD Expo Web Home and route, interoperable with Android without any Android OTA.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "GitHub main SHA a0d986b835d778209fc3ab69a35a157798266d3b inspected 2026-11-11; Web route placeholder and Web entry hidden. Main Supabase yhanxndaqbmuzbdqlblu active; buklod-ptt-access v12 and buklod-ptt-captions v2 ACTIVE; shared PTT RPCs exist, PTT and membership tables RLS enabled. Current live Expo production web asset SHA not independently verified. Release is fail-closed pending exact RC build and live verification.",
+  "chosenApproach": "Use platform-specific web PTT core based on existing low-level Stream browser SDK and shared secure membership token, floor lease RPC, and chat runtime; expose Web Home PTT door; retain native core unchanged; add web confirmation to existing caption consent UI; gate promotion on exact Expo Hosting production export.",
+  "selectionRationale": "Reuses server membership/stream call and Android PTT floor control, avoids new service, native build, duplicate channels, and replacing currently functioning Android PTT. Platform file preserves behavior and limits regression.",
+  "alternativeApproaches": [
+    "Create standalone PTT web microservice and database; rejected due duplication, security drift and unnecessary cost.",
+    "Import React Native WebRTC SDK directly into web route; rejected due native browser bundling incompatibility.",
+    "Selected: low-level Stream browser SDK with server-enforced scopes and existing RPCs, separate Expo Web source."
+  ],
+  "acceptanceChecks": [
+    "BUKLOD Web Home shows PTT entry with linked /personal-home/ptt page, not a placeholder.",
+    "Signed-in active scope member sees authorized scopes and CH01–CH10; join only via server-issued PTT credentials, no arbitrary call create.",
+    "Web and Android join the same call ID; microphone muted before join, floor acquired before transmit and released on pointer-up, hidden tab, or unmount.",
+    "Remote audio renders with Stream bindAudioElement, browser speaker retry is available, and chat and captions consent remain functional.",
+    "Web PTT upload/build passes Node contracts and TypeScript; exact production Expo export RC and Supabase URL checked before production hosting publish.",
+    "Android PTT core, Android OTA workflow, main navigation, other calls and audio remain unchanged; no live claims before verification."
+  ],
+  "preserveBehaviors": [
+    "Existing BUKLOD Android native PTT, channel monitoring, priority/SOS floor controls, and caption storage consent.",
+    "Existing authenticated scope membership and RLS for PTT messages, privacy and account isolation.",
+    "Other web video/audio calling, Wall audio, navigation and adverts, without forced pause of unrelated sounds.",
+    "No Android OTA or native build in this Web-only release."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/buklod-ptt-web-contract.test.mjs",
+    "tests/buklod-ptt-web-release.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/ptt/buklodPttCore.web.ts",
+    "src/app/personal-home/ptt.web.tsx",
+    "src/components/BuklodPttConversation.tsx",
+    "src/components/BuklodPttEntryButton.web.tsx",
+    "tests/buklod-ptt-web-contract.test.mjs",
+    "tests/buklod-ptt-web-release.test.mjs",
+    ".github/workflows/production_web_deploy.yml"
+  ]
+}
