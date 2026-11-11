@@ -92,6 +92,7 @@ function IgpatVideo({
 }: { uri: string; active: boolean; conservativeBuffer: boolean }) {
   const [pausedByUser, setPausedByUser] = useState(false);
   const [firstFrameUri, setFirstFrameUri] = useState<string | null>(null);
+  const [showTapHint, setShowTapHint] = useState(false);
   const playbackActivatedAtRef = useRef(Date.now());
   const firstFrameReportedRef = useRef(false);
   // Native cache and HLS auto-ABR when the backend supplies a playlist.
@@ -169,6 +170,13 @@ function IgpatVideo({
     }
   }, [active, uri]);
 
+  useEffect(() => {
+    setShowTapHint(false);
+    if (!active || firstFrameUri === uri) return;
+    const timeout = setTimeout(() => setShowTapHint(true), 3000);
+    return () => clearTimeout(timeout);
+  }, [active, firstFrameUri, uri]);
+
   const handleFirstFrameRender = () => {
     setFirstFrameUri(uri);
     if (active && !firstFrameReportedRef.current) {
@@ -219,7 +227,15 @@ function IgpatVideo({
   return (
     <Pressable
       style={StyleSheet.absoluteFill}
-      onPress={() => active && setPausedByUser(current => !current)}
+      onPress={() => {
+        if (!active) return;
+        if (firstFrameUri !== uri) {
+          setPausedByUser(false);
+          try { player.play(); } catch {}
+        } else {
+          setPausedByUser(current => !current);
+        }
+      }
       onLongPress={startFastPlayback}
       onPressOut={stopFastPlayback}
       delayLongPress={220}
@@ -238,7 +254,7 @@ function IgpatVideo({
       {active && firstFrameUri !== uri ? (
         <View pointerEvents="none" style={styles.videoLoading}>
           <ActivityIndicator size="small" color="#FFFFFF" />
-          <Text style={styles.videoLoadingText}>OPENING VIDEO</Text>
+          <Text style={styles.videoLoadingText}>{showTapHint ? 'TAP TO PLAY' : 'OPENING VIDEO'}</Text>
         </View>
       ) : null}
       {active && pausedByUser && (
