@@ -195,7 +195,7 @@ test('new post-production RC remains an exact named cumulative scope with strict
  const files=[path,...parts,'src/features/games/runtime/rorkAudio.ts',proof];
  const manifest={...goodManifest,releaseMode:'consolidated-main-rc',
   scopeManifestPath:path,componentScopePaths:parts,allowedPaths:files,
-  regressionTests:[proof],riskAreas:[]};
+  regressionTests:[proof],riskAreas:['wall-media']};
  assert.deepEqual(assessChanges(files,manifest,{consolidatedRc:true}).failures,[]);
  assert.match(assessChanges(files,manifest).failures.join(' '),/Only one new scope manifest/);
  assert.match(assessChanges([...files,'src/lib/buklodGlobalAdController.ts'],manifest,{consolidatedRc:true}).failures.join(' '),/outside the declared scope allowlist/);
