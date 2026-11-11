@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify-compiled-artifacts:
-    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108' || github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy' || github.head_ref == 'integration/ota-nov09-circle-rank-progression' || github.head_ref == 'integration/buklod-nov09-consolidated-ota-web' || github.head_ref == 'integration/buklod-nov09-bible-v4-rank-ptt-ota-rc' || github.head_ref == 'integration/buklod-nov09-bible-v4-font-sizing-ota-rc' || github.head_ref == 'fix/bahay-kasambahay-invite-20261110' || github.head_ref == 'integration/buklod-nov10-single-source-ota' || github.head_ref == 'integration/buklod-nov11-current-main-verified-rc' || github.head_ref == 'dev/kingdom-main-visual-consolidated-20261111' || github.head_ref == 'fix/ptt-consent-caption-accuracy-20261111' || github.head_ref == 'fix/buklod-ads-appwide-final-lock-20261111' || github.head_ref == 'fix/engagement-ad-fill-and-comment-viewability-20261111')
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108' || github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy' || github.head_ref == 'integration/ota-nov09-circle-rank-progression' || github.head_ref == 'integration/buklod-nov09-consolidated-ota-web' || github.head_ref == 'integration/buklod-nov09-bible-v4-rank-ptt-ota-rc' || github.head_ref == 'integration/buklod-nov09-bible-v4-font-sizing-ota-rc' || github.head_ref == 'fix/bahay-kasambahay-invite-20261110' || github.head_ref == 'integration/buklod-nov10-single-source-ota' || github.head_ref == 'integration/buklod-nov11-current-main-verified-rc' || github.head_ref == 'dev/kingdom-main-visual-consolidated-20261111' || github.head_ref == 'fix/ptt-consent-caption-accuracy-20261111' || github.head_ref == 'fix/buklod-ads-appwide-final-lock-20261111' || github.head_ref == 'fix/engagement-ad-fill-and-comment-viewability-20261111' || github.head_ref == 'fix/admob-fill-finance-reconciled-20261111')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:
@@ -51,6 +51,9 @@ jobs:
           set -a; . ./.env.local; set +a
           test "${EXPO_PUBLIC_SUPABASE_URL:-}" = "https://yhanxndaqbmuzbdqlblu.supabase.co"
           test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          # Non-publishing gate: verify real AdMob live mode and production units.
+          # The checker never prints ad unit IDs, publisher identifiers or secrets.
+          node scripts/verify-production-ads-env.cjs
           node -e "const fs=require('node:fs'); const c=JSON.parse(require('node:child_process').execFileSync('npx',['expo','config','--json'],{encoding:'utf8'})); const assert=require('node:assert/strict'); assert.equal(c.android.package,'org.mzbministry.buklod'); assert.equal(c.android.versionCode,30); assert.equal(c.runtimeVersion,'1.3.2'); assert.equal(c.extra?.eas?.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8'); fs.writeFileSync('/tmp/buklod-rc-identity.json', JSON.stringify({sha:require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),runtime:c.runtimeVersion,package:c.android.package,project:c.extra.eas.projectId}));"
       - name: TypeScript and 39-game proof contracts
         run: |
@@ -81,6 +84,7 @@ jobs:
         run: |
           node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
           node --test tests/buklod-ads-production-release-contract-20261111.test.mjs
+          node --test tests/buklod-admob-fill-finance-release-20261111.test.mjs
           node scripts/buklod-ad-surface-audit.mjs --summary
 
       - name: Native Reels and fullscreen video ads regression

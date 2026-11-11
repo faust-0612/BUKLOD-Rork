@@ -81,6 +81,9 @@ jobs:
           node --test tests/buklod-ads-production-release-contract-20261111.test.mjs
           node scripts/buklod-ad-surface-audit.mjs --summary
 
+      - name: Verify AdMob fill diagnostics and source-backed Finance gate
+        run: node --test tests/buklod-admob-fill-finance-release-20261111.test.mjs
+
       - name: AdMob startup, Reels feed, scope, fallback and recovery regression suite
         run: |
           node --test tests/production-ota-ads-regression.test.mjs
