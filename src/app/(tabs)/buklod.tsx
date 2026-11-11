@@ -94,6 +94,8 @@ import { recordConfirmedCommunityComment, takePendingCommunityCommentAdBreak } f
 import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodWallQuickLinks from '@/components/BuklodWallQuickLinks';
+import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
 import {
@@ -5265,6 +5267,7 @@ const communityFeedRows =
     onScroll={(event:any) => {
       communityScrollYRefBackR2.current =
         Number(event?.nativeEvent?.contentOffset?.y ?? 0);
+      reportBuklodDashboardScroll('wall', communityScrollYRefBackR2.current);
       maritesVisibilityRefreshRef.current?.();
     }}
     scrollEventThrottle={16}
@@ -5289,131 +5292,11 @@ const communityFeedRows =
    </Text>
   )}
 {/* PATCH_161A_COMMUNITY_COMPACT */}
-   <Text style={s.eyebrow}>
-    BUKLOD
-   </Text>
+   <BuklodWallQuickLinks
+     onCommunityPress={() => communityFeedRefBackR2.current?.scrollToOffset({offset:0,animated:true})}
+   />
 
-   <View
-    style={{
-     flexDirection:'row',
-     gap:7,
-     marginBottom:6
-    }}
-   >
-    <Pressable
-     accessibilityRole="button"
-     accessibilityLabel="Open My Bible"
-     accessibilityHint="Opens the complete Bible reader with book and chapter selection"
-     onPress={()=>
-      router.push('/bible/read?source=my_bible' as any)
-     }
-     style={({pressed})=>({
-      width:38,
-      height:38,
-      borderRadius:11,
-      alignItems:'center',
-      justifyContent:'center',
-      backgroundColor:'#3DDC4A',
-      opacity:pressed?0.72:1,
-     })}
-    >
-     <MaterialCommunityIcons
-      name="book-open-variant"
-      size={23}
-      color="#FFFFFF"
-     />
-
-    </Pressable>
-    <View
-     style={{
-      flex:1,
-      minHeight:38,
-      borderRadius:12,
-      backgroundColor:colors.green,
-      alignItems:'center',
-      justifyContent:'center'
-     }}
-    >
-     <Text
-      style={{
-       fontSize:11,
-       fontWeight:'900',
-       color:'#FFFFFF'
-      }}
-     >
-      COMMUNITY
-     </Text>
-    </View>
-
-    {/* BUKLOD_WALL_IGPAT_SIBLING_R1: keep Community active, open video immediately. */}
-    <Pressable
-     accessibilityRole="button"
-     accessibilityLabel="Open BUKLOD IGPAT videos"
-     accessibilityHint="Switches from Community Wall to the immersive IGPAT video feed"
-     onPress={() => router.push('/igpat' as any)}
-     hitSlop={4}
-     style={({pressed})=>({
-      flex:1,
-      minWidth:0,
-      minHeight:42,
-      borderRadius:12,
-      flexDirection:'row',
-      alignItems:'center',
-      justifyContent:'center',
-      gap:5,
-      borderWidth:1,
-      borderColor:colors.green,
-      backgroundColor:colors.white,
-      opacity:pressed?0.72:1,
-     })}
-    >
-     <MaterialCommunityIcons name="play-circle-outline" size={18} color={colors.greenDark} />
-     <Text numberOfLines={1} style={{fontSize:11,fontWeight:'900',color:colors.greenDark}}>IGPAT</Text>
-    </Pressable>
-
-    {/* BUKLOD_DZAS_WALL_SHORTCUT_R1 */}
-    <Pressable
-     accessibilityRole="button"
-     accessibilityLabel="Open 702 DZAS Radio"
-     onPress={()=>
-      router.push(
-       '/personal-home/radio' as any
-      )
-     }
-     style={({pressed})=>({
-      minWidth:68,
-       height:38,
-       borderRadius:11,
-      paddingHorizontal:10,
-      flexDirection:'row',
-      alignItems:'center',
-      justifyContent:'center',
-      gap:5,
-      borderWidth:1,
-      borderColor:colors.line,
-      backgroundColor:colors.white,
-      opacity:pressed?0.72:1,
-     })}
-    >
-     <MaterialCommunityIcons
-      name="radio"
-      size={16}
-      color={colors.green}
-     />
-     <Text
-      style={{
-       fontSize:10,
-       fontWeight:'900',
-       color:colors.green,
-      }}
-     >
-      DZAS
-     </Text>
-    </Pressable>
-
-   </View>
-
-   {Platform.OS !== 'web' ? (
+    {Platform.OS !== 'web' ? (
     <BuklodCommunityWallProfileBubbles />
    ) : null}
 

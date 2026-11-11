@@ -18,18 +18,22 @@ test('no direct-to-main legacy auto-patch or Play submission',()=>{
     assert.doesNotMatch(read(f),/--auto-submit-with-profile google-play-internal/,f);
   }
 });
-test('Android release manual exact SHA frozen RC and latest main',()=>{
-  assert.match(a,/on:\n  workflow_dispatch:/);
-  assert.doesNotMatch(a,/^  push:/m);
+test('Android release is restricted to explicit main marker and frozen RC',()=>{
+  assert.doesNotMatch(a,/^  workflow_dispatch:/m);
+  assert.match(a,/^  push:/m);
+  assert.match(a,/github\.event_name == 'push'/);
+  assert.match(a,/BUKLOD_CONSOLIDATED_PROD_20261108/);
   assert.match(a,/group: buklod-production-android-ota/);
   assert.match(a,/ref: \${{ github.sha }}/);
   assert.match(a,/--input-dir rc --skip-bundler/);
   assert.match(a,/git ls-remote origin refs\/heads\/main/);
   assert.match(readFileSync('scripts/android-ota-rc.cjs','utf8'),/const runtime = '1\.3\.2'/);
 });
-test('Web manual exact SHA frozen dist and latest main',()=>{
-  assert.match(w,/on:\n  workflow_dispatch:/);
-  assert.doesNotMatch(w,/^  push:/m);
+test('Web release is restricted to explicit main marker and frozen dist',()=>{
+  assert.doesNotMatch(w,/^  workflow_dispatch:/m);
+  assert.match(w,/^  push:/m);
+  assert.match(w,/github\.event_name == 'push'/);
+  assert.match(w,/BUKLOD_CONSOLIDATED_PROD_20261108/);
   assert.match(w,/group: buklod-production-web/);
   assert.match(w,/ref: \${{ github.sha }}/);
   assert.match(w,/sha256sum -c web-rc-sha256.txt/);
