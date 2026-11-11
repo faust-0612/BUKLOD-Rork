@@ -2,10 +2,10 @@
   "contractVersion": 2,
   "releaseMode": "consolidated-main-rc",
   "scopeManifestPath": ".buklod/scopes/nov11-consolidated-rc.json",
-  "objective": "Frozen BUKLOD Main DEV source for one consolidated RC compile, reconciliation and database-migration readiness; no production OTA yet.",
+  "objective": "Frozen BUKLOD Main DEV source for one consolidated RC compile, reconciliation and database-migration readiness; no production OTA yet. Integrate automatic source-backed QMP qualification and one canonical monthly System Admin Economy reporting snapshot (read-only Finance V3/QMP/AdMob) before final frozen RC.",
   "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
   "productionBaselineEvidence": "GitHub default main SHA 5efb99435243a4bcaeff27fc8d41d58b6a9969c2 checked on Nov 11 2026. This is a repository baseline, NOT live production OTA proof.",
-  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections. Reconcile eleventh photo-comment scope; previous exact-head CI success is invalidated until retested at new SHA. Reconciled KL approved-manuscript auto quiz as the twelfth workstream, guarded by disabled-by-default strict backend enforcement and existing Gemini service; no new paid provider.",
+  "chosenApproach": "Aggregate ten individually scoped v2 workstreams with explicit complete changed-file allowlist and independent compiled Android/Web CI; preserve ordinary single-scope protections. Reconcile eleventh photo-comment scope; previous exact-head CI success is invalidated until retested at new SHA. Reconciled KL approved-manuscript auto quiz as the twelfth workstream, guarded by disabled-by-default strict backend enforcement and existing Gemini service; no new paid provider. Reconcile the approved QMP automatic-review retirement and System Admin Economy report workstream into this same integration source, with an explicit pending read-only RPC migration and admin UI fail-closed period/race guards.",
   "selectionRationale": "A 116-file cumulative RC cannot legitimately pass the isolated one-manifest PR rule. An exact, auditable cumulative manifest with enumerated component scopes protects the release without disabling scope, security, regression and production gates.",
   "alternativeApproaches": [
     "Split the RC back into ten independently compiled production candidates (rejected: duplicates and regression risk)",
@@ -24,7 +24,8 @@
     ".buklod/scopes/wall-messenger-photo-publish-20261110.json",
     ".buklod/scopes/wall-video-ota-inclusion-20261110.json",
     ".buklod/scopes/photo-comments-per-photo-20261111.json",
-    ".buklod/scopes/kl-auto-reading-quiz-consolidated-ota-20261111.json"
+    ".buklod/scopes/kl-auto-reading-quiz-consolidated-ota-20261111.json",
+    ".buklod/scopes/automatic-qmp-no-manual-review-20261111.json"
   ],
   "acceptanceChecks": [
     "All changed paths are individually listed and reviewed against current main; no broad directory allowlisting.",
@@ -39,7 +40,10 @@
     "KL question bank SQL/security tests, approved manuscript five-question generation, three-question server verification and idempotent BP rewards tested before client release.",
     "Legacy image media metadata backfill and one-per-viewer batched photo comment counters validated without touching physical media.",
     "KL approval and release trigger functions must not grant EXECUTE to anon/authenticated; trigger attachments remain enabled.",
-    "Verified KL +10 chapter / +50 30-chapter season and gated qualified likes, comments, helper +2/+5/+10, three-person chain +3 BP, without duplicate QMP."
+    "Verified KL +10 chapter / +50 30-chapter season and gated qualified likes, comments, helper +2/+5/+10, three-person chain +3 BP, without duplicate QMP.",
+    "Admin Reports Center, Economy/Bayanihan and Economy Operations use the same month-specific canonical Finance V3 + QMP + provisional AdMob read-only snapshot. Legacy R38 BCU/RCU excluded from money reports.",
+    "Run canonical admin Economy SQL permission/period contract after snapshot migration; no client exposure before the RPC exists.",
+    "No live verification and no new production migration/publish in this preparation task; no change to financial activation or payout gates."
   ],
   "preserveBehaviors": [
     "Security and private access rules",
@@ -52,7 +56,8 @@
     "No paid Kingdom AI or external provider",
     "Existing photo reactions and post-wide comments are independent of per-photo comments.",
     "No new paid OpenAI model for KL; existing Gemini service is optional and server-side, retry-only after failures.",
-    "Existing merged RC media, ads, Kingdom and other experiences unchanged by reward-only integration; no OTA published before compiled artifact verification."
+    "Existing merged RC media, ads, Kingdom and other experiences unchanged by reward-only integration; no OTA published before compiled artifact verification.",
+    "Release candidate keeps separate payout queue fail-closed while finance totals remain accessible if payout queue fetch fails."
   ],
   "riskAreas": [
     "wall-media",
@@ -63,7 +68,10 @@
     "classroom-quiz",
     "story",
     "ads-monetization",
-    "release-identity"
+    "release-identity",
+    "admin-financial-report-source-drift",
+    "month-race-stale-cache",
+    "finance-canonical-privilege-safety"
   ],
   "regressionTests": [
     "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql",
@@ -108,7 +116,9 @@
     "tests/kl-reading-quiz-r4-10-50.test.mjs",
     "tests/buklod-mutual-engagement-r4.test.mjs",
     "supabase/tests/kl_verified_reading_r4_10_50.sql",
-    "supabase/tests/buklod_mutual_engagement_r4.sql"
+    "supabase/tests/buklod_mutual_engagement_r4.sql",
+    "tests/buklod-admin-economy-snapshot-20261111.test.mjs",
+    "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql"
   ],
   "allowedPaths": [
     ".buklod/scopes/ads-high-traffic-max-safe-20261111.json",
@@ -258,11 +268,23 @@
     "tests/buklod-mutual-engagement-r4.test.mjs",
     "supabase/tests/kl_verified_reading_r4_10_50.sql",
     "supabase/tests/buklod_mutual_engagement_r4.sql",
-    ".buklod/scopes/engagement-kl-rewards-r4-20261111.json"
+    ".buklod/scopes/engagement-kl-rewards-r4-20261111.json",
+    ".buklod/scopes/automatic-qmp-no-manual-review-20261111.json",
+    "src/app/admin/bayanihan.tsx",
+    "src/app/admin/reports-center.tsx",
+    "src/lib/buklodCanonicalAdminEconomy.ts",
+    "supabase/migrations/20261111093000_buklod_qmp_automatic_qualification_v2.sql",
+    "supabase/migrations/20261111093500_buklod_qmp_close_legacy_review_requests_v3.sql",
+    "supabase/migrations/20261111094000_buklod_qmp_indirect_reward_guard_v4.sql",
+    "supabase/migrations/20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql",
+    "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql",
+    "tests/buklod-admin-economy-snapshot-20261111.test.mjs"
   ],
-  "production": "HOLD: BUKLOD backend KL +10/series +50 active; mutual engagement R4 forward-only enabled 2026-11-11 09:00 UTC; migration sources align live Supabase; consolidated Android OTA/Expo Web not yet promoted.",
-  "verifiedDevSourceSha": "15a53f992cd51441b55a2aece7168ae012b39f8b",
-  "pendingBackendMigrations": [],
+  "production": "HOLD / NO PUBLISH: Previously applied QMP backend migrations 20261111093000, 093500, 094000 observed in prior audit; new admin reporting snapshot 20261111100000 remains NOT APPLIED. Finance payout/economic flags remain OFF. New merged RC requires full exact-source QA and backend prerequisite before any production promotion.",
+  "verifiedDevSourceSha": "PENDING_EXACT_CUMULATIVE_RC_QA",
+  "pendingBackendMigrations": [
+    "20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql"
+  ],
   "requiredBackendMigrations": [
     "20261110213500_mentor_report_evidence_review_r4.sql",
     "20261111010000_kl_auto_reading_quiz_v1.sql",
@@ -276,7 +298,11 @@
     "20261111043000_buklod_photo_comments_by_media_v1.sql",
     "20261111053000_kl_trigger_rpc_privilege_lock_v1.sql",
     "supabase/migrations/20261111085702_kl_verified_reading_10_series_50.sql",
-    "supabase/migrations/20261111085727_buklod_mutual_engagement_r4.sql"
+    "supabase/migrations/20261111085727_buklod_mutual_engagement_r4.sql",
+    "20261111093000_buklod_qmp_automatic_qualification_v2.sql",
+    "20261111093500_buklod_qmp_close_legacy_review_requests_v3.sql",
+    "20261111094000_buklod_qmp_indirect_reward_guard_v4.sql",
+    "20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql"
   ],
   "includedAlreadyMergedMainScopes": [
     ".buklod/scopes/engagement-kl-rewards-r4-20261111.json"
