@@ -12,7 +12,8 @@
     "Local story photos without storage paths continue rendering",
     "No ad, PTT, QMP, upload, Finance, or native changes",
     "Exact-source Node, TypeScript, Android and Web QA before promotion; no device success assertion",
-    "Compiled Android and Web RC workflows must run only on this exact named source with EAS production env identity, unchanged runtime, export fingerprints and no publish"
+    "Compiled Android and Web RC workflows must run only on this exact named source with EAS production env identity, unchanged runtime, export fingerprints and no publish",
+    "Production Android/Web publishers retain exact BUKLOD_CONSOLIDATED_PROD_20261108 prefix and github.sha checkout; no generic push-to-main bypass"
   ],
   "riskAreas": [
     "wall-media",
@@ -32,7 +33,7 @@
     ".github/workflows/unified_rc_compiled_qa_20261108.yml",
     "tests/marites-photo-preview-release-gate-20261111.test.mjs"
   ],
-  "releaseState": "MERGED_SOURCE__GUARDED_RELEASE_MARKER_PENDING_PRODUCTION",
+  "releaseState": "RELEASE_METADATA_AND_TESTS__GUARDED_PRODUCTION_MARKER_PENDING",
   "preserveBehaviors": [
     "Existing public and scoped story audience filtering, RLS and private signing: never turn media public",
     "Active Marites music stays Full View only; feed silent",

@@ -23,3 +23,10 @@ test('Existing media cache recovers expired signed access using private path', (
   assert.ok(image.includes('resignCommunityMediaUrl(path)'));
   assert.ok(image.includes('communityMediaCacheKey(path,'));
 });
+
+// A recycled tile keeps its stable object path across signed-URL rotation.
+test('Marites photo tile identity is stable across credential renewal', () => {
+  assert.ok(collage.includes('photo.mediaPath || photo.uri'));
+  assert.ok(collage.includes('mediaPaths?.[index]'));
+  assert.ok(board.includes('mediaPaths={story.photo_paths}'));
+});
