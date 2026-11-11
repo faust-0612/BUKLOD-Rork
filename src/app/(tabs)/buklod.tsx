@@ -33,6 +33,7 @@ import {
 } from 'expo-video';
 import { useIncomingShare as useBuklodIncomingShare187A } from '@/lib/buklodIncomingShare';
 import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency, persistCommunityVideoPoster } from '@/lib/uploadCommunityVideoFile';
+import { stageSharedCommentGif, discardStagedSharedCommentGif } from '@/lib/buklodCommentGifShare';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
 import {
@@ -796,17 +797,25 @@ function LegacyPublicBuklodScreen(){
         }
 
         if (gifRows.length) {
-          incomingShare187A.clearSharedPayloads();
           if (gifRows.length !== 1 || imageRows.length || videoRows.length) {
+            incomingShare187A.clearSharedPayloads();
             Alert.alert('GIF comment', 'Share one GIF at a time to attach it to a comment.');
             return;
           }
           const accountId = String(user?.id ?? '');
           if (!accountId) {
+            incomingShare187A.clearSharedPayloads();
             Alert.alert('GIF comment', 'Sign in before attaching a GIF.');
             return;
           }
-          const uri = String(gifRows[0].contentUri);
+          // Preserve the shared file before Android's temporary URI expires.
+          const uri = await stageSharedCommentGif(String(gifRows[0].contentUri));
+          incomingShare187A.clearSharedPayloads();
+          const previous = pendingSharedCommentGif187A.current;
+          if (previous) {
+            void discardStagedSharedCommentGif(previous.uri);
+            pendingSharedCommentGif187A.current = null;
+          }
           if (activeCommentPostIdRef.current && commentOpen && !commentMedia) {
             setCommentMedia({ kind: 'gif', ref: uri });
             setCommentMediaPreview(uri);
@@ -3593,7 +3602,10 @@ const load=useCallback(async(options?:{
    const saved=commentDraftsRef.current.get(String(user?.id??'')+':'+postId);
    const pendingGif=pendingSharedCommentGif187A.current;
    const attachGif=!!pendingGif && pendingGif.ownerId===String(user?.id??'');
-   if(pendingGif)pendingSharedCommentGif187A.current=null;
+   if(pendingGif){
+    pendingSharedCommentGif187A.current=null;
+    if(!attachGif)void discardStagedSharedCommentGif(pendingGif.uri);
+   }
    activeCommentPostIdRef.current=postId;
    ++commentLoadSeqRef.current;
    setCommentPost(post);
@@ -3715,6 +3727,9 @@ const load=useCallback(async(options?:{
      p_parent_id:replyRootId,
     });
     if(error)throw error;
+    if(initialMedia?.kind==='gif') {
+     void discardStagedSharedCommentGif(initialMedia.ref);
+    }
     if(authorId && commentAccountIdRef.current===authorId){
      const adCount=recordConfirmedCommunityComment(authorId);
      if(adCount.shouldWarm)warmBuklodAdOpportunity('community_comment_overage');
@@ -7040,6 +7055,9 @@ const communityFeedRows =
       media={commentMedia}
       mediaPreviewUri={commentMediaPreview}
       onMediaChange={(next,preview)=>{
+       if(commentMedia?.kind==='gif' && commentMedia.ref!==next?.ref){
+        void discardStagedSharedCommentGif(commentMedia.ref);
+       }
        setCommentNotice(null);
        setCommentMedia(next);
        setCommentMediaPreview(preview??null);
