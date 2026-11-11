@@ -140,7 +140,7 @@ function InlineIgpatVideo({
 }
 
 /** Retired IGPAT preview: no feed RPC, no signed-media fetch, no player mount. */
-export default function RetiredIgpatPreview() {
+export default function RetiredIgpatPreview(_props: Props) {
   return null;
 }
 
