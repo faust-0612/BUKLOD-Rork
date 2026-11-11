@@ -139,8 +139,18 @@ function sanitizeError(value: unknown) {
 function sanitizeCode(value: unknown) {
   if (value == null) return undefined;
   if (typeof value === 'object' && value && 'code' in value) {
-    return String((value as { code?: unknown }).code ?? '').slice(0, 48);
+    const code = String((value as { code?: unknown }).code ?? '').trim();
+    if (code) return code.slice(0, 48);
   }
+  // Do not persist raw error text: only fixed non-PII failure categories.
+  const message = sanitizeError(value)?.toLowerCase() ?? '';
+  if (/native_ad_load_timeout/.test(message)) return 'NATIVE_AD_LOAD_TIMEOUT';
+  if (/banner_ad_load_timeout/.test(message)) return 'BANNER_AD_LOAD_TIMEOUT';
+  if (/time.?out|timed.?out/.test(message)) return 'AD_TIMEOUT';
+  if (/no[ -]?fill|no.ad.available/.test(message)) return 'NO_FILL';
+  if (/offline|network|connection/.test(message)) return 'NETWORK_ERROR';
+  if (/invalid.request|invalid.ad.unit/.test(message)) return 'INVALID_REQUEST';
+  if (/internal.error/.test(message)) return 'INTERNAL_ERROR';
   return undefined;
 }
 
