@@ -8,14 +8,15 @@ const native = read('src/app/igpat/index.tsx');
 const web = read('src/app/igpat/index.web.tsx');
 const cache = read('src/lib/igpat/warmFeed.ts');
 
-test('IGPAT is a sibling button in the public Wall header, not a new bottom-navigation tab', () => {
-  const communityAt = wall.indexOf('>\n      COMMUNITY\n');
-  const igpatAt = wall.indexOf('BUKLOD_WALL_IGPAT_SIBLING_R1');
-  const dzasAt = wall.indexOf('BUKLOD_DZAS_WALL_SHORTCUT_R1');
+test('IGPAT remains a sibling shortcut in the public Wall, not a bottom-nav tab', () => {
+  const shortcuts = read('src/components/BuklodWallQuickLinks.tsx');
+  const communityAt = shortcuts.indexOf('accessibilityLabel="Community Wall"');
+  const igpatAt = shortcuts.indexOf('accessibilityLabel="Open BUKLOD IGPAT videos"');
+  const dzasAt = shortcuts.indexOf('accessibilityLabel="Open 702 DZAS Radio"');
   assert.ok(communityAt >= 0 && igpatAt > communityAt && dzasAt > igpatAt);
-  assert.match(wall.slice(igpatAt, dzasAt), /accessibilityLabel="Open BUKLOD IGPAT videos"/);
-  assert.match(wall.slice(igpatAt, dzasAt), /onPress=\{\(\) => router\.push\('\/igpat' as any\)\}/);
-  assert.match(wall.slice(igpatAt, dzasAt), /minHeight:42/);
+  assert.match(shortcuts.slice(igpatAt, dzasAt), /router\.push\('\/igpat' as any\)/);
+  assert.match(shortcuts, /minHeight:42/);
+  assert.match(wall, /<BuklodWallQuickLinks/);
   assert.doesNotMatch(read('src/components/BuklodPersistentBottomNav.tsx'), /key:\s*'igpat'/);
 });
 

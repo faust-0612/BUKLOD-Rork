@@ -1,0 +1,191 @@
+{
+  "contractVersion": 2,
+  "releaseMode": "consolidated-main-rc",
+  "scopeManifestPath": ".buklod/scopes/nov11-current-main-complete-hold.json",
+  "objective": "Complete one cumulative source for the November 11 BUKLOD Main Android OTA + Expo Web, merging the previously verified 12-workstream RC, current main AdMob/production release protections and Web PTT, post-RC IGPAT/GIF/Today/Kingdom fixes, and shared dashboard title/card/scroll design. Production remains gated until completeness, compiled exact RC, DB parity and fingerprint are verified.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub repository main source SHA a216bbdd6dee99b161f7861addba766f115203f1 was fetched and its git tree 3ed588e930294a6cd1257fbede811897204dc3b7 verified on 2026-11-11. All current-main files were preserved while adding the extra scoped source. This is a VERIFIED SOURCE baseline only, NOT proof of installed Android production OTA, runtime or Expo Web live deployment.",
+  "chosenApproach": "Build exact source tree by using latest main git tree as parent and overlay only changed blobs from reconciled Nov11 DEV source (27 app paths, 6 scoped manifests, 14 tests, Today SQL/SQL tests, original ambient audio and strict CI). Pin source identity in one new immutable DEV commit, run focused Node, TypeScript, Android and Web export on exact SHA, and promote only after complete all-workstream readback and backend compatibility evidence.",
+  "selectionRationale": "Current main already contains the original twelve-workstream RC and new security/Web PTT updates; replaying only the 55 nonidentical files onto current main preserves its full release lineage and eliminates divergent history and stale governance while avoiding duplicate DB migrations or changing native dependencies.",
+  "componentScopePaths": [
+    ".buklod/scopes/android-phone-gif-comments-20261111.json",
+    ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
+    ".buklod/scopes/igpat-real-first-frame-20261111.json",
+    ".buklod/scopes/kingdom-cinematic-audio-20261111.json",
+    ".buklod/scopes/nov11-postprod-single-rc.json",
+    ".buklod/scopes/shared-dashboard-header-scroll-20261111.json"
+  ],
+  "alternativeApproaches": [
+    "Publish the frozen prior RC 249359b1 without new updates (rejected: missing dashboard/IGPAT/Today/Kingdom/GIF/PTT Web and recent main controls)",
+    "Bulk merge unrelated older open PR branches without semantic verification (rejected: stale copies, duplicate SQL migrations, lost security/ad features and unplanned Smart Drawer native update)",
+    "Strip engineering or database gates for a quick OTA (rejected: unsafe)"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "connect",
+    "faith-cluster",
+    "auth-privacy",
+    "story",
+    "ads-monetization",
+    "release-identity",
+    "classroom-quiz"
+  ],
+  "preserveBehaviors": [
+    "Current production Main supersets old RC, maintains signed-in Public/Cluster/Organization privacy, private scoped message and fund access, and System Admin ownership",
+    "Android/iOS existing Web/native PTT audio and microphone floor safety preserved; Web PTT present only in Web",
+    "Original main native package org.mzbministry.buklod and Expo runtime 1.3.2; no new native library or Play build",
+    "Wall and IGPAT feed identity, image/video cache, ads and 3G flow, pagination/refresh, text-first paint and video only in viewport",
+    "Existing canonical monthly QMP + Finance identities; no double credits or changing approved historical settlements; payout/withdrawal remain OFF",
+    "Original 13 Kingdom stations, active progression and save state; no paid AI game continuation or interruptive gameplay advertisements",
+    "Main AdMob appwide policy, remote kills, consent, route-sensitive restrictions, ads placements and protected release workflow checks remain installed",
+    "Smart Drawer Google Drive native OAuth work explicitly excluded from current OTA",
+    "Actual source SHA and RC binary runtime gate must match prior to OTA; physical-device verification waiver cannot bypass compiled or production checks"
+  ],
+  "acceptanceChecks": [
+    "Single current-main-ancestor DEV source contains every intended November 11 workstream and latest main Web PTT/security/ads fixes, with no missing files from baseline",
+    "Mandatory app-wide ads-lock, release identity/approval, PTT and private scoped access tests PASS",
+    "All 15 changed focused Node regressions PASS and compile TypeScript as exact HEAD",
+    "Android and Expo Web export compile independently and report exact source SHA, native package, versionCode and runtime 1.3.2",
+    "Readback Supabase security, 11 previously applied migration versions, GCash receiver/RLS and Today/Dugtong version aliases; never double-run equivalent SQL",
+    "Source SQL filename for Today/Dugtong is reconciled to production migration versions or explicitly migration-alias gated before publish",
+    "KL automatic reading checks, per-photo comments, payout ledger security and Kingdom Shards backend must remain exact migration-compatible",
+    "IGPAT video natural-frame FIT, buffering, first-frame paint and old clients compatibility retain successful rendering checks",
+    "Web PTT connect, floor release, privacy tests and Expo Web compile PASS; no native ABI drift",
+    "Production status/settlements OFF confirmed immediately before release",
+    "No release while newest Main has commits not present in frozen candidate or while other required current workstreams remain unverified",
+    "No production publish until exact frozen RC QA, artifact fingerprints and production readback are independently confirmed"
+  ],
+  "regressionTests": [
+    "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs",
+    "tests/buklod-home-profile-support-20261108.test.mjs",
+    "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
+    "tests/buklod-scope-dashboard-scroll-20261111.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs",
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/engineering-regression-gate.test.mjs",
+    "tests/igpat-fast-start-video-20261110.test.mjs",
+    "tests/igpat-first-frame-faststart-20261111.test.mjs",
+    "tests/igpat-full-frame-no-zoom-20261111.test.mjs",
+    "tests/igpat-sign-batch-20261111.test.mjs",
+    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs",
+    "tests/navigation-scroll-compact-public-wall.test.mjs",
+    "tests/buklod-nov11-complete-source-hold-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov11-current-main-complete-hold.json",
+    ".buklod/scopes/android-phone-gif-comments-20261111.json",
+    ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
+    ".buklod/scopes/igpat-real-first-frame-20261111.json",
+    ".buklod/scopes/kingdom-cinematic-audio-20261111.json",
+    ".buklod/scopes/nov11-postprod-single-rc.json",
+    ".buklod/scopes/shared-dashboard-header-scroll-20261111.json",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "assets/sounds/buklod-kingdom-cinematic-ambient.wav",
+    "scripts/engineering-regression-gate.mjs",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/igpat/create.web.tsx",
+    "src/app/igpat/index.tsx",
+    "src/app/igpat/index.web.tsx",
+    "src/app/scope/index.tsx",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodDashboardContextBar.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodHomeReelsExtension.tsx",
+    "src/components/BuklodPublicDailyMessageBar.tsx",
+    "src/components/BuklodScopeHomeDashboard.tsx",
+    "src/components/BuklodScopedDashboardHeader.tsx",
+    "src/components/BuklodTodayCard.tsx",
+    "src/components/BuklodWallQuickLinks.tsx",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "src/features/games/runtime/rorkAudio.ts",
+    "src/lib/buklodCommentGifShare.ts",
+    "src/lib/buklodDashboardScroll.ts",
+    "src/lib/buklodPickCommunityPhotos.ts",
+    "src/lib/igpat/quickEdit.ts",
+    "src/lib/igpat/signBatch.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "supabase/migrations/20261111102700_buklod_today_public_dugtong_idle_rotation_v2.sql",
+    "supabase/migrations/20261111113000_buklod_today_cycles_fk_index_v2.sql",
+    "supabase/migrations/20261111115500_buklod_today_public_dugtong_paging_v2.sql",
+    "supabase/tests/buklod_today_privacy_idle_v2.sql",
+    "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs",
+    "tests/buklod-home-profile-support-20261108.test.mjs",
+    "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
+    "tests/buklod-scope-dashboard-scroll-20261111.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs",
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/engineering-regression-gate.test.mjs",
+    "tests/igpat-fast-start-video-20261110.test.mjs",
+    "tests/igpat-first-frame-faststart-20261111.test.mjs",
+    "tests/igpat-full-frame-no-zoom-20261111.test.mjs",
+    "tests/igpat-sign-batch-20261111.test.mjs",
+    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs",
+    "tests/navigation-scroll-compact-public-wall.test.mjs",
+    "tests/buklod-nov11-complete-source-hold-20261111.test.mjs"
+  ],
+  "sourceIntake": {
+    "latestMainSha": "a216bbdd6dee99b161f7861addba766f115203f1",
+    "legacyConsolidatedSource": "integration/buklod-nov10-single-source-ota (PR #665; existing current-main ancestor)",
+    "postRcSource": "integration/buklod-nov11-postprod-conso-ota (PR #670; IGPAT full frame #679 and Kingdom/Today/GIF)",
+    "dashboardUi": "codex/dashboard-header-scroll-polish-20261111 (PR #683)",
+    "currentMainAdditions": "ad lock and production release guards, browser PTT and existing scope GCash/Health/Navigation/Wall fixes",
+    "webPttMainCommit": "a216bbdd6dee99b161f7861addba766f115203f1",
+    "noCurrentMainRollback": true
+  },
+  "backendMigrationEvidence": {
+    "projectRef": "yhanxndaqbmuzbdqlblu",
+    "observedAppliedVersions": [
+      "20261110103333",
+      "20261110213500",
+      "20261111010000",
+      "20261111014500",
+      "20261111015000",
+      "20261111023000",
+      "20261111024500",
+      "20261111025000",
+      "20261111031000",
+      "20261111032000",
+      "20261111043000",
+      "20261111053000",
+      "20261111024318",
+      "20261111024610",
+      "20261111025018"
+    ],
+    "todaySourceVersionMismatch": [
+      [
+        "20261111102700",
+        "20261111024318"
+      ],
+      [
+        "20261111113000",
+        "20261111024610"
+      ],
+      [
+        "20261111115500",
+        "20261111025018"
+      ]
+    ],
+    "scopeGcashSourceVersionMismatch": [
+      "20261110090000",
+      "20261110103333"
+    ],
+    "verification": "Migration names/versions were read from production Supabase history. SQL body semantic equality and staging/client behavioral compatibility have NOT yet been independently proven; skip duplicate migration pushes until reconciled."
+  },
+  "excludedWorkstreams": [
+    "Smart Drawer Google Drive native import/OAuth PR #638 (explicit owner hold for next native release)",
+    "Unverified private Classroom/Quiz separate release branches"
+  ],
+  "releaseState": "HOLD__CONSOLIDATED_DEV_SOURCE_REQUIRES_EXACT_RC_DATABASE_ALIAS_VERIFICATION_AND_PRODUCTION_FINGERPRINT",
+  "verificationWaivers": [
+    "Owner waived hands-on physical Android device QA only; tests, compilation, security and production OTA identity gates are mandatory."
+  ]
+}

@@ -1051,7 +1051,7 @@ export default function IgpatCreateWebScreen() {
           <Text style={styles.panelActionText}>AUTO IMPROVE</Text>
         </Pressable>
         <Text style={styles.panelHint}>
-          Safe and reversible: 9:16 framing plus a cover-frame suggestion. Brightness, audio normalization, captions, and auto-trim stay unchanged until a reliable processing engine exists.
+          Safe and reversible: keep the full video frame and suggest a cover frame. Cropping happens only when you choose CROP TO FILL. Brightness, audio normalization, captions, and auto-trim stay unchanged.
         </Text>
         <Text style={styles.panelLabel}>REFRAME</Text>
         <View style={styles.choiceRow}>
@@ -1059,7 +1059,7 @@ export default function IgpatCreateWebScreen() {
             const selected = normalized.contentFit === value;
             return (
               <Pressable key={value} style={[styles.choiceChip, selected && styles.choiceSelected]} onPress={() => patchEdit({ contentFit: value })} disabled={busy}>
-                <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{value === 'cover' ? 'FILL 9:16' : 'FIT'}</Text>
+                <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{value === 'cover' ? 'CROP TO FILL' : 'FIT FULL FRAME'}</Text>
               </Pressable>
             );
           })}
@@ -1149,7 +1149,7 @@ export default function IgpatCreateWebScreen() {
             autoPlay: true,
             muted: true,
             playsInline: true,
-            style: { width: '100%', height: 380, objectFit: 'cover', backgroundColor: '#000' },
+            style: { width: '100%', height: 380, objectFit: 'contain', backgroundColor: '#000' },
           })}
           <View style={styles.cameraActions}>
             <Text style={styles.recordTime}>

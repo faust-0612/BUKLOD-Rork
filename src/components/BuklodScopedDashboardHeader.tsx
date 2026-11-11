@@ -1,4 +1,5 @@
 import React from 'react';
+import { isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 
 import {
   Platform,
@@ -77,6 +78,10 @@ BuklodScopedDashboardHeader({
   onThemeChange,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const [scrollCompact, setScrollCompact] = React.useState(() => isBuklodDashboardScrollCompact('scope'));
+  React.useEffect(() => subscribeBuklodDashboardScroll((route, compact) => {
+    if (route === 'scope') setScrollCompact(compact);
+  }), []);
   const { width: viewportWidth } = useWindowDimensions();
   // Only Android/phone web owns status-bar padding; desktop chrome owns its top.
   const scopedTopInset = Platform.OS === 'web' && viewportWidth >= 1200
@@ -105,7 +110,7 @@ BuklodScopedDashboardHeader({
   if (showCommercialHeader) {
     return (
       <View style={[styles.blueShell, { paddingTop: scopedTopInset }]}>
-        <View style={styles.blueTopRow}>
+        <View style={[styles.blueTopRow, scrollCompact && {minHeight:46,paddingVertical:3}]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back"
             onPress={onBack} hitSlop={BUKLOD_HIT_SLOP_TIGHT} style={styles.blueBack}>
             <MaterialCommunityIcons name="arrow-left" size={23} color="#FFFFFF" />
@@ -117,7 +122,7 @@ BuklodScopedDashboardHeader({
               </Text>
               <View style={styles.blueActive}><Text style={styles.blueActiveText}>Active</Text></View>
             </View>
-            <Text numberOfLines={1} style={styles.blueSubtitle}>{scopeName}</Text>
+            {!scrollCompact ? <Text numberOfLines={1} style={styles.blueSubtitle}>{scopeName}</Text> : null}
           </View>
           <View style={styles.blueCustomizer}>
             <BuklodDashboardCustomizer theme={theme} canCustomize={canCustomize} onSave={onThemeChange} />
@@ -136,7 +141,7 @@ BuklodScopedDashboardHeader({
         },
       ]}
     >
-      <View style={styles.titleBar}>
+      <View style={[styles.titleBar, scrollCompact && {minHeight:48,paddingVertical:3}]}>
         <View style={styles.identityPane}>
           <Pressable
             accessibilityRole="button"
@@ -153,12 +158,12 @@ BuklodScopedDashboardHeader({
           </Pressable>
 
           <View style={styles.titleCopy}>
-            <Text
+            {!scrollCompact && <Text
               style={styles.headerEyebrow}
               numberOfLines={1}
             >
               {typeLabel.toUpperCase()}
-            </Text>
+            </Text>}
 
             <Text
               style={styles.headerTitle}
@@ -176,7 +181,7 @@ BuklodScopedDashboardHeader({
         </View>
       </View>
 
-      {showCommercialHeader &&
+      {showCommercialHeader && !scrollCompact &&
         section !== 'connect' && (
         <View style={styles.encouragementBar}>
           <MaterialCommunityIcons
