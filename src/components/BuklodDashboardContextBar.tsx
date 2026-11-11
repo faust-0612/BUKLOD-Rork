@@ -1,3 +1,4 @@
+import { buklodDashboardRoute, isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import { usePathname } from 'expo-router';
 import React from 'react';
 import { Platform, useWindowDimensions, View } from 'react-native';
@@ -19,8 +20,15 @@ import {
 
 export default function BuklodDashboardContextBar() {
   /* PATCH_169F_R3_PROFILE_ROUTE */
-  const pathname =
-    usePathname();
+  const pathname = usePathname();
+  const route = buklodDashboardRoute(pathname);
+  const [scrollCompact, setScrollCompact] = React.useState(() => isBuklodDashboardScrollCompact(route));
+  React.useEffect(() => {
+    setScrollCompact(isBuklodDashboardScrollCompact(route));
+    return subscribeBuklodDashboardScroll((r, compact) => {
+      if (r === route) setScrollCompact(compact);
+    });
+  }, [route]);
   const { width } = useWindowDimensions();
   // Desktop header owns the daily encouragement; avoid a duplicate banner
   // inside the routed center card. Mobile/web-phone retains the original bar.
@@ -61,17 +69,12 @@ export default function BuklodDashboardContextBar() {
   if (profileRoute) {
     /* PATCH_186F_ENCOURAGEMENT_THROUGH_PROFILE */
     return (
-      <BuklodPublicDailyMessageBar
-        forceVisible
-      />
+      <BuklodPublicDailyMessageBar forceVisible compact={scrollCompact} />
     );
   }
 
-  if (
-    messagesRoute &&
-    activeScope?.scope_type === 'PUBLIC'
-  ) {
-    return null;
+  if (messagesRoute && activeScope?.scope_type === 'PUBLIC') {
+    return <BuklodPublicDailyMessageBar compact={scrollCompact} />;
   }
 
   /*
@@ -79,12 +82,8 @@ export default function BuklodDashboardContextBar() {
    * `/scope` (opened from Profile or portal actions). Never show the global
    * scope drawer on the personal tab dashboard.
    */
-  if (
-    isManagedCommunityScope(
-      activeScope,
-    )
-  ) {
-    return null;
+  if (isManagedCommunityScope(activeScope)) {
+    return <BuklodPublicDailyMessageBar forceVisible compact={scrollCompact} />;
   }
 
   if (
@@ -94,13 +93,13 @@ export default function BuklodDashboardContextBar() {
     if (communityRoute) {
       return (
         <View>
-          <BuklodPublicDailyMessageBar />
+          <BuklodPublicDailyMessageBar compact={scrollCompact} />
         </View>
       );
     }
 
     return (
-      <BuklodPublicDailyMessageBar />
+      <BuklodPublicDailyMessageBar compact={scrollCompact} />
     );
   }
 
