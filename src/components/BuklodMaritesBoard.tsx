@@ -93,6 +93,13 @@ import { useFocusEffect } from 'expo-router';
 import { selectVisibleMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
 import { useAuth } from '@/providers/AuthProvider';
 import {
+  subscribeInstantPublish,
+  getInstantPublishes,
+  enqueueInstantPublish,
+  retryInstantPublish,
+  dismissInstantPublish,
+} from '@/lib/buklodInstantPublishQueue';
+import {
   BUKLOD_HIT_SLOP,
   BUKLOD_LONG_PRESS_MS,
 } from '@/lib/buklodTouch';
@@ -939,6 +946,14 @@ export default function BuklodMaritesBoard({
   );
   const [quickVideo, setQuickVideo] = useState<{ uri: string; durationSeconds: number; mimeType: string } | null>(null);
   const [posting, setPosting] = useState(false);
+  const [instantMaritesJobs,setInstantMaritesJobs]=useState(()=>
+    getInstantPublishes(user?.id,'marites')
+  );
+  useEffect(()=>{
+    const refresh=()=>setInstantMaritesJobs(getInstantPublishes(user?.id,'marites'));
+    refresh();
+    return subscribeInstantPublish(refresh);
+  },[user?.id]);
   const postingGuardRef = useRef(false);
   const [expiryTick, setExpiryTick] = useState(0);
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -956,6 +971,29 @@ export default function BuklodMaritesBoard({
     return () => clearInterval(timer);
   }, []);
   const activeStories = useMemo(() => stories.filter((story) => isActiveMaritesStory(story)), [stories, expiryTick]);
+  // This author-only strip is detached from remote refreshes and the shared
+  // cache, so a feed reload cannot erase a still-uploading story preview.
+  const pendingMaritesStories=useMemo<MaritesStory[]>(()=>
+    instantMaritesJobs
+      .filter(job=>job.status!=='posted'&&job.status!=='device_only')
+      .map(job=>({
+        id:job.id,
+        user_id:job.ownerId,
+        author_name:profile?.full_name?.trim()||'You',
+        avatar_url:profile?.avatar_url??null,
+        body:job.caption,
+        photo_uris:job.photoUris,
+        photo_uri:job.photoUris[0]??null,
+        video_uri:job.mediaUri,
+        source:'local',
+        mentions:[],
+        author_only:true,
+        reaction_counts:{},
+        my_reaction:null,
+        created_at:job.createdAt,
+      })),[instantMaritesJobs,profile?.full_name,profile?.avatar_url]);
+  const displayStories=useMemo(()=>[...pendingMaritesStories,...activeStories],
+    [pendingMaritesStories,activeStories]);
   // A story can expire while its fullscreen viewer is still open.
   // Close it instead of leaving expired content visible indefinitely.
   useEffect(() => {
@@ -1622,88 +1660,71 @@ export default function BuklodMaritesBoard({
     } catch (error) { Alert.alert('Quick Video', String((error as Error)?.message ?? 'Could not select video.')); }
   }, []);
 
-  const submitStory = useCallback(async () => {
+  const submitStory = useCallback(() => {
     if (postingGuardRef.current) return;
     const body = draft.trim();
-    const photoUris = photos.map((photo) => photo.uri);
-
+    const photoUris = photos.map(photo => photo.uri);
     if (!body && !photoUris.length && !quickVideo) {
-      Alert.alert(
-        'Marites Story',
-        'Add a short message or photo first.'
-      );
+      Alert.alert('Marites Story','Add a short message, photo, or Quick Video first.');
       return;
     }
-
     if (!user?.id) {
-      Alert.alert(
-        'Marites Story',
-        'Sign in to share a story.'
-      );
+      Alert.alert('Marites Story','Sign in to share a story.');
       return;
     }
-
     if (body.length > MARITES_MAX_CHARS) {
-      Alert.alert(
-        'Marites Story',
-        `Keep it short — ${MARITES_MAX_CHARS} characters max.`
-      );
+      Alert.alert('Marites Story',`Keep it short — ${MARITES_MAX_CHARS} characters max.`);
       return;
     }
 
-    postingGuardRef.current = true;
+    const snapshot={
+      userId:user.id,
+      authorName:profile?.full_name?.trim()||'Member',
+      avatarUrl:profile?.avatar_url??null,
+      body,
+      photoUris,
+      video:quickVideo,
+    };
+    postingGuardRef.current=true;
     setPosting(true);
-
     try {
-      const { story, shared } = await publishMaritesStory({
-        userId: user.id,
-        authorName:
-          profile?.full_name?.trim() ||
-          'Member',
-        avatarUrl: profile?.avatar_url ?? null,
-        body,
-        photoUris,
-        video: quickVideo,
-      });
-
-      loadGenerationRef.current += 1;
-      maritesRefreshes.delete(cacheKey);
-
-      setStories((current) => {
-        const next = [
+      enqueueInstantPublish({
+        ownerId:snapshot.userId,
+        kind:'marites',
+        caption:snapshot.body,
+        mediaUri:snapshot.video?.uri??null,
+        photoUris:snapshot.photoUris,
+      }, async reportProgress=>{
+        reportProgress(null,'Uploading Marites Story… Keep BUKLOD open.');
+        const {story,shared}=await publishMaritesStory(snapshot);
+        // The server-confirmed or device-only result replaces the preview.
+        // Persist its feed snapshot even when this component unmounts.
+        maritesRefreshes.delete(cacheKey);
+        const previous=maritesMemory.get(cacheKey);
+        const next=[
           story,
-          ...current.filter((row) => row.id !== story.id),
+          ...(previous?.rows??[]).filter(row=>row.id!==story.id),
         ];
-
-        maritesMemory.set(cacheKey, {
-          rows: next,
-          remoteUpdatedAt: Date.now(),
+        maritesMemory.set(cacheKey,{
+          rows:next,
+          remoteUpdatedAt:shared?Date.now():(previous?.remoteUpdatedAt??0),
         });
-
-        return next;
+        setStories(current=>[
+          story,
+          ...current.filter(row=>row.id!==story.id)
+        ]);
+        return shared?'posted':'device_only';
       });
-
-      if (!shared) {
-        Alert.alert(
-          'Marites Story',
-          'Saved on this device. Shared board needs a community connection — try again when online.'
-        );
-      }
-
+      // The story card is visible immediately, before any network transfer.
       resetComposer();
     } catch (error) {
-      Alert.alert(
-        'Marites Story',
-        String(
-          (error as Error)?.message ??
-            'Could not save your story.'
-        )
-      );
+      Alert.alert('Marites Story',
+        String((error as Error)?.message??'Could not start uploading.'));
     } finally {
-      postingGuardRef.current = false;
+      postingGuardRef.current=false;
       setPosting(false);
     }
-  }, [
+  },[
     draft,
     cacheKey,
     photos,
@@ -1798,6 +1819,27 @@ export default function BuklodMaritesBoard({
         </View>
       </View>
 
+      {instantMaritesJobs.length>0&&(
+        <View style={{flexDirection:'row',alignItems:'center',flexWrap:'wrap',gap:8,paddingHorizontal:8,paddingVertical:6}}>
+          <Text accessibilityRole="alert" style={{flex:1,color:colors.greenDark,fontWeight:'700',fontSize:12}}>
+            {instantMaritesJobs[0].status==='uploading'
+              ? 'Your Marites Story is uploading · Only you can see it'
+              : instantMaritesJobs[0].notice}
+          </Text>
+          {instantMaritesJobs[0].status==='failed'&&(
+            <Pressable accessibilityRole="button" accessibilityLabel="Retry Marites upload"
+              onPress={()=>retryInstantPublish(instantMaritesJobs[0].id,user!.id)}>
+              <Text style={{color:colors.greenDark,fontWeight:'900'}}>RETRY</Text>
+            </Pressable>
+          )}
+          {(instantMaritesJobs[0].status==='failed'||instantMaritesJobs[0].status==='uncertain')&&(
+            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss Marites upload"
+              onPress={()=>dismissInstantPublish(instantMaritesJobs[0].id,user!.id)}>
+              <Text style={{color:colors.muted,fontWeight:'900'}}>DISMISS</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
       <View ref={stripViewportRef} collapsable={false} onLayout={measureVisibility}>
       <ScrollView
         horizontal
@@ -1807,7 +1849,7 @@ export default function BuklodMaritesBoard({
         scrollEventThrottle={100}
         onScroll={event => { storyStripOffset.current = event.nativeEvent.contentOffset.x; measureVisibility(); }}
       >
-        {activeStories.map((story, index) => (
+        {displayStories.map((story, index) => (
           <BuklodFocusFadeUp
             key={story.id}
             delay={Math.min(index, 8) * 30}
@@ -1820,13 +1862,12 @@ export default function BuklodMaritesBoard({
               story={story}
               autoPlayVideo={canPlayInline && index === visibleVideoIndex}
               colors={colors}
-              onPress={() =>
-                openStoryViewer(story)
-              }
-              menu={storyOwnerMenu(
-                story,
-                styles.cardMenuBtn
-              )}
+              onPress={() =>{
+                if (!story.id.startsWith('pending-marites-')) openStoryViewer(story);
+              }}
+              menu={story.id.startsWith('pending-marites-')
+                ? null
+                : storyOwnerMenu(story,styles.cardMenuBtn)}
               onComments={onOpenComments ? (() => {
                 const postId = communityPostIdForStory(story);
                 return postId ? () => onOpenComments(postId, story) : undefined;
@@ -1837,7 +1878,7 @@ export default function BuklodMaritesBoard({
       </ScrollView>
       </View>
 
-      {activeStories.length === 0 && (
+      {displayStories.length === 0 && (
         <Text style={styles.emptyNote}>
           Be the first to share a quick update, or wait
           for community members to post.
