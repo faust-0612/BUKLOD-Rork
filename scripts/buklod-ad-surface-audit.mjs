@@ -16,7 +16,8 @@ const RESTRICTED = /(^|\/)(?:\(auth\)|auth|account|admin|system|bsoc|onboarding|
 const CLINICAL = /(^|\/)(?:health|prayer|emergency|child-safety)(\/|$)|buklod-health|consultation/i;
 const SCHOOL = /(?:classroom|faculty|student|grade|assessment|quiz|quick-check|exam|attendance)/i;
 const FINANCE = /(?:bayanihan\/(?:payout|withdraw)|giving|payment|checkout|financial|bank|payout-profile)/i;
-const LIVE_CONVERSATION = /(?:connect\/community|message\/\[|messages\/\[|ptt|call|live-chat)/i;
+const LIVE_CONVERSATION = /(?:connect\/(?:community|personal)|messages?\/\[|ptt|call|live-chat)/i;
+const SENSITIVE_OPERATIONS = /^(?:(?:organizations|clusters)\/(?:admins|admin-module|manage|settings)|scope\/(?:attendance|faith-monitoring|manage)|(?:giving|bayanihan\/withdrawals|premium)(?:\/|$)|faith\/bible-quiz\.tsx$|prayer\/new\.tsx$)/i;
 const GAMEPLAY = /(^|\/)games\/[^/]+\.tsx$/i;
 
 const count = (source, pattern) => (source.match(pattern) ?? []).length;
@@ -48,6 +49,7 @@ export function auditBuklodAdSurfaces(base = appRoot) {
     else if (FINANCE.test(route)) category = 'financial';
     else if (LIVE_CONVERSATION.test(route)) category = 'live-conversation';
     else if (GAMEPLAY.test(route)) category = 'active-gameplay';
+    else if (SENSITIVE_OPERATIONS.test(route)) category = 'sensitive-operation';
 
     const protectedFromInterstitials = category !== 'general';
     const reviewMissingSuccessBreak = !protectedFromInterstitials &&
@@ -75,6 +77,8 @@ export function auditBuklodAdSurfaces(base = appRoot) {
       withDirectCompletionHooks: routes.filter(r => r.fullScreenEvents).length,
       reviewVerifiedSuccessBreak: routes.filter(r => r.recommendation === 'REVIEW_VERIFIED_SUCCESS_BREAK').length,
       reviewPassiveViewportSlot: routes.filter(r => r.recommendation === 'REVIEW_PASSIVE_VIEWPORT_SLOT').length,
+      categoryCounts: Object.fromEntries([...new Set(routes.map(r => r.category))].sort().map(category => [category, routes.filter(r => r.category === category).length])),
+      recommendationCounts: Object.fromEntries([...new Set(routes.map(r => r.recommendation))].sort().map(recommendation => [recommendation, routes.filter(r => r.recommendation === recommendation).length])),
     },
     routes,
   };

@@ -36,3 +36,18 @@ test('Inventory is descriptive and does not synthesize AdMob loads or impression
   const source=String(auditBuklodAdSurfaces);
   assert.doesNotMatch(source, /(?:InterstitialAd\.createForAdRequest|NativeAd\.createForAdRequest|ad\.show\()/);
 });
+
+test('Entire app inventory classifies active personal chat and sensitive admin operations', () => {
+  for (const [route, expected] of [
+    ['connect/personal/[threadId].tsx','live-conversation'],
+    ['mzb/connect/personal/[threadId].tsx','live-conversation'],
+    ['organizations/manage.tsx','sensitive-operation'],
+    ['scope/manage/index.tsx','sensitive-operation'],
+  ]) {
+    const row=get(route);
+    assert.ok(row, 'Missing route '+route);
+    assert.equal(row.category,expected,route);
+    assert.equal(row.recommendation,'NO_GENERIC_INTERSTITIAL',route);
+  }
+  assert.equal(Object.values(result.summary.categoryCounts).reduce((a,b)=>a+b,0),result.summary.routeFiles);
+});

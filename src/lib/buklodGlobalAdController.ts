@@ -54,12 +54,30 @@ const SENSITIVE_PREFIXES = [
   '/reels',
   '/games',
   '/personal-home',
-];
-
-/** Radio and PTT keep a normal content banner. The rest of Personal Home stays ad-free. */
-const PASSIVE_AD_ROUTE_ALLOWANCES = [
-  '/personal-home/radio',
-  '/personal-home/ptt',
+  '/profile/buklod-health',
+  '/health',
+  '/consultation',
+  '/emergency',
+  '/bsoc',
+  '/support',
+  '/prayer/new',
+  '/faith/bible-quiz',
+  '/connect/community',
+  '/connect/personal',
+  '/mzb/connect/community',
+  '/mzb/connect/personal',
+  '/giving',
+  '/bayanihan/withdrawals',
+  '/scope/attendance',
+  '/scope/faith-monitoring',
+  '/scope/manage',
+  '/organizations/admin-module',
+  '/organizations/settings',
+  '/organizations/manage',
+  '/clusters/manage',
+  '/clusters/settings',
+  '/premium',
+  '/mzb/admin',
 ];
 
 let pathname = '/';
@@ -135,13 +153,6 @@ export function isBuklodAdRouteSensitive(
 ) {
   const route = normalizePath(candidate);
   if (route === '/') return true;
-  if (
-    PASSIVE_AD_ROUTE_ALLOWANCES.some(
-      (allowed) => route === allowed || route.startsWith(`${allowed}/`),
-    )
-  ) {
-    return false;
-  }
   return SENSITIVE_PREFIXES.some(
     prefix => route === prefix || route.startsWith(`${prefix}/`),
   );
@@ -209,6 +220,19 @@ export function isBuklodPassiveAdAllowed({
   // Reels are intentionally native-feed sponsored cards, NOT interstitials.
   // The IGPAT route is otherwise sensitive to prevent forced ads; allow
   // only the explicit passive reels placement, respecting all remote gates.
+  // Radio and PTT may show their EXACT passive content banners only.
+  // They remain sensitive to interstitial and rewarded interruptions.
+  const safePersonalMediaBanner =
+    placement === 'content' &&
+    ((route === '/personal-home/radio' && placementId === 'dzas_radio_medium_rectangle') ||
+      (route === '/personal-home/ptt' && placementId === 'ptt_banner'));
+  // Health information banner appears only in the nonurgent, user-screened
+  // section; the Health Center component itself decides when to mount it.
+  // No full-screen ads or generic placements on the health route.
+  const safeHealthInformationBanner =
+    route === '/profile/buklod-health' &&
+    placement === 'focus' &&
+    placementId === 'health_consultation_safe_info_banner';
   const safeReelsPlacement =
     placement === 'reels' &&
     placementId === 'reels_inline' &&
@@ -226,7 +250,7 @@ export function isBuklodPassiveAdAllowed({
     foreground &&
     enabled('ads_passive') &&
     placementEnabled(placementId) &&
-    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding || safeReelsPlacement || safeKingdomPassive) &&
+    (!isBuklodAdRouteSensitive(route) || safeFacultyLanding || safePersonalMediaBanner || safeHealthInformationBanner || safeReelsPlacement || safeKingdomPassive) &&
     !hasInteractionLock()
   );
 }
