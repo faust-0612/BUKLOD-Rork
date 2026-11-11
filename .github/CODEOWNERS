@@ -1,0 +1,14 @@
+# Monetization changes request BUKLOD system-admin review.
+# Enforced only when required code-owner reviews are enabled in GitHub rulesets.
+/src/lib/buklodAd* @faust-0612
+/src/lib/buklodAds.ts @faust-0612
+/src/lib/buklodGlobalAdController.ts @faust-0612
+/src/lib/buklodRewardedAds* @faust-0612
+/src/components/*Ad* @faust-0612
+/src/components/BuklodScreenBottomBanner.tsx @faust-0612
+/src/providers/AdsProvider.tsx @faust-0612
+/scripts/buklod-ad* @faust-0612
+/tests/*ad* @faust-0612
+/.github/workflows/engineering-accountability.yml @faust-0612
+/.github/workflows/unified_rc_compiled_qa_20261108.yml @faust-0612
+/.github/workflows/production_android_ota.yml @faust-0612
