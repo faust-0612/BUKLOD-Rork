@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,31 +14,26 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
-import BuklodCommunityEconomyAdminCard from '@/components/BuklodCommunityEconomyAdminCard';
 import {
-  adminGetCommunityAdmobEstimate,
   adminSetCommunityAdmobEstimate,
   formatMinorPhp,
-  type AdminCommunityAdmobEstimate,
 } from '@/lib/buklodCommunityContributionEconomy';
 import { shared } from '@/components/UI';
 import {
   adminFailBuklodPfWithdrawal,
   adminFinalizeBuklodPfMonthV3,
-  adminGetBuklodPfFinanceConsoleV3,
-  adminGetBuklodPfQmpReadinessV1,
   adminGetBuklodR38PayoutDetails,
   adminListBuklodR38Withdrawals,
   adminMarkBuklodPfWithdrawalProcessing,
   adminMarkBuklodR38WithdrawalPaid,
   adminRecordBuklodPfFinancialEntryV3,
   adminReviewBuklodR38Withdrawal,
-  type BuklodPfFinanceConsoleV3,
-  type BuklodPfQmpReadiness,
   type BuklodR38AdminWithdrawalQueue,
   type BuklodR38PayoutDetails,
 } from '@/lib/buklodR38AdminEconomy';
 import { formatPhp } from '@/lib/buklodR38Economy';
+import { financeMoneyOrUnavailable, isEconomyMonth, loadCanonicalAdminEconomy,
+  manilaEconomyMonth, type CanonicalAdminEconomySnapshot } from '@/lib/buklodCanonicalAdminEconomy';
 import { colors } from '@/lib/theme';
 
 const ENTRY_KINDS = [
@@ -52,18 +47,7 @@ const ENTRY_KINDS = [
   'OTHER_COST',
 ] as const;
 
-function defaultMonth() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const start = new Date(year, month, 1, 0, 0, 0, 0);
-  const end = new Date(year, month + 1, 1, 0, 0, 0, 0);
-  return {
-    key: `${year}-${String(month + 1).padStart(2, '0')}`,
-    start: start.toISOString(),
-    end: end.toISOString(),
-  };
-}
+function defaultMonth() { return { key: manilaEconomyMonth() }; }
 
 function ActionButton({
   title,
@@ -97,8 +81,7 @@ function ActionButton({
 
 export default function AdminEconomyOperationsScreen() {
   const month = useMemo(defaultMonth, []);
-  const [report, setReport] =
-    useState<BuklodPfFinanceConsoleV3 | null>(null);
+  const [snapshot, setSnapshot] = useState<CanonicalAdminEconomySnapshot | null>(null);
   const [queue, setQueue] =
     useState<BuklodR38AdminWithdrawalQueue | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,8 +90,11 @@ export default function AdminEconomyOperationsScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [periodKey, setPeriodKey] = useState(month.key);
-  const [admobPreview, setAdmobPreview] = useState<AdminCommunityAdmobEstimate | null>(null);
-  const [qmpReadiness, setQmpReadiness] = useState<BuklodPfQmpReadiness | null>(null);
+  const [draftPeriodKey, setDraftPeriodKey] = useState(month.key);
+  const requestSerial = useRef(0);
+  const report = snapshot?.finance ?? null;
+  const qmpReadiness = snapshot?.qmp ?? null;
+  const admobPreview = snapshot?.admob_provisional ?? null;
   const [admobReportAmount, setAdmobReportAmount] = useState('');
   const [admobReportCurrency, setAdmobReportCurrency] = useState<'USD' | 'PHP'>('USD');
   const [admobUsdPhpRate, setAdmobUsdPhpRate] = useState('');
@@ -133,36 +119,30 @@ export default function AdminEconomyOperationsScreen() {
   const [transactionRef, setTransactionRef] = useState('');
 
   const load = useCallback(async () => {
-    // Do not show stale month readiness during a refresh.
-    setQmpReadiness(null);
+    const generation = ++requestSerial.current;
+    setSnapshot(null);
+    setQueue(null);
+    setLoading(true);
+    setError(null);
     try {
-      setError(null);
-
-      const [nextReport, nextQueue, nextAdmob, nextQmpReadiness] = await Promise.all([
-        adminGetBuklodPfFinanceConsoleV3(periodKey),
+      const [nextSnapshot, nextQueue] = await Promise.all([
+        loadCanonicalAdminEconomy(periodKey),
         adminListBuklodR38Withdrawals(),
-        // The additive preview migration may be pending on older environments.
-        adminGetCommunityAdmobEstimate(periodKey).catch(() => null),
-        adminGetBuklodPfQmpReadinessV1(periodKey).catch(() => null),
       ]);
-
-      setReport(nextReport);
+      if (generation !== requestSerial.current) return;
+      setSnapshot(nextSnapshot);
       setQueue(nextQueue);
-      setAdmobPreview(nextAdmob);
-      setQmpReadiness(nextQmpReadiness);
     } catch (nextError: unknown) {
-      setError(
-        nextError instanceof Error
-          ? nextError.message
-          : 'Could not load canonical BUKLOD Economy operations.',
-      );
+      if (generation !== requestSerial.current) return;
+      setError(nextError instanceof Error ? nextError.message : 'Could not synchronize canonical BUKLOD Economy.');
     } finally {
-      setLoading(false);
+      if (generation === requestSerial.current) setLoading(false);
     }
   }, [periodKey]);
 
   useEffect(() => {
     void load();
+    return () => { requestSerial.current++; };
   }, [load]);
 
   const refresh = useCallback(async () => {
@@ -173,10 +153,14 @@ export default function AdminEconomyOperationsScreen() {
 
   const controls = report?.controls;
   const settlement = report?.settlement ?? null;
+  const monthLoaded = draftPeriodKey.trim() === periodKey;
+  const formatSettlement = (value: unknown) =>
+    financeMoneyOrUnavailable(value, settlement?.status === 'FINALIZED');
   const currentStatus =
     settlement?.status ?? 'NOT FINALIZED';
 
   const canFinalize =
+    !loading && !error && monthLoaded &&
     controls?.economics_enabled === true &&
     controls?.settlement_enabled === true &&
     qmpReadiness?.ready_for_finalization === true &&
@@ -199,18 +183,20 @@ export default function AdminEconomyOperationsScreen() {
   };
 
   const loadPeriod = () => {
-    if (!/^\d{4}-\d{2}$/.test(periodKey.trim())) {
-      Alert.alert(
-        'Finance Period',
-        'Enter the month as YYYY-MM.',
-      );
+    const next = draftPeriodKey.trim();
+    if (!isEconomyMonth(next)) {
+      Alert.alert('Finance Period', 'Enter a valid Manila month YYYY-MM (01-12).');
       return;
     }
-
-    void load();
+    if (next !== periodKey) setPeriodKey(next);
+    else void load();
   };
 
   const addEntry = () => {
+    if (!monthLoaded || loading || !snapshot) {
+      Alert.alert('Financial Entry', 'Load the selected month before recording an entry.');
+      return;
+    }
     const numericAmount = Number(amount);
 
     if (
@@ -259,6 +245,10 @@ export default function AdminEconomyOperationsScreen() {
   };
 
   const publishAdmobPreview = () => {
+    if (!monthLoaded || loading || !snapshot) {
+      Alert.alert('AdMob estimate', 'Load the selected month before saving a provisional estimate.');
+      return;
+    }
     const amount = Number(admobReportAmount.trim());
     const rate = admobReportCurrency === 'USD' ? Number(admobUsdPhpRate.trim()) : 1;
     const php = Math.round(amount * rate * 100) / 100;
@@ -434,11 +424,8 @@ export default function AdminEconomyOperationsScreen() {
               </View>
 
               <TextInput
-                value={periodKey}
-                onChangeText={next => {
-                  setPeriodKey(next);
-                  setQmpReadiness(null);
-                }}
+                value={draftPeriodKey}
+                onChangeText={setDraftPeriodKey}
                 autoCapitalize="none"
                 placeholder="YYYY-MM"
                 style={styles.input}
@@ -476,10 +463,16 @@ export default function AdminEconomyOperationsScreen() {
               </View>
 
               <Text style={styles.muted}>
-                Settlement status: {currentStatus}
+                Loaded month: {periodKey} · Settlement status: {currentStatus}
+              </Text>
+              {!monthLoaded && <Text style={styles.warningText}>
+                Month field changed. Press LOAD MONTH before any finance action.
+              </Text>}
+              <Text style={styles.muted}>
+                Finance V3, monthly QMP and provisional AdMob are synchronized in one source-consistent server snapshot.
               </Text>
               <Text style={styles.muted}>
-                Automated monthly QMP audit: {qmpReadiness?.period_exists
+                Automated QMP audit (source-backed): {qmpReadiness?.period_exists
                   ? `${qmpReadiness.qualified_users ?? 0} qualified users ·
                   ${qmpReadiness.qualified_monthly_qmp ?? 0} QMP ·
                   ${qmpReadiness.unlinked_finance_identities ?? 0} identity links missing ·
@@ -492,7 +485,7 @@ export default function AdminEconomyOperationsScreen() {
               {!canFinalize &&
                 currentStatus !== 'FINALIZED' && (
                   <Text style={styles.warningText}>
-                    Finalization requires a completed month, completed automated QMP validation, reconciled Finance identities,
+                    Finalization requires a completed Manila month, automated QMP checks, reconciled Finance identities,
                     verified eligible revenue, no legacy allocations, and enabled server economics and settlement gates.
                     Incomplete or missing readiness data never authorizes a payout.
                   </Text>
@@ -506,7 +499,7 @@ export default function AdminEconomyOperationsScreen() {
               </Text>
               {admobPreview ? (
                 <Text style={styles.muted}>
-                  Current preliminary report: {formatMinorPhp(admobPreview.amount_minor)} · observed {new Date(admobPreview.observed_at).toLocaleString()} · {admobPreview.source_reference}
+                  Current preliminary report (not finalized revenue): {formatMinorPhp(admobPreview.amount_minor)} · observed {new Date(admobPreview.observed_at).toLocaleString()} · {admobPreview.source_reference}
                 </Text>
               ) : (
                 <Text style={styles.warningText}>No preliminary AdMob report recorded for this month.</Text>
@@ -547,7 +540,7 @@ export default function AdminEconomyOperationsScreen() {
                 style={styles.input}
               />
               <ActionButton title={busy === 'admob-preview' ? 'SAVING...' : 'PUBLISH NON-CASH ESTIMATE'}
-                icon="chart-line" onPress={publishAdmobPreview} disabled={!!busy} />
+                icon="chart-line" onPress={publishAdmobPreview} disabled={!!busy || loading || !monthLoaded || !snapshot} />
             </View>
 
             <View style={styles.section}>
@@ -697,10 +690,7 @@ export default function AdminEconomyOperationsScreen() {
                 icon="database-plus-outline"
                 onPress={addEntry}
                 disabled={
-                  !!busy ||
-                  !/^\d{4}-\d{2}$/.test(
-                    periodKey.trim(),
-                  )
+                  !!busy || loading || !monthLoaded || !snapshot
                 }
               />
             </View>
@@ -718,9 +708,7 @@ export default function AdminEconomyOperationsScreen() {
               >
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.normal_eligible_revenue_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.normal_eligible_revenue_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     Eligible Revenue
@@ -729,9 +717,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.user_pool_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.user_pool_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     30% User Pool
@@ -740,9 +726,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.first_line_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.first_line_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     First-line
@@ -751,9 +735,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.community_fund_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.community_fund_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     Community Fund
@@ -762,9 +744,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.buklod_retained_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.buklod_retained_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     BUKLOD Retained
@@ -773,9 +753,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.operating_cost_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.operating_cost_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     Operating Cost
@@ -784,9 +762,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.tax_reserve_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.tax_reserve_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     Tax Reserve
@@ -795,9 +771,7 @@ export default function AdminEconomyOperationsScreen() {
 
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {formatPhp(
-                      settlement?.estimated_final_net_php ?? 0,
-                    )}
+                    {formatSettlement(settlement?.estimated_final_net_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
                     Final Net
@@ -806,7 +780,9 @@ export default function AdminEconomyOperationsScreen() {
               </View>
 
               <Text style={styles.muted}>
-                QMP total: {String(settlement?.qualified_monthly_points ?? 0)} · Settled users: {String(report?.user_shares?.length ?? 0)} · Community allocations: {String(report?.community_allocations?.length ?? 0)}
+                {settlement?.status === 'FINALIZED'
+                  ? `Finalized QMP: ${settlement.qualified_monthly_points} · Settled users: ${report?.user_shares.length ?? 0} · Community allocations: ${report?.community_allocations.length ?? 0}`
+                  : 'No finalized settlement. This is not a zero-revenue claim.'}
               </Text>
             </View>
 
