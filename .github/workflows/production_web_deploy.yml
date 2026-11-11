@@ -131,7 +131,7 @@ jobs:
         run: node --test tests/web-bottom-nav-production-release-20261108.test.mjs
 
       - name: Verify BUKLOD browser PTT floor and privacy contracts
-        run: node --test tests/buklod-ptt-web-contract.test.mjs
+        run: node --test tests/buklod-ptt-web-contract.test.mjs tests/buklod-ptt-web-release.test.mjs
 
       - name: TypeScript QA
         run: npx tsc --noEmit
