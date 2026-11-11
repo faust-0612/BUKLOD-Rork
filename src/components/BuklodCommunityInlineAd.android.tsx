@@ -257,7 +257,7 @@ export default function BuklodCommunityInlineAd({
       diagnosticPlacement,
       'ad_request',
       undefined,
-      { route: pathname, placementId },
+      { route: pathname, placementId, adFormat: 'native' },
     );
 
     let cancelled = false;
@@ -272,7 +272,7 @@ export default function BuklodCommunityInlineAd({
           diagnosticPlacement,
           'ad_failed',
           new Error('NATIVE_AD_LOAD_TIMEOUT'),
-          { route: pathname, placementId },
+          { route: pathname, placementId, adFormat: 'native' },
         );
         setNativeFailed(true);
       }
@@ -302,7 +302,7 @@ export default function BuklodCommunityInlineAd({
               diagnosticPlacement,
               'ad_impression',
               undefined,
-              { route: pathname, placementId },
+              { route: pathname, placementId, adFormat: 'native' },
             );
           },
         );
@@ -311,7 +311,7 @@ export default function BuklodCommunityInlineAd({
           diagnosticPlacement,
           'ad_loaded',
           undefined,
-          { route: pathname, placementId },
+          { route: pathname, placementId, adFormat: 'native' },
         );
         setNativeAd(ad);
       })
@@ -326,7 +326,7 @@ export default function BuklodCommunityInlineAd({
             diagnosticPlacement,
             'ad_failed',
             error,
-            { route: pathname, placementId },
+            { route: pathname, placementId, adFormat: 'native' },
           );
           setNativeFailed(true);
         }
@@ -359,7 +359,7 @@ export default function BuklodCommunityInlineAd({
       diagnosticPlacement,
       'ad_rendered',
       undefined,
-      { route: pathname, placementId },
+      { route: pathname, placementId, adFormat: 'native' },
     );
   }, [diagnosticPlacement, nativeAd, pathname, placementId]);
 
@@ -397,7 +397,7 @@ export default function BuklodCommunityInlineAd({
       diagnosticPlacement,
       'ad_request',
       undefined,
-      { route: pathname, placementId },
+      { route: pathname, placementId, adFormat: 'banner' },
     );
 
     bannerTimeoutRef.current = setTimeout(() => {
@@ -405,7 +405,7 @@ export default function BuklodCommunityInlineAd({
         diagnosticPlacement,
         'ad_failed',
         new Error('BANNER_AD_LOAD_TIMEOUT'),
-        { route: pathname, placementId },
+        { route: pathname, placementId, adFormat: 'banner' },
       );
       bannerFailedAt.current = Date.now();
       setBannerFailed(true);
@@ -479,7 +479,7 @@ export default function BuklodCommunityInlineAd({
       diagnosticPlacement,
       'ad_rendered',
       undefined,
-      { route: pathname, placementId },
+      { route: pathname, placementId, adFormat: 'banner' },
     );
   }, [bannerLoaded, diagnosticPlacement, pathname, placementId]);
 
@@ -582,7 +582,7 @@ export default function BuklodCommunityInlineAd({
               diagnosticPlacement,
               'ad_loaded',
               undefined,
-              { route: pathname, placementId },
+              { route: pathname, placementId, adFormat: 'banner' },
             );
             setBannerLoaded(true);
           }}
@@ -591,7 +591,7 @@ export default function BuklodCommunityInlineAd({
               diagnosticPlacement,
               'ad_impression',
               undefined,
-              { route: pathname, placementId },
+              { route: pathname, placementId, adFormat: 'banner' },
             );
           }}
           onAdFailedToLoad={error => {
@@ -603,7 +603,7 @@ export default function BuklodCommunityInlineAd({
               diagnosticPlacement,
               'ad_failed',
               error,
-              { route: pathname, placementId },
+              { route: pathname, placementId, adFormat: 'banner' },
             );
             // Collapse every terminal fallback failure, including no-fill.
             // A single retry is allowed only after the shared quiet period.
