@@ -8,8 +8,8 @@
     "actualDevice": "owner explicitly skipped",
     "sourceContractChecks": "isolated branch 33 source-level assertions; consolidated exact-head CI pending",
     "runtimeBuild": "not run; still required at consolidated RC gate",
-    "backendE2E": "not run; requires backend migration and AI key verification",
-    "productionStatus": "untouched"
+    "backendE2E": "live SQL contracts PASS with quiz enforcement OFF; edge deployed; authenticated real-model quiz generation not yet runtime-verified",
+    "productionStatus": "backend migrations applied; app OTA not yet published"
   },
   "otaTarget": {
     "appTarget": "main",
@@ -21,6 +21,7 @@
   "releaseOrdering": [
     "Reconcile current authoritative production, DEV, and single consolidated RC before cherry-pick; never duplicate source patches.",
     "Apply compatible database migration 20261111010000_kl_auto_reading_quiz_v1.sql before app OTA, with enforcement flag default false.",
+    "Apply and verify tracked KL trigger RPC privilege hardening 20261111053000 with enabled approval/release triggers.",
     "Deploy kl-generate-reading-quiz with JWT verification and protected server-side existing GEMINI_API_KEY; verify model generates correct source-evidenced questions without leaking answer keys.",
     "Generate and source-review approved legacy Panimula and Kabanata 1-5 banks; confirm new approvals automatically produce five questions.",
     "Compile/test exact consolidated RC branch; actual-device verification is waived by owner, but server checks, typecheck, and build checks are not.",
@@ -59,7 +60,9 @@
     "tests/buklod-points-r3-kl-story.test.mjs",
     "tests/kl-approved-auto-reading-quiz.test.mjs",
     "tests/kl-reader-ad-safe-completion.test.mjs",
-    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs",
+    "supabase/migrations/20261111053000_kl_trigger_rpc_privilege_lock_v1.sql",
+    "supabase/tests/kl_trigger_rpc_privilege_lock_v1.sql"
   ],
   "preserveBehaviors": [
     "Production Main OTA is unchanged until exact consolidated release is explicitly executed.",

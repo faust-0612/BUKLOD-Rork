@@ -37,7 +37,8 @@
     "Do not merge to production main, publish OTA or mark a release live until independent production fingerprint evidence exists.",
     "Photo comments SQL migration applied and audience/RLS verified before the new photo comments UI is live.",
     "KL question bank SQL/security tests, approved manuscript five-question generation, three-question server verification and idempotent BP rewards tested before client release.",
-    "Legacy image media metadata backfill and one-per-viewer batched photo comment counters validated without touching physical media."
+    "Legacy image media metadata backfill and one-per-viewer batched photo comment counters validated without touching physical media.",
+    "KL approval and release trigger functions must not grant EXECUTE to anon/authenticated; trigger attachments remain enabled."
   ],
   "preserveBehaviors": [
     "Security and private access rules",
@@ -100,7 +101,8 @@
     "tests/kl-ad-completion.test.cjs",
     "tests/kl-approved-auto-reading-quiz.test.mjs",
     "tests/kl-reader-ad-safe-completion.test.mjs",
-    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs",
+    "supabase/tests/kl_trigger_rpc_privilege_lock_v1.sql"
   ],
   "allowedPaths": [
     ".buklod/scopes/ads-high-traffic-max-safe-20261111.json",
@@ -239,11 +241,14 @@
     "tests/kl-ad-completion.test.cjs",
     "tests/kl-approved-auto-reading-quiz.test.mjs",
     "tests/kl-reader-ad-safe-completion.test.mjs",
-    "tests/kl-web-release-admin-preflight-20261107.test.mjs"
+    "tests/kl-web-release-admin-preflight-20261107.test.mjs",
+    "supabase/migrations/20261111053000_kl_trigger_rpc_privilege_lock_v1.sql",
+    "supabase/tests/kl_trigger_rpc_privilege_lock_v1.sql"
   ],
-  "production": "HOLD / no OTA or Expo web publication; ten pending new migrations incl. KL auto reading quiz and photo comments",
+  "production": "HOLD / 11 canonical Supabase migrations applied and source-aligned as of Nov 11 2026; production Android OTA and Expo Web not yet promoted; finance payment switches OFF.",
   "verifiedDevSourceSha": "15a53f992cd51441b55a2aece7168ae012b39f8b",
-  "pendingBackendMigrations": [
+  "pendingBackendMigrations": [],
+  "requiredBackendMigrations": [
     "20261110213500_mentor_report_evidence_review_r4.sql",
     "20261111010000_kl_auto_reading_quiz_v1.sql",
     "20261111014500_buklod_kingdom_shards_game_only_v1.sql",
@@ -253,6 +258,7 @@
     "20261111025000_buklod_pf_v3_monthly_summary_qmp_v1.sql",
     "20261111031000_buklod_finance_qmp_readiness_audit_v1.sql",
     "20261111032000_buklod_qmp_finance_review_queue_v1.sql",
-    "20261111043000_buklod_photo_comments_by_media_v1.sql"
+    "20261111043000_buklod_photo_comments_by_media_v1.sql",
+    "20261111053000_kl_trigger_rpc_privilege_lock_v1.sql"
   ]
 }
