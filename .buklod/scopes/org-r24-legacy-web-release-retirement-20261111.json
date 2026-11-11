@@ -1,0 +1,34 @@
+{
+  "contractVersion": 2,
+  "objective": "Retire an obsolete Organization Setup R24 auto-dispatch that attempted an unsupported direct web workflow_dispatch on every organization source change; preserve explicit reviewed publication only.",
+  "baseRef": "538f94d0305548ebe94425fded526bca7c02d048",
+  "productionBaselineEvidence": "Main exact SHA 538f94d0305548ebe94425fded526bca7c02d048 merged source-only ad lock and produced R24 Dispatch run 42972951187 failure: 422 workflow lacks workflow_dispatch; production_android_ota and production_web_deploy skipped at same SHA.",
+  "chosenApproach": "Remove the push-triggered automatic production web dispatch and all actions:write permission; retain a manual no-op explanatory legacy job while protecting canonical source-marker publisher.",
+  "selectionRationale": "New protected production_web_deploy.yml deliberately has push-only release markers. Legacy R24 automatically invokes a nonexistent workflow_dispatch and creates false failed runs; restoring dispatch would bypass release gates.",
+  "alternativeApproaches": [
+    "Re-enable production web manual dispatch (rejected: bypasses release-marker gates).",
+    "Retire only legacy indirect publisher and add focused anti-regression test (chosen)."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "allowedPaths": [
+    ".github/workflows/org_profile_setup_hub_r24_dispatch.yml",
+    "tests/org-r24-legacy-web-release-retirement-20261111.test.mjs",
+    ".buklod/scopes/org-r24-legacy-web-release-retirement-20261111.json"
+  ],
+  "regressionTests": [
+    "tests/org-r24-legacy-web-release-retirement-20261111.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "No automatic push trigger on retired R24 workflow",
+    "No actions write or gh workflow run production web dispatch",
+    "Existing canonical Android and Web production release marker checks remain untouched",
+    "PR source and CI pass; no OTA/web deployment triggered by source merge"
+  ],
+  "preserveBehaviors": [
+    "No changes to BUKLOD Main runtime screens, ads, organization hierarchy or database",
+    "Canonical explicit main production release contract preserved",
+    "No direct or accidental web/OTA dispatch"
+  ]
+}

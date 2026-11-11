@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { supabase, type BuklodPttConnection } from '@/ptt/buklodPttCore';
@@ -13,6 +13,25 @@ import {
 } from '@/ptt/buklodPttConversation';
 
 type Props = { scopeId: string; channel: number; connection: BuklodPttConnection | null };
+
+/* Browser Alert is not implemented by React Native Web. Preserve informed
+ * opt-in, including confirmation before changing a channel-wide setting. */
+const BrowserSafeAlert = {
+  alert(title: string, message: string, buttons: any[] = []) {
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined') return;
+      const next = buttons.find(button => button.style !== 'cancel' && typeof button.onPress === 'function');
+      if (next) {
+        if (window.confirm(title + '\n\n' + message)) next.onPress();
+      } else {
+        window.alert(title + '\n\n' + message);
+      }
+      return;
+    }
+    Alert.alert(title, message, buttons);
+  },
+};
+
 
 function mergeMessages(a: BuklodPttMessage[], b: BuklodPttMessage[]) {
   const unique = new Map<string, BuklodPttMessage>();
@@ -154,7 +173,7 @@ export default function BuklodPttConversation({ scopeId, channel, connection }: 
   // Shared caption engine and per-user transcript consent are independent.
   const updateOwnCaptionConsent = (enable: boolean) => {
     if (!connection || connection.scope.id !== scopeId || connection.channel !== channel) {
-      Alert.alert('Connect PTT first', 'Join this PTT channel before enabling voice-to-text.');
+      BrowserSafeAlert.alert('Connect PTT first', 'Join this PTT channel before enabling voice-to-text.');
       return;
     }
     if (captionWorking) return;
@@ -179,7 +198,7 @@ export default function BuklodPttConversation({ scopeId, channel, connection }: 
       void act();
       return;
     }
-    Alert.alert(
+    BrowserSafeAlert.alert(
       captionsActive ? 'Save your spoken words?' : 'Enable channel voice-to-text?',
       captionsActive
         ? 'Captions already run for this channel. Only your own spoken words will be saved to your BUKLOD conversation.'
@@ -190,7 +209,7 @@ export default function BuklodPttConversation({ scopeId, channel, connection }: 
 
   const stopChannelCaptions = () => {
     if (!connection || connection.scope.id !== scopeId || connection.channel !== channel || captionWorking) return;
-    Alert.alert(
+    BrowserSafeAlert.alert(
       'Stop captions for everyone?',
       'This stops voice recognition for all participants, not only your personal transcript.',
       [

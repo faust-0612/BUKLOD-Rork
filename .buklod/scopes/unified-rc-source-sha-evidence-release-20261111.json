@@ -1,0 +1,36 @@
+{
+  "contractVersion": 2,
+  "objective": "Correct unified compiled RC metadata source SHA mismatch; prevent Github PR synthetic merge SHA from being recorded as checked-out Android/Web artifact source identity.",
+  "baseRef": "59540fbe98f62825290069631a23b15198ed0dc5",
+  "productionBaselineEvidence": "BUKLOD Main 59540fbe98f62825290069631a23b15198ed0dc5. Unified Android/Web compile QA run 42972339700 succeeded and printed RC_COMPILED_SHA=d4c31003d03ab354e22c34a457a13117bda38597 but /tmp/buklod-rc-identity.json recorded sha=e9d265de19872fd713f5f0543f2d6d8c0ce1b6ce because workflow used process.env.GITHUB_SHA.",
+  "chosenApproach": "Write identity SHA using git rev-parse HEAD from exact checkout, then assert JSON SHA equals working-tree head in final artifact verification step.",
+  "selectionRationale": "GitHub pull_request GITHUB_SHA is a synthetic merge ref and cannot identify the actual checkout when actions/checkout uses event.pull_request.head.sha. Read back the actual source SHA to protect reproducibility.",
+  "alternativeApproaches": [
+    "Keep GITHUB_SHA and change checkout to synthetic merge ref (rejected: release identity would not match approved PR source).",
+    "Use real checked-out SHA and fail on discrepancy (chosen)."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "allowedPaths": [
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/unified-rc-source-sha-evidence-release-20261111.test.mjs",
+    ".buklod/scopes/unified-rc-source-sha-evidence-release-20261111.json"
+  ],
+  "regressionTests": [
+    "tests/unified-rc-source-sha-evidence-release-20261111.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Exact source HEAD from git rev-parse in RC identity JSON",
+    "Identity assertion fails workflow on discrepancy",
+    "No changes to production publisher, EAS environments or Expo runtime",
+    "Focused test + Engineering Accountability and TypeScript/Main integration CI pass",
+    "No OTA, web or Play publish"
+  ],
+  "preserveBehaviors": [
+    "Existing Android and Web compiled RC source QA checks",
+    "Production publish marker gates unchanged",
+    "Ad lock source and test contracts unchanged",
+    "No native dependency/DB/app changes"
+  ]
+}
