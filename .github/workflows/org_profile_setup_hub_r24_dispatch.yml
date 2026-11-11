@@ -1,7 +1,7 @@
 # Retired R24 source-change auto-dispatch. Production web publication is only
 # authorized by production_web_deploy.yml's protected release-marker push.
 # The target workflow has no workflow_dispatch trigger: do not reintroduce
-# a gh workflow run call or any push trigger here.
+# a legacy external dispatch call or any push trigger here.
 name: BUKLOD Organization Setup Hub R24 Legacy Dispatch (Retired)
 
 on:

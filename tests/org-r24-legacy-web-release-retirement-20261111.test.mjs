@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 test('Obsolete R24 dispatch cannot auto-start or call a production publisher', () => {
   const source=readFileSync('.github/workflows/org_profile_setup_hub_r24_dispatch.yml','utf8');
-  assert.match(source,/on:\\n  workflow_dispatch:/);
+  assert.match(source,/on:\n  workflow_dispatch:/);
   assert.doesNotMatch(source,/^  push:/m);
   assert.doesNotMatch(source,/^\s*actions: write/m);
   assert.doesNotMatch(source,/gh workflow run|eas-cli.*update|expo export|workflow_dispatch.*production_web_deploy/);
