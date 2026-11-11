@@ -45,7 +45,8 @@
     "Admin Reports Center, Economy/Bayanihan and Economy Operations use the same month-specific canonical Finance V3 + QMP + provisional AdMob read-only snapshot. Legacy R38 BCU/RCU excluded from money reports.",
     "Run canonical admin Economy SQL permission/period contract after snapshot migration; no client exposure before the RPC exists.",
     "No live verification and no new production migration/publish in this preparation task; no change to financial activation or payout gates.",
-    "Nov 11 mutual-engagement and KL verified-reading reward scope reconciled into exact cumulative scope inventory; no duplicate point credits or separate deployment."
+    "Nov 11 mutual-engagement and KL verified-reading reward scope reconciled into exact cumulative scope inventory; no duplicate point credits or separate deployment.",
+    "Dead member-side manual QMP review RPC client wrapper retired; source-backed automatic eligibility remains the sole path."
   ],
   "preserveBehaviors": [
     "Security and private access rules",
@@ -280,7 +281,8 @@
     "supabase/migrations/20261111094000_buklod_qmp_indirect_reward_guard_v4.sql",
     "supabase/migrations/20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql",
     "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql",
-    "tests/buklod-admin-economy-snapshot-20261111.test.mjs"
+    "tests/buklod-admin-economy-snapshot-20261111.test.mjs",
+    "src/lib/buklodCommunityContributionEconomy.ts"
   ],
   "production": "HOLD / NO PUBLISH: Previously applied QMP backend migrations 20261111093000, 093500, 094000 observed in prior audit; new admin reporting snapshot 20261111100000 remains NOT APPLIED. Finance payout/economic flags remain OFF. New merged RC requires full exact-source QA and backend prerequisite before any production promotion.",
   "verifiedDevSourceSha": "PENDING_EXACT_CUMULATIVE_RC_QA",

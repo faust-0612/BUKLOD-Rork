@@ -27,7 +27,8 @@
     "Missing or unfinalized settlement is shown as unavailable rather than ₱0 in all admin financial dashboards.",
     "AdMob provisional report is labeled noncash, shown separately and never merged with actual revenue or user earnings.",
     "No production DB migration or live data verification occurs in this scope; backend RPC must be included before consolidated OTA.",
-    "Focused Node and Postgres contracts cover the cross-screen shared source, period/privacy/invariant checks, and intact Finance V3 settlement and withdrawal gates."
+    "Focused Node and Postgres contracts cover the cross-screen shared source, period/privacy/invariant checks, and intact Finance V3 settlement and withdrawal gates.",
+    "Dead member-side manual QMP review RPC client wrapper retired; source-backed automatic eligibility remains the sole path."
   ],
   "preserveBehaviors": [
     "Original monthly QMP weights, bonus caps, monthly reset, lifetime history, earnings read models.",
@@ -69,6 +70,7 @@
     "supabase/migrations/20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql",
     "tests/buklod-admin-economy-snapshot-20261111.test.mjs",
     "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
-    "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql"
+    "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql",
+    "src/lib/buklodCommunityContributionEconomy.ts"
   ]
 }
