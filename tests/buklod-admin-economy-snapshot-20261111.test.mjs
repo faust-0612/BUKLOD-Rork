@@ -8,6 +8,7 @@ const helper = read('src/lib/buklodCanonicalAdminEconomy.ts');
 const ops = read('src/app/admin/economy-operations.tsx');
 const home = read('src/app/admin/bayanihan.tsx');
 const center = read('src/app/admin/reports-center.tsx');
+const opsLibrary = read('src/lib/buklodR38AdminEconomy.ts');
 
 test('admin snapshot is one verified Manila month and one consistent server response', () => {
   assert.match(sql,/security definer set search_path to ''/);
@@ -51,6 +52,15 @@ test('month selection is explicit, with stale requests isolated', () => {
   assert.match(home,/draftMonth/);
   assert.match(home,/if \(next === monthKey\) void load\(\)/);
   assert.match(center,/loadCanonicalAdminEconomy\(manilaEconomyMonth\(\)\)/);
+});
+test('Finance reporting degrades safely when the separate payout queue fails', () => {
+  assert.match(ops,/Promise\.allSettled\(/);
+  assert.match(ops,/financeResult\.status !== 'fulfilled'/);
+  assert.match(ops,/setSnapshot\(financeResult\.value\)/);
+  assert.match(ops,/setQueue\(payoutResult\.status === 'fulfilled'/);
+  assert.match(ops,/Withdrawal queue could not be verified/);
+  assert.doesNotMatch(opsLibrary,/export (?:async )?function adminResolveBuklodQmpEvent/);
+  assert.doesNotMatch(opsLibrary,/export (?:async )?function adminGetBuklodQmpMonthReviewQueue/);
 });
 test('unfinalized and provisional amounts are never presented as actual cash', () => {
   assert.match(helper,/if \(!finalized/);
