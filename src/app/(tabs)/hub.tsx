@@ -10,6 +10,7 @@ import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
+import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodKingdomHubCard from '@/components/home/BuklodKingdomHubCard';
 
 // Factories execute only after the user opens a tool.
@@ -68,6 +69,8 @@ export default function BuklodLightHome() {
     ] as const;
     return (
       <ScrollView
+        onScroll={event => reportBuklodDashboardScroll('home', event.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={64}
         style={{ flex: 1, backgroundColor: theme.surface }}
         contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
@@ -177,7 +180,7 @@ export default function BuklodLightHome() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 28, gap: 8 }}>
+    <ScrollView onScroll={event => reportBuklodDashboardScroll('home', event.nativeEvent.contentOffset.y)} scrollEventThrottle={64} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 28, gap: 8 }}>
       <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
