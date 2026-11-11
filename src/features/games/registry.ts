@@ -9,7 +9,7 @@ export const BUKLOD_GAMES: Record<string, BuklodGameDefinition> = {
   'trudice-playground-memory': {
     id: 'trudice-playground-memory', characterKey: 'trudice', mapType: 'children-playground', stationKey: 'playground-memory-01',
     title: 'Wonder Path', subtitle: 'Trudice • Children\'s Haven',
-    objective: 'Watch a glowing route across the playground, then repeat the station sequence as each round becomes longer.', replayable: true,
+    objective: 'Restore five playground areas through original route memory, double-glow discovery, hazard avoidance, reverse-order trails, and a star-rescue finale.', replayable: true,
   },
   'ace-rescue-grid': {
     id: 'ace-rescue-grid', characterKey: 'ace', mapType: 'strategy-city', stationKey: 'rescue-grid-01',

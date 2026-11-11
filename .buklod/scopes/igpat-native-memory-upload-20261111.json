@@ -1,0 +1,53 @@
+{
+  "contractVersion": 2,
+  "objective": "Prevent Android IGPAT upload memory crashes AND ensure newly uploaded IGPAT/Community videos use Supabase Storage only, matching authoritative IGPAT publishing checks. Keep legacy external media readable without uploading new content there.",
+  "baseRef": "4dcc6a7544b8e0d616e0c503fce6247a59e57cd7",
+  "productionBaselineEvidence": "Prior captured Android heap OOM at ~255/256 MB, full-file bytesSync upload OOM in R20; bounded uploader still present on current main; no current device crash log or production artifact fingerprint checked. DEV branch was rebased onto latest GitHub main 4dcc6a7544b8e0d616e0c503fce6247a59e57cd7 after a concurrent unrelated ad/finance gate merge; only six scoped paths were carried forward, no production OTA fingerprint claimed.",
+  "chosenApproach": "Pause/release off-focus IGPAT feed players and Reels ad views; unmount creator video preview during active upload; postpone ad warming until video transport is complete. Preserve existing server and transport logic. Also retire new AWS upload routing across shared IGPAT/Community video transport, route every newly selected video to Supabase signed PUT (<6MiB) or bounded TUS (>=6MiB), guard unknown sizes, and keep all historical AWS reads until safe object migration.",
+  "riskAreas": [
+    "android-media-memory",
+    "reels-player-lifecycle",
+    "ads-monetization",
+    "igpat-upload",
+    "wall-media"
+  ],
+  "preserveBehaviors": [
+    "IGPAT active and next-video preloading while feed is focused",
+    "Reels sponsored ad cadence and existing consent gates",
+    "Video upload routing and S3 multipart bounded memory",
+    "Advertise only after successful server publishing",
+    "No new native dependency/config/permissions",
+    "No OTA, Play, Web or DB release from this branch",
+    "No changes to legacy 17 AWS media records or to existing authorization/ACL; preserve their playback until explicit migration",
+    "Supabase Pro configured 1GiB private community-media bucket; no new paid infrastructure, credentials or native dependencies"
+  ],
+  "acceptanceChecks": [
+    "Focused feed plays active video; background feed mounts no video players or ad views",
+    "Creator preview not decoded during active upload; restored after failure",
+    "Interstitial warmed only after upload completes, shown only after RPC success",
+    "Existing IGPAT/ads/source QA remains green",
+    "Require Android crash evidence before calling underlying cause proven",
+    "IGPAT and Wall videos >45MiB never use AWS: Supabase TUS 6MiB chunks and existing offset recovery",
+    "Unknown video size stops before single PUT; IGPAT R10 Supabase object verification matches upload path"
+  ],
+  "allowedPaths": [
+    "src/app/igpat/index.tsx",
+    "src/app/igpat/create.tsx",
+    "tests/igpat-native-memory-upload-20261111.test.mjs",
+    ".buklod/scopes/igpat-native-memory-upload-20261111.json",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "tests/igpat-supabase-only-upload-20261111.test.mjs"
+  ],
+  "releaseStatus": "DEV-only, hold OTA until consolidated RC",
+  "selectionRationale": "Existing native bounded upload already prevents full-file bytesSync, but creator preview plus hidden feed decoders and prewarmed interstitial overlap can exacerbate the previously proven Android heap pressure. Minimal screen-focus lifecycle fix avoids changing native storage/API and monetization. Current production R10 IGPAT RPC checks storage.objects only in community-media; prior >45MiB AWS upload causes deterministic 'Uploaded IGPAT video was not found' after transport success. Supabase Pro community-media bucket is configured for 1GiB and existing 6MiB TUS client handles weak-network uploads. Remove AWS write branch and fail closed on unknown video size.",
+  "alternativeApproaches": [
+    "Raising Android largeHeap rejected as hiding player/ads leaks and increasing process death risk",
+    "Disabling IGPAT Reels ads entirely rejected because viewability-gated ad cadence remains required; unmount only when route is unfocused",
+    "Rewriting S3 multipart or TUS transport rejected without a new crash trace, because the native bounded upload code is already present",
+    "Do not alter the production IGPAT SQL to falsely accept missing Supabase media paths or accept arbitrary external references, as this breaks media ACLs and causes blank videos."
+  ],
+  "regressionTests": [
+    "tests/igpat-native-memory-upload-20261111.test.mjs",
+    "tests/igpat-supabase-only-upload-20261111.test.mjs"
+  ]
+}
