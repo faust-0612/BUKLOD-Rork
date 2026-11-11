@@ -2,8 +2,8 @@
   "contractVersion": 2,
   "objective": "Implement precisely approved KL 10 BP per verified chapter plus one-time 50 BP per verified 30-chapter series and gated fair progressive BUKLOD engagement BP, with nonblocking discussion and no duplicate R37/QMP creator economics.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: On Nov 11 2026 GitHub main SHA a216bbdd6dee99b161f7861addba766f115203f1 was inspected. Read-only live BUKLOD Connect policy inspection verified KL 5/30, active R37 social tiers and Community QMP v1. These are repo/DB baselines, NOT an Android production OTA fingerprint.",
-  "chosenApproach": "One change-set DEV integration with separate forward-only KL and feature-flagged engagement migrations, precise source-level user guide updates, SQL and Node contracts; hold production until verified RC and release gates.",
+  "productionBaselineEvidence": "verified: GitHub main c4d7b51caf819f208e2686a8d9205324271853b6 and live Supabase migration_history checked 2026-11-11: 20261111085702 kl_verified_reading_10_series_50 and 20261111085727 buklod_mutual_engagement_r4; KL 10/50 functions and social R4 enabled at 09:00:08 UTC. No OTA fingerprint inferred.",
+  "chosenApproach": "One change-set DEV integration with separate forward-only KL and feature-flagged engagement migrations, precise source-level user guide updates, SQL and Node contracts; hold production until verified RC and release gates. Follow-up aligns tracked migration filenames exactly to existing deployed versions, without modifying migration SQL bodies or re-executing point credits.",
   "selectionRationale": "PostgreSQL qualified server events and existing R37 creator ledger permit verifiable progressive creator BP with a monotonic total rather than reward farming or duplicate QMP, while existing KL one-time source keys provide safe 10/50 increases.",
   "alternativeApproaches": [
     "Client-side points rejected as farmable and not authoritative",
@@ -37,7 +37,8 @@
     "60 daily and 300 rolling-week allowance bounds new incidental support BP without blocking posting",
     "Private reward tables use RLS; no direct client write privileges",
     "No QMP/BCU/cash changes and rollout flag remains disabled until independent RC verification",
-    "SQL contract tests, Node focused tests, TypeScript/Web and Android export gates pass"
+    "SQL contract tests, Node focused tests, TypeScript/Web and Android export gates pass",
+    "Source Supabase migration file version names equal the two live applied migration-history versions, avoiding a duplicate future db push."
   ],
   "regressionTests": [
     "tests/kl-reading-quiz-r4-10-50.test.mjs",
@@ -55,6 +56,8 @@
     "src/components/kabihasnang-ligaw/KlReadingQuiz.tsx",
     "src/components/points/BuklodPointsR2Guide.tsx",
     "src/lib/kabihasnang-ligaw/types.ts",
-    ".buklod/scopes/engagement-kl-rewards-r4-20261111.json"
+    ".buklod/scopes/engagement-kl-rewards-r4-20261111.json",
+    "supabase/migrations/20261111085702_kl_verified_reading_10_series_50.sql",
+    "supabase/migrations/20261111085727_buklod_mutual_engagement_r4.sql"
   ]
 }
