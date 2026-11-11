@@ -1,0 +1,46 @@
+{
+  "contractVersion": 2,
+  "objective": "Modernize IGPAT / shared Reel comments on native and web with a compact, avatar-led conversation and send bar; repair literal Prayer Request mojibake without broad navigation, database or monetization changes.",
+  "baseRef": "07a3be5e1b66857197a0a36c65c6933c39e8273c",
+  "productionBaselineEvidence": "The patch branch was created from the Nov11 consolidated DEV source hold SHA 07a3be5e1b66857197a0a36c65c6933c39e8273c; GitHub PR compare was ahead by 5 commits/behind by zero before scope manifest. The consolidated source and GitHub main remain diverged. Physical-device pixels, exact OTA runtime and live production promotion have not been verified.",
+  "chosenApproach": "Update the existing PostDetail path shared by IGPAT, Wall and Reel deep links rather than duplicate comment data code; move comments to compact avatar/bubble rows with a persistent small composer, preserve authenticated RPCs/replies/mentions/moderation and ad cadence, and deep-link native/web IGPAT comment actions to the rendered comment section. Replace only the double-encoded literal Prayer detail labels.",
+  "selectionRationale": "One canonical detail view keeps reply/report/privacy logic centralized, avoids a new native module or extra client network flow, and delivers direct IGPAT comment focus on both platforms. Retains older post links and restores properly readable Prayer labels.",
+  "alternativeApproaches": [
+    "Build a separate full IGPAT modal/comment backend: rejected as it duplicates the existing post comments RPC, privacy checks and moderation wiring.",
+    "Only change font sizes or re-encode runtime network text: rejected because the source contains literal mojibake and the full-screen form remains visually outdated.",
+    "Refactor every Wall/Marites/Scoped comment implementation at once: rejected to limit regression and preserve existing featured views."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "wall-media",
+    "faith-cluster"
+  ],
+  "preserveBehaviors": [
+    "Post detail reaction counts, reactions, reply parent IDs, mentions, report and author actions remain available.",
+    "Per-comment ad cadence and sponsored placement stay wired without adding ad overlay to the comment send form.",
+    "IGPAT native/web video playback, no-zoom frame fit, scroll prefetch and data saver remain untouched.",
+    "Prayer responder counting/names, visibility, idempotent 'I PRAYED', status updates and moderation report route unchanged.",
+    "Current Expo runtime, native libraries, production OTA and database remain untouched.",
+    "Existing author-only post visibility and deep-link scoping remain server enforced."
+  ],
+  "acceptanceChecks": [
+    "IGPAT Android and web Comments actions open post detail directly at comment section, with still-working old /post/<id> links.",
+    "Comments render compact rows with avatar/name/message/time, reply and report actions, focus comment highlight.",
+    "Empty thread shows small state; composer stays small, expands up to four lines, and blocks blank/double submits.",
+    "On successful comment existing server RPC, reply parent and ad cadence run, preserving typed draft on server error.",
+    "Prayer disclosure arrows, report button and answered state display correctly encoded text.",
+    "Focused regression tests and engineering scope gate pass on exact patch SHA; TypeScript and Android/web release export remain mandatory for RC.",
+    "Do not publish production OTA or claim device verification based on PR checks."
+  ],
+  "regressionTests": [
+    "tests/igpat-social-comments-prayer-mojibake-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/igpat-social-comments-prayer-mojibake-20261111.json",
+    "src/app/igpat/index.tsx",
+    "src/app/igpat/index.web.tsx",
+    "src/app/post/[id].tsx",
+    "src/app/prayer/[id].tsx",
+    "tests/igpat-social-comments-prayer-mojibake-20261111.test.mjs"
+  ]
+}
