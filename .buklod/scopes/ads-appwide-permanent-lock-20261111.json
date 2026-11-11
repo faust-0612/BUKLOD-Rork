@@ -1,0 +1,56 @@
+{
+  "contractVersion": 2,
+  "objective": "BUKLOD Main app-wide maximum-safe aggressive AdMob coverage lock: exact passive exceptions, permanent regression checks and owner review; DEV only, no OTA.",
+  "baseRef": "6d1a80e3d009aafcfd94444dc198cb8465e68c2f",
+  "productionBaselineEvidence": "GitHub main HEAD verified on Nov 11, 2026; repository code is not proof of installed production OTA or AdMob live fill.",
+  "chosenApproach": "Fix central route guard so PTT, radio and Health Center cannot warm full-screen ads while approved passive informational banners remain. Lock all existing Android high-traffic, Kingdom, Character, Points and completion inventory through PR/RC/OTA test gates.",
+  "selectionRationale": "Existing passive route allowance returned not-sensitive for PTT/radio, which also admitted full-screen ads. Explicit passive-only exception fixes the cross-format hole without removing ad impressions.",
+  "alternativeApproaches": [
+    "Per-tap interstitials rejected as AdMob-policy unsafe",
+    "Bulk merge older feature branches rejected due to source conflicts",
+    "Narrow route fix plus automated inventory and release checks chosen"
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "PTT/radio",
+    "health",
+    "reels",
+    "Kingdom",
+    "points",
+    "release-identity"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodGlobalAdController.ts",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/CODEOWNERS",
+    "docs/BUKLOD_ADS_APPWIDE_LOCK_20261111.md",
+    ".buklod/scopes/ads-appwide-permanent-lock-20261111.json"
+  ],
+  "regressionTests": [
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
+    "tests/buklod-high-traffic-ads-20261111.test.mjs",
+    "tests/health-center-consultation-ads-20261110.test.mjs",
+    "tests/buklod-ad-surface-audit-20261111.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "PTT original audio/transcript and DZAS radio",
+    "Health Center approved single nonurgent information banner",
+    "Consent, remote kill switches, visibility and no-fill fail-open",
+    "Two completed actions between full-screen ads; not per tap",
+    "No interstitial in chat/SOS/payment/grades/quiz/forms",
+    "No cash, QMP or BP generated from ad watches",
+    "No native dependency/runtime/DB change",
+    "No separate OTA/web release"
+  ],
+  "acceptanceChecks": [
+    "Exact PTT/radio/Health Center passive vs fullscreen behavior verified",
+    "All Main route TSX files audited (over 300), uncovered candidates retained",
+    "Permanent PR, compiled RC and production Android OTA gate",
+    "No staged unit used as a live ID",
+    "No release without exact artifact, EAS environment and production fingerprint proof"
+  ]
+}
