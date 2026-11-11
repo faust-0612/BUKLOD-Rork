@@ -360,6 +360,12 @@ export default function IgpatCreateScreen() {
             onProgress: value => reportProgress(value.ratio, `Uploading IGPAT… ${Math.round(value.ratio * 100)}%`),
           });
           reportProgress(1, 'Saving IGPAT…');
+          // An upload may outlive the Create screen. Verify the same
+          // authenticated account before creating any server-visible reel.
+          const { data:authData,error:authError }=await supabase.auth.getUser();
+          if(authError || authData.user?.id!==snapshot.userId) {
+            throw new Error('Account changed during upload. Sign in again and retry.');
+          }
           // Do not replay an ambiguous server commit: create_buklod_reel_v1
           // currently does not accept a client idempotency key.
           createAttempted = true;
