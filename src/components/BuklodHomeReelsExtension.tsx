@@ -67,7 +67,7 @@ function HomeIgpatVideo({
       player={player}
       style={styles.video}
       nativeControls={false}
-      contentFit="cover"
+      contentFit="contain"
     />
   );
 }
