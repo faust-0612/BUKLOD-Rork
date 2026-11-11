@@ -7,8 +7,8 @@ export const KL_EPISODE_RULE = 'kl_episode_completion' as const;
 export const KL_SEASON_RULE = 'kl_season_completion' as const;
 
 export const KL_POINT_DEFAULTS = {
-  [KL_EPISODE_RULE]: 2,
-  [KL_SEASON_RULE]: 10,
+  [KL_EPISODE_RULE]: 10,
+  [KL_SEASON_RULE]: 50,
 } as const;
 
 export type AssetClass = 'APPROVED' | 'PROVISIONAL' | 'MISSING' | 'REJECTED';

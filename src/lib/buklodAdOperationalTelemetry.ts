@@ -17,6 +17,8 @@ export type BuklodAdOperationalEvent = {
   runtimeVersion: string | null;
   sessionId: string;
   errorCategory: string | null;
+  /** Bounded SDK format label. No unit ID, PII, or earnings claim. */
+  adFormat: 'native' | 'banner' | 'interstitial' | 'rewarded' | null;
   eventCount: number;
 };
 
@@ -39,6 +41,7 @@ function aggregateKey(event: Omit<BuklodAdOperationalEvent, 'eventKey' | 'eventC
     event.runtimeVersion ?? '',
     event.sessionId,
     event.errorCategory ?? '',
+    event.adFormat ?? '',
   ].join('|');
 }
 
@@ -106,6 +109,8 @@ export async function flushBuklodAdOperationalTelemetry() {
       session_id: row.sessionId,
       error_category: row.errorCategory,
       event_count: row.eventCount,
+      // Existing Postgres RPC accepts a bounded JSONB metadata object.
+      metadata: row.adFormat ? { ad_format: row.adFormat } : {},
     }));
 
     const { error } = await (supabase as any).rpc(
