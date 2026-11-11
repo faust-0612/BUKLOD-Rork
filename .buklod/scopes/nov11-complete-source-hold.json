@@ -4,7 +4,7 @@
   "scopeManifestPath": ".buklod/scopes/nov11-complete-source-hold.json",
   "objective": "Complete single-source BUKLOD Main Nov11 consolidated OTA candidate including prior frozen RC and every current authorized post-RC change, while prohibiting production publication until strict parity/security/exact-source Android and Web gates pass.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: current GitHub main SHA 75ae419357647bf1dc7596d0e144eeaac7d34b2b reconciled as ancestor with no source loss. Current main ad-engagement comment banner, safe diagnostics and QA were read back: 7/7 files are byte-identical, Wall and compile QA merged additively. GitHub compare confirms behind_by=0. Live production runtime/OTA fingerprint is NOT yet verified.",
+  "productionBaselineEvidence": "Nov 11 2026: latest current GitHub main SHA 4fa6853c00f19ea710dd1c2510b47ef4d008a085 merged as true ancestor of this single-source DEV OTA candidate via staging reconciliation PR #714; compare main..candidate is ahead 104 commits, behind 0, and all 62 changed paths match the explicit allowlist. This is repo source reconciliation, NOT installed APK or published OTA fingerprint verification.",
   "chosenApproach": "Overlay only already-authorized source updates on inherited consolidated Nov11 RC and verified current main, preserve ad/security/release guards, reconcile database migration filenames with exact applied live migration versions, and fail closed on all source and release gates. Use one named cumulative RC manifest with exact paths and tests rather than weaken single-scope controls.",
   "selectionRationale": "One frozen source prevents omitted late fixes, duplicate native releases, and conflicting live migrations; individually enumerated paths + tests retain strict accountability and production isolation.",
   "alternativeApproaches": [
@@ -34,7 +34,9 @@
     "Kingdom Shards, BP/points/Finance canonical QMP, scope GCash reports and prior funded earnings remain isolated and financially consistent",
     "No release contains Smart Drawer Google Drive native OAuth changes, explicitly reserved for future native build",
     "No merge to production main, Expo Update, Android OTA, Play or Web publish until all recorded release gates pass and exact deployed OTA fingerprint can be verified",
-    "Device hands-on validation is waived only by prior owner instruction; CI and security gates are never waived"
+    "Device hands-on validation is waived only by prior owner instruction; CI and security gates are never waived",
+    "Fresh production main 4fa6853c is an ancestor and latest AdMob/PTT/KL engagement SQL/history and source checked before frozen RC.",
+    "IGPAT Comments and Prayer Request UTF-8 QA must pass together with exactly frozen Android+Web exports."
   ],
   "preserveBehaviors": [
     "Canonical Expo production app org.mzbministry.buklod, runtime 1.3.2, existing permissions, Play V30 identity",
@@ -152,7 +154,8 @@
       "Kingdom cinematic optional audio",
       "GIF photo comment handling",
       "Per-photo comments and full-screen video continuity",
-      "PR #712: modernized IGPAT/Shared Post comments and repaired Prayer Request mojibake (native and web); automated isolated engineering/TypeScript/web QA passed, actual device and production runtime not verified"
+      "PR #712: modernized IGPAT/Shared Post comments and repaired Prayer Request mojibake (native and web); automated isolated engineering/TypeScript/web QA passed, actual device and production runtime not verified",
+      "Current main late-day PTT web button/CORS, AdMob fill/finance evidence, mutual engagement R4 and KL verified-reading 10/50 changes have been ancestor-merged; original completed IGPAT comments/Prayer UTF-8 corrections remain in cumulative diff."
     ],
     "priorPrsIncludedAsCode": [
       620,
@@ -180,21 +183,28 @@
       }
     ],
     "latestMain": {
-      "sha": "75ae419357647bf1dc7596d0e144eeaac7d34b2b",
-      "commit": "Nov11 ad engagement-impression recovery (#696)",
-      "filesReviewed": 9,
-      "sourceParity": "7 exact file matches + 2 compatible additive merges",
-      "ads": "single compact labelled Android public-comments banner, viewport/consent controlled; sanitized diagnostics"
-    }
+      "sha": "4fa6853c00f19ea710dd1c2510b47ef4d008a085",
+      "mergePr": 714,
+      "reconciledInto": "integration/buklod-nov11-reconciled-ota-candidate",
+      "sourceState": "main is ancestor; 62-path exact cumulative allowlist; no main delta missing",
+      "changedWorkflows": "Both RC and Engineering Accountability preserve existing cumulative checks and include latest AdMob finance and config gates"
+    },
+    "mainScopesInherited": [
+      ".buklod/scopes/admob-fill-finance-evidence-gates-20261111.json",
+      ".buklod/scopes/engagement-kl-rewards-r4-20261111.json",
+      ".buklod/scopes/ptt-web-button-touch-safety-20261111.json",
+      ".buklod/scopes/ptt-web-cors-backend-reconcile-20261111.json"
+    ]
   },
   "verifiedBackend": {
     "projectRef": "yhanxndaqbmuzbdqlblu",
-    "readback": "Nov11 finance/mentor/Kingdom/KL/photo comments migrations present in production history; Today three applied statements verified byte-for-byte against revised version-aligned repo files",
+    "readback": "Read-only official schema_migrations ledger checked Nov11: KL verified reading 10/50 (20261111085702), mutual engagement R4 (20261111085727), prior approved KL quiz, 11 Nov Finance, Mentor, Shards, Photo Comments and Today version-aligned migrations all present. No new SQL migration from this IGPAT/Prayer patch. Live SQL smoke/RLS assertions are still required at RC gate.",
     "financialProcessing": "KEEP settlement and withdrawal OFF until funded accounting and recipient verification"
   },
   "verificationWaivers": [
     "Hands-on physical Android device testing skipped per owner, not counted as PASS"
   ],
-  "releaseState": "DEV_ASSEMBLY_HOLD__NO_PRODUCTION_PUBLICATION",
-  "qaStatus": "PENDING_NEW_EXACT_HEAD_RC_QA_AND_PRODUCTION_FINGERPRINT"
+  "releaseState": "DEV_RECONCILED_OTA_CANDIDATE__HOLD_PUBLICATION",
+  "qaStatus": "PENDING_FROZEN_EXACT_SHA_ANDROID_WEB_COMPILED_RC_QA",
+  "publishingInstruction": "PREPARE ONLY. No EAS Update, Android OTA, Google Play or Web publish as part of this reconciliation; must promote exact tested source through explicit release gates."
 }
