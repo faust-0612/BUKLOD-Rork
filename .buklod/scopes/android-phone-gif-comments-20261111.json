@@ -17,7 +17,8 @@
     "Existing Community post GIF restrictions, post privacy and author checks",
     "Existing comment RPC ownership, reactions, reply target and draft recovery",
     "Other Android shares including text, still image and video behavior",
-    "Production native runtime, Expo SDK, Supabase RLS and storage bucket"
+    "Production native runtime, Expo SDK, Supabase RLS and storage bucket",
+    "Cluster/Organization comment scope, membership-based asset RLS and reply behavior"
   ],
   "acceptanceChecks": [
     "Phone GIF gallery preview retains original animation",
@@ -26,7 +27,8 @@
     "Original GIF upload uses 25 MB limit and private media path",
     "Signed GIF display animates for authenticated eligible viewers",
     "Retry after weak-network failure retains draft and media",
-    "Engineering regression and navigation scoped tests pass before RC; Android native verification and production OTA remain pending"
+    "Engineering regression and navigation scoped tests pass before RC; Android native verification and production OTA remain pending",
+    "Cluster/Organization local GIF comments upload within scope/<scopeId>/<userId> and remain member-only"
   ],
   "regressionTests": [
     "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
@@ -41,6 +43,7 @@
     "src/lib/uploadCommunityVideoFile.ts",
     "src/lib/buklodCommentGifShare.ts",
     "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
-    "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs"
+    "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs",
+    "src/components/BuklodExclusiveScopeCommunity.tsx"
   ]
 }
