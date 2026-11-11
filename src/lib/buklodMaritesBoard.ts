@@ -9,6 +9,8 @@ import {
   repairMojibakeText,
 } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
+import { InstantPublishUncertainError } from '@/lib/buklodInstantPublishQueue';
+import { uploadCommunityPhotoFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';
 import { resolveCommunityMediaUrl } from '@/lib/buklodMediaUrl';
 import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
 import { attachCommunityPostMedia, discardIncompleteCommunityPost, loadCommunityPostMediaByPostIds } from '@/lib/buklodCommunityPostMedia';
@@ -1149,6 +1151,7 @@ export async function publishMaritesStory(input: {
   body: string;
   photoUris: string[];
   video?: { uri: string; durationSeconds: number; mimeType: string } | null;
+  onProgress?: (fraction: number) => void;
 }): Promise<{
   story: MaritesStory;
   shared: boolean;
@@ -1189,40 +1192,64 @@ export async function publishMaritesStory(input: {
   }> = [];
 
   let createdPostId: string | null = null;
+  let createAttempted = false;
   let videoPath: string | null = null;
 
   try {
     if (input.video) {
       const { uploadCommunityVideoFile } = await import('@/lib/uploadCommunityVideoFile');
       videoPath = `${input.userId}/marites-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
-      await uploadCommunityVideoFile({ path: videoPath, uri: input.video.uri, contentType: input.video.mimeType });
+      await uploadCommunityVideoFile({
+        path: videoPath,
+        uri: input.video.uri,
+        contentType: input.video.mimeType,
+        onProgress: value=>input.onProgress?.(value.ratio*0.92),
+      });
       uploaded.push({ media_path: videoPath, media_mime_type: input.video.mimeType, media_size_bytes: 0 });
     }
-    for (let index = 0; index < photoUris.length; index += 1) {
-      const encoded = await encodeMaritesPhotoBase64(
-        photoUris[index]
+    if (photoUris.length) {
+      // Keep the exact photo order but prepare and upload in bounded parallel
+      // lanes. Weak uplinks automatically drop to one lane in this helper.
+      // The shared JPEG uploader avoids old per-photo base64 encoding.
+      let completedPhotos=0;
+      // Settle every bounded worker before cleanup: Promise.all's immediate
+      // rejection could otherwise leave slower successful PUTs orphaned.
+      const results = await mapWithConcurrency(
+        photoUris,
+        Platform.OS === 'web' ? 2 : 3,
+        async (uri,index) => {
+          const path =
+            `${input.userId}/marites-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
+          try {
+            const result = await uploadCommunityPhotoFile({
+              path,
+              uri,
+              wallPreview:true,
+            });
+            completedPhotos+=1;
+            input.onProgress?.(completedPhotos/photoUris.length*0.92);
+            return { ok:true as const, data:{
+              media_path:result.path,
+              media_mime_type:'image/jpeg',
+              media_size_bytes:result.sizeBytes,
+            }};
+          } catch (error) {
+            return { ok:false as const, error };
+          }
+        }
       );
-      const path =
-        `${input.userId}/marites-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('community-media')
-        .upload(path, encoded.decode(encoded.base64), {
-          contentType: 'image/jpeg',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw uploadError;
+      const failure = results.find(result=>!result.ok);
+      if (failure && !failure.ok) {
+        await discardIncompleteCommunityPost({
+          postId:null,
+          mediaPaths:results.flatMap(result=>result.ok ? [result.data.media_path] : []),
+        }).catch(()=>undefined);
+        throw failure.error;
       }
-
-      uploaded.push({
-        media_path: path,
-        media_mime_type: 'image/jpeg',
-        media_size_bytes: encoded.sizeBytes,
-      });
+      uploaded.push(...results.flatMap(result=>result.ok ? [result.data] : []));
     }
 
+    input.onProgress?.(0.95);
     const first = uploaded[0] ?? null;
 
     const sharedBody = withMaritesPostMarker(
@@ -1234,6 +1261,16 @@ export async function publishMaritesStory(input: {
             : '')
     );
 
+    // Do not publish a prior account's local media under a newly signed-in
+    // user if an in-progress upload outlives an account switch.
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || authData.user?.id !== input.userId) {
+      throw new Error('Account changed during Marites upload. Share again from the correct account.');
+    }
+
+    // There is no client idempotency key in this RPC. A network failure
+    // after request submission is ambiguous and must not replay/delete it.
+    createAttempted = true;
     const { data: created, error: createError } = await (
       supabase as any
     ).rpc('create_buklod_community_post_v3', {
@@ -1326,11 +1363,19 @@ export async function publishMaritesStory(input: {
       created_at: new Date().toISOString(),
     };
 
+    input.onProgress?.(1);
     return { story: sharedStory, shared: true };
   } catch (error) {
     // Once the RPC commits a post, deleting it on a later signing or
     // attachment failure can erase a successfully shared story.
     // Preserve the committed post and let a refresh recover its state.
+    if (createAttempted && !createdPostId) {
+      // The server may have committed even if the response was lost.
+      // Never delete the media or automatically retry an uncertain commit.
+      throw new InstantPublishUncertainError(
+        'Marites may already be published. Refresh the story board before posting again.'
+      );
+    }
     if (!createdPostId && uploaded.length) {
       await discardIncompleteCommunityPost({
         postId: null,
