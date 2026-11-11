@@ -27,5 +27,18 @@
     "src/components/BuklodMaritesBoard.tsx",
     "tests/marites-photo-preview-resign-20261111.test.mjs"
   ],
-  "releaseState": "DEV_HOLD_PENDING_COMPILED_RC_VERIFICATION"
+  "releaseState": "DEV_HOLD_PENDING_COMPILED_RC_VERIFICATION",
+  "preserveBehaviors": [
+    "Existing public and scoped story audience filtering, RLS and private signing: never turn media public",
+    "Active Marites music stays Full View only; feed silent",
+    "Existing Community posts, local story/offline caching, video, reactions/comments and ads unchanged",
+    "Bounded media-signing retries, no new native modules or finance activation",
+    "Already published unified five-workstream production baseline inherited exactly"
+  ],
+  "alternativeApproaches": [
+    "Re-sign all Marites thumbnails on every render (rejected: network storm, poor 3G and battery impact)",
+    "Use public permanent photo URLs (rejected: violates private media and audiences)",
+    "Drop the existing cached image component (rejected: breaks recovery and offline behavior)",
+    "Pass durable authorized paths into existing cache and reuse its bounded recovery (selected)"
+  ]
 }
