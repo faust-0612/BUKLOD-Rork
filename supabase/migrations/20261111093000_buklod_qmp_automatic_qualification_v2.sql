@@ -104,6 +104,9 @@ begin
     where v_post.created_at>=starts_at and v_post.created_at<ends_at and status='OPEN'
     order by starts_at desc limit 1;
   if v_period.id is null then return new; end if;
+  -- Recorder uses the current month; never credit an old post into a later month.
+  if v_period.period_key <> to_char(timezone('Asia/Manila',now()),'YYYY-MM')
+    then return new; end if;
   if not exists (
     select 1 from private.buklod_community_qmp_events e
     where e.source_event_key='post:'||v_post.id::text
