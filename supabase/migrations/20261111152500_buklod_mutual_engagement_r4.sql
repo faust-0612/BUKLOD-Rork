@@ -112,8 +112,11 @@ BEGIN
     AND e.policy_version='r37_standard_social_points_v1'
     AND e.qualification_state='qualified' AND e.engagement_kind IN ('comment','reply')
  ) THEN RETURN; END IF;
- SELECT count(DISTINCT user_id)::int INTO v_likes FROM public.comment_reactions
- WHERE comment_id=p_comment_id AND user_id<>v_comment.user_id;
+ SELECT count(DISTINCT r.user_id)::int INTO v_likes
+ FROM public.comment_reactions r
+ JOIN public.profiles actor ON actor.id=r.user_id AND actor.is_active=true
+ WHERE r.comment_id=p_comment_id AND r.user_id<>v_comment.user_id
+   AND r.created_at>=v_activation;
  v_target:=CASE WHEN v_likes>=25 THEN 10 WHEN v_likes>=10 THEN 5
                   WHEN v_likes>=3 THEN 2 ELSE 0 END;
  IF v_target=0 THEN RETURN; END IF;
@@ -493,5 +496,4 @@ begin
     'cash_or_bayanihan_write',false
   );
 end;
-$function$
-
+$function$;
