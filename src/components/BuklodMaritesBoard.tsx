@@ -913,6 +913,8 @@ export default function BuklodMaritesBoard({
   visibilityRefreshRef,
 }: Props) {
   const { user, profile } = useAuth();
+  const activeAccountIdRef=useRef(user?.id);
+  activeAccountIdRef.current=user?.id;
   const { colors } = useBuklodPresentation();
   const styles = useMemo(
     () => createStyles(colors),
@@ -1709,10 +1711,12 @@ export default function BuklodMaritesBoard({
           rows:next,
           remoteUpdatedAt:shared?Date.now():(previous?.remoteUpdatedAt??0),
         });
-        setStories(current=>[
-          story,
-          ...current.filter(row=>row.id!==story.id)
-        ]);
+        if (activeAccountIdRef.current===snapshot.userId) {
+          setStories(current=>[
+            story,
+            ...current.filter(row=>row.id!==story.id)
+          ]);
+        }
         return shared?'posted':'device_only';
       });
       // The story card is visible immediately, before any network transfer.
