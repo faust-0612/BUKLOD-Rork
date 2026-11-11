@@ -140,12 +140,20 @@ function SwipeDashboardHeader() {
       }}
     >
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-        <Image
+        <View
           accessibilityLabel="BUKLOD Green B logo"
-          source={require('../../../assets/release/buklod-main-canonical.png')}
-          resizeMode="contain"
-          style={{width:scrollCompact?31:37,height:scrollCompact?31:37}}
-        />
+          style={{width:scrollCompact?31:37,height:scrollCompact?31:37,
+            borderRadius:10,overflow:'hidden',backgroundColor:theme.headerSurface}}>
+          <Image
+            source={require('../../../assets/release/buklod-main-canonical.png')}
+            resizeMode="contain"
+            // Crop the existing full app icon to its Green B mark: the separate
+            // header title already supplies the BUKLOD wordmark.
+            style={{position:'absolute',width:scrollCompact?55:63,
+              height:scrollCompact?55:63,left:scrollCompact?-12:-13,
+              top:scrollCompact?-6:-6}}
+          />
+        </View>
         <View style={{flex:1,minWidth:0}}>
           <Text numberOfLines={1} style={{color:theme.accent,fontSize:scrollCompact?22:25,
             lineHeight:scrollCompact?26:29,fontWeight:'900'}}>{title}</Text>
