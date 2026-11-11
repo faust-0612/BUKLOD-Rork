@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify-compiled-artifacts:
-    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108' || github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy' || github.head_ref == 'integration/ota-nov09-circle-rank-progression' || github.head_ref == 'integration/buklod-nov09-consolidated-ota-web' || github.head_ref == 'integration/buklod-nov09-bible-v4-rank-ptt-ota-rc' || github.head_ref == 'integration/buklod-nov09-bible-v4-font-sizing-ota-rc' || github.head_ref == 'fix/bahay-kasambahay-invite-20261110' || github.head_ref == 'integration/buklod-nov10-single-source-ota' || github.head_ref == 'dev/kingdom-main-visual-consolidated-20261111' || github.head_ref == 'fix/ptt-consent-caption-accuracy-20261111' || github.head_ref == 'integration/buklod-nov11-postprod-conso-ota')
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'integration/buklod-unified-hold-rc-20261108' || github.head_ref == 'dev/admin-music-library-ambience-ota-ready-20261108' || github.head_ref == 'dev/wall-audio-gif-sponsor-nav-neon-20261108' || github.head_ref == 'release/buklod-v30-no-connected-fgs-20261108' || github.head_ref == 'dev/ota-ui-polish-photo-reactions-music-20261108' || github.head_ref == 'fix/ota-nov09-drawer-kl-music-economy' || github.head_ref == 'integration/ota-nov09-circle-rank-progression' || github.head_ref == 'integration/buklod-nov09-consolidated-ota-web' || github.head_ref == 'integration/buklod-nov09-bible-v4-rank-ptt-ota-rc' || github.head_ref == 'integration/buklod-nov09-bible-v4-font-sizing-ota-rc' || github.head_ref == 'fix/bahay-kasambahay-invite-20261110' || github.head_ref == 'integration/buklod-nov10-single-source-ota' || github.head_ref == 'dev/kingdom-main-visual-consolidated-20261111' || github.head_ref == 'fix/ptt-consent-caption-accuracy-20261111' || github.head_ref == 'integration/buklod-nov11-postprod-conso-ota' || github.head_ref == 'integration/buklod-nov11-complete-source-hold-20261111')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:
@@ -51,7 +51,7 @@ jobs:
           set -a; . ./.env.local; set +a
           test "${EXPO_PUBLIC_SUPABASE_URL:-}" = "https://yhanxndaqbmuzbdqlblu.supabase.co"
           test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
-          node -e "const fs=require('node:fs'); const c=JSON.parse(require('node:child_process').execFileSync('npx',['expo','config','--json'],{encoding:'utf8'})); const assert=require('node:assert/strict'); assert.equal(c.android.package,'org.mzbministry.buklod'); assert.equal(c.android.versionCode,30); assert.equal(c.runtimeVersion,'1.3.2'); assert.equal(c.extra?.eas?.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8'); fs.writeFileSync('/tmp/buklod-rc-identity.json', JSON.stringify({sha:process.env.GITHUB_SHA,runtime:c.runtimeVersion,package:c.android.package,project:c.extra.eas.projectId}));"
+          node -e "const fs=require('node:fs'); const c=JSON.parse(require('node:child_process').execFileSync('npx',['expo','config','--json'],{encoding:'utf8'})); const assert=require('node:assert/strict'); assert.equal(c.android.package,'org.mzbministry.buklod'); assert.equal(c.android.versionCode,30); assert.equal(c.runtimeVersion,'1.3.2'); assert.equal(c.extra?.eas?.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8'); fs.writeFileSync('/tmp/buklod-rc-identity.json', JSON.stringify({sha:require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),runtime:c.runtimeVersion,package:c.android.package,project:c.extra.eas.projectId}));"
       - name: TypeScript and 39-game proof contracts
         run: |
           npx tsc --noEmit
@@ -77,6 +77,11 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/kl-approved-auto-reading-quiz.test.mjs tests/kl-ad-completion.test.cjs tests/buklod-ad-opportunities.test.cjs tests/buklod-points-r3-kl-story.test.mjs tests/kl-reader-ad-safe-completion.test.mjs tests/kl-web-release-admin-preflight-20261107.test.mjs
+      - name: Verify app-wide AdMob policy before compiled RC
+        run: |
+          node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+          node --test tests/buklod-ads-production-release-contract-20261111.test.mjs
+          node scripts/buklod-ad-surface-audit.mjs --summary
       - name: Native Reels and fullscreen video ads regression
         run: node --test tests/reels-ads-fullscreen-ota-20261111.test.mjs tests/igpat-fast-start-video-20261110.test.mjs
       - name: Bible Quiz V4 events, R3 compatibility, points and noncash ads contracts
@@ -84,10 +89,10 @@ jobs:
       - name: Verify Home/Profile Health Center external-door privacy and route gate
         run: node --test tests/health-center-doorway-20261109.test.mjs tests/buklod-home-profile-support-20261108.test.mjs
       - name: PTT audio coexistence and speech transcript focused regressions
-        if: github.head_ref == 'fix/ptt-consent-caption-accuracy-20261111' || github.head_ref == 'integration/buklod-nov11-postprod-conso-ota'
+        if: github.head_ref == 'fix/ptt-consent-caption-accuracy-20261111' || github.head_ref == 'integration/buklod-nov11-postprod-conso-ota' || github.head_ref == 'integration/buklod-nov11-complete-source-hold-20261111'
         run: node --test tests/buklod-ptt-transcript-chat.test.mjs tests/ptt-media-audio-mixing-20261111.test.mjs
       - name: Verify Kingdom ambient audio releases on navigation blur
-        if: github.head_ref == 'integration/buklod-nov11-postprod-conso-ota'
+        if: github.head_ref == 'integration/buklod-nov11-postprod-conso-ota' || github.head_ref == 'integration/buklod-nov11-complete-source-hold-20261111'
         run: node --test tests/kingdom-cinematic-ui-audio-20261111.test.mjs
       - name: Compile V28-compatible Android OTA bundle (no publish)
         run: npx expo export --platform android --output-dir /tmp/buklod-rc-android --clear
@@ -105,3 +110,4 @@ jobs:
           printf 'ANDROID_FILES=%s\n' "$(find /tmp/buklod-rc-android -type f | wc -l)"
           printf 'WEB_FILES=%s\n' "$(find /tmp/buklod-rc-web -type f | wc -l)"
           cat /tmp/buklod-rc-identity.json
+          node -e "const fs=require('node:fs'); const cp=require('node:child_process'); const saved=JSON.parse(fs.readFileSync('/tmp/buklod-rc-identity.json','utf8')); const source=cp.execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(); if(saved.sha!==source){console.error('RC identity SHA mismatch');process.exit(1)}"
