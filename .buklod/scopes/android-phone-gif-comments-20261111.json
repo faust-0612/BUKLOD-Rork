@@ -1,0 +1,46 @@
+{
+  "contractVersion": 2,
+  "objective": "Correct Android external GIF share and phone gallery GIF selection so animated files can be attached to a chosen Community comment, while root-post GIFs remain restricted.",
+  "baseRef": "6d1a80e3d009aafcfd94444dc198cb8465e68c2f",
+  "productionBaselineEvidence": "Compared isolated DEV branch to GitHub main SHA 6d1a80e3d009aafcfd94444dc198cb8465e68c2f. Latest installed production OTA artifact, Android device playback and native sharing are not verified by this branch.",
+  "chosenApproach": "Stage Android shared GIF into app cache before clearing share payload; wait for user to choose target post; preserve animation in the comment image picker; reuse private media upload and comment RPC with signed media URL resolving. No new native module or DB schema.",
+  "selectionRationale": "Fix the existing wrong entrypoint and preserve comments and posting restrictions with minimal API changes. Avoid duplicating schema or writing orphan root posts, support delayed weak-network comment send.",
+  "alternativeApproaches": [
+    "Automatically create a Community post from Android GIF share: rejected as wrong user intent and conflicts with root-post restrictions.",
+    "Transcode GIF to JPEG in photo picker: rejected because animation is lost.",
+    "Launch new Android native share-target Activity: unnecessary and would require an APK."
+  ],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Existing Community post GIF restrictions, post privacy and author checks",
+    "Existing comment RPC ownership, reactions, reply target and draft recovery",
+    "Other Android shares including text, still image and video behavior",
+    "Production native runtime, Expo SDK, Supabase RLS and storage bucket"
+  ],
+  "acceptanceChecks": [
+    "Phone GIF gallery preview retains original animation",
+    "Android external GIF waits for explicit comment target, does not auto-post",
+    "Shared file accessible after original Android share payload cleared",
+    "Original GIF upload uses 25 MB limit and private media path",
+    "Signed GIF display animates for authenticated eligible viewers",
+    "Retry after weak-network failure retains draft and media",
+    "Engineering regression and navigation scoped tests pass before RC; Android native verification and production OTA remain pending"
+  ],
+  "regressionTests": [
+    "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
+    "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/android-phone-gif-comments-20261111.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/lib/buklodPickCommunityPhotos.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "src/lib/buklodCommentGifShare.ts",
+    "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
+    "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs"
+  ]
+}
