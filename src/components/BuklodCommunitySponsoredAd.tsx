@@ -20,7 +20,11 @@ const ROTATE_MS = 12_000;
 // Only the eligible in-view ad plays. Off-screen, app background and
 // navigation changes pause immediately; no hidden video streams.
 function AdVideo({uri, visible}: {uri: string; visible: boolean}) {
-  const player = useVideoPlayer(uri, p => {p.loop = true; p.muted = false;});
+  const player = useVideoPlayer(uri, p => {
+    p.loop = true;
+    p.muted = false;
+    p.audioMixingMode = 'mixWithOthers';
+  });
   const [playing,setPlaying] = useState(false);
   const playWithSound = useCallback(() => {
     try {

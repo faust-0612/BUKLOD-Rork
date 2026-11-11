@@ -110,6 +110,7 @@ function InlineIgpatVideo({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, instance => {
     instance.loop = true;
     instance.muted = true;
+    instance.audioMixingMode = 'mixWithOthers';
     instance.play();
   });
 

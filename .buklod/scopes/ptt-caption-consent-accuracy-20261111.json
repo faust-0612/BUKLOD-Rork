@@ -1,13 +1,19 @@
 {
   "contractVersion": 2,
-  "objective": "PTT opt-in recognition accuracy and consent isolation without touching voice/floor/native",
+  "objective": "PTT voice/transcription correctness and in-app non-exclusive video audio mixing during PTT receive, without changing mic/floor/native behavior",
   "baseRef": "1dfe6e3da1ef569916f43607067e0a29e4d29bbb",
   "status": "DEV_ONLY_NOT_PUBLISHED",
   "allowedPaths": [
     "src/components/BuklodPttConversation.tsx",
     "supabase/functions/buklod-ptt-captions/index.ts",
     "tests/buklod-ptt-transcript-chat.test.mjs",
-    ".buklod/scopes/ptt-caption-consent-accuracy-20261111.json"
+    ".buklod/scopes/ptt-caption-consent-accuracy-20261111.json",
+    "src/components/CommunityVideo.tsx",
+    "src/app/igpat/index.tsx",
+    "src/app/igpat/index.web.tsx",
+    "src/components/BuklodCommunityIgpatPreview.android.tsx",
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "tests/ptt-media-audio-mixing-20261111.test.mjs"
   ],
   "preserveBehaviors": [
     "PTT hold/release, floor and microphone",
@@ -19,6 +25,8 @@
     "Static PTT regression checks",
     "TypeScript and backend API contract tests",
     "Stage Edge Function deployment only after backend verification",
-    "Production OTA not triggered"
+    "Production OTA not triggered",
+    "In-app Wall/Reels/Ads video audioMixingMode is nonexclusive",
+    "Audio coexistence on external apps cannot be guaranteed without Android device/SDK acceptance"
   ]
 }

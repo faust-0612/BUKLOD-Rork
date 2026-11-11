@@ -615,9 +615,9 @@ function ExpoCommunityVideo({
           prioritizeTimeOverSizeThreshold: true,
         };
       }
-      instance.audioMixingMode = instance.muted
-        ? 'mixWithOthers'
-        : 'doNotMix';
+      // PTT voice and currently playing video should coexist; never seize
+      // exclusive device audio focus just because this clip is audible.
+      instance.audioMixingMode = 'mixWithOthers';
     },
   );
 
@@ -626,9 +626,7 @@ function ExpoCommunityVideo({
     try {
       player.loop = !fullscreen;
       player.muted = muted;
-      player.audioMixingMode = muted
-        ? 'mixWithOthers'
-        : 'doNotMix';
+      player.audioMixingMode = 'mixWithOthers';
     } catch {
       // Player can already be released while the feed row recycles.
     }
