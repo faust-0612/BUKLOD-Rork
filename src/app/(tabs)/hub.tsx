@@ -102,9 +102,7 @@ export default function BuklodLightHome() {
           {foreground ? (
             <ToolBoundary onClose={() => {}}>
               <Suspense fallback={<ActivityIndicator color={theme.accent} accessibilityLabel="Loading Today's message" />}>
-                <Today onRespond={draft => {
-                  router.push({ pathname: '/buklod', params: { homeTodayDraft: draft ?? '', homeTodayIntent: String(Date.now()) } });
-                }} />
+                <Today />
               </Suspense>
             </ToolBoundary>
           ) : null}
@@ -200,9 +198,7 @@ export default function BuklodLightHome() {
           <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading Home cards" color={theme.accent} />}>
             <DrawerCard />
             <PttCard />
-            <Today onRespond={draft => {
-              router.push({ pathname: '/buklod', params: { homeTodayDraft: draft ?? '', homeTodayIntent: String(Date.now()) } });
-            }} />
+            <Today />
           </Suspense>
         </ToolBoundary>
       ) : null}
