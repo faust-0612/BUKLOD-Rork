@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "objective": "Improve browser PTT button behavior on mobile and desktop: immediate and safe hold-to-talk, pointer-captured release, clearly disabled unconnected state, accurate connection statuses, and guarded SOS mode.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: canonical main SHA 01f6c3a6a274a745c06c6e8adf4d89097f10000a includes published browser PTT and reconciled production CORS Edge Function source. Supabase PTT access v13 and captions v3 ACTIVE, both with x-buklod-client headers; RLS and server floor RPCs inspected 2026-11-11. Live browser microphone behavior remains unverified until authenticated hardware testing; Web release must pass original exact RC/Expo Hosting gates.",
+  "chosenApproach": "Change only the platform-specific web PTT screen and its focused tests. Replace Pressable hold-to-talk with a real browser button using primary-pointer capture and explicit up/cancel/lost-capture, keyboard release, global blur/page hide fallback, and touch-action prevention. Retain existing authenticated Stream call and floor lease runtime, plus Android implementation.",
+  "selectionRationale": "The scrollable web route originally depended on Pressable onPressIn/onPressOut, which may be delayed or canceled by touch scrolling; pointer capture releases reliably when finger leaves target, and release errors cannot leave a hold active. Single-flight connect prevents duplicate Edge calls. The existing runtime handles lease cancellation.",
+  "alternativeApproaches": [
+    "Replace entire PTT transport with new WebRTC state manager; rejected as duplicate backend authorization and Android regression risk.",
+    "Use tap-to-toggle audio; rejected due accidental hot microphone and violation of PTT release-on-lift semantics.",
+    "Selected: web-only native browser pointer capture plus existing floor and Stream runtime."
+  ],
+  "acceptanceChecks": [
+    "Connected Hold to Talk starts only for primary left pointer and releases on pointer-up, pointer-cancel, lost capture, blur, pagehide, touchend and keyboard keyup.",
+    "Disconnected talk control is genuinely disabled and displays CONNECT FIRST; no microphone request from pressing it.",
+    "Connected, disconnected, joining, leaving, switching, requesting floor and transmitting status reflect the actual runtime, and duplicate connect requests are suppressed.",
+    "Keyboard Space/Enter press/release works without stuck microphone, and mobile touch is not hijacked into page scroll.",
+    "Priority/SOS permissions stay server-governed, SOS selection requires explicit browser confirmation.",
+    "Browser network/authorization/microphone errors are legible with clear retry guidance; no automatic repeated retries or redundant backend calls.",
+    "Updated PTT contract tests and TypeScript/web export/production deployment gates pass, no Android OTA triggered."
+  ],
+  "preserveBehaviors": [
+    "Browser-to-Android shared CH01–CH10 call identity, membership and server floor validation.",
+    "Android native PTT and background features remain unchanged, as do existing browser chat and caption consent.",
+    "All other BUKLOD web routes, calls, ads and sound behavior remain untouched.",
+    "Web-only release uses existing reviewed production marker, exact SHA and EAS hosting verification."
+  ],
+  "riskAreas": [
+    "ptt-web-touch",
+    "microphone-floor-safety"
+  ],
+  "regressionTests": [
+    "tests/buklod-ptt-web-contract.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/personal-home/ptt.web.tsx",
+    "tests/buklod-ptt-web-contract.test.mjs",
+    ".buklod/scopes/ptt-web-button-touch-safety-20261111.json"
+  ]
+}
