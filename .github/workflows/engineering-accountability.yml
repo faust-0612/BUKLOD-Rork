@@ -30,7 +30,7 @@ jobs:
           PR_BASE: ${{ github.base_ref || 'main' }}
         run: |
           case "$PR_HEAD" in
-            integration/buklod-nov10-single-source-ota)
+            integration/buklod-nov10-single-source-ota|integration/buklod-nov11-igpat-marites-wonder-qmp-kingdommap-rc)
               if [ "$PR_BASE" = "main" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-consolidated-rc.json" >> "$GITHUB_ENV"
                 echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"

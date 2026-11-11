@@ -158,13 +158,6 @@ export async function assertCommunityVideoQuotaAvailable(sizeBytes: number | nul
   }
 }
 
-export async function requestCommunityContributionReview(eventId: string, note?: string) {
-  return rpc<{ id: string; status: string }>('request_my_buklod_community_qmp_review_v1', {
-    p_event_id: eventId,
-    p_note: note?.trim() || null,
-  });
-}
-
 export async function recordCommunityEconomyAnalytics(
   eventName:
     | 'contribution_card_viewed'

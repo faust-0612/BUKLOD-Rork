@@ -132,9 +132,20 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
     <Svg width={mapWidth} height={mapHeight} viewBox="0 0 1200 900" pointerEvents="none">
       <Defs>
         <SvgGradient id="sea" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#1b91c6" />
-          <Stop offset=".5" stopColor="#07547b" />
-          <Stop offset="1" stopColor="#0c2c60" />
+          <Stop offset="0" stopColor="#4ed8dd" />
+          <Stop offset=".33" stopColor="#087ea7" />
+          <Stop offset=".68" stopColor="#093b71" />
+          <Stop offset="1" stopColor="#071a45" />
+        </SvgGradient>
+        <SvgGradient id="aurora" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#bdf8da" stopOpacity=".63" />
+          <Stop offset=".42" stopColor="#67ddde" stopOpacity=".17" />
+          <Stop offset="1" stopColor="#4a72da" stopOpacity="0" />
+        </SvgGradient>
+        <SvgGradient id="highland" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#f9ecc7" />
+          <Stop offset=".48" stopColor="#b4d7c1" />
+          <Stop offset="1" stopColor="#467e8e" />
         </SvgGradient>
         <SvgGradient id="cliff" x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0" stopColor="#a9cfb5" />
@@ -168,6 +179,11 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         </SvgGradient>
       </Defs>
       <Rect width={1200} height={900} fill="url(#sea)" />
+      {/* Static layered fantasy realm, fully offline and low-memory. */}
+      <Ellipse cx={184} cy={180} rx={450} ry={330} fill="url(#aurora)" opacity=".74" />
+      <Ellipse cx={1090} cy={750} rx={420} ry={310} fill="#5e89d4" opacity=".12" />
+      <Path d="M 0 420 C 170 365 280 426 413 368 S 735 341 891 402 S 1069 405 1200 345"
+        fill="none" stroke="#b3f6ed" strokeWidth={12} opacity=".12" />
       {/* The outer ocean, with lighter shallows around the island. */}
       <Ellipse cx={620} cy={480} rx={595} ry={396} fill="#b8f3ef" opacity=".13" />
       <Path d="M 17 142 C 187 89 282 105 405 65 M 769 72 C 946 49 1037 123 1160 82 M 56 826 C 183 794 299 856 407 828"
@@ -182,7 +198,11 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
       <Path d={LAND_DEEP} fill="none" stroke="#f8e6b4" strokeWidth={6} opacity=".70" />
       <Path d="M 118 726 C 204 794 332 819 456 823 M 872 794 C 963 820 1053 793 1104 724"
         fill="none" stroke="#fff2bf" strokeWidth={5} opacity=".63" />
-      <Path d={LAND_FACE} fill="url(#meadow)" stroke="#f0e6c2" strokeWidth={10} />
+      <Path d={LAND_FACE} fill="url(#meadow)" stroke="#f6e9ba" strokeWidth={10} />
+      <Path d="M 174 373 C 263 247 382 245 475 213 C 558 175 660 155 772 222 M 198 438 C 295 324 418 328 530 283 C 661 225 739 264 856 263 M 244 518 C 326 417 443 406 557 380"
+        stroke="#f4ffe0" strokeWidth={6} strokeLinecap="round" opacity=".18" fill="none" />
+      <Path d="M 398 182 C 480 117 586 123 675 160 C 660 211 583 253 512 247 C 463 231 426 217 398 182 Z"
+        fill="url(#highland)" opacity=".46" />
       <Path d={LAND_FACE} fill="none" stroke="#fff8dd" strokeWidth={2} opacity=".6" />
       <Path d="M 109 432 C 201 260 315 238 466 219 C 410 315 345 395 240 424 C 167 476 146 510 99 590 Z"
         fill="#6d9e6f" opacity=".47" />
@@ -219,6 +239,14 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
         </G>
       ))}
 
+      {/* Luminous stage-aware wayfinding preserves the canonical routes. */}
+      {JOURNEY_PATH.map((route, index) => (
+        <Path key={'waylight-' + index} d={route} fill="none"
+          stroke={stage >= 2 ? '#fff1a5' : '#bcecea'}
+          strokeWidth={stage >= 3 ? 3 : 1.5}
+          strokeDasharray="1 24" strokeLinecap="round"
+          opacity={stage >= 2 ? .86 : .58} />
+      ))}
       {/* Bridges reconnect the established roads across the two rivers. */}
       {[
         { x: 614, y: 355, tilt: 17 },
@@ -832,8 +860,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   stationPlaque: {
-    marginTop: 3, width: 103, borderWidth: 1, borderColor: 'rgba(241,200,111,.8)',
-    backgroundColor: 'rgba(9,26,49,.88)',
+    marginTop: 3, width: 103, borderWidth: 1, borderColor: 'rgba(184,234,229,.76)',
+    backgroundColor: 'rgba(7,31,56,.94)',
     paddingHorizontal: 5, paddingVertical: 4, borderRadius: 12,
     alignItems: 'center', shadowColor: '#07111b', shadowOpacity: .3, shadowRadius: 8,
   },
@@ -871,7 +899,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 71,
     paddingHorizontal: 11, paddingBottom: 9,
     borderBottomWidth: 1, borderBottomColor: '#8c835f',
-    backgroundColor: 'rgba(5,20,44,.96)',
+    backgroundColor: 'rgba(5,24,47,.94)',
   },
   back: {
     width: 41, height: 41, borderRadius: 12, borderWidth: 1,

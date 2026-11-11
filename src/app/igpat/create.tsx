@@ -94,7 +94,6 @@ export default function IgpatCreateScreen() {
   const pickerBusyRef = useRef(false);
   const mountedRef = useRef(true);
 
-  useEffect(() => { warmBuklodAdOpportunity('igpat_video_published'); }, []);
   useEffect(() => {
     return () => {
       mountedRef.current = false;
@@ -341,6 +340,9 @@ export default function IgpatCreateScreen() {
         contentType: draft.mimeType,
         onProgress: value => setProgress(value.ratio),
       });
+      // Avoid native full-screen ad allocation while video bytes are being uploaded.
+      // Warm only after the transport has completed; publish remains authoritative.
+      warmBuklodAdOpportunity('igpat_video_published');
 
       const { error } = await (supabase as any).rpc('create_buklod_reel_v1', {
         p_audience: audience,
@@ -383,7 +385,13 @@ export default function IgpatCreateScreen() {
 
       {draft ? (
         <View style={styles.previewCard}>
-          <Preview uri={draft.uri} />
+          {busy ? (
+            <View style={[styles.preview, styles.pausedPreview]}>
+              <Text style={styles.pausedPreviewText}>Video preview paused during upload</Text>
+            </View>
+          ) : (
+            <Preview uri={draft.uri} />
+          )}
           <View style={styles.previewMeta}>
             <Text style={styles.metaStrong}>{draft.durationSeconds}s</Text>
             <Text style={styles.meta}>{formatVideoBytes(draft.sizeBytes)}</Text>
@@ -519,6 +527,8 @@ const styles = StyleSheet.create({
   sourceCopy: { marginTop: 5, color: 'rgba(255,255,255,0.48)', fontSize: 10 },
   previewCard: { marginTop: 24, overflow: 'hidden', borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0C110E' },
   preview: { width: '100%', height: 420, backgroundColor: '#000000' },
+  pausedPreview: { alignItems: 'center', justifyContent: 'center' },
+  pausedPreviewText: { color: 'rgba(255,255,255,0.74)', fontSize: 12, fontWeight: '700', textAlign: 'center' },
   previewMeta: { minHeight: 50, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   metaStrong: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
   meta: { flex: 1, color: 'rgba(255,255,255,0.50)', fontSize: 10 },

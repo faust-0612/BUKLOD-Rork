@@ -6,7 +6,7 @@ import { ActivityIndicator, Alert, AppState, Pressable, RefreshControl, ScrollVi
 import { useAuth } from '@/providers/AuthProvider';
 
 import {
-  formatMinorPhp, formatQuotaBytes, loadMyCommunityContribution, loadMyCommunityQmpHistory, requestCommunityContributionReview,
+  formatMinorPhp, formatQuotaBytes, loadMyCommunityContribution, loadMyCommunityQmpHistory,
   type CommunityContributionDashboard,
 } from '@/lib/buklodCommunityContributionEconomy';
 import type { CommunityQmpHistory } from '@/lib/buklodQmpHistory';
@@ -122,8 +122,8 @@ export default function CommunityContributionScreen() {
     </Card>
     <View style={[s.card,guide&&s.guide]}><Text style={s.cardTitle}>HOW CAN I INCREASE MY SHARE?</Text>{['Create useful original Community posts.','Upload legitimate original Wall videos within your quota.','Give meaningful replies that help other people.','Join useful discussions across multiple days.','Improve content quality instead of repeating low-value activity.'].map(x=><View key={x} style={s.bulletRow}><MaterialCommunityIcons name="check-circle-outline" size={16} color="#1E6B45"/><Text style={s.bullet}>{x}</Text></View>)}<Text style={s.warn}>Never watch/click ads, refresh, loop videos, spam comments, create fake accounts, or manipulate engagement to earn QMP. Those actions do not create cash entitlement.</Text></View>
     <Card title="MONTHLY VIDEO ALLOWANCE"><Row label="Used" value={formatQuotaBytes(q.used_bytes)}/><Row label="Remaining" value={formatQuotaBytes(q.remaining_bytes)}/><Row label="Allowance" value={formatQuotaBytes(q.allowance_bytes)}/><Row label="Reset" value={new Date(q.reset_at).toLocaleDateString()}/><Text style={s.note}>Per video: maximum 1 GB and 30 minutes.</Text></Card>
-    {!!data.review_items?.length&&<Card title="QUALIFICATION REVIEW">{data.review_items.map(item=><View key={item.event_id} style={s.reviewRow}><View style={{flex:1}}><Text style={s.reviewType}>{item.type.replace(/_/g,' ')}</Text><Text style={s.note}>{item.status} · {item.reason_category.replace(/_/g,' ')}</Text></View>{item.review_eligible?<Pressable onPress={()=>void requestCommunityContributionReview(item.event_id).then(()=>Alert.alert('Review Requested','Your contribution was submitted for review.')).catch((e:any)=>Alert.alert('Review',e?.message||'Could not request review.'))} style={s.reviewButton}><Text style={s.reviewButtonText}>REQUEST REVIEW</Text></Pressable>:null}</View>)}</Card>}
-    <Card title="TRANSPARENCY"><Text style={s.body}>We review activities for genuine participation. Spam or artificial engagement does not qualify. Estimated earnings may change and cannot be withdrawn until finalized.</Text></Card>
+
+    <Card title="TRANSPARENCY"><Text style={s.body}>QMP is validated automatically using original posts, media, legitimate replies and engagement. Short, duplicate, artificial or excessively repeated activities remain available in the app but do not earn QMP. Estimates may change and cannot be withdrawn until finalized.</Text></Card>
   </ScrollView>;
 }
 function Metric({label,value}:{label:string;value:string}){return <View style={s.metric}><Text style={s.metricValue}>{value}</Text><Text style={s.metricLabel}>{label}</Text></View>}

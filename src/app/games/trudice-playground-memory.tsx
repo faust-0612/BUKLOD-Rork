@@ -23,8 +23,8 @@ const OPTIONS: readonly KingdomInteriorOption[] = [
   },
   {
     id: GAME_ID, title: 'Wonder Path',
-    descriptionEn: 'Original pattern-and-sequence memory game',
-    descriptionTl: 'Orihinal na memory game sa patterns at sequence',
+    descriptionEn: 'Five-stage playable playground adventure with changing puzzles', 
+    descriptionTl: 'Limang hamon sa playground na may iba-ibang puzzle',
     kind: 'existing', render: (_finish, originalFinish) => (
       <PlaygroundPathGameV2 onFinish={originalFinish} />
     ),
@@ -34,8 +34,8 @@ const OPTIONS: readonly KingdomInteriorOption[] = [
 export default function TrudicePlaygroundMemoryScreen() {
   return <BuklodGameStage biome="playground" gameId={GAME_ID}>
     <KingdomInteriorCenter character="Trudice"
-      subtitleEn="Follow the Wonder Path or reveal a garden full of matching picture cards."
-      subtitleTl="Sundan ang Wonder Path o maghanap ng magkapares na mga larawan."
+      subtitleEn="Restore the Wonder Path, play Picture Pairs, or explore Word Garden."
+      subtitleTl="Ibalik ang Wonder Path, maglaro ng Picture Pairs, o tuklasin ang Word Garden."
       options={OPTIONS} />
   </BuklodGameStage>;
 }

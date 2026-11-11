@@ -29,7 +29,7 @@ export default function BuklodCommunityEconomyAdminCard({periodKey}:{periodKey:s
     <View style={s.segmentRow}>{(['ESTIMATED','RECONCILED'] as const).map(v=><Pressable key={v} onPress={()=>setState(v)} style={[s.segment,state===v&&s.segmentOn]}><Text style={[s.segmentText,state===v&&s.segmentTextOn]}>{v}</Text></Pressable>)}</View>
     <Text style={s.guard}>Community Wall revenue/cost records are analytics only. Do not designate or distribute cash from this legacy ledger; use canonical Finance V3 for funded payouts.</Text>
     <Pressable disabled={busy} onPress={()=>void submit()} style={[s.action,busy&&{opacity:.5}]}><Text style={s.actionText}>ADD VIDEO WALL FINANCIAL ENTRY</Text></Pressable>
-    <Text style={s.guard}>Community-only settlement has been retired. Review source-backed revenue and finalize through the canonical Finance V3 section on this page only, after all QMP reviews and identity checks pass.</Text>
+    <Text style={s.guard}>Community-only settlement has been retired. Review source-backed revenue and finalize through the canonical Finance V3 section only, after automated QMP qualification, identity checks and reconciliation pass.</Text>
     <Text style={s.guard}>Finalization is OFF by default. No raw view, ad view/click, Lifetime Point, self-view, Boost purchase, or estimated revenue directly creates cash entitlement.</Text>
   </View>
 }

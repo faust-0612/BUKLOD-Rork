@@ -1,0 +1,53 @@
+{
+  "contractVersion": 2,
+  "objective": "Prepare the complete Trudice Wonder Path gameplay upgrade as a source-verified BUKLOD consolidated OTA component without publishing production.",
+  "baseRef": "01f6c3a6a274a745c06c6e8adf4d89097f10000a",
+  "productionBaselineEvidence": "GitHub Main source baseline pinned to 01f6c3a6a274a745c06c6e8adf4d89097f10000a on Nov 11 2026, including the independent PTT web CORS backend patch. Branch is one source component of the future consolidated OTA; no production binary, served update, Expo web build or live environment identity was checked or published. Draft PR #710 is not release authorization.",
+  "chosenApproach": "Retain /games/trudice-playground-memory and authenticated, local preview with five seeded quest modes, approved Trudice art, bilingual prompts, full all-station coverage, timer/input safeguards, and explicit game-score-versus-real-BP wording; fix strict TypeScript tuple error.",
+  "selectionRationale": "Focused, rollback-friendly in-app update improves actual gameplay without moving Kingdom map nodes, changing native dependencies, touching monetary ledger or creating separate services.",
+  "alternativeApproaches": [
+    "Replace entire 39-game Kingdom experience and map navigation (rejected: high regression/release cost).",
+    "Cosmetic-only changes to the original static two-station memory sequence (rejected: does not fix gameplay quality and repetitive pattern).",
+    "Scoped in-place Wonder Path upgrade with pure rules and regression coverage (selected)."
+  ],
+  "riskAreas": [
+    "gameplay-logic",
+    "gameplay-visuals",
+    "input-timing",
+    "account-isolation",
+    "release-identity"
+  ],
+  "allowedPaths": [
+    "src/app/games/trudice-playground-memory.tsx",
+    "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
+    "src/features/games/registry.ts",
+    "src/features/games/runtime/BuklodGameLanguage.tsx",
+    "src/features/games/trudice/PlaygroundPathGameV2.tsx",
+    "src/features/games/trudice/wonderPathRules.ts",
+    "tests/kingdom-trudice-wonder-path.test.mjs",
+    ".buklod/scopes/trudice-wonder-path-consolidated-candidate-20261111.json"
+  ],
+  "regressionTests": [
+    "tests/kingdom-trudice-wonder-path.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Five distinct playable modes, valid deterministic seeded challenges, all four stations used, replay variability",
+    "TypeScript noEmit, engineering change-scope gate and focused node regression must pass",
+    "No timers execute after unmount or input during non-interactive phases",
+    "Save original clears in authenticated-account local preview only; no BP or cash minting",
+    "Main Android runtime/Expo Hosting consolidated RC evidence still required before any OTA",
+    "User-waived physical verification documented as SKIPPED, never represented as passed",
+    "The GitHub Main PTT CORS backend patch remains outside this scoped PR and is preserved by the consolidated merge; no PTT files modified."
+  ],
+  "preserveBehaviors": [
+    "Canonical in-app Trudice route, Kingdom station ID and premium map coordinates",
+    "Trudice's Picture Pairs and Word Garden entries, other 38 games, offline practice routing",
+    "Mastery Check remains sole server-verified BP awarding path",
+    "No Supabase migration, no native module installation and no production/web OTA"
+  ],
+  "releaseMode": "component-candidate",
+  "consolidationTarget": "integration/buklod-nov10-single-source-ota",
+  "deploymentStatus": "DEV only; consolidated RC promotion explicitly held",
+  "gitSourceBranch": "codex/trudice-wonder-path-upgrade-20261111",
+  "gitPr": 710
+}

@@ -391,39 +391,3 @@ export async function adminGetBuklodPfQmpReadinessV1(periodKey: string) {
     'Could not verify canonical monthly QMP and Finance reconciliation.',
   );
 }
-
-
-export type BuklodQmpAdminReview = {
-  event_id: string;
-  type: string;
-  state: 'PENDING' | 'HELD';
-  reason: string;
-  qmp: number;
-  created_at: string;
-  source_excerpt: string;
-  source_available: boolean;
-};
-
-export type BuklodQmpAdminReviewQueue = {
-  period_key: string;
-  total_pending: number;
-  rows: BuklodQmpAdminReview[];
-};
-
-export async function adminGetBuklodQmpMonthReviewQueue(periodKey: string) {
-  return rpc<BuklodQmpAdminReviewQueue>(
-    'admin_list_buklod_qmp_month_review_queue_v1',
-    { p_period_key: periodKey.trim(), p_limit: 50 },
-    'Could not load the private qualified-contribution review queue.',
-  );
-}
-
-export async function adminResolveBuklodQmpEvent(eventId: string, approve: boolean) {
-  return rpc<{ event_id: string; approved: boolean }>(
-    'admin_review_buklod_community_qmp_event_v1',
-    { p_event_id: eventId, p_approve: approve,
-      p_reason: approve ? 'Reviewed evidence for month-close qualification'
-        : 'Reviewed evidence; does not meet qualified contribution criteria' },
-    'Could not complete QMP evidence review.',
-  );
-}

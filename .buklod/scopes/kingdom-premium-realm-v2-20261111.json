@@ -1,0 +1,22 @@
+{
+  "contractVersion": 1,
+  "scopeManifestPath": ".buklod/scopes/kingdom-premium-realm-v2-20261111.json",
+  "objective": "In-place illustrated Kingdom map refinement within original BUKLOD Main.",
+  "baseRef": "main",
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-premium-realm-v2-20261111.json",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "tests/kingdom-premium-realm-v2-20261111.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/kingdom-premium-realm-v2-20261111.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "13 routes/stations",
+    "zoom/panning/focus",
+    "runtime 1.3.2",
+    "free/offline assets",
+    "server-authoritative rewards"
+  ],
+  "releaseState": "DEV_QA_PENDING"
+}
