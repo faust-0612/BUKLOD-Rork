@@ -1172,6 +1172,21 @@ function LegacyPublicBuklodScreen(){
  const [busy,setBusy]=useState(false),[photos,setPhotos]=useState<Photo[]>([]),[photoBusy,setPhotoBusy]=useState(false);
  const [publishNotice,setPublishNotice]=useState<string|null>(null);
  const [postFeedback,setPostFeedback]=useState<string|null>(null);
+ // Local-only preview: never considered server-confirmed while transferring.
+ const [optimisticPost,setOptimisticPost]=useState<{
+  tempId:string;
+  authorId:string;
+  body:string;
+  photoUris:string[];
+  collageLayout:CommunityPhotoCollageLayout;
+  hasVideo:boolean;
+  notice:string;
+  status:'uploading'|'posted';
+ }|null>(null);
+ useEffect(()=>{
+  // Never show an account's unsent caption/media after account switching.
+  setOptimisticPost(null);
+ },[user?.id]);
  const [collageLayout,setCollageLayout]=useState<CommunityPhotoCollageLayout>('grid');
  const postingSubmissionRef=useRef(false);
  useEffect(()=>{
@@ -2897,10 +2912,29 @@ const load=useCallback(async(options?:{
     ? 'Uploading photos… Keep BUKLOD open'
     : 'Posting in the backgroundâ€¦';
  setPublishNotice(startNotice);
+ const optimisticId=`pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+ setOptimisticPost({
+  tempId:optimisticId,
+  authorId:snapshot.userId,
+  body:snapshot.body,
+  photoUris:snapshot.photos.map(photo=>photo.uri),
+  collageLayout:snapshot.collageLayout,
+  hasVideo:Boolean(snapshot.wallVideo),
+  notice:startNotice,
+  status:'uploading',
+ });
 
  enqueueCommunityPublish(
   startNotice,
-  async(setNotice)=>{
+  async(notifyQueue)=>{
+  const setNotice=(notice:string)=>{
+   notifyQueue(notice);
+   setOptimisticPost(current=>
+    current?.tempId===optimisticId
+     ? {...current,notice}
+     : current
+   );
+  };
   const uploaded:
    Array<{
     media_path:string;
@@ -3183,11 +3217,29 @@ const load=useCallback(async(options?:{
     });
    }
 
-   // A feed refresh error must not roll back a successfully published post.
-   void load().catch(()=>undefined);
+   // Keep the local preview visible until the server feed catches up.
+   // A failed refresh must never roll back a successful publish.
+   setOptimisticPost(current=>
+    current?.tempId===optimisticId
+     ? {...current,status:'posted',notice:'Posted. Updating Wall…'}
+     : current
+   );
+   void load().then(()=>{
+    setOptimisticPost(current=>current?.tempId===optimisticId?null:current);
+   }).catch(()=>{
+    setOptimisticPost(current=>
+     current?.tempId===optimisticId
+      ? {...current,notice:'Posted. Refresh the Wall when connected.'}
+      : current
+    );
+    setTimeout(()=>{
+     setOptimisticPost(current=>current?.tempId===optimisticId?null:current);
+    },8000);
+   });
    setPostFeedback(optionalCreativeFailed ? 'Posted, but optional music/motion was not saved.' : 'Posted to Community');
   }
   catch(e:any){
+   setOptimisticPost(current=>current?.tempId===optimisticId?null:current);
    await discardIncompleteCommunityPost({
     postId:createdPostId,
     mediaPaths:uploaded.map(x=>x.media_path),
@@ -5815,8 +5867,48 @@ const communityFeedRows =
        ? 'LATEST POSTS'
        : 'COMMUNITY POSTS'}
    </SectionTitle>
+   {optimisticPost?.authorId===user?.id&&(
+    <BuklodCommunityWallPostCard>
+     <View style={{flexDirection:'row',alignItems:'center',gap:9,marginBottom:8}}>
+      {optimisticPost.status==='uploading'
+       ? <ActivityIndicator size="small" color={colors.green}/>
+       : <MaterialCommunityIcons name="check-circle" size={19} color={colors.green}/>}
+      <Text style={{flex:1,fontSize:13,fontWeight:'800',color:colors.greenDark}}>
+       {optimisticPost.status==='uploading'?'YOUR POST · UPLOADING':'YOUR POST · PUBLISHED'}
+      </Text>
+     </View>
+     {!!optimisticPost.body&&(
+      <BuklodExpandableWallCaption
+       text={optimisticPost.body}
+       style={s.body}
+       hasMedia={optimisticPost.photoUris.length>0||optimisticPost.hasVideo}
+      />
+     )}
+     {!!optimisticPost.photoUris.length&&(
+      <BuklodCommunityPhotoCollage
+       items={optimisticPost.photoUris.map(uri=>({media_url:uri}))}
+       width={Dimensions.get('window').width-64}
+       height={210}
+       layoutMode={optimisticPost.collageLayout}
+       showLayoutPicker={false}
+       contentFit="cover"
+       preserveSinglePhotoAspectRatio
+      />
+     )}
+     {optimisticPost.hasVideo&&(
+      <View style={{height:100,borderRadius:12,backgroundColor:colors.greenSoft,alignItems:'center',justifyContent:'center',gap:5}}>
+       <MaterialCommunityIcons name="video-outline" size={26} color={colors.greenDark}/>
+       <Text style={{fontSize:12,fontWeight:'700',color:colors.greenDark}}>Video is uploading</Text>
+      </View>
+     )}
+     <Text accessibilityRole="alert" style={{fontSize:12,color:colors.muted,marginTop:8}}>
+      {optimisticPost.notice}
+     </Text>
+    </BuklodCommunityWallPostCard>
+   )}
   </View></BuklodFocusFadeUp>}
   ListEmptyComponent={
+   optimisticPost?.authorId===user?.id?null:(
    <Card>
     <Text style={shared.muted}>
      {communityFeedMode==='following'
@@ -5824,6 +5916,7 @@ const communityFeedRows =
        : 'No Public posts yet.'}
     </Text>
    </Card>
+   )
   }
   renderItem={({item,index}:{item:any,index:number})=>{
     if (
