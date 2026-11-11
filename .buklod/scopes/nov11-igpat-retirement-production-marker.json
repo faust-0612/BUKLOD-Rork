@@ -1,0 +1,59 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov11-igpat-retirement-production-marker.json",
+  "releaseMode": "reviewed-production-marker",
+  "objective": "Promote the already compiled and reconciled Nov11 Main Android OTA + Expo Hosting Web release, including IGPAT retirement, using existing guarded publisher workflows without any product-source changes.",
+  "baseRef": "d670b1177c87d7aa1a8eabf1d47a59c024ebf2db",
+  "productionBaselineEvidence": "Verified canonical Main merge d670b1177c87d7aa1a8eabf1d47a59c024ebf2db is file-identical to exact compiled RC b01ac0511010a07fe2e5751d4398b44286f8390c (GitHub compare 0 changed files). Four RC checks successful, including Android 263 files and Expo Web 254 files from run 43052173255. Live Supabase retirement migration 20261111151816 applied and database contract passed. Publication itself still requires production workflow verification.",
+  "chosenApproach": "Metadata-only reviewed release-marker PR; merge as a squash with exactly the existing BUKLOD_CONSOLIDATED_PROD_20261108 prefix once marker QA passes. Run canonical main Android OTA + Expo Hosting Web workflows; publish only after runtime/production baseline, frozen RC hash, environment and live update gates pass.",
+  "selectionRationale": "Source PR #722 has already been reviewed and merged without auto-publish; no additional runtime edits or package changes are required. Reuse trusted guarded production workflows to prevent an accidental staging, Classroom or native binary release.",
+  "alternativeApproaches": [
+    "Direct EAS CLI publish from an unreviewed branch: rejected because source identity and runtime could diverge",
+    "Modify production workflow to disable release gates: rejected as unsafe",
+    "Existing reviewed release-marker prefix from canonical Main: selected"
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "acceptanceChecks": [
+    "Marker PR modifies only this scope and its static release-contract test",
+    "Main source d670b11 is identical to RC b01ac05 and has unchanged runtime 1.3.2 / V30 Android / Main Expo project",
+    "Production publishing uses existing production Android OTA and Expo Hosting Web guarded workflows",
+    "Android release must freeze exact exported artifact and verify live Expo update ID",
+    "Web release must deploy exact exported bundle and record deployment output",
+    "No device verification claimed; owner authorized skip and no standalone Classroom/Quiz/Smart Drawer release",
+    "Historical IGPAT records retained; Marites, Wonder Path, Kingdom, QMP/Finance, PTT, Ads still present"
+  ],
+  "preserveBehaviors": [
+    "Live IGPAT publishing stays retired with historical 6 posts/media untouched",
+    "All current Main features including Marites signed-photo hotfix remain",
+    "Finance settlement and withdrawals unchanged/off",
+    "No Classroom/Quiz native release, package or new paid services",
+    "No direct DB writes in this marker; no SDK/runtime changes"
+  ],
+  "releasePrefix": "BUKLOD_CONSOLIDATED_PROD_20261108",
+  "rc": {
+    "sha": "b01ac0511010a07fe2e5751d4398b44286f8390c",
+    "githubActionsRun": 43052173255,
+    "androidFiles": 263,
+    "webFiles": 254,
+    "checksPassed": 4
+  },
+  "sourceMergeSha": "d670b1177c87d7aa1a8eabf1d47a59c024ebf2db",
+  "target": {
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "androidPackage": "org.mzbministry.buklod",
+    "runtimeVersion": "1.3.2",
+    "androidVersionCode": 30,
+    "androidChannel": "production",
+    "webHosting": "Expo Hosting"
+  },
+  "regressionTests": [
+    "tests/buklod-igpat-retirement-release-marker-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov11-igpat-retirement-production-marker.json",
+    "tests/buklod-igpat-retirement-release-marker-20261111.test.mjs"
+  ],
+  "releaseStatus": "READY FOR REVIEWED PRODUCTION MARKER. No new OTA update ID or Web deployment ID until both workflows report verified success."
+}
