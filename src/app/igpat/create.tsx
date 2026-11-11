@@ -383,7 +383,7 @@ export default function IgpatCreateScreen() {
           // Existing ad opportunity remains after confirmed server commit.
           // It is optional and cannot delay/roll back publication.
           void showBuklodAdOpportunity('igpat_video_published').catch(() => undefined);
-          return 'posted';
+          return { status:'posted' as const, mediaPath:uploadedPath };
         } catch (error) {
           if (createAttempted) {
             throw new InstantPublishUncertainError(
