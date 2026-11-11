@@ -1698,7 +1698,11 @@ export default function BuklodMaritesBoard({
         photoUris:snapshot.photoUris,
       }, async reportProgress=>{
         reportProgress(null,'Uploading Marites Story… Keep BUKLOD open.');
-        const {story,shared}=await publishMaritesStory(snapshot);
+        const {story,shared}=await publishMaritesStory({
+          ...snapshot,
+          onProgress:fraction=>reportProgress(fraction,
+            `Uploading Marites… ${Math.round(fraction*100)}%`),
+        });
         // The server-confirmed or device-only result replaces the preview.
         // Persist its feed snapshot even when this component unmounts.
         maritesRefreshes.delete(cacheKey);
