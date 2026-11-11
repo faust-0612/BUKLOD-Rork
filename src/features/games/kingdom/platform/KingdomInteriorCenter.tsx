@@ -126,7 +126,9 @@ export function KingdomInteriorCenter({
         <Pressable accessibilityRole="button" accessibilityLabel="Play next Kingdom level offline"
           onPress={() => router.push({pathname:'/games/practice',params:{gameId:active.id}} as any)}
           style={styles.practiceLink}>
-          <Text style={styles.practiceText}>NEXT ADVENTURE LEVEL • OFFLINE PRACTICE</Text>
+          <Text style={styles.practiceText}>{active.id === 'trudice-playground-memory'
+            ? t('OPTIONAL OFFLINE MATH PRACTICE • NO REAL POINTS', 'OPTIONAL NA MATH PRACTICE • WALANG TOTOONG POINTS')
+            : 'NEXT ADVENTURE LEVEL • OFFLINE PRACTICE'}</Text>
         </Pressable>
         {masteryEligibility?.owner === user?.id && masteryEligibility?.gameId === active.id ? (
           <>

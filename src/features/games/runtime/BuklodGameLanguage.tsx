@@ -37,10 +37,10 @@ const GUIDES: Record<string, Guide> = {
   },
   'trudice-playground-memory': {
     titleEn: 'Wonder Path', titleTl: 'Landas ng Alaala',
-    objectiveEn: 'Watch the glowing playground route, remember the order, then repeat the same sequence.',
-    objectiveTl: 'Panoorin ang kumikislap na ruta sa playground, tandaan ang pagkakasunod-sunod, saka ulitin ang parehong sequence.',
-    controlsEn: 'Tap the playground stations in the exact order shown.',
-    controlsTl: 'I-tap ang mga playground station ayon sa eksaktong pagkakasunod na ipinakita.',
+    objectiveEn: 'Restore five playground areas through path memory, double-glow discovery, blocked routes, reversed trails, and star rescue.',
+    objectiveTl: 'Ibalik ang limang lugar gamit ang memory path, dobleng ilaw, ligtas na daan, baliktad na ruta, at pagsagip sa bituin.',
+    controlsEn: 'Watch the glow, read each round’s objective, and tap the stations in the requested order. Some rounds reverse or avoid a blocked station.',
+    controlsTl: 'Panoorin ang ilaw at basahin ang layunin. I-tap ang mga lugar ayon sa hamon; may baliktad na ruta at bawal daanan.',
   },
   'ace-rescue-grid': {
     titleEn: 'Rescue Grid', titleTl: 'Rescue Grid',
