@@ -1203,25 +1203,37 @@ export async function publishMaritesStory(input: {
       // Keep the exact photo order but prepare and upload in bounded parallel
       // lanes. Weak uplinks automatically drop to one lane in this helper.
       // The shared JPEG uploader avoids old per-photo base64 encoding.
-      const photoUploads = await mapWithConcurrency(
-        photoUris,
-        Platform.OS === 'web' ? 2 : 3,
-        async (uri,index) => {
-          const path =
-            `${input.userId}/marites-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
-          const result = await uploadCommunityPhotoFile({
-            path,
-            uri,
-            wallPreview:true,
-          });
-          return {
-            media_path: result.path,
-            media_mime_type: 'image/jpeg',
-            media_size_bytes: result.sizeBytes,
-          };
-        }
-      );
-      uploaded.push(...photoUploads);
+      // Keep track of completed PUTs even when another worker fails.
+      const completedPhotoPaths: string[] = [];
+      try {
+        const photoUploads = await mapWithConcurrency(
+          photoUris,
+          Platform.OS === 'web' ? 2 : 3,
+          async (uri,index) => {
+            const path =
+              `${input.userId}/marites-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
+            const result = await uploadCommunityPhotoFile({
+              path,
+              uri,
+              wallPreview:true,
+            });
+            completedPhotoPaths.push(result.path);
+            return {
+              media_path: result.path,
+              media_mime_type: 'image/jpeg',
+              media_size_bytes: result.sizeBytes,
+            };
+          }
+        );
+        uploaded.push(...photoUploads);
+      } catch (error) {
+        // Partial parallel success must not leak unreferenced media objects.
+        await discardIncompleteCommunityPost({
+          postId:null,
+          mediaPaths:completedPhotoPaths,
+        }).catch(() => undefined);
+        throw error;
+      }
     }
 
     const first = uploaded[0] ?? null;
