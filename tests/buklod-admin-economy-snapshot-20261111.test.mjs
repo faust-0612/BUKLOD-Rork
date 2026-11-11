@@ -59,7 +59,7 @@ test('unfinalized and provisional amounts are never presented as actual cash', (
   assert.doesNotMatch(ops,/settlement\?\.user_pool_php \?\? 0/);
   assert.match(center,/Provisional AdMob, not cash/);
   assert.match(home,/Provisional AdMob · separate noncash estimate/);
-  assert.match(home,/Retired R38 BCU\/RCU allocations and Community Wall analytics/);
+  assert.match(home,/Legacy R38 BCU\/RCU allocations and Community Wall analytics/);
 });
 test('money activation and payout gates are not altered', () => {
   assert.doesNotMatch(sql,/set\s+(?:economics_enabled|settlement_enabled|withdrawal_enabled|payout_processing_enabled)/i);
