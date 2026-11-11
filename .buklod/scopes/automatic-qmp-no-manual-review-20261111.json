@@ -1,0 +1,74 @@
+{
+  "contractVersion": 2,
+  "objective": "Automate source-backed QMP and synchronize all System Admin Economy reports on one canonical monthly Finance V3 + QMP + provisional AdMob snapshot, eliminate misleading legacy R38 and false-zero values, prepare for one consolidated OTA without live verification or standalone deploy.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Inspected main SHA a216bbdd6dee99b161f7861addba766f115203f1 and live BUKLOD Connect Supabase 2026-11-11. Before migration 180 pending Nov, 53 Oct, 4 Sep, 0 held. Applied 3 QMP-only migrations. After: 0 pending/held in all three open periods, 38 photo-backed events auto-qualified for 190 total QMP, event/account parity exact with zero mismatches, zero outstanding review requests, old manual RPC privileges revoked, canonical Finance SQL contract passed, all cash activation switches remain OFF. Client source still DEV only; no RC/OTA published. Additional admin-report inspection (source and read-only function definitions only) 2026-11-11: report center and Bayanihan consumed retired admin_get_buklod_r38_economy_report_v1; Finance V3 report had different policy and settled amounts, and provisional AdMob was independent. New snapshot migration not applied. Actual live verification intentionally skipped by owner; client source is DEV only.",
+  "chosenApproach": "Preserve automatic QMP recorder and finance ledger; add one admin-only read-only Postgres snapshot calling three canonical sources in one statement, reuse it in Economy Operations, Bayanihan and Reports Center; explicit Manila month loading, discard superseded requests and display unavailable vs finalized correctly. No production config or cash mutation.",
+  "selectionRationale": "Legacy R38 BCU/RCU, legacy Community Wall and Finance V3 used unrelated revenue/pool denominators, while client-side parallel responses raced across months and a missing settlement was shown as ₱0. Server snapshot + fail-closed consumer reconciles them without double credits.",
+  "alternativeApproaches": [
+    "Automatically approve every pending activity: rejected because spam, short unsupported posts and self-interactions would count as revenue weight.",
+    "Leave pending events awaiting admin indefinitely: rejected because legitimate contributors remain blocked and month close cannot complete.",
+    "Auto-qualify verifiable source and exclude insufficient evidence while preserving actual interactions: chosen.",
+    "Reuse the retired R38 report in the admin dashboard: rejected because its BCU/RCU and old allocation formula are no longer canonical for financial settlement.",
+    "Merge AdMob provisional income into Finance V3 totals: rejected because estimates are noncash and would create false funded balances."
+  ],
+  "acceptanceChecks": [
+    "No QMP admin approval/rejection or member request review UI; backend review RPC execution revoked.",
+    "Only verifiable source post, photo or qualified reply earns QMP; short/duplicate/self activity can still be posted but earns no QMP.",
+    "Automated OPEN-month reconciliation is idempotent; finalized QMP periods untouched.",
+    "Photo insert after original post can qualify once within same month only.",
+    "Velocity-excluded QMP cannot trigger indirect mission or creator reply awards.",
+    "Private QMP account and source-event totals reconcile exactly for each open period.",
+    "No backend economics, settlement, withdrawal, cash balance or payout activation.",
+    "One frozen consolidated RC before production OTA/web; no standalone publication.",
+    "Admin Reports Center and Economy/Bayanihan screen no longer read admin_get_buklod_r38_economy_report_v1.",
+    "One source-consistent RPC returns same Manila period Finance V3, QMP readiness and provisional AdMob with exact period-key checks and admin authorization.",
+    "Economy Operations changes draft month explicitly and suppresses stale/overlapping requests and finance actions for an unloaded month.",
+    "Missing or unfinalized settlement is shown as unavailable rather than ₱0 in all admin financial dashboards.",
+    "AdMob provisional report is labeled noncash, shown separately and never merged with actual revenue or user earnings.",
+    "No production DB migration or live data verification occurs in this scope; backend RPC must be included before consolidated OTA.",
+    "Focused Node and Postgres contracts cover the cross-screen shared source, period/privacy/invariant checks, and intact Finance V3 settlement and withdrawal gates."
+  ],
+  "preserveBehaviors": [
+    "Original monthly QMP weights, bonus caps, monthly reset, lifetime history, earnings read models.",
+    "Other points BP rules, AdMob analytics, monetization placement, Kingdom and all unrelated app features.",
+    "Existing Finance V3 source-backed revenue reconciliation, period freeze and idempotent settlement; all activation flags OFF.",
+    "User interactions remain enabled even when QMP rules exclude points; never require ads to qualify QMP.",
+    "Expo Android OTA and Expo Hosting Web only after unified verified consolidated RC, no Vercel/AWS deploy.",
+    "Admin-specific reporting access only, source-side reports read-only, canonical Finance V3 finalization remains separately gated and unactivated.",
+    "Existing unrelated Points, attendance, moderation, withdrawal, referral and admin reports remain available.",
+    "All new migration and client changes must be merged to the same frozen RC before publishing one consolidated OTA/web."
+  ],
+  "riskAreas": [
+    "monthly-qmp-and-fraud-review",
+    "finance-identity-and-auth",
+    "user-revenue-and-cash-ledger",
+    "consolidated-ota-release",
+    "canonical-admin-finance-reporting",
+    "month-and-cache-isolation",
+    "provisional-admob-noncash"
+  ],
+  "regressionTests": [
+    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql",
+    "tests/buklod-admin-economy-snapshot-20261111.test.mjs",
+    "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
+    "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/automatic-qmp-no-manual-review-20261111.json",
+    "src/app/admin/economy-operations.tsx",
+    "src/app/community-contribution.tsx",
+    "src/components/BuklodCommunityEconomyAdminCard.tsx",
+    "supabase/migrations/20261111093000_buklod_qmp_automatic_qualification_v2.sql",
+    "supabase/migrations/20261111093500_buklod_qmp_close_legacy_review_requests_v3.sql",
+    "supabase/migrations/20261111094000_buklod_qmp_indirect_reward_guard_v4.sql",
+    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql",
+    "src/app/admin/bayanihan.tsx",
+    "src/app/admin/reports-center.tsx",
+    "src/lib/buklodCanonicalAdminEconomy.ts",
+    "supabase/migrations/20261111100000_buklod_canonical_admin_economy_snapshot_v1.sql",
+    "tests/buklod-admin-economy-snapshot-20261111.test.mjs",
+    "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
+    "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql"
+  ]
+}

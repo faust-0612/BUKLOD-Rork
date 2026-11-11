@@ -1,0 +1,60 @@
+{
+  "contractVersion": 2,
+  "objective": "Implement precisely approved KL 10 BP per verified chapter plus one-time 50 BP per verified 30-chapter series and gated fair progressive BUKLOD engagement BP, with nonblocking discussion and no duplicate R37/QMP creator economics.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: On Nov 11 2026 GitHub main SHA a216bbdd6dee99b161f7861addba766f115203f1 was inspected. Read-only live BUKLOD Connect policy inspection verified KL 5/30, active R37 social tiers and Community QMP v1. These are repo/DB baselines, NOT an Android production OTA fingerprint.",
+  "chosenApproach": "One change-set DEV integration with separate forward-only KL and feature-flagged engagement migrations, precise source-level user guide updates, SQL and Node contracts; hold production until verified RC and release gates.",
+  "selectionRationale": "PostgreSQL qualified server events and existing R37 creator ledger permit verifiable progressive creator BP with a monotonic total rather than reward farming or duplicate QMP, while existing KL one-time source keys provide safe 10/50 increases.",
+  "alternativeApproaches": [
+    "Client-side points rejected as farmable and not authoritative",
+    "Separate payout/BCU bonus for each comment rejected as duplicative",
+    "Blocking commenting beyond rewards rejected as hostile to social engagement",
+    "Retrospective credit rewrite rejected"
+  ],
+  "riskAreas": [
+    "story",
+    "points-economy",
+    "auth-privacy",
+    "ads-monetization",
+    "wall-media",
+    "release-identity",
+    "classroom-quiz"
+  ],
+  "preserveBehaviors": [
+    "Existing verified KL quiz, timer, 30-chapter series and publication rules",
+    "Historical ledger amounts and original source keys",
+    "R37 qualified-only QEU, BCU, Community QMP allocation, payout OFF",
+    "No comment/reply hard limit and existing optional nonblocking interstitial cadence",
+    "No extra native permissions, no production OTA from DEV",
+    "Scoped content boundaries and comment privacy unaffected"
+  ],
+  "acceptanceChecks": [
+    "+10 BP per newly verified released chapter only, +50 BP once after 30 distinct published verified chapters",
+    "Repeated/offline retry never duplicates KL points, historical credits unchanged",
+    "Creator milestones use unique qualified likes and capped qualified comments, combined max versus R37 tier and 600 BP total",
+    "Helpfulness +2/+5/+10 commenter milestones require independently qualified comments, max 20/day",
+    "Three-participant real reply chain +3 BP each, 5 actors/thread max, 2 chains/day/user",
+    "60 daily and 300 rolling-week allowance bounds new incidental support BP without blocking posting",
+    "Private reward tables use RLS; no direct client write privileges",
+    "No QMP/BCU/cash changes and rollout flag remains disabled until independent RC verification",
+    "SQL contract tests, Node focused tests, TypeScript/Web and Android export gates pass"
+  ],
+  "regressionTests": [
+    "tests/kl-reading-quiz-r4-10-50.test.mjs",
+    "tests/buklod-mutual-engagement-r4.test.mjs",
+    "supabase/tests/kl_verified_reading_r4_10_50.sql",
+    "supabase/tests/buklod_mutual_engagement_r4.sql"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261111152000_kl_verified_reading_10_series_50.sql",
+    "supabase/migrations/20261111152500_buklod_mutual_engagement_r4.sql",
+    "supabase/tests/kl_verified_reading_r4_10_50.sql",
+    "supabase/tests/buklod_mutual_engagement_r4.sql",
+    "tests/kl-reading-quiz-r4-10-50.test.mjs",
+    "tests/buklod-mutual-engagement-r4.test.mjs",
+    "src/components/kabihasnang-ligaw/KlReadingQuiz.tsx",
+    "src/components/points/BuklodPointsR2Guide.tsx",
+    "src/lib/kabihasnang-ligaw/types.ts",
+    ".buklod/scopes/engagement-kl-rewards-r4-20261111.json"
+  ]
+}

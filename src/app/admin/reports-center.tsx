@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,12 +13,12 @@ import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
 import { shared } from '@/components/UI';
+import { asMoney } from '@/lib/buklodR38Economy';
+import { formatMinorPhp } from '@/lib/buklodCommunityContributionEconomy';
 import {
-  asMoney,
-  formatPhp,
-  loadAdminBuklodR38EconomyReport,
-  type BuklodR38AdminEconomyReport,
-} from '@/lib/buklodR38Economy';
+  financeMoneyOrUnavailable, loadCanonicalAdminEconomy, manilaEconomyMonth,
+  type CanonicalAdminEconomySnapshot,
+} from '@/lib/buklodCanonicalAdminEconomy';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 
@@ -208,7 +208,8 @@ async function loadPointsHealth(): Promise<PointsHealth> {
 }
 
 export default function AdminReportsCenterScreen() {
-  const [economy, setEconomy] = useState<BuklodR38AdminEconomyReport | null>(null);
+  const [economy, setEconomy] = useState<CanonicalAdminEconomySnapshot | null>(null);
+  const requestSerial = useRef(0);
   const [points, setPoints] = useState<PointsHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -216,39 +217,32 @@ export default function AdminReportsCenterScreen() {
   const [pointsError, setPointsError] = useState('');
 
   const load = useCallback(async () => {
+    const generation = ++requestSerial.current;
+    setLoading(true);
+    setEconomy(null);
+    setPoints(null);
     setEconomyError('');
     setPointsError('');
 
     const [economyResult, pointsResult] = await Promise.allSettled([
-      loadAdminBuklodR38EconomyReport(),
+      loadCanonicalAdminEconomy(manilaEconomyMonth()),
       loadPointsHealth(),
     ]);
+    if (generation !== requestSerial.current) return;
 
-    if (economyResult.status === 'fulfilled') {
-      setEconomy(economyResult.value);
-    } else {
-      setEconomyError(
-        economyResult.reason instanceof Error
-          ? economyResult.reason.message
-          : 'Could not load the economy report.',
-      );
-    }
+    if (economyResult.status === 'fulfilled') setEconomy(economyResult.value);
+    else setEconomyError(economyResult.reason instanceof Error
+      ? economyResult.reason.message : 'Canonical Economy snapshot unavailable.');
 
-    if (pointsResult.status === 'fulfilled') {
-      setPoints(pointsResult.value);
-    } else {
-      setPointsError(
-        pointsResult.reason instanceof Error
-          ? pointsResult.reason.message
-          : 'Could not load Points health.',
-      );
-    }
-
+    if (pointsResult.status === 'fulfilled') setPoints(pointsResult.value);
+    else setPointsError(pointsResult.reason instanceof Error
+      ? pointsResult.reason.message : 'Could not load Points health.');
     setLoading(false);
   }, []);
 
   useEffect(() => {
     void load();
+    return () => { requestSerial.current++; };
   }, [load]);
 
   const refresh = useCallback(async () => {
@@ -257,32 +251,26 @@ export default function AdminReportsCenterScreen() {
     setRefreshing(false);
   }, [load]);
 
-  const periodLabel = useMemo(() => {
-    if (!economy?.period) return 'No current economic period';
-    const key = economy.period.period_key;
-    const status = economy.period.status;
-    return `${typeof key === 'string' ? key : 'Period'} · ${typeof status === 'string' ? status : 'UNKNOWN'}`;
-  }, [economy]);
-
-  const economyHealth = useMemo(() => {
-    if (!economy?.period) {
-      return { label: 'NO PERIOD', note: 'Economy is installed; no period is active yet.', kind: 'neutral' as const };
-    }
-
-    const checks = Object.values(economy.invariant_checks ?? {});
-    const failed = checks.filter((value) => value === false).length;
-    if (failed > 0) {
-      return { label: 'REVIEW', note: `${failed} invariant check${failed === 1 ? '' : 's'} need attention.`, kind: 'warning' as const };
-    }
-
-    return { label: 'OK', note: 'Current invariant checks have no recorded failure.', kind: 'ok' as const };
-  }, [economy]);
-
-  const shareCount = economy?.user_shares?.length ?? 0;
-  const revenue = economy?.revenue_chain;
-  const qualifiedBcu = economy?.qualified_units?.bcu;
-  const qualifiedRcu = economy?.qualified_units?.rcu;
-  const entryGroups = economy?.financial_entry_breakdown?.length ?? 0;
+  const finance = economy?.finance;
+  const qmp = economy?.qmp;
+  const provisional = economy?.admob_provisional;
+  const settlement = finance?.settlement;
+  const finalized = settlement?.status === 'FINALIZED';
+  const financeMoney = (value: unknown) => financeMoneyOrUnavailable(value, finalized);
+  const periodLabel = economy?.period_key ?? manilaEconomyMonth();
+  const economyHealth = !economy
+    ? { label: 'UNAVAILABLE', note: 'Canonical report not loaded.', kind: 'neutral' as const }
+    : finalized
+    ? { label: 'FINALIZED', note: 'Funded Finance V3 month is immutable.', kind: 'ok' as const }
+    : !qmp?.period_exists
+    ? { label: 'NO PERIOD', note: 'No qualified contribution period has been created.', kind: 'neutral' as const }
+    : (qmp.pending_qmp_reviews ?? 0) > 0 || (qmp.held_qmp_reviews ?? 0) > 0 ||
+      (qmp.unlinked_finance_identities ?? 0) > 0
+    ? { label: 'RECONCILE', note: 'Automatic QMP validation or Finance identities require reconciliation.', kind: 'warning' as const }
+    : { label: 'NOT FINALIZED', note: 'QMP is measured. Eligible cash remains locked until verified funded finalization.', kind: 'neutral' as const };
+  const qmpCount = (value: unknown) =>
+    typeof value === 'number' && Number.isFinite(value) && value >= 0
+      ? value.toLocaleString('en-PH') : '—';
 
   return (
     <AdminGate>
@@ -424,56 +412,51 @@ export default function AdminReportsCenterScreen() {
             </View>
           </View>
 
-          {economyError && !economy ? (
+          {loading ? (
+            <View style={styles.loadingCard}>
+              <ActivityIndicator color={colors.greenDark} />
+              <Text style={shared.muted}>Loading source-consistent Finance V3, QMP and AdMob report...</Text>
+            </View>
+          ) : economyError || !economy ? (
             <View style={styles.loadingCard}>
               <Text style={styles.errorTitle}>Economy snapshot unavailable</Text>
-              <Text style={shared.muted}>{economyError}</Text>
+              <Text style={shared.muted}>{economyError || 'No canonical report.'}</Text>
               <Pressable onPress={() => void load()} style={styles.retryButton}>
                 <Text style={styles.retryText}>TRY AGAIN</Text>
               </Pressable>
             </View>
           ) : (
             <>
+              <Text style={shared.muted}>
+                Source: Finance V3 · Manila month {economy.period_key} · Synchronized {new Date(economy.generated_at).toLocaleString('en-PH')}.
+                Missing settlement means not finalized, not zero revenue.
+              </Text>
               <View style={styles.grid}>
-                <Metric label="Reconciled Revenue" value={formatPhp(revenue?.actual_reconciled_revenue)} />
-                <Metric label="Reconciled Costs" value={formatPhp(revenue?.actual_reconciled_costs)} />
-                <Metric label="Distributable Base" value={formatPhp(revenue?.distributable_base)} />
-                <Metric label="Bayanihan Pool" value={formatPhp(revenue?.bayanihan_pool)} />
-                <Metric label="Referral Pool" value={formatPhp(revenue?.referral_pool)} />
-                <Metric label="Finalized Share Records" value={shareCount.toLocaleString('en-PH')} />
-                <Metric label="Qualified BCU" value={qualifiedBcu == null ? '—' : asMoney(qualifiedBcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })} />
-                <Metric label="Qualified RCU" value={qualifiedRcu == null ? '—' : asMoney(qualifiedRcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })} />
-                <Metric label="Financial Entry Groups" value={entryGroups.toLocaleString('en-PH')} />
-                <Metric label="Bayanihan Distributed" value={formatPhp(economy?.distributed?.bayanihan)} />
-                <Metric label="Referral Distributed" value={formatPhp(economy?.distributed?.direct_referral)} />
-                <Metric label="Available Cash" value={formatPhp(economy?.cash_ledger?.available)} />
-                <Metric label="Reserved Cash" value={formatPhp(economy?.cash_ledger?.reserved)} />
-                <Metric label="Paid Earnings" value={formatPhp(economy?.cash_ledger?.paid)} />
+                <Metric label="Actual eligible revenue" value={financeMoney(settlement?.normal_eligible_revenue_php)} />
+                <Metric label="Finalized 30% user pool" value={financeMoney(settlement?.user_pool_php)} />
+                <Metric label="Distributed user pool" value={financeMoney(settlement?.user_pool_distributed_php)} />
+                <Metric label="First-line share" value={financeMoney(settlement?.first_line_php)} />
+                <Metric label="Cluster / Organization Fund" value={financeMoney(settlement?.community_fund_php)} />
+                <Metric label="BUKLOD retained" value={financeMoney(settlement?.buklod_retained_php)} />
+                <Metric label="Operating costs" value={financeMoney(settlement?.operating_cost_php)} />
+                <Metric label="Tax reserve" value={financeMoney(settlement?.tax_reserve_php)} />
+                <Metric label="Final net" value={financeMoney(settlement?.estimated_final_net_php)} />
+                <Metric label="Monthly qualified QMP" value={qmp?.period_exists ? qmpCount(qmp.qualified_monthly_qmp) : '—'} />
+                <Metric label="Qualified contributors" value={qmp?.period_exists ? qmpCount(qmp.qualified_users) : '—'} />
+                <Metric label="Unlinked Finance identities" value={qmp?.period_exists ? qmpCount(qmp.unlinked_finance_identities) : '—'} />
+                <Metric label="Finalized user shares" value={finalized ? qmpCount(finance?.user_shares.length) : '—'} />
+                <Metric label="Provisional AdMob, not cash" value={provisional ? formatMinorPhp(provisional.amount_minor) : 'No report'} />
               </View>
-
-              <View style={styles.twoColumn}>
-                <View style={styles.tableCard}>
-                  <Text style={styles.tableTitle}>App-sharing / referral states</Text>
-                  <StatusRows
-                    rows={economy?.referral_states ?? {}}
-                    empty="No referral-state activity yet."
-                  />
-                </View>
-
-                <View style={styles.tableCard}>
-                  <Text style={styles.tableTitle}>Withdrawal states</Text>
-                  <StatusRows
-                    rows={economy?.withdrawals ?? {}}
-                    empty="No withdrawal activity yet."
-                  />
-                </View>
-              </View>
+              <Text style={shared.muted}>
+                Retired R38 BCU/RCU balances and legacy Community P&L are not included in this financial report.
+                Preliminary AdMob estimates never create payout balances.
+              </Text>
 
               <View style={styles.quickLinks}>
                 <ReportRow
                   icon="finance"
-                  title="Full Economy, Bayanihan & User Shares"
-                  subtitle="Funded pools, BCU/RCU, finalized per-user shares, referral states and withdrawals"
+                  title="Canonical Finance, QMP & User Shares"
+                  subtitle="Source-consistent monthly QMP, eligible funded revenue and finalized allocations"
                   path="/admin/bayanihan"
                 />
                 <ReportRow
