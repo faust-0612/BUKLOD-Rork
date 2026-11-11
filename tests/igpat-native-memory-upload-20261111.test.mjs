@@ -11,7 +11,7 @@ test('IGPAT native releases hidden feed players and does not preload hidden Reel
   assert.match(feed, /const active=screenFocused && index===activeIndex/);
   assert.match(feed, /\{screenFocused \? \(\s*<BuklodReelsInlineAd/);
   assert.match(feed, /screenFocused && !!item\.media_url && \(index === activeIndex \|\| index === nextPlayableIndex\)/);
-  assert.match(feed, /<IgpatVideo uri=\{item\.media_url\} active=\{index === activeIndex\}/);
+  assert.match(feed, /<IgpatVideo\s+uri=\{item\.media_url\}\s+active=\{index === activeIndex\}/);
 });
 
 test('IGPAT creator stops decoding its preview during heavy uploads', () => {

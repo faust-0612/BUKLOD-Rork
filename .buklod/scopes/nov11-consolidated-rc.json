@@ -96,7 +96,8 @@
     "tests/kingdom-premium-realm-v2-20261111.test.mjs",
     "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
     ".github/workflows/engineering-accountability.yml",
-    ".github/workflows/unified_rc_compiled_qa_20261108.yml"
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "scripts/engineering-regression-gate.mjs"
   ],
   "regressionTests": [
     "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql",
