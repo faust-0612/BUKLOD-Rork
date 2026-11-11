@@ -144,6 +144,7 @@ async function getSecurePttAccess(
     !data?.token ||
     !data?.api_key ||
     !data?.user_id ||
+    data.user_id !== session.user.id ||
     data.call_type !== 'buklod_ptt' ||
     !data?.call_id ||
     data.scope?.id !== scope.id ||
