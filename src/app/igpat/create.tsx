@@ -9,7 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { supabase } from '@/lib/supabase';
@@ -80,7 +80,12 @@ function Preview({ uri }: { uri: string }) {
   );
 }
 
-export default function IgpatCreateScreen() {
+/** Retired route. Keep the old implementation inert for rollback/history. */
+export default function RetiredIgpatRoute() {
+  return <Redirect href="/buklod" />;
+}
+
+function IgpatCreateScreen() {
   const { user, profile } = useAuth();
   const [draft, setDraft] = useState<IgpatDraft | null>(null);
   const [caption, setCaption] = useState('');

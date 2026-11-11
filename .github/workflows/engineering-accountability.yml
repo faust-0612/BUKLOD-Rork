@@ -40,7 +40,7 @@ jobs:
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-postprod-single-rc.json" >> "$GITHUB_ENV"
                 echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
               fi;;
-            integration/buklod-nov11-complete-source-hold-20261111|integration/buklod-nov11-reconciled-ota-candidate)
+            integration/buklod-nov11-complete-source-hold-20261111)
               # This exact DEV source may be compiled against its ancestral
               # postprod branch while its production-main merge is blocked.
               # All accountability checks still compare against current main.
@@ -48,6 +48,12 @@ jobs:
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-complete-source-hold.json" >> "$GITHUB_ENV"
                 echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
                 echo "BUKLOD_BASE_REF=main" >> "$GITHUB_ENV"
+              fi;;
+            integration/buklod-nov11-reconciled-ota-candidate)
+              # This RC is a current-main forward-port of the isolated retirement PR.
+              # Use its own exact 21-path manifest, not the obsolete Nov11 source-hold manifest.
+              if [ "$PR_BASE" = "main" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/retire-igpat-20261111.json" >> "$GITHUB_ENV"
               fi;;
             integration/buklod-nov09-bible-v4-rank-ptt-ota-rc)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/bible-v4-events-kingdom-20261109.json" >> "$GITHUB_ENV";;

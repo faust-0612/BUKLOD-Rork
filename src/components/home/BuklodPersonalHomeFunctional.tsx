@@ -154,9 +154,9 @@ export default function BuklodPersonalHomeFunctional() {
         </View>
 
         <View style={styles.row}>
-          <Room title="Relax & Enjoy" subtitle="Community · IGPAT" icon="television" palette={palette}>
-            <View style={styles.inlineButtons}><Action label="COMMUNITY WALL" icon="account-multiple-outline" onPress={() => openRoute('/(tabs)/buklod')} styles={styles} /><Action label="BUKLOD IGPAT" icon="play-box-multiple-outline" onPress={() => openRoute('/igpat')} styles={styles} /></View>
-            <Action label="MUSIC / MEDIA" icon="music-note" onPress={() => openRoute('/igpat')} styles={styles} />
+          <Room title="Relax & Enjoy" subtitle="Community · media" icon="television" palette={palette}>
+            <View style={styles.inlineButtons}><Action label="COMMUNITY WALL" icon="account-multiple-outline" onPress={() => openRoute('/(tabs)/buklod')} styles={styles} /></View>
+            <Action label="MUSIC / MEDIA" icon="music-note" onPress={() => openRoute('/personal-home/media')} styles={styles} />
           </Room>
           <Room title="My Drawer" subtitle="Bills · dates · notes" icon="archive-outline" palette={palette}>
             <View style={styles.drawerTop}><TextInput value={draft} onChangeText={setDraft} onSubmitEditing={addNote} placeholder="Add note" placeholderTextColor={palette.muted} style={styles.input} /><Pressable onPress={addNote} style={styles.add}><MaterialCommunityIcons name="plus" size={18} color="#fff" /></Pressable></View>

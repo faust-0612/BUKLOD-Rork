@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/retire-igpat-20261111.json",
+  "objective": "Retire IGPAT across Android/Web and existing older clients, preserve historical media and all non-IGPAT Community/Marites functionality.",
+  "baseRef": "c5d20bfe7cfd8402f21ea2faaa4caa763893a815",
+  "productionBaselineEvidence": "Verified GitHub main c5d20bfe7cfd8402f21ea2faaa4caa763893a815 (after Marites signed-photo hotfix) was the exact canonical source fast-forwarded to consolidated RC before merging PR #720; live Supabase retirement migration 20261111151816 applied and eight RPCs denied, six historical posts preserved. Android/Web export and production OTA remain unverified until new exact-head CI and production workflows succeed.",
+  "chosenApproach": "Redirect all IGPAT watch/create/reels/deep links to Community Wall, hide public entry points, deactivate legacy preview mounts without deleting their code, and apply a reversible server-side INSERT/reclassification trigger plus revoke authenticated reel RPC rights. Retain existing IGPAT rows, media paths, interactions and unrelated post/Marites video flows. Release reconciliation: fast-forward existing ancestor-only consolidated candidate to current Main; merge scoped PR #720 into that candidate; compile exact candidate, then promote only after QA.",
+  "selectionRationale": "Leaving only the button hidden would let old clients continue writing. Dropping tables or deleting old reels risks losing data. Inert client routes plus server enforcement is safely reversible without introducing native modules.",
+  "alternativeApproaches": [
+    "Hide IGPAT shortcut only: rejected; older binaries, deep links, and versioned publish RPCs remain active",
+    "Delete all reel rows and functions: rejected; destructive to users and migration dependencies",
+    "Dedicated route retirement and non-destructive server-side privilege/trigger block: selected"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "auth-privacy",
+    "ads-monetization",
+    "release-identity"
+  ],
+  "acceptanceChecks": [
+    "Wall and Personal Home contain no active IGPAT shortcut; Community and DZAS remain",
+    "Native and web IGPAT index/create, legacy /reels and /igpat/:id resolve to Community",
+    "Home and Community inline IGPAT preview default exports return null before legacy code mounts",
+    "Authenticated/anon cannot call old IGPAT publish/read RPC versions",
+    "Live DB trigger rejects INSERT(is_reel=true) and normal-to-reel conversion; accepts normal post inserts",
+    "All six legacy IGPAT rows remain; no media deletion or retroactive points/payout mutation",
+    "Node/TypeScript and CI tests run against exact branch; no promotion without verified RC and release checks",
+    "Exact-head Android/Web compile-only QA required on the consolidated candidate after production baseline reconciliation."
+  ],
+  "preserveBehaviors": [
+    "All Community Wall normal text/photos and native Wall videos, plus Marites short videos and music",
+    "Wall, Home, Profile, Connect, Cluster, Kingdom/Map, ads/QMP/Finance and accessibility",
+    "Historical IGPAT media paths and associated reactions/comments, readable via existing authorized archival/post paths",
+    "Original inactive implementation preserved for rollback; no AWS dependency, new native module or binary change",
+    "Existing production OTA remains unchanged unless an independently verified release is explicitly promoted"
+  ],
+  "regressionTests": [
+    "supabase/tests/igpat_retirement_20261111.sql",
+    "tests/buklod-nov11-complete-source-contract.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs",
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/igpat-retirement-20261111.test.mjs",
+    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/retire-igpat-20261111.json",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "src/app/igpat/[id].tsx",
+    "src/app/igpat/create.tsx",
+    "src/app/igpat/create.web.tsx",
+    "src/app/igpat/index.tsx",
+    "src/app/igpat/index.web.tsx",
+    "src/app/personal-home/media.tsx",
+    "src/app/reels/index.tsx",
+    "src/components/BuklodCommunityIgpatPreview.android.tsx",
+    "src/components/BuklodCommunityIgpatPreview.web.tsx",
+    "src/components/BuklodHomeReelsExtension.tsx",
+    "src/components/BuklodWallQuickLinks.tsx",
+    "src/components/home/BuklodPersonalHomeFunctional.tsx",
+    "src/components/home/BuklodSpatialHomeV2.tsx",
+    "supabase/migrations/20261111151816_retire_igpat_preserve_history_v1.sql",
+    "supabase/tests/igpat_retirement_20261111.sql",
+    "tests/buklod-nov11-complete-source-contract.test.mjs",
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs",
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/igpat-retirement-20261111.test.mjs",
+    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs"
+  ],
+  "releaseStatus": "DEV only for Expo/Android source; live Supabase retirement migration active; no consolidated OTA or web production published by this scope."
+}

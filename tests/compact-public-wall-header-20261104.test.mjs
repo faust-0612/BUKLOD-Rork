@@ -18,7 +18,7 @@ test('public Wall controls stay compact and accessible after extraction', () => 
   assert.match(wall, /<BuklodWallQuickLinks/);
   assert.match(shortcuts, /Open My Bible/);
   assert.match(shortcuts, /Open 702 DZAS Radio/);
-  assert.match(shortcuts, /Open BUKLOD IGPAT videos/);
+  assert.doesNotMatch(shortcuts, /Open BUKLOD IGPAT videos/);
   assert.match(shortcuts, /onCommunityPress/);
   assert.match(shortcuts, /minHeight:42/);
   assert.match(wall, /BuklodCommunityWallProfileBubbles/);

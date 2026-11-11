@@ -25,12 +25,7 @@ export default function BuklodWallQuickLinks({onCommunityPress}:{onCommunityPres
       <MaterialCommunityIcons name="account-group" size={16} color="#FFFFFF"/>
       <Text numberOfLines={1} style={{fontSize:10,fontWeight:'900',color:'#FFFFFF'}}>COMMUNITY</Text>
     </Pressable>
-    <Pressable accessibilityRole="button" accessibilityLabel="Open BUKLOD IGPAT videos"
-      onPress={()=>router.push('/igpat' as any)} hitSlop={4}
-      style={({pressed})=>[base,outline,{flex:0.95,minWidth:0,paddingHorizontal:4},pressed&&{opacity:0.72}]}>
-      <MaterialCommunityIcons name="play-circle-outline" size={18} color={colors.greenDark}/>
-      <Text numberOfLines={1} style={{fontSize:10,fontWeight:'900',color:colors.greenDark}}>IGPAT</Text>
-    </Pressable>
+
     <Pressable accessibilityRole="button" accessibilityLabel="Open 702 DZAS Radio"
       onPress={()=>router.push('/personal-home/radio' as any)} hitSlop={4}
       style={({pressed})=>[base,outline,{width:65,paddingHorizontal:4},pressed&&{opacity:0.72}]}>

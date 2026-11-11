@@ -1369,7 +1369,7 @@ export default function BuklodSpatialHomeV2() {
               <MaterialCommunityIcons name="television" size={18} color={palette.primary} />
               <View>
                 <Text style={styles.roomTitle}>Relax & Enjoy</Text>
-                <Text style={styles.roomSub}>TV · IGPAT · media</Text>
+                <Text style={styles.roomSub}>TV · radio · media</Text>
               </View>
             </View>
             <View style={styles.floor} />
@@ -1385,17 +1385,6 @@ export default function BuklodSpatialHomeV2() {
                     color={palette.primary}
                   />
                   <Text style={styles.objectLabel}>Community Wall</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => router.push('/igpat' as any)}
-                  style={styles.tvChannel}
-                >
-                  <MaterialCommunityIcons
-                    name="play-box-multiple-outline"
-                    size={compact ? 25 : 31}
-                    color={palette.secondary}
-                  />
-                  <Text style={styles.objectLabel}>BUKLOD IGPAT</Text>
                 </Pressable>
               </View>
             </View>

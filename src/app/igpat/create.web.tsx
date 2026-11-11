@@ -9,7 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -213,7 +213,12 @@ async function uploadWebIgpatDirect({
   onProgress(1);
 }
 
-export default function IgpatCreateWebScreen() {
+/** Retired route. Keep the old implementation inert for rollback/history. */
+export default function RetiredIgpatRoute() {
+  return <Redirect href="/buklod" />;
+}
+
+function IgpatCreateWebScreen() {
   const params = useLocalSearchParams<{
     relayParentPostId?: string | string[];
     relayPrompt?: string | string[];
