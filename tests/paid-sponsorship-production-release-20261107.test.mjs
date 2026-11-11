@@ -29,8 +29,10 @@ test('one exact sponsorship marker dispatches unchanged Android and web producti
  assert.match(workflow,/for entry in "\$\{targets\[@\]\}"; do/);
  assert.match(workflow,/\$api\/actions\/workflows\/\$workflow\/dispatches/);
  assert.match(workflow,/if \[ "\$code" != 204 \]/);
- assert.match(android,/workflow_dispatch:/);
- assert.match(web,/workflow_dispatch:/);
+ assert.doesNotMatch(android,/^  workflow_dispatch:/m);
+ assert.doesNotMatch(web,/^  workflow_dispatch:/m);
+ assert.match(android,/BUKLOD_CONSOLIDATED_PROD_20261108/);
+ assert.match(web,/BUKLOD_CONSOLIDATED_PROD_20261108/);
  assert.match(android,/node scripts\/android-ota-rc\.cjs baseline/);
  assert.match(android,/node scripts\/android-ota-rc\.cjs published/);
  assert.match(web,/sha256sum -c web-rc-sha256\.txt/);
