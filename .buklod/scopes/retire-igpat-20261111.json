@@ -2,9 +2,9 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/retire-igpat-20261111.json",
   "objective": "Retire IGPAT across Android/Web and existing older clients, preserve historical media and all non-IGPAT Community/Marites functionality.",
-  "baseRef": "59e4c1dff5200eec72a37ec065ecacbc23f0fe99",
-  "productionBaselineEvidence": "GitHub main read and verified at 59e4c1dff5200eec72a37ec065ecacbc23f0fe99. Live BUKLOD Connect SQL migration 20261111151816 retire_igpat_preserve_history_v1 applied and inspected: eight retired RPCs no anonymous/authenticated EXECUTE, insert/update trigger enabled, 6 historical posts unchanged (5 visible). No exact OTA/artifact/device production verification; UI changes remain on DEV branch only.",
-  "chosenApproach": "Redirect all IGPAT watch/create/reels/deep links to Community Wall, hide public entry points, deactivate legacy preview mounts without deleting their code, and apply a reversible server-side INSERT/reclassification trigger plus revoke authenticated reel RPC rights. Retain existing IGPAT rows, media paths, interactions and unrelated post/Marites video flows.",
+  "baseRef": "c5d20bfe7cfd8402f21ea2faaa4caa763893a815",
+  "productionBaselineEvidence": "Verified GitHub main c5d20bfe7cfd8402f21ea2faaa4caa763893a815 (after Marites signed-photo hotfix) was the exact canonical source fast-forwarded to consolidated RC before merging PR #720; live Supabase retirement migration 20261111151816 applied and eight RPCs denied, six historical posts preserved. Android/Web export and production OTA remain unverified until new exact-head CI and production workflows succeed.",
+  "chosenApproach": "Redirect all IGPAT watch/create/reels/deep links to Community Wall, hide public entry points, deactivate legacy preview mounts without deleting their code, and apply a reversible server-side INSERT/reclassification trigger plus revoke authenticated reel RPC rights. Retain existing IGPAT rows, media paths, interactions and unrelated post/Marites video flows. Release reconciliation: fast-forward existing ancestor-only consolidated candidate to current Main; merge scoped PR #720 into that candidate; compile exact candidate, then promote only after QA.",
   "selectionRationale": "Leaving only the button hidden would let old clients continue writing. Dropping tables or deleting old reels risks losing data. Inert client routes plus server enforcement is safely reversible without introducing native modules.",
   "alternativeApproaches": [
     "Hide IGPAT shortcut only: rejected; older binaries, deep links, and versioned publish RPCs remain active",
@@ -25,7 +25,8 @@
     "Authenticated/anon cannot call old IGPAT publish/read RPC versions",
     "Live DB trigger rejects INSERT(is_reel=true) and normal-to-reel conversion; accepts normal post inserts",
     "All six legacy IGPAT rows remain; no media deletion or retroactive points/payout mutation",
-    "Node/TypeScript and CI tests run against exact branch; no promotion without verified RC and release checks"
+    "Node/TypeScript and CI tests run against exact branch; no promotion without verified RC and release checks",
+    "Exact-head Android/Web compile-only QA required on the consolidated candidate after production baseline reconciliation."
   ],
   "preserveBehaviors": [
     "All Community Wall normal text/photos and native Wall videos, plus Marites short videos and music",
@@ -35,15 +36,17 @@
     "Existing production OTA remains unchanged unless an independently verified release is explicitly promoted"
   ],
   "regressionTests": [
+    "supabase/tests/igpat_retirement_20261111.sql",
     "tests/buklod-nov11-complete-source-contract.test.mjs",
     "tests/buklod-shared-dashboard-scroll-20261111.test.mjs",
     "tests/compact-public-wall-header-20261104.test.mjs",
     "tests/igpat-retirement-20261111.test.mjs",
-    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
-    "supabase/tests/igpat_retirement_20261111.sql"
+    "tests/igpat-wall-navigation-weak-network-20261111.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/retire-igpat-20261111.json",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
     "src/app/igpat/[id].tsx",
     "src/app/igpat/create.tsx",
     "src/app/igpat/create.web.tsx",
