@@ -333,5 +333,20 @@
     "sourceCI": "PASS",
     "compiledRc": "PENDING",
     "ota": "HOLD"
+  },
+  "maritesMusicIntegration": {
+    "scope": ".buklod/scopes/marites-fullview-music-20261111.json",
+    "sourcePr": 707,
+    "sourceHead": "72369290d93884b224914f18b85e9905292c00c3",
+    "tests": "tests/marites-fullview-music-contract.test.mjs",
+    "sourceParity": "Marites board and lib blob SHAs matched main before copying; full source and test included byte-identical to isolated tested PR #707",
+    "qa": {
+      "isolatedEngineering": "PASS",
+      "isolatedTypeScriptPerformance": "PASS",
+      "isolatedWebCompatibility": "PASS",
+      "fullConsolidatedRc": "PENDING_EXACT_HEAD",
+      "production": "HOLD_NO_PUBLISH"
+    },
+    "backend": "Existing BUKLOD Music library, buklod_post_creatives and signed URLs; no new migration or native package"
   }
 }
