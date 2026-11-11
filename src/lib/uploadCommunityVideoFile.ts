@@ -1,5 +1,6 @@
 /* BUKLOD_COMMUNITY_WEB_UPLOAD_R2 */
-/* BUKLOD_AWS_WALL_VIDEO_ROUTE_R1 */
+/* BUKLOD_AWS_WALL_VIDEO_ROUTE_R1 (legacy reads only; new writes retired) */
+/* BUKLOD_SUPABASE_ONLY_VIDEO_UPLOAD_R1 */
 import * as FileSystem from 'expo-file-system/legacy';
 import { Image as ReactNativeImage, Platform } from 'react-native';
 import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
@@ -25,11 +26,6 @@ import {
   toDirectStorageUrl,
   uploadCommunityFileResumableTus,
 } from '@/lib/uploadCommunityResumableTus';
-import {
-  registerPendingAwsWallVideo,
-  shouldUseAwsWallVideo,
-  uploadAwsWallVideo,
-} from '@/lib/buklodAwsWallVideo';
 
 export type CommunityVideoUploadProgress = {
   sentBytes: number;
@@ -91,11 +87,9 @@ function throwClassifiedUploadError({
 }
 
 /*
- * Wall videos above 45 MiB are stored in private AWS S3 so the Supabase Free
- * 50 MB global object ceiling is never hit. This is pure JS/TS and keeps the
- * existing installed native runtime/APK.
- *
- * Smaller videos stay on Supabase to avoid unnecessary cross-provider traffic.
+ * All new IGPAT and Community videos use private Supabase Storage.
+ * Native small files stream via signed PUT; large files use bounded 6 MiB TUS
+ * chunks with offset recovery. Historical external objects remain read-only.
  */
 export async function uploadCommunityVideoFile({
   path,
@@ -158,19 +152,12 @@ export async function uploadCommunityVideoFile({
     sizeBytes = await readBinarySizeBytes(uri);
   }
 
-  if (sizeBytes > 0 && sizeBytes > BUKLOD_VIDEO_MAX_SIZE_BYTES) {
-    throw new Error(communityVideoTooLargeMessage(sizeBytes));
+  if (!sizeBytes) {
+    // Do not accidentally fall back to an unbounded upload for unknown sizes.
+    throw new Error('Could not determine this video file size. Please reselect the video and try again.');
   }
-
-  if (sizeBytes > 0 && shouldUseAwsWallVideo(sizeBytes)) {
-    const objectKey = await uploadAwsWallVideo({
-      uri,
-      contentType,
-      sizeBytes,
-      onProgress,
-    });
-    registerPendingAwsWallVideo(path, objectKey);
-    return await uploadPreview();
+  if (sizeBytes > BUKLOD_VIDEO_MAX_SIZE_BYTES) {
+    throw new Error(communityVideoTooLargeMessage(sizeBytes));
   }
 
   await uploadCommunityBinaryFile({

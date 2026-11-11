@@ -28,6 +28,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useAuth } from '@/providers/AuthProvider';
+import { useScreenFocused } from '@/hooks/useScreenFocused';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
@@ -281,6 +282,7 @@ function ActionButton({
 
 export default function IgpatScreen() {
   const { user } = useAuth();
+  const screenFocused = useScreenFocused();
   const { status: networkStatus } = useNetwork();
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<IgpatRow[]>([]);
@@ -318,7 +320,7 @@ export default function IgpatScreen() {
   }, [rows]);
   useEffect(() => {
     const row=feedRows[activeIndex];
-    if(!isReelsFeedInlineAdRow(row))return;
+    if(!screenFocused || !isReelsFeedInlineAdRow(row))return;
     const status=reelsAdStates[row.id]??'loading';
     if(status==='ready')return;
     const timer=setTimeout(()=>{
@@ -334,7 +336,7 @@ export default function IgpatScreen() {
       }
     },status==='unavailable'?120:3000);
     return()=>clearTimeout(timer);
-  },[feedRows,activeIndex,reelsAdStates]);
+  },[feedRows,activeIndex,reelsAdStates,screenFocused]);
 
   useEffect(() => {
     let mounted = true;
@@ -753,7 +755,7 @@ export default function IgpatScreen() {
       <FlatList
         ref={reelsListRef}
         data={feedRows}
-        extraData={activeIndex}
+        extraData={`${activeIndex}:${screenFocused}`}
         key={`${feedMode}:${dataSaver ? 'saver' : 'normal'}`}
         keyExtractor={item => item.id}
         pagingEnabled
@@ -773,7 +775,7 @@ export default function IgpatScreen() {
         })}
         renderItem={({ item, index }) => {
           if (isReelsFeedInlineAdRow(item)) {
-            const active=index===activeIndex;
+            const active=screenFocused && index===activeIndex;
             const state=reelsAdStates[item.id]??'loading';
             return (
               <View style={[styles.page, { height: viewportHeight }]}>
@@ -783,15 +785,17 @@ export default function IgpatScreen() {
                     <Text style={styles.loadingTagline}>Preparing sponsored content…</Text>
                   </View>
                 ) : null}
-                <BuklodReelsInlineAd
-                  slotId={item.id}
-                  active={active}
-                  prepare={!weakSignal && index===activeIndex+1}
-                  onLoadStateChange={next=>{
-                    setReelsAdStates(current=>current[item.id]===next
-                      ? current:{...current,[item.id]:next});
-                  }}
-                />
+                {screenFocused ? (
+                  <BuklodReelsInlineAd
+                    slotId={item.id}
+                    active={active}
+                    prepare={!weakSignal && index===activeIndex+1}
+                    onLoadStateChange={next=>{
+                      setReelsAdStates(current=>current[item.id]===next
+                        ? current:{...current,[item.id]:next});
+                    }}
+                  />
+                ) : null}
               </View>
             );
           }
@@ -802,7 +806,7 @@ export default function IgpatScreen() {
 
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
-              {!!item.media_url && (index === activeIndex || index === nextPlayableIndex) ? (
+              {screenFocused && !!item.media_url && (index === activeIndex || index === nextPlayableIndex) ? (
                 <IgpatVideo
                   uri={item.media_url}
                   active={index === activeIndex}
