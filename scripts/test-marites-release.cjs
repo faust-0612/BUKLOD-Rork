@@ -87,8 +87,11 @@ assert.equal(model.mergeMaritesStories([story], [story]).length, 1);
     '@/lib/repairMojibakeText': {repairMojibakeText: value => value},
     '@/lib/uploadCommunityVideoFile': {uploadCommunityVideoFile: async () => {}},
     '@/lib/buklodCommunityPostMedia': {discardIncompleteCommunityPost: async () => {}},
-    '@/lib/supabase': {supabase: {rpc: async () => ({data: null,
-      error: {message: 'Could not find the function create_buklod_community_post_v3'}})}},
+    '@/lib/supabase': {supabase: {
+      auth: {getUser: async () => ({data: {user: {id: 'owner'}}, error: null})},
+      rpc: async () => ({data: null,
+        error: {message: 'Could not find the function create_buklod_community_post_v3'}}),
+    }},
   });
   const offline = await offlineModel.publishMaritesStory({userId: 'owner', authorName: 'Owner',
     body: '', photoUris: [], video: {uri: 'file:///picker/temporary.mp4', durationSeconds: 10, mimeType: 'video/mp4'}});
@@ -113,10 +116,13 @@ assert.equal(model.mergeMaritesStories([story], [story]).length, 1);
         'published-1': [{media_mime_type: 'video/mp4', media_url: publishedUrl}],
       }),
     },
-    '@/lib/supabase': {supabase: {rpc: async (_, args) => {
-      createArgs = args;
-      return {data: 'published-1', error: null};
-    }}},
+    '@/lib/supabase': {supabase: {
+      auth: {getUser: async () => ({data: {user: {id: 'owner'}}, error: null})},
+      rpc: async (_, args) => {
+        createArgs = args;
+        return {data: 'published-1', error: null};
+      },
+    }},
   });
   const published = await publishedModel.publishMaritesStory({userId: 'owner', authorName: 'Owner',
     body: '', photoUris: [], video: {uri: 'file:///picker/temporary.mp4', durationSeconds: 10, mimeType: 'video/mp4'}});
