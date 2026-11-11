@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Fix Marites compact preview photo failures: pass durable private Storage paths into signed-media cache and Full View with no changed permissions",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub source readback confirms production-main commit 59e4c1dff5200eec72a37ec065ecacbc23f0fe99 is this hotfix branch's exact parent; that commit is explicitly labeled production promotion and contains the unified five-feature source. GitHub evidence verifies ancestry and release metadata only—not installed OTA receipt, live production rendering, or new hotfix publication. Independent production artifact fingerprint required.",
+  "productionBaselineEvidence": "verified: GitHub production main f6c64f9ab8ced4f25f9dca156dae3eb312bb8c98 contains merged PR #719 photo preview code; exact RC 6dc1073bbcb7af947082a16caaf24e32e061bbd5 compiled Android + Web artifacts at runtime 1.3.2, source-equivalent app code. Previous main production job 43049620618 was SKIPPED because commit title did not carry required BUKLOD_CONSOLIDATED_PROD_20261108 prefix; this is an explicit guarded marker promotion, not a bypass. Actual OTA and Expo Hosting publication remain pending independent workflows.",
   "chosenApproach": "Keep photo URL and corresponding private media path aligned in all collage tiles and Full View. Existing bounded private signed-URL cache can re-sign after expiry without changing audience rules. Allow the already guarded Android/Web RC export job for the exact isolated hotfix branch, retaining every production credential, runtime and compiled artifact check.",
   "selectionRationale": "Marites collage discarded photo_paths; the shared image component cannot renew failed signed URLs without them. Fresh Full View sometimes reloaded the same stored image, matching screenshot.",
   "acceptanceChecks": [
@@ -12,7 +12,8 @@
     "Local story photos without storage paths continue rendering",
     "No ad, PTT, QMP, upload, Finance, or native changes",
     "Exact-source Node, TypeScript, Android and Web QA before promotion; no device success assertion",
-    "Compiled Android and Web RC workflows must run only on this exact named source with EAS production env identity, unchanged runtime, export fingerprints and no publish"
+    "Compiled Android and Web RC workflows must run only on this exact named source with EAS production env identity, unchanged runtime, export fingerprints and no publish",
+    "Production Android/Web publishers retain exact BUKLOD_CONSOLIDATED_PROD_20261108 prefix and github.sha checkout; no generic push-to-main bypass"
   ],
   "riskAreas": [
     "wall-media",
@@ -32,7 +33,7 @@
     ".github/workflows/unified_rc_compiled_qa_20261108.yml",
     "tests/marites-photo-preview-release-gate-20261111.test.mjs"
   ],
-  "releaseState": "DEV_HOLD_PENDING_COMPILED_RC_VERIFICATION",
+  "releaseState": "RELEASE_METADATA_AND_TESTS__GUARDED_PRODUCTION_MARKER_PENDING",
   "preserveBehaviors": [
     "Existing public and scoped story audience filtering, RLS and private signing: never turn media public",
     "Active Marites music stays Full View only; feed silent",
@@ -45,5 +46,15 @@
     "Use public permanent photo URLs (rejected: violates private media and audiences)",
     "Drop the existing cached image component (rejected: breaks recovery and offline behavior)",
     "Pass durable authorized paths into existing cache and reuse its bounded recovery (selected)"
-  ]
+  ],
+  "releasePromotion": {
+    "sourceMainBeforeMarker": "f6c64f9ab8ced4f25f9dca156dae3eb312bb8c98",
+    "sourceRC": "6dc1073bbcb7af947082a16caaf24e32e061bbd5",
+    "compiledRCRun": "43048881868",
+    "compileResult": "PASS",
+    "productionAndroidJobPrevious": "43049620618",
+    "previousJobResult": "SKIPPED",
+    "requiredReleasePrefix": "BUKLOD_CONSOLIDATED_PROD_20261108",
+    "actualProductionReceipt": "PENDING"
+  }
 }

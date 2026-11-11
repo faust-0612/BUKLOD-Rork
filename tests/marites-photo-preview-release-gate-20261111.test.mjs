@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const workflow = readFileSync('.github/workflows/unified_rc_compiled_qa_20261108.yml', 'utf8');
+const androidPublisher = readFileSync('.github/workflows/production_android_ota.yml', 'utf8');
+const webPublisher = readFileSync('.github/workflows/production_web_deploy.yml', 'utf8');
 
 test('named Marites hotfix may compile using guarded RC job only', () => {
   assert.ok(workflow.includes("github.head_ref == 'fix/marites-photo-preview-resign-20261111'"));
@@ -24,4 +26,13 @@ test('compiled release job preserves runtime/export and verified SHA checks', ()
 test('Marites photo test runs on this branch before artifact compilation', () => {
   assert.ok(workflow.indexOf('Marites signed-photo preview and release scope regression') < workflow.indexOf('Compile V28-compatible Android OTA bundle'));
   assert.ok(workflow.includes('tests/marites-photo-preview-resign-20261111.test.mjs'));
+});
+
+// The protected publishers intentionally skip commits that lack this marker.
+// Do not replace the gate with a generic push-to-main publication.
+test('Android and Web publishers require the exact approved release marker', () => {
+  assert.ok(androidPublisher.includes("startsWith(github.event.head_commit.message, 'BUKLOD_CONSOLIDATED_PROD_20261108')"));
+  assert.ok(webPublisher.includes("startsWith(github.event.head_commit.message, 'BUKLOD_CONSOLIDATED_PROD_20261108')"));
+  assert.ok(androidPublisher.includes('ref: ${{ github.sha }}'));
+  assert.ok(webPublisher.includes('ref: ${{ github.sha }}'));
 });
