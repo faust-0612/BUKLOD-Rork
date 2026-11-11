@@ -94,6 +94,7 @@ import { recordConfirmedCommunityComment, takePendingCommunityCommentAdBreak } f
 import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import BuklodWallQuickLinks from '@/components/BuklodWallQuickLinks';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
@@ -6786,6 +6787,16 @@ const communityFeedRows =
        </View>
       ):comments.length?(
       <BuklodCommunityCommentThread
+       inlineAd={Platform.OS === 'android' && !!commentPost && !commentPost.author_only && !commentLoadError ? (
+        <BuklodAdMobBanner
+         placement="community"
+         placementId="public_wall_comments_engagement_inline"
+         format="adaptive"
+         compact
+         requireViewport
+         showLabel
+        />
+       ) : undefined}
        comments={comments}
        currentUserId={user?.id}
        reactionOptions={
