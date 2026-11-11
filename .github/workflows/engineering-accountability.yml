@@ -44,7 +44,7 @@ jobs:
               # This exact DEV source may be compiled against its ancestral
               # postprod branch while its production-main merge is blocked.
               # All accountability checks still compare against current main.
-              if [ "$PR_BASE" = "main" ] || [ "$PR_BASE" = "integration/buklod-nov11-postprod-conso-ota" ]; then
+              if [ "$PR_BASE" = "main" ] || [ "$PR_BASE" = "integration/buklod-nov11-postprod-conso-ota" ] || [ "$PR_BASE" = "qa/buklod-nov11-source-compile-20261111" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-complete-source-hold.json" >> "$GITHUB_ENV"
                 echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
                 echo "BUKLOD_BASE_REF=main" >> "$GITHUB_ENV"
