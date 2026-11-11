@@ -12,7 +12,8 @@
     "header-hit-targets",
     "accessibility",
     "mobile-safe-area",
-    "production-release-gates"
+    "production-release-gates",
+    "faith-cluster"
   ],
   "preserveBehaviors": [
     "Original Bible, Community, IGPAT and 702 DZAS routes plus one-tap interaction",
@@ -34,7 +35,8 @@
     "tests/compact-public-wall-header-20261104.test.mjs",
     "tests/navigation-scroll-compact-public-wall.test.mjs",
     "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
-    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs",
+    "tests/buklod-scope-dashboard-scroll-20261111.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/shared-dashboard-header-scroll-20261111.json",
@@ -54,7 +56,8 @@
     "tests/compact-public-wall-header-20261104.test.mjs",
     "tests/navigation-scroll-compact-public-wall.test.mjs",
     "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
-    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs"
+    "tests/buklod-shared-dashboard-scroll-20261111.test.mjs",
+    "tests/buklod-scope-dashboard-scroll-20261111.test.mjs"
   ],
   "alternativeApproaches": [
     "Separate hardcoded screens per dashboard rejected for drift, duplication and scope regressions",
