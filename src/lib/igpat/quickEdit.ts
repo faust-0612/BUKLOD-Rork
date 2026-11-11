@@ -26,7 +26,7 @@ export const DEFAULT_IGPAT_QUICK_EDIT: IgpatQuickEditState = {
   speed: 1,
   muted: false,
   textOverlay: '',
-  contentFit: 'cover',
+  contentFit: 'contain',
   rotation: 0,
   coverSeconds: 0,
 };
@@ -73,11 +73,8 @@ export function suggestIgpatAutoImprove(
   const suggestedCover = Math.max(start, Math.min(end, midpoint));
   let next = normalized;
 
-  if (normalized.contentFit !== 'cover') {
-    next = { ...next, contentFit: 'cover' };
-    changes.push('Optimized preview framing for the vertical 9:16 feed.');
-  }
-
+  // Never silently zoom or crop the original video when improving a cover frame.
+  // A user may still explicitly select CROP TO FILL in the editor.
   if (Math.abs(normalized.coverSeconds - suggestedCover) > 0.11) {
     next = { ...next, coverSeconds: suggestedCover };
     changes.push('Suggested a cover frame near the middle of the selected clip.');
@@ -111,7 +108,7 @@ export function isDefaultIgpatQuickEdit(
     normalized.speed === 1 &&
     !normalized.muted &&
     !normalized.textOverlay.trim() &&
-    normalized.contentFit === 'cover' &&
+    normalized.contentFit === 'contain' &&
     normalized.rotation === 0 &&
     normalized.coverSeconds <= 0.001
   );
@@ -157,7 +154,7 @@ export function parseIgpatQuickEdit(
       speed,
       muted: Boolean(row.muted),
       textOverlay: String(row.text_overlay ?? '').slice(0, 160),
-      contentFit: row.content_fit === 'contain' ? 'contain' : 'cover',
+      contentFit: row.content_fit === 'cover' ? 'cover' : 'contain',
       rotation,
       coverSeconds: Number(row.cover_seconds ?? 0),
     },
