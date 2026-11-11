@@ -40,6 +40,15 @@ jobs:
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-postprod-single-rc.json" >> "$GITHUB_ENV"
                 echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
               fi;;
+            integration/buklod-nov11-complete-source-hold-20261111)
+              # This exact DEV source may be compiled against its ancestral
+              # postprod branch while its production-main merge is blocked.
+              # All accountability checks still compare against current main.
+              if [ "$PR_BASE" = "main" ] || [ "$PR_BASE" = "integration/buklod-nov11-postprod-conso-ota" ] || [ "$PR_BASE" = "qa/buklod-nov11-source-compile-20261111" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-complete-source-hold.json" >> "$GITHUB_ENV"
+                echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
+                echo "BUKLOD_BASE_REF=main" >> "$GITHUB_ENV"
+              fi;;
             integration/buklod-nov09-bible-v4-rank-ptt-ota-rc)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/bible-v4-events-kingdom-20261109.json" >> "$GITHUB_ENV";;
             fix/referral-economy-cors-20261109)
@@ -325,6 +334,12 @@ jobs:
       - name: Verify recovery button feedback contracts
         if: github.head_ref == 'fix/recovery-action-feedback-20261027'
         run: node --test tests/recovery-action-feedback.test.cjs
+
+      - name: Lock app-wide AdMob policy and release contract on every PR
+        run: |
+          node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+          node --test tests/buklod-ads-production-release-contract-20261111.test.mjs
+          node scripts/buklod-ad-surface-audit.mjs --summary
 
       - name: Verify approved pending client and rollback recovery
         # Execute on EVERY PR: catch stale Cluster/security anchors before
