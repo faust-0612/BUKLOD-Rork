@@ -2,11 +2,11 @@
   "contractVersion": 2,
   "releaseMode": "consolidated-main-rc",
   "scopeManifestPath": ".buklod/scopes/nov11-postprod-single-rc.json",
-  "objective": "Single BUKLOD Main post-production RC: Today Dugtong public/private 72h rotation and Kingdom cinematic audio stop-on-navigation-blur. Inherits already promoted PTT v2 source from main. Do not publish.",
+  "objective": "Single BUKLOD Main post-production RC: Today public/private Dugtong and 72h inactivity rotation, Kingdom cinematic audio blur/stop, and animated GIF attachments to Public/Cluster/Organization comments from Android gallery or share. Inherits already-promoted PTT v2 from production main. NO OTA PUBLISH.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: current GitHub main SHA 6d1a80e3d009aafcfd94444dc198cb8465e68c2f and tree 911d154f49f17d69a0fc648aa48834dc4156ab59 on 2026-11-11; PTT v2 already in main, not re-introduced.",
-  "chosenApproach": "Rebase isolated DEV source onto latest production main with only PR #667 Today and PR #668 Kingdom file blobs; preserve newly promoted PTT v2 and all production changes, run scoped release QA.",
-  "selectionRationale": "Live main advanced to incorporate PTT and its edge release. Exact main-derived source avoids duplicate PTT updates and a PR merge conflict; no new native package.",
+  "chosenApproach": "Rebase isolated DEV source onto latest production main with only PR #667 Today and PR #668 Kingdom file blobs; preserve newly promoted PTT v2 and all production changes, run scoped release QA. Reconcile merged isolated PR #671 GIF comment code with no source overlap, preserve private per-scope media, and compile one exact post-production RC containing all three workstreams.",
+  "selectionRationale": "Live main advanced to incorporate PTT and its edge release. Exact main-derived source avoids duplicate PTT updates and a PR merge conflict; no new native package. GIF intake is additive to existing public/scoped comment RPC and uses existing Expo picker and app cache; no new native module, runtime or database migration.",
   "alternativeApproaches": [
     "Merge old conflictful PR directly (rejected)",
     "Duplicate already promoted PTT changes in RC (rejected)",
@@ -14,7 +14,8 @@
   ],
   "componentScopePaths": [
     ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
-    ".buklod/scopes/kingdom-cinematic-audio-20261111.json"
+    ".buklod/scopes/kingdom-cinematic-audio-20261111.json",
+    ".buklod/scopes/android-phone-gif-comments-20261111.json"
   ],
   "acceptanceChecks": [
     "PTT v2 sources inherited unchanged from main and current JPEG hotfix preserved",
@@ -23,13 +24,19 @@
     "Today 72-hour activity/privacy and Dugtong SQL/RLS tests match previously deployed server migrations",
     "Node regression, TypeScript, Android/Expo Web export must run on exact new head before RC verified",
     "Premium fantasy map graphic remains unimplemented; do not claim complete visual update",
-    "No merge to main, Android OTA, Web publish, Play/AAB or database/Edge deployment from this branch"
+    "No merge to main, Android OTA, Web publish, Play/AAB or database/Edge deployment from this branch",
+    "GIF comments from Android gallery / external share retain image/gif animation; target post selected explicitly and no automatic Wall root post",
+    "Public and scoped GIF comment private media signing, 25 MB bound, draft retry, scope ownership isolation and temporary file cleanup preserved",
+    "Exact-source GitHub engineering gate, TypeScript, Android and web export, and focused GIF regression tests PASS before release-eligible status",
+    "2026-11-11 owner explicitly waives physical Android device verification only; all automated and production release gates remain required"
   ],
   "preserveBehaviors": [
     "Previous production PTT 2.0, video/audio mixing and caption Edge v2",
     "Photo upload fast lane, all existing Home/Wall/Connect features",
     "Auth, finance, Shards, BP and RLS protection",
-    "Main runtime 1.3.2 and no native package changes"
+    "Main runtime 1.3.2 and no native package changes",
+    "Community root-post GIF restriction is unchanged; public/scoped comment RPC, reactions, replies and drafts remain unchanged",
+    "External Android text/photo/video share routes remain unchanged"
   ],
   "riskAreas": [
     "wall-media",
@@ -45,7 +52,9 @@
     "supabase/tests/buklod_today_privacy_idle_v2.sql",
     "tests/buklod-home-profile-support-20261108.test.mjs",
     "tests/engineering-regression-gate.test.mjs",
-    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs",
+    "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs",
+    "tests/buklod-phone-gif-comment-share-20261111.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
@@ -65,7 +74,17 @@
     "supabase/tests/buklod_today_privacy_idle_v2.sql",
     "tests/buklod-home-profile-support-20261108.test.mjs",
     "tests/engineering-regression-gate.test.mjs",
-    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs",
+    ".buklod/scopes/android-phone-gif-comments-20261111.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/lib/buklodCommentGifShare.ts",
+    "src/lib/buklodPickCommunityPhotos.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs",
+    "tests/buklod-phone-gif-comment-share-20261111.test.mjs"
   ],
   "sourceIntake": [
     {
@@ -75,6 +94,11 @@
     {
       "pr": 668,
       "sha": "41ce980e316eaf714f7f33d0a58fceda2664ea75"
+    },
+    {
+      "pr": 671,
+      "sha": "f656fbb23a35e15768e79d36bcc1688748b19168",
+      "squashCommit": "cc811bae83efb339346a3d30abc1f24cdff2c1be"
     }
   ],
   "inheritedProduction": {
@@ -82,5 +106,8 @@
     "pttPr": 669,
     "pttSource": "255af9baabd8bd375f6ec971097380de964b76cd"
   },
-  "releaseState": "DEV_RC_COMPILE_PENDING_NO_OTA"
+  "releaseState": "DEV_RC_COMPILE_PENDING_NO_OTA",
+  "verificationWaivers": [
+    "Owner waived hands-on Android/device GIF comment validation on 2026-11-11; this waiver does not cover TypeScript, automated regressions, RC Android/web compilation, security/RLS nor exact OTA artifact verification."
+  ]
 }
