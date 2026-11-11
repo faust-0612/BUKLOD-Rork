@@ -36,3 +36,6 @@ Consolidate any still-open PR candidates with the actual current main, run sourc
 
 ## Compiled RC gate
 - Authorized the exact final DEV ads branch in existing Unified RC Android/Web Compile QA allowlist. This only compiles and verifies, it does not publish Expo OTA, deploy web or update Play Store. The branch remains DEV/hold until the compiled artifacts and other consolidated workstreams are reconciled and verified.
+
+## Final sensitive-route closure
+- Explicit full-screen interdictions added for legacy Connect deep links, MZB Connect, attendance QR and school attendance, Organization subscription/administrative screens, scope fund and GCash settings, Feedback, support, reports and organizer office. This preserves in-feed/dashboard inventory while preventing generic late interstitials in money, private conversation or identity flows.

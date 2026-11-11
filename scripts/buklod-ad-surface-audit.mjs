@@ -12,11 +12,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = path.join(root, 'src', 'app');
 const safePath = value => value.replaceAll(path.sep, '/');
 
-const RESTRICTED = /(^|\/)(?:\(auth\)|auth|account|admin|system|bsoc|onboarding|moderation|privacy|policy|delete-account|support|help|settings)(\/|$)|(^|\/)(?:[+]not-found|[+]native-intent)/i;
+const RESTRICTED = /(^|\/)(?:\(auth\)|auth|account|admin|system|bsoc|onboarding|moderation|privacy|policy|delete-account|support|help|settings|feedback|contact-us|reports|office)(\/|$)|(^|\/)(?:[+]not-found|[+]native-intent)/i;
 const CLINICAL = /(^|\/)(?:health|prayer|emergency|child-safety)(\/|$)|buklod-health|consultation/i;
 const SCHOOL = /(?:classroom|faculty|student|grade|assessment|quiz|quick-check|exam|attendance)/i;
-const FINANCE = /(?:bayanihan\/(?:payout|withdraw)|giving|payment|checkout|financial|bank|payout-profile)/i;
-const LIVE_CONVERSATION = /(?:connect\/(?:community|personal)|messages?\/\[|ptt|call|live-chat)/i;
+const FINANCE = /(?:bayanihan\/(?:payout|withdraw)|giving|scope-fund|payment|checkout|financial|bank|payout-profile)/i;
+const LIVE_CONVERSATION = /(?:connect\/(?:community|personal|\[id\])|messages?\/\[|ptt|call|live-chat)/i;
 const SENSITIVE_OPERATIONS = /^(?:(?:organizations|clusters)\/(?:admins|admin-module|manage|settings)|scope\/(?:attendance|faith-monitoring|manage)|(?:giving|bayanihan\/withdrawals|premium)(?:\/|$)|faith\/bible-quiz\.tsx$|prayer\/new\.tsx$)/i;
 const GAMEPLAY = /(^|\/)games\/[^/]+\.tsx$/i;
 

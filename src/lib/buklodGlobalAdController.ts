@@ -78,6 +78,22 @@ const SENSITIVE_PREFIXES = [
   '/clusters/settings',
   '/premium',
   '/mzb/admin',
+  '/account',
+  '/connect',
+  '/mzb/connect',
+  '/church/attendance',
+  '/profile/attendance-qr',
+  '/organizations/events-attendance',
+  '/organizations/subscription',
+  '/organizations/admins',
+  '/organizations/clusters-oversight',
+  '/clusters/admins',
+  '/scope-fund',
+  '/scope-giving-settings',
+  '/feedback',
+  '/contact-us',
+  '/reports',
+  '/office',
 ];
 
 let pathname = '/';

@@ -51,3 +51,10 @@ test('Entire app inventory classifies active personal chat and sensitive admin o
   }
   assert.equal(Object.values(result.summary.categoryCounts).reduce((a,b)=>a+b,0),result.summary.routeFiles);
 });
+
+test('Legacy Connect deep link is classified as live conversation (not generic ad inventory)',()=>{
+  const row=get('connect/[id].tsx');
+  assert.ok(row);
+  assert.equal(row.category,'live-conversation');
+  assert.equal(row.recommendation,'NO_GENERIC_INTERSTITIAL');
+});

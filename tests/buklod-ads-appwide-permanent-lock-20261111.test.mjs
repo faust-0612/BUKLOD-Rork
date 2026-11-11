@@ -184,3 +184,19 @@ test('Post detail has native-first sponsored break after media outside author-on
   assert.ok(detail.indexOf('community_post_detail_native') > detail.indexOf('<CommunityVideo'));
   assert.ok(detail.indexOf('community_post_detail_native') < detail.indexOf('COMMENTS ({comments.length})'));
 });
+
+test('Legacy Connect, funds, attendance and administrative deep links cannot trigger generic ads', () => {
+  const g = controller();
+  for(const route of [
+    '/connect', '/connect/legacy-thread', '/mzb/connect',
+    '/church/attendance/event-1','/profile/attendance-qr',
+    '/organizations/events-attendance','/organizations/subscription',
+    '/organizations/admins','/organizations/clusters-oversight',
+    '/clusters/admins','/scope-fund','/scope-giving-settings',
+    '/feedback','/contact-us','/reports','/office','/account/deactivate',
+  ]){
+    g.setBuklodAdRoute(route);
+    assert.equal(g.isBuklodAdRouteSensitive(),true,route);
+    assert.equal(g.canWarmBuklodFullScreenAd('interstitial_generic'),false,route);
+  }
+});
