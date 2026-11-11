@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Prevent Android IGPAT upload memory crashes AND ensure newly uploaded IGPAT/Community videos use Supabase Storage only, matching authoritative IGPAT publishing checks. Keep legacy external media readable without uploading new content there.",
-  "baseRef": "af121c188c307c7d6ea4cdb4e1310e900659bae1",
-  "productionBaselineEvidence": "Prior captured Android heap OOM at ~255/256 MB, full-file bytesSync upload OOM in R20; bounded uploader still present on current main; no current device crash log or production artifact fingerprint checked.",
+  "baseRef": "4dcc6a7544b8e0d616e0c503fce6247a59e57cd7",
+  "productionBaselineEvidence": "Prior captured Android heap OOM at ~255/256 MB, full-file bytesSync upload OOM in R20; bounded uploader still present on current main; no current device crash log or production artifact fingerprint checked. DEV branch was rebased onto latest GitHub main 4dcc6a7544b8e0d616e0c503fce6247a59e57cd7 after a concurrent unrelated ad/finance gate merge; only six scoped paths were carried forward, no production OTA fingerprint claimed.",
   "chosenApproach": "Pause/release off-focus IGPAT feed players and Reels ad views; unmount creator video preview during active upload; postpone ad warming until video transport is complete. Preserve existing server and transport logic. Also retire new AWS upload routing across shared IGPAT/Community video transport, route every newly selected video to Supabase signed PUT (<6MiB) or bounded TUS (>=6MiB), guard unknown sizes, and keep all historical AWS reads until safe object migration.",
   "riskAreas": [
     "android-media-memory",
