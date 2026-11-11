@@ -38,7 +38,8 @@
     "Photo comments SQL migration applied and audience/RLS verified before the new photo comments UI is live.",
     "KL question bank SQL/security tests, approved manuscript five-question generation, three-question server verification and idempotent BP rewards tested before client release.",
     "Legacy image media metadata backfill and one-per-viewer batched photo comment counters validated without touching physical media.",
-    "KL approval and release trigger functions must not grant EXECUTE to anon/authenticated; trigger attachments remain enabled."
+    "KL approval and release trigger functions must not grant EXECUTE to anon/authenticated; trigger attachments remain enabled.",
+    "Verified KL +10 chapter / +50 30-chapter season and gated qualified likes, comments, helper +2/+5/+10, three-person chain +3 BP, without duplicate QMP."
   ],
   "preserveBehaviors": [
     "Security and private access rules",
@@ -50,7 +51,8 @@
     "No active-game or payment-interrupting advertisements",
     "No paid Kingdom AI or external provider",
     "Existing photo reactions and post-wide comments are independent of per-photo comments.",
-    "No new paid OpenAI model for KL; existing Gemini service is optional and server-side, retry-only after failures."
+    "No new paid OpenAI model for KL; existing Gemini service is optional and server-side, retry-only after failures.",
+    "Existing merged RC media, ads, Kingdom and other experiences unchanged by reward-only integration; no OTA published before compiled artifact verification."
   ],
   "riskAreas": [
     "wall-media",
@@ -102,7 +104,11 @@
     "tests/kl-approved-auto-reading-quiz.test.mjs",
     "tests/kl-reader-ad-safe-completion.test.mjs",
     "tests/kl-web-release-admin-preflight-20261107.test.mjs",
-    "supabase/tests/kl_trigger_rpc_privilege_lock_v1.sql"
+    "supabase/tests/kl_trigger_rpc_privilege_lock_v1.sql",
+    "tests/kl-reading-quiz-r4-10-50.test.mjs",
+    "tests/buklod-mutual-engagement-r4.test.mjs",
+    "supabase/tests/kl_verified_reading_r4_10_50.sql",
+    "supabase/tests/buklod_mutual_engagement_r4.sql"
   ],
   "allowedPaths": [
     ".buklod/scopes/ads-high-traffic-max-safe-20261111.json",
@@ -243,9 +249,18 @@
     "tests/kl-reader-ad-safe-completion.test.mjs",
     "tests/kl-web-release-admin-preflight-20261107.test.mjs",
     "supabase/migrations/20261111053000_kl_trigger_rpc_privilege_lock_v1.sql",
-    "supabase/tests/kl_trigger_rpc_privilege_lock_v1.sql"
+    "supabase/tests/kl_trigger_rpc_privilege_lock_v1.sql",
+    "src/components/points/BuklodPointsR2Guide.tsx",
+    "src/lib/kabihasnang-ligaw/types.ts",
+    "supabase/migrations/20261111085702_kl_verified_reading_10_series_50.sql",
+    "supabase/migrations/20261111085727_buklod_mutual_engagement_r4.sql",
+    "tests/kl-reading-quiz-r4-10-50.test.mjs",
+    "tests/buklod-mutual-engagement-r4.test.mjs",
+    "supabase/tests/kl_verified_reading_r4_10_50.sql",
+    "supabase/tests/buklod_mutual_engagement_r4.sql",
+    ".buklod/scopes/engagement-kl-rewards-r4-20261111.json"
   ],
-  "production": "HOLD / 11 canonical Supabase migrations applied and source-aligned as of Nov 11 2026; production Android OTA and Expo Web not yet promoted; finance payment switches OFF.",
+  "production": "HOLD: BUKLOD backend KL +10/series +50 active; mutual engagement R4 forward-only enabled 2026-11-11 09:00 UTC; migration sources align live Supabase; consolidated Android OTA/Expo Web not yet promoted.",
   "verifiedDevSourceSha": "15a53f992cd51441b55a2aece7168ae012b39f8b",
   "pendingBackendMigrations": [],
   "requiredBackendMigrations": [
@@ -259,6 +274,24 @@
     "20261111031000_buklod_finance_qmp_readiness_audit_v1.sql",
     "20261111032000_buklod_qmp_finance_review_queue_v1.sql",
     "20261111043000_buklod_photo_comments_by_media_v1.sql",
-    "20261111053000_kl_trigger_rpc_privilege_lock_v1.sql"
-  ]
+    "20261111053000_kl_trigger_rpc_privilege_lock_v1.sql",
+    "supabase/migrations/20261111085702_kl_verified_reading_10_series_50.sql",
+    "supabase/migrations/20261111085727_buklod_mutual_engagement_r4.sql"
+  ],
+  "includedAlreadyMergedMainScopes": [
+    ".buklod/scopes/engagement-kl-rewards-r4-20261111.json"
+  ],
+  "rewardsR4Integration": {
+    "sourceMainSha": "af121c188c307c7d6ea4cdb4e1310e900659bae1",
+    "databaseProject": "yhanxndaqbmuzbdqlblu",
+    "appliedMigrationVersions": [
+      "20261111085702",
+      "20261111085727"
+    ],
+    "rolloutEnabledAt": "2026-11-11T09:00:08.81582Z",
+    "sqlSecurityContracts": "PASS",
+    "sourceCI": "PASS",
+    "compiledRc": "PENDING",
+    "ota": "HOLD"
+  }
 }
