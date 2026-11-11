@@ -97,6 +97,8 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
   const player = useVideoPlayer(source, instance => {
     instance.loop = true;
     instance.muted = false;
+    // Passive PTT monitoring must not pause an already playing reel.
+    instance.audioMixingMode = 'mixWithOthers';
     if (Platform.OS !== 'web') {
       instance.bufferOptions = {
         minBufferForPlayback: 1.5,

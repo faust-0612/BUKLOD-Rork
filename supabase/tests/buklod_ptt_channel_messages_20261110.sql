@@ -52,6 +52,27 @@ begin
   ) then
     raise exception 'PTT CH01-CH10 channel validation missing';
   end if;
+  -- Consent changes remain local/user-scoped; server must continue to
+  -- refuse impersonated caption inserts and keep immutable history.
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public'
+      and tablename='buklod_ptt_channel_messages'
+      and policyname='buklod_ptt_messages_member_caption_insert'
+      and cmd='INSERT'
+      and position('buklod_ptt_transmissions' in coalesce(with_check,'')) > 0
+      and position('sender_user_id' in coalesce(with_check,'')) > 0
+      and position('auth.uid()' in coalesce(with_check,'')) > 0
+  ) then
+    raise exception 'PTT caption write must require owned live/recent transmission';
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid='public.buklod_ptt_channel_messages'::regclass
+      and conname='buklod_ptt_message_origin'
+  ) then
+    raise exception 'PTT voice transcript identity integrity check missing';
+  end if;
   raise notice 'PTT channel history: RLS, permissions, floor attribution, realtime and dedupe PASS';
 end
 $ptt_tests$;
