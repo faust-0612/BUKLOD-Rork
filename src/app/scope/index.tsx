@@ -166,6 +166,10 @@ ScopeWorkspaceScreen() {
 
   const workspaceScope =
     resolution.scope ?? activeScope;
+  // A new cluster/organization starts with expanded chrome, not stale scroll state.
+  ReactDashboardTheme.useEffect(() => {
+    resetBuklodDashboardScroll('scope');
+  }, [workspaceScope?.scope_id]);
 
   ReactDashboardTheme.useEffect(
     () => {
