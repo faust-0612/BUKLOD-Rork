@@ -33,7 +33,8 @@
     "Do not publish production OTA or claim device verification based on PR checks."
   ],
   "regressionTests": [
-    "tests/igpat-social-comments-prayer-mojibake-20261111.test.mjs"
+    "tests/igpat-social-comments-prayer-mojibake-20261111.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/igpat-social-comments-prayer-mojibake-20261111.json",
@@ -41,6 +42,7 @@
     "src/app/igpat/index.web.tsx",
     "src/app/post/[id].tsx",
     "src/app/prayer/[id].tsx",
-    "tests/igpat-social-comments-prayer-mojibake-20261111.test.mjs"
+    "tests/igpat-social-comments-prayer-mojibake-20261111.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
   ]
 }
