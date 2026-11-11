@@ -60,7 +60,7 @@ test('BUKLOD Today shows public Dugtong in-card with private and history control
   'Mga Dugtong ng Komunidad','Private · ikaw lang','Public · lahat','3 araw'])
   assert.ok(screen.includes(key),key);
  assert.ok(!screen.includes('Share to Wall'),'Dugtong must be published on this card, not Wall');
- assert.ok(screen.indexOf('if(data?.ok!==true)throw')<screen.indexOf('setTip(current=>current?'),
+ assert.ok(screen.indexOf('if(data?.ok!==true)throw')<screen.indexOf('setTip(current=>current&&'),
   'Do not optimistically confirm writes or points');
  assert.match(screen,/hasSavedDugtong&&<View style=\{s\.savedDugtong\}/);
  assert.match(screen,/\{tip\.my_dugtong\}/);
