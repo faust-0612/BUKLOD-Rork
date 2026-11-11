@@ -72,7 +72,11 @@ Deno.serve(async (req) => {
       // transcription for unrelated groups.
       await call.update({
         settings_override: {
-          transcription: { mode: "available", closed_caption_mode: "available", language },
+          transcription: {
+            mode: "available", closed_caption_mode: "available", language,
+            // Short PTT turns finalize quickly without new audio capture.
+            speech_segment_config: { max_speech_caption_ms: 5000, silence_duration_ms: 700 },
+          },
         },
       });
       try {

@@ -1,0 +1,24 @@
+{
+  "contractVersion": 2,
+  "objective": "PTT opt-in recognition accuracy and consent isolation without touching voice/floor/native",
+  "baseRef": "1dfe6e3da1ef569916f43607067e0a29e4d29bbb",
+  "status": "DEV_ONLY_NOT_PUBLISHED",
+  "allowedPaths": [
+    "src/components/BuklodPttConversation.tsx",
+    "supabase/functions/buklod-ptt-captions/index.ts",
+    "tests/buklod-ptt-transcript-chat.test.mjs",
+    ".buklod/scopes/ptt-caption-consent-accuracy-20261111.json"
+  ],
+  "preserveBehaviors": [
+    "PTT hold/release, floor and microphone",
+    "Priority/SOS and notification receive",
+    "RLS membership/channel isolation",
+    "Native runtime and dependencies"
+  ],
+  "acceptanceChecks": [
+    "Static PTT regression checks",
+    "TypeScript and backend API contract tests",
+    "Stage Edge Function deployment only after backend verification",
+    "Production OTA not triggered"
+  ]
+}
