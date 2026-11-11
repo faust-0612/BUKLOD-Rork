@@ -139,7 +139,12 @@ function InlineIgpatVideo({
   );
 }
 
-export default function BuklodCommunityIgpatPreview({
+/** Retired IGPAT preview: no feed RPC, no signed-media fetch, no player mount. */
+export default function RetiredIgpatPreview() {
+  return null;
+}
+
+function BuklodCommunityIgpatPreview({
   slotId = 'community-igpat',
   active = true,
 }: Props) {
