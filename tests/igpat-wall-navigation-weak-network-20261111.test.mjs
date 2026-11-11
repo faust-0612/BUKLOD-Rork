@@ -6,7 +6,7 @@ const read = (path) => readFileSync(path, 'utf8');
 const wall = read('src/app/(tabs)/buklod.tsx');
 const native = read('src/app/igpat/index.tsx');
 const web = read('src/app/igpat/index.web.tsx');
-const cache = read('src/lib/igpat/warmFeed.ts');
+const cache = read('src/lib/igpat/warmFeed.ts');\nconst signingBatch = read('src/lib/igpat/signBatch.ts');
 
 test('IGPAT remains a sibling shortcut in the public Wall, not a bottom-nav tab', () => {
   const shortcuts = read('src/components/BuklodWallQuickLinks.tsx');
@@ -29,7 +29,7 @@ test('Both IGPAT clients retain account and mode scoped media rather than blanki
     assert.match(source, /!matchingFeed && warmRows\.length &&/);
     assert.match(source, /isIgpatWarmFeedFresh\(user\.id, feedMode, dataSaver\)/);
     assert.match(source, /rowsRef\.current = retainedRows;\s*setRows\(retainedRows\);/);
-    assert.match(source, /if \(!matchingFeed\) setActiveIndex\(0\)/);
+    assert.match(source, /if \\(!matchingFeed\\) \\{\\s*rowsRef\\.current = warmRows;\\s*setRows\\(warmRows\\);\\s*setActiveIndex\\(0\\);/);
     assert.match(source, /generation !== loadGenerationRef\.current/);
   }
 });
@@ -64,11 +64,11 @@ test('Signed URL warm cache expires, remains in memory only and is account isola
 test('IGPAT still uses progressive signed URLs, bounded signing and gated native advertising', () => {
   for (const source of [native, web]) {
     assert.match(source, /const first = source\.length \? await sign\(source\[0\]\) : null/);
-    assert.match(source, /mapWithConcurrency\(source\.slice\(1\), SIGN_CONCURRENCY/);
-    assert.match(source, /const SIGN_CONCURRENCY = 4/);
+    assert.match(source, /signIgpatRowsInBatch\\(\\s*source\\.slice\\(2\\)/);
+    assert.match(source, /void sign\\(source\\[1\\]\\)/);\n    assert.match(source, /createSignedUrls\\(paths, SIGNED_URL_TTL_SECONDS\\)/);
     assert.match(source, /SIGNED_URL_TTL_SECONDS = 1200/);
   }
-  // Preserve the newer persistent Reels player: prewarm the next page without activating it.
+  assert.match(signingBatch, /Math\\.min\\(2, missing\\.length\\)/);\n  assert.match(signingBatch, /!isCurrent\\(\\)/);\n  // Preserve the newer persistent Reels player: prewarm the next page without activating it.
   assert.match(native, /active=\{active\}/);
   assert.match(native, /prepare=\{!weakSignal && index===activeIndex\+1\}/);
   assert.match(native, /onLoadStateChange/);
