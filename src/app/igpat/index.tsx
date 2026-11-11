@@ -85,8 +85,15 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
+function IgpatVideo({
+  uri,
+  active,
+  conservativeBuffer,
+}: { uri: string; active: boolean; conservativeBuffer: boolean }) {
   const [pausedByUser, setPausedByUser] = useState(false);
+  const [firstFrameUri, setFirstFrameUri] = useState<string | null>(null);
+  const playbackActivatedAtRef = useRef(Date.now());
+  const firstFrameReportedRef = useRef(false);
   // Native cache and HLS auto-ABR when the backend supplies a playlist.
   // The next (paused) row mounts a player ahead of time to fill its initial buffer.
   const source = useMemo<VideoSource>(() => ({
@@ -100,10 +107,11 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
     // Passive PTT monitoring must not pause an already playing reel.
     instance.audioMixingMode = 'mixWithOthers';
     if (Platform.OS !== 'web') {
-      instance.bufferOptions = {
-        minBufferForPlayback: 1.5,
-        preferredForwardBufferDuration: 16,
-      };
+      // Start quickly on healthy connections; weak networks retain a larger
+      // safety buffer. Never start another offscreen playback.
+      instance.bufferOptions = conservativeBuffer
+        ? { minBufferForPlayback: 1.5, preferredForwardBufferDuration: 16 }
+        : { minBufferForPlayback: 0.75, preferredForwardBufferDuration: 12 };
     }
   });
   useEffect(() => {
@@ -113,15 +121,7 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
     let bufferingSince = 0;
     const playing = player.addListener('playingChange', event => {
       if (!event.isPlaying) return;
-      if (!played) {
-        played = true;
-        recordCommunityFeedMetric({
-          stage: 'video_startup',
-          elapsedMs: Date.now() - startedAt,
-          status: 'ok',
-          player: 'expo-video',
-        });
-      }
+      if (!played) played = true; // Actual startup is measured at the first rendered frame.
       if (bufferingSince) {
         recordCommunityFeedMetric({
           stage: 'video_rebuffer',
@@ -151,6 +151,36 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
       status.remove();
     };
   }, [active, player, uri]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      player.bufferOptions = conservativeBuffer
+        ? { minBufferForPlayback: 1.5, preferredForwardBufferDuration: 16 }
+        : { minBufferForPlayback: 0.75, preferredForwardBufferDuration: 12 };
+    }
+  }, [conservativeBuffer, player]);
+
+  useEffect(() => {
+    if (active) {
+      playbackActivatedAtRef.current = Date.now();
+      firstFrameReportedRef.current = false;
+    } else {
+      setFirstFrameUri(null);
+    }
+  }, [active, uri]);
+
+  const handleFirstFrameRender = () => {
+    setFirstFrameUri(uri);
+    if (active && !firstFrameReportedRef.current) {
+      firstFrameReportedRef.current = true;
+      recordCommunityFeedMetric({
+        stage: 'video_startup',
+        elapsedMs: Date.now() - playbackActivatedAtRef.current,
+        status: 'ok',
+        player: 'expo-video',
+      });
+    }
+  };
 
   useEffect(() => {
     try {
@@ -196,12 +226,21 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
       accessibilityRole="button"
       accessibilityLabel={pausedByUser ? 'Play IGPAT video' : 'Pause IGPAT video'}
     >
-      <VideoView
-        player={player}
-        style={StyleSheet.absoluteFill}
-        nativeControls={false}
-        contentFit="contain"
-      />
+      {active ? (
+        <VideoView
+          player={player}
+          style={StyleSheet.absoluteFill}
+          nativeControls={false}
+          contentFit="contain"
+          onFirstFrameRender={handleFirstFrameRender}
+        />
+      ) : null}
+      {active && firstFrameUri !== uri ? (
+        <View pointerEvents="none" style={styles.videoLoading}>
+          <ActivityIndicator size="small" color="#FFFFFF" />
+          <Text style={styles.videoLoadingText}>OPENING VIDEO</Text>
+        </View>
+      ) : null}
       {active && pausedByUser && (
         <View pointerEvents="none" style={styles.pausedBadge}>
           <MaterialCommunityIcons name="play" size={18} color="#FFFFFF" />
@@ -664,9 +703,9 @@ export default function IgpatScreen() {
         keyExtractor={item => item.id}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        initialNumToRender={1}
+        initialNumToRender={2}
         maxToRenderPerBatch={3}
-        updateCellsBatchingPeriod={60}
+        updateCellsBatchingPeriod={40}
         windowSize={5}
         removeClippedSubviews
         decelerationRate="fast"
@@ -709,7 +748,11 @@ export default function IgpatScreen() {
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
               {!!item.media_url && (index === activeIndex || index === nextPlayableIndex) ? (
-                <IgpatVideo uri={item.media_url} active={index === activeIndex} />
+                <IgpatVideo
+                  uri={item.media_url}
+                  active={index === activeIndex}
+                  conservativeBuffer={dataSaver || weakSignal}
+                />
               ) : null}
               {index === activeIndex && !item.media_url ? (
                 <View style={styles.center}>
@@ -833,6 +876,19 @@ export default function IgpatScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#050807' },
+  videoLoading: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#050807',
+  },
+  videoLoadingText: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+  },
   page: { width: '100%', backgroundColor: '#050807', overflow: 'hidden' },
   center: {
     flex: 1,
