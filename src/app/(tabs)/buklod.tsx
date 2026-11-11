@@ -33,6 +33,7 @@ import {
 } from 'expo-video';
 import { useIncomingShare as useBuklodIncomingShare187A } from '@/lib/buklodIncomingShare';
 import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency, persistCommunityVideoPoster } from '@/lib/uploadCommunityVideoFile';
+import { stageSharedCommentGif, discardStagedSharedCommentGif } from '@/lib/buklodCommentGifShare';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
 import {
@@ -63,6 +64,7 @@ import {
 } from '@/components/BuklodCommunityPhotoCollage';
 import {
   peekCommunityMediaUrl,
+  isLocalMediaUri,
   prefetchCommunityMedia,
   resolveCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
@@ -604,6 +606,8 @@ function LegacyPublicBuklodScreen(){
 
   const incomingShare187A = useBuklodIncomingShare187A();
   const incomingShareSignature187A = useIncomingShareRef187A('');
+  // A phone share has no target post. Keep it until Comments is opened.
+  const pendingSharedCommentGif187A = useRef<{ uri: string; ownerId: string } | null>(null);
 
   async function readIncomingVideoDuration187A(
     uri: string
@@ -708,6 +712,7 @@ function LegacyPublicBuklodScreen(){
       incomingShare187A.resolvedSharedPayloads ?? [];
 
     if (!raw.length && !resolved.length) {
+      incomingShareSignature187A.current = '';
       return;
     }
 
@@ -757,18 +762,18 @@ function LegacyPublicBuklodScreen(){
               originalName: null,
             }));
 
-        const gifRows = normalized.filter(
-          (row: any) =>
-            row?.contentType === 'image' &&
-            String(row?.contentMimeType ?? '').toLowerCase() === 'image/gif' &&
-            typeof row?.contentUri === 'string' &&
-            row.contentUri.length > 0
-        );
+        const gifRows = normalized.filter((row: any) => {
+          const mime = String(row?.contentMimeType ?? '').split(';')[0].trim().toLowerCase();
+          const name = String(row?.originalName ?? '');
+          return (row?.contentType === 'image' || mime === 'image/gif') &&
+            (mime === 'image/gif' || /\.gif$/i.test(name)) &&
+            typeof row?.contentUri === 'string' && row.contentUri.length > 0;
+        });
 
         const imageRows = normalized.filter(
           (row: any) =>
             row?.contentType === 'image' &&
-            String(row?.contentMimeType ?? '').toLowerCase() !== 'image/gif' &&
+            !gifRows.includes(row) &&
             typeof row?.contentUri === 'string' &&
             row.contentUri.length > 0
         );
@@ -792,11 +797,35 @@ function LegacyPublicBuklodScreen(){
         }
 
         if (gifRows.length) {
+          if (gifRows.length !== 1 || imageRows.length || videoRows.length) {
+            incomingShare187A.clearSharedPayloads();
+            Alert.alert('GIF comment', 'Share one GIF at a time to attach it to a comment.');
+            return;
+          }
+          const accountId = String(user?.id ?? '');
+          if (!accountId) {
+            incomingShare187A.clearSharedPayloads();
+            Alert.alert('GIF comment', 'Sign in before attaching a GIF.');
+            return;
+          }
+          // Preserve the shared file before Android's temporary URI expires.
+          const uri = await stageSharedCommentGif(String(gifRows[0].contentUri));
           incomingShare187A.clearSharedPayloads();
-          Alert.alert(
-            'Community',
-            'Community accepts text and still photos only. GIF posting is not available.'
-          );
+          const previous = pendingSharedCommentGif187A.current;
+          if (previous) {
+            void discardStagedSharedCommentGif(previous.uri);
+            pendingSharedCommentGif187A.current = null;
+          }
+          if (activeCommentPostIdRef.current && commentOpen && !commentMedia) {
+            setCommentMedia({ kind: 'gif', ref: uri });
+            setCommentMediaPreview(uri);
+            setCommentNotice('GIF attached. Preview it, then Send.');
+            Alert.alert('GIF comment', 'GIF attached to the open comment. Tap Send when ready.');
+          } else {
+            pendingSharedCommentGif187A.current = { uri, ownerId: accountId };
+            Alert.alert('GIF ready for comment',
+              'Tap Comments on the post you want. Your shared GIF will be attached there, not published as a Wall post.');
+          }
           return;
         }
 
@@ -3571,17 +3600,23 @@ const load=useCallback(async(options?:{
   async(post:any)=>{
    const postId=String(post.id);
    const saved=commentDraftsRef.current.get(String(user?.id??'')+':'+postId);
+   const pendingGif=pendingSharedCommentGif187A.current;
+   const attachGif=!!pendingGif && pendingGif.ownerId===String(user?.id??'');
+   if(pendingGif){
+    pendingSharedCommentGif187A.current=null;
+    if(!attachGif)void discardStagedSharedCommentGif(pendingGif.uri);
+   }
    activeCommentPostIdRef.current=postId;
    ++commentLoadSeqRef.current;
    setCommentPost(post);
    setComments([]);
    setCommentText(saved?.text??'');
    setCommentMentions(saved?.mentions??[]);
-   setCommentMedia(saved?.media??null);
-   setCommentMediaPreview(saved?.preview??null);
+   setCommentMedia(attachGif?{kind:'gif',ref:pendingGif!.uri}:saved?.media??null);
+   setCommentMediaPreview(attachGif?pendingGif!.uri:saved?.preview??null);
    setReplyTo(saved?.reply??null);
    setCommentLoadError(null);
-   setCommentNotice(null);
+   setCommentNotice(attachGif?'GIF attached. Preview it, then Send.':null);
    setCommentOpen(true);
    await loadComments(String(post.id));
   };
@@ -3679,6 +3714,12 @@ const load=useCallback(async(options?:{
      await uploadCommunityPhotoFile({path,uri:initialMedia.ref});
      mediaForBody={kind:'image',ref:path};
     }
+    if(initialMedia?.kind==='gif' && isLocalMediaUri(initialMedia.ref) && user?.id){
+     const path=user.id+'/comment-gif-'+Date.now()+'-'+
+      Math.random().toString(36).slice(2)+'.gif';
+     await uploadCommunityGifFile({path,uri:initialMedia.ref});
+     mediaForBody={kind:'gif',ref:path};
+    }
     const body=encodeBuklodCommentMediaBody(mediaForBody,finalBody);
     const {error}=await communityRpc('add_buklod_post_comment_v4',{
      p_post_id:postId,
@@ -3686,6 +3727,9 @@ const load=useCallback(async(options?:{
      p_parent_id:replyRootId,
     });
     if(error)throw error;
+    if(initialMedia?.kind==='gif') {
+     void discardStagedSharedCommentGif(initialMedia.ref);
+    }
     if(authorId && commentAccountIdRef.current===authorId){
      const adCount=recordConfirmedCommunityComment(authorId);
      if(adCount.shouldWarm)warmBuklodAdOpportunity('community_comment_overage');
@@ -7011,6 +7055,9 @@ const communityFeedRows =
       media={commentMedia}
       mediaPreviewUri={commentMediaPreview}
       onMediaChange={(next,preview)=>{
+       if(commentMedia?.kind==='gif' && commentMedia.ref!==next?.ref){
+        void discardStagedSharedCommentGif(commentMedia.ref);
+       }
        setCommentNotice(null);
        setCommentMedia(next);
        setCommentMediaPreview(preview??null);
