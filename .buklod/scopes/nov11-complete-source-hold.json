@@ -4,7 +4,7 @@
   "scopeManifestPath": ".buklod/scopes/nov11-complete-source-hold.json",
   "objective": "Complete single-source BUKLOD Main Nov11 consolidated OTA candidate including prior frozen RC and every current authorized post-RC change, while prohibiting production publication until strict parity/security/exact-source Android and Web gates pass.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: current GitHub main SHA a216bbdd6dee99b161f7861addba766f115203f1 was reconciled as second parent of this DEV branch, with exact source tree unchanged; GitHub compare confirms behind_by=0 and all baseline ads, Web PTT and release guards retained. This is source provenance, NOT a verified deployed production OTA fingerprint. Live production has not been published from this branch.",
+  "productionBaselineEvidence": "verified: current GitHub main SHA 75ae419357647bf1dc7596d0e144eeaac7d34b2b reconciled as ancestor with no source loss. Current main ad-engagement comment banner, safe diagnostics and QA were read back: 7/7 files are byte-identical, Wall and compile QA merged additively. GitHub compare confirms behind_by=0. Live production runtime/OTA fingerprint is NOT yet verified.",
   "chosenApproach": "Overlay only already-authorized source updates on inherited consolidated Nov11 RC and verified current main, preserve ad/security/release guards, reconcile database migration filenames with exact applied live migration versions, and fail closed on all source and release gates. Use one named cumulative RC manifest with exact paths and tests rather than weaken single-scope controls.",
   "selectionRationale": "One frozen source prevents omitted late fixes, duplicate native releases, and conflicting live migrations; individually enumerated paths + tests retain strict accountability and production isolation.",
   "alternativeApproaches": [
@@ -168,7 +168,14 @@
         "pr": 638,
         "reason": "Owner explicitly deferred Smart Drawer Google Drive to next native release"
       }
-    ]
+    ],
+    "latestMain": {
+      "sha": "75ae419357647bf1dc7596d0e144eeaac7d34b2b",
+      "commit": "Nov11 ad engagement-impression recovery (#696)",
+      "filesReviewed": 9,
+      "sourceParity": "7 exact file matches + 2 compatible additive merges",
+      "ads": "single compact labelled Android public-comments banner, viewport/consent controlled; sanitized diagnostics"
+    }
   },
   "verifiedBackend": {
     "projectRef": "yhanxndaqbmuzbdqlblu",
@@ -179,5 +186,5 @@
     "Hands-on physical Android device testing skipped per owner, not counted as PASS"
   ],
   "releaseState": "DEV_ASSEMBLY_HOLD__NO_PRODUCTION_PUBLICATION",
-  "qaStatus": "GIT_ANCESTRY_RECONCILED__EXACT_HEAD_QA_MUST_RERUN_AFTER_MANIFEST_UPDATE"
+  "qaStatus": "PENDING_EXACT_HEAD_RC_QA_AND_PRODUCTION_FINGERPRINT"
 }
