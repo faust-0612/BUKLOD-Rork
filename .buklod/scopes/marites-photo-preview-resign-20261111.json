@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Fix Marites compact preview photo failures: pass durable private Storage paths into signed-media cache and Full View with no changed permissions",
   "baseRef": "main",
-  "productionBaselineEvidence": "Latest published BUKLOD main 59e4c1dff5200eec72a37ec065ecacbc23f0fe99; current Marites loader, collage, and media signer inspected. No schema/native/permission modifications.",
+  "productionBaselineEvidence": "verified: GitHub source readback confirms production-main commit 59e4c1dff5200eec72a37ec065ecacbc23f0fe99 is this hotfix branch's exact parent; that commit is explicitly labeled production promotion and contains the unified five-feature source. GitHub evidence verifies ancestry and release metadata only—not installed OTA receipt, live production rendering, or new hotfix publication. Independent production artifact fingerprint required.",
   "chosenApproach": "Keep photo URL and corresponding private media path aligned in all collage tiles and Full View. Existing bounded private signed-URL cache can re-sign after expiry without changing audience rules.",
   "selectionRationale": "Marites collage discarded photo_paths; the shared image component cannot renew failed signed URLs without them. Fresh Full View sometimes reloaded the same stored image, matching screenshot.",
   "acceptanceChecks": [
