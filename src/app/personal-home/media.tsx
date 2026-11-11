@@ -20,12 +20,6 @@ type MediaAction = {
 
 const ACTIONS: MediaAction[] = [
   {
-    title: 'BUKLOD IGPAT',
-    subtitle: 'Watch the canonical BUKLOD short-video experience.',
-    icon: 'play-box-multiple-outline',
-    route: '/igpat',
-  },
-  {
     title: 'Community Wall',
     subtitle: 'Return to community posts and conversations.',
     icon: 'account-multiple-outline',
