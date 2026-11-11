@@ -9,6 +9,7 @@ import {
   repairMojibakeText,
 } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
+import { uploadCommunityPhotoFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';
 import { resolveCommunityMediaUrl } from '@/lib/buklodMediaUrl';
 import { getAwsWallVideoViewUrl } from '@/lib/buklodAwsWallVideo';
 import { attachCommunityPostMedia, discardIncompleteCommunityPost, loadCommunityPostMediaByPostIds } from '@/lib/buklodCommunityPostMedia';
@@ -1198,29 +1199,29 @@ export async function publishMaritesStory(input: {
       await uploadCommunityVideoFile({ path: videoPath, uri: input.video.uri, contentType: input.video.mimeType });
       uploaded.push({ media_path: videoPath, media_mime_type: input.video.mimeType, media_size_bytes: 0 });
     }
-    for (let index = 0; index < photoUris.length; index += 1) {
-      const encoded = await encodeMaritesPhotoBase64(
-        photoUris[index]
+    if (photoUris.length) {
+      // Keep the exact photo order but prepare and upload in bounded parallel
+      // lanes. Weak uplinks automatically drop to one lane in this helper.
+      // The shared JPEG uploader avoids old per-photo base64 encoding.
+      const photoUploads = await mapWithConcurrency(
+        photoUris,
+        Platform.OS === 'web' ? 2 : 3,
+        async (uri,index) => {
+          const path =
+            `${input.userId}/marites-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
+          const result = await uploadCommunityPhotoFile({
+            path,
+            uri,
+            wallPreview:true,
+          });
+          return {
+            media_path: result.path,
+            media_mime_type: 'image/jpeg',
+            media_size_bytes: result.sizeBytes,
+          };
+        }
       );
-      const path =
-        `${input.userId}/marites-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('community-media')
-        .upload(path, encoded.decode(encoded.base64), {
-          contentType: 'image/jpeg',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      uploaded.push({
-        media_path: path,
-        media_mime_type: 'image/jpeg',
-        media_size_bytes: encoded.sizeBytes,
-      });
+      uploaded.push(...photoUploads);
     }
 
     const first = uploaded[0] ?? null;
