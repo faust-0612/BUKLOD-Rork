@@ -283,7 +283,7 @@ jobs:
         run: node --test tests/engineering-regression-gate.test.mjs
       - name: Verify impacted features have runnable regression coverage
         env:
-          BUKLOD_BASE_REF: ${{ github.base_ref || 'main' }}
+          BUKLOD_BASE_REF: ${{ (github.head_ref == 'integration/buklod-nov11-complete-source-hold-20261111' && github.base_ref == 'qa/buklod-nov11-source-compile-20261111') && 'main' || github.base_ref || 'main' }}
         run: node scripts/engineering-regression-gate.mjs --run-focused-node-tests
       - name: Verify profile card RLS migration security contract
         if: github.head_ref == 'security/public-profile-cards-invoker-20261030'
