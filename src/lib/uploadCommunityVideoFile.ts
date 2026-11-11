@@ -296,10 +296,18 @@ export async function prepareCommunityJpegUri(
     ? /^image\/jpe?g$/.test(actualMime)
     : /\.jpe?g(?:[?#]|$)/i.test(uri) || /^data:image\/jpe?g[;,]/i.test(uri);
 
-  // A valid browser JPEG can go straight to signed Storage PUT. This also
-  // avoids browser canvas crashes on common iPhone camera/photos exports.
-  if (isJpeg && existingBytes > 0 && existingBytes <= 12 * 1024 * 1024) {
-    return { uri, sizeBytes: existingBytes, webBlob: webSelectedBlob ?? undefined };
+  // Small native JPEGs can upload unchanged; larger native files must pass
+  // through bounded resize/compression to avoid weak-uplink floods.
+  if (Platform.OS !== 'web' && isJpeg && existingBytes > 0 && existingBytes <= 2 * 1024 * 1024) {
+    return { uri, sizeBytes: existingBytes };
+  }
+
+  // Preserve the iOS Messenger web recovery: bypass unreliable WebKit canvas
+  // conversion for already valid JPEG bytes, without affecting native limits.
+  if (Platform.OS === 'web') {
+    if (isJpeg && existingBytes > 0 && existingBytes <= 12 * 1024 * 1024) {
+      return { uri, sizeBytes: existingBytes, webBlob: webSelectedBlob ?? undefined };
+    }
   }
 
   try {

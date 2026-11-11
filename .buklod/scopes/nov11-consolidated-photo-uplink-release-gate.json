@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "objective": "Unblock exact BUKLOD consolidated production Android OTA by restoring native JPEG <=2MB no-recompression upload while preserving web Messenger <=12MB JPEG direct-upload recovery",
+  "baseRef": "63636c77211ff67380169e81599cf077de379cfa",
+  "productionBaselineEvidence": "Protected main 63636c77211ff67380169e81599cf077de379cfa; Android production OTA run 42945715749 failed before publication in two weak-uplink JPEG source tests; Expo Web release run 42945715923 passed",
+  "chosenApproach": "Guard the native JPEG fast path at <=2 MB and the existing Web direct JPEG path at <=12 MB, keeping both behaviors explicit with regression contracts",
+  "selectionRationale": "Addresses actual Android weak-signal release gate and preserves prior Messenger iOS browser photo recovery, without new dependencies, unrelated edits, or altering Supabase and finances",
+  "alternativeApproaches": [
+    "Restore 2MB cutoff globally (rejected: breaks WebKit Messenger JPEG direct upload recovery)",
+    "Remove test assertions (rejected: masks weak-uplink performance regression)",
+    "Separate Web and native thresholds with explicit platform checks (chosen)"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "weak-network",
+    "image-compression",
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/weak-media-rendering.test.cjs"
+  ],
+  "allowedPaths": [
+    "src/lib/uploadCommunityVideoFile.ts",
+    "tests/weak-media-rendering.test.cjs",
+    ".buklod/scopes/nov11-consolidated-photo-uplink-release-gate.json"
+  ],
+  "acceptanceChecks": [
+    "Native small JPEG (<=2MB) retains original bytes; larger files pass bounded Expo image conversion",
+    "Web Messenger valid JPEG up to 12MB bypasses unreliable WebKit canvas and 45MB fallback remains",
+    "Original weak-signal and Messenger tests pass with no test gate deleted",
+    "Production Android/Web release workflows verify matching exact source SHA before publishing",
+    "No native module/runtime, Supabase migration, financial flag or auth change",
+    "Run existing Community weak-signal and iOS Messenger JPEG contracts as unmodified external release checks; scope regressionTests enumerates changed test files only."
+  ],
+  "preserveBehaviors": [
+    "Existing WebView image/jpeg safety and signed upload MIME correctness",
+    "Android weak-network concurrency and resumable upload",
+    "Existing 1440px resize and 0.82 JPEG compression",
+    "Kingdom, Wall/Reels, PTT, Finance and original consolidated release work",
+    "No production OTA until mandatory green regression and publication verification"
+  ]
+}
