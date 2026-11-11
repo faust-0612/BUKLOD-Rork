@@ -12,7 +12,8 @@
   ],
   "riskAreas": [
     "navigation-scroll",
-    "ads-monetization"
+    "ads-monetization",
+    "release-identity"
   ],
   "allowedPaths": [
     "src/components/BuklodCommunityCommentThread.tsx",
@@ -21,18 +22,22 @@
     "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
     "tests/buklod-ads-engagement-navigation-scroll-20261111.test.mjs",
     ".buklod/scopes/ads-engagement-impression-conversion-20261111.json",
-    "docs/BUKLOD_ADS_ENGAGEMENT_REVENUE_DIAGNOSIS_20261111.md"
+    "docs/BUKLOD_ADS_ENGAGEMENT_REVENUE_DIAGNOSIS_20261111.md",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/buklod-ads-production-release-contract-20261111.test.mjs"
   ],
   "regressionTests": [
     "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
-    "tests/buklod-ads-engagement-navigation-scroll-20261111.test.mjs"
+    "tests/buklod-ads-engagement-navigation-scroll-20261111.test.mjs",
+    "tests/buklod-ads-production-release-contract-20261111.test.mjs"
   ],
   "acceptanceChecks": [
     "Only one public Android viewport-gated compact sponsored ad after organic comments, never on author-only content",
     "No cash/points per ad view, no artificial impressions",
     "Non-PII error categories distinguish no-fill, network and native/banner timeout",
     "Focused ad and navigation tests + TypeScript/main QA green",
-    "No OTA published"
+    "No OTA published",
+    "Exact HEAD Android and Web compiled RC QA is enabled on engagement branch; source SHA verified, no production publish trigger."
   ],
   "preserveBehaviors": [
     "All public/scoped comments threading, reply/edit/report, keyboard and focus",
