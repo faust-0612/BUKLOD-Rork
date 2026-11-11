@@ -24,7 +24,7 @@ const REACTIONS:{id:Reaction;label:string;icon:React.ComponentProps<typeof Mater
 /** Activity-driven community tips; all public Dugtong are displayed here, not sent to Wall.
  * Public is an explicit save choice; earlier private Dugtong stay private after migration.
  * BP is credited only by the server's existing once-per-Manila-week ledger keys. */
-export default function BuklodTodayCard({onRespond:_unusedWallHandoff}:{onRespond?:(draft?:string)=>void}){
+export default function BuklodTodayCard(){
  const [tip,setTip]=useState<Tip|null>(null);
  const [unavailable,setUnavailable]=useState(false);
  const [loading,setLoading]=useState(true);
@@ -42,7 +42,6 @@ export default function BuklodTodayCard({onRespond:_unusedWallHandoff}:{onRespon
  const [feedLoading,setFeedLoading]=useState(false);
  const [feedHasMore,setFeedHasMore]=useState(false);
  const cycleRef=useRef<number|null>(null);
- void _unusedWallHandoff; // Preserve the existing Home prop without rendering Wall sharing.
  const load=useCallback(async(preserveDraft=false)=>{
   try{
    const {data,error:rpcError}=await (supabase as any).rpc('get_buklod_today_tip_v2');
