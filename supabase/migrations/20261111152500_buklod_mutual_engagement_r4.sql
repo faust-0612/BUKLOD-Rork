@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS private.buklod_engagement_r4_rollout (
 );
 INSERT INTO private.buklod_engagement_r4_rollout(id,enabled,effective_at)
 VALUES(1,false,now()) ON CONFLICT(id) DO NOTHING;
+ALTER TABLE private.buklod_engagement_r4_rollout ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON private.buklod_engagement_r4_rollout FROM PUBLIC,anon,authenticated;
 
 -- Qualified R37 events only: no synthetic like counts, no self engagement,
@@ -85,6 +86,7 @@ CREATE TABLE IF NOT EXISTS private.buklod_engagement_r4_helpful_comment_state (
  credited_bp integer NOT NULL DEFAULT 0 CHECK(credited_bp BETWEEN 0 AND 10),
  updated_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE private.buklod_engagement_r4_helpful_comment_state ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON private.buklod_engagement_r4_helpful_comment_state FROM PUBLIC,anon,authenticated;
 
 CREATE OR REPLACE FUNCTION private.buklod_engagement_r4_settle_helpful_comment_v1(p_comment_id uuid)
