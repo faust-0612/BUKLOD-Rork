@@ -1,0 +1,31 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix Marites compact preview photo failures: pass durable private Storage paths into signed-media cache and Full View with no changed permissions",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Latest published BUKLOD main 59e4c1dff5200eec72a37ec065ecacbc23f0fe99; current Marites loader, collage, and media signer inspected. No schema/native/permission modifications.",
+  "chosenApproach": "Keep photo URL and corresponding private media path aligned in all collage tiles and Full View. Existing bounded private signed-URL cache can re-sign after expiry without changing audience rules.",
+  "selectionRationale": "Marites collage discarded photo_paths; the shared image component cannot renew failed signed URLs without them. Fresh Full View sometimes reloaded the same stored image, matching screenshot.",
+  "acceptanceChecks": [
+    "Single/multi Marites previews carry corresponding stable Storage path",
+    "Expired signed URL can recover through existing bounded signing/retry",
+    "Fullscreen shares same authorized path",
+    "Local story photos without storage paths continue rendering",
+    "No ad, PTT, QMP, upload, Finance, or native changes",
+    "Exact-source Node, TypeScript, Android and Web QA before promotion; no device success assertion"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "auth-privacy",
+    "weak-network"
+  ],
+  "regressionTests": [
+    "tests/marites-photo-preview-resign-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/marites-photo-preview-resign-20261111.json",
+    "src/components/BuklodMaritesPhotoCollage.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "tests/marites-photo-preview-resign-20261111.test.mjs"
+  ],
+  "releaseState": "DEV_HOLD_PENDING_COMPILED_RC_VERIFICATION"
+}
