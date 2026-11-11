@@ -34,6 +34,7 @@ test('IGPAT shows a playable pending reel before upload completes',()=>{
   assert.match(igpat,/Only you can see it|ONLY YOU CAN SEE THIS/);
   assert.match(igpat,/retryInstantPublish\(job\.id,job\.ownerId\)/);
   assert.match(igpat,/dismissInstantPublish\(job\.id,job\.ownerId\)/);
+  assert.match(igpat,/row\.media_path===job\.remoteMediaPath/);
 });
 
 test('IGPAT provisional reel has no likes, comments or share actions',()=>{
@@ -55,7 +56,7 @@ test('Marites keeps upload separate from server list and uses true bounded paral
   assert.match(marites,/activeAccountIdRef\.current===snapshot\.userId/);
   assert.match(publish,/mapWithConcurrency\(/);
   assert.match(publish,/Platform\.OS === 'web' \? 2 : 3/);
-  assert.match(publish,/result\.data!\.media_path/);
+  assert.match(publish,/result\.ok \? \[result\.data\.media_path\] : \[\]/);
   assert.match(publish,/discardIncompleteCommunityPost\(\{/);
   assert.match(publish,/authData\.user\?\.id !== input\.userId/);
   assert.match(publish,/return \{ story: saved, shared: false \}/);
