@@ -55,7 +55,7 @@ test('AdMob production live-unit preflight runs BEFORE compiled RC and exact sou
   const exportAndroid=workflow.indexOf('Compile V28-compatible Android OTA bundle');
   const exportWeb=workflow.indexOf('Compile Main Expo Hosting web bundle');
   assert.ok(check>0 && exportAndroid>check && exportWeb>exportAndroid);
-  assert.match(workflow,/fix\/admob-fill-funnel-finance-evidence-gates-20261111/);
+  assert.match(workflow,/fix\/admob-fill-finance-reconciled-20261111/);
   assert.match(workflow,/git rev-parse HEAD/);
   assert.match(read('scripts/verify-production-ads-env.cjs'),/EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS/);
 });
