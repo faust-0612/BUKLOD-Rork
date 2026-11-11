@@ -52,11 +52,22 @@ test('Canonical Home uses square Bahay and Health Center cards, mobile and deskt
  assert.match(cards,/aspectRatio:\s*1\b/,'utility cards must stay square');
  assert.match(hub,/borderRadius:\s*4\b/,'public Hub compact card corners retained');
 });
-test('Weekly tips have real continuation, reactions and confirmed BP feedback',()=>{
+test('BUKLOD Today shows public Dugtong in-card with private and history controls',()=>{
  const screen=read('src/components/BuklodTodayCard.tsx');
- for(const key of ['get_buklod_weekly_tip_v1','react_to_buklod_weekly_tip_v1','Continue reading','Save Dugtong','awarded_points','Claim your pending reward'])
+ for(const key of ['get_buklod_today_tip_v2','react_to_buklod_today_tip_v2',
+  'get_my_buklod_today_dugtong_history_v2','set_buklod_today_dugtong_visibility_v2',
+  'Continue reading','Save Dugtong','awarded_points','Claim your pending reward',
+  'Mga Dugtong ng Komunidad','Private · ikaw lang','Public · lahat','3 araw'])
   assert.ok(screen.includes(key),key);
+ assert.ok(!screen.includes('Share to Wall'),'Dugtong must be published on this card, not Wall');
+ assert.ok(screen.indexOf('if(data?.ok!==true)throw')<screen.indexOf('setTip(current=>current?'),
+  'Do not optimistically confirm writes or points');
+ assert.match(screen,/hasSavedDugtong&&<View style=\{s\.savedDugtong\}/);
+ assert.match(screen,/\{tip\.my_dugtong\}/);
+ assert.match(screen,/unchangedDugtong/);
+ assert.match(screen,/p_cycle_id:tip\.cycle_id/,'Stale cycle writes must be rejected by server');
 });
+
 test('Weekly Point awards are server-side, bounded and idempotent',()=>{
  const sql=read('supabase/migrations/20261108030033_buklod_weekly_tips_r1_20261108.sql');
  for(const key of ['auth.uid()','Asia/Manila','primary key(user_id,week_start)','for update','pg_advisory_xact_lock','weekly_tip_reaction','weekly_tip_dugtong','on conflict(user_id,source_key) do nothing','points_pending_claim'])
@@ -64,19 +75,20 @@ test('Weekly Point awards are server-side, bounded and idempotent',()=>{
  assert.ok(!sql.includes('grant insert on public.buklod_weekly_tip_interactions_v1 to authenticated'));
 });
 
-test('Saved weekly Dugtong appears beneath the tip and is private until Wall share',()=>{
- const screen=read('src/components/BuklodTodayCard.tsx');
- assert.match(screen,/hasSavedDugtong&&<View style=\{s\.savedDugtong\}/);
- assert.match(screen,/Ang Dugtong mo/);
- assert.match(screen,/\{tip\.my_dugtong\}/);
- assert.match(screen,/Pribado/);
- assert.match(screen,/I-edit ang Dugtong/);
- assert.match(screen,/setDraft\(tip\.my_dugtong\?\?''\);setEditing\(false\)/);
- assert.match(screen,/my_dugtong:dugtong\?\?current\.my_dugtong/);
- assert.ok(screen.indexOf('if(data?.ok!==true)throw')<screen.indexOf('setTip(current=>current?'));
- assert.match(screen,/!hasSavedDugtong\|\|editing/);
- assert.match(screen,/unchangedDugtong/);
- const home=read('src/app/(tabs)/hub.tsx');
- assert.match(home,/homeTodayDraft: draft \?\? ''/);
- assert.match(screen,/onRespond\(draft\.trim\(\)\|\|tip\.my_dugtong/);
+test('72-hour inactivity and privacy are enforced server-side, not merely UI',()=>{
+ const sql=read('supabase/migrations/20261111102700_buklod_today_public_dugtong_idle_rotation_v2.sql');
+ for(const key of ["interval '72 hours'",'last_engagement_at',
+   'ensure_buklod_today_tip_cycle_v2','pg_advisory_xact_lock',
+   "visibility='public'","'private',updated_at",
+   'enable row level security','revoke all on public.buklod_today_tip_engagement_v2',
+   'get_my_buklod_today_dugtong_history_v2','set_buklod_today_dugtong_visibility_v2',
+   'p_cycle_id is distinct from v_cycle_id',
+   "'weekly_tip:'||v_week::text||':reaction'",
+   "'weekly_tip:'||v_week::text||':dugtong'",
+   'on conflict(user_id,source_key) do nothing'])
+  assert.ok(sql.includes(key),key);
+ assert.ok(!sql.includes('grant select on public.buklod_today_tip_engagement_v2 to anon'));
+ assert.ok(!sql.includes('grant insert on public.buklod_today_tip_engagement_v2 to authenticated'));
+ const v1=read('supabase/migrations/20261108030033_buklod_weekly_tips_r1_20261108.sql');
+ assert.ok(v1.includes('primary key(user_id,week_start)'),'v1 and old-client contract intact');
 });
