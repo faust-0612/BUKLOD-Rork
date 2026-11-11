@@ -1,26 +1,40 @@
 {
-  "objective": "Notification taps open the exact post inside its Community Wall, including scoped posts and comments, without a separate detail screen",
+  "objective": "Modernize BUKLOD Main Kingdom map-first HUD and replace harsh navigation audio with an opt-in original local cinematic ambience without changing routes or revenue; guarantee Kingdom ambience stops on exit or stack screen blur",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub main 9a4f03320d39294f19cd30b45e6f221d233fbd4c inspected 2026-10-28 as PR comparison ref only; live Android OTA baseline and physical tap unverified, so no production publication is authorized.",
+  "productionBaselineEvidence": "verified: GitHub main commit 1dfe6e3da1ef569916f43607067e0a29e4d29bbb read back as branch fork source on 2026-11-11. Live Android update fingerprint, runtime and map visual acceptance not verified; DEV branch only, no release.",
+  "chosenApproach": "Retain 13 canonical station coordinates and SVG map geometry, reduce UI occlusion, apply deeper scenic palette, ship local deterministic PCM ambient audio with quiet defaults for main map only, preserve interior game auto audio. No Vercel, extra paid model, native module or backend migration.",
   "allowedPaths": [
     ".buklod/work-scope.json",
-    "src/lib/buklodNotificationNavigation.ts",
-    "src/lib/buklodNotificationPost.ts",
-    "src/providers/NotificationProvider.tsx",
-    "src/app/(tabs)/buklod.tsx",
-    "src/app/scope/index.tsx",
-    "src/components/BuklodExclusiveScopeCommunity.tsx",
-    "src/components/BuklodCanonicalNavigationGuard.tsx",
-    "src/components/BuklodCanonicalNavigationGuard.web.tsx",
-    "__tests__/buklodNotificationNavigation.test.ts"
+    "assets/sounds/buklod-kingdom-cinematic-ambient.wav",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "src/features/games/runtime/rorkAudio.ts",
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "13 canonical station IDs, routes and coordinates and 39 playable game interiors",
+    "Character gameplay, BP/XP/Shards and canonical Supabase accounting, AdMob consent and protected interstitial safety",
+    "Original map rollback source, other Home/Wall/Connect/Cluster navigation, existing sound preferences and stage audio",
+    "Expo V28 runtime 1.3.2, production main/OTA and web published artifact unchanged"
   ],
   "acceptanceChecks": [
-    "Post and comment notification targets point to the exact public or managed-scope Wall, not /post/:id",
-    "Older posts load by ID using existing access-controlled RPC; deleted/unauthorized posts have a safe fallback",
-    "Managed-scope and global route guards preserve notification focus, while message/SOS routes remain unchanged",
-    "Cold-start notification responses wait for authenticated scope hydration before choosing the post destination",
-    "Jest navigation tests and TypeScript/CI checks pass; physical Android cold/warm tap validation before client OTA",
-    "No backend schema, push infrastructure, APK metadata or production OTA publication in this PR"
-  ]
+    "13 canonical stations unchanged and selectable by tap, map controls/zoom/pan remain functional",
+    "Map-first dock hides to expose scenery and can re-open, dark compact station plaques do not block routes",
+    "Main-map ambience default OFF, persists ON/OFF preference, honors game sound and quiet-hours, and synchronously pauses/removes the owned player on every screen blur and unmount",
+    "New local original 18-second mono seamless WAV plays without remote host, network dependency, old navigation chirps or paid generation",
+    "Interior gameplay auto-audio behavior remains unchanged",
+    "Read-back focused WAV RIFF and source contract tests, Engineering Accountability and Performance QA",
+    "Exact-head Android+Web Expo compile QA, proper user-approved premium world art, and device visual/listening acceptance are NOT claimed",
+    "Keep isolated DEV on hold. No main merge, production OTA, Expo web or live SQL release"
+  ],
+  "riskAreas": [
+    "kingdom-visual",
+    "map-touch-responsiveness",
+    "audio-lifecycle",
+    "cross-platform-layout",
+    "router-focus-lifecycle"
+  ],
+  "regressionTests": [
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+  ],
+  "releaseState": "DEV_ONLY_HOLD_FOR_PREMIUM_MAP_ASSET_AND_COMPILED_RC"
 }
-
