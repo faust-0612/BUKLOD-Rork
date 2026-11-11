@@ -59,6 +59,9 @@ test('Marites keeps upload separate from server list and uses true bounded paral
   assert.match(publish,/result\.ok \? \[result\.data\.media_path\] : \[\]/);
   assert.match(publish,/discardIncompleteCommunityPost\(\{/);
   assert.match(publish,/authData\.user\?\.id !== input\.userId/);
+  assert.match(publish,/createAttempted = true/);
+  assert.match(publish,/if \(createAttempted && !createdPostId\)/);
+  assert.match(publish,/throw new InstantPublishUncertainError/);
   assert.match(publish,/return \{ story: saved, shared: false \}/);
 });
 
