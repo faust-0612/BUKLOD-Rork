@@ -321,6 +321,9 @@ jobs:
         if: github.head_ref == 'fix/recovery-action-feedback-20261027'
         run: node --test tests/recovery-action-feedback.test.cjs
 
+      - name: Lock app-wide AdMob routes, inventory and release contracts on every PR
+        run: node --test tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+
       - name: Verify approved pending client and rollback recovery
         # Execute on EVERY PR: catch stale Cluster/security anchors before
         # they block the manually triggered production Android OTA.
