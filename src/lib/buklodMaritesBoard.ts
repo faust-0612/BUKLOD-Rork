@@ -1228,16 +1228,14 @@ export async function publishMaritesStory(input: {
         }
       );
       const failure = results.find(result=>!result.ok);
-      if (failure) {
+      if (failure && !failure.ok) {
         await discardIncompleteCommunityPost({
           postId:null,
-          mediaPaths:results
-            .filter(result=>result.ok)
-            .map(result=>result.data!.media_path),
+          mediaPaths:results.flatMap(result=>result.ok ? [result.data.media_path] : []),
         }).catch(()=>undefined);
         throw failure.error;
       }
-      uploaded.push(...results.map(result=>result.data!));
+      uploaded.push(...results.flatMap(result=>result.ok ? [result.data] : []));
     }
 
     const first = uploaded[0] ?? null;
