@@ -1,3 +1,4 @@
+import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import React, { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -165,6 +166,8 @@ export default function BuklodScopeHomeDashboard({
 
   return (
     <ScrollView
+      onScroll={event => reportBuklodDashboardScroll('scope', event.nativeEvent.contentOffset.y)}
+      scrollEventThrottle={64}
       contentContainerStyle={[
         styles.content,
         {
