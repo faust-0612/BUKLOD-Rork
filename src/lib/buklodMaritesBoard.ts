@@ -1150,6 +1150,7 @@ export async function publishMaritesStory(input: {
   body: string;
   photoUris: string[];
   video?: { uri: string; durationSeconds: number; mimeType: string } | null;
+  onProgress?: (fraction: number) => void;
 }): Promise<{
   story: MaritesStory;
   shared: boolean;
@@ -1196,13 +1197,19 @@ export async function publishMaritesStory(input: {
     if (input.video) {
       const { uploadCommunityVideoFile } = await import('@/lib/uploadCommunityVideoFile');
       videoPath = `${input.userId}/marites-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
-      await uploadCommunityVideoFile({ path: videoPath, uri: input.video.uri, contentType: input.video.mimeType });
+      await uploadCommunityVideoFile({
+        path: videoPath,
+        uri: input.video.uri,
+        contentType: input.video.mimeType,
+        onProgress: value=>input.onProgress?.(value.ratio*0.92),
+      });
       uploaded.push({ media_path: videoPath, media_mime_type: input.video.mimeType, media_size_bytes: 0 });
     }
     if (photoUris.length) {
       // Keep the exact photo order but prepare and upload in bounded parallel
       // lanes. Weak uplinks automatically drop to one lane in this helper.
       // The shared JPEG uploader avoids old per-photo base64 encoding.
+      let completedPhotos=0;
       // Settle every bounded worker before cleanup: Promise.all's immediate
       // rejection could otherwise leave slower successful PUTs orphaned.
       const results = await mapWithConcurrency(
@@ -1217,6 +1224,8 @@ export async function publishMaritesStory(input: {
               uri,
               wallPreview:true,
             });
+            completedPhotos+=1;
+            input.onProgress?.(completedPhotos/photoUris.length*0.92);
             return { ok:true as const, data:{
               media_path:result.path,
               media_mime_type:'image/jpeg',
@@ -1238,6 +1247,7 @@ export async function publishMaritesStory(input: {
       uploaded.push(...results.flatMap(result=>result.ok ? [result.data] : []));
     }
 
+    input.onProgress?.(0.95);
     const first = uploaded[0] ?? null;
 
     const sharedBody = withMaritesPostMarker(
@@ -1348,6 +1358,7 @@ export async function publishMaritesStory(input: {
       created_at: new Date().toISOString(),
     };
 
+    input.onProgress?.(1);
     return { story: sharedStory, shared: true };
   } catch (error) {
     // Once the RPC commits a post, deleting it on a later signing or
