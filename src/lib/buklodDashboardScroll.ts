@@ -25,3 +25,10 @@ export function subscribeBuklodDashboardScroll(listener: Listener): () => void {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
 }
+
+/** Section switches open at the top; never inherit the previous section's compact header. */
+export function resetBuklodDashboardScroll(route: BuklodDashboardRoute): void {
+  if (!compactByRoute[route]) return;
+  compactByRoute[route] = false;
+  listeners.forEach(listener => listener(route, false));
+}
