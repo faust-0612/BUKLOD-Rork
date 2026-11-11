@@ -351,7 +351,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
         {phase === 'round-clear' ? (
           <View pointerEvents="none" style={styles.clearBanner}>
             <Text style={styles.clearCaption}>✦ {t('NEW AREA RESTORED', 'BAGONG LUGAR NAIBALIK')} ✦</Text>
-            <Text style={styles.clearTitle}>{t(...GARDEN_AREAS[round - 1])}</Text>
+            <Text style={styles.clearTitle}>{t(GARDEN_AREAS[round - 1][0], GARDEN_AREAS[round - 1][1])}</Text>
           </View>
         ) : null}
       </Animated.View>
