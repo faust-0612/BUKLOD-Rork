@@ -25,8 +25,10 @@ test('original Android and Expo Web production workflows are dispatched exactly 
   assert.match(trigger, /for entry in/);
   assert.match(trigger, /\$api\/actions\/workflows\/\$workflow\/dispatches/);
   assert.match(trigger, /if \[ "\$code" != 204 \]/);
-  assert.match(android, /workflow_dispatch:/);
-  assert.match(web, /workflow_dispatch:/);
+  assert.doesNotMatch(android, /^  workflow_dispatch:/m);
+  assert.doesNotMatch(web, /^  workflow_dispatch:/m);
+  assert.match(android, /BUKLOD_CONSOLIDATED_PROD_20261108/);
+  assert.match(web, /BUKLOD_CONSOLIDATED_PROD_20261108/);
   assert.match(android, /concurrency:/);
   assert.match(web, /concurrency:/);
 });
@@ -49,7 +51,7 @@ test('locked BUKLOD V28 native 1.3.2 and Main Expo Hosting targets cannot drift'
   assert.match(config, /org\.mzbministry\.buklod/);
   assert.match(runtimeGate, /const runtime = '1\.3\.2'/);
   assert.match(runtimeGate, /const pinnedV28 = '2f26645e50e8e079ebf09f3999aacfc506ae7651'/);
-  assert.match(runtimeGate, /assertNativeExpoConfigCompatible/);
+  assert.match(runtimeGate, /assertNativeRuntimeCompatible/);
   assert.match(android, /node scripts\/android-ota-rc\.cjs baseline/);
   assert.match(android, /node scripts\/android-ota-rc\.cjs verify/);
   assert.match(web, /EXPECTED_MAIN_URL='https:\/\/yhanxndaqbmuzbdqlblu\.supabase\.co'/);

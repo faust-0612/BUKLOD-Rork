@@ -7,25 +7,21 @@ const read = path => readFileSync(path, 'utf8');
 test('global BUKLOD header is shorter but retains safe-area and notifications', () => {
   const source = read('src/app/(tabs)/_layout.tsx');
   assert.match(source, /paddingTop: insets\.top/);
-  assert.match(source, /minHeight: 48 \+ insets\.top/);
+  assert.match(source, /scrollCompact \? 42 : 52/);
   assert.match(source, /accessibilityLabel=\{/);
   assert.match(source, /unreadCount > 0/);
 });
 
-test('public Wall controls are compact and retain their actions', () => {
-  const source = read('src/app/(tabs)/buklod.tsx');
-  const start = source.indexOf('/* PATCH_161A_COMMUNITY_COMPACT */');
-  const end = source.indexOf("{Platform.OS !== 'web' ?", start);
-  assert.ok(start >= 0 && end > start);
-  const header = source.slice(start, end);
-  assert.match(header, /accessibilityLabel="Open My Bible"/);
-  assert.match(header, /accessibilityLabel="Open 702 DZAS Radio"/);
-  assert.match(header, /marginBottom:6/);
-  assert.match(header, /width:38/);
-  assert.match(header, /minHeight:38/);
-  assert.match(header, /height:38/);
-  assert.match(header, /minWidth:68,\s*height:38/);
-  assert.match(source, /BuklodCommunityWallProfileBubbles/);
+test('public Wall controls stay compact and accessible after extraction', () => {
+  const wall = read('src/app/(tabs)/buklod.tsx');
+  const shortcuts = read('src/components/BuklodWallQuickLinks.tsx');
+  assert.match(wall, /<BuklodWallQuickLinks/);
+  assert.match(shortcuts, /Open My Bible/);
+  assert.match(shortcuts, /Open 702 DZAS Radio/);
+  assert.match(shortcuts, /Open BUKLOD IGPAT videos/);
+  assert.match(shortcuts, /onCommunityPress/);
+  assert.match(shortcuts, /minHeight:42/);
+  assert.match(wall, /BuklodCommunityWallProfileBubbles/);
 });
 
 test('profile rail saves vertical space without removing search or profile bubbles', () => {
@@ -41,8 +37,8 @@ test('daily encouragement strip uses less vertical space without truncating the 
   assert.match(source, /numberOfLines=\{compact \? 1 : 2\}/);
   assert.match(source, /showFaithContent && !compact/);
   assert.match(source, /<Text style=\{styles\.reference\}>/);
-  assert.match(source, /paddingVertical: 6/);
-  assert.match(source, /width: 32,\s*height: 32/);
+  assert.match(source, /paddingVertical: 8/);
+  assert.match(source, /width: 36,\s*height: 36/);
   assert.match(source, /reference/);
 });
 

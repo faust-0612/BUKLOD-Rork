@@ -46,6 +46,7 @@ import {
   BUKLOD_HIT_SLOP,
   BUKLOD_HIT_SLOP_TIGHT,
 } from '@/lib/buklodTouch';
+import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import React, { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Image,
@@ -1635,6 +1636,8 @@ export default function MeScreen() {
   return (
     <ScrollView
       ref={profileScrollRef}
+      onScroll={event => reportBuklodDashboardScroll('profile', event.nativeEvent.contentOffset.y)}
+      scrollEventThrottle={64}
       style={[
         shared.screen,
         {
