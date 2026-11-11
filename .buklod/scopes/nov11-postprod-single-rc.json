@@ -1,0 +1,156 @@
+{
+  "contractVersion": 2,
+  "releaseMode": "consolidated-main-rc",
+  "scopeManifestPath": ".buklod/scopes/nov11-postprod-single-rc.json",
+  "objective": "Single BUKLOD Main post-production RC: Today public/private Dugtong and 72h inactivity rotation, Kingdom cinematic audio blur/stop, and animated GIF attachments to Public/Cluster/Organization comments from Android gallery or share. Inherits already-promoted PTT v2 from production main. NO OTA PUBLISH. Include verified IGPAT instant feed and natural full-frame Android/Web playback without forced zoom, for the NEXT consolidated OTA only.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: latest GitHub production main fad25d053023b6ea8008aa4a1b2e17a3c8ba1143 (security PR #675; Report Door legacy direct publish retired, prior PR #672 mandatory scope gate), zero behind. Existing production PTT v2 inherited and unchanged. No production OTA fingerprint, on-device GIF validation, or publish is claimed. New IGPAT forwardport base was existing integration/buklod-nov11-postprod-conso-ota; latest main still has independent later governance/security changes, requiring reconciliation before RC freeze.",
+  "chosenApproach": "Rebase isolated DEV source onto latest production main with only PR #667 Today and PR #668 Kingdom file blobs; preserve newly promoted PTT v2 and all production changes, run scoped release QA. Reconcile merged isolated PR #671 GIF comment code with no source overlap, preserve private per-scope media, and compile one exact post-production RC containing all three workstreams. Inherit governance-only production PR #672 using merge commit 4449b1518c9e018b7026d5e568cdbe9afa452759. The regression gate source is current main security code plus an explicit Nov11 consolidated-branch allowlist; no retired OTA bypass restored. Inherit latest protected Report Door OTA retirement from production main fad25d053023b6ea8008aa4a1b2e17a3c8ba1143 via merge 9971033357355b6dd75550eaeed75cb403799e7b, preserving release locks unchanged. Forward-port exact QA-verified IGPAT PR #679 files into the continuing post-production consolidated source, retaining every previously integrated workstream. All six preexisting IGPAT target files confirmed byte-identical to main before import. No unverified Expo publish.",
+  "selectionRationale": "Live main advanced to incorporate PTT and its edge release. Exact main-derived source avoids duplicate PTT updates and a PR merge conflict; no new native package. GIF intake is additive to existing public/scoped comment RPC and uses existing Expo picker and app cache; no new native module, runtime or database migration.",
+  "alternativeApproaches": [
+    "Merge old conflictful PR directly (rejected)",
+    "Duplicate already promoted PTT changes in RC (rejected)",
+    "Carry only missing Today/Kingdom changes on current main (chosen)"
+  ],
+  "componentScopePaths": [
+    ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
+    ".buklod/scopes/kingdom-cinematic-audio-20261111.json",
+    ".buklod/scopes/android-phone-gif-comments-20261111.json",
+    ".buklod/scopes/igpat-real-first-frame-20261111.json"
+  ],
+  "acceptanceChecks": [
+    "PTT v2 sources inherited unchanged from main and current JPEG hotfix preserved",
+    "13 Kingdom station routes and 39 games retained",
+    "Kingdom music opt-in, focus-blur pause/release with no unrelated audio stop",
+    "Today 72-hour activity/privacy and Dugtong SQL/RLS tests match previously deployed server migrations",
+    "Node regression, TypeScript, Android/Expo Web export must run on exact new head before RC verified",
+    "Premium fantasy map graphic remains unimplemented; do not claim complete visual update",
+    "No merge to main, Android OTA, Web publish, Play/AAB or database/Edge deployment from this branch",
+    "GIF comments from Android gallery / external share retain image/gif animation; target post selected explicitly and no automatic Wall root post",
+    "Public and scoped GIF comment private media signing, 25 MB bound, draft retry, scope ownership isolation and temporary file cleanup preserved",
+    "Exact-source GitHub engineering gate, TypeScript, Android and web export, and focused GIF regression tests PASS before release-eligible status",
+    "2026-11-11 owner explicitly waives physical Android device verification only; all automated and production release gates remain required",
+    "Production governance PR #672 strict all-change scope and disabled direct OTA bypasses inherited and verified after exact-source build",
+    "Legacy Report Door direct OTA path retired as in production main PR #675; production Android/web publishers and direct PowerShell OTA still guarded",
+    "IGPAT Android/Web feed, Home preview and web creator retain natural full-frame contain without default zoom; manual crop choice remains supported",
+    "IGPAT authorized metadata paints before private first URL signing; keep current scroll and reaction state",
+    "IGPAT offscreen player warm-only; signed URLs prioritize first/next and batch later rows with bounded fallback, account/mode-generation isolation",
+    "All four IGPAT focused runnable regression suites pass on exact integrated RC source",
+    "New IGPAT source invalidates earlier frozen RC artifacts; compile fresh Android and Web on exact next consolidated RC SHA before any OTA",
+    "Next consolidated OTA only: do not publish or merge into main from this source inclusion",
+    "Do not include Smart Drawer Google Drive native feature (explicit release hold for later native release)"
+  ],
+  "preserveBehaviors": [
+    "Previous production PTT 2.0, video/audio mixing and caption Edge v2",
+    "Photo upload fast lane, all existing Home/Wall/Connect features",
+    "Auth, finance, Shards, BP and RLS protection",
+    "Main runtime 1.3.2 and no native package changes",
+    "Community root-post GIF restriction is unchanged; public/scoped comment RPC, reactions, replies and drafts remain unchanged",
+    "External Android text/photo/video share routes remain unchanged",
+    "Mandatory scope manifest for every product/script/workflow/test change and blocked direct OTA routes from production governance PR #672",
+    "Latest Report Door release retirement in production remains unchanged, with no direct production publish path",
+    "IGPAT signed private videos, native/web AdMob Reel pages, audio mixing/PTT, Quick Edit and data saver, unchanged app runtime 1.3.2"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "connect",
+    "auth-privacy",
+    "ads-monetization",
+    "release-identity",
+    "audio-lifecycle",
+    "kingdom-visual",
+    "igpat-fullframe",
+    "igpat-private-media-signing",
+    "video-memory-buffering"
+  ],
+  "regressionTests": [
+    "supabase/tests/buklod_today_privacy_idle_v2.sql",
+    "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs",
+    "tests/buklod-home-profile-support-20261108.test.mjs",
+    "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
+    "tests/engineering-regression-gate.test.mjs",
+    "tests/igpat-fast-start-video-20261110.test.mjs",
+    "tests/igpat-first-frame-faststart-20261111.test.mjs",
+    "tests/igpat-full-frame-no-zoom-20261111.test.mjs",
+    "tests/igpat-sign-batch-20261111.test.mjs",
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/android-phone-gif-comments-20261111.json",
+    ".buklod/scopes/buklod-today-public-dugtong-inactivity-20261111.json",
+    ".buklod/scopes/igpat-real-first-frame-20261111.json",
+    ".buklod/scopes/kingdom-cinematic-audio-20261111.json",
+    ".buklod/scopes/nov11-postprod-single-rc.json",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "assets/sounds/buklod-kingdom-cinematic-ambient.wav",
+    "scripts/engineering-regression-gate.mjs",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/igpat/create.web.tsx",
+    "src/app/igpat/index.tsx",
+    "src/app/igpat/index.web.tsx",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodHomeReelsExtension.tsx",
+    "src/components/BuklodTodayCard.tsx",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "src/features/games/runtime/rorkAudio.ts",
+    "src/lib/buklodCommentGifShare.ts",
+    "src/lib/buklodPickCommunityPhotos.ts",
+    "src/lib/igpat/quickEdit.ts",
+    "src/lib/igpat/signBatch.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "supabase/migrations/20261111102700_buklod_today_public_dugtong_idle_rotation_v2.sql",
+    "supabase/migrations/20261111113000_buklod_today_cycles_fk_index_v2.sql",
+    "supabase/migrations/20261111115500_buklod_today_public_dugtong_paging_v2.sql",
+    "supabase/tests/buklod_today_privacy_idle_v2.sql",
+    "tests/buklod-comment-share-navigation-scroll-20261111.test.mjs",
+    "tests/buklod-home-profile-support-20261108.test.mjs",
+    "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
+    "tests/engineering-regression-gate.test.mjs",
+    "tests/igpat-fast-start-video-20261110.test.mjs",
+    "tests/igpat-first-frame-faststart-20261111.test.mjs",
+    "tests/igpat-full-frame-no-zoom-20261111.test.mjs",
+    "tests/igpat-sign-batch-20261111.test.mjs",
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+  ],
+  "sourceIntake": [
+    {
+      "pr": 667,
+      "sha": "fccc1ab5626982f0f0cd4da59616f49e8f2f4ea7"
+    },
+    {
+      "pr": 668,
+      "sha": "41ce980e316eaf714f7f33d0a58fceda2664ea75"
+    },
+    {
+      "pr": 671,
+      "sha": "f656fbb23a35e15768e79d36bcc1688748b19168",
+      "squashCommit": "cc811bae83efb339346a3d30abc1f24cdff2c1be"
+    },
+    {
+      "pr": 679,
+      "sha": "566448cbc6bc19ff5a6b07084ab52a5734d2fa19",
+      "scopePath": ".buklod/scopes/igpat-real-first-frame-20261111.json",
+      "import": "exact eleven verified source/test paths",
+      "state": "INCLUDED_IN_NEXT_CONSO_DEV_SOURCE__REQUIRES_NEW_RC_COMPILE"
+    }
+  ],
+  "inheritedProduction": {
+    "sha": "fad25d053023b6ea8008aa4a1b2e17a3c8ba1143",
+    "pttPr": 669,
+    "pttSource": "255af9baabd8bd375f6ec971097380de964b76cd",
+    "pttPromotionSha": "6d1a80e3d009aafcfd94444dc198cb8465e68c2f",
+    "securityGuardrailsPr": 672,
+    "securityGuardrailsSha": "ce164744c55428fb43c51f5d4bf1a2c74ee1616f",
+    "reportDoorRetirementPr": 675,
+    "reportDoorRetirementSha": "fad25d053023b6ea8008aa4a1b2e17a3c8ba1143"
+  },
+  "releaseState": "NEXT_CONSO_DEV_SOURCE_IGPAT_INCLUDED__FULL_RC_COMPILE_AND_PRODUCTION_RECONCILIATION_REQUIRED__NO_OTA",
+  "verificationWaivers": [
+    "Owner waived hands-on Android/device GIF comment validation on 2026-11-11; this waiver does not cover TypeScript, automated regressions, RC Android/web compilation, security/RLS nor exact OTA artifact verification."
+  ]
+}

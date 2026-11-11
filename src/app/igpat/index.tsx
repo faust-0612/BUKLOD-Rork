@@ -30,6 +30,8 @@ import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { classifyNetworkQuality } from '@/lib/buklodNetworkQuality';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { signIgpatRowsInBatch } from '@/lib/igpat/signBatch';
 import {
   getIgpatWarmFeed,
   igpatFeedKey,
@@ -58,35 +60,19 @@ type FeedMode = 'for-you' | 'following' | 'latest';
 const NORMAL_LIMIT = 16;
 const DATA_SAVER_LIMIT = 8;
 const SIGNED_URL_TTL_SECONDS = 1200;
-const SIGN_CONCURRENCY = 4;
 const DATA_SAVER_KEY = '@buklod_igpat_data_saver_v1';
 const SAVED_IGPAT_KEY = '@buklod_igpat_saved_ids_v1';
 
-async function mapWithConcurrency<T, R>(
-  values: T[],
-  limit: number,
-  worker: (value: T) => Promise<R>
-): Promise<R[]> {
-  const results = new Array<R>(values.length);
-  let cursor = 0;
-
-  async function runWorker() {
-    while (true) {
-      const index = cursor++;
-      if (index >= values.length) return;
-      results[index] = await worker(values[index]);
-    }
-  }
-
-  await Promise.all(
-    Array.from({ length: Math.min(limit, values.length) }, () => runWorker())
-  );
-
-  return results;
-}
-
-function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
+function IgpatVideo({
+  uri,
+  active,
+  conservativeBuffer,
+}: { uri: string; active: boolean; conservativeBuffer: boolean }) {
   const [pausedByUser, setPausedByUser] = useState(false);
+  const [firstFrameUri, setFirstFrameUri] = useState<string | null>(null);
+  const [showTapHint, setShowTapHint] = useState(false);
+  const playbackActivatedAtRef = useRef(Date.now());
+  const firstFrameReportedRef = useRef(false);
   // Native cache and HLS auto-ABR when the backend supplies a playlist.
   // The next (paused) row mounts a player ahead of time to fill its initial buffer.
   const source = useMemo<VideoSource>(() => ({
@@ -100,10 +86,11 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
     // Passive PTT monitoring must not pause an already playing reel.
     instance.audioMixingMode = 'mixWithOthers';
     if (Platform.OS !== 'web') {
-      instance.bufferOptions = {
-        minBufferForPlayback: 1.5,
-        preferredForwardBufferDuration: 16,
-      };
+      // Start quickly on healthy connections; weak networks retain a larger
+      // safety buffer. Never start another offscreen playback.
+      instance.bufferOptions = conservativeBuffer
+        ? { minBufferForPlayback: 1.5, preferredForwardBufferDuration: 16 }
+        : { minBufferForPlayback: 0.75, preferredForwardBufferDuration: 12 };
     }
   });
   useEffect(() => {
@@ -113,15 +100,7 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
     let bufferingSince = 0;
     const playing = player.addListener('playingChange', event => {
       if (!event.isPlaying) return;
-      if (!played) {
-        played = true;
-        recordCommunityFeedMetric({
-          stage: 'video_startup',
-          elapsedMs: Date.now() - startedAt,
-          status: 'ok',
-          player: 'expo-video',
-        });
-      }
+      if (!played) played = true; // Actual startup is measured at the first rendered frame.
       if (bufferingSince) {
         recordCommunityFeedMetric({
           stage: 'video_rebuffer',
@@ -151,6 +130,43 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
       status.remove();
     };
   }, [active, player, uri]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      player.bufferOptions = conservativeBuffer
+        ? { minBufferForPlayback: 1.5, preferredForwardBufferDuration: 16 }
+        : { minBufferForPlayback: 0.75, preferredForwardBufferDuration: 12 };
+    }
+  }, [conservativeBuffer, player]);
+
+  useEffect(() => {
+    if (active) {
+      playbackActivatedAtRef.current = Date.now();
+      firstFrameReportedRef.current = false;
+    } else {
+      setFirstFrameUri(null);
+    }
+  }, [active, uri]);
+
+  useEffect(() => {
+    setShowTapHint(false);
+    if (!active || firstFrameUri === uri) return;
+    const timeout = setTimeout(() => setShowTapHint(true), 3000);
+    return () => clearTimeout(timeout);
+  }, [active, firstFrameUri, uri]);
+
+  const handleFirstFrameRender = () => {
+    setFirstFrameUri(uri);
+    if (active && !firstFrameReportedRef.current) {
+      firstFrameReportedRef.current = true;
+      recordCommunityFeedMetric({
+        stage: 'video_startup',
+        elapsedMs: Date.now() - playbackActivatedAtRef.current,
+        status: 'ok',
+        player: 'expo-video',
+      });
+    }
+  };
 
   useEffect(() => {
     try {
@@ -189,19 +205,36 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
   return (
     <Pressable
       style={StyleSheet.absoluteFill}
-      onPress={() => active && setPausedByUser(current => !current)}
+      onPress={() => {
+        if (!active) return;
+        if (firstFrameUri !== uri) {
+          setPausedByUser(false);
+          try { player.play(); } catch {}
+        } else {
+          setPausedByUser(current => !current);
+        }
+      }}
       onLongPress={startFastPlayback}
       onPressOut={stopFastPlayback}
       delayLongPress={220}
       accessibilityRole="button"
       accessibilityLabel={pausedByUser ? 'Play IGPAT video' : 'Pause IGPAT video'}
     >
-      <VideoView
-        player={player}
-        style={StyleSheet.absoluteFill}
-        nativeControls={false}
-        contentFit="contain"
-      />
+      {active ? (
+        <VideoView
+          player={player}
+          style={StyleSheet.absoluteFill}
+          nativeControls={false}
+          contentFit="contain"
+          onFirstFrameRender={handleFirstFrameRender}
+        />
+      ) : null}
+      {active && firstFrameUri !== uri ? (
+        <View pointerEvents="none" style={styles.videoLoading}>
+          <ActivityIndicator size="small" color="#FFFFFF" />
+          <Text style={styles.videoLoadingText}>{showTapHint ? 'TAP TO PLAY' : 'OPENING VIDEO'}</Text>
+        </View>
+      ) : null}
       {active && pausedByUser && (
         <View pointerEvents="none" style={styles.pausedBadge}>
           <MaterialCommunityIcons name="play" size={18} color="#FFFFFF" />
@@ -397,13 +430,27 @@ export default function IgpatScreen() {
         .filter(row => Boolean(row.media_path))
         .slice(0, limit);
 
+      // Paint authorized feed text and controls as soon as the RPC returns.
+      // Video access is signed independently; keep the first surface loading.
+      const pendingFirstMedia = retainedRows.length === 0 && source.length > 0;
+      if (pendingFirstMedia) {
+        const pending = source.map(row => ({ ...row, media_url: undefined }));
+        rowsRef.current = pending;
+        setRows(pending);
+        setLoading(false);
+      }
+
       // Sign the first video first: do not block first paint on every URL.
       // Keep stable row IDs/order while the remaining signed URLs arrive.
       const sign = async (row: IgpatRow): Promise<IgpatRow> => {
         try {
-          const { data: signed, error: signError } = await supabase.storage
-            .from('community-media')
-            .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS);
+          const { data: signed, error: signError } = await withBuklodTimeout(
+            supabase.storage
+              .from('community-media')
+              .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS),
+            9000,
+            'IGPAT video access',
+          );
           if (signError) throw signError;
           return { ...row, media_url: signed?.signedUrl ?? null };
         } catch (error) {
@@ -417,32 +464,79 @@ export default function IgpatScreen() {
         index === 0 ? first! : { ...row, media_url: undefined },
       );
       if (first?.media_url || retainedRows.length === 0 || source.length === 0) {
-        rowsRef.current = seeded;
-        setRows(seeded);
+        const alreadyShown = pendingFirstMedia
+          ? new Map(rowsRef.current.map(row => [row.id, row]))
+          : null;
+        const readyRows = pendingFirstMedia
+          ? seeded.map(row => {
+              const displayed = alreadyShown?.get(row.id);
+              if (!displayed || displayed.media_path !== row.media_path) return row;
+              return {
+                ...row,
+                my_reaction: displayed.my_reaction,
+                reaction_count: displayed.reaction_count,
+                comment_count: displayed.comment_count,
+                media_url: row.media_url !== undefined ? row.media_url : displayed.media_url,
+              };
+            })
+          : seeded;
+        rowsRef.current = readyRows;
+        setRows(readyRows);
         if (first?.media_url) {
-          rememberIgpatWarmFeed(user.id, feedMode, dataSaver, seeded);
+          rememberIgpatWarmFeed(user.id, feedMode, dataSaver, readyRows);
         }
       }
-      // A refresh must not snap the viewer back to page one.
-      if (!matchingFeed) setActiveIndex(0);
+      // The user's swipe position must not jump back to page one after signing.
       setLoading(false);
       // Background signing never shifts the list or overrides a later feed request.
-      void mapWithConcurrency(source.slice(1), SIGN_CONCURRENCY, async row => {
-        const signed = await sign(row);
-        if (generation === loadGenerationRef.current && signed.media_url) {
-          const next = rowsRef.current.map(item => item.id === signed.id ? signed : item);
+      // The next clip gets first priority; all later clips share a single
+      // Storage signing request instead of triggering one React render each.
+      // Never overwrite rows from a newer feed or a different media path.
+      const applySignedRows = (signedRows: IgpatRow[]) => {
+        if (generation !== loadGenerationRef.current || !signedRows.length) return;
+        const byId = new Map(signedRows.map(row => [row.id, row]));
+        let changed = false;
+        const next = rowsRef.current.map(item => {
+          const signed = byId.get(item.id);
+          if (!signed || signed.media_path !== item.media_path) return item;
+          const usableUrl = signed.media_url || item.media_url || null;
+          if (item.media_url === usableUrl) return item;
+          changed = true;
+          return { ...item, media_url: usableUrl };
+        });
+        if (changed) {
           rowsRef.current = next;
           setRows(next);
-          if (getIgpatWarmFeed<IgpatRow>(user.id, feedMode, dataSaver).length) {
-            updateIgpatWarmFeedRow(user.id, feedMode, dataSaver, signed);
-          } else {
-            rememberIgpatWarmFeed(user.id, feedMode, dataSaver, next);
-          }
         }
-        return signed;
-      }).catch(error => {
-        console.warn('BUKLOD IGPAT background sign:', String(error));
-      });
+        const available = signedRows.filter(row => Boolean(row.media_url));
+        if (!available.length) return;
+        if (getIgpatWarmFeed<IgpatRow>(user.id, feedMode, dataSaver).length) {
+          for (const row of available) {
+            updateIgpatWarmFeedRow(user.id, feedMode, dataSaver, row);
+          }
+        } else {
+          rememberIgpatWarmFeed(user.id, feedMode, dataSaver, next);
+        }
+      };
+      if (source.length > 1) {
+        void sign(source[1]).then(row => applySignedRows([row]))
+          .catch(() => console.warn('BUKLOD IGPAT next video sign failed'));
+      }
+      if (source.length > 2) {
+        void signIgpatRowsInBatch(
+          source.slice(2),
+          paths => withBuklodTimeout(
+            supabase.storage.from('community-media')
+              .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS),
+            9000,
+            'IGPAT background sign batch',
+          ),
+          sign,
+          () => generation === loadGenerationRef.current,
+          applySignedRows,
+        ).then(applySignedRows)
+          .catch(() => console.warn('BUKLOD IGPAT batch sign failed'));
+      }
     } catch (error) {
       const message = String((error as any)?.message ?? error);
       console.warn('BUKLOD IGPAT load:', message);
@@ -664,9 +758,9 @@ export default function IgpatScreen() {
         keyExtractor={item => item.id}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        initialNumToRender={1}
+        initialNumToRender={2}
         maxToRenderPerBatch={3}
-        updateCellsBatchingPeriod={60}
+        updateCellsBatchingPeriod={40}
         windowSize={5}
         removeClippedSubviews
         decelerationRate="fast"
@@ -709,7 +803,11 @@ export default function IgpatScreen() {
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
               {!!item.media_url && (index === activeIndex || index === nextPlayableIndex) ? (
-                <IgpatVideo uri={item.media_url} active={index === activeIndex} />
+                <IgpatVideo
+                  uri={item.media_url}
+                  active={index === activeIndex}
+                  conservativeBuffer={dataSaver || weakSignal}
+                />
               ) : null}
               {index === activeIndex && !item.media_url ? (
                 <View style={styles.center}>
@@ -784,7 +882,7 @@ export default function IgpatScreen() {
                   icon="comment-outline"
                   label="Open comments"
                   count={item.comment_count}
-                  onPress={() => router.push(`/post/${item.id}` as any)}
+                  onPress={() => router.push(`/post/${item.id}?openComments=1` as any)}
                 />
                 <ActionButton
                   icon="share-variant-outline"
@@ -833,6 +931,19 @@ export default function IgpatScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#050807' },
+  videoLoading: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#050807',
+  },
+  videoLoadingText: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+  },
   page: { width: '100%', backgroundColor: '#050807', overflow: 'hidden' },
   center: {
     flex: 1,

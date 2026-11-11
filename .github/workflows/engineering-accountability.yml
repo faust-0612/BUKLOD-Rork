@@ -35,6 +35,20 @@ jobs:
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-consolidated-rc.json" >> "$GITHUB_ENV"
                 echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
               fi;;
+            integration/buklod-nov11-postprod-conso-ota)
+              if [ "$PR_BASE" = "main" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-postprod-single-rc.json" >> "$GITHUB_ENV"
+                echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
+              fi;;
+            integration/buklod-nov11-complete-source-hold-20261111|integration/buklod-nov11-reconciled-ota-candidate)
+              # This exact DEV source may be compiled against its ancestral
+              # postprod branch while its production-main merge is blocked.
+              # All accountability checks still compare against current main.
+              if [ "$PR_BASE" = "main" ] || [ "$PR_BASE" = "integration/buklod-nov11-postprod-conso-ota" ] || [ "$PR_BASE" = "qa/buklod-nov11-source-compile-20261111" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-complete-source-hold.json" >> "$GITHUB_ENV"
+                echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
+                echo "BUKLOD_BASE_REF=main" >> "$GITHUB_ENV"
+              fi;;
             integration/buklod-nov09-bible-v4-rank-ptt-ota-rc)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/bible-v4-events-kingdom-20261109.json" >> "$GITHUB_ENV";;
             fix/referral-economy-cors-20261109)
@@ -269,7 +283,7 @@ jobs:
         run: node --test tests/engineering-regression-gate.test.mjs
       - name: Verify impacted features have runnable regression coverage
         env:
-          BUKLOD_BASE_REF: ${{ github.base_ref || 'main' }}
+          BUKLOD_BASE_REF: ${{ ((github.head_ref == 'integration/buklod-nov11-complete-source-hold-20261111' || github.head_ref == 'integration/buklod-nov11-reconciled-ota-candidate') && github.base_ref == 'qa/buklod-nov11-source-compile-20261111') && 'main' || github.base_ref || 'main' }}
         run: node scripts/engineering-regression-gate.mjs --run-focused-node-tests
       - name: Verify profile card RLS migration security contract
         if: github.head_ref == 'security/public-profile-cards-invoker-20261030'

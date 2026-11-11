@@ -99,15 +99,19 @@ export default function BuklodCommunityCommentComposer({
     inputFocusRef.current?.focus();
   };
 
+  const isPickedGif = (photo: { uri: string; mimeType?: string }) =>
+    String(photo.mimeType ?? '').split(';')[0].trim().toLowerCase() === 'image/gif' ||
+    /\.gif(?:[?#]|$)/i.test(photo.uri);
+
   const pickPhoto = async () => {
     if (pickingPhoto || busy) return;
     setPickingPhoto(true);
     try {
-      const photos = await pickCommunityPhotos({ remaining: 1, maxPhotos: 1 });
+      const photos = await pickCommunityPhotos({ remaining: 1, maxPhotos: 1, preserveAnimation: true });
       const photo = photos[0];
       if (!photo?.uri) return;
       onMediaChange(
-        { kind: 'image', ref: photo.uri },
+        { kind: isPickedGif(photo) ? 'gif' : 'image', ref: photo.uri },
         photo.uri,
       );
       setReactionOpen(false);
@@ -127,6 +131,28 @@ export default function BuklodCommunityCommentComposer({
     onMediaChange({ kind: 'gif', ref: url }, url);
     setGifOpen(false);
     setReactionOpen(false);
+  };
+
+  const pickGifFromPhone = async () => {
+    if (pickingPhoto || busy) return;
+    setPickingPhoto(true);
+    try {
+      const [photo] = await pickCommunityPhotos({
+        remaining: 1, maxPhotos: 1, preserveAnimation: true,
+      });
+      if (!photo?.uri) return;
+      if (!isPickedGif(photo)) {
+        Alert.alert('GIF', 'Select an animated .gif file from your phone.');
+        return;
+      }
+      onMediaChange({ kind: 'gif', ref: photo.uri }, photo.uri);
+      setGifOpen(false);
+      setReactionOpen(false);
+    } catch (error: any) {
+      Alert.alert('GIF', error?.message ?? 'Could not select this GIF.');
+    } finally {
+      setPickingPhoto(false);
+    }
   };
 
   // The parent sheet owns keyboard avoidance; padding the composer by the
@@ -302,6 +328,21 @@ export default function BuklodCommunityCommentComposer({
               <MaterialCommunityIcons name="close" size={22} color={colors.text} />
             </Pressable>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Choose GIF from phone gallery"
+            disabled={busy || pickingPhoto}
+            onPress={() => void pickGifFromPhone()}
+            style={{
+              marginHorizontal: 14, marginBottom: 10, padding: 12,
+              borderRadius: 12, flexDirection: 'row',
+              alignItems: 'center', gap: 8, backgroundColor: '#E8F5EE',
+            }}
+          >
+            {pickingPhoto ? <ActivityIndicator size="small" color={colors.green} /> :
+              <MaterialCommunityIcons name="cellphone" size={20} color={colors.green} />}
+            <Text style={{ color: colors.green, fontWeight: '800' }}>Choose GIF from phone</Text>
+          </Pressable>
           <FlatList
             data={gifItems}
             keyExtractor={item => item.id}

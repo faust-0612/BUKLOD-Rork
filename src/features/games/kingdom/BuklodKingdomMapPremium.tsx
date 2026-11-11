@@ -9,10 +9,9 @@ import Svg, {
   LinearGradient as SvgGradient, Path, Rect, Stop,
 } from 'react-native-svg';
 import { useAuth } from '@/providers/AuthProvider';
-import { playRorkSignatureSfx, useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
+import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
 import BuklodKingdomAtmosphere from './BuklodKingdomAtmosphere';
-import { playBuklodGameFeedback } from '@/features/games/runtime/BuklodGameFeedback';
 import { getBuklodSoundSettings } from '@/lib/buklodSounds';
 import {
   loadBuklodKingdomPreviewProgress,
@@ -133,20 +132,20 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
     <Svg width={mapWidth} height={mapHeight} viewBox="0 0 1200 900" pointerEvents="none">
       <Defs>
         <SvgGradient id="sea" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#3db5d6" />
-          <Stop offset=".5" stopColor="#218faf" />
-          <Stop offset="1" stopColor="#10658c" />
+          <Stop offset="0" stopColor="#1b91c6" />
+          <Stop offset=".5" stopColor="#07547b" />
+          <Stop offset="1" stopColor="#0c2c60" />
         </SvgGradient>
         <SvgGradient id="cliff" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#c7e2b2" />
-          <Stop offset=".6" stopColor="#79b9a7" />
-          <Stop offset="1" stopColor="#287b91" />
+          <Stop offset="0" stopColor="#a9cfb5" />
+          <Stop offset=".6" stopColor="#477f84" />
+          <Stop offset="1" stopColor="#1d4269" />
         </SvgGradient>
         <SvgGradient id="meadow" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#e0eca6" />
-          <Stop offset=".34" stopColor="#a4d580" />
-          <Stop offset=".68" stopColor="#6cae78" />
-          <Stop offset="1" stopColor="#438c77" />
+          <Stop offset="0" stopColor="#d5e8a1" />
+          <Stop offset=".34" stopColor="#69bb7c" />
+          <Stop offset=".68" stopColor="#328961" />
+          <Stop offset="1" stopColor="#1c6159" />
         </SvgGradient>
         <SvgGradient id="river" x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0" stopColor="#bbf7ef" />
@@ -163,9 +162,9 @@ function IllustratedRealm({ mapWidth, mapHeight, stage }: { mapWidth: number; ma
           <Stop offset="1" stopColor="#4f6f83" />
         </SvgGradient>
         <SvgGradient id="castle" x1="0" y1="0" x2=".8" y2="1">
-          <Stop offset="0" stopColor="#fff7d9" />
-          <Stop offset=".5" stopColor="#e0bc79" />
-          <Stop offset="1" stopColor="#a97b50" />
+          <Stop offset="0" stopColor="#fff4ce" />
+          <Stop offset=".5" stopColor="#f1c66b" />
+          <Stop offset="1" stopColor="#865b38" />
         </SvgGradient>
       </Defs>
       <Rect width={1200} height={900} fill="url(#sea)" />
@@ -488,8 +487,9 @@ function KingdomStation({
   onEnter: (station: Station) => void;
   onFocus: (station: Station) => void;
 }) {
-  const diameter = compact ? 43 : 68;
-  const w = compact ? 48 : 121;
+  // Smaller, glass-like hotspots reveal the world beneath instead of covering it.
+  const diameter = compact ? 29 : 43;
+  const w = compact ? 36 : 102;
   return (
     <View style={[
       styles.stationAnchor, {
@@ -513,11 +513,11 @@ function KingdomStation({
           selected && styles.beaconSelected,
         ]}>
           <LinearGradient
-            colors={selected ? ['#fff7cd', '#d6aa5f'] : ['#fff9ed', '#e0d2b5', '#adbcb2']}
+            colors={selected ? ['#f5d79c', '#9d672e', '#324355'] : ['#26455d', '#122b42', '#0b2036']}
             style={[styles.beaconFill, { borderRadius: diameter / 2 }]}
           >
             <MaterialCommunityIcons
-              name={station.icon} size={compact ? 20 : 26} color="#27495a" />
+              name={station.icon} size={compact ? 15 : 21} color="#f7dd9c" />
           </LinearGradient>
           {!compact && <View style={styles.stationNumber}><Text style={styles.stationNumberText}>{index + 1}</Text></View>}
           {cleared && <View style={styles.stationCleared}>
@@ -543,7 +543,8 @@ export default function BuklodKingdomMapPremium() {
   const [selectedId, setSelectedId] = useState('christian-civic-leadership');
   const [mode, setMode] = useState<'detail' | 'fit'>('detail');
   const [zoomStep, setZoomStep] = useState(0);
-  const [panelExpanded, setPanelExpanded] = useState(true);
+  // Start map-first; the station dock remains one tap away.
+  const [panelExpanded, setPanelExpanded] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(550);
   const horizontalRef = useRef<ScrollView>(null);
   const verticalRef = useRef<ScrollView>(null);
@@ -604,14 +605,12 @@ export default function BuklodKingdomMapPremium() {
   }, [zoomStep, mode, focus, selectedStation]);
 
   const chooseStation = useCallback((station: Station) => {
-    void playBuklodGameFeedback('move');
     setSelectedId(station.id);
     focus(station);
   }, [focus]);
 
   const enterStation = useCallback((station: Station) => {
     setSelectedId(station.id);
-    if (!playRorkSignatureSfx(station.id, .20)) void playBuklodGameFeedback('unlock');
     router.push(station.href as any);
   }, []);
 
@@ -623,7 +622,7 @@ export default function BuklodKingdomMapPremium() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={['#40bbd1', '#86dce6', '#1d86ad']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0d3b62', '#176b83', '#071e3b']} style={StyleSheet.absoluteFill} />
 
       <ScrollView
         ref={horizontalRef} horizontal bounces={false} showsHorizontalScrollIndicator={false}
@@ -799,31 +798,31 @@ export default function BuklodKingdomMapPremium() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#40adcf' },
+  root: { flex: 1, backgroundColor: '#0d416b' },
   mapScroll: { flex: 1 },
   verticalScroll: { flex: 1 },
   horizontalContent: { justifyContent: 'center' },
   verticalContent: { alignItems: 'center', justifyContent: 'center' },
-  worldFrame: { position: 'relative', overflow: 'hidden', backgroundColor: '#40adcf' },
+  worldFrame: { position: 'relative', overflow: 'hidden', backgroundColor: '#0d416b' },
   stationAnchor: { position: 'absolute', alignItems: 'center' },
   stationPress: { width: '100%', alignItems: 'center' },
   stationPressed: { transform: [{ scale: .95 }] },
   beacon: {
-    backgroundColor: '#1b3b4f', borderWidth: 3,
+    backgroundColor: '#132d46', borderWidth: 2,
     justifyContent: 'center', alignItems: 'center',
     shadowColor: '#071724', shadowOpacity: .42, shadowRadius: 10, elevation: 6,
   },
   beaconSelected: { shadowColor: '#f3dfa0', shadowOpacity: .67, shadowRadius: 13, elevation: 10 },
   beaconFill: {
     width: '100%', height: '100%',
-    borderWidth: 2, borderColor: '#fff9e0',
+    borderWidth: 1, borderColor: 'rgba(255,225,153,.72)',
     justifyContent: 'center', alignItems: 'center',
   },
   stationNumber: {
-    position: 'absolute', top: -9, left: -11,
-    width: 26, height: 26, borderRadius: 13,
-    borderWidth: 2, borderColor: '#f8e0a7',
-    backgroundColor: '#284358', alignItems: 'center', justifyContent: 'center',
+    position: 'absolute', top: -7, left: -8,
+    width: 21, height: 21, borderRadius: 11,
+    borderWidth: 1, borderColor: '#f8e0a7',
+    backgroundColor: '#142e48', alignItems: 'center', justifyContent: 'center',
   },
   stationNumberText: { color: '#fff0c9', fontWeight: '900', fontSize: 11 },
   stationCleared: {
@@ -833,14 +832,14 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   stationPlaque: {
-    marginTop: 3, width: 118, borderWidth: 1, borderColor: '#c2ad83',
-    backgroundColor: 'rgba(255,247,215,.95)',
-    paddingHorizontal: 6, paddingVertical: 6, borderRadius: 9,
+    marginTop: 3, width: 103, borderWidth: 1, borderColor: 'rgba(241,200,111,.8)',
+    backgroundColor: 'rgba(9,26,49,.88)',
+    paddingHorizontal: 5, paddingVertical: 4, borderRadius: 12,
     alignItems: 'center', shadowColor: '#07111b', shadowOpacity: .3, shadowRadius: 8,
   },
-  stationPlaqueSelected: { borderColor: '#dba44f', borderWidth: 2, backgroundColor: '#fff0bf' },
-  stationName: { color: '#324b44', fontSize: 12, fontWeight: '900' },
-  stationZone: { color: '#496866', fontSize: 8, fontWeight: '800' },
+  stationPlaqueSelected: { borderColor: '#f4cc74', borderWidth: 1.5, backgroundColor: 'rgba(25,43,70,.96)' },
+  stationName: { color: '#ffedc0', fontSize: 11, fontWeight: '900' },
+  stationZone: { color: '#c6dce5', fontSize: 7.5, fontWeight: '700' },
   futureMarker: {
     position: 'absolute', width: 44, height: 44, borderRadius: 22,
     backgroundColor: 'rgba(29,58,65,.58)',
@@ -872,7 +871,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 71,
     paddingHorizontal: 11, paddingBottom: 9,
     borderBottomWidth: 1, borderBottomColor: '#8c835f',
-    backgroundColor: 'rgba(7,26,42,.95)',
+    backgroundColor: 'rgba(5,20,44,.96)',
   },
   back: {
     width: 41, height: 41, borderRadius: 12, borderWidth: 1,
@@ -897,7 +896,7 @@ const styles = StyleSheet.create({
   fitLabel: { color: '#ffedc5', fontSize: 8, fontWeight: '900' },
   zoomTools: {
     position: 'absolute', zIndex: 81, right: 10, borderRadius: 15,
-    backgroundColor: 'rgba(8,30,43,.94)', borderWidth: 1, borderColor: '#cbb283',
+    backgroundColor: 'rgba(6,26,53,.92)', borderWidth: 1, borderColor: '#d5b678',
     alignItems: 'center', padding: 5, gap: 3, elevation: 5,
   },
   zoomButton: {
@@ -908,9 +907,9 @@ const styles = StyleSheet.create({
 
   bottomPanel: {
     position: 'absolute', zIndex: 80, left: 8, right: 8,
-    borderWidth: 1, borderColor: '#c0a977',
-    borderRadius: 17, paddingTop: 9, paddingBottom: 11, gap: 7,
-    backgroundColor: 'rgba(8,28,43,.96)',
+    borderWidth: 1, borderColor: '#d6b46d',
+    borderRadius: 18, paddingTop: 8, paddingBottom: 9, gap: 6,
+    backgroundColor: 'rgba(7,24,49,.95)',
     shadowColor: '#07141e', shadowOpacity: .48, shadowRadius: 12,
     elevation: 12,
   },
@@ -937,7 +936,7 @@ const styles = StyleSheet.create({
     borderRadius:8, backgroundColor:'rgba(39,71,86,.6)' },
   showDock: { position:'absolute',zIndex:80,alignSelf:'center',flexDirection:'row',
     alignItems:'center',gap:8,paddingHorizontal:18,paddingVertical:12,
-    backgroundColor:'rgba(9,44,58,.93)',borderWidth:1,borderColor:'#fff0bc',
+    backgroundColor:'rgba(8,30,58,.94)',borderWidth:1,borderColor:'#f5d393',
     borderRadius:16,elevation:9 },
   showDockText: { color:'#fff2cd',fontSize:12,fontWeight:'900' },
   railTitle: { color: '#f1d597', fontSize: 9, fontWeight: '900', letterSpacing: .7 },
