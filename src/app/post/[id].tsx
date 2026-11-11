@@ -33,6 +33,7 @@ import {recordConfirmedCommunityComment} from '@/lib/buklodCommunityCommentAdCad
 import {warmBuklodAdOpportunity} from '@/lib/buklodAdOpportunities';
 
 
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodPostInternalShare
   from '@/components/BuklodPostInternalShare';
 import {
@@ -528,6 +529,9 @@ export default function PostDetail(){
    ) : null}
    <Button title={user?.id===post.user_id?'SHARE OUTSIDE BUKLOD':'REQUEST / SHARE OUTSIDE'} outline onPress={share}/>
   </Card>
+  {!post.author_only ? (
+   <BuklodFirstViewAd placement="community_entry" placementId="community_post_detail_native" />
+  ) : null}
   {user?.id===post.user_id&&requests.length>0&&<><SectionTitle>SHARE REQUESTS</SectionTitle>{requests.map((r:any)=><Card key={r.request_id}><Text style={s.commentName}>{r.requester_name}</Text><Text style={s.commentMeta}>wants permission to share this post outside BUKLOD.</Text><View style={s.review}><View style={{flex:1}}><Button title="APPROVE" onPress={()=>review(r.request_id,true)}/></View><View style={{flex:1}}><Button title="DECLINE" outline onPress={()=>review(r.request_id,false)}/></View></View></Card>)}</>}
   <SectionTitle>
    COMMENTS ({comments.length})

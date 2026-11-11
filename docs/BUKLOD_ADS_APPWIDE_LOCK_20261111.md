@@ -30,3 +30,6 @@ Consolidate any still-open PR candidates with the actual current main, run sourc
 - Dedicated protection now covers personal/group conversations (including MZB), quiz sessions, prayer drafting, payment/withdrawal, attendance/admin/finance and settings operations. The existing successful completion exceptions in Kingdom and IGPAT remain narrow and unchanged.
 - Engineering ruleset BUKLOD Engineering Protection is active with objective-scope-gate required, but code-owner review flag is currently false. Admin-level change is required to enforce CODEOWNERS; GitHub plugin does not have write access to rulesets.
 - Every PR, unified RC, and production OTA invokes both focused contract suites and app route summary. Target proof is successful exact-head CI and preserved independent consolidated release gates.
+
+## Post detail expanded inventory
+- Native-first AdMob sponsored card after post content/share and before comments; excluded for author-only posts. Existing ads consent/viewability/no-fill apply. The slot never overlays video or the comment form.

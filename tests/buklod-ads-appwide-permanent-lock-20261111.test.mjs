@@ -176,3 +176,11 @@ test('Community Discovery and Organization setup include viewable native-first s
   assert.match(native, /BuklodCommunityInlineAd/);
   assert.match(native, /firstView/);
 });
+
+test('Post detail has native-first sponsored break after media outside author-only content and comments', () => {
+  const detail = read('src/app/post/[id].tsx');
+  assert.match(detail, /BuklodFirstViewAd placement="community_entry" placementId="community_post_detail_native"/);
+  assert.match(detail, /!post\.author_only\s*\?/);
+  assert.ok(detail.indexOf('community_post_detail_native') > detail.indexOf('<CommunityVideo'));
+  assert.ok(detail.indexOf('community_post_detail_native') < detail.indexOf('COMMENTS ({comments.length})'));
+});
