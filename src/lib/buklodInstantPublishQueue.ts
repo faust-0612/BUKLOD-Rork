@@ -18,6 +18,8 @@ export type InstantPublishSnapshot = {
   status: InstantPublishStatus;
   progress: number | null;
   notice: string;
+  /** Storage path to reconcile a confirmed IGPAT with its canonical reel. */
+  remoteMediaPath?: string;
 };
 
 export class InstantPublishUncertainError extends Error {
@@ -29,7 +31,10 @@ export class InstantPublishUncertainError extends Error {
 
 type Work = (
   progress: (fraction: number | null, notice: string) => void,
-) => Promise<'posted' | 'device_only'>;
+ ) => Promise<'posted' | 'device_only' | {
+  status: 'posted' | 'device_only';
+  mediaPath?: string;
+}>;
 type Listener = () => void;
 const listeners = new Set<Listener>();
 const jobs = new Map<string, InstantPublishSnapshot>();
@@ -74,21 +79,25 @@ async function run(id: string) {
         notice,
       });
     });
+    const status = typeof result === 'string' ? result : result.status;
     mutate(id, {
-      status: result,
-      progress: result === 'posted' ? 1 : null,
-      notice: result === 'posted'
+      status,
+      remoteMediaPath: typeof result === 'string' ? undefined : result.mediaPath,
+      progress: status === 'posted' ? 1 : null,
+      notice: status === 'posted'
         ? 'Published. Updating your feed…'
         : 'Saved on this device only. Not shared yet.',
     });
     // Successful publication/offline fallback can be reconciled by the feed.
     setTimeout(() => {
-      if (jobs.get(id)?.status === result) {
+      if (jobs.get(id)?.status === status) {
         jobs.delete(id);
         workById.delete(id);
         emit();
       }
-    }, result === 'posted' ? 12000 : 20000);
+    }, status === 'posted' && typeof result !== 'string' && result.mediaPath
+      ? 60000
+      : status === 'posted' ? 12000 : 20000);
   } catch (error) {
     const uncertain = error instanceof InstantPublishUncertainError;
     mutate(id, {
