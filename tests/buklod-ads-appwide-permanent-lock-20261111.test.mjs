@@ -200,3 +200,18 @@ test('Legacy Connect, funds, attendance and administrative deep links cannot tri
     assert.equal(g.canWarmBuklodFullScreenAd('interstitial_generic'),false,route);
   }
 });
+
+test('Public comment discussion offers one compact viewable sponsored banner after organic content',()=>{
+ const thread=read('src/components/BuklodCommunityCommentThread.tsx');
+ const wall=read('src/app/(tabs)/buklod.tsx');
+ assert.match(thread,/inlineAd\?: React\.ReactNode/);
+ assert.match(thread,/inlineAd && threadIndex === \(threads\.length === 1 \? 0 : 1\)/);
+ assert.match(wall,/placementId="public_wall_comments_engagement_inline"/);
+ assert.match(wall,/Platform\.OS === 'android' && !!commentPost && !commentPost\.author_only && !commentLoadError/);
+ assert.match(wall,/format="adaptive"\s+compact\s+requireViewport\s+showLabel/);
+});
+test('Unknown fill blockers are classified without synthetic impressions or PII',()=>{
+ const diagnostics=read('src/lib/buklodAdDiagnostics.ts');
+ for(const name of ['NO_FILL','NATIVE_AD_LOAD_TIMEOUT','BANNER_AD_LOAD_TIMEOUT','NETWORK_ERROR']) assert.ok(diagnostics.includes(name));
+ assert.match(diagnostics,/only fixed non-PII failure categories/);
+});
