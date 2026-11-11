@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "objective": "Harden BUKLOD Main change isolation and close accidental production OTA bypasses without touching product code",
+  "baseRef": "6d1a80e3d009aafcfd94444dc198cb8465e68c2f",
+  "productionBaselineEvidence": "GitHub default main SHA 6d1a80e3d009aafcfd94444dc198cb8465e68c2f inspected 2026-11-11, existing active ruleset ID 25668992 requires objective-scope-gate but strict required status policy is false; live production OTA ID and runtime behavior not independently verified.",
+  "chosenApproach": "Require exact new scope manifest for every product/workflow/script/test change; retire unguarded direct OTA shortcut and manual production dispatch while retaining marker-based frozen RC release.",
+  "selectionRationale": "The existing PR regression CLI silently accepted product changes without a scope manifest, and legacy PowerShell and manual GitHub Actions could bypass RC/source identity; small governance-only patches isolate risk and preserve existing app.",
+  "alternativeApproaches": [
+    "Require user instruction only and keep unrestricted direct OTA (rejected; not enforceable)",
+    "Run full Android/Web compile on every PR (rejected; expensive and does not constrain files)",
+    "Enforce scoped lightweight PR gate plus canonical frozen RC and marker-based release (selected)"
+  ],
+  "componentScopePaths": [],
+  "acceptanceChecks": [
+    "CI rejects a product, script, assets, workflow, or test PR without a new exact scope manifest.",
+    "AllowedPaths reject all unrelated modules.",
+    "Legacy manual PowerShell OTA throws without publishing.",
+    "Android/Web workflows cannot be workflow_dispatch published.",
+    "Existing exact-source checkout, Android frozen RC checks and main SHA checks are preserved.",
+    "GitHub branch protection setting limitation documented; no production release from governance PR."
+  ],
+  "preserveBehaviors": [
+    "App features including Wall, PTT, Ads, Kingdom, Connect, Classroom and Quiz unchanged.",
+    "User data, finance, QMP, RLS, security, and Supabase migrations unchanged.",
+    "Existing production merge-marker release flow, main identity checks, RC freezing and evidence unchanged.",
+    "Existing engineering regression classifier unit tests keep pure-fixture compatibility."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/release-scope-guardrails-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/release-universal-guardrails-20261111.json",
+    ".github/workflows/production_android_ota.yml",
+    ".github/workflows/production_web_deploy.yml",
+    "docs/engineering/RELEASE_GUARDRAILS_20261111.md",
+    "scripts/PUSH_MAIN_OTA.ps1",
+    "scripts/engineering-regression-gate.mjs",
+    "tests/release-scope-guardrails-20261111.test.mjs"
+  ]
+}
