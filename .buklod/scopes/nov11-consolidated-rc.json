@@ -5,7 +5,7 @@
   "objective": "Prepare one current-Main-rebased BUKLOD Android 1.3.2 runtime OTA and Expo Web consolidated RC, retaining previously reconciled Kingdom, IGPAT, Marites, Finance/QMP, ad, PTT and Wall fixes. Prepare only; do not publish.",
   "baseRef": "4fa6853c00f19ea710dd1c2510b47ef4d008a085",
   "productionBaselineEvidence": "GitHub Main source SHA 4fa6853c00f19ea710dd1c2510b47ef4d008a085 confirmed November 11 2026; this is a source baseline, not live deployed Expo OTA artifact. Read-only Supabase BUKLOD Connect migration history shows all 17 required migration version numbers registered. Existing Finance snapshot RPC is SECURITY DEFINER with auth/admin check and anon execute denied. No new SQL or live-client verification conducted.",
-  "chosenApproach": "Use current Main tree as source of truth; create a two-parent merge candidate retaining all newer PTT, ad, Web, and release safeguards while overlaying only 34 missing or demonstrably improved RC paths. Merge admin month-close diagnostics and native JPEG safety with RC-only canonical Finance, Supabase-only video, Trudice Wonder Path and Marites audio. Align 4 source SQL filenames to live history rather than replay them. Preserve isolated regression tests and enforce exact manifest allowlist.",
+  "chosenApproach": "Use current Main tree as source of truth; create a two-parent merge candidate retaining all newer PTT, ad, Web, and release safeguards while overlaying only 34 missing or demonstrably improved RC paths. Merge admin month-close diagnostics and native JPEG safety with RC-only canonical Finance, Supabase-only video, Trudice Wonder Path and Marites audio. Align 4 source SQL filenames to live history rather than replay them. Preserve isolated regression tests and enforce exact manifest allowlist. Retire the last unused manual QMP admin RPC client wrappers left in Main after automatic qualification; update the existing Finance regression contract to require canonical snapshot and fail closed on obsolete review entrypoints.",
   "selectionRationale": "The old RC diverged 33 Main commits and overlapping release code; blind RC overwrite would regress PTT audio mixing, ad fill, release protection and photo upload. Source parity audit found 124/148 overlapping changed files byte-identical; selectively reconcile only 24 true conflicts, retaining Main for every unproven conflict.",
   "alternativeApproaches": [
     "Force-merge outdated RC files over Main (rejected: loses newer PTT/video/audio/ad release protections)",
@@ -76,6 +76,7 @@
     "src/lib/buklodCanonicalAdminEconomy.ts",
     "src/lib/buklodCommunityContributionEconomy.ts",
     "src/lib/buklodMaritesBoard.ts",
+    "src/lib/buklodR38AdminEconomy.ts",
     "src/lib/uploadCommunityVideoFile.ts",
     "supabase/migrations/20261111082405_buklod_qmp_automatic_qualification_v2.sql",
     "supabase/migrations/20261111082459_buklod_qmp_close_legacy_review_requests_v3.sql",
@@ -83,6 +84,7 @@
     "supabase/migrations/20261111090714_buklod_canonical_admin_economy_snapshot_v1.sql",
     "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql",
     "tests/buklod-admin-economy-snapshot-20261111.test.mjs",
+    "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
     "tests/consolidated-main-source-reconciliation-20261111.test.mjs",
     "tests/igpat-native-memory-upload-20261111.test.mjs",
     "tests/igpat-supabase-only-upload-20261111.test.mjs",
@@ -92,6 +94,7 @@
   "regressionTests": [
     "supabase/tests/buklod_canonical_admin_economy_snapshot_20261111.sql",
     "tests/buklod-admin-economy-snapshot-20261111.test.mjs",
+    "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs",
     "tests/consolidated-main-source-reconciliation-20261111.test.mjs",
     "tests/igpat-native-memory-upload-20261111.test.mjs",
     "tests/igpat-supabase-only-upload-20261111.test.mjs",
@@ -117,7 +120,8 @@
     "Current Main iPhone Messenger Web photo byte bypass and native <=2 MiB JPEG fast path",
     "All new IGPAT/Community videos go to Supabase Storage; historical AWS references remain read-only until separate migration",
     "Marites music only in Full View with mute/audio focus safeguards and no feed auto-audio",
-    "QMP automatic eligibility replaces dead manual user-side review requests; backend QMP and payout gates stay server-authoritative"
+    "QMP automatic eligibility replaces dead manual user-side review requests; backend QMP and payout gates stay server-authoritative",
+    "Manual QMP review remains retired in member and system-admin UI: no adminResolveBuklodQmpEvent client export or manual approval action."
   ],
   "acceptanceChecks": [
     "Full PR Engineering Accountability scope gate; new component scope inventory 4/4 exactly changed, allowedPaths exactly equal changed files vs latest Main",
@@ -130,7 +134,8 @@
     "Detailed canonical month-close blockers, payout fail-closed status and source-consistent Finance snapshot preserved",
     "No source-overlap regressions in Wall, Kingdom, ads, health/consultation, photo comments, KL, mentoring and QMP",
     "Actual device tests intentionally SKIPPED per owner; not marked PASS",
-    "Publish to production Android OTA or Expo Web only after independent exact RC, live artifact and backend evidence gates"
+    "Publish to production Android OTA or Expo Web only after independent exact RC, live artifact and backend evidence gates",
+    "Existing Finance/QMP source regression tests assert removal of retired adminResolveBuklodQmpEvent while retaining accounting and month-close controls."
   ],
   "requiredBackendMigrations": [
     "20261110213500_mentor_report_evidence_review_r4.sql",
@@ -195,13 +200,17 @@
     "byteIdenticalOverlap": 124,
     "trueDifferences": 24,
     "rcOverlayPaths": 34,
-    "sourceMergePolicy": "Main wins absent individually justified RC additions"
+    "sourceMergePolicy": "Main wins absent individually justified RC additions",
+    "postMergeQaReconciliationPaths": [
+      "src/lib/buklodR38AdminEconomy.ts",
+      "tests/buklod-qmp-finance-canonical-consolidation-20261111.test.mjs"
+    ]
   },
   "nativeRuntimeTarget": "1.3.2",
   "androidPackage": "org.mzbministry.buklod",
   "actualDeviceVerification": "SKIPPED_NOT_PASSED",
   "compiledRc": "PENDING_EXACT_HEAD_QA",
-  "verifiedDevSourceSha": "PENDING_EXACT_HEAD_QA",
+  "verifiedDevSourceSha": "PENDING_EXACT_HEAD_QA_AFTER_QMP_LEGACY_ASSERTION_FIX",
   "productionPublishAuthorized": false,
   "production": "HOLD_NO_PUBLISH: source-only consolidated candidate, exact-head Android/Web compiled QA and production artifact fingerprint pending. Physical device check waived and not passed. Finance settlement and payouts stay OFF."
 }
