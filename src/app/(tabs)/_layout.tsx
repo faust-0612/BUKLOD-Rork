@@ -1,3 +1,5 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { buklodDashboardRoute, isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
 import {
@@ -8,6 +10,7 @@ import {
 } from 'expo-router';
 import React, {
   useEffect,
+  useState,
 } from 'react';
 import {
   ActivityIndicator,
@@ -54,6 +57,14 @@ function SwipeDashboardHeader() {
 
   const { theme } = useBuklodTheme();
   const { unreadCount, refreshUnread } = useNotifications();
+  const route = buklodDashboardRoute(pathname);
+  const [scrollCompact, setScrollCompact] = useState(() => isBuklodDashboardScrollCompact(route));
+  useEffect(() => {
+    setScrollCompact(isBuklodDashboardScrollCompact(route));
+    return subscribeBuklodDashboardScroll((r, compact) => {
+      if (r === route) setScrollCompact(compact);
+    });
+  }, [route]);
   const publicMinimal =
     !isBuklodScopedWorkspacePath(pathname);
   const badgeText =
@@ -118,25 +129,29 @@ function SwipeDashboardHeader() {
     <View
       style={{
         paddingTop: insets.top,
-        minHeight: 48 + insets.top,
+        minHeight: (scrollCompact ? 42 : 52) + insets.top,
         backgroundColor: theme.headerSurface,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingLeft: 16,
+        paddingLeft: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.border,
       }}
     >
-      <Text
-        numberOfLines={1}
-        style={{
-          flex: 1,
-          color: theme.accent,
-          fontSize: 26,
-          fontWeight: '900',
-        }}
-      >
-        {title}
-      </Text>
+      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+        <LinearGradient colors={['#B8F756','#42CC54','#087440']}
+          start={{x:0,y:0}} end={{x:1,y:1}}
+          style={{width:scrollCompact?31:37,height:scrollCompact?31:37,borderRadius:12,alignItems:'center',justifyContent:'center'}}>
+          <Text style={{color:'#FFFFFF',fontSize:scrollCompact?23:28,fontWeight:'900',fontStyle:'italic'}}>B</Text>
+        </LinearGradient>
+        <View style={{flex:1,minWidth:0}}>
+          <Text numberOfLines={1} style={{color:theme.accent,fontSize:scrollCompact?22:25,
+            lineHeight:scrollCompact?26:29,fontWeight:'900'}}>{title}</Text>
+          {!scrollCompact ? <Text numberOfLines={1} style={{color:theme.textMuted,fontSize:8,
+            fontWeight:'800',letterSpacing:0.8}}>KOMUNIDAD · KAIBIGAN · PAGLAGO</Text> : null}
+        </View>
+      </View>
 
       <View
         style={{
@@ -182,8 +197,8 @@ function SwipeDashboardHeader() {
               })}
             >
               <MaterialCommunityIcons
-                name="dots-horizontal"
-                size={24}
+                name="bell-outline"
+                size={23}
                 color={theme.textPrimary}
               />
 
@@ -333,9 +348,9 @@ export default function TabsLayout() {
 
   const tabSceneStyle = {
     backgroundColor: theme.surface,
-    marginHorizontal: 5,
-    marginVertical: 3,
-    borderRadius: 18,
+    marginHorizontal: Platform.OS === 'web' ? 5 : 0,
+    marginVertical: 0,
+    borderRadius: Platform.OS === 'web' ? 18 : 0,
     overflow: 'hidden' as const,
   };
 
