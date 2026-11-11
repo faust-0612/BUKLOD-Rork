@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Automatically award qualified monthly participation QMP from original source evidence, retire manual admin/user QMP review, and prevent indirect rewards from unqualified activity. Prepare consolidated OTA without standalone publish.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Inspected main SHA a216bbdd6dee99b161f7861addba766f115203f1 and live BUKLOD Connect Supabase 2026-11-11. Before migration 180 pending Nov, 53 Oct, 4 Sep, 0 held. Applied 3 QMP-only migrations. After: 0 pending/held in all three open periods, 38 photo-backed events auto-qualified for 190 total QMP, event/account parity exact with zero mismatches, zero outstanding review requests, old manual RPC privileges revoked, canonical Finance SQL contract passed, all cash activation switches remain OFF. Client source still DEV only; no RC/OTA published.",
+  "chosenApproach": "Use server-side deterministic evidence checks with existing monthly rules and same canonical QMP accounts, backfill only unfinalized periods, and make post/comment missions contingent on qualified events. Remove review UI without altering Finance V3 or payout pathways.",
+  "selectionRationale": "Avoids human admin queues while protecting anti-farm caps, post-media upload ordering, monthly calculation fairness and cash ledger reconciliation.",
+  "alternativeApproaches": [
+    "Automatically approve every pending activity: rejected because spam, short unsupported posts and self-interactions would count as revenue weight.",
+    "Leave pending events awaiting admin indefinitely: rejected because legitimate contributors remain blocked and month close cannot complete.",
+    "Auto-qualify verifiable source and exclude insufficient evidence while preserving actual interactions: chosen."
+  ],
+  "acceptanceChecks": [
+    "No QMP admin approval/rejection or member request review UI; backend review RPC execution revoked.",
+    "Only verifiable source post, photo or qualified reply earns QMP; short/duplicate/self activity can still be posted but earns no QMP.",
+    "Automated OPEN-month reconciliation is idempotent; finalized QMP periods untouched.",
+    "Photo insert after original post can qualify once within same month only.",
+    "Velocity-excluded QMP cannot trigger indirect mission or creator reply awards.",
+    "Private QMP account and source-event totals reconcile exactly for each open period.",
+    "No backend economics, settlement, withdrawal, cash balance or payout activation.",
+    "One frozen consolidated RC before production OTA/web; no standalone publication."
+  ],
+  "preserveBehaviors": [
+    "Original monthly QMP weights, bonus caps, monthly reset, lifetime history, earnings read models.",
+    "Other points BP rules, AdMob analytics, monetization placement, Kingdom and all unrelated app features.",
+    "Existing Finance V3 source-backed revenue reconciliation, period freeze and idempotent settlement; all activation flags OFF.",
+    "User interactions remain enabled even when QMP rules exclude points; never require ads to qualify QMP.",
+    "Expo Android OTA and Expo Hosting Web only after unified verified consolidated RC, no Vercel/AWS deploy."
+  ],
+  "riskAreas": [
+    "monthly-qmp-and-fraud-review",
+    "finance-identity-and-auth",
+    "user-revenue-and-cash-ledger",
+    "consolidated-ota-release"
+  ],
+  "regressionTests": [
+    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/automatic-qmp-no-manual-review-20261111.json",
+    "src/app/admin/economy-operations.tsx",
+    "src/app/community-contribution.tsx",
+    "src/components/BuklodCommunityEconomyAdminCard.tsx",
+    "supabase/migrations/20261111093000_buklod_qmp_automatic_qualification_v2.sql",
+    "supabase/migrations/20261111093500_buklod_qmp_close_legacy_review_requests_v3.sql",
+    "supabase/migrations/20261111094000_buklod_qmp_indirect_reward_guard_v4.sql",
+    "supabase/tests/buklod_qmp_finance_canonical_contract_20261111.sql"
+  ]
+}
