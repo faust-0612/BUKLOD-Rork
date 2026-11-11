@@ -139,7 +139,7 @@ export default function AdminBayanihanScreen() {
         <View style={styles.guardCard}>
           <MaterialCommunityIcons name="shield-lock-outline" size={23} color={colors.greenDark} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.guardTitle}>Single authoritative source</Text>
+            <Text style={styles.guardTitle}>Hard economic invariant · One authoritative source</Text>
             <Text style={styles.guardText}>
               Legacy R38 BCU/RCU allocations and Community Wall analytics are excluded from cash totals. Never infer pesos from points or from preliminary ad income.
             </Text>
