@@ -27,14 +27,12 @@
     ".github/workflows/engineering-accountability.yml",
     ".github/CODEOWNERS",
     "docs/BUKLOD_ADS_APPWIDE_LOCK_20261111.md",
-    ".buklod/scopes/ads-appwide-permanent-lock-20261111.json"
+    ".buklod/scopes/ads-appwide-permanent-lock-20261111.json",
+    "tests/buklod-ads-production-release-contract-20261111.test.mjs"
   ],
   "regressionTests": [
     "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
-    "tests/buklod-ad-restoration-locked-20261107.test.mjs",
-    "tests/buklod-high-traffic-ads-20261111.test.mjs",
-    "tests/health-center-consultation-ads-20261110.test.mjs",
-    "tests/buklod-ad-surface-audit-20261111.test.mjs"
+    "tests/buklod-ads-production-release-contract-20261111.test.mjs"
   ],
   "preserveBehaviors": [
     "PTT original audio/transcript and DZAS radio",
