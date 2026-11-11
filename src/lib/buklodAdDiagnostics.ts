@@ -29,6 +29,8 @@ export type BuklodAdDiagnosticPlacement =
   | 'home_bottom_banner'
   | 'community_inline';
 
+export type BuklodAdFormat = 'native' | 'banner' | 'interstitial' | 'rewarded';
+
 export type BuklodAdDiagnosticEvent =
   | 'ad_request'
   | 'ad_loaded'
@@ -61,6 +63,7 @@ export type BuklodAdDiagnosticRecord = {
   runtimeVersion: string | null;
   sessionId: string;
   errorCode?: string;
+  adFormat: BuklodAdFormat | null;
   errorMessage?: string;
 };
 
@@ -167,6 +170,7 @@ export function recordBuklodAdEvent(
     route?: string | null;
     provider?: 'ADMOB_NATIVE' | 'ADSENSE_WEB' | 'BUKLOD_SPONSOR' | 'GOOGLE_IMA';
     placementId?: string | null;
+    adFormat?: BuklodAdFormat;
   },
 ) {
   placement =
@@ -184,6 +188,7 @@ export function recordBuklodAdEvent(
     context?.provider ??
     (Platform.OS === 'web' ? 'ADSENSE_WEB' : 'ADMOB_NATIVE');
   const errorCode = event === 'ad_failed' ? sanitizeCode(error) : undefined;
+  const adFormat = context?.adFormat ?? null;
   const record: BuklodAdDiagnosticRecord = {
     placement,
     event,
@@ -197,6 +202,7 @@ export function recordBuklodAdEvent(
     runtimeVersion: runtimeVersion(),
     sessionId,
     errorCode,
+    adFormat,
     errorMessage: event === 'ad_failed' ? sanitizeError(error) : undefined,
   };
 
@@ -216,6 +222,7 @@ export function recordBuklodAdEvent(
       runtimeVersion: record.runtimeVersion,
       sessionId,
       errorCategory: errorCode ?? (event === 'ad_failed' ? 'AD_ERROR' : null),
+      adFormat,
     });
   } else {
     console.info(

@@ -86,7 +86,7 @@ async function prepareInterstitial(
     'interstitial',
     'ad_request',
     undefined,
-    { route },
+    { route, adFormat: 'interstitial' },
   );
 
   listenerCleanup.push(
@@ -96,7 +96,7 @@ async function prepareInterstitial(
         'interstitial',
         'ad_loaded',
         undefined,
-        { route },
+        { route, adFormat: 'interstitial' },
       );
     }),
   );
@@ -106,7 +106,7 @@ async function prepareInterstitial(
         'interstitial',
         'ad_dismissed',
         undefined,
-        { route },
+        { route, adFormat: 'interstitial' },
       );
       interstitialLoaded = false;
       cleanupInterstitialListeners();
@@ -119,7 +119,7 @@ async function prepareInterstitial(
         'interstitial',
         'ad_failed',
         error,
-        { route },
+        { route, adFormat: 'interstitial' },
       );
       interstitialLoaded = false;
       cleanupInterstitialListeners();
@@ -136,7 +136,7 @@ async function prepareInterstitial(
         'interstitial',
         'ad_rendered',
         undefined,
-        { route },
+        { route, adFormat: 'interstitial' },
       );
     }),
   );
@@ -152,6 +152,7 @@ export function warmBuklodInterstitial(
       // or app resume. A fresh eligible route can retry the next request.
       recordBuklodAdEvent('interstitial', 'ad_failed', error, {
         route: getBuklodGlobalAdSafetySnapshot().pathname,
+        adFormat: 'interstitial',
       });
       interstitialLoaded = false;
       cleanupInterstitialListeners();
@@ -201,7 +202,7 @@ export async function maybeShowBuklodInterstitial(
       'interstitial',
       'ad_failed',
       error,
-      { route: getBuklodGlobalAdSafetySnapshot().pathname },
+      { route: getBuklodGlobalAdSafetySnapshot().pathname, adFormat: 'interstitial' },
     );
     // A consumed/stale SDK instance cannot be reused for another successful
     // action. Clear it, otherwise the app can stay permanently ad-empty.

@@ -150,7 +150,7 @@ function BuklodAdMobBanner({
         diagnostic,
         'ad_failed',
         new Error('BANNER_AD_LOAD_TIMEOUT'),
-        { route: pathname, placementId: stablePlacementId },
+        { route: pathname, placementId: stablePlacementId, adFormat: 'banner' },
       );
       failedBecauseOffline.current = false;
       failedAt.current = Date.now();
@@ -267,7 +267,7 @@ function BuklodAdMobBanner({
       diagnostic,
       'ad_request',
       undefined,
-      { route: pathname, placementId: stablePlacementId },
+      { route: pathname, placementId: stablePlacementId, adFormat: 'banner' },
     );
   }, [
     attempt,
@@ -289,7 +289,7 @@ function BuklodAdMobBanner({
         diagnostic,
         'ad_rendered',
         undefined,
-        { route: pathname, placementId: stablePlacementId },
+        { route: pathname, placementId: stablePlacementId, adFormat: 'banner' },
       );
     }
 
@@ -360,14 +360,14 @@ function BuklodAdMobBanner({
                   loadTimer.current = null;
                 }
                 setLoaded(true);
-                recordBuklodAdEvent(diagnostic, 'ad_loaded', undefined, { route: pathname, placementId: stablePlacementId });
+                recordBuklodAdEvent(diagnostic, 'ad_loaded', undefined, { route: pathname, placementId: stablePlacementId, adFormat: 'banner' });
               }}
               onAdOpened={() => {
-                recordBuklodAdEvent(diagnostic, 'ad_opened', undefined, { route: pathname, placementId: stablePlacementId });
+                recordBuklodAdEvent(diagnostic, 'ad_opened', undefined, { route: pathname, placementId: stablePlacementId, adFormat: 'banner' });
               }}
               {...({
                 onAdImpression: () => {
-                  recordBuklodAdEvent(diagnostic, 'ad_impression', undefined, { route: pathname, placementId: stablePlacementId });
+                  recordBuklodAdEvent(diagnostic, 'ad_impression', undefined, { route: pathname, placementId: stablePlacementId, adFormat: 'banner' });
                 },
               } as object)}
               onAdFailedToLoad={(error) => {
@@ -375,7 +375,7 @@ function BuklodAdMobBanner({
                   clearTimeout(loadTimer.current);
                   loadTimer.current = null;
                 }
-                recordBuklodAdEvent(diagnostic, 'ad_failed', error, { route: pathname, placementId: stablePlacementId });
+                recordBuklodAdEvent(diagnostic, 'ad_failed', error, { route: pathname, placementId: stablePlacementId, adFormat: 'banner' });
                 setLoaded(false);
 
                 const code = String((error as { code?: string })?.code ?? '');
