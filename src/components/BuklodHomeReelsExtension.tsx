@@ -76,7 +76,12 @@ function HomeIgpatVideo({
  * Backward-compatible component name retained so existing Home imports do not
  * need a risky broad edit. User-facing product identity is now BUKLOD IGPAT.
  */
-export default function BuklodHomeReelsExtension() {
+/** Retired IGPAT preview: no feed RPC, no signed-media fetch, no player mount. */
+export default function RetiredIgpatPreview() {
+  return null;
+}
+
+function BuklodHomeReelsExtension() {
   const {
     user,
     profile,
