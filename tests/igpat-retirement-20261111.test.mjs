@@ -13,7 +13,7 @@ test('IGPAT native and web routes are retired without mounting old feed or uploa
   ]) {
     const file = source(path);
     const retirement = file.indexOf('export default function RetiredIgpatRoute()');
-    const legacy = file.search(/\nfunction (IgpatScreen|IgpatCreateScreen)\(/);
+    const legacy = file.search(/\nfunction (IgpatScreen|IgpatWebScreen|IgpatCreateScreen|IgpatCreateWebScreen)\(/);
     assert.ok(retirement > -1, path + ': missing retired default');
     assert.ok(legacy > retirement, path + ': legacy component must not be exported');
     assert.match(file.slice(retirement, legacy), /return <Redirect href="\/buklod" \/>;/);
