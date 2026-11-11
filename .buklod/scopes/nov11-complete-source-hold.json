@@ -18,7 +18,8 @@
     ".buklod/scopes/igpat-real-first-frame-20261111.json",
     ".buklod/scopes/kingdom-cinematic-audio-20261111.json",
     ".buklod/scopes/nov11-postprod-single-rc.json",
-    ".buklod/scopes/shared-dashboard-header-scroll-20261111.json"
+    ".buklod/scopes/shared-dashboard-header-scroll-20261111.json",
+    ".buklod/scopes/igpat-social-comments-prayer-mojibake-20261111.json"
   ],
   "acceptanceChecks": [
     "All current main source changes including Web PTT, production release governance and app-wide ads lock are present by content parity; no unreviewed overwrites",
@@ -72,7 +73,9 @@
     "tests/igpat-sign-batch-20261111.test.mjs",
     "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
     "tests/kingdom-cinematic-ui-audio-20261111.test.mjs",
-    "tests/navigation-scroll-compact-public-wall.test.mjs"
+    "tests/navigation-scroll-compact-public-wall.test.mjs",
+    "tests/igpat-social-comments-prayer-mojibake-20261111.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/android-phone-gif-comments-20261111.json",
@@ -131,7 +134,12 @@
     "tests/igpat-sign-batch-20261111.test.mjs",
     "tests/igpat-wall-navigation-weak-network-20261111.test.mjs",
     "tests/kingdom-cinematic-ui-audio-20261111.test.mjs",
-    "tests/navigation-scroll-compact-public-wall.test.mjs"
+    "tests/navigation-scroll-compact-public-wall.test.mjs",
+    ".buklod/scopes/igpat-social-comments-prayer-mojibake-20261111.json",
+    "src/app/post/[id].tsx",
+    "src/app/prayer/[id].tsx",
+    "tests/igpat-social-comments-prayer-mojibake-20261111.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
   ],
   "sourceIntake": {
     "inherited": "Existing Nov11 consolidated RC (Wall/Kingdom/finance/mentoring/PTS/KL/ad/media/earnings) and post-RC branch",
@@ -143,7 +151,8 @@
       "Today/Dugtong full privacy and correct applied migration versions",
       "Kingdom cinematic optional audio",
       "GIF photo comment handling",
-      "Per-photo comments and full-screen video continuity"
+      "Per-photo comments and full-screen video continuity",
+      "PR #712: modernized IGPAT/Shared Post comments and repaired Prayer Request mojibake (native and web); automated isolated engineering/TypeScript/web QA passed, actual device and production runtime not verified"
     ],
     "priorPrsIncludedAsCode": [
       620,
@@ -161,7 +170,8 @@
       668,
       670,
       679,
-      683
+      683,
+      712
     ],
     "explicitExclusions": [
       {
@@ -186,5 +196,5 @@
     "Hands-on physical Android device testing skipped per owner, not counted as PASS"
   ],
   "releaseState": "DEV_ASSEMBLY_HOLD__NO_PRODUCTION_PUBLICATION",
-  "qaStatus": "PENDING_EXACT_HEAD_RC_QA_AND_PRODUCTION_FINGERPRINT"
+  "qaStatus": "PENDING_NEW_EXACT_HEAD_RC_QA_AND_PRODUCTION_FINGERPRINT"
 }
