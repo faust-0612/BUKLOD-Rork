@@ -38,6 +38,9 @@ export default function BuklodTodayCard({onRespond:_unusedWallHandoff}:{onRespon
  const [showHistory,setShowHistory]=useState(false);
  const [history,setHistory]=useState<MyHistory[]>([]);
  const [historyLoading,setHistoryLoading]=useState(false);
+ const [feedRows,setFeedRows]=useState<PublicDugtong[]>([]);
+ const [feedLoading,setFeedLoading]=useState(false);
+ const [feedHasMore,setFeedHasMore]=useState(false);
  const cycleRef=useRef<number|null>(null);
  void _unusedWallHandoff; // Preserve the existing Home prop without rendering Wall sharing.
  const load=useCallback(async(preserveDraft=false)=>{
@@ -50,6 +53,9 @@ export default function BuklodTodayCard({onRespond:_unusedWallHandoff}:{onRespon
    const changed=cycleRef.current!==nextCycle;
    cycleRef.current=nextCycle;
    setTip(parsed);
+   const initialFeed=Array.isArray(parsed.dugtongs)?parsed.dugtongs:[];
+   setFeedRows(initialFeed);
+   setFeedHasMore(Number(parsed.dugtong_total)>initialFeed.length);
    if(!preserveDraft||changed){
     setDraft(typeof parsed.my_dugtong==='string'?parsed.my_dugtong:'');
     setVisibility(parsed.my_visibility==='private'?'private':'public');
@@ -104,6 +110,23 @@ export default function BuklodTodayCard({onRespond:_unusedWallHandoff}:{onRespon
    void load(true); // Resolve stale cycle after 72h rotation instead of posting on a new tip.
   }finally{setBusy(false);}
  };
+ const loadMore=async()=>{
+  if(feedLoading||!tip)return;
+  setFeedLoading(true);setError('');
+  try{
+   const cycleId=tip.cycle_id;
+   const {data,error:rpcError}=await (supabase as any).rpc('list_buklod_today_dugtongs_v2',{
+    p_cycle_id:cycleId,p_offset:feedRows.length,p_limit:30,
+   });
+   if(rpcError)throw rpcError;
+   const next:PublicDugtong[]=Array.isArray(data)?data:[];
+   if(cycleRef.current===cycleId){
+    setFeedRows(previous=>previous.concat(next));
+    setFeedHasMore(next.length===30 && feedRows.length+next.length<tip.dugtong_total);
+   }
+  }catch(e:any){setError(String(e?.message||'Hindi ma-load ang iba pang Dugtong.'));}
+  finally{setFeedLoading(false);}
+ };
  const changePrivacy=async(cycleId:number,value:Visibility)=>{
   if(busy)return;
   setBusy(true);setError('');setNotice('');
@@ -133,7 +156,7 @@ export default function BuklodTodayCard({onRespond:_unusedWallHandoff}:{onRespon
  </View>;
  const hasSavedDugtong=!!tip.my_dugtong?.trim();
  const unchangedDugtong=hasSavedDugtong&&draft.trim()===tip.my_dugtong?.trim()&&visibility===tip.my_visibility;
- const feed=Array.isArray(tip.dugtongs)?tip.dugtongs:[];
+ const feed=feedRows;
  return <View style={s.shell}>
   <View style={s.head}>
    <View style={{flex:1}}>
@@ -221,7 +244,11 @@ export default function BuklodTodayCard({onRespond:_unusedWallHandoff}:{onRespon
    <Text style={s.communityAuthor}>{item.is_mine?'Ikaw':item.display_name||'BUKLOD member'}</Text>
    <Text style={s.communityBody}>{item.dugtong}</Text>
   </View>):<Text style={s.help}>Wala pang public Dugtong. Mauna kang magbahagi!</Text>}
-  {tip.dugtong_total>feed.length&&<Text style={s.help}>Pinakahuling {feed.length} public Dugtong ang ipinapakita.</Text>}
+  {feedHasMore&&<Pressable accessibilityRole="button" disabled={feedLoading}
+   onPress={()=>void loadMore()} style={s.read}>
+   <Text style={s.link}>{feedLoading?'Loading…':'Tingnan pa ang mga Dugtong'}</Text>
+   <MaterialCommunityIcons name="chevron-down" size={18} color="#17644B"/>
+  </Pressable>}
   {tip.authenticated&&<Pressable onPress={()=>{setShowHistory(v=>!v);if(!showHistory)void loadHistory();}}
    accessibilityRole="button" accessibilityState={{expanded:showHistory}} style={s.read}>
    <Text style={s.link}>{showHistory?'Itago':'Pamamahala'} ng mga dating Dugtong</Text>
