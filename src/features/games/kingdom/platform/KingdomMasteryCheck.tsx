@@ -95,9 +95,9 @@ export function KingdomMasteryCheck({ gameId }: { gameId: string }) {
       const result = data as FinishData | null;
       if (result?.verified) {
         void playBuklodGameFeedback('success');
-        if ((result.points_awarded ?? 0)>0) void showBuklodAdOpportunity('kingdom_mastery_verified');
         setHasCredit(true);
         setPhase('complete');
+        if ((result.points_awarded ?? 0)>0) void showBuklodAdOpportunity('kingdom_mastery_verified');
         setNotice((result.points_awarded ?? 0) > 0
           ? t('Verified! +2 real BUKLOD Points are available to claim.',
               'Verified! May +2 totoong BUKLOD Points na maaari nang i-claim.')

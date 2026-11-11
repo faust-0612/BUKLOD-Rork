@@ -23,7 +23,7 @@ const dbTest = p => /^supabase\/tests\/.+\.sql$/i.test(p);
 const testPath = p => nodeTest(p) || tsTest(p) || dbTest(p);
 const safe = p => typeof p === 'string' && p.length > 0 && !p.startsWith('/') && !p.includes('..') && !p.includes('\\');
 
-export function assessChanges(changedPaths, manifest = null) {
+export function assessChanges(changedPaths, manifest = null, { consolidatedRc = false } = {}) {
   const failures = [];
   const paths = [...new Set(changedPaths)];
   if (paths.some(p => !safe(p))) failures.push('Unsafe changed path detected.');
@@ -43,8 +43,18 @@ export function assessChanges(changedPaths, manifest = null) {
     failures.push('Source change has only Jest tests; provide a runnable Node or DB contract test in this low-cost gate (Jest may run separately).');
   }
   const scopeChanges = paths.filter(p => /^\.buklod\/scopes\/[^/]+\.json$/.test(p));
+  const cumulativeScope = consolidatedRc && manifest?.releaseMode === 'consolidated-main-rc';
   if (scopeChanges.length) {
-    if (scopeChanges.length !== 1) failures.push('Only one new scope manifest is permitted per isolated PR.');
+    if (scopeChanges.length !== 1 && !cumulativeScope) failures.push('Only one new scope manifest is permitted per isolated PR.');
+    if (cumulativeScope) {
+      const included = scopeChanges.filter(p => p !== manifest.scopeManifestPath).sort();
+      const declared = manifest.componentScopePaths;
+      if (!scopeChanges.includes(manifest.scopeManifestPath) || !Array.isArray(declared) ||
+          new Set(declared).size !== included.length ||
+          declared.length !== included.length || included.some((p, i) => p !== [...declared].sort()[i])) {
+        failures.push('Consolidated RC must enumerate every changed component scope manifest exactly.');
+      }
+    }
     if (!manifest || manifest.contractVersion !== 2) failures.push('A changed scope manifest must use engineering contractVersion 2.');
     else {
       for (const key of ['objective', 'baseRef', 'productionBaselineEvidence', 'chosenApproach', 'selectionRationale']) {
@@ -57,7 +67,7 @@ export function assessChanges(changedPaths, manifest = null) {
       if (Array.isArray(manifest.allowedPaths)) {
         const allowed = new Set(manifest.allowedPaths.filter(safe));
         for (const p of paths) {
-          if (p === scopeChanges[0]) continue;
+          if (!cumulativeScope && p === scopeChanges[0]) continue;
           if (!allowed.has(p)) failures.push('Changed path is outside the declared scope allowlist: ' + p);
         }
       }
@@ -85,10 +95,32 @@ function runCli() {
   try { paths = changedPathsSince(base); } catch (err) { console.error('REGRESSION BLOCK: cannot compare verified baseline:', err.message); process.exitCode = 1; return; }
   let manifest = null;
   const changedScope = paths.filter(p => /^\.buklod\/scopes\/[^/]+\.json$/.test(p));
-  if (changedScope.length === 1) {
-    try { manifest = JSON.parse(fs.readFileSync(changedScope[0], 'utf8')); } catch { console.error('REGRESSION BLOCK: invalid scope JSON'); process.exitCode = 1; return; }
+  // Production main remains protected. This opt-in is only for the named
+  // cumulative RC pull request; all ordinary PRs keep one-scope isolation.
+  const cumulativeRc =
+    process.env.BUKLOD_CONSOLIDATED_RC_GATE === 'true' &&
+    base === 'main' &&
+    process.env.GITHUB_HEAD_REF === 'integration/buklod-nov10-single-source-ota';
+  const manifestPath = process.env.BUKLOD_SCOPE_MANIFEST;
+  if (changedScope.length === 1 || (cumulativeRc && changedScope.includes(manifestPath))) {
+    const selected = changedScope.length === 1 ? changedScope[0] : manifestPath;
+    try { manifest = JSON.parse(fs.readFileSync(selected, 'utf8')); }
+    catch { console.error('REGRESSION BLOCK: invalid selected scope JSON'); process.exitCode = 1; return; }
   }
-  const result = assessChanges(paths, manifest);
+  if (cumulativeRc && changedScope.length > 1) {
+    if (manifest?.releaseMode !== 'consolidated-main-rc' || manifest?.scopeManifestPath !== manifestPath) {
+      console.error('REGRESSION BLOCK: invalid consolidated release manifest selection'); process.exitCode = 1; return;
+    }
+    for (const scopedPath of changedScope.filter(p => p !== manifestPath)) {
+      let component;
+      try { component = JSON.parse(fs.readFileSync(scopedPath, 'utf8')); }
+      catch { console.error('REGRESSION BLOCK: invalid component manifest ' + scopedPath); process.exitCode = 1; return; }
+      if (component.contractVersion !== 2) {
+        console.error('REGRESSION BLOCK: component scope must be v2: ' + scopedPath); process.exitCode = 1; return;
+      }
+    }
+  }
+  const result = assessChanges(paths, manifest, { consolidatedRc: cumulativeRc });
   for (const failure of result.failures) console.error('REGRESSION BLOCK:', failure);
   if (result.failures.length) { process.exitCode = 1; return; }
   if (process.argv.includes('--run-focused-node-tests')) {

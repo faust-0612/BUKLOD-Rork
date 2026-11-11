@@ -23,7 +23,7 @@ const focusedAdTests = [
 
 test('production OTA executes AdMob regressions after TypeScript and before RC freeze/publish', () => {
   const typecheck = workflow.indexOf('      - name: TypeScript QA');
-  const suite = workflow.indexOf('      - name: AdMob startup, scope, fallback and recovery regression suite');
+  const suite = workflow.indexOf('      - name: AdMob startup, Reels feed, scope, fallback and recovery regression suite');
   const expoPreflight = workflow.indexOf('      - name: Expo credential preflight');
   const freeze = workflow.indexOf('      - name: Freeze verified RC');
   const publish = workflow.indexOf('      - name: Publish exact frozen Android RC');

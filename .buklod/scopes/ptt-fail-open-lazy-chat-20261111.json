@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Preserve existing BUKLOD PTT voice-first behavior by isolating optional caption listener failures and deferring chat network work until opened.",
+  "baseRef": "5efb99435243a4bcaeff27fc8d41d58b6a9969c2",
+  "productionBaselineEvidence": "The deployed Android OTA fingerprint has not been independently verified for this inspection. Main SHA 5efb99435243a4bcaeff27fc8d41d58b6a9969c2 is the authoritative GitHub source baseline, not proof of a production OTA. No native or OTA release allowed in this workstream.",
+  "chosenApproach": "Fail open on optional Stream caption listener registration and lazy mount text chat only when Chat is opened.",
+  "selectionRationale": "The newly introduced optional features should never stop Stream voice join or compete with first-frame mic/floor startup by opening extra database calls.",
+  "alternativeApproaches": [
+    "Revert transcription/chat completely (rejected because unnecessary feature removal)",
+    "Fail open with lazy mount and keep PTT voice core untouched (chosen)",
+    "Start all chat realtime and rely on network prioritization (rejected: avoidable startup IO)"
+  ],
+  "acceptanceChecks": [
+    "PTT core, mic/floor, Priority/SOS, background, notifications remain byte-identical",
+    "Caption listener failure cannot propagate from connectTarget",
+    "Chat does not subscribe to Supabase until opened",
+    "TypeScript and focused regression run pass",
+    "No OTA/production deployment"
+  ],
+  "preserveBehaviors": [
+    "PTT hold/release and floor arbitration",
+    "Existing Stream live audio join/mute",
+    "SOS and priority preemption",
+    "Background receive and alerts",
+    "Scoped channel selection"
+  ],
+  "riskAreas": [
+    "ptt",
+    "startup-performance",
+    "realtime"
+  ],
+  "regressionTests": [
+    "tests/buklod-ptt-transcript-chat.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/ptt-fail-open-lazy-chat-20261111.json",
+    "src/ptt/buklodPttRuntime.ts",
+    "src/app/personal-home/ptt.tsx",
+    "tests/buklod-ptt-transcript-chat.test.mjs"
+  ]
+}

@@ -98,7 +98,7 @@ export function classifyCommunityUploadFailure(input: {
   }
 
   if (
-    /network request failed|failed to fetch|network error|connection (reset|refused|closed)|internet connection|offline|socket/.test(
+    /network request failed|failed to fetch|network error|load failed|connection (reset|refused|closed)|internet connection|offline|socket/.test(
       text
     )
   ) {

@@ -53,6 +53,7 @@ import {
 import type {
   AIAnswerValidationResult,
 } from '@/types/buklodAiValidation';
+import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
 
 type Row = {
@@ -364,6 +365,7 @@ export default function MentoringScreen() {
   const submit = async (
     row: Row
   ) => {
+    warmBuklodAdOpportunity('mentoring_response_submitted');
     const filQuestions =
       fourQuestions(
         row.generated_questions_fil
@@ -469,7 +471,8 @@ export default function MentoringScreen() {
 
     Alert.alert(
       'Mentoring Submitted',
-      'Your answers and Personal Reflection were submitted for approval.'
+      'Your answers and Personal Reflection were submitted for approval.',
+      [{ text: 'OK', onPress: () => { void showBuklodAdOpportunity('mentoring_response_submitted'); } }]
     );
 
     await load();

@@ -21,6 +21,11 @@ import {
   type CommunityContributionDashboard,
 } from '@/lib/buklodCommunityContributionEconomy';
 import { communityQmpMetrics } from '@/lib/buklodEconomyQmp';
+import {
+  composeCurrentMonthProjectedBalance,
+  loadMyBuklodMonthlyEarnings,
+  type BuklodMonthlyEarnings,
+} from '@/lib/buklodMonthlyEarnings';
 import { loadMyBuklodReferralReconciliationV1, type BuklodReferralReconciliationV1 } from '@/lib/buklodReferralV2';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { useAuth } from '@/providers/AuthProvider';
@@ -88,6 +93,7 @@ export default function BayanihanScreen() {
     useState<BuklodFinancialSummaryV3 | null>(null);
   const [referralAudit, setReferralAudit] = useState<BuklodReferralReconciliationV1 | null>(null);
   const [contribution, setContribution] = useState<CommunityContributionDashboard | null>(null);
+  const [monthly, setMonthly] = useState<BuklodMonthlyEarnings | null>(null);
   const [qmpError, setQmpError] = useState('');
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const ownerRef = useRef<string | null>(null);
@@ -104,6 +110,7 @@ export default function BayanihanScreen() {
       setSummary(null);
       setReferralAudit(null);
       setContribution(null);
+      setMonthly(null);
       setError('Sign in to view your personal Economy summary.');
       setLoading(false);
       return;
@@ -115,14 +122,16 @@ export default function BayanihanScreen() {
       setError('');
       setQmpError('');
       setSupportCode(null);
-      const [financialResult, communityResult, referralResult] = await Promise.allSettled([
+      const [financialResult, communityResult, referralResult, monthlyResult] = await Promise.allSettled([
         loadMyBuklodFinancialSummaryV3(),
         withBuklodTimeout(loadMyCommunityContribution(), 8000, 'Community QMP'),
         loadMyBuklodReferralReconciliationV1(),
+        withBuklodTimeout(loadMyBuklodMonthlyEarnings(), 8000, 'Monthly Earnings'),
       ]);
       if (request !== requestRef.current) return;
 
       setReferralAudit(referralResult.status === 'fulfilled' ? referralResult.value : null);
+      setMonthly(monthlyResult.status === 'fulfilled' ? monthlyResult.value : null);
       const financialReady = financialResult.status === 'fulfilled'
         && financialResult.value.identity_ready === true;
       if (financialReady && financialResult.status === 'fulfilled') {
@@ -177,6 +186,7 @@ export default function BayanihanScreen() {
       setSummary(null);
       setReferralAudit(null);
       setContribution(null);
+      setMonthly(null);
       setQmpError('');
       setLastUpdatedAt(null);
       setLoading(true);
@@ -199,7 +209,7 @@ export default function BayanihanScreen() {
   const referral = summary?.referral ?? {};
   const community = summary?.community ?? {};
   const qmp = communityQmpMetrics(contribution);
-  const poolSharePct = Number(earnings.estimated_pool_share_pct ?? 0);
+  const projected = composeCurrentMonthProjectedBalance(monthly, contribution);
   const referralItems = Array.isArray(referral.items)
     ? referral.items
     : [];
@@ -326,25 +336,6 @@ export default function BayanihanScreen() {
           </Section>
 
           <Section icon="cash-multiple" title={t('economy.earningsTitle')}>
-            {contribution && Number(contribution.this_month_qmp || 0) > 0 ? (
-              <View style={styles.guard}>
-                <MaterialCommunityIcons name="chart-line" size={23} color="#275D45" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.guardTitle}>Community QMP · possible monthly share</Text>
-                  <Text style={styles.metricValue}>
-                    {contribution?.estimated_share_minor == null
-                      ? 'No verified provisional revenue yet'
-                      : contribution.estimate_below_cent ? 'Below ₱0.01' : formatPhp(Number(contribution.estimated_share_minor) / 100)}
-                  </Text>
-                  <Text style={styles.guardText}>
-                    {contribution?.estimate_label || 'Estimate only. Not final or withdrawable.'}
-                    {contribution?.estimate_updated_at
-                      ? ` · Source updated ${new Date(contribution.estimate_updated_at).toLocaleString()}`
-                      : ''}
-                  </Text>
-                </View>
-              </View>
-            ) : null}
             <View style={styles.statusPill}>
               <Text style={styles.statusPillText}>
                 {earnings.user_pool_eligibility_active
@@ -352,37 +343,43 @@ export default function BayanihanScreen() {
                   : t('economy.userPoolInactive')}
               </Text>
             </View>
-
             <View style={styles.grid}>
               <Metric
-                label={t('economy.estimatedPoolShare')}
-                value={poolSharePct.toLocaleString(undefined, {
-                  maximumFractionDigits: 4,
-                }) + '%'}
-                note={earnings.user_pool_eligibility_active
-                  ? t('economy.estimate')
-                  : 'Financial pool eligibility not activated.'}
+                label="LAST MONTH · FINALIZED"
+                value={monthly
+                  ? monthly.last_month.status === 'FINALIZED'
+                    && monthly.last_month.finalized_share_minor !== null
+                      ? formatPhp(monthly.last_month.finalized_share_minor / 100)
+                      : 'Awaiting finalization'
+                  : 'History unavailable'}
+                note={monthly?.previous_month_key ?? undefined}
               />
               <Metric
-                label={t('economy.estimatedUserPool')}
-                value={formatPhp(Number(earnings.estimated_user_pool_php ?? 0))}
-                note={t('economy.estimate')}
+                label="THIS MONTH · ESTIMATE"
+                value={projected ? formatPhp(projected.currentEstimateMinor / 100) : 'No fresh estimate'}
+                note="Changes with qualified monthly contribution"
               />
               <Metric
-                label={t('economy.estimatedEarnings')}
-                value={formatPhp(Number(earnings.estimated_earnings_php ?? 0))}
-                note={t('economy.estimate')}
+                label="PROJECTED TOTAL · NOT WITHDRAWABLE"
+                value={projected ? formatPhp(projected.projectedTotalMinor / 100) : 'Estimate unavailable'}
+                note="Available finalized balance + this month's preliminary estimate"
+              />
+              <Metric
+                label="AVAILABLE FINALIZED CASH"
+                value={monthly
+                  ? formatPhp(monthly.available_finalized_minor / 100)
+                  : summary && earnings.withdrawable_php != null
+                    ? formatPhp(Number(earnings.withdrawable_php))
+                    : 'Unavailable'}
+                note={monthly
+                  ? `Minimum withdrawal: ${formatPhp(monthly.minimum_withdrawal_minor / 100)}`
+                  : 'Awaiting verified cash ledger'}
+                emphasis
               />
               <Metric
                 label={t('economy.finalizedEarnings')}
                 value={formatPhp(Number(earnings.latest_finalized_user_share_php ?? 0))}
                 note={t('economy.finalized')}
-                emphasis
-              />
-              <Metric
-                label={t('economy.withdrawableBalance')}
-                value={formatPhp(Number(earnings.withdrawable_php ?? 0))}
-                note={t('economy.withdrawable')}
               />
               <Metric
                 label={t('economy.reservedBalance')}
@@ -394,6 +391,15 @@ export default function BayanihanScreen() {
                 note={t('economy.paid')}
               />
             </View>
+            <Text style={styles.explainer}>
+              Finalized monthly earnings are fixed and carry forward even when your new monthly contribution is small or zero.
+              A new month's estimate can change until it is reconciled. Only finalized available cash counts for withdrawal.
+            </Text>
+            {contribution?.estimate_updated_at ? (
+              <Text style={styles.explainer}>
+                Preliminary revenue source updated: {new Date(contribution.estimate_updated_at).toLocaleString()}
+              </Text>
+            ) : null}
             <Text style={styles.explainer}>{t('economy.earningsNote')}</Text>
             <Text style={styles.explainer}>
               One canonical finalized cash wallet holds eligible settled user revenue share, first-line and one-time referral rewards, and separately verified funded System Admin cash rewards. View your private source-by-source lifetime earnings from the Home earnings card. The available balance here alone can be withdrawn, subject to finance activation, the minimum, payout review and one full-balance reservation. Estimated AdMob revenue, QMP, Points, pending rewards and Organization/Cluster funds are not withdrawable.

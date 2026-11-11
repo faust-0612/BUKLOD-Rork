@@ -12,7 +12,14 @@ jobs:
         with:
           fetch-depth: 0
       - name: Resolve explicit comparison ref
-        run: git branch main refs/remotes/origin/main
+        env:
+          PR_BASE: ${{ github.base_ref || 'main' }}
+        run: |
+          git branch main refs/remotes/origin/main
+          # Integration PRs must compare with their actual target, not main.
+          if [ "$PR_BASE" != "main" ]; then
+            git branch "$PR_BASE" "refs/remotes/origin/$PR_BASE"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -20,8 +27,14 @@ jobs:
         shell: bash
         env:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
+          PR_BASE: ${{ github.base_ref || 'main' }}
         run: |
           case "$PR_HEAD" in
+            integration/buklod-nov10-single-source-ota)
+              if [ "$PR_BASE" = "main" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-consolidated-rc.json" >> "$GITHUB_ENV"
+                echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
+              fi;;
             integration/buklod-nov09-bible-v4-rank-ptt-ota-rc)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/bible-v4-events-kingdom-20261109.json" >> "$GITHUB_ENV";;
             fix/referral-economy-cors-20261109)
@@ -197,7 +210,7 @@ jobs:
           esac
           # Discover one new scoped change without branch-name mapping growth.
           if ! grep -q '^BUKLOD_SCOPE_MANIFEST=' "$GITHUB_ENV"; then
-            mapfile -t scopes < <(git diff --name-only main...HEAD -- .buklod/scopes/ | grep -E '^\.buklod/scopes/[^/]+\.json$' || true)
+            mapfile -t scopes < <(git diff --name-only "$PR_BASE"...HEAD -- .buklod/scopes/ | grep -E '^\.buklod/scopes/[^/]+\.json$' || true)
             if [ "${#scopes[@]}" -eq 1 ]; then
               echo "BUKLOD_SCOPE_MANIFEST=${scopes[0]}" >> "$GITHUB_ENV"
             fi
@@ -256,7 +269,7 @@ jobs:
         run: node --test tests/engineering-regression-gate.test.mjs
       - name: Verify impacted features have runnable regression coverage
         env:
-          BUKLOD_BASE_REF: main
+          BUKLOD_BASE_REF: ${{ github.base_ref || 'main' }}
         run: node scripts/engineering-regression-gate.mjs --run-focused-node-tests
       - name: Verify profile card RLS migration security contract
         if: github.head_ref == 'security/public-profile-cards-invoker-20261030'

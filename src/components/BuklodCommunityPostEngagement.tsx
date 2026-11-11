@@ -25,6 +25,8 @@ type Props = {
   reactionCounts?: Record<string, number> | null;
   myReaction?: string | null;
   commentPreview?: BuklodCommunityCommentPreviewData | null;
+  /** Hide the oversized comment preview in immersive fullscreen overlays. */
+  showCommentPreview?: boolean;
   commentCount?: number | null;
   onReact: (key: string) => void;
   onReactionSummaryPress?: (
@@ -42,6 +44,7 @@ export function BuklodCommunityPostEngagement({
   reactionCounts,
   myReaction,
   commentPreview,
+  showCommentPreview = true,
   commentCount = 0,
   onReact,
   onReactionSummaryPress,
@@ -126,7 +129,7 @@ export function BuklodCommunityPostEngagement({
                 { color: theme.textMuted },
               ]}
             >
-              {socialActions ? 'Comment' : totalComments}
+              {socialActions ? 'Comment ' + totalComments : totalComments}
             </Text>
           </BuklodPressable>
         ) : null}
@@ -154,12 +157,12 @@ export function BuklodCommunityPostEngagement({
         ) : null}
       </View>
 
-      {commentPreview ? (
+      {showCommentPreview && commentPreview ? (
         <BuklodCommunityCommentPreview
           preview={commentPreview}
           onPress={onOpenComments}
         />
-      ) : totalComments > 0 ? (
+      ) : showCommentPreview && totalComments > 0 ? (
         <BuklodPressable
           accessibilityRole="button"
           accessibilityLabel="Open recent comments"

@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "objective": "Make Public Wall fullscreen video viewer visually clean, resilient, faster on swipe and automatic playback, correcting mojibake without sacrificing signed-media access, native ads or existing videos.",
+  "authoritativeBase": "integration/buklod-nov10-single-source-ota",
+  "sourceBranch": "fix/fullscreen-wall-video-smooth-20261111",
+  "scope": "Android Expo JS OTA candidate only; no independent production push, no new native dependencies.",
+  "changes": {
+    "viewer": [
+      "Remove automatic signed-URL refresh on fullscreen open and each swipe; reuse latest playable URL including Wall already-refreshed URLs.",
+      "Viewport activation at 60% and 80 ms, measured modal page size, bounded single next video preload.",
+      "Dedupe failed video URL refresh, cap at 3 attempts per opened viewer, 2500 ms backoff, ignore stale results across close/reopen sessions.",
+      "Protect top status bar, reduce fullscreen bottom interaction panel, suppress oversized Recent comment preview while preserving normal feed default.",
+      "Show a short non-overlapping swipe hint, remove unnecessary load-more banners except when pagination genuinely errors, fix literal Refreshing videoâ€¦ mojibake."
+    ],
+    "sharedPlayer": [
+      "Keep Expo-video cached media, post-scoped playback resume, paused offscreen players and existing IMA monetization branch.",
+      "Render fullscreen loading badge beneath safe area.",
+      "Defer thumbnail extraction until 1500ms after actual visible playback to avoid first-frame decoder startup competition; cancel timers on pause, URI change and unmount."
+    ]
+  },
+  "changedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/CommunityVideo.tsx",
+    "src/components/BuklodCommunityPostEngagement.tsx",
+    "tests/community-video-navigation-scroll.test.mjs",
+    "tests/community-fullscreen-video-ota-20261111.test.mjs",
+    ".buklod/scopes/fullscreen-wall-video-smooth-ota-20261111.json"
+  ],
+  "verification": {
+    "completed": "24/24 targeted source-level checks passed in connector inspection; side-effects outside changed paths were avoided.",
+    "pending": "Full TypeScript compilation, compiled RC QA, exact native runtime/export checks, and production OTA manifest verification remain required.",
+    "waiver": "Physical Android device verification is waived per owner instruction retained from this Wall video OTA workflow; not a waiver of release gates.",
+    "unverified": "No live streaming latency/codec/first-frame measurements or device FPS were collected."
+  },
+  "release": {
+    "targetBranch": "integration/buklod-nov10-single-source-ota",
+    "mainProductionUntouched": true,
+    "standaloneOtaPublished": false,
+    "newNativeBuild": false,
+    "requiresSingleConsolidatedRC": true,
+    "verifyProductionManifestBeforeCallingLive": true
+  }
+}

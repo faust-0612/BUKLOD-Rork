@@ -84,6 +84,7 @@ import {
 } from '@/components/connect/ConnectThemeSelector';
 import { ConnectPressable } from '@/components/connect/ConnectPressable';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import {
   ConnectThreadBackground,
 } from '@/components/connect/ConnectThreadBackground';
@@ -1370,6 +1371,7 @@ function ConnectScreenInner({
           renderItem={({ item, index }: any) => {
             if (tab === 'community') {
               return (
+                <>
                 <BuklodFocusVisibleRow index={index}>
                   <ConnectCommunityRow
                     scopeId={item.scope_id}
@@ -1382,11 +1384,16 @@ function ConnectScreenInner({
                     onPressRow={() => openCommunityRoom(item.scope_id, item)}
                   />
                 </BuklodFocusVisibleRow>
+                {index === 3 && !isSearching ? (
+                  <BuklodNativeSponsoredCard surface="connect" slotId="connect_community_inline_4" />
+                ) : null}
+                </>
               );
             }
             const isPerson = Boolean(item.user_id) && !item.thread_id;
             const unread = isPerson ? 0 : n(item.unread_count);
             return (
+              <>
               <BuklodFocusVisibleRow index={index}>
                 <ConnectInboxRow
                   userId={isPerson ? item.user_id : item.other_user_id}
@@ -1402,6 +1409,10 @@ function ConnectScreenInner({
                     : openPersonalThread(item.thread_id, item)}
                 />
               </BuklodFocusVisibleRow>
+              {index === 3 && !isSearching ? (
+                <BuklodNativeSponsoredCard surface="connect" slotId="connect_personal_inline_4" />
+              ) : null}
+              </>
             );
           }}
         />

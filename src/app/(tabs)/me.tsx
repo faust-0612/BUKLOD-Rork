@@ -23,6 +23,8 @@ import {
 } from '@/components/BuklodProfileMotion';
 import BuklodProfileCharacterCard from '@/components/points/BuklodProfileCharacterCard';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
+import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import BuklodReferralInviteCard from '@/components/BuklodReferralInviteCard';
 import {
   resolveContrastPaint,
@@ -1848,6 +1850,7 @@ export default function MeScreen() {
       />
 
       {referralSection}
+      <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />
 
       {orderedSections.map((row) => (
         <View key={row.id}>
@@ -1855,6 +1858,7 @@ export default function MeScreen() {
         </View>
       ))}
 
+      <BuklodScreenBottomBanner placement="profile" variant="large" />
       <Text
         style={[
           styles.footer,

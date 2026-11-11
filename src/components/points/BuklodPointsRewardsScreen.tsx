@@ -47,6 +47,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import BuklodAdLightRewardCard from '@/components/BuklodAdLightRewardCard';
+import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
 const CLAIM_SUCCESS_SOUND = require('../../../assets/sounds/buklod-points-claim.wav');
@@ -1130,6 +1131,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
         </View>
       </View>
 
+      <BuklodKingdomAdSlot placementId="points_redeem_transition_native" kind="native" />
       <View style={styles.section}>
         <BuklodRedeemCatalogSection
           availablePoints={number(dashboard.available_points)}

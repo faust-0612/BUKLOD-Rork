@@ -22,7 +22,9 @@ function between(source, start, end) {
 
 test('Kingdom map remains inside the existing BUKLOD App at /games', () => {
   assert.ok(gameRoute.includes('BuklodKingdomMapPremium'));
-  assert.ok(gameRoute.includes('return <BuklodKingdomMap />;'));
+  // The in-app map may now be composed with a noninteractive footer ad.
+  assert.match(gameRoute, /<BuklodKingdomMap \/>/);
+  assert.match(gameRoute, /<BuklodKingdomAdSlot placementId="kingdom_map_footer" kind="banner" \/>/);
   assert.ok(!gameRoute.includes('WebView'));
   assert.ok(!gameRoute.includes('https://'));
   assert.ok(premium.includes("router.push(station.href as any)"));

@@ -120,6 +120,11 @@ function ChristianGameCenterContent() {
               : <ScriptureWordSearchGameV1 key={user?.id ?? 'guest'} onFinish={saveMinigameResult} />}
           </>
         )}
+        <Pressable accessibilityRole="button" accessibilityLabel="Play next Kingdom level offline"
+          onPress={() => router.push({pathname:'/games/practice',params:{gameId:(selectedGame === 'council' ? GAME_ID : selectedGame === 'word' ? WORD_ID : CROWN_ID)}} as any)}
+          style={styles.practiceLink}>
+          <Text style={styles.practiceText}>NEXT ADVENTURE LEVEL • OFFLINE PRACTICE</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -134,6 +139,9 @@ export default function ChristianCivicLeadershipScreen() {
 }
 
 const styles = StyleSheet.create({
+  practiceLink: { minHeight:44, padding:12, borderRadius:12, borderWidth:1, borderColor:'#e9ca88', backgroundColor:'#254a53', alignItems:'center', justifyContent:'center', marginVertical:7 },
+  practiceText: { color:'#ffebbb', fontSize:12, fontWeight:'900', textAlign:'center' },
+
   page: { flexGrow: 1, paddingTop: 18, paddingBottom: 32 },
   center: { width: '100%', maxWidth: 920, alignSelf: 'center', paddingHorizontal: 12, gap: 7 },
   mapBack: { alignSelf: 'flex-start', borderRadius: 10, borderWidth: 1,

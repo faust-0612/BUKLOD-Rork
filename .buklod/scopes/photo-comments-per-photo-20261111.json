@@ -1,0 +1,50 @@
+{
+  "contractVersion": 2,
+  "objective": "Add real per-photo comments and visible counts beside existing per-photo reactions on the BUKLOD public Wall. No production publish.",
+  "baseRef": "c5ba9af02977215249e3aa26ae02696a9645f19c",
+  "productionBaselineEvidence": "GitHub current main 5efb994 and Nov11 RC c5ba9af; live database has photo reactions but lacks photo comments.",
+  "chosenApproach": "Use existing (post_id, media_position) image identity, audience-protected RPC, private RLS table, client request idempotency and minimal photo-viewer sheet. Recover single-photo media metadata when an old post had no media row; aggregate counts across all photos per viewer open.",
+  "selectionRationale": "Post-wide comment counts cannot represent per-photo engagement; exposing direct table writes would be unsafe.",
+  "alternativeApproaches": [
+    "Re-label post-wide comments as per-photo (rejected: incorrect count)",
+    "Grant direct client table writes (rejected: unneeded data exposure)"
+  ],
+  "preserveBehaviors": [
+    "Existing post comments, photo reactions, photo saves and video viewer unchanged",
+    "No credits or rewards for photo comments",
+    "No native dependency or Expo runtime change",
+    "No production OTA or SQL deployment before independent gates"
+  ],
+  "riskAreas": [
+    "wall-media",
+    "auth-privacy",
+    "ads-monetization",
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/buklod-photo-comments-per-photo-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/photo-comments-per-photo-20261111.json",
+    ".buklod/scopes/nov11-consolidated-rc.json",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodCommunityPostEngagement.tsx",
+    "src/components/BuklodPhotoCommentsSheet.tsx",
+    "supabase/migrations/20261111043000_buklod_photo_comments_by_media_v1.sql",
+    "tests/buklod-photo-comments-per-photo-20261111.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "All new RPCs authenticate and enforce audience boundaries",
+    "Direct table access denied; author-bound deletion",
+    "Counts keyed by post_id+media_position, not post-wide count",
+    "Resubmit after weak-network ambiguity does not create duplicates",
+    "Full Android/Web compile, SQL transaction dry run and RLS checks before rollout",
+    "Device verification waived, not passed",
+    "Hold production OTA and payouts",
+    "Batch photo comment counts once per opened collage and ignore stale responses during fast swipe/reopen.",
+    "Legacy photo posts missing canonical media rows are recovered as metadata-only, idempotent, without copying or deleting photos."
+  ],
+  "physicalDeviceVerification": "Not performed: waived by owner.",
+  "releaseState": "DEV / HOLD pending SQL migration and exact-head RC gates"
+}

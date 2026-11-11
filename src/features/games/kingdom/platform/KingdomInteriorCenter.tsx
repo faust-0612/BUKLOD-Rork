@@ -10,6 +10,7 @@ import {
 } from './previewStore';
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { KingdomMasteryCheck } from './KingdomMasteryCheck';
+import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 
 type MiniGameFinish = (result: BuklodGameResult, sessionId: string) => void;
 export type KingdomInteriorOption = {
@@ -30,7 +31,7 @@ export type KingdomInteriorProps = {
 
 /**
  * Reusable, map-preserving Game Center for new stations.
- * No economy RPC or ads are implemented here. R1/R2 centers can migrate after QA.
+ * Completion-only, passive inventory stays below the verified game result UI.
  */
 export function KingdomInteriorCenter({
   character, subtitleEn, subtitleTl, options,
@@ -122,8 +123,16 @@ export function KingdomInteriorCenter({
               }
             }).catch(() => undefined);
         })}</View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Play next Kingdom level offline"
+          onPress={() => router.push({pathname:'/games/practice',params:{gameId:active.id}} as any)}
+          style={styles.practiceLink}>
+          <Text style={styles.practiceText}>NEXT ADVENTURE LEVEL • OFFLINE PRACTICE</Text>
+        </Pressable>
         {masteryEligibility?.owner === user?.id && masteryEligibility?.gameId === active.id ? (
-          <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id} />
+          <>
+            <KingdomMasteryCheck key={user?.id + ':' + active.id} gameId={active.id} />
+            <BuklodKingdomAdSlot placementId="kingdom_game_center_completed" kind="banner" />
+          </>
         ) : null}
       </View>
     </ScrollView>
@@ -131,6 +140,9 @@ export function KingdomInteriorCenter({
 }
 
 const styles = StyleSheet.create({
+  practiceLink: { minHeight:44, padding:12, borderRadius:12, borderWidth:1, borderColor:'#e9ca88', backgroundColor:'#254a53', alignItems:'center', justifyContent:'center', marginVertical:7 },
+  practiceText: { color:'#ffebbb', fontSize:12, fontWeight:'900', textAlign:'center' },
+
   page: { flexGrow: 1, paddingTop: 18, paddingBottom: 36 },
   shell: { width: '100%', maxWidth: 940, alignSelf: 'center', paddingHorizontal: 12, gap: 9 },
   mapBack: { alignSelf: 'flex-start', borderColor: '#c6b68f', borderWidth: 1,
