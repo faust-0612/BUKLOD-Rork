@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const sql=readFileSync(new URL('../supabase/migrations/20261111152500_buklod_mutual_engagement_r4.sql',import.meta.url),'utf8');
+const sql=readFileSync(new URL('../supabase/migrations/20261111085727_buklod_mutual_engagement_r4.sql',import.meta.url),'utf8');
 test('rollout is opt-in and never modifies historical balances or QMP/BCU',()=>{
  assert.match(sql,/enabled boolean NOT NULL DEFAULT false/i);
  assert.match(sql,/VALUES\(1,false,now\(\)\)/);

@@ -1,3 +1,4 @@
+-- Source migration history parity (Nov 11, 2026).
 -- Read-only contract for the KL R4 reward migration. Run after new migrations.
 DO $$
 DECLARE fn text;

@@ -1,3 +1,4 @@
+-- Source migration history parity (Nov 11, 2026).
 -- Read-only contract for R4 rewards; no content or ledger mutation.
 DO $$
 DECLARE fn text; rollout boolean; enabled boolean;
