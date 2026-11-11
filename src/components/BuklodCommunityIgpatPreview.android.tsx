@@ -137,7 +137,12 @@ function InlineIgpatVideo({ uri }: { uri: string }) {
   );
 }
 
-export default function BuklodCommunityIgpatPreview({ slotId, active = true }: Props) {
+/** Retired IGPAT preview: no feed RPC, no signed-media fetch, no player mount. */
+export default function RetiredIgpatPreview() {
+  return null;
+}
+
+function BuklodCommunityIgpatPreview({ slotId, active = true }: Props) {
   const { width } = useWindowDimensions();
   const { activeScope } = useBuklodScope();
   const isCurrentlyVisible = useBuklodCommunityInlineVisibility(slotId);
