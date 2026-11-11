@@ -16,8 +16,19 @@ test('Web route exposes actual PTT with authorized channels and browser audio', 
   assert.match(web, /loadBuklodPttScopes/);
   assert.match(web, /connectBuklodPttRuntime/);
   assert.match(web, /disconnectBuklodPttRuntime/);
-  assert.match(web, /onPressIn=\{start\}/);
-  assert.match(web, /onPressOut=\{stop\}/);
+  // A raw browser pointer-captured button avoids Pressable's delayed touch
+  // handling inside the scrolling PTT page.
+  assert.match(web, /onPointerDown: pointerDown/);
+  assert.match(web, /onPointerUp: pointerUp/);
+  assert.match(web, /onPointerCancel: stop/);
+  assert.match(web, /onLostPointerCapture: stop/);
+  assert.match(web, /onBlur: stop/);
+  assert.match(web, /setPointerCapture/);
+  assert.match(web, /releasePointerCapture/);
+  assert.match(web, /touchAction: 'none'/);
+  assert.match(web, /onKeyDown: keyDown/);
+  assert.match(web, /onKeyUp: keyUp/);
+  assert.doesNotMatch(web, /onPressIn=\{start\}/);
   assert.match(web, /visibilitychange/);
   assert.match(web, /pagehide/);
   assert.match(web, /bindAudioElement/);
@@ -48,4 +59,28 @@ test('Web Home door remains visible, transcript consent works on browser', () =>
   assert.match(chat, /BrowserSafeAlert/);
   assert.match(chat, /window\.confirm/);
   assert.match(chat, /window\.alert/);
+});
+
+test('Web PTT button rejects phantom transmissions and always releases', () => {
+  assert.match(web, /if \(!connected \|\| busyRef\.current \|\| holdRef\.current \|\| runtime\.requestingFloor \|\| runtime\.transmitting\) return/);
+  assert.match(web, /if \(!event\.isPrimary \|\| event\.button !== 0\) return/);
+  assert.match(web, /onPointerCancel: stop/);
+  assert.match(web, /window\.addEventListener\('pointercancel', end\)/);
+  assert.match(web, /window\.addEventListener\('pagehide', end\)/);
+  assert.match(web, /document\.addEventListener\('visibilitychange', hidden\)/);
+  assert.match(web, /disabled: !connected \|\| busy/);
+  assert.match(web, /CONNECT FIRST/);
+  assert.match(web, /'aria-pressed': held \|\| runtime\.transmitting/);
+  assert.match(web, /\!window\.confirm\('SOS is only for emergencies/);
+});
+
+test('Web PTT button provides honest states with bounded action dispatch', () => {
+  assert.match(web, /type PttWebAction = 'idle' \| 'joining' \| 'leaving' \| 'switching'/);
+  assert.match(web, /busyRef\.current = true/);
+  assert.match(web, /setAction\(connected \? 'leaving' : 'joining'\)/);
+  assert.match(web, /setAction\('switching'\)/);
+  assert.match(web, /setAction\('idle'\)/);
+  assert.match(web, /describePttError/);
+  assert.match(web, /Cannot reach the PTT service/);
+  assert.match(web, /Press and hold/);
 });
