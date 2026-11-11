@@ -1,0 +1,27 @@
+{
+  "objective": "Marites Music: add selectable 30-second soundtrack on new story; silent feed; music only Full View with mute button and on-demand fetch.",
+  "baseRef": "main",
+  "release": "DEV-only / consolidated OTA hold; do not publish web, OTA or run migrations",
+  "changedPaths": [
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/BuklodMaritesStoryAudio.tsx",
+    "src/lib/buklodMaritesBoard.ts",
+    "tests/marites-fullview-music-contract.test.mjs",
+    ".buklod/scopes/marites-fullview-music-20261111.json"
+  ],
+  "preserve": [
+    "Public Marites 72-hour feed, local fallback, shared post RPC / media ownership, photo collage, Quick Video, comments/reactions, Expo Audio focus, all existing ads",
+    "No new dependencies, database schema, permissions, native modules or production writes."
+  ],
+  "qa": [
+    "node --test tests/marites-fullview-music-contract.test.mjs",
+    "npx tsc --noEmit",
+    "node scripts/engineering-regression-gate.mjs",
+    "Expo Android + web export compile on exact RC source",
+    "Consolidation completeness, release gates and manual music review before production."
+  ],
+  "notes": [
+    "Track playback is enabled on Full View only; creator can explicitly preview in picker.",
+    "Only one new audio decoder per visible story or explicit picker preview; stale fetch is cancellable."
+  ]
+}
