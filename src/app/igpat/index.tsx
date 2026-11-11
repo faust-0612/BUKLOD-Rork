@@ -26,6 +26,13 @@ import {
   type ReelsFeedInlineAdRow,
 } from '@/lib/buklodAdPlacements';
 import { supabase } from '@/lib/supabase';
+import {
+  getInstantPublishes,
+  subscribeInstantPublish,
+  retryInstantPublish,
+  dismissInstantPublish,
+  type InstantPublishSnapshot,
+} from '@/lib/buklodInstantPublishQueue';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
@@ -52,7 +59,8 @@ type IgpatRow = {
   media_url?: string | null;
 };
 
-type IgpatFeedRow = IgpatRow | ReelsFeedInlineAdRow;
+type PendingIgpatRow = IgpatRow & { pendingUpload: InstantPublishSnapshot };
+type IgpatFeedRow = IgpatRow | PendingIgpatRow | ReelsFeedInlineAdRow;
 type FeedMode = 'for-you' | 'following' | 'latest';
 
 const NORMAL_LIMIT = 16;
@@ -251,6 +259,12 @@ export default function IgpatScreen() {
   const { status: networkStatus } = useNetwork();
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<IgpatRow[]>([]);
+  const [instantJobs,setInstantJobs] = useState(() => getInstantPublishes(user?.id,'igpat'));
+  useEffect(() => {
+    const refresh = () => setInstantJobs(getInstantPublishes(user?.id,'igpat'));
+    refresh();
+    return subscribeInstantPublish(refresh);
+  }, [user?.id]);
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
   const loadGenerationRef = useRef(0);
@@ -279,10 +293,23 @@ export default function IgpatScreen() {
   const viewportHeight = Dimensions.get('window').height;
   useEffect(() => { setReelsAdStates({}); }, [feedMode]);
   const feedRows = useMemo(() => {
-    const feed=buildReelsFeedWithInlineAds(rows);
+    // Pending reels are private device previews, not real feed publications.
+    const pendingRows:PendingIgpatRow[] = instantJobs
+      .filter(job=>!job.remoteMediaPath || !rows.some(row=>row.media_path===job.remoteMediaPath))
+      .map(job=>({
+      id:job.id,
+      user_id:job.ownerId,
+      author_name:'You',
+      body:job.caption,
+      created_at:job.createdAt,
+      media_path:'',
+      media_url:job.mediaUri,
+      pendingUpload:job,
+    }));
+    const feed=buildReelsFeedWithInlineAds([...pendingRows,...rows]);
     // No reel session should end on a sponsored placeholder.
     return isReelsFeedInlineAdRow(feed[feed.length-1]) ? feed.slice(0,-1) : feed;
-  }, [rows]);
+  }, [rows,instantJobs]);
   useEffect(() => {
     const row=feedRows[activeIndex];
     if(!isReelsFeedInlineAdRow(row))return;
@@ -461,6 +488,23 @@ export default function IgpatScreen() {
     void load();
     return () => { loadGenerationRef.current += 1; };
   }, [load]);
+  const confirmedInstantIds=useRef(new Set<string>());
+  useEffect(()=>{
+    for(const job of instantJobs){
+      if(job.status!=='posted' || confirmedInstantIds.current.has(job.id))continue;
+      confirmedInstantIds.current.add(job.id);
+      void load();
+    }
+  },[instantJobs,load]);
+  useEffect(()=>{
+    // Remove a provisional row only when its canonical media path appears.
+    for(const job of instantJobs){
+      if(job.status==='posted' && job.remoteMediaPath &&
+        rows.some(row=>row.media_path===job.remoteMediaPath)){
+        dismissInstantPublish(job.id,job.ownerId);
+      }
+    }
+  },[instantJobs,rows]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -614,7 +658,7 @@ export default function IgpatScreen() {
   const nextPlayableIndex = (dataSaver || weakSignal) ? -1 : feedRows.findIndex((item, index) =>
     index > activeIndex && !isReelsFeedInlineAdRow(item));
 
-  if (!prefsReady || (loading && !rows.length) || visibleFeedKeyRef.current !== currentFeedKey) {
+  if (!instantJobs.length && (!prefsReady || (loading && !rows.length) || visibleFeedKeyRef.current !== currentFeedKey)) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#FFFFFF" />
@@ -624,7 +668,7 @@ export default function IgpatScreen() {
     );
   }
 
-  if (!rows.length) {
+  if (!rows.length && !instantJobs.length) {
     return (
       <View style={styles.center}>
         <Text style={styles.emptyTitle}>BUKLOD IGPAT</Text>
@@ -702,6 +746,51 @@ export default function IgpatScreen() {
             );
           }
 
+          if ('pendingUpload' in item) {
+            const job=item.pendingUpload;
+            const canRetry=job.status==='failed';
+            const completed=job.status==='posted';
+            return (
+              <View style={[styles.page,{height:viewportHeight,backgroundColor:'#050806'}]}>
+                {!!job.mediaUri && (index===activeIndex || index===nextPlayableIndex)
+                  ? <IgpatVideo uri={job.mediaUri} active={index===activeIndex}/>
+                  : null}
+                <View pointerEvents="none" style={styles.scrim}/>
+                <View style={[styles.topBar,{top:insets.top+10}]}>
+                  <Text style={styles.brandTitle}>IGPAT · YOUR PREVIEW</Text>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Create IGPAT"
+                    style={styles.createButton} onPress={()=>router.push('/igpat/create' as any)}>
+                    <MaterialCommunityIcons name="plus" size={21} color="#07100B"/>
+                  </Pressable>
+                </View>
+                <View style={{position:'absolute',left:20,right:20,bottom:Math.max(insets.bottom+85,100),
+                  backgroundColor:'rgba(7,14,10,0.88)',padding:16,borderRadius:16,gap:10}}>
+                  <Text style={{fontSize:16,fontWeight:'900',color:'#FFFFFF'}}>
+                    {completed?'PUBLISHED':job.status==='uploading'?'UPLOADING · ONLY YOU CAN SEE THIS':
+                     job.status==='uncertain'?'CHECK PUBLICATION':'UPLOAD FAILED'}
+                  </Text>
+                  {!!job.caption&&<Text numberOfLines={3} style={{color:'#FFFFFF'}}>{job.caption}</Text>}
+                  <Text style={{color:'#DCE8DF',fontSize:12}}>
+                    {job.notice}{job.status==='uploading' && job.progress!=null ? ` ${Math.round(job.progress*100)}%` : ''}
+                  </Text>
+                  {canRetry&&(
+                    <Pressable accessibilityRole="button" accessibilityLabel="Retry IGPAT upload"
+                      style={styles.retryButton}
+                      onPress={()=>retryInstantPublish(job.id,job.ownerId)}>
+                      <Text style={styles.retryText}>RETRY UPLOAD</Text>
+                    </Pressable>
+                  )}
+                  {(job.status==='failed'||job.status==='uncertain')&&(
+                    <Pressable accessibilityRole="button" accessibilityLabel="Dismiss IGPAT preview"
+                      style={styles.retryButton}
+                      onPress={()=>dismissInstantPublish(job.id,job.ownerId)}>
+                      <Text style={styles.retryText}>DISMISS</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            );
+          }
           const creatorId = item.user_id ? String(item.user_id) : '';
           const isSelf = creatorId === user?.id;
           const isFollowing = Boolean(creatorId && followedIds.has(creatorId));
