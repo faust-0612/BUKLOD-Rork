@@ -74,6 +74,6 @@ test('all three Home cards have accessible neon borders without adding native de
  assert.match(cards,/#00E6B5/);
  assert.match(cards,/#F14AE0/);
  assert.match(cards,/accessibilityRole="button"/);
- assert.match(motion,/const count=preset==='storm'\?36/);
+ assert.match(motion,/const count=preset==='storm'\?24/);
  assert.match(motion,/reduceMotion/);
 });
