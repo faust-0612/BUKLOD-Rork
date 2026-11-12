@@ -13,7 +13,7 @@ begin
  if not exists(select 1 from cron.job
    where jobname='buklod-backend-capacity-hourly-v1' and active
    and schedule='17 * * * *'
-   and command like '%buklod_backend_capacity_check_alerts_v2%') then
+   and command = 'select private.buklod_backend_capacity_hourly_v4()') then
    raise exception 'Single hourly warning job missing';
  end if;
  select pg_get_functiondef('private.buklod_backend_capacity_check_alerts_v2()'::regprocedure) into body;
@@ -22,6 +22,9 @@ begin
    or position('OFFICIAL_SYSTEM_ADMIN' in body)=0
    or position('buklod_queue_notification_once_v1' in body)=0 then
    raise exception 'Early warning, recovery, official recipient or dedupe logic missing';
+ end if;
+ if position('''route'',''/admin/backend-capacity''' in body)=0 then
+   raise exception 'Notification deep-link route missing';
  end if;
  if (select count(*) from private.buklod_backend_capacity_alert_state_v2 where id=1)<>1 then
    raise exception 'Alert singleton missing';

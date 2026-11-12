@@ -53,3 +53,12 @@ test('provider data is server-authenticated and optional for app dashboard', () 
   assert.match(edge, /caller\.rpc\('is_system_admin'\)/);
   assert.match(edge, /PROVIDER_UNAVAILABLE/);
 });
+
+test('canonical push destination and ordered hourly cron are stable', () => {
+  const v3 = read('supabase/migrations/20261112022232_buklod_backend_capacity_notification_route_v3_20261112.sql');
+  const v4 = read('supabase/migrations/20261112022303_buklod_backend_capacity_hourly_order_v4_20261112.sql');
+  assert.match(v3, /'route','\/admin\/backend-capacity'/);
+  assert.match(v4, /perform private\.buklod_record_backend_capacity_v1\(\)/);
+  assert.match(v4, /perform private\.buklod_backend_capacity_check_alerts_v2\(\)/);
+  assert.match(v4, /'buklod-backend-capacity-hourly-v1'/);
+});

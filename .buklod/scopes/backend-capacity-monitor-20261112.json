@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Complete BUKLOD System Admin backend capacity bars and sustained warning push, prepare for consolidated OTA without publishing.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: production Supabase main BUKLOD Connect authorized RPC returns capacity, nonadmin denied 42501, hourly sample idempotent, active cron. Capacity warning V2 applied live as version 20261112021134 with initial unchanged status. Provider adapter source only; no OTA deployed.",
+  "productionBaselineEvidence": "verified: production Supabase main BUKLOD Connect authorized RPC returns capacity, nonadmin denied 42501, hourly sample idempotent, active cron. Capacity warning V2 applied live as version 20261112021134 with initial unchanged status. Provider adapter source only; no OTA deployed. Live V3 canonical alert route 20261112022232 and V4 ordered sampler 20261112022303 verified; one active hourly cron.",
   "chosenApproach": "Guard read-only JSON RPC behind database is_system_admin(); private low-frequency hourly snapshot with 60-day retention; isolated Expo Router AdminGate screen linked from first-open Reports drawer. Show only measured values and explicitly null provider utilization, and retain manual provider links. Use server-authorized Supabase Metrics API for real RAM/filesystem and CPU load per core, not misidentified as CPU utilization. Chain push alert detection after existing hourly sampler.",
   "selectionRationale": "Avoid false capacity percentages, added third-party monitoring cost or altering current video/ads. No secrets in client and only one small hourly database sample. Built-in infrastructure metrics and existing push minimize cost and duplicate monitoring infrastructure.",
   "alternativeApproaches": [
@@ -29,7 +29,8 @@
     "Screen remains isolated from Community video, advertising, Points and OTA release paths.",
     "Provider metrics never expose service key; failed provider call leaves database UI usable.",
     "Six consecutive hourly readings cause deduplicated official-admin warning; three low readings clear it.",
-    "CPU load per vCPU remains distinct from actual CPU utilization."
+    "CPU load per vCPU remains distinct from actual CPU utilization.",
+    "Notification deep link uses canonical route key; scheduled sampler evaluates alert after writing its sample in a single PL/pgSQL function."
   ],
   "preserveBehaviors": [
     "Unchanged app-wide navigation, media playback, video memory and ads behavior.",
@@ -56,6 +57,8 @@
     "supabase/functions/buklod-admin-backend-metrics/index.ts",
     "supabase/functions/buklod-admin-backend-metrics/parse.mjs",
     "tests/backend-capacity-provider-metrics.test.mjs",
-    "supabase/tests/backend_capacity_early_warning_v2.sql"
+    "supabase/tests/backend_capacity_early_warning_v2.sql",
+    "supabase/migrations/20261112022232_buklod_backend_capacity_notification_route_v3_20261112.sql",
+    "supabase/migrations/20261112022303_buklod_backend_capacity_hourly_order_v4_20261112.sql"
   ]
 }
