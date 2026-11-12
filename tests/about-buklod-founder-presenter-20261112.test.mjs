@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { test } from 'node:test';
 
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-const manifest = JSON.parse(read('.buklod/scopes/next-consolidated-bsoc-about-20261112.json'));
+const manifest = JSON.parse(read('.buklod/scopes/nov12-full-conso-wall-20261112.json'));
 const about = read('src/app/about-buklod.tsx');
 const presenter = read('src/app/about-buklod-present.tsx');
 const content = read('src/lib/aboutBuklodContent.ts');
