@@ -40,10 +40,12 @@ export default function AdminPriorityRequestsScreen() {
   const version = useRef(0);
   const lastRequest = useRef(0);
   const inFlight = useRef(false);
+  const queued = useRef(false);
   const focused = useRef(false);
 
   const load = useCallback(async () => {
-    if (!allowed || inFlight.current) return;
+    if (!allowed) return;
+    if (inFlight.current) { queued.current = true; return; }
     inFlight.current = true;
     lastRequest.current = Date.now();
     const seq = ++version.current;
@@ -59,6 +61,10 @@ export default function AdminPriorityRequestsScreen() {
     } finally {
       if (version.current === seq) setLoading(false);
       inFlight.current = false;
+      if (queued.current && focused.current) {
+        queued.current = false;
+        void load();
+      }
     }
   }, [allowed]);
 
