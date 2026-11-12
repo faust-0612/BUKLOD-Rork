@@ -27,6 +27,8 @@ export type KingdomInteriorProps = {
   subtitleEn: string;
   subtitleTl: string;
   options: readonly KingdomInteriorOption[];
+  /** Opt-in compact selector for tall, gesture-based games only. */
+  compactGameId?: string;
 };
 
 /**
@@ -34,7 +36,7 @@ export type KingdomInteriorProps = {
  * Completion-only, passive inventory stays below the verified game result UI.
  */
 export function KingdomInteriorCenter({
-  character, subtitleEn, subtitleTl, options,
+  character, subtitleEn, subtitleTl, options, compactGameId,
 }: KingdomInteriorProps) {
   const { user } = useAuth();
   const { t } = useBuklodGameLanguage();
@@ -83,25 +85,32 @@ export function KingdomInteriorCenter({
   }
 
   if (!active) return null;
+  const compact = active.id === compactGameId;
   return (
-    <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[styles.page, !!compactGameId && styles.pageBelowGameControls]} keyboardShouldPersistTaps="handled">
       <View style={styles.shell}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Back to Kingdom map', 'Bumalik sa mapa ng Kingdom')}
           onPress={() => router.replace('/games' as any)} style={styles.mapBack}>
           <Text style={styles.mapBackText}>{t('← BACK TO KINGDOM MAP', '← BALIK SA MAPA NG KINGDOM')}</Text>
         </Pressable>
-        <Text style={styles.eyebrow}>{character.toUpperCase()} • KINGDOM GAME CENTER</Text>
-        <Text style={styles.heading}>{t('Choose a game', 'Pumili ng laro')}</Text>
-        <Text style={styles.help}>{t(subtitleEn, subtitleTl)}</Text>
-        <View style={styles.chooser}>
+        {compact ? (
+          <Text style={styles.compactHeading}>{character.toUpperCase()} • FOREST TRAIL</Text>
+        ) : (
+          <>
+            <Text style={styles.eyebrow}>{character.toUpperCase()} • KINGDOM GAME CENTER</Text>
+            <Text style={styles.heading}>{t('Choose a game', 'Pumili ng laro')}</Text>
+            <Text style={styles.help}>{t(subtitleEn, subtitleTl)}</Text>
+          </>
+        )}
+        <View style={[styles.chooser, compact && styles.chooserCompact]}>
           {options.map(option => <Pressable
             key={option.id} accessibilityRole="button"
             accessibilityState={{ selected: option.id === active.id }}
-            style={[styles.option, option.id === active.id && styles.optionSelected]}
+            style={[styles.option, compact && styles.optionCompact, option.id === active.id && styles.optionSelected]}
             onPress={() => setActiveId(option.id)}
           >
-            <Text style={styles.optionTitle}>{option.title}</Text>
-            <Text style={styles.optionDescription}>{t(option.descriptionEn, option.descriptionTl)}</Text>
+            <Text numberOfLines={compact ? 1 : undefined} style={[styles.optionTitle, compact && styles.optionTitleCompact]}>{option.title}</Text>
+            {!compact ? <Text style={styles.optionDescription}>{t(option.descriptionEn, option.descriptionTl)}</Text> : null}
           </Pressable>)}
         </View>
         {active.kind === 'pilot' ? (
@@ -146,17 +155,22 @@ const styles = StyleSheet.create({
   practiceText: { color:'#ffebbb', fontSize:12, fontWeight:'900', textAlign:'center' },
 
   page: { flexGrow: 1, paddingTop: 18, paddingBottom: 36 },
+  pageBelowGameControls: { paddingTop: 62 },
   shell: { width: '100%', maxWidth: 940, alignSelf: 'center', paddingHorizontal: 12, gap: 9 },
   mapBack: { alignSelf: 'flex-start', borderColor: '#c6b68f', borderWidth: 1,
     borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: '#233c55' },
   mapBackText: { color: '#ffebbd', fontSize: 11, fontWeight: '900' },
   eyebrow: { color: '#efcf99', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   heading: { color: '#fff4dd', fontSize: 27, fontWeight: '900' },
+  compactHeading: { color: '#f6e6bd', fontSize: 13, fontWeight: '900', letterSpacing: 1 },
   help: { color: '#cfdcf2', fontSize: 12, lineHeight: 19 },
   chooser: { flexDirection: 'row', gap: 9, flexWrap: 'wrap' },
+  chooserCompact: { gap: 5, flexWrap: 'nowrap' },
   option: { minWidth: 142, flex: 1, borderWidth: 1, borderColor: '#5c708e', borderRadius: 13, backgroundColor: '#243b59', padding: 13 },
   optionSelected: { borderWidth: 2, borderColor: '#eac884', backgroundColor: '#394f71' },
+  optionCompact: { minWidth: 0, paddingVertical: 10, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   optionTitle: { color: '#fff6df', fontSize: 14, fontWeight: '900' },
+  optionTitleCompact: { fontSize: 11, textAlign: 'center' },
   optionDescription: { color: '#ced9e9', fontSize: 11, lineHeight: 16, marginTop: 5 },
   record: { color: '#ffdfa6', fontSize: 12, fontWeight: '800' },
   notice: { color: '#dce8fd', fontSize: 11, lineHeight: 17 },
