@@ -71,16 +71,16 @@ test('staged OTA permits safe 60-second fallback only while enforcement is disab
 
 
 test('live KL model 404 is handled with current Flash-Lite alternatives and useful admin errors', () => {
-  assert.match(generator, /gemini-3\\.5-flash-lite/);
-  assert.match(generator, /gemini-3\\.1-flash-lite/);
-  assert.match(generator, /response\\.status === 404/);
+  assert.match(generator, /gemini-3\.5-flash-lite/);
+  assert.match(generator, /gemini-3\.1-flash-lite/);
+  assert.match(generator, /response\.status === 404/);
   assert.match(generator, /generator_model_unavailable/);
-  assert.match(generator, /response\\.status === 429/);
+  assert.match(generator, /response\.status === 429/);
   assert.match(generator, /generator_quota_limited/);
   assert.match(reader, /generator_model_unavailable/);
-  assert.match(reader, /typeof response\\?\\.json === 'function'/);
+  assert.match(reader, /typeof response\?\.json === 'function'/);
   // Never bypass protected admin/approved-manuscript checks on fallback.
-  assert.match(generator, /await client\\.auth\\.getUser\\(\\)/);
+  assert.match(generator, /await client\.auth\.getUser\(\)/);
   assert.match(generator, /kl_quiz_admin_context_v1/);
-  assert.match(generator, /validatedItems\\(parsed, context\\.manuscript\\)/);
+  assert.match(generator, /validatedItems\(parsed, context\.manuscript\)/);
 });
