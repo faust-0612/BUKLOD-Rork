@@ -14,11 +14,11 @@ test('approving an actual manuscript queues precisely five source-grounded quest
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.kl_quiz_sync_approval_v1/);
   assert.match(migration, /jsonb_array_length\(p_items\)<>5/);
   assert.match(migration, /position\(v_e in v\.manuscript\)=0/);
-  assert.match(generator, /EXACTLY FIVE simple/);
+  assert.match(generator, /Generate EIGHT candidate factual reading-comprehension/);
   assert.match(generator, /manuscript\.includes\(evidence\)/);
   assert.match(reader, /prepareQuizForApprovedChapter\(serverChapter\.id\)/);
   assert.match(reader, /const quizFeedback = action === 'approve'/);
-  assert.match(reader, /Check \/ Retry 5 Reading Questions/);
+  assert.match(reader, /Prepare \/ Retry 5 Questions/);
 });
 
 test('members receive only three random questions; correct answer and evidence remain private', () => {
@@ -67,4 +67,46 @@ test('staged OTA permits safe 60-second fallback only while enforcement is disab
   assert.match(migration, /kl_quiz_release_ready_guard_v1/);
   assert.match(reader, /'kl_quiz_admin_context_v1'/);
   assert.match(reader, /Retry muna sa KL Admin bago mag-release/);
+});
+
+
+test('live KL model 404 is handled with current Flash-Lite alternatives and useful admin errors', () => {
+  assert.match(generator, /gemini-3\.5-flash-lite/);
+  assert.match(generator, /gemini-3\.1-flash-lite/);
+  assert.match(generator, /response\.status === 404/);
+  assert.match(generator, /generator_model_unavailable/);
+  assert.match(generator, /response\.status === 429/);
+  assert.match(generator, /generator_quota_limited/);
+  assert.match(reader, /generator_model_unavailable/);
+  assert.match(reader, /typeof response\?\.json === 'function'/);
+  // Never bypass protected admin/approved-manuscript checks on fallback.
+  assert.match(generator, /await client\.auth\.getUser\(\)/);
+  assert.match(generator, /kl_quiz_admin_context_v1/);
+  assert.match(generator, /validatedItems\(parsed, context\.manuscript, excerpts\)/);
+});
+
+test('generator picks 5 source-validated questions from 8 candidates with bounded calls', () => {
+  assert.match(generator, /function sourceExcerpts\(manuscript: string\)/);
+  assert.match(generator, /const evidence = excerpts\.find/);
+  assert.match(generator, /required: \["question", "options", "correct_index", "evidence_id"\]/);
+  assert.match(generator, /minItems: 8, maxItems: 8/);
+  assert.match(generator, /const valid = validatedItems\(parsed, context\.manuscript, excerpts\)/);
+  assert.match(generator, /if \(collected\.length < 5\) continue/);
+  assert.match(generator, /p_items: collected\.slice\(0, 5\)/);
+  assert.match(generator, /if \(!unsupportedModel\) return reply\(422/);
+  assert.match(generator, /const timeout = setTimeout\(\(\) => controller\.abort\(\), 24000\)/);
+  assert.doesNotMatch(generator, /text: instructions \+.*APPROVED MANUSCRIPT/);
+});
+
+test('KL Admin can review 5 stored questions but reader never fetches admin answer keys', () => {
+  const review = read('supabase/migrations/20261112043503_kl_admin_question_review_v1_20261112.sql');
+  assert.match(review, /FUNCTION public\.kl_quiz_admin_review_v1\(p_episode_id uuid\)/);
+  assert.match(review, /role::text = 'system_admin' AND is_active = true/);
+  assert.match(review, /REVOKE ALL ON FUNCTION public\.kl_quiz_admin_review_v1\(uuid\) FROM PUBLIC, anon, authenticated/);
+  assert.match(review, /v_bank_hash IS DISTINCT FROM v_hash/);
+  assert.match(review, /'correct_index', x\.correct_index/);
+  assert.match(reader, /'kl_quiz_admin_review_v1'/);
+  assert.match(reader, /Tingnan ang 5 Tanong at Sagot/);
+  assert.match(reader, /quizReviews\[episode\.id\]\.questions\?\.map/);
+  assert.doesNotMatch(quiz, /kl_quiz_admin_review_v1/);
 });
