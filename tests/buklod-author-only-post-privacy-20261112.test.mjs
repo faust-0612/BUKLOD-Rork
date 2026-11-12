@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const read = path => readFileSync(path, 'utf8');
-const primary = read('supabase/migrations/20261112072000_buklod_author_only_post_privacy_realtime_v1.sql');
-const scope = read('supabase/migrations/20261112072700_buklod_scope_post_private_realtime_v1.sql');
+const primary = read('supabase/migrations/20261112071459_buklod_author_only_post_privacy_realtime_v1.sql');
+const scope = read('supabase/migrations/20261112072440_buklod_scope_post_private_realtime_v1.sql');
 const wall = read('src/app/(tabs)/buklod.tsx');
 const marites = read('src/components/BuklodMaritesBoard.tsx');
 const scopedWall = read('src/components/BuklodExclusiveScopeCommunity.tsx');
