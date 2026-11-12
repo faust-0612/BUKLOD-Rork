@@ -1,0 +1,46 @@
+{
+  "contractVersion": 2,
+  "objective": "Expose early-warning database capacity monitoring in BUKLOD System Admin without automatic upgrades or touching media/ads.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Main BUKLOD Connect Supabase ACTIVE_HEALTHY; server sample returned PostgreSQL slots 43/60, database ~422MB, no waiting locks. CPU/RAM provider metrics not available. Backward-compatible capacity migration live version 20261112013654, authorized admin RPC and nonadmin denial verified; cron active and hourly dedup verified. UI source not yet published via OTA.",
+  "chosenApproach": "Guard read-only JSON RPC behind database is_system_admin(); private low-frequency hourly snapshot with 60-day retention; isolated Expo Router AdminGate screen linked from first-open Reports drawer. Show only measured values and explicitly null provider utilization, and retain manual provider links.",
+  "selectionRationale": "Avoid false capacity percentages, added third-party monitoring cost or altering current video/ads. No secrets in client and only one small hourly database sample.",
+  "alternativeApproaches": [
+    "Call Supabase management API from client, rejected because it exposes private provider keys and privileged metrics.",
+    "Show CPU/RAM estimates derived from PostgreSQL connections, rejected because they are not real compute utilization.",
+    "Buy larger Supabase compute now, rejected without sustained capacity evidence."
+  ],
+  "riskAreas": [
+    "system-admin",
+    "backend-security",
+    "scheduled-sampling",
+    "monitoring-availability",
+    "historical-sample-retention"
+  ],
+  "acceptanceChecks": [
+    "Authenticated System Admin receives accurate connection counts, DB bytes, 7-day samples and threshold reasons.",
+    "Nonadmin and anonymous requests are denied server-side.",
+    "Hourly sampling keeps one row per UTC hour and retains only 60 days.",
+    "Unknown provider CPU, RAM and disk quota never show invented percentages.",
+    "Screen remains isolated from Community video, advertising, Points and OTA release paths."
+  ],
+  "preserveBehaviors": [
+    "Unchanged app-wide navigation, media playback, video memory and ads behavior.",
+    "No automatic compute purchases or provider changes.",
+    "Existing Supabase uptime workflow remains paused.",
+    "Existing public and authenticated RLS policies are unchanged.",
+    "Production Android OTA and Expo web bundle remain unchanged until separate validated promotion."
+  ],
+  "regressionTests": [
+    "tests/backend-capacity-contract.test.mjs",
+    "supabase/tests/backend_capacity_monitor_security_v1.sql"
+  ],
+  "allowedPaths": [
+    "src/app/admin/backend-capacity.tsx",
+    "src/app/admin/index.tsx",
+    "supabase/migrations/20261112013654_buklod_backend_capacity_monitor_v1_20261112.sql",
+    "tests/backend-capacity-contract.test.mjs",
+    "supabase/tests/backend_capacity_monitor_security_v1.sql",
+    ".buklod/scopes/backend-capacity-monitor-20261112.json"
+  ]
+}

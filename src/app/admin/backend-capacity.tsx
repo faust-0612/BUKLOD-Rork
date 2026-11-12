@@ -186,9 +186,9 @@ export default function AdminBackendCapacityScreen() {
     : report?.status === 'watch' ? 'WATCH'
     : report?.status === 'normal' ? 'NO SLOT ALERT' : 'COLLECTING DATA';
 
-  const peak = report?.trend.peak_connection_pct_7d;
+  const peak = report?.trend.peak_connection_pct_7d ?? null;
   const daily = (report?.trend.daily ?? []).slice(-7);
-  const growth = report?.database.growth_7d_bytes;
+  const growth = report?.database.growth_7d_bytes ?? null;
 
   return (
     <AdminGate>
@@ -233,7 +233,7 @@ export default function AdminBackendCapacityScreen() {
             <View style={styles.card}>
               <View style={styles.between}>
                 <Text style={styles.sectionTitle}>Primary backend</Text>
-                <View style={[styles.pill, report.status === 'review' && styles.pillWarn]}>
+                <View style={[styles.pill, (report.status === 'review' || report.status === 'watch') && styles.pillWarn]}>
                   <Text style={styles.pillText}>{statusLabel}</Text>
                 </View>
               </View>
