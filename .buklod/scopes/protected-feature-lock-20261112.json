@@ -27,6 +27,7 @@
     "tests/protected-feature-lock.test.mjs"
   ],
   "allowedPaths": [
+    ".buklod/scopes/protected-feature-lock-20261112.json",
     "AGENTS.md",
     ".github/workflows/engineering-accountability.yml",
     ".buklod/protected-feature-source-snapshot-20261112.json",
