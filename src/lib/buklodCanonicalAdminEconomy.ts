@@ -18,6 +18,15 @@ export type CanonicalAdminEconomySnapshot = {
   finance: BuklodPfFinanceConsoleV3;
   qmp: BuklodPfQmpReadiness;
   admob_provisional: AdminCommunityAdmobEstimate | null;
+  revenue_sources: {
+    member_distribution_source: 'RECONCILED_ADMOB_ONLY';
+    admob_finalized_provider_value_php: number;
+    admob_reconciled_finance_journal_php: number;
+    other_app_reconciled_revenue_php: number;
+    other_app_reconciled_costs_php: number;
+    other_app_excluded_from_user_pool: true;
+    admob_preliminary_is_cash: false;
+  };
 };
 
 export function validateCanonicalAdminEconomySnapshot(
@@ -38,6 +47,13 @@ export function validateCanonicalAdminEconomySnapshot(
       !Array.isArray(snapshot.finance.user_shares) ||
       !Array.isArray(snapshot.finance.community_allocations) ||
       !snapshot.qmp || snapshot.qmp.period_key !== expectedMonth ||
+      snapshot.revenue_sources?.member_distribution_source !== 'RECONCILED_ADMOB_ONLY' ||
+      snapshot.revenue_sources?.other_app_excluded_from_user_pool !== true ||
+      snapshot.revenue_sources?.admob_preliminary_is_cash !== false ||
+      !['admob_finalized_provider_value_php','admob_reconciled_finance_journal_php',
+        'other_app_reconciled_revenue_php','other_app_reconciled_costs_php'].every(
+        key => typeof (snapshot.revenue_sources as any)?.[key] === 'number' &&
+          Number.isFinite((snapshot.revenue_sources as any)[key])) ||
       (snapshot.admob_provisional !== null && snapshot.admob_provisional !== undefined &&
         snapshot.admob_provisional.period_key !== expectedMonth)) {
     throw new Error('Canonical economy sources disagree or report is incomplete. Refresh before any financial action.');
@@ -74,4 +90,11 @@ export function financeMoneyOrUnavailable(value: unknown, finalized: boolean): s
   return value.toLocaleString('en-PH', {
     style: 'currency', currency: 'PHP', minimumFractionDigits: 2, maximumFractionDigits: 2,
   });
+}
+
+/** Source revenue is not an individual member cash balance or finalized payout. */
+export function financeReportRevenuePhp(value: unknown): string {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value.toLocaleString('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '—';
 }

@@ -1187,6 +1187,8 @@ export default function MeScreen() {
   }, [myBuklodParams.section]);
 
   const isSystemAdmin = hasRole('system_admin');
+  // Public profile identity is server-protected; all real privileges still use roles.
+  const isBuklodOfficial = isSystemAdmin && String(profile?.full_name ?? '').trim().toUpperCase() === 'BUKLOD';
 
   const toggle = (
     section: 'buklod' | 'organizations' | 'ministry' | 'admin' | 'account'
@@ -1196,7 +1198,9 @@ export default function MeScreen() {
     );
   };
 
-  const fallbackPortrait = isSystemAdmin
+  const fallbackPortrait = isBuklodOfficial
+    ? require('../../../assets/release/buklod-main-canonical.png')
+    : isSystemAdmin
     ? require('../../../assets/branding/admin-profile.jpg')
     : require('../../../assets/release/buklod-generic-photo.jpg');
 
@@ -1267,7 +1271,7 @@ export default function MeScreen() {
   };
 
   const highlightsSection =
-    sectionVisible('highlights') && !!circleRank ? (
+    !isBuklodOfficial && sectionVisible('highlights') && !!circleRank ? (
       <ProfileMotionFadeUp delay={40}>
         <View style={styles.sectionPad}>
           <Text style={styles.eyebrow}>
@@ -1286,7 +1290,7 @@ export default function MeScreen() {
     ) : null;
 
   /* Always visible on Profile — not tied to customizable Highlights layout. */
-  const referralSection = (
+  const referralSection = isBuklodOfficial ? null : (
     <ProfileMotionFadeUp delay={60}>
       <View style={styles.sectionPad}>
         <Text style={styles.eyebrow}>SHARE BUKLOD</Text>
@@ -1297,6 +1301,12 @@ export default function MeScreen() {
 
   const quickActionItems = useMemo<QuickActionItem[]>(
     () => [
+      ...(isBuklodOfficial ? [{
+        key: 'official-console',
+        icon: 'check-decagram' as const,
+        label: 'Official Console',
+        onPress: () => router.push('/admin/buklod-official' as any),
+      }] : []),
       {
         key: 'support',
         icon: 'lifebuoy',
@@ -1328,7 +1338,7 @@ export default function MeScreen() {
         onPress: () => router.push('/advertise' as any),
       },
     ],
-    [scopes, selectScope]
+    [scopes, selectScope, isBuklodOfficial]
   );
 
   const quickActionsSection =
@@ -1586,6 +1596,14 @@ export default function MeScreen() {
 
           {isSystemAdmin && (
             <>
+              {isBuklodOfficial && (
+                <MenuRow
+                  icon="check-decagram"
+                  title="BUKLOD Official Console"
+                  subtitle="Announcements, community interaction, recognition and support"
+                  onPress={() => router.push('/admin/buklod-official' as any)}
+                />
+              )}
               <MenuRow
                 icon="book-open-page-variant"
                 title="Kabihasnang Ligaw"
@@ -1833,7 +1851,7 @@ export default function MeScreen() {
                       { color: highlightAccent },
                     ]}
                   >
-                    {roleLabel(role)}
+                    {isBuklodOfficial && role === 'system_admin' ? 'BUKLOD Official' : roleLabel(role)}
                   </Text>
                 </View>
               ))}
@@ -1847,10 +1865,12 @@ export default function MeScreen() {
         <BuklodSystemAnnouncementBoard slot="profile" />
       </View>
 
-      <BuklodProfileCharacterCard
-        lifetimePoints={lifetimePoints}
-        rankName={circleRank}
-      />
+      {!isBuklodOfficial && (
+        <BuklodProfileCharacterCard
+          lifetimePoints={lifetimePoints}
+          rankName={circleRank}
+        />
+      )}
 
       {referralSection}
       <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />

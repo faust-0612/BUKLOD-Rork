@@ -397,6 +397,25 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="check-decagram"
+                title="BUKLOD Official Console"
+                subtitle="Wall review, official posts, user messages and announcements"
+                path="/admin/buklod-official"
+              />
+              <AdminRow
+                icon="shield-check-outline"
+                title="Wall Review & Takedowns"
+                subtitle="Inspect public posts, apply audited soft takedowns and restore allowed content"
+                path="/admin/wall-control"
+              />
+              <AdminRow
+                icon="email-check-outline"
+                title="Official User Messages"
+                subtitle="Send targeted BUKLOD notifications to individual members"
+                path="/admin/official-messages"
+              />
+
+              <AdminRow
                 icon="trophy-award"
                 title="R2 Points Live Monitor"
                 subtitle="Real issued credits, focus breakdown, mentor-photo reviews and milestone approvals"
@@ -406,14 +425,14 @@ export default function AdminDashboard() {
               <AdminRow
                 icon="finance"
                 title="Economy, Bayanihan & Shares"
-                subtitle="Funded pools, BCU/RCU weights, finalized user shares and cash ledger"
+                subtitle="AdMob-only funded shares; sponsorship and other income reported separately"
                 path="/admin/bayanihan"
               />
 
               <AdminRow
                 icon="cash-sync"
                 title="Economy Operations"
-                subtitle="Reconcile actual revenue and costs, finalize funded periods, process payouts"
+                subtitle="Reconcile AdMob user revenue separately from other app income and costs"
                 path="/admin/economy-operations"
               />
 
