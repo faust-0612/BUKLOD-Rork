@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "objective": "Replace legacy Android login logo with approved canonical Green B and refresh Suggested Login photo after committed profile saves, preserving account isolation and login behavior.",
+  "baseRef": "9c93dacd68c298749c554560c86fc03496c508fc",
+  "productionBaselineEvidence": "Current Nov12 consolidated RC source branch integration/buklod-nov12-conso-rc-seen-avatar-ads at 9c93dacd68c298749c554560c86fc03496c508fc, verified as PR #743 active head on Nov12. Exact DEV login fix PR #754 head dfbf1fb8a86ff94f181ddb212d305d8edb32594b passed Engineering Accountability, Performance R1 (TypeScript/unit), and Main Integration QA (TypeScript and web compatibility export); Android/native compiled candidate and production readback are not verified. This is staging only, not a production release.",
+  "chosenApproach": "Overlay exact five tested source/test file blobs from PR #754 onto the existing consolidated RC, which already includes Cluster Seen, AdMob render gate recovery, BSOC case inbox and KL work. Reuse current profile-save handoff without altering unrelated RC code, use Green B canonical login logo on both native and web, retain versioned avatar URLs. No migrations, npm packages or auth changes.",
+  "preserveBehaviors": [
+    "Suggested Login has up to 6 local accounts with separate saved passwords and explicit remove",
+    "No changes to auth token flow, sign-in, password reset, account lifecycle or login routing",
+    "No public profiles API, RLS changes, video, ad, finance, points or notifications changes",
+    "Profile photo upload and local live repaint still wait for confirmed profile database update",
+    "Existing web register native asset policy unchanged"
+  ],
+  "riskAreas": [
+    "navigation-auth",
+    "app-runtime",
+    "avatar-media-cache",
+    "account-isolation",
+    "auth-privacy",
+    "RC source parity",
+    "consolidated OTA source"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "navigation-auth",
+      "reason": "Scoped suggested-login avatar visibility and login brand asset only; unchanged auth and credential semantics",
+      "preservedBehaviors": [
+        "Existing SecureStore/AsyncStorage credential keys remain untouched",
+        "No cross-user reads of private profile records before authentication",
+        "Existing offline/fallback brand image remains available"
+      ],
+      "tests": [
+        "tests/web-auth-brand-retirement-20261107.test.mjs",
+        "tests/buklod-login-green-b-avatar-refresh-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "app-runtime",
+      "reason": "Login-route Image cache identity and owner profile save local cache handoff are narrow runtime presentation changes; no app shell, native dependency, multimedia, persistent session or backend contract change.",
+      "preservedBehaviors": [
+        "Existing React Native Image fallback on offline/missing avatar stays Green B",
+        "Login route and account lifecycle transitions remain unchanged",
+        "No additional background polling or public database profile query; one bounded authenticated account read only"
+      ],
+      "tests": [
+        "tests/buklod-login-green-b-avatar-refresh-20261112.test.mjs",
+        "tests/web-auth-brand-retirement-20261107.test.mjs"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/web-auth-brand-retirement-20261107.test.mjs",
+    "tests/buklod-login-green-b-avatar-refresh-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(auth)/login.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/lib/buklodSuggestedLoginStorage.ts",
+    "tests/web-auth-brand-retirement-20261107.test.mjs",
+    "tests/buklod-login-green-b-avatar-refresh-20261112.test.mjs",
+    ".buklod/scopes/login-green-b-avatar-refresh-20261112.json"
+  ],
+  "acceptanceChecks": [
+    "Node focused tests pass, TS and Android/web compile checks pass against exact PR head",
+    "After photo save, logout and open Suggested Login: selected account shows new avatar without touching other account",
+    "Login reopened after older version URL: updated canonical object is fetched once; weak network leaves Green B fallback",
+    "Native header uses canonical logo; cached/one-tap password login still works",
+    "No production claim until exact consolidated RC verification and deployed OTA readback",
+    "All 5 source/test Git blob SHAs equal exact validated DEV PR #754; original 30-file RC delta preserved untouched.",
+    "Merge only after head-specific Engineering Accountability, Performance R1 and Main Integration QA; no automatic publish.",
+    "Consolidated final RC requires compiled Android/Expo Web QA against the exact final source fingerprint before release."
+  ],
+  "releaseState": "NOV12_CONSO_RC_STAGING__PRE_MERGE_QA__NO_OTA",
+  "physicalDeviceVerification": "NOT PERFORMED - owner prior manual verification waiver is not a test pass",
+  "selectionRationale": "The native login was still using the retired thorn-ring artwork while web already shared the approved Green B asset. Profile saves issue a versioned avatar URL but Suggested Login discarded the version and retained stale local card metadata; a local account-scoped cache mirror plus one pre-auth public Storage image refresh fixes the display without introducing another RLS-readable profile service, SDK, or migration.",
+  "alternativeApproaches": [
+    "Expose a public anonymous profiles lookup for all saved user IDs (rejected: unnecessary private profile access and account enumeration risk)",
+    "Invalidate all image caches or globally poll every avatar (rejected: extra network load, weak-signal regression, and cross-feature effects)",
+    "Overwrite the old native logo asset globally (rejected: impacts unrelated splash and configured native assets)",
+    "Delete Suggested Login cache or reset remembered logins (rejected: breaks one-tap account switching and saved device preferences)"
+  ],
+  "scopeManifestPath": ".buklod/scopes/login-green-b-avatar-refresh-20261112.json",
+  "sourcePr": 754,
+  "sourceVerifiedHead": "dfbf1fb8a86ff94f181ddb212d305d8edb32594b",
+  "targetBranch": "integration/buklod-nov12-conso-rc-seen-avatar-ads",
+  "targetBaseSha": "9c93dacd68c298749c554560c86fc03496c508fc",
+  "targetOta": {
+    "appTarget": "main",
+    "runtimeVersion": "1.3.2",
+    "nativeDependenciesChanged": false,
+    "releaseMethod": "single consolidated OTA",
+    "productionPublishingAuthorized": false
+  }
+}
