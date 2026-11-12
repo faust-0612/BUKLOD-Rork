@@ -15,6 +15,7 @@ export function AdminPriorityBanner() {
   const busy = useRef(false);
   const lastLoad = useRef(0);
   const alive = useRef(true);
+  const focused = useRef(false);
   const load = useCallback(async () => {
     if (!allowed || busy.current) return;
     busy.current = true;
@@ -36,14 +37,15 @@ export function AdminPriorityBanner() {
 
   useFocusEffect(useCallback(() => {
     alive.current = true;
+    focused.current = true;
     void load();
-    return () => { alive.current = false; };
+    return () => { alive.current = false; focused.current = false; };
   }, [load]));
 
   useEffect(() => {
     if (!allowed) return;
     const trigger = () => {
-      if (Date.now() - lastLoad.current >= 20000) void load();
+      if (focused.current && Date.now() - lastLoad.current >= 20000) void load();
     };
     const state = AppState.addEventListener('change', next => { if (next === 'active') trigger(); });
     const channel = supabase.channel('system-admin-priority-badge')
