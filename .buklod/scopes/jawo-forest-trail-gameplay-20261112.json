@@ -1,0 +1,76 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/jawo-forest-trail-gameplay-20261112.json",
+  "objective": "Prepare the screenshot-reported Jawo Forest Trail gameplay, collision timing and mobile layout fixes as an isolated component for the next BUKLOD consolidated Android OTA; do not publish an OTA or web release.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main at 1e66dd04c36cd88c922c9e41d6f673fdd9d94e98 on 2026-11-12 is the exact repository comparison baseline; this observation does NOT independently confirm the installed Android production binary or its OTA served revision. The Jawo branch was compared as 12 commits ahead and zero behind before scope declaration, without unrelated main source changes.",
+  "chosenApproach": "Keep the canonical Jawo route, Forest Trail game result callback, other two minigames and default companion intact. Use a pure deterministic seeded 24-encounter rule engine, keep lane changes independent of encounter timing, pause on backgrounding, render visible hazards and character art, and opt into compact mobile controls only for the Forest Trail scene. Keep all score/XP previews local, with server-side Mastery Check remaining sole genuine Points path. Require component Node/Jest regression tests and immutable allowlist before nonpublishing exact-SHA consolidated RC.",
+  "selectionRationale": "The prior game had 18 predictable steps, visually clipped small-screen HUD and encounter timers reset by lane changes. A small isolated source refactor is lower risk than replacing Kingdom Game Center or changing economy endpoints. No native dependency, DB migration, ads renderer, media playback, navigation or server payout contract is touched.",
+  "alternativeApproaches": [
+    "Redesign all 39 Kingdom games and gameplay engines at once (rejected: unwarranted regression and OTA size risks).",
+    "Only change dark colors and clipped labels (rejected: no correction to timer abuse, collisions or replay depth).",
+    "Use isolated Jawo engine and conditional compact UI with targeted regression tests (chosen)."
+  ],
+  "acceptanceChecks": [
+    "Node gameplay test runs with type-stripping and proves 24 encounters over 3 acts, distinct safe/obstacle/light lanes across 64 seeds.",
+    "An active lane shift never resets the current obstacle timer; background/paused state stops timed gameplay until user resumes.",
+    "Game score, hearts, combo and original stars remain bounded and deterministic; server-minted member Points cannot be awarded by this client game.",
+    "Jawo route still exposes Forest Trail, Trail Maze and Nature Match with canonical navigation and original callback.",
+    "Other game centers retain their full noncompact chooser and default character companion on web/native.",
+    "Typecheck and Jest run in Performance CI; the changed focused Node test is the engineering gate's declared regression proof; anti-regression CI and game-release contract must pass against the frozen RC SHA before publication.",
+    "No production OTA, web release, database migration or advertisement behavior is launched from this component branch.",
+    "Final consolidated RC still requires full source reconciliation, runtime 1.3.2 compatibility and relevant device or equivalent runtime acceptance before production."
+  ],
+  "preserveBehaviors": [
+    "Existing BUKLOD Home, Wall, Connect, Cluster, Profile, ads, sound/video and offline behavior are unchanged.",
+    "Kingdom Map 13 original routes, progress identity isolation, server-owned Mastery Check and local preview saving stay intact.",
+    "Trail Maze and Nature Match are not refactored; the floating companion still appears in those two games.",
+    "Original star threshold and reward formula remain unchanged; no Points, QMP, AdMob revenue, claim or payouts can be minted by preview score.",
+    "No native dependencies, Expo update configuration, production workflow, Vercel deployment or Supabase data are changed."
+  ],
+  "riskAreas": [
+    "kingdom-gameplay",
+    "mobile-layout",
+    "kingdom-navigation",
+    "character-art",
+    "release-runtime-compatibility"
+  ],
+  "regressionTests": [
+    "tests/jawo-kingdom-forest-trail-gameplay-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/jawo-forest-trail-gameplay-20261112.json",
+    "src/app/games/jawo-forest-trail.tsx",
+    "src/features/games/jawo/ForestTrailGameV2.tsx",
+    "src/features/games/jawo/forestTrailEngine.test.ts",
+    "src/features/games/jawo/forestTrailEngine.ts",
+    "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
+    "src/features/games/runtime/BuklodGameStage.native.tsx",
+    "src/features/games/runtime/BuklodGameStage.web.tsx",
+    "tests/jawo-kingdom-forest-trail-gameplay-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Retain a functional predictable BUKLOD game stage while fixing visual collisions and a lane-change timing exploit, without changing app-wide runtime behavior.",
+      "preservedBehaviors": [
+        "All existing game stages retain the original companion, render context, result callback and navigation unless Jawo Forest Trail opts into the compact scene."
+      ],
+      "tests": [
+        "tests/jawo-kingdom-forest-trail-gameplay-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Repair Forest Trail gameplay while preserving the canonical game center, Jawo character art, all other Kingdom games and real Points authority.",
+      "preservedBehaviors": [
+        "The original Jawo game, Trail Maze and Nature Match remain selectable; the Kingdom Map and Mastery Check real Points flow remain intact."
+      ],
+      "tests": [
+        "tests/jawo-kingdom-forest-trail-gameplay-20261112.test.mjs"
+      ]
+    }
+  ],
+  "releaseState": "DEV_COMPONENT_CANDIDATE__NO_OTA__AWAITING_FINAL_CI_AND_CONSOLIDATED_RC",
+  "releaseIntent": "INCLUDE_IN_NEXT_CONSOLIDATED_OTA_AFTER_VERIFIED_RC"
+}
