@@ -97,3 +97,27 @@ test('thumbnail work is deferred until the first visible frame has played', () =
   assert.match(video, /!activeRef\.current \|\| !playingRef\.current/);
   assert.match(video, /clearTimeout\(posterTimerRef\.current\)/);
 });
+
+
+test('small Android Java heaps release offscreen players without altering playback or buffering', async () => {
+  const { androidCommunityVideoMemoryPolicy } =
+    await import('../src/lib/communityVideoPlayback.ts');
+  const small = androidCommunityVideoMemoryPolicy(256 * 1024 * 1024);
+  const large = androidCommunityVideoMemoryPolicy(512 * 1024 * 1024);
+  const unknown = androidCommunityVideoMemoryPolicy(null);
+  assert.equal(small.lowHeap, true);
+  assert.equal(small.allowPreload, false);
+  assert.equal(small.allowKeepWarm, false);
+  assert.equal(unknown.allowPreload, false);
+  assert.equal(large.lowHeap, false);
+  assert.equal(large.allowPreload, true);
+  const player = read('src/components/CommunityVideo.tsx');
+  const hook = read('src/hooks/useAndroidCommunityVideoMemoryPolicy.ts');
+  assert.match(hook, /getMaxMemoryAsync\(/);
+  assert.match(player, /androidMemoryPolicy\.allowPreload/);
+  assert.match(player, /androidMemoryPolicy\.allowKeepWarm/);
+  assert.match(player, /preferredForwardBufferDuration: 18/);
+  assert.match(player, /minBufferForPlayback: 1/);
+  assert.match(player, /generateThumbnailsAsync\(0\.1, \{ maxWidth: 720, maxHeight: 720 \}\)/);
+  assert.doesNotMatch(player, /player\.bufferOptions = androidMemoryPolicy/);
+});

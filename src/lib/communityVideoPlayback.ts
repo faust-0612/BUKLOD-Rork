@@ -12,6 +12,25 @@
 
 export const COMMUNITY_VIDEO_CACHE_BUDGET_BYTES = 256 * 1024 * 1024;
 
+/**
+ * Restrict only off-screen decoders on lower Java-heap Android devices.
+ * Active video playback, preload buffering, image quality, fullscreen,
+ * audio mixing and sponsored ad playback remain unchanged.
+ */
+export const COMMUNITY_VIDEO_LOW_HEAP_THRESHOLD_BYTES = 384 * 1024 * 1024;
+
+export function androidCommunityVideoMemoryPolicy(maxJavaHeapBytes: number | null) {
+  const lowHeap =
+    !Number.isFinite(maxJavaHeapBytes) ||
+    Number(maxJavaHeapBytes) <= 0 ||
+    Number(maxJavaHeapBytes) < COMMUNITY_VIDEO_LOW_HEAP_THRESHOLD_BYTES;
+  return {
+    lowHeap,
+    allowPreload: !lowHeap,
+    allowKeepWarm: !lowHeap,
+  };
+}
+
 export type CommunityVideoPlayerKind = 'expo-video' | 'google-ima';
 
 export type ByteRange = {

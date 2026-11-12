@@ -52,6 +52,7 @@ import {
   decideCommunityVideoErrorRecovery,
   shouldMountCommunityVideoPlayer,
 } from '@/lib/communityVideoPlayback';
+import { useAndroidCommunityVideoMemoryPolicy } from '@/hooks/useAndroidCommunityVideoMemoryPolicy';
 
 type Props = {
   uri: string;
@@ -125,6 +126,7 @@ function useCommunityNetworkDegraded() {
 
 export function CommunityVideo(props: Props) {
   const degraded = useCommunityNetworkDegraded();
+  const androidMemoryPolicy = useAndroidCommunityVideoMemoryPolicy();
   const [playIntent, setPlayIntent] = useState(false);
   const [recentlyActive, setRecentlyActive] = useState(props.active !== false);
   const [poster, setPoster] = useState<any>(() =>
@@ -147,10 +149,15 @@ export function CommunityVideo(props: Props) {
       setRecentlyActive(true);
       return;
     }
-    // Keep a recently visible decoder briefly paused for scroll-backs.
+    // On small Java heaps, discard the invisible decoder promptly.
+    // Keep the original warm-scroll duration on other devices.
+    if (Platform.OS === 'android' && !androidMemoryPolicy.allowKeepWarm) {
+      setRecentlyActive(false);
+      return;
+    }
     const timer = setTimeout(() => setRecentlyActive(false), 1_400);
     return () => clearTimeout(timer);
-  }, [props.active, props.uri]);
+  }, [props.active, props.uri, androidMemoryPolicy.allowKeepWarm]);
 
   const imaEligible =
     !props.fullscreen &&
@@ -163,8 +170,10 @@ export function CommunityVideo(props: Props) {
     fullscreen: Boolean(props.fullscreen),
     degraded,
     playIntent,
-    preload: !imaEligible && !degraded && props.preload === true,
-    keepWarm: !imaEligible && recentlyActive,
+    preload: !imaEligible && !degraded && props.preload === true &&
+      (Platform.OS !== 'android' || androidMemoryPolicy.allowPreload),
+    keepWarm: !imaEligible && recentlyActive &&
+      (Platform.OS !== 'android' || androidMemoryPolicy.allowKeepWarm),
   });
 
   const requestPlay = () => {
