@@ -69,6 +69,13 @@ import { useNetwork } from '@/providers/NetworkProvider';
 
 const EPISODES = buildCatalogEpisodes();
 type ReleasedChapter = { id: string; season_number: number; episode_number: number; title: string };
+type KlAdminQuizQuestion = {
+  number: number; question: string; options: string[]; correct_index: number; evidence: string;
+};
+type KlAdminQuizReview = {
+  ok?: boolean; status?: string; count?: number;
+  questions?: KlAdminQuizQuestion[]; reason?: string; error?: string;
+};
 
 function displayChapterTitle(episode: (typeof EPISODES)[number], released?: ReleasedChapter): string {
   const source = (released?.title ?? episode.title).trim();
@@ -110,6 +117,9 @@ export default function KlReaderScreen() {
   const [adminRowsOwner, setAdminRowsOwner] = useState<string | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminError, setAdminError] = useState('');
+  const [quizReviewOpen, setQuizReviewOpen] = useState<string | null>(null);
+  const [quizReviewLoading, setQuizReviewLoading] = useState<string | null>(null);
+  const [quizReviews, setQuizReviews] = useState<Record<string, KlAdminQuizReview>>({});
   const adminActionLockRef = useRef(false);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
@@ -288,6 +298,8 @@ export default function KlReaderScreen() {
     setAdminRows([]);
     setAdminRowsOwner(null);
     setAdminError('');
+    setQuizReviewOpen(null);
+    setQuizReviews({});
     if (!isSystemAdmin || !user?.id) return;
     void refreshAdminRows().catch(() => {
       // Error is displayed on the admin chapter panel; no silent fallback ID.
@@ -337,6 +349,50 @@ export default function KlReaderScreen() {
     }
   };
 
+  // Only authenticated System Admin can call this server-side role-checked RPC.
+  // Correct answers/evidence are never requested on member reading screens.
+  const refreshQuizReview = async (episodeId: string, databaseId: string) => {
+    if (!isSystemAdmin || !user?.id) return;
+    setQuizReviewLoading(episodeId);
+    try {
+      const { data, error } = await supabase.rpc('kl_quiz_admin_review_v1', {
+        p_episode_id: databaseId,
+      });
+      if (error) throw error;
+      const result = data as KlAdminQuizReview | null;
+      if (!result?.ok || !['ready', 'pending'].includes(result.status ?? '')) {
+        throw new Error('Could not verify the question-bank status.');
+      }
+      // Defensive shape checking; do not display untrusted/malformed answer data.
+      const valid = result.status !== 'ready' || (
+        result.count === 5 && Array.isArray(result.questions) &&
+        result.questions.length === 5 && result.questions.every(q =>
+          typeof q.question === 'string' && typeof q.evidence === 'string' &&
+          Number.isInteger(q.correct_index) && q.correct_index >= 0 &&
+          q.correct_index <= 3 && Array.isArray(q.options) && q.options.length === 4
+        )
+      );
+      if (!valid) throw new Error('Question bank is incomplete.');
+      setQuizReviews(previous => ({ ...previous, [episodeId]: result }));
+    } catch {
+      setQuizReviews(previous => ({ ...previous, [episodeId]: {
+        ok: false, status: 'error',
+        error: 'Hindi ma-load ang admin-only questions. Suriin ang access o koneksiyon.',
+      } }));
+    } finally {
+      setQuizReviewLoading(null);
+    }
+  };
+
+  const toggleQuizReview = async (episodeId: string, databaseId: string) => {
+    if (quizReviewOpen === episodeId) {
+      setQuizReviewOpen(null);
+      return;
+    }
+    setQuizReviewOpen(episodeId);
+    await refreshQuizReview(episodeId, databaseId);
+  };
+
   const retryQuizForChapter = async (episodeId: string) => {
     if (adminActionLockRef.current || adminBusyId) return;
     const episode = EPISODES.find((item) => item.id === episodeId);
@@ -350,6 +406,8 @@ export default function KlReaderScreen() {
     setAdminFeedback('Sinusuri ang reading questions…');
     try {
       setAdminFeedback(await prepareQuizForApprovedChapter(chapter.id));
+      setQuizReviewOpen(episodeId);
+      await refreshQuizReview(episodeId, chapter.id);
     } finally {
       setAdminBusyId(null);
       adminActionLockRef.current = false;
@@ -942,11 +1000,62 @@ export default function KlReaderScreen() {
                       <View style={{ flexDirection: 'row', gap: 12 }}>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
                         {serverChapter?.status === 'approved' ? (
-                          <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
-                            onPress={(event) => { event.stopPropagation(); void retryQuizForChapter(episode.id); }}
-                            style={{ padding: 12, backgroundColor: '#375566', borderRadius: 8 }}>
-                            <Text style={{ color: '#fff' }}>Check / Retry 5 Reading Questions</Text>
-                          </Pressable>
+                          <View style={{ gap: 10 }}>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                              <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
+                                onPress={(event) => { event.stopPropagation(); void retryQuizForChapter(episode.id); }}
+                                style={{ padding: 12, backgroundColor: '#375566', borderRadius: 8 }}>
+                                <Text style={{ color: '#fff' }}>{adminBusyId === episode.id
+                                  ? 'Gumagawa at vini-verify ang mga tanong…'
+                                  : 'Prepare / Retry 5 Questions'}</Text>
+                              </Pressable>
+                              <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
+                                onPress={(event) => { event.stopPropagation(); void toggleQuizReview(episode.id, serverChapter.id); }}
+                                style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}>
+                                <Text style={{ color: '#fff' }}>{quizReviewOpen === episode.id
+                                  ? 'Itago ang mga tanong' : 'Tingnan ang 5 Tanong at Sagot'}</Text>
+                              </Pressable>
+                            </View>
+                            {quizReviewOpen === episode.id ? (
+                              <View style={{ padding: 12, gap: 10, borderRadius: 12,
+                                backgroundColor: '#152b2b', borderWidth: 1, borderColor: '#476d59' }}>
+                                <Text style={{ color: '#f1d39b', fontWeight: '800', fontSize: 16 }}>
+                                  Admin Quiz Review · {quizReviews[episode.id]?.status === 'ready' ? 'READY' : 'PENDING'}
+                                </Text>
+                                {quizReviewLoading === episode.id
+                                  ? <Text style={styles.meta}>Kinukuha ang questions mula sa secure server…</Text>
+                                  : quizReviews[episode.id]?.status === 'ready'
+                                    ? quizReviews[episode.id].questions?.map((q, index) => (
+                                      <View key={q.number ?? index} style={{ gap: 5, paddingVertical: 9,
+                                        borderBottomWidth: 1, borderBottomColor: '#37534a' }}>
+                                        <Text style={{ color: '#fff', fontWeight: '700' }}>
+                                          {index + 1}. {q.question}
+                                        </Text>
+                                        {q.options.map((option, optionIndex) => (
+                                          <Text key={optionIndex} style={{
+                                            color: optionIndex === q.correct_index ? '#b6edc5' : '#d5dce0',
+                                            fontWeight: optionIndex === q.correct_index ? '800' : '400',
+                                          }}>
+                                            {String.fromCharCode(65 + optionIndex)}. {option}
+                                            {optionIndex === q.correct_index ? ' ✓ tamang sagot' : ''}
+                                          </Text>
+                                        ))}
+                                        <Text style={styles.meta}>Batayan sa approved manuscript: “{q.evidence}”</Text>
+                                      </View>
+                                    ))
+                                    : <Text style={styles.meta}>
+                                        {quizReviews[episode.id]?.error ??
+                                          'Wala pang 5 validated questions para sa kabanatang ito.'}
+                                      </Text>}
+                                <Pressable accessibilityRole="button" disabled={quizReviewLoading !== null}
+                                  onPress={() => void refreshQuizReview(episode.id, serverChapter.id)}
+                                  style={{ padding: 9, alignSelf: 'flex-start', borderRadius: 8,
+                                    backgroundColor: '#375566' }}>
+                                  <Text style={{ color: '#fff' }}>Refresh question status</Text>
+                                </Pressable>
+                              </View>
+                            ) : null}
+                          </View>
                         ) : null}
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
