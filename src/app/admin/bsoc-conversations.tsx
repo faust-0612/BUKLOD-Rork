@@ -5,6 +5,7 @@ import * as Crypto from 'expo-crypto';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {colors} from '@/lib/theme';
+import {isValidBdocCaseId} from '@/lib/buklodAdminPriorityPolicy';
 type Case={feedback_id:string;reference:string;title:string;status:string;user_name:string|null};
 type Msg={id:string;body:string;sender_kind:string;sender_id:string;created_at:string};
 type FileRow={id:string;object_path:string;mime_type:string;created_at:string};
@@ -64,8 +65,7 @@ export default function BsocInbox(){
  },[]);
  useEffect(()=>{if(canRead)void loadCases();},[canRead,loadCases]);
  useEffect(()=>{
-   const id=typeof routeCaseId==='string'&&/^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(routeCaseId)
-     ?routeCaseId:'';
+   const id=isValidBdocCaseId(routeCaseId)?routeCaseId:'';
    if(id)setCaseId(id);
  },[routeCaseId]);
  useEffect(()=>{
