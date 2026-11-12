@@ -147,6 +147,44 @@ export async function clearSavedSuggestedLoginPassword(options: {
   };
 }
 
+/**
+ * Mirror a confirmed profile photo to the pre-login account card.
+ * This changes only avatarUrl for the exact user and never persists secrets.
+ * The authoritative public Storage URL stays under the existing owner RLS.
+ */
+export async function updateSavedSuggestedLoginAvatar(
+  userId: string,
+  avatarUrl: string | null
+): Promise<boolean> {
+  const target = normalize(userId);
+  if (!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(target)) {
+    return false;
+  }
+  const cleanUrl = typeof avatarUrl === 'string' && /^https:\/\//i.test(avatarUrl.trim())
+    ? avatarUrl.trim()
+    : null;
+  const raw = await AsyncStorage.getItem(BUKLOD_SUGGESTED_LOGINS_KEY);
+  if (!raw) return false;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return false;
+  }
+  if (!Array.isArray(parsed)) return false;
+  let changed = false;
+  const next = parsed.map((item: SuggestedLoginLike) => {
+    if (!item || normalize(item.userId) !== target) return item;
+    if (item.avatarUrl === cleanUrl) return item;
+    changed = true;
+    return { ...item, avatarUrl: cleanUrl };
+  });
+  if (changed) {
+    await AsyncStorage.setItem(BUKLOD_SUGGESTED_LOGINS_KEY, JSON.stringify(next));
+  }
+  return changed;
+}
+
 export async function recordPasswordResetOnThisDevice(options: {
   userId?: string | null;
   loginIdentifier?: string | null;
