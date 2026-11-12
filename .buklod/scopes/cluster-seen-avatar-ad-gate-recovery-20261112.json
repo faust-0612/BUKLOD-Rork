@@ -3,7 +3,7 @@
   "objective": "Restore Cluster Connect seen-report discoverability, instant avatar update after confirmed save, and passive ad eligibility re-evaluation after safety lock/remote flag/foreground transitions. Consolidate the QA-passed BSOC actionable inbox, original concern/triage context and secure case-specific agent/member notification reply routing. Enable exact Nov12 candidate source-only Android/Expo Web compilation through the existing nonpublishing QA workflow.",
   "baseRef": "5ce896061f83363061a8a63acf9d8cc65830088c",
   "productionBaselineEvidence": "verified: authenticated GitHub main source commit b89848c58ca8f17b9dfcd4dfc7a47bbea869f625 was the exact PR base at branch creation; this verifies only the code comparison baseline, NOT the live Android Production OTA. Live Supabase reader cursor RPCs, member-only gate and scoped data were inspected read-only, and 24h Android aggregate ad events obtained. Exact installed client/OTA runtime and deployed JS commit remain UNVERIFIED; deployment prohibited absent independent runtime fingerprint and RC evidence. RC source preparation comparison verified: latest main HEAD 9ce38850fb66d8f587dce72cd1b3380148a31098 contains a new anonymous-admin RPC security lock, with zero changed-path overlap against PR #740; integrated branch preserves it. PR #741 DEV head a4799ae54335268d3d4e50fc9a0c443797546efc passed Engineering Accountability, Performance R1 and Main Integration QA; exact candidate will need fresh QA. No device and production fingerprint verified. Rebased on new main 5ce896061f83363061a8a63acf9d8cc65830088c, which merged security operations (#738); preserve every security operation file and retain its compiled-QA branch allowance.",
-  "chosenApproach": "Reuse canonical, member-gated room read cursors; leave Org message-window badges unchanged and show per-message Cluster report, including zero readers. On successful own avatar save, publish local versioned URL so mounted avatars repaint; avoid fixed expo-image cache identity. Observe ad safety state transitions using React external store without bypassing UMP, kill switches, no-fill quiet time or visibility. Overlay only the eight non-manifest BSOC DEV source/test blobs using exact blob SHA parity on current Nov12 candidate, reuse existing private support RLS, case RPC and notification trigger. Extend only the existing compiled QA job's head-ref allowlist, leaving production publishers and runtime identity unchanged.",
+  "chosenApproach": "Reuse canonical, member-gated room read cursors; leave Org message-window badges unchanged and show per-message Cluster report, only after confirmed eligible readers, with Sent status for zero readers. On successful own avatar save, publish local versioned URL so mounted avatars repaint; avoid fixed expo-image cache identity. Observe ad safety state transitions using React external store without bypassing UMP, kill switches, no-fill quiet time or visibility. Overlay only the eight non-manifest BSOC DEV source/test blobs using exact blob SHA parity on current Nov12 candidate, reuse existing private support RLS, case RPC and notification trigger. Extend only the existing compiled QA job's head-ref allowlist, leaving production publishers and runtime identity unchanged.",
   "preserveBehaviors": [
     "Original Organization Connect Seen badge grouping and private direct chat behavior untouched.",
     "Existing secure read cursor RPC, membership authorization and room-read writes untouched.",
@@ -13,7 +13,8 @@
     "Do not alter sensitive route, form, typing, exam, foreground or network safety exclusions.",
     "Existing BSOC role permissions, private evidence, old chat history and current case queue RPC unchanged",
     "Existing notifications and push delivery remain server-authoritative; no broad routes or global navigation edits",
-    "No changes to Wall, video playback, advertisements, finance, points, Supabase schema or released OTA"
+    "No changes to Wall, video playback, advertisements, finance, points, Supabase schema or released OTA",
+    "Cluster Seen shows no badge immediately on send; a positive reader report still uses the existing authenticated room cursor and excludes the sender. Backgrounded or unfocused screens do not issue new mark-read writes."
   ],
   "riskAreas": [
     "connect-ptt-calls",
@@ -36,7 +37,8 @@
     "tests/buklod-reels-ad-gate-20261112.test.mjs",
     "tests/bsoc-case-triage-20261112.test.mjs",
     "tests/bsoc-notification-navigation-20261112.test.mjs",
-    "tests/bsoc-consolidated-rc-compile-gate-20261112.test.mjs"
+    "tests/bsoc-consolidated-rc-compile-gate-20261112.test.mjs",
+    "tests/buklod-connect-seen-ads-isolation-20261112.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -44,7 +46,8 @@
       "reason": "Thread, profile, and ad runtime surfaces each receive narrow source repairs backed by focused regression tests. Introduce scoped BSOC actionable case UI and deep-linked support reply without altering unrelated app behavior or backend contracts. Permit exact-source compiled QA without production publication.",
       "preservedBehaviors": [
         "No navigation rerouting, video playback change, reward change or auth entitlement change.",
-        "Existing RLS-protected support conversations, photo/video evidence and trigger-driven member alerts remain unchanged."
+        "Existing RLS-protected support conversations, photo/video evidence and trigger-driven member alerts remain unchanged.",
+        "The zero-reader status is Sent, not a fabricated Seen report; current Connect send and offline failure flows unchanged."
       ],
       "tests": [
         "tests/buklod-cluster-connect-seen-20261112.test.mjs",
@@ -55,9 +58,10 @@
     },
     {
       "id": "connect-ptt-calls",
-      "reason": "Cluster scope now exposes already authorized room-cursor readers on own messages, with Org behavior preserved.",
+      "reason": "Cluster scope now exposes already authorized room-cursor readers on own messages, with Org behavior preserved. Nov12 follow-up limits Seen to persisted own messages with actual other-reader room cursors, labels Sent otherwise, and guards writes by foreground and focus.",
       "preservedBehaviors": [
-        "Member-gated RPC and existing cursor writes unchanged; no fabricated per-message receipt or PTT changes."
+        "Member-gated RPC and existing cursor writes unchanged; no fabricated per-message receipt or PTT changes.",
+        "Room cursor remains an approximation of conversation visibility, not an individual message-open receipt."
       ],
       "tests": [
         "tests/buklod-cluster-connect-seen-20261112.test.mjs"
@@ -82,7 +86,8 @@
         "Consent, route exclusions, native ads, placement cooldown, no-fill retry and finance ledger stay unchanged."
       ],
       "tests": [
-        "tests/buklod-ad-gate-recovery-20261112.test.mjs"
+        "tests/buklod-ad-gate-recovery-20261112.test.mjs",
+        "tests/buklod-connect-seen-ads-isolation-20261112.test.mjs"
       ]
     },
     {
@@ -120,7 +125,8 @@
     "src/lib/buklodNotificationNavigation.ts",
     "tests/bsoc-notification-navigation-20261112.test.mjs",
     ".github/workflows/unified_rc_compiled_qa_20261108.yml",
-    "tests/bsoc-consolidated-rc-compile-gate-20261112.test.mjs"
+    "tests/bsoc-consolidated-rc-compile-gate-20261112.test.mjs",
+    "tests/buklod-connect-seen-ads-isolation-20261112.test.mjs"
   ],
   "acceptanceChecks": [
     "Focused Node regression tests and existing CI compile/type/source gates pass for exact proposed PR head.",
@@ -139,11 +145,13 @@
     "Both in-app and push notification resolvers carry valid BSOC case IDs to whitelisted destinations without accepting arbitrary redirect paths",
     "Compile and verify one exact 22-file Nov12 candidate; do not publish until all approved workstreams, native compatibility and release gates are reconciled.",
     "Exact Nov12 candidate Android and Expo web compile from PR SHA, preserving native runtime 1.3.2, V30 package and zero publishing commands.",
-    "Security Ops R1 main migration, admin screen, tests, incident response document and compiled-QA security head-ref remain byte-identical on source prep."
+    "Security Ops R1 main migration, admin screen, tests, incident response document and compiled-QA security head-ref remain byte-identical on source prep.",
+    "Cluster Sent/Seen repair from QA-green DEV PR #774: no zero-reader Seen badge, no pending/failed Seen, positive reader avatar/count only after confirmed scope reader cursor; verify no focus/background mark-read write.",
+    "Ad/points isolation regression asserts Connect reader and bubble code never invokes AdMob or rewards, preserving existing ads controller/finance logic."
   ],
-  "releaseState": "SOURCE RECONCILED ON SECURITY-MERGED MAIN — exact Android + Expo Web compiled QA and release reconciliation still required; NOT PUBLISHED",
+  "releaseState": "Nov12 consolidated RC SOURCE UPDATED with QA-green isolated Cluster Sent/Seen fix; final exact-head RC CI/compile and cumulative workstream reconciliation pending; NOT PUBLISHED",
   "physicalDeviceVerification": "SKIPPED BY OWNER on 2026-11-12 (not a verified pass)",
-  "selectionRationale": "Live Cluster reader cursors and secure member-gated RPC already exist, so UI visibility/reconciliation is lower risk than a new receipt table. Native ad gate has stale React eligibility after lock release; subscriptions preserve existing AdMob request throttles and privacy. Versioned avatar source URL must also version Expo Image cache identity. BSOC PR #741 has no overlap with existing 13 non-manifest source paths; retaining the original 14-file candidate and one cumulative scope manifest avoids cross-branch loss. Existing compiled QA skipped the new Nov12 branch. Adding this branch under the same-repository PR and SHA guard is lower risk than changing release/publishing workflows.",
+  "selectionRationale": "Live Cluster reader cursors and secure member-gated RPC already exist, so UI visibility/reconciliation is lower risk than a new receipt table. Native ad gate has stale React eligibility after lock release; subscriptions preserve existing AdMob request throttles and privacy. Versioned avatar source URL must also version Expo Image cache identity. BSOC PR #741 has no overlap with existing 13 non-manifest source paths; retaining the original 14-file candidate and one cumulative scope manifest avoids cross-branch loss. Existing compiled QA skipped the new Nov12 branch. Adding this branch under the same-repository PR and SHA guard is lower risk than changing release/publishing workflows. Nov12 Cluster Seen accuracy correction (isolated DEV PR #774) removes a misleading zero-reader badge, gates receipts to server-persisted messages and foreground/focused room display, with exact source/test blob parity carried into this draft RC. No new backend receipt table.",
   "alternativeApproaches": [
     "Adding a duplicate Cluster-specific seen receipt table or loosening RLS is rejected: canonical authorized room cursors already exist.",
     "Removing the 2-minute no-fill and remount request cooldown is rejected: ad request spam does not improve fill and increases platform risk.",
