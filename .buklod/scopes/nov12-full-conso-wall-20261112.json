@@ -102,14 +102,17 @@
     "Privacy enforcement from already-applied DB migrations is retained; no client regression reopening private posts."
   ],
   "riskAreas": [
-    "app-runtime",
-    "wall-media",
-    "navigation-auth",
     "ads-finance-points",
-    "cluster-faith",
+    "ads-monetization",
+    "app-runtime",
+    "auth-privacy",
     "backend-security",
+    "cluster-faith",
     "kingdom-character",
-    "production-release"
+    "navigation-auth",
+    "navigation-scroll",
+    "production-release",
+    "wall-media"
   ],
   "regressionTests": [
     "tests/about-buklod-founder-presenter-20261112.test.mjs",
