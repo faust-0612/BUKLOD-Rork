@@ -1,0 +1,46 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/cluster-dated-bible-reading-20261112.json",
+  "objective": "Restore signed-in Cluster members' dated Daily Bible reading while keeping forbidden low-level SQL function inaccessible and all account-isolated offline caches intact.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Main 5a97b754b6e0319690a717461bdd182b7b132b0c has 4 live direct reads of revoked get_automatic_bible_reading; Supabase prod observed 116 HTTP 403 events in 23h. Existing get_automatic_bible_today checks ACTIVE Cluster and trusted system admin; no native production OTA fingerprint assumed.",
+  "chosenApproach": "Create a narrow authenticated dated-reading wrapper that invokes the canonical get_automatic_bible_today membership gate first, preserving lower-level function revocation, then update four client invocations.",
+  "selectionRationale": "Fixes error without granting unrestricted RPC bypass to non-Cluster members; no change to reading assignments, chapter records, offline content authorization or points.",
+  "alternativeApproaches": [
+    "GRANT authenticated to get_automatic_bible_reading(date): rejected because it skips Cluster gate.",
+    "Return today's reading for every requested date: rejected because it corrupts past/future assignment mapping.",
+    "Authorized dated wrapper with existing gate: selected."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "faith-cluster",
+    "daily-reading"
+  ],
+  "regressionTests": [
+    "tests/cluster-dated-bible-reading-20261112.test.mjs",
+    "supabase/tests/cluster_dated_bible_reading_20261112.sql"
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability and Performance QA pass",
+    "No direct low-level grant for anon or signed-in users",
+    "Cluster user passes and non-member denied in authenticated RPC test",
+    "Dated reading output equals original mapping for eligible user",
+    "No change to media, ads, PTT, rewards or reading caches"
+  ],
+  "preserveBehaviors": [
+    "Cluster active membership required for Daily Reading, Devotion, Lessons",
+    "System admin canonical bypass kept",
+    "Dated assignments, reflection and offline account-bound cache preserved",
+    "No changes to video playback or native sound resources"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261112024000_cluster_authorized_dated_bible_reading.sql",
+    "supabase/tests/cluster_dated_bible_reading_20261112.sql",
+    "tests/cluster-dated-bible-reading-20261112.test.mjs",
+    ".buklod/scopes/cluster-dated-bible-reading-20261112.json",
+    "src/app/bible/index.tsx",
+    "src/app/bible/read.tsx",
+    "src/lib/buklodFaithOfflineWarmup.ts"
+  ],
+  "releaseStatus": "DEV PR until signed-off CI, backend function promotion and compatible OTA."
+}

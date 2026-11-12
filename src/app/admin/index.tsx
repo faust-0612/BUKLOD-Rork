@@ -389,6 +389,19 @@ export default function AdminDashboard() {
                 subtitle="Bayanihan, shares, revenue, withdrawals, attendance and scope reporting"
                 path="/admin/reports-center"
               />
+              <AdminRow
+                icon="server-network"
+                title="Backend Health & Capacity"
+                subtitle="Actual connection bars, hourly trends, upgrade warnings and provider telemetry"
+                path="/admin/backend-capacity"
+              />
+
+              <AdminRow
+                icon="check-decagram"
+                title="BUKLOD Official Console"
+                subtitle="Official posts, announcements and BSOC support"
+                path="/admin/buklod-official"
+              />
 
               <AdminRow
                 icon="trophy-award"
