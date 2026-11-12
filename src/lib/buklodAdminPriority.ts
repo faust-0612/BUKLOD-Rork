@@ -26,6 +26,7 @@ export type AdminPriorityItem = {
 
 export type AdminPrioritySnapshot = {
   items: AdminPriorityItem[];
+  pendingTotal: number;
   unreadSupportAlerts: number | null;
   failedSources: string[];
   cappedSources: string[];
@@ -60,7 +61,7 @@ export function rankAdminPriority(item: AdminPriorityItem, now = Date.now()) {
   return Math.min(3, base + (age >= 72 * 3600 * 1000 ? 1 : 0));
 }
 
-type LoadResult = { items: AdminPriorityItem[]; capped?: boolean };
+type LoadResult = { items: AdminPriorityItem[]; capped?: boolean; total?: number };
 type Source = { name: string; load: () => Promise<LoadResult> };
 
 export async function fetchAdminPriorityRequests(full = false): Promise<AdminPrioritySnapshot> {
@@ -68,33 +69,25 @@ export async function fetchAdminPriorityRequests(full = false): Promise<AdminPri
     {
       name: 'BSOC support',
       load: async () => {
-        const items: AdminPriorityItem[] = [];
-        let before: string | null = null;
-        let capped = false;
-        const maxPages = full ? 8 : 1;
-        const pageSize = full ? 250 : LIMIT;
-        for (let page = 0; page < maxPages; page++) {
-          const response = await supabase.rpc('buklod_bsoc_support_queue_v1', {
-            p_status: null, p_limit: pageSize, p_before: before,
-          });
-          errorIf(response.error);
-          const records = Array.isArray(response.data) ? response.data : [];
-          for (const c of records) {
-            if (!['new', 'triaged', 'in_progress'].includes(String(c.status))) continue;
-            items.push(row(
-              'support', 'BSOC support', c.feedback_id, c.title || 'Help request',
-              (c.reference || '') + ' · ' + (c.category || 'Member concern'),
-              c.status, c.created_at, '/admin/bsoc-support',
-              c.status === 'new' ? 'high' : 'normal'
-            ));
-          }
-          if (records.length < pageSize) { capped = false; break; }
-          capped = true;
-          const last = records[records.length - 1]?.created_at;
-          if (!last || last === before) break;
-          before = last;
-        }
-        return { items, capped };
+        // Read only compact fields through existing admin RLS. The legacy
+        // support RPC also returns full message bodies, which is too costly
+        // for a dashboard badge when hundreds of cases are pending.
+        const maxRows = full ? 1000 : 50;
+        const { data, error, count } = await supabase.from('user_feedback')
+          .select('id,title,category,status,created_at', { count: 'exact' })
+          .in('status', ['new', 'triaged', 'in_progress'])
+          .order('created_at', { ascending: false }).limit(maxRows);
+        errorIf(error);
+        const records = data || [];
+        return {
+          items: records.map(c => row(
+            'support', 'BSOC support', c.id, c.title || 'Help request',
+            c.category || 'Member concern', c.status, c.created_at,
+            '/admin/bsoc-support', c.status === 'new' ? 'high' : 'normal'
+          )),
+          total: count ?? records.length,
+          capped: (count ?? records.length) > records.length,
+        };
       },
     },
     {
@@ -308,12 +301,14 @@ export async function fetchAdminPriorityRequests(full = false): Promise<AdminPri
     results.push(...await Promise.allSettled(sources.slice(i, i + 4).map(s => s.load())));
   }
   const items: AdminPriorityItem[] = [];
+  let pendingTotal = 0;
   const failedSources: string[] = [];
   const cappedSources: string[] = [];
   results.forEach((result, i) => {
     if (result.status === 'rejected') failedSources.push(sources[i].name);
     else {
       items.push(...result.value.items);
+      pendingTotal += result.value.total ?? result.value.items.length;
       if (result.value.capped) cappedSources.push(sources[i].name);
     }
   });
@@ -327,7 +322,7 @@ export async function fetchAdminPriorityRequests(full = false): Promise<AdminPri
     .eq('kind', 'bsoc_support').is('read_at', null);
   if (unread.error) failedSources.push('Unread support notifications');
   return {
-    items,
+    items, pendingTotal,
     unreadSupportAlerts: unread.error ? null : (unread.count || 0),
     failedSources, cappedSources, refreshedAt: current,
   };
