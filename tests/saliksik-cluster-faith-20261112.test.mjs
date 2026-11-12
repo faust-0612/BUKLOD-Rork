@@ -38,7 +38,7 @@ test('Member assessment never receives answer keys or self-awards rewards',()=>{
  assert.match(sql,/'prompt',v_q->>'prompt','options',v_q->'options'/);
  assert.doesNotMatch(sql,/'correctIndex',v_q->>'correctIndex'/);
  assert.match(sql,/CREATE UNIQUE INDEX IF NOT EXISTS saliksik_single_open_attempt/);
- assert.match(sql,/UNIQUE\(user_id,source_key\) DO NOTHING/);
+ assert.match(sql,/ON CONFLICT\(user_id,source_key\) DO NOTHING/);
  assert.match(sql,/IF v_pass THEN/);
 });
 test('Objective credits fixed at 10/20; Master 35 cannot publish',()=>{
