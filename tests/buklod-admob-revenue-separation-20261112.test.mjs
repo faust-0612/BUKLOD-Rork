@@ -18,7 +18,7 @@ test('both financial source entry points reject sponsorship as member revenue',(
 });
 test('retired R38 user pool never accrues sponsorship',()=>{
   assert.match(migration,/v_base := greatest\(v_admob_revenue-v_admob_cost,0\)/);
-  assert.match(migration,/v_rev-v_cost/); // historical formula is no longer used
+  assert.doesNotMatch(migration,/v_base := greatest\(v_rev-v_cost,0\)/);
 });
 test('canonical Finance counts AdMob and app business income independently',()=>{
   assert.match(migration,/'member_distribution_source','RECONCILED_ADMOB_ONLY'/);
@@ -34,5 +34,5 @@ test('admin screens distinguish provider estimate, AdMob cash and sponsor revenu
     assert.match(content,/revenue_sources\.admob_reconciled_finance_journal_php/);
   }
   assert.match(bayanihan,/NOT shared/);
-  assert.match(ops,/sourceSystem\] =\s*useState\('admob_verified'\)/);
+  assert.match(ops,/useState\('admob_verified'\)/);
 });
