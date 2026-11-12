@@ -29,6 +29,7 @@ import {
   getBuklodPassiveAdRequestWaitMs,
   isBuklodPassiveAdAllowed,
   reserveBuklodPassiveAdRequest,
+  canRetainBuklodLoadedNativeCreative,
   getBuklodAdSafetyRevision,
   subscribeBuklodAdSafety,
 } from '@/lib/buklodGlobalAdController';
@@ -214,6 +215,20 @@ export default function BuklodCommunityInlineAd({
     (eligible || hasLoadedCreative) &&
     sdkReady &&
     (adNetworkAvailable || hasLoadedCreative);
+  // A typing/form lock temporarily hides ads; it must not destroy an already
+  // reserved or loaded large NativeAd and force a two-minute refill cooldown.
+  // Retention is NEVER permission to request or render while the lock is held.
+  const mayRetainNative = canRetainBuklodLoadedNativeCreative({
+    placement: bannerPlacement,
+    placementId,
+    pathname,
+  });
+  const keepNativeLifecycle =
+    canAttempt ||
+    (active && sdkReady && mayRetainNative &&
+      (Boolean(nativeAd) || (nativeRequestStarted.current && !nativeFailed)));
+  const canStartNativeRef = useRef(canAttempt);
+  canStartNativeRef.current = canAttempt;
 
   const requestKey = slotId || 'community-wall-inline';
   const adWidth = Math.max(280, Math.floor(width - 32));
@@ -222,11 +237,11 @@ export default function BuklodCommunityInlineAd({
   // Profile, Connect and Cluster placements when Native inventory is absent.
   const usePostRectangle = surface !== 'wall';
 
-  // Only genuinely lost eligibility (route/policy/SDK/slot unmount) disposes
-  // the creative; off-screen visibility and transient network loss alone do
-  // not destroy a completed load. New requests still obey shared cooldown.
+  // Only genuinely lost retention eligibility (route, remote kill switch,
+  // foreground, SDK, or unmount) disposes the native creative. A temporary
+  // typing/form lock is display-blocking, not an ad-destruction signal.
   useEffect(() => {
-    if (canAttempt) return;
+    if (keepNativeLifecycle) return;
     nativeRequestStarted.current = false;
     bannerRequestStarted.current = false;
     nativeRendered.current = false;
@@ -235,10 +250,13 @@ export default function BuklodCommunityInlineAd({
     setBannerLoaded(false);
     setBannerFailed(false);
     setBannerRequestReady(false);
-  }, [canAttempt]);
+  }, [keepNativeLifecycle]);
 
   useEffect(() => {
-    if (!canAttempt || nativeRequestStarted.current || nativeFailed) return;
+    // The request may remain alive after a transient lock, but no NEW native
+    // request may start while the normal consent/route/interaction gate fails.
+    if (!keepNativeLifecycle || !canStartNativeRef.current ||
+        nativeRequestStarted.current || nativeFailed) return;
 
     if (!nativeUnitId) {
       // No Native ad unit configured: fall back to the existing banner.
@@ -350,7 +368,7 @@ export default function BuklodCommunityInlineAd({
       createdAd?.destroy();
     };
   }, [
-    canAttempt,
+    keepNativeLifecycle,
     diagnosticPlacement,
     nativeFailed,
     nativeUnitId,

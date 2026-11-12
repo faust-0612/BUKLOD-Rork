@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore BUKLOD Community Wall large native sponsored creatives after recent OTA route/form safety changes, reduce multiplied viewport JS timers across dashboard navigation, and preserve current video playback, IMA, privacy and AdMob consent. Reconcile as one production Main consolidated OTA only after exact-head gated QA and release fingerprint.",
+  "baseRef": "1e66dd04c36cd88c922c9e41d6f673fdd9d94e98",
+  "productionBaselineEvidence": "BUKLOD anti-regression lock captured source 219507f387c8f75af98a4489fbd26abbce1a62ed (not installed OTA fingerprint), current main 1e66dd04c36cd88c922c9e41d6f673fdd9d94e98. Wall screen and CommunityVideo, paid sponsor and companion files byte-identical across lock; post-lock changes are in shared ad safety notifications. Same-build Android 1.3.6/build 30/runtime 1.3.2 last-hours production events show native load timeouts and banner no-fill; app SDK events are not paid impressions. Real device ad-fill/video QA not run.",
+  "chosenApproach": "Share one viewport measurement tick/AppState listener for eligible mounted ad probes. Keep valid already-loaded or in-flight large NativeAd alive only during temporary interaction locks while retaining full display prohibition; remote kill, route sensitivity, SDK/UMP and foreground must still stop/cleanup. Do not increase ad requests, alter two-minute no-fill cooldown or touch player.",
+  "selectionRationale": "A temporary typing/form lock with new post-lock observable safety signal made canAttempt false and native effect cleanup destroy a valid NativeAd, then shared cooldown blocks re-request for two minutes. Isolating request/display policy from retention-only policy fixes deterministic lifecycle regression without ad safety bypass.",
+  "riskAreas": [
+    "ads-monetization",
+    "wall-media",
+    "navigation-scroll",
+    "app-runtime"
+  ],
+  "regressionTests": [
+    "tests/buklod-ad-viewport-shared-clock-20261112.test.mjs",
+    "tests/buklod-wall-native-ad-retention-lock-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodAdViewport.ts",
+    "src/lib/buklodGlobalAdController.ts",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "tests/buklod-ad-viewport-shared-clock-20261112.test.mjs",
+    "tests/buklod-wall-native-ad-retention-lock-20261112.test.mjs",
+    ".buklod/scopes/nov12-wall-ad-regression-safe-conso-20261112.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Shared viewport scheduling and native ad lifecycle retention alter JS component runtime only for ad surfaces.",
+      "preservedBehaviors": [
+        "Main Wall and video/IMA player files remain byte-identical to deployed-source baseline.",
+        "Original viewport settle double check and app foreground protection remain."
+      ],
+      "tests": [
+        "tests/buklod-ad-viewport-shared-clock-20261112.test.mjs",
+        "tests/buklod-wall-native-ad-retention-lock-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Preserve already valid large NativeAd during temporary typing/form safety locks without allowing new request or visible impression until all usual ad gates pass.",
+      "preservedBehaviors": [
+        "AdMob real unit IDs, UMP/SDK consent, kill switches, sensitive routes and server finance unchanged.",
+        "No fake monetization event, ad pressure, preloading or offscreen exposure.",
+        "Banner no-fill cooldown and request reservation remain untouched."
+      ],
+      "tests": [
+        "tests/buklod-ad-viewport-shared-clock-20261112.test.mjs",
+        "tests/buklod-wall-native-ad-retention-lock-20261112.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Focused shared-clock and native safety tests run on exact source head.",
+    "Engineering Accountability, TypeScript, Main PR integration, and compiled RC Android/Web QA must pass before release.",
+    "Android production EAS environment and runtime 1.3.2/versionCode 30/package/project verified.",
+    "Compare post OTA latest 15/30/60-minute SDK event buckets for matching build and ideally update fingerprint; never claim live fill without publisher and device verification.",
+    "User has waived physical handset acceptance in prior instructions, not automated release gates."
+  ],
+  "releaseState": "NONPUBLISHING_DEV_SOURCE_PENDING_QA",
+  "preserveBehaviors": [
+    "Community Wall, active CommunityVideo playback, media image rendering, large sponsored video, IMA and Reels components untouched.",
+    "Loaded NativeAd survives mounted scroll and transient form lock only; no ad renders during lock.",
+    "Foreground, UMP consent, remote flags, sensitive route gating, shared no-fill cooldown, request reservation and original 392px native video card preserved.",
+    "Production Finance, Points, official identity, privacy and session/account isolation not modified."
+  ],
+  "alternativeApproaches": [
+    "Reverse recent complete Wall OTA: rejected because lock snapshot shows Wall/video unchanged and would undo working media/photo and security features.",
+    "Start parallel large native+banner requests or bypass 400ms viewport test: rejected due extra no-fill pressure and offscreen-impression policy risks.",
+    "Disable all interaction safety locks to boost impressions: rejected because no ads must be shown during typing, privacy and sensitive flows."
+  ]
+}

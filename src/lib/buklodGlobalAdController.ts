@@ -250,7 +250,9 @@ export function isBuklodPassiveAdAllowed({
   placementId: string;
   placement?: BuklodAdPlacement;
   pathname?: string | null;
-}) {
+}, options?: { retentionOnly?: boolean }) {
+  // retentionOnly is for the lifecycle of an already requested/loaded NativeAd.
+  // Render/request callers MUST use the default locked policy.
   // Preserve the retired legacy unit block while allowing the current Home placement.
   if (placementId === 'legacy_home_banner') return false;
   const route = normalizePath(candidate ?? pathname);
@@ -295,8 +297,21 @@ export function isBuklodPassiveAdAllowed({
     enabled('ads_passive') &&
     placementEnabled(placementId) &&
     (!isBuklodAdRouteSensitive(route) || safeFacultyLanding || safePersonalMediaBanner || safeHealthInformationBanner || safeReelsPlacement || safeKingdomPassive) &&
-    !hasInteractionLock()
+    (options?.retentionOnly === true || !hasInteractionLock())
   );
+}
+
+/** A currently mounted NativeAd may survive a short typing/form lock.
+ * This NEVER authorizes mounting, requesting, or displaying the ad while locked;
+ * the normal isBuklodPassiveAdAllowed() must still pass for those operations.
+ * Route, foreground, provider kill switches and placement remain enforced.
+ */
+export function canRetainBuklodLoadedNativeCreative(args: {
+  placementId: string;
+  placement?: BuklodAdPlacement;
+  pathname?: string | null;
+}) {
+  return isBuklodPassiveAdAllowed(args, { retentionOnly: true });
 }
 
 export function isBuklodRewardedAdAllowed(

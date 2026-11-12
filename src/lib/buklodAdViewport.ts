@@ -8,6 +8,45 @@ const POLL_MS = 1200;
 const isForeground = () => AppState.currentState !== 'background' &&
   AppState.currentState !== 'inactive';
 
+// Share ONE polling clock and ONE foreground listener across all mounted ad
+// probes. A feed can mount many sponsored rows; per-slot intervals and AppState
+// subscriptions otherwise accumulate JS/native work on every dashboard switch.
+// Every slot still measures its OWN viewport after the existing settle delay.
+type ViewportProbe = (active: boolean) => void;
+const viewportProbes = new Set<ViewportProbe>();
+let viewportPollTimer: ReturnType<typeof setInterval> | null = null;
+let viewportAppState: ReturnType<typeof AppState.addEventListener> | null = null;
+
+function subscribeViewportProbe(probe: ViewportProbe) {
+  viewportProbes.add(probe);
+  if (!viewportPollTimer) {
+    viewportPollTimer = setInterval(() => {
+      if (!isForeground()) return;
+      for (const activeProbe of viewportProbes) activeProbe(true);
+    }, POLL_MS);
+  }
+  if (!viewportAppState) {
+    viewportAppState = AppState.addEventListener('change', state => {
+      const active = state === 'active';
+      for (const activeProbe of viewportProbes) activeProbe(active);
+    });
+  }
+
+  let unsubscribed = false;
+  return () => {
+    if (unsubscribed) return;
+    unsubscribed = true;
+    viewportProbes.delete(probe);
+    if (viewportProbes.size !== 0) return;
+    if (viewportPollTimer) {
+      clearInterval(viewportPollTimer);
+      viewportPollTimer = null;
+    }
+    viewportAppState?.remove();
+    viewportAppState = null;
+  };
+}
+
 /**
  * Keep the existing 400 ms on-screen threshold, but verify position AGAIN
  * after the threshold. A rapidly scrolled-out ad must not allocate a native
@@ -60,19 +99,19 @@ export function useBuklodAdViewportGate() {
   useEffect(() => {
     ++generationRef.current;
     if (eligible) return;
-    sample();
-    const poll = setInterval(sample, POLL_MS);
-    const app = AppState.addEventListener('change', state => {
-      if (state === 'active') sample();
+    const unsubscribe = subscribeViewportProbe(active => {
+      if (active) sample();
       else if (settleRef.current) {
         clearTimeout(settleRef.current);
         settleRef.current = null;
       }
     });
+    // First-view inventory starts measuring immediately, without waiting for
+    // the shared clock; the 400ms recheck still prevents off-screen requests.
+    sample();
     return () => {
       ++generationRef.current;
-      clearInterval(poll);
-      app.remove();
+      unsubscribe();
       if (settleRef.current) {
         clearTimeout(settleRef.current);
         settleRef.current = null;
