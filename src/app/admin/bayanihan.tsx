@@ -17,6 +17,7 @@ import { shared } from '@/components/UI';
 import { formatMinorPhp } from '@/lib/buklodCommunityContributionEconomy';
 import {
   financeMoneyOrUnavailable,
+  financeReportRevenuePhp,
   hasFinalizedFinanceMonth,
   isEconomyMonth,
   loadCanonicalAdminEconomy,
@@ -141,7 +142,7 @@ export default function AdminBayanihanScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.guardTitle}>Hard economic invariant · One authoritative source</Text>
             <Text style={styles.guardText}>
-              Legacy R38 BCU/RCU allocations and Community Wall analytics are excluded from cash totals. Never infer pesos from points or from preliminary ad income.
+              Only reconciled AdMob revenue can fund member payouts. Sponsorship, subscriptions and other BUKLOD income stay outside user revenue-sharing. AdMob estimates and Points are not cash.
             </Text>
           </View>
         </View>
@@ -191,9 +192,24 @@ export default function AdminBayanihanScreen() {
           </View>
         ) : report ? (
           <>
+            <Section title="AdMob-only user revenue" subtitle="Reconciled AdMob funding sources only. Source receipts are not individual cash; actual shares require finalized settlement.">
+              <View style={styles.grid}>
+                <Metric label="Reconciled AdMob financial journal" value={financeReportRevenuePhp(report.revenue_sources.admob_reconciled_finance_journal_php)} />
+                <Metric label="Finalized AdMob provider value" value={financeReportRevenuePhp(report.revenue_sources.admob_finalized_provider_value_php)} />
+                <Metric label="AdMob provider estimate (not cash)" value={provisional ? formatMinorPhp(provisional.amount_minor) : 'No report'} />
+              </View>
+            </Section>
+
+            <Section title="Other BUKLOD revenue · NOT shared" subtitle="Sponsorship and all other app income are entirely excluded from the user pool and payout computation.">
+              <View style={styles.grid}>
+                <Metric label="Other app reconciled revenue" value={financeReportRevenuePhp(report.revenue_sources.other_app_reconciled_revenue_php)} />
+                <Metric label="Other app reconciled costs" value={financeReportRevenuePhp(report.revenue_sources.other_app_reconciled_costs_php)} />
+              </View>
+            </Section>
+
             <Section title="Finance V3 · canonical settlement" subtitle={`Period ${report.period_key} · ${finalized ? 'FINALIZED' : 'NOT FINALIZED'} · Source: Finance V3`}>
               <View style={styles.grid}>
-                <Metric label="Eligible revenue" value={money(settlement?.normal_eligible_revenue_php)} />
+                <Metric label="Finalized AdMob eligible revenue" value={money(settlement?.normal_eligible_revenue_php)} />
                 <Metric label="30% User Pool" value={money(settlement?.user_pool_php)} />
                 <Metric label="User pool distributed" value={money(settlement?.user_pool_distributed_php)} />
                 <Metric label="User pool reserved" value={money(settlement?.user_pool_reserved_php)} />
@@ -215,7 +231,7 @@ export default function AdminBayanihanScreen() {
                   <Metric label="Unlinked identities" value={safeCount(qmp.unlinked_finance_identities)} />
                   <Metric label="Pending validation" value={safeCount(qmp.pending_qmp_reviews)} />
                   <Metric label="Held for risk" value={safeCount(qmp.held_qmp_reviews)} />
-                  <Metric label="Eligible revenue records" value={safeCount(qmp.reconciled_eligible_revenue_sources)} />
+                  <Metric label="AdMob source records" value={safeCount(qmp.reconciled_eligible_revenue_sources)} />
                 </View>
               ) : <Text style={styles.muted}>No QMP period has been created for this month.</Text>}
               <Text style={styles.muted}>Finance readiness: {qmp?.ready_for_finalization === true ? 'PASS' : 'LOCKED / NOT READY'}. A report does not activate settlement or payout.</Text>

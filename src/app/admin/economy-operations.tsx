@@ -32,7 +32,7 @@ import {
   type BuklodR38PayoutDetails,
 } from '@/lib/buklodR38AdminEconomy';
 import { formatPhp } from '@/lib/buklodR38Economy';
-import { financeMoneyOrUnavailable, isEconomyMonth, loadCanonicalAdminEconomy,
+import { financeMoneyOrUnavailable, financeReportRevenuePhp, isEconomyMonth, loadCanonicalAdminEconomy,
   manilaEconomyMonth, type CanonicalAdminEconomySnapshot } from '@/lib/buklodCanonicalAdminEconomy';
 import { getBuklodFinanceMonthCloseBlockers } from '@/lib/buklodFinanceMonthCloseBlockers';
 import { colors } from '@/lib/theme';
@@ -108,7 +108,7 @@ export default function AdminEconomyOperationsScreen() {
     );
   const [amount, setAmount] = useState('');
   const [sourceSystem, setSourceSystem] =
-    useState('manual_admin');
+    useState('admob_verified');
   const [externalReference, setExternalReference] =
     useState('');
   const [entryNotes, setEntryNotes] = useState('');
@@ -396,6 +396,17 @@ export default function AdminEconomyOperationsScreen() {
         ) : (
           <>
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>AdMob Revenue vs Other App Revenue</Text>
+              <Text style={styles.muted}>Only reconciled AdMob earnings can fund member shares. Sponsor inventory and every other income stream are excluded from member distributions.</Text>
+              <View style={styles.flagGrid}>
+                <Text style={styles.flagLabel}>AdMob reconciled journal: {financeReportRevenuePhp(snapshot?.revenue_sources.admob_reconciled_finance_journal_php)}</Text>
+                <Text style={styles.flagLabel}>AdMob provider finalized: {financeReportRevenuePhp(snapshot?.revenue_sources.admob_finalized_provider_value_php)}</Text>
+                <Text style={styles.flagLabel}>Other app revenue (excluded): {financeReportRevenuePhp(snapshot?.revenue_sources.other_app_reconciled_revenue_php)}</Text>
+                <Text style={styles.flagLabel}>Other app costs (separate): {financeReportRevenuePhp(snapshot?.revenue_sources.other_app_reconciled_costs_php)}</Text>
+              </View>
+            </View>
+
+            <View style={styles.section}>
               <Text style={styles.sectionTitle}>
                 Canonical Finance V3 controls
               </Text>
@@ -483,7 +494,7 @@ export default function AdminEconomyOperationsScreen() {
               </Text>
               {!!queueError && <Text style={styles.warningText}>{queueError}</Text>}
               <Text style={styles.muted}>
-                Automated QMP audit (source-backed): {qmpReadiness?.period_exists
+                Automated QMP audit (AdMob funding only): {qmpReadiness?.period_exists
                   ? `${qmpReadiness.qualified_users ?? 0} qualified users ·
                   ${qmpReadiness.qualified_monthly_qmp ?? 0} QMP ·
                   ${qmpReadiness.unlinked_finance_identities ?? 0} identity links missing ·
@@ -722,7 +733,7 @@ export default function AdminEconomyOperationsScreen() {
                     {formatSettlement(settlement?.normal_eligible_revenue_php)}
                   </Text>
                   <Text style={styles.metricLabel}>
-                    Eligible Revenue
+                    Finalized AdMob Eligible Revenue
                   </Text>
                 </View>
 

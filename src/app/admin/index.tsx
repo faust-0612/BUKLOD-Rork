@@ -400,14 +400,14 @@ export default function AdminDashboard() {
               <AdminRow
                 icon="finance"
                 title="Economy, Bayanihan & Shares"
-                subtitle="Funded pools, BCU/RCU weights, finalized user shares and cash ledger"
+                subtitle="AdMob-only funded shares; sponsorship and other income reported separately"
                 path="/admin/bayanihan"
               />
 
               <AdminRow
                 icon="cash-sync"
                 title="Economy Operations"
-                subtitle="Reconcile actual revenue and costs, finalize funded periods, process payouts"
+                subtitle="Reconcile AdMob user revenue separately from other app income and costs"
                 path="/admin/economy-operations"
               />
 

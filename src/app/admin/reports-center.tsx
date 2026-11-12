@@ -16,7 +16,7 @@ import { shared } from '@/components/UI';
 import { asMoney } from '@/lib/buklodR38Economy';
 import { formatMinorPhp } from '@/lib/buklodCommunityContributionEconomy';
 import {
-  financeMoneyOrUnavailable, loadCanonicalAdminEconomy, manilaEconomyMonth,
+  financeMoneyOrUnavailable, financeReportRevenuePhp, loadCanonicalAdminEconomy, manilaEconomyMonth,
   type CanonicalAdminEconomySnapshot,
 } from '@/lib/buklodCanonicalAdminEconomy';
 import { supabase } from '@/lib/supabase';
@@ -432,7 +432,11 @@ export default function AdminReportsCenterScreen() {
                 Missing settlement means not finalized, not zero revenue.
               </Text>
               <View style={styles.grid}>
-                <Metric label="Actual eligible revenue" value={financeMoney(settlement?.normal_eligible_revenue_php)} />
+                <Metric label="Reconciled AdMob finance revenue" value={financeReportRevenuePhp(economy.revenue_sources.admob_reconciled_finance_journal_php)} />
+                <Metric label="AdMob finalized provider value" value={financeReportRevenuePhp(economy.revenue_sources.admob_finalized_provider_value_php)} />
+                <Metric label="Other app revenue · excluded" value={financeReportRevenuePhp(economy.revenue_sources.other_app_reconciled_revenue_php)} />
+                <Metric label="Other app costs · separate" value={financeReportRevenuePhp(economy.revenue_sources.other_app_reconciled_costs_php)} />
+                <Metric label="Finalized AdMob eligible revenue" value={financeMoney(settlement?.normal_eligible_revenue_php)} />
                 <Metric label="Finalized 30% user pool" value={financeMoney(settlement?.user_pool_php)} />
                 <Metric label="Distributed user pool" value={financeMoney(settlement?.user_pool_distributed_php)} />
                 <Metric label="First-line share" value={financeMoney(settlement?.first_line_php)} />
@@ -448,7 +452,7 @@ export default function AdminReportsCenterScreen() {
                 <Metric label="Provisional AdMob, not cash" value={provisional ? formatMinorPhp(provisional.amount_minor) : 'No report'} />
               </View>
               <Text style={shared.muted}>
-                Retired R38 BCU/RCU balances and legacy Community P&L are not included in this financial report.
+                User distributions are AdMob-only. Sponsorship and other income are separately reported, never credited to members. Retired R38 BCU/RCU pools are not payout balances.
                 Preliminary AdMob estimates never create payout balances.
               </Text>
 
