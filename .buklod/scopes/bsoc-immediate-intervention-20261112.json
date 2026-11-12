@@ -20,7 +20,9 @@
     "src/lib/buklodRouteDiagnostics.ts",
     "src/app/_layout.tsx",
     "supabase/functions/bsoc-gpt-debug-v1/index.ts",
-    "tests/bsoc-intervention-live-safety-20261112.test.mjs"
+    "tests/bsoc-intervention-live-safety-20261112.test.mjs",
+    "tests/bsoc-navigation-route-20261112.test.mjs",
+    "tests/bsoc-security-permission-20261112.test.mjs"
   ],
   "preserveBehaviors": [
     "Wall, Ads, videos, finance, points, public privacy and global nav routing unchanged",
@@ -46,7 +48,9 @@
   "regressionTests": [
     "tests/bsoc-intervention-live-safety-20261112.test.mjs",
     "tests/bsoc-case-triage-20261112.test.mjs",
-    "tests/bsoc-notification-navigation-20261112.test.mjs"
+    "tests/bsoc-notification-navigation-20261112.test.mjs",
+    "tests/bsoc-navigation-route-20261112.test.mjs",
+    "tests/bsoc-security-permission-20261112.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -57,6 +61,29 @@
       ],
       "tests": [
         "tests/bsoc-intervention-live-safety-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Constrain main application render error recovery to safe admin route templates while preserving user navigation and all authentication boundaries.",
+      "preservedBehaviors": [
+        "The original root ErrorBoundary still logs and routes support without private IDs.",
+        "Existing global bottom tabs and authorized navigation flows remain unchanged."
+      ],
+      "tests": [
+        "tests/bsoc-navigation-route-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Make provider-limited GPT diagnostics use a clearly labelled manual checklist without weakening Edge Function JWT verification, BSOC permission authorization or private data safeguards.",
+      "preservedBehaviors": [
+        "Existing request authentication via Supabase Auth getUser and BSOC support-read RPC are required before diagnostics.",
+        "The handler never auto-sends private cases, credentials or case attachments to the external AI provider.",
+        "Only an operator-provided redacted description is forwarded to the provider."
+      ],
+      "tests": [
+        "tests/bsoc-security-permission-20261112.test.mjs"
       ]
     }
   ]
