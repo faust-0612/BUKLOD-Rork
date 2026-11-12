@@ -40,6 +40,7 @@ export default function AdminPriorityRequestsScreen() {
   const version = useRef(0);
   const lastRequest = useRef(0);
   const inFlight = useRef(false);
+  const focused = useRef(false);
 
   const load = useCallback(async () => {
     if (!allowed || inFlight.current) return;
@@ -62,14 +63,15 @@ export default function AdminPriorityRequestsScreen() {
   }, [allowed]);
 
   useFocusEffect(useCallback(() => {
+    focused.current = true;
     if (allowed) void load();
-    return () => { version.current += 1; };
+    return () => { focused.current = false; version.current += 1; };
   }, [allowed, load]));
 
   useEffect(() => {
     if (!allowed) return;
     const refreshFromEvent = () => {
-      if (Date.now() - lastRequest.current >= 15000) void load();
+      if (focused.current && Date.now() - lastRequest.current >= 15000) void load();
     };
     const state = AppState.addEventListener('change', next => {
       if (next === 'active') refreshFromEvent();
