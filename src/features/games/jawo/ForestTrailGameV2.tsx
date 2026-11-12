@@ -14,71 +14,15 @@ import BuklodSpecialCharacterArtV2 from '@/components/points/BuklodSpecialCharac
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
 import type { BuklodGameResult } from '../types';
+import {
+  STARTING_HEARTS, TRAIL_LENGTH, advanceTrail, clampLane,
+  encounterDelay, makeTrail, starsForScore,
+  type Lane,
+} from './forestTrailEngine';
 
-type Lane = 0 | 1 | 2;
 type Phase = 'ready' | 'countdown' | 'playing' | 'paused' | 'won' | 'lost';
-
-type Encounter = {
-  id: number;
-  obstacleLane: Lane;
-  lightLane: Lane;
-  name: string;
-  intensity: 1 | 2 | 3;
-};
-
 const GAME_ID = 'jawo-forest-trail';
-const STARTING_HEARTS = 3;
-const TRAIL_LENGTH = 24;
 const SWIPE_THRESHOLD = 26;
-
-const ZONES = [
-  'Forest Edge',
-  'Fern Corridor',
-  'Creek Bend',
-  'Whispering Pines',
-  'Moss Crossing',
-  'Hidden Grove',
-  'Old Ranger Trail',
-  'Ancient Tree Path',
-  'Firefly Hollow',
-] as const;
-
-// Each retry gets a different but reproducible 24-encounter route. There is
-// always one hazard lane, one collectible lane, and one completely safe lane.
-const makeTrail = (seed: number): Encounter[] => {
-  let value = seed >>> 0;
-  const randomLane = (): Lane => {
-    value = (Math.imul(1664525, value) + 1013904223) >>> 0;
-    return (value % 3) as Lane;
-  };
-  return Array.from({ length: TRAIL_LENGTH }, (_, index) => {
-    const obstacleLane = randomLane();
-    const offset = 1 + (randomLane() % 2);
-    const lightLane = ((obstacleLane + offset) % 3) as Lane;
-    return {
-      id: index,
-      obstacleLane,
-      lightLane,
-      name: ZONES[Math.floor(index / 3) % ZONES.length],
-      intensity: (1 + Math.floor(index / 8)) as 1 | 2 | 3,
-    };
-  });
-};
-
-const starsForScore = (score: number): 0 | 1 | 2 | 3 => {
-  if (score >= 2250) return 3;
-  if (score >= 1550) return 2;
-  if (score >= 900) return 1;
-  return 0;
-};
-
-const clampLane = (value: number): Lane => Math.max(0, Math.min(2, value)) as Lane;
-
-const encounterDelay = (intensity: 1 | 2 | 3) => {
-  if (intensity === 3) return 1150;
-  if (intensity === 2) return 1380;
-  return 1650;
-};
 
 type Props = {
   onFinish?: (result: BuklodGameResult) => void;
@@ -88,11 +32,11 @@ export function ForestTrailGameV2({ onFinish }: Props) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const gameHeight = Math.min(730, Math.max(510, Math.round(screenHeight * 0.72)));
   const [playWidth, setPlayWidth] = useState(screenWidth);
-  const laneSpacing = Math.min(105, Math.max(62, (playWidth - 56) / 3));
+  const laneSpacing = Math.max(62, (playWidth - 24) / 3);
   const [runSeed, setRunSeed] = useState(() => Math.floor(Math.random() * 0x7fffffff));
   const trail = useMemo(() => makeTrail(runSeed), [runSeed]);
   const [phase, setPhase] = useState<Phase>('ready');
-  const [lane, setLane] = useState<Lane>(1);
+  const [, setLane] = useState<Lane>(1);
   const [stepIndex, setStepIndex] = useState(0);
   const [hearts, setHearts] = useState(STARTING_HEARTS);
   const [score, setScore] = useState(0);
@@ -158,9 +102,9 @@ export function ForestTrailGameV2({ onFinish }: Props) {
 
   const shiftLane = useCallback(
     (direction: -1 | 1) => {
-      moveToLane(clampLane(lane + direction));
+      moveToLane(clampLane(laneRef.current + direction));
     },
-    [lane, moveToLane],
+    [moveToLane],
   );
 
   const panResponder = useMemo(
@@ -210,52 +154,34 @@ export function ForestTrailGameV2({ onFinish }: Props) {
       return;
     }
 
-    let nextHearts = hearts;
-    let nextScore = score;
-    let nextCombo = combo;
-    let nextLights = lights;
-
-    if (laneRef.current === encounter.obstacleLane) {
-      nextHearts -= 1;
-      nextCombo = 0;
-      nextScore = Math.max(0, nextScore - 70);
+    const next = advanceTrail({ hearts, score, combo, bestCombo, lights }, laneRef.current, encounter);
+    if (next.outcome === 'impact') {
       setMessage(`Impact at ${encounter.name}. Recover and change trail.`);
       playBuklodGameFeedback('impact').catch(() => undefined);
       flashScene(0.72);
-    } else if (laneRef.current === encounter.lightLane) {
-      nextCombo += 1;
-      nextLights += 1;
-      const comboBonus = Math.min(160, nextCombo * 14);
-      nextScore += 135 + comboBonus;
-      setMessage(nextCombo >= 4 ? `Light chain x${nextCombo}. The forest is responding.` : `Trail Light secured at ${encounter.name}.`);
+    } else if (next.outcome === 'light') {
+      setMessage(next.combo >= 4 ? `Light chain x${next.combo}. The forest is responding.` : `Trail Light secured at ${encounter.name}.`);
       playBuklodGameFeedback('collect').catch(() => undefined);
       flashScene(0.24);
       pulseWorld();
     } else {
-      nextCombo += 1;
-      nextScore += 55 + Math.min(75, nextCombo * 6);
-      setMessage(nextCombo >= 5 ? `Clean run x${nextCombo}. Keep the rhythm.` : `Clear through ${encounter.name}.`);
+      setMessage(next.combo >= 5 ? `Clean run x${next.combo}. Keep the rhythm.` : `Clear through ${encounter.name}.`);
       pulseWorld();
     }
 
-    const nextBestCombo = Math.max(bestCombo, nextCombo);
     const nextStep = stepIndex + 1;
-
-    setHearts(nextHearts);
-    setScore(nextScore);
-    setCombo(nextCombo);
-    setBestCombo(nextBestCombo);
-    setLights(nextLights);
+    setHearts(next.hearts);
+    setScore(next.score);
+    setCombo(next.combo);
+    setBestCombo(next.bestCombo);
+    setLights(next.lights);
     setStepIndex(nextStep);
 
-    if (nextHearts <= 0) {
-      finishGame('lost', nextScore, nextBestCombo);
+    if (next.hearts <= 0) {
+      finishGame('lost', next.score, next.bestCombo);
       return;
     }
-
-    if (nextStep >= trail.length) {
-      finishGame('won', nextScore, nextBestCombo);
-    }
+    if (nextStep >= trail.length) finishGame('won', next.score, next.bestCombo);
   }, [bestCombo, combo, finishGame, flashScene, hearts, lights, phase, pulseWorld, score, stepIndex, trail]);
   // Lane presses update the ref without restarting the incoming hazard clock.
   encounterCallbackRef.current = resolveEncounter;
@@ -491,9 +417,10 @@ export function ForestTrailGameV2({ onFinish }: Props) {
           <View style={styles.resultCard}>
             <Text style={styles.heroEyebrow}>{phase === 'won' ? 'STATION CLEARED' : 'TRAIL INTERRUPTED'}</Text>
             <Text style={styles.resultTitle}>{phase === 'won' ? 'HIDDEN GROVE FOUND' : 'RETURN TO THE TRAIL'}</Text>
-            <Text style={styles.resultScore}>{score.toLocaleString()} pts</Text>
+            <Text style={styles.resultScore}>{score.toLocaleString()}</Text>
+            <Text style={styles.scoreCaption}>GAME SCORE • NOT REAL POINTS</Text>
             <Text style={styles.resultMeta}>Best combo x{bestCombo} • Trail Lights {lights} • {'★'.repeat(starsForScore(score)) || 'No star yet'}</Text>
-            <Text style={styles.resultCopy}>{phase === 'won' ? 'This station is ready to unlock a permanent map change once Kingdom persistence is connected.' : 'No punishment. Replay, learn the rhythm, and push deeper into the forest.'}</Text>
+            <Text style={styles.resultCopy}>{phase === 'won' ? 'Trail cleared. This game score is a local preview; only a separate verified Mastery Check can award real Points.' : 'No punishment. Replay, learn the rhythm, and push deeper into the forest.'}</Text>
             <Pressable onPress={reset} style={({ pressed }) => [styles.startButton, pressed && styles.startButtonPressed]}>
               <Text style={styles.startButtonText}>{phase === 'won' ? 'RUN AGAIN' : 'TRY AGAIN'}</Text>
             </Pressable>
@@ -574,6 +501,7 @@ const styles = StyleSheet.create({
   resultCard: { width: '100%', maxWidth: 560, padding: 18, borderRadius: 22, backgroundColor: 'rgba(5,18,12,0.94)', borderWidth: 1, borderColor: 'rgba(213,244,203,0.20)', alignItems: 'center' },
   resultTitle: { color: '#ffffff', fontSize: 23, fontWeight: '900', textAlign: 'center', marginTop: 7 },
   resultScore: { color: '#e8f5a7', fontSize: 40, fontWeight: '900', marginTop: 12 },
+  scoreCaption: { color: '#d9e7ba', fontSize: 10, fontWeight: '900', marginTop: 2, letterSpacing: 1 },
   resultMeta: { color: '#c9dec9', fontSize: 12, fontWeight: '700', marginTop: 4, textAlign: 'center' },
   resultCopy: { color: '#c4d9c6', fontSize: 12, lineHeight: 18, marginTop: 13, textAlign: 'center' },
   secondaryButton: { marginTop: 14, padding: 10 },
