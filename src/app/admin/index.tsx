@@ -390,6 +390,12 @@ export default function AdminDashboard() {
                 path="/admin/reports-center"
               />
               <AdminRow
+                icon="shield-lock-outline"
+                title="Security Operations & Recovery"
+                subtitle="Risk alerts, emergency finance hold and verified restore"
+                path="/admin/security-operations"
+              />
+              <AdminRow
                 icon="server-network"
                 title="Backend Health & Capacity"
                 subtitle="Actual connection bars, hourly trends, upgrade warnings and provider telemetry"
