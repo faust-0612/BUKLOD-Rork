@@ -16,7 +16,8 @@
     "points-ledger",
     "admin-private-storage",
     "ai-provenance",
-    "ota-compatibility"
+    "ota-compatibility",
+    "faith-cluster"
   ],
   "allowedPaths": [
     ".buklod/scopes/saliksik-vault-adaptive-20261112.json",
