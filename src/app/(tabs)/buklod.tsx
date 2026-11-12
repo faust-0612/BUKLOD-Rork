@@ -1631,6 +1631,9 @@ function LegacyPublicBuklodScreen(){
 
 /* PATCH_166H_STALE_LOAD_GUARD */
  const communityLoadSeqRef=useRef(0);
+// Prevent revoked posts from returning via stale cached or in-flight feed rows.
+const privacyRevokedPostIdsRef=useRef(new Set<string>());
+useEffect(()=>{ privacyRevokedPostIdsRef.current.clear(); },[user?.id]);
  const postReactBusyRef=useRef(false);
  const commentReactBusyRef=useRef(false);
 /* PATCH_173H_R4_PUBLIC_LOCATION_STATE */
@@ -1714,6 +1717,12 @@ const load=useCallback(async(options?:{
         communityFeedMode
       : null;
 
+  const onlyVisiblePosts=(rows:any[]):any[] =>
+    (Array.isArray(rows)?rows:[]).filter((post:any)=>
+      !privacyRevokedPostIdsRef.current.has(String(post?.id??'')) ||
+      String(post?.user_id??'')===String(user?.id??'')
+    );
+
   if(
     !appendPage186L &&
     communityCacheKey
@@ -1728,7 +1737,7 @@ const load=useCallback(async(options?:{
       communityLoadSeq===
         communityLoadSeqRef.current
     ){
-      setPosts(warmPosts);
+      setPosts(onlyVisiblePosts(warmPosts));
     }
 
     const cachedPostsPromise=
@@ -1752,13 +1761,13 @@ const load=useCallback(async(options?:{
 
         communityWarmFeedMemory.set(
           communityCacheKey,
-          cachedPosts
+          onlyVisiblePosts(cachedPosts)
         );
 
         setPosts(previous=>
           previous.length
             ? previous
-            : cachedPosts
+            : onlyVisiblePosts(cachedPosts)
         );
       })
       .catch(()=>undefined);
@@ -1775,10 +1784,10 @@ const load=useCallback(async(options?:{
         communityLoadSeq===
           communityLoadSeqRef.current
       ){
-        setPosts(cachedPosts);
+        setPosts(onlyVisiblePosts(cachedPosts));
       }
 
-      return cachedPosts?.length ?? 0;
+      return onlyVisiblePosts(cachedPosts??[]).length;
     }
   } else if (!communityOnlineRef.current) {
     return 0;
@@ -1860,8 +1869,8 @@ const load=useCallback(async(options?:{
         );
 
       if(cachedPosts?.length){
-        setPosts(cachedPosts);
-        return cachedPosts.length;
+        setPosts(onlyVisiblePosts(cachedPosts));
+        return onlyVisiblePosts(cachedPosts).length;
       }
     }
 
@@ -1878,7 +1887,7 @@ const load=useCallback(async(options?:{
   }
   /* PATCH_154N_COMMUNITY_FEED_ROWS */
   let feedRows=
-    (data??[]) as any[];
+    onlyVisiblePosts((data??[]) as any[]);
 
   const postIds=
     feedRows
@@ -2386,7 +2395,7 @@ const load=useCallback(async(options?:{
   }
 
   const preparedPosts186L=
-    next.map((p:any)=>({
+    onlyVisiblePosts(next).map((p:any)=>({
       ...p,
       cluster_name:
         clusterMap[p.user_id] ??
@@ -2511,7 +2520,23 @@ const load=useCallback(async(options?:{
           {
             event: 'post_changed',
           },
-          requestReload
+          (event:any) => {
+            const change=event?.payload??{};
+            const postId=typeof change.post_id==='string' ? change.post_id : '';
+            if(postId && change.visibility_revoked===true){
+              privacyRevokedPostIdsRef.current.add(postId);
+              communityLoadSeqRef.current+=1; // Cancel stale in-flight feed responses.
+              setPosts(current=>current.filter((post:any)=>
+                String(post.id)!==postId || String(post.user_id)===String(user.id)
+              ));
+              setVideoViewerPosts(current=>current.filter((post:any)=>
+                String(post.id)!==postId || String(post.user_id)===String(user.id)
+              ));
+            } else if(postId && change.visibility_revoked===false){
+              privacyRevokedPostIdsRef.current.delete(postId);
+            }
+            requestReload();
+          }
         )
         .subscribe();
 
