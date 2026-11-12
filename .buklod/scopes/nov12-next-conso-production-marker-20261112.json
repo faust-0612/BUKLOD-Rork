@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "releaseMode": "reviewed-production-marker",
+  "objective": "Publish the exact QA-verified BUKLOD Main consolidated Android production OTA and Expo Hosting Web for the approved Wall photo/music/ambiance, Home Quiz card removal and Cluster Sent/Seen changes, retaining all earlier current Main features and source security fixes.",
+  "baseRef": "26641cc3b881f8adcb22b69a53341f361e4bad96",
+  "sourceMergeSha": "26641cc3b881f8adcb22b69a53341f361e4bad96",
+  "productionBaselineEvidence": "GitHub main 26641cc3b881f8adcb22b69a53341f361e4bad96 is squash of verified PR #775 exact RC 9924c319324529be7231094cce6a666bb88138ca. Engineering 43217794292, Performance 43217794216, Main Integration 43217797414, Android/Expo Web compiled run 43217794214 all SUCCESS; compiled 263 Android files/255 Web files under verified production EAS environment. Six high-impact source blob SHAs checked byte-identical after squash. Expo runtime 1.3.2 package org.mzbministry.buklod versionCode 30 project 23dad7d0-389a-406e-8dec-08965dab85d8. Actual published EAS update and Expo Hosting readback NOT yet verified. Only physical handset test waived by owner.",
+  "chosenApproach": "Review one metadata-only marker and source-specific test, squash onto unchanged Main with exact BUKLOD_CONSOLIDATED_PROD_20261108 prefix to trigger only canonical push-gated Android and Expo Hosting production publisher workflows. Let publisher verify unchanged live Main, frozen RC, native compatibility, production env and update evidence.",
+  "selectionRationale": "One controlled publish avoids piecemeal OTAs, duplicate cloud costs, uncompiled source drift and any Vercel reliance; safeguards stay mandatory.",
+  "alternativeApproaches": [
+    "Publish from an isolated PR or developer workstation without current compiled RC: rejected.",
+    "Retarget older Nov12 RC and overwrite Main security/privacy work: rejected.",
+    "Use canonical exact-source marker and production publisher guardrails after 4 passing checks: selected."
+  ],
+  "releasePrefix": "BUKLOD_CONSOLIDATED_PROD_20261108",
+  "target": {
+    "app": "BUKLOD Main",
+    "androidPackage": "org.mzbministry.buklod",
+    "androidVersionCode": 30,
+    "runtimeVersion": "1.3.2",
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "channel": "production",
+    "web": "Expo Hosting"
+  },
+  "rc": {
+    "sourceHead": "9924c319324529be7231094cce6a666bb88138ca",
+    "sourceMergedToMain": "26641cc3b881f8adcb22b69a53341f361e4bad96",
+    "compiledAndroidWebRun": 43217794214,
+    "androidBundleFiles": 263,
+    "webBundleFiles": 255,
+    "requiredChecksPassed": 4,
+    "sourceQA": {
+      "engineering": 43217794292,
+      "performance": 43217794216,
+      "mainIntegration": 43217797414,
+      "compiled": 43217794214
+    }
+  },
+  "riskAreas": [
+    "release-identity",
+    "app-runtime",
+    "navigation-auth",
+    "ads-monetization",
+    "connect",
+    "media"
+  ],
+  "acceptanceChecks": [
+    "Marker changes only its metadata and regression test, never user runtime tree or databases.",
+    "Four exact-source quality checks success on reviewed RC; post-merge six primary runtime blobs byte-identical with compiled source.",
+    "Production target Android package org.mzbministry.buklod runtime 1.3.2 code 30, EAS project 23dad7d0-389a-406e-8dec-08965dab85d8 channel production, Expo Hosting for web.",
+    "Canonical publisher checks source identity, native EAS compatibility, production env and ad security; freezes RC and reads real published Android update ID.",
+    "Expo Hosting publisher verifies exact source/export hash, successful deploy and serving identity; never use Vercel or bypass Android/Web release QA.",
+    "Physical Infinix verification skipped on owner waiver, not claimed passed. Do not publish Google Play AAB.",
+    "Never claim verified production release until Android update ID, runtime/channel and Web deployment/hash readback are independently confirmed."
+  ],
+  "preserveBehaviors": [
+    "Earlier full Nov12 Wall large NativeAd lifecycle, client/server Ako Lang privacy, BSOC/About, Green B, Jawo, and Official scope security source unchanged.",
+    "Classroom and Bible Quiz remain functional; only academic Quiz card removed from Home and not moved to Drawer.",
+    "Cluster Sent/Seen uses server room cursors and foreground gate; Org/direct Connect/PTT remain unchanged.",
+    "Wall/Marites video playback, private storage, ad consent and financial policies preserved; retired IGPAT remains retired.",
+    "No payout, user rewards, SQL/Edge function migration or native SDK/dependency modifications."
+  ],
+  "regressionTests": [
+    "tests/nov12-next-conso-production-marker-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov12-next-conso-production-marker-20261112.json",
+    "tests/nov12-next-conso-production-marker-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "releaseStatus": "COMPILED_RC_VERIFIED__PUBLISHER_TRIGGER_NOT_YET_RUN"
+}
