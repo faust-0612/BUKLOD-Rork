@@ -1,0 +1,54 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/buklod-official-identity-economy-20261112.json",
+  "objective": "Convert the one protected BUKLOD System Admin account into the BUKLOD platform identity with no member point/QMP/finance eligibility, verified official social interactions and a separate Official Console.",
+  "baseRef": "7ec45d5412d64f07f76b08f7ebc1a80109407991",
+  "productionBaselineEvidence": "Exact production main at branch creation 7ec45d5412d64f07f76b08f7ebc1a80109407991. Active Supabase BUKLOD Connect project inspected. Protected OFFICIAL_SYSTEM_ADMIN principal matched one existing account, 134 historical points records, 362 historical QMP, zero user-settlements and cash-ledger entries. Database migration plus assertions passed in rollback-only transaction; production was not changed in DEV.",
+  "chosenApproach": "Use the existing immutable protected principal and auth UUID, keep original personal name/avatar in an inaccessible private audit snapshot, brand existing public profile BUKLOD, add backend BEFORE-write reward guards and Finance QMP functions, filter legacy leaderboards before ranking, expose official dashboard RPC and reuse existing Community, announcement, bulletin and BSOC services.",
+  "selectionRationale": "Changing the role enum or opening a second admin account would threaten authorization, historical authorship, referrals and settlement identity. Immutable principal-scoped economy exclusion preserves privacy, existing roles and legacy financial history with minimal changes.",
+  "alternativeApproaches": [
+    "Create a fresh BUKLOD account and migrate posts/authorship (rejected; identity/history/permissions risk).",
+    "Hide earnings and rename profile only in the client (rejected; old clients and backend can still award points).",
+    "Keep protected UID, add server-side exclusion and independent Official Console (chosen)."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "ads-monetization",
+    "release-identity"
+  ],
+  "acceptanceChecks": [
+    "Only existing protected system admin is BUKLOD; other admins/members remain ordinary.",
+    "New Points/QMP, finance allocations and payouts cannot be credited to the platform identity, but existing history is preserved.",
+    "Open QMP Finance numerator/denominator excludes official; finalized historical snapshots are not rewritten.",
+    "Existing Points, Bayanihan, member and mentor leaderboards omit official account before row ranking.",
+    "Client official profile and official-only dashboard show no member progression or withdrawals.",
+    "Official announcements/community posts/replies/bulletins/BSOC reuse existing authorized workflows.",
+    "SQL migration and rollback tests pass; TypeScript compile and focused regression run on exact PR SHA.",
+    "RC must be compiled/verified and reconciled with production main and consolidated OTA before deployment."
+  ],
+  "preserveBehaviors": [
+    "No other member earning, ad monetization/claim, Community or Marites behavior changes.",
+    "No Wall/Marites video player, upload, buffering, PTT/audio or ad placement code changes.",
+    "Existing System Admin authority, private login, service permissions and historical author IDs are preserved.",
+    "Existing Kabanata/Kingdom, Classroom/Quiz, BSOC, scope/community privacy unchanged.",
+    "Historical reward events, Finance identities and finalized periods retained; no silent payout recalculation.",
+    "No new native libraries, runtimes or unverified Production OTA."
+  ],
+  "regressionTests": [
+    "supabase/tests/buklod_official_identity_economy_isolation_20261112.sql",
+    "tests/buklod-official-identity-contract.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/buklod-official-identity-economy-20261112.json",
+    ".github/workflows/buklod-official-identity-qa.yml",
+    "docs/release/buklod-official-identity-20261112.md",
+    "src/app/(tabs)/me.tsx",
+    "src/app/admin/buklod-official.tsx",
+    "src/app/member/[id].tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "supabase/migrations/20261112093000_buklod_official_identity_economy_isolation_v1.sql",
+    "supabase/tests/buklod_official_identity_economy_isolation_20261112.sql",
+    "tests/buklod-official-identity-contract.test.mjs"
+  ],
+  "releaseStatus": "DEV isolated on PR #730; Supabase migration tested in rollback only; hold Production DB write, merge, release RC and OTA until CI/RC proof."
+}
