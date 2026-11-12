@@ -1,0 +1,51 @@
+{
+  "contractVersion": 2,
+  "objective": "Remove the auto-injected BUKLOD academic Quiz card from the public Home announcements area without placing it in Drawer; preserve academic Classroom entry and all announcements/bulletins.",
+  "baseRef": "6e18a3101e8d0f18066e46dd1abdb02b190baa98",
+  "productionBaselineEvidence": "2026-11-12 GitHub main 6e18a3101e8d0f18066e46dd1abdb02b190baa98: Home hub renders BuklodHomeMergedUpdates, whose public_home announcement board automatically injected BuklodQuizStudentEntry for PUBLIC scope. Screenshot confirms visible card below announcement. No Android/Web/OTA runtime verification or production release performed.",
+  "chosenApproach": "Remove only the Quiz card injection from the shared announcement board, retaining announcement rendering, admin edits and bulletin loader; rename mobile and desktop Home section labels. Preserve Classroom Quiz entry and no new Drawer routes.",
+  "selectionRationale": "A single public_home conditional in BuklodSystemAnnouncementBoard owns the card; removing it at its source prevents the card in loading, empty and published states, including both Home entry routes, with no changes to academic quizzes or backend records.",
+  "alternativeApproaches": [
+    "Move the card to Drawer: explicitly rejected by owner.",
+    "Hide using CSS or an overlay: rejected because the Quiz component would still mount and waste resources.",
+    "Delete BUKLOD Quiz feature: rejected because the request targets the Home card and Classroom exams must remain functional."
+  ],
+  "acceptanceChecks": [
+    "Public Home announcement board no longer renders BUKLOD Quiz in loading, empty or published states.",
+    "Mobile and desktop Home update labels omit Quiz while announcements and bulletins still render.",
+    "Academic Quiz launcher stays under Classroom and exam records are untouched.",
+    "Drawer receives no Quiz card or route.",
+    "DEV tests and release gate pass before RC or OTA."
+  ],
+  "preserveBehaviors": [
+    "Public Home announcements, admin edit control, scope bulletins and encouragement stay intact.",
+    "Classroom student Quiz SSO entry, exam access and historical academic records are unchanged.",
+    "BUKLOD ads, Wall, Connect, privacy, rewards and all unrelated screens are unmodified.",
+    "Consolidated DEV to RC to production OTA release gates stay enforced."
+  ],
+  "riskAreas": [
+    "app-runtime"
+  ],
+  "regressionTests": [
+    "tests/public-home-quiz-launcher-removal-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/home-quiz-card-removal-20261112.json",
+    "src/components/BuklodSystemAnnouncementBoard.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/components/home/BuklodHomeMergedUpdates.tsx",
+    "tests/public-home-quiz-launcher-removal-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Remove only public-home academic Quiz launcher while keeping announcement/bulletin mount behavior, main Home focus-gating, and Classroom Quiz access stable.",
+      "preservedBehaviors": [
+        "Home announcements and bulletins render in both desktop and mobile variants; Classroom Quiz SSO entry and admin board editing remain available."
+      ],
+      "tests": [
+        "tests/public-home-quiz-launcher-removal-20261112.test.mjs"
+      ]
+    }
+  ]
+}
