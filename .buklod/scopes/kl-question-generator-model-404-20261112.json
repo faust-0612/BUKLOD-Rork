@@ -1,0 +1,75 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kl-question-generator-model-404-20261112.json",
+  "objective": "Repair KL Admin Check / Retry 5 Reading Questions 404 by using active low-cost Gemini Flash-Lite models, make errors actionable, protect manuscript-backed questions and existing BP awards. No standalone OTA.",
+  "baseRef": "b89848c58ca8f17b9dfcd4dfc7a47bbea869f625",
+  "productionBaselineEvidence": "2026-11-12 production Supabase BUKLOD Connect Edge function kl-generate-reading-quiz v1 returned model HTTP 404 on three admin retries (04:12 UTC) and all six approved released chapter banks were pending with zero generated questions. Current main SHA at PR creation b89848c58ca8f17b9dfcd4dfc7a47bbea869f625. Backend Edge v2 deployed and verified ACTIVE/JWT true, deployed source matches branch. No user-authenticated real-model success yet.",
+  "chosenApproach": "Retain existing admin-authenticated approved manuscript generation endpoint and secret key. Prefer documented Gemini 3.5 Flash-Lite; on explicit model 404 only try 3.1 Flash-Lite; report quota, credentials and validation failures separately to the KL Admin screen. Add Node and read-only SQL security regression contracts.",
+  "selectionRationale": "Real provider 404, not broken button event. Changing the model is the narrowest fix; no new paid provider or app dependency. Bounded fallback avoids silently multiplying provider cost and preserves exact-evidence validation.",
+  "alternativeApproaches": [
+    "Ignore 404 and keep retrying 2.5 Flash-Lite (rejected: repeatable production failure).",
+    "Disable mandatory quiz or weaken source-evidence checks (rejected: undermines fair BP and security).",
+    "Use current cost-efficient Flash-Lite with bounded model 404 fallback (selected)."
+  ],
+  "acceptanceChecks": [
+    "Production Edge function ACTIVE, verify_jwt true, deployed source equals reviewed GitHub source.",
+    "System Admin question generation can use available current model with at most one 404 fallback sequence per candidate, no unlimited retry.",
+    "Question and answer keys never exposed to anonymous/authenticated Data API; only valid 5-question evidence-checked banks stored.",
+    "Admin retry displays explicit provider failures rather than generic pending.",
+    "Existing read completion points, chapter approvals/media, comment/reflection, quizzes, offline read, main navigation remain unchanged.",
+    "Source-level focused node test and read-only live database security SQL pass.",
+    "Real System Admin authenticated model E2E and valid 5-question ready bank remain required before claiming full verification or publishing client OTA.",
+    "No Vercel build or standalone Android OTA for this change."
+  ],
+  "preserveBehaviors": [
+    "System-admin-only KL approval and generator RPC access.",
+    "Approved manuscript fingerprint and server-backed 5-question evidence validation.",
+    "3 random questions per reader, all correct required for BP.",
+    "Once-only verified +10 BP per chapter and +50 BP per series in current production, no duplicate awards.",
+    "Legacy 60-second plus two ping compatibility until minimum supported client enforcement.",
+    "Unchanged KL manuscript text, illustrations, music, reader, ads and profile.",
+    "No native dependency/runtimeVersion, no immediate Android OTA."
+  ],
+  "riskAreas": [
+    "story",
+    "backend-security",
+    "app-runtime",
+    "Gemini API access/quota",
+    "Kl Admin client retry",
+    "KL quiz RLS and BP idempotency"
+  ],
+  "regressionTests": [
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "supabase/tests/kl_question_generator_admin_security_20261112.sql"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kl-question-generator-model-404-20261112.json",
+    "supabase/functions/kl-generate-reading-quiz/index.ts",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "supabase/tests/kl_question_generator_admin_security_20261112.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Fix KL reader admin retry visibility without changing chapter reading or point systems.",
+      "preservedBehaviors": [
+        "Unchanged chapter reading, audio, illustration approval, scoring, and offline behavior."
+      ],
+      "tests": [
+        "tests/kl-approved-auto-reading-quiz.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Update AI model fallback while preserving role-authorized generation RPC and answer-key isolation.",
+      "preservedBehaviors": [
+        "System Admin verification, authenticated quiz attempts and immutable manuscript evidence remain protected."
+      ],
+      "tests": [
+        "supabase/tests/kl_question_generator_admin_security_20261112.sql"
+      ]
+    }
+  ],
+  "releaseState": "EDGE_V2_PRODUCTION_ACTIVE__CLIENT_PR_ONLY__REAL_ADMIN_MODEL_E2E_PENDING__NO_OTA"
+}
