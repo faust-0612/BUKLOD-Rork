@@ -4,10 +4,13 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,6 +28,8 @@ import {
   type SmartDrawerSettings,
 } from '@/lib/smartDrawer/settings';
 import { useAuth } from '@/providers/AuthProvider';
+import { generateSmartDrawerRecoveryKey, shareSmartDrawerBackup, restoreSmartDrawerBackup } from '@/lib/smartDrawer/portableBackup';
+import * as Clipboard from 'expo-clipboard';
 
 const STYLES: Array<{
   key: SmartDrawerReminderStyle;
@@ -86,6 +91,73 @@ export default function SmartDrawerSettingsScreen() {
       };
     }, [user?.id]),
   );
+
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupNotice, setBackupNotice] = useState('');
+  const [recoveryKey, setRecoveryKey] = useState('');
+
+  const prepareKey = async () => {
+    if (backupBusy) return;
+    setBackupBusy(true);
+    setBackupNotice('');
+    try {
+      const key = await generateSmartDrawerRecoveryKey();
+      setRecoveryKey(key);
+      setBackupNotice('New recovery key generated. Copy it and store it separately from your cloud backup. Losing this key means the archive cannot be restored.');
+    } catch (error) {
+      setBackupNotice(error instanceof Error ? error.message : 'Could not generate a recovery key.');
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
+  const exportBackup = () => {
+    if (!user?.id || backupBusy) return;
+    if (!/^[a-fA-F0-9]{64}$/.test(recoveryKey.trim())) {
+      setBackupNotice('Generate and safely copy a 64-character recovery key before exporting.');
+      return;
+    }
+    Alert.alert(
+      'Export encrypted backup?',
+      'Your archive is encrypted with AES-GCM and the key shown on this screen. BUKLOD cannot recover a lost key. Save the key somewhere different from your cloud backup. Only export to your private cloud storage.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Export', onPress: () => {
+          setBackupBusy(true);
+          setBackupNotice('');
+          void shareSmartDrawerBackup(user.id, recoveryKey.trim())
+            .then(({ count }) => setBackupNotice(`${count} encrypted notes prepared for sharing. Confirm in your cloud app that upload completed. Keep your recovery key safely.`))
+            .catch(error => setBackupNotice(error instanceof Error ? error.message : 'Backup failed. Your notes remain on this phone.'))
+            .finally(() => setBackupBusy(false));
+        } },
+      ],
+    );
+  };
+
+  const importBackup = () => {
+    if (!user?.id || backupBusy) return;
+    if (!/^[a-fA-F0-9]{64}$/.test(recoveryKey.trim())) {
+      setBackupNotice('Paste the original 64-character recovery key before restoring.');
+      return;
+    }
+    Alert.alert(
+      'Restore encrypted backup?',
+      'Select the backup file from your cloud provider using the file picker. This must belong to the same BUKLOD account. Existing notes are preserved.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Choose Backup', onPress: () => {
+          setBackupBusy(true);
+          setBackupNotice('');
+          void restoreSmartDrawerBackup(user.id, recoveryKey.trim())
+            .then(result => {
+              if (!result.canceled) setBackupNotice(`Restored ${result.restored} notes. Skipped ${result.skipped} existing notes.`);
+            })
+            .catch(error => setBackupNotice(error instanceof Error ? error.message : 'Restore failed.'))
+            .finally(() => setBackupBusy(false));
+        } },
+      ],
+    );
+  };
 
   const save = async () => {
     if (!user?.id || busy) return;
@@ -158,6 +230,64 @@ export default function SmartDrawerSettingsScreen() {
             },
           ]}
         >
+          <Text style={styles.sectionTitle}>My Storage & Backup</Text>
+          <Text style={styles.sectionHint}>
+            Local Only is always free. Your files stay on this device. Optional backup uses your own Google Drive, OneDrive, Dropbox or other file provider through the phone share sheet — BUKLOD does not host these files.
+          </Text>
+          <View style={styles.privacy}>
+            <MaterialCommunityIcons name="cellphone" size={24} color="#0A6EBD" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.privacyTitle}>Local Only (default)</Text>
+              <Text style={styles.privacyText}>
+                Works offline. Uninstalling or clearing app data can erase local notes. Portable backups are manual, not real-time sync.
+              </Text>
+            </View>
+          </View>
+          {Platform.OS === 'web' ? (
+            <Text style={styles.sectionHint}>Portable backup and restore require the Android/iOS app.</Text>
+          ) : (
+            <>
+              <Pressable onPress={() => void prepareKey()} disabled={backupBusy} style={styles.option}>
+                <MaterialCommunityIcons name="key-variant" size={24} color="#0A6EBD" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.optionTitle}>Generate New Recovery Key</Text>
+                  <Text style={styles.optionText}>Needed to encrypt a new backup. Copy and keep it securely outside the backup folder.</Text>
+                </View>
+              </Pressable>
+              <TextInput
+                value={recoveryKey}
+                onChangeText={setRecoveryKey}
+                placeholder="Paste 64-character backup recovery key"
+                placeholderTextColor="#7D94A6"
+                autoCapitalize="none"
+                autoCorrect={false}
+                multiline
+                selectTextOnFocus
+                style={[styles.option, { minHeight: 68, color: '#173B63', fontSize: 12 }]}
+              />
+              {!!recoveryKey && <Pressable onPress={() => void Clipboard.setStringAsync(recoveryKey)} style={styles.option}>
+                <MaterialCommunityIcons name="content-copy" size={21} color="#0A6EBD" />
+                <Text style={styles.optionTitle}>Copy Recovery Key</Text>
+              </Pressable>}
+              <Pressable onPress={exportBackup} disabled={backupBusy} style={styles.option}>
+                <MaterialCommunityIcons name="cloud-upload-outline" size={24} color="#0A6EBD" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.optionTitle}>Back Up to My Own Cloud</Text>
+                  <Text style={styles.optionText}>Exports up to 20 MB including files. Select your personal cloud app. AES-GCM encrypted file. Back up to your private folder and store the recovery key separately.</Text>
+                </View>
+              </Pressable>
+              <Pressable onPress={importBackup} disabled={backupBusy} style={styles.option}>
+                <MaterialCommunityIcons name="cloud-download-outline" size={24} color="#0A6EBD" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.optionTitle}>Restore My Backup</Text>
+                  <Text style={styles.optionText}>Select a previously exported BUKLOD backup file. Additive restore; existing notes are preserved.</Text>
+                </View>
+              </Pressable>
+              {backupBusy && <ActivityIndicator color="#0A6EBD" />}
+              {!!backupNotice && <Text style={styles.notice}>{backupNotice}</Text>}
+            </>
+          )}
+
           <Text style={styles.sectionTitle}>
             Reminder Style
           </Text>

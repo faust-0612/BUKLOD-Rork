@@ -1,26 +1,36 @@
 {
-  "objective": "Notification taps open the exact post inside its Community Wall, including scoped posts and comments, without a separate detail screen",
+  "objective": "BUKLOD Smart Drawer local-first and encrypted personal-cloud portability, exact Android Google OAuth client identity, and scoped Google Drive API transport; native OAuth connection and automatic sync remain separate release gates.",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: GitHub main 9a4f03320d39294f19cd30b45e6f221d233fbd4c inspected 2026-10-28 as PR comparison ref only; live Android OTA baseline and physical tap unverified, so no production publication is authorized.",
+  "productionBaselineEvidence": "verified: Compared Drawer files and existing per-workstream scope against GitHub main during 2026-11-10 development. Live production Android fingerprint and OTA runtime were not verified; this DEV scope cannot authorize production publishing.",
   "allowedPaths": [
     ".buklod/work-scope.json",
-    "src/lib/buklodNotificationNavigation.ts",
-    "src/lib/buklodNotificationPost.ts",
-    "src/providers/NotificationProvider.tsx",
-    "src/app/(tabs)/buklod.tsx",
-    "src/app/scope/index.tsx",
-    "src/components/BuklodExclusiveScopeCommunity.tsx",
-    "src/components/BuklodCanonicalNavigationGuard.tsx",
-    "src/components/BuklodCanonicalNavigationGuard.web.tsx",
-    "__tests__/buklodNotificationNavigation.test.ts"
+    "src/app/drawer/import.tsx",
+    "src/app/drawer/index.tsx",
+    "src/app/drawer/item/[id].tsx",
+    "src/app/drawer/quick-note.tsx",
+    "src/app/drawer/settings.tsx",
+    "src/lib/smartDrawer/__tests__/classify.test.ts",
+    "src/lib/smartDrawer/classify.ts",
+    "src/lib/smartDrawer/localStore.ts",
+    "src/lib/smartDrawer/portableBackup.ts",
+    "src/lib/smartDrawer/types.ts",
+    "tests/smart-drawer-cloud-backup.test.mjs",
+    "app.config.js",
+    "tests/smart-drawer-release-identity.test.mjs",
+    "src/lib/smartDrawer/googleDriveTransport.ts",
+    "tests/smart-drawer-google-drive-transport.test.mjs"
   ],
   "acceptanceChecks": [
-    "Post and comment notification targets point to the exact public or managed-scope Wall, not /post/:id",
-    "Older posts load by ID using existing access-controlled RPC; deleted/unauthorized posts have a safe fallback",
-    "Managed-scope and global route guards preserve notification focus, while message/SOS routes remain unchanged",
-    "Cold-start notification responses wait for authenticated scope hydration before choosing the post destination",
-    "Jest navigation tests and TypeScript/CI checks pass; physical Android cold/warm tap validation before client OTA",
-    "No backend schema, push infrastructure, APK metadata or production OTA publication in this PR"
+    "Default local-only Drawer requires no cloud provider subscription and does not send user files to BUKLOD servers.",
+    "More precise type classification and explicit manual override preserve existing notes and reminders.",
+    "Android local file imports retain supported original attachments and isolate user storage.",
+    "Manual backup generates user-owned 256-bit AES key, encrypts archive with AES-GCM and shares only encrypted content.",
+    "Restoration checks authentication/account identity and integrity, skips duplicate items, protects existing files.",
+    "Node regression tests, Jest, TypeScript compilation, device backup/restore and privacy tests pass before RC.",
+    "No Google OAuth, continuous sync, native build or production OTA is represented as complete.",
+    "Production Android OAuth client ID must only be exposed to org.mzbministry.buklod and never staging or Classroom.",
+    "No OAuth authorization, actual Drive access, continuous synchronization, native build, or production OTA is claimed without verified provider integration.",
+    "Drive API transport requests drive.file and refuses plaintext archive uploads, with authorization and quota failures surfaced explicitly.",
+    "Native Google authorization is not yet installed or connected; cloud transport must never be described as live sync."
   ]
 }
-
