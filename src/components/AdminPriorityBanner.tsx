@@ -25,7 +25,7 @@ export function AdminPriorityBanner() {
       if (alive.current) setSnapshot(value);
     } catch {
       if (alive.current) setSnapshot(current => current || {
-        items: [], unreadSupportAlerts: null, failedSources: ['Priority requests'],
+        items: [], pendingTotal: 0, unreadSupportAlerts: null, failedSources: ['Priority requests'],
         cappedSources: [], refreshedAt: Date.now(),
       });
     } finally {
@@ -54,10 +54,10 @@ export function AdminPriorityBanner() {
     return () => { state.remove(); void supabase.removeChannel(channel); };
   }, [allowed, load]);
 
-  const count = snapshot?.items.length || 0;
+  const count = snapshot?.pendingTotal || 0;
   const urgent = snapshot?.items.filter(item => rankAdminPriority(item) === 3).length || 0;
   const unresolved = !!snapshot?.failedSources.length;
-  const capped = !!snapshot?.cappedSources.length;
+  const capped = !!snapshot?.cappedSources.some(source => source !== 'BSOC support');
 
   return <Pressable
     accessibilityRole="button"
@@ -71,7 +71,7 @@ export function AdminPriorityBanner() {
         ? String(count) + (capped ? '+' : '') + ' requests need action'
         : unresolved ? 'Request queue needs verification' : 'No pending requests detected'}</Text>
       <Text style={s.subtitle}>
-        {urgent ? urgent + ' urgent · ' : ''}
+        {urgent ? urgent + ' urgent in latest items · ' : ''}
         {snapshot?.unreadSupportAlerts ? snapshot.unreadSupportAlerts + ' unread BSOC alerts · ' : ''}
         {unresolved ? 'Some sources unavailable' : 'Help, advertising, approvals and privacy'}
       </Text>
