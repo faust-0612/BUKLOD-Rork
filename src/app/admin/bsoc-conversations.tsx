@@ -1,6 +1,6 @@
-import React,{useCallback,useEffect,useState} from 'react';
+import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {ActivityIndicator,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
-import {router} from 'expo-router';
+import {router,useLocalSearchParams} from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
@@ -11,6 +11,11 @@ type FileRow={id:string;object_path:string;mime_type:string;created_at:string};
 const BUCKET='bsoc-support-evidence';
 
 export default function BsocInbox(){
+ const {caseId: routeCaseId}=useLocalSearchParams<{caseId?:string}>();
+ const {hasRole}=useAuth();
+ const isSystemAdmin=hasRole('system_admin');
+ const [caseContext,setCaseContext]=useState<{title:string;message:string;category:string;status:string}|null>(null);
+ const currentCase=useRef('');
  const [canRead,setCanRead]=useState<boolean|null>(null);
  const [canManage,setCanManage]=useState(false);
  const [cases,setCases]=useState<Case[]>([]);
@@ -26,13 +31,14 @@ export default function BsocInbox(){
    if(error)setError(error.message);else setCases((data||[]) as Case[]);
  },[]);
  const loadThread=useCallback(async()=>{
-   if(!caseId)return;
+   if(!caseId||!canRead)return;
    const [m,a]=await Promise.all([
      supabase.from('bsoc_case_messages').select('id,body,sender_kind,sender_id,created_at')
        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(150),
      supabase.from('bsoc_case_attachments').select('id,object_path,mime_type,created_at')
        .eq('case_id',caseId).order('created_at',{ascending:true}).limit(80)
    ]);
+   if(currentCase.current!==caseId)return;
    if(m.error){setError(m.error.message);return;}
    if(a.error){setError(a.error.message);return;}
    setMessages((m.data||[]) as Msg[]);
@@ -40,8 +46,8 @@ export default function BsocInbox(){
      const {data}=await supabase.storage.from(BUCKET).createSignedUrl(file.object_path,300);
      return {...file,url:data?.signedUrl||null};
    }));
-   setFiles(joined);
- },[caseId]);
+   if(currentCase.current===caseId)setFiles(joined);
+ },[caseId,canRead]);
  useEffect(()=>{
    let alive=true;
    void Promise.all([
@@ -58,13 +64,32 @@ export default function BsocInbox(){
  },[]);
  useEffect(()=>{if(canRead)void loadCases();},[canRead,loadCases]);
  useEffect(()=>{
-   if(!caseId)return;
+   const id=typeof routeCaseId==='string'&&/^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(routeCaseId)
+     ?routeCaseId:'';
+   if(id)setCaseId(id);
+ },[routeCaseId]);
+ useEffect(()=>{
+   currentCase.current=caseId;
+   setMessages([]);setFiles([]);setCaseContext(null);
+   if(!canRead||!caseId||!isSystemAdmin)return;
+   let active=true;
+   void supabase.from('user_feedback').select('title,message,category,status')
+     .eq('id',caseId).maybeSingle().then(({data,error})=>{
+       if(active&&currentCase.current===caseId&&!error&&data)setCaseContext({
+         title:String(data.title||'Help request'),message:String(data.message||''),
+         category:String(data.category||'Support'),status:String(data.status||''),
+       });
+     });
+   return ()=>{active=false;};
+ },[canRead,caseId,isSystemAdmin]);
+ useEffect(()=>{
+   if(!caseId||!canRead)return;
    void loadThread();
    const channel=supabase.channel('bsoc-admin-thread-'+caseId)
      .on('postgres_changes',{event:'INSERT',schema:'public',table:'bsoc_case_messages',filter:'case_id=eq.'+caseId},()=>void loadThread())
      .subscribe();
    return ()=>{void supabase.removeChannel(channel);};
- },[caseId,loadThread]);
+ },[caseId,canRead,loadThread]);
  const send=async()=>{
    if(!canManage||!uid||!caseId||!draft.trim()||busy)return;
    setBusy(true);setError('');
@@ -93,7 +118,12 @@ export default function BsocInbox(){
      </Pressable>)}
    </View>
    {caseId&&<View style={styles.thread}>
-     <Text style={styles.h2}>Case conversation</Text>
+     <Text style={styles.h2}>Case conversation · {caseId.slice(0,8).toUpperCase()}</Text>
+     {caseContext&&<View style={styles.case}>
+       <Text style={styles.bold}>{caseContext.title}</Text>
+       <Text style={styles.muted}>{caseContext.category} · {caseContext.status}</Text>
+       {!!caseContext.message&&<Text style={styles.body}>{caseContext.message}</Text>}
+     </View>}
      {!messages.length&&<Text style={styles.muted}>No messages yet.</Text>}
      {messages.map(m=><View key={m.id} style={styles.bubble}>
        <Text style={styles.muted}>{m.sender_kind==='agent'?'BSOC agent':'Member'} · {new Date(m.created_at).toLocaleString()}</Text>
