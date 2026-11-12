@@ -1,0 +1,166 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov12-final-single-source-consolidated-ota-20261112.json",
+  "objective": "Reconcile Nov12 BUKLOD Main Admin Priority Notifications and latest security hardening with verified Cluster Seen, avatar, AdMob, BSOC, and KL question generator/admin review into one exact consolidated Android and Expo Web RC for authorized release; do not bypass any OTA gates.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: latest Main SHA 29967aac414541bc7a07126efc82bc8dc712fc1a includes Admin Priority Notifications PR #745, independent security operations, anonymous RPC hardening, and DDL privilege lock #747. Current cumulative source is forward-port from prior Nov12 RC SHA 9c93dacd68c298749c554560c86fc03496c508fc; source changes scoped to current Main. Production Supabase KL Edge v3 ACTIVE JWT true; admin review RPC migrated with anon EXECUTE denied; Panimula 5 questions ready and Kabanata 1–5 pending. Physical Infinix acceptance waived previously, but automated source, security, build, and production OTA fingerprint gates remain mandatory.",
+  "chosenApproach": "Base a new isolated cumulative branch on latest Main, copy reviewed additive RC source file blobs, preserve Main Admin Priority/BSOC notifications and security fixes, manually reconcile BSOC conversations for both ?caseId and ?case_id routes with protected older-case lookup; lock with one exact changed-file scope and focused tests. Stage for exact nonpublishing Android/Expo Web compile. Promote only exact passing RC through existing reviewed release marker and canonical publishers, no Vercel, no disabled security checks.",
+  "selectionRationale": "Merging stale RC straight into Main conflicts with independently merged priority inbox and loses older-case reply routing. Main-derived forward port provides deterministic case-specific reconciliation while preserving all current production security locks; all non-overlapping source blobs are byte-identical to reviewed RC.",
+  "alternativeApproaches": [
+    "Merge old RC directly without conflict review (rejected due to two divergent BSOC files).",
+    "Overwrite new Main with old BSOC implementation (rejected because priority requests and older linked cases disappear).",
+    "Use latest Main as source and carry forward only missing reviewed RC changes with targeted BSOC union (chosen)."
+  ],
+  "releaseMode": "isolated-final-source-candidate",
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-auth",
+    "connect-ptt-calls",
+    "ads-finance-points",
+    "backend-security",
+    "story",
+    "connect",
+    "navigation-scroll",
+    "ads-monetization",
+    "case-privacy",
+    "account-isolation",
+    "source-identity",
+    "runtime-compatibility"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/me.tsx",
+    "src/app/admin/bsoc-conversations.tsx",
+    "src/app/admin/bsoc-support.tsx",
+    "src/app/support/live.tsx",
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodReelsInlineAd.tsx",
+    "src/components/ProfileAvatar.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/lib/bsocCaseTriage.ts",
+    "src/lib/buklodAvatarLive.ts",
+    "src/lib/buklodGlobalAdController.ts",
+    "src/lib/buklodNotificationNavigation.ts",
+    "supabase/functions/kl-generate-reading-quiz/index.ts",
+    "supabase/migrations/20261112043503_kl_admin_question_review_v1_20261112.sql",
+    "supabase/tests/kl_question_generator_admin_security_20261112.sql",
+    "tests/bsoc-case-triage-20261112.test.mjs",
+    "tests/bsoc-consolidated-rc-compile-gate-20261112.test.mjs",
+    "tests/bsoc-notification-navigation-20261112.test.mjs",
+    "tests/buklod-ad-gate-recovery-20261112.test.mjs",
+    "tests/buklod-cluster-connect-seen-20261112.test.mjs",
+    "tests/buklod-profile-avatar-navigation-live-20261112.test.mjs",
+    "tests/buklod-reels-ad-gate-20261112.test.mjs",
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "tests/nov12-bsoc-priority-conso-20261112.test.mjs",
+    ".buklod/scopes/nov12-final-single-source-consolidated-ota-20261112.json"
+  ],
+  "regressionTests": [
+    "supabase/tests/kl_question_generator_admin_security_20261112.sql",
+    "tests/bsoc-case-triage-20261112.test.mjs",
+    "tests/bsoc-consolidated-rc-compile-gate-20261112.test.mjs",
+    "tests/bsoc-notification-navigation-20261112.test.mjs",
+    "tests/buklod-ad-gate-recovery-20261112.test.mjs",
+    "tests/buklod-cluster-connect-seen-20261112.test.mjs",
+    "tests/buklod-profile-avatar-navigation-live-20261112.test.mjs",
+    "tests/buklod-reels-ad-gate-20261112.test.mjs",
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "tests/nov12-bsoc-priority-conso-20261112.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Keep every Security Operations, anonymous RPC, DDL privilege, Admin Priority source and exact protected data access control from latest Main.",
+    "Preserve old and new BSOC messages, case-linked notifications, reply status and permissions, deep links for both caseId and case_id, and older priority cases via authorized read only.",
+    "Keep Cluster Connect seen, immediate avatar repaint, Reels and other passive AdMob safety rechecks without altering consent, ads IDs, impressions, finance or viewability guards.",
+    "Keep all Wall/Marites current video playback and active video sound, navigation, media upload, RLS and offline features intact.",
+    "Keep KL manuscripts, imagery, music, secure admin-only question review, 3-question member quiz, verified +10 chapter/+50 series, no duplicate credits.",
+    "Do not publish retired IGPAT, enable settlements/withdrawals, change Expo runtimeVersion/native package, or use Vercel for Main."
+  ],
+  "acceptanceChecks": [
+    "Exactly all changed paths are declared, all existing Main security and Admin Priority blobs unchanged apart from intentionally reconciled BSOC conversation; no cross-feature overwrite.",
+    "Engineering Accountability, Performance R1, Main Integration and focused tests succeed on exact RC source SHA.",
+    "Full Android plus Expo Web exports pass exact-head nonpublishing compiled QA with production EAS env, Main Supabase identity, package org.mzbministry.buklod, runtime 1.3.2 and version code 30.",
+    "Live Supabase review RPC role gate and question table permissions remain secure. Quizzes K1–5 still pending must be recorded accurately and not represented as ready.",
+    "Only approved source, frozen bundles, unchanged production baseline, producer identity and final served Android OTA/Expo Web IDs allow release completion.",
+    "User previously waived physical Infinix test only; never waive other mandatory release gates."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Cumulative source introduces bounded UI fixes with focused tests, preserving all unrelated BUKLOD behavior.",
+      "preservedBehaviors": [
+        "Existing reader, Home, Wall, Connect, admin navigation and offline behavior remain unchanged except the exact scoped features."
+      ],
+      "tests": [
+        "tests/nov12-bsoc-priority-conso-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Reels sponsored card safely re-evaluates ad eligibility without changing player rendering, video memory or playback.",
+      "preservedBehaviors": [
+        "Active video, off-screen unmount, native media and Marites rendering remain unchanged."
+      ],
+      "tests": [
+        "tests/buklod-reels-ad-gate-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Avatar screens and BSOC notifications stay permission-checked during navigation and account changes.",
+      "preservedBehaviors": [
+        "Authentication permissions, member privacy and bottom navigation remain protected."
+      ],
+      "tests": [
+        "tests/buklod-profile-avatar-navigation-live-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Cluster Connect read cursor and BSOC case detail screens are reconciled without modifying message authorization.",
+      "preservedBehaviors": [
+        "PTT, member-gated room read cursors and private message delivery remain protected."
+      ],
+      "tests": [
+        "tests/buklod-cluster-connect-seen-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Passive ad safety state and rendered inventory recheck eligibility within previously approved rules.",
+      "preservedBehaviors": [
+        "Consent, ad IDs, budgets, safe route exclusions, impression rules and money ledger stay unchanged."
+      ],
+      "tests": [
+        "tests/buklod-ad-gate-recovery-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Already-live KL Admin review SQL and Edge source tracked without altering anonymous access or stored answer security.",
+      "preservedBehaviors": [
+        "Private quiz answer keys, active System Admin authorization and SQL/RLS policies remain unchanged."
+      ],
+      "tests": [
+        "supabase/tests/kl_question_generator_admin_security_20261112.sql"
+      ]
+    }
+  ],
+  "componentSourcePRs": [
+    739,
+    746,
+    745,
+    749
+  ],
+  "sourceReadiness": "DEV_RC_RECONCILED_PENDING_FINAL_BUILD__NO_OTA_PUBLISHED",
+  "releaseTarget": {
+    "package": "org.mzbministry.buklod",
+    "runtimeVersion": "1.3.2",
+    "versionCode": 30,
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "channel": "production",
+    "web": "Expo Hosting"
+  }
+}

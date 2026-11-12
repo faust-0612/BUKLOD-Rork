@@ -69,6 +69,13 @@ import { useNetwork } from '@/providers/NetworkProvider';
 
 const EPISODES = buildCatalogEpisodes();
 type ReleasedChapter = { id: string; season_number: number; episode_number: number; title: string };
+type KlAdminQuizQuestion = {
+  number: number; question: string; options: string[]; correct_index: number; evidence: string;
+};
+type KlAdminQuizReview = {
+  ok?: boolean; status?: string; count?: number;
+  questions?: KlAdminQuizQuestion[]; reason?: string; error?: string;
+};
 
 function displayChapterTitle(episode: (typeof EPISODES)[number], released?: ReleasedChapter): string {
   const source = (released?.title ?? episode.title).trim();
@@ -110,6 +117,10 @@ export default function KlReaderScreen() {
   const [adminRowsOwner, setAdminRowsOwner] = useState<string | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminError, setAdminError] = useState('');
+  const [quizReviewOpen, setQuizReviewOpen] = useState<string | null>(null);
+  const [quizReviewLoading, setQuizReviewLoading] = useState<string | null>(null);
+  const [quizReviews, setQuizReviews] = useState<Record<string, KlAdminQuizReview>>({});
+  const quizReviewOwnerRef = useRef<string | null>(user?.id ?? null);
   const adminActionLockRef = useRef(false);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
@@ -288,6 +299,10 @@ export default function KlReaderScreen() {
     setAdminRows([]);
     setAdminRowsOwner(null);
     setAdminError('');
+    quizReviewOwnerRef.current = user?.id ?? null;
+    setQuizReviewOpen(null);
+    setQuizReviewLoading(null);
+    setQuizReviews({});
     if (!isSystemAdmin || !user?.id) return;
     void refreshAdminRows().catch(() => {
       // Error is displayed on the admin chapter panel; no silent fallback ID.
@@ -299,12 +314,88 @@ export default function KlReaderScreen() {
       const { data, error } = await supabase.functions.invoke(
         'kl-generate-reading-quiz', { body: { episode_id: databaseId } },
       );
-      return !error && (data as { status?: string } | null)?.status === 'ready'
-        ? 'Handa na ang 5 simpleng reading questions (3 random kada reader).'
-        : 'Approved ang manuscript pero pending pa ang mga tanong. Maaaring i-retry.';
+      type QuizStatus = { ok?: boolean; status?: string; reason?: string };
+      let result = data as QuizStatus | null;
+      // Non-2xx Edge responses have an error. Read the structured response
+      // so model failures do not silently appear as 'pending'.
+      if (error && (!result || !result.reason)) {
+        try {
+          const response = (error as { context?: { json?: () => Promise<unknown> } }).context;
+          if (typeof response?.json === 'function') {
+            const details = await response.json() as QuizStatus | null;
+            if (details && typeof details === 'object') result = details;
+          }
+        } catch {
+          // Interrupted connections may have no structured response.
+        }
+      }
+      if (!error && result?.ok === true && result.status === 'ready') {
+        return 'Handa na ang 5 simpleng reading questions (3 random kada reader).';
+      }
+      const failures: Record<string, string> = {
+        generator_model_unavailable: 'Hindi available ang AI model para sa project. Kailangan ng model configuration fix.',
+        generator_quota_limited: 'Naabot ang AI quota. Subukang muli kapag na-reset ang quota.',
+        generator_credentials_unavailable: 'Hindi awtorisado ang AI key. Suriin ang server configuration.',
+        generator_not_configured: 'Walang AI key sa server. Suriin ang server configuration.',
+        generator_unavailable: 'May error sa AI service. Subukang muli kapag available na.',
+        generator_bad_request: 'Tinanggihan ng AI service ang request. Kailangan ng generator repair.',
+        generated_questions_failed_source_validation: 'Hindi pumasa ang generated questions sa manuscript validation. Walang na-save.',
+        source_changed_or_validation_failed: 'Nagbago ang approved manuscript o nabigo ang validation. Suriin bago mag-retry.',
+        generator_timeout: 'Nag-timeout ang AI generation. Subukang muli.',
+        admin_or_approval_required: 'Hindi kinilala ang active System Admin access o approved manuscript.',
+      };
+      return failures[result?.reason ?? ''] ??
+        (error ? 'Hindi nakumpleto ang AI generation request. Suriin ang koneksiyon o server logs.' :
+          'Approved ang manuscript pero pending pa ang mga tanong. Maaaring i-retry.');
     } catch {
-      return 'Pending ang generation. Suriin ang koneksiyon bago mag-retry.';
+      return 'Hindi maabot ang generator. Suriin ang koneksiyon bago mag-retry.';
     }
+  };
+
+  // Only authenticated System Admin can call this server-side role-checked RPC.
+  // Correct answers/evidence are never requested on member reading screens.
+  const refreshQuizReview = async (episodeId: string, databaseId: string) => {
+    if (!isSystemAdmin || !user?.id) return;
+    setQuizReviewLoading(episodeId);
+    try {
+      const { data, error } = await supabase.rpc('kl_quiz_admin_review_v1', {
+        p_episode_id: databaseId,
+      });
+      if (error) throw error;
+      const result = data as KlAdminQuizReview | null;
+      if (!result?.ok || !['ready', 'pending'].includes(result.status ?? '')) {
+        throw new Error('Could not verify the question-bank status.');
+      }
+      // Defensive shape checking; do not display untrusted/malformed answer data.
+      const valid = result.status !== 'ready' || (
+        result.count === 5 && Array.isArray(result.questions) &&
+        result.questions.length === 5 && result.questions.every(q =>
+          typeof q.question === 'string' && typeof q.evidence === 'string' &&
+          Number.isInteger(q.correct_index) && q.correct_index >= 0 &&
+          q.correct_index <= 3 && Array.isArray(q.options) && q.options.length === 4
+        )
+      );
+      if (!valid) throw new Error('Question bank is incomplete.');
+      if (quizReviewOwnerRef.current !== user.id) return;
+      setQuizReviews(previous => ({ ...previous, [episodeId]: result }));
+    } catch {
+      if (quizReviewOwnerRef.current !== user?.id) return;
+      setQuizReviews(previous => ({ ...previous, [episodeId]: {
+        ok: false, status: 'error',
+        error: 'Hindi ma-load ang admin-only questions. Suriin ang access o koneksiyon.',
+      } }));
+    } finally {
+      if (quizReviewOwnerRef.current === user?.id) setQuizReviewLoading(null);
+    }
+  };
+
+  const toggleQuizReview = async (episodeId: string, databaseId: string) => {
+    if (quizReviewOpen === episodeId) {
+      setQuizReviewOpen(null);
+      return;
+    }
+    setQuizReviewOpen(episodeId);
+    await refreshQuizReview(episodeId, databaseId);
   };
 
   const retryQuizForChapter = async (episodeId: string) => {
@@ -320,6 +411,8 @@ export default function KlReaderScreen() {
     setAdminFeedback('Sinusuri ang reading questions…');
     try {
       setAdminFeedback(await prepareQuizForApprovedChapter(chapter.id));
+      setQuizReviewOpen(episodeId);
+      await refreshQuizReview(episodeId, chapter.id);
     } finally {
       setAdminBusyId(null);
       adminActionLockRef.current = false;
@@ -912,11 +1005,62 @@ export default function KlReaderScreen() {
                       <View style={{ flexDirection: 'row', gap: 12 }}>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
                         {serverChapter?.status === 'approved' ? (
-                          <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
-                            onPress={(event) => { event.stopPropagation(); void retryQuizForChapter(episode.id); }}
-                            style={{ padding: 12, backgroundColor: '#375566', borderRadius: 8 }}>
-                            <Text style={{ color: '#fff' }}>Check / Retry 5 Reading Questions</Text>
-                          </Pressable>
+                          <View style={{ gap: 10 }}>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                              <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
+                                onPress={(event) => { event.stopPropagation(); void retryQuizForChapter(episode.id); }}
+                                style={{ padding: 12, backgroundColor: '#375566', borderRadius: 8 }}>
+                                <Text style={{ color: '#fff' }}>{adminBusyId === episode.id
+                                  ? 'Gumagawa at vini-verify ang mga tanong…'
+                                  : 'Prepare / Retry 5 Questions'}</Text>
+                              </Pressable>
+                              <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
+                                onPress={(event) => { event.stopPropagation(); void toggleQuizReview(episode.id, serverChapter.id); }}
+                                style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}>
+                                <Text style={{ color: '#fff' }}>{quizReviewOpen === episode.id
+                                  ? 'Itago ang mga tanong' : 'Tingnan ang 5 Tanong at Sagot'}</Text>
+                              </Pressable>
+                            </View>
+                            {quizReviewOpen === episode.id ? (
+                              <View style={{ padding: 12, gap: 10, borderRadius: 12,
+                                backgroundColor: '#152b2b', borderWidth: 1, borderColor: '#476d59' }}>
+                                <Text style={{ color: '#f1d39b', fontWeight: '800', fontSize: 16 }}>
+                                  Admin Quiz Review · {quizReviews[episode.id]?.status === 'ready' ? 'READY' : 'PENDING'}
+                                </Text>
+                                {quizReviewLoading === episode.id
+                                  ? <Text style={styles.meta}>Kinukuha ang questions mula sa secure server…</Text>
+                                  : quizReviews[episode.id]?.status === 'ready'
+                                    ? quizReviews[episode.id].questions?.map((q, index) => (
+                                      <View key={q.number ?? index} style={{ gap: 5, paddingVertical: 9,
+                                        borderBottomWidth: 1, borderBottomColor: '#37534a' }}>
+                                        <Text style={{ color: '#fff', fontWeight: '700' }}>
+                                          {index + 1}. {q.question}
+                                        </Text>
+                                        {q.options.map((option, optionIndex) => (
+                                          <Text key={optionIndex} style={{
+                                            color: optionIndex === q.correct_index ? '#b6edc5' : '#d5dce0',
+                                            fontWeight: optionIndex === q.correct_index ? '800' : '400',
+                                          }}>
+                                            {String.fromCharCode(65 + optionIndex)}. {option}
+                                            {optionIndex === q.correct_index ? ' ✓ tamang sagot' : ''}
+                                          </Text>
+                                        ))}
+                                        <Text style={styles.meta}>Batayan sa approved manuscript: “{q.evidence}”</Text>
+                                      </View>
+                                    ))
+                                    : <Text style={styles.meta}>
+                                        {quizReviews[episode.id]?.error ??
+                                          'Wala pang 5 validated questions para sa kabanatang ito.'}
+                                      </Text>}
+                                <Pressable accessibilityRole="button" disabled={quizReviewLoading !== null}
+                                  onPress={() => void refreshQuizReview(episode.id, serverChapter.id)}
+                                  style={{ padding: 9, alignSelf: 'flex-start', borderRadius: 8,
+                                    backgroundColor: '#375566' }}>
+                                  <Text style={{ color: '#fff' }}>Refresh question status</Text>
+                                </Pressable>
+                              </View>
+                            ) : null}
+                          </View>
                         ) : null}
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)}
