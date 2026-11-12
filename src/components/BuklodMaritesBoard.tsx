@@ -95,7 +95,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { useFocusEffect } from 'expo-router';
 import { selectVisibleMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
 import { useAuth } from '@/providers/AuthProvider';
-import { supabase } from '@/lib/supabase';
+import { subscribeBuklodPublicPostChanges } from '@/lib/buklodPublicCommunityRealtime';
 import {
   BUKLOD_HIT_SLOP,
   BUKLOD_LONG_PRESS_MS,
@@ -1118,29 +1118,25 @@ export default function BuklodMaritesBoard({
   useEffect(() => {
     if (!user?.id) return;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
-    const channel = supabase
-      .channel('buklod:public-community:posts', { config: { private: false } })
-      .on('broadcast', { event: 'post_changed' }, (event: any) => {
-        const change = event?.payload ?? {};
-        const postId = typeof change.post_id === 'string' ? change.post_id : '';
-        if (!postId) return;
-        if (change.visibility_revoked === true) {
-          const keepStory = (story: MaritesStory) =>
-            String(story.community_post_id ?? parseCommunityMaritesPostId(story.id) ?? '') !== postId ||
-            String(story.user_id) === String(user.id);
-          loadGenerationRef.current += 1;
-          setStories(current => current.filter(keepStory));
-          setViewStory(current => current && !keepStory(current) ? null : current);
-          const cached = maritesMemory.get(cacheKey);
-          if (cached) maritesMemory.set(cacheKey, { ...cached, rows: cached.rows.filter(keepStory) });
-        }
-        if (reloadTimer) clearTimeout(reloadTimer);
-        reloadTimer = setTimeout(() => { reloadTimer = null; void load(true); }, 900);
-      })
-      .subscribe();
+    const unsubscribe = subscribeBuklodPublicPostChanges((change) => {
+      const postId = typeof change.post_id === 'string' ? change.post_id : '';
+      if (!postId) return;
+      if (change.visibility_revoked === true) {
+        const keepStory = (story: MaritesStory) =>
+          String(story.community_post_id ?? parseCommunityMaritesPostId(story.id) ?? '') !== postId ||
+          String(story.user_id) === String(user.id);
+        loadGenerationRef.current += 1;
+        setStories(current => current.filter(keepStory));
+        setViewStory(current => current && !keepStory(current) ? null : current);
+        const cached = maritesMemory.get(cacheKey);
+        if (cached) maritesMemory.set(cacheKey, { ...cached, rows: cached.rows.filter(keepStory) });
+      }
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => { reloadTimer = null; void load(true); }, 900);
+    });
     return () => {
       if (reloadTimer) clearTimeout(reloadTimer);
-      void supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, [user?.id, cacheKey, load]);
 
