@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/profile-roster-save-timeout-20261112.json",
   "objective": "Remove 8-second profile identity save timeout caused by unnecessary Classroom roster full-profile similarity scans; preserve matching and security.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Live Supabase BUKLOD Connect Postgres SQLSTATE 57014 at 2026-11-12 00:51:35, 00:51:51, 00:53:57 UTC; three PATCH /rest/v1/profiles HTTP 500 at ~8070ms; 25 unresolved roster entries and 562 active profiles. Canonical main 6f6f732e9aa3c095b5b327dde23cb7e9166826ae; DEV-only PR until required checks pass.",
+  "productionBaselineEvidence": "verified: Live Supabase BUKLOD Connect Postgres SQLSTATE 57014 at 2026-11-12 00:51:35, 00:51:51, 00:53:57 UTC; three PATCH /rest/v1/profiles HTTP 500 at ~8070ms; 25 unresolved roster entries and 562 active profiles. Canonical main 6f6f732e9aa3c095b5b327dde23cb7e9166826ae; DEV-only PR until required checks pass. Canonical main is an inspected source baseline only; not presumed identical to the live Android or Expo Web artifact. Backend production trigger was inspected directly via Supabase on 2026-11-12; no production release performed in DEV.",
   "chosenApproach": "Add v_score >= 0.97 guard before competitor-wide scan and reset v_second for each pending Classroom roster intent; preserve exact username, token, strict fuzzy and manual review semantics.",
   "selectionRationale": "Competitor score is only used for strict-fuzzy v_score >= 0.97 auto-qualification, so scanning when score is lower cannot affect decisions. This precisely removes avoidable N*M work without changing decisions.",
   "riskAreas": [
