@@ -11,6 +11,8 @@ test('Private source objects and zero direct member table rights',()=>{
  assert.match(sql,/REVOKE ALL ON public\.%I FROM PUBLIC,anon,authenticated/);
  assert.match(sql,/GRANT EXECUTE ON FUNCTION public\.%I\(%s\) TO authenticated/);
  assert.match(sql,/saliksik_admin_preview_v1/);
+ assert.match(sql,/saliksik_admin_find_hash_v1/);
+ assert.match(sql,/duplicate',true/);
  assert.match(sql,/p_token uuid/);
 });
 test('Processing lease is bounded, checksum-checked, source review required',()=>{

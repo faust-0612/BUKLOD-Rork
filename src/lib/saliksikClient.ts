@@ -83,26 +83,29 @@ export async function saliksikUploadOriginal(asset:DocumentPickerAsset):Promise<
   throw new Error('File size changed while reading. Re-select file.');
  const digest=new Uint8Array(await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256,bytes));
  const hash=Array.from(digest).map(n=>n.toString(16).padStart(2,'0')).join('');
- const existing=(await saliksikAdminList()).find(s=>s.content_sha256===hash);
- if(existing)return {id:existing.id,duplicate:true};
+ const existing=await rpc<string|null>('saliksik_admin_find_hash_v1',{p_sha256:hash});
+ if(existing)return {id:existing,duplicate:true};
  const path='originals/'+Crypto.randomUUID()+'.'+ext;
  const upload=await supabase.storage.from(BUCKET).upload(path,bytes,{
   contentType:mime,upsert:false,cacheControl:'0',
  });
  if(upload.error)throw new Error(fail(upload.error));
  try{
-  const id=await rpc<string>('saliksik_admin_register_v1',{
+  const registered=await rpc<{id:string;duplicate:boolean}>('saliksik_admin_register_v1',{
    p_title:asset.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').slice(0,180),
    p_file_name:asset.name.slice(0,200),p_mime_type:mime,
    p_storage_path:path,p_size_bytes:bytes.byteLength,p_sha256:hash,
   });
-  if(!id)throw new Error('Document metadata not saved');
-  return {id,duplicate:false};
+  if(!registered?.id)throw new Error('Document metadata not saved');
+  if(registered.duplicate){
+   // Another admin upload raced this content hash; retain the already registered original.
+   await supabase.storage.from(BUCKET).remove([path]);
+  }
+  return {id:registered.id,duplicate:registered.duplicate};
  }catch(error){
-  // Best-effort cleanup; original file is not public even if cleanup fails.
-  const cleanup=await supabase.storage.from(BUCKET).remove([path]);
-  if(cleanup.error)throw new Error(fail(error)+'; orphan cleanup: '+fail(cleanup.error));
-  throw error;
+  // Ambiguous RPC/network failure may mean metadata already committed.
+  // Never delete its original: preserve it for a safe reconciliation/retry.
+  throw new Error('Private upload retained; verify metadata before retrying: '+fail(error));
  }
 }
 export async function saliksikGenerateDraft(sourceId:string):Promise<{ok:boolean;status:string}>{
