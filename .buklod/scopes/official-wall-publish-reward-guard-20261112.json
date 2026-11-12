@@ -42,5 +42,27 @@
     "supabase/tests/buklod_official_wall_publish_rollback_20261112.sql",
     "tests/buklod-official-wall-post-regression-20261112.test.mjs"
   ],
-  "releaseStatus": "SQL-only hotfix already applied and rollback-verified in production Supabase; GitHub PR integration and CI gates tracked separately; no Expo OTA or RC released."
+  "releaseStatus": "SQL-only hotfix already applied and rollback-verified in production Supabase; GitHub PR integration and CI gates tracked separately; no Expo OTA or RC released.",
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Repair the protected live BUKLOD Wall publishing service without changing old-client request contracts or rewards.",
+      "preservedBehaviors": [
+        "Public Wall post creation remains possible for Official and regular members."
+      ],
+      "tests": [
+        "supabase/tests/buklod_official_wall_publish_rollback_20261112.sql"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Preserve Official ledger security while bypassing only incompatible publisher/creator reward-trigger settlement.",
+      "preservedBehaviors": [
+        "Official account remains excluded from Points, QMP, BCU and payouts; members unaffected."
+      ],
+      "tests": [
+        "supabase/tests/buklod_official_wall_publish_rollback_20261112.sql"
+      ]
+    }
+  ]
 }
