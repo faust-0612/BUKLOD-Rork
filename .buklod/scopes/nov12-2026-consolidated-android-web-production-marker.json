@@ -1,0 +1,76 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov12-2026-consolidated-android-web-production-marker.json",
+  "releaseMode": "reviewed-production-marker",
+  "objective": "Publish the Nov 12 BUKLOD Main cumulative Android production OTA and Expo Hosting Web from one exact SHA after source and database reconciliation. Physical Infinix acceptance explicitly waived by owner; all automated production release gates remain mandatory.",
+  "baseRef": "3569fe85a56ff30812ef1d3ced1a4a9e68ecb8a3",
+  "sourceMergeSha": "3569fe85a56ff30812ef1d3ced1a4a9e68ecb8a3",
+  "productionBaselineEvidence": "verified: Latest GitHub Main 3569fe85a56ff30812ef1d3ced1a4a9e68ecb8a3 includes Android OOM containment PR #732, AdMob viewport PR #728, secure Bible PR #727, backend telemetry PR #726, health/capacity PR #729 and Official/Admin/AdMob-only Finance PR #730. PR #730 exact source head 48011b5df95ef5b288d6db11ffc8dceaad2d67ca passed six Actions gates (Engineering Accountability 43144593313, Main integration 43144593285, compiled Android+Web 43144593151, Performance R1 43144593276, Economy R38 43144593203, Official Identity 43144593302); checked six high-risk file blobs from RC/head and Main and they matched. Production Supabase BUKLOD Connect has all three Official SQL migrations applied (versions 20261112030128/132/135); all 3 rollback-only DB contracts passed. Finance economics/settlement/withdrawal/payout_processing are false. Android installed build 31 on Infinix Android16 retains unknown OTA update ID; source config targets production V30/runtime 1.3.2 and canonical workflow checks frozen RC + served runtime/asset hash. Production Android OTA ID and served Expo web build must be verified after trigger, not inferred here.",
+  "chosenApproach": "Metadata-only production marker PR with no runtime code or migration changes. Review all QA; squash-merge with existing BUKLOD_CONSOLIDATED_PROD_20261108 prefix on main to invoke ONLY canonical Android production OTA and Expo Hosting web workflows. Fail-closed preflight checks Expo token, production Supabase/ad config, native runtime, frozen export SHA, current main SHA, live served update. Skip only user-device physical acceptance.",
+  "selectionRationale": "One authorized marker triggers both existing audit-backed publishers for a single source, avoiding piecemeal OTA and repeated EAS costs. All approved current Main code and live required Supabase migrations already reconciled. No newer Open DEV-only PRs merged blindly.",
+  "alternativeApproaches": [
+    "Direct workflow_dispatch to retired production workflows is disabled by guardrail (rejected).",
+    "Direct unverified eas update from a workstation bypasses exact frozen RC (rejected).",
+    "Reviewed marker promotion and canonical workflow publish (selected)."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "android-oom-memory",
+    "video-playback",
+    "faith-cluster",
+    "ads-monetization",
+    "auth-privacy",
+    "official-admin",
+    "finance"
+  ],
+  "releasePrefix": "BUKLOD_CONSOLIDATED_PROD_20261108",
+  "target": {
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "androidPackage": "org.mzbministry.buklod",
+    "androidChannel": "production",
+    "runtimeVersion": "1.3.2",
+    "androidVersionCode": 30,
+    "webHosting": "Expo Hosting",
+    "app": "BUKLOD Main"
+  },
+  "rc": {
+    "exactSourceHead": "48011b5df95ef5b288d6db11ffc8dceaad2d67ca",
+    "sourceMergedToMain": "3569fe85a56ff30812ef1d3ced1a4a9e68ecb8a3",
+    "compiledAndroidWebQaRun": 43144593151,
+    "checksPassed": 6
+  },
+  "backend": {
+    "projectId": "yhanxndaqbmuzbdqlblu",
+    "officialMigrationVersions": [
+      "20261112030128",
+      "20261112030132",
+      "20261112030135"
+    ],
+    "databaseContractsPassed": 3,
+    "financeSwitchesRemainOff": true
+  },
+  "acceptanceChecks": [
+    "Reviewed marker changes only this manifest and contract test; Main source is frozen",
+    "Six compiled/source PR gates green for approved cumulative product tree; protected MAIN exact SHA after merge",
+    "All three Official/AdMob backend migrations applied; rollback SQL contracts pass and all four finance switches remain disabled",
+    "Canonical Android production workflow must verify baseline/runtime, production AdMob config, RC frozen hashes, manifest ID and served live bundle hash",
+    "Canonical Web workflow must verify immutable export hash, production environment, and served Expo Hosting deployment",
+    "Owner waived ONLY physical Infinix acceptance, not verified RC/OTA identity or security/finance controls",
+    "Android active video autoplay, codec, sound, buffering, Marites and ads remain as merged; no unapproved native packages"
+  ],
+  "preserveBehaviors": [
+    "No Android native rebuild, Play AAB, Classroom standalone OTA or Quiz standalone release",
+    "No new account credits, financial settlement or payout enable",
+    "No changes to prior historical content, retired IGPAT publishing, or media byte storage",
+    "No blanket removal of guarded publishing or QA jobs",
+    "No unmerged conflicting DEV features included implicitly"
+  ],
+  "regressionTests": [
+    "tests/nov12-2026-consolidated-production-marker.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov12-2026-consolidated-android-web-production-marker.json",
+    "tests/nov12-2026-consolidated-production-marker.test.mjs"
+  ],
+  "releaseStatus": "REVIEWED MARKER PR CANDIDATE: requires PR gates then user-authorized prefix merge; no production release claim until publisher evidence."
+}
