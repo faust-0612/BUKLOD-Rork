@@ -36,31 +36,10 @@
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "One native ad viewport shared scheduler replaces multiplying per-slot timers during navigation; no change to navigation routes, SDK, screen rendering or video lifecycle.",
+      "reason": "Single native AdMob viewport scheduler for all mounted slots replaces multiplicative per-slot timers during navigation. The touched generic file matches app-runtime governance; ads-finance-points / navigation-auth source paths are unchanged.",
       "preservedBehaviors": [
         "Existing navigation, safe-area, auth/scope and media modules are byte-unchanged.",
         "Ad rendering and request callbacks still own individual slots."
-      ],
-      "tests": [
-        "tests/buklod-ad-viewport-shared-clock-20261112.test.mjs"
-      ]
-    },
-    {
-      "id": "ads-finance-points",
-      "reason": "Preserve all existing ad gates and real impression/billing diagnostics while optimizing only the scheduling of visible-slot checks.",
-      "preservedBehaviors": [
-        "No bypass of SDK consent, request cooldown, placement gates or Google no-fill.",
-        "No payout, points or Finance writes."
-      ],
-      "tests": [
-        "tests/buklod-ad-viewport-shared-clock-20261112.test.mjs"
-      ]
-    },
-    {
-      "id": "navigation-scroll",
-      "reason": "Reduce multiplicative interval and foreground listeners when switching between dashboards with mounted first-view inventory.",
-      "preservedBehaviors": [
-        "Same 1.2s poll frequency for every still-ineligible viewport and same 400ms recheck."
       ],
       "tests": [
         "tests/buklod-ad-viewport-shared-clock-20261112.test.mjs"
