@@ -4,7 +4,7 @@
   "scopeManifestPath": ".buklod/scopes/nov12-full-conso-wall-20261112.json",
   "objective": "One Nov12 BUKLOD Main consolidated Android OTA + Expo Web source including Community Wall large NativeAd retention after temporary typing lock, shared viewport clock, Green B Login/saved avatar, BSOC case interventions and About BUKLOD presenter, Ako Lang post privacy realtime client, and complete Jawo Forest Trail gameplay.",
   "baseRef": "1e66dd04c36cd88c922c9e41d6f673fdd9d94e98",
-  "productionBaselineEvidence": "Current Main commit 1e66dd04c36cd88c922c9e41d6f673fdd9d94e98 is published-source marker; actual installed OTA update identifier not yet verified. Anti-regression snapshot 219507f source-only. Live production Supabase privacy backend migrations from Nov12 already applied; preserve no-duplicate migration and server-enforced policies. Latest Android 1.3.6 build 30/runtime 1.3.2 post-OTA wall ads show native timeouts and banner no-fill, which are SDK diagnostics not Google billable impression counts.",
+  "productionBaselineEvidence": "Current Main commit 1e66dd04c36cd88c922c9e41d6f673fdd9d94e98 is published-source marker; actual installed OTA update identifier not yet verified. Anti-regression snapshot 219507f source-only. Live production Supabase privacy backend migrations 20261112071459 and 20261112072440 from Nov12 already applied; preserve no-duplicate migration and server-enforced policies. Latest Android 1.3.6 build 30/runtime 1.3.2 post-OTA wall ads show native timeouts and banner no-fill, which are SDK diagnostics not Google billable impression counts.",
   "chosenApproach": "Merge five independent source candidates into one nonproduction Main-derived integration branch with GitHub merge provenance; remove five component-only scope manifests so final diff has one cumulative V2 scope. No production mutation until final exact-head CI, TypeScript, protected gates, production-env Android+Expo compiled QA, Supabase canonical migration verification and release-fingerprint readback. For large native ads, preserve consent/safety while retaining filled/inflight creative during temporary form lock and share viewport scheduling.",
   "selectionRationale": "Combines the owner's queued next-consolidated changes without overwriting independently fixed privacy, post/media, Android memory, Kingdom, BSOC or Login functionality or publishing incomplete piecemeal OTAs.",
   "alternativeApproaches": [
@@ -73,8 +73,8 @@
     "src/lib/buklodRouteDiagnostics.ts",
     "src/lib/buklodSuggestedLoginStorage.ts",
     "supabase/functions/bsoc-gpt-debug-v1/index.ts",
-    "supabase/migrations/20261112072000_buklod_author_only_post_privacy_realtime_v1.sql",
-    "supabase/migrations/20261112072700_buklod_scope_post_private_realtime_v1.sql",
+    "supabase/migrations/20261112071459_buklod_author_only_post_privacy_realtime_v1.sql",
+    "supabase/migrations/20261112072440_buklod_scope_post_private_realtime_v1.sql",
     "supabase/tests/bsoc_gpt_permission_contract_20261112.sql",
     "supabase/tests/buklod_author_only_post_privacy_20261112.sql",
     "tests/about-buklod-founder-presenter-20261112.test.mjs",
@@ -222,7 +222,7 @@
     "Engineering Accountability / protected-feature lock on one exact final source SHA",
     "Performance R1 / TypeScript / Main Integration QA and focused Node/Kingdom/security",
     "Production EAS environment Android+Expo Web bundle compile-only on this exact PR source",
-    "Supabase deployment state for post privacy and BSOC GPT edge checked without weakening auth",
+    "Confirm live privacy migrations 20261112071459 and 20261112072440 are already applied; exact filenames, no re-execution; BSOC Edge v8 verify_jwt=true and source readback",
     "Only reviewed frozen candidate into Main; separate canonical marker publish then verify Android OTA ID, runtime 1.3.2, package, channel and served bundle hash",
     "Manual Infinix physical acceptance waived by owner but recorded SKIPPED, not PASSED",
     "Latest 15/30/60min version/build/runtime (and if available OTA source) ad load and impression comparison after release; no promise of Google fill"
