@@ -28,9 +28,20 @@ export default function BsocNotifications(){
   return ()=>{void supabase.removeChannel(ch);};
  },[allowed,refresh]);
  const open=async(item:Note)=>{
-  if(!item.read_at)await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('id',item.id).is('read_at',null);
-  // The destination still checks authorization server-side.
-  router.push('/admin/bsoc-conversations' as any);
+  if(!allowed)return;
+  const raw=typeof item.data?.case_id==='string'?item.data.case_id:'';
+  const caseId=/^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(raw)?raw:null;
+  // The case route revalidates BSOC permissions, and the source row is never
+  // modified when its notification is marked read.
+  if(!item.read_at){
+    const {error:markError}=await supabase.from('notifications')
+      .update({read_at:new Date().toISOString()})
+      .eq('id',item.id).is('read_at',null);
+    if(markError)setError('Could not mark notification read: '+markError.message);
+    else setItems(current=>current.map(x=>x.id===item.id?{...x,read_at:new Date().toISOString()}:x));
+  }
+  router.push((caseId?'/admin/bsoc-conversations?caseId='+encodeURIComponent(caseId)
+    :'/admin/bsoc-conversations') as any);
  };
  return <ScrollView contentContainerStyle={styles.content} style={styles.page}>
   <Pressable onPress={()=>router.back()}><Text style={styles.link}>‹ BSOC</Text></Pressable>
