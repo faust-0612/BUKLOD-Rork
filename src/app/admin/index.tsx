@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AdminGate } from '@/components/AdminGate';
+import { AdminPriorityBanner } from '@/components/AdminPriorityBanner';
 import { BuklodSyncStatusBadge } from '@/components/BuklodSyncStatusBadge';
 import { shared } from '@/components/UI';
 import { useBuklodOfflineCache } from '@/hooks/useBuklodOfflineCache';
@@ -270,6 +271,8 @@ export default function AdminDashboard() {
             />
           </View>
         </View>
+
+        <AdminPriorityBanner />
 
         {showBlockingLoader ? (
           <View style={styles.loading}>

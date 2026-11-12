@@ -16,10 +16,12 @@ import { supabase } from '@/lib/supabase';
 
 export default function PrivacyAdmin() {
   const [requests, setRequests] = useState<any[]>([]);
+  const [deletionRequests, setDeletionRequests] = useState<{ id: string; status: string; requested_at: string }[]>([]);
+  const [deletionError, setDeletionError] = useState('');
   const [reports, setReports] = useState<ContentReportRow[]>([]);
 
   const load = useCallback(async () => {
-    const [{ data: r }, reportRows] = await Promise.all([
+    const [{ data: r }, reportRows, deletionResponse] = await Promise.all([
       supabase
         .from('data_subject_requests')
         .select(
@@ -28,9 +30,14 @@ export default function PrivacyAdmin() {
         .order('submitted_at', { ascending: false })
         .limit(100),
       listContentReports().catch(() => [] as ContentReportRow[]),
+      supabase.from('account_deletion_requests')
+        .select('id,status,requested_at').eq('status', 'submitted')
+        .order('requested_at', { ascending: false }).limit(100),
     ]);
     setRequests(r ?? []);
     setReports(reportRows);
+    setDeletionRequests(deletionResponse.data ?? []);
+    setDeletionError(deletionResponse.error?.message ?? '');
   }, []);
 
   useEffect(() => {
@@ -83,6 +90,24 @@ export default function PrivacyAdmin() {
         }
       >
         <Text style={shared.h1}>Privacy & Moderation</Text>
+
+        <SectionTitle>ACCOUNT DELETION REQUESTS</SectionTitle>
+        {!!deletionError && <Text accessibilityRole="alert" style={{ color: '#A34229' }}>
+          Cannot verify account deletion requests: {deletionError}
+        </Text>}
+        {deletionRequests.map(item => (
+          <Card key={item.id}>
+            <Text style={shared.h2}>Account deletion · Submitted</Text>
+            <Text style={shared.muted}>{new Date(item.requested_at).toLocaleString()}</Text>
+            <Text style={shared.body}>
+              Sensitive request. Verify the account owner and follow the documented
+              privacy/deletion procedure. This screen does not delete accounts automatically.
+            </Text>
+          </Card>
+        ))}
+        {!deletionRequests.length && !deletionError && (
+          <Card><Text style={shared.muted}>No account deletion requests awaiting review.</Text></Card>
+        )}
 
         <SectionTitle>DATA SUBJECT REQUESTS</SectionTitle>
         {requests.length ? (
