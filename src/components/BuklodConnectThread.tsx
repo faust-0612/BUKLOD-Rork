@@ -1219,6 +1219,9 @@ const [
     setOfficeEnabled,
   ] =
     useState(false);
+  // Cluster cursors are present in the same secure RPC as Organization.
+  // A busier Cluster room needs an explicit per-message report affordance.
+  const [isClusterConnect, setIsClusterConnect] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -1228,6 +1231,7 @@ const [
       !effectiveContainerId
     ) {
       setOfficeEnabled(false);
+      setIsClusterConnect(false);
       return () => {
         active = false;
       };
@@ -1251,6 +1255,7 @@ const [
 
       if (details.error) {
         setOfficeEnabled(false);
+        setIsClusterConnect(false);
         return;
       }
 
@@ -1267,6 +1272,7 @@ const [
           ''
         ).toUpperCase();
 
+      setIsClusterConnect(scopeType === 'CLUSTER');
       setOfficeEnabled(
         [
           'CLUSTER',
@@ -4497,12 +4503,17 @@ const [
           });
           const seenReaders =
             mode === 'scope' && own
-              ? readersForMessageWindow({
-                  messageCreatedAt: item.created_at,
-                  nextMessageCreatedAt: next?.created_at ?? null,
-                  readers: scopeReaders,
-                  selfUserId: profileId,
-                })
+              ? isClusterConnect
+                ? scopeReaders.filter(reader =>
+                    reader.userId !== profileId &&
+                    roomCursorCoversMessage(item.created_at, reader.lastReadAt)
+                  )
+                : readersForMessageWindow({
+                    messageCreatedAt: item.created_at,
+                    nextMessageCreatedAt: next?.created_at ?? null,
+                    readers: scopeReaders,
+                    selfUserId: profileId,
+                  })
               : [];
 
           const messageDeleted =
@@ -4773,14 +4784,37 @@ const [
                 void signAttachmentPath(path, true);
               }}
               seenReaders={seenReaders}
+              showSeenReport={mode === 'scope' && isClusterConnect && own && !messageDeleted}
+              seenReportAvailable={scopeReadersAvailable}
               onPressSeenReaders={() => {
-                if (seenReaders.length) {
-                  setSeenDetail({
-                    messageId: item.id,
-                    readers: seenReaders,
-                    available: scopeReadersAvailable,
-                  });
-                }
+                if (!own || mode !== 'scope' ||
+                    (!isClusterConnect && !seenReaders.length)) return;
+                setSeenDetail({
+                  messageId: item.id,
+                  readers: seenReaders,
+                  available: scopeReadersAvailable,
+                });
+                if (!isClusterConnect || !effectiveContainerId) return;
+                // An explicit Cluster report refreshes its real room cursor;
+                // never write a read receipt or refetch all message history.
+                const session = threadSessionKeyValue;
+                void fetchScopeConnectReaders(effectiveContainerId)
+                  .then(readers => {
+                    if (!readers || currentLoadSessionRef.current !== session) return;
+                    setScopeReaders(readers);
+                    setScopeReadersAvailable(true);
+                    setSeenDetail(current => current?.messageId === item.id
+                      ? {
+                          messageId: item.id,
+                          readers: readers.filter(reader =>
+                            reader.userId !== profileId &&
+                            roomCursorCoversMessage(item.created_at, reader.lastReadAt)
+                          ),
+                          available: true,
+                        }
+                      : current);
+                  })
+                  .catch(() => undefined);
               }}
               isGif={
                 photoUrls.length <= 1 &&
