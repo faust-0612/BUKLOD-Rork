@@ -1,0 +1,128 @@
+{
+  "contractVersion": 2,
+  "releaseMode": "next-consolidated-prep",
+  "scopeManifestPath": ".buklod/scopes/next-consolidated-bsoc-about-20261112.json",
+  "objective": "Include verified BSOC user-admin troubleshooting, provider 429 manual fallback, safer SYS-500 error navigation and approved About founder presentation together in next consolidated OTA source.",
+  "baseRef": "1e66dd04c36cd88c922c9e41d6f673fdd9d94e98",
+  "productionBaselineEvidence": "Main 1e66dd04c36cd88c922c9e41d6f673fdd9d94e98; GPT provider HTTP 429 observed on Nov12; Android 1.3.6 crash RENDER_7DA38BC7 admin/:id not yet root-caused. BSOC DEV PR #758 passed three existing QA workflows; About source has a separate next-conso candidate.",
+  "chosenApproach": "Exact main baseline plus isolated About source and BSOC DEV source, one scope manifest replacing individual manifests. Keep native runtime, permissions, existing notification trigger and money system unchanged.",
+  "selectionRationale": "Avoid stale/diverged existing RC and preserve all main production files while batching compatible approved changes into a new verifiable source candidate.",
+  "alternativeApproaches": [
+    "Overwrite previously frozen Nov12 RC (rejected)",
+    "Deploy separately without consolidated QA (rejected)",
+    "Disable BSOC auth or claim GPT provider 429 fixed (rejected)"
+  ],
+  "componentScopePaths": {
+    "aboutBuklod": [
+      "src/app/about-buklod.tsx",
+      "src/app/about-buklod-present.tsx",
+      "src/lib/aboutBuklodContent.ts",
+      "src/lib/__tests__/aboutBuklodContent.test.ts",
+      "tests/about-buklod-founder-presenter-20261112.test.mjs"
+    ],
+    "bsoc": [
+      "src/app/_layout.tsx",
+      "src/app/admin/bsoc-conversations.tsx",
+      "src/app/admin/bsoc-gpt-debug.tsx",
+      "src/app/admin/bsoc-support.tsx",
+      "src/lib/bsocCaseTriage.ts",
+      "src/lib/buklodRouteDiagnostics.ts",
+      "supabase/functions/bsoc-gpt-debug-v1/index.ts",
+      "supabase/tests/bsoc_gpt_permission_contract_20261112.sql",
+      "tests/bsoc-intervention-live-safety-20261112.test.mjs",
+      "tests/bsoc-navigation-route-20261112.test.mjs",
+      "tests/bsoc-security-permission-20261112.test.mjs",
+      "tests/bsoc-support-pagination-20261112.test.mjs"
+    ]
+  },
+  "componentSourceRefs": {
+    "aboutBuklod": "integration/buklod-next-conso-about-presenter-20261112",
+    "bsoc": "fix/bsoc-guided-troubleshooting-render-evidence-20261112"
+  },
+  "allowedPaths": [
+    ".buklod/scopes/next-consolidated-bsoc-about-20261112.json",
+    "src/app/about-buklod.tsx",
+    "src/app/about-buklod-present.tsx",
+    "src/lib/aboutBuklodContent.ts",
+    "src/lib/__tests__/aboutBuklodContent.test.ts",
+    "tests/about-buklod-founder-presenter-20261112.test.mjs",
+    "src/app/_layout.tsx",
+    "src/app/admin/bsoc-conversations.tsx",
+    "src/app/admin/bsoc-gpt-debug.tsx",
+    "src/app/admin/bsoc-support.tsx",
+    "src/lib/bsocCaseTriage.ts",
+    "src/lib/buklodRouteDiagnostics.ts",
+    "supabase/functions/bsoc-gpt-debug-v1/index.ts",
+    "supabase/tests/bsoc_gpt_permission_contract_20261112.sql",
+    "tests/bsoc-intervention-live-safety-20261112.test.mjs",
+    "tests/bsoc-navigation-route-20261112.test.mjs",
+    "tests/bsoc-security-permission-20261112.test.mjs",
+    "tests/bsoc-support-pagination-20261112.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Approved About founder story, six audience pitches and local portrait unchanged",
+    "Existing Home, Cluster, Wall, Connect, Profile, AdMob, Kingdom, QMP, finance, privacy and media untouched",
+    "BSOC RLS, authenticated permission checks, append-only private message history, notifications and audited case actions retained",
+    "No automatic case closure or AI misrepresentation",
+    "Published production source and prior frozen RC not rewritten"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-scroll",
+    "navigation-auth",
+    "backend-security",
+    "bsoc-case-access",
+    "ai-provider-fallback",
+    "public-content-claims"
+  ],
+  "regressionTests": [
+    "src/lib/__tests__/aboutBuklodContent.test.ts",
+    "tests/about-buklod-founder-presenter-20261112.test.mjs",
+    "supabase/tests/bsoc_gpt_permission_contract_20261112.sql",
+    "tests/bsoc-intervention-live-safety-20261112.test.mjs",
+    "tests/bsoc-navigation-route-20261112.test.mjs",
+    "tests/bsoc-security-permission-20261112.test.mjs",
+    "tests/bsoc-support-pagination-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Integrate approved About and BSOC frontend fixes without affecting unrelated media or money features",
+      "preservedBehaviors": [
+        "Existing global navigation, ad placements, user media playback and privacy remain unchanged"
+      ],
+      "tests": [
+        "tests/about-buklod-founder-presenter-20261112.test.mjs",
+        "tests/bsoc-intervention-live-safety-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Preserve authenticated route navigation and privacy-safe error fingerprints",
+      "preservedBehaviors": [
+        "System Admin routes never expose private case IDs in telemetry"
+      ],
+      "tests": [
+        "tests/bsoc-navigation-route-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Keep protected provider diagnostics using support.read, server-side key and permission validation",
+      "preservedBehaviors": [
+        "No automatic case export and no relaxation of message RLS"
+      ],
+      "tests": [
+        "tests/bsoc-security-permission-20261112.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Confirmed exact About and BSOC source parity aside from scope-only About test adaptation",
+    "All 100-row paginated queues available; member reply templates stay explicit and safe",
+    "Before release verify identity, runtime, Android/Web bundle, function behavior and production receipt",
+    "Physical Infinix verification previously waived but not passed"
+  ],
+  "physicalDeviceVerification": "OWNER PREVIOUSLY WAIVED / NOT PASSED",
+  "publishStatus": "NOT PUBLISHED / CONSOLIDATED SOURCE ONLY"
+}
