@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/android-oom-passive-video-budget-20261112.json",
+  "objective": "Mitigate confirmed BUKLOD Android 16 Java heap OOM and overlapping decoder allocations using a one-slot offscreen CommunityVideo warm/preload ceiling; preserve active video rendering and audio behavior.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: User-provided Infinix X6852 Android 16 build 31 historical filtered crash logs (2026-11-11 to 2026-11-12) contain 13 app fatal exception events, all OOM including ExoPlayer at 08:21 and UI at 08:43. 180s capture 2026-11-12 10:25-10:28 saw total PSS 991.6-1224.7 MiB, native heap 337.5-456.7 MiB, GC 5-7% free Java heap around 200-209MB/216-223MB, and 14 Expo ExoPlayer init +14 release entries with up to 4 concurrent observed players. No process kill during capture. Live Expo OTA ID unknown, Main inspected at 3e7f4e6f3d8ad90c9fd12122b5663f91c48bc9de. This patch is containment, not proven allocation-owner root cause.",
+  "chosenApproach": "Allow unlimited active CommunityVideo playback as before; on Android only, allocate a single shared passive slot for preloaded next-row or recently visible paused player. Prioritize warm scroll-back and release tokens on unmount/priority changes. Leave native player hooks, buffering, retry, sound and ads untouched.",
+  "selectionRationale": "The log shows concurrent ExpoVideo native instances and high heap pressure. The existing 1.4s warm window plus adjacent preloading can overlap. Budgeting only those offscreen instances reduces avoidable allocations while keeping the visible video path byte-for-byte unchanged.",
+  "alternativeApproaches": [
+    "android:largeHeap=true: rejected because it hides pressure and worsens background kills without fixing ownership.",
+    "Disable video, autoplay or active decoder: rejected; existing visible playback must remain unchanged.",
+    "One shared slot only for Android passive warm/preload: selected as isolated DEV mitigation, test and verify on RC before OTA."
+  ],
+  "riskAreas": [
+    "mobile-performance",
+    "video-playback-lifecycle",
+    "memory-allocation"
+  ],
+  "regressionTests": [
+    "tests/android-oom-passive-video-budget-20261112.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability, Performance and Main integration QA pass",
+    "Active native player path and fallback unchanged by source inspection",
+    "At most one passive Android warm/preload slot; warm wins; cleanup idempotent",
+    "Android RC hardware test validates no increased startup delay, audio regression, buffering or black frames",
+    "Repeat 180s capture: Java heap under growth limit, lower PSS/decoder churn; no OOM exits",
+    "No production OTA unless exact RC/fingerprint verified"
+  ],
+  "preserveBehaviors": [
+    "Wall/Marites/Reels active playback, full-screen, retry, sound, poster, buffering unchanged",
+    "No IMA/native ad behavior modified, no account/backend changes",
+    "Retains 1.4s recently-active warm window where passive slot available",
+    "No changes to installed Android build 31 until separate verified OTA"
+  ],
+  "allowedPaths": [
+    "src/components/CommunityVideo.tsx",
+    "src/lib/buklodPassiveVideoBudget.ts",
+    "tests/android-oom-passive-video-budget-20261112.test.mjs",
+    ".buklod/scopes/android-oom-passive-video-budget-20261112.json"
+  ],
+  "releaseStatus": "DEV only pending CI + Android hardware RC and OTA."
+}
