@@ -22,12 +22,16 @@
     "public-scoped-feeds",
     "realtime-revocation",
     "cache-consistency",
-    "media-regression"
+    "media-regression",
+    "wall-media",
+    "navigation-scroll"
   ],
   "regressionTests": [
     "tests/buklod-author-only-post-privacy-20261112.test.mjs",
     "tests/buklod-wall-privacy-revocation-20261112.test.mjs",
-    "tests/buklod-scope-privacy-revocation-20261112.test.mjs"
+    "tests/buklod-scope-privacy-revocation-20261112.test.mjs",
+    "tests/buklod-navigation-privacy-revocation-20261112.test.mjs",
+    "supabase/tests/buklod_author_only_post_privacy_20261112.sql"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -38,7 +42,9 @@
     "tests/buklod-author-only-post-privacy-20261112.test.mjs",
     ".buklod/scopes/author-only-post-privacy-realtime-20261112.json",
     "tests/buklod-wall-privacy-revocation-20261112.test.mjs",
-    "tests/buklod-scope-privacy-revocation-20261112.test.mjs"
+    "tests/buklod-scope-privacy-revocation-20261112.test.mjs",
+    "tests/buklod-navigation-privacy-revocation-20261112.test.mjs",
+    "supabase/tests/buklod_author_only_post_privacy_20261112.sql"
   ],
   "acceptanceChecks": [
     "Authenticated nonowner sees zero private rows through direct SELECT, post detail, public feed and scoped feed.",
@@ -75,7 +81,8 @@
         "Existing public and scoped post reading, owner controls, media playback and account authorization remain intact."
       ],
       "tests": [
-        "tests/buklod-author-only-post-privacy-20261112.test.mjs"
+        "tests/buklod-author-only-post-privacy-20261112.test.mjs",
+        "tests/buklod-navigation-privacy-revocation-20261112.test.mjs"
       ]
     },
     {
@@ -95,7 +102,8 @@
         "Existing public and scoped post reading, owner controls, media playback and account authorization remain intact."
       ],
       "tests": [
-        "tests/buklod-author-only-post-privacy-20261112.test.mjs"
+        "tests/buklod-author-only-post-privacy-20261112.test.mjs",
+        "supabase/tests/buklod_author_only_post_privacy_20261112.sql"
       ]
     }
   ],
