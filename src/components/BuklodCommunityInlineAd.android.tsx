@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AppState,
   StyleSheet,
@@ -29,6 +29,8 @@ import {
   getBuklodPassiveAdRequestWaitMs,
   isBuklodPassiveAdAllowed,
   reserveBuklodPassiveAdRequest,
+  getBuklodAdSafetyRevision,
+  subscribeBuklodAdSafety,
 } from '@/lib/buklodGlobalAdController';
 import { useBuklodAdViewportGate } from '@/lib/buklodAdViewport';
 import { useBuklodCommunityInlineVisibility } from '@/hooks/useBuklodCommunityAdViewability';
@@ -81,6 +83,12 @@ export default function BuklodCommunityInlineAd({
 }: Props) {
   const { width } = useWindowDimensions();
   const pathname = usePathname();
+  // Release of typing/form locks and remote flags must wake mounted ad slots.
+  useSyncExternalStore(
+    subscribeBuklodAdSafety,
+    getBuklodAdSafetyRevision,
+    getBuklodAdSafetyRevision,
+  );
   const { ready, canRequestAds } = useAds();
   const { isConnected, isInternetReachable } = useNetwork();
   const adNetworkAvailable = isConnected && isInternetReachable !== false;
