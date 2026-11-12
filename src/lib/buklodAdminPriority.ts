@@ -3,6 +3,7 @@ import { listContentReports, isOpenContentReport, contentReportReasonLabel } fro
 import { listFocusAppPaymentRequests } from '@/lib/buklodFocusAppSubscription';
 import { listFaithPaymentRequests } from '@/lib/buklodScopeFaithAccess';
 import { listScopeProductPayments } from '@/lib/buklodScopeProductAccess';
+import { adminListBuklodR38Withdrawals } from '@/lib/buklodR38AdminEconomy';
 
 /**
  * In-app System Admin work queue, derived from canonical request records.
@@ -208,6 +209,58 @@ export async function fetchAdminPriorityRequests(full = false): Promise<AdminPri
             a.status, a.created_at, '/admin/faith-payments', 'high'
           )),
           capped: records.length === LIMIT,
+        };
+      },
+    },
+    {
+      name: 'Points and mentoring reviews',
+      load: async () => {
+        const [achievements, mentoring, checkins] = await Promise.all([
+          (supabase as any).rpc('admin_get_buklod_r2_rewards_monitor_v1'),
+          (supabase as any).rpc('admin_get_buklod_r2_mentor_evidence_v1'),
+          (supabase as any).rpc('admin_get_buklod_home_checkin_queue_r3'),
+        ]);
+        errorIf(achievements.error);
+        errorIf(mentoring.error);
+        errorIf(checkins.error);
+        const overview = achievements.data || {};
+        const nominations: any[] = Array.isArray(overview.recent_nominations)
+          ? overview.recent_nominations.filter((r: any) => r.status === 'pending') : [];
+        const photos: any[] = Array.isArray(mentoring.data) ? mentoring.data : [];
+        const attendance: any[] = Array.isArray(checkins.data) ? checkins.data : [];
+        return {
+          items: [
+            ...nominations.map(n => row('approvals', 'Major achievements', n.id,
+              'Achievement: ' + n.type, 'Milestone evidence pending verification',
+              n.status, n.submitted_at, '/admin/points-r2-monitor', 'high')),
+            ...photos.filter(p => p.status === 'pending_admin'
+              || (p.status === 'reported' && !!p.photo_path)).map(p => row(
+                'approvals', 'Mentor reports', p.session_id,
+                'Mentoring: ' + p.lesson, 'Photo evidence submitted for verification',
+                p.status, p.session_date, '/admin/points-r2-monitor', 'high'
+              )),
+            ...attendance.map(a => row('approvals', 'Home attendance', a.id,
+              'Check-in: ' + a.event, 'Member attendance verification',
+              a.status, a.checked_in_at, '/admin/points-r2-monitor', 'normal')),
+          ],
+          capped: Number(overview.nominations?.pending || 0) > nominations.length,
+        };
+      },
+    },
+    {
+      name: 'Withdrawal requests',
+      load: async () => {
+        const response = await adminListBuklodR38Withdrawals(null);
+        const records = (response.rows || []).filter(a =>
+          ['requested', 'pending', 'pending_admin', 'approved', 'processing'].includes(a.status));
+        return {
+          items: records.map(a => row(
+            'approvals', 'Withdrawal requests', a.id,
+            'Payout review · ' + a.currency + ' ' + a.requested_amount,
+            'Financial request; verify account and settlement controls',
+            a.status, a.requested_at, '/admin/economy-operations', 'urgent'
+          )),
+          capped: response.rows.length >= 100,
         };
       },
     },
