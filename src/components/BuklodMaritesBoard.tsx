@@ -1119,7 +1119,7 @@ export default function BuklodMaritesBoard({
     if (!user?.id) return;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
     const channel = supabase
-      .channel(`buklod:marites:privacy:${user.id}`)
+      .channel('buklod:public-community:posts', { config: { private: false } })
       .on('broadcast', { event: 'post_changed' }, (event: any) => {
         const change = event?.payload ?? {};
         const postId = typeof change.post_id === 'string' ? change.post_id : '';
