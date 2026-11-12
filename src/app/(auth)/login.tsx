@@ -41,7 +41,9 @@ import {
 import {
   clearSavedSuggestedLoginPassword,
   consumePasswordRecoveryNotice,
+  updateSavedSuggestedLoginAvatar,
 } from '@/lib/buklodSuggestedLoginStorage';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 const LOGIN_EASING = Easing.out(Easing.cubic);
 
@@ -390,12 +392,22 @@ async function signInForFreshPublicHome(
   return result;
 }
 
-/* PATCH_174C_R5_SUGGESTED_LOGIN_AVATAR_EXACT_AST_FIX */
-// Web displays the authoritative brand; native keeps its existing fallback.
+// One approved Green B mark on both Android and web; no legacy native login art.
 const SUGGESTED_LOGIN_BUKLOD_LOGO =
-  Platform.OS === 'web'
-    ? require('../../../assets/release/buklod-main-canonical.png')
-    : require('../../../assets/release/buklod-generic.png');
+  require('../../../assets/release/buklod-main-canonical.png');
+
+// Supabase's versioned profile URL must keep its cache-busting key.
+function suggestedAvatarVersion(rawUrl: string): string {
+  return /[?&]v=(\d{1,16})(?:[&#]|$)/.exec(rawUrl)?.[1] ?? '';
+}
+
+function freshSuggestedAvatarUrl(url: string | null, version: string) {
+  if (!url) return null;
+  if (!url.includes('/storage/v1/object/public/profile-avatars/')) return url;
+  // Public avatar.jpg is upserted in place. One new URL per login mount
+  // bypasses stale CDN/device caches, without polling or profile RLS changes.
+  return `${url.split('?')[0]}?v=${version}`;
+}
 
 function normalizeSuggestedAvatarUrl(
   rawAvatarUrl: unknown
@@ -459,10 +471,9 @@ function normalizeSuggestedAvatarUrl(
           objectPath
         );
 
-    return (
-      data?.publicUrl ||
-      null
-    );
+    return data?.publicUrl
+      ? `${data.publicUrl}${suggestedAvatarVersion(value) ? `?v=${suggestedAvatarVersion(value)}` : ''}`
+      : null;
   }
 
   if (
@@ -556,18 +567,17 @@ function SuggestedLoginAvatar({
       userId
     );
 
+  const [refreshVersion] = useState(() => String(Date.now()));
   const candidates =
     Array.from(
       new Set(
         [
+          freshSuggestedAvatarUrl(canonicalUrl, refreshVersion),
+          freshSuggestedAvatarUrl(savedUrl, refreshVersion),
           savedUrl,
-          canonicalUrl,
         ].filter(
-          (value):
-            value is string =>
-              typeof value ===
-                'string' &&
-              value.length > 0
+          (value): value is string =>
+            typeof value === 'string' && value.length > 0
         )
       )
     );
@@ -592,6 +602,7 @@ function SuggestedLoginAvatar({
 
   return (
     <Image
+      key={`${userId}:${remoteUrl ?? 'green-b'}`}
       source={
         remoteUrl
           ? {
@@ -920,9 +931,9 @@ const chooseSuggestedLogin =
         ).trim();
 
       const rawAvatar =
+        existing?.avatarUrl ||
         metadata?.avatar_url ||
         metadata?.picture ||
-        existing?.avatarUrl ||
         null;
 
       const nextItem: SuggestedLogin = {
@@ -973,6 +984,29 @@ const chooseSuggestedLogin =
       }
 
       setSuggestedLogins(next);
+
+      // Authenticated-only own-profile reconciliation; never expose a
+      // public/anonymous profiles API for the pre-login account picker.
+      // This is intentionally non-blocking and bounded on weak networks.
+      void (async () => {
+        const { data, error } = await withBuklodTimeout(
+          supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', userId)
+            .maybeSingle(),
+          3_500,
+          'Suggested Login avatar refresh'
+        );
+        if (!error && data) {
+          await updateSavedSuggestedLoginAvatar(
+            userId,
+            typeof data.avatar_url === 'string' ? data.avatar_url : null
+          );
+        }
+      })().catch(error => {
+        console.warn('Could not refresh saved login avatar:', error);
+      });
     };
   async function login(
     credentialsOverride?: {
@@ -1388,7 +1422,8 @@ const chooseSuggestedLogin =
         <View style={styles.brand}>
           <LoginMotionScale>
             <Image
-              source={require('../../../assets/release/buklod-generic-photo.jpg')}
+              source={SUGGESTED_LOGIN_BUKLOD_LOGO}
+              resizeMode="contain"
               style={styles.logo}
             />
           </LoginMotionScale>
