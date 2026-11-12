@@ -14,7 +14,6 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import BuklodQuizStudentEntry from '@/components/classroom/BuklodQuizStudentEntry';
 import {
   loadSystemAnnouncementBoard,
   type SystemAnnouncementSlot,
@@ -22,7 +21,6 @@ import {
 import { colors } from '@/lib/theme';
 import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
 import { useAuth } from '@/providers/AuthProvider';
-import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 type Props = {
@@ -38,10 +36,7 @@ export function BuklodSystemAnnouncementBoard({
   const announcementTone = getBuklodCardTone('amber', isBuklodDarkPaletteId(paletteId));
   const editTone = getBuklodCardTone('sky', isBuklodDarkPaletteId(paletteId));
   const { hasRole } = useAuth();
-  const { activeScope } = useBuklodScope();
   const canEdit = hasRole('system_admin');
-  const showPublicQuizDoor =
-    slot === 'public_home' && activeScope?.scope_type === 'PUBLIC';
 
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -152,27 +147,17 @@ export function BuklodSystemAnnouncementBoard({
           color: theme.textMuted,
           textAlign: 'center',
         },
-        publicQuizDoor: {
-          marginHorizontal: 12,
-          marginTop: 4,
-        },
       }),
     [slot, theme, announcementTone, editTone]
   );
 
-  const publicQuizDoor = showPublicQuizDoor ? (
-    <View style={styles.publicQuizDoor}>
-      <BuklodQuizStudentEntry />
-    </View>
-  ) : null;
-
   if (loading) {
-    return publicQuizDoor;
+    return null;
   }
 
   if (!message) {
     if (!canEdit) {
-      return publicQuizDoor;
+      return null;
     }
 
     return (
@@ -197,7 +182,6 @@ export function BuklodSystemAnnouncementBoard({
             />
           </View>
         </Pressable>
-        {publicQuizDoor}
       </>
     );
   }
@@ -232,7 +216,6 @@ export function BuklodSystemAnnouncementBoard({
           )}
         </View>
       </View>
-      {publicQuizDoor}
     </>
   );
 }

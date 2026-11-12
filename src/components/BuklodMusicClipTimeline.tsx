@@ -1,5 +1,5 @@
 import React,{useMemo,useRef,useState} from 'react';
-import {PanResponder,Text,View} from 'react-native';
+import {PanResponder,Pressable,Text,View} from 'react-native';
 
 type Props={start:number;length:number;total:number;fixedLength?:number;
  onChange:(start:number,length:number)=>void;
@@ -33,10 +33,13 @@ export default function BuklodMusicClipTimeline({start,length,total,fixedLength,
  const responder=useMemo(()=>PanResponder.create({
    onStartShouldSetPanResponder:()=>true,
    onMoveShouldSetPanResponder:()=>true,
+   // The clip, not the underlying scroll list, owns an active drag.
+   onMoveShouldSetPanResponderCapture:()=>true,
+   onShouldBlockNativeResponder:()=>true,
    onPanResponderTerminationRequest:()=>false,
    onPanResponderGrant:event=>{
      const n=data.current;
-     const x=event.nativeEvent.locationX;
+     const x=clamp(Number(event.nativeEvent.locationX)||0,0,n.width);
      const left=(n.start/n.total)*n.width,right=((n.start+n.length)/n.total)*n.width;
      const mode:Drag['mode']=n.fixedLength?'move':Math.abs(x-left)<21?'start':Math.abs(x-right)<21?'end':'move';
      drag.current={mode,start:n.start,length:n.length,total:n.total};
@@ -61,6 +64,12 @@ export default function BuklodMusicClipTimeline({start,length,total,fixedLength,
  }),[]);
  const left=(clamp(start,0,safeTotal)/safeTotal)*100;
  const right=(clamp(start+length,0,safeTotal)/safeTotal)*100;
+ const nudge=(seconds:number)=>{
+   const n=data.current;
+   const next=clamp(n.start+seconds,0,Math.max(0,n.total-n.length));
+   apply(next,n.length);
+   emitPreview(next,true);
+ };
  return <View>
    <View accessibilityLabel="Music clip waveform timeline. Drag to hear the chosen part immediately."
      onLayout={e=>setWidth(Math.max(120,e.nativeEvent.layout.width))}
@@ -77,10 +86,25 @@ export default function BuklodMusicClipTimeline({start,length,total,fixedLength,
        <View style={{width:5,height:34,borderRadius:4,backgroundColor:'#155F47',marginRight:-2}}/>
      </View>
    </View>
-   <View style={{flexDirection:'row',justifyContent:'space-between',marginTop:5}}>
-     <Text style={{color:'#567567',fontSize:11}}>Start {Math.round(start)}s</Text>
-     <Text style={{color:'#1A654D',fontSize:11,fontWeight:'800'}}>Selected {Math.round(length)}s</Text>
-     <Text style={{color:'#567567',fontSize:11}}>{Math.round(safeTotal)}s</Text>
+   <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:7,gap:7}}>
+     <Pressable onPress={()=>nudge(-5)} accessibilityRole="button"
+       accessibilityLabel="Move music selection 5 seconds earlier"
+       style={{minWidth:42,minHeight:34,paddingHorizontal:8,borderRadius:10,
+         backgroundColor:'#D7EEE2',justifyContent:'center',alignItems:'center'}}>
+       <Text style={{fontWeight:'900',color:'#185F47'}}>−5s</Text>
+     </Pressable>
+     <View style={{flex:1,alignItems:'center'}}>
+       <Text style={{color:'#175E45',fontSize:12,fontWeight:'900'}}>
+         {Math.round(start)}s – {Math.round(start+length)}s
+       </Text>
+       <Text style={{color:'#567567',fontSize:10}}>Drag bar • {Math.round(safeTotal)}s track</Text>
+     </View>
+     <Pressable onPress={()=>nudge(5)} accessibilityRole="button"
+       accessibilityLabel="Move music selection 5 seconds later"
+       style={{minWidth:42,minHeight:34,paddingHorizontal:8,borderRadius:10,
+         backgroundColor:'#D7EEE2',justifyContent:'center',alignItems:'center'}}>
+       <Text style={{fontWeight:'900',color:'#185F47'}}>+5s</Text>
+     </Pressable>
    </View>
  </View>;
 }
