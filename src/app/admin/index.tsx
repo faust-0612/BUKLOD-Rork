@@ -389,6 +389,12 @@ export default function AdminDashboard() {
                 subtitle="Bayanihan, shares, revenue, withdrawals, attendance and scope reporting"
                 path="/admin/reports-center"
               />
+              <AdminRow
+                icon="server-network"
+                title="Backend Health & Capacity"
+                subtitle="Actual connection bars, hourly trends, upgrade warnings and provider telemetry"
+                path="/admin/backend-capacity"
+              />
 
               <AdminRow
                 icon="trophy-award"
