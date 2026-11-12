@@ -1,0 +1,36 @@
+name: BUKLOD Official Identity Focused QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/buklod-official-identity-qa.yml'
+      - 'supabase/migrations/20261112093000_buklod_official_identity_economy_isolation_v1.sql'
+      - 'src/app/admin/buklod-official.tsx'
+      - 'src/app/(tabs)/me.tsx'
+      - 'src/app/member/[id].tsx'
+      - 'src/components/points/BuklodPointsRewardsScreen.tsx'
+      - 'tests/buklod-official-identity-contract.test.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-official-qa-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  focused-qa:
+    if: github.head_ref == 'dev/buklod-official-identity-20261112'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Compile TypeScript without publishing
+        run: npx tsc --noEmit
+      - name: Verify identity, economy and leaderboard contracts
+        run: node --test tests/buklod-official-identity-contract.test.mjs
+      - name: Confirm changes are not a release
+        run: echo 'QA only - no database migration, web deployment, EAS build or Production OTA.'
