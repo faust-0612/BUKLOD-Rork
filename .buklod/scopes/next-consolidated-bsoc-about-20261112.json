@@ -128,5 +128,6 @@
     "Owner-waived physical device acceptance is recorded as SKIPPED, never as device test PASS"
   ],
   "physicalDeviceVerification": "OWNER WAIVED / SKIPPED",
-  "publishStatus": "NOT PUBLISHED / CONSOLIDATED SOURCE ONLY"
+  "publishStatus": "NOT PUBLISHED / CONSOLIDATED SOURCE ONLY",
+  "releaseState": "NEXT CONSOLIDATED SOURCE CANDIDATE — NOT PUBLISHED"
 }
