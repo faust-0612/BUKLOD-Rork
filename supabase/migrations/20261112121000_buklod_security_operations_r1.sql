@@ -171,8 +171,17 @@ BEGIN
   PERFORM private.buklod_security_signal_v1('BACKEND_CAPACITY_CRITICAL','P1',v_count);
 
   -- Presence is not proof of complete login coverage; absence is never 'safe'.
-  SELECT count(*) INTO v_auth FROM auth.audit_log_entries
-    WHERE created_at >= now()-interval '24 hours';
+  -- Managed Auth table currently lacks an indexed created_at access path.
+  -- Do not full-scan potentially millions of Auth rows every 15 minutes.
+  -- Without a suitable index, leave coverage UNVERIFIED instead of guessing.
+  v_auth:=0;
+  IF EXISTS(SELECT 1 FROM pg_catalog.pg_indexes
+            WHERE schemaname='auth' AND tablename='audit_log_entries'
+              AND indexdef ILIKE '%created_at%') THEN
+    SELECT count(*) INTO v_auth
+      FROM (SELECT 1 FROM auth.audit_log_entries
+            WHERE created_at>=now()-interval '24 hours' LIMIT 1000) bounded;
+  END IF;
   INSERT INTO private.buklod_security_scan_state_v1
     (singleton,scanned_at,scan_count,auth_audit_entries_24h)
   VALUES(true,now(),1,v_auth)
