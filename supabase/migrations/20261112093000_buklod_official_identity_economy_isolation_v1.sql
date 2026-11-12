@@ -268,3 +268,735 @@ grant execute on function public.get_my_buklod_official_dashboard_v1() to authen
 
 comment on function public.get_my_buklod_official_dashboard_v1() is
   'Protected platform identity: official interaction counts, no earning or payout privileges.';
+
+-- Keep the official account out of member/Bayanihan leaderboards.
+-- Filter BEFORE row_number() so members retain contiguous ranks.
+
+CREATE OR REPLACE FUNCTION public.admin_bayanihan_leaderboard_v2(p_limit integer DEFAULT 50)
+ RETURNS TABLE(rank_position bigint, user_id uuid, full_name text, church_name text, group_name text, total_earned numeric, total_used numeric, current_balance numeric)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  safe_limit integer :=
+    least(
+      greatest(
+        coalesce(
+          p_limit,
+          50
+        ),
+        1
+      ),
+      200
+    );
+begin
+  if not public.is_system_admin() then
+    raise exception
+      'System Admin access required';
+  end if;
+
+  return query
+  with totals as (
+    select
+      p.id,
+      p.full_name,
+      coalesce(
+        c.name,
+        'No Local'
+      )::text as local_name,
+
+      coalesce(
+        (
+          select
+            string_agg(
+              distinct g.name,
+              ' | '
+              order by g.name
+            )
+          from public.group_members gm
+          join public.buklod_groups g
+            on g.id =
+              gm.group_id
+          where gm.user_id =
+            p.id
+            and gm.is_active =
+              true
+        ),
+        'No Group'
+      )::text as active_groups,
+
+      coalesce(
+        sum(bl.amount)
+        filter (
+          where bl.direction =
+            'credit'
+        ),
+        0
+      )::numeric as earned,
+
+      coalesce(
+        sum(bl.amount)
+        filter (
+          where bl.direction =
+            'debit'
+        ),
+        0
+      )::numeric as used
+
+    from public.profiles p
+    left join public.churches c
+      on c.id =
+        p.church_id
+    left join public.bayanihan_ledger bl
+      on bl.user_id =
+        p.id
+    where (p.is_active = true and not private.buklod_is_platform_official_v1(p.id))
+      and coalesce(
+        p.is_verified,
+        false
+      ) = true
+    group by
+      p.id,
+      p.full_name,
+      c.name
+  )
+  select
+    row_number() over (
+      order by
+        totals.earned desc,
+        totals.full_name
+    )::bigint,
+    totals.id,
+    totals.full_name,
+    totals.local_name,
+    totals.active_groups,
+    totals.earned,
+    totals.used,
+    (
+      totals.earned -
+      totals.used
+    )::numeric
+  from totals
+  order by
+    totals.earned desc,
+    totals.full_name
+  limit safe_limit;
+end;
+$function$
+
+CREATE OR REPLACE FUNCTION public.admin_bayanihan_leaderboard_v3(p_period text DEFAULT 'month'::text, p_limit integer DEFAULT 5)
+ RETURNS TABLE(rank_position bigint, user_id uuid, full_name text, total_earned numeric)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  period_key text :=
+    lower(trim(coalesce(p_period, 'month')));
+
+  lim integer :=
+    least(
+      greatest(
+        coalesce(p_limit, 5),
+        1
+      ),
+      5
+    );
+
+  start_at timestamp without time zone;
+begin
+  if (select auth.uid()) is null then
+    raise exception 'Authentication required';
+  end if;
+
+  if not public.is_system_admin() then
+    raise exception 'System Admin access required';
+  end if;
+
+  if period_key not in (
+    'month',
+    'overall'
+  ) then
+    raise exception 'Invalid leaderboard period';
+  end if;
+
+  if period_key = 'month' then
+    start_at :=
+      date_trunc(
+        'month',
+        now() at time zone 'Asia/Manila'
+      );
+  end if;
+
+  return query
+  with totals as (
+    select
+      p.id as user_id,
+
+      coalesce(
+        nullif(
+          trim(p.full_name),
+          ''
+        ),
+        'BUKLOD Member'
+      )::text as full_name,
+
+      coalesce(
+        sum(
+          case
+            when
+              bl.direction = 'credit'
+              and (
+                period_key = 'overall'
+                or (
+                  bl.created_at
+                  at time zone 'Asia/Manila'
+                ) >= start_at
+              )
+            then coalesce(bl.amount, 0)
+            else 0
+          end
+        ),
+        0
+      )::numeric as total_earned
+
+    from public.profiles p
+
+    left join public.bayanihan_ledger bl
+      on bl.user_id = p.id
+
+    where
+      (p.is_active = true and not private.buklod_is_platform_official_v1(p.id))
+      and coalesce(
+        p.is_verified,
+        false
+      ) = true
+
+    group by
+      p.id,
+      p.full_name
+  ),
+
+  ranked as (
+    select
+      row_number() over (
+        order by
+          t.total_earned desc,
+          t.full_name asc,
+          t.user_id
+      )::bigint as rank_position,
+
+      t.user_id,
+      t.full_name,
+      t.total_earned
+
+    from totals t
+
+    where
+      t.total_earned > 0
+  )
+
+  select
+    r.rank_position,
+    r.user_id,
+    r.full_name,
+    r.total_earned
+
+  from ranked r
+
+  order by
+    r.rank_position
+
+  limit lim;
+end
+$function$
+
+CREATE OR REPLACE FUNCTION public.get_buklod_points_leaderboard(p_period text DEFAULT 'weekly'::text, p_limit integer DEFAULT 50, p_church_id uuid DEFAULT NULL::uuid)
+ RETURNS TABLE(rank_position bigint, user_id uuid, full_name text, church_id uuid, church_name text, total_points bigint)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+DECLARE
+  normalized_period text;
+  safe_limit integer := greatest(1, least(coalesce(p_limit, 50), 200));
+BEGIN
+  normalized_period := lower(trim(coalesce(p_period, 'weekly')));
+  normalized_period := CASE normalized_period
+    WHEN 'week' THEN 'weekly'
+    WHEN 'month' THEN 'monthly'
+    WHEN 'quarter' THEN 'quarterly'
+    WHEN 'all' THEN 'all_time'
+    WHEN 'alltime' THEN 'all_time'
+    ELSE normalized_period
+  END;
+
+  IF normalized_period NOT IN ('weekly','monthly','quarterly','all_time') THEN
+    RAISE EXCEPTION 'Invalid leaderboard period';
+  END IF;
+
+  IF normalized_period = 'all_time' THEN
+    RETURN QUERY
+    WITH ranked AS (
+      SELECT row_number() OVER (ORDER BY b.lifetime_points DESC, p.full_name, p.id) AS rank_position,
+             p.id AS user_id, p.full_name, p.church_id, c.name AS church_name,
+             b.lifetime_points::bigint AS total_points
+      FROM public.buklod_user_points_balances b
+      JOIN public.profiles p ON p.id = b.user_id
+      LEFT JOIN public.churches c ON c.id = p.church_id
+      WHERE (p.is_active = true and not private.buklod_is_platform_official_v1(p.id))
+        AND b.lifetime_points > 0
+        AND (p_church_id IS NULL OR p.church_id = p_church_id)
+    )
+    SELECT r.rank_position,r.user_id,r.full_name,r.church_id,r.church_name,r.total_points
+    FROM ranked r ORDER BY r.rank_position LIMIT safe_limit;
+    RETURN;
+  END IF;
+
+  IF normalized_period = 'weekly' THEN
+    RETURN QUERY
+    WITH aggregated AS (
+      SELECT l.user_id, sum(l.points)::bigint AS total_points
+      FROM public.buklod_points_ledger l
+      WHERE l.direction = 'credit'
+        AND l.claim_state IN ('claimed','legacy')
+        AND l.created_at >= (date_trunc('week', now() AT TIME ZONE 'Asia/Manila') AT TIME ZONE 'Asia/Manila')
+        AND l.created_at <  (date_trunc('week', now() AT TIME ZONE 'Asia/Manila') AT TIME ZONE 'Asia/Manila') + interval '7 days'
+      GROUP BY l.user_id HAVING sum(l.points) > 0
+    ), ranked AS (
+      SELECT row_number() OVER (ORDER BY a.total_points DESC, p.full_name, p.id) AS rank_position,
+             p.id AS user_id,p.full_name,p.church_id,c.name AS church_name,a.total_points
+      FROM aggregated a
+      JOIN public.profiles p ON p.id=a.user_id
+      LEFT JOIN public.churches c ON c.id=p.church_id
+      WHERE (p.is_active=true and not private.buklod_is_platform_official_v1(p.id)) AND (p_church_id IS NULL OR p.church_id=p_church_id)
+    )
+    SELECT r.rank_position,r.user_id,r.full_name,r.church_id,r.church_name,r.total_points
+    FROM ranked r ORDER BY r.rank_position LIMIT safe_limit;
+    RETURN;
+  END IF;
+
+  IF normalized_period = 'monthly' THEN
+    RETURN QUERY
+    WITH aggregated AS (
+      SELECT l.user_id, sum(l.points)::bigint AS total_points
+      FROM public.buklod_points_ledger l
+      WHERE l.direction = 'credit'
+        AND l.claim_state IN ('claimed','legacy')
+        AND l.created_at >= (date_trunc('month', now() AT TIME ZONE 'Asia/Manila') AT TIME ZONE 'Asia/Manila')
+        AND l.created_at <  (date_trunc('month', now() AT TIME ZONE 'Asia/Manila') AT TIME ZONE 'Asia/Manila') + interval '1 month'
+      GROUP BY l.user_id HAVING sum(l.points) > 0
+    ), ranked AS (
+      SELECT row_number() OVER (ORDER BY a.total_points DESC, p.full_name, p.id) AS rank_position,
+             p.id AS user_id,p.full_name,p.church_id,c.name AS church_name,a.total_points
+      FROM aggregated a
+      JOIN public.profiles p ON p.id=a.user_id
+      LEFT JOIN public.churches c ON c.id=p.church_id
+      WHERE (p.is_active=true and not private.buklod_is_platform_official_v1(p.id)) AND (p_church_id IS NULL OR p.church_id=p_church_id)
+    )
+    SELECT r.rank_position,r.user_id,r.full_name,r.church_id,r.church_name,r.total_points
+    FROM ranked r ORDER BY r.rank_position LIMIT safe_limit;
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  WITH aggregated AS (
+    SELECT l.user_id, sum(l.points)::bigint AS total_points
+    FROM public.buklod_points_ledger l
+    WHERE l.direction = 'credit'
+      AND l.claim_state IN ('claimed','legacy')
+      AND l.created_at >= (date_trunc('quarter', now() AT TIME ZONE 'Asia/Manila') AT TIME ZONE 'Asia/Manila')
+      AND l.created_at <  (date_trunc('quarter', now() AT TIME ZONE 'Asia/Manila') AT TIME ZONE 'Asia/Manila') + interval '3 months'
+    GROUP BY l.user_id HAVING sum(l.points) > 0
+  ), ranked AS (
+    SELECT row_number() OVER (ORDER BY a.total_points DESC, p.full_name, p.id) AS rank_position,
+           p.id AS user_id,p.full_name,p.church_id,c.name AS church_name,a.total_points
+    FROM aggregated a
+    JOIN public.profiles p ON p.id=a.user_id
+    LEFT JOIN public.churches c ON c.id=p.church_id
+    WHERE (p.is_active=true and not private.buklod_is_platform_official_v1(p.id)) AND (p_church_id IS NULL OR p.church_id=p_church_id)
+  )
+  SELECT r.rank_position,r.user_id,r.full_name,r.church_id,r.church_name,r.total_points
+  FROM ranked r ORDER BY r.rank_position LIMIT safe_limit;
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.get_member_circle_ranks_v1(p_user_ids uuid[])
+ RETURNS TABLE(user_id uuid, rank_name text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  with actor_ok as (
+    select p.id
+    from public.profiles p
+    where p.id=(select auth.uid())
+      and p.is_active=true
+      and coalesce(p.is_verified,false)=true
+    limit 1
+  ), requested as (
+    select distinct u.user_id
+    from unnest(coalesce(p_user_ids,'{}'::uuid[])) as u(user_id)
+    where u.user_id is not null
+    limit 200
+  ), totals as (
+    select p.id as user_id,coalesce(b.lifetime_points,0)::bigint as lifetime_points
+    from requested q
+    join public.profiles p on p.id=q.user_id
+      and p.is_active=true
+      and not private.buklod_is_platform_official_v1(p.id)
+      and coalesce(p.is_verified,false)=true
+    left join public.buklod_user_points_balances b on b.user_id=p.id
+    where exists(select 1 from actor_ok)
+  )
+  select t.user_id,
+    coalesce((
+      select r.rank_name
+      from public.buklod_rank_levels r
+      where r.is_active=true and r.rank_name is not null and r.min_points<=t.lifetime_points
+      order by r.min_points desc,r.rank_order desc nulls last
+      limit 1
+    ),'Circle Starter V')::text
+  from totals t
+  order by t.user_id;
+$function$
+
+CREATE OR REPLACE FUNCTION public.get_member_weekly_leaderboard(p_week_start date DEFAULT NULL::date, p_limit integer DEFAULT 10)
+ RETURNS TABLE(rank_position bigint, user_id uuid, full_name text, church_id uuid, total_score numeric, bible_completed bigint, bible_required bigint, devotional_completed bigint, devotional_required bigint, formation_lessons bigint, active_days bigint, required_days bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+with clock as (
+  select
+    (now() at time zone 'Asia/Manila')::date as local_today
+),
+
+params as (
+  select
+    coalesce(
+      p_week_start,
+      local_today -
+        (extract(isodow from local_today)::integer - 1)
+    )::date as week_start
+  from clock
+),
+
+period as (
+  select
+    week_start,
+    (week_start + 6)::date as week_end
+  from params
+),
+
+users as (
+  select
+    p.id,
+    p.full_name,
+    p.church_id
+  from public.profiles p
+  where (p.is_active = true and not private.buklod_is_platform_official_v1(p.id))
+),
+
+bible_req as (
+  select count(*)::bigint as required_count
+  from public.daily_bible_assignments a, period p
+  where a.is_published = true
+    and a.reading_date between p.week_start and p.week_end
+),
+
+devotional_req as (
+  select count(*)::bigint as required_count
+  from public.devotionals d, period p
+  where d.is_published = true
+    and d.publish_date between p.week_start and p.week_end
+),
+
+required_dates_data as (
+  select a.reading_date as activity_date
+  from public.daily_bible_assignments a, period p
+  where a.is_published = true
+    and a.reading_date between p.week_start and p.week_end
+
+  union
+
+  select d.publish_date
+  from public.devotionals d, period p
+  where d.is_published = true
+    and d.publish_date between p.week_start and p.week_end
+),
+
+required_days_count as (
+  select count(*)::bigint as required_days
+  from required_dates_data
+),
+
+bible_done as (
+  select
+    s.user_id,
+    count(distinct s.assignment_id)::bigint as completed
+  from public.daily_bible_submissions s
+  join public.daily_bible_assignments a
+    on a.id = s.assignment_id
+  cross join period p
+  where s.status = 'approved'
+    and a.reading_date between p.week_start and p.week_end
+  group by s.user_id
+),
+
+devotional_done as (
+  select
+    s.user_id,
+    count(distinct s.devotional_id)::bigint as completed
+  from public.devotional_reward_submissions s
+  join public.devotionals d
+    on d.id = s.devotional_id
+  cross join period p
+  where s.status = 'approved'
+    and d.publish_date between p.week_start and p.week_end
+  group by s.user_id
+),
+
+formation_done as (
+  select
+    a.user_id,
+    count(distinct a.lesson_id)::bigint as completed
+  from public.member_lesson_attempts a
+  cross join period p
+  where a.review_status = 'approved'
+    and (
+      a.pastor_validated_at at time zone 'Asia/Manila'
+    )::date between p.week_start and p.week_end
+  group by a.user_id
+),
+
+activity_dates as (
+
+  select
+    s.user_id,
+    a.reading_date as activity_date
+  from public.daily_bible_submissions s
+  join public.daily_bible_assignments a
+    on a.id = s.assignment_id
+  cross join period p
+  where s.status = 'approved'
+    and a.reading_date between p.week_start and p.week_end
+
+  union
+
+  select
+    s.user_id,
+    d.publish_date
+  from public.devotional_reward_submissions s
+  join public.devotionals d
+    on d.id = s.devotional_id
+  cross join period p
+  where s.status = 'approved'
+    and d.publish_date between p.week_start and p.week_end
+),
+
+active_days_data as (
+  select
+    user_id,
+    count(distinct activity_date)::bigint as active_days
+  from activity_dates
+  group by user_id
+),
+
+raw_scores as (
+  select
+    u.id as user_id,
+    u.full_name,
+    u.church_id,
+
+    coalesce(bd.completed,0)::bigint as bible_completed,
+    br.required_count::bigint as bible_required,
+
+    coalesce(dd.completed,0)::bigint as devotional_completed,
+    dr.required_count::bigint as devotional_required,
+
+    coalesce(fd.completed,0)::bigint as formation_lessons,
+
+    coalesce(ad.active_days,0)::bigint as active_days,
+    rd.required_days::bigint as required_days,
+
+    round(
+      (
+        case
+          when br.required_count > 0
+          then
+            20 *
+            least(
+              coalesce(bd.completed,0)::numeric /
+              br.required_count::numeric,
+              1
+            )
+          else 0
+        end
+
+        +
+
+        case
+          when dr.required_count > 0
+          then
+            20 *
+            least(
+              coalesce(dd.completed,0)::numeric /
+              dr.required_count::numeric,
+              1
+            )
+          else 0
+        end
+
+        +
+
+        (
+          35 *
+          least(coalesce(fd.completed,0),3)::numeric / 3
+        )
+
+        +
+
+        case
+          when rd.required_days > 0
+          then
+            25 *
+            least(
+              coalesce(ad.active_days,0)::numeric /
+              rd.required_days::numeric,
+              1
+            )
+          else 0
+        end
+      )::numeric,
+      2
+    ) as total_score
+
+  from users u
+
+  cross join bible_req br
+  cross join devotional_req dr
+  cross join required_days_count rd
+
+  left join bible_done bd
+    on bd.user_id = u.id
+
+  left join devotional_done dd
+    on dd.user_id = u.id
+
+  left join formation_done fd
+    on fd.user_id = u.id
+
+  left join active_days_data ad
+    on ad.user_id = u.id
+),
+
+ranked as (
+  select
+    row_number() over (
+      order by
+        total_score desc,
+        formation_lessons desc,
+        (bible_completed + devotional_completed) desc,
+        full_name
+    ) as rank_position,
+    *
+  from raw_scores
+  where total_score > 0
+)
+
+select
+  r.rank_position,
+  r.user_id,
+  r.full_name,
+  r.church_id,
+  r.total_score,
+  r.bible_completed,
+  r.bible_required,
+  r.devotional_completed,
+  r.devotional_required,
+  r.formation_lessons,
+  r.active_days,
+  r.required_days
+from ranked r
+order by r.rank_position
+limit greatest(1, least(coalesce(p_limit,10),50));
+$function$
+
+CREATE OR REPLACE FUNCTION public.get_mentor_weekly_leaderboard(p_week_start date DEFAULT NULL::date, p_limit integer DEFAULT 10)
+ RETURNS TABLE(rank_position bigint, user_id uuid, full_name text, church_id uuid, approved_sessions bigint, distinct_lessons bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+with clock as (
+  select
+    (now() at time zone 'Asia/Manila')::date as local_today
+),
+
+params as (
+  select
+    coalesce(
+      p_week_start,
+      local_today -
+        (extract(isodow from local_today)::integer - 1)
+    )::date as week_start
+  from clock
+),
+
+period as (
+  select
+    week_start,
+    (week_start + 6)::date as week_end
+  from params
+),
+
+data as (
+  select
+    s.mentor_id as user_id,
+    p.full_name,
+    p.church_id,
+    count(*)::bigint as approved_sessions,
+    count(distinct s.lesson_id)::bigint as distinct_lessons
+
+  from public.mentor_teaching_sessions s
+
+  join public.profiles p
+    on p.id = s.mentor_id
+
+  cross join period w
+
+  where s.status = 'approved'
+    and s.session_date between w.week_start and w.week_end
+    and (p.is_active = true and not private.buklod_is_platform_official_v1(p.id))
+
+  group by
+    s.mentor_id,
+    p.full_name,
+    p.church_id
+),
+
+ranked as (
+  select
+    row_number() over (
+      order by
+        approved_sessions desc,
+        distinct_lessons desc,
+        full_name
+    ) as rank_position,
+    *
+  from data
+)
+
+select
+  r.rank_position,
+  r.user_id,
+  r.full_name,
+  r.church_id,
+  r.approved_sessions,
+  r.distinct_lessons
+from ranked r
+order by r.rank_position
+limit greatest(1, least(coalesce(p_limit,10),50));
+$function$
