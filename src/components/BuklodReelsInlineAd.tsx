@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'expo-router';
 import {
   StyleSheet,
@@ -26,6 +26,8 @@ import {
   getBuklodPassiveAdRequestWaitMs,
   isBuklodPassiveAdAllowed,
   reserveBuklodPassiveAdRequest,
+  getBuklodAdSafetyRevision,
+  subscribeBuklodAdSafety,
 } from '@/lib/buklodGlobalAdController';
 import { useAds } from '@/providers/AdsProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
@@ -57,6 +59,12 @@ export default function BuklodReelsInlineAd({
 }: Props) {
   const { width } = useWindowDimensions();
   const pathname = usePathname();
+  // Release of typing/form locks and remote flags must wake mounted ad slots.
+  useSyncExternalStore(
+    subscribeBuklodAdSafety,
+    getBuklodAdSafetyRevision,
+    getBuklodAdSafetyRevision,
+  );
   const { ready, canRequestAds } = useAds();
   const { online } = useNetwork();
   const sdkReady = ready && canRequestAds;

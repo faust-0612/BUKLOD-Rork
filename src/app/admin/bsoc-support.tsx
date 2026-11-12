@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
+import { isBsoCaseId } from '@/lib/bsocCaseTriage';
 
 type Case = {
   feedback_id: string; reference: string; user_name: string | null; category: string;
@@ -16,6 +17,8 @@ const STATUSES: Status[] = ['new','triaged','in_progress','resolved','closed'];
 const friendlyError = (e: unknown) => String((e as any)?.message ?? e ?? 'Please retry.').slice(0,350);
 
 export default function BsocSupportOperations() {
+  const {case_id:requestedCaseId}=useLocalSearchParams<{case_id?:string}>();
+  const lastLinkedCase=useRef<string>('');
   const {hasRole}=useAuth();
   const [canRead,setCanRead]=useState<boolean|null>(null);
   const [canManage,setCanManage]=useState(false);
@@ -72,6 +75,16 @@ export default function BsocSupportOperations() {
     return ()=>{live=false;};
   },[]);
   useEffect(()=>{if(canRead)void load();else if(canRead===false)setLoading(false);},[canRead,load]);
+
+  useEffect(()=>{
+    if(loading||!requestedCaseId||lastLinkedCase.current===requestedCaseId)return;
+    lastLinkedCase.current=requestedCaseId;
+    if(isBsoCaseId(requestedCaseId)){
+      const match=cases.find(c=>c.feedback_id===requestedCaseId);
+      if(match)selectCase(match);
+      else setError('Linked case was not returned in this page of the queue. Refresh or check filters.');
+    }
+  },[cases,loading,requestedCaseId]);
 
   function selectCase(item: Case) {
     setSelected(item);setNextStatus(item.status as Status);setResolution(item.resolution || '');
@@ -159,6 +172,7 @@ export default function BsocSupportOperations() {
       <Text style={styles.section}>Case {selected.reference}</Text>
       <Text style={styles.muted}>{selected.user_name||'BUKLOD member'} · {selected.platform||'Unknown platform'} · {selected.app_version||'Version unknown'}</Text>
       <Text style={styles.caseText}>{selected.message}</Text>
+      <Pressable accessibilityRole="button" onPress={()=>router.push({pathname:'/admin/bsoc-conversations',params:{case_id:selected.feedback_id}} as any)}><Text style={styles.link}>Open private member conversation ›</Text></Pressable>
       {!canManage&&<Text style={styles.muted}>Read-only BSOC access. An authorized support manager must update cases.</Text>}
       <Text style={styles.muted}>Status</Text>
       <View style={styles.filters}>

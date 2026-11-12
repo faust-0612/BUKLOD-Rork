@@ -105,6 +105,21 @@ let fullScreenCadencePersistenceFailed = false;
 let remoteFeatures: Record<string, boolean> = {};
 const passiveRequestTimes = new Map<string, number>();
 
+// React ad slots must re-evaluate after an interaction lock, route, feature
+// flag or foreground transition. Previously an ad could stay permanently
+// unmounted after its safety lock was released, until unrelated UI rendered.
+let adSafetyRevision = 0;
+const adSafetyListeners = new Set<() => void>();
+export function getBuklodAdSafetyRevision() { return adSafetyRevision; }
+export function subscribeBuklodAdSafety(listener: () => void) {
+  adSafetyListeners.add(listener);
+  return () => { adSafetyListeners.delete(listener); };
+}
+function notifyBuklodAdSafetyChange() {
+  adSafetyRevision += 1;
+  for (const listener of adSafetyListeners) listener();
+}
+
 const locks: Record<BuklodAdInteractionLock, number> = {
   typing: 0,
   form: 0,
@@ -141,26 +156,39 @@ function placementEnabled(placementId: string) {
 }
 
 export function setBuklodAdRoute(value: string | null | undefined) {
-  pathname = normalizePath(value);
+  const next = normalizePath(value);
+  if (pathname === next) return;
+  pathname = next;
+  notifyBuklodAdSafetyChange();
 }
 
 export function setBuklodAdForeground(value: boolean) {
+  if (foreground === value) return;
   foreground = value;
+  notifyBuklodAdSafetyChange();
 }
 
 export function setBuklodAdRemoteFeatures(
   features: Record<string, boolean> | null | undefined,
 ) {
-  remoteFeatures = { ...(features ?? {}) };
+  const next = { ...(features ?? {}) };
+  const changed =
+    Object.keys(next).length !== Object.keys(remoteFeatures).length ||
+    Object.keys(next).some(key => next[key] !== remoteFeatures[key]);
+  remoteFeatures = next;
+  if (changed) notifyBuklodAdSafetyChange();
 }
 
 export function acquireBuklodAdSafetyLock(kind: BuklodAdInteractionLock) {
+  const wasLocked = locks[kind] > 0;
   locks[kind] += 1;
+  if (!wasLocked) notifyBuklodAdSafetyChange();
   let released = false;
   return () => {
     if (released) return;
     released = true;
     locks[kind] = Math.max(0, locks[kind] - 1);
+    if (locks[kind] === 0) notifyBuklodAdSafetyChange();
   };
 }
 
