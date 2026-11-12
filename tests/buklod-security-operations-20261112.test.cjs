@@ -13,6 +13,10 @@ test('Security signals are database-only, private and admin-only', () => {
   assert.match(sql,/ANON_ADMIN_PRIVILEGED_RPC/);
   assert.match(sql,/FINANCE_BLOCKING_FRAUD/);
   assert.match(sql,/BACKEND_CAPACITY_CRITICAL/);
+  assert.match(sql,/buklod_queue_notification_once_v1/);
+  assert.match(sql,/OFFICIAL_SYSTEM_ADMIN/);
+  assert.match(sql,/v_prior_status IS DISTINCT FROM 'ACTIVE'/);
+  assert.match(sql,/route','\/admin\/security-operations'/);
   assert.match(sql,/auth_audit_coverage/);
   assert.match(sql,/cron\.schedule\('buklod-security-scan-r1'/);
   assert.match(sqlTest,/security RPC anonymous access/);
