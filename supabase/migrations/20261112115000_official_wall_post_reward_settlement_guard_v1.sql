@@ -47,7 +47,7 @@ begin
   perform private.buklod_community_qmp_mark_active_day_v1(new.user_id,v_period.id);
   return new;
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION private.buklod_engagement_r4_post_trigger_v1()
  RETURNS trigger
@@ -65,7 +65,7 @@ BEGIN
        NEW.id,'r37_standard_social_points_v1');
  END IF;
  RETURN NEW;
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION private.buklod_r36_settle_creator_impact_v1(p_content_kind text, p_content_id uuid, p_policy_version text DEFAULT 'r36_social_economy_v1'::text)
  RETURNS jsonb
@@ -305,7 +305,7 @@ begin
     'cash_or_bayanihan_write',false
   );
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION private.buklod_r36_settle_publish_v1(p_post_id uuid, p_policy_version text DEFAULT 'r36_social_economy_v1'::text)
  RETURNS jsonb
@@ -381,7 +381,7 @@ begin
 
   return jsonb_build_object('status',case when v_ledger_id is null then 'idempotent' else 'settled' end,'written',v_ledger_id is not null,'kind',v_kind,'rank',v_rank,'cap',v_cap,'cp',v_cp,'bcu',0,'points_claim_state','pending');
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.community_post_points_trigger_v2()
  RETURNS trigger
@@ -396,5 +396,5 @@ begin
   else perform public.credit_community_social_points_v2(new.user_id,'community_post','community_post:'||new.id::text,new.id); end if;
   return new;
 end;
-$function$
+$function$;
 
