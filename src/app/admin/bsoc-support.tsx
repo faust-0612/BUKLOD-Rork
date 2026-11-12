@@ -20,9 +20,13 @@ export default function BsocSupportOperations() {
   const {case_id:requestedCaseId}=useLocalSearchParams<{case_id?:string}>();
   const lastLinkedCase=useRef<string>('');
   const {hasRole}=useAuth();
+  const isSystemAdmin=hasRole('system_admin');
   const [canRead,setCanRead]=useState<boolean|null>(null);
   const [canManage,setCanManage]=useState(false);
   const [cases,setCases] = useState<Case[]>([]);
+  const queueGeneration=useRef(0);
+  const [moreAvailable,setMoreAvailable]=useState(false);
+  const [loadingOlder,setLoadingOlder]=useState(false);
   const [status,setStatus] = useState<string>('');
   const [refreshing,setRefreshing] = useState(false);
   const [loading,setLoading] = useState(true);
@@ -51,16 +55,44 @@ export default function BsocSupportOperations() {
   },[canRead]);
 
   const load = useCallback(async () => {
-    setRefreshing(true); setError('');
+    const generation=++queueGeneration.current;
+    setRefreshing(true);setLoadingOlder(false);setError('');
     try {
       const {data,error:rpcError} = await supabase.rpc('buklod_bsoc_support_queue_v1',{
         p_status: status || null, p_limit: 100, p_before: null,
       });
+      if(generation!==queueGeneration.current)return;
       if (rpcError) throw rpcError;
-      setCases(Array.isArray(data) ? data : []);
-    } catch (e) {setError(friendlyError(e));}
-    finally {setLoading(false);setRefreshing(false);}
+      const rows=(Array.isArray(data)?data:[]) as Case[];
+      setCases(rows);
+      setMoreAvailable(rows.length===100);
+    } catch (e) {if(generation===queueGeneration.current)setError(friendlyError(e));}
+    finally {if(generation===queueGeneration.current){setLoading(false);setRefreshing(false);}}
   },[status]);
+
+  const loadOlder=useCallback(async()=>{
+    if(loadingOlder||refreshing||!moreAvailable||!cases.length)return;
+    const cursor=cases[cases.length-1]?.created_at;
+    if(!cursor)return;
+    const generation=queueGeneration.current;
+    setLoadingOlder(true);setError('');
+    try{
+      const {data,error:rpcError}=await supabase.rpc('buklod_bsoc_support_queue_v1',{
+        p_status:status||null,p_limit:100,p_before:cursor,
+      });
+      if(generation!==queueGeneration.current)return;
+      if(rpcError)throw rpcError;
+      const rows=(Array.isArray(data)?data:[]) as Case[];
+      setCases(previous=>{
+        // A refresh or filter change invalidates this page. Never mix snapshots.
+        if(previous[previous.length-1]?.created_at!==cursor)return previous;
+        const known=new Set(previous.map(c=>c.feedback_id));
+        return [...previous,...rows.filter(c=>!known.has(c.feedback_id))];
+      });
+      setMoreAvailable(rows.length===100);
+    }catch(e){if(generation===queueGeneration.current)setError(friendlyError(e));}
+    finally{if(generation===queueGeneration.current)setLoadingOlder(false);}
+  },[cases,loadingOlder,refreshing,moreAvailable,status]);
 
   useEffect(()=>{
     let live=true;
@@ -79,12 +111,33 @@ export default function BsocSupportOperations() {
   useEffect(()=>{
     if(loading||!requestedCaseId||lastLinkedCase.current===requestedCaseId)return;
     lastLinkedCase.current=requestedCaseId;
-    if(isBsoCaseId(requestedCaseId)){
-      const match=cases.find(c=>c.feedback_id===requestedCaseId);
-      if(match)selectCase(match);
-      else setError('Linked case was not returned in this page of the queue. Refresh or check filters.');
+    if(!isBsoCaseId(requestedCaseId)){setError('Invalid case reference.');return;}
+    const match=cases.find(c=>c.feedback_id===requestedCaseId);
+    if(match){selectCase(match);return;}
+    if(!isSystemAdmin){
+      setError('This case is outside the current queue. Historical lookup is restricted to System Admin.');
+      return;
     }
-  },[cases,loading,requestedCaseId]);
+    // Only the authorized System Admin can recover a historical case omitted
+    // by the 100-row queue. Existing RLS and audited action RPC remain intact.
+    let active=true;
+    void supabase.from('user_feedback')
+      .select('id,title,message,category,status,app_version,created_at,updated_at,assigned_to,resolution')
+      .eq('id',requestedCaseId).maybeSingle().then(({data,error})=>{
+        if(!active||lastLinkedCase.current!==requestedCaseId)return;
+        if(error||!data){setError('Linked case unavailable or restricted.');return;}
+        selectCase({
+          feedback_id:requestedCaseId,reference:requestedCaseId.slice(0,8),
+          user_name:null,category:String(data.category??'other'),
+          title:String(data.title??'Support case'),message:String(data.message??''),
+          status:String(data.status??'new'),
+          app_version:data.app_version??null,route:null,platform:null,
+          created_at:data.created_at??'',updated_at:data.updated_at??'',
+          assigned_to:data.assigned_to??null,resolution:data.resolution??null,
+        });
+      });
+    return ()=>{active=false;};
+  },[cases,loading,requestedCaseId,isSystemAdmin]);
 
   function selectCase(item: Case) {
     setSelected(item);setNextStatus(item.status as Status);setResolution(item.resolution || '');
@@ -154,8 +207,9 @@ export default function BsocSupportOperations() {
       <Text style={styles.muted}>Analyze sanitized technical descriptions. No private case details are shared automatically.</Text>
     </Pressable>
     <Text style={styles.section}>Support cases</Text>
+    <Text style={styles.muted}>Load older cases in secure pages of 100. System Admin can also open a case directly from an authorized notification without bypassing audit.</Text>
     <View style={styles.filters}>
-      {['',...STATUSES].map(s=><Pressable key={s||'all'} onPress={()=>{setStatus(s);setSelected(null);setPreview(null);}}
+      {['',...STATUSES].map(s=><Pressable key={s||'all'} onPress={()=>{queueGeneration.current+=1;setStatus(s);setCases([]);setMoreAvailable(false);setSelected(null);setPreview(null);}}
         style={[styles.chip,status===s&&styles.active]}><Text style={styles.chipText}>{s||'all'}</Text></Pressable>)}
     </View>
     {!!error&&<Text accessibilityRole="alert" style={styles.error}>ERROR: {error}</Text>}
@@ -168,6 +222,9 @@ export default function BsocSupportOperations() {
       <Text style={styles.muted}>{item.category} · {item.status} · {new Date(item.created_at).toLocaleString()}</Text>
       <Text style={styles.caseText} numberOfLines={3}>{item.message}</Text>
     </Pressable>)}
+    {moreAvailable&&<Pressable disabled={loadingOlder||refreshing} style={styles.button} onPress={()=>void loadOlder()}>
+      <Text style={styles.buttonText}>{loadingOlder?'Loading older cases…':'Load older support cases'}</Text>
+    </Pressable>}
     {selected&&<View style={styles.editor}>
       <Text style={styles.section}>Case {selected.reference}</Text>
       <Text style={styles.muted}>{selected.user_name||'BUKLOD member'} · {selected.platform||'Unknown platform'} · {selected.app_version||'Version unknown'}</Text>

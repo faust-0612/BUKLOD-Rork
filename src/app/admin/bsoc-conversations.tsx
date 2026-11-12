@@ -5,7 +5,7 @@ import * as Crypto from 'expo-crypto';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {colors} from '@/lib/theme';
-import {bsoReplyDraft,isBsoCaseId,triageBsoCase} from '@/lib/bsocCaseTriage';
+import {bsoCaseIntervention,bsoReplyDraft,isBsoCaseId,triageBsoCase} from '@/lib/bsocCaseTriage';
 import {isValidBdocCaseId} from '@/lib/buklodAdminPriorityPolicy';
 type Case={feedback_id:string;reference:string;title:string;status:string;user_name:string|null;category?:string|null;message?:string|null;route?:string|null;platform?:string|null;app_version?:string|null;created_at?:string|null;updated_at?:string|null;resolution?:string|null};
 type Msg={id:string;body:string;sender_kind:string;sender_id:string;created_at:string};
@@ -25,6 +25,9 @@ export default function BsocInbox(){
  const [canRead,setCanRead]=useState<boolean|null>(null);
  const [canManage,setCanManage]=useState(false);
  const [cases,setCases]=useState<Case[]>([]);
+ const queueGeneration=useRef(0);
+ const [moreAvailable,setMoreAvailable]=useState(false);
+ const [loadingOlder,setLoadingOlder]=useState(false);
  const [caseId,setCaseId]=useState('');
  const [messages,setMessages]=useState<Msg[]>([]);
  const [files,setFiles]=useState<(FileRow&{url:string|null})[]>([]);
@@ -32,11 +35,38 @@ export default function BsocInbox(){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [uid,setUid]=useState<string|null>(null);
+ const retryMessage=useRef<{caseId:string;body:string;nonce:string}|null>(null);
  const loadCases=useCallback(async()=>{
+   const generation=++queueGeneration.current;
    const {data,error}=await supabase.rpc('buklod_bsoc_support_queue_v1',{p_status:null,p_limit:100,p_before:null});
-   if(error)setError(error.message);else {setCases((data||[]) as Case[]);setError('');}
+   if(generation!==queueGeneration.current)return;
+   if(error)setError(error.message);
+   else {
+     const rows=(data||[]) as Case[];
+     setCases(rows);setMoreAvailable(rows.length===100);setError('');
+   }
    setQueueLoaded(true);
  },[]);
+ const loadOlder=useCallback(async()=>{
+   if(loadingOlder||!moreAvailable||!cases.length)return;
+   const cursor=cases[cases.length-1]?.created_at;
+   if(!cursor)return;
+   const generation=queueGeneration.current;
+   setLoadingOlder(true);
+   try{
+     const {data,error}=await supabase.rpc('buklod_bsoc_support_queue_v1',{p_status:null,p_limit:100,p_before:cursor});
+     if(generation!==queueGeneration.current)return;
+     if(error)throw error;
+     const rows=(data||[]) as Case[];
+     setCases(previous=>{
+       if(previous[previous.length-1]?.created_at!==cursor)return previous;
+       const known=new Set(previous.map(c=>c.feedback_id));
+       return [...previous,...rows.filter(c=>!known.has(c.feedback_id))];
+     });
+     setMoreAvailable(rows.length===100);
+   }catch(e:any){if(generation===queueGeneration.current)setError(e?.message||'Could not load older support cases');}
+   finally{if(generation===queueGeneration.current)setLoadingOlder(false);}
+ },[cases,loadingOlder,moreAvailable]);
  const loadThread=useCallback(async()=>{
    if(!caseId||!canRead)return;
    const sequence=++requestSequence.current;
@@ -69,12 +99,13 @@ export default function BsocInbox(){
      setUid(auth.data.user?.id||null);
    }).catch(()=>{if(alive)setCanRead(false);});
    return ()=>{alive=false;};
- },[]);
+ },[user?.id]);
  useEffect(()=>{if(canRead)void loadCases();},[canRead,loadCases]);
  const openCase=useCallback((id:string)=>{
    requestSequence.current+=1;
    currentCase.current=id;
    setLinkedCase(null);
+   retryMessage.current=null;
    setMessages([]);setFiles([]);setDraft('');setError('');setCaseId(id);
  },[]);
  // Strictly Admin-only direct lookup supports older priority cases not present
@@ -111,9 +142,13 @@ export default function BsocInbox(){
    if(previousUserRef.current===user?.id)return;
    previousUserRef.current=user?.id;
    requestSequence.current+=1;
+   queueGeneration.current+=1;
    currentCase.current='';
    lastLinkedCase.current='';
-   setLinkedCase(null);setCaseId('');setMessages([]);setFiles([]);
+   setCanRead(null);setCanManage(false);setUid(null);
+   setCases([]);setMoreAvailable(false);setQueueLoaded(false);setLoadingOlder(false);
+   retryMessage.current=null;
+   setLinkedCase(null);setCaseId('');setMessages([]);setFiles([]);setDraft('');
  },[user?.id]);
  useEffect(()=>{
    if(!caseId)return;
@@ -125,19 +160,32 @@ export default function BsocInbox(){
  },[caseId,loadThread]);
  const send=async()=>{
    if(!canManage||!uid||!caseId||!draft.trim()||busy||((cases.find(c=>c.feedback_id===caseId)?.status??linkedCase?.status)==='closed'))return;
+   const body=draft.trim().slice(0,8000);
+   const previous=retryMessage.current;
+   const nonce=previous?.caseId===caseId&&previous.body===body?previous.nonce:Crypto.randomUUID();
+   // One nonce per message attempt: UNIQUE(sender_id, client_nonce) protects retry.
+   retryMessage.current={caseId,body,nonce};
    setBusy(true);setError('');
    try{
      const {error:e}=await supabase.from('bsoc_case_messages').insert({
-       case_id:caseId,sender_id:uid,sender_kind:'agent',body:draft.trim().slice(0,8000),
-       client_nonce:Crypto.randomUUID()
+       case_id:caseId,sender_id:uid,sender_kind:'agent',body,client_nonce:nonce
      });
-     if(e)throw e;
+     if(e){
+       if(e.code!=='23505')throw e;
+       // Verify server persistence before treating a duplicate as delivered.
+       const {data:stored,error:readError}=await supabase.from('bsoc_case_messages')
+         .select('id').eq('case_id',caseId).eq('sender_id',uid)
+         .eq('client_nonce',nonce).maybeSingle();
+       if(readError||!stored)throw e;
+     }
+     retryMessage.current=null;
      setDraft('');await loadThread();
    }catch(e:any){setError(e?.message||'Could not send message');}
    finally{setBusy(false);}
  };
  const selected=cases.find(c=>c.feedback_id===caseId)??(linkedCase?.feedback_id===caseId?linkedCase:null);
  const triage=selected?triageBsoCase(selected):null;
+ const intervention=selected?bsoCaseIntervention(selected):null;
  if(canRead===null)return <View style={styles.page}><ActivityIndicator color={colors.green}/></View>;
  if(!canRead)return <View style={styles.page}><Text style={styles.h1}>BSOC support permission required</Text></View>;
  return <ScrollView style={styles.page} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -170,6 +218,16 @@ export default function BsocInbox(){
          <Text style={styles.link}>Update status / assignment / audited resolution ›</Text>
        </Pressable>
      </View>
+     {intervention&&<View style={styles.origin}>
+       <Text style={styles.h2}>Immediate intervention · {intervention.urgency==='priority'?'Priority investigation':'Case triage'}</Text>
+       <Text style={styles.bold}>Responsible: {intervention.owner}</Text>
+       <Text style={styles.body}>Check now: {intervention.firstCheck}</Text>
+       <Text style={styles.body}>Close only when: {intervention.closureGate}</Text>
+       <Pressable accessibilityRole="button" disabled={!canManage} style={styles.template} onPress={()=>setDraft(intervention.memberDraft)}>
+         <Text style={styles.link}>Prepare case-specific safe reply ›</Text>
+       </Pressable>
+       <Text style={styles.muted}>Draft only. The member is contacted only after Send; a suggestion never verifies a fix.</Text>
+     </View>}
      <Text style={styles.h2}>Reply privately to this member</Text>
      <Text style={styles.muted}>Choose a draft or write your own. Only Send delivers it; the existing backend notification informs this member of a new agent reply.</Text>
      <View style={styles.templates}>
@@ -199,6 +257,9 @@ export default function BsocInbox(){
        <Text style={styles.bold}>{c.title}</Text>
        <Text style={styles.muted}>{c.reference} · {c.status} · {c.user_name||'Member'}</Text>
      </Pressable>)}
+     {moreAvailable&&<Pressable disabled={loadingOlder} onPress={()=>void loadOlder()} style={styles.button}>
+       <Text style={styles.buttonText}>{loadingOlder?'Loading older cases…':'Load older support cases'}</Text>
+     </Pressable>}
    </View>
  </ScrollView>;
 }
