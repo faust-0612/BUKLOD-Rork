@@ -85,6 +85,9 @@ type Props = {
   onRetryPhoto?: (index: number) => void;
   seenReaders?: ConnectSeenReader[];
   onPressSeenReaders?: () => void;
+  /** Cluster: always expose the room-cursor report, even before anyone reads. */
+  showSeenReport?: boolean;
+  seenReportAvailable?: boolean;
   compact?: boolean;
   showTime?: boolean;
   isGif?: boolean;
@@ -457,6 +460,8 @@ export function ConnectMessageBubble({
   onRetryPhoto,
   seenReaders,
   onPressSeenReaders,
+  showSeenReport = false,
+  seenReportAvailable = true,
   compact = false,
   showTime = true,
   isGif,
@@ -918,10 +923,12 @@ export function ConnectMessageBubble({
           />
         </View>
       </View>
-      {seen.shown.length > 0 && (
+      {(seen.shown.length > 0 || (own && showSeenReport)) && (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
+            !seenReportAvailable ? 'Seen report unavailable' :
+            seen.shown.length === 0 ? 'Open seen report, no readers yet' :
             seen.extra > 0
               ? `Seen by ${seen.shown.length + seen.extra} people`
               : `Seen by ${seen.shown.map(reader => reader.name).join(', ')}`
@@ -936,6 +943,11 @@ export function ConnectMessageBubble({
                 : styles.bubbleWithAvatar),
           ]}
         >
+          {seen.shown.length === 0 ? (
+            <Text style={styles.seenExtraText}>
+              {seenReportAvailable ? 'Seen by 0 · Details' : 'Seen report unavailable'}
+            </Text>
+          ) : null}
           {seen.shown.map(reader => (
             <View key={reader.userId} style={styles.seenAvatar}>
               <ConnectTappableAvatar
