@@ -6,7 +6,7 @@ const regression = readFileSync(new URL('../supabase/tests/buklod_scope_bp_offic
 test('scope member BP ranks exclude only immutable official before sorting and limit',()=>{
   assert.match(migration,/NOT private\.buklod_is_platform_official_v1\(p\.id\)/);
   assert.match(migration,/ROW_NUMBER\(\) OVER/i);
-  assert.ok(migration.indexOf('NOT private.buklod_is_platform_official_v1(p.id)')<migration.indexOf('ROW_NUMBER() OVER'));
+  assert.ok(migration.toLowerCase().indexOf('not private.buklod_is_platform_official_v1(p.id)')<migration.toLowerCase().indexOf('row_number() over'));
   assert.match(migration,/membership_status = 'ACTIVE'/);
   assert.match(migration,/viewer\.user_id = v_viewer/);
   assert.match(migration,/GRANT EXECUTE.+TO authenticated/);
