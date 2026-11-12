@@ -16,7 +16,8 @@
     "app-runtime",
     "weak-network",
     "memory",
-    "accessibility"
+    "accessibility",
+    "navigation-scroll"
   ],
   "preserveBehaviors": [
     "Existing video playback, video poster generation, comments, Reels and Marites rendering and their media access paths are unchanged.",
