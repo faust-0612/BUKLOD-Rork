@@ -23,3 +23,11 @@ The admin-only `/admin/buklod-official` console uses existing Community Wall, Sy
 - User-facing console/UI modifications are **DEV only** until a compiled RC and OTA.
 - No automatic posting or greetings scheduler has been invented; the console links to existing authorized tools.
 - The private original identity snapshot is intentionally **not** exposed by any client RPC.
+
+## 2026-11-12 AdMob-only financial source segregation
+
+User revenue-sharing is funded **exclusively** by verified/reconciled AdMob receipts. AdMob estimates are not cash. R38 sponsorship inventory, other app income, subscriptions, donations, grants, local ad sponsorships and product income remain separate BUKLOD business revenues and cannot enter the member QMP/first-line/community payout numerator.
+
+The R38 legacy period has its own full-platform revenue total, but any user-pool estimate is computed from reconciled AdMob-only revenue, not sponsorship. Final payouts continue solely through Finance V3. The canonical admin reporting response exposes separate provider-finalized AdMob, Finance V3 AdMob journal, other-app revenue and other-app costs; Finance V3 member settlement remains disabled until verified funding and regular gates are satisfied.
+
+The Finance V3 finalizer rejects historical non-AdMob eligibility rows in any unfinalized month, and QMP readiness/settlement excludes the protected BUKLOD Official account. No historical cash movements, held balances, or ledger entries are deleted or reset.
