@@ -1,0 +1,68 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/official-wall-publish-reward-guard-20261112.json",
+  "objective": "Repair November 12 BUKLOD Official public Wall post creation P0001 after server-side exclusion from member reward credits, without restoring rewards or touching existing video/photo player.",
+  "baseRef": "d914df08b37a7f3368fc4a676de6324b05a320e8",
+  "productionBaselineEvidence": "At 2026-11-12 03:27:20 UTC a confirmed authenticated community post RPC returned HTTP 400/P0001, while the corresponding JPEG signed storage PUT completed HTTP 200. A previously working Official identity was activated by the 03:01 UTC SQL migration. Existing AFTER INSERT post triggers attempted member Points/QMP and creator-impact settlements, and new Official BEFORE ledger guards returned NULL; the creator settlement throws on no ledger ID. Five live SQL function definitions were retrieved and compared exactly before patching. 2026-11-12 targeted SQL migration applied to live BUKLOD Connect with success=true; a rollback-only live SQL post RPC diagnostic passed for both text and original stored JPEG. No diagnostic posts/credits remain. Latest current production-main source commit d914df08b37a7f3368fc4a676de6324b05a320e8 contains non-overlapping protected-feature governance PR #737; this hotfix's four changed paths were compared against that main and are disjoint. GitHub PR merge must preserve these safeguards; no released Android/Web runtime changes.",
+  "chosenApproach": "Add minimal Official-only early exits to existing canonical post-triggered QMP, publish Points and R4 impact functions, including direct impact settlement, preserving original live function definitions and all existing ledger safety guards.",
+  "selectionRationale": "Reward exclusion should block credits, not social posting. Avoid weakening triggers/RLS or changing front-end and media system. Database-only hotfix protects old web/Android clients immediately.",
+  "alternativeApproaches": [
+    "Disable the official reward ledger guard (rejected: would award member income to platform identity).",
+    "Disable all community post economic triggers (rejected: breaks member Points/QMP).",
+    "Change JavaScript publishing flow only (rejected: old clients still invoke backend and P0001 persists)."
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "ads-monetization",
+    "wall-media"
+  ],
+  "acceptanceChecks": [
+    "Server Office posts can create normal text and photos without receiving Points/QMP/BCU.",
+    "Normal members continue executing existing economic paths.",
+    "All five live function bodies retain previous SQL except targeted Official returns.",
+    "Official guard remains enabled on member credit ledgers.",
+    "Rollback-only production probe proves text and original JPEG RPC can succeed and leaves no persistent post.",
+    "SQL regression test and Node source contract pass, GitHub Engineering Accountability and exact-head release gates checked.",
+    "No frontend OTA/RC required for this database-only service correction."
+  ],
+  "preserveBehaviors": [
+    "Working Wall/Marites video rendering, player, upload and audio are unchanged.",
+    "Existing RLS, storage, auth, Official identity, Community visibility and media controls unchanged.",
+    "Historical financial ledger and finalized settlements unaffected.",
+    "Ordinary member rewards, QMP, anti-farming controls and AdMob-only distributions unaffected.",
+    "No Expo Web or native OTA published in this scope."
+  ],
+  "regressionTests": [
+    "supabase/tests/buklod_official_wall_publish_rollback_20261112.sql",
+    "tests/buklod-official-wall-post-regression-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/official-wall-publish-reward-guard-20261112.json",
+    "supabase/migrations/20261112115000_official_wall_post_reward_settlement_guard_v1.sql",
+    "supabase/tests/buklod_official_wall_publish_rollback_20261112.sql",
+    "tests/buklod-official-wall-post-regression-20261112.test.mjs"
+  ],
+  "releaseStatus": "SQL-only hotfix already applied and rollback-verified in production Supabase; GitHub PR integration and CI gates tracked separately; no Expo OTA or RC released.",
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Repair the protected live BUKLOD Wall publishing service without changing old-client request contracts or rewards.",
+      "preservedBehaviors": [
+        "Public Wall post creation remains possible for Official and regular members."
+      ],
+      "tests": [
+        "supabase/tests/buklod_official_wall_publish_rollback_20261112.sql"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Preserve Official ledger security while bypassing only incompatible publisher/creator reward-trigger settlement.",
+      "preservedBehaviors": [
+        "Official account remains excluded from Points, QMP, BCU and payouts; members unaffected."
+      ],
+      "tests": [
+        "supabase/tests/buklod_official_wall_publish_rollback_20261112.sql"
+      ]
+    }
+  ]
+}
