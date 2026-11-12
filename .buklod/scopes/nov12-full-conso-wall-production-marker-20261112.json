@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "releaseMode": "reviewed-production-marker",
+  "scopeManifestPath": ".buklod/scopes/nov12-full-conso-wall-production-marker-20261112.json",
+  "objective": "Owner-authorized one consolidated BUKLOD Main Android production OTA and Expo Hosting Web publishing with Community Wall/large NativeAd retention and performance, private Ako Lang realtime protection, BSOC live support, About BUKLOD, Green B Login/Avatar, and Jawo.",
+  "baseRef": "cdbd561c3487563eb12b2f8f171af0037a0060fd",
+  "sourceMergeSha": "cdbd561c3487563eb12b2f8f171af0037a0060fd",
+  "productionBaselineEvidence": "Canonical GitHub Main at cdbd561c is squash merge of full RC PR #769. Exact source tree SHA 2a249986a66cc5cc939d14b251e9efd25471828e byte-identical to frozen source 723140ac1d5bd22999abd6fd2c5e85420db80f8a. Four source CI SUCCESS: Engineering 43197258602, Performance 43197258893, Main Integration 43197258556, production-env compile-only Android/Web 43197258585. Last run confirms RC_COMPILED_SHA=723140ac1d5bd22999abd6fd2c5e85420db80f8a, ANDROID_FILES=263, WEB_FILES=255, runtime 1.3.2, Android package org.mzbministry.buklod, Expo project 23dad7d0-389a-406e-8dec-08965dab85d8. Live Supabase applied privacy versions 20261112071459 and 20261112072440 already in production and RLS enabled; do not reapply. BSOC Edge bsoc-gpt-debug-v1 v8 ACTIVE, verify_jwt true, exact source verified. Installed production OTA update ID/Expo Web publication ID not yet verified, must be captured by canonical publisher.",
+  "chosenApproach": "Nonruntime release-marker PR on current exact Main, then protected squash title prefix BUKLOD_CONSOLIDATED_PROD_20261108 triggering ONLY canonical push-gated production Android/Web publishers. Both fetch real EAS production config, native runtime identity, immutable RC, freeze, exact publish receipt and served readback. Device manual acceptance waived only, no bypass of automated gates.",
+  "selectionRationale": "One existing governed OTA release minimizes duplicate Expo credits and keeps previous features and security intact. Physical Infinix acceptance expressly waived but not considered completed. No standalone partial OTA.",
+  "alternativeApproaches": [
+    "Direct manual EAS update from stale branch rejected; would bypass frozen-source identity and production publisher gates.",
+    "Push standalone Wall OTA before related approved next-consolidated updates rejected; final single RC already reconciles them.",
+    "Suppress AdMob consent, native video or private-post RLS rejected; leaves features unsafe or incomplete."
+  ],
+  "releasePrefix": "BUKLOD_CONSOLIDATED_PROD_20261108",
+  "target": {
+    "app": "BUKLOD Main",
+    "androidPackage": "org.mzbministry.buklod",
+    "androidVersionCode": 30,
+    "runtimeVersion": "1.3.2",
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "channel": "production",
+    "web": "Expo Hosting"
+  },
+  "rc": {
+    "sourceHead": "723140ac1d5bd22999abd6fd2c5e85420db80f8a",
+    "sourceMergedToMain": "cdbd561c3487563eb12b2f8f171af0037a0060fd",
+    "sourceTree": "2a249986a66cc5cc939d14b251e9efd25471828e",
+    "compiledAndroidWebRun": 43197258585,
+    "androidBundleFiles": 263,
+    "webBundleFiles": 255,
+    "requiredChecksPassed": 4,
+    "sourceQA": {
+      "engineering": 43197258602,
+      "performance": 43197258893,
+      "mainIntegration": 43197258556,
+      "compiled": 43197258585
+    }
+  },
+  "backend": {
+    "projectId": "yhanxndaqbmuzbdqlblu",
+    "privacyLiveMigrationVersions": [
+      "20261112071459",
+      "20261112072440"
+    ],
+    "bsocGptEdgeVersion": 8,
+    "bsocGptVerifyJwt": true,
+    "financePayoutUnchanged": true
+  },
+  "knownPending": {
+    "clientDeviceAcceptance": "OWNER WAIVED/SKIPPED (not test pass)",
+    "adsBillableImpressions": "Publisher account not visible; app SDK impressions cannot confirm billable AdMob revenue",
+    "klChapterBanks": 5,
+    "enforceQuiz": false
+  },
+  "riskAreas": [
+    "release-identity",
+    "app-runtime",
+    "auth-privacy",
+    "ads-monetization",
+    "backend-security",
+    "user-data",
+    "video",
+    "finance"
+  ],
+  "acceptanceChecks": [
+    "Only new scoped release marker and test files; exact app source tree from fully QA-passed RC unchanged.",
+    "Source Main parent and compiled source equal by Git tree hash, exact Android runtime/package/EAS project verified.",
+    "Reconciled privacy migrations already applied; do not introduce duplicate SQL operations.",
+    "User-waived on-device acceptance is SKIPPED only; all automated privacy/finance/media/ads release gates must pass.",
+    "Android canonical publisher must return a successful production update receipt, update ID/runtime/channel, manifest/hash verification.",
+    "Expo Hosting canonical publisher must return deployment ID/served export/hash verification.",
+    "No Ads revenue or Google no-fill success claims absent real publisher proof; compare 15/30/60m SDK telemetry after release."
+  ],
+  "preserveBehaviors": [
+    "Community Wall/photo/video/Marites and large video-capable NativeAd remain; IMA player and native decoder untouched.",
+    "Loaded native creative retention never authorizes ad request/impression while typed/form locked; UMP, remote kill, sensitive routes intact.",
+    "Private posts under Ako Lang invisible to nonauthors, cached media evicted upon revocation, live backend RLS policies unchanged.",
+    "BSOC v8 manual fallback clearly labeled; no auto-closure or AI provider quota success claim.",
+    "Only AdMob revenue is eligible for member sharing, sponsor revenue remains separate; finance switches unchanged.",
+    "Retired IGPAT stays absent from new feed/publishing, historical media preserved.",
+    "No APK/AAB native dependency/runtime change, OTA targeted only code 30 runtime1.3.2 production."
+  ],
+  "regressionTests": [
+    "tests/nov12-full-conso-wall-production-marker-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov12-full-conso-wall-production-marker-20261112.json",
+    "tests/nov12-full-conso-wall-production-marker-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "releaseStatus": "REVIEWED_PRODUCTION_MARKER_CANDIDATE__PENDING_QA_AND_ACTUAL_PUBLISH"
+}
