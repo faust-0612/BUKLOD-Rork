@@ -25,6 +25,9 @@ export default function BsocInbox(){
  const [canRead,setCanRead]=useState<boolean|null>(null);
  const [canManage,setCanManage]=useState(false);
  const [cases,setCases]=useState<Case[]>([]);
+ const queueGeneration=useRef(0);
+ const [moreAvailable,setMoreAvailable]=useState(false);
+ const [loadingOlder,setLoadingOlder]=useState(false);
  const [caseId,setCaseId]=useState('');
  const [messages,setMessages]=useState<Msg[]>([]);
  const [files,setFiles]=useState<(FileRow&{url:string|null})[]>([]);
@@ -33,10 +36,36 @@ export default function BsocInbox(){
  const [error,setError]=useState('');
  const [uid,setUid]=useState<string|null>(null);
  const loadCases=useCallback(async()=>{
+   const generation=++queueGeneration.current;
    const {data,error}=await supabase.rpc('buklod_bsoc_support_queue_v1',{p_status:null,p_limit:100,p_before:null});
-   if(error)setError(error.message);else {setCases((data||[]) as Case[]);setError('');}
+   if(generation!==queueGeneration.current)return;
+   if(error)setError(error.message);
+   else {
+     const rows=(data||[]) as Case[];
+     setCases(rows);setMoreAvailable(rows.length===100);setError('');
+   }
    setQueueLoaded(true);
  },[]);
+ const loadOlder=useCallback(async()=>{
+   if(loadingOlder||!moreAvailable||!cases.length)return;
+   const cursor=cases[cases.length-1]?.created_at;
+   if(!cursor)return;
+   const generation=queueGeneration.current;
+   setLoadingOlder(true);
+   try{
+     const {data,error}=await supabase.rpc('buklod_bsoc_support_queue_v1',{p_status:null,p_limit:100,p_before:cursor});
+     if(generation!==queueGeneration.current)return;
+     if(error)throw error;
+     const rows=(data||[]) as Case[];
+     setCases(previous=>{
+       if(previous[previous.length-1]?.created_at!==cursor)return previous;
+       const known=new Set(previous.map(c=>c.feedback_id));
+       return [...previous,...rows.filter(c=>!known.has(c.feedback_id))];
+     });
+     setMoreAvailable(rows.length===100);
+   }catch(e:any){if(generation===queueGeneration.current)setError(e?.message||'Could not load older support cases');}
+   finally{if(generation===queueGeneration.current)setLoadingOlder(false);}
+ },[cases,loadingOlder,moreAvailable]);
  const loadThread=useCallback(async()=>{
    if(!caseId||!canRead)return;
    const sequence=++requestSequence.current;
@@ -69,7 +98,7 @@ export default function BsocInbox(){
      setUid(auth.data.user?.id||null);
    }).catch(()=>{if(alive)setCanRead(false);});
    return ()=>{alive=false;};
- },[]);
+ },[user?.id]);
  useEffect(()=>{if(canRead)void loadCases();},[canRead,loadCases]);
  const openCase=useCallback((id:string)=>{
    requestSequence.current+=1;
@@ -111,9 +140,12 @@ export default function BsocInbox(){
    if(previousUserRef.current===user?.id)return;
    previousUserRef.current=user?.id;
    requestSequence.current+=1;
+   queueGeneration.current+=1;
    currentCase.current='';
    lastLinkedCase.current='';
-   setLinkedCase(null);setCaseId('');setMessages([]);setFiles([]);
+   setCanRead(null);setCanManage(false);setUid(null);
+   setCases([]);setMoreAvailable(false);setQueueLoaded(false);setLoadingOlder(false);
+   setLinkedCase(null);setCaseId('');setMessages([]);setFiles([]);setDraft('');
  },[user?.id]);
  useEffect(()=>{
    if(!caseId)return;
@@ -210,6 +242,9 @@ export default function BsocInbox(){
        <Text style={styles.bold}>{c.title}</Text>
        <Text style={styles.muted}>{c.reference} · {c.status} · {c.user_name||'Member'}</Text>
      </Pressable>)}
+     {moreAvailable&&<Pressable disabled={loadingOlder} onPress={()=>void loadOlder()} style={styles.button}>
+       <Text style={styles.buttonText}>{loadingOlder?'Loading older cases…':'Load older support cases'}</Text>
+     </Pressable>}
    </View>
  </ScrollView>;
 }

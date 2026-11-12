@@ -24,6 +24,9 @@ export default function BsocSupportOperations() {
   const [canRead,setCanRead]=useState<boolean|null>(null);
   const [canManage,setCanManage]=useState(false);
   const [cases,setCases] = useState<Case[]>([]);
+  const queueGeneration=useRef(0);
+  const [moreAvailable,setMoreAvailable]=useState(false);
+  const [loadingOlder,setLoadingOlder]=useState(false);
   const [status,setStatus] = useState<string>('');
   const [refreshing,setRefreshing] = useState(false);
   const [loading,setLoading] = useState(true);
@@ -52,16 +55,44 @@ export default function BsocSupportOperations() {
   },[canRead]);
 
   const load = useCallback(async () => {
-    setRefreshing(true); setError('');
+    const generation=++queueGeneration.current;
+    setRefreshing(true);setLoadingOlder(false);setError('');
     try {
       const {data,error:rpcError} = await supabase.rpc('buklod_bsoc_support_queue_v1',{
         p_status: status || null, p_limit: 100, p_before: null,
       });
+      if(generation!==queueGeneration.current)return;
       if (rpcError) throw rpcError;
-      setCases(Array.isArray(data) ? data : []);
-    } catch (e) {setError(friendlyError(e));}
-    finally {setLoading(false);setRefreshing(false);}
+      const rows=(Array.isArray(data)?data:[]) as Case[];
+      setCases(rows);
+      setMoreAvailable(rows.length===100);
+    } catch (e) {if(generation===queueGeneration.current)setError(friendlyError(e));}
+    finally {if(generation===queueGeneration.current){setLoading(false);setRefreshing(false);}}
   },[status]);
+
+  const loadOlder=useCallback(async()=>{
+    if(loadingOlder||refreshing||!moreAvailable||!cases.length)return;
+    const cursor=cases[cases.length-1]?.created_at;
+    if(!cursor)return;
+    const generation=queueGeneration.current;
+    setLoadingOlder(true);setError('');
+    try{
+      const {data,error:rpcError}=await supabase.rpc('buklod_bsoc_support_queue_v1',{
+        p_status:status||null,p_limit:100,p_before:cursor,
+      });
+      if(generation!==queueGeneration.current)return;
+      if(rpcError)throw rpcError;
+      const rows=(Array.isArray(data)?data:[]) as Case[];
+      setCases(previous=>{
+        // A refresh or filter change invalidates this page. Never mix snapshots.
+        if(previous[previous.length-1]?.created_at!==cursor)return previous;
+        const known=new Set(previous.map(c=>c.feedback_id));
+        return [...previous,...rows.filter(c=>!known.has(c.feedback_id))];
+      });
+      setMoreAvailable(rows.length===100);
+    }catch(e){if(generation===queueGeneration.current)setError(friendlyError(e));}
+    finally{if(generation===queueGeneration.current)setLoadingOlder(false);}
+  },[cases,loadingOlder,refreshing,moreAvailable,status]);
 
   useEffect(()=>{
     let live=true;
@@ -176,9 +207,9 @@ export default function BsocSupportOperations() {
       <Text style={styles.muted}>Analyze sanitized technical descriptions. No private case details are shared automatically.</Text>
     </Pressable>
     <Text style={styles.section}>Support cases</Text>
-    <Text style={styles.muted}>Latest 100 cases per filter. System Admin can open an older case through its authorized notification without bypassing audit.</Text>
+    <Text style={styles.muted}>Load older cases in secure pages of 100. System Admin can also open a case directly from an authorized notification without bypassing audit.</Text>
     <View style={styles.filters}>
-      {['',...STATUSES].map(s=><Pressable key={s||'all'} onPress={()=>{setStatus(s);setSelected(null);setPreview(null);}}
+      {['',...STATUSES].map(s=><Pressable key={s||'all'} onPress={()=>{queueGeneration.current+=1;setStatus(s);setCases([]);setMoreAvailable(false);setSelected(null);setPreview(null);}}
         style={[styles.chip,status===s&&styles.active]}><Text style={styles.chipText}>{s||'all'}</Text></Pressable>)}
     </View>
     {!!error&&<Text accessibilityRole="alert" style={styles.error}>ERROR: {error}</Text>}
@@ -191,6 +222,9 @@ export default function BsocSupportOperations() {
       <Text style={styles.muted}>{item.category} · {item.status} · {new Date(item.created_at).toLocaleString()}</Text>
       <Text style={styles.caseText} numberOfLines={3}>{item.message}</Text>
     </Pressable>)}
+    {moreAvailable&&<Pressable disabled={loadingOlder||refreshing} style={styles.button} onPress={()=>void loadOlder()}>
+      <Text style={styles.buttonText}>{loadingOlder?'Loading older cases…':'Load older support cases'}</Text>
+    </Pressable>}
     {selected&&<View style={styles.editor}>
       <Text style={styles.section}>Case {selected.reference}</Text>
       <Text style={styles.muted}>{selected.user_name||'BUKLOD member'} · {selected.platform||'Unknown platform'} · {selected.app_version||'Version unknown'}</Text>

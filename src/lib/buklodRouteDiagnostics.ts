@@ -7,7 +7,7 @@ const SAFE_SEGMENTS = new Set([
   'church', 'clusters', 'community', 'connect', 'daily-reading',
   'devotional', 'drawer', 'faith-monitoring', 'formation', 'help',
   'home', 'hub', 'index', 'learn', 'me', 'messages', 'organizations',
-  'personal', 'post', 'profile', 'scope', 'settings', 'word',
+  'personal', 'post', 'profile', 'scope', 'settings', 'word', 'support',
   'report', 'manage', 'members', 'invitations', 'progress', 'create',
   'reflection', 'about-buklod', 'hymns', 'life', 'prayer',
   // Static admin routes; dynamic IDs remain anonymized.

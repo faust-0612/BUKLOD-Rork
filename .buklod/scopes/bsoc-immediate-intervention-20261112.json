@@ -23,7 +23,8 @@
     "tests/bsoc-intervention-live-safety-20261112.test.mjs",
     "tests/bsoc-navigation-route-20261112.test.mjs",
     "tests/bsoc-security-permission-20261112.test.mjs",
-    "supabase/tests/bsoc_gpt_permission_contract_20261112.sql"
+    "supabase/tests/bsoc_gpt_permission_contract_20261112.sql",
+    "tests/bsoc-support-pagination-20261112.test.mjs"
   ],
   "preserveBehaviors": [
     "Wall, Ads, videos, finance, points, public privacy and global nav routing unchanged",
@@ -38,20 +39,23 @@
     "Static admin routes appear in future crash reports without exposing dynamic IDs",
     "Historical authorized case can be opened beyond the bounded 100 item queue",
     "Each case offers an editable targeted safe reply and an explicit closure gate",
-    "Source tests plus Android RC compile and runtime/device test before release"
+    "Source tests plus Android RC compile and runtime/device test before release",
+    "All unresolved cases are pageable through secure 100-row server pagination using p_before timestamp; account changes clear stale queue state."
   ],
   "riskAreas": [
     "bsoc-case-access",
     "error-route-privacy",
     "ai-provider-fallback",
     "render-boundary",
+    "navigation-scroll",
     "navigation-scroll"
   ],
   "regressionTests": [
     "tests/bsoc-intervention-live-safety-20261112.test.mjs",
     "tests/bsoc-navigation-route-20261112.test.mjs",
     "tests/bsoc-security-permission-20261112.test.mjs",
-    "supabase/tests/bsoc_gpt_permission_contract_20261112.sql"
+    "supabase/tests/bsoc_gpt_permission_contract_20261112.sql",
+    "tests/bsoc-support-pagination-20261112.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
