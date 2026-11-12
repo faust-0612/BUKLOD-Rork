@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore Cluster Connect seen-report discoverability, instant avatar update after confirmed save, and passive ad eligibility re-evaluation after safety lock/remote flag/foreground transitions.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Source changes branched from current authenticated GitHub main on 2026-11-12; live Supabase scoped reader RPC inspected read-only and 237 active-membership Cluster cursor rows across 19 Cluster scopes observed. Last-24h Android ad operations had 2563 requests, 919 loaded, 342 reported impressions, 624 no-fill and 159 native timeouts across app. Exact installed Android OTA and production runtime not verified.",
+  "chosenApproach": "Reuse canonical, member-gated room read cursors; leave Org message-window badges unchanged and show per-message Cluster report, including zero readers. On successful own avatar save, publish local versioned URL so mounted avatars repaint; avoid fixed expo-image cache identity. Observe ad safety state transitions using React external store without bypassing UMP, kill switches, no-fill quiet time or visibility.",
+  "preserveBehaviors": [
+    "Original Organization Connect Seen badge grouping and private direct chat behavior untouched.",
+    "Existing secure read cursor RPC, membership authorization and room-read writes untouched.",
+    "Profile photos remain owner-updated through existing authenticated profile save and Storage upload.",
+    "Community Wall photo posting failure does not block a successfully saved profile picture.",
+    "Do not change video playback, scroll viewability, AdMob identifiers, consent, SDK, ad density or user revenue accounting.",
+    "Do not alter sensitive route, form, typing, exam, foreground or network safety exclusions."
+  ],
+  "riskAreas": [
+    "connect-ptt-calls",
+    "navigation-auth",
+    "ads-finance-points",
+    "app-runtime"
+  ],
+  "regressionTests": [
+    "tests/buklod-cluster-connect-seen-20261112.test.mjs",
+    "tests/buklod-profile-avatar-navigation-live-20261112.test.mjs",
+    "tests/buklod-ad-gate-recovery-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Thread, profile, and ad runtime surfaces each receive narrow source repairs backed by focused regression tests.",
+      "preservedBehaviors": [
+        "No navigation rerouting, video playback change, reward change or auth entitlement change."
+      ],
+      "tests": [
+        "tests/buklod-cluster-connect-seen-20261112.test.mjs",
+        "tests/buklod-ad-gate-recovery-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Cluster scope now exposes already authorized room-cursor readers on own messages, with Org behavior preserved.",
+      "preservedBehaviors": [
+        "Member-gated RPC and existing cursor writes unchanged; no fabricated per-message receipt or PTT changes."
+      ],
+      "tests": [
+        "tests/buklod-cluster-connect-seen-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Profile photo save publishes only the confirmed URL into a local per-user display store.",
+      "preservedBehaviors": [
+        "Authenticated owner-only update is intact and route structure plus account isolation are unchanged."
+      ],
+      "tests": [
+        "tests/buklod-profile-avatar-navigation-live-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Ad slots now receive an observable revision whenever runtime safety conditions transition.",
+      "preservedBehaviors": [
+        "Consent, route exclusions, native ads, placement cooldown, no-fill retry and finance ledger stay unchanged."
+      ],
+      "tests": [
+        "tests/buklod-ad-gate-recovery-20261112.test.mjs"
+      ]
+    }
+  ],
+  "allowedPaths": [
+    "src/lib/buklodGlobalAdController.ts",
+    "src/components/BuklodAdMobBanner.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodReelsInlineAd.tsx",
+    "src/lib/buklodAvatarLive.ts",
+    "src/components/ProfileAvatar.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "tests/buklod-cluster-connect-seen-20261112.test.mjs",
+    "tests/buklod-profile-avatar-navigation-live-20261112.test.mjs",
+    "tests/buklod-ad-gate-recovery-20261112.test.mjs",
+    ".buklod/scopes/cluster-seen-avatar-ad-gate-recovery-20261112.json"
+  ],
+  "acceptanceChecks": [
+    "Focused Node regression tests and existing CI compile/type/source gates pass for exact proposed PR head.",
+    "Two active member devices in same Cluster: each sends, reads, sees correct reader counts; nonmember denied.",
+    "Profile photo repaint is immediate on uploading device in Home/Wall/Profile after DB confirmation; stale bytes absent.",
+    "Android test after typing/form lock release: visible consented ads recover without manual navigation; compare requests, fill and impressions from telemetry.",
+    "Do not assert ad fill when Google reports no-fill; do not synthesize impressions or bypass ad restrictions.",
+    "RC hardware acceptance and exact production OTA verification mandatory before any release."
+  ],
+  "releaseState": "ISOLATED DEV — NOT PUBLISHED / RC UNVERIFIED",
+  "physicalDeviceVerification": "Not performed"
+}
