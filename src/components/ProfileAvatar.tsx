@@ -18,6 +18,10 @@ import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { createBuklodAvatarBatchLookup } from '@/lib/buklodAvatarBatch';
+import {
+  getBuklodLiveAvatar,
+  subscribeBuklodLiveAvatar,
+} from '@/lib/buklodAvatarLive';
 
 // A missing avatar is a normal state. Resolve real profile URLs in one
 // bounded batch instead of probing guessed /avatar.jpg paths on every tile.
@@ -255,7 +259,7 @@ export function ProfileAvatar({
   const { user } = useAuth();
   const viewerId = user?.id ?? '';
   const [remoteUrl, setRemoteUrl] = useState<string | null>(
-    normalizeAvatarUrl(uri)
+    getBuklodLiveAvatar(userId) ?? normalizeAvatarUrl(uri)
   );
   const [imageFailed, setImageFailed] = useState(false);
   const [imageReady, setImageReady] = useState(false);
@@ -265,7 +269,7 @@ export function ProfileAvatar({
     setImageFailed(false);
     setImageReady(false);
 
-    const directUri = normalizeAvatarUrl(uri);
+    const directUri = getBuklodLiveAvatar(userId) ?? normalizeAvatarUrl(uri);
     if (directUri) {
       setRemoteUrl(current =>
         current === directUri ? current : directUri
@@ -300,6 +304,21 @@ export function ProfileAvatar({
       active = false;
     };
   }, [userId, uri, viewerId]);
+
+  // Refresh every already-mounted avatar on this device immediately after
+  // the profile owner saves a new version. Never ask for another network read.
+  useEffect(() => {
+    const currentId = String(userId ?? '').toLowerCase();
+    if (!currentId) return;
+    const latest = getBuklodLiveAvatar(currentId);
+    if (latest) setRemoteUrl(latest);
+    return subscribeBuklodLiveAvatar(change => {
+      if (change.userId !== currentId) return;
+      setImageFailed(false);
+      setImageReady(false);
+      setRemoteUrl(change.url);
+    });
+  }, [userId]);
 
   const initial = (name?.trim()?.[0] || 'B').toUpperCase();
 
@@ -353,7 +372,9 @@ export function ProfileAvatar({
         <ExpoImage
           source={{
             uri: remoteUrl,
-            cacheKey: userId ? `avatar:${userId}` : remoteUrl,
+            // An identity-only cache key trapped the previous image bytes
+            // even after the URL gained a fresh ?v= timestamp.
+            cacheKey: userId ? `avatar:${userId}:${remoteUrl}` : remoteUrl,
           }}
           style={{
             ...circleStyle,
@@ -363,7 +384,7 @@ export function ProfileAvatar({
           }}
           contentFit="cover"
           cachePolicy="memory-disk"
-          recyclingKey={userId || remoteUrl || undefined}
+          recyclingKey={remoteUrl || userId || undefined}
           transition={0}
           onLoad={() => {
             setImageReady(true);
