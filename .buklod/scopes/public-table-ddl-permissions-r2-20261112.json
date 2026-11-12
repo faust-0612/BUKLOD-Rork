@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/public-table-ddl-permissions-r2-20261112.json",
-  "objective": "Remove RLS-bypassing TRUNCATE, TRIGGER and REFERENCES grants from anonymous and ordinary authenticated roles on all existing public PostgreSQL tables, preserve DML and maintain ongoing security scan detection.",
+  "objective": "Remove RLS-bypassing TRUNCATE, TRIGGER and REFERENCES grants from anonymous and ordinary authenticated roles on all existing public PostgreSQL tables, preserve DML and maintain ongoing security scan detection. Apply same ACL correction to the dedicated Quiz database without changing its login and answer RPCs.",
   "baseRef": "d0c73a5d07a24780eea52c3e914db4a3bd030852",
-  "productionBaselineEvidence": "2026-11-12 live read-only: 542 RLS-protected public tables; anon had TRUNCATE on 368 and authenticated on 380, trigger/reference on 369/381; original Default ACLs included Dxt for both. Only two current SECURITY DEFINER routines issue TRUNCATE on pg_temp. Existing service_role/default finance RLS must remain intact. Full exact SQL executed BEGIN/ROLLBACK on production main and verified 0 residual grants plus retained service and client DML privileges; post rollback counts restored 368/380. Protected-main ancestry rebased on d0c73a5d07a24780eea52c3e914db4a3bd030852 after independent Admin Priority merge; 5 security files only.",
+  "productionBaselineEvidence": "2026-11-12 live read-only: 542 RLS-protected public tables; anon had TRUNCATE on 368 and authenticated on 380, trigger/reference on 369/381; original Default ACLs included Dxt for both. Only two current SECURITY DEFINER routines issue TRUNCATE on pg_temp. Existing service_role/default finance RLS must remain intact. Full exact SQL executed BEGIN/ROLLBACK on production main and verified 0 residual grants plus retained service and client DML privileges; post rollback counts restored 368/380. Protected-main ancestry rebased on d0c73a5d07a24780eea52c3e914db4a3bd030852 after independent Admin Priority merge; 5 security files only. Dedicated Quiz read-only: 23/23 public RLS, 5 anon TRUNCATE and 16 authenticated TRUNCATE grants; exact Quiz-only migration trial completed in BEGIN/ROLLBACK, preserving all three existing login/answer RPC signatures.",
   "chosenApproach": "Revoke only TRUNCATE/TRIGGER/REFERENCES on public existing ordinary/partitioned tables for PUBLIC,anon,authenticated; preserve normal DML, service role, and RLS; remove unsafe postgres default grants and extend private 15-minute metadata-only scanner.",
   "selectionRationale": "Smallest privilege correction. Avoid blanket ALL revocation that could break normal app queries. Authenticated clients never legitimately issue DDL. The platform-owned supabase_admin default ACL is not writable with postgres membership and is monitored for regression.",
   "alternativeApproaches": [
@@ -26,14 +26,19 @@
   ],
   "regressionTests": [
     "tests/buklod-public-table-grants-r2.test.cjs",
-    "supabase/tests/buklod_public_table_ddl_grants_r2.sql"
+    "supabase/tests/buklod_public_table_ddl_grants_r2.sql",
+    "tests/buklod-quiz-public-ddl-grants-r2.test.cjs",
+    "security/sql/tests/quiz_only_public_ddl_r2_postdeploy.sql"
   ],
   "allowedPaths": [
     "supabase/migrations/20261112130700_revoke_public_ddl_privileges_security_r2.sql",
     "supabase/tests/buklod_public_table_ddl_grants_r2.sql",
     "tests/buklod-public-table-grants-r2.test.cjs",
     "docs/security/BUKLOD_PUBLIC_TABLE_DDL_PRIVILEGE_R2.md",
-    ".buklod/scopes/public-table-ddl-permissions-r2-20261112.json"
+    ".buklod/scopes/public-table-ddl-permissions-r2-20261112.json",
+    "security/sql/quiz_only_revoke_public_ddl_r2_20261112.sql",
+    "security/sql/tests/quiz_only_public_ddl_r2_postdeploy.sql",
+    "tests/buklod-quiz-public-ddl-grants-r2.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -44,7 +49,9 @@
       ],
       "tests": [
         "tests/buklod-public-table-grants-r2.test.cjs",
-        "supabase/tests/buklod_public_table_ddl_grants_r2.sql"
+        "supabase/tests/buklod_public_table_ddl_grants_r2.sql",
+        "tests/buklod-quiz-public-ddl-grants-r2.test.cjs",
+        "security/sql/tests/quiz_only_public_ddl_r2_postdeploy.sql"
       ]
     },
     {
@@ -55,7 +62,9 @@
       ],
       "tests": [
         "tests/buklod-public-table-grants-r2.test.cjs",
-        "supabase/tests/buklod_public_table_ddl_grants_r2.sql"
+        "supabase/tests/buklod_public_table_ddl_grants_r2.sql",
+        "tests/buklod-quiz-public-ddl-grants-r2.test.cjs",
+        "security/sql/tests/quiz_only_public_ddl_r2_postdeploy.sql"
       ]
     }
   ],
@@ -65,6 +74,7 @@
     "Default ACL for postgres cleaned; provider supabase_admin default ACL documented separately",
     "Engineering Accountability + protected feature lock pass",
     "Exact-head relevant CI passes before merge; managed production migration and postdeploy verification required",
-    "No Android OTA necessary for SQL-only hardening; no feature screens modified"
+    "No Android OTA necessary for SQL-only hardening; no feature screens modified",
+    "Dedicated Quiz SQL must be deployed only to cjtehbfspgimyhifnjon with post-deploy checks; its normal login/exam/answer RPCs remain callable."
   ]
 }

@@ -16,3 +16,6 @@ Source changes on DEV branch only until Engineering Accountability, QA, controll
 
 ## Recovery
 If a legitimate server routine unexpectedly relies on one of these privileges as invoker, identify exact function/role, restore only the needed scoped privilege after security review, and update the invariant gate. Do **not** globally GRANT ALL or disable RLS to fix a single permission error. Never restore/delete real finance data to diagnose role grants.
+
+## Separate dedicated BUKLOD Quiz database
+Dedicated Quiz Supabase `cjtehbfspgimyhifnjon` has 23/23 RLS public tables but 5 anon TRUNCATE grants and 16 authenticated TRUNCATE grants. The separate exact SQL lives at `security/sql/quiz_only_revoke_public_ddl_r2_20261112.sql` **outside** Main's automatic `supabase/migrations` path, and has its own read-only post-deploy gate. The full Quiz-only SQL was executed in BEGIN/ROLLBACK on the correct project; no exam, faculty, roster, identity resolver or answer-RPC data changed. Apply this file only through dedicated Quiz migration mechanism and verify that `buklod_quiz_resolve_login_identifier_v1`, `buklod_quiz_save_answer_v1` and `_v2` retain their existing grants. Separate account-enumeration concern in Quiz login resolver still requires authentication redesign rather than breaking current login.
