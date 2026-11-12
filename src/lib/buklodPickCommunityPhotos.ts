@@ -10,6 +10,8 @@ export type PickedCommunityPhoto = {
   /** Browser-owned file avoids re-fetching multi-MB data URIs in iOS webviews. */
   webFile?: Blob;
   mimeType?: string;
+  width?: number;
+  height?: number;
 };
 
 export async function pickCommunityPhotos(options: {
@@ -46,7 +48,7 @@ export async function pickCommunityPhotos(options: {
     allowsEditing: false,
     allowsMultipleSelection: true,
     selectionLimit: remaining,
-    quality: options.preserveAnimation ? 1 : 0.85,
+    quality: 1, // Avoid a second lossy picker encode; encode once at publish.
     legacy: false,
   });
 
@@ -60,6 +62,8 @@ export async function pickCommunityPhotos(options: {
       uri: String(asset.uri ?? '').trim(),
       webFile: Platform.OS === 'web' ? asset.file ?? undefined : undefined,
       mimeType: String(asset.mimeType ?? asset.file?.type ?? '').trim().toLowerCase() || undefined,
+      width: Number(asset.width ?? 0) > 0 ? Number(asset.width) : undefined,
+      height: Number(asset.height ?? 0) > 0 ? Number(asset.height) : undefined,
     }))
     .filter(photo => !!photo.uri)
     .slice(0, remaining);
@@ -110,7 +114,7 @@ export async function pickCommunityGallery(options: {
       1,
       photoRemaining + (options.hasVideo ? 0 : 1),
     ),
-    quality: 0.85,
+    quality: 1, // Local preview first; resize/compress once at publish.
     videoMaxDuration: 30 * 60,
     legacy: false,
   });
@@ -127,6 +131,8 @@ export async function pickCommunityGallery(options: {
       uri: String(asset.uri ?? '').trim(),
       webFile: Platform.OS === 'web' ? asset.file ?? undefined : undefined,
       mimeType: String(asset.mimeType ?? asset.file?.type ?? '').trim().toLowerCase() || undefined,
+      width: Number(asset.width ?? 0) > 0 ? Number(asset.width) : undefined,
+      height: Number(asset.height ?? 0) > 0 ? Number(asset.height) : undefined,
     }))
     .filter(photo => !!photo.uri)
     .slice(0, photoRemaining);
