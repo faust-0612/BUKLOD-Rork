@@ -73,6 +73,7 @@ import {
 } from '@/lib/buklodMemberProfile';
 import { shareProfileUpdateOnCommunityWall } from '@/lib/buklodProfileCommunityShare';
 import { publishBuklodLiveAvatar } from '@/lib/buklodAvatarLive';
+import { updateSavedSuggestedLoginAvatar } from '@/lib/buklodSuggestedLoginStorage';
 import { loadBuklodPointsDashboard } from '@/lib/buklodRewards';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { BuklodGlobalThemeSelectorModal } from '@/components/BuklodGlobalThemeSelector';
@@ -834,6 +835,11 @@ export default function MeScreen() {
         // The database has confirmed the new URL. Update all mounted
         // ProfileAvatar views now; Community sharing is a separate optional step.
         publishBuklodLiveAvatar({ userId: profile.id, url: avatarUrl });
+        // Update only this account's Suggested Login photo on this device.
+        // Never touch another account's card or any stored password.
+        await updateSavedSuggestedLoginAvatar(profile.id, avatarUrl).catch(error => {
+          console.warn('Could not cache updated Suggested Login avatar:', error);
+        });
         await refreshProfile();
 
         try {

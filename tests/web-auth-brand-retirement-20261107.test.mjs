@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = p => readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
-test('web login brand is canonical, native legacy fallback unchanged', () => {
+test('Android and web login use the same approved Green B logo', () => {
   const x=read('src/app/(auth)/login.tsx');
-  assert.match(x,/const SUGGESTED_LOGIN_BUKLOD_LOGO[\s\S]*?Platform\.OS === 'web'[\s\S]*?buklod-main-canonical\.png[\s\S]*?buklod-generic\.png/);
+  assert.match(x,/const SUGGESTED_LOGIN_BUKLOD_LOGO[\s\S]*?buklod-main-canonical\.png/);
+  assert.match(x,/source=\{SUGGESTED_LOGIN_BUKLOD_LOGO\}/);
+  assert.doesNotMatch(x,/buklod-generic(?:-photo)?\.(?:jpg|png)/);
   assert.match(x,/signInWithPasswordResilient/);
 });
 
