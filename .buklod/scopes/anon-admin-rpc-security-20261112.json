@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "objective": "Remove anonymous invocation of privileged admin API entry points while preserving member, media, administrator and server-to-server behavior.",
+  "baseRef": "219507f387c8f75af98a4489fbd26abbce1a62ed",
+  "productionBaselineEvidence": "2026-11-12 read-only Supabase production audit: main public 542 tables all RLS enabled; 58 admin_* SECURITY DEFINER functions executable by anon and authenticated. Exact grant migration passed BEGIN/ROLLBACK-only SQL check; production grants remain unchanged pending release.",
+  "chosenApproach": "For 58 existing admin_* SECURITY DEFINER functions which already allow authenticated calls, revoke function EXECUTE from PUBLIC and anon and explicitly allow authenticated and service_role; fail migration if any anon admin privileged RPC remains. Include read-only post-deploy SQL verification.",
+  "selectionRationale": "Small targeted privilege change at database API boundary avoids video, ads, auth client, data schema, and business logic changes, while preserving authenticated admin routes.",
+  "alternativeApproaches": [
+    "Revoke EXECUTE on every public function: rejected because public onboarding, media and legitimate signed-in RPCs would break.",
+    "Rely only on existing in-function System Admin checks: rejected because anonymous callers still reach privileged code and every future edit must remain flawless."
+  ],
+  "preserveBehaviors": [
+    "Existing authenticated system-admin role checks and SQL bodies are not changed",
+    "Unrelated member RPCs and public access routes unaffected",
+    "Video, photo, ads, PTT, Wall, points and cash ledgers untouched",
+    "No Android OTA or web client update required for this ACL migration"
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "database-privileges"
+  ],
+  "regressionTests": [
+    "tests/anon-admin-rpc-security.test.cjs",
+    "supabase/tests/anon_admin_rpc_security_20261112.sql"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261112115000_lock_anonymous_admin_rpc_execution_r1.sql",
+    "security/sql/audit_anonymous_admin_rpcs.sql",
+    "tests/anon-admin-rpc-security.test.cjs",
+    "supabase/tests/anon_admin_rpc_security_20261112.sql",
+    ".buklod/scopes/anon-admin-rpc-security-20261112.json"
+  ],
+  "acceptanceChecks": [
+    "Focused Node contract tests pass",
+    "Rollback-only SQL trial proves anonymous admin definer execution becomes zero",
+    "Post-release SQL check returns no anonymous admin definer functions",
+    "Authenticated privileges to known admin functions remain enabled",
+    "Main security advisor reflects fewer anonymous definer findings",
+    "No media, points, profile, payout, or frontend code changed"
+  ]
+}
