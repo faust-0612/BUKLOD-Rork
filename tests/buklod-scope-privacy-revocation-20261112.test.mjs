@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const scopedWall = readFileSync('src/components/BuklodExclusiveScopeCommunity.tsx','utf8');
-const scopeSQL = readFileSync('supabase/migrations/20261112072700_buklod_scope_post_private_realtime_v1.sql','utf8');
-const primarySQL = readFileSync('supabase/migrations/20261112072000_buklod_author_only_post_privacy_realtime_v1.sql','utf8');
+const scopeSQL = readFileSync('supabase/migrations/20261112072440_buklod_scope_post_private_realtime_v1.sql','utf8');
+const primarySQL = readFileSync('supabase/migrations/20261112071459_buklod_author_only_post_privacy_realtime_v1.sql','utf8');
 
 test('exclusive scope feed checks canonical post privacy and preserves existing audience authorization',()=>{
   assert.match(primarySQL,/alter policy buklod_scope_social_posts_read/);
