@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/client-version-telemetry-rotation-20261112.json",
+  "objective": "Eliminate benign 54000/HTTP 500 version-telemetry failures when user reaches 20 random reinstall IDs without ever weakening account or OTA security.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: Live BUKLOD Connect Supabase 2026-11-12 16 HTTP 500 version registry errors and one account with 20 installation records. Exact current production SQL function inspected, Main source baseline 5a97b754b6e0319690a717461bdd182b7b132b0c separately verified; Main is not assumed live OTA.",
+  "chosenApproach": "Serialize reports by authenticated user with xact advisory lock; at capacity delete exactly one oldest same-user telemetry row and then insert new ID, preserving 20-row cap.",
+  "selectionRationale": "Simple bounded rolling window is safer than raising 500 or unbounded storage; IDs are not auth tokens, user account data or evidence for account bans.",
+  "alternativeApproaches": [
+    "Increase installation limit indefinitely: rejected due unbounded DB growth and false monitoring.",
+    "Return 200 but discard newest report: rejected because current runtime adoption would remain invisible.",
+    "Rotate oldest same-user observation atomically after count>=20: selected."
+  ],
+  "riskAreas": [
+    "database-performance",
+    "auth-privacy",
+    "client-version-adoption"
+  ],
+  "regressionTests": [
+    "supabase/tests/client_version_telemetry_rotation_20261112.sql",
+    "tests/client-version-telemetry-rotation-20261112.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Engine accountability and Performance R1 QA pass",
+    "SQL transaction dry-run compiles unchanged function signature",
+    "Only oldest same-user registry record rotates when 20 cap reached",
+    "Anon denied; auth required; OBSERVE_ONLY OTA adoption unchanged",
+    "Production function parity verified after merge; no Android media changes"
+  ],
+  "preserveBehaviors": [
+    "No change to account RLS, auth, installation ownership and 20 max rows",
+    "No enforcement of old client cutoff via self-reported telemetry",
+    "No change to media playback, native runtime, ads or user points",
+    "No prod deployment until required CI release gates pass"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261112022000_client_version_telemetry_bounded_rotation.sql",
+    "supabase/tests/client_version_telemetry_rotation_20261112.sql",
+    "tests/client-version-telemetry-rotation-20261112.test.mjs",
+    ".buklod/scopes/client-version-telemetry-rotation-20261112.json"
+  ],
+  "releaseStatus": "DEV only. Live DB migration separately gated."
+}
