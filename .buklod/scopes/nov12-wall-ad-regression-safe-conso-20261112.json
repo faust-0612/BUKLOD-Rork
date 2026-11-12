@@ -57,5 +57,16 @@
     "Compare post OTA latest 15/30/60-minute SDK event buckets for matching build and ideally update fingerprint; never claim live fill without publisher and device verification.",
     "User has waived physical handset acceptance in prior instructions, not automated release gates."
   ],
-  "releaseState": "NONPUBLISHING_DEV_SOURCE_PENDING_QA"
+  "releaseState": "NONPUBLISHING_DEV_SOURCE_PENDING_QA",
+  "preserveBehaviors": [
+    "Community Wall, active CommunityVideo playback, media image rendering, large sponsored video, IMA and Reels components untouched.",
+    "Loaded NativeAd survives mounted scroll and transient form lock only; no ad renders during lock.",
+    "Foreground, UMP consent, remote flags, sensitive route gating, shared no-fill cooldown, request reservation and original 392px native video card preserved.",
+    "Production Finance, Points, official identity, privacy and session/account isolation not modified."
+  ],
+  "alternativeApproaches": [
+    "Reverse recent complete Wall OTA: rejected because lock snapshot shows Wall/video unchanged and would undo working media/photo and security features.",
+    "Start parallel large native+banner requests or bypass 400ms viewport test: rejected due extra no-fill pressure and offscreen-impression policy risks.",
+    "Disable all interaction safety locks to boost impressions: rejected because no ads must be shown during typing, privacy and sensitive flows."
+  ]
 }
