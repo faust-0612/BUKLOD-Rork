@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const migration=readFileSync('supabase/migrations/20261112030000_buklod_admob_only_member_revenue_v1.sql','utf8');
+const migration=readFileSync('supabase/migrations/20261112094000_buklod_admob_only_member_revenue_v1.sql','utf8');
 const lib=readFileSync('src/lib/buklodCanonicalAdminEconomy.ts','utf8');
 const bayanihan=readFileSync('src/app/admin/bayanihan.tsx','utf8');
 const reports=readFileSync('src/app/admin/reports-center.tsx','utf8');

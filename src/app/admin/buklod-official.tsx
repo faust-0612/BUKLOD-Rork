@@ -21,6 +21,8 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const DOORS: { title: string; subtitle: string; icon: IconName; path: string }[] = [
   { title: 'Official Announcements', subtitle: 'Public Home and profile announcement boards', icon: 'bullhorn-outline', path: '/admin/system-announcement-boards' },
+  { title: 'Wall Review & Takedowns', subtitle: 'Inspect every public Wall post and apply reversible audited moderation', icon: 'shield-check-outline', path: '/admin/wall-control' },
+  { title: 'Official User Messages', subtitle: 'Search members and send individually addressed official notices', icon: 'email-check-outline', path: '/admin/official-messages' },
   { title: 'Community Wall', subtitle: 'Publish, comment and react as BUKLOD Official', icon: 'comment-text-multiple-outline', path: '/(tabs)/buklod' },
   { title: 'Spotlight & Bulletins', subtitle: 'Recognize members, clusters and accomplishments', icon: 'star-circle-outline', path: '/admin/mission-bulletins' },
   { title: 'BSOC Live Support', subtitle: 'Official support conversations and escalations', icon: 'headset', path: '/admin/bsoc-support' },

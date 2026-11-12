@@ -399,8 +399,20 @@ export default function AdminDashboard() {
               <AdminRow
                 icon="check-decagram"
                 title="BUKLOD Official Console"
-                subtitle="Official posts, announcements and BSOC support"
+                subtitle="Wall review, official posts, user messages and announcements"
                 path="/admin/buklod-official"
+              />
+              <AdminRow
+                icon="shield-check-outline"
+                title="Wall Review & Takedowns"
+                subtitle="Inspect public posts, apply audited soft takedowns and restore allowed content"
+                path="/admin/wall-control"
+              />
+              <AdminRow
+                icon="email-check-outline"
+                title="Official User Messages"
+                subtitle="Send targeted BUKLOD notifications to individual members"
+                path="/admin/official-messages"
               />
 
               <AdminRow

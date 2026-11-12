@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/buklod-official-identity-economy-20261112.json",
-  "objective": "Convert the one protected BUKLOD System Admin account into the BUKLOD platform identity with no member point/QMP/finance eligibility, verified official social interactions and a separate Official Console. Restrict user distributions to verified/reconciled AdMob revenue only; explicitly report sponsorship and other business income separately.",
+  "objective": "Convert the one protected BUKLOD System Admin account into the BUKLOD platform identity with no member point/QMP/finance eligibility, verified official social interactions and a separate Official Console. Restrict user distributions to verified/reconciled AdMob revenue only; explicitly report sponsorship and other business income separately. Add audit-backed public Wall moderation and official individually addressed member notices.",
   "baseRef": "7ec45d5412d64f07f76b08f7ebc1a80109407991",
   "productionBaselineEvidence": "Exact production main at branch creation 7ec45d5412d64f07f76b08f7ebc1a80109407991. Active Supabase BUKLOD Connect project inspected. Protected OFFICIAL_SYSTEM_ADMIN principal matched one existing account, 134 historical points records, 362 historical QMP, zero user-settlements and cash-ledger entries. Database migration plus assertions passed in rollback-only transaction; production was not changed in DEV.",
   "chosenApproach": "Use the existing immutable protected principal and auth UUID, keep original personal name/avatar in an inaccessible private audit snapshot, brand existing public profile BUKLOD, add backend BEFORE-write reward guards and Finance QMP functions, filter legacy leaderboards before ranking, expose official dashboard RPC and reuse existing Community, announcement, bulletin and BSOC services.",
@@ -26,7 +26,9 @@
     "SQL migration and rollback tests pass; TypeScript compile and focused regression run on exact PR SHA.",
     "RC must be compiled/verified and reconciled with production main and consolidated OTA before deployment.",
     "Only official AdMob-reconciled source records may create member cash; sponsor income stays separately visible, never allocated to users.",
-    "Unfinalized 2026-11 sponsorship receipts remain ₱5,994 platform revenue, but R38 user-pool preview excludes sponsorship and canonical Finance V3 uses AdMob alone."
+    "Unfinalized 2026-11 sponsorship receipts remain ₱5,994 platform revenue, but R38 user-pool preview excludes sponsorship and canonical Finance V3 uses AdMob alone.",
+    "Wall review pages all public posts; only protected Official may hide/restore with reason and audit; never delete media.",
+    "Only protected Official may search recipients and send idempotent individual notices."
   ],
   "preserveBehaviors": [
     "No other member earning, ad monetization/claim, Community or Marites behavior changes.",
@@ -35,13 +37,16 @@
     "Existing Kabanata/Kingdom, Classroom/Quiz, BSOC, scope/community privacy unchanged.",
     "Historical reward events, Finance identities and finalized periods retained; no silent payout recalculation.",
     "No new native libraries, runtimes or unverified Production OTA.",
-    "AdMob preliminary estimate is not a finalized cash entitlement; do not activate payouts or rewrite historical finalized months."
+    "AdMob preliminary estimate is not a finalized cash entitlement; do not activate payouts or rewrite historical finalized months.",
+    "Existing Wall/Marites video, PTT, privacy-hidden posts and notifications delivery infrastructure preserved."
   ],
   "regressionTests": [
     "supabase/tests/buklod_official_identity_economy_isolation_20261112.sql",
     "tests/buklod-official-identity-contract.test.mjs",
     "supabase/tests/buklod_admob_only_member_revenue_20261112.sql",
-    "tests/buklod-admob-revenue-separation-20261112.test.mjs"
+    "tests/buklod-admob-revenue-separation-20261112.test.mjs",
+    "supabase/tests/buklod_official_wall_control_notices_20261112.sql",
+    "tests/buklod-official-wall-control-contract-20261112.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/buklod-official-identity-economy-20261112.json",
@@ -52,16 +57,21 @@
     "src/app/admin/buklod-official.tsx",
     "src/app/admin/economy-operations.tsx",
     "src/app/admin/index.tsx",
+    "src/app/admin/official-messages.tsx",
     "src/app/admin/reports-center.tsx",
+    "src/app/admin/wall-control.tsx",
     "src/app/member/[id].tsx",
     "src/components/points/BuklodPointsRewardsScreen.tsx",
     "src/lib/buklodCanonicalAdminEconomy.ts",
-    "supabase/migrations/20261112030000_buklod_admob_only_member_revenue_v1.sql",
     "supabase/migrations/20261112093000_buklod_official_identity_economy_isolation_v1.sql",
+    "supabase/migrations/20261112094000_buklod_admob_only_member_revenue_v1.sql",
+    "supabase/migrations/20261112094500_buklod_official_wall_control_and_notices_v1.sql",
     "supabase/tests/buklod_admob_only_member_revenue_20261112.sql",
     "supabase/tests/buklod_official_identity_economy_isolation_20261112.sql",
+    "supabase/tests/buklod_official_wall_control_notices_20261112.sql",
     "tests/buklod-admob-revenue-separation-20261112.test.mjs",
-    "tests/buklod-official-identity-contract.test.mjs"
+    "tests/buklod-official-identity-contract.test.mjs",
+    "tests/buklod-official-wall-control-contract-20261112.test.mjs"
   ],
   "releaseStatus": "DEV isolated on PR #730; Supabase migration tested in rollback only; hold Production DB write, merge, release RC and OTA until CI/RC proof."
 }

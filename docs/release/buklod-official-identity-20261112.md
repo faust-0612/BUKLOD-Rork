@@ -31,3 +31,7 @@ User revenue-sharing is funded **exclusively** by verified/reconciled AdMob rece
 The R38 legacy period has its own full-platform revenue total, but any user-pool estimate is computed from reconciled AdMob-only revenue, not sponsorship. Final payouts continue solely through Finance V3. The canonical admin reporting response exposes separate provider-finalized AdMob, Finance V3 AdMob journal, other-app revenue and other-app costs; Finance V3 member settlement remains disabled until verified funding and regular gates are satisfied.
 
 The Finance V3 finalizer rejects historical non-AdMob eligibility rows in any unfinalized month, and QMP readiness/settlement excludes the protected BUKLOD Official account. No historical cash movements, held balances, or ledger entries are deleted or reset.
+
+## Admin Wall control and official notices
+
+The Official Console links to an audited public Wall review interface and individual notice composer. Moderation is soft-hide only (no media deletion); restoration requires a prior BUKLOD Official hide. The server records actor, target, visibility change and reason privately. Individual notices are idempotent and delivered through the existing notification inbox; recipient search is restricted to the official account. For everyone-visible announcements use the Home/Profile announcement boards. No bulk direct-message blast is introduced to avoid unintended push fan-out.
