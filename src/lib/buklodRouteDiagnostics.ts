@@ -10,6 +10,9 @@ const SAFE_SEGMENTS = new Set([
   'personal', 'post', 'profile', 'scope', 'settings', 'word',
   'report', 'manage', 'members', 'invitations', 'progress', 'create',
   'reflection', 'about-buklod', 'hymns', 'life', 'prayer',
+  // Static admin routes; dynamic IDs remain anonymized.
+  'bsoc-support', 'bsoc-conversations', 'bsoc-gpt-debug',
+  'bsoc-notifications', 'bsoc-personnel', 'priority-requests',
 ]);
 
 let lastKnownRoute = 'unknown';

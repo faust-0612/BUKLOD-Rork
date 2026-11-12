@@ -5,7 +5,7 @@ import * as Crypto from 'expo-crypto';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {colors} from '@/lib/theme';
-import {bsoReplyDraft,isBsoCaseId,triageBsoCase} from '@/lib/bsocCaseTriage';
+import {bsoCaseIntervention,bsoReplyDraft,isBsoCaseId,triageBsoCase} from '@/lib/bsocCaseTriage';
 import {isValidBdocCaseId} from '@/lib/buklodAdminPriorityPolicy';
 type Case={feedback_id:string;reference:string;title:string;status:string;user_name:string|null;category?:string|null;message?:string|null;route?:string|null;platform?:string|null;app_version?:string|null;created_at?:string|null;updated_at?:string|null;resolution?:string|null};
 type Msg={id:string;body:string;sender_kind:string;sender_id:string;created_at:string};
@@ -138,6 +138,7 @@ export default function BsocInbox(){
  };
  const selected=cases.find(c=>c.feedback_id===caseId)??(linkedCase?.feedback_id===caseId?linkedCase:null);
  const triage=selected?triageBsoCase(selected):null;
+ const intervention=selected?bsoCaseIntervention(selected):null;
  if(canRead===null)return <View style={styles.page}><ActivityIndicator color={colors.green}/></View>;
  if(!canRead)return <View style={styles.page}><Text style={styles.h1}>BSOC support permission required</Text></View>;
  return <ScrollView style={styles.page} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -170,6 +171,16 @@ export default function BsocInbox(){
          <Text style={styles.link}>Update status / assignment / audited resolution ›</Text>
        </Pressable>
      </View>
+     {intervention&&<View style={styles.origin}>
+       <Text style={styles.h2}>Immediate intervention · {intervention.urgency==='priority'?'Priority investigation':'Case triage'}</Text>
+       <Text style={styles.bold}>Responsible: {intervention.owner}</Text>
+       <Text style={styles.body}>Check now: {intervention.firstCheck}</Text>
+       <Text style={styles.body}>Close only when: {intervention.closureGate}</Text>
+       <Pressable accessibilityRole="button" disabled={!canManage} style={styles.template} onPress={()=>setDraft(intervention.memberDraft)}>
+         <Text style={styles.link}>Prepare case-specific safe reply ›</Text>
+       </Pressable>
+       <Text style={styles.muted}>Draft only. The member is contacted only after Send; a suggestion never verifies a fix.</Text>
+     </View>}
      <Text style={styles.h2}>Reply privately to this member</Text>
      <Text style={styles.muted}>Choose a draft or write your own. Only Send delivers it; the existing backend notification informs this member of a new agent reply.</Text>
      <View style={styles.templates}>

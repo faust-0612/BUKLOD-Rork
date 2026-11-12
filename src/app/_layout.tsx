@@ -90,6 +90,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
         We couldn't complete this action. Please try again.
       </Text>
       <Text style={styles.errorCode}>Support code: SYS-500 · {errorSignature}</Text>
+      <Text style={styles.errorCode}>Module: {routeModule}</Text>
       <View style={styles.errorActions}>
         <Pressable onPress={retry} style={styles.retry}>
           <Text style={styles.retryText}>TRY AGAIN</Text>
@@ -98,9 +99,11 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
           onPress={() => router.replace(
             (pathname.startsWith('/clusters') || pathname.startsWith('/scope')
               ? '/clusters'
-              : pathname === '/buklod' || pathname.startsWith('/buklod/')
-                ? '/home'
-                : '/buklod') as any,
+              : pathname.startsWith('/admin/')
+                ? '/me'
+                : pathname === '/buklod' || pathname.startsWith('/buklod/')
+                  ? '/home'
+                  : '/buklod') as any,
           )}
           style={styles.helpButton}
         >
