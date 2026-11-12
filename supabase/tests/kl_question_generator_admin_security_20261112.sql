@@ -1,6 +1,16 @@
 -- Read-only KL generation security contract. Safe against the live database.
 -- The Edge generator may change models, but RPC access and question keys remain private.
 DO $kl_security$ BEGIN
+  IF to_regprocedure('public.kl_quiz_admin_review_v1(uuid)') IS NULL THEN
+    RAISE EXCEPTION 'Admin question review RPC missing';
+  END IF;
+  IF has_function_privilege('anon','public.kl_quiz_admin_review_v1(uuid)','EXECUTE') THEN
+    RAISE EXCEPTION 'Admin answer review exposed anonymously';
+  END IF;
+  IF position('role::text = ''system_admin'' AND is_active = true' in
+      pg_get_functiondef('public.kl_quiz_admin_review_v1(uuid)'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Admin question review lost active role authorization';
+  END IF;
   IF to_regprocedure('public.kl_quiz_admin_context_v1(uuid)') IS NULL
      OR to_regprocedure('public.kl_quiz_store_generated_v1(uuid,text,jsonb)') IS NULL
      OR to_regprocedure('public.kl_quiz_begin_v1(uuid)') IS NULL
