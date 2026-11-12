@@ -299,11 +299,41 @@ export default function KlReaderScreen() {
       const { data, error } = await supabase.functions.invoke(
         'kl-generate-reading-quiz', { body: { episode_id: databaseId } },
       );
-      return !error && (data as { status?: string } | null)?.status === 'ready'
-        ? 'Handa na ang 5 simpleng reading questions (3 random kada reader).'
-        : 'Approved ang manuscript pero pending pa ang mga tanong. Maaaring i-retry.';
+      type QuizStatus = { ok?: boolean; status?: string; reason?: string };
+      let result = data as QuizStatus | null;
+      // Non-2xx Edge responses have an error. Read the structured response
+      // so model failures do not silently appear as 'pending'.
+      if (error && (!result || !result.reason)) {
+        try {
+          const response = (error as { context?: { json?: () => Promise<unknown> } }).context;
+          if (typeof response?.json === 'function') {
+            const details = await response.json() as QuizStatus | null;
+            if (details && typeof details === 'object') result = details;
+          }
+        } catch {
+          // Interrupted connections may have no structured response.
+        }
+      }
+      if (!error && result?.ok === true && result.status === 'ready') {
+        return 'Handa na ang 5 simpleng reading questions (3 random kada reader).';
+      }
+      const failures: Record<string, string> = {
+        generator_model_unavailable: 'Hindi available ang AI model para sa project. Kailangan ng model configuration fix.',
+        generator_quota_limited: 'Naabot ang AI quota. Subukang muli kapag na-reset ang quota.',
+        generator_credentials_unavailable: 'Hindi awtorisado ang AI key. Suriin ang server configuration.',
+        generator_not_configured: 'Walang AI key sa server. Suriin ang server configuration.',
+        generator_unavailable: 'May error sa AI service. Subukang muli kapag available na.',
+        generator_bad_request: 'Tinanggihan ng AI service ang request. Kailangan ng generator repair.',
+        generated_questions_failed_source_validation: 'Hindi pumasa ang generated questions sa manuscript validation. Walang na-save.',
+        source_changed_or_validation_failed: 'Nagbago ang approved manuscript o nabigo ang validation. Suriin bago mag-retry.',
+        generator_timeout: 'Nag-timeout ang AI generation. Subukang muli.',
+        admin_or_approval_required: 'Hindi kinilala ang active System Admin access o approved manuscript.',
+      };
+      return failures[result?.reason ?? ''] ??
+        (error ? 'Hindi nakumpleto ang AI generation request. Suriin ang koneksiyon o server logs.' :
+          'Approved ang manuscript pero pending pa ang mga tanong. Maaaring i-retry.');
     } catch {
-      return 'Pending ang generation. Suriin ang koneksiyon bago mag-retry.';
+      return 'Hindi maabot ang generator. Suriin ang koneksiyon bago mag-retry.';
     }
   };
 
