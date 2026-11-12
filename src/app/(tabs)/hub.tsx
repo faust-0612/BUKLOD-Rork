@@ -122,13 +122,13 @@ export default function BuklodLightHome() {
             <MaterialCommunityIcons name="arrow-right-circle-outline" color={theme.accent} size={24} />
           </Pressable>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Open announcements, Quiz and Bulletins"
+        <Pressable accessibilityRole="button" accessibilityLabel="Open announcements and bulletins"
           accessibilityState={{ expanded: updatesOpen }}
           onPress={() => setUpdatesOpen(value => !value)}
           style={{ borderRadius: 4, padding: 14, backgroundColor: theme.accentSoft,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ color: theme.textPrimary, fontWeight: '900' }}>
-            {updatesOpen ? 'Hide Announcements, Quiz & Bulletins' : 'Announcements, Quiz & Bulletins'}
+            {updatesOpen ? 'Hide Announcements & Bulletins' : 'Announcements & Bulletins'}
           </Text>
           <MaterialCommunityIcons name={updatesOpen ? 'chevron-up' : 'chevron-down'}
             size={23} color={theme.accent} />
@@ -209,7 +209,7 @@ export default function BuklodLightHome() {
       <BuklodNativeSponsoredCard surface="home" slotId="hub_mid_native" />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Announcements, BUKLOD Quiz and Bulletins"
+        accessibilityLabel="Announcements and bulletins"
         accessibilityState={{ expanded: updatesOpen }}
         onPress={() => setUpdatesOpen(value => !value)}
         style={{
@@ -221,12 +221,12 @@ export default function BuklodLightHome() {
         }}
       >
         <Text style={{ color: theme.textPrimary, fontWeight: '800', fontSize: 16 }}>
-          {updatesOpen ? 'Hide Updates, Quiz & Bulletins' : 'Open Updates, Quiz & Bulletins'}
+          {updatesOpen ? 'Hide Updates & Bulletins' : 'Open Updates & Bulletins'}
         </Text>
       </Pressable>
       {focused && foreground && updatesOpen ? (
         <ToolBoundary onClose={() => setUpdatesOpen(false)}>
-          <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading announcements, Quiz and bulletins" color={theme.accent} />}>
+          <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading announcements and bulletins" color={theme.accent} />}>
             <Updates />
           </Suspense>
         </ToolBoundary>
