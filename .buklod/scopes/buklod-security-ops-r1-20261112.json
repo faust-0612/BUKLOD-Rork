@@ -1,0 +1,46 @@
+{
+  "contractVersion": 2,
+  "objective": "Introduce System Admin security signal monitoring, audited Finance V3 containment and evidence-gated recovery without interrupting existing app features.",
+  "baseRef": "b89848c58ca8f17b9dfcd4dfc7a47bbea869f625",
+  "productionBaselineEvidence": "2026-11-12 read-only: 542 public tables RLS on, 58 anon admin-definer RPCs, existing BSOC/capacity/fraud tables, Finance V3 all switches OFF, Auth audit entries 24h none. Exact security migration passed BEGIN/ROLLBACK-only SQL simulation including finance guard; no live mutation.",
+  "chosenApproach": "Private metadata-only 15-minute risk scan, System Admin-only dashboard and controlled Finance V3 hold with a database guard, immutable actions, optimistic versioning, MFA-evidenced hold release; reuse existing admin navigation.",
+  "selectionRationale": "Precise fail-safe operations retain historical finances and existing login/video/ads functionality while establishing incident detection and containment without paid dependencies.",
+  "alternativeApproaches": [
+    "Auto-ban accounts on heuristic signals: rejected for destructive false positives.",
+    "Build separate paid security provider first: rejected as unnecessary prerequisite to database hardening.",
+    "Pure checklist-only controls: rejected due lack of enforced finance hold."
+  ],
+  "preserveBehaviors": [
+    "No payout activation or historical ledger mutations",
+    "No UI changes to Wall, media, Marites, PTT, ads, Bible, Quiz",
+    "Existing BSOC and Admin routes remain unchanged",
+    "No automatic data restore or mass account block"
+  ],
+  "riskAreas": [
+    "auth-privacy",
+    "backend-security",
+    "finance-containment",
+    "incident-recovery"
+  ],
+  "regressionTests": [
+    "tests/buklod-security-operations-20261112.test.cjs",
+    "supabase/tests/buklod_security_operations_r1_20261112.sql"
+  ],
+  "allowedPaths": [
+    "src/app/admin/index.tsx",
+    "src/app/admin/security-operations.tsx",
+    "supabase/migrations/20261112121000_buklod_security_operations_r1.sql",
+    "supabase/tests/buklod_security_operations_r1_20261112.sql",
+    "tests/buklod-security-operations-20261112.test.cjs",
+    "docs/security/BUKLOD_SECURITY_INCIDENT_RESPONSE_20261112.md",
+    ".buklod/scopes/buklod-security-ops-r1-20261112.json"
+  ],
+  "acceptanceChecks": [
+    "Rollback-only live SQL simulation passed",
+    "Node regression tests and TypeScript compile",
+    "Mandatory Engineering Accountability and relevant CI checks pass",
+    "DB read-only post-deployment checks pass after controlled promotion",
+    "Actual Finance hold behavior proven in safe environment; no payout enablement",
+    "Production exact release artifact and source SHA verified before calling live"
+  ]
+}

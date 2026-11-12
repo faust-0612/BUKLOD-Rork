@@ -1,0 +1,43 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const sql = fs.readFileSync('supabase/migrations/20261112121000_buklod_security_operations_r1.sql','utf8');
+const sqlTest = fs.readFileSync('supabase/tests/buklod_security_operations_r1_20261112.sql','utf8');
+const screen = fs.readFileSync('src/app/admin/security-operations.tsx','utf8');
+const admin = fs.readFileSync('src/app/admin/index.tsx','utf8');
+test('Security signals are database-only, private and admin-only', () => {
+  assert.match(sql,/ENABLE ROW LEVEL SECURITY/);
+  assert.match(sql,/REVOKE ALL ON TABLE private\.buklod_security_control_v1/);
+  assert.match(sql,/auth\.uid\(\) IS NULL OR NOT public\.buklod_is_system_admin\(\)/);
+  assert.match(sql,/PUBLIC_TABLE_WITHOUT_RLS/);
+  assert.match(sql,/ANON_ADMIN_PRIVILEGED_RPC/);
+  assert.match(sql,/FINANCE_BLOCKING_FRAUD/);
+  assert.match(sql,/BACKEND_CAPACITY_CRITICAL/);
+  assert.match(sql,/auth_audit_coverage/);
+  assert.match(sql,/cron\.schedule\('buklod-security-scan-r1'/);
+  assert.match(sqlTest,/security RPC anonymous access/);
+});
+test('Finance hold uses transaction, immutable audit, MFA and never auto-enables payout', () => {
+  assert.match(sql,/BEFORE INSERT OR UPDATE\s+ON private\.buklod_pf_config/);
+  assert.match(sql,/WHERE singleton=true FOR UPDATE/);
+  assert.match(sql,/p_expected_version/);
+  assert.match(sql,/p_action_key uuid/);
+  assert.match(sql,/v_aal<>'aal2'/);
+  assert.match(sql,/backup_verified/);
+  assert.match(sql,/finance_reconciled/);
+  assert.match(sql,/economics_enabled=false,settlement_enabled=false/);
+  assert.doesNotMatch(sql,/economics_enabled=true|settlement_enabled=true|withdrawal_enabled=true|payout_processing_enabled=true/i);
+  assert.match(sql,/Security action audit is immutable/);
+  assert.match(sqlTest,/finance hold trigger missing/);
+});
+test('System Admin screen is server-backed with explicit recovery evidence', () => {
+  assert.match(admin,/Security Operations & Recovery/);
+  assert.match(admin,/path="\/admin\/security-operations"/);
+  assert.match(screen,/<AdminGate>/);
+  assert.match(screen,/buklod_admin_security_overview_v1/);
+  assert.match(screen,/buklod_admin_security_scan_now_v1/);
+  assert.match(screen,/buklod_admin_security_finance_hold_v1/);
+  assert.match(screen,/Crypto\.randomUUID\(\)/);
+  assert.match(screen,/UNVERIFIED/);
+  assert.match(screen,/Object\.values\(checks\)\.every\(Boolean\)/);
+});
