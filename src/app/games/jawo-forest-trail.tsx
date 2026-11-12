@@ -36,10 +36,11 @@ const OPTIONS: readonly KingdomInteriorOption[] = [
 ];
 
 export default function JawoForestTrailScreen() {
-  return <BuklodGameStage biome="forest" gameId={GAME_ID} showCharacterCompanion={false}>
+  const [activeGameId, setActiveGameId] = React.useState(OPTIONS[0].id);
+  return <BuklodGameStage biome="forest" gameId={GAME_ID} showCharacterCompanion={activeGameId !== GAME_ID}>
     <KingdomInteriorCenter character="Jawo"
       subtitleEn="Run, explore the forest maze, or restore nature."
       subtitleTl="Tumakbo, tuklasin ang maze, o pagandahin ang kalikasan."
-      compactGameId={GAME_ID} options={OPTIONS} />
+      compactGameId={GAME_ID} onActiveGameChange={setActiveGameId} options={OPTIONS} />
   </BuklodGameStage>;
 }
