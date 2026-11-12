@@ -33,7 +33,7 @@ const guidedChecks=(reason:string,prompt:string)=>{
   '2. BSOC: inspect the original case, existing replies, health evidence and exact current deployed runtime.',
   '3. Member: ask for a safe reproduction description and approximate time. Avoid destructive reinstall/clear-data instructions.',
   '4. Escalate repeated failures or multi-user impact. Keep the case open until a fix and member recovery are observed.'
- ].join('\\n')});
+ ].join('\n')});
 };
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});

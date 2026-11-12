@@ -1,0 +1,63 @@
+{
+  "contractVersion": 2,
+  "objective": "Enable accurate BSOC user-admin triage and safe replies when AI provider quota is unavailable, preserve case navigation and surface privacy-safe render diagnostics.",
+  "baseRef": "1e66dd04c36cd88c922c9e41d6f673fdd9d94e98",
+  "productionBaselineEvidence": "Nov 12 production logs confirmed bsoc-gpt-debug-v1 upstream 429 causing 502, Android 1.3.6 RENDER_7DA38BC7 admin/:id, and unresolved support feedback. Exact render component still needs a device stack or narrowed route.",
+  "chosenApproach": "Use existing BSOC permissions/RLS, audited support status RPC, and reply notification trigger. AI failures get clearly marked non-AI fixed troubleshooting; no automatic case content export or member reply.",
+  "selectionRationale": "Small isolated app and function patch, no schema/API permission broadening; source patch can be consolidated into verified RC.",
+  "alternativeApproaches": [
+    "Fake provider success or silently generate AI text (rejected)",
+    "Disable JWT checks (rejected)",
+    "Auto-close unresolved support cases (rejected)",
+    "Change production OTA before runtime verification (rejected)"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/bsoc-immediate-intervention-20261112.json",
+    "src/app/admin/bsoc-support.tsx",
+    "src/app/admin/bsoc-gpt-debug.tsx",
+    "src/app/admin/bsoc-conversations.tsx",
+    "src/lib/bsocCaseTriage.ts",
+    "src/lib/buklodRouteDiagnostics.ts",
+    "src/app/_layout.tsx",
+    "supabase/functions/bsoc-gpt-debug-v1/index.ts",
+    "tests/bsoc-intervention-live-safety-20261112.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Wall, Ads, videos, finance, points, public privacy and global nav routing unchanged",
+    "Member notifications only from existing backend agent message trigger",
+    "Historical case read restricted to System Admin; mutation still uses existing audited RPC",
+    "No automatic member replies, no claim of OTA/backend repair"
+  ],
+  "acceptanceChecks": [
+    "HTTP 429 produces clearly labelled manual guidance, not AI answer",
+    "Auth and BSOC permission checks remain server-side",
+    "The app shows safe typed diagnostic errors and links to its real case queue",
+    "Static admin routes appear in future crash reports without exposing dynamic IDs",
+    "Historical authorized case can be opened beyond the bounded 100 item queue",
+    "Each case offers an editable targeted safe reply and an explicit closure gate",
+    "Source tests plus Android RC compile and runtime/device test before release"
+  ],
+  "riskAreas": [
+    "bsoc-case-access",
+    "error-route-privacy",
+    "ai-provider-fallback",
+    "render-boundary"
+  ],
+  "regressionTests": [
+    "tests/bsoc-intervention-live-safety-20261112.test.mjs",
+    "tests/bsoc-case-triage-20261112.test.mjs",
+    "tests/bsoc-notification-navigation-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Constrain support changes to existing BSOC admin surfaces and safe route fingerprints",
+      "preservedBehaviors": [
+        "No changes to main public screens or existing media playback"
+      ],
+      "tests": [
+        "tests/bsoc-intervention-live-safety-20261112.test.mjs"
+      ]
+    }
+  ]
+}

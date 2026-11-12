@@ -20,6 +20,7 @@ export default function BsocSupportOperations() {
   const {case_id:requestedCaseId}=useLocalSearchParams<{case_id?:string}>();
   const lastLinkedCase=useRef<string>('');
   const {hasRole}=useAuth();
+  const isSystemAdmin=hasRole('system_admin');
   const [canRead,setCanRead]=useState<boolean|null>(null);
   const [canManage,setCanManage]=useState(false);
   const [cases,setCases] = useState<Case[]>([]);
@@ -79,12 +80,33 @@ export default function BsocSupportOperations() {
   useEffect(()=>{
     if(loading||!requestedCaseId||lastLinkedCase.current===requestedCaseId)return;
     lastLinkedCase.current=requestedCaseId;
-    if(isBsoCaseId(requestedCaseId)){
-      const match=cases.find(c=>c.feedback_id===requestedCaseId);
-      if(match)selectCase(match);
-      else setError('Linked case was not returned in this page of the queue. Refresh or check filters.');
+    if(!isBsoCaseId(requestedCaseId)){setError('Invalid case reference.');return;}
+    const match=cases.find(c=>c.feedback_id===requestedCaseId);
+    if(match){selectCase(match);return;}
+    if(!isSystemAdmin){
+      setError('This case is outside the current queue. Historical lookup is restricted to System Admin.');
+      return;
     }
-  },[cases,loading,requestedCaseId]);
+    // Only the authorized System Admin can recover a historical case omitted
+    // by the 100-row queue. Existing RLS and audited action RPC remain intact.
+    let active=true;
+    void supabase.from('user_feedback')
+      .select('id,title,message,category,status,app_version,created_at,updated_at,assigned_to,resolution')
+      .eq('id',requestedCaseId).maybeSingle().then(({data,error})=>{
+        if(!active||lastLinkedCase.current!==requestedCaseId)return;
+        if(error||!data){setError('Linked case unavailable or restricted.');return;}
+        selectCase({
+          feedback_id:requestedCaseId,reference:requestedCaseId.slice(0,8),
+          user_name:null,category:String(data.category??'other'),
+          title:String(data.title??'Support case'),message:String(data.message??''),
+          status:String(data.status??'new'),
+          app_version:data.app_version??null,route:null,platform:null,
+          created_at:data.created_at??'',updated_at:data.updated_at??'',
+          assigned_to:data.assigned_to??null,resolution:data.resolution??null,
+        });
+      });
+    return ()=>{active=false;};
+  },[cases,loading,requestedCaseId,isSystemAdmin]);
 
   function selectCase(item: Case) {
     setSelected(item);setNextStatus(item.status as Status);setResolution(item.resolution || '');
@@ -154,6 +176,7 @@ export default function BsocSupportOperations() {
       <Text style={styles.muted}>Analyze sanitized technical descriptions. No private case details are shared automatically.</Text>
     </Pressable>
     <Text style={styles.section}>Support cases</Text>
+    <Text style={styles.muted}>Latest 100 cases per filter. System Admin can open an older case through its authorized notification without bypassing audit.</Text>
     <View style={styles.filters}>
       {['',...STATUSES].map(s=><Pressable key={s||'all'} onPress={()=>{setStatus(s);setSelected(null);setPreview(null);}}
         style={[styles.chip,status===s&&styles.active]}><Text style={styles.chipText}>{s||'all'}</Text></Pressable>)}

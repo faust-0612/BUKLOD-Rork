@@ -23,5 +23,5 @@ test('static BSOC routes are visible but dynamic paths are redacted',()=>{
  assert.equal(safeBuklodRoute('/admin/bsoc-conversations'),'admin/bsoc-conversations');
  assert.equal(safeBuklodRoute('/admin/priority-requests'),'admin/priority-requests');
  assert.equal(safeBuklodRoute('/admin/private-identifier'),'admin/:id');
- assert.equal(safeBuklodRoute('/support/random-id?token=secret'),' :test'.replace(' :test','support/:id'));
+ assert.equal(safeBuklodRoute('/support/random-id?token=secret'),'support/:id');
 });
