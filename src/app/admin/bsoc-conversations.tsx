@@ -104,7 +104,12 @@ export default function BsocInbox(){
      });
    return ()=>{active=false;};
  },[canRead,cases,openCase,queueLoaded,requestedCaseId,isSystemAdmin,routeCaseId]);
+ const previousUserRef=useRef(user?.id);
  useEffect(()=>{
+   // Do not clear initial deep link on first mount; only clear on a real
+   // account transition so private case content never survives switching.
+   if(previousUserRef.current===user?.id)return;
+   previousUserRef.current=user?.id;
    requestSequence.current+=1;
    currentCase.current='';
    lastLinkedCase.current='';
