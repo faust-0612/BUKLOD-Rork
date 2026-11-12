@@ -16,12 +16,14 @@
     "connect-ptt-calls",
     "navigation-auth",
     "ads-finance-points",
-    "app-runtime"
+    "app-runtime",
+    "wall-media"
   ],
   "regressionTests": [
     "tests/buklod-cluster-connect-seen-20261112.test.mjs",
     "tests/buklod-profile-avatar-navigation-live-20261112.test.mjs",
-    "tests/buklod-ad-gate-recovery-20261112.test.mjs"
+    "tests/buklod-ad-gate-recovery-20261112.test.mjs",
+    "tests/buklod-reels-ad-gate-20261112.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -64,6 +66,16 @@
       "tests": [
         "tests/buklod-ad-gate-recovery-20261112.test.mjs"
       ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Reels sponsored inventory now refreshes safety eligibility without changing video playback, native media load strategy, or feed spacing.",
+      "preservedBehaviors": [
+        "No reel playback, video renderer, scroll cadence or in-feed ad content behavior is altered."
+      ],
+      "tests": [
+        "tests/buklod-reels-ad-gate-20261112.test.mjs"
+      ]
     }
   ],
   "allowedPaths": [
@@ -79,7 +91,8 @@
     "tests/buklod-cluster-connect-seen-20261112.test.mjs",
     "tests/buklod-profile-avatar-navigation-live-20261112.test.mjs",
     "tests/buklod-ad-gate-recovery-20261112.test.mjs",
-    ".buklod/scopes/cluster-seen-avatar-ad-gate-recovery-20261112.json"
+    ".buklod/scopes/cluster-seen-avatar-ad-gate-recovery-20261112.json",
+    "tests/buklod-reels-ad-gate-20261112.test.mjs"
   ],
   "acceptanceChecks": [
     "Focused Node regression tests and existing CI compile/type/source gates pass for exact proposed PR head.",
