@@ -126,7 +126,7 @@ VALUES
 ('saliksik_discover','SALIKSIK Discover',10,10,NULL,NULL,true,'Verified unique investigation only'),
 ('saliksik_investigate','SALIKSIK Investigate',20,20,NULL,NULL,true,'Evidence/context/reasoning mastery gates'),
 ('saliksik_master','SALIKSIK Master',35,35,NULL,NULL,false,'OFF until independently verified written rubric'),
-('saliksik_series','SALIKSIK Series Mastery',50,50,NULL,NULL,true,'Completed immutable published collection')
+('saliksik_series','SALIKSIK Series Mastery',50,50,NULL,NULL,true,'Minimum eight verified investigations in the published collection')
 ON CONFLICT(activity_type) DO NOTHING;
 
 CREATE OR REPLACE FUNCTION public.saliksik_admin_register_v1(
@@ -488,7 +488,7 @@ BEGIN
     JOIN public.saliksik_investigations r ON r.id=m.investigation_id
     WHERE m.user_id=a.user_id AND r.collection_id=c.id AND m.version=r.version
     AND r.status='published';
-   IF v_required>=2 AND v_earned=v_required THEN
+   IF v_required>=8 AND v_earned=v_required THEN
      v_new:=false;
      INSERT INTO public.saliksik_series_mastery(user_id,collection_id,version)
      VALUES(a.user_id,c.id,c.version)

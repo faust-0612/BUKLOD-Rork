@@ -61,7 +61,7 @@ AI is a supporting assessor and question author, not the final source of theolog
 | Discover | User + immutable investigation version | 10 | independently verified objective mastery |
 | Investigate | User + immutable investigation version | 20 | >=80 plus three competency gates |
 | Master | User + immutable investigation version | 35 | written, cited, audited mastery rubric; OFF until proven |
-| Collection completion | User + immutable published collection version | 50 | all required investigations passed; once |
+| Collection completion | User + immutable published collection version | 50 | at least eight required investigations passed; once |
 | Cluster contributions | User + qualified content + Manila calendar day | 5 | max 2 rewarded per day; non-duplicate, non-spam, deferred until community anti-abuse integration |
 
 No rewards for attempts, opening, tapping, repeated reading, retry, skipped questions, misleading citations, model-guessable templates, or religious agreement. Do not double-credit KL +10 reading or KL +50 season/series for a SALIKSIK event. Use existing canonical buklod_points_ledger with unique (user_id, source_key) and existing claim_state/reward triggers; separate saliksik_* activity types. Reward insert and completed state must be transactional; two devices/retries must yield exactly one unique credit. System Admin OFFICIAL identity reward guard remains authoritative. QMP and AdMob-only distributions are distinct from raw points; do not imply PHP equivalents, payouts, or guaranteed earnings.

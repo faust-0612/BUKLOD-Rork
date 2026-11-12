@@ -76,6 +76,15 @@ export default function SaliksikInvestigationScreen(){
  };
  const close=()=>{setDetail(null);setSession(null);setResult(null);setAnswers([]);setError('');};
  const current=catalog.find(x=>x.id===detail?.id);
+ const remediation:Record<string,string>={
+  understanding:'Read the main thesis in short sections and explain each in your own words.',
+  evidence:'Open the cited Bible passages and check whether each claim follows the text.',
+  context:'Read the surrounding chapter, then compare the passage and the authors interpretation.',
+  reasoning:'Explain the main argument and one strong objection with cited evidence.',
+  transfer:'Apply the same principle to an unfamiliar scenario without copying earlier answers.',
+ };
+ const focus=Object.entries(result?.competencies??{}).filter(([key,value])=>
+  value<(['evidence','context','reasoning'].includes(key)?70:60)).map(([key])=>key);
  const pending=session?.questions??[];
  return <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
   <Pressable accessibilityRole="button" onPress={()=>{if(detail)close();else router.back();}} style={styles.back}>
@@ -138,7 +147,12 @@ export default function SaliksikInvestigationScreen(){
      {Object.entries(result.competencies??{}).map(([key,value])=><Text key={key} style={styles.small}>{nameOf(key)}: {value}%</Text>)}
      <Text style={styles.hint}>{result.passed
       ?'Credited points: '+(result.points??0)+' • Series bonus: '+(result.series_points??0)
-      :'Review weaker evidence, context or reasoning, then take a fresh independent attempt.'}</Text></>}
+      :'Adaptive study: review the weaker competencies before another independent attempt.'}</Text>
+     {!result.passed?<View style={styles.note}>
+      <Text style={styles.questionTitle}>FOCUSED REMEDIATION</Text>
+      {(focus.length?focus:['evidence','context','reasoning']).map(key=>
+       <Text key={key} style={styles.noteText}>• {nameOf(key)}: {remediation[key]}</Text>)}
+     </View>:null}</>}
    {!result.passed?<Pressable style={styles.primary} onPress={()=>{setResult(null);void start();}}>
      <Text style={styles.primaryText}>REVIEW AND TRY AGAIN</Text></Pressable>:null}
    <Pressable style={styles.secondary} onPress={close}><Text style={styles.secondaryText}>BACK TO INVESTIGATIONS</Text></Pressable>
