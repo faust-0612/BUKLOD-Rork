@@ -147,7 +147,7 @@ export async function warmBibleWeekOffline(
       } else {
         try {
           const { data, error } = await (supabase as any).rpc(
-            'get_automatic_bible_reading',
+            'get_automatic_bible_reading_for_cluster',
             { p_reading_date: day.readingDate },
           );
           if (!error) plan = Array.isArray(data) ? data[0] ?? null : data;

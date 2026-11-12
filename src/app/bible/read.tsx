@@ -266,7 +266,7 @@ export default function BibleReaderScreen() {
       if (!online) return;
       try {
         const { data, error } = await (supabase as any).rpc(
-          'get_automatic_bible_reading', { p_reading_date: assignedDate });
+          'get_automatic_bible_reading_for_cluster', { p_reading_date: assignedDate });
         if (!active || error) return;
         const raw = Array.isArray(data) ? data[0] ?? null : data ?? null;
         const nextBook = Number(raw?.start_book_no ?? 0);

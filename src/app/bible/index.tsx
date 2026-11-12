@@ -486,7 +486,7 @@ function DailyReadingAudioPreview({
 
             const planResult =
               await (supabase as any).rpc(
-                'get_automatic_bible_reading',
+                'get_automatic_bible_reading_for_cluster',
                 {
                   p_reading_date:
                     readingDate,
@@ -1495,7 +1495,7 @@ export default function DailyBibleScreen() {
       try {
         const planResult =
           await (supabase as any).rpc(
-            'get_automatic_bible_reading',
+            'get_automatic_bible_reading_for_cluster',
             {
               p_reading_date:
                 selected.reading_date,
