@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Expose early-warning database capacity monitoring in BUKLOD System Admin without automatic upgrades or touching media/ads.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Main BUKLOD Connect Supabase ACTIVE_HEALTHY; server sample returned PostgreSQL slots 43/60, database ~422MB, no waiting locks. CPU/RAM provider metrics not available. Backward-compatible capacity migration live version 20261112013654, authorized admin RPC and nonadmin denial verified; cron active and hourly dedup verified. UI source not yet published via OTA.",
+  "productionBaselineEvidence": "verified: Main BUKLOD Connect Supabase ACTIVE_HEALTHY; server sample returned PostgreSQL slots 43/60, database ~422MB, no waiting locks. CPU/RAM provider metrics not available. Backward-compatible capacity migration live version 20261112013654, authorized admin RPC and nonadmin denial verified; cron active and hourly dedup verified. UI source not yet published via OTA.",
   "chosenApproach": "Guard read-only JSON RPC behind database is_system_admin(); private low-frequency hourly snapshot with 60-day retention; isolated Expo Router AdminGate screen linked from first-open Reports drawer. Show only measured values and explicitly null provider utilization, and retain manual provider links.",
   "selectionRationale": "Avoid false capacity percentages, added third-party monitoring cost or altering current video/ads. No secrets in client and only one small hourly database sample.",
   "alternativeApproaches": [
