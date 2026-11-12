@@ -120,6 +120,7 @@ export default function KlReaderScreen() {
   const [quizReviewOpen, setQuizReviewOpen] = useState<string | null>(null);
   const [quizReviewLoading, setQuizReviewLoading] = useState<string | null>(null);
   const [quizReviews, setQuizReviews] = useState<Record<string, KlAdminQuizReview>>({});
+  const quizReviewOwnerRef = useRef<string | null>(user?.id ?? null);
   const adminActionLockRef = useRef(false);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
@@ -298,7 +299,9 @@ export default function KlReaderScreen() {
     setAdminRows([]);
     setAdminRowsOwner(null);
     setAdminError('');
+    quizReviewOwnerRef.current = user?.id ?? null;
     setQuizReviewOpen(null);
+    setQuizReviewLoading(null);
     setQuizReviews({});
     if (!isSystemAdmin || !user?.id) return;
     void refreshAdminRows().catch(() => {
@@ -373,14 +376,16 @@ export default function KlReaderScreen() {
         )
       );
       if (!valid) throw new Error('Question bank is incomplete.');
+      if (quizReviewOwnerRef.current !== user.id) return;
       setQuizReviews(previous => ({ ...previous, [episodeId]: result }));
     } catch {
+      if (quizReviewOwnerRef.current !== user?.id) return;
       setQuizReviews(previous => ({ ...previous, [episodeId]: {
         ok: false, status: 'error',
         error: 'Hindi ma-load ang admin-only questions. Suriin ang access o koneksiyon.',
       } }));
     } finally {
-      setQuizReviewLoading(null);
+      if (quizReviewOwnerRef.current === user?.id) setQuizReviewLoading(null);
     }
   };
 
