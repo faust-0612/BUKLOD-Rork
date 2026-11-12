@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/buklod-official-admob-production-promotion-20261112.json",
+  "objective": "Authorize an exact reviewed production marker promotion for BUKLOD Official and AdMob-only cash reporting; add release evidence only without changing executable product source.",
+  "baseRef": "3569fe85a56ff30812ef1d3ced1a4a9e68ecb8a3",
+  "productionBaselineEvidence": "verified: production main 3569fe85a56ff30812ef1d3ced1a4a9e68ecb8a3 has exact source tree e5f82847d608ee31017ffa81be402f140ac7dc93, identical to successfully compiled Android/Web RC 48011b5df95ef5b288d6db11ffc8dceaad2d67ca; three production Supabase migrations are applied; post-migration SQL tests passed; production OTA is still not published.",
+  "chosenApproach": "Review a documentation-and-contract-only PR with a strict change allowlist and exact source digest. After PR gates pass, merge with existing guarded BUKLOD_CONSOLIDATED_PROD_20261108 release marker and require both production Android OTA and Expo Hosting Web workflow success and live verification.",
+  "selectionRationale": "The feature PR #730 was already reviewed, merged with a nonpublish commit and its Supabase migrations applied. A narrowly reviewed marker PR is the only approved path to start production workflows without bypassing source and release guardrails.",
+  "alternativeApproaches": [
+    "Direct push or empty marker commit to main (rejected: bypasses reviewed PR and release-scope governance).",
+    "Rebuild/rebase the already merged feature PR (rejected: duplicates source, invalidates exact compiled RC).",
+    "Reviewed documentation-only marker PR with exact-source contract and existing production workflows (chosen)."
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "acceptanceChecks": [
+    "The source tree on main is exactly the previously compiled Android/Web RC source tree before adding release documentation.",
+    "Only release document, scope manifest and focused release proof test differ from approved main; no app code changes.",
+    "Both protected production workflows independently recheck runtime 1.3.2, Android package and exact production SHA, and publish only a verified RC.",
+    "Supabase production revenue segregates AdMob-only payouts; sponsorship excluded and current payouts disabled.",
+    "Do not declare deployment complete without GitHub workflow success, EAS update receipt and Expo Hosting verification."
+  ],
+  "preserveBehaviors": [
+    "No source or native module changes in this PR, and previous main source is unchanged.",
+    "Existing Wall/Marites video playback, PTT, ads, Android passive-memory fix, admin capacity monitor and historical financial records preserved.",
+    "No direct OTA bypass, no hidden production workflow override and no automatic cash settlement activation.",
+    "All independent unmerged DEV/HOLD branches remain independent and are not claimed to be included."
+  ],
+  "regressionTests": [
+    "tests/buklod-official-admob-release-marker-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    "docs/release/buklod-official-admob-production-promotion-20261112.md",
+    ".buklod/scopes/buklod-official-admob-production-promotion-20261112.json",
+    "tests/buklod-official-admob-release-marker-20261112.test.mjs"
+  ],
+  "releaseStatus": "Release marker PR awaiting strict governance checks; not deployed until existing Android OTA and Expo Hosting workflows succeed."
+}
