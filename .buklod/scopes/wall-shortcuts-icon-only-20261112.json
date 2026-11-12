@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/wall-shortcuts-icon-only-20261112.json",
   "objective": "Remove redundant BUKLOD text next to the Bible shortcut and keep retired IGPAT absent from the Public Wall quick-link row, with exactly Bible, COMMUNITY and DZAS as responsive accessible controls.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Inspected canonical GitHub main a0a768763fa8a064469e4d59d453b6db05e4230a (Nov 12 2026); it already omits the IGPAT button, but BuklodWallQuickLinks still renders an extra BUKLOD text label. This change is scoped to DEV/PR source only; exact live Android and Expo Web deployment artifacts were not checked and must not be inferred from main.",
+  "productionBaselineEvidence": "verified: Inspected canonical GitHub main a0a768763fa8a064469e4d59d453b6db05e4230a (Nov 12 2026); it already omits the IGPAT button, but BuklodWallQuickLinks still renders an extra BUKLOD text label. This change is scoped to DEV/PR source only; exact live Android and Expo Web deployment artifacts were not checked and must not be inferred from main.",
   "chosenApproach": "Remove only the redundant label; increase Bible tap width and redistribute freed width among Community and DZAS with a flexible Community button. Preserve the three existing navigation callbacks, accessible button labels, and legacy IGPAT retirement.",
   "selectionRationale": "This isolated presentational change matches the approved screenshot while reducing tight spacing and avoids touching media, auth, finance, routes, backend, and monetization.",
   "riskAreas": [
