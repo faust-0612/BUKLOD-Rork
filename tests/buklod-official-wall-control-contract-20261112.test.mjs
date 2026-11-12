@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const sql=readFileSync('supabase/migrations/20261112094500_buklod_official_wall_control_and_notices_v1.sql','utf8');
+const wall=readFileSync('src/app/admin/wall-control.tsx','utf8');
+const notices=readFileSync('src/app/admin/official-messages.tsx','utf8');
+const official=readFileSync('src/app/admin/buklod-official.tsx','utf8');
+const admin=readFileSync('src/app/admin/index.tsx','utf8');
+test('all public Wall controls are privileged, non-destructive and audited',()=>{
+ assert.match(sql,/admin_list_buklod_official_wall_v1/);
+ assert.match(sql,/admin_set_buklod_official_wall_visibility_v1/);
+ assert.match(sql,/private\.buklod_is_platform_official_v1\(v_actor\)/);
+ assert.match(sql,/private\.buklod_official_wall_audit_v1/);
+ assert.doesNotMatch(sql,/delete\s+from\s+public\.community_posts/i);
+ assert.match(sql,/Cannot restore content hidden by another safety or privacy workflow/);
+ assert.match(wall,/HIDE \/ TAKEDOWN/);
+ assert.match(wall,/CONFIRM ACTION/);
+});
+test('official messages have targeted delivery, idempotency and no public privileges',()=>{
+ assert.match(sql,/unique\(actor_id,nonce\)/);
+ assert.match(sql,/p_recipient_id/);
+ assert.match(sql,/on conflict\(actor_id,nonce\) do nothing/);
+ assert.match(sql,/revoke all on function public\.admin_send_buklod_official_notice_v1/);
+ assert.match(notices,/admin_search_buklod_notice_recipients_v1/);
+ assert.match(notices,/admin_send_buklod_official_notice_v1/);
+ assert.match(notices,/CONFIRM SEND/);
+ assert.match(official,/\/admin\/wall-control/);
+ assert.match(official,/\/admin\/official-messages/);
+ assert.match(admin,/\/admin\/backend-capacity/);
+});
