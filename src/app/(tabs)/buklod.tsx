@@ -285,6 +285,8 @@ type Photo={
  sizeBytes?:number;
  webFile?:Blob;
  mimeType?:string;
+ width?:number;
+ height?:number;
 };
 type Mention=BuklodMention;
 
@@ -3140,6 +3142,9 @@ const load=useCallback(async(options?:{
          path,
          uri:photo.uri,
          webFile:photo.webFile,
+         mimeType:photo.mimeType,
+         width:photo.width,
+         height:photo.height,
          wallPreview: true,
         });
 
@@ -5501,12 +5506,14 @@ const communityFeedRows =
             <View style={{padding:11,borderRadius:12,borderWidth:1,borderColor:'#d6e8df',
               backgroundColor:'#fbfffd',gap:12}}>
               <Text style={{fontSize:11,color:'#58756a'}}>
-                Choose one effect. It plays automatically on your published photo post.
+                Swipe across each row to explore effects. Plays automatically on photo posts.
               </Text>
               {BUKLOD_MOTION_DRAWER_GROUPS.map(group=>(
                 <View key={group.title} style={{gap:7}}>
                   <Text style={{fontSize:11,color:'#35634f',fontWeight:'900'}}>{group.title}</Text>
-                  <View style={{flexDirection:'row',flexWrap:'wrap',gap:7}}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                    keyboardShouldPersistTaps="always"
+                    contentContainerStyle={{gap:7,paddingRight:11}}>
                     {group.items.map(preset=>(
                       <Pressable key={preset} accessibilityRole="button"
                         accessibilityLabel={'Select '+BUKLOD_POST_MOTION_LABELS[preset]+' motion'}
@@ -5519,7 +5526,7 @@ const communityFeedRows =
                           fontSize:11,fontWeight:'800'}}>{BUKLOD_POST_MOTION_LABELS[preset]}</Text>
                       </Pressable>
                     ))}
-                  </View>
+                  </ScrollView>
                 </View>
               ))}
               {composerMotionPreset!=='none'&&!photos.length&&(
