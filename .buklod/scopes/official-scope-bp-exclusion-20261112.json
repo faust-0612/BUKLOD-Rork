@@ -1,0 +1,63 @@
+{
+  "contractVersion": 2,
+  "objective": "Exclude only the immutable BUKLOD Official principal from exact-scope Cluster and Organization lifetime BP Top 10, reranking active ordinary members before pagination while preserving access control and historical records.",
+  "baseRef": "6655544e897bae87611cceef49f187ce3e7519c8",
+  "productionBaselineEvidence": "2026-11-12: GitHub main 6655544e897bae87611cceef49f187ce3e7519c8 at PR branch creation. Live Supabase yhanxndaqbmuzbdqlblu had one canonical protected official, 11 active Cluster/Organization memberships, and separate get_buklod_scope_bp_top10_v1 lacking exclusion. Supabase migration exclude_buklod_official_scope_bp_top10_v2_20261112 applied successfully in production, verified live function predicate and authenticated-only execute grants; rollback-only SQL regression completed successfully. Installed-app/OTA and web runtime were not verified or deployed by this change.",
+  "chosenApproach": "Use one replacement of the existing membership-authorized SECURITY DEFINER RPC with canonical protected-principal predicate in eligible CTE before row_number. No client changes and no data writes.",
+  "selectionRationale": "The server already owns the exact-scope ranked query, so server filtering fixes existing and future supported clients without exposing private identities, losing the 10th member, or duplicating ranking logic.",
+  "alternativeApproaches": [
+    "Client-side filter after LIMIT 10: rejected, leaks one slot, cannot protect old clients and risks stale caches.",
+    "Remove official from scope memberships or delete historical ledger: rejected, breaks legitimate admin access and audit/history.",
+    "Filter in exact-scope RPC before rank: chosen, small and source-of-truth aligned."
+  ],
+  "acceptanceChecks": [
+    "All 11 active official Cluster/Organization memberships return Top10 without the Official account via authenticated RPC.",
+    "Remaining active members receive continuous ranks 1 through max 10, with deterministic tie ordering.",
+    "Other ordinary members retain access to their own scope; anonymous and outsider requests remain denied.",
+    "Historical Official BP, status, admin permissions, video playback, advertisements and unrelated leaderboard behavior stay unchanged.",
+    "Backend migration is recorded and SQL regression passes; no APK/OTA release implied."
+  ],
+  "preserveBehaviors": [
+    "Exact ACTIVE scope membership gating for viewers and rows; the original RPC signature and grants.",
+    "Canonical lifetime BP balance ordering, tie-breakers and limit 10.",
+    "Official historical points and scope membership without new member reward eligibility.",
+    "No changes to Community Wall, video/ads, security principals or unrelated features."
+  ],
+  "riskAreas": [
+    "backend-security",
+    "app-runtime",
+    "auth-privacy"
+  ],
+  "regressionTests": [
+    "supabase/tests/buklod_scope_bp_official_exclusion_20261112.sql",
+    "tests/scope-bp-official-exclusion-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/official-scope-bp-exclusion-20261112.json",
+    "supabase/migrations/20261112183500_exclude_buklod_official_scope_bp_top10_v2.sql",
+    "supabase/tests/buklod_scope_bp_official_exclusion_20261112.sql",
+    "tests/scope-bp-official-exclusion-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Scope Top 10 SQL output feeds active client UI; exclude the official identity before computed ranks without changing client navigation or render lifecycle.",
+      "preservedBehaviors": [
+        "Same RPC return schema, sorting, active viewer access and server-driven screen refresh."
+      ],
+      "tests": [
+        "tests/scope-bp-official-exclusion-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Replacement SECURITY DEFINER scope ranking function must preserve strict authenticated membership authorization and least-privilege grants.",
+      "preservedBehaviors": [
+        "Anonymous and outsider users remain denied, member scope isolation is unchanged, original historical BP records are retained."
+      ],
+      "tests": [
+        "supabase/tests/buklod_scope_bp_official_exclusion_20261112.sql"
+      ]
+    }
+  ]
+}
