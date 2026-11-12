@@ -5157,6 +5157,7 @@ const communityFeedRows =
 
   visibleVideoPostId,
   preloadVideoPostId,
+  preloadAdSlotId,
  } = useBuklodCommunityAdViewability(communityFeedRows);
 
  // Preserve the existing ad/video visibility engine; also pause an audio
@@ -5762,6 +5763,7 @@ const communityFeedRows =
       return (
         <BuklodCommunityInlineAd
           slotId={item.id}
+          prepare={preloadAdSlotId === item.id}
           // Keep a measurable viewport probe mounted before first activation.
           // Real ad requests remain gated by the existing SDK consent/viewport rules.
         />

@@ -37,6 +37,7 @@ type CommunityAdInventory = 'public' | 'org' | 'cluster';
 type Props = {
   slotId?: string;
   active?: boolean;
+  prepare?: boolean;
   inventory?: CommunityAdInventory;
   /** Native-only sponsored cards reuse the same underlying media renderer. */
   surface?: 'wall' | 'home' | 'profile' | 'connect' | 'cluster_dashboard';

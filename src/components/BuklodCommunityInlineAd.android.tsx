@@ -48,6 +48,7 @@ type NativeSponsoredSurface =
 type Props = {
   slotId?: string;
   active?: boolean;
+  prepare?: boolean;
   inventory?: CommunityAdInventory;
   surface?: NativeSponsoredSurface;
   placementIdOverride?: string;
@@ -72,6 +73,7 @@ function clean(value: string | undefined) {
 export default function BuklodCommunityInlineAd({
   slotId,
   active = true,
+  prepare = false,
   inventory = 'public',
   surface = 'wall',
   placementIdOverride,
@@ -84,7 +86,13 @@ export default function BuklodCommunityInlineAd({
   const { ready, canRequestAds } = useAds();
   const { isConnected, isInternetReachable } = useNetwork();
   const adNetworkAvailable = isConnected && isInternetReachable !== false;
-  const { ref, eligible } = useBuklodAdViewportGate();
+  // Start loading Wall NativeAd before the user reaches it; never prefetch
+  // first-view, other pages or video players.
+  const { ref, eligible, nearby, sample } = useBuklodAdViewportGate({
+    preloadDistanceScreens: surface === 'wall' && Boolean(slotId) && !firstView
+      ? 1.5
+      : 0,
+  });
   const currentListVisibility = useBuklodCommunityInlineVisibility(slotId);
   // Feed rows use the list's live viewability state. First-view and other
   // sponsored surfaces keep their own viewport gate and must not depend on
@@ -198,12 +206,12 @@ export default function BuklodCommunityInlineAd({
   const loadTimeoutMs = firstView ? FIRST_VIEW_AD_LOAD_TIMEOUT_MS : AD_LOAD_TIMEOUT_MS;
   // Once the SDK has loaded a creative, a scroll past the viewport must not
   // destroy it and impose the global remount cooldown on an already-filled slot.
-  // The initial request still requires an eligible viewport and live network.
+  // New NativeAd requests require a nearby viewport or actual visibility.
   const hasLoadedCreative = Boolean(nativeAd || bannerLoaded);
   const canAttempt =
     active &&
     routeSafe &&
-    (eligible || hasLoadedCreative) &&
+    (eligible || hasLoadedCreative || (surface === 'wall' && nearby && prepare)) &&
     sdkReady &&
     (adNetworkAvailable || hasLoadedCreative);
 
@@ -353,7 +361,7 @@ export default function BuklodCommunityInlineAd({
   ]);
 
   useEffect(() => {
-    if (!nativeAd || nativeRendered.current) return;
+    if (!nativeAd || nativeRendered.current || !currentlyVisible || !eligible) return;
     nativeRendered.current = true;
     recordBuklodAdEvent(
       diagnosticPlacement,
@@ -361,7 +369,7 @@ export default function BuklodCommunityInlineAd({
       undefined,
       { route: pathname, placementId, adFormat: 'native' },
     );
-  }, [diagnosticPlacement, nativeAd, pathname, placementId]);
+  }, [currentlyVisible, diagnosticPlacement, eligible, nativeAd, pathname, placementId]);
 
   useEffect(() => {
     if (
@@ -485,12 +493,13 @@ export default function BuklodCommunityInlineAd({
 
   if (!active || !routeSafe) return null;
 
-  if ((!eligible && !hasLoadedCreative) ||
+  if ((!eligible && !hasLoadedCreative && !(nearby && prepare)) ||
       !sdkReady || (!adNetworkAvailable && !hasLoadedCreative)) {
     return (
       <View
         ref={ref}
         collapsable={false}
+        onLayout={sample}
         pointerEvents="none"
         style={styles.viewportProbe}
       />
@@ -534,6 +543,7 @@ export default function BuklodCommunityInlineAd({
       <View
         ref={ref}
         collapsable={false}
+        onLayout={sample}
         pointerEvents="none"
         style={styles.viewportProbe}
       />
@@ -548,6 +558,7 @@ export default function BuklodCommunityInlineAd({
       <View
         ref={ref}
         collapsable={false}
+        onLayout={sample}
         pointerEvents="none"
         style={styles.viewportProbe}
       />

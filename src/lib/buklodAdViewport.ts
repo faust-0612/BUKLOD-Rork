@@ -8,9 +8,16 @@ const POLL_MS = 1200;
  * Gates ad requests until the slot has been on-screen briefly.
  * Prevents off-screen Home/feed banners from requesting before they can impression.
  */
-export function useBuklodAdViewportGate() {
+export function useBuklodAdViewportGate(
+  options: { preloadDistanceScreens?: number } = {},
+) {
   const ref = useRef<View>(null);
   const [eligible, setEligible] = useState(false);
+  const [nearby, setNearby] = useState(false);
+  // Nearby preloading does NOT count as a render or an impression.
+  const preloadDistanceScreens = Math.max(
+    0, Math.min(2, Number(options.preloadDistanceScreens) || 0),
+  );
   const settleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sample = useCallback(() => {
@@ -18,6 +25,14 @@ export function useBuklodAdViewportGate() {
 
     ref.current?.measureInWindow((x, y, width, height) => {
       const window = Dimensions.get('window');
+      if (preloadDistanceScreens > 0) {
+        const margin = window.height * preloadDistanceScreens;
+        const isNear =
+          width >= 8 && height >= 8 &&
+          x < window.width && x + width > 0 &&
+          y < window.height + margin && y + height > -margin;
+        setNearby(previous => previous === isNear ? previous : isNear);
+      }
       const onScreen =
         width >= 8 &&
         height >= 8 &&
@@ -41,7 +56,7 @@ export function useBuklodAdViewportGate() {
         settleRef.current = null;
       }
     });
-  }, [eligible]);
+  }, [eligible, preloadDistanceScreens]);
 
   useEffect(() => {
     if (eligible) {
@@ -66,5 +81,5 @@ export function useBuklodAdViewportGate() {
     };
   }, [eligible, sample]);
 
-  return { ref, eligible };
+  return { ref, eligible, nearby, sample };
 }

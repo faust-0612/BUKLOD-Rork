@@ -68,13 +68,14 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
   );
 
   const [preloadVideoPostId, setPreloadVideoPostId] = useState<string | null>(null);
+  const [preloadAdSlotId, setPreloadAdSlotId] = useState<string | null>(null);
 
   // Native ads retain the original conservative visibility requirement.
   const onViewableItemsChanged = useRef(
     ({
       viewableItems,
     }: {
-      viewableItems: Array<{ item?: unknown }>;
+      viewableItems: Array<{ item?: unknown; index?: number | null }>;
     }) => {
       const incoming: string[] = [];
       for (const token of viewableItems) {
@@ -82,6 +83,32 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
       }
 
       publishVisibleCommunityInlineIds(new Set(incoming));
+
+      // Only one upcoming ad receives advance Native inventory. This keeps
+      // the faster scroll experience from allocating multiple ad media at
+      // once on memory-constrained Android devices.
+      const rows = feedRowsRef.current;
+      let furthestVisible = -1;
+      for (const token of viewableItems) {
+        const index = typeof token.index === 'number'
+          ? token.index
+          : rows.findIndex(row =>
+              String((row as { id?: unknown })?.id ?? '') ===
+              String((token.item as { id?: unknown })?.id ?? '')
+            );
+        if (index > furthestVisible) furthestVisible = index;
+      }
+      let nextAd: string | null = null;
+      if (furthestVisible >= 0) {
+        for (let index = furthestVisible + 1; index < rows.length; index += 1) {
+          const row = rows[index];
+          if (isCommunityFeedInlineAdRow(row)) {
+            nextAd = row.id;
+            break;
+          }
+        }
+      }
+      setPreloadAdSlotId(current => current === nextAd ? current : nextAd);
 
       if (!incoming.length) {
         return;
@@ -142,8 +169,8 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
 
   const extraData = useMemo(
     () =>
-      `${[...activatedAdIds].sort().join('|')}:${visibleVideoPostId ?? ''}:${preloadVideoPostId ?? ''}`,
-    [activatedAdIds, visibleVideoPostId, preloadVideoPostId],
+      `${[...activatedAdIds].sort().join('|')}:${visibleVideoPostId ?? ''}:${preloadVideoPostId ?? ''}:${preloadAdSlotId ?? ''}`,
+    [activatedAdIds, visibleVideoPostId, preloadVideoPostId, preloadAdSlotId],
   );
 
   const isAdActive = useCallback(
@@ -157,6 +184,7 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
     videoViewabilityConfig,
     onVideoViewableItemsChanged,
     preloadVideoPostId,
+    preloadAdSlotId,
     extraData,
     isAdActive,
     visibleVideoPostId,

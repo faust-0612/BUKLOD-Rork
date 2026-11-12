@@ -62,3 +62,41 @@ test('scroll ad slots can mount before visibility without bypassing viewport and
   assert.match(native,/reserveBuklodPassiveAdRequest\(placementId, requestKey\)/);
 });
 
+
+
+test('Android Wall preloads a nearby native creative before the user scrolls onto it', () => {
+  const native=read('src/components/BuklodCommunityInlineAd.android.tsx');
+  const viewport=read('src/lib/buklodAdViewport.ts');
+  assert.match(native, /preloadDistanceScreens: surface === 'wall'/);
+  assert.match(native, /eligible \|\| hasLoadedCreative \|\| \(surface === 'wall' && nearby && prepare\)/);
+  assert.match(native, /onLayout=\{sample\}/);
+  assert.match(viewport, /preloadDistanceScreens\?: number/);
+  assert.match(viewport, /y < window\.height \+ margin/);
+  assert.match(viewport, /return \{ ref, eligible, nearby, sample \}/);
+  assert.match(viewport, /const SETTLE_MS = 400/);
+});
+
+test('prefetch does not count fake ad impressions or bypass fallback viewport eligibility', () => {
+  const native=read('src/components/BuklodCommunityInlineAd.android.tsx');
+  assert.match(native, /if \(!nativeAd \|\| nativeRendered\.current \|\| !currentlyVisible \|\| !eligible\) return/);
+  assert.match(native, /NativeAdEventType\.IMPRESSION/);
+  assert.match(native, /onAdImpression=/);
+  assert.match(native, /!currentlyVisible/);
+  assert.match(native, /reserveBuklodPassiveAdRequest\(placementId, requestKey\)/);
+  assert.match(native, /surface === 'wall' && Boolean\(slotId\) && !firstView/);
+});
+
+
+test('selects only one upcoming NativeAd for memory-safe prefetch', () => {
+  const hook=read('src/hooks/useBuklodCommunityAdViewability.ts');
+  const publicWall=read('src/app/(tabs)/buklod.tsx');
+  const scopedWall=read('src/components/BuklodExclusiveScopeCommunity.tsx');
+  const native=read('src/components/BuklodCommunityInlineAd.android.tsx');
+  assert.match(hook, /let nextAd: string \| null = null/);
+  assert.match(hook, /for \(let index = furthestVisible \+ 1/);
+  assert.match(hook, /nextAd = row\.id/);
+  assert.match(hook, /setPreloadAdSlotId\(/);
+  assert.match(publicWall, /prepare=\{preloadAdSlotId === item\.id\}/);
+  assert.match(scopedWall, /prepare=\{preloadAdSlotId === item\.id\}/);
+  assert.match(native, /nearby && prepare/);
+});

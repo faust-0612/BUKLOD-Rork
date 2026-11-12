@@ -1152,6 +1152,7 @@ export default function BuklodExclusiveScopeCommunity({
     extraData: communityAdExtraData,
     visibleVideoPostId,
     preloadVideoPostId,
+    preloadAdSlotId,
   } = useBuklodCommunityAdViewability(
     mode === 'reels' ? visiblePosts : wallFeedRows,
   );
@@ -4413,6 +4414,7 @@ return (
               return (
                 <BuklodCommunityInlineAd
                   slotId={item.id}
+                  prepare={preloadAdSlotId === item.id}
                   // Preserve a measurable probe until in-viewport ad eligibility.
                   inventory={
                     scope.scope_type === 'CLUSTER'

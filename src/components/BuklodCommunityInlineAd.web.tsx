@@ -12,6 +12,7 @@ export default function BuklodCommunityInlineAd({
 }: {
   slotId?: string;
   active?: boolean;
+  prepare?: boolean;
   inventory?: CommunityAdInventory;
 }) {
   if (!active) {
