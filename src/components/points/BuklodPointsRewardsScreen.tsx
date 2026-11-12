@@ -541,7 +541,7 @@ const pointsViewCache = new Map<string, {
   rank: RankDashboard | null;
 }>();
 export default function BuklodPointsRewardsScreen() {
-  const { user } = useAuth();
+  const { user, profile, hasRole } = useAuth();
   const accountId = user?.id ?? '';
   // Keyed owner boundary: never render another account's cached Points after a
   // session switch, even before the new account's first network response.
@@ -832,6 +832,26 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
   }, [filter, history, search]);
 
   const recentHistory = history.slice(0, 5);
+
+  // The protected platform identity is a publisher/support account, not a
+  // member in the rewards economy. The database also rejects new credits.
+  if (hasRole('system_admin') && String(profile?.full_name ?? '').trim().toUpperCase() === 'BUKLOD') {
+    return (
+      <View style={[shared.screen, styles.loadingScreen]}>
+        <MaterialCommunityIcons name="check-decagram" size={38} color={COLORS.green} />
+        <Text style={styles.loadingTitle}>BUKLOD Official</Text>
+        <Text style={[styles.dashboardErrorText, { textAlign: 'center' }]}>
+          This platform account is excluded from member Points, QMP, rankings and payouts.
+        </Text>
+        <Pressable
+          onPress={() => router.push('/admin/buklod-official' as any)}
+          style={styles.dashboardRetry}
+        >
+          <Text style={styles.dashboardRetryText}>OPEN OFFICIAL CONSOLE</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
