@@ -24,7 +24,7 @@ test('production publishing remains on the canonical gated Main workflow', () =>
   assert.match(androidPublisher, /BUKLOD_CONSOLIDATED_PROD_20261108/);
   assert.match(androidPublisher, /verify-production-ads-env\.cjs/);
   assert.match(androidPublisher, /eas-cli@latest env:exec production/);
-  assert.match(androidPublisher, /eas update/);
+  assert.match(androidPublisher, /eas-cli@latest update --channel production --platform android/);
 });
 
 test('native post-sized video inventory survives and cannot be visible through temporary safety locks', () => {
