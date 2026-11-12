@@ -30,6 +30,19 @@
         "tests/web-auth-brand-retirement-20261107.test.mjs",
         "tests/buklod-login-green-b-avatar-refresh-20261112.test.mjs"
       ]
+    },
+    {
+      "id": "app-runtime",
+      "reason": "Login-route Image cache identity and owner profile save local cache handoff are narrow runtime presentation changes; no app shell, native dependency, multimedia, persistent session or backend contract change.",
+      "preservedBehaviors": [
+        "Existing React Native Image fallback on offline/missing avatar stays Green B",
+        "Login route and account lifecycle transitions remain unchanged",
+        "No additional background polling or public database profile query; one bounded authenticated account read only"
+      ],
+      "tests": [
+        "tests/buklod-login-green-b-avatar-refresh-20261112.test.mjs",
+        "tests/web-auth-brand-retirement-20261107.test.mjs"
+      ]
     }
   ],
   "regressionTests": [
