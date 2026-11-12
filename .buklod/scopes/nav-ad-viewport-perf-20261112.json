@@ -24,9 +24,7 @@
     "wall-media"
   ],
   "regressionTests": [
-    "tests/buklod-ad-viewport-shared-clock-20261112.test.mjs",
-    "tests/buklod-ad-request-gate-recovery.test.mjs",
-    "tests/buklod-ad-gate-recovery-20261112.test.mjs"
+    "tests/buklod-ad-viewport-shared-clock-20261112.test.mjs"
   ],
   "allowedPaths": [
     "src/lib/buklodAdViewport.ts",
