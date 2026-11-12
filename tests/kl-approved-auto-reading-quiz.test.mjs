@@ -18,7 +18,7 @@ test('approving an actual manuscript queues precisely five source-grounded quest
   assert.match(generator, /manuscript\.includes\(evidence\)/);
   assert.match(reader, /prepareQuizForApprovedChapter\(serverChapter\.id\)/);
   assert.match(reader, /const quizFeedback = action === 'approve'/);
-  assert.match(reader, /Check \/ Retry 5 Reading Questions/);
+  assert.match(reader, /Prepare \/ Retry 5 Questions/);
 });
 
 test('members receive only three random questions; correct answer and evidence remain private', () => {
