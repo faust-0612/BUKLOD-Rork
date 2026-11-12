@@ -541,7 +541,7 @@ const pointsViewCache = new Map<string, {
   rank: RankDashboard | null;
 }>();
 export default function BuklodPointsRewardsScreen() {
-  const { user, profile, hasRole } = useAuth();
+  const { user } = useAuth();
   const accountId = user?.id ?? '';
   // Keyed owner boundary: never render another account's cached Points after a
   // session switch, even before the new account's first network response.
@@ -549,6 +549,7 @@ export default function BuklodPointsRewardsScreen() {
 }
 
 function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) {
+  const { profile, hasRole } = useAuth();
   const initialCache = accountId ? pointsViewCache.get(accountId) : undefined;
   const {focusLedgerId}=useLocalSearchParams<{focusLedgerId?:string}>();
   const exactLedgerId=typeof focusLedgerId==='string'?focusLedgerId.trim():'';
