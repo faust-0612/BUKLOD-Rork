@@ -1,0 +1,45 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/profile-roster-save-timeout-20261112.json",
+  "objective": "Remove 8-second profile identity save timeout caused by unnecessary Classroom roster full-profile similarity scans; preserve matching and security.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Live Supabase BUKLOD Connect Postgres SQLSTATE 57014 at 2026-11-12 00:51:35, 00:51:51, 00:53:57 UTC; three PATCH /rest/v1/profiles HTTP 500 at ~8070ms; 25 unresolved roster entries and 562 active profiles. Canonical main 6f6f732e9aa3c095b5b327dde23cb7e9166826ae; DEV-only PR until required checks pass.",
+  "chosenApproach": "Add v_score >= 0.97 guard before competitor-wide scan and reset v_second for each pending Classroom roster intent; preserve exact username, token, strict fuzzy and manual review semantics.",
+  "selectionRationale": "Competitor score is only used for strict-fuzzy v_score >= 0.97 auto-qualification, so scanning when score is lower cannot affect decisions. This precisely removes avoidable N*M work without changing decisions.",
+  "riskAreas": [
+    "classroom-quiz",
+    "auth-privacy",
+    "database-performance"
+  ],
+  "regressionTests": [
+    "tests/profile-roster-trigger-timeout-regression.test.js",
+    "tests/profile-roster-trigger-timeout-regression.test.mjs",
+    "supabase/tests/profile_roster_save_trigger_timeout_20261112.sql"
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability low-cost test and manifest gate passes",
+    "SQL after migration validates trigger and security",
+    "Identity save no longer times out at 8 seconds under representative workload",
+    "Exact username, token, manual review and matching thresholds unchanged",
+    "No changes to Android media playback and AdMob"
+  ],
+  "preserveBehaviors": [
+    "No changes to current Android player, Wall/Marites, AdMob, PTT or RC OTA",
+    "Classroom identity matching and enrollment safeguards retained",
+    "Profile RLS and official system admin safeguards retained",
+    "No direct production database data writes during DEV QA"
+  ],
+  "alternativeApproaches": [
+    "Increase authenticated statement_timeout beyond 8 seconds: rejected because it hides an unbounded synchronous scan and makes users wait",
+    "Remove Classroom roster trigger: rejected because this would silently break enrollment reconciliation",
+    "Guard the expensive competitor scan using its pre-existing qualification threshold: selected"
+  ],
+  "allowedPaths": [
+    "supabase/migrations/20261112090000_optimize_roster_sync_profile_save_timeout.sql",
+    "tests/profile-roster-trigger-timeout-regression.test.js",
+    "tests/profile-roster-trigger-timeout-regression.test.mjs",
+    "supabase/tests/profile_roster_save_trigger_timeout_20261112.sql",
+    ".buklod/scopes/profile-roster-save-timeout-20261112.json"
+  ],
+  "releaseStatus": "DEV/PR only pending CI and verified production backend promotion; no Android OTA."
+}
