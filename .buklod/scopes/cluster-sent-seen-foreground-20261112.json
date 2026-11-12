@@ -18,7 +18,8 @@
     "background-focus"
   ],
   "regressionTests": [
-    "tests/buklod-cluster-connect-seen-20261112.test.mjs"
+    "tests/buklod-cluster-connect-seen-20261112.test.mjs",
+    "tests/buklod-connect-seen-ads-isolation-20261112.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -41,19 +42,31 @@
       "tests": [
         "tests/buklod-cluster-connect-seen-20261112.test.mjs"
       ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "The conservative classifier matches the `ad` suffix in `Thread` read-related filename despite no AdMob source modification. This test verifies Connect Seen/Read files contain no ad-request, impression, reward-credit, or point-ledger side effects.",
+      "preservedBehaviors": [
+        "Consent, AdMob SDK, banner/interstitial inventory, playback and finance/points transactions are untouched; only room-read and message labels change."
+      ],
+      "tests": [
+        "tests/buklod-connect-seen-ads-isolation-20261112.test.mjs"
+      ]
     }
   ],
   "allowedPaths": [
     "src/components/BuklodConnectThread.tsx",
     "src/components/connect/ConnectMessageBubble.tsx",
     "tests/buklod-cluster-connect-seen-20261112.test.mjs",
-    ".buklod/scopes/cluster-sent-seen-foreground-20261112.json"
+    ".buklod/scopes/cluster-sent-seen-foreground-20261112.json",
+    "tests/buklod-connect-seen-ads-isolation-20261112.test.mjs"
   ],
   "acceptanceChecks": [
     "Tests assert no empty Seen report on own sends, positive Seen count, confirmed-delivery gate, sender exclusion and member-scoped cursor comparisons.",
     "Tests assert no read-write while screen unfocused or backgrounded, including delayed scroll events.",
     "Automated Engineering Accountability, Performance R1, Main Integration QA including TypeScript, and Android+Expo web compiled QA must pass at the exact frozen RC SHA before any OTA release decision.",
-    "Physical two-device Cluster send/read and production runtime checks are not verified here; no publish and no production success claim."
+    "Physical two-device Cluster send/read and production runtime checks are not verified here; no publish and no production success claim.",
+    "Ad safety isolation regression confirms no AdMob ad request, impression, reward or points ledger calls are introduced within Connect Seen files."
   ],
   "releaseState": "DEV only; awaiting exact-source CI and consolidated RC inclusion. No OTA published."
 }
