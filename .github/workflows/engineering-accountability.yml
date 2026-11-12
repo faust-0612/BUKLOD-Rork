@@ -287,6 +287,15 @@ jobs:
           node --experimental-strip-types --test tests/android-wall-auto-sharp.test.mjs tests/android-photo-cache-first-progress.test.mjs tests/android-photo-oct28-rollback.test.cjs tests/community-wall-preview-sidecar.test.mjs tests/community-wall-legacy-preview-backfill.test.mjs
       - name: Prove engineering regression gate fails closed
         run: node --test tests/engineering-regression-gate.test.mjs
+      - name: Protect current functional BUKLOD feature contracts
+        env:
+          BUKLOD_BASE_REF: ${{ github.base_ref || 'main' }}
+        run: |
+          node --test tests/protected-feature-lock.test.mjs
+          node scripts/protected-feature-lock.mjs
+      - name: Preserve functional media, calls, auth, support, retirement and finance contracts
+        run: |
+          node --test tests/community-wall-no-blank-photo.test.cjs tests/buklod-ptt-call-isolation.test.cjs tests/buklod-mandatory-update-runtime.test.mjs tests/bsoc-auth-privacy-20261108.test.mjs tests/buklod-igpat-retirement-release-marker-20261111.test.mjs tests/buklod-admob-revenue-separation-20261112.test.mjs
       - name: Verify impacted features have runnable regression coverage
         env:
           BUKLOD_BASE_REF: ${{ ((github.head_ref == 'integration/buklod-nov11-complete-source-hold-20261111' || github.head_ref == 'integration/buklod-nov11-reconciled-ota-candidate') && github.base_ref == 'qa/buklod-nov11-source-compile-20261111') && 'main' || github.base_ref || 'main' }}
