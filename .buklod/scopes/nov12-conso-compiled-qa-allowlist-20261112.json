@@ -1,0 +1,37 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov12-conso-compiled-qa-allowlist-20261112.json",
+  "objective": "Allow only the named Nov12 consolidated source branches to run existing nonpublishing exact-SHA Android and Expo Web compile QA before approved OTA release.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: latest Main d0c73a5d07a24780eea52c3e914db4a3bd030852 includes security operations and Admin Priority Notifications. Current compiled workflow job is intentionally branch allowlisted and would skip today's new RC unless names are explicitly allowed. This change does not authorize production publishing.",
+  "chosenApproach": "Append two exact Nov12 branch names to existing compiled QA head-ref allowlist; do not modify production Android/Web release workflows, runtime or QA scripts.",
+  "selectionRationale": "Reusing the existing frozen production-environment compile gate provides independent Android and Web evidence with no deployment and no separate EAS build. Direct publishing or bypassing the allowlist would discard mandatory preflight.",
+  "alternativeApproaches": [
+    "Reuse unrelated stale whitelisted branch and overwrite its history (rejected).",
+    "Skip exact compiled QA and publish via a generic marker (rejected).",
+    "Append exact Nov12 source refs to guarded nonpublishing QA workflow (chosen)."
+  ],
+  "preserveBehaviors": [
+    "Existing compiled QA gates, exact source checkout and Supabase production environment verification remain unchanged.",
+    "No production publisher workflow, runtime version, backend, finance or member interface is modified."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "governance-lock"
+  ],
+  "regressionTests": [
+    "tests/nov12-conso-compiled-qa-allowlist-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov12-conso-compiled-qa-allowlist-20261112.json",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/nov12-conso-compiled-qa-allowlist-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "acceptanceChecks": [
+    "Compiled QA workflow only runs on named same-repository heads.",
+    "Android and Expo Web export are nonpublishing, source SHA verified and target runtime 1.3.2.",
+    "No production OTA or Web publish event can be triggered by this PR."
+  ],
+  "releaseState": "SOURCE_ONLY_QA_ALLOWLIST__NO_OTA"
+}
