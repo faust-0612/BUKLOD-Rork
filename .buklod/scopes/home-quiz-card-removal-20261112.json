@@ -27,14 +27,16 @@
     "app-runtime"
   ],
   "regressionTests": [
-    "tests/public-home-quiz-launcher-removal-20261112.test.mjs"
+    "tests/public-home-quiz-launcher-removal-20261112.test.mjs",
+    "tests/home-navigation-quiz-removal-20261112.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/home-quiz-card-removal-20261112.json",
     "src/components/BuklodSystemAnnouncementBoard.tsx",
     "src/app/(tabs)/hub.tsx",
     "src/components/home/BuklodHomeMergedUpdates.tsx",
-    "tests/public-home-quiz-launcher-removal-20261112.test.mjs"
+    "tests/public-home-quiz-launcher-removal-20261112.test.mjs",
+    "tests/home-navigation-quiz-removal-20261112.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -45,6 +47,16 @@
       ],
       "tests": [
         "tests/public-home-quiz-launcher-removal-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "The canonical Home route is governed by the locked navigation contract; retaining its Updates toggle and Wall navigation while removing the Quiz launcher must be regression tested.",
+      "preservedBehaviors": [
+        "Canonical Home screen, Wall navigation, and existing Drawer access remain unchanged; neither Home nor Drawer gains a Quiz route."
+      ],
+      "tests": [
+        "tests/home-navigation-quiz-removal-20261112.test.mjs"
       ]
     }
   ]
