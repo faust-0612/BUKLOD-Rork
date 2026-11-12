@@ -383,7 +383,7 @@ begin
     totals.full_name
   limit safe_limit;
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.admin_bayanihan_leaderboard_v3(p_period text DEFAULT 'month'::text, p_limit integer DEFAULT 5)
  RETURNS TABLE(rank_position bigint, user_id uuid, full_name text, total_earned numeric)
@@ -510,7 +510,7 @@ begin
 
   limit lim;
 end
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.get_buklod_points_leaderboard(p_period text DEFAULT 'weekly'::text, p_limit integer DEFAULT 50, p_church_id uuid DEFAULT NULL::uuid)
  RETURNS TABLE(rank_position bigint, user_id uuid, full_name text, church_id uuid, church_name text, total_points bigint)
@@ -620,7 +620,7 @@ BEGIN
   SELECT r.rank_position,r.user_id,r.full_name,r.church_id,r.church_name,r.total_points
   FROM ranked r ORDER BY r.rank_position LIMIT safe_limit;
 END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.get_member_circle_ranks_v1(p_user_ids uuid[])
  RETURNS TABLE(user_id uuid, rank_name text)
@@ -660,7 +660,7 @@ AS $function$
     ),'Circle Starter V')::text
   from totals t
   order by t.user_id;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.get_member_weekly_leaderboard(p_week_start date DEFAULT NULL::date, p_limit integer DEFAULT 10)
  RETURNS TABLE(rank_position bigint, user_id uuid, full_name text, church_id uuid, total_score numeric, bible_completed bigint, bible_required bigint, devotional_completed bigint, devotional_required bigint, formation_lessons bigint, active_days bigint, required_days bigint)
@@ -922,7 +922,7 @@ select
 from ranked r
 order by r.rank_position
 limit greatest(1, least(coalesce(p_limit,10),50));
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.get_mentor_weekly_leaderboard(p_week_start date DEFAULT NULL::date, p_limit integer DEFAULT 10)
  RETURNS TABLE(rank_position bigint, user_id uuid, full_name text, church_id uuid, approved_sessions bigint, distinct_lessons bigint)
@@ -999,4 +999,4 @@ select
 from ranked r
 order by r.rank_position
 limit greatest(1, least(coalesce(p_limit,10),50));
-$function$
+$function$;
