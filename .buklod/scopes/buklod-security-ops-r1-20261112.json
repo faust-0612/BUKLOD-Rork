@@ -42,5 +42,29 @@
     "DB read-only post-deployment checks pass after controlled promotion",
     "Actual Finance hold behavior proven in safe environment; no payout enablement",
     "Production exact release artifact and source SHA verified before calling live"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add an isolated System Admin security operations route and navigation entry only; preserve all unrelated app functionality.",
+      "preservedBehaviors": [
+        "Existing admin navigation, Wall/media, ads and member access remain unchanged."
+      ],
+      "tests": [
+        "tests/buklod-security-operations-20261112.test.cjs",
+        "supabase/tests/buklod_security_operations_r1_20261112.sql"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add private and role-gated risk scanner and audited Finance V3 containment trigger with explicit rollback verification.",
+      "preservedBehaviors": [
+        "Existing backend RPCs and finance ledgers remain untouched unless the admin explicitly activates a safety hold."
+      ],
+      "tests": [
+        "tests/buklod-security-operations-20261112.test.cjs",
+        "supabase/tests/buklod_security_operations_r1_20261112.sql"
+      ]
+    }
   ]
 }
