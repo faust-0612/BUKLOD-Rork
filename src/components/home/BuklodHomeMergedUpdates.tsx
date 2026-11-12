@@ -5,7 +5,7 @@ import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnounce
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
 
 /**
- * The former Public Home's announcement/Quiz and bulletin features live here.
+ * Public Home announcements and bulletins live here.
  * Mounted only when the user expands Updates on the lightweight /hub Home.
  * Daily encouragement is already displayed by BuklodDashboardContextBar.
  */
