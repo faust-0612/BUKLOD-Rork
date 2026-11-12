@@ -166,9 +166,23 @@ BEGIN
       AND lower(status::text) NOT IN ('closed','resolved','accepted');
   PERFORM private.buklod_security_signal_v1('BSOC_P0_OPEN','P1',v_count);
 
+  -- Existing capacity monitor emits NORMAL, WATCH and REVIEW, not just P0.
   SELECT count(*)::integer INTO v_count FROM private.buklod_backend_capacity_alert_state_v2
-    WHERE upper(coalesce(level,'')) IN ('CRITICAL','P0');
-  PERFORM private.buklod_security_signal_v1('BACKEND_CAPACITY_CRITICAL','P1',v_count);
+    WHERE upper(coalesce(level,''))='WATCH';
+  PERFORM private.buklod_security_signal_v1('BACKEND_CAPACITY_WATCH','P2',v_count);
+
+  SELECT count(*)::integer INTO v_count FROM private.buklod_backend_capacity_alert_state_v2
+    WHERE upper(coalesce(level,'')) IN ('REVIEW','CRITICAL','P0');
+  PERFORM private.buklod_security_signal_v1('BACKEND_CAPACITY_REVIEW','P1',v_count);
+
+  -- Detection only: legitimate future finance activation is not automatically
+  -- frozen, but any money-switch activation requires explicit incident review.
+  SELECT count(*)::integer INTO v_count FROM private.buklod_pf_config
+    WHERE coalesce(economics_enabled,false)
+       OR coalesce(settlement_enabled,false)
+       OR coalesce(withdrawal_enabled,false)
+       OR coalesce(payout_processing_enabled,false);
+  PERFORM private.buklod_security_signal_v1('FINANCE_MONEY_SWITCH_ACTIVE','P1',v_count);
 
   -- Presence is not proof of complete login coverage; absence is never 'safe'.
   -- Managed Auth table currently lacks an indexed created_at access path.
@@ -282,6 +296,12 @@ BEGIN
   END IF;
   SELECT * INTO v_state FROM private.buklod_security_control_v1
     WHERE singleton=true FOR UPDATE;
+  -- Recheck inside the serialized section: two concurrent retries with the
+  -- same action key must resolve to one recorded hold/release action.
+  IF EXISTS(SELECT 1 FROM private.buklod_security_action_audit_v1
+            WHERE action_key=p_action_key) THEN
+    RETURN public.buklod_admin_security_overview_v1();
+  END IF;
   IF v_state.version IS DISTINCT FROM p_expected_version
      OR v_state.finance_hold_enabled=p_enable THEN
     RAISE EXCEPTION 'Stale or unchanged finance hold. Refresh and retry.'

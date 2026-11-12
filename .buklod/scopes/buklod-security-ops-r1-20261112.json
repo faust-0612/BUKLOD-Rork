@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Introduce System Admin security signal monitoring, audited Finance V3 containment and evidence-gated recovery without interrupting existing app features.",
-  "baseRef": "b89848c58ca8f17b9dfcd4dfc7a47bbea869f625",
-  "productionBaselineEvidence": "2026-11-12 read-only: 542 public tables RLS on, 58 anon admin-definer RPCs, existing BSOC/capacity/fraud tables, Finance V3 all switches OFF, Auth audit entries 24h none. Exact security migration passed BEGIN/ROLLBACK-only SQL simulation including finance guard; no live mutation.",
+  "baseRef": "9ce38850fb66d8f587dce72cd1b3380148a31098",
+  "productionBaselineEvidence": "2026-11-12 read-only: 542 public tables RLS on, 58 anon admin-definer RPCs, existing BSOC/capacity/fraud tables, Finance V3 all switches OFF, Auth audit entries 24h none. Exact security migration passed BEGIN/ROLLBACK-only SQL simulation including finance guard; no live mutation.; 2026-11-12 PR #735 merged at 9ce38850fb66d8f587dce72cd1b3380148a31098 and applied to production: anonymous admin RPC count 0, 105 authenticated admin RPCs retained, all four Finance V3 switches OFF.",
   "chosenApproach": "Private metadata-only 15-minute risk scan, System Admin-only dashboard and controlled Finance V3 hold with a database guard, immutable actions, optimistic versioning, MFA-evidenced hold release; reuse existing admin navigation.",
   "selectionRationale": "Precise fail-safe operations retain historical finances and existing login/video/ads functionality while establishing incident detection and containment without paid dependencies.",
   "alternativeApproaches": [
@@ -24,7 +24,8 @@
   ],
   "regressionTests": [
     "tests/buklod-security-operations-20261112.test.cjs",
-    "supabase/tests/buklod_security_operations_r1_20261112.sql"
+    "supabase/tests/buklod_security_operations_r1_20261112.sql",
+    "tests/buklod-security-ops-release-gate-20261112.test.cjs"
   ],
   "allowedPaths": [
     "src/app/admin/index.tsx",
@@ -33,7 +34,9 @@
     "supabase/tests/buklod_security_operations_r1_20261112.sql",
     "tests/buklod-security-operations-20261112.test.cjs",
     "docs/security/BUKLOD_SECURITY_INCIDENT_RESPONSE_20261112.md",
-    ".buklod/scopes/buklod-security-ops-r1-20261112.json"
+    ".buklod/scopes/buklod-security-ops-r1-20261112.json",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/buklod-security-ops-release-gate-20261112.test.cjs"
   ],
   "acceptanceChecks": [
     "Rollback-only live SQL simulation passed",
@@ -41,7 +44,8 @@
     "Mandatory Engineering Accountability and relevant CI checks pass",
     "DB read-only post-deployment checks pass after controlled promotion",
     "Actual Finance hold behavior proven in safe environment; no payout enablement",
-    "Production exact release artifact and source SHA verified before calling live"
+    "Production exact release artifact and source SHA verified before calling live",
+    "Exact-source Android and Expo Web compiled RC QA run must pass before production merge"
   ],
   "lockedFeatureChanges": [
     {
@@ -64,6 +68,16 @@
       "tests": [
         "tests/buklod-security-operations-20261112.test.cjs",
         "supabase/tests/buklod_security_operations_r1_20261112.sql"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Run existing exact-commit Android and Expo Web compiled RC QA for scoped BUKLOD security operations without changing OTA or production publishing workflows.",
+      "preservedBehaviors": [
+        "Existing production OTA and Expo Hosting release triggers remain unchanged and no automatic publication is added."
+      ],
+      "tests": [
+        "tests/buklod-security-ops-release-gate-20261112.test.cjs"
       ]
     }
   ]

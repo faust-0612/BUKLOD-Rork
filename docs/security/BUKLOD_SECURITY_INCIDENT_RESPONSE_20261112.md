@@ -3,7 +3,7 @@
 Scope: BUKLOD Main; use existing BSOC, capacity monitoring, and Finance V3. This source-only implementation does not imply production activation.
 
 ## Detect
-- Database scan every 15 minutes, without new external HTTP traffic, checks missing public RLS, anon callable privileged admin RPCs, unresolved finance fraud flags, BSOC P0 incidents, and backend critical alerts.
+- Database scan every 15 minutes, without new external HTTP traffic, checks missing public RLS, anon callable privileged admin RPCs, unresolved finance fraud flags, Finance V3 money-switch activation, BSOC P0 incidents, and real capacity WATCH/REVIEW levels.
 - Dashboard exposes only bounded counts and timestamps. Logs, personal data, credentials and fraud evidence stay private.
 - Auth audit completeness remains UNVERIFIED without independent log/provider integration. No all-clear claim when configured signals are quiet.
 - More integrations required: Auth password-spray monitoring, firewall/bot/DDoS telemetry, Supabase platform health, Android ANR/crash, media integrity and alert delivery.
@@ -33,3 +33,6 @@ Scope: BUKLOD Main; use existing BSOC, capacity monitoring, and Finance V3. This
 
 ## Release gates
 Rollback-only SQL simulation on live schema; Node + SQL regression tests; typecheck; engineering accountability CI; exact RC and production promotion; post-deploy cron/signal and role-verification checks. A failed Vercel Classroom preview must not be misrepresented as a failure in Expo but may remain a repository-required gate until properly isolated.
+
+## Verified prerequisite (2026-11-12)
+PR #735 was merged as `9ce38850fb66d8f587dce72cd1b3380148a31098` and its anonymous admin RPC ACL migration is live: anonymous admin RPC access 58 -> 0; authenticated admin RPC access remains 105; all Finance V3 switches remain OFF.

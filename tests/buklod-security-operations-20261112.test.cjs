@@ -12,7 +12,9 @@ test('Security signals are database-only, private and admin-only', () => {
   assert.match(sql,/PUBLIC_TABLE_WITHOUT_RLS/);
   assert.match(sql,/ANON_ADMIN_PRIVILEGED_RPC/);
   assert.match(sql,/FINANCE_BLOCKING_FRAUD/);
-  assert.match(sql,/BACKEND_CAPACITY_CRITICAL/);
+  assert.match(sql,/BACKEND_CAPACITY_WATCH/);
+  assert.match(sql,/BACKEND_CAPACITY_REVIEW/);
+  assert.match(sql,/FINANCE_MONEY_SWITCH_ACTIVE/);
   assert.match(sql,/buklod_queue_notification_once_v1/);
   assert.match(sql,/OFFICIAL_SYSTEM_ADMIN/);
   assert.match(sql,/v_prior_status IS DISTINCT FROM 'ACTIVE'/);
@@ -24,6 +26,7 @@ test('Security signals are database-only, private and admin-only', () => {
 test('Finance hold uses transaction, immutable audit, MFA and never auto-enables payout', () => {
   assert.match(sql,/BEFORE INSERT OR UPDATE\s+ON private\.buklod_pf_config/);
   assert.match(sql,/WHERE singleton=true FOR UPDATE/);
+  assert.match(sql,/Recheck inside the serialized section/);
   assert.match(sql,/p_expected_version/);
   assert.match(sql,/p_action_key uuid/);
   assert.match(sql,/v_aal<>'aal2'/);
