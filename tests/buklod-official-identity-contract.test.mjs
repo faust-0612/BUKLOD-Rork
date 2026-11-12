@@ -22,6 +22,8 @@ test('official earning paths are guarded without deleting historical ledgers', (
   assert.doesNotMatch(migration, /delete\s+from\s+(?:public|private)\.(?:buklod_points_ledger|buklod_community_qmp_events|buklod_pf_cash_ledger)/i);
   assert.match(migration, /private\.buklod_pf_total_monthly_qmp_v1/);
   assert.match(migration, /private\.buklod_pf_monthly_points_v3/);
+  assert.match(migration, /zz_buklod_official_pf_cash_ledger_guard_v1/);
+  assert.match(migration, /zz_buklod_official_pf_referral_guard_v1/);
   for (const table of ['buklod_r36_bcu_ledger','buklod_r38_rcu_ledger','buklod_kingdom_shards_ledger_v1']) assert.ok(migration.includes('on private.' + table), 'missing guard for ' + table);
 });
 test('canonical leaderboards filter protected account before ranking', () => {

@@ -1041,3 +1041,56 @@ drop trigger if exists zz_buklod_official_shards_guard_v1 on private.buklod_king
 create trigger zz_buklod_official_shards_guard_v1
 before insert on private.buklod_kingdom_shards_ledger_v1
 for each row execute function private.buklod_official_reward_write_guard_v1();
+
+
+-- Extra cash and referral gates: official exclusion must cover all cash
+-- issuances, not merely Community QMP or monthly-settlement tables.
+create or replace function private.buklod_official_finance_person_v1(p_person uuid)
+returns boolean language sql stable security definer set search_path to ''
+as $$
+ select exists (
+   select 1 from private.buklod_pf_persons p where p.person_id=p_person
+     and private.buklod_is_platform_official_v1(p.current_user_id)
+ );
+$$;
+revoke all on function private.buklod_official_finance_person_v1(uuid) from public,anon,authenticated;
+
+create or replace function private.buklod_official_cash_ledger_guard_v1()
+returns trigger language plpgsql security definer set search_path to ''
+as $$
+begin
+ if private.buklod_official_finance_person_v1(new.person_id) then
+   raise exception 'BUKLOD Official is ineligible for Finance cash credits and payouts'
+     using errcode='42501';
+ end if;
+ return new;
+end;
+$$;
+revoke all on function private.buklod_official_cash_ledger_guard_v1() from public,anon,authenticated;
+drop trigger if exists zz_buklod_official_pf_cash_ledger_guard_v1 on private.buklod_pf_cash_ledger;
+create trigger zz_buklod_official_pf_cash_ledger_guard_v1
+before insert or update of person_id
+on private.buklod_pf_cash_ledger
+for each row execute function private.buklod_official_cash_ledger_guard_v1();
+
+create or replace function private.buklod_official_referral_guard_v1()
+returns trigger language plpgsql security definer set search_path to ''
+as $$
+begin
+ if private.buklod_official_finance_person_v1(new.referrer_person_id)
+    or private.buklod_official_finance_person_v1(new.referred_person_id) then
+   raise exception 'BUKLOD Official cannot earn or confer referral cash entitlement'
+     using errcode='42501';
+ end if;
+ return new;
+end;
+$$;
+revoke all on function private.buklod_official_referral_guard_v1() from public,anon,authenticated;
+drop trigger if exists zz_buklod_official_pf_referral_guard_v1 on private.buklod_pf_referrals;
+create trigger zz_buklod_official_pf_referral_guard_v1
+before insert on private.buklod_pf_referrals
+for each row execute function private.buklod_official_referral_guard_v1();
+drop trigger if exists zz_buklod_official_pf_referral_settlement_guard_v1 on private.buklod_pf_referral_settlements;
+create trigger zz_buklod_official_pf_referral_settlement_guard_v1
+before insert on private.buklod_pf_referral_settlements
+for each row execute function private.buklod_official_referral_guard_v1();

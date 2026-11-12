@@ -95,6 +95,30 @@ begin
     raise exception 'Kingdom shard guard disabled';
   end if;
 
+
+  if not exists(select 1 from pg_trigger
+    where tgrelid='private.buklod_pf_cash_ledger'::regclass
+      and tgname='zz_buklod_official_pf_cash_ledger_guard_v1' and tgenabled='O') then
+    raise exception 'Direct Finance cash guard not active';
+  end if;
+  if not exists(select 1 from pg_trigger
+    where tgrelid='private.buklod_pf_referrals'::regclass
+      and tgname='zz_buklod_official_pf_referral_guard_v1' and tgenabled='O') then
+    raise exception 'Official referral guard missing';
+  end if;
+  if exists(select 1 from private.buklod_pf_user_links l
+      where l.user_id=v_official and l.retired_at is null) then
+    begin
+      insert into private.buklod_pf_cash_ledger
+        (person_id,bucket,direction,amount_centavos,entry_type,event_key,policy_version)
+      select l.person_id,'AVAILABLE','CREDIT',100,'USER_POOL_SETTLEMENT',
+        'official-cash-denial-rollback-test','official_test'
+      from private.buklod_pf_user_links l where l.user_id=v_official and l.retired_at is null limit 1;
+      raise exception 'Official direct Finance cash award bypassed guard';
+    exception when insufficient_privilege then null;
+    end;
+  end if;
+
   perform set_config('request.jwt.claim.sub',v_official::text,true);
   v_dash:=public.get_my_buklod_official_dashboard_v1();
   if v_dash->>'is_official'<>'true'

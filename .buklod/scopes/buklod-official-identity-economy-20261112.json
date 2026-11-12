@@ -28,7 +28,9 @@
     "Only official AdMob-reconciled source records may create member cash; sponsor income stays separately visible, never allocated to users.",
     "Unfinalized 2026-11 sponsorship receipts remain ₱5,994 platform revenue, but R38 user-pool preview excludes sponsorship and canonical Finance V3 uses AdMob alone.",
     "Wall review pages all public posts; only protected Official may hide/restore with reason and audit; never delete media.",
-    "Only protected Official may search recipients and send idempotent individual notices."
+    "Only protected Official may search recipients and send idempotent individual notices.",
+    "Protected Official cannot acquire Finance cash credits or referral entitlements through direct ledger or legacy RPC paths.",
+    "Only the exact reconciled head may pass compiled Android and Expo Web RC QA; no automatic deployment on PR."
   ],
   "preserveBehaviors": [
     "No other member earning, ad monetization/claim, Community or Marites behavior changes.",
@@ -51,6 +53,7 @@
   "allowedPaths": [
     ".buklod/scopes/buklod-official-identity-economy-20261112.json",
     ".github/workflows/buklod-official-identity-qa.yml",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
     "docs/release/buklod-official-identity-20261112.md",
     "src/app/(tabs)/me.tsx",
     "src/app/admin/bayanihan.tsx",
