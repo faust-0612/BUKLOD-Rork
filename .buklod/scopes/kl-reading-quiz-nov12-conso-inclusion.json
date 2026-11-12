@@ -1,0 +1,89 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kl-reading-quiz-nov12-conso-inclusion.json",
+  "objective": "Stage the verified KL reading-quiz generator v3 and secure System Admin five-question review screen into the active November 12 consolidated RC source only, preserving all Cluster Seen, avatar, AdMob and BSOC workstreams, without publishing an OTA.",
+  "baseRef": "integration/buklod-nov12-conso-rc-seen-avatar-ads",
+  "productionBaselineEvidence": "verified: active November 12 conso RC source integration/buklod-nov12-conso-rc-seen-avatar-ads at commit 647721910452bb9f265d9449a5de3890a1ba4988 includes Cluster seen, avatar live repaint, passive AdMob gate, actionable BSOC case inbox and main security operations. The KL fix PR #739 has 8/8 focused Node checks plus Engineering, Performance R1 and Main integration QA success on branch SHA 576183746cbaa7781426ecf32fff19eebff7b613. Production Supabase generator v3 ACTIVE with JWT verified; admin question review SQL migration 20261112043503 applied with anonymous EXECUTE blocked. Panimula 5 distinct validated questions ready; Kabanata 1–5 pending last checked. Neither Android production OTA nor live device E2E is claimed.",
+  "chosenApproach": "Build an isolated integration source branch directly from current Nov12 RC, copy exactly five tested KL source/migration/test files from PR #739 with blob-SHA parity, add a single exact-scope manifest, run the automated source/regression gates and merge only into the ongoing RC branch. Reuse production Supabase v3 and role-restricted admin RPC; do not redeploy or duplicate database migration.",
+  "selectionRationale": "The current RC lacks the KL admin question-review client UI, so it needs an Expo client OTA to expose the already-live API. The five files do not overlap the existing RC's 24 changed paths. Overlaying exact tested blobs avoids pulling unrelated main/old RC workstreams or changing runtime/native packages.",
+  "alternativeApproaches": [
+    "Skip KL client in current OTA (rejected: admin cannot review existing answer banks).",
+    "Merge entire original KL fix history from main directly (rejected: unnecessary integration history and risk to RC isolation).",
+    "Stage only five source/migration/test files plus exact scope manifest on RC baseline (selected)."
+  ],
+  "preserveBehaviors": [
+    "Preserve Cluster Connect seen report, live profile avatar, passive AdMob rendering and BSOC actionable inbox already staged in Nov12 RC.",
+    "Leave Android native version/runtime, Expo project, ad SDK and Vercel unchanged.",
+    "Leave KL approved manuscript content, chapter release status, existing media playback and reader navigation unchanged.",
+    "Keep server-side quiz question secrecy from members; correct answers only within authenticated active System Admin review RPC.",
+    "Retain 3 random reader questions, 3/3 verification, once-only chapter +10 BP/series +50 BP, existing rollout compatibility and no duplicated credits.",
+    "Production Supabase generator v3 and reviewed Panimula bank remain unchanged; don't regenerate ready banks."
+  ],
+  "riskAreas": [
+    "story",
+    "backend-security",
+    "app-runtime",
+    "KL admin question privacy",
+    "RC source parity",
+    "KL completion and points idempotency"
+  ],
+  "regressionTests": [
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "supabase/tests/kl_question_generator_admin_security_20261112.sql"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kl-reading-quiz-nov12-conso-inclusion.json",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "supabase/functions/kl-generate-reading-quiz/index.ts",
+    "supabase/migrations/20261112043503_kl_admin_question_review_v1_20261112.sql",
+    "supabase/tests/kl_question_generator_admin_security_20261112.sql",
+    "tests/kl-approved-auto-reading-quiz.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Exactly five KL file blobs match reviewed PR #739; all 24 existing RC feature file blobs remain unchanged.",
+    "Focused Node KL test suite passes and live read-only SQL auth/RLS contract remains valid.",
+    "Admin question review shows 5 questions, four options, correct answer and manuscript evidence only to active System Admin.",
+    "Client error messages expose model failure instead of indefinite generic pending.",
+    "No database DDL duplicate migration or new native dependency is introduced; existing production backend already has generator v3 and review RPC.",
+    "Engineering Accountability, Performance R1 and Main Integration QA on exact integration head PASS before source inclusion.",
+    "Consolidated Android/Expo web compile and exact runtime release gates remain required for final RC freeze; no production OTA claimed here.",
+    "Kabanata 1–5 live model generation and reading score E2E remain pending; do not turn quiz enforcement ON yet."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add reviewed KL chapter admin-only question preview and corrected generator feedback in existing reader screen; no changes to member quiz or existing RC UI.",
+      "preservedBehaviors": [
+        "Keep all video, Wall, Home, BSOC, Cluster, avatar, ad and member reading features unchanged."
+      ],
+      "tests": [
+        "tests/kl-approved-auto-reading-quiz.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Stage already deployed admin-only review RPC and v3 question evidence generation without weakening existing access or validation.",
+      "preservedBehaviors": [
+        "Answer keys stay inaccessible to unauthenticated users, while members see only random three safe questions."
+      ],
+      "tests": [
+        "supabase/tests/kl_question_generator_admin_security_20261112.sql"
+      ]
+    }
+  ],
+  "releaseState": "NOV12_CONSO_RC_SOURCE_STAGED__PENDING_EXACT_INTEGRATION_QA__NO_OTA",
+  "sources": [
+    {
+      "pr": 739,
+      "sourceBranch": "fix/kl-reading-quiz-model-404-20261112",
+      "verifiedHead": "576183746cbaa7781426ecf32fff19eebff7b613"
+    }
+  ],
+  "targetOta": {
+    "appTarget": "main",
+    "runtimeVersion": "1.3.2",
+    "nativeDependenciesChanged": false,
+    "releaseMethod": "consolidated OTA only",
+    "productionPublishingAuthorized": false
+  }
+}
