@@ -17,7 +17,9 @@
     "navigation-auth",
     "ads-finance-points",
     "app-runtime",
-    "wall-media"
+    "wall-media",
+    "connect",
+    "ads-monetization"
   ],
   "regressionTests": [
     "tests/buklod-cluster-connect-seen-20261112.test.mjs",
@@ -103,5 +105,12 @@
     "RC hardware acceptance and exact production OTA verification mandatory before any release."
   ],
   "releaseState": "ISOLATED DEV — NOT PUBLISHED / RC UNVERIFIED",
-  "physicalDeviceVerification": "Not performed"
+  "physicalDeviceVerification": "Not performed",
+  "selectionRationale": "Live Cluster reader cursors and secure member-gated RPC already exist, so UI visibility/reconciliation is lower risk than a new receipt table. Native ad gate has stale React eligibility after lock release; subscriptions preserve existing AdMob request throttles and privacy. Versioned avatar source URL must also version Expo Image cache identity.",
+  "alternativeApproaches": [
+    "Adding a duplicate Cluster-specific seen receipt table or loosening RLS is rejected: canonical authorized room cursors already exist.",
+    "Removing the 2-minute no-fill and remount request cooldown is rejected: ad request spam does not improve fill and increases platform risk.",
+    "Replacing the ad SDK or changing production ad IDs is rejected: those require native build and do not address stale mounted component eligibility.",
+    "Enabling broad public profiles Realtime without scoped authorization is rejected: this fix delivers safe instant local avatar repaint without exposing profile updates."
+  ]
 }
