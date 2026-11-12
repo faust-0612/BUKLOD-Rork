@@ -223,7 +223,7 @@ export function ForestTrailGameV2({ onFinish }: Props) {
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') setPhase((value) => value === 'playing' ? 'paused' : value);
+      if (state !== 'active') setPhase((value) => value === 'playing' || value === 'countdown' ? 'paused' : value);
     });
     return () => subscription.remove();
   }, []);
