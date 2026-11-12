@@ -41,7 +41,7 @@ export default function AdminPriorityRequestsScreen() {
   const lastRequest = useRef(0);
   const inFlight = useRef(false);
 
-  const load = useCallback(async (manual = false) => {
+  const load = useCallback(async () => {
     if (!allowed || inFlight.current) return;
     inFlight.current = true;
     lastRequest.current = Date.now();
@@ -53,7 +53,7 @@ export default function AdminPriorityRequestsScreen() {
     } catch {
       if (version.current === seq) setSnapshot(current => current
         ? { ...current, failedSources: [...current.failedSources, 'Priority request service'] }
-        : { items: [], unreadSupportAlerts: null, failedSources: ['Priority request service'], cappedSources: [], refreshedAt: Date.now() }
+        : { items: [], pendingTotal: 0, unreadSupportAlerts: null, failedSources: ['Priority request service'], cappedSources: [], refreshedAt: Date.now() }
       );
     } finally {
       if (version.current === seq) setLoading(false);
@@ -91,7 +91,7 @@ export default function AdminPriorityRequestsScreen() {
     return item.group === filter;
   }), [snapshot, filter]);
   const urgentCount = snapshot?.items.filter(item => rankAdminPriority(item) >= 3).length || 0;
-  const countText = String(snapshot?.items.length || 0) + (snapshot?.cappedSources.length ? '+' : '');
+  const countText = String(snapshot?.pendingTotal || 0) + (snapshot?.cappedSources.some(source => source !== 'BSOC support') ? '+' : '');
 
   const header = <View style={styles.header}>
     <Pressable onPress={() => router.back()} accessibilityRole="button" style={styles.back}>
@@ -105,8 +105,8 @@ export default function AdminPriorityRequestsScreen() {
       or approves a request. Open the original workflow to review it securely.
     </Text>
     <View style={styles.metrics}>
-      <View style={styles.metric}><Text style={styles.metricNumber}>{countText}</Text><Text style={styles.metricLabel}>Pending shown</Text></View>
-      <View style={styles.metric}><Text style={styles.metricNumber}>{urgentCount}</Text><Text style={styles.metricLabel}>Urgent</Text></View>
+      <View style={styles.metric}><Text style={styles.metricNumber}>{countText}</Text><Text style={styles.metricLabel}>Pending detected</Text></View>
+      <View style={styles.metric}><Text style={styles.metricNumber}>{urgentCount}</Text><Text style={styles.metricLabel}>Urgent shown</Text></View>
       <Pressable accessibilityRole="button" onPress={() => router.push('/admin/bsoc-notifications' as any)} style={styles.metric}>
         <Text style={styles.metricNumber}>{snapshot?.unreadSupportAlerts ?? '—'}</Text>
         <Text style={styles.metricLabel}>Unread support alerts ›</Text>
@@ -116,7 +116,7 @@ export default function AdminPriorityRequestsScreen() {
       Partial results: could not verify {snapshot.failedSources.join(', ')}. Do not treat this queue as fully clear.
     </Text> : null}
     {snapshot?.cappedSources.length ? <Text style={styles.hint}>
-      More items may exist in: {snapshot.cappedSources.join(', ')}. Counts shown are minimums.
+      Some sources show only their latest requests: {snapshot.cappedSources.join(', ')}. The BSOC total is exact; other capped counts are minimums.
     </Text> : null}
     <View style={styles.filterRow}>
       {FILTERS.map(option => <Pressable key={option.key} onPress={() => setFilter(option.key)}
@@ -134,7 +134,7 @@ export default function AdminPriorityRequestsScreen() {
       contentContainerStyle={styles.content}
       data={visible}
       keyExtractor={item => item.key}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load(true)} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}
       ListHeaderComponent={header}
       ListEmptyComponent={loading
         ? <ActivityIndicator style={styles.state} color="#216847" />
