@@ -213,17 +213,6 @@
       "tests": [
         "tests/jawo-kingdom-forest-trail-gameplay-20261112.test.mjs"
       ]
-    },
-    {
-      "id": "production-release",
-      "reason": "Consolidated exact-Main RC integrates independently CI-reviewed production-release changes while preserving existing BUKLOD protected features; changed tests and source are explicitly allowlisted.",
-      "preservedBehaviors": [
-        "Existing production user data, account isolation, member privacy, and finance remain intact.",
-        "Main Community Wall video player, IMA playback, paid large video placements, genuine provider impressions, consent and kill switches stay enforced."
-      ],
-      "tests": [
-        "tests/nov12-conso-wall-ota-release-gate-20261112.test.mjs"
-      ]
     }
   ],
   "acceptanceChecks": [
