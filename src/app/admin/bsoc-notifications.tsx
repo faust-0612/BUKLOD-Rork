@@ -3,6 +3,7 @@ import {ActivityIndicator,Pressable,ScrollView,StyleSheet,Text,View} from 'react
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 import {colors} from '@/lib/theme';
+import {bsocCaseRoute} from '@/lib/buklodAdminPriorityPolicy';
 type Note={id:string;title:string;body:string;kind:string;created_at:string;read_at:string|null;data:any};
 export default function BsocNotifications(){
  const [allowed,setAllowed]=useState<boolean|null>(null),[items,setItems]=useState<Note[]>([]);
@@ -30,7 +31,7 @@ export default function BsocNotifications(){
  const open=async(item:Note)=>{
   if(!allowed)return;
   const raw=typeof item.data?.case_id==='string'?item.data.case_id:'';
-  const caseId=/^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(raw)?raw:null;
+  const route=bsocCaseRoute(raw);
   // The case route revalidates BSOC permissions, and the source row is never
   // modified when its notification is marked read.
   if(!item.read_at){
@@ -40,8 +41,7 @@ export default function BsocNotifications(){
     if(markError)setError('Could not mark notification read: '+markError.message);
     else setItems(current=>current.map(x=>x.id===item.id?{...x,read_at:new Date().toISOString()}:x));
   }
-  router.push((caseId?'/admin/bsoc-conversations?caseId='+encodeURIComponent(caseId)
-    :'/admin/bsoc-conversations') as any);
+  router.push(route as any);
  };
  return <ScrollView contentContainerStyle={styles.content} style={styles.page}>
   <Pressable onPress={()=>router.back()}><Text style={styles.link}>‹ BSOC</Text></Pressable>
