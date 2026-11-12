@@ -43,6 +43,11 @@ export default function SecurityOperations() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  const scanAgeMinutes = data?.scan_at ? (Date.now() - new Date(data.scan_at).getTime()) / 60000 : Infinity;
+  const scanStale = !Number.isFinite(scanAgeMinutes) || scanAgeMinutes > 45 || scanAgeMinutes < -5;
+  const critical = data?.findings.some(item => item.severity === 'P0' || item.severity === 'P1') ?? false;
+  const moneyActive = data ? Object.values(data.finance).some(Boolean) : false;
+
   const changeHold = useCallback(async () => {
     if (!data || busy) return;
     const enable = !data.finance_hold;
@@ -86,6 +91,18 @@ export default function SecurityOperations() {
       <Button title="REFRESH STATUS" outline onPress={() => { void load(); }} />
       {data ? <>
         <SectionTitle>SECURITY SIGNALS</SectionTitle>
+        <Card>
+          <Text style={[shared.h2, { color: critical || moneyActive ? colors.danger : scanStale ? colors.amber : colors.greenDark }]}>
+            {critical || moneyActive ? '🔴 RED WARNING — SECURITY REVIEW REQUIRED' : scanStale ? '🟡 WARNING — SECURITY MONITORING DELAYED' : 'SECURITY SCAN CURRENT — NO ACTIVE CRITICAL FINDINGS'}
+          </Text>
+          <Text style={shared.body}>
+            {critical || moneyActive
+              ? 'May seryosong security signal o aktibong money switch. Buksan ang BSOC Security Operations at suriin agad. Hindi pa ito patunay na may nakapasok na hacker.'
+              : scanStale
+                ? 'Hindi sariwa ang huling security scan. Patakbuhin ang scan at suriin kung bakit naantala. Hindi ito all-clear.'
+                : 'Walang kritikal na finding sa mga kasalukuyang database checks. Hindi pa nito saklaw ang lahat ng account hacking o external attacks.'}
+          </Text>
+        </Card>
         <Card>
           <Text style={shared.h2}>Last scan: {data.scan_at ? new Date(data.scan_at).toLocaleString() : 'NOT YET RUN'}</Text>
           <Text style={shared.muted}>
