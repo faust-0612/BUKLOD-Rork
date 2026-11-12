@@ -4,6 +4,7 @@ import { listFocusAppPaymentRequests } from '@/lib/buklodFocusAppSubscription';
 import { listFaithPaymentRequests } from '@/lib/buklodScopeFaithAccess';
 import { listScopeProductPayments } from '@/lib/buklodScopeProductAccess';
 import { adminListBuklodR38Withdrawals } from '@/lib/buklodR38AdminEconomy';
+import { bsocCaseRoute, mergePendingCaseSamples, rankPriorityLevel } from '@/lib/buklodAdminPriorityPolicy';
 
 /**
  * In-app System Admin work queue, derived from canonical request records.
@@ -54,11 +55,7 @@ const row = (
 });
 
 export function rankAdminPriority(item: AdminPriorityItem, now = Date.now()) {
-  const age = Math.max(0, now - new Date(item.createdAt).getTime());
-  const base = item.level === 'urgent' ? 3 : item.level === 'high' ? 2 : 1;
-  // 72h unattended requests escalate, but never outrank a different
-  // category already marked urgent by policy.
-  return Math.min(3, base + (age >= 72 * 3600 * 1000 ? 1 : 0));
+  return rankPriorityLevel(item.level, item.createdAt, now);
 }
 
 type LoadResult = { items: AdminPriorityItem[]; capped?: boolean; total?: number };
@@ -88,15 +85,13 @@ export async function fetchAdminPriorityRequests(full = false): Promise<AdminPri
         ]);
         errorIf(latest.error);
         errorIf(oldest.error);
-        const records = Array.from(new Map(
-          [...(latest.data || []), ...(oldest.data || [])].map(c => [c.id, c])
-        ).values());
+        const records = mergePendingCaseSamples(latest.data || [], oldest.data || []);
         const count = latest.count;
         return {
           items: records.map(c => row(
             'support', 'BSOC support', c.id, c.title || 'Help request',
             c.category || 'Member concern', c.status, c.created_at,
-            '/admin/bsoc-conversations?caseId=' + encodeURIComponent(c.id),
+            bsocCaseRoute(c.id),
             c.status === 'new' ? 'high' : 'normal'
           )),
           total: count ?? records.length,
