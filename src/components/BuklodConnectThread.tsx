@@ -30,6 +30,7 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   FlatList,
   Keyboard,
   Modal,
@@ -702,10 +703,18 @@ function BuklodConnectThreadInner({
   const effectiveContainerId =
     resolvedContainerId || containerId;
 
+  // Read cursors require a visible room, not merely a mounted chat screen.
+  const roomReadFocusedRef = useRef(false);
   useFocusEffect(useCallback(() => {
-    if (!effectiveContainerId) return;
+    roomReadFocusedRef.current = !!effectiveContainerId;
+    if (!effectiveContainerId) {
+      return () => { roomReadFocusedRef.current = false; };
+    }
     setBuklodActiveMessageThread(effectiveContainerId);
-    return () => setBuklodActiveMessageThread(null);
+    return () => {
+      roomReadFocusedRef.current = false;
+      setBuklodActiveMessageThread(null);
+    };
   }, [effectiveContainerId]));
 
   /* BUKLOD_OFFLINE_R2_CONNECT_THREAD */
@@ -1807,6 +1816,8 @@ const [
     reason: ConnectReadCursorReason
   ) => {
     if (
+      !roomReadFocusedRef.current ||
+      AppState.currentState !== 'active' ||
       !effectiveContainerId ||
       !profileId ||
       !shouldAdvanceConnectReadCursor({
@@ -4501,8 +4512,13 @@ const [
                 }
               : null,
           });
+          // Unsaved, pending, and failed messages have no server Seen receipt.
+          const hasConfirmedDelivery =
+            !item.id.startsWith('local-') &&
+            item.delivery_state !== 'pending' &&
+            item.delivery_state !== 'not_sent';
           const seenReaders =
-            mode === 'scope' && own
+            mode === 'scope' && own && hasConfirmedDelivery && scopeReadersAvailable
               ? isClusterConnect
                 ? scopeReaders.filter(reader =>
                     reader.userId !== profileId &&
@@ -4681,6 +4697,9 @@ const [
                 ? item.pending_album && item.pending_album.length > 1
                   ? `\u2022 Sending ${uploadedAlbumCount}/${item.pending_album.length}`
                   : '\u2022 Sending'
+                : own && mode === 'scope' && isClusterConnect &&
+                    grouping.endsGroup && !messageDeleted && !seenReaders.length
+                  ? '\u2022 Sent'
                 : own && mode === 'direct' && grouping.endsGroup
                   ? (
                       directPeerReadAt &&
@@ -4784,7 +4803,7 @@ const [
                 void signAttachmentPath(path, true);
               }}
               seenReaders={seenReaders}
-              showSeenReport={mode === 'scope' && isClusterConnect && own && !messageDeleted}
+              showSeenReport={mode === 'scope' && isClusterConnect && own && !messageDeleted && hasConfirmedDelivery}
               seenReportAvailable={scopeReadersAvailable}
               onPressSeenReaders={() => {
                 if (!own || mode !== 'scope' ||
@@ -5303,10 +5322,14 @@ const [
                 if (!selected || !effectiveContainerId) return;
                 const requestSession = threadSessionKeyValue;
                 const seenFor = (readers: ConnectScopeReader[]) =>
-                  readers.filter(reader =>
-                    reader.userId !== profileId &&
-                    roomCursorCoversMessage(selected.created_at, reader.lastReadAt)
-                  );
+                  selected.id.startsWith('local-') ||
+                  selected.delivery_state === 'pending' ||
+                  selected.delivery_state === 'not_sent'
+                    ? []
+                    : readers.filter(reader =>
+                        reader.userId !== profileId &&
+                        roomCursorCoversMessage(selected.created_at, reader.lastReadAt)
+                      );
 
                 setSeenDetail({
                   messageId: selected.id,
