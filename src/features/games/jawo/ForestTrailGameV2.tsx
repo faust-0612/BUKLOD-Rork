@@ -15,7 +15,7 @@ import BuklodSpecialCharacterArtV2 from '@/components/points/BuklodSpecialCharac
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
 import type { BuklodGameResult } from '../types';
 import {
-  STARTING_HEARTS, TRAIL_LENGTH, advanceTrail, clampLane,
+  STARTING_HEARTS, advanceTrail, clampLane,
   encounterDelay, makeTrail, starsForScore,
   type Lane,
 } from './forestTrailEngine';
