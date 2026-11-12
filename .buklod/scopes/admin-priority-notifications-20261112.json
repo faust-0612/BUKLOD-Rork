@@ -4,7 +4,7 @@
   "baseRef": "b89848c58ca8f17b9dfcd4dfc7a47bbea869f625",
   "productionBaselineEvidence": "Source inspection of canonical GitHub Main on 2026-11-12. Feature branch forked from b89848c5; newer Main commits include independent security migrations. Production Android OTA runtime/source and Expo Web served bundle were not independently verified for this work. Source-only comparison is not a production release.",
   "chosenApproach": "Reuse existing System Admin screens, role checks, RLS and authenticated source RPCs; aggregate compact read-only pending records in a bounded in-app queue, keep exact BSOC counts, sample oldest/newest cases, and deep-link into the secure BSOC case thread with replies. Use focus/foreground/reactive updates and a visible incomplete-source warning. No new database, native package or privileged mutation.",
-  "selectionRationale": "Existing pending records and source-specific approvals are already canonical; a parallel admin-request table would introduce synchronization drift and risk auto-marking incomplete work done. Direct case linkage addresses the older-ticket discoverability and reply problem without broadening access.",
+  "selectionRationale": "Existing pending records and source-specific approvals are already canonical; a parallel admin-request table would introduce synchronization drift and risk auto-marking incomplete work done. Direct case linkage addresses the older-ticket discoverability and reply problem without broadening access. The repository's legacy regression classifier also matches the generic 'buklodAd...' file prefix in buklodAdminPriority even though this change introduces no ad rendering or monetization behavior; declare that classifier area explicitly and preserve Ads as a locked, unchanged subsystem.",
   "alternativeApproaches": [
     "Create a new global admin_notifications writable table and backfill all sources: rejected as a duplicated source of truth with complicated triggers and migration risk.",
     "Use only unread notifications as the pending queue: rejected because read_at does not indicate resolution, older unnotified requests disappear, and users would be unable to locate original work."
@@ -13,7 +13,8 @@
     "app-runtime",
     "admin-operations",
     "privacy-data",
-    "support-case-routing"
+    "support-case-routing",
+    "ads-monetization"
   ],
   "preserveBehaviors": [
     "System Admin and BSOC read/manage RLS/RPC gates remain the sole authorities for case visibility and replies; no member can approve paid ads or inspect other users' private files.",
