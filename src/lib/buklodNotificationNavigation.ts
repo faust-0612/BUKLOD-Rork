@@ -1,4 +1,5 @@
 import type { BuklodScope } from '@/lib/buklodScope';
+import {bsoNotificationCasePath} from '@/lib/bsocCaseTriage';
 import { buklodFormationNotificationTarget } from '@/lib/buklodFormationNotificationTarget';
 import { isManagedCommunityScopeType } from '@/lib/buklodScopeRoute';
 import {
@@ -127,6 +128,13 @@ export function resolveBuklodNotificationTarget(
       const candidate = aliases.map(key => clean(payload[key])).find(Boolean);
       if (candidate) payload[canonical] = candidate;
     }
+  }
+
+  // BSOC links carry a case ID but only fixed support routes are accepted.
+  // The inbox/member screen independently verifies role and case ownership.
+  if (normalizedKind === 'bsoc_support') {
+    const casePath = bsoNotificationCasePath(payload.route, payload.case_id);
+    if (casePath) return { path: casePath };
   }
 
   const formationTarget = buklodFormationNotificationTarget(

@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "objective": "Make existing BSOC auto-escalation cases immediately actionable with linked private replies, source metadata, non-authoritative technical guidance, and case-specific notification routing without changing backend authorization or notification triggers.",
+  "baseRef": "9ce38850fb66d8f587dce72cd1b3380148a31098",
+  "productionBaselineEvidence": "User screenshot at 2026-11-12 shows many new cases in BSOC Live Conversations with no evident reply controls above long queue. Source main b89848c5 contains private BSOC messages, triggered member notification for agent replies, and conversation panel below the queue. Live OTA/build or server outcome not verified in this task. Rebased to main 9ce38850 while preserving the five concurrent anonymous-RPC security files unchanged; not a production release.",
+  "chosenApproach": "Reuse existing RLS-protected BSOC cases/messages/notification trigger; surface selected case before queue; deep-link UUID-only case references; show original case metadata and cautious signal-specific triage; draft-only response templates; retain audited status update in Support Operations.",
+  "selectionRationale": "Minimal app-only change; preserves append-only message audit, pre-existing notification delivery and BSOC manage/read role boundaries; avoids duplicate message delivery channels and false app-wide/backend diagnoses.",
+  "alternativeApproaches": [
+    "Create a new direct push channel from admin outside support cases (rejected because it duplicates delivery, increases privacy and idempotency risks).",
+    "Assume AUTH/RENDER codes prove backend failure or OTA success (rejected because those signatures alone lack root-cause and release evidence).",
+    "Replace BSOC support backend and standalone app (rejected as disruptive and unnecessary for the current inbox behavior)."
+  ],
+  "acceptanceChecks": [
+    "Selecting one of the first 100 cases shows detail and reply panel before the long case list",
+    "BSOC notification opens its matching case only if the UUID matches an authorized queue entry",
+    "Member support view opens only a case returned by their RLS-scoped user_feedback query",
+    "Agent replies reuse existing bsoc_case_messages and backend support reply notification trigger",
+    "No auto-sent replies or invented backend/OTA resolution; templates remain editable",
+    "Closed cases cannot be replied to before audited reopening; no passwords/OTP requested",
+    "Pure triage helpers tested for render hash/auth error uncertainty and safe templates",
+    "Both in-app and push notification resolvers carry valid BSOC case IDs to whitelisted destinations without accepting arbitrary redirect paths"
+  ],
+  "preserveBehaviors": [
+    "Existing BSOC role permissions, private evidence, old chat history and current case queue RPC unchanged",
+    "Existing notifications and push delivery remain server-authoritative; no broad routes or global navigation edits",
+    "No changes to Wall, video playback, advertisements, finance, points, Supabase schema or released OTA"
+  ],
+  "riskAreas": [
+    "bsoc-support-navigation",
+    "case-privacy",
+    "client-triage",
+    "navigation-auth",
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/bsoc-case-triage-20261112.test.mjs",
+    "tests/bsoc-notification-navigation-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/bsoc-actionable-case-inbox-20261112.json",
+    "src/lib/bsocCaseTriage.ts",
+    "src/app/admin/bsoc-conversations.tsx",
+    "src/app/admin/bsoc-notifications.tsx",
+    "src/app/admin/bsoc-support.tsx",
+    "src/app/support/live.tsx",
+    "tests/bsoc-case-triage-20261112.test.mjs",
+    "src/lib/buklodNotificationNavigation.ts",
+    "tests/bsoc-notification-navigation-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Introduce scoped BSOC actionable case UI and deep-linked support reply without altering unrelated app behavior or backend contracts.",
+      "preservedBehaviors": [
+        "Existing RLS-protected support conversations, photo/video evidence and trigger-driven member alerts remain unchanged."
+      ],
+      "tests": [
+        "tests/bsoc-case-triage-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Carry the server-issued BSOC case reference through the shared notification resolver using a strict two-route whitelist.",
+      "preservedBehaviors": [
+        "Unrelated BUKLOD push, Connect, Cluster, prayer and Community notification targeting continues through the original canonical resolver."
+      ],
+      "tests": [
+        "tests/bsoc-notification-navigation-20261112.test.mjs"
+      ]
+    }
+  ]
+}

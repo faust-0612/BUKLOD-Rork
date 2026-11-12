@@ -4,9 +4,10 @@ import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import {File} from 'expo-file-system';
 import * as Crypto from 'expo-crypto';
-import {router} from 'expo-router';
+import {router,useLocalSearchParams} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 import {colors} from '@/lib/theme';
+import {isBsoCaseId} from '@/lib/bsocCaseTriage';
 
 const BUCKET='bsoc-support-evidence';
 const ALLOWED=new Set(['image/jpeg','image/png','image/webp','video/mp4','video/quicktime','video/webm']);
@@ -16,6 +17,8 @@ type Evidence={id:string;case_id:string;message_id:string|null;object_path:strin
 const errorText=(e:unknown)=>String((e as any)?.message??e??'Network error').slice(0,250);
 
 export default function LiveSupport(){
+  const {case_id:requestedCaseId}=useLocalSearchParams<{case_id?:string}>();
+  const lastLinkedCase=useRef<string>('');
   const [uid,setUid]=useState<string|null>(null);
   const [cases,setCases]=useState<Case[]>([]);
   const [caseId,setCaseId]=useState('');
@@ -42,6 +45,14 @@ export default function LiveSupport(){
     setLoading(false);
   },[]);
   useEffect(()=>{void loadCases();},[loadCases]);
+  // Open exactly the member-owned support case linked in the notification.
+  // Ownership is validated by the user_feedback RLS query, never by the URL alone.
+  useEffect(()=>{
+    if(loading||!requestedCaseId||lastLinkedCase.current===requestedCaseId)return;
+    lastLinkedCase.current=requestedCaseId;
+    if(isBsoCaseId(requestedCaseId)&&cases.some(c=>c.id===requestedCaseId))setCaseId(requestedCaseId);
+    else setError('This support case is unavailable for the signed-in account.');
+  },[cases,loading,requestedCaseId]);
   useEffect(()=>{
     const timer=setInterval(()=>{if(AppState.currentState==='active')void loadCases();},25000);
     return ()=>clearInterval(timer);

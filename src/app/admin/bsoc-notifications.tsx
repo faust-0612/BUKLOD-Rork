@@ -3,6 +3,7 @@ import {ActivityIndicator,Pressable,ScrollView,StyleSheet,Text,View} from 'react
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 import {colors} from '@/lib/theme';
+import {isBsoCaseId} from '@/lib/bsocCaseTriage';
 type Note={id:string;title:string;body:string;kind:string;created_at:string;read_at:string|null;data:any};
 export default function BsocNotifications(){
  const [allowed,setAllowed]=useState<boolean|null>(null),[items,setItems]=useState<Note[]>([]);
@@ -30,7 +31,9 @@ export default function BsocNotifications(){
  const open=async(item:Note)=>{
   if(!item.read_at)await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('id',item.id).is('read_at',null);
   // The destination still checks authorization server-side.
-  router.push('/admin/bsoc-conversations' as any);
+  const linkedCase=item.data?.case_id;
+  if(isBsoCaseId(linkedCase))router.push({pathname:'/admin/bsoc-conversations',params:{case_id:linkedCase}} as any);
+  else router.push('/admin/bsoc-conversations' as any);
  };
  return <ScrollView contentContainerStyle={styles.content} style={styles.page}>
   <Pressable onPress={()=>router.back()}><Text style={styles.link}>‹ BSOC</Text></Pressable>
