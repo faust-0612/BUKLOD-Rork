@@ -1080,19 +1080,39 @@ export default function BuklodExclusiveScopeCommunity({
           )
           .subscribe();
 
+      // Membership-authorized broadcast reaches viewers even when an UPDATE
+      // makes the updated row unreadable under RLS (Postgres Changes cannot).
+      const privacyChannel = supabase
+        .channel(`buklod-scope-posts:${scope.scope_id}`, {
+          config: { private: true },
+        })
+        .on('broadcast', { event: 'post_changed' }, (event: any) => {
+          const change = event?.payload ?? {};
+          const postId = typeof change.post_id === 'string' ? change.post_id : '';
+          if (postId && change.visibility_revoked === true) {
+            scopeMediaLoadSeqRef.current += 1;
+            setPosts(current => current.filter(post =>
+              String(post.id) !== postId || String(post.user_id) === String(user?.id)
+            ));
+          }
+          requestReload();
+        })
+        .subscribe();
+
       return () => {
         if (reloadTimer) {
           clearTimeout(reloadTimer);
         }
 
         void supabase
-          .removeChannel(
-            channel
-          );
+          .removeChannel(channel);
+        void supabase
+          .removeChannel(privacyChannel);
       };
     },
     [
       scope.scope_id,
+      user?.id,
     ]
   );
 
