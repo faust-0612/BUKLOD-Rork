@@ -61,7 +61,8 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
   const falling=weather||preset==='snow'||preset==='petals'||preset==='autumn';
   const rising=preset==='fireflies'||preset==='underwater';
   const mist=preset==='mist'||preset==='sunrays';
-  const count=preset==='storm'?36:weather?16:mist?4:12;
+  // Limit overlays on low-memory phones; never allocate per-frame particles.
+  const count=preset==='storm'?24:weather?14:preset==='sunrays'?4:mist?3:12;
   const tint=weather?'#badde7':preset==='snow'?'#ffffff':
     preset==='fireflies'?'#f8dc70':preset==='petals'?'#ffb6cc':
     preset==='sunrays'?'#ffe8a2':preset==='dust'?'#f1d7a4':
@@ -80,8 +81,14 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
           importantForAccessibility="no-hide-descendants"
           style={{position:'absolute',left:0,right:0,top:0,bottom:0,overflow:'hidden'}}>
           {PARTICLES.slice(0,count).map((p,i)=>{
-            const h=mist?95:preset==='storm'?40:weather?28:falling?8:8;
-            const w=mist?75:preset==='storm'?2.2:weather?1.5:falling?6:8;
+            const h=preset==='mist'?46:preset==='sunrays'?110:
+              preset==='storm'?42:weather?30:preset==='snow'?5:
+              preset==='petals'||preset==='autumn'?11:preset==='bokeh'?22:
+              preset==='underwater'?10:7;
+            const w=preset==='mist'?115:preset==='sunrays'?7:
+              preset==='storm'?2:weather?1.5:preset==='snow'?5:
+              preset==='petals'||preset==='autumn'?6:preset==='bokeh'?22:
+              preset==='underwater'?10:7;
             const drift=progress.interpolate({inputRange:[0,1],
               outputRange:[p.reverse?-22:12,p.reverse?12:-22]});
             const vertical=progress.interpolate({inputRange:[0,1],
@@ -93,14 +100,16 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
                 position:'absolute',left:(p.x+'%') as `${number}%`,
                 top:(p.y+'%') as `${number}%`,
                 width:w*p.scale,height:h*p.scale,
-                borderRadius:mist?50:weather?1:20,
+                borderRadius:weather?1:preset==='petals'||preset==='autumn'?5:99,
                 backgroundColor:tint,
-                opacity:weather?(preset==='storm'?.72:.32):
-                  falling?.65:mist?.12:glow,
+                opacity:weather?(preset==='storm'?.64:.35):
+                  preset==='sunrays'?.19:preset==='mist'?.10:
+                  preset==='bokeh'?.24:falling?.65:glow,
                 transform:[
                   {translateY:falling||rising?vertical:0},
                   {translateX:weather?0:drift},
-                  {rotate:weather?'17deg':preset==='autumn'||preset==='petals'?'35deg':'0deg'},
+                  {rotate:weather?'17deg':preset==='autumn'?'65deg':
+                    preset==='petals'?'35deg':preset==='sunrays'?'22deg':'0deg'},
                 ],
               }}/>
             );
