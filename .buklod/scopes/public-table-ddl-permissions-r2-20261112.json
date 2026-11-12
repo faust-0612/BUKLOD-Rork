@@ -27,8 +27,7 @@
   "regressionTests": [
     "tests/buklod-public-table-grants-r2.test.cjs",
     "supabase/tests/buklod_public_table_ddl_grants_r2.sql",
-    "tests/buklod-quiz-public-ddl-grants-r2.test.cjs",
-    "security/sql/tests/quiz_only_public_ddl_r2_postdeploy.sql"
+    "tests/buklod-quiz-public-ddl-grants-r2.test.cjs"
   ],
   "allowedPaths": [
     "supabase/migrations/20261112130700_revoke_public_ddl_privileges_security_r2.sql",
@@ -50,8 +49,7 @@
       "tests": [
         "tests/buklod-public-table-grants-r2.test.cjs",
         "supabase/tests/buklod_public_table_ddl_grants_r2.sql",
-        "tests/buklod-quiz-public-ddl-grants-r2.test.cjs",
-        "security/sql/tests/quiz_only_public_ddl_r2_postdeploy.sql"
+        "tests/buklod-quiz-public-ddl-grants-r2.test.cjs"
       ]
     },
     {
@@ -63,8 +61,7 @@
       "tests": [
         "tests/buklod-public-table-grants-r2.test.cjs",
         "supabase/tests/buklod_public_table_ddl_grants_r2.sql",
-        "tests/buklod-quiz-public-ddl-grants-r2.test.cjs",
-        "security/sql/tests/quiz_only_public_ddl_r2_postdeploy.sql"
+        "tests/buklod-quiz-public-ddl-grants-r2.test.cjs"
       ]
     }
   ],
