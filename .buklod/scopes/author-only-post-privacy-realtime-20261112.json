@@ -4,7 +4,7 @@
   "baseRef": "1e66dd04c36cd88c922c9e41d6f673fdd9d94e98",
   "productionBaselineEvidence": "Read-only production Supabase inspection 2026-11-12 identified two permissive alternate SELECT policies and two SECURITY DEFINER feeds exposing author_only posts. Emergency backend-only fixes applied on 2026-11-12, SQL assertions verified non-owner cannot read protected posts while owner and public controls retain access. GitHub main SHA is a source-only baseline, not evidence of deployed Android/OTA.",
   "chosenApproach": "Tighten canonical RLS, guard security-definer feed eligibility, send ID-only visibility-revoked Realtime events, evict visible rows and warm caches on existing Wall, Marites and scoped screens.",
-  "selectionRationale": "Data access must be denied by server immediately; realtime UI eviction supplements backend authorization with minimal client changes without modifying photo/video rendering.",
+  "selectionRationale": "Data access must be denied by server immediately; realtime UI eviction supplements backend authorization with minimal client changes without modifying photo/video rendering. Single shared Supabase Realtime channel uses existing registry to prevent duplicate topic joins and reconnection churn.",
   "alternativeApproaches": [
     "Hide posts only in the client: rejected because SQL and security-definer feed RPCs still leak private data.",
     "Replace existing feed ranking, media and subscription architecture: rejected as too risky for unrelated functional features.",
@@ -15,7 +15,8 @@
     "Post author can still see their Ako Lang content.",
     "Scoped non-private posts remain visible to active eligible members.",
     "No video player, ads, post creation or profile behavior is modified.",
-    "No broad database grants, no RLS bypass, no destructive historical data changes."
+    "No broad database grants, no RLS bypass, no destructive historical data changes.",
+    "One public Community Realtime subscription per app session shared across active Wall, Marites and scope screens."
   ],
   "riskAreas": [
     "privacy-authorization",
@@ -44,7 +45,8 @@
     "tests/buklod-wall-privacy-revocation-20261112.test.mjs",
     "tests/buklod-scope-privacy-revocation-20261112.test.mjs",
     "tests/buklod-navigation-privacy-revocation-20261112.test.mjs",
-    "supabase/tests/buklod_author_only_post_privacy_20261112.sql"
+    "supabase/tests/buklod_author_only_post_privacy_20261112.sql",
+    "src/lib/buklodPublicCommunityRealtime.ts"
   ],
   "acceptanceChecks": [
     "Authenticated nonowner sees zero private rows through direct SELECT, post detail, public feed and scoped feed.",
