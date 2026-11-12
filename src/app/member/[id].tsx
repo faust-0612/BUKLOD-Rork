@@ -35,6 +35,7 @@ import {
 import { formatSpecificDateTime } from '@/lib/dateTime';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 function firstString(value: unknown) {
@@ -61,6 +62,7 @@ export default function MemberPublicProfileScreen() {
     useState<MemberPublicProfile | null>(null);
   const [posts, setPosts] = useState<MemberPublicPost[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isOfficialProfile, setIsOfficialProfile] = useState(false);
 
   const load = useCallback(async () => {
     if (!memberId) {
@@ -73,6 +75,7 @@ export default function MemberPublicProfileScreen() {
 
     setLoading(true);
     setError(null);
+    setIsOfficialProfile(false);
 
     try {
       const next = await loadMemberPublicProfile(memberId);
@@ -84,6 +87,13 @@ export default function MemberPublicProfileScreen() {
       }
 
       setProfile(next);
+      if (next.display_name.trim().toUpperCase() === 'BUKLOD') {
+        const { data: official, error: officialError } = await (supabase as any).rpc(
+          'get_buklod_official_identity_v1',
+          { p_user_id: next.user_id },
+        );
+        setIsOfficialProfile(!officialError && official === true);
+      }
 
       if (next.is_locked && !next.is_self && !next.can_view_details) {
         setPosts([]);
@@ -307,7 +317,7 @@ export default function MemberPublicProfileScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'Member Profile',
+          title: isOfficialProfile ? 'BUKLOD Official' : 'Member Profile',
           headerBackTitle: 'Back',
         }}
       />
@@ -361,6 +371,11 @@ export default function MemberPublicProfileScreen() {
                 size={92}
               />
               <Text style={styles.name}>{profile.display_name}</Text>
+              {isOfficialProfile && (
+                <View style={styles.chip}>
+                  <Text style={styles.chipText}>✓ VERIFIED PLATFORM ACCOUNT · NO MEMBER POINTS</Text>
+                </View>
+              )}
               {!!profile.username && (
                 <Text style={styles.username}>
                   @{profile.username.replace(/^@/, '')}
