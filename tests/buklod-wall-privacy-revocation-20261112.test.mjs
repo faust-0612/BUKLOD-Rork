@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const wall = readFileSync('src/app/(tabs)/buklod.tsx','utf8');
 const marites = readFileSync('src/components/BuklodMaritesBoard.tsx','utf8');
-const broadcast = readFileSync('supabase/migrations/20261112072000_buklod_author_only_post_privacy_realtime_v1.sql','utf8');
+const broadcast = readFileSync('supabase/migrations/20261112071459_buklod_author_only_post_privacy_realtime_v1.sql','utf8');
 
 test('privacy revocations immediately evict visible Wall posts and video-viewer rows',()=>{
   assert.match(wall,/visibility_revoked===true/);
