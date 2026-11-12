@@ -32,7 +32,7 @@ test('provider parser refuses missing, invalid, untrusted or oversized series', 
   const m = parseBuklodProviderMetrics(
     `node_memory_MemTotal_bytes{supabase_project_ref="${ref}",service_type="db"} 10\n`+
     `node_memory_MemAvailable_bytes{supabase_project_ref="${ref}",service_type="db"} 11`,ref);
-  assert.equal(m.memory_percent,null);
+  assert.equal(m,null); // invalid-only source must fail closed
 });
 test('edge only serves authenticated system admins and never returns secrets', () => {
   const src=fs.readFileSync('supabase/functions/buklod-admin-backend-metrics/index.ts','utf8');
