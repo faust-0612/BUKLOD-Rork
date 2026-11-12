@@ -88,3 +88,11 @@ A commit/build/deploy command alone is not proof of completion.
 ### Contract limitations
 - The PR gate enforces scope and changed-test presence plus runnable Node tests. Human/agent review is still needed to ensure tests are behavioral and adequate. GitHub branch protection must mark the gate as required to block bypass merges; this is an independent repository-setting gate, not something AGENTS.md alone can enforce.
 
+## Permanent protected-feature lock (2026-11-12)
+
+- GitHub main SHA `219507f387c8f75af98a4489fbd26abbce1a62ed` is a **source-only snapshot**, not proof of the live OTA/Android version. Do not label an unverified source snapshot as production-functional.
+- Existing repository ruleset requires a PR and the `objective-scope-gate` check. The same required job now runs `scripts/protected-feature-lock.mjs` and adversarial tests; protected areas are blocked on missing declarations and changed feature-focused tests.
+- Any future application, media, database, auth, navigation, Connect/PTT, advertising, points, Kingdom, education, CI or release edit must use a V2 `.buklod/scopes/*.json` manifest. In addition to normal allowedPaths/regressionTests, specify `lockedFeatureChanges: [{ id, reason, preservedBehaviors, tests }]` for **every** impacted id reported by the gate. The declared tests must be changed in that PR and run successfully.
+- Unrelated modules are not permitted in a patch. Regression test deletion is blocked. A functional feature may be intentionally updated only with a directly scoped change, preserved behaviors, new regression evidence and required review. Do not weaken tests to make a failed change green.
+- Preserve the existing mandatory RC and production-OTA verification gates. This governance PR does not release an APK, web build, Supabase migration, or OTA.
+- Structural enforcement is not runtime proof. For a stronger administrative lock, GitHub branch rules should additionally require an independent code-owner approval of security/CI changes; current ruleset permits zero approving reviews and that setting is **not** changed by this PR.

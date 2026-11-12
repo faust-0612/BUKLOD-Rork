@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "objective": "Introduce fail-closed protected-feature declarations and low-cost regression canaries for all future BUKLOD Main PRs",
+  "baseRef": "219507f387c8f75af98a4489fbd26abbce1a62ed",
+  "productionBaselineEvidence": "Source-only GitHub main 219507f387c8f75af98a4489fbd26abbce1a62ed, 2026-11-12; live Android/Web/OTA fingerprint not verified and not asserted.",
+  "chosenApproach": "Extend existing required objective-scope-gate using an additive lock, tests and immutable-source reference",
+  "selectionRationale": "Preserve existing ruleset and app behavior without running builds, OTA or backend mutations; reject accidental cross-feature edits",
+  "alternativeApproaches": [
+    "Freeze every source blob hash permanently, which would obstruct targeted fixes",
+    "Rely on human-readable AGENTS instructions alone, which GitHub cannot enforce"
+  ],
+  "acceptanceChecks": [
+    "Required PR job runs the anti-regression lock and adversarial unit suite",
+    "Unrelated/undeclared changes and removed regression tests fail closed",
+    "Protected feature changes require exact scope and changed feature-specific proof",
+    "Existing application runtime remains unchanged; source-only baseline not represented as live verified"
+  ],
+  "preserveBehaviors": [
+    "Existing production application features and any unrelated branch/RC changes remain untouched",
+    "GitHub required objective-scope-gate and existing app-wide ads/security tests keep running",
+    "DEV, RC and production OTA remain separate with no automatic publish"
+  ],
+  "riskAreas": [
+    "governance-lock"
+  ],
+  "regressionTests": [
+    "tests/protected-feature-lock.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/protected-feature-lock-20261112.json",
+    "AGENTS.md",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/protected-feature-source-snapshot-20261112.json",
+    "scripts/protected-feature-lock.mjs",
+    "tests/protected-feature-lock.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "governance-lock",
+      "reason": "Introduce additive review gate without altering the current working application",
+      "preservedBehaviors": [
+        "Existing releases, tests and live feature implementations remain unchanged"
+      ],
+      "tests": [
+        "tests/protected-feature-lock.test.mjs"
+      ]
+    }
+  ]
+}

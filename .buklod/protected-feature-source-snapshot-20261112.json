@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "SOURCE_ONLY_REGRESSION_SNAPSHOT",
+  "repository": "faust-0612/BUKLOD-Rork",
+  "capturedDate": "2026-11-12",
+  "mainCommitSha": "219507f387c8f75af98a4489fbd26abbce1a62ed",
+  "productionArtifactVerified": false,
+  "androidRuntimeVerified": false,
+  "webProductionVerified": false,
+  "baselineUsage": "Use the exact SHA for reconciliation only; do not overwrite current main, RC, or live artifacts with a stale snapshot.",
+  "enforcedWorkflow": ".github/workflows/engineering-accountability.yml",
+  "requiredCheck": "objective-scope-gate",
+  "protectedDomains": [
+    "app-runtime",
+    "wall-media",
+    "navigation-auth",
+    "connect-ptt-calls",
+    "ads-finance-points",
+    "cluster-faith",
+    "quiz-classroom",
+    "kingdom-character",
+    "backend-security",
+    "production-release",
+    "governance-lock"
+  ],
+  "releaseImpact": "NONE_DEV_GOVERNANCE_ONLY"
+}
