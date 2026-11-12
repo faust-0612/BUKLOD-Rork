@@ -13,11 +13,13 @@ export function AdminPriorityBanner() {
   const [snapshot, setSnapshot] = useState<AdminPrioritySnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const busy = useRef(false);
+  const queued = useRef(false);
   const lastLoad = useRef(0);
   const alive = useRef(true);
   const focused = useRef(false);
   const load = useCallback(async () => {
-    if (!allowed || busy.current) return;
+    if (!allowed) return;
+    if (busy.current) { queued.current = true; return; }
     busy.current = true;
     lastLoad.current = Date.now();
     setLoading(true);
@@ -32,6 +34,10 @@ export function AdminPriorityBanner() {
     } finally {
       busy.current = false;
       if (alive.current) setLoading(false);
+      if (queued.current && focused.current) {
+        queued.current = false;
+        void load();
+      }
     }
   }, [allowed]);
 
