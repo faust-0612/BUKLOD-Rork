@@ -89,7 +89,7 @@ export default function BuklodPostMusicPicker({
    <View style={{flex:1,backgroundColor:'rgba(5,20,18,.65)',alignItems:'center',
      justifyContent:'center',paddingHorizontal:14,paddingTop:Math.max(insets.top,12),
      paddingBottom:Math.max(insets.bottom,12)}}>
-     <View style={{width:'100%',maxWidth:580,maxHeight:'94%',borderRadius:20,
+     <View style={{width:'100%',maxWidth:580,borderRadius:20,
        backgroundColor:'#fff',padding:14,height:'90%',maxHeight:720,minHeight:0}}>
        <View style={{flexDirection:'row',alignItems:'center',gap:9,marginBottom:10}}>
          <MaterialCommunityIcons name="music-circle-outline" size={25} color="#195d47"/>
