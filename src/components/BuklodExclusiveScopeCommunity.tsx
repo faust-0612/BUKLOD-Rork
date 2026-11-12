@@ -1099,15 +1099,33 @@ export default function BuklodExclusiveScopeCommunity({
         })
         .subscribe();
 
+      // Public posts synchronized into a scope are revoked on the PUBLIC
+      // broadcast, not the scoped-post channel.
+      const publicPrivacyChannel = supabase
+        .channel('buklod:public-community:posts', {
+          config: { private: false },
+        })
+        .on('broadcast', { event: 'post_changed' }, (event: any) => {
+          const change = event?.payload ?? {};
+          if (change.visibility_revoked !== true) return;
+          const postId = typeof change.post_id === 'string' ? change.post_id : '';
+          if (!postId) return;
+          scopeMediaLoadSeqRef.current += 1;
+          setPosts(current => current.filter(post =>
+            String(post.id) !== postId || String(post.user_id) === String(user?.id)
+          ));
+          requestReload();
+        })
+        .subscribe();
+
       return () => {
         if (reloadTimer) {
           clearTimeout(reloadTimer);
         }
 
-        void supabase
-          .removeChannel(channel);
-        void supabase
-          .removeChannel(privacyChannel);
+        void supabase.removeChannel(channel);
+        void supabase.removeChannel(privacyChannel);
+        void supabase.removeChannel(publicPrivacyChannel);
       };
     },
     [
