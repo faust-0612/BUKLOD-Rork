@@ -87,13 +87,47 @@ EXECUTE FUNCTION private.buklod_security_guard_finance_v1();
 CREATE OR REPLACE FUNCTION private.buklod_security_signal_v1(p_key text,p_severity text,p_count integer)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
 AS $$
+DECLARE
+  v_prior_status text;
+  v_admin uuid;
+  v_episode uuid := gen_random_uuid();
 BEGIN
+  SELECT status INTO v_prior_status
+  FROM private.buklod_security_findings_v1
+  WHERE signal_key=p_key FOR UPDATE;
   IF p_count>0 THEN
     INSERT INTO private.buklod_security_findings_v1(signal_key,severity,status,observed_count)
     VALUES(p_key,p_severity,'ACTIVE',p_count)
     ON CONFLICT(signal_key) DO UPDATE SET
       severity=EXCLUDED.severity,status='ACTIVE',observed_count=EXCLUDED.observed_count,
       last_seen_at=now(),cleared_at=NULL;
+
+    -- One private in-app alert per NEW signal episode, not on each scan.
+    -- Existing backend notification dispatcher handles subsequent push delivery.
+    -- Alert failures must never erase the persisted security finding.
+    IF v_prior_status IS DISTINCT FROM 'ACTIVE' THEN
+      FOR v_admin IN
+        SELECT pp.user_id
+        FROM public.buklod_foundation_protected_principals pp
+        JOIN public.profiles pr ON pr.id=pp.user_id
+        WHERE pp.principal_key='OFFICIAL_SYSTEM_ADMIN'
+          AND pp.protected=true AND pr.is_active=true
+      LOOP
+        BEGIN
+          PERFORM public.buklod_queue_notification_once_v1(
+            v_admin,
+            'BUKLOD security review required',
+            pg_catalog.format('%s: %s observed. Open Security Operations to investigate.',p_key,p_count),
+            'admin_security',
+            pg_catalog.jsonb_build_object(
+              'route','/admin/security-operations','signal',p_key,'severity',p_severity),
+            'buklod-security-r1:'||p_key||':'||v_episode::text
+          );
+        EXCEPTION WHEN OTHERS THEN
+          RAISE WARNING 'BUKLOD security alert enqueue failed for signal % (finding preserved)',p_key;
+        END;
+      END LOOP;
+    END IF;
   ELSE
     UPDATE private.buklod_security_findings_v1 SET
       status='CLEARED',observed_count=0,cleared_at=now(),last_seen_at=now()
