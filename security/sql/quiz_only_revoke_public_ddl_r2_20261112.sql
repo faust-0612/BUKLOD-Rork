@@ -2,6 +2,16 @@
 -- DO NOT APPLY TO BUKLOD MAIN. Kept outside supabase/migrations to avoid
 -- accidental wrong-project execution by the canonical Main migration runner.
 -- Preserve Quiz login, exam and answer RPCs, grading and historical records.
+-- Fail closed if a maintainer points the Quiz-only SQL at BUKLOD Main.
+DO $quiz_target$
+BEGIN
+  IF pg_catalog.to_regclass('public.buklod_quiz_attempts') IS NULL
+      OR pg_catalog.to_regclass('public.buklod_quiz_responses') IS NULL
+      OR pg_catalog.to_regclass('private.buklod_pf_config') IS NOT NULL THEN
+    RAISE EXCEPTION 'Wrong target: dedicated BUKLOD Quiz Supabase required';
+  END IF;
+END;$quiz_target$;
+
 DO $restrict$
 DECLARE v record;
 BEGIN

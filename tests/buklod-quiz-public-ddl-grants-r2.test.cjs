@@ -8,6 +8,8 @@ test('Dedicated Quiz hardening cannot accidentally deploy to Main project', () =
   assert.match(sql,/QUIZ DEDICATED SUPABASE ONLY: cjtehbfspgimyhifnjon/);
   assert.ok(!path.startsWith('supabase/migrations/'));
   assert.match(sql,/DO NOT APPLY TO BUKLOD MAIN/);
+  assert.match(sql,/Wrong target: dedicated BUKLOD Quiz Supabase required/);
+  assert.match(sql,/to_regclass\('private.buklod_pf_config'\) IS NOT NULL/);
 });
 test('Preserves public Quiz exams, login and answer RPC permissions', () => {
   assert.match(sql,/REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLE %I\.%I FROM PUBLIC, anon, authenticated/);
