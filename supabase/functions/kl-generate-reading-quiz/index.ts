@@ -109,11 +109,20 @@ Deno.serve(async (request: Request) => {
   const key = Deno.env.get("GEMINI_API_KEY") || "";
   if (!key) return reply(503, { ok: false, reason: "generator_not_configured" });
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // Gemini 2.5 access is restricted for newer projects. Use affordable, current
+  // Flash-Lite models; fall back only when a requested model returns HTTP 404.
+  const configuredModel = (Deno.env.get("KL_QUIZ_GEMINI_MODEL") || "").trim();
+  const modelCandidates = [...new Set([
+    configuredModel || "gemini-3.5-flash-lite",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+  ])];
+  for (const model of modelCandidates) {
+    let unsupportedModel = false;
+    for (let attempt = 0; attempt < 2; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 26000);
     try {
-      const model = Deno.env.get("KL_QUIZ_GEMINI_MODEL") || "gemini-2.5-flash-lite";
       const instructions = [
         "Generate EXACTLY FIVE simple, factual multiple choice reading-comprehension questions in conversational Filipino.",
         "Use ONLY the attached approved chapter manuscript. Never use earlier or later story chapters or outside information.",
@@ -146,7 +155,16 @@ Deno.serve(async (request: Request) => {
         },
       );
       if (!response.ok) {
-        console.error("kl_question_model_error", response.status);
+        if (response.status === 404) {
+          console.warn("kl_question_model_not_found", model, response.status);
+          unsupportedModel = true;
+          break;
+        }
+        console.error("kl_question_model_error", model, response.status);
+        if (response.status === 429) return reply(429, { ok: false, reason: "generator_quota_limited" });
+        if (response.status === 401 || response.status === 403)
+          return reply(503, { ok: false, reason: "generator_credentials_unavailable" });
+        if (response.status === 400) return reply(502, { ok: false, reason: "generator_bad_request" });
         return reply(502, { ok: false, reason: "generator_unavailable" });
       }
       const data = await response.json();
@@ -170,6 +188,10 @@ Deno.serve(async (request: Request) => {
     } finally {
       clearTimeout(timeout);
     }
+    }
+    // A reachable model that gave two invalid results must not trigger extra
+    // model calls or costs; do not weaken manuscript evidence checks.
+    if (!unsupportedModel) return reply(422, { ok: false, reason: "generated_questions_failed_source_validation" });
   }
-  return reply(422, { ok: false, reason: "generated_questions_failed_source_validation" });
+  return reply(502, { ok: false, reason: "generator_model_unavailable" });
 });
