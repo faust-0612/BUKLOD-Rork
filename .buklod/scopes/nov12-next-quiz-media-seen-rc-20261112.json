@@ -1,0 +1,128 @@
+{
+  "contractVersion": 2,
+  "objective": "One main-based BUKLOD next consolidated OTA source: approved PR #772 fast Wall photo upload and draggable music/ambiance, #773 remove academic Quiz card from Home without Drawer, and #774 Cluster Sent/Seen truthful read cursors. Keep all already-live Nov12 Wall AdMob, privacy, BSOC/About, Login Green B, Jawo, Security and Official Top10 fixes.",
+  "baseRef": "6e18a3101e8d0f18066e46dd1abdb02b190baa98",
+  "productionBaselineEvidence": "GitHub main exactly 6e18a3101e8d0f18066e46dd1abdb02b190baa98 inspected; prior consolidated production source merged in cdbd561c and marker 6655544e; main security Top10 update 6e18a310. Exact source of #772, #773, #774 fetched, with PR #774 two main blob SHAs confirmed identical to its reviewed RC base. No live EAS update identifier or Expo Web served readback yet. Owner waived only physical handset acceptance.",
+  "chosenApproach": "Isolate branch from latest Main and transfer only verified code/test file blobs from the three named workstreams. Keep one V2 cumulative allowlist and exact compile-only GitHub RC head whitelist. Require full CI + native/web compile before any production main merge, and separately gated canonical production marker.",
+  "selectionRationale": "Main-based carry-forward protects latest security, existing working production features, canonical deployment workflow, and prevents republishing old divergent RC or piecemeal OTAs.",
+  "alternativeApproaches": [
+    "Publish #772, #773, #774 separately: rejected, owner requires one consolidated OTA.",
+    "Merge old Nov12 RC unchanged: rejected, behind main's production and security source.",
+    "Run unverified direct eas update or bypass CI/runtime/prod readback: rejected."
+  ],
+  "preserveBehaviors": [
+    "Already-released Wall/Marites playback, large AdMob creative lifecycle, consent and impression safety, privacy SELECT policies, BSOC reply flows, About presenter, Green B, Jawo, and Official account protections unchanged.",
+    "Quiz exam records, student Classroom SSO door and daily Bible Quiz retained; only academic Home launcher removed, not moved to Drawer.",
+    "Cluster/Org/direct Connect message permissions, read RPC, call/PTT/audio, offline queue remain in place; only truthful Cluster receipt rendering and focus-gated cursor advancement changed.",
+    "No SQL migrations, Edge deploy, financial ledger mutation, Expo native dependency/version/runtime change or retired IGPAT restoration."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "wall-media",
+    "connect-ptt-calls",
+    "ads-finance-points",
+    "release-identity",
+    "user-privacy",
+    "media"
+  ],
+  "regressionTests": [
+    "tests/wall-media-music-ambience-fastpath-20261112.test.mjs",
+    "tests/wall-media-navigation-fastpath-20261112.test.mjs",
+    "tests/home-navigation-quiz-removal-20261112.test.mjs",
+    "tests/public-home-quiz-launcher-removal-20261112.test.mjs",
+    "tests/buklod-cluster-connect-seen-20261112.test.mjs",
+    "tests/buklod-connect-seen-ads-isolation-20261112.test.mjs",
+    "tests/nov12-next-conso-rc-release-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov12-next-quiz-media-seen-rc-20261112.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodMusicClipTimeline.tsx",
+    "src/components/BuklodPostMotion.tsx",
+    "src/components/BuklodPostMusicPicker.tsx",
+    "src/lib/buklodPickCommunityPhotos.ts",
+    "src/lib/uploadCommunityVideoFile.ts",
+    "tests/wall-media-music-ambience-fastpath-20261112.test.mjs",
+    "tests/wall-media-navigation-fastpath-20261112.test.mjs",
+    "src/app/(tabs)/hub.tsx",
+    "src/components/BuklodSystemAnnouncementBoard.tsx",
+    "src/components/home/BuklodHomeMergedUpdates.tsx",
+    "tests/home-navigation-quiz-removal-20261112.test.mjs",
+    "tests/public-home-quiz-launcher-removal-20261112.test.mjs",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "tests/buklod-cluster-connect-seen-20261112.test.mjs",
+    "tests/buklod-connect-seen-ads-isolation-20261112.test.mjs",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/nov12-next-conso-rc-release-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Approved Home, Wall composer and Connect client files change with a unified regression contract, without altering unrelated architecture.",
+      "preservedBehaviors": [
+        "All existing navigation, authentication, video playback, scope and offline routing remain unchanged."
+      ],
+      "tests": [
+        "tests/nov12-next-conso-rc-release-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Home and Wall tab files change only their approved user-facing behavior; Classroom route and existing tab navigation remain functional.",
+      "preservedBehaviors": [
+        "No reroute of academic Quiz to Drawer; no changes to login, sessions, privacy gates or navigation shortcuts."
+      ],
+      "tests": [
+        "tests/home-navigation-quiz-removal-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Wall post music and motion selector and photo preparation fast path are improved without modifying active video playback or remote media authorization.",
+      "preservedBehaviors": [
+        "Private original/preview media storage, offline fallback, media player and reduced-motion behavior preserved."
+      ],
+      "tests": [
+        "tests/wall-media-music-ambience-fastpath-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Confirm Cluster Sent/Seen status only for server-persisted messages with eligible non-sender reader cursors; suppress background cursor advancement.",
+      "preservedBehaviors": [
+        "Org/direct read receipts, PTT, voice/video calls, notifications and member isolation remain operational."
+      ],
+      "tests": [
+        "tests/buklod-cluster-connect-seen-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Conservative scope matcher flags ConnectThread as having the substring 'ad'; validate no financial, AdMob or reward side effects from this UI-only message status change.",
+      "preservedBehaviors": [
+        "No ad request, impression, account finances, payout credit or points ledger is added to these Connect changes."
+      ],
+      "tests": [
+        "tests/buklod-connect-seen-ads-isolation-20261112.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "All changed paths exactly allowlisted and all source/test changes trace to approved reviewed PRs #772/#773/#774.",
+    "Engineering Accountability, Main Integration, Performance TypeScript/unit suite and exact frozen Android+Expo Web compiled RC gate PASS.",
+    "EAS production environment uses project 23dad7d0-389a-406e-8dec-08965dab85d8, app org.mzbministry.buklod, runtime 1.3.2 and current native versionCode 30.",
+    "Only after exact source and compile readiness, source merged safely to Main with new reviewed release marker, canonical Android+Expo Hosting publisher, then verify real update id, server fingerprint and serving deployment before reporting production success.",
+    "No legacy IGPAT republish or Google Play AAB; physical Infinix skipped, not labeled passed."
+  ],
+  "releaseMode": "SOURCE_ONLY_PENDING_RC_COMPILED_QA_NOT_PUBLISHED",
+  "releaseTarget": {
+    "channel": "production",
+    "runtimeVersion": "1.3.2",
+    "appPackage": "org.mzbministry.buklod",
+    "versionCode": 30,
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "web": "Expo Hosting"
+  }
+}
