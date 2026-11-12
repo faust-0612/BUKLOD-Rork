@@ -2,8 +2,8 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/buklod-official-identity-economy-20261112.json",
   "objective": "Convert the one protected BUKLOD System Admin account into the BUKLOD platform identity with no member point/QMP/finance eligibility, verified official social interactions and a separate Official Console. Restrict user distributions to verified/reconciled AdMob revenue only; explicitly report sponsorship and other business income separately. Add audit-backed public Wall moderation and official individually addressed member notices.",
-  "baseRef": "7ec45d5412d64f07f76b08f7ebc1a80109407991",
-  "productionBaselineEvidence": "Exact production main at branch creation 7ec45d5412d64f07f76b08f7ebc1a80109407991. Active Supabase BUKLOD Connect project inspected. Protected OFFICIAL_SYSTEM_ADMIN principal matched one existing account, 134 historical points records, 362 historical QMP, zero user-settlements and cash-ledger entries. Database migration plus assertions passed in rollback-only transaction; production was not changed in DEV.",
+  "baseRef": "3e7f4e6f3d8ad90c9fd12122b5663f91c48bc9de",
+  "productionBaselineEvidence": "Exact production main at branch creation 7ec45d5412d64f07f76b08f7ebc1a80109407991. Active Supabase BUKLOD Connect project inspected. Protected OFFICIAL_SYSTEM_ADMIN principal matched one existing account, 134 historical points records, 362 historical QMP, zero user-settlements and cash-ledger entries. Database migration plus assertions passed in rollback-only transaction; production was not changed in DEV. Reconciled with latest main 3e7f4e6f3d8ad90c9fd12122b5663f91c48bc9de including already-merged secured backend capacity monitoring; source is merged on DEV branch using a two-parent reconciliation commit. Validation must diff against this production baseline, not obsolete branch creation baseline.",
   "chosenApproach": "Use the existing immutable protected principal and auth UUID, keep original personal name/avatar in an inaccessible private audit snapshot, brand existing public profile BUKLOD, add backend BEFORE-write reward guards and Finance QMP functions, filter legacy leaderboards before ranking, expose official dashboard RPC and reuse existing Community, announcement, bulletin and BSOC services.",
   "selectionRationale": "Changing the role enum or opening a second admin account would threaten authorization, historical authorship, referrals and settlement identity. Immutable principal-scoped economy exclusion preserves privacy, existing roles and legacy financial history with minimal changes.",
   "alternativeApproaches": [
@@ -73,5 +73,5 @@
     "tests/buklod-official-identity-contract.test.mjs",
     "tests/buklod-official-wall-control-contract-20261112.test.mjs"
   ],
-  "releaseStatus": "DEV isolated on PR #730; Supabase migration tested in rollback only; hold Production DB write, merge, release RC and OTA until CI/RC proof."
+  "releaseStatus": "DEV source on PR #730 at latest-main reconciliation, three SQL migrations tested rollback-only; production database, OTA and public release remain untouched until exact RC/CI."
 }
