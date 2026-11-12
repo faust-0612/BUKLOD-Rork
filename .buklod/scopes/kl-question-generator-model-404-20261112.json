@@ -1,15 +1,15 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/kl-question-generator-model-404-20261112.json",
-  "objective": "Repair KL Admin Check / Retry 5 Reading Questions 404 by using active low-cost Gemini Flash-Lite models, make errors actionable, protect manuscript-backed questions and existing BP awards. No standalone OTA.",
+  "objective": "Repair slow/repeated 422 KL question generation using server-anchored manuscript excerpts, auto-select 5 of 8 verified candidates, provide active-System-Admin-only five-question answer/evidence review on each chapter; preserve points and reader",
   "baseRef": "b89848c58ca8f17b9dfcd4dfc7a47bbea869f625",
-  "productionBaselineEvidence": "2026-11-12 production Supabase BUKLOD Connect Edge function kl-generate-reading-quiz v1 returned model HTTP 404 on three admin retries (04:12 UTC) and all six approved released chapter banks were pending with zero generated questions. Current main SHA at PR creation b89848c58ca8f17b9dfcd4dfc7a47bbea869f625. Backend Edge v2 deployed and verified ACTIVE/JWT true, deployed source matches branch. No user-authenticated real-model success yet.",
-  "chosenApproach": "Retain existing admin-authenticated approved manuscript generation endpoint and secret key. Prefer documented Gemini 3.5 Flash-Lite; on explicit model 404 only try 3.1 Flash-Lite; report quota, credentials and validation failures separately to the KL Admin screen. Add Node and read-only SQL security regression contracts.",
-  "selectionRationale": "Real provider 404, not broken button event. Changing the model is the narrowest fix; no new paid provider or app dependency. Bounded fallback avoids silently multiplying provider cost and preserves exact-evidence validation.",
+  "productionBaselineEvidence": "Nov12 12:27–12:29 Manila production kl-generate-reading-quiz v2 generated one ready 5-question Panimula bank, while K1–5 still pending; six more attempts returned HTTP 422 and one timeout. Existing schema enforces exact manuscript quotes, and old generator required 5/5 fully valid model-typed evidence. System Admin review RPC migration version 20261112043503 applied to production; auth/role guard and anon denial validated. PR branch began at main b89848c58ca8f17b9dfcd4dfc7a47bbea869f625.",
+  "chosenApproach": "Send 8 model candidate questions about evenly sampled verbatim source excerpts and reference excerpts by numeric ID, so backend chooses immutable evidence and validates exact answer wording. Deduplicate and store exactly 5 passing questions; at most two model passes, fallback model only on 404. Add System Admin-only server RPC to inspect all 5 questions, options, correct answer and evidence; never expose answer keys to normal readers. No new provider or native dependency.",
+  "selectionRationale": "Producer 422 stems from all-or-nothing exact quote validation of 5 model-written evidence strings; excerpt IDs eliminate copy errors, fewer tokens reduce runtime and candidate filtering reduces user retries. Secure admin preview validates quality without relaxing SQL verification.",
   "alternativeApproaches": [
-    "Ignore 404 and keep retrying 2.5 Flash-Lite (rejected: repeatable production failure).",
-    "Disable mandatory quiz or weaken source-evidence checks (rejected: undermines fair BP and security).",
-    "Use current cost-efficient Flash-Lite with bounded model 404 fallback (selected)."
+    "Retry 5 fully AI-quoted questions indefinitely (rejected for slow cost and repeated 422).",
+    "Disable manuscript evidence or award verification (rejected: security/fairness regression).",
+    "Server-anchored source excerpts plus 8-to-5 candidate filtering, one secure admin review (selected)."
   ],
   "acceptanceChecks": [
     "Production Edge function ACTIVE, verify_jwt true, deployed source equals reviewed GitHub source.",
@@ -19,7 +19,10 @@
     "Existing read completion points, chapter approvals/media, comment/reflection, quizzes, offline read, main navigation remain unchanged.",
     "Source-level focused node test and read-only live database security SQL pass.",
     "Real System Admin authenticated model E2E and valid 5-question ready bank remain required before claiming full verification or publishing client OTA.",
-    "No Vercel build or standalone Android OTA for this change."
+    "No Vercel build or standalone Android OTA for this change.",
+    "Panimula ready bank stays unchanged on retry; K1–5 ready only after correct protected storage and actual real-model test.",
+    "Admin sees each chapter's real five questions, four options, correct answers and source evidence after pressing Review, not only 'Approved'; normal readers never call the answer-key RPC.",
+    "Producer sends only abbreviated evidence excerpts to AI and caps retries to two per accessible model; server validation of stored five remains unchanged."
   ],
   "preserveBehaviors": [
     "System-admin-only KL approval and generator RPC access.",
@@ -28,7 +31,8 @@
     "Once-only verified +10 BP per chapter and +50 BP per series in current production, no duplicate awards.",
     "Legacy 60-second plus two ping compatibility until minimum supported client enforcement.",
     "Unchanged KL manuscript text, illustrations, music, reader, ads and profile.",
-    "No native dependency/runtimeVersion, no immediate Android OTA."
+    "No native dependency/runtimeVersion, no immediate Android OTA.",
+    "Previously valid Panimula five-question bank preserved and not regenerated on retries."
   ],
   "riskAreas": [
     "story",
@@ -36,7 +40,10 @@
     "app-runtime",
     "Gemini API access/quota",
     "Kl Admin client retry",
-    "KL quiz RLS and BP idempotency"
+    "KL quiz RLS and BP idempotency",
+    "Admin review RLS access",
+    "source excerpt coverage",
+    "partial candidate validation"
   ],
   "regressionTests": [
     "tests/kl-approved-auto-reading-quiz.test.mjs",
@@ -47,7 +54,8 @@
     "supabase/functions/kl-generate-reading-quiz/index.ts",
     "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
     "tests/kl-approved-auto-reading-quiz.test.mjs",
-    "supabase/tests/kl_question_generator_admin_security_20261112.sql"
+    "supabase/tests/kl_question_generator_admin_security_20261112.sql",
+    "supabase/migrations/20261112043503_kl_admin_question_review_v1_20261112.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -71,5 +79,5 @@
       ]
     }
   ],
-  "releaseState": "EDGE_V2_PRODUCTION_ACTIVE__CLIENT_PR_ONLY__REAL_ADMIN_MODEL_E2E_PENDING__NO_OTA"
+  "releaseState": "EDGE_GENERATOR_V3_PENDING_DEPLOY__SECURE_ADMIN_REVIEW_RPC_LIVE__CLIENT_PR_ONLY__K1_TO_K5_BACKFILL_PENDING__NO_OTA"
 }
