@@ -22,7 +22,8 @@
     "supabase/functions/bsoc-gpt-debug-v1/index.ts",
     "tests/bsoc-intervention-live-safety-20261112.test.mjs",
     "tests/bsoc-navigation-route-20261112.test.mjs",
-    "tests/bsoc-security-permission-20261112.test.mjs"
+    "tests/bsoc-security-permission-20261112.test.mjs",
+    "supabase/tests/bsoc_gpt_permission_contract_20261112.sql"
   ],
   "preserveBehaviors": [
     "Wall, Ads, videos, finance, points, public privacy and global nav routing unchanged",
@@ -43,14 +44,14 @@
     "bsoc-case-access",
     "error-route-privacy",
     "ai-provider-fallback",
-    "render-boundary"
+    "render-boundary",
+    "navigation-scroll"
   ],
   "regressionTests": [
     "tests/bsoc-intervention-live-safety-20261112.test.mjs",
-    "tests/bsoc-case-triage-20261112.test.mjs",
-    "tests/bsoc-notification-navigation-20261112.test.mjs",
     "tests/bsoc-navigation-route-20261112.test.mjs",
-    "tests/bsoc-security-permission-20261112.test.mjs"
+    "tests/bsoc-security-permission-20261112.test.mjs",
+    "supabase/tests/bsoc_gpt_permission_contract_20261112.sql"
   ],
   "lockedFeatureChanges": [
     {
