@@ -24,7 +24,9 @@
     "ads-finance-points",
     "release-identity",
     "user-privacy",
-    "media"
+    "media",
+    "navigation-scroll",
+    "connect"
   ],
   "regressionTests": [
     "tests/wall-media-music-ambience-fastpath-20261112.test.mjs",
