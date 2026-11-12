@@ -203,6 +203,7 @@ import {
  FlatList as GestureFlatList,
 } from 'react-native-gesture-handler';
 import {supabase} from '@/lib/supabase';
+import { subscribeBuklodPublicPostChanges } from '@/lib/buklodPublicCommunityRealtime';
 import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import {getClusterLabels,formatClusterName} from '@/lib/clusterLabels'; // PATCH_154A_CLUSTER_LABELS
 import {Button,Card,SectionTitle} from '@/components/UI';
@@ -2505,47 +2506,29 @@ const load=useCallback(async(options?:{
       }, 900);
     };
 
-    const channel =
-      supabase
-        .channel(
-          'buklod:public-community:posts',
-          {
-            config: {
-              private: false,
-            },
-          }
-        )
-        .on(
-          'broadcast',
-          {
-            event: 'post_changed',
-          },
-          (event:any) => {
-            const change=event?.payload??{};
-            const postId=typeof change.post_id==='string' ? change.post_id : '';
-            if(postId && change.visibility_revoked===true){
-              privacyRevokedPostIdsRef.current.add(postId);
-              communityLoadSeqRef.current+=1; // Cancel stale in-flight feed responses.
-              setPosts(current=>current.filter((post:any)=>
-                String(post.id)!==postId || String(post.user_id)===String(user.id)
-              ));
-              setVideoViewerPosts(current=>current.filter((post:any)=>
-                String(post.id)!==postId || String(post.user_id)===String(user.id)
-              ));
-            } else if(postId && change.visibility_revoked===false){
-              privacyRevokedPostIdsRef.current.delete(postId);
-            }
-            requestReload();
-          }
-        )
-        .subscribe();
+    const unsubscribe = subscribeBuklodPublicPostChanges((change) => {
+      const postId=typeof change.post_id==='string' ? change.post_id : '';
+      if(postId && change.visibility_revoked===true){
+        privacyRevokedPostIdsRef.current.add(postId);
+        communityLoadSeqRef.current+=1; // Cancel stale in-flight feed responses.
+        setPosts(current=>current.filter((post:any)=>
+          String(post.id)!==postId || String(post.user_id)===String(user.id)
+        ));
+        setVideoViewerPosts(current=>current.filter((post:any)=>
+          String(post.id)!==postId || String(post.user_id)===String(user.id)
+        ));
+      } else if(postId && change.visibility_revoked===false){
+        privacyRevokedPostIdsRef.current.delete(postId);
+      }
+      requestReload();
+    });
 
     return () => {
       if (reloadTimer) {
         clearTimeout(reloadTimer);
       }
 
-      void supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, [user?.id, load]);
  /* PATCH_186B_PHOTO_EDITOR_PUBLIC_PREPARE */
