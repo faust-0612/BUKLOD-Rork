@@ -69,16 +69,7 @@
         "tests/buklod-security-operations-20261112.test.cjs",
         "supabase/tests/buklod_security_operations_r1_20261112.sql"
       ]
-    },
-    {
-      "id": "production-release",
-      "reason": "Run existing exact-commit Android and Expo Web compiled RC QA for scoped BUKLOD security operations without changing OTA or production publishing workflows.",
-      "preservedBehaviors": [
-        "Existing production OTA and Expo Hosting release triggers remain unchanged and no automatic publication is added."
-      ],
-      "tests": [
-        "tests/buklod-security-ops-release-gate-20261112.test.cjs"
-      ]
     }
-  ]
+  ],
+  "releaseGateEvidence": "Existing compiled Android and Expo Web workflow explicitly enabled on this branch and its exact SHA. Workflow changes do not match the protected-feature-lock production-release path class; existing app-runtime and backend-security declarations cover actual affected contracts."
 }
