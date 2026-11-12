@@ -62,7 +62,7 @@ export default function BuklodPostMotion({preset,children,active=true}:Props){
   const rising=preset==='fireflies'||preset==='underwater';
   const mist=preset==='mist'||preset==='sunrays';
   // Limit overlays on low-memory phones; never allocate per-frame particles.
-  const count=preset==='storm'?24:weather?14:mist?3:preset==='sunrays'?4:12;
+  const count=preset==='storm'?24:weather?14:preset==='sunrays'?4:mist?3:12;
   const tint=weather?'#badde7':preset==='snow'?'#ffffff':
     preset==='fireflies'?'#f8dc70':preset==='petals'?'#ffb6cc':
     preset==='sunrays'?'#ffe8a2':preset==='dust'?'#f1d7a4':
