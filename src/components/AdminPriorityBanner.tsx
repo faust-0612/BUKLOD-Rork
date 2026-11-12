@@ -64,7 +64,7 @@ export function AdminPriorityBanner() {
     accessibilityLabel="Open System Admin priority requests"
     onPress={() => router.push('/admin/priority-requests' as any)}
     style={s.card}>
-    <View style={s.icon}><MaterialCommunityIcons name="bell-badge-outline" size={23} color="#FFFFFF" /></View>
+    <View style={s.icon}><MaterialCommunityIcons name="bell-ring-outline" size={23} color="#FFFFFF" /></View>
     <View style={s.body}>
       <Text style={s.eyebrow}>ADMIN PRIORITY NOTIFICATIONS</Text>
       <Text style={s.title}>{loading && !snapshot ? 'Checking pending requests…' : count
