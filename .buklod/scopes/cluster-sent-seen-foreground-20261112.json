@@ -15,7 +15,8 @@
     "connect-ptt-calls",
     "message-delivery-status",
     "reader-ui-privacy",
-    "background-focus"
+    "background-focus",
+    "connect"
   ],
   "regressionTests": [
     "tests/buklod-cluster-connect-seen-20261112.test.mjs",
@@ -68,5 +69,11 @@
     "Physical two-device Cluster send/read and production runtime checks are not verified here; no publish and no production success claim.",
     "Ad safety isolation regression confirms no AdMob ad request, impression, reward or points ledger calls are introduced within Connect Seen files."
   ],
-  "releaseState": "DEV only; awaiting exact-source CI and consolidated RC inclusion. No OTA published."
+  "releaseState": "DEV only; awaiting exact-source CI and consolidated RC inclusion. No OTA published.",
+  "selectionRationale": "The existing Cluster bubble shows an empty Seen-by-zero report immediately after send, even though the authenticated backend exposes only room-level read cursors. Reusing that secure read source and hiding zero-reader badges avoids synthetic per-message receipts, schema migrations, and new traffic while focused visibility guards reduce false read advances.",
+  "alternativeApproaches": [
+    "Introduce a new per-message read receipt table/RPC and realtime event: greater schema, RLS, privacy, migration and old-client compatibility risk; not required to fix the misleading empty UI.",
+    "Hide all read receipts permanently: simple but loses legitimate Cluster member read visibility and does not meet the owner objective.",
+    "Poll aggressively every few seconds: marginally improves badge freshness but increases cost/load and still cannot prove a message was opened."
+  ]
 }
