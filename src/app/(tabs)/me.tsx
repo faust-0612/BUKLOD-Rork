@@ -72,6 +72,7 @@ import {
   setMyProfileLocked,
 } from '@/lib/buklodMemberProfile';
 import { shareProfileUpdateOnCommunityWall } from '@/lib/buklodProfileCommunityShare';
+import { publishBuklodLiveAvatar } from '@/lib/buklodAvatarLive';
 import { loadBuklodPointsDashboard } from '@/lib/buklodRewards';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { BuklodGlobalThemeSelectorModal } from '@/components/BuklodGlobalThemeSelector';
@@ -830,6 +831,9 @@ export default function MeScreen() {
         }
 
 
+        // The database has confirmed the new URL. Update all mounted
+        // ProfileAvatar views now; Community sharing is a separate optional step.
+        publishBuklodLiveAvatar({ userId: profile.id, url: avatarUrl });
         await refreshProfile();
 
         try {
