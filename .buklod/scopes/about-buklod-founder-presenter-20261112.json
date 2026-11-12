@@ -1,0 +1,65 @@
+{
+  "contractVersion": 2,
+  "objective": "Include the approved founder autobiography, principles, visions, reused founder portrait, and audience-specific public presentation toolkit in the NEXT BUKLOD Main consolidated OTA source without affecting other released features.",
+  "baseRef": "1e66dd04c36cd88c922c9e41d6f673fdd9d94e98",
+  "productionBaselineEvidence": "Current main 1e66dd04c36cd88c922c9e41d6f673fdd9d94e98 is the existing Nov12 consolidated source/production marker. This addition is not part of that published marker. Production update ID/web deployment readback not independently verified as part of this inclusion.",
+  "chosenApproach": "Exact scope source-only offline-safe RN screens with bundled existing approved developer portrait. Reusable immutable copy for six audiences, including transparent origin and commercial disclosures; no new backend or native module. Stage after existing Nov12 main for next cumulative OTA source.",
+  "selectionRationale": "Low-risk public-content additions allow quick founder storytelling and live demos without modifying privacy, accounts, AdMob, media or existing navigation; next consolidated OTA avoids standalone publication.",
+  "alternativeApproaches": [
+    "Publish a separate standalone production OTA (rejected to avoid release fragmentation)",
+    "Merge into already-published Nov12 RC (rejected to preserve immutable production evidence)",
+    "Hide faith identity or guarantee benefits to sponsors (rejected as misleading)"
+  ],
+  "preserveBehaviors": [
+    "Unrelated Home, Wall, Cluster, Connect, Profile and System Admin features unchanged",
+    "Existing church and general-public content and privacy/auth controls unchanged",
+    "AdMob earnings source, Finance/points rewards and sponsorship money remain distinct and unmodified",
+    "No server, database, dependency, login, or navigation-shell modifications",
+    "Retired IGPAT remains retired; existing historical data stays untouched",
+    "Previous Nov12 production marker and frozen RC are not rewritten"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "public-content-claims",
+    "navigation-route",
+    "social-sharing"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Only existing public About route UI and one new client-side presenter route; no shared shell, native modules, or platform config.",
+      "preservedBehaviors": [
+        "Existing back-button navigation and theme on About screen",
+        "No auth/ads/media/network modifications",
+        "No native module installation"
+      ],
+      "tests": [
+        "tests/about-buklod-founder-presenter-20261112.test.mjs",
+        "src/lib/__tests__/aboutBuklodContent.test.ts"
+      ]
+    }
+  ],
+  "regressionTests": [
+    "tests/about-buklod-founder-presenter-20261112.test.mjs",
+    "src/lib/__tests__/aboutBuklodContent.test.ts"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/about-buklod-founder-presenter-20261112.json",
+    "src/app/about-buklod.tsx",
+    "src/app/about-buklod-present.tsx",
+    "src/lib/aboutBuklodContent.ts",
+    "src/lib/__tests__/aboutBuklodContent.test.ts",
+    "tests/about-buklod-founder-presenter-20261112.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Six distinct audience scripts and demo paths exist and contain no concealed conversion/earnings claims",
+    "About screen opens the new Present BUKLOD route with Back, Copy and Share flows",
+    "Reuse existing local approved portrait; no remote image dependency",
+    "Scope and source tests pass on exact frozen candidate; check Android/Expo Web compatible compilation before release",
+    "Physical Infinix UI acceptance explicitly SKIPPED at owner's request, not passed",
+    "Only one final coordinated consolidated OTA after merging unrelated authorized workstreams, exact runtime/bundle ID QA and production receipt readback"
+  ],
+  "releaseState": "NEXT CONSOLIDATED OTA INCLUSION PREP (NOT PUBLISHED)",
+  "physicalDeviceVerification": "OWNER WAIVED / SKIPPED",
+  "publishStatus": "NO PRODUCTION OTA OR WEB DEPLOYMENT FROM THIS CHANGE"
+}
