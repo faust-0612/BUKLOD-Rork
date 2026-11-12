@@ -57,7 +57,8 @@
     "tests/bsoc-intervention-live-safety-20261112.test.mjs",
     "tests/bsoc-navigation-route-20261112.test.mjs",
     "tests/bsoc-security-permission-20261112.test.mjs",
-    "tests/bsoc-support-pagination-20261112.test.mjs"
+    "tests/bsoc-support-pagination-20261112.test.mjs",
+    "tests/bsoc-conso-idempotent-replies-20261112.test.mjs"
   ],
   "preserveBehaviors": [
     "Approved About founder story, six audience pitches and local portrait unchanged",
@@ -76,13 +77,13 @@
     "public-content-claims"
   ],
   "regressionTests": [
-    "src/lib/__tests__/aboutBuklodContent.test.ts",
     "tests/about-buklod-founder-presenter-20261112.test.mjs",
     "supabase/tests/bsoc_gpt_permission_contract_20261112.sql",
     "tests/bsoc-intervention-live-safety-20261112.test.mjs",
     "tests/bsoc-navigation-route-20261112.test.mjs",
     "tests/bsoc-security-permission-20261112.test.mjs",
-    "tests/bsoc-support-pagination-20261112.test.mjs"
+    "tests/bsoc-support-pagination-20261112.test.mjs",
+    "tests/bsoc-conso-idempotent-replies-20261112.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -93,7 +94,8 @@
       ],
       "tests": [
         "tests/about-buklod-founder-presenter-20261112.test.mjs",
-        "tests/bsoc-intervention-live-safety-20261112.test.mjs"
+        "tests/bsoc-intervention-live-safety-20261112.test.mjs",
+        "tests/bsoc-conso-idempotent-replies-20261112.test.mjs"
       ]
     },
     {
@@ -121,7 +123,8 @@
     "Confirmed exact About and BSOC source parity aside from scope-only About test adaptation",
     "All 100-row paginated queues available; member reply templates stay explicit and safe",
     "Before release verify identity, runtime, Android/Web bundle, function behavior and production receipt",
-    "Physical Infinix verification previously waived but not passed"
+    "Physical Infinix verification previously waived but not passed",
+    "Interrupted agent send reuses client nonce and treats a duplicate as success only when matching server message exists"
   ],
   "physicalDeviceVerification": "OWNER PREVIOUSLY WAIVED / NOT PASSED",
   "publishStatus": "NOT PUBLISHED / CONSOLIDATED SOURCE ONLY"

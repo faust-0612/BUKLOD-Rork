@@ -35,6 +35,7 @@ export default function BsocInbox(){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [uid,setUid]=useState<string|null>(null);
+ const retryMessage=useRef<{caseId:string;body:string;nonce:string}|null>(null);
  const loadCases=useCallback(async()=>{
    const generation=++queueGeneration.current;
    const {data,error}=await supabase.rpc('buklod_bsoc_support_queue_v1',{p_status:null,p_limit:100,p_before:null});
@@ -104,6 +105,7 @@ export default function BsocInbox(){
    requestSequence.current+=1;
    currentCase.current=id;
    setLinkedCase(null);
+   retryMessage.current=null;
    setMessages([]);setFiles([]);setDraft('');setError('');setCaseId(id);
  },[]);
  // Strictly Admin-only direct lookup supports older priority cases not present
@@ -145,6 +147,7 @@ export default function BsocInbox(){
    lastLinkedCase.current='';
    setCanRead(null);setCanManage(false);setUid(null);
    setCases([]);setMoreAvailable(false);setQueueLoaded(false);setLoadingOlder(false);
+   retryMessage.current=null;
    setLinkedCase(null);setCaseId('');setMessages([]);setFiles([]);setDraft('');
  },[user?.id]);
  useEffect(()=>{
@@ -157,13 +160,25 @@ export default function BsocInbox(){
  },[caseId,loadThread]);
  const send=async()=>{
    if(!canManage||!uid||!caseId||!draft.trim()||busy||((cases.find(c=>c.feedback_id===caseId)?.status??linkedCase?.status)==='closed'))return;
+   const body=draft.trim().slice(0,8000);
+   const previous=retryMessage.current;
+   const nonce=previous?.caseId===caseId&&previous.body===body?previous.nonce:Crypto.randomUUID();
+   // One nonce per message attempt: UNIQUE(sender_id, client_nonce) protects retry.
+   retryMessage.current={caseId,body,nonce};
    setBusy(true);setError('');
    try{
      const {error:e}=await supabase.from('bsoc_case_messages').insert({
-       case_id:caseId,sender_id:uid,sender_kind:'agent',body:draft.trim().slice(0,8000),
-       client_nonce:Crypto.randomUUID()
+       case_id:caseId,sender_id:uid,sender_kind:'agent',body,client_nonce:nonce
      });
-     if(e)throw e;
+     if(e){
+       if(e.code!=='23505')throw e;
+       // Verify server persistence before treating a duplicate as delivered.
+       const {data:stored,error:readError}=await supabase.from('bsoc_case_messages')
+         .select('id').eq('case_id',caseId).eq('sender_id',uid)
+         .eq('client_nonce',nonce).maybeSingle();
+       if(readError||!stored)throw e;
+     }
+     retryMessage.current=null;
      setDraft('');await loadThread();
    }catch(e:any){setError(e?.message||'Could not send message');}
    finally{setBusy(false);}
