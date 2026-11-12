@@ -124,8 +124,9 @@
     "All 100-row paginated queues available; member reply templates stay explicit and safe",
     "Before release verify identity, runtime, Android/Web bundle, function behavior and production receipt",
     "Physical Infinix verification previously waived but not passed",
-    "Interrupted agent send reuses client nonce and treats a duplicate as success only when matching server message exists"
+    "Interrupted agent send reuses client nonce and treats a duplicate as success only when matching server message exists",
+    "Owner-waived physical device acceptance is recorded as SKIPPED, never as device test PASS"
   ],
-  "physicalDeviceVerification": "OWNER PREVIOUSLY WAIVED / NOT PASSED",
+  "physicalDeviceVerification": "OWNER WAIVED / SKIPPED",
   "publishStatus": "NOT PUBLISHED / CONSOLIDATED SOURCE ONLY"
 }
