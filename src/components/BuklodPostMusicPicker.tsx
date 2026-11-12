@@ -90,7 +90,7 @@ export default function BuklodPostMusicPicker({
      justifyContent:'center',paddingHorizontal:14,paddingTop:Math.max(insets.top,12),
      paddingBottom:Math.max(insets.bottom,12)}}>
      <View style={{width:'100%',maxWidth:580,maxHeight:'94%',borderRadius:20,
-       backgroundColor:'#fff',padding:16}}>
+       backgroundColor:'#fff',padding:14,height:'90%',maxHeight:720,minHeight:0}}>
        <View style={{flexDirection:'row',alignItems:'center',gap:9,marginBottom:10}}>
          <MaterialCommunityIcons name="music-circle-outline" size={25} color="#195d47"/>
          <Text style={{flex:1,fontSize:17,fontWeight:'900',color:'#183c31'}}>BUKLOD Music</Text>
@@ -99,14 +99,14 @@ export default function BuklodPostMusicPicker({
          </Pressable>
        </View>
        <Text style={{color:'#61756d',fontSize:12,marginBottom:9}}>
-         Choose a track, then drag to hear another 30-second part without pressing Play again.
+         Choose music, then drag the 30-second bar to preview any part.
        </Text>
        <TextInput value={search} onChangeText={setSearch} placeholder="Search songs or artists"
          accessibilityLabel="Search music library" autoCapitalize="none"
          style={{minHeight:44,borderWidth:1,borderColor:'#d5e1da',
            borderRadius:12,paddingHorizontal:12,marginBottom:9,color:'#183c31'}}/>
        <ScrollView horizontal showsHorizontalScrollIndicator={false}
-         keyboardShouldPersistTaps="always" style={{flexGrow:0,marginBottom:11}}>
+         keyboardShouldPersistTaps="always" style={{flexGrow:0,height:44,maxHeight:44,marginBottom:8}}>
          {chip('all','All Music')}
          {BUKLOD_MUSIC_CATEGORIES.map(c=>chip(c.id,c.label))}
        </ScrollView>
@@ -116,7 +116,7 @@ export default function BuklodPostMusicPicker({
            Song segment for this post
          </Text>
          <Text style={{fontSize:11,color:'#527366',marginBottom:8}}>
-           Drag the green window; preview continues playing as you move it.
+           Move the green selection or tap the waveform; use the 5s controls for precision.
          </Text>
          <BuklodMusicClipTimeline start={Number(clipStartText)||0} length={30} fixedLength={30}
            total={knownDuration||Math.max(120,(Number(clipStartText)||0)+90)}
@@ -158,7 +158,7 @@ export default function BuklodPostMusicPicker({
        {loading&&<ActivityIndicator color="#195d47"/>}
        {!!error&&<Text accessibilityRole="alert" style={{color:'#b43a2b',marginBottom:8}}>{error}</Text>}
        <FlatList data={tracks} keyExtractor={item=>item.id}
-         keyboardShouldPersistTaps="handled" style={{flexGrow:0}}
+         keyboardShouldPersistTaps="handled" nestedScrollEnabled style={{flex:1,minHeight:84}}
          onEndReachedThreshold={0.45} onEndReached={()=>void more()}
          ListFooterComponent={loadingMore?<ActivityIndicator color="#195d47"/>:
            hasMore?<Pressable accessibilityRole="button" onPress={()=>void more()}
