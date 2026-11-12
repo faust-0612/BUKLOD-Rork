@@ -70,6 +70,31 @@ begin
     raise exception 'Official Finance numerator remains included';
   end if;
 
+
+  insert into private.buklod_r36_bcu_ledger
+    (user_id,direction,units,event_key,source_type,policy_version,qualification_state)
+  values(v_official,'credit',1,'buklod_official_bcu_contract_rollback',
+         'community_post','r36_social_economy_v1','qualified');
+  if exists(select 1 from private.buklod_r36_bcu_ledger
+       where user_id=v_official and event_key='buklod_official_bcu_contract_rollback') then
+    raise exception 'Official BCU credit was not blocked';
+  end if;
+  if not exists(select 1 from pg_trigger
+     where tgrelid='private.buklod_r38_rcu_ledger'::regclass
+       and tgname='zz_buklod_official_rcu_guard_v1' and tgenabled='O') then
+    raise exception 'RCU official guard disabled';
+  end if;
+  if not exists(select 1 from pg_trigger
+     where tgrelid='public.buklod_rank_history'::regclass
+       and tgname='zz_buklod_official_rank_history_guard_v1' and tgenabled='O') then
+    raise exception 'Rank guard disabled';
+  end if;
+  if not exists(select 1 from pg_trigger
+     where tgrelid='private.buklod_kingdom_shards_ledger_v1'::regclass
+       and tgname='zz_buklod_official_shards_guard_v1' and tgenabled='O') then
+    raise exception 'Kingdom shard guard disabled';
+  end if;
+
   perform set_config('request.jwt.claim.sub',v_official::text,true);
   v_dash:=public.get_my_buklod_official_dashboard_v1();
   if v_dash->>'is_official'<>'true'

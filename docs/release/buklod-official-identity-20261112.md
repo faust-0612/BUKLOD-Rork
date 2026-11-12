@@ -4,7 +4,7 @@
 Convert the **existing** protected `OFFICIAL_SYSTEM_ADMIN` user (not every `system_admin`) into the BUKLOD platform voice. Preserve auth UUID, existing roles, privileged operations, and historical audit/finance data. The public profile shows **BUKLOD** and a server-verified official badge; the original personal display name and original avatar path are retained only in the private snapshot.
 
 ## Economy isolation
-- No new BUKLOD member Points credits/evaluations, Community QMP events/accounts, mission/day rewards, redemption requests or Finance user settlements.
+- No new BUKLOD member Points credits/evaluations, Community QMP events/accounts, R36 BCU, R38 RCU, Kingdom shard/member-rank progression, mission/day rewards, redemption requests or Finance user settlements.
 - Keep original historical ledgers, monthly account snapshots, prior settlement decisions, and existing Finance person identity.
 - Exclude the protected account from Points and Bayanihan leaderboards *before* rank assignment, from open-period QMP Finance numerator and denominator, and from future payout eligibility. Do not alter already finalized historical amounts.
 - Others' engagement with official posts continues to use ordinary anti-farming and monetization policies. Posting/reacting/replying by the official identity is not itself a member reward.

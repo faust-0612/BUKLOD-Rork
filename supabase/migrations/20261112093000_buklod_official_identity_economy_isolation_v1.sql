@@ -1000,3 +1000,44 @@ from ranked r
 order by r.rank_position
 limit greatest(1, least(coalesce(p_limit,10),50));
 $function$;
+
+
+-- R36 BCU and R38 referral RCU are economic reward ledgers, separate from Points.
+-- Keep historical audit entries; forbid new BUKLOD Official rewards.
+drop trigger if exists zz_buklod_official_bcu_guard_v1 on private.buklod_r36_bcu_ledger;
+create trigger zz_buklod_official_bcu_guard_v1
+before insert on private.buklod_r36_bcu_ledger
+for each row execute function private.buklod_official_reward_write_guard_v1();
+
+create or replace function private.buklod_official_rcu_guard_v1()
+returns trigger language plpgsql security definer set search_path to ''
+as $rcu$
+begin
+  if private.buklod_is_platform_official_v1(new.referrer_user_id)
+     or private.buklod_is_platform_official_v1(new.referred_user_id) then
+    return null;
+  end if;
+  return new;
+end;
+$rcu$;
+revoke all on function private.buklod_official_rcu_guard_v1() from public,anon,authenticated;
+drop trigger if exists zz_buklod_official_rcu_guard_v1 on private.buklod_r38_rcu_ledger;
+create trigger zz_buklod_official_rcu_guard_v1
+before insert on private.buklod_r38_rcu_ledger
+for each row execute function private.buklod_official_rcu_guard_v1();
+
+-- Historic badges, ranks and Shards remain available for audit only.
+drop trigger if exists zz_buklod_official_rank_history_guard_v1 on public.buklod_rank_history;
+create trigger zz_buklod_official_rank_history_guard_v1
+before insert on public.buklod_rank_history
+for each row execute function private.buklod_official_reward_write_guard_v1();
+
+drop trigger if exists zz_buklod_official_season_rank_guard_v1 on public.buklod_rank_season_results;
+create trigger zz_buklod_official_season_rank_guard_v1
+before insert on public.buklod_rank_season_results
+for each row execute function private.buklod_official_reward_write_guard_v1();
+
+drop trigger if exists zz_buklod_official_shards_guard_v1 on private.buklod_kingdom_shards_ledger_v1;
+create trigger zz_buklod_official_shards_guard_v1
+before insert on private.buklod_kingdom_shards_ledger_v1
+for each row execute function private.buklod_official_reward_write_guard_v1();
