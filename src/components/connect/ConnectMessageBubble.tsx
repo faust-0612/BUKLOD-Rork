@@ -85,7 +85,7 @@ type Props = {
   onRetryPhoto?: (index: number) => void;
   seenReaders?: ConnectSeenReader[];
   onPressSeenReaders?: () => void;
-  /** Cluster: always expose the room-cursor report, even before anyone reads. */
+  /** Cluster: show the reader report only after confirmed read, not on send. */
   showSeenReport?: boolean;
   seenReportAvailable?: boolean;
   compact?: boolean;
@@ -289,6 +289,12 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     seenRowOwn: {
       alignSelf: 'flex-end',
+    },
+    seenLabel: {
+      color: theme.textMuted,
+      fontSize: 11,
+      fontWeight: '700',
+      marginRight: 8,
     },
     seenRowOther: {
       alignSelf: 'flex-start',
@@ -923,7 +929,7 @@ export function ConnectMessageBubble({
           />
         </View>
       </View>
-      {(seen.shown.length > 0 || (own && showSeenReport)) && (
+      {seen.shown.length > 0 && (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
@@ -943,9 +949,9 @@ export function ConnectMessageBubble({
                 : styles.bubbleWithAvatar),
           ]}
         >
-          {seen.shown.length === 0 ? (
-            <Text style={styles.seenExtraText}>
-              {seenReportAvailable ? 'Seen by 0 · Details' : 'Seen report unavailable'}
+          {own && showSeenReport ? (
+            <Text style={styles.seenLabel}>
+              Seen by {seen.shown.length + seen.extra}
             </Text>
           ) : null}
           {seen.shown.map(reader => (
