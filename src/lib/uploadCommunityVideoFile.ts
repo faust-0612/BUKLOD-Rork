@@ -267,6 +267,7 @@ async function convertWebPhotoToJpegBlob(source: Blob): Promise<Blob | null> {
 export async function prepareCommunityJpegUri(
   uri: string,
   webFile?: Blob | null,
+  hint?: {mimeType?: string; width?: number; height?: number},
 ): Promise<{ uri: string; sizeBytes: number; webBlob?: Blob }> {
   // Expo's web picker provides a File. Keep the actual bytes instead of
   // loading a large base64 URI again in the iOS Messenger browser.
@@ -276,7 +277,7 @@ export async function prepareCommunityJpegUri(
   const existingBytes = webSelectedBlob
     ? Number(webSelectedBlob.size ?? 0)
     : await readBinarySizeBytes(uri).catch(() => 0);
-  const actualMime = String(webSelectedBlob?.type ?? '').trim().toLowerCase();
+  const actualMime = String(webSelectedBlob?.type || hint?.mimeType || '').trim().toLowerCase();
   const isJpeg = actualMime
     ? /^image\/jpe?g$/.test(actualMime)
     : /\.jpe?g(?:[?#]|$)/i.test(uri) || /^data:image\/jpe?g[;,]/i.test(uri);
@@ -294,7 +295,9 @@ export async function prepareCommunityJpegUri(
   try {
     const M = await import('expo-image-manipulator');
     const context = M.ImageManipulator.manipulate(uri);
-    const dimensions = await readCommunityPhotoDimensions(uri);
+    const dimensions = Number(hint?.width)>0 && Number(hint?.height)>0
+      ? {width:Number(hint!.width),height:Number(hint!.height)}
+      : await readCommunityPhotoDimensions(uri);
     if (dimensions && Math.max(dimensions.width, dimensions.height) > 1440) {
       context.resize({
         width: dimensions.width >= dimensions.height ? 1440 : null,
@@ -344,9 +347,12 @@ export async function prepareCommunityJpegUri(
  */
 export async function prepareCommunityPreviewJpegUri(
   uri: string,
+  orientationHint?: {width?:number;height?:number},
 ): Promise<{ uri: string; sizeBytes: number } | null> {
   if (Platform.OS === 'web') return null; // Native only until browser path is validated.
-  const dims = await readCommunityPhotoDimensions(uri);
+  const dims = Number(orientationHint?.width)>0 && Number(orientationHint?.height)>0
+    ? {width:Number(orientationHint!.width),height:Number(orientationHint!.height)}
+    : await readCommunityPhotoDimensions(uri);
   if (!dims?.width || !dims?.height) return null; // No unknown upscaling.
   try {
     const M = await import('expo-image-manipulator');
@@ -381,18 +387,24 @@ export async function uploadCommunityPhotoFile({
   path,
   uri,
   webFile,
+  mimeType,
+  width,
+  height,
   onProgress,
   wallPreview = false,
 }: {
   path: string;
   uri: string;
   webFile?: Blob;
+  mimeType?: string;
+  width?: number;
+  height?: number;
   onProgress?: (
     progress: CommunityVideoUploadProgress
   ) => void;
   wallPreview?: boolean;
 }): Promise<{ sizeBytes: number; path: string }> {
-  const prepared = await prepareCommunityJpegUri(uri, webFile);
+  const prepared = await prepareCommunityJpegUri(uri, webFile, {mimeType,width,height});
   let actualPath = path;
 
   // Upload preview first; only mark the original path with -p1 after Storage
@@ -400,8 +412,9 @@ export async function uploadCommunityPhotoFile({
   // are never referenced by the Wall, preventing broken legacy tiles.
   const taggedOriginal = wallPreview ? communityWallPreviewOriginalPath(path) : null;
   const previewPath = taggedOriginal ? communityWallPreviewPath(taggedOriginal) : null;
-  if (previewPath && taggedOriginal) {
-    const preview = await prepareCommunityPreviewJpegUri(prepared.uri).catch(() => null);
+  // Small originals are already preview-sized: avoid a second encode and PUT.
+  if (previewPath && taggedOriginal && prepared.sizeBytes > 320 * 1024) {
+    const preview = await prepareCommunityPreviewJpegUri(prepared.uri, {width,height}).catch(() => null);
     if (preview) {
       try {
         await uploadCommunityBinaryFile({
