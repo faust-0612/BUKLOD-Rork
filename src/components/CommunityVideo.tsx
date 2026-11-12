@@ -1,8 +1,10 @@
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import { Image as ExpoImage } from 'expo-image';
 import {
@@ -52,6 +54,11 @@ import {
   decideCommunityVideoErrorRecovery,
   shouldMountCommunityVideoPlayer,
 } from '@/lib/communityVideoPlayback';
+import {
+  isBuklodPassiveVideoSlotAdmitted,
+  registerBuklodPassiveVideoSlot,
+  subscribeBuklodPassiveVideoSlots,
+} from '@/lib/buklodPassiveVideoBudget';
 
 type Props = {
   uri: string;
@@ -158,13 +165,39 @@ export function CommunityVideo(props: Props) {
     isBuklodImaNativeAvailable() &&
     shouldUseBuklodImaForVideo(props.expectedDurationSeconds);
   const active = props.active !== false;
+  // Active playback is NEVER budget-gated. Only passive Android preloads
+  // and paused 1.4s warm decoders compete for one shared offscreen slot.
+  const passiveSlotRef = useRef<object>({});
+  const passiveRequested =
+    Platform.OS === 'android' && !active && !imaEligible &&
+    (recentlyActive || (props.preload === true && !degraded));
+  const passivePriority = recentlyActive ? 'warm' : 'preload';
+  const passiveSnapshot = useCallback(
+    () => isBuklodPassiveVideoSlotAdmitted(passiveSlotRef.current),
+    [],
+  );
+  const passiveAllowed = useSyncExternalStore(
+    subscribeBuklodPassiveVideoSlots,
+    passiveSnapshot,
+    () => false,
+  );
+  useEffect(() => {
+    if (!passiveRequested) return;
+    return registerBuklodPassiveVideoSlot(
+      passiveSlotRef.current,
+      passivePriority,
+    );
+  }, [passiveRequested, passivePriority, props.uri]);
+
   const mountPlayer = shouldMountCommunityVideoPlayer({
     active,
     fullscreen: Boolean(props.fullscreen),
     degraded,
     playIntent,
-    preload: !imaEligible && !degraded && props.preload === true,
-    keepWarm: !imaEligible && recentlyActive,
+    preload: !imaEligible && !degraded && props.preload === true &&
+      (active || Platform.OS !== 'android' || passiveAllowed),
+    keepWarm: !imaEligible && recentlyActive &&
+      (active || Platform.OS !== 'android' || passiveAllowed),
   });
 
   const requestPlay = () => {
