@@ -12,7 +12,8 @@ test('login avatar prefers freshly fetched public canonical file and preserves v
   assert.match(x, /key=\{\`\$\{userId\}:\$\{remoteUrl \?\? 'green-b'\}\`\}/);
   assert.match(x, /setCandidateIndex\(/);
   assert.match(x, /const \[refreshVersion\] = useState\(\(\) => String\(Date\.now\(\)\)\)/);
-  assert.doesNotMatch(x, /from\('profiles'\)[\s\S]*?\.select\('avatar_url'\)[\s\S]*?beforeLoginQueryMarker/);
+  const picker = x.slice(x.indexOf('function SuggestedLoginAvatar('), x.indexOf('export default function LoginScreen()'));
+  assert.doesNotMatch(picker, /\.from\('profiles'\)/, 'pre-auth account picker must not read private profiles');
 });
 
 test('confirmed profile avatar save mirrors only own account locally', () => {
