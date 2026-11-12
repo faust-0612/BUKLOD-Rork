@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "objective": "Complete a protected System Admin priority inbox that surfaces actionable BUKLOD help, advertisement, approval, finance, content safety and privacy requests with correct counts, origin-specific BSOC reply routing and no false completion, then prepare the changes for a future consolidated Android OTA and Expo Web RC.",
+  "baseRef": "b89848c58ca8f17b9dfcd4dfc7a47bbea869f625",
+  "productionBaselineEvidence": "Source inspection of canonical GitHub Main on 2026-11-12. Feature branch forked from b89848c5; newer Main commits include independent security migrations. Production Android OTA runtime/source and Expo Web served bundle were not independently verified for this work. Source-only comparison is not a production release.",
+  "chosenApproach": "Reuse existing System Admin screens, role checks, RLS and authenticated source RPCs; aggregate compact read-only pending records in a bounded in-app queue, keep exact BSOC counts, sample oldest/newest cases, and deep-link into the secure BSOC case thread with replies. Use focus/foreground/reactive updates and a visible incomplete-source warning. No new database, native package or privileged mutation.",
+  "selectionRationale": "Existing pending records and source-specific approvals are already canonical; a parallel admin-request table would introduce synchronization drift and risk auto-marking incomplete work done. Direct case linkage addresses the older-ticket discoverability and reply problem without broadening access.",
+  "alternativeApproaches": [
+    "Create a new global admin_notifications writable table and backfill all sources: rejected as a duplicated source of truth with complicated triggers and migration risk.",
+    "Use only unread notifications as the pending queue: rejected because read_at does not indicate resolution, older unnotified requests disappear, and users would be unable to locate original work."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "admin-operations",
+    "privacy-data",
+    "support-case-routing"
+  ],
+  "preserveBehaviors": [
+    "System Admin and BSOC read/manage RLS/RPC gates remain the sole authorities for case visibility and replies; no member can approve paid ads or inspect other users' private files.",
+    "Payment verification, withdrawal, points, advertising publication and account deletion are never triggered by opening or reading a notification.",
+    "Existing sponsor approval, BSOC chat, recovery, content moderation, attendance and privacy screens remain the definitive handlers.",
+    "Existing media, Wall, Marites, Connect, ads, points, offline caches, profile navigation, Expo runtime and mobile release configuration remain unchanged.",
+    "Reading an alert is independent of closing its underlying support or financial request; failed source reads are shown instead of silently reporting zero."
+  ],
+  "acceptanceChecks": [
+    "Admin dashboard shows actionable priority badge even if the separate executive stats RPC fails, without exposing requests to unauthorized users.",
+    "Admin inbox filters Help, Ads, Approvals, Safety, Privacy and Urgent, counts pending BSOC precisely and visibly labels bounded partial results.",
+    "More than 100 BSOC cases still include newest and oldest unresolved cases, with direct case-specific thread opening for older cases and protected admin reply action.",
+    "BSOC notification clicks use strictly validated case UUID deep links and only mark the individual notification read, not the case resolved.",
+    "Age-based urgency escalates after 72 hours, rejects invalid dates, handles stale case response race and refresh without duplicate mutations.",
+    "Focused native Node behavioral tests and existing source/security contracts pass; full typecheck, authenticated RC build and release gates remain prerequisites before OTA publish."
+  ],
+  "regressionTests": [
+    "tests/admin-priority-requests-source.test.cjs"
+  ],
+  "allowedPaths": [
+    "src/app/admin/bsoc-conversations.tsx",
+    "src/app/admin/bsoc-notifications.tsx",
+    "src/app/admin/index.tsx",
+    "src/app/admin/priority-requests.tsx",
+    "src/app/admin/privacy/index.tsx",
+    "src/components/AdminPriorityBanner.tsx",
+    "src/lib/buklodAdminPriority.ts",
+    "src/lib/buklodAdminPriorityPolicy.ts",
+    "tests/admin-priority-requests-source.test.cjs",
+    ".buklod/scopes/admin-priority-notifications-20261112.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add an isolated authorized System Admin priority inbox and origin-linked BSOC request navigation while preserving all unrelated runtime screens, account boundaries and release behavior.",
+      "preservedBehaviors": [
+        "Member and BSOC staff authorization remains enforced by existing backend RLS and scope-specific permission checks; app-wide media and navigation remain unchanged."
+      ],
+      "tests": [
+        "tests/admin-priority-requests-source.test.cjs"
+      ]
+    }
+  ],
+  "releaseIntent": {
+    "target": "future-consolidated-ota",
+    "nativeRuntimeChanged": false,
+    "dbMigrationRequired": false,
+    "prodPublishAuthorized": false,
+    "status": "DEV_RC_REQUIRES_COMPILE_AND_AUTHENTICATED_E2E"
+  }
+}
