@@ -1,0 +1,89 @@
+{
+  "contractVersion": 2,
+  "releaseMode": "reviewed-production-marker",
+  "scopeManifestPath": ".buklod/scopes/nov12-final-consolidated-production-publish-20261112.json",
+  "objective": "Publish exact Nov12 BUKLOD Main consolidated Android production OTA and Expo Hosting Web using the canonical prefix-gated publishers after verifying one current cumulative Main source and strict automated RC gates; physical handset acceptance previously waived by owner.",
+  "baseRef": "222f2d4adc8887f8ffcc422806fe3d4162c30304",
+  "sourceMergeSha": "222f2d4adc8887f8ffcc422806fe3d4162c30304",
+  "productionBaselineEvidence": "verified: Main source at 222f2d4adc8887f8ffcc422806fe3d4162c30304 is squash of Nov12 cumulative PR #752, which compiled from exact source 39dd187403f0a15f9f73e63749b9fd4290c0dc24. Engineering Accountability 43160679422, Performance R1 43160679464, Main Integration 43160679432, and Android+Expo Web production-environment nonpublishing compile 43160679575 all SUCCESS. Compile log confirms ANDROID_FILES=263, WEB_FILES=254, runtime 1.3.2, package org.mzbministry.buklod, versionCode 30, EAS project 23dad7d0-389a-406e-8dec-08965dab85d8. Seven high-impact client file blobs checked byte-identical between exact RC and Main. Main contains Admin Priority, BSOC support, Cluster seen, avatar, AdMob safety, KL fixes, and independently merged DDL/RPC security hardening. Live Supabase KL Edge v3 ACTIVE/JWT=true, admin-only preview RPC anon EXECUTE=false, enforce_quiz=false; one ready Panimula bank and five other pending chapters. Final published Android OTA and Web deployment IDs have NOT been verified at marker preparation time.",
+  "chosenApproach": "One metadata-only approved production marker on current Main with exact source SHA and checked regression contract, squash-merge using established BUKLOD_CONSOLIDATED_PROD_20261108 message prefix to trigger only canonical push-only Android and Expo Web production publishers. Each publisher independently verifies source identity, runtime, production secrets, guarded export/freeze and served output; never direct workstation eas update or Vercel.",
+  "selectionRationale": "Single source and one marker avoids piecemeal publication, duplicate EAS cost, stale RC, Vercel build rate limits and bypassed release gates. User explicitly requested publish, and only physical device acceptance was waived; all automated and backend controls still required.",
+  "alternativeApproaches": [
+    "Use Vercel to deploy BUKLOD Main (rejected: Main targets Expo Hosting and EAS).",
+    "Use unguarded manual eas update or skip compiled RC checks (rejected: release and anti-regression policy).",
+    "Use one reviewed marker with existing canonical publishers and evidence readback (selected)."
+  ],
+  "releasePrefix": "BUKLOD_CONSOLIDATED_PROD_20261108",
+  "target": {
+    "app": "BUKLOD Main",
+    "androidPackage": "org.mzbministry.buklod",
+    "androidVersionCode": 30,
+    "runtimeVersion": "1.3.2",
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "channel": "production",
+    "web": "Expo Hosting"
+  },
+  "rc": {
+    "sourceHead": "39dd187403f0a15f9f73e63749b9fd4290c0dc24",
+    "sourceMergedToMain": "222f2d4adc8887f8ffcc422806fe3d4162c30304",
+    "compiledAndroidWebRun": 43160679575,
+    "androidBundleFiles": 263,
+    "webBundleFiles": 254,
+    "requiredChecksPassed": 4,
+    "sourceQA": {
+      "engineering": 43160679422,
+      "performance": 43160679464,
+      "mainIntegration": 43160679432,
+      "compiled": 43160679575
+    }
+  },
+  "backend": {
+    "projectId": "yhanxndaqbmuzbdqlblu",
+    "klGeneratorVersion": 3,
+    "klAdminReviewAnonAccess": false,
+    "rolloutEnforcementEnabled": false
+  },
+  "knownPending": {
+    "klChapterBanks": 5,
+    "enforceQuiz": false,
+    "notes": "Panimula ready with five questions; K1–K5 pending source-verified questions. Keep legacy reading fallback with enforcement OFF; never describe mandatory chapter quiz as fully operational until all banks pass.",
+    "clientDeviceAcceptance": "Waived physical verification earlier; not a runtime proof."
+  },
+  "riskAreas": [
+    "release-identity",
+    "app-runtime",
+    "auth-privacy",
+    "ads-monetization",
+    "backend-security",
+    "user-data",
+    "video",
+    "finance"
+  ],
+  "acceptanceChecks": [
+    "Only metadata and test files changed in this release-marker PR; approved runtime tree stays exactly Main source.",
+    "All four scoped RC gates success for the same reviewed compiled SHA and required production EAS identity, runtime and package.",
+    "Live Supabase KL v3 remains enabled with JWT/role checks; pending chapter banks are not claimed ready, and quiz rollout remains unenforced.",
+    "No new native code/AAB/Play build, no AdMob account and Finance credit changes, no retired IGPAT republishing.",
+    "Canonical Android production workflow publishes exact frozen RC only after baseline/native/config/runtime checks, captures update ID and verifies published bundle.",
+    "Canonical Expo Hosting workflow verifies immutable Web export/hash and served deployment identity.",
+    "Only skip owner-waived physical Infinix acceptance; do not waive security, CI, Expo production identity or served verification.",
+    "Never claim complete until BOTH actual Android production update and Expo Web deployment IDs plus serving identity are confirmed."
+  ],
+  "preserveBehaviors": [
+    "Current Main Admin Priority, BSOC user replies and notification routing protected by RLS.",
+    "All Wall/Marites/Connect/Cluster media, active video playback, and advertisement consent/eligibility remain unchanged.",
+    "Only AdMob revenue is eligible for member distribution; sponsorship and other BUKLOD revenue remain separate.",
+    "Previously retired IGPAT remains absent from new publishing while preserving historical media.",
+    "No finance payouts, withdrawal processing or unverified points credit changes.",
+    "No unintended Android package/runtime/code changes, only one approved main application update."
+  ],
+  "regressionTests": [
+    "tests/nov12-final-consolidated-release-marker-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov12-final-consolidated-production-publish-20261112.json",
+    "tests/nov12-final-consolidated-release-marker-20261112.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "releaseStatus": "REVIEWED_PRODUCTION_MARKER_CANDIDATE__PENDING_QA_AND_ACTUAL_PUBLISH"
+}
