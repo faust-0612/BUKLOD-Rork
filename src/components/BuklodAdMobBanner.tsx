@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 
 import {
@@ -48,6 +49,8 @@ import {
   getBuklodPassiveAdRequestWaitMs,
   isBuklodPassiveAdAllowed,
   reserveBuklodPassiveAdRequest,
+  getBuklodAdSafetyRevision,
+  subscribeBuklodAdSafety,
 } from '@/lib/buklodGlobalAdController';
 import {
   AD_SLOT_REMOUNT_COOLDOWN_MS,
@@ -93,6 +96,12 @@ function BuklodAdMobBanner({
   placementId,
   maxHeight,
 }: Props) {
+  // Release of typing/form locks and remote flags must wake mounted ad slots.
+  useSyncExternalStore(
+    subscribeBuklodAdSafety,
+    getBuklodAdSafetyRevision,
+    getBuklodAdSafetyRevision,
+  );
   const { ready, canRequestAds } = useAds();
   const { isConnected, isInternetReachable } = useNetwork();
   // A connected transport with unknown reachability can still serve ads;
