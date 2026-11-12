@@ -1,0 +1,42 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/ad-viewport-settle-recheck-20261112.json",
+  "objective": "Avoid unnecessary native ad allocations when users fast-scroll away during the existing 400ms viewability settling window, lowering Android load without touching video playback.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub Main 1e4c0714849a347fa529fbca1cfabf3d5632290d retains a 400ms viewability settle callback that sets eligible true without remeasuring and 1200ms poll. Production Android native OOM/ANR stack not available; this is a grounded resource prevention fix, not a declared crash root-cause repair.",
+  "chosenApproach": "Pure viewport geometry helper and final on-screen remeasurement after 400ms, with foreground and unmount generation guards. No changes to ad creation/player components.",
+  "selectionRationale": "Prevents wasted off-screen ad requests after fast scroll using the existing delay; keeps aggressive ads for genuinely visible slots and existing video playback untouched.",
+  "alternativeApproaches": [
+    "Disable native ads: rejected because BUKLOD depends on monetization.",
+    "Increase 400ms delay blindly: rejected because it does not guarantee final visibility and harms ad fill.",
+    "Remeasure on-screen state just before eligibility, without altering any video: selected."
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "mobile-performance",
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/ad-viewport-settle-recheck-20261112.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Engineering Accountability and Performance QA pass",
+    "Offscreen fast-scrolled slot fails final viewability check",
+    "Stable foreground slot remains eligible after 400ms",
+    "No active Android video playback or AdMob placement code altered",
+    "Exact DEV source retained until future verified RC/OTA"
+  ],
+  "preserveBehaviors": [
+    "Community/Marites/Reels video autoplay, retry, first frame and buffering unchanged",
+    "Aggressive ad placement, request reservations and loaded ad handling unchanged",
+    "No new native SDK, no production OTA yet",
+    "Ad gate cleanup timers/listeners and no request until visible retained"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodAdViewport.ts",
+    "src/lib/buklodAdViewportVisibility.ts",
+    "tests/ad-viewport-settle-recheck-20261112.test.mjs",
+    ".buklod/scopes/ad-viewport-settle-recheck-20261112.json"
+  ],
+  "releaseStatus": "DEV/PR only until consolidated RC and production OTA gates pass."
+}
