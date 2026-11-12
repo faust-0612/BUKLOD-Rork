@@ -2,8 +2,8 @@
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/kl-question-generator-model-404-20261112.json",
   "objective": "Repair slow/repeated 422 KL question generation using server-anchored manuscript excerpts, auto-select 5 of 8 verified candidates, provide active-System-Admin-only five-question answer/evidence review on each chapter; preserve points and reader",
-  "baseRef": "b89848c58ca8f17b9dfcd4dfc7a47bbea869f625",
-  "productionBaselineEvidence": "Nov12 12:27–12:29 Manila production kl-generate-reading-quiz v2 generated one ready 5-question Panimula bank, while K1–5 still pending; six more attempts returned HTTP 422 and one timeout. Existing schema enforces exact manuscript quotes, and old generator required 5/5 fully valid model-typed evidence. System Admin review RPC migration version 20261112043503 applied to production; auth/role guard and anon denial validated. PR branch began at main b89848c58ca8f17b9dfcd4dfc7a47bbea869f625.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: main current GitHub comparison checks only the six declared KL files. Original source main at PR creation b89848c58ca8f17b9dfcd4dfc7a47bbea869f625; latest main subsequently advanced with unrelated anonymous admin RPC security files (commit 9ce38850fb66d8f587dce72cd1b3380148a31098), inherited in PR synthetic merge. Scope compares against current main, not immutable pre-security SHA, to exclude those already-promoted unrelated changes. Production Supabase generator v3 ACTIVE JWT true; review RPC migration 20261112043503 live, anon denied; Panimula 5 questions ready, K1-5 pending as of last check.",
   "chosenApproach": "Send 8 model candidate questions about evenly sampled verbatim source excerpts and reference excerpts by numeric ID, so backend chooses immutable evidence and validates exact answer wording. Deduplicate and store exactly 5 passing questions; at most two model passes, fallback model only on 404. Add System Admin-only server RPC to inspect all 5 questions, options, correct answer and evidence; never expose answer keys to normal readers. No new provider or native dependency.",
   "selectionRationale": "Producer 422 stems from all-or-nothing exact quote validation of 5 model-written evidence strings; excerpt IDs eliminate copy errors, fewer tokens reduce runtime and candidate filtering reduces user retries. Secure admin preview validates quality without relaxing SQL verification.",
   "alternativeApproaches": [
@@ -79,5 +79,5 @@
       ]
     }
   ],
-  "releaseState": "EDGE_GENERATOR_V3_PENDING_DEPLOY__SECURE_ADMIN_REVIEW_RPC_LIVE__CLIENT_PR_ONLY__K1_TO_K5_BACKFILL_PENDING__NO_OTA"
+  "releaseState": "EDGE_V3_PRODUCTION_VERIFIED_SOURCE__ADMIN_RPC_LIVE__ANDROID_CLIENT_PENDING_CI_AND_RELEASE__LEGACY_BANKS_1_OF_6_READY"
 }
