@@ -13,6 +13,12 @@ test('Private source objects and zero direct member table rights',()=>{
  assert.match(sql,/saliksik_admin_preview_v1/);
  assert.match(sql,/saliksik_admin_find_hash_v1/);
  assert.match(sql,/duplicate',true/);
+ for(const name of ['saliksik_admin_register_v1','saliksik_admin_list_v1',
+   'saliksik_catalog_v1','saliksik_begin_v1','saliksik_admin_find_hash_v1']){
+   assert.equal(sql.split('CREATE OR REPLACE FUNCTION public.'+name).length-1,1,
+     'SQL migration must define '+name+' exactly once');
+ }
+ assert.ok(sql.length<36000,'Migration must not accidentally duplicate a large block');
  assert.match(sql,/p_token uuid/);
 });
 test('Processing lease is bounded, checksum-checked, source review required',()=>{
