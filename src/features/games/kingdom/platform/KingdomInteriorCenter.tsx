@@ -29,6 +29,7 @@ export type KingdomInteriorProps = {
   options: readonly KingdomInteriorOption[];
   /** Opt-in compact selector for tall, gesture-based games only. */
   compactGameId?: string;
+  onActiveGameChange?: (gameId: string) => void;
 };
 
 /**
@@ -36,7 +37,7 @@ export type KingdomInteriorProps = {
  * Completion-only, passive inventory stays below the verified game result UI.
  */
 export function KingdomInteriorCenter({
-  character, subtitleEn, subtitleTl, options, compactGameId,
+  character, subtitleEn, subtitleTl, options, compactGameId, onActiveGameChange,
 }: KingdomInteriorProps) {
   const { user } = useAuth();
   const { t } = useBuklodGameLanguage();
@@ -107,7 +108,7 @@ export function KingdomInteriorCenter({
             key={option.id} accessibilityRole="button"
             accessibilityState={{ selected: option.id === active.id }}
             style={[styles.option, compact && styles.optionCompact, option.id === active.id && styles.optionSelected]}
-            onPress={() => setActiveId(option.id)}
+            onPress={() => { setActiveId(option.id); onActiveGameChange?.(option.id); }}
           >
             <Text numberOfLines={compact ? 1 : undefined} style={[styles.optionTitle, compact && styles.optionTitleCompact]}>{option.title}</Text>
             {!compact ? <Text style={styles.optionDescription}>{t(option.descriptionEn, option.descriptionTl)}</Text> : null}
