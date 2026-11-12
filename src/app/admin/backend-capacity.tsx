@@ -16,6 +16,13 @@ import { AdminGate } from '@/components/AdminGate';
 import { supabase } from '@/lib/supabase';
 
 type CapacityStatus = 'collecting' | 'normal' | 'watch' | 'review';
+type AlertReport = { level: 'normal' | 'watch' | 'review'; changed_at: string | null; last_notified_at: string | null };
+type ProviderReport = {
+  memory_percent: number | null; filesystem_used_percent: number | null;
+  swap_used_percent: number | null; cpu_load1: number | null;
+  cpu_cores: number | null; cpu_load_per_core_percent: number | null;
+  cpu_utilization_percent: null; source: string; sampled_at: string;
+};
 type DailySample = {
   day: string;
   peak_connection_pct: number | null;
@@ -143,6 +150,9 @@ function LinkRow({ title, detail, url }: {
 
 export default function AdminBackendCapacityScreen() {
   const [report, setReport] = useState<CapacityReport | null>(null);
+  const [alert, setAlert] = useState<AlertReport | null>(null);
+  const [provider, setProvider] = useState<ProviderReport | null>(null);
+  const [providerUnavailable, setProviderUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -155,13 +165,30 @@ export default function AdminBackendCapacityScreen() {
     setError('');
 
     try {
-      const { data, error: rpcError } = await (supabase as any)
-        .rpc('buklod_admin_backend_capacity_v1');
-      if (rpcError) throw rpcError;
-      if (!data || typeof data !== 'object' || !data.connections || !data.trend) {
-        throw new Error('Invalid backend capacity response.');
+      // Read independent sources once per refresh. Partial provider failure must not
+      // suppress the core capacity dashboard.
+      const [dbResult, alertResult, providerResult] = await Promise.allSettled([
+        (supabase as any).rpc('buklod_admin_backend_capacity_v1'),
+        (supabase as any).rpc('buklod_admin_backend_capacity_alert_v2'),
+        supabase.functions.invoke('buklod-admin-backend-metrics', { method: 'POST', body: {} }),
+      ]);
+      if (generation !== serial.current) return;
+      if (alertResult.status === 'fulfilled' && !alertResult.value.error)
+        setAlert(alertResult.value.data as AlertReport);
+      if (providerResult.status === 'fulfilled' && !providerResult.value.error &&
+          providerResult.value.data?.source === 'Supabase Metrics API (database host)') {
+        setProvider(providerResult.value.data as ProviderReport);
+        setProviderUnavailable(false);
+      } else {
+        setProvider(null);
+        setProviderUnavailable(true);
       }
-      if (generation === serial.current) setReport(data as CapacityReport);
+      if (dbResult.status !== 'fulfilled' || dbResult.value.error)
+        throw new Error('Database capacity report unavailable.');
+      const data = dbResult.value.data;
+      if (!data || typeof data !== 'object' || !data.connections || !data.trend)
+        throw new Error('Invalid backend capacity response.');
+      setReport(data as CapacityReport);
     } catch {
       if (generation === serial.current) {
         setError('Live monitoring is unavailable. Check backend migration and your System Admin access.');
@@ -241,6 +268,22 @@ export default function AdminBackendCapacityScreen() {
                 Sampled {new Date(report.sampled_at).toLocaleString('en-PH')}
               </Text>
               <Text style={styles.note}>{report.status_reason}</Text>
+              <View style={[styles.notice,
+                (alert?.level === 'watch' || alert?.level === 'review') && styles.noticeWarning]}>
+                <Text style={styles.alertLabel}>
+                  Automatic warning: {alert?.level === 'review' ? 'REVIEW CAPACITY' :
+                    alert?.level === 'watch' ? 'WATCH' :
+                    alert?.level === 'normal' ? 'NO ACTIVE WARNING' : 'COLLECTING BASELINE'}
+                </Text>
+                <Text style={styles.detail}>
+                  Warnings require six consecutive hourly readings. Existing BUKLOD
+                  notifications go only to the protected System Admin account.
+                </Text>
+                {alert?.last_notified_at ?
+                  <Text style={styles.detail}>
+                    Last warning: {new Date(alert.last_notified_at).toLocaleString('en-PH')}
+                  </Text> : null}
+              </View>
               <UsageBar
                 name="Postgres connection slots"
                 value={connectionPct}
@@ -293,11 +336,33 @@ export default function AdminBackendCapacityScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Compute and infrastructure</Text>
           <Text style={styles.note}>
-            CPU, RAM, disk quota and IOPS require provider telemetry. No guessed percentages or green statuses.
+            {provider
+              ? `Provider sample: ${new Date(provider.sampled_at).toLocaleString('en-PH')}`
+              : 'Provider telemetry unavailable. No guessed percentages.'}
+            {providerUnavailable ? ' Check Supabase provider access and refresh.' : ''}
           </Text>
-          <UsageBar name="CPU load" value={null} detail="Read actual CPU utilization in Supabase Database Reports." />
-          <UsageBar name="RAM pressure" value={null} detail="Read actual memory and swap pressure in Supabase Reports." />
-          <UsageBar name="Disk capacity" value={null} detail="Database size is measured; the provisioned limit is not provided by this endpoint." />
+          <UsageBar
+            name="CPU load / logical vCPU (1m, not utilization)"
+            value={provider?.cpu_load_per_core_percent ?? null}
+            attention={(provider?.cpu_load_per_core_percent ?? 0) >= 75}
+            detail={provider?.cpu_load1 != null && provider?.cpu_cores != null
+              ? `1-minute load average ${provider.cpu_load1.toFixed(2)} across ${provider.cpu_cores} logical CPUs. This is not CPU utilization.`
+              : 'CPU load metric not available.'}
+          />
+          <UsageBar
+            name="Database host RAM usage"
+            value={provider?.memory_percent ?? null}
+            attention={(provider?.memory_percent ?? 0) >= 75}
+            detail={provider?.swap_used_percent != null
+              ? `Swap usage ${provider.swap_used_percent.toFixed(1)}%. Sustained swapping requires investigation.`
+              : 'Memory metric not available.'}
+          />
+          <UsageBar
+            name="Database host filesystem usage"
+            value={provider?.filesystem_used_percent ?? null}
+            attention={(provider?.filesystem_used_percent ?? 0) >= 75}
+            detail="Filesystem usage is not your Supabase plan quota."
+          />
           <LinkRow
             title="Open CPU / RAM / Disk reports"
             detail="Supabase provider graphs and current utilization"
@@ -308,8 +373,9 @@ export default function AdminBackendCapacityScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Upgrade decision policy</Text>
           <Text style={styles.note}>
-            Watch: six consecutive hourly samples above 65% connection-slot use.
-            Review: six consecutive hourly samples above 80%.
+            Watch: six consecutive hourly samples at 65% or higher.
+            Review: six consecutive samples at 80% or higher.
+            Recovery clears the alert after three consecutive samples below 55%.
             These thresholds request investigation only.
           </Text>
           <Text style={styles.note}>
@@ -374,7 +440,9 @@ const styles = StyleSheet.create({
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: 1, borderTopColor: '#EEF1EC', paddingTop: 12 },
   linkTitle: { color: '#245E45', fontWeight: '800', fontSize: 13 },
   footerNote: { color: '#7B857D', fontSize: 11, lineHeight: 17 },
-  notice: { backgroundColor: '#FFF3E6', padding: 14, borderRadius: 12, gap: 8 },
+  notice: { backgroundColor: '#EEF5F0', padding: 14, borderRadius: 12, gap: 8 },
+  noticeWarning: { backgroundColor: '#FFF3E6' },
+  alertLabel: { fontSize: 13, fontWeight: '900', color: '#286248' },
   noticeText: { color: '#9B492E', fontSize: 13, lineHeight: 18 },
   retry: { alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#FFFFFF', borderRadius: 8 },
   retryText: { color: '#276F50', fontWeight: '800' },
