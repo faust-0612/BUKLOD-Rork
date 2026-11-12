@@ -72,18 +72,32 @@ export async function fetchAdminPriorityRequests(full = false): Promise<AdminPri
         // Read only compact fields through existing admin RLS. The legacy
         // support RPC also returns full message bodies, which is too costly
         // for a dashboard badge when hundreds of cases are pending.
-        const maxRows = full ? 1000 : 50;
-        const { data, error, count } = await supabase.from('user_feedback')
-          .select('id,title,category,status,created_at', { count: 'exact' })
-          .in('status', ['new', 'triaged', 'in_progress'])
-          .order('created_at', { ascending: false }).limit(maxRows);
-        errorIf(error);
-        const records = data || [];
+        const eachSide = full ? 125 : 25;
+        // Sample both new and oldest still-open cases so an aged request
+        // cannot disappear behind hundreds of newer submissions.
+        // Only small RLS-protected fields cross the wire.
+        const [latest, oldest] = await Promise.all([
+          supabase.from('user_feedback')
+            .select('id,title,category,status,created_at', { count: 'exact' })
+            .in('status', ['new', 'triaged', 'in_progress'])
+            .order('created_at', { ascending: false }).limit(eachSide),
+          supabase.from('user_feedback')
+            .select('id,title,category,status,created_at')
+            .in('status', ['new', 'triaged', 'in_progress'])
+            .order('created_at', { ascending: true }).limit(eachSide),
+        ]);
+        errorIf(latest.error);
+        errorIf(oldest.error);
+        const records = Array.from(new Map(
+          [...(latest.data || []), ...(oldest.data || [])].map(c => [c.id, c])
+        ).values());
+        const count = latest.count;
         return {
           items: records.map(c => row(
             'support', 'BSOC support', c.id, c.title || 'Help request',
             c.category || 'Member concern', c.status, c.created_at,
-            '/admin/bsoc-support', c.status === 'new' ? 'high' : 'normal'
+            '/admin/bsoc-conversations?caseId=' + encodeURIComponent(c.id),
+            c.status === 'new' ? 'high' : 'normal'
           )),
           total: count ?? records.length,
           capped: (count ?? records.length) > records.length,
