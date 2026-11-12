@@ -16,6 +16,25 @@ const redact=(text:string)=>text
   .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,'[REDACTED_EMAIL]')
   .replace(/\b(?:\+?63|0)9\d{9}\b/g,'[REDACTED_PHONE]')
   .replace(/\b(?:\d[ -]*?){13,19}\b/g,'[REDACTED_NUMBER]');
+
+/** Fixed guidance for unavailable providers; never represented as AI output. */
+const guidedChecks=(reason:string,prompt:string)=>{
+ const s=prompt.toLowerCase();
+ const targeted=/render_|sys-500|screen|navigation|button|crash/.test(s)
+  ? 'Client render: note the exact button, screen, safe signature, app/runtime version and time. Match against scoped health events and reproduce the route.'
+  : /session|login|auth|token/.test(s)
+  ? 'Authentication: compare session-refresh results, device clock, network and auth-service health. Never request password, OTP or reset code.'
+  : /sync|offline|upload/.test(s)
+  ? 'Sync/upload: inspect pending work and server status before retrying. Never clear app storage while unsynced changes may exist.'
+  : 'Record the affected module, tap sequence, app version, timestamp and whether other accounts have the same error.';
+ return json(200,{ok:true,mode:'guided',reason,analysis:[
+  'AI IS UNAVAILABLE ('+reason+'). This is a fixed BSOC checklist, not an AI diagnosis or verified solution.',
+  '1. '+targeted,
+  '2. BSOC: inspect the original case, existing replies, health evidence and exact current deployed runtime.',
+  '3. Member: ask for a safe reproduction description and approximate time. Avoid destructive reinstall/clear-data instructions.',
+  '4. Escalate repeated failures or multi-user impact. Keep the case open until a fix and member recovery are observed.'
+ ].join('\n')});
+};
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
  if(req.method!=='POST')return json(405,{ok:false,error:'method_not_allowed'});
@@ -39,9 +58,9 @@ Deno.serve(async req=>{
  if(/(?:password|otp|secret|token|api.?key)\s*[:=]/i.test(prompt))
    return json(400,{ok:false,error:'remove_credentials_before_sending'});
  const apiKey=Deno.env.get('OPENAI_API_KEY')||'';
- if(!apiKey)return json(503,{ok:false,error:'gpt_not_configured',message:'GPT diagnostics needs a server-side OpenAI API key.'});
+ if(!apiKey)return guidedChecks('provider_not_configured',prompt);
  const input=redact(prompt);
- const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),18000);
+ const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);
  try{
   const response=await fetch('https://api.openai.com/v1/responses',{
    method:'POST',signal:controller.signal,
@@ -56,12 +75,14 @@ Deno.serve(async req=>{
   const data=await response.json().catch(()=>null);
   if(!response.ok){
    console.error('bsoc_gpt_provider_failure',{status:response.status});
-   return json(502,{ok:false,error:'ai_provider_unavailable'});
+   if(response.status===429||response.status===402||response.status>=500)
+     return guidedChecks(response.status===429?'provider_rate_or_quota_limit':'provider_unavailable',input);
+   return json(502,{ok:false,error:response.status===401||response.status===403?'ai_provider_auth_error':'ai_provider_unavailable'});
   }
   const result=Array.isArray(data?.output)?data.output.flatMap((x:any)=>x?.content||[])
     .filter((x:any)=>x?.type==='output_text').map((x:any)=>String(x?.text||'')).join('\n').slice(0,5000):'';
-  if(!result)return json(502,{ok:false,error:'empty_ai_result'});
-  return json(200,{ok:true,analysis:result,model:data?.model??'configured'});
- }catch(e){console.error('bsoc_gpt_request_failed',{kind:e instanceof Error?e.name:'unknown'});return json(504,{ok:false,error:'diagnostics_timeout_or_unavailable'});}
+  if(!result)return guidedChecks('empty_provider_result',input);
+  return json(200,{ok:true,mode:'ai',analysis:result,model:data?.model??'configured'});
+ }catch(e){console.error('bsoc_gpt_request_failed',{kind:e instanceof Error?e.name:'unknown'});return guidedChecks('provider_timeout_or_network',input);}
  finally{clearTimeout(timeout);}
 });

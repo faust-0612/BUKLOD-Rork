@@ -24,6 +24,7 @@ import type { BuklodGameBiome } from './quality';
 type Props = {
   biome: BuklodGameBiome;
   gameId?: string;
+  showCharacterCompanion?: boolean;
   children: React.ReactNode;
 };
 
@@ -68,7 +69,7 @@ function withResultHandler(children: React.ReactNode, onFinish: (result: BuklodG
   return injected ? array : children;
 }
 
-export function BuklodGameStage({ biome, gameId, children }: Props) {
+export function BuklodGameStage({ biome, gameId, showCharacterCompanion = true, children }: Props) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const pathname = usePathname();
@@ -109,7 +110,7 @@ export function BuklodGameStage({ biome, gameId, children }: Props) {
         <View style={styles.content}>
           <BuklodGameEntrance>{connectedChildren}</BuklodGameEntrance>
         </View>
-        <BuklodGameCharacterCompanion gameId={resolvedGameId} />
+        {showCharacterCompanion ? <BuklodGameCharacterCompanion gameId={resolvedGameId} /> : null}
         <BuklodGameLanguageControl />
       </View>
     </BuklodGameLanguageProvider>
