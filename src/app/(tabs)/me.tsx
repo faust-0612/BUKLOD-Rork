@@ -1371,23 +1371,9 @@ export default function MeScreen() {
           open={openSection === 'account'}
           onToggle={() => toggle('account')}
         >
-          <MenuRow
-            icon="information-outline"
-            title="About BUKLOD"
-            onPress={() =>
-              router.push('/about-buklod' as any)
-            }
-          />
+          
 
-          <MenuRow
-            icon="account-edit-outline"
-            title="Edit My Personal Information"
-            onPress={() =>
-              router.push(
-                '/account/personal-information' as any
-              )
-            }
-          />
+          
 
           <View
             style={{
@@ -1455,57 +1441,17 @@ export default function MeScreen() {
             />
           </View>
 
-          <MenuRow
-            icon="lock-reset"
-            title="Password & Recovery"
-            onPress={() =>
-              router.push('/account/security' as any)
-            }
-          />
+          
 
-          <MenuRow
-             icon="translate"
-             title="App Language"
-             subtitle="Display language and device preference"
-             onPress={() => router.push('/preferences/language' as any)}
-           />
+          
 
-           <MenuRow
-            icon="volume-high"
-            title="Sounds & Notifications"
-            subtitle="Messages, calls, submissions and quiet hours"
-            onPress={() =>
-              router.push('/settings/sounds' as any)
-            }
-          />
+           
 
-          <MenuRow
-            icon="shield-lock-outline"
-            title="Recovery PIN"
-            onPress={() =>
-              router.push(
-                '/account/recovery-pin' as any
-              )
-            }
-          />
+          
 
-          <MenuRow
-            icon="account-off-outline"
-            title="Deactivate Account"
-            onPress={() =>
-              router.push(
-                '/account/deactivate' as any
-              )
-            }
-          />
+          
 
-          <MenuRow
-            icon="delete-outline"
-            title="Delete Account"
-            onPress={() =>
-              router.push('/account/delete' as any)
-            }
-          />
+          
 
           <MenuRow
             icon="information-outline"
@@ -1515,21 +1461,9 @@ export default function MeScreen() {
             }
           />
 
-          <MenuRow
-            icon="shield-account-outline"
-            title="Privacy Policy"
-            onPress={() =>
-              router.push('/privacy' as any)
-            }
-          />
+          
 
-          <MenuRow
-            icon="file-document-outline"
-            title="Privacy Notice"
-            onPress={() =>
-              router.push('/privacy/notice')
-            }
-          />
+          
 
           <MenuRow
             icon="shield-alert-outline"
@@ -1538,20 +1472,9 @@ export default function MeScreen() {
             onPress={() => router.push('/moderation/report' as any)}
           />
 
-          <MenuRow
-            icon="email-outline"
-            title="Contact Us"
-            onPress={() =>
-              router.push('/contact-us' as any)
-            }
-          />
+          
 
-          <MenuRow
-            icon="lifebuoy"
-            title="Live Chat & Report a Problem"
-            subtitle="Makipag-chat sa support; magsend ng screenshot o video ng problema kung kailangan"
-            onPress={() => router.push('/support/live' as any)}
-          />
+          
 
           {bsocAuthorized && (
             <MenuRow

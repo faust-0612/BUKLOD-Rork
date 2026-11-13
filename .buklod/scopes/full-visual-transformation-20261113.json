@@ -4,7 +4,7 @@
   "objective": "Implement the owner-authorized coherent premium visual transformation across eight BUKLOD UI areas on isolated DEV; block staging OTA until actual rendered visual and functional acceptance is available.",
   "baseRef": "6b0f7e3167867bb746e34da4637430f131b588bb",
   "productionBaselineEvidence": "Current GitHub main read as 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Existing integration scope records publisher-side production a43e1813 runtime 1.3.2; live production and installed staging parity are NOT independently verified in this session. No release is authorized from missing evidence.",
-  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics. Follow-up approved navigation decluttering: remove duplicate Home launchers, Profile cover gear, direct standalone offline search with suggested features and account-local recents/pins; use drawer only for unique secondary tools.",
+  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics. Follow-up approved navigation decluttering: remove duplicate Home launchers, Profile cover gear, direct standalone offline search with suggested features and account-local recents/pins; use drawer only for unique secondary tools. Nov 13 screenshot issue repair: Connect notification redirect precedence; Profile unique My BUKLOD controls and Org/Suborg roster; /hub canonical announcement; broader ranked offline search; compact theme selection; sound style variants; silent GIF comment thread reload. Nine original WAV earcons are introduced solely as OTA-bundled sound assets. All other asset paths are protected and emergency sounds unchanged.",
   "selectionRationale": "Targeted presentation composition preserves known functional implementations and dependencies; actual rendering is still required before acceptance or publication.",
   "alternativeApproaches": [
     "Replace screens wholesale: rejected due to high regression and authorization risk.",
@@ -39,7 +39,9 @@
     "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
     "tests/navigation-v2-settings-route.test.mjs",
     "tests/buklod-visual-staging-ota-20261113.test.mjs",
-    "tests/full-visual-navigation-side-menu-20261113.test.mjs"
+    "tests/full-visual-navigation-side-menu-20261113.test.mjs",
+    "tests/nov13-ux-fixes-staging-20261113.test.mjs",
+    "tests/nov13-distinct-native-ux-sounds-20261113.test.mjs"
   ],
   "allowedPaths": [
     "docs/visual/full-transformation-20261113.md",
@@ -77,7 +79,23 @@
     "tests/buklod-visual-staging-ota-20261113.test.mjs",
     "src/app/feature-search.tsx",
     "src/app/_layout.tsx",
-    "src/components/BuklodFeatureFinder.tsx"
+    "src/components/BuklodFeatureFinder.tsx",
+    "src/lib/buklodNotificationNavigation.ts",
+    "src/components/BuklodProfileMembershipNav.tsx",
+    "src/lib/buklodNavigationV2.ts",
+    "src/lib/buklodSounds.ts",
+    "src/components/BuklodGlobalThemeSelector.tsx",
+    "tests/nov13-ux-fixes-staging-20261113.test.mjs",
+    "assets/sounds/buklod_classic_message_20261113.wav",
+    "assets/sounds/buklod_classic_community_20261113.wav",
+    "assets/sounds/buklod_classic_achievement_20261113.wav",
+    "assets/sounds/buklod_gentle_message_20261113.wav",
+    "assets/sounds/buklod_gentle_community_20261113.wav",
+    "assets/sounds/buklod_gentle_achievement_20261113.wav",
+    "assets/sounds/buklod_celebration_message_20261113.wav",
+    "assets/sounds/buklod_celebration_community_20261113.wav",
+    "assets/sounds/buklod_celebration_achievement_20261113.wav",
+    "tests/nov13-distinct-native-ux-sounds-20261113.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -144,5 +162,5 @@
     }
   ],
   "releaseMode": "dev-only-blocked-visual-acceptance",
-  "releaseStatus": "Owner-approved staging-only navigation decluttering; release requires exact-source CI, signed staging build/runtime compatibility, isolated EAS staging channel, and post-publish unchanged production. Android visual acceptance remains pending screenshots."
+  "releaseStatus": "Staging-only corrections. Health Center service consultation/professional endpoints are separate and remain disabled until verified; production unchanged."
 }

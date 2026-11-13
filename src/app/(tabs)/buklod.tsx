@@ -3619,7 +3619,7 @@ const load=useCallback(async(options?:{
 
  const loadComments=
   useCallback(
-   async(postId:string)=>{
+   async(postId:string,options?:{silent?:boolean})=>{
     const targetId=String(postId);
     const requestAccountId=String(user?.id??'');
     if(
@@ -3633,7 +3633,7 @@ const load=useCallback(async(options?:{
      activeCommentPostIdRef.current===targetId &&
      commentAccountIdRef.current===requestAccountId
     );
-    setCommentLoading(true);
+    if(!options?.silent)setCommentLoading(true);
     setCommentLoadError(null);
     try{
      const [commentsResult,reactionsResult]=await Promise.all([
@@ -3681,7 +3681,7 @@ const load=useCallback(async(options?:{
       'comments_load_failed',
      );
     }finally{
-     if(isCurrent())setCommentLoading(false);
+     if(isCurrent()&&!options?.silent)setCommentLoading(false);
     }
    },
    [user?.id]
@@ -3871,7 +3871,9 @@ const load=useCallback(async(options?:{
      mentionedUserIds:mentionIds,
      context:'comment',
     });
-    void loadComments(postId);
+    // Keep the active Wall and comment sheet visible after sending a GIF;
+    // background reconcile only this thread without a spinner.
+    void loadComments(postId,{silent:true});
    }catch(error:any){
     if(commentAccountIdRef.current===authorId){
      if(activeCommentPostIdRef.current===postId){

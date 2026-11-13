@@ -71,19 +71,34 @@ const categories: Record<BuklodSoundCue, BuklodSoundCategory> = {
 const categoriesByPreference:Record<BuklodSoundCategory,true>={
   messages:true,calls:true,submissions:true,community:true,achievements:true,buttons:true,games:true
 };
-const GENTLE_SOUNDS:Partial<Record<BuklodSoundCue,BuklodSoundCue>>={
-  message:'message_sent',community:'message_sent',achievement:'approval',
-  button:'message_sent',submission:'message_sent'
+// Keep different sound sources for different events.
+type BuklodSoundIdentity='message'|'community'|'achievement';
+const PROFILE_EARCONS:Record<BuklodSoundProfile,Record<BuklodSoundIdentity,number>>={
+  classic:{
+    message:require('../../assets/sounds/buklod_classic_message_20261113.wav'),
+    community:require('../../assets/sounds/buklod_classic_community_20261113.wav'),
+    achievement:require('../../assets/sounds/buklod_classic_achievement_20261113.wav'),
+  },
+  gentle:{
+    message:require('../../assets/sounds/buklod_gentle_message_20261113.wav'),
+    community:require('../../assets/sounds/buklod_gentle_community_20261113.wav'),
+    achievement:require('../../assets/sounds/buklod_gentle_achievement_20261113.wav'),
+  },
+  celebration:{
+    message:require('../../assets/sounds/buklod_celebration_message_20261113.wav'),
+    community:require('../../assets/sounds/buklod_celebration_community_20261113.wav'),
+    achievement:require('../../assets/sounds/buklod_celebration_achievement_20261113.wav'),
+  },
 };
-const CELEBRATION_SOUNDS:Partial<Record<BuklodSoundCue,BuklodSoundCue>>={
-  message_sent:'approval',community:'achievement',submission:'community',
-  approval:'achievement',button:'message_sent'
-};
-function getSoundVariant(cue:BuklodSoundCue):BuklodSoundCue{
-  if(settings.soundProfile==='gentle')return GENTLE_SOUNDS[cue]??cue;
-  if(settings.soundProfile==='celebration')return CELEBRATION_SOUNDS[cue]??cue;
-  return cue;
+function getSoundSource(cue:BuklodSoundCue):number {
+  if(cue==='alert'||cue==='error')return sounds[cue];
+  const identity:BuklodSoundIdentity =
+    cue==='message'||cue==='message_sent'||cue==='button'?'message':
+    cue==='achievement'?'achievement':'community';
+  return PROFILE_EARCONS[settings.soundProfile][identity];
 }
+const PROFILE_RATE:Record<BuklodSoundProfile,number>={classic:1,gentle:0.98,celebration:1.03};
+const PROFILE_GAIN:Record<BuklodSoundProfile,number>={classic:1,gentle:0.8,celebration:0.95};
 const VOLUME_LEVEL:Record<BuklodSoundVolume,number>={low:0.16,balanced:0.28,high:0.44};
 
 const cooldownMs: Record<BuklodSoundCue, number> = {
@@ -184,11 +199,12 @@ export async function playBuklodCue(cue: BuklodSoundCue, options?:{preview?:bool
     let player = players.get(cue);
     const fresh = !player;
     if (!player) {
-      player = createAudioPlayer(sounds[getSoundVariant(cue)], { updateInterval: 1000 });
+      player = createAudioPlayer(getSoundSource(cue), { updateInterval: 1000 });
       players.set(cue, player);
     }
-    player.volume = cue==='alert'?Math.min(0.6,VOLUME_LEVEL[settings.volumeLevel]+0.14):
-      VOLUME_LEVEL[settings.volumeLevel];
+    const gain=VOLUME_LEVEL[settings.volumeLevel]*PROFILE_GAIN[settings.soundProfile];
+    player.volume=cue==='alert'?Math.min(0.6,gain+0.1):Math.min(0.55,gain);
+    player.setPlaybackRate(PROFILE_RATE[settings.soundProfile]);
     // A newly constructed player may still be loading; seeking before it
     // becomes ready can reject and swallow the very first feedback sound.
     if (!fresh) await player.seekTo(0);

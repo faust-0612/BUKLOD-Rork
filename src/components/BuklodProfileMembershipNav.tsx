@@ -213,12 +213,7 @@ BuklodProfileMembershipNav() {
         activeScopes
           .filter(
             scope =>
-              [
-                'ORGANIZATION',
-                'CLUSTER',
-              ].includes(
-                scope.scope_type
-              )
+              scope.scope_type === 'ORGANIZATION'
           )
           .map(
             scope => {

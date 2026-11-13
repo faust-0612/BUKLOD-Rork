@@ -9,6 +9,7 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
+import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
@@ -76,6 +77,7 @@ export default function BuklodLightHome() {
         </LinearGradient>
         {/* Desktop Home: approved paid ads share a persistent placement,
             independent of AdMob/legacy sidebar sponsors. */}
+        <BuklodSystemAnnouncementBoard slot="public_home" />
         <BuklodCommunitySponsoredAd audience="public" placement="home" />
         <View style={{ gap: 10 }}>
           {foreground ? (
@@ -144,6 +146,7 @@ export default function BuklodLightHome() {
 
   return (
     <ScrollView onScroll={event => reportBuklodDashboardScroll('home', event.nativeEvent.contentOffset.y)} scrollEventThrottle={64} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 12, paddingBottom: 28, gap: buklodVisual.space.section }}>
+      <BuklodSystemAnnouncementBoard slot="public_home" />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <View style={{ flex: 1 }}><Text allowFontScaling style={{ fontSize: 19, fontWeight: '900', color: theme.textPrimary }}>Your everyday space</Text>
         <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12, marginTop: 1 }}>Connect, learn and grow with BUKLOD.</Text></View>

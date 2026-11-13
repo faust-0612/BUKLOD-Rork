@@ -5,6 +5,8 @@ import React, {
 import {
   Modal,
   Pressable,
+  ScrollView,
+  useWindowDimensions,
   StyleSheet,
   Text,
   View,
@@ -26,13 +28,14 @@ function createSelectorStyles(
 ) {
   return StyleSheet.create({
     row: {
-      minHeight: 54,
-      marginBottom: 6,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      minHeight: 56,
+      width: '48%',
+      flexGrow: 1,
+      paddingHorizontal: 9,
+      paddingVertical: 8,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      gap: 7,
       borderWidth: 1,
       borderColor: theme.border,
       borderRadius: 13,
@@ -43,9 +46,9 @@ function createSelectorStyles(
       backgroundColor: theme.accentSoft,
     },
     swatch: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
       borderWidth: 2,
       borderColor: theme.border,
     },
@@ -55,14 +58,14 @@ function createSelectorStyles(
     },
     label: {
       color: theme.textPrimary,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '800',
     },
     description: {
       marginTop: 2,
       color: theme.textMuted,
-      fontSize: 12,
-      lineHeight: 16,
+      fontSize: 11,
+      lineHeight: 14,
     },
     backdrop: {
       flex: 1,
@@ -128,6 +131,7 @@ export function BuklodGlobalThemeSelectorModal({
     paletteId,
   } = useBuklodTheme();
   const drawerBottomInset = useBuklodDrawerBottomInset();
+  const { height: viewportHeight } = useWindowDimensions();
   const styles = useMemo(
     () => createSelectorStyles(theme),
     [theme]
@@ -171,6 +175,9 @@ export function BuklodGlobalThemeSelectorModal({
             {' Messages can still use its own override when set.'}
           </Text>
 
+          <ScrollView style={{ maxHeight: Math.max(180, Math.min(480, viewportHeight * 0.57)) }}
+            nestedScrollEnabled keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, paddingBottom: 8 }}>
           {options.map(option => {
             const active =
               option.id === preference;
@@ -217,6 +224,7 @@ export function BuklodGlobalThemeSelectorModal({
               </Pressable>
             );
           })}
+          </ScrollView>
 
           <Pressable
             onPress={onClose}

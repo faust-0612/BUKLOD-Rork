@@ -22,6 +22,14 @@ export const BUKLOD_FEATURE_LINKS: readonly BuklodFeatureLink[] = [
   { id: 'support', title: 'Live Support', route: '/support/live', aliases: ['tulong', 'help', 'problema', 'report issue', 'bsoc'] },
   { id: 'guide', title: 'How to use BUKLOD', route: '/settings/navigation-help', aliases: ['paano gamitin', 'navigation', 'tutorial', 'guide', 'how to', 'find features'] },
   { id: 'notification', title: 'Notifications', route: '/notifications', aliases: ['abiso', 'alert', 'update'] },
+  { id: 'rank', title: 'Circle Rank & Levels', route: '/points/progression', aliases: ['rank','ranking','level','level up','badge','progression','character rank','circle rank'] },
+  { id: 'attendance', title: 'Attendance', route: '/profile/attendance-qr', aliases: ['attendance','present','check in','qr attendance'] },
+  { id: 'lesson', title: 'Lessons & Formation', route: '/learn', aliases: ['lesson','lessons','formation','training','course','pagsasanay'] },
+  { id: 'music', title: 'BUKLOD Music', route: '/personal-home/radio', aliases: ['music','song','tugtog','radio','audio'] },
+  { id: 'referral', title: 'Referral & Invitations', route: '/life/invite', aliases: ['refer','referral','invite','invitations','invitation code'] },
+  { id: 'bayanihan', title: 'Bayanihan', route: '/bayanihan', aliases: ['bayanihan','fund','donation','volunteer'] },
+  { id: 'support_ticket', title: 'My Support Requests', route: '/support/live', aliases: ['my request','support case','ticket','bsoc','problem','help desk'] },
+  { id: 'privacy_settings', title: 'Privacy & Account Security', route: '/settings', aliases: ['private','privacy','lock profile','security','recovery pin'] },
   { id: 'privacy', title: 'Privacy', route: '/privacy', aliases: ['privacy', 'pribado', 'lock'] },
 ];
 
@@ -34,7 +42,16 @@ export function findBuklodFeatures(query: string, maxResults = 5): BuklodFeature
   const q = normalizeBuklodFeatureSearch(query);
   if (q.length < 2) return [];
   const max = Number.isFinite(maxResults) ? Math.max(0, Math.floor(maxResults)) : 5;
-  return BUKLOD_FEATURE_LINKS.filter(item =>
-    [item.title, ...item.aliases].some(part => normalizeBuklodFeatureSearch(part).includes(q))
-  ).slice(0, max);
+  const tokens=q.split(' ').filter(Boolean);
+  const score=(item:BuklodFeatureLink):number=>{
+    const names=[item.title,...item.aliases].map(normalizeBuklodFeatureSearch);
+    if(names.some(s=>s===q))return 100;
+    if(names.some(s=>s.startsWith(q)))return 80;
+    if(names.some(s=>s.includes(q)))return 60;
+    if(tokens.every(t=>names.some(s=>s.includes(t))))return 35;
+    return 0;
+  };
+  return BUKLOD_FEATURE_LINKS.map(item=>({item,rank:score(item)}))
+    .filter(row=>row.rank>0).sort((a,b)=>b.rank-a.rank)
+    .slice(0,max).map(row=>row.item);
 }
