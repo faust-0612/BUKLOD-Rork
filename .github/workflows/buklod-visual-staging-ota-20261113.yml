@@ -2,6 +2,7 @@
 # NEVER deploys production, main, native APK, web or backend migrations.
 # Publishing staging for visual testing does not waive production/RC acceptance gates.
 # Read-only EAS build:view is expected; a new native EAS build remains prohibited.
+# Source gate declares release-identity impact with executable exact-source regression checks.
 name: BUKLOD Owner Visual Staging OTA (Android Only)
 on:
   push:

@@ -31,7 +31,8 @@
     "wall-media",
     "navigation-scroll",
     "connect",
-    "faith-cluster"
+    "faith-cluster",
+    "release-identity"
   ],
   "regressionTests": [
     "tests/community-wall-post-card-google-pattern.test.mjs",
