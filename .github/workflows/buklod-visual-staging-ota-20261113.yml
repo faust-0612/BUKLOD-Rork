@@ -1,4 +1,5 @@
 # Owner-authorized QA-only Android staging OTA for PR #791.
+# OWNER HOLD 2026-11-14: never publish again until all requested fixes are implemented, reconciled and evidence-verified.
 # Kingdom R7 GPU Skia+Reanimated existing-runtime source: extended stage-only game QA.
 # R7 release contract follows approved Home Hub Kingdom door, not retired Profile shortcut.
 # Staging QA correction from owner native screenshots: Home density, Profile cover legibility, Settings status contrast.
@@ -185,6 +186,13 @@ jobs:
           test -s /tmp/buklod-visual-owner-android/metadata.json
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
+      # Safety hold requested Nov 14: a successful single-feature OTA is NOT
+      # proof that all owner-approved upgrades and bug fixes are merged.
+      - name: Require complete owner-approved consolidated feature acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/buklod-consolidated-staging-gate.mjs release/visual/buklod-consolidated-acceptance-20261114.json
       - name: Exactly-once owner staging OTA; no APK, web or production
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
