@@ -75,7 +75,9 @@
     "tests/full-visual-navigation-side-menu-20261113.test.mjs",
     ".github/workflows/buklod-visual-staging-ota-20261113.yml",
     "tests/buklod-visual-staging-ota-20261113.test.mjs",
-    "src/app/feature-search.tsx"
+    "src/app/feature-search.tsx",
+    "src/app/_layout.tsx",
+    "src/components/BuklodFeatureFinder.tsx"
   ],
   "lockedFeatureChanges": [
     {

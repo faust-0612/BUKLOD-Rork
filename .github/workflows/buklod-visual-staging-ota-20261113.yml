@@ -1,6 +1,7 @@
 # Owner-authorized QA-only Android staging OTA for PR #791.
 # Staging QA correction from owner native screenshots: Home density, Profile cover legibility, Settings status contrast.
 # Owner-approved declutter: no Home shortcuts/search, direct suggested header search, no Profile gear, utility-only side menu.
+# Exact source audit scope includes root route registration and reused offline feature finder.
 # CI-repaired Profile identity declaration and native status bar property; fail-closed exact-source release.
 # NEVER deploys production, main, native APK, web or backend migrations.
 # Publishing staging for visual testing does not waive production/RC acceptance gates.

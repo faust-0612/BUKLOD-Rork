@@ -27,5 +27,5 @@ test('Home retains meaningful widgets, removes duplicate feature finder, shortcu
   assert.match(header, /router\.push\('\/feature-search'/);
   assert.match(root, /<Stack\.Screen name="feature-search"\s*\/>/);
   assert.match(search, /<BuklodFeatureFinder autoFocus showSuggestions\s*\/>/);
-  assert.match(search, /Redirect href="\/(auth)\/login"/); 
+  assert.ok(search.includes('Redirect href="/(auth)/login"')); 
 });
