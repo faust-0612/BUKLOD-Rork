@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { ProfilePressable } from '@/components/BuklodProfileMotion';
+import { StatusBar } from 'expo-status-bar';
 
 type Icon = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 type SettingLink = { label: string; description: string; icon: Icon; route: string };
@@ -46,11 +47,14 @@ export default function BuklodSettingsHome() {
     })).filter(group => group.links.length > 0);
   }, [query]);
   const insets = useSafeAreaInsets();
-  const { theme } = useBuklodTheme();
+  const { theme, paletteId } = useBuklodTheme();
+  const darkPalette = paletteId === 'nightPine' || paletteId === 'graphite' || paletteId === 'midnight';
   return (
+    <>
+    <StatusBar style={darkPalette ? 'light' : 'dark'} backgroundColor={theme.canvas} />
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.canvas }}
-      contentContainerStyle={{ paddingTop: Math.max(insets.top, 10) + 8, paddingBottom: Math.max(insets.bottom, 20) + 20, paddingHorizontal: 12, gap: 12 }}
+      contentContainerStyle={{ paddingTop: Math.max(insets.top, 6) + 4, paddingBottom: Math.max(insets.bottom, 20) + 16, paddingHorizontal: 12, gap: 9 }}
       keyboardShouldPersistTaps="handled"
     >
       <Pressable
@@ -77,7 +81,7 @@ export default function BuklodSettingsHome() {
       {groups.length === 0 && <Text allowFontScaling style={{ color: theme.textMuted, padding: 12 }}>No matching setting. Try account, privacy, notifications or help.</Text>}
       {groups.map(group => (
         <View key={group.title} style={{ gap: 5 }}>
-          <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 13, fontWeight: '800', marginHorizontal: 6, marginTop: 7 }}>
+          <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12, fontWeight: '800', marginHorizontal: 6, marginTop: 3 }}>
             {group.title}
           </Text>
           <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: buklodVisual.radius.card, overflow: 'hidden' }}>
@@ -89,18 +93,18 @@ export default function BuklodSettingsHome() {
                 accessibilityHint={item.description}
                 onPress={() => router.push(item.route as any)}
                 style={({ pressed }) => ({
-                  minHeight: buklodVisual.size.row, flexDirection: 'row', alignItems: 'center', gap: 10,
-                  paddingHorizontal: 12, paddingVertical: 9,
+                  minHeight: buklodVisual.size.row, flexDirection: 'row', alignItems: 'center', gap: 9,
+                  paddingHorizontal: 11, paddingVertical: 5,
                   borderTopWidth: i === 0 ? 0 : 1, borderTopColor: theme.border,
                   backgroundColor: pressed ? theme.accentSoft : theme.surface,
                 })}
               >
-                <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: theme.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-                  <MaterialCommunityIcons name={item.icon} size={21} color={theme.accent} />
+                <View style={{ width: 33, height: 33, borderRadius: 11, backgroundColor: theme.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                  <MaterialCommunityIcons name={item.icon} size={19} color={theme.accent} />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text allowFontScaling style={{ fontSize: 16, fontWeight: '700', color: theme.textPrimary }}>{item.label}</Text>
-                  <Text allowFontScaling style={{ fontSize: 13, lineHeight: 19, color: theme.textMuted }}>{item.description}</Text>
+                  <Text allowFontScaling style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>{item.label}</Text>
+                  <Text allowFontScaling style={{ fontSize: 12, lineHeight: 17, color: theme.textMuted }}>{item.description}</Text>
                 </View>
                 <MaterialCommunityIcons name="chevron-right" size={21} color={theme.textMuted} />
               </ProfilePressable>
@@ -109,5 +113,6 @@ export default function BuklodSettingsHome() {
         </View>
       ))}
     </ScrollView>
+    </>
   );
 }

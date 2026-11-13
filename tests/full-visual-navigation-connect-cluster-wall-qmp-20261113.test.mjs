@@ -70,3 +70,21 @@ test('Home QMP disclosure preserves the personal estimate and nonwithdrawable wa
   const disclosureEnd=s.indexOf('</View>}',s.indexOf('{detailsOpen &&'));
   assert.ok(estimate>disclosureEnd,'estimate must stay visible when breakdown is collapsed');
 });
+
+test('owner Android screenshot repairs compact the layout without removing actions or ads', () => {
+  const home=read('src/components/home/BuklodHomeDestinations.tsx');
+  assert.match(home,/minHeight: buklodVisual.size.touch \+ 6/);
+  assert.match(home,/accessibilityHint=\{item.detail\}/);
+  assert.doesNotMatch(home,/minHeight: 80/);
+  const header=read('src/app/(tabs)/_layout.tsx');
+  assert.match(header,/showTagline = headerWidth >= 460/);
+  const profile=read('src/app/(tabs)/me.tsx');
+  assert.match(profile,/paddingTop: coverUrl \? 104 : 56/);
+  assert.match(profile,/height: 118, overflow: 'hidden'/);
+  assert.match(profile,/marginTop: -10, borderRadius: 15, backgroundColor: theme.cardSurface/);
+  assert.match(profile,/index === 0 \? <BuklodFirstViewAd/);
+  assert.match(profile,/<BuklodScreenBottomBanner placement="profile" variant="large"/);
+  const settings=read('src/app/settings/index.tsx');
+  assert.match(settings,/<StatusBar style=\{darkPalette \? 'light' : 'dark'\}/);
+  assert.match(settings,/paddingVertical: 5/);
+});

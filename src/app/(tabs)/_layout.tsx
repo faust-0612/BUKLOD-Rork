@@ -55,6 +55,8 @@ function SwipeDashboardHeader() {
 
   const insets =
     useSafeAreaInsets();
+  const { width: headerWidth, fontScale: headerFontScale } = useWindowDimensions();
+  const showTagline = headerWidth >= 460 && headerFontScale <= 1.25;
 
   const { theme } = useBuklodTheme();
   const { unreadCount, refreshUnread } = useNotifications();
@@ -153,22 +155,22 @@ function SwipeDashboardHeader() {
         )}
         <View
           accessibilityLabel="BUKLOD Green B logo"
-          style={{width:scrollCompact?31:37,height:scrollCompact?31:37,
+          style={{width:scrollCompact?31:35,height:scrollCompact?31:35,
             borderRadius:10,overflow:'hidden',backgroundColor:publicMinimal?'#0B2048':theme.headerSurface}}>
           <Image
             source={require('../../../assets/release/buklod-main-canonical.png')}
             resizeMode="contain"
             // Crop the existing full app icon to its Green B mark: the separate
             // header title already supplies the BUKLOD wordmark.
-            style={{position:'absolute',width:scrollCompact?55:63,
-              height:scrollCompact?55:63,left:scrollCompact?-12:-13,
+            style={{position:'absolute',width:scrollCompact?55:59,
+              height:scrollCompact?55:59,left:scrollCompact?-12:-12,
               top:scrollCompact?-6:-6}}
           />
         </View>
         <View style={{flex:1,minWidth:0}}>
-          <Text numberOfLines={1} style={{color:publicMinimal?'#FFFFFF':theme.accent,fontSize:scrollCompact?20:23,
+          <Text numberOfLines={1} style={{color:publicMinimal?'#FFFFFF':theme.accent,fontSize:scrollCompact?19:21,
             lineHeight:scrollCompact?26:29,fontWeight:'900'}}>{title}</Text>
-          {!scrollCompact ? <Text numberOfLines={1} style={{color:publicMinimal?'#D6E5FF':theme.textMuted,fontSize:10,
+          {!scrollCompact && showTagline ? <Text numberOfLines={1} style={{color:publicMinimal?'#D6E5FF':theme.textMuted,fontSize:10,
             fontWeight:'800',letterSpacing:0.8}}>KOMUNIDAD · KAIBIGAN · PAGLAGO</Text> : null}
         </View>
       </View>
@@ -177,8 +179,8 @@ function SwipeDashboardHeader() {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 8,
-          paddingRight: 10,
+          gap: 2,
+          paddingRight: 4,
         }}
       >
         {placement ? (

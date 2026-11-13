@@ -184,8 +184,8 @@ export default function BuklodLightHome() {
   return (
     <ScrollView onScroll={event => reportBuklodDashboardScroll('home', event.nativeEvent.contentOffset.y)} scrollEventThrottle={64} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 12, paddingBottom: 28, gap: buklodVisual.space.section }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <View style={{ flex: 1 }}><Text allowFontScaling style={{ fontSize: buklodVisual.type.title, fontWeight: '800', color: theme.textPrimary }}>Your everyday space</Text>
-        <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 13, marginTop: 3 }}>Connect, learn and grow with BUKLOD.</Text></View>
+        <View style={{ flex: 1 }}><Text allowFontScaling style={{ fontSize: 19, fontWeight: '900', color: theme.textPrimary }}>Your everyday space</Text>
+        <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12, marginTop: 1 }}>Connect, learn and grow with BUKLOD.</Text></View>
         <MaterialCommunityIcons name="sprout-outline" size={28} color={theme.accent} />
       </View>
       <BuklodHomeDestinations />

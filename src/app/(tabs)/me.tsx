@@ -1222,15 +1222,7 @@ export default function MeScreen() {
     theme
   );
 
-  const identityShadow = {
-    color: identityPaint.color,
-    textShadowColor: identityPaint.shadowColor,
-    textShadowOffset: {
-      width: 0,
-      height: 1,
-    } as const,
-    textShadowRadius: hasCoverImage ? 6 : 3,
-  };
+  // Identity now sits on a solid themed surface, never as low-contrast text on the cover.\n  const identityShadow = {\n    color: theme.textPrimary,\n    textShadowColor: 'transparent',\n    textShadowOffset: { width: 0, height: 0 } as const,\n    textShadowRadius: 0,\n  };
 
   const highlightAccent =
     personalDashboardTheme.accentColor &&
@@ -1683,9 +1675,8 @@ export default function MeScreen() {
         style={[
           styles.profileCard,
           {
-            backgroundColor: hasCoverImage
-              ? 'transparent'
-              : withAlpha(theme.cardSurface, 0.62),
+            backgroundColor: theme.cardSurface,
+            paddingTop: coverUrl ? 104 : 56,
             borderColor: withAlpha(theme.border, 0.7),
           },
         ]}
@@ -1876,7 +1867,6 @@ export default function MeScreen() {
         )}
       </View>
 
-      <BuklodFirstViewAd placement="profile" placementId="profile_first_view" />
       <View style={styles.sectionPad}>
         <BuklodSystemAnnouncementBoard slot="profile" />
       </View>
@@ -1891,11 +1881,13 @@ export default function MeScreen() {
       {referralSection}
       <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />
 
-      {orderedSections.map((row) => (
+      {orderedSections.map((row, index) => (
         <View key={row.id}>
           {sectionMap[row.id]}
+          {index === 0 ? <BuklodFirstViewAd placement="profile" placementId="profile_first_view" /> : null}
         </View>
       ))}
+      {orderedSections.length === 0 ? <BuklodFirstViewAd placement="profile" placementId="profile_first_view" /> : null}
 
       <BuklodScreenBottomBanner placement="profile" variant="large" />
       <Text
@@ -2139,14 +2131,16 @@ function createMeStyles(
       textAlign: 'center',
       color: theme.textPrimary,
     },
-    identityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    identityRow: { flexDirection: 'row', alignItems: 'center', gap: 12,
+      marginTop: -10, borderRadius: 15, backgroundColor: theme.cardSurface,
+      paddingHorizontal: 10, paddingVertical: 10, zIndex: 2 },
     identityCopy: { flex: 1, minWidth: 0 },
     profileCard: {
       minHeight: 70,
       position: 'relative',
       alignItems: 'stretch',
-      paddingTop: 64,
-      paddingBottom: 16,
+      paddingTop: 56,
+      paddingBottom: 12,
       paddingHorizontal: 12,
       marginBottom: 0,
       marginHorizontal: buklodVisual.space.screen,
@@ -2155,15 +2149,15 @@ function createMeStyles(
       borderWidth: 1,
     },
     profileCardCover: {
-      ...StyleSheet.absoluteFill,
-      overflow: 'hidden',
+      position: 'absolute', top: 0, left: 0, right: 0,
+      height: 118, overflow: 'hidden',
     },
     profileCardBackground: {
       ...StyleSheet.absoluteFill,
     },
     profileCardWash: {
       ...StyleSheet.absoluteFill,
-      backgroundColor: 'rgba(0,0,0,0.16)',
+      backgroundColor: 'rgba(0,0,0,0.08)',
     },
     profileMenuBtn: {
       position: 'absolute',
@@ -2236,9 +2230,9 @@ function createMeStyles(
       justifyContent: 'center',
     },
     avatarHint: {
-      marginTop: 6,
-      fontSize: 12,
-      lineHeight: 18,
+      marginTop: 0,
+      fontSize: 11,
+      lineHeight: 16,
       fontWeight: '900',
       letterSpacing: 0.15,
       textAlign: 'left',
@@ -2251,10 +2245,10 @@ function createMeStyles(
       zIndex: 2,
     },
     name: {
-      marginTop: 6,
-      paddingHorizontal: 8,
-      fontSize: buklodVisual.type.title,
-      lineHeight: 28,
+      marginTop: 3,
+      paddingHorizontal: 0,
+      fontSize: 18,
+      lineHeight: 24,
       fontWeight: '900',
       letterSpacing: -0.4,
       textAlign: 'left',
@@ -2270,8 +2264,9 @@ function createMeStyles(
       marginTop: 8,
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       gap: 6,
+      paddingHorizontal: 9,
     },
     roleBadge: {
       minHeight: 29,

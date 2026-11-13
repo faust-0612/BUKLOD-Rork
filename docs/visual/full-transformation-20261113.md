@@ -55,3 +55,9 @@ AFTER links: **none**. Browser/export output is not a screenshot, and no mockup 
 ## Continuation
 
 Use this exact DEV source in an Android-capable test environment, render all eight areas at narrow/large screen sizes and enlarged fonts, exercise keyboard, media, ads, account/role boundaries, offline/retry and navigation. Correct mismatches, freeze the tested SHA as RC, confirm the existing signed staging APK/runtime and preview isolation, then publish one Android-only staging-user OTA and independently read its exact EAS receipt and served manifest. Keep production/main/web untouched.
+
+## Owner screenshot corrections — November 13, 2026
+
+The actual staging screenshots showed oversized Home launcher cards, clipped brand tagline, Profile text over an image quote, an immediate large ad below the cover, tall Settings rows, and low-contrast Android status icons in Settings. These are actual native defects, not mockups.
+
+This correction implements touch-safe horizontal quick shortcuts (same six real routes), conditional mobile tagline, an opaque Profile identity surface and bounded cover image, moves the first-view profile ad below one actionable section without removing any ad provider or placement, compacts Settings while preserving font scaling and 48dp touch targets, and corrects status bar contrast for light and dark themes. No native plugins, backend, Ads provider, security rules or production assets changed. Authenticated Android AFTER acceptance still requires owner staging review.
