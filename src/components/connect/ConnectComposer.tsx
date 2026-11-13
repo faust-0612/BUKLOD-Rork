@@ -13,6 +13,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -333,6 +334,7 @@ export function ConnectComposer({
   onOpenComposerPicker,
 }: Props) {
   const { theme } = useConnectTheme();
+  const { fontScale } = useWindowDimensions();
   const styles = useMemo(
     () => createStyles(theme),
     [theme]
@@ -548,8 +550,9 @@ export function ConnectComposer({
           </View>
         </ConnectPressable>
 
-        <View style={styles.inputWrap}>
+        <View style={[styles.inputWrap, { maxHeight: Math.max(112, Math.min(320, 112 * fontScale)) }]}>
           <TextInput
+            allowFontScaling
             ref={inputRef}
             value={draft}
             onChangeText={onChangeDraft}
@@ -568,7 +571,10 @@ export function ConnectComposer({
               e.preventDefault?.();
               sendFromDesktopKeyboard();
             } : undefined}
-            style={styles.input}
+            style={[styles.input, {
+              minHeight: Math.max(42, 30 * fontScale),
+              maxHeight: Math.max(110, Math.min(318, 110 * fontScale)),
+            }]}
           />
           <ConnectPressable
             accessibilityRole="button"
