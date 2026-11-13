@@ -59,3 +59,11 @@ test('All native game stages use Reanimated/Skia while preserving gameplay, Rive
   assert.match(read('src/components/points/BuklodRiveCharacterRuntime.tsx'), /RiveView/);
   assert.doesNotMatch(stage, /grant|award|givePoints|unlockEverything/);
 });
+
+test('Kingdom release contract tracks the owner-approved Home Hub door, not removed Profile duplication', () => {
+  const check=read('scripts/game-kingdom-release-contract.mjs');
+  assert.match(check, /src\/components\/home\/BuklodKingdomHubCard\.tsx/);
+  assert.match(check, /src\/app\/\(tabs\)\/hub\.tsx/);
+  assert.doesNotMatch(check, /requireTokens\('src\/components\/BuklodFoundationWorkspaceNav\.tsx'/);
+  assert.match(read('src/app/(tabs)/hub.tsx'), /<BuklodKingdomHubCard \/>/);
+});

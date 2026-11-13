@@ -4,7 +4,7 @@
   "objective": "Implement the owner-authorized coherent premium visual transformation across eight BUKLOD UI areas on isolated DEV; block staging OTA until actual rendered visual and functional acceptance is available.",
   "baseRef": "6b0f7e3167867bb746e34da4637430f131b588bb",
   "productionBaselineEvidence": "Current GitHub main read as 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Existing integration scope records publisher-side production a43e1813 runtime 1.3.2; live production and installed staging parity are NOT independently verified in this session. No release is authorized from missing evidence.",
-  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics. Follow-up approved navigation decluttering: remove duplicate Home launchers, Profile cover gear, direct standalone offline search with suggested features and account-local recents/pins; use drawer only for unique secondary tools. Nov 13 screenshot issue repair: Connect notification redirect precedence; Profile unique My BUKLOD controls and Org/Suborg roster; /hub canonical announcement; broader ranked offline search; compact theme selection; sound style variants; silent GIF comment thread reload. Nine original WAV earcons are introduced solely as OTA-bundled sound assets. All other asset paths are protected and emergency sounds unchanged. Nov14 native Kingdom R7: one Reanimated UI clock powers Skia glowing world, station focus, sea wave and stage lights; Skia game-stage lighting across all 13 current games, with quality choice and offscreen/reduced-motion cleanup. No new native build. Rive host remains intact, but authored .riv scenes are not in the repository.",
+  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics. Follow-up approved navigation decluttering: remove duplicate Home launchers, Profile cover gear, direct standalone offline search with suggested features and account-local recents/pins; use drawer only for unique secondary tools. Nov 13 screenshot issue repair: Connect notification redirect precedence; Profile unique My BUKLOD controls and Org/Suborg roster; /hub canonical announcement; broader ranked offline search; compact theme selection; sound style variants; silent GIF comment thread reload. Nine original WAV earcons are introduced solely as OTA-bundled sound assets. All other asset paths are protected and emergency sounds unchanged. Nov14 native Kingdom R7: one Reanimated UI clock powers Skia glowing world, station focus, sea wave and stage lights; Skia game-stage lighting across all 13 current games, with quality choice and offscreen/reduced-motion cleanup. No new native build. Rive host remains intact, but authored .riv scenes are not in the repository. Kingdom game release gate reconciled with owner's canonical Home Hub entry, preserving owner-retired Profile Kingdom door; no gameplay/routing changes.",
   "selectionRationale": "Targeted presentation composition preserves known functional implementations and dependencies; actual rendering is still required before acceptance or publication.",
   "alternativeApproaches": [
     "Replace screens wholesale: rejected due to high regression and authorization risk.",
@@ -38,7 +38,8 @@
     "Kingdom R7 ABI/version identity match with signed staging APK; 13 map stations and 39-game catalog untouched; no new points or financial mutations, no extra native modules.",
     "Skia decorative FX stop on focus blur, background, reduced motion; no touch interception; Android in-app device visuals still require acceptance.",
     "Cross-platform resolver includes a default TS module alongside native Skia/web atmosphere variants; exact-source TypeScript and R6 Kingdom contracts required before staging OTA.",
-    "Release workflow runs Kingdom R7 tests, legacy R6 station geometry, 39-game contract and native/web fallback checks before any EAS update."
+    "Release workflow runs Kingdom R7 tests, legacy R6 station geometry, 39-game contract and native/web fallback checks before any EAS update.",
+    "Kingdom game contract verifies Home Hub invitation and rejects duplicate Profile Kingdom door while preserving all game IDs, scoring, and map progress."
   ],
   "riskAreas": [
     "wall-media",
@@ -134,7 +135,8 @@
     "src/features/games/runtime/BuklodGameStage.native.tsx",
     "tests/kingdom-native-cinematic-ota-20261114.test.mjs",
     "src/features/games/kingdom/BuklodKingdomLivingFX.tsx",
-    "tests/kingdom-premium-realm-v2-20261111.test.mjs"
+    "tests/kingdom-premium-realm-v2-20261111.test.mjs",
+    "scripts/game-kingdom-release-contract.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -201,5 +203,5 @@
     }
   ],
   "releaseMode": "dev-only-blocked-visual-acceptance",
-  "releaseStatus": "Owner-authorized Kingdom R7 staging-user Android OTA QA candidate. No native build or production; exact-source Android export and Expo server manifest proof required. Physical Android visual/60fps acceptance remains unverified."
+  "releaseStatus": "Kingdom R7 staged QA publish retry after correcting a stale game release contract; no OTA server verification yet."
 }
