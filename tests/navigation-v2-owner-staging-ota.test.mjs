@@ -11,9 +11,9 @@ test('staging policy rejects shared branches, rollouts, missing or paused mappin
   }
 });
 test('existing APK requires exact finished Android runtime and build identity', () => {
-  const b = { id: BUILD_ID, gitCommitHash: APK_SOURCE, status: 'FINISHED', platform: 'ANDROID', buildProfile: 'staging-user', channel: 'staging-user', runtimeVersion: '1.3.2', appBuildVersion: '10', project: { id: PROJECT } };
+  const b = { id: BUILD_ID, gitCommitHash: APK_SOURCE, status: 'FINISHED', platform: 'ANDROID', buildProfile: 'staging-user', updateChannel: { name: 'staging-user' }, runtime: { version: '1.3.2' }, appBuildVersion: '10', app: { id: PROJECT }, appIdentifier: 'org.mzbministry.buklod.staging', appVersion: '1.3.6', distribution: 'INTERNAL' };
   assert.equal(verifyBuild(b), true);
-  for (const [key, value] of Object.entries({ id: 'wrong', gitCommitHash: 'a'.repeat(40), status: 'ERRORED', platform: 'IOS', buildProfile: 'production', channel: 'production', runtimeVersion: '1.3.6', appBuildVersion: '9', project: { id: 'other' } })) assert.throws(() => verifyBuild({ ...b, [key]: value }));
+  for (const [key, value] of Object.entries({ id: 'wrong', gitCommitHash: 'a'.repeat(40), status: 'ERRORED', platform: 'IOS', buildProfile: 'production', updateChannel: { name: 'production' }, runtime: { version: '1.3.6' }, appBuildVersion: '9', app: { id: 'other' }, appIdentifier: 'org.mzbministry.buklod', distribution: 'STORE', appVersion: '1.3.5' })) assert.throws(() => verifyBuild({ ...b, [key]: value }));
 });
 test('server update must attest one Android update on exact source and staging branch', () => {
   const sha = 'a'.repeat(40), u = { id: 'update', group: 'group', platform: 'android', runtimeVersion: '1.3.2', gitCommitHash: sha, branch: 'staging-user', createdAt: '2026-11-13T10:00:00Z' };

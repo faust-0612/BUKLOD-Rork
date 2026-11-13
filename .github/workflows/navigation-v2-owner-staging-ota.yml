@@ -1,3 +1,4 @@
+# EAS build identity uses actual nested updateChannel/runtime/app metadata.
 # Independent, owner-authorized staging OTA only. Existing production/device gates unchanged.
 name: BUKLOD Owner Authorized Staging OTA
 on:

@@ -81,7 +81,8 @@
     "An exact-branch one-time signed staging QA APK build must pass source and Android export checks, use preview staging credentials, independently download the signed APK bytes and record hash/URL; not claim app installed, IME native handling, memory recovery or OTA readiness.",
     "Branch-scoped staging push bridge must pass the unchanged fail-closed release gate and never publish OTA, merge main, or alter web/production.",
     "Owner-authorized staging-only release policy does not label skipped physical/native acceptance as passed; original production/device gates remain byte-identical.",
-    "Existing signed APK build bc4be208-bfb0-42f3-95cb-358353d0600f source c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd has no runtime/native/dependency delta; channel isolation and exact published SHA are independently verified."
+    "Existing signed APK build bc4be208-bfb0-42f3-95cb-358353d0600f source c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd has no runtime/native/dependency delta; channel isolation and exact published SHA are independently verified.",
+    "EAS build:view nested updateChannel.name, runtime.version, app.id and appIdentifier are checked against the actual build receipt; no missing field is inferred from a profile label. Channel staging-user maps uniquely to staging-user branch 019ffd86-b662-7977-b0bd-05e18247b123, distinct from production."
   ],
   "regressionTests": [
     "tests/navigation-v2-ads-preservation.test.mjs",

@@ -38,10 +38,13 @@ export function verifyBuild(b) {
   assert.equal(b.platform.toLowerCase(), 'android');
   assert.equal(b.gitCommitHash, APK_SOURCE);
   assert.equal(b.buildProfile, 'staging-user');
-  assert.equal(b.channel, 'staging-user');
-  assert.equal(b.runtimeVersion, '1.3.2');
+  assert.equal(b.updateChannel?.name, 'staging-user');
+  assert.equal(b.appIdentifier, 'org.mzbministry.buklod.staging');
+  assert.equal(b.appVersion, '1.3.6');
+  assert.equal(b.distribution, 'INTERNAL');
+  assert.equal(b.runtime?.version, '1.3.2');
   assert.equal(String(b.appBuildVersion), '10');
-  assert.equal(b.project?.id, PROJECT);
+  assert.equal(b.app?.id, PROJECT);
   return true;
 }
 export function verifyUpdate(updates, source, branch) {
