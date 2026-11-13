@@ -82,6 +82,27 @@ jobs:
           set -euo pipefail
           test -n "${EXPO_TOKEN:-}"
           npx eas-cli@latest whoami --non-interactive
+      - name: Fail closed if staging-user and production resolve to same EAS branch
+        if: ${{ inputs.publish == true }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest channel:view staging-user --json --non-interactive > /tmp/nav-v2-staging-channel.json
+          npx eas-cli@latest channel:view production --json --non-interactive > /tmp/nav-v2-production-channel.json
+          node <<'NODE'
+          const fs=require('node:fs');
+          const assert=require('node:assert/strict');
+          const mapped=p=>{
+            const x=JSON.parse(fs.readFileSync(p,'utf8'));
+            const name=x.branchMapping?.branch?.name || x.branch?.name || x.branchName || x.branchMapping?.branchName;
+            assert.ok(typeof name==='string' && name.trim(), 'Cannot verify channel mapping: '+p);
+            return name.trim();
+          };
+          const stage=mapped('/tmp/nav-v2-staging-channel.json');
+          const live=mapped('/tmp/nav-v2-production-channel.json');
+          assert.notEqual(stage,live,'BLOCK: staging and production EAS channels share a branch');
+          console.log('VERIFIED isolated staging channel mapping; release remains Android staging only.');
+          NODE
       - name: Publish one Android-only OTA to staging-user channel
         if: ${{ inputs.publish == true }}
         shell: bash
