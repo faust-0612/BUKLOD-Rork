@@ -27,7 +27,8 @@
     "Real navigation side menu (not SmartDrawer), public-shell header and preview search access are wired and source tested; native visual acceptance remains pending.",
     "Owner-authorized staging-only OTA for practical visual QA is separate from release acceptance: exact-source CI, immutable Android bundle, native/config compatibility, preview channel/build, unchanged production fingerprint, and Expo service verification must pass; 0/8 native visual acceptance remains unverified.",
     "Profile canonical monthly/all-time ranks and duplicate popup/obsolete action removal preserve Settings and privacy controls.",
-    "BUKLOD Today category retains only user-relevant content; suppress non-actionable 3-day rotation copy; scoped tests enforce."
+    "BUKLOD Today category retains only user-relevant content; suppress non-actionable 3-day rotation copy; scoped tests enforce.",
+    "IMCI age-specific, six-step educational flow, emergency escalation and no premature clinical decision or disabled consultation activation."
   ],
   "riskAreas": [
     "wall-media",
@@ -102,7 +103,9 @@
     "src/components/BuklodFoundationWorkspaceNav.tsx",
     "tests/nov14-profile-ranks-ux.test.mjs",
     "src/components/BuklodTodayCard.tsx",
-    "tests/buklod-home-profile-support-20261108.test.mjs"
+    "tests/buklod-home-profile-support-20261108.test.mjs",
+    "src/app/profile/buklod-health.tsx",
+    "tests/nov14-imci-health-flow.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
