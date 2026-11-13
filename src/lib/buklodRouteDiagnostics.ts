@@ -9,7 +9,7 @@ const SAFE_SEGMENTS = new Set([
   'home', 'hub', 'index', 'learn', 'me', 'messages', 'organizations',
   'personal', 'post', 'profile', 'scope', 'settings', 'word', 'support',
   'report', 'manage', 'members', 'invitations', 'progress', 'create',
-  'reflection', 'about-buklod', 'hymns', 'life', 'prayer',
+  'reflection', 'about-buklod', 'hymns', 'life', 'prayer', 'handle-share',
   // Static admin routes; dynamic IDs remain anonymized.
   'bsoc-support', 'bsoc-conversations', 'bsoc-gpt-debug',
   'bsoc-notifications', 'bsoc-personnel', 'priority-requests',

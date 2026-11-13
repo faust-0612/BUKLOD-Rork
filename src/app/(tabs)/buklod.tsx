@@ -15,7 +15,7 @@ import { createAudioPlayer, setAudioModeAsync, setIsAudioActiveAsync, type Audio
 /* PERF_EMERGENCY_R2_POSTS_ONLY_REALTIME: existing Broadcast optimization preserved */
 /* PERF_EMERGENCY_R2_STALE_LOAD: existing PATCH_166H guard preserved */
 /* BUKLOD_SHARE_TARGET_187A */
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, usePathname } from 'expo-router';
 import { loadBuklodNotificationPost } from '@/lib/buklodNotificationPost';
 import {
   emitBuklodEmergencySignal,
@@ -34,6 +34,7 @@ import {
 import { useIncomingShare as useBuklodIncomingShare187A } from '@/lib/buklodIncomingShare';
 import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency, persistCommunityVideoPoster } from '@/lib/uploadCommunityVideoFile';
 import { stageSharedCommentGif, discardStagedSharedCommentGif } from '@/lib/buklodCommentGifShare';
+import { rememberActiveCommentGifTarget, getActiveCommentGifTarget, forgetActiveCommentGifTarget } from '@/lib/buklodCommentGifTarget';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
 import {
@@ -610,10 +611,13 @@ function LegacyPublicBuklodScreen(){
  const communityOnlineRef=useRef(communityOnline);
  communityOnlineRef.current=communityOnline;
 
+  const activeShareRoute187A = usePathname();
   const incomingShare187A = useBuklodIncomingShare187A();
   const incomingShareSignature187A = useIncomingShareRef187A('');
-  // A phone share has no target post. Keep it until Comments is opened.
+  // Android keyboard GIFs can remount the Wall share-target Activity.
   const pendingSharedCommentGif187A = useRef<{ uri: string; ownerId: string } | null>(null);
+  const [sharedGifAwaitingTarget, setSharedGifAwaitingTarget] = useState(false);
+  const commentOpenRef187A = useRef(false);
 
   async function readIncomingVideoDuration187A(
     uri: string
@@ -708,6 +712,10 @@ function LegacyPublicBuklodScreen(){
   }
 
   useIncomingShareEffect187A(() => {
+    // Tabs can remain mounted while an Organization/Cluster workspace is on
+    // top. Only the visible Public Wall may consume an incoming GIF.
+    if (activeShareRoute187A !== '/buklod' &&
+        activeShareRoute187A !== '/(tabs)/buklod') return;
     if (incomingShare187A.isResolving) {
       return;
     }
@@ -743,6 +751,8 @@ function LegacyPublicBuklodScreen(){
       return;
     }
 
+    // Auth can still be hydrating when Android reopens the share Activity.
+    if (!user?.id) return;
     incomingShareSignature187A.current = signature;
 
     void (async () => {
@@ -822,15 +832,58 @@ function LegacyPublicBuklodScreen(){
             void discardStagedSharedCommentGif(previous.uri);
             pendingSharedCommentGif187A.current = null;
           }
-          if (activeCommentPostIdRef.current && commentOpen && !commentMedia) {
+          if (activeCommentPostIdRef.current && commentOpenRef187A.current && !commentSendInFlightRef.current) {
+            // Preserve the caption/reply and change only the attached GIF.
+            if (commentMedia?.kind === 'gif' && commentMedia.ref !== uri) {
+              void discardStagedSharedCommentGif(commentMedia.ref);
+            }
             setCommentMedia({ kind: 'gif', ref: uri });
             setCommentMediaPreview(uri);
-            setCommentNotice('GIF attached. Preview it, then Send.');
-            Alert.alert('GIF comment', 'GIF attached to the open comment. Tap Send when ready.');
-          } else {
-            pendingSharedCommentGif187A.current = { uri, ownerId: accountId };
-            Alert.alert('GIF ready for comment',
-              'Tap Comments on the post you want. Your shared GIF will be attached there, not published as a Wall post.');
+            setCommentNotice(null);
+            setSharedGifAwaitingTarget(false);
+            return;
+          }
+          pendingSharedCommentGif187A.current = { uri, ownerId: accountId };
+          if (commentSendInFlightRef.current) {
+            setCommentNotice('Finish sending the current comment, then open Comments to attach the GIF.');
+            return;
+          }
+          // Keyboard ACTION_SEND can recreate Wall: re-open the authorized post
+          // from a short-lived account-bound target instead of alerting.
+          const targetPostId = await getActiveCommentGifTarget(accountId);
+          if (!targetPostId || commentAccountIdRef.current !== accountId) {
+            setSharedGifAwaitingTarget(true);
+            return;
+          }
+          let opened = false;
+          const reopenCommentWithGif = (post: any) => {
+            if (opened || String(post?.id ?? '') !== targetPostId ||
+                commentAccountIdRef.current !== accountId ||
+                pendingSharedCommentGif187A.current?.uri !== uri) return;
+            opened = true;
+            setSharedGifAwaitingTarget(false);
+            void openComments(post);
+          };
+          const cachedPost = String(commentPost?.id ?? '') === targetPostId
+            ? commentPost
+            : posts.find(post => String(post?.id ?? '') === targetPostId);
+          if (cachedPost) {
+            reopenCommentWithGif(cachedPost);
+            return;
+          }
+          try {
+            // Uses the existing access-checked detail RPC. onInitial opens
+            // the drawer without waiting for unrelated media hydration.
+            const post = await loadBuklodNotificationPost(
+              targetPostId, accountId, reopenCommentWithGif,
+            );
+            reopenCommentWithGif(post);
+          } catch (error) {
+            console.warn('Unable to restore GIF comment target:', error);
+          }
+          if (!opened && pendingSharedCommentGif187A.current?.uri === uri) {
+            // No cross-post fallback; user explicitly chooses a post.
+            setSharedGifAwaitingTarget(true);
           }
           return;
         }
@@ -933,6 +986,8 @@ function LegacyPublicBuklodScreen(){
     incomingShare187A.isResolving,
     incomingShare187A.sharedPayloads,
     incomingShare187A.resolvedSharedPayloads,
+    user?.id,
+    activeShareRoute187A,
   ]);
 
  const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
@@ -1264,6 +1319,7 @@ function LegacyPublicBuklodScreen(){
  const [composerVideoOpen,setComposerVideoOpen]=useState(false);
  const [commentOpen,setCommentOpen]=
   useState(false);
+ commentOpenRef187A.current = commentOpen;
 
  const [commentPost,setCommentPost]=
   useState<any|null>(null);
@@ -3615,6 +3671,9 @@ const load=useCallback(async(options?:{
  const openComments=
   async(post:any)=>{
    const postId=String(post.id);
+   const accountId=String(user?.id??'');
+   if(accountId && postId)void rememberActiveCommentGifTarget(accountId,postId).catch(()=>undefined);
+   setSharedGifAwaitingTarget(false);
    const saved=commentDraftsRef.current.get(String(user?.id??'')+':'+postId);
    const pendingGif=pendingSharedCommentGif187A.current;
    const attachGif=!!pendingGif && pendingGif.ownerId===String(user?.id??'');
@@ -3640,6 +3699,7 @@ const load=useCallback(async(options?:{
  const closeComments=
   ()=>{
    const postId=activeCommentPostIdRef.current;
+   if(postId)void forgetActiveCommentGifTarget(String(user?.id??''),postId).catch(()=>undefined);
    if(postId){
     const key=String(user?.id??'')+':'+postId;
     if(buklodCommentHasSendableContent(commentText,commentMedia)){
@@ -5298,6 +5358,24 @@ const communityFeedRows =
     refreshing={busy}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
+  {sharedGifAwaitingTarget && (
+   <View style={{flexDirection:'row',alignItems:'center',gap:8,marginBottom:10,
+     padding:10,borderRadius:12,backgroundColor:colors.greenSoft}}>
+    <MaterialCommunityIcons name="file-gif-box" size={21} color={colors.greenDark}/>
+    <Text style={{flex:1,color:colors.greenDark,fontSize:12,fontWeight:'700'}}>
+     GIF ready — tap Comments on the post where you want to send it.
+    </Text>
+    <Pressable accessibilityRole="button" accessibilityLabel="Discard shared GIF"
+     onPress={()=>{
+      const pending=pendingSharedCommentGif187A.current;
+      pendingSharedCommentGif187A.current=null;
+      if(pending)void discardStagedSharedCommentGif(pending.uri);
+      setSharedGifAwaitingTarget(false);
+     }}>
+     <MaterialCommunityIcons name="close" size={20} color={colors.greenDark}/>
+    </Pressable>
+   </View>
+  )}
   {focusPostId && (focusLoading || focusUnavailable) && (
    <Text accessibilityRole="text" style={{color:focusUnavailable?'#9A3F22':colors.greenDark,fontWeight:'700',marginBottom:10}}>
     {focusUnavailable
