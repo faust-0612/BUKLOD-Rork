@@ -31,7 +31,8 @@
     "IMCI age-specific, six-step educational flow, emergency escalation and no premature clinical decision or disabled consultation activation.",
     "Legacy regression checks reconciled with accepted Profile route relocation, non-square responsive Home tiles, distinct WAV earcons, question-aware search, compact theme UI.",
     "BSOC case-specific operator enters GPT diagnostic manually; never exfiltrates member evidence or secrets automatically.",
-    "Profile renders bounded exact post cards to self, respects community post RLS and profile lock; no exposure to visitors."
+    "Profile renders bounded exact post cards to self, respects community post RLS and profile lock; no exposure to visitors.",
+    "Inline BSOC GPT invocation sends only allowlisted category/platform/version, explicit operator action, scoped permission plus server check and no automatic reply."
   ],
   "riskAreas": [
     "wall-media",

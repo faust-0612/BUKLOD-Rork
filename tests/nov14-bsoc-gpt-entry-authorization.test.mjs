@@ -1,11 +1,11 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
-const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
-test('BSOC GPT requires authorized explicit opening and does not send member case text',()=>{
- const s=read('src/app/admin/bsoc-conversations.tsx');
- assert.match(s,/disabled=\{!canRead\}/);
- assert.match(s,/router\.push\('\/admin\/bsoc-gpt-debug'/);
- assert.match(s,/never forwarded automatically/);
- assert.doesNotMatch(s,/functions\.invoke\('bsoc-gpt-debug-v1'/);
- const g=read('src/app/admin/bsoc-gpt-debug.tsx');
- assert.match(g,/bsoc-gpt-debug-v1/);assert.match(g,/Only authorized BSOC support personnel/);
+const s=fs.readFileSync(new URL('../src/app/admin/bsoc-conversations.tsx',import.meta.url),'utf8');
+test('GPT uses only approved technical category, platform, version and an operator tap',()=>{
+ assert.match(s,/if\(!canRead\|\|gptBusy/);
+ assert.match(s,/onPress=\{\(\)=>\{void askGptForCase\(selected\);\}\}/);
+ assert.match(s,/const area=bsoCaseIntervention\(target\)\.category/);
+ assert.match(s,/functions\.invoke\('bsoc-gpt-debug-v1',\{body:\{prompt\}\}\)/);
+ assert.match(s,/Never transmit user-entered report text/);
+ assert.match(s,/GPT investigation proposal · NOT verified/);
+ assert.match(s,/Never auto-reply, execute changes or mark resolved/);
 });

@@ -32,6 +32,9 @@ export default function BsocInbox(){
  const [messages,setMessages]=useState<Msg[]>([]);
  const [files,setFiles]=useState<(FileRow&{url:string|null})[]>([]);
  const [draft,setDraft]=useState('');
+ const [gptBusy,setGptBusy]=useState(false);
+ const [gptAdvice,setGptAdvice]=useState('');
+ const [gptError,setGptError]=useState('');
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [uid,setUid]=useState<string|null>(null);
@@ -106,7 +109,8 @@ export default function BsocInbox(){
    currentCase.current=id;
    setLinkedCase(null);
    retryMessage.current=null;
-   setMessages([]);setFiles([]);setDraft('');setError('');setCaseId(id);
+   setMessages([]);setFiles([]);setDraft('');setError('');
+   setGptAdvice('');setGptError('');setCaseId(id);
  },[]);
  // Strictly Admin-only direct lookup supports older priority cases not present
  // in the bounded 100-row support queue, without weakening message RLS.
@@ -183,6 +187,30 @@ export default function BsocInbox(){
    }catch(e:any){setError(e?.message||'Could not send message');}
    finally{setBusy(false);}
  };
+ const askGptForCase=async(target:Case)=>{
+  if(!canRead||gptBusy||!caseId||currentCase.current!==caseId)return;
+  const area=bsoCaseIntervention(target).category;
+  const platform=/^android$/i.test(String(target.platform||''))?'Android':
+    /^ios$/i.test(String(target.platform||''))?'iOS':
+    /^web$/i.test(String(target.platform||''))?'Web':'Unknown';
+  const ver=/^\d+(?:\.\d+){0,3}$/.test(String(target.app_version||'').trim())
+    ?String(target.app_version).trim():'unknown';
+  // Never transmit user-entered report text, name, case id or attachments.
+  const prompt='BUKLOD BSOC sanitized technical category '+area+', platform '+platform+
+    ', version '+ver+'. Suggest ranked root causes to VERIFY, safe read-only tests, '+
+    'evidence to collect, safe member guidance, escalation and closure gates. '+
+    'Never ask for personal information, tokens or destructive recovery.';
+  const expected=caseId;
+  setGptBusy(true);setGptAdvice('');setGptError('');
+  try{
+    const {data,error}=await supabase.functions.invoke('bsoc-gpt-debug-v1',{body:{prompt}});
+    if(error)throw error;
+    if(!data?.ok)throw new Error('Provider unavailable');
+    if(currentCase.current===expected)setGptAdvice(String(data.analysis||'No guidance returned.'));
+  }catch{
+    if(currentCase.current===expected)setGptError('GPT analysis unavailable. Continue manual investigation; no fix is verified.');
+  }finally{setGptBusy(false);}
+ };
  const selected=cases.find(c=>c.feedback_id===caseId)??(linkedCase?.feedback_id===caseId?linkedCase:null);
  const triage=selected?triageBsoCase(selected):null;
  const intervention=selected?bsoCaseIntervention(selected):null;
@@ -212,11 +240,17 @@ export default function BsocInbox(){
        <Text style={styles.body}>Possible area: {triage.suspectedArea}</Text>
        <Text style={styles.body}>Check: {triage.investigation}</Text>
        <Text style={styles.body}>BSOC may do: {triage.bsocAction}</Text>
-        <Pressable accessibilityRole="button" disabled={!canRead}
-          onPress={()=>router.push('/admin/bsoc-gpt-debug' as any)} style={styles.secondary}>
-          <Text style={styles.link}>GPT-assisted troubleshooting · Authorized operators ›</Text>
+        <Pressable accessibilityRole="button" disabled={!canRead||gptBusy}
+          onPress={()=>{void askGptForCase(selected);}} style={styles.secondary}>
+          <Text style={styles.link}>{gptBusy?'Analyzing safe case category…':'Ask GPT · Investigate this case ›'}</Text>
         </Pressable>
-        <Text style={styles.muted}>Manual sanitized report only. Case evidence, user identity, health data and private messages are never forwarded automatically. Verify recommendations before taking action.</Text>
+        <Text style={styles.muted}>On explicit operator request, only the allowlisted technical category, device platform and app version are shared. No member name, case text, IDs, health records or attachments.</Text>
+        {!!gptError&&<Text style={styles.error} accessibilityRole="alert">{gptError}</Text>}
+        {!!gptAdvice&&<View style={styles.origin}>
+          <Text style={styles.h2}>GPT investigation proposal · NOT verified</Text>
+          <Text selectable style={styles.body}>{gptAdvice}</Text>
+          <Text style={styles.muted}>Verify with actual evidence. Never auto-reply, execute changes or mark resolved.</Text>
+        </View>
        <Text style={styles.body}>User may do: {triage.userAction}</Text>
        <Text style={styles.muted}>App-wide/backend incidents require cross-user metrics and server evidence. An OTA is resolved only after exact version/runtime and observed recovery are confirmed.</Text>
        <Pressable accessibilityRole="button" onPress={()=>router.push({pathname:'/admin/bsoc-support',params:{case_id:selected.feedback_id}} as any)}>
