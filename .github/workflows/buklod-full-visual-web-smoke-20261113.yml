@@ -44,13 +44,14 @@ jobs:
           export EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=''
           npx expo export --platform web --output-dir /tmp/buklod-visual-web --clear
           test -s /tmp/buklod-visual-web/index.html
-      - name: Capture unauthenticated real browser output at two phone widths
+      - name: Capture and reject blank browser renders at two phone widths
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$BROWSER" || { echo 'Chrome/Chromium absent on runner'; exit 1; }
+          npm install --prefix /tmp/buklod-visual-browser --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1 pngjs@7.0.0
           mkdir -p visual-diagnostics
           cat >/tmp/buklod-visual-server.py <<'PY'
           import os, http.server, urllib.parse
@@ -70,24 +71,61 @@ jobs:
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
           for n in $(seq 1 20); do if curl --fail --silent http://127.0.0.1:8765/ >/dev/null; then break; fi; sleep 1; done
           curl --fail --silent http://127.0.0.1:8765/ >/dev/null
-          for width in 360 430; do
-            if [ "$width" = 360 ]; then height=800; else height=932; fi
-            for item in home:hub profile:me cluster:clusters wall:buklod marites:buklod connect:messages settings:settings drawer:drawer; do
-              name="${item%%:*}"; route="${item#*:}"
-              echo "Capture $name at ${width}x${height} (web-only, unauthenticated; NOT Android approval)"
-              timeout 45s "$BROWSER" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --hide-scrollbars --disable-extensions --no-first-run --virtual-time-budget=6500 --window-size="${width},${height}" --user-data-dir="/tmp/visual-chrome-${width}-${name}" --screenshot="$PWD/visual-diagnostics/${name}-${width}.png" "http://127.0.0.1:8765/${route}" >/tmp/visual-chrome.log 2>&1 || { echo "BROWSER FAILURE at $name/$width"; tail -c 5000 /tmp/visual-chrome.log; exit 1; }
-              test -s "visual-diagnostics/${name}-${width}.png"
-              file "visual-diagnostics/${name}-${width}.png" | grep -q PNG
-            done
-          done
-          python3 - <<'PY'
-          import json,glob,os
-          files=sorted(glob.glob('visual-diagnostics/*.png'))
-          assert len(files)==16,len(files)
-          print('Captured',len(files),'diagnostic PNGs; authenticated screens and native Android remain UNVERIFIED')
-          json.dump({'classification':'UNAUTHENTICATED_WEB_BROWSER_DIAGNOSTICS_ONLY','sourceSha':os.environ['GITHUB_SHA'],'androidAcceptedAreas':0,'nativeRendering':'NOT TESTED','physicalInfinix':'SKIPPED BY OWNER','stagingOtaPublished':False,'screenshots':[{'name':os.path.basename(p),'bytes':os.stat(p).st_size} for p in files]},open('visual-diagnostics/receipt.json','w'),indent=2)
-          PY
-          echo 'Captured *web-only* diagnostics; zero of eight native Android screens visually accepted. No OTA or web deployment.' >> "$GITHUB_STEP_SUMMARY"
+          cat >/tmp/buklod-visual-inspect.cjs <<'JS'
+          const fs=require('node:fs'),path=require('node:path');
+          const {chromium}=require('/tmp/buklod-visual-browser/node_modules/playwright');
+          const {PNG}=require('/tmp/buklod-visual-browser/node_modules/pngjs');
+          const routes={home:'hub',profile:'me',cluster:'clusters',wall:'buklod',marites:'buklod',connect:'messages',settings:'settings',drawer:'drawer'};
+          const safe=(v)=>String(v??'').replace(/https?:\/\/[^\s"'<>]+/g,'[URL]').slice(0,180);
+          (async()=>{
+            const browser=await chromium.launch({executablePath:process.env.BROWSER_PATH,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            const results=[];
+            try {
+              for(const width of [360,430]){
+                const height=width===360?800:932;
+                const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1});
+                for(const [name,route] of Object.entries(routes)){
+                  const page=await context.newPage(),errors=[];
+                  page.on('pageerror',e=>errors.push(safe(e.message)));
+                  page.on('console',m=>{if(m.type()==='error')errors.push(safe(m.text()));});
+                  let navigationError=null;
+                  try {
+                    await page.goto('http://127.0.0.1:8765/'+route,{waitUntil:'domcontentloaded',timeout:30000});
+                    await page.waitForTimeout(11000);
+                  }catch(e){navigationError=safe(e.message);}
+                  const pngPath=path.join('visual-diagnostics',name+'-'+width+'.png');
+                  const buf=await page.screenshot({path:pngPath,fullPage:false});
+                  const png=PNG.sync.read(buf);
+                  let nonWhite=0,colored=0;
+                  for(let i=0;i<png.data.length;i+=4){
+                    const r=png.data[i],g=png.data[i+1],b=png.data[i+2];
+                    if(Math.min(r,g,b)<245)nonWhite++;
+                    if(Math.max(r,g,b)-Math.min(r,g,b)>18)colored++;
+                  }
+                  const bodyText=await page.locator('body').innerText({timeout:2500}).catch(()=> '');
+                  const pathname=(()=>{try{return new URL(page.url()).pathname}catch{return '[invalid]'}})();
+                  const blank=nonWhite<100||bodyText.trim().length===0;
+                  results.push({name,width,height,route,pathname,nonWhitePixels:nonWhite,coloredPixels:colored,bodyTextLength:bodyText.trim().length,
+                    blank,errors:errors.slice(0,5),navigationError,bytes:buf.length});
+                  console.log(name,width,'NONWHITE',nonWhite,'TEXTLEN',bodyText.trim().length,'BLANK',blank,'ERRORS',errors.slice(0,2));
+                  await page.close();
+                }
+                await context.close();
+              }
+            }finally{await browser.close();}
+            const failed=results.filter(x=>x.blank||x.navigationError);
+            fs.writeFileSync('visual-diagnostics/receipt.json',JSON.stringify({
+              classification:'UNAUTHENTICATED_WEB_BROWSER_DIAGNOSTICS_ONLY',
+              sourceSha:process.env.GITHUB_SHA,
+              status:failed.length?'FAILED_BLANK_OR_NAVIGATION':'WEB_RENDERED_UNAUTHENTICATED_NOT_ANDROID_ACCEPTED',
+              failedScreenshots:failed.map(x=>x.name+'-'+x.width),
+              androidAcceptedAreas:0,nativeRendering:'NOT TESTED',physicalInfinix:'SKIPPED BY OWNER',
+              stagingOtaPublished:false,screenshots:results},null,2));
+            if(failed.length){console.error('FAIL CLOSED: blank or error web screenshots '+failed.length+'/'+results.length);process.exitCode=1;}
+          })().catch(e=>{console.error('Browser diagnostics failed',safe(e.message));process.exitCode=1;});
+          JS
+          BROWSER_PATH="$BROWSER" timeout 420s node /tmp/buklod-visual-inspect.cjs
+          echo 'Web-only browser diagnostics captured; 0/8 Android screens accepted; NO OTA.' >> "$GITHUB_STEP_SUMMARY"
       - name: Upload short-lived browser diagnostics only
         if: always()
         uses: actions/upload-artifact@v4
