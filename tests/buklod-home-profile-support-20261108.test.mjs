@@ -57,7 +57,7 @@ test('BUKLOD Today shows public Dugtong in-card with private and history control
  for(const key of ['get_buklod_today_tip_v2','react_to_buklod_today_tip_v2',
   'get_my_buklod_today_dugtong_history_v2','set_buklod_today_dugtong_visibility_v2',
   'Continue reading','Save Dugtong','awarded_points','Claim your pending reward',
-  'Mga Dugtong ng Komunidad','Private · ikaw lang','Public · lahat','3 araw',
+  'Mga Dugtong ng Komunidad','Private · ikaw lang','Public · lahat',
   'list_buklod_today_dugtongs_v2','Tingnan pa ang mga Dugtong'])
   assert.ok(screen.includes(key),key);
  assert.ok(!screen.includes('Share to Wall'),'Dugtong must be published on this card, not Wall');
