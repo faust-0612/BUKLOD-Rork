@@ -443,6 +443,8 @@ export function BuklodCommunityCommentBubble({
           bubbleStyle,
         ]}
       >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
         <BuklodTappablePersonName
           userId={comment.user_id}
           displayName={resolvePersonDisplayName(
@@ -456,6 +458,18 @@ export function BuklodCommunityCommentBubble({
             comment.user_id,
           )}
         </BuklodTappablePersonName>
+          </View>
+          <Pressable
+            onPress={openMenu}
+            hitSlop={BUKLOD_HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="More comment actions"
+            accessibilityHint="Open Reply, Edit, Delete, and other available comment actions"
+            style={{ minWidth: 38, minHeight: 38, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text style={[styles.actionLink, { fontSize: 22 }]}>•••</Text>
+          </Pressable>
+        </View>
 
         {!!metaLine && (
           <Text style={styles.meta}>
@@ -516,17 +530,6 @@ export function BuklodCommunityCommentBubble({
             <Text style={styles.replyLink}>
               Reply
             </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={openMenu}
-            hitSlop={BUKLOD_HIT_SLOP}
-            accessibilityRole="button"
-            accessibilityLabel="More comment actions"
-            accessibilityHint="Open Reply, Edit, Delete, and other available comment actions"
-            style={{ minWidth: 38, minHeight: 38, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Text style={[styles.actionLink, { fontSize: 22 }]}>•••</Text>
           </Pressable>
 
           <Text style={styles.footerTime}>
