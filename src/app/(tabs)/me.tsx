@@ -57,6 +57,7 @@ import {
   Switch,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -108,6 +109,8 @@ function ProfileQuickActionsStrip({
   theme: ReturnType<typeof useBuklodTheme>['theme'];
 }) {
   // BUKLOD_NAV_V2_COMPACT_QUICK_ACTIONS: all options visible; no hidden horizontal strip.
+  const { fontScale } = useWindowDimensions();
+  const tileWidth = fontScale >= 1.6 ? '47%' : '31%';
   return (
     <View style={styles.quickRow}>
       {items.map((item, index) => (
@@ -117,6 +120,7 @@ function ProfileQuickActionsStrip({
           duration={190}
           fromY={6}
           fromOpacity={0.82}
+          style={{ width: tileWidth, maxWidth: 180 }}
         >
           <ProfilePressable
             accessibilityRole="button"
@@ -126,7 +130,7 @@ function ProfileQuickActionsStrip({
             style={styles.quickAction}
           >
             <MaterialCommunityIcons name={item.icon} size={20} color={theme.accent} />
-            <Text allowFontScaling numberOfLines={2} style={styles.quickLabel}>{item.label}</Text>
+            <Text allowFontScaling style={styles.quickLabel}>{item.label}</Text>
           </ProfilePressable>
         </ProfileMotionFadeUp>
       ))}
@@ -2108,8 +2112,8 @@ function createMeStyles(
       paddingRight: 4,
     },
     quickAction: {
-      width: 100,
-      minWidth: 90,
+      width: '100%',
+      minWidth: 0,
       minHeight: 58,
       paddingHorizontal: 7,
       paddingVertical: 8,
