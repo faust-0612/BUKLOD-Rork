@@ -85,6 +85,6 @@ test('owner Android screenshot repairs compact the layout without removing actio
   assert.match(profile,/index === 0 \? <BuklodFirstViewAd/);
   assert.match(profile,/<BuklodScreenBottomBanner placement="profile" variant="large"/);
   const settings=read('src/app/settings/index.tsx');
-  assert.match(settings,/<StatusBar style=\{darkPalette \? 'light' : 'dark'\}/);
+  assert.match(settings,/<StatusBar barStyle=\{darkPalette \? 'light-content' : 'dark-content'\}/);
   assert.match(settings,/paddingVertical: 5/);
 });

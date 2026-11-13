@@ -1,13 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { buklodVisual } from '@/lib/buklodVisual';
 import { BuklodAppearanceSection } from '@/components/BuklodGlobalThemeSelector';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { ProfilePressable } from '@/components/BuklodProfileMotion';
-import { StatusBar } from 'expo-status-bar';
 
 type Icon = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 type SettingLink = { label: string; description: string; icon: Icon; route: string };
@@ -51,7 +50,7 @@ export default function BuklodSettingsHome() {
   const darkPalette = paletteId === 'nightPine' || paletteId === 'graphite' || paletteId === 'midnight';
   return (
     <>
-    <StatusBar style={darkPalette ? 'light' : 'dark'} backgroundColor={theme.canvas} />
+    <StatusBar barStyle={darkPalette ? 'light-content' : 'dark-content'} backgroundColor={theme.canvas} />
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.canvas }}
       contentContainerStyle={{ paddingTop: Math.max(insets.top, 6) + 4, paddingBottom: Math.max(insets.bottom, 20) + 16, paddingHorizontal: 12, gap: 9 }}

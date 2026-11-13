@@ -1222,7 +1222,13 @@ export default function MeScreen() {
     theme
   );
 
-  // Identity now sits on a solid themed surface, never as low-contrast text on the cover.\n  const identityShadow = {\n    color: theme.textPrimary,\n    textShadowColor: 'transparent',\n    textShadowOffset: { width: 0, height: 0 } as const,\n    textShadowRadius: 0,\n  };
+  // Identity text always sits on an opaque themed surface, never directly on the cover.
+  const identityShadow = {
+    color: theme.textPrimary,
+    textShadowColor: 'transparent',
+    textShadowOffset: { width: 0, height: 0 } as const,
+    textShadowRadius: 0,
+  };
 
   const highlightAccent =
     personalDashboardTheme.accentColor &&
