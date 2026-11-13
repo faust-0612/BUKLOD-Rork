@@ -94,6 +94,16 @@ export default function BuklodFeatureFinder() {
           returnKeyType="search"
           style={{ flex: 1, minWidth: 0, paddingVertical: 9, fontSize: 16, color: theme.textPrimary }}
         />
+        {query.length === 0 && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="How to find and pin BUKLOD features"
+            onPress={() => router.push('/settings/navigation-help' as any)}
+            style={{ minWidth: 45, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <MaterialCommunityIcons name="help-circle-outline" size={22} color={theme.textMuted} />
+          </Pressable>
+        )}
         {query.length > 0 && (
           <Pressable accessibilityRole="button" accessibilityLabel="Clear feature search"
             onPress={() => setQuery('')} hitSlop={6}
