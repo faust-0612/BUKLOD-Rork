@@ -1,0 +1,37 @@
+name: Himig Studio Expo Hosting Public Verification
+on:
+  push:
+    branches: [himig/expo-web-hosting-20261114]
+    paths: ['.github/workflows/himig-expo-live-verify.yml']
+permissions:
+  contents: read
+jobs:
+  validate-expo-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe actual Expo Hosting URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for host in "https://himig-studio.expo.app" "https://himig-studio--djjagc66w6.expo.app"; do
+            echo "::group::Checking $host"
+            for path in / /audio-worker.js; do
+              found=0
+              for i in $(seq 1 6); do
+                status=$(curl -L -sS -o /tmp/himig-page -w '%{http_code}' --max-time 20 "$host$path" || true)
+                bytes=$(wc -c < /tmp/himig-page 2>/dev/null || echo 0)
+                echo "CHECK host=$host path=$path attempt=$i http=$status bytes=$bytes"
+                if [ "$status" = '200' ] && [ "$bytes" -gt 4000 ]; then
+                  if [ "$path" = / ]; then
+                    grep -Eq 'Himig Studio|_expo/static/' /tmp/himig-page || { echo 'HTML missing Himig identity'; exit 1; }
+                  fi
+                  found=1;break
+                fi
+                sleep 5
+              done
+              if [ "$found" != '1' ]; then echo "BLOCKER: Expo origin unavailable for $host$path"; exit 1; fi
+            done
+            echo "::endgroup::"
+          done
+          echo "HIMIG_EXPO_PRODUCTION_VERIFIED=PASS"
