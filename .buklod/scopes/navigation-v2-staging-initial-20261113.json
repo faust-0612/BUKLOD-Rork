@@ -18,7 +18,8 @@
     "offline",
     "account-isolation",
     "feature-discovery",
-    "release-identity"
+    "release-identity",
+    "connect"
   ],
   "preserveBehaviors": [
     "Canonical Home /hub, Cluster /clusters, Wall /buklod, Connect /messages, Profile /me routes and existing one-tap nav stay unchanged.",
@@ -35,14 +36,19 @@
     "Staging release gate compares independently verified live source to staging mirrored baseline, exact RC SHA, package, channel, runtime, EAS environment, installed APK and actual OTA update, backend parity, QA and device acceptance.",
     "Do not publish OTA to staging, production Android or web until verified staging RC and compatibility gates are satisfied.",
     "Compact Home utility cards no longer require 216dp square boxes and Profile shortcuts wrap without hidden horizontal scrolling; reflow, large font and device tests still pending.",
-    "Separate prepublish and postpublish gates avoid a circular dependency; staging OTA publication requires reviewed evidence, channel mapping isolation and explicit manual dispatch from exact source."
+    "Separate prepublish and postpublish gates avoid a circular dependency; staging OTA publication requires reviewed evidence, channel mapping isolation and explicit manual dispatch from exact source.",
+    "OS font scale adjusts comment/Connect composer viewport height, preserves animated GIF and Send controls; native high-font Android device acceptance remains mandatory.",
+    "Offline feature finder pins a maximum of four known destinations only under account-scoped storage key; no admin or retired app URLs."
   ],
   "regressionTests": [
     "tests/navigation-v2-staging-gate.test.mjs",
     "tests/navigation-v2-feature-search.test.mjs",
     "tests/navigation-v2-settings-route.test.mjs",
     "tests/navigation-v2-compact-home-profile.test.mjs",
-    "tests/navigation-v2-staging-release.test.mjs"
+    "tests/navigation-v2-staging-release.test.mjs",
+    "tests/navigation-v2-typography.test.mjs",
+    "tests/navigation-v2-favorites.test.mjs",
+    "tests/navigation-v2-connect-fontscale.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/navigation-v2-staging-initial-20261113.json",
@@ -62,7 +68,15 @@
     ".github/workflows/navigation-v2-staging-ota.yml",
     "release/navigation-v2-staging-evidence.json",
     "docs/navigation-v2-staging-release.md",
-    "tests/navigation-v2-staging-release.test.mjs"
+    "tests/navigation-v2-staging-release.test.mjs",
+    "src/lib/buklodAdaptiveInput.ts",
+    "src/lib/buklodPinnedNavigation.ts",
+    "src/components/BuklodProfileGlassCard.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/connect/ConnectComposer.tsx",
+    "tests/navigation-v2-typography.test.mjs",
+    "tests/navigation-v2-favorites.test.mjs",
+    "tests/navigation-v2-connect-fontscale.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -74,7 +88,9 @@
       "tests": [
         "tests/navigation-v2-settings-route.test.mjs",
         "tests/navigation-v2-feature-search.test.mjs",
-        "tests/navigation-v2-compact-home-profile.test.mjs"
+        "tests/navigation-v2-compact-home-profile.test.mjs",
+        "tests/navigation-v2-typography.test.mjs",
+        "tests/navigation-v2-favorites.test.mjs"
       ]
     },
     {
