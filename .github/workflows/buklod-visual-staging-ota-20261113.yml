@@ -178,7 +178,7 @@ jobs:
           assert.equal(br.id,pre.stagingBranchId);
           const prod=await manifest('production');assert.equal(prod.id,pre.productionManifestId,'Production changed during staging preflight');
           NODE
-          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 100 --json --non-interactive > "$EVIDENCE_DIR/prior-updates.json"
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 50 --json --non-interactive > "$EVIDENCE_DIR/prior-updates.json"
           node <<'NODE'
           const fs=require('node:fs'),a=require('node:assert/strict');const d=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/prior-updates.json','utf8'));
           const rows=d.currentPage??d;a.ok(Array.isArray(rows),'Cannot inspect staging prior updates');
