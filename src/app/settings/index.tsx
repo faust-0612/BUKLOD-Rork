@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import { ProfilePressable } from '@/components/BuklodProfileMotion';
 
 type Icon = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 type SettingLink = { label: string; description: string; icon: Icon; route: string };
@@ -24,6 +25,7 @@ const GROUPS: { title: string; links: SettingLink[] }[] = [
     { label: 'Language', description: 'Use a supported app language', icon: 'translate', route: '/preferences/language' },
   ] },
   { title: 'Help & Support', links: [
+    { label: 'How to use BUKLOD', description: 'Five tabs, feature finder and pinned shortcuts', icon: 'help-circle-outline', route: '/settings/navigation-help' },
     { label: 'Live support', description: 'Report a problem or ask for help', icon: 'lifebuoy', route: '/support/live' },
     { label: 'Contact us', description: 'Reach the BUKLOD team', icon: 'email-outline', route: '/contact-us' },
   ] },
@@ -58,7 +60,7 @@ export default function BuklodSettingsHome() {
           </Text>
           <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: 15, overflow: 'hidden' }}>
             {group.links.map((item, i) => (
-              <Pressable
+              <ProfilePressable
                 key={item.route}
                 accessibilityRole="button"
                 accessibilityLabel={item.label}
@@ -77,7 +79,7 @@ export default function BuklodSettingsHome() {
                   <Text allowFontScaling style={{ fontSize: 13, lineHeight: 19, color: theme.textMuted }}>{item.description}</Text>
                 </View>
                 <MaterialCommunityIcons name="chevron-right" size={21} color={theme.textMuted} />
-              </Pressable>
+              </ProfilePressable>
             ))}
           </View>
         </View>
