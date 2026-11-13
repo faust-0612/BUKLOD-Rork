@@ -14,18 +14,24 @@
     "All existing functional Main/Wall/Connect/ads/auth/points/privacy behavior remains unchanged.",
     "Retired IGPAT remains excluded from future release candidate; historical media preserved."
   ],
-  "riskAreas": [],
+  "riskAreas": [
+    "release-identity"
+  ],
   "acceptanceChecks": [
     "Changes limited to this scope declaration, static reconciliation inventory and Markdown document.",
     "Inventory status is PREPARATION_HOLD_ONLY; no publication flag is true and no release workflow modified.",
     "All candidate PRs are decisions to review, not assertions they are absent from production or integrated into one RC.",
-    "Mandatory Engineering Accountability and protected-feature gates pass; exact source compilation and staging validation remain separate requirements."
+    "Mandatory Engineering Accountability and protected-feature gates pass; exact source compilation and staging validation remain separate requirements.",
+    "Focused node test proves publication is disabled, no feature code was mutated, and excluded retired IGPAT stays excluded."
   ],
-  "regressionTests": [],
+  "regressionTests": [
+    "tests/nov13-consolidated-ota-hold.test.mjs"
+  ],
   "allowedPaths": [
     ".buklod/scopes/nov13-conso-inventory-hold-20261113.json",
     "docs/nov13-consolidated-ota-preparation.md",
-    "release/nov13-consolidated-ota-preparation.json"
+    "release/nov13-consolidated-ota-preparation.json",
+    "tests/nov13-consolidated-ota-hold.test.mjs"
   ],
   "lockedFeatureChanges": [],
   "releaseMode": "DOC_ONLY_HOLD_NO_OTA"
