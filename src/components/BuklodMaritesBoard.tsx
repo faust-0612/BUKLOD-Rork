@@ -94,6 +94,7 @@ import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useFocusEffect } from 'expo-router';
 import { selectVisibleMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
+import { createMaritesVisibilityScheduler } from '@/lib/buklodMaritesViewportMeasure';
 import { useAuth } from '@/providers/AuthProvider';
 import { subscribeBuklodPublicPostChanges } from '@/lib/buklodPublicCommunityRealtime';
 import {
@@ -1830,18 +1831,33 @@ export default function BuklodMaritesBoard({
       }));
     });
   }, [canPlayInline, activeStories, windowWidth, windowHeight, insets.top, insets.bottom, drawerBottomInset]);
+
+  // Wall emits scroll updates as often as once per frame. Coalesce native
+  // measureInWindow calls while retaining immediate focus/overlay transitions.
+  const latestMeasureVisibility = useRef(measureVisibility);
+  latestMeasureVisibility.current = measureVisibility;
+  const measurementSchedulerRef = useRef<ReturnType<typeof createMaritesVisibilityScheduler> | null>(null);
+  if (!measurementSchedulerRef.current) {
+    measurementSchedulerRef.current = createMaritesVisibilityScheduler(
+      () => latestMeasureVisibility.current(),
+    );
+  }
+  const requestVisibilityMeasurement = useCallback(() => {
+    measurementSchedulerRef.current?.request();
+  }, []);
   useEffect(() => {
-    if (visibilityRefreshRef) visibilityRefreshRef.current = measureVisibility;
-    measureVisibility();
-    // Also catch header animation/layout changes without rerendering the Wall.
+    if (visibilityRefreshRef) visibilityRefreshRef.current = requestVisibilityMeasurement;
+    measurementSchedulerRef.current?.flush();
+    // Periodic fallback for header/layout changes that do not emit scrolling.
     const timer = canPlayInline && activeStories.some(story => story.video_uri)
-      ? setInterval(measureVisibility, 750) : null;
+      ? setInterval(requestVisibilityMeasurement, 750) : null;
     return () => {
       ++visibilityGeneration.current;
       if (timer) clearInterval(timer);
-      if (visibilityRefreshRef?.current === measureVisibility) visibilityRefreshRef.current = null;
+      measurementSchedulerRef.current?.cancel();
+      if (visibilityRefreshRef?.current === requestVisibilityMeasurement) visibilityRefreshRef.current = null;
     };
-  }, [measureVisibility, canPlayInline, activeStories, visibilityRefreshRef]);
+  }, [measureVisibility, canPlayInline, activeStories, visibilityRefreshRef, requestVisibilityMeasurement]);
 
   return (
     <View style={styles.section}>
@@ -1878,14 +1894,14 @@ export default function BuklodMaritesBoard({
         </View>
       </View>
 
-      <View ref={stripViewportRef} collapsable={false} onLayout={measureVisibility}>
+      <View ref={stripViewportRef} collapsable={false} onLayout={requestVisibilityMeasurement}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.row}
         scrollEventThrottle={100}
-        onScroll={event => { storyStripOffset.current = event.nativeEvent.contentOffset.x; measureVisibility(); }}
+        onScroll={event => { storyStripOffset.current = event.nativeEvent.contentOffset.x; requestVisibilityMeasurement(); }}
       >
         {activeStories.map((story, index) => (
           <BuklodFocusFadeUp
