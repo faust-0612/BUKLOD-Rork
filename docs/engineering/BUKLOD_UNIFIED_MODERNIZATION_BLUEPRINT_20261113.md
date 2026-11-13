@@ -22,7 +22,7 @@ related_issues: [781, 782]
 - **[PR #783](https://github.com/faust-0612/BUKLOD-Rork/pull/783)**: existing Navigation V2 DEV, 44 changed files, existing **21** checklist entries, **0 independently verified**; currently green source CI, draft/unmerged; exact compiled Android RC and installed staging parity still absent. **Do not create another navigation shell/checklist.**
 - **[PR #784](https://github.com/faust-0612/BUKLOD-Rork/pull/784)**: Wall/Marites 96ms native measurement coalescing and active video priority, source CI green, draft/unmerged and **native crash effectiveness unproven**.
 - **[PR #777](https://github.com/faust-0612/BUKLOD-Rork/pull/777)**: SALIKSIK private manuscript vault, adaptive learning and audited human-reviewed Master, SQL/Node CI evidence, draft/unmerged, rollout OFF. **Existing SALIKSIK R2 is the only source of truth for this reward workflow.**
-- Navigation [issue #781](https://github.com/faust-0612/BUKLOD-Rork/issues/781), HCI/crash [issue #782](https://github.com/faust-0612/BUKLOD-Rork/issues/782). Companion JSON: [30-reference crosswalk](docs/engineering/BUKLOD_UNIFIED_MODERNIZATION_MATRIX_20261113.json). Obsidian memory in private repository **faust-0612/BUKLOD-Engineering-Memory** (existing Oct 28 baseline there is historical/stale; never override newer evidence).
+- Navigation [issue #781](https://github.com/faust-0612/BUKLOD-Rork/issues/781), HCI/crash [issue #782](https://github.com/faust-0612/BUKLOD-Rork/issues/782). Companion JSON: [30-reference crosswalk](./BUKLOD_UNIFIED_MODERNIZATION_MATRIX_20261113.json). Obsidian memory in private repository **faust-0612/BUKLOD-Engineering-Memory** (existing Oct 28 baseline there is historical/stale; never override newer evidence).
 
 ### Critical non-goals
 
