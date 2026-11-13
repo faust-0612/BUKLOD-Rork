@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "objective": "Provide a read-only device-native staging APK integrity proof and reversible test harness for current Navigation 2.0 staging parity, without installing, launching, updating or touching production apps.",
+  "baseRef": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
+  "productionBaselineEvidence": "GitHub main 9f412afd71b74e41995a3a1a63e05e72f78b6e39 is staging-only workflow successor to publisher-side production Android a43e1813d62a151e8294a52989a80fe21b36057c update 01a1d2d6-bae3-74df-bbf4-2bdd9df35215 runtime 1.3.2. Staging signed EAS build 9c0eb308-9a8e-4f34-a5f4-798ae556b7b0, versionCode 9, workflow 43378875900 artifact 14016812505; actual installed device and OTA readback unverified.",
+  "chosenApproach": "Use plain Node 22 child_process.execFileSync with argv-array ADB commands to read installed staging package/version and pull installed base.apk into an OS temp directory for streaming SHA256 comparison against an owner-supplied verified signed APK. Never persist USB serial, raw dumpsys or APK bytes. PowerShell launcher only invokes script. JSON result explicitly never infers Expo OTA or backend parity.",
+  "selectionRationale": "The staging APK exists but installed handset provenance is the next blocking gate. Read-only byte match is stronger than package/version assertions and costs no EAS build or extra infrastructure.",
+  "alternativeApproaches": [
+    "Use only EAS build FINISHED log as staging parity proof (rejected: not installed-device identity).",
+    "Automatically adb install the new APK or clear live app data from CI (rejected: irreversible side effects and no attached trusted handset).",
+    "Analyze raw logcat/full device dumps by uploading user content into GitHub (rejected: sensitive data and noisy evidence)."
+  ],
+  "riskAreas": [
+    "staging-native-parity",
+    "android-device-safety",
+    "release-attestation",
+    "account-privacy"
+  ],
+  "preserveBehaviors": [
+    "No app source, assets, native modules, Supabase, permissions, AdMob, player or staging/production channel files changed.",
+    "ADB calls are read-only: device discovery, pm path, dumpsys package/meminfo, getprop and pull installed staging base.apk.",
+    "Only org.mzbministry.buklod.staging package is queried; org.mzbministry.buklod remains untouched.",
+    "No serial, accounts, logs, contact information, raw dumpsys, tokens or private data are written; temporary APK byte copy deleted after hashing.",
+    "The canonical Navigation V2 21-item pre/post publish gate still requires OTA/runtime/source, backend, manual UX and approval evidence."
+  ],
+  "acceptanceChecks": [
+    "One USB authorized device or explicit selected serial, correct staging package/version and exact SHA256 of installed base APK equals independently downloaded signed artifact.",
+    "A mismatched APK, unknown EAS build/source, split package, wrong version or missing authorization fails without mutating handset.",
+    "The output retains machine-readable non-personal native proof and always marks OTA/source/backend/manual UX not verified.",
+    "Pure parser/attestation regression tests pass and explicit device command list contains no install/uninstall/data clear/launch operation.",
+    "Script can run on Windows with installed Node and Android platform-tools; actual physical device run remains required for user acceptance."
+  ],
+  "regressionTests": [
+    "tests/staging-apk-device-attestation-20261113.test.mjs"
+  ],
+  "allowedPaths": [
+    "scripts/staging-apk-device-attestation.mjs",
+    "scripts/RUN_BUKLOD_STAGING_DEVICE_ATTESTATION.ps1",
+    "tests/staging-apk-device-attestation-20261113.test.mjs",
+    ".buklod/scopes/staging-readonly-device-attestation-20261113.json"
+  ],
+  "lockedFeatureChanges": [],
+  "releaseStatus": "DEV read-only QA utility, no APK execution, no app release, no user device connection from this session."
+}
