@@ -61,7 +61,7 @@ jobs:
           node <<'NODE'
           const cfg=require('./app.json').expo;
           const manifest=require('./package.json');
-          if(cfg.slug!=='himig-studio'||cfg.name!=='Himig Studio'||cfg.web?.output!=='static')throw Error('Not the standalone Himig Expo app');
+          if(cfg.slug!=='himig-studio'||cfg.name!=='Himig Studio'||cfg.web?.output!=='server')throw Error('Not the standalone Himig Expo app');
           if(!manifest.dependencies?.['expo-router'])throw Error('Expo Router required');
           if(cfg.extra?.eas?.projectId!=='05e7dab7-a7fd-490c-af52-a54a3609ec35')throw Error('Himig EAS project identity drift');
           console.log('HIMIG_IDENTITY=PASS, BUKLOD_PROJECTS=PROTECTED');
