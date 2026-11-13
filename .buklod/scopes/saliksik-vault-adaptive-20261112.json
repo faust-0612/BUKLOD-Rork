@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Build SALIKSIK Admin Knowledge Vault and evidence-grounded adaptive Biblical investigations in Cluster Home without weakening established point and security contracts.",
-  "baseRef": "9ff4f65d0db52b584d915493f67edaaed8bae369",
-  "productionBaselineEvidence": "2026-11-13 current source inspection: 2026-11-12 baseline; main SHA 9ff4f65d0db52b584d915493f67edaaed8bae369 reported Nov12 consolidated Android/Web RC and publisher checks as SUCCESS; exact deployed OTA ID, served assets and device-runtime state not independently verified here. This is DEV work only; no production database mutation or release.",
+  "baseRef": "a43e1813d62a151e8294a52989a80fe21b36057c",
+  "productionBaselineEvidence": "2026-11-13 current GitHub main source SHA a43e1813d62a151e8294a52989a80fe21b36057c inspected for comparison (includes unrelated concurrent keyboard GIF/comment changes). Source baseline only: exact Android OTA and live production fingerprint not independently verified; SALIKSIK has not been deployed. Supabase production SALIKSIK tables absent. Isolated Postgres R1/R2 SQL and 205-Point receipt tests apply only to CI sandbox.",
   "chosenApproach": "Additive private admin vault, role-checked AI draft generator, immutable published source-linked investigations, server-only objective grade and canonical point ledger integration with dual disabled launch switches. R2 adds a human-adjudicated written Master with explicit evidence verification; no LLM-issued credits.",
   "selectionRationale": "Reuse existing Expo, Supabase, Gemini and authenticated AdminGate; non-publishing default isolates new system and prevents regression to existing KL/Quiz/Finance.",
   "alternativeApproaches": [
@@ -67,7 +67,8 @@
     "RC real auth, concurrency, weak-network, question quality, permissions and SQL validation gates.",
     "Exact source/runtime/OTA/Expo Hosting artifact verified before any production claim.",
     "Independent PostgreSQL 17 service executes actual migration and end-to-end 8 investigation / 170 pending canonical points ledger workflow; member and admin requests use authenticated role.",
-    "R2 written Master: three distinct long-form responses, eight objective prerequisites, private submission, independent System Admin citation review and immutable 35+50 canonical points in one transaction."
+    "R2 written Master: three distinct long-form responses, eight objective prerequisites, private submission, independent System Admin citation review and immutable 35+50 canonical points in one transaction.",
+    "GitHub main may move due concurrent owner work; use latest concrete main SHA for PR merge-ref diff. Never include unrelated GIF/Wall changes in SALIKSIK manifest or overwrite them."
   ],
   "lockedFeatureChanges": [
     {
