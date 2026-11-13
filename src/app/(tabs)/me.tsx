@@ -4,6 +4,7 @@ import { buklodVisual } from '@/lib/buklodVisual';
 import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef } from 'react';
 import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
 import BuklodProfileMembershipNav from '@/components/BuklodProfileMembershipNav';
+import BuklodProfilePostCards from '@/components/BuklodProfilePostCards';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
 import {
@@ -1788,6 +1789,7 @@ export default function MeScreen() {
         <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Verified Points-activity standings. Monthly rank can move until cutoff; AdMob payouts finalize separately.</Text>
       </View>}
 
+      {!isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
       {referralSection}
       <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />
 
