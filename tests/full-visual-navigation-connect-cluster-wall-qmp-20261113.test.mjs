@@ -48,7 +48,7 @@ test('Profile, Cluster, Drawer and Wall keep every existing explicit destination
         // and central menu; verify actual reachability rather than stale location.
         const retained=read('src/app/settings/index.tsx')+'\n'+
           read('src/components/BuklodNavigationSideMenu.tsx');
-        if(route==='/pilot/checklist') { assert.match(read('src/app/admin/index.tsx'), /pilot\/checklist/); continue; }
+        if(route==='/pilot/checklist') { assert.match(read('src/app/pilot/welcome.tsx'), /pilot\/checklist/); continue; }
         assert.ok(retained.includes("route: '"+(route==='/delete-account'?'/account/delete':route)+"'"), 'Lost destination '+route);
         assert.match(read(path), /accessibilityLabel="Profile options"/);
         continue;
