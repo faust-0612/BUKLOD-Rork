@@ -32,6 +32,7 @@ import {
   connectTypography,
   type ConnectThemeRoles,
 } from '@/lib/connectTheme';
+import { buklodComposerHeightLimits } from '@/lib/buklodAdaptiveInput';
 import {
   useConnectTheme,
 } from '@/providers/ConnectThemeProvider';
@@ -334,7 +335,8 @@ export function ConnectComposer({
   onOpenComposerPicker,
 }: Props) {
   const { theme } = useConnectTheme();
-  const { fontScale } = useWindowDimensions();
+  const { fontScale, height } = useWindowDimensions();
+  const inputSize = buklodComposerHeightLimits(fontScale, height, 'message');
   const styles = useMemo(
     () => createStyles(theme),
     [theme]
@@ -550,7 +552,7 @@ export function ConnectComposer({
           </View>
         </ConnectPressable>
 
-        <View style={[styles.inputWrap, { maxHeight: Math.max(112, Math.min(320, 112 * fontScale)) }]}>
+        <View style={[styles.inputWrap, { maxHeight: inputSize.maxHeight + 2 }]}>
           <TextInput
             allowFontScaling
             ref={inputRef}
@@ -571,10 +573,7 @@ export function ConnectComposer({
               e.preventDefault?.();
               sendFromDesktopKeyboard();
             } : undefined}
-            style={[styles.input, {
-              minHeight: Math.max(42, 30 * fontScale),
-              maxHeight: Math.max(110, Math.min(318, 110 * fontScale)),
-            }]}
+            style={[styles.input, inputSize]}
           />
           <ConnectPressable
             accessibilityRole="button"
