@@ -13,7 +13,6 @@ import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd'
 import BuklodFeatureFinder from '@/components/BuklodFeatureFinder';
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
-import BuklodHomeDestinations from '@/components/home/BuklodHomeDestinations';
 import BuklodKingdomHubCard from '@/components/home/BuklodKingdomHubCard';
 
 // Factories execute only after the user opens a tool.
@@ -65,8 +64,6 @@ export default function BuklodLightHome() {
     const openRoute = (path: string) => router.push(path as any);
     const actions = [
       { label: 'Create Post', icon: 'pencil-outline', path: '', action: openPost },
-      { label: 'Join Cluster', icon: 'account-group-outline', path: '/clusters', action: () => openRoute('/clusters') },
-      { label: 'Connect', icon: 'message-outline', path: '/messages', action: () => openRoute('/messages') },
       { label: 'Contribute', icon: 'heart-outline', path: '/community-contribution', action: () => openRoute('/community-contribution') },
       { label: 'Daily Reading', icon: 'book-open-variant', path: '/bible', action: () => router.push('/bible' as any) },
     ] as const;
@@ -144,17 +141,6 @@ export default function BuklodLightHome() {
             </Suspense>
           </ToolBoundary>
         ) : null}
-        <Pressable accessibilityRole="button" accessibilityLabel="Open the Community Wall"
-          onPress={() => router.push('/buklod')}
-          style={{ padding: 16, backgroundColor: theme.surface, borderRadius: buklodVisual.radius.card,
-            borderWidth: 1, borderColor: theme.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <MaterialCommunityIcons name="post-outline" size={26} color={theme.accent} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: '900', fontSize: 16, color: theme.textPrimary }}>Community Wall</Text>
-            <Text style={{ color: theme.textMuted, fontSize: 12 }}>Open the live feed, photos, videos and conversations.</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={25} color={theme.accent} />
-        </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Show home tools"
           accessibilityState={{ expanded: desktopToolsOpen }}
           onPress={() => setDesktopToolsOpen(v => !v)}
@@ -188,7 +174,6 @@ export default function BuklodLightHome() {
         <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 13, marginTop: 3 }}>Connect, learn and grow with BUKLOD.</Text></View>
         <MaterialCommunityIcons name="sprout-outline" size={28} color={theme.accent} />
       </View>
-      <BuklodHomeDestinations />
       <BuklodFeatureFinder />
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
           Old /home redirects here; do not bury QMP in the retired screen. */}
@@ -256,10 +241,6 @@ export default function BuklodLightHome() {
           </Suspense>
         </ToolBoundary>
       ) : null}
-      <Pressable accessibilityRole="button" onPress={() => router.replace('/buklod')}
-        style={{ padding: 16, alignItems: 'center', borderRadius: buklodVisual.radius.card, backgroundColor: theme.navActive }}>
-        <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>Return to Community Wall</Text>
-      </Pressable>
       <BuklodKingdomHubCard />
       <BuklodScreenBottomBanner placement="home" variant="large" />
     </ScrollView>

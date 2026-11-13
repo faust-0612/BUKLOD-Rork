@@ -1,0 +1,66 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/visual-home-ia-correction-20261113.json",
+  "objective": "Correct the wrong visual-modernization implementation that doubled four global tabs as prominent Home cards; install negative navigation-parity regressions.",
+  "baseRef": "00f532050343c4fee597c89ed637faa1c2131010",
+  "productionBaselineEvidence": "Published November 13 visual staging OTA source 00f532050343c4fee597c89ed637faa1c2131010 runtime 1.3.2 is server-verified but 0/8 authenticated native screens accepted. DEV-only isolated repair, production/main/web unchanged.",
+  "chosenApproach": "Remove six new nav-like Home destination cards and redundant Wall/Cluster/Connect shortcuts; preserve five-tab navigation, optional side menu, existing Home content and AdMob/sponsor placements; add negative regression tests.",
+  "selectionRationale": "Explicit duplication caused by new component and JSX; changing native/auth/product behavior is unnecessary to correct Home information architecture.",
+  "alternativeApproaches": [
+    "Recolor the six cards: rejected, duplicates persist.",
+    "Remove canonical five-tab navigation: rejected, violates approved navigation structure.",
+    "Remove Home duplicates and add regression contract: selected."
+  ],
+  "preserveBehaviors": [
+    "Canonical five-tab bottom navigation and accessible optional side menu.",
+    "Home search, QMP, ads, Today, BUKLOD Home/Health, Drawer, PTT, announcements, map, help, Kingdom and Bible access.",
+    "Auth, backend, native build config, media and financial/points logic remain unchanged."
+  ],
+  "acceptanceChecks": [
+    "Default Home has no copies of global tab destinations.",
+    "Relevant focused negative regression tests pass and preserve all Home content.",
+    "Authentic Android screenshots and screen parity of eight areas remain REQUIRED; not available in this source-only repair.",
+    "Staging OTA, main, web and production must remain untouched."
+  ],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
+  "regressionTests": [
+    "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
+    "tests/visual-home-navigation-parity-20261113.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/hub.tsx",
+    "src/components/home/BuklodHomeDestinations.tsx",
+    "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
+    "tests/visual-home-navigation-parity-20261113.test.mjs",
+    ".buklod/scopes/visual-home-ia-correction-20261113.json",
+    "docs/visual/visual-transformation-root-cause-20261113.md"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Correct explicit Home navigation duplication with minimal UI source change and focused negative regression tests.",
+      "preservedBehaviors": [
+        "Existing navigation, media, ads, auth, QMP and all unique Home content are preserved.",
+        "No staging/prod/web publishing and no Android visual acceptance claimed."
+      ],
+      "tests": [
+        "tests/visual-home-navigation-parity-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Remove duplicated navigation links from Home presentation while leaving global canonical navigation and scope selection untouched.",
+      "preservedBehaviors": [
+        "Canonical Home/Cluster/Wall/Connect/Profile routes remain unchanged in persistent bottom navigation and side menu.",
+        "No auth, personal workspace routing, permission, or scope behavior changed."
+      ],
+      "tests": [
+        "tests/visual-home-navigation-parity-20261113.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "dev-only-no-ota",
+  "releaseStatus": "PARTIAL: duplicate Home navigation source fixed; actual eight-screen Android visual redesign remains UNVERIFIED"
+}
