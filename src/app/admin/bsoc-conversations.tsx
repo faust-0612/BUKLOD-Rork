@@ -250,7 +250,7 @@ export default function BsocInbox(){
           <Text style={styles.h2}>GPT investigation proposal · NOT verified</Text>
           <Text selectable style={styles.body}>{gptAdvice}</Text>
           <Text style={styles.muted}>Verify with actual evidence. Never auto-reply, execute changes or mark resolved.</Text>
-        </View>
+        </View>}
        <Text style={styles.body}>User may do: {triage.userAction}</Text>
        <Text style={styles.muted}>App-wide/backend incidents require cross-user metrics and server evidence. An OTA is resolved only after exact version/runtime and observed recovery are confirmed.</Text>
        <Pressable accessibilityRole="button" onPress={()=>router.push({pathname:'/admin/bsoc-support',params:{case_id:selected.feedback_id}} as any)}>
