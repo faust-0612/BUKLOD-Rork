@@ -17,7 +17,8 @@
     "accessibility",
     "offline",
     "account-isolation",
-    "feature-discovery"
+    "feature-discovery",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "Canonical Home /hub, Cluster /clusters, Wall /buklod, Connect /messages, Profile /me routes and existing one-tap nav stay unchanged.",
@@ -33,13 +34,15 @@
     "The 21 mandatory checklist requirements can only be VERIFIED with specific evidence URLs; incomplete checklists never pass staging release.",
     "Staging release gate compares independently verified live source to staging mirrored baseline, exact RC SHA, package, channel, runtime, EAS environment, installed APK and actual OTA update, backend parity, QA and device acceptance.",
     "Do not publish OTA to staging, production Android or web until verified staging RC and compatibility gates are satisfied.",
-    "Compact Home utility cards no longer require 216dp square boxes and Profile shortcuts wrap without hidden horizontal scrolling; reflow, large font and device tests still pending."
+    "Compact Home utility cards no longer require 216dp square boxes and Profile shortcuts wrap without hidden horizontal scrolling; reflow, large font and device tests still pending.",
+    "Separate prepublish and postpublish gates avoid a circular dependency; staging OTA publication requires reviewed evidence, channel mapping isolation and explicit manual dispatch from exact source."
   ],
   "regressionTests": [
     "tests/navigation-v2-staging-gate.test.mjs",
     "tests/navigation-v2-feature-search.test.mjs",
     "tests/navigation-v2-settings-route.test.mjs",
-    "tests/navigation-v2-compact-home-profile.test.mjs"
+    "tests/navigation-v2-compact-home-profile.test.mjs",
+    "tests/navigation-v2-staging-release.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/navigation-v2-staging-initial-20261113.json",
@@ -55,7 +58,11 @@
     "tests/navigation-v2-feature-search.test.mjs",
     "tests/navigation-v2-settings-route.test.mjs",
     "src/components/home/BuklodHomeUtilityCards.tsx",
-    "tests/navigation-v2-compact-home-profile.test.mjs"
+    "tests/navigation-v2-compact-home-profile.test.mjs",
+    ".github/workflows/navigation-v2-staging-ota.yml",
+    "release/navigation-v2-staging-evidence.json",
+    "docs/navigation-v2-staging-release.md",
+    "tests/navigation-v2-staging-release.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -78,6 +85,16 @@
       ],
       "tests": [
         "tests/navigation-v2-settings-route.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add a manual, staging-only Android OTA lane that explicitly checks exact RC, installed APK, preview backend and isolation from the production channel before publishing.",
+      "preservedBehaviors": [
+        "Existing production OTA and web release workflows, triggers and identities remain untouched; no release executed by adding workflow code."
+      ],
+      "tests": [
+        "tests/navigation-v2-staging-release.test.mjs"
       ]
     }
   ],
