@@ -37,11 +37,24 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           npm ci --ignore-scripts --no-audit --no-fund
           node --experimental-strip-types --test tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs
-      - name: Export isolated web bundle for local browser, never deploy
+      - name: Export web diagnostics with authorized preview-only client config
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           set -euo pipefail
-          export EXPO_PUBLIC_SUPABASE_URL=''
-          export EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=''
+          test -n "${EXPO_TOKEN:-}" || { echo 'BLOCK: missing Expo preview credential'; exit 1; }
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-visual-preview.env --non-interactive >/dev/null
+          test -s /tmp/buklod-visual-preview.env
+          set -a
+          . /tmp/buklod-visual-preview.env
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main
+          node - <<'NODE'
+          const assert=require('node:assert/strict');
+          assert.match(process.env.EXPO_PUBLIC_SUPABASE_URL||'',/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+          assert.ok((process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'').length>20);
+          assert.equal(process.env.APP_VARIANT,'staging');
+          NODE
           npx expo export --platform web --output-dir /tmp/buklod-visual-web --clear
           test -s /tmp/buklod-visual-web/index.html
       - name: Capture and reject blank browser renders at two phone widths
