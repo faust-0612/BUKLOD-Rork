@@ -92,7 +92,7 @@
     {
       "id": "responsive-font",
       "title": "OS-scaled readable inputs across all key forms and composers",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },
@@ -127,7 +127,7 @@
     {
       "id": "favorites",
       "title": "Privacy-safe favorites/recent activities, safe Continue destinations",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },
