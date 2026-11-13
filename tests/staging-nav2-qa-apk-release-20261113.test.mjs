@@ -1,0 +1,36 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
+test('one-time signed QA build targets isolated staging package and preview credentials, never OTA',()=>{
+ const w=read('.github/workflows/buklod-nav2-staging-qa-apk-20261113.yml');
+ assert.match(w,/on:\s*\n  push:/);
+ assert.match(w,/dev\/nav2-wall-stability-integration-20261113/);
+ assert.match(w,/BUKLOD_STAGING_QA_APK_20261113:/);
+ assert.match(w,/github\.event\.head_commit\.message/);
+ assert.match(w,/APP_VARIANT: staging/);
+ assert.match(w,/EXPO_PUBLIC_APP_ENV: staging/);
+ assert.match(w,/org\.mzbministry\.buklod\.staging/);
+ assert.match(w,/staging-user/);
+ assert.match(w,/preview/);
+ assert.match(w,/npx eas-cli@latest build --platform android --profile staging-user --non-interactive --wait --json/);
+ assert.match(w,/eas\.build\.production\.channel|e\.build\.production\.channel/);
+ assert.match(w,/expo export --platform android/);
+ assert.match(w,/npx tsc --noEmit/);
+ assert.match(w,/signed-binary-generated-not-installed/);
+ assert.match(w,/physicalMediaCrashGatePassed:false/);
+ assert.doesNotMatch(w,/eas-cli@latest update\s+--/);
+ assert.doesNotMatch(w,/eas-cli@latest submit\s+--/);
+ assert.doesNotMatch(w,/vercel\s+deploy/);
+ assert.doesNotMatch(w,/git\s+push\s+origin\s+main/);
+});
+test('QA build never passes source-gated 21/21 release readiness or claims an installed OTA',()=>{
+ const w=read('.github/workflows/buklod-nav2-staging-qa-apk-20261113.yml');
+ const gate=read('scripts/navigation-v2-staging-gate.mjs');
+ assert.match(w,/navigation21Verified:false/);
+ assert.match(w,/nativeImeCommitContentVerified:false/);
+ assert.match(w,/otaPublished:false,webPublished:false,productionPublished:false/);
+ assert.match(gate,/Native Android IME GIF commitContent must be verified/);
+ assert.match(gate,/Prepublish requirements incomplete:/);
+ assert.match(w,/test "\$\(git merge-base HEAD "\$SOURCE_BASE"\)" = "\$SOURCE_BASE"/);
+});

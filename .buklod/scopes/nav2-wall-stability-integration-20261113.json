@@ -3,8 +3,8 @@
   "scopeManifestPath": ".buklod/scopes/nav2-wall-stability-integration-20261113.json",
   "objective": "Prepare a single staging-only Android Navigation V2 + Wall/Marites source candidate, retaining existing user-authorized comment edit/delete repair, read-only staging APK attestation and fail-closed Android compile/OTA gates; do not publish until exact-source RC and all 21 navigation acceptance requirements are independently verified.",
   "baseRef": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
-  "productionBaselineEvidence": "Publisher-side production source a43e1813d62a151e8294a52989a80fe21b36057c, runtime 1.3.2, production OTA 01a1d2d6-bae3-74df-bbf4-2bdd9df35215 via run 43355306642. Current main 9f412afd adds staging-only APK mirror workflow. Signed source-mirror staging APK EAS build 9c0eb308-9a8e-4f34-a5f4-798ae556b7b0 and artifact 14016812505 were verified in run 43378875900; physical installed app, preview backend, modernized Android RC and actual OTA update acceptance are NOT VERIFIED. Owner-readonly Infinix X6852 build9 phased 36 foreground PSS samples on 2026-11-13 08:32–08:37 UTC show Home mean ~814MiB (peak 848), active media mean ~673MiB (peak 781), recovery mean ~756MiB (peak 860) and a process restart at B1; process-exit crash hint increases 1→2 without specific timestamp/trace, so causality remains unproven. Signed build9 matches prior installed APK.",
-  "chosenApproach": "Preserve every non-scope main blob, overlay exact non-manifest blob SHA identities from green Navigation V2 head 73c473caa4ebc139be4b231d3097760fe5c246e5 (49 paths) and green Wall/Marites stability head dc85ce6ed7bc46a1f314885b6fb1d2739e38dcb2 (4 paths) with no overlaps; add one consolidated V2 scope manifest and cross-feature behavioral integration test. Freeze as DEV candidate only, no release. One inherited Navigation ads test is adjusted to reference the integrated V2 scope path; the product-side source blobs remain exact. Extend isolated DEV scope by exact reviewed comment action blobs from PR #786 and read-only native staging APK attestation blobs from PR #789 (excluding their standalone scope manifests); add one isolated Android-staging compile-only QA workflow and include both source tests in prepublish OTA gates. No changes to production release workflows, native dependencies, SQL or live app. Add minimal in-place indexed offline Help and per-account first-use guidance; persist only bounded public Wall *text drafts* encrypted with SecureStore so process interruptions do not require retyping, while keeping all existing media/GIF and native player paths unchanged. Add gesture recognition only to the small offline feature-finder surfaces, never global Wall/Connect/scroll interception. Keep visible More and long-press/tap alternatives. From new real Infinix build-9 three-phase PSS evidence, virtualize only the previously eager 72h Marites horizontal card rail using bounded FlatList batch/window (4 initial, 6 per batch, 5 viewports) without clipped subviews; preserve fullscreen/inline active playback, image data, ads and comment ownership.",
+  "productionBaselineEvidence": "Publisher-side production source a43e1813d62a151e8294a52989a80fe21b36057c, runtime 1.3.2, production OTA 01a1d2d6-bae3-74df-bbf4-2bdd9df35215 via run 43355306642. Current main 9f412afd adds staging-only APK mirror workflow. Signed source-mirror staging APK EAS build 9c0eb308-9a8e-4f34-a5f4-798ae556b7b0 and artifact 14016812505 were verified in run 43378875900; physical installed app, preview backend, modernized Android RC and actual OTA update acceptance are NOT VERIFIED. Owner-readonly Infinix X6852 build9 phased 36 foreground PSS samples on 2026-11-13 08:32–08:37 UTC show Home mean ~814MiB (peak 848), active media mean ~673MiB (peak 781), recovery mean ~756MiB (peak 860) and a process restart at B1; process-exit crash hint increases 1→2 without specific timestamp/trace, so causality remains unproven. Signed build9 matches prior installed APK. User has authorized staging-only QA; do not release product OTA without signed installed RC and 21 real acceptance checks. Build9 baseline signed installed image established, but integrated PR is not installed.",
+  "chosenApproach": "Preserve every non-scope main blob, overlay exact non-manifest blob SHA identities from green Navigation V2 head 73c473caa4ebc139be4b231d3097760fe5c246e5 (49 paths) and green Wall/Marites stability head dc85ce6ed7bc46a1f314885b6fb1d2739e38dcb2 (4 paths) with no overlaps; add one consolidated V2 scope manifest and cross-feature behavioral integration test. Freeze as DEV candidate only, no release. One inherited Navigation ads test is adjusted to reference the integrated V2 scope path; the product-side source blobs remain exact. Extend isolated DEV scope by exact reviewed comment action blobs from PR #786 and read-only native staging APK attestation blobs from PR #789 (excluding their standalone scope manifests); add one isolated Android-staging compile-only QA workflow and include both source tests in prepublish OTA gates. No changes to production release workflows, native dependencies, SQL or live app. Add minimal in-place indexed offline Help and per-account first-use guidance; persist only bounded public Wall *text drafts* encrypted with SecureStore so process interruptions do not require retyping, while keeping all existing media/GIF and native player paths unchanged. Add gesture recognition only to the small offline feature-finder surfaces, never global Wall/Connect/scroll interception. Keep visible More and long-press/tap alternatives. From new real Infinix build-9 three-phase PSS evidence, virtualize only the previously eager 72h Marites horizontal card rail using bounded FlatList batch/window (4 initial, 6 per batch, 5 viewports) without clipped subviews; preserve fullscreen/inline active playback, image data, ads and comment ownership. One one-time commit-message-gated PR branch-only GitHub Action may build a signed staging-user QA APK with Expo preview environment and staging Firebase credentials after self-contained focused tests/Android export. It uploads only a lightweight receipt and downloads signed APK bytes to verify them, never publishes an OTA or merges main; physical installation remains separate.",
   "selectionRationale": "One independent exact-source candidate establishes compile and regression compatibility without whole-merging source branch history, overwriting signed staging mirror changes, duplicating routes or modifying code already fixed in main. The source is a readiness candidate, not a deployment artifact. Comment UI repair is user-requested and compatible with unchanged comment RPC authorization. The read-only ADB verifier measures installed signed staging APK parity without touching production. Compile-only CI resolves an otherwise skipped Android RC verification gap.",
   "alternativeApproaches": [
     "Independently merge #783 and #784 sequentially into main before cross-feature verification (rejected: risks automatic release triggers and unverified physical Android behavior).",
@@ -58,7 +58,8 @@
     "Public Wall comment text recovery uses Expo SecureStore, bounded TTL/length, owner checks and serialized writes. No media URI, mention identity, reply relationship, private post body, token or financial data is persisted.",
     "Original in-memory comment media/mention/reply recovery, scoped workspace authorization, confirmed posting RPCs, ads and active video playback remain unchanged.",
     "Existing Gboard ACTION_SEND share-to-exact-comment fallback remains functional; native rich content must never silently be declared supported by a JS-only OTA or reused incompatible APK.",
-    "Marites horizontal rail now bounds mounted photo/video cards while keeping the same 72h source rows, stable story IDs, tap/comment menu, focus/overlay and fullscreen sound; Android clipping remains disabled to protect fast-scroll image display."
+    "Marites horizontal rail now bounds mounted photo/video cards while keeping the same 72h source rows, stable story IDs, tap/comment menu, focus/overlay and fullscreen sound; Android clipping remains disabled to protect fast-scroll image display.",
+    "Signed staging QA APK is a private tester artifact only, versionCode remote-incremented on staging package; no Expo OTA, production/web/Play publication and no changes to native interfaces or runtime."
   ],
   "acceptanceChecks": [
     "All 53 non-manifest source paths originated from their exact Navigation and Wall DEV heads, with only one compatibility adaptation in the Navigation ads regression test to read the integrated scope. No runtime source overlap or file content pick.",
@@ -76,7 +77,8 @@
     "Leftward horizontal swipe requires a deliberate >=72dp motion with <=30dp vertical drift; existing visible More, tap and long-press remain authoritative and scroll gestures must not be stolen.",
     "Even a fully marked 21/21 checklist cannot bypass a missing signed installed Android IME commitContent GIF attestation: prepublish and postpublish require a real native IME proof URL and true capability flag; ACTION_SEND alone is insufficient.",
     "Marites horizontal rail mounts bounded viewport cards rather than all 72h stories; no white tiles, lost cards, delayed inline play, incorrect comments, or AdMob change under slow/fast Android scrolling.",
-    "New phased Infinix build9 evidence includes a restart and crash-hint delta, so memory stability remains NOT accepted until paired timestamped Android exit reason and controlled Android RC retest."
+    "New phased Infinix build9 evidence includes a restart and crash-hint delta, so memory stability remains NOT accepted until paired timestamped Android exit reason and controlled Android RC retest.",
+    "An exact-branch one-time signed staging QA APK build must pass source and Android export checks, use preview staging credentials, independently download the signed APK bytes and record hash/URL; not claim app installed, IME native handling, memory recovery or OTA readiness."
   ],
   "regressionTests": [
     "tests/navigation-v2-ads-preservation.test.mjs",
@@ -100,7 +102,8 @@
     "tests/staging-apk-device-attestation-20261113.test.mjs",
     "tests/navigation-v2-searchable-help-offline-20261113.test.mjs",
     "tests/navigation-v2-draft-recovery-back-20261113.test.mjs",
-    "tests/navigation-v2-swipe-accessible-20261113.test.mjs"
+    "tests/navigation-v2-swipe-accessible-20261113.test.mjs",
+    "tests/staging-nav2-qa-apk-release-20261113.test.mjs"
   ],
   "allowedPaths": [
     ".github/workflows/navigation-v2-staging-ota.yml",
@@ -171,7 +174,9 @@
     "tests/navigation-v2-searchable-help-offline-20261113.test.mjs",
     "tests/navigation-v2-draft-recovery-back-20261113.test.mjs",
     "src/lib/buklodNavSwipe.ts",
-    "tests/navigation-v2-swipe-accessible-20261113.test.mjs"
+    "tests/navigation-v2-swipe-accessible-20261113.test.mjs",
+    ".github/workflows/buklod-nav2-staging-qa-apk-20261113.yml",
+    "tests/staging-nav2-qa-apk-release-20261113.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -226,7 +231,8 @@
       ],
       "tests": [
         "tests/navigation-v2-staging-release.test.mjs",
-        "tests/staging-apk-device-attestation-20261113.test.mjs"
+        "tests/staging-apk-device-attestation-20261113.test.mjs",
+        "tests/staging-nav2-qa-apk-release-20261113.test.mjs"
       ]
     },
     {
