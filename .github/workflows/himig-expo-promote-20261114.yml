@@ -1,0 +1,110 @@
+name: Himig Studio - Promote Verified Expo RC
+
+on:
+  push:
+    branches:
+      - himig/expo-web-hosting-20261114
+    paths:
+      - '.github/workflows/himig-expo-promote-20261114.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: himig-expo-production-alias
+  cancel-in-progress: false
+
+jobs:
+  promote-exact-verified-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EAS_NO_VCS: '1'
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      VERIFIED_PREVIEW_ID: gme0swwxhe
+      VERIFIED_PREVIEW_URL: https://himig-studio--gme0swwxhe.expo.app
+      PREVIOUS_PROD_ID: n5lpq7m8aw
+      PRODUCTION_URL: https://himig-studio.expo.app
+    steps:
+      - name: Checkout isolated Himig branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: checkout-buklod
+      - name: Prepare standalone Expo project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p himig-studio
+          cp -a checkout-buklod/himig-studio/. himig-studio/
+          node - <<'NODE'
+          const cfg=require('./himig-studio/app.json').expo;
+          if(cfg.owner!=='faust_0612'||cfg.slug!=='himig-studio'||cfg.extra?.eas?.projectId!=='05e7dab7-a7fd-490c-af52-a54a3609ec35')throw Error('Expo project identity mismatch');
+          if(cfg.web.output!=='server')throw Error('This RC must contain server API');
+          console.log('EXACT_HIMIG_PROJECT=PASS');
+          NODE
+      - name: Verify immutable RC and untouched production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          get() { curl -fLsS --retry 3 --max-time 25 "$1" -o "$2"; }
+          get "$VERIFIED_PREVIEW_URL/" "$RUNNER_TEMP/rc.html"
+          get "$VERIFIED_PREVIEW_URL/audio-worker.js" "$RUNNER_TEMP/rc-worker.js"
+          get "$VERIFIED_PREVIEW_URL/api/ai/status" "$RUNNER_TEMP/rc-status.json"
+          get "$PRODUCTION_URL/" "$RUNNER_TEMP/old-prod.html"
+          get "https://himig-studio--$PREVIOUS_PROD_ID.expo.app/" "$RUNNER_TEMP/known-prev.html"\n          get "$PRODUCTION_URL/audio-worker.js" "$RUNNER_TEMP/old-worker.js"\n          get "https://himig-studio--$PREVIOUS_PROD_ID.expo.app/audio-worker.js" "$RUNNER_TEMP/known-prev-worker.js"
+          sha256sum "$RUNNER_TEMP/rc-worker.js"
+          node - <<'NODE'
+          const fs=require('fs');
+          const p=process.env.RUNNER_TEMP;
+          const x=JSON.parse(fs.readFileSync(p+'/rc-status.json','utf8'));
+          const rc=fs.readFileSync(p+'/rc.html','utf8');
+          const old=fs.readFileSync(p+'/old-prod.html','utf8');
+          const known=fs.readFileSync(p+'/known-prev.html','utf8');
+          if(!rc.includes('Himig Studio'))throw Error('RC is not Himig Studio');
+          if(!x||x.provider!=='fal-ai/sam-audio/separate'||x.ready!==false)throw Error('Unexpected active billing or wrong provider');
+          if(!old.includes('Himig Studio')||!known.includes('Himig Studio'))throw Error('Baseline is not Himig Studio');
+          if(!fs.readFileSync(p+'/old-worker.js').equals(fs.readFileSync(p+'/known-prev-worker.js')))throw Error('Production baseline drift since last verified release; do not overwrite');
+          console.log('RC_HTTP_HTML_WORKER_AI_STATUS=PASS; PROD_BASELINE=RECONCILED');
+          NODE
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve project config for EAS CLI
+        working-directory: himig-studio
+        run: npm install --no-audit --no-fund
+      - name: Promote EXACT existing RC ID without rebuilding
+        working-directory: himig-studio
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx --yes eas-cli@27.9.0 deploy:alias --prod --id="$VERIFIED_PREVIEW_ID" --non-interactive
+          echo "PROMOTED_DEPLOYMENT_ID=$VERIFIED_PREVIEW_ID"
+      - name: Independently verify production alias and worker identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 8); do
+            if curl -fLsS --max-time 20 "$PRODUCTION_URL/audio-worker.js" -o "$RUNNER_TEMP/live-worker.js" && cmp -s "$RUNNER_TEMP/live-worker.js" "$RUNNER_TEMP/rc-worker.js"; then break; fi
+            if [ "$i" = 8 ]; then echo 'PROD_WORKER_MISMATCH'; exit 1; fi
+            sleep 5
+          done
+          curl -fLsS --retry 3 --max-time 25 "$PRODUCTION_URL/" -o "$RUNNER_TEMP/live.html"
+          curl -fLsS --retry 3 --max-time 25 "$PRODUCTION_URL/api/ai/status" -o "$RUNNER_TEMP/live-status.json"
+          node - <<'NODE'
+          const fs=require('fs');
+          const path=process.env.RUNNER_TEMP;
+          const live=fs.readFileSync(path+'/live.html','utf8');
+          const status=JSON.parse(fs.readFileSync(path+'/live-status.json','utf8'));
+          if(!live.includes('Himig Studio'))throw Error('Production identity mismatch');
+          if(status.provider!=='fal-ai/sam-audio/separate'||status.ready!==false)throw Error('Wrong AI capability/billing state');
+          console.log('EXPO_PRODUCTION_EXACT_RC_VERIFIED=PASS');
+          console.log('STUDIO_MASTER_AND_REAL_ANDROID_LISTENING=NOT_VERIFIED');
+          NODE
+      - name: Explicit isolation report
+        if: always()
+        run: echo 'No BUKLOD Main, Android OTA, Supabase or app production changed.'
