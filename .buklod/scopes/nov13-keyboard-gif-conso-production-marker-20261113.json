@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "releaseMode": "reviewed-production-marker",
+  "objective": "Publish the verified BUKLOD Main consolidated Android OTA and Expo Hosting Web including the seamless Android keyboard GIF comment restoration for Public Wall, Cluster and Organization; preserve all current main features and exact runtime compatibility.",
+  "baseRef": "a2b5fef9e8529c0098b7f6ad6efb542a3aa71353",
+  "sourceMergeSha": "a2b5fef9e8529c0098b7f6ad6efb542a3aa71353",
+  "productionBaselineEvidence": "On 2026-11-13 GitHub main a2b5fef9e8529c0098b7f6ad6efb542a3aa71353 is exact source-tree match 14302b82c29eb4b2bee473fd70a21040669b60d5 to reviewed PR #778 head 18f0f235960f7962638612ebc34b733280cb4ffa. Required Engineering 43354238907, Performance 43354238905, Main Integration 43354238901, compiled Android and Web 43354238892 all SUCCESS. Nonpublishing compile exported Android 263 and Web 255 files and verified SHA, Android package org.mzbministry.buklod versionCode 30, Expo runtime 1.3.2 and EAS project 23dad7d0-389a-406e-8dec-08965dab85d8. Production OTA update id and live served web verification are NOT YET present.",
+  "chosenApproach": "Review metadata-only release marker and test, then merge only onto unchanged verified Main using BUKLOD_CONSOLIDATED_PROD_20261108 prefix. This triggers the existing canonical production Android OTA and Expo Hosting publisher jobs, which must independently verify frozen source, production environment and exact publication; no manual EAS command or Vercel.",
+  "selectionRationale": "Main is source-identical to the fully compiled RC; one canonical rollout protects existing work and prevents publishing a branch without RC evidence. The marker changes no runtime source, backend schema or native build dependency.",
+  "alternativeApproaches": [
+    "Publish immediately from the PR branch: rejected because production branches, source parity and mandatory release gates are not satisfied there.",
+    "Rebuild a new native APK or add a Gboard native module: rejected because the fix uses existing sharing APIs and runtime 1.3.2.",
+    "Use a source-specific metadata-only marker and existing exact-main release workflows: selected."
+  ],
+  "releasePrefix": "BUKLOD_CONSOLIDATED_PROD_20261108",
+  "target": {
+    "app": "BUKLOD Main",
+    "androidPackage": "org.mzbministry.buklod",
+    "androidVersionCode": 30,
+    "runtimeVersion": "1.3.2",
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "channel": "production",
+    "web": "Expo Hosting"
+  },
+  "rc": {
+    "sourceHead": "18f0f235960f7962638612ebc34b733280cb4ffa",
+    "sourceMergedToMain": "a2b5fef9e8529c0098b7f6ad6efb542a3aa71353",
+    "sourceTreeSha": "14302b82c29eb4b2bee473fd70a21040669b60d5",
+    "compiledAndroidWebRun": 43354238892,
+    "androidBundleFiles": 263,
+    "webBundleFiles": 255,
+    "requiredChecksPassed": 4,
+    "sourceQA": {
+      "engineering": 43354238907,
+      "performance": 43354238905,
+      "mainIntegration": 43354238901,
+      "compiled": 43354238892
+    }
+  },
+  "riskAreas": [
+    "release-identity",
+    "app-runtime",
+    "navigation-scroll",
+    "faith-cluster",
+    "media"
+  ],
+  "acceptanceChecks": [
+    "Only a new release metadata manifest and focused test change; compiled application source, native binary identity, AdMob, Wall video, private scope permissions and all existing main features remain unchanged.",
+    "Four required exact-head CI checks success with compiled Android and Web export; verified RC source tree equals current Main source tree before marker merge.",
+    "Android package org.mzbministry.buklod runtime 1.3.2, code 30, EAS project 23dad7d0-389a-406e-8dec-08965dab85d8, channel production, Expo Hosting Web remain unchanged.",
+    "Release runs only through protected explicit prefix and canonical production publishers with source freeze, env checks, published Android update ID, and serving Web evidence.",
+    "No Vercel-based production app release, no Supabase migration, no Play AAB and no new native module.",
+    "Device hands-on validation is not verified; original SYS-500 RENDER_3E577D35 error signature is recorded but its underlying exception cannot be proven fixed from source-only tests.",
+    "Never claim production verified unless Android publication evidence and web serving readback match exact source and target runtime."
+  ],
+  "preserveBehaviors": [
+    "Previously functional BUKLOD Home, Cluster, Wall, Connect, Profile and offline features remain in the compiled source.",
+    "Existing Community Wall, Marites, Reels video/audio controls, consent-gated ads, quick posts and membership-protected scope media stay unchanged.",
+    "Manual GIF Send, existing public/scoped comment RPC, notification/seen rules, account isolation and RLS remain intact.",
+    "No changes to Quiz, Classroom, Kingdom, finances, point calculation, payout or official System Admin security.",
+    "Retired IGPAT remains absent from the public navigation and creation experience."
+  ],
+  "regressionTests": [
+    "tests/nov13-keyboard-gif-conso-production-marker-20261113.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov13-keyboard-gif-conso-production-marker-20261113.json",
+    "tests/nov13-keyboard-gif-conso-production-marker-20261113.test.mjs"
+  ],
+  "lockedFeatureChanges": [],
+  "releaseStatus": "RC_COMPILED_VERIFIED__PRODUCTION_PUBLISH_NOT_YET_RUN"
+}

@@ -11,13 +11,15 @@ const scoped = read('src/components/BuklodExclusiveScopeCommunity.tsx');
 const staging = read('src/lib/buklodCommentGifShare.ts');
 test('shared GIF selects a comment target instead of root post', () => {
   assert.match(wall, /pendingSharedCommentGif187A/);
-  assert.match(wall, /GIF ready for comment/);
+  assert.match(wall, /getActiveCommentGifTarget/);
+  assert.match(wall, /reopenCommentWithGif/);
+  assert.doesNotMatch(wall, /Alert\.alert\('GIF ready for comment'/);
   assert.match(wall, /setCommentMedia\(attachGif/);
   assert.match(wall, /incomingShareSignature187A\.current = ''/);
   assert.match(wall, /GIF posting is not available in Community/);
 });
 test('phone GIF picker preserves animation and accepts local GIF', () => {
-  assert.match(picker, /preserveAnimation \? 1 : 0\.85/);
+  assert.match(picker, /quality: 1, \/\/ Avoid a second lossy picker encode/);
   assert.match(composer, /isPickedGif\(photo\) \? 'gif' : 'image'/);
   assert.match(composer, /Choose GIF from phone/);
   assert.match(wall, /initialMedia\?\.kind==='gif' && isLocalMediaUri/);
