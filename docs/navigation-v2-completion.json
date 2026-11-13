@@ -22,7 +22,7 @@
     {
       "id": "feature-inventory",
       "title": "Canonical route/feature inventory including disabled and role-restricted paths",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },
@@ -78,14 +78,14 @@
     {
       "id": "gesture-shortcuts",
       "title": "Long-press and swipe shortcuts with visible accessible alternatives",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "motion",
       "title": "Low-cost, reduced-motion-aware navigation and card transitions",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },
@@ -134,14 +134,14 @@
     {
       "id": "first-use-help",
       "title": "Dismissible contextual hints and separate searchable Help",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "scope-accessibility",
       "title": "Role-aware workspace identity, TalkBack, contrast, font and tap QA",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },
