@@ -32,7 +32,8 @@
     "Legacy regression checks reconciled with accepted Profile route relocation, non-square responsive Home tiles, distinct WAV earcons, question-aware search, compact theme UI.",
     "BSOC case-specific operator enters GPT diagnostic manually; never exfiltrates member evidence or secrets automatically.",
     "Profile renders bounded exact post cards to self, respects community post RLS and profile lock; no exposure to visitors.",
-    "Inline BSOC GPT invocation sends only allowlisted category/platform/version, explicit operator action, scoped permission plus server check and no automatic reply."
+    "Inline BSOC GPT invocation sends only allowlisted category/platform/version, explicit operator action, scoped permission plus server check and no automatic reply.",
+    "Reviewer report notifications link to exact approval via existing scope-authorized history RPC, with read-only metadata and separate private member reply. No unauthorized response reads/comments."
   ],
   "riskAreas": [
     "wall-media",
@@ -115,7 +116,10 @@
     "src/lib/buklodMemberProfile.ts",
     "src/app/member/[id].tsx",
     "src/components/BuklodProfilePostCards.tsx",
-    "tests/nov14-profile-post-cards.test.mjs"
+    "tests/nov14-profile-post-cards.test.mjs",
+    "src/lib/buklodFormationNotificationTarget.ts",
+    "src/app/scope/faith-monitoring/submission/[approvalId].tsx",
+    "tests/nov14-exact-formation-notifications.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
