@@ -23,3 +23,13 @@
 ## Rollback/ownership
 
 This branch is an immutable-source **candidate** only. No main merge, product backend writes, client install or paid build is performed by creating it. Keep the last verified production OTA and current installed staging baseline unchanged. If the native/performance delta causes regression, omit the 4 stability blobs and reevaluate root cause rather than changing the active video/AdMob engine. If Navigation scope changes in its original PR, refresh this DEV candidate from latest verified source and rerun CI on exact SHA. Never silently merge a stale PR or treat the draft candidate as a frozen passing RC.
+
+
+## Nov13 staging consolidation continuation (unreleased)
+
+- The existing merged live baseline retains the keyboard GIF `ACTION_SEND` return-to-original-composer repair from PR #778. **Native Android IME `commitContent` interception has not been established by this source-only change.** If the explicit in-place IME UX cannot be demonstrated in the existing signed APK, a new staging APK/native integration is required; no JS-only OTA claim.
+- Add the exact reviewed Android comment action UI and test from [PR #786](https://github.com/faust-0612/BUKLOD-Rork/pull/786): owner/moderator Edit/Delete via existing permission-checked RPC, accessible More menu and retry feedback. No database changes.
+- Add the exact read-only ADB staging APK equality verifier and tests from [PR #789](https://github.com/faust-0612/BUKLOD-Rork/pull/789). It checks *native APK bytes only* against the independently downloaded signed artifact. It **cannot** establish OTA update ID, preview backend safety or manual navigation/accessibility acceptance.
+- New isolated `navigation-v2-staging-compile-qa.yml` compiles the Android bundle under staging identity only on this draft candidate; `navigation-v2-staging-ota.yml` additionally compiles Android and checks the integrated comment, APK, GIF, Wall/Marites and navigation tests **before** any optional manually approved staging publish. No production/web triggers were introduced.
+- The 21-item checklist remains evidence-gated; never convert source CI into device acceptance. Before any staging OTA, verify current live/main source, installed signed staging build, EAS branch/runtime/channel, preview backend behavior, physical keyboard and 15/30/60-minute video/AdMob/scroll regression on Infinix. Preserve DEV→RC→staging-only; owner approval is a separate gate for web/production.
+- **Current handoff: staging-only OTA SOURCE PREPARED, publication and installed RC unverified; production remains unchanged.**
