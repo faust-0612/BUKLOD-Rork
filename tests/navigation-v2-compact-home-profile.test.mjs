@@ -18,7 +18,8 @@ test('Profile Quick Actions are all visible without offscreen carousel and prese
   const strip = s.slice(start,end);
   assert.match(strip, /<View style=\{styles\.quickRow\}>/);
   assert.doesNotMatch(strip, /horizontal|snapToInterval|ScrollView/);
-  assert.match(strip, /allowFontScaling numberOfLines=\{2\}/);
+  assert.match(strip, /allowFontScaling style=\{styles\.quickLabel\}/);
+  assert.match(strip, /style=\{\{ width: tileWidth, maxWidth: 180 \}\}/);
   assert.match(s, /quickRow:\s*\{[\s\S]*?flexWrap: 'wrap'/);
   assert.match(s, /label: 'Live Support'/);
   assert.match(s, /label: 'Attendance QR'/);
