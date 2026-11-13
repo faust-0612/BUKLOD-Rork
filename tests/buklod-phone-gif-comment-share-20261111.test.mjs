@@ -19,7 +19,7 @@ test('shared GIF selects a comment target instead of root post', () => {
   assert.match(wall, /GIF posting is not available in Community/);
 });
 test('phone GIF picker preserves animation and accepts local GIF', () => {
-  assert.match(picker, /preserveAnimation \? 1 : 0\.85/);
+  assert.match(picker, /quality: 1, \/\/ Avoid a second lossy picker encode/);
   assert.match(composer, /isPickedGif\(photo\) \? 'gif' : 'image'/);
   assert.match(composer, /Choose GIF from phone/);
   assert.match(wall, /initialMedia\?\.kind==='gif' && isLocalMediaUri/);

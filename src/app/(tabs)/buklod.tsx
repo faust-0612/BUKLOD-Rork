@@ -3664,7 +3664,7 @@ const load=useCallback(async(options?:{
   async(post:any)=>{
    const postId=String(post.id);
    const accountId=String(user?.id??'');
-   if(accountId && postId)void rememberActiveCommentGifTarget(accountId,postId);
+   if(accountId && postId)void rememberActiveCommentGifTarget(accountId,postId).catch(()=>undefined);
    setSharedGifAwaitingTarget(false);
    const saved=commentDraftsRef.current.get(String(user?.id??'')+':'+postId);
    const pendingGif=pendingSharedCommentGif187A.current;
@@ -3691,7 +3691,7 @@ const load=useCallback(async(options?:{
  const closeComments=
   ()=>{
    const postId=activeCommentPostIdRef.current;
-   if(postId)void forgetActiveCommentGifTarget(String(user?.id??''),postId);
+   if(postId)void forgetActiveCommentGifTarget(String(user?.id??''),postId).catch(()=>undefined);
    if(postId){
     const key=String(user?.id??'')+':'+postId;
     if(buklodCommentHasSendableContent(commentText,commentMedia)){
