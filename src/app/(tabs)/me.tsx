@@ -1722,6 +1722,24 @@ export default function MeScreen() {
           </ProfileMotionCover>
         )}
 
+        {/* BUKLOD_NAV_V2_PERMANENT_SETTINGS: always visible, independent of customizable sections. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+          accessibilityHint="Open account, privacy, notifications and app preferences"
+          hitSlop={BUKLOD_HIT_SLOP_TIGHT}
+          onPress={() => router.push('/settings' as any)}
+          style={[
+            styles.profileMenuBtn,
+            styles.profileSettingsBtn,
+            {
+              backgroundColor: withAlpha(theme.surface, hasCoverImage ? 0.82 : 0.9),
+              borderColor: withAlpha(theme.border, 0.75),
+            },
+          ]}
+        >
+          <MaterialCommunityIcons name="cog-outline" size={23} color={identityPaint.color} />
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Profile options"
@@ -2167,6 +2185,7 @@ function createMeStyles(
       alignItems: 'center',
       justifyContent: 'center',
     },
+    profileSettingsBtn: { right: 64 },
     profileMenuBackdrop: {
       flex: 1,
       justifyContent: 'flex-start',
