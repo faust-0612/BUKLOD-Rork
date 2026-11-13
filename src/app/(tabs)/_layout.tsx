@@ -1,6 +1,7 @@
 import { buklodDashboardRoute, isBuklodDashboardScrollCompact, subscribeBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
+import BuklodNavigationSideMenu from '@/components/BuklodNavigationSideMenu';
 import {
   Redirect,
   Stack,
@@ -57,6 +58,7 @@ function SwipeDashboardHeader() {
 
   const { theme } = useBuklodTheme();
   const { unreadCount, refreshUnread } = useNotifications();
+  const [navigationMenuOpen, setNavigationMenuOpen] = useState(false);
   const route = buklodDashboardRoute(pathname);
   const [scrollCompact, setScrollCompact] = useState(() => isBuklodDashboardScrollCompact(route));
   useEffect(() => {
@@ -126,24 +128,33 @@ function SwipeDashboardHeader() {
   }
 
   return (
+    <>
     <View
       style={{
         paddingTop: insets.top,
-        minHeight: (scrollCompact ? 42 : 52) + insets.top,
-        backgroundColor: theme.headerSurface,
+        minHeight: (scrollCompact ? 48 : 56) + insets.top,
+        backgroundColor: publicMinimal ? '#0B2048' : theme.headerSurface,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingLeft: 12,
+        paddingLeft: publicMinimal ? 4 : 12,
         borderBottomWidth: 1,
-        borderBottomColor: theme.border,
+        borderBottomColor: publicMinimal ? '#1D3D70' : theme.border,
       }}
     >
-      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+        {publicMinimal && (
+          <Pressable accessibilityRole="button" accessibilityLabel="Open navigation menu"
+            accessibilityHint="Shows BUKLOD destinations" onPress={() => setNavigationMenuOpen(true)}
+            style={({ pressed }) => ({ minWidth: 48, minHeight: 48, borderRadius: 12,
+              justifyContent: 'center', alignItems: 'center', opacity: pressed ? 0.75 : 1 })}>
+            <MaterialCommunityIcons name="menu" size={26} color="#FFFFFF" />
+          </Pressable>
+        )}
         <View
           accessibilityLabel="BUKLOD Green B logo"
           style={{width:scrollCompact?31:37,height:scrollCompact?31:37,
-            borderRadius:10,overflow:'hidden',backgroundColor:theme.headerSurface}}>
+            borderRadius:10,overflow:'hidden',backgroundColor:publicMinimal?'#0B2048':theme.headerSurface}}>
           <Image
             source={require('../../../assets/release/buklod-main-canonical.png')}
             resizeMode="contain"
@@ -155,9 +166,9 @@ function SwipeDashboardHeader() {
           />
         </View>
         <View style={{flex:1,minWidth:0}}>
-          <Text numberOfLines={1} style={{color:theme.accent,fontSize:scrollCompact?22:25,
+          <Text numberOfLines={1} style={{color:publicMinimal?'#FFFFFF':theme.accent,fontSize:scrollCompact?20:23,
             lineHeight:scrollCompact?26:29,fontWeight:'900'}}>{title}</Text>
-          {!scrollCompact ? <Text numberOfLines={1} style={{color:theme.textMuted,fontSize:8,
+          {!scrollCompact ? <Text numberOfLines={1} style={{color:publicMinimal?'#D6E5FF':theme.textMuted,fontSize:10,
             fontWeight:'800',letterSpacing:0.8}}>KOMUNIDAD · KAIBIGAN · PAGLAGO</Text> : null}
         </View>
       </View>
@@ -180,6 +191,12 @@ function SwipeDashboardHeader() {
 
         {publicMinimal ? (
           <>
+            <Pressable accessibilityRole="button" accessibilityLabel="Find a BUKLOD feature"
+              accessibilityHint="Open Home's offline feature search" onPress={() => router.navigate('/hub' as any)}
+              style={({ pressed }) => ({ minWidth: 46, minHeight: 48, borderRadius: 13,
+                alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.72 : 1 })}>
+              <MaterialCommunityIcons name="magnify" size={25} color="#FFFFFF" />
+            </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
@@ -196,19 +213,19 @@ function SwipeDashboardHeader() {
               }
               style={({ pressed }) => ({
                 position: 'relative',
-                width: 38,
-                height: 38,
-                borderRadius: 19,
+                width: 46,
+                height: 48,
+                borderRadius: 14,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: theme.surface,
+                backgroundColor: pressed ? 'rgba(255,255,255,0.14)' : 'transparent',
                 opacity: pressed ? 0.72 : 1,
               })}
             >
               <MaterialCommunityIcons
                 name="bell-outline"
                 size={23}
-                color={theme.textPrimary}
+                color="#FFFFFF"
               />
 
               {unreadCount > 0 ? (
@@ -226,7 +243,7 @@ function SwipeDashboardHeader() {
                     justifyContent: 'center',
                     backgroundColor: theme.danger,
                     borderWidth: 2,
-                    borderColor: theme.headerSurface,
+                    borderColor: '#0B2048',
                   }}
                 >
                   <Text
@@ -246,6 +263,8 @@ function SwipeDashboardHeader() {
         ) : null}
       </View>
     </View>
+    <BuklodNavigationSideMenu visible={navigationMenuOpen} onClose={() => setNavigationMenuOpen(false)} />
+    </>
   );
 }
 
