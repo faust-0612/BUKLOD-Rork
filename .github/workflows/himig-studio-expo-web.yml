@@ -63,12 +63,15 @@ jobs:
           const manifest=require('./package.json');
           if(cfg.slug!=='himig-studio'||cfg.name!=='Himig Studio'||cfg.web?.output!=='static')throw Error('Not the standalone Himig Expo app');
           if(!manifest.dependencies?.['expo-router'])throw Error('Expo Router required');
-          if(['23dad7d0-389a-406e-8dec-08965dab85d8','55d08013-cf5c-4d4a-9ecb-8d9e8e21e62c'].includes(cfg.extra?.eas?.projectId))throw Error('Protected BUKLOD project cannot be used');
+          if(cfg.extra?.eas?.projectId!=='05e7dab7-a7fd-490c-af52-a54a3609ec35')throw Error('Himig EAS project identity drift');
           console.log('HIMIG_IDENTITY=PASS, BUKLOD_PROJECTS=PROTECTED');
           NODE
 
       - name: Compile and type-check Expo Web
         run: npm run check
+
+      - name: Verify upload scroll and Expo project isolation
+        run: node --test tests/mobile-upload.test.cjs
 
       - name: Verify actual accompaniment on short and 3m51s audio
         run: node verify-worker.cjs
@@ -90,7 +93,7 @@ jobs:
           const cfg=JSON.parse(fs.readFileSync('app.json','utf8')).expo;
           const id=cfg.extra?.eas?.projectId;
           if(cfg.slug!=='himig-studio'||!id)throw Error('Missing unique Himig EAS project identity');
-          if(['23dad7d0-389a-406e-8dec-08965dab85d8','55d08013-cf5c-4d4a-9ecb-8d9e8e21e62c'].includes(id))throw Error('REFUSE BUKLOD project mutation');
+          if(id!=='05e7dab7-a7fd-490c-af52-a54a3609ec35')throw Error('REFUSE EAS project mismatch');
           console.log('HIMIG_EXPO_PROJECT_ID='+id);
           NODE
 

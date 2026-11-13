@@ -165,7 +165,7 @@ export default function App() {
     const ctx = new AudioContext();
     try {
       const bytes = await file.arrayBuffer();
-      return await ctx.decodeAudioData(bytes.slice(0));
+      return await ctx.decodeAudioData(bytes);
     } finally {
       void ctx.close();
     }
@@ -198,11 +198,26 @@ export default function App() {
       );
       const mono = new Float32Array(count);
       let globalPeak = 0;
-      for (let i = 0; i < count; i++) {
-        let sample = 0;
-        for (const channel of channels) sample += channel[i] / channels.length;
-        mono[i] = sample;
-        globalPeak = Math.max(globalPeak, Math.abs(sample));
+      // Cooperative chunks prevent long uninterruptible loops on Android.
+      // Do not auto-render during selection: users must be able to scroll and cancel.
+      setRenderMessage('Preparing recording · keep scrolling while audio is processed');
+      const prepareChunk = 32768;
+      for (let offset = 0; offset < count; offset += prepareChunk) {
+        const stop = Math.min(count, offset + prepareChunk);
+        for (let i = offset; i < stop; i++) {
+          let sample = 0;
+          for (const channel of channels) sample += channel[i] / channels.length;
+          mono[i] = sample;
+          const abs = Math.abs(sample);
+          if (abs > globalPeak) globalPeak = abs;
+        }
+        if (ticket !== activeRef.current) throw new Error('Processing cancelled.');
+        if (stop < count) {
+          if (offset % (prepareChunk * 8) === 0) {
+            setRenderMessage('Preparing recording ' + Math.round(100 * stop / count) + '%');
+          }
+          await new Promise<void>(resolve => window.setTimeout(resolve, 0));
+        }
       }
       if (globalPeak < 0.00002)
         throw new Error(
@@ -401,7 +416,7 @@ export default function App() {
         <div>
           <span className="overline">ORIGINAL MUSIC WORKSPACE</span>
           <h1>Himig Studio</h1>
-          <p>Preserve your original song, add a full instrumental arrangement, and mix your own voice.</p>
+          <p>Prototype arrangement workspace. Professional vocal reconstruction and mastering are not implemented yet.</p>
         </div>
       </header>
       <div className="two-col">
@@ -422,7 +437,7 @@ export default function App() {
             rows={5}
           />
           <div className="upload-grid">
-            <label className="upload">
+            <label className="upload" htmlFor="himig-source-audio">
               {' '}
               <FileAudio size={20} />
               <strong>Draft vocal recording</strong>
@@ -433,6 +448,8 @@ export default function App() {
               </small>
               <input
                 aria-label="Draft vocal recording"
+                id="himig-source-audio"
+                className="upload-file-input"
                 type="file"
                 accept="audio/*,.m4a"
                 onChange={e => {
@@ -442,7 +459,7 @@ export default function App() {
                 }}
               />
             </label>
-            <label className="upload">
+            <label className="upload" htmlFor="himig-backing-audio">
               <Music2 size={20} />
               <strong>Instrumental (optional)</strong>
               <small>
@@ -452,6 +469,8 @@ export default function App() {
               </small>
               <input
                 aria-label="Optional instrumental backing track"
+                id="himig-backing-audio"
+                className="upload-file-input"
                 type="file"
                 accept="audio/*,.m4a"
                 onChange={e => {

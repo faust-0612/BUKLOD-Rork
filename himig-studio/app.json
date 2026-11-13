@@ -17,6 +17,12 @@
     "plugins": [
       "expo-router"
     ],
-    "scheme": "himigstudio"
+    "scheme": "himigstudio",
+    "owner": "faust_0612",
+    "extra": {
+      "eas": {
+        "projectId": "05e7dab7-a7fd-490c-af52-a54a3609ec35"
+      }
+    }
   }
 }
