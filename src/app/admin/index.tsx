@@ -565,6 +565,12 @@ export default function AdminDashboard() {
                 path="/admin/music-library"
               />
               <AdminRow
+                icon="book-search-outline"
+                title="SALIKSIK Knowledge Vault"
+                subtitle="Private manuscript uploads, AI investigation drafts and verified publication"
+                path="/admin/saliksik-library"
+              />
+              <AdminRow
                 icon="script-text-outline"
                 title="Kabihasnang Ligaw"
                 subtitle="Story management, preview, schedule, and pause"
