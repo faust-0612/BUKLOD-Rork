@@ -22,7 +22,8 @@
     "Focused preservation/regression tests and TypeScript pass.",
     "Android export passes at final source, package/runtime/channel remain compatible.",
     "All eight real Android screenshots must exist and visually pass before a release; currently NOT VERIFIED.",
-    "Role-sensitive runtime interactions and signed binary/backend parity must pass before staging publish."
+    "Role-sensitive runtime interactions and signed binary/backend parity must pass before staging publish.",
+    "Nonpublishing CI browser screenshots are diagnostics only; do not count redirects or web-only images as Android acceptance."
   ],
   "riskAreas": [
     "wall-media",
@@ -62,7 +63,8 @@
     "tests/community-wall-post-card-google-pattern.test.mjs",
     "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
     "tests/navigation-v2-settings-route.test.mjs",
-    ".buklod/scopes/full-visual-transformation-20261113.json"
+    ".buklod/scopes/full-visual-transformation-20261113.json",
+    ".github/workflows/buklod-full-visual-web-smoke-20261113.yml"
   ],
   "lockedFeatureChanges": [
     {
@@ -117,5 +119,5 @@
     }
   ],
   "releaseMode": "dev-only-blocked-visual-acceptance",
-  "releaseStatus": "BLOCKED BEFORE RELEASE: no actual screenshots or emulator verification; no OTA, main, web or production publication."
+  "releaseStatus": "BLOCKED BEFORE RELEASE: attempting isolated GitHub-hosted diagnostic browser render, NOT Android acceptance; no OTA, main, web or production publication."
 }
