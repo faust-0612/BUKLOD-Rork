@@ -51,5 +51,8 @@ test('planning cannot claim installed production/staging success or change prote
   assert.match(doc, /205/);
   assert.match(doc, /PR #783/);
   assert.match(doc, /PR #784/);
-  assert.match(doc, /PR #777/);
+  assert.match(doc, /PR #780/);
+  assert.ok(data.existingPrs.includes(780));
+  assert.equal(data.releaseIdentity.stagingSignedApkArtifact.signedApkDownloadedAndZipValidated, true);
+  assert.equal(data.releaseIdentity.stagingSignedApkArtifact.installedOnDeviceVerified, false);
 });

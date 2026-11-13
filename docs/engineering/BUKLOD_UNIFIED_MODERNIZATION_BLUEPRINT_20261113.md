@@ -18,10 +18,10 @@ related_issues: [781, 782]
 
 - Inspected canonical main: **9f412afd71b74e41995a3a1a63e05e72f78b6e39**. Its three-file delta from prior published-source main is staging-mirror workflow/contract/test only, *not a product update*.
 - Publisher-side Android production publication: source **a43e1813d62a151e8294a52989a80fe21b36057c**, runtime **1.3.2**, channel **production**, Expo update **01a1d2d6-bae3-74df-bbf4-2bdd9df35215**, run https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43355306642 (2026-11-13 02:57 UTC). Web publisher-side workflow 43355306645. **Neither proves physical handset delivery.**
-- Main's newly merged staging-mirror fix corrects the staging signed APK artifact URL parser and enforces source parity to the above published source. **No signed downloaded/installed staging APK was verified during this planning task.**
+- Main's staging-mirror fix has now completed signed APK generation, download and APK-byte validation: [run 43378875900](https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43378875900), [real APK artifact 14016812505](https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43378875900/artifacts/14016812505), EAS build `9c0eb308-9a8e-4f34-a5f4-798ae556b7b0`, package `org.mzbministry.buklod.staging`, staging versionCode 9 and runtime `1.3.2`. **No physical handset installation, preview backend behavior or source/update readback was verified by this workflow.**
 - **[PR #783](https://github.com/faust-0612/BUKLOD-Rork/pull/783)**: existing Navigation V2 DEV, 44 changed files, existing **21** checklist entries, **0 independently verified**; currently green source CI, draft/unmerged; exact compiled Android RC and installed staging parity still absent. **Do not create another navigation shell/checklist.**
 - **[PR #784](https://github.com/faust-0612/BUKLOD-Rork/pull/784)**: Wall/Marites 96ms native measurement coalescing and active video priority, source CI green, draft/unmerged and **native crash effectiveness unproven**.
-- **[PR #777](https://github.com/faust-0612/BUKLOD-Rork/pull/777)**: SALIKSIK private manuscript vault, adaptive learning and audited human-reviewed Master, SQL/Node CI evidence, draft/unmerged, rollout OFF. **Existing SALIKSIK R2 is the only source of truth for this reward workflow.**
+- **[PR #780](https://github.com/faust-0612/BUKLOD-Rork/pull/780)** (supersedes unmerged closed #777): SALIKSIK private manuscript vault, adaptive learning and audited human-reviewed Master, SQL/Node CI evidence, draft/unmerged, rollout OFF. **Existing SALIKSIK R2 is the only source of truth for this reward workflow.**
 - Navigation [issue #781](https://github.com/faust-0612/BUKLOD-Rork/issues/781), HCI/crash [issue #782](https://github.com/faust-0612/BUKLOD-Rork/issues/782). Companion JSON: [30-reference crosswalk](./BUKLOD_UNIFIED_MODERNIZATION_MATRIX_20261113.json). Obsidian memory in private repository **faust-0612/BUKLOD-Engineering-Memory** (existing Oct 28 baseline there is historical/stale; never override newer evidence).
 
 ### Critical non-goals
@@ -41,18 +41,18 @@ The JSON crosswalk contains **30/30** individually numbered photo concepts, init
 | Navigation V2 | PR #783, docs/navigation-v2-completion.json, scripts/navigation-v2-staging-gate.mjs | Finish **its existing 21 items**, keep Settings gear, compact Home/Profile, bilingual local finder, accessible forms and safe drawers; no duplicate second redesign. |
 | Staging APK mirror | main 9f412afd, .github/workflows/buklod-staging-user-latest-main-apk-20261108.yml | Verify package, signing, runtime, channel, preview backend and installed green B; no stale branch merge. |
 | Wall/Marites | PR #784, buklod.tsx + BuklodMaritesBoard.tsx | Cherry-pick only evidence-supported safe delta, not new video engine/ad rewrite. Source green ≠ crash fixed. |
-| SALIKSIK | PR #777 + its authoritative blueprint, private source/SQL ledger | Reuse vault/source hashes/approval/205 points; optional retrieval adapter must not change rubric, payout, scopes or feature flag. |
+| SALIKSIK | PR #780 + its authoritative blueprint, private source/SQL ledger | Reuse vault/source hashes/approval/205 points; optional retrieval adapter must not change rubric, payout, scopes or feature flag. |
 | Existing AI | buklod-ai-validate-response, buklod-formation-auto-process, kl-generate-reading-quiz | Reuse server-grounded content and schema verification; new RAG retrieves approved exact revisions, not AI-supplied truth. |
 | Caching/jobs | offlineSyncQueue, offlineCache, buklodMediaUrl, avatar batching, notification DB dispatcher | Inventory and reuse before adding pgmq/outbox; safe, idempotent effects per job. |
 | Dashboard | admin/index, backend-capacity, priority-requests | Add source freshness, exact-build filters and linked operations to existing cards, not duplicate consoles. |
 
-**Reconciliation protocol:** refetch live source/actual current main; compare current PR heads and file overlap; keep newer equivalent main code; forward-port *only missing tested changes* to isolated DEV scopes; include V2 manifest, lockedFeatureChanges and meaningful regression tests. Do not blindly merge #777/#783/#784, especially if they touch same route/role/UI. Preserve immutable production history.
+**Reconciliation protocol:** refetch live source/actual current main; compare current PR heads and file overlap; keep newer equivalent main code; forward-port *only missing tested changes* to isolated DEV scopes; include V2 manifest, lockedFeatureChanges and meaningful regression tests. Do not blindly merge #780/#783/#784, especially if they touch same route/role/UI. Preserve immutable production history.
 
 ## 4. Execution waves, dependencies and acceptance
 
 ### W0 — Baseline / staging parity / conflict inventory — P0
 1. Independently capture installed live and staging Android package IDs, app versions, build numbers, Expo runtime/channel/update IDs/source and device OS. Production is org.mzbministry.buklod; staging is org.mzbministry.buklod.staging, preview EAS and staging-user channel. Publisher-side SHA is **not installed proof**.
-2. Verify main delta, latest verified RC, #783/#784/#777 exact file overlaps, backend feature flags, staging permissions and preview Firebase. Freeze staging signed APK only after artifact exists and package/signature/runtime are tested; keep data separation.
+2. Verify main delta, latest verified RC, #783/#784/#780 exact file overlaps, backend feature flags, staging permissions and preview Firebase. Freeze staging signed APK only after artifact exists and package/signature/runtime are tested; keep data separation.
 3. Capture **rolling 15/30/60-minute** exact-build baselines for OOM/ANR exits, PSS/Java/native heap, media decoders, scroll p95, upload/Connect latency, native AdMob request→fill→impression and backend errors. Do not combine 24h mixed releases.
 4. Create conflict-resolution ledger with decision KEEP/PORT/DEFER/REJECT and paths/tests/owner, not speculative broad rewrites.
 **Gate:** no false source parity; current installed staging build must be known before staging OTA; independent DEV work may continue while evidence is pending.
@@ -78,7 +78,7 @@ The JSON crosswalk contains **30/30** individually numbered photo concepts, init
 - Worker budget per scope, bounded concurrency, retry only transient failures with jitter, dead letter and manual replay audit. No points committed offline; no silent duplicate notifications or destructive retry.
 **Gate:** nonprod SQL/RLS tests for cross-account isolation, crash mid-job, expired lease, duplicate request, deadline, bad MIME, provider 429/503 and eventual durable recovery.
 
-### W3 — Approved document knowledge and SALIKSIK reuse — P1, PR #777 remains authority
+### W3 — Approved document knowledge and SALIKSIK reuse — P1, PR #780 remains authority
 - Preserve SALIKSIK original private DOCX/PDF/TXT, upload SHA, immutable published revisions, reviewed questions and Cluster-only authorized entry. Do not create another admin vault.
 - Introduce a separate *optional index adapter*: source id/version/hash; approval+access status; scope, language, section offsets/extraction reliability, citation spans and vector-model version. Require permission BEFORE query/ranking; publishing, revocation and archive invalidate stale chunks.
 - Start with PostgreSQL **full-text + scoped metadata**. Only if held-out Tagalog/Taglish/synonym retrieval evaluation proves benefit, add Supabase pgvector/hybrid index; not all documents need embeddings.
@@ -125,7 +125,7 @@ The JSON crosswalk contains **30/30** individually numbered photo concepts, init
 
 Each W0–W6 task must have owner, exact source path, current baseline, tests (Node/Jest/SQL/Android), CI URL, device/result, pending/manual dependencies and rollback; "implemented" and "verified" are different. New execution must resume from latest verified state, not recreate completed PRs. Record code status **DEV / CI / RC / STAGING / WEB / PROD** independently.
 
-At this plan commit: **documentation only; 30/30 photo concepts classified, 21/21 navigation IDs referenced but 0/21 verified; exact-source #783/#777/#784 still draft and no staging/web/production release by this plan.** Out-of-date Obsidian October baseline must not supersede November publication; memory protocol link below.
+At this plan commit: **documentation only; 30/30 photo concepts classified, 21/21 navigation IDs referenced but 0/21 verified; exact-source #783/#780/#784 still draft and no staging/web/production release by this plan.** Out-of-date Obsidian October baseline must not supersede November publication; memory protocol link below.
 
 ### Official design references
 - https://supabase.com/docs/guides/queues
@@ -135,4 +135,4 @@ At this plan commit: **documentation only; 30/30 photo concepts classified, 21/2
 - https://reactnative.dev/docs/performance
 - https://developer.android.com/guide/topics/ui/accessibility/apps
 
-**Next agent:** read private BUKLOD-Engineering-Memory/AGENTS.md, current BUKLOD-Rork AGENTS.md, this plan, #783 canonical 21 list and #777/#784. Verify latest Git and device state before code. Do not invent readiness.
+**Next agent:** read private BUKLOD-Engineering-Memory/AGENTS.md, current BUKLOD-Rork AGENTS.md, this plan, #783 canonical 21 list and #780/#784. Verify latest Git and device state before code. Do not invent readiness.

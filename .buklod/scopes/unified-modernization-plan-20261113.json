@@ -3,8 +3,8 @@
   "scopeManifestPath": ".buklod/scopes/unified-modernization-plan-20261113.json",
   "objective": "Document the owner-approved BUKLOD Navigation V2 and 30-photo AI, UX, and capacity reconciliation in one traceable implementation blueprint with evidence-driven release-readiness controls.",
   "baseRef": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
-  "productionBaselineEvidence": "Publisher-side verified source a43e1813d62a151e8294a52989a80fe21b36057c was published to production Android channel/runtime 1.3.2 via run 43355306642, OTA 01a1d2d6-bae3-74df-bbf4-2bdd9df35215. Current source main 9f412afd71b74e41995a3a1a63e05e72f78b6e39 adds only staging mirror workflow tests. Installed production/staging handset fingerprints, RC native build and app behavior remain NOT independently verified. Documentation-only changes here must never trigger a product deploy.",
-  "chosenApproach": "Preserve existing Navigation V2 PR #783 21-item canonical completion gate, integrate Wall PR #784 only after physical evidence, reuse SALIKSIK PR #777's domain/privacy/rewards contracts, and classify all 30 owner screenshots in a machine-readable JSON matrix backed by a focused CI-integrity test.",
+  "productionBaselineEvidence": "Publisher-side verified source a43e1813d62a151e8294a52989a80fe21b36057c was published to production Android channel/runtime 1.3.2 via run 43355306642, OTA 01a1d2d6-bae3-74df-bbf4-2bdd9df35215. Current source main 9f412afd71b74e41995a3a1a63e05e72f78b6e39 adds only staging mirror workflow tests. Installed production/staging handset fingerprints, RC native build and app behavior remain NOT independently verified. Documentation-only changes here must never trigger a product deploy. Staging recovery build run 43378875900 finished signed APK artifact 14016812505 from current main; actual handset install/runtime/OTA/preview-backend behavior is NOT verified. SALIKSIK #777 was superseded by active #780.",
+  "chosenApproach": "Preserve existing Navigation V2 PR #783 21-item canonical completion gate, integrate Wall PR #784 only after physical evidence, reuse SALIKSIK PR #780's domain/privacy/rewards contracts, and classify all 30 owner screenshots in a machine-readable JSON matrix backed by a focused CI-integrity test.",
   "selectionRationale": "A separate governance plan avoids stale PR patch duplication and permits reliable multi-workstream reconciliation without mutating runtime code, rollout flags, secure backend schema, points or the release channel.",
   "alternativeApproaches": [
     "Directly append speculative all-in-one runtime/UI/backend changes to the active Navigation V2 branch (rejected: conflicting scopes, inadequate native verification, incomplete 21-item acceptance).",
@@ -31,7 +31,8 @@
     "All workstreams have unique IDs, satisfiable dependencies, clear owner/source and mandatory evidence gate.",
     "Release status remains documentationOnly=true, no physical staging or production publish asserted; web/prod require explicit owner approval.",
     "Source, tests, V2 manifest and human-reviewed documentation stay isolated to these four exact paths.",
-    "Existing PR #783, #784 and #777 remain separate until current-main source reconciliation and compiled staging-Android acceptance."
+    "Existing PR #783, #784 and #777 remain separate until current-main source reconciliation and compiled staging-Android acceptance.",
+    "The documented active SALIKSIK source is PR #780 (supersedes #777), and staging APK artifact success never sets actual installed parity true."
   ],
   "regressionTests": [
     "tests/unified-modernization-planning-contract-20261113.test.mjs"
