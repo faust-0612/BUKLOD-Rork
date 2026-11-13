@@ -1,14 +1,14 @@
 {
   "schema": "buklod-navigation-v2-staging-attestation-v1",
-  "note": "UNVERIFIED PLACEHOLDER. These are evidence fields to fill only from exact Expo builds, installed-client diagnostics and reviewed tests. Never fabricate fields to unlock a release.",
+  "note": "LIVE Android OTA proof below is from completed canonical GitHub workflow publication, not installed handset telemetry. Staging remains UNVERIFIED, and live proof expires for time-bounded prepublish checks; never invent or bypass missing installed-client evidence.",
   "live": {
-    "sourceSha": "",
-    "updateId": "",
+    "sourceSha": "a43e1813d62a151e8294a52989a80fe21b36057c",
+    "updateId": "01a1d2d6-bae3-74df-bbf4-2bdd9df35215",
     "package": "org.mzbministry.buklod",
     "channel": "production",
     "runtimeVersion": "1.3.2",
-    "verifiedAt": "",
-    "artifactEvidenceUrl": ""
+    "verifiedAt": "2026-11-13T02:57:31Z",
+    "artifactEvidenceUrl": "https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43355306642/artifacts/14005389018"
   },
   "staging": {
     "mirroredLiveSourceSha": "",

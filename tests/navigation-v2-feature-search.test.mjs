@@ -8,6 +8,10 @@ test('offline feature search finds common Tagalog/English task synonyms', () => 
   assert.equal(findBuklodFeatures('magpost')[0]?.route, '/buklod');
   assert.equal(findBuklodFeatures('dokumento')[0]?.route, '/drawer');
   assert.equal(findBuklodFeatures('chat')[0]?.route, '/messages');
+  assert.equal(findBuklodFeatures('basa')[0]?.route, '/bible');
+  assert.equal(findBuklodFeatures('panalangin')[0]?.route, '/prayer');
+  assert.equal(findBuklodFeatures('laro')[0]?.route, '/games');
+  assert.equal(findBuklodFeatures('kontribusyon')[0]?.route, '/community-contribution');
 });
 test('short/noisy queries are bounded, deterministic, and do not expose admin or retired routes', () => {
   assert.deepEqual(findBuklodFeatures(''), []);

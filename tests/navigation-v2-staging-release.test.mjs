@@ -18,7 +18,9 @@ test('Navigation V2 workflow is manual staging-Android only and cannot publish t
 });
 test('release cannot start with fake live/staging identity placeholders', () => {
   const evidence = JSON.parse(read('release/navigation-v2-staging-evidence.json'));
-  assert.equal(evidence.live.sourceSha, '');
+  assert.equal(evidence.live.sourceSha, 'a43e1813d62a151e8294a52989a80fe21b36057c');
+  assert.equal(evidence.live.updateId, '01a1d2d6-bae3-74df-bbf4-2bdd9df35215');
+  assert.match(evidence.live.artifactEvidenceUrl, /actions\/runs\/43355306642/);
   assert.equal(evidence.staging.installedBuildId, '');
   assert.equal(evidence.staging.backendContractReviewed, false);
   assert.equal(evidence.staging.deviceAcceptance, 'pending');

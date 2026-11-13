@@ -8,6 +8,10 @@ test('Home utilities no longer force giant square cards while remaining content-
   assert.match(s, /width: '48\.5%', minHeight: 180, flexGrow: 1/);
   assert.doesNotMatch(s, /aspectRatio: 1, minHeight: 216/);
   assert.match(s, /borderRadius: 14, borderWidth: 1/);
+  assert.match(s, /const stacked = fontScale >= 1\.5 \|\| width < 370/);
+  assert.match(s, /singleColumn: \{ width: '100%', flexGrow: 0 \}/);
+  assert.match(s, /primaryDoor: \{[^\n]+minHeight: 48/);
+  assert.match(s, /secondaryDoor: \{[^\n]+minHeight: 48/);
   assert.match(s, /router\.push\('\/personal-home' as any\)/);
   assert.match(s, /router\.push\('\/profile\/buklod-health' as any\)/);
 });

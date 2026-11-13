@@ -3,7 +3,9 @@
 **Current state: DEV ONLY. No production, web, staging APK, or staging OTA has been published as part of this work.**
 
 ## Separate authoritative facts
-- GitHub `main` at initial fork: `a43e1813d62a151e8294a52989a80fe21b36057c`. This is a source observation, not a live Android or Web fingerprint.
+- GitHub `main` at initial fork: `a43e1813d62a151e8294a52989a80fe21b36057c`.
+- **Production Android OTA independently published from that SHA:** `01a1d2d6-bae3-74df-bbf4-2bdd9df35215`, runtime `1.3.2`, 2026-11-13 02:57:31 UTC; canonical [Android publication run](https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43355306642) and [publication artifact](https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43355306642/artifacts/14005389018). This proves publisher-side publication, NOT installed handset receipt; refresh before any prepublish gate.
+- **Production web Expo Hosting workflow succeeded** at same source SHA: [web publication run](https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43355306645), deployed to `https://buklod.expo.app`. No new web release may occur until owner later approves.
 - The historical staging user branch `release/staging-user-current-main-apk-20261108` was 333 commits behind initial `main`; other staging branches diverged. Never merge old staging branches into BUKLOD Main.
 - Live Android native package: `org.mzbministry.buklod`; separate staging package: `org.mzbministry.buklod.staging`; expected runtime 1.3.2, staging EAS channel `staging-user`, environment `preview`. These are source configurations, **not verified installed facts**.
 - Staging uses a separate package/Firebase and preview environment. Source/UI parity **must not be confused with copying production credentials, member data, notifications, or financial records**.
