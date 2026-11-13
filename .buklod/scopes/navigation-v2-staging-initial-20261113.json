@@ -49,7 +49,8 @@
     "Critical login, registration, account, recovery, feedback, support, and private Drawer controls explicitly permit OS font scaling with 16sp text baseline (18sp PIN). Device QA still mandatory.",
     "Current live publisher-side production OTA source/runtime identity is recorded by workflow ID and artifact URL but is refreshed before time-bound prepublish; exact installed staging parity remains mandatory.",
     "Cluster and Organization scoped tabs show both familiar icons and readable labels, 48dp tap targets, selected accessibility semantics, without modifying the scope membership or return logic.",
-    "Contextual shortcut bottom sheet exposes Open/Pin-Unpin/Remove Recent through visible overflow or optional long press; accessible dismiss/Android Back and reduced motion preserve primary tap actions."
+    "Contextual shortcut bottom sheet exposes Open/Pin-Unpin/Remove Recent through visible overflow or optional long press; accessible dismiss/Android Back and reduced motion preserve primary tap actions.",
+    "Local recently-opened shortcut removals display nonblocking inline feedback with an accessible one-tap Undo, account-specific restoration and serialized storage; unrelated submission/retry handlers unchanged."
   ],
   "regressionTests": [
     "tests/navigation-v2-ads-preservation.test.mjs",

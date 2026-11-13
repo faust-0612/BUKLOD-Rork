@@ -113,7 +113,7 @@
     {
       "id": "action-feedback",
       "title": "Nonblocking success/error/retry and safe undo feedback",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },

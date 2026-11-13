@@ -34,6 +34,7 @@ export default function BuklodFeatureFinder() {
   const accountId = user?.id ?? null;
   const [query, setQuery] = useState('');
   const [menuItem, setMenuItem] = useState<BuklodFeatureLink | null>(null);
+  const [undoRecent, setUndoRecent] = useState<{ accountId: string; previous: string[] } | null>(null);
   const [pinned, setPinned] = useState<string[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
   const recentRef = useRef<string[]>([]);
@@ -45,6 +46,7 @@ export default function BuklodFeatureFinder() {
     let active = true;
     setPinned([]);
     setRecent([]);
+    setUndoRecent(null);
     recentRef.current = [];
     setLoadedFor(null);
     if (!accountId) return () => { active = false; };
@@ -94,6 +96,7 @@ export default function BuklodFeatureFinder() {
 
   const openAndRemember = (item: BuklodFeatureLink) => {
     setQuery('');
+    setUndoRecent(null);
     if (canPin && accountId) {
       const next = rememberBuklodRecentNavigation(recentRef.current, item.id, PINNABLE_FEATURE_IDS);
       recentRef.current = next;
@@ -115,6 +118,7 @@ export default function BuklodFeatureFinder() {
 
   const removeRecent = (item: BuklodFeatureLink) => {
     if (!canPin || !accountId) return;
+    setUndoRecent({ accountId, previous: [...recentRef.current] });
     const next = normalizeBuklodRecentNavigation(
       recentRef.current.filter(id => id !== item.id), PINNABLE_FEATURE_IDS,
     );
@@ -124,6 +128,19 @@ export default function BuklodFeatureFinder() {
     writeQueue.current = writeQueue.current
       .catch(() => undefined)
       .then(() => AsyncStorage.setItem(key, JSON.stringify(next)))
+      .catch(() => undefined);
+  };
+
+  const undoRecentRemoval = () => {
+    if (!canPin || !accountId || undoRecent?.accountId !== accountId) return;
+    const previous = normalizeBuklodRecentNavigation(undoRecent.previous, PINNABLE_FEATURE_IDS);
+    recentRef.current = previous;
+    setRecent(previous);
+    setUndoRecent(null);
+    const key = buklodRecentNavigationStorageKey(accountId);
+    writeQueue.current = writeQueue.current
+      .catch(() => undefined)
+      .then(() => AsyncStorage.setItem(key, JSON.stringify(previous)))
       .catch(() => undefined);
   };
 
@@ -306,6 +323,28 @@ export default function BuklodFeatureFinder() {
               </View>
             ))}
           </View>
+        </View>
+      )}
+      {undoRecent?.accountId === accountId && (
+        <View
+          accessibilityRole="alert"
+          style={{
+            minHeight: 48, flexDirection: 'row', alignItems: 'center',
+            gap: 8, paddingHorizontal: 12, borderRadius: 12,
+            backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1,
+          }}
+        >
+          <Text allowFontScaling style={{ flex: 1, color: theme.textPrimary, fontSize: 14 }}>
+            Removed from recent
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Undo remove from recent"
+            onPress={undoRecentRemoval}
+            style={{ minHeight: 48, minWidth: 48, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text allowFontScaling style={{ fontSize: 15, fontWeight: '800', color: theme.accent }}>Undo</Text>
+          </Pressable>
         </View>
       )}
       <BuklodNavigationContextSheet

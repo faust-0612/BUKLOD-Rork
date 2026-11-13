@@ -35,3 +35,14 @@ test('private recent shortcuts support explicit removal and immediate storage wi
   assert.match(ui, /Remove from recent/);
   assert.match(ui, /Pin to Home/);
 });
+
+test('remove recent has one-tap account-safe Undo and serializes both states to storage', () => {
+  const ui = read('src/components/BuklodFeatureFinder.tsx');
+  assert.match(ui, /setUndoRecent\(\{ accountId, previous: \[\.\.\.recentRef\.current\] \}\)/);
+  assert.match(ui, /undoRecent\?\.accountId !== accountId/);
+  assert.match(ui, /const previous = normalizeBuklodRecentNavigation\(undoRecent\.previous, PINNABLE_FEATURE_IDS\)/);
+  assert.match(ui, /accessibilityLabel="Undo remove from recent"/);
+  assert.match(ui, /onPress=\{undoRecentRemoval\}/);
+  assert.match(ui, /AsyncStorage\.setItem\(key, JSON\.stringify\(previous\)\)/);
+  assert.match(ui, /setUndoRecent\(null\)/);
+});
