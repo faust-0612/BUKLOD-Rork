@@ -19,14 +19,16 @@
     "account-isolation",
     "feature-discovery",
     "release-identity",
-    "connect"
+    "connect",
+    "ads-monetization"
   ],
   "preserveBehaviors": [
     "Canonical Home /hub, Cluster /clusters, Wall /buklod, Connect /messages, Profile /me routes and existing one-tap nav stay unchanged.",
     "Original Profile overflow, customization sections and personal progress retained; permanent Settings gear cannot be hidden in custom layout.",
     "Existing authorization and entitlement guards remain authoritative; feature finder indexes only public/personal destinations, not private content/admin features.",
     "AdMob placements, Wall/Marites video and photo, PTT, Call, native GIF share restoration, Connect chat, notifications, points/QMP/finance and Supabase RLS remain unchanged.",
-    "Live production and production web unchanged; no native runtime/dependency, package, backend or signing changes; staging candidate requires independent identity verification."
+    "Live production and production web unchanged; no native runtime/dependency, package, backend or signing changes; staging candidate requires independent identity verification.",
+    "Profile and Home existing passive/first-view/native sponsored ad placements remain intact and unaffected by new Navigation V2 components, validated by focused ad regression contract."
   ],
   "acceptanceChecks": [
     "New Settings gear always visible in Profile independent of customizable sections and opens categorized Settings with readable native-scaled rows.",
@@ -44,6 +46,7 @@
     "Short optional navigation help stays in dedicated screen, not forced onboarding or verbose Home instructions."
   ],
   "regressionTests": [
+    "tests/navigation-v2-ads-preservation.test.mjs",
     "tests/navigation-v2-compact-home-profile.test.mjs",
     "tests/navigation-v2-connect-fontscale.test.mjs",
     "tests/navigation-v2-favorites.test.mjs",
@@ -77,6 +80,7 @@
     "src/lib/buklodAdaptiveInput.ts",
     "src/lib/buklodNavigationV2.ts",
     "src/lib/buklodPinnedNavigation.ts",
+    "tests/navigation-v2-ads-preservation.test.mjs",
     "tests/navigation-v2-compact-home-profile.test.mjs",
     "tests/navigation-v2-connect-fontscale.test.mjs",
     "tests/navigation-v2-favorites.test.mjs",
@@ -101,7 +105,8 @@
         "tests/navigation-v2-compact-home-profile.test.mjs",
         "tests/navigation-v2-typography.test.mjs",
         "tests/navigation-v2-favorites.test.mjs",
-        "tests/navigation-v2-help-motions.test.mjs"
+        "tests/navigation-v2-help-motions.test.mjs",
+        "tests/navigation-v2-ads-preservation.test.mjs"
       ]
     },
     {
