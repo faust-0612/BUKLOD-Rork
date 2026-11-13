@@ -109,6 +109,7 @@ import { useBuklodCommunityAdViewability } from '@/hooks/useBuklodCommunityAdVie
 /* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
+import { resolveBuklodWallMaritesVideoPriority } from '@/lib/buklodMaritesViewportMeasure';
 import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
 import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import BuklodLivingGreetingsBanner from '@/components/BuklodLivingGreetingsBanner';
@@ -995,6 +996,7 @@ function LegacyPublicBuklodScreen(){
  const [visibleCreativePostIds,setVisibleCreativePostIds]=useState<string[]>([]);
  const visibleCreativeIdsRef=useRef<string[]>([]);
  const [wallScreenFocused,setWallScreenFocused]=useState(false);
+ const [maritesViewerOpen,setMaritesViewerOpen]=useState(false);
  const wallScreenFocusedRef=useRef(false);
  const [wallAudioSettledTick,setWallAudioSettledTick]=useState(0);
  const wallAutoMusicAttemptedRef=useRef(new Set<string>());
@@ -4799,13 +4801,11 @@ const load=useCallback(async(options?:{
               autoPlay
               active={
                 visibleVideoPostId===postId &&
-                !videoViewerOpen &&
-                wallScreenFocused
+                videoPriority.wallVideoEligible
               }
               preload={
                 preloadVideoPostId===postId &&
-                !videoViewerOpen &&
-                wallScreenFocused
+                videoPriority.wallVideoEligible
               }
               expectedDurationSeconds={
                 wallVideo.durationSeconds
@@ -5231,6 +5231,13 @@ const communityFeedRows =
   visibleVideoPostId,
   preloadVideoPostId,
  } = useBuklodCommunityAdViewability(communityFeedRows);
+ const videoPriority=resolveBuklodWallMaritesVideoPriority({
+   wallFocused:wallScreenFocused,
+   wallVideoVisible:Boolean(visibleVideoPostId),
+   wallFullscreenOpen:videoViewerOpen,
+   commentOpen,
+   maritesViewerOpen,
+ });
 
  // Preserve the existing ad/video visibility engine; also pause an audio
  // post as soon as its card is no longer visible (no off-screen music).
@@ -5238,6 +5245,9 @@ const communityFeedRows =
  communityViewabilityListener.current=onCommunityAdViewableItemsChanged;
  const wallAudioForVisibility=useRef(pauseWallAudio);
  wallAudioForVisibility.current=pauseWallAudio;
+ useEffect(()=>{
+   if(maritesViewerOpen)wallAudioForVisibility.current();
+ },[maritesViewerOpen]);
  const onCommunityWallViewableItemsChanged=useRef((event:{
    viewableItems:Array<{item?:any}>;
  })=>{
@@ -5293,7 +5303,7 @@ const communityFeedRows =
  // player; no hidden-card downloads or repeated auto-retries on failures.
  useEffect(()=>{
    if(!wallScreenFocused||Platform.OS==='web'||!user?.id||
-     communityComposerOpen||visibleVideoPostId||peekDzasPlaying())return;
+     communityComposerOpen||maritesViewerOpen||visibleVideoPostId||peekDzasPlaying())return;
    if(wallAudioOwnerRef.current&&
       visibleCreativeIdsRef.current.includes(wallAudioOwnerRef.current))return;
    const candidate=visibleCreativePostIds.map(id=>({id,creative:postCreatives[id]}))
@@ -5308,7 +5318,7 @@ const communityFeedRows =
    const timer=setTimeout(()=>{
      if(!wallScreenFocusedRef.current||
        !visibleCreativeIdsRef.current.includes(candidate.id)||
-       peekDzasPlaying()||wallAudioOwnerRef.current==='composer'||
+       peekDzasPlaying()||maritesViewerOpen||wallAudioOwnerRef.current==='composer'||
        (wallAudioOwnerRef.current&&
         visibleCreativeIdsRef.current.includes(wallAudioOwnerRef.current))||
        wallAudioBusyRef.current)return;
@@ -5318,7 +5328,7 @@ const communityFeedRows =
        candidate.creative!.music_clip_duration_seconds??undefined);
    },200);
    return ()=>clearTimeout(timer);
- },[wallScreenFocused,user?.id,communityComposerOpen,visibleVideoPostId,
+ },[wallScreenFocused,user?.id,communityComposerOpen,maritesViewerOpen,visibleVideoPostId,
     visibleCreativePostIds,postCreatives,wallAudioSettledTick]);
  const communityCreativeExtraData=useMemo(
    ()=>[communityAdExtraData,visibleCreativePostIds],
@@ -5411,7 +5421,8 @@ const communityFeedRows =
    <KabihasnangLigawWallCard />
 
    <BuklodMaritesBoard
-    playbackBlocked={commentOpen}
+    playbackBlocked={videoPriority.maritesBlocked}
+    onViewerVisibilityChange={setMaritesViewerOpen}
     visibilityRefreshRef={maritesVisibilityRefreshRef}
     onOpenComments={(postId, story) => void openComments({ id: postId, author_name: story.author_name, user_id: story.user_id, body: story.body, avatar_url: story.avatar_url })}
     locationScopeId={
