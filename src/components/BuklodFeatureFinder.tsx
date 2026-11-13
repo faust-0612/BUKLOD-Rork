@@ -10,6 +10,9 @@ import {
   buklodPinnedNavigationStorageKey,
   normalizeBuklodPinnedNavigation,
   toggleBuklodPinnedNavigation,
+  buklodRecentNavigationStorageKey,
+  normalizeBuklodRecentNavigation,
+  rememberBuklodRecentNavigation,
 } from '@/lib/buklodPinnedNavigation';
 import { BUKLOD_LONG_PRESS_MS } from '@/lib/buklodTouch';
 
@@ -30,6 +33,8 @@ export default function BuklodFeatureFinder() {
   const accountId = user?.id ?? null;
   const [query, setQuery] = useState('');
   const [pinned, setPinned] = useState<string[]>([]);
+  const [recent, setRecent] = useState<string[]>([]);
+  const recentRef = useRef<string[]>([]);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const writeQueue = useRef<Promise<unknown>>(Promise.resolve());
   const { theme } = useBuklodTheme();
@@ -37,19 +42,30 @@ export default function BuklodFeatureFinder() {
   useEffect(() => {
     let active = true;
     setPinned([]);
+    setRecent([]);
+    recentRef.current = [];
     setLoadedFor(null);
     if (!accountId) return () => { active = false; };
     let key: string;
     try { key = buklodPinnedNavigationStorageKey(accountId); }
     catch { return () => { active = false; }; }
-    void AsyncStorage.getItem(key)
-      .then(raw => normalizeBuklodPinnedNavigation(raw ? JSON.parse(raw) : [], PINNABLE_FEATURE_IDS))
-      .catch(() => [])
-      .then(saved => {
-        if (!active) return;
-        setPinned(saved);
-        setLoadedFor(accountId);
-      });
+    const recentKey = buklodRecentNavigationStorageKey(accountId);
+    const load = async () => {
+      const [pins, history] = await Promise.all([
+        AsyncStorage.getItem(key).then(raw =>
+          normalizeBuklodPinnedNavigation(raw ? JSON.parse(raw) : [], PINNABLE_FEATURE_IDS)
+        ).catch(() => [] as string[]),
+        AsyncStorage.getItem(recentKey).then(raw =>
+          normalizeBuklodRecentNavigation(raw ? JSON.parse(raw) : [], PINNABLE_FEATURE_IDS)
+        ).catch(() => [] as string[]),
+      ]);
+      if (!active) return;
+      setPinned(pins);
+      recentRef.current = history;
+      setRecent(history);
+      setLoadedFor(accountId);
+    };
+    void load();
     return () => { active = false; };
   }, [accountId]);
 
@@ -67,8 +83,28 @@ export default function BuklodFeatureFinder() {
   const results = useMemo(() => findBuklodFeatures(query), [query]);
   const savedLinks = useMemo(() => pinned.map(id => BUKLOD_FEATURE_LINKS.find(item => item.id === id))
     .filter((item): item is BuklodFeatureLink => Boolean(item)), [pinned]);
+  const recentLinks = useMemo(() => recent
+    .filter(id => !pinned.includes(id))
+    .map(id => BUKLOD_FEATURE_LINKS.find(item => item.id === id))
+    .filter((item): item is BuklodFeatureLink => Boolean(item)), [recent, pinned]);
   const searching = query.trim().length >= 2;
   const canPin = loadedFor !== null && loadedFor === accountId;
+
+  const openAndRemember = (item: BuklodFeatureLink) => {
+    setQuery('');
+    if (canPin && accountId) {
+      const next = rememberBuklodRecentNavigation(recentRef.current, item.id, PINNABLE_FEATURE_IDS);
+      recentRef.current = next;
+      setRecent(next);
+      const key = buklodRecentNavigationStorageKey(accountId);
+      // Persist before routing; Home can unmount immediately after navigation.
+      writeQueue.current = writeQueue.current
+        .catch(() => undefined)
+        .then(() => AsyncStorage.setItem(key, JSON.stringify(next)))
+        .catch(() => undefined);
+    }
+    openFeature(item);
+  };
 
   const togglePin = (item: BuklodFeatureLink) => {
     if (!canPin) return;
@@ -127,7 +163,7 @@ export default function BuklodFeatureFinder() {
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${item.title}`}
                   accessibilityHint="Long press to pin to Home, or use the star icon"
-                  onPress={() => { setQuery(''); openFeature(item); }}
+                  onPress={() => openAndRemember(item)}
                   onLongPress={() => togglePin(item)}
                   delayLongPress={BUKLOD_LONG_PRESS_MS}
                   style={({ pressed }) => ({
@@ -159,6 +195,33 @@ export default function BuklodFeatureFinder() {
         </View>
       )}
 
+      {!searching && recentLinks.length > 0 && (
+        <View style={{ gap: 6, paddingTop: 4 }}>
+          <Text allowFontScaling style={{ fontSize: 13, color: theme.textSecondary, fontWeight: '800' }}>
+            Recently opened
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {recentLinks.map(item => (
+              <Pressable
+                key={item.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Open recent ${item.title}`}
+                onPress={() => openAndRemember(item)}
+                style={({ pressed }) => ({
+                  minHeight: 48, paddingHorizontal: 12, paddingVertical: 8,
+                  flexDirection: 'row', alignItems: 'center', gap: 7,
+                  borderRadius: 12, borderWidth: 1, borderColor: theme.border,
+                  backgroundColor: pressed ? theme.accentSoft : theme.surface,
+                })}
+              >
+                <MaterialCommunityIcons name="history" size={16} color={theme.accent} />
+                <Text allowFontScaling style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '700' }}>{item.title}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
+
       {!searching && savedLinks.length > 0 && (
         <View style={{ gap: 6, paddingTop: 5 }}>
           <Text allowFontScaling style={{ fontSize: 13, color: theme.textSecondary, fontWeight: '800' }}>
@@ -171,7 +234,7 @@ export default function BuklodFeatureFinder() {
                 accessibilityRole="button"
                 accessibilityLabel={`Open pinned ${item.title}`}
                 accessibilityHint="Long press to remove from your pinned shortcuts"
-                onPress={() => openFeature(item)}
+                onPress={() => openAndRemember(item)}
                 onLongPress={() => togglePin(item)}
                 delayLongPress={BUKLOD_LONG_PRESS_MS}
                 style={({ pressed }) => ({
