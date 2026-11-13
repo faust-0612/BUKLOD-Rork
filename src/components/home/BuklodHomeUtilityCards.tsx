@@ -96,10 +96,10 @@ const s = StyleSheet.create({
     marginHorizontal: 0, paddingHorizontal: 0,
   },
   card: {
-    width: '48.5%', aspectRatio: 1, minHeight: 216, flexGrow: 1,
-    borderRadius: 12, borderWidth: 2, padding: 10, gap: 6,
+    width: '48.5%', minHeight: 180, flexGrow: 1,
+    borderRadius: 14, borderWidth: 1, padding: 10, gap: 6,
     justifyContent: 'space-between',
-    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.17,
+    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.09,
     shadowRadius: 7, elevation: 3,
   },
   homeCard: { backgroundColor: '#E0FFF7', borderColor: '#00E6B5', shadowColor: '#00CFA5' },
