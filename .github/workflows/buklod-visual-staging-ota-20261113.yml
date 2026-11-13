@@ -97,6 +97,7 @@ jobs:
             tests/full-visual-navigation-side-menu-20261113.test.mjs \
             tests/navigation-v2-owner-staging-ota.test.mjs \
             tests/navigation-v2-settings-route.test.mjs
+          node --test tests/buklod-visual-staging-ota-20261113.test.mjs
           npx tsc --noEmit
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Inspect signed staging APK and separate EAS channels BEFORE publication

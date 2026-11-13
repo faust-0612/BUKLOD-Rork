@@ -36,7 +36,8 @@
   "regressionTests": [
     "tests/community-wall-post-card-google-pattern.test.mjs",
     "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
-    "tests/navigation-v2-settings-route.test.mjs"
+    "tests/navigation-v2-settings-route.test.mjs",
+    "tests/buklod-visual-staging-ota-20261113.test.mjs"
   ],
   "allowedPaths": [
     "docs/visual/full-transformation-20261113.md",
@@ -70,7 +71,8 @@
     "src/app/(tabs)/_layout.tsx",
     "src/components/BuklodNavigationSideMenu.tsx",
     "tests/full-visual-navigation-side-menu-20261113.test.mjs",
-    ".github/workflows/buklod-visual-staging-ota-20261113.yml"
+    ".github/workflows/buklod-visual-staging-ota-20261113.yml",
+    "tests/buklod-visual-staging-ota-20261113.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -121,6 +123,18 @@
       ],
       "tests": [
         "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Isolated, explicitly owner-authorized staging-user Android OTA path for screenshot QA, not a production release or acceptance waiver.",
+      "preservedBehaviors": [
+        "No production/main/web/native build or database writes, and no changes to the existing mandatory production release gates.",
+        "Release is permitted only from exact authorized PR SHA with passed CI, signed staging APK runtime match, isolated EAS branch, production manifest fingerprint and post-publish server verification.",
+        "All native Android screens remain NOT visually accepted until actual authenticated testing; physical Infinix verification is skipped by owner rather than passed."
+      ],
+      "tests": [
+        "tests/buklod-visual-staging-ota-20261113.test.mjs"
       ]
     }
   ],
