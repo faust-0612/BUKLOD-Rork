@@ -295,36 +295,8 @@ export default function BuklodFoundationWorkspaceNav() {
       </ProfileMotionFadeUp>
 
       <BuklodProfileGlassCard>
-        {/* BUKLOD_KINGDOM_PROFILE_RELOCATION_R1: canonical visible door now lives in Profile. */}
-        <BuklodProfileGlassRow
-          icon="castle"
-          title="BUKLOD Kingdom"
-          subtitle="Games, Kingdom map, progression and rewards"
-          onPress={() => router.push('/games' as any)}
-          trailing={
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={20}
-              color={theme.textMuted}
-            />
-          }
-        />
-
-        <View style={styles.rowBorder}>
-          <BuklodProfileGlassRow
-            icon="apps"
-            title="BUKLOD Focus Apps"
-            subtitle="All Focus and accessory apps in one drawer"
-            onPress={() => void openDrawer()}
-            trailing={
-              <MaterialCommunityIcons
-                name={open ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color={theme.textMuted}
-              />
-            }
-          />
-        </View>
+        <BuklodProfileGlassRow icon="apps" title="BUKLOD Focus Apps" subtitle="All Focus and accessory apps in one drawer"
+          onPress={() => void openDrawer()} trailing={<MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={theme.textMuted} />} />
 
         {open ? <Text style={styles.groupLabel}>ACCESSORY APPS</Text> : null}
 

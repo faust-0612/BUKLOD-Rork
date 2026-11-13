@@ -4,6 +4,7 @@ import { buklodVisual } from '@/lib/buklodVisual';
 import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef } from 'react';
 import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
 import BuklodProfileMembershipNav from '@/components/BuklodProfileMembershipNav';
+import { loadBuklodPointsDashboard } from '@/lib/buklodRewards';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
 import {
@@ -1111,8 +1112,16 @@ export default function MeScreen() {
     };
 
 
-  const [circleRank, setCircleRank] =
-    useState<string | null>(null);
+  const [circleRank, setCircleRank] = useState<string | null>(null);
+  const [rankPositions,setRankPositions] = useState<{overall:number|null;monthly:number|null}|null>(null);
+  useEffect(() => {
+    let mounted=true;
+    setRankPositions(null);
+    if(!profile?.id)return ()=>{mounted=false;};
+    void loadBuklodPointsDashboard().then(value=>{if(mounted)setRankPositions(value?{overall:value.all_time_rank,monthly:value.monthly_rank}:null);})
+      .catch(()=>{if(mounted)setRankPositions(null);});
+    return ()=>{mounted=false;};
+  },[profile?.id]);
 
   useEffect(() => {
     let active = true;
@@ -1454,18 +1463,6 @@ export default function MeScreen() {
           
 
           <MenuRow
-            icon="information-outline"
-            title="How Account Deletion Works"
-            onPress={() =>
-              router.push('/delete-account' as any)
-            }
-          />
-
-          
-
-          
-
-          <MenuRow
             icon="shield-alert-outline"
             title="Community Safety"
             subtitle="Report unsafe content or behavior"
@@ -1493,16 +1490,6 @@ export default function MeScreen() {
                 router.push(
                   '/system/paid-features' as any
                 )
-              }
-            />
-          )}
-
-          {isSystemAdmin && (
-            <MenuRow
-              icon="test-tube"
-              title="Pilot Checklist"
-              onPress={() =>
-                router.push('/pilot/checklist')
               }
             />
           )}
@@ -1788,6 +1775,19 @@ export default function MeScreen() {
           rankName={circleRank}
         />
       )}
+      {!isBuklodOfficial && <View style={{marginHorizontal:12,padding:12,borderRadius:15,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:7}}>
+        <Text allowFontScaling style={{color:theme.textPrimary,fontSize:15,fontWeight:'900'}}>MY OVERALL & MONTHLY RANK</Text>
+        <View style={{flexDirection:'row',gap:8}}>
+          {([['OVERALL',rankPositions?.overall],['MONTHLY',rankPositions?.monthly]] as const).map(([label,position])=>(
+            <Pressable key={label} accessibilityRole="button" onPress={()=>router.push('/points' as any)}
+              style={{flex:1,backgroundColor:theme.accentSoft,minHeight:56,alignItems:'center',padding:9,borderRadius:12}}>
+              <Text allowFontScaling style={{color:theme.accent,fontSize:19,fontWeight:'900'}}>{position&&position>0?'#'+position:'—'}</Text>
+              <Text allowFontScaling style={{fontSize:11,color:theme.textSecondary,fontWeight:'800'}}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Verified Points-activity standings. Monthly rank can move until cutoff; AdMob payouts finalize separately.</Text>
+      </View>}
 
       {referralSection}
       <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />
@@ -1838,38 +1838,6 @@ export default function MeScreen() {
               },
             ]}
           >
-            <Pressable
-              style={styles.profileMenuItem}
-              onPress={() => {
-                setProfileMenuOpen(false);
-                router.push('/notifications' as any);
-              }}
-            >
-              <MaterialCommunityIcons
-                name="bell-outline"
-                size={22}
-                color={theme.accent}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    styles.profileMenuTitle,
-                    { color: theme.textPrimary },
-                  ]}
-                >
-                  Notifications
-                </Text>
-                <Text
-                  style={[
-                    styles.profileMenuSubtitle,
-                    { color: theme.textMuted },
-                  ]}
-                >
-                  View updates, messages, and requests
-                </Text>
-              </View>
-            </Pressable>
-
             <Pressable
               style={styles.profileMenuItem}
               onPress={() => {
@@ -1934,42 +1902,6 @@ export default function MeScreen() {
               </View>
             </Pressable>
 
-            <View style={styles.profileMenuItem}>
-              <MaterialCommunityIcons
-                name="lock-outline"
-                size={22}
-                color={theme.accent}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    styles.profileMenuTitle,
-                    { color: theme.textPrimary },
-                  ]}
-                >
-                  Lock Profile
-                </Text>
-                <Text
-                  style={[
-                    styles.profileMenuSubtitle,
-                    { color: theme.textMuted },
-                  ]}
-                >
-                  Other members only see your name when locked
-                </Text>
-              </View>
-              <Switch
-                value={profileLocked}
-                disabled={profileLockBusy}
-                onValueChange={(next) => {
-                  void toggleProfileLock(next);
-                }}
-                trackColor={{
-                  false: theme.border,
-                  true: theme.accent,
-                }}
-              />
-            </View>
           </View>
         </Pressable>
       </Modal>
