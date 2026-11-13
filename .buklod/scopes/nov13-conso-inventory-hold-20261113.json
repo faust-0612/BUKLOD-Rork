@@ -1,0 +1,32 @@
+{
+  "contractVersion": 2,
+  "objective": "Prepare a documentation-only inventory and reconciliation gate for one future BUKLOD Android production consolidated OTA, explicitly holding all publication until separately authorized.",
+  "baseRef": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
+  "productionBaselineEvidence": "Previous staging release evidence records BUKLOD Main Android production publisher run 43355306642 and source a43e1813d62a151e8294a52989a80fe21b36057c, but latest installed device update/source runtime has not been checked; this is inventory-only and must not be treated as RC/live verification.",
+  "chosenApproach": "Add static reconciliation inventory JSON and human review document only; leave active main, product source, CI, native profiles, data, and OTA publisher unchanged.",
+  "selectionRationale": "Recent branches have overlapping and diverged source. A docs-only decision record is safe and reviewable before assembling an exact verified candidate and without publishing.",
+  "alternativeApproaches": [
+    "Merge every open PR directly into main (rejected: branch divergence and unverified native/SQL changes)",
+    "Release staging source immediately (rejected: navigation completion and installed client proof missing)."
+  ],
+  "preserveBehaviors": [
+    "No production Android or web OTA publication, trigger or merge is part of this work.",
+    "All existing functional Main/Wall/Connect/ads/auth/points/privacy behavior remains unchanged.",
+    "Retired IGPAT remains excluded from future release candidate; historical media preserved."
+  ],
+  "riskAreas": [],
+  "acceptanceChecks": [
+    "Changes limited to this scope declaration, static reconciliation inventory and Markdown document.",
+    "Inventory status is PREPARATION_HOLD_ONLY; no publication flag is true and no release workflow modified.",
+    "All candidate PRs are decisions to review, not assertions they are absent from production or integrated into one RC.",
+    "Mandatory Engineering Accountability and protected-feature gates pass; exact source compilation and staging validation remain separate requirements."
+  ],
+  "regressionTests": [],
+  "allowedPaths": [
+    ".buklod/scopes/nov13-conso-inventory-hold-20261113.json",
+    "docs/nov13-consolidated-ota-preparation.md",
+    "release/nov13-consolidated-ota-preparation.json"
+  ],
+  "lockedFeatureChanges": [],
+  "releaseMode": "DOC_ONLY_HOLD_NO_OTA"
+}
