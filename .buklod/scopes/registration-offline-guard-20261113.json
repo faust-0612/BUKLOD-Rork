@@ -1,0 +1,73 @@
+{
+  "contractVersion": 2,
+  "objective": "Safely guard BUKLOD production Android account registration against confirmed device offline conditions without replaying auth signup, losing form state, exposing credentials or changing live account recovery semantics.",
+  "baseRef": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
+  "productionBaselineEvidence": "GitHub main source at 9f412afd71b74e41995a3a1a63e05e72f78b6e39; this is source only, not evidence of served Android production runtime. Production Supabase project active/healthy at incident inspection; no originating request identity correlated.",
+  "chosenApproach": "Use the existing native NetInfo module only at explicit account creation or interrupted-account verification boundaries; block network mutations only if OS reports definitely offline. Unknown connectivity continues to existing server-safe auth and login recovery.",
+  "selectionRationale": "An offline-first guard improves failure guidance without changing Supabase credentials, auth requests, backend, native dependencies, or automatic replay. Weak-signal and ambiguous server commits remain safely handled by existing sign-in-only verification.",
+  "alternativeApproaches": [
+    "Blindly retry Auth signup on connection reset: rejected due to duplicate account/uncertain commit risk.",
+    "Create privileged API endpoints or alter Auth/RLS for status lookup: rejected as unnecessary exposure.",
+    "Block signup on an inconclusive NetInfo probe: rejected because it may report unknown while Internet actually works."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "registration-network",
+    "device-offline",
+    "auth-privacy"
+  ],
+  "preserveBehaviors": [
+    "Exactly one auth.signUp invocation and no auto retry after an ambiguous network failure.",
+    "Existing password verification, account status and session checks remain authoritative before local setup and referral linking.",
+    "No client account bypass or privileged account discovery from anonymous users.",
+    "No new native dependency, no changes to BUKLOD media, ads, call, UI navigation or database.",
+    "Registration details remain in existing form state and single-flight loading guard resets on every error path."
+  ],
+  "acceptanceChecks": [
+    "Offline detection only blocks definitively disconnected devices; unknown probe failures permit signup.",
+    "Interrupted status check does not trigger a new signup; on reconnect uses the existing login verification.",
+    "Existing registration-network-recovery tests pass and new source regression tests validate ordering.",
+    "TypeScript and Android source/export compile required before any production OTA.",
+    "Actual weak-network/offline Android behavior and exact production runtime/source compatibility remain separate release prerequisites."
+  ],
+  "regressionTests": [
+    "tests/registration-network-recovery.test.cjs",
+    "tests/auth-registration-offline-recovery.test.cjs"
+  ],
+  "allowedPaths": [
+    "src/app/(auth)/register.tsx",
+    "tests/registration-network-recovery.test.cjs",
+    ".buklod/scopes/registration-offline-guard-20261113.json",
+    "tests/auth-registration-offline-recovery.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add a narrow confirmed-offline guard to the existing Android registration screen without affecting other runtime features.",
+      "preservedBehaviors": [
+        "Protect all existing account creation, single-flight, referral and local setup controls, and unrelated media/ads/navigation."
+      ],
+      "tests": [
+        "tests/registration-network-recovery.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Avoid transmitting registration and recovery Auth requests during definite OS-reported disconnection while preserving existing server-based verification.",
+      "preservedBehaviors": [
+        "No signup retries, unauthorized account lookups or session lifecycle bypass; login verification and referral order remain unchanged."
+      ],
+      "tests": [
+        "tests/auth-registration-offline-recovery.test.cjs"
+      ]
+    }
+  ],
+  "releaseIntent": {
+    "target": "future-production-android-ota",
+    "nativeRuntimeChanged": false,
+    "dbMigrationRequired": false,
+    "prodPublishAuthorized": false,
+    "status": "DEV_SOURCE_ONLY_PENDING_COMPILE_AND_DEVICE_VERIFICATION"
+  }
+}

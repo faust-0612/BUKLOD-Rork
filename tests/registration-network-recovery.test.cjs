@@ -56,3 +56,27 @@ test('all auth failure paths clear busy/single-flight guard', () => {
   assert.match(registration, /if \(authSessionConfirmed\) \{[\s\S]*?Account created - setup interrupted/);
   assert.match(registration, /catch \(error\) \{\s*finishCreateAccount\(\);\s*if \(authSessionConfirmed\)/);
 });
+
+
+test('definitely offline status blocks a new signup without losing form data', () => {
+  assert.match(registration, /NetInfo\.fetch\(\)/);
+  assert.match(registration, /connection\.isConnected === false \|\| connection\.isInternetReachable === false/);
+  assert.match(registration, /catch \{\s*return false;\s*\}/);
+  const signup = registration.slice(registration.indexOf('const createAccount ='));
+  const gate = signup.indexOf('if (await isBuklodRegistrationDefinitelyOffline())');
+  const call = signup.indexOf('supabase.auth.signUp(');
+  assert.ok(gate >= 0 && call > gate);
+  assert.match(signup.slice(gate, call), /finishCreateAccount\(\)/);
+  assert.match(signup.slice(gate, call), /no signup request was sent/);
+});
+
+test('offline recovery does not retry signup, and is safe to repeat when online', () => {
+  const recovery = registration.slice(
+    registration.indexOf('const verifyInterruptedRegistration ='),
+    registration.indexOf('const showInterruptedRegistration ='),
+  );
+  assert.match(recovery, /if \(await isBuklodRegistrationDefinitelyOffline\(\)\)/);
+  assert.match(recovery, /finally \{\s*finishCreateAccount\(\)/);
+  assert.doesNotMatch(recovery, /\.signUp\(/);
+  assert.equal((registration.match(/supabase\.auth\.signUp\(/g) || []).length, 1);
+});

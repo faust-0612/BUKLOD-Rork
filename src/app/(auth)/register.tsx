@@ -20,6 +20,7 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import NetInfo from '@react-native-community/netinfo';
 
 import { supabase } from '@/lib/supabase';
 import {
@@ -123,6 +124,18 @@ function buildFullName(
   ]
     .filter(Boolean)
     .join(' ');
+}
+
+// A failed network probe is not proof of an outage. Only block the request
+// when the operating system explicitly reports the device is offline.
+// Never auto-retry Auth signUp: the server might have committed the account.
+async function isBuklodRegistrationDefinitelyOffline(): Promise<boolean> {
+  try {
+    const connection = await NetInfo.fetch();
+    return connection.isConnected === false || connection.isInternetReachable === false;
+  } catch {
+    return false;
+  }
 }
 
 export default function RegisterScreen() {
@@ -408,6 +421,13 @@ export default function RegisterScreen() {
     createAccountInFlight.current = true;
     setBusy(true);
     try {
+      if (await isBuklodRegistrationDefinitelyOffline()) {
+        Alert.alert(
+          'No internet connection',
+          'Connect to mobile data or Wi-Fi, then use Check Account Status. Your registration details are still here. Do not create another account yet.',
+        );
+        return;
+      }
       // This is a login check, NOT another signUp; avoid duplicate accounts.
       const { data, error } = await signInWithPasswordResilient({
         email: attemptedEmail,
@@ -836,6 +856,14 @@ useEffect(() => {
       let authSessionConfirmed = false;
 
       try {
+      if (await isBuklodRegistrationDefinitelyOffline()) {
+        finishCreateAccount();
+        Alert.alert(
+          'No internet connection',
+          'Connect to mobile data or Wi-Fi before creating your account. Your form has been preserved; no signup request was sent.',
+        );
+        return;
+      }
       const { data, error } =
         await supabase.auth.signUp(
           {
