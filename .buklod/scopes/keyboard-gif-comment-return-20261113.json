@@ -29,13 +29,15 @@
     "Engineering Accountability and Performance CI gates pass; exact Android/Web compiled RC and device behavior require separate verification before production publication.",
     "Gboard GIF from Cluster/Org comment returns to same scope and same post instead of Public Wall; GIF preview appears before manual Send, with no blocking alert.",
     "Android share handoff route is safely labelled handle-share for future SYS-500 triage; matching error signature alone does not establish the exception source.",
-    "Signed-in user may never attach the scoped GIF to another scope or a Public post without explicit new destination selection."
+    "Signed-in user may never attach the scoped GIF to another scope or a Public post without explicit new destination selection.",
+    "Named branch runs nonpublishing exact-sha Android and Web Expo export with production environment, identity, runtime and tests intact."
   ],
   "regressionTests": [
     "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
     "tests/buklod-keyboard-gif-direct-20261113.test.mjs",
     "tests/buklod-keyboard-gif-navigation-20261113.test.mjs",
-    "tests/buklod-keyboard-gif-scope-20261113.test.mjs"
+    "tests/buklod-keyboard-gif-scope-20261113.test.mjs",
+    "tests/buklod-keyboard-gif-rc-allowlist-20261113.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/keyboard-gif-comment-return-20261113.json",
@@ -47,7 +49,9 @@
     "src/components/BuklodExclusiveScopeCommunity.tsx",
     "src/app/handle-share.tsx",
     "src/lib/buklodRouteDiagnostics.ts",
-    "tests/buklod-keyboard-gif-scope-20261113.test.mjs"
+    "tests/buklod-keyboard-gif-scope-20261113.test.mjs",
+    ".github/workflows/unified_rc_compiled_qa_20261108.yml",
+    "tests/buklod-keyboard-gif-rc-allowlist-20261113.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -81,5 +85,5 @@
       ]
     }
   ],
-  "releaseMode": "DEV_SOURCE_ONLY__WAITING_ENGINEERING_AND_COMPILED_RC_GATES"
+  "releaseMode": "DEV_COMPILE_RC_CANDIDATE__PRODUCTION_PUBLISH_BLOCKED_UNTIL_VERIFIED"
 }
