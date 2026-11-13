@@ -127,3 +127,24 @@ test('viewer open/close/expiry/unmount coordinate playback and prevent Wall musi
   assert.match(wall, /communityComposerOpen\|\|maritesViewerOpen\|\|visibleVideoPostId/);
   assert.match(wall, /peekDzasPlaying\(\)\|\|maritesViewerOpen/);
 });
+
+test('Marites horizontal story rail virtualizes photo/video cards without native clipped-image regressions', () => {
+  const board = fs.readFileSync(new URL('../src/components/BuklodMaritesBoard.tsx', import.meta.url), 'utf8');
+  const rail = board.slice(board.indexOf('Android PSS investigation:'), board.indexOf('{activeStories.length === 0'));
+  assert.match(rail, /<FlatList\s+horizontal/);
+  assert.match(rail, /data=\{activeStories\}/);
+  assert.match(rail, /keyExtractor=\{story => story\.id\}/);
+  assert.match(rail, /initialNumToRender=\{4\}/);
+  assert.match(rail, /maxToRenderPerBatch=\{6\}/);
+  assert.match(rail, /windowSize=\{5\}/);
+  assert.match(rail, /removeClippedSubviews=\{false\}/,
+    'avoid Android white/blank photo tiles during fast horizontal scroll');
+  assert.match(rail, /storyStripOffset\.current = event\.nativeEvent\.contentOffset\.x/);
+  assert.match(rail, /autoPlayVideo=\{canPlayInline && index === visibleVideoIndex\}/,
+    'only current foreground eligible card may mount its native decoder');
+  assert.match(rail, /onPress=\{\(\) =>\s*openStoryViewer\(story\)/);
+  assert.match(rail, /communityPostIdForStory\(story\)/,
+    'comments stay routed to the original Marites story');
+  assert.doesNotMatch(rail, /activeStories\.map\(/,
+    'unbounded ScrollView card mounting must not return');
+});

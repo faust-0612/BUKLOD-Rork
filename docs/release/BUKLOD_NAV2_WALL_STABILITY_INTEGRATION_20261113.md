@@ -55,3 +55,11 @@ This branch is an immutable-source **candidate** only. No main merge, product ba
 
 - Staging prepublish now independently demands signed, installed Android native Gboard `commitContent` capability and evidence, separate from the existing `ACTION_SEND` share-to-comment fallback. `nativeImeCommitContentVerified=false` until genuine device proof. A JS-only OTA must never claim this native capability.
 - The current signed live-mirrored staging APK has NOT been shown to support it. A reviewed native input implementation, new signed staging APK build, installed IME and backend/media tests are prerequisites. No web/production release.
+
+## Physical build-9 phase-based memory evidence and targeted Marites rail mitigation
+
+Actual Infinix X6852 Android 16 foreground study `BUKLOD_STAGING_PHASED_MEMORY_20261113_083142.zip`, 36 samples total in three owner-marked phases, collected ~08:32–08:37 UTC. Home mean **~814 MiB**, max **~848 MiB**; Wall/Marites/video mean **~673 MiB**, max **~781 MiB**; recovery Home mean **~756 MiB**, max **~860 MiB**. Phase B starts with `processRestartDetected=true`; historical crash heuristic changes **1→2**, no timestamp/stack, so a crash *during this interval is suspected but not proven*. The high baseline was recorded even on Home; there is no basis to attribute all PSS to Marites alone.
+
+Source-level P0 mitigation in this DEV candidate: replace one eager horizontal `ScrollView` of all active 72-hour Marites images/cards with a bounded horizontal `FlatList` (4 initial, 6/batch, 5 viewports, clipping OFF on Android), preserving original autoplay visibility controller, fullscreen, 750ms fallback, comment/photo and AdMob code. Scope intentionally excludes unrelated Home/Kingdom/ads/streaming framework because root-cause heap trace is unavailable.
+
+**Failure gates still active:** only Android static/TypeScript/JS-compile confidence from CI; require staging native RC APK before physical comparison, controlled high-load/low-load memory plateau and crash trace, native IME `commitContent`, #783 21/21 real acceptance, preview backend and registered OTA source. No staging OTA/web/prod publish from this candidate yet.

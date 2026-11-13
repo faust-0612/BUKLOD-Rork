@@ -11,6 +11,7 @@ import {
   Alert,
   AppState,
   Image,
+  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -1907,17 +1908,28 @@ export default function BuklodMaritesBoard({
       </View>
 
       <View ref={stripViewportRef} collapsable={false} onLayout={requestVisibilityMeasurement}>
-      <ScrollView
+      {/* Android PSS investigation: the old horizontal ScrollView eagerly
+          mounted every 72h photo/card/menu. Virtualize ONLY the strip and
+          retain a generous window for instant adjacent swipes; never clip
+          photos on Android (known white-tile regression). Fullscreen viewer,
+          signed URLs, active player and AdMob remain unchanged. */}
+      <FlatList
         horizontal
+        data={activeStories}
+        keyExtractor={story => story.id}
+        extraData={`${canPlayInline ? 'play' : 'pause'}:${visibleVideoIndex}`}
+        initialNumToRender={4}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        updateCellsBatchingPeriod={80}
+        removeClippedSubviews={false}
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.row}
         scrollEventThrottle={100}
         onScroll={event => { storyStripOffset.current = event.nativeEvent.contentOffset.x; requestVisibilityMeasurement(); }}
-      >
-        {activeStories.map((story, index) => (
+        renderItem={({ item: story, index }) => (
           <BuklodFocusFadeUp
-            key={story.id}
             delay={Math.min(index, 8) * 30}
             duration={220}
             fromY={6}
@@ -1941,8 +1953,8 @@ export default function BuklodMaritesBoard({
               })() : undefined}
             />
           </BuklodFocusFadeUp>
-        ))}
-      </ScrollView>
+        )}
+      />
       </View>
 
       {activeStories.length === 0 && (
