@@ -1,6 +1,6 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {
- ActivityIndicator,Alert,Linking,Pressable,ScrollView,StyleSheet,Text,View,
+ ActivityIndicator,Alert,Linking,Pressable,ScrollView,StyleSheet,Text,TextInput,View,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import {
  saliksikAdminList,saliksikAdminPreview,saliksikAdminPublish,
  saliksikGenerateDraft,saliksikSignedOriginalUrl,saliksikUploadOriginal,
+ saliksikAdminMasterQueue,saliksikAdminMasterReview,type SaliksikMasterQueueItem,
  type SaliksikSource,
 } from '@/lib/saliksikClient';
 
@@ -17,6 +18,13 @@ const textError=(e:unknown)=>e instanceof Error?e.message:String(e);
 export default function SaliksikLibraryScreen(){
  const [sources,setSources]=useState<SaliksikSource[]>([]);
  const [preview,setPreview]=useState<any>(null);
+ const [masterQueue,setMasterQueue]=useState<SaliksikMasterQueueItem[]>([]);
+ const [activeReview,setActiveReview]=useState<SaliksikMasterQueueItem|null>(null);
+ const [rubric,setRubric]=useState<Record<string,string>>({
+  understanding:'',evidence:'',context:'',reasoning:'',transfer:'',
+ });
+ const [citationsVerified,setCitationsVerified]=useState(false);
+ const [reviewFeedback,setReviewFeedback]=useState('');
  const [busy,setBusy]=useState('');
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
@@ -26,8 +34,8 @@ export default function SaliksikLibraryScreen(){
   if(loading.current)return;
   loading.current=true;
   try{
-   const result=await saliksikAdminList();
-   if(active.current)setSources(result);
+   const [result,queue]=await Promise.all([saliksikAdminList(),saliksikAdminMasterQueue()]);
+   if(active.current){setSources(result);setMasterQueue(queue??[]);}
   }catch(e){if(active.current)setError(textError(e));}
   finally{loading.current=false;}
  },[]);
@@ -84,6 +92,23 @@ export default function SaliksikLibraryScreen(){
    await saliksikAdminPublish(preview.id);
    setNotice('Collection approved in database. Member visibility still requires the separate rollout gate.');
    setPreview(null);await refresh();
+  }catch(e){setError(textError(e));}
+  finally{setBusy('');}
+ };
+ const reviewMaster=async()=>{
+  if(!activeReview?.id||busy)return;
+  setBusy('Recording evidence-verified mastery rubric');setError('');
+  try{
+   const scores=Object.fromEntries(Object.entries(rubric).map(([k,v])=>[k,Number(v)]));
+   const out=await saliksikAdminMasterReview(
+    activeReview.id,scores,citationsVerified,reviewFeedback
+   );
+   setNotice(out.approved
+    ?'Written mastery approved: +'+out.points+' Points; series +'+out.series_points+' pending claim.'
+    :'Written mastery returned for rework with audited feedback; no points issued.');
+   setActiveReview(null);setCitationsVerified(false);setReviewFeedback('');
+   setRubric({understanding:'',evidence:'',context:'',reasoning:'',transfer:''});
+   await refresh();
   }catch(e){setError(textError(e));}
   finally{setBusy('');}
  };
@@ -171,7 +196,61 @@ export default function SaliksikLibraryScreen(){
       [{text:'Cancel',style:'cancel'},{text:'Publish verified',onPress:()=>void publish()}]
     )}><Text style={styles.primaryText}>APPROVE AND PUBLISH CONTENT</Text></Pressable>:null}
    </View>:null}
-   <Text style={styles.footer}>Launch remains OFF by default until migration, AI validation, RC tests, and separate production approval are complete. Master +35 remains unavailable without written-answer validation.</Text>
+   <View style={styles.sectionHead}>
+    <Text style={styles.heading}>WRITTEN MASTER REVIEW ({masterQueue.length} pending)</Text>
+    <Pressable disabled={!!busy} onPress={()=>void refresh()}>
+     <MaterialCommunityIcons name="refresh" size={21} color={green}/>
+    </Pressable>
+   </View>
+   <Text style={styles.small}>Written Master cannot earn +35 from AI guesses or multiple choice. Review the source, citations, five competency scores and substantive arguments. Final +50 follows only after all nine investigations.</Text>
+   {masterQueue.length===0?<Text style={styles.muted}>No written mastery submissions awaiting review.</Text>:null}
+   {masterQueue.map(item=><Pressable key={item.id} style={styles.card}
+    accessibilityRole="button" onPress={()=>{setActiveReview(item);setError('');setCitationsVerified(false);setReviewFeedback('');
+     setRubric({understanding:'',evidence:'',context:'',reasoning:'',transfer:''});}}>
+    <View style={styles.row}><MaterialCommunityIcons name="text-box-check-outline" size={22} color={green}/>
+      <View style={{flex:1}}><Text style={styles.itemTitle}>{item.investigation_title}</Text>
+       <Text style={styles.small}>Submitted {new Date(item.submitted_at).toLocaleString()} • Member ID {item.user_id.slice(0,8)}</Text>
+      </View><MaterialCommunityIcons name="chevron-right" size={22} color={green}/>
+    </View>
+   </Pressable>)}
+   {activeReview?<View style={styles.preview}>
+    <View style={styles.sectionHead}><Text style={styles.heading}>SOURCE-VERIFIED WRITTEN ASSESSMENT</Text>
+     <Pressable onPress={()=>setActiveReview(null)}><MaterialCommunityIcons name="close" color={green} size={21}/></Pressable>
+    </View>
+    <Text style={styles.itemTitle}>{activeReview.investigation_title}</Text>
+    <Text style={styles.small}>Supporting references: {(activeReview.scripture_refs??[]).join(' • ')}</Text>
+    <Text selectable style={styles.body}>{activeReview.source_excerpt}</Text>
+    {activeReview.answers.map((answer,k)=><View key={k} style={styles.question}>
+     <Text style={styles.itemTitle}>Essay {k+1}</Text><Text selectable style={styles.body}>{answer}</Text>
+    </View>)}
+    <Text style={styles.small}>Grade the five competencies independently. 80% weighted overall, with evidence, context and reasoning each at least 70%. Grading tests source accuracy and argument quality—not denominational agreement.</Text>
+    {(['understanding','evidence','context','reasoning','transfer'] as const).map(key=>
+     <View key={key} style={styles.row}>
+      <Text style={[styles.body,{flex:1,textTransform:'capitalize'}]}>{key} / 100</Text>
+      <TextInput value={rubric[key]} onChangeText={v=>setRubric(old=>({...old,[key]:v}))}
+       keyboardType="numeric" placeholder="0–100" accessibilityLabel={'Score '+key}
+       style={styles.scoreInput} maxLength={3}/>
+     </View>)}
+    <Pressable accessibilityRole="checkbox" accessibilityState={{checked:citationsVerified}}
+     onPress={()=>setCitationsVerified(v=>!v)} style={styles.row}>
+     <MaterialCommunityIcons name={citationsVerified?'checkbox-marked':'checkbox-blank-outline'}
+      size={23} color={green}/>
+     <Text style={[styles.small,{flex:1}]}>I independently checked the citations, surrounding context, and source evidence against the manuscript.</Text>
+    </Pressable>
+    <TextInput multiline value={reviewFeedback} onChangeText={setReviewFeedback}
+     placeholder="Explain the strengths, weaknesses, verified citations, and exactly why the rubric passes or requires revision. Minimum 80 characters."
+     accessibilityLabel="Detailed mastery review feedback" style={styles.feedbackInput} maxLength={2000}/>
+    <Text style={styles.small}>Feedback: {reviewFeedback.trim().length} / 80 minimum</Text>
+    <Pressable style={[styles.primary,(!!busy||reviewFeedback.trim().length<80||
+     Object.values(rubric).some(v=>v.trim()===''))&&styles.disabled]}
+     disabled={!!busy||reviewFeedback.trim().length<80||Object.values(rubric).some(v=>v.trim()==='')}
+     onPress={()=>Alert.alert('Finalize written evaluation?',
+      'A verified rubric grants one +35 Points reward; +50 follows only on full nine-part completion. False or missing citations require rework.',
+      [{text:'Cancel',style:'cancel'},{text:'Record rubric',onPress:()=>void reviewMaster()}])}>
+      <Text style={styles.primaryText}>RECORD REVIEWED RUBRIC</Text>
+    </Pressable>
+   </View>:null}
+   <Text style={styles.footer}>Member rollout stays OFF until exact-source migration, full SQL reward verification, AI model validation, RC build and separate production authorization. Master +35 is earned only after manually verified written evidence and an audited rubric.</Text>
   </ScrollView>
  </AdminGate>;
 }
@@ -197,5 +276,7 @@ const styles=StyleSheet.create({
  reviewItem:{borderTopWidth:1,borderColor:'#E4EAE5',paddingTop:12,gap:8},
  body:{color:'#284436',fontSize:12,lineHeight:18},
  question:{padding:8,backgroundColor:'#F2F7F3',borderRadius:7,gap:4},
+ scoreInput:{width:94,borderRadius:9,borderWidth:1,borderColor:'#B8D6C0',padding:9,color:'#1B5138',fontWeight:'700'},
+ feedbackInput:{minHeight:135,borderWidth:1,borderColor:'#B8D6C0',borderRadius:9,padding:12,textAlignVertical:'top',fontSize:12,color:'#204333'},
  footer:{color:'#76827B',fontSize:11,lineHeight:18,marginTop:8}
 });

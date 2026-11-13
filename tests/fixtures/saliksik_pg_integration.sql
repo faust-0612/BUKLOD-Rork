@@ -54,8 +54,8 @@ BEGIN
    RAISE EXCEPTION 'Draft batch failed %',v_review; END IF;
   v_collection:=(v_review->>'collection_id')::uuid;
  END LOOP;
- IF (public.saliksik_admin_publish_v1(v_collection)->>'published_count')::int<>8 THEN
-  RAISE EXCEPTION 'Eight investigations not published'; END IF;
+ IF (public.saliksik_admin_publish_v1(v_collection)->>'published_count')::int<>9 THEN
+  RAISE EXCEPTION 'Eight objective and one written Master not published'; END IF;
  IF public.saliksik_admin_rollout_v1(true) IS DISTINCT FROM true THEN
   RAISE EXCEPTION 'Rollout activation failed in ephemeral QA'; END IF;
 END $test$;
@@ -65,11 +65,15 @@ SELECT set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
 DO $test$
 DECLARE v_catalog jsonb; v_item jsonb; v_begin jsonb; v_answers jsonb;
  v_result jsonb; v_index int:=0; v_scope uuid:='11111111-1111-1111-1111-111111111111';
- v_total int:=0; v_series int:=0; v_replay jsonb;
+ v_total int:=0; v_series int:=0; v_replay jsonb; v_master uuid; v_master_submit jsonb;
 BEGIN
  v_catalog:=public.saliksik_catalog_v1(v_scope);
- IF jsonb_array_length(v_catalog)<>8 THEN RAISE EXCEPTION 'Incorrect catalog size'; END IF;
+ IF jsonb_array_length(v_catalog)<>9 THEN RAISE EXCEPTION 'Incorrect catalog size'; END IF;
  FOR v_item IN SELECT value FROM jsonb_array_elements(v_catalog) LOOP
+  IF v_item->>'tier'='master' THEN
+    v_master:=(v_item->>'id')::uuid;
+    CONTINUE;
+  END IF;
   v_index:=v_index+1;
   v_begin:=public.saliksik_begin_v1(v_scope,(v_item->>'id')::uuid);
   IF jsonb_array_length(v_begin->'questions') NOT IN (5,10) THEN
@@ -83,14 +87,40 @@ BEGIN
     RAISE EXCEPTION 'Reward must remain claimable/pending, not silently available'; END IF;
   v_total:=v_total+(v_result->>'points')::int;
   v_series:=v_series+(v_result->>'series_points')::int;
-  IF v_index<>8 AND (v_result->>'series_points')::int<>0 THEN
-    RAISE EXCEPTION 'Premature series reward'; END IF;
+  IF (v_result->>'series_points')::int<>0 THEN
+    RAISE EXCEPTION 'Series reward before written Master is forbidden'; END IF;
   v_replay:=public.saliksik_submit_v1((v_begin->>'attempt_id')::uuid,v_answers);
   IF v_replay->>'replayed'<>'true' THEN
     RAISE EXCEPTION 'Submission must be replay-idempotent'; END IF;
  END LOOP;
- IF v_total<>120 OR v_series<>50 THEN
-  RAISE EXCEPTION 'Wrong verified totals: % + %',v_total,v_series; END IF;
+ IF v_index<>8 OR v_master IS NULL OR v_total<>120 OR v_series<>0 THEN
+  RAISE EXCEPTION 'Wrong objective totals or missing Master: % % %',v_total,v_series,v_master; END IF;
+ v_master_submit:=public.saliksik_master_submit_v1(
+   v_scope,v_master,jsonb_build_array(
+   repeat('I cite John 1:1 and analyze the surrounding context with independent textual support. ',5),
+   repeat('I consider a fair counterargument about context and explain why evidence can address it. ',5),
+   repeat('I apply the source-derived principle to a new scenario and acknowledge limitations. ',5)
+   ));
+ IF v_master_submit->>'pending'<>'true' OR v_master_submit->>'submission_id' IS NULL
+ THEN RAISE EXCEPTION 'Master essay did not enter secure review queue: %',v_master_submit; END IF;
+ PERFORM set_config('saliksik.test.master_submission',v_master_submit->>'submission_id',false);
+END $test$;
+
+-- Only the authorized System Admin may assess a distinct member's citations.
+SELECT set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
+DO $test$
+DECLARE v_review jsonb;
+BEGIN
+ v_review:=public.saliksik_admin_master_review_v1(
+   current_setting('saliksik.test.master_submission')::uuid,
+   '{"understanding":90,"evidence":95,"context":90,"reasoning":90,"transfer":85}'::jsonb,
+   true,
+   'The cited passage and surrounding context were checked against the approved source. '
+   ||'The member addresses a plausible objection and applies evidence to a distinct case.');
+ IF v_review->>'approved'<>'true'
+ OR (v_review->>'points')::int<>35
+ OR (v_review->>'series_points')::int<>50
+ THEN RAISE EXCEPTION 'Written Master or final series did not award exact pending points: %',v_review; END IF;
 END $test$;
 RESET ROLE;
 DO $test$
@@ -100,11 +130,11 @@ BEGIN
  FROM public.buklod_points_ledger WHERE user_id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
  SELECT count(*) INTO v_events FROM public.buklod_reward_events
  WHERE user_id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
- IF v_sum<>170 OR v_count<>9 OR v_events<>9
+ IF v_sum<>205 OR v_count<>10 OR v_events<>10
  THEN RAISE EXCEPTION 'Duplicate, missing or unclaimed reward % % %',v_sum,v_count,v_events; END IF;
  IF EXISTS(SELECT 1 FROM public.buklod_points_ledger WHERE claim_state<>'pending')
  THEN RAISE EXCEPTION 'Rewards bypassed claim workflow'; END IF;
- IF EXISTS(SELECT 1 FROM public.buklod_point_rules WHERE activity_type='saliksik_master' AND is_active)
- THEN RAISE EXCEPTION 'Written Master reward unexpectedly enabled'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.buklod_point_rules WHERE activity_type='saliksik_master' AND is_active)
+ THEN RAISE EXCEPTION 'Source-verified written Master rule should be active'; END IF;
 END $test$;
-SELECT 'SALIKSIK SQL E2E PASS: 8 verifications, 170 pending canonical BUKLOD Points, 9 reward events, no duplicate' AS verdict;
+SELECT 'SALIKSIK SQL E2E PASS: 9 verifications, 205 pending canonical BUKLOD Points, 10 reward events, no duplicate' AS verdict;

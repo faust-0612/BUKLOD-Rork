@@ -467,9 +467,7 @@ BEGIN
  SELECT questions INTO v_bank FROM public.saliksik_question_keys WHERE investigation_id=i.id;
  v_n:=coalesce(array_length(a.question_order,1),0);
  IF jsonb_typeof(p_answers)<>'array' OR jsonb_array_length(p_answers)<>v_n
- OR (i.tier='discover' AND v_n<>5)
- OR (i.tier='investigate' AND v_n<>10)
- OR i.tier NOT IN ('discover','investigate') THEN
+ OR v_n<>CASE i.tier WHEN 'discover' THEN 5 ELSE 10 END THEN
  RAISE EXCEPTION 'invalid_answers_count'; END IF;
  FOR v_index IN 1..v_n LOOP
    v_answer:=p_answers->(v_index-1);

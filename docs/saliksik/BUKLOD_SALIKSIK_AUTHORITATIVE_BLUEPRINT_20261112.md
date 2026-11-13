@@ -1,5 +1,5 @@
 # BUKLOD SALIKSIK — Authoritative Product, Learning, Security and Release Contract
-**Contract:** SALIKSIK-R1, 2026-11-12. **Status:** DEV specification; NOT production authorization.
+**Contract:** SALIKSIK-R2, 2026-11-13. **Status:** DEV specification; NOT production authorization.
 **Owner objective:** System Admin uploads original manuscripts to a private vault. BUKLOD converts approved content into evidence-grounded, continuously developing, interactive Biblical investigations in Cluster Home with trustworthy adaptive comprehension and non-farmable points.
 
 ## 0. Authority and precedence
@@ -40,7 +40,7 @@ Collection → investigation (Discover +10; Investigate +20; Master +35) → che
 
 Objective assessment v1: Discover requires 5 equally covered grounded questions and >=80% score; Investigate requires 10 questions, two per competency, >=80% overall AND at least 70% within each of Evidence, Context, Reasoning. This means an item set with 2 questions per core competency requires both answered correctly in each core competency. Questions are versioned, answer keys NEVER serialized to members. Shuffle/question selection is server-owned and snapshot-locked for the attempt. No score for merely opening a page or elapsed reading time.
 
-**Master +35 is NOT payable based solely on objective MCQ performance.** Required before enabling this tier: 3 or more authored argument-and-objection tasks, passage-accurate citations, independently assessed explanation and transfer, threshold >=80 weighted score and >=70% on Evidence/Context/Reasoning, blinded/dual evaluation or calibrated human fallback for uncertain or contradictory AI judgments, an independent unseen variant, hard evidence-integrity checks, and a server-verified attempt. Until those gates are implemented and validated, master is non-published/non-rewardable, not deceptively presented as earned.
+**Master +35 is NEVER payable solely through objective MCQs.** After all eight verified objective investigations, R2 publishes a ninth, written Master. The learner submits three DISTINCT 220–4000-character essays: thesis with precise citations, fair counterargument with evidence-based response, and transfer to an unfamiliar case. The active System Admin must personally validate citations against the original and surrounding Bible context, enter five competency scores, and provide 80–2000 characters of substantive feedback. A passing score requires >=80 weighted overall, evidence/context/reasoning >=70 each, and explicit citations_verified=true. The server alone decides approval; a score without verified evidence becomes REWORK with actionable feedback, NO credit. The reviewer cannot approve their own response, and the review decision is recorded with reviewer and timestamp. This is a **human-adjudicated** evidence-based release path, not autonomous AI essay grading or religious-agreement scoring. Member rollout is OFF until RC/prod verification.
 
 ### Adaptation without lowering standards
 Baseline diagnostic (not rewarded) determines teaching pathway, not final pass criteria:
@@ -60,12 +60,12 @@ AI is a supporting assessor and question author, not the final source of theolog
 | --- | --- | ---: | --- |
 | Discover | User + immutable investigation version | 10 | independently verified objective mastery |
 | Investigate | User + immutable investigation version | 20 | >=80 plus three competency gates |
-| Master | User + immutable investigation version | 35 | written, cited, audited mastery rubric; OFF until proven |
-| Collection completion | User + immutable published collection version | 50 | all eight published investigations passed; once |
+| Master | User + immutable investigation version | 35 | all eight objective investigations; three written arguments; human-verified citations; weighted >=80 plus core >=70; one-time only |
+| Collection completion | User + immutable published collection version | 50 | all **nine** published investigations (4 Discover, 4 Investigate, 1 Master) passed; once |
 | Cluster contributions | User + qualified content + Manila calendar day | 5 | max 2 rewarded per day; non-duplicate, non-spam, deferred until community anti-abuse integration |
 
 No rewards for attempts, opening, tapping, repeated reading, retry, skipped questions, misleading citations, model-guessable templates, or religious agreement. Do not double-credit KL +10 reading or KL +50 season/series for a SALIKSIK event. Use canonical buklod_points_ledger with unique (user_id, source_key), pending claim_state, and the existing member reward-event claim workflow. Points earned are NOT spendable until claimed. The RPC checks the active BUKLOD point rule's exact amount before any award; if paused or misconfigured, the entire attempted award rolls back and is not silently bypassed. For protection against guesses, allow at most 3 failed graded attempts per Asia/Manila calendar day and require 10 minutes of review after a failed attempt. Studying remains available while graded retry is paused. SALIKSIK Points do not themselves create QMP, cash balances, revenue, or AdMob-based payouts; do not insert into Finance/QMP tables. Separate saliksik_* activity types. Reward insert and completed state must be transactional; two devices/retries must yield exactly one unique credit. System Admin OFFICIAL identity reward guard remains authoritative. QMP and AdMob-only distributions are distinct from raw points; do not imply PHP equivalents, payouts, or guaranteed earnings.
-Cap tuning and promotion to Master must be approved against latest release-specific economic data; never generate uncapped points due to LLM output.
+R2's published collection is exactly 4×10 + 4×20 + 1×35 + 1×50 = **205 BUKLOD Points maximum** per user per immutable collection, assuming every stage and written rubric is verified; never bypass the approved Point Rule switches or confuse pending claim credits with available balances. Automated model calls never publish member credits. Changes to reward amounts require versioned policy, current financial review and focused regression tests.
 
 ## 5. Data model / APIs (version 1)
 - private storage bucket saliksik-source-originals
@@ -102,4 +102,14 @@ The uploaded **ANG PAGKADIOS NI JESUS.docx** (29 pages, working title *SINO SI J
 **DO NOT COMMIT THE USER'S PRIVATE ORIGINAL DOCX OR ANY PRIVATE SOURCE TEXT TO THIS PUBLIC REPOSITORY.**
 
 ## 9. Immutable scope/non-goals
-Initial implementation provides eight investigations in four resumable two-investigation Admin calls, a private vault, optional Cluster doorway, objective grading and canonical Points. The Admin must keep the screen open during generation or resume manually; no unattended background scheduler is shipped. Remaining Master open-text double validation, OCR coverage, recurring background job scheduling, contribution points and content authoring expansion are **NOT** considered shipped until specific regression evidence and production tests exist. No hidden mock completion, manual promotion, or silent blanket autoplay publication to satisfy a deadline.
+Initial implementation provides eight investigations in four resumable two-investigation Admin calls, a private vault, optional Cluster doorway, objective grading and canonical Points. The Admin must keep the screen open during generation or resume manually; no unattended background scheduler is shipped. The written Master +35 is implemented as a human-reviewed, auditable rubric and separately tested in isolated PostgreSQL; **AI-written automatic grading, offline pending submission sync, OCR coverage, recurring unattended generation, retention scheduling, and Cluster contribution points** remain out of current scope and must not be represented as shipped. The user-facing feature remains disabled until runtime and production verification succeeds. No hidden mock completion, manual promotion, or silent blanket autoplay publication to satisfy a deadline.
+
+
+## 10. R2 release reconciliation and auditable reward flow (2026-11-13)
+1. Four resumable Admin generation batches produce 8 source-grounded draft investigations. Admin verifies each answer key and citation before publication.
+2. Publication atomically creates one generic written Master (sequence 9). Member Catalog now displays 4 Discover, 4 Investigate, 1 Master, but the backend rollout remains OFF by default.
+3. On each correct objective pass, the transactional RPC writes the unique `saliksik:<investigation-id>:v<version>` credit to `buklod_points_ledger`. Native trigger marks it pending and creates its existing reward claim event. Duplicate retry cannot credit twice.
+4. Master submission is permitted only after 8 objectively verified parts; the three distinct essays are private and cannot be claimed by opening or auto-generated text. Only audited System Admin source-verification and structured weighted rubric can approve and write unique +35.
+5. Final +50 is emitted ONLY when the ninth written Master is approved. The series award has its own unique source key. The System Admin official account remains excluded from member Points.
+6. The canonical Finance/QMP AdMob settlement derives from separate qualified QMP activity accounts; BUKLOD SALIKSIK learning points do not automatically create QMP or cash revenue. No separate monetary record is written here.
+7. CI must run R1 and R2 migrations in sequence in isolated PostgreSQL 17 and assert 205 pending Points and 10 distinct reward events, plus role-isolation and changed Node tests. SOURCE-only validation and green CI do not activate production.

@@ -1,11 +1,12 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {
- ActivityIndicator,Pressable,ScrollView,StyleSheet,Text,View,
+ ActivityIndicator,Pressable,ScrollView,StyleSheet,Text,TextInput,View,
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {router,useLocalSearchParams} from 'expo-router';
 import {
  saliksikCatalog,saliksikDetail,saliksikBegin,saliksikSubmit,
+ saliksikMasterSubmit,saliksikMasterStatus,type SaliksikMasterSubmission,
  type SaliksikInvestigation,type SaliksikDetail,
  type SaliksikSession,type SaliksikResult,
 } from '@/lib/saliksikClient';
@@ -24,6 +25,8 @@ export default function SaliksikInvestigationScreen(){
  const [session,setSession]=useState<SaliksikSession|null>(null);
  const [answers,setAnswers]=useState<number[]>([]);
  const [result,setResult]=useState<SaliksikResult|null>(null);
+ const [masterAnswers,setMasterAnswers]=useState<string[]>(['','','']);
+ const [masterStatus,setMasterStatus]=useState<SaliksikMasterSubmission|null>(null);
  const [busy,setBusy]=useState(false);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
@@ -41,11 +44,13 @@ export default function SaliksikInvestigationScreen(){
  useEffect(()=>{active.current=true;void load();return()=>{active.current=false;epoch.current++;};},[load]);
  const open=async(item:SaliksikInvestigation)=>{
   if(busy)return;
-  setBusy(true);setError('');setSession(null);setResult(null);
+  setBusy(true);setError('');setSession(null);setResult(null);setMasterStatus(null);
+  setMasterAnswers(['','','']);
   try{
    const next=await saliksikDetail(scopeId,item.id);
-   if(next?.id)setDetail(next);
-   else throw new Error('Investigation is not available yet.');
+   if(!next?.id)throw new Error('Investigation is not available yet.');
+   if(next.tier==='master')setMasterStatus(await saliksikMasterStatus(next.id));
+   setDetail(next);
   }catch(e){setError(errorText(e));}finally{setBusy(false);}
  };
  const start=async()=>{
@@ -74,7 +79,25 @@ export default function SaliksikInvestigationScreen(){
   }catch(e){setError(errorText(e));}
   finally{setBusy(false);submitLock.current=false;}
  };
- const close=()=>{setDetail(null);setSession(null);setResult(null);setAnswers([]);setError('');};
+ const submitMaster=async()=>{
+  if(!detail?.id||busy)return;
+  setBusy(true);setError('');
+  try{
+   const receipt=await saliksikMasterSubmit(scopeId,detail.id,masterAnswers);
+   if(!receipt?.pending&&!receipt?.completed)throw new Error('Submission not confirmed');
+   setMasterStatus(await saliksikMasterStatus(detail.id));
+   setMasterAnswers(['','','']);
+   await load();
+  }catch(e){setError(errorText(e));}
+  finally{setBusy(false);}
+ };
+ const refreshMaster=async()=>{
+  if(!detail?.id||busy)return;
+  setBusy(true);setError('');
+  try{setMasterStatus(await saliksikMasterStatus(detail.id));await load();}
+  catch(e){setError(errorText(e));}finally{setBusy(false);}
+ };
+ const close=()=>{setDetail(null);setSession(null);setResult(null);setMasterStatus(null);setMasterAnswers(['','','']);setAnswers([]);setError('');};
  const current=catalog.find(x=>x.id===detail?.id);
  const remediation:Record<string,string>={
   understanding:'Read the main thesis in short sections and explain each in your own words.',
@@ -119,10 +142,43 @@ export default function SaliksikInvestigationScreen(){
    <Text selectable style={styles.lesson}>{detail.lesson_text}</Text>
    <Text style={styles.small}>Bible references: {(detail.scripture_refs??[]).join(' • ')||'Consult the cited source'}</Text>
    <View style={styles.note}><Text style={styles.noteText}>{detail.author_disclosure}</Text></View>
-   <Text style={styles.small}>Learn at your own pace. No points for merely viewing this page. Master +35 requires a separate written mastery assessment and is not currently available.</Text>
-   <Pressable style={styles.primary} disabled={busy||current?.completed} onPress={()=>void start()}>
+   <Text style={styles.small}>Earned rewards are pending until claimed through BUKLOD Points. No points for merely opening content or agreeing with the author.</Text>
+   {detail.tier==='master'?<>
+    <Text style={styles.cardTitle}>WRITTEN MASTER ASSESSMENT • +35 Points</Text>
+    <Text style={styles.small}>Unlock by passing all eight objective investigations. Write your own reasoning and specific Bible references. The System Admin checks citations and scores five competencies before any reward. No automated credit for essay length or mere agreement.</Text>
+    {masterStatus?<View style={styles.note}>
+      <Text style={styles.noteText}>Last submission: {masterStatus.status.toUpperCase()}
+      {masterStatus.score!==null?' • '+masterStatus.score+'/100':''}</Text>
+      {masterStatus.feedback?<Text style={styles.noteText}>Reviewer feedback: {masterStatus.feedback}</Text>:null}
+    </View>:null}
+    {masterStatus?.status==='pending'||current?.completed?
+      <Text style={styles.hint}>{current?.completed?'Written mastery verified. Claim your earned points in BUKLOD Points.':'Submission received; waiting for source-based Admin assessment.'}</Text>:
+      <>
+       {[
+        '1. State your thesis and substantiate it with exact passages and their context.',
+        '2. Explain a strong counterargument fairly, then respond using evidence and reasoning.',
+        '3. Apply your conclusion to a new situation, including uncertainties and limits.',
+       ].map((prompt,i)=><View key={i} style={styles.question}>
+        <Text style={styles.questionTitle}>{prompt}</Text>
+        <TextInput multiline placeholder="Write at least 220 characters, including biblical references and your own explanation."
+         accessibilityLabel={'Written mastery response '+(i+1)}
+         value={masterAnswers[i]} onChangeText={t=>setMasterAnswers(old=>old.map((v,j)=>j===i?t:v))}
+         style={styles.essayInput} maxLength={4000}/>
+        <Text style={styles.small}>{masterAnswers[i].trim().length} / 220 minimum</Text>
+       </View>)}
+       <Pressable style={[styles.primary,(busy||masterAnswers.some(a=>a.trim().length<220))&&styles.disabled]}
+        disabled={busy||masterAnswers.some(a=>a.trim().length<220)} onPress={()=>void submitMaster()}>
+         <Text style={styles.primaryText}>SUBMIT WRITTEN MASTERY FOR REVIEW</Text>
+       </Pressable>
+      </>
+    }
+    <Pressable style={styles.secondary} onPress={()=>void refreshMaster()}>
+      <Text style={styles.secondaryText}>REFRESH REVIEW STATUS</Text>
+    </Pressable>
+   </>:null}
+   {detail.tier!=='master'?<Pressable style={styles.primary} disabled={busy||current?.completed} onPress={()=>void start()}>
     <Text style={styles.primaryText}>{current?.completed?'ALREADY COMPLETED':'START INDEPENDENT ASSESSMENT'}</Text>
-   </Pressable>
+   </Pressable>:null}
   </View>:null}
   {detail&&session?<View style={styles.card}>
    <Text style={styles.tier}>INDEPENDENT COMPREHENSION CHECK</Text>
@@ -181,5 +237,6 @@ const styles=StyleSheet.create({
  secondary:{padding:13,borderWidth:1,borderColor:green,borderRadius:10,alignItems:'center'},
  secondaryText:{fontWeight:'800',fontSize:12,color:green},error:{backgroundColor:'#FFF0F0',padding:12,borderRadius:9,gap:5},
  errorText:{color:'#9B2828',fontSize:12},link:{color:'#9B2828',fontWeight:'800',fontSize:12},
+ essayInput:{minHeight:125,backgroundColor:'#F7FBF7',borderWidth:1,borderColor:'#D4E3D8',borderRadius:10,padding:12,textAlignVertical:'top',fontSize:13,color:'#233F32',lineHeight:19},
  footer:{fontSize:11,color:'#89958B',lineHeight:17}
 });

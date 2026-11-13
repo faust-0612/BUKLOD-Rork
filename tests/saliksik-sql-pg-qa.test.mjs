@@ -7,7 +7,7 @@ test('SALIKSIK isolated SQL fixture exercises eight investigations, server-credi
  const schema=read('tests/fixtures/saliksik_pg_seed.sql');
  const workflow=read('.github/workflows/saliksik-sql-qa.yml');
  assert.match(fixture,/FOR v_i IN 1\.\.4 LOOP/);
- assert.match(fixture,/v_sum<>170 OR v_count<>9 OR v_events<>9/);
+ assert.match(fixture,/v_sum<>205 OR v_count<>10 OR v_events<>10/);
  assert.match(fixture,/public\.saliksik_submit_v1/);
  assert.match(fixture,/public\.saliksik_admin_publish_v1/);
  assert.match(schema,/CREATE TRIGGER test_reward AFTER INSERT/);

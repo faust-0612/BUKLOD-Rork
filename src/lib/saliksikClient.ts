@@ -134,3 +134,53 @@ export async function saliksikSignedOriginalUrl(path:string):Promise<string|null
  if(error)throw error;
  return data?.signedUrl||null;
 }
+
+export type SaliksikMasterSubmission = {
+ id:string;status:'pending'|'approved'|'rework';score:number|null;
+ competencies:Record<string,number>|null;feedback:string|null;
+ submitted_at:string;reviewed_at:string|null;
+};
+export type SaliksikMasterQueueItem = {
+ id:string;user_id:string;submitted_at:string;investigation_title:string;
+ answers:string[];scripture_refs:string[];source_excerpt:string;
+};
+export type SaliksikMasterReviewResult = {
+ approved:boolean;score:number;core_pass:boolean;citations_verified:boolean;
+ points:number;series_points:number;claim_state:string|null;
+};
+export async function saliksikMasterStatus(investigationId:string):Promise<SaliksikMasterSubmission|null>{
+ const data=await rpc<SaliksikMasterSubmission>('saliksik_master_get_v1',{
+  p_investigation_id:investigationId,
+ });
+ return data?.id?data:null;
+}
+export async function saliksikMasterSubmit(
+ scopeId:string,investigationId:string,answers:string[]
+):Promise<{pending?:boolean;completed?:boolean;submission_id?:string;points:number}>{
+ if(answers.length!==3||answers.some(a=>a.trim().length<220||a.length>4000)
+ ||new Set(answers.map(x=>x.trim().toLowerCase())).size!==3){
+  throw new Error('Three distinct, independently written responses of at least 220 characters each are required.');
+ }
+ return rpc('saliksik_master_submit_v1',{
+  p_scope_id:scopeId,p_investigation_id:investigationId,p_answers:answers,
+ });
+}
+export async function saliksikAdminMasterQueue():Promise<SaliksikMasterQueueItem[]>{
+ await assertAdmin();
+ return rpc('saliksik_admin_master_queue_v1');
+}
+export async function saliksikAdminMasterReview(
+ submissionId:string,scores:Record<string,number>,
+ citationsVerified:boolean,feedback:string
+):Promise<SaliksikMasterReviewResult>{
+ await assertAdmin();
+ const names=['understanding','evidence','context','reasoning','transfer'];
+ if(names.some(n=>!Number.isInteger(scores[n])||scores[n]<0||scores[n]>100)
+ ||Object.keys(scores).length!==5||feedback.trim().length<80||feedback.length>2000){
+  throw new Error('Complete all five numeric competency scores (0–100) and a detailed feedback note.');
+ }
+ return rpc('saliksik_admin_master_review_v1',{
+  p_submission_id:submissionId,p_scores:scores,p_citations_verified:citationsVerified,
+  p_feedback:feedback.trim(),
+ });
+}

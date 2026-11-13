@@ -3,7 +3,7 @@
   "objective": "Build SALIKSIK Admin Knowledge Vault and evidence-grounded adaptive Biblical investigations in Cluster Home without weakening established point and security contracts.",
   "baseRef": "9ff4f65d0db52b584d915493f67edaaed8bae369",
   "productionBaselineEvidence": "2026-11-13 current source inspection: 2026-11-12 baseline; main SHA 9ff4f65d0db52b584d915493f67edaaed8bae369 reported Nov12 consolidated Android/Web RC and publisher checks as SUCCESS; exact deployed OTA ID, served assets and device-runtime state not independently verified here. This is DEV work only; no production database mutation or release.",
-  "chosenApproach": "Additive private admin vault, role-checked AI draft generator, immutable published source-linked investigations, server-only objective grade and canonical point ledger integration with dual disabled launch switches.",
+  "chosenApproach": "Additive private admin vault, role-checked AI draft generator, immutable published source-linked investigations, server-only objective grade and canonical point ledger integration with dual disabled launch switches. R2 adds a human-adjudicated written Master with explicit evidence verification; no LLM-issued credits.",
   "selectionRationale": "Reuse existing Expo, Supabase, Gemini and authenticated AdminGate; non-publishing default isolates new system and prevents regression to existing KL/Quiz/Finance.",
   "alternativeApproaches": [
     "Use KL reading quiz directly: rejected because SALIKSIK has distinct provenance, five-dimensional mastery, version identity and rewards.",
@@ -38,20 +38,26 @@
     ".github/workflows/saliksik-sql-qa.yml",
     "tests/fixtures/saliksik_pg_seed.sql",
     "tests/fixtures/saliksik_pg_integration.sql",
-    "tests/saliksik-sql-pg-qa.test.mjs"
+    "tests/saliksik-sql-pg-qa.test.mjs",
+    "supabase/migrations/20261113221000_saliksik_written_master_reward_r2.sql",
+    "supabase/tests/saliksik_written_master_r2.sql",
+    "tests/saliksik-written-master-20261113.test.mjs"
   ],
   "regressionTests": [
     "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql",
     "tests/saliksik-adaptive-mastery-20261112.test.mjs",
     "tests/saliksik-cluster-faith-20261112.test.mjs",
     "tests/saliksik-backend-security-20261112.test.mjs",
-    "tests/saliksik-sql-pg-qa.test.mjs"
+    "tests/saliksik-sql-pg-qa.test.mjs",
+    "tests/saliksik-written-master-20261113.test.mjs",
+    "supabase/tests/saliksik_written_master_r2.sql"
   ],
   "preserveBehaviors": [
     "Cluster Home first paint remains local; SALIKSIK door is an opt-in OTA flagged card and backend off by default.",
     "Existing KL +10 chapter and +50 series, Daily Bible, Quiz, Wall, videos, ads, Connect and PTT remain untouched.",
     "Production ledger and QMP/AdMob payout logic untouched; separate saliksik_ source keys and transactional credits.",
-    "Official System Admin account does not receive new member rewards."
+    "Official System Admin account does not receive new member rewards.",
+    "Master remains gated by false-by-default member rollout; existing school/quiz/finance payout/ads and KL remain untouched."
   ],
   "acceptanceChecks": [
     "Node behavioral mastery and protected route tests pass; SQL migration test passes on isolated database.",
@@ -60,7 +66,8 @@
     "App TypeScript check and Expo Android/Web export pass without changing native runtime.",
     "RC real auth, concurrency, weak-network, question quality, permissions and SQL validation gates.",
     "Exact source/runtime/OTA/Expo Hosting artifact verified before any production claim.",
-    "Independent PostgreSQL 17 service executes actual migration and end-to-end 8 investigation / 170 pending canonical points ledger workflow; member and admin requests use authenticated role."
+    "Independent PostgreSQL 17 service executes actual migration and end-to-end 8 investigation / 170 pending canonical points ledger workflow; member and admin requests use authenticated role.",
+    "R2 written Master: three distinct long-form responses, eight objective prerequisites, private submission, independent System Admin citation review and immutable 35+50 canonical points in one transaction."
   ],
   "lockedFeatureChanges": [
     {
