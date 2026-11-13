@@ -48,6 +48,17 @@
       "tests": [
         "tests/visual-home-navigation-parity-20261113.test.mjs"
       ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Remove duplicated navigation links from Home presentation while leaving global canonical navigation and scope selection untouched.",
+      "preservedBehaviors": [
+        "Canonical Home/Cluster/Wall/Connect/Profile routes remain unchanged in persistent bottom navigation and side menu.",
+        "No auth, personal workspace routing, permission, or scope behavior changed."
+      ],
+      "tests": [
+        "tests/visual-home-navigation-parity-20261113.test.mjs"
+      ]
     }
   ],
   "releaseMode": "dev-only-no-ota",
