@@ -139,14 +139,14 @@ export function BuklodProfileGlassRow({
 
       <View style={styles.copy}>
         <Text
-          numberOfLines={1}
+          allowFontScaling
           style={styles.title}
         >
           {title}
         </Text>
         {!!subtitle && (
           <Text
-            numberOfLines={2}
+            allowFontScaling
             style={styles.subtitle}
           >
             {subtitle}
