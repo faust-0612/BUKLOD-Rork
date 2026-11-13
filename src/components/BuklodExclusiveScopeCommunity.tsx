@@ -650,6 +650,9 @@ export default function BuklodExclusiveScopeCommunity({
   ] =
     useState(false);
 
+  const scopedCommentOpenRef = useRef(commentOpen);
+  scopedCommentOpenRef.current = commentOpen;
+
   const [
     commentPost,
     setCommentPost,
@@ -2413,7 +2416,7 @@ export default function BuklodExclusiveScopeCommunity({
         if (!current) { void discardStagedSharedCommentGif(uri); return; }
         const previous = pendingScopeGif.current;
         if (previous) void discardStagedSharedCommentGif(previous.uri);
-        if (commentOpen && commentActivePostRef.current && !commentSubmitRef.current) {
+        if (scopedCommentOpenRef.current && commentActivePostRef.current && !commentSubmitRef.current) {
           if (commentMedia?.kind === 'gif' && commentMedia.ref !== uri) {
             void discardStagedSharedCommentGif(commentMedia.ref);
           }

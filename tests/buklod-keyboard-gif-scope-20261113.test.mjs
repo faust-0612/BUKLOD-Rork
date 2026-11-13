@@ -15,6 +15,8 @@ test('Android keyboard GIF restores the same Cluster/Organization comment',()=>{
  assert.match(scoped,/useBuklodIncomingShare/);
  assert.match(scoped,/await stageSharedCommentGif/);
  assert.match(scoped,/Do not clear payload yet/);
+ assert.match(scoped,/scopedCommentOpenRef\.current && commentActivePostRef\.current/);
+ assert.match(wall,/commentOpenRef187A\.current && !commentSendInFlightRef\.current/);
  assert.match(scoped,/incomingShare\.clearSharedPayloads\(\)/);
  assert.match(scoped,/loadBuklodNotificationPost/);
  assert.match(scoped,/openComments\(post as SocialPost\)/);

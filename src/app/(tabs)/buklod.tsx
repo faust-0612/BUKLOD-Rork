@@ -617,6 +617,7 @@ function LegacyPublicBuklodScreen(){
   // Android keyboard GIFs can remount the Wall share-target Activity.
   const pendingSharedCommentGif187A = useRef<{ uri: string; ownerId: string } | null>(null);
   const [sharedGifAwaitingTarget, setSharedGifAwaitingTarget] = useState(false);
+  const commentOpenRef187A = useRef(false);
 
   async function readIncomingVideoDuration187A(
     uri: string
@@ -831,7 +832,7 @@ function LegacyPublicBuklodScreen(){
             void discardStagedSharedCommentGif(previous.uri);
             pendingSharedCommentGif187A.current = null;
           }
-          if (activeCommentPostIdRef.current && commentOpen && !commentBusy) {
+          if (activeCommentPostIdRef.current && commentOpenRef187A.current && !commentSendInFlightRef.current) {
             // Preserve the caption/reply and change only the attached GIF.
             if (commentMedia?.kind === 'gif' && commentMedia.ref !== uri) {
               void discardStagedSharedCommentGif(commentMedia.ref);
@@ -843,7 +844,7 @@ function LegacyPublicBuklodScreen(){
             return;
           }
           pendingSharedCommentGif187A.current = { uri, ownerId: accountId };
-          if (commentBusy) {
+          if (commentSendInFlightRef.current) {
             setCommentNotice('Finish sending the current comment, then open Comments to attach the GIF.');
             return;
           }
@@ -1318,6 +1319,7 @@ function LegacyPublicBuklodScreen(){
  const [composerVideoOpen,setComposerVideoOpen]=useState(false);
  const [commentOpen,setCommentOpen]=
   useState(false);
+ commentOpenRef187A.current = commentOpen;
 
  const [commentPost,setCommentPost]=
   useState<any|null>(null);
