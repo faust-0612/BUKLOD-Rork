@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 /**
  * Maps global BUKLOD semantic tokens to legacy presentation shapes
  * so existing screens can adopt theming incrementally.
@@ -65,7 +66,7 @@ export function createBuklodSharedStyles(
       backgroundColor: theme.canvas,
     },
     content: {
-      paddingHorizontal: 8,
+      paddingHorizontal: buklodVisual.space.screen,
       paddingTop: 10,
       paddingBottom: 18,
       gap: 8,
@@ -106,8 +107,8 @@ export function createBuklodCardStyle(
 ): ViewStyle {
   return {
     backgroundColor: theme.cardSurface,
-    borderRadius: 13,
-    paddingHorizontal: 8,
+    borderRadius: buklodVisual.radius.card,
+    paddingHorizontal: buklodVisual.space.screen,
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: theme.border,
@@ -119,11 +120,11 @@ export function createBuklodButtonStyles(
 ) {
   return StyleSheet.create({
     button: {
-      minHeight: 46,
+      minHeight: buklodVisual.size.touch,
       backgroundColor: theme.buttonPrimary,
       paddingHorizontal: 13,
       paddingVertical: 10,
-      borderRadius: 11,
+      borderRadius: buklodVisual.radius.control,
       alignItems: 'center',
       justifyContent: 'center',
     },

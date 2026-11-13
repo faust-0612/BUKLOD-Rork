@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import React, { memo, useMemo, type ReactNode } from 'react';
 import {
   Image,
@@ -239,9 +240,9 @@ const styles = StyleSheet.create({
   feedCard: {
     width: '100%',
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 18,
-    padding: 8,
-    marginBottom: 6,
+    borderRadius: buklodVisual.radius.card,
+    padding: buklodVisual.space.card,
+    marginBottom: 10,
     gap: 6,
     overflow: 'visible', // Keep reaction picker outside the card clipping boundary.
   },

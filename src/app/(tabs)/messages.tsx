@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import React, {
   useCallback,
@@ -393,13 +394,15 @@ function createInboxStyles(theme: ConnectThemeRoles) {
     },
     hero: {
       marginBottom: 0,
-      minHeight: 89,
+      minHeight: 72,
       paddingTop: 7,
       paddingBottom: 8,
       paddingHorizontal: 14,
-      backgroundColor: HIBLA.pine,
-      borderBottomLeftRadius: 25,
-      borderBottomRightRadius: 25,
+      backgroundColor: theme.surface,
+      borderBottomLeftRadius: 0,
+      borderBottomRightRadius: 0,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.border,
       overflow: 'hidden',
     },
     heroArc: {
@@ -410,25 +413,25 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       right: -48,
       borderRadius: 85,
       borderWidth: 1,
-      borderColor: 'rgba(237,201,120,0.55)',
+      borderColor: theme.accentSoft,
     },
     heroEyebrow: {
-      color: HIBLA.gold,
+      color: theme.accent,
       fontSize: 10,
       letterSpacing: 2.1,
       fontWeight: '900',
     },
     heroTitle: {
       marginTop: 2,
-      color: '#FFFFFF',
-      fontSize: 21,
+      color: theme.textPrimary,
+      fontSize: buklodVisual.type.title,
       fontWeight: '900',
       lineHeight: 25,
-      fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
+      letterSpacing: -0.5,
     },
     heroSubtitle: {
-      color: '#DBF3E4',
-      fontSize: 11,
+      color: theme.textMuted,
+      fontSize: 13,
       marginTop: 1,
     },
     heroCount: {
@@ -445,12 +448,12 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       fontWeight: '800',
     },
     searchDock: {
-      marginTop: -12,
+      marginTop: 4,
       marginHorizontal: 8,
       paddingTop: 4,
       paddingBottom: 5,
       borderRadius: 22,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: theme.surface,
     },
     contactsTitle: {
       color: HIBLA.pineDeep,
@@ -500,7 +503,7 @@ function createInboxStyles(theme: ConnectThemeRoles) {
     },
     empty: {
       alignItems: 'center',
-      paddingVertical: 48,
+      paddingVertical: 28,
       paddingHorizontal: 28,
     },
     emptyTitle: {

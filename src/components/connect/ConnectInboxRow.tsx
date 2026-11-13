@@ -24,7 +24,6 @@ import {
 import {
   ConnectTappableAvatar,
 } from '@/components/connect/ConnectTappableAvatar';
-import { HIBLA } from '@/lib/connectHibla';
 
 type Props = {
   userId: string;
@@ -48,14 +47,14 @@ function createStyles(theme: ConnectThemeRoles) {
       marginBottom: 5,
       paddingHorizontal: 12,
       paddingVertical: 10,
-      minHeight: 82,
+      minHeight: 72,
       borderRadius: 18,
-      backgroundColor: HIBLA.paper,
+      backgroundColor: theme.surface,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: HIBLA.outline,
+      borderColor: theme.border,
     },
     unreadRow: {
-      backgroundColor: HIBLA.mint,
+      backgroundColor: theme.accentSoft,
     },
     threadNode: {
       position: 'absolute',
@@ -67,7 +66,7 @@ function createStyles(theme: ConnectThemeRoles) {
       // An unread marker, never an unverified online-presence badge.
       backgroundColor: '#D89B24',
       borderWidth: 1,
-      borderColor: HIBLA.paper,
+      borderColor: theme.surface,
     },
     copyHit: {
       flex: 1,
@@ -82,7 +81,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     title: {
       ...connectTypography.rowTitle,
-      color: HIBLA.ink,
+      color: theme.textPrimary,
     },
     meta: {
       alignItems: 'flex-end',
@@ -92,7 +91,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     time: {
       ...connectTypography.rowTime,
-      color: HIBLA.muted,
+      color: theme.textMuted,
     },
     previewRow: {
       marginTop: 3,
@@ -105,7 +104,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     preview: {
       ...connectTypography.rowPreview,
-      color: HIBLA.muted,
+      color: theme.textMuted,
       flex: 1,
     },
     badge: {

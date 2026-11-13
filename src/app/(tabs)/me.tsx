@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 /* PATCH_184F_R3_PROFILE_CLEANUP */
 /* PATCH_179C_R1_PREMIUM_CURRENT_PROFILE */
 import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef } from 'react';
@@ -1719,7 +1720,7 @@ export default function MeScreen() {
             },
           ]}
         >
-          <MaterialCommunityIcons name="cog-outline" size={23} color={identityPaint.color} />
+          <MaterialCommunityIcons name="cog-outline" size={23} color={theme.accent} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -1743,10 +1744,11 @@ export default function MeScreen() {
           <MaterialCommunityIcons
             name="dots-vertical"
             size={22}
-            color={identityPaint.color}
+            color={theme.accent}
           />
         </Pressable>
 
+        <View style={styles.identityRow}>
         <ProfileMotionAvatar>
           <View
             style={[
@@ -1767,7 +1769,7 @@ export default function MeScreen() {
               userId={profile?.id}
               uri={profile?.avatar_url}
               name={profile?.full_name}
-              size={108}
+              size={buklodVisual.size.avatar}
               fallbackSource={fallbackPortrait}
               enableLongPressSheet={false}
               onPress={() => {
@@ -1801,6 +1803,8 @@ export default function MeScreen() {
             </View>
           </View>
         </ProfileMotionAvatar>
+          <View style={styles.identityCopy}>
+
 
         <ProfileMotionFadeUp delay={40}>
           <Text
@@ -1833,6 +1837,9 @@ export default function MeScreen() {
             </Text>
           </ProfileMotionFadeUp>
         )}
+
+          </View>
+        </View>
 
         {visibleRoles.length > 0 && (
           <ProfileMotionFadeUp delay={140}>
@@ -2132,15 +2139,18 @@ function createMeStyles(
       textAlign: 'center',
       color: theme.textPrimary,
     },
+    identityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    identityCopy: { flex: 1, minWidth: 0 },
     profileCard: {
       minHeight: 70,
       position: 'relative',
-      alignItems: 'center',
-      paddingTop: 12,
-      paddingBottom: 23,
+      alignItems: 'stretch',
+      paddingTop: 64,
+      paddingBottom: 16,
       paddingHorizontal: 12,
-      marginBottom: 6,
-      borderRadius: 0,
+      marginBottom: 0,
+      marginHorizontal: buklodVisual.space.screen,
+      borderRadius: buklodVisual.radius.card,
       overflow: 'hidden',
       borderWidth: 1,
     },
@@ -2183,7 +2193,7 @@ function createMeStyles(
       overflow: 'hidden',
     },
     profileMenuItem: {
-      minHeight: 64,
+      minHeight: buklodVisual.size.row,
       paddingHorizontal: 14,
       paddingVertical: 12,
       flexDirection: 'row',
@@ -2231,11 +2241,11 @@ function createMeStyles(
       lineHeight: 18,
       fontWeight: '900',
       letterSpacing: 0.15,
-      textAlign: 'center',
+      textAlign: 'left',
     },
     avatarRing: {
       position: 'relative',
-      padding: 5,
+      padding: 3,
       borderWidth: 1.5,
       borderRadius: 64,
       zIndex: 2,
@@ -2243,18 +2253,18 @@ function createMeStyles(
     name: {
       marginTop: 6,
       paddingHorizontal: 8,
-      fontSize: 25,
-      lineHeight: 31,
+      fontSize: buklodVisual.type.title,
+      lineHeight: 28,
       fontWeight: '900',
       letterSpacing: -0.4,
-      textAlign: 'center',
+      textAlign: 'left',
     },
     meta: {
       marginTop: 4,
       fontSize: 13.5,
       lineHeight: 18,
       fontWeight: '700',
-      textAlign: 'center',
+      textAlign: 'left',
     },
     rolesWrap: {
       marginTop: 8,

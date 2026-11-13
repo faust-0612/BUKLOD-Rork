@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import React, {
   useCallback,
   useMemo,
@@ -582,12 +583,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   header: {
-    minHeight: 66,
+    minHeight: buklodVisual.size.row,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#0A5DA8',
+    backgroundColor: '#145B3B',
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
   },
@@ -654,16 +655,16 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     color: '#224968',
-    fontSize: 10,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '800',
     textAlign: 'center',
   },
   chips: {
-    paddingVertical: 13,
+    paddingVertical: 8,
     gap: 7,
   },
   chip: {
-    minHeight: 32,
+    minHeight: buklodVisual.size.touch,
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,

@@ -1,5 +1,7 @@
-import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { buklodVisual } from '@/lib/buklodVisual';
+import { BuklodAppearanceSection } from '@/components/BuklodGlobalThemeSelector';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,6 +38,13 @@ const GROUPS: { title: string; links: SettingLink[] }[] = [
 ];
 
 export default function BuklodSettingsHome() {
+  const [query, setQuery] = useState('');
+  const groups = useMemo(() => {
+    const term = query.trim().toLocaleLowerCase();
+    return GROUPS.map(group => ({ ...group, links: group.links.filter(item =>
+      !term || `${group.title} ${item.label} ${item.description}`.toLocaleLowerCase().includes(term))
+    })).filter(group => group.links.length > 0);
+  }, [query]);
   const insets = useSafeAreaInsets();
   const { theme } = useBuklodTheme();
   return (
@@ -53,12 +62,25 @@ export default function BuklodSettingsHome() {
         <MaterialCommunityIcons name="arrow-left" size={24} color={theme.textPrimary} />
         <Text allowFontScaling style={{ color: theme.textPrimary, fontSize: 17, fontWeight: '800' }}>Settings</Text>
       </Pressable>
-      {GROUPS.map(group => (
+      <View style={{ minHeight: buklodVisual.size.touch, flexDirection: 'row', alignItems: 'center', gap: 8,
+        paddingHorizontal: 12, borderRadius: buklodVisual.radius.control, backgroundColor: theme.inputSurface }}>
+        <MaterialCommunityIcons name="magnify" size={22} color={theme.textMuted} />
+        <TextInput accessibilityLabel="Search settings" placeholder="Search settings" placeholderTextColor={theme.textMuted}
+          value={query} onChangeText={setQuery} allowFontScaling autoCorrect={false}
+          style={{ flex: 1, minWidth: 0, minHeight: 48, fontSize: 16, color: theme.textPrimary }} />
+        {!!query && <Pressable accessibilityRole="button" accessibilityLabel="Clear settings search" onPress={() => setQuery('')}
+          style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
+          <MaterialCommunityIcons name="close" size={20} color={theme.textMuted} />
+        </Pressable>}
+      </View>
+      {(!query || /appearance|theme|display|accessib|font/i.test(query)) && <BuklodAppearanceSection />}
+      {groups.length === 0 && <Text allowFontScaling style={{ color: theme.textMuted, padding: 12 }}>No matching setting. Try account, privacy, notifications or help.</Text>}
+      {groups.map(group => (
         <View key={group.title} style={{ gap: 5 }}>
           <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 13, fontWeight: '800', marginHorizontal: 6, marginTop: 7 }}>
             {group.title}
           </Text>
-          <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: 15, overflow: 'hidden' }}>
+          <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: buklodVisual.radius.card, overflow: 'hidden' }}>
             {group.links.map((item, i) => (
               <ProfilePressable
                 key={item.route}
@@ -67,13 +89,15 @@ export default function BuklodSettingsHome() {
                 accessibilityHint={item.description}
                 onPress={() => router.push(item.route as any)}
                 style={({ pressed }) => ({
-                  minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 10,
+                  minHeight: buklodVisual.size.row, flexDirection: 'row', alignItems: 'center', gap: 10,
                   paddingHorizontal: 12, paddingVertical: 9,
                   borderTopWidth: i === 0 ? 0 : 1, borderTopColor: theme.border,
                   backgroundColor: pressed ? theme.accentSoft : theme.surface,
                 })}
               >
-                <MaterialCommunityIcons name={item.icon} size={22} color={theme.accent} />
+                <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: theme.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                  <MaterialCommunityIcons name={item.icon} size={21} color={theme.accent} />
+                </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text allowFontScaling style={{ fontSize: 16, fontWeight: '700', color: theme.textPrimary }}>{item.label}</Text>
                   <Text allowFontScaling style={{ fontSize: 13, lineHeight: 19, color: theme.textMuted }}>{item.description}</Text>

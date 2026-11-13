@@ -181,17 +181,17 @@ function createStyles(
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginHorizontal: 7,
+    marginHorizontal: 12,
     marginTop: 4,
     marginBottom: 3,
     paddingHorizontal: 11,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 16,
     backgroundColor: colors.white,
     shadowColor: '#123B27',
-    shadowOpacity: 0.08,
+    shadowOpacity: 0,
     shadowRadius: 4,
     shadowOffset: {width:0,height:2},
     elevation: 1,
@@ -251,7 +251,7 @@ function createStyles(
   },
 
   language: {
-    fontSize: 8,
+    fontSize: 11,
     fontWeight: '800',
     color: colors.muted,
   },
@@ -266,7 +266,7 @@ function createStyles(
 
   reference: {
     marginTop: 2,
-    fontSize: 9.5,
+    fontSize: 12,
     fontWeight: '900',
     color: colors.greenDark,
   },

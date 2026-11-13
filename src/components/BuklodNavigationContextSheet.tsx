@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import React from 'react';
 import {
   Modal, Pressable, ScrollView, StyleSheet, Text, View,
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.34)' },
   sheet: {
     maxHeight: '72%', paddingTop: 7, paddingHorizontal: 12,
-    borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1,
+    borderTopLeftRadius: buklodVisual.radius.sheet, borderTopRightRadius: buklodVisual.radius.sheet, borderTopWidth: 1,
   },
   header: {
     minHeight: 48, flexDirection: 'row', alignItems: 'center',

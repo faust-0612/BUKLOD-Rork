@@ -19,7 +19,9 @@ test('native and desktop Home get lightweight offline finder, and route is expli
   const settings = read('src/app/settings/index.tsx');
   assert.ok((hub.match(/<BuklodFeatureFinder\s*\/>/g) ?? []).length >= 2);
   assert.match(root, /<Stack\.Screen name="settings\/index"\s*\/>/);
-  assert.match(settings, /minHeight: 58/);
+  assert.match(settings, /minHeight: buklodVisual.size.row/);
+  const metrics = read('src/lib/buklodVisual.ts');
+  assert.match(metrics, /touch: 48, row: 56/);
   assert.match(settings, /allowFontScaling/);
   assert.match(settings, /account\/security/);
   assert.match(settings, /settings\/sounds/);

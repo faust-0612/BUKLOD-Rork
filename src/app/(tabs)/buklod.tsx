@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
 import BuklodPostMotion from '@/components/BuklodPostMotion';
@@ -1280,6 +1281,7 @@ function LegacyPublicBuklodScreen(){
  const [composerClipDurationSeconds,setComposerClipDurationSeconds]=useState(30);
  const [composerMotionPreset,setComposerMotionPreset]=useState<BuklodPostMotionPreset>('none');
  const [composerMotionDrawerOpen,setComposerMotionDrawerOpen]=useState(false);
+ const [communityHighlightsOpen,setCommunityHighlightsOpen]=useState(false);
 
  /* PATCH_186B_PHOTO_EDITOR_PUBLIC_STATE */
  const [
@@ -5445,11 +5447,23 @@ const communityFeedRows =
        30-day period. Do not turn it into an unexpiring ordinary post. */}
    <BuklodCommunitySponsoredAd audience="public" placement="community" />
 
+   <Pressable accessibilityRole="button" accessibilityLabel="Community highlights"
+     accessibilityState={{expanded:communityHighlightsOpen}}
+     onPress={()=>setCommunityHighlightsOpen(value=>!value)}
+     style={{minHeight:buklodVisual.size.touch,marginHorizontal:12,paddingHorizontal:12,
+       marginBottom:8,borderRadius:buklodVisual.radius.control,backgroundColor:colors.greenSoft,
+       flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8}}>
+     <Text allowFontScaling style={{fontSize:14,fontWeight:'700',color:colors.greenDark}}>Community highlights · Life & stories</Text>
+     <MaterialCommunityIcons name={communityHighlightsOpen?'chevron-up':'chevron-down'} size={22} color={colors.greenDark}/>
+   </Pressable>
+   {communityHighlightsOpen && <View>
    {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}
    <BuklodLifeWallCard />
 
    {/* Home-only BUKLOD Today; story remains a Community Wall post card. */}
    <KabihasnangLigawWallCard />
+
+   </View>}
 
    <BuklodMaritesBoard
     playbackBlocked={videoPriority.maritesBlocked}
@@ -5484,7 +5498,7 @@ const communityFeedRows =
        setCommunityComposerOpen(true);
       }}
       style={({ pressed }) => ({
-       flex: 1, minWidth: 0, minHeight: 44, flexDirection: 'row', gap: 9,
+       flex: 1, minWidth: 0, minHeight: buklodVisual.size.touch, flexDirection: 'row', gap: 9,
        alignItems: 'center', paddingHorizontal: 11, borderRadius: 24,
        borderWidth: 1, borderColor: colors.line,
        backgroundColor: colors.white, opacity: pressed ? 0.78 : 1,

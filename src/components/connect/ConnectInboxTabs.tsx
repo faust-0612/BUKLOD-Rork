@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import React, {
   useMemo,
 } from 'react';
@@ -20,7 +21,6 @@ import {
 import {
   ConnectPressable,
 } from '@/components/connect/ConnectPressable';
-import { HIBLA } from '@/lib/connectHibla';
 import type { CommunityFilterKey } from '@/lib/connectTheme';
 
 type Tab = 'personal' | 'community' | 'requests';
@@ -45,8 +45,8 @@ function createStyles(theme: ConnectThemeRoles) {
       justifyContent: 'space-between',
       gap: 5,
       paddingHorizontal: 12,
-      paddingVertical: 8,
-      marginBottom: 6,
+      paddingVertical: 6,
+      marginBottom: 2,
       backgroundColor: 'transparent',
     },
     tab: {
@@ -58,15 +58,15 @@ function createStyles(theme: ConnectThemeRoles) {
       minHeight: 44,
       paddingVertical: 8,
       paddingHorizontal: 5,
-      borderRadius: 24,
-      backgroundColor: '#ECF5EE',
+      borderRadius: buklodVisual.radius.control,
+      backgroundColor: theme.inputSurface,
     },
     tabActive: {
-      backgroundColor: HIBLA.pine,
+      backgroundColor: theme.accent,
     },
     label: {
       ...connectTypography.tabLabel,
-      color: HIBLA.muted,
+      color: theme.textMuted,
       fontSize: 12,
     },
     labelActive: {
@@ -155,7 +155,7 @@ export function ConnectInboxTabs({
           color={
             tab === 'personal'
               ? '#FFFFFF'
-              : HIBLA.muted
+              : theme.textMuted
           }
         />
         <Text
@@ -189,7 +189,7 @@ export function ConnectInboxTabs({
           color={
             clusterSelected
               ? '#FFFFFF'
-              : HIBLA.muted
+              : theme.textMuted
           }
         />
         <Text
@@ -215,7 +215,7 @@ export function ConnectInboxTabs({
         <MaterialCommunityIcons
           name="account-multiple-outline"
           size={15}
-          color={orgSelected ? '#FFFFFF' : HIBLA.muted}
+          color={orgSelected ? '#FFFFFF' : theme.textMuted}
         />
         <Text style={[styles.label, orgSelected && styles.labelActive]}>Org</Text>
         {unreadBadge(orgUnread)}

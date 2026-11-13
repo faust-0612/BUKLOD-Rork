@@ -1,0 +1,121 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/full-visual-transformation-20261113.json",
+  "objective": "Implement the owner-authorized coherent premium visual transformation across eight BUKLOD UI areas on isolated DEV; block staging OTA until actual rendered visual and functional acceptance is available.",
+  "baseRef": "6b0f7e3167867bb746e34da4637430f131b588bb",
+  "productionBaselineEvidence": "Current GitHub main read as 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Existing integration scope records publisher-side production a43e1813 runtime 1.3.2; live production and installed staging parity are NOT independently verified in this session. No release is authorized from missing evidence.",
+  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures.",
+  "selectionRationale": "Targeted presentation composition preserves known functional implementations and dependencies; actual rendering is still required before acceptance or publication.",
+  "alternativeApproaches": [
+    "Replace screens wholesale: rejected due to high regression and authorization risk.",
+    "Apply only colors/icons: rejected because it leaves the reported oversized layout and content hierarchy unchanged.",
+    "Use shared metrics and component-level layout changes: selected; visual acceptance remains explicitly unverified."
+  ],
+  "preserveBehaviors": [
+    "Canonical five-tab navigation and every existing explicit route.",
+    "AdMob, video/autoplay/audio/cache, GIF comment fallback, Connect calls/PTT and permissions.",
+    "Private monthly/lifetime QMP and personal estimate warnings, no invented earnings.",
+    "Retired IGPAT remains excluded; production/main/web and release gates unchanged."
+  ],
+  "acceptanceChecks": [
+    "All eight areas have actual source-level presentation changes.",
+    "Focused preservation/regression tests and TypeScript pass.",
+    "Android export passes at final source, package/runtime/channel remain compatible.",
+    "All eight real Android screenshots must exist and visually pass before a release; currently NOT VERIFIED.",
+    "Role-sensitive runtime interactions and signed binary/backend parity must pass before staging publish."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "connect",
+    "faith-cluster"
+  ],
+  "regressionTests": [
+    "tests/community-wall-post-card-google-pattern.test.mjs",
+    "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs"
+  ],
+  "allowedPaths": [
+    "docs/visual/full-transformation-20261113.md",
+    "release/visual/full-transformation-20261113.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/buklodCommunityStyles.ts",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/clusters/index.tsx",
+    "src/app/drawer/index.tsx",
+    "src/app/settings/index.tsx",
+    "src/components/BuklodCommunityContributionCard.tsx",
+    "src/components/BuklodCommunityWallPostCard.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/BuklodNavigationContextSheet.tsx",
+    "src/components/BuklodProfileGlassCard.tsx",
+    "src/components/BuklodPublicDailyMessageBar.tsx",
+    "src/components/connect/ConnectCommunityRow.tsx",
+    "src/components/connect/ConnectInboxRow.tsx",
+    "src/components/connect/ConnectInboxTabs.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/home/BuklodHomeDestinations.tsx",
+    "src/lib/buklodThemePresentation.ts",
+    "src/lib/buklodVisual.ts",
+    "tests/community-wall-post-card-google-pattern.test.mjs",
+    "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs",
+    ".buklod/scopes/full-visual-transformation-20261113.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Shared visual metrics and screen composition across eight requested areas.",
+      "preservedBehaviors": [
+        "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
+      ],
+      "tests": [
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Compact Marites and shared Wall shell preserve canonical media renderers.",
+      "preservedBehaviors": [
+        "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
+      ],
+      "tests": [
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Keep all explicit destinations while modernizing Home and Profile layout.",
+      "preservedBehaviors": [
+        "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
+      ],
+      "tests": [
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Present private QMP and estimate in a compact disclosure without changing calculations.",
+      "preservedBehaviors": [
+        "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
+      ],
+      "tests": [
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Use wrapping category controls and readable metadata without changing membership actions.",
+      "preservedBehaviors": [
+        "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
+      ],
+      "tests": [
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "dev-only-blocked-visual-acceptance",
+  "releaseStatus": "BLOCKED BEFORE RELEASE: no actual screenshots or emulator verification; no OTA, main, web or production publication."
+}
