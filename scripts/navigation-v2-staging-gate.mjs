@@ -84,6 +84,9 @@ export function inspectNavV2StagingRelease(checklist, evidence, expectedRcSha, n
   if (stage.backendContractReviewed !== true ||
       !proofUrl(stage.backendEvidenceUrl))
     failures.push('Staging backend behavior/feature-flag parity not reviewed');
+  if (stage.nativeImeCommitContentVerified !== true ||
+      !proofUrl(stage.nativeImeEvidenceUrl))
+    failures.push('Native Android IME GIF commitContent must be verified on installed signed staging APK');
   if (stage.securityAndRegressionQA !== 'passed' ||
       !proofUrl(stage.qaEvidenceUrl))
     failures.push('No passing exact-source staging security/regression QA evidence');

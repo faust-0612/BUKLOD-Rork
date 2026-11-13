@@ -20,6 +20,7 @@ const simulated = {
     artifactEvidenceUrl: 'https://expo.dev/accounts/example/projects/buklod/builds/simulated',
     backendContractReviewed: true, backendEvidenceUrl: 'https://github.com/example/simulated-review',
     securityAndRegressionQA: 'passed', qaEvidenceUrl: 'https://github.com/example/simulated-ci',
+    nativeImeCommitContentVerified: true, nativeImeEvidenceUrl: 'https://github.com/example/simulated-ime-check',
     deviceAcceptance: 'passed', deviceEvidenceUrl: 'https://github.com/example/simulated-device-check' },
 };
 const completed = () => ({ ...checklist, requirements: checklist.requirements.map(item => ({
@@ -71,6 +72,10 @@ test('release requires exact live parity and installed staging identity, not onl
   assert.equal(inspectNavV2Prepublish(beforePublishing, simulated, sha, now).ready, false);
   assert.equal(inspectNavV2StagingRelease(ready, simulated, sha, now).ready, true,
     'This is a synthetic contract fixture, NOT an actual release attestation');
+  const noNativeIme = structuredClone(simulated);
+  noNativeIme.staging.nativeImeCommitContentVerified = false;
+  assert.equal(inspectNavV2Prepublish(beforePublishing, noNativeIme, sha, now).ready, false,
+    'Older ACTION_SEND handoff is not native IME commitContent proof');
   const wrongPkg = structuredClone(simulated);
   wrongPkg.staging.package = 'org.mzbministry.buklod';
   assert.equal(inspectNavV2StagingRelease(ready, wrongPkg, sha, now).ready, false);

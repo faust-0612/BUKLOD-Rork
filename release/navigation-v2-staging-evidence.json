@@ -29,6 +29,8 @@
     "securityAndRegressionQA": "pending",
     "qaEvidenceUrl": "",
     "deviceAcceptance": "pending",
-    "deviceEvidenceUrl": ""
+    "deviceEvidenceUrl": "",
+    "nativeImeCommitContentVerified": false,
+    "nativeImeEvidenceUrl": ""
   }
 }

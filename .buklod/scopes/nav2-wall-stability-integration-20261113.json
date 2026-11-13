@@ -56,7 +56,8 @@
     "Android compile CI is staged and no-publish; production, Expo web, Play, Finance, AdMob and native runtime remain unchanged.",
     "Navigation Help, first-use hint and feature finder remain account-isolated, offline, unprivileged and accessible at large system font scales.",
     "Public Wall comment text recovery uses Expo SecureStore, bounded TTL/length, owner checks and serialized writes. No media URI, mention identity, reply relationship, private post body, token or financial data is persisted.",
-    "Original in-memory comment media/mention/reply recovery, scoped workspace authorization, confirmed posting RPCs, ads and active video playback remain unchanged."
+    "Original in-memory comment media/mention/reply recovery, scoped workspace authorization, confirmed posting RPCs, ads and active video playback remain unchanged.",
+    "Existing Gboard ACTION_SEND share-to-exact-comment fallback remains functional; native rich content must never silently be declared supported by a JS-only OTA or reused incompatible APK."
   ],
   "acceptanceChecks": [
     "All 53 non-manifest source paths originated from their exact Navigation and Wall DEV heads, with only one compatibility adaptation in the Navigation ads regression test to read the integrated scope. No runtime source overlap or file content pick.",
@@ -71,7 +72,8 @@
     "Searchable offline navigation Help covers all five canonical tabs, Drawer naming and Help/Settings/keyboard/offline vocabulary with accessible links and local fallback.",
     "First-use hint is optional, dismissible, persisted per authenticated user, and network-offline guidance never blocks navigation.",
     "Encrypted bounded text-only Wall draft recovery rejects expired/oversized/invalid data, serializes account writes, never overwrites newer typed text, prevents cross-account restore and clears on confirmed send.",
-    "Leftward horizontal swipe requires a deliberate >=72dp motion with <=30dp vertical drift; existing visible More, tap and long-press remain authoritative and scroll gestures must not be stolen."
+    "Leftward horizontal swipe requires a deliberate >=72dp motion with <=30dp vertical drift; existing visible More, tap and long-press remain authoritative and scroll gestures must not be stolen.",
+    "Even a fully marked 21/21 checklist cannot bypass a missing signed installed Android IME commitContent GIF attestation: prepublish and postpublish require a real native IME proof URL and true capability flag; ACTION_SEND alone is insufficient."
   ],
   "regressionTests": [
     "tests/navigation-v2-ads-preservation.test.mjs",

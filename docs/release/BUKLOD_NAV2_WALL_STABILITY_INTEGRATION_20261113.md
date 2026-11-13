@@ -50,3 +50,8 @@ This branch is an immutable-source **candidate** only. No main merge, product ba
 - Existing 28+ core form font-scaling checks and responsive Comment/Connect composers, bottom safe area and scoped 48dp tap targets remain source implemented; they still need device scaling/TalkBack verification.
 - Release inventory now records **18/21 source-implemented**, one in progress for actual native inline Android IME GIF, and two pending installed staging baseline/OTA acceptance. **All 21 remain release-unverified**, and existing ACTION_SEND GIF route must not be mistaken for native commitContent.
 - No staging APK build, backend migration, production/web rollout or OTA publication was made by this source-only update.
+
+## Native IME fail-closed security gate
+
+- Staging prepublish now independently demands signed, installed Android native Gboard `commitContent` capability and evidence, separate from the existing `ACTION_SEND` share-to-comment fallback. `nativeImeCommitContentVerified=false` until genuine device proof. A JS-only OTA must never claim this native capability.
+- The current signed live-mirrored staging APK has NOT been shown to support it. A reviewed native input implementation, new signed staging APK build, installed IME and backend/media tests are prerequisites. No web/production release.
