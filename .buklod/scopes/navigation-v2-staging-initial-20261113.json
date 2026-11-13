@@ -32,12 +32,14 @@
     "Actual regression and access tests pass on frozen exact-source RC, not just source assertions.",
     "The 21 mandatory checklist requirements can only be VERIFIED with specific evidence URLs; incomplete checklists never pass staging release.",
     "Staging release gate compares independently verified live source to staging mirrored baseline, exact RC SHA, package, channel, runtime, EAS environment, installed APK and actual OTA update, backend parity, QA and device acceptance.",
-    "Do not publish OTA to staging, production Android or web until verified staging RC and compatibility gates are satisfied."
+    "Do not publish OTA to staging, production Android or web until verified staging RC and compatibility gates are satisfied.",
+    "Compact Home utility cards no longer require 216dp square boxes and Profile shortcuts wrap without hidden horizontal scrolling; reflow, large font and device tests still pending."
   ],
   "regressionTests": [
     "tests/navigation-v2-staging-gate.test.mjs",
     "tests/navigation-v2-feature-search.test.mjs",
-    "tests/navigation-v2-settings-route.test.mjs"
+    "tests/navigation-v2-settings-route.test.mjs",
+    "tests/navigation-v2-compact-home-profile.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/navigation-v2-staging-initial-20261113.json",
@@ -51,7 +53,9 @@
     "docs/navigation-v2-completion.json",
     "tests/navigation-v2-staging-gate.test.mjs",
     "tests/navigation-v2-feature-search.test.mjs",
-    "tests/navigation-v2-settings-route.test.mjs"
+    "tests/navigation-v2-settings-route.test.mjs",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
+    "tests/navigation-v2-compact-home-profile.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -62,7 +66,8 @@
       ],
       "tests": [
         "tests/navigation-v2-settings-route.test.mjs",
-        "tests/navigation-v2-feature-search.test.mjs"
+        "tests/navigation-v2-feature-search.test.mjs",
+        "tests/navigation-v2-compact-home-profile.test.mjs"
       ]
     },
     {
