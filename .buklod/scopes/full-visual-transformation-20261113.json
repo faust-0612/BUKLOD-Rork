@@ -29,7 +29,8 @@
     "Profile canonical monthly/all-time ranks and duplicate popup/obsolete action removal preserve Settings and privacy controls.",
     "BUKLOD Today category retains only user-relevant content; suppress non-actionable 3-day rotation copy; scoped tests enforce.",
     "IMCI age-specific, six-step educational flow, emergency escalation and no premature clinical decision or disabled consultation activation.",
-    "Legacy regression checks reconciled with accepted Profile route relocation, non-square responsive Home tiles, distinct WAV earcons, question-aware search, compact theme UI."
+    "Legacy regression checks reconciled with accepted Profile route relocation, non-square responsive Home tiles, distinct WAV earcons, question-aware search, compact theme UI.",
+    "BSOC case-specific operator enters GPT diagnostic manually; never exfiltrates member evidence or secrets automatically."
   ],
   "riskAreas": [
     "wall-media",
@@ -106,7 +107,9 @@
     "src/components/BuklodTodayCard.tsx",
     "tests/buklod-home-profile-support-20261108.test.mjs",
     "src/app/profile/buklod-health.tsx",
-    "tests/nov14-imci-health-flow.test.mjs"
+    "tests/nov14-imci-health-flow.test.mjs",
+    "src/app/admin/bsoc-conversations.tsx",
+    "tests/nov14-bsoc-gpt-entry-authorization.test.mjs"
   ],
   "lockedFeatureChanges": [
     {

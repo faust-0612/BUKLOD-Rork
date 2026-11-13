@@ -212,6 +212,11 @@ export default function BsocInbox(){
        <Text style={styles.body}>Possible area: {triage.suspectedArea}</Text>
        <Text style={styles.body}>Check: {triage.investigation}</Text>
        <Text style={styles.body}>BSOC may do: {triage.bsocAction}</Text>
+        <Pressable accessibilityRole="button" disabled={!canRead}
+          onPress={()=>router.push('/admin/bsoc-gpt-debug' as any)} style={styles.secondary}>
+          <Text style={styles.link}>GPT-assisted troubleshooting · Authorized operators ›</Text>
+        </Pressable>
+        <Text style={styles.muted}>Manual sanitized report only. Case evidence, user identity, health data and private messages are never forwarded automatically. Verify recommendations before taking action.</Text>
        <Text style={styles.body}>User may do: {triage.userAction}</Text>
        <Text style={styles.muted}>App-wide/backend incidents require cross-user metrics and server evidence. An OTA is resolved only after exact version/runtime and observed recovery are confirmed.</Text>
        <Pressable accessibilityRole="button" onPress={()=>router.push({pathname:'/admin/bsoc-support',params:{case_id:selected.feedback_id}} as any)}>
