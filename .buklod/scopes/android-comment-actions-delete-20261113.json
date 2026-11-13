@@ -1,0 +1,50 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore Edit and Delete for own BUKLOD public/scoped Wall comments on Android by replacing the truncated native Comment alert with one scrollable, accessible action modal.",
+  "baseRef": "64d7d940cb7e55e3041779c2827eef54d0af8aec",
+  "productionBaselineEvidence": "The screenshot on Android Nov 13 2026 shows only Reply, Copy Text and React; repository main and staging have the same original comment bubble blob SHA 150570174445c657bc1ae60be43a30c05f8e8e1c. Read-only production BUKLOD Connect Supabase inspection confirms public/scoped delete RPCs and author/moderator checks. Exact production OTA/source fingerprint and physical staging-device behavior have not been verified.",
+  "chosenApproach": "Replace Alert.alert with a single React Native Modal switching between action list, edit, reaction picker, delete confirmation, and details; add a header More button; compute owner actions from authenticated currentUserId, preserve scope can_manage; call existing onDelete RPC only after confirmation and show errors/retry.",
+  "selectionRationale": "Android Alert.alert supports only three dialog action buttons, hiding Delete. One shared modal avoids nested-modal races, requires no new native dependency or backend change, and preserves original reply/reaction/media/report handlers.",
+  "alternativeApproaches": [
+    "Reorder the Android alert to show Delete among the first three: rejected because it still hides Report/Edit and causes different behavior on iOS.",
+    "Add an unconditional visible Delete button to every comment: rejected because it clutters the conversation and risks misleading users without delete permission."
+  ],
+  "preserveBehaviors": [
+    "Public and scoped Community Wall comments, replies, GIF/photos, text, mentions, reactions, reporting, profile links, and per-comment dates remain intact.",
+    "Existing backend author and scoped moderator/server-side policy remains authoritative; no direct database deletion or security permission widening.",
+    "Public post reaction counts/comment counts refresh via existing post load and exact-scope fetch; no media uploader/video/AdMob/Connect changes.",
+    "Current app runtime version and Expo production OTA channel untouched; change enters staging-first DEV branch only."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "wall-media"
+  ],
+  "acceptanceChecks": [
+    "On Android, long press and More both show all available actions, not just the first three.",
+    "Current author sees Edit/Delete; other viewers see neither, except moderators with scoped can_manage can delete.",
+    "Delete asks for confirmation, disables repeated taps during network work, and reports errors with a retry option.",
+    "Reply, Copy Text, React, Report, profile visit, and details stay functional; comments reload after server-confirmed deletion.",
+    "Staging PR must pass objective scope/engineering regression plus TypeScript and focused tests before any RC or production OTA."
+  ],
+  "regressionTests": [
+    "tests/buklod-comment-menu-android-20261113.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/android-comment-actions-delete-20261113.json",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "tests/buklod-comment-menu-android-20261113.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Android native comment menu truncated owned comment actions and prevented users from discovering Delete, despite valid existing server RPCs.",
+      "preservedBehaviors": [
+        "No change to post privacy, account isolation, comment/reaction RPCs, media/ads playback, GIF composer, or existing navigation."
+      ],
+      "tests": [
+        "tests/buklod-comment-menu-android-20261113.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_STAGING_PR_ONLY__NO_PRODUCTION_OTA_OR_WEB_RELEASE"
+}
