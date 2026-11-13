@@ -28,11 +28,11 @@ function createSelectorStyles(
 ) {
   return StyleSheet.create({
     row: {
-      minHeight: 56,
+      minHeight: 48,
       width: '48%',
       flexGrow: 1,
       paddingHorizontal: 9,
-      paddingVertical: 8,
+      paddingVertical: 5,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 7,
@@ -175,7 +175,7 @@ export function BuklodGlobalThemeSelectorModal({
             {' Messages can still use its own override when set.'}
           </Text>
 
-          <ScrollView style={{ maxHeight: Math.max(180, Math.min(480, viewportHeight * 0.57)) }}
+          <ScrollView style={{ maxHeight: Math.max(180, Math.min(300, viewportHeight * 0.42)) }}
             nestedScrollEnabled keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, paddingBottom: 8 }}>
           {options.map(option => {

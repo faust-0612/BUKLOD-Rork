@@ -95,7 +95,8 @@
     "assets/sounds/buklod_celebration_message_20261113.wav",
     "assets/sounds/buklod_celebration_community_20261113.wav",
     "assets/sounds/buklod_celebration_achievement_20261113.wav",
-    "tests/nov13-distinct-native-ux-sounds-20261113.test.mjs"
+    "tests/nov13-distinct-native-ux-sounds-20261113.test.mjs",
+    "tests/nov14-search-theme-regression.test.mjs"
   ],
   "lockedFeatureChanges": [
     {

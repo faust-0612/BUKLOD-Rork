@@ -10,6 +10,7 @@
 # Source gate declares release-identity impact with executable exact-source regression checks.
 # Staging-only Nov13 UX and new WAV validation; strict native and asset safety retained.
 # Owner route de-duplication acceptance: all displaced Profile destinations verified in global Settings.
+# Nov14: question-aware search aliases and compact theme options; no native contract changed.
 name: BUKLOD Owner Visual Staging OTA (Android Only)
 on:
   push:
