@@ -652,7 +652,7 @@ export default function App() {
               {musicResult&&stereoRef.current&&<div className="arrangement-summary">
                 <strong>ARRANGEMENT DRAFT · not a verified studio master</strong>
                 {typeof musicResult.harmonyConfidence === 'number' && <p><b>Source-harmony confidence:</b> {(musicResult.harmonyConfidence*100).toFixed(0)}% heuristic score · {musicResult.lowConfidenceBars}/{musicResult.totalBars} bars uncertain. This is NOT a percent musical accuracy guarantee.</p>}
-                <strong>Arrangement draft (not a verified studio master)</strong></strong>
+                <strong>Arrangement draft (not a verified studio master)</strong>
                 <p><b>New parts:</b> {stereoRef.current.config.parts.join(' · ')}</p>
                 <p><b>Chord cycle:</b> {musicResult.chords.slice(0,4).join(' - ')}</p>
                 <p><b>Actual instrument events:</b> {musicResult.eventCount}</p>
