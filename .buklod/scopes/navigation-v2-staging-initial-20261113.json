@@ -20,7 +20,8 @@
     "feature-discovery",
     "release-identity",
     "connect",
-    "ads-monetization"
+    "ads-monetization",
+    "auth-privacy"
   ],
   "preserveBehaviors": [
     "Canonical Home /hub, Cluster /clusters, Wall /buklod, Connect /messages, Profile /me routes and existing one-tap nav stay unchanged.",
@@ -43,10 +44,12 @@
     "Offline feature finder pins a maximum of four known destinations only under account-scoped storage key; no admin or retired app URLs.",
     "The active source route tree is audited for every BUKLOD Settings / offline Search destination; missing routes block RC and staging.",
     "Modern touch animations reuse reduced-motion-safe ProfilePressable; optional long-press shortcuts have visible star tap alternatives.",
-    "Short optional navigation help stays in dedicated screen, not forced onboarding or verbose Home instructions."
+    "Short optional navigation help stays in dedicated screen, not forced onboarding or verbose Home instructions.",
+    "Critical login, registration, account, recovery, feedback, support, and private Drawer controls explicitly permit OS font scaling with 16sp text baseline (18sp PIN). Device QA still mandatory."
   ],
   "regressionTests": [
     "tests/navigation-v2-ads-preservation.test.mjs",
+    "tests/navigation-v2-auth-inputs.test.mjs",
     "tests/navigation-v2-compact-home-profile.test.mjs",
     "tests/navigation-v2-connect-fontscale.test.mjs",
     "tests/navigation-v2-favorites.test.mjs",
@@ -67,11 +70,20 @@
     "release/navigation-v2-staging-evidence.json",
     "scripts/navigation-v2-route-audit.mjs",
     "scripts/navigation-v2-staging-gate.mjs",
+    "src/app/(auth)/login.tsx",
+    "src/app/(auth)/register.tsx",
     "src/app/(tabs)/hub.tsx",
     "src/app/(tabs)/me.tsx",
     "src/app/_layout.tsx",
+    "src/app/account/personal-information.tsx",
+    "src/app/account/recovery-pin.tsx",
+    "src/app/account/security.tsx",
+    "src/app/drawer/index.tsx",
+    "src/app/drawer/quick-note.tsx",
+    "src/app/feedback/index.tsx",
     "src/app/settings/index.tsx",
     "src/app/settings/navigation-help.tsx",
+    "src/app/support/live.tsx",
     "src/components/BuklodCommunityCommentComposer.tsx",
     "src/components/BuklodFeatureFinder.tsx",
     "src/components/BuklodProfileGlassCard.tsx",
@@ -81,6 +93,7 @@
     "src/lib/buklodNavigationV2.ts",
     "src/lib/buklodPinnedNavigation.ts",
     "tests/navigation-v2-ads-preservation.test.mjs",
+    "tests/navigation-v2-auth-inputs.test.mjs",
     "tests/navigation-v2-compact-home-profile.test.mjs",
     "tests/navigation-v2-connect-fontscale.test.mjs",
     "tests/navigation-v2-favorites.test.mjs",
@@ -106,7 +119,8 @@
         "tests/navigation-v2-typography.test.mjs",
         "tests/navigation-v2-favorites.test.mjs",
         "tests/navigation-v2-help-motions.test.mjs",
-        "tests/navigation-v2-ads-preservation.test.mjs"
+        "tests/navigation-v2-ads-preservation.test.mjs",
+        "tests/navigation-v2-auth-inputs.test.mjs"
       ]
     },
     {
@@ -117,7 +131,8 @@
       ],
       "tests": [
         "tests/navigation-v2-settings-route.test.mjs",
-        "tests/navigation-v2-route-audit.test.mjs"
+        "tests/navigation-v2-route-audit.test.mjs",
+        "tests/navigation-v2-auth-inputs.test.mjs"
       ]
     },
     {
