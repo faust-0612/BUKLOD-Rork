@@ -14,7 +14,8 @@
     "app-runtime",
     "navigation-auth",
     "registration-network",
-    "device-offline"
+    "device-offline",
+    "auth-privacy"
   ],
   "preserveBehaviors": [
     "Exactly one auth.signUp invocation and no auto retry after an ambiguous network failure.",
