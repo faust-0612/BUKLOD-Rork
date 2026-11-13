@@ -194,7 +194,7 @@ function SwipeDashboardHeader() {
         {publicMinimal ? (
           <>
             <Pressable accessibilityRole="button" accessibilityLabel="Find a BUKLOD feature"
-              accessibilityHint="Open Home's offline feature search" onPress={() => router.navigate('/hub' as any)}
+              accessibilityHint="Search BUKLOD features and see suggestions" onPress={() => router.push('/feature-search' as any)}
               style={({ pressed }) => ({ minWidth: 46, minHeight: 48, borderRadius: 13,
                 alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.72 : 1 })}>
               <MaterialCommunityIcons name="magnify" size={25} color="#FFFFFF" />

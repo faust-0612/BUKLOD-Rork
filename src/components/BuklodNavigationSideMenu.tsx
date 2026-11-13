@@ -1,33 +1,30 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StatusBar, Text, View, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
-import { buklodInstantNavigate } from '@/lib/buklodInstantNavigation';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 type MenuLink = { label: string; hint: string; icon: IconName; route: string };
-const SECTIONS: { title: string; links: MenuLink[] }[] = [
-  { title: 'EXPLORE', links: [
-    { label: 'Home', hint: 'Your everyday BUKLOD space', icon: 'home-variant-outline', route: '/hub' },
-    { label: 'Wall & Marites', hint: 'Community posts and stories', icon: 'forum-outline', route: '/buklod' },
-    { label: 'Cluster', hint: 'Find your community', icon: 'account-group-outline', route: '/clusters' },
-    { label: 'Connect', hint: 'Chats and calls', icon: 'message-outline', route: '/messages' },
-    { label: 'Profile', hint: 'Account and personal tools', icon: 'account-outline', route: '/me' },
+const SECTIONS: readonly { title: string; hint: string; links: readonly MenuLink[] }[] = [
+  { title: 'LEARN & GROW', hint: 'Faith, service and personal growth', links: [
+    { label: 'Bible & Reading', hint: 'Read and reflect', icon: 'book-open-variant', route: '/bible' },
+    { label: 'Community Contribution', hint: 'Your progress and Bayanihan', icon: 'hand-heart-outline', route: '/community-contribution' },
+    { label: 'BUKLOD Kingdom', hint: 'Explore your game progress', icon: 'crown-outline', route: '/games' },
   ] },
-  { title: 'YOUR TOOLS', links: [
-    { label: 'Notifications', hint: 'Updates and activity', icon: 'bell-outline', route: '/notifications' },
+  { title: 'YOUR PERSONAL TOOLS', hint: 'Useful features in one place', links: [
     { label: 'My Drawer', hint: 'Private notes and files', icon: 'folder-outline', route: '/drawer' },
-    { label: 'Settings', hint: 'Appearance and privacy', icon: 'cog-outline', route: '/settings' },
+    { label: 'Health Center', hint: 'Consultation and health resources', icon: 'heart-pulse', route: '/profile/buklod-health' },
+    { label: 'Settings', hint: 'Appearance, privacy and security', icon: 'cog-outline', route: '/settings' },
   ] },
-  { title: 'BUKLOD', links: [
-    { label: 'Help & Support', hint: 'Searchable offline help', icon: 'help-circle-outline', route: '/settings/navigation-help' },
+  { title: 'HELP & INFORMATION', hint: 'Guides and assistance', links: [
+    { label: 'Live Support', hint: 'Get help and report an issue', icon: 'lifebuoy', route: '/support/live' },
+    { label: 'How to use BUKLOD', hint: 'Learn features and navigation', icon: 'help-circle-outline', route: '/settings/navigation-help' },
     { label: 'About BUKLOD', hint: 'Our purpose and community', icon: 'information-outline', route: '/about-buklod' },
   ] },
 ];
-const GLOBAL_TABS = new Set(['/hub', '/clusters', '/buklod', '/messages', '/me']);
 
 export default function BuklodNavigationSideMenu({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { theme } = useBuklodTheme();
@@ -42,16 +39,14 @@ export default function BuklodNavigationSideMenu({ visible, onClose }: { visible
     busy.current = true;
     setOpening(true);
     try {
-      // Match the canonical five-tab rule: global destinations must never
-      // carry Organization/Cluster authorization context into public screens.
+      // Preserve canonical PUBLIC scope isolation for personal destinations.
       if (activeScope?.scope_type === 'ORGANIZATION' || activeScope?.scope_type === 'CLUSTER') {
         const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
         if (!publicScope) throw new Error('Hindi pa ma-load ang Public community. Subukang muli.');
         await selectScope(publicScope.scope_id);
       }
       onClose();
-      if (GLOBAL_TABS.has(item.route)) buklodInstantNavigate(item.route as '/hub' | '/clusters' | '/buklod' | '/messages' | '/me');
-      else router.push(item.route as any);
+      router.push(item.route as any);
     } catch (error) {
       Alert.alert('Hindi mabuksan', error instanceof Error ? error.message : 'Subukang muli.');
     } finally {
@@ -61,49 +56,69 @@ export default function BuklodNavigationSideMenu({ visible, onClose }: { visible
   };
   return (
     <Modal visible={visible} transparent statusBarTranslucent animationType="fade" onRequestClose={onClose}>
-      <View style={{ flex: 1, flexDirection: 'row', backgroundColor: 'rgba(7,16,32,0.48)' }}>
-        <View style={{ width: Math.min(328, width * 0.86), maxWidth: '100%', backgroundColor: theme.surfaceElevated,
-          paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 16),
-          borderTopRightRadius: 22, borderBottomRightRadius: 22, overflow: 'hidden' }}>
-          <View style={{ paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.border,
-            flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: theme.accentSoft }}>
-              <MaterialCommunityIcons name="account-group" size={25} color={theme.accent} />
+      {visible ? <StatusBar barStyle="light-content" backgroundColor="#0B2048" /> : null}
+      <View style={{ flex: 1, flexDirection: 'row', backgroundColor: 'rgba(7,16,32,0.52)' }}>
+        <View style={{ width: Math.min(332, width * 0.88), maxWidth: '100%', backgroundColor: theme.canvas,
+          borderTopRightRadius: 23, borderBottomRightRadius: 23, overflow: 'hidden' }}>
+          <View style={{ paddingTop: Math.max(insets.top, 12), paddingBottom: 18, paddingHorizontal: 16,
+            backgroundColor: '#0B2048', gap: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
+                backgroundColor: '#193968', borderWidth: 1, borderColor: '#325583' }}>
+                <MaterialCommunityIcons name="view-dashboard-outline" size={26} color="#79DAA4" />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text allowFontScaling style={{ color: '#FFFFFF', fontSize: 21, fontWeight: '900' }}>Explore BUKLOD</Text>
+                <Text allowFontScaling style={{ color: '#CADAF2', fontSize: 12 }}>Discover what matters to you</Text>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close navigation menu" onPress={onClose}
+                style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 14,
+                  backgroundColor: 'rgba(255,255,255,0.09)' }}>
+                <MaterialCommunityIcons name="close" size={25} color="#FFFFFF" />
+              </Pressable>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text allowFontScaling style={{ color: theme.textPrimary, fontSize: 20, fontWeight: '900' }}>BUKLOD</Text>
-              <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12 }}>Your community, your space</Text>
-            </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Close navigation menu" onPress={onClose}
-              style={{ minWidth: 48, minHeight: 48, justifyContent: 'center', alignItems: 'center' }}>
-              <MaterialCommunityIcons name="close" size={25} color={theme.textPrimary} />
-            </Pressable>
+            <Text allowFontScaling style={{ color: '#AFC7E8', fontSize: 12 }}>
+              Home, Wall, Cluster, Connect at Profile ay nasa navigation bar sa ibaba.
+            </Text>
           </View>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 12, gap: 14 }}>
+          <ScrollView keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 16,
+              paddingBottom: Math.max(insets.bottom, 16) + 12, gap: 17 }}>
             {SECTIONS.map(section => (
-              <View key={section.title} style={{ gap: 5 }}>
-                <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12, fontWeight: '800',
-                  letterSpacing: 1, paddingHorizontal: 13 }}>{section.title}</Text>
-                {section.links.map(item => {
-                  const selected = pathname === item.route;
-                  return (
-                    <Pressable key={item.route} accessibilityRole="button" accessibilityLabel={item.label}
-                      accessibilityHint={item.hint} accessibilityState={{ selected, disabled: opening }}
-                      disabled={opening} onPress={() => { void navigate(item); }}
-                      style={({ pressed }) => ({ minHeight: 54, borderRadius: 13,
-                        flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 9, gap: 12,
-                        backgroundColor: selected || pressed ? theme.accentSoft : 'transparent' })}>
-                      <MaterialCommunityIcons name={item.icon} size={23} color={selected ? theme.accent : theme.textSecondary} />
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text allowFontScaling style={{ color: selected ? theme.accent : theme.textPrimary,
-                          fontSize: 16, fontWeight: selected ? '800' : '600' }}>{item.label}</Text>
-                        <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12 }}>{item.hint}</Text>
-                      </View>
-                      {selected && <MaterialCommunityIcons name="check" size={19} color={theme.accent} />}
-                    </Pressable>
-                  );
-                })}
+              <View key={section.title} style={{ gap: 7 }}>
+                <View style={{ paddingHorizontal: 8, gap: 2 }}>
+                  <Text allowFontScaling style={{ fontSize: 12, fontWeight: '900', letterSpacing: 0.8,
+                    color: theme.accent }}>{section.title}</Text>
+                  <Text allowFontScaling style={{ fontSize: 12, color: theme.textMuted }}>{section.hint}</Text>
+                </View>
+                <View style={{ borderRadius: 16, overflow: 'hidden',
+                  borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface }}>
+                  {section.links.map((item, index) => {
+                    const selected = pathname === item.route;
+                    return (
+                      <Pressable key={item.route} accessibilityRole="button" accessibilityLabel={item.label}
+                        accessibilityHint={item.hint} accessibilityState={{ selected, disabled: opening }}
+                        disabled={opening} onPress={() => { void navigate(item); }}
+                        style={({ pressed }) => ({ minHeight: 56, flexDirection: 'row',
+                          alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 11,
+                          borderTopWidth: index ? 1 : 0, borderTopColor: theme.border,
+                          backgroundColor: selected || pressed ? theme.accentSoft : theme.surface })}>
+                        <View style={{ width: 38, height: 38, borderRadius: 12,
+                          backgroundColor: theme.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                          <MaterialCommunityIcons name={item.icon} size={21} color={theme.accent} />
+                        </View>
+                        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                          <Text allowFontScaling style={{ color: theme.textPrimary, fontSize: 15, fontWeight: '800' }}>
+                            {item.label}
+                          </Text>
+                          <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12 }}>{item.hint}</Text>
+                        </View>
+                        <MaterialCommunityIcons name={selected ? 'check' : 'chevron-right'} size={20}
+                          color={selected ? theme.accent : theme.textMuted} />
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
             ))}
           </ScrollView>

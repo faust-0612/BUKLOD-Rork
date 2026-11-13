@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -32,7 +32,7 @@ function openFeature(item: BuklodFeatureLink) {
  * Bookmarks are locally stored per authenticated account, never shared.
  * Destination guards are still the final authority.
  */
-export default function BuklodFeatureFinder() {
+export default function BuklodFeatureFinder({ autoFocus = false, showSuggestions = false }: { autoFocus?: boolean; showSuggestions?: boolean } = {}) {
   const { user } = useAuth();
   const accountId = user?.id ?? null;
   const [query, setQuery] = useState('');
@@ -129,6 +129,11 @@ export default function BuklodFeatureFinder() {
     .map(id => BUKLOD_FEATURE_LINKS.find(item => item.id === id))
     .filter((item): item is BuklodFeatureLink => Boolean(item)), [recent, pinned]);
   const searching = query.trim().length >= 2;
+  const suggestions = useMemo(() => (
+    ['bible', 'wall', 'connect', 'drawer', 'contribution', 'health', 'support', 'kingdom']
+      .map(id => BUKLOD_FEATURE_LINKS.find(item => item.id === id))
+      .filter((item): item is BuklodFeatureLink => Boolean(item))
+  ), []);
   const canPin = loadedFor !== null && loadedFor === accountId;
 
   const rememberSwipeStart = (item: BuklodFeatureLink, x: number, y: number) => {
@@ -147,6 +152,7 @@ export default function BuklodFeatureFinder() {
   const openAndRemember = (item: BuklodFeatureLink) => {
     if (lastSwipeRef.current?.id === item.id && Date.now() < lastSwipeRef.current.until) return;
     lastSwipeRef.current = null;
+    Keyboard.dismiss();
     setQuery('');
     setUndoRecent(null);
     if (canPin && accountId) {
@@ -201,7 +207,7 @@ export default function BuklodFeatureFinder() {
       { id: 'open', title: 'Open ' + menuItem.title, icon: 'open-in-new', onPress: () => openAndRemember(menuItem) },
       ...(canPin ? [{
         id: pinned.includes(menuItem.id) ? 'unpin' : 'pin',
-        title: pinned.includes(menuItem.id) ? 'Unpin shortcut' : 'Pin to Home',
+        title: pinned.includes(menuItem.id) ? 'Unpin shortcut' : 'Pin to search',
         icon: (pinned.includes(menuItem.id) ? 'star-off-outline' : 'star-outline') as BuklodNavigationContextAction['icon'],
         onPress: () => togglePin(menuItem),
       }] : []),
@@ -222,6 +228,7 @@ export default function BuklodFeatureFinder() {
         <MaterialCommunityIcons name="magnify" size={23} color={theme.accent} />
         <TextInput
           value={query}
+          autoFocus={autoFocus}
           onChangeText={setQuery}
           accessibilityLabel="Find a BUKLOD feature"
           accessibilityHint="Type a common task such as password, chat or tulong"
@@ -261,7 +268,7 @@ export default function BuklodFeatureFinder() {
           </Text>
         </View>
       )}
-      {!searching && canPin && firstUseHint === 'show' && (
+      {!showSuggestions && !searching && canPin && firstUseHint === 'show' && (
         <View style={{
           borderRadius: 12, borderColor: theme.border, borderWidth: 1,
           backgroundColor: theme.surface, paddingLeft: 12, paddingRight: 4,
@@ -321,6 +328,32 @@ export default function BuklodFeatureFinder() {
               No matching feature. Try another word.
             </Text>
           )}
+        </View>
+      )}
+
+      {!searching && showSuggestions && (
+        <View style={{ gap: 8, paddingTop: 8 }}>
+          <Text allowFontScaling style={{ fontSize: 13, fontWeight: '800', color: theme.textSecondary, letterSpacing: 0.5 }}>
+            SUGGESTED FEATURES
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {suggestions.map(item => (
+              <Pressable key={item.id} accessibilityRole="button"
+                accessibilityLabel={`Open suggested ${item.title}`}
+                onPress={() => openAndRemember(item)}
+                style={({ pressed }) => ({
+                  width: '48%', flexGrow: 1, minWidth: 0, minHeight: 52,
+                  paddingHorizontal: 12, paddingVertical: 10,
+                  borderWidth: 1, borderColor: theme.border, borderRadius: 13,
+                  flexDirection: 'row', alignItems: 'center', gap: 9,
+                  backgroundColor: pressed ? theme.accentSoft : theme.surface,
+                })}>
+                <MaterialCommunityIcons name="magnify" size={17} color={theme.accent} />
+                <Text allowFontScaling numberOfLines={2}
+                  style={{ flexShrink: 1, color: theme.textPrimary, fontSize: 14, fontWeight: '700' }}>{item.title}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
       )}
 

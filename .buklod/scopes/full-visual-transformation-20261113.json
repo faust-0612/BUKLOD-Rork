@@ -4,7 +4,7 @@
   "objective": "Implement the owner-authorized coherent premium visual transformation across eight BUKLOD UI areas on isolated DEV; block staging OTA until actual rendered visual and functional acceptance is available.",
   "baseRef": "6b0f7e3167867bb746e34da4637430f131b588bb",
   "productionBaselineEvidence": "Current GitHub main read as 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Existing integration scope records publisher-side production a43e1813 runtime 1.3.2; live production and installed staging parity are NOT independently verified in this session. No release is authorized from missing evidence.",
-  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics.",
+  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics. Follow-up approved navigation decluttering: remove duplicate Home launchers, Profile cover gear, direct standalone offline search with suggested features and account-local recents/pins; use drawer only for unique secondary tools.",
   "selectionRationale": "Targeted presentation composition preserves known functional implementations and dependencies; actual rendering is still required before acceptance or publication.",
   "alternativeApproaches": [
     "Replace screens wholesale: rejected due to high regression and authorization risk.",
@@ -38,7 +38,8 @@
     "tests/community-wall-post-card-google-pattern.test.mjs",
     "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
     "tests/navigation-v2-settings-route.test.mjs",
-    "tests/buklod-visual-staging-ota-20261113.test.mjs"
+    "tests/buklod-visual-staging-ota-20261113.test.mjs",
+    "tests/full-visual-navigation-side-menu-20261113.test.mjs"
   ],
   "allowedPaths": [
     "docs/visual/full-transformation-20261113.md",
@@ -73,7 +74,8 @@
     "src/components/BuklodNavigationSideMenu.tsx",
     "tests/full-visual-navigation-side-menu-20261113.test.mjs",
     ".github/workflows/buklod-visual-staging-ota-20261113.yml",
-    "tests/buklod-visual-staging-ota-20261113.test.mjs"
+    "tests/buklod-visual-staging-ota-20261113.test.mjs",
+    "src/app/feature-search.tsx"
   ],
   "lockedFeatureChanges": [
     {
@@ -140,5 +142,5 @@
     }
   ],
   "releaseMode": "dev-only-blocked-visual-acceptance",
-  "releaseStatus": "Owner requested staging OTA for practical QA on 2026-11-13. Stage publishing is permitted only through isolated exact-source safety workflow; Android 0/8 visual acceptance and physical-device verification remain unverified; production/main/web prohibited."
+  "releaseStatus": "Owner-approved staging-only navigation decluttering; release requires exact-source CI, signed staging build/runtime compatibility, isolated EAS staging channel, and post-publish unchanged production. Android visual acceptance remains pending screenshots."
 }

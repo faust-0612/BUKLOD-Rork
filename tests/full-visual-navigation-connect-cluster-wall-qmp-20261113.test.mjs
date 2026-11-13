@@ -55,10 +55,12 @@ test('all eight visual areas are wired to shared metrics without restoring retir
     'src/app/(tabs)/buklod.tsx','src/components/BuklodMaritesBoard.tsx','src/app/(tabs)/messages.tsx',
     'src/app/settings/index.tsx','src/app/drawer/index.tsx'];
   for(const path of paths) assert.match(read(path),/buklodVisual/);
-  const launcher=read('src/components/home/BuklodHomeDestinations.tsx');
-  assert.doesNotMatch(launcher,/igpat/i);
-  assert.match(launcher,/useWindowDimensions/);
-  assert.match(launcher,/allowFontScaling/);
+  const home=read('src/app/(tabs)/hub.tsx');
+  assert.doesNotMatch(home,/<BuklodHomeDestinations\s*\/>|<BuklodFeatureFinder\s*\/>/);
+  assert.doesNotMatch(home,/igpat/i);
+  const finder=read('src/components/BuklodFeatureFinder.tsx');
+  assert.match(finder,/showSuggestions/);
+  assert.match(finder,/allowFontScaling/);
 });
 test('Home QMP disclosure preserves the personal estimate and nonwithdrawable warning',()=>{
   const s=read('src/components/BuklodCommunityContributionCard.tsx');
