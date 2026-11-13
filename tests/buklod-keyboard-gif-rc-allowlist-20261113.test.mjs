@@ -8,7 +8,7 @@ test('Exact isolated GIF branch receives Android and Web compile-only QA',()=>{
  assert.match(workflow,/npx expo export --platform android --output-dir \/tmp\/buklod-rc-android --clear/);
  assert.match(workflow,/npx expo export --platform web --output-dir \/tmp\/buklod-rc-web --clear/);
  assert.match(workflow,/github\.event\.pull_request\.head\.sha/);
- assert.match(workflow,/test "\$\{\{ github\.event\.pull_request\.head\.sha \}\}"/);
+ assert.match(workflow,/test "\$\(git rev-parse HEAD\)" = "\$\{\{ github\.event\.pull_request\.head\.sha \}\}"/);
  assert.match(workflow,/runtimeVersion,'1\.3\.2'/);
  assert.match(workflow,/versionCode,30/);
 });
