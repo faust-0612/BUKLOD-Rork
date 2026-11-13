@@ -67,6 +67,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts
+          node --experimental-strip-types scripts/navigation-v2-route-audit.mjs
           node --experimental-strip-types --test tests/navigation-v2-*.test.mjs
           npx tsc --noEmit
       - name: Fail-closed completion, live parity, APK compatibility and prepublish approval
