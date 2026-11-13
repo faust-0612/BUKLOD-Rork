@@ -37,7 +37,8 @@
     "Reviewer report notifications link to exact approval via existing scope-authorized history RPC, with read-only metadata and separate private member reply. No unauthorized response reads/comments.",
     "Kingdom R7 ABI/version identity match with signed staging APK; 13 map stations and 39-game catalog untouched; no new points or financial mutations, no extra native modules.",
     "Skia decorative FX stop on focus blur, background, reduced motion; no touch interception; Android in-app device visuals still require acceptance.",
-    "Cross-platform resolver includes a default TS module alongside native Skia/web atmosphere variants; exact-source TypeScript and R6 Kingdom contracts required before staging OTA."
+    "Cross-platform resolver includes a default TS module alongside native Skia/web atmosphere variants; exact-source TypeScript and R6 Kingdom contracts required before staging OTA.",
+    "Release workflow runs Kingdom R7 tests, legacy R6 station geometry, 39-game contract and native/web fallback checks before any EAS update."
   ],
   "riskAreas": [
     "wall-media",
@@ -200,5 +201,5 @@
     }
   ],
   "releaseMode": "dev-only-blocked-visual-acceptance",
-  "releaseStatus": "Kingdom visual FX DEV branch implementation pending CI validation, staging OTA not yet published for new source."
+  "releaseStatus": "Owner-authorized Kingdom R7 staging-user Android OTA QA candidate. No native build or production; exact-source Android export and Expo server manifest proof required. Physical Android visual/60fps acceptance remains unverified."
 }

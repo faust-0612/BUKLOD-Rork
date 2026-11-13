@@ -1,4 +1,5 @@
 # Owner-authorized QA-only Android staging OTA for PR #791.
+# Kingdom R7 GPU Skia+Reanimated existing-runtime source: extended stage-only game QA.
 # Staging QA correction from owner native screenshots: Home density, Profile cover legibility, Settings status contrast.
 # Owner-approved declutter: no Home shortcuts/search, direct suggested header search, no Profile gear, utility-only side menu.
 # Exact source audit scope includes root route registration and reused offline feature finder.
@@ -118,6 +119,13 @@ jobs:
             tests/navigation-v2-owner-staging-ota.test.mjs \
             tests/navigation-v2-settings-route.test.mjs
           node --test tests/buklod-visual-staging-ota-20261113.test.mjs tests/nov13-ux-fixes-staging-20261113.test.mjs tests/nov13-distinct-native-ux-sounds-20261113.test.mjs
+          # Kingdom R7: ensure real map/station invariants and platform FX
+          # before OTA. No native EAS build, no production promotion.
+          node --test \
+            tests/kingdom-native-cinematic-ota-20261114.test.mjs \
+            tests/kingdom-premium-map-r6.test.mjs \
+            tests/kingdom-premium-realm-v2-20261111.test.mjs
+          node scripts/game-kingdom-release-contract.mjs
           npx tsc --noEmit
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Inspect signed staging APK and separate EAS channels BEFORE publication
