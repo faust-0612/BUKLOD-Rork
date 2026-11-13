@@ -551,3 +551,14 @@ footer {
 .quality-report button,.diagnostic-stages button{touch-action:manipulation;white-space:normal;text-align:center}
 .quality-report audio{max-width:100%}
 @media(max-width:700px){.diagnostic-stages,.quality-report{padding:12px;margin-top:14px}.quality-checks{max-height:230px}}
+
+.ai-separator{margin-top:28px;padding-top:24px;border-top:1px solid #365247;font-size:13px;line-height:1.65}
+.ai-separator>.heading{margin-bottom:12px}
+.ai-separator input[type="password"]{width:100%;min-height:50px;border:1px solid #425d52;border-radius:12px;background:#0c1713;color:#e7f6ec;padding:14px;font-size:16px}
+.ai-separator .primary{width:100%;min-height:50px;touch-action:manipulation;white-space:normal}
+.ai-separator .ai-job{border:1px solid #3f5a4c;background:#102119;border-radius:12px;padding:14px;margin-top:15px;overflow-wrap:anywhere}
+.ai-separator .ai-job audio{width:100%;margin:6px 0;display:block}
+.ai-separator .ai-job a{color:#b8f1d5;text-decoration:underline;font-size:13px}
+.ai-separator .ai-job>div{margin-top:18px}
+.ai-separator .ai-job>div>strong{display:block}
+.ai-separator .error{overflow-wrap:anywhere}

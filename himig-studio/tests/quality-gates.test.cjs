@@ -52,7 +52,7 @@ test('Production source must reject failed mix and offer original fallback',()=>
  assert.ok(app.includes("setQualityRejection(true)"));
  assert.ok(app.includes("Fallback: untouched original recording"));
  assert.ok(app.includes("source-cleanup-NOT-vocal-stem"));
- assert.ok(app.includes("synth-backing-NOT-real-instruments"));
+ assert.ok(app.includes("synthetic-backing-NOT-real-instruments"));
  assert.ok(!app.includes("Finish studio master"));
 });
 test('Five owned-song real audio acceptance is NOT falsely marked passed',()=>{

@@ -106,3 +106,15 @@ This addendum is authoritative for release claims:
 8. **Android:** GitHub node/Expo tests are automation; physical Infinix Android upload-scroll, playback, WAV/MP3 export and owner listening remain pending until actually performed.
 9. **No mocks:** `qualityGate.ts` calculates real sample metrics; `songWorker.ts` still synthesizes instruments with oscillators; separation/ASR/generative audio backend are not running. Public app is labelled prototype, never studio master.
 **Promotion gate:** Only the verified UI/safety improvements can be released under the Expo project. Reject any claim that the professional engine or real-song acceptance is DONE without evidence.
+
+## 11. Server-side AI integration (current engineering scope)
+Expo Router EAS Hosting runs Cloudflare Worker API routes in `web.output=server` mode. All model keys must stay in server-only `+api.ts` and `src/server/audioAi.ts` (never `EXPO_PUBLIC_` or browser bundle).
+- `GET /api/ai/status`: live owner-adapter capabilities and disabled reason (public status, no secrets).
+- `POST /api/ai/upload`: **owner bearer auth**, explicit consent, WAV/MP3/FLAC allowlist and 60MB limit, signs fal CDN upload; browser directly PUTs to vendor after consent.
+- `POST /api/ai/separate`: locked owner bearer auth and **paid model enablement**, SAM Audio queue with singing-voice target, no synthesis of lyrics or singer. Queue returns an ID, never fake results.
+- `GET /api/ai/job`: owner auth, validated fal queue URLs, progress/result. Output stems are not auto-approved; artifact, ASR and pitch checks remain NOT_MEASURED.
+- `POST /api/ai/cancel`: owner-only cancellation (cannot guarantee refund).
+- **Enablement guard:** `HIMIG_OWNER_TOKEN` (32+ random chars), `FAL_KEY`, `HIMIG_ENABLE_PAID_AI=true` must all be set in **private Expo Hosting server environment**. Without them, all paid endpoints return HTTP 503 and make **zero model calls**. This is a blocker, not a fake integration.
+- Media privacy: vendor CDN URLs may be public and transient; user must opt in. Do not submit sensitive songs without a provider retention agreement.
+- **Cost warning:** SAM Audio incurs per-request charges; no unlimited free inference. A shared multi-user API is NOT production-safe until persistent quotas, identity, isolated storage, lifecycle/cleanup and audit log are deployed. Keep owner-only until then.
+- **Pilot status:** No real-source stem-job, Whisper alignment, high-fidelity accompaniment or native Android playback has been verified yet. This implementation is an authenticated vendor adapter, not a complete recording-to-studio-song generator.

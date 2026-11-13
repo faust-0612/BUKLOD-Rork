@@ -76,6 +76,18 @@ jobs:
       - name: Validate measured QC and fail-closed original fallback
         run: node --test tests/quality-gates.test.cjs
 
+      - name: Validate server API auth, consent and disabled-by-default billing
+        run: node --test tests/ai-backend.test.cjs
+
+      - name: Assert server bundle and private key exclusion from client
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d dist/server
+          test -d dist/client
+          ! grep -r --include='*.js' 'HIMIG_OWNER_TOKEN' dist/client || { echo 'FATAL server secret code in browser bundle'; exit 1; }
+          echo 'EXPO_SERVER_AND_CLIENT_BUNDLES=PASS'
+
       - name: Verify renderer, explicitly NOT music-quality acceptance
         run: node verify-worker.cjs
 
@@ -112,12 +124,12 @@ jobs:
           console.log('HIMIG_EXPO_PROJECT_ID='+id);
           NODE
 
-      - name: Publish only Himig Studio to Expo Hosting
+      - name: Publish Himig Studio to Expo Hosting PREVIEW ONLY
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes eas-cli@27.9.0 deploy --prod --non-interactive --dev-domain himig-studio --export-dir dist 2>&1 | tee "$RUNNER_TEMP/himig-deploy.log"
-          URL=$(grep -Eo 'https://[A-Za-z0-9.-]+[.]expo[.]app' "$RUNNER_TEMP/himig-deploy.log" | tail -n1 || true)
+          npx --yes eas-cli@27.9.0 deploy --non-interactive --dev-domain himig-studio --export-dir dist 2>&1 | tee "$RUNNER_TEMP/himig-deploy.log"
+          URL=$(grep -E 'Deployment URL' "$RUNNER_TEMP/himig-deploy.log" | grep -Eo 'https://[A-Za-z0-9.-]+[.]expo[.]app' | tail -n1 || true)
           if [ -z "$URL" ]; then echo 'BLOCKER: No verifiable Expo URL in deployment output'; exit 1; fi
           printf 'HIMIG_EXPO_URL=%s\n' "$URL"
           echo "HIMIG_EXPO_URL=$URL" >> "$GITHUB_ENV"
@@ -133,6 +145,16 @@ jobs:
           curl --fail --silent --show-error --location --retry 3 --max-time 25 "$HIMIG_EXPO_URL/audio-worker.js" -o "$RUNNER_TEMP/himig-live-worker.js"
           test "$(wc -c < "$RUNNER_TEMP/himig-live-worker.js")" -gt 5000
           echo 'EXPO_HOSTING_RUNTIME_SMOKE=PASS'
+          curl --fail --silent --show-error --location --retry 3 --max-time 25 "$HIMIG_EXPO_URL/api/ai/status" -o "$RUNNER_TEMP/himig-ai-capabilities.json"
+          node - "$RUNNER_TEMP/himig-ai-capabilities.json" <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          if(x.provider!=='fal-ai/sam-audio/separate')throw Error('Wrong model endpoint');
+          if(x.ready!==false)throw Error('Unexpected enabled billing in preview');
+          if(x.stages.whisperWordMatch!=='NOT_IMPLEMENTED')throw Error('ASR stage must be honest');
+          console.log('AI_SERVER_PREVIEW_DISABLED_BY_DEFAULT=PASS');
+          NODE
+          echo 'PREVIEW_ONLY_NOT_PROMOTED_TO_PRODUCTION=YES'
           echo 'WEB_EXPERIMENTAL_QC_RELEASE_ONLY=YES'
           echo 'STUDIO_MASTER_ACCEPTANCE=NOT_PASSED'
 

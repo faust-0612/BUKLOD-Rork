@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { stereoWav, chordNotes } from './arrangement';
 import type { Config, Part, Analysis, Outcome } from './arrangement';
 import type { QcReport } from './qualityGate';
+import { AiStemPanel } from './AiStemPanel';
 import {
   AudioLines,
   Download,
@@ -674,6 +675,7 @@ export default function App() {
               <button type="button" className="export" disabled={busy || !hasAudio || !parts.length} onClick={()=>void render('synth-backing')}>Synthetic backing WAV</button>
             </div>
           </div>
+          <AiStemPanel sourceFile={voiceFile} />
         </section>
         <aside className="panel result">
           <div className="heading">
