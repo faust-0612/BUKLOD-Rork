@@ -1,0 +1,98 @@
+# Browser-only, nonpublishing diagnostics for the isolated eight-area visual candidate.
+# Does not create a signed APK, use EAS credentials or claim Android visual acceptance.
+name: BUKLOD Visual Browser Diagnostics (NO OTA)
+on:
+  push:
+    branches: [dev/full-visual-transformation-20261113]
+    paths: [.github/workflows/buklod-full-visual-web-smoke-20261113.yml]
+permissions:
+  contents: read
+concurrency:
+  group: buklod-visual-diagnostics-20261113
+  cancel-in-progress: true
+jobs:
+  web-browser-diagnostics:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/full-visual-transformation-20261113'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify exact isolated SHA and install locked dependencies
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs
+      - name: Export isolated web bundle for local browser, never deploy
+        run: |
+          set -euo pipefail
+          export EXPO_PUBLIC_SUPABASE_URL=''
+          export EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=''
+          npx expo export --platform web --output-dir /tmp/buklod-visual-web --clear
+          test -s /tmp/buklod-visual-web/index.html
+      - name: Capture unauthenticated real browser output at two phone widths
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BROWSER" || { echo 'Chrome/Chromium absent on runner'; exit 1; }
+          mkdir -p visual-diagnostics
+          cat >/tmp/buklod-visual-server.py <<'PY'
+          import os, http.server, urllib.parse
+          root='/tmp/buklod-visual-web'
+          class Handler(http.server.SimpleHTTPRequestHandler):
+              def __init__(self,*args,**kwargs): super().__init__(*args,directory=root,**kwargs)
+              def do_GET(self):
+                  rel=urllib.parse.unquote(urllib.parse.urlsplit(self.path).path).lstrip('/')
+                  full=os.path.join(root,rel)
+                  if rel and not os.path.exists(full):
+                      self.path='/index.html'
+                  return super().do_GET()
+          http.server.ThreadingHTTPServer(('127.0.0.1',8765),Handler).serve_forever()
+          PY
+          python3 /tmp/buklod-visual-server.py >/tmp/buklod-visual-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for n in $(seq 1 20); do if curl --fail --silent http://127.0.0.1:8765/ >/dev/null; then break; fi; sleep 1; done
+          curl --fail --silent http://127.0.0.1:8765/ >/dev/null
+          for width in 360 430; do
+            if [ "$width" = 360 ]; then height=800; else height=932; fi
+            for item in home:hub profile:me cluster:clusters wall:buklod marites:buklod connect:messages settings:settings drawer:drawer; do
+              name="${item%%:*}"; route="${item#*:}"
+              echo "Capture $name at ${width}x${height} (web-only, unauthenticated; NOT Android approval)"
+              timeout 45s "$BROWSER" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --hide-scrollbars --disable-extensions --no-first-run --virtual-time-budget=6500 --window-size="${width},${height}" --user-data-dir="/tmp/visual-chrome-${width}-${name}" --screenshot="$PWD/visual-diagnostics/${name}-${width}.png" "http://127.0.0.1:8765/${route}" >/tmp/visual-chrome.log 2>&1 || { echo "BROWSER FAILURE at $name/$width"; tail -c 5000 /tmp/visual-chrome.log; exit 1; }
+              test -s "visual-diagnostics/${name}-${width}.png"
+              file "visual-diagnostics/${name}-${width}.png" | grep -q PNG
+            done
+          done
+          python3 - <<'PY'
+          import json,glob,os
+          files=sorted(glob.glob('visual-diagnostics/*.png'))
+          assert len(files)==16,len(files)
+          print('Captured',len(files),'diagnostic PNGs; authenticated screens and native Android remain UNVERIFIED')
+          json.dump({'classification':'UNAUTHENTICATED_WEB_BROWSER_DIAGNOSTICS_ONLY','sourceSha':os.environ['GITHUB_SHA'],'androidAcceptedAreas':0,'nativeRendering':'NOT TESTED','physicalInfinix':'SKIPPED BY OWNER','stagingOtaPublished':False,'screenshots':[{'name':os.path.basename(p),'bytes':os.stat(p).st_size} for p in files]},open('visual-diagnostics/receipt.json','w'),indent=2)
+          PY
+          echo 'Captured *web-only* diagnostics; zero of eight native Android screens visually accepted. No OTA or web deployment.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload short-lived browser diagnostics only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-visual-web-diagnostics-${{ github.sha }}
+          path: visual-diagnostics/
+          if-no-files-found: ignore
+          retention-days: 3
