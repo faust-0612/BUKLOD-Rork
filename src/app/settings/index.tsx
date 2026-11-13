@@ -16,7 +16,7 @@ const GROUPS: { title: string; links: SettingLink[] }[] = [
   { title: 'Privacy & Safety', links: [
     { label: 'Privacy policy', description: 'How your information is handled', icon: 'shield-account-outline', route: '/privacy' },
     { label: 'Privacy notice', description: 'Your privacy rights', icon: 'file-document-outline', route: '/privacy/notice' },
-    { label: 'Community safety', description: 'Report unsafe content or behavior', icon: 'shield-alert-outline', route: '/moderation/report' },
+    { label: 'Community safety', description: 'Get help with safety or report a concern', icon: 'shield-alert-outline', route: '/support/live' },
   ] },
   { title: 'Notifications & Preferences', links: [
     { label: 'Notifications', description: 'Messages and updates', icon: 'bell-outline', route: '/notifications' },
