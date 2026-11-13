@@ -15,6 +15,7 @@ import {
   rememberBuklodRecentNavigation,
 } from '@/lib/buklodPinnedNavigation';
 import { BUKLOD_LONG_PRESS_MS } from '@/lib/buklodTouch';
+import BuklodNavigationContextSheet, { type BuklodNavigationContextAction } from '@/components/BuklodNavigationContextSheet';
 
 const PINNABLE_FEATURE_IDS = BUKLOD_FEATURE_LINKS.map(item => item.id);
 const GLOBAL_DESTINATIONS = new Set(['/buklod', '/messages', '/clusters', '/me']);
@@ -32,6 +33,7 @@ export default function BuklodFeatureFinder() {
   const { user } = useAuth();
   const accountId = user?.id ?? null;
   const [query, setQuery] = useState('');
+  const [menuItem, setMenuItem] = useState<BuklodFeatureLink | null>(null);
   const [pinned, setPinned] = useState<string[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
   const recentRef = useRef<string[]>([]);
@@ -111,6 +113,36 @@ export default function BuklodFeatureFinder() {
     setPinned(current => toggleBuklodPinnedNavigation(current, item.id, PINNABLE_FEATURE_IDS));
   };
 
+  const removeRecent = (item: BuklodFeatureLink) => {
+    if (!canPin || !accountId) return;
+    const next = normalizeBuklodRecentNavigation(
+      recentRef.current.filter(id => id !== item.id), PINNABLE_FEATURE_IDS,
+    );
+    recentRef.current = next;
+    setRecent(next);
+    const key = buklodRecentNavigationStorageKey(accountId);
+    writeQueue.current = writeQueue.current
+      .catch(() => undefined)
+      .then(() => AsyncStorage.setItem(key, JSON.stringify(next)))
+      .catch(() => undefined);
+  };
+
+  const contextActions: BuklodNavigationContextAction[] = menuItem
+    ? [
+      { id: 'open', title: 'Open ' + menuItem.title, icon: 'open-in-new', onPress: () => openAndRemember(menuItem) },
+      ...(canPin ? [{
+        id: pinned.includes(menuItem.id) ? 'unpin' : 'pin',
+        title: pinned.includes(menuItem.id) ? 'Unpin shortcut' : 'Pin to Home',
+        icon: (pinned.includes(menuItem.id) ? 'star-off-outline' : 'star-outline') as BuklodNavigationContextAction['icon'],
+        onPress: () => togglePin(menuItem),
+      }] : []),
+      ...(canPin && recent.includes(menuItem.id) ? [{
+        id: 'remove-recent', title: 'Remove from recent', icon: 'history',
+        onPress: () => removeRecent(menuItem),
+      } as BuklodNavigationContextAction] : []),
+    ]
+    : [];
+
   return (
     <View style={{ paddingHorizontal: 12, gap: 6 }}>
       <View style={{
@@ -162,9 +194,9 @@ export default function BuklodFeatureFinder() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${item.title}`}
-                  accessibilityHint="Long press to pin to Home, or use the star icon"
+                  accessibilityHint="Long press for actions, or use the star icon to pin"
                   onPress={() => openAndRemember(item)}
-                  onLongPress={() => togglePin(item)}
+                  onLongPress={() => setMenuItem(item)}
                   delayLongPress={BUKLOD_LONG_PRESS_MS}
                   style={({ pressed }) => ({
                     flex: 1, minWidth: 0, minHeight: 55, flexDirection: 'row',
@@ -202,21 +234,35 @@ export default function BuklodFeatureFinder() {
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {recentLinks.map(item => (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Open recent ${item.title}`}
-                onPress={() => openAndRemember(item)}
-                style={({ pressed }) => ({
-                  minHeight: 48, paddingHorizontal: 12, paddingVertical: 8,
-                  flexDirection: 'row', alignItems: 'center', gap: 7,
-                  borderRadius: 12, borderWidth: 1, borderColor: theme.border,
-                  backgroundColor: pressed ? theme.accentSoft : theme.surface,
-                })}
-              >
-                <MaterialCommunityIcons name="history" size={16} color={theme.accent} />
-                <Text allowFontScaling style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '700' }}>{item.title}</Text>
-              </Pressable>
+              <View key={item.id} style={{
+                minHeight: 48, flexDirection: 'row', alignItems: 'center', borderRadius: 12,
+                borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface,
+              }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open recent ${item.title}`}
+                  accessibilityHint="Long press for more options"
+                  onPress={() => openAndRemember(item)}
+                  onLongPress={() => setMenuItem(item)}
+                  delayLongPress={BUKLOD_LONG_PRESS_MS}
+                  style={({ pressed }) => ({
+                    minHeight: 48, paddingLeft: 10, paddingRight: 6, paddingVertical: 8,
+                    flexDirection: 'row', alignItems: 'center', gap: 6,
+                    backgroundColor: pressed ? theme.accentSoft : theme.surface,
+                  })}
+                >
+                  <MaterialCommunityIcons name="history" size={16} color={theme.accent} />
+                  <Text allowFontScaling style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '700' }}>{item.title}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`More options for ${item.title}`}
+                  onPress={() => setMenuItem(item)}
+                  style={{ minWidth: 46, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <MaterialCommunityIcons name="dots-vertical" size={20} color={theme.textMuted} />
+                </Pressable>
+              </View>
             ))}
           </View>
         </View>
@@ -229,28 +275,45 @@ export default function BuklodFeatureFinder() {
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {savedLinks.map(item => (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Open pinned ${item.title}`}
-                accessibilityHint="Long press to remove from your pinned shortcuts"
-                onPress={() => openAndRemember(item)}
-                onLongPress={() => togglePin(item)}
-                delayLongPress={BUKLOD_LONG_PRESS_MS}
-                style={({ pressed }) => ({
-                  minHeight: 48, paddingHorizontal: 12, paddingVertical: 8,
-                  flexDirection: 'row', alignItems: 'center', gap: 7,
-                  borderRadius: 12, borderWidth: 1, borderColor: theme.border,
-                  backgroundColor: pressed ? theme.accentSoft : theme.surface,
-                })}
-              >
-                <MaterialCommunityIcons name="star" size={16} color={theme.accent} />
-                <Text allowFontScaling style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '700' }}>{item.title}</Text>
-              </Pressable>
+              <View key={item.id} style={{
+                minHeight: 48, flexDirection: 'row', alignItems: 'center', borderRadius: 12,
+                borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface,
+              }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open pinned ${item.title}`}
+                  accessibilityHint="Long press for more options"
+                  onPress={() => openAndRemember(item)}
+                  onLongPress={() => setMenuItem(item)}
+                  delayLongPress={BUKLOD_LONG_PRESS_MS}
+                  style={({ pressed }) => ({
+                    minHeight: 48, paddingLeft: 10, paddingRight: 6, paddingVertical: 8,
+                    flexDirection: 'row', alignItems: 'center', gap: 6,
+                    backgroundColor: pressed ? theme.accentSoft : theme.surface,
+                  })}
+                >
+                  <MaterialCommunityIcons name="star" size={16} color={theme.accent} />
+                  <Text allowFontScaling style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '700' }}>{item.title}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`More options for ${item.title}`}
+                  onPress={() => setMenuItem(item)}
+                  style={{ minWidth: 46, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <MaterialCommunityIcons name="dots-vertical" size={20} color={theme.textMuted} />
+                </Pressable>
+              </View>
             ))}
           </View>
         </View>
       )}
+      <BuklodNavigationContextSheet
+        visible={menuItem !== null}
+        title={menuItem?.title ?? 'Options'}
+        actions={contextActions}
+        onClose={() => setMenuItem(null)}
+      />
     </View>
   );
 }
