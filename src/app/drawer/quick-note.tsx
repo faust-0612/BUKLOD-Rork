@@ -117,7 +117,7 @@ export default function SmartDrawerQuickNote() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <TextInput
+        <TextInput allowFontScaling
           autoFocus
           multiline
           value={text}
@@ -268,8 +268,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 14,
     color: '#1F3F5E',
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
     textAlignVertical: 'top',
   },
   counter: {

@@ -227,8 +227,8 @@ export default function LiveSupport(){
             <Text>{c}</Text>
           </Pressable>)}
         </View>
-        <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Short subject"/>
-        <TextInput style={[styles.input,styles.area]} value={description} onChangeText={setDescription} multiline placeholder="Explain what happened"/>
+        <TextInput allowFontScaling style={styles.input} value={title} onChangeText={setTitle} placeholder="Short subject"/>
+        <TextInput allowFontScaling style={[styles.input,styles.area]} value={description} onChangeText={setDescription} multiline placeholder="Explain what happened"/>
         <Pressable style={styles.button} disabled={busy} onPress={()=>void create()}>
           <Text style={styles.buttonText}>{busy?'Creating…':'Create support case'}</Text>
         </Pressable>
@@ -236,7 +236,7 @@ export default function LiveSupport(){
         <Pressable style={styles.linkButton} onPress={()=>setCaseId('')}><Text style={styles.link}>+ New concern</Text></Pressable>
         <View style={styles.card}>
           <Text style={styles.h2}>Chat with BSOC</Text>
-          <TextInput multiline style={[styles.input,styles.area]} placeholder="Message your support agent…" value={draft} onChangeText={setDraft}/>
+          <TextInput allowFontScaling multiline style={[styles.input,styles.area]} placeholder="Message your support agent…" value={draft} onChangeText={setDraft}/>
           <Pressable disabled={busy||!draft.trim()||cases.find(c=>c.id===caseId)?.status==='closed'} style={styles.button} onPress={()=>void send()}>
             <Text style={styles.buttonText}>{busy?'Sending…':'Send message'}</Text>
           </Pressable>
@@ -290,7 +290,7 @@ const styles=StyleSheet.create({
  cases:{flexDirection:'row',flexWrap:'wrap',gap:8},case:{padding:10,borderRadius:10,borderWidth:1,borderColor:'#cbd5e1',gap:3},
  active:{borderColor:colors.green,backgroundColor:'#effbf4'},
  bubble:{padding:11,gap:5,backgroundColor:'#f1f5f9',borderRadius:12},mine:{backgroundColor:'#e0f2e7'},
- input:{borderWidth:1,borderColor:'#cbd5e1',borderRadius:10,padding:12,color:colors.text},
+ input:{fontSize:16,borderWidth:1,borderColor:'#cbd5e1',borderRadius:10,padding:12,color:colors.text},
  area:{minHeight:72,textAlignVertical:'top'},
  button:{padding:13,backgroundColor:colors.green,borderRadius:9,alignItems:'center'},
  buttonText:{color:colors.white,fontWeight:'800'},secondary:{alignItems:'center',padding:8},

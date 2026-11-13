@@ -339,7 +339,7 @@ export default function SmartDrawerScreen() {
                 size={20}
                 color="#58728A"
               />
-              <TextInput
+              <TextInput allowFontScaling
                 value={query}
                 onChangeText={setQuery}
                 onSubmitEditing={() => void load(false)}
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: '#183E63',
-    fontSize: 13,
+    fontSize: 16,
     paddingVertical: 0,
   },
   actions: {

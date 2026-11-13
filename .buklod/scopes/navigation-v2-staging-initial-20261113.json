@@ -1,0 +1,181 @@
+{
+  "contractVersion": 2,
+  "objective": "Start BUKLOD Navigation 2.0 on current canonical main, ensure staging-user mirrors verified live runtime/source before any modernization release, implement the first permanent Settings and offline feature finder, and enforce a fail-closed 21-requirement acceptance matrix before staging release.",
+  "baseRef": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
+  "productionBaselineEvidence": "Canonical GitHub production publisher for exact main a43e1813d62a151e8294a52989a80fe21b36057c completed 2026-11-13 at 02:57:31Z: Android production Expo OTA 01a1d2d6-bae3-74df-bbf4-2bdd9df35215 runtime 1.3.2 (GitHub workflow 43355306642, success). Production web Expo Hosting workflow 43355306645 success for same SHA. These are publisher-side publication proofs, NOT installed production/staging device receipt; staging installed APK/OTA/backend still unknown. Older staging branch release/staging-user-current-main-apk-20261108 is 333 commits behind initial canonical main; divergent old branches must not be merged. This DEV branch keeps app/web production untouched. The reviewed workflow-only staging APK mirror repair PR #785 merged as main 9f412afd71b74e41995a3a1a63e05e72f78b6e39; navigation branch now incorporates this additive main commit via merge, not a stale branch overwrite.",
+  "chosenApproach": "Create isolated branch from exact current main, never merge old staging branch. Introduce visible independent profile Settings gear, categorized Settings route and offline text search over allowlisted public/personal feature destinations. Add a mandatory checked 21-row completion matrix and explicit live-to-staging installed-artifact identity gate requiring exact RC and fresh evidence. Do not alter installed staging, Supabase, existing five tab nav, production app, or web.",
+  "selectionRationale": "Small additive UX entrypoints immediately reduce buried navigation while preserving navigation and backend. The gate prevents an unfinished, non-mirrored or unverified staging update being declared ready; backend and runtime parity must be attested separately. Only actual verified source/installed artifact counts.",
+  "alternativeApproaches": [
+    "Force-reset or whole-merge old staging-user branches (rejected: stale/diverged history would overwrite live features).",
+    "Publish incomplete NAV V2 immediately to production OTA or Web (rejected: user requires verified staging first, anti-regression and approval gates).",
+    "Replace all navigation and content panels at once (rejected: unstable media state, excessive regression surface and expensive QA)."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "staging-release",
+    "privacy",
+    "accessibility",
+    "offline",
+    "account-isolation",
+    "feature-discovery",
+    "release-identity",
+    "connect",
+    "ads-monetization",
+    "auth-privacy",
+    "faith-cluster"
+  ],
+  "preserveBehaviors": [
+    "Canonical Home /hub, Cluster /clusters, Wall /buklod, Connect /messages, Profile /me routes and existing one-tap nav stay unchanged.",
+    "Original Profile overflow, customization sections and personal progress retained; permanent Settings gear cannot be hidden in custom layout.",
+    "Existing authorization and entitlement guards remain authoritative; feature finder indexes only public/personal destinations, not private content/admin features.",
+    "AdMob placements, Wall/Marites video and photo, PTT, Call, native GIF share restoration, Connect chat, notifications, points/QMP/finance and Supabase RLS remain unchanged.",
+    "Live production and production web unchanged; no native runtime/dependency, package, backend or signing changes; staging candidate requires independent identity verification.",
+    "Profile and Home existing passive/first-view/native sponsored ad placements remain intact and unaffected by new Navigation V2 components, validated by focused ad regression contract."
+  ],
+  "acceptanceChecks": [
+    "New Settings gear always visible in Profile independent of customizable sections and opens categorized Settings with readable native-scaled rows.",
+    "Home feature finder appears in both native and desktop Home and searches locally with common Tagalog/English aliases without exposing retired/admin destinations.",
+    "Actual regression and access tests pass on frozen exact-source RC, not just source assertions.",
+    "The 21 mandatory checklist requirements can only be VERIFIED with specific evidence URLs; incomplete checklists never pass staging release.",
+    "Staging release gate compares independently verified live source to staging mirrored baseline, exact RC SHA, package, channel, runtime, EAS environment, installed APK and actual OTA update, backend parity, QA and device acceptance.",
+    "Do not publish OTA to staging, production Android or web until verified staging RC and compatibility gates are satisfied.",
+    "Compact Home utility cards no longer require 216dp square boxes and Profile shortcuts wrap without hidden horizontal scrolling; reflow, large font and device tests still pending.",
+    "Separate prepublish and postpublish gates avoid a circular dependency; staging OTA publication requires reviewed evidence, channel mapping isolation and explicit manual dispatch from exact source.",
+    "OS font scale adjusts comment/Connect composer viewport height, preserves animated GIF and Send controls; native high-font Android device acceptance remains mandatory.",
+    "Offline feature finder pins a maximum of four known destinations only under account-scoped storage key; no admin or retired app URLs.",
+    "The active source route tree is audited for every BUKLOD Settings / offline Search destination; missing routes block RC and staging.",
+    "Modern touch animations reuse reduced-motion-safe ProfilePressable; optional long-press shortcuts have visible star tap alternatives.",
+    "Short optional navigation help stays in dedicated screen, not forced onboarding or verbose Home instructions.",
+    "Critical login, registration, account, recovery, feedback, support, and private Drawer controls explicitly permit OS font scaling with 16sp text baseline (18sp PIN). Device QA still mandatory.",
+    "Current live publisher-side production OTA source/runtime identity is recorded by workflow ID and artifact URL but is refreshed before time-bound prepublish; exact installed staging parity remains mandatory.",
+    "Cluster and Organization scoped tabs show both familiar icons and readable labels, 48dp tap targets, selected accessibility semantics, without modifying the scope membership or return logic.",
+    "Contextual shortcut bottom sheet exposes Open/Pin-Unpin/Remove Recent through visible overflow or optional long press; accessible dismiss/Android Back and reduced motion preserve primary tap actions.",
+    "Local recently-opened shortcut removals display nonblocking inline feedback with an accessible one-tap Undo, account-specific restoration and serialized storage; unrelated submission/retry handlers unchanged.",
+    "Global five-tab navigation labels now use 12sp with OS scaling and up to two readable lines; nav overlay reserves additional height at large Android font scales so user content remains unobscured."
+  ],
+  "regressionTests": [
+    "tests/navigation-v2-ads-preservation.test.mjs",
+    "tests/navigation-v2-auth-inputs.test.mjs",
+    "tests/navigation-v2-bottom-fontscale.test.mjs",
+    "tests/navigation-v2-compact-home-profile.test.mjs",
+    "tests/navigation-v2-connect-fontscale.test.mjs",
+    "tests/navigation-v2-context-menu.test.mjs",
+    "tests/navigation-v2-favorites.test.mjs",
+    "tests/navigation-v2-feature-search.test.mjs",
+    "tests/navigation-v2-help-motions.test.mjs",
+    "tests/navigation-v2-route-audit.test.mjs",
+    "tests/navigation-v2-scoped-icons.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs",
+    "tests/navigation-v2-staging-gate.test.mjs",
+    "tests/navigation-v2-staging-release.test.mjs",
+    "tests/navigation-v2-typography.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/navigation-v2-staging-initial-20261113.json",
+    ".github/workflows/navigation-v2-staging-ota.yml",
+    "docs/navigation-v2-completion.json",
+    "docs/navigation-v2-feature-inventory.md",
+    "docs/navigation-v2-staging-release.md",
+    "release/navigation-v2-staging-evidence.json",
+    "scripts/navigation-v2-route-audit.mjs",
+    "scripts/navigation-v2-staging-gate.mjs",
+    "src/app/(auth)/login.tsx",
+    "src/app/(auth)/register.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/_layout.tsx",
+    "src/app/account/personal-information.tsx",
+    "src/app/account/recovery-pin.tsx",
+    "src/app/account/security.tsx",
+    "src/app/drawer/index.tsx",
+    "src/app/drawer/quick-note.tsx",
+    "src/app/feedback/index.tsx",
+    "src/app/scope/index.tsx",
+    "src/app/settings/index.tsx",
+    "src/app/settings/navigation-help.tsx",
+    "src/app/support/live.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodFeatureFinder.tsx",
+    "src/components/BuklodNavigationContextSheet.tsx",
+    "src/components/BuklodPersistentBottomNav.tsx",
+    "src/components/BuklodProfileGlassCard.tsx",
+    "src/components/connect/ConnectComposer.tsx",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
+    "src/lib/buklodAdaptiveInput.ts",
+    "src/lib/buklodNavTypography.ts",
+    "src/lib/buklodNavigationV2.ts",
+    "src/lib/buklodPinnedNavigation.ts",
+    "src/lib/buklodSafeArea.ts",
+    "tests/navigation-v2-ads-preservation.test.mjs",
+    "tests/navigation-v2-auth-inputs.test.mjs",
+    "tests/navigation-v2-bottom-fontscale.test.mjs",
+    "tests/navigation-v2-compact-home-profile.test.mjs",
+    "tests/navigation-v2-connect-fontscale.test.mjs",
+    "tests/navigation-v2-context-menu.test.mjs",
+    "tests/navigation-v2-favorites.test.mjs",
+    "tests/navigation-v2-feature-search.test.mjs",
+    "tests/navigation-v2-help-motions.test.mjs",
+    "tests/navigation-v2-route-audit.test.mjs",
+    "tests/navigation-v2-scoped-icons.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs",
+    "tests/navigation-v2-staging-gate.test.mjs",
+    "tests/navigation-v2-staging-release.test.mjs",
+    "tests/navigation-v2-typography.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add small, isolated Profile Settings and Home feature discovery surfaces without changing content data, routing contracts or media lifecycles.",
+      "preservedBehaviors": [
+        "Home, Wall, Connect, media, account sign-in and all existing app routes retain their current behavior."
+      ],
+      "tests": [
+        "tests/navigation-v2-settings-route.test.mjs",
+        "tests/navigation-v2-feature-search.test.mjs",
+        "tests/navigation-v2-compact-home-profile.test.mjs",
+        "tests/navigation-v2-typography.test.mjs",
+        "tests/navigation-v2-favorites.test.mjs",
+        "tests/navigation-v2-help-motions.test.mjs",
+        "tests/navigation-v2-ads-preservation.test.mjs",
+        "tests/navigation-v2-auth-inputs.test.mjs",
+        "tests/navigation-v2-scoped-icons.test.mjs",
+        "tests/navigation-v2-context-menu.test.mjs",
+        "tests/navigation-v2-bottom-fontscale.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Preserve canonical stack and protected navigation while adding a nonhideable settings route with existing session/role guards.",
+      "preservedBehaviors": [
+        "Auth/session, old Profile overflow, bottom tabs and data permission boundaries remain unchanged."
+      ],
+      "tests": [
+        "tests/navigation-v2-settings-route.test.mjs",
+        "tests/navigation-v2-route-audit.test.mjs",
+        "tests/navigation-v2-auth-inputs.test.mjs",
+        "tests/navigation-v2-bottom-fontscale.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add a manual, staging-only Android OTA lane that explicitly checks exact RC, installed APK, preview backend and isolation from the production channel before publishing.",
+      "preservedBehaviors": [
+        "Existing production OTA and web release workflows, triggers and identities remain untouched; no release executed by adding workflow code."
+      ],
+      "tests": [
+        "tests/navigation-v2-staging-release.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Give Cluster/Organization scoped Home Community Connect navigation visible accessible icons while keeping scope permission gates and back behavior unchanged.",
+      "preservedBehaviors": [
+        "Existing authorized scope resolution, role and membership checks, exact context back behavior and message/post permissions remain unchanged."
+      ],
+      "tests": [
+        "tests/navigation-v2-scoped-icons.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "ISOLATED_DEV__COMPLETION_GUARD_FAILS_CLOSED__NO_STAGING_OTA"
+}

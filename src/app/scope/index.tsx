@@ -467,7 +467,7 @@ return (
             backgroundColor:
               dashboardTheme.cardColor,
           },
-        ], blueWorkspaceTabs && { minHeight: 43, paddingVertical: 2, borderBottomColor: '#D4E7FA', backgroundColor: '#F4F9FF' }, (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_TOP_NAV_FLUSH */ marginBottom: 0 }]}
+        ], blueWorkspaceTabs && { minHeight: 54, paddingVertical: 3, borderBottomColor: '#D4E7FA', backgroundColor: '#F4F9FF' }, (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_TOP_NAV_FLUSH */ marginBottom: 0 }]}
       >
         {visibleSections.map(
           (item) => {
@@ -477,6 +477,9 @@ return (
             return (
               <Pressable
                 key={item.key}
+                accessibilityRole="tab"
+                accessibilityLabel={item.label}
+                accessibilityState={{ selected: active }}
                 onPress={() =>
                   openSection(
                     item.key
@@ -486,25 +489,23 @@ return (
                   styles.tab,
                   active &&
                     styles.tabOn,
-                  blueWorkspaceTabs && { minHeight: 38, borderRadius: 0, backgroundColor: 'transparent', borderBottomWidth: active ? 3 : 0, borderBottomColor: '#0874DE' },
+                  blueWorkspaceTabs && { minHeight: 48, borderRadius: 0, backgroundColor: 'transparent', borderBottomWidth: active ? 3 : 0, borderBottomColor: '#0874DE' },
                 ]}
               >
-                {!blueWorkspaceTabs && <MaterialCommunityIcons
+                <MaterialCommunityIcons
                   name={item.icon}
-                  size={18}
-                  color={
-                    active
-                      ? colors.greenDark
-                      : colors.muted
-                  }
-                />}
+                  size={blueWorkspaceTabs ? 16 : 18}
+                  color={blueWorkspaceTabs
+                    ? (active ? '#0874DE' : '#486E9E')
+                    : (active ? colors.greenDark : colors.muted)}
+                />
 
                 <Text
                   style={[
                     styles.tabText,
                     active &&
                       styles.tabTextOn,
-                    blueWorkspaceTabs && { color: active ? '#0874DE' : '#486E9E', fontSize: 11 },
+                    blueWorkspaceTabs && { color: active ? '#0874DE' : '#486E9E', fontSize: 13 },
                   ]}
                 >
                   {item.label}
