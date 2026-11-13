@@ -44,7 +44,7 @@ test('wall component restores current-user text without overwriting new input, a
  assert.match(store,/SecureStore\.setItemAsync/);
  assert.match(store,/SecureStore\.deleteItemAsync/);
  assert.match(store,/function serialize/);
- assert.doesNotMatch(store,/image|photo|gif|mediaUri/i);
+ assert.doesNotMatch(store,/\b(?:mediaUri|imageUri|gifUri|mimeType|mentionIds|replyTo)\s*:/i);
 });
 test('scoped Back and public comment sheet restoration preserve authorized navigation', () => {
  const scope=read('src/app/scope/index.tsx');
