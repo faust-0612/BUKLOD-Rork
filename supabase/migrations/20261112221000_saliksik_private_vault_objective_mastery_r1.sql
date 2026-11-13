@@ -184,13 +184,16 @@ END $fn$;
 -- Atomic processing lease: stale in-flight invocation cannot overwrite a later attempt.
 CREATE OR REPLACE FUNCTION public.saliksik_admin_lease_v1(p_source_id uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $fn$
-DECLARE s public.saliksik_sources%ROWTYPE; t uuid:=gen_random_uuid();
+DECLARE s public.saliksik_sources%ROWTYPE; t uuid:=gen_random_uuid(); v_existing int;
 BEGIN
  IF NOT public.is_system_admin() THEN RAISE EXCEPTION 'admin_required' USING ERRCODE='42501'; END IF;
  SELECT * INTO s FROM public.saliksik_sources WHERE id=p_source_id FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'source_missing'; END IF;
  IF EXISTS(SELECT 1 FROM public.saliksik_collections c WHERE c.source_id=s.id AND c.status='published')
    THEN RAISE EXCEPTION 'published_source_immutable'; END IF;
+ SELECT count(*) INTO v_existing FROM public.saliksik_collections c
+ JOIN public.saliksik_investigations i ON i.collection_id=c.id WHERE c.source_id=s.id;
+ IF v_existing>=8 THEN RAISE EXCEPTION 'ready_for_admin_review'; END IF;
  IF s.attempts>=9 THEN RAISE EXCEPTION 'retry_limit'; END IF;
  IF s.status='processing' AND coalesce(s.lease_expires_at,now()+interval '1 hour')>now()
    THEN RAISE EXCEPTION 'already_processing'; END IF;
@@ -199,7 +202,8 @@ BEGIN
  lease_token=t,lease_expires_at=now()+interval '3 minutes',last_error=NULL
  WHERE id=s.id;
  RETURN jsonb_build_object('token',t,'storage_path',s.storage_path,'mime_type',s.mime_type,
-   'title',s.title,'size_bytes',s.size_bytes,'content_sha256',s.content_sha256);
+   'title',s.title,'size_bytes',s.size_bytes,'content_sha256',s.content_sha256,
+   'next_sequence',v_existing+1);
 END $fn$;
 
 CREATE OR REPLACE FUNCTION public.saliksik_admin_fail_v1(p_source_id uuid,p_token uuid,p_error text)
@@ -215,7 +219,7 @@ END $fn$;
 CREATE OR REPLACE FUNCTION public.saliksik_admin_store_draft_v1(
  p_source_id uuid,p_token uuid,p_payload jsonb
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $fn$
-DECLARE s public.saliksik_sources%ROWTYPE; c uuid; item jsonb; q jsonb; idx int:=0;
+DECLARE s public.saliksik_sources%ROWTYPE; c uuid; item jsonb; q jsonb; idx int:=0; v_existing int:=0;
  v_inv uuid; v_tier text; v_bank jsonb; v_need int; v_n int;
  v_comp text; counts jsonb; v_options jsonb; v_quote text;
 BEGIN
@@ -233,16 +237,16 @@ BEGIN
    INSERT INTO public.saliksik_collections(source_id,title)
    VALUES(p_source_id,s.title) RETURNING id INTO c;
  ELSE
-   DELETE FROM public.saliksik_question_keys k USING public.saliksik_investigations i
-     WHERE k.investigation_id=i.id AND i.collection_id=c;
-   DELETE FROM public.saliksik_investigations WHERE collection_id=c;
+   SELECT count(*) INTO v_existing FROM public.saliksik_investigations WHERE collection_id=c;
  END IF;
+ IF v_existing NOT IN (0,2,4,6) THEN RAISE EXCEPTION 'draft_sequence_invalid_or_complete'; END IF;
  FOR item IN SELECT value FROM jsonb_array_elements(p_payload->'investigations') LOOP
    idx:=idx+1;
    v_tier:=item->>'tier';
-   IF v_tier IS DISTINCT FROM CASE idx WHEN 1 THEN 'discover' ELSE 'investigate' END
+   IF v_tier IS DISTINCT FROM CASE WHEN mod(v_existing+idx,2)=1
+        THEN 'discover' ELSE 'investigate' END
     THEN RAISE EXCEPTION 'unexpected_tier_or_order'; END IF;
-   v_bank:=item->'questions'; v_need:=CASE WHEN idx=1 THEN 5 ELSE 10 END;
+   v_bank:=item->'questions'; v_need:=CASE WHEN v_tier='discover' THEN 5 ELSE 10 END;
    IF jsonb_typeof(v_bank)<>'array' OR jsonb_array_length(v_bank)<>v_need
    OR length(coalesce(item->>'title','')) NOT BETWEEN 10 AND 180
    OR length(coalesce(item->>'summary','')) NOT BETWEEN 20 AND 600
@@ -267,13 +271,14 @@ BEGIN
       THEN RAISE EXCEPTION 'competency_coverage_invalid'; END IF;
    INSERT INTO public.saliksik_investigations(
      collection_id,sequence,tier,title,summary,lesson_text,source_excerpt,scripture_refs)
-   VALUES(c,idx,v_tier,item->>'title',item->>'summary',item->>'lesson_text',
+   VALUES(c,v_existing+idx,v_tier,item->>'title',item->>'summary',item->>'lesson_text',
      item->>'source_excerpt',item->'scripture_refs') RETURNING id INTO v_inv;
    INSERT INTO public.saliksik_question_keys(investigation_id,questions) VALUES(v_inv,v_bank);
  END LOOP;
  UPDATE public.saliksik_sources SET status='draft',processed_at=now(),
    lease_token=NULL,lease_expires_at=NULL,last_error=NULL WHERE id=p_source_id;
- RETURN jsonb_build_object('ok',true,'collection_id',c,'investigations',idx,'status','draft');
+ RETURN jsonb_build_object('ok',true,'collection_id',c,'batch_size',idx,
+ 'total_investigations',v_existing+idx,'status','draft');
 END $fn$;
 
 -- Admin expressly validates text fidelity before member distribution.
@@ -304,7 +309,11 @@ BEGIN
  SELECT count(*) INTO v_count FROM public.saliksik_investigations i
   JOIN public.saliksik_question_keys k ON k.investigation_id=i.id
   WHERE i.collection_id=c.id AND i.status='draft' AND i.tier IN('discover','investigate');
- IF v_count<>2 OR EXISTS(SELECT 1 FROM public.saliksik_investigations
+ IF v_count<>8 OR (SELECT count(*) FROM public.saliksik_investigations
+ WHERE collection_id=c.id AND tier='discover')<>4
+ OR (SELECT count(*) FROM public.saliksik_investigations
+ WHERE collection_id=c.id AND tier='investigate')<>4
+ OR EXISTS(SELECT 1 FROM public.saliksik_investigations
     WHERE collection_id=c.id AND tier='master') THEN RAISE EXCEPTION 'master_tier_not_approved'; END IF;
  UPDATE public.saliksik_investigations SET status='published',published_at=now()
  WHERE collection_id=c.id;
@@ -408,6 +417,18 @@ BEGIN
  v_count:=jsonb_array_length(v_bank);
  IF v_count NOT IN(5,10) THEN RAISE EXCEPTION 'question_bank_missing'; END IF;
  IF a.id IS NULL THEN
+   -- Do not penalize study, only rate-limit graded repeats.
+   IF (SELECT count(*) FROM public.saliksik_attempts x
+       WHERE x.user_id=v_user AND x.investigation_id=i.id AND x.passed=false
+       AND x.result_code IS DISTINCT FROM 'expired'
+       AND (x.submitted_at AT TIME ZONE 'Asia/Manila')::date =
+           (now() AT TIME ZONE 'Asia/Manila')::date)>=3
+   THEN RAISE EXCEPTION 'graded_retry_limit_today'; END IF;
+   IF EXISTS(SELECT 1 FROM public.saliksik_attempts x
+       WHERE x.user_id=v_user AND x.investigation_id=i.id AND x.passed=false
+         AND x.result_code IS DISTINCT FROM 'expired'
+         AND x.submitted_at>now()-interval '10 minutes')
+   THEN RAISE EXCEPTION 'review_before_retry_10m'; END IF;
    SELECT array_agg(n-1 ORDER BY random()) INTO v_order FROM generate_series(1,v_count) n;
    INSERT INTO public.saliksik_attempts(user_id,scope_id,investigation_id,question_order)
    VALUES(v_user,p_scope_id,i.id,v_order) RETURNING * INTO a;
@@ -480,6 +501,13 @@ BEGIN
    score=round(v_score)::int,competency_scores=v_scores,passed=v_pass,result_code=v_result
  WHERE id=a.id;
  IF v_pass THEN
+   -- Canonical BUKLOD Point Rules must authorize the exact reward amount.
+   IF NOT public.is_system_admin() AND NOT EXISTS (
+     SELECT 1 FROM public.buklod_point_rules r WHERE
+       r.activity_type='saliksik_'||i.tier AND r.is_active=true
+       AND r.base_points=CASE i.tier WHEN 'discover' THEN 10 ELSE 20 END
+       AND r.max_points_per_event>=r.base_points)
+   THEN RAISE EXCEPTION 'saliksik_point_rule_unavailable'; END IF;
    INSERT INTO public.saliksik_mastery(user_id,investigation_id,version)
    VALUES(a.user_id,i.id,i.version)
    ON CONFLICT DO NOTHING RETURNING true INTO v_new;
@@ -499,7 +527,12 @@ BEGIN
     JOIN public.saliksik_investigations r ON r.id=m.investigation_id
     WHERE m.user_id=a.user_id AND r.collection_id=c.id AND m.version=r.version
     AND r.status='published';
-   IF v_required>=8 AND v_earned=v_required THEN
+   IF v_required=8 AND v_earned=v_required THEN
+     IF NOT public.is_system_admin() AND NOT EXISTS (
+       SELECT 1 FROM public.buklod_point_rules r
+       WHERE r.activity_type='saliksik_series' AND r.is_active=true
+         AND r.base_points=50 AND r.max_points_per_event>=50)
+     THEN RAISE EXCEPTION 'saliksik_series_reward_rule_unavailable'; END IF;
      v_new:=false;
      INSERT INTO public.saliksik_series_mastery(user_id,collection_id,version)
      VALUES(a.user_id,c.id,c.version)
@@ -519,6 +552,9 @@ BEGIN
    'competencies',v_scores,'reason',v_result,'points',
    CASE WHEN v_ledger IS NOT NULL THEN v_points ELSE 0 END,
    'series_points',CASE WHEN v_series IS NOT NULL THEN 50 ELSE 0 END,
+   'claim_state',CASE WHEN v_ledger IS NOT NULL OR v_series IS NOT NULL
+     THEN 'pending' ELSE null END,
+   'retry_after',CASE WHEN NOT v_pass THEN now()+interval '10 minutes' ELSE null END,
    'replayed',false);
 END $fn$;
 

@@ -40,7 +40,11 @@ test('Member assessment never receives answer keys or self-awards rewards',()=>{
  assert.match(sql,/CREATE UNIQUE INDEX IF NOT EXISTS saliksik_single_open_attempt/);
  assert.match(sql,/ON CONFLICT\(user_id,source_key\) DO NOTHING/);
  assert.match(sql,/IF v_pass THEN/);
- assert.match(sql,/IF v_required>=8 AND v_earned=v_required THEN/);
+ assert.match(sql,/IF v_required=8 AND v_earned=v_required THEN/);
+ assert.match(sql,/IF v_count<>8/);
+ assert.match(sql,/claim_state/);
+ assert.match(sql,/retry_after/);
+ assert.match(sql,/v_existing NOT IN \(0,2,4,6\)/);
 });
 test('Objective credits fixed at 10/20; Master 35 cannot publish',()=>{
  assert.match(sql,/WHEN 'discover' THEN 10 ELSE 20 END/);

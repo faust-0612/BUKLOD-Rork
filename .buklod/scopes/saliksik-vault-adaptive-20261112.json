@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Build SALIKSIK Admin Knowledge Vault and evidence-grounded adaptive Biblical investigations in Cluster Home without weakening established point and security contracts.",
   "baseRef": "9ff4f65d0db52b584d915493f67edaaed8bae369",
-  "productionBaselineEvidence": "2026-11-12: main SHA 9ff4f65d0db52b584d915493f67edaaed8bae369 reported Nov12 consolidated Android/Web RC and publisher checks as SUCCESS; exact deployed OTA ID, served assets and device-runtime state not independently verified here. This is DEV work only; no production database mutation or release.",
+  "productionBaselineEvidence": "2026-11-13 current source inspection: 2026-11-12 baseline; main SHA 9ff4f65d0db52b584d915493f67edaaed8bae369 reported Nov12 consolidated Android/Web RC and publisher checks as SUCCESS; exact deployed OTA ID, served assets and device-runtime state not independently verified here. This is DEV work only; no production database mutation or release.",
   "chosenApproach": "Additive private admin vault, role-checked AI draft generator, immutable published source-linked investigations, server-only objective grade and canonical point ledger integration with dual disabled launch switches.",
   "selectionRationale": "Reuse existing Expo, Supabase, Gemini and authenticated AdminGate; non-publishing default isolates new system and prevents regression to existing KL/Quiz/Finance.",
   "alternativeApproaches": [
@@ -34,13 +34,18 @@
     "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql",
     "tests/saliksik-adaptive-mastery-20261112.test.mjs",
     "tests/saliksik-cluster-faith-20261112.test.mjs",
-    "tests/saliksik-backend-security-20261112.test.mjs"
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    ".github/workflows/saliksik-sql-qa.yml",
+    "tests/fixtures/saliksik_pg_seed.sql",
+    "tests/fixtures/saliksik_pg_integration.sql",
+    "tests/saliksik-sql-pg-qa.test.mjs"
   ],
   "regressionTests": [
     "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql",
     "tests/saliksik-adaptive-mastery-20261112.test.mjs",
     "tests/saliksik-cluster-faith-20261112.test.mjs",
-    "tests/saliksik-backend-security-20261112.test.mjs"
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    "tests/saliksik-sql-pg-qa.test.mjs"
   ],
   "preserveBehaviors": [
     "Cluster Home first paint remains local; SALIKSIK door is an opt-in OTA flagged card and backend off by default.",
@@ -54,7 +59,8 @@
     "No published Master +35 via MCQ; no answer key leakage, cross-member data or duplicate claim.",
     "App TypeScript check and Expo Android/Web export pass without changing native runtime.",
     "RC real auth, concurrency, weak-network, question quality, permissions and SQL validation gates.",
-    "Exact source/runtime/OTA/Expo Hosting artifact verified before any production claim."
+    "Exact source/runtime/OTA/Expo Hosting artifact verified before any production claim.",
+    "Independent PostgreSQL 17 service executes actual migration and end-to-end 8 investigation / 170 pending canonical points ledger workflow; member and admin requests use authenticated role."
   ],
   "lockedFeatureChanges": [
     {

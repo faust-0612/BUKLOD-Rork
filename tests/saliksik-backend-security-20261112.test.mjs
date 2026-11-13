@@ -39,6 +39,10 @@ test('Account isolation and server-owned answer evaluation',()=>{
  assert.match(sql,/jsonb_typeof\(v_answer\)<>'number'/);
  assert.match(sql,/v_core:=/);
  assert.match(sql,/v_pass:=\(round\(v_score\)::int>=80 AND v_core\)/);
+ assert.match(sql,/saliksik_point_rule_unavailable/);
+ assert.match(sql,/saliksik_series_reward_rule_unavailable/);
+ assert.match(sql,/review_before_retry_10m/);
+ assert.match(sql,/graded_retry_limit_today/);
  assert.match(sql,/ON CONFLICT\(user_id,source_key\) DO NOTHING/);
  assert.match(sql,/IF coalesce\(v_new,false\) AND NOT public\.is_system_admin\(\)/);
 });

@@ -146,13 +146,14 @@ export default function SaliksikInvestigationScreen(){
     <><Text style={styles.score}>{result.score}/100</Text>
      {Object.entries(result.competencies??{}).map(([key,value])=><Text key={key} style={styles.small}>{nameOf(key)}: {value}%</Text>)}
      <Text style={styles.hint}>{result.passed
-      ?'Credited points: '+(result.points??0)+' • Series bonus: '+(result.series_points??0)
+      ?'Points ready to claim: '+(result.points??0)+' • Series bonus: '+(result.series_points??0)
       :'Adaptive study: review the weaker competencies before another independent attempt.'}</Text>
      {!result.passed?<View style={styles.note}>
       <Text style={styles.questionTitle}>FOCUSED REMEDIATION</Text>
       {(focus.length?focus:['evidence','context','reasoning']).map(key=>
        <Text key={key} style={styles.noteText}>• {nameOf(key)}: {remediation[key]}</Text>)}
      </View>:null}</>}
+   {!result.passed?<Text style={styles.small}>Puwedeng mag-aral kahit kailan. Sa graded retake: 10-minute review interval at hanggang 3 failed attempts bawat Manila day upang maiwasan ang points farming.</Text>:null}
    {!result.passed?<Pressable style={styles.primary} onPress={()=>{setResult(null);void start();}}>
      <Text style={styles.primaryText}>REVIEW AND TRY AGAIN</Text></Pressable>:null}
    <Pressable style={styles.secondary} onPress={close}><Text style={styles.secondaryText}>BACK TO INVESTIGATIONS</Text></Pressable>

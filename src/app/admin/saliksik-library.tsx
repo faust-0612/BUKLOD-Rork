@@ -36,8 +36,15 @@ export default function SaliksikLibraryScreen(){
   setBusy('Generating draft');
   setError('');
   try{
-   const result=await saliksikGenerateDraft(id);
-   setNotice(result.ok?'Draft generated — review before publishing.':'Generation not confirmed');
+   for(let batch=1;batch<=4;batch++){
+    setBusy('Generating investigation batch '+batch+' / 4');
+    const result=await saliksikGenerateDraft(id) as any;
+    if(!result?.ok)throw new Error('Generation not confirmed');
+    const completed=Number(result.total_investigations??0);
+    if(completed===8){setNotice('Eight investigations ready. Review sources and keys before publishing.');break;}
+    if(![2,4,6].includes(completed))throw new Error('Unexpected partial generation state');
+    setNotice(completed+' / 8 investigations drafted; resume if interrupted.');
+   }
   }catch(e){setError(textError(e));}
   finally{setBusy('');await refresh();}
  };
@@ -132,9 +139,9 @@ export default function SaliksikLibraryScreen(){
       <Pressable onPress={()=>void openOriginal(item)} style={styles.action}><Text style={styles.actionText}>Original</Text></Pressable>
       {item.collection_id?<Pressable disabled={!!busy} onPress={()=>void showPreview(item)}
        style={styles.action}><Text style={styles.actionText}>Review draft</Text></Pressable>:null}
-      {item.collection_status!=='published'?<Pressable disabled={!!busy}
+      {item.collection_status!=='published'&&(item.investigations??0)<8?<Pressable disabled={!!busy}
        onPress={()=>void process(item.id)} style={styles.action}>
-       <Text style={styles.actionText}>{item.status==='draft'?'Regenerate':'Generate / retry'}</Text>
+       <Text style={styles.actionText}>{item.status==='draft'?'CONTINUE DRAFT':'Generate / retry'}</Text>
       </Pressable>:null}
      </View>
     </View>)}
