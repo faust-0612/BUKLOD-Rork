@@ -52,3 +52,20 @@ export function createMaritesVisibilityScheduler(
     cancel,
   };
 }
+
+/** Fullscreen Marites and Wall inline video must not own playback together. */
+export type BuklodWallMaritesPriorityInput = {
+  wallFocused: boolean;
+  wallVideoVisible: boolean;
+  wallFullscreenOpen: boolean;
+  commentOpen: boolean;
+  maritesViewerOpen: boolean;
+};
+
+export function resolveBuklodWallMaritesVideoPriority(input: BuklodWallMaritesPriorityInput) {
+  return {
+    wallVideoEligible: input.wallFocused && !input.wallFullscreenOpen && !input.maritesViewerOpen,
+    maritesBlocked: !input.wallFocused || input.commentOpen || input.wallFullscreenOpen ||
+      (input.wallVideoVisible && !input.maritesViewerOpen),
+  };
+}

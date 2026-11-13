@@ -4,7 +4,7 @@
   "objective": "Reduce native viewport-measurement churn on fast Community Wall/Marites scrolling and avoid overlapping Marites/Wall active video decoders without altering existing video engine, audio, or ads.",
   "baseRef": "a43e1813d62a151e8294a52989a80fe21b36057c",
   "productionBaselineEvidence": "GitHub main a43e1813d62a151e8294a52989a80fe21b36057c inspected 2026-11-13. Production deployed fingerprint/active client not independently verified. Existing Android OOM scope records Infinix X6852 Android 16 historical OOMs, up to four video decoders and unresolved allocation attribution. This is a scoped source-only mitigation; NOT verified live crash resolution.",
-  "chosenApproach": "96ms trailing-coalesced Marites measureInWindow scheduling with immediate flush on focus/overlay and cleanup on unmount. Disable inline Marites video only while an active Wall video, fullscreen viewer, open comments, or Wall blur has priority. Preserve single-visible Marites selection and existing expo-video/IMA implementations.",
+  "chosenApproach": "96ms trailing-coalesced Marites measureInWindow scheduling with immediate flush on focus/overlay and cleanup on unmount. Disable inline Marites video only while an active Wall video, fullscreen viewer, open comments, or Wall blur has priority. Preserve single-visible Marites selection and existing expo-video/IMA implementations. Add bidirectional fullscreen Marites media priority: parent Wall inline player/music pauses on story open; Marites viewer audio remains allowed; exit/expiry/unmount restores Wall eligibility.",
   "selectionRationale": "Existing Wall scroll callback fires every 16ms and requests a potentially native bridge measurement; reducing measured work avoids UI churn. Marites header and Wall video can overlap; deterministic priority prevents two simultaneous autoplay players in this path. Both are minimal, reversible UI-only changes.",
   "alternativeApproaches": [
     "Replace FlashList or expo-video renderer globally, rejected due to broad high-risk media regressions and native rebuild requirements.",
@@ -25,7 +25,8 @@
     "Marites only autoplays while the card is actually visible and Wall video is not active; story viewer retains direct video playback.",
     "AdMob native/banner lifecycle, placements, consent, impressions and safety locks remain unchanged.",
     "FlashList virtualization, scroll position, pagination, caption/music creation, notification routing and signed media URLs remain untouched.",
-    "No changes to Supabase, RLS, permissions, security, billing or production release tooling."
+    "No changes to Supabase, RLS, permissions, security, billing or production release tooling.",
+    "Fullscreen Marites story audio may play when a Wall inline video's visibility token remains stale; opening the viewer pauses the Wall player, closing restores it. Preserve current video engine, cache and AdMob."
   ],
   "regressionTests": [
     "tests/marites-wall-scroll-video-navigation-20261113.test.mjs"
@@ -35,7 +36,8 @@
     "Focus blur, comment modal or fullscreen activation immediately disables inline playback; pending timers cannot resurrect stale media.",
     "When active Wall video exists, inline Marites decoder is unmounted; when it stops, eligible Marites autoplay resumes.",
     "Old Marites visibility selector, no offscreen playback, 750ms header fallback, active expo-video and AdMob surfaces preserved.",
-    "Focused tests and mandatory PR gates pass; compiled RC and physical staging-user Android run still mandatory before any OTA."
+    "Focused tests and mandatory PR gates pass; compiled RC and physical staging-user Android run still mandatory before any OTA.",
+    "Fullscreen Marites story owns playback over a visible Wall clip, including sound and viewer-to-viewer navigation; back/expiry/unmount restores Wall eligibility and audio does not auto-restart under the modal."
   ],
   "allowedPaths": [
     "src/components/BuklodMaritesBoard.tsx",

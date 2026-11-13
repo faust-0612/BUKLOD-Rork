@@ -115,6 +115,8 @@ type Props = {
   /** Reserved for future scoped RPC filter. */
   locationScopeId?: string | null;
   playbackBlocked?: boolean;
+  /** Parent Wall pauses media while a fullscreen Marites story owns playback. */
+  onViewerVisibilityChange?: (visible: boolean) => void;
   visibilityRefreshRef?: React.MutableRefObject<(() => void) | null>;
   onOpenComments?: (postId: string, story: MaritesStory) => void;
 };
@@ -909,6 +911,7 @@ export default function BuklodMaritesBoard({
   locationScopeId,
   onOpenComments,
   playbackBlocked = false,
+  onViewerVisibilityChange,
   visibilityRefreshRef,
 }: Props) {
   const { user, profile } = useAuth();
@@ -934,6 +937,12 @@ export default function BuklodMaritesBoard({
   const playbackActive = useMaritesPlaybackActive();
   const [viewStory, setViewStory] =
     useState<MaritesStory | null>(null);
+  const maritesViewerVisible = viewStory !== null;
+  // Includes server-expiration dismissal and programmatic close, not only Back.
+  useEffect(() => {
+    onViewerVisibilityChange?.(maritesViewerVisible);
+  }, [maritesViewerVisible, onViewerVisibilityChange]);
+  useEffect(() => () => onViewerVisibilityChange?.(false), [onViewerVisibilityChange]);
   const [storyZoomed, setStoryZoomed] =
     useState(false);
   const [reactionPickerOpen, setReactionPickerOpen] =
@@ -1159,16 +1168,19 @@ export default function BuklodMaritesBoard({
   }, [cacheKey, stories, user?.id]);
 
   const closeStoryViewer = useCallback(() => {
+    onViewerVisibilityChange?.(false);
     setStoryZoomed(false);
     setViewStory(null);
     setReactionPickerOpen(false);
-  }, []);
+  }, [onViewerVisibilityChange]);
 
   const openStoryViewer = useCallback((story: MaritesStory) => {
+    // Batch the Wall-player pause with native modal opening.
+    onViewerVisibilityChange?.(true);
     setStoryZoomed(false);
     setReactionPickerOpen(false);
     setViewStory(story);
-  }, []);
+  }, [onViewerVisibilityChange]);
 
   /*
    * BUKLOD_MARITES_STORY_NAV_R1

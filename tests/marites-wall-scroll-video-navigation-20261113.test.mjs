@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import fs from 'node:fs';
-import { createMaritesVisibilityScheduler } from '../src/lib/buklodMaritesViewportMeasure.ts';
+import { createMaritesVisibilityScheduler, resolveBuklodWallMaritesVideoPriority } from '../src/lib/buklodMaritesViewportMeasure.ts';
 
 function fakeClock() {
   let time = 0;
@@ -80,7 +80,10 @@ test('Unmount and quick remount cancel delayed measurements; idempotent cleanup'
 test('Wall navigation and player priority preserve video pause, ads and Marites behavior', () => {
   const wall = fs.readFileSync(new URL('../src/app/(tabs)/buklod.tsx', import.meta.url), 'utf8');
   const board = fs.readFileSync(new URL('../src/components/BuklodMaritesBoard.tsx', import.meta.url), 'utf8');
-  assert.match(wall, /playbackBlocked=\{commentOpen \|\| Boolean\(visibleVideoPostId\) \|\| videoViewerOpen \|\| !wallScreenFocused\}/);
+  assert.match(wall, /playbackBlocked=\{videoPriority\.maritesBlocked\}/);
+  assert.match(wall, /onViewerVisibilityChange=\{setMaritesViewerOpen\}/);
+  assert.match(wall, /visibleVideoPostId===postId &&\s*videoPriority\.wallVideoEligible/);
+  assert.match(wall, /preloadVideoPostId===postId &&\s*videoPriority\.wallVideoEligible/);
   assert.match(wall, /maritesVisibilityRefreshRef\.current\?\.\(\)/, 'Wall scroll still requests visibility updates');
   assert.match(wall, /<FlashList/);
   assert.match(wall, /<BuklodCommunityInlineAd/);
@@ -92,4 +95,35 @@ test('Wall navigation and player priority preserve video pause, ads and Marites 
   assert.match(board, /measurementSchedulerRef\.current\?\.cancel\(\)/, 'unmount must cancel pending measurements');
   assert.match(board, /if \(autoPlay && active\) player\.play\(\)/);
   assert.match(board, /else player\.pause\(\)/);
+});
+
+test('fullscreen Marites viewer preempts Wall video and restores story sound', () => {
+  const base = { wallFocused: true, wallVideoVisible: true, wallFullscreenOpen: false,
+    commentOpen: false, maritesViewerOpen: false };
+  assert.deepEqual(resolveBuklodWallMaritesVideoPriority(base),
+    { wallVideoEligible: true, maritesBlocked: true });
+  assert.deepEqual(resolveBuklodWallMaritesVideoPriority({ ...base, maritesViewerOpen: true }),
+    { wallVideoEligible: false, maritesBlocked: false });
+  assert.deepEqual(resolveBuklodWallMaritesVideoPriority({ ...base, maritesViewerOpen: true, commentOpen: true }),
+    { wallVideoEligible: false, maritesBlocked: true });
+  assert.deepEqual(resolveBuklodWallMaritesVideoPriority({ ...base, maritesViewerOpen: true, wallFocused: false }),
+    { wallVideoEligible: false, maritesBlocked: true });
+  assert.deepEqual(resolveBuklodWallMaritesVideoPriority({ ...base, wallFullscreenOpen: true }),
+    { wallVideoEligible: false, maritesBlocked: true });
+  assert.deepEqual(resolveBuklodWallMaritesVideoPriority({ ...base, wallVideoVisible: false }),
+    { wallVideoEligible: true, maritesBlocked: false });
+  assert.deepEqual(resolveBuklodWallMaritesVideoPriority(base),
+    { wallVideoEligible: true, maritesBlocked: true }, 'closing viewer restores Wall eligibility');
+});
+
+test('viewer open/close/expiry/unmount coordinate playback and prevent Wall music resumption', () => {
+  const wall = fs.readFileSync(new URL('../src/app/(tabs)/buklod.tsx', import.meta.url), 'utf8');
+  const board = fs.readFileSync(new URL('../src/components/BuklodMaritesBoard.tsx', import.meta.url), 'utf8');
+  assert.match(board, /onViewerVisibilityChange\?\.\(true\)/);
+  assert.match(board, /onViewerVisibilityChange\?\.\(false\)/);
+  assert.match(board, /onViewerVisibilityChange\?\.\(maritesViewerVisible\)/);
+  assert.match(board, /useEffect\(\(\) => \(\) => onViewerVisibilityChange\?\.\(false\)/);
+  assert.match(wall, /if\(maritesViewerOpen\)wallAudioForVisibility\.current\(\)/);
+  assert.match(wall, /communityComposerOpen\|\|maritesViewerOpen\|\|visibleVideoPostId/);
+  assert.match(wall, /peekDzasPlaying\(\)\|\|maritesViewerOpen/);
 });
