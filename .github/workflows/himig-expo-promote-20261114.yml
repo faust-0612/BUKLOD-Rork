@@ -54,7 +54,9 @@ jobs:
           get "$VERIFIED_PREVIEW_URL/audio-worker.js" "$RUNNER_TEMP/rc-worker.js"
           get "$VERIFIED_PREVIEW_URL/api/ai/status" "$RUNNER_TEMP/rc-status.json"
           get "$PRODUCTION_URL/" "$RUNNER_TEMP/old-prod.html"
-          get "https://himig-studio--$PREVIOUS_PROD_ID.expo.app/" "$RUNNER_TEMP/known-prev.html"\n          get "$PRODUCTION_URL/audio-worker.js" "$RUNNER_TEMP/old-worker.js"\n          get "https://himig-studio--$PREVIOUS_PROD_ID.expo.app/audio-worker.js" "$RUNNER_TEMP/known-prev-worker.js"
+          get "https://himig-studio--$PREVIOUS_PROD_ID.expo.app/" "$RUNNER_TEMP/known-prev.html"
+          get "$PRODUCTION_URL/audio-worker.js" "$RUNNER_TEMP/old-worker.js"
+          get "https://himig-studio--$PREVIOUS_PROD_ID.expo.app/audio-worker.js" "$RUNNER_TEMP/known-prev-worker.js"
           sha256sum "$RUNNER_TEMP/rc-worker.js"
           node - <<'NODE'
           const fs=require('fs');
