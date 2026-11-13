@@ -13,6 +13,7 @@ import {
 } from '@/lib/buklodPinnedNavigation';
 import { BUKLOD_LONG_PRESS_MS } from '@/lib/buklodTouch';
 
+const PINNABLE_FEATURE_IDS = BUKLOD_FEATURE_LINKS.map(item => item.id);
 const GLOBAL_DESTINATIONS = new Set(['/buklod', '/messages', '/clusters', '/me']);
 function openFeature(item: BuklodFeatureLink) {
   if (GLOBAL_DESTINATIONS.has(item.route)) router.navigate(item.route as any);
@@ -42,7 +43,7 @@ export default function BuklodFeatureFinder() {
     try { key = buklodPinnedNavigationStorageKey(accountId); }
     catch { return () => { active = false; }; }
     void AsyncStorage.getItem(key)
-      .then(raw => normalizeBuklodPinnedNavigation(raw ? JSON.parse(raw) : []))
+      .then(raw => normalizeBuklodPinnedNavigation(raw ? JSON.parse(raw) : [], PINNABLE_FEATURE_IDS))
       .catch(() => [])
       .then(saved => {
         if (!active) return;
@@ -55,7 +56,7 @@ export default function BuklodFeatureFinder() {
   useEffect(() => {
     if (!accountId || loadedFor !== accountId) return;
     const key = buklodPinnedNavigationStorageKey(accountId);
-    const contents = JSON.stringify(normalizeBuklodPinnedNavigation(pinned));
+    const contents = JSON.stringify(normalizeBuklodPinnedNavigation(pinned, PINNABLE_FEATURE_IDS));
     // Serialize writes: rapid pin/unpin cannot persist an older revision last.
     writeQueue.current = writeQueue.current
       .catch(() => undefined)
@@ -71,7 +72,7 @@ export default function BuklodFeatureFinder() {
 
   const togglePin = (item: BuklodFeatureLink) => {
     if (!canPin) return;
-    setPinned(current => toggleBuklodPinnedNavigation(current, item.id));
+    setPinned(current => toggleBuklodPinnedNavigation(current, item.id, PINNABLE_FEATURE_IDS));
   };
 
   return (
