@@ -2,6 +2,7 @@
 /** BUKLOD Navigation V2: nonpublishing fail-closed staging readiness gate. */
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 export const REQUIRED_NAV_V2_IDS = Object.freeze([
   'staging-parity','feature-inventory','technical-guard','profile-settings','home-finder',
@@ -118,7 +119,6 @@ function main() {
   else if (result.failures.length) process.exitCode = 1;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) ===
-    new URL('file://' + process.argv[1].replace(/\\/g, '/')).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   main();
 }
