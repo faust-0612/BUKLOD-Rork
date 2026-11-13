@@ -56,6 +56,17 @@ test('release requires exact live parity and installed staging identity, not onl
   beforePublishing.requirements.find(item => item.id === 'verified-staging-release').status = 'pending';
   assert.equal(inspectNavV2Prepublish(beforePublishing, simulated, sha, now).ready, true,
     'Only the post-publish staging verification item may remain pending in prepublish');
+  const baselineOnly = structuredClone(simulated);
+  baselineOnly.staging.otaUpdateId = '';
+  baselineOnly.staging.publishedRcUpdateId = '';
+  baselineOnly.staging.updateSourceSha = '';
+  assert.equal(inspectNavV2Prepublish(beforePublishing, baselineOnly, sha, now).ready, true,
+    'A verified live-mirror APK may have only its embedded JS before the first Navigation V2 OTA');
+  assert.equal(inspectNavV2StagingRelease(ready, baselineOnly, sha, now).ready, false,
+    'Postpublish gate must still require proof the exact released RC OTA reached staging');
+  baselineOnly.staging.installedBuildId = '';
+  assert.equal(inspectNavV2Prepublish(beforePublishing, baselineOnly, sha, now).ready, false,
+    'Prepublish must not weaken independently installed staging APK checks');
   beforePublishing.requirements.find(item => item.id === 'responsive-font').status = 'pending';
   assert.equal(inspectNavV2Prepublish(beforePublishing, simulated, sha, now).ready, false);
   assert.equal(inspectNavV2StagingRelease(ready, simulated, sha, now).ready, true,

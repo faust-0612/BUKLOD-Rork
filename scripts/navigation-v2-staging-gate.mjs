@@ -78,9 +78,9 @@ export function inspectNavV2StagingRelease(checklist, evidence, expectedRcSha, n
     failures.push('Staging-user package/channel/runtime/environment mismatch');
   if (!stage.buildId || !stage.installedBuildId ||
       stage.buildId !== stage.installedBuildId ||
-      !stage.otaUpdateId || !proofUrl(stage.artifactEvidenceUrl) ||
+      !proofUrl(stage.artifactEvidenceUrl) ||
       !fresh(stage.verifiedAt, now))
-    failures.push('Missing recent exact installed staging APK/OTA verification');
+    failures.push('Missing recent exact installed staging APK baseline verification');
   if (stage.backendContractReviewed !== true ||
       !proofUrl(stage.backendEvidenceUrl))
     failures.push('Staging backend behavior/feature-flag parity not reviewed');
@@ -90,8 +90,8 @@ export function inspectNavV2StagingRelease(checklist, evidence, expectedRcSha, n
   if (stage.deviceAcceptance !== 'passed' ||
       !proofUrl(stage.deviceEvidenceUrl))
     failures.push('Missing staging-user device acceptance evidence');
-  if (stage.updateSourceSha !== expectedRcSha || !stage.publishedRcUpdateId ||
-      stage.publishedRcUpdateId !== stage.otaUpdateId)
+  if (stage.updateSourceSha !== expectedRcSha || !stage.otaUpdateId ||
+      !stage.publishedRcUpdateId || stage.publishedRcUpdateId !== stage.otaUpdateId)
     failures.push('Installed staging OTA does not attest the exact released RC update');
   return { ready: check.ready && failures.length === 0, failures, checklist: check };
 }
