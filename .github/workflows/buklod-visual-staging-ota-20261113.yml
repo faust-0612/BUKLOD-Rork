@@ -1,6 +1,7 @@
 # Owner-authorized QA-only Android staging OTA for PR #791.
 # NEVER deploys production, main, native APK, web or backend migrations.
 # Publishing staging for visual testing does not waive production/RC acceptance gates.
+# Read-only EAS build:view is expected; a new native EAS build remains prohibited.
 name: BUKLOD Owner Visual Staging OTA (Android Only)
 on:
   push:

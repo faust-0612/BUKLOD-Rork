@@ -42,7 +42,7 @@ test('OTA is Android-only, once per exact head, and served staging manifest is v
   assert.match(workflow,/stage\.id\.toLowerCase\(\),update\.id\.toLowerCase\(\)/);
   assert.match(workflow,/unchangedProductionManifestId/);
   assert.match(workflow,/prod\.id,pre\.productionManifestId/);
-  assert.doesNotMatch(workflow,/eas-cli@27\.9\.0 (?:build|submit|deploy|channel:edit)/);
+  assert.doesNotMatch(workflow,/eas-cli@27\.9\.0 (?:build(?!:view)|submit|deploy|channel:edit)/);
 });
 test('visual acceptance is not fabricated by staging QA publication', () => {
   assert.equal(visual.otaPublished,false,'Original evidence is prepipeline only');
