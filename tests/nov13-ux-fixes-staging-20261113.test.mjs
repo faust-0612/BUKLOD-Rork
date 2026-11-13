@@ -20,10 +20,10 @@ test('Real public Home announcement is on both active /hub variants',()=>{
 const h=read('src/app/(tabs)/hub.tsx');assert.equal((h.match(/<BuklodSystemAnnouncementBoard slot="public_home" \/>/g)||[]).length,2);assert.match(h,/<Contribution \/>/);
 });
 test('Search discovers Rank, referral, attendance, and multikeyword names',()=>{
-const s=read('src/lib/buklodNavigationV2.ts');for(const k of ['rank','referral','attendance','formation','music'])assert.ok(s.includes("'"+k+"'"));assert.match(s,/tokens\.every/);
+const s=read('src/lib/buklodNavigationV2.ts');for(const k of ['rank','referral','attendance','formation','music'])assert.ok(s.includes("'"+k+"'"));assert.match(s,/coverage===tokens.length/);
 });
 test('Theme is scroll-bounded and compact; sounds differ in event cue and rate',()=>{
-const a=read('src/components/BuklodGlobalThemeSelector.tsx');assert.match(a,/viewportHeight \* 0\.57/);assert.match(a,/flexWrap: 'wrap'/);
+const a=read('src/components/BuklodGlobalThemeSelector.tsx');assert.match(a,/viewportHeight \* 0\.42/);assert.match(a,/flexWrap: 'wrap'/);
 const b=read('src/lib/buklodSounds.ts');assert.match(b,/PROFILE_RATE/);assert.match(b,/PROFILE_GAIN/);assert.match(b,/setPlaybackRate/);
 });
 test('Successful GIF comment reconciles just its thread without resetting feed',()=>{

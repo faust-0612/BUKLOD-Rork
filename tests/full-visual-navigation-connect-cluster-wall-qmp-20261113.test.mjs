@@ -42,13 +42,13 @@ test('Profile, Cluster, Drawer and Wall keep every existing explicit destination
         '/settings','/about-buklod','/account/personal-information',
         '/account/security','/preferences/language','/settings/sounds',
         '/account/recovery-pin','/account/deactivate','/account/delete',
-        '/privacy','/privacy/notice','/contact-us','/support/live'
+        '/privacy','/privacy/notice','/contact-us','/support/live','/delete-account'
       ].includes(route)) {
         // Owner moved duplicate actions out of Profile to the existing Settings
         // and central menu; verify actual reachability rather than stale location.
         const retained=read('src/app/settings/index.tsx')+'\n'+
           read('src/components/BuklodNavigationSideMenu.tsx');
-        assert.ok(retained.includes("route: '"+route+"'"), 'Lost destination '+route);
+        assert.ok(retained.includes("route: '"+(route==='/delete-account'?'/account/delete':route)+"'"), 'Lost destination '+route);
         assert.match(read(path), /accessibilityLabel="Profile options"/);
         continue;
       }

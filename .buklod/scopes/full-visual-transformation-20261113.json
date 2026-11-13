@@ -28,7 +28,8 @@
     "Owner-authorized staging-only OTA for practical visual QA is separate from release acceptance: exact-source CI, immutable Android bundle, native/config compatibility, preview channel/build, unchanged production fingerprint, and Expo service verification must pass; 0/8 native visual acceptance remains unverified.",
     "Profile canonical monthly/all-time ranks and duplicate popup/obsolete action removal preserve Settings and privacy controls.",
     "BUKLOD Today category retains only user-relevant content; suppress non-actionable 3-day rotation copy; scoped tests enforce.",
-    "IMCI age-specific, six-step educational flow, emergency escalation and no premature clinical decision or disabled consultation activation."
+    "IMCI age-specific, six-step educational flow, emergency escalation and no premature clinical decision or disabled consultation activation.",
+    "Legacy regression checks reconciled with accepted Profile route relocation, non-square responsive Home tiles, distinct WAV earcons, question-aware search, compact theme UI."
   ],
   "riskAreas": [
     "wall-media",
