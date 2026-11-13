@@ -4,7 +4,7 @@
   "objective": "Implement the owner-authorized coherent premium visual transformation across eight BUKLOD UI areas on isolated DEV; block staging OTA until actual rendered visual and functional acceptance is available.",
   "baseRef": "6b0f7e3167867bb746e34da4637430f131b588bb",
   "productionBaselineEvidence": "Current GitHub main read as 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Existing integration scope records publisher-side production a43e1813 runtime 1.3.2; live production and installed staging parity are NOT independently verified in this session. No release is authorized from missing evidence.",
-  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics. Follow-up approved navigation decluttering: remove duplicate Home launchers, Profile cover gear, direct standalone offline search with suggested features and account-local recents/pins; use drawer only for unique secondary tools. Nov 13 screenshot issue repair: Connect notification redirect precedence; Profile unique My BUKLOD controls and Org/Suborg roster; /hub canonical announcement; broader ranked offline search; compact theme selection; sound style variants; silent GIF comment thread reload. Nine original WAV earcons are introduced solely as OTA-bundled sound assets. All other asset paths are protected and emergency sounds unchanged.",
+  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics. Follow-up approved navigation decluttering: remove duplicate Home launchers, Profile cover gear, direct standalone offline search with suggested features and account-local recents/pins; use drawer only for unique secondary tools. Nov 13 screenshot issue repair: Connect notification redirect precedence; Profile unique My BUKLOD controls and Org/Suborg roster; /hub canonical announcement; broader ranked offline search; compact theme selection; sound style variants; silent GIF comment thread reload. Nine original WAV earcons are introduced solely as OTA-bundled sound assets. All other asset paths are protected and emergency sounds unchanged. Nov14 native Kingdom R7: one Reanimated UI clock powers Skia glowing world, station focus, sea wave and stage lights; Skia game-stage lighting across all 13 current games, with quality choice and offscreen/reduced-motion cleanup. No new native build. Rive host remains intact, but authored .riv scenes are not in the repository.",
   "selectionRationale": "Targeted presentation composition preserves known functional implementations and dependencies; actual rendering is still required before acceptance or publication.",
   "alternativeApproaches": [
     "Replace screens wholesale: rejected due to high regression and authorization risk.",
@@ -15,7 +15,8 @@
     "Canonical five-tab navigation and every existing explicit route.",
     "AdMob, video/autoplay/audio/cache, GIF comment fallback, Connect calls/PTT and permissions.",
     "Private monthly/lifetime QMP and personal estimate warnings, no invented earnings.",
-    "Retired IGPAT remains excluded; production/main/web and release gates unchanged."
+    "Retired IGPAT remains excluded; production/main/web and release gates unchanged.",
+    "Keep production and web unchanged, no package/config/asset/native-dependency changes; preserve game rewards, social features, media, and ad rules."
   ],
   "acceptanceChecks": [
     "All eight areas have actual source-level presentation changes.",
@@ -33,7 +34,9 @@
     "BSOC case-specific operator enters GPT diagnostic manually; never exfiltrates member evidence or secrets automatically.",
     "Profile renders bounded exact post cards to self, respects community post RLS and profile lock; no exposure to visitors.",
     "Inline BSOC GPT invocation sends only allowlisted category/platform/version, explicit operator action, scoped permission plus server check and no automatic reply.",
-    "Reviewer report notifications link to exact approval via existing scope-authorized history RPC, with read-only metadata and separate private member reply. No unauthorized response reads/comments."
+    "Reviewer report notifications link to exact approval via existing scope-authorized history RPC, with read-only metadata and separate private member reply. No unauthorized response reads/comments.",
+    "Kingdom R7 ABI/version identity match with signed staging APK; 13 map stations and 39-game catalog untouched; no new points or financial mutations, no extra native modules.",
+    "Skia decorative FX stop on focus blur, background, reduced motion; no touch interception; Android in-app device visuals still require acceptance."
   ],
   "riskAreas": [
     "wall-media",
@@ -49,7 +52,8 @@
     "tests/buklod-visual-staging-ota-20261113.test.mjs",
     "tests/full-visual-navigation-side-menu-20261113.test.mjs",
     "tests/nov13-ux-fixes-staging-20261113.test.mjs",
-    "tests/nov13-distinct-native-ux-sounds-20261113.test.mjs"
+    "tests/nov13-distinct-native-ux-sounds-20261113.test.mjs",
+    "tests/kingdom-native-cinematic-ota-20261114.test.mjs"
   ],
   "allowedPaths": [
     "docs/visual/full-transformation-20261113.md",
@@ -119,7 +123,13 @@
     "tests/nov14-profile-post-cards.test.mjs",
     "src/lib/buklodFormationNotificationTarget.ts",
     "src/app/scope/faith-monitoring/submission/[approvalId].tsx",
-    "tests/nov14-exact-formation-notifications.test.mjs"
+    "tests/nov14-exact-formation-notifications.test.mjs",
+    "src/features/games/kingdom/BuklodKingdomLivingFX.native.tsx",
+    "src/features/games/kingdom/BuklodKingdomLivingFX.web.tsx",
+    "src/features/games/kingdom/BuklodKingdomLivingFX.types.ts",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "src/features/games/runtime/BuklodGameStage.native.tsx",
+    "tests/kingdom-native-cinematic-ota-20261114.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -186,5 +196,5 @@
     }
   ],
   "releaseMode": "dev-only-blocked-visual-acceptance",
-  "releaseStatus": "Staging-only corrections. Health Center service consultation/professional endpoints are separate and remain disabled until verified; production unchanged."
+  "releaseStatus": "Kingdom visual FX DEV branch implementation pending CI validation, staging OTA not yet published for new source."
 }
