@@ -104,9 +104,64 @@ BEGIN
  IF v_master_submit->>'pending'<>'true' OR v_master_submit->>'submission_id' IS NULL
  THEN RAISE EXCEPTION 'Master essay did not enter secure review queue: %',v_master_submit; END IF;
  PERFORM set_config('saliksik.test.master_submission',v_master_submit->>'submission_id',false);
+ PERFORM set_config('saliksik.test.master_investigation',v_master::text,false);
 END $test$;
 
--- Only the authorized System Admin may assess a distinct member's citations.
+-- First review: even a high score MUST fail if citations are not verified.
+SELECT set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
+DO $test$
+DECLARE v_review jsonb;
+BEGIN
+ v_review:=public.saliksik_admin_master_review_v1(
+   current_setting('saliksik.test.master_submission')::uuid,
+   '{"understanding":90,"evidence":95,"context":90,"reasoning":90,"transfer":85}'::jsonb,
+   false,
+   'The member provides substantial analysis, but their precise quotations still need checking against the original source and context before any credit.');
+ IF v_review->>'approved'<>'false' OR (v_review->>'points')::int<>0
+ OR (v_review->>'series_points')::int<>0
+ THEN RAISE EXCEPTION 'Unchecked citations must never earn Master points: %',v_review; END IF;
+END $test$;
+
+-- Member may revise the written response, but never duplicate the reward.
+SELECT set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',false);
+DO $test$
+DECLARE v_receipt jsonb;
+BEGIN
+ v_receipt:=public.saliksik_master_submit_v1(
+   '11111111-1111-1111-1111-111111111111'::uuid,
+   current_setting('saliksik.test.master_investigation')::uuid,
+   jsonb_build_array(
+   repeat('On revision I cite the manuscript in its original biblical context and explain the precise evidence. ',5),
+   repeat('The revised objection is represented fairly and then analyzed against the cited text and sound inference. ',5),
+   repeat('In a new situation the revised response carefully applies the principle while disclosing limitations. ',5)
+  ));
+ IF v_receipt->>'pending'<>'true' THEN RAISE EXCEPTION 'Rework submission must queue review: %',v_receipt; END IF;
+ PERFORM set_config('saliksik.test.master_submission',v_receipt->>'submission_id',false);
+END $test$;
+
+-- Turning off the canonical Master Point Rule must block an otherwise valid Admin approval.
+RESET ROLE;
+UPDATE public.buklod_point_rules SET is_active=false WHERE activity_type='saliksik_master';
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
+DO $test$
+DECLARE v_denied boolean:=false;
+BEGIN
+ BEGIN
+  PERFORM public.saliksik_admin_master_review_v1(
+   current_setting('saliksik.test.master_submission')::uuid,
+   '{"understanding":90,"evidence":95,"context":90,"reasoning":90,"transfer":85}'::jsonb,
+   true,repeat('Reviewer checked source citations, full context and the independent argument. ',2));
+ EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM LIKE '%master_point_rule_unavailable%' THEN v_denied:=true; ELSE RAISE; END IF;
+ END;
+ IF NOT v_denied THEN RAISE EXCEPTION 'Disabled canonical rule allowed illegal reward'; END IF;
+END $test$;
+RESET ROLE;
+UPDATE public.buklod_point_rules SET is_active=true WHERE activity_type='saliksik_master';
+
+-- Only verified human evidence and active rule can approve Master and settle final +50.
+SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
 DO $test$
 DECLARE v_review jsonb;
@@ -134,6 +189,10 @@ BEGIN
  THEN RAISE EXCEPTION 'Duplicate, missing or unclaimed reward % % %',v_sum,v_count,v_events; END IF;
  IF EXISTS(SELECT 1 FROM public.buklod_points_ledger WHERE claim_state<>'pending')
  THEN RAISE EXCEPTION 'Rewards bypassed claim workflow'; END IF;
+ IF (SELECT count(*) FROM public.saliksik_master_submissions WHERE status='rework')<>1
+ OR (SELECT count(*) FROM public.saliksik_master_submissions WHERE status='approved'
+  AND citations_verified=true AND reviewed_by='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')<>1
+ THEN RAISE EXCEPTION 'Missing audited fail-and-rework evidence'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.buklod_point_rules WHERE activity_type='saliksik_master' AND is_active)
  THEN RAISE EXCEPTION 'Source-verified written Master rule should be active'; END IF;
 END $test$;
