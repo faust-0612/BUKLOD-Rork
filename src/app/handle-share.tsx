@@ -40,7 +40,7 @@ export default function BuklodIncomingShareHandoff() {
     }));
     const isGif = items.some((item: any) =>
       String(item?.contentMimeType ?? '').split(';')[0].toLowerCase() === 'image/gif' ||
-      /\\.gif(?:[?#]|$)/i.test(String(item?.originalName ?? ''))
+      /\.gif(?:[?#]|$)/i.test(String(item?.originalName ?? ''))
     );
     let current = true;
     void (async () => {

@@ -2391,7 +2391,7 @@ export default function BuklodExclusiveScopeCommunity({
     }));
     const gifRows = normalized.filter((item: any) =>
       (String(item?.contentMimeType ?? '').split(';')[0].toLowerCase() === 'image/gif' ||
-       /\\.gif(?:[?#]|$)/i.test(String(item?.originalName ?? ''))) &&
+       /\.gif(?:[?#]|$)/i.test(String(item?.originalName ?? ''))) &&
       typeof item?.contentUri === 'string' && !!item.contentUri
     );
     if (!gifRows.length) return; // Non-GIF shares retain their own entrypoint.
@@ -2408,7 +2408,8 @@ export default function BuklodExclusiveScopeCommunity({
       }
       try {
         const uri = await stageSharedCommentGif(gifRows[0].contentUri);
-        incomingShare.clearSharedPayloads();
+        // Do not clear payload yet: that changes the effect's dependencies and
+        // cancels the in-flight restoration before the comment sheet opens.
         if (!current) { void discardStagedSharedCommentGif(uri); return; }
         const previous = pendingScopeGif.current;
         if (previous) void discardStagedSharedCommentGif(previous.uri);
@@ -2419,6 +2420,7 @@ export default function BuklodExclusiveScopeCommunity({
           setCommentMedia({kind:'gif',ref:uri});
           setCommentMediaPreview(uri);
           setScopeGifNotice(null);
+          incomingShare.clearSharedPayloads();
           return;
         }
         pendingScopeGif.current = {uri,ownerId:user.id,scopeId:scope.scope_id};
@@ -2426,6 +2428,7 @@ export default function BuklodExclusiveScopeCommunity({
         if (!current || pendingScopeGif.current?.uri !== uri) return;
         if (!target || target.scopeId !== scope.scope_id) {
           setScopeGifNotice('GIF ready — choose Comments on a post in this community.');
+          incomingShare.clearSharedPayloads();
           return;
         }
         const openIfAuthorized = (post:any) => {
@@ -2433,6 +2436,7 @@ export default function BuklodExclusiveScopeCommunity({
               String(post.scope_id) !== scope.scope_id ||
               pendingScopeGif.current?.uri !== uri) return false;
           openComments(post as SocialPost);
+          incomingShare.clearSharedPayloads();
           return true;
         };
         const cached = postsRef.current.find(post =>
@@ -2450,6 +2454,7 @@ export default function BuklodExclusiveScopeCommunity({
         }
         if (current && pendingScopeGif.current?.uri === uri) {
           setScopeGifNotice('GIF ready — choose Comments on a post in this community.');
+          incomingShare.clearSharedPayloads();
         }
       } catch {
         incomingShare.clearSharedPayloads();
