@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
@@ -13,6 +14,7 @@ import {
   buklodRecentNavigationStorageKey,
   normalizeBuklodRecentNavigation,
   rememberBuklodRecentNavigation,
+  buklodNavHintStorageKey,
 } from '@/lib/buklodPinnedNavigation';
 import { BUKLOD_LONG_PRESS_MS } from '@/lib/buklodTouch';
 import BuklodNavigationContextSheet, { type BuklodNavigationContextAction } from '@/components/BuklodNavigationContextSheet';
@@ -39,8 +41,40 @@ export default function BuklodFeatureFinder() {
   const [recent, setRecent] = useState<string[]>([]);
   const recentRef = useRef<string[]>([]);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [firstUseHint, setFirstUseHint] = useState<'loading' | 'show' | 'dismissed'>('loading');
+  const [networkOffline, setNetworkOffline] = useState(false);
   const writeQueue = useRef<Promise<unknown>>(Promise.resolve());
   const { theme } = useBuklodTheme();
+
+  useEffect(() => {
+    const unsub = NetInfo.addEventListener(state => {
+      setNetworkOffline(state.isConnected === false || state.isInternetReachable === false);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    setFirstUseHint('loading');
+    if (!accountId) return () => { active = false; };
+    let key: string;
+    try { key = buklodNavHintStorageKey(accountId); }
+    catch { return () => { active = false; }; }
+    void AsyncStorage.getItem(key)
+      .then(value => { if (active) setFirstUseHint(value === 'dismissed' ? 'dismissed' : 'show'); })
+      .catch(() => { if (active) setFirstUseHint('show'); });
+    return () => { active = false; };
+  }, [accountId]);
+
+  const dismissFirstUseHint = () => {
+    if (!accountId || loadedFor !== accountId) return;
+    setFirstUseHint('dismissed');
+    const key = buklodNavHintStorageKey(accountId);
+    writeQueue.current = writeQueue.current
+      .catch(() => undefined)
+      .then(() => AsyncStorage.setItem(key, 'dismissed'))
+      .catch(() => undefined);
+  };
 
   useEffect(() => {
     let active = true;
@@ -199,6 +233,32 @@ export default function BuklodFeatureFinder() {
         )}
       </View>
 
+      {networkOffline && (
+        <View accessibilityRole="alert" style={{
+          paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12,
+          backgroundColor: theme.accentSoft,
+        }}>
+          <Text allowFontScaling style={{ color: theme.textPrimary, fontSize: 14 }}>
+            Offline right now. Feature search, Help and saved shortcuts still work; retry online content when connected.
+          </Text>
+        </View>
+      )}
+      {!searching && canPin && firstUseHint === 'show' && (
+        <View style={{
+          borderRadius: 12, borderColor: theme.border, borderWidth: 1,
+          backgroundColor: theme.surface, paddingLeft: 12, paddingRight: 4,
+          paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 5,
+        }}>
+          <Text allowFontScaling style={{ flex: 1, color: theme.textSecondary, fontSize: 14 }}>
+            Tip: Search for a task, tap its star to pin it, or open Help. These tools work offline.
+          </Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Dismiss feature finder tip"
+            onPress={dismissFirstUseHint}
+            style={{ minHeight: 48, minWidth: 48, alignItems: 'center', justifyContent: 'center' }}>
+            <MaterialCommunityIcons name="close" size={20} color={theme.textMuted} />
+          </Pressable>
+        </View>
+      )}
       {searching && (
         <View style={{ backgroundColor: theme.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.border, overflow: 'hidden' }}>
           {results.length ? results.map((item, index) => {

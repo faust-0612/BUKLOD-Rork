@@ -35,6 +35,7 @@ import { useIncomingShare as useBuklodIncomingShare187A } from '@/lib/buklodInco
 import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency, persistCommunityVideoPoster } from '@/lib/uploadCommunityVideoFile';
 import { stageSharedCommentGif, discardStagedSharedCommentGif } from '@/lib/buklodCommentGifShare';
 import { rememberActiveCommentGifTarget, getActiveCommentGifTarget, forgetActiveCommentGifTarget } from '@/lib/buklodCommentGifTarget';
+import { saveWallCommentTextDraft, loadWallCommentTextDraft, clearWallCommentTextDraft } from '@/lib/buklodNavigationDraftRecovery';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
 import {
@@ -1347,6 +1348,19 @@ function LegacyPublicBuklodScreen(){
  commentAccountIdRef.current=String(user?.id??'');
  const commentLoadSeqRef=useRef(0);
  const commentSendInFlightRef=useRef(false);
+ const draftOwnerRef=useRef<string|null>(null);
+ // Persist ONLY small plain text through SecureStore (not attachments, mentions,
+ // private post data or user tokens). Owner identity must still match at callback.
+ useEffect(()=>{
+  const owner=String(user?.id??'');
+  const postId=activeCommentPostIdRef.current;
+  if(!commentOpen || !owner || draftOwnerRef.current!==owner || !postId)return;
+  const timer=setTimeout(()=>{
+   if(draftOwnerRef.current===owner && activeCommentPostIdRef.current===postId)
+    void saveWallCommentTextDraft(owner,postId,commentText).catch(()=>undefined);
+  },700);
+  return ()=>clearTimeout(timer);
+ },[commentOpen,commentText,commentPost?.id,user?.id]);
  // In-memory, account-scoped drafts survive accidental sheet dismissal.
  const commentDraftsRef=useRef(new Map<string,{
   text:string; mentions:Mention[];
@@ -1356,6 +1370,7 @@ function LegacyPublicBuklodScreen(){
  useEffect(()=>{
   // Account changes invalidate pending results and private local drafts.
   activeCommentPostIdRef.current=null;
+  draftOwnerRef.current=null;
   ++commentLoadSeqRef.current;
   commentDraftsRef.current.clear();
   setCommentOpen(false);
@@ -3684,6 +3699,7 @@ const load=useCallback(async(options?:{
     if(!attachGif)void discardStagedSharedCommentGif(pendingGif.uri);
    }
    activeCommentPostIdRef.current=postId;
+   draftOwnerRef.current=accountId;
    ++commentLoadSeqRef.current;
    setCommentPost(post);
    setComments([]);
@@ -3695,6 +3711,16 @@ const load=useCallback(async(options?:{
    setCommentLoadError(null);
    setCommentNotice(attachGif?'GIF attached. Preview it, then Send.':null);
    setCommentOpen(true);
+   // Restore only unsent TEXT if this exact user's sheet remains active. Never
+   // override text the user has already typed while the secure read is pending.
+   if(accountId && !saved?.text){
+    void loadWallCommentTextDraft(accountId,postId).then(restored=>{
+     if(restored && activeCommentPostIdRef.current===postId &&
+        draftOwnerRef.current===accountId && commentAccountIdRef.current===accountId){
+       setCommentText(current=>current||restored);
+     }
+    }).catch(()=>undefined);
+   }
    await loadComments(String(post.id));
   };
 
@@ -3705,6 +3731,8 @@ const load=useCallback(async(options?:{
    if(postId){
     const key=String(user?.id??'')+':'+postId;
     if(buklodCommentHasSendableContent(commentText,commentMedia)){
+     if(user?.id && commentText.trim())
+      void saveWallCommentTextDraft(String(user.id),postId,commentText).catch(()=>undefined);
      const drafts=commentDraftsRef.current;
      drafts.delete(key);
      drafts.set(key,{
@@ -3717,9 +3745,11 @@ const load=useCallback(async(options?:{
      if(drafts.size>8)drafts.delete(drafts.keys().next().value!);
     }else{
      commentDraftsRef.current.delete(key);
+     if(user?.id)void clearWallCommentTextDraft(String(user.id),postId).catch(()=>undefined);
     }
    }
    activeCommentPostIdRef.current=null;
+   draftOwnerRef.current=null;
    ++commentLoadSeqRef.current;
    setCommentLoading(false);
    setCommentLoadError(null);
@@ -3822,6 +3852,7 @@ const load=useCallback(async(options?:{
      ));
     }
     commentDraftsRef.current.delete(authorId+':'+postId);
+    if(authorId)void clearWallCommentTextDraft(authorId,postId).catch(()=>undefined);
     if(
      activeCommentPostIdRef.current===postId &&
      commentAccountIdRef.current===authorId

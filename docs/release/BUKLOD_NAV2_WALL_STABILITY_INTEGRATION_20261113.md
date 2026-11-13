@@ -33,3 +33,12 @@ This branch is an immutable-source **candidate** only. No main merge, product ba
 - New isolated `navigation-v2-staging-compile-qa.yml` compiles the Android bundle under staging identity only on this draft candidate; `navigation-v2-staging-ota.yml` additionally compiles Android and checks the integrated comment, APK, GIF, Wall/Marites and navigation tests **before** any optional manually approved staging publish. No production/web triggers were introduced.
 - The 21-item checklist remains evidence-gated; never convert source CI into device acceptance. Before any staging OTA, verify current live/main source, installed signed staging build, EAS branch/runtime/channel, preview backend behavior, physical keyboard and 15/30/60-minute video/AdMob/scroll regression on Infinix. Preserve DEV→RC→staging-only; owner approval is a separate gate for web/production.
 - **Current handoff: staging-only OTA SOURCE PREPARED, publication and installed RC unverified; production remains unchanged.**
+
+
+## Additional source implementation: Offline Help and secure drafts (not published)
+
+- Searchable local Help indexed by canonical five-tab labels plus My Drawer, keyboard/font, privacy-safe shortcuts and offline/Retry vocabulary. No network, AI, admin or retired IGPAT discovery. Accessible navigation links and empty state.
+- Optional dismissible first-use tip saved per authenticated account; local offline banner appears only on confirmed NetInfo disconnection. Existing offline Feature Finder/favorites remain available.
+- Public Wall unsent **text only** is now recoverable from OS-encrypted SecureStore (account-scoped key, 12h TTL, at most six 2,000-character drafts, serialized writes). Does not store or restore media URIs, reply identities, mentions or tokens; existing in-memory media draft behavior is unchanged. Exact owner/post guard prevents stale asynchronous restore, and confirmed Send clears the text draft. This needs actual staging Android resume/logout verification before feature is called live.
+- Added pure-policy and source regression tests. 15/21 workstreams are now labelled SOURCE IMPLEMENTED; 4 remain IN PROGRESS (gestures, full-app font checks, native IME inline GIF, scoped accessibility); 2 remain PENDING for installed staging/production parity and release acceptance. **0/21 independently device verified.**
+- Updated release checklist remains fail-closed, and no EAS Android OTA, native APK, web or production release occurred.

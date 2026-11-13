@@ -10,7 +10,7 @@
   ],
   "protectedProduction": true,
   "sourceBaseSha": "a43e1813d62a151e8294a52989a80fe21b36057c",
-  "policy": "A status is VERIFIED only after evidence. In-progress code does not count as release-ready. Staging parity requires independent live/installed artifact proof; production and web are prohibited until approval.",
+  "policy": "A status is VERIFIED only after evidence. In-progress code does not count as release-ready. Staging parity requires independent live/installed artifact proof; production and web are prohibited until approval. Source-implemented means source/test integration only; complete staging and physical acceptance require independent evidence, never synthetic CI.",
   "requirements": [
     {
       "id": "staging-parity",
@@ -22,56 +22,56 @@
     {
       "id": "feature-inventory",
       "title": "Canonical route/feature inventory including disabled and role-restricted paths",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "technical-guard",
       "title": "Fail-closed completion and staging identity release guard",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "profile-settings",
       "title": "Permanent non-hideable Settings gear and grouped settings",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "home-finder",
       "title": "Offline task-oriented feature finder with simple Filipino/English synonyms",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "compact-home",
       "title": "Replace excessive Home card/padding weight without hiding essential actions",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "compact-profile",
       "title": "Simplify Profile quick actions and redundant feature doors",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "naming",
       "title": "Canonical Home/Drawer/Focus Apps/Community labels and explanations",
-      "status": "pending",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "contextual-menus",
       "title": "Contextual overflow menus and optional bottom sheets",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
@@ -85,7 +85,7 @@
     {
       "id": "motion",
       "title": "Low-cost, reduced-motion-aware navigation and card transitions",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
@@ -99,42 +99,42 @@
     {
       "id": "ime-media",
       "title": "Native keyboard GIF direct-to-current-composer with safe fallback and preview",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "back-state",
       "title": "Correct Back, deep links, scroll, scope, draft and media state restoration",
-      "status": "pending",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "action-feedback",
       "title": "Nonblocking success/error/retry and safe undo feedback",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "offline-recovery",
       "title": "Offline/cached navigation, draft recovery, empty/loading/error states",
-      "status": "pending",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "favorites",
       "title": "Privacy-safe favorites/recent activities, safe Continue destinations",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "first-use-help",
       "title": "Dismissible contextual hints and separate searchable Help",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
@@ -148,7 +148,7 @@
     {
       "id": "regression-suite",
       "title": "Functional, security, ads, media, Connect and performance regression suite",
-      "status": "pending",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },

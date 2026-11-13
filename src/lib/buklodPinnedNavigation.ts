@@ -71,3 +71,8 @@ export function rememberBuklodRecentNavigation(
   if (!validFeatureIds.includes(id)) return normalizeBuklodRecentNavigation(current, validFeatureIds);
   return normalizeBuklodRecentNavigation([id, ...current.filter(candidate => candidate !== id)], validFeatureIds);
 }
+
+// Stores only a per-account acknowledgement, never private content or queries.
+export function buklodNavHintStorageKey(accountId: string): string {
+  return buklodPinnedNavigationStorageKey(accountId).replace('.favorites.v1:', '.hint.v1:');
+}
