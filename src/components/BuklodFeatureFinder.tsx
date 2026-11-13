@@ -17,6 +17,7 @@ import {
   buklodNavHintStorageKey,
 } from '@/lib/buklodPinnedNavigation';
 import { BUKLOD_LONG_PRESS_MS } from '@/lib/buklodTouch';
+import { isBuklodNavigationOptionsSwipe } from '@/lib/buklodNavSwipe';
 import BuklodNavigationContextSheet, { type BuklodNavigationContextAction } from '@/components/BuklodNavigationContextSheet';
 
 const PINNABLE_FEATURE_IDS = BUKLOD_FEATURE_LINKS.map(item => item.id);
@@ -43,6 +44,8 @@ export default function BuklodFeatureFinder() {
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [firstUseHint, setFirstUseHint] = useState<'loading' | 'show' | 'dismissed'>('loading');
   const [networkOffline, setNetworkOffline] = useState(false);
+  const swipeStartRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  const lastSwipeRef = useRef<{ id: string; until: number } | null>(null);
   const writeQueue = useRef<Promise<unknown>>(Promise.resolve());
   const { theme } = useBuklodTheme();
 
@@ -128,7 +131,22 @@ export default function BuklodFeatureFinder() {
   const searching = query.trim().length >= 2;
   const canPin = loadedFor !== null && loadedFor === accountId;
 
+  const rememberSwipeStart = (item: BuklodFeatureLink, x: number, y: number) => {
+    swipeStartRef.current = { id: item.id, x, y };
+  };
+  const maybeOpenSwipeMenu = (item: BuklodFeatureLink, x: number, y: number) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start || start.id !== item.id ||
+      !isBuklodNavigationOptionsSwipe(start, { x, y })) return;
+    // A late Pressable onPress from this same gesture must not navigate.
+    lastSwipeRef.current = { id: item.id, until: Date.now() + 500 };
+    setMenuItem(item);
+  };
+
   const openAndRemember = (item: BuklodFeatureLink) => {
+    if (lastSwipeRef.current?.id === item.id && Date.now() < lastSwipeRef.current.until) return;
+    lastSwipeRef.current = null;
     setQuery('');
     setUndoRecent(null);
     if (canPin && accountId) {
@@ -271,7 +289,9 @@ export default function BuklodFeatureFinder() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${item.title}`}
-                  accessibilityHint="Long press for actions, or use the star icon to pin"
+                  accessibilityHint="Swipe left or long press for actions, or use the star icon to pin"
+                  onTouchStart={event => rememberSwipeStart(item, event.nativeEvent.pageX, event.nativeEvent.pageY)}
+                  onTouchEnd={event => maybeOpenSwipeMenu(item, event.nativeEvent.pageX, event.nativeEvent.pageY)}
                   onPress={() => openAndRemember(item)}
                   onLongPress={() => setMenuItem(item)}
                   delayLongPress={BUKLOD_LONG_PRESS_MS}
@@ -318,7 +338,9 @@ export default function BuklodFeatureFinder() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Open recent ${item.title}`}
-                  accessibilityHint="Long press for more options"
+                  accessibilityHint="Swipe left or long press for more options"
+                  onTouchStart={event => rememberSwipeStart(item, event.nativeEvent.pageX, event.nativeEvent.pageY)}
+                  onTouchEnd={event => maybeOpenSwipeMenu(item, event.nativeEvent.pageX, event.nativeEvent.pageY)}
                   onPress={() => openAndRemember(item)}
                   onLongPress={() => setMenuItem(item)}
                   delayLongPress={BUKLOD_LONG_PRESS_MS}
@@ -359,7 +381,9 @@ export default function BuklodFeatureFinder() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Open pinned ${item.title}`}
-                  accessibilityHint="Long press for more options"
+                  accessibilityHint="Swipe left or long press for more options"
+                  onTouchStart={event => rememberSwipeStart(item, event.nativeEvent.pageX, event.nativeEvent.pageY)}
+                  onTouchEnd={event => maybeOpenSwipeMenu(item, event.nativeEvent.pageX, event.nativeEvent.pageY)}
                   onPress={() => openAndRemember(item)}
                   onLongPress={() => setMenuItem(item)}
                   delayLongPress={BUKLOD_LONG_PRESS_MS}

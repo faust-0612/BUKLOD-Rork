@@ -13,6 +13,7 @@ test('offline indexed Help is five-tab canonical, no IGPAT or admin leaks', () =
   assert.ok(BUKLOD_NAV_HELP.every(x => !/\/admin|igpat/i.test(x.route)));
   assert.ok(findBuklodNavigationHelp('walang internet').some(x=>x.id==='offline'));
   assert.ok(findBuklodNavigationHelp('GBoard').some(x=>x.id==='accessibility'));
+  assert.ok(findBuklodNavigationHelp('password').some(x=>x.id==='settings'));
   assert.ok(findBuklodNavigationHelp('3g').some(x=>x.id==='offline'));
   assert.deepEqual(findBuklodNavigationHelp(''),BUKLOD_NAV_HELP);
   assert.deepEqual(findBuklodNavigationHelp('zzzzunknown'),[]);

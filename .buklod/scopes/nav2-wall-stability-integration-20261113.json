@@ -4,7 +4,7 @@
   "objective": "Prepare a single staging-only Android Navigation V2 + Wall/Marites source candidate, retaining existing user-authorized comment edit/delete repair, read-only staging APK attestation and fail-closed Android compile/OTA gates; do not publish until exact-source RC and all 21 navigation acceptance requirements are independently verified.",
   "baseRef": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
   "productionBaselineEvidence": "Publisher-side production source a43e1813d62a151e8294a52989a80fe21b36057c, runtime 1.3.2, production OTA 01a1d2d6-bae3-74df-bbf4-2bdd9df35215 via run 43355306642. Current main 9f412afd adds staging-only APK mirror workflow. Signed source-mirror staging APK EAS build 9c0eb308-9a8e-4f34-a5f4-798ae556b7b0 and artifact 14016812505 were verified in run 43378875900; physical installed app, preview backend, modernized Android RC and actual OTA update acceptance are NOT VERIFIED.",
-  "chosenApproach": "Preserve every non-scope main blob, overlay exact non-manifest blob SHA identities from green Navigation V2 head 73c473caa4ebc139be4b231d3097760fe5c246e5 (49 paths) and green Wall/Marites stability head dc85ce6ed7bc46a1f314885b6fb1d2739e38dcb2 (4 paths) with no overlaps; add one consolidated V2 scope manifest and cross-feature behavioral integration test. Freeze as DEV candidate only, no release. One inherited Navigation ads test is adjusted to reference the integrated V2 scope path; the product-side source blobs remain exact. Extend isolated DEV scope by exact reviewed comment action blobs from PR #786 and read-only native staging APK attestation blobs from PR #789 (excluding their standalone scope manifests); add one isolated Android-staging compile-only QA workflow and include both source tests in prepublish OTA gates. No changes to production release workflows, native dependencies, SQL or live app. Add minimal in-place indexed offline Help and per-account first-use guidance; persist only bounded public Wall *text drafts* encrypted with SecureStore so process interruptions do not require retyping, while keeping all existing media/GIF and native player paths unchanged.",
+  "chosenApproach": "Preserve every non-scope main blob, overlay exact non-manifest blob SHA identities from green Navigation V2 head 73c473caa4ebc139be4b231d3097760fe5c246e5 (49 paths) and green Wall/Marites stability head dc85ce6ed7bc46a1f314885b6fb1d2739e38dcb2 (4 paths) with no overlaps; add one consolidated V2 scope manifest and cross-feature behavioral integration test. Freeze as DEV candidate only, no release. One inherited Navigation ads test is adjusted to reference the integrated V2 scope path; the product-side source blobs remain exact. Extend isolated DEV scope by exact reviewed comment action blobs from PR #786 and read-only native staging APK attestation blobs from PR #789 (excluding their standalone scope manifests); add one isolated Android-staging compile-only QA workflow and include both source tests in prepublish OTA gates. No changes to production release workflows, native dependencies, SQL or live app. Add minimal in-place indexed offline Help and per-account first-use guidance; persist only bounded public Wall *text drafts* encrypted with SecureStore so process interruptions do not require retyping, while keeping all existing media/GIF and native player paths unchanged. Add gesture recognition only to the small offline feature-finder surfaces, never global Wall/Connect/scroll interception. Keep visible More and long-press/tap alternatives.",
   "selectionRationale": "One independent exact-source candidate establishes compile and regression compatibility without whole-merging source branch history, overwriting signed staging mirror changes, duplicating routes or modifying code already fixed in main. The source is a readiness candidate, not a deployment artifact. Comment UI repair is user-requested and compatible with unchanged comment RPC authorization. The read-only ADB verifier measures installed signed staging APK parity without touching production. Compile-only CI resolves an otherwise skipped Android RC verification gap.",
   "alternativeApproaches": [
     "Independently merge #783 and #784 sequentially into main before cross-feature verification (rejected: risks automatic release triggers and unverified physical Android behavior).",
@@ -70,7 +70,8 @@
     "Exact-head Android staging Expo export and TypeScript/source checks pass independently, and staging-only OTA preflight repeats all integrated focused regressions before a manual publish flag.",
     "Searchable offline navigation Help covers all five canonical tabs, Drawer naming and Help/Settings/keyboard/offline vocabulary with accessible links and local fallback.",
     "First-use hint is optional, dismissible, persisted per authenticated user, and network-offline guidance never blocks navigation.",
-    "Encrypted bounded text-only Wall draft recovery rejects expired/oversized/invalid data, serializes account writes, never overwrites newer typed text, prevents cross-account restore and clears on confirmed send."
+    "Encrypted bounded text-only Wall draft recovery rejects expired/oversized/invalid data, serializes account writes, never overwrites newer typed text, prevents cross-account restore and clears on confirmed send.",
+    "Leftward horizontal swipe requires a deliberate >=72dp motion with <=30dp vertical drift; existing visible More, tap and long-press remain authoritative and scroll gestures must not be stolen."
   ],
   "regressionTests": [
     "tests/navigation-v2-ads-preservation.test.mjs",
@@ -93,7 +94,8 @@
     "tests/buklod-comment-menu-android-20261113.test.mjs",
     "tests/staging-apk-device-attestation-20261113.test.mjs",
     "tests/navigation-v2-searchable-help-offline-20261113.test.mjs",
-    "tests/navigation-v2-draft-recovery-back-20261113.test.mjs"
+    "tests/navigation-v2-draft-recovery-back-20261113.test.mjs",
+    "tests/navigation-v2-swipe-accessible-20261113.test.mjs"
   ],
   "allowedPaths": [
     ".github/workflows/navigation-v2-staging-ota.yml",
@@ -162,7 +164,9 @@
     "src/lib/buklodNavigationDraftPolicy.ts",
     "src/lib/buklodNavigationDraftRecovery.ts",
     "tests/navigation-v2-searchable-help-offline-20261113.test.mjs",
-    "tests/navigation-v2-draft-recovery-back-20261113.test.mjs"
+    "tests/navigation-v2-draft-recovery-back-20261113.test.mjs",
+    "src/lib/buklodNavSwipe.ts",
+    "tests/navigation-v2-swipe-accessible-20261113.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -187,7 +191,8 @@
         "tests/marites-wall-scroll-video-navigation-20261113.test.mjs",
         "tests/buklod-comment-menu-android-20261113.test.mjs",
         "tests/navigation-v2-searchable-help-offline-20261113.test.mjs",
-        "tests/navigation-v2-draft-recovery-back-20261113.test.mjs"
+        "tests/navigation-v2-draft-recovery-back-20261113.test.mjs",
+        "tests/navigation-v2-swipe-accessible-20261113.test.mjs"
       ]
     },
     {
@@ -204,7 +209,8 @@
         "tests/navigation-v2-bottom-fontscale.test.mjs",
         "tests/marites-wall-scroll-video-navigation-20261113.test.mjs",
         "tests/navigation-v2-searchable-help-offline-20261113.test.mjs",
-        "tests/navigation-v2-draft-recovery-back-20261113.test.mjs"
+        "tests/navigation-v2-draft-recovery-back-20261113.test.mjs",
+        "tests/navigation-v2-swipe-accessible-20261113.test.mjs"
       ]
     },
     {

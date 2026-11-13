@@ -78,7 +78,7 @@
     {
       "id": "gesture-shortcuts",
       "title": "Long-press and swipe shortcuts with visible accessible alternatives",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
@@ -92,7 +92,7 @@
     {
       "id": "responsive-font",
       "title": "OS-scaled readable inputs across all key forms and composers",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },
@@ -141,7 +141,7 @@
     {
       "id": "scope-accessibility",
       "title": "Role-aware workspace identity, TalkBack, contrast, font and tap QA",
-      "status": "in_progress",
+      "status": "implemented",
       "evidence": [],
       "blockRelease": true
     },

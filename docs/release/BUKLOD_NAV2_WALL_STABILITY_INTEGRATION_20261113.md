@@ -42,3 +42,11 @@ This branch is an immutable-source **candidate** only. No main merge, product ba
 - Public Wall unsent **text only** is now recoverable from OS-encrypted SecureStore (account-scoped key, 12h TTL, at most six 2,000-character drafts, serialized writes). Does not store or restore media URIs, reply identities, mentions or tokens; existing in-memory media draft behavior is unchanged. Exact owner/post guard prevents stale asynchronous restore, and confirmed Send clears the text draft. This needs actual staging Android resume/logout verification before feature is called live.
 - Added pure-policy and source regression tests. 15/21 workstreams are now labelled SOURCE IMPLEMENTED; 4 remain IN PROGRESS (gestures, full-app font checks, native IME inline GIF, scoped accessibility); 2 remain PENDING for installed staging/production parity and release acceptance. **0/21 independently device verified.**
 - Updated release checklist remains fail-closed, and no EAS Android OTA, native APK, web or production release occurred.
+
+
+## Safe gesture & accessible source completion (staging not released)
+
+- Optional deliberate horizontal swipe-left on Home feature rows, pinned and recent destinations opens the existing accessible action sheet; a visible More action, star and long-press remain. Vertical scroll and ordinary taps are not intentionally intercepted.
+- Existing 28+ core form font-scaling checks and responsive Comment/Connect composers, bottom safe area and scoped 48dp tap targets remain source implemented; they still need device scaling/TalkBack verification.
+- Release inventory now records **18/21 source-implemented**, one in progress for actual native inline Android IME GIF, and two pending installed staging baseline/OTA acceptance. **All 21 remain release-unverified**, and existing ACTION_SEND GIF route must not be mistaken for native commitContent.
+- No staging APK build, backend migration, production/web rollout or OTA publication was made by this source-only update.
