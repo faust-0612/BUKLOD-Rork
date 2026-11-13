@@ -1,0 +1,34 @@
+{
+  "schema": "buklod-navigation-v2-staging-attestation-v1",
+  "note": "UNVERIFIED PLACEHOLDER. These are evidence fields to fill only from exact Expo builds, installed-client diagnostics and reviewed tests. Never fabricate fields to unlock a release.",
+  "live": {
+    "sourceSha": "",
+    "updateId": "",
+    "package": "org.mzbministry.buklod",
+    "channel": "production",
+    "runtimeVersion": "1.3.2",
+    "verifiedAt": "",
+    "artifactEvidenceUrl": ""
+  },
+  "staging": {
+    "mirroredLiveSourceSha": "",
+    "rcSourceSha": "",
+    "buildId": "",
+    "installedBuildId": "",
+    "otaUpdateId": "",
+    "publishedRcUpdateId": "",
+    "updateSourceSha": "",
+    "package": "org.mzbministry.buklod.staging",
+    "channel": "staging-user",
+    "environment": "preview",
+    "runtimeVersion": "1.3.2",
+    "verifiedAt": "",
+    "artifactEvidenceUrl": "",
+    "backendContractReviewed": false,
+    "backendEvidenceUrl": "",
+    "securityAndRegressionQA": "pending",
+    "qaEvidenceUrl": "",
+    "deviceAcceptance": "pending",
+    "deviceEvidenceUrl": ""
+  }
+}
