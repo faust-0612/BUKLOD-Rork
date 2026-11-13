@@ -17,7 +17,8 @@
     "marites-viewability",
     "navigation-scroll",
     "offscreen-decoder",
-    "accessibility"
+    "accessibility",
+    "wall-media"
   ],
   "preserveBehaviors": [
     "Existing active CommunityVideo/IMA player, buffering, poster, sound, retry, PTT coexistence and preloading policies remain unchanged.",
