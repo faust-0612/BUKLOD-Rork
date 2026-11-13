@@ -31,12 +31,14 @@
     "Actual weak-network/offline Android behavior and exact production runtime/source compatibility remain separate release prerequisites."
   ],
   "regressionTests": [
-    "tests/registration-network-recovery.test.cjs"
+    "tests/registration-network-recovery.test.cjs",
+    "tests/auth-registration-offline-recovery.test.cjs"
   ],
   "allowedPaths": [
     "src/app/(auth)/register.tsx",
     "tests/registration-network-recovery.test.cjs",
-    ".buklod/scopes/registration-offline-guard-20261113.json"
+    ".buklod/scopes/registration-offline-guard-20261113.json",
+    "tests/auth-registration-offline-recovery.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -56,7 +58,7 @@
         "No signup retries, unauthorized account lookups or session lifecycle bypass; login verification and referral order remain unchanged."
       ],
       "tests": [
-        "tests/registration-network-recovery.test.cjs"
+        "tests/auth-registration-offline-recovery.test.cjs"
       ]
     }
   ],
