@@ -540,3 +540,14 @@ footer {
 }
 
 .music-approval {display:flex;gap:12px;align-items:flex-start;margin:16px 0;padding:15px;border:1px solid #456550;background:#142820;border-radius:12px;color:#b9decb;font-size:13px;line-height:1.6}.music-approval input{width:20px;height:20px;flex-shrink:0}.export:disabled{opacity:.4;cursor:not-allowed}
+
+/* QC and debug stages: readable on Android and never intercept touch scrolling. */
+.quality-report,.diagnostic-stages{margin-top:18px;padding:15px;border:1px solid #496053;border-radius:14px;background:#15221f;font-size:13px;line-height:1.65;color:#d7e9db}
+.quality-report>strong,.diagnostic-stages>strong{display:block;font-size:14px;color:#d7f3df}
+.quality-checks{max-height:280px;overflow-y:auto;overscroll-behavior:contain;border:1px solid #31463c;border-radius:9px;padding:4px 9px;touch-action:pan-y}
+.quality-checks p{border-bottom:1px solid #273a32;margin:0;padding:7px 0;overflow-wrap:anywhere}
+.diagnostic-stages .actions{display:flex;flex-wrap:wrap;gap:9px}
+.diagnostic-stages .export{flex:1 1 125px;min-height:48px}
+.quality-report button,.diagnostic-stages button{touch-action:manipulation;white-space:normal;text-align:center}
+.quality-report audio{max-width:100%}
+@media(max-width:700px){.diagnostic-stages,.quality-report{padding:12px;margin-top:14px}.quality-checks{max-height:230px}}

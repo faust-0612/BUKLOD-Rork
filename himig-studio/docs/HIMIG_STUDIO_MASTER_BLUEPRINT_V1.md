@@ -93,3 +93,16 @@ flowchart LR
 **Product done** = repeated real-song blind listening acceptance and secure reliable exports, not just a unit-test pass or an accessible website URL.
 
 **Important:** This document is the authorized target architecture, not a claim that the AI backend has been built.
+
+## 10. Codex's measurable gates — implementation reconciliation (2026-11-14)
+This addendum is authoritative for release claims:
+1. **Vocal regeneration:** BANNED by default. The browser prototype only processes/mixes source PCM (which currently contains any guitar bleed). Verified no new AI singer. True vocal-only cleanup needs upstream separation.
+2. **Locks:** Source audio and lyric text stay unchanged; target key and BPM require manual selection before an experimental WAV/MP3 export. Exact source pitch/lyric timing are NOT verified until source stem + alignment models are available.
+3. **Stem separator:** Demucs or BS-Roformer implementation NOT DEPLOYED. The debug `source-cleanup` stage is **not** a vocal stem. Do not present it as one.
+4. **Stage artifacts:** Original file, generated source-cleanup WAV + QC JSON, generated synthetic-instrument backing WAV + QC JSON, previewed mix and JSON gate report. A separated voice stem is unavailable and must be marked so. These download on demand to limit Android memory; no private cloud upload.
+5. **Quality metrics:** Actual output PCM sample clipping, sample peak, approximate gated integrated LUFS, RMS and stereo correlation. True peak, sung-F0 drift, artifact detection and Whisper word matching return NOT_MEASURED. Never coerce UNKNOWN into PASS.
+6. **Fallback:** A failed measured mix gate is rejected: no generated final mix is downloadable; raw original remains previewable/downloadable. A passing *measured* gate still produces REVIEW_REQUIRED, never certified. Only user-accepted experimental draft can be exported, with confirmed key/BPM.
+7. **Test set:** `reports/real-song-acceptance.json` starts at 0/5; one known-bad prior export has real FFmpeg measurements but does **not** count as an owned source recording pair. Actual 5–10 original demos and their lyrics/owner permission are required to produce a truthfully completed report.
+8. **Android:** GitHub node/Expo tests are automation; physical Infinix Android upload-scroll, playback, WAV/MP3 export and owner listening remain pending until actually performed.
+9. **No mocks:** `qualityGate.ts` calculates real sample metrics; `songWorker.ts` still synthesizes instruments with oscillators; separation/ASR/generative audio backend are not running. Public app is labelled prototype, never studio master.
+**Promotion gate:** Only the verified UI/safety improvements can be released under the Expo project. Reject any claim that the professional engine or real-song acceptance is DONE without evidence.

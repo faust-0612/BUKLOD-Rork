@@ -1,7 +1,8 @@
 export type Part = 'piano'|'guitar'|'bass'|'strings'|'drums';
 export type Config = { key:string; bpm:number; progression:string; genre:string; parts:Part[]; strength:number; vocal:number; ambience:number };
 export type Analysis = { key:string; bpm:number; confidence:string };
-export type Outcome = { pcm:Int16Array; chords:string[]; sampled:string[]; synthesized:string[]; eventCount:number; rms:number; backingRms:number; harmonyConfidence?:number; lowConfidenceBars?:number; totalBars?:number; resolvedConfig?:Config; songAnalysis?:Analysis };
+import type { QcReport } from './qualityGate';
+export type Outcome = { quality?:QcReport; stage?:string; pcm:Int16Array; chords:string[]; sampled:string[]; synthesized:string[]; eventCount:number; rms:number; backingRms:number; harmonyConfidence?:number; lowConfidenceBars?:number; totalBars?:number; resolvedConfig?:Config; songAnalysis?:Analysis };
 const NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const PARTS:Record<string,string>={piano:'acoustic_grand_piano',guitar:'acoustic_guitar_nylon',bass:'electric_bass_finger',strings:'string_ensemble_1'};
 const PRESETS:Record<string,number[]>={'1564':[0,4,5,3],'6415':[5,3,0,4],'1645':[0,5,3,4],'1451':[0,3,4,0]};

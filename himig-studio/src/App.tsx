@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { stereoWav, chordNotes } from './arrangement';
 import type { Config, Part, Analysis, Outcome } from './arrangement';
+import type { QcReport } from './qualityGate';
 import {
   AudioLines,
   Download,
@@ -105,6 +106,8 @@ export default function App() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [musicResult, setMusicResult] = useState<Outcome | null>(null);
   const [approved,setApproved]=useState(false);
+  const [qualityReport,setQualityReport]=useState<QcReport|null>(null);
+  const [qualityRejection,setQualityRejection]=useState(false);
   const [renderMessage, setRenderMessage] = useState('');
   const [beforeUrl, setBeforeUrl] = useState('');
   const [demo, setDemo] = useState(false);
@@ -152,6 +155,7 @@ export default function App() {
     setProcessingLabel('');
     stereoRef.current = null;
     setMusicResult(null);setApproved(false);
+    setQualityReport(null);setQualityRejection(false);
     setRenderMessage('');
     setPercentage(0);
     setError('');
@@ -171,14 +175,19 @@ export default function App() {
     }
   }
 
-  async function render() {
+  async function render(stage: 'mix' | 'source-cleanup' | 'synth-backing' = 'mix') {
     if (!ready || busy || (!voiceFile && !demo)) return;
     const ticket = ++activeRef.current;
     setBusy(true);
     setError('');
-    setUrl('');
-    setPitch(null);
-    resultRef.current = null;
+    if(stage === 'mix') {
+      setUrl('');
+      setPitch(null);
+      setQualityReport(null);
+      setQualityRejection(false);
+      resultRef.current = null;
+      setApproved(false);
+    }
     try {
       const decoded =
         demo && !voiceFile ? makeDemo() : await loadFile(voiceFile!);
@@ -223,7 +232,7 @@ export default function App() {
         throw new Error(
           'The recording is silent. Upload a recording with audible sound.'
         );
-      if (!parts.length) throw new Error('Select at least one new instrument.');
+      if (!parts.length && stage !== 'source-cleanup') throw new Error('Select at least one new instrument.');
       setRenderMessage('Analyzing musical key and tempo inside the audio worker');
       const config: Config = {
         key: songKey === 'auto' ? '__AUTO__' : songKey,
@@ -290,12 +299,20 @@ export default function App() {
           }
           const message = event.data as {
             type: string; percent?: number; message?: string;
-            stereo?: Int16Array; result?: Outcome;
+            stereo?: Int16Array; result?: Outcome; report?: QcReport;
           };
           if (message.type === 'progress') {
             armWatchdog();
             setPercentage(Math.max(0, Math.min(99, message.percent ?? 0)));
             setRenderMessage(message.message || 'Rendering audio locally');
+            return;
+          }
+          if (message.type === 'quality_rejected') {
+            if(message.report) {
+              setQualityReport(message.report);
+              setQualityRejection(true);
+            }
+            fail('Quality gate rejected this candidate; the original recording is preserved. Download the QC report and use fallback.');
             return;
           }
           if (message.type === 'error') {
@@ -318,7 +335,7 @@ export default function App() {
           const transfer: Transferable[] = [mono.buffer];
           if (backing) transfer.push(backing.buffer);
           worker.postMessage({
-            type: 'render', mono, backing, sampleRate: rate,
+            type: 'render', stage, mono, backing, sampleRate: rate,
             mode, config, gain: peakGain, backingLevel: backingLevel / 100
           }, transfer);
         } catch {
@@ -326,6 +343,17 @@ export default function App() {
         }
       });
       if (ticket !== activeRef.current) throw new Error('Processing cancelled.');
+      if(stage !== 'mix') {
+        // Debug exports are labeled with their actual processing method.
+        // Cleanup includes the guitar because the vocal is NOT yet stem-separated.
+        const name = stage === 'source-cleanup' ? 'source-cleanup-NOT-vocal-stem'
+          : 'synthetic-backing-NOT-real-instruments';
+        download(stereoWav(outcome.pcm, rate), 'himig-debug-' + name + '.wav');
+        if(outcome.result.quality) download(new Blob([JSON.stringify(outcome.result.quality,null,2)],{type:'application/json'}),'himig-debug-'+name+'.qc.json');
+        setRenderMessage('Diagnostic stage exported: '+name);
+        return;
+      }
+      if(outcome.result.quality) setQualityReport(outcome.result.quality);
       if (outcome.result.backingRms < .00003 || outcome.result.eventCount === 0) {
         throw new Error('No accompaniment was produced; the export was not marked successful.');
       }
@@ -335,12 +363,12 @@ export default function App() {
       if (outcome.result.songAnalysis) setAnalysis(outcome.result.songAnalysis);
       setMusicResult(outcome.result);
       setPercentage(100);
-      setRenderMessage('New accompaniment and studio mix complete');
+      setRenderMessage('Experimental synthetic mix ready for listening; NOT a verified master');
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       urlRef.current = next;
       resultRef.current = { pcm: new Int16Array(0), rate };
       setPitch(null);
-      setProcessingLabel('Offline multi-instrument backing + original voice · stereo recording');
+      setProcessingLabel('Unverified oscillator-based accompaniment + original recording (not isolated vocal)');
       setUrl(next);
     } catch (err) {
       if (ticket === activeRef.current) {
@@ -382,7 +410,7 @@ export default function App() {
         const tail=encoder.flush();
         if(tail.length)parts.push(new Uint8Array(tail));
         if(!parts.length)throw new Error('MP3 encoding returned no bytes');
-        download(new Blob(parts as BlobPart[],{type:'audio/mpeg'}),'himig-arranged-song.mp3');
+        download(new Blob(parts as BlobPart[],{type:'audio/mpeg'}),'himig-EXPERIMENTAL-reviewed-draft.mp3');
         return;
       }
       const encoder = new Lame.Mp3Encoder(1, result.rate, 160);
@@ -525,6 +553,9 @@ export default function App() {
             ))}
           </div>
           <p className="help">
+            The source voice and its lyric timing are not regenerated. Actual pitch correction, vocal-only stem extraction, and exact melody/key locking are not implemented yet.
+          </p>
+          <p className="help">
             {mode === 'preserve'
               ? 'Gentle cleanup to keep vocal dynamics and expression.'
               : mode === 'polish'
@@ -589,7 +620,7 @@ export default function App() {
             <label className="field-label slider-label">Vocal studio ambience: {ambience}%
               <input aria-label="Voice ambience" type="range" min="0" max="60" value={ambience} onChange={e=>{setAmbience(Number(e.target.value));resetResult();}}/>
             </label>
-            <p className="arrangement-warning">Your uploaded recording is the musical reference. Source-following estimates chords across the full song, rather than repeating a fixed four-chord loop. A melody alone can allow several harmonizations; review and approve this draft before using it as a final master.</p>
+            <p className="arrangement-warning">WARNING: This is an experimental synthesized backing, not a professional recording. The original song is unchanged, but the detected key/BPM/chords are only estimates. For reviewed draft export, confirm the actual key and BPM manually, inspect the QC report, and listen to the complete song.</p>
           </div>
           <label className="field-label" htmlFor="voice">
             Vocal direction
@@ -610,11 +641,11 @@ export default function App() {
           </div>
           <button
             className="primary"
-            onClick={render}
+            onClick={() => { void render('mix'); }}
             disabled={!ready || busy || !hasAudio}
           >
             <WandSparkles size={20} />
-            {busy ? 'Rendering locally…' : 'Produce song with new instruments'}
+            {busy ? 'Processing locally…' : 'Generate EXPERIMENTAL arrangement preview'}
           </button>
           {busy && <button className="link-button" type="button" onClick={resetResult}>Cancel processing</button>}
           {busy && (
@@ -634,12 +665,41 @@ export default function App() {
               {error}
             </p>
           )}
+          <div className="diagnostic-stages">
+            <strong>Per-stage debug audio (real downloadable files)</strong>
+            <p>Original: untouched uploaded recording. Cleanup: filtered source, still containing any guitar. Backing: oscillator synthesis, not real instruments. Vocal-only separated stem: NOT IMPLEMENTED (no Demucs/BS-Roformer service).</p>
+            <div className="actions">
+              <button type="button" className="export" disabled={!voiceFile} onClick={() => voiceFile && download(voiceFile, 'himig-original-'+voiceFile.name)}>Original recording</button>
+              <button type="button" className="export" disabled={busy || !hasAudio} onClick={()=>void render('source-cleanup')}>Source cleanup WAV</button>
+              <button type="button" className="export" disabled={busy || !hasAudio || !parts.length} onClick={()=>void render('synth-backing')}>Synthetic backing WAV</button>
+            </div>
+          </div>
         </section>
         <aside className="panel result">
           <div className="heading">
             <span className="step">03</span>
             <h2>Preview & export</h2>
           </div>
+          {qualityReport && (
+            <section className="quality-report" aria-label="Per-song quality report">
+              <strong>Measured QC: {qualityReport.decision === 'REJECT' ? 'REJECTED — original fallback' : 'REVIEW REQUIRED — not a master'}</strong>
+              <p>Clipping, sample peak and integrated LUFS are measured on generated samples. Missing checks are explicitly NOT_MEASURED, never silently passed.</p>
+              <div className="quality-checks">
+                {qualityReport.checks.map(check => (
+                  <p key={check.name}>
+                    <b>{check.status}</b> · {check.name}: {check.value === null ? 'not measured' : String(check.value) + (check.unit ? ' '+check.unit : '')}
+                  </p>
+                ))}
+              </div>
+              <button type="button" className="notes-export" onClick={()=>download(new Blob([JSON.stringify(qualityReport,null,2)],{type:'application/json'}),'himig-quality-report.json')}>Download per-song QC report (.json)</button>
+            </section>
+          )}
+          {qualityRejection && voiceFile && <section className="quality-report">
+            <strong>Fallback: untouched original recording</strong>
+            <p>The generated preview failed a measured quality gate. No damaged mix is available for final export. The original is safe.</p>
+            <audio controls src={beforeUrl} aria-label="Unmodified original fallback" />
+            <button type="button" className="notes-export" onClick={()=>download(voiceFile,'himig-fallback-original-'+voiceFile.name)}>Download ORIGINAL fallback</button>
+          </section>}
           {url ? (
             <>
               <span className="success">
@@ -650,21 +710,22 @@ export default function App() {
               <div className="compare-audio"><strong>AFTER · Newly arranged song with accompaniment</strong><audio controls src={url} aria-label="Finished song with newly generated instruments" /></div>
               <label className="music-approval">
                 <input type="checkbox" checked={approved} onChange={e=>setApproved(e.target.checked)} />
-                <span>I listened to the result and approve its lyrics, melody, timing and harmony for export. These automatic chord estimates are not guaranteed.</span>
+                <span>I listened to the ENTIRE recording. I accept this as an EXPERIMENTAL draft, not a studio master; vocal separation, ASR match and pitch drift are NOT_MEASURED.</span>
               </label>
+              {(songKey === 'auto' || tempo === 'auto') && <p className="arrangement-warning">Draft export locked: choose and confirm the song key AND BPM manually before authorizing an unverified draft download. The detection is not proof.</p>}
               <div className="actions">
                 <button
                   className="export"
-                  disabled={!approved}
+                  disabled={!approved || !qualityReport || qualityReport.decision === 'REJECT' || songKey === 'auto' || tempo === 'auto'}
                   onClick={() => {
                     const r = resultRef.current;
                     if (r)
-                      download(stereoRef.current?stereoWav(stereoRef.current.pcm,stereoRef.current.rate):wavBlob(r.pcm,r.rate),'himig-arranged-song.wav');
+                      download(stereoRef.current?stereoWav(stereoRef.current.pcm,stereoRef.current.rate):wavBlob(r.pcm,r.rate),'himig-EXPERIMENTAL-reviewed-draft.wav');
                   }}
                 >
                   <Download size={18} /> Export WAV
                 </button>
-                <button className="export" disabled={!approved} onClick={saveMp3}>
+                <button className="export" disabled={!approved || !qualityReport || qualityReport.decision === 'REJECT' || songKey === 'auto' || tempo === 'auto'} onClick={saveMp3}>
                   <Download size={18} /> Export MP3
                 </button>
               </div>
@@ -702,7 +763,7 @@ export default function App() {
           ) : (
             <div className="empty">
               <Headphones size={48} />
-              <h3>Your finished preview appears here</h3>
+              <h3>Experimental draft appears here</h3>
               <p>
                 Upload your voice recording or select the demo and process it to
                 enable real audio playback and exports.
@@ -712,21 +773,19 @@ export default function App() {
           <div className="notice">
             <ShieldCheck size={18} />
             <span>
-              Original lyrics and voice stay yours. This version processes audio
-              transiently in memory; it does not send a paid music-generation
-              job.
+              The raw recording is not uploaded to a server. This prototype uses basic synthesized instruments only; no source separator, Whisper ASR, or generative singer is currently running.
             </span>
           </div>
           <div className="scope">
             <strong>What this engine does</strong>
             <p>
-              Actual instrumental creation: piano, guitar, bass, strings and drums, rendered as separate musical notes; stereo mixing, original-voice compression and ambience, editable chord cycles and WAV/MP3 exports. Exact chord transcription, realistic voice reconstruction and AI song mastering are not yet implemented.
+              EXPERIMENTAL oscillator-backed music; optional source-wide EQ/compression (not vocal-only); stage debug files; measured clipping, LUFS and sample peak; manual reviewed draft exports. Pitch correction, separation, source-accurate melody/key locking, ASR word match, artifact listening checks, realistic instruments and mastering are NOT implemented.
             </p>
           </div>
         </aside>
       </div>
       <footer>
-        HIMIG STUDIO · Original compositions remain yours · Instrument samples: FluidR3 GM, CC BY 3.0 (gleitz/midi-js-soundfonts)
+        HIMIG STUDIO · Your originals remain yours · EXPERIMENTAL oscillator synthesis · Not a studio-master generator
       </footer>
     </main>
   );

@@ -1,6 +1,7 @@
 import { createMusicEvents } from './arrangement';
 import { analyzeSourceHarmony, estimateSongTempo } from './sourceHarmony';
 import type { Config, Part } from './arrangement';
+import { measurePcm } from './qualityGate';
 
 type RenderTask = {
   type: 'render';
@@ -11,6 +12,7 @@ type RenderTask = {
   config: Config;
   backingLevel: number;
   gain: number;
+  stage?: 'mix' | 'source-cleanup' | 'synth-backing';
 };
 type NoteEvent = {
   at: number; end: number; note: number; vol: number;
@@ -77,12 +79,13 @@ function renderPart(e: NoteEvent, left: Float32Array, right: Float32Array, from:
 
 async function render(task: RenderTask) {
   const { mono, sampleRate: rate, config, mode, backing, backingLevel, gain } = task;
+  const stage = task.stage || 'mix';
   const frameCount = mono.length;
   if (rate < 8000 || rate > 48000 || frameCount < 64 ||
       frameCount / rate > 240 || !Number.isFinite(gain)) {
     throw new Error('Audio format, length or level is unsupported.');
   }
-  if (!config.parts.length) throw new Error('Choose at least one instrument.');
+  if (stage !== 'source-cleanup' && !config.parts.length) throw new Error('Choose at least one instrument.');
   progress(1, 'Analyzing tempo, key and harmonic movement from the uploaded song');
   const tempoDetection = config.bpm === 0
     ? estimateSongTempo(mono, rate)
@@ -95,11 +98,13 @@ async function render(task: RenderTask) {
     bpm: tempoDetection.bpm,
     key: config.key === '__AUTO__' ? (harmony?.key || 'C') : config.key
   };
-  if (harmony && harmony.lowConfidenceBars / Math.max(1,harmony.bars) > .90) {
+  if (stage !== 'source-cleanup' && harmony && harmony.lowConfidenceBars / Math.max(1,harmony.bars) > .90) {
     throw new Error('The recording does not provide enough reliable harmony evidence. Choose a manually confirmed chord progression to avoid inaccurate accompaniment.');
   }
-  const { events, chords } = createMusicEvents(resolvedConfig, frameCount / rate, config.progression === 'source' ? harmony?.plan : undefined);
-  if (!events.length) throw new Error('No instrument notes were scheduled.');
+  const { events, chords } = stage === 'source-cleanup'
+    ? {events: [], chords: []}
+    : createMusicEvents(resolvedConfig, frameCount / rate, config.progression === 'source' ? harmony?.plan : undefined);
+  if (stage !== 'source-cleanup' && !events.length) throw new Error('No instrument notes were scheduled.');
   // Stereo output is allocated once; small per-chunk buffers keep Android memory bounded.
   const stereo = new Int16Array(frameCount * 2);
   const chunk = Math.floor(rate * 1.5);
@@ -164,8 +169,14 @@ async function render(task: RenderTask) {
       const instrumentalL = left[i] * strength * duck + oldBacking;
       const instrumentalR = right[i] * strength * duck + oldBacking;
       musicSum += (instrumentalL * instrumentalL + instrumentalR * instrumentalR) / 2;
-      const mixL = (clean * vocal + lEcho * ambience * .3 + instrumentalL) * .82;
-      const mixR = (clean * vocal + rEcho * ambience * .31 + instrumentalR) * .82;
+      // Debug stages are generated on demand, not buffered simultaneously on Android.
+      // Source cleanup is NOT a separated vocal stem (voice and guitar may remain).
+      const mixL = stage === 'source-cleanup' ? clean * .82
+        : stage === 'synth-backing' ? instrumentalL * .82
+        : (clean * vocal + lEcho * ambience * .3 + instrumentalL) * .82;
+      const mixR = stage === 'source-cleanup' ? clean * .82
+        : stage === 'synth-backing' ? instrumentalR * .82
+        : (clean * vocal + rEcho * ambience * .31 + instrumentalR) * .82;
       const limitedL = clamp(Math.tanh(mixL * 1.2) / Math.tanh(1.2), -.96, .96);
       const limitedR = clamp(Math.tanh(mixR * 1.2) / Math.tanh(1.2), -.96, .96);
       stereo[p * 2] = Math.round(limitedL * 32767);
@@ -179,12 +190,19 @@ async function render(task: RenderTask) {
   }
   const backingRms = Math.sqrt(musicSum / frameCount);
   const rms = Math.sqrt(outputSum / frameCount);
-  if (rms < .0001 || backingRms < .00003)
+  if (rms < .0001 || (stage !== 'source-cleanup' && backingRms < .00003))
     throw new Error('Render produced silence. Please check the recording and instrument levels.');
+  progress(99, 'Measuring real output samples; unknown AI gates stay NOT_MEASURED');
+  const quality = measurePcm(stereo, rate, stage);
+  if(quality.decision === 'REJECT' && stage === 'mix') {
+    scope.postMessage({type:'quality_rejected', report:quality, stage});
+    return;
+  }
   const result = {
     eventCount: events.length,
     chords, sampled: [],
     synthesized: config.parts.filter(part => part !== 'drums'),
+    quality, stage,
     rms, backingRms,
     harmonyConfidence: harmony?.averageConfidence,
     lowConfidenceBars: harmony?.lowConfidenceBars,

@@ -73,8 +73,23 @@ jobs:
       - name: Verify upload scroll and Expo project isolation
         run: node --test tests/mobile-upload.test.cjs
 
-      - name: Verify actual accompaniment on short and 3m51s audio
+      - name: Validate measured QC and fail-closed original fallback
+        run: node --test tests/quality-gates.test.cjs
+
+      - name: Verify renderer, explicitly NOT music-quality acceptance
         run: node verify-worker.cjs
+
+      - name: Verify real owned-song acceptance evidence exists
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const a=require('./reports/real-song-acceptance.json');
+          if(a.verified_real_source_songs>0 && !a.known_bad_outputs)throw Error('Invalid acceptance manifest');
+          console.log('REAL_SONG_TEST_SET='+a.verified_real_source_songs+'/'+a.required_consent_owned_songs);
+          console.log('AUDIO_MASTER_CERTIFIED=NO');
+          console.log('QUALITY_BACKEND_DEMUCS=NOT_IMPLEMENTED');
+          console.log('LYRIC_ASR_WHISPER=NOT_IMPLEMENTED');
+          NODE
 
       - name: Confirm existing Expo secret without printing it
         shell: bash
@@ -118,6 +133,8 @@ jobs:
           curl --fail --silent --show-error --location --retry 3 --max-time 25 "$HIMIG_EXPO_URL/audio-worker.js" -o "$RUNNER_TEMP/himig-live-worker.js"
           test "$(wc -c < "$RUNNER_TEMP/himig-live-worker.js")" -gt 5000
           echo 'EXPO_HOSTING_RUNTIME_SMOKE=PASS'
+          echo 'WEB_EXPERIMENTAL_QC_RELEASE_ONLY=YES'
+          echo 'STUDIO_MASTER_ACCEPTANCE=NOT_PASSED'
 
       - name: Explicit production isolation statement
         if: always()
