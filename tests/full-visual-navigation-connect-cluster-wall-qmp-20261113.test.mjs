@@ -38,10 +38,17 @@ test('Profile, Cluster, Drawer and Wall keep every existing explicit destination
     const prior=execFileSync('git',['show',baseline+':'+path],{encoding:'utf8'});
     const now=routes(path);
     for(const route of routes(path,prior)) {
-      if(path==='src/app/(tabs)/me.tsx' && route==='/settings') {
-        // Owner explicitly retired the redundant cover gear. Settings remain
-        // available via the new global menu, while Profile overflow is intact.
-        assert.match(read('src/components/BuklodNavigationSideMenu.tsx'), /route: '\/settings'/);
+      if(path==='src/app/(tabs)/me.tsx' && [
+        '/settings','/about-buklod','/account/personal-information',
+        '/account/security','/preferences/language','/settings/sounds',
+        '/account/recovery-pin','/account/deactivate','/account/delete',
+        '/privacy','/privacy/notice','/contact-us','/support/live'
+      ].includes(route)) {
+        // Owner moved duplicate actions out of Profile to the existing Settings
+        // and central menu; verify actual reachability rather than stale location.
+        const retained=read('src/app/settings/index.tsx')+'\n'+
+          read('src/components/BuklodNavigationSideMenu.tsx');
+        assert.ok(retained.includes("route: '"+route+"'"), 'Lost destination '+route);
         assert.match(read(path), /accessibilityLabel="Profile options"/);
         continue;
       }
