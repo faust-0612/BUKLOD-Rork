@@ -1,9 +1,9 @@
 {
   "contractVersion": 2,
-  "objective": "When a user taps an Android keyboard GIF while writing a Public Wall comment, return the GIF directly to that same comment preview with Send available, removing the interrupting external-share alert.",
+  "objective": "Android keyboard GIF selected from Public Wall, Cluster or Organization Community returns to the exact active comment sheet with animated preview and manual Send; avoids the wrong-Public-Wall share route and records the handoff route correctly when a render failure occurs.",
   "baseRef": "9ff4f65d0db52b584d915493f67edaaed8bae369",
   "productionBaselineEvidence": "GitHub main source 9ff4f65d0db52b584d915493f67edaaed8bae369 read at branch creation. Current device/native GIF dispatch, production OTA artifact and served release were not verified; this remains isolated DEV only.",
-  "chosenApproach": "Retain the latest comment post ID for up to five minutes in account-scoped AsyncStorage, then when expo-sharing receives an ACTION_SEND GIF, stage it and reopen the authorized post's existing comment drawer with a GIF preview and its manual Send action. Preserve the original comment RPC, media upload and reaction flows, and use a dismissible inline fallback when no target remains.",
+  "chosenApproach": "Keep a short-lived account-bound post+scope target; route GIF ACTION_SEND from handoff into /scope Community when the target belongs to the current authenticated scope, otherwise Public Wall. Process and stage incoming GIF only on the foreground route, restore exact authorized comment sheet via scoped post detail RPC, and fail closed to explicit post selection. Label handle-share route for safe render telemetry.",
   "selectionRationale": "An incremental JS-only recovery path fixes the observed Gboard share-to-Wall dialog without requiring a new native IME bridge, changing Expo runtime, rewriting the composer, weakening post permissions, or publishing a GIF as a standalone Wall post.",
   "alternativeApproaches": [
     "Intercept Android IME commitContent using a custom native TextInput module: deferred, because it changes native binary compatibility and requires rebuilding and verifying the APK.",
@@ -13,10 +13,12 @@
     "Existing Community Wall comment text, replies, mentions, private photo/GIF paths, 25MB limits and manual Send semantics remain unchanged.",
     "Current Wall feed, ads, video audio lifecycle, Marites, offline/weak-signal states and bottom tab navigation remain intact.",
     "Account isolation and authorization-enforced post detail lookup; no cross-account restore or guessed destination.",
-    "No changes to Supabase RLS, backend RPC, production OTA channel, Android native runtime or Play Store artifact."
+    "No changes to Supabase RLS, backend RPC, production OTA channel, Android native runtime or Play Store artifact.",
+    "Scoped comments remain membership-guarded and stored in scope/<scopeId>/<userId> with existing RPC and upload policies; existing Public Wall and other external shares remain unchanged."
   ],
   "riskAreas": [
-    "navigation-scroll"
+    "navigation-scroll",
+    "faith-cluster"
   ],
   "acceptanceChecks": [
     "Android keyboard GIF selected from an active comment returns to that same comment drawer with animated preview, and Send remains user-controlled.",
@@ -24,12 +26,16 @@
     "If Android recreates the Wall Activity, restore target post using existing detail RPC and account-bound short-lived ID.",
     "Wrong account, expired target or inaccessible post never causes cross-post auto-send; fallback requires explicit post selection.",
     "Existing text/photo posting, media upload, GIF gallery picker, comment RPC, video rendering and ads remain unaffected.",
-    "Engineering Accountability and Performance CI gates pass; exact Android/Web compiled RC and device behavior require separate verification before production publication."
+    "Engineering Accountability and Performance CI gates pass; exact Android/Web compiled RC and device behavior require separate verification before production publication.",
+    "Gboard GIF from Cluster/Org comment returns to same scope and same post instead of Public Wall; GIF preview appears before manual Send, with no blocking alert.",
+    "Android share handoff route is safely labelled handle-share for future SYS-500 triage; matching error signature alone does not establish the exception source.",
+    "Signed-in user may never attach the scoped GIF to another scope or a Public post without explicit new destination selection."
   ],
   "regressionTests": [
     "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
     "tests/buklod-keyboard-gif-direct-20261113.test.mjs",
-    "tests/buklod-keyboard-gif-navigation-20261113.test.mjs"
+    "tests/buklod-keyboard-gif-navigation-20261113.test.mjs",
+    "tests/buklod-keyboard-gif-scope-20261113.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/keyboard-gif-comment-return-20261113.json",
@@ -37,7 +43,11 @@
     "src/lib/buklodCommentGifTarget.ts",
     "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
     "tests/buklod-keyboard-gif-direct-20261113.test.mjs",
-    "tests/buklod-keyboard-gif-navigation-20261113.test.mjs"
+    "tests/buklod-keyboard-gif-navigation-20261113.test.mjs",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/app/handle-share.tsx",
+    "src/lib/buklodRouteDiagnostics.ts",
+    "tests/buklod-keyboard-gif-scope-20261113.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -58,6 +68,16 @@
       ],
       "tests": [
         "tests/buklod-keyboard-gif-navigation-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Scoped Community comment share-target restores the right authorized Cluster or Organization without routing GIFs into the public feed.",
+      "preservedBehaviors": [
+        "Scope membership, read access, media storage policies, private post ownership, and existing comment RPC remain unchanged."
+      ],
+      "tests": [
+        "tests/buklod-keyboard-gif-scope-20261113.test.mjs"
       ]
     }
   ],

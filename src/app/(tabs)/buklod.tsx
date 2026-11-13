@@ -15,7 +15,7 @@ import { createAudioPlayer, setAudioModeAsync, setIsAudioActiveAsync, type Audio
 /* PERF_EMERGENCY_R2_POSTS_ONLY_REALTIME: existing Broadcast optimization preserved */
 /* PERF_EMERGENCY_R2_STALE_LOAD: existing PATCH_166H guard preserved */
 /* BUKLOD_SHARE_TARGET_187A */
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, usePathname } from 'expo-router';
 import { loadBuklodNotificationPost } from '@/lib/buklodNotificationPost';
 import {
   emitBuklodEmergencySignal,
@@ -611,6 +611,7 @@ function LegacyPublicBuklodScreen(){
  const communityOnlineRef=useRef(communityOnline);
  communityOnlineRef.current=communityOnline;
 
+  const activeShareRoute187A = usePathname();
   const incomingShare187A = useBuklodIncomingShare187A();
   const incomingShareSignature187A = useIncomingShareRef187A('');
   // Android keyboard GIFs can remount the Wall share-target Activity.
@@ -710,6 +711,10 @@ function LegacyPublicBuklodScreen(){
   }
 
   useIncomingShareEffect187A(() => {
+    // Tabs can remain mounted while an Organization/Cluster workspace is on
+    // top. Only the visible Public Wall may consume an incoming GIF.
+    if (activeShareRoute187A !== '/buklod' &&
+        activeShareRoute187A !== '/(tabs)/buklod') return;
     if (incomingShare187A.isResolving) {
       return;
     }
@@ -981,6 +986,7 @@ function LegacyPublicBuklodScreen(){
     incomingShare187A.sharedPayloads,
     incomingShare187A.resolvedSharedPayloads,
     user?.id,
+    activeShareRoute187A,
   ]);
 
  const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');

@@ -10,6 +10,8 @@ import {
   Platform,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useAuth } from '@/providers/AuthProvider';
+import { getActiveCommentGifContext } from '@/lib/buklodCommentGifTarget';
 import { useIncomingShare } from '@/lib/buklodIncomingShare';
 
 export default function BuklodIncomingShareHandoff() {
@@ -22,18 +24,48 @@ export default function BuklodIncomingShareHandoff() {
 
 
   const incoming = useIncomingShare();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    const hasPayload =
-      (incoming.sharedPayloads?.length ?? 0) > 0 ||
-      (incoming.resolvedSharedPayloads?.length ?? 0) > 0;
+    const raw = incoming.sharedPayloads ?? [];
+    const resolved = incoming.resolvedSharedPayloads ?? [];
+    const hasPayload = raw.length > 0 || resolved.length > 0;
+    if (!hasPayload || incoming.isResolving || authLoading) return;
 
-    if (hasPayload) {
-      router.replace('/(tabs)/buklod' as any);
-    }
+    // Only animated GIFs have a pending comment destination. Ordinary text,
+    // photo and video shares retain the existing Public Wall entry behavior.
+    const items = resolved.length ? resolved : raw.map((item: any) => ({
+      contentMimeType: item?.mimeType,
+      originalName: item?.value,
+    }));
+    const isGif = items.some((item: any) =>
+      String(item?.contentMimeType ?? '').split(';')[0].toLowerCase() === 'image/gif' ||
+      /\\.gif(?:[?#]|$)/i.test(String(item?.originalName ?? ''))
+    );
+    let current = true;
+    void (async () => {
+      const target = isGif && user?.id
+        ? await getActiveCommentGifContext(user.id)
+        : null;
+      if (!current) return;
+      try {
+        if (target?.scopeId) {
+          router.replace({
+            pathname: '/scope',
+            params: { scopeId: target.scopeId, section: 'community',
+              focusPostId: target.postId, focusComments: '1' },
+          } as any);
+        } else {
+          router.replace('/(tabs)/buklod' as any);
+        }
+      } catch {
+        if (current) router.replace('/(tabs)/buklod' as any);
+      }
+    })();
+    return () => { current = false; };
   }, [
-    incoming.sharedPayloads,
-    incoming.resolvedSharedPayloads,
+    incoming.isResolving, incoming.sharedPayloads,
+    incoming.resolvedSharedPayloads, user?.id, authLoading,
   ]);
 
   return (

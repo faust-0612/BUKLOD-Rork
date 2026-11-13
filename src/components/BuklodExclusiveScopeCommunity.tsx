@@ -43,7 +43,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
+import { useIncomingShare as useBuklodIncomingShare } from '@/lib/buklodIncomingShare';
+import { stageSharedCommentGif, discardStagedSharedCommentGif } from '@/lib/buklodCommentGifShare';
+import {
+  rememberActiveCommentGifTarget, getActiveCommentGifContext,
+  forgetActiveCommentGifTarget,
+} from '@/lib/buklodCommentGifTarget';
 import { loadBuklodNotificationPost } from '@/lib/buklodNotificationPost';
 
 import {
@@ -455,6 +461,11 @@ export default function BuklodExclusiveScopeCommunity({
   focusComments = false,
   focusCommentId,
 }: Props) {
+  const activeSharePath = usePathname();
+  const incomingShare = useBuklodIncomingShare();
+  const incomingGifSignature = useRef('');
+  const pendingScopeGif = useRef<{uri:string; ownerId:string; scopeId:string}|null>(null);
+  const [scopeGifNotice, setScopeGifNotice] = useState<string|null>(null);
   const focusId = String(focusPostId ?? '').trim();
   const focusComment = String(focusCommentId ?? '').trim();
   const focusCommentScrollRef=useRef<ScrollView|null>(null);
@@ -2316,6 +2327,11 @@ export default function BuklodExclusiveScopeCommunity({
   }, [scope.scope_id]);
 
   const closeComments = () => {
+    if (commentActivePostRef.current && user?.id) {
+      void forgetActiveCommentGifTarget(
+        user.id, commentActivePostRef.current, scope.scope_id,
+      ).catch(() => undefined);
+    }
     commentLoadSeqRef.current += 1;
     setCommentLoading(false);
     setCommentLoadError(null);
@@ -2329,7 +2345,18 @@ export default function BuklodExclusiveScopeCommunity({
   };
 
   const openComments = (post: SocialPost) => {
+    if (String(post.scope_id) !== String(scope.scope_id)) return;
     commentActivePostRef.current = post.id;
+    if (user?.id) void rememberActiveCommentGifTarget(
+      user.id, post.id, scope.scope_id,
+    ).catch(() => undefined);
+    const pending = pendingScopeGif.current;
+    const attachGif = pending?.ownerId === user?.id &&
+      pending?.scopeId === scope.scope_id;
+    if (pending) {
+      pendingScopeGif.current = null;
+      if (!attachGif) void discardStagedSharedCommentGif(pending.uri);
+    }
     if (commentPost?.id !== post.id) {
       setComments([]);
       setCommentText('');
@@ -2338,10 +2365,103 @@ export default function BuklodExclusiveScopeCommunity({
       setCommentMediaPreview(null);
       setReplyTo(null);
     }
+    if (attachGif && pending) {
+      setCommentMedia({kind:'gif',ref:pending.uri});
+      setCommentMediaPreview(pending.uri);
+    }
+    setScopeGifNotice(null);
     setCommentPost(post);
     setCommentOpen(true);
     void loadComments(post.id);
   };
+
+  // Gboard keyboard GIFs use Android ACTION_SEND. Scoped destinations must
+  // consume their own payload, never fall through to the mounted Public Wall.
+  useEffect(() => {
+    if (activeSharePath !== '/scope' || incomingShare.isResolving || !user?.id) return;
+    const raw = incomingShare.sharedPayloads ?? [];
+    const resolved = incomingShare.resolvedSharedPayloads ?? [];
+    if (!raw.length && !resolved.length) {
+      incomingGifSignature.current = '';
+      return;
+    }
+    const normalized = resolved.length ? resolved : raw.map((item: any) => ({
+      contentMimeType: item?.mimeType, contentUri: item?.value,
+      originalName: item?.value, contentType: item?.shareType,
+    }));
+    const gifRows = normalized.filter((item: any) =>
+      (String(item?.contentMimeType ?? '').split(';')[0].toLowerCase() === 'image/gif' ||
+       /\\.gif(?:[?#]|$)/i.test(String(item?.originalName ?? ''))) &&
+      typeof item?.contentUri === 'string' && !!item.contentUri
+    );
+    if (!gifRows.length) return; // Non-GIF shares retain their own entrypoint.
+    const signature = JSON.stringify(normalized.map((item:any) =>
+      [item?.contentUri,item?.contentMimeType,item?.contentSize]));
+    if (incomingGifSignature.current === signature) return;
+    incomingGifSignature.current = signature;
+    let current = true;
+    void (async () => {
+      if (gifRows.length !== 1 || normalized.length !== 1) {
+        incomingShare.clearSharedPayloads();
+        if (current) setScopeGifNotice('Select one GIF at a time.');
+        return;
+      }
+      try {
+        const uri = await stageSharedCommentGif(gifRows[0].contentUri);
+        incomingShare.clearSharedPayloads();
+        if (!current) { void discardStagedSharedCommentGif(uri); return; }
+        const previous = pendingScopeGif.current;
+        if (previous) void discardStagedSharedCommentGif(previous.uri);
+        if (commentOpen && commentActivePostRef.current && !commentSubmitRef.current) {
+          if (commentMedia?.kind === 'gif' && commentMedia.ref !== uri) {
+            void discardStagedSharedCommentGif(commentMedia.ref);
+          }
+          setCommentMedia({kind:'gif',ref:uri});
+          setCommentMediaPreview(uri);
+          setScopeGifNotice(null);
+          return;
+        }
+        pendingScopeGif.current = {uri,ownerId:user.id,scopeId:scope.scope_id};
+        const target = await getActiveCommentGifContext(user.id);
+        if (!current || pendingScopeGif.current?.uri !== uri) return;
+        if (!target || target.scopeId !== scope.scope_id) {
+          setScopeGifNotice('GIF ready — choose Comments on a post in this community.');
+          return;
+        }
+        const openIfAuthorized = (post:any) => {
+          if (!current || !post || String(post.id) !== target.postId ||
+              String(post.scope_id) !== scope.scope_id ||
+              pendingScopeGif.current?.uri !== uri) return false;
+          openComments(post as SocialPost);
+          return true;
+        };
+        const cached = postsRef.current.find(post =>
+          String(post.id) === target.postId && post.scope_id === scope.scope_id);
+        if (cached && openIfAuthorized(cached)) return;
+        try {
+          const loaded = await loadBuklodNotificationPost(
+            target.postId, user.id, openIfAuthorized,
+          );
+          if (openIfAuthorized(loaded)) return;
+          // Callback may have already opened the exact post.
+          if (pendingScopeGif.current?.uri !== uri) return;
+        } catch (error) {
+          console.warn('Scoped GIF comment could not reopen:', error);
+        }
+        if (current && pendingScopeGif.current?.uri === uri) {
+          setScopeGifNotice('GIF ready — choose Comments on a post in this community.');
+        }
+      } catch {
+        incomingShare.clearSharedPayloads();
+        if (current) setScopeGifNotice('GIF unavailable. Please choose it again.');
+      }
+    })();
+    return () => { current = false; };
+  }, [
+    activeSharePath, incomingShare.isResolving,
+    incomingShare.sharedPayloads, incomingShare.resolvedSharedPayloads,
+    user?.id, scope.scope_id,
+  ]);
 
   // Scoped notifications land in this feed instead of a separate detail
   // screen. Only the requested scope's access-controlled post can be pinned.
@@ -2517,6 +2637,9 @@ export default function BuklodExclusiveScopeCommunity({
         'Post scoped comment',
       );
       if (error) throw error;
+      if (originalMedia?.kind === 'gif') {
+        void discardStagedSharedCommentGif(originalMedia.ref);
+      }
       if(user?.id){
         const adCount=recordConfirmedCommunityComment(String(user.id));
         if(adCount.shouldWarm)warmBuklodAdOpportunity('community_comment_overage');
@@ -4373,6 +4496,21 @@ return (
             </>
           )}
         </View>
+        {!!scopeGifNotice && (
+          <View style={{marginBottom:8,padding:10,borderRadius:12,
+            backgroundColor:colors.greenSoft,flexDirection:'row',alignItems:'center',gap:8}}>
+            <Text style={{flex:1,fontSize:12,color:colors.greenDark}}>{scopeGifNotice}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss shared GIF"
+              onPress={()=>{
+                const pending=pendingScopeGif.current;
+                pendingScopeGif.current=null;
+                if(pending)void discardStagedSharedCommentGif(pending.uri);
+                setScopeGifNotice(null);
+              }}>
+              <MaterialCommunityIcons name="close" color={colors.greenDark} size={20}/>
+            </Pressable>
+          </View>
+        )}
         {(publishNotice || scopedPostFeedback) && (
           <View accessibilityRole="alert"
             style={{marginTop:5,marginBottom:6,borderRadius:12,paddingHorizontal:12,
@@ -4771,6 +4909,9 @@ return (
               media={commentMedia}
               mediaPreviewUri={commentMediaPreview}
               onMediaChange={(next, preview) => {
+                if (commentMedia?.kind === 'gif' && commentMedia.ref !== next?.ref) {
+                  void discardStagedSharedCommentGif(commentMedia.ref);
+                }
                 setCommentMedia(next);
                 setCommentMediaPreview(preview ?? null);
               }}
