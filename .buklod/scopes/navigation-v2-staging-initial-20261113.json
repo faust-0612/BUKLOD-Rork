@@ -50,11 +50,13 @@
     "Current live publisher-side production OTA source/runtime identity is recorded by workflow ID and artifact URL but is refreshed before time-bound prepublish; exact installed staging parity remains mandatory.",
     "Cluster and Organization scoped tabs show both familiar icons and readable labels, 48dp tap targets, selected accessibility semantics, without modifying the scope membership or return logic.",
     "Contextual shortcut bottom sheet exposes Open/Pin-Unpin/Remove Recent through visible overflow or optional long press; accessible dismiss/Android Back and reduced motion preserve primary tap actions.",
-    "Local recently-opened shortcut removals display nonblocking inline feedback with an accessible one-tap Undo, account-specific restoration and serialized storage; unrelated submission/retry handlers unchanged."
+    "Local recently-opened shortcut removals display nonblocking inline feedback with an accessible one-tap Undo, account-specific restoration and serialized storage; unrelated submission/retry handlers unchanged.",
+    "Global five-tab navigation labels now use 12sp with OS scaling and up to two readable lines; nav overlay reserves additional height at large Android font scales so user content remains unobscured."
   ],
   "regressionTests": [
     "tests/navigation-v2-ads-preservation.test.mjs",
     "tests/navigation-v2-auth-inputs.test.mjs",
+    "tests/navigation-v2-bottom-fontscale.test.mjs",
     "tests/navigation-v2-compact-home-profile.test.mjs",
     "tests/navigation-v2-connect-fontscale.test.mjs",
     "tests/navigation-v2-context-menu.test.mjs",
@@ -95,14 +97,18 @@
     "src/components/BuklodCommunityCommentComposer.tsx",
     "src/components/BuklodFeatureFinder.tsx",
     "src/components/BuklodNavigationContextSheet.tsx",
+    "src/components/BuklodPersistentBottomNav.tsx",
     "src/components/BuklodProfileGlassCard.tsx",
     "src/components/connect/ConnectComposer.tsx",
     "src/components/home/BuklodHomeUtilityCards.tsx",
     "src/lib/buklodAdaptiveInput.ts",
+    "src/lib/buklodNavTypography.ts",
     "src/lib/buklodNavigationV2.ts",
     "src/lib/buklodPinnedNavigation.ts",
+    "src/lib/buklodSafeArea.ts",
     "tests/navigation-v2-ads-preservation.test.mjs",
     "tests/navigation-v2-auth-inputs.test.mjs",
+    "tests/navigation-v2-bottom-fontscale.test.mjs",
     "tests/navigation-v2-compact-home-profile.test.mjs",
     "tests/navigation-v2-connect-fontscale.test.mjs",
     "tests/navigation-v2-context-menu.test.mjs",
@@ -133,7 +139,8 @@
         "tests/navigation-v2-ads-preservation.test.mjs",
         "tests/navigation-v2-auth-inputs.test.mjs",
         "tests/navigation-v2-scoped-icons.test.mjs",
-        "tests/navigation-v2-context-menu.test.mjs"
+        "tests/navigation-v2-context-menu.test.mjs",
+        "tests/navigation-v2-bottom-fontscale.test.mjs"
       ]
     },
     {
@@ -145,7 +152,8 @@
       "tests": [
         "tests/navigation-v2-settings-route.test.mjs",
         "tests/navigation-v2-route-audit.test.mjs",
-        "tests/navigation-v2-auth-inputs.test.mjs"
+        "tests/navigation-v2-auth-inputs.test.mjs",
+        "tests/navigation-v2-bottom-fontscale.test.mjs"
       ]
     },
     {
