@@ -36,7 +36,8 @@
     "Inline BSOC GPT invocation sends only allowlisted category/platform/version, explicit operator action, scoped permission plus server check and no automatic reply.",
     "Reviewer report notifications link to exact approval via existing scope-authorized history RPC, with read-only metadata and separate private member reply. No unauthorized response reads/comments.",
     "Kingdom R7 ABI/version identity match with signed staging APK; 13 map stations and 39-game catalog untouched; no new points or financial mutations, no extra native modules.",
-    "Skia decorative FX stop on focus blur, background, reduced motion; no touch interception; Android in-app device visuals still require acceptance."
+    "Skia decorative FX stop on focus blur, background, reduced motion; no touch interception; Android in-app device visuals still require acceptance.",
+    "Cross-platform resolver includes a default TS module alongside native Skia/web atmosphere variants; exact-source TypeScript and R6 Kingdom contracts required before staging OTA."
   ],
   "riskAreas": [
     "wall-media",
@@ -53,7 +54,8 @@
     "tests/full-visual-navigation-side-menu-20261113.test.mjs",
     "tests/nov13-ux-fixes-staging-20261113.test.mjs",
     "tests/nov13-distinct-native-ux-sounds-20261113.test.mjs",
-    "tests/kingdom-native-cinematic-ota-20261114.test.mjs"
+    "tests/kingdom-native-cinematic-ota-20261114.test.mjs",
+    "tests/kingdom-premium-realm-v2-20261111.test.mjs"
   ],
   "allowedPaths": [
     "docs/visual/full-transformation-20261113.md",
@@ -129,7 +131,9 @@
     "src/features/games/kingdom/BuklodKingdomLivingFX.types.ts",
     "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
     "src/features/games/runtime/BuklodGameStage.native.tsx",
-    "tests/kingdom-native-cinematic-ota-20261114.test.mjs"
+    "tests/kingdom-native-cinematic-ota-20261114.test.mjs",
+    "src/features/games/kingdom/BuklodKingdomLivingFX.tsx",
+    "tests/kingdom-premium-realm-v2-20261111.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
