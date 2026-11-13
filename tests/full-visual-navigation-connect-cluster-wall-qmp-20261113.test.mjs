@@ -37,7 +37,16 @@ test('Profile, Cluster, Drawer and Wall keep every existing explicit destination
   for(const path of ['src/app/(tabs)/me.tsx','src/app/clusters/index.tsx','src/app/drawer/index.tsx','src/app/(tabs)/buklod.tsx','src/app/settings/index.tsx']) {
     const prior=execFileSync('git',['show',baseline+':'+path],{encoding:'utf8'});
     const now=routes(path);
-    for(const route of routes(path,prior)) assert.ok(now.includes(route),path+' lost '+route);
+    for(const route of routes(path,prior)) {
+      if(path==='src/app/(tabs)/me.tsx' && route==='/settings') {
+        // Owner explicitly retired the redundant cover gear. Settings remain
+        // available via the new global menu, while Profile overflow is intact.
+        assert.match(read('src/components/BuklodNavigationSideMenu.tsx'), /route: '\/settings'/);
+        assert.match(read(path), /accessibilityLabel="Profile options"/);
+        continue;
+      }
+      assert.ok(now.includes(route),path+' lost '+route);
+    }
   }
 });
 test('presentation changes leave core media, permissions, PTT and release contracts byte-identical',()=>{
