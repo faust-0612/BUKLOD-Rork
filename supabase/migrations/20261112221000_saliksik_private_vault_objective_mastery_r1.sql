@@ -243,8 +243,8 @@ BEGIN
  FOR item IN SELECT value FROM jsonb_array_elements(p_payload->'investigations') LOOP
    idx:=idx+1;
    v_tier:=item->>'tier';
-   IF v_tier IS DISTINCT FROM CASE WHEN mod(v_existing+idx,2)=1
-        THEN 'discover' ELSE 'investigate' END
+   IF (mod(v_existing+idx,2)=1 AND v_tier IS DISTINCT FROM 'discover')
+     OR (mod(v_existing+idx,2)=0 AND v_tier IS DISTINCT FROM 'investigate')
     THEN RAISE EXCEPTION 'unexpected_tier_or_order'; END IF;
    v_bank:=item->'questions'; v_need:=CASE WHEN v_tier='discover' THEN 5 ELSE 10 END;
    IF jsonb_typeof(v_bank)<>'array' OR jsonb_array_length(v_bank)<>v_need
