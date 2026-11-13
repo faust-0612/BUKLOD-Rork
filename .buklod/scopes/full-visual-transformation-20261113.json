@@ -24,7 +24,8 @@
     "All eight real Android screenshots must exist and visually pass before a release; currently NOT VERIFIED.",
     "Role-sensitive runtime interactions and signed binary/backend parity must pass before staging publish.",
     "Nonpublishing CI browser screenshots are diagnostics only; do not count redirects or web-only images as Android acceptance.",
-    "Real navigation side menu (not SmartDrawer), public-shell header and preview search access are wired and source tested; native visual acceptance remains pending."
+    "Real navigation side menu (not SmartDrawer), public-shell header and preview search access are wired and source tested; native visual acceptance remains pending.",
+    "Owner-authorized staging-only OTA for practical visual QA is separate from release acceptance: exact-source CI, immutable Android bundle, native/config compatibility, preview channel/build, unchanged production fingerprint, and Expo service verification must pass; 0/8 native visual acceptance remains unverified."
   ],
   "riskAreas": [
     "wall-media",
@@ -68,7 +69,8 @@
     ".github/workflows/buklod-full-visual-web-smoke-20261113.yml",
     "src/app/(tabs)/_layout.tsx",
     "src/components/BuklodNavigationSideMenu.tsx",
-    "tests/full-visual-navigation-side-menu-20261113.test.mjs"
+    "tests/full-visual-navigation-side-menu-20261113.test.mjs",
+    ".github/workflows/buklod-visual-staging-ota-20261113.yml"
   ],
   "lockedFeatureChanges": [
     {
@@ -123,5 +125,5 @@
     }
   ],
   "releaseMode": "dev-only-blocked-visual-acceptance",
-  "releaseStatus": "BLOCKED BEFORE RELEASE: attempting isolated GitHub-hosted diagnostic browser render, NOT Android acceptance; no OTA, main, web or production publication."
+  "releaseStatus": "Owner requested staging OTA for practical QA on 2026-11-13. Stage publishing is permitted only through isolated exact-source safety workflow; Android 0/8 visual acceptance and physical-device verification remain unverified; production/main/web prohibited."
 }
