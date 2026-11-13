@@ -9,6 +9,7 @@ import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import BuklodFeatureFinder from '@/components/BuklodFeatureFinder';
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodKingdomHubCard from '@/components/home/BuklodKingdomHubCard';
@@ -83,6 +84,7 @@ export default function BuklodLightHome() {
         </LinearGradient>
         {/* Desktop Home: approved paid ads share a persistent placement,
             independent of AdMob/legacy sidebar sponsors. */}
+        <BuklodFeatureFinder />
         <BuklodCommunitySponsoredAd audience="public" placement="home" />
         <Text style={{ color: theme.textPrimary, fontWeight: '900', fontSize: 16 }}>Quick Actions</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -181,6 +183,7 @@ export default function BuklodLightHome() {
     <ScrollView onScroll={event => reportBuklodDashboardScroll('home', event.nativeEvent.contentOffset.y)} scrollEventThrottle={64} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 28, gap: 8 }}>
       <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
+      <BuklodFeatureFinder />
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
           Old /home redirects here; do not bury QMP in the retired screen. */}
       {foreground ? (
