@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Himig Studio",
+    "slug": "himig-studio",
+    "version": "0.2.1",
+    "platforms": [
+      "web"
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "name": "Himig Studio"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "himigstudio"
+  }
+}

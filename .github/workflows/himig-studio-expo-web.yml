@@ -1,0 +1,110 @@
+name: Himig Studio - Standalone Expo Hosting
+
+on:
+  push:
+    branches:
+      - himig/expo-web-hosting-20261114
+    paths:
+      - 'himig-studio/**'
+      - '.github/workflows/himig-studio-expo-web.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: himig-expo-web-production
+  cancel-in-progress: false
+
+jobs:
+  build-test-and-deploy:
+    if: github.ref == 'refs/heads/himig/expo-web-hosting-20261114'
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    defaults:
+      run:
+        working-directory: himig-studio
+    steps:
+      - name: Checkout exact Himig branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: himig-studio/package-lock.json
+
+      - name: Install standalone project dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Prevent accidental BUKLOD project reuse
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const cfg=require('./app.json').expo;
+          const manifest=require('./package.json');
+          if(cfg.slug!=='himig-studio'||cfg.name!=='Himig Studio'||cfg.web?.output!=='static')throw Error('Not the standalone Himig Expo app');
+          if(!manifest.dependencies?.['expo-router'])throw Error('Expo Router required');
+          if(['23dad7d0-389a-406e-8dec-08965dab85d8','55d08013-cf5c-4d4a-9ecb-8d9e8e21e62c'].includes(cfg.extra?.eas?.projectId))throw Error('Protected BUKLOD project cannot be used');
+          console.log('HIMIG_IDENTITY=PASS, BUKLOD_PROJECTS=PROTECTED');
+          NODE
+
+      - name: Compile and type-check Expo Web
+        run: npm run check
+
+      - name: Verify actual accompaniment on short and 3m51s audio
+        run: node verify-worker.cjs
+
+      - name: Confirm existing Expo secret without printing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPO_TOKEN:-}" ]; then echo 'BLOCKER: repository EXPO_TOKEN unavailable'; exit 1; fi
+          npx --yes eas-cli@27.9.0 whoami --non-interactive
+
+      - name: Create separate Himig EAS project under existing Expo account
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 project:init --account faust_0612 --non-interactive
+          node <<'NODE'
+          const fs=require('fs');
+          const cfg=JSON.parse(fs.readFileSync('app.json','utf8')).expo;
+          const id=cfg.extra?.eas?.projectId;
+          if(cfg.slug!=='himig-studio'||!id)throw Error('Missing unique Himig EAS project identity');
+          if(['23dad7d0-389a-406e-8dec-08965dab85d8','55d08013-cf5c-4d4a-9ecb-8d9e8e21e62c'].includes(id))throw Error('REFUSE BUKLOD project mutation');
+          console.log('HIMIG_EXPO_PROJECT_ID='+id);
+          NODE
+
+      - name: Publish only Himig Studio to Expo Hosting
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 deploy --prod --non-interactive --dev-domain himig-studio --export-dir dist 2>&1 | tee "$RUNNER_TEMP/himig-deploy.log"
+          URL=$(grep -Eo 'https://[A-Za-z0-9.-]+[.]expo[.]app' "$RUNNER_TEMP/himig-deploy.log" | tail -n1 || true)
+          if [ -z "$URL" ]; then echo 'BLOCKER: No verifiable Expo URL in deployment output'; exit 1; fi
+          printf 'HIMIG_EXPO_URL=%s\n' "$URL"
+          echo "HIMIG_EXPO_URL=$URL" >> "$GITHUB_ENV"
+
+      - name: Verify deployed Expo site and bundled audio worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${HIMIG_EXPO_URL:-}"
+          curl --fail --silent --show-error --location --retry 3 --max-time 25 "$HIMIG_EXPO_URL/" -o "$RUNNER_TEMP/himig-live.html"
+          test -s "$RUNNER_TEMP/himig-live.html"
+          grep -Eq 'Himig Studio|_expo/static/' "$RUNNER_TEMP/himig-live.html"
+          curl --fail --silent --show-error --location --retry 3 --max-time 25 "$HIMIG_EXPO_URL/audio-worker.js" -o "$RUNNER_TEMP/himig-live-worker.js"
+          test "$(wc -c < "$RUNNER_TEMP/himig-live-worker.js")" -gt 5000
+          echo 'EXPO_HOSTING_RUNTIME_SMOKE=PASS'
+
+      - name: Explicit production isolation statement
+        if: always()
+        run: echo 'No BUKLOD Android OTA, native release, Main production web, Supabase, or production repo branch was modified.'
