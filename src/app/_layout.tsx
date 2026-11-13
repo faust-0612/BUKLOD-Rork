@@ -321,6 +321,7 @@ function RootLayout() {
                 <Stack.Screen name="bayanihan/index" />
                 <Stack.Screen name="bayanihan/guide" />
                 <Stack.Screen name="preferences/language" />
+                <Stack.Screen name="settings/index" />
 {/* PATCH_155BC_NEW_ROUTES */}
                 <Stack.Screen name="mentoring/index" />
                 <Stack.Screen name="reels/index" />
