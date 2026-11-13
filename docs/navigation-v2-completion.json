@@ -1,0 +1,163 @@
+{
+  "schema": "buklod-navigation-v2-completion-v1",
+  "objective": "Modern, fast, compact and intuitive BUKLOD with production-mirrored staging first; no regressions or missing mandatory UX features.",
+  "releaseOrder": [
+    "isolated-dev",
+    "verified-rc",
+    "staging-user",
+    "owner-approval",
+    "web-and-production-android"
+  ],
+  "protectedProduction": true,
+  "sourceBaseSha": "a43e1813d62a151e8294a52989a80fe21b36057c",
+  "policy": "A status is VERIFIED only after evidence. In-progress code does not count as release-ready. Staging parity requires independent live/installed artifact proof; production and web are prohibited until approval.",
+  "requirements": [
+    {
+      "id": "staging-parity",
+      "title": "Verified live/staging source, native identity and installed OTA parity",
+      "status": "pending",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "feature-inventory",
+      "title": "Canonical route/feature inventory including disabled and role-restricted paths",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "technical-guard",
+      "title": "Fail-closed completion and staging identity release guard",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "profile-settings",
+      "title": "Permanent non-hideable Settings gear and grouped settings",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "home-finder",
+      "title": "Offline task-oriented feature finder with simple Filipino/English synonyms",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "compact-home",
+      "title": "Replace excessive Home card/padding weight without hiding essential actions",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "compact-profile",
+      "title": "Simplify Profile quick actions and redundant feature doors",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "naming",
+      "title": "Canonical Home/Drawer/Focus Apps/Community labels and explanations",
+      "status": "pending",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "contextual-menus",
+      "title": "Contextual overflow menus and optional bottom sheets",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "gesture-shortcuts",
+      "title": "Long-press and swipe shortcuts with visible accessible alternatives",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "motion",
+      "title": "Low-cost, reduced-motion-aware navigation and card transitions",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "responsive-font",
+      "title": "OS-scaled readable inputs across all key forms and composers",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "ime-media",
+      "title": "Native keyboard GIF direct-to-current-composer with safe fallback and preview",
+      "status": "pending",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "back-state",
+      "title": "Correct Back, deep links, scroll, scope, draft and media state restoration",
+      "status": "pending",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "action-feedback",
+      "title": "Nonblocking success/error/retry and safe undo feedback",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "offline-recovery",
+      "title": "Offline/cached navigation, draft recovery, empty/loading/error states",
+      "status": "pending",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "favorites",
+      "title": "Privacy-safe favorites/recent activities, safe Continue destinations",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "first-use-help",
+      "title": "Dismissible contextual hints and separate searchable Help",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "scope-accessibility",
+      "title": "Role-aware workspace identity, TalkBack, contrast, font and tap QA",
+      "status": "in_progress",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "regression-suite",
+      "title": "Functional, security, ads, media, Connect and performance regression suite",
+      "status": "pending",
+      "evidence": [],
+      "blockRelease": true
+    },
+    {
+      "id": "verified-staging-release",
+      "title": "Signed exact-source staging APK/OTA and verified installed behavior",
+      "status": "pending",
+      "evidence": [],
+      "blockRelease": true
+    }
+  ]
+}

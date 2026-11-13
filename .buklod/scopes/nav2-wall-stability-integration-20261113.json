@@ -1,0 +1,205 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nav2-wall-stability-integration-20261113.json",
+  "objective": "Integrate the exact existing Navigation 2.0 and Wall/Marites stability DEV deltas on canonical main without modifying functionality outside their already green independently tested scopes; hold all stages until compiled Android RC and 21-item staging parity acceptance.",
+  "baseRef": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
+  "productionBaselineEvidence": "Publisher-side production source a43e1813d62a151e8294a52989a80fe21b36057c, runtime 1.3.2, production OTA 01a1d2d6-bae3-74df-bbf4-2bdd9df35215 via run 43355306642. Current main 9f412afd adds staging-only APK mirror workflow. Signed source-mirror staging APK EAS build 9c0eb308-9a8e-4f34-a5f4-798ae556b7b0 and artifact 14016812505 were verified in run 43378875900; physical installed app, preview backend, modernized Android RC and actual OTA update acceptance are NOT VERIFIED.",
+  "chosenApproach": "Preserve every non-scope main blob, overlay exact non-manifest blob SHA identities from green Navigation V2 head 73c473caa4ebc139be4b231d3097760fe5c246e5 (49 paths) and green Wall/Marites stability head dc85ce6ed7bc46a1f314885b6fb1d2739e38dcb2 (4 paths) with no overlaps; add one consolidated V2 scope manifest and cross-feature behavioral integration test. Freeze as DEV candidate only, no release.",
+  "selectionRationale": "One independent exact-source candidate establishes compile and regression compatibility without whole-merging source branch history, overwriting signed staging mirror changes, duplicating routes or modifying code already fixed in main. The source is a readiness candidate, not a deployment artifact.",
+  "alternativeApproaches": [
+    "Independently merge #783 and #784 sequentially into main before cross-feature verification (rejected: risks automatic release triggers and unverified physical Android behavior).",
+    "Continue two fully separate PRs without ever testing combined source (rejected: cannot prove a single future RC behaves coherently).",
+    "Incorporate unverified SALIKSIK #780 backend migrations in the navigation release (rejected: unrelated RLS/points/feature flags and costly unsafe release dependencies)."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "staging-release",
+    "privacy",
+    "accessibility",
+    "offline",
+    "account-isolation",
+    "feature-discovery",
+    "release-identity",
+    "connect",
+    "ads-monetization",
+    "auth-privacy",
+    "faith-cluster",
+    "android-oom",
+    "wall-video",
+    "marites-viewability",
+    "offscreen-decoder",
+    "wall-media"
+  ],
+  "preserveBehaviors": [
+    "Canonical Home /hub, Cluster /clusters, Wall /buklod, Connect /messages, Profile /me routes and existing one-tap nav stay unchanged.",
+    "Original Profile overflow, customization sections and personal progress retained; permanent Settings gear cannot be hidden in custom layout.",
+    "Existing authorization and entitlement guards remain authoritative; feature finder indexes only public/personal destinations, not private content/admin features.",
+    "AdMob placements, Wall/Marites video and photo, PTT, Call, native GIF share restoration, Connect chat, notifications, points/QMP/finance and Supabase RLS remain unchanged.",
+    "Live production and production web unchanged; no native runtime/dependency, package, backend or signing changes; staging candidate requires independent identity verification.",
+    "Profile and Home existing passive/first-view/native sponsored ad placements remain intact and unaffected by new Navigation V2 components, validated by focused ad regression contract.",
+    "Existing active CommunityVideo/IMA player, buffering, poster, sound, retry, PTT coexistence and preloading policies remain unchanged.",
+    "Marites only autoplays while the card is actually visible and Wall video is not active; story viewer retains direct video playback.",
+    "AdMob native/banner lifecycle, placements, consent, impressions and safety locks remain unchanged.",
+    "FlashList virtualization, scroll position, pagination, caption/music creation, notification routing and signed media URLs remain untouched.",
+    "No changes to Supabase, RLS, permissions, security, billing or production release tooling.",
+    "Fullscreen Marites story audio may play when a Wall inline video's visibility token remains stale; opening the viewer pauses the Wall player, closing restores it. Preserve current video engine, cache and AdMob.",
+    "Original staging-user APK builder, EAS preview environment, Firebase registration and downloaded signed live-mirror APK remain untouched.",
+    "Existing Wall active video engine, IMA/AdMob ads, media loading, Connect/PTT, KL/offline, QMP finance/RLS security and retired IGPAT exclusion stay in their existing domains."
+  ],
+  "acceptanceChecks": [
+    "All 53 non-manifest component source/test/document blobs match their originating exact SHA from Nav and Wall green DEV heads; no file conflict or silent content pick.",
+    "App integration respects canonical five tabs, existing Nav Settings/feature finder/gestures/keyboard contracts, and Wall/Marites video priority + 96ms coalescing.",
+    "Existing 15 Navigation-focused regression tests, Wall fake-clock/viewer tests, and new integration tests all run and pass with exact source TypeScript + integration CI.",
+    "The existing 21 Navigation items remain the sole release checklist; no item is marked VERIFIED by integrating code without installed acceptance.",
+    "Staging-only workflow remains manual/default-deny, no web or production OTA jobs triggered and no runtime/native dependency is added.",
+    "Signed installed staging binary, preview backend QA, Android native compiled RC, Infinix 30/60min media/ad memory proof and separate owner approval are still required."
+  ],
+  "regressionTests": [
+    "tests/navigation-v2-ads-preservation.test.mjs",
+    "tests/navigation-v2-auth-inputs.test.mjs",
+    "tests/navigation-v2-bottom-fontscale.test.mjs",
+    "tests/navigation-v2-compact-home-profile.test.mjs",
+    "tests/navigation-v2-connect-fontscale.test.mjs",
+    "tests/navigation-v2-context-menu.test.mjs",
+    "tests/navigation-v2-favorites.test.mjs",
+    "tests/navigation-v2-feature-search.test.mjs",
+    "tests/navigation-v2-help-motions.test.mjs",
+    "tests/navigation-v2-route-audit.test.mjs",
+    "tests/navigation-v2-scoped-icons.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs",
+    "tests/navigation-v2-staging-gate.test.mjs",
+    "tests/navigation-v2-staging-release.test.mjs",
+    "tests/navigation-v2-typography.test.mjs",
+    "tests/marites-wall-scroll-video-navigation-20261113.test.mjs",
+    "tests/nav2-wall-stability-integration-20261113.test.mjs"
+  ],
+  "allowedPaths": [
+    ".github/workflows/navigation-v2-staging-ota.yml",
+    "docs/navigation-v2-completion.json",
+    "docs/navigation-v2-feature-inventory.md",
+    "docs/navigation-v2-staging-release.md",
+    "release/navigation-v2-staging-evidence.json",
+    "scripts/navigation-v2-route-audit.mjs",
+    "scripts/navigation-v2-staging-gate.mjs",
+    "src/app/(auth)/login.tsx",
+    "src/app/(auth)/register.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/_layout.tsx",
+    "src/app/account/personal-information.tsx",
+    "src/app/account/recovery-pin.tsx",
+    "src/app/account/security.tsx",
+    "src/app/drawer/index.tsx",
+    "src/app/drawer/quick-note.tsx",
+    "src/app/feedback/index.tsx",
+    "src/app/scope/index.tsx",
+    "src/app/settings/index.tsx",
+    "src/app/settings/navigation-help.tsx",
+    "src/app/support/live.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodFeatureFinder.tsx",
+    "src/components/BuklodNavigationContextSheet.tsx",
+    "src/components/BuklodPersistentBottomNav.tsx",
+    "src/components/BuklodProfileGlassCard.tsx",
+    "src/components/connect/ConnectComposer.tsx",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
+    "src/lib/buklodAdaptiveInput.ts",
+    "src/lib/buklodNavTypography.ts",
+    "src/lib/buklodNavigationV2.ts",
+    "src/lib/buklodPinnedNavigation.ts",
+    "src/lib/buklodSafeArea.ts",
+    "tests/navigation-v2-ads-preservation.test.mjs",
+    "tests/navigation-v2-auth-inputs.test.mjs",
+    "tests/navigation-v2-bottom-fontscale.test.mjs",
+    "tests/navigation-v2-compact-home-profile.test.mjs",
+    "tests/navigation-v2-connect-fontscale.test.mjs",
+    "tests/navigation-v2-context-menu.test.mjs",
+    "tests/navigation-v2-favorites.test.mjs",
+    "tests/navigation-v2-feature-search.test.mjs",
+    "tests/navigation-v2-help-motions.test.mjs",
+    "tests/navigation-v2-route-audit.test.mjs",
+    "tests/navigation-v2-scoped-icons.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs",
+    "tests/navigation-v2-staging-gate.test.mjs",
+    "tests/navigation-v2-staging-release.test.mjs",
+    "tests/navigation-v2-typography.test.mjs",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/lib/buklodMaritesViewportMeasure.ts",
+    "tests/marites-wall-scroll-video-navigation-20261113.test.mjs",
+    ".buklod/scopes/nav2-wall-stability-integration-20261113.json",
+    "tests/nav2-wall-stability-integration-20261113.test.mjs",
+    "docs/release/BUKLOD_NAV2_WALL_STABILITY_INTEGRATION_20261113.md"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add small, isolated Profile Settings and Home feature discovery surfaces without changing content data, routing contracts or media lifecycles. Introduce bounded Marites viewport measurement scheduling for low-memory Android under scroll stress.",
+      "preservedBehaviors": [
+        "Home, Wall, Connect, media, account sign-in and all existing app routes retain their current behavior.",
+        "Keep existing runtime, data access and all unrelated application features."
+      ],
+      "tests": [
+        "tests/navigation-v2-settings-route.test.mjs",
+        "tests/navigation-v2-feature-search.test.mjs",
+        "tests/navigation-v2-compact-home-profile.test.mjs",
+        "tests/navigation-v2-typography.test.mjs",
+        "tests/navigation-v2-favorites.test.mjs",
+        "tests/navigation-v2-help-motions.test.mjs",
+        "tests/navigation-v2-ads-preservation.test.mjs",
+        "tests/navigation-v2-auth-inputs.test.mjs",
+        "tests/navigation-v2-scoped-icons.test.mjs",
+        "tests/navigation-v2-context-menu.test.mjs",
+        "tests/navigation-v2-bottom-fontscale.test.mjs",
+        "tests/marites-wall-scroll-video-navigation-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Preserve canonical stack and protected navigation while adding a nonhideable settings route with existing session/role guards. Touch the Wall host component only to pass active viewer and focus state to Marites playbackBlocked.",
+      "preservedBehaviors": [
+        "Auth/session, old Profile overflow, bottom tabs and data permission boundaries remain unchanged.",
+        "Preserve canonical Wall navigation, active scope, Android Back, feed refresh and route security."
+      ],
+      "tests": [
+        "tests/navigation-v2-settings-route.test.mjs",
+        "tests/navigation-v2-route-audit.test.mjs",
+        "tests/navigation-v2-auth-inputs.test.mjs",
+        "tests/navigation-v2-bottom-fontscale.test.mjs",
+        "tests/marites-wall-scroll-video-navigation-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add a manual, staging-only Android OTA lane that explicitly checks exact RC, installed APK, preview backend and isolation from the production channel before publishing.",
+      "preservedBehaviors": [
+        "Existing production OTA and web release workflows, triggers and identities remain untouched; no release executed by adding workflow code."
+      ],
+      "tests": [
+        "tests/navigation-v2-staging-release.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Give Cluster/Organization scoped Home Community Connect navigation visible accessible icons while keeping scope permission gates and back behavior unchanged.",
+      "preservedBehaviors": [
+        "Existing authorized scope resolution, role and membership checks, exact context back behavior and message/post permissions remain unchanged."
+      ],
+      "tests": [
+        "tests/navigation-v2-scoped-icons.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Prevent overlapping Marites and Wall autoplay decoders while preserving active Wall/Marites media behavior.",
+      "preservedBehaviors": [
+        "Maintain full-screen, audio, retries, caching, native ads and user-selected video play."
+      ],
+      "tests": [
+        "tests/marites-wall-scroll-video-navigation-20261113.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "integrated-dev-candidate-no-publish",
+  "releaseStatus": "Source-only DEV integration; do NOT mark 21/21, publish staging-user OTA, web or production."
+}
