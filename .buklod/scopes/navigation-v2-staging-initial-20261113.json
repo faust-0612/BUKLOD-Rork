@@ -1,0 +1,80 @@
+{
+  "contractVersion": 2,
+  "objective": "Start BUKLOD Navigation 2.0 on current canonical main, ensure staging-user mirrors verified live runtime/source before any modernization release, implement the first permanent Settings and offline feature finder, and enforce a fail-closed 21-requirement acceptance matrix before staging release.",
+  "baseRef": "a43e1813d62a151e8294a52989a80fe21b36057c",
+  "productionBaselineEvidence": "GitHub main a43e1813d62a151e8294a52989a80fe21b36057c inspected on 2026-11-13; older staging-user main APK branch 333 commits behind, other staging branches diverged. Latest Nov13 production marker confirms compiled RC source, not actual live OTA verification. Exact installed production and staging app/version/runtime/update ID not independently accessible; no claim that current main equals live OTA or installed staging.",
+  "chosenApproach": "Create isolated branch from exact current main, never merge old staging branch. Introduce visible independent profile Settings gear, categorized Settings route and offline text search over allowlisted public/personal feature destinations. Add a mandatory checked 21-row completion matrix and explicit live-to-staging installed-artifact identity gate requiring exact RC and fresh evidence. Do not alter installed staging, Supabase, existing five tab nav, production app, or web.",
+  "selectionRationale": "Small additive UX entrypoints immediately reduce buried navigation while preserving navigation and backend. The gate prevents an unfinished, non-mirrored or unverified staging update being declared ready; backend and runtime parity must be attested separately. Only actual verified source/installed artifact counts.",
+  "alternativeApproaches": [
+    "Force-reset or whole-merge old staging-user branches (rejected: stale/diverged history would overwrite live features).",
+    "Publish incomplete NAV V2 immediately to production OTA or Web (rejected: user requires verified staging first, anti-regression and approval gates).",
+    "Replace all navigation and content panels at once (rejected: unstable media state, excessive regression surface and expensive QA)."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "staging-release",
+    "privacy",
+    "accessibility",
+    "offline",
+    "account-isolation",
+    "feature-discovery"
+  ],
+  "preserveBehaviors": [
+    "Canonical Home /hub, Cluster /clusters, Wall /buklod, Connect /messages, Profile /me routes and existing one-tap nav stay unchanged.",
+    "Original Profile overflow, customization sections and personal progress retained; permanent Settings gear cannot be hidden in custom layout.",
+    "Existing authorization and entitlement guards remain authoritative; feature finder indexes only public/personal destinations, not private content/admin features.",
+    "AdMob placements, Wall/Marites video and photo, PTT, Call, native GIF share restoration, Connect chat, notifications, points/QMP/finance and Supabase RLS remain unchanged.",
+    "Live production and production web unchanged; no native runtime/dependency, package, backend or signing changes; staging candidate requires independent identity verification."
+  ],
+  "acceptanceChecks": [
+    "New Settings gear always visible in Profile independent of customizable sections and opens categorized Settings with readable native-scaled rows.",
+    "Home feature finder appears in both native and desktop Home and searches locally with common Tagalog/English aliases without exposing retired/admin destinations.",
+    "Actual regression and access tests pass on frozen exact-source RC, not just source assertions.",
+    "The 21 mandatory checklist requirements can only be VERIFIED with specific evidence URLs; incomplete checklists never pass staging release.",
+    "Staging release gate compares independently verified live source to staging mirrored baseline, exact RC SHA, package, channel, runtime, EAS environment, installed APK and actual OTA update, backend parity, QA and device acceptance.",
+    "Do not publish OTA to staging, production Android or web until verified staging RC and compatibility gates are satisfied."
+  ],
+  "regressionTests": [
+    "tests/navigation-v2-staging-gate.test.mjs",
+    "tests/navigation-v2-feature-search.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/navigation-v2-staging-initial-20261113.json",
+    "src/app/settings/index.tsx",
+    "src/lib/buklodNavigationV2.ts",
+    "src/components/BuklodFeatureFinder.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/_layout.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "scripts/navigation-v2-staging-gate.mjs",
+    "docs/navigation-v2-completion.json",
+    "tests/navigation-v2-staging-gate.test.mjs",
+    "tests/navigation-v2-feature-search.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add small, isolated Profile Settings and Home feature discovery surfaces without changing content data, routing contracts or media lifecycles.",
+      "preservedBehaviors": [
+        "Home, Wall, Connect, media, account sign-in and all existing app routes retain their current behavior."
+      ],
+      "tests": [
+        "tests/navigation-v2-settings-route.test.mjs",
+        "tests/navigation-v2-feature-search.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Preserve canonical stack and protected navigation while adding a nonhideable settings route with existing session/role guards.",
+      "preservedBehaviors": [
+        "Auth/session, old Profile overflow, bottom tabs and data permission boundaries remain unchanged."
+      ],
+      "tests": [
+        "tests/navigation-v2-settings-route.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "ISOLATED_DEV__STAGING_BLOCKED_UNTIL_ALL_REQUIREMENTS_VERIFIED"
+}
