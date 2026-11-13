@@ -160,7 +160,7 @@ export default function BuklodTodayCard(){
   <View style={s.head}>
    <View style={{flex:1}}>
     <Text style={s.eyebrow}>BUKLOD TODAY • COMMUNITY TIPS</Text>
-    <Text style={s.sub}>{tip.category.replace(/_/g,' ')} · Papalitan pag 3 araw na walang activity</Text>
+    <Text style={s.sub}>{tip.category.replace(/_/g,' ')}</Text>
    </View>
    <MaterialCommunityIcons name="heart-pulse" size={23} color="#17644B"/>
   </View>
