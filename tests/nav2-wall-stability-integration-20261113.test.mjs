@@ -36,7 +36,7 @@ test('combined UI retains canonical navigation, accessibility and native ads wit
   const bottom=fs.readFileSync(new URL('../src/components/BuklodPersistentBottomNav.tsx',import.meta.url),'utf8');
   const profile=fs.readFileSync(new URL('../src/app/(tabs)/me.tsx',import.meta.url),'utf8');
   const finder=fs.readFileSync(new URL('../src/components/BuklodFeatureFinder.tsx',import.meta.url),'utf8');
-  assert.match(bottom,/fontScale|getBuklodNavTypographyExtraHeight/);
+  assert.match(bottom,/<Text allowFontScaling numberOfLines=\{2\}/);
   assert.match(profile,/settings|Settings/);
   assert.match(finder,/Search|search/);
   assert.match(wall,/onViewerVisibilityChange=\{setMaritesViewerOpen\}/);

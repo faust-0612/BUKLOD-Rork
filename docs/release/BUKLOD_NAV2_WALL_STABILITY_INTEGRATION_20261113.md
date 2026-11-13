@@ -7,7 +7,7 @@
 - Main baseline: `9f412afd71b74e41995a3a1a63e05e72f78b6e39`, whose newest change is only the separate signed staging APK mirror workflow fix.
 - Navigation existing PR: [#783](https://github.com/faust-0612/BUKLOD-Rork/pull/783) `73c473caa4ebc139be4b231d3097760fe5c246e5`; 50 PR paths, of which 49 non-manifest blobs are copied byte-identically into this candidate.
 - Stability existing PR: [#784](https://github.com/faust-0612/BUKLOD-Rork/pull/784) `dc85ce6ed7bc46a1f314885b6fb1d2739e38dcb2`; 5 PR paths, of which 4 non-manifest blobs are copied byte-identically.
-- **No overlapping paths**, no overwritten unrelated main files. One combined V2 engineering scope and one new focused cross-feature regression suite replace the two isolated PR manifests in this integrated DEV candidate.
+- **No overlapping product paths**, no overwritten unrelated main files. One combined V2 engineering scope and one new focused cross-feature regression suite replace the two isolated PR manifests in this integrated DEV candidate. Exactly one inherited Navigation ads regression test reads the combined manifest instead of its standalone #783 scope (test-harness-only compatibility change); all product blobs stay exact.
 - SALIKSIK authoritative [PR #780](https://github.com/faust-0612/BUKLOD-Rork/pull/780) remains a **separate, disabled** backend domain/release; no SQL/points migration included.
 
 ## What must be tested on this candidate before promotion

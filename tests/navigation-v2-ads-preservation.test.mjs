@@ -15,7 +15,9 @@ test('Profile ads remain mounted and UX additions do not change AdMob policy',()
   assert.match(profile,/BuklodFirstViewAd placement="profile" placementId="profile_first_view"/);
   assert.match(profile,/BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native"/);
   assert.match(profile,/BuklodScreenBottomBanner placement="profile" variant="large"/);
-  const scope=read('.buklod/scopes/navigation-v2-staging-initial-20261113.json');
+  // This integrated DEV candidate has a single V2 scope; the original
+  // standalone Navigation #783 manifest stays with its original PR.
+  const scope=read('.buklod/scopes/nav2-wall-stability-integration-20261113.json');
 
   assert.ok(!scope.includes('src/providers/AdsProvider'));
 
