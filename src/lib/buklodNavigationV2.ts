@@ -16,6 +16,7 @@ export const BUKLOD_FEATURE_LINKS: readonly BuklodFeatureLink[] = [
   { id: 'drawer', title: 'My Drawer', route: '/drawer', aliases: ['files', 'notes', 'scan', 'saved', 'documents', 'dokumento'] },
   { id: 'health', title: 'Health Center', route: '/profile/buklod-health', aliases: ['health', 'consult', 'kalusugan', 'doktor'] },
   { id: 'support', title: 'Live Support', route: '/support/live', aliases: ['tulong', 'help', 'problema', 'report issue', 'bsoc'] },
+  { id: 'guide', title: 'How to use BUKLOD', route: '/settings/navigation-help', aliases: ['paano gamitin', 'navigation', 'tutorial', 'guide', 'how to', 'find features'] },
   { id: 'notification', title: 'Notifications', route: '/notifications', aliases: ['abiso', 'alert', 'update'] },
   { id: 'privacy', title: 'Privacy', route: '/privacy', aliases: ['privacy', 'pribado', 'lock'] },
 ];
