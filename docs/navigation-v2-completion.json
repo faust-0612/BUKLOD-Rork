@@ -50,14 +50,14 @@
     {
       "id": "compact-home",
       "title": "Replace excessive Home card/padding weight without hiding essential actions",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },
     {
       "id": "compact-profile",
       "title": "Simplify Profile quick actions and redundant feature doors",
-      "status": "pending",
+      "status": "in_progress",
       "evidence": [],
       "blockRelease": true
     },
