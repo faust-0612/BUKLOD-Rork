@@ -91,11 +91,6 @@ import {
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const QUICK_ACTION_WIDTH = 118;
-const QUICK_ACTION_GAP = 8;
-const QUICK_ACTION_SNAP_INTERVAL =
-  QUICK_ACTION_WIDTH + QUICK_ACTION_GAP;
-
 type QuickActionItem = {
   key: string;
   icon: IconName;
@@ -112,28 +107,16 @@ function ProfileQuickActionsStrip({
   styles: ReturnType<typeof createMeStyles>;
   theme: ReturnType<typeof useBuklodTheme>['theme'];
 }) {
-  // BuklodPressable already cancels drag gestures. Never hold a disabled
-  // button state after a short horizontal scroll without momentum.
+  // BUKLOD_NAV_V2_COMPACT_QUICK_ACTIONS: all options visible; no hidden horizontal strip.
   return (
-    <ScrollView
-      horizontal
-      nestedScrollEnabled
-      directionalLockEnabled
-      showsHorizontalScrollIndicator={false}
-      decelerationRate="fast"
-      disableIntervalMomentum
-      snapToInterval={QUICK_ACTION_SNAP_INTERVAL}
-      snapToAlignment="start"
-      scrollEventThrottle={16}
-      contentContainerStyle={styles.quickRow}
-    >
+    <View style={styles.quickRow}>
       {items.map((item, index) => (
         <ProfileMotionFadeUp
           key={item.key}
-          delay={35 + index * 35}
-          duration={240}
-          fromY={10}
-          fromOpacity={0.78}
+          delay={30 + index * 30}
+          duration={190}
+          fromY={6}
+          fromOpacity={0.82}
         >
           <ProfilePressable
             accessibilityRole="button"
@@ -142,18 +125,12 @@ function ProfileQuickActionsStrip({
             onPress={item.onPress}
             style={styles.quickAction}
           >
-            <MaterialCommunityIcons
-              name={item.icon}
-              size={18}
-              color={theme.accent}
-            />
-            <Text numberOfLines={1} style={styles.quickLabel}>
-              {item.label}
-            </Text>
+            <MaterialCommunityIcons name={item.icon} size={20} color={theme.accent} />
+            <Text allowFontScaling numberOfLines={2} style={styles.quickLabel}>{item.label}</Text>
           </ProfilePressable>
         </ProfileMotionFadeUp>
       ))}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -2125,27 +2102,28 @@ function createMeStyles(
     },
     quickRow: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       alignItems: 'stretch',
       gap: 8,
       paddingRight: 4,
     },
     quickAction: {
-      width: QUICK_ACTION_WIDTH,
-      minWidth: QUICK_ACTION_WIDTH,
-      minHeight: 48,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
+      width: 100,
+      minWidth: 90,
+      minHeight: 58,
+      paddingHorizontal: 7,
+      paddingVertical: 8,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 6,
+      gap: 4,
       borderWidth: 1,
       borderColor: withAlpha(theme.border, 0.88),
       borderRadius: 14,
       backgroundColor: withAlpha(theme.cardSurface, 0.72),
     },
     quickLabel: {
-      fontSize: 12,
-      lineHeight: 15,
+      fontSize: 13,
+      lineHeight: 17,
       fontWeight: '800',
       textAlign: 'center',
       color: theme.textPrimary,
