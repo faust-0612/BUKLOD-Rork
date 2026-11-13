@@ -62,6 +62,16 @@ jobs:
           assert.equal(cfg.updates.url,'https://u.expo.dev/23dad7d0-389a-406e-8dec-08965dab85d8');
           assert.match(cfg.android.googleServicesFile,/google-services\.staging\.json/);
           NODE
+      - name: Verify exact November 13 live production runtime source parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          # One-time 2026-11-13 staging mirror: a workflow/test-only merge may
+          # change the Git commit SHA, but not any source/asset/native bytes.
+          LIVE_PUBLISHED_SHA=a43e1813d62a151e8294a52989a80fe21b36057c
+          git merge-base --is-ancestor "$LIVE_PUBLISHED_SHA" "$GITHUB_SHA"
+          git diff --exit-code "$LIVE_PUBLISHED_SHA" HEAD -- src assets plugins android ios app.config.js eas.json package.json package-lock.json
+          echo 'Verified staging source/runtime tree matches Android OTA published on 2026-11-13 (EAS update 01a1d2d6-bae3-74df-bbf4-2bdd9df35215)'
       - name: Set up Node 22
         uses: actions/setup-node@v4
         with:
@@ -231,7 +241,12 @@ jobs:
           const b=Array.isArray(d)?d[0]:d;
           if(String(b.status).toLowerCase()!=='finished') throw Error('Build did not finish');
           const url=b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl;
-          if(!url || !/^https:\\/\\//.test(url)) throw Error('No actual APK URL');
+          if (typeof url !== 'string') throw Error('No actual APK URL');
+          const apk = new URL(url);
+          if (apk.protocol !== 'https:' || apk.hostname !== 'expo.dev' ||
+              !apk.pathname.toLowerCase().endsWith('.apk')) {
+            throw Error('Staging APK must be an HTTPS expo.dev .apk artifact');
+          }
           fs.writeFileSync('/tmp/staging-apk-url',url);
           NODE
           mkdir -p staging-apk
