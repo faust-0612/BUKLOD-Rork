@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -73,6 +74,7 @@ export default function BuklodCommunityCommentComposer({
   onSend,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
   const drawerBottomInset = useBuklodDrawerBottomInset();
   const [reactionOpen, setReactionOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
@@ -221,7 +223,7 @@ export default function BuklodCommunityCommentComposer({
       groupId={groupId}
       excludeUserId={excludeUserId}
       placeholder={placeholder}
-      style={styles.input}
+      style={[styles.input, { maxHeight: Math.max(150, Math.min(320, 150 * fontScale)) }]}
       focusRef={inputFocusRef}
       maxLength={2000}
       disabled={busy}
