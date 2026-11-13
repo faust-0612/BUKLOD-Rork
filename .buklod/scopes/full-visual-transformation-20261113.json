@@ -4,7 +4,7 @@
   "objective": "Implement the owner-authorized coherent premium visual transformation across eight BUKLOD UI areas on isolated DEV; block staging OTA until actual rendered visual and functional acceptance is available.",
   "baseRef": "6b0f7e3167867bb746e34da4637430f131b588bb",
   "productionBaselineEvidence": "Current GitHub main read as 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Existing integration scope records publisher-side production a43e1813 runtime 1.3.2; live production and installed staging parity are NOT independently verified in this session. No release is authorized from missing evidence.",
-  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures.",
+  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics.",
   "selectionRationale": "Targeted presentation composition preserves known functional implementations and dependencies; actual rendering is still required before acceptance or publication.",
   "alternativeApproaches": [
     "Replace screens wholesale: rejected due to high regression and authorization risk.",
@@ -23,7 +23,8 @@
     "Android export passes at final source, package/runtime/channel remain compatible.",
     "All eight real Android screenshots must exist and visually pass before a release; currently NOT VERIFIED.",
     "Role-sensitive runtime interactions and signed binary/backend parity must pass before staging publish.",
-    "Nonpublishing CI browser screenshots are diagnostics only; do not count redirects or web-only images as Android acceptance."
+    "Nonpublishing CI browser screenshots are diagnostics only; do not count redirects or web-only images as Android acceptance.",
+    "Real navigation side menu (not SmartDrawer), public-shell header and preview search access are wired and source tested; native visual acceptance remains pending."
   ],
   "riskAreas": [
     "wall-media",
@@ -64,7 +65,10 @@
     "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
     "tests/navigation-v2-settings-route.test.mjs",
     ".buklod/scopes/full-visual-transformation-20261113.json",
-    ".github/workflows/buklod-full-visual-web-smoke-20261113.yml"
+    ".github/workflows/buklod-full-visual-web-smoke-20261113.yml",
+    "src/app/(tabs)/_layout.tsx",
+    "src/components/BuklodNavigationSideMenu.tsx",
+    "tests/full-visual-navigation-side-menu-20261113.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
