@@ -90,32 +90,57 @@ export function inspectNavV2StagingRelease(checklist, evidence, expectedRcSha, n
   if (stage.deviceAcceptance !== 'passed' ||
       !proofUrl(stage.deviceEvidenceUrl))
     failures.push('Missing staging-user device acceptance evidence');
+  if (stage.updateSourceSha !== expectedRcSha || !stage.publishedRcUpdateId ||
+      stage.publishedRcUpdateId !== stage.otaUpdateId)
+    failures.push('Installed staging OTA does not attest the exact released RC update');
   return { ready: check.ready && failures.length === 0, failures, checklist: check };
+}
+
+/**
+ * PREPUBLISH phase deliberately excludes the post-publication acceptance item.
+ * It requires all other UX items verified, a recently confirmed live/staging
+ * baseline and an installed compatible staging binary before OTA. The separate
+ * POSTPUBLISH gate must then verify the actual installed RC update.
+ */
+export function inspectNavV2Prepublish(checklist, evidence, expectedRcSha, now = Date.now()) {
+  const check = inspectNavV2Checklist(checklist);
+  const remaining = check.unfinished.filter(id => id !== 'verified-staging-release');
+  const post = inspectNavV2StagingRelease(checklist, evidence, expectedRcSha, now);
+  const failures = post.failures.filter(message =>
+    !message.startsWith('Unverified requirements:') &&
+    message !== 'Installed staging OTA does not attest the exact released RC update'
+  );
+  if (remaining.length) failures.push('Prepublish requirements incomplete: ' + remaining.join(', '));
+  return { ready: failures.length === 0 && remaining.length === 0 && check.failures.length === 0,
+    failures, checklist: check, published: false };
 }
 
 function main() {
   const args = process.argv.slice(2);
   const release = args.includes('--release');
+  const prepublish = args.includes('--prepublish');
   const checklistPath = args.find(x => x.startsWith('--checklist='))?.slice(12) ??
     'docs/navigation-v2-completion.json';
   const checklist = JSON.parse(fs.readFileSync(checklistPath, 'utf8'));
   const expectedRcSha = args.find(x => x.startsWith('--commit='))?.slice(9) ?? '';
   const evidencePath = args.find(x => x.startsWith('--evidence='))?.slice(11);
   let result;
-  if (release) {
+  if (release || prepublish) {
     let evidence = null;
     if (evidencePath) evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
-    result = inspectNavV2StagingRelease(checklist, evidence, expectedRcSha);
+    result = prepublish
+      ? inspectNavV2Prepublish(checklist, evidence, expectedRcSha)
+      : inspectNavV2StagingRelease(checklist, evidence, expectedRcSha);
   } else {
     const check = inspectNavV2Checklist(checklist);
     result = { ...check, failures: check.failures, ready: false };
   }
   console.log(JSON.stringify({
-    mode: release ? 'staging-release' : 'implementation-inventory',
+    mode: prepublish ? 'staging-prepublish' : release ? 'staging-postpublish' : 'implementation-inventory',
     published: false, ...result,
     warning: 'Source/CI attestation cannot substitute for real installed-client verification.',
   }, null, 2));
-  if (release && !result.ready) process.exitCode = 1;
+  if ((release || prepublish) && !result.ready) process.exitCode = 1;
   else if (result.failures.length) process.exitCode = 1;
 }
 
