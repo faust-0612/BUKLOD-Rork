@@ -1,0 +1,65 @@
+{
+  "contractVersion": 2,
+  "objective": "When a user taps an Android keyboard GIF while writing a Public Wall comment, return the GIF directly to that same comment preview with Send available, removing the interrupting external-share alert.",
+  "baseRef": "9ff4f65d0db52b584d915493f67edaaed8bae369",
+  "productionBaselineEvidence": "GitHub main source 9ff4f65d0db52b584d915493f67edaaed8bae369 read at branch creation. Current device/native GIF dispatch, production OTA artifact and served release were not verified; this remains isolated DEV only.",
+  "chosenApproach": "Retain the latest comment post ID for up to five minutes in account-scoped AsyncStorage, then when expo-sharing receives an ACTION_SEND GIF, stage it and reopen the authorized post's existing comment drawer with a GIF preview and its manual Send action. Preserve the original comment RPC, media upload and reaction flows, and use a dismissible inline fallback when no target remains.",
+  "selectionRationale": "An incremental JS-only recovery path fixes the observed Gboard share-to-Wall dialog without requiring a new native IME bridge, changing Expo runtime, rewriting the composer, weakening post permissions, or publishing a GIF as a standalone Wall post.",
+  "alternativeApproaches": [
+    "Intercept Android IME commitContent using a custom native TextInput module: deferred, because it changes native binary compatibility and requires rebuilding and verifying the APK.",
+    "Auto-publish the GIF immediately on ACTION_SEND: rejected, because it can attach to the wrong post and bypass user review."
+  ],
+  "preserveBehaviors": [
+    "Existing Community Wall comment text, replies, mentions, private photo/GIF paths, 25MB limits and manual Send semantics remain unchanged.",
+    "Current Wall feed, ads, video audio lifecycle, Marites, offline/weak-signal states and bottom tab navigation remain intact.",
+    "Account isolation and authorization-enforced post detail lookup; no cross-account restore or guessed destination.",
+    "No changes to Supabase RLS, backend RPC, production OTA channel, Android native runtime or Play Store artifact."
+  ],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
+  "acceptanceChecks": [
+    "Android keyboard GIF selected from an active comment returns to that same comment drawer with animated preview, and Send remains user-controlled.",
+    "No blocking GIF ready for comment or GIF attached alerts in the active comment path.",
+    "If Android recreates the Wall Activity, restore target post using existing detail RPC and account-bound short-lived ID.",
+    "Wrong account, expired target or inaccessible post never causes cross-post auto-send; fallback requires explicit post selection.",
+    "Existing text/photo posting, media upload, GIF gallery picker, comment RPC, video rendering and ads remain unaffected.",
+    "Engineering Accountability and Performance CI gates pass; exact Android/Web compiled RC and device behavior require separate verification before production publication."
+  ],
+  "regressionTests": [
+    "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
+    "tests/buklod-keyboard-gif-direct-20261113.test.mjs",
+    "tests/buklod-keyboard-gif-navigation-20261113.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/keyboard-gif-comment-return-20261113.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/lib/buklodCommentGifTarget.ts",
+    "tests/buklod-phone-gif-comment-share-20261111.test.mjs",
+    "tests/buklod-keyboard-gif-direct-20261113.test.mjs",
+    "tests/buklod-keyboard-gif-navigation-20261113.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Retain the active public Wall comment destination while Android GIF shares may reinitialize the screen, without changing publishing or media code.",
+      "preservedBehaviors": [
+        "Original upload/comment RPC, user-generated text, feeds, ads, video players and user permissions are not modified."
+      ],
+      "tests": [
+        "tests/buklod-keyboard-gif-direct-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Reopen the exact authorized comment drawer instead of leaving the user on Wall or routing the GIF to the wrong post.",
+      "preservedBehaviors": [
+        "Existing signed-in routing, five-tab navigation, post access checks, privacy, and account switches remain enforced."
+      ],
+      "tests": [
+        "tests/buklod-keyboard-gif-navigation-20261113.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "DEV_SOURCE_ONLY__WAITING_ENGINEERING_AND_COMPILED_RC_GATES"
+}
