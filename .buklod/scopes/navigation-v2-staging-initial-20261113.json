@@ -38,45 +38,55 @@
     "Compact Home utility cards no longer require 216dp square boxes and Profile shortcuts wrap without hidden horizontal scrolling; reflow, large font and device tests still pending.",
     "Separate prepublish and postpublish gates avoid a circular dependency; staging OTA publication requires reviewed evidence, channel mapping isolation and explicit manual dispatch from exact source.",
     "OS font scale adjusts comment/Connect composer viewport height, preserves animated GIF and Send controls; native high-font Android device acceptance remains mandatory.",
-    "Offline feature finder pins a maximum of four known destinations only under account-scoped storage key; no admin or retired app URLs."
+    "Offline feature finder pins a maximum of four known destinations only under account-scoped storage key; no admin or retired app URLs.",
+    "The active source route tree is audited for every BUKLOD Settings / offline Search destination; missing routes block RC and staging.",
+    "Modern touch animations reuse reduced-motion-safe ProfilePressable; optional long-press shortcuts have visible star tap alternatives.",
+    "Short optional navigation help stays in dedicated screen, not forced onboarding or verbose Home instructions."
   ],
   "regressionTests": [
-    "tests/navigation-v2-staging-gate.test.mjs",
-    "tests/navigation-v2-feature-search.test.mjs",
-    "tests/navigation-v2-settings-route.test.mjs",
     "tests/navigation-v2-compact-home-profile.test.mjs",
-    "tests/navigation-v2-staging-release.test.mjs",
-    "tests/navigation-v2-typography.test.mjs",
+    "tests/navigation-v2-connect-fontscale.test.mjs",
     "tests/navigation-v2-favorites.test.mjs",
-    "tests/navigation-v2-connect-fontscale.test.mjs"
+    "tests/navigation-v2-feature-search.test.mjs",
+    "tests/navigation-v2-help-motions.test.mjs",
+    "tests/navigation-v2-route-audit.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs",
+    "tests/navigation-v2-staging-gate.test.mjs",
+    "tests/navigation-v2-staging-release.test.mjs",
+    "tests/navigation-v2-typography.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/navigation-v2-staging-initial-20261113.json",
-    "src/app/settings/index.tsx",
-    "src/lib/buklodNavigationV2.ts",
-    "src/components/BuklodFeatureFinder.tsx",
+    ".github/workflows/navigation-v2-staging-ota.yml",
+    "docs/navigation-v2-completion.json",
+    "docs/navigation-v2-feature-inventory.md",
+    "docs/navigation-v2-staging-release.md",
+    "release/navigation-v2-staging-evidence.json",
+    "scripts/navigation-v2-route-audit.mjs",
+    "scripts/navigation-v2-staging-gate.mjs",
+    "src/app/(tabs)/hub.tsx",
     "src/app/(tabs)/me.tsx",
     "src/app/_layout.tsx",
-    "src/app/(tabs)/hub.tsx",
-    "scripts/navigation-v2-staging-gate.mjs",
-    "docs/navigation-v2-completion.json",
-    "tests/navigation-v2-staging-gate.test.mjs",
-    "tests/navigation-v2-feature-search.test.mjs",
-    "tests/navigation-v2-settings-route.test.mjs",
-    "src/components/home/BuklodHomeUtilityCards.tsx",
-    "tests/navigation-v2-compact-home-profile.test.mjs",
-    ".github/workflows/navigation-v2-staging-ota.yml",
-    "release/navigation-v2-staging-evidence.json",
-    "docs/navigation-v2-staging-release.md",
-    "tests/navigation-v2-staging-release.test.mjs",
-    "src/lib/buklodAdaptiveInput.ts",
-    "src/lib/buklodPinnedNavigation.ts",
-    "src/components/BuklodProfileGlassCard.tsx",
+    "src/app/settings/index.tsx",
+    "src/app/settings/navigation-help.tsx",
     "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodFeatureFinder.tsx",
+    "src/components/BuklodProfileGlassCard.tsx",
     "src/components/connect/ConnectComposer.tsx",
-    "tests/navigation-v2-typography.test.mjs",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
+    "src/lib/buklodAdaptiveInput.ts",
+    "src/lib/buklodNavigationV2.ts",
+    "src/lib/buklodPinnedNavigation.ts",
+    "tests/navigation-v2-compact-home-profile.test.mjs",
+    "tests/navigation-v2-connect-fontscale.test.mjs",
     "tests/navigation-v2-favorites.test.mjs",
-    "tests/navigation-v2-connect-fontscale.test.mjs"
+    "tests/navigation-v2-feature-search.test.mjs",
+    "tests/navigation-v2-help-motions.test.mjs",
+    "tests/navigation-v2-route-audit.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs",
+    "tests/navigation-v2-staging-gate.test.mjs",
+    "tests/navigation-v2-staging-release.test.mjs",
+    "tests/navigation-v2-typography.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -90,7 +100,8 @@
         "tests/navigation-v2-feature-search.test.mjs",
         "tests/navigation-v2-compact-home-profile.test.mjs",
         "tests/navigation-v2-typography.test.mjs",
-        "tests/navigation-v2-favorites.test.mjs"
+        "tests/navigation-v2-favorites.test.mjs",
+        "tests/navigation-v2-help-motions.test.mjs"
       ]
     },
     {
@@ -100,7 +111,8 @@
         "Auth/session, old Profile overflow, bottom tabs and data permission boundaries remain unchanged."
       ],
       "tests": [
-        "tests/navigation-v2-settings-route.test.mjs"
+        "tests/navigation-v2-settings-route.test.mjs",
+        "tests/navigation-v2-route-audit.test.mjs"
       ]
     },
     {
@@ -114,5 +126,5 @@
       ]
     }
   ],
-  "releaseMode": "ISOLATED_DEV__STAGING_BLOCKED_UNTIL_ALL_REQUIREMENTS_VERIFIED"
+  "releaseMode": "ISOLATED_DEV__COMPLETION_GUARD_FAILS_CLOSED__NO_STAGING_OTA"
 }
