@@ -44,7 +44,12 @@ test('Third APK identity and native runtime cannot overwrite main or staging-use
   assert.equal(lab.updates.enabled, false);
   assert.notEqual(lab.scheme, staging.scheme);
   assert.notEqual(lab.scheme, main.scheme);
-  assert.equal(lab.android.googleServicesFile, undefined);
+  // CI deliberately supplies the offline-only, package-scoped Firebase
+  // Gradle placeholder; it must never be a staging or production credential.
+  assert.ok(!lab.android.googleServicesFile ||
+    lab.android.googleServicesFile === './google-services.kingdomlab.offline.json');
+  assert.notEqual(lab.android.googleServicesFile, staging.android.googleServicesFile);
+  assert.notEqual(lab.android.googleServicesFile, main.android.googleServicesFile);
   assert.equal(lab.extra.eas?.projectId, undefined);
   assert.ok(!main.plugins.includes('./plugins/withBuklodKingdomNativeLab'));
   assert.ok(!staging.plugins.includes('./plugins/withBuklodKingdomNativeLab'));
