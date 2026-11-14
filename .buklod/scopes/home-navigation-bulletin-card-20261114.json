@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/home-navigation-bulletin-card-20261114.json",
+  "objective": "Owner-authorized removal of the redundant Open Updates & Bulletins expandable drawer on mobile and desktop Home and replacement of the old neon miniature house tile with a compact premium My BUKLOD Home launcher; preserve public announcements and household and Health Center destinations.",
+  "baseRef": "6e2014928513738347f653e4c7f716ff51458251",
+  "productionBaselineEvidence": "Source baseline is DEV PR #791 head 6e2014928513738347f653e4c7f716ff51458251; latest production/main/staging installed artifact parity is NOT reverified in this scope. No release approval or OTA evidence is claimed.",
+  "chosenApproach": "Remove only Home-local bulletin expansion controls and inactive lazy loading in both responsive branches; keep the top-level public Home announcement board, original bulletins data module and Cluster editor unchanged. Replace only the personal Home launcher UI with an Expo LinearGradient and standard MaterialCommunityIcons using already installed dependencies, preserving one-tap route, Health Center doors, system font scaling and full-width mobile breakpoint.",
+  "selectionRationale": "One small isolated visual/navigation change addresses the supplied screenshot without introducing large image assets, new APIs, backend writes, native modules or an unnecessary production release.",
+  "alternativeApproaches": [
+    "Keep hidden drawer under Settings: rejected because it clutters secondary navigation and may mask official notices.",
+    "Delete underlying scope bulletins or system announcement content: rejected because it would remove important information and administration routes.",
+    "Use a heavy animated house scene: rejected because this is a fast-launch Home card, not a gameplay canvas."
+  ],
+  "preserveBehaviors": [
+    "Public system announcements remain directly visible on mobile and desktop Home with existing authorized edit behavior.",
+    "Home maps, SOS, Today, community contribution/QMP, ads, PTT, Kingdom and canonical five-tab navigation remain mounted as before.",
+    "Personal Home continues to open /personal-home without account or household data changes; Health Center consultation and standalone PWA remain wired.",
+    "Scope bulletins data and Cluster/Church editing remain unchanged; this removes only the redundant public Home drawer.",
+    "Expo runtime, native modules, package/lockfiles, database/finances/RLS, production and web release behavior unchanged."
+  ],
+  "acceptanceChecks": [
+    "Exact diff limited to the Home screen, utility card, focused legacy regression script, new negative/positive Node regression test and scope manifest.",
+    "Home has zero Updates toggle state, no old button label, and system announcement board remains on both screen variants.",
+    "Premium CTA uses existing personal-home navigation, readable text at system scaling and compact responsive full-width stacking.",
+    "Existing Health Center routes and Home ads/PTT/map/SOS/QMP retain their original code paths.",
+    "Focused Node tests, anti-regression scope gates and TypeScript/Android compile required before release readiness; real staging Android visual acceptance is NOT claimed.",
+    "No staging or production OTA, web deployment or main merge is authorized by this standalone DEV change."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "home-layout",
+    "accessibility",
+    "critical-announcements",
+    "health-launcher",
+    "advertising-preservation"
+  ],
+  "regressionTests": [
+    "tests/home-navigation-bulletin-card-20261114.test.mjs",
+    "scripts/test-navigation-home-wall.cjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/home-navigation-bulletin-card-20261114.json",
+    "src/app/(tabs)/hub.tsx",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
+    "scripts/test-navigation-home-wall.cjs",
+    "tests/home-navigation-bulletin-card-20261114.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Owner-authorized Home presentation rewrite and removal of obsolete local drawer without changing runtime features.",
+      "preservedBehaviors": [
+        "Personal Home, Health Center, QMP, Ads, SOS, Map, Kingdom, PTT, announcement board and native module contracts must remain intact."
+      ],
+      "tests": [
+        "tests/home-navigation-bulletin-card-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Home (/hub) removes only an expandable drawer and retains original household and Health Center route navigation.",
+      "preservedBehaviors": [
+        "No changes to canonical five-tab navigation, scope permissions, authentication state, personal-home destination or notification authorization."
+      ],
+      "tests": [
+        "tests/home-navigation-bulletin-card-20261114.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "releaseStatus": "DEV CODE ONLY. Scoped static regression contract added. GitHub CI, Android compiled export, authenticated device visual and staged OTA are not yet certified. Production untouched."
+}
