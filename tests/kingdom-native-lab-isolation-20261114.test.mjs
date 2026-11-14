@@ -137,3 +137,21 @@ test('Offline source preflight passes but unsafe build without lab creds is bloc
   assert.notEqual(blocked.status,0);
   assert.match(blocked.stderr, /KINGDOM NATIVE LAB RELEASE BLOCKED/);
 });
+
+test('Isolated APK is standalone and JS-bundled rather than a Metro-dependent debug build', () => {
+  const build = read('scripts/kingdom-lab/build-local.sh');
+  const workflow = read('.github/workflows/kingdom-native-lab-build-20261114.yml');
+  const lab = getConfig('kingdom-native-lab','staging');
+  const prod = getConfig('main','production');
+  const stage = getConfig('main','staging');
+  assert.match(build, /:app:assembleRelease/);
+  assert.doesNotMatch(build, /assembleDebug/);
+  assert.match(build, /outputs\/apk\/release\/app-release\.apk/);
+  assert.match(workflow, /outputs\/apk\/release\/app-release\.apk/);
+  const shrink = cfg => cfg.plugins.find(row => Array.isArray(row) &&
+    row[0] === 'expo-build-properties')?.[1]?.android;
+  assert.equal(shrink(lab).enableProguardInReleaseBuilds,false);
+  assert.equal(shrink(lab).enableShrinkResourcesInReleaseBuilds,false);
+  assert.equal(shrink(prod).enableProguardInReleaseBuilds,true);
+  assert.equal(shrink(stage).enableShrinkResourcesInReleaseBuilds,true);
+});
