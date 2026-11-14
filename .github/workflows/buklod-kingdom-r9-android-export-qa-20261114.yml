@@ -1,0 +1,67 @@
+# Isolated nonpublishing compiler gate. No EAS publish, build, credentials or DB writes.
+name: BUKLOD Kingdom R9 Android Export QA (Staging Only)
+on:
+  push:
+    branches: [dev/full-visual-transformation-20261113]
+    paths:
+      - '.github/workflows/buklod-kingdom-r9-android-export-qa-20261114.yml'
+      - 'src/features/games/kingdom/platform/**'
+      - 'src/features/games/runtime/**'
+      - 'tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kingdom-r9-android-compile-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  android-nonpublishing-export:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/full-visual-transformation-20261113' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: compile-only-not-a-real-publishable-key
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Exact-source QA and ABI/config proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd HEAD -- app.config.js eas.json package.json package-lock.json babel.config.js metro.config.js
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs
+          node --test tests/kingdom-native-cinematic-ota-20261114.test.mjs
+          node --test tests/kingdom-premium-gameplay-staging-20261114.test.mjs
+          npx tsc --noEmit
+          node - <<'NODE'
+          const a = require('node:assert/strict');
+          const conf = require('./app.config.js')({config:{}});
+          const eas = require('./eas.json');
+          a.equal(conf.android.package,'org.mzbministry.buklod.staging');
+          a.equal(conf.runtimeVersion,'1.3.2');
+          a.equal(eas.build['staging-user'].channel,'staging-user');
+          a.notEqual(eas.build.production.channel,eas.build['staging-user'].channel);
+          NODE
+      - name: Compile native Android Hermès assets ONLY -- no OTA/APK/web/Play
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-kingdom-r9-android --clear
+          test -s /tmp/buklod-kingdom-r9-android/metadata.json
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          echo "Exact Android staging bundle built for ${GITHUB_SHA}; NOT published." >> "$GITHUB_STEP_SUMMARY"
