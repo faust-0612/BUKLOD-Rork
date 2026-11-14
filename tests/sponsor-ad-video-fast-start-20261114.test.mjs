@@ -51,3 +51,16 @@ test('Wall autoplay starts without dwell while AdMob and bounded next-video preb
   assert.match(marites,/useCaching: true/);
   assert.match(marites,/contentFit="contain"/);
 });
+
+test('consolidated visual provenance prevents another stale-lineage media OTA',()=>{
+  const workflow=read('.github/workflows/buklod-visual-staging-ota-20261113.yml');
+  const accept=JSON.parse(read('release/visual/buklod-consolidated-acceptance-20261114.json'));
+  assert.match(workflow,/git merge-base --is-ancestor e1551b09ad180e81a889d39615aea6257688ddea/);
+  assert.match(workflow,/b77e2e64ba0e9e2317df3091e19cd170a97d47b4/);
+  assert.match(workflow,/c43942f66a1e7205ce9f4b5517fd8ccc048df098/);
+  assert.match(workflow,/d4754d77659b546c0574ba6bd463f7e0d4eda110/);
+  assert.match(workflow,/node scripts\/buklod-consolidated-staging-gate\.mjs/);
+  assert.equal(accept.readyForRelease,false);
+  assert.ok(accept.checks.some(c=>c.id==='sponsored_video_fast_start' && c.status==='source_implemented_runtime_unverified'));
+  assert.ok(accept.checks.some(c=>c.id==='sponsored_video_original_quality_cache' && c.status==='source_implemented_runtime_unverified'));
+});
