@@ -18,7 +18,6 @@ import BuklodKingdomHubCard from '@/components/home/BuklodKingdomHubCard';
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
 const Contribution = lazy(() => import('@/components/BuklodCommunityContributionCard'));
-const Updates = lazy(() => import('@/components/home/BuklodHomeMergedUpdates'));
 const DrawerCard = lazy(() => import('@/components/SmartDrawerWallCard'));
 const PttCard = lazy(() => import('@/components/BuklodPttEntryButton'));
 const Help = lazy(() => import('@/components/BuklodCommunityHelp'));
@@ -42,7 +41,6 @@ class ToolBoundary extends React.Component<{ children: React.ReactNode; onClose:
 export default function BuklodLightHome() {
   const { theme } = useBuklodTheme();
   const [focused, setFocused] = useState(false);
-  const [updatesOpen, setUpdatesOpen] = useState(false);
   const [desktopToolsOpen, setDesktopToolsOpen] = useState(false);
   const { width } = useWindowDimensions();
   const desktopDashboard = Platform.OS === 'web' && width >= BUKLOD_DESKTOP_DASHBOARD_MIN_WIDTH;
@@ -100,24 +98,6 @@ export default function BuklodLightHome() {
             <MaterialCommunityIcons name="arrow-right-circle-outline" color={theme.accent} size={24} />
           </Pressable>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Open announcements and bulletins"
-          accessibilityState={{ expanded: updatesOpen }}
-          onPress={() => setUpdatesOpen(value => !value)}
-          style={{ borderRadius: buklodVisual.radius.card, padding: 14, backgroundColor: theme.accentSoft,
-            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ color: theme.textPrimary, fontWeight: '900' }}>
-            {updatesOpen ? 'Hide Announcements & Bulletins' : 'Announcements & Bulletins'}
-          </Text>
-          <MaterialCommunityIcons name={updatesOpen ? 'chevron-up' : 'chevron-down'}
-            size={23} color={theme.accent} />
-        </Pressable>
-        {focused && foreground && updatesOpen ? (
-          <ToolBoundary onClose={() => setUpdatesOpen(false)}>
-            <Suspense fallback={<ActivityIndicator color={theme.accent} />}>
-              <Updates />
-            </Suspense>
-          </ToolBoundary>
-        ) : null}
         <Pressable accessibilityRole="button" accessibilityLabel="Show home tools"
           accessibilityState={{ expanded: desktopToolsOpen }}
           onPress={() => setDesktopToolsOpen(v => !v)}
@@ -178,30 +158,6 @@ export default function BuklodLightHome() {
       ) : null}
       <BuklodHomeUtilityCards />
       <BuklodNativeSponsoredCard surface="home" slotId="hub_mid_native" />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Announcements and bulletins"
-        accessibilityState={{ expanded: updatesOpen }}
-        onPress={() => setUpdatesOpen(value => !value)}
-        style={{
-          borderRadius: buklodVisual.radius.card,
-          borderWidth: 1,
-          borderColor: theme.navBorder,
-          padding: 14,
-          backgroundColor: theme.navBackground,
-        }}
-      >
-        <Text style={{ color: theme.textPrimary, fontWeight: '800', fontSize: 16 }}>
-          {updatesOpen ? 'Hide Updates & Bulletins' : 'Open Updates & Bulletins'}
-        </Text>
-      </Pressable>
-      {focused && foreground && updatesOpen ? (
-        <ToolBoundary onClose={() => setUpdatesOpen(false)}>
-          <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading announcements and bulletins" color={theme.accent} />}>
-            <Updates />
-          </Suspense>
-        </ToolBoundary>
-      ) : null}
       {/* Preserve the map while Android permission dialogs or Google Maps
           temporarily put this app in the background. */}
       {focused ? (
