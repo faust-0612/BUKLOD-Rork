@@ -33,7 +33,9 @@ test('actual report destinations are already-defined authenticated screens',()=>
  assert.match(me,/profileLocked/);
  assert.match(me,/Edit Profile/);
  assert.match(me,/My Note/);
- assert.doesNotMatch(me,/BuklodNativeSponsoredCard/);
+ assert.ok(me.includes('slotId="profile_mid_native"'));
+ assert.ok(me.indexOf('<BuklodProfileActivityCards')<me.indexOf('<BuklodNativeSponsoredCard'));
+ assert.ok(me.indexOf('<BuklodNativeSponsoredCard')<me.indexOf('<BuklodFirstViewAd'));
  assert.equal(me.split('<BuklodFirstViewAd').length-1,1);
  const org=read('src/components/BuklodProfileMembershipNav.tsx');
  assert.ok(org.includes("scope.scope_type === 'ORGANIZATION' && scope.membership_status === 'ACTIVE'"));

@@ -101,7 +101,8 @@
     "Dedicated staging QA OTA workflow must only publish on exact isolated branch and exact owner release marker after Engineering and Main CI pass; no production rollback or web deployment.",
     "Release identity risk area explicitly governed, with exact branch, signed APK/preview channel checks and immutable production-manifest readback.",
     "Profile direct owner activity and report links present, auth viewer ID match and no cross-user ledger access",
-    "Profile owner-only real status note/edit and privacy-aware share, distinct active Org/Suborg rows, one lower Profile first-view ad, no duplicate native ad."
+    "Profile owner-only real status note/edit and privacy-aware share, distinct active Org/Suborg rows, one lower Profile first-view ad, no duplicate native ad.",
+    "Engineering permanent AdMob inventory lock must pass and confirm profile_mid_native placement preserved on Profile"
   ],
   "releaseMode": "OWNER_AUTHORIZED_SCOPED_ANDROID_STAGING_QA_OTA_ONLY",
   "releaseStatus": "STAGING_QA_PUBLISH_CONDITIONALLY_AUTHORIZED__FULL_CONSOLIDATED_ACCEPTANCE_STILL_PENDING",
@@ -111,6 +112,7 @@
     "Original Kingdom 39 profiles and approved character art, audio, QMP/AdMob, Connect, PTT and IGPAT retirement are retained.",
     "No Health Center clinical backend, SALIKSIK learning/mastery/Points, native DLL/permissions or production changes.",
     "Retain overall/monthly Points rank and exact three owner posts; private bounded activity and existing report destinations do not enable finance or deferred backend",
-    "No fake activity or public private fields; existing lower ads, existing Profile rank/posts, native Expo runtime and member-scoped UI retained."
+    "No fake activity or public private fields; existing lower ads, existing Profile rank/posts, native Expo runtime and member-scoped UI retained.",
+    "Mandatory app-wide profile_mid_native sponsor remains rendered only after personal rank/posts/activity, without overlay or duplicate early profile identity ads."
   ]
 }

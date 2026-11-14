@@ -26,6 +26,7 @@ import {
 } from '@/components/BuklodProfileMotion';
 import BuklodProfileCharacterCard from '@/components/points/BuklodProfileCharacterCard';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import BuklodReferralInviteCard from '@/components/BuklodReferralInviteCard';
 import {
@@ -1857,6 +1858,8 @@ export default function MeScreen() {
       {!isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
       {!isBuklodOfficial && !!profile?.id && <BuklodProfileActivityCards userId={profile.id} />}
       {referralSection}
+      {/* Required sponsored inventory: follows genuine member data, never overlays identity. */}
+      <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />
       {orderedSections.map(row => <View key={row.id}>{sectionMap[row.id]}</View>)}
       {/* Native ad stays below personal rank, posts, activity and settings. */}
       <BuklodFirstViewAd placement="profile" placementId="profile_first_view" />
