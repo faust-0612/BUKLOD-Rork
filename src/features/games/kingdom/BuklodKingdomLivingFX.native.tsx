@@ -9,6 +9,13 @@ import {
   withRepeat, withTiming, type SharedValue,
 } from 'react-native-reanimated';
 import type { KingdomLivingFXProps } from './BuklodKingdomLivingFX.types';
+import {
+  KINGDOM_WORLD_PATROLS,
+  KINGDOM_WORLD_WORKERS,
+  sampleKingdomPatrol,
+  type KingdomWorldPatrol,
+  type KingdomWorldWorker,
+} from './KingdomLivingWorldPaths';
 
 const TAU = Math.PI * 2;
 const STARS = Array.from({ length: 16 }, (_, i) => ({
@@ -25,6 +32,49 @@ function Firefly({ point, phase, scale, stage }: {
   const opacity = useDerivedValue(() => .2 + (stage >= 3 ? .55 : .39) * (1 + Math.sin(phase.value * TAU + point.seed)) / 2);
   return <Group opacity={opacity}>
     <Circle cx={cx} cy={cy} r={radius} color={point.seed % 2 < 1 ? '#fff1b0' : '#b2ffef'} />
+  </Group>;
+}
+
+/**
+ * World ambient life: actual small road travelers follow the canonical map's
+ * cubic paths. These are decorative villagers, never account/game entities.
+ * One UI-thread clock drives every actor; no JS timers or network calls.
+ */
+function RoadTraveler({ route, phase, scale }: {
+  route: KingdomWorldPatrol; phase: SharedValue<number>; scale: number;
+}) {
+  const x = useDerivedValue(() => sampleKingdomPatrol(route, phase.value).x * scale);
+  const y = useDerivedValue(() => sampleKingdomPatrol(route, phase.value).y * scale);
+  const shadowY = useDerivedValue(() => y.value + 4 * scale);
+  const followerX = useDerivedValue(() => x.value - 6 * scale);
+  const followerY = useDerivedValue(() => y.value + 2 * scale);
+  return <Group opacity={0.87}>
+    <Circle cx={x} cy={shadowY} r={6 * scale} color="#163e47" />
+    <Circle cx={followerX} cy={followerY} r={3 * scale} color="#fbf6dc" />
+    <Circle cx={x} cy={y} r={4.1 * scale} color={route.color} />
+    <Circle cx={x} cy={y} r={1.4 * scale} color="#fffdf0" />
+  </Group>;
+}
+
+/** Tiny town workers keep villages animated without changing construction state. */
+function TownWorker({ site, phase, scale }: {
+  site: KingdomWorldWorker; phase: SharedValue<number>; scale: number;
+}) {
+  const x = useDerivedValue(() => (
+    site.x + Math.sin(phase.value * TAU + site.offset * TAU) * 12
+  ) * scale);
+  const y = useDerivedValue(() => (
+    site.y + Math.cos(phase.value * TAU * 2 + site.offset * TAU) * 3
+  ) * scale);
+  const headY = useDerivedValue(() => y.value - 4 * scale);
+  const workGlow = useDerivedValue(() =>
+    .38 + .22 * (1 + Math.sin(phase.value * TAU * 3 + site.offset * TAU)) / 2);
+  return <Group>
+    <Group opacity={workGlow}>
+      <Circle cx={x} cy={y} r={9 * scale} color={site.color} />
+    </Group>
+    <Circle cx={x} cy={y} r={3.4 * scale} color="#365c62" />
+    <Circle cx={x} cy={headY} r={2.5 * scale} color={site.color} />
   </Group>;
 }
 
@@ -83,6 +133,12 @@ function LivingFX({ stage, mapWidth, mapHeight, scale, selected, cleared, cinema
         <Path path={`M ${18 * scale} ${728 * scale} Q ${128 * scale} ${690 * scale} ${290 * scale} ${720 * scale}`}
           color="#dcfaff" style="stroke" strokeWidth={5 * scale} strokeCap="round" />
       </Group>
+      {KINGDOM_WORLD_PATROLS.filter(route => stage >= route.minStage).map(route => (
+        <RoadTraveler key={route.id} route={route} phase={phase} scale={scale} />
+      ))}
+      {KINGDOM_WORLD_WORKERS.filter(site => stage >= site.minStage).map(site => (
+        <TownWorker key={site.id} site={site} phase={phase} scale={scale} />
+      ))}
       {STARS.map((point, index) => (
         <Firefly key={index} point={point} phase={phase} scale={scale} stage={stage} />
       ))}
