@@ -1,0 +1,68 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/sponsor-ad-video-fast-start-20261114.json",
+  "objective": "Reduce BUKLOD sponsored video late autoplay, unnecessary repeated sponsored-media downloads, and delayed Wall next-video visibility while preserving full-quality original images/video and scoped advertisement delivery.",
+  "baseRef": "6b0f7e3167867bb746e34da4637430f131b588bb",
+  "productionBaselineEvidence": "verified: GitHub main source 9f412afd71b74e41995a3a1a63e05e72f78b6e39 is repository source, not live-runtime attestation. Parent staging DEV integration head 6b0f7e3167867bb746e34da4637430f131b588bb, PR #790 is draft and unmerged. Supabase 2026-11-14 recent 60-minute logs show 53 CDN requests totaling ~2.18 GB for one 50.9 MB paid-ad video and ~2.93 GB total Storage response bytes; cannot treat this as precise monthly billed cached egress. Actual installed staging/prod OTA not verified.",
+  "chosenApproach": "Activate one sponsored player when at most 0.6 viewport from screen, buffer in advance using the existing original URL, use expo-video native disk caching with bounded forward buffer and retain view-matched pause. Use layout-frame check plus 120ms viewport sampling and change Wall video-only FlatList visibility delay to zero without loosening AdMob impressions.",
+  "selectionRationale": "Current sponsored polling waits 350ms then up to 900ms and lazily no native cache; nearby player prewarm and cache remove both delays and re-downloads without downscaling or offscreen playback. Already deployed Wall and Marites caching/preload mechanisms remain unchanged.",
+  "alternativeApproaches": [
+    "Only reduce poll from 900ms (rejected; video may still cold-buffer without prewarm or caching)",
+    "Always mount and autoplay every sponsor (rejected; bandwidth and Android decoder overload)",
+    "Transcode to low-resolution proxy (rejected; user explicitly protects original image/video sharpness)"
+  ],
+  "riskAreas": [
+    "sponsored-video-startup",
+    "wall-viewability",
+    "cdn-egress",
+    "audio-focus",
+    "Android decoder budget",
+    "ads-monetization"
+  ],
+  "preserveBehaviors": [
+    "Approved paid unexpired geo-matched sponsor selection, rotation, impression/click accounting, and campaign dates remain unchanged.",
+    "No app runtime, native dependency, Supabase, AdMob, RLS, media URL, contentFit, image sizing or compression changes.",
+    "Other audio owners, PTT, on-blur/app-background pause, weak-network fallback and offscreen player disposal remain.",
+    "Wall single visible clip and bounded next-video preloading; Marites existing native disk caching unchanged.",
+    "No production, web, native APK or OTA publish; staging branch source must pass RC checks before promotion."
+  ],
+  "acceptanceChecks": [
+    "When a paid sponsored clip approaches the screen, its native player prepares at most 0.6 screen ahead; starts on exposure without artificial 350-900ms wait.",
+    "When scrolled far away, sponsored video is unmounted and stopped; revisiting uses same native cache and full-quality file.",
+    "Wall video visibility triggers on first 25% exposure with no artificial dwell; AdMob uses original 60%/400ms.",
+    "Background, tab blur, audio focus and campaign expiry stop or remove playback appropriately.",
+    "Focused new behavioral/contract tests and existing media/nav regression tests pass; TypeScript and Android compile gate required before staging RC."
+  ],
+  "regressionTests": [
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "src/hooks/useBuklodCommunityAdViewability.ts",
+    "src/lib/advertise/sponsoredVideoViewport.ts",
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
+    ".buklod/scopes/sponsor-ad-video-fast-start-20261114.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Targeted sponsored and Wall video playback timing/storage source improvement with no native ABI changes.",
+      "preservedBehaviors": [
+        "Existing navigation, media resolution, audio and app background life cycle remain unchanged."
+      ],
+      "tests": [
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Improve paid sponsorship playback readiness while keeping campaign eligibility, impression counting and billing unchanged.",
+      "preservedBehaviors": [
+        "Existing paid ad approval/payment/geo/expiry gates, AdMob and accounting events remain unchanged."
+      ],
+      "tests": [
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+      ]
+    }
+  ]
+}
