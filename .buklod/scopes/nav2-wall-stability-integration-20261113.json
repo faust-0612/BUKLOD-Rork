@@ -64,7 +64,8 @@
     "Existing Gboard ACTION_SEND share-to-exact-comment fallback remains functional; native rich content must never silently be declared supported by a JS-only OTA or reused incompatible APK.",
     "Marites horizontal rail now bounds mounted photo/video cards while keeping the same 72h source rows, stable story IDs, tap/comment menu, focus/overlay and fullscreen sound; Android clipping remains disabled to protect fast-scroll image display.",
     "Signed staging QA APK is a private tester artifact only, versionCode remote-incremented on staging package; no Expo OTA, production/web/Play publication and no changes to native interfaces or runtime.",
-    "Sponsored video uses original URLs, contain rendering, existing geo/payment/approval/expiry gates and bounded buffered playback; no change to Supabase storage or production."
+    "Sponsored video uses original URLs, contain rendering, existing geo/payment/approval/expiry gates and bounded buffered playback; no change to Supabase storage or production.",
+    "Emergency rollback does not compile media, publish production/web, remap channels or alter any persistent Supabase data."
   ],
   "acceptanceChecks": [
     "All 53 non-manifest source paths originated from their exact Navigation and Wall DEV heads, with only one compatibility adaptation in the Navigation ads regression test to read the integrated scope. No runtime source overlap or file content pick.",
@@ -90,7 +91,8 @@
     "EAS build:view nested updateChannel.name, runtime.version, app.id and appIdentifier are checked against the actual build receipt; no missing field is inferred from a profile label. Channel staging-user maps uniquely to staging-user branch 019ffd86-b662-7977-b0bd-05e18247b123, distinct from production.",
     "Near-viewport sponsored video prewarms only one visible/near player and its original-quality stream can replay from native disk cache without downscaling imagery.",
     "Community Wall video activates from 25 percent with zero dwell while original AdMob 60 percent/400 ms viewability and protected earnings remain unchanged.",
-    "Sponsor audio focus, app/background/scroll pause, geo-eligibility and ad impression accounting remain unchanged; tests and exact staging RC require independent verification."
+    "Sponsor audio focus, app/background/scroll pause, geo-eligibility and ad impression accounting remain unchanged; tests and exact staging RC require independent verification.",
+    "Emergency staging-only rollback restores the immediate predecessor Visual Staging group e1551b09, never older Navigation V2, while proving production and channel isolation."
   ],
   "regressionTests": [
     "tests/navigation-v2-ads-preservation.test.mjs",
@@ -117,7 +119,8 @@
     "tests/navigation-v2-swipe-accessible-20261113.test.mjs",
     "tests/staging-nav2-qa-apk-release-20261113.test.mjs",
     "tests/navigation-v2-owner-staging-ota.test.mjs",
-    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
+    "tests/navigation-v2-staging-rollback-release-20261114.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/nav2-wall-stability-integration-20261113.json",
@@ -199,7 +202,9 @@
     "src/components/BuklodCommunitySponsoredAd.tsx",
     "src/hooks/useBuklodCommunityAdViewability.ts",
     "src/lib/advertise/sponsoredVideoViewport.ts",
-    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
+    ".github/workflows/buklod-staging-emergency-rollback-20261114.yml",
+    "tests/navigation-v2-staging-rollback-release-20261114.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -257,7 +262,8 @@
         "tests/navigation-v2-staging-release.test.mjs",
         "tests/staging-apk-device-attestation-20261113.test.mjs",
         "tests/staging-nav2-qa-apk-release-20261113.test.mjs",
-        "tests/navigation-v2-owner-staging-ota.test.mjs"
+        "tests/navigation-v2-owner-staging-ota.test.mjs",
+        "tests/navigation-v2-staging-rollback-release-20261114.test.mjs"
       ]
     },
     {
