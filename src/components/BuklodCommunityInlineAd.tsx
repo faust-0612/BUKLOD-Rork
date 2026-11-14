@@ -136,7 +136,8 @@ export default function BuklodCommunityInlineAd({
     online;
 
   // A prefetched native ad is held in SDK memory; no hidden NativeAdView.
-  const canPrefetchNative=active&&routeSafe&&sdkReady&&online&&(eligible||prefetch);
+  const canPrefetchNative=active&&routeSafe&&sdkReady&&online&&
+    (eligible||prefetch||nativeRequestStarted.current);
   const requestKey = slotId || 'community-wall-inline';
   const adWidth = Math.max(280, Math.floor(width - 32));
 

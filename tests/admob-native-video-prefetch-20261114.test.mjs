@@ -14,3 +14,9 @@ test('admob native next-slot preload never mounts offscreen native ad views',()=
  assert.ok(read('src/app/(tabs)/buklod.tsx').includes('prefetch={preloadAdId===item.id}'));
  assert.ok(read('src/app/(tabs)/messages.tsx').includes('connect_personal_inline_4" prefetch'));
 });
+
+test('SDK native creative stays warmed until its virtualized row is recycled',()=>{
+ const native=read('src/components/BuklodCommunityInlineAd.tsx');
+ assert.ok(native.includes('eligible||prefetch||nativeRequestStarted.current'));
+ assert.ok(native.includes('createdAd?.destroy()'));
+});

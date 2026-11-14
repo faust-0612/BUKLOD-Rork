@@ -319,8 +319,10 @@ const RX = BUKLOD_SCOPE_COMMUNITY_REACTIONS;
  */
 function ScopePublicReelVideo({
   uri,
+  active,
 }: {
   uri: string;
+  active: boolean;
 }) {
   const player =
     useVideoPlayer(
@@ -330,6 +332,15 @@ function ScopePublicReelVideo({
           true;
       },
     );
+
+  useEffect(() => {
+    try {
+      if (active) player.play();
+      else player.pause();
+    } catch {
+      // The row may have recycled its native player during scrolling.
+    }
+  }, [active, player]);
 
   return (
     <View
@@ -3283,11 +3294,16 @@ export default function BuklodExclusiveScopeCommunity({
             </View>
 
             {!!item.media_url ? (
-              <ScopePublicReelVideo
-                uri={
-                  item.media_url
-                }
-              />
+              <View
+                ref={(node: View | null) => registerVideoFrame(String(item.id), node)}
+                collapsable={false}
+                onLayout={onVideoFrameLayout}
+              >
+                <ScopePublicReelVideo
+                  uri={item.media_url}
+                  active={visibleVideoPostId === String(item.id)}
+                />
+              </View>
             ) : (
               <View
                 style={
