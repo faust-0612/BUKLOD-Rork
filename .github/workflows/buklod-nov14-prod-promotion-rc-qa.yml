@@ -1,4 +1,5 @@
 # Modern Kingdom FX source contract owner-approved production release gate, no production mutation.
+# Exact RC follow-up after scope-classification reconciliation: Kingdom 121/121, native/DB untouched, Android-only publish after green QA.
 # Isolated production preflight ONLY. Never merges, deploys, or alters Expo channels.
 # Final RC recheck: Android-only promotion with immutable staging Kingdom and Profile/Connect tests.
 # Protected release/buklod-prod-kingdom-visual-gate-20261114 PR: V2 scope contract + rank/ads/performance regression proof.
