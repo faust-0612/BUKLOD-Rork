@@ -9,6 +9,8 @@ import {
   AccessibilityInfo, AppState, StyleSheet, Text, View,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/providers/AuthProvider';
 import Animated, {
   cancelAnimation, Easing, useAnimatedStyle, useDerivedValue,
   useSharedValue, withRepeat, withTiming, type SharedValue,
@@ -128,11 +130,24 @@ function Scene({ gameId, profile, compact }: {
   const [active, setActive] = useState(AppState.currentState === 'active');
   const [reduceMotion, setReduceMotion] = useState(false);
   const [reaction, setReaction] = useState<SceneReaction | null>(null);
+  const { user } = useAuth();
+  const userId = user?.id ?? 'guest';
+  const [qualityEnabled, setQualityEnabled] = useState(false);
   const cycle = useSharedValue(0);
   const burst = useSharedValue(1);
-  const running = focused && active && !reduceMotion;
+  // Match the map's per-account Cinematic/Lite selection, with no account
+  // crossover and no animation before the preference is hydrated.
+  const running = focused && active && !reduceMotion && qualityEnabled;
   const motion = KINGDOM_CHARACTER_MOTION[profile.character];
 
+  useEffect(() => {
+    let current = true;
+    setQualityEnabled(false);
+    void AsyncStorage.getItem('@buklod_kingdom_fx_quality_v1_' + userId)
+      .then(value => { if (current) setQualityEnabled(value !== 'lite'); })
+      .catch(() => { if (current) setQualityEnabled(true); });
+    return () => { current = false; };
+  }, [userId]);
   useFocusEffect(useCallback(() => {
     setFocused(true);
     return () => setFocused(false);
