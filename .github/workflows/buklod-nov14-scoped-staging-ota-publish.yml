@@ -59,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
-          node --experimental-strip-types --test tests/buklod-nov14-scoped-staging-ota-policy.test.mjs tests/wall-life-kl-navigation-20261114.test.mjs tests/auth-registration-offline-recovery.test.cjs
+          node --experimental-strip-types --test tests/buklod-nov14-scoped-staging-ota-policy.test.mjs tests/wall-life-kl-navigation-20261114.test.mjs tests/auth-registration-offline-recovery.test.cjs tests/nov14-profile-navigation-personal-activity-report.test.mjs
           node scripts/buklod-nov14-scoped-staging-ota-policy.mjs verify-source "$GITHUB_SHA" "$EVIDENCE_DIR"
       - name: Signed APK and distinct EAS channel/prod-branch preflight
         run: |

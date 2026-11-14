@@ -11,7 +11,7 @@ import {
 
 const BASE='9c9661b888eca979c7cd114c42ae97a333830d37';
 const STAGING_PACKAGE='org.mzbministry.buklod.staging';
-const SOURCE_FILES=['src/app/(auth)/register.tsx','src/app/(tabs)/buklod.tsx'];
+const SOURCE_FILES=['src/app/(auth)/register.tsx','src/app/(tabs)/buklod.tsx','src/app/(tabs)/me.tsx','src/components/BuklodProfileActivityCards.tsx'];
 const OGG_BLOCK=`// Expo defaults omit Ogg Vorbis in Metro; licensed offline Kingdom music must
 // be bundled as real assets instead of resolved as a JS module. Android audio
 // decoder supports Vorbis via its native media stack; no native dependency.
@@ -53,7 +53,7 @@ export function verifySource(source){
   const relevant=git('diff','--name-only',BASE,source,'--','src/','assets/','app/','android/',
     'ios/','plugins/','supabase/','package.json','package-lock.json',
     'app.config.js','eas.json','metro.config.js').split('\n').filter(Boolean).sort();
-  assert.deepEqual(relevant,SOURCE_FILES,'Only the 2 reviewed OTA-compatible JS runtime source deltas are allowed');
+  assert.deepEqual(relevant,SOURCE_FILES,'Only the four reviewed OTA-compatible JS runtime source deltas are allowed');
   const before=git('show',APK_SOURCE+':metro.config.js');
   const after=fs.readFileSync('metro.config.js','utf8').trim();
   verifyMetroChange(before,after);

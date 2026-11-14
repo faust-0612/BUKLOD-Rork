@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/nov14-staging-conso-excluding-health-saliksik.json",
-  "objective": "Complete staging-user OTA-only source consolidation of existing approved Home/Profile/Nav/Wall/Marites/Connect/Kingdom/Ads fixes with direct LIFE/KL and confirmed-offline registration; explicitly exclude Health Center and SALIKSIK.",
+  "objective": "Complete staging-user OTA-only source consolidation of existing approved Home/Profile/Nav/Wall/Marites/Connect/Kingdom/Ads fixes with direct LIFE/KL and confirmed-offline registration; explicitly exclude Health Center and SALIKSIK. Restore private personal Profile activity and authored reports without fake activities or finance policy changes.",
   "baseRef": "9c9661b888eca979c7cd114c42ae97a333830d37",
   "productionBaselineEvidence": "Use verified PR #801 visual/Home/Profile source 9c9661b888eca979c7cd114c42ae97a333830d37 stacked on visual #791. Current main last inspected 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Source provenance only; exact installed staging binary and EAS source must be attested before OTA. Live production SQL not mutated.",
   "chosenApproach": "Two narrow source-only patches and two executable source regressions, preserve inherited working code by blob identity, add no-publish Android source gate, formal staging RC hold. No HC/SALIKSIK code, migrations, routes, Edge/Points or external services.",
@@ -23,7 +23,9 @@
     "production-release",
     "staging-isolation",
     "native-ota-compatibility",
-    "release-identity"
+    "release-identity",
+    "account-isolation",
+    "profile-personal-activity"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -36,13 +38,17 @@
     "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs",
     "scripts/buklod-nov14-scoped-staging-ota-policy.mjs",
     "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs",
-    ".github/workflows/buklod-nov14-scoped-staging-ota-publish.yml"
+    ".github/workflows/buklod-nov14-scoped-staging-ota-publish.yml",
+    "src/app/(tabs)/me.tsx",
+    "src/components/BuklodProfileActivityCards.tsx",
+    "tests/nov14-profile-navigation-personal-activity-report.test.mjs"
   ],
   "regressionTests": [
     "tests/wall-life-kl-navigation-20261114.test.mjs",
     "tests/auth-registration-offline-recovery.test.cjs",
     "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs",
-    "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs"
+    "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs",
+    "tests/nov14-profile-navigation-personal-activity-report.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -53,7 +59,8 @@
       ],
       "tests": [
         "tests/wall-life-kl-navigation-20261114.test.mjs",
-        "tests/auth-registration-offline-recovery.test.cjs"
+        "tests/auth-registration-offline-recovery.test.cjs",
+        "tests/nov14-profile-navigation-personal-activity-report.test.mjs"
       ]
     },
     {
@@ -64,7 +71,8 @@
       ],
       "tests": [
         "tests/wall-life-kl-navigation-20261114.test.mjs",
-        "tests/auth-registration-offline-recovery.test.cjs"
+        "tests/auth-registration-offline-recovery.test.cjs",
+        "tests/nov14-profile-navigation-personal-activity-report.test.mjs"
       ]
     },
     {
@@ -87,7 +95,8 @@
     "Privacy DB read-only confirms current live policy but migration history for PR #759 missing; do not reapply SQL via OTA",
     "No direct native keyboard-GIF changes or new Rive assets are claimed",
     "Dedicated staging QA OTA workflow must only publish on exact isolated branch and exact owner release marker after Engineering and Main CI pass; no production rollback or web deployment.",
-    "Release identity risk area explicitly governed, with exact branch, signed APK/preview channel checks and immutable production-manifest readback."
+    "Release identity risk area explicitly governed, with exact branch, signed APK/preview channel checks and immutable production-manifest readback.",
+    "Profile direct owner activity and report links present, auth viewer ID match and no cross-user ledger access"
   ],
   "releaseMode": "OWNER_AUTHORIZED_SCOPED_ANDROID_STAGING_QA_OTA_ONLY",
   "releaseStatus": "STAGING_QA_PUBLISH_CONDITIONALLY_AUTHORIZED__FULL_CONSOLIDATED_ACCEPTANCE_STILL_PENDING",
@@ -95,6 +104,7 @@
     "Existing sponsored video, Wall text, sharp photos, Marites and comment ownership/permissions remain unchanged.",
     "Existing account verification is sign-in-only after ambiguous signup failures; one signUp per user attempt, no automatic retry.",
     "Original Kingdom 39 profiles and approved character art, audio, QMP/AdMob, Connect, PTT and IGPAT retirement are retained.",
-    "No Health Center clinical backend, SALIKSIK learning/mastery/Points, native DLL/permissions or production changes."
+    "No Health Center clinical backend, SALIKSIK learning/mastery/Points, native DLL/permissions or production changes.",
+    "Retain overall/monthly Points rank and exact three owner posts; private bounded activity and existing report destinations do not enable finance or deferred backend"
   ]
 }

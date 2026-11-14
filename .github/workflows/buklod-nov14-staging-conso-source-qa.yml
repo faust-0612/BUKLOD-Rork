@@ -5,6 +5,9 @@ on:
     paths:
       - 'src/app/(tabs)/buklod.tsx'
       - 'src/app/(auth)/register.tsx'
+      - 'src/app/(tabs)/me.tsx'
+      - 'src/components/BuklodProfileActivityCards.tsx'
+      - 'tests/nov14-profile-navigation-personal-activity-report.test.mjs'
       - 'tests/wall-life-kl-navigation-20261114.test.mjs'
       - 'tests/auth-registration-offline-recovery.test.cjs'
       - '.buklod/scopes/nov14-staging-conso-excluding-health-saliksik.json'
@@ -62,6 +65,7 @@ jobs:
             tests/buklod-comment-menu-android-20261113.test.mjs \
             tests/marites-wall-scroll-video-navigation-20261113.test.mjs \
             tests/nov14-profile-navigation-rank-refresh.test.mjs \
+            tests/nov14-profile-navigation-personal-activity-report.test.mjs \
             tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs \
             tests/buklod-igpat-retirement-release-marker-20261111.test.mjs
       - name: Android TypeScript and Hermes export without OTA
