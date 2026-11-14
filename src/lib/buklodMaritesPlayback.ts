@@ -15,11 +15,11 @@ export function selectVisibleMaritesVideo(input: {
   if (![x, y, width, height, windowWidth, windowHeight, offset].every(Number.isFinite)
     || width <= 0 || height <= 0 || cardWidth <= 0) return -1;
   const visibleHeight = Math.max(0, Math.min(y + height, windowHeight - bottomInset) - Math.max(y, topInset));
-  if (visibleHeight < height / 2) return -1;
+  if (visibleHeight < Math.min(height * 0.08,24)) return -1;
   const left = Math.max(0, x);
   const right = Math.min(windowWidth, x + width);
   let best = -1;
-  let bestWidth = cardWidth / 2;
+  let bestWidth = Math.min(cardWidth * 0.08,20);
   videos.forEach((video, index) => {
     if (!video) return;
     const start = x + index * (cardWidth + gap) - offset;
@@ -30,4 +30,30 @@ export function selectVisibleMaritesVideo(input: {
     }
   });
   return best;
+}
+
+/** Prebuffer one video as the horizontal story strip nears the viewport. */
+export function selectNearbyMaritesVideo(input:{
+ x:number;y:number;width:number;height:number;windowWidth:number;windowHeight:number;
+ offset:number;cardWidth:number;gap:number;videos:boolean[];
+}):number {
+ const {x,y,width,height,windowWidth,windowHeight,offset,cardWidth,gap,videos}=input;
+ if(![x,y,width,height,windowWidth,windowHeight,offset,cardWidth].every(Number.isFinite) ||
+   width<=0||height<=0||cardWidth<=0||y>windowHeight*1.65||y+height< -windowHeight*0.65)return -1;
+ const left=Math.max(x,0),right=Math.min(x+width,windowWidth);
+ let visible=-1,mostVisible=0;
+ let next=-1,nextDistance=Number.POSITIVE_INFINITY;
+ videos.forEach((video,i)=>{
+   if(!video)return;
+   const start=x+i*(cardWidth+gap)-offset;
+   const overlap=Math.max(0,Math.min(start+cardWidth,right)-Math.max(start,left));
+   if(overlap>mostVisible){mostVisible=overlap;visible=i;}
+   // Warm a single next clip while the current one is still on screen.
+   // Limit forward lookahead to two adjacent cards: no background download sweep.
+   const distance=start-right;
+   if(distance>=0 && distance<=cardWidth*2+gap*2 && distance<nextDistance){
+     next=i;nextDistance=distance;
+   }
+ });
+ return next>=0?next:visible;
 }

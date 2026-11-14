@@ -2,7 +2,7 @@
 name: BUKLOD Navigation V2 Staging Android Compile QA
 on:
   pull_request:
-    branches: [main]
+    branches: [main, integration/buklod-conso-staging-no-hc-saliksik-20261114]
     paths:
       - '.github/workflows/navigation-v2-staging-compile-qa.yml'
       - '.github/workflows/navigation-v2-staging-ota.yml'
@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   staging-android-compile-no-publish:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'dev/nav2-wall-stability-integration-20261113'
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'dev/nav2-wall-stability-integration-20261113' || github.head_ref == 'dev/video-scroll-pause-ad-prewarm-20261114' || github.head_ref == 'integration/nov15-conso-staging-video-ads-20261115')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:
