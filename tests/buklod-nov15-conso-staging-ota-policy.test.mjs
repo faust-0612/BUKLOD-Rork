@@ -29,7 +29,7 @@ test('staging policy fails closed for unsafe release identity or premature succe
 });
 
 test('exactly reviewed JS delta preserves NativeAd SDK-only impressions', () => {
-  assert.equal(SOURCE_FILES.length,14);
+  assert.equal(SOURCE_FILES.length,17);
   assert.equal(new Set(SOURCE_FILES).size,SOURCE_FILES.length);
   assert(SOURCE_FILES.every(path=>path.startsWith('src/')));
   const native=read('src/components/BuklodCommunityInlineAd.android.tsx');
