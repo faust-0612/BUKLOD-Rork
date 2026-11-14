@@ -48,9 +48,9 @@ def main():
         score = DEST / 'kingdom-score.mp3'
         # The loop starts and ends on source second 5, with a seamless crossfade.
         filtergraph = ('[0:a]atrim=start=5:end=52,asetpts=PTS-STARTPTS[body];'
-                       '[0:a]atrim=start=52:end=57,asetpts=PTS-STARTPTS[tail];'
-                       '[0:a]atrim=start=0:end=5,asetpts=PTS-STARTPTS[head];'
-                       '[tail][head]acrossfade=d=5:c1=tri:c2=tri[seam];'
+                       '[0:a]atrim=start=52:end=57,asetpts=PTS-STARTPTS,afade=t=out:st=0:d=5[tail];'
+                       '[0:a]atrim=start=0:end=5,asetpts=PTS-STARTPTS,afade=t=in:st=0:d=5[head];'
+                       '[tail][head]amix=inputs=2:duration=first:normalize=0[seam];'
                        '[body][seam]concat=n=2:v=0:a=1,volume=-5dB[out]')
         run('ffmpeg','-hide_banner','-loglevel','error','-nostdin','-y','-i',str(files['score']),'-filter_complex',filtergraph,'-map','[out]','-ac','2','-ar','44100','-c:a','libmp3lame','-b:a','112k',str(score))
         if not 51 <= duration(score) <= 54: raise ValueError('Invalid music duration')
