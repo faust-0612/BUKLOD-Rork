@@ -39,7 +39,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const required=['Engineering Accountability','BUKLOD Main - Report Door and Legacy Integration PR QA'];
+            const required=['Engineering Accountability','BUKLOD Main - Report Door and Legacy Integration PR QA','BUKLOD Nov14 Consolidated Staging Source QA - No Publish'];
             for(let attempt=0;attempt<60;attempt++){
               const {data}=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,head_sha:context.sha,per_page:100});
               const checks=required.map(name=>data.workflow_runs.find(r=>r.name===name&&r.head_sha===context.sha));

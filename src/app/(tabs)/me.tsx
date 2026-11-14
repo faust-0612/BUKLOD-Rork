@@ -1803,7 +1803,7 @@ export default function MeScreen() {
             </Pressable>
           ))}
         </View>
-        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Recorded Points standings. Monthly rank uses the calendar month; finalized AdMob earnings are separate.</Text>
+        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Recorded Points standings. Monthly rank uses the calendar month; AdMob payouts finalize separately.</Text>
       </View>}
 
       {!isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}

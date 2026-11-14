@@ -11,7 +11,7 @@ test('Profile retains rank and 3 recent posts ahead of private activity and ads'
  assert.ok(me.indexOf('<BuklodProfilePostCards')<me.indexOf('<BuklodProfileActivityCards'));
  assert.ok(me.indexOf('<BuklodProfileActivityCards')<me.indexOf('<BuklodNativeSponsoredCard'));
  assert.match(posts,/loadMemberCommunityPosts\(userId,userId,3\)/);
- assert.match(me,/finalized AdMob earnings are separate/);
+ assert.match(me,/AdMob payouts finalize separately/);
 });
 test('private activity remains account-owned and bounded; no public or admin bypass',()=>{
  assert.match(activity,/viewerId!==userId/);
