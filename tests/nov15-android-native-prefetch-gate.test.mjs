@@ -37,7 +37,7 @@ test('Android prefetch never displays NativeAdView or records rendered before vi
 });
 
 test('QA scope and workflow explicitly cover Android-specific prewarm', () => {
-  const manifest = JSON.parse(read('.buklod/scopes/nov14-video-scroll-pause-ad-prewarm.json'));
+  const manifest = JSON.parse(read('.buklod/scopes/nov15-conso-staging-video-ads.json'));
   assert.ok(manifest.allowedPaths.includes('src/components/BuklodCommunityInlineAd.android.tsx'));
   assert.ok(manifest.regressionTests.includes('tests/nov15-android-native-prefetch-gate.test.mjs'));
   assert.ok(read('.github/workflows/engineering-accountability.yml').includes('tests/nov15-android-native-prefetch-gate.test.mjs'));

@@ -34,7 +34,8 @@
     "NativeAdView is not created while out of viewport, despite one eligible next NativeAd being loaded by SDK.",
     "Home, Cluster, Wall, Connect and Profile routes, QMP/Finance, PTT/Call and owner privacy/RLS preserved.",
     "No production, staging OTA, Android binary, Play, web, Supabase migration or Finance mutation in this scope.",
-    "Authentic Profile recent posts and activity remain above both member and BUKLOD Official Top Ten; no fabricated rank, no RLS/Points server changes."
+    "Authentic Profile recent posts and activity remain above both member and BUKLOD Official Top Ten; no fabricated rank, no RLS/Points server changes.",
+    "Only one unified V2 scope manifest is introduced; earlier source-branch manifests are intentionally not copied into the staging PR."
   ],
   "regressionTests": [
     "tests/admob-native-video-prefetch-20261114.test.mjs",
@@ -49,8 +50,6 @@
     "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
   ],
   "allowedPaths": [
-    ".buklod/scopes/nov14-video-scroll-pause-ad-prewarm.json",
-    ".buklod/scopes/nov15-ad-native-retention.json",
     ".buklod/scopes/nov15-conso-staging-video-ads.json",
     ".github/workflows/engineering-accountability.yml",
     ".github/workflows/navigation-v2-staging-compile-qa.yml",
