@@ -32,14 +32,14 @@
     "account-isolation"
   ],
   "regressionTests": [
-    "tests/nov14-profile-focus-refresh-staging.test.mjs",
+    "tests/nov14-profile-navigation-rank-refresh.test.mjs",
     "tests/nov14-profile-ranks-ux.test.mjs",
     "tests/nov14-profile-post-cards.test.mjs"
   ],
   "allowedPaths": [
     "src/app/(tabs)/me.tsx",
     "src/components/BuklodProfilePostCards.tsx",
-    "tests/nov14-profile-focus-refresh-staging.test.mjs",
+    "tests/nov14-profile-navigation-rank-refresh.test.mjs",
     ".buklod/scopes/profile-focus-refresh-staging-20261114.json"
   ],
   "lockedFeatureChanges": [
@@ -50,7 +50,7 @@
         "No Points or ad settlement mutation; no extra background poll; Home/Wall/Connect unchanged"
       ],
       "tests": [
-        "tests/nov14-profile-focus-refresh-staging.test.mjs"
+        "tests/nov14-profile-navigation-rank-refresh.test.mjs"
       ]
     },
     {
@@ -60,7 +60,7 @@
         "Only signed-in owner post preview; existing permission checks and routes"
       ],
       "tests": [
-        "tests/nov14-profile-focus-refresh-staging.test.mjs"
+        "tests/nov14-profile-navigation-rank-refresh.test.mjs"
       ]
     }
   ],
