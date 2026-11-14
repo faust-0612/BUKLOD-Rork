@@ -93,10 +93,10 @@ function createStyles(theme: ConnectThemeRoles) {
       width: COLUMN_WIDTH,
       marginRight: 8,
       alignItems: 'center',
-      paddingVertical: 4,
+      paddingVertical: 8,
       paddingHorizontal: 4,
       borderRadius: 18,
-      backgroundColor: theme.surface,
+      backgroundColor: HIBLA.mint,
     },
     noteZone: {
       width: COLUMN_WIDTH,

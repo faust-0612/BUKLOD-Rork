@@ -1831,6 +1831,8 @@ export default function MeScreen() {
         </View>
       </View>
 
+      {/* BUKLOD Official also owns real posts: show them before its admin bulletin. */}
+      {isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
       <View style={styles.sectionPad}>
         <BuklodSystemAnnouncementBoard slot="profile" />
       </View>
