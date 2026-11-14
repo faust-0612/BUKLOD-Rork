@@ -25,13 +25,15 @@
   "regressionTests": [
     "tests/ad-native-lifecycle-retention-20261115.test.mjs",
     "tests/admob-native-video-prefetch-20261114.test.mjs",
-    "tests/nov15-android-native-prefetch-gate.test.mjs"
+    "tests/nov15-android-native-prefetch-gate.test.mjs",
+    "tests/protected-feature-lock-native-retention-20261115.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/nov15-ad-native-retention.json",
     ".github/workflows/engineering-accountability.yml",
     "src/components/BuklodCommunityInlineAd.android.tsx",
-    "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+    "tests/ad-native-lifecycle-retention-20261115.test.mjs",
+    "tests/protected-feature-lock-native-retention-20261115.test.mjs"
   ],
   "acceptanceChecks": [
     "Native SDK effect does not restart on pathname changes alone; route lock still tears down ad.",
@@ -40,6 +42,16 @@
     "Staging and production release remain explicitly gated."
   ],
   "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Android NativeAd lifecycle dependency changes the app-level React hook cleanup semantics without modifying runtime or native package.",
+      "preservedBehaviors": [
+        "No native dependency or runtime change, and cleanup still occurs when route safety or app lifecycle truly disallows the loaded SDK creative."
+      ],
+      "tests": [
+        "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+      ]
+    },
     {
       "id": "ads-finance-points",
       "reason": "Retain already loaded NativeAd during ad-safe navigation while preserving all request and impression policies.",
@@ -57,17 +69,7 @@
         "Scope gate remains fail-closed and other branch policies remain unchanged."
       ],
       "tests": [
-        "tests/ad-native-lifecycle-retention-20261115.test.mjs"
-      ]
-    },
-    {
-      "id": "navigation-auth",
-      "reason": "Loaded ad survival across navigation must not change actual route authorization or session identity.",
-      "preservedBehaviors": [
-        "No cross-account ad data changes and forbidden routes release creatives."
-      ],
-      "tests": [
-        "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+        "tests/protected-feature-lock-native-retention-20261115.test.mjs"
       ]
     }
   ]
