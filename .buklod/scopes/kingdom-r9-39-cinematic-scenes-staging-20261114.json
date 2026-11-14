@@ -18,7 +18,8 @@
     "src/features/games/kingdom/platform/KingdomCinematicScene.tsx",
     "src/features/games/kingdom/platform/KingdomCinematicScene.web.tsx",
     "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
-    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs",
+    ".github/workflows/buklod-kingdom-r9-android-export-qa-20261114.yml"
   ],
   "regressionTests": [
     "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
@@ -50,7 +51,8 @@
     "Native gameplay frame-time, RAM, touch/feedback and Reduce Motion/device behavior acceptance measured; not claimed complete from static tests.",
     "Authoring/verification of real Rive .riv character state machines is a separate open blocker. No mock or remote unverified art substitutes.",
     "Do not bypass Nov 14 full consolidated BUKLOD staging release gate; production remains untouched.",
-    "Game Center scroll/layout preserves map navigation and touch while adding the compact cinematic panel; real phone visual acceptance required."
+    "Game Center scroll/layout preserves map navigation and touch while adding the compact cinematic panel; real phone visual acceptance required.",
+    "Native Android Hermès nonpublishing export workflow is source-controlled and must succeed on the exact merged staging SHA, not on an old branch head."
   ],
   "riskAreas": [
     "navigation-scroll"
