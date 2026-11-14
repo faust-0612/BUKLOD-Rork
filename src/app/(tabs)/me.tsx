@@ -5,6 +5,7 @@ import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef }
 import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
 import BuklodProfileMembershipNav from '@/components/BuklodProfileMembershipNav';
 import BuklodProfilePostCards from '@/components/BuklodProfilePostCards';
+import BuklodProfileActivityCards from '@/components/BuklodProfileActivityCards';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
 import {
@@ -42,7 +43,7 @@ import {
 import { decode } from 'base64-arraybuffer';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { Alert } from 'react-native';
+import { Alert, Share } from 'react-native';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 import {
   BUKLOD_HIT_SLOP,
@@ -464,12 +465,28 @@ export default function MeScreen() {
 
   const [profileLocked, setProfileLockedState] =
     useState(false);
+  const [profileNote,setProfileNote] = useState('');
 
   const [profileLockBusy, setProfileLockBusy] =
     useState(false);
 
   const [themeOpen, setThemeOpen] =
     useState(false);
+
+  useProfileFocusEffect(useProfileFocusCallback(()=>{
+    let active=true;setProfileNote('');
+    if(profile?.id){
+      void (async()=>{
+        try {
+          const {data,error}=await (supabase as any).from('buklod_profile_status')
+            .select('quick_note').eq('user_id',profile.id).maybeSingle();
+          if(active&&!error)setProfileNote(String(data?.quick_note??'').trim().slice(0,160));
+        } catch { /* Unknown/offline/private: do not invent note. */ }
+      })();
+    }
+    return ()=>{active=false;};
+  },[profile?.id]));
+
 
   const [lifetimePoints, setLifetimePoints] =
     useState(0);
@@ -1264,6 +1281,17 @@ export default function MeScreen() {
 
   const visibleRoles = (roles ?? []).filter(Boolean);
   const username = String(profile?.username ?? '').trim();
+  const shareMyProfile=async()=>{
+    if(!profile?.id || profileLocked){
+      Alert.alert('Profile privacy','Your profile is locked or unavailable. Sharing is disabled.');
+      return;
+    }
+    const displayName=resolvePersonDisplayName(profile,profile.id);
+    const message=username?displayName+'\n@'+username:displayName;
+    try{await Share.share({message:'BUKLOD member profile\n'+message});}
+    catch{Alert.alert('Share profile','Unable to open the share menu.');}
+  };
+
 
   const sectionVisible = (
     id: ProfileSectionId
@@ -1742,7 +1770,8 @@ export default function MeScreen() {
             </Text>
           </ProfileMotionFadeUp>
         )}
-
+        {!!profileNote && <Text allowFontScaling numberOfLines={2}
+          style={{color:theme.textSecondary,fontSize:13,lineHeight:19,marginTop:5}}>{profileNote}</Text>}
           </View>
         </View>
 
@@ -1779,6 +1808,27 @@ export default function MeScreen() {
             </View>
           </ProfileMotionFadeUp>
         )}
+        <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:9}}>
+          {([
+            ['Edit Profile','/account/personal-information','pencil-outline'],
+            ['My Note','/profile/status','text-box-edit-outline']
+          ] as const).map(([label,path,icon])=>(
+            <Pressable key={label} accessibilityRole="button" accessibilityLabel={label}
+              onPress={()=>router.push(path as any)}
+              style={{minHeight:44,flexGrow:1,flexDirection:'row',gap:6,alignItems:'center',justifyContent:'center',
+                paddingHorizontal:10,borderRadius:12,backgroundColor:theme.accentSoft}}>
+              <MaterialCommunityIcons name={icon} size={18} color={theme.accent}/>
+              <Text allowFontScaling style={{color:theme.textPrimary,fontSize:13,fontWeight:'800'}}>{label}</Text>
+            </Pressable>
+          ))}
+          <Pressable accessibilityRole="button" accessibilityLabel="Share my public profile information"
+            onPress={()=>{void shareMyProfile();}}
+            style={{minHeight:44,flexGrow:1,flexDirection:'row',gap:6,alignItems:'center',justifyContent:'center',
+              paddingHorizontal:10,borderRadius:12,backgroundColor:theme.accentSoft}}>
+            <MaterialCommunityIcons name="share-variant-outline" size={18} color={theme.accent}/>
+            <Text allowFontScaling style={{color:theme.textPrimary,fontSize:13,fontWeight:'800'}}>Share</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.sectionPad}>
@@ -1802,20 +1852,17 @@ export default function MeScreen() {
             </Pressable>
           ))}
         </View>
-        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Verified Points-activity standings. Monthly rank can move until cutoff; AdMob payouts finalize separately.</Text>
+        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Recorded Points standings. Monthly rank uses the calendar month; AdMob payouts finalize separately.</Text>
       </View>}
 
       {!isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
+      {!isBuklodOfficial && !!profile?.id && <BuklodProfileActivityCards userId={profile.id} />}
       {referralSection}
+      {/* Required sponsored inventory: follows genuine member data, never overlays identity. */}
       <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />
-
-      {orderedSections.map((row, index) => (
-        <View key={row.id}>
-          {sectionMap[row.id]}
-          {index === 0 ? <BuklodFirstViewAd placement="profile" placementId="profile_first_view" /> : null}
-        </View>
-      ))}
-      {orderedSections.length === 0 ? <BuklodFirstViewAd placement="profile" placementId="profile_first_view" /> : null}
+      {orderedSections.map(row => <View key={row.id}>{sectionMap[row.id]}</View>)}
+      {/* Native ad stays below personal rank, posts, activity and settings. */}
+      <BuklodFirstViewAd placement="profile" placementId="profile_first_view" />
 
       <BuklodScreenBottomBanner placement="profile" variant="large" />
       <Text

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-14",
+  "repository": "faust-0612/BUKLOD-Rork",
+  "baseSha": "9c9661b888eca979c7cd114c42ae97a333830d37",
+  "target": {
+    "platform": "android",
+    "channel": "staging-user",
+    "package": "org.mzbministry.buklod.staging",
+    "runtime": "1.3.2",
+    "environment": "preview"
+  },
+  "included": {
+    "inherited": [
+      "Navigation V2",
+      "Home premium launcher + no Updates drawer",
+      "Profile redesign + rank/navigation focus refresh",
+      "Search and Settings",
+      "Cluster compact interface",
+      "Wall/Marites video near viewport, original quality cache",
+      "Comment Edit/Delete and GIF fallback",
+      "Connect Sent/Seen and deep-link source",
+      "NativeAd sponsor and ad viewport clock",
+      "Kingdom R7/R8/R9 39 scene profiles + 13 characters",
+      "Kingdom offline CC0 audio",
+      "Educational IMCI only",
+      "BSOC operator source and support routes",
+      "About BUKLOD",
+      "IGPAT remains retired"
+    ],
+    "newlyReconciled": [
+      "LIFE and KL always visible independent Wall cards",
+      "Registration definitely-offline verification without replaying signUp",
+      "Owner-only recent Points activity and authenticated reading, mentoring and contribution reports on Profile",
+      "Complete Profile owner Note/edit/share, active org/suborg dedupe, personal report links, remove duplicate early native ad"
+    ]
+  },
+  "excluded": [
+    "Health Center consultation/private clinical backend and professional enrollment",
+    "SALIKSIK private vault/Edge/mastery/Points/DB backend",
+    "Native Android IME direct GIF commitContent requiring APK",
+    "New Rive authored .riv rigs absent from source",
+    "New native icon/permission/SDK"
+  ],
+  "inheritedSourceCoverage": "Individual already-inherited source files compared for comment actions, sponsor player, native ad viewport, Connect Sent/Seen, media upload/music, and About, avoiding duplicates.",
+  "privacyEvidence": "Read-only live DB query: two author-only policy qualifiers, public/scoped feed guards, scope revocation trigger and Realtime policy exist. No migration history for 20261112072000 and 20261112072700. No database write authorized or performed.",
+  "releaseGates": {
+    "sourceCI": "pending",
+    "typedAndroidExport": "pending",
+    "signedAPKSourceParity": "pending",
+    "installedVisualAcceptance": "skipped_by_owner_not_passed",
+    "stagingManifestReadback": "pending",
+    "productionNonMutation": "pending"
+  },
+  "readyForOta": false,
+  "otaPublished": false,
+  "productionPublished": false,
+  "webPublished": false,
+  "requiredBeforePublish": [
+    "Exact-source protected CI and Android JS export",
+    "Verified native binary and EAS channel/runtime isolation",
+    "Specific 16-item staging scope gate with documented exclusions and accepted known limitations",
+    "Actual EAS update group receipt and server manifest readback"
+  ],
+  "qaCorrections": [
+    "Canonical Kingdom R9 catalog/test baseline fixed to existing catalog-bearing commit 13f7bb7, without weakening 39-game/13-character tests",
+    "Engineering scope riskAreas and preserveBehaviors completed",
+    "QA checkout full history for immutable source comparison",
+    "Profile new activity/rank/post source-specific regression and account isolation",
+    "Correct PostgREST PromiseLike TypeScript failure and Profile source completeness regression"
+  ],
+  "stagingQaPublicationAuthorized": true,
+  "stagingQaPublicationReason": "Owner explicitly requested complete and push STAGING only on 2026-11-14; actual handset visual acceptance previously waived for staging QA, not passed. No production promotion.",
+  "releaseMechanism": {
+    "workflow": ".github/workflows/buklod-nov14-scoped-staging-ota-publish.yml",
+    "policy": "scripts/buklod-nov14-scoped-staging-ota-policy.mjs",
+    "channel": "staging-user",
+    "environment": "preview",
+    "platform": "android",
+    "buildId": "bc4be208-bfb0-42f3-95cb-358353d0600f",
+    "apkSource": "c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd",
+    "projectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "commitMarker": "BUKLOD_OWNER_SCOPED_STAGING_OTA_20261114:",
+    "independentManifestCheck": true
+  }
+}

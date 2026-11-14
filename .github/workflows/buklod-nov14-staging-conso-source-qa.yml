@@ -1,0 +1,77 @@
+name: BUKLOD Nov14 Consolidated Staging Source QA - No Publish
+on:
+  pull_request:
+    branches: [dev/profile-focus-refresh-staging-20261114]
+    paths:
+      - 'src/app/(tabs)/buklod.tsx'
+      - 'src/app/(auth)/register.tsx'
+      - 'src/app/(tabs)/me.tsx'
+      - 'src/components/BuklodProfileActivityCards.tsx'
+      - 'tests/nov14-profile-navigation-personal-activity-report.test.mjs'
+      - 'tests/wall-life-kl-navigation-20261114.test.mjs'
+      - 'tests/auth-registration-offline-recovery.test.cjs'
+      - '.buklod/scopes/nov14-staging-conso-excluding-health-saliksik.json'
+      - '.github/workflows/buklod-nov14-staging-conso-source-qa.yml'
+permissions:
+  contents: read
+jobs:
+  android-hermes-verified-source:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'integration/buklod-conso-staging-no-hc-saliksik-20261114' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Locked dependencies, no scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify exact candidate identity and exclusions
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          node <<'NODE'
+          const assert=require('node:assert/strict'),fs=require('node:fs');
+          const cfg=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          const release=JSON.parse(fs.readFileSync('release/nov14-staging-conso-excluding-health-saliksik.json','utf8'));
+          assert.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(cfg.runtimeVersion,'1.3.2');
+          assert.equal(cfg.extra.appEnvironment,'staging');
+          assert.equal(cfg.extra.appTarget,'main');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          assert.equal(eas.build['staging-user'].environment,'preview');
+          assert.equal(eas.build.production.channel,'production');
+          assert.equal(release.readyForOta,false);
+          assert.equal(release.otaPublished,false);
+          assert(!release.included.newlyReconciled.some(x=>/health|saliksik/i.test(x)));
+          NODE
+      - name: Focused Wall, Auth, ads, Connect and Kingdom regression
+        run: |
+          node --experimental-strip-types --test \
+            tests/wall-life-kl-navigation-20261114.test.mjs \
+            tests/auth-registration-offline-recovery.test.cjs \
+            tests/registration-network-recovery.test.cjs \
+            tests/buklod-comment-menu-android-20261113.test.mjs \
+            tests/marites-wall-scroll-video-navigation-20261113.test.mjs \
+            tests/nov14-profile-navigation-rank-refresh.test.mjs \
+            tests/nov14-profile-navigation-personal-activity-report.test.mjs \
+            tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs \
+            tests/buklod-igpat-retirement-release-marker-20261111.test.mjs
+      - name: Android TypeScript and Hermes export without OTA
+        run: |
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-nov14-staging-conso --clear
+          test -s /tmp/buklod-nov14-staging-conso/metadata.json
+          test -z "$(git status --porcelain --untracked-files=no)"
+          echo 'SOURCE VALIDATED ONLY. No APK, OTA, backend or production changes.'

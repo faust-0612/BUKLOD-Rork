@@ -1,0 +1,118 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov14-staging-conso-excluding-health-saliksik.json",
+  "objective": "Complete staging-user OTA-only source consolidation of existing approved Home/Profile/Nav/Wall/Marites/Connect/Kingdom/Ads fixes with direct LIFE/KL and confirmed-offline registration; explicitly exclude Health Center and SALIKSIK. Restore private personal Profile activity and authored reports without fake activities or finance policy changes.",
+  "baseRef": "9c9661b888eca979c7cd114c42ae97a333830d37",
+  "productionBaselineEvidence": "Use verified PR #801 visual/Home/Profile source 9c9661b888eca979c7cd114c42ae97a333830d37 stacked on visual #791. Current main last inspected 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Source provenance only; exact installed staging binary and EAS source must be attested before OTA. Live production SQL not mutated.",
+  "chosenApproach": "Two narrow source-only patches and two executable source regressions, preserve inherited working code by blob identity, add no-publish Android source gate, formal staging RC hold. No HC/SALIKSIK code, migrations, routes, Edge/Points or external services.",
+  "selectionRationale": "Avoid whole-branch cherry-picks from diverged older PRs and protect working ads, high-resolution media, Connect, comment, Kingdom animation and original CC0 sounds; use existing native NetInfo 12.0.1.",
+  "alternativeApproaches": [
+    "Cherry-pick PR #807 or #806 rejected: includes deferred clinical/SALIKSIK RLS and Edge backend",
+    "Cherry-pick older native/audio PR #790 rejected due newer R9/audio source and branch drift",
+    "Production DB mutation rejected: staging OTA only"
+  ],
+  "riskAreas": [
+    "navigation-auth",
+    "wall-layout",
+    "auth-retry",
+    "staging-release",
+    "privacy",
+    "no-regression",
+    "navigation-scroll",
+    "auth-privacy",
+    "production-release",
+    "staging-isolation",
+    "native-ota-compatibility",
+    "release-identity",
+    "account-isolation",
+    "profile-personal-activity",
+    "profile-membership",
+    "profile-share-privacy",
+    "profile-ad-placement"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(auth)/register.tsx",
+    "tests/wall-life-kl-navigation-20261114.test.mjs",
+    "tests/auth-registration-offline-recovery.test.cjs",
+    ".buklod/scopes/nov14-staging-conso-excluding-health-saliksik.json",
+    "release/nov14-staging-conso-excluding-health-saliksik.json",
+    ".github/workflows/buklod-nov14-staging-conso-source-qa.yml",
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs",
+    "scripts/buklod-nov14-scoped-staging-ota-policy.mjs",
+    "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs",
+    ".github/workflows/buklod-nov14-scoped-staging-ota-publish.yml",
+    "src/app/(tabs)/me.tsx",
+    "src/components/BuklodProfileActivityCards.tsx",
+    "tests/nov14-profile-navigation-personal-activity-report.test.mjs",
+    "src/components/BuklodProfileMembershipNav.tsx"
+  ],
+  "regressionTests": [
+    "tests/wall-life-kl-navigation-20261114.test.mjs",
+    "tests/auth-registration-offline-recovery.test.cjs",
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs",
+    "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs",
+    "tests/nov14-profile-navigation-personal-activity-report.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Direct LIFE and KL cards and guarded registration change only JS runtime with no dependency/native/plugin changes.",
+      "preservedBehaviors": [
+        "Preserve sponsored video before LIFE/KL and Marites after; no comment/video/ad/Points/Kingdom changes, no double-signup"
+      ],
+      "tests": [
+        "tests/wall-life-kl-navigation-20261114.test.mjs",
+        "tests/auth-registration-offline-recovery.test.cjs",
+        "tests/nov14-profile-navigation-personal-activity-report.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Remove only the Wall highlight accordion and prevent a definitely-offline signup before server request, without changing user identity or route authorization.",
+      "preservedBehaviors": [
+        "Existing user session, form values, interrupted signup sign-in-only verification and canonical Wall route remain untouched"
+      ],
+      "tests": [
+        "tests/wall-life-kl-navigation-20261114.test.mjs",
+        "tests/auth-registration-offline-recovery.test.cjs",
+        "tests/nov14-profile-navigation-personal-activity-report.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Authorize strictly-scoped staging-only Android QA OTA publication with signed native APK identity and independent production manifest nonmutation checks.",
+      "preservedBehaviors": [
+        "Production OTA branch/channel and Expo Web/Play remain untouched; fail closed on shared EAS branch or mismatch in native ABI, build, project or source SHA."
+      ],
+      "tests": [
+        "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Locked source tests and protected-feature scope must pass on exact Git SHA",
+    "TypeScript and Expo Android Hermes export must succeed with staging package org.mzbministry.buklod.staging runtime 1.3.2",
+    "Verify installed signed staging APK ABI/project, EAS channel isolation, exact-source RC and no production manifest mutation before staging OTA",
+    "No new Health Center/SALIKSIK code/routes/Edge/migrations/Points. Legacy Health educational guide remains but online consultations OFF",
+    "Do not claim device visual tests passed when owner skipped them",
+    "Privacy DB read-only confirms current live policy but migration history for PR #759 missing; do not reapply SQL via OTA",
+    "No direct native keyboard-GIF changes or new Rive assets are claimed",
+    "Dedicated staging QA OTA workflow must only publish on exact isolated branch and exact owner release marker after Engineering and Main CI pass; no production rollback or web deployment.",
+    "Release identity risk area explicitly governed, with exact branch, signed APK/preview channel checks and immutable production-manifest readback.",
+    "Profile direct owner activity and report links present, auth viewer ID match and no cross-user ledger access",
+    "Profile owner-only real status note/edit and privacy-aware share, distinct active Org/Suborg rows, one lower Profile first-view ad, no duplicate native ad.",
+    "Engineering permanent AdMob inventory lock must pass and confirm profile_mid_native placement preserved on Profile"
+  ],
+  "releaseMode": "OWNER_AUTHORIZED_SCOPED_ANDROID_STAGING_QA_OTA_ONLY",
+  "releaseStatus": "STAGING_QA_PUBLISH_CONDITIONALLY_AUTHORIZED__FULL_CONSOLIDATED_ACCEPTANCE_STILL_PENDING",
+  "preserveBehaviors": [
+    "Existing sponsored video, Wall text, sharp photos, Marites and comment ownership/permissions remain unchanged.",
+    "Existing account verification is sign-in-only after ambiguous signup failures; one signUp per user attempt, no automatic retry.",
+    "Original Kingdom 39 profiles and approved character art, audio, QMP/AdMob, Connect, PTT and IGPAT retirement are retained.",
+    "No Health Center clinical backend, SALIKSIK learning/mastery/Points, native DLL/permissions or production changes.",
+    "Retain overall/monthly Points rank and exact three owner posts; private bounded activity and existing report destinations do not enable finance or deferred backend",
+    "No fake activity or public private fields; existing lower ads, existing Profile rank/posts, native Expo runtime and member-scoped UI retained.",
+    "Mandatory app-wide profile_mid_native sponsor remains rendered only after personal rank/posts/activity, without overlay or duplicate early profile identity ads."
+  ]
+}
