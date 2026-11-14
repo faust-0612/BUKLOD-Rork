@@ -275,7 +275,7 @@ export default function BuklodCommunitySponsoredAd({
     </View>
     {campaign.creative_type === 'video' && campaign.video_url
       ? videoNear && screenFocused
-        ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={videoVisible}/>
+        ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={screenFocused&&videoVisible}/>
         : <View style={s.media}/>
       : campaign.image_url
         ? <Image source={{uri: campaign.image_url}} style={s.media} resizeMode="contain"/>
