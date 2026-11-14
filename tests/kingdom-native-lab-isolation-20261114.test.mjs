@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 
 const read = file => fs.readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const app = requireFromText(read('app.config.js'));
@@ -112,6 +112,7 @@ test('Godot main pack is bundled only in separate Android lab package', () => {
   const java = read('modules/buklod-kingdom-lab/android/src/main/java/expo/modules/buklodlab/GodotLabActivity.java');
   const manifest = read('modules/buklod-kingdom-lab/android/src/main/AndroidManifest.xml');
   assert.match(moduleGradle,/org\.godotengine:godot:4\.7\.2\.stable/);
+  assert.match(moduleGradle,/System.getenv\('BUKLOD_APP_TARGET'\) != 'kingdom-native-lab'/);
   assert.match(java,/--main-pack/);
   assert.match(java,/buklod_kingdom\.zip/);
   assert.match(manifest,/android:exported="false"/);
@@ -122,7 +123,6 @@ test('Offline source preflight passes but unsafe build without lab creds is bloc
   const result = execFileSync(process.execPath, ['scripts/kingdom-lab/preflight.cjs'],
     {cwd: new URL('..', import.meta.url), encoding:'utf8'});
   assert.match(result, /NATIVE_LAB_SOURCE_GATES_PASSED/);
-  const { spawnSync } = require('node:child_process');
   const blocked = spawnSync(process.execPath,
     ['scripts/kingdom-lab/preflight.cjs','--build'],
     {cwd: new URL('..', import.meta.url), encoding:'utf8',
