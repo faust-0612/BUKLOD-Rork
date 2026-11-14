@@ -61,5 +61,11 @@
     }
   ],
   "releaseMode": "STAGING_ONLY_NO_PRODUCTION",
-  "releaseStatus": "DEV_NOT_RELEASED"
+  "releaseStatus": "DEV_NOT_RELEASED",
+  "selectionRationale": "Use real bundled CC0 sampled orchestral performance instead of user-rejected cheap synthetic tones; avoid remote preview host and preserve offline, call-suppression and staging rollout isolation while minimizing package changes.",
+  "alternativeApproaches": [
+    "Enable remote Rork preview MP3s (rejected: unavailable/unreliable host, no offline playback).",
+    "Re-use BUKLOD message and achievement WAVs or handcrafted oscillator sounds (rejected: owner explicitly rejected cheap notification-like game sounds).",
+    "Add a new native audio engine or a paid sound generator (rejected: existing Expo Audio supports required playback without another Android build or recurring fees)."
+  ]
 }
