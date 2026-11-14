@@ -1,4 +1,5 @@
 # Owner-authorized Android staging first. Production is a distinct gated release.
+# Final RC includes production-backed Monthly/All-Time Top 10 and original staged personal posts.
 name: BUKLOD Nov15 Consolidated Staging Android OTA Publish
 on:
   push:
