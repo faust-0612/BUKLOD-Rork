@@ -26,11 +26,14 @@
     "tests/fixtures/nov14_health_auth_bootstrap.sql",
     "tests/fixtures/nov14_health_access_rls.sql",
     ".buklod/scopes/nov14-cumulative-staging-source-r1.json",
-    "tests/nov14-health-backend-rls-security.test.mjs"
+    "tests/nov14-health-backend-rls-security.test.mjs",
+    "supabase/tests/nov14_buklod_hc_consultation_rls.sql",
+    ".github/workflows/buklod-conso-staging-android-qa-20261114.yml"
   ],
   "regressionTests": [
     "tests/wall-life-kl-navigation-20261114.test.mjs",
-    "tests/nov14-health-backend-rls-security.test.mjs"
+    "tests/nov14-health-backend-rls-security.test.mjs",
+    "supabase/tests/nov14_buklod_hc_consultation_rls.sql"
   ],
   "preserveBehaviors": [
     "LIFE and KL independent once above Marites, after paid sponsor; no drawer",
@@ -67,7 +70,8 @@
         "All patient and clinician rows are identity-scoped; no admin auto-access, anonymous grant, credential auto-approval or production migration."
       ],
       "tests": [
-        "tests/nov14-health-backend-rls-security.test.mjs"
+        "tests/nov14-health-backend-rls-security.test.mjs",
+        "supabase/tests/nov14_buklod_hc_consultation_rls.sql"
       ]
     }
   ],
@@ -76,7 +80,8 @@
     "RLS nonparticipant/clinician revoked tests run on isolated Postgres 17 CI, no production SQL mutation",
     "Android Hermes export and signed staging APK ABI/runtime parity verified before any staging OTA",
     "Runtime visual acceptance of native LIFE/KL and all required 18-item consolidated acceptance gates (do not mark verified from source tests)",
-    "Live Health consultation and SALIKSIK Edge remain disabled until independently proven credentials/RLS/clinical/privacy backend"
+    "Live Health consultation and SALIKSIK Edge remain disabled until independently proven credentials/RLS/clinical/privacy backend",
+    "New non-publishing Android Expo export workflow must succeed on the exact integration SHA; this does not replace signed staging/runtime or native UX proof."
   ],
   "releaseMode": "isolated-staging-dev-source-only",
   "releaseStatus": "HOLD: no APK, no OTA, no web or production publish; 18-item consolidated acceptance gate remains fail closed"
