@@ -11,7 +11,7 @@ import {
 
 const BASE='9c9661b888eca979c7cd114c42ae97a333830d37';
 const STAGING_PACKAGE='org.mzbministry.buklod.staging';
-const SOURCE_FILES=['src/app/(auth)/register.tsx','src/app/(tabs)/buklod.tsx','src/app/(tabs)/me.tsx','src/components/BuklodProfileActivityCards.tsx','src/components/BuklodProfileMembershipNav.tsx'];
+const SOURCE_FILES=['src/app/(auth)/register.tsx','src/app/(tabs)/buklod.tsx','src/app/(tabs)/me.tsx','src/app/(tabs)/messages.tsx','src/components/BuklodProfileActivityCards.tsx','src/components/BuklodProfileMembershipNav.tsx','src/components/connect/ConnectQuickContacts.tsx','src/lib/buklodMemberProfile.ts'];
 const OGG_BLOCK=`// Expo defaults omit Ogg Vorbis in Metro; licensed offline Kingdom music must
 // be bundled as real assets instead of resolved as a JS module. Android audio
 // decoder supports Vorbis via its native media stack; no native dependency.

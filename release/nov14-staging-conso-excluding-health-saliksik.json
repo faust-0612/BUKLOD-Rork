@@ -32,7 +32,9 @@
       "LIFE and KL always visible independent Wall cards",
       "Registration definitely-offline verification without replaying signUp",
       "Owner-only recent Points activity and authenticated reading, mentoring and contribution reports on Profile",
-      "Complete Profile owner Note/edit/share, active org/suborg dedupe, personal report links, remove duplicate early native ad"
+      "Complete Profile owner Note/edit/share, active org/suborg dedupe, personal report links, remove duplicate early native ad",
+      "BUKLOD Official personal authored posts now visible and retrieved beyond Marites-filtered pages, preserving RLS.",
+      "Restored Connect HIBLA dark-green pine, gold text and mint-green contact cards; visible tabs above sponsored content."
     ]
   },
   "excluded": [
@@ -67,7 +69,8 @@
     "Engineering scope riskAreas and preserveBehaviors completed",
     "QA checkout full history for immutable source comparison",
     "Profile new activity/rank/post source-specific regression and account isolation",
-    "Correct PostgREST PromiseLike TypeScript failure and Profile source completeness regression"
+    "Correct PostgREST PromiseLike TypeScript failure and Profile source completeness regression",
+    "Owner screenshot 2026-11-14: official posts were hidden by isBuklodOfficial and limited Marites-first query; Connect green styles reverted in previous visual branch."
   ],
   "stagingQaPublicationAuthorized": true,
   "stagingQaPublicationReason": "Owner explicitly requested complete and push STAGING only on 2026-11-14; actual handset visual acceptance previously waived for staging QA, not passed. No production promotion.",

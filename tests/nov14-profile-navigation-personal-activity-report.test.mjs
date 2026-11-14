@@ -43,3 +43,8 @@ test('actual report destinations are already-defined authenticated screens',()=>
  assert.match(activity,/Recorded Points are not cash earnings/);
  assert.doesNotMatch(me,/How Account Deletion Works|Pilot Checklist|BUKLOD Kingdom/);
 });
+test('BUKLOD Official owns a distinct recent post section before bulletin',()=>{
+ assert.ok(me.includes('isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />'));
+ assert.ok(me.indexOf('isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards')<me.indexOf('<BuklodSystemAnnouncementBoard slot="profile"'));
+ assert.ok(me.includes('!isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />'));
+});

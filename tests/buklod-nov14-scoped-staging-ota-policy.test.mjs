@@ -26,3 +26,9 @@ test('release workflow runs from isolated branch and never targets production up
   assert.match(workflow,/buklod-nov14-scoped-staging-ota-policy\.mjs postpublish/);
   assert.match(workflow,/github\.rest\.actions\.listWorkflowRunsForRepo/);
 });
+test('release allows only native-safe Profile and HIBLA Connect additional source paths',()=>{
+ const source=fs.readFileSync(new URL('../scripts/buklod-nov14-scoped-staging-ota-policy.mjs',import.meta.url),'utf8');
+ for(const path of ['src/app/(tabs)/messages.tsx','src/components/connect/ConnectQuickContacts.tsx','src/lib/buklodMemberProfile.ts'])
+  assert.ok(source.includes("'"+path+"'"),path);
+ assert.doesNotMatch(source,/SOURCE_FILES=.*supabase\//);
+});
