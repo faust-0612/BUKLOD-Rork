@@ -15,7 +15,8 @@
     "production-release",
     "wall-media",
     "navigation-scroll",
-    "video-viewport"
+    "video-viewport",
+    "release-identity"
   ],
   "preserveBehaviors": [
     "All 14 production video/NativeAd source files remain identical to verified staging SHA 74645fa89be1a40334f1725103ecd58cdc191230.",
