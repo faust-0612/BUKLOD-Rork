@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const workflow = readFileSync(new URL('../.github/workflows/engineering-accountability.yml', import.meta.url), 'utf8');
 const source = readFileSync(new URL('../src/components/BuklodCommunityInlineAd.android.tsx', import.meta.url), 'utf8');
-const manifest = JSON.parse(readFileSync(new URL('../.buklod/scopes/nov15-ad-native-retention.json', import.meta.url), 'utf8'));
+const manifest = JSON.parse(readFileSync(new URL('../.buklod/scopes/nov14-video-scroll-pause-ad-prewarm.json', import.meta.url), 'utf8'));
 
 test('protected feature lock is mandatory for the native ad lifecycle branch', () => {
   assert.match(workflow, /node scripts\/protected-feature-lock\.mjs/);
