@@ -1,0 +1,59 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kingdom-premium-gameplay-staging-20261114.json",
+  "objective": "Deliver genuinely gameplay-triggered premium Android Kingdom animation across the existing 13 game stages, plus specific Jawo and Trudice interactive character effects, scoped strictly to future staging-user Android OTA and never production.",
+  "baseRef": "origin/dev/full-visual-transformation-20261113",
+  "productionBaselineEvidence": "Authoritative staging visual DEV PR #791 is isolated from main. Installed signed Android staging build bc4be208-bfb0-42f3-95cb-358353d0600f runtime 1.3.2; no claim of new OTA publication or device acceptance. Owner's consolidated staging release HOLD remains in place; exact-source release and QA must be independently verified. Original R8 source-parent commit 43d5f24a829028a928b5f131b6fa82499e47cd61. The parallel visual staging branch moved forward independently, so exact PR scope compares to its remote tracking ref to reject only truly unrelated R8 changes.",
+  "chosenApproach": "Reuse existing platform Skia 2.6.2 and Reanimated 4.5.1 with a bounded one-shot event-driven native Canvas overlay subscribed to genuine game feedback events, retaining score and interaction authority. Enhance actual Jawo move/hit/collect avatar kinematics and Trudice correct-step restoration ring. Preserve web fallback unchanged; no new sound assets/native dependencies/backend. Also stop existing shared React Native atmospheric animation loops while native stage is unfocused, backgrounded, or Reduce Motion is on; preserve the unchanged web default.",
+  "selectionRationale": "A cheap shared hardware-accelerated motion layer gives real gameplay reactions to all existing game stations without separate builds, touches or reward logic changes. Per-game native animations remain inside their existing deterministic state machines.",
+  "alternativeApproaches": [
+    "Ship static world art only: rejected because it lacks gameplay-responsive motion.",
+    "Rewrite 39 game engines or add new Rive .riv assets without authored character rigs: rejected as an unsafe incomplete native rebuild.",
+    "Use existing Skia/Reanimated and add bounded gameplay-reactive visual enhancements: selected."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-premium-gameplay-staging-20261114.json",
+    "src/features/games/runtime/BuklodGameplayReactionFX.native.tsx",
+    "src/features/games/runtime/BuklodGameStage.native.tsx",
+    "src/features/games/jawo/ForestTrailGameV2.tsx",
+    "src/features/games/trudice/PlaygroundPathGameV2.tsx",
+    "tests/kingdom-premium-gameplay-staging-20261114.test.mjs",
+    "src/features/games/runtime/BuklodGameVisualFX.tsx"
+  ],
+  "regressionTests": [
+    "tests/kingdom-premium-gameplay-staging-20261114.test.mjs"
+  ],
+  "riskAreas": [
+    "release-identity"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Only game stage UI feedback and two existing gameplay character renderers change.",
+      "preservedBehaviors": [
+        "All 13 canonical station IDs, existing game controls, difficulty timing, score, awards, navigation, game progress and language remain. No game result or backend mutation logic changed."
+      ],
+      "tests": [
+        "tests/kingdom-premium-gameplay-staging-20261114.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Reduced-motion and app background/route blur disable GPU reactions; bursts never intercept touch.",
+    "Game client scores are preview-only, separate from server-authoritative Mastery, Points and Shards.",
+    "Jawo 24-encounter clock ignores lane re-render, Trudice challenge keys and retry lock unchanged.",
+    "All 13 stations remain accessible with existing web fallback and bilingual controls.",
+    "Existing web ambient FX behavior is unchanged: optional enabled defaults true on web."
+  ],
+  "acceptanceChecks": [
+    "Scoped exact SHA readback of all six changed files.",
+    "Node game contract tests and focused Jawo/Trudice regressions pass.",
+    "TypeScript and Android Expo preview export compile on exact isolated source; no new native packages.",
+    "Production/main/web/DB unchanged. Any staging OTA requires consolidated acceptance and independently verified Android EAS update ID, runtime, package and unchanged production fingerprint.",
+    "Real Android gameplay appearance, FPS/memory, accessibility/touch, long-run/blur acceptance must be treated as NOT VERIFIED until actual device evidence exists.",
+    "The production-release lock is intentionally not declared because no production workflow, deploy, Expo config or native ABI file changed.",
+    "Existing Jawo, Trudice and Kingdom R7 tests may be run as supplemental regressions, but the exact-scope gate uses only the NEW changed gameplay test as required proof."
+  ],
+  "releaseMode": "DEV_STAGING_CANDIDATE_ONLY",
+  "releaseStatus": "SOURCE IMPLEMENTATION, NOT YET QA VERIFIED OR PUBLISHED; approved target staging-user Android only."
+}
