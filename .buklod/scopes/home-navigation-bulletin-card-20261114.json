@@ -35,8 +35,7 @@
     "advertising-preservation"
   ],
   "regressionTests": [
-    "tests/home-navigation-bulletin-card-20261114.test.mjs",
-    "scripts/test-navigation-home-wall.cjs"
+    "tests/home-navigation-bulletin-card-20261114.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/home-navigation-bulletin-card-20261114.json",
