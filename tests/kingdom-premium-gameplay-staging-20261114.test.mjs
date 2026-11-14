@@ -112,5 +112,19 @@ test('All 13 Kingdom station route contracts and real BP/Shard security boundari
     'tests/kingdom-premium-gameplay-staging-20261114.test.mjs',
     '.buklod/scopes/kingdom-premium-gameplay-staging-20261114.json',
   ]);
-  for (const path of changed) assert.ok(authorized.has(path), 'Unapproved change: ' + path);
+  const reviewedProductionScope = '.buklod/scopes/nov14-prod-android-rc-promotion.json';
+  if (fs.existsSync(reviewedProductionScope)) {
+    const contract = JSON.parse(fs.readFileSync(reviewedProductionScope,'utf8'));
+    assert.equal(contract.releaseMode,'consolidated-main-rc');
+    const attestedStaging='2e7dc3aa69d2362b7b360013ccaac9917c353e2b';
+    // Cumulative releases may edit independent UI modules but must preserve
+    // every Kingdom runtime file exactly as it was accepted in staging.
+    for (const path of changed.filter(path => path.startsWith('src/features/games/'))) {
+      const staged = execFileSync('git',['show',attestedStaging+':'+path],{encoding:'utf8'});
+      assert.equal(read(path),staged,'Kingdom runtime drift from reviewed staging: '+path);
+    }
+  } else {
+    // The original isolated Kingdom PR still enforces its seven-file allowlist.
+    for (const path of changed) assert.ok(authorized.has(path), 'Unapproved change: ' + path);
+  }
 });

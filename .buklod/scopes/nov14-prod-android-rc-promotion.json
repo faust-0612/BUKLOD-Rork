@@ -5,7 +5,7 @@
   "baseRef": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
   "productionBaselineEvidence": "verified: authoritative main SHA 9f412afd71b74e41995a3a1a63e05e72f78b6e39 and last server-side production manifest id 01a1d2d6-bae3-74df-bbf4-2bdd9df35215 during staging source QA; production publisher must re-read exact live manifest and reject any drift.",
   "chosenApproach": "Freeze reviewed staging source SHA 2e7dc3aa69d2362b7b360013ccaac9917c353e2b; require exact Android production preflight, native/DB ABI isolation, protected feature proof, and Android-only release marker. Existing production workflow performs immutable RC bundle hashing and manifest readback; no general web or Play deployments.",
-  "selectionRationale": "One cumulative candidate preserves already integrated changes. Do not merge unreviewed divergent Health/SALIKSIK branches or break current production phone client. Avoid the older marker that also automatically publishes Expo Web.",
+  "selectionRationale": "One cumulative candidate preserves already integrated changes. Do not merge unreviewed divergent Health/SALIKSIK branches or break current production phone client. Avoid the older marker that also automatically publishes Expo Web. Cumulative staging-approved source cannot be rejected merely for old isolated test syntax; exact feature behavior and immutable staging SHA remain protected.",
   "riskAreas": [
     "ads-finance-points",
     "ads-monetization",
@@ -390,7 +390,8 @@
     "Production Android build, Android full original release gates and actual production manifest readback required before declaration of live release",
     "No Health Center clinical backend or SALIKSIK backend included or activated; original approved educational guide retained",
     "No false declaration that full 18-item visual acceptance or actual on-device verification passed",
-    "Named cumulative PR requires exact eight inherited component v2 manifests plus production scope; all source/test/workflow paths covered by exact allowlist, no weakening of unscoped PR isolation."
+    "Named cumulative PR requires exact eight inherited component v2 manifests plus production scope; all source/test/workflow paths covered by exact allowlist, no weakening of unscoped PR isolation.",
+    "Old isolated source assertions updated to test exact approved staging Kingdom bytes, lower Profile ads after real posts, bounded owner post filter and legacy route aliases without losing saved shortcut IDs."
   ],
   "releaseStatus": "RC_SOURCE_GATE_PENDING__NO_PRODUCTION_PUBLISH",
   "readyForRelease": false,

@@ -101,7 +101,13 @@ test('owner Android screenshot repairs compact the layout without removing actio
   assert.match(profile,/paddingTop: coverUrl \? 104 : 56/);
   assert.match(profile,/height: 118, overflow: 'hidden'/);
   assert.match(profile,/marginTop: -10, borderRadius: 15, backgroundColor: theme.cardSurface/);
-  assert.match(profile,/index === 0 \? <BuklodFirstViewAd/);
+  const personalPost = profile.indexOf('<BuklodProfilePostCards');
+  const profileSponsor = profile.indexOf('slotId="profile_mid_native"');
+  const firstView = profile.indexOf('<BuklodFirstViewAd placement="profile"');
+  assert.ok(personalPost > 0 && profileSponsor > personalPost && firstView > profileSponsor,
+    'Profile must show real posts before native and first-view sponsored slots');
+  assert.equal(profile.split('<BuklodFirstViewAd placement="profile"').length-1,1,
+    'First-view ad must not be duplicated or reinserted above identity');
   assert.match(profile,/<BuklodScreenBottomBanner placement="profile" variant="large"/);
   const settings=read('src/app/settings/index.tsx');
   assert.match(settings,/<StatusBar barStyle=\{darkPalette \? 'light-content' : 'dark-content'\}/);

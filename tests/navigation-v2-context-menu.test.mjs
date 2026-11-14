@@ -33,7 +33,8 @@ test('private recent shortcuts support explicit removal and immediate storage wi
   assert.match(ui, /AsyncStorage.setItem\(key, JSON.stringify\(next\)\)/);
   assert.match(ui, /More options for/);
   assert.match(ui, /Remove from recent/);
-  assert.match(ui, /Pin to Home/);
+  assert.ok(ui.includes("title: pinned.includes(menuItem.id) ? 'Unpin shortcut' : 'Pin to search'"));
+  assert.match(ui,/Pin \$\\\{item.title\\\} to Home/);
 });
 
 test('remove recent has one-tap account-safe Undo and serializes both states to storage', () => {

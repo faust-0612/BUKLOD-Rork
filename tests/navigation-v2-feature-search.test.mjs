@@ -19,6 +19,12 @@ test('short/noisy queries are bounded, deterministic, and do not expose admin or
   assert.equal(findBuklodFeatures('profile', 1).length, 1);
   assert.deepEqual(findBuklodFeatures('xyz-unrecognized-word'), []);
   assert.equal(new Set(BUKLOD_FEATURE_LINKS.map(x => x.id)).size, BUKLOD_FEATURE_LINKS.length);
-  assert.equal(new Set(BUKLOD_FEATURE_LINKS.map(x => x.route)).size, BUKLOD_FEATURE_LINKS.length);
+  // Four distinct, historically pinned task shortcuts intentionally share
+  // authenticated routes; do not silently erase legacy saved shortcut IDs.
+  const routeCounts = new Map();
+  for (const item of BUKLOD_FEATURE_LINKS) routeCounts.set(item.route,(routeCounts.get(item.route)??0)+1);
+  assert.deepEqual([...routeCounts.entries()].filter(([,count])=>count>1).map(([route])=>route).sort(),
+    ['/me','/profile/buklod-health','/settings','/support/live'].sort());
+  assert.ok(BUKLOD_FEATURE_LINKS.every(item => item.aliases.length > 0));
   assert.equal(BUKLOD_FEATURE_LINKS.some(x => /admin|igpat|reels/i.test(x.route)), false);
 });

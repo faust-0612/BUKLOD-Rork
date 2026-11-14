@@ -13,5 +13,8 @@ test('Locked member profile reveals only generic membership label',()=>{
  assert.match(lib,/if \(locked && !isSelf\)/);
  assert.match(lib,/avatar_url: null/);
  assert.match(lib,/quick_note: null/);
- assert.match(lib,/Math\.min\(40, Math\.floor\(maxRows\)\)/);
+  assert.ok(lib.includes('Math.max(1, Math.min(40, Math.floor(Number(maxRows) || 3)))'));
+  assert.ok(lib.includes('page < 3 && visible.length < targetRows'));
+  assert.ok(lib.includes('if (row?.is_hidden) continue;'));
+  assert.ok(lib.includes('if (row?.author_only && !isSelf) continue;'));
 });
