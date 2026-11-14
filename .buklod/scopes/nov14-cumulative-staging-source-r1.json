@@ -25,12 +25,12 @@
     "supabase/migrations/20261114150000_buklod_hc_consultation_r1.sql",
     "tests/fixtures/nov14_health_auth_bootstrap.sql",
     "tests/fixtures/nov14_health_access_rls.sql",
-    ".buklod/scopes/nov14-cumulative-staging-source-r1.json"
+    ".buklod/scopes/nov14-cumulative-staging-source-r1.json",
+    "tests/nov14-health-backend-rls-security.test.mjs"
   ],
   "regressionTests": [
     "tests/wall-life-kl-navigation-20261114.test.mjs",
-    "tests/saliksik-backend-security-20261112.test.mjs",
-    "tests/nov14-imci-health-flow.test.mjs"
+    "tests/nov14-health-backend-rls-security.test.mjs"
   ],
   "preserveBehaviors": [
     "LIFE and KL independent once above Marites, after paid sponsor; no drawer",
@@ -42,13 +42,32 @@
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
-      "reason": "Wall direct-cards-only presentation and dormant Health SQL QA; no production or native change",
+      "reason": "The Wall layout is changed only to render existing LIFE/KL cards directly and dormant Health SQL is added without runtime activation.",
       "preservedBehaviors": [
-        "No new routes, credential exposure, production migration, backend flag activation, finance payouts or native runtime changes"
+        "Existing feed sponsor/Marites positioning, media quality, original visuals and stage settings remain unchanged."
       ],
       "tests": [
-        "tests/wall-life-kl-navigation-20261114.test.mjs",
-        "tests/saliksik-backend-security-20261112.test.mjs"
+        "tests/wall-life-kl-navigation-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Wall tab layout removes the redundant highlights accordion while retaining existing navigation routes and signed-in user behavior.",
+      "preservedBehaviors": [
+        "LIFE and KL navigations still mount independently after sponsor; no auth or cross-user route is changed."
+      ],
+      "tests": [
+        "tests/wall-life-kl-navigation-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Dormant private Health Center consultation RLS schema is added as source-only with real isolated PostgreSQL role verification.",
+      "preservedBehaviors": [
+        "All patient and clinician rows are identity-scoped; no admin auto-access, anonymous grant, credential auto-approval or production migration."
+      ],
+      "tests": [
+        "tests/nov14-health-backend-rls-security.test.mjs"
       ]
     }
   ],
