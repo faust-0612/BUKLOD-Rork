@@ -7,6 +7,9 @@ on:
       - 'tests/**'
       - '.buklod/scopes/nov15-consolidated-video-ad-staging.json'
       - '.github/workflows/buklod-nov15-conso-android-compile-qa.yml'
+      - '.github/workflows/buklod-nov15-conso-staging-ota-publish.yml'
+      - 'scripts/buklod-nov15-conso-staging-policy.mjs'
+      - 'release/nov15-staging-consolidated-video-ads.json'
 permissions:
   contents: read
 jobs:
