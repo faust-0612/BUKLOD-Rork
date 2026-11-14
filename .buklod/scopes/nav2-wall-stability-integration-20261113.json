@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/nav2-wall-stability-integration-20261113.json",
   "objective": "Complete owner-authorized isolated Navigation V2 + Wall/Marites staging-user Android OTA, using the existing signed staging APK and runtime 1.3.2. Physical-device acceptance is SKIPPED BY OWNER, native IME commitContent is deferred; preserve fallback. Production, web, main and original production/device release gates are unchanged.",
   "baseRef": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
-  "productionBaselineEvidence": "Publisher-side production source a43e1813d62a151e8294a52989a80fe21b36057c, runtime 1.3.2, production OTA 01a1d2d6-bae3-74df-bbf4-2bdd9df35215 via run 43355306642. Current main 9f412afd adds staging-only APK mirror workflow. Signed source-mirror staging APK EAS build 9c0eb308-9a8e-4f34-a5f4-798ae556b7b0 and artifact 14016812505 were verified in run 43378875900; physical installed app, preview backend, modernized Android RC and actual OTA update acceptance are NOT VERIFIED. Owner-readonly Infinix X6852 build9 phased 36 foreground PSS samples on 2026-11-13 08:32\u201308:37 UTC show Home mean ~814MiB (peak 848), active media mean ~673MiB (peak 781), recovery mean ~756MiB (peak 860) and a process restart at B1; process-exit crash hint increases 1\u21922 without specific timestamp/trace, so causality remains unproven. Signed build9 matches prior installed APK. User has authorized staging-only QA; do not release product OTA without signed installed RC and 21 real acceptance checks. Build9 baseline signed installed image established, but integrated PR is not installed.",
+  "productionBaselineEvidence": "Publisher-side production source a43e1813d62a151e8294a52989a80fe21b36057c, runtime 1.3.2, production OTA 01a1d2d6-bae3-74df-bbf4-2bdd9df35215 via run 43355306642. Current main 9f412afd adds staging-only APK mirror workflow. Signed source-mirror staging APK EAS build 9c0eb308-9a8e-4f34-a5f4-798ae556b7b0 and artifact 14016812505 were verified in run 43378875900; physical installed app, preview backend, modernized Android RC and actual OTA update acceptance are NOT VERIFIED. Owner-readonly Infinix X6852 build9 phased 36 foreground PSS samples on 2026-11-13 08:32–08:37 UTC show Home mean ~814MiB (peak 848), active media mean ~673MiB (peak 781), recovery mean ~756MiB (peak 860) and a process restart at B1; process-exit crash hint increases 1→2 without specific timestamp/trace, so causality remains unproven. Signed build9 matches prior installed APK. User has authorized staging-only QA; do not release product OTA without signed installed RC and 21 real acceptance checks. Build9 baseline signed installed image established, but integrated PR is not installed.",
   "chosenApproach": "Preserve every non-scope main blob, overlay exact non-manifest blob SHA identities from green Navigation V2 head 73c473caa4ebc139be4b231d3097760fe5c246e5 (49 paths) and green Wall/Marites stability head dc85ce6ed7bc46a1f314885b6fb1d2739e38dcb2 (4 paths) with no overlaps; add one consolidated V2 scope manifest and cross-feature behavioral integration test. Freeze as DEV candidate only, no release. One inherited Navigation ads test is adjusted to reference the integrated V2 scope path; the product-side source blobs remain exact. Extend isolated DEV scope by exact reviewed comment action blobs from PR #786 and read-only native staging APK attestation blobs from PR #789 (excluding their standalone scope manifests); add one isolated Android-staging compile-only QA workflow and include both source tests in prepublish OTA gates. No changes to production release workflows, native dependencies, SQL or live app. Add minimal in-place indexed offline Help and per-account first-use guidance; persist only bounded public Wall *text drafts* encrypted with SecureStore so process interruptions do not require retyping, while keeping all existing media/GIF and native player paths unchanged. Add gesture recognition only to the small offline feature-finder surfaces, never global Wall/Connect/scroll interception. Keep visible More and long-press/tap alternatives. From new real Infinix build-9 three-phase PSS evidence, virtualize only the previously eager 72h Marites horizontal card rail using bounded FlatList batch/window (4 initial, 6 per batch, 5 viewports) without clipped subviews; preserve fullscreen/inline active playback, image data, ads and comment ownership. One one-time commit-message-gated PR branch-only GitHub Action may build a signed staging-user QA APK with Expo preview environment and staging Firebase credentials after self-contained focused tests/Android export. It uploads only a lightweight receipt and downloads signed APK bytes to verify them, never publishes an OTA or merges main; physical installation remains separate. Add a separate branch-scoped, one-time-message-authorized staging OTA workflow and behavioral policy tests. Require exact-head Engineering, Android compile, performance and legacy CI; validate the existing EAS signed build, unchanged APK-source runtime/native/dependencies and actual channel isolation. Compile preview environment then publish one Android OTA; independently query EAS and update manifest delivery, retaining exact SHA, ID, timestamp and explicit owner exclusions. Original strict full-acceptance gates and checklist remain unmodified; this is server-side staging publication, never device acceptance.",
   "selectionRationale": "One independent exact-source candidate establishes compile and regression compatibility without whole-merging source branch history, overwriting signed staging mirror changes, duplicating routes or modifying code already fixed in main. The source is a readiness candidate, not a deployment artifact. Comment UI repair is user-requested and compatible with unchanged comment RPC authorization. The read-only ADB verifier measures installed signed staging APK parity without touching production. Compile-only CI resolves an otherwise skipped Android RC verification gap.",
   "alternativeApproaches": [
@@ -33,7 +33,11 @@
     "staging-binary-parity",
     "offline-first-help",
     "encrypted-account-draft-recovery",
-    "navigation-feedback"
+    "navigation-feedback",
+    "sponsored-video-startup",
+    "cdn-egress",
+    "audio-focus",
+    "original-media-quality"
   ],
   "preserveBehaviors": [
     "Canonical Home /hub, Cluster /clusters, Wall /buklod, Connect /messages, Profile /me routes and existing one-tap nav stay unchanged.",
@@ -59,7 +63,8 @@
     "Original in-memory comment media/mention/reply recovery, scoped workspace authorization, confirmed posting RPCs, ads and active video playback remain unchanged.",
     "Existing Gboard ACTION_SEND share-to-exact-comment fallback remains functional; native rich content must never silently be declared supported by a JS-only OTA or reused incompatible APK.",
     "Marites horizontal rail now bounds mounted photo/video cards while keeping the same 72h source rows, stable story IDs, tap/comment menu, focus/overlay and fullscreen sound; Android clipping remains disabled to protect fast-scroll image display.",
-    "Signed staging QA APK is a private tester artifact only, versionCode remote-incremented on staging package; no Expo OTA, production/web/Play publication and no changes to native interfaces or runtime."
+    "Signed staging QA APK is a private tester artifact only, versionCode remote-incremented on staging package; no Expo OTA, production/web/Play publication and no changes to native interfaces or runtime.",
+    "Sponsored video uses original URLs, contain rendering, existing geo/payment/approval/expiry gates and bounded buffered playback; no change to Supabase storage or production."
   ],
   "acceptanceChecks": [
     "All 53 non-manifest source paths originated from their exact Navigation and Wall DEV heads, with only one compatibility adaptation in the Navigation ads regression test to read the integrated scope. No runtime source overlap or file content pick.",
@@ -82,7 +87,10 @@
     "Branch-scoped staging push bridge must pass the unchanged fail-closed release gate and never publish OTA, merge main, or alter web/production.",
     "Owner-authorized staging-only release policy does not label skipped physical/native acceptance as passed; original production/device gates remain byte-identical.",
     "Existing signed APK build bc4be208-bfb0-42f3-95cb-358353d0600f source c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd has no runtime/native/dependency delta; channel isolation and exact published SHA are independently verified.",
-    "EAS build:view nested updateChannel.name, runtime.version, app.id and appIdentifier are checked against the actual build receipt; no missing field is inferred from a profile label. Channel staging-user maps uniquely to staging-user branch 019ffd86-b662-7977-b0bd-05e18247b123, distinct from production."
+    "EAS build:view nested updateChannel.name, runtime.version, app.id and appIdentifier are checked against the actual build receipt; no missing field is inferred from a profile label. Channel staging-user maps uniquely to staging-user branch 019ffd86-b662-7977-b0bd-05e18247b123, distinct from production.",
+    "Near-viewport sponsored video prewarms only one visible/near player and its original-quality stream can replay from native disk cache without downscaling imagery.",
+    "Community Wall video activates from 25 percent with zero dwell while original AdMob 60 percent/400 ms viewability and protected earnings remain unchanged.",
+    "Sponsor audio focus, app/background/scroll pause, geo-eligibility and ad impression accounting remain unchanged; tests and exact staging RC require independent verification."
   ],
   "regressionTests": [
     "tests/navigation-v2-ads-preservation.test.mjs",
@@ -108,7 +116,8 @@
     "tests/navigation-v2-draft-recovery-back-20261113.test.mjs",
     "tests/navigation-v2-swipe-accessible-20261113.test.mjs",
     "tests/staging-nav2-qa-apk-release-20261113.test.mjs",
-    "tests/navigation-v2-owner-staging-ota.test.mjs"
+    "tests/navigation-v2-owner-staging-ota.test.mjs",
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/nav2-wall-stability-integration-20261113.json",
@@ -186,7 +195,11 @@
     "tests/navigation-v2-owner-staging-ota.test.mjs",
     "scripts/navigation-v2-owner-staging-policy.mjs",
     ".github/workflows/navigation-v2-owner-staging-ota.yml",
-    "docs/navigation-v2-owner-staging-ota.md"
+    "docs/navigation-v2-owner-staging-ota.md",
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "src/hooks/useBuklodCommunityAdViewability.ts",
+    "src/lib/advertise/sponsoredVideoViewport.ts",
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -212,7 +225,8 @@
         "tests/buklod-comment-menu-android-20261113.test.mjs",
         "tests/navigation-v2-searchable-help-offline-20261113.test.mjs",
         "tests/navigation-v2-draft-recovery-back-20261113.test.mjs",
-        "tests/navigation-v2-swipe-accessible-20261113.test.mjs"
+        "tests/navigation-v2-swipe-accessible-20261113.test.mjs",
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
       ]
     },
     {
@@ -263,7 +277,19 @@
         "Maintain full-screen, audio, retries, caching, native ads and user-selected video play."
       ],
       "tests": [
-        "tests/marites-wall-scroll-video-navigation-20261113.test.mjs"
+        "tests/marites-wall-scroll-video-navigation-20261113.test.mjs",
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Bound sponsored-video player prewarming and enable original-quality native replay caching without changing ad eligibility or financial attribution.",
+      "preservedBehaviors": [
+        "Existing approved paid campaign geo eligibility, impression, sound focus, AdMob thresholds, attribution and payment state remain unchanged.",
+        "Native cached replay uses the same original high-quality video URL; no media compression or downsampling."
+      ],
+      "tests": [
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
       ]
     }
   ],
