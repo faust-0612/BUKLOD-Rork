@@ -17,7 +17,9 @@
     "auth-retry",
     "staging-release",
     "privacy",
-    "no-regression"
+    "no-regression",
+    "navigation-scroll",
+    "auth-privacy"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -26,11 +28,13 @@
     "tests/auth-registration-offline-recovery.test.cjs",
     ".buklod/scopes/nov14-staging-conso-excluding-health-saliksik.json",
     "release/nov14-staging-conso-excluding-health-saliksik.json",
-    ".github/workflows/buklod-nov14-staging-conso-source-qa.yml"
+    ".github/workflows/buklod-nov14-staging-conso-source-qa.yml",
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
   ],
   "regressionTests": [
     "tests/wall-life-kl-navigation-20261114.test.mjs",
-    "tests/auth-registration-offline-recovery.test.cjs"
+    "tests/auth-registration-offline-recovery.test.cjs",
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -66,5 +70,11 @@
     "No direct native keyboard-GIF changes or new Rive assets are claimed"
   ],
   "releaseMode": "STAGING_ONLY_SOURCE_CANDIDATE_NO_AUTOPUBLISH",
-  "releaseStatus": "UNFROZEN__SOURCE_QA_PENDING__NO_OTA_YET"
+  "releaseStatus": "DEV_INTEGRATED_QA_REPLAY_PENDING__NO_STAGING_OTA",
+  "preserveBehaviors": [
+    "Existing sponsored video, Wall text, sharp photos, Marites and comment ownership/permissions remain unchanged.",
+    "Existing account verification is sign-in-only after ambiguous signup failures; one signUp per user attempt, no automatic retry.",
+    "Original Kingdom 39 profiles and approved character art, audio, QMP/AdMob, Connect, PTT and IGPAT retirement are retained.",
+    "No Health Center clinical backend, SALIKSIK learning/mastery/Points, native DLL/permissions or production changes."
+  ]
 }

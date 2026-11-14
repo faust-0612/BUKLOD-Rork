@@ -59,5 +59,10 @@
     "Verified native binary and EAS channel/runtime isolation",
     "Specific 16-item staging scope gate with documented exclusions and accepted known limitations",
     "Actual EAS update group receipt and server manifest readback"
+  ],
+  "qaCorrections": [
+    "Canonical Kingdom R9 catalog/test baseline fixed to existing catalog-bearing commit 13f7bb7, without weakening 39-game/13-character tests",
+    "Engineering scope riskAreas and preserveBehaviors completed",
+    "QA checkout full history for immutable source comparison"
   ]
 }
