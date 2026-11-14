@@ -25,6 +25,8 @@ export const REQUIRED_CHECK_IDS = Object.freeze([
   'saliksik_staging_integration',
   'bsoc_gpt_operator_case_triage',
   'feature_merge_parity',
+  'sponsored_video_fast_start',
+  'sponsored_video_original_quality_cache',
 ]);
 
 export function evaluateBuklodConsolidatedAcceptance(contract) {

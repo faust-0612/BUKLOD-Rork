@@ -110,6 +110,18 @@
       "status": "not_merged",
       "blocker": "PR #791 remains draft against DEV integration branch; all owner-requested fixes not yet reconciled as a fully accepted candidate.",
       "evidence": []
+    },
+    {
+      "id": "sponsored_video_fast_start",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "Media start and near-viewport activation ported onto latest visual source with geometric regressions. Actual Android first-frame timing has not been measured on device.",
+      "evidence": []
+    },
+    {
+      "id": "sponsored_video_original_quality_cache",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "Expo native media cache and bounded playback integrated without resizing. Cache hits and Supabase rolling egress savings have not been measured on device.",
+      "evidence": []
     }
   ]
 }

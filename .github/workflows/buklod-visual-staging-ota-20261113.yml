@@ -49,6 +49,16 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Protect accepted Visual Staging baseline and reviewed media implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e1551b09ad180e81a889d39615aea6257688ddea "$GITHUB_SHA" || {
+            echo 'BLOCK: visual baseline regression: do not publish an older source'; exit 1;
+          }
+          test "$(git rev-parse HEAD:src/components/BuklodCommunitySponsoredAd.tsx)" = "b77e2e64ba0e9e2317df3091e19cd170a97d47b4"
+          test "$(git rev-parse HEAD:src/hooks/useBuklodCommunityAdViewability.ts)" = "c43942f66a1e7205ce9f4b5517fd8ccc048df098"
+          test "$(git rev-parse HEAD:src/lib/advertise/sponsoredVideoViewport.ts)" = "d4754d77659b546c0574ba6bd463f7e0d4eda110"
       - name: Require exact-head CI success and original draft PR isolation
         uses: actions/github-script@v7
         with:
@@ -121,6 +131,7 @@ jobs:
             tests/navigation-v2-owner-staging-ota.test.mjs \
             tests/navigation-v2-settings-route.test.mjs
           node --test tests/buklod-visual-staging-ota-20261113.test.mjs tests/nov13-ux-fixes-staging-20261113.test.mjs tests/nov13-distinct-native-ux-sounds-20261113.test.mjs
+          node --experimental-strip-types --test tests/sponsor-ad-video-fast-start-20261114.test.mjs tests/nov14-consolidated-staging-ota-gate.test.mjs
           # Kingdom R7: ensure real map/station invariants and platform FX
           # before OTA. No native EAS build, no production promotion.
           node --test \
