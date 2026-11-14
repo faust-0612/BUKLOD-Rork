@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/nov15-conso-staging-video-ads.json",
-  "objective": "Merge verified staging UI and original-quality video scroll start pause, bounded next clip/NativeAd prewarm, safe-route NativeAd retention, preserving newer Wall/Connect/Profile/Kingdom without HC/SALIKSIK or native-lab.",
+  "objective": "Merge verified staging UI and original-quality video scroll start pause, bounded next clip/NativeAd prewarm, safe-route NativeAd retention, preserving newer Wall/Connect/Profile/Kingdom without HC/SALIKSIK or native-lab. Include Profile signed-in all-time/monthly rank with Top Ten and preserve personal posts above rankings.",
   "baseRef": "integration/buklod-conso-staging-no-hc-saliksik-20261114",
   "productionBaselineEvidence": "Staging source 2e7dc3aa69d2362b7b360013ccaac9917c353e2b published in Actions run 43587075621 with EAS readback; this candidate remains isolated from production/main until CI and OTA release gates.",
   "chosenApproach": "Context-match every overlapping source hunk; apply nonoverlapping verified source blobs; keep runtime 1.3.2, ads consent, impression and media gates, existing version/channel and source features.",
@@ -33,7 +33,8 @@
     "AdMob consent, production unit IDs, native and banner distinct lifecycles, request throttling and SDK-only impressions remain unchanged.",
     "NativeAdView is not created while out of viewport, despite one eligible next NativeAd being loaded by SDK.",
     "Home, Cluster, Wall, Connect and Profile routes, QMP/Finance, PTT/Call and owner privacy/RLS preserved.",
-    "No production, staging OTA, Android binary, Play, web, Supabase migration or Finance mutation in this scope."
+    "No production, staging OTA, Android binary, Play, web, Supabase migration or Finance mutation in this scope.",
+    "Authentic Profile recent posts and activity remain above both member and BUKLOD Official Top Ten; no fabricated rank, no RLS/Points server changes."
   ],
   "regressionTests": [
     "tests/admob-native-video-prefetch-20261114.test.mjs",
@@ -42,7 +43,10 @@
     "tests/nov14-video-scroll-stop-native-prefetch.test.mjs",
     "tests/nov15-android-native-prefetch-gate.test.mjs",
     "tests/protected-feature-lock-video-scope-20261114.test.mjs",
-    "tests/scope-video-scroll-autoplay-20261114.test.mjs"
+    "tests/scope-video-scroll-autoplay-20261114.test.mjs",
+    "tests/compact-public-wall-header-20261104.test.mjs",
+    "tests/nov14-profile-navigation-rank-refresh.test.mjs",
+    "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/nov14-video-scroll-pause-ad-prewarm.json",
@@ -52,6 +56,7 @@
     ".github/workflows/navigation-v2-staging-compile-qa.yml",
     "src/app/(tabs)/buklod.tsx",
     "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
     "src/app/(tabs)/messages.tsx",
     "src/components/BuklodCommunityInlineAd.android.tsx",
     "src/components/BuklodCommunityInlineAd.tsx",
@@ -60,13 +65,18 @@
     "src/components/BuklodMaritesBoard.tsx",
     "src/components/BuklodNativeSponsoredCard.android.tsx",
     "src/components/BuklodNativeSponsoredCard.tsx",
+    "src/components/BuklodProfileTopTenRankings.tsx",
     "src/hooks/useBuklodCommunityAdViewability.ts",
     "src/lib/buklodMaritesPlayback.ts",
+    "src/lib/buklodProfileRankings.ts",
     "src/lib/buklodVideoFrameVisibility.ts",
     "src/lib/buklodVideoScrollSignal.ts",
     "tests/ad-native-lifecycle-retention-20261115.test.mjs",
     "tests/admob-native-video-prefetch-20261114.test.mjs",
+    "tests/compact-public-wall-header-20261104.test.mjs",
     "tests/navigation-video-scroll-stop-20261114.test.mjs",
+    "tests/nov14-profile-navigation-rank-refresh.test.mjs",
+    "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs",
     "tests/nov14-scroll-pauses-all-videos.test.mjs",
     "tests/nov14-video-scroll-stop-native-prefetch.test.mjs",
     "tests/nov15-android-native-prefetch-gate.test.mjs",
@@ -85,7 +95,8 @@
     "All overlapping code hunks applied uniquely; no replacing newer staging-owned UI.",
     "No native/plugin, Supabase/HC, SALIKSIK, IGPAT public feature, Android package or AdMob unit delta.",
     "Exact-head CI and Android Hermes export before staging OTA; owner waives only manual handset check.",
-    "Production only after staging exact-source receipt/readback and separate production release gates."
+    "Production only after staging exact-source receipt/readback and separate production release gates.",
+    "Profile monthly/all-time signed-in rank and canonical Top 10 display without displacing personal posts; QMP/AdMob balances unchanged."
   ],
   "lockedFeatureChanges": [
     {
@@ -115,7 +126,10 @@
         "Authenticated navigation, screen focus cleanup, tab destinations and offline login preserved."
       ],
       "tests": [
-        "tests/navigation-video-scroll-stop-20261114.test.mjs"
+        "tests/navigation-video-scroll-stop-20261114.test.mjs",
+        "tests/compact-public-wall-header-20261104.test.mjs",
+        "tests/nov14-profile-navigation-rank-refresh.test.mjs",
+        "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
       ]
     },
     {
@@ -125,7 +139,10 @@
         "Never render a hidden native ad view, fabricate an impression or bypass the global request rate limiter."
       ],
       "tests": [
-        "tests/admob-native-video-prefetch-20261114.test.mjs"
+        "tests/admob-native-video-prefetch-20261114.test.mjs",
+        "tests/compact-public-wall-header-20261104.test.mjs",
+        "tests/nov14-profile-navigation-rank-refresh.test.mjs",
+        "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
       ]
     },
     {

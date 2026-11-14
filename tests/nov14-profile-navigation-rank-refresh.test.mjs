@@ -27,3 +27,30 @@ test('only authenticated owner recent posts refresh when Profile regains focus',
  assert.match(posts,/MY RECENT POSTS/);
  assert.doesNotMatch(posts,/useEffect\(/);
 });
+
+test('all-time and monthly ranks appear on official and ordinary Profile ahead of posts and sponsored content',()=>{
+ const me=read('src/app/(tabs)/me.tsx');
+ const rank=me.indexOf('MY OVERALL & MONTHLY RANK');
+ const official=me.indexOf('isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards');
+ assert.ok(rank>0 && official>rank,'rank must not be hidden behind the official bulletin');
+ assert.ok(me.includes("['ALL-TIME',rankPositions?.overall]"));
+ assert.ok(me.includes("['MONTHLY',rankPositions?.monthly]"));
+ assert.equal(me.split('MY OVERALL & MONTHLY RANK').length-1,1,'no duplicated rank card');
+ assert.ok(!me.includes('!isBuklodOfficial && <View style={{marginHorizontal:12,padding:12'),'official account must not be gated out');
+ assert.match(me,/AdMob payouts finalize separately/);
+});
+
+test('Profile shows canonical 1-10 Monthly and All-Time rankings, not only a hash rank badge',()=>{
+ const me=read('src/app/(tabs)/me.tsx');
+ const component=read('src/components/BuklodProfileTopTenRankings.tsx');
+ assert.match(me,/import BuklodProfileTopTenRankings from/);
+ assert.ok(me.includes('<BuklodProfileTopTenRankings userId={profile.id} />'));
+ assert.ok(me.indexOf('MY OVERALL & MONTHLY RANK')<me.indexOf('<BuklodProfileTopTenRankings'));
+ assert.ok(me.indexOf('isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards')<me.indexOf('isBuklodOfficial && !!profile?.id && <BuklodProfileTopTenRankings'));
+ assert.ok(me.indexOf('!isBuklodOfficial && !!profile?.id && <BuklodProfileActivityCards')<me.indexOf('!isBuklodOfficial && !!profile?.id && <BuklodProfileTopTenRankings'));
+ assert.equal(me.split('<BuklodProfileTopTenRankings userId={profile.id} />').length-1,2,'mutually exclusive member/official rank lists');
+ assert.ok(me.includes("{position&&position>0?String(position):'—'}"));
+ assert.ok(component.includes('TOP 10 RANKINGS'));
+ assert.ok(component.includes('item.rank_position'));
+ assert.ok(component.includes("(['monthly', 'all_time'] as const)"));
+});
