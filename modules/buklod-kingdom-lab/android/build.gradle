@@ -15,4 +15,8 @@ android {
 dependencies {
   implementation 'androidx.core:core-ktx:1.17.0'
   implementation 'androidx.appcompat:appcompat:1.7.1'
+  // Official MIT-licensed engine. Native lab only; no dynamic asset network.
+  implementation 'org.godotengine:godot:4.7.2.stable'
+  implementation 'androidx.fragment:fragment:1.9.1'
+  implementation 'androidx.core:core-splashscreen:1.2.0'
 }
