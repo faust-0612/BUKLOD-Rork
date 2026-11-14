@@ -1,0 +1,61 @@
+# Nonpublishing exact-source production Android source QA for Nov15 video/native AdMob RC.
+name: BUKLOD Nov15 Production Android RC Compile - No Publish
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/buklod-nov15-prod-android-rc-qa.yml'
+      - '.buklod/scopes/nov15-conso-prod-video-ads.json'
+      - 'src/**'
+      - 'tests/**'
+permissions:
+  contents: read
+jobs:
+  production-android-rc-compile:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'release/nov15-conso-prod-video-ads-20261115' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      BUKLOD_APP_TARGET: main
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify production package, runtime, original current main ancestry
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          git merge-base --is-ancestor 7ebbbd504df2f84355888cc64a8c5317319d6d65 "$(git rev-parse HEAD)"
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const app=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          assert.equal(app.android.package,'org.mzbministry.buklod');
+          assert.equal(app.runtimeVersion,'1.3.2');
+          assert.equal(app.extra.appEnvironment,'production');
+          assert.equal(eas.build.production.channel,'production');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          NODE
+      - name: Locked dependencies, scoped ad/video regressions and typecheck
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test tests/ad-native-lifecycle-retention-20261115.test.mjs tests/admob-native-video-prefetch-20261114.test.mjs tests/navigation-video-scroll-stop-20261114.test.mjs tests/nov14-scroll-pauses-all-videos.test.mjs tests/nov14-video-scroll-stop-native-prefetch.test.mjs tests/nov15-android-native-prefetch-gate.test.mjs tests/protected-feature-lock-native-retention-20261115.test.mjs tests/protected-feature-lock-video-scope-20261114.test.mjs tests/scope-video-scroll-autoplay-20261114.test.mjs tests/nov15-conso-prod-release-20261115.test.mjs
+          npx tsc --noEmit
+      - name: Android JS/Hermes source export only, no Expo deployment
+        run: |
+          set -euo pipefail
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-nov15-prod-rc --clear
+          test -s /tmp/buklod-nov15-prod-rc/metadata.json
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          echo 'COMPILED ONLY; no OTA, Play, Supabase, EAS update or Android device claim.'
