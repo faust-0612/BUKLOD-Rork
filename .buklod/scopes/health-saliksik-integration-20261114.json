@@ -1,0 +1,81 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/health-saliksik-integration-20261114.json",
+  "objective": "Integrate previously QA-tested SALIKSIK R1/R2 source into current visual staging head and add fail-closed, private, manual-credential-gated Health Center consultation source; NO production writes.",
+  "baseRef": "9c9661b888eca979c7cd114c42ae97a333830d37",
+  "productionBaselineEvidence": "DEV branch derives from Profile #801 stacked over Home #800 and visual #791. Source-only integration, no native config, no production DB or OTA.",
+  "chosenApproach": "Immutable blob transplant for 21 SALIKSIK files plus additive Health R1 SQL with explicit grants, ownership RLS, manual clinician verification, and isolated PG test.",
+  "selectionRationale": "Source-preserving integration avoids rebuilding SALIKSIK logic and confines high-sensitivity health messages until isolated acceptance.",
+  "alternativeApproaches": [
+    "Direct production migration is unsafe",
+    "Enabling PWA/Expo consultation before SSO, license validation and provider availability misrepresents readiness"
+  ],
+  "preserveBehaviors": [
+    "IGPAT remains retired; Wall/Marites independent",
+    "No native version/runtime, Supabase production, AdMob money, Points finance, Home/Profile/nav or existing media code changed",
+    "Health consultation/professional feature flags remain OFF",
+    "SALIKSIK remains unpublished and canonical Points only"
+  ],
+  "acceptanceChecks": [
+    "SALIKSIK SQL and runtime QA replay at exact combined head",
+    "Health PG17 RLS tests enforce patient/nonparticipant, clinician verify/revoke, write identity and idempotency",
+    "RLS access needs independent auth + data API staging verification",
+    "Doctor credential validation, patient privacy consent, clinical review and authenticated web session required before feature flag activation",
+    "Native Android combined RC and installed staging acceptance required before OTA"
+  ],
+  "riskAreas": [
+    "clinical-data-privacy",
+    "credential-verification",
+    "row-level-security",
+    "points-ledger-idempotency",
+    "cross-feature-source-integrity"
+  ],
+  "regressionTests": [
+    "tests/fixtures/nov14_health_access_rls.sql",
+    "tests/fixtures/nov14_health_auth_bootstrap.sql",
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    "tests/saliksik-adaptive-mastery-20261112.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/saliksik-vault-adaptive-20261112.json",
+    ".github/workflows/saliksik-sql-qa.yml",
+    "docs/saliksik/BUKLOD_SALIKSIK_AUTHORITATIVE_BLUEPRINT_20261112.md",
+    "src/app/admin/saliksik-library.tsx",
+    "src/app/scope/saliksik.tsx",
+    "src/components/BuklodSaliksikDoor.tsx",
+    "src/lib/saliksikClient.ts",
+    "src/lib/saliksikMastery.mjs",
+    "supabase/functions/saliksik-generate-v1/index.ts",
+    "supabase/migrations/20261112221000_saliksik_private_vault_objective_mastery_r1.sql",
+    "supabase/migrations/20261113221000_saliksik_written_master_reward_r2.sql",
+    "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql",
+    "supabase/tests/saliksik_written_master_r2.sql",
+    "tests/fixtures/saliksik_pg_integration.sql",
+    "tests/fixtures/saliksik_pg_seed.sql",
+    "tests/saliksik-adaptive-mastery-20261112.test.mjs",
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-20261112.test.mjs",
+    "tests/saliksik-sql-pg-qa.test.mjs",
+    "tests/saliksik-written-master-20261113.test.mjs",
+    "supabase/migrations/20261114150000_buklod_hc_consultation_r1.sql",
+    "tests/fixtures/nov14_health_auth_bootstrap.sql",
+    "tests/fixtures/nov14_health_access_rls.sql",
+    ".github/workflows/health-center-online-backend-qa.yml",
+    ".buklod/scopes/health-saliksik-integration-20261114.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Backend + dormant routes only",
+      "preservedBehaviors": [
+        "No staging/public feature flag enabled, no clinical data persisted in OTA"
+      ],
+      "tests": [
+        "tests/fixtures/nov14_health_access_rls.sql",
+        "tests/saliksik-backend-security-20261112.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "releaseStatus": "Source only, staging health QA, provider and end-to-end auth not yet verified"
+}

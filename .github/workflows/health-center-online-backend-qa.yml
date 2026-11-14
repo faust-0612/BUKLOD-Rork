@@ -1,0 +1,38 @@
+name: Health Center R1 Isolated PostgreSQL RLS QA
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261114150000_buklod_hc_consultation_r1.sql'
+      - 'tests/fixtures/nov14_health_*.sql'
+      - '.github/workflows/health-center-online-backend-qa.yml'
+  workflow_dispatch:
+jobs:
+  postgres-rls:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap isolated Auth principals
+        run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/nov14_health_auth_bootstrap.sql
+      - name: Apply isolated health migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114150000_buklod_hc_consultation_r1.sql
+      - name: Patient / clinician / revoke RLS acceptance
+        run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/nov14_health_access_rls.sql
