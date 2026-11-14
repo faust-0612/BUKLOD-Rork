@@ -1,0 +1,90 @@
+name: Kingdom Native Lab - isolated Android APK (manual only)
+
+# No push, schedule, OTA, production or EAS automation.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kingdom-native-lab-android-manual
+  cancel-in-progress: false
+
+jobs:
+  isolated-debug-apk:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/kingdom-native-lab-isolated-20261114'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      CI: '1'
+      BUKLOD_APP_TARGET: kingdom-native-lab
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_KINGDOM_NATIVE_LAB: '1'
+      EXPO_PUBLIC_SUPABASE_URL: https://buklod-kingdom-native-lab.invalid
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: isolated-lab-no-real-supabase-key
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_MAX_WORKERS: '2'
+    steps:
+      - name: Checkout exact isolated branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify exact source identity before installing dependencies
+        run: |
+          test "$GITHUB_REF_NAME" = 'dev/kingdom-native-lab-isolated-20261114'
+          test "$BUKLOD_APP_TARGET" = 'kingdom-native-lab'
+          git diff --quiet
+          git diff --cached --quiet
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Run source safety tests without any native download
+        run: |
+          node scripts/kingdom-lab/make-offline-firebase.cjs
+          node scripts/kingdom-lab/preflight.cjs --build
+          node --test tests/kingdom-native-lab-isolation-20261114.test.mjs
+          node --test tests/kingdom-godot-zero-assets-20261114.test.mjs
+          node --test tests/kingdom-zero-cost-living-world-20261114.test.mjs
+          node --test tests/kingdom-zero-cost-village-diorama-20261114.test.mjs
+        env:
+          KINGDOM_LAB_GOOGLE_SERVICES_FILE: ./google-services.kingdomlab.offline.json
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install pinned repository dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Local no-EAS Android APK (standalone third identity)
+        run: bash scripts/kingdom-lab/build-local.sh
+      - name: Verify built APK package, fail if not the third app
+        run: |
+          set -euo pipefail
+          APK='android/app/build/outputs/apk/debug/app-debug.apk'
+          test -s "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
+          test -x "$AAPT"
+          PACKAGE="$("$AAPT" dump badging "$APK" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)"
+          test "$PACKAGE" = 'org.mzbministry.buklod.kingdomlab' || {
+            echo 'Refusing unsafe package: '"$PACKAGE"
+            exit 1
+          }
+          sha256sum "$APK" > kingdom-native-lab-apk.sha256
+          echo 'APK package: '"$PACKAGE" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Source head: '"$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Offline-only experimental APK. No staging-user or production OTA.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep only isolated APK and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-kingdom-native-lab-${{ github.sha }}
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            kingdom-native-lab-apk.sha256
+          if-no-files-found: error
+          retention-days: 3
