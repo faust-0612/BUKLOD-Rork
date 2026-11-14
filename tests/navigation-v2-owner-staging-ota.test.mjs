@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { verifyChannels, verifyBuild, verifyUpdate, parseManifest, BUILD_ID, APK_SOURCE, PROJECT, OWNER_EXCLUSIONS } from '../scripts/navigation-v2-owner-staging-policy.mjs';
+import { verifyChannels, verifyBuild, verifyUpdate, parseManifest, verifyApprovedMediaDelta, verifySource, APPROVED_MEDIA_COMMIT, APPROVED_MEDIA_BLOBS, BUILD_ID, APK_SOURCE, PROJECT, OWNER_EXCLUSIONS } from '../scripts/navigation-v2-owner-staging-policy.mjs';
+import { execFileSync } from 'node:child_process';
 const channel = (name, id = name) => ({ currentPage: { name, isPaused: false, branchMapping: JSON.stringify({ version: 0, data: [{ branchId: id, branchMappingLogic: 'true' }] }), updateBranches: [{ id, name }] } });
 test('staging policy rejects shared branches, rollouts, missing or paused mappings', () => {
   assert.equal(verifyChannels(channel('staging-user'), channel('production')).name, 'staging-user');
@@ -38,4 +39,27 @@ test('owner exclusions never become passed device evidence and original gates re
   assert.match(w, /--channel staging-user --platform android --environment preview/);
   assert.match(w, /postpublish/);
   assert.doesNotMatch(w, /--channel production|eas-cli@[^\s]+ build\s|git push|vercel deploy/);
+});
+
+test('owner media OTA permits exactly three pinned original-quality JS media files', () => {
+  const pairs = Object.entries(APPROVED_MEDIA_BLOBS);
+  assert.equal(APPROVED_MEDIA_COMMIT, '55f6bd0678ffeb0e6a134a446b34e882cf8af634');
+  assert.equal(pairs.length, 3);
+  assert.equal(Object.isFrozen(APPROVED_MEDIA_BLOBS), true);
+  const metadata = ['.github/workflows/navigation-v2-owner-staging-ota.yml','scripts/navigation-v2-owner-staging-policy.mjs','tests/navigation-v2-owner-staging-ota.test.mjs'];
+  const paths = [...pairs.map(([path]) => path), ...metadata];
+  const approved = path => APPROVED_MEDIA_BLOBS[path];
+  assert.equal(verifyApprovedMediaDelta(paths, approved), true);
+  for (const [path] of pairs) {
+    assert.throws(() => verifyApprovedMediaDelta(paths.filter(v => v !== path), approved), /Missing approved/);
+    assert.throws(() => verifyApprovedMediaDelta(paths, v => v === path ? '0'.repeat(40) : approved(v)), /Unreviewed media blob/);
+    assert.equal(execFileSync('git', ['rev-parse', 'HEAD:' + path], {encoding:'utf8'}).trim(), APPROVED_MEDIA_BLOBS[path]);
+  }
+  for (const path of ['src/app/(tabs)/buklod.tsx','src/components/CommunityVideo.tsx','src/lib/supabase.ts','package.json','eas.json','app.config.js','assets/release/icon.png','supabase/migrations/new.sql','plugins/unreviewed.js','android/app/build.gradle']) {
+    assert.throws(() => verifyApprovedMediaDelta([...paths,path], approved), /Unexpected signed-APK-source delta/);
+  }
+  assert.throws(() => verifyApprovedMediaDelta([...paths,paths[0]], approved), /Duplicate/);
+  const git = (...args) => execFileSync('git',args,{encoding:'utf8'}).trim();
+  assert.equal(git('merge-base', APPROVED_MEDIA_COMMIT, 'HEAD'), APPROVED_MEDIA_COMMIT);
+  assert.doesNotThrow(() => verifySource(git('rev-parse','HEAD')));
 });

@@ -1,4 +1,6 @@
 # EAS build identity uses actual nested updateChannel/runtime/app metadata.
+# Nov14 owner media fix: EXACT THREE reviewed JS blobs only; no native/config/backend
+# delta since signed staging APK, production immutable, one Android staging OTA.
 # Independent, owner-authorized staging OTA only. Existing production/device gates unchanged.
 name: BUKLOD Owner Authorized Staging OTA
 on:
@@ -54,7 +56,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
-          node --test tests/navigation-v2-owner-staging-ota.test.mjs
+          node --experimental-strip-types --test tests/navigation-v2-owner-staging-ota.test.mjs tests/sponsor-ad-video-fast-start-20261114.test.mjs
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Inspect compatible signed APK, actual EAS channel isolation and live baseline
         env:

@@ -8,6 +8,14 @@ import { pathToFileURL } from 'node:url';
 export const APK_SOURCE = 'c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd';
 export const BUILD_ID = 'bc4be208-bfb0-42f3-95cb-358353d0600f';
 export const PROJECT = '23dad7d0-389a-406e-8dec-08965dab85d8';
+// Approved source-only media delta versus exact signed staging APK.
+// All THREE JS blob IDs are pinned; changing any requires renewed review.
+export const APPROVED_MEDIA_COMMIT = '55f6bd0678ffeb0e6a134a446b34e882cf8af634';
+export const APPROVED_MEDIA_BLOBS = Object.freeze({
+  'src/components/BuklodCommunitySponsoredAd.tsx': 'b77e2e64ba0e9e2317df3091e19cd170a97d47b4',
+  'src/hooks/useBuklodCommunityAdViewability.ts': 'c43942f66a1e7205ce9f4b5517fd8ccc048df098',
+  'src/lib/advertise/sponsoredVideoViewport.ts': 'd4754d77659b546c0574ba6bd463f7e0d4eda110',
+});
 export const OWNER_EXCLUSIONS = Object.freeze({
   physicalDeviceAcceptance: 'SKIPPED BY OWNER',
   nativeImeCommitContent: 'DEFERRED BY OWNER; existing GIF share fallback retained',
@@ -88,16 +96,34 @@ export async function manifest(channel) {
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
 const read = p => JSON.parse(fs.readFileSync(p, 'utf8'));
 const write = (p, v) => fs.writeFileSync(p, JSON.stringify(v, null, 2) + '\n');
+/**
+ * The owner-approved OTA modifies only three already-reviewed JS media blobs.
+ * Unrelated runtime, native, dependency, backend or asset changes fail closed.
+ */
+export function verifyApprovedMediaDelta(paths, resolveBlob) {
+  assert.ok(Array.isArray(paths) && new Set(paths).size === paths.length, 'Duplicate or malformed source delta');
+  for (const path of Object.keys(APPROVED_MEDIA_BLOBS))
+    assert.ok(paths.includes(path), 'Missing approved media fix: ' + path);
+  for (const path of paths) {
+    if (Object.hasOwn(APPROVED_MEDIA_BLOBS, path)) {
+      assert.equal(resolveBlob(path), APPROVED_MEDIA_BLOBS[path], 'Unreviewed media blob: ' + path);
+      continue;
+    }
+    assert.match(path, /^(?:\.github\/workflows\/|\.buklod\/scopes\/|scripts\/navigation-v2-owner-staging-policy\.mjs$|tests\/(?:navigation-v2-owner-staging-ota|sponsor-ad-video-fast-start-20261114)\.test\.mjs$|docs\/|release\/)/, 'Unexpected signed-APK-source delta: ' + path);
+  }
+  return true;
+}
 export function verifySource(source) {
   assert.match(source, /^[a-f0-9]{40}$/);
   assert.equal(git('rev-parse', 'HEAD'), source);
   assert.equal(git('merge-base', APK_SOURCE, source), APK_SOURCE);
-  // No product, dependency, native, backend, plugin, config or asset changes
-  // since the compatible signed binary; allow only release/test/docs metadata.
+  assert.equal(git('merge-base', APPROVED_MEDIA_COMMIT, source), APPROVED_MEDIA_COMMIT);
   const paths = git('diff', '--name-only', APK_SOURCE, source).split('\n').filter(Boolean);
-  for (const p of paths) assert.match(p, /^(?:\.github\/workflows\/|\.buklod\/scopes\/|scripts\/navigation-v2-owner-staging-policy\.mjs$|tests\/navigation-v2-owner-staging-ota\.test\.mjs$|docs\/|release\/)/, 'Unexpected APK-source delta: ' + p);
+  verifyApprovedMediaDelta(paths, path => git('rev-parse', source + ':' + path));
+  assert.equal(git('diff', '--name-only', APK_SOURCE, source, '--', 'assets', 'plugins', 'android', 'ios', 'app.config.js', 'eas.json', 'package.json', 'package-lock.json', 'supabase'), '', 'Native/config/backend source changed');
   assert.equal(git('status', '--porcelain', '--untracked-files=no'), '', 'Tracked source is dirty');
 }
+
 async function main() {
   const [mode, source, dir] = process.argv.slice(2);
   assert.ok(dir?.startsWith('/tmp/'));
@@ -108,7 +134,7 @@ async function main() {
     const live = await manifest('production');
     assert.equal(live.extra?.expoClient?.android?.package, 'org.mzbministry.buklod');
     write(dir + '/preflight.json', { source, branch, buildId: b.id, apkSource: APK_SOURCE,
-      liveUpdateId: live.id, exclusions: OWNER_EXCLUSIONS, nativeCompatibility: 'unchanged signed-binary source',
+      liveUpdateId: live.id, exclusions: OWNER_EXCLUSIONS, nativeCompatibility: 'three pinned JS media blobs; native/config/backend unchanged',
       verifiedAt: new Date().toISOString(), published: false });
   } else if (mode === 'postpublish') {
     const pre = read(dir + '/preflight.json');
