@@ -20,7 +20,10 @@ const ROTATE_MS = 12_000;
 // Only the eligible in-view ad plays. Off-screen, app background and
 // navigation changes pause immediately; no hidden video streams.
 function AdVideo({uri, visible}: {uri: string; visible: boolean}) {
-  const player = useVideoPlayer(uri, p => {
+  // Public, stable creative URLs can replay cached video byte ranges on Android/iOS.
+  // This does not cache Google IMA/AdMob streams or alter sponsor reporting.
+  const source = useMemo(() => ({uri, useCaching: true}), [uri]);
+  const player = useVideoPlayer(source, p => {
     p.loop = true;
     p.muted = false;
     p.audioMixingMode = 'mixWithOthers';
@@ -184,9 +187,11 @@ export default function BuklodCommunitySponsoredAd({
         setVideoVisible(previous => previous===onScreen ? previous : onScreen);
       });
     };
-    const warmup=setTimeout(check,350);
-    const watch=setInterval(check,900);
-    return () => {alive=false; clearTimeout(warmup); clearInterval(watch);};
+    // Measure on the next UI frame rather than withholding autoplay for 350ms.
+    // Continue bounded viewport checks while scrolling; no forced video reload.
+    const warmup=requestAnimationFrame(check);
+    const watch=setInterval(check,350);
+    return () => {alive=false; cancelAnimationFrame(warmup); clearInterval(watch);};
   }, [screenFocused,campaign?.id,campaign?.creative_type]);
 
   // Count an impression only after the active card is physically visible.

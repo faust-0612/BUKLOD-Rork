@@ -1,0 +1,48 @@
+{
+  "contractVersion": 2,
+  "objective": "Lower avoidable BUKLOD Connect Supabase cached egress from repeated public sponsored MP4 replays and reduce visible sponsored-video detection latency without degrading image/video quality, AdMob, approvals, or permissions.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "2026-11-14 live Supabase organization has cached egress 335.49/250 GB; Connect API logs 2026-11-14 01:00-02:00 UTC show 51 GET HIT requests to paid-ad-media; a stable public paid sponsor MP4 is 48.54 MiB. Logs do not expose response bytes, so this is a credible optimization target, not verified attribution of the full 335.49 GB.",
+  "chosenApproach": "Enable expo-video SDK57 native useCaching on stable public sponsor creative URL, preserving full-resolution media and play/audio-focus behavior. Measure viewport on next animation frame rather than a 350ms warmup and keep bounded 350ms checks instead of 900ms on the single focused component. No native package change, backend mutation or media recompression.",
+  "selectionRationale": "Expo SDK57 supports VideoSource.useCaching on Android/iOS for recurring MP4 playback; existing community video caching does not cover the paid-sponsorship AdVideo component. Existing sponsored view may detect in-viewport items up to 350ms after mount and poll at 900ms. Controlled local caching lowers repeated transfer while retaining immediate eligible playback.",
+  "alternativesRejected": [
+    "Switch the entire app to low-resolution media: violates owner requirement.",
+    "Disable or throttle impression serving to save bandwidth: alters monetization and policy.",
+    "Rearchitect native media cache or add DRM/player packages: needs new APK without evidence.",
+    "Delete or lower quality of stored user assets: destructive and not needed."
+  ],
+  "riskAreas": [
+    "ads-monetization",
+    "navigation-scroll",
+    "performance"
+  ],
+  "preserveBehaviors": [
+    "Sponsor campaign eligibility, RLS, payment, rotation, impression and click logs unchanged.",
+    "AdMob/IMA ads untouched and never cached to evade serving.",
+    "Existing audio focus and sound play/pause controls unchanged.",
+    "Photos, full MP4 source resolution and contain framing unchanged.",
+    "Only one focused sponsored card viewport measurement; no hidden retry storm.",
+    "App/Expo runtime, native packages, Supabase DB, OTA and production unchanged."
+  ],
+  "acceptanceChecks": [
+    "node --test tests/sponsor-cached-egress-20261114.test.mjs",
+    "Existing paid-sponsorship and audio mixing tests pass",
+    "TypeScript and Android staging build/runtime and sponsored media playback verified before any OTA",
+    "Compare the same app version/build/runtime recent rolling 15/30/60-minute cached media request and GB after release; do not infer bytes from hits alone."
+  ],
+  "regressionTests": [
+    "tests/sponsor-cached-egress-20261114.test.mjs",
+    "tests/paid-sponsorship-wall-scroll-20261107.test.mjs",
+    "tests/ptt-media-audio-mixing-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "tests/sponsor-cached-egress-20261114.test.mjs",
+    ".buklod/scopes/sponsor-cached-egress-20261114.json"
+  ],
+  "releaseBlockers": [
+    "No compiled RC or actual signed staging-device verification.",
+    "No exact runtime/OTA production fingerprint and no measured post-deployment egress improvement.",
+    "Do not publish directly to production."
+  ]
+}
