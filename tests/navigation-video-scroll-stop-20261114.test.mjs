@@ -6,8 +6,8 @@ test('navigation remains unchanged while existing Home/Wall/Connect stop video o
  const home=read('src/app/(tabs)/hub.tsx');
  const wall=read('src/app/(tabs)/buklod.tsx');
  const connect=read('src/app/(tabs)/messages.tsx');
- assert.match(home,/noteBuklodVideoScroll\\(\\)/);
- assert.match(wall,/noteBuklodVideoScroll\\(\\)/);
+ assert.ok(home.includes('noteBuklodVideoScroll()'));
+ assert.ok(wall.includes('noteBuklodVideoScroll()'));
  assert.match(wall,/!videoViewerScrollPaused/);
  assert.match(connect,/connect_personal_first_view/);
  assert.match(connect,/connect_community_first_view/);
