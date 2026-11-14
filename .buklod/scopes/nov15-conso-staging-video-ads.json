@@ -12,20 +12,21 @@
     "Unconditional autoplay for any row containing a video (rejected because the video frame may be offscreen)."
   ],
   "riskAreas": [
-    "wall-media",
-    "navigation-auth",
+    "ad-impression",
     "ads-finance-points",
+    "ads-monetization",
+    "audio-focus",
+    "cell-recycling",
     "cluster-faith",
     "governance-lock",
     "memory",
-    "cell-recycling",
-    "weak-network",
-    "ad-impression",
-    "signed-url-identity",
-    "audio-focus",
+    "navigation-auth",
     "navigation-scroll",
-    "ads-monetization",
-    "production-release"
+    "production-release",
+    "release-identity",
+    "signed-url-identity",
+    "wall-media",
+    "weak-network"
   ],
   "preserveBehaviors": [
     "Original-quality content video sources and existing cached decoder, Android Expo Video/IMA source, sound focus, signed URL recovery and retry remain unchanged.",
