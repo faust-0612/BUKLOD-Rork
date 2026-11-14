@@ -4,7 +4,7 @@ import {
   useState,
 } from 'react';
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   useBuklodScope,
@@ -137,6 +137,12 @@ export default function Index() {
     scopes,
     selectScope,
   ]);
+
+  // An independent offline native lab never asks for production sign-in.
+  if (Platform.OS === 'android' &&
+      process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1') {
+    return <Redirect href="/kingdom-native-lab" />;
+  }
 
   if (loading && !session) {
     return (
