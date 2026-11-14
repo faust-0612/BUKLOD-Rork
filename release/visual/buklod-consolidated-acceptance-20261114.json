@@ -30,11 +30,11 @@
     {
       "id": "kingdom_13_games_interaction",
       "status": "source_implemented_runtime_unverified",
-      "blocker": "Kingdom R8 stage-scoped native Skia input-event reactions are merged in staging DEV (4be3aae6); Jawo and Trudice have added actual gameplay motion. QA passed in isolated source, but not all 39 game variants have custom full animated gameplay; actual Android native input/FPS/memory/visual acceptance and combined staging export not independently verified.",
+      "blocker": "Kingdom R9 integrates 39 unique native cinematic profiles and 13 animated approved character sprites in staging DEV source c94b034d. Existing gameplay feedback events drive visuals, Jawo/Trudice have direct action-specific motion. This is NOT 39 independently bespoke skeletal animations; real Rive .riv rigs absent, Android native run/FPS/device acceptance not yet verified.",
       "evidence": [
-        "https://github.com/faust-0612/BUKLOD-Rork/pull/796",
-        "https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43551247554",
-        "https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43551247553"
+        "https://github.com/faust-0612/BUKLOD-Rork/pull/797",
+        "https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43553194601",
+        "https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43553194614"
       ]
     },
     {
