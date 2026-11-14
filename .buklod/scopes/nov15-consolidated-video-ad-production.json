@@ -133,16 +133,6 @@
       "tests": [
         "tests/scope-video-scroll-autoplay-20261114.test.mjs"
       ]
-    },
-    {
-      "id": "production-release",
-      "reason": "Add exact-source production QA workflow but no publish trigger or production branch mutation before staging receipt and mandatory exit gates.",
-      "preservedBehaviors": [
-        "Production OTA workflow and main remain protected; stage first and independently verify native client/runtime and release metadata."
-      ],
-      "tests": [
-        "tests/nov15-prod-android-ota-release-guard-20261115.test.mjs"
-      ]
     }
   ]
 }
