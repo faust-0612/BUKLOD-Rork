@@ -198,7 +198,7 @@ export default function BuklodMentionField({
           selection={selection}
           selectionColor={colors.green}
           onChangeText={changeText}
-          onSelectionChange={event => {
+          onSelectionChange={(event: { nativeEvent: { selection: { start: number; end: number } } }) => {
             const next = event.nativeEvent.selection;
             cursorRef.current = next.start;
             setSelection(undefined);
