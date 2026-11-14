@@ -46,6 +46,7 @@
   "allowedPaths": [
     ".buklod/scopes/nov14-video-scroll-pause-ad-prewarm.json",
     ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/navigation-v2-staging-compile-qa.yml",
     "src/app/(tabs)/buklod.tsx",
     "src/app/(tabs)/hub.tsx",
     "src/app/(tabs)/messages.tsx",
@@ -72,7 +73,8 @@
     "One near-viewport video warms before entry with unmodified original quality and existing cached player after scrolling back.",
     "Marites prepared player remains paused until partial visibility and scroll stops; only one active story clip.",
     "SDK native ad assets preload one nearby slot before its appearance; no offscreen NativeAdView, early impression or banner prefetch; respect consent and request pacing.",
-    "Scoped release manifest and feature-specific tests pass protected feature lock; Android TypeScript bundle/Expo parity must pass before any staging OTA."
+    "Scoped release manifest and feature-specific tests pass protected feature lock; Android TypeScript bundle/Expo parity must pass before any staging OTA.",
+    "Compile actual Android staging-identity JS bundle on exact DEV candidate head without uploading or publishing any OTA."
   ],
   "lockedFeatureChanges": [
     {

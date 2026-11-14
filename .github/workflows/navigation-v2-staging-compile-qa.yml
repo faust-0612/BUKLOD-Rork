@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   staging-android-compile-no-publish:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'dev/nav2-wall-stability-integration-20261113'
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'dev/nav2-wall-stability-integration-20261113' || github.head_ref == 'dev/video-scroll-pause-ad-prewarm-20261114')
     runs-on: ubuntu-latest
     timeout-minutes: 28
     env:
