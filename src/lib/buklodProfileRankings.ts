@@ -10,7 +10,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function safeInteger(value: unknown): number | null {
   if (typeof value !== 'number' && typeof value !== 'string') return null;
-  if (typeof value === 'string' && !/^\\d+$/.test(value)) return null;
+  if (typeof value === 'string' && !/^\d+$/.test(value)) return null;
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
