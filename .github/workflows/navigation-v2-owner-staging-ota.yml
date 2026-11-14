@@ -35,6 +35,14 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Block stale source from overwriting restored Visual Staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e1551b09ad180e81a889d39615aea6257688ddea "$GITHUB_SHA" || {
+            echo 'DO NOT re-publish an older source over the restored Visual Staging OTA'
+            exit 1
+          }
       - name: Require successful exact-head CI before using Expo credentials
         uses: actions/github-script@v7
         with:
