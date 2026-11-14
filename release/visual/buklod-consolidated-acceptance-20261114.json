@@ -30,8 +30,12 @@
     {
       "id": "kingdom_13_games_interaction",
       "status": "source_implemented_runtime_unverified",
-      "blocker": "13 routes and game contract pass; real mobile interaction/gameplay and premium visual parity not accepted.",
-      "evidence": []
+      "blocker": "Kingdom R8 stage-scoped native Skia input-event reactions are merged in staging DEV (4be3aae6); Jawo and Trudice have added actual gameplay motion. QA passed in isolated source, but not all 39 game variants have custom full animated gameplay; actual Android native input/FPS/memory/visual acceptance and combined staging export not independently verified.",
+      "evidence": [
+        "https://github.com/faust-0612/BUKLOD-Rork/pull/796",
+        "https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43551247554",
+        "https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43551247553"
+      ]
     },
     {
       "id": "connect_notification_exact_thread",
