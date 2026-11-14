@@ -46,6 +46,22 @@ jobs:
               core.warning('No matching staging publish workflow run was returned. Do not assume an OTA was published.');
               lines.push('No matching staging publish workflow run was returned; do not assume an OTA was published.');
             }
+            const mainReleaseSha='97344f56cc5cfe0667bd769d0d782723a7cdbc9b';
+            const {data:prodRuns}=await github.rest.actions.listWorkflowRunsForRepo({
+              ...context.repo,branch:'main',per_page:100
+            });
+            const prod=prodRuns.workflow_runs.filter(r=>
+              r.head_sha===mainReleaseSha && r.name==='BUKLOD Production Android OTA'
+            );
+            lines.push('Production main source: '+mainReleaseSha);
+            lines.push('Production OTA run matches: '+prod.length);
+            for(const r of prod){
+              core.info('PRODUCTION_RELEASE_RUN id='+r.id+' source='+r.head_sha+' status='+r.status+' conclusion='+(r.conclusion||'pending')+' url='+r.html_url);
+              lines.push('- [Production Android OTA run #'+r.id+']('+r.html_url+') — '+r.status+' / '+(r.conclusion||'pending'));
+              const artifacts=await github.rest.actions.listWorkflowRunArtifacts({...context.repo,run_id:r.id,per_page:100});
+              for(const a of artifacts.data.artifacts)lines.push('  - Production evidence artifact '+a.id+': '+a.name+' (expired='+a.expired+')');
+            }
+            if(!prod.length){core.warning('Production OTA push run not yet visible. Do not claim production is published.');lines.push('Production OTA run not yet visible; NOT VERIFIED.');}
             lines.push('No EAS publication or mutation was performed by this read-only audit.');
             core.info(lines.join('\n'));
             try { await github.rest.issues.createComment({...context.repo,issue_number:817,body:lines.join('\n')}); }
