@@ -167,7 +167,7 @@ export default function SaliksikLibraryScreen(){
       {item.collection_id?<Pressable disabled={!!busy} onPress={()=>void showPreview(item)}
        style={styles.action}><Text style={styles.actionText}>Review draft</Text></Pressable>:null}
       {item.collection_status!=='published'&&(item.investigations??0)<8?<Pressable disabled={!!busy}
-       onPress={()=>void process(item.id)} style={styles.action}>
+       onPress={()=>void generateDraftForSource(item.id)} style={styles.action}>
        <Text style={styles.actionText}>{item.status==='draft'?'CONTINUE DRAFT':'Generate / retry'}</Text>
       </Pressable>:null}
      </View>
