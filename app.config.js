@@ -185,6 +185,7 @@ module.exports = ({ config }) => {
 
       './plugins/withBuklodWebRTC.js',
       './plugins/withBuklodPttHardwareFoundation.js',
+      ...(isNativeLab ? ['./plugins/withBuklodKingdomNativeLab.js'] : []),
 
 
       'expo-router',

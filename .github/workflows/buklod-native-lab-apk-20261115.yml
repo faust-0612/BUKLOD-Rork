@@ -12,6 +12,12 @@ on:
       - 'eas.json'
       - 'scripts/native-lab-build-preflight.mjs'
       - 'tests/*native-lab*'
+      - 'modules/buklod-kingdom-lab/**'
+      - 'godot/kingdom-zero-assets/**'
+      - 'plugins/withBuklodKingdomNativeLab.js'
+      - 'src/components/BuklodMentionField.tsx'
+      - 'src/components/BuklodCommunityCommentComposer.tsx'
+      - 'src/features/games/kingdom/BuklodKingdomMapPremium.tsx'
       - 'tests/buklod-native-lab-expo-isolation-20261115.test.cjs'
       - '.buklod/scopes/native-lab-isolated-runtime-20261115.json'
       - 'release/native-lab-apk-20261115.json'
@@ -42,7 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          node --test tests/buklod-native-lab-expo-isolation-20261115.test.cjs tests/native-lab-release-identity-20261115.test.mjs
+          node --test tests/buklod-native-lab-expo-isolation-20261115.test.cjs tests/native-lab-release-identity-20261115.test.mjs tests/native-lab-native-bridge-wiring-20261115.test.cjs
           node - <<'NODE'
           const assert=require('node:assert/strict'),e=require('./eas.json');
           const f=require('./app.config.js');
@@ -112,7 +118,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
-          node --test tests/buklod-native-lab-expo-isolation-20261115.test.cjs tests/native-lab-release-identity-20261115.test.mjs
+          node --test tests/buklod-native-lab-expo-isolation-20261115.test.cjs tests/native-lab-release-identity-20261115.test.mjs tests/native-lab-native-bridge-wiring-20261115.test.cjs
           npx tsc --noEmit
           EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-native-lab-android --clear
           test -s /tmp/buklod-native-lab-android/metadata.json

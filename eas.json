@@ -154,7 +154,8 @@
         "APP_VARIANT": "native-lab",
         "EXPO_PUBLIC_APP_ENV": "staging",
         "BUKLOD_APP_TARGET": "main",
-        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging"
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging",
+        "EXPO_PUBLIC_KINGDOM_NATIVE_LAB": "1"
       },
       "android": {
         "buildType": "apk"

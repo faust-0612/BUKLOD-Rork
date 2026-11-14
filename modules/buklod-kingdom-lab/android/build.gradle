@@ -1,0 +1,29 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+// Hard-fail when someone accidentally attempts a normal staging-user or
+// production Gradle build using the native-lab branch/source tree.
+if (System.getenv('APP_VARIANT') != 'native-lab' || System.getenv('BUKLOD_APP_TARGET') != 'main') {
+  throw new GradleException('BUKLOD native lab Android module is not allowed in staging-user, production or classroom builds.')
+}
+
+group = 'org.mzbministry.buklod'
+version = '1.0.0'
+android {
+  namespace "expo.modules.buklodlab"
+  defaultConfig {
+    minSdkVersion 24
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+dependencies {
+  implementation 'androidx.core:core-ktx:1.17.0'
+  implementation 'androidx.appcompat:appcompat:1.7.1'
+  // Official MIT-licensed engine. Native lab only; no dynamic asset network.
+  implementation 'org.godotengine:godot:4.7.2.stable'
+  implementation 'androidx.fragment:fragment:1.9.1'
+  implementation 'androidx.core:core-splashscreen:1.2.0'
+}
