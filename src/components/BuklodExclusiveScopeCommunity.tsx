@@ -3615,6 +3615,7 @@ return (
               <>
                 <View
                   ref={(node: View | null)=>registerVideoFrame(String(item.id),node)}
+                  collapsable={false}
                   onLayout={onVideoFrameLayout}
                   style={
                     styles.videoWrap

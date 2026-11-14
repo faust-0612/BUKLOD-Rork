@@ -33,3 +33,10 @@ test('precache a next native AdMob creative, not a hidden loaded banner or impre
  assert.match(read('src/app/(tabs)/messages.tsx'),/connect_personal_inline_4" prefetch/);
  assert.match(read('src/app/(tabs)/messages.tsx'),/connect_community_inline_4" prefetch/);
 });
+
+test('video frame probes cannot be flattened away by Android native view optimization',()=>{
+ const wall=read('src/app/(tabs)/buklod.tsx');
+ const scope=read('src/components/BuklodExclusiveScopeCommunity.tsx');
+ assert.ok(wall.includes('registerVideoFrame(postId,node)}\\n             collapsable={false}'.replace('\\n','\n')));
+ assert.ok(scope.includes('registerVideoFrame(String(item.id),node)}\\n                  collapsable={false}'.replace('\\n','\n')));
+});

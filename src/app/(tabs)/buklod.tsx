@@ -4799,6 +4799,7 @@ const load=useCallback(async(options?:{
         <>
           <View
             ref={(node: View | null)=>registerVideoFrame(postId,node)}
+             collapsable={false}
              onLayout={onVideoFrameLayout}
              /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
             style={{
