@@ -46,7 +46,7 @@ jobs:
               core.warning('No matching staging publish workflow run was returned. Do not assume an OTA was published.');
               lines.push('No matching staging publish workflow run was returned; do not assume an OTA was published.');
             }
-            const mainReleaseSha='97344f56cc5cfe0667bd769d0d782723a7cdbc9b';
+            const mainReleaseSha='66b3eefaeae7f9f136a98fdef08e1cba2ecfb742';
             const {data:prodRuns}=await github.rest.actions.listWorkflowRunsForRepo({
               ...context.repo,branch:'main',per_page:100
             });
