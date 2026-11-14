@@ -127,7 +127,8 @@ test('Offline source preflight passes but unsafe build without lab creds is bloc
     ['scripts/kingdom-lab/preflight.cjs','--build'],
     {cwd: new URL('..', import.meta.url), encoding:'utf8',
      env:{...process.env,BUKLOD_APP_TARGET:'kingdom-native-lab',
-        EXPO_PUBLIC_KINGDOM_NATIVE_LAB:'1',KINGDOM_LAB_EAS_PROJECT_ID:''}});
+        EXPO_PUBLIC_KINGDOM_NATIVE_LAB:'1',KINGDOM_LAB_EAS_PROJECT_ID:'',
+        KINGDOM_LAB_GOOGLE_SERVICES_FILE:''}});
   assert.notEqual(blocked.status,0);
   assert.match(blocked.stderr, /KINGDOM NATIVE LAB RELEASE BLOCKED/);
 });
