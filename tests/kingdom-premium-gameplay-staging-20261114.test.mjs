@@ -7,6 +7,7 @@ const read = p => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const baseline = '43d5f24a829028a928b5f131b6fa82499e47cd61';
 const fx = read('src/features/games/runtime/BuklodGameplayReactionFX.native.tsx');
 const stage = read('src/features/games/runtime/BuklodGameStage.native.tsx');
+const ambient = read('src/features/games/runtime/BuklodGameVisualFX.tsx');
 const jawo = read('src/features/games/jawo/ForestTrailGameV2.tsx');
 const trudice = read('src/features/games/trudice/PlaygroundPathGameV2.tsx');
 
@@ -23,6 +24,11 @@ test('Staging gameplay keeps the exact signed native ABI: no APK or production b
 test('Every Android game stage draws one non-interactive GPU response to accepted gameplay feedback', () => {
   assert.match(stage, /BuklodGameplayReactionFX from '\.\/BuklodGameplayReactionFX\.native'/);
   assert.match(stage, /<BuklodGameplayReactionFX enabled=\{screenFocused && appActive && !reducedMotion\}/);
+  assert.match(stage, /<BuklodGameVisualFX biome=\{biome\} enabled=\{screenFocused && appActive && !reducedMotion\}/);
+  assert.match(ambient, /enabled = true/);
+  assert.match(ambient, /if \(!enabled\) \{/);
+  assert.match(ambient, /drift\.stopAnimation\(\)/);
+  assert.match(ambient, /pulse\.stopAnimation\(\)/);
   assert.match(fx, /subscribeBuklodGameCharacterMotion/);
   assert.match(fx, /event\.type/);
   assert.match(fx, /useSharedValue\(1\)/);
@@ -80,6 +86,7 @@ test('All 13 Kingdom station route contracts and real BP/Shard security boundari
   const authorized = new Set([
     'src/features/games/runtime/BuklodGameplayReactionFX.native.tsx',
     'src/features/games/runtime/BuklodGameStage.native.tsx',
+    'src/features/games/runtime/BuklodGameVisualFX.tsx',
     'src/features/games/jawo/ForestTrailGameV2.tsx',
     'src/features/games/trudice/PlaygroundPathGameV2.tsx',
     'tests/kingdom-premium-gameplay-staging-20261114.test.mjs',
