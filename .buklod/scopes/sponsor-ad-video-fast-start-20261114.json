@@ -16,7 +16,8 @@
     "wall-viewability",
     "cdn-egress",
     "audio-focus",
-    "Android decoder budget"
+    "Android decoder budget",
+    "ads-monetization"
   ],
   "preserveBehaviors": [
     "Approved paid unexpired geo-matched sponsor selection, rotation, impression/click accounting, and campaign dates remain unchanged.",
