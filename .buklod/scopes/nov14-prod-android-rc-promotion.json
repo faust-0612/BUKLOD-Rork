@@ -7,17 +7,25 @@
   "chosenApproach": "Freeze reviewed staging source SHA 2e7dc3aa69d2362b7b360013ccaac9917c353e2b; require exact Android production preflight, native/DB ABI isolation, protected feature proof, and Android-only release marker. Existing production workflow performs immutable RC bundle hashing and manifest readback; no general web or Play deployments.",
   "selectionRationale": "One cumulative candidate preserves already integrated changes. Do not merge unreviewed divergent Health/SALIKSIK branches or break current production phone client. Avoid the older marker that also automatically publishes Expo Web.",
   "riskAreas": [
-    "production-release",
-    "native-ota-compatibility",
-    "governance-lock",
-    "privacy",
-    "navigation-auth",
-    "wall-media",
     "ads-finance-points",
+    "ads-monetization",
+    "auth-privacy",
+    "classroom-quiz",
     "cluster-faith",
-    "kingdom-character",
+    "connect",
     "connect-profile",
-    "staging-to-production-parity"
+    "faith-cluster",
+    "governance-lock",
+    "kingdom-character",
+    "native-ota-compatibility",
+    "navigation-auth",
+    "navigation-scroll",
+    "privacy",
+    "production-release",
+    "release-identity",
+    "staging-to-production-parity",
+    "story",
+    "wall-media"
   ],
   "allowedPaths": [
     ".buklod/scopes/full-visual-transformation-20261113.json",
@@ -81,6 +89,7 @@
     "scripts/RUN_BUKLOD_STAGING_DEVICE_ATTESTATION.ps1",
     "scripts/buklod-consolidated-staging-gate.mjs",
     "scripts/buklod-nov14-scoped-staging-ota-policy.mjs",
+    "scripts/engineering-regression-gate.mjs",
     "scripts/game-kingdom-release-contract.mjs",
     "scripts/navigation-v2-owner-staging-policy.mjs",
     "scripts/navigation-v2-route-audit.mjs",
@@ -181,6 +190,7 @@
     "tests/buklod-prod-android-only-release-20261114.test.mjs",
     "tests/buklod-visual-staging-ota-20261113.test.mjs",
     "tests/community-wall-post-card-google-pattern.test.mjs",
+    "tests/engineering-regression-gate.test.mjs",
     "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
     "tests/full-visual-navigation-side-menu-20261113.test.mjs",
     "tests/home-navigation-bulletin-card-20261114.test.mjs",
@@ -239,6 +249,7 @@
     "tests/buklod-prod-android-only-release-20261114.test.mjs",
     "tests/buklod-visual-staging-ota-20261113.test.mjs",
     "tests/community-wall-post-card-google-pattern.test.mjs",
+    "tests/engineering-regression-gate.test.mjs",
     "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
     "tests/full-visual-navigation-side-menu-20261113.test.mjs",
     "tests/home-navigation-bulletin-card-20261114.test.mjs",
@@ -378,12 +389,34 @@
     "Staging green HIBLA Connect, BUKLOD Official personal posts and privacy-aware activity regressions pass",
     "Production Android build, Android full original release gates and actual production manifest readback required before declaration of live release",
     "No Health Center clinical backend or SALIKSIK backend included or activated; original approved educational guide retained",
-    "No false declaration that full 18-item visual acceptance or actual on-device verification passed"
+    "No false declaration that full 18-item visual acceptance or actual on-device verification passed",
+    "Named cumulative PR requires exact eight inherited component v2 manifests plus production scope; all source/test/workflow paths covered by exact allowlist, no weakening of unscoped PR isolation."
   ],
   "releaseStatus": "RC_SOURCE_GATE_PENDING__NO_PRODUCTION_PUBLISH",
   "readyForRelease": false,
   "productionPublished": false,
   "webPublished": false,
   "sourceStagingSha": "2e7dc3aa69d2362b7b360013ccaac9917c353e2b",
-  "previousProductionSha": "9f412afd71b74e41995a3a1a63e05e72f78b6e39"
+  "previousProductionSha": "9f412afd71b74e41995a3a1a63e05e72f78b6e39",
+  "releaseMode": "consolidated-main-rc",
+  "componentScopePaths": [
+    ".buklod/scopes/full-visual-transformation-20261113.json",
+    ".buklod/scopes/home-navigation-bulletin-card-20261114.json",
+    ".buklod/scopes/kingdom-premium-audio-staging-20261114.json",
+    ".buklod/scopes/kingdom-premium-gameplay-staging-20261114.json",
+    ".buklod/scopes/kingdom-r9-39-cinematic-scenes-staging-20261114.json",
+    ".buklod/scopes/nav2-wall-stability-integration-20261113.json",
+    ".buklod/scopes/nov14-staging-conso-excluding-health-saliksik.json",
+    ".buklod/scopes/profile-focus-refresh-staging-20261114.json"
+  ],
+  "alternativeApproaches": [
+    "Publish old two-channel consolidated marker rejected because it would also deploy web",
+    "Direct update to production Expo channel without reconciled branch, compiler and accountability gates rejected",
+    "Merge entire deferred Health Center/SALIKSIK backend rejected; authorized scope is existing staging client only"
+  ],
+  "preserveBehaviors": [
+    "Keep secure signup, privacy RLS, user-owned posts, Cluster/Org scope isolation, Connect messaging/PTT/calls, AdMob points policies and media playback.",
+    "Keep Health Center clinical and SALIKSIK backend OFF; no database migration, APK change, Play submission or Web deployment.",
+    "Keep Expo production package org.mzbministry.buklod and native ABI/runtime 1.3.2; verify live update manifest after exact frozen RC publish."
+  ]
 }

@@ -1,5 +1,5 @@
 # Isolated production preflight ONLY. Never merges, deploys, or alters Expo channels.
-# Final RC recheck: Android-only production marker + explicit owner-governed scope.
+# Final RC recheck: Android-only production marker + exact eight-component consolidated owner-governed scope.
 # Staging source was verified on Android preview; this job checks production config
 # and protected product regressions before any main/production promotion.
 name: BUKLOD Nov14 Production Promotion RC QA - NO PUBLISH

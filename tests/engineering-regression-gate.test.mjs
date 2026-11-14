@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { assessChanges } from '../scripts/engineering-regression-gate.mjs';
 
 const goodManifest = {
@@ -199,4 +200,16 @@ test('new post-production RC remains an exact named cumulative scope with strict
  assert.deepEqual(assessChanges(files,manifest,{consolidatedRc:true}).failures,[]);
  assert.match(assessChanges(files,manifest).failures.join(' '),/Only one new scope manifest/);
  assert.match(assessChanges([...files,'src/lib/buklodGlobalAdController.ts'],manifest,{consolidatedRc:true}).failures.join(' '),/outside the declared scope allowlist/);
+});
+
+test('2026-11-14 Android-only RC requires the named cumulative scope and exact component list',()=>{
+ const scope=JSON.parse(fs.readFileSync(new URL('../.buklod/scopes/nov14-prod-android-rc-promotion.json',import.meta.url),'utf8'));
+ assert.equal(scope.releaseMode,'consolidated-main-rc');
+ assert.equal(scope.componentScopePaths.length,8);
+ assert.equal(new Set(scope.componentScopePaths).size,scope.componentScopePaths.length);
+ const gate=fs.readFileSync(new URL('../scripts/engineering-regression-gate.mjs',import.meta.url),'utf8');
+ assert.ok(gate.includes("'release/buklod-prod-rc-staging-20261114'"));
+ assert.match(gate,/process\.env\.BUKLOD_CONSOLIDATED_RC_GATE === 'true'/);
+ const workflow=fs.readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
+ assert.ok(workflow.includes('BUKLOD_CONSOLIDATED_RC_GATE=true'));
 });
