@@ -31,6 +31,10 @@ function checkFirebaseFile(cfg) {
   const file = path.resolve(root, value);
   requireCondition(fs.existsSync(file), 'lab Firebase client file does not exist');
   const json = JSON.parse(fs.readFileSync(file, 'utf8'));
+  requireCondition(json.project_info?.project_id === 'buklod-kingdom-native-lab-offline',
+    'must use a NONFUNCTIONAL offline Firebase placeholder, never a real BUKLOD Firebase project');
+  requireCondition(json.client?.[0]?.api_key?.[0]?.current_key === 'OFFLINE-LAB-NO-REAL-KEY',
+    'lab may not use real Firebase API credentials');
   const androidClients = (json.client ?? [])
     .map(row => row?.client_info?.android_client_info?.package_name)
     .filter(Boolean);
@@ -90,8 +94,8 @@ try {
     requireCondition(process.env.BUKLOD_APP_TARGET === 'kingdom-native-lab',
       'wrong target in native build');
     const easProject = process.env.KINGDOM_LAB_EAS_PROJECT_ID ?? '';
-    requireCondition(easProject && ![MAIN_EAS, CLASSROOM_EAS].includes(easProject),
-      'new lab EAS project ID required (separate from staging/production)');
+    requireCondition(![MAIN_EAS, CLASSROOM_EAS].includes(easProject),
+      'lab must not use any existing BUKLOD EAS project ID');
   }
   console.info(JSON.stringify({
     status: build ? 'NATIVE_LAB_BUILD_GATES_PASSED' : 'NATIVE_LAB_SOURCE_GATES_PASSED',
