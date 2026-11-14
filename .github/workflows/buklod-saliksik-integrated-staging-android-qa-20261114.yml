@@ -1,0 +1,62 @@
+name: BUKLOD Saliksik Integrated Staging Android QA (NONPUBLISHING)
+on:
+  push:
+    branches: [dev/saliksik-r2-visual-staging-integrated-20261114]
+    paths:
+      - '.github/workflows/buklod-saliksik-integrated-staging-android-qa-20261114.yml'
+permissions:
+  contents: read
+jobs:
+  android-compile-no-publish:
+    if: github.repository == 'faust-0612/BUKLOD-Rork'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: compile-only-publishable-key
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Freeze exact staging identity and dependency tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci --ignore-scripts --no-audit --no-fund
+          node - <<'NODE'
+          const a=require('node:assert/strict');
+          const cfg=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          a.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+          a.equal(cfg.runtimeVersion,'1.3.2');
+          a.equal(cfg.extra.appEnvironment,'staging');
+          a.equal(eas.build['staging-user'].channel,'staging-user');
+          a.equal(eas.build['staging-user'].environment,'preview');
+          a.notEqual(eas.build.production.channel,eas.build['staging-user'].channel);
+          NODE
+      - name: Verify Saliksik + Home/Profile/Wall/Ads/Points source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types --test             tests/saliksik-*.test.mjs             tests/nov14-profile-ranks-ux.test.mjs             tests/nov14-profile-post-cards.test.mjs             tests/home-navigation-bulletin-card-20261114.test.mjs             tests/sponsor-ad-video-fast-start-20261114.test.mjs
+          npx tsc --noEmit
+      - name: Android Hermes bundle compile only; never publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-health-saliksik-android --clear
+          test -s /tmp/buklod-health-saliksik-android/metadata.json
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          echo "Exact source $GITHUB_SHA: staging Android JS export only. No APK/OTA, no production." >> "$GITHUB_STEP_SUMMARY"
