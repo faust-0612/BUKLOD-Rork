@@ -53,6 +53,43 @@ jobs:
           fi
           grep -q 'BLOCKED BEFORE NEXT OTA' /tmp/conso-gate-output.txt
           echo 'PASS: incomplete consolidated source cannot publish an OTA.'
+      - name: Compile exact staging Android code and connected-feature regressions without publishing
+        shell: bash
+        env:
+          CI: '1'
+          EXPO_NO_TELEMETRY: '1'
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node <<'NODE'
+          const a=require('node:assert/strict');
+          const app=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          a.equal(app.android.package,'org.mzbministry.buklod.staging');
+          a.equal(app.runtimeVersion,'1.3.2');
+          a.equal(app.extra.appEnvironment,'staging');
+          a.equal(app.extra.appTarget,'main');
+          a.equal(eas.build['staging-user'].channel,'staging-user');
+          a.equal(eas.build['staging-user'].environment,'preview');
+          a.equal(eas.build.production.channel,'production');
+          NODE
+          node --experimental-strip-types --test \
+            tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs \
+            tests/full-visual-navigation-side-menu-20261113.test.mjs \
+            tests/navigation-v2-settings-route.test.mjs \
+            tests/nov13-ux-fixes-staging-20261113.test.mjs \
+            tests/kingdom-native-cinematic-ota-20261114.test.mjs \
+            tests/nov14-imci-health-flow.test.mjs \
+            tests/nov14-profile-ranks-ux.test.mjs \
+            tests/nov14-exact-formation-notifications.test.mjs \
+            tests/bsoc-case-triage-20261112.test.mjs \
+            tests/buklod-phone-gif-comment-share-20261111.test.mjs
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-visual-conso-safe-android --clear
+          test -s /tmp/buklod-visual-conso-safe-android/metadata.json
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          echo 'PASS: source tests, TypeScript and Android Expo JS export. NO APK/OTA/production publication.'
       - name: Archive narrow QA receipt; no Expo or production credentials
         shell: bash
         run: |
