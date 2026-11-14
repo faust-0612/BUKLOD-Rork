@@ -11,9 +11,9 @@
   "allowExistingStaging": false,
   "allowStore": false,
   "allowDatabaseChanges": false,
-  "retryAttempt": 2,
-  "previousRunId": 43578436734,
-  "previousFailure": "Android SDK setup action called removed sdkmanager tools package before application compilation",
-  "onlyChange": "Use preinstalled hosted-runner Android SDK without sdkmanager tools",
+  "retryAttempt": 3,
+  "previousRunId": 43578572757,
+  "previousFailure": "Gradle project :buklod-kingdom-native-lab failed because android.defaultConfig.versionName missing",
+  "onlyChange": "VersionName/Code added to local Expo module; standalone release variant bundles JS; CI report upsert corrected",
   "noPaidResources": true
 }
