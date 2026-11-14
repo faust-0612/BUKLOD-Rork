@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { KINGDOM_CINEMATIC_SCENES, getKingdomCinematicScene }
+import { KINGDOM_CHARACTER_MOTION, KINGDOM_CINEMATIC_SCENES, getKingdomCinematicScene }
   from '../src/features/games/kingdom/platform/KingdomCinematicScenes.ts';
 
 const read = p => fs.readFileSync(new URL('../'+p, import.meta.url), 'utf8');
@@ -34,6 +34,27 @@ test('39 canonical games all have deliberate, stable distinct cinematic scene pr
     seeds.add(s.seed);
   }
   assert.equal(getKingdomCinematicScene('not-a-game'), null);
+});
+
+test('13 canonical characters each have independent idle, action, hit and victory motion', () => {
+  const characters = new Set(catalog.characters.map(c => c.characterId));
+  assert.equal(characters.size, 13);
+  assert.deepEqual(new Set(Object.keys(KINGDOM_CHARACTER_MOTION)), characters);
+  const seen = new Set();
+  for (const id of characters) {
+    const motion = KINGDOM_CHARACTER_MOTION[id];
+    assert.ok(motion.action && !seen.has(motion.action), id);
+    seen.add(motion.action);
+    assert.ok(motion.idleX > 0 && motion.idleY > 0, id);
+    assert.ok(motion.collectHop >= 7 && motion.collectHop <= 20, id);
+    assert.ok(motion.impactShake > 0 && motion.victoryScale > 0, id);
+  }
+  assert.match(native, /KINGDOM_CHARACTER_MOTION\[profile.character\]/);
+  assert.match(native, /motion.idleX/);
+  assert.match(native, /motion.idleY/);
+  assert.match(native, /motion.collectHop/);
+  assert.match(native, /motion.impactShake/);
+  assert.match(native, /motion.victoryScale/);
 });
 
 test('Native gives every game a real game-event-driven Skia scene and original animated character', () => {
