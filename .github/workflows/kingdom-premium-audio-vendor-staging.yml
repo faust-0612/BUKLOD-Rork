@@ -7,6 +7,7 @@ on:
       - '.github/workflows/kingdom-premium-audio-vendor-staging.yml'
       - 'scripts/vendor-kingdom-premium-audio.sh'
       - 'assets/sounds/kingdom-premium/manifest.json'
+      - 'tests/kingdom-premium-audio-staging-20261114.test.mjs'
   workflow_dispatch:
 
 permissions:

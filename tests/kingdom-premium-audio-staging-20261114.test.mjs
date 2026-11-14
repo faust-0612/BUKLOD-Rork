@@ -34,5 +34,5 @@ test('runtime uses shipped premium music and SFX without accessing the old Rork 
   assert.match(runtime,/readyListener\.remove\(\)/);
   assert.match(native,/tryPlayRorkGameFeedback\(event, volume\)/);
   assert.doesNotMatch(runtime,/createAudioPlayer\(RORK_AUDIO\[media\.ambience\]/);
-  assert.equal((premium.match(/require\('\.\.\/\.\.\/\.\.\/\.\.\/assets\/sounds\/kingdom-premium\//g)??[]).length,12);
+  assert.equal((premium.match(/require\('\.\.\/\.\.\/\.\.\/\.\.\/assets\/sounds\/kingdom-premium\//g)??[]).length,15);
 });
