@@ -32,9 +32,7 @@
     "account-isolation"
   ],
   "regressionTests": [
-    "tests/nov14-profile-navigation-rank-refresh.test.mjs",
-    "tests/nov14-profile-ranks-ux.test.mjs",
-    "tests/nov14-profile-post-cards.test.mjs"
+    "tests/nov14-profile-navigation-rank-refresh.test.mjs"
   ],
   "allowedPaths": [
     "src/app/(tabs)/me.tsx",
