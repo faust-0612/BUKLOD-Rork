@@ -49,9 +49,12 @@
     "Android Expo Hermès export on exact integrated staging source, with runtime 1.3.2 APK source identity and protected production channel fingerprint, before any staging OTA.",
     "Native gameplay frame-time, RAM, touch/feedback and Reduce Motion/device behavior acceptance measured; not claimed complete from static tests.",
     "Authoring/verification of real Rive .riv character state machines is a separate open blocker. No mock or remote unverified art substitutes.",
-    "Do not bypass Nov 14 full consolidated BUKLOD staging release gate; production remains untouched."
+    "Do not bypass Nov 14 full consolidated BUKLOD staging release gate; production remains untouched.",
+    "Game Center scroll/layout preserves map navigation and touch while adding the compact cinematic panel; real phone visual acceptance required."
   ],
-  "riskAreas": [],
+  "riskAreas": [
+    "navigation-scroll"
+  ],
   "releaseMode": "DEV STAGING SOURCE ONLY",
   "releaseStatus": "Awaiting exact-source QA; does not publish staging OTA, web, production or backend."
 }
