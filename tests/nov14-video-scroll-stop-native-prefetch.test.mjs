@@ -40,3 +40,14 @@ test('video frame probes cannot be flattened away by Android native view optimiz
  assert.ok(wall.includes('registerVideoFrame(postId,node)}\\n             collapsable={false}'.replace('\\n','\n')));
  assert.ok(scope.includes('registerVideoFrame(String(item.id),node)}\\n                  collapsable={false}'.replace('\\n','\n')));
 });
+
+test('Marites warms one upcoming horizontal clip while holding paused scrollback decoder',()=>{
+ const playback=read('src/lib/buklodMaritesPlayback.ts');
+ const board=read('src/components/BuklodMaritesBoard.tsx');
+ assert.ok(playback.includes('const distance=start-right'));
+ assert.ok(playback.includes('return next>=0?next:visible'));
+ assert.ok(playback.includes('distance<=cardWidth*2+gap*2'));
+ assert.ok(board.includes('if (canPlayInline) setVisibleVideoIndex(selectVisibleMaritesVideo('));
+ assert.ok(board.includes('index===preparedVideoIndex || index===visibleVideoIndex'));
+ assert.ok(board.includes('noteBuklodVideoScroll(); requestVisibilityMeasurement();'));
+});

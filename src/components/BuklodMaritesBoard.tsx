@@ -1849,13 +1849,15 @@ export default function BuklodMaritesBoard({
         offset:storyStripOffset.current,cardWidth:MARITES_COMPACT_CARD_WIDTH,gap:7,
         videos:activeStories.map(story=>Boolean(story.video_uri)),
       }));
-      setVisibleVideoIndex(canPlayInline ? selectVisibleMaritesVideo({
+      // When scrolling begins, pause immediately but keep the last decoder
+      // warm; recycle only when the settled viewport selects a new clip.
+      if (canPlayInline) setVisibleVideoIndex(selectVisibleMaritesVideo({
         x, y, width, height, windowWidth, windowHeight,
         topInset: insets.top, bottomInset: Math.max(insets.bottom, drawerBottomInset),
         offset: storyStripOffset.current,
         cardWidth: MARITES_COMPACT_CARD_WIDTH, gap: 7,
         videos: activeStories.map(story => Boolean(story.video_uri)),
-      }) : -1);
+      }));
     });
   }, [canPrepareInline,canPlayInline, activeStories, windowWidth, windowHeight, insets.top, insets.bottom, drawerBottomInset]);
 

@@ -40,12 +40,20 @@ export function selectNearbyMaritesVideo(input:{
  const {x,y,width,height,windowWidth,windowHeight,offset,cardWidth,gap,videos}=input;
  if(![x,y,width,height,windowWidth,windowHeight,offset,cardWidth].every(Number.isFinite) ||
    width<=0||height<=0||cardWidth<=0||y>windowHeight*1.65||y+height< -windowHeight*0.65)return -1;
- let best=-1,overlapMax=0;
+ const left=Math.max(x,0),right=Math.min(x+width,windowWidth);
+ let visible=-1,mostVisible=0;
+ let next=-1,nextDistance=Number.POSITIVE_INFINITY;
  videos.forEach((video,i)=>{
    if(!video)return;
    const start=x+i*(cardWidth+gap)-offset;
-   const overlap=Math.max(0,Math.min(start+cardWidth,windowWidth,x+width)-Math.max(start,x,0));
-   if(overlap>overlapMax){overlapMax=overlap;best=i;}
+   const overlap=Math.max(0,Math.min(start+cardWidth,right)-Math.max(start,left));
+   if(overlap>mostVisible){mostVisible=overlap;visible=i;}
+   // Warm a single next clip while the current one is still on screen.
+   // Limit forward lookahead to two adjacent cards: no background download sweep.
+   const distance=start-right;
+   if(distance>=0 && distance<=cardWidth*2+gap*2 && distance<nextDistance){
+     next=i;nextDistance=distance;
+   }
  });
- return best;
+ return next>=0?next:visible;
 }
