@@ -1,0 +1,201 @@
+# New separately installable native staging app. No existing staging-user or production OTA.
+# The build job is one-shot commit-marker gated and defaults OFF until all native features and a new
+# registered Firebase package exist. Source QA may run independently without Expo credits.
+name: BUKLOD Native Lab Isolated Android APK
+on:
+  push:
+    branches:
+      - dev/native-lab-isolated-runtime-20261115
+    paths:
+      - '.github/workflows/buklod-native-lab-apk-20261115.yml'
+      - 'app.config.js'
+      - 'eas.json'
+      - 'scripts/native-lab-build-preflight.mjs'
+      - 'tests/*native-lab*'
+      - 'tests/buklod-native-lab-expo-isolation-20261115.test.cjs'
+      - '.buklod/scopes/native-lab-isolated-runtime-20261115.json'
+      - 'release/native-lab-apk-20261115.json'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-native-lab-signed-apk-one-shot
+  cancel-in-progress: false
+jobs:
+  source-identity-qa:
+    if: "${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/native-lab-isolated-runtime-20261115' }"
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      APP_VARIANT: native-lab
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ github.sha }"
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact package/runtime independence and preflight failure modes (no Expo credits)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --test tests/buklod-native-lab-expo-isolation-20261115.test.cjs tests/native-lab-release-identity-20261115.test.mjs
+          node - <<'NODE'
+          const assert=require('node:assert/strict'),e=require('./eas.json');
+          const f=require('./app.config.js');
+          process.env.APP_VARIANT='native-lab';
+          process.env.EXPO_PUBLIC_APP_ENV='staging';
+          const c=f({config:{extra:{}}});
+          assert.equal(c.android.package,'org.mzbministry.buklod.nativeqa');
+          assert.equal(c.runtimeVersion,'1.4.0-nativeqa.1');
+          assert.equal(e.build['native-lab'].channel,'native-lab');
+          assert.equal(e.build['staging-user'].channel,'staging-user');
+          assert.equal(e.build.production.channel,'production');
+          NODE
+
+  signed-native-lab-apk:
+    needs: source-identity-qa
+    if: "${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/native-lab-isolated-runtime-20261115' && github.event_name == 'push' && startsWith(github.event.head_commit.message, 'BUKLOD_NATIVE_LAB_SIGNED_APK_20261115:') }"
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: native-lab
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_TOKEN: "${{ secrets.EXPO_TOKEN }"
+      NATIVE_LAB_FIREBASE_JSON_B64: "${{ secrets.NATIVE_LAB_FIREBASE_JSON_B64 }"
+      BUKLOD_STAGING_PROJECT_REF: "${{ vars.BUKLOD_STAGING_PROJECT_REF }"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ github.sha }"
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Restore ONLY a genuinely registered separate Firebase Android client
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN" || { echo 'BLOCK: no Expo build token'; exit 1; }
+          test -n "$NATIVE_LAB_FIREBASE_JSON_B64" || { echo 'BLOCK: native QA Firebase client not registered'; exit 1; }
+          umask 077
+          printf '%s' "$NATIVE_LAB_FIREBASE_JSON_B64" | base64 -d > google-services.native-lab.json
+          node - <<'NODE'
+          const assert=require('node:assert/strict');
+          const f=require('./google-services.native-lab.json');
+          const matches=f.client?.filter(x=>x.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.nativeqa')??[];
+          assert.equal(matches.length,1,'No registered org.mzbministry.buklod.nativeqa Firebase client; stop before credits');
+          assert.ok(matches[0].client_info.mobilesdk_app_id);
+          NODE
+      - name: Load preview backend, verify registered package and all native incorporation gates BEFORE EAS credits
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 whoami --non-interactive >/dev/null
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-native-lab-preview.env --non-interactive
+          test -s /tmp/buklod-native-lab-preview.env
+          set -a
+          . /tmp/buklod-native-lab-preview.env
+          set +a
+          node scripts/native-lab-build-preflight.mjs
+          echo 'New native package, runtime, Firebase registration and scoped staging backend verified.'
+      - name: Exact-source tests and Android Hermes export
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test tests/buklod-native-lab-expo-isolation-20261115.test.cjs tests/native-lab-release-identity-20261115.test.mjs
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-native-lab-android --clear
+          test -s /tmp/buklod-native-lab-android/metadata.json
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Remote staging-only EAS versionCode in ephemeral runner (no tracked config mutation)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const f='eas.json',e=JSON.parse(fs.readFileSync(f,'utf8'));
+          assert.equal(e.cli.appVersionSource,'local');
+          assert.equal(e.build['native-lab'].autoIncrement,true);
+          assert.equal(e.build['native-lab'].channel,'native-lab');
+          assert.equal(e.build.production.channel,'production');
+          assert.equal(e.build['staging-user'].channel,'staging-user');
+          e.cli.appVersionSource='remote';
+          fs.writeFileSync(f,JSON.stringify(e,null,2)+'\n');
+          NODE
+          test "$(git diff --name-only)" = 'eas.json'
+      - name: Build precisely ONE signed native-lab APK on separate channel (no OTA, Web or Play)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 build --platform android --profile native-lab --non-interactive --wait --json > /tmp/buklod-native-lab-eas-result.json
+          test -s /tmp/buklod-native-lab-eas-result.json
+      - name: Verify finished EAS build and downloaded signed Android APK package
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const assert=require('node:assert/strict'),fs=require('node:fs');
+          const raw=JSON.parse(fs.readFileSync('/tmp/buklod-native-lab-eas-result.json','utf8'));
+          const b=Array.isArray(raw)?raw[0]:raw;
+          assert.equal(String(b.status).toLowerCase(),'finished');
+          assert.equal(String(b.platform).toLowerCase(),'android');
+          if (b.gitCommitHash) assert.equal(String(b.gitCommitHash).toLowerCase(),process.env.GITHUB_SHA.toLowerCase());
+          const url=b.artifacts?.buildUrl??b.artifacts?.applicationArchiveUrl;
+          assert.equal(typeof url,'string');
+          const u=new URL(url);
+          assert.equal(u.protocol,'https:');
+          assert.equal(u.hostname,'expo.dev');
+          assert.ok(u.pathname.endsWith('.apk'));
+          fs.writeFileSync('/tmp/buklod-native-lab-apk-url',url);
+          fs.writeFileSync('native-lab-apk-receipt.json',JSON.stringify({
+            status:'signed-binary-generated-not-device-verified',sourceSha:process.env.GITHUB_SHA,
+            expoBuildId:b.id,appVersion:b.appVersion??null,appBuildVersion:b.appBuildVersion??null,
+            packageId:'org.mzbministry.buklod.nativeqa',runtimeVersion:'1.4.0-nativeqa.1',
+            channel:'native-lab',environment:'preview',downloadUrl:url,
+            oldStagingModified:false,productionPublished:false,otaPublished:false
+          },null,2)+'\n');
+          NODE
+          curl --fail --location --retry 2 --retry-delay 5 --connect-timeout 20 --max-time 900 --output /tmp/buklod-native-lab.apk "$(cat /tmp/buklod-native-lab-apk-url)"
+          python3 - <<'PY'
+          import zipfile,hashlib,os,json
+          p='/tmp/buklod-native-lab.apk'
+          if os.path.getsize(p)<=5000000: raise RuntimeError('APK artifact too small')
+          with zipfile.ZipFile(p) as z:
+              if 'AndroidManifest.xml' not in z.namelist(): raise RuntimeError('Not an installable APK')
+          h=hashlib.sha256()
+          with open(p,'rb') as f:
+              for chunk in iter(lambda:f.read(1048576),b''): h.update(chunk)
+          record=json.load(open('native-lab-apk-receipt.json'))
+          record['apkSha256']=h.hexdigest()
+          record['apkBytes']=os.path.getsize(p)
+          json.dump(record,open('native-lab-apk-receipt.json','w'),indent=2)
+          PY
+          AAPT="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$AAPT" || { echo 'BLOCK: Android aapt package attestation unavailable'; exit 1; }
+          APK_PACKAGE="$("$AAPT" dump badging /tmp/buklod-native-lab.apk | awk -F "'" '/^package:/{print $2; exit}')"
+          test "$APK_PACKAGE" = 'org.mzbministry.buklod.nativeqa' || { echo 'BLOCK: APK manifest package differs from native lab'; exit 1; }
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER" || { echo 'BLOCK: no Android signature verifier'; exit 1; }
+          "$APKSIGNER" verify /tmp/buklod-native-lab.apk
+          rm -f /tmp/buklod-native-lab.apk
+          echo 'BUKLOD native QA (new package, new runtime, new channel) signed APK verified: ' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/buklod-native-lab-apk-url >> "$GITHUB_STEP_SUMMARY"
+          echo 'Old staging and production are not deployed from this workflow. Physical Android acceptance: NOT EXECUTED.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve QA receipt only (APK remains in Expo artifact storage)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-native-lab-apk-receipt-${{ github.sha }}
+          path: native-lab-apk-receipt.json
+          retention-days: 21
+          if-no-files-found: ignore
