@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { selectVisibleMaritesVideo } from '../src/lib/buklodMaritesPlayback.ts';
 const script = readFileSync(new URL('../scripts/test-marites-release.cjs', import.meta.url), 'utf8');
 const bounds = {x:0,y:100,width:360,height:252,windowWidth:360,windowHeight:800,
@@ -20,4 +21,11 @@ test('near-hidden and offscreen frames never start playback despite nearby prewa
   assert.equal(selectVisibleMaritesVideo({...bounds,width:0}),-1);
   assert.match(script,/select\(\{\.\.\.bounds, y: 716\}\), -1/);
   assert.ok(!script.includes('select({...bounds, y: 700}), -1'));
+});
+
+test('full mandatory Marites release script still verifies offline persistence, owner access, 72h and AWS URLs',()=>{
+ const output=execFileSync(process.execPath,['scripts/test-marites-release.cjs'],{
+   cwd:new URL('../',import.meta.url), encoding:'utf8', timeout:20000,
+ });
+ assert.match(output,/PASS: Marites text-first video publishing, AWS URL preservation, offline copy, isolation and release contracts/);
 });
