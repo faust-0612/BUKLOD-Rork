@@ -1,5 +1,6 @@
 # Isolated production preflight ONLY. Never merges, deploys, or alters Expo channels.
 # Final RC recheck: Android-only promotion with immutable staging Kingdom and Profile/Connect tests.
+# Protected release/buklod-prod-rank-ads-performance-20261114 PR: V2 scope contract + rank/ads/performance regression proof.
 # Staging source was verified on Android preview; this job checks production config
 # and protected product regressions before any main/production promotion.
 name: BUKLOD Nov14 Production Promotion RC QA - NO PUBLISH
