@@ -142,7 +142,7 @@ export function BuklodGameStage({ biome, gameId, showCharacterCompanion = true, 
         </Canvas>
         <BuklodGameBackdrop gameId={resolvedGameId} opacity={0.36} />
 
-        <BuklodGameVisualFX biome={biome} />
+        <BuklodGameVisualFX biome={biome} enabled={screenFocused && appActive && !reducedMotion} />
         <View style={styles.content}>
           <BuklodGameEntrance>{connectedChildren}</BuklodGameEntrance>
         </View>
