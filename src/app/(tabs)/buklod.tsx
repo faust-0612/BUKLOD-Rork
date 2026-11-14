@@ -1515,8 +1515,8 @@ function LegacyPublicBuklodScreen(){
  const [videoViewerShowHint,setVideoViewerShowHint]=useState(true);
  // Advance playback as the next page becomes visible, not after momentum ends.
  const videoViewerViewabilityConfig=useRef({
-  itemVisiblePercentThreshold:60,
-  minimumViewTime:80
+  itemVisiblePercentThreshold:10,
+  minimumViewTime:0
  }).current;
  const videoViewerOnViewableItemsChanged=useRef(({
   viewableItems
@@ -4798,7 +4798,9 @@ const load=useCallback(async(options?:{
       return (
         <>
           <View
-            /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
+            ref={(node: View | null)=>registerVideoFrame(postId,node)}
+             onLayout={onVideoFrameLayout}
+             /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
             style={{
               marginHorizontal:-8,
               position:'relative',
@@ -5267,6 +5269,9 @@ const communityFeedRows =
 
   visibleVideoPostId,
   preloadVideoPostId,
+  preloadAdId,
+  registerVideoFrame,
+  onVideoFrameLayout,
  } = useBuklodCommunityAdViewability(communityFeedRows);
  const videoPriority=resolveBuklodWallMaritesVideoPriority({
    wallFocused:wallScreenFocused,
@@ -5906,6 +5911,7 @@ const communityFeedRows =
       return (
         <BuklodCommunityInlineAd
           slotId={item.id}
+          prefetch={preloadAdId===item.id}
           // Keep a measurable viewport probe mounted before first activation.
           // Real ad requests remain gated by the existing SDK consent/viewport rules.
         />

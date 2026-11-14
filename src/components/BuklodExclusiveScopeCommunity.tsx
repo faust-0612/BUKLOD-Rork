@@ -1200,6 +1200,9 @@ export default function BuklodExclusiveScopeCommunity({
     extraData: communityAdExtraData,
     visibleVideoPostId,
     preloadVideoPostId,
+    preloadAdId,
+    registerVideoFrame,
+    onVideoFrameLayout,
   } = useBuklodCommunityAdViewability(
     mode === 'reels' ? visiblePosts : wallFeedRows,
   );
@@ -3611,6 +3614,8 @@ return (
             isVideo && (
               <>
                 <View
+                  ref={(node: View | null)=>registerVideoFrame(String(item.id),node)}
+                  onLayout={onVideoFrameLayout}
                   style={
                     styles.videoWrap
                   }
@@ -4593,6 +4598,7 @@ return (
               return (
                 <BuklodCommunityInlineAd
                   slotId={item.id}
+                  prefetch={preloadAdId===item.id}
                   // Preserve a measurable probe until in-viewport ad eligibility.
                   inventory={
                     scope.scope_type === 'CLUSTER'
