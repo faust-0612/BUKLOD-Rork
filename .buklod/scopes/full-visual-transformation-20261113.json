@@ -1,0 +1,221 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/full-visual-transformation-20261113.json",
+  "objective": "Implement the owner-authorized coherent premium visual transformation across eight BUKLOD UI areas on isolated DEV; block staging OTA until actual rendered visual and functional acceptance is available.",
+  "baseRef": "6b0f7e3167867bb746e34da4637430f131b588bb",
+  "productionBaselineEvidence": "Current GitHub main read as 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Existing integration scope records publisher-side production a43e1813 runtime 1.3.2; live production and installed staging parity are NOT independently verified in this session. No release is authorized from missing evidence.",
+  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics. Follow-up approved navigation decluttering: remove duplicate Home launchers, Profile cover gear, direct standalone offline search with suggested features and account-local recents/pins; use drawer only for unique secondary tools. Nov 13 screenshot issue repair: Connect notification redirect precedence; Profile unique My BUKLOD controls and Org/Suborg roster; /hub canonical announcement; broader ranked offline search; compact theme selection; sound style variants; silent GIF comment thread reload. Nine original WAV earcons are introduced solely as OTA-bundled sound assets. All other asset paths are protected and emergency sounds unchanged. Nov14 native Kingdom R7: one Reanimated UI clock powers Skia glowing world, station focus, sea wave and stage lights; Skia game-stage lighting across all 13 current games, with quality choice and offscreen/reduced-motion cleanup. No new native build. Rive host remains intact, but authored .riv scenes are not in the repository. Kingdom game release gate reconciled with owner's canonical Home Hub entry, preserving owner-retired Profile Kingdom door; no gameplay/routing changes. Nov14 owner release instruction: staging publisher now fails closed unless every enumerated feature is reconciled and evidence verified in a mandatory consolidated acceptance manifest. Existing Kingdom R7 OTA was already server-published before this hold; no new partial OTA is authorized. This is only a forward-looking staging publication guard, not an overwrite of production or prior update.",
+  "selectionRationale": "Targeted presentation composition preserves known functional implementations and dependencies; actual rendering is still required before acceptance or publication.",
+  "alternativeApproaches": [
+    "Replace screens wholesale: rejected due to high regression and authorization risk.",
+    "Apply only colors/icons: rejected because it leaves the reported oversized layout and content hierarchy unchanged.",
+    "Use shared metrics and component-level layout changes: selected; visual acceptance remains explicitly unverified."
+  ],
+  "preserveBehaviors": [
+    "Canonical five-tab navigation and every existing explicit route.",
+    "AdMob, video/autoplay/audio/cache, GIF comment fallback, Connect calls/PTT and permissions.",
+    "Private monthly/lifetime QMP and personal estimate warnings, no invented earnings.",
+    "Retired IGPAT remains excluded; production/main/web and release gates unchanged.",
+    "Keep production and web unchanged, no package/config/asset/native-dependency changes; preserve game rewards, social features, media, and ad rules.",
+    "Previously published staging-only R7 OTA is not rolled back automatically and never counted as entire BUKLOD acceptance. Existing production, native APK, and backend unchanged; all future releases must meet existing mandatory safety gates too.",
+    "Published, owner-accepted visual UI, navigation, Kingdom, Settings, fonts, searches, image fidelity, album/media, backend, signing and native runtime are not replaced by older PR #790 source."
+  ],
+  "acceptanceChecks": [
+    "All eight areas have actual source-level presentation changes.",
+    "Focused preservation/regression tests and TypeScript pass.",
+    "Android export passes at final source, package/runtime/channel remain compatible.",
+    "All eight real Android screenshots must exist and visually pass before a release; currently NOT VERIFIED.",
+    "Role-sensitive runtime interactions and signed binary/backend parity must pass before staging publish.",
+    "Nonpublishing CI browser screenshots are diagnostics only; do not count redirects or web-only images as Android acceptance.",
+    "Real navigation side menu (not SmartDrawer), public-shell header and preview search access are wired and source tested; native visual acceptance remains pending.",
+    "Owner-authorized staging-only OTA for practical visual QA is separate from release acceptance: exact-source CI, immutable Android bundle, native/config compatibility, preview channel/build, unchanged production fingerprint, and Expo service verification must pass; 0/8 native visual acceptance remains unverified.",
+    "Profile canonical monthly/all-time ranks and duplicate popup/obsolete action removal preserve Settings and privacy controls.",
+    "BUKLOD Today category retains only user-relevant content; suppress non-actionable 3-day rotation copy; scoped tests enforce.",
+    "IMCI age-specific, six-step educational flow, emergency escalation and no premature clinical decision or disabled consultation activation.",
+    "Legacy regression checks reconciled with accepted Profile route relocation, non-square responsive Home tiles, distinct WAV earcons, question-aware search, compact theme UI.",
+    "BSOC case-specific operator enters GPT diagnostic manually; never exfiltrates member evidence or secrets automatically.",
+    "Profile renders bounded exact post cards to self, respects community post RLS and profile lock; no exposure to visitors.",
+    "Inline BSOC GPT invocation sends only allowlisted category/platform/version, explicit operator action, scoped permission plus server check and no automatic reply.",
+    "Reviewer report notifications link to exact approval via existing scope-authorized history RPC, with read-only metadata and separate private member reply. No unauthorized response reads/comments.",
+    "Kingdom R7 ABI/version identity match with signed staging APK; 13 map stations and 39-game catalog untouched; no new points or financial mutations, no extra native modules.",
+    "Skia decorative FX stop on focus blur, background, reduced motion; no touch interception; Android in-app device visuals still require acceptance.",
+    "Cross-platform resolver includes a default TS module alongside native Skia/web atmosphere variants; exact-source TypeScript and R6 Kingdom contracts required before staging OTA.",
+    "Release workflow runs Kingdom R7 tests, legacy R6 station geometry, 39-game contract and native/web fallback checks before any EAS update.",
+    "Kingdom game contract verifies Home Hub invitation and rejects duplicate Profile Kingdom door while preserving all game IDs, scoring, and map progress.",
+    "Owner consolidated gate requires each fixed feature's verified integration evidence, separate safe backend and native runtime acceptance, and rejects absent/placeholder checks before any future EAS update. Current candidate FAILS CLOSED.",
+    "Approved source-only fast sponsored video startup and native original-media cache are ported onto frozen Visual Staging baseline e1551b09; not deployed before 16-category consolidated gate is verified."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "connect",
+    "faith-cluster",
+    "release-identity",
+    "sponsored-video-media-runtime"
+  ],
+  "regressionTests": [
+    "tests/community-wall-post-card-google-pattern.test.mjs",
+    "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs",
+    "tests/buklod-visual-staging-ota-20261113.test.mjs",
+    "tests/full-visual-navigation-side-menu-20261113.test.mjs",
+    "tests/nov13-ux-fixes-staging-20261113.test.mjs",
+    "tests/nov13-distinct-native-ux-sounds-20261113.test.mjs",
+    "tests/kingdom-native-cinematic-ota-20261114.test.mjs",
+    "tests/kingdom-premium-realm-v2-20261111.test.mjs",
+    "tests/nov14-consolidated-staging-ota-gate.test.mjs",
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+  ],
+  "allowedPaths": [
+    "docs/visual/full-transformation-20261113.md",
+    "release/visual/full-transformation-20261113.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/buklodCommunityStyles.ts",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/app/clusters/index.tsx",
+    "src/app/drawer/index.tsx",
+    "src/app/settings/index.tsx",
+    "src/components/BuklodCommunityContributionCard.tsx",
+    "src/components/BuklodCommunityWallPostCard.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/BuklodNavigationContextSheet.tsx",
+    "src/components/BuklodProfileGlassCard.tsx",
+    "src/components/BuklodPublicDailyMessageBar.tsx",
+    "src/components/connect/ConnectCommunityRow.tsx",
+    "src/components/connect/ConnectInboxRow.tsx",
+    "src/components/connect/ConnectInboxTabs.tsx",
+    "src/components/connect/ConnectQuickContacts.tsx",
+    "src/components/home/BuklodHomeDestinations.tsx",
+    "src/lib/buklodThemePresentation.ts",
+    "src/lib/buklodVisual.ts",
+    "tests/community-wall-post-card-google-pattern.test.mjs",
+    "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
+    "tests/navigation-v2-settings-route.test.mjs",
+    ".buklod/scopes/full-visual-transformation-20261113.json",
+    ".github/workflows/buklod-full-visual-web-smoke-20261113.yml",
+    "src/app/(tabs)/_layout.tsx",
+    "src/components/BuklodNavigationSideMenu.tsx",
+    "tests/full-visual-navigation-side-menu-20261113.test.mjs",
+    ".github/workflows/buklod-visual-staging-ota-20261113.yml",
+    "tests/buklod-visual-staging-ota-20261113.test.mjs",
+    "src/app/feature-search.tsx",
+    "src/app/_layout.tsx",
+    "src/components/BuklodFeatureFinder.tsx",
+    "src/lib/buklodNotificationNavigation.ts",
+    "src/components/BuklodProfileMembershipNav.tsx",
+    "src/lib/buklodNavigationV2.ts",
+    "src/lib/buklodSounds.ts",
+    "src/components/BuklodGlobalThemeSelector.tsx",
+    "tests/nov13-ux-fixes-staging-20261113.test.mjs",
+    "assets/sounds/buklod_classic_message_20261113.wav",
+    "assets/sounds/buklod_classic_community_20261113.wav",
+    "assets/sounds/buklod_classic_achievement_20261113.wav",
+    "assets/sounds/buklod_gentle_message_20261113.wav",
+    "assets/sounds/buklod_gentle_community_20261113.wav",
+    "assets/sounds/buklod_gentle_achievement_20261113.wav",
+    "assets/sounds/buklod_celebration_message_20261113.wav",
+    "assets/sounds/buklod_celebration_community_20261113.wav",
+    "assets/sounds/buklod_celebration_achievement_20261113.wav",
+    "tests/nov13-distinct-native-ux-sounds-20261113.test.mjs",
+    "tests/nov14-search-theme-regression.test.mjs",
+    "src/components/BuklodFoundationWorkspaceNav.tsx",
+    "tests/nov14-profile-ranks-ux.test.mjs",
+    "src/components/BuklodTodayCard.tsx",
+    "tests/buklod-home-profile-support-20261108.test.mjs",
+    "src/app/profile/buklod-health.tsx",
+    "tests/nov14-imci-health-flow.test.mjs",
+    "src/app/admin/bsoc-conversations.tsx",
+    "tests/nov14-bsoc-gpt-entry-authorization.test.mjs",
+    "src/lib/buklodMemberProfile.ts",
+    "src/app/member/[id].tsx",
+    "src/components/BuklodProfilePostCards.tsx",
+    "tests/nov14-profile-post-cards.test.mjs",
+    "src/lib/buklodFormationNotificationTarget.ts",
+    "src/app/scope/faith-monitoring/submission/[approvalId].tsx",
+    "tests/nov14-exact-formation-notifications.test.mjs",
+    "src/features/games/kingdom/BuklodKingdomLivingFX.native.tsx",
+    "src/features/games/kingdom/BuklodKingdomLivingFX.web.tsx",
+    "src/features/games/kingdom/BuklodKingdomLivingFX.types.ts",
+    "src/features/games/kingdom/BuklodKingdomMapPremium.tsx",
+    "src/features/games/runtime/BuklodGameStage.native.tsx",
+    "tests/kingdom-native-cinematic-ota-20261114.test.mjs",
+    "src/features/games/kingdom/BuklodKingdomLivingFX.tsx",
+    "tests/kingdom-premium-realm-v2-20261111.test.mjs",
+    "scripts/game-kingdom-release-contract.mjs",
+    "scripts/buklod-consolidated-staging-gate.mjs",
+    "tests/nov14-consolidated-staging-ota-gate.test.mjs",
+    "release/visual/buklod-consolidated-acceptance-20261114.json",
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "src/hooks/useBuklodCommunityAdViewability.ts",
+    "src/lib/advertise/sponsoredVideoViewport.ts",
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Shared visual metrics and screen composition across eight requested areas.",
+      "preservedBehaviors": [
+        "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
+      ],
+      "tests": [
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Compact Marites and shared Wall shell preserve canonical media renderers.",
+      "preservedBehaviors": [
+        "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
+      ],
+      "tests": [
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Keep all explicit destinations while modernizing Home and Profile layout.",
+      "preservedBehaviors": [
+        "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
+      ],
+      "tests": [
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Present private QMP and estimate in a compact disclosure without changing calculations.",
+      "preservedBehaviors": [
+        "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
+      ],
+      "tests": [
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Use wrapping category controls and readable metadata without changing membership actions.",
+      "preservedBehaviors": [
+        "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
+      ],
+      "tests": [
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Isolated, explicitly owner-authorized staging-user Android OTA path for screenshot QA, not a production release or acceptance waiver.",
+      "preservedBehaviors": [
+        "No production/main/web/native build or database writes, and no changes to the existing mandatory production release gates.",
+        "Release is permitted only from exact authorized PR SHA with passed CI, signed staging APK runtime match, isolated EAS branch, production manifest fingerprint and post-publish server verification.",
+        "All native Android screens remain NOT visually accepted until actual authenticated testing; physical Infinix verification is skipped by owner rather than passed."
+      ],
+      "tests": [
+        "tests/buklod-visual-staging-ota-20261113.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "dev-only-blocked-visual-acceptance",
+  "releaseStatus": "PARTIAL SOURCE INTEGRATION: media performance fixes ported atop latest Visual Staging code, but consolidated owner acceptance remains blocked; no new OTA until all 18 feature gates are verified."
+}

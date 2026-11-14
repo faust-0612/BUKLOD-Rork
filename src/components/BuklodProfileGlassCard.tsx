@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import React, {
   useMemo,
 } from 'react';
@@ -36,10 +37,10 @@ function createGlassStyles(
       borderWidth: 1,
       borderColor: withAlpha(theme.border, 0.88),
       borderRadius: buklodRadii.card,
-      backgroundColor: withAlpha(theme.cardSurface, 0.72),
+      backgroundColor: theme.cardSurface,
       overflow: 'hidden',
       shadowColor: theme.shadow,
-      shadowOpacity: 0.08,
+      shadowOpacity: 0.03,
       shadowRadius: 10,
       shadowOffset: {
         width: 0,
@@ -48,7 +49,7 @@ function createGlassStyles(
       elevation: 2,
     },
     row: {
-      minHeight: 58,
+      minHeight: buklodVisual.size.row,
       paddingHorizontal: 12,
       paddingVertical: 10,
       flexDirection: 'row',

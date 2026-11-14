@@ -1,8 +1,10 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 /* PATCH_184F_R3_PROFILE_CLEANUP */
 /* PATCH_179C_R1_PREMIUM_CURRENT_PROFILE */
 import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef } from 'react';
 import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
 import BuklodProfileMembershipNav from '@/components/BuklodProfileMembershipNav';
+import BuklodProfilePostCards from '@/components/BuklodProfilePostCards';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
 import {
@@ -1110,8 +1112,16 @@ export default function MeScreen() {
     };
 
 
-  const [circleRank, setCircleRank] =
-    useState<string | null>(null);
+  const [circleRank, setCircleRank] = useState<string | null>(null);
+  const [rankPositions,setRankPositions] = useState<{overall:number|null;monthly:number|null}|null>(null);
+  useEffect(() => {
+    let mounted=true;
+    setRankPositions(null);
+    if(!profile?.id)return ()=>{mounted=false;};
+    void loadBuklodPointsDashboard().then(value=>{if(mounted)setRankPositions(value?{overall:value.all_time_rank,monthly:value.monthly_rank}:null);})
+      .catch(()=>{if(mounted)setRankPositions(null);});
+    return ()=>{mounted=false;};
+  },[profile?.id]);
 
   useEffect(() => {
     let active = true;
@@ -1221,14 +1231,12 @@ export default function MeScreen() {
     theme
   );
 
+  // Identity text always sits on an opaque themed surface, never directly on the cover.
   const identityShadow = {
-    color: identityPaint.color,
-    textShadowColor: identityPaint.shadowColor,
-    textShadowOffset: {
-      width: 0,
-      height: 1,
-    } as const,
-    textShadowRadius: hasCoverImage ? 6 : 3,
+    color: theme.textPrimary,
+    textShadowColor: 'transparent',
+    textShadowOffset: { width: 0, height: 0 } as const,
+    textShadowRadius: 0,
   };
 
   const highlightAccent =
@@ -1372,23 +1380,9 @@ export default function MeScreen() {
           open={openSection === 'account'}
           onToggle={() => toggle('account')}
         >
-          <MenuRow
-            icon="information-outline"
-            title="About BUKLOD"
-            onPress={() =>
-              router.push('/about-buklod' as any)
-            }
-          />
+          
 
-          <MenuRow
-            icon="account-edit-outline"
-            title="Edit My Personal Information"
-            onPress={() =>
-              router.push(
-                '/account/personal-information' as any
-              )
-            }
-          />
+          
 
           <View
             style={{
@@ -1456,81 +1450,17 @@ export default function MeScreen() {
             />
           </View>
 
-          <MenuRow
-            icon="lock-reset"
-            title="Password & Recovery"
-            onPress={() =>
-              router.push('/account/security' as any)
-            }
-          />
+          
 
-          <MenuRow
-             icon="translate"
-             title="App Language"
-             subtitle="Display language and device preference"
-             onPress={() => router.push('/preferences/language' as any)}
-           />
+          
 
-           <MenuRow
-            icon="volume-high"
-            title="Sounds & Notifications"
-            subtitle="Messages, calls, submissions and quiet hours"
-            onPress={() =>
-              router.push('/settings/sounds' as any)
-            }
-          />
+           
 
-          <MenuRow
-            icon="shield-lock-outline"
-            title="Recovery PIN"
-            onPress={() =>
-              router.push(
-                '/account/recovery-pin' as any
-              )
-            }
-          />
+          
 
-          <MenuRow
-            icon="account-off-outline"
-            title="Deactivate Account"
-            onPress={() =>
-              router.push(
-                '/account/deactivate' as any
-              )
-            }
-          />
+          
 
-          <MenuRow
-            icon="delete-outline"
-            title="Delete Account"
-            onPress={() =>
-              router.push('/account/delete' as any)
-            }
-          />
-
-          <MenuRow
-            icon="information-outline"
-            title="How Account Deletion Works"
-            onPress={() =>
-              router.push('/delete-account' as any)
-            }
-          />
-
-          <MenuRow
-            icon="shield-account-outline"
-            title="Privacy Policy"
-            onPress={() =>
-              router.push('/privacy' as any)
-            }
-          />
-
-          <MenuRow
-            icon="file-document-outline"
-            title="Privacy Notice"
-            onPress={() =>
-              router.push('/privacy/notice')
-            }
-          />
+          
 
           <MenuRow
             icon="shield-alert-outline"
@@ -1539,20 +1469,9 @@ export default function MeScreen() {
             onPress={() => router.push('/moderation/report' as any)}
           />
 
-          <MenuRow
-            icon="email-outline"
-            title="Contact Us"
-            onPress={() =>
-              router.push('/contact-us' as any)
-            }
-          />
+          
 
-          <MenuRow
-            icon="lifebuoy"
-            title="Live Chat & Report a Problem"
-            subtitle="Makipag-chat sa support; magsend ng screenshot o video ng problema kung kailangan"
-            onPress={() => router.push('/support/live' as any)}
-          />
+          
 
           {bsocAuthorized && (
             <MenuRow
@@ -1571,16 +1490,6 @@ export default function MeScreen() {
                 router.push(
                   '/system/paid-features' as any
                 )
-              }
-            />
-          )}
-
-          {isSystemAdmin && (
-            <MenuRow
-              icon="test-tube"
-              title="Pilot Checklist"
-              onPress={() =>
-                router.push('/pilot/checklist')
               }
             />
           )}
@@ -1682,9 +1591,8 @@ export default function MeScreen() {
         style={[
           styles.profileCard,
           {
-            backgroundColor: hasCoverImage
-              ? 'transparent'
-              : withAlpha(theme.cardSurface, 0.62),
+            backgroundColor: theme.cardSurface,
+            paddingTop: coverUrl ? 104 : 56,
             borderColor: withAlpha(theme.border, 0.7),
           },
         ]}
@@ -1703,24 +1611,6 @@ export default function MeScreen() {
           </ProfileMotionCover>
         )}
 
-        {/* BUKLOD_NAV_V2_PERMANENT_SETTINGS: always visible, independent of customizable sections. */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Settings"
-          accessibilityHint="Open account, privacy, notifications and app preferences"
-          hitSlop={BUKLOD_HIT_SLOP_TIGHT}
-          onPress={() => router.push('/settings' as any)}
-          style={[
-            styles.profileMenuBtn,
-            styles.profileSettingsBtn,
-            {
-              backgroundColor: withAlpha(theme.surface, hasCoverImage ? 0.82 : 0.9),
-              borderColor: withAlpha(theme.border, 0.75),
-            },
-          ]}
-        >
-          <MaterialCommunityIcons name="cog-outline" size={23} color={identityPaint.color} />
-        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Profile options"
@@ -1743,10 +1633,11 @@ export default function MeScreen() {
           <MaterialCommunityIcons
             name="dots-vertical"
             size={22}
-            color={identityPaint.color}
+            color={theme.accent}
           />
         </Pressable>
 
+        <View style={styles.identityRow}>
         <ProfileMotionAvatar>
           <View
             style={[
@@ -1767,7 +1658,7 @@ export default function MeScreen() {
               userId={profile?.id}
               uri={profile?.avatar_url}
               name={profile?.full_name}
-              size={108}
+              size={buklodVisual.size.avatar}
               fallbackSource={fallbackPortrait}
               enableLongPressSheet={false}
               onPress={() => {
@@ -1801,6 +1692,8 @@ export default function MeScreen() {
             </View>
           </View>
         </ProfileMotionAvatar>
+          <View style={styles.identityCopy}>
+
 
         <ProfileMotionFadeUp delay={40}>
           <Text
@@ -1833,6 +1726,9 @@ export default function MeScreen() {
             </Text>
           </ProfileMotionFadeUp>
         )}
+
+          </View>
+        </View>
 
         {visibleRoles.length > 0 && (
           <ProfileMotionFadeUp delay={140}>
@@ -1869,7 +1765,6 @@ export default function MeScreen() {
         )}
       </View>
 
-      <BuklodFirstViewAd placement="profile" placementId="profile_first_view" />
       <View style={styles.sectionPad}>
         <BuklodSystemAnnouncementBoard slot="profile" />
       </View>
@@ -1880,15 +1775,31 @@ export default function MeScreen() {
           rankName={circleRank}
         />
       )}
+      {!isBuklodOfficial && <View style={{marginHorizontal:12,padding:12,borderRadius:15,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:7}}>
+        <Text allowFontScaling style={{color:theme.textPrimary,fontSize:15,fontWeight:'900'}}>MY OVERALL & MONTHLY RANK</Text>
+        <View style={{flexDirection:'row',gap:8}}>
+          {([['OVERALL',rankPositions?.overall],['MONTHLY',rankPositions?.monthly]] as const).map(([label,position])=>(
+            <Pressable key={label} accessibilityRole="button" onPress={()=>router.push('/points' as any)}
+              style={{flex:1,backgroundColor:theme.accentSoft,minHeight:56,alignItems:'center',padding:9,borderRadius:12}}>
+              <Text allowFontScaling style={{color:theme.accent,fontSize:19,fontWeight:'900'}}>{position&&position>0?'#'+position:'—'}</Text>
+              <Text allowFontScaling style={{fontSize:11,color:theme.textSecondary,fontWeight:'800'}}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Verified Points-activity standings. Monthly rank can move until cutoff; AdMob payouts finalize separately.</Text>
+      </View>}
 
+      {!isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
       {referralSection}
       <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />
 
-      {orderedSections.map((row) => (
+      {orderedSections.map((row, index) => (
         <View key={row.id}>
           {sectionMap[row.id]}
+          {index === 0 ? <BuklodFirstViewAd placement="profile" placementId="profile_first_view" /> : null}
         </View>
       ))}
+      {orderedSections.length === 0 ? <BuklodFirstViewAd placement="profile" placementId="profile_first_view" /> : null}
 
       <BuklodScreenBottomBanner placement="profile" variant="large" />
       <Text
@@ -1928,38 +1839,6 @@ export default function MeScreen() {
               },
             ]}
           >
-            <Pressable
-              style={styles.profileMenuItem}
-              onPress={() => {
-                setProfileMenuOpen(false);
-                router.push('/notifications' as any);
-              }}
-            >
-              <MaterialCommunityIcons
-                name="bell-outline"
-                size={22}
-                color={theme.accent}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    styles.profileMenuTitle,
-                    { color: theme.textPrimary },
-                  ]}
-                >
-                  Notifications
-                </Text>
-                <Text
-                  style={[
-                    styles.profileMenuSubtitle,
-                    { color: theme.textMuted },
-                  ]}
-                >
-                  View updates, messages, and requests
-                </Text>
-              </View>
-            </Pressable>
-
             <Pressable
               style={styles.profileMenuItem}
               onPress={() => {
@@ -2024,42 +1903,6 @@ export default function MeScreen() {
               </View>
             </Pressable>
 
-            <View style={styles.profileMenuItem}>
-              <MaterialCommunityIcons
-                name="lock-outline"
-                size={22}
-                color={theme.accent}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    styles.profileMenuTitle,
-                    { color: theme.textPrimary },
-                  ]}
-                >
-                  Lock Profile
-                </Text>
-                <Text
-                  style={[
-                    styles.profileMenuSubtitle,
-                    { color: theme.textMuted },
-                  ]}
-                >
-                  Other members only see your name when locked
-                </Text>
-              </View>
-              <Switch
-                value={profileLocked}
-                disabled={profileLockBusy}
-                onValueChange={(next) => {
-                  void toggleProfileLock(next);
-                }}
-                trackColor={{
-                  false: theme.border,
-                  true: theme.accent,
-                }}
-              />
-            </View>
           </View>
         </Pressable>
       </Modal>
@@ -2132,28 +1975,33 @@ function createMeStyles(
       textAlign: 'center',
       color: theme.textPrimary,
     },
+    identityRow: { flexDirection: 'row', alignItems: 'center', gap: 12,
+      marginTop: -10, borderRadius: 15, backgroundColor: theme.cardSurface,
+      paddingHorizontal: 10, paddingVertical: 10, zIndex: 2 },
+    identityCopy: { flex: 1, minWidth: 0 },
     profileCard: {
       minHeight: 70,
       position: 'relative',
-      alignItems: 'center',
-      paddingTop: 12,
-      paddingBottom: 23,
+      alignItems: 'stretch',
+      paddingTop: 56,
+      paddingBottom: 12,
       paddingHorizontal: 12,
-      marginBottom: 6,
-      borderRadius: 0,
+      marginBottom: 0,
+      marginHorizontal: buklodVisual.space.screen,
+      borderRadius: buklodVisual.radius.card,
       overflow: 'hidden',
       borderWidth: 1,
     },
     profileCardCover: {
-      ...StyleSheet.absoluteFill,
-      overflow: 'hidden',
+      position: 'absolute', top: 0, left: 0, right: 0,
+      height: 118, overflow: 'hidden',
     },
     profileCardBackground: {
       ...StyleSheet.absoluteFill,
     },
     profileCardWash: {
       ...StyleSheet.absoluteFill,
-      backgroundColor: 'rgba(0,0,0,0.16)',
+      backgroundColor: 'rgba(0,0,0,0.08)',
     },
     profileMenuBtn: {
       position: 'absolute',
@@ -2167,7 +2015,6 @@ function createMeStyles(
       alignItems: 'center',
       justifyContent: 'center',
     },
-    profileSettingsBtn: { right: 64 },
     profileMenuBackdrop: {
       flex: 1,
       justifyContent: 'flex-start',
@@ -2183,7 +2030,7 @@ function createMeStyles(
       overflow: 'hidden',
     },
     profileMenuItem: {
-      minHeight: 64,
+      minHeight: buklodVisual.size.row,
       paddingHorizontal: 14,
       paddingVertical: 12,
       flexDirection: 'row',
@@ -2226,42 +2073,43 @@ function createMeStyles(
       justifyContent: 'center',
     },
     avatarHint: {
-      marginTop: 6,
-      fontSize: 12,
-      lineHeight: 18,
+      marginTop: 0,
+      fontSize: 11,
+      lineHeight: 16,
       fontWeight: '900',
       letterSpacing: 0.15,
-      textAlign: 'center',
+      textAlign: 'left',
     },
     avatarRing: {
       position: 'relative',
-      padding: 5,
+      padding: 3,
       borderWidth: 1.5,
       borderRadius: 64,
       zIndex: 2,
     },
     name: {
-      marginTop: 6,
-      paddingHorizontal: 8,
-      fontSize: 25,
-      lineHeight: 31,
+      marginTop: 3,
+      paddingHorizontal: 0,
+      fontSize: 18,
+      lineHeight: 24,
       fontWeight: '900',
       letterSpacing: -0.4,
-      textAlign: 'center',
+      textAlign: 'left',
     },
     meta: {
       marginTop: 4,
       fontSize: 13.5,
       lineHeight: 18,
       fontWeight: '700',
-      textAlign: 'center',
+      textAlign: 'left',
     },
     rolesWrap: {
       marginTop: 8,
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       gap: 6,
+      paddingHorizontal: 9,
     },
     roleBadge: {
       minHeight: 29,

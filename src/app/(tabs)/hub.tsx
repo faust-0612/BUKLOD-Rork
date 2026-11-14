@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,8 +9,8 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodNativeSponsoredCard from '@/components/BuklodNativeSponsoredCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
+import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
-import BuklodFeatureFinder from '@/components/BuklodFeatureFinder';
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodKingdomHubCard from '@/components/home/BuklodKingdomHubCard';
@@ -60,14 +61,6 @@ export default function BuklodLightHome() {
       pathname: '/buklod' as any,
       params: { homeTodayIntent: String(Date.now()), homeTodayDraft: '' },
     } as any);
-    const openRoute = (path: string) => router.push(path as any);
-    const actions = [
-      { label: 'Create Post', icon: 'pencil-outline', path: '', action: openPost },
-      { label: 'Join Cluster', icon: 'account-group-outline', path: '/clusters', action: () => openRoute('/clusters') },
-      { label: 'Connect', icon: 'message-outline', path: '/messages', action: () => openRoute('/messages') },
-      { label: 'Contribute', icon: 'heart-outline', path: '/community-contribution', action: () => openRoute('/community-contribution') },
-      { label: 'Daily Reading', icon: 'book-open-variant', path: '/bible', action: () => router.push('/bible' as any) },
-    ] as const;
     return (
       <ScrollView
         onScroll={event => reportBuklodDashboardScroll('home', event.nativeEvent.contentOffset.y)}
@@ -76,7 +69,7 @@ export default function BuklodLightHome() {
         contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ minHeight: 112, borderRadius: 4, padding: 20, justifyContent: 'center' }}>
+          style={{ minHeight: 112, borderRadius: buklodVisual.radius.card, padding: 20, justifyContent: 'center' }}>
           <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF' }}>Welcome to BUKLOD!</Text>
           <Text style={{ fontSize: 12, marginTop: 4, color: '#FFFFFF' }}>
             A community of faith, connection, and shared purpose.
@@ -84,25 +77,8 @@ export default function BuklodLightHome() {
         </LinearGradient>
         {/* Desktop Home: approved paid ads share a persistent placement,
             independent of AdMob/legacy sidebar sponsors. */}
-        <BuklodFeatureFinder />
+        <BuklodSystemAnnouncementBoard slot="public_home" />
         <BuklodCommunitySponsoredAd audience="public" placement="home" />
-        <Text style={{ color: theme.textPrimary, fontWeight: '900', fontSize: 16 }}>Quick Actions</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          {actions.map(item => (
-            <Pressable key={item.label} accessibilityRole="button"
-              accessibilityLabel={item.label} onPress={item.action}
-              style={({ pressed }) => ({
-                width: 112, minHeight: 72, borderRadius: 4, padding: 9,
-                alignItems: 'center', justifyContent: 'center', gap: 7,
-                backgroundColor: theme.accentSoft, opacity: pressed ? 0.75 : 1,
-              })}>
-              <MaterialCommunityIcons name={item.icon} color={theme.accent} size={23} />
-              <Text style={{ color: theme.textPrimary, fontWeight: '800', fontSize: 11, textAlign: 'center' }}>
-                {item.label}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
         <View style={{ gap: 10 }}>
           {foreground ? (
             <ToolBoundary onClose={() => {}}>
@@ -115,7 +91,7 @@ export default function BuklodLightHome() {
       <BuklodNativeSponsoredCard surface="home" slotId="hub_mid_native" />
           <Pressable accessibilityRole="button" accessibilityLabel="Create a public Wall post"
             onPress={openPost} style={({ pressed }) => ({
-              backgroundColor: theme.inputSurface, borderRadius: 4,
+              backgroundColor: theme.inputSurface, borderRadius: buklodVisual.radius.card,
               paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
               opacity: pressed ? 0.75 : 1,
             })}>
@@ -127,7 +103,7 @@ export default function BuklodLightHome() {
         <Pressable accessibilityRole="button" accessibilityLabel="Open announcements and bulletins"
           accessibilityState={{ expanded: updatesOpen }}
           onPress={() => setUpdatesOpen(value => !value)}
-          style={{ borderRadius: 4, padding: 14, backgroundColor: theme.accentSoft,
+          style={{ borderRadius: buklodVisual.radius.card, padding: 14, backgroundColor: theme.accentSoft,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ color: theme.textPrimary, fontWeight: '900' }}>
             {updatesOpen ? 'Hide Announcements & Bulletins' : 'Announcements & Bulletins'}
@@ -142,21 +118,10 @@ export default function BuklodLightHome() {
             </Suspense>
           </ToolBoundary>
         ) : null}
-        <Pressable accessibilityRole="button" accessibilityLabel="Open the Community Wall"
-          onPress={() => router.push('/buklod')}
-          style={{ padding: 16, backgroundColor: theme.surface, borderRadius: 4,
-            borderWidth: 1, borderColor: theme.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <MaterialCommunityIcons name="post-outline" size={26} color={theme.accent} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: '900', fontSize: 16, color: theme.textPrimary }}>Community Wall</Text>
-            <Text style={{ color: theme.textMuted, fontSize: 12 }}>Open the live feed, photos, videos and conversations.</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={25} color={theme.accent} />
-        </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Show home tools"
           accessibilityState={{ expanded: desktopToolsOpen }}
           onPress={() => setDesktopToolsOpen(v => !v)}
-          style={{ backgroundColor: theme.accentSoft, borderRadius: 4, padding: 14,
+          style={{ backgroundColor: theme.accentSoft, borderRadius: buklodVisual.radius.card, padding: 14,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ color: theme.textPrimary, fontWeight: '900' }}>
             {desktopToolsOpen ? 'Hide Home Tools' : 'Open Home Tools: Drawer, PTT, Map & SOS'}
@@ -180,10 +145,13 @@ export default function BuklodLightHome() {
   }
 
   return (
-    <ScrollView onScroll={event => reportBuklodDashboardScroll('home', event.nativeEvent.contentOffset.y)} scrollEventThrottle={64} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 28, gap: 8 }}>
-      <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
-      <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
-      <BuklodFeatureFinder />
+    <ScrollView onScroll={event => reportBuklodDashboardScroll('home', event.nativeEvent.contentOffset.y)} scrollEventThrottle={64} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 12, paddingBottom: 28, gap: buklodVisual.space.section }}>
+      <BuklodSystemAnnouncementBoard slot="public_home" />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <View style={{ flex: 1 }}><Text allowFontScaling style={{ fontSize: 19, fontWeight: '900', color: theme.textPrimary }}>Your everyday space</Text>
+        <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12, marginTop: 1 }}>Connect, learn and grow with BUKLOD.</Text></View>
+        <MaterialCommunityIcons name="sprout-outline" size={28} color={theme.accent} />
+      </View>
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
           Old /home redirects here; do not bury QMP in the retired screen. */}
       {foreground ? (
@@ -216,7 +184,7 @@ export default function BuklodLightHome() {
         accessibilityState={{ expanded: updatesOpen }}
         onPress={() => setUpdatesOpen(value => !value)}
         style={{
-          borderRadius: 4,
+          borderRadius: buklodVisual.radius.card,
           borderWidth: 1,
           borderColor: theme.navBorder,
           padding: 14,
@@ -250,10 +218,6 @@ export default function BuklodLightHome() {
           </Suspense>
         </ToolBoundary>
       ) : null}
-      <Pressable accessibilityRole="button" onPress={() => router.replace('/buklod')}
-        style={{ padding: 16, alignItems: 'center', borderRadius: 4, backgroundColor: theme.navActive }}>
-        <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>Return to Community Wall</Text>
-      </Pressable>
       <BuklodKingdomHubCard />
       <BuklodScreenBottomBanner placement="home" variant="large" />
     </ScrollView>

@@ -1,26 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-test('settings gear is outside hideable Profile sections, with distinct existing overflow', () => {
+
+test('Profile cover gear removed; personal overflow and central Settings route preserved', () => {
   const me = read('src/app/(tabs)/me.tsx');
-  const permanent = me.indexOf('BUKLOD_NAV_V2_PERMANENT_SETTINGS');
-  const menu = me.indexOf('accessibilityLabel="Profile options"', permanent);
-  const ordered = me.indexOf('orderedSections.map');
-  assert.ok(permanent > 0 && menu > permanent && ordered > permanent);
-  assert.match(me, /accessibilityLabel="Settings"/);
-  assert.match(me, /router\.push\('\/settings' as any\)/);
-  assert.match(me, /profileSettingsBtn:\s*\{\s*right: 64\s*\}/);
+  const menu = read('src/components/BuklodNavigationSideMenu.tsx');
+  assert.doesNotMatch(me, /BUKLOD_NAV_V2_PERMANENT_SETTINGS/);
+  assert.doesNotMatch(me, /profileSettingsBtn/);
+  assert.match(me, /accessibilityLabel="Profile options"/);
+  assert.match(me, /setProfileMenuOpen\(true\)/);
+  assert.match(menu, /label: 'Settings'.*route: '\/settings'/);
+  assert.match(read('src/app/settings/index.tsx'), /account\/security/);
 });
-test('native and desktop Home get lightweight offline finder, and route is explicit', () => {
+
+test('Home retains meaningful widgets, removes duplicate feature finder, shortcuts and navigation cards', () => {
   const hub = read('src/app/(tabs)/hub.tsx');
+  const header = read('src/app/(tabs)/_layout.tsx');
   const root = read('src/app/_layout.tsx');
-  const settings = read('src/app/settings/index.tsx');
-  assert.ok((hub.match(/<BuklodFeatureFinder\s*\/>/g) ?? []).length >= 2);
-  assert.match(root, /<Stack\.Screen name="settings\/index"\s*\/>/);
-  assert.match(settings, /minHeight: 58/);
-  assert.match(settings, /allowFontScaling/);
-  assert.match(settings, /account\/security/);
-  assert.match(settings, /settings\/sounds/);
+  const search = read('src/app/feature-search.tsx');
+  assert.doesNotMatch(hub, /<BuklodFeatureFinder\s*\/>|<BuklodHomeDestinations\s*\/>/);
+  assert.doesNotMatch(hub, /Return to Community Wall|<Text[^>]*>Quick Actions<\/Text>/);
+  assert.match(hub, /<Contribution \//);
+  assert.match(hub, /<BuklodFirstViewAd/);
+  assert.match(hub, /<BuklodKingdomHubCard/);
+  assert.match(header, /router\.push\('\/feature-search'/);
+  assert.match(root, /<Stack\.Screen name="feature-search"\s*\/>/);
+  assert.match(search, /<BuklodFeatureFinder autoFocus showSuggestions\s*\/>/);
+  assert.ok(search.includes('Redirect href="/(auth)/login"')); 
 });

@@ -130,6 +130,26 @@ export function resolveBuklodNotificationTarget(
     }
   }
 
+  // A verified Connect message must never inherit a stale BSOC/support route.
+  if (['direct_message','connect_message','scope_message','community_message','cluster_message','ptt_message'].includes(normalizedKind)) {
+    const target = buklodNotificationTarget(normalizedKind, {
+      conversation_id: clean(payload.conversation_id) || undefined,
+      scope_id: clean(payload.scope_id) || undefined,
+      scope_type: clean(payload.scope_type) || undefined,
+      sender_id: clean(payload.sender_id) || undefined,
+      message_id: clean(payload.message_id) || undefined,
+    },options);
+    if (target) {
+      const messageId = clean(payload.message_id);
+      if (messageId && clean(payload.conversation_id)) {
+        const join = target.path.includes('?') ? '&' : '?';
+        return {...target,path:target.path+join+'focusMessageId='+encodeURIComponent(messageId)};
+      }
+      return target;
+    }
+    return {path:'/messages'};
+  }
+
   // BSOC links carry a case ID but only fixed support routes are accepted.
   // The inbox/member screen independently verifies role and case ownership.
   if (normalizedKind === 'bsoc_support') {

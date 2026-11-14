@@ -1,5 +1,7 @@
-import React, { useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { AccessibilityInfo, AppState, StyleSheet, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { cancelAnimation, Easing, useDerivedValue, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { usePathname } from 'expo-router';
 import {
   BlurMask,
@@ -75,6 +77,39 @@ export function BuklodGameStage({ biome, gameId, showCharacterCompanion = true, 
   const pathname = usePathname();
   const resolvedGameId = gameId ?? routeGameId(pathname);
   const colors = [...palettes[biome]];
+  const [screenFocused, setScreenFocused] = useState(false);
+  const [appActive, setAppActive] = useState(AppState.currentState === 'active');
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const lightPhase = useSharedValue(0);
+  useFocusEffect(useCallback(() => {
+    setScreenFocused(true);
+    return () => setScreenFocused(false);
+  }, []));
+  useEffect(() => {
+    let mounted = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then(value => {
+      if (mounted) setReducedMotion(Boolean(value));
+    }).catch(() => undefined);
+    const motion = AccessibilityInfo.addEventListener('reduceMotionChanged', value => {
+      if (mounted) setReducedMotion(Boolean(value));
+    });
+    const state = AppState.addEventListener('change', value => {
+      if (mounted) setAppActive(value === 'active');
+    });
+    return () => { mounted = false; motion.remove(); state.remove(); };
+  }, []);
+  useEffect(() => {
+    cancelAnimation(lightPhase);
+    if (screenFocused && appActive && !reducedMotion) {
+      lightPhase.value = withRepeat(withTiming(1, { duration: 6500, easing: Easing.inOut(Easing.sin) }), -1, true);
+    } else {
+      lightPhase.value = 0;
+    }
+    return () => cancelAnimation(lightPhase);
+  }, [screenFocused, appActive, reducedMotion, lightPhase]);
+  const lightOneY = useDerivedValue(() => 90 + lightPhase.value * 44);
+  const lightTwoX = useDerivedValue(() => 40 + lightPhase.value * 80);
+  const lightThreeRadius = useDerivedValue(() => 75 + lightPhase.value * 30);
   useRorkGameAmbience(resolvedGameId);
 
   const recordResult = useCallback((result: BuklodGameResult) => {
@@ -93,13 +128,13 @@ export function BuklodGameStage({ biome, gameId, showCharacterCompanion = true, 
           </Fill>
 
           <Group blendMode="screen" opacity={0.5}>
-            <Circle cx={310} cy={90} r={145} color="rgba(255,255,255,0.11)">
+            <Circle cx={310} cy={lightOneY} r={145} color="rgba(255,255,255,0.11)">
               <BlurMask blur={28} style="normal" />
             </Circle>
-            <Circle cx={40} cy={660} r={120} color="rgba(255,224,148,0.10)">
+            <Circle cx={lightTwoX} cy={660} r={120} color="rgba(255,224,148,0.10)">
               <BlurMask blur={34} style="normal" />
             </Circle>
-            <Circle cx={250} cy={520} r={75} color="rgba(150,220,255,0.06)">
+            <Circle cx={250} cy={520} r={lightThreeRadius} color="rgba(150,220,255,0.06)">
               <BlurMask blur={26} style="normal" />
             </Circle>
           </Group>

@@ -134,6 +134,7 @@ async function loadMemberPublicProfileDirect(
 export async function loadMemberCommunityPosts(
   userId: string,
   viewerId?: string | null,
+  maxRows = 40,
 ): Promise<MemberPublicPost[]> {
   const id = String(userId ?? '').trim();
   if (!id) {
@@ -149,7 +150,7 @@ export async function loadMemberCommunityPosts(
     )
     .eq('user_id', id)
     .order('created_at', { ascending: false })
-    .limit(40);
+    .limit(Math.max(1, Math.min(40, Math.floor(maxRows))));
 
   let rows = data ?? [];
 
@@ -161,7 +162,7 @@ export async function loadMemberCommunityPosts(
       )
       .eq('user_id', id)
       .order('created_at', { ascending: false })
-      .limit(40);
+      .limit(Math.max(1, Math.min(40, Math.floor(maxRows))));
 
     if (fallback.error) {
       console.warn('Member posts:', fallback.error.message);

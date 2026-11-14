@@ -59,8 +59,8 @@ const NOTE_ZONE_HEIGHT =
   NOTE_LINE_HEIGHT * NOTE_MAX_LINES + 12;
 const NOTE_ZONE_EDIT_HEIGHT =
   NOTE_ZONE_HEIGHT + 34;
-const AVATAR_SIZE = 56;
-const COLUMN_WIDTH = 94;
+const AVATAR_SIZE = 48;
+const COLUMN_WIDTH = 82;
 
 type CurrentUser = {
   user_id: string;
@@ -93,10 +93,10 @@ function createStyles(theme: ConnectThemeRoles) {
       width: COLUMN_WIDTH,
       marginRight: 8,
       alignItems: 'center',
-      paddingVertical: 8,
+      paddingVertical: 4,
       paddingHorizontal: 4,
       borderRadius: 18,
-      backgroundColor: HIBLA.mint,
+      backgroundColor: theme.surface,
     },
     noteZone: {
       width: COLUMN_WIDTH,

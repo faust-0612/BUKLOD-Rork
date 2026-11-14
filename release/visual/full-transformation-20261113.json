@@ -1,0 +1,145 @@
+{
+  "contractVersion": 1,
+  "status": "BLOCKED BEFORE RELEASE",
+  "baseCommit": "6b0f7e3167867bb746e34da4637430f131b588bb",
+  "branch": "dev/full-visual-transformation-20261113",
+  "implementationPercentage": 0,
+  "percentageBasis": "A completed area requires implementation, actual screenshot, visual acceptance and functional regression. No area meets all four yet.",
+  "sourceCandidateAreas": 8,
+  "physicalInfinix": "SKIPPED BY OWNER",
+  "androidIdentity": {
+    "package": "org.mzbministry.buklod.staging",
+    "channel": "staging-user",
+    "runtime": "1.3.2",
+    "environment": "preview",
+    "configChecked": true,
+    "signedBinaryCompatibility": "NOT independently verified this session"
+  },
+  "otaPublished": false,
+  "easUpdateId": null,
+  "productionTouched": false,
+  "mainTouched": false,
+  "webDeployed": false,
+  "screens": [
+    {
+      "screen": "Home",
+      "sourceChanges": "New responsive everyday essentials grid on actual /hub, compact contribution disclosure, retained ads/tools.",
+      "implementationComplete": false,
+      "actualRenderedScreenshot": null,
+      "visualAcceptance": "NOT VERIFIED",
+      "functionalRegression": "Source contracts checked; actual interaction NOT VERIFIED",
+      "remainingDefects": [
+        "Render and compare actual Android screen",
+        "Verify member/admin actions and font scaling/keyboard behavior",
+        "Correct any defects exposed by rendering"
+      ]
+    },
+    {
+      "screen": "Profile",
+      "sourceChanges": "Editable 72dp avatar and identity in a compact row, rounded cover shell, distinct Settings/More.",
+      "implementationComplete": false,
+      "actualRenderedScreenshot": null,
+      "visualAcceptance": "NOT VERIFIED",
+      "functionalRegression": "Source contracts checked; actual interaction NOT VERIFIED",
+      "remainingDefects": [
+        "Render and compare actual Android screen",
+        "Verify member/admin actions and font scaling/keyboard behavior",
+        "Correct any defects exposed by rendering"
+      ]
+    },
+    {
+      "screen": "Cluster",
+      "sourceChanges": "Wrapping category navigation, readable membership metadata, touch-safe directory actions.",
+      "implementationComplete": false,
+      "actualRenderedScreenshot": null,
+      "visualAcceptance": "NOT VERIFIED",
+      "functionalRegression": "Source contracts checked; actual interaction NOT VERIFIED",
+      "remainingDefects": [
+        "Render and compare actual Android screen",
+        "Verify member/admin actions and font scaling/keyboard behavior",
+        "Correct any defects exposed by rendering"
+      ]
+    },
+    {
+      "screen": "Wall",
+      "sourceChanges": "Secondary Life/story highlights disclosure, consistent post surface and scalable composer/reaction controls.",
+      "implementationComplete": false,
+      "actualRenderedScreenshot": null,
+      "visualAcceptance": "NOT VERIFIED",
+      "functionalRegression": "Source contracts checked; actual interaction NOT VERIFIED",
+      "remainingDefects": [
+        "Render and compare actual Android screen",
+        "Verify member/admin actions and font scaling/keyboard behavior",
+        "Correct any defects exposed by rendering"
+      ]
+    },
+    {
+      "screen": "Marites",
+      "sourceChanges": "132\u00d7178 horizontal story rail; bounded list, media priority and fullscreen paths retained.",
+      "implementationComplete": false,
+      "actualRenderedScreenshot": null,
+      "visualAcceptance": "NOT VERIFIED",
+      "functionalRegression": "Source contracts checked; actual interaction NOT VERIFIED",
+      "remainingDefects": [
+        "Render and compare actual Android screen",
+        "Verify member/admin actions and font scaling/keyboard behavior",
+        "Correct any defects exposed by rendering"
+      ]
+    },
+    {
+      "screen": "Connect",
+      "sourceChanges": "Compact themed messaging masthead, light contacts rail, semantic-theme conversation rows and tabs.",
+      "implementationComplete": false,
+      "actualRenderedScreenshot": null,
+      "visualAcceptance": "NOT VERIFIED",
+      "functionalRegression": "Source contracts checked; actual interaction NOT VERIFIED",
+      "remainingDefects": [
+        "Render and compare actual Android screen",
+        "Verify member/admin actions and font scaling/keyboard behavior",
+        "Correct any defects exposed by rendering"
+      ]
+    },
+    {
+      "screen": "Settings",
+      "sourceChanges": "Searchable grouped settings, theme entry, icon tiles and retained account/security destinations.",
+      "implementationComplete": false,
+      "actualRenderedScreenshot": null,
+      "visualAcceptance": "NOT VERIFIED",
+      "functionalRegression": "Source contracts checked; actual interaction NOT VERIFIED",
+      "remainingDefects": [
+        "Render and compare actual Android screen",
+        "Verify member/admin actions and font scaling/keyboard behavior",
+        "Correct any defects exposed by rendering"
+      ]
+    },
+    {
+      "screen": "Drawer",
+      "sourceChanges": "Compact green header, larger category targets, retained private file/note operations.",
+      "implementationComplete": false,
+      "actualRenderedScreenshot": null,
+      "visualAcceptance": "NOT VERIFIED",
+      "functionalRegression": "Source contracts checked; actual interaction NOT VERIFIED",
+      "remainingDefects": [
+        "Render and compare actual Android screen",
+        "Verify member/admin actions and font scaling/keyboard behavior",
+        "Correct any defects exposed by rendering"
+      ]
+    }
+  ],
+  "blockers": [
+    "No adb/emulator installed in executor.",
+    "Local Chromium launch fails at process_singleton_posix socket() with EPERM; separate browser cannot reach local server (ERR_CONNECTION_REFUSED).",
+    "No authenticated preview app test session or Expo release credential is available locally; production/backend parity not independently established."
+  ],
+  "validation": {
+    "focusedNodeTests": "83/83 passed",
+    "typeScript": "passed final source (tsc --noEmit)",
+    "androidExport": "passed final source, two Metro workers, Android Hermes bundle",
+    "webExport": "local export passed; no website published",
+    "runtimeUi": "NOT VERIFIED",
+    "androidBundle": "_expo/static/js/android/index-1b201b799f2251d650911759ee6feb12.hbc",
+    "androidMetadataSha256": "b875e5d7c557a368d21d8031807375e5c1c05608900837a40ba777179ad86c54",
+    "engineeringScope": "passed",
+    "protectedFeatureLock": "passed"
+  }
+}

@@ -22,7 +22,6 @@ import {
 import {
   ConnectPressable,
 } from '@/components/connect/ConnectPressable';
-import { HIBLA } from '@/lib/connectHibla';
 import {useBuklodScopePhoto} from '@/hooks/useBuklodScopePhoto';
 
 type Props = {
@@ -69,14 +68,14 @@ function createStyles(theme: ConnectThemeRoles) {
       marginBottom: 5,
       paddingHorizontal: 12,
       paddingVertical: 10,
-      minHeight: 82,
+      minHeight: 72,
       borderRadius: 18,
-      backgroundColor: HIBLA.paper,
+      backgroundColor: theme.surface,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: HIBLA.outline,
+      borderColor: theme.border,
     },
     unreadRow: {
-      backgroundColor: HIBLA.mint,
+      backgroundColor: theme.accentSoft,
     },
     threadNode: {
       position: 'absolute',
@@ -117,7 +116,7 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     title: {
       ...connectTypography.rowTitle,
-      color: HIBLA.ink,
+      color: theme.textPrimary,
     },
     meta: {
       alignItems: 'flex-end',
@@ -127,12 +126,12 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     time: {
       ...connectTypography.rowTime,
-      color: HIBLA.muted,
+      color: theme.textMuted,
     },
     preview: {
       marginTop: 3,
       ...connectTypography.rowPreview,
-      color: HIBLA.muted,
+      color: theme.textMuted,
     },
     badge: {
       minWidth: 22,

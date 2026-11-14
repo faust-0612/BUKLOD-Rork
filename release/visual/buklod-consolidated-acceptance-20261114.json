@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "id": "BUKLOD_20261114_CONSOLIDATED_OWNER_ACCEPTANCE",
+  "scope": "BUKLOD Kingdom R7 plus November 13–14 owner-requested UI, media, health, Search, Saliksik, notifications and BSOC corrections",
+  "sourceBranch": "dev/full-visual-transformation-20261113",
+  "targetChannel": "staging-user",
+  "runtimeVersion": "1.3.2",
+  "nativeRebuildPermitted": false,
+  "integrationStatus": "draft_unreconciled",
+  "readyForRelease": false,
+  "previousStagingRelease": {
+    "sourceSha": "e1551b09ad180e81a889d39615aea6257688ddea",
+    "workflowRunId": 43475544522,
+    "status": "published_and_ci_verified",
+    "note": "Staging-only publication occurred before owner consolidation gate. It is NOT proof of full acceptance."
+  },
+  "checks": [
+    {
+      "id": "kingdom_map_skia_reanimated",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "R7 sources and CI exist; Android visual and performance acceptance not supplied.",
+      "evidence": []
+    },
+    {
+      "id": "kingdom_rive_character_scenes",
+      "status": "blocked_assets",
+      "blocker": "Rive runtime present but no authored .riv animation assets or accepted state-machine clips.",
+      "evidence": []
+    },
+    {
+      "id": "kingdom_13_games_interaction",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "13 routes and game contract pass; real mobile interaction/gameplay and premium visual parity not accepted.",
+      "evidence": []
+    },
+    {
+      "id": "connect_notification_exact_thread",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "Deep-link source checks exist; user observed a blank BSOC redirect in native staging.",
+      "evidence": []
+    },
+    {
+      "id": "submission_notification_exact_review_comment",
+      "status": "partial",
+      "blocker": "Exact submission destination exists; same-screen reviewer comments are explicitly disabled pending audited endpoint.",
+      "evidence": []
+    },
+    {
+      "id": "wall_gif_comment_no_refresh",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "Regression test passes; device GIF sending/rendering remains unverified.",
+      "evidence": []
+    },
+    {
+      "id": "profile_rank_cutoff_posts_privacy",
+      "status": "partial",
+      "blocker": "Overall/monthly rank and 3 post previews wired; cutoff parity, activities/reports and privacy acceptance outstanding.",
+      "evidence": []
+    },
+    {
+      "id": "profile_org_suborg_no_duplicates",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "Source checks updated; device acceptance still required.",
+      "evidence": []
+    },
+    {
+      "id": "home_tips_announcements",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "User-facing rotation metadata removed and public Home board wired; actual display acceptance outstanding.",
+      "evidence": []
+    },
+    {
+      "id": "search_natural_questions_coverage",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "Offline question aliases exist; user-observed no-result examples require native validation.",
+      "evidence": []
+    },
+    {
+      "id": "sounds_themes",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "Assets and UI source present; audio quality and theme height require native acceptance.",
+      "evidence": []
+    },
+    {
+      "id": "health_center_consult_professional",
+      "status": "blocked_backend",
+      "blocker": "Consultation and professional registration are feature-flagged OFF until separate authenticated Health Center backend is verified.",
+      "evidence": []
+    },
+    {
+      "id": "health_imci_guidance",
+      "status": "partial",
+      "blocker": "Educational age-band flow exists; local Philippine chart edition and clinical workflow verification missing.",
+      "evidence": []
+    },
+    {
+      "id": "saliksik_staging_integration",
+      "status": "not_integrated",
+      "blocker": "No validated Saliksik integration route, supported API contract or staging proof in this candidate.",
+      "evidence": []
+    },
+    {
+      "id": "bsoc_gpt_operator_case_triage",
+      "status": "partial",
+      "blocker": "Operator-gated prompt source exists; deployed function, security and case-specific usefulness require live QA.",
+      "evidence": []
+    },
+    {
+      "id": "feature_merge_parity",
+      "status": "not_merged",
+      "blocker": "PR #791 remains draft against DEV integration branch; all owner-requested fixes not yet reconciled as a fully accepted candidate.",
+      "evidence": []
+    },
+    {
+      "id": "sponsored_video_fast_start",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "Media start and near-viewport activation ported onto latest visual source with geometric regressions. Actual Android first-frame timing has not been measured on device.",
+      "evidence": []
+    },
+    {
+      "id": "sponsored_video_original_quality_cache",
+      "status": "source_implemented_runtime_unverified",
+      "blocker": "Expo native media cache and bounded playback integrated without resizing. Cache hits and Supabase rolling egress savings have not been measured on device.",
+      "evidence": []
+    }
+  ]
+}

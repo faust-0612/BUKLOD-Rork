@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import React, {
   useCallback,
   useEffect,
@@ -207,8 +208,8 @@ type MaritesComposerPhoto = {
  * Stories are short-lived already, so a small freshness window prevents
  * repeated remote/media signing work without turning this into durable state.
  */
-const MARITES_COMPACT_CARD_WIDTH = 186;
-const MARITES_COMPACT_CARD_HEIGHT = 252;
+const MARITES_COMPACT_CARD_WIDTH = buklodVisual.size.storyWidth;
+const MARITES_COMPACT_CARD_HEIGHT = buklodVisual.size.storyHeight;
 const MARITES_COMPACT_FOOTER_HEIGHT = 40;
 const MARITES_MEMORY_FRESH_MS = 20_000;
 
@@ -275,7 +276,7 @@ function createStyles(
       flexShrink: 1,
     },
     shareButton: {
-      minHeight: 28,
+      minHeight: buklodVisual.size.touch,
       paddingHorizontal: 9,
       paddingVertical: 4,
       borderRadius: 999,
@@ -303,7 +304,7 @@ function createStyles(
     storyCard: {
       width: MARITES_COMPACT_CARD_WIDTH,
       height: MARITES_COMPACT_CARD_HEIGHT,
-      borderRadius: 12,
+      borderRadius: buklodVisual.radius.card,
       borderWidth: 1,
       borderColor: colors.line,
       backgroundColor: `${colors.green}10`,

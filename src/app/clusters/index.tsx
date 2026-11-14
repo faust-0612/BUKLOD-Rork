@@ -1,4 +1,5 @@
-﻿import React, {
+import { buklodVisual } from '@/lib/buklodVisual';
+import React, {
   useCallback,
   useEffect,
   useMemo,
@@ -591,8 +592,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
       ) : null}
 
       <View style={styles.sectionNavigation}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.sectionNavigationInner}>
+        <View style={styles.sectionNavigationInner}>
           {sections.map(tab => {
             const selected = section === tab.key;
             return (
@@ -619,7 +619,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
 
       {(section !== 'mine' || filteredMyClusters.length === 0) ? (
@@ -838,14 +838,14 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F5F7F6' },
   content: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 24, gap: 7 },
   hero: {
-    borderRadius: 18, borderWidth: 1, borderColor: '#DCE9E1',
+    borderRadius: buklodVisual.radius.card, borderWidth: 1, borderColor: '#DCE9E1',
     backgroundColor: '#FFFFFF', padding: 12, gap: 9,
   },
   heroHeading: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12,
   },
   heroCopy: { flex: 1, minWidth: 0, gap: 2 },
-  eyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1.1, color: '#257A52' },
+  eyebrow: { fontSize: 12, fontWeight: '800', letterSpacing: 1.1, color: '#257A52' },
   title: { fontSize: 21, fontWeight: '900', letterSpacing: -0.5, color: '#123A2B' },
   subtitle: { fontSize: 11, lineHeight: 15, color: '#718078' },
   createClusterCompact: {
@@ -864,15 +864,15 @@ const styles = StyleSheet.create({
   metricTileActive: { backgroundColor: '#19633F', borderColor: '#19633F' },
   metricTextColumn: { minWidth: 0, alignItems: 'flex-start', gap: 1 },
   metricCount: { fontSize: 17, fontWeight: '900', color: '#1D4A33' },
-  metricTitle: { fontSize: 10, fontWeight: '800', color: '#61766A' },
+  metricTitle: { fontSize: 12, fontWeight: '700', color: '#52675A' },
   metricTextActive: { color: '#FFFFFF' },
   sectionNavigation: {
     borderRadius: 16, borderWidth: 1, borderColor: '#E0E9E3',
     backgroundColor: '#FFFFFF', overflow: 'hidden',
   },
-  sectionNavigationInner: { paddingHorizontal: 5, paddingVertical: 5, gap: 3, alignItems: 'center' },
+  sectionNavigationInner: { paddingHorizontal: 5, paddingVertical: 5, gap: 4, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   tab: {
-    minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 6,
+    minHeight: buklodVisual.size.touch, flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, borderRadius: 10, justifyContent: 'center',
   },
   tabSelected: { backgroundColor: '#145B3B' },
@@ -895,7 +895,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF', borderRadius: 14, overflow: 'hidden',
     borderWidth: 1, borderColor: '#E1E8E3',
-    paddingHorizontal: 10, paddingVertical: 9, gap: 4,
+    paddingHorizontal: 12, paddingVertical: 12, gap: 8,
   },
   cardColorLayer: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 14, borderWidth: 1 },
   cardAccentBar: { position: 'absolute', top: 9, bottom: 9, left: 0, width: 3, borderRadius: 3 },
@@ -907,9 +907,9 @@ const styles = StyleSheet.create({
   clusterIconPhoto:{width:40,height:40,borderRadius:12},
   cardBody: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 2 },
   cardRight: { alignItems: 'flex-end', justifyContent: 'center', gap: 3 },
-  cardTitle: { fontSize: 13, lineHeight: 18, fontWeight: '900', color: '#19392A' },
-  cardMeta: { fontSize: 10.5, lineHeight: 14, color: '#73867C' },
-  description: { color: '#53685D', fontSize: 10.5, lineHeight: 14, paddingLeft: 48 },
+  cardTitle: { fontSize: 16, lineHeight: 22, fontWeight: '800', color: '#19392A' },
+  cardMeta: { fontSize: 13, lineHeight: 18, color: '#73867C' },
+  description: { color: '#53685D', fontSize: 13, lineHeight: 18, paddingLeft: 48 },
   cardBottom: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     gap: 5, paddingLeft: 0,
@@ -921,7 +921,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 9, fontWeight: '900' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'flex-end' },
   actionButton: {
-    minHeight: 36, justifyContent: 'center', alignItems: 'center',
+    minHeight: buklodVisual.size.touch, justifyContent: 'center', alignItems: 'center',
     backgroundColor: '#206447', paddingHorizontal: 10, borderRadius: 9,
   },
   actionButtonOutline: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#B4D3BF' },
