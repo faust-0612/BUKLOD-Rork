@@ -1,4 +1,5 @@
 # Isolated production preflight ONLY. Never merges, deploys, or alters Expo channels.
+# Final RC recheck: Android-only production marker + explicit owner-governed scope.
 # Staging source was verified on Android preview; this job checks production config
 # and protected product regressions before any main/production promotion.
 name: BUKLOD Nov14 Production Promotion RC QA - NO PUBLISH
@@ -88,6 +89,7 @@ jobs:
             tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
             tests/buklod-ads-production-release-contract-20261111.test.mjs \
             tests/production-ota-ads-regression.test.mjs
+          node --test tests/buklod-prod-android-only-release-20261114.test.mjs
           node scripts/game-kingdom-release-contract.mjs
           node scripts/buklod-ad-surface-audit.mjs --summary
       - name: Production type safety

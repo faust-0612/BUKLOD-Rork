@@ -30,6 +30,10 @@ jobs:
           PR_BASE: ${{ github.base_ref || 'main' }}
         run: |
           case "$PR_HEAD" in
+            release/buklod-prod-rc-staging-20261114)
+              if [ "$PR_BASE" = "main" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov14-prod-android-rc-promotion.json" >> "$GITHUB_ENV"
+              fi;;
             integration/buklod-nov10-single-source-ota|integration/buklod-nov11-igpat-marites-wonder-qmp-kingdommap-rc)
               if [ "$PR_BASE" = "main" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-consolidated-rc.json" >> "$GITHUB_ENV"

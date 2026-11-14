@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   qa-and-publish:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && startsWith(github.event.head_commit.message, 'BUKLOD_CONSOLIDATED_PROD_20261108')
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && (startsWith(github.event.head_commit.message, 'BUKLOD_CONSOLIDATED_PROD_20261108') || startsWith(github.event.head_commit.message, 'BUKLOD_ANDROID_ONLY_PROD_20261114:'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source
