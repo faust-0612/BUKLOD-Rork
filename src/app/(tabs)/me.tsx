@@ -5,6 +5,7 @@ import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef }
 import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
 import BuklodProfileMembershipNav from '@/components/BuklodProfileMembershipNav';
 import BuklodProfilePostCards from '@/components/BuklodProfilePostCards';
+import BuklodProfileTopTenRankings from '@/components/BuklodProfileTopTenRankings';
 import BuklodProfileActivityCards from '@/components/BuklodProfileActivityCards';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
@@ -1831,8 +1832,25 @@ export default function MeScreen() {
         </View>
       </View>
 
+      {/* Signed-in member rank is visible for regular and BUKLOD Official profiles. */}
+      <View style={{marginHorizontal:12,padding:12,borderRadius:15,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:7}}>
+        <Text allowFontScaling style={{color:theme.textPrimary,fontSize:15,fontWeight:'900'}}>MY OVERALL & MONTHLY RANK</Text>
+        <View style={{flexDirection:'row',gap:8}}>
+          {([['ALL-TIME',rankPositions?.overall],['MONTHLY',rankPositions?.monthly]] as const).map(([label,position])=>(
+            <Pressable key={label} accessibilityRole="button" onPress={()=>router.push('/points' as any)}
+              style={{flex:1,backgroundColor:theme.accentSoft,minHeight:56,alignItems:'center',padding:9,borderRadius:12}}>
+              <Text allowFontScaling style={{color:theme.accent,fontSize:19,fontWeight:'900'}}>{position&&position>0?String(position):'—'}</Text>
+              <Text allowFontScaling style={{fontSize:11,color:theme.textSecondary,fontWeight:'800'}}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Recorded Points standings. Monthly rank uses the calendar month; AdMob payouts finalize separately.</Text>
+      </View>
+
       {/* BUKLOD Official also owns real posts: show them before its admin bulletin. */}
       {isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
+      {/* Preserve authored posts above the full Top 10 to avoid hiding them. */}
+      {isBuklodOfficial && !!profile?.id && <BuklodProfileTopTenRankings userId={profile.id} />}
       <View style={styles.sectionPad}>
         <BuklodSystemAnnouncementBoard slot="profile" />
       </View>
@@ -1843,22 +1861,12 @@ export default function MeScreen() {
           rankName={circleRank}
         />
       )}
-      {!isBuklodOfficial && <View style={{marginHorizontal:12,padding:12,borderRadius:15,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:7}}>
-        <Text allowFontScaling style={{color:theme.textPrimary,fontSize:15,fontWeight:'900'}}>MY OVERALL & MONTHLY RANK</Text>
-        <View style={{flexDirection:'row',gap:8}}>
-          {([['OVERALL',rankPositions?.overall],['MONTHLY',rankPositions?.monthly]] as const).map(([label,position])=>(
-            <Pressable key={label} accessibilityRole="button" onPress={()=>router.push('/points' as any)}
-              style={{flex:1,backgroundColor:theme.accentSoft,minHeight:56,alignItems:'center',padding:9,borderRadius:12}}>
-              <Text allowFontScaling style={{color:theme.accent,fontSize:19,fontWeight:'900'}}>{position&&position>0?'#'+position:'—'}</Text>
-              <Text allowFontScaling style={{fontSize:11,color:theme.textSecondary,fontWeight:'800'}}>{label}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Recorded Points standings. Monthly rank uses the calendar month; AdMob payouts finalize separately.</Text>
-      </View>}
+
 
       {!isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
       {!isBuklodOfficial && !!profile?.id && <BuklodProfileActivityCards userId={profile.id} />}
+      {/* Members keep personal posts and activity visible before the full Top 10. */}
+      {!isBuklodOfficial && !!profile?.id && <BuklodProfileTopTenRankings userId={profile.id} />}
       {referralSection}
       {/* Required sponsored inventory: follows genuine member data, never overlays identity. */}
       <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />

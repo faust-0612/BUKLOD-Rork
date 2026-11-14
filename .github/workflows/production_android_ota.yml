@@ -70,6 +70,16 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
+      - name: Verify Profile all-time/monthly ranks and preserved ad/performance behavior
+        run: |
+          node --experimental-strip-types --test \
+            tests/nov14-profile-navigation-rank-refresh.test.mjs \
+            tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs \
+            tests/nov14-profile-navigation-personal-activity-report.test.mjs \
+            tests/nov14-connect-green-profile-posts-ota.test.mjs \
+            tests/sponsor-ad-video-fast-start-20261114.test.mjs \
+            tests/marites-wall-scroll-video-navigation-20261113.test.mjs
+
       - name: Social photo and video rendering regression suite
         run: |
           node --experimental-strip-types --test tests/unified-social-media-rendering.test.mjs tests/community-video-persistent-preview.test.mjs tests/community-video-playback-recovery.test.mjs tests/community-media-aspect-ratio-20261103.test.mjs tests/community-wall-media-navigation-scroll.test.mjs tests/buklod-word-schedule.test.mjs

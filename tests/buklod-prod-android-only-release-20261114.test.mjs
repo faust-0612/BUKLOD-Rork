@@ -21,3 +21,14 @@ test('production package and signed-client runtime are unchanged by staged JavaS
  assert.equal(eas.build['staging-user'].channel,'staging-user');
  assert.equal(eas.build['production-apk'].android.buildType,'apk');
 });
+
+test('protected production OTA cannot omit canonical member ranks or fast original-quality media/ad gates',()=>{
+ const source=read('src/app/(tabs)/me.tsx');
+ const android=read('.github/workflows/production_android_ota.yml');
+ assert.ok(source.includes("['ALL-TIME',rankPositions?.overall]"));
+ assert.ok(source.includes("['MONTHLY',rankPositions?.monthly]"));
+ assert.ok(source.indexOf('MY OVERALL & MONTHLY RANK')<source.indexOf('isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards'));
+ for(const file of ['nov14-profile-navigation-rank-refresh.test.mjs','nov14-profile-top-ten-ranked-list-20261114.test.mjs','nov14-connect-green-profile-posts-ota.test.mjs','sponsor-ad-video-fast-start-20261114.test.mjs','marites-wall-scroll-video-navigation-20261113.test.mjs'])
+   assert.ok(android.includes(file),'Production must test '+file);
+ assert.ok(android.includes('Verify app-wide AdMob policy before production OTA'));
+});

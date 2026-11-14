@@ -1,12 +1,14 @@
 # Isolated production preflight ONLY. Never merges, deploys, or alters Expo channels.
 # Final RC recheck: Android-only promotion with immutable staging Kingdom and Profile/Connect tests.
+# Protected release/buklod-prod-rank-ads-performance-20261114 PR: V2 scope contract + rank/ads/performance regression proof.
+# Exact final RC: canonical Philippine monthly/all-time Top 10 after personal posts, no fake ranks; production native-safe export required.
 # Staging source was verified on Android preview; this job checks production config
 # and protected product regressions before any main/production promotion.
 name: BUKLOD Nov14 Production Promotion RC QA - NO PUBLISH
 on:
   push:
     branches:
-      - release/buklod-prod-rc-staging-20261114
+      - release/buklod-prod-rank-ads-performance-20261114
     paths:
       - '.github/workflows/buklod-nov14-prod-promotion-rc-qa.yml'
 permissions:
@@ -16,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   production-rc-no-publish:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/buklod-prod-rc-staging-20261114' }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/buklod-prod-rank-ads-performance-20261114' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -43,7 +45,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git fetch origin main --no-tags
-          expected_main='9f412afd71b74e41995a3a1a63e05e72f78b6e39'
+          expected_main='859b96d6cc15696fffd6ef33bfaf16f0424c9f67'
           test "$(git rev-parse origin/main)" = "$expected_main" || {
             echo 'STOP: production main changed; re-reconcile exact live baseline.'; exit 1;
           }
@@ -79,10 +81,12 @@ jobs:
           node --experimental-strip-types --test \
             tests/nov14-connect-green-profile-posts-ota.test.mjs \
             tests/nov14-profile-navigation-personal-activity-report.test.mjs \
+            tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs \
             tests/wall-life-kl-navigation-20261114.test.mjs \
             tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs \
             tests/buklod-comment-menu-android-20261113.test.mjs \
             tests/marites-wall-scroll-video-navigation-20261113.test.mjs \
+            tests/sponsor-ad-video-fast-start-20261114.test.mjs \
             tests/auth-registration-offline-recovery.test.cjs \
             tests/registration-network-recovery.test.cjs \
             tests/buklod-igpat-retirement-release-marker-20261111.test.mjs \
