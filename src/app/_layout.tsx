@@ -223,6 +223,22 @@ import { BuklodOfflineSyncProvider } from '@/providers/BuklodOfflineSyncProvider
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootLayout() {
+  // A completely separate offline entry tree: do not mount BUKLOD's auth,
+  // ads, Stream video, Supabase sync, PTT, notifications, or analytics hosts.
+  // Existing production/staging trees remain exactly as before.
+  if (Platform.OS === 'android' &&
+    process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1') {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="kingdom-native-lab" />
+          </Stack>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
+  }
   return (
     <BuklodMainBrandIntro>
     <SafeAreaProvider>
