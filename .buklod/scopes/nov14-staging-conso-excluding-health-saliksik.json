@@ -25,7 +25,10 @@
     "native-ota-compatibility",
     "release-identity",
     "account-isolation",
-    "profile-personal-activity"
+    "profile-personal-activity",
+    "profile-membership",
+    "profile-share-privacy",
+    "profile-ad-placement"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -41,7 +44,8 @@
     ".github/workflows/buklod-nov14-scoped-staging-ota-publish.yml",
     "src/app/(tabs)/me.tsx",
     "src/components/BuklodProfileActivityCards.tsx",
-    "tests/nov14-profile-navigation-personal-activity-report.test.mjs"
+    "tests/nov14-profile-navigation-personal-activity-report.test.mjs",
+    "src/components/BuklodProfileMembershipNav.tsx"
   ],
   "regressionTests": [
     "tests/wall-life-kl-navigation-20261114.test.mjs",
@@ -96,7 +100,8 @@
     "No direct native keyboard-GIF changes or new Rive assets are claimed",
     "Dedicated staging QA OTA workflow must only publish on exact isolated branch and exact owner release marker after Engineering and Main CI pass; no production rollback or web deployment.",
     "Release identity risk area explicitly governed, with exact branch, signed APK/preview channel checks and immutable production-manifest readback.",
-    "Profile direct owner activity and report links present, auth viewer ID match and no cross-user ledger access"
+    "Profile direct owner activity and report links present, auth viewer ID match and no cross-user ledger access",
+    "Profile owner-only real status note/edit and privacy-aware share, distinct active Org/Suborg rows, one lower Profile first-view ad, no duplicate native ad."
   ],
   "releaseMode": "OWNER_AUTHORIZED_SCOPED_ANDROID_STAGING_QA_OTA_ONLY",
   "releaseStatus": "STAGING_QA_PUBLISH_CONDITIONALLY_AUTHORIZED__FULL_CONSOLIDATED_ACCEPTANCE_STILL_PENDING",
@@ -105,6 +110,7 @@
     "Existing account verification is sign-in-only after ambiguous signup failures; one signUp per user attempt, no automatic retry.",
     "Original Kingdom 39 profiles and approved character art, audio, QMP/AdMob, Connect, PTT and IGPAT retirement are retained.",
     "No Health Center clinical backend, SALIKSIK learning/mastery/Points, native DLL/permissions or production changes.",
-    "Retain overall/monthly Points rank and exact three owner posts; private bounded activity and existing report destinations do not enable finance or deferred backend"
+    "Retain overall/monthly Points rank and exact three owner posts; private bounded activity and existing report destinations do not enable finance or deferred backend",
+    "No fake activity or public private fields; existing lower ads, existing Profile rank/posts, native Expo runtime and member-scoped UI retained."
   ]
 }

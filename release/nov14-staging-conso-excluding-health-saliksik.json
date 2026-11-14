@@ -31,7 +31,8 @@
     "newlyReconciled": [
       "LIFE and KL always visible independent Wall cards",
       "Registration definitely-offline verification without replaying signUp",
-      "Owner-only recent Points activity and authenticated reading, mentoring and contribution reports on Profile"
+      "Owner-only recent Points activity and authenticated reading, mentoring and contribution reports on Profile",
+      "Complete Profile owner Note/edit/share, active org/suborg dedupe, personal report links, remove duplicate early native ad"
     ]
   },
   "excluded": [
@@ -65,7 +66,8 @@
     "Canonical Kingdom R9 catalog/test baseline fixed to existing catalog-bearing commit 13f7bb7, without weakening 39-game/13-character tests",
     "Engineering scope riskAreas and preserveBehaviors completed",
     "QA checkout full history for immutable source comparison",
-    "Profile new activity/rank/post source-specific regression and account isolation"
+    "Profile new activity/rank/post source-specific regression and account isolation",
+    "Correct PostgREST PromiseLike TypeScript failure and Profile source completeness regression"
   ],
   "stagingQaPublicationAuthorized": true,
   "stagingQaPublicationReason": "Owner explicitly requested complete and push STAGING only on 2026-11-14; actual handset visual acceptance previously waived for staging QA, not passed. No production promotion.",

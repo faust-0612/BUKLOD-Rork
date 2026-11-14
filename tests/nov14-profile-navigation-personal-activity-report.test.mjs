@@ -9,7 +9,7 @@ test('Profile retains rank and 3 recent posts ahead of private activity and ads'
  assert.match(me,/<BuklodProfilePostCards userId=\{profile\.id\} \/>/);
  assert.match(me,/<BuklodProfileActivityCards userId=\{profile\.id\} \/>/);
  assert.ok(me.indexOf('<BuklodProfilePostCards')<me.indexOf('<BuklodProfileActivityCards'));
- assert.ok(me.indexOf('<BuklodProfileActivityCards')<me.indexOf('<BuklodNativeSponsoredCard'));
+ assert.ok(me.indexOf('<BuklodProfileActivityCards')<me.indexOf('<BuklodFirstViewAd'));
  assert.match(posts,/loadMemberCommunityPosts\(userId,userId,3\)/);
  assert.match(me,/AdMob payouts finalize separately/);
 });
@@ -25,6 +25,19 @@ test('private activity remains account-owned and bounded; no public or admin byp
 test('actual report destinations are already-defined authenticated screens',()=>{
  for(const route of ['/bible/report','/faith/mentor-evidence','/scope-fund'])assert.ok(activity.includes(route));
  assert.match(activity,/MY ACTIVITY & REPORTS/);
+ assert.ok(activity.includes('/profile/buklod-classrooms'));
+ assert.match(activity,/Promise\\.resolve\\(supabase\\.from\\('buklod_points_ledger'\\)/);
+ assert.match(me,/buklod_profile_status/);
+ assert.match(me,/numberOfLines=\\{2\\}/);
+ assert.match(me,/Share\\.share/);
+ assert.match(me,/profileLocked/);
+ assert.match(me,/Edit Profile/);
+ assert.match(me,/My Note/);
+ assert.doesNotMatch(me,/BuklodNativeSponsoredCard/);
+ assert.equal((me.match(/<BuklodFirstViewAd\\b/g)||[]).length,1);
+ const org=read('src/components/BuklodProfileMembershipNav.tsx');
+ assert.match(org,/scope\\.scope_type === 'ORGANIZATION' && scope\\.membership_status === 'ACTIVE'/);
+ assert.match(org,/rows\\.findIndex\\(row => row\\.scope_id === scope\\.scope_id\\) === index/);
  assert.match(activity,/Recorded Points are not cash earnings/);
  assert.doesNotMatch(me,/How Account Deletion Works|Pilot Checklist|BUKLOD Kingdom/);
 });

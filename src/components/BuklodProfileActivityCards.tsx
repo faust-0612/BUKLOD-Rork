@@ -11,6 +11,7 @@ const reportRoutes=[
  {key:'bible',title:'My Bible reading report',route:'/bible/report',icon:'book-open-page-variant-outline' as const},
  {key:'mentoring',title:'My mentoring submissions',route:'/faith/mentor-evidence',icon:'account-heart-outline' as const},
  {key:'contributions',title:'My contribution reports',route:'/scope-fund',icon:'hand-heart-outline' as const},
+ {key:'classroom',title:'Classroom work and submissions',route:'/profile/buklod-classrooms',icon:'school-outline' as const},
 ];
 const titleFor=(row:Activity)=>String(row.description||row.activity_type||'Recorded activity').replace(/[_-]+/g,' ').trim();
 const dateFor=(value:string|null)=>{
@@ -25,10 +26,10 @@ export default function BuklodProfileActivityCards({userId}:{userId:string}){
   let active=true;setActivities([]);
   if(!viewerId||viewerId!==userId){setStatus('ready');return ()=>{active=false;};}
   setStatus('loading');
-  void supabase.from('buklod_points_ledger')
+  void Promise.resolve(supabase.from('buklod_points_ledger')
    .select('id,description,activity_type,points,created_at')
    .eq('user_id',viewerId).eq('direction','credit')
-   .order('created_at',{ascending:false}).limit(4)
+   .order('created_at',{ascending:false}).limit(4))
    .then(({data,error})=>{
     if(!active)return;
     if(error){setStatus('error');return;}
@@ -41,10 +42,10 @@ export default function BuklodProfileActivityCards({userId}:{userId:string}){
  return <View style={{marginHorizontal:12,marginTop:12,gap:9}}>
   <Text allowFontScaling style={{color:theme.textPrimary,fontSize:16,fontWeight:'900'}}>MY ACTIVITY & REPORTS</Text>
   <View style={{borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,borderRadius:16,padding:12,gap:9}}>
-   <Text allowFontScaling style={{color:theme.textPrimary,fontSize:14,fontWeight:'800'}}>Recent recorded activity</Text>
+   {(status!=='ready'||activities.length>0)?<Text allowFontScaling style={{color:theme.textPrimary,fontSize:14,fontWeight:'800'}}>Recent recorded activity</Text>:null}
    {status==='loading'?<ActivityIndicator color={theme.accent}/>:null}
    {status==='error'?<Text allowFontScaling style={{color:theme.textMuted,fontSize:13}}>Activity could not be loaded. Your records were not changed.</Text>:null}
-   {status==='ready'&&activities.length===0?<Text allowFontScaling style={{color:theme.textMuted,fontSize:13}}>No recorded Points activity yet.</Text>:null}
+   {/* No fabricated activity or empty-state placeholder. */}
    {status==='ready'&&activities.map(row=><View key={row.id} style={{borderTopWidth:1,borderTopColor:theme.border,minHeight:44,paddingTop:8,flexDirection:'row',gap:8,alignItems:'center'}}>
     <View style={{flex:1,minWidth:0}}>
      <Text allowFontScaling numberOfLines={2} style={{color:theme.textPrimary,fontWeight:'700',fontSize:13.5}}>{titleFor(row)}</Text>
@@ -52,9 +53,9 @@ export default function BuklodProfileActivityCards({userId}:{userId:string}){
     </View>
     {Number.isFinite(Number(row.points))&&Number(row.points)>0?<Text allowFontScaling style={{color:theme.accent,fontWeight:'800',fontSize:13}}>+{Math.trunc(Number(row.points))} pts</Text>:null}
    </View>)}
-   <Pressable accessibilityRole="button" accessibilityLabel="See full personal Points record" onPress={()=>router.push('/points' as any)} style={{minHeight:44,justifyContent:'center'}}>
+   {activities.length>0?<Pressable accessibilityRole="button" accessibilityLabel="See full personal Points record" onPress={()=>router.push('/points' as any)} style={{minHeight:44,justifyContent:'center'}}>
     <Text allowFontScaling style={{color:theme.accent,fontWeight:'800',fontSize:13}}>See full Points record</Text>
-   </Pressable>
+   </Pressable>:null}
   </View>
   <View style={{borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,borderRadius:16,paddingHorizontal:12}}>
    {reportRoutes.map((report,index)=><Pressable key={report.key} accessibilityRole="button" accessibilityLabel={report.title}
