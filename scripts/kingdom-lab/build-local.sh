@@ -15,8 +15,10 @@ test -n "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}" || { echo "Android SDK path mis
 # Prefer Gradle's normal dependency cache. No EAS or GitHub cloud builds.
 npx expo prebuild --platform android --clean --no-install
 cd android
-./gradlew --no-daemon :app:assembleDebug
-apk="app/build/outputs/apk/debug/app-debug.apk"
+# Standalone self-contained APK: React Native debug variants expect Metro.
+# The lab release variant bundles JS in the APK; signing remains local debug key.
+./gradlew --no-daemon :app:assembleRelease
+apk="app/build/outputs/apk/release/app-release.apk"
 test -s "$apk"
 echo "EXPERIMENTAL APK: $(pwd)/$apk"
 echo "Exact package: org.mzbministry.buklod.kingdomlab"
