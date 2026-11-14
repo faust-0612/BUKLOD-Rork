@@ -20,7 +20,7 @@ import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressive
 import BuklodSpecialCharacterArtV2 from '@/components/points/BuklodSpecialCharacterArtV2';
 import { subscribeBuklodGameCharacterMotion } from '@/features/games/runtime/characterMotionBus';
 import type { BuklodCharacterReaction } from '@/components/points/BuklodCharacterMotion';
-import { getKingdomCinematicScene, type KingdomSceneProfile } from './KingdomCinematicScenes';
+import { KINGDOM_CHARACTER_MOTION, getKingdomCinematicScene, type KingdomSceneProfile } from './KingdomCinematicScenes';
 
 const TAU = Math.PI * 2;
 const CORE = ['phan','quin','van','christian','lhen'] as const;
@@ -131,6 +131,7 @@ function Scene({ gameId, profile, compact }: {
   const cycle = useSharedValue(0);
   const burst = useSharedValue(1);
   const running = focused && active && !reduceMotion;
+  const motion = KINGDOM_CHARACTER_MOTION[profile.character];
 
   useFocusEffect(useCallback(() => {
     setFocused(true);
@@ -177,15 +178,21 @@ function Scene({ gameId, profile, compact }: {
   }, [burst, running, gameId]);
   const characterStyle = useAnimatedStyle(() => {
     const response = Math.max(0, 1 - burst.value);
-    const drift = Math.sin(cycle.value * TAU) * 3;
+    const driftY = Math.sin(cycle.value * TAU) * motion.idleY;
+    const driftX = Math.cos(cycle.value * TAU) * motion.idleX;
     const isHit = reaction === 'impact' || reaction === 'failure';
     const hop = reaction === 'collect' || reaction === 'success' || reaction === 'unlock';
+    const offsetX = (isHit ? Math.sin(burst.value * TAU * 4) * motion.impactShake
+      : reaction === 'move' ? motion.moveX : 0) * response;
+    const tilt = (isHit ? -motion.turnDeg
+      : reaction === 'success' ? motion.turnDeg
+      : reaction === 'move' ? motion.turnDeg / 2 : 0) * response;
     return {
       transform: [
-        {translateY: drift - (hop ? 13 : 0) * response},
-        {translateX: (isHit ? Math.sin(burst.value*TAU*4)*8 : reaction==='move'?10:0)*response},
-        {rotate: `${(isHit ? -8 : reaction==='success'?6:0)*response}deg`},
-        {scale: 1 + (reaction==='success' ? .13 : .04)*response},
+        {translateY: driftY - (hop ? motion.collectHop : 0) * response},
+        {translateX: driftX + offsetX},
+        {rotate: `${tilt}deg`},
+        {scale: 1 + (reaction === 'success' ? motion.victoryScale : .035) * response},
       ],
     };
   });
