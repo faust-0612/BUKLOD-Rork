@@ -20,5 +20,60 @@
     "Quick actions do not fall back to app message/notification sounds",
     "Staging Android real device listening QA before OTA acceptance"
   ],
-  "releaseState": "DEV_ONLY_STAGING_NO_OTA"
+  "releaseState": "DEV_ONLY_STAGING_NO_OTA",
+  "scopeManifestPath": ".buklod/scopes/kingdom-premium-audio-staging-20261114.json",
+  "productionBaselineEvidence": "Nonproduction R9 staging source 8b2a08ed037e572b4afee2160777968c4535f077 and staging visual parent e15b91fb95742a63e7d5d1d664d15b087681f331; no assertion of live installed staging APK or production OTA.",
+  "selectionRationale": "Use already-composed CC0 original game music and dedicated CC0 event sounds pinned to immutable Git blob hashes. Existing app notification WAVs are inappropriate as premium game feedback; no per-play network or paid synthesis.",
+  "alternativeApproaches": [
+    "Keep synthesized background and normal notification sounds (rejected; owner sound quality complaint)",
+    "Stream from unreliable Rork preview host (rejected; missing offline resilience and prior 404)",
+    "Ship author-made licensed CC0 recordings offline with bounded Expo audio players (selected)"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-premium-audio-staging-20261114.json",
+    "src/features/games/runtime/rorkAudio.ts",
+    "src/features/games/runtime/kingdomPremiumAudioAssets.ts",
+    "scripts/vendor-kingdom-premium-audio.sh",
+    "assets/sounds/kingdom-premium/LICENSES.md",
+    "assets/sounds/kingdom-premium/manifest.json",
+    "assets/sounds/kingdom-premium/coins.wav",
+    "assets/sounds/kingdom-premium/collect-crystal.wav",
+    "assets/sounds/kingdom-premium/enter.wav",
+    "assets/sounds/kingdom-premium/failure.wav",
+    "assets/sounds/kingdom-premium/impact-wood.wav",
+    "assets/sounds/kingdom-premium/kingdom-great-hall.ogg",
+    "assets/sounds/kingdom-premium/kingdom-theme.ogg",
+    "assets/sounds/kingdom-premium/kingdom-village.ogg",
+    "assets/sounds/kingdom-premium/ui-soft.wav",
+    "assets/sounds/kingdom-premium/unlock.wav",
+    "assets/sounds/kingdom-premium/victory-alt.wav",
+    "assets/sounds/kingdom-premium/victory.wav",
+    "tests/kingdom-premium-audio-staging-20261114.test.mjs",
+    ".github/workflows/kingdom-premium-audio-vendor-staging.yml"
+  ],
+  "regressionTests": [
+    "tests/kingdom-premium-audio-staging-20261114.test.mjs",
+    "scripts/rork-media-contract-test.mjs",
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Staging-only replacement of Kingdom soundtrack and game feedback audio event pipeline with offline CC0 recordings and lifecycle-safe, focus-owned players.",
+      "preservedBehaviors": [
+        "Exact 39-game, 13-character staging gameplay and Skia/Reanimated event bus remain unchanged.",
+        "Navigation focus, quiet hours, persisted map music opt-in, mute and sound volume preserve user intent.",
+        "Home/Wall/media/PTT/calls and non-Kingdom sounds are unaffected; Expo runtime and package IDs unchanged.",
+        "No database, game result, rewards, ad logic, security, account or production changes."
+      ],
+      "tests": [
+        "tests/kingdom-premium-audio-staging-20261114.test.mjs",
+        "scripts/rork-media-contract-test.mjs"
+      ]
+    }
+  ],
+  "riskAreas": [
+    "audio-lifecycle",
+    "navigation-scroll"
+  ]
 }
