@@ -195,7 +195,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: buklod-native-lab-apk-receipt-${{ github.sha }}}
+          name: buklod-native-lab-apk-receipt-${{ github.sha }}
           path: native-lab-apk-receipt.json
           retention-days: 21
           if-no-files-found: ignore
