@@ -1,0 +1,70 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov14-staging-conso-excluding-health-saliksik.json",
+  "objective": "Complete staging-user OTA-only source consolidation of existing approved Home/Profile/Nav/Wall/Marites/Connect/Kingdom/Ads fixes with direct LIFE/KL and confirmed-offline registration; explicitly exclude Health Center and SALIKSIK.",
+  "baseRef": "9c9661b888eca979c7cd114c42ae97a333830d37",
+  "productionBaselineEvidence": "Use verified PR #801 visual/Home/Profile source 9c9661b888eca979c7cd114c42ae97a333830d37 stacked on visual #791. Current main last inspected 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Source provenance only; exact installed staging binary and EAS source must be attested before OTA. Live production SQL not mutated.",
+  "chosenApproach": "Two narrow source-only patches and two executable source regressions, preserve inherited working code by blob identity, add no-publish Android source gate, formal staging RC hold. No HC/SALIKSIK code, migrations, routes, Edge/Points or external services.",
+  "selectionRationale": "Avoid whole-branch cherry-picks from diverged older PRs and protect working ads, high-resolution media, Connect, comment, Kingdom animation and original CC0 sounds; use existing native NetInfo 12.0.1.",
+  "alternativeApproaches": [
+    "Cherry-pick PR #807 or #806 rejected: includes deferred clinical/SALIKSIK RLS and Edge backend",
+    "Cherry-pick older native/audio PR #790 rejected due newer R9/audio source and branch drift",
+    "Production DB mutation rejected: staging OTA only"
+  ],
+  "riskAreas": [
+    "navigation-auth",
+    "wall-layout",
+    "auth-retry",
+    "staging-release",
+    "privacy",
+    "no-regression"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(auth)/register.tsx",
+    "tests/wall-life-kl-navigation-20261114.test.mjs",
+    "tests/auth-registration-offline-recovery.test.cjs",
+    ".buklod/scopes/nov14-staging-conso-excluding-health-saliksik.json",
+    "release/nov14-staging-conso-excluding-health-saliksik.json",
+    ".github/workflows/buklod-nov14-staging-conso-source-qa.yml"
+  ],
+  "regressionTests": [
+    "tests/wall-life-kl-navigation-20261114.test.mjs",
+    "tests/auth-registration-offline-recovery.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Direct LIFE and KL cards and guarded registration change only JS runtime with no dependency/native/plugin changes.",
+      "preservedBehaviors": [
+        "Preserve sponsored video before LIFE/KL and Marites after; no comment/video/ad/Points/Kingdom changes, no double-signup"
+      ],
+      "tests": [
+        "tests/wall-life-kl-navigation-20261114.test.mjs",
+        "tests/auth-registration-offline-recovery.test.cjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Remove only the Wall highlight accordion and prevent a definitely-offline signup before server request, without changing user identity or route authorization.",
+      "preservedBehaviors": [
+        "Existing user session, form values, interrupted signup sign-in-only verification and canonical Wall route remain untouched"
+      ],
+      "tests": [
+        "tests/wall-life-kl-navigation-20261114.test.mjs",
+        "tests/auth-registration-offline-recovery.test.cjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Locked source tests and protected-feature scope must pass on exact Git SHA",
+    "TypeScript and Expo Android Hermes export must succeed with staging package org.mzbministry.buklod.staging runtime 1.3.2",
+    "Verify installed signed staging APK ABI/project, EAS channel isolation, exact-source RC and no production manifest mutation before staging OTA",
+    "No new Health Center/SALIKSIK code/routes/Edge/migrations/Points. Legacy Health educational guide remains but online consultations OFF",
+    "Do not claim device visual tests passed when owner skipped them",
+    "Privacy DB read-only confirms current live policy but migration history for PR #759 missing; do not reapply SQL via OTA",
+    "No direct native keyboard-GIF changes or new Rive assets are claimed"
+  ],
+  "releaseMode": "STAGING_ONLY_SOURCE_CANDIDATE_NO_AUTOPUBLISH",
+  "releaseStatus": "UNFROZEN__SOURCE_QA_PENDING__NO_OTA_YET"
+}

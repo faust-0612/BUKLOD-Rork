@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-14",
+  "repository": "faust-0612/BUKLOD-Rork",
+  "baseSha": "9c9661b888eca979c7cd114c42ae97a333830d37",
+  "target": {
+    "platform": "android",
+    "channel": "staging-user",
+    "package": "org.mzbministry.buklod.staging",
+    "runtime": "1.3.2",
+    "environment": "preview"
+  },
+  "included": {
+    "inherited": [
+      "Navigation V2",
+      "Home premium launcher + no Updates drawer",
+      "Profile redesign + rank/navigation focus refresh",
+      "Search and Settings",
+      "Cluster compact interface",
+      "Wall/Marites video near viewport, original quality cache",
+      "Comment Edit/Delete and GIF fallback",
+      "Connect Sent/Seen and deep-link source",
+      "NativeAd sponsor and ad viewport clock",
+      "Kingdom R7/R8/R9 39 scene profiles + 13 characters",
+      "Kingdom offline CC0 audio",
+      "Educational IMCI only",
+      "BSOC operator source and support routes",
+      "About BUKLOD",
+      "IGPAT remains retired"
+    ],
+    "newlyReconciled": [
+      "LIFE and KL always visible independent Wall cards",
+      "Registration definitely-offline verification without replaying signUp"
+    ]
+  },
+  "excluded": [
+    "Health Center consultation/private clinical backend and professional enrollment",
+    "SALIKSIK private vault/Edge/mastery/Points/DB backend",
+    "Native Android IME direct GIF commitContent requiring APK",
+    "New Rive authored .riv rigs absent from source",
+    "New native icon/permission/SDK"
+  ],
+  "inheritedSourceCoverage": "Individual already-inherited source files compared for comment actions, sponsor player, native ad viewport, Connect Sent/Seen, media upload/music, and About, avoiding duplicates.",
+  "privacyEvidence": "Read-only live DB query: two author-only policy qualifiers, public/scoped feed guards, scope revocation trigger and Realtime policy exist. No migration history for 20261112072000 and 20261112072700. No database write authorized or performed.",
+  "releaseGates": {
+    "sourceCI": "pending",
+    "typedAndroidExport": "pending",
+    "signedAPKSourceParity": "pending",
+    "installedVisualAcceptance": "skipped_by_owner_not_passed",
+    "stagingManifestReadback": "pending",
+    "productionNonMutation": "pending"
+  },
+  "readyForOta": false,
+  "otaPublished": false,
+  "productionPublished": false,
+  "webPublished": false,
+  "requiredBeforePublish": [
+    "Exact-source protected CI and Android JS export",
+    "Verified native binary and EAS channel/runtime isolation",
+    "Specific 16-item staging scope gate with documented exclusions and accepted known limitations",
+    "Actual EAS update group receipt and server manifest readback"
+  ]
+}

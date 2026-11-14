@@ -1281,7 +1281,6 @@ function LegacyPublicBuklodScreen(){
  const [composerClipDurationSeconds,setComposerClipDurationSeconds]=useState(30);
  const [composerMotionPreset,setComposerMotionPreset]=useState<BuklodPostMotionPreset>('none');
  const [composerMotionDrawerOpen,setComposerMotionDrawerOpen]=useState(false);
- const [communityHighlightsOpen,setCommunityHighlightsOpen]=useState(false);
 
  /* PATCH_186B_PHOTO_EDITOR_PUBLIC_STATE */
  const [
@@ -5449,23 +5448,13 @@ const communityFeedRows =
        30-day period. Do not turn it into an unexpiring ordinary post. */}
    <BuklodCommunitySponsoredAd audience="public" placement="community" />
 
-   <Pressable accessibilityRole="button" accessibilityLabel="Community highlights"
-     accessibilityState={{expanded:communityHighlightsOpen}}
-     onPress={()=>setCommunityHighlightsOpen(value=>!value)}
-     style={{minHeight:buklodVisual.size.touch,marginHorizontal:12,paddingHorizontal:12,
-       marginBottom:8,borderRadius:buklodVisual.radius.control,backgroundColor:colors.greenSoft,
-       flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8}}>
-     <Text allowFontScaling style={{fontSize:14,fontWeight:'700',color:colors.greenDark}}>Community highlights · Life & stories</Text>
-     <MaterialCommunityIcons name={communityHighlightsOpen?'chevron-up':'chevron-down'} size={22} color={colors.greenDark}/>
-   </Pressable>
-   {communityHighlightsOpen && <View>
+   {/* LIFE and Kabihasnang Ligaw are always visible on the Community Wall. */}
    {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}
    <BuklodLifeWallCard />
 
    {/* Home-only BUKLOD Today; story remains a Community Wall post card. */}
    <KabihasnangLigawWallCard />
 
-   </View>}
 
    <BuklodMaritesBoard
     playbackBlocked={videoPriority.maritesBlocked}
