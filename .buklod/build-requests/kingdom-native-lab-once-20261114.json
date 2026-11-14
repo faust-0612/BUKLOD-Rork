@@ -1,0 +1,14 @@
+{
+  "purpose": "Execute exactly one isolated Android debug APK build of Godot Kingdom + native Drive picker + Gboard GIF",
+  "requestedBy": "System Admin through current task",
+  "branch": "dev/kingdom-native-lab-isolated-20261114",
+  "source_sha_before_request": "e8d3416cc214bf0d942a2adb23bc21727092ef7b",
+  "package": "org.mzbministry.buklod.kingdomlab",
+  "runtime": "1.4.0-kingdom-native-lab.1",
+  "androidBuild": "local Gradle in GitHub Actions without EAS",
+  "allowOTA": false,
+  "allowProduction": false,
+  "allowExistingStaging": false,
+  "allowStore": false,
+  "allowDatabaseChanges": false
+}
