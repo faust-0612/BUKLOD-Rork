@@ -7,7 +7,8 @@ const read = path => readFileSync(path, 'utf8');
 test('global BUKLOD header is shorter but retains safe-area and notifications', () => {
   const source = read('src/app/(tabs)/_layout.tsx');
   assert.match(source, /paddingTop: insets\.top/);
-  assert.match(source, /scrollCompact \? 42 : 52/);
+  assert.match(source, /minHeight: \(scrollCompact \? 48 : 56\) \+ insets\.top/);
+  assert.match(source, /minWidth: 48, minHeight: 48/);
   assert.match(source, /accessibilityLabel=\{/);
   assert.match(source, /unreadCount > 0/);
 });
@@ -40,7 +41,8 @@ test('daily encouragement strip uses less vertical space without truncating the 
   assert.match(source, /numberOfLines=\{compact \? 1 : 2\}/);
   assert.match(source, /showFaithContent && !compact/);
   assert.match(source, /<Text style=\{styles\.reference\}>/);
-  assert.match(source, /paddingVertical: 8/);
+  assert.match(source, /paddingVertical: 6/);
+  assert.match(source, /compactShell: \{[\s\S]*?height: 49,[\s\S]*?paddingVertical: 3/);
   assert.match(source, /width: 36,\s*height: 36/);
   assert.match(source, /reference/);
 });

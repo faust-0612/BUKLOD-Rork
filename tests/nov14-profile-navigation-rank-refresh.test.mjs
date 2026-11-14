@@ -27,3 +27,15 @@ test('only authenticated owner recent posts refresh when Profile regains focus',
  assert.match(posts,/MY RECENT POSTS/);
  assert.doesNotMatch(posts,/useEffect\(/);
 });
+
+test('all-time and monthly ranks appear on official and ordinary Profile ahead of posts and sponsored content',()=>{
+ const me=read('src/app/(tabs)/me.tsx');
+ const rank=me.indexOf('MY OVERALL & MONTHLY RANK');
+ const official=me.indexOf('isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards');
+ assert.ok(rank>0 && official>rank,'rank must not be hidden behind the official bulletin');
+ assert.ok(me.includes("['ALL-TIME',rankPositions?.overall]"));
+ assert.ok(me.includes("['MONTHLY',rankPositions?.monthly]"));
+ assert.equal(me.split('MY OVERALL & MONTHLY RANK').length-1,1,'no duplicated rank card');
+ assert.ok(!me.includes('!isBuklodOfficial && <View style={{marginHorizontal:12,padding:12'),'official account must not be gated out');
+ assert.match(me,/AdMob payouts finalize separately/);
+});
