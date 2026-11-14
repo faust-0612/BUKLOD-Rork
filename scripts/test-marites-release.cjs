@@ -19,7 +19,11 @@ assert.equal(select({...bounds, y: 800}), -1);
 assert.equal(select({...bounds, offset: 193}), 1);
 assert.equal(select({...bounds, offset: 9999}), -1);
 assert.equal(select({...bounds, videos: [false, true, true]}), 1);
-assert.equal(select({...bounds, y: 700}), -1);
+// Nov15 partial-frame autoplay intentionally begins before the full story frame
+// enters the viewport: 36px visible above the 64px bottom inset is eligible.
+// A near-invisible 20px strip must still remain paused, guarding offscreen work.
+assert.equal(select({...bounds, y: 700}), 0);
+assert.equal(select({...bounds, y: 716}), -1);
 assert.equal(select({...bounds, width: 0}), -1);
 assert.equal(select({...bounds, x: NaN}), -1);
 assert.equal(duration(500), 0.5);
