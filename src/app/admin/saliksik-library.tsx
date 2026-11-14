@@ -1,0 +1,284 @@
+import React,{useCallback,useEffect,useRef,useState} from 'react';
+import {
+ ActivityIndicator,Alert,Linking,Pressable,ScrollView,StyleSheet,Text,TextInput,View,
+} from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { AdminGate } from '@/components/AdminGate';
+import { router } from 'expo-router';
+import {
+ saliksikAdminList,saliksikAdminPreview,saliksikAdminPublish,
+ saliksikGenerateDraft,saliksikSignedOriginalUrl,saliksikUploadOriginal,
+ saliksikAdminMasterQueue,saliksikAdminMasterReview,type SaliksikMasterQueueItem,
+ type SaliksikSource,
+} from '@/lib/saliksikClient';
+
+const green='#235F48';
+const textError=(e:unknown)=>e instanceof Error?e.message:String(e);
+export default function SaliksikLibraryScreen(){
+ const [sources,setSources]=useState<SaliksikSource[]>([]);
+ const [preview,setPreview]=useState<any>(null);
+ const [masterQueue,setMasterQueue]=useState<SaliksikMasterQueueItem[]>([]);
+ const [activeReview,setActiveReview]=useState<SaliksikMasterQueueItem|null>(null);
+ const [rubric,setRubric]=useState<Record<string,string>>({
+  understanding:'',evidence:'',context:'',reasoning:'',transfer:'',
+ });
+ const [citationsVerified,setCitationsVerified]=useState(false);
+ const [reviewFeedback,setReviewFeedback]=useState('');
+ const [busy,setBusy]=useState('');
+ const [error,setError]=useState('');
+ const [notice,setNotice]=useState('');
+ const loading=useRef(false);
+ const active=useRef(true);
+ const refresh=useCallback(async()=>{
+  if(process.env.EXPO_PUBLIC_SALIKSIK_ENABLED!=='true')return;
+  if(loading.current)return;
+  loading.current=true;
+  try{
+   const [result,queue]=await Promise.all([saliksikAdminList(),saliksikAdminMasterQueue()]);
+   if(active.current){setSources(result);setMasterQueue(queue??[]);}
+  }catch(e){if(active.current)setError(textError(e));}
+  finally{loading.current=false;}
+ },[]);
+ useEffect(()=>{active.current=true;void refresh();return()=>{active.current=false;};},[refresh]);
+ const generateDraftForSource=async(id:string)=>{
+  setBusy('Generating draft');
+  setError('');
+  try{
+   for(let batch=1;batch<=4;batch++){
+    setBusy('Generating investigation batch '+batch+' / 4');
+    const result=await saliksikGenerateDraft(id) as any;
+    if(!result?.ok)throw new Error('Generation not confirmed');
+    const completed=Number(result.total_investigations??0);
+    if(completed===8){setNotice('Eight investigations ready. Review sources and keys before publishing.');break;}
+    if(![2,4,6].includes(completed))throw new Error('Unexpected partial generation state');
+    setNotice(completed+' / 8 investigations drafted; resume if interrupted.');
+   }
+  }catch(e){setError(textError(e));}
+  finally{setBusy('');await refresh();}
+ };
+ const upload=async()=>{
+  if(busy)return;
+  setBusy('Selecting manuscripts');setError('');setNotice('');
+  try{
+   const result=await DocumentPicker.getDocumentAsync({
+    type:['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','text/plain'],
+    copyToCacheDirectory:true,multiple:true,
+   });
+   if(result.canceled){setBusy('');return;}
+   const ids:string[]=[];
+   for(const asset of result.assets.slice(0,10)){
+    setBusy('Uploading '+asset.name);
+    const uploaded=await saliksikUploadOriginal(asset);
+    if(!uploaded.duplicate)ids.push(uploaded.id);
+   }
+   setNotice('Private originals saved. AI drafts require verification before publication.');
+   await refresh();
+   setBusy('');
+   // Sequential, bounded work; an interrupted upload remains safely QUEUED for retry.
+   for(const id of ids) await generateDraftForSource(id);
+  }catch(e){setError(textError(e));setBusy('');await refresh();}
+ };
+ const showPreview=async(item:SaliksikSource)=>{
+  if(!item.collection_id||busy)return;
+  setBusy('Loading review');setError('');
+  try{setPreview(await saliksikAdminPreview(item.collection_id));}
+  catch(e){setError(textError(e));}
+  finally{setBusy('');}
+ };
+ const publish=async()=>{
+  if(!preview?.id||busy)return;
+  setBusy('Publishing verified collection');setError('');
+  try{
+   await saliksikAdminPublish(preview.id);
+   setNotice('Collection approved in database. Member visibility still requires the separate rollout gate.');
+   setPreview(null);await refresh();
+  }catch(e){setError(textError(e));}
+  finally{setBusy('');}
+ };
+ const reviewMaster=async()=>{
+  if(!activeReview?.id||busy)return;
+  setBusy('Recording evidence-verified mastery rubric');setError('');
+  try{
+   const scores=Object.fromEntries(Object.entries(rubric).map(([k,v])=>[k,Number(v)]));
+   const out=await saliksikAdminMasterReview(
+    activeReview.id,scores,citationsVerified,reviewFeedback
+   );
+   setNotice(out.approved
+    ?'Written mastery approved: +'+out.points+' Points; series +'+out.series_points+' pending claim.'
+    :'Written mastery returned for rework with audited feedback; no points issued.');
+   setActiveReview(null);setCitationsVerified(false);setReviewFeedback('');
+   setRubric({understanding:'',evidence:'',context:'',reasoning:'',transfer:''});
+   await refresh();
+  }catch(e){setError(textError(e));}
+  finally{setBusy('');}
+ };
+ const openOriginal=async(source:SaliksikSource)=>{
+  if(!source.storage_path)return;
+  try{
+   const url=await saliksikSignedOriginalUrl(source.storage_path);
+   if(!url)throw new Error('Original unavailable');
+   await Linking.openURL(url);
+  }catch(e){setError(textError(e));}
+ };
+ if(process.env.EXPO_PUBLIC_SALIKSIK_ENABLED!=='true')return <AdminGate><View style={{padding:22}}><Text>SALIKSIK is not enabled in this release.</Text></View></AdminGate>;
+ return <AdminGate>
+  <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+   <Pressable onPress={()=>router.back()} style={styles.back}>
+    <MaterialCommunityIcons name="chevron-left" color={green} size={22}/>
+    <Text style={styles.backText}>Admin / Formation & Content</Text>
+   </Pressable>
+   <Text style={styles.kicker}>BUKLOD SALIKSIK</Text>
+   <Text style={styles.title}>Knowledge Vault</Text>
+   <Text style={styles.sub}>Upload private manuscripts, generate evidence-based investigation drafts, review the questions and publish when verified.</Text>
+   <View style={styles.note}>
+    <MaterialCommunityIcons name="shield-lock-outline" color={green} size={21}/>
+    <Text style={styles.noteText}>Original files are private and not published. Automatic drafts use a configured external AI provider. Manuscripts and questions require source checking before approval.</Text>
+   </View>
+   <Pressable accessibilityRole="button" accessibilityLabel="Upload manuscripts"
+    disabled={!!busy} onPress={()=>void upload()} style={[styles.primary,!!busy&&styles.disabled]}>
+    <MaterialCommunityIcons name="file-upload-outline" size={21} color="#fff"/>
+    <Text style={styles.primaryText}>{busy||'UPLOAD PDF / DOCX / TXT'}</Text>
+    {!!busy?<ActivityIndicator size="small" color="#fff"/>:null}
+   </Pressable>
+   <Text style={styles.helper}>Up to 10 files per selection • 10 MB each • Originals remain in private Supabase storage.</Text>
+   {notice?<Text style={styles.success}>{notice}</Text>:null}
+   {error?<Text selectable style={styles.error}>{error}</Text>:null}
+   <View style={styles.sectionHead}>
+    <Text style={styles.heading}>MANUSCRIPT QUEUE ({sources.length})</Text>
+    <Pressable disabled={!!busy} onPress={()=>void refresh()} accessibilityRole="button"
+      accessibilityLabel="Refresh manuscripts">
+     <MaterialCommunityIcons name="refresh" size={22} color={green}/>
+    </Pressable>
+   </View>
+   {sources.length===0?<Text style={styles.muted}>No uploaded manuscripts yet or database migration has not been released.</Text>:null}
+   {sources.map(item=><View key={item.id} style={styles.card}>
+     <View style={styles.row}>
+      <MaterialCommunityIcons name="file-document-outline" size={26} color={green}/>
+      <View style={{flex:1}}>
+       <Text style={styles.itemTitle}>{item.title}</Text>
+       <Text style={styles.small}>{item.file_name}</Text>
+       <Text style={styles.small}>Status: {item.collection_status==='published'?'PUBLISHED':item.status.toUpperCase()} · {item.investigations??0} investigations</Text>
+      </View>
+     </View>
+     {item.last_error?<Text style={styles.error}>Last attempt: {item.last_error}</Text>:null}
+     <View style={styles.actions}>
+      <Pressable onPress={()=>void openOriginal(item)} style={styles.action}><Text style={styles.actionText}>Original</Text></Pressable>
+      {item.collection_id?<Pressable disabled={!!busy} onPress={()=>void showPreview(item)}
+       style={styles.action}><Text style={styles.actionText}>Review draft</Text></Pressable>:null}
+      {item.collection_status!=='published'&&(item.investigations??0)<8?<Pressable disabled={!!busy}
+       onPress={()=>void generateDraftForSource(item.id)} style={styles.action}>
+       <Text style={styles.actionText}>{item.status==='draft'?'CONTINUE DRAFT':'Generate / retry'}</Text>
+      </Pressable>:null}
+     </View>
+    </View>)}
+   {preview?.id?<View style={styles.preview}>
+    <View style={styles.sectionHead}>
+     <Text style={styles.heading}>ADMIN REVIEW: {preview.title}</Text>
+     <Pressable onPress={()=>setPreview(null)}><MaterialCommunityIcons name="close" size={22} color="#444"/></Pressable>
+    </View>
+    <Text style={styles.muted}>Verify each reference, answer key and manuscript excerpt against the original. This screen shows unpublished private answer keys to System Admin ONLY.</Text>
+    {(preview.investigations??[]).map((investigation:any)=>(
+     <View key={investigation.id} style={styles.reviewItem}>
+      <Text style={styles.itemTitle}>{investigation.tier.toUpperCase()}: {investigation.title}</Text>
+      <Text style={styles.body}>{investigation.lesson_text}</Text>
+      <Text style={styles.small}>Source excerpt: {investigation.source_excerpt}</Text>
+      {(investigation.questions??[]).map((q:any,k:number)=>(
+       <View key={q.id||k} style={styles.question}>
+        <Text style={styles.body}>{k+1}. {q.prompt}</Text>
+        <Text style={styles.success}>Correct: {q.options?.[q.correctIndex]??'Missing'}</Text>
+        <Text style={styles.small}>Competency: {q.competency} • Evidence: {q.evidence}</Text>
+       </View>
+      ))}
+     </View>
+    ))}
+    {preview.status==='draft'?<Pressable disabled={!!busy} style={styles.primary} onPress={()=>Alert.alert(
+      'Publish reviewed investigations?',
+      'Only approve after checking the original and every source quote. Publishing does not activate the member rollout.',
+      [{text:'Cancel',style:'cancel'},{text:'Publish verified',onPress:()=>void publish()}]
+    )}><Text style={styles.primaryText}>APPROVE AND PUBLISH CONTENT</Text></Pressable>:null}
+   </View>:null}
+   <View style={styles.sectionHead}>
+    <Text style={styles.heading}>WRITTEN MASTER REVIEW ({masterQueue.length} pending)</Text>
+    <Pressable disabled={!!busy} onPress={()=>void refresh()}>
+     <MaterialCommunityIcons name="refresh" size={21} color={green}/>
+    </Pressable>
+   </View>
+   <Text style={styles.small}>Written Master cannot earn +35 from AI guesses or multiple choice. Review the source, citations, five competency scores and substantive arguments. Final +50 follows only after all nine investigations.</Text>
+   {masterQueue.length===0?<Text style={styles.muted}>No written mastery submissions awaiting review.</Text>:null}
+   {masterQueue.map(item=><Pressable key={item.id} style={styles.card}
+    accessibilityRole="button" onPress={()=>{setActiveReview(item);setError('');setCitationsVerified(false);setReviewFeedback('');
+     setRubric({understanding:'',evidence:'',context:'',reasoning:'',transfer:''});}}>
+    <View style={styles.row}><MaterialCommunityIcons name="text-box-check-outline" size={22} color={green}/>
+      <View style={{flex:1}}><Text style={styles.itemTitle}>{item.investigation_title}</Text>
+       <Text style={styles.small}>Submitted {new Date(item.submitted_at).toLocaleString()} • Member ID {item.user_id.slice(0,8)}</Text>
+      </View><MaterialCommunityIcons name="chevron-right" size={22} color={green}/>
+    </View>
+   </Pressable>)}
+   {activeReview?<View style={styles.preview}>
+    <View style={styles.sectionHead}><Text style={styles.heading}>SOURCE-VERIFIED WRITTEN ASSESSMENT</Text>
+     <Pressable onPress={()=>setActiveReview(null)}><MaterialCommunityIcons name="close" color={green} size={21}/></Pressable>
+    </View>
+    <Text style={styles.itemTitle}>{activeReview.investigation_title}</Text>
+    <Text style={styles.small}>Supporting references: {(activeReview.scripture_refs??[]).join(' • ')}</Text>
+    <Text selectable style={styles.body}>{activeReview.source_excerpt}</Text>
+    {activeReview.answers.map((answer,k)=><View key={k} style={styles.question}>
+     <Text style={styles.itemTitle}>Essay {k+1}</Text><Text selectable style={styles.body}>{answer}</Text>
+    </View>)}
+    <Text style={styles.small}>Grade the five competencies independently. 80% weighted overall, with evidence, context and reasoning each at least 70%. Grading tests source accuracy and argument quality—not denominational agreement.</Text>
+    {(['understanding','evidence','context','reasoning','transfer'] as const).map(key=>
+     <View key={key} style={styles.row}>
+      <Text style={[styles.body,{flex:1,textTransform:'capitalize'}]}>{key} / 100</Text>
+      <TextInput value={rubric[key]} onChangeText={v=>setRubric(old=>({...old,[key]:v}))}
+       keyboardType="numeric" placeholder="0–100" accessibilityLabel={'Score '+key}
+       style={styles.scoreInput} maxLength={3}/>
+     </View>)}
+    <Pressable accessibilityRole="checkbox" accessibilityState={{checked:citationsVerified}}
+     onPress={()=>setCitationsVerified(v=>!v)} style={styles.row}>
+     <MaterialCommunityIcons name={citationsVerified?'checkbox-marked':'checkbox-blank-outline'}
+      size={23} color={green}/>
+     <Text style={[styles.small,{flex:1}]}>I independently checked the citations, surrounding context, and source evidence against the manuscript.</Text>
+    </Pressable>
+    <TextInput multiline value={reviewFeedback} onChangeText={setReviewFeedback}
+     placeholder="Explain the strengths, weaknesses, verified citations, and exactly why the rubric passes or requires revision. Minimum 80 characters."
+     accessibilityLabel="Detailed mastery review feedback" style={styles.feedbackInput} maxLength={2000}/>
+    <Text style={styles.small}>Feedback: {reviewFeedback.trim().length} / 80 minimum</Text>
+    <Pressable style={[styles.primary,(!!busy||reviewFeedback.trim().length<80||
+     Object.values(rubric).some(v=>v.trim()===''))&&styles.disabled]}
+     disabled={!!busy||reviewFeedback.trim().length<80||Object.values(rubric).some(v=>v.trim()==='')}
+     onPress={()=>Alert.alert('Finalize written evaluation?',
+      'A verified rubric grants one +35 Points reward; +50 follows only on full nine-part completion. False or missing citations require rework.',
+      [{text:'Cancel',style:'cancel'},{text:'Record rubric',onPress:()=>void reviewMaster()}])}>
+      <Text style={styles.primaryText}>RECORD REVIEWED RUBRIC</Text>
+    </Pressable>
+   </View>:null}
+   <Text style={styles.footer}>Member rollout stays OFF until exact-source migration, full SQL reward verification, AI model validation, RC build and separate production authorization. Master +35 is earned only after manually verified written evidence and an audited rubric.</Text>
+  </ScrollView>
+ </AdminGate>;
+}
+const styles=StyleSheet.create({
+ screen:{flex:1,backgroundColor:'#F7FAF8'},content:{padding:18,paddingBottom:80,gap:12,maxWidth:800,width:'100%',alignSelf:'center'},
+ back:{flexDirection:'row',alignItems:'center',alignSelf:'flex-start'},
+ backText:{color:green,fontWeight:'700',fontSize:12},kicker:{fontSize:11,fontWeight:'900',color:green,letterSpacing:1.5},
+ title:{fontSize:27,fontWeight:'900',color:'#17352A'},sub:{fontSize:14,color:'#64756E',lineHeight:20},
+ note:{backgroundColor:'#E7F1EB',borderRadius:14,padding:14,flexDirection:'row',gap:8},
+ noteText:{flex:1,fontSize:12,color:'#355746',lineHeight:19},
+ primary:{backgroundColor:green,padding:14,borderRadius:13,flexDirection:'row',gap:10,alignItems:'center',justifyContent:'center'},
+ disabled:{opacity:0.65},primaryText:{color:'#fff',fontWeight:'800',fontSize:13},
+ helper:{color:'#748279',fontSize:11},success:{color:'#1B6C46',fontWeight:'700',fontSize:12,lineHeight:18},
+ error:{color:'#A73535',fontSize:12,lineHeight:18},
+ sectionHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8,marginTop:8},
+ heading:{color:'#1A4936',fontWeight:'900',fontSize:13,flex:1},
+ muted:{color:'#6D8074',fontSize:12,lineHeight:18},card:{borderWidth:1,borderColor:'#DDE8E1',backgroundColor:'#fff',borderRadius:14,padding:13,gap:9},
+ row:{flexDirection:'row',alignItems:'flex-start',gap:9},itemTitle:{fontSize:14,color:'#203D30',fontWeight:'800'},
+ small:{fontSize:11,color:'#637569',lineHeight:17},actions:{flexDirection:'row',flexWrap:'wrap',gap:8},
+ action:{borderWidth:1,borderColor:'#C7DDD0',borderRadius:8,paddingVertical:7,paddingHorizontal:10},
+ actionText:{color:green,fontSize:11,fontWeight:'700'},
+ preview:{backgroundColor:'#fff',borderRadius:14,padding:13,gap:12,borderWidth:1,borderColor:'#BDD1C1'},
+ reviewItem:{borderTopWidth:1,borderColor:'#E4EAE5',paddingTop:12,gap:8},
+ body:{color:'#284436',fontSize:12,lineHeight:18},
+ question:{padding:8,backgroundColor:'#F2F7F3',borderRadius:7,gap:4},
+ scoreInput:{width:94,borderRadius:9,borderWidth:1,borderColor:'#B8D6C0',padding:9,color:'#1B5138',fontWeight:'700'},
+ feedbackInput:{minHeight:135,borderWidth:1,borderColor:'#B8D6C0',borderRadius:9,padding:12,textAlignVertical:'top',fontSize:12,color:'#204333'},
+ footer:{color:'#76827B',fontSize:11,lineHeight:18,marginTop:8}
+});
