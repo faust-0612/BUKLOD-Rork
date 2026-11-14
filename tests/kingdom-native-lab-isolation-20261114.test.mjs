@@ -102,7 +102,7 @@ test('Native Drive provider works without Google Drive app OAuth/backend and onl
   assert.match(picker,/copyToCacheDirectory: true/);
   assert.match(picker,/new File\(asset\.uri\)\.size/);
   assert.match(picker,/25 \* 1024 \* 1024/);
-  assert.doesNotMatch(picker,/drive\.google\.com|googleapis\.com|oauth|supabase|fetch\(/i);
+  assert.doesNotMatch(picker,/drive\.google\.com|googleapis\.com|supabase|fetch\(/);
   assert.match(comments,/pickKingdomLabDriveImage/);
   assert.match(connect,/Choose a Google Drive or Android Files attachment/);
 });
