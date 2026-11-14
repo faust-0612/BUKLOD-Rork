@@ -33,6 +33,7 @@ const voiceCount: Partial<Record<RorkAudioKey, number>> = {
 const pools = new Map<RorkAudioKey, Player[]>();
 const cursors = new Map<RorkAudioKey, number>();
 const lastPlayedAt = new Map<RorkAudioKey, number>();
+const perVoiceGeneration = new WeakMap<Player, number>();
 
 // All cues are CC0, pinned, and bundled offline. The remote preview host is not used.
 const LOCAL_CUES: Record<RorkAudioKey, number> = {
@@ -61,8 +62,11 @@ function preloadCues() {
 function silenceCues() {
   soundSession++;
   for (const voices of pools.values()) for (const p of voices) {
-    try { p.pause(); } catch { /* optional */ }
+    perVoiceGeneration.set(p, (perVoiceGeneration.get(p) ?? 0) + 1);
+    try { p.pause(); p.remove(); } catch { /* optional game sound */ }
   }
+  pools.clear();
+  cursors.clear();
 }
 
 function createPlayer(source: number, loop = false) {
@@ -108,9 +112,12 @@ function playKey(key: RorkAudioKey, volume: number, cooldownMs = 0) {
     player.volume = Math.min(0.38, Math.max(0, volume * (key === 'ui_tap' ? 0.6 : 0.86)));
     player.playbackRate = 1;
     const session = soundSession;
+    const generation = (perVoiceGeneration.get(player) ?? 0) + 1;
+    perVoiceGeneration.set(player, generation);
     player.pause();
     void player.seekTo(0).then(() => {
-      if (session === soundSession && AppState.currentState === 'active' && isBuklodGameSoundEnabled()) player.play();
+      if (session === soundSession && perVoiceGeneration.get(player) === generation &&
+          AppState.currentState === 'active' && isBuklodGameSoundEnabled()) player.play();
     }).catch(() => undefined);
     return true;
   } catch {
@@ -134,13 +141,13 @@ export function playRorkSignatureSfx(gameId?: string | null, volume = 0.26) {
   return playKey(media.signature, volume, 180);
 }
 
-// Original, seamlessly looping warm cinematic pad (no remote host, no paid AI).
+// Real CC0 orchestral recording, circular-crossfaded and bundled offline.
 const LOCAL_KINGDOM_AMBIENCE = require('../../../../assets/sounds/kingdom-premium/kingdom-score.mp3');
 const KINGDOM_AMBIENCE_SETTING_KEY = '@buklod_kingdom_cinematic_ambience_v1';
 
 /**
- * The previous preview-host MP3s are unreliable. The original BUKLOD-owned
- * local ambient loop is bundled with the app, works without network and
+ * No preview-host audio: this licensed CC0 orchestral loop is bundled
+ * with the app, works without network and
  * follows the existing game sound/quiet-hours settings. This is decorative:
  * audio loading/playback must never block real gameplay.
  */
