@@ -1,0 +1,72 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kingdom-premium-audio-20261114.json",
+  "objective": "Actually replace cheap Kingdom ringtone-like synthesized feedback with professional CC0 orchestral soundtrack and recorded cinematic SFX in Android and Web; release to staging only after verification.",
+  "baseRef": "40223f4c4bbad343de399ee51fd6c47908dd2bfb",
+  "productionBaselineEvidence": "Preserve main/production entirely. Staging integration branch verified at 40223f4c4bbad343de399ee51fd6c47908dd2bfb; staging device and OTA not yet verified.",
+  "chosenApproach": "Pin upstream CC0 recorded material, reproducibly bundle and checksum seven offline MP3s, wire only Kingdom game event players, and verify app-runtime constraints with nonpublishing Android staging QA.",
+  "riskAreas": [
+    "audio-focus",
+    "kingdom",
+    "android",
+    "cross-feature playback",
+    "license"
+  ],
+  "preserveBehaviors": [
+    "No changes to production, PTT, calls, video players, authentication, ads or economy.",
+    "Preserve game progress, 13 canonical games, character animations, sound preferences, quiet hours, muted calls, navigation blur cleanup."
+  ],
+  "acceptanceChecks": [
+    "Seven bundled SHA256-verified offline CC0 MP3s present.",
+    "Native/Web actions use cinematic recordings, not notification/synthetic audio.",
+    "Background and blur cleanup plus stale-callback protection.",
+    "Staging Android compile and TypeScript successful, independent QA checks green; staging OTA never published without release gate."
+  ],
+  "regressionTests": [
+    "tests/kingdom-premium-audio-20261114.test.mjs",
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-premium-audio-20261114.json",
+    ".github/workflows/kingdom-premium-audio-vendor.yml",
+    ".github/workflows/kingdom-premium-audio-qa.yml",
+    "assets/sounds/kingdom-premium/assets.json",
+    "assets/sounds/kingdom-premium/kingdom-score.mp3",
+    "assets/sounds/kingdom-premium/click.mp3",
+    "assets/sounds/kingdom-premium/pop.mp3",
+    "assets/sounds/kingdom-premium/impact.mp3",
+    "assets/sounds/kingdom-premium/riser.mp3",
+    "assets/sounds/kingdom-premium/whoosh.mp3",
+    "assets/sounds/kingdom-premium/tick.mp3",
+    "docs/KINGDOM_PREMIUM_AUDIO_LICENSES.md",
+    "scripts/rork-media-contract-test.mjs",
+    "scripts/vendor-kingdom-premium-audio.py",
+    "src/features/games/runtime/BuklodGameFeedback.native.ts",
+    "src/features/games/runtime/BuklodGameFeedback.web.ts",
+    "src/features/games/runtime/rorkAudio.ts",
+    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs",
+    "tests/kingdom-premium-audio-20261114.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Replace generic notification and synthesized game audio with pinned CC0 sampled cinematic recordings without modifying unrelated client features or policies.",
+      "preservedBehaviors": [
+        "All previous game and character functionality remains intact.",
+        "PTT, calls, Wall video and existing global quiet-hours settings remain unaffected."
+      ],
+      "tests": [
+        "tests/kingdom-premium-audio-20261114.test.mjs",
+        "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "STAGING_ONLY_NO_PRODUCTION",
+  "releaseStatus": "DEV_NOT_RELEASED",
+  "selectionRationale": "Use real bundled CC0 sampled orchestral performance instead of user-rejected cheap synthetic tones; avoid remote preview host and preserve offline, call-suppression and staging rollout isolation while minimizing package changes.",
+  "alternativeApproaches": [
+    "Enable remote Rork preview MP3s (rejected: unavailable/unreliable host, no offline playback).",
+    "Re-use BUKLOD message and achievement WAVs or handcrafted oscillator sounds (rejected: owner explicitly rejected cheap notification-like game sounds).",
+    "Add a new native audio engine or a paid sound generator (rejected: existing Expo Audio supports required playback without another Android build or recurring fees)."
+  ]
+}
