@@ -1,3 +1,9 @@
+// Hard-fail when someone accidentally attempts a normal staging-user or
+// production Gradle build using the native-lab branch/source tree.
+if (System.getenv('BUKLOD_APP_TARGET') != 'kingdom-native-lab') {
+  throw new GradleException('BUKLOD native lab Android module is not allowed in staging-user, production or classroom builds.')
+}
+
 plugins {
   id 'com.android.library'
   id 'expo-module-gradle-plugin'
