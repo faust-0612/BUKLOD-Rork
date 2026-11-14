@@ -160,17 +160,6 @@
       "tests": [
         "tests/protected-feature-lock-video-scope-20261114.test.mjs"
       ]
-    },
-    {
-      "id": "production-release",
-      "reason": "Introduce a channel-isolated, exact-source staging-only OTA workflow for the full approved JS conso while retaining independent EAS readback and unchanged prod.",
-      "preservedBehaviors": [
-        "No production publish, Play, new APK, native/DB/AdMob-unit change, or unverified on-device acceptance claim.",
-        "Exact source check, signed staging runtime/client package, CI and production nonmutation are mandatory."
-      ],
-      "tests": [
-        "tests/nov15-conso-prod-release-20261115.test.mjs"
-      ]
     }
   ]
 }
