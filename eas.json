@@ -144,6 +144,22 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "kingdom-native-lab": {
+      "distribution": "internal",
+      "channel": "kingdom-native-lab",
+      "environment": "preview",
+      "autoIncrement": false,
+      "env": {
+        "BUKLOD_APP_TARGET": "kingdom-native-lab",
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_KINGDOM_NATIVE_LAB": "1",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
