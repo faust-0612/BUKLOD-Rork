@@ -75,6 +75,17 @@ test('Trudice visible restoration only follows a correct puzzle step and retains
     execFileSync('git', ['show', baseline + ':src/features/games/trudice/wonderPathRules.ts'], { encoding: 'utf8' }));
 });
 
+test('Original Jawo and Trudice rules still pass their full seeded/retry suites', () => {
+  // Execute actual pure engine tests, rather than treating unchanged source text
+  // as proof. Node 22 supports TypeScript stripping without a bundler.
+  const output = execFileSync(process.execPath, [
+    '--experimental-strip-types', '--test',
+    'tests/jawo-kingdom-forest-trail-gameplay-20261112.test.mjs',
+    'tests/kingdom-trudice-wonder-path.test.mjs',
+  ], { encoding: 'utf8', timeout: 30000 });
+  assert.match(output, /# fail 0/, output);
+});
+
 test('All 13 Kingdom station route contracts and real BP/Shard security boundaries survive', () => {
   const registry = read('src/features/games/registry.ts');
   const keys = [...registry.matchAll(/^  '([a-z]+-[a-z-]+)': \{/gm)];
