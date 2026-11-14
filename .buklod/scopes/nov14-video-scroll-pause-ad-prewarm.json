@@ -1,0 +1,144 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov14-video-scroll-pause-ad-prewarm.json",
+  "objective": "Implement video pause immediately at scroll start, partial-frame autoplay, bounded nearby video warming, original-quality scrollback cache and policy-safe next NativeAd prefetch in Android BUKLOD DEV only.",
+  "baseRef": "7ebbbd504df2f84355888cc64a8c5317319d6d65",
+  "productionBaselineEvidence": "verified: November 14 2026 main commit 7ebbbd504df2f84355888cc64a8c5317319d6d65 published Android production runtime 1.3.2 OTA update 01a1da5c-0179-79fc-85c9-591cdb782190 in completed-success run 43602250206. This isolated DEV PR has NOT shipped to staging or production; no physical device claim.",
+  "chosenApproach": "One shared 180ms idle scroll-pause signal, real video frame geometry gating in Wall and Scope, single next clip/Marites prewarm, bounded NativeAd SDK asset prefetch without offscreen NativeAdView or premature impressions; preserve unchanged banner unit IDs, consent, IMA and network request pacing. Run focused feature contracts; no production release.",
+  "selectionRationale": "Narrowly addresses owner-visible delayed playback and scrolling resource use without replacing the approved Android video player, degrading resolution or adding expensive native/build dependencies. Native AdMob assets are cached briefly before a future eligible placement rather than requesting invisible banner impressions.",
+  "alternativeApproaches": [
+    "Rendering offscreen BannerAd or hidden NativeAdView (rejected as unsafe impression/fill behavior).",
+    "Rebuild Android APK for JS-only scroll behavior (unnecessary while runtime compatibility not independently established).",
+    "Unconditional autoplay for any row containing a video (rejected because the video frame may be offscreen)."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-auth",
+    "ads-finance-points",
+    "cluster-faith",
+    "governance-lock",
+    "memory",
+    "cell-recycling",
+    "weak-network",
+    "ad-impression",
+    "signed-url-identity",
+    "audio-focus",
+    "navigation-scroll",
+    "ads-monetization"
+  ],
+  "preserveBehaviors": [
+    "Original-quality content video sources and existing cached decoder, Android Expo Video/IMA source, sound focus, signed URL recovery and retry remain unchanged.",
+    "Inactive and offscreen media do not autoplay; scrolling instantly pauses before exiting viewport, resumes after 180ms idle only if actual frame is visible.",
+    "Retired IGPAT feature stays hidden; existing historical posts and independent Wall/Marites media are preserved.",
+    "AdMob consent, production unit IDs, native and banner distinct lifecycles, request throttling and SDK-only impressions remain unchanged.",
+    "NativeAdView is not created while out of viewport, despite one eligible next NativeAd being loaded by SDK.",
+    "Home, Cluster, Wall, Connect and Profile routes, QMP/Finance, PTT/Call and owner privacy/RLS preserved.",
+    "No production, staging OTA, Android binary, Play, web, Supabase migration or Finance mutation in this scope."
+  ],
+  "regressionTests": [
+    "tests/admob-native-video-prefetch-20261114.test.mjs",
+    "tests/navigation-video-scroll-stop-20261114.test.mjs",
+    "tests/nov14-scroll-pauses-all-videos.test.mjs",
+    "tests/nov14-video-scroll-stop-native-prefetch.test.mjs",
+    "tests/nov15-android-native-prefetch-gate.test.mjs",
+    "tests/protected-feature-lock-video-scope-20261114.test.mjs",
+    "tests/scope-video-scroll-autoplay-20261114.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov14-video-scroll-pause-ad-prewarm.json",
+    ".github/workflows/engineering-accountability.yml",
+    ".github/workflows/navigation-v2-staging-compile-qa.yml",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodCommunityInlineAd.tsx",
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/BuklodNativeSponsoredCard.android.tsx",
+    "src/components/BuklodNativeSponsoredCard.tsx",
+    "src/hooks/useBuklodCommunityAdViewability.ts",
+    "src/lib/buklodMaritesPlayback.ts",
+    "src/lib/buklodVideoFrameVisibility.ts",
+    "src/lib/buklodVideoScrollSignal.ts",
+    "tests/admob-native-video-prefetch-20261114.test.mjs",
+    "tests/navigation-video-scroll-stop-20261114.test.mjs",
+    "tests/nov14-scroll-pauses-all-videos.test.mjs",
+    "tests/nov14-video-scroll-stop-native-prefetch.test.mjs",
+    "tests/nov15-android-native-prefetch-gate.test.mjs",
+    "tests/protected-feature-lock-video-scope-20261114.test.mjs",
+    "tests/scope-video-scroll-autoplay-20261114.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Actual media-frame viewport intersection, not entire post, determines Wall/Scope player activation.",
+    "One moving feed event pauses video even if still visible; no resumption until scrolling idle 180ms and eligible.",
+    "One near-viewport video warms before entry with unmodified original quality and existing cached player after scrolling back.",
+    "Marites prepared player remains paused until partial visibility and scroll stops; only one active story clip.",
+    "SDK native ad assets preload one nearby slot before its appearance; no offscreen NativeAdView, early impression or banner prefetch; respect consent and request pacing.",
+    "Scoped release manifest and feature-specific tests pass protected feature lock; Android TypeScript bundle/Expo parity must pass before any staging OTA.",
+    "Compile actual Android staging-identity JS bundle on exact DEV candidate head without uploading or publishing any OTA."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Cross-surface scroll lifecycle changes Android React video component activation and resumes from shared idle gate.",
+      "preservedBehaviors": [
+        "No app-wide listener leak, no autoplay offscreen, preserve original native app runtime and ABI."
+      ],
+      "tests": [
+        "tests/nov14-scroll-pauses-all-videos.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Measure actual video frames and prewarm bounded next Wall/Marites sources while preserving quality and offscreen pause.",
+      "preservedBehaviors": [
+        "Keep original photo/video dimensions, existing poster cache and signed URL/retry policy."
+      ],
+      "tests": [
+        "tests/nov14-video-scroll-stop-native-prefetch.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Existing canonical Home/Wall/Connect and full-screen navigation use a scroll listener without altering routes or account ownership.",
+      "preservedBehaviors": [
+        "Authenticated navigation, screen focus cleanup, tab destinations and offline login preserved."
+      ],
+      "tests": [
+        "tests/navigation-video-scroll-stop-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Load upcoming native AdMob asset through SDK before exposure without changing banners, consent, unit IDs or impressions.",
+      "preservedBehaviors": [
+        "Never render a hidden native ad view, fabricate an impression or bypass the global request rate limiter."
+      ],
+      "tests": [
+        "tests/admob-native-video-prefetch-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Scoped Community video frame and ad near-viewport preparation change only the visible scoped feed rendering.",
+      "preservedBehaviors": [
+        "Organization/Cluster scope authorization, messaging, account isolation and faith content remain protected."
+      ],
+      "tests": [
+        "tests/scope-video-scroll-autoplay-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Select only the exact video DEV branch scope manifest and execute its focused tests without loosening default guards.",
+      "preservedBehaviors": [
+        "Other branches continue using existing protected scope mappings and ordinary feature-lock gates."
+      ],
+      "tests": [
+        "tests/protected-feature-lock-video-scope-20261114.test.mjs"
+      ]
+    }
+  ]
+}

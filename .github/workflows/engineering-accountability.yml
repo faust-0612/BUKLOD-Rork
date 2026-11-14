@@ -30,6 +30,8 @@ jobs:
           PR_BASE: ${{ github.base_ref || 'main' }}
         run: |
           case "$PR_HEAD" in
+            integration/nov15-conso-staging-video-ads-20261115)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov15-conso-staging-video-ads.json" >> "$GITHUB_ENV";;
             integration/buklod-nov10-single-source-ota|integration/buklod-nov11-igpat-marites-wonder-qmp-kingdommap-rc)
               if [ "$PR_BASE" = "main" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov11-consolidated-rc.json" >> "$GITHUB_ENV"
@@ -349,6 +351,15 @@ jobs:
       - name: Verify recovery button feedback contracts
         if: github.head_ref == 'fix/recovery-action-feedback-20261027'
         run: node --test tests/recovery-action-feedback.test.cjs
+
+      - name: Verify scoped video scroll-pause and native-ad prewarm tests
+        if: github.head_ref == 'dev/video-scroll-pause-ad-prewarm-20261114' || github.head_ref == 'integration/nov15-conso-staging-video-ads-20261115'
+        run: |
+          node --test tests/nov14-scroll-pauses-all-videos.test.mjs tests/nov14-video-scroll-stop-native-prefetch.test.mjs tests/navigation-video-scroll-stop-20261114.test.mjs tests/admob-native-video-prefetch-20261114.test.mjs tests/scope-video-scroll-autoplay-20261114.test.mjs tests/protected-feature-lock-video-scope-20261114.test.mjs tests/nov15-android-native-prefetch-gate.test.mjs tests/ad-native-lifecycle-retention-20261115.test.mjs tests/protected-feature-lock-native-retention-20261115.test.mjs
+
+      - name: Verify NativeAd lifecycle and protected scope regression
+        if: github.head_ref == 'fix/ad-native-lifecycle-retention-20261115'
+        run: node --test tests/ad-native-lifecycle-retention-20261115.test.mjs tests/protected-feature-lock-native-retention-20261115.test.mjs
 
       - name: Lock app-wide AdMob policy and release contract on every PR
         run: |

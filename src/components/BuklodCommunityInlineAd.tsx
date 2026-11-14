@@ -37,6 +37,7 @@ type CommunityAdInventory = 'public' | 'org' | 'cluster';
 type Props = {
   slotId?: string;
   active?: boolean;
+  prefetch?: boolean;
   inventory?: CommunityAdInventory;
   /** Native-only sponsored cards reuse the same underlying media renderer. */
   surface?: 'wall' | 'home' | 'profile' | 'connect' | 'cluster_dashboard';
@@ -55,6 +56,7 @@ function clean(value: string | undefined) {
 export default function BuklodCommunityInlineAd({
   slotId,
   active = true,
+  prefetch = false,
   inventory = 'public',
   bannerPlacementOverride,
 }: Props) {
@@ -133,11 +135,14 @@ export default function BuklodCommunityInlineAd({
     sdkReady &&
     online;
 
+  // A prefetched native ad is held in SDK memory; no hidden NativeAdView.
+  const canPrefetchNative=active&&routeSafe&&sdkReady&&online&&
+    (eligible||prefetch||nativeRequestStarted.current);
   const requestKey = slotId || 'community-wall-inline';
   const adWidth = Math.max(280, Math.floor(width - 32));
 
   useEffect(() => {
-    if (!canAttempt || nativeRequestStarted.current || nativeFailed) return;
+    if (!canPrefetchNative || nativeRequestStarted.current || nativeFailed) return;
 
     if (!nativeUnitId) {
       setNativeFailed(true);
@@ -237,7 +242,7 @@ export default function BuklodCommunityInlineAd({
       createdAd?.destroy();
     };
   }, [
-    canAttempt,
+    canPrefetchNative,
     diagnosticPlacement,
     nativeFailed,
     nativeUnitId,
@@ -247,7 +252,7 @@ export default function BuklodCommunityInlineAd({
   ]);
 
   useEffect(() => {
-    if (!nativeAd || nativeRendered.current) return;
+    if (!nativeAd || nativeRendered.current || !eligible) return;
     nativeRendered.current = true;
     recordBuklodAdEvent(
       diagnosticPlacement,
@@ -255,7 +260,7 @@ export default function BuklodCommunityInlineAd({
       undefined,
       { route: pathname, placementId },
     );
-  }, [diagnosticPlacement, nativeAd, pathname, placementId]);
+  }, [diagnosticPlacement, nativeAd, eligible, pathname, placementId]);
 
   useEffect(() => {
     if (
