@@ -7,6 +7,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -37,6 +38,7 @@ import {
   useBuklodDrawerBottomInset,
 } from '@/lib/buklodSafeArea';
 import { colors } from '@/lib/theme';
+import { pickKingdomLabDriveImage } from '@/lib/buklodLabDrivePicker';
 import { buklodComposerHeightLimits } from '@/lib/buklodAdaptiveInput';
 
 type Props = {
@@ -129,6 +131,25 @@ export default function BuklodCommunityCommentComposer({
     }
   };
 
+  const pickDriveImage = async () => {
+    if (pickingPhoto || busy) return;
+    setPickingPhoto(true);
+    try {
+      const file = await pickKingdomLabDriveImage();
+      if (!file) return;
+      onMediaChange({
+        kind: file.mimeType === 'image/gif' ? 'gif' : 'image',
+        ref: file.uri,
+      }, file.uri);
+      setGifOpen(false);
+      setReactionOpen(false);
+    } catch (error: any) {
+      Alert.alert('Drive', error?.message ?? 'Unable to open this file.');
+    } finally {
+      setPickingPhoto(false);
+    }
+  };
+
   const pickGif = (gif: ConnectGifCatalogItem) => {
     const url = String(gif.url ?? '').trim();
     if (!url) return;
@@ -199,6 +220,17 @@ export default function BuklodCommunityCommentComposer({
             color={colors.green}
           />
         </Pressable>
+
+        {Platform.OS === 'android' && process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1' ? (
+          <Pressable
+            accessibilityLabel="Pick image or GIF from Google Drive or Android Files"
+            disabled={busy || pickingPhoto}
+            onPress={() => void pickDriveImage()}
+            style={styles.tool}
+          >
+            <MaterialCommunityIcons name="google-drive" size={22} color={colors.green} />
+          </Pressable>
+        ) : null}
 
         <Pressable
           accessibilityLabel="Add reaction"
