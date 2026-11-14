@@ -21,6 +21,33 @@ export type KingdomSceneProfile = {
   cycleMs: number;
   density: number;
 };
+/** Thirteen deliberately different motion signatures for approved character art.
+ * Sprite-based staging rigs, not fabricated Rive .riv files. */
+export type KingdomCharacterMotion = {
+  action: string;
+  idleX: number;
+  idleY: number;
+  collectHop: number;
+  impactShake: number;
+  victoryScale: number;
+  turnDeg: number;
+  moveX: number;
+};
+export const KINGDOM_CHARACTER_MOTION: Readonly<Record<string, KingdomCharacterMotion>> = {
+  phan: { action: 'workshop', idleX: 1.1, idleY: 1.9, collectHop: 8, impactShake: 4.5, victoryScale: .08, turnDeg: 2, moveX: 6 },
+  quin: { action: 'discovery', idleX: 2.1, idleY: 2.6, collectHop: 12, impactShake: 6, victoryScale: .11, turnDeg: 4, moveX: 9 },
+  van: { action: 'dispatch', idleX: 1.4, idleY: 2.0, collectHop: 9, impactShake: 5.8, victoryScale: .10, turnDeg: 3, moveX: 8 },
+  christian: { action: 'council', idleX: 1.2, idleY: 1.7, collectHop: 7, impactShake: 4.2, victoryScale: .12, turnDeg: 2, moveX: 5 },
+  lhen: { action: 'rhythm', idleX: 2.8, idleY: 3.8, collectHop: 13, impactShake: 6.4, victoryScale: .15, turnDeg: 7, moveX: 10 },
+  jawo: { action: 'dodge', idleX: 2.3, idleY: 3.1, collectHop: 16, impactShake: 8.0, victoryScale: .13, turnDeg: 6, moveX: 14 },
+  trudice: { action: 'wonder', idleX: 2.7, idleY: 3.6, collectHop: 18, impactShake: 5.2, victoryScale: .17, turnDeg: 9, moveX: 12 },
+  ace: { action: 'rescue', idleX: 1.8, idleY: 2.5, collectHop: 12, impactShake: 7.2, victoryScale: .12, turnDeg: 5, moveX: 11 },
+  mitch: { action: 'paint', idleX: 1.7, idleY: 2.9, collectHop: 11, impactShake: 5.0, victoryScale: .14, turnDeg: 8, moveX: 9 },
+  niel: { action: 'expedition', idleX: 2.4, idleY: 2.7, collectHop: 14, impactShake: 6.8, victoryScale: .12, turnDeg: 5, moveX: 13 },
+  angel: { action: 'treasury', idleX: 1.0, idleY: 2.1, collectHop: 10, impactShake: 4.0, victoryScale: .16, turnDeg: 3, moveX: 7 },
+  vhen: { action: 'harvest', idleX: 1.9, idleY: 3.0, collectHop: 13, impactShake: 5.4, victoryScale: .13, turnDeg: 6, moveX: 10 },
+  ellusur: { action: 'build', idleX: 1.6, idleY: 2.2, collectHop: 9, impactShake: 6.2, victoryScale: .09, turnDeg: 4, moveX: 8 },
+};
 export const KINGDOM_CINEMATIC_SCENES: Readonly<Record<string, KingdomSceneProfile>> = {
   'phan-enterprise-builder': { title: "Enterprise Builder", character: 'phan', glyph: "🏭", shape: 'pillars', motion: 'rise', accent: '#ffcc70', shade: '#905728', seed: 13, cycleMs: 4700, density: 4 },
   'phan-trade-master': { title: "Trade Master", character: 'phan', glyph: "⚖️", shape: 'lanes', motion: 'flow', accent: '#ffcc70', shade: '#905728', seed: 50, cycleMs: 5130, density: 5 },
