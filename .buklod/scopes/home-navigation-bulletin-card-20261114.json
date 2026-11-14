@@ -4,7 +4,7 @@
   "objective": "Owner-authorized removal of the redundant Open Updates & Bulletins expandable drawer on mobile and desktop Home and replacement of the old neon miniature house tile with a compact premium My BUKLOD Home launcher; preserve public announcements and household and Health Center destinations.",
   "baseRef": "6e2014928513738347f653e4c7f716ff51458251",
   "productionBaselineEvidence": "Source baseline is DEV PR #791 head 6e2014928513738347f653e4c7f716ff51458251; latest production/main/staging installed artifact parity is NOT reverified in this scope. No release approval or OTA evidence is claimed.",
-  "chosenApproach": "Remove only Home-local bulletin expansion controls and inactive lazy loading in both responsive branches; keep the top-level public Home announcement board, original bulletins data module and Cluster editor unchanged. Replace only the personal Home launcher UI with an Expo LinearGradient and standard MaterialCommunityIcons using already installed dependencies, preserving one-tap route, Health Center doors, system font scaling and full-width mobile breakpoint.",
+  "chosenApproach": "Remove only Home-local bulletin expansion controls and inactive lazy loading in both responsive branches; keep the top-level public Home announcement board, original bulletins data module and Cluster editor unchanged. Replace only the personal Home launcher UI with an Expo LinearGradient and standard MaterialCommunityIcons using already installed dependencies, preserving one-tap route, Health Center doors, system font scaling and full-width mobile breakpoint. Reconcile three legacy Quiz/release contract assertions that hardcoded the owner-retired drawer, while retaining their original Quiz, protected-release and related feature checks.",
   "selectionRationale": "One small isolated visual/navigation change addresses the supplied screenshot without introducing large image assets, new APIs, backend writes, native modules or an unnecessary production release.",
   "alternativeApproaches": [
     "Keep hidden drawer under Settings: rejected because it clutters secondary navigation and may mask official notices.",
@@ -24,7 +24,8 @@
     "Premium CTA uses existing personal-home navigation, readable text at system scaling and compact responsive full-width stacking.",
     "Existing Health Center routes and Home ads/PTT/map/SOS/QMP retain their original code paths.",
     "Focused Node tests, anti-regression scope gates and TypeScript/Android compile required before release readiness; real staging Android visual acceptance is NOT claimed.",
-    "No staging or production OTA, web deployment or main merge is authorized by this standalone DEV change."
+    "No staging or production OTA, web deployment or main merge is authorized by this standalone DEV change.",
+    "All older Node regression contracts that asserted the removed Home drawer are reconciled to assert its absence and direct announcement visibility; no test deletion."
   ],
   "riskAreas": [
     "navigation-scroll",
@@ -35,14 +36,20 @@
     "advertising-preservation"
   ],
   "regressionTests": [
-    "tests/home-navigation-bulletin-card-20261114.test.mjs"
+    "tests/home-navigation-bulletin-card-20261114.test.mjs",
+    "tests/public-home-quiz-launcher-removal-20261112.test.mjs",
+    "tests/home-navigation-quiz-removal-20261112.test.mjs",
+    "tests/nov12-next-conso-production-marker-20261112.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/home-navigation-bulletin-card-20261114.json",
     "src/app/(tabs)/hub.tsx",
     "src/components/home/BuklodHomeUtilityCards.tsx",
     "scripts/test-navigation-home-wall.cjs",
-    "tests/home-navigation-bulletin-card-20261114.test.mjs"
+    "tests/home-navigation-bulletin-card-20261114.test.mjs",
+    "tests/public-home-quiz-launcher-removal-20261112.test.mjs",
+    "tests/home-navigation-quiz-removal-20261112.test.mjs",
+    "tests/nov12-next-conso-production-marker-20261112.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
