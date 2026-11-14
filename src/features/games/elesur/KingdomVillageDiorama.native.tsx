@@ -23,10 +23,10 @@ const TAU = Math.PI * 2;
 
 function PlotBuilding({ plot, done }: { plot: Plot; done: boolean }) {
   const { x, y, tint, id } = plot;
-  const reveal = useSharedValue(done ? 1 : .17);
+  const reveal = useSharedValue(done ? 1 : 0);
   useEffect(() => {
     cancelAnimation(reveal);
-    reveal.value = withTiming(done ? 1 : .17, { duration: 640, easing: Easing.out(Easing.cubic) });
+    reveal.value = withTiming(done ? 1 : 0, { duration: 640, easing: Easing.out(Easing.cubic) });
     return () => cancelAnimation(reveal);
   }, [done, reveal]);
   return <Group>
