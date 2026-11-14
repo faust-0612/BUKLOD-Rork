@@ -32,6 +32,8 @@ jobs:
           case "$PR_HEAD" in
             dev/video-scroll-pause-ad-prewarm-20261114)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov14-video-scroll-pause-ad-prewarm.json" >> "$GITHUB_ENV";;
+            fix/ad-native-lifecycle-retention-20261115)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov15-ad-native-retention.json" >> "$GITHUB_ENV";;
             release/buklod-prod-rc-staging-20261114)
               if [ "$PR_BASE" = "main" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov14-prod-android-rc-promotion.json" >> "$GITHUB_ENV"
@@ -361,6 +363,10 @@ jobs:
         if: github.head_ref == 'dev/video-scroll-pause-ad-prewarm-20261114'
         run: |
           node --test tests/nov14-scroll-pauses-all-videos.test.mjs tests/nov14-video-scroll-stop-native-prefetch.test.mjs tests/navigation-video-scroll-stop-20261114.test.mjs tests/admob-native-video-prefetch-20261114.test.mjs tests/scope-video-scroll-autoplay-20261114.test.mjs tests/protected-feature-lock-video-scope-20261114.test.mjs tests/nov15-android-native-prefetch-gate.test.mjs
+
+      - name: Verify NativeAd lifecycle and protected scope regression
+        if: github.head_ref == 'fix/ad-native-lifecycle-retention-20261115'
+        run: node --test tests/ad-native-lifecycle-retention-20261115.test.mjs tests/protected-feature-lock-native-retention-20261115.test.mjs
 
       - name: Lock app-wide AdMob policy and release contract on every PR
         run: |
