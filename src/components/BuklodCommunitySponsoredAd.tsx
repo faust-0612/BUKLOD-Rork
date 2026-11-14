@@ -1,10 +1,11 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {AppState, Dimensions, Image, Linking, Pressable, StyleSheet, Text, View} from 'react-native';
+import {AppState, Dimensions, Image, Linking, Platform, Pressable, StyleSheet, Text, View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {VideoView, useVideoPlayer} from 'expo-video';
 import {useFocusEffect} from 'expo-router';
 import {requestBuklodAudioFocus, subscribeBuklodAudioFocus} from '@/lib/buklodAudioFocus';
 import {supabase} from '@/lib/supabase';
+import {sponsoredVideoViewport, SPONSORED_VIDEO_CHECK_MS} from '@/lib/advertise/sponsoredVideoViewport';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {
@@ -17,13 +18,27 @@ type SponsorLocation = 'community' | 'home';
 const REFRESH_MS = 60_000;
 const ROTATE_MS = 12_000;
 
-// Only the eligible in-view ad plays. Off-screen, app background and
-// navigation changes pause immediately; no hidden video streams.
+// One near-viewport player prebuffers before intersection; on native the exact
+// original-quality video is cached across scroll-back and route re-mounts.
 function AdVideo({uri, visible}: {uri: string; visible: boolean}) {
-  const player = useVideoPlayer(uri, p => {
+  const source = useMemo(() =>
+    Platform.OS !== 'web' && /^https?:\/\//i.test(uri)
+      ? {uri, useCaching: true}
+      : uri,
+    [uri],
+  );
+  const player = useVideoPlayer(source, p => {
     p.loop = true;
     p.muted = false;
     p.audioMixingMode = 'mixWithOthers';
+    p.staysActiveInBackground = false;
+    if (Platform.OS === 'android') {
+      p.bufferOptions = {
+        minBufferForPlayback: 0.5,
+        preferredForwardBufferDuration: 8,
+        prioritizeTimeOverSizeThreshold: true,
+      };
+    }
   });
   const [playing,setPlaying] = useState(false);
   const playWithSound = useCallback(() => {
@@ -68,15 +83,22 @@ export default function BuklodCommunitySponsoredAd({
   const {profile} = useAuth();
   const {activeScope} = useBuklodScope();
   const shellRef = useRef<View>(null);
+  const mediaRef = useRef<View>(null);
+  const remeasureVideoRef = useRef<() => void>(() => {});
   const [rows, setRows] = useState<Campaign[]>([]);
   const [index, setIndex] = useState(0);
   const [captionExpanded,setCaptionExpanded] = useState(false);
   const [atMs, setAtMs] = useState(() => Date.now());
   const [videoVisible, setVideoVisible] = useState(false);
+  const [videoNear, setVideoNear] = useState(false);
   const [screenFocused, setScreenFocused] = useState(false);
   useFocusEffect(useCallback(() => {
     setScreenFocused(true);
-    return () => {setScreenFocused(false); setVideoVisible(false);};
+    return () => {
+      setScreenFocused(false);
+      setVideoVisible(false);
+      setVideoNear(false);
+    };
   }, []));
 
   const scopeCoverage = useMemo<PaidSponsorshipCoverage | null>(() => {
@@ -167,27 +189,44 @@ export default function BuklodCommunitySponsoredAd({
     const timer = setTimeout(() => setIndex(current => current + 1), ms);
     return () => clearTimeout(timer);
   }, [eligible.length, campaign?.id, campaign?.creative_type, screenFocused, videoVisible]);
-  // Feed headers stay mounted while scrolling: measure actual intersection.
+  // A one-screen lookahead prepares only the upcoming ad before it reaches
+  // the viewport. Check immediately after layout and at a bounded 120 ms cadence
+  // rather than waiting 350-900 ms for first visible playback.
   useEffect(() => {
-    if (!screenFocused || campaign?.creative_type !== 'video') {
+    if (!screenFocused || campaign?.creative_type !== 'video' || !campaign.video_url) {
       setVideoVisible(false);
+      setVideoNear(false);
+      remeasureVideoRef.current = () => {};
       return;
     }
     let alive = true;
     const check = () => {
-      if (AppState.currentState !== 'active') {setVideoVisible(false); return;}
-      shellRef.current?.measureInWindow((x,y,w,h) => {
+      if (AppState.currentState !== 'active') {
+        setVideoVisible(false);
+        setVideoNear(false);
+        return;
+      }
+      mediaRef.current?.measureInWindow((x,y,w,h) => {
         if (!alive) return;
-        const screen=Dimensions.get('window');
-        const clipped=Math.max(0,Math.min(y+h,screen.height)-Math.max(y,0));
-        const onScreen=w>40&&h>40&&x<screen.width&&x+w>0&&clipped>=Math.min(h*0.5,180);
-        setVideoVisible(previous => previous===onScreen ? previous : onScreen);
+        const screen = Dimensions.get('window');
+        const next = sponsoredVideoViewport(
+          {x,y,width:w,height:h},
+          {width:screen.width,height:screen.height},
+        );
+        setVideoVisible(previous => previous === next.visible ? previous : next.visible);
+        setVideoNear(previous => previous === next.near ? previous : next.near);
       });
     };
-    const warmup=setTimeout(check,350);
-    const watch=setInterval(check,900);
-    return () => {alive=false; clearTimeout(warmup); clearInterval(watch);};
-  }, [screenFocused,campaign?.id,campaign?.creative_type]);
+    remeasureVideoRef.current = check;
+    const initialFrame = requestAnimationFrame(check);
+    const watch = setInterval(check, SPONSORED_VIDEO_CHECK_MS);
+    return () => {
+      alive = false;
+      remeasureVideoRef.current = () => {};
+      cancelAnimationFrame(initialFrame);
+      clearInterval(watch);
+    };
+  }, [screenFocused,campaign?.id,campaign?.creative_type,campaign?.video_url]);
 
   // Count an impression only after the active card is physically visible.
   // No impression is recorded for an unmounted or off-screen card.
@@ -226,7 +265,7 @@ export default function BuklodCommunitySponsoredAd({
     }
   }
 
-  return <View ref={shellRef} collapsable={false} style={s.shell} testID={`paid-sponsorship-${placement}`}>
+  return <View ref={shellRef} collapsable={false} onLayout={() => remeasureVideoRef.current()} style={s.shell} testID={`paid-sponsorship-${placement}`}>
     <View style={s.top}>
       <View style={s.badge}>
         <MaterialCommunityIcons name="bullhorn-outline" size={13} color="#25573F"/>
@@ -235,11 +274,15 @@ export default function BuklodCommunitySponsoredAd({
       <Text style={s.scope}>{campaign.coverage_level === 'nationwide' ? 'Public'
         : campaign.coverage_level === 'city' ? 'Town / City' : campaign.coverage_level}</Text>
     </View>
+    <View ref={mediaRef} collapsable={false} onLayout={() => remeasureVideoRef.current()}>
     {campaign.creative_type === 'video' && campaign.video_url
-      ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={screenFocused&&videoVisible}/>
+      ? videoNear && screenFocused
+        ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={screenFocused&&videoVisible}/>
+        : <View style={s.media}/>
       : campaign.image_url
         ? <Image source={{uri: campaign.image_url}} style={s.media} resizeMode="contain"/>
         : null}
+    </View>
     <View style={s.copy}>
       <Text style={s.advertiser}>{campaign.advertiser_name}</Text>
       <Text style={s.headline}>{campaign.headline}</Text>

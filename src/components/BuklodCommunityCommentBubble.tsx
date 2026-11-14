@@ -9,13 +9,12 @@ import {
 import React, {
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import {
   Alert,
   Modal,
-  Platform,
+  ScrollView,
   Pressable,
   StyleSheet,
   Text,
@@ -223,6 +222,21 @@ function createStyles(theme: BuklodThemeRoles) {
     modalButtonTextPrimary: {
       color: theme.white,
     },
+    menuItem: {
+      minHeight: 48,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      justifyContent: 'center',
+      backgroundColor: theme.surfaceMuted,
+    },
+    menuItemText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.textPrimary,
+    },
+    menuItemDanger: {
+      color: '#B42318',
+    },
     pickerRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -266,12 +280,14 @@ export function BuklodCommunityCommentBubble({
     () => createStyles(theme),
     [theme]
   );
-  const [editOpen, setEditOpen] = useState(false);
+  // One native Modal for every dialog mode avoids stacked Android modals.
+  const [dialogMode, setDialogMode] = useState<
+    'actions' | 'edit' | 'reaction' | 'delete' | 'details' | null
+  >(null);
   const [editBody, setEditBody] = useState(comment.body);
   const [editBusy, setEditBusy] = useState(false);
-  const [reactionPickerOpen, setReactionPickerOpen] =
-    useState(false);
-  const menuOpenRef = useRef(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const parsedBody = useMemo(
     () => parseBuklodCommentMediaBody(comment.body),
     [comment.body],
@@ -301,187 +317,84 @@ export function BuklodCommunityCommentBubble({
     };
   }, [parsedBody.media]);
 
-  const canEdit =
-    Boolean(comment.is_owner) &&
-    currentUserId &&
-    comment.user_id === currentUserId;
-
-  const canDelete =
-    Boolean(comment.is_owner || comment.can_manage);
-
-  const canReport =
-    currentUserId &&
-    comment.user_id !== currentUserId;
+  // Client visibility is a convenience; RPC authorization remains authoritative.
+  // Derive author permissions from the authenticated ID even if is_owner
+  // from a cached response is stale or absent.
+  const isAuthor = Boolean(currentUserId && comment.user_id === currentUserId);
+  const canEdit = isAuthor;
+  const canDelete = isAuthor || Boolean(comment.can_manage);
+  const canReport = Boolean(currentUserId && !isAuthor);
 
   const openEdit = () => {
-    const caption = parsedBody.caption;
-    setEditBody(caption);
-    if (Platform.OS === 'ios') {
-      Alert.prompt(
-        'Edit comment',
-        undefined,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Save',
-            onPress: (value?: string) => {
-              const trimmed = String(value ?? '').trim();
-              if (!trimmed && !parsedBody.media) {
-                return;
-              }
-
-              void onEdit(
-                encodeBuklodCommentMediaBody(
-                  parsedBody.media,
-                  trimmed,
-                ),
-              );
-            },
-          },
-        ],
-        'plain-text',
-        caption
-      );
-
-      return;
-    }
-
-    setEditOpen(true);
+    setEditBody(parsedBody.caption);
+    setDialogMode('edit');
   };
 
   const confirmDelete = () => {
-    Alert.alert(
-      'Delete Comment',
-      'Remove this comment permanently?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void onDelete().catch(
-              (error: any) => {
-                Alert.alert(
-                  'Delete Comment',
-                  error?.message ??
-                    'Could not delete this comment.'
-                );
-              }
-            );
-          },
-        },
-      ]
-    );
+    setDeleteError(null);
+    setDialogMode('delete');
   };
 
-  const showDetails = () => {
-    Alert.alert(
-      'Comment details',
-      [
-        `Author: ${resolvePersonDisplayName(
-          comment.commenter_name,
+  const performDelete = async () => {
+    if (deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await onDelete();
+      setDialogMode(null);
+    } catch (error: any) {
+      setDeleteError(error?.message ?? 'Could not delete this comment. Please retry.');
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
+  const openMenu = () => setDialogMode('actions');
+  const actions: {
+    label: string;
+    onPress: () => void;
+    destructive?: boolean;
+  }[] = [
+    {
+      label: 'Reply',
+      onPress: () => { setDialogMode(null); onReply(); },
+    },
+    {
+      label: 'Copy Text',
+      onPress: () => {
+        setDialogMode(null);
+        void Clipboard.setStringAsync(parsedBody.caption || comment.body);
+      },
+    },
+    {
+      label: 'React',
+      onPress: () => setDialogMode('reaction'),
+    },
+    ...(canEdit ? [{ label: 'Edit', onPress: openEdit }] : []),
+    ...(canDelete ? [{
+      label: 'Delete',
+      destructive: true,
+      onPress: confirmDelete,
+    }] : []),
+    ...(canReport ? [{
+      label: 'Report',
+      onPress: () => { setDialogMode(null); onReport(); },
+    }] : []),
+    ...(comment.user_id ? [{
+      label: 'Visit Profile',
+      onPress: () => {
+        setDialogMode(null);
+        visitMemberProfile(
           comment.user_id,
-        )}`,
-        `Posted: ${timeLabel}`,
-        `ID: ${comment.id}`,
-      ].join('\n')
-    );
-  };
-
-  const openMenu = () => {
-    if (menuOpenRef.current) {
-      return;
-    }
-
-    menuOpenRef.current = true;
-
-    const actions: {
-      text: string;
-      onPress?: () => void;
-      style?: 'cancel' | 'destructive';
-    }[] = [
-      {
-        text: 'Reply',
-        onPress: onReply,
+          resolvePersonDisplayName(comment.commenter_name, comment.user_id),
+        );
       },
-      {
-        text: 'Copy Text',
-        onPress: () => {
-          void Clipboard.setStringAsync(
-            parsedBody.caption || comment.body
-          );
-        },
-      },
-      {
-        text: 'React',
-        onPress: () =>
-          setReactionPickerOpen(true),
-      },
-    ];
-
-    if (canEdit) {
-      actions.push({
-        text: 'Edit',
-        onPress: openEdit,
-      });
-    }
-
-    if (canDelete) {
-      actions.push({
-        text: 'Delete',
-        style: 'destructive',
-        onPress: confirmDelete,
-      });
-    }
-
-    if (canReport) {
-      actions.push({
-        text: 'Report',
-        onPress: onReport,
-      });
-    }
-
-    if (comment.user_id) {
-      actions.push({
-        text: 'Visit Profile',
-        onPress: () => {
-          visitMemberProfile(
-            comment.user_id,
-            resolvePersonDisplayName(
-              comment.commenter_name,
-              comment.user_id,
-            ),
-          );
-        },
-      });
-    }
-
-    actions.push({
-      text: 'View Details',
-      onPress: showDetails,
-    });
-
-    actions.push({
-      text: 'Cancel',
-      style: 'cancel',
-    });
-
-    Alert.alert(
-      'Comment',
-      undefined,
-      actions,
-      {
-        cancelable: true,
-        onDismiss: () => {
-          menuOpenRef.current = false;
-        },
-      }
-    );
-
-    setTimeout(() => {
-      menuOpenRef.current = false;
-    }, 500);
-  };
+    }] : []),
+    {
+      label: 'View Details',
+      onPress: () => setDialogMode('details'),
+    },
+  ];
 
   const saveEdit = async () => {
     const trimmed = editBody.trim();
@@ -504,7 +417,7 @@ export function BuklodCommunityCommentBubble({
           trimmed,
         ),
       );
-      setEditOpen(false);
+      setDialogMode(null);
     }
     catch (error: any) {
       Alert.alert(
@@ -530,6 +443,8 @@ export function BuklodCommunityCommentBubble({
           bubbleStyle,
         ]}
       >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
         <BuklodTappablePersonName
           userId={comment.user_id}
           displayName={resolvePersonDisplayName(
@@ -543,6 +458,18 @@ export function BuklodCommunityCommentBubble({
             comment.user_id,
           )}
         </BuklodTappablePersonName>
+          </View>
+          <Pressable
+            onPress={openMenu}
+            hitSlop={BUKLOD_HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="More comment actions"
+            accessibilityHint="Open Reply, Edit, Delete, and other available comment actions"
+            style={{ minWidth: 38, minHeight: 38, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text style={[styles.actionLink, { fontSize: 22 }]}>•••</Text>
+          </Pressable>
+        </View>
 
         {!!metaLine && (
           <Text style={styles.meta}>
@@ -573,7 +500,7 @@ export function BuklodCommunityCommentBubble({
         <View style={styles.footerActions}>
           <Pressable
             onPress={() => onReact(comment.my_reaction || reactionOptions[0]?.key || 'with_you')}
-            onLongPress={() => setReactionPickerOpen(true)}
+            onLongPress={() => setDialogMode('reaction')}
             delayLongPress={BUKLOD_LONG_PRESS_MS}
             hitSlop={BUKLOD_HIT_SLOP}
             accessibilityRole="button"
@@ -624,102 +551,176 @@ export function BuklodCommunityCommentBubble({
       </View>
 
       <Modal
-        visible={editOpen}
+        visible={dialogMode !== null}
         transparent
         animationType="fade"
-        onRequestClose={() =>
-          setEditOpen(false)
-        }
+        onRequestClose={() => {
+          if (!editBusy && !deleteBusy) setDialogMode(null);
+        }}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              Edit comment
-            </Text>
-
-            <TextInput
-              value={editBody}
-              onChangeText={setEditBody}
-              multiline
-              style={styles.modalInput}
-            />
-
-            <View style={styles.modalActions}>
-              <Pressable
-                disabled={editBusy}
-                onPress={() =>
-                  setEditOpen(false)
-                }
-                style={styles.modalButton}
-              >
-                <Text style={styles.modalButtonText}>
-                  Cancel
-                </Text>
-              </Pressable>
-
-              <Pressable
-                disabled={editBusy}
-                onPress={() =>
-                  void saveEdit()
-                }
-                style={[
-                  styles.modalButton,
-                  styles.modalButtonPrimary,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.modalButtonText,
-                    styles.modalButtonTextPrimary,
-                  ]}
+            {dialogMode === 'actions' && (
+              <>
+                <Text style={styles.modalTitle}>Comment actions</Text>
+                <ScrollView
+                  style={{ maxHeight: 420 }}
+                  contentContainerStyle={{ gap: 8 }}
+                  keyboardShouldPersistTaps="handled"
                 >
-                  Save
+                  {actions.map(action => (
+                    <Pressable
+                      key={action.label}
+                      accessibilityRole="button"
+                      accessibilityLabel={action.label + ' comment'}
+                      onPress={action.onPress}
+                      style={styles.menuItem}
+                    >
+                      <Text style={[
+                        styles.menuItemText,
+                        action.destructive && styles.menuItemDanger,
+                      ]}>
+                        {action.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close comment actions"
+                  onPress={() => setDialogMode(null)}
+                  style={styles.modalButton}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </Pressable>
+              </>
+            )}
+
+            {dialogMode === 'edit' && (
+              <>
+                <Text style={styles.modalTitle}>Edit comment</Text>
+                <TextInput
+                  value={editBody}
+                  onChangeText={setEditBody}
+                  multiline
+                  accessibilityLabel="Edit comment text"
+                  style={styles.modalInput}
+                />
+                <View style={styles.modalActions}>
+                  <Pressable
+                    disabled={editBusy}
+                    onPress={() => setDialogMode(null)}
+                    style={styles.modalButton}
+                  >
+                    <Text style={styles.modalButtonText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    disabled={editBusy}
+                    onPress={() => { void saveEdit(); }}
+                    style={[styles.modalButton, styles.modalButtonPrimary]}
+                  >
+                    <Text style={[
+                      styles.modalButtonText,
+                      styles.modalButtonTextPrimary,
+                    ]}>
+                      {editBusy ? 'Saving…' : 'Save'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+
+            {dialogMode === 'reaction' && (
+              <>
+                <Text style={styles.modalTitle}>React to comment</Text>
+                <View style={styles.pickerRow}>
+                  {reactionOptions.map(option => (
+                    <Pressable
+                      key={option.key}
+                      accessibilityRole="button"
+                      accessibilityLabel={option.label}
+                      onPress={() => {
+                        setDialogMode(null);
+                        onReact(option.key);
+                      }}
+                      style={styles.pickerOption}
+                    >
+                      <Text style={styles.pickerEmoji}>{option.emoji}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Pressable
+                  onPress={() => setDialogMode(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel reaction"
+                  style={styles.modalButton}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </Pressable>
+              </>
+            )}
+
+            {dialogMode === 'delete' && (
+              <>
+                <Text style={styles.modalTitle}>Delete comment?</Text>
+                <Text style={{ fontSize: 15, color: theme.textPrimary }}>
+                  This comment will be permanently removed.
                 </Text>
-              </Pressable>
-            </View>
+                {!!deleteError && (
+                  <Text accessibilityRole="alert" style={styles.menuItemDanger}>
+                    {deleteError}
+                  </Text>
+                )}
+                <View style={styles.modalActions}>
+                  <Pressable
+                    disabled={deleteBusy}
+                    onPress={() => setDialogMode(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel deletion"
+                    style={styles.modalButton}
+                  >
+                    <Text style={styles.modalButtonText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    disabled={deleteBusy}
+                    onPress={() => { void performDelete(); }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Confirm delete comment"
+                    style={styles.modalButton}
+                  >
+                    <Text style={styles.menuItemDanger}>
+                      {deleteBusy ? 'Deleting…' : 'Delete'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+
+            {dialogMode === 'details' && (
+              <>
+                <Text style={styles.modalTitle}>Comment details</Text>
+                <Text style={{ color: theme.textPrimary, fontSize: 14 }}>
+                  {[
+                    'Author: ' + resolvePersonDisplayName(
+                      comment.commenter_name,
+                      comment.user_id,
+                    ),
+                    'Posted: ' + timeLabel,
+                    'ID: ' + comment.id,
+                  ].join('\n')}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close comment details"
+                  onPress={() => setDialogMode(null)}
+                  style={styles.modalButton}
+                >
+                  <Text style={styles.modalButtonText}>Close</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
-      </Modal>
-
-      <Modal
-        visible={reactionPickerOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() =>
-          setReactionPickerOpen(false)
-        }
-      >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() =>
-            setReactionPickerOpen(false)
-          }
-        >
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              React to comment
-            </Text>
-
-            <View style={styles.pickerRow}>
-              {reactionOptions.map(option => (
-                <Pressable
-                  key={option.key}
-                  accessibilityRole="button"
-                  accessibilityLabel={option.label}
-                  onPress={() => {
-                    setReactionPickerOpen(false);
-                    onReact(option.key);
-                  }}
-                  style={styles.pickerOption}
-                >
-                  <Text style={styles.pickerEmoji}>
-                    {option.emoji}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        </Pressable>
       </Modal>
     </View>
   );

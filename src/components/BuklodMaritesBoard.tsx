@@ -11,6 +11,7 @@ import {
   Alert,
   AppState,
   Image,
+  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -94,6 +95,7 @@ import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useFocusEffect } from 'expo-router';
 import { selectVisibleMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
+import { createMaritesVisibilityScheduler } from '@/lib/buklodMaritesViewportMeasure';
 import { useAuth } from '@/providers/AuthProvider';
 import { subscribeBuklodPublicPostChanges } from '@/lib/buklodPublicCommunityRealtime';
 import {
@@ -114,6 +116,8 @@ type Props = {
   /** Reserved for future scoped RPC filter. */
   locationScopeId?: string | null;
   playbackBlocked?: boolean;
+  /** Parent Wall pauses media while a fullscreen Marites story owns playback. */
+  onViewerVisibilityChange?: (visible: boolean) => void;
   visibilityRefreshRef?: React.MutableRefObject<(() => void) | null>;
   onOpenComments?: (postId: string, story: MaritesStory) => void;
 };
@@ -908,6 +912,7 @@ export default function BuklodMaritesBoard({
   locationScopeId,
   onOpenComments,
   playbackBlocked = false,
+  onViewerVisibilityChange,
   visibilityRefreshRef,
 }: Props) {
   const { user, profile } = useAuth();
@@ -933,6 +938,12 @@ export default function BuklodMaritesBoard({
   const playbackActive = useMaritesPlaybackActive();
   const [viewStory, setViewStory] =
     useState<MaritesStory | null>(null);
+  const maritesViewerVisible = viewStory !== null;
+  // Includes server-expiration dismissal and programmatic close, not only Back.
+  useEffect(() => {
+    onViewerVisibilityChange?.(maritesViewerVisible);
+  }, [maritesViewerVisible, onViewerVisibilityChange]);
+  useEffect(() => () => onViewerVisibilityChange?.(false), [onViewerVisibilityChange]);
   const [storyZoomed, setStoryZoomed] =
     useState(false);
   const [reactionPickerOpen, setReactionPickerOpen] =
@@ -1158,16 +1169,19 @@ export default function BuklodMaritesBoard({
   }, [cacheKey, stories, user?.id]);
 
   const closeStoryViewer = useCallback(() => {
+    onViewerVisibilityChange?.(false);
     setStoryZoomed(false);
     setViewStory(null);
     setReactionPickerOpen(false);
-  }, []);
+  }, [onViewerVisibilityChange]);
 
   const openStoryViewer = useCallback((story: MaritesStory) => {
+    // Batch the Wall-player pause with native modal opening.
+    onViewerVisibilityChange?.(true);
     setStoryZoomed(false);
     setReactionPickerOpen(false);
     setViewStory(story);
-  }, []);
+  }, [onViewerVisibilityChange]);
 
   /*
    * BUKLOD_MARITES_STORY_NAV_R1
@@ -1830,18 +1844,33 @@ export default function BuklodMaritesBoard({
       }));
     });
   }, [canPlayInline, activeStories, windowWidth, windowHeight, insets.top, insets.bottom, drawerBottomInset]);
+
+  // Wall emits scroll updates as often as once per frame. Coalesce native
+  // measureInWindow calls while retaining immediate focus/overlay transitions.
+  const latestMeasureVisibility = useRef(measureVisibility);
+  latestMeasureVisibility.current = measureVisibility;
+  const measurementSchedulerRef = useRef<ReturnType<typeof createMaritesVisibilityScheduler> | null>(null);
+  if (!measurementSchedulerRef.current) {
+    measurementSchedulerRef.current = createMaritesVisibilityScheduler(
+      () => latestMeasureVisibility.current(),
+    );
+  }
+  const requestVisibilityMeasurement = useCallback(() => {
+    measurementSchedulerRef.current?.request();
+  }, []);
   useEffect(() => {
-    if (visibilityRefreshRef) visibilityRefreshRef.current = measureVisibility;
-    measureVisibility();
-    // Also catch header animation/layout changes without rerendering the Wall.
+    if (visibilityRefreshRef) visibilityRefreshRef.current = requestVisibilityMeasurement;
+    measurementSchedulerRef.current?.flush();
+    // Periodic fallback for header/layout changes that do not emit scrolling.
     const timer = canPlayInline && activeStories.some(story => story.video_uri)
-      ? setInterval(measureVisibility, 750) : null;
+      ? setInterval(requestVisibilityMeasurement, 750) : null;
     return () => {
       ++visibilityGeneration.current;
       if (timer) clearInterval(timer);
-      if (visibilityRefreshRef?.current === measureVisibility) visibilityRefreshRef.current = null;
+      measurementSchedulerRef.current?.cancel();
+      if (visibilityRefreshRef?.current === requestVisibilityMeasurement) visibilityRefreshRef.current = null;
     };
-  }, [measureVisibility, canPlayInline, activeStories, visibilityRefreshRef]);
+  }, [measureVisibility, canPlayInline, activeStories, visibilityRefreshRef, requestVisibilityMeasurement]);
 
   return (
     <View style={styles.section}>
@@ -1878,18 +1907,29 @@ export default function BuklodMaritesBoard({
         </View>
       </View>
 
-      <View ref={stripViewportRef} collapsable={false} onLayout={measureVisibility}>
-      <ScrollView
+      <View ref={stripViewportRef} collapsable={false} onLayout={requestVisibilityMeasurement}>
+      {/* Android PSS investigation: the old horizontal ScrollView eagerly
+          mounted every 72h photo/card/menu. Virtualize ONLY the strip and
+          retain a generous window for instant adjacent swipes; never clip
+          photos on Android (known white-tile regression). Fullscreen viewer,
+          signed URLs, active player and AdMob remain unchanged. */}
+      <FlatList
         horizontal
+        data={activeStories}
+        keyExtractor={story => story.id}
+        extraData={`${canPlayInline ? 'play' : 'pause'}:${visibleVideoIndex}`}
+        initialNumToRender={4}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        updateCellsBatchingPeriod={80}
+        removeClippedSubviews={false}
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.row}
         scrollEventThrottle={100}
-        onScroll={event => { storyStripOffset.current = event.nativeEvent.contentOffset.x; measureVisibility(); }}
-      >
-        {activeStories.map((story, index) => (
+        onScroll={event => { storyStripOffset.current = event.nativeEvent.contentOffset.x; requestVisibilityMeasurement(); }}
+        renderItem={({ item: story, index }) => (
           <BuklodFocusFadeUp
-            key={story.id}
             delay={Math.min(index, 8) * 30}
             duration={220}
             fromY={6}
@@ -1913,8 +1953,8 @@ export default function BuklodMaritesBoard({
               })() : undefined}
             />
           </BuklodFocusFadeUp>
-        ))}
-      </ScrollView>
+        )}
+      />
       </View>
 
       {activeStories.length === 0 && (

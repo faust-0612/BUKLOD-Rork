@@ -1,0 +1,53 @@
+name: BUKLOD Kingdom Premium Audio Isolated Staging Android QA
+on:
+  pull_request:
+    branches: [dev/nav2-wall-stability-integration-20261113]
+    paths:
+      - 'src/features/games/runtime/**'
+      - 'assets/sounds/kingdom-premium/**'
+      - 'tests/kingdom-*'
+      - '.github/workflows/kingdom-premium-audio-qa.yml'
+permissions:
+  contents: read
+jobs:
+  staging-compile-no-publish:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'dev/kingdom-premium-audio-20261114'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify exact staging source and installed runtime contract
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const cfg=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          assert.equal(cfg.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(cfg.runtimeVersion,'1.3.2');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          NODE
+      - name: Offline sound integrity and Kingdom regression tests
+        run: |
+          set -euo pipefail
+          node scripts/rork-media-contract-test.mjs
+          node --test tests/kingdom-premium-audio-20261114.test.mjs tests/kingdom-cinematic-ui-audio-20261111.test.mjs
+      - name: Install and check TypeScript
+        run: |
+          npm ci --ignore-scripts
+          npx tsc --noEmit
+      - name: Staging Android JS compile with zero OTA publication
+        run: |
+          npx expo export --platform android --output-dir /tmp/buklod-kingdom-audio-staging --clear
+          test -n "$(find /tmp/buklod-kingdom-audio-staging -type f -print -quit)"
+          echo 'STAGING COMPILE ONLY; no EAS OTA, APK, web or production publish.'

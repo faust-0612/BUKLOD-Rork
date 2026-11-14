@@ -1,0 +1,38 @@
+name: Vendor Kingdom Premium CC0 Audio (staging isolated)
+on:
+  push:
+    branches:
+      - dev/kingdom-premium-audio-20261114
+    paths:
+      - scripts/vendor-kingdom-premium-audio.py
+      - .github/workflows/kingdom-premium-audio-vendor.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: kingdom-audio-vendor-staging
+  cancel-in-progress: false
+jobs:
+  vendor:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/kingdom-premium-audio-20261114'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Generate pinned CC0 assets and validate audio
+        run: |
+          if ! command -v ffprobe >/dev/null || ! command -v ffmpeg >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
+          python3 scripts/vendor-kingdom-premium-audio.py
+          test -s assets/sounds/kingdom-premium/assets.json
+          test -s assets/sounds/kingdom-premium/kingdom-score.mp3
+      - name: Commit vendored audio into staging feature branch
+        run: |
+          git add assets/sounds/kingdom-premium
+          if ! git diff --cached --quiet; then
+            git -c user.name="BUKLOD Staging Audio Vendor" -c user.email="actions@users.noreply.github.com" commit -m "assets(kingdom): bundle licensed orchestral audio for offline staging"
+            git push origin "HEAD:dev/kingdom-premium-audio-20261114"
+          fi

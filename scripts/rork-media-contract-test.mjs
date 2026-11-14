@@ -38,16 +38,30 @@ for (const token of [
 
 for (const token of [
   'createAudioPlayer',
-  'downloadFirst: true',
+  'LOCAL_CUES',
+  'kingdom-premium/kingdom-score.mp3',
   'player.isLoaded',
   'tryPlayRorkGameFeedback',
   'playRorkSignatureSfx',
   'useRorkGameAmbience',
-  'const REMOTE_RORK_AUDIO_ENABLED = false',
+  'preloadCues',
+  'soundSession',
 ]) {
   if (!audio.includes(token)) failures.push(`rorkAudio.ts missing token: ${token}`);
 }
 
+for (const name of ['kingdom-score','click','pop','impact','riser','whoosh','tick']) {
+  const file = 'assets/sounds/kingdom-premium/' + name + '.mp3';
+  if (!fs.existsSync(file) || fs.statSync(file).size < 500)
+    failures.push('Missing or invalid local Kingdom audio: ' + file);
+}
+const manifestFile = 'assets/sounds/kingdom-premium/assets.json';
+if (!fs.existsSync(manifestFile)) failures.push('Missing CC0 audio manifest');
+else {
+  const manifest = JSON.parse(fs.readFileSync(manifestFile,'utf8'));
+  if (manifest.license !== 'CC0-1.0' || Object.keys(manifest.outputs ?? {}).length !== 7)
+    failures.push('CC0 license or asset inventory mismatch');
+}
 if (failures.length) {
   for (const failure of failures) console.error(`FAIL: ${failure}`);
   console.error(`\nRORK MEDIA CONTRACT FAILED with ${failures.length} blocker(s).`);

@@ -135,9 +135,11 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
     itemVisiblePercentThreshold: 60,
     minimumViewTime: 400,
   }).current;
+  // Start the already-prebuffered next clip as soon as it enters the viewport.
+  // Independent from the stricter AdMob visibility/impression threshold.
   const videoViewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 45,
-    minimumViewTime: 80,
+    itemVisiblePercentThreshold: 25,
+    minimumViewTime: 0,
   }).current;
 
   const extraData = useMemo(

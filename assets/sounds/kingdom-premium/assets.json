@@ -1,0 +1,63 @@
+{
+  "license": "CC0-1.0",
+  "sources": {
+    "score": {
+      "url": "https://raw.githubusercontent.com/gtherond/crown-of-embers/06c4583f2ac7f36ddd5eb244e567e7caa0cfbf83/Crown%20of%20Embers%20%28Orchestral%20Version%29.mp3",
+      "sha256": "aa4bf7c53b1d62df8c56d637746a8fe92847818872e13e71b21cc8678a63b907"
+    },
+    "click": {
+      "url": "https://raw.githubusercontent.com/Barty-Bart/motion-graphics/3d83d987d658601d8a1269eb691622bdcd427335/skills/sound-effects/sfx/kit/click.ogg",
+      "sha256": "092c399d65c104856b60b489f400939828112f60e08df2a0af92d2aa22eb940a"
+    },
+    "pop": {
+      "url": "https://raw.githubusercontent.com/Barty-Bart/motion-graphics/3d83d987d658601d8a1269eb691622bdcd427335/skills/sound-effects/sfx/kit/pop.ogg",
+      "sha256": "aaccb740ee19515ec7f11e6002da20d4089ff3d31cfe2ccf26ad12daaf377068"
+    },
+    "impact": {
+      "url": "https://raw.githubusercontent.com/Barty-Bart/motion-graphics/3d83d987d658601d8a1269eb691622bdcd427335/skills/sound-effects/sfx/kit/impact.ogg",
+      "sha256": "122c88861ce3ee60f701a4cf8d526d86f7bb55010e618089d0d7ebbc7c3abdfd"
+    },
+    "riser": {
+      "url": "https://raw.githubusercontent.com/Barty-Bart/motion-graphics/3d83d987d658601d8a1269eb691622bdcd427335/skills/sound-effects/sfx/kit/riser.ogg",
+      "sha256": "22fb67a53f8335427e523531ad80720c9fbb963b70d1fff5112e095c0dd91e01"
+    },
+    "whoosh": {
+      "url": "https://raw.githubusercontent.com/Barty-Bart/motion-graphics/3d83d987d658601d8a1269eb691622bdcd427335/skills/sound-effects/sfx/kit/whoosh.ogg",
+      "sha256": "1a9e7021641074ddd157af0a81a727a0f5260c7fcf26b97b7a88da36c96fdc8c"
+    },
+    "tick": {
+      "url": "https://raw.githubusercontent.com/Barty-Bart/motion-graphics/3d83d987d658601d8a1269eb691622bdcd427335/skills/sound-effects/sfx/kit/tick.ogg",
+      "sha256": "7f832454b8a49e95237bfe40a81da20d82b00a2074e8789393fa6a0b75678cff"
+    }
+  },
+  "outputs": {
+    "whoosh.mp3": {
+      "duration": 0.47,
+      "sha256": "da9b41de8cf3882bea52307c1d560eb4fa954127831bcfa1afd39cbdf8207e7c"
+    },
+    "tick.mp3": {
+      "duration": 0.052,
+      "sha256": "917e5ac367c6044baa754e8146e8ad13e4523f6c326b9eb6305d016de8f21b67"
+    },
+    "pop.mp3": {
+      "duration": 0.157,
+      "sha256": "817b1c38e0b7335179407b37d94c69fe689e2ae6e35b23cb9767f99977aa4ac7"
+    },
+    "click.mp3": {
+      "duration": 0.131,
+      "sha256": "f9aba65bbe2cf280937b03b79d7267ebaa4d456cea4e7939961aba1c908afbd7"
+    },
+    "riser.mp3": {
+      "duration": 2.064,
+      "sha256": "33fd07d92897616b07edcdcad8d5c4f7fc7bbfac18ef6f5f8dce50597b907627"
+    },
+    "impact.mp3": {
+      "duration": 0.313,
+      "sha256": "5302d05624f4ce205e64e32570842eae99ff4c6ddd5eb7c54033e789a5ee1687"
+    },
+    "kingdom-score.mp3": {
+      "duration": 52.036,
+      "sha256": "ebe70db85d1c62e0fbd43ce976cfc7f6083e00a68c85232130c8d441acd9e980"
+    }
+  }
+}

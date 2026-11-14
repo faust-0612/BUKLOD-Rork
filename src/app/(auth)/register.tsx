@@ -1068,7 +1068,7 @@ useEffect(() => {
         >
           First Name *
         </Text>
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder="First Name"
           value={firstName}
@@ -1086,7 +1086,7 @@ useEffect(() => {
         <Text style={styles.help}>
           Optional
         </Text>
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder="Middle Name (optional)"
           value={middleName}
@@ -1101,7 +1101,7 @@ useEffect(() => {
         >
           Surname *
         </Text>
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder="Surname"
           value={surname}
@@ -1119,7 +1119,7 @@ useEffect(() => {
         <Text style={styles.help}>
           Optional - e.g. Jr., Sr., II, III
         </Text>
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder="Suffix (optional)"
           value={suffix}
@@ -1206,7 +1206,7 @@ useEffect(() => {
           {loginHelp}
         </Text>
 
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder={
             loginPlaceholder
@@ -1247,7 +1247,7 @@ useEffect(() => {
               Optional. This is saved to your member profile but is not your login.
             </Text>
 
-            <TextInput
+            <TextInput allowFontScaling
               style={styles.input}
               placeholder="09171234567 (optional)"
               value={contactMobile}
@@ -1271,7 +1271,7 @@ useEffect(() => {
           Optional. Use YYYY-MM-DD.
         </Text>
 
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder="1990-06-12"
           value={birthDate}
@@ -1336,7 +1336,7 @@ useEffect(() => {
             styles.passwordRow
           }
         >
-          <TextInput
+          <TextInput allowFontScaling
             style={
               styles.passwordInput
             }
@@ -1380,7 +1380,7 @@ useEffect(() => {
           Type a friend&apos;s BUKLOD account name or invite code. Matching accounts appear as you type.
         </Text>
 
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder="Account name or invite code"
           value={referralQuery}
@@ -1452,7 +1452,7 @@ useEffect(() => {
           Barangay *
         </Text>
 
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder="Barangay"
           value={barangay}
@@ -1464,7 +1464,7 @@ useEffect(() => {
           Town / City *
         </Text>
 
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder="Municipality or City"
           value={cityMunicipality}
@@ -1478,7 +1478,7 @@ useEffect(() => {
           Province *
         </Text>
 
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder="Province"
           value={province}
@@ -1490,7 +1490,7 @@ useEffect(() => {
           Country *
         </Text>
 
-        <TextInput
+        <TextInput allowFontScaling
           style={styles.input}
           placeholder="Country"
           value={country}
@@ -1712,7 +1712,7 @@ useEffect(() => {
                 color={colors.muted}
               />
 
-              <TextInput
+              <TextInput allowFontScaling
                 style={styles.searchInput}
                 placeholder="Search Local Church..."
                 value={churchSearch}
@@ -1832,6 +1832,7 @@ const styles =
       lineHeight: 16,
     },
     input: {
+      fontSize: 16,
       borderWidth: 1,
       borderColor: colors.line,
       borderRadius: 12,
@@ -2174,6 +2175,7 @@ const styles =
       backgroundColor: colors.white,
     },
     searchInput: {
+      fontSize: 16,
       flex: 1,
       paddingVertical: 12,
     },

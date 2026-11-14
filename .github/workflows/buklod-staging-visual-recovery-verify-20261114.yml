@@ -1,0 +1,48 @@
+# Read-only independent Expo manifest verification; NEVER publishes.
+name: BUKLOD Staging Visual Recovery Readonly Verification
+on:
+  push:
+    branches: [dev/nav2-wall-stability-integration-20261113]
+    paths: [.github/workflows/buklod-staging-visual-recovery-verify-20261114.yml]
+permissions:
+  contents: read
+jobs:
+  verify-restored-visual-update:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/nav2-wall-stability-integration-20261113' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify currently served Android staging update and unchanged production
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {manifest} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const stage=await manifest('staging-user');
+          assert.equal(stage.id.toLowerCase(),'01a1d7f4-3cdf-7219-9632-52fba0ed5a4e');
+          assert.equal(stage.runtimeVersion,'1.3.2');
+          assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.ok(stage.launchAsset?.url);
+          const production=await manifest('production');
+          assert.equal(production.id.toLowerCase(),'01a1d2d6-bae3-74df-bbf4-2bdd9df35215');
+          assert.equal(production.runtimeVersion,'1.3.2');
+          assert.equal(production.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          const receipt={status:'VERIFIED SERVER-SIDE STAGING VISUAL RECOVERY',restoredVisualOriginalUpdate:'01a1d606-ce68-79db-8fc3-211db8a41305',restoredVisualSource:'e1551b09ad180e81a889d39615aea6257688ddea',republishedUpdateId:stage.id,channel:'staging-user',platform:'android',package:'org.mzbministry.buklod.staging',runtime:'1.3.2',productionIdUnchanged:production.id,deviceVerified:false,verifiedAt:new Date().toISOString()};
+          fs.writeFileSync('/tmp/buklod-visual-recovery-verification.json',JSON.stringify(receipt,null,2));
+          console.log(JSON.stringify(receipt));
+          NODE
+      - name: Archive independent read-only verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-staging-visual-recovery-verification-${{ github.sha }}
+          path: /tmp/buklod-visual-recovery-verification.json
+          retention-days: 14
+          if-no-files-found: ignore

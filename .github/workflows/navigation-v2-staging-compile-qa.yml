@@ -1,0 +1,71 @@
+# Nonpublishing, isolated QA for Navigation V2 + Wall/Marites staging Android candidate.
+name: BUKLOD Navigation V2 Staging Android Compile QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/navigation-v2-staging-compile-qa.yml'
+      - '.github/workflows/navigation-v2-staging-ota.yml'
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/navigation-v2-*'
+      - 'scripts/staging-apk-device-attestation.mjs'
+      - '.buklod/scopes/nav2-wall-stability-integration-20261113.json'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-nav2-staging-compile-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  staging-android-compile-no-publish:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'dev/nav2-wall-stability-integration-20261113'
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+    steps:
+      - name: Checkout exact PR candidate, never main or stale staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # required to verify signed APK and pinned media ancestry
+      - name: Node 22 and locked dependency cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies without lifecycle side effects
+        run: npm ci --ignore-scripts
+      - name: Prove staging-only package/runtime and pinned exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const eas=require('./eas.json');
+          const app=require('./app.config.js')({config:{}});
+          assert.equal(app.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(app.runtimeVersion,'1.3.2');
+          assert.equal(app.extra.appEnvironment,'staging');
+          assert.equal(app.extra.appTarget,'main');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          assert.equal(eas.build['staging-user'].environment,'preview');
+          NODE
+      - name: Run combined navigation, Comment, GIF, Wall and APK regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types scripts/navigation-v2-route-audit.mjs
+          node --experimental-strip-types --test tests/navigation-v2-*.test.mjs tests/marites-wall-scroll-video-navigation-20261113.test.mjs tests/nav2-wall-stability-integration-20261113.test.mjs tests/buklod-comment-menu-android-20261113.test.mjs tests/staging-apk-device-attestation-20261113.test.mjs tests/buklod-keyboard-gif-direct-20261113.test.mjs tests/buklod-keyboard-gif-navigation-20261113.test.mjs tests/buklod-keyboard-gif-scope-20261113.test.mjs
+          npx tsc --noEmit
+      - name: Actual staging-identity Android JS compile without upload or publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx expo export --platform android --output-dir /tmp/buklod-nav-v2-staging-rc --clear
+          test -n "$(find /tmp/buklod-nav-v2-staging-rc -type f -print -quit)"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          echo 'COMPILED ONLY; not an APK, EAS OTA, installed client or production release.'
