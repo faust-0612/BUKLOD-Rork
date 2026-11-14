@@ -82,7 +82,12 @@ test('All 13 Kingdom station route contracts and real BP/Shard security boundari
   assert.match(stage, /<BuklodGameCharacterCompanion/);
   assert.match(stage, /<BuklodGameLanguageControl/);
   assert.doesNotMatch(fx + jawo + trudice, /supabase\.rpc|grantShards|grantPoints|awardPoints|purchaseShard|setItem\(/);
-  const changed = execFileSync('git', ['diff', '--name-only', baseline, 'HEAD'], { encoding:'utf8' }).trim().split('\n').filter(Boolean);
+  // CI checks a synthetic PR merge commit; compare against its actual moving
+  // target branch, not the initial R7 snapshot that predates unrelated fixes.
+  const baseForDiff = process.env.BUKLOD_BASE_REF
+    ? 'origin/' + process.env.BUKLOD_BASE_REF.replace(/^origin\//, '')
+    : baseline;
+  const changed = execFileSync('git', ['diff', '--name-only', baseForDiff, 'HEAD'], { encoding:'utf8' }).trim().split('\n').filter(Boolean);
   const authorized = new Set([
     'src/features/games/runtime/BuklodGameplayReactionFX.native.tsx',
     'src/features/games/runtime/BuklodGameStage.native.tsx',
