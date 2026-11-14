@@ -1390,7 +1390,7 @@ function ConnectScreenInner({
                   />
                 </BuklodFocusVisibleRow>
                 {index === 3 && !isSearching ? (
-                  <BuklodNativeSponsoredCard surface="connect" slotId="connect_community_inline_4" />
+                  <BuklodNativeSponsoredCard surface="connect" slotId="connect_community_inline_4" prefetch />
                 ) : null}
                 </>
               );
@@ -1415,7 +1415,7 @@ function ConnectScreenInner({
                 />
               </BuklodFocusVisibleRow>
               {index === 3 && !isSearching ? (
-                <BuklodNativeSponsoredCard surface="connect" slotId="connect_personal_inline_4" />
+                <BuklodNativeSponsoredCard surface="connect" slotId="connect_personal_inline_4" prefetch />
               ) : null}
               </>
             );

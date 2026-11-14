@@ -100,6 +100,7 @@ import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import BuklodWallQuickLinks from '@/components/BuklodWallQuickLinks';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
+import {noteBuklodVideoScroll, subscribeBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
 import {
@@ -1509,11 +1510,13 @@ function LegacyPublicBuklodScreen(){
   setVideoViewerIndex
  ]=useState(0);
  const [videoViewerPageHeight,setVideoViewerPageHeight]=useState(COMMUNITY_VIEWER_HEIGHT);
+  const [videoViewerScrollPaused,setVideoViewerScrollPaused]=useState(false);
+  useEffect(()=>subscribeBuklodVideoScroll(setVideoViewerScrollPaused),[]);
  const [videoViewerShowHint,setVideoViewerShowHint]=useState(true);
  // Advance playback as the next page becomes visible, not after momentum ends.
  const videoViewerViewabilityConfig=useRef({
-  itemVisiblePercentThreshold:60,
-  minimumViewTime:80
+  itemVisiblePercentThreshold:10,
+  minimumViewTime:0
  }).current;
  const videoViewerOnViewableItemsChanged=useRef(({
   viewableItems
@@ -4795,7 +4798,10 @@ const load=useCallback(async(options?:{
       return (
         <>
           <View
-            /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
+            ref={(node: View | null)=>registerVideoFrame(postId,node)}
+             collapsable={false}
+             onLayout={onVideoFrameLayout}
+             /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
             style={{
               marginHorizontal:-8,
               position:'relative',
@@ -5264,6 +5270,9 @@ const communityFeedRows =
 
   visibleVideoPostId,
   preloadVideoPostId,
+  preloadAdId,
+  registerVideoFrame,
+  onVideoFrameLayout,
  } = useBuklodCommunityAdViewability(communityFeedRows);
  const videoPriority=resolveBuklodWallMaritesVideoPriority({
    wallFocused:wallScreenFocused,
@@ -5386,6 +5395,7 @@ const communityFeedRows =
       communityScrollYRefBackR2.current =
         Number(event?.nativeEvent?.contentOffset?.y ?? 0);
       reportBuklodDashboardScroll('wall', communityScrollYRefBackR2.current);
+       noteBuklodVideoScroll();
       maritesVisibilityRefreshRef.current?.();
     }}
     scrollEventThrottle={16}
@@ -5902,6 +5912,7 @@ const communityFeedRows =
       return (
         <BuklodCommunityInlineAd
           slotId={item.id}
+          prefetch={preloadAdId===item.id}
           // Keep a measurable viewport probe mounted before first activation.
           // Real ad requests remain gated by the existing SDK consent/viewport rules.
         />
@@ -6265,6 +6276,8 @@ const communityFeedRows =
      windowSize={3}
      updateCellsBatchingPeriod={16}
      removeClippedSubviews={false}
+     onScroll={noteBuklodVideoScroll}
+     scrollEventThrottle={16}
      onViewableItemsChanged={videoViewerOnViewableItemsChanged}
      viewabilityConfig={videoViewerViewabilityConfig}
      keyExtractor={(post,index)=>
@@ -6445,15 +6458,9 @@ const communityFeedRows =
          }}
          height={videoViewerPageHeight}
          fullscreen
-         active={
-          index===
-          videoViewerIndex
-         }
+         active={index===videoViewerIndex && !videoViewerScrollPaused}
          preload={index===videoViewerNextVideoIndex}
-         autoPlay={
-          index===
-          videoViewerIndex
-         }
+         autoPlay={index===videoViewerIndex && !videoViewerScrollPaused}
          controlsBottomInset={
           Math.max(
            communityInsets.bottom+168,
