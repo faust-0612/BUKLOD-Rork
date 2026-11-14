@@ -1,5 +1,5 @@
 # EAS build identity uses actual nested updateChannel/runtime/app metadata.
-# Nov14 owner media fix: EXACT THREE reviewed JS blobs only; no native/config/backend
+# Nov14 verified media fix, second attempt after full-history Android QA correction: EXACT THREE reviewed JS blobs only; no native/config/backend
 # delta since signed staging APK, production immutable, one Android staging OTA.
 # Independent, owner-authorized staging OTA only. Existing production/device gates unchanged.
 name: BUKLOD Owner Authorized Staging OTA
