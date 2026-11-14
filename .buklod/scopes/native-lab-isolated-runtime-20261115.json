@@ -1,0 +1,65 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/native-lab-isolated-runtime-20261115.json",
+  "objective": "Create a truly separately installable Expo Android native QA staging app with a unique Android package, runtime and OTA channel, while keeping the previous staging-user APK/runtime 1.3.2, production app/runtime 1.3.2, and both published OTA channels unchanged. Build only after real native GIF, Google Drive OAuth, video/AdMob reconciliation, separately registered Firebase client and preview backend gates are satisfied.",
+  "baseRef": "2e7dc3aa69d2362b7b360013ccaac9917c353e2b",
+  "productionBaselineEvidence": "GitHub main current production-source baseline 7ebbbd504df2f84355888cc64a8c5317319d6d65 verified by connector on 2026-11-15; branch forked at Nov14 scoped staging OTA source SHA 2e7dc3aa69d2362b7b360013ccaac9917c353e2b. Published staging-user OTA run 43596652659; main release and real device acceptance not modified or inferred. Production runtime 1.3.2, package org.mzbministry.buklod. New Firebase org.mzbministry.buklod.nativeqa does not exist in repository registered-client list. PR #638 native Google Drive was held and PR #813 video/ad optimization is draft/unmerged.",
+  "chosenApproach": "A distinct APP_VARIANT native-lab in existing dynamic Expo config, unique org.mzbministry.buklod.nativeqa Android package, 1.4.0-nativeqa.1 runtime, native-lab channel and new Firebase configuration file path; internal EAS APK profile and fail-closed CI gates. Keep all old profiles and output unchanged; no EAS build until real registration and native integration are proven. Scope changes limited to new release identity/preflight and tests.",
+  "selectionRationale": "Separate installed app and runtime prevent side-by-side lab testing from replacing the existing staging app or consuming production/staging-user OTA updates. Use a new Firebase client rather than editing or mislabeling credentials. EAS shared project uses a private distinct update channel with no production promotion.",
+  "alternativeApproaches": [
+    "Reuse org.mzbministry.buklod.staging with a new runtime: rejected because Android would replace the owner's existing staging installation.",
+    "Copy the existing staging Firebase client under a new package string: rejected because that is not a genuine registered native Firebase/OAuth identity.",
+    "Publish experimental native features as Expo OTA to runtime 1.3.2: rejected because Java/Kotlin IME and native OAuth capabilities cannot be delivered by JS-only update."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "staging-release",
+    "native-credentials",
+    "firebase-registration",
+    "oauth",
+    "ads-monetization",
+    "regression-isolation",
+    "runtime-compatibility"
+  ],
+  "preserveBehaviors": [
+    "Existing org.mzbministry.buklod staging-user and production package names, runtime 1.3.2, project identity and channels remain byte-identical.",
+    "Old staging app remains installed and continues to receive only staging-user OTA; new lab channel never publishes over it.",
+    "Production sign-in/notifications/AdMob credentials and Supabase finances, points, RLS, video/media, and uploads are not mutated.",
+    "The native-lab Firebase client must be truly registered for the exact new package; no fabrication or misuse of older registered package data.",
+    "Unfinished native GIF/Google Drive/AdMob integration stays explicitly blocked from issuing an installable QA artifact."
+  ],
+  "acceptanceChecks": [
+    "Native QA package is org.mzbministry.buklod.nativeqa, distinct from production, staging and Classroom.",
+    "Native QA runtime is 1.4.0-nativeqa.1, distinct from existing runtime 1.3.2; independent channel is native-lab.",
+    "EAS native-lab profile yields internal Android APK and staging preview app data, not production or old staging channel.",
+    "Unregistered Firebase client, missing native bridge, missing Google Drive OAuth, unfrozen scroll/ad source or production Supabase all block before EAS credits.",
+    "After incorporation, exact SHA typecheck, Android Hermes export, EAS signed APK and downloaded APK package/SHA256 checks are required.",
+    "Physical Android install and real Google Drive/GIF/video/ad behavior remains unverified until separately performed."
+  ],
+  "regressionTests": [
+    "tests/buklod-native-lab-expo-isolation-20261115.test.cjs",
+    "tests/native-lab-release-identity-20261115.test.mjs"
+  ],
+  "allowedPaths": [
+    "app.config.js",
+    "eas.json",
+    "tests/buklod-native-lab-expo-isolation-20261115.test.cjs",
+    "tests/native-lab-release-identity-20261115.test.mjs",
+    "release/native-lab-apk-20261115.json",
+    "scripts/native-lab-build-preflight.mjs",
+    ".github/workflows/buklod-native-lab-apk-20261115.yml"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "Introduce a distinct QA-only native Expo APK identity and strictly gated EAS workflow without changing old staging or production release behavior.",
+      "preservedBehaviors": [
+        "Production and existing staging EAS channels, package names, runtime versions, authorization rules, finance, and OTA manifests remain unchanged.",
+        "New Firebase package registration and native integration are prerequisites before any signed APK build."
+      ],
+      "tests": [
+        "tests/native-lab-release-identity-20261115.test.mjs"
+      ]
+    }
+  ]
+}
