@@ -1,0 +1,57 @@
+{
+  "contractVersion": 2,
+  "objective": "Zero-spend meaningful BUKLOD Kingdom visual upgrade: living 13-station traffic and gameplay-verified highland construction diorama.",
+  "baseRef": "dev/kingdom-r9-39-scenes-staging-20261114",
+  "baselineSha": "efbbaf8843bf58357d481414a9e8db8dec6b805e",
+  "targetBranch": "dev/kingdom-zero-cost-living-world-20261114",
+  "releaseMode": "DEV_SOURCE_ONLY_STAGING_CANDIDATE",
+  "releaseStatus": "Not published to Android staging, web or production; source smoke verification only.",
+  "sourceAuthoritative": "BUKLOD Kingdom existing Expo/Skia/Reanimated engine and frozen canonical 13 stations. No new Godot native bridge has been added.",
+  "costPolicy": {
+    "incrementalSpendTargetPHP": 0,
+    "paidAssetsAllowed": false,
+    "subscriptionsAllowed": false,
+    "extraBackendServicesAllowed": false,
+    "remoteGameAssetDownloadsAllowed": false,
+    "automaticCloudBuildOrOTAAllowed": false,
+    "existingNativeABIOnly": true
+  },
+  "implemented": {
+    "map": "11 scripted caravans on canonical cubic travel routes plus 6 village workers, stage-gated, same 13s UI thread clock, blur/background/Reduce Motion aware.",
+    "gameplay": "ELESUR Village Builder now shows animated isometric town whose five buildings visually appear only after legitimate build actions. Existing game rules/scores/rewards unchanged.",
+    "web": "Lightweight SVG fallback without native Skia."
+  },
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-zero-cost-living-world-20261114.json",
+    "src/features/games/kingdom/KingdomLivingWorldPaths.ts",
+    "src/features/games/kingdom/BuklodKingdomLivingFX.native.tsx",
+    "src/features/games/elesur/KingdomVillageDiorama.native.tsx",
+    "src/features/games/elesur/KingdomVillageDiorama.tsx",
+    "src/features/games/elesur/VillageBuilderGameV1.tsx",
+    "tests/kingdom-zero-cost-living-world-20261114.test.mjs",
+    "tests/kingdom-zero-cost-village-diorama-20261114.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/kingdom-zero-cost-living-world-20261114.test.mjs",
+    "tests/kingdom-zero-cost-village-diorama-20261114.test.mjs",
+    "tests/kingdom-native-cinematic-ota-20261114.test.mjs",
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
+  ],
+  "backendAndEconomy": "No schema/RLS/RPC/reward/point/ad/account mutations.",
+  "engineIntegration": "Godot/Empire R14 project source and usable licensed 3D models not verified in connected GitHub files. Native Godot embedding would require a new Android binary and must not be disguised as a JS OTA.",
+  "verificationCompleted": [
+    "GitHub source readback",
+    "11 route samples * 100 phase positions = 1100 valid positions (V8)",
+    "11 exact original route cubic definitions matched",
+    "28 focused persisted diorama source checks (V8)",
+    "Native rendering quality, TypeScript build, Godot project merge, Android device FPS, memory, staging installation NOT verified"
+  ],
+  "releaseGates": [
+    "No Godot integration until authentic R14 project, code and licensed assets are found and inspected",
+    "Run focused Node tests, TypeScript compile and Android export on the exact merged SHA without paid runners",
+    "Confirm no production baseline changes, 13 stations, 39 catalog game IDs and canonical rewards",
+    "Staging user exact runtime 1.3.2 OTA requires compatible signed APK proof",
+    "Real device visual, touch, reduced-motion and 30-minute performance acceptance",
+    "No production promotion without explicit owner authorization and frozen RC"
+  ]
+}
