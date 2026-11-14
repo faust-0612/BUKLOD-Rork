@@ -83,6 +83,7 @@ export default function BuklodCommunitySponsoredAd({
   const {profile} = useAuth();
   const {activeScope} = useBuklodScope();
   const shellRef = useRef<View>(null);
+  const mediaRef = useRef<View>(null);
   const remeasureVideoRef = useRef<() => void>(() => {});
   const [rows, setRows] = useState<Campaign[]>([]);
   const [index, setIndex] = useState(0);
@@ -205,7 +206,7 @@ export default function BuklodCommunitySponsoredAd({
         setVideoNear(false);
         return;
       }
-      shellRef.current?.measureInWindow((x,y,w,h) => {
+      mediaRef.current?.measureInWindow((x,y,w,h) => {
         if (!alive) return;
         const screen = Dimensions.get('window');
         const next = sponsoredVideoViewport(
@@ -273,6 +274,7 @@ export default function BuklodCommunitySponsoredAd({
       <Text style={s.scope}>{campaign.coverage_level === 'nationwide' ? 'Public'
         : campaign.coverage_level === 'city' ? 'Town / City' : campaign.coverage_level}</Text>
     </View>
+    <View ref={mediaRef} collapsable={false} onLayout={() => remeasureVideoRef.current()}>
     {campaign.creative_type === 'video' && campaign.video_url
       ? videoNear && screenFocused
         ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={screenFocused&&videoVisible}/>
@@ -280,6 +282,7 @@ export default function BuklodCommunitySponsoredAd({
       : campaign.image_url
         ? <Image source={{uri: campaign.image_url}} style={s.media} resizeMode="contain"/>
         : null}
+    </View>
     <View style={s.copy}>
       <Text style={s.advertiser}>{campaign.advertiser_name}</Text>
       <Text style={s.headline}>{campaign.headline}</Text>

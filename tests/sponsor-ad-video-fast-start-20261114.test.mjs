@@ -14,7 +14,7 @@ test('only the approaching on-screen sponsorship prewarms, with early nonzero vi
   assert.deepEqual(sponsoredVideoViewport(geometry(730),screen),{visible:false,near:true});
   assert.deepEqual(sponsoredVideoViewport(geometry(699),screen),{visible:true,near:true});
   assert.deepEqual(sponsoredVideoViewport(geometry(150),screen),{visible:true,near:true});
-  assert.deepEqual(sponsoredVideoViewport(geometry(-900),screen),{visible:false,near:false});
+  assert.deepEqual(sponsoredVideoViewport(geometry(-1000),screen),{visible:false,near:false});
 });
 test('offscreen horizontal, invalid measurements and zero-height layouts never open player',()=>{
   assert.deepEqual(sponsoredVideoViewport({...geometry(100),x:390},screen),{visible:false,near:false});
@@ -27,6 +27,8 @@ test('preloading has a bounded viewport and the native replay cache preserves or
   assert.match(sponsor,/useVideoPlayer\(source,/);
   assert.match(sponsor,/useCaching: true/);
   assert.match(sponsor,/videoNear && screenFocused/);
+  assert.match(sponsor,/mediaRef\.current\?\.measureInWindow/);
+  assert.match(sponsor,/ref=\{mediaRef\} collapsable=\{false\}/);
   assert.match(sponsor,/onLayout=\{\(\) => remeasureVideoRef\.current\(\)\}/);
   assert.match(sponsor,/setInterval\(check, SPONSORED_VIDEO_CHECK_MS\)/);
   assert.match(sponsor,/player\.pause\(\)/);
