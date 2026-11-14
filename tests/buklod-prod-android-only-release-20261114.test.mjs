@@ -32,3 +32,12 @@ test('protected production OTA cannot omit canonical member ranks or fast origin
    assert.ok(android.includes(file),'Production must test '+file);
  assert.ok(android.includes('Verify app-wide AdMob policy before production OTA'));
 });
+test('production Kingdom visual regression verifies modern native FX before release', () => {
+ const gate=read('.github/workflows/production_android_ota.yml');
+ const mapTest=read('tests/kingdom-main-visual-consolidated-20261111.test.mjs');
+ assert.ok(gate.includes('Validate complete BUKLOD Kingdom before production release'));
+ assert.ok(gate.includes('tests/kingdom-*.test.mjs'));
+ for (const evidence of ['BuklodKingdomLivingFX.native.tsx','withRepeat','cancelAnimation','pointerEvents'])
+   assert.ok(mapTest.includes(evidence),evidence);
+ assert.ok(!mapTest.includes("read('src/features/games/kingdom/BuklodKingdomAtmosphere.tsx')"));
+});
