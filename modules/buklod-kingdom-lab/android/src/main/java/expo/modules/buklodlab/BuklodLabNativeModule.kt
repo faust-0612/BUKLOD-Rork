@@ -1,6 +1,7 @@
 package expo.modules.buklodlab
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.text.Editable
@@ -174,6 +175,11 @@ class KeyboardGifView(context: Context, appContext: AppContext) : ExpoView(conte
 class BuklodLabNativeModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("BuklodLabNative")
+    AsyncFunction("openGodotWorld") {
+      val activity = appContext.activityProvider?.currentActivity
+        ?: throw IllegalStateException("BUKLOD Kingdom Lab requires a foreground Activity.")
+      activity.startActivity(Intent(activity, GodotLabActivity::class.java))
+    }
     View(KeyboardGifView::class) {
       Events("onChange", "onSelectionChange", "onGif", "onGifError")
       Prop("value") { view: KeyboardGifView, text: String -> view.setValue(text) }
