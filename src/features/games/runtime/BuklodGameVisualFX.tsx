@@ -28,12 +28,21 @@ const PARTICLES = [
   { left: '87%', top: '55%', size: 4, delay: 2100 },
 ] as const;
 
-export function BuklodGameVisualFX({ biome }: { biome: BuklodGameBiome }) {
+export function BuklodGameVisualFX({ biome, enabled = true }: { biome: BuklodGameBiome; enabled?: boolean }) {
   const drift = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
   const fx = biomeFx[biome];
 
   useEffect(() => {
+    // Android Expo Router keeps hidden game screens mounted. Stop loops on blur,
+    // background or Reduce Motion instead of consuming GPU frames offscreen.
+    if (!enabled) {
+      drift.stopAnimation();
+      pulse.stopAnimation();
+      drift.setValue(0);
+      pulse.setValue(0);
+      return;
+    }
     const driftLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(drift, { toValue: 1, duration: 6500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
@@ -52,7 +61,7 @@ export function BuklodGameVisualFX({ biome }: { biome: BuklodGameBiome }) {
       driftLoop.stop();
       pulseLoop.stop();
     };
-  }, [drift, pulse]);
+  }, [drift, pulse, enabled]);
 
   const translateX = drift.interpolate({ inputRange: [0, 1], outputRange: [-18, 18] });
   const translateY = drift.interpolate({ inputRange: [0, 1], outputRange: [10, -14] });
