@@ -95,7 +95,7 @@ function BuklodGameplayReactionFX({ enabled }: { enabled: boolean }) {
   const color = COLORS[reaction];
   const showSparks = reaction === 'collect' || reaction === 'success' || reaction === 'unlock';
 
-  return <View pointerEvents="none" style={StyleSheet.absoluteFill} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+  return <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 3 }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
     <Canvas style={{ width, height }}>
       {reaction === 'impact' || reaction === 'failure' ? (
         <Group opacity={flashAlpha}><Fill color={color} /></Group>
