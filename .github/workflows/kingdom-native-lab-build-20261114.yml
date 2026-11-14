@@ -131,7 +131,11 @@ jobs:
           # Write to the isolated DEV branch only. This path never retriggers
           # the workflow; neither OTA nor main/staging-user is touched.
           ENCODED="$(base64 -w0 /tmp/kingdom-native-lab-report.json)"
-          gh api --method PUT "repos/${{ github.repository }}/contents/.buklod/reports/kingdom-native-lab-last-build.json" \
+          REPORT_API="repos/${{ github.repository }}/contents/.buklod/reports/kingdom-native-lab-last-build.json"
+          OLD_SHA="$(gh api "$REPORT_API" --jq .sha 2>/dev/null || true)"
+          args=()
+          if [ -n "$OLD_SHA" ]; then args+=(-f "sha=$OLD_SHA"); fi
+          gh api --method PUT "$REPORT_API" \
             -f branch="$BRANCH" \
             -f message="ci(lab): record isolated Android source build outcome" \
-            -f content="$ENCODED" >/dev/null
+            -f content="$ENCODED" "${args[@]}" >/dev/null
