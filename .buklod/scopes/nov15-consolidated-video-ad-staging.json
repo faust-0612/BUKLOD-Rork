@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/nov15-consolidated-video-ad-staging.json",
-  "objective": "Reconcile exact source-safe November 15 video scroll-pause, partial-frame autoplay, bounded one-next video and Android native creative prewarm plus native ad lifecycle retention into already-published Nov14 Profile/Home/Wall/Connect/Kingdom/LIFE/KL staging source; preserve release isolation and existing backend.",
+  "objective": "Reconcile exact source-safe November 15 video scroll-pause, partial-frame autoplay, bounded one-next video and Android native creative prewarm plus native ad lifecycle retention into already-published Nov14 Profile/Home/Wall/Connect/Kingdom/LIFE/KL staging source; preserve release isolation and existing backend. Bring production 20261114 source-backed Monthly and All-Time Top 10 to staging without losing private authored posts or AdMob finance separation.",
   "baseRef": "integration/buklod-conso-staging-no-hc-saliksik-20261114",
   "productionBaselineEvidence": "Production main 7ebbbd504df2f84355888cc64a8c5317319d6d65 and prior staging-user Android update 01a1d9b3-1d45-7756-b7e1-b0a7e7e37b2b; this integration branch is candidate only and not yet published.",
   "chosenApproach": "Review/apply exact-context video/ad hunks from source-verified PR #813 and safe-route NativeAd retention from PR #815 on top of staging branch; include all changed regression tests; verify runtime and native-unit compatibility before any scoped staging publish.",
@@ -29,7 +29,10 @@
     "governance-lock",
     "release-identity",
     "staging-isolation",
-    "native-ota-compatibility"
+    "native-ota-compatibility",
+    "profile-rank",
+    "profile-personal-activity",
+    "member-data-privacy"
   ],
   "preserveBehaviors": [
     "Existing exact staging-user Profile personal posts, Overall/Monthly Points rank, HIBLA Connect pine/mint design, direct LIFE/KL cards, 39 Kingdom profiles and CC0 audio remain intact.",
@@ -48,7 +51,8 @@
     "tests/protected-feature-lock-video-scope-20261114.test.mjs",
     "tests/scope-video-scroll-autoplay-20261114.test.mjs",
     "tests/ad-native-lifecycle-retention-20261115.test.mjs",
-    "tests/buklod-nov15-conso-staging-ota-policy.test.mjs"
+    "tests/buklod-nov15-conso-staging-ota-policy.test.mjs",
+    "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/nov15-consolidated-video-ad-staging.json",
@@ -78,7 +82,11 @@
     "scripts/buklod-nov15-conso-staging-policy.mjs",
     "release/nov15-staging-consolidated-video-ads.json",
     "tests/buklod-nov15-conso-staging-ota-policy.test.mjs",
-    ".github/workflows/buklod-nov15-conso-staging-ota-publish.yml"
+    ".github/workflows/buklod-nov15-conso-staging-ota-publish.yml",
+    "src/app/(tabs)/me.tsx",
+    "src/components/BuklodProfileTopTenRankings.tsx",
+    "src/lib/buklodProfileRankings.ts",
+    "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
   ],
   "acceptanceChecks": [
     "All exact changed source and test paths match manifest and protected feature-lock PASS.",
@@ -96,7 +104,8 @@
       ],
       "tests": [
         "tests/nov14-scroll-pauses-all-videos.test.mjs",
-        "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+        "tests/ad-native-lifecycle-retention-20261115.test.mjs",
+        "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
       ]
     },
     {
@@ -111,12 +120,13 @@
     },
     {
       "id": "navigation-auth",
-      "reason": "Existing bottom tab and fullscreen viewer scroll callback now suspends media without altering route ownership.",
+      "reason": "Existing bottom tab and fullscreen viewer scroll callback now suspends media without altering route ownership. Existing source-backed private Profile Top 10 is forward-ported from current production, preserving authenticated visibility.",
       "preservedBehaviors": [
         "Session routing, navigation and account isolation remain intact."
       ],
       "tests": [
-        "tests/navigation-video-scroll-stop-20261114.test.mjs"
+        "tests/navigation-video-scroll-stop-20261114.test.mjs",
+        "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
       ]
     },
     {
@@ -127,7 +137,8 @@
       ],
       "tests": [
         "tests/admob-native-video-prefetch-20261114.test.mjs",
-        "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+        "tests/ad-native-lifecycle-retention-20261115.test.mjs",
+        "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
       ]
     },
     {
