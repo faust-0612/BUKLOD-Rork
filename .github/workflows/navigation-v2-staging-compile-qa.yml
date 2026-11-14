@@ -2,7 +2,7 @@
 name: BUKLOD Navigation V2 Staging Android Compile QA
 on:
   pull_request:
-    branches: [main]
+    branches: [main, integration/buklod-conso-staging-no-hc-saliksik-20261114]
     paths:
       - '.github/workflows/navigation-v2-staging-compile-qa.yml'
       - '.github/workflows/navigation-v2-staging-ota.yml'
