@@ -1,0 +1,139 @@
+# Owner-authorized Android staging first. Production is a distinct gated release.
+# Final RC includes production-backed Monthly/All-Time Top 10 and original staged personal posts.
+name: BUKLOD Nov15 Consolidated Staging Android OTA Publish
+on:
+  push:
+    branches: [integration/buklod-nov15-conso-video-ads-staging-rc]
+    paths: [.github/workflows/buklod-nov15-conso-staging-ota-publish.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: buklod-nov15-conso-staging-ota
+  cancel-in-progress: false
+jobs:
+  verified-android-staging-ota:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/integration/buklod-nov15-conso-video-ads-staging-rc' && startsWith(github.event.head_commit.message, 'BUKLOD_CONSO_STAGE_20261115:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EVIDENCE_DIR: /tmp/buklod-nov15-conso-staging-evidence
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Wait for exact SHA Engineering, Main integration and Android Hermes QA
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const required = [
+              'Engineering Accountability',
+              'BUKLOD Main - Report Door and Legacy Integration PR QA',
+              'BUKLOD Nov15 Consolidated Staging Android Compile QA - No Publish'
+            ];
+            for(let attempt=0;attempt<60;attempt++){
+              const {data}=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,head_sha:context.sha,per_page:100});
+              const found=required.map(name=>data.workflow_runs.find(run=>run.name===name && run.head_sha===context.sha && run.event==='pull_request'));
+              if(found.some(run=>run?.status==='completed' && run.conclusion!=='success'))
+                throw Error('Exact SHA release prerequisite FAILED. Staging OTA not published.');
+              if(found.every(run=>run?.conclusion==='success')){
+                const {data:pr}=await github.rest.pulls.get({...context.repo,pull_number:817});
+                if(pr.state!=='open' || !pr.draft || pr.head.sha!==context.sha ||
+                   pr.head.ref!=='integration/buklod-nov15-conso-video-ads-staging-rc' ||
+                   pr.base.ref!=='integration/buklod-conso-staging-no-hc-saliksik-20261114')
+                  throw Error('PR #817 no longer matches exact staging candidate');
+                return;
+              }
+              await new Promise(resolve=>setTimeout(resolve,10000));
+            }
+            throw Error('Exact source prerequisite CI unavailable; no staging publication');
+      - name: Verify strict JS scope and source-only Android OTA policy
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test tests/buklod-nov15-conso-staging-ota-policy.test.mjs
+          node scripts/buklod-nov15-conso-staging-policy.mjs verify-source "$GITHUB_SHA" "$EVIDENCE_DIR"
+      - name: Validate signed staging client and distinct EAS channels
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'Missing Expo credential: blocked'; exit 1; }
+          mkdir -p "$EVIDENCE_DIR"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$EVIDENCE_DIR/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-channel.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-channel.json"
+          node scripts/buklod-nov15-conso-staging-policy.mjs preflight "$GITHUB_SHA" "$EVIDENCE_DIR"
+      - name: Export exact production-isolated staging Android Hermes bundle
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-nov15-preview.env --non-interactive
+          set -a
+          . /tmp/buklod-nov15-preview.env
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx expo config --json > /tmp/buklod-nov15-app-config.json
+          node <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const config=JSON.parse(fs.readFileSync('/tmp/buklod-nov15-app-config.json','utf8'));
+          assert.equal(config.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(config.runtimeVersion,'1.3.2');
+          assert.equal(config.extra.appEnvironment,'staging');
+          assert.equal(config.extra.appTarget,'main');
+          assert.equal(config.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.match(process.env.EXPO_PUBLIC_SUPABASE_URL||'',/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+          assert.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-nov15-conso-staging-export --clear
+          test -s /tmp/buklod-nov15-conso-staging-export/metadata.json
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Publish exactly one SDK-compatible Android update on staging-user only
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 20 --json --non-interactive > /tmp/buklod-nov15-staging-prior.json
+          node <<'NODE'
+          const fs=require('fs');
+          const raw=JSON.parse(fs.readFileSync('/tmp/buklod-nov15-staging-prior.json','utf8'));
+          const rows=raw.currentPage??raw;
+          if(!Array.isArray(rows))throw Error('Cannot verify staging idempotency; abort');
+          const marker='BUKLOD_CONSO_STAGE_20261115_'+process.env.GITHUB_SHA;
+          const found=rows.find(u=>u.message===marker);
+          fs.writeFileSync('/tmp/buklod-nov15-staging-group',found?.group??'');
+          NODE
+          if [ ! -s /tmp/buklod-nov15-staging-group ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview --skip-bundler --input-dir /tmp/buklod-nov15-conso-staging-export --non-interactive --json --message "BUKLOD_CONSO_STAGE_20261115_${GITHUB_SHA}" > "$EVIDENCE_DIR/publish.json"
+            node <<'NODE'
+          const fs=require('fs');
+          const rows=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/publish.json','utf8'));
+          if(!Array.isArray(rows)||rows.length!==1||!rows[0].group)throw Error('Unexpected staging publish receipt; do not retry automatically');
+          fs.writeFileSync('/tmp/buklod-nov15-staging-group',rows[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat /tmp/buklod-nov15-staging-group)" --json > "$EVIDENCE_DIR/update-view.json"
+      - name: Independent staging Expo manifest readback and production nonmutation
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-channel-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-channel-after.json"
+          node scripts/buklod-nov15-conso-staging-policy.mjs postpublish "$GITHUB_SHA" "$EVIDENCE_DIR"
+          cat "$EVIDENCE_DIR/verification.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain exact-source EAS receipts and QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nov15-conso-staging-receipt-${{ github.sha }}
+          path: /tmp/buklod-nov15-conso-staging-evidence/*.json
+          retention-days: 14
+          if-no-files-found: ignore

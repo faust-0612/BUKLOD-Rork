@@ -1,4 +1,5 @@
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
+import {noteBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import {
   BUKLOD_REEL_MAX_DURATION_SECONDS,
   BUKLOD_REEL_TOO_LONG_MESSAGE,
@@ -318,8 +319,10 @@ const RX = BUKLOD_SCOPE_COMMUNITY_REACTIONS;
  */
 function ScopePublicReelVideo({
   uri,
+  active,
 }: {
   uri: string;
+  active: boolean;
 }) {
   const player =
     useVideoPlayer(
@@ -329,6 +332,15 @@ function ScopePublicReelVideo({
           true;
       },
     );
+
+  useEffect(() => {
+    try {
+      if (active) player.play();
+      else player.pause();
+    } catch {
+      // The row may have recycled its native player during scrolling.
+    }
+  }, [active, player]);
 
   return (
     <View
@@ -1199,6 +1211,9 @@ export default function BuklodExclusiveScopeCommunity({
     extraData: communityAdExtraData,
     visibleVideoPostId,
     preloadVideoPostId,
+    preloadAdId,
+    registerVideoFrame,
+    onVideoFrameLayout,
   } = useBuklodCommunityAdViewability(
     mode === 'reels' ? visiblePosts : wallFeedRows,
   );
@@ -3279,11 +3294,16 @@ export default function BuklodExclusiveScopeCommunity({
             </View>
 
             {!!item.media_url ? (
-              <ScopePublicReelVideo
-                uri={
-                  item.media_url
-                }
-              />
+              <View
+                ref={(node: View | null) => registerVideoFrame(String(item.id), node)}
+                collapsable={false}
+                onLayout={onVideoFrameLayout}
+              >
+                <ScopePublicReelVideo
+                  uri={item.media_url}
+                  active={visibleVideoPostId === String(item.id)}
+                />
+              </View>
             ) : (
               <View
                 style={
@@ -3610,6 +3630,9 @@ return (
             isVideo && (
               <>
                 <View
+                  ref={(node: View | null)=>registerVideoFrame(String(item.id),node)}
+                  collapsable={false}
+                  onLayout={onVideoFrameLayout}
                   style={
                     styles.videoWrap
                   }
@@ -4567,7 +4590,7 @@ return (
     <>
       <FlatList<any>
         ref={feedRef}
-        onScroll={event => reportBuklodDashboardScroll('scope', event.nativeEvent.contentOffset.y)}
+        onScroll={event => { reportBuklodDashboardScroll('scope', event.nativeEvent.contentOffset.y); noteBuklodVideoScroll(); }}
         scrollEventThrottle={64}
         data={
           listData
@@ -4592,6 +4615,7 @@ return (
               return (
                 <BuklodCommunityInlineAd
                   slotId={item.id}
+                  prefetch={preloadAdId===item.id}
                   // Preserve a measurable probe until in-viewport ad eligibility.
                   inventory={
                     scope.scope_type === 'CLUSTER'

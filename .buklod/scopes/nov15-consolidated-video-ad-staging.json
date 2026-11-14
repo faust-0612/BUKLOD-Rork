@@ -1,0 +1,165 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov15-consolidated-video-ad-staging.json",
+  "objective": "Reconcile exact source-safe November 15 video scroll-pause, partial-frame autoplay, bounded one-next video and Android native creative prewarm plus native ad lifecycle retention into already-published Nov14 Profile/Home/Wall/Connect/Kingdom/LIFE/KL staging source; preserve release isolation and existing backend. Bring production 20261114 source-backed Monthly and All-Time Top 10 to staging without losing private authored posts or AdMob finance separation.",
+  "baseRef": "integration/buklod-conso-staging-no-hc-saliksik-20261114",
+  "productionBaselineEvidence": "Production main 7ebbbd504df2f84355888cc64a8c5317319d6d65 and prior staging-user Android update 01a1d9b3-1d45-7756-b7e1-b0a7e7e37b2b; this integration branch is candidate only and not yet published.",
+  "chosenApproach": "Review/apply exact-context video/ad hunks from source-verified PR #813 and safe-route NativeAd retention from PR #815 on top of staging branch; include all changed regression tests; verify runtime and native-unit compatibility before any scoped staging publish.",
+  "selectionRationale": "Avoid merging unrelated 22/101 diverged commits or regressing already-published staging navigation, Profile, Connect colors, Kingdom and owner posts. Share one tested release source instead of switching user APK or native package.",
+  "alternativeApproaches": [
+    "Merge full unrelated PR development history into staging (rejected: integration/regression risk).",
+    "Publish production directly from older main ignoring complete staging (rejected: would omit visual and profile changes).",
+    "Hidden ad rendering or unbounded prefetch (rejected: policy and memory risk)."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-auth",
+    "ads-finance-points",
+    "cluster-faith",
+    "memory",
+    "cell-recycling",
+    "weak-network",
+    "ad-impression",
+    "signed-url-identity",
+    "audio-focus",
+    "navigation-scroll",
+    "ads-monetization",
+    "app-runtime",
+    "production-release",
+    "governance-lock",
+    "release-identity",
+    "staging-isolation",
+    "native-ota-compatibility",
+    "profile-rank",
+    "profile-personal-activity",
+    "member-data-privacy"
+  ],
+  "preserveBehaviors": [
+    "Existing exact staging-user Profile personal posts, Overall/Monthly Points rank, HIBLA Connect pine/mint design, direct LIFE/KL cards, 39 Kingdom profiles and CC0 audio remain intact.",
+    "Retired IGPAT navigation and creation stay absent, no resurrection of legacy feature or uploads.",
+    "Native AdMob consent, real SDK impressions, approved unit IDs, 2-minute remount safety and finance separation unchanged; no hidden NativeAdView.",
+    "Video pauses immediately at scroll start, resumes only after idle and actual frame visibility; no picture quality reduction.",
+    "Existing staging Android package org.mzbministry.buklod.staging with Expo runtime 1.3.2 and production package org.mzbministry.buklod/runtime 1.3.2 are unchanged.",
+    "Exclude new standalone native QA Android APK/Google Drive IME GIF and clinical Health Center/SALIKSIK backend; no database changes in this integration."
+  ],
+  "regressionTests": [
+    "tests/admob-native-video-prefetch-20261114.test.mjs",
+    "tests/navigation-video-scroll-stop-20261114.test.mjs",
+    "tests/nov14-scroll-pauses-all-videos.test.mjs",
+    "tests/nov14-video-scroll-stop-native-prefetch.test.mjs",
+    "tests/nov15-android-native-prefetch-gate.test.mjs",
+    "tests/protected-feature-lock-video-scope-20261114.test.mjs",
+    "tests/scope-video-scroll-autoplay-20261114.test.mjs",
+    "tests/ad-native-lifecycle-retention-20261115.test.mjs",
+    "tests/buklod-nov15-conso-staging-ota-policy.test.mjs",
+    "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov15-consolidated-video-ad-staging.json",
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "src/components/BuklodCommunityInlineAd.tsx",
+    "src/components/BuklodCommunitySponsoredAd.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/components/BuklodNativeSponsoredCard.android.tsx",
+    "src/components/BuklodNativeSponsoredCard.tsx",
+    "src/hooks/useBuklodCommunityAdViewability.ts",
+    "src/lib/buklodMaritesPlayback.ts",
+    "src/lib/buklodVideoFrameVisibility.ts",
+    "src/lib/buklodVideoScrollSignal.ts",
+    "tests/admob-native-video-prefetch-20261114.test.mjs",
+    "tests/navigation-video-scroll-stop-20261114.test.mjs",
+    "tests/nov14-scroll-pauses-all-videos.test.mjs",
+    "tests/nov14-video-scroll-stop-native-prefetch.test.mjs",
+    "tests/nov15-android-native-prefetch-gate.test.mjs",
+    "tests/protected-feature-lock-video-scope-20261114.test.mjs",
+    "tests/scope-video-scroll-autoplay-20261114.test.mjs",
+    "tests/ad-native-lifecycle-retention-20261115.test.mjs",
+    ".github/workflows/buklod-nov15-conso-android-compile-qa.yml",
+    "scripts/buklod-nov15-conso-staging-policy.mjs",
+    "release/nov15-staging-consolidated-video-ads.json",
+    "tests/buklod-nov15-conso-staging-ota-policy.test.mjs",
+    ".github/workflows/buklod-nov15-conso-staging-ota-publish.yml",
+    "src/app/(tabs)/me.tsx",
+    "src/components/BuklodProfileTopTenRankings.tsx",
+    "src/lib/buklodProfileRankings.ts",
+    "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "All exact changed source and test paths match manifest and protected feature-lock PASS.",
+    "Hermes Android bundle/typecheck and original-quality/media/ads source QA PASS on exact integrated candidate.",
+    "Ad SDK creative prewarming happens before viewport but mount and impressions only on eligible viewport.",
+    "All Profile/Wall/Connect/Kingdom/IGPAT retirement regression contracts pass.",
+    "Explicit staging preview EAS manifest readback followed by separately validated production channel release on identical reconciled Android JS source; never claim device check completed if owner waived."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Android video/player scroll lifecycle and AdMob SDK mounted creative effect change while keeping Expo runtime and native identity frozen.",
+      "preservedBehaviors": [
+        "No native dependency or binary change, preserve app startup, network recovery and correct SDK cleanup."
+      ],
+      "tests": [
+        "tests/nov14-scroll-pauses-all-videos.test.mjs",
+        "tests/ad-native-lifecycle-retention-20261115.test.mjs",
+        "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Video frame geometry, Marites bounded warming and immediate scroll-pause affect Wall and scoped video.",
+      "preservedBehaviors": [
+        "No blur, no offscreen autoplay, preserve authenticated original-quality images and signed URLs."
+      ],
+      "tests": [
+        "tests/nov14-video-scroll-stop-native-prefetch.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Existing bottom tab and fullscreen viewer scroll callback now suspends media without altering route ownership. Existing source-backed private Profile Top 10 is forward-ported from current production, preserving authenticated visibility.",
+      "preservedBehaviors": [
+        "Session routing, navigation and account isolation remain intact."
+      ],
+      "tests": [
+        "tests/navigation-video-scroll-stop-20261114.test.mjs",
+        "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Prefetch one upcoming NativeAd asset and retain valid SDK creative during safe navigation.",
+      "preservedBehaviors": [
+        "Consent, SDK-native impressions, banner fallback, request cooldown and existing payout/points policy stay unchanged."
+      ],
+      "tests": [
+        "tests/admob-native-video-prefetch-20261114.test.mjs",
+        "tests/ad-native-lifecycle-retention-20261115.test.mjs",
+        "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Scoped Wall actual-frame playback and preload readiness must preserve scope members-only behavior.",
+      "preservedBehaviors": [
+        "Organization/Cluster eligibility, participant isolation and messaging remain unchanged."
+      ],
+      "tests": [
+        "tests/scope-video-scroll-autoplay-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Introduce explicit staging-only Android EAS OTA publish workflow with verified native binary identity, exact PR-head CI, guarded channel, Expo manifest readback and production nonmutation.",
+      "preservedBehaviors": [
+        "Do not publish production or deploy any clinical backend/Google Drive native app; stage first with identical signed runtime 1.3.2 and independently verify before a separate production review."
+      ],
+      "tests": [
+        "tests/buklod-nov15-conso-staging-ota-policy.test.mjs"
+      ]
+    }
+  ]
+}

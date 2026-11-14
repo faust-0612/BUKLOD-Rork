@@ -1,0 +1,83 @@
+name: BUKLOD Nov15 Consolidated Staging Android Compile QA - No Publish
+on:
+  pull_request:
+    branches: [integration/buklod-conso-staging-no-hc-saliksik-20261114]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '.buklod/scopes/nov15-consolidated-video-ad-staging.json'
+      - '.github/workflows/buklod-nov15-conso-android-compile-qa.yml'
+      - '.github/workflows/buklod-nov15-conso-staging-ota-publish.yml'
+      - 'scripts/buklod-nov15-conso-staging-policy.mjs'
+      - 'release/nov15-staging-consolidated-video-ads.json'
+permissions:
+  contents: read
+jobs:
+  android-exact-source-compile:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'integration/buklod-nov15-conso-video-ads-staging-rc' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install source-locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify frozen Android package and runtime identity
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          node <<'NODE'
+          const assert=require('node:assert/strict'),fs=require('node:fs');
+          const config=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          const scope=JSON.parse(fs.readFileSync('.buklod/scopes/nov15-consolidated-video-ad-staging.json','utf8'));
+          assert.equal(config.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(config.runtimeVersion,'1.3.2');
+          assert.equal(config.extra.appEnvironment,'staging');
+          assert.equal(config.extra.appTarget,'main');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          assert.equal(eas.build['staging-user'].environment,'preview');
+          assert.equal(eas.build.production.channel,'production');
+          assert.equal(scope.baseRef,'integration/buklod-conso-staging-no-hc-saliksik-20261114');
+          assert(!scope.allowedPaths.some(x=>/supabase\/migrations|app\.config|package-lock/.test(x)));
+          NODE
+      - name: Verify ad prefetch, scroll pause, and safe NativeAd lifecycle
+        run: |
+          node --test \
+            tests/admob-native-video-prefetch-20261114.test.mjs \
+            tests/navigation-video-scroll-stop-20261114.test.mjs \
+            tests/nov14-scroll-pauses-all-videos.test.mjs \
+            tests/nov14-video-scroll-stop-native-prefetch.test.mjs \
+            tests/nov15-android-native-prefetch-gate.test.mjs \
+            tests/protected-feature-lock-video-scope-20261114.test.mjs \
+            tests/scope-video-scroll-autoplay-20261114.test.mjs \
+            tests/ad-native-lifecycle-retention-20261115.test.mjs
+      - name: Preserve previously staged personal Profile, green Connect, Kingdom and Wall
+        run: |
+          node --test \
+            tests/nov14-profile-navigation-personal-activity-report.test.mjs \
+            tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs \
+            tests/nov14-connect-green-profile-posts-ota.test.mjs \
+            tests/wall-life-kl-navigation-20261114.test.mjs \
+            tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs \
+            tests/buklod-igpat-retirement-release-marker-20261111.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs
+      - name: TypeScript and Android Hermes JS export on exact candidate
+        run: |
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-nov15-conso-staging-export --clear
+          test -s /tmp/buklod-nov15-conso-staging-export/metadata.json
+          test -z "$(git status --porcelain --untracked-files=no)"
+          echo 'ANDROID SOURCE QA ONLY. NO OTA, APK, DATABASE, WEB OR PRODUCTION RELEASE.'
