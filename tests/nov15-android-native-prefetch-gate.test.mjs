@@ -27,7 +27,7 @@ test('Android prefetch never displays NativeAdView or records rendered before vi
   const mountedView = android.indexOf('<NativeAdView nativeAd=', guardedRender);
   assert.ok(guardedRender >= 0 && mountedView > guardedRender);
   assert.ok(android.includes('if (!nativeAd || nativeRendered.current || !eligible) return;'));
-  assert.ok(android.includes('if (!canAttempt ||'));
+  assert.ok(android.includes('!canAttempt ||'));
   assert.ok(android.includes('const { ref, eligible } = useBuklodAdViewportGate()'));
 });
 
