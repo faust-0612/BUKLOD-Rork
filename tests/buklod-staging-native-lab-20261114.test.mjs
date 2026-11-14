@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import test from 'node:test';
+const require = createRequire(import.meta.url);
+const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+test('native staging lab isolated from production and staging user OTA', () => {
+  const e=JSON.parse(read('eas.json')),lab=e.build['staging-native-lab'];
+  assert.equal(lab.channel,'staging-native-lab');
+  assert.equal(lab.android.buildType,'apk');
+  assert.equal(lab.environment,'preview');
+  assert.notEqual(lab.channel,e.build.production.channel);
+  assert.notEqual(lab.channel,e.build['staging-user'].channel);
+  const c=require('../app.config.js')({config:{extra:{}}});
+  assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+  assert.equal(c.runtimeVersion,'1.3.2');
+});
+test('encrypted backups preserve user and cloud privacy', () => {
+  const b=read('src/lib/smartDrawer/portableBackup.ts');
+  const ui=read('src/app/drawer/cloud-backup.tsx');
+  const settings=read('src/app/drawer/settings.tsx');
+  assert.match(b,/aesEncryptAsync/);
+  assert.match(b,/aesDecryptAsync/);
+  assert.match(b,/envelope\.payload\.sourceAccountId !== userId/);
+  assert.match(b,/DocumentPicker\.getDocumentAsync/);
+  assert.match(b,/Sharing\.shareAsync/);
+  assert.match(b,/getSmartDrawerItem\(userId, row\.note\.id\)/);
+  assert.match(ui,/restoreSmartDrawerBackup\(accountId, key\)/);
+  assert.match(ui,/shareSmartDrawerBackup\(accountId, key\)/);
+  assert.match(ui,/Alert\.alert/);
+  assert.match(settings,/router\.push\('\/drawer\/cloud-backup'/);
+});
+test('isolated APK workflow cannot publish OTA, migrate database or deploy web', () => {
+  const w=read('.github/workflows/buklod-native-lab-staging-apk-20261114.yml');
+  assert.match(w,/branches: \[dev\/buklod-native-lab-isolated-20261114\]/);
+  assert.match(w,/--profile staging-native-lab/);
+  assert.match(w,/upload-artifact@v4/);
+  assert.match(w,/production Supabase is forbidden/);
+  assert.doesNotMatch(w,/eas-cli[^\n]* update |eas update |supabase db push|expo publish|git push/);
+});

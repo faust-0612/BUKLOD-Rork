@@ -266,6 +266,22 @@ export default function SmartDrawerSettingsScreen() {
           </View>
 
           <Pressable
+            onPress={() => router.push('/drawer/cloud-backup' as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Open encrypted Google Drive backup"
+            style={styles.help}
+          >
+            <MaterialCommunityIcons name="cloud-lock-outline" size={23} color="#0A6EBD" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.helpTitle}>Google Drive encrypted backup</Text>
+              <Text style={styles.helpText}>
+                Manual, private export and restore through Android's native file provider.
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#7D94A6" />
+          </Pressable>
+
+          <Pressable
             onPress={() =>
               router.push(
                 '/help?category=TECHNICAL&sourceRoute=%2Fdrawer%2Fsettings' as any,

@@ -1,0 +1,157 @@
+name: BUKLOD Native Lab Isolated Staging Signed APK
+on:
+  push:
+    branches: [dev/buklod-native-lab-isolated-20261114]
+    paths:
+      - .github/workflows/buklod-native-lab-staging-apk-20261114.yml
+      - src/lib/smartDrawer/portableBackup.ts
+      - src/app/drawer/cloud-backup.tsx
+      - src/app/drawer/settings.tsx
+      - eas.json
+      - tests/buklod-staging-native-lab-20261114.test.mjs
+permissions:
+  contents: read
+concurrency:
+  group: buklod-native-lab-staging-20261114
+  cancel-in-progress: false
+jobs:
+  signed-lab-apk:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/buklod-native-lab-isolated-20261114' && startsWith(github.event.head_commit.message, 'BUKLOD_NATIVE_LAB_APK_20261114:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_NO_TELEMETRY: '1'
+      CI: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      STAGING_FIREBASE_JSON_B64: ${{ secrets.STAGING_FIREBASE_JSON_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: No-credit source tests and regression gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor 7ebbbd504df2f84355888cc64a8c5317319d6d65 HEAD
+          test -n "$EXPO_TOKEN"
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test tests/buklod-staging-native-lab-20261114.test.mjs
+          node --experimental-strip-types --test \
+            tests/buklod-keyboard-gif-direct-20261113.test.mjs \
+            tests/buklod-keyboard-gif-navigation-20261113.test.mjs \
+            tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs \
+            tests/kingdom-main-visual-consolidated-20261111.test.mjs \
+            tests/nov14-connect-green-profile-posts-ota.test.mjs \
+            tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs
+          npx tsc --noEmit
+      - name: Check staging Firebase, preview backend and compile Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$STAGING_FIREBASE_JSON_B64" ]; then
+            printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
+          else
+            test -s google-services.production.json
+            cp google-services.production.json google-services.staging.json
+          fi
+          node - <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const f=JSON.parse(fs.readFileSync('google-services.staging.json','utf8'));
+          a.ok(f.client?.some(x=>x.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging'),'Missing staging Firebase registration');
+          const e=require('./eas.json');
+          a.equal(e.build['staging-native-lab'].channel,'staging-native-lab');
+          a.notEqual(e.build['staging-native-lab'].channel,e.build.production.channel);
+          a.notEqual(e.build['staging-native-lab'].channel,e.build['staging-user'].channel);
+          const c=require('./app.config.js')({config:{extra:{}}});
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.runtimeVersion,'1.3.2');
+          NODE
+          npx --yes eas-cli@27.9.0 whoami --non-interactive >/dev/null
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-native-lab-preview.env --non-interactive >/dev/null
+          test -s /tmp/buklod-native-lab-preview.env
+          set -a; . /tmp/buklod-native-lab-preview.env; set +a
+          case "$EXPO_PUBLIC_SUPABASE_URL" in
+            https://*.supabase.co) ;;
+            *) echo 'BLOCK: staging Supabase endpoint missing'; exit 1 ;;
+          esac
+          case "$EXPO_PUBLIC_SUPABASE_URL" in
+            *yhanxndaqbmuzbdqlblu*) echo 'BLOCK: production Supabase is forbidden'; exit 1 ;;
+          esac
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" || { echo 'BLOCK: staging key missing'; exit 1; }
+          APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging npx expo config --json >/tmp/buklod-native-lab-config.json
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-native-lab-export --clear
+          test -s /tmp/buklod-native-lab-export/metadata.json
+      - name: Enable remote staging versioning only in ephemeral runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict');
+          const e=JSON.parse(fs.readFileSync('eas.json','utf8'));
+          a.equal(e.cli.appVersionSource,'local');
+          a.equal(e.build['staging-native-lab'].autoIncrement,true);
+          e.cli.appVersionSource='remote';
+          fs.writeFileSync('eas.json',JSON.stringify(e,null,2)+'\n');
+          NODE
+          test "$(git diff --name-only)" = "eas.json"
+      - name: Build exactly one signed staging lab APK - no OTA or production
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npx --yes eas-cli@27.9.0 build --platform android --profile staging-native-lab --non-interactive --wait --json > /tmp/buklod-native-lab.json
+          test -s /tmp/buklod-native-lab.json
+      - name: Verify signed APK and download binary bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs'),a=require('node:assert/strict');
+          const j=JSON.parse(fs.readFileSync('/tmp/buklod-native-lab.json','utf8'));
+          const b=Array.isArray(j)?j[0]:j;
+          a.equal(String(b.status).toLowerCase(),'finished');
+          a.equal(String(b.platform).toLowerCase(),'android');
+          if(b.gitCommitHash)a.equal(b.gitCommitHash.toLowerCase(),process.env.GITHUB_SHA.toLowerCase());
+          const url=b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl;
+          a.equal(typeof url,'string');
+          const u=new URL(url);
+          a.equal(u.protocol,'https:');a.equal(u.hostname,'expo.dev');
+          a.match(u.pathname,/\.apk$/i);
+          fs.writeFileSync('/tmp/buklod-native-lab-url',url);
+          fs.writeFileSync('/tmp/buklod-native-lab-receipt.json',JSON.stringify({
+            status:'signed-artifact-not-device-tested',sourceSha:process.env.GITHUB_SHA,
+            buildId:b.id,package:'org.mzbministry.buklod.staging',
+            runtimeVersion:'1.3.2',channel:'staging-native-lab',
+            environment:'preview',appBuildVersion:b.appBuildVersion||null,
+            otaPublished:false,webPublished:false,apkUrl:url
+          },null,2));
+          console.log('LAB_BUILD_ID='+b.id);
+          NODE
+          mkdir -p isolated-apk
+          curl --fail --location --retry 2 --retry-delay 5 --connect-timeout 20 --max-time 900 \
+            --output isolated-apk/BUKLOD-Native-Lab.apk "$(cat /tmp/buklod-native-lab-url)"
+          python3 - <<'PY'
+          import os,zipfile
+          path='isolated-apk/BUKLOD-Native-Lab.apk'
+          assert os.stat(path).st_size>5_000_000
+          with zipfile.ZipFile(path) as apk: assert 'AndroidManifest.xml' in apk.namelist()
+          PY
+          cp /tmp/buklod-native-lab-receipt.json isolated-apk/build-receipt.json
+          cat /tmp/buklod-native-lab-receipt.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buklod-native-lab-signed-apk
+          path: isolated-apk/
+          if-no-files-found: error
+          retention-days: 20

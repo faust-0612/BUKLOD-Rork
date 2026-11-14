@@ -144,6 +144,20 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "staging-native-lab": {
+      "env": {
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging"
+      },
+      "distribution": "internal",
+      "channel": "staging-native-lab",
+      "environment": "preview",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
