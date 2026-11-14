@@ -80,8 +80,9 @@ export function VillageBuilderGameV1({ onFinish }:Props) {
     <Text style={styles.message}>{message}</Text>
     <View style={styles.healthRow}>{Object.entries(health).map(([k,v])=><View key={k} style={styles.healthCard}><Text style={styles.healthLabel}>{k.toUpperCase()}</Text><Text style={styles.healthValue}>{Math.round(v)}</Text></View>)}</View>
 
+    <KingdomVillageDiorama built={built} />
     {phase==='build'?<>
-      <View style={styles.map}><Text style={styles.mapKicker}>HIGHLAND VILLAGE • ROUND {round}</Text><KingdomVillageDiorama built={built} /><View style={styles.villageGrid}>{PROJECTS.map(project=>{
+      <View style={styles.map}><Text style={styles.mapKicker}>HIGHLAND VILLAGE • ROUND {round}</Text><View style={styles.villageGrid}>{PROJECTS.map(project=>{
         const done=builtSet.has(project.key);const rank=pressure.findIndex(p=>p.key===project.key);return <Pressable key={project.key} disabled={done} onPress={()=>buildProject(project)} style={[styles.site,done&&styles.siteDone,rank===0&&!done&&styles.siteUrgent]}><Text style={styles.siteName}>{project.label}</Text><Text style={styles.siteNeed}>{done?'BUILT':`Need ${project.need}`}</Text><Text style={styles.siteCost}>{project.workerCost}W • {project.materialCost}M</Text>{rank===0&&!done?<Text style={styles.urgent}>MOST URGENT</Text>:null}</Pressable>})}</View></View>
       <Text style={styles.tip}>You can finish only a few projects this cycle. Highest need is not always the only factor—watch community health and remaining resources.</Text>
     </>:<View style={styles.result}><Text style={styles.resultKicker}>COMMUNITY CYCLE COMPLETE</Text><Text style={styles.bigScore}>{score}</Text><Text style={styles.resultCopy}>{message}</Text><Pressable style={styles.primary} onPress={reset}><Text style={styles.primaryText}>REBUILD PLAN</Text></Pressable></View>}
