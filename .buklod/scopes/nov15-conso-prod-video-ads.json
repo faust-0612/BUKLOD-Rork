@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/nov15-conso-prod-video-ads.json",
   "objective": "Prepare exact production main forward-port of 14 verified staging video/AdMob source files without overwriting already production-live Profile rankings, HIBLA Connect, Kingdom FX, Auth/DB, original media quality or retired IGPAT.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Production main SHA 7ebbbd504df2f84355888cc64a8c5317319d6d65 and update 01a1da5c-0179-79fc-85c9-591cdb782190 previously verified. Desired staging-source 2d6e6d46819b51ff6f6bd6cc4a37785502a70f5d; this PR does NOT claim staging or production publication until EAS receipts and release gates pass.",
+  "productionBaselineEvidence": "verified: Production main SHA 7ebbbd504df2f84355888cc64a8c5317319d6d65 and update 01a1da5c-0179-79fc-85c9-591cdb782190 previously verified. Desired staging-source 2d6e6d46819b51ff6f6bd6cc4a37785502a70f5d; this PR does NOT claim staging or production publication until EAS receipts and release gates pass.",
   "chosenApproach": "Select only 14 changed src blobs from exact stage integration; unchanged Profile rank files already match main byte-for-byte. Preserve current main dependencies and native/AdMob unit configuration, use focused Android no-publish tests and stage receipt requirement before production promotion.",
   "selectionRationale": "Narrowly addresses owner-visible delayed playback and scrolling resource use without replacing the approved Android video player, degrading resolution or adding expensive native/build dependencies. Native AdMob assets are cached briefly before a future eligible placement rather than requesting invisible banner impressions.",
   "alternativeApproaches": [
