@@ -1,0 +1,74 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov15-ad-native-retention.json",
+  "objective": "Fix Android NativeAd lifecycle teardown during navigation between ad-safe routes, while preserving consent and existing offscreen native impression safety.",
+  "baseRef": "dev/video-scroll-pause-ad-prewarm-20261114",
+  "productionBaselineEvidence": "Production main remains 7ebbbd504df2f84355888cc64a8c5317319d6d65; this isolated fix is DEV only and does not publish an OTA.",
+  "chosenApproach": "Remove an unnecessary pathname dependency from the native SDK request/cleanup effect. The separately computed keepNativeLifecycle already considers route safety and controls actual disposal. Keep all SDK callbacks and timeouts unchanged.",
+  "selectionRationale": "Preserve legitimately filled native creatives across harmless route changes without new ad demand or early impressions.",
+  "alternativeApproaches": [
+    "Drop all route safety (rejected: unsafe).",
+    "Destroy every creative on route transitions (rejected: risks filling delay/cooldown)."
+  ],
+  "riskAreas": [
+    "ads-finance-points",
+    "governance-lock",
+    "navigation-auth",
+    "ad-impression"
+  ],
+  "preserveBehaviors": [
+    "NativeAdView only mounts after eligible viewport.",
+    "No new ad unit IDs, no offscreen impression, no bypass of SDK consent, cooldown, typing lock or app lifecycle.",
+    "Disable native creative and cleanup when safety and retention gates truly disallow it.",
+    "No production, staging, web or database mutation."
+  ],
+  "regressionTests": [
+    "tests/ad-native-lifecycle-retention-20261115.test.mjs",
+    "tests/admob-native-video-prefetch-20261114.test.mjs",
+    "tests/nov15-android-native-prefetch-gate.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/nov15-ad-native-retention.json",
+    ".github/workflows/engineering-accountability.yml",
+    "src/components/BuklodCommunityInlineAd.android.tsx",
+    "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "Native SDK effect does not restart on pathname changes alone; route lock still tears down ad.",
+    "No premature offscreen ad view or impression.",
+    "Engineering Accountability and focused tests pass against exact source SHA.",
+    "Staging and production release remain explicitly gated."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "ads-finance-points",
+      "reason": "Retain already loaded NativeAd during ad-safe navigation while preserving all request and impression policies.",
+      "preservedBehaviors": [
+        "Consent, locked surfaces, global request throttle, native-vs-banner SDK tracking, finance and QMP unchanged."
+      ],
+      "tests": [
+        "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "governance-lock",
+      "reason": "Register this isolated fix branch under the protected exact-scope CI manifest gate.",
+      "preservedBehaviors": [
+        "Scope gate remains fail-closed and other branch policies remain unchanged."
+      ],
+      "tests": [
+        "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Loaded ad survival across navigation must not change actual route authorization or session identity.",
+      "preservedBehaviors": [
+        "No cross-account ad data changes and forbidden routes release creatives."
+      ],
+      "tests": [
+        "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+      ]
+    }
+  ]
+}
