@@ -10,5 +10,10 @@
   "allowProduction": false,
   "allowExistingStaging": false,
   "allowStore": false,
-  "allowDatabaseChanges": false
+  "allowDatabaseChanges": false,
+  "retryAttempt": 2,
+  "previousRunId": 43578436734,
+  "previousFailure": "Android SDK setup action called removed sdkmanager tools package before application compilation",
+  "onlyChange": "Use preinstalled hosted-runner Android SDK without sdkmanager tools",
+  "noPaidResources": true
 }
