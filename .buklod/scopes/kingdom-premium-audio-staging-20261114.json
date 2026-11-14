@@ -18,7 +18,8 @@
     "Source and native/web TypeScript compile; audio runtime in installed staging APK",
     "Music starts only on game focus, respects toggle, no playback after blur/background",
     "Quick actions do not fall back to app message/notification sounds",
-    "Staging Android real device listening QA before OTA acceptance"
+    "Staging Android real device listening QA before OTA acceptance",
+    "Standalone Rork source contract and cinematic audio regression are exercised separately but only PR-changed tests are declared for mandatory release scope gate."
   ],
   "releaseState": "DEV_ONLY_STAGING_NO_OTA",
   "scopeManifestPath": ".buklod/scopes/kingdom-premium-audio-staging-20261114.json",
@@ -54,9 +55,7 @@
     "metro.config.js"
   ],
   "regressionTests": [
-    "tests/kingdom-premium-audio-staging-20261114.test.mjs",
-    "scripts/rork-media-contract-test.mjs",
-    "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
+    "tests/kingdom-premium-audio-staging-20261114.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
