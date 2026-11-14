@@ -41,7 +41,8 @@ test('release metadata cannot reapply unrelated runtime, payout or retired IGPAT
     '.buklod/scopes/nov12-next-conso-production-marker-20261112.json',
     'tests/nov12-next-conso-production-marker-20261112.test.mjs',
   ]);
-  assert.match(read('src/app/(tabs)/hub.tsx'), /Hide Updates & Bulletins/);
+  assert.match(read('src/app/(tabs)/hub.tsx'), /<BuklodSystemAnnouncementBoard slot="public_home" \/>/);
+  assert.doesNotMatch(read('src/app/(tabs)/hub.tsx'), /Hide Updates & Bulletins/);
   assert.doesNotMatch(read('src/components/BuklodSystemAnnouncementBoard.tsx'), /publicQuizDoor/);
   assert.match(read('src/components/BuklodConnectThread.tsx'), /roomReadFocusedRef/);
   assert.match(read('src/components/BuklodPostMotion.tsx'), /const count=preset==='storm'\?24/);
