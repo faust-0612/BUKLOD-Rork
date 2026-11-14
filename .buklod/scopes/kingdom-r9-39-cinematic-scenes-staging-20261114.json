@@ -1,0 +1,57 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/kingdom-r9-39-cinematic-scenes-staging-20261114.json",
+  "objective": "Implement individually choreographed premium gameplay-reactive scenes for every canonical 39 BUKLOD Kingdom game variants, using 13 approved character visuals; staging-user Android only with no production changes.",
+  "baseRef": "origin/dev/full-visual-transformation-20261113",
+  "productionBaselineEvidence": "Latest owner-approved isolated staging visual branch SHA e15b91fb95742a63e7d5d1d664d15b087681f331 inspected. This R9 DEV component must not merge to main/production or publish without full staging consolidated acceptance and exact native ABI/runtime verification. Existing native module Rive is present, but no authored .riv clips exist; do not mislabel sprite-motion as Rive rig.",
+  "chosenApproach": "One 39-record per-game authored motion catalog, native-only Reanimated UI-thread + Skia visual choreography whose geometry/motion/seed is different per game and reacts to real existing move/collect/impact/success/failure/unlock gameplay feedback; each scene renders approved original 13-character sprite art with pose reactions, disposes on focus blur/background/Reduce Motion. Game Center chooses exactly one scene by active.id. Web remains unchanged. No native build, asset, backend, points or ad changes.",
+  "selectionRationale": "Reuse the already installed runtime and game event bus, preserve existing game rule engines and 39 certified bank records; avoid pretending a newly authored .riv binary exists. Release blocked until native performance/device and separate Rive rig readiness are verified.",
+  "alternativeApproaches": [
+    "Generate arbitrary .riv files or remote assets: rejected; no authored source rig or verified integrity/license.",
+    "39 unrelated game engine rewrites: rejected for scoring/race regressions and cost.",
+    "39 profile-specific native gameplay-reactive scenes with existing approved artwork and no ABI changes: selected."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kingdom-r9-39-cinematic-scenes-staging-20261114.json",
+    "src/features/games/kingdom/platform/KingdomCinematicScenes.ts",
+    "src/features/games/kingdom/platform/KingdomCinematicScene.native.tsx",
+    "src/features/games/kingdom/platform/KingdomCinematicScene.tsx",
+    "src/features/games/kingdom/platform/KingdomCinematicScene.web.tsx",
+    "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "New game-specific visual scene per option plus noninteractive hero pose reactions.",
+      "preservedBehaviors": [
+        "All game results, reward eligibility, API, role, RLS, gameplay rules and count of original 13 x 3 stations remain unchanged.",
+        "Existing native-only Skia/Reanimated ABI and safe fallback, music, media, Wall, Ads and navigation unaffected.",
+        "Screen blur, app background and Reduce Motion must stop loops; no unbounded SFX or network loads."
+      ],
+      "tests": [
+        "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "No changes to Rive module, no claim of authored .riv rigs. Native character scenes animate existing approved artwork for Phan/Quin/Van/Christian/Lhen and eight special figures.",
+    "Gameplay feedback drives character pose and motion, but no tapping/decision/score/reward logic changes.",
+    "39 game scene definitions match exact catalog names, ids and characters.",
+    "No optional downloads or new native build; staging only."
+  ],
+  "acceptanceChecks": [
+    "Node game catalog and new R9 scoped source tests pass; all game IDs covered exactly once; 13 original character art atlas/sheets preserved.",
+    "Both Engine Accountability and full TypeScript/Web QA pass at the exact source head.",
+    "Android Expo Hermès export on exact integrated staging source, with runtime 1.3.2 APK source identity and protected production channel fingerprint, before any staging OTA.",
+    "Native gameplay frame-time, RAM, touch/feedback and Reduce Motion/device behavior acceptance measured; not claimed complete from static tests.",
+    "Authoring/verification of real Rive .riv character state machines is a separate open blocker. No mock or remote unverified art substitutes.",
+    "Do not bypass Nov 14 full consolidated BUKLOD staging release gate; production remains untouched."
+  ],
+  "riskAreas": [],
+  "releaseMode": "DEV STAGING SOURCE ONLY",
+  "releaseStatus": "Awaiting exact-source QA; does not publish staging OTA, web, production or backend."
+}
