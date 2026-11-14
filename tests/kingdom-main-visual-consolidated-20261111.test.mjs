@@ -25,19 +25,29 @@ test('Main Kingdom retains all canonical station coordinates and destinations', 
   assert.match(map, /router\.push\('\/games\/legacy'/);
 });
 
-test('map artwork is live scalable BUKLOD SVG, not a static fabricated navigation picture', () => {
-  const map=read('src/features/games/kingdom/BuklodKingdomMapPremium.tsx');
-  const effects=read('src/features/games/kingdom/BuklodKingdomAtmosphere.tsx');
-  assert.match(map, /<IllustratedRealm mapWidth={mapWidth} mapHeight={mapHeight} stage={stage}/);
-  assert.match(map, /<BuklodKingdomAtmosphere stage={stage} scale={scale}/);
-  assert.match(map, /SUNSPIRE RUINS/);
-  assert.match(map, /EXPLORE THE KINGDOM/);
-  assert.match(map, /accessibilityLabel="Open Kingdom Hall of Legacy"/);
-  assert.match(map, /useRorkGameAmbience\('kingdom-map'\)/);
-  assert.match(map, /onPress=\{toggleMusic\}/);
-  assert.match(effects,/AccessibilityInfo\.isReduceMotionEnabled/);
-  assert.match(effects,/AppState\.addEventListener/);
-  assert.match(effects,/pointerEvents="none"/);
+test('modern Kingdom scalable SVG and Skia/Reanimated animations retain live accessibility guards', () => {
+  const map = read('src/features/games/kingdom/BuklodKingdomMapPremium.tsx');
+  const fx = read('src/features/games/kingdom/BuklodKingdomLivingFX.native.tsx');
+  assert.ok(map.includes('<IllustratedRealm mapWidth={mapWidth} mapHeight={mapHeight} stage={stage}'));
+  assert.ok(map.includes("import BuklodKingdomLivingFX from './BuklodKingdomLivingFX'"));
+  assert.ok(map.includes('<BuklodKingdomLivingFX'));
+  assert.ok(map.includes('stage={stage} scale={scale} mapWidth={mapWidth} mapHeight={mapHeight}'));
+  assert.ok(map.includes('selected={selectedStation} cleared={clearedFXStations} cinematic={cinematicFX}'));
+  for (const label of ['EXPLORE THE KINGDOM','Open Kingdom Hall of Legacy','SUNSPIRE RUINS'])
+    assert.ok(map.includes(label), label);
+  assert.ok(map.includes("useRorkGameAmbience('kingdom-map')"));
+  assert.ok(map.includes('onPress={toggleMusic}'));
+  for (const contract of [
+    'AccessibilityInfo.isReduceMotionEnabled()',
+    "AppState.addEventListener('change'",
+    'useFocusEffect(useCallback(',
+    'withRepeat(withTiming(1,',
+    'cancelAnimation(phase)',
+    '<Canvas',
+    'pointerEvents="none"',
+  ]) assert.ok(fx.includes(contract), 'modern native FX missing '+contract);
+  for (const forbidden of ['supabase','grantPoints(','awardPoints(','fetch('])
+    assert.ok(!fx.includes(forbidden),'decorative FX must never access economy/network: '+forbidden);
 });
 
 test('legacy visual finishes are cosmetic and claims stay on the official account ledger', () => {
