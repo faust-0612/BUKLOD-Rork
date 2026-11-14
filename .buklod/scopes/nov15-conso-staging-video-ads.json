@@ -24,7 +24,8 @@
     "signed-url-identity",
     "audio-focus",
     "navigation-scroll",
-    "ads-monetization"
+    "ads-monetization",
+    "production-release"
   ],
   "preserveBehaviors": [
     "Original-quality content video sources and existing cached decoder, Android Expo Video/IMA source, sound focus, signed URL recovery and retry remain unchanged.",
@@ -49,12 +50,15 @@
     "tests/nov14-profile-navigation-rank-refresh.test.mjs",
     "tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs",
     "tests/navigation-v2-context-menu.test.mjs",
-    "tests/navigation-v2-feature-search.test.mjs"
+    "tests/navigation-v2-feature-search.test.mjs",
+    "tests/buklod-nov15-conso-staging-release-policy.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/nov15-conso-staging-video-ads.json",
+    ".github/workflows/buklod-nov15-conso-staging-ota.yml",
     ".github/workflows/engineering-accountability.yml",
     ".github/workflows/navigation-v2-staging-compile-qa.yml",
+    "scripts/buklod-nov15-conso-staging-ota-policy.mjs",
     "src/app/(tabs)/buklod.tsx",
     "src/app/(tabs)/hub.tsx",
     "src/app/(tabs)/me.tsx",
@@ -74,6 +78,7 @@
     "src/lib/buklodVideoScrollSignal.ts",
     "tests/ad-native-lifecycle-retention-20261115.test.mjs",
     "tests/admob-native-video-prefetch-20261114.test.mjs",
+    "tests/buklod-nov15-conso-staging-release-policy.test.mjs",
     "tests/compact-public-wall-header-20261104.test.mjs",
     "tests/navigation-v2-context-menu.test.mjs",
     "tests/navigation-v2-feature-search.test.mjs",
@@ -100,7 +105,8 @@
     "Exact-head CI and Android Hermes export before staging OTA; owner waives only manual handset check.",
     "Production only after staging exact-source receipt/readback and separate production release gates.",
     "Profile monthly/all-time signed-in rank and canonical Top 10 display without displacing personal posts; QMP/AdMob balances unchanged.",
-    "Navigation V2 context-menu and feature finder tests use the already-approved current staging UI assertions; preserve pinned shortcuts and existing four shared routes."
+    "Navigation V2 context-menu and feature finder tests use the already-approved current staging UI assertions; preserve pinned shortcuts and existing four shared routes.",
+    "A dedicated commit-marker staging publisher requires the exact head, three CI passes, signed staging client and verified Expo receipt without modifying production."
   ],
   "lockedFeatureChanges": [
     {
@@ -171,6 +177,17 @@
         "tests/protected-feature-lock-video-scope-20261114.test.mjs",
         "tests/navigation-v2-context-menu.test.mjs",
         "tests/navigation-v2-feature-search.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Introduce a channel-isolated, exact-source staging-only OTA workflow for the full approved JS conso while retaining independent EAS readback and unchanged prod.",
+      "preservedBehaviors": [
+        "No production publish, Play, new APK, native/DB/AdMob-unit change, or unverified on-device acceptance claim.",
+        "Exact source check, signed staging runtime/client package, CI and production nonmutation are mandatory."
+      ],
+      "tests": [
+        "tests/buklod-nov15-conso-staging-release-policy.test.mjs"
       ]
     }
   ]
