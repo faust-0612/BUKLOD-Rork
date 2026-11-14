@@ -1,11 +1,17 @@
 name: Kingdom Native Lab - isolated Android APK (manual only)
 
-# No push, schedule, OTA, production or EAS automation.
+# Single opt-in build request, scoped to an exact isolated DEV branch.
+# No schedule, OTA, production or EAS deployment.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - dev/kingdom-native-lab-isolated-20261114
+    paths:
+      - .buklod/build-requests/kingdom-native-lab-once-20261114.json
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: kingdom-native-lab-android-manual
@@ -88,3 +94,36 @@ jobs:
             kingdom-native-lab-apk.sha256
           if-no-files-found: error
           retention-days: 3
+      - name: Record exact APK build outcome in isolated DEV branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: dev/kingdom-native-lab-isolated-20261114
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RESULT: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs');
+          const data={
+            reportKind:'BUKLOD_KINGDOM_NATIVE_LAB_BUILD',
+            source_sha:process.env.SOURCE_SHA,
+            run_id:Number(process.env.RUN_ID),
+            branch:process.env.BRANCH,
+            job_status:process.env.RESULT,
+            package_id:'org.mzbministry.buklod.kingdomlab',
+            runtime:'1.4.0-kingdom-native-lab.1',
+            published_to_staging:false,
+            published_to_production:false,
+            apk_artifact_expected:process.env.RESULT==='success'
+          };
+          fs.writeFileSync('/tmp/kingdom-native-lab-report.json',JSON.stringify(data,null,2)+'\n');
+          NODE
+          # Write to the isolated DEV branch only. This path never retriggers
+          # the workflow; neither OTA nor main/staging-user is touched.
+          ENCODED="$(base64 -w0 /tmp/kingdom-native-lab-report.json)"
+          gh api --method PUT "repos/${{ github.repository }}/contents/.buklod/reports/kingdom-native-lab-last-build.json" \
+            -f branch="$BRANCH" \
+            -f message="ci(lab): record isolated Android source build outcome" \
+            -f content="$ENCODED" >/dev/null
