@@ -87,7 +87,21 @@ try {
   if (build) {
     const currentBranch = execFileSync('git', ['branch', '--show-current'],
       { cwd: root, encoding: 'utf8' }).trim();
-    requireCondition(currentBranch === STRICT_BRANCH, 'refusing build outside dedicated DEV branch');
+    const hostedBranch = (process.env.GITHUB_REF_NAME || '').trim();
+    const hostedRef = (process.env.GITHUB_REF || '').trim();
+    const verifiedCommit = execFileSync('git', ['rev-parse', 'HEAD'],
+      { cwd: root, encoding: 'utf8' }).trim();
+    // GitHub Actions checks out a detached SHA. Require both official ref
+    // and immutable checkout identity; local builds require exact branch.
+    const authenticCI = process.env.GITHUB_ACTIONS === 'true' &&
+      process.env.CI === '1' &&
+      hostedBranch === STRICT_BRANCH &&
+      hostedRef === 'refs/heads/' + STRICT_BRANCH &&
+      process.env.GITHUB_SHA === verifiedCommit;
+    requireCondition(currentBranch === STRICT_BRANCH || authenticCI,
+      'build must run on exact isolated DEV branch or its GitHub Actions SHA');
+    requireCondition(!(process.env.GITHUB_ACTIONS === 'true') || authenticCI,
+      'CI branch/SHA identity mismatch');
     checkFirebaseFile(lab);
     requireCondition(process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1',
       'native-lab environment flag missing');
