@@ -23,9 +23,9 @@ jobs:
       EAS_NO_VCS: '1'
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
-      VERIFIED_PREVIEW_ID: gme0swwxhe
-      VERIFIED_PREVIEW_URL: https://himig-studio--gme0swwxhe.expo.app
-      PREVIOUS_PROD_ID: n5lpq7m8aw
+      VERIFIED_PREVIEW_ID: 0hvtwsflc2
+      VERIFIED_PREVIEW_URL: https://himig-studio--0hvtwsflc2.expo.app
+      PREVIOUS_PROD_ID: gme0swwxhe
       PRODUCTION_URL: https://himig-studio.expo.app
     steps:
       - name: Checkout isolated Himig branch
@@ -68,7 +68,10 @@ jobs:
           if(!rc.includes('Himig Studio'))throw Error('RC is not Himig Studio');
           if(!x||x.provider!=='fal-ai/sam-audio/separate'||x.ready!==false)throw Error('Unexpected active billing or wrong provider');
           if(!old.includes('Himig Studio')||!known.includes('Himig Studio'))throw Error('Baseline is not Himig Studio');
-          if(!fs.readFileSync(p+'/old-worker.js').equals(fs.readFileSync(p+'/known-prev-worker.js')))throw Error('Production baseline drift since last verified release; do not overwrite');
+          if(!fs.readFileSync(p+'/old-worker.js').equals(fs.readFileSync(p+'/known-prev-worker.js')))throw Error('Production worker baseline drift since last verified release; do not overwrite');
+          const scripts=html=>html.replaceAll("'",'"').split('"').filter(v=>v.includes('_expo/static/js/')&&v.includes('.js')).sort().join('|');
+          const expectedOld=scripts(known),actualOld=scripts(old);
+          if(expectedOld&&actualOld&&expectedOld!==actualOld)throw Error('Production HTML script baseline changed; abort');
           console.log('RC_HTTP_HTML_WORKER_AI_STATUS=PASS; PROD_BASELINE=RECONCILED');
           NODE
       - name: Install Node 22
@@ -104,6 +107,10 @@ jobs:
           const status=JSON.parse(fs.readFileSync(path+'/live-status.json','utf8'));
           if(!live.includes('Himig Studio'))throw Error('Production identity mismatch');
           if(status.provider!=='fal-ai/sam-audio/separate'||status.ready!==false)throw Error('Wrong AI capability/billing state');
+          const rc=fs.readFileSync(path+'/rc.html','utf8');
+          const scripts=html=>html.replaceAll("'",'"').split('"').filter(v=>v.includes('_expo/static/js/')&&v.includes('.js')).sort().join('|');
+          if(scripts(rc)&&scripts(live)!==scripts(rc))throw Error('Live JS bundle differs from verified RC');
+          console.log('PRODUCTION_CLIENT_BUNDLE_MATCHED_IMMUTABLE_RC=PASS');
           console.log('EXPO_PRODUCTION_EXACT_RC_VERIFIED=PASS');
           console.log('STUDIO_MASTER_AND_REAL_ANDROID_LISTENING=NOT_VERIFIED');
           NODE
