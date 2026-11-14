@@ -7,9 +7,15 @@ module.exports = ({ config }) => {
   /* BUKLOD_CLASSROOM_APP_TARGET_R4 — standalone identity without mutating Main defaults */
   const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();
   const isClassroom = appTarget === 'classroom';
+  const isKingdomLab = appTarget === 'kingdom-native-lab';
+  const kingdomLabServicesFile = (process.env.KINGDOM_LAB_GOOGLE_SERVICES_FILE || '').trim();
+  // Never inherit the main EAS project or Firebase OAuth client in an isolated native experiment.
+  const kingdomLabProjectId = (process.env.KINGDOM_LAB_EAS_PROJECT_ID || '').trim();
   const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
   const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
-  const projectId = isClassroom
+  const projectId = isKingdomLab
+    ? (kingdomLabProjectId || null)
+    : isClassroom
     ? classroomProjectId
     : (process.env.EAS_PROJECT_ID ||
        process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
@@ -23,19 +29,26 @@ module.exports = ({ config }) => {
   const isStaging =
     variant === 'staging' ||
     variant === 'preview' ||
-    variant === 'development';
+    variant === 'development' ||
+    isKingdomLab;
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
-  const appName = isClassroom
+  const appName = isKingdomLab
+    ? 'BUKLOD Kingdom Native Lab'
+    : isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
     : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
 
-  const packageId = isClassroom
+  const packageId = isKingdomLab
+    ? 'org.mzbministry.buklod.kingdomlab'
+    : isClassroom
     ? 'org.mzbministry.buklod.classroom'
     : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
 
-  const scheme = isClassroom
+  const scheme = isKingdomLab
+    ? 'buklod-kingdom-lab'
+    : isClassroom
     ? 'buklod-classroom'
     : (isStaging ? 'buklod-staging' : 'buklod');
 
@@ -43,8 +56,8 @@ module.exports = ({ config }) => {
     ...config,
 
     name: appName,
-    slug: isClassroom ? 'buklod-classroom' : 'buklod',
-    version: isClassroom ? '1.3.4' : '1.3.6',
+    slug: isKingdomLab ? 'buklod-kingdom-native-lab' : (isClassroom ? 'buklod-classroom' : 'buklod'),
+    version: isKingdomLab ? '1.4.0-lab' : (isClassroom ? '1.3.4' : '1.3.6'),
 
     orientation: 'default',
     scheme,
@@ -81,10 +94,12 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : (isClassroom ? 28 : 30),
+      versionCode: isKingdomLab ? 1 : (isStaging ? undefined : (isClassroom ? 28 : 30)),
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
-      googleServicesFile: isClassroom
+      googleServicesFile: isKingdomLab
+        ? (kingdomLabServicesFile || undefined)
+        : isClassroom
         ? (classroomGoogleServicesFile || undefined)
         : (isStaging ? './google-services.staging.json' : './google-services.production.json'),
 
@@ -372,17 +387,20 @@ module.exports = ({ config }) => {
         process.env.EXPO_PUBLIC_APP_ENV ||
         variant,
 
-      appTarget: isClassroom ? 'classroom' : 'main',
+      appTarget: isKingdomLab ? 'kingdom-native-lab' : (isClassroom ? 'classroom' : 'main'),
+      kingdomNativeLab: isKingdomLab,
 
       eas:
         projectId
           ? { projectId }
-          : config.extra?.eas,
+          : (isKingdomLab ? undefined : config.extra?.eas),
     },
 
 
     updates:
-      projectId
+      isKingdomLab
+        ? { enabled: false } // No OTA can target an installed staging-user or production runtime.
+        : projectId
         ? {
             url:
               `https://u.expo.dev/${projectId}`,
@@ -395,7 +413,7 @@ module.exports = ({ config }) => {
     // Main BUKLOD V30 (versionCode 30) removes unused connectedDevice foreground service
     // permission from the manifest, without adding or changing the native JS module ABI.
     // Keep Expo runtime 1.3.2 for existing V28/V29 production OTA compatibility. Classroom has its independent runtime.
-    runtimeVersion: isClassroom ? '1.3.0' : '1.3.2',
+    runtimeVersion: isKingdomLab ? '1.4.0-kingdom-native-lab.1' : (isClassroom ? '1.3.0' : '1.3.2'),
   };
 };
 
