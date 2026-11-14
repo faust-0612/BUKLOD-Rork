@@ -4,13 +4,13 @@ import fs from 'node:fs';
 import test from 'node:test';
 const require = createRequire(import.meta.url);
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-test('native staging lab isolated from production and staging user OTA', () => {
-  const e=JSON.parse(read('eas.json')),lab=e.build['staging-native-lab'];
-  assert.equal(lab.channel,'staging-native-lab');
-  assert.equal(lab.android.buildType,'apk');
-  assert.equal(lab.environment,'preview');
-  assert.notEqual(lab.channel,e.build.production.channel);
-  assert.notEqual(lab.channel,e.build['staging-user'].channel);
+test('original EAS profiles are unchanged; lab channel is created only in CI runner', () => {
+  const e=JSON.parse(read('eas.json'));
+  assert.equal(e.build['staging-native-lab'],undefined);
+  assert.equal(e.build['staging-user'].channel,'staging-user');
+  assert.equal(e.build['staging-user'].android.buildType,'apk');
+  assert.equal(e.build['staging-user'].environment,'preview');
+  assert.notEqual(e.build['staging-user'].channel,e.build.production.channel);
   const c=require('../app.config.js')({config:{extra:{}}});
   assert.equal(c.android.package,'org.mzbministry.buklod.staging');
   assert.equal(c.runtimeVersion,'1.3.2');
