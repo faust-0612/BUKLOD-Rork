@@ -27,7 +27,8 @@
     "release-identity",
     "production-release",
     "staging-isolation",
-    "native-ota-compatibility"
+    "native-ota-compatibility",
+    "navigation-scroll"
   ],
   "preserveBehaviors": [
     "Current production Profile personal authored posts and Monthly/All-Time Top 10 remain unchanged and source backed.",
