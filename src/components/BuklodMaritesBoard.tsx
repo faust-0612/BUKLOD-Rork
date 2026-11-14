@@ -96,6 +96,7 @@ import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useFocusEffect } from 'expo-router';
 import { selectVisibleMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
+import {noteBuklodVideoScroll, subscribeBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import { createMaritesVisibilityScheduler } from '@/lib/buklodMaritesViewportMeasure';
 import { useAuth } from '@/providers/AuthProvider';
 import { subscribeBuklodPublicPostChanges } from '@/lib/buklodPublicCommunityRealtime';
@@ -936,6 +937,8 @@ export default function BuklodMaritesBoard({
   const storyStripOffset = useRef(0);
   const stripViewportRef = useRef<View>(null);
   const [visibleVideoIndex, setVisibleVideoIndex] = useState(-1);
+  const [scrollPaused, setScrollPaused] = useState(false);
+  useEffect(()=>subscribeBuklodVideoScroll(setScrollPaused),[]);
   const playbackActive = useMaritesPlaybackActive();
   const [viewStory, setViewStory] =
     useState<MaritesStory | null>(null);
@@ -1829,7 +1832,7 @@ export default function BuklodMaritesBoard({
   const { height: windowHeight, width: windowWidth } =
     useWindowDimensions();
 
-  const canPlayInline = playbackActive && !playbackBlocked && !viewStory && !composerOpen;
+  const canPlayInline = playbackActive && !playbackBlocked && !viewStory && !composerOpen && !scrollPaused;
   const visibilityGeneration = useRef(0);
   const measureVisibility = useCallback(() => {
     const generation = ++visibilityGeneration.current;
@@ -1928,7 +1931,7 @@ export default function BuklodMaritesBoard({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.row}
         scrollEventThrottle={100}
-        onScroll={event => { storyStripOffset.current = event.nativeEvent.contentOffset.x; requestVisibilityMeasurement(); }}
+        onScroll={event => { storyStripOffset.current = event.nativeEvent.contentOffset.x; noteBuklodVideoScroll(); requestVisibilityMeasurement(); }}
         renderItem={({ item: story, index }) => (
           <BuklodFocusFadeUp
             delay={Math.min(index, 8) * 30}

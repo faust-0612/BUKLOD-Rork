@@ -1,4 +1,5 @@
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
+import {noteBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import {
   BUKLOD_REEL_MAX_DURATION_SECONDS,
   BUKLOD_REEL_TOO_LONG_MESSAGE,
@@ -4567,7 +4568,7 @@ return (
     <>
       <FlatList<any>
         ref={feedRef}
-        onScroll={event => reportBuklodDashboardScroll('scope', event.nativeEvent.contentOffset.y)}
+        onScroll={event => { reportBuklodDashboardScroll('scope', event.nativeEvent.contentOffset.y); noteBuklodVideoScroll(); }}
         scrollEventThrottle={64}
         data={
           listData
