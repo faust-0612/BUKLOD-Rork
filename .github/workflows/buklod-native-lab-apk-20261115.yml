@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   source-identity-qa:
-    if: "${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/native-lab-isolated-runtime-20261115' }"
+    if: "${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/native-lab-isolated-runtime-20261115' }}"
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: "${{ github.sha }"
+          ref: "${{ github.sha }}"
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -58,7 +58,7 @@ jobs:
 
   signed-native-lab-apk:
     needs: source-identity-qa
-    if: "${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/native-lab-isolated-runtime-20261115' && github.event_name == 'push' && startsWith(github.event.head_commit.message, 'BUKLOD_NATIVE_LAB_SIGNED_APK_20261115:') }"
+    if: "${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/native-lab-isolated-runtime-20261115' && github.event_name == 'push' && startsWith(github.event.head_commit.message, 'BUKLOD_NATIVE_LAB_SIGNED_APK_20261115:') }}"
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
@@ -67,13 +67,13 @@ jobs:
       APP_VARIANT: native-lab
       EXPO_PUBLIC_APP_ENV: staging
       BUKLOD_APP_TARGET: main
-      EXPO_TOKEN: "${{ secrets.EXPO_TOKEN }"
-      NATIVE_LAB_FIREBASE_JSON_B64: "${{ secrets.NATIVE_LAB_FIREBASE_JSON_B64 }"
-      BUKLOD_STAGING_PROJECT_REF: "${{ vars.BUKLOD_STAGING_PROJECT_REF }"
+      EXPO_TOKEN: "${{ secrets.EXPO_TOKEN }}"
+      NATIVE_LAB_FIREBASE_JSON_B64: "${{ secrets.NATIVE_LAB_FIREBASE_JSON_B64 }}"
+      BUKLOD_STAGING_PROJECT_REF: "${{ vars.BUKLOD_STAGING_PROJECT_REF }}"
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: "${{ github.sha }"
+          ref: "${{ github.sha }}"
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -195,7 +195,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: buklod-native-lab-apk-receipt-${{ github.sha }}
+          name: buklod-native-lab-apk-receipt-${{ github.sha }}}
           path: native-lab-apk-receipt.json
           retention-days: 21
           if-no-files-found: ignore
