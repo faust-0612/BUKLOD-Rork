@@ -399,7 +399,11 @@ module.exports = ({ config }) => {
     // Main BUKLOD V30 (versionCode 30) removes unused connectedDevice foreground service
     // permission from the manifest, without adding or changing the native JS module ABI.
     // Keep Expo runtime 1.3.2 for existing V28/V29 production OTA compatibility. Classroom has its independent runtime.
-    runtimeVersion: isClassroom ? '1.3.0' : (isNativeLab ? '1.4.0-nativeqa.1' : '1.3.2'),
+    // Preserve the canonical Classroom/Main runtime declaration used by the existing
+    // production/staging compatibility contract. Override ONLY for the isolated
+    // separately installable Android native-lab application.
+    runtimeVersion: isClassroom ? '1.3.0' : '1.3.2',
+    ...(isNativeLab ? { runtimeVersion: '1.4.0-nativeqa.1' } : {}),
   };
 };
 
