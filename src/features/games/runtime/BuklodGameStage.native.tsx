@@ -19,6 +19,7 @@ import type { BuklodGameResult } from '@/features/games/types';
 import { BuklodGameLanguageControl, BuklodGameLanguageProvider } from './BuklodGameLanguage';
 import BuklodGameBackdrop from './BuklodGameBackdrop';
 import BuklodGameCharacterCompanion from './BuklodGameCharacterCompanion';
+import BuklodGameplayReactionFX from './BuklodGameplayReactionFX.native';
 import { useRorkGameAmbience } from './rorkAudio';
 import { BuklodGameEntrance, BuklodGameVisualFX } from './BuklodGameVisualFX';
 import type { BuklodGameBiome } from './quality';
@@ -145,6 +146,9 @@ export function BuklodGameStage({ biome, gameId, showCharacterCompanion = true, 
         <View style={styles.content}>
           <BuklodGameEntrance>{connectedChildren}</BuklodGameEntrance>
         </View>
+        {/* Event-driven collectible/impact/win motion overlays the active game,
+            never touch, progress, score, or backend authority. */}
+        <BuklodGameplayReactionFX enabled={screenFocused && appActive && !reducedMotion} />
         {showCharacterCompanion ? <BuklodGameCharacterCompanion gameId={resolvedGameId} /> : null}
         <BuklodGameLanguageControl />
       </View>
