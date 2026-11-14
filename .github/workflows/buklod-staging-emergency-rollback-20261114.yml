@@ -62,11 +62,12 @@ jobs:
           assert.equal(prior[0].runtimeVersion,'1.3.2');
           assert.equal(prior[0].branch,'staging-user');
           const first=rows(read('list-before.json'))[0];
-          assert.equal(first.id,'01a1d7e7-3895-7867-b913-42f4a273a348');
+          assert.equal(first.platforms,'android');
+          assert.match(first.message,/BUKLOD_NAV_V2_OWNER_STAGING_42e8280f49a1dc9b6c1bdb7f61964264be09d6ef/);
           assert.equal(first.group,'1d374d1b-7d44-4ec8-9d2b-91dfe24024b8');
           const b=verifyChannels(read('staging-before.json'),read('production-before.json'));
           const stage=await manifest('staging-user');
-          assert.equal(stage.id.toLowerCase(),first.id);
+          assert.equal(stage.id.toLowerCase(),'01a1d7e7-3895-7867-b913-42f4a273a348');
           assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
           const production=await manifest('production');
           assert.equal(production.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
@@ -82,7 +83,8 @@ jobs:
           import fs from 'node:fs';
           const d=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/list-recheck.json','utf8'));
           const rows=Array.isArray(d)?d:d.currentPage;
-          assert.equal(rows[0].id,'01a1d7e7-3895-7867-b913-42f4a273a348','Another staging release exists; refuse to overwrite');
+          assert.match(rows[0].message,/BUKLOD_NAV_V2_OWNER_STAGING_42e8280f49a1dc9b6c1bdb7f61964264be09d6ef/,'Unexpected staging publication; refuse to overwrite');
+          assert.equal(rows[0].platforms,'android');
           assert.equal(rows[0].group,'1d374d1b-7d44-4ec8-9d2b-91dfe24024b8');
           NODE
           npx --yes eas-cli@27.9.0 update:republish --group 4549f879-a9b6-4577-86a0-585eabafd224 --destination-branch staging-user --platform android --message "BUKLOD_RESTORE_VISUAL_STAGING_20261114" --non-interactive --json > "$EVIDENCE_DIR/republished.json"
@@ -119,7 +121,8 @@ jobs:
           const latest=row(get('list-after'));
           assert.equal(u.id,v.id);
           assert.equal(u.group,v.group);
-          assert.equal(latest.id,u.id);
+          assert.equal(latest.platforms,'android');
+          assert.match(latest.message,/BUKLOD_RESTORE_VISUAL_STAGING_20261114/);
           assert.equal(latest.group,u.group);
           const before=get('before');
           const after=verifyChannels(get('staging-after'),get('production-after'));
