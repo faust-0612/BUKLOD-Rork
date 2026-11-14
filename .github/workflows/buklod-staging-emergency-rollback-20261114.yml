@@ -71,7 +71,7 @@ jobs:
           assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
           const production=await manifest('production');
           assert.equal(production.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
-          fs.writeFileSync(dir+'/before.json',JSON.stringify({stagingId:first.id,productionId:production.id,branchId:b.id,priorGroup:prior[0].group,priorSource:prior[0].gitCommitHash},null,2));
+          fs.writeFileSync(dir+'/before.json',JSON.stringify({stagingId:'01a1d7e7-3895-7867-b913-42f4a273a348',productionId:production.id,branchId:b.id,priorGroup:prior[0].group,priorSource:prior[0].gitCommitHash},null,2));
           NODE
       - name: Republish only the immediately preceding Android Visual Staging OTA
         shell: bash

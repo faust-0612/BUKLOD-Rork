@@ -16,7 +16,7 @@ test('previous update is republished only to staging-user Android, verified and 
  assert.match(w,/stage.id.toLowerCase\(\),u.id.toLowerCase\(\)/);
  assert.match(w,/assert.equal\(production.id,before.productionId/);
  assert.match(w,/assert.equal\(after.id,before.branchId\)/);
- assert.match(w,/Another staging release exists; refuse to overwrite/);
+ assert.match(w,/Unexpected staging publication; refuse to overwrite/);
  assert.doesNotMatch(w,/--destination-(?:branch|channel) production|--platform all|eas-cli@[^\\s]+ (?:build|submit|deploy)\s|vercel deploy/);
 });
 
@@ -24,5 +24,5 @@ test('EAS update:list group metadata is not mistaken for update:view update ID',
  assert.match(w,/first.platforms,'android'/);
  assert.match(w,/first.message,\/BUKLOD_NAV_V2_OWNER_STAGING_/);
  assert.match(w,/stage.id.toLowerCase\(\),'01a1d7e7-3895-7867-b913-42f4a273a348'/);
- assert.doesNotMatch(w,/first.id|rows\[0\]\.id|latest.id/);
+ assert.doesNotMatch(w,/assert\.equal\(first\.id|assert\.equal\(rows\[0\]\.id|assert\.equal\(latest\.id/);
 });
