@@ -54,6 +54,7 @@
     "tests/scope-video-scroll-autoplay-20261114.test.mjs"
   ],
   "allowedPaths": [
+    ".buklod/scopes/native-lab-isolated-runtime-20261115.json",
     ".github/workflows/buklod-native-lab-apk-20261115.yml",
     "app.config.js",
     "eas.json",
