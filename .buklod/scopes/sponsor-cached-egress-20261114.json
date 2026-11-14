@@ -3,8 +3,8 @@
   "objective": "Lower avoidable BUKLOD Connect Supabase cached egress from repeated public sponsored MP4 replays and reduce visible sponsored-video detection latency without degrading image/video quality, AdMob, approvals, or permissions.",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: GitHub main source SHA 9f412afd71b74e41995a3a1a63e05e72f78b6e39 inspected as the isolated source comparison baseline on 2026-11-14; this is NOT independently verified production APK, Web, or OTA identity. Live Supabase Connect project logs in 2026-11-14 01:00–02:00 UTC recorded 51 CDN HIT GETs for paid-ad-media, including full and partial requests for a public 48.54 MiB MP4; org dashboard screenshot shows 335.49/250 GB cached egress. Response byte totals are unavailable and attribution of the full 335.49 GB is not claimed.",
-  "chosenApproach": "Enable expo-video SDK57 native useCaching on stable public sponsor creative URL, preserving full-resolution media and play/audio-focus behavior. Measure viewport on next animation frame rather than a 350ms warmup and keep bounded 350ms checks instead of 900ms on the single focused component. No native package change, backend mutation or media recompression.",
-  "selectionRationale": "Expo SDK57 supports VideoSource.useCaching on Android/iOS for recurring MP4 playback; existing community video caching does not cover the paid-sponsorship AdVideo component. Existing sponsored view may detect in-viewport items up to 350ms after mount and poll at 900ms. Controlled local caching lowers repeated transfer while retaining immediate eligible playback.",
+  "chosenApproach": "Enable expo-video SDK57 native useCaching on stable public sponsor creative URL, preserving full-resolution media and play/audio-focus behavior. Measure viewport on next animation frame rather than a 350ms warmup and keep bounded 350ms checks instead of 900ms on the single focused component. No native package change, backend mutation or media recompression. Additionally, defer creation of a sponsored video player until its card is within half a viewport above or half a viewport below the visible screen; keep the same 220px creative area and 38px player control space while distant to avoid scroll jumps. Prewarm while near, keep immediate next-frame visibility check, and unmount when far away.",
+  "selectionRationale": "Expo SDK57 supports VideoSource.useCaching on Android/iOS for recurring MP4 playback; existing community video caching does not cover the paid-sponsorship AdVideo component. Existing sponsored view may detect in-viewport items up to 350ms after mount and poll at 900ms. Controlled local caching lowers repeated transfer while retaining immediate eligible playback. Supabase edge logs for 13 Nov 2026 indicate the one 48.54 MiB video receives 2,462 CDN-hit GETs per day; creating the sponsored player for a distant, permanently mounted Wall header can needlessly fetch video. A bounded near-viewport warmup avoids distant player creation without postponing first view.",
   "riskAreas": [
     "ads-monetization",
     "navigation-scroll",
@@ -16,13 +16,15 @@
     "Existing audio focus and sound play/pause controls unchanged.",
     "Photos, full MP4 source resolution and contain framing unchanged.",
     "Only one focused sponsored card viewport measurement; no hidden retry storm.",
-    "App/Expo runtime, native packages, Supabase DB, OTA and production unchanged."
+    "App/Expo runtime, native packages, Supabase DB, OTA and production unchanged.",
+    "Sponsored creative height and its 38px control row remain reserved while far offscreen; original video player prewarms before the card enters the visible viewport."
   ],
   "acceptanceChecks": [
     "node --test tests/sponsor-cached-egress-20261114.test.mjs tests/sponsor-ad-video-cache-20261114.test.mjs",
     "Existing paid-sponsorship and audio mixing tests pass",
     "TypeScript and Android staging build/runtime and sponsored media playback verified before any OTA",
-    "Compare the same app version/build/runtime recent rolling 15/30/60-minute cached media request and GB after release; do not infer bytes from hits alone."
+    "Compare the same app version/build/runtime recent rolling 15/30/60-minute cached media request and GB after release; do not infer bytes from hits alone.",
+    "On the actual staging device, a far-offscreen sponsored header must not initiate any MP4 GET; near-viewport warmup must preserve prompt autoplay and control layout."
   ],
   "regressionTests": [
     "tests/sponsor-ad-video-cache-20261114.test.mjs",
@@ -44,7 +46,8 @@
       "id": "app-runtime",
       "reason": "Reuse stable cached public sponsored video bytes in the existing SDK57 player while reducing first in-view measurement delay without a new native package or runtime",
       "preservedBehaviors": [
-        "Original full-resolution sponsored MP4, same sound/play/pause controls, no auth or runtime changes"
+        "Original full-resolution sponsored MP4, same sound/play/pause controls, no auth or runtime changes",
+        "Only near-viewport prewarming can instantiate a sponsored creative video; eligibility, billing events, and original-resolution playback remain unchanged."
       ],
       "tests": [
         "tests/sponsor-ad-video-cache-20261114.test.mjs"
@@ -54,7 +57,8 @@
       "id": "ads-finance-points",
       "reason": "Reduce repeated paid sponsored-video transfer without changing campaigns, AdMob, monetization, impression logging or user privacy",
       "preservedBehaviors": [
-        "Existing eligible ad display, rotation, impression/click recording and signed-in account privacy remain unchanged"
+        "Existing eligible ad display, rotation, impression/click recording and signed-in account privacy remain unchanged",
+        "Only near-viewport prewarming can instantiate a sponsored creative video; eligibility, billing events, and original-resolution playback remain unchanged."
       ],
       "tests": [
         "tests/sponsor-ad-video-cache-20261114.test.mjs"

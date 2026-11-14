@@ -76,6 +76,7 @@ export default function BuklodCommunitySponsoredAd({
   const [captionExpanded,setCaptionExpanded] = useState(false);
   const [atMs, setAtMs] = useState(() => Date.now());
   const [videoVisible, setVideoVisible] = useState(false);
+  const [preparedCampaignId, setPreparedCampaignId] = useState<string | null>(null);
   const [screenFocused, setScreenFocused] = useState(false);
   useFocusEffect(useCallback(() => {
     setScreenFocused(true);
@@ -172,18 +173,25 @@ export default function BuklodCommunitySponsoredAd({
   }, [eligible.length, campaign?.id, campaign?.creative_type, screenFocused, videoVisible]);
   // Feed headers stay mounted while scrolling: measure actual intersection.
   useEffect(() => {
-    if (!screenFocused || campaign?.creative_type !== 'video') {
+    if (!screenFocused || campaign?.creative_type !== 'video' || !campaign.video_url) {
       setVideoVisible(false);
+      setPreparedCampaignId(null);
       return;
     }
     let alive = true;
     const check = () => {
-      if (AppState.currentState !== 'active') {setVideoVisible(false); return;}
+      if (AppState.currentState !== 'active') {setVideoVisible(false); setPreparedCampaignId(null); return;}
       shellRef.current?.measureInWindow((x,y,w,h) => {
         if (!alive) return;
         const screen=Dimensions.get('window');
         const clipped=Math.max(0,Math.min(y+h,screen.height)-Math.max(y,0));
         const onScreen=w>40&&h>40&&x<screen.width&&x+w>0&&clipped>=Math.min(h*0.5,180);
+        // A near-viewport player can buffer the original full-resolution MP4
+        // before it is centered, but distant feed headers load no video bytes.
+        const nearViewport=w>40&&h>40&&x<screen.width&&x+w>0&&
+          y<screen.height*1.5&&y+h>-screen.height*0.5;
+        const nextPrepared=nearViewport ? campaign.id : null;
+        setPreparedCampaignId(previous => previous===nextPrepared ? previous : nextPrepared);
         setVideoVisible(previous => previous===onScreen ? previous : onScreen);
       });
     };
@@ -192,7 +200,7 @@ export default function BuklodCommunitySponsoredAd({
     const warmup=requestAnimationFrame(check);
     const watch=setInterval(check,350);
     return () => {alive=false; cancelAnimationFrame(warmup); clearInterval(watch);};
-  }, [screenFocused,campaign?.id,campaign?.creative_type]);
+  }, [screenFocused,campaign?.id,campaign?.creative_type,campaign?.video_url]);
 
   // Count an impression only after the active card is physically visible.
   // No impression is recorded for an unmounted or off-screen card.
@@ -241,7 +249,9 @@ export default function BuklodCommunitySponsoredAd({
         : campaign.coverage_level === 'city' ? 'Town / City' : campaign.coverage_level}</Text>
     </View>
     {campaign.creative_type === 'video' && campaign.video_url
-      ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={screenFocused&&videoVisible}/>
+      ? (preparedCampaignId === campaign.id && screenFocused
+          ? <AdVideo key={campaign.id} uri={campaign.video_url} visible={screenFocused&&videoVisible}/>
+          : <View><View style={s.media}/><View style={s.videoBar}/></View>)
       : campaign.image_url
         ? <Image source={{uri: campaign.image_url}} style={s.media} resizeMode="contain"/>
         : null}

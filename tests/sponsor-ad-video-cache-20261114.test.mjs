@@ -20,3 +20,12 @@ test('sponsored ad in-view check starts next frame and preserves audio priority'
  assert.match(sponsored,/subscribeBuklodAudioFocus/);
  assert.match(sponsored,/contentFit="contain"/);
 });
+
+test('distant sponsored headers do not instantiate an eager MP4 player, but prewarm one viewport ahead',()=>{
+ assert.match(sponsored,/preparedCampaignId, setPreparedCampaignId/);
+ assert.match(sponsored,/const nearViewport=w>40&&h>40/);
+ assert.match(sponsored,/y<screen\.height\*1\.5&&y\+h>-screen\.height\*0\.5/);
+ assert.match(sponsored,/preparedCampaignId === campaign\.id && screenFocused/);
+ assert.match(sponsored,/<View style=\{s\.media\}\/><View style=\{s\.videoBar\}\/>/);
+ assert.match(sponsored,/if \(AppState\.currentState !== 'active'\) \{setVideoVisible\(false\); setPreparedCampaignId\(null\)/);
+});
