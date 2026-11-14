@@ -1,3 +1,4 @@
+# Retry marker after correcting consolidated source ancestry comparison; previous gated attempt published NO OTA.
 # Owner-authorized Nov15 conso staging release marker. Exact source/CI/Expo channel gates remain mandatory.
 # Owner-authorized isolated STAGING QA OTA trigger; production/main/web/Play excluded.
 # Profile-inclusive final scope: identity note/edit/share, owner activity/reports, unique active org/sub-org, intact profile_mid_native.

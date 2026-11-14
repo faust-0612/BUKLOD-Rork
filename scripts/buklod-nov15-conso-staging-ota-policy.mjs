@@ -45,7 +45,7 @@ export function verifySource(source){
   assert.match(source,/^[a-f0-9]{40}$/);
   assert.equal(git('rev-parse','HEAD'),source);
   assert.equal(git('merge-base',APK_SOURCE,source),APK_SOURCE);
-  assert.equal(git('merge-base',CONSOLIDATED_BASE,source),BASE);
+  assert.equal(git('merge-base',CONSOLIDATED_BASE,source),CONSOLIDATED_BASE);
   const forbidden=git('diff','--name-only',APK_SOURCE,source,'--',
     'package.json','package-lock.json','app.config.js','eas.json','babel.config.js',
     'android/','ios/','plugins/','supabase/','src/providers/AuthProvider.tsx',
