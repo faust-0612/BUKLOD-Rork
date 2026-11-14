@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/wall-life-kl-always-visible-20261114.json",
+  "objective": "Keep LIFE and Kabihasnang Ligaw permanently visible as independent cards in the public Wall, removing the Community highlights accordion without changing card destinations or adjacent Marites, ad, or feed behavior.",
+  "baseRef": "31e6008c87adbc63e7f251e091114eeeb6a7563e",
+  "productionBaselineEvidence": "Derived from latest SALIKSIK + Home/Profile visual staging stack. Main and production untouched; source-only staging PR. No compiled RC, OTA, native rebuild, database change or web/prod publish authorized.",
+  "chosenApproach": "Surgically remove only the local communityHighlightsOpen state, collapsible header, and conditional view wrapper; preserve the same mounted LIFE and KL card components, order, sponsorship and Marites.",
+  "selectionRationale": "The original cards already have working navigation and presentation; an always-visible direct render removes needless taps and keeps media, permissions and backend unchanged.",
+  "alternativeApproaches": [
+    "Start the accordion expanded but retain its collapse button: rejected because the cards could still be hidden.",
+    "Duplicate LIFE/KL into Home and Drawer: rejected due navigation duplication and media overhead."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "wall-layout",
+    "wall-media",
+    "accessibility",
+    "staging-isolation"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/wall-life-kl-always-visible-20261114.json",
+    "src/app/(tabs)/buklod.tsx",
+    "tests/wall-life-kl-navigation-20261114.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/wall-life-kl-navigation-20261114.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "LIFE and KL card component internals, links and approved content unchanged.",
+    "Sponsored campaign and first-view ad stay above both cards; Marites and the Community composer stay below.",
+    "No impact to Profile/Home, Connect, production, backend, AdMob revenue calculations or private roles.",
+    "No new native API or package, no changes to animation/video autoplay policies."
+  ],
+  "acceptanceChecks": [
+    "Direct cards are present once, in stable order without drawer gating.",
+    "New focused Node test and existing wall/navigation regression suites pass; TypeScript and Expo staging Android export pass on exact head.",
+    "Staging Android OTA cannot publish until PR integration, exact signed runtime and physical-device visual verification.",
+    "Never touch web or production unless separately authorized."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Remove the Wall-only disclosure state and conditional wrapper without changing mounted components, data flow, or app shell.",
+      "preservedBehaviors": [
+        "No new runtime/native package; Wall feed, ads, Marites and all existing card content remain unchanged."
+      ],
+      "tests": [
+        "tests/wall-life-kl-navigation-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Keep both existing direct card actions always accessible, without removing or changing any authenticated destinations.",
+      "preservedBehaviors": [
+        "LIFE and Kabihasnang Ligaw navigation and Wall user session controls stay identical."
+      ],
+      "tests": [
+        "tests/wall-life-kl-navigation-20261114.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "staging-source-only-no-ota",
+  "releaseStatus": "DEV PR, no staging OTA or production release; exact-head RC and device acceptance pending."
+}
