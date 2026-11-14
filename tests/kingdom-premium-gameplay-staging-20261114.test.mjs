@@ -38,6 +38,7 @@ test('Every Android game stage draws one non-interactive GPU response to accepte
   assert.match(fx, /const BURST_PARTICLES = 12/);
   assert.match(fx, /<Canvas/);
   assert.match(fx, /pointerEvents="none"/);
+  assert.match(fx, /zIndex: 3/, "Active gameplay FX must render above opaque stage content while remaining touch-transparent");
   assert.match(fx, /importantForAccessibility="no-hide-descendants"/);
   assert.match(fx, /if \(!enabled \|\| !reaction\) return null/);
   for (const event of ['move', 'collect', 'impact', 'success', 'failure', 'unlock']) {
