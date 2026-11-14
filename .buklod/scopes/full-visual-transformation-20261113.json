@@ -43,7 +43,8 @@
     "Release workflow runs Kingdom R7 tests, legacy R6 station geometry, 39-game contract and native/web fallback checks before any EAS update.",
     "Kingdom game contract verifies Home Hub invitation and rejects duplicate Profile Kingdom door while preserving all game IDs, scoring, and map progress.",
     "Owner consolidated gate requires each fixed feature's verified integration evidence, separate safe backend and native runtime acceptance, and rejects absent/placeholder checks before any future EAS update. Current candidate FAILS CLOSED.",
-    "Approved source-only fast sponsored video startup and native original-media cache are ported onto frozen Visual Staging baseline e1551b09; not deployed before 16-category consolidated gate is verified."
+    "Approved source-only fast sponsored video startup and native original-media cache are ported onto frozen Visual Staging baseline e1551b09; not deployed before 16-category consolidated gate is verified.",
+    "Exact Visual Staging ancestor, only 3 reviewed media JS blobs and no protected app, native, backend, asset or dependency changes are asserted by a no-publish workflow, with evidence artifact and a mandatory incomplete-consolidation hold."
   ],
   "riskAreas": [
     "wall-media",
@@ -150,7 +151,8 @@
     "src/components/BuklodCommunitySponsoredAd.tsx",
     "src/hooks/useBuklodCommunityAdViewability.ts",
     "src/lib/advertise/sponsoredVideoViewport.ts",
-    "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
+    "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
+    ".github/workflows/buklod-visual-media-consolidation-qa-20261114.yml"
   ],
   "lockedFeatureChanges": [
     {
@@ -170,7 +172,8 @@
         "Retain existing functional contracts, routes, media/financial safeguards and permissions; source tests are not runtime acceptance."
       ],
       "tests": [
-        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
       ]
     },
     {
@@ -212,7 +215,8 @@
         "All native Android screens remain NOT visually accepted until actual authenticated testing; physical Infinix verification is skipped by owner rather than passed."
       ],
       "tests": [
-        "tests/buklod-visual-staging-ota-20261113.test.mjs"
+        "tests/buklod-visual-staging-ota-20261113.test.mjs",
+        "tests/sponsor-ad-video-fast-start-20261114.test.mjs"
       ]
     }
   ],

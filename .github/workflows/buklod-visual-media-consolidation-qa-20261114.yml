@@ -1,0 +1,76 @@
+name: BUKLOD Visual Media Consolidation No-Publish QA
+on:
+  push:
+    branches: [dev/full-visual-transformation-20261113]
+    paths: [.github/workflows/buklod-visual-media-consolidation-qa-20261114.yml]
+permissions:
+  contents: read
+jobs:
+  source-reconcile:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/full-visual-transformation-20261113' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prove source is newer than accepted Visual Staging and no other app runtime changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          visual=e1551b09ad180e81a889d39615aea6257688ddea
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$visual" "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          cat > /tmp/expected-media-delta.txt <<'EOF'
+          src/components/BuklodCommunitySponsoredAd.tsx
+          src/hooks/useBuklodCommunityAdViewability.ts
+          src/lib/advertise/sponsoredVideoViewport.ts
+          EOF
+          git diff --name-only "$visual" "$GITHUB_SHA" -- app/ src/ assets/ android/ ios/ plugins/ supabase/ app.config.js eas.json package.json package-lock.json babel.config.js metro.config.js | sort > /tmp/actual-media-delta.txt
+          diff -u /tmp/expected-media-delta.txt /tmp/actual-media-delta.txt
+          test "$(git rev-parse HEAD:src/components/BuklodCommunitySponsoredAd.tsx)" = "b77e2e64ba0e9e2317df3091e19cd170a97d47b4"
+          test "$(git rev-parse HEAD:src/hooks/useBuklodCommunityAdViewability.ts)" = "c43942f66a1e7205ce9f4b5517fd8ccc048df098"
+          test "$(git rev-parse HEAD:src/lib/advertise/sponsoredVideoViewport.ts)" = "d4754d77659b546c0574ba6bd463f7e0d4eda110"
+          echo 'PASS: exactly three reviewed JS runtime delta files on top of accepted Visual Staging; no native/backend/media-quality regressions.'
+      - name: Run native-safe media tests and consolidated fail-closed acceptance contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types --test tests/sponsor-ad-video-fast-start-20261114.test.mjs tests/nov14-consolidated-staging-ota-gate.test.mjs
+          if node scripts/buklod-consolidated-staging-gate.mjs > /tmp/conso-gate-output.txt 2>&1; then
+            echo 'BLOCK: consolidated gate incorrectly accepted an incomplete release'
+            exit 1
+          fi
+          grep -q 'BLOCKED BEFORE NEXT OTA' /tmp/conso-gate-output.txt
+          echo 'PASS: incomplete consolidated source cannot publish an OTA.'
+      - name: Archive narrow QA receipt; no Expo or production credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/buklod-visual-media-qa.json <<EOF
+          {
+            "status":"VERIFIED SOURCE RECONCILIATION ONLY - CONSOLIDATED RELEASE HELD",
+            "sourceSha":"$GITHUB_SHA",
+            "visualBaseline":"e1551b09ad180e81a889d39615aea6257688ddea",
+            "sourceFiles":3,
+            "sourceTests":"passed",
+            "consolidatedAcceptance":"blocked_missing_runtimes_and_backend",
+            "productionChanged":false,
+            "otaPublished":false
+          }
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buklod-visual-media-reconcile-${{ github.sha }}
+          path: /tmp/buklod-visual-media-qa.json
+          retention-days: 14
