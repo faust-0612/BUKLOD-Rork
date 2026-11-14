@@ -11,10 +11,13 @@ This is a **third experimental package**, **not a staging-user OTA or a Play pro
 - Lab route: `/kingdom-native-lab`; 3D opens a separate non-exported Godot Android Activity/process; Gboard GIF and Google Drive file both create **local previews only**, with no public Send.
 - Original BUKLOD: main `org.mzbministry.buklod`, existing staging `org.mzbministry.buklod.staging`, both runtime `1.3.2`, remain on their established releases and channels. Normal layout/main route unaffected.
 
-## Build blockers and safe resolution
-No Android APK was built, installed or published in this implementation session. For a **real** isolated build, generate/register a **new Firebase Android client** for `org.mzbministry.buklod.kingdomlab` and obtain its **own** `google-services.json` under a noncanonical path, then configure `KINGDOM_LAB_GOOGLE_SERVICES_FILE`. Do **not** point at the staging/user or production Firebase file. For EAS, register a **separate** project and set `KINGDOM_LAB_EAS_PROJECT_ID` to that distinct UUID. The build gate will reject reuse of the existing main or Classroom project IDs. These are genuine external registration/credential blockers and must not be silently substituted or fabricated.
+## Offline APK build with zero additional accounts
+No Android APK was built, installed or published in this implementation session. The source is ready for a **local experimental debug APK build** with the device's Android SDK/JDK and existing repo dependencies; no Firebase registration, EAS project or Google Drive API credentials are required to assemble it. The build script generates a **clearly NONFUNCTIONAL Firebase/FCM placeholder** for the Gradle plugin; the root app tree does not mount Firebase/Stream/Ads/auth clients, and real Supabase is replaced with a deliberately invalid hostname.
+
+The intentional fake `google-services.kingdomlab.offline.json` is ignored by Git, package-scoped to `org.mzbministry.buklod.kingdomlab`, and protected by a preflight that rejects real Firebase IDs. It **cannot** be used for authentic Firebase sign-in, remote notifications or real user posting. If future legitimate Firebase/Drive OAuth integration is authorized, a fresh distinct client requires a separate production-quality validation and cannot be achieved with the offline placeholder.
 
 The no-cloud-cost **local** Android debug build requires installed Android SDK/JDK, local `node_modules`, Gradle dependencies and this exact DEV branch:
+
 ```sh
 node --test tests/kingdom-native-lab-isolation-20261114.test.mjs
 node --test tests/kingdom-godot-zero-assets-20261114.test.mjs
@@ -22,11 +25,10 @@ node --test tests/kingdom-zero-cost-living-world-20261114.test.mjs
 node --test tests/kingdom-zero-cost-village-diorama-20261114.test.mjs
 
 # Only from dev/kingdom-native-lab-isolated-20261114 in an isolated checkout:
-export KINGDOM_LAB_GOOGLE_SERVICES_FILE=./google-services.kingdomlab.json
-export KINGDOM_LAB_EAS_PROJECT_ID=<distinct-new-project-id>
 bash scripts/kingdom-lab/build-local.sh
 ```
-No automatic GitHub Action, EAS cloud build, OTA, Play submission, database migration or remote deployment was triggered by this change. A local build may download official Godot Maven AAR and normal build dependencies, using internet bandwidth but not any paid asset or hosted game backend.
+
+The local build will download free Godot Maven Android AAR and normal build dependencies if not cached. **No paid assets** or hosted game backend are used; data transfer and local compute are not literally costless. The source includes a separate EAS profile/channel for future use, but OTA is disabled. An EAS cloud build would first require a **new** EAS project UUID and is not invoked. No GitHub Actions, OTA, Play submission, database mutation or remote deployment was deliberately triggered for this lab.
 
 ## Visual/behavioral acceptance before distributing
 1. Verify installed package ID is the unique `kingdomlab` ID and coexists alongside existing staging/user and Play production on Android.
