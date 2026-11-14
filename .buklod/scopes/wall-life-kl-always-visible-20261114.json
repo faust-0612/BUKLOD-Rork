@@ -41,21 +41,20 @@
   ],
   "lockedFeatureChanges": [
     {
-      "id": "navigation-auth",
-      "reason": "Remove an extra conditional disclosure on the Wall while retaining LIFE and KL direct destinations.",
+      "id": "app-runtime",
+      "reason": "Remove the Wall-only disclosure state and conditional wrapper without changing mounted components, data flow, or app shell.",
       "preservedBehaviors": [
-        "Public and authenticated Wall routes and both existing card links remain unchanged."
+        "No new runtime/native package; Wall feed, ads, Marites and all existing card content remain unchanged."
       ],
       "tests": [
-        "tests/wall-life-kl-always-visible-20261114.test.mjs",
-        "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs"
+        "tests/wall-life-kl-always-visible-20261114.test.mjs"
       ]
     },
     {
-      "id": "wall-media",
-      "reason": "Render the existing cards directly at their previous locations without modifying Wall media or Marites.",
+      "id": "navigation-auth",
+      "reason": "Keep both existing direct card actions always accessible, without removing or changing any authenticated destinations.",
       "preservedBehaviors": [
-        "Ads, Marites, autoplay, sponsored post playback, comments and feed data flow remain untouched."
+        "LIFE and Kabihasnang Ligaw navigation and Wall user session controls stay identical."
       ],
       "tests": [
         "tests/wall-life-kl-always-visible-20261114.test.mjs"
