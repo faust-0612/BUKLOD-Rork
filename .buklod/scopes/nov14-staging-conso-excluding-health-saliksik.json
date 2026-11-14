@@ -22,7 +22,8 @@
     "auth-privacy",
     "production-release",
     "staging-isolation",
-    "native-ota-compatibility"
+    "native-ota-compatibility",
+    "release-identity"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -85,7 +86,8 @@
     "Do not claim device visual tests passed when owner skipped them",
     "Privacy DB read-only confirms current live policy but migration history for PR #759 missing; do not reapply SQL via OTA",
     "No direct native keyboard-GIF changes or new Rive assets are claimed",
-    "Dedicated staging QA OTA workflow must only publish on exact isolated branch and exact owner release marker after Engineering and Main CI pass; no production rollback or web deployment."
+    "Dedicated staging QA OTA workflow must only publish on exact isolated branch and exact owner release marker after Engineering and Main CI pass; no production rollback or web deployment.",
+    "Release identity risk area explicitly governed, with exact branch, signed APK/preview channel checks and immutable production-manifest readback."
   ],
   "releaseMode": "OWNER_AUTHORIZED_SCOPED_ANDROID_STAGING_QA_OTA_ONLY",
   "releaseStatus": "STAGING_QA_PUBLISH_CONDITIONALLY_AUTHORIZED__FULL_CONSOLIDATED_ACCEPTANCE_STILL_PENDING",

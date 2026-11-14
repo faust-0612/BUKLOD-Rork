@@ -1,4 +1,5 @@
 # Owner-authorized isolated STAGING QA OTA trigger; production/main/web/Play excluded.
+# Governance: release-identity risk declared and validated; previous blocked push caused NO publication.
 name: BUKLOD Nov14 Owner Scoped Staging Android OTA - NO PROD
 on:
   push:
