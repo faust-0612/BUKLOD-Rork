@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "repository": "faust-0612/BUKLOD-Rork",
+  "baselineSourceSha": "2e7dc3aa69d2362b7b360013ccaac9917c353e2b",
+  "stageBeforeProduction": true,
+  "stagingOnlyUntilReadback": true,
+  "target": {
+    "platform": "android",
+    "channel": "staging-user",
+    "environment": "preview",
+    "package": "org.mzbministry.buklod.staging",
+    "runtime": "1.3.2",
+    "easProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8"
+  },
+  "included": {
+    "inherited": [
+      "Navigation V2, Wall/Marites and Profile authored posts",
+      "Home and Profile Overall/Monthly Points rank",
+      "HIBLA Connect green UI + Sent/Seen",
+      "Kingdom 39 scenes with offline CC0 audio",
+      "Direct LIFE and KL Wall cards",
+      "Offline registration guard and Comment Edit/Delete",
+      "BSOC and managed admin source",
+      "Retired IGPAT guard"
+    ],
+    "new": [
+      "Immediate scroll-start video pause with 180ms idle resume",
+      "Actual video-frame viewability and one-next Marites warm player",
+      "Original-resolution video/photo caching retained",
+      "Bounded one-next Android NativeAd creative prefetch",
+      "NativeAd retain on ad-safe route transition",
+      "No offscreen NativeAdView or synthetic impressions"
+    ]
+  },
+  "excluded": [
+    "Health Center clinical/professional backend and activation",
+    "SALIKSIK private vault, generator, mastery, Points, Edge and database activation",
+    "Native-lab Android GIF IME and Google Drive custom package",
+    "Rive authored binaries absent from staging runtime"
+  ],
+  "physicalDeviceAcceptance": "WAIVED/NOT TESTED",
+  "releaseGates": {
+    "engineering": "pending",
+    "mainIntegration": "pending",
+    "androidHermes": "pending",
+    "easBuildIdentity": "pending",
+    "stagingManifestReadback": "pending",
+    "productionNonMutation": "pending",
+    "productionPromotion": "not_started"
+  },
+  "readyForOta": false,
+  "otaPublished": false,
+  "productionPublished": false,
+  "webPublished": false,
+  "mechanism": {
+    "workflow": ".github/workflows/buklod-nov15-conso-staging-ota-publish.yml",
+    "policy": "scripts/buklod-nov15-conso-staging-policy.mjs",
+    "binaryId": "bc4be208-bfb0-42f3-95cb-358353d0600f",
+    "binarySource": "c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd",
+    "sourceScope": ".buklod/scopes/nov15-consolidated-video-ad-staging.json",
+    "marker": "BUKLOD_CONSO_STAGE_20261115:"
+  }
+}
