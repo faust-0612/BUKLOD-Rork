@@ -68,9 +68,8 @@
         "Preserve sponsored video before LIFE/KL and Marites after; no comment/video/ad/Points/Kingdom changes, no double-signup"
       ],
       "tests": [
-        "tests/wall-life-kl-navigation-20261114.test.mjs",
-        "tests/auth-registration-offline-recovery.test.cjs",
-        "tests/nov14-profile-navigation-personal-activity-report.test.mjs"
+        "tests/nov14-profile-navigation-personal-activity-report.test.mjs",
+        "tests/nov14-connect-green-profile-posts-ota.test.mjs"
       ]
     },
     {
@@ -80,8 +79,6 @@
         "Existing user session, form values, interrupted signup sign-in-only verification and canonical Wall route remain untouched"
       ],
       "tests": [
-        "tests/wall-life-kl-navigation-20261114.test.mjs",
-        "tests/auth-registration-offline-recovery.test.cjs",
         "tests/nov14-profile-navigation-personal-activity-report.test.mjs"
       ]
     },
@@ -92,7 +89,8 @@
         "Production OTA branch/channel and Expo Web/Play remain untouched; fail closed on shared EAS branch or mismatch in native ABI, build, project or source SHA."
       ],
       "tests": [
-        "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs"
+        "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs",
+        "tests/nov14-connect-green-profile-posts-ota.test.mjs"
       ]
     }
   ],
