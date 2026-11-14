@@ -51,6 +51,7 @@ type NativeSponsoredSurface =
 type Props = {
   slotId?: string;
   active?: boolean;
+  prefetch?: boolean;
   inventory?: CommunityAdInventory;
   surface?: NativeSponsoredSurface;
   placementIdOverride?: string;
@@ -75,6 +76,7 @@ function clean(value: string | undefined) {
 export default function BuklodCommunityInlineAd({
   slotId,
   active = true,
+  prefetch = false,
   inventory = 'public',
   surface = 'wall',
   placementIdOverride,
@@ -100,6 +102,12 @@ export default function BuklodCommunityInlineAd({
   // the Community feed's visible-row registry.
   const currentlyVisible =
     surface !== 'wall' || firstView || !slotId || currentListVisibility;
+  // A loaded NativeAd in a Wall row can mount on the list's already
+  // verified 60%-visible/400ms callback. Waiting for a second independent
+  // 400ms probe plus the shared 1200ms poll creates avoidable blank ads.
+  // First-view and non-Wall surfaces still use their measured viewport gate.
+  const canShowNativeCreative =
+    eligible || (surface === 'wall' && !firstView && Boolean(slotId) && currentListVisibility);
 
   const [nativeAd, setNativeAd] = useState<NativeAd | null>(null);
   const [nativeFailed, setNativeFailed] = useState(false);
@@ -223,12 +231,18 @@ export default function BuklodCommunityInlineAd({
     placementId,
     pathname,
   });
+  // Load one upcoming NativeAd through the SDK, without mounting its view
+  // until the viewport gate is satisfied. Existing consent, cooldown, and
+  // interaction safety locks remain mandatory for every request.
+  const canPrefetchNative =
+    active && routeSafe && sdkReady && adNetworkAvailable &&
+    (firstView || (eligible || prefetch || nativeRequestStarted.current));
   const keepNativeLifecycle =
-    canAttempt ||
+    canAttempt || canPrefetchNative ||
     (active && sdkReady && mayRetainNative &&
       (Boolean(nativeAd) || (nativeRequestStarted.current && !nativeFailed)));
-  const canStartNativeRef = useRef(canAttempt);
-  canStartNativeRef.current = canAttempt;
+  const canStartNativeRef = useRef(canPrefetchNative);
+  canStartNativeRef.current = canPrefetchNative;
 
   const requestKey = slotId || 'community-wall-inline';
   const adWidth = Math.max(280, Math.floor(width - 32));
@@ -379,7 +393,7 @@ export default function BuklodCommunityInlineAd({
   ]);
 
   useEffect(() => {
-    if (!nativeAd || nativeRendered.current) return;
+    if (!nativeAd || nativeRendered.current || !canShowNativeCreative) return;
     nativeRendered.current = true;
     recordBuklodAdEvent(
       diagnosticPlacement,
@@ -387,7 +401,7 @@ export default function BuklodCommunityInlineAd({
       undefined,
       { route: pathname, placementId, adFormat: 'native' },
     );
-  }, [diagnosticPlacement, nativeAd, pathname, placementId]);
+  }, [diagnosticPlacement, nativeAd, canShowNativeCreative, pathname, placementId]);
 
   useEffect(() => {
     if (
@@ -523,7 +537,9 @@ export default function BuklodCommunityInlineAd({
     );
   }
 
-  if (nativeAd && !nativeFailed) {
+  // NativeAdView and SDK impression tracking never run for an offscreen
+  // prefetched creative; show the cached object only after a real viewport hit.
+  if (nativeAd && !nativeFailed && canShowNativeCreative) {
     return (
       <View ref={ref} collapsable={false}>
         <NativeAdView nativeAd={nativeAd} style={styles.nativeShell}>
