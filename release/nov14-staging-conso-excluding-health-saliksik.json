@@ -64,5 +64,19 @@
     "Canonical Kingdom R9 catalog/test baseline fixed to existing catalog-bearing commit 13f7bb7, without weakening 39-game/13-character tests",
     "Engineering scope riskAreas and preserveBehaviors completed",
     "QA checkout full history for immutable source comparison"
-  ]
+  ],
+  "stagingQaPublicationAuthorized": true,
+  "stagingQaPublicationReason": "Owner explicitly requested complete and push STAGING only on 2026-11-14; actual handset visual acceptance previously waived for staging QA, not passed. No production promotion.",
+  "releaseMechanism": {
+    "workflow": ".github/workflows/buklod-nov14-scoped-staging-ota-publish.yml",
+    "policy": "scripts/buklod-nov14-scoped-staging-ota-policy.mjs",
+    "channel": "staging-user",
+    "environment": "preview",
+    "platform": "android",
+    "buildId": "bc4be208-bfb0-42f3-95cb-358353d0600f",
+    "apkSource": "c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd",
+    "projectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "commitMarker": "BUKLOD_OWNER_SCOPED_STAGING_OTA_20261114:",
+    "independentManifestCheck": true
+  }
 }

@@ -19,7 +19,10 @@
     "privacy",
     "no-regression",
     "navigation-scroll",
-    "auth-privacy"
+    "auth-privacy",
+    "production-release",
+    "staging-isolation",
+    "native-ota-compatibility"
   ],
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
@@ -29,12 +32,16 @@
     ".buklod/scopes/nov14-staging-conso-excluding-health-saliksik.json",
     "release/nov14-staging-conso-excluding-health-saliksik.json",
     ".github/workflows/buklod-nov14-staging-conso-source-qa.yml",
-    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs",
+    "scripts/buklod-nov14-scoped-staging-ota-policy.mjs",
+    "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs",
+    ".github/workflows/buklod-nov14-scoped-staging-ota-publish.yml"
   ],
   "regressionTests": [
     "tests/wall-life-kl-navigation-20261114.test.mjs",
     "tests/auth-registration-offline-recovery.test.cjs",
-    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs",
+    "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -58,6 +65,16 @@
         "tests/wall-life-kl-navigation-20261114.test.mjs",
         "tests/auth-registration-offline-recovery.test.cjs"
       ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Authorize strictly-scoped staging-only Android QA OTA publication with signed native APK identity and independent production manifest nonmutation checks.",
+      "preservedBehaviors": [
+        "Production OTA branch/channel and Expo Web/Play remain untouched; fail closed on shared EAS branch or mismatch in native ABI, build, project or source SHA."
+      ],
+      "tests": [
+        "tests/buklod-nov14-scoped-staging-ota-policy.test.mjs"
+      ]
     }
   ],
   "acceptanceChecks": [
@@ -67,10 +84,11 @@
     "No new Health Center/SALIKSIK code/routes/Edge/migrations/Points. Legacy Health educational guide remains but online consultations OFF",
     "Do not claim device visual tests passed when owner skipped them",
     "Privacy DB read-only confirms current live policy but migration history for PR #759 missing; do not reapply SQL via OTA",
-    "No direct native keyboard-GIF changes or new Rive assets are claimed"
+    "No direct native keyboard-GIF changes or new Rive assets are claimed",
+    "Dedicated staging QA OTA workflow must only publish on exact isolated branch and exact owner release marker after Engineering and Main CI pass; no production rollback or web deployment."
   ],
-  "releaseMode": "STAGING_ONLY_SOURCE_CANDIDATE_NO_AUTOPUBLISH",
-  "releaseStatus": "DEV_INTEGRATED_QA_REPLAY_PENDING__NO_STAGING_OTA",
+  "releaseMode": "OWNER_AUTHORIZED_SCOPED_ANDROID_STAGING_QA_OTA_ONLY",
+  "releaseStatus": "STAGING_QA_PUBLISH_CONDITIONALLY_AUTHORIZED__FULL_CONSOLIDATED_ACCEPTANCE_STILL_PENDING",
   "preserveBehaviors": [
     "Existing sponsored video, Wall text, sharp photos, Marites and comment ownership/permissions remain unchanged.",
     "Existing account verification is sign-in-only after ambiguous signup failures; one signUp per user attempt, no automatic retry.",
