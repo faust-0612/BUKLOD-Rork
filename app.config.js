@@ -343,8 +343,10 @@ module.exports = ({ config }) => {
         {
           android: {
             minSdkVersion: 24,
-            enableProguardInReleaseBuilds: true,
-            enableShrinkResourcesInReleaseBuilds: true,
+            // Lab packages embed a reflection/JNI Godot host and Expo native view.
+            // Disable shrinking only in the separately signed experimental APK.
+            enableProguardInReleaseBuilds: !isKingdomLab,
+            enableShrinkResourcesInReleaseBuilds: !isKingdomLab,
             extraProguardRules: '-keep class com.google.android.gms.internal.consent_sdk.** { *; }',
           },
 
