@@ -164,7 +164,7 @@ export function useBuklodCommunityAdViewability(feedRows: readonly unknown[] = [
         (ids.length?rows.findIndex(item=>communityVideoPostId(item)===ids[0]):-1);
       let upcomingAd:string|null=null;
       if(index>=0)for(let i=index+1;i<Math.min(rows.length,index+9);i++){
-        if(isCommunityFeedInlineAdRow(rows[i])){upcomingAd=rows[i].id;break;}
+        if(isCommunityFeedInlineAdRow(rows[i])){upcomingAd=(rows[i] as {id:string}).id;break;}
       }
       setPreloadAdId(current=>current===upcomingAd?current:upcomingAd);
       // Prepare only one near-future video player; it must not play offscreen.
