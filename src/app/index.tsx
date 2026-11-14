@@ -13,7 +13,7 @@ import { useCompliance } from '@/providers/ComplianceProvider';
 import { colors } from '@/lib/theme';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
-export default function Index() {
+function MainIndex() {
   const { session, loading, profile } = useAuth();
   const { requiresAcceptance } = useCompliance();
   const { config } = useRuntimeConfig();
@@ -138,12 +138,6 @@ export default function Index() {
     selectScope,
   ]);
 
-  // An independent offline native lab never asks for production sign-in.
-  if (Platform.OS === 'android' &&
-      process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1') {
-    return <Redirect href="/kingdom-native-lab" />;
-  }
-
   if (loading && !session) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
@@ -189,4 +183,13 @@ export default function Index() {
       href="/(tabs)/buklod"
     />
   );
+}
+
+/** Run the laboratory without mounting any authenticated BUKLOD providers. */
+export default function Index() {
+  if (Platform.OS === 'android' &&
+    process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1') {
+    return <Redirect href="/kingdom-native-lab" />;
+  }
+  return <MainIndex />;
 }
