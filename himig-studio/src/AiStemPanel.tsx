@@ -17,12 +17,16 @@ function mime(file:File):string{
 }
 const URL_BASE='/api/ai';
 function putFile(signedUrl:string,file:File,contentType:string,progress:(p:number)=>void,
-  attach:(x:XMLHttpRequest)=>void):Promise<void>{
+  attach:(x:XMLHttpRequest)=>void,extraHeaders:Record<string,string>={}):Promise<void>{
  return new Promise((resolve,reject)=>{
   const xhr=new XMLHttpRequest();attach(xhr);
   xhr.open('PUT',signedUrl);
   xhr.timeout=180000;
-  xhr.setRequestHeader('Content-Type',contentType);
+  const signedType=Object.entries(extraHeaders).find(([key])=>key.toLowerCase()==='content-type')?.[1];
+  xhr.setRequestHeader('Content-Type',signedType||contentType);
+  for(const [name,value] of Object.entries(extraHeaders)){
+    if(name.toLowerCase()!=='content-type')xhr.setRequestHeader(name,value);
+  }
   xhr.upload.onprogress=e=>{if(e.lengthComputable)progress(Math.round(e.loaded/e.total*100));};
   xhr.onload=()=>xhr.status>=200&&xhr.status<300?resolve():reject(new Error('Vendor upload HTTP '+xhr.status));
   xhr.onerror=()=>reject(new Error('Upload connection failed'));
@@ -77,11 +81,11 @@ export function AiStemPanel({sourceFile}:{sourceFile:File|null}){
    const upload=await call('/upload','POST',{file_name:sourceFile.name,content_type:type,
      size_bytes:sourceFile.size,consent:true});
    const url=new URL(upload.upload_url);
-   if(url.protocol!=='https:'||!['v3-uploads.fal.media','v3.fal.media'].includes(url.hostname))
+   if(url.protocol!=='https:'||!['v3-uploads.fal.media','v3.fal.media','v3b.fal.media'].includes(url.hostname))
      throw new Error('Invalid upload destination');
    if(id!==runId.current)return;
    setMessage('Uploading to provider. The original recording remains unchanged.');
-   await putFile(upload.upload_url,sourceFile,type,setProgress,x=>{xhr.current=x;});
+   await putFile(upload.upload_url,sourceFile,type,setProgress,x=>{xhr.current=x;},upload.upload_headers ?? {});
    xhr.current=null;if(id!==runId.current)return;
    // An HTTP timeout here may mean the paid job already exists. Never let the Cancel-upload
    // button discard an in-flight paid submission before the provider request id is known.
@@ -96,7 +100,7 @@ export function AiStemPanel({sourceFile}:{sourceFile:File|null}){
  async function refresh(){
   if(!job||busyLock.current)return;busyLock.current=true;setBusy(true);setError('');
   try{
-   const params=new URLSearchParams({id:job.request_id,status_url:job.status_url,response_url:job.response_url});
+   const params=new URLSearchParams({id:job.request_id});
    const result=await call('/job?'+params.toString(),'GET');
    setResult(result);setMessage(result.status==='REVIEW_REQUIRED'?'Provider completed. Download stems and listen for separation artifacts.':String(result.status));
   }catch(e){setError(e instanceof Error?e.message:'Could not check job');}
@@ -105,7 +109,7 @@ export function AiStemPanel({sourceFile}:{sourceFile:File|null}){
  async function cancel(){
   if(!job||busyLock.current)return;busyLock.current=true;setBusy(true);
   try{
-    const r=await call('/cancel','POST',{request_id:job.request_id,cancel_url:job.cancel_url});
+    const r=await call('/cancel','POST',{request_id:job.request_id});
     setMessage(r.status+' (provider charges may still apply)');
   }catch(e){setError(e instanceof Error?e.message:'Cancellation failed');}
   finally{busyLock.current=false;setBusy(false);}
