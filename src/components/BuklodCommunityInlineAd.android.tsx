@@ -386,7 +386,10 @@ export default function BuklodCommunityInlineAd({
     diagnosticPlacement,
     nativeFailed,
     nativeUnitId,
-    pathname,
+    // Route transitions between two allowed surfaces must not tear down a
+    // successfully loaded SDK creative. keepNativeLifecycle already tracks
+    // route safety and disposes on a genuinely forbidden destination.
+    // The request-time pathname is intentionally captured for diagnostics.
     placementId,
     requestKey,
     reservationTick,
