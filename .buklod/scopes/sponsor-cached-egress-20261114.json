@@ -25,18 +25,20 @@
     "App/Expo runtime, native packages, Supabase DB, OTA and production unchanged."
   ],
   "acceptanceChecks": [
-    "node --test tests/sponsor-cached-egress-20261114.test.mjs",
+    "node --test tests/sponsor-cached-egress-20261114.test.mjs tests/sponsor-ad-video-cache-20261114.test.mjs",
     "Existing paid-sponsorship and audio mixing tests pass",
     "TypeScript and Android staging build/runtime and sponsored media playback verified before any OTA",
     "Compare the same app version/build/runtime recent rolling 15/30/60-minute cached media request and GB after release; do not infer bytes from hits alone."
   ],
   "regressionTests": [
+    "tests/sponsor-ad-video-cache-20261114.test.mjs",
     "tests/sponsor-cached-egress-20261114.test.mjs",
     "tests/paid-sponsorship-wall-scroll-20261107.test.mjs",
     "tests/ptt-media-audio-mixing-20261111.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodCommunitySponsoredAd.tsx",
+    "tests/sponsor-ad-video-cache-20261114.test.mjs",
     "tests/sponsor-cached-egress-20261114.test.mjs",
     ".buklod/scopes/sponsor-cached-egress-20261114.json"
   ],
@@ -44,5 +46,27 @@
     "No compiled RC or actual signed staging-device verification.",
     "No exact runtime/OTA production fingerprint and no measured post-deployment egress improvement.",
     "Do not publish directly to production."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Reuse stable cached public sponsored video bytes in the existing SDK57 player while reducing first in-view measurement delay without a new native package or runtime",
+      "preservedBehaviors": [
+        "Original full-resolution sponsored MP4, same sound/play/pause controls, no auth or runtime changes"
+      ],
+      "tests": [
+        "tests/sponsor-ad-video-cache-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Reduce repeated paid sponsored-video transfer without changing campaigns, AdMob, monetization, impression logging or user privacy",
+      "preservedBehaviors": [
+        "Existing eligible ad display, rotation, impression/click recording and signed-in account privacy remain unchanged"
+      ],
+      "tests": [
+        "tests/sponsor-ad-video-cache-20261114.test.mjs"
+      ]
+    }
   ]
 }
