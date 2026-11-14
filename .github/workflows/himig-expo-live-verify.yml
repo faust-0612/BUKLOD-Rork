@@ -1,37 +1,66 @@
-name: Himig Studio Expo Hosting Public Verification
+name: Himig Studio - Read Only Exact Expo Production Verification
+
 on:
   push:
-    branches: [himig/expo-web-hosting-20261114]
-    paths: ['.github/workflows/himig-expo-live-verify.yml']
+    branches:
+      - himig/expo-web-hosting-20261114
+    paths:
+      - '.github/workflows/himig-expo-live-verify.yml'
+
 permissions:
   contents: read
+
 jobs:
-  validate-expo-production:
+  read-only-prod-verification:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
+    env:
+      RC_HOST: https://himig-studio--0hvtwsflc2.expo.app
+      PROD_HOST: https://himig-studio.expo.app
     steps:
-      - name: Probe actual Expo Hosting URLs
+      - name: Verify production routes and exact client asset references
         shell: bash
         run: |
           set -euo pipefail
-          for host in "https://himig-studio.expo.app" "https://himig-studio--djjagc66w6.expo.app"; do
-            echo "::group::Checking $host"
-            for path in / /audio-worker.js; do
-              found=0
-              for i in $(seq 1 6); do
-                status=$(curl -L -sS -o /tmp/himig-page -w '%{http_code}' --max-time 20 "$host$path" || true)
-                bytes=$(wc -c < /tmp/himig-page 2>/dev/null || echo 0)
-                echo "CHECK host=$host path=$path attempt=$i http=$status bytes=$bytes"
-                if [ "$status" = '200' ] && [ "$bytes" -gt 4000 ]; then
-                  if [ "$path" = / ]; then
-                    grep -Eq 'Himig Studio|_expo/static/' /tmp/himig-page || { echo 'HTML missing Himig identity'; exit 1; }
-                  fi
-                  found=1;break
-                fi
-                sleep 5
-              done
-              if [ "$found" != '1' ]; then echo "BLOCKER: Expo origin unavailable for $host$path"; exit 1; fi
-            done
-            echo "::endgroup::"
+          for origin in rc prod; do
+            if [ "$origin" = rc ]; then host="$RC_HOST"; else host="$PROD_HOST"; fi
+            curl -fsSL --retry 3 --max-time 25 -H 'Cache-Control: no-cache' "$host/" -o "$RUNNER_TEMP/$origin.html"
+            curl -fsSL --retry 3 --max-time 25 -H 'Cache-Control: no-cache' "$host/audio-worker.js" -o "$RUNNER_TEMP/$origin-worker.js"
+            curl -fsSL --retry 3 --max-time 25 -H 'Cache-Control: no-cache' "$host/api/ai/status" -o "$RUNNER_TEMP/$origin-status.json"
+            echo "$origin page bytes $(wc -c < "$RUNNER_TEMP/$origin.html")"
+            echo "$origin worker sha $(sha256sum "$RUNNER_TEMP/$origin-worker.js")"
+            node - "$RUNNER_TEMP/$origin-status.json" "$origin" <<'NODE'
+          const fs=require('fs'),data=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          if(data.provider!=='fal-ai/sam-audio/separate'||data.ready!==false)throw Error('Unexpected model status or billing');
+          console.log(process.argv[3]+'-AI_STATUS=DISABLED_BY_DEFAULT');
+          NODE
           done
-          echo "HIMIG_EXPO_PRODUCTION_VERIFIED=PASS"
+          cmp "$RUNNER_TEMP/rc-worker.js" "$RUNNER_TEMP/prod-worker.js"
+          node <<'NODE'
+          const fs=require('fs');
+          const {URL}=require('url');
+          const path=process.env.RUNNER_TEMP;
+          const r=fs.readFileSync(path+'/rc.html','utf8');
+          const p=fs.readFileSync(path+'/prod.html','utf8');
+          if(!r.includes('Himig Studio')||!p.includes('Himig Studio'))throw Error('Wrong production app');
+          // Compare normalized asset PATHS, not absolute preview vs production hostnames.
+          function assets(html,base){
+            const values=[];
+            for(const match of html.matchAll(/(?:src|href)=["']([^"']+)["']/gi)){
+              try{
+                const u=new URL(match[1],base);
+                if(u.pathname.includes('/_expo/')&&u.pathname.includes('.js'))values.push(u.pathname+u.search);
+              }catch{}
+            }
+            return [...new Set(values)].sort();
+          }
+          const a=assets(r,process.env.RC_HOST), b=assets(p,process.env.PROD_HOST);
+          console.log('RC_JS_ASSETS='+JSON.stringify(a).slice(0,4500));
+          console.log('PROD_JS_ASSETS='+JSON.stringify(b).slice(0,4500));
+          if(a.length<1||b.length<1)throw Error('No verifiable JS asset references');
+          if(JSON.stringify(a)!==JSON.stringify(b))throw Error('Production JS asset paths do not match exact tested RC');
+          console.log('EXACT_IMMUTABLE_RC_CLIENT_BUNDLES_MATCH=PASS');
+          NODE
+          echo 'EXPO_PRODUCTION_HTTP_WORKER_AND_DISABLED_BACKEND=PASS'
+          echo 'NO_BILLED_FAL_REQUESTS_WERE_RUN=YES'
+          echo 'REAL_SONG_ACCEPTANCE=0/5_NOT_COMPLETE'
