@@ -69,7 +69,8 @@
     "tests/nov15-android-native-prefetch-gate.test.mjs",
     "tests/protected-feature-lock-video-scope-20261114.test.mjs",
     "tests/scope-video-scroll-autoplay-20261114.test.mjs",
-    "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+    "tests/ad-native-lifecycle-retention-20261115.test.mjs",
+    ".github/workflows/buklod-nov15-conso-android-compile-qa.yml"
   ],
   "acceptanceChecks": [
     "All exact changed source and test paths match manifest and protected feature-lock PASS.",
