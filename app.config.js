@@ -377,6 +377,7 @@ module.exports = ({ config }) => {
           },
         },
       ],
+      ...(isKingdomLab ? ['./plugins/withBuklodKingdomNativeLab'] : []),
     ],
 
 
