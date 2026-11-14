@@ -26,7 +26,9 @@ test('real video-frame geometry and next-clip preparation preserve original reso
 test('precache a next native AdMob creative, not a hidden loaded banner or impression',()=>{
  const ad=read('src/components/BuklodCommunityInlineAd.tsx');
  assert.match(ad,/canPrefetchNative/);
- assert.match(ad,/if \(!nativeAd \|\| nativeRendered.current \|\| !canShowNativeCreative\) return;/);
+ assert.match(ad,/if \(!nativeAd \|\| nativeRendered.current \|\| !eligible\) return;/);
+ const android=read('src/components/BuklodCommunityInlineAd.android.tsx');
+ assert.match(android,/if \(!nativeAd \|\| nativeRendered.current \|\| !canShowNativeCreative\) return;/);
  assert.match(ad,/if \(!eligible \|\| !sdkReady \|\| !online\)/);
  assert.match(read('src/app/(tabs)/buklod.tsx'),/prefetch=\{preloadAdId===item.id\}/);
  assert.match(read('src/components/BuklodExclusiveScopeCommunity.tsx'),/prefetch=\{preloadAdId===item.id\}/);
