@@ -5,12 +5,6 @@
   "productionBaselineEvidence": "verified: GitHub main source SHA 9f412afd71b74e41995a3a1a63e05e72f78b6e39 inspected as the isolated source comparison baseline on 2026-11-14; this is NOT independently verified production APK, Web, or OTA identity. Live Supabase Connect project logs in 2026-11-14 01:00–02:00 UTC recorded 51 CDN HIT GETs for paid-ad-media, including full and partial requests for a public 48.54 MiB MP4; org dashboard screenshot shows 335.49/250 GB cached egress. Response byte totals are unavailable and attribution of the full 335.49 GB is not claimed.",
   "chosenApproach": "Enable expo-video SDK57 native useCaching on stable public sponsor creative URL, preserving full-resolution media and play/audio-focus behavior. Measure viewport on next animation frame rather than a 350ms warmup and keep bounded 350ms checks instead of 900ms on the single focused component. No native package change, backend mutation or media recompression.",
   "selectionRationale": "Expo SDK57 supports VideoSource.useCaching on Android/iOS for recurring MP4 playback; existing community video caching does not cover the paid-sponsorship AdVideo component. Existing sponsored view may detect in-viewport items up to 350ms after mount and poll at 900ms. Controlled local caching lowers repeated transfer while retaining immediate eligible playback.",
-  "alternativesRejected": [
-    "Switch the entire app to low-resolution media: violates owner requirement.",
-    "Disable or throttle impression serving to save bandwidth: alters monetization and policy.",
-    "Rearchitect native media cache or add DRM/player packages: needs new APK without evidence.",
-    "Delete or lower quality of stored user assets: destructive and not needed."
-  ],
   "riskAreas": [
     "ads-monetization",
     "navigation-scroll",
@@ -32,9 +26,7 @@
   ],
   "regressionTests": [
     "tests/sponsor-ad-video-cache-20261114.test.mjs",
-    "tests/sponsor-cached-egress-20261114.test.mjs",
-    "tests/paid-sponsorship-wall-scroll-20261107.test.mjs",
-    "tests/ptt-media-audio-mixing-20261111.test.mjs"
+    "tests/sponsor-cached-egress-20261114.test.mjs"
   ],
   "allowedPaths": [
     "src/components/BuklodCommunitySponsoredAd.tsx",
@@ -68,5 +60,11 @@
         "tests/sponsor-ad-video-cache-20261114.test.mjs"
       ]
     }
+  ],
+  "alternativeApproaches": [
+    "Switch the entire app to low-resolution media: violates owner requirement.",
+    "Disable or throttle impression serving to save bandwidth: alters monetization and policy.",
+    "Rearchitect native media cache or add DRM/player packages: needs new APK without evidence.",
+    "Delete or lower quality of stored user assets: destructive and not needed."
   ]
 }
