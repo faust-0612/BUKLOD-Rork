@@ -1,0 +1,12 @@
+{
+  "reportKind": "BUKLOD_KINGDOM_NATIVE_LAB_BUILD",
+  "source_sha": "c60273bc9b0953a4eb616e51343556c2c5705d78",
+  "run_id": 43579026623,
+  "branch": "dev/kingdom-native-lab-isolated-20261114",
+  "job_status": "cancelled",
+  "package_id": "org.mzbministry.buklod.kingdomlab",
+  "runtime": "1.4.0-kingdom-native-lab.1",
+  "published_to_staging": false,
+  "published_to_production": false,
+  "apk_artifact_expected": false
+}
