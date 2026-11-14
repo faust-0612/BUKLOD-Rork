@@ -27,6 +27,7 @@
     "tests/kingdom-cinematic-ui-audio-20261111.test.mjs"
   ],
   "allowedPaths": [
+    ".buklod/scopes/kingdom-premium-audio-20261114.json",
     ".github/workflows/kingdom-premium-audio-vendor.yml",
     ".github/workflows/kingdom-premium-audio-qa.yml",
     "assets/sounds/kingdom-premium/assets.json",
