@@ -22,7 +22,9 @@
     "weak-network",
     "ad-impression",
     "signed-url-identity",
-    "audio-focus"
+    "audio-focus",
+    "navigation-scroll",
+    "ads-monetization"
   ],
   "preserveBehaviors": [
     "Original-quality content video sources and existing cached decoder, Android Expo Video/IMA source, sound focus, signed URL recovery and retry remain unchanged.",
