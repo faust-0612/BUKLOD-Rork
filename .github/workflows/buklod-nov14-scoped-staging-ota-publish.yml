@@ -1,4 +1,6 @@
 # Owner-authorized isolated STAGING QA OTA trigger; production/main/web/Play excluded.
+# Profile-inclusive final scope: identity note/edit/share, owner activity/reports, unique active org/sub-org, intact profile_mid_native.
+# All three exact-SHA CI gates must PASS before EAS staging-user publish; no main, web, production or Play promotion.
 # Governance: release-identity risk declared and validated; previous blocked push caused NO publication.
 name: BUKLOD Nov14 Owner Scoped Staging Android OTA - NO PROD
 on:

@@ -1287,8 +1287,8 @@ export default function MeScreen() {
       return;
     }
     const displayName=resolvePersonDisplayName(profile,profile.id);
-    const message=username?displayName+'\\n@'+username:displayName;
-    try{await Share.share({message:'BUKLOD member profile\\n'+message});}
+    const message=username?displayName+'\n@'+username:displayName;
+    try{await Share.share({message:'BUKLOD member profile\n'+message});}
     catch{Alert.alert('Share profile','Unable to open the share menu.');}
   };
 
