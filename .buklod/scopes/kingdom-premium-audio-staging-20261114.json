@@ -23,7 +23,7 @@
   "releaseState": "DEV_ONLY_STAGING_NO_OTA",
   "scopeManifestPath": ".buklod/scopes/kingdom-premium-audio-staging-20261114.json",
   "productionBaselineEvidence": "Nonproduction R9 staging source 8b2a08ed037e572b4afee2160777968c4535f077 and staging visual parent e15b91fb95742a63e7d5d1d664d15b087681f331; no assertion of live installed staging APK or production OTA.",
-  "selectionRationale": "Use already-composed CC0 original game music and dedicated CC0 event sounds pinned to immutable Git blob hashes. Existing app notification WAVs are inappropriate as premium game feedback; no per-play network or paid synthesis.",
+  "selectionRationale": "Use already-composed CC0 original game music and dedicated CC0 event sounds pinned to immutable Git blob hashes. Existing app notification WAVs are inappropriate as premium game feedback; no per-play network or paid synthesis. Metro needs explicit OGG asset registration to resolve these Android-native audio assets; this is bundler configuration only (no native ABI or installed package change).",
   "alternativeApproaches": [
     "Keep synthesized background and normal notification sounds (rejected; owner sound quality complaint)",
     "Stream from unreliable Rork preview host (rejected; missing offline resilience and prior 404)",
@@ -50,7 +50,8 @@
     "assets/sounds/kingdom-premium/victory.wav",
     "tests/kingdom-premium-audio-staging-20261114.test.mjs",
     ".github/workflows/kingdom-premium-audio-vendor-staging.yml",
-    "src/app/games/practice.tsx"
+    "src/app/games/practice.tsx",
+    "metro.config.js"
   ],
   "regressionTests": [
     "tests/kingdom-premium-audio-staging-20261114.test.mjs",
@@ -69,13 +70,24 @@
         "All 39 offline practice routes still use catalog-gated IDs and unchanged account-scoped progress while mounting Kingdom-only audio."
       ],
       "tests": [
-        "tests/kingdom-premium-audio-staging-20261114.test.mjs",
-        "scripts/rork-media-contract-test.mjs"
+        "tests/kingdom-premium-audio-staging-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Enable premium soundtrack with focus-owned activity on all 39 catalogue gated Kingdom practice routes, without changing gameplay, account identity, scoring or points.",
+      "preservedBehaviors": [
+        "Authenticated game catalog gating and per-account offline practice keys remain enforced.",
+        "All routes keep existing game results, points semantics, saved results, ads and character motion."
+      ],
+      "tests": [
+        "tests/kingdom-premium-audio-staging-20261114.test.mjs"
       ]
     }
   ],
   "riskAreas": [
     "audio-lifecycle",
-    "navigation-scroll"
+    "navigation-scroll",
+    "build-asset-resolver"
   ]
 }
