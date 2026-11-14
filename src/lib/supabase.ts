@@ -6,8 +6,16 @@ import { createBuklodPermissionSnapshotFetch } from './buklodPermissionSnapshotF
 import { createBuklodR4RequestShield } from './buklodR4RequestShield';
 import { createBuklodPostgrestJwtRetryFetch } from './buklodPostgrestJwtRetryFetch';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+// The third APK is an offline-only native acceptance lab. No credentials,
+// account tokens or writes can reach the real BUKLOD project from this variant.
+const isKingdomNativeLab = Platform.OS === 'android' &&
+  process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1';
+const supabaseUrl = isKingdomNativeLab
+  ? 'https://buklod-kingdom-native-lab.invalid'
+  : process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const supabasePublishableKey = isKingdomNativeLab
+  ? 'isolated-lab-no-real-supabase-key'
+  : process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
 if (!supabaseUrl || !supabasePublishableKey) {
   console.warn('Missing Supabase environment variables.');
