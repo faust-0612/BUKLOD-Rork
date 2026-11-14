@@ -4,7 +4,7 @@ type Capabilities={
   ready:boolean; provider:string; stages:Record<string,string>;
   privacy:string; billing:string;
 };
-type Job={request_id:string;status_url:string;response_url:string;cancel_url:string};
+type Job={request_id:string;status_url?:string;response_url?:string;cancel_url?:string};
 type Result={status:string;artifacts?:{vocalStem:string;accompanimentResidual:string};
   error?:string;qualityGates?:Record<string,string>};
 
@@ -41,8 +41,11 @@ export function AiStemPanel({sourceFile}:{sourceFile:File|null}){
  const [message,setMessage]=useState('');
  const [error,setError]=useState('');
  const [job,setJob]=useState<Job|null>(null);
+ const [recoverId,setRecoverId]=useState('');
+ const [submitStarted,setSubmitStarted]=useState(false);
  const [result,setResult]=useState<Result|null>(null);
  const xhr=useRef<XMLHttpRequest|null>(null);
+ const busyLock=useRef(false);
  const runId=useRef(0);
  useEffect(()=>{
    let alive=true;
@@ -63,11 +66,12 @@ export function AiStemPanel({sourceFile}:{sourceFile:File|null}){
   return data;
  }
  async function start(){
-  if(!sourceFile||!cap?.ready||!consent||busy||ownerToken.length<32)return;
+  if(!sourceFile||!cap?.ready||!consent||busyLock.current||ownerToken.length<32)return;
   const type=mime(sourceFile);
   if(!['audio/wav','audio/mpeg','audio/flac'].includes(type)){setError('For real separation, upload WAV, FLAC or MP3. M4A is not yet supported.');return;}
   if(sourceFile.size>60*1024*1024){setError('60 MB size limit for this provider adapter.');return;}
-  const id=++runId.current;setError('');setJob(null);setResult(null);setBusy(true);setProgress(0);
+  busyLock.current=true;
+  const id=++runId.current;setError('');setJob(null);setResult(null);setBusy(true);setProgress(0);setSubmitStarted(false);
   try{
    setMessage('Requesting temporary signed upload URL');
    const upload=await call('/upload','POST',{file_name:sourceFile.name,content_type:type,
@@ -79,29 +83,32 @@ export function AiStemPanel({sourceFile}:{sourceFile:File|null}){
    setMessage('Uploading to provider. The original recording remains unchanged.');
    await putFile(upload.upload_url,sourceFile,type,setProgress,x=>{xhr.current=x;});
    xhr.current=null;if(id!==runId.current)return;
-   setMessage('Submitting paid voice separation job');
+   // An HTTP timeout here may mean the paid job already exists. Never let the Cancel-upload
+   // button discard an in-flight paid submission before the provider request id is known.
+   setSubmitStarted(true);
+   setMessage('Submitting paid voice separation job; do not close until the request ID appears.');
    const next=await call('/separate','POST',{audio_url:upload.file_url,consent:true});
    if(id!==runId.current)return;
    setJob(next as Job);setMessage('Submitted. Use Refresh job status to check progress. Do not treat the separated stem as a master.');
   }catch(e){if(id===runId.current)setError(e instanceof Error?e.message:'Processing failed');}
-  finally{if(id===runId.current)setBusy(false);}
+  finally{busyLock.current=false;setSubmitStarted(false);if(id===runId.current)setBusy(false);}
  }
  async function refresh(){
-  if(!job||busy)return;setBusy(true);setError('');
+  if(!job||busyLock.current)return;busyLock.current=true;setBusy(true);setError('');
   try{
    const params=new URLSearchParams({id:job.request_id,status_url:job.status_url,response_url:job.response_url});
    const result=await call('/job?'+params.toString(),'GET');
    setResult(result);setMessage(result.status==='REVIEW_REQUIRED'?'Provider completed. Download stems and listen for separation artifacts.':String(result.status));
   }catch(e){setError(e instanceof Error?e.message:'Could not check job');}
-  finally{setBusy(false);}
+  finally{busyLock.current=false;setBusy(false);}
  }
  async function cancel(){
-  if(!job||busy)return;setBusy(true);
+  if(!job||busyLock.current)return;busyLock.current=true;setBusy(true);
   try{
     const r=await call('/cancel','POST',{request_id:job.request_id,cancel_url:job.cancel_url});
     setMessage(r.status+' (provider charges may still apply)');
   }catch(e){setError(e instanceof Error?e.message:'Cancellation failed');}
-  finally{setBusy(false);}
+  finally{busyLock.current=false;setBusy(false);}
  }
  return <section className="ai-separator">
    <div className="heading"><span className="step">AI</span><h2>Real stem separation (experimental)</h2></div>
@@ -116,10 +123,25 @@ export function AiStemPanel({sourceFile}:{sourceFile:File|null}){
    </label>
    <button type="button" className="primary" disabled={!sourceFile||!cap?.ready||!consent||ownerToken.length<32||busy}
      onClick={()=>void start()}>{busy?'Working…':'Separate actual singing voice using AI'}</button>
-   {busy && <button type="button" className="link-button" onClick={()=>{runId.current++;xhr.current?.abort();setBusy(false);setMessage('Local upload cancelled; a submitted provider job must be cancelled separately.');}}>Cancel upload</button>}
+   {busy && <button type="button" className="link-button" disabled={submitStarted} onClick={()=>{
+      runId.current++;xhr.current?.abort();busyLock.current=false;setBusy(false);
+      setMessage('Local upload cancelled. No completed provider job has been confirmed.');
+   }}>{submitStarted?'Submitting paid job — cannot safely cancel now':'Cancel upload'}</button>}
    {progress>0&&<p className="help">Provider upload: {progress}%</p>}
    {message&&<p role="status">{message}</p>}
    {error&&<p className="error" role="alert">{error}</p>}
+   <div className="ai-job" aria-label="Recover existing paid model job">
+     <label htmlFor="ai-recover-job">Recover previous job by request ID (after reload or poor signal)</label>
+     <input id="ai-recover-job" autoComplete="off" spellCheck={false} inputMode="text"
+       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value={recoverId}
+       onChange={e=>setRecoverId(e.target.value.trim().slice(0,36))}/>
+     <button type="button" className="export"
+       disabled={!cap?.ready||busy||ownerToken.length<32||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(recoverId)}
+       onClick={()=>{setJob({request_id:recoverId});setResult(null);setMessage('Recovered job ID locally. Select Refresh job status to query the provider.');}}>
+       Load existing job
+     </button>
+     <p className="help">Copy and keep the request ID when a job is submitted. It lets you check the same paid job again without paying to submit a duplicate.</p>
+   </div>
    {job&&<div className="ai-job">
      <p>Provider request: {job.request_id} · Output quality not yet certified</p>
      <button type="button" className="export" disabled={busy} onClick={()=>void refresh()}>Refresh job status</button>

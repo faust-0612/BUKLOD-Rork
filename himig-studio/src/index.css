@@ -562,3 +562,6 @@ footer {
 .ai-separator .ai-job>div{margin-top:18px}
 .ai-separator .ai-job>div>strong{display:block}
 .ai-separator .error{overflow-wrap:anywhere}
+
+.ai-separator .ai-job input{display:block;width:100%;background:#101b15;color:#e2f5eb;border:1px solid #456353;border-radius:10px;font-size:16px;min-height:47px;padding:11px 12px;margin:9px 0;touch-action:manipulation}
+.ai-separator .ai-job button:disabled{opacity:.45;cursor:not-allowed}

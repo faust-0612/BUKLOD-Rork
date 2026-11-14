@@ -118,3 +118,11 @@ Expo Router EAS Hosting runs Cloudflare Worker API routes in `web.output=server`
 - Media privacy: vendor CDN URLs may be public and transient; user must opt in. Do not submit sensitive songs without a provider retention agreement.
 - **Cost warning:** SAM Audio incurs per-request charges; no unlimited free inference. A shared multi-user API is NOT production-safe until persistent quotas, identity, isolated storage, lifecycle/cleanup and audit log are deployed. Keep owner-only until then.
 - **Pilot status:** No real-source stem-job, Whisper alignment, high-fidelity accompaniment or native Android playback has been verified yet. This implementation is an authenticated vendor adapter, not a complete recording-to-studio-song generator.
+
+## 12. Provider contract hardening and release evidence — 2026-11-14
+- CDN input/output host allowlist supports both official `v3.fal.media` and `v3b.fal.media` for exact fal media paths. Never accept arbitrary `https:` URLs as finished stems.
+- Changed signed upload initiation from alpha to stable `rest.fal.ai/storage/upload/initiate?storage_type=fal-cdn-v3`. Direct browser PUT honors validated vendor-requested signed-upload headers; no fal API key ever goes to the client.
+- Job status and cancellation no longer trust client-supplied status/response/cancel URLs. Server reconstructs canonical queue URLs using a validated UUID, then checks full origin and path.
+- Frontend includes safe job-ID recovery for weak network or reload: re-check the *same* charged request, rather than silently submitting another paid request. A synchronous in-flight lock prevents double taps. While the paid submit is pending, upload cancel is disabled to avoid hiding a job that may already have been accepted by fal.
+- Route-level tests use mocked HTTP responses for input validation, upload initiation, queue submission, job result allowlists and cancellation. **They do not call or charge fal**.
+- The user's fal account is currently out of credits. This is a real operational blocker, not a bug or mock. External paid inference is not claimed complete.

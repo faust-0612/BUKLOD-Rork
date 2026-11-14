@@ -52,6 +52,10 @@ test('server routes are configured only for explicit-consent media, not public b
  assert.ok(ui.includes('I own or am allowed to process this recording'));
  assert.ok(!ui.includes('process.env.FAL_KEY'));
  assert.ok(ui.includes('Provider upload'));
+ assert.ok(ui.includes('Recover previous job by request ID'));
+ assert.ok(ui.includes('const busyLock=useRef(false)'));
+ assert.ok(ui.includes('if(!job||busyLock.current)return;'));
+ assert.ok(ui.includes('disabled={submitStarted}'));
  const config=JSON.parse(fs.readFileSync('app.json','utf8')).expo;
  assert.equal(config.web.output,'server');
  assert.equal(config.extra.eas.projectId,'05e7dab7-a7fd-490c-af52-a54a3609ec35');

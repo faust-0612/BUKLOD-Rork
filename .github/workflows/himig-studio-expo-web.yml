@@ -79,6 +79,9 @@ jobs:
       - name: Validate server API auth, consent and disabled-by-default billing
         run: node --test tests/ai-backend.test.cjs
 
+      - name: Validate the actual API route handlers with simulated fal responses only
+        run: node --test tests/api-contract.test.cjs
+
       - name: Assert server bundle and private key exclusion from client
         shell: bash
         run: |

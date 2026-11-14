@@ -1,6 +1,7 @@
 /** Server-only policy for Himig Studio. NEVER import from client UI. */
 export const MODEL = 'fal-ai/sam-audio/separate' as const;
-const CDN='v3.fal.media';
+const CDN_HOSTS=new Set(['v3.fal.media','v3b.fal.media']);
+const UPLOAD_HOSTS=new Set(['v3-uploads.fal.media','v3.fal.media','v3b.fal.media']);
 export function configured(): boolean {
   return Boolean(process.env.FAL_KEY && process.env.HIMIG_OWNER_TOKEN &&
     process.env.HIMIG_OWNER_TOKEN.length>=32 &&
@@ -35,21 +36,29 @@ export async function readJson(req:Request,max=8192):Promise<Record<string,unkno
 }
 export function isFalAudioUrl(s:unknown):s is string {
   if(typeof s!=='string'||s.length>2048)return false;
-  try {const u=new URL(s);return u.protocol==='https:' && u.hostname===CDN && u.pathname.startsWith('/files/')&&!u.username&&!u.password;}catch{return false;}
+  try {const u=new URL(s);return u.protocol==='https:' && CDN_HOSTS.has(u.hostname) && /^\/files\/b\/[^/]+\/[^/]+/.test(u.pathname) && !u.username && !u.password && !u.hash;}catch{return false;}
 }
 export function isFalUploadUrl(s:unknown):s is string {
   if(typeof s!=='string'||s.length>4096)return false;
-  try {const u=new URL(s);return u.protocol==='https:'&&['v3-uploads.fal.media','v3.fal.media'].includes(u.hostname) && !u.username&&!u.password;}catch{return false;}
+  try {const u=new URL(s);return u.protocol==='https:' && UPLOAD_HOSTS.has(u.hostname) && !u.username && !u.password && !u.hash;}catch{return false;}
 }
 export function isQueueUrl(s:unknown,id:string):s is string{
   if(typeof s!=='string'||s.length>4096||!isUuid(id))return false;
   try{
     const u=new URL(s);
-    return u.protocol==='https:'&&u.hostname==='queue.fal.run'&&!u.username&&!u.password&&
-      u.pathname.startsWith('/fal-ai/sam-audio/') &&
-      u.pathname.includes('/requests/'+id) &&
-      !u.pathname.includes('..');
+    const exact='/fal-ai/sam-audio/requests/'+id.toLowerCase();
+    return u.protocol==='https:' && u.hostname==='queue.fal.run' && !u.username && !u.password &&
+      !u.search && !u.hash && [exact,exact+'/status',exact+'/cancel'].includes(u.pathname.toLowerCase());
   }catch{return false;}
+}
+export function queueUrl(id:string,kind:'status'|'response'|'cancel'):string {
+  if(!isUuid(id))throw new Error('Invalid job id');
+  const url='https://queue.fal.run/fal-ai/sam-audio/requests/'+id.toLowerCase();
+  return kind==='response'?url:url+'/'+kind;
+}
+export function isProviderArtifactUrl(s:unknown):s is string {
+  // Model output can be hosted on v3b, v3 or a vendor-signed fal CDN URL.
+  return isFalAudioUrl(s);
 }
 export function isUuid(s:unknown):s is string {
   return typeof s==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
