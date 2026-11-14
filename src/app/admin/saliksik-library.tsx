@@ -41,7 +41,7 @@ export default function SaliksikLibraryScreen(){
   finally{loading.current=false;}
  },[]);
  useEffect(()=>{active.current=true;void refresh();return()=>{active.current=false;};},[refresh]);
- const process=async(id:string)=>{
+ const generateDraftForSource=async(id:string)=>{
   setBusy('Generating draft');
   setError('');
   try{
@@ -76,7 +76,7 @@ export default function SaliksikLibraryScreen(){
    await refresh();
    setBusy('');
    // Sequential, bounded work; an interrupted upload remains safely QUEUED for retry.
-   for(const id of ids) await process(id);
+   for(const id of ids) await generateDraftForSource(id);
   }catch(e){setError(textError(e));setBusy('');await refresh();}
  };
  const showPreview=async(item:SaliksikSource)=>{
