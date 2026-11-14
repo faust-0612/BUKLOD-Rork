@@ -4,7 +4,7 @@
   "objective": "Implement video pause immediately at scroll start, partial-frame autoplay, bounded nearby video warming, original-quality scrollback cache and policy-safe next NativeAd prefetch in Android BUKLOD DEV only. Integrate the separately tested native creative retention fix into this cumulative video/ads release candidate without duplicating already-live Profile, Connect or Wall/LIFE/KL work.",
   "baseRef": "7ebbbd504df2f84355888cc64a8c5317319d6d65",
   "productionBaselineEvidence": "verified: November 14 2026 main commit 7ebbbd504df2f84355888cc64a8c5317319d6d65 published Android production runtime 1.3.2 OTA update 01a1da5c-0179-79fc-85c9-591cdb782190 in completed-success run 43602250206. This isolated DEV PR has NOT shipped to staging or production; no physical device claim.",
-  "chosenApproach": "One shared 180ms idle scroll-pause signal, real video frame geometry gating in Wall and Scope, single next clip/Marites prewarm, bounded NativeAd SDK asset prefetch without offscreen NativeAdView or premature impressions; preserve unchanged banner unit IDs, consent, IMA and network request pacing. Run focused feature contracts; no production release. This cumulative branch also contains the Nov15 safe-route NativeAd retention patch; declare its exact added manifest and tests in this scope allowlist.",
+  "chosenApproach": "One shared 180ms idle scroll-pause signal, real video frame geometry gating in Wall and Scope, single next clip/Marites prewarm, bounded NativeAd SDK asset prefetch without offscreen NativeAdView or premature impressions; preserve unchanged banner unit IDs, consent, IMA and network request pacing. Run focused feature contracts; no production release. This cumulative branch also contains the Nov15 safe-route NativeAd retention patch; record its focused regression tests in this single exact release scope without a duplicate sub-manifest.",
   "selectionRationale": "Narrowly addresses owner-visible delayed playback and scrolling resource use without replacing the approved Android video player, degrading resolution or adding expensive native/build dependencies. Native AdMob assets are cached briefly before a future eligible placement rather than requesting invisible banner impressions.",
   "alternativeApproaches": [
     "Rendering offscreen BannerAd or hidden NativeAdView (rejected as unsafe impression/fill behavior).",
@@ -72,7 +72,6 @@
     "tests/nov15-android-native-prefetch-gate.test.mjs",
     "tests/protected-feature-lock-video-scope-20261114.test.mjs",
     "tests/scope-video-scroll-autoplay-20261114.test.mjs",
-    ".buklod/scopes/nov15-ad-native-retention.json",
     "tests/ad-native-lifecycle-retention-20261115.test.mjs",
     "tests/protected-feature-lock-native-retention-20261115.test.mjs"
   ],
