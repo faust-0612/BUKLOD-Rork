@@ -389,7 +389,7 @@ module.exports = ({ config }) => {
         variant,
 
       appTarget: isKingdomLab ? 'kingdom-native-lab' : (isClassroom ? 'classroom' : 'main'),
-      kingdomNativeLab: isKingdomLab,
+      ...(isKingdomLab ? { kingdomNativeLab: true } : {}),
 
       eas:
         projectId
