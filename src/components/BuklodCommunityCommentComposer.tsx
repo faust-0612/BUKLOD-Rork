@@ -217,6 +217,13 @@ export default function BuklodCommunityCommentComposer({
 
   const commentField = (
     <BuklodMentionField
+      onNativeGif={uri => {
+        // Only user-visible comment preview changes; send stays manual.
+        if (busy || !/^file:\/\/\//.test(uri)) return;
+        onMediaChange({ kind: 'gif', ref: uri }, uri);
+        setGifOpen(false);
+        setReactionOpen(false);
+      }}
       value={value}
       onChangeText={onChangeText}
       mentions={mentions}
