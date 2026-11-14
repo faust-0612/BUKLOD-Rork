@@ -1,6 +1,6 @@
-import React,{useEffect,useState} from 'react';
+import React,{useCallback,useState} from 'react';
 import {ActivityIndicator,Image,Pressable,Text,View} from 'react-native';
-import {router} from 'expo-router';
+import {router,useFocusEffect} from 'expo-router';
 import {useBuklodTheme} from '@/providers/BuklodThemeProvider';
 import {loadMemberCommunityPosts,type MemberPublicPost} from '@/lib/buklodMemberProfile';
 import {repairMojibakeText} from '@/lib/repairMojibakeText';
@@ -9,15 +9,17 @@ export default function BuklodProfilePostCards({userId}:{userId:string}) {
  const {theme}=useBuklodTheme();
  const [posts,setPosts]=useState<MemberPublicPost[]>([]);
  const [loading,setLoading]=useState(true);
- useEffect(()=>{
-   let mounted=true;setPosts([]);setLoading(true);
-   void loadMemberCommunityPosts(userId,userId,3).then(rows=>{if(mounted)setPosts(rows);})
-     .catch(()=>{if(mounted)setPosts([]);}).finally(()=>{if(mounted)setLoading(false);});
-   return ()=>{mounted=false;};
- },[userId]);
+ // Refresh only while the owner is viewing Profile. Never resurrect a result
+ // from a blurred tab or a previously signed-in account.
+ useFocusEffect(useCallback(()=>{
+   let active=true;setPosts([]);setLoading(true);
+   void loadMemberCommunityPosts(userId,userId,3).then(rows=>{if(active)setPosts(rows);})
+     .catch(()=>{if(active)setPosts([]);}).finally(()=>{if(active)setLoading(false);});
+   return ()=>{active=false;};
+ },[userId]));
  return <View style={{marginHorizontal:12,marginTop:12,gap:10}}>
    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8}}>
-     <Text allowFontScaling style={{color:theme.textPrimary,fontWeight:'900',fontSize:16}}>MY POSTS & ACTIVITY</Text>
+     <Text allowFontScaling style={{color:theme.textPrimary,fontWeight:'900',fontSize:16}}>MY RECENT POSTS</Text>
      <Pressable accessibilityRole="button" accessibilityLabel="Open all my posts"
        onPress={()=>router.push(('/member/'+encodeURIComponent(userId)) as any)}
        style={{minHeight:44,justifyContent:'center'}}>

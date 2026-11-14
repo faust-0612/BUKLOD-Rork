@@ -1114,14 +1114,30 @@ export default function MeScreen() {
 
   const [circleRank, setCircleRank] = useState<string | null>(null);
   const [rankPositions,setRankPositions] = useState<{overall:number|null;monthly:number|null}|null>(null);
-  useEffect(() => {
-    let mounted=true;
-    setRankPositions(null);
-    if(!profile?.id)return ()=>{mounted=false;};
-    void loadBuklodPointsDashboard().then(value=>{if(mounted)setRankPositions(value?{overall:value.all_time_rank,monthly:value.monthly_rank}:null);})
-      .catch(()=>{if(mounted)setRankPositions(null);});
-    return ()=>{mounted=false;};
-  },[profile?.id]);
+  // Reload canonical server Points standings whenever Profile becomes active.
+  // A mounted tab is not necessarily a fresh tab: account changes, Points
+  // claims and returning from a post can otherwise show the previous rank.
+  useProfileFocusEffect(
+    useProfileFocusCallback(() => {
+      let active = true;
+      setRankPositions(null);
+      if (profile?.id) {
+        void loadBuklodPointsDashboard()
+          .then(value => {
+            if (active) {
+              setRankPositions(value ? {
+                overall: value.all_time_rank,
+                monthly: value.monthly_rank,
+              } : null);
+            }
+          })
+          .catch(() => {
+            if (active) setRankPositions(null);
+          });
+      }
+      return () => { active = false; };
+    }, [profile?.id])
+  );
 
   useEffect(() => {
     let active = true;
