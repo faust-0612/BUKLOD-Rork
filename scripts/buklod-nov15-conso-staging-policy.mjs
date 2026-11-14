@@ -14,6 +14,7 @@ export const SOURCE_FILES = Object.freeze([
   'src/app/(tabs)/buklod.tsx',
   'src/app/(tabs)/hub.tsx',
   'src/app/(tabs)/messages.tsx',
+  'src/app/(tabs)/me.tsx',
   'src/components/BuklodCommunityInlineAd.android.tsx',
   'src/components/BuklodCommunityInlineAd.tsx',
   'src/components/BuklodCommunitySponsoredAd.tsx',
@@ -21,8 +22,10 @@ export const SOURCE_FILES = Object.freeze([
   'src/components/BuklodMaritesBoard.tsx',
   'src/components/BuklodNativeSponsoredCard.android.tsx',
   'src/components/BuklodNativeSponsoredCard.tsx',
+  'src/components/BuklodProfileTopTenRankings.tsx',
   'src/hooks/useBuklodCommunityAdViewability.ts',
   'src/lib/buklodMaritesPlayback.ts',
+  'src/lib/buklodProfileRankings.ts',
   'src/lib/buklodVideoFrameVisibility.ts',
   'src/lib/buklodVideoScrollSignal.ts',
 ]);
