@@ -11,6 +11,7 @@ import {
 import { useBuklodGameLanguage } from '@/features/games/runtime/BuklodGameLanguage';
 import { KingdomMasteryCheck } from './KingdomMasteryCheck';
 import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
+import KingdomCinematicScene from './KingdomCinematicScene';
 
 type MiniGameFinish = (result: BuklodGameResult, sessionId: string) => void;
 export type KingdomInteriorOption = {
@@ -121,6 +122,9 @@ export function KingdomInteriorCenter({
             {!!notice && <Text style={styles.notice}>{notice}</Text>}
           </>
         ) : null}
+        {/* Every canonical active option has its own bounded, interactive-event-driven
+            cinematic scene. Android only; web remains intentionally lightweight. */}
+        <KingdomCinematicScene key={'cinematic:' + active.id} gameId={active.id} compact={compact} />
         <View key={(user?.id ?? 'guest') + ':' + active.id} style={styles.game}>{active.render(save, (result) => {
           // Original games must use the authenticated account, just like pilots.
           // Never fall back to an unscoped local progress record.

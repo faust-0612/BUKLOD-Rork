@@ -78,6 +78,21 @@ export function buklodFormationNotificationTarget(
     };
   }
 
+  // Reviewer-facing completion reports must resolve the exact approval
+  // through the server's scope-authorized history RPC. Do not use the member's
+  // private devotional submission endpoint, which rejects non-owner access.
+  if (normalizedKind === 'formation_submission_report' && scopeId && approvalId &&
+      (itemKind === 'DAILY_DEVOTION' || itemKind === 'LESSON')) {
+    const query = new URLSearchParams();
+    query.set('scopeId', scopeId);
+    query.set('focusKind', itemKind);
+    if (itemId) query.set('itemId', itemId);
+    return {
+      path: '/scope/faith-monitoring/submission/' + encodeURIComponent(approvalId) + '?' + query.toString(),
+      scopeId,
+    };
+  }
+
   if (scopeId) {
     const query = new URLSearchParams();
     query.set('scopeId', scopeId);

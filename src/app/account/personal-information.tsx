@@ -57,7 +57,7 @@ function Field({
         {required ? ' *' : ''}
       </Text>
 
-      <TextInput
+      <TextInput allowFontScaling
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -1259,6 +1259,7 @@ const styles =
     },
 
     input: {
+      fontSize: 16,
       minHeight: 47,
       borderWidth: 1,
       borderColor: '#D7DEDA',

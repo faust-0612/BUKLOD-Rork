@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -29,6 +30,7 @@ export default function BuklodCommunityContributionCard() {
   const [history, setHistory] = useState<CommunityQmpHistory | null>(null);
   const [status, setStatus] = useState<'loading' | 'failed' | 'ready'>('loading');
   const [retryEpoch, setRetryEpoch] = useState(0);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -137,6 +139,13 @@ export default function BuklodCommunityContributionCard() {
       <Text style={s.historyLine}>
         Lifetime QMP: {history ? history.lifetime_qmp.toLocaleString() : '—'} · Period: {data.period.key}
       </Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Contribution breakdown"
+        accessibilityState={{ expanded: detailsOpen }} onPress={() => setDetailsOpen(value => !value)}
+        style={{ minHeight: buklodVisual.size.touch, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={s.historyLine}>Contribution breakdown</Text>
+        <MaterialCommunityIcons name={detailsOpen ? 'chevron-up' : 'chevron-down'} size={20} color="#1E6B45" />
+      </Pressable>
+      {detailsOpen && <View style={{ gap: 8 }}>
       <Text style={s.periodNote}>
         Monthly QMP starts fresh each month. Your lifetime QMP is preserved as a record of your contributions.
       </Text>
@@ -150,6 +159,7 @@ export default function BuklodCommunityContributionCard() {
           Validated engagement {breakdown?.validated_engagement_qmp ?? 0} QMP
         </Text>
       </View>
+      </View>}
 
       <Pressable
         accessibilityRole="button"
@@ -183,25 +193,25 @@ export default function BuklodCommunityContributionCard() {
 }
 
 const s = StyleSheet.create({
-  emptyShell:{marginTop:0,marginBottom:0,padding:14,borderRadius:4,
+  emptyShell:{marginTop:0,marginBottom:0,padding:14,borderRadius:buklodVisual.radius.card,
     borderWidth:1,borderColor:contributionTone.border,backgroundColor:contributionTone.surface,
     flexDirection:'row',alignItems:'center',gap:12,minHeight:72},
-  shell:{marginTop:0,marginBottom:0,borderWidth:1,borderColor:contributionTone.border,borderRadius:4,backgroundColor:contributionTone.surface,padding:12,gap:9},
+  shell:{marginTop:0,marginBottom:0,borderWidth:1,borderColor:contributionTone.border,borderRadius:buklodVisual.radius.card,backgroundColor:contributionTone.surface,padding:12,gap:9},
   head:{flexDirection:'row',alignItems:'center',gap:9},
   icon:{width:36,height:36,borderRadius:18,backgroundColor:contributionTone.soft,alignItems:'center',justifyContent:'center'},
   eyebrow:{fontSize:11,fontWeight:'900',color:'#173C2C',letterSpacing:.4},
-  sub:{marginTop:2,fontSize:9.5,lineHeight:13,color:'#6E7C74'},
-  level:{fontSize:8,fontWeight:'900',color:'#1E6B45',backgroundColor:'#EAF4EE',borderRadius:99,paddingHorizontal:7,paddingVertical:5,overflow:'hidden'},
+  sub:{marginTop:2,fontSize:12,lineHeight:17,color:'#6E7C74'},
+  level:{fontSize:12,fontWeight:'900',color:'#1E6B45',backgroundColor:'#EAF4EE',borderRadius:99,paddingHorizontal:7,paddingVertical:5,overflow:'hidden'},
   metrics:{flexDirection:'row',gap:6},
   metric:{flex:1,minHeight:56,borderRadius:12,backgroundColor:monthTone.surface,padding:8,justifyContent:'center'},
-  metricValue:{fontSize:15,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:7,fontWeight:'900',color:'#4B5B56'},
+  metricValue:{fontSize:15,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:12,fontWeight:'900',color:'#4B5B56'},
   historyLine:{fontSize:10,fontWeight:'800',color:'#305C47',paddingHorizontal:2},
-  periodNote:{fontSize:8.5,lineHeight:12,color:'#52665C',paddingHorizontal:2},
+  periodNote:{fontSize:12,lineHeight:17,color:'#52665C',paddingHorizontal:2},
   impact:{borderRadius:12,borderWidth:1,borderColor:impactTone.border,backgroundColor:impactTone.surface,padding:9},
-  impactTitle:{fontSize:8,fontWeight:'900',color:impactTone.ink},
-  impactText:{marginTop:3,fontSize:8.5,lineHeight:12,color:'#5F7066'},
-  estimate:{borderRadius:12,backgroundColor:revenueTone.surface,padding:10}, estimateLabel:{fontSize:8,fontWeight:'900',color:revenueTone.ink},
-  detailLink:{marginTop:7,fontSize:8,fontWeight:'900',color:'#1E6B45'},
-  estimateValue:{marginTop:2,fontSize:17,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:7,lineHeight:10,fontWeight:'900',color:'#66501D'},
-  secondary:{minHeight:34,borderRadius:10,borderWidth:1,borderColor:shareTone.border,backgroundColor:shareTone.soft,alignItems:'center',justifyContent:'center',paddingHorizontal:8}, secondaryText:{color:shareTone.ink,fontSize:8.5,fontWeight:'900'},
+  impactTitle:{fontSize:12,fontWeight:'900',color:impactTone.ink},
+  impactText:{marginTop:3,fontSize:12,lineHeight:17,color:'#5F7066'},
+  estimate:{borderRadius:12,backgroundColor:revenueTone.surface,padding:10}, estimateLabel:{fontSize:12,fontWeight:'900',color:revenueTone.ink},
+  detailLink:{marginTop:7,fontSize:12,fontWeight:'900',color:'#1E6B45'},
+  estimateValue:{marginTop:2,fontSize:17,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:12,lineHeight:17,fontWeight:'900',color:'#66501D'},
+  secondary:{minHeight:buklodVisual.size.touch,borderRadius:10,borderWidth:1,borderColor:shareTone.border,backgroundColor:shareTone.soft,alignItems:'center',justifyContent:'center',paddingHorizontal:8}, secondaryText:{color:shareTone.ink,fontSize:12,fontWeight:'900'},
 });

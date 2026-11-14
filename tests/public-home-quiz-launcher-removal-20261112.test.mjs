@@ -15,11 +15,10 @@ test('public Home announcement no longer injects BUKLOD Quiz in any loading or e
   assert.match(board, /loadSystemAnnouncementBoard\(slot\)/);
 });
 
-test('Home update panels remain functional but do not advertise Quiz', () => {
+test('Home no longer renders an extra updates drawer, but preserves announcements without Quiz', () => {
   assert.doesNotMatch(hub, /Quiz & Bulletins|Quiz and [Bb]ulletins|BUKLOD Quiz and Bulletins/);
-  assert.match(hub, /Hide Updates & Bulletins/);
-  assert.match(hub, /Announcements & Bulletins/);
-  assert.match(hub, /<Updates \/>/);
+  assert.doesNotMatch(hub, /updatesOpen|Hide Updates & Bulletins|Announcements & Bulletins|<Updates \/>/);
+  assert.match(hub, /<BuklodSystemAnnouncementBoard slot="public_home" \/>/);
   assert.match(merged, /<BuklodSystemAnnouncementBoard slot="public_home" \/>/);
   assert.match(merged, /<BuklodHomeScopeBulletins \/>/);
 });

@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import React, {
   useCallback,
@@ -421,14 +422,14 @@ function createInboxStyles(theme: ConnectThemeRoles) {
     heroTitle: {
       marginTop: 2,
       color: '#FFFFFF',
-      fontSize: 21,
+      fontSize: buklodVisual.type.title,
       fontWeight: '900',
-      lineHeight: 25,
+      lineHeight: 27,
       fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
     },
     heroSubtitle: {
       color: '#DBF3E4',
-      fontSize: 11,
+      fontSize: 13,
       marginTop: 1,
     },
     heroCount: {
@@ -450,7 +451,7 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       paddingTop: 4,
       paddingBottom: 5,
       borderRadius: 22,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: theme.surface,
     },
     contactsTitle: {
       color: HIBLA.pineDeep,
@@ -500,7 +501,7 @@ function createInboxStyles(theme: ConnectThemeRoles) {
     },
     empty: {
       alignItems: 'center',
-      paddingVertical: 48,
+      paddingVertical: 28,
       paddingHorizontal: 28,
     },
     emptyTitle: {
@@ -1264,6 +1265,16 @@ function ConnectScreenInner({
           <ConnectThemeSelectorButton />
         </View>
       </View>
+      <ConnectInboxTabs
+        tab={tab}
+        requestCount={requestThreads.length}
+        personalUnread={regularThreads.reduce((total, item) => total + n(item.unread_count), 0)}
+        clusterUnread={clusterUnread}
+        orgUnread={orgUnread}
+        communityFilter={communityFilter}
+        onTabChange={setTab}
+        onCommunityFilterChange={setCommunityFilter}
+      />
       {tab === 'personal' && !community && !isSearching && (
         <>
           <Text style={styles.contactsTitle}>Mga kasama</Text>
@@ -1285,16 +1296,7 @@ function ConnectScreenInner({
           placementId={community ? 'connect_community_first_view' : 'connect_personal_first_view'}
         />
       ) : null}
-      <ConnectInboxTabs
-        tab={tab}
-        requestCount={requestThreads.length}
-        personalUnread={regularThreads.reduce((total, item) => total + n(item.unread_count), 0)}
-        clusterUnread={clusterUnread}
-        orgUnread={orgUnread}
-        communityFilter={communityFilter}
-        onTabChange={setTab}
-        onCommunityFilterChange={setCommunityFilter}
-      />
+
       {community && !forcedScopeId && (
         <ConnectCommunityFilters active={communityFilter} onChange={setCommunityFilter} />
       )}

@@ -211,15 +211,8 @@ BuklodProfileMembershipNav() {
     useMemo(
       () =>
         activeScopes
-          .filter(
-            scope =>
-              [
-                'ORGANIZATION',
-                'CLUSTER',
-              ].includes(
-                scope.scope_type
-              )
-          )
+          .filter(scope => scope.scope_type === 'ORGANIZATION' && scope.membership_status === 'ACTIVE')
+          .filter((scope, index, rows) => rows.findIndex(row => row.scope_id === scope.scope_id) === index)
           .map(
             scope => {
               const isMzb = Boolean(scope.is_mzb_organization);

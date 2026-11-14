@@ -50,6 +50,8 @@ export function ForestTrailGameV2({ onFinish }: Props) {
   const encounterCallbackRef = useRef<() => void>(() => undefined);
 
   const playerX = useRef(new Animated.Value(0)).current;
+  const playerTilt = useRef(new Animated.Value(0)).current;
+  const playerHop = useRef(new Animated.Value(0)).current;
   const worldPulse = useRef(new Animated.Value(0)).current;
   const flash = useRef(new Animated.Value(0)).current;
   const startOpacity = useRef(new Animated.Value(1)).current;
@@ -85,9 +87,16 @@ export function ForestTrailGameV2({ onFinish }: Props) {
 
   const moveToLane = useCallback(
     (nextLane: Lane) => {
-      if (phase !== 'playing') return;
+      if (phase !== 'playing' || nextLane === laneRef.current) return;
+      // Lean into a real lane change and spring upright without moving the hitbox.
+      const direction = nextLane - laneRef.current;
       laneRef.current = nextLane;
       setLane(nextLane);
+      playerTilt.stopAnimation();
+      playerTilt.setValue(direction);
+      Animated.spring(playerTilt, {
+        toValue: 0, damping: 11, stiffness: 180, mass: 0.6, useNativeDriver: true,
+      }).start();
       playBuklodGameFeedback('move').catch(() => undefined);
       Animated.spring(playerX, {
         toValue: (nextLane - 1) * laneSpacing,
@@ -97,7 +106,7 @@ export function ForestTrailGameV2({ onFinish }: Props) {
         useNativeDriver: true,
       }).start();
     },
-    [phase, playerX, laneSpacing],
+    [phase, playerX, playerTilt, laneSpacing],
   );
 
   const shiftLane = useCallback(
@@ -155,6 +164,19 @@ export function ForestTrailGameV2({ onFinish }: Props) {
     }
 
     const next = advanceTrail({ hearts, score, combo, bestCombo, lights }, laneRef.current, encounter);
+    // Character response is tied to the deterministic collision/collect result,
+    // not a tap or optimistic points update. The clock/score rules stay intact.
+    playerHop.stopAnimation();
+    playerHop.setValue(0);
+    Animated.sequence([
+      Animated.timing(playerHop, {
+        toValue: next.outcome === 'impact' ? 9 : next.outcome === 'light' ? -17 : -6,
+        duration: 120, easing: Easing.out(Easing.quad), useNativeDriver: true,
+      }),
+      Animated.spring(playerHop, {
+        toValue: 0, damping: 12, stiffness: 190, mass: 0.7, useNativeDriver: true,
+      }),
+    ]).start();
     if (next.outcome === 'impact') {
       setMessage(`Impact at ${encounter.name}. Recover and change trail.`);
       playBuklodGameFeedback('impact').catch(() => undefined);
@@ -182,7 +204,7 @@ export function ForestTrailGameV2({ onFinish }: Props) {
       return;
     }
     if (nextStep >= trail.length) finishGame('won', next.score, next.bestCombo);
-  }, [bestCombo, combo, finishGame, flashScene, hearts, lights, phase, pulseWorld, score, stepIndex, trail]);
+  }, [bestCombo, combo, finishGame, flashScene, hearts, lights, phase, playerHop, pulseWorld, score, stepIndex, trail]);
   // Lane presses update the ref without restarting the incoming hazard clock.
   encounterCallbackRef.current = resolveEncounter;
 
@@ -243,9 +265,11 @@ export function ForestTrailGameV2({ onFinish }: Props) {
     setCountdown(3);
     setMessage('Swipe or tap to change trail. Stay alert.');
     playerX.setValue(0);
+    playerTilt.setValue(0);
+    playerHop.setValue(0);
     approach.setValue(0);
     startOpacity.setValue(1);
-  }, [approach, playerX, startOpacity]);
+  }, [approach, playerX, playerTilt, playerHop, startOpacity]);
 
   const start = useCallback(() => {
     finishingRef.current = false;
@@ -256,6 +280,12 @@ export function ForestTrailGameV2({ onFinish }: Props) {
     playBuklodGameFeedback('unlock').catch(() => undefined);
   }, []);
 
+  useEffect(() => () => {
+    playerTilt.stopAnimation();
+    playerHop.stopAnimation();
+  }, [playerTilt, playerHop]);
+
+  const playerAngle = playerTilt.interpolate({ inputRange: [-2, 0, 2], outputRange: ['-17deg', '0deg', '17deg'] });
   const worldScale = worldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.018] });
   const worldShift = worldPulse.interpolate({ inputRange: [0, 1], outputRange: [0, 5] });
   const obstacleTravel = approach.interpolate({ inputRange: [0, 1], outputRange: [0, gameHeight * 0.39] });
@@ -357,7 +387,7 @@ export function ForestTrailGameV2({ onFinish }: Props) {
 
       <View style={styles.playerArea} pointerEvents="none">
         <Animated.View style={[styles.playerShadow, { transform: [{ translateX: playerX }] }]} />
-        <Animated.View style={[styles.player, { transform: [{ translateX: playerX }] }]}>
+        <Animated.View style={[styles.player, { transform: [{ translateX: playerX }, { translateY: playerHop }, { rotate: playerAngle }] }]}>
           <View style={styles.playerGlow} />
           <BuklodSpecialCharacterArtV2 characterId="jawo" height={82} viewportWidth={70} />
           <Text style={styles.playerName}>JAWO</Text>

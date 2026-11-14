@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { usePathname } from 'expo-router';
 import {
   StyleSheet,
+  useWindowDimensions,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -11,6 +12,7 @@ import {
 } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/providers/AuthProvider';
+import { getBuklodNavTypographyExtraHeight } from '@/lib/buklodNavTypography';
 
 /** Visible chrome of the global persistent bottom nav (excluding system inset). */
 export const BUKLOD_PERSISTENT_NAV_MIN_HEIGHT = 61;
@@ -141,10 +143,12 @@ export function shouldShowBuklodPublicBottomNav(
 
 export function getBuklodPersistentNavOccupiedHeight(
   bottomInset: number,
+  fontScale = 1,
 ): number {
   return (
     BUKLOD_PERSISTENT_NAV_MIN_HEIGHT +
     BUKLOD_PERSISTENT_NAV_TOP_PADDING +
+    getBuklodNavTypographyExtraHeight(fontScale) +
     Math.max(
       bottomInset,
       BUKLOD_PERSISTENT_NAV_MIN_BOTTOM_PADDING,
@@ -158,6 +162,7 @@ export function getBuklodPersistentNavOccupiedHeight(
  */
 export function useBuklodPersistentNavOccupiedHeight(): number {
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
   const pathname = usePathname();
   const { session, profile } = useAuth();
 
@@ -172,9 +177,11 @@ export function useBuklodPersistentNavOccupiedHeight(): number {
 
     return getBuklodPersistentNavOccupiedHeight(
       insets.bottom,
+      fontScale,
     );
   }, [
     insets.bottom,
+    fontScale,
     pathname,
     profile,
     session,

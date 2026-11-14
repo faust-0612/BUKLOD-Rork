@@ -85,8 +85,8 @@ test('Shared card wrapper delegates children without duplicating feed data or au
   assert.match(source, /const \{ theme \} = useBuklodTheme\(\)/);
   assert.match(source, /styles\.feedCard/);
   assert.match(source, /backgroundColor: theme\.surface, borderColor: theme\.border/);
-  assert.match(source, /borderRadius: 18/);
-  assert.match(source, /padding: 8/);
-  assert.match(source, /marginBottom: 6/);
+  assert.match(source, /borderRadius: buklodVisual.radius.card/);
+  assert.match(source, /padding: buklodVisual.space.card/);
+  assert.match(source, /marginBottom: 10/);
   assert.match(source, /gap: 6/);
 });

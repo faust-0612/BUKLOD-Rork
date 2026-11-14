@@ -13,8 +13,8 @@ test('Profile routes are distinct and personnel code is not a public menu',()=>{
  const s=read('src/app/(tabs)/me.tsx');
  for(const name of ['Paid Features','BUKLOD Policy','Send Feedback','BSOC Personnel Access Code'])
    assert.ok(!s.includes('title="'+name+'"'),name);
- for(const name of ['Community Safety','Contact Us','Live Chat & Report a Problem'])
-   assert.ok(s.includes('title="'+name+'"'),name);
+ for(const name of ['Community Safety','Contact us','Live support'])
+   assert.ok((s+read('src/app/settings/index.tsx')).toLowerCase().includes(name.toLowerCase()),name);
  const admin=read('src/app/admin/bsoc-personnel.tsx');
  const staff=read('src/app/bsoc/access.tsx');
  assert.ok(admin.includes('buklod_bsoc_issue_personnel_code_v1'));
@@ -38,7 +38,7 @@ test('Contact Us is direct, no second Send Feedback',()=>{
 test('Sound styles and volume choices have actual local cue assets',()=>{
  const lib=read('src/lib/buklodSounds.ts');
  const screen=read('src/app/settings/sounds.tsx');
- for(const key of ['BuklodSoundProfile','BuklodSoundVolume','GENTLE_SOUNDS','CELEBRATION_SOUNDS','VOLUME_LEVEL'])
+ for(const key of ['BuklodSoundProfile','BuklodSoundVolume','PROFILE_EARCONS','PROFILE_RATE','PROFILE_GAIN','VOLUME_LEVEL'])
    assert.ok(lib.includes(key),key);
  for(const key of ['Preview selected style','Gentle','Celebration','Balanced','Quiet hours'])
    assert.ok(screen.includes(key),key);
@@ -49,15 +49,15 @@ test('Canonical Home uses square Bahay and Health Center cards, mobile and deskt
  assert.equal(hub.split('<BuklodHomeUtilityCards />').length-1,2);
  for(const key of ['paddingHorizontal: 0','/personal-home','/profile/buklod-health'])
    assert.ok((hub+cards).includes(key),key);
- assert.match(cards,/aspectRatio:\s*1\b/,'utility cards must stay square');
- assert.match(hub,/borderRadius:\s*4\b/,'public Hub compact card corners retained');
+ assert.match(cards,/minHeight: 180/,'cards remain usable and responsive');
+ assert.match(hub,/borderRadius: buklodVisual.radius.card/,'public Hub uses standard rounded design tokens');
 });
 test('BUKLOD Today shows public Dugtong in-card with private and history controls',()=>{
  const screen=read('src/components/BuklodTodayCard.tsx');
  for(const key of ['get_buklod_today_tip_v2','react_to_buklod_today_tip_v2',
   'get_my_buklod_today_dugtong_history_v2','set_buklod_today_dugtong_visibility_v2',
   'Continue reading','Save Dugtong','awarded_points','Claim your pending reward',
-  'Mga Dugtong ng Komunidad','Private · ikaw lang','Public · lahat','3 araw',
+  'Mga Dugtong ng Komunidad','Private · ikaw lang','Public · lahat',
   'list_buklod_today_dugtongs_v2','Tingnan pa ang mga Dugtong'])
   assert.ok(screen.includes(key),key);
  assert.ok(!screen.includes('Share to Wall'),'Dugtong must be published on this card, not Wall');

@@ -34,6 +34,8 @@ const CONCERNS: { id: Concern; label: string; icon: keyof typeof MaterialCommuni
  */
 export default function BuklodHealthPortal() {
   const [concern, setConcern] = useState<Concern>('general');
+  const [imciOpen,setImciOpen] = useState(false);
+  const [imciAge,setImciAge] = useState<'young_infant'|'child'|'older'>('child');
   const [urgency, setUrgency] = useState<Urgency>('unanswered');
   const [opening, setOpening] = useState<Door | null>(null);
   const [error, setError] = useState(false);
@@ -188,6 +190,47 @@ export default function BuklodHealthPortal() {
             ) : null}
           </View>
         ) : null}
+
+        <View style={styles.guideCard}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Show IMCI child-health assessment flow"
+            onPress={()=>setImciOpen(value=>!value)}
+            style={{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
+            <View style={{flex:1}}>
+              <Text style={styles.sectionHeading}>Child Health · IMCI assessment flow</Text>
+              <Text style={styles.hint}>Caregiver education and clinician handoff</Text>
+            </View>
+            <MaterialCommunityIcons name={imciOpen?'chevron-up':'chevron-down'} size={24} color="#126946"/>
+          </Pressable>
+          {imciOpen&&<View style={{gap:9,paddingTop:8}}>
+            <Text style={styles.hint}>This does not diagnose, classify an illness, or choose medicines. A trained professional must use a locally approved age-specific chart.</Text>
+            <View style={styles.chips}>
+              {([['young_infant','0–2 months'],['child','2 months–under 5 years'],['older','5 years and older']] as const).map(([age,label])=>(
+                <Pressable key={age} accessibilityRole="button" accessibilityState={{selected:imciAge===age}}
+                  onPress={()=>setImciAge(age)}
+                  style={[styles.chip,imciAge===age&&styles.selectedChip]}>
+                  <Text style={[styles.chipText,imciAge===age&&styles.selectedChipText]}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            {imciAge==='older'?<Text style={styles.body}>Standard IMCI under-five assessment does not cover this age. Obtain an age-appropriate pediatric assessment.</Text>:<>
+              <Text style={styles.body}>1. ASSESS — Check danger signs first, then feeding, breathing, fever, diarrhoea, dehydration, nutrition and immunization. Young infants need a separate pathway.</Text>
+              <Text style={styles.body}>2. CLASSIFY — A trained clinician interprets age-specific signs using locally adopted IMCI guidance; this app does not label severity.</Text>
+              <Text style={styles.body}>3. IDENTIFY CARE — Determine referral, clinical treatment or safe caregiver support after assessment.</Text>
+              <Text style={styles.body}>4. TREAT & REFER — Follow authorized local protocols. Seek emergency care promptly for warning signs; never wait for AI.</Text>
+              <Text style={styles.body}>5. COUNSEL — Explain feeding, hydration, immunization, medicines prescribed by a clinician and return precautions.</Text>
+              <Text style={styles.body}>6. FOLLOW UP — Arrange reassessment and return immediately if symptoms worsen.</Text>
+            </>}
+            <Text style={styles.hint}>
+              Sources: WHO IMCI chart (2014), WHO pneumonia/diarrhoea guideline (2024–25), and WHO 2026 respiratory guidance.
+              New recommendations are not automatically the locally approved Philippine IMCI chart.
+            </Text>
+            <Pressable accessibilityRole="link"
+              onPress={()=>void Linking.openURL('https://www.who.int/teams/maternal-newborn-child-adolescent-health-and-ageing/child-health/integrated-management-of-childhood-illness/').catch(()=>setError(true))}
+              style={{minHeight:48,justifyContent:'center'}}>
+              <Text style={[styles.hint,{color:'#126946',fontWeight:'900'}]}>WHO IMCI reference ↗</Text>
+            </Pressable>
+          </View>}
+        </View>
 
         <View style={styles.standaloneCard}>
           <View style={styles.standaloneHeading}>

@@ -1,0 +1,69 @@
+# BUKLOD Navigation 2.0 + Wall/Marites Stability — DEV integration candidate (November 13, 2026)
+
+**NOT an immutable RC. NOT compiled Android staging. NOT staging or production OTA.**
+
+## Exact source (immutable at candidate creation)
+
+- Main baseline: `9f412afd71b74e41995a3a1a63e05e72f78b6e39`, whose newest change is only the separate signed staging APK mirror workflow fix.
+- Navigation existing PR: [#783](https://github.com/faust-0612/BUKLOD-Rork/pull/783) `73c473caa4ebc139be4b231d3097760fe5c246e5`; 50 PR paths, of which 49 non-manifest blobs are copied byte-identically into this candidate.
+- Stability existing PR: [#784](https://github.com/faust-0612/BUKLOD-Rork/pull/784) `dc85ce6ed7bc46a1f314885b6fb1d2739e38dcb2`; 5 PR paths, of which 4 non-manifest blobs are copied byte-identically.
+- **No overlapping product paths**, no overwritten unrelated main files. One combined V2 engineering scope and one new focused cross-feature regression suite replace the two isolated PR manifests in this integrated DEV candidate. Exactly one inherited Navigation ads regression test reads the combined manifest instead of its standalone #783 scope (test-harness-only compatibility change); all product blobs stay exact.
+- SALIKSIK authoritative [PR #780](https://github.com/faust-0612/BUKLOD-Rork/pull/780) remains a **separate, disabled** backend domain/release; no SQL/points migration included.
+
+## What must be tested on this candidate before promotion
+
+1. Engineering Accountability V2, protected-feature lock, 16 inherited changed Node focused tests + combined focused test, TypeScript, Expo integration export.
+2. Do not assume source green is runtime. Build compiled Android RC from exact frozen commit, verify binary runtime `1.3.2` and installed staging APK/source mapping.
+3. Actual signed baseline staging APK artifact [14016812505](https://github.com/faust-0612/BUKLOD-Rork/actions/runs/43378875900/artifacts/14016812505) is from production-runtime source; **it is not the modernized RC**. Use only for source/feature parity, not as RC proof.
+4. Confirm 21/21 canonical `docs/navigation-v2-completion.json` requirements by real evidence, staged security/backend permission tests, 100%→200% device font scaling, Gboard/Samsung GIF direct composer, five tabs and scope Back/deep links.
+5. With same-build Infinix X6852: 30/60-minute fast scrolling, active/offscreen video + fullscreen Marites, native ads, image tiles, PTT/audio, screen pause/resume, memory/decoder/PSS/ANR exits. Record 15/30/60-minute per-build metrics; no 24h mixed-version averages.
+6. Existing `scripts/navigation-v2-staging-gate.mjs --prepublish` requires legitimate fresh installed device evidence and all relevant requirements; manual staging Android-only OTA is approved only after the gate. After publication, verify exact installed update ID/source and `--release` gate. **Owner approval required before later web and production Android.**
+7. If native IME `commitContent` is added, build a new staging-compatible APK before any JS OTA; do not claim OTA-only native support.
+
+## Rollback/ownership
+
+This branch is an immutable-source **candidate** only. No main merge, product backend writes, client install or paid build is performed by creating it. Keep the last verified production OTA and current installed staging baseline unchanged. If the native/performance delta causes regression, omit the 4 stability blobs and reevaluate root cause rather than changing the active video/AdMob engine. If Navigation scope changes in its original PR, refresh this DEV candidate from latest verified source and rerun CI on exact SHA. Never silently merge a stale PR or treat the draft candidate as a frozen passing RC.
+
+
+## Nov13 staging consolidation continuation (unreleased)
+
+- The existing merged live baseline retains the keyboard GIF `ACTION_SEND` return-to-original-composer repair from PR #778. **Native Android IME `commitContent` interception has not been established by this source-only change.** If the explicit in-place IME UX cannot be demonstrated in the existing signed APK, a new staging APK/native integration is required; no JS-only OTA claim.
+- Add the exact reviewed Android comment action UI and test from [PR #786](https://github.com/faust-0612/BUKLOD-Rork/pull/786): owner/moderator Edit/Delete via existing permission-checked RPC, accessible More menu and retry feedback. No database changes.
+- Add the exact read-only ADB staging APK equality verifier and tests from [PR #789](https://github.com/faust-0612/BUKLOD-Rork/pull/789). It checks *native APK bytes only* against the independently downloaded signed artifact. It **cannot** establish OTA update ID, preview backend safety or manual navigation/accessibility acceptance.
+- New isolated `navigation-v2-staging-compile-qa.yml` compiles the Android bundle under staging identity only on this draft candidate; `navigation-v2-staging-ota.yml` additionally compiles Android and checks the integrated comment, APK, GIF, Wall/Marites and navigation tests **before** any optional manually approved staging publish. No production/web triggers were introduced.
+- The 21-item checklist remains evidence-gated; never convert source CI into device acceptance. Before any staging OTA, verify current live/main source, installed signed staging build, EAS branch/runtime/channel, preview backend behavior, physical keyboard and 15/30/60-minute video/AdMob/scroll regression on Infinix. Preserve DEV→RC→staging-only; owner approval is a separate gate for web/production.
+- **Current handoff: staging-only OTA SOURCE PREPARED, publication and installed RC unverified; production remains unchanged.**
+
+
+## Additional source implementation: Offline Help and secure drafts (not published)
+
+- Searchable local Help indexed by canonical five-tab labels plus My Drawer, keyboard/font, privacy-safe shortcuts and offline/Retry vocabulary. No network, AI, admin or retired IGPAT discovery. Accessible navigation links and empty state.
+- Optional dismissible first-use tip saved per authenticated account; local offline banner appears only on confirmed NetInfo disconnection. Existing offline Feature Finder/favorites remain available.
+- Public Wall unsent **text only** is now recoverable from OS-encrypted SecureStore (account-scoped key, 12h TTL, at most six 2,000-character drafts, serialized writes). Does not store or restore media URIs, reply identities, mentions or tokens; existing in-memory media draft behavior is unchanged. Exact owner/post guard prevents stale asynchronous restore, and confirmed Send clears the text draft. This needs actual staging Android resume/logout verification before feature is called live.
+- Added pure-policy and source regression tests. 15/21 workstreams are now labelled SOURCE IMPLEMENTED; 4 remain IN PROGRESS (gestures, full-app font checks, native IME inline GIF, scoped accessibility); 2 remain PENDING for installed staging/production parity and release acceptance. **0/21 independently device verified.**
+- Updated release checklist remains fail-closed, and no EAS Android OTA, native APK, web or production release occurred.
+
+
+## Safe gesture & accessible source completion (staging not released)
+
+- Optional deliberate horizontal swipe-left on Home feature rows, pinned and recent destinations opens the existing accessible action sheet; a visible More action, star and long-press remain. Vertical scroll and ordinary taps are not intentionally intercepted.
+- Existing 28+ core form font-scaling checks and responsive Comment/Connect composers, bottom safe area and scoped 48dp tap targets remain source implemented; they still need device scaling/TalkBack verification.
+- Release inventory now records **18/21 source-implemented**, one in progress for actual native inline Android IME GIF, and two pending installed staging baseline/OTA acceptance. **All 21 remain release-unverified**, and existing ACTION_SEND GIF route must not be mistaken for native commitContent.
+- No staging APK build, backend migration, production/web rollout or OTA publication was made by this source-only update.
+
+## Native IME fail-closed security gate
+
+- Staging prepublish now independently demands signed, installed Android native Gboard `commitContent` capability and evidence, separate from the existing `ACTION_SEND` share-to-comment fallback. `nativeImeCommitContentVerified=false` until genuine device proof. A JS-only OTA must never claim this native capability.
+- The current signed live-mirrored staging APK has NOT been shown to support it. A reviewed native input implementation, new signed staging APK build, installed IME and backend/media tests are prerequisites. No web/production release.
+
+## Physical build-9 phase-based memory evidence and targeted Marites rail mitigation
+
+Actual Infinix X6852 Android 16 foreground study `BUKLOD_STAGING_PHASED_MEMORY_20261113_083142.zip`, 36 samples total in three owner-marked phases, collected ~08:32–08:37 UTC. Home mean **~814 MiB**, max **~848 MiB**; Wall/Marites/video mean **~673 MiB**, max **~781 MiB**; recovery Home mean **~756 MiB**, max **~860 MiB**. Phase B starts with `processRestartDetected=true`; historical crash heuristic changes **1→2**, no timestamp/stack, so a crash *during this interval is suspected but not proven*. The high baseline was recorded even on Home; there is no basis to attribute all PSS to Marites alone.
+
+Source-level P0 mitigation in this DEV candidate: replace one eager horizontal `ScrollView` of all active 72-hour Marites images/cards with a bounded horizontal `FlatList` (4 initial, 6/batch, 5 viewports, clipping OFF on Android), preserving original autoplay visibility controller, fullscreen, 750ms fallback, comment/photo and AdMob code. Scope intentionally excludes unrelated Home/Kingdom/ads/streaming framework because root-cause heap trace is unavailable.
+
+**Failure gates still active:** only Android static/TypeScript/JS-compile confidence from CI; require staging native RC APK before physical comparison, controlled high-load/low-load memory plateau and crash trace, native IME `commitContent`, #783 21/21 real acceptance, preview backend and registered OTA source. No staging OTA/web/prod publish from this candidate yet.
+
+## One-time signed staging QA APK build (user-authorized, NOT OTA)
+
+A branch- and exact-commit-message-gated workflow `.github/workflows/buklod-nav2-staging-qa-apk-20261113.yml` compiles/tests the current integrated source, verifies staging-only app/AdMob/Firebase/runtime identity, then uses the existing remote-versioned EAS `staging-user` preview profile to create **one signed Android APK**. It validates actual downloaded APK ZIP/Manifest, SHA256 and writes a small source/build receipt without duplicating a 200–450MB APK artifact in GitHub. No merge, OTA, web, production, Play or Supabase changes. Installed signed build9 remains the verified live-mirror baseline until the owner installs QA APK. **Native direct IME `commitContent` is NOT yet implemented; no claim of final 21/21 release or memory stability.**

@@ -290,7 +290,7 @@ BuklodPersistentBottomNav() {
 
 
             </View>
-            <Text style={{ fontSize: 10, color: selected ? theme.navIconActive : theme.navIconInactive }}>{item.label}</Text>
+            <Text allowFontScaling numberOfLines={2} style={{ fontSize: 12, lineHeight: 16, textAlign: 'center', color: selected ? theme.navIconActive : theme.navIconInactive }}>{item.label}</Text>
           </BuklodPressable>
         );
       })}

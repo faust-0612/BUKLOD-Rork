@@ -150,7 +150,7 @@ export default function RecoveryPinScreen() {
         </View>
 
         <Text style={styles.label}>{status.pinConfigured ? 'New 6-digit Recovery PIN' : 'Create 6-digit Recovery PIN'}</Text>
-        <TextInput
+        <TextInput allowFontScaling
           value={pin}
           onChangeText={(value) => setPin(value.replace(/\D/g, '').slice(0, 6))}
           keyboardType="number-pad"
@@ -161,7 +161,7 @@ export default function RecoveryPinScreen() {
         />
 
         <Text style={styles.label}>Confirm Recovery PIN</Text>
-        <TextInput
+        <TextInput allowFontScaling
           value={confirm}
           onChangeText={(value) => setConfirm(value.replace(/\D/g, '').slice(0, 6))}
           keyboardType="number-pad"

@@ -1587,7 +1587,7 @@ const chooseSuggestedLogin =
             Use the login identifier you selected when you created your account.
           </Text>
 
-          <TextInput
+          <TextInput allowFontScaling
             value={identifier}
             onChangeText={setIdentifier}
             placeholder="Mobile / Username / Email"
@@ -1600,7 +1600,7 @@ const chooseSuggestedLogin =
           <Text style={styles.label}>Password</Text>
 
           <View style={styles.passwordRow}>
-            <TextInput
+            <TextInput allowFontScaling
               value={password}
               onChangeText={setPassword}
               placeholder="Enter your password"
@@ -1972,6 +1972,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   input: {
+    fontSize: 16,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 12,
@@ -1987,6 +1988,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   passwordInput: {
+    fontSize: 16,
     flex: 1,
     padding: 13,
   },

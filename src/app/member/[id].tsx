@@ -357,8 +357,7 @@ export default function MemberPublicProfileScreen() {
             />
             <Text style={styles.lockedTitle}>{title}</Text>
             <Text style={styles.lockedBody}>
-              This member has locked their profile. Only their name is shown
-              to other members.
+              BUKLOD community member · Private profile. Contact details, personal activities and memberships are hidden by the member’s choice.
             </Text>
           </View>
         ) : (

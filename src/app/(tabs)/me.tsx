@@ -1,8 +1,11 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 /* PATCH_184F_R3_PROFILE_CLEANUP */
 /* PATCH_179C_R1_PREMIUM_CURRENT_PROFILE */
 import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef } from 'react';
 import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
 import BuklodProfileMembershipNav from '@/components/BuklodProfileMembershipNav';
+import BuklodProfilePostCards from '@/components/BuklodProfilePostCards';
+import BuklodProfileActivityCards from '@/components/BuklodProfileActivityCards';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
 import {
@@ -40,7 +43,7 @@ import {
 import { decode } from 'base64-arraybuffer';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { Alert } from 'react-native';
+import { Alert, Share } from 'react-native';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 import {
   BUKLOD_HIT_SLOP,
@@ -57,6 +60,7 @@ import {
   Switch,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -91,11 +95,6 @@ import {
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const QUICK_ACTION_WIDTH = 118;
-const QUICK_ACTION_GAP = 8;
-const QUICK_ACTION_SNAP_INTERVAL =
-  QUICK_ACTION_WIDTH + QUICK_ACTION_GAP;
-
 type QuickActionItem = {
   key: string;
   icon: IconName;
@@ -112,28 +111,19 @@ function ProfileQuickActionsStrip({
   styles: ReturnType<typeof createMeStyles>;
   theme: ReturnType<typeof useBuklodTheme>['theme'];
 }) {
-  // BuklodPressable already cancels drag gestures. Never hold a disabled
-  // button state after a short horizontal scroll without momentum.
+  // BUKLOD_NAV_V2_COMPACT_QUICK_ACTIONS: all options visible; no hidden horizontal strip.
+  const { fontScale } = useWindowDimensions();
+  const tileWidth = fontScale >= 1.6 ? '47%' : '31%';
   return (
-    <ScrollView
-      horizontal
-      nestedScrollEnabled
-      directionalLockEnabled
-      showsHorizontalScrollIndicator={false}
-      decelerationRate="fast"
-      disableIntervalMomentum
-      snapToInterval={QUICK_ACTION_SNAP_INTERVAL}
-      snapToAlignment="start"
-      scrollEventThrottle={16}
-      contentContainerStyle={styles.quickRow}
-    >
+    <View style={styles.quickRow}>
       {items.map((item, index) => (
         <ProfileMotionFadeUp
           key={item.key}
-          delay={35 + index * 35}
-          duration={240}
-          fromY={10}
-          fromOpacity={0.78}
+          delay={30 + index * 30}
+          duration={190}
+          fromY={6}
+          fromOpacity={0.82}
+          style={{ width: tileWidth, maxWidth: 180 }}
         >
           <ProfilePressable
             accessibilityRole="button"
@@ -142,18 +132,12 @@ function ProfileQuickActionsStrip({
             onPress={item.onPress}
             style={styles.quickAction}
           >
-            <MaterialCommunityIcons
-              name={item.icon}
-              size={18}
-              color={theme.accent}
-            />
-            <Text numberOfLines={1} style={styles.quickLabel}>
-              {item.label}
-            </Text>
+            <MaterialCommunityIcons name={item.icon} size={20} color={theme.accent} />
+            <Text allowFontScaling style={styles.quickLabel}>{item.label}</Text>
           </ProfilePressable>
         </ProfileMotionFadeUp>
       ))}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -481,12 +465,28 @@ export default function MeScreen() {
 
   const [profileLocked, setProfileLockedState] =
     useState(false);
+  const [profileNote,setProfileNote] = useState('');
 
   const [profileLockBusy, setProfileLockBusy] =
     useState(false);
 
   const [themeOpen, setThemeOpen] =
     useState(false);
+
+  useProfileFocusEffect(useProfileFocusCallback(()=>{
+    let active=true;setProfileNote('');
+    if(profile?.id){
+      void (async()=>{
+        try {
+          const {data,error}=await (supabase as any).from('buklod_profile_status')
+            .select('quick_note').eq('user_id',profile.id).maybeSingle();
+          if(active&&!error)setProfileNote(String(data?.quick_note??'').trim().slice(0,160));
+        } catch { /* Unknown/offline/private: do not invent note. */ }
+      })();
+    }
+    return ()=>{active=false;};
+  },[profile?.id]));
+
 
   const [lifetimePoints, setLifetimePoints] =
     useState(0);
@@ -1129,8 +1129,32 @@ export default function MeScreen() {
     };
 
 
-  const [circleRank, setCircleRank] =
-    useState<string | null>(null);
+  const [circleRank, setCircleRank] = useState<string | null>(null);
+  const [rankPositions,setRankPositions] = useState<{overall:number|null;monthly:number|null}|null>(null);
+  // Reload canonical server Points standings whenever Profile becomes active.
+  // A mounted tab is not necessarily a fresh tab: account changes, Points
+  // claims and returning from a post can otherwise show the previous rank.
+  useProfileFocusEffect(
+    useProfileFocusCallback(() => {
+      let active = true;
+      setRankPositions(null);
+      if (profile?.id) {
+        void loadBuklodPointsDashboard()
+          .then(value => {
+            if (active) {
+              setRankPositions(value ? {
+                overall: value.all_time_rank,
+                monthly: value.monthly_rank,
+              } : null);
+            }
+          })
+          .catch(() => {
+            if (active) setRankPositions(null);
+          });
+      }
+      return () => { active = false; };
+    }, [profile?.id])
+  );
 
   useEffect(() => {
     let active = true;
@@ -1240,14 +1264,12 @@ export default function MeScreen() {
     theme
   );
 
+  // Identity text always sits on an opaque themed surface, never directly on the cover.
   const identityShadow = {
-    color: identityPaint.color,
-    textShadowColor: identityPaint.shadowColor,
-    textShadowOffset: {
-      width: 0,
-      height: 1,
-    } as const,
-    textShadowRadius: hasCoverImage ? 6 : 3,
+    color: theme.textPrimary,
+    textShadowColor: 'transparent',
+    textShadowOffset: { width: 0, height: 0 } as const,
+    textShadowRadius: 0,
   };
 
   const highlightAccent =
@@ -1259,6 +1281,17 @@ export default function MeScreen() {
 
   const visibleRoles = (roles ?? []).filter(Boolean);
   const username = String(profile?.username ?? '').trim();
+  const shareMyProfile=async()=>{
+    if(!profile?.id || profileLocked){
+      Alert.alert('Profile privacy','Your profile is locked or unavailable. Sharing is disabled.');
+      return;
+    }
+    const displayName=resolvePersonDisplayName(profile,profile.id);
+    const message=username?displayName+'\n@'+username:displayName;
+    try{await Share.share({message:'BUKLOD member profile\n'+message});}
+    catch{Alert.alert('Share profile','Unable to open the share menu.');}
+  };
+
 
   const sectionVisible = (
     id: ProfileSectionId
@@ -1391,23 +1424,9 @@ export default function MeScreen() {
           open={openSection === 'account'}
           onToggle={() => toggle('account')}
         >
-          <MenuRow
-            icon="information-outline"
-            title="About BUKLOD"
-            onPress={() =>
-              router.push('/about-buklod' as any)
-            }
-          />
+          
 
-          <MenuRow
-            icon="account-edit-outline"
-            title="Edit My Personal Information"
-            onPress={() =>
-              router.push(
-                '/account/personal-information' as any
-              )
-            }
-          />
+          
 
           <View
             style={{
@@ -1475,81 +1494,17 @@ export default function MeScreen() {
             />
           </View>
 
-          <MenuRow
-            icon="lock-reset"
-            title="Password & Recovery"
-            onPress={() =>
-              router.push('/account/security' as any)
-            }
-          />
+          
 
-          <MenuRow
-             icon="translate"
-             title="App Language"
-             subtitle="Display language and device preference"
-             onPress={() => router.push('/preferences/language' as any)}
-           />
+          
 
-           <MenuRow
-            icon="volume-high"
-            title="Sounds & Notifications"
-            subtitle="Messages, calls, submissions and quiet hours"
-            onPress={() =>
-              router.push('/settings/sounds' as any)
-            }
-          />
+           
 
-          <MenuRow
-            icon="shield-lock-outline"
-            title="Recovery PIN"
-            onPress={() =>
-              router.push(
-                '/account/recovery-pin' as any
-              )
-            }
-          />
+          
 
-          <MenuRow
-            icon="account-off-outline"
-            title="Deactivate Account"
-            onPress={() =>
-              router.push(
-                '/account/deactivate' as any
-              )
-            }
-          />
+          
 
-          <MenuRow
-            icon="delete-outline"
-            title="Delete Account"
-            onPress={() =>
-              router.push('/account/delete' as any)
-            }
-          />
-
-          <MenuRow
-            icon="information-outline"
-            title="How Account Deletion Works"
-            onPress={() =>
-              router.push('/delete-account' as any)
-            }
-          />
-
-          <MenuRow
-            icon="shield-account-outline"
-            title="Privacy Policy"
-            onPress={() =>
-              router.push('/privacy' as any)
-            }
-          />
-
-          <MenuRow
-            icon="file-document-outline"
-            title="Privacy Notice"
-            onPress={() =>
-              router.push('/privacy/notice')
-            }
-          />
+          
 
           <MenuRow
             icon="shield-alert-outline"
@@ -1558,20 +1513,9 @@ export default function MeScreen() {
             onPress={() => router.push('/moderation/report' as any)}
           />
 
-          <MenuRow
-            icon="email-outline"
-            title="Contact Us"
-            onPress={() =>
-              router.push('/contact-us' as any)
-            }
-          />
+          
 
-          <MenuRow
-            icon="lifebuoy"
-            title="Live Chat & Report a Problem"
-            subtitle="Makipag-chat sa support; magsend ng screenshot o video ng problema kung kailangan"
-            onPress={() => router.push('/support/live' as any)}
-          />
+          
 
           {bsocAuthorized && (
             <MenuRow
@@ -1590,16 +1534,6 @@ export default function MeScreen() {
                 router.push(
                   '/system/paid-features' as any
                 )
-              }
-            />
-          )}
-
-          {isSystemAdmin && (
-            <MenuRow
-              icon="test-tube"
-              title="Pilot Checklist"
-              onPress={() =>
-                router.push('/pilot/checklist')
               }
             />
           )}
@@ -1701,9 +1635,8 @@ export default function MeScreen() {
         style={[
           styles.profileCard,
           {
-            backgroundColor: hasCoverImage
-              ? 'transparent'
-              : withAlpha(theme.cardSurface, 0.62),
+            backgroundColor: theme.cardSurface,
+            paddingTop: coverUrl ? 104 : 56,
             borderColor: withAlpha(theme.border, 0.7),
           },
         ]}
@@ -1744,10 +1677,11 @@ export default function MeScreen() {
           <MaterialCommunityIcons
             name="dots-vertical"
             size={22}
-            color={identityPaint.color}
+            color={theme.accent}
           />
         </Pressable>
 
+        <View style={styles.identityRow}>
         <ProfileMotionAvatar>
           <View
             style={[
@@ -1768,7 +1702,7 @@ export default function MeScreen() {
               userId={profile?.id}
               uri={profile?.avatar_url}
               name={profile?.full_name}
-              size={108}
+              size={buklodVisual.size.avatar}
               fallbackSource={fallbackPortrait}
               enableLongPressSheet={false}
               onPress={() => {
@@ -1802,6 +1736,8 @@ export default function MeScreen() {
             </View>
           </View>
         </ProfileMotionAvatar>
+          <View style={styles.identityCopy}>
+
 
         <ProfileMotionFadeUp delay={40}>
           <Text
@@ -1834,6 +1770,10 @@ export default function MeScreen() {
             </Text>
           </ProfileMotionFadeUp>
         )}
+        {!!profileNote && <Text allowFontScaling numberOfLines={2}
+          style={{color:theme.textSecondary,fontSize:13,lineHeight:19,marginTop:5}}>{profileNote}</Text>}
+          </View>
+        </View>
 
         {visibleRoles.length > 0 && (
           <ProfileMotionFadeUp delay={140}>
@@ -1868,9 +1808,31 @@ export default function MeScreen() {
             </View>
           </ProfileMotionFadeUp>
         )}
+        <View style={{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:9}}>
+          {([
+            ['Edit Profile','/account/personal-information','pencil-outline'],
+            ['My Note','/profile/status','text-box-edit-outline']
+          ] as const).map(([label,path,icon])=>(
+            <Pressable key={label} accessibilityRole="button" accessibilityLabel={label}
+              onPress={()=>router.push(path as any)}
+              style={{minHeight:44,flexGrow:1,flexDirection:'row',gap:6,alignItems:'center',justifyContent:'center',
+                paddingHorizontal:10,borderRadius:12,backgroundColor:theme.accentSoft}}>
+              <MaterialCommunityIcons name={icon} size={18} color={theme.accent}/>
+              <Text allowFontScaling style={{color:theme.textPrimary,fontSize:13,fontWeight:'800'}}>{label}</Text>
+            </Pressable>
+          ))}
+          <Pressable accessibilityRole="button" accessibilityLabel="Share my public profile information"
+            onPress={()=>{void shareMyProfile();}}
+            style={{minHeight:44,flexGrow:1,flexDirection:'row',gap:6,alignItems:'center',justifyContent:'center',
+              paddingHorizontal:10,borderRadius:12,backgroundColor:theme.accentSoft}}>
+            <MaterialCommunityIcons name="share-variant-outline" size={18} color={theme.accent}/>
+            <Text allowFontScaling style={{color:theme.textPrimary,fontSize:13,fontWeight:'800'}}>Share</Text>
+          </Pressable>
+        </View>
       </View>
 
-      <BuklodFirstViewAd placement="profile" placementId="profile_first_view" />
+      {/* BUKLOD Official also owns real posts: show them before its admin bulletin. */}
+      {isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
       <View style={styles.sectionPad}>
         <BuklodSystemAnnouncementBoard slot="profile" />
       </View>
@@ -1881,15 +1843,28 @@ export default function MeScreen() {
           rankName={circleRank}
         />
       )}
-
-      {referralSection}
-      <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />
-
-      {orderedSections.map((row) => (
-        <View key={row.id}>
-          {sectionMap[row.id]}
+      {!isBuklodOfficial && <View style={{marginHorizontal:12,padding:12,borderRadius:15,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:7}}>
+        <Text allowFontScaling style={{color:theme.textPrimary,fontSize:15,fontWeight:'900'}}>MY OVERALL & MONTHLY RANK</Text>
+        <View style={{flexDirection:'row',gap:8}}>
+          {([['OVERALL',rankPositions?.overall],['MONTHLY',rankPositions?.monthly]] as const).map(([label,position])=>(
+            <Pressable key={label} accessibilityRole="button" onPress={()=>router.push('/points' as any)}
+              style={{flex:1,backgroundColor:theme.accentSoft,minHeight:56,alignItems:'center',padding:9,borderRadius:12}}>
+              <Text allowFontScaling style={{color:theme.accent,fontSize:19,fontWeight:'900'}}>{position&&position>0?'#'+position:'—'}</Text>
+              <Text allowFontScaling style={{fontSize:11,color:theme.textSecondary,fontWeight:'800'}}>{label}</Text>
+            </Pressable>
+          ))}
         </View>
-      ))}
+        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Recorded Points standings. Monthly rank uses the calendar month; AdMob payouts finalize separately.</Text>
+      </View>}
+
+      {!isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
+      {!isBuklodOfficial && !!profile?.id && <BuklodProfileActivityCards userId={profile.id} />}
+      {referralSection}
+      {/* Required sponsored inventory: follows genuine member data, never overlays identity. */}
+      <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />
+      {orderedSections.map(row => <View key={row.id}>{sectionMap[row.id]}</View>)}
+      {/* Native ad stays below personal rank, posts, activity and settings. */}
+      <BuklodFirstViewAd placement="profile" placementId="profile_first_view" />
 
       <BuklodScreenBottomBanner placement="profile" variant="large" />
       <Text
@@ -1929,38 +1904,6 @@ export default function MeScreen() {
               },
             ]}
           >
-            <Pressable
-              style={styles.profileMenuItem}
-              onPress={() => {
-                setProfileMenuOpen(false);
-                router.push('/notifications' as any);
-              }}
-            >
-              <MaterialCommunityIcons
-                name="bell-outline"
-                size={22}
-                color={theme.accent}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    styles.profileMenuTitle,
-                    { color: theme.textPrimary },
-                  ]}
-                >
-                  Notifications
-                </Text>
-                <Text
-                  style={[
-                    styles.profileMenuSubtitle,
-                    { color: theme.textMuted },
-                  ]}
-                >
-                  View updates, messages, and requests
-                </Text>
-              </View>
-            </Pressable>
-
             <Pressable
               style={styles.profileMenuItem}
               onPress={() => {
@@ -2025,42 +1968,6 @@ export default function MeScreen() {
               </View>
             </Pressable>
 
-            <View style={styles.profileMenuItem}>
-              <MaterialCommunityIcons
-                name="lock-outline"
-                size={22}
-                color={theme.accent}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    styles.profileMenuTitle,
-                    { color: theme.textPrimary },
-                  ]}
-                >
-                  Lock Profile
-                </Text>
-                <Text
-                  style={[
-                    styles.profileMenuSubtitle,
-                    { color: theme.textMuted },
-                  ]}
-                >
-                  Other members only see your name when locked
-                </Text>
-              </View>
-              <Switch
-                value={profileLocked}
-                disabled={profileLockBusy}
-                onValueChange={(next) => {
-                  void toggleProfileLock(next);
-                }}
-                trackColor={{
-                  false: theme.border,
-                  true: theme.accent,
-                }}
-              />
-            </View>
           </View>
         </Pressable>
       </Modal>
@@ -2107,62 +2014,68 @@ function createMeStyles(
     },
     quickRow: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       alignItems: 'stretch',
       gap: 8,
       paddingRight: 4,
     },
     quickAction: {
-      width: QUICK_ACTION_WIDTH,
-      minWidth: QUICK_ACTION_WIDTH,
-      minHeight: 48,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
+      width: '100%',
+      minWidth: 0,
+      minHeight: 58,
+      paddingHorizontal: 7,
+      paddingVertical: 8,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 6,
+      gap: 4,
       borderWidth: 1,
       borderColor: withAlpha(theme.border, 0.88),
       borderRadius: 14,
       backgroundColor: withAlpha(theme.cardSurface, 0.72),
     },
     quickLabel: {
-      fontSize: 12,
-      lineHeight: 15,
+      fontSize: 13,
+      lineHeight: 17,
       fontWeight: '800',
       textAlign: 'center',
       color: theme.textPrimary,
     },
+    identityRow: { flexDirection: 'row', alignItems: 'center', gap: 12,
+      marginTop: -10, borderRadius: 15, backgroundColor: theme.cardSurface,
+      paddingHorizontal: 10, paddingVertical: 10, zIndex: 2 },
+    identityCopy: { flex: 1, minWidth: 0 },
     profileCard: {
       minHeight: 70,
       position: 'relative',
-      alignItems: 'center',
-      paddingTop: 12,
-      paddingBottom: 23,
+      alignItems: 'stretch',
+      paddingTop: 56,
+      paddingBottom: 12,
       paddingHorizontal: 12,
-      marginBottom: 6,
-      borderRadius: 0,
+      marginBottom: 0,
+      marginHorizontal: buklodVisual.space.screen,
+      borderRadius: buklodVisual.radius.card,
       overflow: 'hidden',
       borderWidth: 1,
     },
     profileCardCover: {
-      ...StyleSheet.absoluteFill,
-      overflow: 'hidden',
+      position: 'absolute', top: 0, left: 0, right: 0,
+      height: 118, overflow: 'hidden',
     },
     profileCardBackground: {
       ...StyleSheet.absoluteFill,
     },
     profileCardWash: {
       ...StyleSheet.absoluteFill,
-      backgroundColor: 'rgba(0,0,0,0.16)',
+      backgroundColor: 'rgba(0,0,0,0.08)',
     },
     profileMenuBtn: {
       position: 'absolute',
       top: 10,
       right: 10,
       zIndex: 4,
-      width: 38,
-      height: 38,
-      borderRadius: 19,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
       borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
@@ -2182,7 +2095,7 @@ function createMeStyles(
       overflow: 'hidden',
     },
     profileMenuItem: {
-      minHeight: 64,
+      minHeight: buklodVisual.size.row,
       paddingHorizontal: 14,
       paddingVertical: 12,
       flexDirection: 'row',
@@ -2225,42 +2138,43 @@ function createMeStyles(
       justifyContent: 'center',
     },
     avatarHint: {
-      marginTop: 6,
-      fontSize: 12,
-      lineHeight: 18,
+      marginTop: 0,
+      fontSize: 11,
+      lineHeight: 16,
       fontWeight: '900',
       letterSpacing: 0.15,
-      textAlign: 'center',
+      textAlign: 'left',
     },
     avatarRing: {
       position: 'relative',
-      padding: 5,
+      padding: 3,
       borderWidth: 1.5,
       borderRadius: 64,
       zIndex: 2,
     },
     name: {
-      marginTop: 6,
-      paddingHorizontal: 8,
-      fontSize: 25,
-      lineHeight: 31,
+      marginTop: 3,
+      paddingHorizontal: 0,
+      fontSize: 18,
+      lineHeight: 24,
       fontWeight: '900',
       letterSpacing: -0.4,
-      textAlign: 'center',
+      textAlign: 'left',
     },
     meta: {
       marginTop: 4,
       fontSize: 13.5,
       lineHeight: 18,
       fontWeight: '700',
-      textAlign: 'center',
+      textAlign: 'left',
     },
     rolesWrap: {
       marginTop: 8,
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       gap: 6,
+      paddingHorizontal: 9,
     },
     roleBadge: {
       minHeight: 29,

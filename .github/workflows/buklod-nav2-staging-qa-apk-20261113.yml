@@ -1,0 +1,204 @@
+# Staging-only signed APK for owner physical QA. Deliberately does NOT publish an OTA.
+# Trigger once from the exact developer-owned PR branch with the one-time commit prefix.
+name: BUKLOD Navigation V2 Signed Staging QA APK
+on:
+  push:
+    branches:
+      - dev/nav2-wall-stability-integration-20261113
+    paths:
+      - '.github/workflows/buklod-nav2-staging-qa-apk-20261113.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-nav2-staging-signed-qa-apk
+  cancel-in-progress: false
+jobs:
+  sign-qa-apk-no-publish:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/nav2-wall-stability-integration-20261113' && startsWith(github.event.head_commit.message, 'BUKLOD_STAGING_QA_APK_20261113:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      STAGING_FIREBASE_JSON_B64: ${{ secrets.STAGING_FIREBASE_JSON_B64 }}
+      SOURCE_BASE: 9f412afd71b74e41995a3a1a63e05e72f78b6e39
+    steps:
+      - name: Checkout exactly the authorized PR branch SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Validate no main merge, app identity and exact base ancestry before credits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git merge-base HEAD "$SOURCE_BASE")" = "$SOURCE_BASE"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$SOURCE_BASE"
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const c=require('./app.config.js')({config:{}});
+          const e=require('./eas.json');
+          assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(c.name,'BUKLOD Staging');
+          assert.equal(c.version,'1.3.6');
+          assert.equal(c.runtimeVersion,'1.3.2');
+          assert.equal(c.extra.appEnvironment,'staging');
+          assert.equal(c.extra.appTarget,'main');
+          assert.equal(c.icon,'./assets/release/buklod-main-canonical.png');
+          assert.equal(e.build['staging-user'].environment,'preview');
+          assert.equal(e.build['staging-user'].channel,'staging-user');
+          assert.equal(e.build['staging-user'].android.buildType,'apk');
+          assert.equal(e.build.production.channel,'production');
+          assert.notEqual(e.build['staging-user'].channel,e.build.production.channel);
+          assert.equal(c.plugins.find(p=>Array.isArray(p)&&p[0]==='react-native-google-mobile-ads')[1].androidAppId,'ca-app-pub-3940256099942544~3347511713');
+          NODE
+          test "$(git rev-parse HEAD:assets/release/buklod-main-canonical.png)" = '9a4e4a826191d6e310dc26f5c74d4611293ceb17'
+      - name: Node 22 and deterministic dependencies
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validate all integrated Navigation, Wall, comment, GIF and staging gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node --experimental-strip-types scripts/navigation-v2-route-audit.mjs
+          node --experimental-strip-types --test tests/navigation-v2-*.test.mjs tests/marites-wall-scroll-video-navigation-20261113.test.mjs tests/nav2-wall-stability-integration-20261113.test.mjs tests/buklod-comment-menu-android-20261113.test.mjs tests/staging-apk-device-attestation-20261113.test.mjs tests/buklod-keyboard-gif-direct-20261113.test.mjs tests/buklod-keyboard-gif-navigation-20261113.test.mjs tests/buklod-keyboard-gif-scope-20261113.test.mjs tests/staging-nav2-qa-apk-release-20261113.test.mjs
+          npx tsc --noEmit
+      - name: Verify preview EAS access and staging Firebase client
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          if [ -n "${STAGING_FIREBASE_JSON_B64:-}" ]; then
+            printf '%s' "$STAGING_FIREBASE_JSON_B64" | base64 -d > google-services.staging.json
+          else
+            test -s google-services.production.json
+            node <<'NODE'
+          const fs=require('node:fs');
+          const obj=JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
+          if (!obj.client?.some(c=>c.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging'))
+            throw Error('No registered staging Firebase client');
+          NODE
+            cp google-services.production.json google-services.staging.json
+          fi
+          node <<'NODE'
+          const fs=require('node:fs');
+          const obj=JSON.parse(fs.readFileSync('google-services.staging.json','utf8'));
+          if (!obj.client?.some(c=>c.client_info?.android_client_info?.package_name==='org.mzbministry.buklod.staging'))
+            throw Error('Staging Firebase identity mismatch');
+          NODE
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          npx eas-cli@latest env:pull --environment preview --path /tmp/buklod-nav2-preview.env --non-interactive
+          test -s /tmp/buklod-nav2-preview.env
+          set -a; . /tmp/buklod-nav2-preview.env; set +a
+          case "${EXPO_PUBLIC_SUPABASE_URL:-}" in https://*.supabase.co) ;; *) echo 'BLOCK: invalid preview backend endpoint'; exit 1;; esac
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" || { echo 'BLOCK: no preview publishable key'; exit 1; }
+          APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main npx expo config --json > /tmp/buklod-stage-qa-config.json
+          node <<'NODE'
+          const fs=require('node:fs');const assert=require('node:assert/strict');
+          const c=JSON.parse(fs.readFileSync('/tmp/buklod-stage-qa-config.json','utf8'));
+          assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(c.runtimeVersion,'1.3.2');
+          assert.equal(c.extra.appEnvironment,'staging');
+          NODE
+      - name: Compile exact staging Android JS assets before issuing signed build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx expo export --platform android --output-dir /tmp/buklod-nav2-qa --clear
+          test -n "$(find /tmp/buklod-nav2-qa -type f -print -quit)"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Select remote staging versionCode only in ephemeral runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs');
+          const assert=require('node:assert/strict');
+          const p='eas.json',e=JSON.parse(fs.readFileSync(p,'utf8'));
+          assert.equal(e.cli.appVersionSource,'local');
+          assert.equal(e.build['staging-user'].autoIncrement,true);
+          assert.equal(e.build['staging-user'].channel,'staging-user');
+          assert.equal(e.build.production.channel,'production');
+          e.cli.appVersionSource='remote';
+          fs.writeFileSync(p,JSON.stringify(e,null,2)+'\n');
+          NODE
+          test "$(git diff --name-only)" = 'eas.json'
+      - name: Build precisely one signed staging-user QA APK (NO OTA or web)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npx eas-cli@latest build --platform android --profile staging-user --non-interactive --wait --json > /tmp/buklod-nav2-eas-qa.json
+          test -s /tmp/buklod-nav2-eas-qa.json
+      - name: Verify actual signed APK bytes and preserve lightweight evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const obj=JSON.parse(fs.readFileSync('/tmp/buklod-nav2-eas-qa.json','utf8'));
+          const b=Array.isArray(obj)?obj[0]:obj;
+          assert.equal(String(b.status).toLowerCase(),'finished');
+          assert.equal(String(b.platform).toLowerCase(),'android');
+          if(b.gitCommitHash)assert.equal(String(b.gitCommitHash).toLowerCase(),process.env.GITHUB_SHA.toLowerCase());
+          if(b.appVersion)assert.equal(String(b.appVersion),'1.3.6');
+          if(b.appBuildVersion)assert.ok(Number(b.appBuildVersion)>9,'Need a newer staging-native version than audited build 9');
+          const url=b.artifacts?.buildUrl||b.artifacts?.applicationArchiveUrl;
+          assert.ok(typeof url==='string');
+          const u=new URL(url);
+          assert.equal(u.protocol,'https:');
+          assert.equal(u.hostname,'expo.dev');
+          assert.ok(u.pathname.toLowerCase().endsWith('.apk'));
+          fs.writeFileSync('/tmp/buklod-stage-qa-url',url);
+          fs.writeFileSync('buklod-staging-qa-evidence.json',JSON.stringify({
+            schema:'buklod-navigation-v2-staging-apk-qa-v1',
+            status:'signed-binary-generated-not-installed',
+            sourceSha:process.env.GITHUB_SHA,
+            buildId:b.id,
+            appVersion:b.appVersion??'1.3.6',
+            buildNumber:b.appBuildVersion??null,
+            runtimeVersion:'1.3.2',
+            package:'org.mzbministry.buklod.staging',
+            channel:'staging-user',
+            environment:'preview',
+            otaPublished:false,webPublished:false,productionPublished:false,
+            nativeImeCommitContentVerified:false,
+            navigation21Verified:false,
+            physicalMediaCrashGatePassed:false,
+            url
+          },null,2)+'\n');
+          NODE
+          curl --fail --location --retry 2 --retry-delay 4 --connect-timeout 20 --max-time 900 --output /tmp/buklod-nav2-stage-qa.apk "$(cat /tmp/buklod-stage-qa-url)"
+          python3 <<'PY'
+          import zipfile,hashlib,os,json
+          p='/tmp/buklod-nav2-stage-qa.apk'
+          if os.stat(p).st_size<=5_000_000: raise RuntimeError('Invalid size')
+          with zipfile.ZipFile(p) as z:
+              if 'AndroidManifest.xml' not in z.namelist(): raise RuntimeError('Not an Android APK')
+          h=hashlib.sha256()
+          with open(p,'rb') as f:
+              for block in iter(lambda:f.read(1024*1024),b''): h.update(block)
+          e=json.load(open('buklod-staging-qa-evidence.json'))
+          e['apkSha256']=h.hexdigest()
+          e['apkBytes']=os.stat(p).st_size
+          json.dump(e,open('buklod-staging-qa-evidence.json','w'),indent=2)
+          print('VERIFIED staging-only signed QA APK bytes',e['apkBytes'],'SHA256',e['apkSha256'])
+          PY
+          rm -f /tmp/buklod-nav2-stage-qa.apk
+          echo "BUKLOD staging-user QA signed APK: $(cat /tmp/buklod-stage-qa-url)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Physical install, memory/crash, native IME and 21 navigation acceptance: NOT VERIFIED. No OTA." >> "$GITHUB_STEP_SUMMARY"
+      - name: Archive metadata only to conserve GitHub storage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nav2-stage-qa-receipt-${{ github.sha }}
+          path: buklod-staging-qa-evidence.json
+          retention-days: 21
+          if-no-files-found: ignore

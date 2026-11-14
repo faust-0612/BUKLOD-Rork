@@ -1,0 +1,125 @@
+# BUKLOD Navigation V2 isolated staging-only OTA. Manual, fail-closed, no production/web/Play.
+name: BUKLOD Navigation V2 Staging Only
+on:
+  workflow_dispatch:
+    inputs:
+      rc_sha:
+        description: Exact approved RC SHA on current canonical main
+        required: true
+        type: string
+      publish:
+        description: Explicitly publish ONLY to installed staging-user Android clients after preflight
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-navigation-v2-staging-user
+  cancel-in-progress: false
+
+jobs:
+  staging-android-only:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      REQUESTED_RC: ${{ inputs.rc_sha }}
+    steps:
+      - name: Checkout exact current source, never an old staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Enforce exact current-main candidate and staging identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/main'
+          [[ "$REQUESTED_RC" =~ ^[0-9a-fA-F]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$REQUESTED_RC"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$REQUESTED_RC"
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const eas=require('./eas.json');
+          const app=require('./app.config.js')({config:{}});
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          assert.equal(eas.build['staging-user'].environment,'preview');
+          assert.equal(eas.build['staging-user'].android.buildType,'apk');
+          assert.equal(app.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(app.runtimeVersion,'1.3.2');
+          assert.equal(app.extra.appEnvironment,'staging');
+          assert.equal(app.extra.appTarget,'main');
+          NODE
+      - name: Node 22 / locked dependencies
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Compile and run Navigation V2 focused regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node --experimental-strip-types scripts/navigation-v2-route-audit.mjs
+          node --experimental-strip-types --test tests/navigation-v2-*.test.mjs tests/marites-wall-scroll-video-navigation-20261113.test.mjs tests/nav2-wall-stability-integration-20261113.test.mjs tests/buklod-comment-menu-android-20261113.test.mjs tests/staging-apk-device-attestation-20261113.test.mjs tests/buklod-keyboard-gif-direct-20261113.test.mjs tests/buklod-keyboard-gif-navigation-20261113.test.mjs tests/buklod-keyboard-gif-scope-20261113.test.mjs
+          npx tsc --noEmit
+          npx expo export --platform android --output-dir /tmp/buklod-nav-v2-staging-rc --clear
+          test -n "$(find /tmp/buklod-nav-v2-staging-rc -type f -print -quit)"
+      - name: Fail-closed completion, live parity, APK compatibility and prepublish approval
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/navigation-v2-staging-evidence.json
+          node scripts/navigation-v2-staging-gate.mjs --prepublish --commit="$REQUESTED_RC" --evidence=release/navigation-v2-staging-evidence.json
+      - name: Confirm Expo identity only when explicitly publishing
+        if: ${{ inputs.publish == true }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+      - name: Fail closed if staging-user and production resolve to same EAS branch
+        if: ${{ inputs.publish == true }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest channel:view staging-user --json --non-interactive > /tmp/nav-v2-staging-channel.json
+          npx eas-cli@latest channel:view production --json --non-interactive > /tmp/nav-v2-production-channel.json
+          node <<'NODE'
+          const fs=require('node:fs');
+          const assert=require('node:assert/strict');
+          const mapped=p=>{
+            const x=JSON.parse(fs.readFileSync(p,'utf8'));
+            const name=x.branchMapping?.branch?.name || x.branch?.name || x.branchName || x.branchMapping?.branchName;
+            assert.ok(typeof name==='string' && name.trim(), 'Cannot verify channel mapping: '+p);
+            return name.trim();
+          };
+          const stage=mapped('/tmp/nav-v2-staging-channel.json');
+          const live=mapped('/tmp/nav-v2-production-channel.json');
+          assert.notEqual(stage,live,'BLOCK: staging and production EAS channels share a branch');
+          console.log('VERIFIED isolated staging channel mapping; release remains Android staging only.');
+          NODE
+      - name: Publish one Android-only OTA to staging-user channel
+        if: ${{ inputs.publish == true }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$REQUESTED_RC"
+          npx eas-cli@latest update --channel staging-user --platform android --environment preview --non-interactive --json --message "BUKLOD_NAV_V2_STAGING_${REQUESTED_RC}" > navigation-v2-staging-update.json
+          test -s navigation-v2-staging-update.json
+          echo 'Staging publication requested; postpublish device/OTA acceptance still required. No production update or web deployment.'
+      - name: Archive staging update command receipt (not live-device proof)
+        if: ${{ inputs.publish == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nav-v2-staging-update-${{ github.sha }}
+          path: navigation-v2-staging-update.json
+          retention-days: 14
+          if-no-files-found: error

@@ -21,6 +21,12 @@ const blockPatterns = [
 if (!config.resolver.assetExts.includes('wasm')) {
   config.resolver.assetExts.push('wasm');
 }
+// Expo defaults omit Ogg Vorbis in Metro; licensed offline Kingdom music must
+// be bundled as real assets instead of resolved as a JS module. Android audio
+// decoder supports Vorbis via its native media stack; no native dependency.
+if (!config.resolver.assetExts.includes('ogg')) {
+  config.resolver.assetExts.push('ogg');
+}
 
 config.resolver.blockList = [
   ...(Array.isArray(config.resolver.blockList)

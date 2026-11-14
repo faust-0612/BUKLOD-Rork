@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/profile-focus-refresh-staging-20261114.json",
+  "objective": "Refresh canonical Profile Overall/Monthly Points ranks and owner-scoped recent posts on tab focus without changing Points finance cutoff, permissions or backend; stage with approved Home drawer removal and card redesign.",
+  "baseRef": "e0cf85c8fa506cf2f7d86a871804cfbfb39476f9",
+  "productionBaselineEvidence": "Based on PR #800 DEV head, stacked over PR #791 staging visuals, not the production source or an installed artifact. Production unchanged.",
+  "chosenApproach": "Use expo-router focus effect and active-guarded async results rather than one-time mounted effects; preserve cache, existing backend RLS, identity and post navigation.",
+  "selectionRationale": "Prevents stale Profile ranks and content after navigation/account changes with minimal code and no additional native requirements.",
+  "alternativeApproaches": [
+    "Polling while hidden: unnecessary network and bandwidth",
+    "Adding a second rank backend: risks divergent month cutoff and financial rights"
+  ],
+  "preserveBehaviors": [
+    "Canonical loadBuklodPointsDashboard, monthly rank source and eventual AdMob settlement remain separate",
+    "Private/self posts authorized by existing Supabase policies; no new query or sharing privileges",
+    "All profile photo, cover, roles, points, ads, settings, Kingdom retirement, Home and nav unchanged",
+    "No Expo package/config, Supabase schema, native module or release workflow changes"
+  ],
+  "acceptanceChecks": [
+    "Ranks refetch on Profile focus after Points activity; stale responses after blur/account switch ignored",
+    "Owner three-post preview refetches on Profile focus; no cross-account stale media",
+    "Monthly rank is still existing Points calendar window; AdMob cutoff alignment requires separate backend verification",
+    "Focused regression tests, TypeScript, exact Android export and installed staging visual/interaction acceptance required",
+    "Never publish staging or production automatically from this PR"
+  ],
+  "riskAreas": [
+    "profile-user-data",
+    "navigation-scroll",
+    "points-rank-accuracy",
+    "community-media",
+    "network-bandwidth",
+    "account-isolation"
+  ],
+  "regressionTests": [
+    "tests/nov14-profile-navigation-rank-refresh.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/me.tsx",
+    "src/components/BuklodProfilePostCards.tsx",
+    "tests/nov14-profile-navigation-rank-refresh.test.mjs",
+    ".buklod/scopes/profile-focus-refresh-staging-20261114.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Profile focus lifecycle refresh only",
+      "preservedBehaviors": [
+        "No Points or ad settlement mutation; no extra background poll; Home/Wall/Connect unchanged"
+      ],
+      "tests": [
+        "tests/nov14-profile-navigation-rank-refresh.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "No new navigation destination or privilege",
+      "preservedBehaviors": [
+        "Only signed-in owner post preview; existing permission checks and routes"
+      ],
+      "tests": [
+        "tests/nov14-profile-navigation-rank-refresh.test.mjs"
+      ]
+    }
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "releaseStatus": "Source candidate. Staging OTA NOT ready until exact combined RC, source and Android QA, backend isolation and authenticated client acceptance."
+}

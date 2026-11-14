@@ -72,9 +72,9 @@ export default function FeedbackScreen(){
       </View>
 
       <Card>
-        <TextInput style={styles.input} value={title} onChangeText={setTitle}
+        <TextInput allowFontScaling style={styles.input} value={title} onChangeText={setTitle}
           placeholder="Short title"/>
-        <TextInput style={styles.area} value={message} onChangeText={setMessage}
+        <TextInput allowFontScaling style={styles.area} value={message} onChangeText={setMessage}
           multiline placeholder="What happened? What did you expect?"/>
       </Card>
 
@@ -97,6 +97,6 @@ const styles=StyleSheet.create({
   wrap:{flexDirection:'row',flexWrap:'wrap',gap:7},
   chip:{borderWidth:1,borderColor:colors.line,borderRadius:20,paddingVertical:8,paddingHorizontal:10,backgroundColor:colors.white},
   chipOn:{backgroundColor:colors.greenSoft,borderColor:colors.green},
-  input:{borderWidth:1,borderColor:colors.line,borderRadius:11,padding:12,marginBottom:8},
-  area:{minHeight:150,borderWidth:1,borderColor:colors.line,borderRadius:11,padding:12,textAlignVertical:'top'}
+  input:{fontSize:16,borderWidth:1,borderColor:colors.line,borderRadius:11,padding:12,marginBottom:8},
+  area:{fontSize:16,minHeight:150,borderWidth:1,borderColor:colors.line,borderRadius:11,padding:12,textAlignVertical:'top'}
 });

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import { assessProtectedFeatureLock, parseNameStatusZ } from '../scripts/protected-feature-lock.mjs';
 
 const p = 'src/components/BuklodCachedMediaImage.tsx';
@@ -74,4 +75,13 @@ test('git rename records include both old and new paths for change-impact review
 test('malformed git change records fail safely', () => {
   assert.throws(() => parseNameStatusZ('R100\0src/a.ts\0'), /Incomplete/);
   assert.match(assessProtectedFeatureLock([{ status: 'M', path: '../escape.ts' }], valid).failures.join(' '), /Invalid changed/);
+});
+
+test('Android-only production promotion is tied to an explicit RC scope, never a global bypass', () => {
+  const workflow=readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
+  assert.ok(workflow.includes('release/buklod-prod-rc-staging-20261114)'));
+  assert.ok(workflow.includes('BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov14-prod-android-rc-promotion.json'));
+  assert.match(workflow,/node scripts\/protected-feature-lock\.mjs/);
+  const release=readFileSync(new URL('../.github/workflows/production_android_ota.yml',import.meta.url),'utf8');
+  assert.match(release,/BUKLOD_ANDROID_ONLY_PROD_20261114:/);
 });

@@ -42,6 +42,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
   const [inputIndex, setInputIndex] = useState(0);
   const [litStation, setLitStation] = useState<WonderStation | null>(null);
   const [heroStation, setHeroStation] = useState<WonderStation | null>(null);
+  const [burstStation, setBurstStation] = useState<WonderStation | null>(null);
   const [hearts, setHearts] = useState(WONDER_STARTING_HEARTS);
   const [mistakes, setMistakes] = useState(0);
   const [score, setScore] = useState(0);
@@ -55,6 +56,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
   const traveler = useRef(new Animated.ValueXY()).current;
   const flash = useRef(new Animated.Value(0)).current;
   const celebrate = useRef(new Animated.Value(0)).current;
+  const restoreBurst = useRef(new Animated.Value(1)).current;
   const changePhase = useCallback((next: Phase) => { phaseRef.current = next; setPhase(next); }, []);
 
   const schedule = useCallback((fn: () => void, delay: number) => {
@@ -73,7 +75,8 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
     traveler.stopAnimation();
     flash.stopAnimation();
     celebrate.stopAnimation();
-  }, [cancelPending, traveler, flash, celebrate]);
+    restoreBurst.stopAnimation();
+  }, [cancelPending, traveler, flash, celebrate, restoreBurst]);
 
   useEffect(() => {
     const station = litStation ?? heroStation;
@@ -164,6 +167,9 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
     setInputIndex(0);
     setLitStation(null);
     setHeroStation(null);
+    setBurstStation(null);
+    restoreBurst.stopAnimation();
+    restoreBurst.setValue(1);
     traveler.setValue({ x: 0, y: 0 });
     setHearts(WONDER_STARTING_HEARTS);
     setMistakes(0);
@@ -172,7 +178,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
       'Panoorin ang mahiwagang landas at kumpletuhin ang bawat hamon.'));
     changePhase('watch');
     void playBuklodGameFeedback('unlock');
-  }, [cancelPending, changePhase, t, traveler]);
+  }, [cancelPending, changePhase, t, traveler, restoreBurst]);
 
   const chooseStation = useCallback((station: WonderStation) => {
     if (phaseRef.current !== 'input' || lockedRef.current) return;
@@ -184,6 +190,9 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
     }, 260);
     const result = checkWonderStep(challenge, inputIndex, station);
     if (result === 'wrong') {
+      setBurstStation(null);
+      restoreBurst.stopAnimation();
+      restoreBurst.setValue(1);
       const remaining = hearts - 1;
       const nextMistakes = mistakes + 1;
       setHearts(remaining);
@@ -208,6 +217,13 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
       return;
     }
     setHeroStation(station);
+    // Visible restoration ring follows only a verified correct puzzle step.
+    setBurstStation(station);
+    restoreBurst.stopAnimation();
+    restoreBurst.setValue(0);
+    Animated.timing(restoreBurst, {
+      toValue: 1, duration: 580, easing: Easing.out(Easing.cubic), useNativeDriver: true,
+    }).start();
     const nextIndex = inputIndex + 1;
     const nextScore = score + 120 + round * 30;
     setScore(nextScore);
@@ -223,8 +239,10 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
       setMessage(t(`${nextIndex}/${challenge.answer.length} steps restored. Keep going!`,
         `${nextIndex}/${challenge.answer.length} hakbang na ang natapos. Ituloy!`));
     }
-  }, [schedule, challenge, inputIndex, hearts, mistakes, score, round, flashError, finishGame, changePhase, celebrateRound, t]);
+  }, [schedule, challenge, inputIndex, hearts, mistakes, score, round, flashError, finishGame, changePhase, celebrateRound, t, restoreBurst]);
 
+  const ringScale = restoreBurst.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1.65] });
+  const ringOpacity = restoreBurst.interpolate({ inputRange: [0, 0.65, 1], outputRange: [0.95, 0.55, 0] });
   const bounce = celebrate.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
   const progress = Math.round((cleared / WONDER_TOTAL_ROUNDS) * 100);
   return (
@@ -316,6 +334,16 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
             <View style={[styles.stationSpark, { backgroundColor: blocked ? '#ff8296' : station.accent, opacity: lit ? 0.95 : 0.38 }]} />
           </Pressable>;
         })}
+        {burstStation !== null ? (
+          <Animated.View pointerEvents="none" style={[
+            styles.stationBurst,
+            burstStation === 0 && styles.stationTop,
+            burstStation === 1 && styles.stationRight,
+            burstStation === 2 && styles.stationBottom,
+            burstStation === 3 && styles.stationLeft,
+            { opacity: ringOpacity, transform: [{ scale: ringScale }] },
+          ]} />
+        ) : null}
         <Animated.View pointerEvents="none" style={[styles.hero, { transform: traveler.getTranslateTransform() }]}>
           <Image source={SPECIAL_CHARACTER_HERO.trudice} style={styles.heroImage} resizeMode="cover" />
           <Text style={styles.heroCaption}>TRUDICE</Text>
@@ -393,6 +421,7 @@ const styles = StyleSheet.create({
   stationBottom:{bottom:41,left:'50%',marginLeft:-52},
   stationLeft:{top:209,left:9},
   stationLit:{backgroundColor:'#725898',borderColor:'#fff2b0',transform:[{scale:1.08}]},
+  stationBurst:{position:'absolute',width:104,height:79,borderWidth:3,borderColor:'#fff1ab',borderRadius:20,zIndex:6},
   stationBlocked:{backgroundColor:'#703348',borderColor:'#ff8594'},
   stationPressed:{opacity:0.78},
   stationIcon:{fontSize:24},

@@ -51,8 +51,13 @@ function handler({ type = 'CLUSTER', publicAvailable = true, fail = false, wait 
   assert(h.events.some(x => x[0] === 'scope'), 'same route still exits managed scope');
   assert.deepEqual([...nav.matchAll(/label: '(Home|Cluster|Wall|Connect|Profile)'/g)].map(x => x[1]), ['Home','Cluster','Wall','Connect','Profile']);
   assert(home.includes("const PttCard = lazy("), 'real PTT card remains on canonical Home');
-  assert(home.includes("const Updates = lazy("), 'legacy content must be demand-loaded');
-  assert(home.includes('focused && foreground && updatesOpen'), 'expanded Updates must unmount offscreen and in background');
+  assert(!home.includes('updatesOpen') && !home.includes('<Updates />'), 'retired updates drawer must not return to Home');
+  assert(!home.includes('Open Updates & Bulletins') && !home.includes('Announcements & Bulletins'), 'Home must not show bulletin drawer CTA');
+  assert(home.includes('<BuklodSystemAnnouncementBoard slot="public_home" />'), 'important public Home announcements remain visible');
+  const utilityCards = fs.readFileSync('src/components/home/BuklodHomeUtilityCards.tsx', 'utf8');
+  assert(utilityCards.includes('<LinearGradient') && utilityCards.includes('home-heart'), 'premium personal Home launcher remains rendered');
+  assert(utilityCards.includes("router.push('/personal-home' as any)"), 'personal Home destination stays wired');
+  assert(utilityCards.includes('Online Consultation') && utilityCards.includes('Full Health Center'), 'Health Center actions are preserved');
   assert(merged.includes('<BuklodSystemAnnouncementBoard slot="public_home" />'), 'announcement and Quiz are merged');
   assert(merged.includes('<BuklodHomeScopeBulletins />'), 'bulletins are merged');
   assert(primary.includes("home: '/hub'"), 'primary Home must target canonical hub');

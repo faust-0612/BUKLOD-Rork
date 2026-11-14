@@ -13,6 +13,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -31,6 +32,7 @@ import {
   connectTypography,
   type ConnectThemeRoles,
 } from '@/lib/connectTheme';
+import { buklodComposerHeightLimits } from '@/lib/buklodAdaptiveInput';
 import {
   useConnectTheme,
 } from '@/providers/ConnectThemeProvider';
@@ -333,6 +335,8 @@ export function ConnectComposer({
   onOpenComposerPicker,
 }: Props) {
   const { theme } = useConnectTheme();
+  const { fontScale, height } = useWindowDimensions();
+  const inputSize = buklodComposerHeightLimits(fontScale, height, 'message');
   const styles = useMemo(
     () => createStyles(theme),
     [theme]
@@ -548,8 +552,9 @@ export function ConnectComposer({
           </View>
         </ConnectPressable>
 
-        <View style={styles.inputWrap}>
+        <View style={[styles.inputWrap, { maxHeight: inputSize.maxHeight + 2 }]}>
           <TextInput
+            allowFontScaling
             ref={inputRef}
             value={draft}
             onChangeText={onChangeDraft}
@@ -568,7 +573,7 @@ export function ConnectComposer({
               e.preventDefault?.();
               sendFromDesktopKeyboard();
             } : undefined}
-            style={styles.input}
+            style={[styles.input, inputSize]}
           />
           <ConnectPressable
             accessibilityRole="button"

@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
 import BuklodPostMotion from '@/components/BuklodPostMotion';
@@ -35,6 +36,7 @@ import { useIncomingShare as useBuklodIncomingShare187A } from '@/lib/buklodInco
 import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency, persistCommunityVideoPoster } from '@/lib/uploadCommunityVideoFile';
 import { stageSharedCommentGif, discardStagedSharedCommentGif } from '@/lib/buklodCommentGifShare';
 import { rememberActiveCommentGifTarget, getActiveCommentGifTarget, forgetActiveCommentGifTarget } from '@/lib/buklodCommentGifTarget';
+import { saveWallCommentTextDraft, loadWallCommentTextDraft, clearWallCommentTextDraft } from '@/lib/buklodNavigationDraftRecovery';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
 import {
@@ -109,6 +111,7 @@ import { useBuklodCommunityAdViewability } from '@/hooks/useBuklodCommunityAdVie
 /* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
+import { resolveBuklodWallMaritesVideoPriority } from '@/lib/buklodMaritesViewportMeasure';
 import { getBuklodCardTone, isBuklodDarkPaletteId } from '@/lib/buklodCardTones';
 import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import BuklodLivingGreetingsBanner from '@/components/BuklodLivingGreetingsBanner';
@@ -995,6 +998,7 @@ function LegacyPublicBuklodScreen(){
  const [visibleCreativePostIds,setVisibleCreativePostIds]=useState<string[]>([]);
  const visibleCreativeIdsRef=useRef<string[]>([]);
  const [wallScreenFocused,setWallScreenFocused]=useState(false);
+ const [maritesViewerOpen,setMaritesViewerOpen]=useState(false);
  const wallScreenFocusedRef=useRef(false);
  const [wallAudioSettledTick,setWallAudioSettledTick]=useState(0);
  const wallAutoMusicAttemptedRef=useRef(new Set<string>());
@@ -1345,6 +1349,19 @@ function LegacyPublicBuklodScreen(){
  commentAccountIdRef.current=String(user?.id??'');
  const commentLoadSeqRef=useRef(0);
  const commentSendInFlightRef=useRef(false);
+ const draftOwnerRef=useRef<string|null>(null);
+ // Persist ONLY small plain text through SecureStore (not attachments, mentions,
+ // private post data or user tokens). Owner identity must still match at callback.
+ useEffect(()=>{
+  const owner=String(user?.id??'');
+  const postId=activeCommentPostIdRef.current;
+  if(!commentOpen || !owner || draftOwnerRef.current!==owner || !postId)return;
+  const timer=setTimeout(()=>{
+   if(draftOwnerRef.current===owner && activeCommentPostIdRef.current===postId)
+    void saveWallCommentTextDraft(owner,postId,commentText).catch(()=>undefined);
+  },700);
+  return ()=>clearTimeout(timer);
+ },[commentOpen,commentText,commentPost?.id,user?.id]);
  // In-memory, account-scoped drafts survive accidental sheet dismissal.
  const commentDraftsRef=useRef(new Map<string,{
   text:string; mentions:Mention[];
@@ -1354,6 +1371,7 @@ function LegacyPublicBuklodScreen(){
  useEffect(()=>{
   // Account changes invalidate pending results and private local drafts.
   activeCommentPostIdRef.current=null;
+  draftOwnerRef.current=null;
   ++commentLoadSeqRef.current;
   commentDraftsRef.current.clear();
   setCommentOpen(false);
@@ -3600,7 +3618,7 @@ const load=useCallback(async(options?:{
 
  const loadComments=
   useCallback(
-   async(postId:string)=>{
+   async(postId:string,options?:{silent?:boolean})=>{
     const targetId=String(postId);
     const requestAccountId=String(user?.id??'');
     if(
@@ -3614,7 +3632,7 @@ const load=useCallback(async(options?:{
      activeCommentPostIdRef.current===targetId &&
      commentAccountIdRef.current===requestAccountId
     );
-    setCommentLoading(true);
+    if(!options?.silent)setCommentLoading(true);
     setCommentLoadError(null);
     try{
      const [commentsResult,reactionsResult]=await Promise.all([
@@ -3662,7 +3680,7 @@ const load=useCallback(async(options?:{
       'comments_load_failed',
      );
     }finally{
-     if(isCurrent())setCommentLoading(false);
+     if(isCurrent()&&!options?.silent)setCommentLoading(false);
     }
    },
    [user?.id]
@@ -3682,6 +3700,7 @@ const load=useCallback(async(options?:{
     if(!attachGif)void discardStagedSharedCommentGif(pendingGif.uri);
    }
    activeCommentPostIdRef.current=postId;
+   draftOwnerRef.current=accountId;
    ++commentLoadSeqRef.current;
    setCommentPost(post);
    setComments([]);
@@ -3693,6 +3712,16 @@ const load=useCallback(async(options?:{
    setCommentLoadError(null);
    setCommentNotice(attachGif?'GIF attached. Preview it, then Send.':null);
    setCommentOpen(true);
+   // Restore only unsent TEXT if this exact user's sheet remains active. Never
+   // override text the user has already typed while the secure read is pending.
+   if(accountId && !saved?.text){
+    void loadWallCommentTextDraft(accountId,postId).then(restored=>{
+     if(restored && activeCommentPostIdRef.current===postId &&
+        draftOwnerRef.current===accountId && commentAccountIdRef.current===accountId){
+       setCommentText(current=>current||restored);
+     }
+    }).catch(()=>undefined);
+   }
    await loadComments(String(post.id));
   };
 
@@ -3703,6 +3732,8 @@ const load=useCallback(async(options?:{
    if(postId){
     const key=String(user?.id??'')+':'+postId;
     if(buklodCommentHasSendableContent(commentText,commentMedia)){
+     if(user?.id && commentText.trim())
+      void saveWallCommentTextDraft(String(user.id),postId,commentText).catch(()=>undefined);
      const drafts=commentDraftsRef.current;
      drafts.delete(key);
      drafts.set(key,{
@@ -3715,9 +3746,11 @@ const load=useCallback(async(options?:{
      if(drafts.size>8)drafts.delete(drafts.keys().next().value!);
     }else{
      commentDraftsRef.current.delete(key);
+     if(user?.id)void clearWallCommentTextDraft(String(user.id),postId).catch(()=>undefined);
     }
    }
    activeCommentPostIdRef.current=null;
+   draftOwnerRef.current=null;
    ++commentLoadSeqRef.current;
    setCommentLoading(false);
    setCommentLoadError(null);
@@ -3820,6 +3853,7 @@ const load=useCallback(async(options?:{
      ));
     }
     commentDraftsRef.current.delete(authorId+':'+postId);
+    if(authorId)void clearWallCommentTextDraft(authorId,postId).catch(()=>undefined);
     if(
      activeCommentPostIdRef.current===postId &&
      commentAccountIdRef.current===authorId
@@ -3836,7 +3870,9 @@ const load=useCallback(async(options?:{
      mentionedUserIds:mentionIds,
      context:'comment',
     });
-    void loadComments(postId);
+    // Keep the active Wall and comment sheet visible after sending a GIF;
+    // background reconcile only this thread without a spinner.
+    void loadComments(postId,{silent:true});
    }catch(error:any){
     if(commentAccountIdRef.current===authorId){
      if(activeCommentPostIdRef.current===postId){
@@ -4799,13 +4835,11 @@ const load=useCallback(async(options?:{
               autoPlay
               active={
                 visibleVideoPostId===postId &&
-                !videoViewerOpen &&
-                wallScreenFocused
+                videoPriority.wallVideoEligible
               }
               preload={
                 preloadVideoPostId===postId &&
-                !videoViewerOpen &&
-                wallScreenFocused
+                videoPriority.wallVideoEligible
               }
               expectedDurationSeconds={
                 wallVideo.durationSeconds
@@ -5231,6 +5265,13 @@ const communityFeedRows =
   visibleVideoPostId,
   preloadVideoPostId,
  } = useBuklodCommunityAdViewability(communityFeedRows);
+ const videoPriority=resolveBuklodWallMaritesVideoPriority({
+   wallFocused:wallScreenFocused,
+   wallVideoVisible:Boolean(visibleVideoPostId),
+   wallFullscreenOpen:videoViewerOpen,
+   commentOpen,
+   maritesViewerOpen,
+ });
 
  // Preserve the existing ad/video visibility engine; also pause an audio
  // post as soon as its card is no longer visible (no off-screen music).
@@ -5238,6 +5279,9 @@ const communityFeedRows =
  communityViewabilityListener.current=onCommunityAdViewableItemsChanged;
  const wallAudioForVisibility=useRef(pauseWallAudio);
  wallAudioForVisibility.current=pauseWallAudio;
+ useEffect(()=>{
+   if(maritesViewerOpen)wallAudioForVisibility.current();
+ },[maritesViewerOpen]);
  const onCommunityWallViewableItemsChanged=useRef((event:{
    viewableItems:Array<{item?:any}>;
  })=>{
@@ -5293,7 +5337,7 @@ const communityFeedRows =
  // player; no hidden-card downloads or repeated auto-retries on failures.
  useEffect(()=>{
    if(!wallScreenFocused||Platform.OS==='web'||!user?.id||
-     communityComposerOpen||visibleVideoPostId||peekDzasPlaying())return;
+     communityComposerOpen||maritesViewerOpen||visibleVideoPostId||peekDzasPlaying())return;
    if(wallAudioOwnerRef.current&&
       visibleCreativeIdsRef.current.includes(wallAudioOwnerRef.current))return;
    const candidate=visibleCreativePostIds.map(id=>({id,creative:postCreatives[id]}))
@@ -5308,7 +5352,7 @@ const communityFeedRows =
    const timer=setTimeout(()=>{
      if(!wallScreenFocusedRef.current||
        !visibleCreativeIdsRef.current.includes(candidate.id)||
-       peekDzasPlaying()||wallAudioOwnerRef.current==='composer'||
+       peekDzasPlaying()||maritesViewerOpen||wallAudioOwnerRef.current==='composer'||
        (wallAudioOwnerRef.current&&
         visibleCreativeIdsRef.current.includes(wallAudioOwnerRef.current))||
        wallAudioBusyRef.current)return;
@@ -5318,7 +5362,7 @@ const communityFeedRows =
        candidate.creative!.music_clip_duration_seconds??undefined);
    },200);
    return ()=>clearTimeout(timer);
- },[wallScreenFocused,user?.id,communityComposerOpen,visibleVideoPostId,
+ },[wallScreenFocused,user?.id,communityComposerOpen,maritesViewerOpen,visibleVideoPostId,
     visibleCreativePostIds,postCreatives,wallAudioSettledTick]);
  const communityCreativeExtraData=useMemo(
    ()=>[communityAdExtraData,visibleCreativePostIds],
@@ -5404,14 +5448,17 @@ const communityFeedRows =
        30-day period. Do not turn it into an unexpiring ordinary post. */}
    <BuklodCommunitySponsoredAd audience="public" placement="community" />
 
+   {/* LIFE and Kabihasnang Ligaw are always visible on the Community Wall. */}
    {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}
    <BuklodLifeWallCard />
 
    {/* Home-only BUKLOD Today; story remains a Community Wall post card. */}
    <KabihasnangLigawWallCard />
 
+
    <BuklodMaritesBoard
-    playbackBlocked={commentOpen}
+    playbackBlocked={videoPriority.maritesBlocked}
+    onViewerVisibilityChange={setMaritesViewerOpen}
     visibilityRefreshRef={maritesVisibilityRefreshRef}
     onOpenComments={(postId, story) => void openComments({ id: postId, author_name: story.author_name, user_id: story.user_id, body: story.body, avatar_url: story.avatar_url })}
     locationScopeId={
@@ -5442,7 +5489,7 @@ const communityFeedRows =
        setCommunityComposerOpen(true);
       }}
       style={({ pressed }) => ({
-       flex: 1, minWidth: 0, minHeight: 44, flexDirection: 'row', gap: 9,
+       flex: 1, minWidth: 0, minHeight: buklodVisual.size.touch, flexDirection: 'row', gap: 9,
        alignItems: 'center', paddingHorizontal: 11, borderRadius: 24,
        borderWidth: 1, borderColor: colors.line,
        backgroundColor: colors.white, opacity: pressed ? 0.78 : 1,

@@ -120,9 +120,9 @@ export default function AccountSecurityScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Change Password</Text>
           <Text style={styles.label}>New Password</Text>
-          <TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="At least 8 characters" style={styles.input} />
+          <TextInput allowFontScaling value={password} onChangeText={setPassword} secureTextEntry placeholder="At least 8 characters" style={styles.input} />
           <Text style={styles.label}>Confirm New Password</Text>
-          <TextInput value={confirm} onChangeText={setConfirm} secureTextEntry placeholder="Re-enter new password" style={styles.input} />
+          <TextInput allowFontScaling value={confirm} onChangeText={setConfirm} secureTextEntry placeholder="Re-enter new password" style={styles.input} />
           <Pressable disabled={busy} onPress={() => void changePassword()} style={[styles.primary, busy && styles.disabled]}>
             {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>CHANGE PASSWORD</Text>}
           </Pressable>
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   card: { padding: 14, marginBottom: 12, borderWidth: 1, borderColor: colors.line, borderRadius: 16, backgroundColor: colors.white },
   cardTitle: { marginBottom: 10, color: colors.greenDark, fontSize: 14, fontWeight: '900' },
   label: { marginBottom: 5, color: colors.text, fontSize: 11, fontWeight: '800' },
-  input: { minHeight: 47, paddingHorizontal: 12, marginBottom: 9, borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: '#F8FAF9', color: colors.text },
+  input: { fontSize: 16, minHeight: 47, paddingHorizontal: 12, marginBottom: 9, borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: '#F8FAF9', color: colors.text },
   help: { color: colors.muted, fontSize: 11.5, lineHeight: 17, marginBottom: 10 },
   primary: { minHeight: 48, marginTop: 4, borderRadius: 12, backgroundColor: colors.greenDark, alignItems: 'center', justifyContent: 'center' },
   primaryText: { color: colors.white, fontWeight: '900', fontSize: 11 },

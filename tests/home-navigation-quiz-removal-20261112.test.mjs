@@ -7,11 +7,10 @@ const hub = read('src/app/(tabs)/hub.tsx');
 const board = read('src/components/BuklodSystemAnnouncementBoard.tsx');
 const drawer = read('src/components/SmartDrawerWallCard.tsx');
 
-test('canonical Home preserves updates toggle and Wall navigation without a Quiz shortcut', () => {
-  assert.match(hub, /const Updates = lazy/);
-  assert.match(hub, /setUpdatesOpen\(value => !value\)/);
-  assert.match(hub, /accessibilityLabel="Announcements and bulletins"/);
-  assert.match(hub, /router\.push\('\/buklod'\)/);
+test('canonical Home preserves visible notices and Wall publishing without retired updates drawer or Quiz shortcut', () => {
+  assert.doesNotMatch(hub, /const Updates = lazy|setUpdatesOpen|accessibilityLabel="Announcements and bulletins"/);
+  assert.match(hub, /<BuklodSystemAnnouncementBoard slot="public_home" \/>/);
+  assert.match(hub, /pathname: '\/buklod'/);
   assert.doesNotMatch(hub, /Quiz/i);
   assert.doesNotMatch(board, /BuklodQuizStudentEntry|publicQuizDoor/);
 });

@@ -1,3 +1,4 @@
+import { buklodVisual } from '@/lib/buklodVisual';
 import { StyleSheet } from 'react-native';
 import type { LegacyThemeColors } from '@/lib/buklodThemePresentation';
 
@@ -21,7 +22,7 @@ categoryRow:{
 },
 
 compactChip:{
- minHeight:34,
+ minHeight:buklodVisual.size.touch,
  paddingVertical:7,
  paddingHorizontal:7,
  borderRadius:18,
@@ -108,7 +109,7 @@ row:{
 
 tool:{
  flex:1,
- minHeight:34,
+ minHeight:buklodVisual.size.touch,
  paddingVertical:6,
  borderWidth:1,
  borderColor:c.line,
@@ -125,7 +126,7 @@ toolText:{
  color:c.greenDark
 },
 preview:{width:'100%',height:210,borderRadius:12,marginTop:10,marginBottom:8},filter:{gap:7,paddingBottom:4},rank:{flexDirection:'row',alignItems:'center',gap:8,paddingTop:9,marginTop:9,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:c.line},rankNo:{width:30,fontWeight:'900',color:c.greenDark},rankName:{flex:1,fontWeight:'900',color:c.text},rankPts:{fontSize:11,fontWeight:'900',color:c.greenDark},
-author:{fontSize:16,fontWeight:'900',color:c.text},meta:{marginTop:3,fontSize:12,color:c.muted},body:{marginTop:3,fontSize:17,lineHeight:25,color:c.text},postImage:{width:'100%',height:240,borderRadius:12,marginTop:10},
+author:{fontSize:15,fontWeight:'800',color:c.text},meta:{marginTop:3,fontSize:12,color:c.muted},body:{marginTop:6,fontSize:16,lineHeight:24,color:c.text},postImage:{width:'100%',height:240,borderRadius:12,marginTop:10},
 rx:{
  flexDirection:'row',
  alignItems:'center',
@@ -137,13 +138,13 @@ rx:{
 rxBtn:{
  flex:1,
  minWidth:0,
- height:36,
+ minHeight:buklodVisual.size.touch,
  borderRadius:18,
  flexDirection:'row',
  alignItems:'center',
  justifyContent:'center',
  gap:3,
- backgroundColor:'#F4F6F4',
+ backgroundColor:c.background,
  borderWidth:1,
  borderColor:'transparent'
 },

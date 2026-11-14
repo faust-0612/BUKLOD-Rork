@@ -134,6 +134,7 @@ async function loadMemberPublicProfileDirect(
 export async function loadMemberCommunityPosts(
   userId: string,
   viewerId?: string | null,
+  maxRows = 40,
 ): Promise<MemberPublicPost[]> {
   const id = String(userId ?? '').trim();
   if (!id) {
@@ -142,58 +143,37 @@ export async function loadMemberCommunityPosts(
 
   const isSelf = Boolean(viewerId && viewerId === id);
 
-  const { data, error } = await supabase
-    .from('community_posts')
-    .select(
-      'id, user_id, body, media_path, media_mime_type, media_size_bytes, created_at, author_only, audience, is_hidden'
-    )
-    .eq('user_id', id)
-    .order('created_at', { ascending: false })
-    .limit(40);
-
-  let rows = data ?? [];
-
-  if (error) {
-    const fallback = await supabase
+  // Page before filtering: recent Marites stories can occupy all top-3 rows.
+  // Bounded queries prevent over-fetching on weak connections.
+  const targetRows = Math.max(1, Math.min(40, Math.floor(Number(maxRows) || 3)));
+  const pageSize = Math.max(12, Math.min(40, targetRows * 4));
+  const visible: any[] = [];
+  for (let page = 0; page < 3 && visible.length < targetRows; page += 1) {
+    const { data, error } = await supabase
       .from('community_posts')
       .select(
-        'id,user_id,body,media_path,media_mime_type,media_size_bytes,created_at,author_only,audience,is_hidden'
+        'id, user_id, body, media_path, media_mime_type, media_size_bytes, created_at, author_only, audience, is_hidden'
       )
       .eq('user_id', id)
       .order('created_at', { ascending: false })
-      .limit(40);
+      .range(page * pageSize, (page + 1) * pageSize - 1);
 
-    if (fallback.error) {
-      console.warn('Member posts:', fallback.error.message);
-      return [];
+    if (error) {
+      console.warn('Member posts:', error.message);
+      break;
     }
-
-    rows = fallback.data ?? [];
+    const rows = data ?? [];
+    for (const row of rows) {
+      if (row?.is_hidden) continue;
+      if (row?.author_only && !isSelf) continue;
+      if (String(row.body ?? '').includes(MARITES_POST_MARKER)) continue;
+      const audience = String(row?.audience ?? 'public').trim().toLowerCase();
+      if (!isSelf && audience && audience !== 'public') continue;
+      visible.push(row);
+      if (visible.length >= targetRows) break;
+    }
+    if (rows.length < pageSize) break;
   }
-
-  const visible = rows.filter((row: any) => {
-    if (row?.is_hidden) {
-      return false;
-    }
-
-    if (row?.author_only && !isSelf) {
-      return false;
-    }
-
-    if (String(row.body ?? '').includes(MARITES_POST_MARKER)) {
-      return false;
-    }
-
-    const audience = String(row?.audience ?? 'public')
-      .trim()
-      .toLowerCase();
-
-    if (!isSelf && audience && audience !== 'public') {
-      return false;
-    }
-
-    return true;
-  });
 
   const postIds = visible
     .map((row: any) => String(row.id ?? ''))

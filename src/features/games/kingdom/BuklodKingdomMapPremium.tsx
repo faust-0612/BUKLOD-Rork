@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, {
   Circle as SvgCircle, Defs, Ellipse, G,
@@ -11,7 +12,7 @@ import Svg, {
 import { useAuth } from '@/providers/AuthProvider';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
-import BuklodKingdomAtmosphere from './BuklodKingdomAtmosphere';
+import BuklodKingdomLivingFX from './BuklodKingdomLivingFX';
 import { getBuklodSoundSettings } from '@/lib/buklodSounds';
 import {
   loadBuklodKingdomPreviewProgress,
@@ -573,6 +574,18 @@ export default function BuklodKingdomMapPremium() {
   const [zoomStep, setZoomStep] = useState(0);
   // Start map-first; the station dock remains one tap away.
   const [panelExpanded, setPanelExpanded] = useState(false);
+  // Cin­ematic quality is the default; the Lite choice is per account.
+  // Operating-system Reduce Motion always overrides visual quality.
+  const [cinematicFX, setCinematicFX] = useState(true);
+  const fxKey = '@buklod_kingdom_fx_quality_v1_' + (userId ?? 'guest');
+  useEffect(() => {
+    let live = true;
+    setCinematicFX(true);
+    void AsyncStorage.getItem(fxKey)
+      .then(value => { if (live) setCinematicFX(value !== 'lite'); })
+      .catch(() => undefined);
+    return () => { live = false; };
+  }, [fxKey]);
   const [viewportHeight, setViewportHeight] = useState(550);
   const horizontalRef = useRef<ScrollView>(null);
   const verticalRef = useRef<ScrollView>(null);
@@ -597,6 +610,11 @@ export default function BuklodKingdomMapPremium() {
   );
   const stage = stageFor(clearedCount);
   const stageCopy = STAGE_COPY[stage];
+  const clearedFXStations = useMemo(
+    () => STATIONS.filter(station => (progress.stations[station.id]?.clears ?? 0) > 0)
+      .map(station => ({ x: station.x, y: station.y, accent: station.accent })),
+    [progress],
+  );
   const selectedStation = STATIONS.find(station => station.id === selectedId) ?? STATIONS[5];
   // Only one selected-station art plate is mounted: preserve the old richer
   // artwork without reinstating 13 always-on thumbnails/animated loops.
@@ -666,7 +684,10 @@ export default function BuklodKingdomMapPremium() {
         >
           <View style={[styles.worldFrame, { width: mapWidth, height: mapHeight }]}>
             <IllustratedRealm mapWidth={mapWidth} mapHeight={mapHeight} stage={stage} />
-            <BuklodKingdomAtmosphere stage={stage} scale={scale} />
+            <BuklodKingdomLivingFX
+              stage={stage} scale={scale} mapWidth={mapWidth} mapHeight={mapHeight}
+              selected={selectedStation} cleared={clearedFXStations} cinematic={cinematicFX}
+            />
 
             <View pointerEvents="none" style={[styles.realmTitle, {
               left: 68 * scale, top: 88 * scale,
@@ -749,6 +770,18 @@ export default function BuklodKingdomMapPremium() {
       </View>
 
       <View style={[styles.zoomTools, { top: Math.max(24, insets.top) + 84 }]}>
+         <Pressable accessibilityRole="button"
+           accessibilityLabel={cinematicFX ? 'Use Lite Kingdom graphics' : 'Use cinematic Kingdom graphics'}
+           accessibilityHint="Switch world effects quality. Reduced Motion is always respected."
+           onPress={() => {
+             const next = !cinematicFX;
+             setCinematicFX(next);
+             void AsyncStorage.setItem(fxKey, next ? 'cinematic' : 'lite').catch(() => undefined);
+           }}
+           style={styles.zoomButton}>
+           <MaterialCommunityIcons name={cinematicFX ? 'auto-fix' : 'weather-night'}
+             size={20} color="#ffe7b1"/>
+         </Pressable>
         <Pressable accessibilityRole="button"
           accessibilityLabel={musicEnabled ? 'Mute Kingdom ambient music' : 'Play Kingdom ambient music'}
           onPress={toggleMusic} style={styles.zoomButton}>

@@ -9,5 +9,13 @@ test('13 canonical stations and stable map navigation', () => {
  assert.ok(content.includes("setMode(current => current === 'detail' ? 'fit' : 'detail')"));
 });
 test('modern illustrated realm retains accessible stations', () => {
- for(const token of ['id="aurora"','id="highland"','waylight-', 'onFocus={chooseStation}', 'onEnter={enterStation}', '<BuklodKingdomAtmosphere']) assert.ok(content.includes(token), token);
+ for(const token of ['id="aurora"','id="highland"','waylight-', 'onFocus={chooseStation}', 'onEnter={enterStation}', '<BuklodKingdomLivingFX']) assert.ok(content.includes(token), token);
+});
+
+test('Android living FX uses native Skia and Web retains established atmosphere', () => {
+ const web = readFileSync('src/features/games/kingdom/BuklodKingdomLivingFX.web.tsx','utf8');
+ const native = readFileSync('src/features/games/kingdom/BuklodKingdomLivingFX.native.tsx','utf8');
+ assert.ok(web.includes('BuklodKingdomAtmosphere'));
+ assert.ok(native.includes('@shopify/react-native-skia'));
+ assert.ok(native.includes('react-native-reanimated'));
 });

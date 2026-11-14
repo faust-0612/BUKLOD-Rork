@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,6 +37,7 @@ import {
   useBuklodDrawerBottomInset,
 } from '@/lib/buklodSafeArea';
 import { colors } from '@/lib/theme';
+import { buklodComposerHeightLimits } from '@/lib/buklodAdaptiveInput';
 
 type Props = {
   value: string;
@@ -73,6 +75,8 @@ export default function BuklodCommunityCommentComposer({
   onSend,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { fontScale, height } = useWindowDimensions();
+  const inputSize = buklodComposerHeightLimits(fontScale, height, 'comment');
   const drawerBottomInset = useBuklodDrawerBottomInset();
   const [reactionOpen, setReactionOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
@@ -221,7 +225,7 @@ export default function BuklodCommunityCommentComposer({
       groupId={groupId}
       excludeUserId={excludeUserId}
       placeholder={placeholder}
-      style={styles.input}
+      style={[styles.input, inputSize]}
       focusRef={inputFocusRef}
       maxLength={2000}
       disabled={busy}
