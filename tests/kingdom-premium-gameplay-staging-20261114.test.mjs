@@ -78,11 +78,14 @@ test('Trudice visible restoration only follows a correct puzzle step and retains
 test('Original Jawo and Trudice rules still pass their full seeded/retry suites', () => {
   // Execute actual pure engine tests, rather than treating unchanged source text
   // as proof. Node 22 supports TypeScript stripping without a bundler.
+  const nestedEnv = { ...process.env };
+  // A nested Node test runner must not inherit its parent's internal context.
+  delete nestedEnv.NODE_TEST_CONTEXT;
   const output = execFileSync(process.execPath, [
     '--experimental-strip-types', '--test',
     'tests/jawo-kingdom-forest-trail-gameplay-20261112.test.mjs',
     'tests/kingdom-trudice-wonder-path.test.mjs',
-  ], { encoding: 'utf8', timeout: 30000 });
+  ], { encoding: 'utf8', timeout: 30000, env: nestedEnv });
   assert.match(output, /# fail 0/, output);
 });
 
