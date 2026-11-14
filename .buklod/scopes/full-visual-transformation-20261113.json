@@ -4,7 +4,7 @@
   "objective": "Implement the owner-authorized coherent premium visual transformation across eight BUKLOD UI areas on isolated DEV; block staging OTA until actual rendered visual and functional acceptance is available.",
   "baseRef": "6b0f7e3167867bb746e34da4637430f131b588bb",
   "productionBaselineEvidence": "Current GitHub main read as 9f412afd71b74e41995a3a1a63e05e72f78b6e39. Existing integration scope records publisher-side production a43e1813 runtime 1.3.2; live production and installed staging parity are NOT independently verified in this session. No release is authorized from missing evidence.",
-  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics. Follow-up approved navigation decluttering: remove duplicate Home launchers, Profile cover gear, direct standalone offline search with suggested features and account-local recents/pins; use drawer only for unique secondary tools. Nov 13 screenshot issue repair: Connect notification redirect precedence; Profile unique My BUKLOD controls and Org/Suborg roster; /hub canonical announcement; broader ranked offline search; compact theme selection; sound style variants; silent GIF comment thread reload. Nine original WAV earcons are introduced solely as OTA-bundled sound assets. All other asset paths are protected and emergency sounds unchanged. Nov14 native Kingdom R7: one Reanimated UI clock powers Skia glowing world, station focus, sea wave and stage lights; Skia game-stage lighting across all 13 current games, with quality choice and offscreen/reduced-motion cleanup. No new native build. Rive host remains intact, but authored .riv scenes are not in the repository. Kingdom game release gate reconciled with owner's canonical Home Hub entry, preserving owner-retired Profile Kingdom door; no gameplay/routing changes. Nov14 owner release instruction: staging publisher now fails closed unless every enumerated feature is reconciled and evidence verified in a mandatory consolidated acceptance manifest. Existing Kingdom R7 OTA was already server-published before this hold; no new partial OTA is authorized. This is only a forward-looking staging publication guard, not an overwrite of production or prior update. Kingdom R8 source reconciled from tested PR #796 directly into this staging DEV branch via 4be3aae67c8fd0cdb29d1f3a949961ef390c69d6; 13 stages now receive event-triggered native Skia bursts, Jawo hit/collect/lean and Trudice correct-step restoration, with offscreen FX suspension. This is DEV source integration ONLY: production/main/web/DB unchanged, Android staging OTA held by existing consolidated acceptance.",
+  "chosenApproach": "Apply shared presentation tokens, responsive Home launchers, compact profile identity, themed inbox, readable Cluster directory and wrapping tabs, compact story rail, searchable Settings and Drawer refinements. Preserve backend and native media contracts. Retain secondary features through explicit accessible disclosures. Complete missing navigation preview parity with a real accessible side-navigation menu and dark navy public header without altering SmartDrawer or legacy route semantics. Follow-up approved navigation decluttering: remove duplicate Home launchers, Profile cover gear, direct standalone offline search with suggested features and account-local recents/pins; use drawer only for unique secondary tools. Nov 13 screenshot issue repair: Connect notification redirect precedence; Profile unique My BUKLOD controls and Org/Suborg roster; /hub canonical announcement; broader ranked offline search; compact theme selection; sound style variants; silent GIF comment thread reload. Nine original WAV earcons are introduced solely as OTA-bundled sound assets. All other asset paths are protected and emergency sounds unchanged. Nov14 native Kingdom R7: one Reanimated UI clock powers Skia glowing world, station focus, sea wave and stage lights; Skia game-stage lighting across all 13 current games, with quality choice and offscreen/reduced-motion cleanup. No new native build. Rive host remains intact, but authored .riv scenes are not in the repository. Kingdom game release gate reconciled with owner's canonical Home Hub entry, preserving owner-retired Profile Kingdom door; no gameplay/routing changes. Nov14 owner release instruction: staging publisher now fails closed unless every enumerated feature is reconciled and evidence verified in a mandatory consolidated acceptance manifest. Existing Kingdom R7 OTA was already server-published before this hold; no new partial OTA is authorized. This is only a forward-looking staging publication guard, not an overwrite of production or prior update. Kingdom R8 source reconciled from tested PR #796 directly into this staging DEV branch via 4be3aae67c8fd0cdb29d1f3a949961ef390c69d6; 13 stages now receive event-triggered native Skia bursts, Jawo hit/collect/lean and Trudice correct-step restoration, with offscreen FX suspension. This is DEV source integration ONLY: production/main/web/DB unchanged, Android staging OTA held by existing consolidated acceptance. Kingdom R9 compiled-source candidate merged on staging DEV commit c94b034d24c3332049dc0f508d3f152499c7338f. Adds 39 profile-specific native game motion scenes, 13 approved static-sprite-derived character pose animations, game-event feedback and per-account Lite protection. No Rive .riv assets, no release publish, production untouched.",
   "selectionRationale": "Targeted presentation composition preserves known functional implementations and dependencies; actual rendering is still required before acceptance or publication.",
   "alternativeApproaches": [
     "Replace screens wholesale: rejected due to high regression and authorization risk.",
@@ -19,7 +19,8 @@
     "Keep production and web unchanged, no package/config/asset/native-dependency changes; preserve game rewards, social features, media, and ad rules.",
     "Previously published staging-only R7 OTA is not rolled back automatically and never counted as entire BUKLOD acceptance. Existing production, native APK, and backend unchanged; all future releases must meet existing mandatory safety gates too.",
     "Published, owner-accepted visual UI, navigation, Kingdom, Settings, fonts, searches, image fidelity, album/media, backend, signing and native runtime are not replaced by older PR #790 source.",
-    "Kingdom R8 native FX are non-interactive, short-lived, disable on blur/background/ReduceMotion and cannot award BP/QMP/XP/Shards. Jawo and Trudice original deterministic rules and preview-only score retained."
+    "Kingdom R8 native FX are non-interactive, short-lived, disable on blur/background/ReduceMotion and cannot award BP/QMP/XP/Shards. Jawo and Trudice original deterministic rules and preview-only score retained.",
+    "Per-account cinematic/Lite (existing '@buklod_kingdom_fx_quality_v1_' key) controls interior character/game motion without cross-account leakage; fallback and Reduce Motion preserved."
   ],
   "acceptanceChecks": [
     "All eight areas have actual source-level presentation changes.",
@@ -47,7 +48,8 @@
     "Approved source-only fast sponsored video startup and native original-media cache are ported onto frozen Visual Staging baseline e1551b09; not deployed before 16-category consolidated gate is verified.",
     "Exact Visual Staging ancestor, only 3 reviewed media JS blobs and no protected app, native, backend, asset or dependency changes are asserted by a no-publish workflow, with evidence artifact and a mandatory incomplete-consolidation hold.",
     "R8 integrated exactly seven additional code/test/manifest paths, with QA-verified prior PR head ae20d97a4e69a2a86676df795b23b9484d682c08 and DEV merge SHA 4be3aae67c8fd0cdb29d1f3a949961ef390c69d6.",
-    "R8 staging OTA still blocked pending full exact merged-branch Android compile, signed staging APK ABI checks and owner consolidated visual/backend acceptance; no production promotion."
+    "R8 staging OTA still blocked pending full exact merged-branch Android compile, signed staging APK ABI checks and owner consolidated visual/backend acceptance; no production promotion.",
+    "Kingdom R9 PR #797 engineering and web checks SUCCESS, 8 scoped files reconciled; native Android Hermès one-shot compile pending independent evidence and real .riv rig absent."
   ],
   "riskAreas": [
     "wall-media",
@@ -69,7 +71,8 @@
     "tests/kingdom-premium-realm-v2-20261111.test.mjs",
     "tests/nov14-consolidated-staging-ota-gate.test.mjs",
     "tests/sponsor-ad-video-fast-start-20261114.test.mjs",
-    "tests/kingdom-premium-gameplay-staging-20261114.test.mjs"
+    "tests/kingdom-premium-gameplay-staging-20261114.test.mjs",
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
   ],
   "allowedPaths": [
     "docs/visual/full-transformation-20261113.md",
@@ -162,7 +165,15 @@
     "src/features/games/runtime/BuklodGameVisualFX.tsx",
     "src/features/games/runtime/BuklodGameplayReactionFX.native.tsx",
     "src/features/games/trudice/PlaygroundPathGameV2.tsx",
-    "tests/kingdom-premium-gameplay-staging-20261114.test.mjs"
+    "tests/kingdom-premium-gameplay-staging-20261114.test.mjs",
+    ".buklod/scopes/kingdom-r9-39-cinematic-scenes-staging-20261114.json",
+    ".github/workflows/buklod-kingdom-r9-android-export-qa-20261114.yml",
+    "src/features/games/kingdom/platform/KingdomCinematicScene.native.tsx",
+    "src/features/games/kingdom/platform/KingdomCinematicScene.tsx",
+    "src/features/games/kingdom/platform/KingdomCinematicScene.web.tsx",
+    "src/features/games/kingdom/platform/KingdomCinematicScenes.ts",
+    "src/features/games/kingdom/platform/KingdomInteriorCenter.tsx",
+    "tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -231,5 +242,5 @@
     }
   ],
   "releaseMode": "dev-only-blocked-visual-acceptance",
-  "releaseStatus": "PARTIAL IMPLEMENTATION / R8 INTEGRATED IN STAGING DEV ONLY; OWNER CONSOLIDATED RELEASE HOLD ACTIVE. No new staging OTA, Play, production, web or database release."
+  "releaseStatus": "R8+R9 SOURCE INTEGRATED IN STAGING DEV ONLY. 39 game scene profiles source-tested; authored Rive rigs absent; Android native export/runtime and consolidated owner acceptance HOLD. No production OTA or staging user OTA from R9."
 }
