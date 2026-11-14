@@ -14,7 +14,8 @@
     "ads-finance-points",
     "governance-lock",
     "navigation-auth",
-    "ad-impression"
+    "ad-impression",
+    "ads-monetization"
   ],
   "preserveBehaviors": [
     "NativeAdView only mounts after eligible viewport.",
@@ -24,8 +25,6 @@
   ],
   "regressionTests": [
     "tests/ad-native-lifecycle-retention-20261115.test.mjs",
-    "tests/admob-native-video-prefetch-20261114.test.mjs",
-    "tests/nov15-android-native-prefetch-gate.test.mjs",
     "tests/protected-feature-lock-native-retention-20261115.test.mjs"
   ],
   "allowedPaths": [
