@@ -28,7 +28,10 @@ test('Isolated PostgreSQL 17 CI executes actual patient, nonparticipant and revo
   assert.match(workflow, /postgres:17/);
   assert.match(workflow, /tests\/fixtures\/nov14_health_auth_bootstrap\.sql/);
   assert.match(workflow, /supabase\/migrations\/20261114150000_buklod_hc_consultation_r1\.sql/);
-  assert.match(workflow, /tests\/fixtures\/nov14_health_access_rls\.sql/);
+  assert.match(workflow, /supabase\/tests\/nov14_buklod_hc_consultation_rls\.sql/);
+  const canonical = readFileSync(new URL('../supabase/tests/nov14_buklod_hc_consultation_rls.sql', import.meta.url), 'utf8');
+  assert.match(canonical, /\\ir \.\.\/\.\.\/tests\/fixtures\/nov14_health_access_rls\.sql/);
+  assert.match(canonical, /has_table_privilege/);
   const checks = readFileSync(new URL('../tests/fixtures/nov14_health_access_rls.sql', import.meta.url), 'utf8');
   assert.match(checks, /nonparticipant leaked case/);
   assert.match(checks, /revoked clinician still sees case/);
