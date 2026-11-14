@@ -52,4 +52,5 @@ test('calls, app background, focus cleanup, multiple taps and silent preference 
   assert.match(sounds,/if \(!settings\.games \|\| activeCall\) return false/);
   assert.match(sounds,/if \(settings\.quietHours\)/);
   assert.match(a,/const voiceCount:/);
+  assert.match(a,/status.playing && !isBuklodGameSoundEnabled\(\)/);
 });

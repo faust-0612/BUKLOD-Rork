@@ -204,7 +204,14 @@ export function useRorkGameAmbience(gameId?: string | null) {
     // instead of losing the first playback attempt.
     let loadedOnce = audio.isLoaded;
     const readyListener = audio.addListener('playbackStatusUpdate', status => {
-      if (active && status.isLoaded && !loadedOnce) {
+      if (!active || !status.isLoaded) return;
+      // A call can start while Kingdom stays focused. Stop the loop promptly,
+      // without pausing PTT, call audio or any other application player.
+      if (status.playing && !isBuklodGameSoundEnabled()) {
+        try { audio.pause(); } catch { /* optional game music */ }
+        return;
+      }
+      if (!loadedOnce) {
         loadedOnce = true;
         void sync();
       }
