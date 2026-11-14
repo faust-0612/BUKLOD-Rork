@@ -1,0 +1,113 @@
+{
+  "contractVersion": 2,
+  "objective": "Reconcile existing tested SALIKSIK R1/R2 backend, private Admin vault, generator, human-reviewed Master and canonical Points with latest Home/Profile/Wall visual staging source, without overwriting newer changes or deploying database.",
+  "baseRef": "9c9661b888eca979c7cd114c42ae97a333830d37",
+  "productionBaselineEvidence": "Full staging visual/Profile branch 9c9661b888eca979c7cd114c42ae97a333830d37 is source base and includes production/main lineage. No isolated Supabase backend exists; no production migration, Edge deploy or OTA is authorized. Exact nonpublishing staging Android source workflow requested; no OTA, no new paid branch.",
+  "chosenApproach": "Copy original SALIKSIK backend SQL, generator and tests blob-identically; surgically insert only required Admin navigation and Cluster faith doorway into latest staged source; preserve all other Home, Profile, Wall, Ads, Finance and security changes. Rollout OFF.",
+  "selectionRationale": "Reuse existing Expo, Supabase, Gemini and authenticated AdminGate; non-publishing default isolates new system and prevents regression to existing KL/Quiz/Finance.",
+  "alternativeApproaches": [
+    "Use KL reading quiz directly: rejected because SALIKSIK has distinct provenance, five-dimensional mastery, version identity and rewards.",
+    "Automatic LLM credit for +35: rejected due adversarial grading/prompt injection and inadequate independent written mastery evidence.",
+    "Separate SaaS/storage project: rejected due expense and authorization/data isolation overhead."
+  ],
+  "riskAreas": [
+    "cluster-faith",
+    "backend-security",
+    "points-ledger",
+    "admin-private-storage",
+    "ai-provenance",
+    "ota-compatibility",
+    "faith-cluster"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/saliksik-vault-adaptive-20261112.json",
+    "docs/saliksik/BUKLOD_SALIKSIK_AUTHORITATIVE_BLUEPRINT_20261112.md",
+    "src/lib/saliksikMastery.mjs",
+    "src/lib/saliksikClient.ts",
+    "src/app/admin/saliksik-library.tsx",
+    "src/app/admin/index.tsx",
+    "src/app/scope/saliksik.tsx",
+    "src/components/BuklodSaliksikDoor.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "supabase/migrations/20261112221000_saliksik_private_vault_objective_mastery_r1.sql",
+    "supabase/functions/saliksik-generate-v1/index.ts",
+    "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql",
+    "tests/saliksik-adaptive-mastery-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-20261112.test.mjs",
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    ".github/workflows/saliksik-sql-qa.yml",
+    "tests/fixtures/saliksik_pg_seed.sql",
+    "tests/fixtures/saliksik_pg_integration.sql",
+    "tests/saliksik-sql-pg-qa.test.mjs",
+    "supabase/migrations/20261113221000_saliksik_written_master_reward_r2.sql",
+    "supabase/tests/saliksik_written_master_r2.sql",
+    "tests/saliksik-written-master-20261113.test.mjs",
+    "tests/saliksik-staging-profile-home-preservation-20261114.test.mjs",
+    ".github/workflows/buklod-saliksik-integrated-staging-android-qa-20261114.yml",
+    "docs/release/BUKLOD_HEALTH_SALIKSIK_STAGING_GATES_20261114.md"
+  ],
+  "regressionTests": [
+    "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql",
+    "tests/saliksik-adaptive-mastery-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-20261112.test.mjs",
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    "tests/saliksik-sql-pg-qa.test.mjs",
+    "tests/saliksik-written-master-20261113.test.mjs",
+    "supabase/tests/saliksik_written_master_r2.sql",
+    "tests/saliksik-staging-profile-home-preservation-20261114.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "Cluster Home first paint remains local; SALIKSIK door is an opt-in OTA flagged card and backend off by default.",
+    "Existing KL +10 chapter and +50 series, Daily Bible, Quiz, Wall, videos, ads, Connect and PTT remain untouched.",
+    "Production ledger and QMP/AdMob payout logic untouched; separate saliksik_ source keys and transactional credits.",
+    "Official System Admin account does not receive new member rewards.",
+    "Master remains gated by false-by-default member rollout; existing school/quiz/finance payout/ads and KL remain untouched."
+  ],
+  "acceptanceChecks": [
+    "Node behavioral mastery and protected route tests pass; SQL migration test passes on isolated database.",
+    "Source checksum validated, private RLS and nonadmin denial, draft-only AI generation, admin source preview.",
+    "No published Master +35 via MCQ; no answer key leakage, cross-member data or duplicate claim.",
+    "App TypeScript check and Expo Android/Web export pass without changing native runtime.",
+    "RC real auth, concurrency, weak-network, question quality, permissions and SQL validation gates.",
+    "Exact source/runtime/OTA/Expo Hosting artifact verified before any production claim.",
+    "Independent PostgreSQL 17 service executes actual migration and end-to-end 8 investigation / 170 pending canonical points ledger workflow; member and admin requests use authenticated role.",
+    "R2 written Master: three distinct long-form responses, eight objective prerequisites, private submission, independent System Admin citation review and immutable 35+50 canonical points in one transaction.",
+    "GitHub main may move due concurrent owner work; use latest concrete main SHA for PR merge-ref diff. Never include unrelated GIF/Wall changes in SALIKSIK manifest or overwrite them."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add isolated SALIKSIK member and admin screens plus a no-extra-fetch doorway without touching existing functionality.",
+      "preservedBehaviors": [
+        "No existing tabs removed or recreated; Cluster media, ads and navigation remain intact."
+      ],
+      "tests": [
+        "tests/saliksik-cluster-faith-20261112.test.mjs",
+        "tests/saliksik-staging-profile-home-preservation-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Display an optional SALIKSIK feature only for faith-enabled Cluster Home, preserving the existing KL panel and Cluster Home widget layout.",
+      "preservedBehaviors": [
+        "Current faith features, home bulletin, advertisements and low-latency dashboard render are preserved."
+      ],
+      "tests": [
+        "tests/saliksik-cluster-faith-20261112.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Introduce isolated authenticated private vault, admin publication, independent objective grading and duplicate-proof canonical point awards.",
+      "preservedBehaviors": [
+        "Existing backend permissions, protected points/rank/AdMob/Finance, and unrelated storage buckets remain unmodified."
+      ],
+      "tests": [
+        "tests/saliksik-backend-security-20261112.test.mjs",
+        "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql"
+      ]
+    }
+  ],
+  "releaseMode": "staging-source-only-no-ota",
+  "releaseGate": "BLOCKED: independently verify current exact-head SQL PG17 QA, staging Supabase isolated branch and Edge, all actor-role/RLS negative tests and Android compiled exact-source RC; production untouched."
+}
