@@ -1,0 +1,68 @@
+name: BUKLOD Sponsor Video Android and Web Bundle Compile (DEV only)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/sponsor-video-android-web-compile-20261114.yml'
+      - 'src/components/BuklodCommunitySponsoredAd.tsx'
+      - 'tests/sponsor-ad-video-cache-20261114.test.mjs'
+      - 'tests/sponsor-cached-egress-20261114.test.mjs'
+      - '.buklod/scopes/sponsor-cached-egress-20261114.json'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-sponsor-js-compile-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  sponsor-js-compile:
+    # Source-only check. Never merge, deploy, build native APK, or publish OTA.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'dev/supabase-sponsored-media-cache-20261114'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - name: Checkout exact PR commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Setup Node 22 with npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies (no native postinstall)
+        run: npm ci --ignore-scripts
+      - name: Check exact SHA, staging package, runtime and OTA identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx expo config --json > /tmp/buklod-sponsor-expo-config.json
+          node -e "const c=require('/tmp/buklod-sponsor-expo-config.json');const assert=require('node:assert/strict');assert.equal(c.android.package,'org.mzbministry.buklod.staging');assert.equal(c.runtimeVersion,'1.3.2');assert.equal(c.extra?.eas?.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');assert.equal(c.updates?.url,'https://u.expo.dev/23dad7d0-389a-406e-8dec-08965dab85d8');"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+      - name: Run sponsor and monetization focused regressions
+        run: |
+          node --test tests/sponsor-ad-video-cache-20261114.test.mjs tests/sponsor-cached-egress-20261114.test.mjs
+          node --test tests/paid-sponsorship-wall-scroll-20261107.test.mjs tests/paid-sponsorship-wall-desktop-home-20261107.test.mjs tests/ptt-media-audio-mixing-20261111.test.mjs
+      - name: TypeScript compile check
+        run: npx tsc --noEmit
+      - name: Compile Android JavaScript OTA bundle (no native build or publish)
+        run: npx expo export --platform android --output-dir /tmp/buklod-sponsor-android --clear
+      - name: Compile Expo web JavaScript bundle (no deploy)
+        run: npx expo export --platform web --output-dir /tmp/buklod-sponsor-web --clear
+      - name: Verify compiled outputs, exact SHA and clean source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$(find /tmp/buklod-sponsor-android -type f -print -quit)"
+          test -n "$(find /tmp/buklod-sponsor-web -type f -print -quit)"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          git diff --exit-code
+          printf 'COMPILE_ONLY_EXACT_SHA=%s\n' "$(git rev-parse HEAD)"
+          printf 'RUNTIME=1.3.2\nPACKAGE=org.mzbministry.buklod.staging\n'
+          printf 'ANDROID_BUNDLE_FILES=%s\n' "$(find /tmp/buklod-sponsor-android -type f | wc -l)"
+          printf 'WEB_BUNDLE_FILES=%s\n' "$(find /tmp/buklod-sponsor-web -type f | wc -l)"
+          echo 'SOURCE_COMPILE_ONLY=PASS; SIGNED_STAGING_APK=NOT_TESTED; OTA=NOT_PUBLISHED'
