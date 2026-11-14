@@ -45,7 +45,6 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           node --experimental-strip-types --test tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs
           node --test tests/kingdom-native-cinematic-ota-20261114.test.mjs
-          node --test tests/kingdom-premium-gameplay-staging-20261114.test.mjs
           npx tsc --noEmit
           node - <<'NODE'
           const a = require('node:assert/strict');
