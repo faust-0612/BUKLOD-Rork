@@ -5,6 +5,7 @@ import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef }
 import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
 import BuklodProfileMembershipNav from '@/components/BuklodProfileMembershipNav';
 import BuklodProfilePostCards from '@/components/BuklodProfilePostCards';
+import BuklodProfileTopTenRankings from '@/components/BuklodProfileTopTenRankings';
 import BuklodProfileActivityCards from '@/components/BuklodProfileActivityCards';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
@@ -1838,13 +1839,16 @@ export default function MeScreen() {
           {([['ALL-TIME',rankPositions?.overall],['MONTHLY',rankPositions?.monthly]] as const).map(([label,position])=>(
             <Pressable key={label} accessibilityRole="button" onPress={()=>router.push('/points' as any)}
               style={{flex:1,backgroundColor:theme.accentSoft,minHeight:56,alignItems:'center',padding:9,borderRadius:12}}>
-              <Text allowFontScaling style={{color:theme.accent,fontSize:19,fontWeight:'900'}}>{position&&position>0?'#'+position:'—'}</Text>
+              <Text allowFontScaling style={{color:theme.accent,fontSize:19,fontWeight:'900'}}>{position&&position>0?String(position):'—'}</Text>
               <Text allowFontScaling style={{fontSize:11,color:theme.textSecondary,fontWeight:'800'}}>{label}</Text>
             </Pressable>
           ))}
         </View>
         <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Recorded Points standings. Monthly rank uses the calendar month; AdMob payouts finalize separately.</Text>
       </View>
+
+      {/* Real server-ranked positions 1–10; monthly and all-time are directly visible. */}
+      {!!profile?.id && <BuklodProfileTopTenRankings userId={profile.id} />}
 
       {/* BUKLOD Official also owns real posts: show them before its admin bulletin. */}
       {isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}

@@ -39,3 +39,16 @@ test('all-time and monthly ranks appear on official and ordinary Profile ahead o
  assert.ok(!me.includes('!isBuklodOfficial && <View style={{marginHorizontal:12,padding:12'),'official account must not be gated out');
  assert.match(me,/AdMob payouts finalize separately/);
 });
+
+test('Profile shows canonical 1-10 Monthly and All-Time rankings, not only a hash rank badge',()=>{
+ const me=read('src/app/(tabs)/me.tsx');
+ const component=read('src/components/BuklodProfileTopTenRankings.tsx');
+ assert.match(me,/import BuklodProfileTopTenRankings from/);
+ assert.ok(me.includes('<BuklodProfileTopTenRankings userId={profile.id} />'));
+ assert.ok(me.indexOf('MY OVERALL & MONTHLY RANK')<me.indexOf('<BuklodProfileTopTenRankings'));
+ assert.ok(me.indexOf('<BuklodProfileTopTenRankings')<me.indexOf('isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards'));
+ assert.ok(me.includes("{position&&position>0?String(position):'—'}"));
+ assert.ok(component.includes('TOP 10 RANKINGS'));
+ assert.ok(component.includes('item.rank_position'));
+ assert.ok(component.includes("(['monthly', 'all_time'] as const)"));
+});

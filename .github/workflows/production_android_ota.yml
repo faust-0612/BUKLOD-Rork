@@ -74,6 +74,7 @@ jobs:
         run: |
           node --experimental-strip-types --test \
             tests/nov14-profile-navigation-rank-refresh.test.mjs \
+            tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs \
             tests/nov14-profile-navigation-personal-activity-report.test.mjs \
             tests/nov14-connect-green-profile-posts-ota.test.mjs \
             tests/sponsor-ad-video-fast-start-20261114.test.mjs \
