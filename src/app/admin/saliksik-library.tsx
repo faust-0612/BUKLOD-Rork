@@ -31,6 +31,7 @@ export default function SaliksikLibraryScreen(){
  const loading=useRef(false);
  const active=useRef(true);
  const refresh=useCallback(async()=>{
+  if(process.env.EXPO_PUBLIC_SALIKSIK_ENABLED!=='true')return;
   if(loading.current)return;
   loading.current=true;
   try{
@@ -120,6 +121,7 @@ export default function SaliksikLibraryScreen(){
    await Linking.openURL(url);
   }catch(e){setError(textError(e));}
  };
+ if(process.env.EXPO_PUBLIC_SALIKSIK_ENABLED!=='true')return <AdminGate><View style={{padding:22}}><Text>SALIKSIK is not enabled in this release.</Text></View></AdminGate>;
  return <AdminGate>
   <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
    <Pressable onPress={()=>router.back()} style={styles.back}>

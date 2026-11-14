@@ -33,6 +33,7 @@ export default function SaliksikInvestigationScreen(){
  const active=useRef(true),submitLock=useRef(false),epoch=useRef(0);
  const load=useCallback(async()=>{
   const current=++epoch.current;
+  if(process.env.EXPO_PUBLIC_SALIKSIK_ENABLED!=='true'){setLoading(false);setError('SALIKSIK is not enabled in this release.');return;}
   if(!scopeId){setLoading(false);setError('Open SALIKSIK from an active Cluster Home.');return;}
   setLoading(true);setError('');
   try{

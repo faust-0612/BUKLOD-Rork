@@ -564,12 +564,14 @@ export default function AdminDashboard() {
                 subtitle="System Admin: upload, publish and delete songs for Wall posts"
                 path="/admin/music-library"
               />
+              {process.env.EXPO_PUBLIC_SALIKSIK_ENABLED === 'true' ? (
               <AdminRow
                 icon="book-search-outline"
                 title="SALIKSIK Knowledge Vault"
                 subtitle="Private manuscript uploads, AI investigation drafts and verified publication"
                 path="/admin/saliksik-library"
               />
+              ) : null}
               <AdminRow
                 icon="script-text-outline"
                 title="Kabihasnang Ligaw"
