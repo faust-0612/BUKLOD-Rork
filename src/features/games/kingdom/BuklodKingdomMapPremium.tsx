@@ -13,6 +13,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 import { getRorkGameMedia } from '@/features/games/runtime/rorkMedia';
 import BuklodKingdomLivingFX from './BuklodKingdomLivingFX';
+import BuklodGodotLabLauncher from './BuklodGodotLabLauncher';
 import { getBuklodSoundSettings } from '@/lib/buklodSounds';
 import {
   loadBuklodKingdomPreviewProgress,
@@ -669,6 +670,7 @@ export default function BuklodKingdomMapPremium() {
   return (
     <View style={styles.root}>
       <LinearGradient colors={['#0d3b62', '#176b83', '#071e3b']} style={StyleSheet.absoluteFill} />
+      <BuklodGodotLabLauncher />
 
       <ScrollView
         ref={horizontalRef} horizontal bounces={false} showsHorizontalScrollIndicator={false}
