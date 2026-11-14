@@ -5,7 +5,8 @@ import fs from 'node:fs';
 const read = path => fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 test('canonical overall/monthly Profile ranks revalidate on each tab focus with stale response protection',()=>{
  const me=read('src/app/(tabs)/me.tsx');
- const slice=me.slice(me.indexOf('const [rankPositions'),me.indexOf('const loadCircleRank'));
+ const rankStart=me.indexOf('const [rankPositions');
+ const slice=me.slice(rankStart,me.indexOf('  useEffect(() => {',rankStart));
  assert.match(slice,/useProfileFocusEffect\(/);
  assert.match(slice,/useProfileFocusCallback\(/);
  assert.match(slice,/loadBuklodPointsDashboard\(\)/);
