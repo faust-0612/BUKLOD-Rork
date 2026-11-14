@@ -29,7 +29,7 @@ impact-wood.wav|b7a42211c3f815080e20e3012b135131dfb7c8ea|https://raw.githubuserc
 victory.wav|4aa7f6599f0b3291308dc23b39eb555a85dee478|https://raw.githubusercontent.com/Calinou/kenney-interface-sounds/4596a49eaf5a533948d49a47467f606bcdea70ff/addons/kenney_interface_sounds/confirmation_004.wav|44238
 failure.wav|edcf344ee212d13797f250eb5649ce55c655d825|https://raw.githubusercontent.com/Calinou/kenney-interface-sounds/4596a49eaf5a533948d49a47467f606bcdea70ff/addons/kenney_interface_sounds/error_001.wav|30542
 unlock.wav|61b63c1b404734114bcf872cd1b4e1a2004dacb0|https://raw.githubusercontent.com/Calinou/kenney-interface-sounds/4596a49eaf5a533948d49a47467f606bcdea70ff/addons/kenney_interface_sounds/maximize_005.wav|46670
-enter.wav|5195040c3313a9dabb165351aea0254341ad8739d|https://raw.githubusercontent.com/Calinou/kenney-interface-sounds/4596a49eaf5a533948d49a47467f606bcdea70ff/addons/kenney_interface_sounds/open_003.wav|27982
+enter.wav|5195040c3313a9dabb165351aea0254341adf83d|https://raw.githubusercontent.com/Calinou/kenney-interface-sounds/4596a49eaf5a533948d49a47467f606bcdea70ff/addons/kenney_interface_sounds/open_003.wav|27982
 coins.wav|45a517f9d968137d1ae50a6eb50b7258a2ceb64b|https://raw.githubusercontent.com/Calinou/kenney-interface-sounds/4596a49eaf5a533948d49a47467f606bcdea70ff/addons/kenney_interface_sounds/pluck_001.wav|19790
 victory-alt.wav|2ef68f15c22d9966081f923c53926f1b464b7fc|https://raw.githubusercontent.com/Calinou/kenney-interface-sounds/4596a49eaf5a533948d49a47467f606bcdea70ff/addons/kenney_interface_sounds/confirmation_002.wav|49614
 ASSETS
