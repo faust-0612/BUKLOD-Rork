@@ -49,7 +49,8 @@
     "assets/sounds/kingdom-premium/victory-alt.wav",
     "assets/sounds/kingdom-premium/victory.wav",
     "tests/kingdom-premium-audio-staging-20261114.test.mjs",
-    ".github/workflows/kingdom-premium-audio-vendor-staging.yml"
+    ".github/workflows/kingdom-premium-audio-vendor-staging.yml",
+    "src/app/games/practice.tsx"
   ],
   "regressionTests": [
     "tests/kingdom-premium-audio-staging-20261114.test.mjs",
@@ -64,7 +65,8 @@
         "Exact 39-game, 13-character staging gameplay and Skia/Reanimated event bus remain unchanged.",
         "Navigation focus, quiet hours, persisted map music opt-in, mute and sound volume preserve user intent.",
         "Home/Wall/media/PTT/calls and non-Kingdom sounds are unaffected; Expo runtime and package IDs unchanged.",
-        "No database, game result, rewards, ad logic, security, account or production changes."
+        "No database, game result, rewards, ad logic, security, account or production changes.",
+        "All 39 offline practice routes still use catalog-gated IDs and unchanged account-scoped progress while mounting Kingdom-only audio."
       ],
       "tests": [
         "tests/kingdom-premium-audio-staging-20261114.test.mjs",

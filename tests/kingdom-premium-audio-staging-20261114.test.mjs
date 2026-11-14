@@ -23,6 +23,7 @@ test('runtime uses shipped premium music and SFX without accessing the old Rork 
   const premium = read('src/features/games/runtime/kingdomPremiumAudioAssets.ts');
   const runtime = read('src/features/games/runtime/rorkAudio.ts');
   const native = read('src/features/games/runtime/BuklodGameFeedback.native.ts');
+  const practice = read('src/app/games/practice.tsx');
   for (const s of ['kingdom-theme.ogg','kingdom-village.ogg','kingdom-great-hall.ogg','victory.wav','collect-crystal.wav']) {
     assert.ok(premium.includes(s));
   }
@@ -33,6 +34,8 @@ test('runtime uses shipped premium music and SFX without accessing the old Rork 
   assert.match(runtime,/if \(!gameId \|\| !musicEnabled\) return/);
   assert.match(runtime,/readyListener\.remove\(\)/);
   assert.match(native,/tryPlayRorkGameFeedback\(event, volume\)/);
+  assert.match(practice,/useRorkGameAmbience\(gameId\)/);
+  assert.match(practice,/ALL_IDS\.has\(gameParam\)/);
   assert.doesNotMatch(runtime,/createAudioPlayer\(RORK_AUDIO\[media\.ambience\]/);
   assert.equal((premium.match(/require\('\.\.\/\.\.\/\.\.\/\.\.\/assets\/sounds\/kingdom-premium\//g)??[]).length,15);
 });

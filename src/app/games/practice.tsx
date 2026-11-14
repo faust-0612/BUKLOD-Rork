@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
 import gameCatalog from '@/features/games/kingdom/platform/game-catalog.json';
 import { KingdomOfflineContinuation } from '@/features/games/kingdom/platform/KingdomOfflineContinuation';
+import { useRorkGameAmbience } from '@/features/games/runtime/rorkAudio';
 
 const ALL_IDS = new Set(gameCatalog.characters.flatMap(center => center.games.map(game => game.id)));
 
@@ -17,6 +18,9 @@ export default function KingdomPracticeScreen() {
   const { gameId: gameParam } = useLocalSearchParams<{ gameId?: string | string[] }>();
   const insets = useSafeAreaInsets();
   const gameId = typeof gameParam === 'string' && ALL_IDS.has(gameParam) ? gameParam : null;
+  // All 39 offline practice routes now share the same focus-owned premium audio.
+  // Invalid game IDs are silent and never warm a player.
+  useRorkGameAmbience(gameId);
   return <View style={styles.root}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[
       styles.container, {paddingTop:Math.max(12,insets.top)+10,paddingBottom:Math.max(20,insets.bottom)+20},
