@@ -20,10 +20,10 @@
   "allowedPaths": [
     ".buklod/scopes/wall-life-kl-always-visible-20261114.json",
     "src/app/(tabs)/buklod.tsx",
-    "tests/wall-life-kl-always-visible-20261114.test.mjs"
+    "tests/wall-life-kl-navigation-20261114.test.mjs"
   ],
   "regressionTests": [
-    "tests/wall-life-kl-always-visible-20261114.test.mjs",
+    "tests/wall-life-kl-navigation-20261114.test.mjs",
     "tests/full-visual-navigation-connect-cluster-wall-qmp-20261113.test.mjs",
     "tests/buklod-living-greetings-20261108.test.mjs"
   ],
@@ -47,7 +47,7 @@
         "No new runtime/native package; Wall feed, ads, Marites and all existing card content remain unchanged."
       ],
       "tests": [
-        "tests/wall-life-kl-always-visible-20261114.test.mjs"
+        "tests/wall-life-kl-navigation-20261114.test.mjs"
       ]
     },
     {
@@ -57,7 +57,7 @@
         "LIFE and Kabihasnang Ligaw navigation and Wall user session controls stay identical."
       ],
       "tests": [
-        "tests/wall-life-kl-always-visible-20261114.test.mjs"
+        "tests/wall-life-kl-navigation-20261114.test.mjs"
       ]
     }
   ],
