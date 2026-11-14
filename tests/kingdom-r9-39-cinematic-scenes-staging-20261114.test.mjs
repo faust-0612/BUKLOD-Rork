@@ -7,7 +7,9 @@ import { KINGDOM_CHARACTER_MOTION, KINGDOM_CINEMATIC_SCENES, getKingdomCinematic
 
 const read = p => fs.readFileSync(new URL('../'+p, import.meta.url), 'utf8');
 const catalog = JSON.parse(read('src/features/games/kingdom/platform/game-catalog.json'));
-const base = 'e15b91fb95742a63e7d5d1d664d15b087681f331';
+// R9's canonical 39-game catalog first exists in this vetted source commit.
+// The previous e15b91f reference predates the game-catalog file and could never pass.
+const base = '13f7bb7c9144c80f0f90c910bfb883f1f820a5c9';
 const native = read('src/features/games/kingdom/platform/KingdomCinematicScene.native.tsx');
 const map = read('src/features/games/kingdom/BuklodKingdomMapPremium.tsx');
 const center = read('src/features/games/kingdom/platform/KingdomInteriorCenter.tsx');

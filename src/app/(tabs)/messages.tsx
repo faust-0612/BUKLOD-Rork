@@ -394,15 +394,13 @@ function createInboxStyles(theme: ConnectThemeRoles) {
     },
     hero: {
       marginBottom: 0,
-      minHeight: 72,
+      minHeight: 89,
       paddingTop: 7,
       paddingBottom: 8,
       paddingHorizontal: 14,
-      backgroundColor: theme.surface,
-      borderBottomLeftRadius: 0,
-      borderBottomRightRadius: 0,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.border,
+      backgroundColor: HIBLA.pine,
+      borderBottomLeftRadius: 25,
+      borderBottomRightRadius: 25,
       overflow: 'hidden',
     },
     heroArc: {
@@ -413,24 +411,24 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       right: -48,
       borderRadius: 85,
       borderWidth: 1,
-      borderColor: theme.accentSoft,
+      borderColor: 'rgba(237,201,120,0.55)',
     },
     heroEyebrow: {
-      color: theme.accent,
+      color: HIBLA.gold,
       fontSize: 10,
       letterSpacing: 2.1,
       fontWeight: '900',
     },
     heroTitle: {
       marginTop: 2,
-      color: theme.textPrimary,
+      color: '#FFFFFF',
       fontSize: buklodVisual.type.title,
       fontWeight: '900',
-      lineHeight: 25,
-      letterSpacing: -0.5,
+      lineHeight: 27,
+      fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
     },
     heroSubtitle: {
-      color: theme.textMuted,
+      color: '#DBF3E4',
       fontSize: 13,
       marginTop: 1,
     },
@@ -448,7 +446,7 @@ function createInboxStyles(theme: ConnectThemeRoles) {
       fontWeight: '800',
     },
     searchDock: {
-      marginTop: 4,
+      marginTop: -12,
       marginHorizontal: 8,
       paddingTop: 4,
       paddingBottom: 5,
@@ -1267,6 +1265,16 @@ function ConnectScreenInner({
           <ConnectThemeSelectorButton />
         </View>
       </View>
+      <ConnectInboxTabs
+        tab={tab}
+        requestCount={requestThreads.length}
+        personalUnread={regularThreads.reduce((total, item) => total + n(item.unread_count), 0)}
+        clusterUnread={clusterUnread}
+        orgUnread={orgUnread}
+        communityFilter={communityFilter}
+        onTabChange={setTab}
+        onCommunityFilterChange={setCommunityFilter}
+      />
       {tab === 'personal' && !community && !isSearching && (
         <>
           <Text style={styles.contactsTitle}>Mga kasama</Text>
@@ -1288,16 +1296,7 @@ function ConnectScreenInner({
           placementId={community ? 'connect_community_first_view' : 'connect_personal_first_view'}
         />
       ) : null}
-      <ConnectInboxTabs
-        tab={tab}
-        requestCount={requestThreads.length}
-        personalUnread={regularThreads.reduce((total, item) => total + n(item.unread_count), 0)}
-        clusterUnread={clusterUnread}
-        orgUnread={orgUnread}
-        communityFilter={communityFilter}
-        onTabChange={setTab}
-        onCommunityFilterChange={setCommunityFilter}
-      />
+
       {community && !forcedScopeId && (
         <ConnectCommunityFilters active={communityFilter} onChange={setCommunityFilter} />
       )}
