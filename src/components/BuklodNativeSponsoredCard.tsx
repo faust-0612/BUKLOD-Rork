@@ -5,6 +5,7 @@
 export default function BuklodNativeSponsoredCard(_props: {
   surface: 'home' | 'profile' | 'connect' | 'cluster_dashboard';
   slotId: string;
+  prefetch?: boolean;
 }) {
   return null;
 }
