@@ -6,6 +6,8 @@ export BUKLOD_APP_TARGET=kingdom-native-lab
 export APP_VARIANT=staging
 export EXPO_PUBLIC_APP_ENV=staging
 export EXPO_PUBLIC_KINGDOM_NATIVE_LAB=1
+export KINGDOM_LAB_GOOGLE_SERVICES_FILE=./google-services.kingdomlab.offline.json
+node scripts/kingdom-lab/make-offline-firebase.cjs
 node scripts/kingdom-lab/preflight.cjs --build
 test -d node_modules || { echo "Install this repo's locked dependencies locally first."; exit 12; }
 command -v java >/dev/null || { echo "Java SDK not found."; exit 13; }
