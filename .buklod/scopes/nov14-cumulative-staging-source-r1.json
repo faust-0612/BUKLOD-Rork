@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov14-cumulative-staging-source-r1.json",
+  "objective": "Consolidate owner-approved staging-only LIFE/KL always-visible Wall correction and dormant Health Center R1 private RLS source onto latest verified SALIKSIK R1/R2 + Profile/Home visual DEV candidate without rewriting overlaps.",
+  "baseRef": "d559e5edd596a66a22c2072af5bdffcd5a085bb2",
+  "productionBaselineEvidence": "Protected production/main intentionally untouched. Exact parent d559e5edd596a66a22c2072af5bdffcd5a085bb2 includes SALIKSIK disabled gates and stacked Profile/Home/Kingdom visual source; Health clinical backend and real SALIKSIK isolated staging remain unavailable.",
+  "chosenApproach": "Strictly patch Wall highlights wrapper (no card move), carry the exact previously source-authored Health R1 migration and isolated PG17 role fixtures + QA workflow as dormant source, preserve existing SALIKSIK implementation and security/financial invariants. This stacked branch does not deploy any migration.",
+  "selectionRationale": "Small conflict-minimized diff preserving latest Home/Profile/ads/Nav and SALIKSIK generator handler, while adding verified-testable Health role controls and user-requested Wall visibility.",
+  "alternativeApproaches": [
+    "Whole stale PR branch merge rejected due overlapping SALIKSIK handlers and source drift",
+    "Direct clinical migration to production rejected because no isolated backend, verified clinicians, or clinical acceptance"
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "wall-layout",
+    "backend-security",
+    "row-level-security",
+    "clinical-data-privacy",
+    "staging-isolation"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "tests/wall-life-kl-navigation-20261114.test.mjs",
+    ".github/workflows/health-center-online-backend-qa.yml",
+    "supabase/migrations/20261114150000_buklod_hc_consultation_r1.sql",
+    "tests/fixtures/nov14_health_auth_bootstrap.sql",
+    "tests/fixtures/nov14_health_access_rls.sql",
+    ".buklod/scopes/nov14-cumulative-staging-source-r1.json"
+  ],
+  "regressionTests": [
+    "tests/wall-life-kl-navigation-20261114.test.mjs",
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    "tests/nov14-imci-health-flow.test.mjs"
+  ],
+  "preserveBehaviors": [
+    "LIFE and KL independent once above Marites, after paid sponsor; no drawer",
+    "IGPAT remains retired; no exposure of historic IGPAT",
+    "Existing video/photo quality, ads, auth, finance, Points, QMP, PTT, Kingdom, Home and Profile unchanged by this 7-file patch",
+    "Health and SALIKSIK member/professional activation OFF; no live patient data or production schema writes",
+    "Existing staging signed app runtime 1.3.2, no native dependency/permission/config changes"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Wall direct-cards-only presentation and dormant Health SQL QA; no production or native change",
+      "preservedBehaviors": [
+        "No new routes, credential exposure, production migration, backend flag activation, finance payouts or native runtime changes"
+      ],
+      "tests": [
+        "tests/wall-life-kl-navigation-20261114.test.mjs",
+        "tests/saliksik-backend-security-20261112.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Single exact-source JS and PG17 QA at new head, protected feature scope and source unit tests",
+    "RLS nonparticipant/clinician revoked tests run on isolated Postgres 17 CI, no production SQL mutation",
+    "Android Hermes export and signed staging APK ABI/runtime parity verified before any staging OTA",
+    "Runtime visual acceptance of native LIFE/KL and all required 18-item consolidated acceptance gates (do not mark verified from source tests)",
+    "Live Health consultation and SALIKSIK Edge remain disabled until independently proven credentials/RLS/clinical/privacy backend"
+  ],
+  "releaseMode": "isolated-staging-dev-source-only",
+  "releaseStatus": "HOLD: no APK, no OTA, no web or production publish; 18-item consolidated acceptance gate remains fail closed"
+}
