@@ -1,0 +1,7 @@
+{
+  "name": "@buklod/kingdom-native-lab",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./KeyboardGifInput.tsx",
+  "description": "Local-only isolated Android Godot and IME adapter. Never publish."
+}
