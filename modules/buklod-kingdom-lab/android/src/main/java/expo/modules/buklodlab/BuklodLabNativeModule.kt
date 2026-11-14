@@ -176,9 +176,13 @@ class BuklodLabNativeModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("BuklodLabNative")
     AsyncFunction("openGodotWorld") {
-      val activity = appContext.activityProvider?.currentActivity
+      val activity = appContext.currentActivity
         ?: throw IllegalStateException("BUKLOD Kingdom Lab requires a foreground Activity.")
-      activity.startActivity(Intent(activity, GodotLabActivity::class.java))
+      activity.runOnUiThread {
+        if (!activity.isFinishing && !activity.isDestroyed) {
+          activity.startActivity(Intent(activity, GodotLabActivity::class.java))
+        }
+      }
     }
     View(KeyboardGifView::class) {
       Events("onChange", "onSelectionChange", "onGif", "onGifError")
