@@ -538,6 +538,18 @@ export function ConnectComposer({
           </View>
         </ConnectPressable>
 
+        {Platform.OS === 'android' && process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1' ? (
+          <ConnectPressable
+            onPress={onAttachPress}
+            accessibilityLabel="Choose a Google Drive or Android Files attachment"
+            style={styles.iconHit}
+          >
+            <View style={styles.iconCircle} pointerEvents="none">
+              <MaterialCommunityIcons name="google-drive" size={20} color={theme.accent} />
+            </View>
+          </ConnectPressable>
+        ) : null}
+
         <ConnectPressable
           onPress={onChoosePhoto}
           accessibilityLabel="Attach photo"
