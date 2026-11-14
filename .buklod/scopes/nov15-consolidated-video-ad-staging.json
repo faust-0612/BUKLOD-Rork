@@ -26,7 +26,10 @@
     "ads-monetization",
     "app-runtime",
     "production-release",
-    "governance-lock"
+    "governance-lock",
+    "release-identity",
+    "staging-isolation",
+    "native-ota-compatibility"
   ],
   "preserveBehaviors": [
     "Existing exact staging-user Profile personal posts, Overall/Monthly Points rank, HIBLA Connect pine/mint design, direct LIFE/KL cards, 39 Kingdom profiles and CC0 audio remain intact.",
@@ -44,7 +47,8 @@
     "tests/nov15-android-native-prefetch-gate.test.mjs",
     "tests/protected-feature-lock-video-scope-20261114.test.mjs",
     "tests/scope-video-scroll-autoplay-20261114.test.mjs",
-    "tests/ad-native-lifecycle-retention-20261115.test.mjs"
+    "tests/ad-native-lifecycle-retention-20261115.test.mjs",
+    "tests/buklod-nov15-conso-staging-ota-policy.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/nov15-consolidated-video-ad-staging.json",
@@ -70,7 +74,11 @@
     "tests/protected-feature-lock-video-scope-20261114.test.mjs",
     "tests/scope-video-scroll-autoplay-20261114.test.mjs",
     "tests/ad-native-lifecycle-retention-20261115.test.mjs",
-    ".github/workflows/buklod-nov15-conso-android-compile-qa.yml"
+    ".github/workflows/buklod-nov15-conso-android-compile-qa.yml",
+    "scripts/buklod-nov15-conso-staging-policy.mjs",
+    "release/nov15-staging-consolidated-video-ads.json",
+    "tests/buklod-nov15-conso-staging-ota-policy.test.mjs",
+    ".github/workflows/buklod-nov15-conso-staging-ota-publish.yml"
   ],
   "acceptanceChecks": [
     "All exact changed source and test paths match manifest and protected feature-lock PASS.",
@@ -130,6 +138,16 @@
       ],
       "tests": [
         "tests/scope-video-scroll-autoplay-20261114.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Introduce explicit staging-only Android EAS OTA publish workflow with verified native binary identity, exact PR-head CI, guarded channel, Expo manifest readback and production nonmutation.",
+      "preservedBehaviors": [
+        "Do not publish production or deploy any clinical backend/Google Drive native app; stage first with identical signed runtime 1.3.2 and independently verify before a separate production review."
+      ],
+      "tests": [
+        "tests/buklod-nov15-conso-staging-ota-policy.test.mjs"
       ]
     }
   ]
