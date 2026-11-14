@@ -47,7 +47,8 @@
     "tests/native-lab-release-identity-20261115.test.mjs",
     "release/native-lab-apk-20261115.json",
     "scripts/native-lab-build-preflight.mjs",
-    ".github/workflows/buklod-native-lab-apk-20261115.yml"
+    ".github/workflows/buklod-native-lab-apk-20261115.yml",
+    ".buklod/scopes/native-lab-isolated-runtime-20261115.json"
   ],
   "lockedFeatureChanges": [
     {
