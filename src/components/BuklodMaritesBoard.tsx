@@ -95,7 +95,7 @@ import {
 import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useFocusEffect } from 'expo-router';
-import { selectVisibleMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
+import { selectVisibleMaritesVideo, selectNearbyMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
 import {noteBuklodVideoScroll, subscribeBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import { createMaritesVisibilityScheduler } from '@/lib/buklodMaritesViewportMeasure';
 import { useAuth } from '@/providers/AuthProvider';
@@ -138,7 +138,7 @@ function useMaritesPlaybackActive() {
   return focused && foreground;
 }
 
-function MaritesQuickVideo({ uri, autoPlay = false, muted = false }: { uri: string; autoPlay?: boolean; muted?: boolean }) {
+function MaritesQuickVideo({ uri, autoPlay = false, muted = false, inline = false }: { uri: string; autoPlay?: boolean; muted?: boolean; inline?: boolean }) {
   const active = useMaritesPlaybackActive();
   // Cache only remote video bytes; preserve local picker and browser playback.
   const source = useMemo(
@@ -165,6 +165,7 @@ function MaritesQuickVideo({ uri, autoPlay = false, muted = false }: { uri: stri
   }, [player]);
   useEffect(() => {
     player.muted = muted;
+    player.loop = autoPlay;
     if (autoPlay && active) player.play();
     else player.pause();
   }, [player, autoPlay, muted, active]);
@@ -178,7 +179,7 @@ function MaritesQuickVideo({ uri, autoPlay = false, muted = false }: { uri: stri
   // Keep the video mounted only while visible, but always surface its state.
   return (
     <View style={{ flex: 1, backgroundColor: '#151515' }}>
-      <VideoView player={player} nativeControls={!autoPlay && active} contentFit="contain" style={{ width: '100%', height: '100%' }} />
+      <VideoView player={player} nativeControls={!inline && !autoPlay && active} contentFit="contain" style={{ width: '100%', height: '100%' }} />
       {(status === 'error' || (active && status !== 'readyToPlay')) && (
         <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', padding: 12, backgroundColor: 'rgba(0,0,0,0.35)' }}>
           {status === 'error' ? (
@@ -767,9 +768,11 @@ function MaritesStoryCard({
   menu,
   onComments,
   autoPlayVideo = false,
+  prepareVideo = false,
 }: {
   story: MaritesStory;
   autoPlayVideo?: boolean;
+  prepareVideo?: boolean;
   colors: ReturnType<
     typeof useBuklodPresentation
   >['colors'];
@@ -811,7 +814,7 @@ function MaritesStoryCard({
       onPress={onPress}
       style={StyleSheet.absoluteFill}
     >
-      {hasVideo && <View style={styles.storyPhotoFill}>{autoPlayVideo ? <MaritesQuickVideo uri={story.video_uri!} autoPlay muted /> : <View style={{ flex: 1, backgroundColor: '#151515', alignItems: 'center', justifyContent: 'center' }}><MaterialCommunityIcons name="play-circle-outline" size={44} color="#fff" /></View>}</View>}
+      {hasVideo && <View style={styles.storyPhotoFill}>{prepareVideo ? <MaritesQuickVideo uri={story.video_uri!} autoPlay={autoPlayVideo} muted inline /> : <View style={{ flex: 1, backgroundColor: '#151515', alignItems: 'center', justifyContent: 'center' }}><MaterialCommunityIcons name="play-circle-outline" size={44} color="#fff" /></View>}</View>}
       {hasPhoto && !hasVideo && (
         <BuklodMaritesPhotoCollage
           uris={photoUris}
@@ -937,6 +940,7 @@ export default function BuklodMaritesBoard({
   const storyStripOffset = useRef(0);
   const stripViewportRef = useRef<View>(null);
   const [visibleVideoIndex, setVisibleVideoIndex] = useState(-1);
+  const [preparedVideoIndex,setPreparedVideoIndex]=useState(-1);
   const [scrollPaused, setScrollPaused] = useState(false);
   useEffect(()=>subscribeBuklodVideoScroll(setScrollPaused),[]);
   const playbackActive = useMaritesPlaybackActive();
@@ -1832,22 +1836,28 @@ export default function BuklodMaritesBoard({
   const { height: windowHeight, width: windowWidth } =
     useWindowDimensions();
 
-  const canPlayInline = playbackActive && !playbackBlocked && !viewStory && !composerOpen && !scrollPaused;
+  const canPrepareInline=playbackActive&&!playbackBlocked&&!viewStory&&!composerOpen;
+  const canPlayInline=canPrepareInline&&!scrollPaused;
   const visibilityGeneration = useRef(0);
   const measureVisibility = useCallback(() => {
     const generation = ++visibilityGeneration.current;
-    if (!canPlayInline) { setVisibleVideoIndex(-1); return; }
+    if(!canPrepareInline){setVisibleVideoIndex(-1);setPreparedVideoIndex(-1);return;}
     stripViewportRef.current?.measureInWindow((x, y, width, height) => {
       if (generation !== visibilityGeneration.current) return;
-      setVisibleVideoIndex(selectVisibleMaritesVideo({
+      setPreparedVideoIndex(selectNearbyMaritesVideo({
+        x,y,width,height,windowWidth,windowHeight,
+        offset:storyStripOffset.current,cardWidth:MARITES_COMPACT_CARD_WIDTH,gap:7,
+        videos:activeStories.map(story=>Boolean(story.video_uri)),
+      }));
+      setVisibleVideoIndex(canPlayInline ? selectVisibleMaritesVideo({
         x, y, width, height, windowWidth, windowHeight,
         topInset: insets.top, bottomInset: Math.max(insets.bottom, drawerBottomInset),
         offset: storyStripOffset.current,
         cardWidth: MARITES_COMPACT_CARD_WIDTH, gap: 7,
         videos: activeStories.map(story => Boolean(story.video_uri)),
-      }));
+      }) : -1);
     });
-  }, [canPlayInline, activeStories, windowWidth, windowHeight, insets.top, insets.bottom, drawerBottomInset]);
+  }, [canPrepareInline,canPlayInline, activeStories, windowWidth, windowHeight, insets.top, insets.bottom, drawerBottomInset]);
 
   // Wall emits scroll updates as often as once per frame. Coalesce native
   // measureInWindow calls while retaining immediate focus/overlay transitions.
@@ -1866,7 +1876,7 @@ export default function BuklodMaritesBoard({
     if (visibilityRefreshRef) visibilityRefreshRef.current = requestVisibilityMeasurement;
     measurementSchedulerRef.current?.flush();
     // Periodic fallback for header/layout changes that do not emit scrolling.
-    const timer = canPlayInline && activeStories.some(story => story.video_uri)
+    const timer = canPrepareInline && activeStories.some(story => story.video_uri)
       ? setInterval(requestVisibilityMeasurement, 750) : null;
     return () => {
       ++visibilityGeneration.current;
@@ -1874,7 +1884,7 @@ export default function BuklodMaritesBoard({
       measurementSchedulerRef.current?.cancel();
       if (visibilityRefreshRef?.current === requestVisibilityMeasurement) visibilityRefreshRef.current = null;
     };
-  }, [measureVisibility, canPlayInline, activeStories, visibilityRefreshRef, requestVisibilityMeasurement]);
+  }, [measureVisibility, canPrepareInline, activeStories, visibilityRefreshRef, requestVisibilityMeasurement]);
 
   return (
     <View style={styles.section}>
@@ -1921,7 +1931,7 @@ export default function BuklodMaritesBoard({
         horizontal
         data={activeStories}
         keyExtractor={story => story.id}
-        extraData={`${canPlayInline ? 'play' : 'pause'}:${visibleVideoIndex}`}
+        extraData={`${canPlayInline ? 'play' : 'pause'}:${visibleVideoIndex}:${preparedVideoIndex}`}
         initialNumToRender={4}
         maxToRenderPerBatch={6}
         windowSize={5}
@@ -1943,6 +1953,7 @@ export default function BuklodMaritesBoard({
             <MaritesStoryCard
               story={story}
               autoPlayVideo={canPlayInline && index === visibleVideoIndex}
+              prepareVideo={canPrepareInline && (index===preparedVideoIndex || index===visibleVideoIndex)}
               colors={colors}
               onPress={() =>
                 openStoryViewer(story)
