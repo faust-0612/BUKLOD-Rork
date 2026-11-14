@@ -64,7 +64,9 @@ async function main(){
   const [mode,source,dir]=process.argv.slice(2);
   assert.ok(dir?.startsWith('/tmp/'),'Evidence must stay under /tmp');
   verifySource(source);
-  if(mode==='preflight'){
+  if(mode==='verify-source'){
+    console.log('VERIFIED exact scoped staging Android JS/native compatibility; no OTA published');
+  }else if(mode==='preflight'){
     verifyBuild(read(dir+'/build.json'));
     const branch=verifyChannels(read(dir+'/staging-channel.json'),read(dir+'/production-channel.json'));
     const live=await manifest('production');

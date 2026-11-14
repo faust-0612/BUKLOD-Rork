@@ -42,7 +42,14 @@ jobs:
               const {data}=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,head_sha:context.sha,per_page:100});
               const checks=required.map(name=>data.workflow_runs.find(r=>r.name===name&&r.head_sha===context.sha));
               if(checks.some(r=>r?.status==='completed'&&r.conclusion!=='success')) throw Error('Mandatory exact SHA CI failed; no OTA');
-              if(checks.every(r=>r?.conclusion==='success')) return;
+              if(checks.every(r=>r?.conclusion==='success')) {
+                const {data:pr}=await github.rest.pulls.get({...context.repo,pull_number:808});
+                if(pr.state!=='open'||!pr.draft||pr.head.sha!==context.sha||
+                   pr.head.ref!=='integration/buklod-conso-staging-no-hc-saliksik-20261114'||
+                   pr.base.ref!=='dev/profile-focus-refresh-staging-20261114')
+                  throw Error('Scoping PR #808 no longer matches exact release source');
+                return;
+              }
               await new Promise(resolve=>setTimeout(resolve,12000));
             }
             throw Error('Exact SHA CI never completed successfully; no OTA');
@@ -51,10 +58,7 @@ jobs:
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
           node --experimental-strip-types --test tests/buklod-nov14-scoped-staging-ota-policy.test.mjs tests/wall-life-kl-navigation-20261114.test.mjs tests/auth-registration-offline-recovery.test.cjs
-          node scripts/buklod-nov14-scoped-staging-ota-policy.mjs verify-source "$GITHUB_SHA" "$EVIDENCE_DIR" || {
-            # The verifier handles preflight/postpublish only; source checks run again below.
-            echo 'Explicit source verifier is checked inside preflight; no release accepted before it.'
-          }
+          node scripts/buklod-nov14-scoped-staging-ota-policy.mjs verify-source "$GITHUB_SHA" "$EVIDENCE_DIR"
       - name: Signed APK and distinct EAS channel/prod-branch preflight
         run: |
           set -euo pipefail

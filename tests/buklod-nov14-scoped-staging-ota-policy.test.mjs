@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { verifyReleaseScope, verifyMetroChange } from '../scripts/buklod-nov14-scoped-staging-ota-policy.mjs';
 const release=JSON.parse(fs.readFileSync(new URL('../release/nov14-staging-conso-excluding-health-saliksik.json',import.meta.url),'utf8'));
 const workflow=fs.readFileSync(new URL('../.github/workflows/buklod-nov14-scoped-staging-ota-publish.yml',import.meta.url),'utf8');
@@ -13,7 +14,9 @@ test('staging QA release is explicitly scoped to Android and has backend exclusi
 test('Metro only adds existing OGG music asset registration, never native ABI',()=>{
   const before=fs.readFileSync(new URL('../metro.config.js',import.meta.url),'utf8');
   assert.ok(before.includes("assetExts.includes('ogg')"));
-  assert.throws(()=>verifyMetroChange(before,before+'// unexpected mutation\n'));
+  const signed=execFileSync('git',['show','c6804e5b6b72e6bb7658f5b13e32dd8a5d1de9fd:metro.config.js'],{encoding:'utf8'}).trim();
+  assert.doesNotThrow(()=>verifyMetroChange(signed,before.trim()));
+  assert.throws(()=>verifyMetroChange(signed,before+'// unexpected mutation\n'));
 });
 test('release workflow runs from isolated branch and never targets production update',()=>{
   assert.match(workflow,/integration\/buklod-conso-staging-no-hc-saliksik-20261114/);
