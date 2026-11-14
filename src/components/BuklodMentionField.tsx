@@ -5,6 +5,7 @@ import React, {
 } from 'react';
 import {
   BackHandler,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -38,6 +39,8 @@ type Props = {
   suggestionsAbove?: boolean;
   placeholderTextColor?: string;
   focusRef?: { current: TextInput | null };
+  /** Experimental Android native IME GIF receiver, enabled only in separate lab package. */
+  onNativeGif?: (uri: string) => void;
 };
 
 export default function BuklodMentionField({
@@ -55,7 +58,13 @@ export default function BuklodMentionField({
   suggestionsAbove = false,
   placeholderTextColor = colors.muted,
   focusRef,
+  onNativeGif,
 }: Props) {
+  // Native view must never be imported on normal staging or production.
+  const InputView: any = Platform.OS === 'android' &&
+    process.env.EXPO_PUBLIC_KINGDOM_NATIVE_LAB === '1' && onNativeGif
+    ? require('../../modules/buklod-kingdom-lab/KeyboardGifInput').default
+    : TextInput;
   const inputRef = useRef<TextInput>(null);
   const cursorRef = useRef(value.length);
   const searchSeq = useRef(0);
@@ -171,8 +180,9 @@ export default function BuklodMentionField({
   return (
     <View style={suggestionsAbove ? styles.aboveWrap : undefined}>
       <View style={styles.field}>
-        <TextInput
-          ref={node => {
+        <InputView
+          onGif={onNativeGif}
+          ref={(node: TextInput | null) => {
             inputRef.current = node;
             if (focusRef) {
               focusRef.current = node;
