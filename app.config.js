@@ -375,6 +375,7 @@ module.exports = ({ config }) => {
       appEnvironment:
         process.env.EXPO_PUBLIC_APP_ENV ||
         variant,
+      ...(isNativeLab ? { smartDrawerGoogleDriveAndroidClientId: (process.env.EXPO_PUBLIC_NATIVE_LAB_GOOGLE_DRIVE_ANDROID_CLIENT_ID || '').trim() || null } : {}),
 
       appTarget: isClassroom ? 'classroom' : 'main',
       nativeLab: isNativeLab,
