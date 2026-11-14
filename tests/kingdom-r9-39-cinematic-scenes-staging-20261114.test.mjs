@@ -9,6 +9,7 @@ const read = p => fs.readFileSync(new URL('../'+p, import.meta.url), 'utf8');
 const catalog = JSON.parse(read('src/features/games/kingdom/platform/game-catalog.json'));
 const base = 'e15b91fb95742a63e7d5d1d664d15b087681f331';
 const native = read('src/features/games/kingdom/platform/KingdomCinematicScene.native.tsx');
+const map = read('src/features/games/kingdom/BuklodKingdomMapPremium.tsx');
 const center = read('src/features/games/kingdom/platform/KingdomInteriorCenter.tsx');
 const web = read('src/features/games/kingdom/platform/KingdomCinematicScene.web.tsx');
 
@@ -82,11 +83,15 @@ test('Focus/background/accessibility controls suspend all animation and dispose 
   assert.match(native, /AppState.addEventListener\('change'/);
   assert.match(native, /isReduceMotionEnabled/);
   assert.match(native, /reduceMotionChanged/);
-  assert.match(native, /focused && active && !reduceMotion/);
+  assert.match(native, /focused && active && !reduceMotion && qualityEnabled/);
+  assert.match(native, /setQualityEnabled\(false\)/);
+  assert.match(native, /AsyncStorage.getItem\('@buklod_kingdom_fx_quality_v1_' \+ userId\)/);
+  assert.match(map, /'@buklod_kingdom_fx_quality_v1_' \+ \(userId \?\? 'guest'\)/);
+  assert.doesNotMatch(native, /AsyncStorage\.(?:setItem|removeItem)/);
   assert.match(native, /return \(\) => \{ cancelAnimation\(cycle\); cancelAnimation\(burst\); \}/);
   assert.match(native, /return stop;/);
   assert.match(native, /<Scene key=\{gameId\}/);
-  assert.doesNotMatch(native, /setInterval|setTimeout|requestAnimationFrame|fetch\(|supabase|AsyncStorage|\.rpc\(|grantPoints|grantShards|awardPoints/);
+  assert.doesNotMatch(native, /setInterval|setTimeout|requestAnimationFrame|fetch\(|supabase|\.rpc\(|grantPoints|grantShards|awardPoints/);
 });
 
 test('Game center selects exactly one scene with correct active game and unchanged result authority', () => {
