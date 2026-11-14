@@ -144,6 +144,21 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "native-lab": {
+      "distribution": "internal",
+      "channel": "native-lab",
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "native-lab",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "BUKLOD_APP_TARGET": "main",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
