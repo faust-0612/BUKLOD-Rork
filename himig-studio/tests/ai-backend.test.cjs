@@ -17,7 +17,12 @@ test('external AI is disabled without explicit billing and server secrets',async
 });
 test('only one fixed model and strict fal media/queue URL allowlist',()=>{
  assert.equal(mod.MODEL,'fal-ai/sam-audio/separate');
- assert.ok(mod.isFalAudioUrl('https://v3.fal.media/files/b/demo.wav'));
+ assert.ok(mod.isFalAudioUrl('https://v3.fal.media/files/b/example/demo.wav'));
+ assert.ok(mod.isFalAudioUrl('https://v3b.fal.media/files/b/example/demo.wav'));
+ assert.ok(!mod.isFalAudioUrl('https://v3b.fal.media/files/b/demo.wav'));
+ assert.equal(mod.queueUrl(uuid,'status'),'https://queue.fal.run/fal-ai/sam-audio/requests/'+uuid+'/status');
+ assert.equal(mod.queueUrl(uuid,'cancel'),'https://queue.fal.run/fal-ai/sam-audio/requests/'+uuid+'/cancel');
+ assert.equal(mod.queueUrl(uuid,'response'),'https://queue.fal.run/fal-ai/sam-audio/requests/'+uuid);
  assert.ok(!mod.isFalAudioUrl('http://v3.fal.media/files/a.wav'));
  assert.ok(!mod.isFalAudioUrl('https://v3.fal.media.evil.com/files/a.wav'));
  assert.ok(!mod.isFalAudioUrl('https://evil.com'));
@@ -27,6 +32,9 @@ test('only one fixed model and strict fal media/queue URL allowlist',()=>{
  assert.ok(!mod.isQueueUrl('http://queue.fal.run/fal-ai/sam-audio/requests/'+uuid+'/status',uuid));
  assert.ok(!mod.isQueueUrl('https://queue.fal.run/other/model/requests/'+uuid+'/status',uuid));
  assert.ok(!mod.isQueueUrl('https://queue.fal.run/fal-ai/sam-audio/requests/'+uuid+'/status','definitely-not-id'));
+ assert.ok(!mod.isQueueUrl('https://queue.fal.run/fal-ai/sam-audio/requests/'+uuid+'/status?query=true',uuid));
+ assert.ok(!mod.isQueueUrl('https://queue.fal.run/fal-ai/sam-audio/separate/requests/'+uuid+'/status',uuid));
+ assert.ok(!mod.isProviderArtifactUrl('https://attacker.example/voice.wav'));
 });
 test('authorized bearer token must match exactly and only when explicitly enabled',async()=>{
  const old={FAL_KEY:process.env.FAL_KEY,HIMIG_OWNER_TOKEN:process.env.HIMIG_OWNER_TOKEN,HIMIG_ENABLE_PAID_AI:process.env.HIMIG_ENABLE_PAID_AI};
