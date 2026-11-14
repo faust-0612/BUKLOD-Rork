@@ -5,10 +5,6 @@ on:
     branches: [dev/full-visual-transformation-20261113]
     paths:
       - '.github/workflows/buklod-kingdom-r9-android-export-qa-20261114.yml'
-      - 'src/features/games/kingdom/platform/**'
-      - 'src/features/games/runtime/**'
-      - 'tests/kingdom-r9-39-cinematic-scenes-staging-20261114.test.mjs'
-  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -16,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   android-nonpublishing-export:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/full-visual-transformation-20261113' }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/full-visual-transformation-20261113' && startsWith(github.event.head_commit.message, 'BUKLOD_KINGDOM_R9_ANDROID_QA_20261114:') }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
