@@ -1847,11 +1847,10 @@ export default function MeScreen() {
         <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Recorded Points standings. Monthly rank uses the calendar month; AdMob payouts finalize separately.</Text>
       </View>
 
-      {/* Real server-ranked positions 1–10; monthly and all-time are directly visible. */}
-      {!!profile?.id && <BuklodProfileTopTenRankings userId={profile.id} />}
-
       {/* BUKLOD Official also owns real posts: show them before its admin bulletin. */}
       {isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
+      {/* Preserve authored posts above the full Top 10 to avoid hiding them. */}
+      {isBuklodOfficial && !!profile?.id && <BuklodProfileTopTenRankings userId={profile.id} />}
       <View style={styles.sectionPad}>
         <BuklodSystemAnnouncementBoard slot="profile" />
       </View>
@@ -1866,6 +1865,8 @@ export default function MeScreen() {
 
       {!isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards userId={profile.id} />}
       {!isBuklodOfficial && !!profile?.id && <BuklodProfileActivityCards userId={profile.id} />}
+      {/* Members keep personal posts and activity visible before the full Top 10. */}
+      {!isBuklodOfficial && !!profile?.id && <BuklodProfileTopTenRankings userId={profile.id} />}
       {referralSection}
       {/* Required sponsored inventory: follows genuine member data, never overlays identity. */}
       <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />

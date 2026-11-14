@@ -46,7 +46,9 @@ test('Profile shows canonical 1-10 Monthly and All-Time rankings, not only a has
  assert.match(me,/import BuklodProfileTopTenRankings from/);
  assert.ok(me.includes('<BuklodProfileTopTenRankings userId={profile.id} />'));
  assert.ok(me.indexOf('MY OVERALL & MONTHLY RANK')<me.indexOf('<BuklodProfileTopTenRankings'));
- assert.ok(me.indexOf('<BuklodProfileTopTenRankings')<me.indexOf('isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards'));
+ assert.ok(me.indexOf('isBuklodOfficial && !!profile?.id && <BuklodProfilePostCards')<me.indexOf('isBuklodOfficial && !!profile?.id && <BuklodProfileTopTenRankings'));
+ assert.ok(me.indexOf('!isBuklodOfficial && !!profile?.id && <BuklodProfileActivityCards')<me.indexOf('!isBuklodOfficial && !!profile?.id && <BuklodProfileTopTenRankings'));
+ assert.equal(me.split('<BuklodProfileTopTenRankings userId={profile.id} />').length-1,2,'mutually exclusive member/official rank lists');
  assert.ok(me.includes("{position&&position>0?String(position):'—'}"));
  assert.ok(component.includes('TOP 10 RANKINGS'));
  assert.ok(component.includes('item.rank_position'));
