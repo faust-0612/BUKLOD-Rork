@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-          git merge-base --is-ancestor 7ebbbd504df2f84355888cc64a8c5317319d6d65 "$GITHUB_SHA"
+          git merge-base --is-ancestor 7ebbbd504df2f84355888cc64a8c5317319d6d65 "$(git rev-parse HEAD)"
           node <<'NODE'
           const assert=require('node:assert/strict');
           const app=require('./app.config.js')({config:{}});

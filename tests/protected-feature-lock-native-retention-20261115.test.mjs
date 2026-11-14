@@ -10,7 +10,7 @@ test('protected feature lock is mandatory for the native ad lifecycle branch', (
   assert.match(workflow, /node scripts\/protected-feature-lock\.mjs/);
   assert.match(workflow, /node --test tests\/protected-feature-lock\.test\.mjs/);
   assert.match(workflow, /release\/nov15-conso-prod-video-ads-20261115\)/);
-  assert.match(workflow, /BUKLOD_SCOPE_MANIFEST=\.buklod\/scopes\/nov15-conso-staging-video-ads\.json/);
+  assert.match(workflow, /BUKLOD_SCOPE_MANIFEST=\.buklod\/scopes\/nov15-conso-prod-video-ads\.json/);
   assert.equal(manifest.contractVersion, 2);
   for (const id of ['app-runtime', 'ads-finance-points', 'governance-lock']) {
     assert.ok(manifest.lockedFeatureChanges.some(item => item.id === id), `missing lock declaration: ${id}`);
