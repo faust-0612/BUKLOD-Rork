@@ -1,0 +1,42 @@
+name: Kingdom Premium CC0 Audio Staging Vendor
+on:
+  push:
+    branches:
+      - dev/kingdom-premium-audio-staging-20261114
+    paths:
+      - '.github/workflows/kingdom-premium-audio-vendor-staging.yml'
+      - 'scripts/vendor-kingdom-premium-audio.sh'
+      - 'assets/sounds/kingdom-premium/manifest.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kingdom-premium-audio-staging-vendor
+  cancel-in-progress: false
+
+jobs:
+  vendor-audio:
+    if: github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/kingdom-premium-audio-staging-20261114'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Vendor CC0 audio and verify exact Git hashes
+        run: bash scripts/vendor-kingdom-premium-audio.sh
+      - name: Run focused assets and audio behavior contract
+        run: |
+          node --test tests/kingdom-premium-audio-staging-20261114.test.mjs
+          node scripts/rork-media-contract-test.mjs
+      - name: Commit exact verified audio to DEV branch (not main or OTA)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/sounds/kingdom-premium/*.ogg assets/sounds/kingdom-premium/*.wav
+          if ! git diff --cached --quiet; then
+            git commit -m "assets(kingdom): vendor SHA-verified CC0 orchestral music and SFX"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi

@@ -1,0 +1,50 @@
+{
+  "kingdom-theme.ogg": {
+    "sha": "fa90c432d910997dd3089f8690c45b628d45952a",
+    "bytes": 713677
+  },
+  "kingdom-village.ogg": {
+    "sha": "cf0f94ee0562f33b16856b3d1e160eab90d58ce6",
+    "bytes": 503696
+  },
+  "kingdom-great-hall.ogg": {
+    "sha": "678fd116fa338303b3aae091bc29fb81b30e433d",
+    "bytes": 578141
+  },
+  "ui-soft.wav": {
+    "sha": "9276c9b268ae96f6473ce7035432bb3aaa78eb37",
+    "bytes": 1742
+  },
+  "collect-crystal.wav": {
+    "sha": "1babf78e6f0a5f117d9475b2068739e7fb62e0c8",
+    "bytes": 25806
+  },
+  "impact-wood.wav": {
+    "sha": "b7a42211c3f815080e20e3012b135131dfb7c8ea",
+    "bytes": 35150
+  },
+  "victory.wav": {
+    "sha": "4aa7f6599f0b3291308dc23b39eb555a85dee478",
+    "bytes": 44238
+  },
+  "failure.wav": {
+    "sha": "edcf344ee212d13797f250eb5649ce55c655d825",
+    "bytes": 30542
+  },
+  "unlock.wav": {
+    "sha": "61b63c1b404734114bcf872cd1b4e1a2004dacb0",
+    "bytes": 46670
+  },
+  "enter.wav": {
+    "sha": "5195040c3313a9dabb165351aea0254341ad8739d",
+    "bytes": 27982
+  },
+  "coins.wav": {
+    "sha": "45a517f9d968137d1ae50a6eb50b7258a2ceb64b",
+    "bytes": 19790
+  },
+  "victory-alt.wav": {
+    "sha": "2ef68f15c22d9966081f923c53926f1b464b7fc",
+    "bytes": 49614
+  }
+}

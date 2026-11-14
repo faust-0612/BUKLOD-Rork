@@ -1,0 +1,24 @@
+{
+  "contractVersion": 2,
+  "objective": "Replace artificial-sounding Kingdom ambience and generic gameplay notification WAVs with offline, professionally authored CC0 fantasy music and dedicated event SFX on Android staging only.",
+  "baseRef": "dev/kingdom-r9-39-scenes-staging-20261114",
+  "baselineSha": "8b2a08ed037e572b4afee2160777968c4535f077",
+  "chosenApproach": "Vendored pinned CC0 recordings, asset manifest Git hash validation, focused audio lifecycle cleanup with local pool, never remote Rork preview audio.",
+  "preserveBehaviors": [
+    "39 individually-profiled staging Kingdom scenes and 13 characters from R9",
+    "Existing R8 Skia/Reanimated game feedback hooks",
+    "No production/main/Play/Web deployment",
+    "Native runtime 1.3.2 and existing Expo modules",
+    "Audio mute, quiet hours, per-user opt-in map music",
+    "PTT/calls/reels video remain unmanaged by Kingdom",
+    "Game economy/Ads/accounts/points unchanged"
+  ],
+  "acceptanceChecks": [
+    "All 12 source recordings present in branch with manifest SHA and size",
+    "Source and native/web TypeScript compile; audio runtime in installed staging APK",
+    "Music starts only on game focus, respects toggle, no playback after blur/background",
+    "Quick actions do not fall back to app message/notification sounds",
+    "Staging Android real device listening QA before OTA acceptance"
+  ],
+  "releaseState": "DEV_ONLY_STAGING_NO_OTA"
+}

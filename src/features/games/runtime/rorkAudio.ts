@@ -7,6 +7,7 @@ import { createAudioPlayer } from 'expo-audio';
 
 import type { BuklodGameFeedbackEvent } from './feedbackTypes';
 import { getRorkGameMedia, RORK_AUDIO, type RorkAudioKey } from './rorkMedia';
+import { getPremiumKingdomMusic, getPremiumKingdomSfx } from './kingdomPremiumAudioAssets';
 
 type Player = ReturnType<typeof createAudioPlayer>;
 
@@ -33,12 +34,30 @@ const voiceCount: Partial<Record<RorkAudioKey, number>> = {
 const pools = new Map<RorkAudioKey, Player[]>();
 const cursors = new Map<RorkAudioKey, number>();
 const lastPlayedAt = new Map<RorkAudioKey, number>();
+const startedVoices = new WeakSet<Player>();
+let focusedKingdomViews = 0;
+
+function releaseKingdomSfx() {
+  for (const voices of pools.values()) {
+    for (const player of voices) {
+      try { player.pause(); } catch { /* already stopped */ }
+      try { player.remove(); } catch { /* optional cue */ }
+    }
+  }
+  pools.clear();
+  cursors.clear();
+  lastPlayedAt.clear();
+}
+
+function prewarmKingdomSfx() {
+  for (const key of ['ui_tap', 'pickup', 'build_hit', 'success', 'retry', 'unlock'] as const) poolFor(key);
+}
 
 // The Rork live-preview audio host is not a production asset origin and was
 // observed to reject/fail requests in Web. Keep the proven local/synthesized
 // BUKLOD feedback path authoritative until the 17 generated clips are vendored
 // into this repository as local assets.
-const REMOTE_RORK_AUDIO_ENABLED = false;
+const REMOTE_RORK_AUDIO_ENABLED = false; // Strictly forbid deprecated preview-host music.
 
 function createPlayer(source: string, loop = false) {
   if (!REMOTE_RORK_AUDIO_ENABLED) return null;
@@ -56,16 +75,22 @@ function poolFor(key: RorkAudioKey) {
   if (existing) return existing;
 
   const voices: Player[] = [];
-  const count = voiceCount[key] ?? 1;
+  const source = getPremiumKingdomSfx(key);
+  if (source == null) return voices;
+  const count = Math.min(voiceCount[key] ?? 1, 3);
   for (let index = 0; index < count; index += 1) {
-    const player = createPlayer(RORK_AUDIO[key], false);
-    if (player) voices.push(player);
+    try {
+      voices.push(createAudioPlayer(source, { updateInterval: 200 }));
+    } catch {
+      // Gameplay remains functional if optional audio initialization fails.
+    }
   }
   if (voices.length) pools.set(key, voices);
   return voices;
 }
 
 function playKey(key: RorkAudioKey, volume: number, cooldownMs = 0) {
+  if (focusedKingdomViews === 0 || AppState.currentState !== 'active') return false;
   const now = Date.now();
   const last = lastPlayedAt.get(key) ?? 0;
   if (cooldownMs > 0 && now - last < cooldownMs) return false;
@@ -77,12 +102,22 @@ function playKey(key: RorkAudioKey, volume: number, cooldownMs = 0) {
   const cursor = cursors.get(key) ?? 0;
   cursors.set(key, (cursor + 1) % voices.length);
   const player = voices[cursor % voices.length];
-  if (!player.isLoaded) return false;
+  // Prewarming happens on focused Kingdom screens. If the first cue is still
+  // decoding, prefer haptics over the old notification/ringtone fallback.
+  if (!player.isLoaded) return true;
 
   try {
-    player.volume = volume;
+    player.volume = Math.min(0.48, Math.max(0, volume) * 0.75);
     player.playbackRate = 1;
-    void player.seekTo(0).then(() => player.play()).catch(() => player.play());
+    // New player: start synchronously; reused pool voice: reset position.
+    if (!startedVoices.has(player)) {
+      startedVoices.add(player);
+      player.play();
+    } else {
+      void player.seekTo(0).then(() => {
+        if (focusedKingdomViews > 0 && AppState.currentState === 'active') player.play();
+      }).catch(() => undefined);
+    }
     return true;
   } catch {
     return false;
@@ -128,6 +163,17 @@ export function useRorkGameAmbience(gameId?: string | null) {
       .catch(() => undefined);
     return () => { live = false; };
   }, [isKingdomMap]);
+  // Keep native SFX players warm while a Kingdom route is actually focused.
+  // Never let late feedback leak into Wall videos, calls or other app screens.
+  useFocusEffect(useCallback(() => {
+    if (!gameId) return;
+    focusedKingdomViews += 1;
+    prewarmKingdomSfx();
+    return () => {
+      focusedKingdomViews = Math.max(0, focusedKingdomViews - 1);
+      if (focusedKingdomViews === 0) releaseKingdomSfx();
+    };
+  }, [gameId]));
   // Expo Router can keep inactive game screens mounted in its stack. This
   // effect is owned by *navigation focus*, not just React mount lifetime.
   // On every blur (Home, Wall, Connect, another game) the Kingdom-only
@@ -137,9 +183,10 @@ export function useRorkGameAmbience(gameId?: string | null) {
     const media = getRorkGameMedia(gameId);
     let player: Player | null = null;
     try {
-      player = media && REMOTE_RORK_AUDIO_ENABLED
-        ? createPlayer(RORK_AUDIO[media.ambience], true)
-        : createAudioPlayer(LOCAL_KINGDOM_AMBIENCE, { updateInterval: 500 });
+      // Composer-made, source-verified local music; original BUKLOD WAV kept
+      // as a compatibility reference, never used as the primary soundtrack.
+      const source = getPremiumKingdomMusic(gameId, media?.ambience);
+      player = createAudioPlayer(source ?? LOCAL_KINGDOM_AMBIENCE, { updateInterval: 500 });
     } catch { return; }
     if (!player) return;
     const audio = player;
@@ -153,7 +200,7 @@ export function useRorkGameAmbience(gameId?: string | null) {
           audio.pause();
           return;
         }
-        audio.volume = Math.min(0.12, getBuklodGameSoundVolume() * 0.24);
+        audio.volume = Math.min(0.16, getBuklodGameSoundVolume() * 0.55);
         if (audio.isLoaded) audio.play();
       } catch {
         // No impact to gameplay if sound assets, platform or autoplay fail.
