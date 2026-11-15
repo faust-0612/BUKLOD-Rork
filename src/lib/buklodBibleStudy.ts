@@ -137,12 +137,17 @@ export function parseMatthewHenryIntroduction(value: unknown): string {
   return stringifyCommentary(root.chapter?.introduction).trim().slice(0, 24000);
 }
 
-/** Context fallback has an explicit label and is never called verse-specific. */
-export function getMatthewHenryPassage(study: BibleStudyChapter, verseNo: number): MatthewHenrySelection | null {
+/**
+ * Verse-specific doors never silently borrow an earlier passage's commentary.
+ * Only explicitly requested neighboring context can use the fallback; callers
+ * must label it as related text rather than an explanation of the verse.
+ */
+export function getMatthewHenryPassage(study: BibleStudyChapter, verseNo: number, options: { allowContext?: boolean } = {}): MatthewHenrySelection | null {
   if (!Number.isInteger(verseNo) || verseNo < 1) return null;
   const passages = study.henryPassages ?? [];
   const direct = passages.find(p => p.startVerse <= verseNo && verseNo <= p.endVerse);
   if (direct) return { ...direct, relation: 'direct' };
+  if (!options.allowContext) return null;
   const anchors = passages.filter(p => p.startVerse <= verseNo);
   const context = anchors.length ? anchors[anchors.length - 1] : null;
   return context ? { ...context, relation: 'context' } : null;
