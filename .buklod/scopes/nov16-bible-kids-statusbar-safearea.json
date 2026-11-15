@@ -26,18 +26,23 @@
     "Bible and Children Stories headerless routes receive top safe-area protection.",
     "Existing notifications and bottom nav contracts preserved.",
     "Regression suite, TypeScript and Android preview export required before future staging-only release.",
-    "No production mutation; source-only PR pending staged RC approval."
+    "No production mutation; source-only PR pending staged RC approval.",
+    "New stage-only workflow is guarded by #845 draft, same-SHA Engineering/Main/Android export checks, EAS staging previous update identity and production nonmutation."
   ],
   "allowedPaths": [
     ".buklod/scopes/nov16-bible-kids-statusbar-safearea.json",
     "src/components/BuklodNavSafeShell.tsx",
-    "tests/nov16-bible-kids-navigation-safearea.test.mjs"
+    "tests/nov16-bible-kids-navigation-safearea.test.mjs",
+    "tests/nov16-bible-kids-safearea-stage132-policy.test.mjs",
+    "scripts/buklod-nov16-bible-kids-safearea-stage132-policy.mjs",
+    ".github/workflows/buklod-nov16-bible-kids-safearea-stage132.yml"
   ],
   "regressionTests": [
-    "tests/nov16-bible-kids-navigation-safearea.test.mjs"
+    "tests/nov16-bible-kids-navigation-safearea.test.mjs",
+    "tests/nov16-bible-kids-safearea-stage132-policy.test.mjs"
   ],
-  "releaseMode": "source-only-pending-staging-ota",
-  "releaseStatus": "DEV/QA only, not published.",
+  "releaseMode": "isolated-android-staging-ota",
+  "releaseStatus": "RC source only; publish after exact SHA QA, signed APK, previous stage group and production readback",
   "lockedFeatureChanges": [
     {
       "id": "app-runtime",
