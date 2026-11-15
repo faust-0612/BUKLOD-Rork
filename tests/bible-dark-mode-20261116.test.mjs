@@ -14,6 +14,10 @@ test('Daily Reading and notification cards use semantic colors for nightPine and
  for(const name of ['foreground','secondary','muted','chipSurface','chipActive','inputSurface'])
    assert.match(bible,new RegExp('const '+name+' ='));
  assert.match(bible,/themedShared\.screen/);
+ // The nested audio title/translation/loading/error states share the same dark surface.
+ const audio=bible.slice(bible.indexOf('function DailyReadingAudioPreview({'),bible.indexOf('export default function DailyBibleScreen()'));
+ assert.match(audio,/const \{ theme \} = useBuklodTheme\(\)/);
+ for(const color of ['theme.accent','theme.textSecondary','theme.textMuted','theme.surfaceElevated','theme.surfaceMuted'])assert.ok(audio.includes(color));
  assert.match(notices,/const shared = useThemedShared\(\)/);
  assert.match(notices,/color:theme\.textPrimary/);
  assert.match(notices,/color:theme\.textSecondary/);
