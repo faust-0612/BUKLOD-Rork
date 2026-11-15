@@ -1,0 +1,187 @@
+name: BUKLOD Henry official asset and live source audit - NO PUBLISH
+on:
+  pull_request:
+    branches: [fix/nov16-bible-kids-system-safearea]
+    paths:
+      - '.github/workflows/buklod-henry-official-asset-source-probe-20261116.yml'
+permissions:
+  contents: read
+jobs:
+  audit-only:
+    if: ${{ github.head_ref == 'integration/nov16-conso-henry-dark-kids-132' && github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Read official Google badge directly from documented origin, never modify artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --max-time 45 --retry 1 \
+            'https://docs.cloud.google.com/static/translate/images/google-translate-attribution.zip' -o /tmp/official-google-translation.zip
+          python3 - <<'PY'
+          import zipfile,io,base64,hashlib
+          data=open('/tmp/official-google-translation.zip','rb').read()
+          assert len(data)<2000000 and zipfile.is_zipfile(io.BytesIO(data)), 'Bad official badge ZIP'
+          archive=zipfile.ZipFile(io.BytesIO(data))
+          candidates=[]
+          for inf in archive.infolist():
+            if inf.is_dir(): continue
+            print('BADGE_ZIP_ENTRY',inf.filename,inf.file_size)
+            name=inf.filename.lower()
+            if name in ('png/color-regular.png', 'png/color-regular@2x.png') and inf.file_size<25000:
+              candidates.append(inf)
+          if not candidates:
+            print('NO_SMALL_OFFICIAL_PNG_FOUND')
+          else:
+            inf=next((x for x in candidates if x.filename=='png/color-regular.png'), candidates[0])
+            raw=archive.read(inf)
+            assert raw[:8]==b'\x89PNG\r\n\x1a\n'
+            print('BADGE_SELECTED',inf.filename,'SHA256',hashlib.sha256(raw).hexdigest(),'BYTES',len(raw),'DIMENSIONS',int.from_bytes(raw[16:20],'big'),int.from_bytes(raw[20:24],'big'))
+            print('BEGIN_OFFICIAL_GOOGLE_BADGE_BASE64')
+            print(base64.b64encode(raw).decode('ascii'))
+            print('END_OFFICIAL_GOOGLE_BADGE_BASE64')
+          PY
+      - name: Probe actual Matthew Henry chapter shapes and ranges
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,urllib.request
+          base='https://bible.helloao.org/api/c/matthew-henry/'
+          for chapter in ['GEN/1','JHN/3','3JN/1']:
+            req=urllib.request.Request(base+chapter+'.json',headers={'User-Agent':'BUKLOD-Source-Audit/1.0'})
+            try:
+              with urllib.request.urlopen(req,timeout=35) as response:
+                raw=response.read(3500000)
+                d=json.loads(raw)
+              print('CHAPTER',chapter,'ROOT_KEYS',list(d)[:15])
+              print('CHAPTER_FIELDS',list(d.get('chapter',{})) if isinstance(d.get('chapter'),dict) else type(d.get('chapter')).__name__)
+              rows=d.get('chapter',{}).get('content',[]) if isinstance(d.get('chapter'),dict) else d.get('content',[])
+              print('CHAPTER_CONTENT',chapter,'COUNT',len(rows),'FIRST_BLOCKS')
+              for row in rows[:5]:
+                if not isinstance(row,dict):continue
+                print('BLOCK',json.dumps({key:row.get(key) for key in ['type','number','verse','startVerse','endVerse','heading','content','text'] if key in row},ensure_ascii=False)[:1600])
+              sample=[dict(type=x.get('type'),number=x.get('number'),endVerse=x.get('endVerse'),contentType=type(x.get('content')).__name__) for x in rows[:200] if isinstance(x,dict)]
+              print('CHAPTER_TYPE_COUNTS',chapter,dict((k,sum(t['type']==k for t in sample)) for k in set(t['type'] for t in sample)))
+            except Exception as e:
+              print('SOURCE_PROBE_ERROR',chapter,type(e).__name__,str(e)[:250])
+              raise
+          PY
+      - name: Identify current staging runtime and signed native build (read only)
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo 'EXPO_SECRET_MISSING; staging release must remain HOLD'
+            exit 1
+          fi
+          npm ci --ignore-scripts --no-audit --no-fund
+          APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > /tmp/staging-build-readonly.json
+          python3 - <<'PY'
+          import json
+          b=json.load(open('/tmp/staging-build-readonly.json'))
+          fields=['id','status','platform','gitCommitHash','buildProfile','appIdentifier','appVersion','appBuildVersion','runtime','updateChannel','app']
+          print('SIGNED_STAGING_BUILD_PUBLIC_IDENTITY',json.dumps({k:b.get(k) for k in fields},default=str)[:2500])
+          assert b['id']=='bc4be208-bfb0-42f3-95cb-358353d0600f'
+          assert b.get('appIdentifier')=='org.mzbministry.buklod.staging'
+          assert str(b.get('runtime',{}).get('version'))=='1.3.2'
+          PY
+          echo 'EAS_BUILD_VIEW_READ_ONLY_PASS'
+      - name: Inspect native module in remote signed APK using bounded ZIP HTTP ranges only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import io,os,urllib.request,zipfile,json
+          b=json.load(open('/tmp/staging-build-readonly.json'))
+          url=(b.get('artifacts') or {}).get('buildUrl')
+          assert isinstance(url,str) and url.startswith('https://'), 'Missing Expo signed artifact'
+          class RangedApk(io.RawIOBase):
+            def __init__(self,url):
+              self.url=url;self.pos=0;self.fetched=0
+              req=urllib.request.Request(url,headers={'Range':'bytes=0-0','User-Agent':'BUKLOD-Signed-APK-Zip-Range-Audit/1.0'})
+              with urllib.request.urlopen(req,timeout=30) as res:
+                assert res.status==206,'Artifact CDN does not support GET byte ranges; no full download'
+                header=res.headers.get('Content-Range','')
+                assert header.startswith('bytes 0-0/'),'Invalid APK ranged size header'
+                self.size=int(header.split('/')[-1])
+                assert len(res.read(2))==1,'Invalid APK initial range'
+              assert 0<self.size<1_500_000_000, 'Invalid APK size'
+              print('SIGNED_APK_REMOTE_SIZE',self.size)
+            def readable(self):return True
+            def seekable(self):return True
+            def tell(self):return self.pos
+            def seek(self,offset,whence=0):
+              self.pos=(offset if whence==0 else self.pos+offset if whence==1 else self.size+offset)
+              assert self.pos>=0
+              return self.pos
+            def read(self,n=-1):
+              if self.pos>=self.size:return b''
+              take=(self.size-self.pos if n is None or n<0 else min(n,self.size-self.pos))
+              if take<=0:return b''
+              end=self.pos+take-1
+              req=urllib.request.Request(self.url,headers={'Range':f'bytes={self.pos}-{end}','User-Agent':'BUKLOD-Signed-APK-Zip-Range-Audit/1.0'})
+              with urllib.request.urlopen(req,timeout=80) as res:
+                assert res.status==206,'Artifact CDN does not honor byte ranges; no full download'
+                data=res.read(take+1)
+              assert len(data)==take, 'Byte-range response length mismatch'
+              self.pos+=len(data);self.fetched+=len(data)
+              assert self.fetched<120_000_000, 'Read-only byte-range audit exceeded 120 MB total cap'
+              return data
+          remote=RangedApk(url)
+          found=False;dex_count=0
+          with zipfile.ZipFile(remote,'r') as apk:
+            dex=[i for i in apk.infolist() if i.filename.startswith('classes') and i.filename.endswith('.dex')]
+            assert dex, 'Signed APK missing Android DEX files'
+            dex_count=len(dex)
+            for info in dex:
+              with apk.open(info,'r') as entry:
+                previous=b''
+                while True:
+                  chunk=entry.read(262144)
+                  if not chunk:break
+                  if b'BuklodMlKitTranslation' in previous+chunk:
+                    found=True;break
+                  previous=chunk[-64:]
+              if found:break
+          print('SIGNED_APK_NATIVE_MLKIT_MODULE','PRESENT' if found else 'NOT_FOUND','DEX_COUNT',dex_count,'RANGED_BYTES',remote.fetched,'APK_TOTAL_BYTES',remote.size)
+          assert found,'Exact staging APK lacks BuklodMlKitTranslation native module'
+          PY
+      - name: Read exact staging and production OTA manifests and channel mapping (no mutation)
+        if: always()
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APP_VARIANT: staging
+          EXPO_PUBLIC_APP_ENV: staging
+          BUKLOD_APP_TARGET: main
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > /tmp/buklod-stage-channel.json
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > /tmp/buklod-prod-channel.json
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 3 --json --non-interactive > /tmp/buklod-stage-updates.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {manifest,verifyChannels} from './scripts/navigation-v2-owner-staging-policy.mjs';
+          const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const stageChannel=read('/tmp/buklod-stage-channel.json');
+          const prodChannel=read('/tmp/buklod-prod-channel.json');
+          const mapping=verifyChannels(stageChannel,prodChannel);
+          const stage=await manifest('staging-user'),production=await manifest('production');
+          assert.equal(stage.extra?.expoClient?.android?.package,'org.mzbministry.buklod.staging');
+          assert.equal(production.extra?.expoClient?.android?.package,'org.mzbministry.buklod');
+          const updates=read('/tmp/buklod-stage-updates.json'),items=updates.currentPage||updates;
+          assert.ok(Array.isArray(items)&&items.length,'No prior staging update list');
+          const next=items[0];
+          console.log('EAS_STAGE_IDENTITY',JSON.stringify({branch:mapping.name,currentStageId:stage.id,stageUpdateGroup:next.group,stageUpdateMessage:next.message,stageRuntime:stage.runtimeVersion,productionId:production.id,productionRuntime:production.runtimeVersion,stagePackage:stage.extra?.expoClient?.android?.package}));
+          NODE
+          echo 'READ_ONLY_STAGING_PRODUCTION_MANIFEST_PASS'
+      - name: No publication by probe
+        run: echo 'PASS OR FAIL source probe. No Expo OTA, no Play build, no DB/web/production mutation.'

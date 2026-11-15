@@ -1,0 +1,82 @@
+name: BUKLOD Nov16 Consolidated Henry Dark Kids Android QA - NO OTA
+on:
+  pull_request:
+    branches: [fix/nov16-bible-kids-system-safearea]
+    paths:
+      - 'src/app/bible/read.tsx'
+      - 'src/lib/buklodBibleStudy.ts'
+      - 'src/lib/buklodHenryTranslation.ts'
+      - 'tests/bible-*.test.cjs'
+      - 'tests/bible-henry-attribution-live-schema-20261116.test.cjs'
+      - 'assets/brands/google-translate/color-regular.png'
+      - 'tests/bible-dark-mode-20261116.test.mjs'
+      - 'tests/nov16-conso-henry-dark-kids-132.test.cjs'
+      - 'src/app/notifications/index.tsx'
+      - 'src/components/ClusterNotificationActions.tsx'
+      - 'tests/notifications-*.test.mjs'
+      - '.buklod/scopes/nov16-conso-henry-dark-kids-20261116.json'
+      - 'release/nov16-conso-henry-dark-kids-stage-132.json'
+      - '.github/workflows/buklod-nov16-conso-henry-dark-kids-qa.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-nov16-conso-henry-qa-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  source-and-android-qa:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.head_ref == 'integration/nov16-conso-henry-dark-kids-132' && github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Check identity, scope and no-publish policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          git merge-base --is-ancestor fda52bb743f59a064983dfb17534b1a8cae7bc9f HEAD
+          node --test tests/nov16-conso-henry-dark-kids-132.test.cjs
+      - name: Dependencies and consolidated focused regressions
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types --test \
+            tests/bible-study-sources.test.cjs \
+            tests/bible-henry-attribution-live-schema-20261116.test.cjs \
+            tests/bible-reader-safearea-commentary.test.cjs \
+            tests/bible-radio-visual.test.cjs \
+            tests/nov16-bible-kids-navigation-safearea.test.mjs \
+            tests/bible-dark-mode-20261116.test.mjs \
+            tests/children-bible-expanded-catalog-20261115.test.mjs \
+            tests/children-story-narration-20261115.test.mjs \
+            tests/nov16-conso-henry-dark-kids-132.test.cjs \
+            tests/notifications-dark-contrast-executive-20261115.test.mjs \
+            tests/notifications-read-actions-regression-20261115.test.mjs
+      - name: Exact Android TypeScript and Hermes export - NOT OTA
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-nov16-conso-henry-android --clear
+          test -s /tmp/buklod-nov16-conso-henry-android/metadata.json
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          echo 'SOURCE QA ONLY. No EAS update, no APK build, no production or web publication.'
+      - name: Gate report
+        run: |
+          echo '### Consolidated staging QA' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Exact Android source, TypeScript, Hermes and focused tests verified.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'RELEASE HOLD: Google branding, native APK module, source/live EAS identity and protected production nonmutation verification remain mandatory.' >> "$GITHUB_STEP_SUMMARY"
