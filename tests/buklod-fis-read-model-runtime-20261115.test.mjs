@@ -2,24 +2,20 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import ts from 'typescript';
+import { stripTypeScriptTypes } from 'node:module';
 
-// Exercise the actual FIS TypeScript implementation without bringing in an
-// unavailable Jest/React Native runtime or changing its canonical finance source.
+// Exercise the actual FIS model without extra packages: the governance job
+// intentionally runs Node tests before npm ci. Node 22 strips its TypeScript.
 const source = readFileSync('src/lib/buklodFisReadModel.ts', 'utf8');
-const js = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
-}).outputText;
-const runtimeExports = {};
-vm.runInNewContext(js, {
-  exports: runtimeExports,
-  require(id) {
-    if (id === '@/lib/buklodFinanceMonthCloseBlockers') {
-      return { getBuklodFinanceMonthCloseBlockers: () => ['Finance controls not ready'] };
-    }
-    throw new Error('Unexpected dependency in isolated FIS model: ' + id);
-  }
-}, { filename: 'buklodFisReadModel.transpiled.js', timeout: 1000 });
+const dependency = /^import \{ getBuklodFinanceMonthCloseBlockers \} from ['"]@\/lib\/buklodFinanceMonthCloseBlockers['"];?$/m;
+if (!dependency.test(source)) throw new Error('FIS finance dependencies changed: update focused test');
+const isolated = source.replace(dependency,
+  "const getBuklodFinanceMonthCloseBlockers = () => ['Finance controls not ready'];");
+const js = stripTypeScriptTypes(isolated, { mode: 'transform' })
+  .replace(/\bexport (function|const) /g, '$1 ');
+const runtimeExports = vm.runInNewContext(
+  js + '\n;({ previousFisMonth, buildFisReadModel, createFisCsv })',
+  {}, { filename: 'buklodFisReadModel.stripped.js', timeout: 1000 });
 const { previousFisMonth, buildFisReadModel, createFisCsv } = runtimeExports;
 
 const specimen = {
