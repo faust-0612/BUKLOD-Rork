@@ -4,8 +4,8 @@
  */
 export const BIBLE_EDITORIAL_DEPTH_OLD: Record<string, {tl:string; en:string}> = {
   "paglikha": {
-    "tl": "Sa bawat yugto, ipinakita ng Genesis ang kaayusan ng paglikha: nagkaroon ng hangganan ang tubig at kalupaan, tumubo ang mga halamang namumunga ayon sa uri, at nalikha ang mga ilaw sa kalangitan bilang palatandaan ng mga panahon. Nang likhain ang tao, lalaki at babae, ibinigay ang pagpapala at tungkuling pangalagaan ang nilikhang daigdig.",
-    "en": "Genesis describes creation unfolding in an ordered sequence: waters and dry ground are separated, seed-bearing plants appear, and lights in the sky mark days and seasons. When humanity is created, male and female bear God's image and receive the responsibility to care for the world entrusted to them."
+    "tl": "Sa bawat yugto, ipinakita ng Genesis ang kaayusan ng paglikha: nagkaroon ng hangganan ang tubig at kalupaan, tumubo ang mga halamang namumunga ayon sa uri, at nalikha ang mga ilaw sa kalangitan bilang palatandaan ng mga panahon. Nang likhain ang tao, lalaki at babae, ibinigay ang pagpapala at tungkuling pangalagaan ang nilikhang daigdig. Sa ikapitong araw, natapos ang gawain ng paglikha at binasbasan ang araw ng pamamahinga.",
+    "en": "Genesis describes creation unfolding in an ordered sequence: waters and dry ground are separated, seed-bearing plants appear, and lights in the sky mark days and seasons. When humanity is created, male and female bear God's image and receive the responsibility to care for the world entrusted to them. On the seventh day, the work of creation was complete, and the day of rest was blessed."
   },
   "eden": {
     "tl": "Bago ang pagsuway, pinahintulutan ng Diyos na kainin nila ang mga bunga ng iba pang puno, ngunit nilinaw ang isang ipinagbabawal. Nilinlang sila ng ahas sa pamamagitan ng pagdududa sa sinabi ng Diyos. Pagkatapos nilang kumain, natauhan sila sa kanilang kahubaran, nagtahi ng panakip, at nagtago nang marinig ang Diyos sa hardin.",
