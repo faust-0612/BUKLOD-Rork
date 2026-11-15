@@ -34,7 +34,10 @@ test('story reader has narrated playback cleanup, quiz and adult-account local p
   const reader=file('src/app/children-stories/[id].tsx');
   const service=file('src/features/childrenStories/service.ts');
   assert.match(reader,/AppState\.addEventListener/);
-  assert.match(reader,/Speech\.stop/);
+  const narrator=file('src/features/childrenStories/storyNarration.ts');
+  assert.match(reader,/StoryNarrator/);
+  assert.match(reader,/AppState\.addEventListener/);
+  assert.match(narrator,/this\.speech\.stop\(\)/);
   assert.match(reader,/StoryArt/);
   assert.match(reader,/saveStoryProgress/);
   assert.match(service,/children-stories\/v1\/\$\{uid\}/);
