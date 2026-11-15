@@ -65,5 +65,5 @@ test('Kingdom release contract tracks the owner-approved Home Hub door, not remo
   assert.match(check, /src\/components\/home\/BuklodKingdomHubCard\.tsx/);
   assert.match(check, /src\/app\/\(tabs\)\/hub\.tsx/);
   assert.doesNotMatch(check, /requireTokens\('src\/components\/BuklodFoundationWorkspaceNav\.tsx'/);
-  assert.match(read('src/app/(tabs)/hub.tsx'), /<BuklodKingdomHubCard \/>/);
+  assert.doesNotMatch(read('src/app/(tabs)/hub.tsx'), /<BuklodKingdomHubCard \/>/);
 });
