@@ -24,6 +24,6 @@ test('newer staging versions and changed runtime fail closed',()=>{
 });
 test('exact SHA, independent production readback and runtime are mandatory',()=>{
  const p=read('scripts/notifications-staging-132-policy.mjs');
- for(const x of ['ancestor(APK_SOURCE,sha)','verifyBuild(read(dir+\\'/build.json\\'))','staging-updates-recheck.json','pre.productionId','verifyUpdate(read(dir+\\'/update-view.json\\')','SKIPPED BY OWNER'])assert.ok(p.includes(x.replaceAll("\\'","'")),x);
+ for(const x of ['ancestor(APK_SOURCE,sha)',"verifyBuild(read(dir+'/build.json'))",'staging-updates-recheck.json','pre.productionId',"verifyUpdate(read(dir+'/update-view.json')",'SKIPPED BY OWNER'])assert.ok(p.includes(x),x);
  for(const x of ['Engineering Accountability','BUKLOD Main - Report Door and Legacy Integration PR QA','npx tsc --noEmit','expo export --platform android','--skip-bundler --input-dir','Independently verify staging manifest'])assert.ok(flow.includes(x),x);
 });
