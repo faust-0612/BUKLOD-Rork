@@ -1,0 +1,58 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/nov16-all-v3-stage132-release.json",
+  "objective": "Owner-authorized exact-once Android staging publish of current consolidated 132-story/AdMob/Connect/Profile/Bible/dark-mode source with natural Filipino Matthew Henry v3 translation; never publish production from staging release.",
+  "baseRef": "integration/nov16-all-staging132-translation-v3",
+  "productionBaselineEvidence": "Latest staging EAS update 01a1e0f0-5d84-74c7-915c-7a28acbf7629 group d3ed8bcb-d0fb-4848-921a-b64c2068cb8f independently read back in SUCCESS run 43759068518, source a9e8e74c; production unchanged 01a1dff8-7563-790b-a714-22c316f56590. V3 reviewed candidate bf8e82019297dc6642b92748bf8f3498cf15ae67 requires exact-SHA CI in PR #858. Signed staging APK bc4be208-bfb0-42f3-95cb-358353d0600f, project 23dad7d0-389a-406e-8dec-08965dab85d8, runtime 1.3.2.",
+  "chosenApproach": "Frozen app source bf8e820 from PR #858 adds only Henry v3 to verified 132-story staging code. Release marker has policy, test, scope and push-to-stage workflow with PR CI, signed APK, runtime/config check, EAS staging and production manifest freshness, Hermes export, exactly-one publish and post-publish readback.",
+  "selectionRationale": "No blind overwrite; preserves mandatory AdMob/navigation and already staged app code while publishing only the missing Henry v3 on top of existing 132 stories.",
+  "alternativeApproaches": [
+    "Use workflow_dispatch: unavailable via current GitHub connector. The explicit prefix-push one-shot workflow provides inspectable evidence.",
+    "Promote to production or Play Store: rejected as unauthorized and could regress unrelated areas.",
+    "Skip server readback after publish: rejected due previous EAS transient verification and risk of unverified claims."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "production-release",
+    "app-runtime",
+    "narration",
+    "ads-monetization",
+    "navigation-scroll"
+  ],
+  "preserveBehaviors": [
+    "Application source remains byte-identical to reviewed PR #858 / bf8e82019297dc6642b92748bf8f3498cf15ae67 SHA PR #858 / bf8e82019297dc6642b92748bf8f3498cf15ae67, including all existing Wall/Ads/Connect/Profile/Bible/Kingdom and dark-mode fixes.",
+    "Only release metadata files may differ from frozen QA source. No changes to app config, Android native, assets, dependencies, backend, Supabase, production OTA, web or Play Store.",
+    "Signed staging APK runtime 1.3.2, package org.mzbministry.buklod.staging, channel staging-user, preview EAS environment and project ID 23dad7d0-389a-406e-8dec-08965dab85d8.",
+    "Do not publish if latest staging manifest or group advanced beyond verified baseline or production manifest changed. Never retry a possibly successful publish without readback.",
+    "Physical Android device acceptance explicitly skipped by owner. No claim of device verification."
+  ],
+  "allowedPaths": [
+    ".github/workflows/buklod-nov16-all-v3-stage132-ota.yml",
+    "scripts/buklod-nov16-all-v3-stage132-policy.mjs",
+    ".buklod/scopes/nov16-all-v3-stage132-release.json",
+    "tests/nov16-all-v3-stage132-release.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/nov16-all-v3-stage132-release.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "production-release",
+      "reason": "New one-time staging-only OTA policy and automation must fail closed on unexpected source, staging or production movement, protecting release identity.",
+      "preservedBehaviors": [
+        "Existing production OTA and genuine AdMob/navigation/media behavior remain unchanged; staging requires signed runtime 1.3.2 APK and exact GitHub CI proof."
+      ],
+      "tests": [
+        "tests/nov16-all-v3-stage132-release.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Exact reviewed PR #858 frozen head has required CI success before any EAS publish.",
+    "Release metadata-only diff and V2 scope allowlist match; no native/API/production mutations.",
+    "Focused 132-story and global AdMob/navigation/dark regression tests run with TypeScript and Android Hermes export.",
+    "EAS signed build, staging/production channel, stage/prod manifests and latest group read back immediately before publish.",
+    "Exactly one Android staging-user update, with bounded retries only on verification, never duplicate publish.",
+    "Server readback verifies latest staging update ID/sha/group/runtime and production manifest unchanged; no claim of physical-device acceptance."
+  ]
+}

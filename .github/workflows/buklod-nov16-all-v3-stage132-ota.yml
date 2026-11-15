@@ -1,0 +1,167 @@
+# Strict one-shot owner-authorized BUKLOD 132 Bible Stories Android staging OTA.
+# Armed only after PR #857 exact-SHA mandatory CI and release metadata-only diff verified.
+# Source is the CI-verified PR #857 app tree; no native, production, backend or web write.
+name: BUKLOD Nov16 Complete Consolidated V3 Staging Android 1.3.2 OTA
+on:
+  push:
+    branches: [release/nov16-conso-all-v3-stage132-once]
+    paths: [.github/workflows/buklod-nov16-all-v3-stage132-ota.yml]
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+concurrency:
+  group: buklod-132-story-android-staging-only-once
+  cancel-in-progress: false
+jobs:
+  publish-reviewed-android-staging:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/nov16-conso-all-v3-stage132-once' && startsWith(github.event.head_commit.message, 'BUKLOD_NOV16_ALL_V3_STAGING_PUBLISH:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EVIDENCE_DIR: /tmp/buklod-nov16-all-v3-stage
+      EXPORT_DIR: /tmp/buklod-nov16-all-v3-export
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Require exact reviewed PR 858 source and both successful independently finished CI
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const source='bf8e82019297dc6642b92748bf8f3498cf15ae67';
+            const base='a9e8e74c80bbbdb4496ef8b836cde896434119ac';
+            const {data:pr}=await github.rest.pulls.get({...context.repo,pull_number:858});
+            if(pr.state!=='open'||pr.head.ref!=='integration/nov16-all-staging132-translation-v3'||pr.head.sha!==source||pr.base.ref!=='feature/bible-132-dialogue-complete-staging-20261116'||pr.base.sha!==base)
+              throw Error('Frozen source PR or staging baseline changed, no OTA');
+            const required=['Engineering Accountability','BUKLOD Main - Report Door and Legacy Integration PR QA'];
+            const {data}=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,head_sha:source,per_page:100});
+            for(const name of required){
+              const run=data.workflow_runs.find(x=>x.name===name&&x.head_sha===source&&x.event==='pull_request');
+              if(!run||run.status!=='completed'||run.conclusion!=='success')
+                throw Error('Missing exact-source successful mandatory CI: '+name);
+            }
+            core.info('Frozen source PR #858 and both exact-sha gates verified');
+      - name: Locked install, frozen-source verification, complete story and mandatory regression suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN" || { echo 'Expo credential missing: no OTA'; exit 1; }
+          npm ci --ignore-scripts --no-audit --no-fund
+          node scripts/buklod-nov16-all-v3-stage132-policy.mjs source "$GITHUB_SHA" "$EVIDENCE_DIR"
+          node --test \
+            tests/nov16-all-v3-stage132-release.test.mjs \
+            tests/henry-natural-filipino-20261116.test.cjs \
+            tests/bible-henry-attribution-live-schema-20261116.test.cjs \
+            tests/bible-study-sources.test.cjs \
+            tests/henry-verse-accurate-staging-20261116.test.mjs \
+            tests/bible-132-complete-storytelling-20261116.test.mjs \
+            tests/children-bible-expanded-catalog-20261115.test.mjs \
+            tests/children-story-narration-20261115.test.mjs \
+            tests/children-stories-dialogue-staging-20261116.test.mjs \
+            tests/children-stories-navigation-ad-safety.test.mjs \
+            tests/bible-dark-mode-20261116.test.mjs \
+            tests/notifications-dark-contrast-executive-20261115.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/buklod-ads-production-release-contract-20261111.test.mjs \
+            tests/nov16-connect-profile-geometry.test.mjs \
+            tests/buklod-admob-fill-finance-release-20261111.test.mjs \
+            tests/nov14-scroll-pauses-all-videos.test.mjs \
+            tests/navigation-video-scroll-stop-20261114.test.mjs
+          npx tsc --noEmit
+      - name: Fetch signed staging APK, EAS stage and production channel + latest staging manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE_DIR"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$EVIDENCE_DIR/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/stage-channel.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/prod-channel.json"
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 15 --json --non-interactive > "$EVIDENCE_DIR/stage-updates.json"
+          node scripts/buklod-nov16-all-v3-stage132-policy.mjs preflight "$GITHUB_SHA" "$EVIDENCE_DIR"
+      - name: Verify exact Android 1.3.2 Preview config and export real Hermes-compatible bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-nov16-all-v3-preview.env --non-interactive > /dev/null
+          test -s /tmp/buklod-nov16-all-v3-preview.env
+          set -a
+          . /tmp/buklod-nov16-all-v3-preview.env
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx expo config --json > "$EVIDENCE_DIR/expo-config.json"
+          node - <<'NODE'
+          const a=require('node:assert/strict'), fs=require('node:fs');
+          const c=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/expo-config.json','utf8'));
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.extra.appEnvironment,'staging');
+          a.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.match(process.env.EXPO_PUBLIC_SUPABASE_URL||'',/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+          a.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir "$EXPORT_DIR" --clear
+          test -s "$EXPORT_DIR/metadata.json"
+      - name: Recheck latest EAS staging group and production manifest just before any publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 15 --json --non-interactive > "$EVIDENCE_DIR/stage-updates-recheck.json"
+          node scripts/buklod-nov16-all-v3-stage132-policy.mjs recheck "$GITHUB_SHA" "$EVIDENCE_DIR"
+      - name: At most one Android OTA to staging-user; NEVER production
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs'), p=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/preflight.json','utf8'));
+          if(p.alreadyPublished)fs.writeFileSync(process.env.EVIDENCE_DIR+'/group.txt',p.stageGroup);
+          NODE
+          if [ ! -s "$EVIDENCE_DIR/group.txt" ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview --skip-bundler --input-dir "$EXPORT_DIR" --non-interactive --json --message "BUKLOD_NOV16_ALL_V3_STAGE132_$GITHUB_SHA" > "$EVIDENCE_DIR/publish.json"
+            node - <<'NODE'
+          const fs=require('node:fs'), d=process.env.EVIDENCE_DIR;
+          const r=JSON.parse(fs.readFileSync(d+'/publish.json','utf8'));
+          if(!Array.isArray(r)||r.length!==1||!r[0].group)throw Error('Ambiguous publish receipt: verify server, DO NOT retry publish');
+          fs.writeFileSync(d+'/group.txt',r[0].group);
+          NODE
+          fi
+          test -s "$EVIDENCE_DIR/group.txt"
+      - name: Read back exact latest Android update, source hash, unchanged production
+        shell: bash
+        run: |
+          set -euo pipefail
+          GROUP="$(cat "$EVIDENCE_DIR/group.txt")"
+          for attempt in 1 2 3 4; do
+            if npx --yes eas-cli@27.9.0 update:view "$GROUP" --json > "$EVIDENCE_DIR/update-view.json"; then break; fi
+            if [ "$attempt" = 4 ]; then echo 'EAS view unavailable; do NOT re-publish, independently audit'; exit 1; fi
+            sleep 5
+          done
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 15 --json --non-interactive > "$EVIDENCE_DIR/stage-updates-after.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/stage-channel-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/prod-channel-after.json"
+          node scripts/buklod-nov16-all-v3-stage132-policy.mjs postpublish "$GITHUB_SHA" "$EVIDENCE_DIR"
+      - name: Retain only nonsensitive signed release identity receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nov16-all-v3-staging-identity
+          path: |
+            /tmp/buklod-nov16-all-v3-stage/preflight.json
+            /tmp/buklod-nov16-all-v3-stage/verification.json
+          if-no-files-found: ignore
+          retention-days: 5
