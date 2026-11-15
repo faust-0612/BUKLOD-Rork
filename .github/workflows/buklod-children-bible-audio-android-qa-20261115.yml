@@ -1,13 +1,15 @@
 # Scoped source-only Android QA for BUKLOD Children Story audio. No Expo token, no OTA.
 name: BUKLOD Children Bible + Narration Android 1.3.2 QA (NO OTA)
 on:
-  push:
+  pull_request:
     branches:
-      - feature/children-bible-library-20261115
+      - integration/life-human-first-executive-stage-132-20261115
     paths:
       - .github/workflows/buklod-children-bible-audio-android-qa-20261115.yml
       - .buklod/scopes/children-bible-library-20261115.json
-  workflow_dispatch:
+      - src/features/childrenStories/storyNarration.ts
+      - src/app/children-stories/[id].tsx
+      - tests/children-story-narration-20261115.test.mjs
 permissions:
   contents: read
 concurrency:
@@ -15,11 +17,12 @@ concurrency:
   cancel-in-progress: false
 jobs:
   android-hermes-source-qa:
-    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/feature/children-bible-library-20261115' }}
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.event.pull_request.head.ref == 'feature/children-bible-library-20261115' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       CI: '1'
+      EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
       EXPO_NO_TELEMETRY: '1'
       APP_VARIANT: staging
       EXPO_PUBLIC_APP_ENV: staging
@@ -29,7 +32,7 @@ jobs:
       - name: Exact reviewed head checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -39,7 +42,7 @@ jobs:
       - name: Enforce staging ancestry and no protected native changes
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
           test "$(git merge-base ea9a72c687c0885ea6a3c14a883503204f83dad4 HEAD)" = "ea9a72c687c0885ea6a3c14a883503204f83dad4"
           node <<'NODE'
           const assert=require('node:assert/strict'), fs=require('node:fs'), cp=require('node:child_process');
@@ -78,5 +81,5 @@ jobs:
           NODE
           EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-children-bible-android-qa --clear
           test -s /tmp/buklod-children-bible-android-qa/metadata.json
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
           echo 'SOURCE QA VERIFIED: TTS callback tests, TypeScript and Android Expo export; no physical audio or OTA claimed.' >> "$GITHUB_STEP_SUMMARY"
