@@ -1,0 +1,118 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/children-story-world-staging-132-20261115.json",
+  "objective": "Owner-authorized new child-safe BUKLOD Children's Story World in isolated DEV: curated bilingual offline catalog, story reader, narration, comprehension and System Admin editorial content publishing.",
+  "baseRef": "2e7dc3aa69d2362b7b360013ccaac9917c353e2b",
+  "productionBaselineEvidence": "BUKLOD current staging integration baseline is 2e7dc3aa69d2362b7b360013ccaac9917c353e2b. The feature DEV PR #823 head ee2a15afc3cc367d4d6d08620b41cd4753b03c4d passes mandatory source gates. This isolated staging branch starts from existing staging integration; no production merge, production EAS update or DB write.",
+  "chosenApproach": "Forward-port the exact 18 child-story DEV source blobs onto current 1.3.2 staging integration baseline, preserving all other files and prior workstream commits. Add staging-only EAS OTA trigger after source PR CI succeeds. Reuse installed Expo/Speech/SVG; no native package changes. Supabase editorial migration remains source-only to avoid modifying shared production backend during staging.",
+  "selectionRationale": "Avoid native rebuild, paid media service, large video assets, new authentication system, user-generated child chats and bandwidth spikes. Preserve working app surfaces, ads and production database.",
+  "alternativeApproaches": [
+    "Video-based storybook: rejected due bandwidth and performance burden.",
+    "AI generated chat with children: rejected due safety, privacy and cost.",
+    "Standalone native children's application: rejected due duplicate build and account systems."
+  ],
+  "preserveBehaviors": [
+    "The existing Home personal-household and Health Center doors keep their routes and styling.",
+    "Existing BUKLOD Wall, Connect, ads, profile, rank, Kingdom, quizzes, PTT and account roles remain unchanged except the scoped child-sensitive ad path exemption.",
+    "Generic ads remain enabled on all original eligible app pages and disabled only inside children-stories.",
+    "No child accounts, messaging, user-posted content, advertisements or QMP/financial rewards are added.",
+    "No native packages or Expo runtime change. Production/staging OTA and live database remain untouched until release gates."
+  ],
+  "acceptanceChecks": [
+    "Twelve unique offline original bilingual stories, four categories and three age bands.",
+    "Home card, offline feature search and routes open to a reader with narration, page progression, quiz, favorites and adult-account scoped persistence.",
+    "Read-to-me narration stops on route exit, background and page/language changes.",
+    "Remote editorial content appears only after published approval and optional date cutoff; saved cached stories remain scoped to the adult account.",
+    "CMS requires AdminGate plus backend RLS enforcing system admin writes; published reads are constrained.",
+    "Story section sensitive prefix blocks generic ads while preserving ad behavior elsewhere.",
+    "Focused contract and catalog tests, SQL RLS contract, TypeScript build and staging behavior verification required before OTA.",
+    "No production release or live migration authorized in this feature DEV PR.",
+    "Staging EAS channel staging-user, Android org.mzbministry.buklod.staging, runtime 1.3.2, exact source SHA, no production mutation; physical device QA skipped by owner."
+  ],
+  "riskAreas": [
+    "child-safety",
+    "privacy",
+    "ads-isolation",
+    "offline-stale-cache",
+    "supabase-rls",
+    "navigation",
+    "mobile-memory",
+    "speech-lifecycle",
+    "navigation-scroll",
+    "ads-monetization"
+  ],
+  "regressionTests": [
+    "tests/children-stories-contract.test.mjs",
+    "supabase/tests/buklod_children_stories_rls_contract_20261115.sql",
+    "tests/children-stories-navigation-ad-safety.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/children-story-world-staging-132-20261115.json",
+    "src/features/childrenStories/catalog.ts",
+    "src/features/childrenStories/service.ts",
+    "src/features/childrenStories/StoryArt.tsx",
+    "src/features/childrenStories/catalog.test.ts",
+    "src/app/children-stories/index.tsx",
+    "src/app/children-stories/[id].tsx",
+    "src/app/admin/children-stories.tsx",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
+    "src/app/admin/index.tsx",
+    "src/app/_layout.tsx",
+    "src/lib/buklodGlobalAdController.ts",
+    "src/components/BuklodAdSafetyRouteBridge.tsx",
+    "src/lib/buklodNavigationV2.ts",
+    "src/components/BuklodFeatureFinder.tsx",
+    "supabase/migrations/20261115090000_buklod_children_stories_v1.sql",
+    "supabase/tests/buklod_children_stories_rls_contract_20261115.sql",
+    "tests/children-stories-contract.test.mjs",
+    "tests/children-stories-navigation-ad-safety.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Owner-authorized child-safe story feature reuses existing native modules and does not modify native runtime or app dependencies.",
+      "preservedBehaviors": [
+        "Expo runtime and installed dependencies stay the same.",
+        "Existing Home Health and household launchers remain available."
+      ],
+      "tests": [
+        "tests/children-stories-contract.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "A Home and search entry is added without bottom-tab changes; AdminGate and backend RLS retain authorization.",
+      "preservedBehaviors": [
+        "Five-tab navigation and existing route guards remain unchanged.",
+        "System admin edits require verified auth."
+      ],
+      "tests": [
+        "tests/children-stories-navigation-ad-safety.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Child-directed routes require a deny-by-default advertising exclusion; existing eligible pages are untouched.",
+      "preservedBehaviors": [
+        "Wall, Home, Community and profile ads retain existing placement code.",
+        "No interstitial warm-up on children-stories route."
+      ],
+      "tests": [
+        "tests/children-stories-navigation-ad-safety.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "New editorial story table has authenticated publication reads and explicit System Admin-only writes with RLS, without child personal data.",
+      "preservedBehaviors": [
+        "Existing BUKLOD Supabase policy and finance data remain unchanged.",
+        "Migration is staged as source and not applied to production."
+      ],
+      "tests": [
+        "supabase/tests/buklod_children_stories_rls_contract_20261115.sql"
+      ]
+    }
+  ],
+  "releaseMode": "isolated-staging-ota-132",
+  "releaseStatus": "Staging source integration in progress. Do not claim EAS OTA until exact-update receipt and channel nonmutation confirmation."
+}
