@@ -589,7 +589,7 @@ export default function BuklodPttScreen() {
             style={styles.setupChip}
             accessibilityLabel={chatOpen ? "Close PTT conversation" : "Open PTT conversation"}
           >
-            <MaterialCommunityIcons name="message-text-outline" size={18} color="#56DCE5" />
+            <MaterialCommunityIcons name="message-text-outline" size={18} color={isBuklodConnectStandalone ? "#3F8711" : "#56DCE5"} />
             <Text style={styles.setupChipText}>{chatOpen ? 'Hide chat' : 'Chat'}</Text>
           </Pressable>
           <Pressable
@@ -600,7 +600,7 @@ export default function BuklodPttScreen() {
             style={styles.setupChip}
             accessibilityLabel="Check PTT setup"
           >
-            <MaterialCommunityIcons name="shield-check-outline" size={16} color="#56DCE5" />
+            <MaterialCommunityIcons name="shield-check-outline" size={16} color={isBuklodConnectStandalone ? "#3F8711" : "#56DCE5"} />
             <Text style={styles.setupChipText}>Setup</Text>
           </Pressable>
         </View>
@@ -616,7 +616,7 @@ export default function BuklodPttScreen() {
             <View style={styles.statusRow}>
               <View style={[styles.statusDot, { backgroundColor: toneColor(statusCard.tone) }]} />
               <Text style={styles.statusTitle}>{statusCard.title}</Text>
-              {busy ? <ActivityIndicator color="#56DCE5" style={{ marginLeft: 'auto' }} /> : null}
+              {busy ? <ActivityIndicator color={isBuklodConnectStandalone ? "#3F8711" : "#56DCE5"} style={{ marginLeft: 'auto' }} /> : null}
             </View>
             <Text style={styles.statusDetail}>{statusCard.detail}</Text>
           </View>
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
-  setupBtnText: { color: (isBuklodConnectStandalone ? '#E8F6D8' : '#071725'), fontWeight: '900', letterSpacing: 0.4 },
+  setupBtnText: { color: (isBuklodConnectStandalone ? '#1E3814' : '#071725'), fontWeight: '900', letterSpacing: 0.4 },
   setupBtnSecondary: {
     minHeight: 44,
     borderRadius: 12,
@@ -1004,16 +1004,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
-  modeChipOn: { borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'), backgroundColor: '#0A3440' },
+  modeChipOn: { borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'), backgroundColor: (isBuklodConnectStandalone ? '#4E9516' : '#0A3440') },
   modeChipText: {
-    color: '#8FA3AC',
+    color: (isBuklodConnectStandalone ? '#55754A' : '#8FA3AC'),
     fontSize: 10,
     fontWeight: '900',
     textAlign: 'center',
   },
   modeChipTextOn: { color: '#FFFFFF' },
   autoExplain: {
-    color: '#7D939C',
+    color: (isBuklodConnectStandalone ? '#607955' : '#7D939C'),
     fontSize: 11,
     lineHeight: 15,
     marginTop: 8,
@@ -1028,8 +1028,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  channelTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '900' },
-  channelSub: { color: '#8CA2AB', fontSize: 12, marginTop: 3 },
+  channelTitle: { color: (isBuklodConnectStandalone ? '#213F17' : '#FFFFFF'), fontSize: 18, fontWeight: '900' },
+  channelSub: { color: (isBuklodConnectStandalone ? '#5E7653' : '#8CA2AB'), fontSize: 12, marginTop: 3 },
   changeChannelBtn: {
     borderRadius: 10,
     borderWidth: 1,
@@ -1051,35 +1051,35 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#203743',
-    backgroundColor: '#0A1822',
+    borderColor: (isBuklodConnectStandalone ? '#D5E8C4' : '#203743'),
+    backgroundColor: (isBuklodConnectStandalone ? '#F4FBEF' : '#0A1822'),
     alignItems: 'center',
     justifyContent: 'center',
   },
-  channelCellOn: { backgroundColor: '#0B4B58', borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8') },
-  channelCellText: { color: '#91A7B0', fontSize: 14, fontWeight: '900' },
+  channelCellOn: { backgroundColor: (isBuklodConnectStandalone ? '#4E9711' : '#0B4B58'), borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8') },
+  channelCellText: { color: (isBuklodConnectStandalone ? '#4B7040' : '#91A7B0'), fontSize: 14, fontWeight: '900' },
   channelCellTextOn: { color: '#FFFFFF' },
   scopeRow: { flexDirection: 'row', gap: 8, paddingRight: 8 },
   scopeChip: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#23414E',
+    borderColor: (isBuklodConnectStandalone ? '#CFE5BC' : '#23414E'),
     backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#091722'),
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  scopeChipOn: { borderColor: '#50D8E2', backgroundColor: (isBuklodConnectStandalone ? '#ECF8E0' : '#0A2630') },
+  scopeChipOn: { borderColor: (isBuklodConnectStandalone ? '#64AC1D' : '#50D8E2'), backgroundColor: (isBuklodConnectStandalone ? '#ECF8E0' : '#0A2630') },
   scopeName: { color: (isBuklodConnectStandalone ? '#2D4E23' : '#D9E5E9'), fontSize: 12, fontWeight: '800' },
-  scopeTextOn: { color: '#FFFFFF' },
+  scopeTextOn: { color: (isBuklodConnectStandalone ? '#285E0D' : '#FFFFFF') },
   nearbyCard: {
     marginTop: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#23414E',
+    borderColor: (isBuklodConnectStandalone ? '#CFE5BC' : '#23414E'),
     backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#091722'),
     padding: 12,
   },
-  nearbyTitle: { color: '#FFFFFF', fontWeight: '900', fontSize: 13 },
+  nearbyTitle: { color: (isBuklodConnectStandalone ? '#213F17' : '#FFFFFF'), fontWeight: '900', fontSize: 13 },
   nearbyPeer: { color: (isBuklodConnectStandalone ? '#5B7650' : '#9BB0B8'), fontSize: 12, marginTop: 6 },
   fallbackCard: {
     marginTop: 12,
@@ -1098,12 +1098,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  fallbackBtnText: { color: (isBuklodConnectStandalone ? '#E8F6D8' : '#071725'), fontWeight: '900' },
+  fallbackBtnText: { color: (isBuklodConnectStandalone ? '#1E3814' : '#071725'), fontWeight: '900' },
   talkCard: {
     marginTop: 16,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#254552',
+    borderColor: (isBuklodConnectStandalone ? '#D7E9C7' : '#254552'),
     backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#07131D'),
     padding: 14,
   },
@@ -1112,9 +1112,9 @@ const styles = StyleSheet.create({
     width: 168,
     height: 168,
     borderRadius: 84,
-    backgroundColor: '#0A5C6A',
+    backgroundColor: (isBuklodConnectStandalone ? '#4D9B12' : '#0A5C6A'),
     borderWidth: 10,
-    borderColor: '#133541',
+    borderColor: (isBuklodConnectStandalone ? '#A5D96B' : '#133541'),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1125,14 +1125,14 @@ const styles = StyleSheet.create({
   pttSos: { borderColor: '#FF6B57' },
   pttDisabled: { opacity: 0.45 },
   pttLabel: {
-    color: '#FFFFFF',
+    color: (isBuklodConnectStandalone ? '#1E3814' : '#FFFFFF'),
     fontSize: 16,
     fontWeight: '900',
     marginTop: 12,
     textAlign: 'center',
   },
   pttHint: {
-    color: '#B8C6CC',
+    color: (isBuklodConnectStandalone ? '#5B7650' : '#B8C6CC'),
     fontSize: 12,
     lineHeight: 17,
     marginTop: 4,
@@ -1150,10 +1150,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  talkModeOn: { borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'), backgroundColor: '#0A3440' },
+  talkModeOn: { borderColor: (isBuklodConnectStandalone ? '#71BF1D' : '#55E0E8'), backgroundColor: (isBuklodConnectStandalone ? '#4E9516' : '#0A3440') },
   talkModePriority: { borderColor: '#F1B953', backgroundColor: '#4C3812' },
   talkModeSos: { borderColor: '#FF6B57', backgroundColor: '#55201B' },
-  talkModeText: { color: '#8FA3AC', fontSize: 11, fontWeight: '900' },
+  talkModeText: { color: (isBuklodConnectStandalone ? '#55754A' : '#8FA3AC'), fontSize: 11, fontWeight: '900' },
   talkModeTextOn: { color: '#FFFFFF' },
   stopBtn: { alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 14 },
   stopBtnText: { color: '#FF8073', fontWeight: '900' },
@@ -1168,20 +1168,20 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 380,
     borderRadius: 18,
-    backgroundColor: '#0B1822',
+    backgroundColor: (isBuklodConnectStandalone ? '#FFFFFF' : '#0B1822'),
     borderWidth: 1,
     borderColor: (isBuklodConnectStandalone ? '#D3E8BE' : '#24505A'),
     padding: 20,
   },
   modalTitle: {
-    color: '#FFFFFF',
+    color: (isBuklodConnectStandalone ? '#1E3814' : '#FFFFFF'),
     fontSize: 20,
     fontWeight: '900',
     marginBottom: 14,
   },
   modalStep: { color: (isBuklodConnectStandalone ? '#2D4E23' : '#D9E5E9'), fontSize: 14, fontWeight: '700', marginBottom: 8 },
   modalNote: {
-    color: '#8CA2AB',
+    color: (isBuklodConnectStandalone ? '#5E7653' : '#8CA2AB'),
     fontSize: 12,
     lineHeight: 17,
     marginTop: 6,
@@ -1194,5 +1194,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalBtnText: { color: (isBuklodConnectStandalone ? '#E8F6D8' : '#071725'), fontWeight: '900' },
+  modalBtnText: { color: (isBuklodConnectStandalone ? '#1E3814' : '#071725'), fontWeight: '900' },
 });
