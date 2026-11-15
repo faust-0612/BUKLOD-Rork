@@ -15,8 +15,6 @@ const required = [
   'EXPO_TOKEN',
   'CONNECT_EAS_PROJECT_ID',
   'CONNECT_STAGING_FIREBASE_JSON_B64',
-  'EXPO_PUBLIC_SUPABASE_URL',
-  'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
 ];
 const missing = required.filter(key => !String(env[key] || '').trim());
 if (missing.length) {
@@ -25,8 +23,11 @@ if (missing.length) {
 } else {
   assert.notEqual(env.CONNECT_EAS_PROJECT_ID.trim(), mainEas, 'Main EAS project forbidden');
   assert.notEqual(env.CONNECT_EAS_PROJECT_ID.trim(), classroomEas, 'Classroom EAS project forbidden');
-  assert.match(env.EXPO_PUBLIC_SUPABASE_URL, /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i);
-  assert.ok(env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY.trim().length >= 20);
+  const source = JSON.parse(fs.readFileSync('eas.json', 'utf8')).build?.['connect-staging']?.env;
+  const backendUrl = source?.EXPO_PUBLIC_SUPABASE_URL;
+  const backendKey = source?.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  assert.match(backendUrl, /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i);
+  assert.ok(String(backendKey).startsWith('sb_publishable_'), 'Use publishable key, not service_role');
   let firebase;
   let decoded;
   try {
@@ -51,8 +52,8 @@ if (missing.length) {
   profile.env.CONNECT_EAS_PROJECT_ID = env.CONNECT_EAS_PROJECT_ID.trim();
   profile.env.CONNECT_GOOGLE_SERVICES_FILE = './google-services.connect.staging.json';
   // Public mobile client variables, never Supabase service_role credentials.
-  profile.env.EXPO_PUBLIC_SUPABASE_URL = env.EXPO_PUBLIC_SUPABASE_URL;
-  profile.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  profile.env.EXPO_PUBLIC_SUPABASE_URL = backendUrl;
+  profile.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = backendKey;
   fs.writeFileSync(easPath, JSON.stringify(eas, null, 2) + '\n', { mode: 0o600 });
   process.stdout.write('CONNECT_PRECHECK_OK: independent EAS, Firebase, backend and staging APK profile\n');
 }
