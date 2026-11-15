@@ -45,7 +45,8 @@
     "src/app/notifications/index.tsx",
     "src/components/ClusterNotificationActions.tsx",
     "tests/notifications-dark-contrast-executive-20261115.test.mjs",
-    "tests/notifications-read-actions-regression-20261115.test.mjs"
+    "tests/notifications-read-actions-regression-20261115.test.mjs",
+    "tests/bible-dark-mode-20261116.test.mjs"
   ],
   "regressionTests": [
     "tests/bible-study-sources.test.cjs",
@@ -53,7 +54,8 @@
     "tests/bible-radio-visual.test.cjs",
     "tests/nov16-conso-henry-dark-kids-132.test.cjs",
     "tests/notifications-dark-contrast-executive-20261115.test.mjs",
-    "tests/notifications-read-actions-regression-20261115.test.mjs"
+    "tests/notifications-read-actions-regression-20261115.test.mjs",
+    "tests/bible-dark-mode-20261116.test.mjs"
   ],
   "lockedFeatureChanges": [
     {

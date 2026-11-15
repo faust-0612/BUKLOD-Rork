@@ -7,6 +7,7 @@ on:
       - 'src/lib/buklodBibleStudy.ts'
       - 'src/lib/buklodHenryTranslation.ts'
       - 'tests/bible-*.test.cjs'
+      - 'tests/bible-dark-mode-20261116.test.mjs'
       - 'tests/nov16-conso-henry-dark-kids-132.test.cjs'
       - 'src/app/notifications/index.tsx'
       - 'src/components/ClusterNotificationActions.tsx'

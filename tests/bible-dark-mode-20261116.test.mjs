@@ -18,7 +18,7 @@ test('Daily Reading and notification cards use semantic colors for nightPine and
  const audio=bible.slice(bible.indexOf('function DailyReadingAudioPreview({'),bible.indexOf('export default function DailyBibleScreen()'));
  assert.match(audio,/const \{ theme \} = useBuklodTheme\(\)/);
  for(const color of ['theme.accent','theme.textSecondary','theme.textMuted','theme.surfaceElevated','theme.surfaceMuted'])assert.ok(audio.includes(color));
- assert.match(notices,/const shared = useThemedShared\(\)/);
+ assert.match(notices,/const themedShared = useThemedShared\(\)/);
  assert.match(notices,/color:theme\.textPrimary/);
  assert.match(notices,/color:theme\.textSecondary/);
  assert.match(notices,/color:theme\.textMuted/);
