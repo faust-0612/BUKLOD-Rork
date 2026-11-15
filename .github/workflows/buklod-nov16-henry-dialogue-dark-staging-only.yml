@@ -1,0 +1,151 @@
+# Current verified Nov16 Henry/Expanded-Kids staging base; guarded Android staging-user only.
+# Push-triggered with reviewed exact SHA; never deploys production, Play, web or schema.
+name: BUKLOD Nov16 Henry Expanded Kids Dialogues Dark Reader Staging OTA
+on:
+  push:
+    branches: [fix/nov16-henry-children-dialogue-dark]
+    paths:
+      - .github/workflows/buklod-nov16-henry-dialogue-dark-staging-only.yml
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+concurrency:
+  group: buklod-nov16-henry-dialogue-staging-ota
+  cancel-in-progress: false
+jobs:
+  verified-android-staging-only:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/fix/nov16-henry-children-dialogue-dark' && startsWith(github.event.head_commit.message, 'BUKLOD_NOV16_HENRY_DIALOGUE_STAGE_OTA:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EVIDENCE_DIR: /tmp/buklod-nov16-henry-dialogue-staging-evidence
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify reviewed PR 850 with both exact-source CI gates
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const required=[
+              'Engineering Accountability',
+              'BUKLOD Main - Report Door and Legacy Integration PR QA'
+            ];
+            for(let attempt=0;attempt<70;attempt++){
+              const {data:pr}=await github.rest.pulls.get({...context.repo,pull_number:850});
+              const validPr=pr.state==='open'&&
+                 pr.head.ref==='fix/nov16-henry-children-dialogue-dark'&&
+                 pr.head.sha===context.sha&&pr.base.ref==='release/nov16-henry-conso-stage132-publish'&&
+                 pr.base.sha==='0dc4fd0df8198bdbd3f37c93c181a3fae46c6cd2';
+              if(!validPr){
+                if(attempt<6){await new Promise(resolve=>setTimeout(resolve,10000));continue;}
+                throw Error('Exact frozen staging PR #850 no longer matches inspected source; no OTA');
+              }
+              const {data}=await github.rest.actions.listWorkflowRunsForRepo({
+                ...context.repo,head_sha:context.sha,per_page:100
+              });
+              const checks=required.map(name=>data.workflow_runs.find(r=>
+                r.name===name&&r.head_sha===context.sha));
+              if(checks.some(r=>r?.status==='completed'&&r.conclusion!=='success'))
+                throw Error('Exact-source required CI failed; no OTA');
+              if(checks.every(r=>r?.status==='completed'&&r.conclusion==='success')){
+                core.info('Verified exact staging RC source, draft PR and all CI gates: '+context.sha);
+                return;
+              }
+              await new Promise(resolve=>setTimeout(resolve,10000));
+            }
+            throw Error('Exact-source CI timed out; no OTA');
+      - name: Locked source, privacy, native runtime and no-regression checks
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node scripts/nov16-henry-dialogue-dark-staging-policy.mjs source "$GITHUB_SHA"
+          node --test tests/children-bible-dark-staging-20261116.test.mjs tests/nov16-henry-dialogue-dark-release.test.mjs tests/children-stories-contract.test.mjs tests/children-stories-navigation-ad-safety.test.mjs tests/buklod-dark-contrast-spacing-20261115.test.mjs tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs tests/ad-native-lifecycle-retention-20261115.test.mjs tests/nov14-scroll-pauses-all-videos.test.mjs
+      - name: Verify signed staging APK and EAS channel identities before OTA
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'Missing Expo credential; no OTA'; exit 1; }
+          mkdir -p "$EVIDENCE_DIR"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$EVIDENCE_DIR/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-channel-before.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-channel-before.json"
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 20 --json --non-interactive > "$EVIDENCE_DIR/staging-updates-before.json"
+          node scripts/nov16-henry-dialogue-dark-staging-policy.mjs preflight "$GITHUB_SHA" "$EVIDENCE_DIR"
+      - name: Export exact Android Hermes preview bundle for already-signed 1.3.2 runtime
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-nov16-children-dark-preview.env --non-interactive
+          set -a
+          . /tmp/buklod-nov16-children-dark-preview.env
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx expo config --json > "$EVIDENCE_DIR/expo-config.json"
+          node <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const c=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/expo-config.json','utf8'));
+          assert.equal(c.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(c.runtimeVersion,'1.3.2');
+          assert.equal(c.extra.appEnvironment,'staging');
+          assert.equal(c.extra.appTarget,'main');
+          assert.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.match(process.env.EXPO_PUBLIC_SUPABASE_URL||'',/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+          assert.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-nov16-henry-dialogue-staging-export --clear
+          test -s /tmp/buklod-nov16-henry-dialogue-staging-export/metadata.json
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Recheck current staging update and production nonmutation immediately before publish
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 20 --json --non-interactive > "$EVIDENCE_DIR/staging-updates-recheck.json"
+          node scripts/nov16-henry-dialogue-dark-staging-policy.mjs recheck "$GITHUB_SHA" "$EVIDENCE_DIR"
+      - name: Exactly once publish Android staging-user or reuse same exact already-published update
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs'),p=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/preflight.json','utf8'));
+          fs.writeFileSync('/tmp/buklod-nov16-children-published-group',p.previous.alreadyPublished?p.previous.group:'');
+          NODE
+          if [ ! -s /tmp/buklod-nov16-children-published-group ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview \
+              --skip-bundler --input-dir /tmp/buklod-nov16-henry-dialogue-staging-export \
+              --non-interactive --json --message "BUKLOD_NOV16_HENRY_CHILDREN_DIALOGUE_DARK_${GITHUB_SHA}" \
+              > "$EVIDENCE_DIR/publish.json"
+            node <<'NODE'
+          const fs=require('node:fs'),j=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/publish.json','utf8'));
+          if(!Array.isArray(j)||j.length!==1||!j[0].group)
+            throw Error('Unknown EAS receipt. Do NOT retry publication blindly.');
+          fs.writeFileSync('/tmp/buklod-nov16-children-published-group',j[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat /tmp/buklod-nov16-children-published-group)" --json > "$EVIDENCE_DIR/update-view.json"
+      - name: Verify exact server-side Android manifest, channel and unchanged production
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-channel-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-channel-after.json"
+          node scripts/nov16-henry-dialogue-dark-staging-policy.mjs postpublish "$GITHUB_SHA" "$EVIDENCE_DIR"
+          cat "$EVIDENCE_DIR/verification.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve non-secret release readback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-nov16-henry-dialogue-staging-${{ github.sha }}
+          path: /tmp/buklod-nov16-henry-dialogue-staging-evidence/*.json
+          retention-days: 7
+          if-no-files-found: ignore
