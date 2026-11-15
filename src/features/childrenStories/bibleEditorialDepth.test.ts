@@ -1,3 +1,4 @@
+import { SUNDAY_SCHOOL_LESSONS } from './sundaySchool';
 import { BIBLE_EXPANSION_STORIES, BIBLE_EXPANSION_LESSONS } from './bibleExpansion';
 import { BIBLE_EDITORIAL_DEPTH_OLD } from './bibleEditorialDepthOld';
 import { BIBLE_EDITORIAL_DEPTH_NEW_A } from './bibleEditorialDepthNewA';
@@ -49,4 +50,17 @@ describe('All 132 grounded Sunday School Bible narratives', () => {
     expect(dreams.tl).toContain('bigkis');
     expect(dreams.en).toContain('sheaf');
   });
+  test('existing four biblical Sunday School stories have no synthetic classroom exchanges', () => {
+    for (const id of ['david-at-ang-tapang','bangka-ng-pag-asa','ang-mabuting-kapitbahay','si-jonas-at-ang-dagat']) {
+      const lesson = SUNDAY_SCHOOL_LESSONS[id];
+      expect(lesson).toBeTruthy();
+      for (const lang of ['tl','en'] as const) {
+        const text = lesson.narrative[lang];
+        expect(text.length).toBeGreaterThan(1700);
+        expect(text).not.toMatch(/tanong ng bata|sumagot ang guro|nagpaliwanag ang guro|the teacher explained|a child asked|a child asks|the class answered/i);
+        expect((text.match(/“/g) ?? []).length).toBe((text.match(/”/g) ?? []).length);
+      }
+    }
+  });
+
 });
