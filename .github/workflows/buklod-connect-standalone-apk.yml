@@ -1,0 +1,95 @@
+name: BUKLOD Connect — Isolated Staging APK
+
+on:
+  push:
+    branches:
+      - feature/buklod-connect-standalone-apple-green-20261115
+    paths:
+      - '.github/workflows/buklod-connect-standalone-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-connect-staging-apk-only
+  cancel-in-progress: false
+
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check exact source and independent native app identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --test tests/buklod-connect-standalone.test.mjs
+          node --check scripts/connect-native-identity-preflight.cjs
+          echo 'CONNECT_SOURCE_CONTRACT_OK'
+
+  staging-apk:
+    needs: source-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      CONNECT_EAS_PROJECT_ID: ${{ secrets.CONNECT_EAS_PROJECT_ID }}
+      CONNECT_STAGING_FIREBASE_JSON_B64: ${{ secrets.CONNECT_STAGING_FIREBASE_JSON_B64 }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.CONNECT_EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.CONNECT_EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      BUKLOD_APP_TARGET: connect
+      EXPO_PUBLIC_BUKLOD_APP_TARGET: connect
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm dedicated credentials before costly installs or builds
+        run: |
+          set -euo pipefail
+          node scripts/connect-native-identity-preflight.cjs
+      - name: Install once after prerequisite gate
+        run: npm ci
+      - name: Compile and verify standalone Expo config
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          npx expo config --json > /tmp/connect-staging-expo-config.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const c = JSON.parse(fs.readFileSync('/tmp/connect-staging-expo-config.json','utf8'));
+          assert.equal(c.android.package, 'org.mzbministry.buklod.connect.staging');
+          assert.equal(c.name, 'BUKLOD Connect Staging');
+          assert.equal(c.runtimeVersion, 'connect-1.0.0');
+          assert.equal(c.extra?.appTarget, 'connect');
+          assert.equal(c.extra?.eas?.projectId, process.env.CONNECT_EAS_PROJECT_ID);
+          assert.equal(c.android.googleServicesFile, './google-services.connect.staging.json');
+          console.log('CONNECT_NATIVE_IDENTITY_OK');
+          NODE
+      - name: Build signed independent APK - never publish main OTA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest whoami --non-interactive > /dev/null
+          npx eas-cli@latest build --platform android --profile connect-staging --non-interactive --wait
+          echo 'CONNECT_APK_EAS_FINISHED'

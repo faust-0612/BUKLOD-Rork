@@ -67,6 +67,7 @@ test('Actual Expo config resolves independent Connect IDs and fails closed witho
       APP_VARIANT: 'staging',
       CONNECT_EAS_PROJECT_ID: 'connect-eas',
       CONNECT_GOOGLE_SERVICES_FILE: './connect-staging-firebase.json',
+      EXPO_PUBLIC_BUKLOD_APP_TARGET: 'connect',
       EAS_BUILD: 'true',
     });
     assert.equal(staging.android.package, 'org.mzbministry.buklod.connect.staging');
