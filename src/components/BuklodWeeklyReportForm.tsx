@@ -22,9 +22,11 @@ import {
   exportReportCsv,
   exportReportExcel,
   pickAndAnalyzeReportFile,
+  pickReportEvidencePhoto,
   printReportPdf,
   uploadReportEvidencePhoto,
   type ReportEvidencePhoto,
+  type ReportPhotoAsset,
   type ReportImportProposal,
 } from '@/lib/buklodReportFiles';
 import { colors } from '@/lib/theme';
@@ -163,6 +165,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
   const [context, setContext] = useState<QuickWeeklyReportContext | null>(null);
   const [importProposal, setImportProposal] = useState<ReportImportProposal | null>(null);
   const [evidencePhotos, setEvidencePhotos] = useState<ReportEvidencePhoto[]>([]);
+  const [pendingEvidencePhoto, setPendingEvidencePhoto] = useState<ReportPhotoAsset | null>(null);
   const [importMetadata, setImportMetadata] = useState<Record<string, unknown> | null>(null);
   const [reminderComment, setReminderComment] = useState('');
 
@@ -318,6 +321,34 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
       setImporting(false);
     }
   }, [importing, readOnly, scopeId]);
+
+  const selectEvidencePhoto = useCallback(async () => {
+    if (readOnly || importing || evidencePhotos.length >= 10) return;
+    setError('');
+    try {
+      setPendingEvidencePhoto(await pickReportEvidencePhoto());
+    } catch (selectionError: any) {
+      setError(selectionError?.message || 'Unable to select photo evidence.');
+    }
+  }, [evidencePhotos.length, importing, readOnly]);
+
+  const confirmEvidencePhoto = useCallback(async () => {
+    if (!pendingEvidencePhoto || importing || !context?.report_assignment_id || readOnly) return;
+    setImporting(true);
+    setError('');
+    try {
+      const photo = await uploadReportEvidencePhoto({
+        scopeId, assignmentId: context.report_assignment_id, asset: pendingEvidencePhoto,
+      });
+      setEvidencePhotos((current) => [...current, photo]);
+      setPendingEvidencePhoto(null);
+      setSavedLabel('Private photo attached. The report draft will autosave.');
+    } catch (attachError: any) {
+      setError(attachError?.message || 'The private photo could not be uploaded.');
+    } finally {
+      setImporting(false);
+    }
+  }, [context?.report_assignment_id, importing, pendingEvidencePhoto, readOnly, scopeId]);
 
   const applyImport = useCallback(async () => {
     if (!importProposal || importing) return;
@@ -594,6 +625,28 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
             <MaterialCommunityIcons name="camera-plus-outline" size={19} color={colors.greenDark} />
             <Text style={styles.secondaryActionText}>PHOTO SUBMISSION / SCAN DATA</Text>
           </Pressable>
+          <Pressable
+            disabled={importing || evidencePhotos.length >= 10}
+            onPress={() => void selectEvidencePhoto()}
+            style={({ pressed }) => [styles.secondaryAction, importing && styles.disabled, pressed && !importing && styles.pressed]}
+          >
+            <MaterialCommunityIcons name="image-plus" size={19} color={colors.greenDark} />
+            <Text style={styles.secondaryActionText}>ATTACH PHOTO WITHOUT SCAN</Text>
+          </Pressable>
+          {pendingEvidencePhoto ? (
+            <View style={styles.evidencePending}>
+              <Image source={{ uri: pendingEvidencePhoto.uri }} resizeMode="contain" style={styles.photoPreview} />
+              <Text style={styles.hint}>{pendingEvidencePhoto.filename} · Only upload this image if it belongs to the report period and you have permission to share it.</Text>
+              <View style={styles.twoButtonRow}>
+                <Pressable disabled={importing} onPress={() => setPendingEvidencePhoto(null)} style={styles.secondaryAction}>
+                  <Text style={styles.secondaryActionText}>CANCEL</Text>
+                </Pressable>
+                <Pressable disabled={importing} onPress={() => void confirmEvidencePhoto()} style={styles.primaryAction}>
+                  <Text style={styles.primaryActionText}>{importing ? 'UPLOADING…' : 'CONFIRM PRIVATE UPLOAD'}</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
           <Text style={styles.hint}>
             Only select photos you have permission to share. A photo is analyzed to suggest reporting data; the extracted values require your confirmation. Photos may be processed by the configured external image-analysis provider.
           </Text>
@@ -646,7 +699,7 @@ export default function BuklodWeeklyReportForm({ scopeId, onSubmitted }: Props) 
               onPress={() => void viewEvidencePhoto(photo.path)}
               style={({ pressed }) => [styles.evidenceRow, pressed && styles.pressed]}
             >
-              <MaterialCommunityIcons name="image-lock-outline" size={17} color={colors.greenDark} />
+              <MaterialCommunityIcons name="image-outline" size={17} color={colors.greenDark} />
               <Text style={[styles.hint, { flex: 1 }]} numberOfLines={1}>{photo.filename}</Text>
               <Text style={styles.evidenceOpen}>VIEW SECURELY</Text>
             </Pressable>
@@ -843,6 +896,7 @@ const styles = StyleSheet.create({
   form: { gap: 12 },
   loadingCard: { minHeight: 100, borderRadius: 16, borderWidth: 1, borderColor: '#DCE5E0', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16 },
   sectionCard: { borderRadius: 16, borderWidth: 1, borderColor: '#DCE5E0', backgroundColor: '#FFFFFF', padding: 14, gap: 10 },
+  evidencePending: { gap: 9, borderRadius: 12, padding: 10, backgroundColor: '#F0F7F2' },
   photoPreview: { width: 148, height: 150, alignSelf: 'center', borderRadius: 12, backgroundColor: '#EAF4EE' },
   evidenceRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 8, borderRadius: 9, paddingHorizontal: 9, backgroundColor: '#F3F8F5' },
   evidenceOpen: { color: colors.greenDark, fontSize: 9, fontWeight: '900' },
