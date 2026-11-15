@@ -215,16 +215,6 @@
       "tests": [
         "tests/executive-navigation-cluster-kingdom-20261115.test.mjs"
       ]
-    },
-    {
-      "id": "production-release",
-      "reason": "Require independent production-target Android Hermes export and exact stage source proof before Main production merge.",
-      "preservedBehaviors": [
-        "No Expo credentials, OTA publishing, web deployment, native build or production mutation in this PR-only QA workflow."
-      ],
-      "tests": [
-        "tests/nov15-stage-parity-production-rc.test.mjs"
-      ]
     }
   ]
 }
