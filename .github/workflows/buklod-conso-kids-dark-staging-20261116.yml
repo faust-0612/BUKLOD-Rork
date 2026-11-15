@@ -1,0 +1,205 @@
+# Staging-only JS OTA for the already signed Android 1.3.2 staging-user client.
+# GitHub connector cannot workflow_dispatch; a deliberate exact-prefix push to this file
+# is required after reviewed draft PR and exact-SHA CI pass.
+name: BUKLOD Nov16 Kids Dark Consolidated Staging 1.3.2 QA and OTA
+on:
+  pull_request:
+    branches: [integration/life-human-first-executive-stage-132-20261115]
+    paths:
+      - 'src/app/bible/index.tsx'
+      - 'src/app/notifications/index.tsx'
+      - 'src/app/children-stories/**'
+      - 'src/features/childrenStories/**'
+      - 'tests/conso-kids-dark-20261116.test.mjs'
+      - 'scripts/conso-kids-dark-staging-20261116-policy.mjs'
+      - '.github/workflows/buklod-conso-kids-dark-staging-20261116.yml'
+  push:
+    branches: [fix/conso-staging-kids-dark-20261116]
+    paths: [.github/workflows/buklod-conso-kids-dark-staging-20261116.yml]
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+concurrency:
+  group: buklod-conso-kids-dark-staging-132-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  exact-source-android-qa:
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'fix/conso-staging-kids-dark-20261116' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Exact staging parent/runtime, no native/package/DB changes
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor ea9a72c687c0885ea6a3c14a883503204f83dad4 HEAD
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const config=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          assert.equal(config.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(config.runtimeVersion,'1.3.2');
+          assert.equal(config.extra.appEnvironment,'staging');
+          assert.equal(config.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          NODE
+      - name: Locked install, story and dark contrast/ads/notification regressions
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test tests/conso-kids-dark-20261116.test.mjs tests/children-stories-contract.test.mjs tests/children-stories-navigation-ad-safety.test.mjs tests/buklod-dark-contrast-spacing-20261115.test.mjs tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs tests/nov14-connect-green-profile-posts-ota.test.mjs tests/ad-native-lifecycle-retention-20261115.test.mjs
+          npx jest --runInBand --silent src/features/childrenStories/catalog.test.ts src/features/childrenStories/sundaySchool.test.ts
+          npx tsc --noEmit
+      - name: Actual Android preview JS bundle/Hermes compatibility compile, NO PUBLISH
+        run: |
+          set -euo pipefail
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-kids-dark-pr-export --clear
+          test -s /tmp/buklod-kids-dark-pr-export/metadata.json
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          echo 'QA ONLY — production untouched, no OTA, no new native build.'
+
+  publish-exact-staging-only:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/fix/conso-staging-kids-dark-20261116' && startsWith(github.event.head_commit.message, 'BUKLOD_CONSO_KIDS_DARK_STAGING_132_PUBLISH:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-staging
+      EVIDENCE_DIR: /tmp/buklod-conso-kids-dark-132
+      EXPORT_DIR: /tmp/buklod-conso-kids-dark-export
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Wait for draft PR 843 and independent same SHA CI
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const checks=[
+              'Engineering Accountability',
+              'BUKLOD Nov16 Kids Dark Consolidated Staging 1.3.2 QA and OTA'
+            ];
+            for(let attempt=0;attempt<50;attempt++){
+              const {data:pr}=await github.rest.pulls.get({...context.repo,pull_number:843});
+              if(pr.state!=='open'||!pr.draft||
+                pr.head.ref!=='fix/conso-staging-kids-dark-20261116'||
+                pr.head.sha!==context.sha||
+                pr.base.ref!=='integration/life-human-first-executive-stage-132-20261115'||
+                pr.base.sha!=='ea9a72c687c0885ea6a3c14a883503204f83dad4')
+                throw Error('Frozen staging parent/draft PR/source mismatch; no OTA');
+              const {data}=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,head_sha:context.sha,per_page:100});
+              const match=checks.map(name=>data.workflow_runs.find(r=>r.name===name&&
+                r.head_sha===context.sha&&r.event==='pull_request'));
+              if(match.some(r=>r?.status==='completed'&&r.conclusion!=='success'))
+                throw Error('Required exact-source CI failed; staging OTA blocked');
+              if(match.every(r=>r?.status==='completed'&&r.conclusion==='success')){
+                core.info('Approved source and two independent CI passes: '+context.sha);
+                return;
+              }
+              await new Promise(resolve=>setTimeout(resolve,12000));
+            }
+            throw Error('Required exact-source CI did not finish; no OTA');
+      - name: Locked source, test and release-policy gate
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test tests/conso-kids-dark-20261116.test.mjs tests/children-stories-contract.test.mjs tests/children-stories-navigation-ad-safety.test.mjs
+          node scripts/conso-kids-dark-staging-20261116-policy.mjs source "$GITHUB_SHA"
+      - name: Verify signed staging APK and current EAS identities
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'No Expo staging credential; NO OTA'; exit 1; }
+          mkdir -p "$EVIDENCE_DIR"
+          npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > "$EVIDENCE_DIR/build.json"
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-before.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-before.json"
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 20 --json --non-interactive > "$EVIDENCE_DIR/stage-updates-before.json"
+          node scripts/conso-kids-dark-staging-20261116-policy.mjs preflight "$GITHUB_SHA" "$EVIDENCE_DIR"
+      - name: Export exact 1.3.2 staging Android preview Hermes bundle
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 env:pull --environment preview --path /tmp/buklod-conso-kids-dark-env --non-interactive
+          set -a
+          . /tmp/buklod-conso-kids-dark-env
+          set +a
+          export APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME=firebase-video-staging
+          npx expo config --json > "$EVIDENCE_DIR/app-config.json"
+          node <<'NODE'
+          const a=require('node:assert/strict'),fs=require('node:fs');
+          const c=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/app-config.json','utf8'));
+          a.equal(c.runtimeVersion,'1.3.2');
+          a.equal(c.android.package,'org.mzbministry.buklod.staging');
+          a.equal(c.extra.appEnvironment,'staging');
+          a.equal(c.extra.appTarget,'main');
+          a.equal(c.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          a.match(process.env.EXPO_PUBLIC_SUPABASE_URL||'',/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+          a.ok(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+          NODE
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir "$EXPORT_DIR" --clear
+          test -s "$EXPORT_DIR/metadata.json"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Recheck EAS stage and production immediately before publish
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 update:list --branch staging-user --limit 20 --json --non-interactive > "$EVIDENCE_DIR/stage-updates-recheck.json"
+          node scripts/conso-kids-dark-staging-20261116-policy.mjs recheck "$GITHUB_SHA" "$EVIDENCE_DIR"
+      - name: Exactly-once Android OTA publish to staging-user, not production
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs'),p=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/preflight.json','utf8'));
+          fs.writeFileSync('/tmp/buklod-conso-kids-dark-group',p.prior.alreadyPublished?p.prior.group:'');
+          NODE
+          if [ ! -s /tmp/buklod-conso-kids-dark-group ]; then
+            npx --yes eas-cli@27.9.0 update --channel staging-user --platform android --environment preview --skip-bundler --input-dir "$EXPORT_DIR" --non-interactive --json --message "BUKLOD_CONSO_KIDS_DARK_STAGING_132_${GITHUB_SHA}" > "$EVIDENCE_DIR/publish.json"
+            node - <<'NODE'
+          const fs=require('node:fs'),j=JSON.parse(fs.readFileSync(process.env.EVIDENCE_DIR+'/publish.json','utf8'));
+          if(!Array.isArray(j)||j.length!==1||!j[0].group)throw Error('Unknown EAS publish receipt, do not blindly retry');
+          fs.writeFileSync('/tmp/buklod-conso-kids-dark-group',j[0].group);
+          NODE
+          fi
+          npx --yes eas-cli@27.9.0 update:view "$(cat /tmp/buklod-conso-kids-dark-group)" --json > "$EVIDENCE_DIR/update-view.json"
+      - name: Independently verify exact staging manifest and untouched production
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@27.9.0 channel:view staging-user --json --non-interactive > "$EVIDENCE_DIR/staging-after.json"
+          npx --yes eas-cli@27.9.0 channel:view production --json --non-interactive > "$EVIDENCE_DIR/production-after.json"
+          node scripts/conso-kids-dark-staging-20261116-policy.mjs postpublish "$GITHUB_SHA" "$EVIDENCE_DIR"
+          cat "$EVIDENCE_DIR/verification.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve nonsecret QA, release and readback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-conso-kids-dark-staging-132-${{ github.sha }}
+          path: /tmp/buklod-conso-kids-dark-132/*.json
+          retention-days: 14
+          if-no-files-found: ignore
