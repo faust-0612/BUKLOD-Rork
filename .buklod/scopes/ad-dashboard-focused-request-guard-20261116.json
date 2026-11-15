@@ -27,17 +27,20 @@
     "src/components/BuklodCommunityInlineAd.android.tsx",
     "src/components/BuklodAdMobBanner.tsx",
     "src/components/BuklodHeaderSponsor.tsx",
-    "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
   ],
   "regressionTests": [
-    "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
   ],
   "acceptanceChecks": [
     "Native and banner may start SDK requests on focused screens only; frozen dashboards cannot start new requests.",
     "Native prefetch still supports near-visible assets and never mounts SDK creative before viewability.",
     "Already-loaded creatives remain available after re-entry without forced reload; expired cooldown recovers failed inventory.",
     "Healthy ad slots do not register per-card AppState resume handlers.",
-    "Focused Node tests and all existing protected-feature/CI gates pass before an RC or production OTA is considered."
+    "Focused Node tests and all existing protected-feature/CI gates pass before an RC or production OTA is considered.",
+    "Mandatory existing appwide ad contract exercised in PR, compiled RC and production OTA prevents future loss of dashboard focus guards."
   ],
   "lockedFeatureChanges": [
     {
@@ -47,7 +50,8 @@
         "No native runtime, package, auth, media, or backend changes."
       ],
       "tests": [
-        "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+        "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+        "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
       ]
     },
     {
@@ -57,7 +61,8 @@
         "Same ad units, consent, telemetry, cooldown and separate Finance/QMP rules."
       ],
       "tests": [
-        "tests/ad-dashboard-focus-performance-20261116.test.mjs"
+        "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+        "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs"
       ]
     }
   ]
