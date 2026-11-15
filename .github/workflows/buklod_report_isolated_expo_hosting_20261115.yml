@@ -1,0 +1,119 @@
+name: BUKLOD Report Isolated Expo Hosting - RC and Production
+on:
+  push:
+    branches:
+      - rc/buklod-report-recurring-photo-20261115
+    paths:
+      - '.github/workflows/buklod_report_isolated_expo_hosting_20261115.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-report-standalone-hosting-20261115
+  cancel-in-progress: false
+
+env:
+  CI: '1'
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: report
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  REPORT_RELEASE_TARGET: web
+  REPORT_EAS_PROJECT_ID: cc69b3c0-a5df-4b69-a84c-887c36242fdd
+  EXPO_PUBLIC_REPORT_ADSENSE_ENABLED: 'false'
+
+jobs:
+  qa-preview-promote:
+    name: Isolated Report: source gate, preview, exact release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out isolated release candidate (never Main)
+        uses: actions/checkout@v4
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validate exact project config and source
+        run: |
+          node - <<'JS'
+          const fs = require('node:fs');
+          const cfg = require('./app.config.js')({config:{extra:{}}});
+          const expect = 'cc69b3c0-a5df-4b69-a84c-887c36242fdd';
+          if (cfg.owner !== 'faust_0612' || cfg.slug !== 'buklod-report' ||
+              cfg.extra.appTarget !== 'report' || cfg.extra.eas?.projectId !== expect ||
+              cfg.android?.package !== 'org.mzbministry.buklod.report' ||
+              cfg.plugins[0]?.[1]?.root !== './src/report-app')
+            throw new Error('BUKLOD REPORT PROJECT MISMATCH. Refusing Main deployment.');
+          const required = [
+            'src/report-app/reports/definitions.tsx',
+            'src/app/reports/definitions.tsx',
+            'src/components/BuklodWeeklyReportForm.tsx',
+            'src/lib/buklodReportFiles.ts',
+          ];
+          for (const p of required) if (!fs.existsSync(p)) throw Error('Missing: '+p);
+          console.log('Isolated Expo project ID, owner, bundle ID, router root verified.');
+          JS
+      - name: Install pinned dependencies
+        run: npm ci --ignore-scripts
+      - name: Verify EAS session and target
+        run: |
+          test -n "$EXPO_TOKEN" || { echo "::error::EXPO_TOKEN missing"; exit 1; }
+          npx --yes eas-cli@latest whoami --non-interactive
+      - name: Report preflight, TypeScript and fresh dedicated web export
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist-report-rc
+          npx --yes eas-cli@latest env:exec --environment production 'node scripts/report-management-preflight.mjs && node scripts/report-web-preflight.mjs && npx tsc -p tsconfig.report.json --noEmit && npx expo export --platform web --output-dir dist-report-rc --clear'
+          test -s dist-report-rc/index.html
+          grep -R -F 'REPORT COLLECTION FREQUENCY' dist-report-rc/_expo/static/js/web >/dev/null
+          grep -R -F 'PHOTO SUBMISSION / SCAN DATA' dist-report-rc/_expo/static/js/web >/dev/null
+          grep -R -F 'buklod_report_publish_collection_v2' dist-report-rc/_expo/static/js/web >/dev/null
+          echo 'BUKLOD Report standalone compile and export passed.'
+      - name: Deploy preview (immutable build, no Main app)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@latest deploy --environment production --export-dir dist-report-rc --json > report-deploy-preview.json
+          python3 - <<'PY'
+          import json,os
+          data=json.load(open('report-deploy-preview.json'))
+          def find(o):
+              if isinstance(o,dict):
+                  for k in ('id','deploymentId'):
+                      v=o.get(k)
+                      if isinstance(v,str) and len(v)>4:return v
+                  for v in o.values():
+                      r=find(v)
+                      if r:return r
+              if isinstance(o,list):
+                  for v in o:
+                      r=find(v)
+                      if r:return r
+              return None
+          did=find(data)
+          if not did:raise SystemExit('EAS deployment ID was not returned; production promotion refused')
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('REPORT_DEPLOY_ID='+did+'\n')
+          print('EAS preview deployment created. ID:',did)
+          PY
+      - name: Promote exact verified preview artifact to Report production
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$REPORT_DEPLOY_ID"
+          npx --yes eas-cli@latest deploy:alias --prod --id "$REPORT_DEPLOY_ID" --non-interactive
+          echo "Promoted exact RC deployment ID: $REPORT_DEPLOY_ID"
+          echo "Standalone production hostname: https://buklod-report-mzb.expo.app"
+      - name: Production HTTP probe (no physical-device check)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in / /reports; do
+            curl --fail --silent --show-error --location --retry 2 --max-time 25 \
+              --output /dev/null "https://buklod-report-mzb.expo.app$path"
+          done
+          echo "PRODUCTION HTTP PROBE SUCCESS - BUKLOD Report"
