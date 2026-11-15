@@ -75,8 +75,8 @@ test('Actual Expo config resolves independent Connect IDs and fails closed witho
     assert.equal(staging.extra.eas.projectId, 'connect-eas');
     assert.equal(staging.scheme, 'buklod-connect-staging');
     const standalone = config({ BUKLOD_APP_TARGET: 'connect', EAS_PROJECT_ID: 'main-eas' });
-    assert.equal(standalone.extra.eas, undefined);
-    assert.equal(standalone.updates, undefined);
+    assert.equal(standalone.extra.eas.projectId, 'fbc71093-6abb-43e6-9493-14b2c8117df8');
+    assert.equal(standalone.updates.url, 'https://u.expo.dev/fbc71093-6abb-43e6-9493-14b2c8117df8');
     assert.throws(() => config({
       BUKLOD_APP_TARGET: 'connect',
       EAS_BUILD: 'true',
