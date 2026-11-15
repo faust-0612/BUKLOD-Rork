@@ -44,13 +44,16 @@
     "src/features/childrenStories/bibleCurriculumOld.ts",
     "src/features/childrenStories/bibleCurriculumNew.ts",
     "tests/conso-kids-dark-20261116.test.mjs",
-    ".github/workflows/buklod-conso-kids-dark-staging-20261116.yml"
+    ".github/workflows/buklod-conso-kids-dark-staging-20261116.yml",
+    "scripts/conso-kids-dark-staging-20261116-policy.mjs"
   ],
   "regressionTests": [
     "tests/conso-kids-dark-20261116.test.mjs",
     "tests/children-stories-contract.test.mjs",
     "tests/children-stories-navigation-ad-safety.test.mjs",
-    "tests/buklod-dark-contrast-spacing-20261115.test.mjs"
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
+    "src/features/childrenStories/catalog.test.ts",
+    "src/features/childrenStories/sundaySchool.test.ts"
   ],
   "releaseMode": "isolated-android-staging-ota",
   "releaseStatus": "DEV changes. Stage publish only after exact SHA checks, Android export, signed APK, EAS channel/current manifest guards and independent receipt readback."
