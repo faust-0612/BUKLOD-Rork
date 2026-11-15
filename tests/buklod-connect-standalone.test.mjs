@@ -117,3 +117,20 @@ test('Standalone Connect shows compact apple-green unread status without the Mai
   assert.match(inbox, /marginTop: isBuklodConnectStandalone \? 2 : -12/);
   assert.match(inbox, /<View style=\{styles\.hero\}>/);
 });
+
+test('Connect has independently branded launcher, adaptive and splash icons', () => {
+  const build = createRequire(import.meta.url)('../app.config.js');
+  const old = process.env.BUKLOD_APP_TARGET;
+  try {
+    process.env.BUKLOD_APP_TARGET = 'connect';
+    const cfg = build({ config: {} });
+    assert.equal(cfg.icon, './assets/connect/app-icon.png');
+    assert.equal(cfg.android.adaptiveIcon.foregroundImage, './assets/connect/app-icon.png');
+    const splash = cfg.plugins.find(p => Array.isArray(p) && p[0] === 'expo-splash-screen');
+    assert.equal(splash[1].image, './assets/connect/app-icon.png');
+    assert.equal(splash[1].backgroundColor, '#E9F8D5');
+  } finally {
+    if (old === undefined) delete process.env.BUKLOD_APP_TARGET;
+    else process.env.BUKLOD_APP_TARGET = old;
+  }
+});

@@ -79,8 +79,10 @@ module.exports = ({ config }) => {
 
     userInterfaceStyle: 'automatic',
 
-    icon: isClassroom
-      ? './assets/classroom/app-icon.png'
+    icon: isConnect
+      ? './assets/connect/app-icon.png'
+      : isClassroom
+        ? './assets/classroom/app-icon.png'
       : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png'),
 
     assetBundlePatterns: [
@@ -138,8 +140,10 @@ module.exports = ({ config }) => {
       ],
 
       adaptiveIcon: {
-        foregroundImage: isClassroom
-          ? './assets/classroom/adaptive-icon.png'
+        foregroundImage: isConnect
+          ? './assets/connect/app-icon.png'
+          : isClassroom
+            ? './assets/classroom/adaptive-icon.png'
           : (isStaging ? './assets/release/buklod-main-canonical.png' : './assets/release/app-icon.png'),
 
         backgroundColor:
@@ -376,10 +380,12 @@ module.exports = ({ config }) => {
         'expo-splash-screen',
         {
           backgroundColor:
-            '#FFFFFF',
+            isConnect ? '#E9F8D5' : '#FFFFFF',
 
-          image: isClassroom
-            ? './assets/classroom/splash-icon.png'
+          image: isConnect
+            ? './assets/connect/app-icon.png'
+            : isClassroom
+              ? './assets/classroom/splash-icon.png'
             : './assets/release/splash-icon.png',
 
           imageWidth: 200,
@@ -388,8 +394,10 @@ module.exports = ({ config }) => {
             backgroundColor:
               isConnect ? '#70B91D' : '#0E4F20',
 
-            image: isClassroom
-              ? './assets/classroom/splash-icon.png'
+            image: isConnect
+              ? './assets/connect/app-icon.png'
+              : isClassroom
+                ? './assets/classroom/splash-icon.png'
               : './assets/release/splash-icon.png',
           },
         },
