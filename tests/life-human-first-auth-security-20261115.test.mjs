@@ -86,3 +86,10 @@ test('Private LIFE continuation restores an explicit saved step and selected que
   assert.match(topic, /step: 'questions', questionIndex: selectedQuestionIndex/);
   assert.match(topic, /'I-save ang tanong na ito'/);
 });
+
+test('deprecated LIFE stage function cannot accidentally disclose spiritual status', () => {
+  const impactClient = source('src/lib/buklodLifeImpact.ts');
+  assert.doesNotMatch(impactClient, /['"]buklod_life_mark_my_stage_v1['"]/);
+  assert.match(impactClient, /export async function markMyBuklodLifeStage/);
+  assert.match(impactClient, /Promise<null>/);
+});
