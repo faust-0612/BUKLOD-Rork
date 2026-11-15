@@ -1,5 +1,6 @@
 import { BUNDLED_CHILDREN_STORIES } from './catalog';
 import { getSundaySchoolLesson, SUNDAY_SCHOOL_LESSONS } from './sundaySchool';
+import { SUNDAY_SCHOOL_DIALOGUES } from './sundaySchoolDialogues';
 describe('Continuous bilingual Sunday School curriculum', () => {
   test('all twelve offline stories have full narratives, lessons, verse references and prayer', () => {
     expect(Object.keys(SUNDAY_SCHOOL_LESSONS)).toHaveLength(12);
@@ -26,6 +27,29 @@ describe('Continuous bilingual Sunday School curriculum', () => {
           expect(option.tl).toBeTruthy();
           expect(option.en).toBeTruthy();
         }
+      }
+    }
+  });
+  test('all lessons include dramatic bilingual conversations without altering original Sunday School questions', () => {
+    expect(Object.values(SUNDAY_SCHOOL_DIALOGUES).flat().length).toBeGreaterThanOrEqual(45);
+    for(const [id, scenes] of Object.entries(SUNDAY_SCHOOL_DIALOGUES)) {
+      expect(scenes.length).toBeGreaterThanOrEqual(3);
+      expect(SUNDAY_SCHOOL_LESSONS[id]).toBeTruthy();
+    }
+    const bibleStories = new Set(['david-at-ang-tapang','bangka-ng-pag-asa','ang-mabuting-kapitbahay','si-jonas-at-ang-dagat']);
+    for (const story of BUNDLED_CHILDREN_STORIES) {
+      const lesson = getSundaySchoolLesson(story);
+      expect(lesson).toBeTruthy();
+      if (!lesson) continue;
+      for (const lang of ['tl','en'] as const) {
+        expect(lesson.narrative[lang]).toMatch(/[“][^”]+[”]/);
+        expect(lesson.narrative[lang].length).toBeGreaterThan(900);
+      }
+      if (bibleStories.has(story.id)) {
+        expect(lesson.retellingNotice?.tl).toContain('hindi ito salita-sa-salitang');
+        expect(lesson.retellingNotice?.en).toContain('not word-for-word');
+      } else {
+        expect(lesson.retellingNotice).toBeUndefined();
       }
     }
   });

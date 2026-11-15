@@ -1,0 +1,63 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/children-all-dialogue-staging-20261116.json",
+  "objective": "Complete all 12 existing bundled BUKLOD Sunday School stories with naturally staged, full Filipino and English dialogue, original full narratives, honest biblical paraphrase disclosures and unchanged narration, moral, spiritual, prayer, discussions and quiz contracts. Code to staging RC only.",
+  "baseRef": "integration/life-human-first-executive-stage-132-20261115",
+  "productionBaselineEvidence": "At scope creation latest previously verified staging-user Android source ea9a72c687c0885ea6a3c14a883503204f83dad4, runtime 1.3.2, update 01a1dfb1-578c-7e47-8547-ff3065c6792a. Verified production Android update 01a1dff8-7563-790b-a714-22c316f56590 source 69ff92b22b13e26490a93f685ebc89d28e3d6cbf on 2026-11-15 UTC. Future manifests must be independently re-read before publish.",
+  "chosenApproach": "Copy the already-reviewed bilingual 12-story dialogue layer from an isolated unmerged DEV branch onto exact verified staging source, extend to 45 naturally placed scenes, compose both on-screen narration and TTS from same paragraphs, add disclaimers for the four bundled Bible stories, retain existing offline progress, 4-question checks and content. No native packages or backend writes.",
+  "selectionRationale": "Scoped changes minimize risk to ad rendering, Wall/video performance, navigation, financial rules and production. Scripture-related dialogue is dramatized/paraphrased and clearly labeled; fabricated quotes never represented as verbatim.",
+  "alternativeApproaches": [
+    "Rebuild all stories as new remote CMS: rejected because backend editorial migration is unapplied and would break offline-first reading.",
+    "Use one long unbroken TTS string: rejected because Android speech has bounded input sizes.",
+    "Promote unknown staging changes directly to production: rejected due production regression gates."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "child-safety",
+    "scripture-accuracy",
+    "audio-narration",
+    "offline-progress",
+    "navigation-scroll",
+    "ads-finance-points",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "All 12 current story IDs and original moral/spiritual/prayer/discussion/question data remain unchanged.",
+    "The full narrative and every scene are read in order by existing device TTS with existing chunking, without changing voice backend.",
+    "Preserve child story no-ad section, safety route guard, existing global AdMob rendering and Wall performance.",
+    "Preserve account-bound reading/favorite/completion progress and legacy story fallback; no backend schema writes.",
+    "No production, Play Store, Supabase, main, web or native build mutation. Staging-only Expo runtime 1.3.2 after independent QA and preflight."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/children-all-dialogue-staging-20261116.json",
+    "src/features/childrenStories/sundaySchoolDialogues.ts",
+    "src/features/childrenStories/sundaySchool.ts",
+    "src/features/childrenStories/sundaySchoolTypes.ts",
+    "src/features/childrenStories/sundaySchool.test.ts",
+    "src/app/children-stories/[id].tsx",
+    "tests/children-stories-dialogue-staging-20261116.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/children-stories-dialogue-staging-20261116.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Enhance the existing story reader's TypeScript narrative composition while keeping offline story and spoken audio behavior intact.",
+      "preservedBehaviors": [
+        "Existing chapter/reading progress, quiz answers and audio continuation remain preserved without new native changes."
+      ],
+      "tests": [
+        "tests/children-stories-dialogue-staging-20261116.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "All 12 bundled stories have >=3 bilingual spoken scenes each; total >=45 and all anchor indices valid for both languages.",
+    "Each story retains original full narrative, four quiz questions, moral and spiritual lessons, prayer, scripture reference and class discussions.",
+    "All Bible stories visibly identify dramatized or paraphrased words; never claim exact verse quotations.",
+    "Same textual dialogue is heard via existing narrated continuous read; pause/stop and foreground behavior unchanged.",
+    "Staging-user release only if exact CI, signed staging APK 1.3.2, preview Android bundle/export, and EAS nonmutation verification succeed.",
+    "Physical device verification skipped per owner; do not claim it was done."
+  ]
+}
