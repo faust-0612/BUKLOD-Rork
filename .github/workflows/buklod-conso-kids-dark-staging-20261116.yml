@@ -11,6 +11,7 @@ on:
       - 'src/app/children-stories/**'
       - 'src/features/childrenStories/**'
       - 'tests/conso-kids-dark-20261116.test.mjs'
+      - 'tests/bible-dark-mode-20261116.test.mjs'
       - 'scripts/conso-kids-dark-staging-20261116-policy.mjs'
       - '.github/workflows/buklod-conso-kids-dark-staging-20261116.yml'
   push:
@@ -64,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
-          node --test tests/conso-kids-dark-20261116.test.mjs tests/children-stories-contract.test.mjs tests/children-stories-navigation-ad-safety.test.mjs tests/buklod-dark-contrast-spacing-20261115.test.mjs tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs tests/nov14-connect-green-profile-posts-ota.test.mjs tests/ad-native-lifecycle-retention-20261115.test.mjs
+          node --test tests/bible-dark-mode-20261116.test.mjs tests/conso-kids-dark-20261116.test.mjs tests/children-stories-contract.test.mjs tests/children-stories-navigation-ad-safety.test.mjs tests/buklod-dark-contrast-spacing-20261115.test.mjs tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs tests/nov14-connect-green-profile-posts-ota.test.mjs tests/ad-native-lifecycle-retention-20261115.test.mjs
           # Existing checkout lacks the jest-expo preset; preserve locked deps and use Node source tests plus TypeScript/Android export.
           npx tsc --noEmit
       - name: Actual Android preview JS bundle/Hermes compatibility compile, NO PUBLISH
@@ -131,7 +132,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
-          node --test tests/conso-kids-dark-20261116.test.mjs tests/children-stories-contract.test.mjs tests/children-stories-navigation-ad-safety.test.mjs
+          node --test tests/bible-dark-mode-20261116.test.mjs tests/conso-kids-dark-20261116.test.mjs tests/children-stories-contract.test.mjs tests/children-stories-navigation-ad-safety.test.mjs
           node scripts/conso-kids-dark-staging-20261116-policy.mjs source "$GITHUB_SHA"
       - name: Verify signed staging APK and current EAS identities
         run: |
