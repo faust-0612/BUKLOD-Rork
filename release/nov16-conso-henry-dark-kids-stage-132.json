@@ -24,7 +24,8 @@
   "newOverlay": [
     "Matthew Henry source-explicit passages and honest related-context labels",
     "Bible language-sensitive optional ML Kit on-device translation English fallback",
-    "Chapter commentary labeling, exact source + focused regression tests"
+    "Chapter commentary labeling, exact source + focused regression tests",
+    "Complete compact theme-reactive Notifications and Cluster notification controls from previously held PR #838 (fixed Expo StatusBar incompatibility)"
   ],
   "excluded": [
     "health center",
@@ -51,7 +52,8 @@
     "translationBranding": "HOLD: official adjacent Google Translate attribution badge, explicit Translate with Google action, disclaimer/help info",
     "nativeCompatibility": "HOLD: target signed staging APK ML Kit module compatibility not verified",
     "expoPrepublish": "HOLD: authenticated EAS staging/production channel and manifest readback missing",
-    "releaseIdentity": "HOLD: pending EAS exact-app OTA manifest proof"
+    "releaseIdentity": "HOLD: pending EAS exact-app OTA manifest proof",
+    "notificationContrast": "PENDING: WCAG AA 12 palette and notification owner-scoped actions tests"
   },
   "previousVerification": {
     "henryQaRun": 43738478204,

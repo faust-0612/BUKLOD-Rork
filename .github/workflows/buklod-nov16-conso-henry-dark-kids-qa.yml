@@ -8,6 +8,9 @@ on:
       - 'src/lib/buklodHenryTranslation.ts'
       - 'tests/bible-*.test.cjs'
       - 'tests/nov16-conso-henry-dark-kids-132.test.cjs'
+      - 'src/app/notifications/index.tsx'
+      - 'src/components/ClusterNotificationActions.tsx'
+      - 'tests/notifications-*.test.mjs'
       - '.buklod/scopes/nov16-conso-henry-dark-kids-20261116.json'
       - 'release/nov16-conso-henry-dark-kids-stage-132.json'
       - '.github/workflows/buklod-nov16-conso-henry-dark-kids-qa.yml'
@@ -57,7 +60,9 @@ jobs:
             tests/bible-dark-mode-20261116.test.mjs \
             tests/children-bible-expanded-catalog-20261115.test.mjs \
             tests/children-story-narration-20261115.test.mjs \
-            tests/nov16-conso-henry-dark-kids-132.test.cjs
+            tests/nov16-conso-henry-dark-kids-132.test.cjs \
+            tests/notifications-dark-contrast-executive-20261115.test.mjs \
+            tests/notifications-read-actions-regression-20261115.test.mjs
       - name: Exact Android TypeScript and Hermes export - NOT OTA
         run: |
           set -euo pipefail
