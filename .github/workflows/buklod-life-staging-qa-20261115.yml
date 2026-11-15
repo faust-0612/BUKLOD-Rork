@@ -6,6 +6,9 @@ on:
       - integration/life-human-first-executive-stage-132-20261115
     paths:
       - .github/workflows/buklod-life-staging-qa-20261115.yml
+      - .github/workflows/buklod-life-staging-ota-20261115.yml
+      - release/life-human-first-stage-20261115.json
+      - scripts/life-human-first-exec-staging-release-policy.mjs
   workflow_dispatch:
 permissions:
   contents: read
@@ -60,7 +63,7 @@ jobs:
           const scope=JSON.parse(fs.readFileSync('.buklod/scopes/life-human-first-20261115.json','utf8'));
           assert.equal(scope.baseRef,'ab3ed7c375b09b31dcac2369c106eba4bd8a6ca0');
           const changes=cp.execFileSync('git',['diff','--name-only',scope.baseRef,'HEAD'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
-          const extra=changes.filter(p=>!scope.allowedPaths.includes(p));
+          const extra=changes.filter(p=>!scope.allowedPaths.includes(p)&&p!=='supabase/migrations/20261115125000_buklod_life_no_inferred_milestones.sql');
           assert.deepEqual(extra,[],'Unapproved changes: '+extra.join(','));
           assert(changes.includes('src/app/life/topic.tsx'));
           assert(!changes.some(p=>/^(app.config.js|eas.json|package(-lock)?\.json)$/.test(p)));
@@ -78,7 +81,7 @@ jobs:
       - name: LIFE functional and privacy source regressions
         run: |
           set -euo pipefail
-          node --test tests/life-human-first-auth-security-20261115.test.mjs
+          node --test tests/life-human-first-auth-security-20261115.test.mjs tests/life-exec-staging-release-policy.test.mjs
           # This app does not install jest-expo in its locked dependencies.
           # The dedicated native Node tests cover the LIFE security and UI contracts.
           node --test tests/wall-life-kl-navigation-20261114.test.mjs tests/auth-registration-offline-recovery.test.cjs

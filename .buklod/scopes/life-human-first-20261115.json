@@ -51,13 +51,15 @@
     "tests/life-isolated-privacy-20261115.sql",
     ".github/workflows/buklod-life-staging-qa-20261115.yml",
     "scripts/life-human-first-exec-staging-release-policy.mjs",
-    ".github/workflows/buklod-life-staging-ota-20261115.yml"
+    ".github/workflows/buklod-life-staging-ota-20261115.yml",
+    "tests/life-exec-staging-release-policy.test.mjs"
   ],
   "regressionTests": [
     "tests/life-human-first-20261115.test.js",
     "tests/life-human-first-auth-security-20261115.test.mjs",
     "supabase/tests/20261115_life_privacy.sql",
-    "tests/life-isolated-privacy-20261115.sql"
+    "tests/life-isolated-privacy-20261115.sql",
+    "tests/life-exec-staging-release-policy.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
