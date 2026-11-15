@@ -1637,7 +1637,7 @@ export default function MeScreen() {
           styles.profileCard,
           {
             backgroundColor: theme.cardSurface,
-            paddingTop: coverUrl ? 104 : 56,
+            paddingTop: coverUrl ? 154 : 56,
             borderColor: withAlpha(theme.border, 0.7),
           },
         ]}
@@ -1682,7 +1682,11 @@ export default function MeScreen() {
           />
         </Pressable>
 
-        <View style={styles.identityRow}>
+        <View style={[styles.identityRow, {
+          // The cover remains visible behind the identity strip on both palettes.
+          backgroundColor: withAlpha(theme.cardSurface, coverUrl ? 0.74 : 0.9),
+          borderColor: withAlpha(theme.border, coverUrl ? 0.55 : 0.8),
+        }]}>
         <ProfileMotionAvatar>
           <View
             style={[
@@ -2049,7 +2053,7 @@ function createMeStyles(
       color: theme.textPrimary,
     },
     identityRow: { flexDirection: 'row', alignItems: 'center', gap: 12,
-      marginTop: -10, borderRadius: 15, backgroundColor: theme.cardSurface,
+      marginTop: -10, borderRadius: 15, borderWidth: StyleSheet.hairlineWidth,
       paddingHorizontal: 10, paddingVertical: 10, zIndex: 2 },
     identityCopy: { flex: 1, minWidth: 0 },
     profileCard: {
@@ -2067,7 +2071,7 @@ function createMeStyles(
     },
     profileCardCover: {
       position: 'absolute', top: 0, left: 0, right: 0,
-      height: 118, overflow: 'hidden',
+      height: 190, overflow: 'hidden',
     },
     profileCardBackground: {
       ...StyleSheet.absoluteFill,

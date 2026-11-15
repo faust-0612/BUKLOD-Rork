@@ -5,11 +5,12 @@ import { runClusterJoinNotificationAction } from '@/lib/clusterJoinNotificationA
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {useFocusEffect} from 'expo-router';
 import {Alert,FlatList,StyleSheet,Text,View} from 'react-native';
+import {StatusBar} from 'expo-status-bar';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {supabase} from '@/lib/supabase';
-import {Button,Card,shared} from '@/components/UI';
-import {colors} from '@/lib/theme';
+import {Card,useThemedShared} from '@/components/UI';
+import {useBuklodTheme} from '@/providers/BuklodThemeProvider';
 import { useBuklodScrollBottomInset } from '@/lib/buklodSafeArea';
 import {useAuth} from '@/providers/AuthProvider';
 import {useNotifications} from '@/providers/NotificationProvider';
@@ -21,11 +22,15 @@ import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
 
 export default function NotificationCenter(){
  const insets = useSafeAreaInsets();
+ const {theme,paletteId} = useBuklodTheme();
+ const themedShared = useThemedShared();
+ const isDark = paletteId==='nightPine'||paletteId==='graphite'||paletteId==='midnight';
  const scrollBottomInset = useBuklodScrollBottomInset({ extra: 16 });
  const {user}=useAuth();
  const {scopes,selectScope,activeScope}=useBuklodScope();
  const {unreadCount,refreshUnread,markAllRead}=useNotifications();
  const [items,setItems]=useState<any[]>([]),[loading,setLoading]=useState(false),[busyId,setBusyId]=useState<string|null>(null);
+ const [markingAll,setMarkingAll]=useState(false);
  const faithEnabled=activeScope?.show_faith_content===true;
  // Foreground notifications update the shared unread count. Refresh the visible
  // list on a new count or screen focus, without adding a Postgres CDC channel.
@@ -128,10 +133,90 @@ export default function NotificationCenter(){
    setBusyId(null);
   }
  };
- return <View style={[shared.screen,{paddingTop:insets.top}]}><FlatList contentContainerStyle={[s.content,{paddingBottom:scrollBottomInset}]} data={items} keyExtractor={x=>x.id} refreshing={loading} onRefresh={load}
- ListHeaderComponent={<View><View style={s.header}><View style={{flex:1}}><Text style={shared.h1}>Notifications</Text><Text style={shared.muted}>{unreadCount} unread</Text></View><View style={s.bell}><MaterialCommunityIcons name="bell-outline" size={23} color={colors.greenDark}/>{unreadCount>0&&<View style={s.badge}><Text style={s.badgeText}>{Math.min(unreadCount,99)}</Text></View>}</View></View>
- {unreadCount>0&&<Button title="MARK ALL AS READ" outline onPress={async()=>{try{await markAllRead();await load()}catch(e:any){Alert.alert('Notifications',e?.message||'Could not mark as read.')}}}/>}</View>}
- ListEmptyComponent={<Card><Text style={shared.muted}>No notifications yet.</Text></Card>}
- renderItem={({item})=><Card><BuklodPressable onPress={()=>open(item)}><View style={s.row}><View style={[s.dot,item.read_at&&s.dotRead]}/><View style={{flex:1}}><Text style={s.title}>{item.title}</Text><Text style={s.body}>{item.body}</Text><Text style={s.time}>{new Date(item.created_at).toLocaleString()}</Text></View><MaterialCommunityIcons name="chevron-right" size={20} color={colors.muted}/></View></BuklodPressable><ClusterNotificationActions kind={String(item?.kind??'')} data={item?.data??null} busy={busyId===item.id} onAction={approve=>void decide(item,approve)}/></Card>}/></View>
+ const markAll=async()=>{
+  if(markingAll)return;
+  setMarkingAll(true);
+  try{
+   await markAllRead();
+   await load();
+  }catch(e:any){
+   Alert.alert('Notifications',e?.message||'Could not mark as read.');
+  }finally{
+   setMarkingAll(false);
+  }
+ };
+ return (
+  <View style={[themedShared.screen,{paddingTop:insets.top}]}>
+   <StatusBar style={isDark?'light':'dark'}/>
+   <FlatList
+    contentContainerStyle={[s.content,{paddingBottom:scrollBottomInset}]}
+    data={items}
+    keyExtractor={item=>item.id}
+    refreshing={loading}
+    onRefresh={load}
+    ItemSeparatorComponent={()=><View style={s.separator}/>}
+    ListHeaderComponent={
+     <View style={s.header}>
+      <View style={s.heading}>
+       <Text style={[s.headingTitle,{color:theme.textPrimary}]}>Notifications</Text>
+       <Text style={[s.headingSub,{color:theme.textMuted}]}>{unreadCount} unread</Text>
+      </View>
+      {unreadCount>0&&(
+       <BuklodPressable
+        accessibilityRole="button"
+        accessibilityLabel="Mark all notifications as read"
+        accessibilityState={{disabled:markingAll}}
+        disabled={markingAll}
+        onPress={()=>void markAll()}
+        style={[s.markRead,{backgroundColor:theme.accentSoft,borderColor:theme.border},markingAll&&s.disabled]}>
+        <MaterialCommunityIcons name="check-all" size={20} color={theme.textPrimary}/>
+        <Text style={[s.markReadText,{color:theme.textPrimary}]}>{markingAll?'Updating…':'Mark all read'}</Text>
+       </BuklodPressable>
+      )}
+     </View>
+    }
+    ListEmptyComponent={
+     <Card style={s.card}>
+      <Text style={[s.body,{color:theme.textSecondary}]}>No notifications yet.</Text>
+     </Card>
+    }
+    renderItem={({item})=>(
+     <Card style={[s.card,{borderLeftWidth:item.read_at?1:3,borderLeftColor:item.read_at?theme.border:theme.accent}]}>
+      <BuklodPressable accessibilityRole="button" accessibilityLabel={String(item.title??'Notification')} onPress={()=>open(item)} style={s.notificationPress}>
+       <View style={s.row}>
+        <View style={[s.dot,{backgroundColor:item.read_at?theme.border:theme.accent}]}/>
+        <View style={s.message}>
+         <Text style={[s.title,{color:theme.textPrimary,fontWeight:item.read_at?'700':'900'}]}>{item.title}</Text>
+         <Text style={[s.body,{color:theme.textSecondary}]}>{item.body}</Text>
+         <Text style={[s.time,{color:theme.textMuted}]}>{new Date(item.created_at).toLocaleString()}</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textMuted}/>
+       </View>
+      </BuklodPressable>
+      <ClusterNotificationActions kind={String(item?.kind??'')} data={item?.data??null} busy={busyId===item.id} onAction={approve=>void decide(item,approve)}/>
+     </Card>
+    )}
+   />
+  </View>
+ );
+
 }
-const s=StyleSheet.create({content:{padding:16},header:{flexDirection:'row',alignItems:'center',marginBottom:10},bell:{width:48,height:48,borderRadius:24,alignItems:'center',justifyContent:'center',backgroundColor:colors.greenSoft},badge:{position:'absolute',top:-2,right:-2,minWidth:20,height:20,paddingHorizontal:5,borderRadius:10,alignItems:'center',justifyContent:'center',backgroundColor:'#B3261E'},badgeText:{color:colors.white,fontSize:8.5,fontWeight:'900'},row:{flexDirection:'row',alignItems:'flex-start',gap:9},dot:{width:9,height:9,borderRadius:5,marginTop:5,backgroundColor:colors.green},dotRead:{backgroundColor:colors.line},title:{fontSize:13,fontWeight:'900',color:colors.text},body:{marginTop:5,fontSize:12,lineHeight:18,color:colors.text},time:{marginTop:6,fontSize:9.5,color:colors.muted}});
+const s=StyleSheet.create({
+ content:{paddingHorizontal:16,paddingTop:10},
+ header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:12},
+ heading:{flex:1,minWidth:0},
+ headingTitle:{fontSize:24,lineHeight:29,fontWeight:'900'},
+ headingSub:{fontSize:13,lineHeight:19,marginTop:1},
+ markRead:{minHeight:44,paddingHorizontal:12,borderRadius:11,borderWidth:1,alignItems:'center',justifyContent:'center',flexDirection:'row',gap:6},
+ markReadText:{fontSize:12,fontWeight:'800'},
+ separator:{height:8},
+ card:{borderRadius:14,paddingHorizontal:13,paddingVertical:11},
+ notificationPress:{minHeight:44,justifyContent:'center'},
+ row:{flexDirection:'row',alignItems:'flex-start',gap:10},
+ dot:{width:9,height:9,borderRadius:5,marginTop:5},
+ message:{flex:1,minWidth:0},
+ title:{fontSize:15,lineHeight:20},
+ body:{fontSize:13,lineHeight:19,marginTop:4},
+ time:{fontSize:11,lineHeight:15,marginTop:6},
+ disabled:{opacity:0.55},
+});

@@ -5,7 +5,8 @@ import MyBibleQuickNavigator from '@/components/bible/MyBibleQuickNavigator';
 import BuklodBibleScenicHeader from '@/components/bible/BuklodBibleScenicHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import BuklodKjvStrongText from '@/components/bible/BuklodKjvStrongText';
-import { useBuklodBibleChapterStudy } from '@/lib/buklodBibleStudy';
+import { useBuklodBibleChapterStudy, getMatthewHenryPassage } from '@/lib/buklodBibleStudy';
+import { useMatthewHenryTranslation, normalizeHenryLanguage } from '@/lib/buklodHenryTranslation';
 import { useBuklodScrollBottomInset } from '@/lib/buklodSafeArea';
 /**
  * PATCH 153H-3A
@@ -37,6 +38,8 @@ import {
   ActivityIndicator,
   Alert,
   Share,
+  Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -61,8 +64,9 @@ import { colors } from '@/lib/theme';
 import {
   Card,
   SectionTitle,
-  shared,
+  useThemedShared,
 } from '@/components/UI';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { BuklodBibleNarrationBar } from '@/components/BuklodBibleNarrationBar';
 import {
   mapBibleChapterRows,
@@ -140,6 +144,8 @@ const paramString = (
 
 
 export default function BibleReaderScreen() {
+  const { theme } = useBuklodTheme();
+  const shared = useThemedShared();
   const { user } = useAuth();
   const accountId = user?.id ?? '';
   const { online } = useNetwork();
@@ -413,11 +419,15 @@ const [showChapters, setShowChapters] =
     online,
   });
   const [henryVerse, setHenryVerse] = useState<number | null>(null);
+  const [henryShowOriginal, setHenryShowOriginal] = useState(true);
+  const [henryAttributionOpen, setHenryAttributionOpen] = useState(false);
   const readerScrollBottom = useBuklodScrollBottomInset({ extra: 38 });
 
   useEffect(() => {
     setHenryVerse(null);
-  }, [bookNo, chapterNo]);
+    setHenryShowOriginal(true);
+    setHenryAttributionOpen(false);
+  }, [bookNo, chapterNo, translation]);
 
 
   const isDailyReadingMode =
@@ -1346,6 +1356,18 @@ const [showChapters, setShowChapters] =
       ]
     );
 
+
+  const henryPassage = henryVerse === null ? null : getMatthewHenryPassage(bibleStudy, henryVerse);
+  const henryReaderLanguage = normalizeHenryLanguage(currentTranslation?.language_code, translation);
+  const henryRequestedLanguage = henryShowOriginal ? 'en' : henryReaderLanguage;
+  const henryTranslation = useMatthewHenryTranslation({
+    enabled: isMyBibleMode && henryPassage !== null && henryRequestedLanguage !== 'en',
+    accountId, bookNo, chapterNo,
+    startVerse: henryPassage?.startVerse ?? 0,
+    endVerse: henryPassage?.endVerse ?? 0,
+    text: henryPassage?.text ?? '',
+    targetLanguage: henryRequestedLanguage,
+  });
 
   // ==========================================================
   // INITIALIZE
@@ -2565,9 +2587,7 @@ setMarking(true);
           >
 
             <Text
-              style={
-                styles.reference
-              }
+              style={[styles.reference,{color:theme.textPrimary}]}
             >
               {dailyReference}
             </Text>
@@ -2733,14 +2753,14 @@ setMarking(true);
                       }
                       style={[
                         styles.verseRow,
-                        listeningVerse &&
-                          styles.focusVerse,
+                        listeningVerse && {backgroundColor:theme.accentSoft},
                       ]}
                     >
 
                       <Text
                         style={[
                           styles.verseNumber,
+                          {color:theme.textMuted},
                           {
                             fontSize:
                               13,
@@ -2757,6 +2777,7 @@ setMarking(true);
                         selectable
                         style={[
                           styles.verseText,
+                          {color:theme.textPrimary},
                           {
                             fontSize:
                               17,
@@ -3811,9 +3832,7 @@ setMarking(true);
         >
           <View style={{ flex: 1 }}>
             <Text
-              style={
-                styles.reference
-              }
+              style={[styles.reference,{color:theme.textPrimary}]}
             >
               {
                 currentBook?.book_name ??
@@ -3823,9 +3842,7 @@ setMarking(true);
             </Text>
 
             <Text
-              style={
-                styles.versionMeta
-              }
+              style={[styles.versionMeta,{color:theme.textMuted}]}
             >
               {
                 translations.find(
@@ -3893,9 +3910,9 @@ setMarking(true);
                     }).catch(() => Alert.alert('Pakinggan', 'Hindi masimulan ang audio. Subukan muli.'));
                   }},
                 {key:'henry',icon:'book-open-outline',title:'Komento',action:() => {
-                  const first = Object.keys(bibleStudy.commentary).map(Number).sort((a,b)=>a-b)[0];
-                  if (first) setHenryVerse(first);
-                  else Alert.alert('Matthew Henry', 'Walang available na commentary para sa kabanatang ito. Maaari kang magbasa habang kinukuha ang source.');
+                  const first = bibleStudy.henryPassages[0]?.startVerse;
+                  if (first) { setHenryShowOriginal(true); setHenryAttributionOpen(false); setHenryVerse(first); }
+                  else Alert.alert('Matthew Henry', 'Walang available na na-verify na commentary sa kabanatang ito.');
                 }},
                 {key:'strong',icon:'link-variant',title:"Strong’s",action:() => {
                   if (translation !== 'KJV') changeTranslation('KJV');
@@ -3916,15 +3933,15 @@ setMarking(true);
               ))}
             </View>
             <View style={{flexDirection:'row',gap:9,marginBottom:8}}>
-              <Pressable accessibilityRole="button" accessibilityLabel="Buod ng Kabanata"
+              <Pressable accessibilityRole="button" accessibilityLabel="Komento sa Kabanata"
                 onPress={() => {
-                  const first = Object.keys(bibleStudy.commentary).map(Number).sort((a,b)=>a-b)[0];
-                  if (first) setHenryVerse(first);
-                  else Alert.alert('Buod ng Kabanata', 'Walang na-verify na chapter commentary sa source. Hindi tayo magpapakita ng inimbentong buod.');
+                  const first = bibleStudy.henryPassages[0]?.startVerse;
+                  if (first) { setHenryShowOriginal(true); setHenryAttributionOpen(false); setHenryVerse(first); }
+                  else Alert.alert('Matthew Henry', 'Walang na-verify na chapter commentary sa source. Hindi tayo magpapakita ng inimbentong buod.');
                 }}
                 style={{flex:1,minHeight:46,borderRadius:19,backgroundColor:'#EEF7DF',flexDirection:'row',alignItems:'center',justifyContent:'center',padding:7,gap:5}}>
                 <MaterialCommunityIcons name="play" size={17} color="#24583C" />
-                <Text style={{fontSize:11,fontWeight:'800',color:'#24583C'}}>Buod ng Kabanata</Text>
+                <Text style={{fontSize:11,fontWeight:'800',color:'#24583C'}}>Komento sa Kabanata</Text>
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel="Mga Aral at Aplikasyon"
                 onPress={() => {
@@ -4200,6 +4217,9 @@ setMarking(true);
                       verse.verse_no
                     )
                   ];
+                const verseHenry = isMyBibleMode
+                  ? getMatthewHenryPassage(bibleStudy, Number(verse.verse_no))
+                  : null;
 
 
                 return (
@@ -4215,8 +4235,7 @@ setMarking(true);
                     style={[
                       styles.verseRow,
 
-                      focused &&
-                        styles.focusVerse,
+                      focused && {backgroundColor:theme.accentSoft},
 
                       isMyBibleMode &&
                       annotation
@@ -4232,6 +4251,7 @@ setMarking(true);
                     <Text
                       style={[
                         styles.verseNumber,
+                        {color:annotation?.highlight_color?'#26372F':theme.textMuted},
                         {
                           fontSize:
                             11 *
@@ -4255,6 +4275,7 @@ setMarking(true);
                           ? bibleStudy.kjvStrong[Number(verse.verse_no)] : undefined}
                         textStyle={[
                           styles.verseText,
+                          {color:annotation?.highlight_color?'#26372F':theme.textPrimary},
                           {
                             fontSize: 17 * bibleZoom,
                             lineHeight: 28 * bibleZoom,
@@ -4265,13 +4286,15 @@ setMarking(true);
                           },
                         ]}
                       />
-                      {isMyBibleMode && !!bibleStudy.commentary[Number(verse.verse_no)] && (
+                      {isMyBibleMode && !!verseHenry && (
                         <Pressable
                           accessibilityRole="button"
                           accessibilityLabel={`Buksan ang Matthew Henry commentary sa talata ${verse.verse_no}`}
                           onPress={(event) => {
                             event.stopPropagation();
-                            setHenryVerse(Number(verse.verse_no));
+                            setHenryShowOriginal(true);
+                             setHenryAttributionOpen(false);
+                             setHenryVerse(Number(verse.verse_no));
                           }}
                           style={{
                             marginTop: 8,
@@ -4285,7 +4308,11 @@ setMarking(true);
                           }}
                         >
                           <Text style={{ color: '#275D45', fontSize: 11, fontWeight: '800' }}>
-                            Matthew Henry · Paliwanag sa talata {verse.verse_no} ›
+                            {verseHenry?.relation === 'context'
+                              ? `Matthew Henry · Kaugnay na bahagi (mula talata ${verseHenry.startVerse}) ›`
+                              : verseHenry?.endVerse !== verseHenry?.startVerse
+                                ? `Matthew Henry · Talata ${verseHenry?.startVerse}–${verseHenry?.endVerse} ›`
+                                : `Matthew Henry · Talata ${verse.verse_no} ›`}
                           </Text>
                         </Pressable>
                       )}
@@ -4348,7 +4375,7 @@ setMarking(true);
 
       {isMyBibleMode && (
         <Modal
-          visible={henryVerse !== null && !!bibleStudy.commentary[henryVerse ?? 0]}
+          visible={henryVerse !== null && !!henryPassage}
           transparent
           animationType="slide"
           onRequestClose={() => setHenryVerse(null)}
@@ -4383,12 +4410,102 @@ setMarking(true);
                   <Text style={{ fontSize: 16, color: '#275D45', fontWeight: '800' }}>✕</Text>
                 </Pressable>
               </View>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10, alignItems: 'stretch' }}>
+                {henryReaderLanguage !== 'en' && (
+                  <Pressable accessibilityRole="button" accessibilityLabel="Translate with Google"
+                    onPress={() => setHenryShowOriginal(false)}
+                    style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRadius: 11, backgroundColor: !henryShowOriginal ? '#DCEEDD' : '#F1F4F2' }}>
+                    <Text style={{ color: '#24583C', fontWeight: '700', fontSize: 12, textAlign: 'center', flexShrink: 1 }}>
+                      {henryReaderLanguage === 'tl' ? 'Translate with Google · Filipino' : 'Translate with Google'}
+                    </Text>
+                  </Pressable>
+                )}
+                <Pressable accessibilityRole="button" accessibilityLabel="Original English commentary"
+                  onPress={() => setHenryShowOriginal(true)}
+                  style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRadius: 11, backgroundColor: henryShowOriginal ? '#DCEEDD' : '#F1F4F2' }}>
+                  <Text style={{ color: '#24583C', fontWeight: '700', fontSize: 12, textAlign: 'center', flexShrink: 1 }}>Original English</Text>
+                </Pressable>
+              </View>
               <ScrollView contentContainerStyle={{ paddingBottom: 18 }}>
-                <Text style={{ color: '#33483C', fontSize: 15, lineHeight: 24 }}>
-                  {bibleStudy.commentary[henryVerse ?? 0] ?? ''}
+                <Text style={{ color: '#56705E', fontSize: 12, lineHeight: 19, marginBottom: 10 }}>
+                  {henryPassage?.relation === 'context'
+                    ? `Kaugnay na komentaryo na nagsisimula sa talata ${henryPassage.startVerse}. Hindi kumpirmadong direktang paliwanag sa talata ${henryVerse}.`
+                    : henryPassage?.endVerse !== henryPassage?.startVerse
+                      ? `Orihinal na komentaryo para sa talata ${henryPassage?.startVerse}–${henryPassage?.endVerse}.`
+                      : `Orihinal na komentaryo para sa talata ${henryPassage?.startVerse}.`}
                 </Text>
+                {henryRequestedLanguage !== 'en' && henryTranslation.status !== 'translated' && (
+                  <Text style={{ color: '#765C26', fontSize: 12, lineHeight: 19, marginBottom: 9 }}>
+                    {henryTranslation.status === 'loading'
+                      ? 'Isinasalin sa napiling wika. Pansamantalang ipinapakita ang orihinal na English.'
+                      : 'Hindi available ang on-device translation sa build o language model na ito. Orihinal na English ang ipinapakita.'}
+                  </Text>
+                )}
+                {henryRequestedLanguage !== 'en' && henryTranslation.status === 'translated' && (
+                  <View style={{ backgroundColor: '#FFF7E8', borderRadius: 10, padding: 10, marginBottom: 12 }}>
+                    <Text style={{ color: '#705223', fontSize: 12, lineHeight: 19 }}>
+                      Malinaw na Filipino (hindi salitang-salita). May ilang lumang pananalitang inayos upang mas madaling maunawaan, ngunit maaari pa ring magkamali ang awtomatikong pagsasalin. Ang Original English ang batayan ni Matthew Henry.
+                    </Text>
+                  </View>
+                )}
+                <Text style={{ color: '#33483C', fontSize: 16, lineHeight: 27 }}>
+                  {henryRequestedLanguage !== 'en' && henryTranslation.status === 'translated'
+                    ? henryTranslation.text : henryPassage?.text ?? ''}
+                </Text>
+                {henryRequestedLanguage !== 'en' && henryTranslation.status === 'translated' && (
+                  <View style={{ marginTop: 12, gap: 8 }}>
+                    <Pressable accessibilityRole="link"
+                      accessibilityLabel="Powered by Google Translate. Open Google Translate."
+                      onPress={() => { void Linking.openURL('https://translate.google.com/').catch(() => undefined); }}
+                      style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}>
+                      <Image
+                        source={require('../../../assets/brands/google-translate/color-regular.png')}
+                        resizeMode="contain"
+                        style={{ width: 176, height: 16 }}
+                        accessibilityLabel="Powered by Google Translate"
+                      />
+                    </Pressable>
+                    <Text style={{ color: '#607269', fontSize: 11, lineHeight: 18 }}>
+                      Machine translation. Maaaring magkamali ang awtomatikong salin.
+                      Pindutin ang Original English para sa orihinal ni Matthew Henry.
+                    </Text>
+                  </View>
+                )}
+                <Pressable accessibilityRole="button"
+                  accessibilityLabel="Tungkol sa Google Translate at disclaimer"
+                  onPress={() => setHenryAttributionOpen(value => !value)}
+                  style={{ paddingVertical: 10, alignSelf: 'flex-start' }}>
+                  <Text style={{ color: '#275D45', fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' }}>
+                    Tungkol sa pagsasalin at disclaimer
+                  </Text>
+                </Pressable>
+                {henryAttributionOpen && (
+                  <View style={{ backgroundColor: '#F3F7F4', borderRadius: 10, padding: 12, gap: 8 }}>
+                    <Text style={{ color: '#40584B', fontSize: 12, lineHeight: 19 }}>
+                      BUKLOD uses Google Translate to power optional on-device translations
+                      of the public-domain Matthew Henry Bible Commentary. Ang awtomatikong
+                      salin ay hindi orihinal na akda ni Matthew Henry; ang English ang batayan.
+                    </Text>
+                    <Text style={{ color: '#40584B', fontSize: 11, lineHeight: 18 }}>
+                      THIS SERVICE MAY CONTAIN TRANSLATIONS POWERED BY GOOGLE.
+                      GOOGLE DISCLAIMS ALL WARRANTIES RELATED TO THE TRANSLATIONS,
+                      EXPRESS OR IMPLIED, INCLUDING ANY WARRANTIES OF ACCURACY,
+                      RELIABILITY, AND ANY IMPLIED WARRANTIES OF MERCHANTABILITY,
+                      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+                    </Text>
+                    <Pressable accessibilityRole="link"
+                      accessibilityLabel="Bisitahin ang Google Translate"
+                      onPress={() => { void Linking.openURL('https://translate.google.com/').catch(() => undefined); }}
+                      style={{ paddingVertical: 8 }}>
+                      <Text style={{ color: '#275D45', fontSize: 12, textDecorationLine: 'underline' }}>
+                        Google Translate — https://translate.google.com/
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
                 <Text style={{ color: '#718078', fontSize: 11, marginTop: 16 }}>
-                  Source: Matthew Henry Bible Commentary (public domain) via Free Use Bible API.
+                  Orihinal: Matthew Henry Bible Commentary (public domain) via Free Use Bible API.
+                  Hindi sariling English text ni Matthew Henry ang awtomatikong salin.
                 </Text>
               </ScrollView>
             </View>

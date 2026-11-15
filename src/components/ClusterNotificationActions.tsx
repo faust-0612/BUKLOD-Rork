@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 
 import { clusterJoinNotificationAction } from '@/lib/clusterJoinNotification';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 export default function ClusterNotificationActions({
   kind,
@@ -19,6 +20,7 @@ export default function ClusterNotificationActions({
   busy?: boolean;
   onAction: (approve: boolean) => void;
 }) {
+  const { theme } = useBuklodTheme();
   const action = clusterJoinNotificationAction(kind, data);
 
   if (!action) {
@@ -32,9 +34,9 @@ export default function ClusterNotificationActions({
         accessibilityLabel={action.approveLabel}
         disabled={busy}
         onPress={() => onAction(true)}
-        style={[styles.approve, busy && styles.disabled]}
+        style={[styles.approve, { backgroundColor: theme.buttonPrimary }, busy && styles.disabled]}
       >
-        <Text style={styles.approveText}>
+        <Text style={[styles.approveText, { color: theme.onAccent }]}>
           {busy ? 'WORKING...' : action.approveLabel}
         </Text>
       </Pressable>
@@ -43,9 +45,9 @@ export default function ClusterNotificationActions({
         accessibilityLabel={action.declineLabel}
         disabled={busy}
         onPress={() => onAction(false)}
-        style={[styles.decline, busy && styles.disabled]}
+        style={[styles.decline, { borderColor: theme.accent, backgroundColor: theme.surface }, busy && styles.disabled]}
       >
-        <Text style={styles.declineText}>{action.declineLabel}</Text>
+        <Text style={[styles.declineText, { color: theme.textPrimary }]}>{action.declineLabel}</Text>
       </Pressable>
     </View>
   );
@@ -58,30 +60,25 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   approve: {
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: 12,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2D6A4F',
   },
   decline: {
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: 12,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#2D6A4F',
-    backgroundColor: '#FFFFFF',
   },
   approveText: {
-    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '900',
   },
   declineText: {
-    color: '#2D6A4F',
     fontSize: 11,
     fontWeight: '900',
   },

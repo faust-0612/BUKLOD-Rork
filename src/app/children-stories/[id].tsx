@@ -8,6 +8,7 @@ import StoryArt from '@/features/childrenStories/StoryArt';
 import { BUNDLED_CHILDREN_STORIES, ChildrenStory, StoryLanguage, findBundledStory, localize } from '@/features/childrenStories/catalog';
 import { fetchChildrenStoryLibrary, readStoryProgress, saveStoryProgress } from '@/features/childrenStories/service';
 import { getSundaySchoolLesson } from '@/features/childrenStories/sundaySchool';
+import { StoryNarrator, type StoryAudioState } from '@/features/childrenStories/storyNarration';
 
 export default function ChildrenStoryReader() {
   const params=useLocalSearchParams<{id:string;lang?:string}>();
@@ -21,11 +22,19 @@ export default function ChildrenStoryReader() {
   const [choice,setChoice]=useState<number|null>(null);
   const [complete,setComplete]=useState(false);
   const [favorite,setFavorite]=useState(false);
-  const [speaking,setSpeaking]=useState(false);
+  const [audioState,setAudioState]=useState<StoryAudioState>({status:'idle'});
   const [bedtime,setBedtime]=useState(false);
-  const speechToken=useRef(0);
-  const stop=useCallback(()=>{speechToken.current+=1;void Speech.stop().catch(()=>undefined);setSpeaking(false);},[]);
-  useFocusEffect(useCallback(()=>()=>{speechToken.current+=1;void Speech.stop().catch(()=>undefined)},[]));
+  const narratorRef=useRef<StoryNarrator | null>(null);
+  const narrator=useCallback(()=>{
+    if(!narratorRef.current) narratorRef.current=new StoryNarrator(Speech,setAudioState);
+    return narratorRef.current;
+  },[]);
+  const stop=useCallback(()=>{
+    narratorRef.current?.stop();
+    setAudioState({status:'idle'});
+  },[]);
+  useFocusEffect(useCallback(()=>()=>stop(),[stop]));
+  useEffect(()=>()=>{narratorRef.current?.dispose();narratorRef.current=null;},[]);
   useEffect(()=>{
     const sub=AppState.addEventListener('change',s=>{if(s!=='active')stop()});
     return ()=>sub.remove();
@@ -44,8 +53,8 @@ export default function ChildrenStoryReader() {
       const found=items.find(x=>x.id===id);
       if(found) setStory(found);
     });
-    return()=>{live=false;speechToken.current+=1;void Speech.stop().catch(()=>undefined)};
-  },[id,user?.id]);
+    return()=>{live=false;stop();};
+  },[id,user?.id,stop]);
   useEffect(()=>{stop()},[language,page,quiz,questionIndex,stop]);
   const lesson=getSundaySchoolLesson(story);
   const questions=story?[{prompt:story.question,choices:story.choices,answer:story.answer},...(lesson?.questions??[])]:[];
@@ -62,45 +71,19 @@ export default function ChildrenStoryReader() {
   }
   function speak(){
     if(!story)return;
-    if(speaking){stop();return;}
+    if(audioState.status==='playing'){narrator().pause();return;}
+    if(audioState.status==='paused'){void narrator().resume();return;}
+    if(audioState.status==='preparing'){stop();return;}
     const content=quiz?(activeQuestion?localize(activeQuestion.prompt,language):'')
       :lesson?localize(lesson.narrative,language)
       :localize(story.pages[Math.min(page,story.pages.length-1)].text,language);
-    // Android text-to-speech has an input size limit. Read a continuous narrative in
-    // bounded paragraphs, without fragmenting the visual story into artificial pages.
-    const chunks=content.split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean).flatMap(p=>{
-      const out:string[]=[];
-      let remaining=p;
-      while(remaining.length>700){
-        const boundary=remaining.lastIndexOf(' ',700);
-        const cut=boundary>400?boundary:700;
-        out.push(remaining.slice(0,cut).trim());
-        remaining=remaining.slice(cut).trim();
-      }
-      if(remaining)out.push(remaining);
-      return out;
-    });
-    if(!chunks.length)return;
-    const token=++speechToken.current;
-    void Speech.stop().catch(()=>undefined).then(()=>{
-      if(token!==speechToken.current)return;
-      let index=0;
-      const next=()=>{
-        if(token!==speechToken.current)return;
-        if(index===chunks.length){setSpeaking(false);return;}
-        try {
-          Speech.speak(chunks[index++],{
-            language:language==='tl'?'fil-PH':'en-US',rate:bedtime?0.77:0.88,pitch:1,
-            onStart:()=>{if(token===speechToken.current)setSpeaking(true);},
-            onDone:next,
-            onStopped:()=>{if(token===speechToken.current)setSpeaking(false);},
-            onError:()=>{if(token===speechToken.current)setSpeaking(false);}
-          });
-        }catch{if(token===speechToken.current)setSpeaking(false);}
-      };
-      next();
-    }).catch(()=>{if(token===speechToken.current)setSpeaking(false);});
+    void narrator().play(content,language,bedtime);
   }
+  const audioNotice=audioState.status==='error' ? (
+    audioState.problem==='voice-unavailable'
+      ? (language==='tl'?'Walang Filipino/Tagalog na boses sa phone. I-install o i-enable sa Android Settings → Text-to-speech output → Voice data, saka subukang muli.':'The selected language voice is not installed. Enable or download it in Android Text-to-speech settings, then retry.')
+      : (language==='tl'?'Hindi masimulan ang pagbasa. Tingnan ang Text-to-speech engine, voice data at media volume ng phone, saka subukan muli.':'Speech could not start. Check your phone’s text-to-speech engine, voice data and media volume, then retry.')
+  ) : null;
   function submit(index:number){
     if(!story||!activeQuestion||choice===activeQuestion.answer)return;
     setChoice(index);
@@ -154,6 +137,7 @@ export default function ChildrenStoryReader() {
             ?(lastQuestion?(language==='tl'?'⭐ Magaling! Natapos mo ang lahat ng tanong.':'⭐ Wonderful! All questions complete.'):(language==='tl'?'⭐ Tama! Susunod na tanong.':'⭐ Correct! Next question.'))
             :(language==='tl'?'Subukan muli. Kaya mo iyan!':'Try again. You can do it!')}</Text>:null}
         </> : lesson ? <>
+          {!!lesson.retellingNotice && <Text style={[styles.tip,bedtime&&styles.light]}>{localize(lesson.retellingNotice,language)}</Text>}
           <Text style={[styles.storyText,styles.longStoryText,bedtime&&styles.light]}>{localize(lesson.narrative,language).trim().replace(/\n\s*\n/g,'\n\n')}</Text>
           <Text style={[styles.tip,bedtime&&styles.light]}>{language==='tl'?'Basahin o pakinggan ang buong kuwento kasama ang guro o nakatatanda.':'Read or listen to the full story with a teacher or grown-up.'}</Text>
           <View style={[styles.lessonPanel,bedtime&&styles.darkLesson]}>
@@ -178,9 +162,20 @@ export default function ChildrenStoryReader() {
           <Text style={[styles.tip,bedtime&&styles.light]}>👆 {language==='tl'?'Basahin o pakinggan kasama ang nakatatanda.':'Read or listen with a grown-up.'}</Text>
         </>}
         <Pressable accessibilityRole="button" onPress={speak} style={[styles.audioButton,bedtime&&styles.darkAudio]}>
-          <MaterialCommunityIcons name={speaking?'stop-circle-outline':'volume-high'} size={22} color="#FFFFFF"/>
-          <Text style={styles.audioText}>{speaking?(language==='tl'?'Itigil':'Stop'):(language==='tl'?'Pakinggan ang kuwento':'Read to me')}</Text>
+          <MaterialCommunityIcons name={audioState.status==='playing'?'pause-circle-outline':audioState.status==='paused'?'play-circle-outline':audioState.status==='preparing'?'close-circle-outline':'volume-high'} size={22} color="#FFFFFF"/>
+          <Text style={styles.audioText}>{
+            audioState.status==='playing'?(language==='tl'?'I-pause':'Pause'):
+            audioState.status==='paused'?(language==='tl'?'Ipagpatuloy':'Resume'):
+            audioState.status==='preparing'?(language==='tl'?'Kinukuha ang boses · Kanselahin':'Preparing voice · Cancel'):
+            (language==='tl'?'Pakinggan ang kuwento':'Read to me')
+          }</Text>
         </Pressable>
+        {(audioState.status==='playing'||audioState.status==='paused')?
+          <Pressable accessibilityRole="button" onPress={stop} style={[styles.stopAudioButton,bedtime&&styles.darkStopAudio]}>
+            <MaterialCommunityIcons name="stop-circle-outline" size={19} color={bedtime?'#F2FFFF':'#1D6254'}/>
+            <Text style={[styles.stopAudioText,bedtime&&styles.light]}>{language==='tl'?'Itigil ang audio':'Stop audio'}</Text>
+          </Pressable> : null}
+        {audioNotice ? <Text accessibilityRole="alert" style={[styles.audioWarning,bedtime&&styles.light]}>{audioNotice}</Text> : null}
       </View>
       <View style={styles.footer}>
         <Pressable accessibilityRole="button" disabled={!quiz&&!lesson&&safePage===0}
@@ -242,6 +237,9 @@ const styles=StyleSheet.create({
   feedback:{fontSize:16,fontWeight:'900',color:'#267E5D'},
   audioButton:{backgroundColor:'#297F67',padding:14,borderRadius:15,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:10},
   darkAudio:{backgroundColor:'#366B80'},audioText:{color:'#FFFFFF',fontSize:15,fontWeight:'900'},
+  stopAudioButton:{paddingVertical:11,paddingHorizontal:14,borderRadius:13,borderColor:'#C6DDD0',borderWidth:1,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:7,backgroundColor:'#F1F8F4'},
+  darkStopAudio:{backgroundColor:'#314A58',borderColor:'#526B77'},stopAudioText:{color:'#1D6254',fontWeight:'800',fontSize:13},
+  audioWarning:{fontSize:13,lineHeight:20,color:'#8D3A31',fontWeight:'700'},
   footer:{flexDirection:'row',justifyContent:'space-between',gap:9,alignItems:'center'},
   mainButton:{backgroundColor:'#267861',paddingHorizontal:18,paddingVertical:15,borderRadius:14,flexDirection:'row',gap:4,alignItems:'center',justifyContent:'center',minHeight:48},
   buttonText:{color:'white',fontWeight:'900',fontSize:14},

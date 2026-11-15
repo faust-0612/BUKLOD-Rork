@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/providers/AuthProvider';
 import StoryArt from '@/features/childrenStories/StoryArt';
+import { BIBLE_STORY_METADATA, type BibleTestament } from '@/features/childrenStories/bibleExpansion';
 import { BUNDLED_CHILDREN_STORIES, ChildrenStory, StoryCategory, StoryLanguage, STORY_CATEGORIES, localize } from '@/features/childrenStories/catalog';
 import { fetchChildrenStoryLibrary, formatStoryAge, readStoryProgress, StoryProgress } from '@/features/childrenStories/service';
 
@@ -18,6 +19,7 @@ export default function ChildrenStoriesLibrary() {
   const columns = width > 610 && fontScale < 1.4 ? 2 : 1;
   const [language,setLanguage] = useState<StoryLanguage>('tl');
   const [category,setCategory] = useState<CategoryFilter>('All');
+  const [testament,setTestament] = useState<'all'|BibleTestament>('all');
   const [age,setAge] = useState<number | null>(null);
   const [search,setSearch] = useState('');
   const [stories,setStories] = useState<ChildrenStory[]>(BUNDLED_CHILDREN_STORIES);
@@ -35,10 +37,11 @@ export default function ChildrenStoriesLibrary() {
     const q=search.trim().toLocaleLowerCase();
     return stories.filter(s =>
       (category==='All'||s.category===category) &&
+      (testament==='all'||(s.category==='Bible'&&BIBLE_STORY_METADATA[s.id]?.testament===testament)) &&
       (!age||(age>=s.minAge&&age<=s.maxAge)) &&
-      (!q||[s.title.tl,s.title.en,s.summary.tl,s.summary.en].some(t=>t.toLocaleLowerCase().includes(q)))
+      (!q||[s.title.tl,s.title.en,s.summary.tl,s.summary.en,BIBLE_STORY_METADATA[s.id]?.book,BIBLE_STORY_METADATA[s.id]?.reference].some(t=>t?.toLocaleLowerCase().includes(q)))
     );
-  },[stories,category,age,search]);
+  },[stories,category,testament,age,search]);
   const completed = Object.values(progress).filter(p=>p.completed).length;
   const finished = Math.min(completed,stories.length);
   return (
@@ -56,7 +59,7 @@ export default function ChildrenStoriesLibrary() {
             <Text style={styles.heroTitle}>Children's Story World</Text>
             <Text style={styles.heroDescription}>{language==='tl'?'Mga kuwento, aral, at pangarap — sama-samang basahin.':'Stories, lessons and dreams — read together.'}</Text>
             <View style={styles.heroFooter}>
-              <Text style={styles.heroMeta}>{finished}/{stories.length} finished · 12 offline stories</Text>
+              <Text style={styles.heroMeta}>{finished}/{stories.length} finished · {BUNDLED_CHILDREN_STORIES.length} offline stories</Text>
               <View style={styles.switcher}>
                 {(['tl','en'] as const).map(v=><Pressable key={v} onPress={()=>setLanguage(v)}
                   accessibilityRole="button" accessibilityState={{selected:language===v}}
@@ -73,11 +76,20 @@ export default function ChildrenStoriesLibrary() {
             style={styles.search}/>
           <View style={styles.filters}>
             {(['All',...STORY_CATEGORIES] as CategoryFilter[]).map(v=><Pressable key={v}
-              onPress={()=>setCategory(v)} accessibilityRole="button" accessibilityState={{selected:category===v}}
+              onPress={()=>{setCategory(v);if(v!=='Bible')setTestament('all')}} accessibilityRole="button" accessibilityState={{selected:category===v}}
               style={[styles.filter,category===v&&styles.filterOn]}>
               <Text style={[styles.filterText,category===v&&styles.filterTextOn]}>{categoryLabels[v]}</Text>
             </Pressable>)}
           </View>
+          {category==='Bible' ? <View style={styles.filters}>
+            {(['all','old','new'] as const).map(v=><Pressable key={v}
+              onPress={()=>setTestament(v)} accessibilityRole="button" accessibilityState={{selected:testament===v}}
+              style={[styles.filter,testament===v&&styles.filterOn]}>
+              <Text style={[styles.filterText,testament===v&&styles.filterTextOn]}>
+                {v==='all'?(language==='tl'?'Buong Bibliya':'Whole Bible'):v==='old'?(language==='tl'?'Lumang Tipan':'Old Testament'):(language==='tl'?'Bagong Tipan':'New Testament')}
+              </Text>
+            </Pressable>)}
+          </View> : null}
           <View style={styles.filters}>
             {[null,3,6,9].map(v=><Pressable key={v??'all'}
               onPress={()=>setAge(v)} accessibilityRole="button" accessibilityState={{selected:age===v}}
@@ -94,7 +106,7 @@ export default function ChildrenStoriesLibrary() {
           <View style={styles.cardBody}>
             <View style={styles.tags}>
               <Text style={styles.category}>{categoryLabels[item.category]}</Text>
-              <Text style={styles.ageLabel}>Ages {formatStoryAge(item)}</Text>
+              <Text style={styles.ageLabel}>{BIBLE_STORY_METADATA[item.id]?.reference ?? `Ages ${formatStoryAge(item)}`}</Text>
             </View>
             <Text style={styles.cardTitle}>{localize(item.title,language)}</Text>
             <Text style={styles.cardSummary} numberOfLines={2}>{localize(item.summary,language)}</Text>
@@ -105,7 +117,7 @@ export default function ChildrenStoriesLibrary() {
           </View>
         </Pressable>}
         ListEmptyComponent={<Text style={styles.empty}>Walang kuwentong tumugma. Baguhin ang filter.</Text>}
-        ListFooterComponent={<Text style={styles.footer}>Gamitin kasama ang magulang o guardian. Walang chats, ads, o child accounts dito. Ang 12 pangunahing kuwento ay naka-bundle para sa offline reading.</Text>}
+        ListFooterComponent={<Text style={styles.footer}>Gamitin kasama ang magulang o guardian. Walang chats, ads, o child accounts dito. Ang {BUNDLED_CHILDREN_STORIES.length} orihinal na kuwento ay naka-bundle para sa offline reading. Ang mga biblical adaptation ay may talatang sanggunian at maaaring hanapin ayon sa aklat at tipan.</Text>}
       />
     </View>
   );

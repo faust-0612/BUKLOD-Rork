@@ -20,16 +20,24 @@ const BOOK_CODES = [
 ] as const;
 
 export type TaggedKjvWord = [string, string[]];
+export type MatthewHenryPassage = {
+  startVerse: number;
+  endVerse: number;
+  text: string;
+};
 export type BibleStudyChapter = {
   key: string;
   commentary: Record<number, string>;
+  henryPassages: MatthewHenryPassage[];
+  chapterIntroduction: string;
   kjvStrong: Record<number, TaggedKjvWord[]>;
 };
+export type MatthewHenrySelection = MatthewHenryPassage & { relation: 'direct' | 'context' };
 export type StrongSegment = { text: string; strongs: string[] };
 
 const memory = new Map<string, BibleStudyChapter>();
 const maxCacheEntries = 8;
-const EMPTY: BibleStudyChapter = { key: '', commentary: {}, kjvStrong: {} };
+const EMPTY: BibleStudyChapter = { key: '', commentary: {}, henryPassages: [], chapterIntroduction: '', kjvStrong: {} };
 
 function store(key: string, value: BibleStudyChapter) {
   memory.delete(key);
@@ -80,6 +88,69 @@ export function parseMatthewHenryChapter(value: unknown): Record<number, string>
     if (value) rows[n] = value.slice(0, 24000);
   }
   return rows;
+}
+
+
+/**
+ * Henry frequently comments on passages, not individual verses. An exact verse
+ * record is not evidence that all following verses share its interpretation.
+ * Expand only source-declared ranges, never gaps inferred from adjacent rows.
+ */
+export function parseMatthewHenryPassages(value: unknown): MatthewHenryPassage[] {
+  if (!value || typeof value !== 'object') return [];
+  const root = value as { chapter?: { content?: unknown }; content?: unknown };
+  const blocks = root.chapter?.content ?? root.content;
+  if (!Array.isArray(blocks)) return [];
+  const passages: MatthewHenryPassage[] = [];
+  let headingRange: { start: number; end: number } | null = null;
+  for (const block of blocks) {
+    if (!block || typeof block !== 'object') continue;
+    const row = block as {
+      type?: unknown; number?: unknown; content?: unknown; text?: unknown;
+      endVerse?: unknown; end_verse?: unknown; verse_end?: unknown;
+    };
+    if (row.type === 'heading') {
+      const title = stringifyCommentary(row.content ?? row.text);
+      const match = /\b(?:verses?|vv?\.?)\s*(\d{1,3})\s*(?:[-–—]|to|through)\s*(\d{1,3})\b/i.exec(title);
+      headingRange = match ? { start: Number(match[1]), end: Number(match[2]) } : null;
+      continue;
+    }
+    if (row.type !== 'verse') continue;
+    const startVerse = Number(row.number);
+    if (!Number.isInteger(startVerse) || startVerse < 1 || startVerse > 176) continue;
+    const text = stringifyCommentary(row.content ?? row.text).trim();
+    if (!text) continue;
+    const declaredEnd = Number(row.endVerse ?? row.end_verse ?? row.verse_end);
+    const endVerse = Number.isInteger(declaredEnd) && declaredEnd >= startVerse && declaredEnd <= 176
+      ? declaredEnd
+      : headingRange?.start === startVerse && headingRange.end >= startVerse && headingRange.end <= 176
+        ? headingRange.end : startVerse;
+    passages.push({ startVerse, endVerse, text: text.slice(0, 24000) });
+    headingRange = null;
+  }
+  return passages.sort((a, b) => a.startVerse - b.startVerse);
+}
+
+export function parseMatthewHenryIntroduction(value: unknown): string {
+  if (!value || typeof value !== 'object') return '';
+  const root = value as { chapter?: { introduction?: unknown } };
+  return stringifyCommentary(root.chapter?.introduction).trim().slice(0, 24000);
+}
+
+/**
+ * Verse-specific doors never silently borrow an earlier passage's commentary.
+ * Only explicitly requested neighboring context can use the fallback; callers
+ * must label it as related text rather than an explanation of the verse.
+ */
+export function getMatthewHenryPassage(study: BibleStudyChapter, verseNo: number, options: { allowContext?: boolean } = {}): MatthewHenrySelection | null {
+  if (!Number.isInteger(verseNo) || verseNo < 1) return null;
+  const passages = study.henryPassages ?? [];
+  const direct = passages.find(p => p.startVerse <= verseNo && verseNo <= p.endVerse);
+  if (direct) return { ...direct, relation: 'direct' };
+  if (!options.allowContext) return null;
+  const anchors = passages.filter(p => p.startVerse <= verseNo);
+  const context = anchors.length ? anchors[anchors.length - 1] : null;
+  return context ? { ...context, relation: 'context' } : null;
 }
 
 export function parseTaggedKjvChapter(value: unknown): Record<number, TaggedKjvWord[]> {
@@ -148,7 +219,7 @@ export function useBuklodBibleChapterStudy(params: {
   online: boolean;
 }): BibleStudyChapter {
   const { enabled, bookNo, chapterNo, translation, accountId, online } = params;
-  const key = `bible-study-v1:${bookNo}:${chapterNo}`;
+  const key = `bible-study-v2:${bookNo}:${chapterNo}`;
   const [study, setStudy] = useState<BibleStudyChapter>(EMPTY);
 
   useEffect(() => {
@@ -186,12 +257,18 @@ export function useBuklodBibleChapterStudy(params: {
         commentary: commentary.status === 'fulfilled'
           ? parseMatthewHenryChapter(commentary.value)
           : previous?.commentary ?? {},
+        henryPassages: commentary.status === 'fulfilled'
+          ? parseMatthewHenryPassages(commentary.value)
+          : previous?.henryPassages ?? [],
+        chapterIntroduction: commentary.status === 'fulfilled'
+          ? parseMatthewHenryIntroduction(commentary.value)
+          : previous?.chapterIntroduction ?? '',
         kjvStrong: strongs.status === 'fulfilled'
           ? parseTaggedKjvChapter(strongs.value)
           : previous?.kjvStrong ?? {},
       };
       // Persist a chapter only when a real source supplied study data.
-      if (Object.keys(result.commentary).length || Object.keys(result.kjvStrong).length) {
+      if (result.henryPassages.length || result.chapterIntroduction || Object.keys(result.kjvStrong).length) {
         store(key, result);
         setStudy(result);
         void setOfflineCache(key, result, {
