@@ -64,11 +64,11 @@ export default function BuklodProfileTopTenRankings({userId}: {userId: string}) 
   const rows = current?.rows ?? [];
 
   return (
-    <View style={{marginHorizontal: 12, marginTop: 10, padding: 12,
+    <View style={{marginHorizontal: 16, marginTop: 8, padding: 10,
       borderRadius: 15, borderWidth: 1, borderColor: theme.border,
-      backgroundColor: theme.cardSurface, gap: 9}}>
+      backgroundColor: theme.cardSurface, gap: 6}}>
       <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8}}>
-        <Text allowFontScaling style={{fontSize: 16, fontWeight: '900', color: theme.textPrimary}}>
+        <Text allowFontScaling style={{fontSize: 15, fontWeight: '900', color: theme.textPrimary}}>
           TOP 10 RANKINGS
         </Text>
         <Pressable accessibilityRole="button" accessibilityLabel="See full Points leaderboard"
@@ -77,7 +77,7 @@ export default function BuklodProfileTopTenRankings({userId}: {userId: string}) 
           <Text allowFontScaling style={{color: theme.accent, fontWeight: '800'}}>See all</Text>
         </Pressable>
       </View>
-      <View style={{flexDirection: 'row', gap: 8}}>
+      <View style={{flexDirection: 'row', gap: 6}}>
         {(['monthly', 'all_time'] as const).map(next => (
           <Pressable key={next} accessibilityRole="button"
             accessibilityLabel={next === 'monthly' ? 'Monthly Top 10 ranking' : 'All-Time Top 10 ranking'}
@@ -119,7 +119,7 @@ export default function BuklodProfileTopTenRankings({userId}: {userId: string}) 
         const mine = item.user_id === viewerId;
         return (
           <View key={period + ':' + item.user_id} style={{flexDirection: 'row', alignItems: 'center',
-            minHeight: 42, borderRadius: 11, gap: 9, paddingHorizontal: 7, paddingVertical: 5,
+            minHeight: 38, borderRadius: 9, gap: 7, paddingHorizontal: 6, paddingVertical: 3,
             backgroundColor: mine ? theme.accentSoft : theme.cardSurface}}>
             <Text allowFontScaling style={{width: 26, textAlign: 'center',
               color: theme.accent, fontSize: 17, fontWeight: '900'}}>
