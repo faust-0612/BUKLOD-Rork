@@ -61,8 +61,9 @@ import { colors } from '@/lib/theme';
 import {
   Card,
   SectionTitle,
-  shared,
+  useThemedShared,
 } from '@/components/UI';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { BuklodBibleNarrationBar } from '@/components/BuklodBibleNarrationBar';
 import {
   mapBibleChapterRows,
@@ -140,6 +141,8 @@ const paramString = (
 
 
 export default function BibleReaderScreen() {
+  const { theme } = useBuklodTheme();
+  const shared = useThemedShared();
   const { user } = useAuth();
   const accountId = user?.id ?? '';
   const { online } = useNetwork();
@@ -2565,9 +2568,7 @@ setMarking(true);
           >
 
             <Text
-              style={
-                styles.reference
-              }
+              style={[styles.reference,{color:theme.textPrimary}]}
             >
               {dailyReference}
             </Text>
@@ -2734,13 +2735,14 @@ setMarking(true);
                       style={[
                         styles.verseRow,
                         listeningVerse &&
-                          styles.focusVerse,
+                          {backgroundColor:theme.accentSoft},
                       ]}
                     >
 
                       <Text
                         style={[
                           styles.verseNumber,
+                          {color:theme.textMuted},
                           {
                             fontSize:
                               13,
@@ -2757,6 +2759,7 @@ setMarking(true);
                         selectable
                         style={[
                           styles.verseText,
+                          {color:theme.textPrimary},
                           {
                             fontSize:
                               17,
@@ -3811,9 +3814,7 @@ setMarking(true);
         >
           <View style={{ flex: 1 }}>
             <Text
-              style={
-                styles.reference
-              }
+              style={[styles.reference,{color:theme.textPrimary}]}
             >
               {
                 currentBook?.book_name ??
@@ -3823,9 +3824,7 @@ setMarking(true);
             </Text>
 
             <Text
-              style={
-                styles.versionMeta
-              }
+              style={[styles.versionMeta,{color:theme.textMuted}]}
             >
               {
                 translations.find(
@@ -4216,7 +4215,7 @@ setMarking(true);
                       styles.verseRow,
 
                       focused &&
-                        styles.focusVerse,
+                        {backgroundColor:theme.accentSoft},
 
                       isMyBibleMode &&
                       annotation
@@ -4232,6 +4231,7 @@ setMarking(true);
                     <Text
                       style={[
                         styles.verseNumber,
+                        {color:annotation?.highlight_color?'#26372F':theme.textMuted},
                         {
                           fontSize:
                             11 *
@@ -4255,6 +4255,7 @@ setMarking(true);
                           ? bibleStudy.kjvStrong[Number(verse.verse_no)] : undefined}
                         textStyle={[
                           styles.verseText,
+                          {color:annotation?.highlight_color?'#26372F':theme.textPrimary},
                           {
                             fontSize: 17 * bibleZoom,
                             lineHeight: 28 * bibleZoom,
