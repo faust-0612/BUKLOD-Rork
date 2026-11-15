@@ -1,3 +1,4 @@
+import { isBuklodConnectStandalone } from '@/lib/buklodConnectStandalone';
 import { buklodVisual } from '@/lib/buklodVisual';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import React, {
@@ -1290,7 +1291,7 @@ function ConnectScreenInner({
           />
         </>
       )}
-      {!isSearching ? (
+      {!isSearching && !isBuklodConnectStandalone ? (
         <BuklodFirstViewAd
           placement="messages"
           placementId={community ? 'connect_community_first_view' : 'connect_personal_first_view'}
@@ -1389,7 +1390,7 @@ function ConnectScreenInner({
                     onPressRow={() => openCommunityRoom(item.scope_id, item)}
                   />
                 </BuklodFocusVisibleRow>
-                {index === 3 && !isSearching ? (
+                {index === 3 && !isSearching && !isBuklodConnectStandalone ? (
                   <BuklodNativeSponsoredCard surface="connect" slotId="connect_community_inline_4" prefetch />
                 ) : null}
                 </>
@@ -1414,7 +1415,7 @@ function ConnectScreenInner({
                     : openPersonalThread(item.thread_id, item)}
                 />
               </BuklodFocusVisibleRow>
-              {index === 3 && !isSearching ? (
+              {index === 3 && !isSearching && !isBuklodConnectStandalone ? (
                 <BuklodNativeSponsoredCard surface="connect" slotId="connect_personal_inline_4" prefetch />
               ) : null}
               </>

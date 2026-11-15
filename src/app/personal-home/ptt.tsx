@@ -862,23 +862,25 @@ export default function BuklodPttScreen() {
         </ScrollView>
       </View>
 
-      <View
-        style={{
-          width: '100%',
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E2E8E4',
-          paddingBottom: insets.bottom,
-        }}
-      >
-        <BuklodAdMobBanner
-          placement="content"
-          placementId="ptt_banner"
-          format="adaptive"
-          requireViewport={false}
-          showLabel
-        />
-      </View>
+      {!isBuklodConnectStandalone ? (
+        <View
+          style={{
+            width: '100%',
+            backgroundColor: '#FFFFFF',
+            borderTopWidth: 1,
+            borderTopColor: '#E2E8E4',
+            paddingBottom: insets.bottom,
+          }}
+        >
+          <BuklodAdMobBanner
+            placement="content"
+            placementId="ptt_banner"
+            format="adaptive"
+            requireViewport={false}
+            showLabel
+          />
+        </View>
+      ) : null}
 
       <Modal visible={showOnboarding} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
