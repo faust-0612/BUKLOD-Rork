@@ -106,13 +106,24 @@
       ]
     },
     {
-      "id": "production-release",
-      "reason": "Consolidated staging QA-only source, production isolation.",
+      "id": "quiz-classroom",
+      "reason": "Bible V4 score-review UI fetches an owner's submitted answer with secure read-only RPC only.",
       "preservedBehaviors": [
-        "Never mutate production OTA or Play."
+        "Existing daily question selection, scores, rewards, canonical quiz and Classroom data remain unchanged."
       ],
       "tests": [
+        "tests/buklod-bible-v4-quiz-security-20261116.test.mjs",
         "tests/buklod-bible-v4-review-ota-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Canonical version-controlled SQL of already-applied Bible V4 read-only, owner-checked post-submission review RPC and RLS fixtures.",
+      "preservedBehaviors": [
+        "Live migration already applied; no new Supabase deployment, no cross-account reads, and no score mutation."
+      ],
+      "tests": [
+        "tests/buklod-bible-v4-quiz-security-20261116.test.mjs"
       ]
     }
   ],
