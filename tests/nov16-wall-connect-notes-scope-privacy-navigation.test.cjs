@@ -35,6 +35,6 @@ test('Wall post headers expose Connect note text without touching feed or ad lif
 test('Locked profile retains private content while showing standard authenticated avatar', () => {
   const member = read('src/app/member/[id].tsx');
   assert.match(member, /profile\?\.is_locked \|\| !profile\?\.can_view_details/);
-  assert.match(member, /<ProfileAvatar userId=\{profile\.user_id\}/);
+  assert.match(member, /profile \? <ProfileAvatar userId=\{profile\.user_id\}/);
   assert.match(member, /Private profile/);
 });
