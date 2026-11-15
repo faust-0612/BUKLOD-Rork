@@ -1,0 +1,76 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/matthew-henry-verse-language-20261116.json",
+  "objective": "Correct Matthew Henry commentary source coverage in My Bible verse navigation and add truthful language-sensitive, on-device optional translation without changing scripture, native binaries, daily plan or production.",
+  "baseRef": "69ff92b22b13e26490a93f685ebc89d28e3d6cbf",
+  "productionBaselineEvidence": "GitHub main commit 69ff92b22b13e26490a93f685ebc89d28e3d6cbf confirmed before editing. Existing library uses helloao English commentary with 4124 commentary entries over 1167 chapters; production content cannot be assumed per-verse. Existing optional BuklodMlKitTranslation Android module is present in source but installed APK compatibility not yet evidenced.",
+  "chosenApproach": "Preserve exact verse records; only expand source-explicit passage ranges, label unsourced gaps contextual instead of falsely assigning Henry's words. Follow the Bible translation's language code; translate with existing optional Google ML Kit on-device module and account-scoped cache, with Wi-Fi-only initial model download, readable English fallback and original-English toggle. No remote translation service. New cache version isolates prior shape.",
+  "selectionRationale": "Use existing source and optional module without extra cost, permissions, backend or native code changes. Safeguard theology accuracy and slow-network reading; do not falsely claim a uniquely authored commentary for every verse.",
+  "alternativeApproaches": [
+    "Fabricate verse-by-verse text for empty entries: rejected because misleading",
+    "Download whole copyright-mixed Bible datasets: rejected for cost and licensing risk",
+    "Call paid cloud translation APIs: rejected since native optional translation already exists",
+    "Release unverified Android OTA: rejected pending exact RC, native compatibility and attribution gates"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "cluster-faith",
+    "Bible reader commentary",
+    "language fallback",
+    "native-ota-compatibility"
+  ],
+  "preserveBehaviors": [
+    "My Bible verse text, chapter selection and original English Henry remain accurate",
+    "Strong's source-matched KJV word links unaffected",
+    "Daily plan completion, progress, bookmarks and annotations unchanged",
+    "No extra database queries or new network dependency for reading",
+    "No staging or production release without exact runtime and manifest checks"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodBibleStudy.ts",
+    "src/lib/buklodHenryTranslation.ts",
+    "src/app/bible/read.tsx",
+    "tests/bible-reader-safearea-commentary.test.cjs",
+    "tests/bible-study-sources.test.cjs",
+    "tests/bible-radio-visual.test.cjs",
+    ".buklod/scopes/matthew-henry-verse-language-20261116.json"
+  ],
+  "regressionTests": [
+    "tests/bible-reader-safearea-commentary.test.cjs",
+    "tests/bible-study-sources.test.cjs",
+    "tests/bible-radio-visual.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add source-verified Bible commentary passages and optional language translation logic while guarding reader behavior",
+      "preservedBehaviors": [
+        "All other app runtime features and Bible data access remain unchanged"
+      ],
+      "tests": [
+        "tests/bible-study-sources.test.cjs",
+        "tests/bible-reader-safearea-commentary.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Expose accurate contextual Matthew Henry commentary in Bible reader and preserve all Bible faith flows",
+      "preservedBehaviors": [
+        "Daily plan, chapter progress and KJV Strong's concordance remain unchanged"
+      ],
+      "tests": [
+        "tests/bible-reader-safearea-commentary.test.cjs",
+        "tests/bible-radio-visual.test.cjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Focused Node source, passage mapping and reader tests PASS",
+    "TypeScript project compile PASS",
+    "Expo Android export and applicable runtime QA PASS",
+    "No incorrect direct verse attribution in contextual gaps",
+    "Google Translate official attribution and branding approved for translated displays",
+    "Source availability and native module verified in actual staging APK, else English fallback",
+    "No OTA publication in this draft PR"
+  ]
+}
