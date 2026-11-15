@@ -22,6 +22,6 @@ test('review labels are unambiguous and optional RPC is nonblocking',()=>{
  assert.match(ui,/r\.submitted_answer/);
  assert.match(ui,/submitted_answer:answers\[r\.id\]/);
  assert.match(ui,/get_my_buklod_bible_quiz_v4_review_details/);
- assert.match(ui,/setQuiz\(current=>current\?\.attempt_id===data\.attempt_id/);
+ assert.match(ui,/setQuiz\(current=>current&&current\.attempt_id===data\.attempt_id/);
  assert.match(ui,/\.catch\(\(\)=>\{\}\)/);
 });
