@@ -5,9 +5,11 @@ on:
     branches: [fix/nov16-henry-children-dialogue-dark]
     paths:
       - 'src/lib/buklodBibleStudy.ts'
+      - 'src/lib/buklodHenryTranslation.ts'
       - 'src/app/bible/read.tsx'
       - 'tests/bible-study-sources.test.cjs'
       - 'tests/henry-verse-accurate-staging-20261116.test.mjs'
+      - 'tests/henry-natural-filipino-20261116.test.cjs'
       - '.buklod/scopes/nov16-henry-verse-accurate-stage132.json'
       - 'release/nov16-henry-verse-accurate-stage132-prep.json'
       - '.github/workflows/buklod-henry-verse-accurate-stage132-preflight.yml'
@@ -67,6 +69,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           node --experimental-strip-types --test \
             tests/bible-study-sources.test.cjs \
+            tests/henry-natural-filipino-20261116.test.cjs \
             tests/henry-verse-accurate-staging-20261116.test.mjs \
             tests/bible-reader-safearea-commentary.test.cjs \
             tests/bible-henry-attribution-live-schema-20261116.test.cjs \
