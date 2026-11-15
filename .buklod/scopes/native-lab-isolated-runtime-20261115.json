@@ -44,7 +44,8 @@
     "NativeAd prefetch limited to one future creative and only visible media is permitted to play after scroll idle; no offscreen impressions.",
     "Drawer import, classification, AES-GCM backup and Drive OAuth transport undergo source/type checks and account isolation; OAuth sign-in cannot be claimed before registration and device verification.",
     "Google user identity uses OpenID and verified email; manual Drive actions serialize per BUKLOD user to prevent concurrent restore/disconnect.",
-    "Before signed APK, one-shot exact-source Android JS export must pass without production credentials; native Kotlin and OAuth still need real Firebase/Gradle acceptance."
+    "Before signed APK, one-shot exact-source Android JS export must pass without production credentials; native Kotlin and OAuth still need real Firebase/Gradle acceptance.",
+    "Credential presence check must verify new Firebase package, Android OAuth signing-certificate hash and Expo token without exposing values or consuming EAS credits."
   ],
   "regressionTests": [
     "tests/buklod-native-lab-expo-isolation-20261115.test.cjs",

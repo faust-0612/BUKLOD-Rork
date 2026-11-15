@@ -65,6 +65,53 @@ jobs:
           assert.equal(e.build.production.channel,'production');
           NODE
 
+  native-client-registration-preflight:
+    # Confidential presence/shape check only. No Expo credits, Firebase writes,
+    # Google account access or APK production. Never prints credential bytes.
+    if: "${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/dev/native-lab-isolated-runtime-20261115' && startsWith(github.event.head_commit.message, 'BUKLOD_NATIVE_LAB_CREDENTIAL_PREFLIGHT_20261115:') }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      EXPO_TOKEN: "${{ secrets.EXPO_TOKEN }}"
+      NATIVE_LAB_FIREBASE_JSON_B64: "${{ secrets.NATIVE_LAB_FIREBASE_JSON_B64 }}"
+      BUKLOD_STAGING_PROJECT_REF: "${{ vars.BUKLOD_STAGING_PROJECT_REF }}"
+    steps:
+      - name: Confirm independent Android OAuth and Firebase registration without exposing secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const pkg='org.mzbministry.buklod.nativeqa';
+          const failures=[];
+          const fail=(cond,message)=>{if(!cond)failures.push(message);};
+          fail(Boolean(process.env.EXPO_TOKEN),'EXPO_TOKEN not available');
+          fail(Boolean(process.env.BUKLOD_STAGING_PROJECT_REF),'Staging backend reference not configured');
+          const encoded=process.env.NATIVE_LAB_FIREBASE_JSON_B64;
+          fail(Boolean(encoded),'New native QA Firebase JSON not configured');
+          if(encoded){
+            try{
+              const cfg=JSON.parse(Buffer.from(encoded,'base64').toString('utf8'));
+              const matches=(cfg.client??[]).filter(c=>c.client_info?.android_client_info?.package_name===pkg);
+              fail(matches.length===1,'Native QA Firebase Android client not registered for exact package');
+              if(matches.length===1){
+                fail(Boolean(matches[0].client_info?.mobilesdk_app_id),'Native QA Firebase mobile SDK app ID absent');
+                const androidOAuth=(matches[0].oauth_client??[]).some(o=>
+                  o.client_type===1 && o.android_info?.package_name===pkg &&
+                  /^[a-f0-9]{40}$/i.test(o.android_info?.certificate_hash??''));
+                fail(androidOAuth,'Android Google OAuth client with real signing certificate missing');
+              }
+            }catch{
+              failures.push('Native QA Firebase JSON cannot be decoded or parsed');
+            }
+          }
+          if(failures.length){
+            for(const msg of failures) console.error('BLOCKED:',msg);
+            process.exitCode=1;
+          }else{
+            console.log('PASS: Credentials are configured for isolated native QA package; this does NOT verify their runtime use or produce an APK.');
+          }
+          NODE
+
   android-hermes-js-bundle-qa:
     # One-shot, test-only JavaScript export. Does not run Gradle, EAS, or publish
     # any application. Fake backend URL cannot pass the signed APK preflight.
