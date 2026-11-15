@@ -68,7 +68,8 @@ export default function ChildrenStoryEditor() {
    setSaving(true);
    const {error:requestError}=await supabase.from('buklod_children_stories').upsert({
      id:candidate.id,payload:candidate,is_published:published,
-     publish_at:schedule?new Date(schedule+'T00:00:00+08:00').toISOString():null,\n     updated_at:new Date().toISOString()
+     publish_at:schedule?new Date(schedule+'T00:00:00+08:00').toISOString():null,
+     updated_at:new Date().toISOString()
    },{onConflict:'id'});
    setSaving(false);
    if(requestError){Alert.alert('Not saved',requestError.message);return}
