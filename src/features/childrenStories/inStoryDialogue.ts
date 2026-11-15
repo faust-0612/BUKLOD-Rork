@@ -10,8 +10,8 @@ export function inStoryOnly(scene: string, language: 'tl' | 'en'): string {
     : /(?:a|the|a listening) (?:child|teacher|class|student)s?\s+(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\b|(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\s+(?:a|the)\s+(?:child|teacher|class|student)s?\b/i;
   // Exclude incidental classroom-narrator language not caught by attributions.
   const classroomLanguage = language === 'tl'
-    ? /\b(?:guro(?: rin)?|klase|batang nakikinig|mga batang nakikinig)\b/i
-    : /\b(?:the teacher|a teacher|the class|students? listening|teacher reminds?|teacher explains?|teacher smiles?)\b/i;
+    ? /(?:\b(?:sinabi|sumagot|nagpaliwanag|paliwanag|tugon|dagdag|tanong|wika)\s+(?:ng|ang|ni)\s+guro\b|\bguro\s+rin\b|\bsa\s+klase\b|\bbatang\s+nakikinig\b|\b(mga\s+)?batang\s+nagtatanong\b)/i
+    : /(?:\b(?:the|a)\s+teacher\s+(?:asked|said|says|replied|reminds?|explains?|smiles?|tells?|answered)\b|\bthe\s+teacher\s+reminds?\s+children\b|\bwas\s+a\s+teacher\s+too\b|\bthe\s+class\s+(?:says|answers|replies)\b)/i;
   // Remove only classroom remarks, retaining later biblical events. The
   // closing quote is part of the sentence, not the whitespace separator.
   // Walk punctuation boundaries without RegExp lookbehind (Android Hermes
