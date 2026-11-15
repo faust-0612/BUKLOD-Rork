@@ -19,8 +19,9 @@
   "content": "144 bundled stories including 132 new bilingual biblical retellings; 136 Bible category",
   "narration": "Existing Expo Speech native module, language-aware installed voice selection, bounded chunks, Android pause/resume, cancellation, visible failure",
   "readyForStaging": true,
-  "publicationRequested": false,
+  "publicationRequested": true,
   "productionPublished": false,
   "physicalAudioAcceptance": "NOT VERIFIED ON DEVICE (OWNER PREVIOUSLY WAIVED)",
-  "productionPolicy": "Always remain untouched; preflight and independent readback mandatory"
+  "productionPolicy": "Always remain untouched; preflight and independent readback mandatory",
+  "activation": "one-shot-exact-source-android-staging-only"
 }
