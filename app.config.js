@@ -7,9 +7,18 @@ module.exports = ({ config }) => {
   /* BUKLOD_CLASSROOM_APP_TARGET_R4 — standalone identity without mutating Main defaults */
   const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();
   const isClassroom = appTarget === 'classroom';
+  // Standalone FIS release must never silently inherit BUKLOD Main's EAS project.
+  const isFis = appTarget === 'fis';
+  const fisProjectId = (process.env.EAS_PROJECT_ID_FIS || '').trim();
+  if (isFis && (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(fisProjectId) ||
+    ['23dad7d0-389a-406e-8dec-08965dab85d8', '14100ed1-7f25-4551-9627-09d280498241'].includes(fisProjectId))) {
+    throw new Error('BUKLOD FIS requires a separate, valid EAS_PROJECT_ID_FIS; refusing Main/Classroom fallback');
+  }
   const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
   const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
-  const projectId = isClassroom
+  const projectId = isFis
+    ? fisProjectId
+    : isClassroom
     ? classroomProjectId
     : (process.env.EAS_PROJECT_ID ||
        process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
@@ -27,15 +36,21 @@ module.exports = ({ config }) => {
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
-  const appName = isClassroom
+  const appName = isFis
+    ? 'BUKLOD FIS'
+    : isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
     : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
 
-  const packageId = isClassroom
+  const packageId = isFis
+    ? 'org.mzbministry.buklod.fis'
+    : isClassroom
     ? 'org.mzbministry.buklod.classroom'
     : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
 
-  const scheme = isClassroom
+  const scheme = isFis
+    ? 'buklod-fis'
+    : isClassroom
     ? 'buklod-classroom'
     : (isStaging ? 'buklod-staging' : 'buklod');
 
@@ -43,7 +58,7 @@ module.exports = ({ config }) => {
     ...config,
 
     name: appName,
-    slug: isClassroom ? 'buklod-classroom' : 'buklod',
+    slug: isFis ? 'buklod-fis' : (isClassroom ? 'buklod-classroom' : 'buklod'),
     version: isClassroom ? '1.3.4' : '1.3.6',
 
     orientation: 'default',
@@ -372,7 +387,7 @@ module.exports = ({ config }) => {
         process.env.EXPO_PUBLIC_APP_ENV ||
         variant,
 
-      appTarget: isClassroom ? 'classroom' : 'main',
+      appTarget: isFis ? 'fis' : (isClassroom ? 'classroom' : 'main'),
 
       eas:
         projectId
@@ -395,7 +410,7 @@ module.exports = ({ config }) => {
     // Main BUKLOD V30 (versionCode 30) removes unused connectedDevice foreground service
     // permission from the manifest, without adding or changing the native JS module ABI.
     // Keep Expo runtime 1.3.2 for existing V28/V29 production OTA compatibility. Classroom has its independent runtime.
-    runtimeVersion: isClassroom ? '1.3.0' : '1.3.2',
+    runtimeVersion: isFis ? 'fis-web-1.0.0' : (isClassroom ? '1.3.0' : '1.3.2'),
   };
 };
 
