@@ -2,7 +2,7 @@
   "contractVersion": 2,
   "objective": "Build an Expo Router BUKLOD FIS finance information workspace without a second ledger, duplicated money logic or unapproved cash activation",
   "baseRef": "main",
-  "productionBaselineEvidence": "Inspected GitHub main 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742 on 2026-11-15. This is source identity, not proof of live Expo Hosting or Android production runtime. No production deployment performed.",
+  "productionBaselineEvidence": "verified: Inspected exact GitHub main source SHA 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742 on 2026-11-15 as the DEV comparison baseline. This is NOT verification of the current Expo Hosting live artifact, Android production runtime, or deployed source. No production deployment performed.",
   "chosenApproach": "System-admin-only Expo web/native route; read-only view over canonical Finance V3 and existing withdrawal RPC. Navigate to existing authority for mutations.",
   "riskAreas": [
     "finances",
