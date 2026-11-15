@@ -311,7 +311,7 @@ export default function BuklodReportAssignmentForm({
             <Text style={styles.muted}>Current MZB ministerial layout · {context.period_title}</Text>
           </View>
         </View>
-        <BuklodWeeklyReportForm scopeId={scopeId} onSubmitted={onSubmitted} />
+        <BuklodWeeklyReportForm scopeId={scopeId} assignmentId={context.report_assignment_id} onSubmitted={onSubmitted} />
       </View>
     );
   }
