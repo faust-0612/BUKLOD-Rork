@@ -45,7 +45,8 @@
     "src/features/childrenStories/bibleCurriculumNew.ts",
     "tests/conso-kids-dark-20261116.test.mjs",
     ".github/workflows/buklod-conso-kids-dark-staging-20261116.yml",
-    "scripts/conso-kids-dark-staging-20261116-policy.mjs"
+    "scripts/conso-kids-dark-staging-20261116-policy.mjs",
+    "tests/bible-dark-mode-20261116.test.mjs"
   ],
   "regressionTests": [
     "tests/conso-kids-dark-20261116.test.mjs",
@@ -53,7 +54,8 @@
     "tests/children-stories-navigation-ad-safety.test.mjs",
     "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
     "src/features/childrenStories/catalog.test.ts",
-    "src/features/childrenStories/sundaySchool.test.ts"
+    "src/features/childrenStories/sundaySchool.test.ts",
+    "tests/bible-dark-mode-20261116.test.mjs"
   ],
   "releaseMode": "isolated-android-staging-ota",
   "releaseStatus": "DEV changes. Stage publish only after exact SHA checks, Android export, signed APK, EAS channel/current manifest guards and independent receipt readback.",
@@ -77,29 +79,7 @@
         "Bible offline reading, questions, audio and photos preserved"
       ],
       "tests": [
-        "tests/conso-kids-dark-20261116.test.mjs"
-      ]
-    },
-    {
-      "id": "notification-deeplinks",
-      "reason": "Notification foreground colors only, preserve authorization and routing",
-      "preservedBehaviors": [
-        "Unread mark all / per-notification read",
-        "Push, PTT and target navigation semantics unchanged"
-      ],
-      "tests": [
-        "tests/conso-kids-dark-20261116.test.mjs"
-      ]
-    },
-    {
-      "id": "production-release",
-      "reason": "Only isolated staging-user OTA, exact signed APK, latest manifest and no production mutation checks.",
-      "preservedBehaviors": [
-        "Production unchanged, Play unchanged, no new native build",
-        "Stage only after signed Expo runtime and exact-source PR CI"
-      ],
-      "tests": [
-        "tests/conso-kids-dark-20261116.test.mjs"
+        "tests/bible-dark-mode-20261116.test.mjs"
       ]
     }
   ]
