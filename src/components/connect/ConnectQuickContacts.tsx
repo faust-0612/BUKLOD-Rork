@@ -50,15 +50,12 @@ import {
 import {
   ConnectTappableAvatar,
 } from '@/components/connect/ConnectTappableAvatar';
-import { HIBLA } from '@/lib/connectHibla';
 
 const MAX_NOTE_CHARS = 80;
 const NOTE_LINE_HEIGHT = 12;
 const NOTE_MAX_LINES = 3;
 const NOTE_ZONE_HEIGHT =
-  NOTE_LINE_HEIGHT * NOTE_MAX_LINES + 12;
-const NOTE_ZONE_EDIT_HEIGHT =
-  NOTE_ZONE_HEIGHT + 34;
+  NOTE_LINE_HEIGHT * NOTE_MAX_LINES + 28;
 const AVATAR_SIZE = 48;
 const COLUMN_WIDTH = 82;
 
@@ -91,16 +88,17 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     column: {
       width: COLUMN_WIDTH,
+      minHeight: 168,
       marginRight: 8,
       alignItems: 'center',
       paddingVertical: 8,
       paddingHorizontal: 4,
-      borderRadius: 18,
-      backgroundColor: HIBLA.mint,
+      // Show the Connect backdrop instead of opaque mint/white tiles.
+      backgroundColor: 'transparent',
     },
     noteZone: {
       width: COLUMN_WIDTH,
-      minHeight: NOTE_ZONE_HEIGHT,
+      height: NOTE_ZONE_HEIGHT,
       alignItems: 'center',
       justifyContent: 'flex-end',
       marginBottom: 4,
@@ -140,10 +138,18 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     noteZoneEditing: {
       width: COLUMN_WIDTH,
-      minHeight: NOTE_ZONE_EDIT_HEIGHT,
+      height: NOTE_ZONE_HEIGHT,
       alignItems: 'center',
       justifyContent: 'flex-end',
       marginBottom: 4,
+      zIndex: 2,
+    },
+    editingPopover: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      alignItems: 'center',
     },
     postButton: {
       marginTop: 4,
@@ -238,15 +244,6 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     rank: {
       marginTop: 1,
-      width: COLUMN_WIDTH,
-      textAlign: 'center',
-      fontSize: 8,
-      lineHeight: 11,
-      fontWeight: '700',
-      color: theme.textMuted,
-    },
-    seenMeta: {
-      marginTop: 2,
       width: COLUMN_WIDTH,
       textAlign: 'center',
       fontSize: 8,
@@ -359,6 +356,7 @@ function NoteBubble({
   if (editing) {
     return (
       <View style={styles.noteZoneEditing}>
+        <View style={styles.editingPopover}>
         <View style={styles.bubble}>
           <TextInput
             value={draft}
@@ -423,6 +421,7 @@ function NoteBubble({
         </Pressable>
 
         <View style={styles.bubbleTail} />
+        </View>
       </View>
     );
   }
@@ -495,11 +494,6 @@ function ContactColumn({
           styles={styles}
           theme={theme}
         />
-        {Number(selfNote?.viewer_count ?? 0) > 0 ? (
-          <Text style={styles.seenMeta}>
-            Seen by {selfNote?.viewer_count}
-          </Text>
-        ) : null}
         </>
       ) : (
         <NoteBubble
@@ -551,14 +545,13 @@ function ContactColumn({
         </ConnectPressable>
       )}
 
-      {!isSelf && (
-        <Text
-          numberOfLines={1}
-          style={styles.rank}
-        >
-          {contact.rank_name || 'Circle Starter V'}
-        </Text>
-      )}
+      <Text numberOfLines={1} style={styles.rank}>
+        {isSelf
+          ? Number(selfNote?.viewer_count ?? 0) > 0
+            ? `Seen by ${selfNote?.viewer_count}`
+            : 'My note'
+          : contact.rank_name || 'Circle Starter V'}
+      </Text>
     </View>
   );
 }

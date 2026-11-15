@@ -26,13 +26,17 @@ test('filtered Marites cannot starve owner post preview and account filters rema
  assert.ok(lib.includes(".eq('user_id', id)"));
  assert.ok(lib.includes("if (rows.length < pageSize) break;"));
 });
-test('original dark HIBLA pine header and mint people cards restored',()=>{
+test('dark HIBLA header stays visible with transparent, aligned contact avatars',()=>{
  assert.ok(connect.includes('backgroundColor: HIBLA.pine'));
  assert.ok(connect.includes('color: HIBLA.gold'));
  assert.ok(connect.includes("color: '#FFFFFF',\n      fontSize: buklodVisual.type.title"));
  assert.ok(connect.includes('borderBottomLeftRadius: 25'));
- assert.ok(connect.includes('marginTop: -12'));
- assert.ok(contacts.includes('backgroundColor: HIBLA.mint'));
+ assert.ok(connect.includes('marginTop: 8'));
+ assert.ok(!connect.includes('marginTop: -12'));
+ assert.ok(contacts.includes("backgroundColor: 'transparent'"));
+ assert.ok(contacts.includes('height: NOTE_ZONE_HEIGHT'));
+ assert.ok(contacts.includes('style={styles.editingPopover}'));
+ assert.ok(!contacts.includes('minHeight: NOTE_ZONE_EDIT_HEIGHT'));
  assert.ok(contacts.includes('markConnectStatusNoteSeen'));
  assert.ok(contacts.includes('onSaveSelfNote={persistSelfNote}'));
 });

@@ -10,7 +10,7 @@ import {playBuklodGameFeedback} from '@/features/games/runtime/BuklodGameFeedbac
 
 type Level='easy'|'medium'|'hard';
 type Question={id:string;kind:'mcq'|'identification'|'enumeration'|'essay';question:string;options?:Record<string,string>;reference?:string};
-type Review={id:string;kind:string;earned_units:number|null;reference:string;rationale:string;correct_answer?:any};
+type Review={id:string;kind:string;earned_units:number|null;reference:string;rationale:string;correct_answer?:any;question?:string;submitted_answer?:string|string[]};
 type Quiz={attempt_id?:string;date:string;selection_required?:boolean;legacy_attempt?:boolean;difficulty?:Level;state?:string;score_units?:number|null;awarded_points?:number;questions?:Question[];review?:Review[];review_note?:string};
 const levels=[{id:'easy' as const,points:3,desc:'Stories and identification'},
 {id:'medium' as const,points:6,desc:'Understanding and enumeration'},
@@ -22,6 +22,10 @@ function expected(a:any):string{
  if(a?.answers)return a.answers.join(' / ');
  if(a?.groups)return a.groups.map((g:string[])=>g.join(' / ')).join(' | ');
  return '';
+}
+function ownAnswer(a:unknown):string{
+ if(Array.isArray(a))return a.map((value,index)=>`${index+1}. ${String(value)}`).join('  •  ');
+ return typeof a==='string'?a:'';
 }
 export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
  const {user}=useAuth();
@@ -37,6 +41,15 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
    if(error){if(fallbackError(error)){onLegacy();return;}throw error;}
    if(data?.legacy_attempt){onLegacy();return;}
    setQuiz(data);
+   // Supplemental, owner-scoped review data. Do not delay quiz display or fail on older backends.
+   if(data?.attempt_id&&(data.state==='completed'||data.state==='pending_review')){
+    void (supabase as any).rpc('get_my_buklod_bible_quiz_v4_review_details',
+     {p_attempt_id:data.attempt_id}).then(({data:detail,error:detailError}:any)=>{
+      if(!detailError&&Array.isArray(detail?.review)){
+       setQuiz(current=>current&&current.attempt_id===data.attempt_id?{...current,review:detail.review}:current);
+      }
+     }).catch(()=>{});
+   }
    if(data?.attempt_id&&data.state==='started'&&user?.id){
     const stored=await AsyncStorage.getItem('@buklod-bible-v4:'+user.id+':'+data.attempt_id);
     setAnswers(stored?JSON.parse(stored):{});
@@ -69,7 +82,9 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
    const {data,error}=await (supabase as any).rpc('submit_my_buklod_bible_quiz_v4',{p_attempt_id:quiz.attempt_id,p_answers:answers});
    if(error)throw error;
    setQuiz(old=>({...old!,state:data.status,score_units:Number(data.score_units||0),
-     awarded_points:Number(data.points||0),review:Array.isArray(data.review)?data.review:old?.review}));
+     awarded_points:Number(data.points||0),review:Array.isArray(data.review)?data.review.map((r:Review)=>({
+      ...r,question:old?.questions?.find(q=>q.id===r.id)?.question,submitted_answer:answers[r.id]
+     })):old?.review}));
    if(key)await AsyncStorage.removeItem(key);
    setMessage(data.status==='pending_review'
      ?'Essay received. Final score and BP await a rubric review.'
@@ -128,9 +143,23 @@ export default function BuklodBibleQuizV4({onLegacy}:{onLegacy:()=>void}){
    disabled={busy||!(quiz.questions?.length===5&&quiz.questions.every(valid))} onPress={()=>void submit()}>
     <Text style={s.submitText}>{busy?'Checking...':'Submit 5 answers'}</Text></Pressable>:null}
   {quiz?.review?.map((r,i)=><View key={r.id} style={s.card}>
-   <Text style={s.heading}>Answer {i+1} · {r.earned_units==null?'Pending review':String(r.earned_units)+'/2'}</Text>
-   <Text style={s.muted}>{r.reference}</Text><Text style={s.dark}>{r.rationale}</Text>
-   {r.correct_answer&&r.kind!=='essay'?<Text style={s.answer}>Expected: {expected(r.correct_answer)}</Text>:null}
+   <Text style={s.heading}>Sagot ${i+1} · {r.earned_units==null?'Sinusuri pa':String(r.earned_units)+'/2'}</Text>
+   {r.question?<Text style={s.dark}>{r.question}</Text>:null}
+   <Text style={s.muted}>{r.reference}</Text>
+   {ownAnswer(r.submitted_answer)?<View style={s.reviewSection}>
+    <Text style={s.reviewLabel}>Iyong isinagot</Text>
+    <Text style={s.submitted}>{ownAnswer(r.submitted_answer)}</Text>
+   </View>:null}
+   <View style={s.reviewSection}>
+    <Text style={s.reviewLabel}>Paliwanag sa talata</Text>
+    <Text style={s.dark}>{r.rationale}</Text>
+   </View>
+   {r.correct_answer&&r.kind!=='essay'?<View style={s.reviewSection}>
+    <Text style={s.reviewLabel}>Mga tinatanggap na sagot</Text>
+    <Text style={s.answer}>{expected(r.correct_answer)}</Text>
+   </View>:null}
+   {r.earned_units===0&&(r.kind==='identification'||r.kind==='enumeration')?
+    <Text style={s.muted}>Auto-check ito batay sa nakalistang mga katumbas na sagot; maaaring hindi makilala ang ibang wastong pagkakasabi.</Text>:null}
   </View>)}
   {!loading&&!quiz?<Pressable style={s.submit} onPress={()=>void load()}><Text style={s.submitText}>Retry</Text></Pressable>:null}
  </ScrollView>;
@@ -149,5 +178,7 @@ const s=StyleSheet.create({
  disabled:{opacity:0.5},submitText:{color:'white',fontWeight:'900'},
  notice:{backgroundColor:'#FFF0D9',padding:12,borderRadius:12,color:'#855016'},
  link:{backgroundColor:'#E6F5EB',borderRadius:11,padding:12,flexDirection:'row',alignItems:'center',gap:8},
+ reviewSection:{gap:4},reviewLabel:{color:'#557361',fontSize:12,fontWeight:'800'},
+ submitted:{color:'#163D2B',fontSize:13,lineHeight:19},
  answer:{color:'#146B40',fontSize:12,fontWeight:'800'}
 });

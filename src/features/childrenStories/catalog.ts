@@ -1,3 +1,4 @@
+import { BIBLE_EXPANSION_STORIES } from './bibleExpansion';
 /** Original BUKLOD children's stories, bundled for immediate offline access. No child PII. */
 export type StoryLanguage = 'tl' | 'en';
 export type StoryCategory = 'Bible' | 'Values' | 'Filipino' | 'Bedtime';
@@ -730,7 +731,8 @@ export const BUNDLED_CHILDREN_STORIES: ChildrenStory[] = [
     "answer": 2,
     "version": 1,
     "source": "bundled"
-  }
+  },
+  ...BIBLE_EXPANSION_STORIES,
 ];
 export function localize(value: StoryLocalized, language: StoryLanguage) { return value[language]; }
 export function findBundledStory(id: string) { return BUNDLED_CHILDREN_STORIES.find(story=>story.id===id); }

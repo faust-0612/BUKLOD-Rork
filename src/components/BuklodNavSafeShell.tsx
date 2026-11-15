@@ -91,11 +91,18 @@ export default function BuklodNavSafeShell({
   const insets = useSafeAreaInsets();
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
+  const normalizedPath = normalizeBuklodPathname(pathname);
   const reserveMyBuklodSystemInsets =
     isMyBuklodDoorPath(pathname) ||
-    normalizeBuklodPathname(pathname) === '/bible/read' ||
+    // Daily Reading and Children's Stories have headerless routes. Keep their
+    // headings and scrollable content below the Android status bar at rest.
+    normalizedPath === '/bible' ||
+    normalizedPath === '/bible/index' ||
+    normalizedPath === '/bible/read' ||
+    normalizedPath === '/children-stories' ||
+    normalizedPath.startsWith('/children-stories/') ||
     // Radio header must start below Android's translucent status bar.
-    normalizeBuklodPathname(pathname) === '/personal-home/radio';
+    normalizedPath === '/personal-home/radio';
   const [keyboardVisible, setKeyboardVisible] =
     useState(false);
 

@@ -7,7 +7,7 @@ test('My Bible scenic header and four functional study actions use existing read
  const source=read('src/app/bible/read.tsx');
  const hero=read('src/components/bible/BuklodBibleScenicHeader.tsx');
  assert.ok(source.includes('<BuklodBibleScenicHeader'));
- assert.ok(source.includes('Buod ng Kabanata'));
+ assert.ok(source.includes('Komento sa Kabanata'));
  assert.ok(source.includes('Mga Aral at Aplikasyon'));
  assert.ok(source.includes('Progress sa Kabanata'));
  assert.ok(source.includes('setHenryVerse(first)'));
@@ -25,7 +25,7 @@ test('The study redesign does not invent completed verse progress or modify dail
  assert.ok(source.includes('completed ? \'100%\' : \'0%\''));
  assert.ok(source.includes('if (source === \'daily_plan\')'));
  assert.ok(source.includes('enabled: isMyBibleMode'));
- assert.ok(source.includes('!!bibleStudy.commentary[Number(verse.verse_no)]'));
+ assert.ok(source.includes('!!verseHenry'));
  const nav=read('src/components/BuklodPersistentBottomNav.tsx');
  assert.ok(nav.includes("key: 'connect', route: '/messages'"));
  assert.ok(!nav.includes("key: 'bible', route: '/bible/read"));
@@ -37,7 +37,7 @@ test('DZAS retains supplied images, real ad, radio behavior, and native/web shar
  const deck=read('src/components/dzas/DzasSignalDeck.tsx');
  const images=read('src/assets/dzasImages.ts');
  const shell=read('src/components/BuklodNavSafeShell.tsx');
- assert.ok(shell.includes("normalizeBuklodPathname(pathname) === '/personal-home/radio'"));
+ assert.ok(shell.includes("normalizedPath === '/personal-home/radio'"));
  assert.ok(source.includes('<DzasSignalDeck'));
  assert.ok(web.includes('<DzasSignalDeck'));
  assert.ok(deck.includes('source={DZAS_LOGO_IMAGE}'));
