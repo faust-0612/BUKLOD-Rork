@@ -152,6 +152,12 @@ export default function Index() {
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
   if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
 
+  // FIS-only hosting: keep the normal Main landing route unchanged elsewhere.
+  // Existing Supabase session and the /admin/fis system-admin gate remain authoritative.
+  if (process.env.EXPO_PUBLIC_BUKLOD_FIS === '1') {
+    return <Redirect href="/admin/fis" />;
+  }
+
   /*
    * BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22
    * Account/admin verification is no longer an application-wide gate.
