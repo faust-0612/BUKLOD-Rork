@@ -1,0 +1,58 @@
+name: BUKLOD Report RC - Standalone Source QA (No Deploy)
+on:
+  push:
+    branches:
+      - rc/buklod-report-recurring-photo-20261115
+    paths:
+      - '.github/workflows/buklod_report_rc_source_only_20261115.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    name: Standalone Report TypeScript and Web Bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: '1'
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      BUKLOD_APP_TARGET: report
+      REPORT_RELEASE_TARGET: web
+      REPORT_EAS_PROJECT_ID: cc69b3c0-a5df-4b69-a84c-887c36242fdd
+      # QA-only placeholders for static compilation; never used for real users or deployment.
+      EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_report_qa_stub_no_backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Source and standalone project identity
+        run: |
+          node - <<'JS'
+          const c=require('./app.config.js')({config:{extra:{}}});
+          if(c.extra?.appTarget!=='report'||c.extra?.eas?.projectId!=='cc69b3c0-a5df-4b69-a84c-887c36242fdd'||c.plugins[0]?.[1]?.root!=='./src/report-app')throw Error('Not isolated Report');
+          JS
+      - name: Compile TypeScript for isolated Report app
+        run: npx tsc -p tsconfig.report.json --noEmit
+      - name: Verify Report source contracts
+        run: |
+          grep -F "REPORT COLLECTION FREQUENCY" src/app/reports/definitions.tsx
+          grep -F "PHOTO SUBMISSION / SCAN DATA" src/components/BuklodWeeklyReportForm.tsx
+          grep -F "PHOTO EVIDENCE" src/components/BuklodReportAssignmentForm.tsx
+          grep -F "buklod_report_publish_collection_v2" src/lib/buklodReportDeadlines.ts
+          grep -F "Photo evidence count" src/lib/buklodReportConsolidation.ts
+      - name: Web compilation smoke (unconfigured QA artifact; do not host)
+        run: |
+          npx expo export --platform web --output-dir dist-report-qa --clear
+          test -s dist-report-qa/index.html
+          grep -R -F 'REPORT COLLECTION FREQUENCY' dist-report-qa/_expo/static/js/web >/dev/null
+          grep -R -F 'PHOTO SUBMISSION / SCAN DATA' dist-report-qa/_expo/static/js/web >/dev/null
+      - name: Release boundary
+        run: |
+          echo 'SOURCE QA ONLY. No EAS deployment, no Main production OTA, no production data mutation.'
