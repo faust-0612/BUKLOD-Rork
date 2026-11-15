@@ -5,23 +5,87 @@
  * character dialogue that precedes it.
  */
 export function inStoryOnly(scene: string, language: 'tl' | 'en'): string {
-  const cue = language === 'tl'
+  const classroomCue = language === 'tl'
     ? /(?:tanong|sagot|tugon|paliwanag|dagdag|usisa|sabi|wika|itinuro|ipinaliwanag|paalala|tinanong|sumagot)\s+(?:(?:ng|ni|nina)\s+)?(?:mga\s+)?(?:batang(?:\s+nakikinig(?:\s+sa\s+guro)?)?|bata|klase|guro|Liza)(?=\W|$)|(?:nagtanong|sumagot)\s+ang\s+(?:bata|klase)/i
     : /(?:a|the|a listening) (?:child|teacher|class|student)s?\s+(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\b|(?:asks?|says?|replies?|answers?|explains?|wonders?|responds?|adds?|tells?)\s+(?:a|the)\s+(?:child|teacher|class|student)s?\b/i;
-  const marker = cue.exec(scene);
-  if (!marker) return scene.trim();
-  const openingQuote = scene.lastIndexOf('“', marker.index);
-  // Q&A starts with a quoted question; remove it, not just its attribution.
-  const sentenceEnd = Math.max(
-    scene.lastIndexOf('. ', marker.index),
-    scene.lastIndexOf('! ', marker.index),
-    scene.lastIndexOf('? ', marker.index),
-  );
-  const cut = openingQuote >= 0 && marker.index - openingQuote < 260
-    ? openingQuote
-    : Math.max(0, sentenceEnd + 2);
-  return scene.slice(0, cut).trim();
+  // Remove only classroom remarks, retaining later biblical events. The
+  // closing quote is part of the sentence, not the whitespace separator.
+  const sentences = scene.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ“])|(?<=[.!?]”)\s+(?=[A-ZÁÉÍÓÚÑ“])/u);
+  let result = sentences.filter(sentence => !classroomCue.test(sentence)).join(' ').trim();
+  // A two-line exchange can leave an orphaned quotation mark when just the
+  // teacher's sentence was removed. Do not expose malformed speech.
+  const count = (char: string) => result.split(char).length - 1;
+  if (count('”') > count('“')) result = result.replace(/”\s*$/, '');
+  if (count('“') > count('”')) result = result.replace(/^“/, '');
+  return result.trim();
 }
+
+
+/** Factual in-scene elaboration for passages that become too brief when
+ * inappropriate classroom dialogue is removed. No fictional teacher speech.
+ * These passages are pedagogical retellings, not verbatim Bible translations. */
+export const BIBLICAL_SCENE_DETAILS: Record<string, {tl: string; en: string}> = {
+  'sampung-utos': {
+    tl: 'Sa Bundok Sinai, ipinahayag ang mga utos na gagabay sa buhay ng bayan. Kabilang dito ang katapatan sa Diyos, paggalang sa magulang, at pag-iwas sa pagnanakaw, pagsisinungaling, at pananakit. Hindi ito basta mga tuntuning isinulat lamang; bahagi ito ng tipang dapat nilang alalahanin sa pang-araw-araw.',
+    en: 'At Mount Sinai, the people received commandments that would guide how they lived together. They were taught faithfulness to God, respect for parents, and the importance of rejecting theft, false witness, and violence. These words belonged to their covenant with God and were meant to shape everyday choices, not simply be remembered as a list of rules.',
+  },
+  'labindalawang-espiya': {
+    tl: 'Dinala ng mga tagapagmasid ang mga bunga mula sa Canaan upang ipakita ang kasaganaan ng lupain. Ngunit nang ikuwento nila ang matatandang lungsod at malalakas na naninirahan doon, natakot ang karamihan. Sina Josue at Caleb ay nagpaalala na huwag basta talikuran ang ipinangakong paglalakbay.',
+    en: 'The scouts returned carrying fruit from Canaan, evidence that the land was fertile. Their report also described fortified cities and powerful inhabitants, and fear spread through the camp. Joshua and Caleb urged the people not to abandon the journey because of that fear. The community had to decide whether to trust the promise they had received or surrender to discouragement.',
+  },
+  'samson': {
+    tl: 'Si Samson ay may pambihirang lakas, ngunit hindi ito naging pananggalang sa kaniyang maling mga pasiya. Dahil sa pagtitiwala sa mga taong nanlinlang sa kaniya, siya ay nahuli at nawalan ng kalayaan. Sa bandang huli, nanalangin siya sa Diyos sa gitna ng kaniyang matinding paghihirap.',
+    en: 'Samson had extraordinary strength, yet strength did not protect him from unwise choices. The story describes how deception and misplaced trust led to his capture, and how he lost the freedom he once had. He experienced suffering and isolation. In the final part of his life, he turned to God in prayer. It is a serious story about power, weakness, and the consequences of decisions, not a game about fighting.',
+  },
+  'ezekiel-buto': {
+    tl: 'Sa pangitain, lumakad si Ezekiel sa isang lambak na puno ng tuyong mga buto. Inutusan siyang sabihin ang mensahe ng Diyos; nagsama-sama ang mga buto at nagkaroon ng laman. Nang dumating ang hininga ng buhay, naging larawan ito ng pag-asang muling ibibigay sa bayan.',
+    en: 'In the vision, Ezekiel stood in a valley filled with dry bones, a picture of a people who had almost lost hope. God instructed him to speak to the bones, and they came together, forming bodies. Breath then entered them. The vision was explained as a promise that God had not forgotten His people, even though exile and loss had made them feel as hopeless as dried bones.',
+  },
+  'panalangin-ama': {
+    tl: 'Itinuro ni Jesus na ang pananalangin ay hindi pagtatanghal upang hangaan ng iba. Maaaring lumapit ang tao sa Ama nang may katapatan at humingi ng pang-araw-araw na pagkain, kapatawaran, at tulong upang makaiwas sa kasamaan. Ang panalangin ay nagtuturo ring magpatawad sa kapwa.',
+    en: 'Jesus taught His followers that prayer should not become a performance for public admiration. He invited them to address God as Father and to ask for daily bread, forgiveness, and help when facing temptation. They were also to remember the needs of others and to practice forgiveness themselves. The prayer offered a pattern for trusting God in ordinary daily life.',
+  },
+  'matalino-bahay': {
+    tl: 'Inilarawan ni Jesus ang dalawang taong nagtayo ng bahay. Parehong dumating ang ulan, baha, at malakas na hangin, ngunit magkaiba ang kinalabasan dahil magkaiba ang pundasyon. Ginamit Niya ang tagpong ito upang ipakita ang kahalagahan ng pakikinig at pagsasabuhay ng mabuting aral.',
+    en: 'Jesus told of two builders who made different choices about where to place their houses. Heavy rain fell, floods rose, and strong winds beat against both homes. The house built on rock remained standing, while the one built on sand collapsed. Jesus used the picture to explain that hearing His teaching is not enough; a person must also live by what has been heard.',
+  },
+  'nawawalang-barya': {
+    tl: 'Sa talinghaga ni Jesus, may babaeng may sampung barya at nawalan ng isa. Nagsindi siya ng ilawan at maingat na nagwalis habang hinahanap ito. Nang matagpuan, tinawag niya ang mga kaibigan at kapitbahay upang makigalak. Mahalaga sa babae ang nawalang barya.',
+    en: 'In Jesus’ parable, a woman had ten silver coins and discovered that one was missing. She lit a lamp, swept her house, and searched with care until she found it. When the lost coin was recovered, she called her friends and neighbors to rejoice with her. Jesus used this familiar moment of searching and celebration to describe joy when one person turns back to God.',
+  },
+  'mayamang-hangal': {
+    tl: 'Sa talinghaga, naging sagana ang ani ng isang mayamang lalaki. Nagplano siyang gibain ang kaniyang mga kamalig at magtayo ng mas malalaki upang doon itago ang lahat. Ngunit ipinaalala sa kuwento na hindi hawak ng tao ang haba ng kaniyang buhay at hindi kayamanan lamang ang nagbibigay ng kabuluhan dito.',
+    en: 'A rich farmer’s land produced such an abundant harvest that he wondered where to store it all. He planned to tear down his barns and build larger ones, then live at ease surrounded by his possessions. But in Jesus’ parable, the man’s life was demanded that very night. The story challenges the belief that storing more wealth can guarantee a secure or meaningful future.',
+  },
+  'buto-mustasa': {
+    tl: 'Ikinumpara ni Jesus ang kaharian ng Diyos sa isang napakaliit na buto ng mustasa. Kapag itinanim at lumago, mas lumalaki ito kaysa sa inaasahan, at nagiging halaman na may mga sanga kung saan nakakapagpahinga ang mga ibon. Ang maliit na simula ay hindi dapat maliitin.',
+    en: 'Jesus asked His listeners to picture a tiny mustard seed. In the parable, someone plants this seed in the ground, where it begins its growth unnoticed. It does not suddenly appear as a large plant; it grows from a small beginning. Over time it becomes large enough to spread branches that offer a place for birds. The picture helped His listeners imagine how God’s kingdom can grow from beginnings that appear insignificant to human eyes.',
+  },
+  'mabuting-pastol': {
+    tl: 'Gumamit si Jesus ng larawan ng pastol na pumapasok sa tamang pintuan at tumatawag sa kaniyang mga tupa sa pangalan. Nakikilala ng mga tupa ang tinig ng nangangalaga sa kanila. Ipinagkaiba Niya ang mapagmalasakit na pastol sa taong tumatakas kapag dumating ang panganib.',
+    en: 'Jesus described a shepherd who knows his sheep and calls them by name. The sheep recognize his voice and follow him because they know whom they can trust. A hired worker may run away when danger comes, but the good shepherd stays and cares for the flock. Jesus used this image to describe His own care and His willingness to lay down His life for the sheep.',
+  },
+  'sampung-ketongin': {
+    tl: 'Sa paglalakbay ni Jesus, sampung taong may sakit sa balat ang tumawag mula sa malayo upang humingi ng awa. Pinapunta Niya sila sa mga pari, at habang naglalakad ay gumaling sila. Isa lamang ang bumalik upang magpasalamat; isang Samaritano ang taong iyon.',
+    en: 'As Jesus traveled, ten people suffering from a skin disease called out to Him from a distance and asked for mercy. He directed them to show themselves to the priests. While they were on their way, they were healed. One of them noticed what had happened and returned, praising God and thanking Jesus. This person was a Samaritan, a detail that surprised those listening to the story.',
+  },
+  'dakilang-utos': {
+    tl: 'Sa bundok sa Galilea, nakipagtipon si Jesus sa mga alagad. Ipinagkatiwala Niya sa kanila ang pagpunta sa iba’t ibang bayan, pagtuturo sa mga tao na sundin ang Kaniyang itinuro, at pagbibinyag. Tiniyak din Niya na sasamahan Niya sila sa kanilang gawain.',
+    en: 'On a mountain in Galilee, the disciples gathered to meet the risen Jesus. He commissioned them to go to the nations, make disciples, baptize, and teach others to obey what He had commanded. The task would take them beyond the places they knew. Jesus also promised that He would remain with them always, even as they carried the message into unfamiliar places.',
+  },
+  'barnabas-paulo': {
+    tl: 'Nang mahirap pang pagkatiwalaan si Saulo dahil sa kaniyang nakaraan, si Barnabas ang tumulong upang marinig ng mga alagad ang kuwento ng pagbabago niya. Sa kalaunan, hinanap niya si Saulo upang makasama sa pagtuturo sa Antioquia. Naging mahalaga ang pagtutulungan sa paglago ng unang iglesya.',
+    en: 'After Saul’s conversion, some believers were afraid of him because he had persecuted followers of Jesus. Barnabas helped the apostles hear what had happened and gave Saul an opportunity to be known by his changed actions. Later Barnabas traveled to Tarsus to find him and brought him to Antioch, where they taught together. His encouragement helped make room for someone learning to live differently.',
+  },
+  'baluti-diyos': {
+    tl: 'Ginamit ni Pablo ang larawan ng baluti upang ipaliwanag ang paninindigan sa pananampalataya: katotohanan bilang sinturon, katuwiran bilang panangga, kapayapaan bilang kasuotan sa paa, pananampalataya bilang kalasag, at kaligtasan bilang helmet. Kasama rin ang salita ng Diyos at panalangin.',
+    en: 'Paul described the armor of God as a picture of spiritual readiness. He spoke of truth like a belt, righteousness like a breastplate, readiness to share peace like sturdy shoes, faith like a shield, salvation like a helmet, and God’s word like a sword. He ended by urging continued prayer. The picture was a lesson in standing firm through truth and faith, not an invitation to hurt anyone.',
+  },
+  'bagong-langit-lupa': {
+    tl: 'Sa pangitain sa Pahayag, inilarawan ni Juan ang bagong langit at bagong lupa at ang banal na lungsod na bumababa mula sa Diyos. Ipinahayag ang pag-asang makakasama ng Diyos ang Kaniyang bayan at hindi na maghahari ang kamatayan, pagluha, at pagdadalamhati.',
+    en: 'In John’s vision, he saw a new heaven and a new earth, and the holy city coming down from God. A voice announced that God would dwell with His people. The vision spoke of tears wiped away, mourning brought to an end, and death no longer ruling over life. The passage offered hope to communities who had experienced fear and suffering, pointing toward the promise of God making all things new.',
+  },
+};
 
 /** Scripture-grounded, character-to-character paraphrases for the two reports
  * that exposed the unwanted classroom dialogue and other key examples.
