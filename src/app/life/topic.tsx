@@ -10,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -126,6 +127,8 @@ export default function BuklodLifeTopicScreen() {
   ] =
     useState(0);
 
+  const [questionSearch, setQuestionSearch] = useState('');
+
   const [
     selectedQuestion,
     setSelectedQuestion,
@@ -198,16 +201,22 @@ export default function BuklodLifeTopicScreen() {
     'Early Christian witnesses present Jesus’ resurrection as central to the Gospel. You can read and examine this testimony in 1 Corinthians 15 without rushing belief.',
   ], [language]);
 
-  const selectedQuestionIndex =
-    Math.max(
-      0,
-      copy.questions.findIndex(
-        item =>
-          item ===
-          selectedQuestion
-      )
+  // Cross-language offline search is deterministic and never sends a personal
+  // doubt or spiritual question to an AI service or backend.
+  const alternativeCopy = useMemo(
+    () => getBuklodLifeCopy(language === 'fil' ? 'en' : 'fil'), [language],
+  );
+  const visibleQuestions = useMemo(() => {
+    const term = questionSearch.trim().toLocaleLowerCase();
+    if (!term) return copy.questions;
+    return copy.questions.filter((question, index) =>
+      (question + ' ' + (alternativeCopy.questions[index] ?? '')).toLocaleLowerCase().includes(term)
     );
-
+  }, [questionSearch, copy, alternativeCopy]);
+  const activeQuestion = selectedQuestion && visibleQuestions.includes(selectedQuestion)
+    ? selectedQuestion
+    : visibleQuestions[0] ?? '';
+  const selectedQuestionIndex = Math.max(0, copy.questions.indexOf(activeQuestion));
 
   const goToQuestions =
     () => {
@@ -298,23 +307,36 @@ export default function BuklodLifeTopicScreen() {
           </Text>
         </View>
 
+        <TextInput
+          value={questionSearch}
+          onChangeText={setQuestionSearch}
+          placeholder={language === 'fil' ? 'Hanapin ang iyong tanong o keyword…' : 'Search a question or keyword…'}
+          placeholderTextColor="#6B7F70"
+          accessibilityLabel={language === 'fil' ? 'Maghanap ng tanong' : 'Search questions'}
+          autoCorrect={false}
+          style={{ backgroundColor: '#FFFFFF', borderColor: '#D8E6D9', borderWidth: 1, borderRadius: 14, paddingHorizontal: 15, minHeight: 48, fontSize: 15, color: '#244A33' }}
+        />
+        {visibleQuestions.length === 0 && (
+          <Text style={{ color: '#536B58', lineHeight: 20, fontSize: 13, marginVertical: 8 }}>
+            {language === 'fil'
+              ? 'Wala pang eksaktong sagot sa library. Maaari kang magtanong sa isang pinagkakatiwalaang tao; kung may agarang panganib o krisis, unahin ang emergency support.'
+              : 'No exact library match yet. You may ask a trusted person; for immediate danger or crisis, seek emergency support first.'}
+          </Text>
+        )}
+
         <View
           style={
             styles.stack
           }
         >
           {
-            copy.questions.map(
+            visibleQuestions.map(
               (
                 question,
                 index
               ) => {
 
-                const active =
-                  selectedQuestion
-                    ? question ===
-                      selectedQuestion
-                    : index === 0;
+                const active = question === activeQuestion;
 
                 return (
                   <Pressable
@@ -373,8 +395,7 @@ export default function BuklodLifeTopicScreen() {
             }
           >
             {
-              selectedQuestion ||
-              copy.questions[0]
+              activeQuestion || (language === 'fil' ? 'Walang tugma' : 'No match')
             }
           </Text>
 
@@ -384,11 +405,7 @@ export default function BuklodLifeTopicScreen() {
             }
           >
             {
-              questionAnswers[
-                selectedQuestion
-                  ? selectedQuestionIndex
-                  : 0
-              ]
+              visibleQuestions.length ? questionAnswers[selectedQuestionIndex] : ''
             }
           </Text>
           <Text style={{ color: '#627366', fontSize: 12, marginTop: 10 }}>
@@ -1446,7 +1463,9 @@ export default function BuklodLifeTopicScreen() {
               styles.primaryButtonText
             }
           >
-            {copy.continueLabel}
+            {stage === 0
+              ? (language === 'fil' ? 'Christian perspective (opsyonal)' : 'Christian perspective (optional)')
+              : copy.continueLabel}
           </Text>
 
           <MaterialCommunityIcons
