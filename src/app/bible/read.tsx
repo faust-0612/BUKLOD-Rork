@@ -4438,13 +4438,13 @@ setMarking(true);
                   <Text style={{ color: '#765C26', fontSize: 12, lineHeight: 19, marginBottom: 9 }}>
                     {henryTranslation.status === 'loading'
                       ? 'Isinasalin sa napiling wika. Pansamantalang ipinapakita ang orihinal na English.'
-                      : 'Hindi available ang on-device translation sa build o language model na ito. Orihinal na English ang ipinapakita.'}
+                      : 'Hindi nakabuo ng maaasahang salin o hindi available ang on-device translation. Orihinal na English ang ipinapakita upang hindi maipakita ang posibleng maling kahulugan.'}
                   </Text>
                 )}
                 {henryRequestedLanguage !== 'en' && henryTranslation.status === 'translated' && (
                   <View style={{ backgroundColor: '#FFF7E8', borderRadius: 10, padding: 10, marginBottom: 12 }}>
                     <Text style={{ color: '#705223', fontSize: 12, lineHeight: 19 }}>
-                      Malinaw na Filipino (hindi salitang-salita). May ilang lumang pananalitang inayos upang mas madaling maunawaan, ngunit maaari pa ring magkamali ang awtomatikong pagsasalin. Ang Original English ang batayan ni Matthew Henry.
+                      Awtomatikong salin sa Filipino. May pagwawasto sa ilang idyoma at sanggunian, ngunit hindi garantisadong tumpak ang bawat pangungusap. Ihambing sa Original English kapag nag-aaral o nagtuturo.
                     </Text>
                   </View>
                 )}
