@@ -57,5 +57,6 @@
         "tests/buklod-fis-finance-20261115.test.mjs"
       ]
     }
-  ]
+  ],
+  "selectionRationale": "Existing Finance V3 authoritative RPC already provides reconciled bookkeeping, monthly close controls and payouts; a read-only Expo admin module is cheaper and safer than a new backend, app or ledger. The new route reuses current protected auth and does not create any monetary write permissions."
 }
