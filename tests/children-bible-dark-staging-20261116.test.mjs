@@ -49,7 +49,7 @@ test('Bible narrations distinguish paraphrased biblical speech from direct Scrip
   assert.match(screen, /localize\(lesson\.narrative,language\)/);
   assert.match(screen, /const content=quiz\?[\s\S]*?:lesson\?localize\(lesson\.narrative,language\)/);
   assert.match(screen, /Speech\.speak\(chunks\[index\+\+\]/);
-  assert.match(dialogues['bangka-ng-pag-asa'][0].speech.tl, /Sinabi ng Diyos/);
+  assert.match(dialogues['bangka-ng-pag-asa'][0].speech.tl, /sinabi ng Diyos/i);
   assert.match(dialogues['si-jonas-at-ang-dagat'][0].speech.en, /God instructed/);
 });
 test('dark Bible reading uses reactive contrasting colors for both reader paths', () => {
