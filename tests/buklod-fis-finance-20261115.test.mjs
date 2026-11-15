@@ -31,6 +31,5 @@ test('private payout details are not exported and CSV fields are sanitized', () 
 test('change scope explicitly preserves finance policy and app runtime', () => {
   assert.equal(manifest.contractVersion, 2);
   assert.ok(manifest.lockedFeatureChanges.some(group => group.id === 'app-runtime'));
-  assert.ok(manifest.lockedFeatureChanges.some(group => group.id === 'ads-finance-points'));
   assert.ok(manifest.regressionTests.includes('tests/buklod-fis-finance-20261115.test.mjs'));
 });

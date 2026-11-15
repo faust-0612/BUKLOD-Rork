@@ -56,16 +56,6 @@
       "tests": [
         "tests/buklod-fis-finance-20261115.test.mjs"
       ]
-    },
-    {
-      "id": "ads-finance-points",
-      "reason": "Display Finance V3 reconciled journal and payout status through existing read-only RPCs without changing any member financial rights or ad policy.",
-      "preservedBehaviors": [
-        "Existing QMP and AdMob cash funding gates and settlement/Payout RPC protections remain authoritative."
-      ],
-      "tests": [
-        "tests/buklod-fis-finance-20261115.test.mjs"
-      ]
     }
   ]
 }
