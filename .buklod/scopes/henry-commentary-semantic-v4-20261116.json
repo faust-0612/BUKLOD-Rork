@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "objective": "Fix inaccurate Matthew Henry Filipino translation at 1 Kings 3:5 by clarifying theological English idioms before Google on-device ML Kit, repairing verified bad machine output, preserving citations and original English, and refusing known unsafe translations.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Current GitHub main 3b488fa704b804f05c5a289a7e0775daeabb2404, featuring v3 Henry translation and Nov16 production staging parity RC. Live staging/production manifests and actual Android behavior have not been verified in this change; screenshot from Android shows paid-visit-as-payment, account-as-bank account, malformed communion, offered-as-invited and altar word order.",
+  "chosenApproach": "Limit changes to the existing Henry translator and its Bible reader disclaimer. Rewrite only narrowly verified English source clauses before offline ML Kit, apply source-specific Filipino repairs after translation, validate Biblical book/chapter/verse citations and high-risk semantic hazards before caching under v4, otherwise show authoritative English. Preserve the Google attribution and account-scoped offline cache. No remote translation API.",
+  "selectionRationale": "A new cloud translator or whole-commentary AI rewrite would add cost, privacy risk, uncited paraphrase, and possible hallucinations. Narrow source-aware idioms with fail-closed fallback address observed failures without changing Bible text, verses, data sources, navigation or AdMob.",
+  "alternativeApproaches": [
+    "Blindly rewrite all translated prose with dictionary word substitutions: rejected because it can corrupt theology and ordinary financial phrases.",
+    "Automatically claim all machine output is fully accurate: rejected because general-purpose ML Kit translation cannot certify doctrinal equivalence.",
+    "Publish current PR directly to production without exact runtime and ad/navigation gates: rejected."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "cluster-faith"
+  ],
+  "preserveBehaviors": [
+    "Matthew Henry public-domain original English is retained byte-for-byte and is always accessible.",
+    "Only the optional on-device commentary translation receives English idiom clarification; Scripture text, Strong's and daily reading remain unchanged.",
+    "Retain verse-specific source provenance and citations; no invented commentary or missing references accepted as Filipino.",
+    "Keep explicit user action, official Google Translate badge and link, English fallback on unavailable models and account-scoped cache.",
+    "AdMob fill and display, app-wide navigation, dashboard performance, finance, production Supabase and native runtime remain unchanged.",
+    "No staging or production OTA, EAS build, signed package, environment, or backend mutation in this source PR."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/henry-commentary-semantic-v4-20261116.json",
+    "src/lib/buklodHenryTranslation.ts",
+    "src/app/bible/read.tsx",
+    "tests/henry-natural-filipino-20261116.test.cjs",
+    "tests/bible-henry-semantic-safety-20261116.test.cjs",
+    "docs/bible/matthew-henry-translation-attribution-20261116.md"
+  ],
+  "regressionTests": [
+    "tests/henry-natural-filipino-20261116.test.cjs",
+    "tests/bible-henry-semantic-safety-20261116.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Optional commentary translator source and its account-scoped cache are updated with v4 grammar and semantic safeguards.",
+      "preservedBehaviors": [
+        "Keep existing offline account-scoped ML Kit translation, English source fallback, and all unrelated app runtime behavior."
+      ],
+      "tests": [
+        "tests/henry-natural-filipino-20261116.test.cjs",
+        "tests/bible-henry-semantic-safety-20261116.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Bible reader commentary disclosure is corrected to avoid overstating machine translation accuracy while preserving Bible reading.",
+      "preservedBehaviors": [
+        "Preserve Bible reader, verse anchors, original Matthew Henry English, citations, offline Scripture and Strong's links."
+      ],
+      "tests": [
+        "tests/bible-henry-semantic-safety-20261116.test.cjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Focused HTML/JS semantic tests cover exact screenshot 1 Kings 3:5 text and repaired Google ML Kit output, fail closed on known wrong meanings and missing Bible citations.",
+    "Bible reader displays original English if translation is unsupported or rejected, and truthful attribution if successful.",
+    "Protected-feature gate and Engineering Accountability pass with this exact V2 changed-path manifest.",
+    "TypeScript and staging Android runtime 1.3.2 actual source verified with device visual and regression checks before any OTA.",
+    "Production promotion, if authorized later, requires exact frozen RC, compatibility, AdMob/nav and post-publish live manifest readback."
+  ]
+}
