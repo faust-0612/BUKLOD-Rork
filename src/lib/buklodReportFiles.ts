@@ -165,6 +165,25 @@ export async function pickAndAnalyzeReportFile(
   throw new Error('Supported imports: Excel, CSV/TXT, PDF, and photos/images.');
 }
 
+export async function pickReportEvidencePhoto(): Promise<ReportPhotoAsset | null> {
+  const picked = await DocumentPicker.getDocumentAsync({
+    type: ['image/*'],
+    copyToCacheDirectory: true,
+    multiple: false,
+  });
+  if (picked.canceled || !picked.assets?.[0]) return null;
+  const asset = picked.assets[0];
+  const filename = asset.name || 'report-photo.jpg';
+  const mimeType = asset.mimeType || '';
+  if (!mimeType.startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(filename)) {
+    throw new Error('Select a JPG, PNG or WebP photo.');
+  }
+  if (typeof asset.size === 'number' && asset.size > 12 * 1024 * 1024) {
+    throw new Error('Photo must be 12 MB or smaller.');
+  }
+  return { uri: asset.uri, filename, mimeType };
+}
+
 export async function uploadReportEvidencePhoto(args: {
   scopeId: string;
   assignmentId: string;
