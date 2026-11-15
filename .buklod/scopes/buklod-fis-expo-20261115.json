@@ -30,18 +30,42 @@
     "TypeScript and Expo web export pass on exact PR SHA before any publish"
   ],
   "regressionTests": [
-    "__tests__/buklodFisReadModel.test.ts"
+    "__tests__/buklodFisReadModel.test.ts",
+    "tests/buklod-fis-finance-20261115.test.mjs"
   ],
   "allowedPaths": [
     "src/app/admin/fis.tsx",
     "src/lib/buklodFisReadModel.ts",
     "src/app/admin/index.tsx",
     "__tests__/buklodFisReadModel.test.ts",
-    ".buklod/scopes/buklod-fis-expo-20261115.json"
+    ".buklod/scopes/buklod-fis-expo-20261115.json",
+    "tests/buklod-fis-finance-20261115.test.mjs"
   ],
   "alternativeApproaches": [
     "Parallel FIS database rejected: conflicts with Finance V3 source of truth",
     "Separate Expo app with duplicate Supabase auth rejected due to cost, repeated login and account isolation",
     "Auto-finalization/withdrawal activation rejected without evidence and independent server gates"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Introduce a separately routed canonical finance read-only screen and admin navigation without touching existing app runtime or financial writes.",
+      "preservedBehaviors": [
+        "System Administrator role gating, single canonical finance snapshot, existing Expo route and all other modules unchanged."
+      ],
+      "tests": [
+        "tests/buklod-fis-finance-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Display Finance V3 reconciled journal and payout status through existing read-only RPCs without changing any member financial rights or ad policy.",
+      "preservedBehaviors": [
+        "Existing QMP and AdMob cash funding gates and settlement/Payout RPC protections remain authoritative."
+      ],
+      "tests": [
+        "tests/buklod-fis-finance-20261115.test.mjs"
+      ]
+    }
   ]
 }
