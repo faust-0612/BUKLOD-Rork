@@ -28,7 +28,7 @@ as $$ select jsonb_build_object('authenticated', auth.uid() is not null, 'stage'
 revoke all on function public.get_my_buklod_life_journey_v1() from public, anon;
 grant execute on function public.get_my_buklod_life_journey_v1() to authenticated;
 -- The exact production-source migration must compile and run unchanged.
-\ir ../supabase/migrations/20261115125000_buklod_life_no_inferred_milestones.sql
+\ir ../supabase/migrations/20261115143417_buklod_life_no_inferred_milestones_v1.sql
 \ir ../supabase/tests/20261115_life_privacy.sql
 -- Distinct inviter accounts, and one person referred by each.
 insert into public.buklod_referrals (id, referrer_id, referred_id) values

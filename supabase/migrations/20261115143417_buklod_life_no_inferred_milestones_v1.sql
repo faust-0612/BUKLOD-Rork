@@ -1,10 +1,10 @@
--- BUKLOD LIFE: privacy gate for legacy clients. Source-only migration.
+-- BUKLOD LIFE: privacy gate for legacy clients. Deployed to BUKLOD Connect on 2026-11-15 as migration 20261115143417.
 -- Legacy v1 RPCs previously inferred faith milestones from simple taps and
 -- emitted inviter notifications. Those events can reveal sensitive choices
 -- even when a recipient name is not attached.
 -- New LIFE uses explicit, encrypted, per-user on-device checkpoints.
--- Do not apply to production without an isolated SQL security regression and
--- matching staged Android release. No data rows are deleted by this migration.
+-- Isolated PostgreSQL 17 security regression passed before deployment.
+-- Production Android app and OTA remain unchanged. No data rows were deleted.
 
 create or replace function public.buklod_life_mark_my_stage_v1(p_stage text)
 returns jsonb

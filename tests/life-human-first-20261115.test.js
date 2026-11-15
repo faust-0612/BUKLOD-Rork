@@ -35,7 +35,7 @@ describe('BUKLOD LIFE human-first completion privacy contract', () => {
     const topic = source('src/app/life/topic.tsx');
     const invite = source('src/app/life/invite.tsx');
     const guide = source('src/app/life/guide.tsx');
-    const sql = source('supabase/migrations/20261115125000_buklod_life_no_inferred_milestones.sql');
+    const sql = source('supabase/migrations/20261115143417_buklod_life_no_inferred_milestones_v1.sql');
     expect(topic).not.toContain('markMyBuklodLifeStage');
     expect(invite).not.toContain('markMyBuklodLifeStage');
     expect(topic).toContain('saveBuklodLifePrivateProgress');

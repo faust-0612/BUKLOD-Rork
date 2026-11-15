@@ -41,7 +41,7 @@
     "src/lib/buklodLifeGuide.ts",
     "src/lib/buklodLifeScripture.ts",
     "src/lib/buklodLifePrivateProgress.ts",
-    "supabase/migrations/20261115125000_buklod_life_no_inferred_milestones.sql",
+    "supabase/migrations/20261115143417_buklod_life_no_inferred_milestones_v1.sql",
     "tests/life-human-first-20261115.test.js",
     "docs/life/human-first-20261115.md",
     "tests/life-human-first-auth-security-20261115.test.mjs",
@@ -49,7 +49,9 @@
     "src/components/BuklodLifeTabs.tsx",
     "release/life-human-first-stage-20261115.json",
     "tests/life-isolated-privacy-20261115.sql",
-    ".github/workflows/buklod-life-staging-qa-20261115.yml"
+    ".github/workflows/buklod-life-staging-qa-20261115.yml",
+    "scripts/life-human-first-exec-staging-release-policy.mjs",
+    ".github/workflows/buklod-life-staging-ota-20261115.yml"
   ],
   "regressionTests": [
     "tests/life-human-first-20261115.test.js",
@@ -102,7 +104,7 @@
   ],
   "readyForStaging": false,
   "productionPublished": false,
-  "backendMigrationApplied": false,
+  "backendMigrationApplied": true,
   "gates": [
     "Jest+source contracts",
     "TypeScript",
@@ -114,7 +116,7 @@
     "Disposable PostgreSQL 17 execution of exact privacy migration",
     "Exact latest published staging source guard"
   ],
-  "productionBaselineEvidence": "Latest verified Android staging-user source ab3ed7c375b09b31dcac2369c106eba4bd8a6ca0, EAS update 01a1df87-139b-7da4-9e69-4e5ed36024df, group e7d295b8-5045-4307-98e9-72c5b1e7c41a, run 43721789926, runtime 1.3.2, signed package org.mzbministry.buklod.staging. Prior staging production update id 01a1da5c-0179-79fc-85c9-591cdb782190 verified unchanged by prior run. Fresh EAS proof required again before any LIFE publish.",
+  "productionBaselineEvidence": "Latest verified Android staging-user source ab3ed7c375b09b31dcac2369c106eba4bd8a6ca0, EAS update 01a1df87-139b-7da4-9e69-4e5ed36024df, group e7d295b8-5045-4307-98e9-72c5b1e7c41a, run 43721789926, runtime 1.3.2, signed package org.mzbministry.buklod.staging. Prior staging production update id 01a1da5c-0179-79fc-85c9-591cdb782190 verified unchanged by prior run. Fresh EAS proof required again before any LIFE publish. LIFE security migration 20261115143417 applied live to backend and post-migration permissions/readback verified; no Android production OTA.",
   "acceptanceChecks": [
     "Main Human-first LIFE first paint remains fast, Wall LIFE and KL remain direct cards",
     "12 concern options connect to practical guidance with optional opt-in Gospel",

@@ -14,7 +14,7 @@ Help people with real concerns in a gentle, useful tone before they voluntarily 
 8. Life Impact: general invitation count and privately saved personal checkpoint only. No faith or conversion counters based on someone else's behavior.
 
 ## Privacy and migration
-Source migration `20261115125000_buklod_life_no_inferred_milestones.sql` neutralizes legacy v1 remote stage writes and removes third-party spiritual milestone aggregation. New mobile code masks legacy fields even before migration. No existing user data is deleted. This migration is **NOT applied**, and old clients may still produce milestones until the backend is deployed. Release is blocked on isolated SQL/RLS regression and main/live reconciliation.
+Source migration `20261115143417_buklod_life_no_inferred_milestones_v1.sql` neutralizes legacy v1 remote stage writes and removes third-party spiritual milestone aggregation. New mobile code masks legacy fields even before migration. No existing user data is deleted. This migration **was applied and verified on 2026-11-15** (Supabase migration version `20261115143417`). Existing old-client stage RPCs are now no-ops and inviter faith aggregates are suppressed. The production Android OTA was not changed. Release is blocked on isolated SQL/RLS regression and main/live reconciliation.
 
 ## No new native build
 Uses existing `expo-secure-store`, React Native and Expo Router packages. Runtime 1.3.2 remains unchanged. No direct Drive/GIF/health/Saliksik/points/ads modifications.

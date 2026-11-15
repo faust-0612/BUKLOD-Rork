@@ -8,18 +8,16 @@
   "stageDevLifeSource": "666532607f83c7ccaa124437045940e769c5f9c5",
   "exactLifeContentBlobParityRequired": true,
   "nativeChanges": false,
-  "backendMigrationApplied": false,
+  "backendMigrationApplied": true,
   "physicalDeviceAcceptance": "not-executed",
-  "status": "STAGING_SOURCE_RC_DRAFT",
+  "status": "STAGING_RC_ANDROID_QA_PASSED_BACKEND_PRIVACY_VERIFIED_OTA_HOLD",
   "readyForOta": false,
   "otaPublished": false,
   "productionMutated": false,
   "blockingGates": [
-    "Exact candidate Node/Jest+TypeScript+Android Hermes export and isolated PostgreSQL migration tests",
-    "Live backend privacy migration with readback (needed to neutralize old APK stage notifications)",
-    "Latest signed staging APK runtime/channel + EAS branch update preflight/unchanged production",
-    "One-time staging publish with actual EAS update:view manifest receipt",
-    "Production separate RC (not authorized by staging release)"
+    "Exact candidate PR accountability and LIFE QA on final source",
+    "Independent signed staging APK/channel/current EAS manifest preflight",
+    "Single Android staging-user OTA publish with update:view manifest parity and unchanged production"
   ],
   "stagingCandidateContentCommit": "2f60e09c4d03ff3337a097225c772d1b9c213939",
   "additionalSourceVerification": {
@@ -31,5 +29,18 @@
   },
   "clientPrivacyMitigation": "New RC disables the old LIFE spiritual milestone RPC client; older APKs require gated backend SQL privacy migration.",
   "verifiedStageUpdateGroup": "e7d295b8-5045-4307-98e9-72c5b1e7c41a",
-  "verifiedStageRunId": 43721789926
+  "verifiedStageRunId": 43721789926,
+  "backendMigrationVersion": "20261115143417",
+  "backendMigrationName": "buklod_life_no_inferred_milestones_v1",
+  "backendPrivacyReadbackVerified": true,
+  "backendPrivacyReadback": {
+    "writerNoop": true,
+    "writerSendsNotification": false,
+    "impactUsesSpiritualDates": false,
+    "anonExecutionAllowed": false,
+    "authenticatedExecutionPreserved": true,
+    "legacyNotifications": 0
+  },
+  "backendMigrationsDeployedOnlyAsPrivacyFix": true,
+  "productionAndroidOtaPublished": false
 }

@@ -48,7 +48,7 @@ test('LIFE navigation never infers faith milestones or reports spiritual status'
   assert.match(progress, /expo-secure-store/);
   assert.doesNotMatch(progress, /async-storage/);
   assert.match(progress, /deleteItemAsync/);
-  const sql = source('supabase/migrations/20261115125000_buklod_life_no_inferred_milestones.sql');
+  const sql = source('supabase/migrations/20261115143417_buklod_life_no_inferred_milestones_v1.sql');
   assert.match(sql, /Backwards-compatible no-op/);
   assert.doesNotMatch(sql, /insert into public\.notifications/i);
   assert.match(sql, /recent_activity', '\[\]'::jsonb/);
