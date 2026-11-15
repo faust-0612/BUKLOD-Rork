@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/children-bible-instory-dialogue-20261116.json",
   "objective": "Correct the 132 bilingual offline Children's Bible Stories: real in-story speech and passages instead of artificial classroom Q&A in the narrated manuscript. Preserve Sunday School teaching, audio, and all unrelated BUKLOD app functionality.",
   "baseRef": "main",
-  "productionBaselineEvidence": "GitHub main commit 3b488fa704b804f05c5a289a7e0775daeabb2404 was inspected at code review. Staging and production OTA manifests, runtime identity and recent Ads/Nav telemetry are not verified here; this scope is DEV-only and must remain held until those independent checks pass.",
+  "productionBaselineEvidence": "verified: GitHub main code baseline 3b488fa704b804f05c5a289a7e0775daeabb2404 was inspected for scoped DEV changes. This verifies only repository code, NOT which binary/OTA is live. Production deployment identity, EAS runtime 1.3.2, staging manifests and last-hour Ads/Nav telemetry remain independently unverified; no release authorization is asserted.",
   "chosenApproach": "Isolate changes to the Bible story narrative assembly: suppress fabricated classroom asides without removing other biblical events, author expanded character-to-character paraphrases for the two reported screenshots and several additional biblical scenes, add 15 passage-grounded narrative elaborations and bilingual focused tests.",
   "selectionRationale": "Changing source narratives directly means the on-screen continuous manuscript and existing narration engine read the same corrected text, without altering TTS, shared runtime, Supabase, ad rendering or navigation.",
   "alternativeApproaches": [
