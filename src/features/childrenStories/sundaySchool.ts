@@ -3,11 +3,12 @@ import type { SundaySchoolLesson } from './sundaySchoolTypes';
 import { LESSONS_A } from './sundaySchoolA';
 import { LESSONS_B } from './sundaySchoolB';
 import { LESSONS_C } from './sundaySchoolC';
+import { EXTRA_BIBLE_LESSONS } from './bibleCurriculum';
 
 /** Twelve complete bilingual Sunday School lessons. The three original short pages
  * remain as a fallback for published/legacy stories; these are read continuously. */
 export const SUNDAY_SCHOOL_LESSONS: Record<string, SundaySchoolLesson> = {
-  ...LESSONS_A, ...LESSONS_B, ...LESSONS_C,
+  ...LESSONS_A, ...LESSONS_B, ...LESSONS_C, ...EXTRA_BIBLE_LESSONS,
 };
 /** Never attach bundled teaching text to a remotely edited story with the same slug. */
 export function getSundaySchoolLesson(story: ChildrenStory | null | undefined): SundaySchoolLesson | null {
