@@ -15,7 +15,8 @@
     "localization",
     "accessibility",
     "release-identity",
-    "staging-isolation"
+    "staging-isolation",
+    "auth-privacy"
   ],
   "preserveBehaviors": [
     "LIFE and KL direct independent cards on Wall",
@@ -48,8 +49,6 @@
   ],
   "regressionTests": [
     "tests/life-human-first-20261115.test.js",
-    "tests/show-faith-opt-out.test.js",
-    "tests/wall-life-kl-navigation-20261114.test.mjs",
     "tests/life-human-first-auth-security-20261115.test.mjs",
     "supabase/tests/20261115_life_privacy.sql"
   ],
@@ -107,5 +106,23 @@
     "staging receipt/manifest readback",
     "release runtime/channel identity",
     "production separate RC and readback"
+  ],
+  "productionBaselineEvidence": "Read-only GitHub main commit 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742 at implementation start; known staging LIFE/KL preserved by PR #808, production runtime 1.3.2; current staging and OTA manifests must be re-attested before staging promotion. No live backend write.",
+  "acceptanceChecks": [
+    "Main Human-first LIFE first paint remains fast, Wall LIFE and KL remain direct cards",
+    "12 concern options connect to practical guidance with optional opt-in Gospel",
+    "10 authored answers and 6 reference-based Gospel stages in Filipino and English",
+    "Show Faith OFF never routes to theological content or gospel by mistake",
+    "Invite link preserves life=1 and referral continuity without duplicate signup",
+    "Legacy faith stage taps create no remote writes; Life Impact never exposes recipients' spiritual response",
+    "Secure device-only checkpoint save, read, remove, and offline fallback",
+    "TypeScript/Jest/Node and Android Hermes checks on exact reviewed commit",
+    "Isolated SQL security verification before backend migration; never apply production directly",
+    "Verified signed staging runtime/channel and EAS manifest readback before release"
+  ],
+  "alternativeApproaches": [
+    "Keep existing implicit stage tracking and anonymized referral counts (rejected: identifiable spiritual behavior from small referral sets).",
+    "Change entire Wall, signup and native runtime while redesigning LIFE (rejected: high regression and extra build cost).",
+    "Replace authored Gospel with free-form AI generation (rejected: theological drift and offline unreliability)."
   ]
 }

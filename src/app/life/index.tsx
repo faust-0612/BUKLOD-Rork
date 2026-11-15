@@ -640,6 +640,9 @@ export default function BuklodLifeScreen() {
       </ScrollView>
 
 
+      {/* Theological questions are an explicit choice, never an OFF-mode dead end. */}
+      {showFaithContent && (
+        <>
       <View
         style={
           styles.sectionRow
@@ -744,6 +747,9 @@ export default function BuklodLifeScreen() {
         }
       </ScrollView>
 
+
+        </>
+      )}
 
       {showFaithContent && (
         <>
