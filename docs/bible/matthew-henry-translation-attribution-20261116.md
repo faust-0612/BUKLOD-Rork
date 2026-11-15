@@ -12,3 +12,10 @@ Free Use Bible API (https://bible.helloao.org/api/c/matthew-henry/{BOOK}/{CHAPTE
 
 ## Release
 Signed staging APK metadata checked from Expo build `bc4be208-bfb0-42f3-95cb-358353d0600f` (runtime 1.3.2, channel staging-user, package org.mzbministry.buklod.staging). The native module exists at build source c6804e5..., but direct DEX confirmation and authenticated Expo current-manifest checks are still separate release gates; this document does not claim publication.
+
+## Filipino semantic accuracy gate (v4)
+For Matthew Henry only, the original English remains an immutable reference. Before on-device ML Kit translation, narrowly matched historical/idiomatic phrases are clarified in contemporary English, including the documented 1 Kings 3:5 failure where **paid a visit** incorrectly became a financial payment, **account** became a bank account, **communion** became awkward fellowship and **God owned him** became ownership instead of acceptance. This is source-aware clarification, not a license to invent doctrine, delete sentences, or translate Scripture itself.
+
+After translation, verified narrow Filipino repairs correct observed literal mistakes and Bible abbreviations are standardized against a known 66-book table. A semantic hazard/citation-integrity safeguard refuses problematic machine output and shows the original English; it does **not** certify all remaining translation as doctrinally perfect. Success is cached under `henry-translation-v4` (account-scoped), bypassing stale v3 outputs. The translated view clearly states limitations, preserves the official Google Translate attribution and retains access to the original text.
+
+Release remains held until the exact Android staging runtime demonstrates the v4 result and focused translation, Bible-reader, AdMob/nav and production-source gates pass. This document does not claim OTA publication.
