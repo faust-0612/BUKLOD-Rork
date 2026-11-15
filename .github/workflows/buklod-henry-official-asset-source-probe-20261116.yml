@@ -32,15 +32,15 @@ jobs:
             if inf.is_dir(): continue
             print('BADGE_ZIP_ENTRY',inf.filename,inf.file_size)
             name=inf.filename.lower()
-            if name.endswith('.png') and inf.file_size<25000 and ('powered' in name or 'translate' in name):
+            if name in ('png/color-regular.png', 'png/color-regular@2x.png') and inf.file_size<25000:
               candidates.append(inf)
           if not candidates:
             print('NO_SMALL_OFFICIAL_PNG_FOUND')
           else:
-            inf=min(candidates,key=lambda i:i.file_size)
+            inf=next((x for x in candidates if x.filename=='png/color-regular.png'), candidates[0])
             raw=archive.read(inf)
             assert raw[:8]==b'\x89PNG\r\n\x1a\n'
-            print('BADGE_SELECTED',inf.filename,'SHA256',hashlib.sha256(raw).hexdigest(),'BYTES',len(raw))
+            print('BADGE_SELECTED',inf.filename,'SHA256',hashlib.sha256(raw).hexdigest(),'BYTES',len(raw),'DIMENSIONS',int.from_bytes(raw[16:20],'big'),int.from_bytes(raw[20:24],'big'))
             print('BEGIN_OFFICIAL_GOOGLE_BADGE_BASE64')
             print(base64.b64encode(raw).decode('ascii'))
             print('END_OFFICIAL_GOOGLE_BADGE_BASE64')
@@ -81,6 +81,7 @@ jobs:
             echo 'EXPO_SECRET_MISSING; staging release must remain HOLD'
             exit 1
           fi
+          npm ci --ignore-scripts --no-audit --no-fund
           APP_VARIANT=staging EXPO_PUBLIC_APP_ENV=staging BUKLOD_APP_TARGET=main npx --yes eas-cli@27.9.0 build:view bc4be208-bfb0-42f3-95cb-358353d0600f --json > /tmp/staging-build-readonly.json
           python3 - <<'PY'
           import json
