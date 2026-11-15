@@ -41,7 +41,8 @@
   "regressionTests": [
     "src/features/childrenStories/catalog.test.ts",
     "tests/children-stories-contract.test.mjs",
-    "supabase/tests/buklod_children_stories_rls_contract_20261115.sql"
+    "supabase/tests/buklod_children_stories_rls_contract_20261115.sql",
+    "tests/children-stories-navigation-ad-safety.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/children-story-world-20261115.json",
@@ -61,7 +62,8 @@
     "src/components/BuklodFeatureFinder.tsx",
     "supabase/migrations/20261115090000_buklod_children_stories_v1.sql",
     "supabase/tests/buklod_children_stories_rls_contract_20261115.sql",
-    "tests/children-stories-contract.test.mjs"
+    "tests/children-stories-contract.test.mjs",
+    "tests/children-stories-navigation-ad-safety.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -83,18 +85,29 @@
         "System admin edits require verified auth."
       ],
       "tests": [
-        "tests/children-stories-contract.test.mjs"
+        "tests/children-stories-navigation-ad-safety.test.mjs"
       ]
     },
     {
-      "id": "advertising",
+      "id": "ads-finance-points",
       "reason": "Child-directed routes require a deny-by-default advertising exclusion; existing eligible pages are untouched.",
       "preservedBehaviors": [
         "Wall, Home, Community and profile ads retain existing placement code.",
         "No interstitial warm-up on children-stories route."
       ],
       "tests": [
-        "tests/children-stories-contract.test.mjs"
+        "tests/children-stories-navigation-ad-safety.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "New editorial story table has authenticated publication reads and explicit System Admin-only writes with RLS, without child personal data.",
+      "preservedBehaviors": [
+        "Existing BUKLOD Supabase policy and finance data remain unchanged.",
+        "Migration is staged as source and not applied to production."
+      ],
+      "tests": [
+        "supabase/tests/buklod_children_stories_rls_contract_20261115.sql"
       ]
     }
   ],
