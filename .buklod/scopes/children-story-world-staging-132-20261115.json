@@ -27,7 +27,9 @@
     "Story section sensitive prefix blocks generic ads while preserving ad behavior elsewhere.",
     "Focused contract and catalog tests, SQL RLS contract, TypeScript build and staging behavior verification required before OTA.",
     "No production release or live migration authorized in this feature DEV PR.",
-    "Staging EAS channel staging-user, Android org.mzbministry.buklod.staging, runtime 1.3.2, exact source SHA, no production mutation; physical device QA skipped by owner."
+    "Staging EAS channel staging-user, Android org.mzbministry.buklod.staging, runtime 1.3.2, exact source SHA, no production mutation; physical device QA skipped by owner.",
+    "Exact signed APK, accepted staging base ancestry and current live staging manifest source lineage required before publication.",
+    "On success verify EAS update ID, group, Android package, 1.3.2 runtime and unchanged production manifest; no device verification required."
   ],
   "riskAreas": [
     "child-safety",
@@ -39,12 +41,14 @@
     "mobile-memory",
     "speech-lifecycle",
     "navigation-scroll",
-    "ads-monetization"
+    "ads-monetization",
+    "release-identity"
   ],
   "regressionTests": [
     "tests/children-stories-contract.test.mjs",
     "supabase/tests/buklod_children_stories_rls_contract_20261115.sql",
-    "tests/children-stories-navigation-ad-safety.test.mjs"
+    "tests/children-stories-navigation-ad-safety.test.mjs",
+    "tests/children-stories-staging-132-release.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/children-story-world-staging-132-20261115.json",
@@ -65,7 +69,10 @@
     "supabase/migrations/20261115090000_buklod_children_stories_v1.sql",
     "supabase/tests/buklod_children_stories_rls_contract_20261115.sql",
     "tests/children-stories-contract.test.mjs",
-    "tests/children-stories-navigation-ad-safety.test.mjs"
+    "tests/children-stories-navigation-ad-safety.test.mjs",
+    ".github/workflows/buklod-children-stories-staging-132-ota-20261115.yml",
+    "scripts/children-stories-staging-132-policy.mjs",
+    "tests/children-stories-staging-132-release.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -110,6 +117,18 @@
       ],
       "tests": [
         "supabase/tests/buklod_children_stories_rls_contract_20261115.sql"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Adds owner-authorized staging-user Android 1.3.2 OTA source-only workflow with hard deny to production, Play Store and web deployment.",
+      "preservedBehaviors": [
+        "Production EAS channel and manifest remain unchanged, verified before and after staging-only update.",
+        "Existing signed staging-user APK runtime and platform compatibility are checked before publication.",
+        "No automatic OTA on unrelated pushes or unverified exact-source pull request."
+      ],
+      "tests": [
+        "tests/children-stories-staging-132-release.test.mjs"
       ]
     }
   ],
