@@ -56,5 +56,51 @@
     "src/features/childrenStories/sundaySchool.test.ts"
   ],
   "releaseMode": "isolated-android-staging-ota",
-  "releaseStatus": "DEV changes. Stage publish only after exact SHA checks, Android export, signed APK, EAS channel/current manifest guards and independent receipt readback."
+  "releaseStatus": "DEV changes. Stage publish only after exact SHA checks, Android export, signed APK, EAS channel/current manifest guards and independent receipt readback.",
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Native config, package, Expo runtime and Android dependencies unchanged; existing signed stage APK compatible.",
+      "preservedBehaviors": [
+        "Expo runtime 1.3.2, package org.mzbministry.buklod.staging",
+        "No native dependency changes, no Play or production release"
+      ],
+      "tests": [
+        "tests/conso-kids-dark-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Daily Bible theme-only changes, preserve reading/submission/points",
+      "preservedBehaviors": [
+        "Daily Reading automatic validation and points still work",
+        "Bible offline reading, questions, audio and photos preserved"
+      ],
+      "tests": [
+        "tests/conso-kids-dark-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "notification-deeplinks",
+      "reason": "Notification foreground colors only, preserve authorization and routing",
+      "preservedBehaviors": [
+        "Unread mark all / per-notification read",
+        "Push, PTT and target navigation semantics unchanged"
+      ],
+      "tests": [
+        "tests/conso-kids-dark-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Only isolated staging-user OTA, exact signed APK, latest manifest and no production mutation checks.",
+      "preservedBehaviors": [
+        "Production unchanged, Play unchanged, no new native build",
+        "Stage only after signed Expo runtime and exact-source PR CI"
+      ],
+      "tests": [
+        "tests/conso-kids-dark-20261116.test.mjs"
+      ]
+    }
+  ]
 }
