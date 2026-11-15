@@ -1,0 +1,52 @@
+{
+  "contractVersion": 2,
+  "objective": "Prepare no-publish consolidated Android staging-user OTA candidate for exact Matthew Henry verse matching and explicit Filipino machine-translation caveat, retaining all latest staged Children Stories dialogue, dark Bible, and performance improvements.",
+  "baseBranch": "fix/nov16-henry-children-dialogue-dark",
+  "baseSha": "f340829775c904aecc9162937bc011fb16c5a34e",
+  "baselineStagingUpdateIdLastReported": "01a1e08b-6fe8-72d1-9a5c-e6f37e6cf116",
+  "baselineStagingEvidence": "GitHub PR #850 and #847 release receipt. Recheck authenticated EAS manifest before any publish.",
+  "target": {
+    "platform": "android",
+    "channel": "staging-user",
+    "expoEnvironment": "preview",
+    "runtimeVersion": "1.3.2",
+    "androidPackage": "org.mzbministry.buklod.staging",
+    "signedExistingBuildId": "bc4be208-bfb0-42f3-95cb-358353d0600f"
+  },
+  "changes": [
+    "1 Kings 3:6 and every sparse commentary anchor require explicit source-covered range; unverified neighboring context cannot appear as verse commentary",
+    "Filipino Google ML Kit translations show a prominent limitation warning before the translated text and retain original English",
+    "Language tabs wrap inside compact phone widths without affecting other layout"
+  ],
+  "preserve": [
+    "Current staged 144 expanded children's lessons, 21 bilingual speech scenes, narrator and quiz",
+    "Latest Daily Bible, My Bible and Notifications dark-mode contrast and Android status bar safe areas",
+    "Bible narration, Strong's, reading progress and annotations",
+    "AdMob prefetch, native ads and navigation responsiveness",
+    "No production, Play, native, dependencies, schema or backend writes"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodBibleStudy.ts",
+    "src/app/bible/read.tsx",
+    "tests/bible-study-sources.test.cjs",
+    "tests/henry-verse-accurate-staging-20261116.test.mjs",
+    "release/nov16-henry-verse-accurate-stage132-prep.json",
+    ".github/workflows/buklod-henry-verse-accurate-stage132-preflight.yml"
+  ],
+  "prePublishGates": [
+    "Exact baseline ancestry, allowed-path diff and original full source are verified",
+    "Focused Bible/translation/Children/dark/ad/navigation tests pass",
+    "Android TypeScript check and Hermes export pass on exact source SHA",
+    "Read-only EAS staging-user and production channel identities and signed staging APK are confirmed against the latest remote state",
+    "New RC source frozen after QA; no OTA without independent source-specific release workflow and post-publish readback"
+  ],
+  "validationState": {
+    "devChangesCommitted": true,
+    "qaPending": true,
+    "stagingReady": false,
+    "allowOtaPublish": false,
+    "stagingOtaPublished": false,
+    "productionOtaPublished": false,
+    "physicalDeviceAcceptance": "SKIPPED BY OWNER; not a passing test"
+  }
+}
