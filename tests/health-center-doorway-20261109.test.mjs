@@ -31,12 +31,11 @@ test('failed launch propagates so UI can show a retry/address fallback', async (
   );
 });
 
-test('Home and Profile use the same real Health Center doorway without creating another health system', () => {
-  const home = readFileSync('src/components/home/BuklodHomeUtilityCards.tsx', 'utf8');
-  const profile = readFileSync('src/app/profile/buklod-health.tsx', 'utf8');
-  assert.match(home, /launchBuklodHealthCenter/);
-  assert.match(home, /id:'health'/);
-  assert.match(profile, /launchBuklodHealthCenter/);
+test('Health Center door is available under Health without a duplicate Home card', () => {
+  const home=readFileSync('src/components/home/BuklodHomeUtilityCards.tsx','utf8');
+  const profile=readFileSync('src/app/profile/buklod-health.tsx','utf8');
+  assert.ok(!home.includes('launchBuklodHealthCenter') && !home.includes('Online Consultation'));
+  assert.ok(profile.includes('launchBuklodHealthCenter'));
   assert.doesNotMatch(profile, /BuklodFoundationPortalShell|BuklodFocusAppGate/);
   assert.doesNotMatch(launcherSource, /access_token|refresh_token|session=|user_id=/);
 });
