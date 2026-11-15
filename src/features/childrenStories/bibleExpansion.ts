@@ -6,8 +6,13 @@ import { BIBLE_NEW_RECORDS } from './bibleExpansionNew';
 /** Original, offline, book-referenced children's adaptations; not verbatim Bible translations.
  * Narratives are not standalone translations. Consult each canonical passage for details.
  */
-const RAW_BIBLE_RECORDS = [...BIBLE_OLD_RECORDS, ...BIBLE_NEW_RECORDS] as const;
 export type BibleTestament = 'old' | 'new';
+type BibleRecord = {
+  id: string; book: string; reference: string; emoji: string;
+  title: StoryLocalized; testament: BibleTestament;
+  acts: readonly StoryLocalized[]; moral?: StoryLocalized;
+};
+const RAW_BIBLE_RECORDS: readonly BibleRecord[] = [...BIBLE_OLD_RECORDS, ...BIBLE_NEW_RECORDS];
 export type BibleStoryMetadata = { testament: BibleTestament; book: string; reference: string };
 export const BIBLE_STORY_METADATA: Record<string,BibleStoryMetadata> = Object.fromEntries(
   RAW_BIBLE_RECORDS.map(entry=>[entry.id,{testament:entry.testament,book:entry.book,reference:entry.reference}])
@@ -325,7 +330,7 @@ const SENSITIVE = new Set(['eden','cain-abel','sampung-salot','paskuwa','jerico'
 const LOW: [string,string] = ['#275F74','#8AD0BB'];
 const HIGH: [string,string] = ['#315B51','#D8A66F'];
 const local=(tl:string,en:string):StoryLocalized=>({tl,en});
-function teachingValue(entry:(typeof RAW_BIBLE_RECORDS)[number]):StoryLocalized {
+function teachingValue(entry:BibleRecord):StoryLocalized {
   return 'moral' in entry ? entry.moral : NEW_MORALS[entry.id] ?? local('Maging maingat at makatao sa araw-araw.','Act wisely and compassionately each day.');
 }
 function rotated(correct:StoryLocalized, wrongA:StoryLocalized, wrongB:StoryLocalized, shift:number){
@@ -334,7 +339,7 @@ function rotated(correct:StoryLocalized, wrongA:StoryLocalized, wrongB:StoryLoca
   choices[2]=choices[answer];choices[answer]=correct;
   return {choices,answer};
 }
-function lessonFor(entry:(typeof RAW_BIBLE_RECORDS)[number]):SundaySchoolLesson{
+function lessonFor(entry:BibleRecord):SundaySchoolLesson{
   const moral=teachingValue(entry);
   const faith= entry.testament==='old'
     ? local('Sa '+entry.reference+', nakikita natin ang kasaysayan ng pananampalataya ng bayan ng Diyos. Basahin ang orihinal na teksto kasama ang guro at pag-isipan kung paano mamuhay nang tapat at mahabagin.','In '+entry.reference+', we explore the history of God's people. Read the biblical passage with a teacher and consider how to live faithfully and compassionately.')
@@ -366,7 +371,7 @@ function lessonFor(entry:(typeof RAW_BIBLE_RECORDS)[number]):SundaySchoolLesson{
     questions
   };
 }
-function storyFor(entry:(typeof RAW_BIBLE_RECORDS)[number]):ChildrenStory {
+function storyFor(entry:BibleRecord):ChildrenStory {
   const moral=teachingValue(entry);
   const check=rotated(moral,
     local('Ang manakit at manghamak ay laging tama.','Hurting and mocking others is always right.'),
