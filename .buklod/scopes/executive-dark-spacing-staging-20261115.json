@@ -16,7 +16,8 @@
     "navigation-auth",
     "connect-ptt-calls",
     "ads-finance-points",
-    "kingdom-character"
+    "kingdom-character",
+    "connect"
   ],
   "preserveBehaviors": [
     "Keep original Home section order and lazy load gates, contribution data isolation, estimated earnings disclaimers and existing ads.",
