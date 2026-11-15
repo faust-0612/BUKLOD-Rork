@@ -1,0 +1,92 @@
+# Isolated Android Expo OTA source QA. NO EAS token. NO PUBLISH.
+# Frozen app src tree from PR #853's passing TypeScript, integration and scope checks.
+name: BUKLOD Nov16 Connect Profile OTA RC Android QA - NO PUBLISH
+on:
+  push:
+    branches: [release/buklod-connect-profile-ui-ota-rc-20261116]
+    paths:
+      - '.github/workflows/buklod-nov16-connect-profile-ota-rc-no-publish.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-connect-profile-nov16-rc-no-publish
+  cancel-in-progress: false
+jobs:
+  android-no-publish:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' && github.ref == 'refs/heads/release/buklod-connect-profile-ui-ota-rc-20261116' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      BUKLOD_APP_TARGET: main
+      EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Fail closed on source change, native drift and missing RC identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD:src)" = "26adb6ab2dab9249fbd07c1f0a29d32a244a254b"
+          git cat-file -e "9fae7661d27dd83ec7c1b42058e9bca97865d8b8^{commit}"
+          test "$(git rev-parse 9fae7661d27dd83ec7c1b42058e9bca97865d8b8:src)" = "26adb6ab2dab9249fbd07c1f0a29d32a244a254b"
+          git merge-base --is-ancestor 51b9b35af1302ce1f6d1a20ba12c2dc8068a80f2 HEAD
+          test -z "$(git diff --name-only 51b9b35af1302ce1f6d1a20ba12c2dc8068a80f2 HEAD -- app.config.js eas.json package.json package-lock.json android ios plugins supabase)" || {
+            echo "BLOCK: native/DB/dependency/config drift"; exit 1;
+          }
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const r=JSON.parse(fs.readFileSync('release/nov16-connect-profile-ui-ota-rc.json','utf8'));
+          const cfg=require('./app.config.js')({config:{}});
+          const eas=require('./eas.json');
+          assert.equal(r.immutableAppSourceTree,'26adb6ab2dab9249fbd07c1f0a29d32a244a254b');
+          assert.equal(r.candidateDevSha,'9fae7661d27dd83ec7c1b42058e9bca97865d8b8');
+          assert.equal(cfg.android.package,'org.mzbministry.buklod');
+          assert.equal(cfg.runtimeVersion,'1.3.2');
+          assert.equal(cfg.extra.appEnvironment,'production');
+          assert.equal(cfg.extra.appTarget,'main');
+          assert.equal(cfg.extra.eas.projectId,'23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.equal(eas.build.production.channel,'production');
+          assert.equal(eas.build['staging-user'].channel,'staging-user');
+          process.env.APP_VARIANT='staging';
+          process.env.EXPO_PUBLIC_APP_ENV='staging';
+          const stage=require('./app.config.js')({config:{}});
+          assert.equal(stage.android.package,'org.mzbministry.buklod.staging');
+          assert.equal(stage.runtimeVersion,'1.3.2');
+          assert.equal(stage.extra.appEnvironment,'staging');
+          assert.equal(r.verification.stagingPublished,false);
+          assert.equal(r.verification.productionPublished,false);
+          NODE
+      - name: Install exact locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Focused UI, ad, navigation and ranking regression
+        run: |
+          node --experimental-strip-types --test \
+            tests/nov14-connect-green-profile-posts-ota.test.mjs \
+            tests/nov16-connect-profile-geometry.test.mjs \
+            tests/nov16-profile-navigation-character-guard.test.mjs \
+            tests/nov14-profile-top-ten-ranked-list-20261114.test.mjs \
+            tests/nov14-profile-navigation-rank-refresh.test.mjs \
+            tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
+            tests/ad-dashboard-focus-performance-20261116.test.mjs
+      - name: Production TypeScript and Android Hermes export (not an OTA publication)
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          EXPO_MAX_WORKERS=2 npx expo export --platform android --output-dir /tmp/buklod-nov16-connect-profile-android --clear
+          test -s /tmp/buklod-nov16-connect-profile-android/metadata.json
+          sha256sum /tmp/buklod-nov16-connect-profile-android/metadata.json
+          test -z "$(git status --porcelain --untracked-files=no)"
+          echo 'RC SOURCE QA PASS ONLY. NO EAS UPDATE SENT.'
