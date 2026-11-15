@@ -117,7 +117,7 @@ export default function BuklodCommunityContributionCard() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.eyebrow}>YOUR COMMUNITY CONTRIBUTION</Text>
-          <Text style={s.sub}>Your contribution progress and estimated earnings at a glance.</Text>
+          <Text style={s.sub}>Progress and estimated earnings at a glance.</Text>
         </View>
         <Text style={s.level}>{data.contribution_level}</Text>
       </View>
@@ -161,33 +161,31 @@ export default function BuklodCommunityContributionCard() {
       </View>
       </View>}
 
-      <Pressable
-        accessibilityRole="button"
+      <Pressable accessibilityRole="button"
         accessibilityLabel="View my community contributions and earnings"
         onPress={() => router.push('/community-contribution' as any)}
         style={s.estimate}>
-        <Text style={s.estimateLabel}>YOUR ESTIMATED REVENUE SHARE</Text>
-        <Text style={s.estimateValue}>{estimate}</Text>
-        <Text style={s.estimateGuard}>
-          ESTIMATE ONLY · NOT FINAL · NOT WITHDRAWABLE
-        </Text>
-        {data.estimate_updated_at ? (
-          <Text style={s.estimateGuard}>Last updated {new Date(data.estimate_updated_at).toLocaleString()}</Text>
-        ) : null}
-        <Text style={s.detailLink}>VIEW MY EARNINGS DETAILS</Text>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={s.estimateLabel}>YOUR ESTIMATED REVENUE SHARE</Text>
+          <Text style={s.estimateValue}>{estimate}</Text>
+          <Text style={s.estimateGuard}>Estimate only · Not final · Not withdrawable</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#1E6B45" />
       </Pressable>
+      {detailsOpen ? <View style={{ gap: 5 }}>
+        {data.estimate_updated_at ? <Text style={s.periodNote}>
+          Last estimate update: {new Date(data.estimate_updated_at).toLocaleString()}
+        </Text> : null}
+        <Pressable accessibilityRole="button" accessibilityLabel="How to increase my community share"
+          onPress={() => {
+            void recordCommunityEconomyAnalytics('increase_share_opened', { period_key: data.period?.key });
+            router.push('/community-contribution?guide=1' as any);
+          }}
+          style={({ pressed }) => [s.secondary, pressed && { opacity: 0.82 }]}>
+          <Text style={s.secondaryText}>HOW CAN I INCREASE MY SHARE?</Text>
+        </Pressable>
+      </View> : null}
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="How to increase my community share"
-        onPress={() => {
-          void recordCommunityEconomyAnalytics('increase_share_opened', { period_key: data.period?.key });
-          router.push('/community-contribution?guide=1' as any);
-        }}
-        style={({ pressed }) => [s.secondary, pressed && { opacity: 0.82 }]}
-      >
-        <Text style={s.secondaryText}>HOW CAN I INCREASE MY SHARE?</Text>
-      </Pressable>
     </View>
   );
 }
@@ -196,22 +194,22 @@ const s = StyleSheet.create({
   emptyShell:{marginTop:0,marginBottom:0,padding:14,borderRadius:buklodVisual.radius.card,
     borderWidth:1,borderColor:contributionTone.border,backgroundColor:contributionTone.surface,
     flexDirection:'row',alignItems:'center',gap:12,minHeight:72},
-  shell:{marginTop:0,marginBottom:0,borderWidth:1,borderColor:contributionTone.border,borderRadius:buklodVisual.radius.card,backgroundColor:contributionTone.surface,padding:12,gap:9},
+  shell:{marginTop:0,marginBottom:0,borderWidth:1,borderColor:contributionTone.border,borderRadius:14,backgroundColor:contributionTone.surface,padding:11,gap:6},
   head:{flexDirection:'row',alignItems:'center',gap:9},
   icon:{width:36,height:36,borderRadius:18,backgroundColor:contributionTone.soft,alignItems:'center',justifyContent:'center'},
   eyebrow:{fontSize:11,fontWeight:'900',color:'#173C2C',letterSpacing:.4},
-  sub:{marginTop:2,fontSize:12,lineHeight:17,color:'#6E7C74'},
+  sub:{marginTop:1,fontSize:12,lineHeight:16,color:'#52665C'},
   level:{fontSize:12,fontWeight:'900',color:'#1E6B45',backgroundColor:'#EAF4EE',borderRadius:99,paddingHorizontal:7,paddingVertical:5,overflow:'hidden'},
   metrics:{flexDirection:'row',gap:6},
-  metric:{flex:1,minHeight:56,borderRadius:12,backgroundColor:monthTone.surface,padding:8,justifyContent:'center'},
-  metricValue:{fontSize:15,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:12,fontWeight:'900',color:'#4B5B56'},
+  metric:{flex:1,minWidth:0,minHeight:52,borderRadius:10,backgroundColor:monthTone.surface,padding:7,justifyContent:'center'},
+  metricValue:{fontSize:18,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:10.5,lineHeight:14,fontWeight:'900',color:'#354F43'},
   historyLine:{fontSize:10,fontWeight:'800',color:'#305C47',paddingHorizontal:2},
   periodNote:{fontSize:12,lineHeight:17,color:'#52665C',paddingHorizontal:2},
   impact:{borderRadius:12,borderWidth:1,borderColor:impactTone.border,backgroundColor:impactTone.surface,padding:9},
   impactTitle:{fontSize:12,fontWeight:'900',color:impactTone.ink},
   impactText:{marginTop:3,fontSize:12,lineHeight:17,color:'#5F7066'},
-  estimate:{borderRadius:12,backgroundColor:revenueTone.surface,padding:10}, estimateLabel:{fontSize:12,fontWeight:'900',color:revenueTone.ink},
+  estimate:{borderRadius:11,backgroundColor:revenueTone.surface,padding:10,flexDirection:'row',alignItems:'center',gap:8,minHeight:65}, estimateLabel:{fontSize:12,fontWeight:'900',color:revenueTone.ink},
   detailLink:{marginTop:7,fontSize:12,fontWeight:'900',color:'#1E6B45'},
-  estimateValue:{marginTop:2,fontSize:17,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:12,lineHeight:17,fontWeight:'900',color:'#66501D'},
+  estimateValue:{marginTop:1,fontSize:19,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:10.5,lineHeight:15,fontWeight:'800',color:'#66501D'},
   secondary:{minHeight:buklodVisual.size.touch,borderRadius:10,borderWidth:1,borderColor:shareTone.border,backgroundColor:shareTone.soft,alignItems:'center',justifyContent:'center',paddingHorizontal:8}, secondaryText:{color:shareTone.ink,fontSize:12,fontWeight:'900'},
 });

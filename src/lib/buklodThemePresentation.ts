@@ -129,7 +129,7 @@ export function createBuklodButtonStyles(
       justifyContent: 'center',
     },
     buttonText: {
-      color: theme.white,
+      color: theme.onAccent,
       fontSize: 15.5,
       lineHeight: 20,
       fontWeight: '900',

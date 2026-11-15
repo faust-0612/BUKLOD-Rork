@@ -6,6 +6,7 @@ import {
   BUKLOD_PALETTE_PRESETS,
   getBuklodGlobalTheme,
   getPaletteSource,
+  accessibleTextOn,
   type BuklodPaletteId,
   type BuklodThemePreferenceId,
   type BuklodThemeRoles,
@@ -182,22 +183,22 @@ function buildMessagesSpecificRoles(
   // Light / soft palettes — coordinated bubble + composer per palette
   const sentBubble = p.accent;
   const receivedBubble = p.surface;
-  const onSent = p.white;
+  const onSent = accessibleTextOn(p.accent);
 
   return {
     bubbleSent: sentBubble,
     bubbleReceived: receivedBubble,
-    textOnAccent: p.white,
+    textOnAccent: onSent,
     textOnSentBubble: onSent,
     accentMuted: p.accentSoft,
     composerSurface: p.surface,
     borderSubtle: p.border,
-    unreadBadgeText: p.white,
+    unreadBadgeText: accessibleTextOn(p.unreadBadge),
     reactionSurface: p.surface,
     reactionStamp: p.accentSoft,
     callControlSurface: p.accentSoft,
     fabBg: p.accent,
-    fabText: p.white,
+    fabText: onSent,
     fabIconBackdrop: 'rgba(255, 255, 255, 0.22)',
     filterPillActive: p.accentSoft,
     filterPillActiveText: p.accent,

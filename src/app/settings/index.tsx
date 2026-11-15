@@ -53,7 +53,7 @@ export default function BuklodSettingsHome() {
     <StatusBar barStyle={darkPalette ? 'light-content' : 'dark-content'} backgroundColor={theme.canvas} />
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.canvas }}
-      contentContainerStyle={{ paddingTop: Math.max(insets.top, 6) + 4, paddingBottom: Math.max(insets.bottom, 20) + 16, paddingHorizontal: 12, gap: 9 }}
+      contentContainerStyle={{ paddingTop: Math.max(insets.top, 6) + 4, paddingBottom: Math.max(insets.bottom, 20) + 16, paddingHorizontal: buklodVisual.space.screen, gap: buklodVisual.space.section }}
       keyboardShouldPersistTaps="handled"
     >
       <Pressable

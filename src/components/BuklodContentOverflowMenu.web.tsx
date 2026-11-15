@@ -834,7 +834,7 @@ export function BuklodContentOverflowMenu({
                 {editBusy ? (
                   <ActivityIndicator
                     color={
-                      theme.white
+                      theme.onAccent
                     }
                   />
                 ) : (
@@ -1071,7 +1071,7 @@ function createStyles(
       color: theme.textPrimary,
     },
     buttonTextPrimary: {
-      color: theme.white,
+      color: theme.onAccent,
     },
     deleteButtonText: {
       color: '#FFFFFF',

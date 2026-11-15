@@ -306,7 +306,7 @@ function createStyles(theme: BuklodThemeRoles) {
       color: theme.textPrimary,
     },
     buttonTextPrimary: {
-      color: theme.white,
+      color: theme.onAccent,
     },
   });
 }

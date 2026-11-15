@@ -18,6 +18,7 @@ import {
   createBuklodSharedStyles,
 } from '@/lib/buklodThemePresentation';
 import { colors } from '@/lib/theme';
+import { buklodVisual } from '@/lib/buklodVisual';
 import {
   useBuklodTheme,
 } from '@/providers/BuklodThemeProvider';
@@ -106,7 +107,7 @@ export const shared = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    paddingHorizontal: 8,
+    paddingHorizontal: buklodVisual.space.screen,
     paddingTop: 10,
     paddingBottom: 18,
     gap: 8,

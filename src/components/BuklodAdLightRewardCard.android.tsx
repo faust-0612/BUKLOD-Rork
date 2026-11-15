@@ -83,8 +83,8 @@ export default function BuklodAdLightRewardCard() {
   const styles = useMemo(
     () => StyleSheet.create({
       shell: {
-        marginTop: 12,
-        paddingTop: 12,
+        marginTop: 6,
+        paddingTop: 8,
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: theme.border,
       },
@@ -93,7 +93,7 @@ export default function BuklodAdLightRewardCard() {
         borderWidth: 1,
         borderColor: withAlpha(theme.accent, 0.24),
         backgroundColor: withAlpha(theme.accentSoft, 0.64),
-        padding: 12,
+        padding: 10,
       },
       topRow: {
         flexDirection: 'row',
@@ -113,7 +113,7 @@ export default function BuklodAdLightRewardCard() {
         minWidth: 0,
       },
       eyebrow: {
-        fontSize: 8,
+        fontSize: 10,
         fontWeight: '900',
         letterSpacing: 0.75,
         color: theme.textMuted,
@@ -126,14 +126,14 @@ export default function BuklodAdLightRewardCard() {
         color: theme.textPrimary,
       },
       copy: {
-        marginTop: 8,
-        fontSize: 10.5,
-        lineHeight: 15,
+        marginTop: 5,
+        fontSize: 11.5,
+        lineHeight: 17,
         color: theme.textSecondary,
       },
       button: {
-        minHeight: 40,
-        marginTop: 10,
+        minHeight: 44,
+        marginTop: 7,
         borderRadius: 12,
         paddingHorizontal: 13,
         flexDirection: 'row',
@@ -150,15 +150,15 @@ export default function BuklodAdLightRewardCard() {
       buttonText: {
         fontSize: 11,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: theme.onAccent,
       },
       buttonTextActive: {
         color: theme.accent,
       },
       note: {
-        marginTop: 7,
-        fontSize: 9,
-        lineHeight: 13,
+        marginTop: 5,
+        fontSize: 10.5,
+        lineHeight: 15,
         color: theme.textMuted,
       },
     }),
@@ -197,7 +197,7 @@ export default function BuklodAdLightRewardCard() {
 
       Alert.alert(
         'Ad-Light Pass active',
-        `Full-screen interstitials are reduced for ${PASS_MINUTES} minutes. Community Wall and IGPAT sponsored feed ads stay active.`,
+        `Full-screen interstitials are reduced for ${PASS_MINUTES} minutes. Community Wall sponsored feed ads stay active.`,
       );
     } catch (error) {
       console.warn('BUKLOD Ad-Light reward:', error);
@@ -235,8 +235,7 @@ export default function BuklodAdLightRewardCard() {
         </View>
 
         <Text style={styles.copy}>
-          Reward: temporarily suppresses full-screen interstitial ads only.
-          It does not add Circle Points, Bayanihan value, cash, or revenue-share credit.
+          Reduces full-screen interstitials for 15 minutes only. No Circle Points, cash, Bayanihan value or earnings are added.
         </Text>
 
         <Pressable
@@ -257,7 +256,7 @@ export default function BuklodAdLightRewardCard() {
           <MaterialCommunityIcons
             name={status.active ? 'shield-check-outline' : 'play-circle-outline'}
             size={17}
-            color={status.active ? theme.accent : '#FFFFFF'}
+            color={status.active ? theme.accent : theme.onAccent}
           />
           <Text
             style={[
@@ -274,8 +273,7 @@ export default function BuklodAdLightRewardCard() {
         </Pressable>
 
         <Text style={styles.note}>
-          Feed/native ads in Community Wall and IGPAT remain unchanged.
-          Passes do not stack; another rewarded ad becomes available after expiry.
+          Wall/native ads remain unchanged. Passes do not stack; another ad is available after expiry.
         </Text>
       </View>
     </View>
