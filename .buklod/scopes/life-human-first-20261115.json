@@ -102,6 +102,18 @@
         "tests/life-human-first-auth-security-20261115.test.mjs",
         "supabase/tests/20261115_life_privacy.sql"
       ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Stage-only Android Expo OTA release gate; exact source, PR/CI, signed runtime identity and production isolation, with automatic fail-closed verification.",
+      "preservedBehaviors": [
+        "No production Android OTA, Play Store, web or release channel changes are made by this isolated staging workflow.",
+        "Maintain existing Executive Density staging baseline, ads, Wall, Connect, Kingdom, Profile and Sunday School behavior.",
+        "Do not publish staging if its EAS manifest advanced or if any privacy, CI, signed APK or release identity check fails."
+      ],
+      "tests": [
+        "tests/life-exec-staging-release-policy.test.mjs"
+      ]
     }
   ],
   "readyForStaging": false,

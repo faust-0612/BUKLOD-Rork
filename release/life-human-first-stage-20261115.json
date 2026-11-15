@@ -42,5 +42,7 @@
     "legacyNotifications": 0
   },
   "backendMigrationsDeployedOnlyAsPrivacyFix": true,
-  "productionAndroidOtaPublished": false
+  "productionAndroidOtaPublished": false,
+  "sourceGateRecovery": "Declare protected production-release source group for staged OTA policy; prevent CI governance bypass. No production deployment permitted.",
+  "accountabilityReleaseScopeDeclared": true
 }
