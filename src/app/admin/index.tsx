@@ -524,6 +524,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="book-open-page-variant"
+                title="Children's Story World"
+                subtitle="Edit original bilingual stories, drafts and scheduled publishing"
+                path="/admin/children-stories"
+              />
+
+              <AdminRow
                 icon="book-open-page-variant-outline"
                 title="Devotional Content"
                 subtitle="Manage published and upcoming devotionals"
