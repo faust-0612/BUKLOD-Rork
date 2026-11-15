@@ -1,0 +1,69 @@
+name: BUKLOD Connect — Dedicated Expo Project Registration
+
+on:
+  push:
+    branches:
+      - feature/buklod-connect-standalone-apple-green-20261115
+    paths:
+      - '.github/workflows/buklod-connect-eas-project-register.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-connect-expo-project-registration
+  cancel-in-progress: false
+
+jobs:
+  dedicated-project:
+    if: ${{ github.repository == 'faust-0612/BUKLOD-Rork' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      BUKLOD_APP_TARGET: connect
+      EXPO_PUBLIC_BUKLOD_APP_TARGET: connect
+      APP_VARIANT: staging
+      EXPO_PUBLIC_APP_ENV: staging
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify independent Expo project source target
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -n "$EXPO_TOKEN"
+          node - <<'NODE'
+          const app = require('./app.config.js')({ config: {} });
+          if(app.slug !== 'buklod-connect' ||
+             app.android.package !== 'org.mzbministry.buklod.connect.staging' ||
+             app.extra?.appTarget !== 'connect' ||
+             app.extra?.eas?.projectId)
+            throw Error('Wrong app target, package, or already-linked Expo project');
+          console.log('CONNECT_EXPO_PROJECT_REGISTRATION_TARGET_OK');
+          NODE
+      - name: Create or link only @faust_0612/buklod-connect in Expo
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest whoami --non-interactive
+          npx eas-cli@latest init --account faust_0612 --json --non-interactive --no-icon > /tmp/connect-new-eas-project.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const o = JSON.parse(fs.readFileSync('/tmp/connect-new-eas-project.json','utf8'));
+          const id = o.id || o.projectId || o?.project?.id || o?.app?.id;
+          const account = o?.ownerAccount?.name || o?.owner || o?.project?.ownerAccount?.name;
+          if (!/^[0-9a-f-]{36}$/i.test(String(id || '')) ||
+              ['23dad7d0-389a-406e-8dec-08965dab85d8','14100ed1-7f25-4551-9627-09d280498241'].includes(id))
+            throw Error('Expo returned no distinct standalone project ID');
+          console.log('CONNECT_EXPO_PROJECT_ID=' + id);
+          if(account) console.log('CONNECT_EXPO_ACCOUNT=' + account);
+          console.log('CONNECT_EXPO_PROJECT_REGISTERED');
+          NODE
