@@ -157,7 +157,8 @@
         "EXPO_PUBLIC_APP_ENV": "staging",
         "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging",
         "EXPO_PUBLIC_SUPABASE_URL": "https://yhanxndaqbmuzbdqlblu.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS"
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS",
+        "CONNECT_EAS_PROJECT_ID": "fbc71093-6abb-43e6-9493-14b2c8117df8"
       },
       "android": {
         "buildType": "apk"
@@ -173,7 +174,8 @@
         "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-production",
         "EXPO_PUBLIC_SUPABASE_URL": "https://yhanxndaqbmuzbdqlblu.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS"
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS",
+        "CONNECT_EAS_PROJECT_ID": "fbc71093-6abb-43e6-9493-14b2c8117df8"
       },
       "android": {
         "buildType": "app-bundle"

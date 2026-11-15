@@ -13,7 +13,7 @@ test('Independent identifiers, dedicated EAS project and runtime', () => {
   assert.match(app, /isConnect \? 'connect-1\.0\.0'/);
   assert.match(app, /CONNECT_EAS_PROJECT_ID/);
   assert.match(app, /CONNECT_GOOGLE_SERVICES_FILE/);
-  assert.match(app, /Connect EAS project must differ from Main and Classroom/);
+  assert.match(app, /verified independent project/);
   assert.match(app, /isConnect\s*\? connectProjectId/);
 });
 test('Dedicated profiles do not replace Main staging or production OTA', () => {
@@ -65,7 +65,7 @@ test('Actual Expo config resolves independent Connect IDs and fails closed witho
     const staging = config({
       BUKLOD_APP_TARGET: 'connect',
       APP_VARIANT: 'staging',
-      CONNECT_EAS_PROJECT_ID: 'connect-eas',
+      CONNECT_EAS_PROJECT_ID: 'fbc71093-6abb-43e6-9493-14b2c8117df8',
       CONNECT_GOOGLE_SERVICES_FILE: './connect-staging-firebase.json',
       EXPO_PUBLIC_BUKLOD_APP_TARGET: 'connect',
       EAS_BUILD: 'true',
@@ -85,7 +85,7 @@ test('Actual Expo config resolves independent Connect IDs and fails closed witho
     assert.throws(() => config({
       BUKLOD_APP_TARGET: 'connect',
       CONNECT_EAS_PROJECT_ID: '23dad7d0-389a-406e-8dec-08965dab85d8',
-    }), /Connect EAS project must differ/);
+    }), /verified independent project/);
     assert.throws(() => config({
       BUKLOD_APP_TARGET: 'connect',
       CONNECT_GOOGLE_SERVICES_FILE: './google-services.production.json',
@@ -94,7 +94,7 @@ test('Actual Expo config resolves independent Connect IDs and fails closed witho
       BUKLOD_APP_TARGET: 'connect',
       EAS_BUILD: 'true',
       EXPO_PUBLIC_BUKLOD_APP_TARGET: 'connect',
-      CONNECT_EAS_PROJECT_ID: 'connect-eas',
+      CONNECT_EAS_PROJECT_ID: 'fbc71093-6abb-43e6-9493-14b2c8117df8',
       CONNECT_GOOGLE_SERVICES_FILE: './connect-firebase.json',
     });
     assert.equal(production.android.package, 'org.mzbministry.buklod.connect');

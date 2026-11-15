@@ -8,7 +8,7 @@ module.exports = ({ config }) => {
   const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();
   const isClassroom = appTarget === 'classroom';
   const isConnect = appTarget === 'connect';
-  const connectProjectId = (process.env.CONNECT_EAS_PROJECT_ID || '').trim();
+  const connectProjectId = (process.env.CONNECT_EAS_PROJECT_ID || 'fbc71093-6abb-43e6-9493-14b2c8117df8').trim();
   const connectGoogleServicesFile = (process.env.CONNECT_GOOGLE_SERVICES_FILE || '').trim();
   const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
   const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
@@ -32,8 +32,8 @@ module.exports = ({ config }) => {
 
   // Never reuse Main/Classroom update channels or Firebase app identities.
   const mainProjectId = '23dad7d0-389a-406e-8dec-08965dab85d8';
-  if (isConnect && [mainProjectId, classroomProjectId].includes(connectProjectId)) {
-    throw new Error('Connect EAS project must differ from Main and Classroom.');
+  if (isConnect && connectProjectId !== 'fbc71093-6abb-43e6-9493-14b2c8117df8') {
+    throw new Error('Connect EAS project must be the verified independent project; never Main/Classroom.');
   }
   if (isConnect && /google-services\.(?:staging|production|classroom)\.json$/i.test(connectGoogleServicesFile)) {
     throw new Error('Connect cannot use Main/Classroom Firebase credentials.');

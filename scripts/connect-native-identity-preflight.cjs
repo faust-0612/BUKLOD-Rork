@@ -13,7 +13,6 @@ const target = 'org.mzbministry.buklod.connect.staging';
 const env = process.env;
 const required = [
   'EXPO_TOKEN',
-  'CONNECT_EAS_PROJECT_ID',
   'CONNECT_STAGING_FIREBASE_JSON_B64',
 ];
 const missing = required.filter(key => !String(env[key] || '').trim());
@@ -21,8 +20,10 @@ if (missing.length) {
   process.stderr.write('BLOCKED_CONNECT_APK: dedicated setup missing: ' + missing.join(', ') + '\n');
   process.exitCode = 12;
 } else {
-  assert.notEqual(env.CONNECT_EAS_PROJECT_ID.trim(), mainEas, 'Main EAS project forbidden');
-  assert.notEqual(env.CONNECT_EAS_PROJECT_ID.trim(), classroomEas, 'Classroom EAS project forbidden');
+  const projectId = String(env.CONNECT_EAS_PROJECT_ID || '').trim();
+  assert.equal(projectId, 'fbc71093-6abb-43e6-9493-14b2c8117df8', 'Unexpected standalone EAS project ID');
+  assert.notEqual(projectId, mainEas);
+  assert.notEqual(projectId, classroomEas);
   const source = JSON.parse(fs.readFileSync('eas.json', 'utf8')).build?.['connect-staging']?.env;
   const backendUrl = source?.EXPO_PUBLIC_SUPABASE_URL;
   const backendKey = source?.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -40,7 +41,8 @@ if (missing.length) {
     .map(c => c?.client_info?.android_client_info?.package_name)
     .filter(Boolean);
   assert.ok(packages.includes(target), 'Firebase missing standalone staging Android package');
-  assert.ok(firebase.project_info?.project_id, 'Firebase project info missing');
+  assert.equal(firebase.project_info?.project_id, 'buklod-efa4a',
+    'Existing Stream FCM push provider requires BUKLOD Firebase project');
   fs.writeFileSync(path.resolve('google-services.connect.staging.json'), decoded, { mode: 0o600 });
   const easPath = path.resolve('eas.json');
   const eas = JSON.parse(fs.readFileSync(easPath, 'utf8'));
@@ -49,7 +51,7 @@ if (missing.length) {
   assert.equal(profile?.android?.buildType, 'apk');
   assert.equal(profile?.env?.BUKLOD_APP_TARGET, 'connect');
   assert.equal(profile?.env?.EXPO_PUBLIC_BUKLOD_APP_TARGET, 'connect');
-  profile.env.CONNECT_EAS_PROJECT_ID = env.CONNECT_EAS_PROJECT_ID.trim();
+  profile.env.CONNECT_EAS_PROJECT_ID = projectId;
   profile.env.CONNECT_GOOGLE_SERVICES_FILE = './google-services.connect.staging.json';
   // Public mobile client variables, never Supabase service_role credentials.
   profile.env.EXPO_PUBLIC_SUPABASE_URL = backendUrl;

@@ -33,3 +33,6 @@ This source integration is DEV-only until EAS credentials, Android build, push c
 ## Focused staging build automation
 
 The isolated `BUKLOD Connect — Isolated Staging APK` workflow performs source tests and *gates costly builds* on dedicated `EXPO_TOKEN`, `CONNECT_EAS_PROJECT_ID`, `CONNECT_STAGING_FIREBASE_JSON_B64` (new Firebase Android app for `org.mzbministry.buklod.connect.staging`), `CONNECT_EXPO_PUBLIC_SUPABASE_URL`, and `CONNECT_EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. It validates Firebase package identity, writes temporary client config only in the runner, runs TypeScript and Expo config checks, then invokes `eas build --profile connect-staging`. No main or production OTA is published.
+
+## Verified Expo account — 2026-11-15
+Dedicated Expo project successfully created at `@faust_0612/buklod-connect`, ID `fbc71093-6abb-43e6-9493-14b2c8117df8` (Expo CLI GitHub Actions log). The CLI returned nonzero only because the dynamic app config could not be written automatically; this commit pins the independent ID explicitly in code and build profiles. No Main Expo ID changes. Firebase standalone Android client still requires registration to build the staging APK.

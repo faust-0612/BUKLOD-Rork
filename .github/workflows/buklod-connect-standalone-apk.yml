@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 75
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      CONNECT_EAS_PROJECT_ID: ${{ secrets.CONNECT_EAS_PROJECT_ID }}
+      CONNECT_EAS_PROJECT_ID: fbc71093-6abb-43e6-9493-14b2c8117df8
       CONNECT_STAGING_FIREBASE_JSON_B64: ${{ secrets.CONNECT_STAGING_FIREBASE_JSON_B64 }}
       BUKLOD_APP_TARGET: connect
       EXPO_PUBLIC_BUKLOD_APP_TARGET: connect
@@ -80,7 +80,7 @@ jobs:
           assert.equal(c.name, 'BUKLOD Connect Staging');
           assert.equal(c.runtimeVersion, 'connect-1.0.0');
           assert.equal(c.extra?.appTarget, 'connect');
-          assert.equal(c.extra?.eas?.projectId, process.env.CONNECT_EAS_PROJECT_ID);
+          assert.equal(c.extra?.eas?.projectId, 'fbc71093-6abb-43e6-9493-14b2c8117df8');
           assert.equal(c.android.googleServicesFile, './google-services.connect.staging.json');
           console.log('CONNECT_NATIVE_IDENTITY_OK');
           NODE
