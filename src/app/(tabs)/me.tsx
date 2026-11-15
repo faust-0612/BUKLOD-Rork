@@ -1731,7 +1731,7 @@ export default function MeScreen() {
                       : 'camera-outline'
                   }
                   size={17}
-                  color={theme.white}
+                  color={theme.onAccent}
                 />
               </Pressable>
             </View>

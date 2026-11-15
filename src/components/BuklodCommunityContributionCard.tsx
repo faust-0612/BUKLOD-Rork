@@ -117,7 +117,7 @@ export default function BuklodCommunityContributionCard() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.eyebrow}>YOUR COMMUNITY CONTRIBUTION</Text>
-          <Text style={s.sub}>Your contribution progress and estimated earnings at a glance.</Text>
+          <Text style={s.sub}>Progress and estimated earnings</Text>
         </View>
         <Text style={s.level}>{data.contribution_level}</Text>
       </View>
@@ -196,21 +196,21 @@ const s = StyleSheet.create({
   emptyShell:{marginTop:0,marginBottom:0,padding:14,borderRadius:buklodVisual.radius.card,
     borderWidth:1,borderColor:contributionTone.border,backgroundColor:contributionTone.surface,
     flexDirection:'row',alignItems:'center',gap:12,minHeight:72},
-  shell:{marginTop:0,marginBottom:0,borderWidth:1,borderColor:contributionTone.border,borderRadius:buklodVisual.radius.card,backgroundColor:contributionTone.surface,padding:12,gap:9},
+  shell:{marginTop:0,marginBottom:0,borderWidth:1,borderColor:contributionTone.border,borderRadius:buklodVisual.radius.card,backgroundColor:contributionTone.surface,padding:12,gap:7},
   head:{flexDirection:'row',alignItems:'center',gap:9},
   icon:{width:36,height:36,borderRadius:18,backgroundColor:contributionTone.soft,alignItems:'center',justifyContent:'center'},
   eyebrow:{fontSize:11,fontWeight:'900',color:'#173C2C',letterSpacing:.4},
   sub:{marginTop:2,fontSize:12,lineHeight:17,color:'#6E7C74'},
   level:{fontSize:12,fontWeight:'900',color:'#1E6B45',backgroundColor:'#EAF4EE',borderRadius:99,paddingHorizontal:7,paddingVertical:5,overflow:'hidden'},
   metrics:{flexDirection:'row',gap:6},
-  metric:{flex:1,minHeight:56,borderRadius:12,backgroundColor:monthTone.surface,padding:8,justifyContent:'center'},
-  metricValue:{fontSize:15,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:12,fontWeight:'900',color:'#4B5B56'},
+  metric:{flex:1,minHeight:52,borderRadius:10,backgroundColor:monthTone.surface,padding:8,justifyContent:'center'},
+  metricValue:{fontSize:17,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:11,fontWeight:'900',color:'#4B5B56'},
   historyLine:{fontSize:10,fontWeight:'800',color:'#305C47',paddingHorizontal:2},
   periodNote:{fontSize:12,lineHeight:17,color:'#52665C',paddingHorizontal:2},
   impact:{borderRadius:12,borderWidth:1,borderColor:impactTone.border,backgroundColor:impactTone.surface,padding:9},
   impactTitle:{fontSize:12,fontWeight:'900',color:impactTone.ink},
   impactText:{marginTop:3,fontSize:12,lineHeight:17,color:'#5F7066'},
-  estimate:{borderRadius:12,backgroundColor:revenueTone.surface,padding:10}, estimateLabel:{fontSize:12,fontWeight:'900',color:revenueTone.ink},
+  estimate:{borderRadius:10,backgroundColor:revenueTone.surface,padding:9}, estimateLabel:{fontSize:12,fontWeight:'900',color:revenueTone.ink},
   detailLink:{marginTop:7,fontSize:12,fontWeight:'900',color:'#1E6B45'},
   estimateValue:{marginTop:2,fontSize:17,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:12,lineHeight:17,fontWeight:'900',color:'#66501D'},
   secondary:{minHeight:buklodVisual.size.touch,borderRadius:10,borderWidth:1,borderColor:shareTone.border,backgroundColor:shareTone.soft,alignItems:'center',justifyContent:'center',paddingHorizontal:8}, secondaryText:{color:shareTone.ink,fontSize:12,fontWeight:'900'},

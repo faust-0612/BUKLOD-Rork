@@ -5007,7 +5007,7 @@ const [
               CONNECT_COMPOSER_RESERVED_HEIGHT +
               12,
             zIndex: 30,
-            minHeight: 36,
+            minHeight: 48,
             paddingHorizontal: 12,
             borderRadius: 18,
             alignItems: 'center',
@@ -5017,7 +5017,7 @@ const [
         >
           <Text
             style={{
-              color: theme.white,
+              color: theme.onAccent,
               fontSize: 13,
               fontWeight: '800',
             }}
@@ -5766,7 +5766,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
 
     bubbleOther: {
       backgroundColor:
-        '#FFFFFF',
+        theme.bubbleReceived,
       borderWidth: 1,
       borderColor:
         theme.border,
@@ -5788,7 +5788,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     },
 
     bodyOwn: {
-      color: '#FFFFFF',
+      color: theme.textOnSentBubble,
     },
 
     time: {
@@ -5912,7 +5912,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     },
 
     reactionBadgeText: {
-      color: '#FFFFFF',
+      color: theme.onAccent,
       fontSize: 12,
       fontWeight: '900',
     },
@@ -6150,7 +6150,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
       paddingBottom: 20,
       borderTopLeftRadius: 26,
       borderTopRightRadius: 26,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: theme.pickerSheet,
     },
 
     modernPickerHandle: {
@@ -6321,7 +6321,7 @@ function createThreadStyles(theme: ConnectThemeRoles) {
     },
 
     gifPickerButtonText: {
-      color: '#FFFFFF',
+      color: theme.onAccent,
       fontSize: 12.5,
       fontWeight: '900',
     },

@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#09213B',
   },
   cardPressed: { opacity: 0.88 },
-  background: { minHeight: 208, overflow: 'hidden' },
+  background: { minHeight: 174, overflow: 'hidden' },
   illustration: {
     position: 'absolute',
     right: -6,
@@ -127,9 +127,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#0D494C',
   },
   content: {
-    minHeight: 208,
-    paddingHorizontal: 18,
-    paddingVertical: 17,
+    minHeight: 174,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     alignItems: 'flex-start',
     justifyContent: 'center',
     zIndex: 1,
@@ -143,8 +143,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#FFFFFF',
-    fontSize: 24,
-    lineHeight: 29,
+    fontSize: 21,
+    lineHeight: 26,
     fontWeight: '900',
     marginTop: 8,
     maxWidth: 285,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   countRow: {
-    marginTop: 11,
+    marginTop: 7,
     flexDirection: 'row',
     gap: 6,
     alignItems: 'center',
@@ -169,8 +169,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.7,
   },
   action: {
-    marginTop: 13,
-    minHeight: 36,
+    marginTop: 9,
+    minHeight: 44,
     paddingHorizontal: 13,
     paddingVertical: 8,
     borderRadius: 11,
