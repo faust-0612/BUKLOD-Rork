@@ -6,6 +6,7 @@ on:
       - feature/children-bible-library-20261115
     paths:
       - .github/workflows/buklod-children-bible-audio-android-qa-20261115.yml
+      - .buklod/scopes/children-bible-library-20261115.json
   workflow_dispatch:
 permissions:
   contents: read
