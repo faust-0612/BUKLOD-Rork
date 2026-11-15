@@ -31,7 +31,8 @@
     "tests/bible-study-sources.test.cjs",
     "tests/henry-verse-accurate-staging-20261116.test.mjs",
     "release/nov16-henry-verse-accurate-stage132-prep.json",
-    ".github/workflows/buklod-henry-verse-accurate-stage132-preflight.yml"
+    ".github/workflows/buklod-henry-verse-accurate-stage132-preflight.yml",
+    ".buklod/scopes/nov16-henry-verse-accurate-stage132.json"
   ],
   "prePublishGates": [
     "Exact baseline ancestry, allowed-path diff and original full source are verified",
