@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/providers/AuthProvider';
 import StoryArt from '@/features/childrenStories/StoryArt';
-import { BIBLE_STORY_METADATA, BibleTestament } from '@/features/childrenStories/bibleExpansion';
+import { BIBLE_STORY_METADATA, type BibleTestament } from '@/features/childrenStories/bibleExpansion';
 import { BUNDLED_CHILDREN_STORIES, ChildrenStory, StoryCategory, StoryLanguage, STORY_CATEGORIES, localize } from '@/features/childrenStories/catalog';
 import { fetchChildrenStoryLibrary, formatStoryAge, readStoryProgress, StoryProgress } from '@/features/childrenStories/service';
 
@@ -117,7 +117,7 @@ export default function ChildrenStoriesLibrary() {
           </View>
         </Pressable>}
         ListEmptyComponent={<Text style={styles.empty}>Walang kuwentong tumugma. Baguhin ang filter.</Text>}
-        ListFooterComponent={<Text style={styles.footer}>Gamitin kasama ang magulang o guardian. Walang chats, ads, o child accounts dito. Ang ${BUNDLED_CHILDREN_STORIES.length} orihinal na kuwento ay naka-bundle para sa offline reading. Ang mga biblical adaptation ay may talatang sanggunian at maaaring hanapin ayon sa aklat at tipan.</Text>}
+        ListFooterComponent={<Text style={styles.footer}>Gamitin kasama ang magulang o guardian. Walang chats, ads, o child accounts dito. Ang {BUNDLED_CHILDREN_STORIES.length} orihinal na kuwento ay naka-bundle para sa offline reading. Ang mga biblical adaptation ay may talatang sanggunian at maaaring hanapin ayon sa aklat at tipan.</Text>}
       />
     </View>
   );
