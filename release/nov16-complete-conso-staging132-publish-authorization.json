@@ -1,0 +1,32 @@
+{
+  "authorizationVersion": 1,
+  "sourceSha": "131c6d294062ce34ff91f91a7090b9bb0d6ce6f2",
+  "baseSha": "81ace5141f4d676ce708ad103c9849eddc01b30d",
+  "scopeManifest": ".buklod/scopes/nov16-complete-conso-staging132.json",
+  "stagingReady": true,
+  "publicationPolicy": {
+    "allowOtaPublish": true,
+    "allowProductionPromotion": false,
+    "exactlyOnce": true,
+    "stopOnStagingOrProductionDrift": true
+  },
+  "target": {
+    "platform": "android",
+    "channel": "staging-user",
+    "environment": "preview",
+    "packageId": "org.mzbministry.buklod.staging",
+    "runtimeVersion": "1.3.2",
+    "expoProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "compatibleBuildId": "bc4be208-bfb0-42f3-95cb-358353d0600f"
+  },
+  "stagingBaselineLastVerifiedUpdateId": "01a1e08b-6fe8-72d1-9a5c-e6f37e6cf116",
+  "productionOtaPublished": false,
+  "actualDeviceVerification": "SKIPPED_BY_OWNER",
+  "requirements": [
+    "Exact SHA PR 855 source CI success, no release-source changes",
+    "Verified native APK and current stage+production EAS manifests",
+    "Exact Android Hermes export with preview environment",
+    "Prepublish last-moment staging id check and rollback fail-closed",
+    "Independent EAS update:view + stage manifest and production nonmutation after publish"
+  ]
+}
