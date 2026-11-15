@@ -35,6 +35,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+      - name: Install Expo app plugins needed by EAS init
+        run: npm ci --ignore-scripts
       - name: Verify independent Expo project source target
         run: |
           set -euo pipefail
