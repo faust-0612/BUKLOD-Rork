@@ -1,0 +1,58 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/notifications-dark-contrast-executive-20261115.json",
+  "objective": "Fix dark-mode unreadable notification titles/body/timestamps and mismatched status bar in screenshot; restore 12-palette WCAG AA readability and compact executive Notifications list without changing notification privacy, deep links, PTT, alerts, or other screens.",
+  "baseRef": "dev/executive-density-staging-20261115",
+  "productionBaselineEvidence": "Verified Android staging-user release PR #830, commit ab3ed7c375b09b31dcac2369c106eba4bd8a6ca0, Expo update 01a1df87-139b-7da4-9e69-4e5ed36024df, workflow 43721789926, signed staging client runtime 1.3.2. No production changes authorized.",
+  "chosenApproach": "Convert Notifications from legacy fixed light text + static screen canvas to existing useThemedShared and semantic palette text, with theme-aware status bar and cluster action buttons; remove decorative bell and duplicate 99 badge and replace giant full-width bulk read button with compact 44px header action.",
+  "selectionRationale": "Existing global Card responds to Night Pine while Notifications text does not. A narrow route/theme-token fix avoids touching protected notification data path and native runtime.",
+  "alternativeApproaches": [
+    "Force all notification cards white in dark mode (rejected: inconsistent night theme and status bar).",
+    "Globally change legacy colors.text for every component (rejected: uncontrolled cross-app regression).",
+    "Change only the existing Notifications route and associated action controls (selected)."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "notifications",
+    "accessibility",
+    "navigation-auth"
+  ],
+  "preserveBehaviors": [
+    "Private notifications are still fetched by user_id with RLS, faith filtering, and PTT incoming exclusion.",
+    "Notification mark-all, individual read state, cluster join decisions, exact deep links and activity notification count remain unchanged.",
+    "No database/backend/AdMob/media/Kingdom/Connect/PTT logic, native packages, permissions, session boundaries, production or Play updates.",
+    "Readable normal-length and long Filipino/English notification bodies without cutting the text or shrinking fonts.",
+    "Physical device visual acceptance waived by owner; automated source contrast, tests and Android typecheck remain mandatory."
+  ],
+  "acceptanceChecks": [
+    "Twelve palette title/body/time text-to-card backgrounds each meet WCAG AA >=4.5:1.",
+    "Status bar icon style follows screen canvas on Night Pine, Graphite, Midnight and all light themes.",
+    "Executive header replaces giant Mark all banner with 44px action and list row separators without hiding any notification body.",
+    "Exact source privacy/mark read/deep links/cluster actions preserved with focused regression tests.",
+    "Source branch compared against immutable staging PR #830; no unilateral production or stale staging release."
+  ],
+  "regressionTests": [
+    "tests/notifications-dark-contrast-executive-20261115.test.mjs",
+    "tests/notifications-read-actions-regression-20261115.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/notifications-dark-contrast-executive-20261115.json",
+    "src/app/notifications/index.tsx",
+    "src/components/ClusterNotificationActions.tsx",
+    "tests/notifications-dark-contrast-executive-20261115.test.mjs",
+    "tests/notifications-read-actions-regression-20261115.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Notifications route and join decision card styles currently mix fixed light-theme text with dynamically dark Card surfaces and require a scoped app runtime visual fix.",
+      "preservedBehaviors": [
+        "Keep current Notifications query, read/update/deep link routing, notification counts and Cluster decisions; use only palette semantic styles."
+      ],
+      "tests": [
+        "tests/notifications-dark-contrast-executive-20261115.test.mjs",
+        "tests/notifications-read-actions-regression-20261115.test.mjs"
+      ]
+    }
+  ]
+}
