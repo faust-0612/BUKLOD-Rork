@@ -135,3 +135,16 @@ test('Connect has independently branded launcher, adaptive and splash icons', ()
     else process.env.BUKLOD_APP_TARGET = old;
   }
 });
+
+test('Independent Connect APK does not inherit Main version cutoff or Main update download UI', () => {
+  const helper = read('src/lib/buklodConnectStandalone.ts');
+  const boot = read('src/app/index.tsx');
+  const boundary = read('src/components/BuklodMandatoryUpdateBoundary.tsx');
+  const home = read('src/components/BuklodConnectStandaloneHome.tsx');
+  assert.match(helper, /config\.features\?\.connect_standalone_update_required === true/);
+  assert.match(helper, /: config\.update_required === true/);
+  assert.match(boot, /shouldRequireBuklodNativeUpdate\(config\)/);
+  assert.match(boundary, /isBuklodConnectStandalone \? \(/);
+  assert.match(boundary, /BUKLOD Connect update required/);
+  assert.match(home, /shouldRequireBuklodNativeUpdate\(config\)/);
+});

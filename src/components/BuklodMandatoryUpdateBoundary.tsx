@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { isBuklodConnectStandalone, shouldRequireBuklodNativeUpdate } from '@/lib/buklodConnectStandalone';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import BuklodUpdateRequiredPanel from '@/components/BuklodUpdateRequiredPanel';
@@ -19,8 +20,8 @@ export default function BuklodMandatoryUpdateBoundary({
   children: ReactNode;
 }) {
   const { session } = useAuth();
-  const { config } = useRuntimeConfig();
-  const blocked = Platform.OS !== 'web' && Boolean(session) && Boolean(config?.update_required);
+  const { config, refresh } = useRuntimeConfig();
+  const blocked = Platform.OS !== 'web' && Boolean(session) && shouldRequireBuklodNativeUpdate(config);
   // Expo Router must keep the root navigator mounted even when an update
   // is mandatory. An overlay blocks all touches/deep-linked screens while
   // preserving the navigation context for the Check Again action.
@@ -36,9 +37,29 @@ export default function BuklodMandatoryUpdateBoundary({
       </View>
       {blocked ? (
         <View style={StyleSheet.absoluteFillObject} pointerEvents="auto">
+          {isBuklodConnectStandalone ? (
+          <View style={styles.connectUpdate}>
+            <Text style={styles.connectTitle}>BUKLOD Connect update required</Text>
+            <Text style={styles.connectCopy}>
+              This Connect installation needs its own updated APK. Do not install the Main BUKLOD APK as a replacement.
+            </Text>
+            <Pressable accessibilityRole="button" style={styles.connectButton} onPress={() => void refresh()}>
+              <Text style={styles.connectButtonText}>Check again</Text>
+            </Pressable>
+          </View>
+        ) : (
           <BuklodUpdateRequiredPanel />
+        )}
         </View>
       ) : null}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  connectUpdate: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, backgroundColor: '#F3F9E9' },
+  connectTitle: { fontSize: 23, color: '#1E3814', fontWeight: '900', textAlign: 'center' },
+  connectCopy: { marginTop: 14, fontSize: 14, lineHeight: 21, color: '#4E6C3B', textAlign: 'center' },
+  connectButton: { marginTop: 25, paddingHorizontal: 28, paddingVertical: 13, borderRadius: 18, backgroundColor: '#68B516' },
+  connectButtonText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
+});

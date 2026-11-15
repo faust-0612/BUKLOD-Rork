@@ -3,7 +3,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { isBuklodConnectStandalone } from '@/lib/buklodConnectStandalone';
+import { isBuklodConnectStandalone, shouldRequireBuklodNativeUpdate } from '@/lib/buklodConnectStandalone';
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
@@ -149,7 +149,7 @@ export default function Index() {
 
   if (!session) return <Redirect href="/(auth)/login" />;
   if (config?.maintenance_mode) return <Redirect href="/system/maintenance" />;
-  if (config?.update_required) return <Redirect href="/system/update-required" />;
+  if (shouldRequireBuklodNativeUpdate(config) && !isBuklodConnectStandalone) return <Redirect href="/system/update-required" />;
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
   if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
 

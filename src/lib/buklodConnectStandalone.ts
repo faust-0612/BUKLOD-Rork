@@ -22,3 +22,14 @@ export function isBuklodConnectPublicPath(pathname: string): boolean {
   return /^\/(login|register|forgot-password|privacy|help|support|delete-account)(\/|$)/.test(path)
     || /^\/\(auth\)(\/|$)/.test(path);
 }
+
+/** Independent binaries must never inherit Main's minimum APK version. */
+export function shouldRequireBuklodNativeUpdate(config: {
+  update_required?: boolean | null;
+  features?: Record<string, boolean> | null;
+} | null | undefined): boolean {
+  if (!config) return false;
+  return isBuklodConnectStandalone
+    ? config.features?.connect_standalone_update_required === true
+    : config.update_required === true;
+}

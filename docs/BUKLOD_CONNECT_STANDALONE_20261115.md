@@ -36,3 +36,7 @@ The isolated `BUKLOD Connect — Isolated Staging APK` workflow performs source 
 
 ## Verified Expo account — 2026-11-15
 Dedicated Expo project successfully created at `@faust_0612/buklod-connect`, ID `fbc71093-6abb-43e6-9493-14b2c8117df8` (Expo CLI GitHub Actions log). The CLI returned nonzero only because the dynamic app config could not be written automatically; this commit pins the independent ID explicitly in code and build profiles. No Main Expo ID changes. Firebase standalone Android client still requires registration to build the staging APK.
+
+## Independent update policy
+
+Connect's first version is `1.0.0`, and the existing `get_client_runtime_config` RPC currently computes Main's mandatory native minimum version. To avoid directing Connect users to install an incompatible Main APK, the standalone root does not adopt Main's `update_required` cutoff. Global maintenance mode, pilot access, authentication and privacy gates remain in place. An explicit per-Connect feature flag `features.connect_standalone_update_required === true` displays a Connect-only blocking update screen, without a fabricated download URL. Dedicated Connect release-version policy and a verified distribution URL must be provisioned before production rollout.

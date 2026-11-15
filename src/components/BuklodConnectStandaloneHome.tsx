@@ -9,6 +9,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { signOutBuklodResilient } from '@/lib/buklodAuthResilience';
+import { shouldRequireBuklodNativeUpdate } from '@/lib/buklodConnectStandalone';
 
 const GREEN = '#68B516';
 const INK = '#1E3814';
@@ -28,7 +29,9 @@ export default function BuklodConnectStandaloneHome() {
   );
   if (!session) return <Redirect href="/(auth)/login" />;
   if (config?.maintenance_mode) return <Redirect href="/system/maintenance" />;
-  if (config?.update_required) return <Redirect href="/system/update-required" />;
+  // Connect's mandatory update overlay is controlled by its own root boundary.
+  // Do not redirect users to Main's APK update screen.
+  if (shouldRequireBuklodNativeUpdate(config)) return null;
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
   if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
 
