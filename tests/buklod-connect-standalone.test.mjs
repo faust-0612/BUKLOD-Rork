@@ -113,7 +113,7 @@ test('Actual Expo config resolves independent Connect IDs and fails closed witho
 test('Standalone Connect shows compact apple-green unread status without the Main hero', () => {
   const inbox = read('src/app/(tabs)/messages.tsx');
   assert.match(inbox, /isBuklodConnectStandalone \? \(/);
-  assert.equal((inbox.match(/import \\{ isBuklodConnectStandalone \\} from /g) || []).length, 1);
+  assert.equal(inbox.split('import { isBuklodConnectStandalone } from').length - 1, 1);
   assert.match(inbox, /styles\.standaloneUnread/);
   assert.match(inbox, /marginTop: isBuklodConnectStandalone \? 2 : -12/);
   assert.match(inbox, /<View style=\{styles\.hero\}>/);
