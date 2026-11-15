@@ -43,9 +43,10 @@ test('Wall autoplay starts without dwell while AdMob and bounded next-video preb
   const hook=read('src/hooks/useBuklodCommunityAdViewability.ts');
   const native=read('src/components/CommunityVideo.tsx');
   const marites=read('src/components/BuklodMaritesBoard.tsx');
-  assert.match(hook,/itemVisiblePercentThreshold: 25,\s*minimumViewTime: 0/);
+  // Video may become eligible promptly when a real frame enters view; native ads must remain gated separately.
+  assert.match(hook,/itemVisiblePercentThreshold: 1,\s*minimumViewTime: 0/);
   assert.match(hook,/itemVisiblePercentThreshold: 60,\s*minimumViewTime: 400/);
-  assert.match(hook,/Math\.min\(rows\.length, index \+ 4\)/);
+  assert.match(hook,/Math\.min\(rows\.length, index \+ 5\)/);
   assert.match(native,/useCaching: true/);
   assert.match(native,/COMMUNITY_VIDEO_CACHE_BUDGET_BYTES/);
   assert.match(marites,/useCaching: true/);

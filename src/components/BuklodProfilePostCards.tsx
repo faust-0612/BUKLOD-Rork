@@ -4,6 +4,7 @@ import {router,useFocusEffect} from 'expo-router';
 import {useBuklodTheme} from '@/providers/BuklodThemeProvider';
 import {loadMemberCommunityPosts,type MemberPublicPost} from '@/lib/buklodMemberProfile';
 import {repairMojibakeText} from '@/lib/repairMojibakeText';
+import {buklodVisual} from '@/lib/buklodVisual';
 
 export default function BuklodProfilePostCards({userId}:{userId:string}) {
  const {theme}=useBuklodTheme();
@@ -17,7 +18,7 @@ export default function BuklodProfilePostCards({userId}:{userId:string}) {
      .catch(()=>{if(active)setPosts([]);}).finally(()=>{if(active)setLoading(false);});
    return ()=>{active=false;};
  },[userId]));
- return <View style={{marginHorizontal:12,marginTop:12,gap:10}}>
+ return <View style={{marginHorizontal:buklodVisual.space.screen,marginTop:8,gap:7}}>
    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8}}>
      <Text allowFontScaling style={{color:theme.textPrimary,fontWeight:'900',fontSize:16}}>MY RECENT POSTS</Text>
      <Pressable accessibilityRole="button" accessibilityLabel="Open all my posts"
@@ -30,11 +31,11 @@ export default function BuklodProfilePostCards({userId}:{userId:string}) {
      <Text allowFontScaling style={{color:theme.textMuted,fontSize:13}}>No recent posts to preview.</Text>:
      posts.map(post=><Pressable key={post.id} accessibilityRole="button" accessibilityLabel="Open exact post card"
        onPress={()=>router.push(('/post/'+encodeURIComponent(post.id)) as any)}
-       style={{padding:12,borderRadius:15,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:8}}>
+       style={{padding:10,borderRadius:13,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:6}}>
        {!!post.body&&<Text allowFontScaling numberOfLines={5}
          style={{color:theme.textPrimary,fontSize:14,lineHeight:20}}>{repairMojibakeText(post.body)}</Text>}
        {post.media_url&&!post.is_video?<Image source={{uri:post.media_url}} resizeMode="cover"
-         style={{width:'100%',height:150,borderRadius:10}}/>:null}
+         style={{width:'100%',height:120,borderRadius:10}}/>:null}
        {post.is_video?<Text allowFontScaling style={{color:theme.accent}}>Video post · Tap for playback</Text>:null}
        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>
          {post.created_at?new Date(post.created_at).toLocaleDateString('en-PH'):'Open post to view'}

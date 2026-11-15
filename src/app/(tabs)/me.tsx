@@ -176,7 +176,7 @@ function DrawerSection({
       StyleSheet.create({
         drawer: {
           marginBottom: 6,
-          marginHorizontal: 12,
+          marginHorizontal: buklodVisual.space.screen,
           borderWidth: 1,
           borderColor: theme.border,
           borderRadius: 13,
@@ -189,17 +189,17 @@ function DrawerSection({
           elevation: 2,
         },
         drawerHeader: {
-          minHeight: 62,
+          minHeight: 52,
           flexDirection: 'row',
           alignItems: 'center',
-          paddingHorizontal: 13,
-          paddingVertical: 10,
+          paddingHorizontal: 11,
+          paddingVertical: 8,
           gap: 6,
           backgroundColor: theme.surface,
         },
         drawerIcon: {
-          width: 36,
-          height: 36,
+          width: 32,
+          height: 32,
           borderRadius: 12,
           alignItems: 'center',
           justifyContent: 'center',
@@ -216,7 +216,7 @@ function DrawerSection({
         },
         drawerSubtitle: {
           marginTop: 2,
-          fontSize: 13.5,
+          fontSize: 12,
           lineHeight: 18,
           color: theme.textMuted,
         },
@@ -291,11 +291,11 @@ function MenuRow({
     () =>
       StyleSheet.create({
         menuRow: {
-          minHeight: 54,
+          minHeight: 48,
           flexDirection: 'row',
           alignItems: 'center',
           paddingHorizontal: 7,
-          paddingVertical: 7,
+          paddingVertical: 5,
           marginVertical: 2,
           borderRadius: 13,
           gap: 6,
@@ -1731,7 +1731,7 @@ export default function MeScreen() {
                       : 'camera-outline'
                   }
                   size={17}
-                  color={theme.white}
+                  color={theme.onAccent}
                 />
               </Pressable>
             </View>
@@ -1833,18 +1833,18 @@ export default function MeScreen() {
       </View>
 
       {/* Signed-in member rank is visible for regular and BUKLOD Official profiles. */}
-      <View style={{marginHorizontal:12,padding:12,borderRadius:15,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:7}}>
+      <View style={{marginHorizontal:buklodVisual.space.screen,padding:10,borderRadius:13,borderWidth:1,borderColor:theme.border,backgroundColor:theme.cardSurface,gap:6}}>
         <Text allowFontScaling style={{color:theme.textPrimary,fontSize:15,fontWeight:'900'}}>MY OVERALL & MONTHLY RANK</Text>
         <View style={{flexDirection:'row',gap:8}}>
           {([['ALL-TIME',rankPositions?.overall],['MONTHLY',rankPositions?.monthly]] as const).map(([label,position])=>(
             <Pressable key={label} accessibilityRole="button" onPress={()=>router.push('/points' as any)}
-              style={{flex:1,backgroundColor:theme.accentSoft,minHeight:56,alignItems:'center',padding:9,borderRadius:12}}>
+              style={{flex:1,backgroundColor:theme.accentSoft,minHeight:50,alignItems:'center',justifyContent:'center',padding:7,borderRadius:10}}>
               <Text allowFontScaling style={{color:theme.accent,fontSize:19,fontWeight:'900'}}>{position&&position>0?String(position):'—'}</Text>
               <Text allowFontScaling style={{fontSize:11,color:theme.textSecondary,fontWeight:'800'}}>{label}</Text>
             </Pressable>
           ))}
         </View>
-        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Recorded Points standings. Monthly rank uses the calendar month; AdMob payouts finalize separately.</Text>
+        <Text allowFontScaling style={{color:theme.textMuted,fontSize:11}}>Points standings, not payout amounts. Monthly ranks follow the calendar month.</Text>
       </View>
 
       {/* BUKLOD Official also owns real posts: show them before its admin bulletin. */}
@@ -2003,14 +2003,14 @@ function createMeStyles(
 ) {
   return StyleSheet.create({
     content: {
-      paddingTop: 10,
-      paddingBottom: 24,
+      paddingTop: 8,
+      paddingBottom: 16,
       paddingHorizontal: 0,
       marginHorizontal: 0,
-      gap: 10,
+      gap: 8,
     },
     sectionPad: {
-      paddingHorizontal: 12,
+      paddingHorizontal: buklodVisual.space.screen,
     },
     eyebrow: {
       marginBottom: 8,
@@ -2104,8 +2104,8 @@ function createMeStyles(
     },
     profileMenuItem: {
       minHeight: buklodVisual.size.row,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,

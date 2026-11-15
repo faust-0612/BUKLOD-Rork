@@ -161,6 +161,10 @@ const FIL: BuklodLifeCopy = {
     'Mapapatawad ba ako ng Diyos?',
     'Ano ang mangyayari pagkatapos ng kamatayan?',
     'Ano ang ibig sabihin ng maligtas?',
+    'Bakit hindi sapat ang pagiging mabuting tao?',
+    'Ano ang kasalanan ayon sa Bibliya?',
+    'Maaari ba talaga akong magsimula muli?',
+    'Bakit naniniwala ang mga Christian na muling nabuhay si Jesus?',
   ],
   primaryTopics: [
     {
@@ -403,6 +407,10 @@ const EN: BuklodLifeCopy = {
     'Can God forgive me?',
     'What happens after death?',
     'What does it mean to be saved?',
+    'Why is being a good person not enough?',
+    'What is sin according to the Bible?',
+    'Can I really begin again?',
+    'Why do Christians believe Jesus rose from the dead?',
   ],
   primaryTopics: [
     {

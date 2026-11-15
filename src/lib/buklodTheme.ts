@@ -49,6 +49,7 @@ export type BuklodThemeRoles = {
   border: string;
   inputSurface: string;
   buttonPrimary: string;
+  onAccent: string;
   buttonSecondary: string;
   unreadBadge: string;
   success: string;
@@ -135,7 +136,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#FFFFFF',
     textPrimary: '#1A2332',
     textSecondary: '#4A5568',
-    textMuted: '#718096',
+    textMuted: '#5E6D7D',
     accent: '#2563EB',
     accentSoft: '#EBF2FF',
     border: '#E2E8F0',
@@ -155,7 +156,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#FAFCFB',
     textPrimary: '#1A2E24',
     textSecondary: '#4A6358',
-    textMuted: '#6B8578',
+    textMuted: '#586F64',
     accent: '#2D8B57',
     accentSoft: '#E3F2EA',
     border: '#D4E5DC',
@@ -175,7 +176,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#FAFBF9',
     textPrimary: '#2A3328',
     textSecondary: '#5A6556',
-    textMuted: '#7A8576',
+    textMuted: '#5F6A5F',
     accent: '#6B8F71',
     accentSoft: '#E4EBE5',
     border: '#D5DED6',
@@ -195,7 +196,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#FAFCFE',
     textPrimary: '#1A2A3A',
     textSecondary: '#4A6278',
-    textMuted: '#6B8298',
+    textMuted: '#576B7A',
     accent: '#3B82C4',
     accentSoft: '#E3EEF8',
     border: '#D0DEEE',
@@ -215,7 +216,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#FDFCFE',
     textPrimary: '#2A2438',
     textSecondary: '#5A5268',
-    textMuted: '#7A7288',
+    textMuted: '#6A6577',
     accent: '#7C6BA8',
     accentSoft: '#EDE8F5',
     border: '#DCD4E8',
@@ -235,7 +236,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#FFFCF7',
     textPrimary: '#3A342C',
     textSecondary: '#6B6458',
-    textMuted: '#8A8278',
+    textMuted: '#6A6860',
     accent: '#A8926A',
     accentSoft: '#F0EBE2',
     border: '#E5DDD0',
@@ -255,7 +256,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#121A16',
     textPrimary: '#F2F6F4',
     textSecondary: '#B8C5BD',
-    textMuted: '#7A8A82',
+    textMuted: '#96A59D',
     accent: '#45D17A',
     accentSoft: '#1A3D28',
     border: '#2A3530',
@@ -275,7 +276,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#181818',
     textPrimary: '#ECECEC',
     textSecondary: '#B0B0B0',
-    textMuted: '#7A7A7A',
+    textMuted: '#9A9E9C',
     accent: '#6B9E78',
     accentSoft: '#2A3530',
     border: '#333333',
@@ -295,7 +296,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#FFFFFF',
     textPrimary: '#16202A',
     textSecondary: '#4A5A52',
-    textMuted: '#697784',
+    textMuted: '#606E79',
     accent: '#176B2C',
     accentSoft: '#EAF5ED',
     border: '#DDE5E0',
@@ -315,7 +316,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#FFFCF7',
     textPrimary: '#2C2824',
     textSecondary: '#6B645C',
-    textMuted: '#8A8278',
+    textMuted: '#68665E',
     accent: '#7A6B4E',
     accentSoft: '#EDE8DF',
     border: '#DDD5C8',
@@ -335,7 +336,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#FFFAFB',
     textPrimary: '#3A2830',
     textSecondary: '#6B5258',
-    textMuted: '#8A7278',
+    textMuted: '#756468',
     accent: '#C46B7A',
     accentSoft: '#F5E8EB',
     border: '#E8D4D8',
@@ -355,7 +356,7 @@ const PALETTE_SOURCES: Record<
     headerSurface: '#12171E',
     textPrimary: '#E6EDF3',
     textSecondary: '#9BA8B4',
-    textMuted: '#6E7A86',
+    textMuted: '#86929A',
     accent: '#58A6FF',
     accentSoft: '#1C2836',
     border: '#30363D',
@@ -369,6 +370,18 @@ const PALETTE_SOURCES: Record<
     shadow: '#000000',
   },
 };
+
+/** WCAG contrast-aware foreground for solid accent buttons/badges. */
+export function accessibleTextOn(background: string): string {
+  const hex = background.replace(/^#/, '');
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return '#000000';
+  const values = [0, 2, 4].map(index => {
+    const value = parseInt(hex.slice(index, index + 2), 16) / 255;
+    return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+  });
+  const luminance = values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
+  return 1.05 / (luminance + 0.05) >= 4.5 ? '#FFFFFF' : '#000000';
+}
 
 function buildGlobalRoles(
   paletteId: BuklodPaletteId
@@ -390,6 +403,7 @@ function buildGlobalRoles(
     border: p.border,
     inputSurface: p.inputSurface,
     buttonPrimary: p.accent,
+    onAccent: accessibleTextOn(p.accent),
     buttonSecondary: p.accentSoft,
     unreadBadge: p.unreadBadge,
     success: p.success,

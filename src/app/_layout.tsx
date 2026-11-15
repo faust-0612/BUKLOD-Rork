@@ -273,6 +273,8 @@ function RootLayout() {
               >
                 <Stack.Screen name="index" />
                 <Stack.Screen name="child-safety" />
+                <Stack.Screen name="children-stories/index" />
+                <Stack.Screen name="children-stories/[id]" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="privacy/index" />
                 <Stack.Screen name="help/index" />
@@ -385,6 +387,7 @@ function RootLayout() {
                 <Stack.Screen name="admin/approvals" />
                 <Stack.Screen name="admin/series" />
                 <Stack.Screen name="admin/devotionals" />
+                <Stack.Screen name="admin/children-stories" />
                 <Stack.Screen name="admin/devotional-editor" />
                 <Stack.Screen name="admin/churches" />
                 <Stack.Screen name="admin/church-readiness" />
