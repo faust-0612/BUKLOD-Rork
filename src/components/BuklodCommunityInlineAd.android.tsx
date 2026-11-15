@@ -102,6 +102,12 @@ export default function BuklodCommunityInlineAd({
   // the Community feed's visible-row registry.
   const currentlyVisible =
     surface !== 'wall' || firstView || !slotId || currentListVisibility;
+  // A loaded NativeAd in a Wall row can mount on the list's already
+  // verified 60%-visible/400ms callback. Waiting for a second independent
+  // 400ms probe plus the shared 1200ms poll creates avoidable blank ads.
+  // First-view and non-Wall surfaces still use their measured viewport gate.
+  const canShowNativeCreative =
+    eligible || (surface === 'wall' && !firstView && Boolean(slotId) && currentListVisibility);
 
   const [nativeAd, setNativeAd] = useState<NativeAd | null>(null);
   const [nativeFailed, setNativeFailed] = useState(false);
@@ -230,7 +236,7 @@ export default function BuklodCommunityInlineAd({
   // interaction safety locks remain mandatory for every request.
   const canPrefetchNative =
     active && routeSafe && sdkReady && adNetworkAvailable &&
-    (eligible || prefetch || nativeRequestStarted.current);
+    (firstView || (eligible || prefetch || nativeRequestStarted.current));
   const keepNativeLifecycle =
     canAttempt || canPrefetchNative ||
     (active && sdkReady && mayRetainNative &&
@@ -380,14 +386,17 @@ export default function BuklodCommunityInlineAd({
     diagnosticPlacement,
     nativeFailed,
     nativeUnitId,
-    pathname,
+    // Route transitions between two allowed surfaces must not tear down a
+    // successfully loaded SDK creative. keepNativeLifecycle already tracks
+    // route safety and disposes on a genuinely forbidden destination.
+    // The request-time pathname is intentionally captured for diagnostics.
     placementId,
     requestKey,
     reservationTick,
   ]);
 
   useEffect(() => {
-    if (!nativeAd || nativeRendered.current || !eligible) return;
+    if (!nativeAd || nativeRendered.current || !canShowNativeCreative) return;
     nativeRendered.current = true;
     recordBuklodAdEvent(
       diagnosticPlacement,
@@ -395,7 +404,7 @@ export default function BuklodCommunityInlineAd({
       undefined,
       { route: pathname, placementId, adFormat: 'native' },
     );
-  }, [diagnosticPlacement, nativeAd, eligible, pathname, placementId]);
+  }, [diagnosticPlacement, nativeAd, canShowNativeCreative, pathname, placementId]);
 
   useEffect(() => {
     if (
@@ -533,7 +542,7 @@ export default function BuklodCommunityInlineAd({
 
   // NativeAdView and SDK impression tracking never run for an offscreen
   // prefetched creative; show the cached object only after a real viewport hit.
-  if (nativeAd && !nativeFailed && eligible) {
+  if (nativeAd && !nativeFailed && canShowNativeCreative) {
     return (
       <View ref={ref} collapsable={false}>
         <NativeAdView nativeAd={nativeAd} style={styles.nativeShell}>
