@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -235,6 +237,18 @@ export default function BuklodReportAssignmentForm({
     }
   }, [answers, context, evidencePhotos, fields, onSubmitted, pendingPhoto, readOnly, saving, scopeId, uploadingPhoto]);
 
+  const viewEvidencePhoto = useCallback(async (path: string) => {
+    setError('');
+    try {
+      const { data, error: signingError } = await supabase.storage
+        .from('buklod-report-evidence').createSignedUrl(path, 90);
+      if (signingError || !data?.signedUrl) throw signingError ?? new Error('Could not open secured photo.');
+      await Linking.openURL(data.signedUrl);
+    } catch (viewError: any) {
+      setError(viewError?.message || 'Photo access was denied.');
+    }
+  }, []);
+
   const selectEvidencePhoto = useCallback(async () => {
     if (readOnly || uploadingPhoto) return;
     setError('');
@@ -396,11 +410,16 @@ export default function BuklodReportAssignmentForm({
         <Text style={styles.fieldLabel}>PHOTO EVIDENCE · {evidencePhotos.length}/10</Text>
         <Text style={styles.fieldHelp}>Attach photos from this reporting period. Only you and an authorized report reviewer can access these images.</Text>
         {evidencePhotos.map((photo) => (
-          <Text key={photo.path} style={styles.fieldHelp}>✓ {photo.filename}</Text>
+          <Pressable key={photo.path} onPress={() => void viewEvidencePhoto(photo.path)} style={styles.photoEvidenceRow}>
+            <MaterialCommunityIcons name="image-outline" size={18} color={colors.greenDark} />
+            <Text style={[styles.fieldHelp, { flex: 1 }]} numberOfLines={1}>{photo.filename}</Text>
+            <Text style={styles.photoOpenText}>VIEW</Text>
+          </Pressable>
         ))}
         {pendingPhoto && !readOnly ? (
           <View style={styles.photoPending}>
             <Text style={styles.fieldHelp}>Selected: {pendingPhoto.filename}. This photo is not uploaded until you confirm.</Text>
+            <Image source={{ uri: pendingPhoto.uri }} resizeMode="contain" style={styles.photoPreview} />
             <View style={styles.choiceRow}>
               <Pressable disabled={uploadingPhoto} onPress={() => setPendingPhoto(null)} style={styles.secondaryButton}>
                 <Text style={styles.secondaryText}>Cancel</Text>
@@ -463,6 +482,9 @@ const styles = StyleSheet.create({
   deadlineText: { color: '#7A5A10', fontSize: 10, fontWeight: '800' },
   evidencePanel: { gap: 9, borderRadius: 12, borderWidth: 1, borderColor: '#CFE3D8', padding: 12, backgroundColor: '#F7FAF8' },
   photoPending: { gap: 9 },
+  photoPreview: { width: 160, height: 160, borderRadius: 12, backgroundColor: '#E8F5EE', alignSelf: 'center' },
+  photoEvidenceRow: { flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 42, borderRadius: 9, paddingHorizontal: 8, backgroundColor: '#EAF5EF' },
+  photoOpenText: { color: colors.greenDark, fontSize: 9, fontWeight: '900' },
   fieldWrap: { gap: 5 },
   fieldLabel: { color: '#173B2F', fontSize: 10, fontWeight: '900' },
   fieldHelp: { color: '#6C7B73', fontSize: 9, lineHeight: 13 },
