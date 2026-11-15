@@ -17,7 +17,9 @@
     "connect-ptt-calls",
     "ads-finance-points",
     "kingdom-character",
-    "connect"
+    "connect",
+    "release-identity",
+    "production-release"
   ],
   "preserveBehaviors": [
     "Keep original Home section order and lazy load gates, contribution data isolation, estimated earnings disclaimers and existing ads.",
@@ -38,10 +40,13 @@
     "tests/executive-home-navigation-20261115.test.mjs",
     "tests/executive-connect-messages-20261115.test.mjs",
     "tests/executive-qmp-ads-revenue-20261115.test.mjs",
-    "tests/executive-kingdom-character-20261115.test.mjs"
+    "tests/executive-kingdom-character-20261115.test.mjs",
+    "tests/executive-staging-ota-release-20261115.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/executive-dark-spacing-staging-20261115.json",
+    ".github/workflows/buklod-executive-ui-staging-132-ota-20261115.yml",
+    "scripts/buklod-executive-staging-132-policy.mjs",
     "src/app/(tabs)/hub.tsx",
     "src/app/(tabs)/me.tsx",
     "src/app/settings/index.tsx",
@@ -65,7 +70,8 @@
     "tests/executive-connect-messages-20261115.test.mjs",
     "tests/executive-home-navigation-20261115.test.mjs",
     "tests/executive-kingdom-character-20261115.test.mjs",
-    "tests/executive-qmp-ads-revenue-20261115.test.mjs"
+    "tests/executive-qmp-ads-revenue-20261115.test.mjs",
+    "tests/executive-staging-ota-release-20261115.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -116,6 +122,16 @@
       ],
       "tests": [
         "tests/executive-kingdom-character-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Introduce exact-source staging-only OTA with required signed build, CI and production nonmutation checks.",
+      "preservedBehaviors": [
+        "Production/Play/DB/native packages stay unchanged; staging update fails closed on any release identity mismatch."
+      ],
+      "tests": [
+        "tests/executive-staging-ota-release-20261115.test.mjs"
       ]
     }
   ]
