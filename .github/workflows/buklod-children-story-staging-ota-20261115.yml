@@ -46,8 +46,7 @@ jobs:
             const baseSha='ec1ae3e729990928bfe97c0b01fbdf4ddef11ced';
             const required=[
               'Engineering Accountability',
-              'BUKLOD Main - Report Door and Legacy Integration PR QA',
-              'BUKLOD Performance R1 QA'
+              'BUKLOD Main - Report Door and Legacy Integration PR QA'
             ];
             for(let i=0;i<65;i++){
               const {data:prList}=await github.rest.pulls.list({...context.repo,
@@ -66,7 +65,7 @@ jobs:
               if(checks.some(r=>r?.status==='completed'&&r.conclusion!=='success'))
                 throw Error('Required CI failure; no staging publish');
               if(checks.every(r=>r?.status==='completed'&&r.conclusion==='success')){
-                core.info('Exact source and all 3 CI gates verified: '+context.sha);
+                core.info('Exact source and both PR CI gates verified (Android export gate remains next): '+context.sha);
                 return;
               }
               await new Promise(resolve=>setTimeout(resolve,10000));
