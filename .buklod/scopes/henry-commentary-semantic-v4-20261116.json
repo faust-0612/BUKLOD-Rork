@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "objective": "Fix inaccurate Matthew Henry Filipino translation at 1 Kings 3:5 by clarifying theological English idioms before Google on-device ML Kit, repairing verified bad machine output, preserving citations and original English, and refusing known unsafe translations.",
-  "baseRef": "main",
+  "baseRef": "3b488fa704b804f05c5a289a7e0775daeabb2404",
   "productionBaselineEvidence": "Current GitHub main 3b488fa704b804f05c5a289a7e0775daeabb2404, featuring v3 Henry translation and Nov16 production staging parity RC. Live staging/production manifests and actual Android behavior have not been verified in this change; screenshot from Android shows paid-visit-as-payment, account-as-bank account, malformed communion, offered-as-invited and altar word order.",
   "chosenApproach": "Limit changes to the existing Henry translator and its Bible reader disclaimer. Rewrite only narrowly verified English source clauses before offline ML Kit, apply source-specific Filipino repairs after translation, validate Biblical book/chapter/verse citations and high-risk semantic hazards before caching under v4, otherwise show authoritative English. Preserve the Google attribution and account-scoped offline cache. No remote translation API.",
   "selectionRationale": "A new cloud translator or whole-commentary AI rewrite would add cost, privacy risk, uncited paraphrase, and possible hallucinations. Narrow source-aware idioms with fail-closed fallback address observed failures without changing Bible text, verses, data sources, navigation or AdMob.",
