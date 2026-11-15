@@ -1,0 +1,71 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/children-story-bible-dark-staging-20261116.json",
+  "objective": "Owner-requested continue after Nov15 staging: remedy severe dark/near-invisible text in Notifications and daily/normal Bible reading, and expand all twelve bundled bilingual Sunday School lessons with substantive age-appropriate spoken dialogue including faithful paraphrased biblical speech. Prepare staging-user only, no release until full consolidated gates pass.",
+  "baseRef": "integration/life-human-first-executive-stage-132-20261115",
+  "productionBaselineEvidence": "Latest independently verified production Android OTA source 69ff92b22b13e26490a93f685ebc89d28e3d6cbf, runtime 1.3.2, update 01a1dff8-7563-790b-a714-22c316f56590. Verified staging update source ea9a72c687c0885ea6a3c14a883503204f83dad4, update 01a1dfb1-578c-7e47-8547-ff3065c6792a, runtime 1.3.2. This branch is based on exact staging source and must not touch production.",
+  "chosenApproach": "Semantically theme foreground colors on actual native dark card surfaces while keeping light card and user-highlight semantics; preserve reading and notifications behavior; layer bilingual dramatized dialog into the original contiguous twelve narratives for display and existing device speech using the same source; retain four Bible-adaptation notices and existing quiz checks.",
+  "selectionRationale": "Small release-safe JS-only changes with no native dependency, no schema/data migration, and no new billing or ad changes. Corrections respond to Android screenshot contrast evidence.",
+  "riskAreas": [
+    "app-runtime",
+    "cluster-faith",
+    "dark-mode-contrast",
+    "child-story-accuracy",
+    "offline-storytelling",
+    "narration-continuity",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Preserve Daily Scripture assignment, canonical Bible verse text, translation, offline cache, and narration playback.",
+    "Preserve notifications, deep links, mark-read semantics and PTT exclusion.",
+    "Preserve Children's Stories library, quiz answer keys, user progress, lesson/prayer/discussion, ad safety and offline availability.",
+    "No edits to production/main, backend schema, native runtime, APK/AAB, Expo project, pricing or AdMob.",
+    "No new OTA without exact-source tests and EAS post-publish manifest verification."
+  ],
+  "regressionTests": [
+    "tests/children-bible-dark-staging-20261116.test.mjs",
+    "src/features/childrenStories/sundaySchool.test.ts"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/children-story-bible-dark-staging-20261116.json",
+    "src/app/notifications/index.tsx",
+    "src/app/bible/index.tsx",
+    "src/app/bible/read.tsx",
+    "src/features/childrenStories/sundaySchoolDialogues.ts",
+    "src/features/childrenStories/sundaySchool.ts",
+    "src/features/childrenStories/sundaySchoolTypes.ts",
+    "src/app/children-stories/[id].tsx",
+    "src/features/childrenStories/sundaySchool.test.ts",
+    "tests/children-bible-dark-staging-20261116.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "All twelve bundled stories include at least twenty naturally placed bilingual dialogue scenes and retain their existing original narratives.",
+    "Direct speech paraphrases for Bible stories are marked as dramatized, not represented as exact canonical Bible text.",
+    "Daily Reading and full Bible reading use theme-aware high-contrast chapter titles, verse text and verse numbers on dark cards.",
+    "Notifications text, counts, metadata and dot indicators adapt to dark mode.",
+    "No regressions to notification routing/read actions, Bible narration, offline progress, children quiz, ads or production.",
+    "Staging only after CI source/QA preflight, signed Android runtime 1.3.2 check, and manifest readback; physical device verification waived by owner."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Theme-reactive Android text and narratable children-story dialogue in existing source-only Expo application.",
+      "preservedBehaviors": [
+        "No change to native binary or Expo runtime; current feature routing, account isolation, narration and ad behavior stay unchanged."
+      ],
+      "tests": [
+        "tests/children-bible-dark-staging-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Correct illegible reading headings, verse numbers and scripture body under Night Pine/global dark palettes.",
+      "preservedBehaviors": [
+        "Scripture verses, daily assignment identity, chapter metadata and read-completion logic are unchanged."
+      ],
+      "tests": [
+        "tests/children-bible-dark-staging-20261116.test.mjs"
+      ]
+    }
+  ]
+}
