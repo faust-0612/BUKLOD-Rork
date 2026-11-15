@@ -16,7 +16,7 @@ begin
  from pg_proc x
  where x.oid='public.get_my_buklod_bible_quiz_v4_review_details(uuid)'::regprocedure;
  if f is null then raise exception 'No review RPC definition';end if;
- if not coalesce(v_is_definer,false) or not ('search_path='=any(coalesce(v_configs,array[]::text[]))) then
+ if not coalesce(v_is_definer,false) or not exists(select 1 from unnest(coalesce(v_configs,array[]::text[])) as cfg(setting) where cfg.setting in ('search_path=','search_path=""')) then
   raise exception 'Review RPC search_path or security definer guard missing';
  end if;
  if position('x.user_id=actor' in regexp_replace(lower(f),'[[:space:]]+','','g'))=0 then
