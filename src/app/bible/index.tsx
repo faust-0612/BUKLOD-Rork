@@ -25,7 +25,8 @@ import {
   mapBibleChapterRows,
   type BibleNarrationVerse,
 } from '@/lib/buklodBibleNarration';
-import { Card, SectionTitle, shared } from '@/components/UI';
+import { Card, SectionTitle, useThemedShared } from '@/components/UI';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import BuklodClusterMembershipGate from '@/components/BuklodClusterMembershipGate';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 
@@ -1016,6 +1017,8 @@ function DailyReadingAudioPreview({
 
 
 export default function DailyBibleScreen() {
+  const { theme } = useBuklodTheme();
+  const shared = useThemedShared();
 
   const { user } = useAuth();
   const { online } = useNetwork();
@@ -2043,9 +2046,9 @@ export default function DailyBibleScreen() {
       </View>
 
       <Card>
-        <Text style={styles.eyebrow}>THIS WEEK</Text>
-        <Text style={styles.big}>{approved}/7 valid</Text>
-        <Text style={styles.meta}>{pending} being checked automatically | Points post automatically after approval</Text>
+        <Text style={[styles.eyebrow,{color:theme.textSecondary}]}>THIS WEEK</Text>
+        <Text style={[styles.big,{color:theme.textPrimary}]}>{approved}/7 valid</Text>
+        <Text style={[styles.meta,{color:theme.textMuted}]}>{pending} being checked automatically | Points post automatically after approval</Text>
         <View style={styles.dots}>
           {days.map(date=>{
             const a=byDate[date];
@@ -2093,7 +2096,7 @@ export default function DailyBibleScreen() {
       ) : (
         <>
           <Card>
-            <Text style={styles.dateText}>
+            <Text style={[styles.dateText,{color:theme.textSecondary}]}>
               {fromIso(selected.reading_date).toLocaleDateString(undefined,{
                 weekday:'long',month:'long',day:'numeric',year:'numeric'
               })}
@@ -2114,7 +2117,7 @@ export default function DailyBibleScreen() {
                       : 1
               })}
             >
-              <Text style={styles.reference}>
+              <Text style={[styles.reference,{color:theme.textPrimary}]}>
                 {selected.bible_reference}
               </Text>
 
@@ -2123,13 +2126,13 @@ export default function DailyBibleScreen() {
                   marginTop:5,
                   fontSize:11,
                   fontWeight:'900',
-                  color:'#275D45'
+                  color:theme.accent
                 }}
               >
                 OPEN IN BIBLE {'>'}
               </Text>
             </Pressable>
-            {!!selected.instruction_fil && <Text style={styles.body}>{selected.instruction_fil}</Text>}
+            {!!selected.instruction_fil && <Text style={[styles.body,{color:theme.textSecondary}]}>{selected.instruction_fil}</Text>}
 
             {/* PATCH_153H_4A_READ_BUTTON */}
             
@@ -2151,7 +2154,7 @@ export default function DailyBibleScreen() {
 
 {/* CONTINUOUS_USE_STABILITY_R1: duplicate read doorway removed; selected reference OPEN IN BIBLE remains canonical. */}
 
-            <Text style={styles.eyebrow}>
+            <Text style={[styles.eyebrow,{color:theme.textSecondary}]}>
               RESPONSE LANGUAGE
             </Text>
 
@@ -2164,15 +2167,12 @@ export default function DailyBibleScreen() {
             </View>
 
             <Text
-              style={[
-                styles.eyebrow,
-                {marginTop:16}
-              ]}
+              style={[styles.eyebrow,{marginTop:16,color:theme.textSecondary}]}
             >
               QUESTIONS ABOUT TODAY'S SCRIPTURE *
             </Text>
 
-            <Text style={styles.help}>
+            <Text style={[styles.help,{color:theme.textSecondary}]}>
               Answer all four questions. Completing this reading saves and submits them automatically for BUKLOD checking.
             </Text>
 
@@ -2184,7 +2184,7 @@ export default function DailyBibleScreen() {
                     key={index}
                     style={{marginTop:12}}
                   >
-                    <Text style={styles.question}>
+                    <Text style={[styles.question,{color:theme.textPrimary}]}>
                       {index+1}. {question}
                     </Text>
 
@@ -2224,7 +2224,7 @@ export default function DailyBibleScreen() {
                       ]}
                     />
 
-                    <Text style={styles.meta}>
+                    <Text style={[styles.meta,{color:theme.textMuted}]}>
                       {
                         String(
                           questionAnswers[index] ??
@@ -2238,8 +2238,8 @@ export default function DailyBibleScreen() {
 
           </Card>
           <Card>
-            <Text style={styles.eyebrow}>PERSONAL REFLECTION *</Text>
-            <Text style={styles.help}>
+            <Text style={[styles.eyebrow,{color:theme.textSecondary}]}>PERSONAL REFLECTION *</Text>
+            <Text style={[styles.help,{color:theme.textSecondary}]}>
               Answer the question in the app. A written answer of at least 20 characters is required. A photo is optional supporting evidence only.
             </Text>
 
@@ -2253,7 +2253,7 @@ export default function DailyBibleScreen() {
               placeholderTextColor="#89958E"
               style={styles.input}
             />
-            <Text style={styles.meta}>{answer.trim().length} typed characters | minimum 20 required</Text>
+            <Text style={[styles.meta,{color:theme.textMuted}]}>{answer.trim().length} typed characters | minimum 20 required</Text>
 
             <EvidencePhoto
               title="OPTIONAL REFLECTION PHOTO"
