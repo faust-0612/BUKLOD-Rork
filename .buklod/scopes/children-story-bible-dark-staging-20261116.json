@@ -23,7 +23,8 @@
     "No new OTA without exact-source tests and EAS post-publish manifest verification."
   ],
   "regressionTests": [
-    "tests/children-bible-dark-staging-20261116.test.mjs"
+    "tests/children-bible-dark-staging-20261116.test.mjs",
+    "tests/children-bible-dark-staging-ota-release-20261116.test.mjs"
   ],
   "allowedPaths": [
     ".buklod/scopes/children-story-bible-dark-staging-20261116.json",
@@ -35,7 +36,10 @@
     "src/features/childrenStories/sundaySchoolTypes.ts",
     "src/app/children-stories/[id].tsx",
     "src/features/childrenStories/sundaySchool.test.ts",
-    "tests/children-bible-dark-staging-20261116.test.mjs"
+    "tests/children-bible-dark-staging-20261116.test.mjs",
+    "scripts/children-bible-dark-staging-ota-policy-20261116.mjs",
+    ".github/workflows/buklod-children-bible-dark-conso-staging-ota-20261116.yml",
+    "tests/children-bible-dark-staging-ota-release-20261116.test.mjs"
   ],
   "acceptanceChecks": [
     "All twelve bundled stories include at least twenty naturally placed bilingual dialogue scenes and retain their existing original narratives.",
@@ -43,7 +47,8 @@
     "Daily Reading and full Bible reading use theme-aware high-contrast chapter titles, verse text and verse numbers on dark cards.",
     "Notifications text, counts, metadata and dot indicators adapt to dark mode.",
     "No regressions to notification routing/read actions, Bible narration, offline progress, children quiz, ads or production.",
-    "Staging only after CI source/QA preflight, signed Android runtime 1.3.2 check, and manifest readback; physical device verification waived by owner."
+    "Staging only after CI source/QA preflight, signed Android runtime 1.3.2 check, and manifest readback; physical device verification waived by owner.",
+    "Exact SHA staging release workflow checks Engineering Accountability, Main QA, signed APK runtime 1.3.2, EAS staging manifest and production nonmutation."
   ],
   "lockedFeatureChanges": [
     {
@@ -64,6 +69,16 @@
       ],
       "tests": [
         "tests/children-bible-dark-staging-20261116.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add staging-only exact-source Expo Android OTA workflow with verified native identity and production manifest nonmutation.",
+      "preservedBehaviors": [
+        "No production, web or Play publishing, no runtime/package change, and existing ad and account behavior remains unchanged."
+      ],
+      "tests": [
+        "tests/children-bible-dark-staging-ota-release-20261116.test.mjs"
       ]
     }
   ],
