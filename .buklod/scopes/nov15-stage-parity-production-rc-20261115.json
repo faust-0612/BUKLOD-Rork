@@ -3,7 +3,7 @@
   "scopeManifestPath": ".buklod/scopes/nov15-stage-parity-production-rc-20261115.json",
   "objective": "Reconcile and prepare one exact source-parity Main Android production OTA from latest verified LIFE + Executive Density + 12 Sunday School staging runtime 1.3.2, with fail-closed release.",
   "baseRef": "main",
-  "productionBaselineEvidence": "Main 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742; last successful production Android OTA 01a1da5c-0179-79fc-85c9-591cdb782190 (run 43602250206); latest independently verified staging Android OTA 01a1dfb1-578c-7e47-8547-ff3065c6792a source ea9a72c687c0885ea6a3c14a883503204f83dad4 run 43725915006; production unchanged at stage release.",
+  "productionBaselineEvidence": "verified: production EAS Android channel runtime 1.3.2 served update 01a1da5c-0179-79fc-85c9-591cdb782190, exact successful production run 43602250206 on source 7ebbbd504df2f84355888cc64a8c5317319d6d65. Main current code head 66b3eefaeae7f9f136a98fdef08e1cba2ecfb742 is NOT assumed to be live (later OTA attempts failed). verified: latest staging-user EAS Android update 01a1dfb1-578c-7e47-8547-ff3065c6792a source ea9a72c687c0885ea6a3c14a883503204f83dad4 run 43725915006; production untouched by staging publisher. Production live must be independently rechecked at release gate.",
   "exactStageSource": "ea9a72c687c0885ea6a3c14a883503204f83dad4",
   "exactStageSourceTree": "28cc91dbd9111b999a0e1fc5598ec7e2a845f560",
   "expectedProductionPackage": "org.mzbministry.buklod",
