@@ -191,6 +191,8 @@ export function polishHenryFilipinoTranslation(translated: string): string {
       'Ang mga pangyayari sa pagdalaw na ito'],
     [/\bIyan ang dakilang mataas na lugar, at dapat lamang ang isa\b/gi,
       'iyon ang pangunahing mataas na lugar ng pagsamba, at dapat sana ay iyon lamang ang lugar na ginagamit para sa pagsamba'],
+    [/\bsapagkat doon ang tabernakulo at ang altar ng tanso ay\b/gi,
+      'sapagkat naroon ang tabernakulo at ang tansong altar'],
     [/\bDoon ay inalok ni Solomon ang kanyang mga dakilang sakripisyo\b/gi,
       'Doon naghandog si Solomon ng kanyang mga dakilang hain sa Diyos'],
     [/\bmga token ng presensya ng Diyos\b/gi, 'mga tanda ng presensya ng Diyos'],
