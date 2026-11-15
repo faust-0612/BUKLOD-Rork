@@ -42,14 +42,60 @@
     "src/lib/buklodLifePrivateProgress.ts",
     "supabase/migrations/20261115125000_buklod_life_no_inferred_milestones.sql",
     "tests/life-human-first-20261115.test.js",
-    "docs/life/human-first-20261115.md"
+    "docs/life/human-first-20261115.md",
+    "tests/life-human-first-auth-security-20261115.test.mjs",
+    "supabase/tests/20261115_life_privacy.sql"
   ],
   "regressionTests": [
     "tests/life-human-first-20261115.test.js",
     "tests/show-faith-opt-out.test.js",
-    "tests/wall-life-kl-navigation-20261114.test.mjs"
+    "tests/wall-life-kl-navigation-20261114.test.mjs",
+    "tests/life-human-first-auth-security-20261115.test.mjs",
+    "supabase/tests/20261115_life_privacy.sql"
   ],
-  "lockedFeatureChanges": [],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Implement LIFE support, private continuation, guided Gospel routes and impact without changing shared native runtime.",
+      "preservedBehaviors": [
+        "Protected Wall and video ads continue unchanged on main",
+        "Faith OFF users retain practical LIFE while faith topics are gated",
+        "Signed-in registration still defaults to Public Community Wall",
+        "Legacy third-party spiritual milestones must never be exposed"
+      ],
+      "tests": [
+        "tests/life-human-first-auth-security-20261115.test.mjs",
+        "supabase/tests/20261115_life_privacy.sql"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "After authenticated optional referral registration preserve normal Wall route while allowing LIFE invitation welcome only for explicit life=1.",
+      "preservedBehaviors": [
+        "Protected Wall and video ads continue unchanged on main",
+        "Faith OFF users retain practical LIFE while faith topics are gated",
+        "Signed-in registration still defaults to Public Community Wall",
+        "Legacy third-party spiritual milestones must never be exposed"
+      ],
+      "tests": [
+        "tests/life-human-first-auth-security-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Neutralize legacy implicitly tracked spiritual milestones and inviter aggregate exposure with a source-only gated SQL privacy migration.",
+      "preservedBehaviors": [
+        "Protected Wall and video ads continue unchanged on main",
+        "Faith OFF users retain practical LIFE while faith topics are gated",
+        "Signed-in registration still defaults to Public Community Wall",
+        "Legacy third-party spiritual milestones must never be exposed"
+      ],
+      "tests": [
+        "tests/life-human-first-auth-security-20261115.test.mjs",
+        "supabase/tests/20261115_life_privacy.sql"
+      ]
+    }
+  ],
   "readyForStaging": false,
   "productionPublished": false,
   "backendMigrationApplied": false,
