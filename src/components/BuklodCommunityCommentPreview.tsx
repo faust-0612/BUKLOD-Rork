@@ -106,11 +106,11 @@ export function BuklodCommunityCommentPreview({
           <View style={styles.mediaRow}>
             {parsed.media?.kind === 'gif' && /^https:\/\//i.test(parsed.media.ref) ? (
               <ExpoImage source={{ uri: parsed.media.ref }} style={styles.gifThumb} contentFit="cover" />
-            ) : <MaterialCommunityIcons name="file-gif-box" size={23} color={isReel ? '#FFFFFF' : '#186B50'} />}
-            <Text style={[styles.mediaLabel, isReel && styles.reelBody]}>GIF · Tap to view</Text>
+            ) : <MaterialCommunityIcons name="file-gif-box" size={23} color={isReel ? '#FFFFFF' : theme.accent} />}
+            <Text style={[styles.mediaLabel, isReel ? styles.reelBody : { color: theme.accent }]}>GIF · Tap to view</Text>
           </View>
         ) : isPhoto ? (
-          <Text style={[styles.mediaLabel, isReel && styles.reelBody]}>Photo · Tap to view</Text>
+          <Text style={[styles.mediaLabel, isReel ? styles.reelBody : { color: theme.accent }]}>Photo · Tap to view</Text>
         ) : null}
         {!!visibleCaption.trim() && (
           <Text numberOfLines={2} style={[styles.body, isReel && styles.reelBody,
