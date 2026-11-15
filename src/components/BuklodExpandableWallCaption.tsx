@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BuklodMentionText } from '@/components/BuklodMentionText';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import { readableAccentOnSurface } from '@/lib/buklodTheme';
 
 type Props = React.ComponentProps<typeof BuklodMentionText> & {
   /** Media captions stay on one line; short text-only posts use larger type. */
@@ -21,9 +22,10 @@ export function BuklodExpandableWallCaption({
   ...mentionProps
 }: Props) {
   const { theme } = useBuklodTheme();
+  const accentTextColor = readableAccentOnSurface(theme);
   const [expanded, setExpanded] = useState(false);
   // Feed surface and accent must resolve from the same active theme.
-  const mentionStyle = mentionProps.mentionStyle ?? { color: theme.accent, fontWeight: '800' as const };
+  const mentionStyle = mentionProps.mentionStyle ?? { color: accentTextColor, fontWeight: '800' as const };
   const fullText = String(mentionProps.text ?? '');
   const charCount = Array.from(fullText.trim()).length;
   const largeText = !hasMedia && charCount > 0 && charCount <= LARGE_TEXT_LIMIT;
@@ -65,7 +67,7 @@ export function BuklodExpandableWallCaption({
           onPress={() => setExpanded(false)}
           style={styles.toggle}
         >
-          <Text style={[styles.toggleText, { color: theme.accent }]}>See less</Text>
+          <Text style={[styles.toggleText, { color: accentTextColor }]}>See less</Text>
         </Pressable>
       </View>
     );
@@ -89,7 +91,7 @@ export function BuklodExpandableWallCaption({
           onPress={() => setExpanded(true)}
           style={styles.inlineToggle}
         >
-          <Text style={[styles.toggleText, { color: theme.accent }]}>See more</Text>
+          <Text style={[styles.toggleText, { color: accentTextColor }]}>See more</Text>
         </Pressable>
       ) : null}
     </View>
