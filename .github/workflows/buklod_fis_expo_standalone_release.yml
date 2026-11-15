@@ -92,7 +92,7 @@ jobs:
 
       - name: Verify source scope and protected feature release gates
         env:
-          BUKLOD_BASE_REF: main
+          BUKLOD_BASE_REF: origin/main
           BUKLOD_SCOPE_MANIFEST: .buklod/scopes/buklod-fis-expo-20261115.json
         run: |
           node scripts/protected-feature-lock.mjs
