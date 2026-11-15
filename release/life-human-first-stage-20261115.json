@@ -43,6 +43,6 @@
   },
   "backendMigrationsDeployedOnlyAsPrivacyFix": true,
   "productionAndroidOtaPublished": false,
-  "sourceGateRecovery": "Declare protected production-release source group for staged OTA policy; prevent CI governance bypass. No production deployment permitted.",
+  "sourceGateRecovery": "Declares production-release as staging-only protected scope, and lists isolated PostgreSQL SQL harness as a test in QA workflow, not as a generic Node/TS regression test.",
   "accountabilityReleaseScopeDeclared": true
 }
