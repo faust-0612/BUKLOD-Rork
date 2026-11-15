@@ -4444,7 +4444,7 @@ setMarking(true);
                 {henryRequestedLanguage !== 'en' && henryTranslation.status === 'translated' && (
                   <View style={{ backgroundColor: '#FFF7E8', borderRadius: 10, padding: 10, marginBottom: 12 }}>
                     <Text style={{ color: '#705223', fontSize: 12, lineHeight: 19 }}>
-                      Awtomatikong salin lamang: maaaring literal o mali ang mga terminong Biblikal. Ang Original English ang batayan ng paliwanag ni Matthew Henry.
+                      Malinaw na Filipino (hindi salitang-salita). May ilang lumang pananalitang inayos upang mas madaling maunawaan, ngunit maaari pa ring magkamali ang awtomatikong pagsasalin. Ang Original English ang batayan ni Matthew Henry.
                     </Text>
                   </View>
                 )}
