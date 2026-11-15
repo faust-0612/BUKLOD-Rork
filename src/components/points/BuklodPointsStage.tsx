@@ -180,7 +180,7 @@ export default function BuklodPointsStage({
     customizeText: {
       fontSize: 10,
       fontWeight: '900',
-      color: theme.white,
+      color: theme.onAccent,
     },
 
     hudRow: {
@@ -297,7 +297,7 @@ export default function BuklodPointsStage({
               <MaterialCommunityIcons
                 name="palette-outline"
                 size={15}
-                color={theme.white}
+                color={theme.onAccent}
               />
 
               <Text

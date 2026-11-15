@@ -1,0 +1,162 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/executive-density-staging-20261115.json",
+  "objective": "Implement owner-approved compact executive BUKLOD Home/Cluster/Profile and dark-mode readability on last verified staging-user Android 1.3.2 source, preserving all functioning features; staging only.",
+  "baseRef": "feature/sunday-school-continuous-stories-20261115",
+  "productionBaselineEvidence": "Last verified published Android staging-user source ab864a2b17e6078252be8ff8c7ce067043c7ce1c, EAS update 01a1ddc3-57fe-7652-abac-3393952aeea1, project 23dad7d0-389a-406e-8dec-08965dab85d8, runtime 1.3.2. Production current runtime and manifest not independently fetched by this DEV change; no production edit permitted.",
+  "chosenApproach": "Use one source-isolated cumulative DEV branch from immutable current staging source, semantic high-contrast theme tokens, responsive single-row quick actions, and compact UI tokens. Preserve existing data hooks, auth scopes, media/ads handling and analytics.",
+  "selectionRationale": "Avoid expensive APK/native rebuild or separate services; real compact layout on existing Expo runtime with risk-limited component styling and focused source contracts.",
+  "alternativeApproaches": [
+    "Replace entire Home/Cluster/Profile trees (rejected due risk to data routing and ads)",
+    "Draw mockups only (rejected because owner requires implemented staging result)",
+    "Remove disclosures or buttons to reduce height (rejected, preserve financial and safety disclosures)"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-scroll",
+    "connect",
+    "faith-cluster",
+    "ads-finance-points",
+    "navigation-auth",
+    "connect-ptt-calls",
+    "cluster-faith",
+    "kingdom-character",
+    "release-identity",
+    "release-identity"
+  ],
+  "preserveBehaviors": [
+    "Existing Supabase membership access, Cluster navigation, create/join/manage and offline cache remain authoritative.",
+    "Personal posts remain above server-ranked Profile Top 10, no fabricated points or earnings.",
+    "Rewarded Ad-Light pass remains an optional earned reward; never change ad unit IDs, impressions, consent or load frequency.",
+    "Home existing QMP, Map, Help, PTT, Today, Children Stories, native ad placements and Kingdom route are retained.",
+    "Dark theme messaging respects per-user Connect theme overrides, without changing message/RLS/read-sync or calls.",
+    "No native plugins, Expo runtime, Android package, Play Store, production, Supabase or Vercel write.",
+    "Publishing is permitted only to staging-user Android runtime 1.3.2 after exact frozen staging and signed APK verification."
+  ],
+  "regressionTests": [
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
+    "tests/executive-navigation-cluster-kingdom-20261115.test.mjs",
+    "tests/executive-connect-dark-20261115.test.mjs",
+    "tests/executive-qmp-ad-reward-20261115.test.mjs",
+    "tests/executive-density-staging-release-20261115.test.mjs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/executive-density-staging-20261115.json",
+    ".github/workflows/buklod-executive-density-staging-132-ota-20261115.yml",
+    "scripts/executive-density-staging-132-policy.mjs",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/(tabs)/me.tsx",
+    "src/app/clusters/index.tsx",
+    "src/app/settings/index.tsx",
+    "src/components/BuklodAdLightRewardCard.android.tsx",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/components/BuklodCommunityContributionCard.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodContentOverflowMenu.tsx",
+    "src/components/BuklodContentOverflowMenu.web.tsx",
+    "src/components/BuklodContentReportSheet.tsx",
+    "src/components/BuklodProfilePostCards.tsx",
+    "src/components/BuklodProfileTopTenRankings.tsx",
+    "src/components/BuklodScopedDashboardHeader.tsx",
+    "src/components/BuklodSystemAnnouncementBoard.tsx",
+    "src/components/UI.tsx",
+    "src/components/home/BuklodExecutiveQuickAccess.tsx",
+    "src/components/home/BuklodHomeUtilityCards.tsx",
+    "src/components/home/BuklodKingdomHubCard.tsx",
+    "src/components/points/BuklodClaimRewardCard.tsx",
+    "src/components/points/BuklodPointsStage.tsx",
+    "src/lib/buklodTheme.ts",
+    "src/lib/buklodThemePresentation.ts",
+    "src/lib/buklodVisual.ts",
+    "src/lib/messagesTheme.ts",
+    "tests/buklod-dark-contrast-spacing-20261115.test.mjs",
+    "tests/executive-connect-dark-20261115.test.mjs",
+    "tests/executive-density-staging-release-20261115.test.mjs",
+    "tests/executive-navigation-cluster-kingdom-20261115.test.mjs",
+    "tests/executive-qmp-ad-reward-20261115.test.mjs"
+  ],
+  "acceptanceChecks": [
+    "All 12 theme text palettes meet normal-text WCAG contrast on surfaces and bright accent foreground.",
+    "16 horizontal px base screen gutter, compact 8–12 px layout rhythm and min 44–48 px interactive controls.",
+    "Home announcement, finance, utility, Kingdom and app quick actions render without blank oversized cards.",
+    "Cluster tabs are one horizontally scrollable row; cards show title/category/status/Open/Manage without dropped operations.",
+    "Profile keeps recent posts, Top 10, overall/monthly positions, rewarded ad and focus panels without copying another user data.",
+    "Dark Connect contrast, native and web compile, layout sizing at 360dp and 1.4x font scaling, no media/ads regression.",
+    "Staging-specific source/identity/CI/EAS current update readback required before any OTA; production remains unchanged.",
+    "Verified current Android staging EAS update, exact PR 830 CI and production update unchanged through OTA."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Adjust shared UI tokens and responsive screens across existing Android source.",
+      "preservedBehaviors": [
+        "No native runtime or signed Android client change; app mounts and navigates as before."
+      ],
+      "tests": [
+        "tests/executive-navigation-cluster-kingdom-20261115.test.mjs",
+        "tests/executive-connect-dark-20261115.test.mjs",
+        "tests/executive-qmp-ad-reward-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Compact Home and signed-in Profile entry points with unchanged tab navigation/auth.",
+      "preservedBehaviors": [
+        "Keep login session, navigation targets and account ownership checks."
+      ],
+      "tests": [
+        "tests/executive-navigation-cluster-kingdom-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Use semantic dark colors for Connect thread panels and floating controls.",
+      "preservedBehaviors": [
+        "PTT and call state, delivery, seen receipts and original message content are unchanged."
+      ],
+      "tests": [
+        "tests/executive-connect-dark-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Compress QMP and Ad-Light promotional layout without financial or ad serving changes.",
+      "preservedBehaviors": [
+        "No ad frequency, reward earning, QMP calculation, settlement or payout changes."
+      ],
+      "tests": [
+        "tests/executive-qmp-ad-reward-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Make Cluster cards and directory fit standard mobile gutters and a single tab row.",
+      "preservedBehaviors": [
+        "Signed-in memberships, create/join/manage access permissions and scoped navigation work."
+      ],
+      "tests": [
+        "tests/executive-navigation-cluster-kingdom-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Reduce Kingdom entry-card height while preserving original game launcher.",
+      "preservedBehaviors": [
+        "All game content, rewards, assets and character state remain untouched."
+      ],
+      "tests": [
+        "tests/executive-navigation-cluster-kingdom-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add a source-isolated staging-only Expo OTA publisher; verifies CI, signed binary and unchanged production.",
+      "preservedBehaviors": [
+        "No production OTA, package change, native rebuild, database migration or Play Store submission."
+      ],
+      "tests": [
+        "tests/executive-density-staging-release-20261115.test.mjs"
+      ]
+    }
+  ]
+}

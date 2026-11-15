@@ -15,6 +15,7 @@ import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd'
 import BuklodHomeUtilityCards from '@/components/home/BuklodHomeUtilityCards';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import BuklodKingdomHubCard from '@/components/home/BuklodKingdomHubCard';
+import BuklodExecutiveQuickAccess from '@/components/home/BuklodExecutiveQuickAccess';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
@@ -65,10 +66,10 @@ export default function BuklodLightHome() {
         onScroll={event => {reportBuklodDashboardScroll('home',event.nativeEvent.contentOffset.y);noteBuklodVideoScroll();}}
         scrollEventThrottle={16}
         style={{ flex: 1, backgroundColor: theme.surface }}
-        contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
+        contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 8, paddingBottom: 32, gap: 8 }}>
         <LinearGradient colors={['#0D5873', '#238B9D', '#95CCAD']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ minHeight: 112, borderRadius: buklodVisual.radius.card, padding: 20, justifyContent: 'center' }}>
+          style={{ minHeight: 86, borderRadius: buklodVisual.radius.card, padding: 14, justifyContent: 'center' }}>
           <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF' }}>Welcome to BUKLOD!</Text>
           <Text style={{ fontSize: 12, marginTop: 4, color: '#FFFFFF' }}>
             A community of faith, connection, and shared purpose.
@@ -126,13 +127,14 @@ export default function BuklodLightHome() {
   }
 
   return (
-    <ScrollView onScroll={event => {reportBuklodDashboardScroll('home',event.nativeEvent.contentOffset.y);noteBuklodVideoScroll();}} scrollEventThrottle={16} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 12, paddingBottom: 28, gap: buklodVisual.space.section }}>
+    <ScrollView onScroll={event => {reportBuklodDashboardScroll('home',event.nativeEvent.contentOffset.y);noteBuklodVideoScroll();}} scrollEventThrottle={16} style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ paddingHorizontal: buklodVisual.space.screen, paddingVertical: 9, paddingBottom: 16, gap: 9 }}>
       <BuklodSystemAnnouncementBoard slot="public_home" />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <View style={{ flex: 1 }}><Text allowFontScaling style={{ fontSize: 19, fontWeight: '900', color: theme.textPrimary }}>Your everyday space</Text>
+        <View style={{ flex: 1 }}><Text allowFontScaling style={{ fontSize: 18, fontWeight: '900', color: theme.textPrimary }}>Your everyday space</Text>
         <Text allowFontScaling style={{ color: theme.textMuted, fontSize: 12, marginTop: 1 }}>Connect, learn and grow with BUKLOD.</Text></View>
-        <MaterialCommunityIcons name="sprout-outline" size={28} color={theme.accent} />
+        <MaterialCommunityIcons name="sprout-outline" size={22} color={theme.accent} />
       </View>
+      <BuklodExecutiveQuickAccess />
       {/* CANONICAL_HOME_CONTRIBUTION_R3: /hub is the active bottom-nav Home.
           Old /home redirects here; do not bury QMP in the retired screen. */}
       {foreground ? (

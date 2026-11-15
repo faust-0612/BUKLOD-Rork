@@ -72,23 +72,23 @@ export function BuklodSystemAnnouncementBoard({
     () =>
       StyleSheet.create({
         wrap: {
-          marginHorizontal: slot === 'public_home' ? 12 : 0,
-          marginTop: slot === 'public_home' ? 4 : 0,
+          marginHorizontal: 0,
+          marginTop: slot === 'public_home' ? 1 : 0,
           marginBottom: slot === 'public_home' ? 2 : 10,
         },
         board: {
-          borderRadius: slot === 'public_home' ? 18 : 16,
+          borderRadius: slot === 'public_home' ? 14 : 16,
           borderWidth: 1,
           borderColor:
             slot === 'public_home'
-              ? colors.greenDark
+              ? theme.border
               : announcementTone.border,
           backgroundColor:
             slot === 'public_home'
-              ? '#F4FBF7'
+              ? theme.cardSurface
               : announcementTone.surface,
-          paddingHorizontal: slot === 'public_home' ? 18 : 14,
-          paddingVertical: slot === 'public_home' ? 16 : 12,
+          paddingHorizontal: 14,
+          paddingVertical: slot === 'public_home' ? 10 : 12,
         },
         label: {
           fontSize: slot === 'public_home' ? 11 : 10,
@@ -96,18 +96,16 @@ export function BuklodSystemAnnouncementBoard({
           letterSpacing: 1.1,
           color:
             slot === 'public_home'
-              ? colors.greenDark
+              ? theme.accent
               : announcementTone.ink,
-          marginBottom: slot === 'public_home' ? 8 : 6,
+          marginBottom: slot === 'public_home' ? 4 : 6,
         },
         message: {
           color:
-            slot === 'public_home'
-              ? colors.text
-              : theme.textPrimary,
+            theme.textPrimary,
           fontWeight: slot === 'public_home' ? '900' : '800',
-          fontSize: slot === 'public_home' ? 22 : 15,
-          lineHeight: slot === 'public_home' ? 30 : 22,
+          fontSize: slot === 'public_home' ? 18 : 15,
+          lineHeight: slot === 'public_home' ? 24 : 22,
         },
         editBtn: {
           marginTop: 10,

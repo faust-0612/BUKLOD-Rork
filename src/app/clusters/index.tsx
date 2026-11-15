@@ -41,7 +41,8 @@ import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import {useBuklodScopePhoto} from '@/hooks/useBuklodScopePhoto';
-import { getBuklodCardTone, getStableBuklodCardTone, type BuklodCardToneName } from '@/lib/buklodCardTones';
+import { getBuklodCardTone, getStableBuklodCardTone, isBuklodDarkPaletteId, type BuklodCardToneName } from '@/lib/buklodCardTones';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 function messageOf(error: unknown) {
   if (error && typeof error === 'object' && 'code' in error &&
@@ -68,7 +69,8 @@ function StatusBadge({
 }: {
   text: string;
 }) {
-  const badgeTone = getBuklodCardTone(text.toUpperCase() === 'PRIVATE' ? 'lavender' : 'mint');
+  const { paletteId } = useBuklodTheme();
+  const badgeTone = getBuklodCardTone(text.toUpperCase() === 'PRIVATE' ? 'lavender' : 'mint', isBuklodDarkPaletteId(paletteId));
   return (
     <View style={[styles.badge, { backgroundColor: badgeTone.soft }]}>
       <Text style={[styles.badgeText, { color: badgeTone.ink }]}>
@@ -93,7 +95,8 @@ function ActionButton({
   outline?: boolean;
   tone?: BuklodCardToneName;
 }) {
-  const accent = tone ? getBuklodCardTone(tone) : null;
+  const { paletteId } = useBuklodTheme();
+  const accent = tone ? getBuklodCardTone(tone, isBuklodDarkPaletteId(paletteId)) : null;
   return (
     <Pressable
       accessibilityRole="button"
@@ -134,7 +137,8 @@ function ClusterCard({
   onOpen?: (id: string) => void;
   children?: React.ReactNode;
 }) {
-  const accent = getBuklodCardTone(getStableBuklodCardTone(item.scope_id));
+  const { theme, paletteId } = useBuklodTheme();
+  const accent = getBuklodCardTone(getStableBuklodCardTone(item.scope_id), isBuklodDarkPaletteId(paletteId));
   const scopePhoto=useBuklodScopePhoto(item.scope_id);
   const canOpen = item.membership_status === 'ACTIVE' && Boolean(onOpen);
   const role = item.is_admin ? 'Admin' : 'Member';
@@ -146,7 +150,7 @@ function ClusterCard({
         ? 'Invitation received'
         : null;
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: theme.cardSurface, borderColor: theme.border }]}>
       <View pointerEvents="none" style={[styles.cardColorLayer, { backgroundColor: accent.surface, borderColor: accent.border }]} />
       <View pointerEvents="none" style={[styles.cardAccentBar, { backgroundColor: accent.action }]} />
       <Pressable
@@ -162,8 +166,8 @@ function ClusterCard({
             <MaterialCommunityIcons name="account-group-outline" size={23} color={accent.ink} />}
         </View>
         <View style={styles.cardBody}>
-          <Text numberOfLines={2} style={styles.cardTitle}>{item.name}</Text>
-          <Text numberOfLines={1} style={styles.cardMeta}>
+          <Text allowFontScaling numberOfLines={2} style={[styles.cardTitle, { color: theme.textPrimary }]}>{item.name}</Text>
+          <Text allowFontScaling numberOfLines={1} style={[styles.cardMeta, { color: theme.textSecondary }]}>
             {item.category || 'Community Cluster'} · {Number(item.member_count || 0).toLocaleString()} members
           </Text>
         </View>
@@ -173,7 +177,7 @@ function ClusterCard({
         </View>
       </Pressable>
       {item.description ? (
-        <Text numberOfLines={1} style={styles.description}>{item.description}</Text>
+        <Text allowFontScaling numberOfLines={1} style={[styles.description, { color: theme.textSecondary }]}>{item.description}</Text>
       ) : null}
       {(status || children) ? (
         <View style={styles.cardBottom}>
@@ -183,7 +187,7 @@ function ClusterCard({
                 styles.statusDot,
                 { backgroundColor: item.membership_status === 'ACTIVE' ? '#269766' : '#D29443' },
               ]}/>
-              <Text style={styles.membership}>{status}</Text>
+              <Text style={[styles.membership, { color: accent.ink }]}>{status}</Text>
             </View>
           ) : <View style={styles.roleRow}/>}
           {children ? <View style={styles.actions}>{children}</View> : null}
@@ -206,6 +210,7 @@ function DashboardMetric({
   onPress: () => void;
   selected?: boolean;
 }) {
+  const { theme } = useBuklodTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -215,14 +220,15 @@ function DashboardMetric({
       style={({ pressed }) => [
         styles.metricTile,
         selected && styles.metricTileActive,
+        !selected && { backgroundColor: theme.cardSurface, borderColor: theme.border },
         pressed && { opacity: 0.75 },
       ]}
     >
       <MaterialCommunityIcons name={icon} size={18}
-        color={selected ? '#F0FFF6' : '#4A8169'} />
+        color={selected ? '#F0FFF6' : theme.accent} />
       <View style={styles.metricTextColumn}>
-        <Text style={[styles.metricCount, selected && styles.metricTextActive]}>{count}</Text>
-        <Text style={[styles.metricTitle, selected && styles.metricTextActive]}>{title}</Text>
+        <Text style={[styles.metricCount, { color: theme.textPrimary }, selected && styles.metricTextActive]}>{count}</Text>
+        <Text style={[styles.metricTitle, { color: theme.textSecondary }, selected && styles.metricTextActive]}>{title}</Text>
       </View>
     </Pressable>
   );
@@ -259,6 +265,7 @@ export default function ClustersScreen() {
 }
 
 function ClusterDirectory({ owner }: { owner: string }) {
+  const { theme } = useBuklodTheme();
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -536,7 +543,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
 
   return (
     <BuklodPortalScrollView
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: theme.canvas }]}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
       refreshControl={
@@ -546,12 +553,12 @@ function ClusterDirectory({ owner }: { owner: string }) {
         />
       }
     >
-      <View style={styles.hero}>
+      <View style={[styles.hero, { backgroundColor: theme.cardSurface, borderColor: theme.border }]}>
         <View style={styles.heroHeading}>
           <View style={styles.heroCopy}>
-            <Text style={styles.eyebrow}>BUKLOD · COMMUNITY</Text>
-            <Text style={styles.title}>Your Clusters</Text>
-            <Text numberOfLines={1} style={styles.subtitle}>Your communities in one place</Text>
+            <Text style={[styles.eyebrow, {color:theme.accent}]}>BUKLOD · COMMUNITY</Text>
+            <Text allowFontScaling style={[styles.title, {color:theme.textPrimary}]}>Your Clusters</Text>
+            <Text numberOfLines={1} style={[styles.subtitle, {color:theme.textSecondary}]}>Your communities in one place</Text>
           </View>
           <Pressable
             accessibilityRole="button"
@@ -591,8 +598,8 @@ function ClusterDirectory({ owner }: { owner: string }) {
         </View>
       ) : null}
 
-      <View style={styles.sectionNavigation}>
-        <View style={styles.sectionNavigationInner}>
+      <View style={[styles.sectionNavigation, {backgroundColor:theme.cardSurface,borderColor:theme.border}]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sectionNavigationInner}>
           {sections.map(tab => {
             const selected = section === tab.key;
             return (
@@ -609,8 +616,8 @@ function ClusterDirectory({ owner }: { owner: string }) {
                 ]}
               >
                 <MaterialCommunityIcons name={tab.icon} size={17}
-                  color={selected ? '#FFFFFF' : '#52695C'} />
-                <Text style={[styles.tabText, selected && styles.tabTextSelected]}>{tab.label}</Text>
+                  color={selected ? '#FFFFFF' : theme.textSecondary} />
+                <Text style={[styles.tabText, {color:theme.textSecondary}, selected && styles.tabTextSelected]}>{tab.label}</Text>
                 {tab.count != null && tab.count > 0 ? (
                   <View style={[styles.tabCountPill, selected && styles.tabCountPillSelected]}>
                     <Text style={[styles.tabCountText, selected && styles.tabTextSelected]}>{tab.count}</Text>
@@ -619,7 +626,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
       </View>
 
       {(section !== 'mine' || filteredMyClusters.length === 0) ? (
@@ -637,19 +644,19 @@ function ClusterDirectory({ owner }: { owner: string }) {
         <View style={styles.directorySection}>
           <View style={styles.sectionHeading}>
             <View>
-              <Text style={styles.sectionTitle}>My Clusters</Text>
-              <Text style={styles.sectionNote}>Tap a card to enter its dashboard.</Text>
+              <Text style={[styles.sectionTitle, {color:theme.textPrimary}]}>My Clusters</Text>
+              <Text style={[styles.sectionNote, {color:theme.textSecondary}]}>Tap a card to enter its dashboard.</Text>
             </View>
             <Text style={styles.sectionCount}>{activeClusters.length} joined</Text>
           </View>
 
           {activeClusters.length > 0 ? (
-            <View style={styles.searchRow}>
+            <View style={[styles.searchRow, {backgroundColor:theme.inputSurface,borderColor:theme.border}]}>
               <MaterialCommunityIcons name="magnify" size={20} color="#809088" />
               <TextInput
-                style={styles.search}
+                style={[styles.search, {color:theme.textPrimary}]}
                 placeholder="Find one of my clusters"
-                placeholderTextColor="#87958C"
+                placeholderTextColor={theme.textMuted}
                 accessibilityLabel="Search my clusters"
                 value={myQuery}
                 onChangeText={value => {
@@ -771,7 +778,7 @@ function ClusterDirectory({ owner }: { owner: string }) {
             </View>
           </View>
 
-          <View style={styles.searchRow}>
+          <View style={[styles.searchRow, {backgroundColor:theme.inputSurface,borderColor:theme.border}]}>
             <MaterialCommunityIcons name="magnify" size={20} color="#809088" />
             <TextInput
               style={styles.search}
@@ -828,7 +835,6 @@ function ClusterDirectory({ owner }: { owner: string }) {
         </View>
       ) : null}
 
-      <View style={{ height: 12 }} />
     </BuklodPortalScrollView>
   );
 }
@@ -836,10 +842,10 @@ function ClusterDirectory({ owner }: { owner: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F5F7F6' },
-  content: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 24, gap: 7 },
+  content: { paddingHorizontal: buklodVisual.space.screen, paddingTop: 10, paddingBottom: 16, gap: 8 },
   hero: {
     borderRadius: buklodVisual.radius.card, borderWidth: 1, borderColor: '#DCE9E1',
-    backgroundColor: '#FFFFFF', padding: 12, gap: 9,
+    backgroundColor: '#FFFFFF', padding: 10, gap: 7,
   },
   heroHeading: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12,
@@ -856,7 +862,7 @@ const styles = StyleSheet.create({
   createClusterCompactText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
   metricRow: { flexDirection: 'row', gap: 6 },
   metricTile: {
-    flex: 1, minWidth: 0, minHeight: 52, paddingVertical: 7, paddingHorizontal: 7,
+    flex: 1, minWidth: 0, minHeight: 48, paddingVertical: 6, paddingHorizontal: 7,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     borderRadius: 12, backgroundColor: '#F2F7F3', borderWidth: 1,
     borderColor: '#E7EFE9',
@@ -870,7 +876,7 @@ const styles = StyleSheet.create({
     borderRadius: 16, borderWidth: 1, borderColor: '#E0E9E3',
     backgroundColor: '#FFFFFF', overflow: 'hidden',
   },
-  sectionNavigationInner: { paddingHorizontal: 5, paddingVertical: 5, gap: 4, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
+  sectionNavigationInner: { paddingHorizontal: 5, paddingVertical: 3, gap: 3, flexDirection: 'row', alignItems: 'center' },
   tab: {
     minHeight: buklodVisual.size.touch, flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, borderRadius: 10, justifyContent: 'center',
@@ -886,7 +892,7 @@ const styles = StyleSheet.create({
   tabCountText: { fontSize: 10, fontWeight: '900', color: '#236042' },
   directorySection: { gap: 7 },
   sectionHeading: {
-    paddingHorizontal: 2, paddingTop: 2, flexDirection: 'row',
+    paddingHorizontal: 2, paddingTop: 1, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'space-between', gap: 10,
   },
   sectionTitle: { fontSize: 16, fontWeight: '900', color: '#193C2D' },
@@ -895,33 +901,33 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF', borderRadius: 14, overflow: 'hidden',
     borderWidth: 1, borderColor: '#E1E8E3',
-    paddingHorizontal: 12, paddingVertical: 12, gap: 8,
+    paddingHorizontal: 10, paddingVertical: 8, gap: 4,
   },
   cardColorLayer: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 14, borderWidth: 1 },
-  cardAccentBar: { position: 'absolute', top: 9, bottom: 9, left: 0, width: 3, borderRadius: 3 },
-  cardHeadPress: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 42 },
+  cardAccentBar: { position: 'absolute', top: 7, bottom: 7, left: 0, width: 3, borderRadius: 3 },
+  cardHeadPress: { flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 38 },
   clusterIcon: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 38, height: 38, borderRadius: 11,
     alignItems: 'center', justifyContent: 'center',
   },
-  clusterIconPhoto:{width:40,height:40,borderRadius:12},
+  clusterIconPhoto:{width:38,height:38,borderRadius:11},
   cardBody: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 2 },
   cardRight: { alignItems: 'flex-end', justifyContent: 'center', gap: 3 },
-  cardTitle: { fontSize: 16, lineHeight: 22, fontWeight: '800', color: '#19392A' },
-  cardMeta: { fontSize: 13, lineHeight: 18, color: '#73867C' },
-  description: { color: '#53685D', fontSize: 13, lineHeight: 18, paddingLeft: 48 },
+  cardTitle: { fontSize: 15, lineHeight: 20, fontWeight: '800', color: '#19392A' },
+  cardMeta: { fontSize: 12, lineHeight: 16, color: '#73867C' },
+  description: { color: '#53685D', fontSize: 12, lineHeight: 16, paddingLeft: 45 },
   cardBottom: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     gap: 5, paddingLeft: 0,
   },
   roleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 0 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  membership: { fontSize: 10.5, fontWeight: '800', color: '#3A7960' },
+  membership: { fontSize: 11.5, fontWeight: '800', color: '#3A7960' },
   badge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
   badgeText: { fontSize: 9, fontWeight: '900' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'flex-end' },
   actionButton: {
-    minHeight: buklodVisual.size.touch, justifyContent: 'center', alignItems: 'center',
+    minHeight: 44, justifyContent: 'center', alignItems: 'center',
     backgroundColor: '#206447', paddingHorizontal: 10, borderRadius: 9,
   },
   actionButtonOutline: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#B4D3BF' },

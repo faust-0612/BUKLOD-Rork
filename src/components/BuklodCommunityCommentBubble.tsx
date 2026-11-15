@@ -220,7 +220,7 @@ function createStyles(theme: BuklodThemeRoles) {
       color: theme.textPrimary,
     },
     modalButtonTextPrimary: {
-      color: theme.white,
+      color: theme.onAccent,
     },
     menuItem: {
       minHeight: 48,
