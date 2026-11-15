@@ -37,12 +37,14 @@
     "tests/nov15-auth-referral-consistency-20261115.test.mjs",
     "supabase/tests/referral_scope_consistency_20261115.sql",
     "docs/referral-scope-consistency-20261115.md",
-    ".buklod/scopes/referral-economy-scope-consistency-20261115.json"
+    ".buklod/scopes/referral-economy-scope-consistency-20261115.json",
+    "tests/nov15-finance-referral-guard-20261115.test.mjs"
   ],
   "regressionTests": [
     "tests/nov15-referral-scope-consistency-contract.test.mjs",
     "tests/nov15-auth-referral-consistency-20261115.test.mjs",
-    "supabase/tests/referral_scope_consistency_20261115.sql"
+    "supabase/tests/referral_scope_consistency_20261115.sql",
+    "tests/nov15-finance-referral-guard-20261115.test.mjs"
   ],
   "acceptanceChecks": [
     "Canonical suggestion returns 7BF347319E for Biboy and never 48680BC3; legacy code still resolves.",
@@ -53,5 +55,47 @@
     "No Community designation selected unless user explicitly chooses eligible membership; switch lock enforced.",
     "SQL contract plus auth/finance/scope JS tests and Engineering Accountability pass.",
     "All payouts/finance flags stay OFF, staging before any production release."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Preserve full BUKLOD runtime and existing activity points while adding bounded referral and Community destination RPCs.",
+      "preservedBehaviors": [
+        "Existing Wall, video, ads, Connect, PTT and runtime 1.3.2 keep their working behavior."
+      ],
+      "tests": [
+        "tests/nov15-referral-scope-consistency-contract.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Prevent unconfirmed optional referrer from being silently ignored on new signup without changing current login sessions.",
+      "preservedBehaviors": [
+        "Existing users can still sign in and recover accounts; no OTP or account migration introduced."
+      ],
+      "tests": [
+        "tests/nov15-auth-referral-consistency-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Keep QMP and Finance monetary qualification separate while adding member-controlled future Community designation.",
+      "preservedBehaviors": [
+        "No user share, referral bonus, AdMob estimate, payouts, balances or QMP is recalculated or made withdrawable."
+      ],
+      "tests": [
+        "tests/nov15-finance-referral-guard-20261115.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add authenticated member-scoped RPCs and provenance-only referral reconciliation while respecting BUKLOD Official guard.",
+      "preservedBehaviors": [
+        "RLS, Official exclusions, non-duplication, referral locks and Finance disabled flags remain effective."
+      ],
+      "tests": [
+        "supabase/tests/referral_scope_consistency_20261115.sql"
+      ]
+    }
   ]
 }
