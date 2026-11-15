@@ -24,7 +24,8 @@
     "Compile current Profile TypeScript; verify one-line name on short/long display names, font scaling and button tap targets in Android staging.",
     "Confirm cover image, avatar camera, notes, roles, rank and all three actions in dark/light mode without blank space.",
     "Compare current 15/30/60-minute ad/nav telemetry for exact runtime/source before any production promotion; no production OTA in this PR.",
-    "New Profile-specific staging Android compile must pass exact-source Expo Android export, canonical staging package/runtime validation, profile assertions and AdMob/dashboard regression checks."
+    "New Profile-specific staging Android compile must pass exact-source Expo Android export, canonical staging package/runtime validation, profile assertions and AdMob/dashboard regression checks.",
+    "Original Navigation V2 full test suite remains intact for its original branch. Profile branch runs Profile/AdMob/dashboard/rank/nav-focused tests because the unchanged current main HomeUtilityCards already differs from the historical fixed-width assertion in tests/navigation-v2-compact-home-profile.test.mjs. Do not patch unrelated Home feature."
   ],
   "riskAreas": [
     "app-runtime",
@@ -36,7 +37,8 @@
     "ads-monetization",
     "navigation-scroll",
     "staging-android-compile",
-    "release-identity"
+    "release-identity",
+    "preexisting-home-test-drift"
   ],
   "regressionTests": [
     "tests/nov16-profile-hero-compact.test.mjs",
@@ -75,5 +77,5 @@
     }
   ],
   "releaseMode": "dev-staging-candidate-no-ota",
-  "releaseStatus": "DEV PR candidate: prior Engineering Accountability, Performance QA and Main integration QA passed. Scoped staging Android JS compile added; awaiting exact new SHA nonpublishing QA and installed-client compatibility evidence. No OTA published."
+  "releaseStatus": "STAGING QA blocked by unrelated legacy Home square-card assertion in original nav2 full suite (76/77 passed); branch-scoped Profile gate now runs focused profile, ad, dashboard, rank/navigation, route audit, TypeScript and Expo Android export. No OTA published. Await exact-SHA QA rerun and APK/preview evidence."
 }

@@ -15,6 +15,11 @@ test('Staging Android compile accepts only original approved nav2 plus Profile c
     assert.ok(workflow.includes(proof), 'Missing staging compatibility assertion: ' + proof);
   }
   assert.match(workflow, /npx expo export --platform android/);
+  // Original Navigation V2 full suite is preserved on its original branch.
+  assert.match(workflow, /Run combined navigation, Comment, GIF, Wall and APK regressions\n        if: github.head_ref == 'dev\/nav2-wall-stability-integration-20261113'/);
+  assert.ok(workflow.includes("if: github.head_ref == 'codex/profile-hero-compact-20261116'"));
+  assert.ok(workflow.includes('npx tsc --noEmit'));
+
   assert.doesNotMatch(workflow, /eas-cli@[^\n]*update|npx eas update --channel|channel: production/);
 });
 
